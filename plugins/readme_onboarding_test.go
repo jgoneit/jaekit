@@ -21,12 +21,12 @@ type onboardLang struct {
 var onboardKo = onboardLang{
 	readme: "../README.md", install: "../guides/INSTALL.md", usage: "../guides/USAGE.md", otherInstall: "INSTALL.en.md",
 	installDocSecs: []string{"## Release 파일로 설치", "## 로컬 경로 등록에서 옮기기", "## 소스에서 빌드 (개발)"},
-	installDoc2:    []string{"`ha 0.1.2-dev`", "아래 명령은 고치지 않고 그대로 붙여 넣습니다.", "`go env GOBIN`", "`$(go env GOPATH)/bin`"},
+	installDoc2:    []string{"`ha 0.1.3-dev`", "아래 명령은 고치지 않고 그대로 붙여 넣습니다.", "`go env GOBIN`", "`$(go env GOPATH)/bin`"},
 }
 var onboardEn = onboardLang{
 	readme: "../README.en.md", install: "../guides/INSTALL.en.md", usage: "../guides/USAGE.en.md", otherInstall: "INSTALL.md",
 	installDocSecs: []string{"## Install from a Release file", "## Move from a local path registration", "## Build from source (development)"},
-	installDoc2:    []string{"`ha 0.1.2-dev`", "Paste the commands below as they are.", "`go env GOBIN`", "`$(go env GOPATH)/bin`"},
+	installDoc2:    []string{"`ha 0.1.3-dev`", "Paste the commands below as they are.", "`go env GOBIN`", "`$(go env GOPATH)/bin`"},
 }
 
 // Blocks that both languages give the same way.

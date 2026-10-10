@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -270,11 +271,40 @@ func headings(text string) []string {
 // the example built from the templates passes lint,
 // and it keeps every heading and table header of the templates.
 func TestExampleFromTemplatesPassesLint(t *testing.T) {
-	g, err := goaldocs.Load("..", "examples/empty-input")
+	// Declarations bind committed inputs. Commit the copied public example in
+	// an isolated fixture so this check also works before a source change is
+	// committed, without weakening the production HEAD binding.
+	root := t.TempDir()
+	paths, err := filepath.Glob("../examples/empty-input/*")
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := bundle.Load("..", g)
+	paths = append(paths, "../tools/check-result-reference.py")
+	for _, source := range paths {
+		data, err := os.ReadFile(source)
+		if err != nil {
+			t.Fatal(err)
+		}
+		destination := filepath.Join(root, strings.TrimPrefix(source, "../"))
+		if err := os.MkdirAll(filepath.Dir(destination), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(destination, data, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, argv := range [][]string{{"init", "-q"}, {"add", "."}, {"commit", "-qm", "synthetic example"}} {
+		command := exec.Command("git", append([]string{"-c", "user.name=fixture", "-c", "user.email=fixture@example.invalid", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null"}, argv...)...)
+		command.Dir = root
+		if output, err := command.CombinedOutput(); err != nil {
+			t.Fatalf("fixture git: %v %s", err, output)
+		}
+	}
+	g, err := goaldocs.Load(root, "examples/empty-input")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := bundle.Load(root, g)
 	if err != nil {
 		t.Fatal(err)
 	}

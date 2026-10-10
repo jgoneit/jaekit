@@ -11,6 +11,17 @@
 - 저장소 checkout 경로로 등록해 쓰던 것을 옮길 때: [로컬 경로 등록에서 옮기기](#로컬-경로-등록에서-옮기기)
 - jaekit 자체를 고칠 때: [소스에서 빌드 (개발)](#소스에서-빌드-개발)
 
+## 배포판과 개발 조합
+
+| 구분 | Core | Spec | Seal | 적용 범위 |
+| --- | --- | --- | --- | --- |
+| 현재 배포판 `v0.1.2` | `ha 0.1.2` | 0.1.10 | 0.1.8 | 기본 규칙 `/2`; 아래 태그 고정 설치 명령의 대상 |
+| 미배포 main | `ha 0.1.3-dev` | 0.1.11 | 0.1.9 | 기본 규칙 `/3`, `nested/1`, 실행 전 dirty·복사 안전성·지원 확인, 횟수 추정·총상한 변경 |
+
+개발 조합은 아직 배포하지 않았습니다. 현재 배포판의 설치·업데이트만으로 개발 Seal의 호환 요구가 충족되지는 않습니다. 개발 Seal은 실제 사용할 Core의 지원 정보를 확인하고, 확인할 수 없거나 부족하면 기록 전에 멈춥니다. 버전 숫자만 맞추거나 구규칙으로 바꿔 진행하지 않습니다. [Core 지원 정보 계약](../contracts/core-capabilities.md)은 개발 조합에 적용됩니다.
+
+Spec은 Core 설치나 지원 조회 없이 문서를 작성합니다. 개발 Spec의 새 문서는 `nested/1`을 사용하므로 구현을 맡길 때는 그 형식을 지원하는 Core가 필요합니다. 기존 목표의 형식과 `/1`·`/2` 기록은 자동 변환하지 않습니다. 새 바이너리 배포·Homebrew 갱신·호스트 설치본의 실제 일치와 모델 지침 준수는 후속 확인 대상입니다.
+
 ## 기본 설치
 
 Git과 Codex 또는 Claude Code가 필요합니다. brew로 설치하려면 [Homebrew](https://brew.sh)도 준비합니다. 작업할 프로젝트는 Git으로 변경 이력을 관리하는 폴더여야 합니다. Jaekit 저장소를 clone(내 컴퓨터로 복사)할 필요는 없습니다.
@@ -220,14 +231,14 @@ claude plugin install seal@jaekit
 
 ## 소스에서 빌드 (개발)
 
-저장소 checkout에서 빌드한 `ha`는 개발 버전(`ha 0.1.2-dev`)을 표시합니다. Go 1.26 이상과 git이 필요합니다. checkout의 루트에서 실행합니다.
+저장소 checkout에서 빌드한 `ha`는 개발 버전(`ha 0.1.3-dev`)을 표시합니다. Go 1.26 이상과 git이 필요합니다. checkout의 루트에서 실행합니다.
 
 ```bash
 go install ./cmd/ha
 ha --version
 ```
 
-`ha` 파일은 `go env GOBIN`이 가리키는 폴더에 생기고, 그 값이 비어 있으면 `$(go env GOPATH)/bin`에 생깁니다. `ha --version`은 `ha 0.1.2-dev`를 출력합니다.
+`ha` 파일은 `go env GOBIN`이 가리키는 폴더에 생기고, 그 값이 비어 있으면 `$(go env GOPATH)/bin`에 생깁니다. `ha --version`은 `ha 0.1.3-dev`를 출력합니다. 개발 Seal은 별도로 `ha capabilities --format json`의 실제 지원 정보를 확인합니다. 선택적인 Python 호환 검사 도우미도 있지만 Python 3 설치가 Seal의 필수 조건은 아닙니다.
 
 checkout을 고치며 plugin을 쓰려면 checkout 경로를 marketplace로 등록합니다. 이 등록은 checkout의 plugin 파일을 그대로 씁니다. `<jaekit 경로>`는 checkout의 경로로 바꿉니다.
 

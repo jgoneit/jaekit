@@ -25,6 +25,7 @@ Each directory is one scenario. `cmd/ha/scenario_test.go` builds a git repositor
 | `false-progress` | EVALUATION §3 거짓 진행 기록 | `incomplete` despite PROGRESS.md saying done |
 | `failed-record-deleted` | EVALUATION §3 실패 기록 삭제 | `needs_user`, `record_integrity`; appends refused |
 | `baseline-error-retry` | EVALUATION §3.1 | `complete` |
+| `baseline-safety-refusal` | baseline preparation safety | missing overlay refused before execution under `/2`; no new check record or usage |
 | `maintain-error-retry` | EVALUATION §3.1 | `complete`, one error shown in attempts |
 | `manual-confirmed` | EVALUATION §3.1 | `complete` after a quoted confirmation |
 | `bundle-docs-only` | EVALUATION §3.1 | records stay fresh |

@@ -13,14 +13,14 @@
       "name": "spec",
       "source": "./plugins/spec",
       "description": "Turn an explicitly requested idea or change into goal documents with stable completion criteria that any coding agent can implement.",
-      "version": "0.1.10",
+      "version": "0.1.11",
       "category": "development"
     },
     {
       "name": "seal",
       "source": "./plugins/seal",
       "description": "Carry a goal document to recorded completion: the agent plans, implements, and verifies, and completion is declared only from Seal Core run records.",
-      "version": "0.1.8",
+      "version": "0.1.9",
       "category": "development"
     }
   ]

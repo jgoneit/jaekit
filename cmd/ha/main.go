@@ -24,7 +24,7 @@ import (
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
-var version = "0.1.2-dev"
+var version = "0.1.3-dev"
 
 const checkTimeout = 900 * time.Second
 
@@ -40,6 +40,7 @@ const (
 const usage = `ha — Seal Core: run records and completion for one goal
 
 Usage:
+  ha capabilities [--format json]
   ha lint   <goal>
   ha estimate <goal> [AC-n | EX-n | T001 ...] [--baseline] [--format md|json]
   ha start  <goal> --request <quote> [--skill <path to SKILL.md>]
@@ -96,6 +97,8 @@ func runMain(argv []string, stdout, stderr io.Writer) int {
 	case "--version", "version":
 		fmt.Fprintf(stdout, "ha %s\n", version)
 		return exitOK
+	case "capabilities":
+		return c.capabilities(rest)
 	case "lint":
 		return c.lint(rest)
 	case "estimate":
@@ -468,9 +471,12 @@ func (c *cli) check(in []string) int {
 		} else {
 			res, err = run.ExecWithEnv(w.repo.Root, t.argv, checkTimeout, tmp.Name(), extraEnv)
 		}
-		if start.Rules == status.RulesV3 && !res.Attempted && err == nil {
+		if baseline && !res.Attempted {
 			os.Remove(tmp.Name())
-			return c.fail(exitRefused, "before execution: baseline preparation failed; commit every check path at HEAD: %s", strings.Join(t.checks, ", "))
+			if err == nil {
+				err = errors.New("baseline preparation did not finish")
+			}
+			return c.fail(exitRefused, "before execution: baseline preparation for %s: %v; %d/%d targets executed, %d not run", t.label(), err, i, len(ts), len(ts)-i)
 		}
 		if err != nil {
 			if !res.Attempted || start.Rules != status.RulesV3 {
@@ -605,38 +611,18 @@ func (c *cli) runBaseline(w *workspace, base, head string, t target, logPath str
 		return run.Result{}, nil, err
 	}
 	defer w.repo.RemoveWorktree(tree)
-	var overlay []record.Overlay
-	for _, p := range t.checks {
-		data, ok, err := w.repo.Cat(head, p)
-		if err != nil {
-			return run.Result{}, nil, err
-		}
-		if !ok {
-			msg := fmt.Sprintf("ha: check path %s does not exist at HEAD; commit it before the baseline check\n", p)
-			if err := os.WriteFile(logPath, []byte(msg), 0o600); err != nil {
-				return run.Result{}, nil, err
-			}
-			return run.Result{Outcome: run.Error, Digest: sha([]byte(msg))}, overlay, nil
-		}
-		mode, err := w.repo.Mode(head, p)
-		if err != nil {
-			return run.Result{}, nil, err
-		}
-		perm := os.FileMode(0o644)
-		if mode == "100755" {
-			perm = 0o755
-		}
-		dst := filepath.Join(tree, filepath.FromSlash(p))
-		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
-			return run.Result{}, nil, err
-		}
-		if err := os.WriteFile(dst, data, perm); err != nil {
-			return run.Result{}, nil, err
-		}
-		if err := os.Chmod(dst, perm); err != nil {
-			return run.Result{}, nil, err
-		}
-		overlay = append(overlay, record.Overlay{Path: p, Digest: sha(data)})
+	files, err := baselineFiles(w.repo, base, head, t.checks)
+	if err != nil {
+		return run.Result{}, nil, err
+	}
+	root, err := os.OpenRoot(tree)
+	if err != nil {
+		return run.Result{}, nil, err
+	}
+	defer root.Close()
+	overlay, err := applyBaseline(root, files)
+	if err != nil {
+		return run.Result{}, nil, err
 	}
 	res, err := run.ExecWithEnv(tree, t.argv, checkTimeout, logPath, extraEnv)
 	return res, overlay, err

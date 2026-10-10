@@ -4,6 +4,8 @@
 
 This guide follows [your first task in the README](../README.en.md#your-first-task). For installation, updates, and removal, see the [install guide](INSTALL.en.md).
 
+The current release v0.1.2 combines spec 0.1.10, seal 0.1.8 and default rules `/2`. The preflight refusal and run-estimation guidance below, and the operations guide's `/3` results and budget policy, apply to unreleased main (ha 0.1.3-dev, spec 0.1.11 and seal 0.1.9). See [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
+
 ## Sending commands
 
 Send these **in the agent conversation**, not Terminal. Replace `<request>` with the work you want and `<goal>` with the goal folder name Spec reports.
@@ -60,6 +62,7 @@ Raw check output stays in `.git/ha/`, which Git does not track; you do not need 
 | An expired login, denied permission, or usage limit stops the work | Resolve the cause, then send `continue docs/specs/<goal>`. The same terminal failure is not retried |
 | Verification is refused because of uncommitted changes | Review the listed paths and tracked/untracked or symlink details, then resolve them according to the intended work. Unstarted checks consume no runs |
 | The plan budget is too small to start | Read the minimum, limit and shortfall from `ha estimate docs/specs/<goal>`. Decide a sufficient budget or split the goal before starting; this estimate does not change an existing run budget |
-| The budget ran out | Read what remains, decide whether to raise the check-run or elapsed-time limit, and say so. Seal records your words before continuing |
+| The budget ran out | Read what remains and decide whether to continue. Development `/3` can change the total run limit with your words and context, retaining usage and the time limit. Changing the elapsed-time limit is unsupported. Request an explicit reopen when a new window is needed. The release and existing `/1` or `/2` goals retain their reopen behavior with the original limits |
+| Development Seal stopped for Core compatibility | Read the executable it checked and the missing support. Installing or updating v0.1.2 does not provide the development combination. Check the [applicable versions](INSTALL.en.md#release-and-development-combinations); do not automatically install tools or switch rules |
 
 The [operations guide](OPERATIONS.md) (Korean) describes the detailed reasons for user confirmation, blocked work, and budget stops. The steps above cover what you need to respond and continue.
