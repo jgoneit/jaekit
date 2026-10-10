@@ -1,0 +1,33 @@
+name: 기능 제안 / Feature request
+description: 불편한 점이나 필요한 개선을 알려 주세요. / Suggest an improvement or a new capability.
+title: "[제안 / Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        한국어 또는 영어로 작성해 주세요. 구현 방법을 몰라도 괜찮습니다.
+        Write in Korean or English. You do not need to know how to implement the idea.
+
+        **이 issue는 공개됩니다. / This issue is public.**
+        비밀 값, 개인 정보, 비공개 코드와 문서는 포함하지 말아 주세요.
+        Do not include secrets, personal information, private code, or private documents.
+  - type: textarea
+    id: problem
+    attributes:
+      label: 어떤 상황에서 무엇이 불편했나요? / What problem would this solve?
+      description: 하려던 일과 어려웠던 점을 알려 주세요. / Describe what you were trying to do and what was difficult.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: 어떻게 달라지면 좋을까요? / What would you like to be able to do?
+      description: 원하는 결과를 적어 주세요. 구체적인 기능 이름은 없어도 됩니다. / Describe the outcome you want, even if you do not have a specific feature in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: 추가 아이디어나 참고 자료 / Ideas or context
+      description: 떠오른 해결 방법, 지금 쓰는 우회 방법, 예시가 있다면 적어 주세요. / Optionally share a possible solution, current workaround, or example.

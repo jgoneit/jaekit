@@ -1,61 +1,61 @@
 name: 설치·버그 / Install or bug
 description: 설치나 실행에서 막힌 점을 알려 주세요. / Tell us where installing or running got stuck.
 title: "[설치·버그 / Bug] "
+labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
         **이 issue는 공개됩니다. / This issue is public.**
 
-        회사 코드, 내부 이름, 비밀 값, 로그 원문은 넣지 말고 요약해 주세요.
-        Do not paste company code, internal names, secrets, or raw logs. Summarize instead.
+        한국어 또는 영어로 작성해 주세요. 환경과 버전은 아는 것만 적어도 됩니다.
+        Write in Korean or English. Share environment and version details only if you know them.
+
+        오류 메시지나 화면을 첨부할 때는 비밀 값, 개인 정보, 비공개 코드와 문서를 가려 주세요.
+        Remove secrets, personal information, private code, and private documents from errors or screenshots.
   - type: textarea
     id: symptom
     attributes:
-      label: 증상 / Symptom
-      description: 무엇이 일어났는지, 보인 오류 메시지의 요지 / What happened, and the gist of any error message
+      label: 어떤 문제가 생겼나요? / What went wrong?
+      description: 보인 증상이나 오류 메시지를 알려 주세요. / Describe the problem or error message.
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: 재현 단계 / Steps to reproduce
+      label: 문제가 생기기 전에 무엇을 했나요? / What did you do before it happened?
+      description: 기억나는 순서대로 적어 주세요. 다시 재현하지 못해도 괜찮습니다. / List what you remember; exact reproduction is not required.
       placeholder: |
-        1. brew install jgoneit/tap/jaekit
-        2. ...
+        예: 설치 안내의 명령을 실행한 뒤 Codex를 다시 열었습니다.
+        Example: I ran the command in the installation guide, then reopened Codex.
     validations:
       required: true
   - type: textarea
     id: expected
     attributes:
-      label: 기대한 것 / Expected
-    validations:
-      required: true
-  - type: input
-    id: os-cpu
-    attributes:
-      label: OS와 CPU / OS and CPU
-      placeholder: macOS 15 arm64 / Ubuntu 24.04 amd64
-    validations:
-      required: true
+      label: 어떤 결과를 기대했나요? / What did you expect?
   - type: dropdown
-    id: install-method
+    id: component
     attributes:
-      label: 설치 방법 / Install method
+      label: 관련 기능 / Affected part
+      multiple: true
       options:
-        - brew
-        - Release 파일 / Release file
-        - 소스 / Source
-    validations:
-      required: true
+        - Spec
+        - Seal
+        - ha CLI
+        - 설치·문서 / Installation or documentation
+        - 잘 모르겠어요 / Not sure
+  - type: textarea
+    id: environment
+    attributes:
+      label: 사용 환경 / Environment
+      description: 앱, 운영체제, 설치 방법과 버전을 아는 만큼 적어 주세요. / Share the app, OS, install method, and versions you know.
+      placeholder: |
+        예: Codex 앱, macOS, Jaekit 마켓플레이스에서 플러그인 설치
+        Example: Codex CLI, Ubuntu, ha installed with Homebrew
   - type: input
     id: ha-version
     attributes:
       label: ha 버전 / ha version
-      description: "`ha --version`의 출력 / Output of `ha --version`"
+      description: "ha를 설치했다면 `ha --version`으로 확인할 수 있습니다. / If ha is installed, check with `ha --version`."
       placeholder: ha 0.1.2
-  - type: input
-    id: host
-    attributes:
-      label: host와 버전 / Host and version
-      placeholder: Claude Code 2.1.291 / Codex 0.157.1
