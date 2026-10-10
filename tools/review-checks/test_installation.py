@@ -18,7 +18,8 @@ GUIDES = {"INSTALL.md": "## 업데이트", "INSTALL.en.md": "## Update"}
 CURRENT = "0.1.3"
 OLDER = ("0.0.9", "0.0.10", "0.1.1")
 NEWER = ("0.1.4", "0.1.10", "0.2.0", "1.0.0")
-SHELLS = ("/bin/bash", "/bin/zsh")
+SHELLS = tuple(os.environ.get("JAEKIT_TEST_" + name.upper()) or shutil.which(name) or name
+               for name in ("bash", "zsh"))
 
 
 def cleanup_block(case, filename):
@@ -35,7 +36,7 @@ def cleanup_block(case, filename):
 
 
 def run_cleanup(block, directory, shell, commands=None):
-    if not Path(shell).is_file():
+    if not Path(shell).is_file() or not os.access(shell, os.X_OK):
         raise RuntimeError("required test shell is unavailable: " + shell)
     env = dict(os.environ, REVIEW_INSTALL_ROOT=str(directory))
     if commands:

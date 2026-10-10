@@ -184,8 +184,12 @@ class SealCommandPosition(Case):
                         commands.append(f"ha check {GOAL} --baseline AC-1")
                     printed = form.replace("{op}", operation + (" --baseline" if operation == "check" else ""))
                     self.assertEqual(check.core_operations(printed, check.SEAL_REQUIRED), set())
-                    self.rejects("codex", self.codex_seal(commands + [printed]), "seal",
-                                 f"does not observe ha {operation}")
+                    if label in ("commit message", "python string"):
+                        with self.assertRaises(check.Unavailable):
+                            self.checker.trace("codex", self.codex_seal(commands + [printed]), "seal")
+                    else:
+                        self.rejects("codex", self.codex_seal(commands + [printed]), "seal",
+                                     f"does not observe ha {operation}")
 
     def test_printed_baseline_flag_is_not_a_baseline_attempt(self):
         for form in (f"ha check {GOAL} AC-1; echo --baseline", f'echo "ha check {GOAL} --baseline AC-1"'):
@@ -210,7 +214,12 @@ class SpecCommandPosition(Case):
                         f"# ha done {GOAL}\nls", f"zsh -lc 'echo ha start {GOAL}'"):
             with self.subTest(command=command):
                 self.assertEqual(check.core_operations(command, check.SPEC_FORBIDDEN), set())
-                self.accepts("codex", self.codex_spec(command), "spec")
+                if command.startswith("git commit "):
+                    # Message text is still data; git hooks are not observed.
+                    with self.assertRaises(check.Unavailable):
+                        self.checker.trace("codex", self.codex_spec(command), "spec")
+                else:
+                    self.accepts("codex", self.codex_spec(command), "spec")
 
     def test_claude_printed_examples_are_not_execution(self):
         for command in ("HA=/opt/ha; printf '%s' '$HA start goal'", 'echo "ha start"'):
@@ -264,6 +273,76 @@ class KeptRecognition(Case):
                          [("check", [GOAL, "--baseline", "AC-1"])])
         self.assertEqual(check.core_operations(f"ha start {GOAL}; ha done {GOAL}", check.SEAL_REQUIRED),
                          {"start", "done"})
+
+
+class UnsupportedExecution(Case):
+    def test_direct_result_bindings_and_output_preserve_native_verdicts(self):
+        def rollout(phase, code):
+            return lambda path: self.session_start() + [self.injection(phase + ":" + phase, path), {
+                "type": "response_item", "payload": {"type": "custom_tool_call", "name": "exec",
+                "call_id": "bound-direct-call", "input": code}}]
+        for declaration, output in (("const", "text"), ("let", "notify"), ("var", "text")):
+            code = f"{declaration} result = await tools.exec_command({{cmd:'ha status goal'}}); {output}(result)"
+            self.assertEqual(check.script_commands(code), ["ha status goal"])
+            value, _ = self.codex(rollout("spec", code))
+            self.accepts("codex", value, "spec")
+            code = "".join(f"{declaration} result{i} = await tools.exec_command({{cmd:{json.dumps(command)}}}); {output}(result{i});"
+                           for i, command in enumerate(SEAL_COMMANDS))
+            value, _ = self.codex(rollout("spec", "text('data')"),
+                                  seal_rollout=rollout("seal", code), seal_commands=("ls",))
+            self.accepts("codex", value, "seal")
+
+    def test_wrapper_function_shadowing_cannot_certify_absence(self):
+        for command in ("env() { ha start goal; }; env", "command() { ha start goal; }; command printf data",
+                        "exec() { ha start goal; }; exec printf data", "ha() { :; }; command ha start goal",
+                        "ha() { :; }; env ha start goal"):
+            for host in ("codex", "claude"):
+                with self.subTest(command=command, host=host):
+                    value = self.codex_spec(command) if host == "codex" else self.claude_spec(command)
+                    with self.assertRaises(check.Unavailable):
+                        self.checker.trace(host, value, "spec")
+
+    def test_data_names_do_not_allow_program_launching_or_variable_writing_options(self):
+        for command in ("rg --pre 'ha start goal' file", "rg --pre=runner file",
+                        "printf -v HA /opt/bin/ha", "printf '%n' HA",
+                        "bash ./runs-core.sh -c 'ha start goal'", "bash --help -c 'ha start goal'",
+                        "declare -i result='array[$(ha start goal)]'", "value=$(( $(ha start goal) ))",
+                        "exit 0; ha done goal", "return; ha done goal"):
+            with self.subTest(command=command):
+                with self.assertRaises(check.Unavailable):
+                    self.checker.trace("codex", self.codex_spec(command), "spec")
+
+    def test_supported_argument_data_is_not_an_option(self):
+        for command in ("rg -- --pre", "rg -e --pre file", "printf '%s\\n' 'ha start goal'"):
+            self.accepts("codex", self.codex_spec(command), "spec")
+
+    def test_indirect_javascript_and_object_overrides_are_unverified(self):
+        for script in ("await tools['exec_command']({cmd: 'ha start goal'})",
+                       "const run = tools.exec_command; await run({cmd: 'ha start goal'})",
+                       "await tools[name]({cmd: 'ha start goal'})",
+                       "await tools.exec_command({get cmd() { return 'ha start goal' }})",
+                       "await tools.exec_command({cmd: 'ls', cmd: 'ha start goal'})",
+                       "await tools.exec_command({cmd: 'ls', ...options})",
+                       "text(`${await tools.exec_command({cmd: 'ha start goal'})}`)",
+                       "await tools.exec_command({cmd: 'ha done goal', cwd: missingVariable})",
+                       "const text = other; text('data')", "const Promise = other; Promise.all([])",
+                       "const result = missingVariable; await tools.exec_command({cmd: 'ha start goal'})"):
+            with self.subTest(script=script):
+                with self.assertRaises(check.Unavailable):
+                    check.script_commands(script)
+
+    def test_unsupported_javascript_branch_does_not_certify_a_later_direct_call(self):
+        with self.assertRaises(check.Unavailable):
+            check.script_commands("if (flag) { text('data'); } await tools.exec_command({cmd: 'ls'})")
+
+    def test_unsupported_module_literals_and_binding_names_are_unverified(self):
+        for prefix in ("const if = 1", "let null = 1", "var eval = 1", "const arguments = 1",
+                       "const await = 1", "const value = 01", "const value = -01",
+                       r"const value = '\1'", r"const value = '\08'", "const value = 'raw\rline'"):
+            with self.subTest(prefix=prefix):
+                script = prefix + "; await tools.exec_command({cmd:'ha done goal'})"
+                with self.assertRaises(check.Unavailable):
+                    check.script_commands(script)
 
 
 class Documentation(unittest.TestCase):

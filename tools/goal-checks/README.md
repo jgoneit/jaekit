@@ -10,6 +10,13 @@ Both the ordinary Go runner and the document mutation probe use this rule.
 A crashing document probe cannot count as successful rejection of a sample
 statement. Diagnostics from both test and package events remain in the output.
 
+The unittest runners in `produce.py` and `tools/review-checks/produce.py` treat
+`expectedFailure` and unexpected-success results as `error/setup_error`, not
+passing checks or declared violations. This also applies when ordinary passing,
+failing or skipped cases appear in the same selected result. An independently
+reported runtime error still takes precedence as `error/execution_error`.
+Existing test-selection interfaces and undecorated test results are unchanged.
+
 ## Current files
 
 Run the current-file reference check from the checkout root:
@@ -49,9 +56,22 @@ The same explicit mode is available through
 `release-0-1-3-review-fixes/test_private_independence.py`. Neither entry point
 chooses a hidden base or runs this audit during current-file checks. This mode
 checks only the named Git range; it does not claim that a release or a private
-record was preserved. The base and head must be available locally, and a
-shallow checkout must contain the entire named range, including merge parents. Git objects
-are never fetched automatically, including lazy fetching in a partial clone.
+record was preserved. The range includes every commit reachable from head but
+not from base, including merged side branches. Each commit's added text and
+message are checked, so a later deletion or revert does not hide an earlier
+addition. Git diff attributes cannot hide added text from this audit.
+Merge-resolution text added relative to every parent at the same result location
+is checked too; text merely inherited from a parent is not a new merge addition. Existing text
+outside the named range is not scanned as a new introduction, and an empty
+range is accepted.
+
+The base and head must be available locally, and a shallow checkout must contain
+the entire named range, including merge parents. Missing commits, required
+parent relationships, trees or blobs make the audit unverified; matching endpoint
+files do not prove that the intermediate history was inspected. Git objects are
+never fetched automatically, including lazy fetching in a partial clone. Graft
+files and `GIT_GRAFT_FILE` overrides are unsupported and make the history audit
+unverified, since they can hide the original parent relationships.
 
 The audit exits 0 for accepted changes, 1 for forbidden references, and 2 with
 `UNVERIFIED` when the required history is absent. A former goal's explicit

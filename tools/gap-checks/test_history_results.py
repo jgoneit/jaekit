@@ -129,6 +129,42 @@ class AC4(HistoryCase):
             self.audit(root, base, head, 0)
             self.audit(root, head, head, 0)
 
+    def test_merge_inherited_identical_text_is_compared_at_each_result_location(self):
+        with tempfile.TemporaryDirectory() as name:
+            root, _ = repository(Path(name))
+            for filename in ("a.txt", "b.txt"):
+                (root / filename).write_text(forbidden() + "\n")
+            base = commit(root)
+            git(root, "checkout", "--quiet", "-b", "side")
+            (root / "a.txt").unlink()
+            commit(root)
+            git(root, "checkout", "--quiet", "main")
+            (root / "b.txt").unlink()
+            commit(root)
+            git(root, "merge", "--quiet", "--no-ff", "--no-commit", "side")
+            for filename in ("a.txt", "b.txt"):
+                (root / filename).write_text(forbidden() + "\n")
+            head = commit(root, "restore each file from its containing parent")
+            self.audit(root, base, head, 0)
+
+    def test_added_content_starting_with_pluses_is_not_a_patch_header(self):
+        with tempfile.TemporaryDirectory() as name:
+            root, base = repository(Path(name))
+            (root / "transient.txt").write_text("++ " + forbidden() + "\n")
+            commit(root)
+            (root / "transient.txt").unlink()
+            self.audit(root, base, commit(root), 1)
+
+    def test_diff_attributes_cannot_hide_intermediate_text(self):
+        with tempfile.TemporaryDirectory() as name:
+            root, _ = repository(Path(name))
+            (root / ".gitattributes").write_text("*.txt -diff\n")
+            base = commit(root)
+            (root / "transient.txt").write_text(forbidden() + "\n")
+            commit(root)
+            (root / "transient.txt").unlink()
+            self.audit(root, base, commit(root), 1)
+
     def test_commit_messages_and_complete_nonancestor_ranges_keep_their_meaning(self):
         with tempfile.TemporaryDirectory() as name:
             root, ancestor = repository(Path(name))
@@ -203,6 +239,25 @@ class AC5(HistoryCase):
             self.audit(root, base, "f" * 40, 2, env)
             self.audit(shallow, head, head, 0, env)
             self.assert_no_fetch(calls)
+
+    def test_grafted_parent_traversal_is_unverified_without_fetch(self):
+        for location in ("default", "environment"):
+            with self.subTest(location=location), tempfile.TemporaryDirectory() as name:
+                parent = Path(name)
+                root, base = repository(parent)
+                (root / "transient.txt").write_text(forbidden() + "\n")
+                commit(root)
+                (root / "transient.txt").unlink()
+                head = commit(root)
+                env, calls = self.no_fetch_environment(parent)
+                if location == "default":
+                    grafts = root / ".git/info/grafts"
+                else:
+                    grafts = parent / "grafts"
+                    env["GIT_GRAFT_FILE"] = str(grafts)
+                grafts.write_text(head + " " + base + "\n")
+                self.audit(root, base, head, 2, env)
+                self.assert_no_fetch(calls)
 
     def test_current_file_check_and_public_release_check_keep_separate_inputs(self):
         with tempfile.TemporaryDirectory() as name:

@@ -446,9 +446,9 @@ class Checker:
         if phase == "seal":
             require(("resume" if name == "codex" else "--resume") in argv,
                     "implementation is not a separate resumed host request")
-        commands = tool_commands(phase_events)
         require(native_tools(phase_events), "native host trace has no observed tool execution")
         calls = tool_invocations(phase_events)
+        commands = [command for _, command in calls]
         try:
             observed = execution_trace.consume(self, value, capture, calls, phase_events)
         except (execution_trace.InvalidObservation, Failure, OSError, ValueError) as error:
@@ -460,9 +460,14 @@ class Checker:
                     invocations.extend(observed[command_text])
                     consumed.add(command_text)
             else:
-                analysis = shell_analysis(command_text)
+                ids = list(dict.fromkeys(str(call_id) for call_id, text in calls if text == command_text))
+                try:
+                    analysis = shell_analysis(command_text)
+                except Unavailable as error:
+                    raise Unavailable("Core execution is unverified [" + ", ".join(ids) + "]: " + str(error)) from None
                 if analysis.unknown:
-                    raise Unavailable("Core execution is unverified: conditional, function or dynamic invocation needs original execution evidence")
+                    reasons = "; ".join(analysis.reasons) or "unresolved execution"
+                    raise Unavailable("Core execution is unverified [" + ", ".join(ids) + "]: " + reasons)
                 invocations.extend(analysis.calls)
         if phase == "spec":
             require(not any(operation in SPEC_FORBIDDEN for operation, _ in invocations),
@@ -642,50 +647,34 @@ def validate_selected_core(public_binary):
 def tool_invocations(events):
     """Native call IDs paired with their command strings, never prose IDs."""
     result = []
-    for event in events:
+    def append(call_id, name, arguments):
+        try:
+            result.extend((call_id, command) for command in call_commands(name, arguments))
+        except Unavailable as error:
+            raise Unavailable(f"native command is unverified [{call_id}]: {error}") from None
+
+    for index, event in enumerate(events):
+        fallback = f"event-{index}"
         item = event.get("item", {})
         if event.get("type") == "item.completed":
-            if item.get("type") == "command_execution" and isinstance(item.get("command"), str):
-                result.append((item.get("id"), item["command"]))
+            if item.get("type") == "command_execution":
+                append(item.get("id") or fallback, "exec_command", {"cmd": item.get("command")})
             elif item.get("type") == "mcp_tool_call":
-                result.extend((item.get("id"), c) for c in call_commands(item.get("tool", ""), item.get("arguments", {})))
+                append(item.get("id") or fallback, item.get("tool", ""), item.get("arguments", {}))
         payload = event.get("payload", {})
         if event.get("type") == "response_item" and payload.get("type") in ("function_call", "custom_tool_call"):
-            result.extend((payload.get("call_id"), c) for c in call_commands(
-                payload.get("name", ""), payload.get("arguments", payload.get("input", {}))))
+            append(payload.get("call_id") or fallback, payload.get("name", ""),
+                   payload.get("arguments", payload.get("input", {})))
         message = event.get("message", {})
         content = message.get("content") if isinstance(message, dict) else None
         for block in content if isinstance(content, list) else []:
             if isinstance(block, dict) and block.get("type") == "tool_use":
-                command_text = block.get("input", {}).get("command")
-                if isinstance(command_text, str):
-                    result.append((block.get("id"), command_text))
+                append(block.get("id") or fallback, block.get("name", ""), block.get("input", {}))
     return result
 
 
 def tool_commands(events):
-    commands = []
-    for event in events:
-        # Codex exec emits completed command_execution items.
-        item = event.get("item", {})
-        if event.get("type") == "item.completed" and item.get("type") == "command_execution":
-            if isinstance(item.get("command"), str):
-                commands.append(item["command"])
-        if event.get("type") == "item.completed" and item.get("type") == "mcp_tool_call":
-            commands.extend(call_commands(item.get("tool", ""), item.get("arguments", {})))
-        payload = event.get("payload", {})
-        if event.get("type") == "response_item" and payload.get("type") in ("function_call", "custom_tool_call"):
-            commands.extend(call_commands(payload.get("name", ""),
-                                          payload.get("arguments", payload.get("input", {}))))
-        # Claude native stream emits assistant tool_use blocks.
-        message = event.get("message", {})
-        if isinstance(message, dict):
-            for block in message.get("content", []) if isinstance(message.get("content"), list) else []:
-                if isinstance(block, dict) and block.get("type") == "tool_use":
-                    command_text = block.get("input", {}).get("command")
-                    if isinstance(command_text, str):
-                        commands.append(command_text)
-    return commands
+    return [command for _, command in tool_invocations(events)]
 
 
 def call_commands(name, arguments):
@@ -703,26 +692,203 @@ def call_commands(name, arguments):
     if isinstance(arguments, dict):
         if name.endswith("exec_command") or name in ("Bash", "bash", "shell_command"):
             text = arguments.get("cmd", arguments.get("command"))
-            return [text] if isinstance(text, str) else []
+            if not isinstance(text, str):
+                raise Unavailable("missing or unreadable command argument")
+            return [text]
         if name in ("functions.exec", "exec"):
             text = arguments.get("code", arguments.get("input", ""))
             if isinstance(text, str):
                 return script_commands(text)
+    if name.endswith("exec_command") or name in ("Bash", "bash", "shell_command", "functions.exec", "exec"):
+        raise Unavailable("missing or unreadable native command input")
     return []
 
 
-EXEC_CMD = re.compile(r"\bexec_command\s*\(\s*\{[^{}]*?(?:\bcmd|'cmd'|\"cmd\")\s*:\s*")
 JS_ESCAPES = {"n": "\n", "r": "\r", "t": "\t", "b": "\b", "f": "\f", "v": "\v", "0": "\0"}
+JS_BINDING_FORBIDDEN = set("await break case catch class const continue debugger default delete do else enum "
+                           "export extends false finally for function if implements import in instanceof "
+                           "interface let new null package private protected public return static super "
+                           "switch this throw true try typeof var void while with yield eval arguments".split())
 
 
 def script_commands(code):
-    """Literal `cmd` strings of `exec_command({cmd: …})` calls in observed JavaScript."""
-    commands = []
-    for match in EXEC_CMD.finditer(code):
-        text = js_string(code, match.end())
-        if text is not None:
-            commands.append(text)
+    """Read only a small straight-line native JavaScript observation grammar.
+
+    This is not a JavaScript evaluator. Every token must belong to an explicit
+    data declaration, output call or supported direct tool call; unsupported
+    expressions cannot silently become an empty command list.
+    """
+    tokens, commands, bindings = js_tokens(code), [], set()
+    cursor = 0
+    reserved = {"tools", "exec_command", "text", "notify", "Promise"}
+
+    def at(value):
+        return cursor < len(tokens) and tokens[cursor] == ("code", value)
+
+    def take(value):
+        nonlocal cursor
+        if not at(value):
+            raise Unavailable("unsupported JavaScript syntax; expected " + value)
+        cursor += 1
+
+    def primitive():
+        nonlocal cursor
+        if cursor >= len(tokens):
+            raise Unavailable("missing JavaScript value")
+        token = tokens[cursor]
+        if token[0] == "code" and token[1].isdigit() and len(token[1]) > 1 and token[1].startswith("0"):
+            raise Unavailable("unsupported JavaScript leading-zero number")
+        if token[0] == "string" or (token[0] == "code" and (
+                token[1] in ("true", "false", "null") or token[1].isdigit())):
+            cursor += 1
+            return token
+        if at("-") and cursor + 1 < len(tokens) and tokens[cursor + 1][0] == "code" and tokens[cursor + 1][1].isdigit():
+            if len(tokens[cursor + 1][1]) > 1 and tokens[cursor + 1][1].startswith("0"):
+                raise Unavailable("unsupported JavaScript leading-zero number")
+            cursor += 2
+            return ("code", "-" + tokens[cursor - 1][1])
+        raise Unavailable("computed or unreadable JavaScript value")
+
+    def options():
+        nonlocal cursor
+        take("{")
+        fields = {}
+        while not at("}"):
+            if cursor >= len(tokens):
+                raise Unavailable("incomplete JavaScript options")
+            kind, key = tokens[cursor]
+            if kind not in ("code", "string") or not re.fullmatch(r"[A-Za-z_$][A-Za-z0-9_$]*", key):
+                raise Unavailable("unsupported JavaScript options property")
+            cursor += 1
+            take(":")
+            value = primitive()
+            if key in fields:
+                raise Unavailable("duplicate JavaScript options property")
+            fields[key] = value
+            if at("}"):
+                break
+            take(",")
+        take("}")
+        if fields.get("cmd", (None,))[0] != "string":
+            raise Unavailable("missing or computed JavaScript cmd property")
+        return fields["cmd"][1]
+
+    def expression(depth=0):
+        nonlocal cursor
+        if depth > 32:
+            raise Unavailable("JavaScript observation is nested too deeply")
+        if at("await"):
+            cursor += 1
+            expression(depth + 1)
+            return
+        if cursor >= len(tokens):
+            raise Unavailable("missing JavaScript expression")
+        kind, name = tokens[cursor]
+        if kind == "string" or name in ("true", "false", "null", "-") or (kind == "code" and name.isdigit()):
+            primitive()
+            return
+        if name in bindings:
+            cursor += 1
+            return
+        if at("["):
+            cursor += 1
+            while not at("]"):
+                expression(depth + 1)
+                if at("]"):
+                    break
+                take(",")
+            take("]")
+            return
+        if kind != "code" or name not in reserved:
+            raise Unavailable("unsupported JavaScript execution or control flow")
+        cursor += 1
+        if name in ("tools", "Promise"):
+            take(".")
+            allowed = ("exec_command",) if name == "tools" else ("all", "allSettled")
+            if cursor >= len(tokens) or tokens[cursor][0] != "code" or tokens[cursor][1] not in allowed:
+                raise Unavailable("unsupported JavaScript tool or Promise member")
+            name = tokens[cursor][1]
+            cursor += 1
+        take("(")
+        if name == "exec_command":
+            command = options()
+            take(")")
+            commands.append(command)
+            return
+        if name in ("all", "allSettled") and not at("["):
+            raise Unavailable("unsupported JavaScript Promise argument")
+        while not at(")"):
+            expression(depth + 1)
+            if at(")"):
+                break
+            take(",")
+        take(")")
+
+    while cursor < len(tokens):
+        if at(";"):
+            cursor += 1
+            continue
+        if tokens[cursor][0] == "code" and tokens[cursor][1] in ("const", "let", "var"):
+            cursor += 1
+            if cursor >= len(tokens) or tokens[cursor][0] != "code" or not re.fullmatch(r"[A-Za-z_$][A-Za-z0-9_$]*", tokens[cursor][1]):
+                raise Unavailable("unsupported JavaScript declaration")
+            name = tokens[cursor][1]
+            if name in reserved or name in bindings or name in JS_BINDING_FORBIDDEN:
+                raise Unavailable("JavaScript binding redefinition")
+            cursor += 1
+            take("=")
+            expression()
+            bindings.add(name)
+        else:
+            expression()
+        if cursor < len(tokens):
+            take(";")
     return commands
+
+
+def js_tokens(code):
+    """Small lexical boundary: comments and plain strings never become code."""
+    result, index = [], 0
+    while index < len(code):
+        char = code[index]
+        if char.isspace():
+            index += 1
+            continue
+        if code.startswith("//", index):
+            end = code.find("\n", index)
+            index = len(code) if end < 0 else end + 1
+            continue
+        if code.startswith("/*", index):
+            end = code.find("*/", index + 2)
+            if end < 0:
+                raise Unavailable("unterminated JavaScript comment")
+            index = end + 2
+            continue
+        if char in ("'", '"', "`"):
+            start, index = index, index + 1
+            while index < len(code):
+                if code[index] == "\\":
+                    index += 2
+                elif char == "`" and code.startswith("${", index):
+                    raise Unavailable("computed JavaScript template")
+                elif code[index] == char:
+                    value = js_string(code, start)
+                    if value is None:
+                        raise Unavailable("unreadable JavaScript string")
+                    result.append(("string", value))
+                    index += 1
+                    break
+                else:
+                    index += 1
+            else:
+                raise Unavailable("unterminated JavaScript string")
+            continue
+        match = re.match(r"[A-Za-z_$][A-Za-z0-9_$]*|[0-9]+|\.\.\.|&&|\|\||=>|[{}()\[\].,:;?=+!*<>-]", code[index:])
+        if not match:
+            raise Unavailable("unsupported JavaScript token")
+        result.append(("code", match[0]))
+        index += match.end()
+    return result
 
 
 def js_string(code, start):
@@ -737,6 +903,8 @@ def js_string(code, start):
             return "".join(out)
         if char == "\\":
             escaped = code[index + 1:index + 2]
+            if escaped in "123456789\r" or (escaped == "0" and code[index + 2:index + 3].isdigit()):
+                return None
             if escaped in ("x", "u"):
                 width = 2 if escaped == "x" else 4
                 digits = code[index + 2:index + 2 + width]
@@ -749,7 +917,7 @@ def js_string(code, start):
                 out.append(JS_ESCAPES.get(escaped, escaped))
             index += 2
             continue
-        if (quote == "`" and code.startswith("${", index)) or (char == "\n" and quote != "`"):
+        if (quote == "`" and code.startswith("${", index)) or (char in "\n\r" and quote != "`"):
             return None
         out.append(char)
         index += 1

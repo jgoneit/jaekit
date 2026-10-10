@@ -235,7 +235,11 @@ def unittest_child(file, test):
         return {"status": "error", "reason": "collection_error"}
     if result.errors:
         return {"status": "error", "reason": "execution_error"}
-    if result.failures or result.unexpectedSuccesses:
+    # unittest's expected outcomes are decorator states, not evidence that a
+    # declared requirement passed or failed. They can also wrap runtime errors.
+    if result.expectedFailures or result.unexpectedSuccesses:
+        return {"status": "error", "reason": "setup_error"}
+    if result.failures:
         return {"status": "violation"}
     if len(result.skipped) == result.testsRun:
         return {"status": "skip", "reason": "skipped"}

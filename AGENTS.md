@@ -37,7 +37,9 @@ From the repository root, run before committing and before pushing or publishing
 python3 tools/verify.py
 ```
 
-This runs the same checks as both CI jobs: Go formatting, vet, tests, four-platform builds and CLI smoke checks; public file and document checks and their regression tests. Git, Python 3 and the Go version required by `go.mod` must already be installed. Failures stop validation with a nonzero exit code; validation does not install tools or rewrite source files.
+This runs the same checks as both CI jobs: Go formatting, vet, tests, four-platform builds and CLI smoke checks; public file and document checks and their regression tests. Git, Python 3 and the Go version required by `go.mod` must already be installed. The default and `go` groups also require bash and zsh on PATH for their offline shell regressions. Before any checks run, validation verifies that both selected shell executables can start and passes those same absolute paths to the regressions. Missing or unusable shells stop validation and identify the affected Go shell regressions; they are not silently skipped. Failures stop validation with a nonzero exit code; validation does not install tools or rewrite source files.
+
+The `docs` group does not add a Go or zsh prerequisite. Docker is only needed for the separately selected Linux container check, not ordinary validation or product use. The Ubuntu Go CI job prepares zsh before invoking the same verification entrypoint.
 
 Main requires the `Seal Core` and `Public documentation` checks. These rules do not make files private after they have been pushed to a public branch; run the public checks locally before publishing.
 

@@ -35,12 +35,12 @@ def run_suite(entry):
         return {"status": "error", "reason": "collection_error"}
     if result.errors:
         return {"status": "error", "reason": "execution_error"}
+    if result.expectedFailures or result.unexpectedSuccesses:
+        return {"status": "error", "reason": "setup_error"}
     if result.skipped:
         return {"status": "skip", "reason": "skipped"}
-    if result.failures or result.unexpectedSuccesses:
+    if result.failures:
         return {"status": "violation", "violation": "requirement-not-met"}
-    if result.expectedFailures:
-        return {"status": "error", "reason": "setup_error"}
     return {"status": "pass"}
 
 

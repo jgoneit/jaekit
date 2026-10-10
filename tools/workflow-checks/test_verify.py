@@ -60,6 +60,10 @@ class Fixture(unittest.TestCase):
             )
             (self.bin / name).write_text(source)
             (self.bin / name).chmod(0o700)
+        for name in ("bash", "zsh"):
+            # Availability probes are separate from verification commands.
+            (self.bin / name).write_text(f"#!{sys.executable}\nimport sys\nsys.exit(0)\n")
+            (self.bin / name).chmod(0o700)
         for name in ("check_public_tree.py", "check_public_docs.py"):
             (self.repo / "tools" / name).write_text(
                 f"NAME = {name!r}\n" + recorder +
@@ -75,17 +79,20 @@ class Fixture(unittest.TestCase):
                 "    def test_result(self):\n"
                 "        self.assertNotEqual(os.environ.get('VERIFY_TEST_FAIL'), NAME)\n"
             )
-        review = self.repo / "tools/review-checks"
-        review.mkdir()
-        for filename in ("test_observation.py", "test_installation.py", "test_producers.py"):
-            label = "review:" + filename
-            (review / filename).write_text(
-                f"NAME = {label!r}\n" + recorder +
-                "import unittest\n"
-                "class SyntheticCase(unittest.TestCase):\n"
-                "    def test_result(self):\n"
-                "        self.assertNotEqual(os.environ.get('VERIFY_TEST_FAIL'), NAME)\n"
-            )
+        for group, filenames in (
+                ("review", ("test_observation.py", "test_installation.py", "test_producers.py")),
+                ("gap", ("test_observation.py", "test_history_results.py", "test_docs_environment.py"))):
+            directory = self.repo / "tools" / (group + "-checks")
+            directory.mkdir()
+            for filename in filenames:
+                label = group + ":" + filename
+                (directory / filename).write_text(
+                    f"NAME = {label!r}\n" + recorder +
+                    "import unittest\n"
+                    "class SyntheticCase(unittest.TestCase):\n"
+                    "    def test_result(self):\n"
+                    "        self.assertNotEqual(os.environ.get('VERIFY_TEST_FAIL'), NAME)\n"
+                )
         (self.repo / "docs/specs/synthetic").mkdir(parents=True)
         (self.repo / "docs/specs/synthetic/SPEC.md").write_text("Local synthetic goal\n")
         (self.repo / "code.go").write_text("package synthetic\n")
@@ -110,7 +117,8 @@ class InvocationCases(Fixture):
         commands = self.commands()
         self.assertEqual([item["name"] for item in commands],
                          ["gofmt", "go", "go", "review:test_observation.py", "review:test_installation.py",
-                          "review:test_producers.py", "go", "go", "go", "go", "go", "ha", "ha",
+                          "review:test_producers.py", "gap:test_observation.py", "gap:test_history_results.py",
+                          "gap:test_docs_environment.py", "go", "go", "go", "go", "go", "ha", "ha",
                           "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "goal-checks", "release-checks"])
         builds = [item for item in commands if item["name"] == "go" and item["args"][0] == "build"]
         self.assertEqual([(item["goos"], item["goarch"]) for item in builds],
@@ -126,6 +134,7 @@ class InvocationCases(Fixture):
     def test_group_selection_does_not_require_unrelated_tools(self):
         (self.bin / "go").unlink()
         (self.bin / "gofmt").unlink()
+        (self.bin / "zsh").unlink()
         result = self.run_verify("docs")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual([item["name"] for item in self.commands()],
@@ -153,6 +162,9 @@ class FailureCases(Fixture):
                  ("review:test_observation.py", "Review boundaries (test_observation.py)"),
                  ("review:test_installation.py", "Review boundaries (test_installation.py)"),
                  ("review:test_producers.py", "Review boundaries (test_producers.py)"),
+                 ("gap:test_observation.py", "Review gap regressions (test_observation.py)"),
+                 ("gap:test_history_results.py", "Review gap regressions (test_history_results.py)"),
+                 ("gap:test_docs_environment.py", "Review gap regressions (test_docs_environment.py)"),
                  ("build:darwin/arm64", "Build darwin/arm64"), ("build", "Build native smoke binary"),
                  ("smoke:--version", "CLI version"), ("smoke:--help", "CLI help"),
                  ("check_public_tree.py", "Public file boundary"),
@@ -181,7 +193,7 @@ class FailureCases(Fixture):
                     self.assertEqual(last["args"], [failure.removeprefix("smoke:")])
 
     def test_missing_tools_fail_before_any_check(self):
-        for tool in ("go", "gofmt", "git"):
+        for tool in ("go", "gofmt", "git", "bash", "zsh"):
             with self.subTest(tool=tool):
                 path = self.bin / tool
                 path.rename(self.bin / (tool + "-hidden"))

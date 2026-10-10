@@ -9,11 +9,11 @@ import (
 )
 
 // currentReleaseClaim finds sentences that call a version the current
-// release, in Korean or English, with optional emphasis, code, a link label or a comma
+// release, in Korean or English, with optional emphasis, code, a link label, comma or colon
 // between the words and the version. It is applied to whole documents, so a
 // sentence wrapped across lines matches too.
 var currentReleaseClaim = regexp.MustCompile(
-	`(?i)(?:현재\s*(?:배포판|릴리스)(?:은|는|인|이|의)?|\bcurrent(?:ly)?\s+release[d]?(?:\s+is)?)[\s*_` + "`" + `,\[]*v?(\d+\.\d+\.\d+)`)
+	`(?i)(?:현재\s*(?:배포판|릴리스)(?:은|는|인|이|의)?|\bcurrent(?:ly)?\s+release[d]?(?:\s+is)?)[\s*_` + "`" + `,:\[]*v?(\d+\.\d+\.\d+)`)
 
 // Public guidance names one current release. A sentence that introduces
 // another version as the current release contradicts README and the guides

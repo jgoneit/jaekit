@@ -139,13 +139,35 @@ The available-Skill listing alone never identifies an invocation.
 Core commands are recognized only in command position. The checker reads shell
 quoting and static command words without evaluating them. Direct `ha` and paths
 ending in `/ha`, variables statically assigned in the same scope, `env`,
-`command`, `exec`, and static `bash -c` / `zsh -c` (including `-lc`) wrappers
+`command`, `exec`, and static `bash -c` / `zsh -c` (`-c`, `-lc` or `-cl`) wrappers
 remain supported. `command -v` and `-V` describe commands without running them.
 The spellings `$VAR`, `"$VAR"` and `${VAR}` use only bindings in this command;
 an assignment in another tool call does not carry over. A computed value from
 command substitution is not a static executable binding.
-Codex `exec_command` literal strings accept `cmd`, `'cmd'`, and `"cmd"` keys;
-computed JavaScript is never evaluated.
+Codex `exec_command` literal strings accept `cmd`, `'cmd'`, and `"cmd"` keys.
+The JavaScript reader accepts a small straight-line grammar: direct
+`exec_command({...})` or `tools.exec_command({...})`, optional `await`,
+`text(...)`/`notify(...)`, and explicit arrays for `Promise.all(...)` or
+`Promise.allSettled(...)`. Statements are separated by semicolons. Simple
+`const`/`let`/`var` declarations may bind these supported expressions using ASCII
+identifiers, including a direct call result followed by `text(result)` or
+`notify(result)`. This does not support invoking a bound value, reading its
+properties or using it as a computed command option. Reserved/strict-module
+names and redefinitions are excluded.
+All command options must have unique
+plain keys and string, integer, boolean or null literal values, and `cmd` must be a complete string
+literal. Single quotes, double quotes and templates without interpolation
+are supported. Legacy leading-zero numbers, octal escapes and raw line breaks
+inside single/double quotes are unverified. Comments and strings containing
+call examples stay data.
+
+Computed values, string concatenation, template interpolation, option getters,
+spread or duplicate properties, indirect/computed tool access and aliases are
+unverified. So are other JavaScript calls, option expressions and control flow,
+including a conditional statement before a later direct call: evaluating that
+statement may fail before the call is reached. The reader does not execute
+JavaScript or treat a leading literal as the whole expression. An unreadable
+native command argument is also unverified, not an absent command.
 
 Command substitution in arguments, redirection targets and here-strings is
 read, including backquotes and process substitution. In an unquoted
@@ -166,6 +188,9 @@ call, not to a different command's output or arguments.
 | `f() { ha start goal; }` without calling `f` | definition only |
 | `(HA=/opt/bin/ha); $HA start goal` | the child assignment does not identify the parent command |
 | `if false; then ha start goal; fi`, `false && ha start goal`, `f() { ha start goal; }; f` | actual execution evidence required |
+| `eval 'ha start goal'`, `source ./commands.sh`, `. ./commands.sh`, `sh ./commands.sh` | unverified: unsupported evaluation or file execution |
+| `env -S 'ha start goal'`, `env --split-string='ha start goal'`, `env -S 'printf' ha start goal` | unverified: split-string semantics are not interpreted |
+| `python3 -c 'print("ha start goal")'`, `git commit -m 'ha start goal'` | argument text is not a Core call; the interpreter or hook-capable command is unverified |
 
 Subshell, background and pipeline scopes do not leak assignments into the
 parent. Where pipeline scope depends on the shell, an unconfirmed parent value
@@ -176,10 +201,37 @@ Seal operation. Control flow unrelated to Core does not itself block a result.
 
 Computed command names, aliases, `eval`, `source`, external scripts and other
 runners such as `sudo`, `xargs`, `nohup`, `timeout` or `find -exec` are
-not interpreted. Static recognition is bounded; it does not attest to every process
-that arbitrary shell text could launch. The observer below also has an explicit
-supported scope. Unsupported execution is never replaced with a fabricated
-completion or a claim that Core did not execute.
+not interpreted and yield unverified results for both phases. The same applies
+to other executables outside the explicit data-command scope below. The reason
+identifies the native tool-call ID, or its event index when the native format
+has no ID. A complete set of visible Seal calls cannot hide an additional
+unresolved call. A complete supported observation missing a required operation
+is a requirement failure; an unsupported or unreadable observation is unverified.
+
+The data-command scope trusts conventional implementations of `:`, `true`,
+`false`, `echo`, `cat`, `ls`, `grep`, `head`, `tail`, `wc`, `pwd`, `which`, `type`,
+`cd`, `exit` and `return`; arguments are data after their substitutions have
+been read. `rg` additionally excludes `--pre`/`--pre=...` and unresolved options;
+`--` ends option recognition and `-e`/`--regexp`/`-f`/`--file` consume data.
+`printf` requires a known output format, no assignment option and no `%n`;
+only ordinary output conversions are supported. `git` is limited to `status`,
+`rev-parse` and `ls-files` as its first argument. Static assignment declarations
+such as `export HA=/opt/bin/ha` remain supported; other declaration options and
+opaque shell expansions are unverified. `env` supports assignments,
+`-i`/`--ignore-environment`, `-u`/`--unset`, `-C`/`--chdir` and `--`, with known
+option arguments. Split-string forms, other shell options and files are not
+silently stripped. `exit`/`return` accept at most one literal nonnegative integer;
+later commands are not definite execution. A function shadowing a wrapper is
+not unwrapped as that builtin. When wrapper lookup and a same-named function
+interact, execution evidence is required instead of assuming which body ran.
+
+These are name-and-argument recognition rules, assuming conventional tools,
+trusted shell startup/configuration and no hostile command replacement. They
+do not attest to every external child process or inspect binaries behind data
+command names. The observer below has a different, narrower supported scope;
+attaching its report does not make unsupported evaluators or external programs
+supported. Neither reader replays observed commands. Unsupported execution is
+never replaced with a fabricated completion or a claim that Core did not execute.
 
 ### Optional evidence from the original execution
 

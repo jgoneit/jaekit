@@ -14,6 +14,12 @@ spec.loader.exec_module(audit)
 
 
 class HistoryCompleteness(unittest.TestCase):
+    def test_patch_headers_do_not_hide_content_starting_with_pluses(self):
+        patch = ("diff --git a/file b/file\n--- a/file\n+++ b/file\n"
+                 "@@ -1 +1,2 @@\n-old\n+++ content, not a header\n+ordinary content\n"
+                 "diff --git a/other b/other\n--- a/other\n+++ b/other\n")
+        self.assertEqual(audit.added_lines(patch), {"++ content, not a header", "ordinary content"})
+
     def test_merge_with_a_missing_side_ancestor_is_unverified(self):
         with tempfile.TemporaryDirectory(prefix="jaekit-history-graph-") as directory:
             full = Path(directory) / "full"

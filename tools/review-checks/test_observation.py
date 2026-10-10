@@ -6,6 +6,7 @@ shell and a tiny executable; they do not run a host model or a real goal.
 import copy
 import importlib.util
 import json
+import os
 from pathlib import Path
 import shlex
 import shutil
@@ -73,8 +74,8 @@ class Case(base.TraceCase):
     def collected(self, script, shell="bash", core_source=None):
         collector = RELEASE / "observe.py"
         self.assertTrue(collector.is_file(), "[requirement] an original-run collector must exist")
-        shell_path = shutil.which(shell)
-        if shell_path is None:
+        shell_path = os.environ.get("JAEKIT_TEST_" + shell.upper()) or shutil.which(shell)
+        if shell_path is None or not Path(shell_path).is_file() or not os.access(shell_path, os.X_OK):
             raise RuntimeError(f"test environment lacks {shell}")
         self.count += 1
         directory = self.root / f"observation-{self.count}"
@@ -191,7 +192,8 @@ class AC3(Case):
                 self.accepts("codex", self.codex_commands("seal", codes, True), "seal")
 
     def test_dynamic_cmd_values_are_not_evaluated(self):
-        self.assertEqual(check.script_commands('tools.exec_command({"cmd": buildCommand()})'), [])
+        with self.assertRaises(check.Unavailable):
+            check.script_commands('tools.exec_command({"cmd": buildCommand()})')
 
 
 class AC4(Case):

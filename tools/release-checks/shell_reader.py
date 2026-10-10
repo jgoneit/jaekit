@@ -226,6 +226,12 @@ def function_definition(words):
 class Analysis:
     def __init__(self):
         self.calls, self.unknown = [], False
+        self.reasons = []
+
+    def unresolved(self, reason):
+        self.unknown = True
+        if reason not in self.reasons:
+            self.reasons.append(reason)
 
 
 def analyse(text):
@@ -262,6 +268,8 @@ def walk(tokens, scope, functions, result, uncertain=False, depth=0):
                 for part in word.word if isinstance(word, Redirect) else word:
                     if part[0] == "sub":
                         walk(part[1], dict(local), dict(functions), result, ambiguous, depth + 1)
+                    elif part[0] == "dynamic":
+                        result.unresolved("unsupported shell expansion")
         plain = [w for w in words if isinstance(w, list)]
         while plain and literal(plain[0]) in ("if", "then", "else", "elif", "fi", "do", "done", "while", "until", "!", "time", "esac"):
             plain = plain[1:]
@@ -291,29 +299,55 @@ def run(words, scope, functions, result, uncertain, depth):
     if not words:
         scope.update(prefix)
         return
+    wrapped = False
     while words:
         name = value(words[0], scope)
         base = PurePosixPath(name).name if name else None
+        if name in functions:
+            if wrapped:
+                result.unresolved("wrapper and shell function lookup require execution evidence")
+                return
+            break
         if base == "env":
+            wrapped = True
             words = words[1:]
             while words:
                 option, pair = value(words[0], scope), assignment(words[0])
                 if pair:
                     prefix[pair[0]] = value(pair[1], {})
                     words = words[1:]
-                elif option in ("-u", "--unset", "-C", "--chdir", "-S", "--split-string"):
+                elif option and (option.startswith("-S") or option.startswith("--split-string")):
+                    result.unresolved("unsupported env split-string execution")
+                    return
+                elif option in ("-u", "--unset", "-C", "--chdir"):
+                    if len(words) < 2 or value(words[1], scope) is None:
+                        result.unresolved("unreadable env option argument")
+                        return
                     words = words[2:]
-                elif option and option.startswith("-"):
+                elif option in ("-i", "--ignore-environment", "--") or (option and option.startswith(("--unset=", "--chdir="))):
                     words = words[1:]
+                    if option == "--":
+                        break
+                elif option and option.startswith("-"):
+                    result.unresolved("unsupported env option")
+                    return
                 else:
                     break
         elif base in ("command", "exec"):
+            wrapped = True
             words = words[1:]
             while words and (value(words[0], scope) or "").startswith("-"):
                 option = value(words[0], scope)
                 if base == "command" and option not in ("-p", "--"):
+                    if option not in ("-v", "-V"):
+                        result.unresolved("unsupported command option")
+                    return
+                if base == "exec" and option not in ("-a", "-c", "-l", "--"):
+                    result.unresolved("unsupported exec option")
                     return
                 words = words[2:] if option == "-a" else words[1:]
+                if option == "--":
+                    break
         else:
             break
     if not words:
@@ -323,31 +357,71 @@ def run(words, scope, functions, result, uncertain, depth):
     args = [value(w, scope) for w in words[1:]]
     if name in functions:
         if functions[name] is None:
-            result.unknown = True
+            result.unresolved("conditional function definition")
         else:
             walk(functions[name], scope, dict(functions), result, True, depth + 1)
     elif name in ("export", "readonly", "declare", "typeset", "local"):
         for word in words[1:]:
             pair = assignment(word)
-            if pair:
+            if pair and value(pair[1], {}) is not None:
                 scope[pair[0]] = value(pair[1], {})
+            else:
+                result.unresolved("unsupported shell declaration or assignment option")
     elif base == "ha":
         if uncertain or not args or args[0] is None:
-            result.unknown = True
+            result.unresolved("conditional or dynamic Core invocation")
         else:
             result.calls.append((args[0], args[1:]))
     elif base in ("sh", "bash", "zsh", "dash", "ksh"):
-        index = 0
-        while index < len(args) and args[index] and args[index].startswith("-"):
-            if not args[index].startswith("--") and "c" in args[index][1:]:
-                if index + 1 < len(args) and args[index + 1] is not None:
-                    walk(Lexer(args[index + 1], depth + 1).tokens(), dict(scope, **prefix), {}, result, uncertain, depth + 1)
-                else:
-                    result.unknown = True
-                return
-            index += 1
+        if len(args) >= 2 and args[0] in ("-c", "-lc", "-cl") and args[1] is not None:
+            walk(Lexer(args[1], depth + 1).tokens(), dict(scope, **prefix), {}, result, uncertain, depth + 1)
+        else:
+            result.unresolved("unsupported shell file, options or input execution")
     elif name is None:
-        result.unknown = True
+        result.unresolved("dynamic executable")
+    elif base in DATA_COMMANDS:
+        if base == "rg" and not data_rg(args):
+            result.unresolved("unsupported ripgrep preprocessor or dynamic option")
+        elif base == "printf" and not data_printf(args):
+            result.unresolved("unsupported printf format or assignment option")
+        elif base in ("exit", "return") and (len(args) > 1 or (args and not re.fullmatch(r"[0-9]+", args[0] or ""))):
+            result.unresolved("unsupported exit or return expression")
+    elif base == "git" and args and args[0] in ("status", "rev-parse", "ls-files"):
+        return
+    else:
+        result.unresolved("unsupported evaluator or executable: " + str(base))
+
+
+# Trusted conventional data/lookup commands, not a claim about arbitrary
+# replacements, shell startup hooks or every child process on the machine.
+DATA_COMMANDS = {":", "true", "false", "printf", "echo", "cat", "ls", "grep", "rg",
+                 "head", "tail", "wc", "pwd", "which", "type", "cd", "exit", "return"}
+
+
+def data_printf(args):
+    if args and args[0] == "--":
+        args = args[1:]
+    if not args or args[0] is None or args[0].startswith("-"):
+        return False
+    # Keep output conversions, never variable-writing %n or opaque formats.
+    remaining = re.sub(r"%%|%[-+ #0]*[0-9]*(?:\.[0-9]+)?[sdiouxXfeEgGcb]", "", args[0])
+    return "%" not in remaining
+
+
+def data_rg(args):
+    index = 0
+    while index < len(args):
+        arg = args[index]
+        if arg == "--":
+            return True
+        if arg is None or arg == "--pre" or arg.startswith("--pre="):
+            return False
+        if arg in ("-e", "--regexp", "-f", "--file"):
+            if index + 1 >= len(args):
+                return False
+            index += 1
+        index += 1
+    return True
 
 
 SAFE_BUILTINS = {":", "true", "false", "printf", "echo", "return", "exit",

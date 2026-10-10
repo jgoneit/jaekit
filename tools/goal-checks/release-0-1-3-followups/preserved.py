@@ -64,9 +64,51 @@ def public_boundary(problems):
             problems.append(f"{script} failed: {(proc.stdout + proc.stderr).strip()[:300]}")
 
 
+def added_lines(patch, parents=1):
+    lines, in_hunk = set(), False
+    for line in patch.splitlines():
+        if line.startswith(("diff --git ", "diff --cc ", "diff --combined ")):
+            in_hunk = False
+        elif line.startswith("@" * (parents + 1) + " "):
+            in_hunk = True
+        elif in_hunk and line.startswith("+" * parents):
+            # Inside a hunk even a line beginning with +++ is file content.
+            lines.add(line[parents:])
+    return lines
+
+
+def commit_additions(commit):
+    """Added text in this commit, excluding lines inherited from a merge parent.
+
+    Read real parent identities from the object: shallow/grafted traversal must
+    not turn a missing parent into a root commit. All parent comparisons must
+    succeed, even when another comparison already found no new lines.
+    """
+    raw = run(["git", "cat-file", "-p", commit])
+    headers, _, message = raw.partition("\n\n")
+    parents = [line[7:] for line in headers.splitlines() if line.startswith("parent ")]
+    options = ["--no-ext-diff", "--no-textconv", "--text", "--unified=0", "--no-color"]
+    if parents:
+        for parent in parents:
+            patch = run(["git", "diff", *options, parent, commit, "--"])
+        if len(parents) > 1:
+            # Combined diff aligns all parent columns at the same result line.
+            # Text present at a different path in another parent is not enough
+            # to claim that a merge added it relative to every parent.
+            patch = run(["git", "diff-tree", "-c", "--no-commit-id", "-p", *options, commit, "--"])
+    else:
+        patch = run(["git", "diff-tree", "--root", "--no-commit-id", "-p", *options, commit, "--"])
+    # Side-branch introductions are checked in their own commits. At a merge,
+    # only text added relative to every parent is new merge-resolution content.
+    return added_lines(patch, max(1, len(parents))), message.splitlines()
+
+
 def history_boundary(base, head, problems):
     if not all(re.fullmatch(r"[0-9a-f]{40}", ref or "") for ref in (base, head)):
         raise Unavailable("history audit requires explicit full base and head commit ids")
+    grafts = run(["git", "rev-parse", "--git-path", "info/grafts"]).strip()
+    if "GIT_GRAFT_FILE" in os.environ or os.path.lexists(grafts):
+        raise Unavailable("history audit does not support grafted parent relationships")
     for ref in (base, head):
         run(["git", "cat-file", "-e", ref + "^{commit}"])
     commits = set(run(["git", "rev-list", base + ".." + head]).splitlines())
@@ -77,14 +119,13 @@ def history_boundary(base, head, problems):
         shallow = Path(run(["git", "rev-parse", "--git-path", "shallow"]).strip())
         if commits.intersection(shallow.read_text(encoding="ascii").splitlines()):
             raise Unavailable("history range crosses a shallow boundary")
-    added = [line[1:] for line in run(["git", "diff", "--no-ext-diff", "--no-textconv", "--unified=0", "--no-color", base, head, "--"]).splitlines()
-             if line.startswith("+") and not line.startswith("+++")]
-    messages = run(["git", "log", "--format=%B", base + ".." + head, "--"]).splitlines()
-    for kind, lines in (("added line", added), ("commit message", messages)):
-        for line in lines:
-            for pattern in PRIVATE:
-                if pattern.search(line):
-                    problems.append(f"{kind} contains a forbidden private reference")
+    for commit in sorted(commits):
+        added, messages = commit_additions(commit)
+        for kind, lines in (("added line", sorted(added)), ("commit message", messages)):
+            for line in lines:
+                for pattern in PRIVATE:
+                    if pattern.search(line):
+                        problems.append(f"{kind} contains a forbidden private reference")
 
 
 def public_release(expected, problems):
