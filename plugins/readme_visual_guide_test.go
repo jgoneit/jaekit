@@ -13,24 +13,23 @@ import (
 )
 
 type visualLang struct {
-	readme, install, usage, flow, example, start, more, source, diagram string
-	intro, roles, stages, result                                        []string
+	readme, install, usage, flow, start, firstTask, before, more string
+	source, hero, diagram, vector                                string
+	intro                                                        []string
 }
 
 var visualLanguages = []visualLang{
 	{readme: "../README.md", install: "../guides/INSTALL.md", usage: "../guides/USAGE.md",
-		flow: "## 사용 흐름", example: "## 가상 사용 예시", start: "## 시작하기", more: "## 자세히 알아보기",
-		source: "assets/readme/SOURCES.md", diagram: "assets/readme/flow.ko.svg",
-		intro: []string{"Claude Code", "Codex", "목표", "구현", "검사", "이어"}, roles: []string{"목표", "구현"},
-		stages: []string{"요청", "Spec", "멈", "확인", "시작", "Seal", "구현", "검사", "수정", "완료", "결과"},
-		result: []string{"요청", "목표", "변경", "확인"}},
+		flow: "## 사용 흐름", start: "## 시작하기", firstTask: "### 첫 작업 맡기기", before: "## 쓰기 전에 알아두면 좋은 점", more: "## 더 알아보기",
+		source: "assets/readme/SOURCES.md", hero: "assets/readme/hero.ko.png", diagram: "assets/readme/usage-flow.ko.png", vector: "assets/readme/usage-flow.ko.svg",
+		intro: []string{"Claude Code", "Codex", "작업", "목표", "Spec", "Seal"}},
 	{readme: "../README.en.md", install: "../guides/INSTALL.en.md", usage: "../guides/USAGE.en.md",
-		flow: "## How it works", example: "## Fictional example", start: "## Get started", more: "## More",
-		source: "assets/readme/SOURCES.en.md", diagram: "assets/readme/flow.en.svg",
-		intro: []string{"Claude Code", "Codex", "goal", "implement", "check", "continue"}, roles: []string{"goal", "implement"},
-		stages: []string{"request", "Spec", "stop", "review", "start", "Seal", "implement", "check", "fix", "report", "result"},
-		result: []string{"request", "goal", "before", "after", "check"}},
+		flow: "## How it works", start: "## Get started", firstTask: "### Your first task", before: "## Before you start", more: "## More",
+		source: "assets/readme/SOURCES.en.md", hero: "assets/readme/hero.en.png", diagram: "assets/readme/usage-flow.en.png", vector: "assets/readme/usage-flow.en.svg",
+		intro: []string{"Claude Code", "Codex", "work", "goal", "Spec", "Seal"}},
 }
+
+const visualBrand = "assets/readme/brand/logo.svg"
 
 func visualRead(t *testing.T, path string) string {
 	t.Helper()
@@ -70,6 +69,49 @@ func visualPlain(text string) string {
 	return html.UnescapeString(regexp.MustCompile(`<[^>]*>`).ReplaceAllString(text, " "))
 }
 
+// Prose checks ignore presentation markup and image descriptions: a diagram's
+// alt text must not be the only explanation of the user's next action.
+func visualProse(text string) string {
+	text = regexp.MustCompile(`!\[[^\]]*\]\([^)]+\)`).ReplaceAllString(text, "")
+	return strings.NewReplacer("**", "", "`", "").Replace(visualPlain(text))
+}
+
+func visualRequirePattern(t *testing.T, name, text, pattern string) {
+	t.Helper()
+	if !regexp.MustCompile(pattern).MatchString(text) {
+		t.Errorf("%s lacks meaning matching %q", name, pattern)
+	}
+}
+
+func visualImage(t *testing.T, name, text, asset string) {
+	t.Helper()
+	markdown := regexp.MustCompile(`!\[[^\]]+\]\(` + regexp.QuoteMeta(asset) + `\)`).MatchString(text)
+	htmlAlt := strings.TrimSpace(visualAttribute(visualHTMLImage(text, asset), "alt"))
+	if !markdown && htmlAlt == "" {
+		t.Errorf("%s does not display %s with alt text", name, asset)
+	}
+	if _, err := os.Stat("../" + asset); err != nil {
+		t.Errorf("%s image is unavailable: %v", asset, err)
+	}
+}
+
+func visualAttribute(tag, name string) string {
+	match := regexp.MustCompile(`(?i)(?:^|\s)` + regexp.QuoteMeta(name) + `\s*=\s*(?:"([^"]*)"|'([^']*)')`).FindStringSubmatch(tag)
+	if match == nil {
+		return ""
+	}
+	return html.UnescapeString(match[1] + match[2])
+}
+
+func visualHTMLImage(text, asset string) string {
+	for _, tag := range regexp.MustCompile(`(?is)<img\b[^>]*>`).FindAllString(text, -1) {
+		if visualAttribute(tag, "src") == asset {
+			return tag
+		}
+	}
+	return ""
+}
+
 func visualBeforeInstall(t *testing.T, l visualLang) string {
 	t.Helper()
 	text := visualRead(t, l.readme)
@@ -96,14 +138,38 @@ func visualGuidance(t *testing.T, l visualLang) string {
 func TestReadmeVisualGuideAC1(t *testing.T) {
 	for _, l := range visualLanguages {
 		intro, _, _ := strings.Cut(visualRead(t, l.readme), "\n## ")
-		visualRequire(t, l.readme+" intro", intro, l.intro...)
-		for i, name := range []string{"Spec", "Seal"} {
-			for _, line := range strings.Split(intro, "\n") {
-				if strings.Contains(line, name) {
-					visualRequire(t, l.readme+" first "+name, line, l.roles[i])
-					break
-				}
+		visualRequire(t, l.readme+" intro", visualProse(intro), l.intro...)
+		header := regexp.MustCompile(`(?is)^\s*<h1\b[^>]*>(.*?)</h1>`).FindStringSubmatch(intro)
+		if header == nil {
+			t.Errorf("%s lacks a brand heading before the introduction and flow", l.readme)
+		} else {
+			visualImage(t, l.readme+" brand heading", header[1], visualBrand)
+			width, err := strconv.Atoi(visualAttribute(visualHTMLImage(header[1], visualBrand), "width"))
+			if err != nil || width <= 0 || width > 320 {
+				t.Errorf("%s brand heading needs a display width between 1 and 320 pixels", l.readme)
 			}
+			if strings.Contains(header[1], l.hero) {
+				t.Errorf("%s puts the large hero in the brand heading", l.readme)
+			}
+		}
+		collapsedHero := false
+		for _, detail := range regexp.MustCompile(`(?is)<details\b([^>]*)>(.*?)</details>`).FindAllStringSubmatch(intro, -1) {
+			if !strings.Contains(detail[2], l.hero) {
+				continue
+			}
+			visualImage(t, l.readme+" optional hero", detail[2], l.hero)
+			if regexp.MustCompile(`(?i)(?:^|\s)open(?:\s|=|$)`).MatchString(detail[1]) {
+				t.Errorf("%s hero details must be closed by default", l.readme)
+			} else {
+				collapsedHero = true
+			}
+		}
+		if !collapsedHero {
+			t.Errorf("%s must keep the hero in closed details before the usage flow", l.readme)
+		}
+		visibleIntro := regexp.MustCompile(`(?is)<details\b[^>]*>.*?</details>`).ReplaceAllString(intro, "")
+		if strings.Contains(visibleIntro, l.hero) {
+			t.Errorf("%s displays the large hero outside its optional details", l.readme)
 		}
 		for _, internal := range []string{"SPEC.md", "PLAN.md", "AC-1", "seq "} {
 			if strings.Contains(intro, internal) {
@@ -117,10 +183,10 @@ func TestReadmeVisualGuideAC2(t *testing.T) {
 	for _, l := range visualLanguages {
 		text := visualRead(t, l.readme)
 		at := 0
-		for _, heading := range []string{l.flow, l.example, l.start, l.more} {
+		for _, heading := range []string{l.flow, l.start, l.before, l.more} {
 			i := strings.Index(text[at:], heading+"\n")
 			if i < 0 {
-				t.Fatalf("%s lacks %s in introduction/flow/example/start/details order", l.readme, heading)
+				t.Fatalf("%s lacks %s in flow/start/guidance/details order", l.readme, heading)
 			}
 			at += i + len(heading)
 		}
@@ -130,44 +196,46 @@ func TestReadmeVisualGuideAC2(t *testing.T) {
 			anchor = "#install"
 		}
 		visualRequire(t, l.readme+" shortcut", intro, anchor)
-		if len(regexp.MustCompile(`(?m)^\| .*\|`).FindAllString(text, -1)) > 5 {
-			t.Errorf("%s repeats the illustrated flow in a long table", l.readme)
-		}
 	}
 }
 
 func TestReadmeVisualGuideAC3(t *testing.T) {
 	for _, l := range visualLanguages {
 		flow := visualSection(t, l.readme, l.flow)
-		visualRequire(t, l.readme+" flow image", flow, l.diagram)
-		diagram := visualPlain(visualRead(t, "../"+l.diagram))
-		visualRequire(t, l.diagram, diagram, l.stages...)
+		visualImage(t, l.readme+" flow", flow, l.diagram)
+		vector := visualRead(t, "../"+l.vector)
+		visualRequire(t, l.vector+" accessible original", vector, "<svg", "<title", "<desc")
+		flow = visualProse(flow)
+		readme := visualProse(visualRead(t, l.readme))
+		intro, _, _ := strings.Cut(readme, "\n## ")
 		if strings.Contains(l.readme, ".en.md") {
-			visualRequire(t, "English flow fallback", flow, "Spec", "stop", "separate", "Seal", "decision", "continue")
+			visualRequire(t, "English flow fallback", flow, "Spec", "goal", "stop", "separate", "Seal", "agent", "check", "result")
+			visualRequire(t, "English implementation role", intro+flow, "implement")
+			visualRequirePattern(t, "English resume project", readme, `(?i)same project`)
+			visualRequirePattern(t, "English resume goal", readme, `(?i)(same|previous|earlier) goal|goal you were working on`)
+			visualRequirePattern(t, "English resume action", readme, `(?i)(resume|continue).*(goal|work)|(?:goal|work).*(resume|continue)`)
 		} else {
-			visualRequire(t, "Korean flow fallback", flow, "Spec", "멈", "별도", "Seal", "결정", "이어")
+			visualRequire(t, "Korean flow fallback", flow, "Spec", "목표", "멈", "별도", "Seal", "에이전트", "검사", "결과")
+			visualRequire(t, "Korean implementation role", intro+flow, "구현")
+			visualRequirePattern(t, "Korean resume project", readme, `같은 프로젝트`)
+			visualRequirePattern(t, "Korean resume goal", readme, `(같은|이전|앞서).{0,30}목표`)
+			visualRequirePattern(t, "Korean resume action", readme, `(이어|재개)`)
 		}
 	}
 }
 
 func TestReadmeVisualGuideAC4(t *testing.T) {
 	for _, l := range visualLanguages {
-		lang := "ko"
+		example := visualSection(t, l.readme, l.firstTask)
+		visualRequire(t, l.readme+" first task", example, "$spec:spec ", "$seal:seal docs/specs/<goal>", "docs/specs/password-link")
 		if strings.Contains(l.readme, ".en.md") {
-			lang = "en"
-		}
-		asset := "assets/readme/example." + lang + ".svg"
-		example := visualSection(t, l.readme, l.example)
-		visualRequire(t, l.readme+" illustrated example", example, asset, l.source, "Spec", "Seal")
-		if !regexp.MustCompile(`!\[[^\]]+\]\(` + regexp.QuoteMeta(asset) + `\)`).MatchString(example) {
-			t.Errorf("%s does not display the illustration with alt text", l.readme)
-		}
-		illustration := visualRead(t, "../"+asset)
-		visualRequire(t, asset, illustration, "<svg", "<title", "<desc")
-		if lang == "ko" {
-			visualRequire(t, l.readme+" example", example, "요청", "목표", "비밀번호", "검사", "확인", "가상", "실행 결과나 검증을 마친 사례가 아닙니다")
+			visualRequire(t, l.readme+" fictional request", example, "password", "fictional", "goal", "separate", "conversation")
+			visualRequirePattern(t, "English example disclaimer", example, `(?i)not (an? )?(executed|verified|real) (or verified )?(case|result)`)
+			visualRequirePattern(t, "English placeholder", example, `(?i)replace.*<goal>|<goal>.*replace`)
 		} else {
-			visualRequire(t, l.readme+" example", example, "request", "goal", "password", "check", "fictional", "not an executed or verified case")
+			visualRequire(t, l.readme+" fictional request", example, "비밀번호", "가상", "목표", "별도", "대화")
+			visualRequirePattern(t, "Korean example disclaimer", example, `(실행|검증).*(사례|결과).*(아닙|아닌)`)
+			visualRequirePattern(t, "Korean placeholder", example, `<goal>.*(바꿉|바꾸|바꿀)|(?:바꿉|바꾸|바꿀).*<goal>`)
 		}
 	}
 }
@@ -175,11 +243,15 @@ func TestReadmeVisualGuideAC4(t *testing.T) {
 func TestReadmeVisualGuideAC5(t *testing.T) {
 	for _, l := range visualLanguages {
 		source := visualRead(t, "../"+l.source)
-		visualRequire(t, l.source, source, "generate-flow.py", "generate-example.py", "Python 3")
+		visualRequire(t, l.source+" maintained originals", source, filepath.Base(l.hero), filepath.Base(l.diagram), filepath.Base(l.vector), "source/")
+		visualRequire(t, l.source+" brand sources", source, "brand/logo.png", "brand/wordmark.png", "brand/symbol.png", "brand/logo.svg", "source/build_brand.py")
+		visualCheckLinks(t, "../"+l.source)
 		if strings.Contains(l.readme, ".en.md") {
-			visualRequire(t, l.source, source, "conceptual", "fictional", "not an executed result")
+			visualRequire(t, l.source, source, "conceptual", "fictional")
+			visualRequirePattern(t, "English image provenance", source, `(?i)not.{0,80}(executed|execution|result|proof)`)
 		} else {
-			visualRequire(t, l.source, source, "개념도", "가상", "실행 결과나 완료·검사 증명이 아닙니다")
+			visualRequire(t, l.source, source, "개념도", "가상")
+			visualRequirePattern(t, "Korean image provenance", source, `(실행 결과|검사 증명).{0,30}아닙`)
 		}
 		for _, path := range []string{l.readme, "../" + l.source} {
 			for _, private := range []string{"/Users/", "/home/", "ghp_", "github_pat_", "sk-proj-"} {
@@ -199,29 +271,30 @@ func TestReadmeVisualGuideAC7(t *testing.T) {
 		}
 		before := visualBeforeInstall(t, l)
 		visualRequire(t, l.readme+" prerequisites", before, "Windows", "macOS", "Linux", "Claude Code", "Codex")
-		// Check the actual completion paragraph and its linked detailed section.
-		// Words elsewhere in the document cannot stand in for this explanation.
-		flow := visualSection(t, l.readme, l.flow)
-		paragraph := ""
-		for _, candidate := range strings.Split(flow, "\n\n") {
-			if strings.HasPrefix(candidate, "완료는 ") || strings.HasPrefix(candidate, "Completion means ") {
-				paragraph = candidate
-				break
-			}
-		}
+		// Completion guidance may live in prose or a FAQ, but the README itself
+		// must still state its limits rather than relying only on a guide link.
+		prose := visualProse(text)
 		usageHeading, usageAnchor := "## 완료 보고 읽기", "완료-보고-읽기"
 		if strings.Contains(l.readme, ".en.md") {
 			usageHeading, usageAnchor = "## Reading the completion report", "reading-the-completion-report"
 		}
-		visualRequire(t, l.readme+" completion link", paragraph, "("+strings.TrimPrefix(l.usage, "../")+"#"+usageAnchor+")")
+		visualRequire(t, l.readme+" completion link", text, "("+strings.TrimPrefix(l.usage, "../")+"#"+usageAnchor+")")
 		usage := visualSection(t, l.usage, usageHeading)
 		if strings.Contains(l.readme, ".en.md") {
 			visualRequire(t, l.readme+" development status", text, "early version")
-			visualRequire(t, l.readme+" completion paragraph", paragraph, "required conditions", "recorded checks", "necessary user confirmations", "agent writes the automated checks", "not a guarantee", "flawless", "independently verified")
+			visualRequirePattern(t, "English required completion", prose, `(?i)required (completion )?conditions.{0,120}(recorded checks|check records)`)
+			visualRequirePattern(t, "English manual confirmation", prose, `(?i)(necessary|required|needed) user confirmations?`)
+			visualRequirePattern(t, "English check author", prose, `(?i)agent writes (the )?(automated )?checks|checks (are )?written by the agent`)
+			visualRequirePattern(t, "English independent assurance", prose, `(?i)not.{0,80}(independent|third.party)|(?:independent|third.party).{0,80}(not|doesn't)`)
+			visualRequirePattern(t, "English result guarantee", prose, `(?i)(not|no).{0,100}guarantee.{0,100}(flawless|defect.free)`)
 			visualRequire(t, l.usage+" completion section", usage, "Required completion conditions need recorded checks or necessary user confirmations", "Optional conditions do not block completion", "agent writes the automated checks", "not independent third-party verification")
 		} else {
 			visualRequire(t, l.readme+" development status", text, "초기 개발")
-			visualRequire(t, l.readme+" completion paragraph", paragraph, "필수 완료 조건", "검사 기록", "필요한 사용자 확인", "에이전트가 작성", "무결함", "제3자의 보증을 뜻하지")
+			visualRequirePattern(t, "Korean required completion", prose, `필수( 완료)? 조건.{0,100}검사 기록`)
+			visualRequirePattern(t, "Korean manual confirmation", prose, `필요한 사용자 확인`)
+			visualRequirePattern(t, "Korean check author", prose, `검사.{0,40}에이전트가 작성|에이전트가.{0,40}검사.{0,40}작성`)
+			visualRequirePattern(t, "Korean independent assurance", prose, `(독립|제3자).{0,100}(아닙|뜻하지|보장하지|보증하지)`)
+			visualRequirePattern(t, "Korean result guarantee", prose, `무결함.{0,80}(아닙|뜻하지|보장하지|보증하지)`)
 			visualRequire(t, l.usage+" completion section", usage, "필수 완료 조건은 검사 기록 또는 필요한 사용자 확인으로 충족", "선택 조건은 완료를 막지 않", "자동 검사는 에이전트가 작성", "제3자의 검증을 뜻하지")
 		}
 		// Preserve the former onboarding regression guard: optional conditions
@@ -278,7 +351,8 @@ func TestReadmeVisualGuideAC8(t *testing.T) {
 		before := visualBeforeInstall(t, l)
 		visualRequire(t, l.readme+" before install", before, "Homebrew", "git", "Windows", "Seal", "Spec")
 		if strings.Contains(l.readme, ".en.md") {
-			visualRequire(t, l.readme+" Windows scope", before, "does not support Windows", "has not been checked")
+			visualRequirePattern(t, l.readme+" Windows support", before, `(?i)does not support (it|Windows)|Windows.{0,80}(not supported|unsupported)`)
+			visualRequirePattern(t, l.readme+" Windows verification", before, `(?i)(has|have) not been checked`)
 		} else {
 			visualRequire(t, l.readme+" Windows scope", before, "Windows", "Seal을 쓸 수 없습니다", "아직 확인하지")
 		}
@@ -389,6 +463,11 @@ func TestReadmeVisualGuideAC10(t *testing.T) {
 	}
 	ko, en := visualLanguages[0], visualLanguages[1]
 	TestReadmeVisualGuideAC4(t)
+	koLinks := onboardNormLinks(onboardLinks(visualRead(t, ko.readme)))
+	enLinks := onboardNormLinks(onboardLinks(visualRead(t, en.readme)))
+	if strings.Join(koLinks, "\n") != strings.Join(enLinks, "\n") {
+		t.Errorf("README link destinations differ between languages:\n%v\n%v", koLinks, enLinks)
+	}
 	// Install commands stay identical; translation changes prose, not argv.
 	commands := func(text string) string {
 		var out []string

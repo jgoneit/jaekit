@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="840" viewBox="0 0 1600 840" role="img" aria-labelledby="title description" xml:lang="en">
+<title id="title">One task, from request to review.</title>
+<desc id="description">1. Describe your request to Spec, then review the goal and completion criteria. 2. Start Seal separately by specifying the goal folder in a new message. The agent builds, checks, fixes, and records progress. 3. Read the changes and check records, and review the result against the goal. To resume in a new conversation, open the same project and name the same goal. This is a concept illustration, not an actual execution result.</desc>
+<rect x="0" y="0" width="1600" height="840" rx="0" fill="#FAFBFD"/>
+<text x="64" y="61" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="700" fill="#546276" text-anchor="start">JAEKIT / HOW TO USE</text>
+<text x="1536" y="65" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="32" font-weight="700" fill="#122033" text-anchor="end">Jaekit</text>
+<text x="64" y="135" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="49" font-weight="700" fill="#122033" text-anchor="start">One task, from request to review.</text>
+<circle cx="87" cy="220" r="23" fill="#4F6CF7"/>
+<text x="87" y="229" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="700" fill="#FFFFFF" text-anchor="middle">01</text>
+<text x="122" y="231" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="27" font-weight="700" fill="#122033" text-anchor="start">Request &amp; review the goal</text>
+<circle cx="595" cy="220" r="23" fill="#168975"/>
+<text x="595" y="229" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="700" fill="#FFFFFF" text-anchor="middle">02</text>
+<text x="630" y="231" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="27" font-weight="700" fill="#122033" text-anchor="start">Start Seal separately</text>
+<circle cx="1103" cy="220" r="23" fill="#168975"/>
+<text x="1103" y="229" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="700" fill="#FFFFFF" text-anchor="middle">03</text>
+<text x="1138" y="231" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="27" font-weight="700" fill="#122033" text-anchor="start">Review changes &amp; records</text>
+<path d="M546 283L546 658" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="546" cy="426" r="23" fill="#FAFBFD"/>
+<path d="M536 426H556M549 418L557 426L549 434" fill="none" stroke="#546276" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1054 283L1054 658" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1054" cy="426" r="23" fill="#FAFBFD"/>
+<path d="M1044 426H1064M1057 418L1065 426L1057 434" fill="none" stroke="#546276" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M103 407C114 313 242 282 371 306C475 326 503 424 451 489C391 564 195 553 133 499C108 477 99 441 103 407Z" fill="#EDF0FF"/>
+<path d="M90 342H184Q202 342 202 360V402Q202 420 184 420H172L184 438L154 420H90Q72 420 72 402V360Q72 342 90 342Z" fill="#FFFFFF" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="137" y="391" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="25" font-weight="700" fill="#122033" text-anchor="middle">Request</text>
+<path d="M211 402C225 411 230 411 248 410M238 401L250 410L240 420" fill="none" stroke="#4F6CF7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M279 298H426L464 336V512Q464 526 450 526H279Q265 526 265 512V312Q265 298 279 298Z" fill="#FFFFFF" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M426 298V336H464" fill="#EDF0FF" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="285" y="352" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="34" font-weight="700" fill="#4F6CF7" text-anchor="start">Spec</text>
+<text x="286" y="391" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="26" font-weight="700" fill="#122033" text-anchor="start">Goal</text>
+<path d="M286 411H434" fill="none" stroke="#D7DFE9" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="286" y="451" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="24" font-weight="700" fill="#122033" text-anchor="start">Criteria</text>
+<rect x="286" y="470" width="20" height="20" rx="4" fill="#FFFFFF" stroke="#4F6CF7" stroke-width="3"/>
+<path d="M320 480H434" fill="none" stroke="#D7DFE9" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M466 486L466 529L478 518L490 538L500 532L488 512L505 508Z" fill="#FFFFFF" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M478 470L480 458" fill="none" stroke="#4F6CF7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M493 479L505 474" fill="none" stroke="#4F6CF7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M603 411C612 340 734 310 855 323C957 333 1011 407 982 486C953 563 809 558 704 539C632 526 594 476 603 411Z" fill="#E6F5F1"/>
+<path d="M615 289H770Q787 289 787 306V347Q787 364 770 364H744L728 382V364H615Q598 364 598 347V306Q598 289 615 289Z" fill="#FFFFFF" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="693" y="336" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="700" fill="#122033" text-anchor="middle">New message</text>
+<rect x="733" y="354" width="245" height="165" rx="16" fill="#122033"/>
+<circle cx="755" cy="375" r="4.5" fill="#FFFFFF"/>
+<circle cx="771" cy="375" r="4.5" fill="#FFFFFF"/>
+<circle cx="787" cy="375" r="4.5" fill="#FFFFFF"/>
+<text x="755" y="423" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="33" font-weight="700" fill="#FFFFFF" text-anchor="start">Seal</text>
+<path d="M854 438L840 452L854 466M898 438L912 452L898 466M882 432L869 472" fill="none" stroke="#A5E6D5" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M755 491H810" fill="none" stroke="#79D0BA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M824 491H896" fill="none" stroke="#4F6CF7" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M617 438V421Q617 412 626 412H672L688 430H752Q762 430 762 440V509Q762 520 751 520H628Q617 520 617 509Z" fill="#FFFFFF" stroke="#168975" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M617 443H762L746 520H617Z" fill="#E6F5F1" stroke="#168975" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="686" y="486" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="22" font-weight="700" fill="#122033" text-anchor="middle">Goal folder</text>
+<circle cx="963" cy="520" r="33" fill="#FFFFFF" stroke="#122033" stroke-width="3.5"/>
+<path d="M945 517A19 19 0 0 1 977 507M977 498V509H966M980 523A19 19 0 0 1 948 534M948 543V532H959" fill="none" stroke="#168975" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1109 418C1118 333 1230 297 1352 318C1474 339 1526 410 1490 485C1451 566 1286 568 1190 528C1133 505 1103 468 1109 418Z" fill="#E6F5F1"/>
+<path d="M1128 300H1259L1293 334V503Q1293 515 1281 515H1128Q1116 515 1116 503V312Q1116 300 1128 300Z" fill="#FFFFFF" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1259 300V334H1293" fill="#EDF0FF" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1134" y="352" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="27" font-weight="700" fill="#122033" text-anchor="start">Changes</text>
+<rect x="1135" y="375" width="136" height="109" rx="5" fill="#FAFBFD" stroke="#D7DFE9" stroke-width="2"/>
+<path d="M1135 397H1271" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1147" cy="386" r="2.5" fill="#546276"/>
+<circle cx="1158" cy="386" r="2.5" fill="#546276"/>
+<circle cx="1169" cy="386" r="2.5" fill="#546276"/>
+<rect x="1148" y="411" width="109" height="14" rx="3" fill="#EDF0FF"/>
+<path d="M1149 439H1255" fill="none" stroke="#D7DFE9" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1149 458H1222" fill="none" stroke="#D7DFE9" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1317 346H1448L1482 380V526Q1482 538 1470 538H1317Q1305 538 1305 526V358Q1305 346 1317 346Z" fill="#FFFFFF" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1448 346V380H1482" fill="#E6F5F1" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1320" y="402" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="700" fill="#122033" text-anchor="start">Check records</text>
+<circle cx="1331" cy="432" r="5" fill="#168975"/>
+<path d="M1349 432H1461" fill="none" stroke="#D7DFE9" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1331" cy="465" r="5" fill="#168975"/>
+<path d="M1349 465H1461" fill="none" stroke="#D7DFE9" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1331" cy="498" r="5" fill="#168975"/>
+<path d="M1349 498H1436" fill="none" stroke="#D7DFE9" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1198" cy="502" r="31" fill="#FFFFFF" stroke="#122033" stroke-width="4"/>
+<circle cx="1195" cy="499" r="12" fill="#FFFFFF" stroke="#168975" stroke-width="4"/>
+<path d="M1204 508L1217 521" fill="none" stroke="#168975" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="64" y="600" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="25.5" font-weight="400" fill="#546276" text-anchor="start">Spec drafts the goal and criteria.</text>
+<text x="64" y="637" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="25.5" font-weight="400" fill="#546276" text-anchor="start">Read them and request changes.</text>
+<text x="572" y="600" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="25.5" font-weight="400" fill="#546276" text-anchor="start">New message: specify the goal folder.</text>
+<text x="572" y="637" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="25.5" font-weight="400" fill="#546276" text-anchor="start">Your agent builds, checks, fixes,</text>
+<text x="572" y="674" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="25.5" font-weight="400" fill="#546276" text-anchor="start">and records progress.</text>
+<text x="1080" y="600" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="25.5" font-weight="400" fill="#546276" text-anchor="start">Read the changes and check records.</text>
+<text x="1080" y="637" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="25.5" font-weight="400" fill="#546276" text-anchor="start">Review whether the goal was met.</text>
+<rect x="64" y="718" width="1472" height="70" rx="14" fill="#F0F3F8"/>
+<path d="M92 748V741Q92 737 96 737H112L118 744H142Q146 744 146 748V766Q146 770 142 770H96Q92 770 92 766Z" fill="#FFFFFF" stroke="#546276" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M92 750H146L141 770H92Z" fill="#EDF0FF" stroke="#546276" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="166" y="763" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="24" font-weight="700" fill="#122033" text-anchor="start">To resume, open the same project and name the same goal in a new conversation.</text>
+<text x="1536" y="819" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="400" fill="#546276" text-anchor="end">Usage flow · Concept illustration</text>
+</svg>

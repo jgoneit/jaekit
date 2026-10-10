@@ -121,7 +121,8 @@ func TestRelease011Windows(t *testing.T) {
 	for _, l := range visualLanguages {
 		before := visualBeforeInstall(t, l)
 		if strings.Contains(l.readme, ".en.md") {
-			visualRequire(t, l.readme, before, "Seal Core", "does not support Windows", "Seal cannot run there", "Spec does not need `ha`", "has not been checked yet")
+			visualRequire(t, l.readme, before, "`ha`", "does not support Windows", "Seal cannot run there", "Spec does not need `ha`")
+			visualRequirePattern(t, l.readme+" unchecked Spec on Windows", before, `(?i)(has|have) not been checked`)
 		} else {
 			visualRequire(t, l.readme, before, "Windows", "Seal을 쓸 수 없습니다", "Spec은 `ha`가 필요 없지만", "아직 확인하지 않았습니다")
 		}
@@ -196,8 +197,11 @@ func TestRelease011UninstallGuide(t *testing.T) {
 			rel011RemoveOutput)
 		requireIn(t, l.install+" "+l.uninstall, sec, l.removeProse...)
 		forbidAll(t, l.install, "rm -rf .git/ha")
-		requireIn(t, l.readme+" "+l.installSec, read(t, l.readme),
-			"("+l.installLink+"#"+onboardSlug(strings.TrimPrefix(l.uninstall, "## "))+")")
+		// The README may link the install guide's index instead of every
+		// maintenance section directly; uninstall must remain reachable there.
+		requireIn(t, l.readme+" installation guide", read(t, l.readme), "("+l.installLink+")")
+		requireIn(t, l.install+" uninstall link", read(t, l.install),
+			"(#"+onboardSlug(strings.TrimPrefix(l.uninstall, "## "))+")")
 		if l.readme == rel011Ko.readme {
 			ko = blocks
 		} else {

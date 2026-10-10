@@ -270,8 +270,10 @@ func onboardNormLinks(links []string) []string {
 	for _, l := range links {
 		file, _, _ := strings.Cut(l, "#")
 		file = strings.Replace(file, ".en.md", ".md", 1)
-		file = strings.Replace(file, ".en.svg", ".svg", 1)
-		file = strings.Replace(file, ".ko.svg", ".svg", 1)
+		for _, ext := range []string{".svg", ".png"} {
+			file = strings.Replace(file, ".en"+ext, ext, 1)
+			file = strings.Replace(file, ".ko"+ext, ext, 1)
+		}
 		set[file] = true
 	}
 	var out []string
