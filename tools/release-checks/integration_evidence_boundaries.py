@@ -104,6 +104,21 @@ class SourceIdentityEvidence(unittest.TestCase):
                         self.fail('dirty source entered the selected check')
                 self.git('reset', '--hard', '-q', 'HEAD')
 
+    def test_staged_change_is_rejected_when_worktree_bytes_match_head(self):
+        identity = check.source_identity
+        original = self.source.read_bytes()
+        self.source.write_text('different staged source\n')
+        self.git('add', '.')
+        self.source.write_bytes(original)
+        self.assertEqual(self.git('diff', '--name-only', 'HEAD', '--'), b'')
+        self.assertTrue(self.git('diff', '--cached', '--name-only', 'HEAD', '--'))
+        index = self.root / '.git/index'
+        before = (self.source.read_bytes(), index.read_bytes())
+        with self.assertRaises(identity.SourceMismatch):
+            with identity.verified(self.root, self.tree, self.loaded):
+                self.fail('different staged source was hidden by original worktree bytes')
+        self.assertEqual((self.source.read_bytes(), index.read_bytes()), before)
+
     def test_late_changes_and_loaded_other_bytes_are_detected_without_cleanup(self):
         identity = check.source_identity
         with self.assertRaises(identity.SourceMismatch):

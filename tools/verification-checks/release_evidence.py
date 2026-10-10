@@ -56,19 +56,21 @@ def regression(filename, name=None):
 
 def ac1():
     checker = load('release_observed', 'tools/release-checks/check.py')
-    command = 'echo `unterminated\nha start goal\nha check goal --baseline AC-1\nha done goal'
-    for shell in ('bash', 'zsh'):
-        executable = ENV.get('JAEKIT_TEST_' + shell.upper()) or shutil.which(shell)
-        if not executable:
-            raise RuntimeError('required local shell unavailable: ' + shell)
-        result = run([executable, '-n', '-c', command], success=False)
-        if result.returncode == 0:
-            raise RuntimeError('controlled invalid shell fixture was unexpectedly valid')
-    try:
-        unknown = checker.shell_analysis(command).unknown
-    except checker.Unavailable:
-        unknown = True
-    require(unknown, 'invalid-syntax-certified', 'invalid actual shell syntax became a definite execution/absence claim')
+    commands = ('echo `ha start goal\nha check goal --baseline AC-1\nha done goal',
+                'echo `unterminated\nha start goal\nha check goal --baseline AC-1\nha done goal')
+    for command in commands:
+        for shell in ('bash', 'zsh'):
+            executable = ENV.get('JAEKIT_TEST_' + shell.upper()) or shutil.which(shell)
+            if not executable:
+                raise RuntimeError('required local shell unavailable: ' + shell)
+            result = run([executable, '-n', '-c', command], success=False)
+            if result.returncode == 0:
+                raise RuntimeError('controlled invalid shell fixture was unexpectedly valid')
+        try:
+            unknown = checker.shell_analysis(command).unknown
+        except checker.Unavailable:
+            unknown = True
+        require(unknown, 'invalid-syntax-certified', 'invalid actual shell syntax became a definite execution/absence claim')
     regression('integration_evidence_boundaries.py', 'SyntaxEvidence')
 
 

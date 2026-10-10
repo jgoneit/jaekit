@@ -38,7 +38,10 @@ def snapshot(root, expected_tree, loaded):
     tree = git(root, "rev-parse", "HEAD^{tree}").decode().strip()
     if tree != expected_tree:
         raise SourceMismatch("checked source tree differs from the verified release source")
-    if git(root, "diff", "--name-only", "-z", "HEAD", "--"):
+    changed = sorted(set(
+        git(root, "diff", "--cached", "--name-only", "-z", "HEAD", "--").split(b"\0")
+        + git(root, "diff", "--name-only", "-z", "--").split(b"\0")) - {b""})
+    if changed:
         raise SourceMismatch("checked source has staged or unstaged changes")
     entries = []
     for row in git(root, "ls-tree", "-rz", "HEAD").split(b"\0"):
