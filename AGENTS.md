@@ -14,7 +14,8 @@ These instructions apply to the entire repository.
 - `guides/` contains installation and usage documentation; `contracts/` defines current formats and behavior.
 - Keep documentation examples synthetic. Do not commit personal conversations, local environment details, private planning records, or raw execution output.
 - Root `docs/` is reserved for local development goals and is ignored. Test fixtures may use nested `docs/specs/` paths.
-- Keep root `docs/` as a plain folder, without a nested Git repository or a symlink to another checkout: `ha` finds the code repository from the goal path. Back up private goals to a separate repository outside this checkout; never force-add them to the public repository.
+- Keep root `docs/` as a plain folder, without a nested Git repository or a symlink to another checkout: `ha` finds the code repository from the goal path.
+- Keep goal documents local. Do not create a separate backup repository or automatically sync or transmit them. Never force-add them to the public repository.
 - Put executable checks in tracked paths outside root `docs/` so baseline checks can run from the code commit.
 - Publish only reviewed product files. Do not link public documentation to private goals or historical execution records.
 - Change the contract and implementation together when behavior changes.
@@ -30,15 +31,14 @@ These instructions apply to the entire repository.
 
 ## Validation
 
-Run before committing:
+From the repository root, run before committing and before pushing or publishing:
 
 ```bash
-gofmt -l .
-go vet ./...
-go test ./...
-go build ./cmd/ha && ./ha --version && ./ha --help
-python3 tools/check_public_tree.py
-python3 tools/check_public_docs.py
+python3 tools/verify.py
 ```
+
+This runs the same checks as both CI jobs: Go formatting, vet, tests, four-platform builds and CLI smoke checks; public file and document checks and their regression tests. Git, Python 3 and the Go version required by `go.mod` must already be installed. Failures stop validation with a nonzero exit code; validation does not install tools or rewrite source files.
+
+Main requires the `Seal Core` and `Public documentation` checks. These rules do not make files private after they have been pushed to a public branch; run the public checks locally before publishing.
 
 A document check establishes consistency, not runtime or host installation success.
