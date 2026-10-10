@@ -56,8 +56,11 @@ class Integration(unittest.TestCase):
             with self.subTest(group=group):
                 job = block(jobs, group, 2)
                 self.assertRegex(job, rf"(?m)^    name: {re.escape(name)}$")
+                # The Go job prepares its shell dependency before validation;
+                # both jobs still use the shared entrypoint for verification.
+                preparation = ["|"] if group == "go" else []
                 self.assertEqual(re.findall(r"^\s+run: (.+)$", job, flags=re.M),
-                                 [f"python3 tools/verify.py {group}"])
+                                 preparation + [f"python3 tools/verify.py {group}"])
 
     def test_required_jobs_remain_unconditional_and_use_pinned_actions(self):
         workflow = read(".github/workflows/ci.yml")

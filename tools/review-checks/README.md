@@ -8,6 +8,8 @@ records.
 `python3 tools/verify.py` runs the offline observation, installation and producer
 suites in its Go group. They require Go, Python 3, Git, bash and zsh. The ordinary
 verification path does not require Docker or query GitHub release evidence.
+The Ubuntu Go CI job prepares zsh before running these regressions. The
+verification command itself never installs tools.
 
 `produce.py AC-N` selects one acceptance suite from `suites.json`. Its structured
 report treats assertion failures as declared violations; collection failures,

@@ -23,6 +23,11 @@ jobs:
           go-version-file: go.mod
           cache: false
 
+      - name: Prepare shell regression environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y zsh
+
       - name: Verify Seal Core
         run: python3 tools/verify.py go
 
