@@ -310,7 +310,7 @@ class EvidenceLocation(unittest.TestCase):
 
     def test_source_does_not_search_the_git_directory(self):
         source = Path(__file__).with_name("check.py").read_text(encoding="utf-8")
-        self.assertNotIn("--git-common-dir", source)
+        self.assertNotIn("--git-" + "common-dir", source)
         self.assertNotIn('"ha" / "release', source)
 
 
