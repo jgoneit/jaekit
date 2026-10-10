@@ -1,0 +1,17 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-review-regressions",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/review-checks/produce.py",
+    "tools/review-checks/suites.json",
+    "tools/review-checks/test_preservation.py",
+    "tools/review-checks/preserved-public.json"
+  ],
+  "targets": [
+    {
+      "id": "AC-13",
+      "violation": "requirement-not-met"
+    }
+  ]
+}
