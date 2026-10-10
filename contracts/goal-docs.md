@@ -139,7 +139,7 @@ Seal은 목표 문서를 읽을 때 형식만 확인한다(`ha lint`). 예: ID �
 
 ## 5. 플러그인과 템플릿
 
-Spec의 [사용 규칙](../plugins/spec/skills/spec/SKILL.md)과 [문서 형식 안내](../plugins/spec/skills/spec/references/goal-docs.md)는 플러그인에 함께 배포된다. 문서의 깊이는 변경 위험도에 맞추고, 필요 없는 빈 절은 만들지 않는다.
+Spec의 [사용 규칙](https://github.com/jgoneit/jaekit/blob/v0.1.3/plugins/spec/skills/spec/SKILL.md)과 [문서 형식 안내](https://github.com/jgoneit/jaekit/blob/v0.1.3/plugins/spec/skills/spec/references/goal-docs.md)는 플러그인에 함께 배포된다. 문서의 깊이는 변경 위험도에 맞추고, 필요 없는 빈 절은 만들지 않는다.
 
 ## 6. 쓰는 과정
 

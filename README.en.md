@@ -12,9 +12,9 @@
 
 Jaekit is a tool for **people working on projects with Codex or Claude Code**. **Spec** turns a request into a goal and conditions for completion. **Seal** guides the agent through implementation, checks, and fixes against that goal. You receive the result and a record of what was verified. If the conversation ends, it can continue from the saved progress.
 
-The current release is **v0.1.2**, an early version being refined through real work.
+The current release is **v0.1.3**, an early version being refined through real work.
 
-The installation commands on this page install v0.1.2 (spec 0.1.10 and seal 0.1.8). The development combination on main (ha 0.1.3-dev, spec 0.1.11 and seal 0.1.9) is unreleased. See [Release and development combinations](guides/INSTALL.en.md#release-and-development-combinations) for the scope of new document formats and compatibility checks.
+The installation commands on this page install v0.1.3 (ha 0.1.3, spec 0.1.11 and seal 0.1.9). New goals use `/3` rules, and Seal first checks the capabilities of the Core it will run. Existing goals keep their saved rules. See [Release and development combinations](guides/INSTALL.en.md#release-and-development-combinations) and [Get the reference check](guides/INSTALL.en.md#get-the-reference-check).
 
 ## How it works
 
@@ -56,17 +56,17 @@ The record tool `ha` (Seal Core) does not support Windows, so Seal cannot run th
    ha --version
    ```
 
-   It should print `ha 0.1.2`. If it prints another version or the command is missing, see [Check the version](guides/INSTALL.en.md#check-the-version).
+   It should print `ha 0.1.3`. If it prints another version or the command is missing, see [Check the version](guides/INSTALL.en.md#check-the-version).
 
 2. **In the same Terminal, install both plugins in Codex.** A plugin adds capabilities to the agent.
 
    ```bash
-   codex plugin marketplace add jgoneit/jaekit@v0.1.2
+   codex plugin marketplace add jgoneit/jaekit@v0.1.3
    codex plugin add spec@jaekit
    codex plugin add seal@jaekit
    ```
 
-   `@v0.1.2` pins the version to use. Reopen Codex after installation. If you already installed Jaekit, first see [Update](guides/INSTALL.en.md#update) or [Move from a local path registration](guides/INSTALL.en.md#move-from-a-local-path-registration).
+   `@v0.1.3` pins the version to use. Reopen Codex after installation. If you already installed Jaekit, first see [Update](guides/INSTALL.en.md#update) or [Move from a local path registration](guides/INSTALL.en.md#move-from-a-local-path-registration).
 
 ### Your first task
 

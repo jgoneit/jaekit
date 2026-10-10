@@ -96,6 +96,8 @@
 
 [참조 생산자](../tools/check-result-reference.py)는 Python 3 표준 라이브러리만 사용한다. 필요한 프로젝트에 복사해 추적하고 선언·설정과 함께 검사 경로에 넣는다. 다른 러너·의존성을 자동 설치하지 않는다. pytest·Vitest·Playwright 어댑터가 내장돼 있다는 뜻이 아니다.
 
+v0.1.3 직접 설치와 Homebrew는 이 생산자와 [합성 예시](../examples/check-result/README.md)를 함께 제공한다. 개발 checkout 없이 [참조 검사 가져오기](../guides/INSTALL.md#참조-검사-가져오기)의 배포 경로에서 복사할 수 있다([English](../guides/INSTALL.en.md#get-the-reference-check)). Python은 이 생산자를 선택할 때만 필요하며 Spec·Seal의 공통 필수 의존성이 아니다.
+
 ### 참조 설정 예시 (`checks/reference.json`)
 
 ```json

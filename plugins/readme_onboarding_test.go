@@ -33,10 +33,10 @@ var onboardEn = onboardLang{
 const (
 	onboardBrew   = "brew install jgoneit/tap/jaekit\n"
 	onboardCheck  = "ha --version\nwhich -a ha\n"
-	onboardClaude = "claude plugin marketplace add jgoneit/jaekit#v0.1.2\nclaude plugin install spec@jaekit\nclaude plugin install seal@jaekit\n"
-	onboardCodex  = "codex plugin marketplace add jgoneit/jaekit@v0.1.2\ncodex plugin add spec@jaekit\ncodex plugin add seal@jaekit\n"
-	onboardMoveCC = "claude plugin marketplace remove jaekit\nclaude plugin marketplace add jgoneit/jaekit#v0.1.2\nclaude plugin install spec@jaekit\nclaude plugin install seal@jaekit\n"
-	onboardMoveCX = "codex plugin marketplace remove jaekit\ncodex plugin marketplace add jgoneit/jaekit@v0.1.2\ncodex plugin add spec@jaekit\ncodex plugin add seal@jaekit\n"
+	onboardClaude = "claude plugin marketplace add jgoneit/jaekit#v0.1.3\nclaude plugin install spec@jaekit\nclaude plugin install seal@jaekit\n"
+	onboardCodex  = "codex plugin marketplace add jgoneit/jaekit@v0.1.3\ncodex plugin add spec@jaekit\ncodex plugin add seal@jaekit\n"
+	onboardMoveCC = "claude plugin marketplace remove jaekit\nclaude plugin marketplace add jgoneit/jaekit#v0.1.3\nclaude plugin install spec@jaekit\nclaude plugin install seal@jaekit\n"
+	onboardMoveCX = "codex plugin marketplace remove jaekit\ncodex plugin marketplace add jgoneit/jaekit@v0.1.3\ncodex plugin add spec@jaekit\ncodex plugin add seal@jaekit\n"
 	onboardDev    = "go install ./cmd/ha\nha --version\n"
 )
 

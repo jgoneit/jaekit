@@ -10,8 +10,8 @@ import (
 // without cloning Jaekit or preparing Go, and can update or remove it later.
 
 const (
-	rel011Tag     = "v0.1.2"
-	rel011Version = "0.1.2"
+	rel011Tag     = "v0.1.3"
+	rel011Version = "0.1.3"
 )
 
 type rel011Lang struct {
@@ -26,7 +26,7 @@ var rel011Ko = rel011Lang{
 	readme: "../README.md", install: "../guides/INSTALL.md", installLink: "guides/INSTALL.md",
 	quick: "## 시작하기", installSec: "### 설치",
 	release: "## Release 파일로 설치", update: "## 업데이트", uninstall: "## 제거",
-	updateProse: []string{"(#release-파일로-설치)", "`ha 0.1.2`"},
+	updateProse: []string{"(#release-파일로-설치)", "`ha 0.1.3`"},
 	removeProse: []string{"`docs/specs/<goal>/`", "`runs.jsonl`", "`.git/ha/`", "`git rev-parse --absolute-git-dir`", "`git rm -r docs/specs/<goal>`",
 		"linked worktree", "그 작업 트리에 있는 모든 목표의 검사 출력 원문이 지워집니다.", "Jaekit의 검사가 돌고 있지 않을 때"},
 }
@@ -35,7 +35,7 @@ var rel011En = rel011Lang{
 	readme: "../README.en.md", install: "../guides/INSTALL.en.md", installLink: "guides/INSTALL.en.md",
 	quick: "## Get started", installSec: "### Install",
 	release: "## Install from a Release file", update: "## Update", uninstall: "## Uninstall",
-	updateProse: []string{"(#install-from-a-release-file)", "`ha 0.1.2`"},
+	updateProse: []string{"(#install-from-a-release-file)", "`ha 0.1.3`"},
 	removeProse: []string{"`docs/specs/<goal>/`", "`runs.jsonl`", "`.git/ha/`", "`git rev-parse --absolute-git-dir`", "`git rm -r docs/specs/<goal>`",
 		"linked worktree", "It removes the raw check output of every goal in that working tree.", "while no Jaekit check is running"},
 }
@@ -76,7 +76,7 @@ func TestRelease011SealMissingHa(t *testing.T) {
 	}
 	requireIn(t, "seal SKILL.md missing-ha instruction", line,
 		"record nothing", "stop",
-		"`brew install jgoneit/tap/jaekit`", "https://github.com/jgoneit/jaekit/blob/main/guides/INSTALL.md",
+		"`brew install jgoneit/tap/jaekit`", "https://github.com/jgoneit/jaekit/blob/v0.1.3/guides/INSTALL.md",
 		"Windows is not supported", "PATH", "`which -a ha`", "only for developing Jaekit")
 	if strings.Contains(skill, "from the jaekit repository") {
 		t.Error("seal SKILL.md still sends users to the jaekit repository to install ha")
@@ -211,7 +211,7 @@ func TestRelease011Pins(t *testing.T) {
 	for _, path := range []string{"../README.md", "../README.en.md", "../guides/INSTALL.md", "../guides/INSTALL.en.md",
 		"../.github/ISSUE_TEMPLATE/usage-report.yml", "../.github/ISSUE_TEMPLATE/install-bug.yml"} {
 		text := read(t, path)
-		// 0.1.2-dev, the version a checkout build prints, is not a release.
+		// 0.1.3-dev, the version a checkout build prints, is not a release.
 		if m := regexp.MustCompile(`[^\n]*\b0\.1\.0([^-\d]|$)[^\n]*`).FindString(text); m != "" {
 			t.Errorf("%s still guides 0.1.0: %s", path, strings.TrimSpace(m))
 		}

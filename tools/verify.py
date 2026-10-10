@@ -59,7 +59,9 @@ def verify_docs(env: dict[str, str]):
     run("Public file boundary", [sys.executable, "tools/check_public_tree.py"], env)
     run("Public documentation", [sys.executable, "tools/check_public_docs.py"], env)
     for label, directory in (("Public checker regressions", "public-checks"),
-                             ("Workflow regressions", "workflow-checks")):
+                             ("Workflow regressions", "workflow-checks"),
+                             ("Release archive regressions", "release"),
+                             ("Release acceptance checker regressions", "release-checks")):
         run(label, [sys.executable, "-m", "unittest", "discover", "-s", f"tools/{directory}",
                     "-p", "test_*.py"], env)
 

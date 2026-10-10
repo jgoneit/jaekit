@@ -2,10 +2,11 @@
 
 [한국어](INSTALL.md) · **English**
 
-Installation, updates, and removal for the current release, `v0.1.2`. Supported platforms are macOS and Linux on arm64 and amd64. Run the commands below **in Terminal**. After installing, see [your first task](../README.en.md#your-first-task) for what to send to the agent.
+Installation, updates, and removal for the current release, `v0.1.3`. Supported platforms are macOS and Linux on arm64 and amd64. Run the commands below **in Terminal**. After installing, see [your first task](../README.en.md#your-first-task) for what to send to the agent.
 
 - First installation: [Basic install](#basic-install)
 - Without brew: [Install from a Release file](#install-from-a-release-file)
+- To use the reference producer and example: [Get the reference check](#get-the-reference-check)
 - Moving to a new version: [Update](#update)
 - Stopping using it: [Uninstall](#uninstall)
 - Moving from a registration that points at a repository checkout: [Move from a local path registration](#move-from-a-local-path-registration)
@@ -15,12 +16,13 @@ Installation, updates, and removal for the current release, `v0.1.2`. Supported 
 
 | Combination | Core | Spec | Seal | Scope |
 | --- | --- | --- | --- | --- |
-| Current release `v0.1.2` | `ha 0.1.2` | 0.1.10 | 0.1.8 | Default rules `/2`; the pinned installation commands below |
-| Unreleased main | `ha 0.1.3-dev` | 0.1.11 | 0.1.9 | Default rules `/3`, `nested/1`, dirty/copy-safety and compatibility preflight, run estimation and total-limit changes |
+| Current release `v0.1.3` | `ha 0.1.3` | 0.1.11 | 0.1.9 | Default rules `/3`, `nested/1`, dirty/copy-safety and compatibility preflight, run estimation and total-limit changes |
+| Previous release `v0.1.2` | `ha 0.1.2` | 0.1.10 | 0.1.8 | Default rules `/2`; does not meet the new Seal's support requirements |
+| Source build | `ha 0.1.3-dev` | Checkout version | Checkout version | Development identity; not evidence of installing a release artifact |
 
-The development combination is unreleased. Installing or updating the current release does not satisfy the development Seal's requirements. Development Seal checks the actual Core executable's capabilities and stops before recording if support is missing or cannot be established. Matching version numbers or switching to older rules does not establish compatibility. The [Core capabilities contract](../contracts/core-capabilities.md) applies to the development combination.
+The tag-pinned installation commands below install v0.1.3. Seal checks the actual Core executable's capabilities and stops before recording if support is missing or cannot be established. Matching version numbers or switching to older rules does not establish compatibility. See the [Core capabilities contract](../contracts/core-capabilities.md) for the required support.
 
-Spec writes documents without installing Core or querying its capabilities. New development Spec documents use `nested/1`, so implementing them requires a Core that supports that format. Existing document formats and `/1` or `/2` records are not converted automatically. Publishing binaries, updating Homebrew, checking installed host versions and evaluating model adherence remain follow-up work.
+Spec writes documents without installing Core or querying capabilities. New Spec 0.1.11 documents use `nested/1`, so implementation needs a Core that supports that format. Updates do not change existing goal formats, `/1`, `/2` or `/3` records, usage or time limits. See the [v0.1.3 release notes](https://github.com/jgoneit/jaekit/releases/tag/v0.1.3) for the scope of actual host checks.
 
 ## Basic install
 
@@ -43,7 +45,7 @@ ha --version
 which -a ha
 ```
 
-`ha --version` should print `ha 0.1.2`. The first line from `which -a ha` is the file that actually runs. PATH lists the folders to search for commands, in order. If the version differs, check this path first. If an older file built with `go install` comes first, remove that file or change your PATH order. It lives in the folder printed by `go env GOBIN`, or in `$(go env GOPATH)/bin` when that is empty.
+`ha --version` should print `ha 0.1.3`. The first line from `which -a ha` is the file that actually runs. PATH lists the folders to search for commands, in order. If the version differs, check this path first. If an older file built with `go install` comes first, remove that file or change your PATH order. It lives in the folder printed by `go env GOBIN`, or in `$(go env GOPATH)/bin` when that is empty.
 
 If the command is missing and `which -a ha` is empty, check that installation finished and that its folder is on PATH. Reopen Codex or Claude Code after setting it so the agent can also find `ha`.
 
@@ -52,12 +54,12 @@ If the command is missing and `which -a ha` is empty, check that installation fi
 First [install ha](#install-ha) and [check its version](#check-the-version). The installation commands below require [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), the Terminal tool. Plugins work in Codex CLI and the desktop app; the Codex IDE extension does not support them.
 
 ```bash
-codex plugin marketplace add jgoneit/jaekit@v0.1.2
+codex plugin marketplace add jgoneit/jaekit@v0.1.3
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-`@v0.1.2` pins the marketplace (the source of the plugin list) to that tag. Even when main changes, you get the release's spec 0.1.10 and seal 0.1.8.
+`@v0.1.3` pins the marketplace (the source of the plugin list) to that tag. Even when main changes, you get the release's spec 0.1.11 and seal 0.1.9.
 
 Reopen Codex, type `$` in the conversation, and choose Jaekit's `spec:spec` or `seal:seal`. The invocation names are `$spec:spec` and `$seal:seal`. Follow [your first task](../README.en.md#your-first-task). If you confuse them with another plugin, see [troubleshooting](USAGE.en.md#troubleshooting).
 
@@ -66,19 +68,19 @@ Reopen Codex, type `$` in the conversation, and choose Jaekit's `spec:spec` or `
 First [install ha](#install-ha) and [check its version](#check-the-version). Then install the plugins in Claude Code with the commands below.
 
 ```bash
-claude plugin marketplace add jgoneit/jaekit#v0.1.2
+claude plugin marketplace add jgoneit/jaekit#v0.1.3
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 claude plugin list
 ```
 
-`#v0.1.2` pins the marketplace to that tag. Check that `spec@jaekit` and `seal@jaekit` are enabled in the list. If you confuse them with another plugin, see [troubleshooting](USAGE.en.md#troubleshooting).
+`#v0.1.3` pins the marketplace to that tag. Check that `spec@jaekit` and `seal@jaekit` are enabled in the list. If you confuse them with another plugin, see [troubleshooting](USAGE.en.md#troubleshooting).
 
 Reopen Claude Code and use `/spec:spec <request>` in the conversation to define the goal, then `/seal:seal docs/specs/<goal>` in a separate message to start implementation. Plugin skills use `/plugin-name:skill-name`. The [usage guide](USAGE.en.md#sending-commands) explains how to review the goal and continue a task.
 
 ## Install from a Release file
 
-Instead of brew, you can install from the file `ha_0.1.2_<os>_<arch>.tar.gz` in the [v0.1.2 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1.2). `<os>` is `darwin` (macOS) or `linux`, and `<arch>` is `arm64` (Apple Silicon and others) or `amd64` (Intel and others).
+Instead of brew, you can install from the file `ha_0.1.3_<os>_<arch>.tar.gz` in the [v0.1.3 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1.3). `<os>` is `darwin` (macOS) or `linux`, and `<arch>` is `arm64` (Apple Silicon and others) or `amd64` (Intel and others).
 
 Paste the commands below as they are. They pick the file for your OS and CPU, verify its checksum, and put it at `~/.local/bin/ha`. On an unsupported OS or CPU they stop without downloading or installing anything.
 
@@ -95,10 +97,11 @@ Paste the commands below as they are. They pick the file for your OS and CPU, ve
     x86_64 | amd64) arch=amd64 ;;
     *) echo "This CPU is not supported: $(uname -m)" >&2; exit 1 ;;
   esac
-  name="ha_0.1.2_${os}_${arch}"
-  url="https://github.com/jgoneit/jaekit/releases/download/v0.1.2"
+  name="ha_0.1.3_${os}_${arch}"
+  url="https://github.com/jgoneit/jaekit/releases/download/v0.1.3"
   tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"' EXIT
+  binary_tmp=
+  trap 'rm -rf "$tmp"; if [ -n "$binary_tmp" ]; then rm -f "$binary_tmp"; fi' EXIT
   cd "$tmp"
   curl -fsSLO "$url/$name.tar.gz"
   curl -fsSLO "$url/checksums.txt"
@@ -109,17 +112,82 @@ Paste the commands below as they are. They pick the file for your OS and CPU, ve
     shasum -a 256 -c "$name.sha256"
   fi
   tar -xzf "$name.tar.gz"
-  mkdir -p "$HOME/.local/bin"
-  mv "$name/ha" "$HOME/.local/bin/ha"
+  mkdir "$tmp/public"
+  cp -R "$name/tools" "$name/examples" "$name/guides" "$name/contracts" "$name/assets" "$tmp/public/"
+  cp "$name/README.md" "$name/README.en.md" "$name/LICENSE" "$tmp/public/"
+  share="$HOME/.local/share/jaekit/0.1.3"
+  if [ -e "$share" ] || [ -L "$share" ]; then
+    if [ ! -d "$share" ] || [ -L "$share" ]; then
+      echo "Release data path is not an ordinary directory: $share" >&2
+      exit 1
+    fi
+    if ! diff -qr "$tmp/public" "$share"; then
+      echo "Existing v0.1.3 data differs; nothing was replaced: $share" >&2
+      exit 1
+    fi
+  else
+    mkdir -p "$HOME/.local/share/jaekit"
+    mv "$tmp/public" "$share"
+  fi
+  bin="$HOME/.local/bin"
+  mkdir -p "$bin"
+  if [ -e "$bin/ha" ] || [ -L "$bin/ha" ]; then
+    if [ ! -f "$bin/ha" ] || [ -L "$bin/ha" ]; then
+      echo "Existing ha path is not an ordinary file; nothing was replaced: $bin/ha" >&2
+      exit 1
+    fi
+  fi
+  binary_tmp="$(mktemp "$bin/.ha.XXXXXX")"
+  cp "$name/ha" "$binary_tmp"
+  chmod 755 "$binary_tmp"
+  mv -f "$binary_tmp" "$bin/ha"
+  binary_tmp=
   echo "Installed: $HOME/.local/bin/ha ($name)"
 )
 ```
 
 If `~/.local/bin` is not on your PATH, add `export PATH="$HOME/.local/bin:$PATH"` to your shell config (such as `~/.zshrc`). If macOS blocks a file you downloaded with a browser, clear it with `xattr -d com.apple.quarantine ~/.local/bin/ha`. Then [check the version](#check-the-version) and install the plugins for [Codex](#codex) or [Claude Code](#claude-code).
 
+## Get the reference check
+
+The v0.1.3 archive includes `tools/check-result-reference.py` and `examples/check-result/`. Copy them into your project without a development checkout or Go installation. This producer uses only the Python 3 standard library. Python is needed only when choosing this check, not for Spec or Seal in general. The implementing agent chooses other runners; automatic pytest, Vitest and Playwright adapters are not included.
+
+From your project root, run **one block** for your installation method to select the public data path. Homebrew stores it under `pkgshare`:
+
+```bash
+package_root="$(brew --prefix jaekit)/share/jaekit"
+```
+
+The direct-install commands above retain the checksum-verified public data in the versioned directory below. If data for that version already exists, identical contents are reused; different contents stop installation before replacing the binary. For a direct installation, use:
+
+```bash
+package_root="$HOME/.local/share/jaekit/0.1.3"
+```
+
+Then run the following from the project root in the same terminal. It stops if any example destination already exists instead of overwriting it.
+
+```bash
+(
+  set -e
+  for file in tools/check-result-reference.py checks/declaration.json checks/reference.json sample/input.txt; do
+    if [ -e "$file" ] || [ -L "$file" ]; then
+      echo "File already exists; choose other paths before copying: $file" >&2
+      exit 1
+    fi
+  done
+  mkdir -p tools checks sample
+  cp "$package_root/tools/check-result-reference.py" tools/
+  cp "$package_root/examples/check-result/declaration.json" checks/
+  cp "$package_root/examples/check-result/reference.json" checks/
+  cp "$package_root/examples/check-result/input.txt" sample/
+)
+```
+
+Follow the [synthetic example's PLAN and observation steps](../examples/check-result/README.md) to preserve the initial file as the baseline before starting the goal. The command is `python3 tools/check-result-reference.py checks/declaration.json checks/reference.json`; `ha check` supplies the invocation-specific report path. It distinguishes the initial file's actual requirement violation from a pass after the change; environment errors are not expected failures. Commit the declaration, configuration and producer before checking and include all three in PLAN's check paths. Choose targets and paths that fit your project. See the [result contract](../contracts/check-result.md) for the format.
+
 ## Update
 
-Move `ha` and both plugins to the new version together, with the tools you installed them with. The commands below move to v0.1.2. Paste one command block at a time.
+Move `ha` and both plugins to the new version together, with the tools you installed them with. The commands below move to v0.1.3. Paste one command block at a time.
 
 For an `ha` installed with brew, brew fetches the tap again and then upgrades it.
 
@@ -133,7 +201,7 @@ brew upgrade jgoneit/tap/jaekit
 
 For an `ha` installed from a Release file, paste the commands in [Install from a Release file](#install-from-a-release-file) again. The new version's file replaces `~/.local/bin/ha`.
 
-Then check the version. It should print `ha 0.1.2`. If it prints another version, follow [Check the version](#check-the-version) and inspect `which -a ha`.
+Then check the version. It should print `ha 0.1.3`. If it prints another version, follow [Check the version](#check-the-version) and inspect `which -a ha`.
 
 ```bash
 ha --version
@@ -145,7 +213,7 @@ Codex:
 
 ```bash
 codex plugin marketplace remove jaekit
-codex plugin marketplace add jgoneit/jaekit@v0.1.2
+codex plugin marketplace add jgoneit/jaekit@v0.1.3
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
@@ -154,7 +222,7 @@ Claude Code:
 
 ```bash
 claude plugin marketplace remove jaekit
-claude plugin marketplace add jgoneit/jaekit#v0.1.2
+claude plugin marketplace add jgoneit/jaekit#v0.1.3
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 ```
@@ -195,11 +263,11 @@ claude plugin uninstall seal@jaekit
 claude plugin marketplace remove jaekit
 ```
 
-Files created in the repositories you worked on are not removed; they stay. The goal documents and the files Seal made (`SPEC.md`, `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, and `runs.jsonl` in `docs/specs/<goal>/`) are committed records, and the raw check output is under `ha/` in that working tree's Git directory, which git does not track. That is usually `.git/ha/`; in a linked worktree, where `.git` is a file, it is under the directory that `git rev-parse --absolute-git-dir` prints.
+Installation, updates and removal preserve your project's documents, records and raw output. Whether Git tracks the goal documents and the files Seal made (`SPEC.md`, `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, and `runs.jsonl` in `docs/specs/<goal>/`) depends on project policy. Both tracked records and ignored private records stay. Raw check output is under `ha/` in that working tree's Git directory, which git does not track. That is usually `.git/ha/`; in a linked worktree, where `.git` is a file, it is under the directory that `git rev-parse --absolute-git-dir` prints.
 
-To remove the goal documents and records too, from the root of that repository run `git rm -r docs/specs/<goal>` and commit.
+If you also choose to remove goal documents and records, first check whether they need preserving and whether Git tracks them. For a tracked goal, run `git rm -r docs/specs/<goal>` from that repository's root and commit. This command does not remove untracked goals; handle those separately under the project's local retention policy. Do not force ignored documents into Git.
 
-To remove the raw check output too, paste the command below in that working tree while no Jaekit check is running (while Seal is not working). It removes the raw check output of every goal in that working tree. The output of other working trees and the committed goal documents and run records stay.
+To remove the raw check output too, paste the command below in that working tree while no Jaekit check is running (while Seal is not working). It removes the raw check output of every goal in that working tree. The output of other working trees and the goal documents and run records stay.
 
 ```bash
 gitdir="$(git rev-parse --absolute-git-dir)" && rm -rf "$gitdir/ha"
@@ -207,13 +275,13 @@ gitdir="$(git rev-parse --absolute-git-dir)" && rm -rf "$gitdir/ha"
 
 ## Move from a local path registration
 
-If you registered the `jaekit` marketplace from a repository checkout path, remove that registration and register the GitHub repository pinned to `v0.1.2` instead. Two marketplaces with the same name cannot be registered together. Removing it also removes the spec and seal plugins installed from it, so install them again.
+If you registered the `jaekit` marketplace from a repository checkout path, remove that registration and register the GitHub repository pinned to `v0.1.3` instead. Two marketplaces with the same name cannot be registered together. Removing it also removes the spec and seal plugins installed from it, so install them again.
 
 Codex:
 
 ```bash
 codex plugin marketplace remove jaekit
-codex plugin marketplace add jgoneit/jaekit@v0.1.2
+codex plugin marketplace add jgoneit/jaekit@v0.1.3
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
@@ -222,7 +290,7 @@ Claude Code:
 
 ```bash
 claude plugin marketplace remove jaekit
-claude plugin marketplace add jgoneit/jaekit#v0.1.2
+claude plugin marketplace add jgoneit/jaekit#v0.1.3
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 ```
@@ -238,7 +306,7 @@ go install ./cmd/ha
 ha --version
 ```
 
-The `ha` file goes to the folder `go env GOBIN` prints, or to `$(go env GOPATH)/bin` when that is empty. `ha --version` prints `ha 0.1.3-dev`. Development Seal separately checks the actual support information from `ha capabilities --format json`. A Python compatibility helper is optional; Python 3 installation is not a prerequisite for Seal.
+The `ha` file goes to the folder `go env GOBIN` prints, or to `$(go env GOPATH)/bin` when that is empty. `ha --version` prints `ha 0.1.3-dev`. Seal separately checks the actual support information from `ha capabilities --format json`. A Python compatibility helper is optional; Python 3 installation is not a prerequisite for Seal.
 
 To use the plugins while you change the checkout, register the checkout path as the marketplace. That registration uses the plugin files in the checkout as they are. Replace `<path to jaekit>` with the path of your checkout.
 

@@ -12,9 +12,9 @@
 
 Jaekit은 **Codex·Claude Code로 프로젝트 작업을 하는 사람**을 위한 도구입니다. **Spec**은 요청을 목표와 완료 조건으로 정리합니다. **Seal**은 에이전트가 그 목표에 따라 구현·검사·수정을 이어 가도록 합니다. 결과와 확인 기록을 함께 받고, 대화가 끊겨도 저장된 진행 상황에서 이어 갈 수 있습니다.
 
-현재 배포판은 **v0.1.2**, 실제 작업에 써 보며 다듬는 초기 개발 단계입니다.
+현재 배포판은 **v0.1.3**, 실제 작업에 써 보며 다듬는 초기 개발 단계입니다.
 
-이 페이지의 설치 명령은 v0.1.2(spec 0.1.10·seal 0.1.8)를 받습니다. main의 개발 조합(ha 0.1.3-dev·spec 0.1.11·seal 0.1.9)은 아직 배포하지 않았습니다. 새 문서 형식과 실행 전 호환 확인 등 개발 기능은 [버전별 적용 범위](guides/INSTALL.md#배포판과-개발-조합)에서 구분합니다.
+이 페이지의 설치 명령은 v0.1.3(ha 0.1.3·spec 0.1.11·seal 0.1.9)을 받습니다. 새 목표는 `/3` 규칙을 사용하고, Seal은 실행할 Core의 지원 정보를 먼저 확인합니다. 기존 목표는 저장된 규칙을 유지합니다. [버전별 적용 범위](guides/INSTALL.md#배포판과-개발-조합)와 [참조 검사 사용법](guides/INSTALL.md#참조-검사-가져오기)을 확인하세요.
 
 ## 사용 흐름
 
@@ -56,17 +56,17 @@ Windows에서는 기록 도구 `ha`(Seal Core)가 지원되지 않아 Seal을 �
    ha --version
    ```
 
-   `ha 0.1.2`가 나와야 합니다. 다르게 나오거나 명령을 못 찾으면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
+   `ha 0.1.3`가 나와야 합니다. 다르게 나오거나 명령을 못 찾으면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
 
 2. **같은 터미널에서 Codex에 두 플러그인을 설치합니다.** 플러그인은 에이전트에 기능을 더하는 구성입니다.
 
    ```bash
-   codex plugin marketplace add jgoneit/jaekit@v0.1.2
+   codex plugin marketplace add jgoneit/jaekit@v0.1.3
    codex plugin add spec@jaekit
    codex plugin add seal@jaekit
    ```
 
-   `@v0.1.2`는 사용할 버전을 고정합니다. 설치가 끝나면 Codex를 새로 엽니다. 기존 설치가 있다면 [업데이트](guides/INSTALL.md#업데이트)나 [이전 로컬 설치에서 전환](guides/INSTALL.md#로컬-경로-등록에서-옮기기)을 먼저 봅니다.
+   `@v0.1.3`는 사용할 버전을 고정합니다. 설치가 끝나면 Codex를 새로 엽니다. 기존 설치가 있다면 [업데이트](guides/INSTALL.md#업데이트)나 [이전 로컬 설치에서 전환](guides/INSTALL.md#로컬-경로-등록에서-옮기기)을 먼저 봅니다.
 
 ### 첫 작업 맡기기
 

@@ -17,6 +17,7 @@ Turn the user's request and the repository context into goal documents that let 
 Read [references/goal-docs.md](references/goal-docs.md) before writing or editing goal documents. In short:
 
 - Location: `docs/specs/<goal>/SPEC.md`, plus auxiliary Markdown documents in the same directory that SPEC.md links. Use a short kebab-case `<goal>` name.
+- Follow the project's Git tracking and local retention policy for goal documents. Do not force ignored private documents into Git; Jaekit's own private `docs/` policy is not a requirement for other projects.
 - SPEC.md has a `Status:` line (`Draft` or `Ready`), the goal, scope and non-goals, constraints, decisions with reasons, `## Acceptance Criteria`, related context, and `## Open Decisions`.
 - New SPEC.md documents include `Criteria-Format: nested/1` near `Status:`, before the first level-two section. Use the nested-list contract in the reference. When editing an existing document, preserve its format selection or its absence unless the user explicitly decides to change it.
 - Every completion criterion has an ID `AC-n` that is stable within the goal. Optional criteria carry `(선택)` right after the ID. Criteria are required unless marked.

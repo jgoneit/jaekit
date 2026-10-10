@@ -1,0 +1,7 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-reference",
+  "producer_version": "1",
+  "producer_paths": ["tools/check-result-reference.py", "checks/reference.json"],
+  "targets": [{"id": "greeting", "violation": "missing-greeting"}]
+}

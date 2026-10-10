@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Spec writes goal documents; Seal carries a goal to recorded completion.",
-    "version": "0.1.2"
+    "version": "0.1.3"
   },
   "plugins": [
     {
