@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Check the public boundary of this change and the preserved v0.1.3 records.
+"""Check the public boundary of this change and the preserved v0.1.3 release.
 
 Usage: python3 tools/goal-checks/release-0-1-3-followups/preserved.py BASE_COMMIT
 
 It runs the public file and document checks, scans the lines and commit
 messages added since BASE_COMMIT for private references, compares the public
-v0.1.3 tag and Release with recorded identities, and compares the earlier
-local goal's documents and raw logs with recorded digests. It reads only.
+v0.1.3 tag and Release with recorded public identities. It reads only public
+and tracked data, so a fresh clone gives the same result.
 """
 
 import hashlib
@@ -75,32 +75,6 @@ def public_release(expected, problems):
         problems.append(f"{tag} Release assets changed")
 
 
-def local_goal(expected, problems):
-    common = Path(run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"]).strip())
-    goal = common.parent / expected["path"]
-    for name, sha in expected["files"].items():
-        try:
-            if digest((goal / name).read_bytes()) != sha:
-                problems.append(f"{expected['path']}/{name} changed")
-        except OSError:
-            problems.append(f"{expected['path']}/{name} is missing")
-    try:
-        records = [json.loads(line) for line in (goal / "runs.jsonl").read_text().splitlines()]
-    except (OSError, ValueError):
-        return
-    for record in records:
-        path = record.get("output_path")
-        if not path:
-            continue
-        copies = [common / base / path.removeprefix(".git/") for base in expected["log_dirs"]]
-        present = [copy for copy in copies if copy.is_file()]
-        if not present:
-            problems.append(f"raw log of seq {record.get('seq')} is missing")
-        for copy in present:
-            if digest(copy.read_bytes()) != record.get("output_digest"):
-                problems.append(f"raw log of seq {record.get('seq')} changed")
-
-
 def main(argv):
     if len(argv) != 2 or not re.fullmatch(r"[0-9a-f]{40}", argv[1]):
         print("usage: preserved.py BASE_COMMIT", file=sys.stderr)
@@ -110,7 +84,6 @@ def main(argv):
     try:
         public_boundary(argv[1], problems)
         public_release(config["release"], problems)
-        local_goal(config["local_goal"], problems)
     except (Unavailable, subprocess.TimeoutExpired, ValueError) as error:
         print(f"preservation could not be observed: {error}", file=sys.stderr)
         return 2

@@ -13,16 +13,5 @@
       {"digest": "sha256:e98895a21e77fd82ee80e61d66c0b53dfec0f269452806e29a6db11b6ee9f73f", "id": 627702177, "name": "ha_0.1.3_linux_amd64.tar.gz", "size": 1542604},
       {"digest": "sha256:dafc7460bfc446d3af83d3db1f55cd96e3ac20fbdc392f9f08483a482d06d48e", "id": 627702179, "name": "ha_0.1.3_linux_arm64.tar.gz", "size": 1397876}
     ]
-  },
-  "local_goal": {
-    "path": "docs/specs/release-0-1-3",
-    "files": {
-      "SPEC.md": "4fdc6df7bf5beb6981de708cfb5af8cbb29af7f2c88a7af82ef9a1d123bf5b37",
-      "PLAN.md": "85df7903c141037026d7b85fcac1f4e7ea3c679669a816f9942be3b5a4fb2600",
-      "REVIEW.md": "79e0723e40b4cb8c2109a03c5c0120a1c0b8398c225c6a69a07c04a3cb9b6496",
-      "PROGRESS.md": "dd2717bc69d01bea0683133d38e89c075116fc6f637bcfe64be5e4f1443b1a77",
-      "runs.jsonl": "07b527f40164a5a6960a8d96c45b16716d3fb052d90ea1074515a6cfe0e91c10"
-    },
-    "log_dirs": ["worktrees/release-0-1-3", "."]
   }
 }

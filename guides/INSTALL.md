@@ -213,10 +213,25 @@ Release 파일로 설치한 `ha`는 [Release 파일로 설치](#release-파일�
 ha --version
 ```
 
-Release 파일로 설치했다면 이전 버전의 공개 자료가 `~/.local/share/jaekit/<버전>`에 그대로 남습니다. 위에서 `ha 0.1.3`를 확인한 뒤 아래 명령으로 이전 버전 자료만 지울 수 있습니다. 현재 버전 폴더 `~/.local/share/jaekit/0.1.3`와 [참조 검사 가져오기](#참조-검사-가져오기)에 쓰는 파일은 남습니다. `~/.local/share/jaekit`이 symlink이면 아무것도 지우지 않습니다.
+Release 파일로 설치했다면 이전 버전의 공개 자료가 `~/.local/share/jaekit/<버전>`에 그대로 남습니다. 위에서 `ha 0.1.3`를 확인한 뒤 아래 명령으로 설치한 버전 `0.1.3`보다 오래된 버전 폴더만 지울 수 있습니다. 현재 버전 폴더 `~/.local/share/jaekit/0.1.3`와 [참조 검사 가져오기](#참조-검사-가져오기)에 쓰는 파일, 더 새 버전 폴더, `0.1.2`처럼 세 숫자로 된 버전 이름이 아닌 항목은 남습니다. 버전은 숫자로 비교하므로 `0.1.10`은 `0.1.3`보다 새 버전입니다. `~/.local/share/jaekit`이 symlink이면 아무것도 지우지 않습니다. 자료 폴더는 v0.1.3부터 생겼으므로 지금은 지울 이전 버전이 없을 수 있습니다.
 
 ```bash
-find ~/.local/share/jaekit -mindepth 1 -maxdepth 1 ! -name 0.1.3 -exec rm -rf {} +
+current=0.1.3
+root="$HOME/.local/share/jaekit"
+if [ -d "$root" ] && [ ! -L "$root" ]; then
+  find "$root" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; |
+    awk -F. -v current="$current" '
+      BEGIN { split(current, c, ".") }
+      /^[0-9]+\.[0-9]+\.[0-9]+$/ {
+        if ($1 + 0 != c[1] + 0) older = $1 + 0 < c[1] + 0
+        else if ($2 + 0 != c[2] + 0) older = $2 + 0 < c[2] + 0
+        else older = $3 + 0 < c[3] + 0
+        if (older) print
+      }' |
+    while IFS= read -r version; do
+      rm -rf "$root/$version"
+    done
+fi
 ```
 
 plugin은 marketplace를 새 태그에 고정해 다시 등록합니다. 같은 이름의 marketplace는 둘을 함께 둘 수 없어서 먼저 지웁니다. 지우면 그 marketplace에서 설치한 spec·seal도 함께 지워지므로 다시 설치합니다. 쓰는 host의 명령만 붙여 넣으면 됩니다.

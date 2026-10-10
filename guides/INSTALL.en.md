@@ -213,10 +213,25 @@ Then check the version. It should print `ha 0.1.3`. If it prints another version
 ha --version
 ```
 
-After a Release file installation, the earlier versions' public data stays in `~/.local/share/jaekit/<version>`. Once the check above prints `ha 0.1.3`, the command below removes only the earlier versions' data. The current version's folder `~/.local/share/jaekit/0.1.3` and the files used by [Get the reference check](#get-the-reference-check) stay. If `~/.local/share/jaekit` is a symlink, nothing is removed.
+After a Release file installation, the earlier versions' public data stays in `~/.local/share/jaekit/<version>`. Once the check above prints `ha 0.1.3`, the command below removes only the folders of versions older than the installed `0.1.3`. The current version's folder `~/.local/share/jaekit/0.1.3` and the files used by [Get the reference check](#get-the-reference-check), folders of newer versions, and entries whose names are not a three-number version like `0.1.2` stay. Versions are compared as numbers, so `0.1.10` is newer than `0.1.3`. If `~/.local/share/jaekit` is a symlink, nothing is removed. The data folder first appeared in v0.1.3, so there may be no earlier version to remove yet.
 
 ```bash
-find ~/.local/share/jaekit -mindepth 1 -maxdepth 1 ! -name 0.1.3 -exec rm -rf {} +
+current=0.1.3
+root="$HOME/.local/share/jaekit"
+if [ -d "$root" ] && [ ! -L "$root" ]; then
+  find "$root" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; |
+    awk -F. -v current="$current" '
+      BEGIN { split(current, c, ".") }
+      /^[0-9]+\.[0-9]+\.[0-9]+$/ {
+        if ($1 + 0 != c[1] + 0) older = $1 + 0 < c[1] + 0
+        else if ($2 + 0 != c[2] + 0) older = $2 + 0 < c[2] + 0
+        else older = $3 + 0 < c[3] + 0
+        if (older) print
+      }' |
+    while IFS= read -r version; do
+      rm -rf "$root/$version"
+    done
+fi
 ```
 
 For the plugins, register the marketplace again pinned to the new tag. Two marketplaces with the same name cannot be registered together, so remove it first. Removing it also removes the spec and seal plugins installed from it, so install them again. Paste only the commands for the host you use.

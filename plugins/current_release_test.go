@@ -10,7 +10,8 @@ import (
 
 // currentReleaseClaim finds sentences that call a version the current
 // release, in Korean or English, with optional emphasis, code or a comma
-// between the words and the version.
+// between the words and the version. It is applied to whole documents, so a
+// sentence wrapped across lines matches too.
 var currentReleaseClaim = regexp.MustCompile(
 	`(?i)(?:현재\s*(?:배포판|릴리스)(?:은|는|인|이|의)?|\bcurrent(?:ly)?\s+release[d]?(?:\s+is)?)[\s*` + "`" + `,]*v?(\d+\.\d+\.\d+)`)
 
@@ -44,13 +45,18 @@ func TestPublicGuidanceNamesOnlyTheCurrentRelease(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, path := range paths {
-		for i, line := range strings.Split(read(t, path), "\n") {
-			for _, m := range currentReleaseClaim.FindAllStringSubmatch(line, -1) {
-				if m[1] != current {
-					t.Errorf("%s:%d names v%s as the current release; the current release is v%s",
-						filepath.ToSlash(path), i+1, m[1], current)
-				}
+		text := read(t, path)
+		for _, m := range currentReleaseClaim.FindAllStringSubmatchIndex(text, -1) {
+			version := text[m[2]:m[3]]
+			// A blank line ends the paragraph, and with it the sentence.
+			if version == current || paragraphBreak.MatchString(text[m[0]:m[1]]) {
+				continue
 			}
+			line := strings.Count(text[:m[0]], "\n") + 1
+			t.Errorf("%s:%d names v%s as the current release; the current release is v%s",
+				filepath.ToSlash(path), line, version, current)
 		}
 	}
 }
+
+var paragraphBreak = regexp.MustCompile(`\n[ \t]*\n`)
