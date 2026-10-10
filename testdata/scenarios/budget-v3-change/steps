@@ -1,0 +1,21 @@
+# A current-window change preserves usage, and reopen carries the latest cap.
+ha start $GOAL --request "implement the synthetic goal"
+expect-exit 0
+ha check $GOAL AC-2
+expect-exit 0
+ha budget $GOAL --runs 100 --from 50 --window 1 --revision 1 --quote "100 total runs" --context "current goal window"
+expect-exit 0
+expect-record 3 kind budget_change
+expect-budget-window 1
+ha status $GOAL --format json
+expect-output "\"runs_limit\": 100"
+expect-output "\"runs\": 1"
+ha budget $GOAL --runs 200 --from 50 --window 1 --revision 1 --quote "stale request" --context "old revision"
+expect-exit 65
+expect-records 3
+ha note $GOAL reopen --quote "continue the goal"
+expect-exit 0
+expect-budget-window 4
+ha status $GOAL --format json
+expect-output "\"runs_limit\": 100"
+expect-output "\"runs\": 0"

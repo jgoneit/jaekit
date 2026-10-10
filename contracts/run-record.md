@@ -18,21 +18,23 @@
 | `ha start <goal> --request <인용> [--skill <SKILL.md>] [--host-name …] [--host-version …] [--model …]` | 시작을 기록한다. 이미 있으면 거절한다. 새 시작이 필요하면 사용자가 묶음을 새로 만든다. lint 오류나 필수 최소 실행량보다 작은 PLAN 상한이 있어도 기록 생성 전에 거절한다. dirty 시작은 기존처럼 경고하며 허용한다. `--skill`을 주면 `ha`가 그 머리말에서 이름과 버전을 읽고 Skill 디렉토리의 digest를 계산한다(§2.1). | `start` |
 | `ha check <goal> [AC-n \| T00n ...]` | 지정한 조건이나 task의 검증 명령을 실행한다. 대상이 없으면 모든 required 조건을 실행한다(통합 검증). | `check` |
 | `ha check <goal> --baseline [AC-n ...]` | `change` 조건의 검사 경로만 base commit 임시 worktree에 덧씌워 실행한다. | `baseline` |
+| `ha budget <goal> --runs N --from P --window W --revision R [--quote <인용> --context <문맥>] [--reason <이유>] [--interpretation <해석>]` | `/3` 현재 창의 총 실행 횟수 상한을 바꾼다. 양의 정수 인수가 모두 필요하며, 증액은 인용·문맥, 감액은 이유가 필요하다(§5.2). | `budget_change` |
 | `ha note <goal> <block \| unblock \| confirm \| reopen \| input> [대상] --quote <인용> [--cause <원인>]` | 막힘, 해소, 사용자 확인, 사용자의 재작업 요청, 그 밖의 사용자 입력을 남긴다. 사용자 발화는 인용한다. `block`은 `--cause`가 필요하고, `confirm`은 대상(§2.4)과 인용이 필요하다. | `note` |
 | `ha status <goal> [--format md\|json]` | 기록·묶음·git에서 상태를 계산해 출력한다(§4). | 없음 |
 | `ha done <goal>` | 완료를 주장한다. `ha status`와 같은 계산을 하고 그 결과를 기록한다. 결과가 `complete`면 이 줄이 **완료 기록**이다(§5). exit code는 `ha status`와 같다. | `done` |
 | `ha log <goal> <seq> [--tail N]` | 그 실행의 로컬 출력 원문을 보여 준다. 로컬에서 읽기 위한 것이다. | 없음 |
 
-`ha`는 검증 명령을 셸 없이 argv로 실행한다. 명령마다 시간 제한(기본 900초)을 둔다. 시간 제한이 되면 그 명령의 프로세스 그룹 전체를 끝낸다. `check`, `baseline`, `note`, `start`는 기록에 덧붙이기 전에 git 디렉토리의 `ha/lock`을 잡는다. 그래서 여러 `ha`가 동시에 덧붙여도 연결이 끊기지 않는다.
+`ha`는 검증 명령을 셸 없이 argv로 실행한다. 명령마다 시간 제한(기본 900초)을 둔다. 시간 제한이 되면 그 명령의 프로세스 그룹 전체를 끝낸다. `check`, `baseline`, `note`, `start`, `budget_change`는 기록에 덧붙이기 전에 git 디렉토리의 `ha/lock`을 잡는다. 그래서 여러 `ha`가 동시에 덧붙여도 연결이 끊기지 않는다.
 
 **종료 코드**
 - `ha check`: 모든 결과가 기대대로면(`pass`, baseline은 `fail_as_expected`) 0, 아니면 1
 - `ha lint`: 오류가 없으면 0, 있으면 1
 - `ha estimate`: 필수 최소량을 PLAN 상한이 수용하면 0, 부족하거나 lint 오류가 있으면 1
 - `ha status`, `ha done`: §4.3
+- `ha budget`: 성공 0, 잘못된 인수 64, 값·창·개정·완료 상태 등의 거부 65, 구규칙 또는 미지원 규칙 66, 내부 오류·쓰기 적용 불확실성 70
 - 모든 명령: 64 사용법 오류, 65 거절(시작 전, 이미 시작함, lint 오류, 끊긴 기록, 확인 조건 불충족, dirty 검증, 시작 예산 부족), 66 지원하지 않는 규칙 버전, 70 내부 오류
 
-출력 원문은 git 디렉토리의 `ha/runs/<goal-key>/<seq>.log`에만 둔다. `<goal-key>`는 저장소 기준 goal 경로를 URL 경로 이스케이프한 것이다(예: `docs%2Fspecs%2Fempty-input`). 목표가 여럿이면 seq가 겹치기 때문이다. 커밋되는 기록과 `ha status`·`ha done`의 출력에는 결과, 이유, digest, 로컬 경로만 넣는다. 출력 원문은 넣지 않는다. 출력에 비밀이 섞일 수 있고, 상태 출력은 완료 보고를 거쳐 커밋되기 때문이다. 원문은 `ha log`로만 본다.
+출력 원문은 git 디렉토리의 `ha/runs/<goal-key>/<seq>.log`에만 둔다. `<goal-key>`는 저장소 기준 goal 경로를 URL 경로 이스케이프한 것이다(예: `docs%2Fspecs%2Fempty-input`). 목표가 여럿이면 seq가 겹치기 때문이다. 커밋되는 기록과 `ha status`·`ha done`의 출력에는 결과, 이유, digest, 로컬 경로와 명시적으로 기록한 사용자 확인·예산 변경 정보를 넣는다. 출력 원문은 넣지 않는다. 출력에 비밀이 섞일 수 있고, 상태 출력은 완료 보고를 거쳐 커밋되기 때문이다. 원문은 `ha log`로만 본다.
 
 ### 1.1 실행 전 진단
 
@@ -40,7 +42,7 @@
 
 진단은 저장소 상대 경로, tracked/untracked, 관측한 symlink 여부를 구분하며 삭제·이름 변경의 경로와 submodule 상태도 표시한다. untracked 경로는 해당 경로의 ignore 규칙 검토를 안내할 수 있으나 자동으로 바꾸지 않는다. tracked 변경을 ignore 추가로 해결할 수 있다고 안내하지 않는다. 실행 중 파일 변경을 원자적으로 막는 기능은 아니며 현재 완료 근거는 §3의 신선도 판정을 계속 적용한다.
 
-이 거부는 지원하는 `/1`·`/2` 목표의 앞으로 실행할 검사에 적용한다. 과거 `tree_clean: false` 기록의 결과와 사용량을 삭제하거나 재해석하지 않는다. 시작의 dirty 경고와 기존 Git ignore·규칙별 실행 문서 제외도 유지한다.
+이 거부는 지원하는 `/1`·`/2`·`/3` 목표의 앞으로 실행할 검사에 적용한다. 과거 `tree_clean: false` 기록의 결과와 사용량을 삭제하거나 재해석하지 않는다. 시작의 dirty 경고와 기존 Git ignore·규칙별 실행 문서 제외도 유지한다.
 
 **실행량.** `ha estimate`의 필수 최소량은 `필수 change × 2 + 필수 maintain`이다. manual은 0회이며 change 34개면 68회다. 실패 없는 새로운 실행의 하한이므로 재시도·환경 준비·수동 확인 시간·실제 총시간 또는 완료를 보장하지 않는다. 검사나 환경 probe를 실행하지 않고 기록·예산 창·작업 파일도 바꾸지 않는다.
 
@@ -70,7 +72,7 @@ JSON 출력은 `schema: estimate/v1`이며 다음을 제공한다.
 | `schema` | `"run/v1"` |
 | `seq` | 1부터 증가하는 정수 |
 | `prev` | 직전 줄의 바이트 sha256. 첫 줄은 `null` |
-| `kind` | `start` \| `check` \| `baseline` \| `note` \| `done` |
+| `kind` | `start` \| `check` \| `baseline` \| `note` \| `done` \| `budget_change` |
 | `at` | UTC 시각 |
 | `ha_version` | 기록한 `ha` 버전 |
 
@@ -98,7 +100,7 @@ goal 디렉토리 안의 다른 파일(검증 스크립트, fixture 등)은 코�
 | `host` | `{ "name", "version", "model" }`. 주장이다. |
 | `skill` | `{ "name", "version", "digest" }`. 에이전트가 읽은 Seal Skill과 템플릿 패키지. `--skill`이면 `ha`가 머리말의 `name`과 `metadata.version`을 읽고, Skill 디렉토리의 파일 전체를 목표 digest와 같은 방식으로 digest한다. 어느 파일을 가리킬지는 에이전트가 정하므로 여전히 주장이다. |
 | `rules` | 상태 계산 규칙 버전(예: `"run-rules/1"`). `ha`가 넣는다. 이 목표의 상태는 끝까지 이 버전으로 계산한다(§4). |
-| `budget` | PLAN의 예산 `{ "runs", "elapsed_seconds", "cost" }`. 상태 계산의 예산 한도는 이 값이다(§5.2). |
+| `budget` | PLAN의 예산 `{ "runs", "elapsed_seconds", "cost" }`. 최초 한도다. `/1`·`/2`는 이 값을 계속 쓰고, `/3`의 횟수 상한은 유효한 변경 기록을 반영한다(§5.2). |
 
 ### 2.2 `check`
 
@@ -112,8 +114,10 @@ goal 디렉토리 안의 다른 파일(검증 스크립트, fixture 등)은 코�
 | `tree_clean` | 실행 시점에 묶음 문서 밖 작업 트리가 깨끗했는가 |
 | `spec_digest` | 실행 시점의 SPEC digest |
 | `exit` | exit code. 시작 실패나 시간 초과면 `null` |
-| `result` | `pass`(exit 0) \| `fail`(exit ≠ 0) \| `error`(시작 실패, 시간 초과) |
-| `duration_ms`, `output_digest`, `output_path` | 실행 시간, 출력 digest, 로컬 출력 위치(저장소 기준 경로, 예: `.git/ha/runs/<goal-key>/7.log`). `output_path`에는 절대 경로를 쓰지 않는다. linked worktree에서도 형식이 같고, 이때 `.git`은 그 작업 트리의 git 디렉토리를 뜻한다. 이전 `ha`가 남긴 절대 경로는 고쳐 쓰지 않고 그대로 읽는다. |
+| `result` | `/1`·`/2`와 일반 maintain·task는 `pass`(exit 0) \| `fail`(exit ≠ 0) \| `error`(시작 실패, 시간 초과). `/3` change는 [구조화 결과 계약](check-result.md)에 따라 분류한다. |
+| `duration_ms`, `output_digest`, `output_path` | 실행 시간, 출력 digest, 로컬 출력 위치(저장소 기준 경로, 예: `.git/ha/runs/<goal-key>/7.log`). `output_path`에는 절대 경로를 쓰지 않는다. linked worktree에서도 형식이 같고, 이때 `.git`은 그 작업 트리의 git 디렉토리를 뜻한다. 이전 `ha`가 남긴 절대 경로는 고쳐 쓰지 않고 그대로 읽는다. `/3`에서 실제 시도 뒤 출력 저장이 실패하면 `error`·`process_output`으로 시도와 사용량을 남기고 `output_path`·`output_digest`는 빈 값일 수 있다. |
+
+`/3` change 줄에는 `evidence`가 더해진다. [check-result.md](check-result.md)의 `check-evidence/v1` 간결한 근거이며 선언·생산자 입력, 호출, 보고 digest와 대상별 관측을 연결한다. `unknown`은 판정 불가이고 통과가 아니다.
 
 ### 2.3 `baseline`
 
@@ -123,9 +127,9 @@ goal 디렉토리 안의 다른 파일(검증 스크립트, fixture 등)은 코�
 | --- | --- |
 | `base_commit` | `start`의 base commit |
 | `overlay` | `[{ "path", "digest" }]`. HEAD에서 가져와 덧씌운 검사 파일 |
-| `result` | `fail_as_expected`(exit ≠ 0) \| `unexpected_pass`(exit 0) \| `error` |
+| `result` | `/1`·`/2`: `fail_as_expected`(exit ≠ 0) \| `unexpected_pass`(exit 0) \| `error`. `/3`는 [구조화 결과 계약](check-result.md)을 적용한다. |
 
-실패의 원인(예: 아직 없는 모듈의 import 실패)은 구분하지 않는다. 사람이 원인을 보려면 `ha log`를 쓴다.
+`/1`·`/2`는 실패의 원인(예: 아직 없는 모듈의 import 실패)을 구분하지 않는다. `/3` change는 선언한 대상의 실제 관측을 요구한다. import·수집·기동 오류, 미실행, 불명확한 일반 스크립트 실패는 기대 실패가 아니다. 실행 가능한 검사가 기능 부재를 직접 관측한 경우는 선언한 요구 위반일 수 있다. 사람이 출력 원문을 보려면 `ha log`를 쓴다.
 
 ### 2.4 `note`
 
@@ -159,13 +163,29 @@ goal 디렉토리 안의 다른 파일(검증 스크립트, fixture 등)은 코�
 | `criteria` | 조건별 `{ "id", "kind", "satisfied", "records": [seq…] }`. 근거가 된 기록 |
 | `command_digests` | 조건별 현재 명령 digest |
 
+### 2.6 `budget_change`
+
+`/3` 전용 줄이다. 공통 필드와 다음 `budget_change` 객체를 기록한다.
+
+| 필드 | 의미 |
+| --- | --- |
+| `goal` | 시작 기록과 같은 목표 |
+| `window_start` | 변경 대상 start/reopen seq |
+| `revision` | 변경 직전 최신 start/reopen/budget_change seq |
+| `previous_runs`, `runs` | 이전·새 총 실행 횟수 상한 |
+| `quote`, `context` | 증액을 뒷받침하는 사용자 원문과 요청 문맥. 출처 미검증이면 실행자의 주장 |
+| `interpretation` | 선택적인 에이전트 해석. 사용자 원문과 구분 |
+| `reason` | 변경 이유. 감액에는 필수 |
+
+명령의 `--window`, `--revision`, `--from`이 각각 현재 창·개정·상한과 일치해야 한다. 잠금 아래 최신 기록을 읽어 비교한 뒤 기록한다. 단순 검사 기록 추가는 예산 개정이 아니며 실제 누적 사용량에 반영한다. 새 변경의 seq가 그 뒤 예산 개정이 된다.
+
 ## 3. 신선도
 
 결과는 그 결과가 나온 코드 상태, SPEC, 검증 명령에 묶인다.
 
 **전제: 지금 작업 트리가 깨끗하다.** 묶음 문서 밖의 작업 트리에 변경(추적 파일 수정, 추적되지 않은 파일)이 있으면 지금의 코드 상태는 어떤 commit과도 같지 않다. 이때는 어떤 기록도 신선하지 않고, 상태 이유는 `worktree_dirty`다.
 
-여기서 **묶음 문서**는 자기 목표의 목표 문서와 실행 묶음이다. `run-rules/2`에서는 다른 목표의 실행 묶음 파일도 들어간다(§4.6). 이 계약에서 "묶음 문서 밖"은 모두 이 목록 밖을 뜻한다.
+여기서 **묶음 문서**는 자기 목표의 목표 문서와 실행 묶음이다. `run-rules/2`와 `run-rules/3`에서는 다른 목표의 실행 묶음 파일도 들어간다(§4.6). 이 계약에서 "묶음 문서 밖"은 모두 이 목록 밖을 뜻한다.
 
 `check` 줄 r은 다음을 모두 만족할 때 **신선하다**.
 1. 지금 작업 트리가 깨끗하다(전제).
@@ -178,6 +198,8 @@ goal 디렉토리 안의 다른 파일(검증 스크립트, fixture 등)은 코�
 - 위의 1, 2, 4, 5가 성립한다.
 - `b.base_commit`이 `start`의 base commit과 같다.
 - `b.overlay`의 경로 집합이 지금 조건표의 검사 경로와 같고, 각 digest가 현재 HEAD의 같은 경로 내용과 같다.
+
+`/3` change에는 선언·결과 계약·대상·생산자 버전과 내용의 연결도 필요하다([check-result.md](check-result.md)). 명령 문자열이 같아도 이 의미가 바뀌면 이전 검사와 완료 근거를 재사용하지 않는다. 상태 재구성은 저장된 간결한 근거로 하므로 원문 로그가 없어지거나 현재 시각이 달라졌다는 이유만으로 판정이 바뀌지 않는다.
 
 신선하지 않은 줄은 지우지 않는다. 충족 계산에 쓰지 않을 뿐이다. 이전 실패와 오류는 시도 이력으로 남는다(§4.4).
 
@@ -211,9 +233,13 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
 | `criterion_error` | change, maintain | C의 `error`가 E개 이하이고, 가장 최근 줄이 `error`다 | 실행자가 고침(다시 실행) |
 | `baseline_missing` | change | B가 비어 있다 | 실행자가 고침 |
 | `baseline_unexpected_pass` | change | B에 `unexpected_pass`가 있다 | 실행자가 고침(검사를 고치거나, 계획 변경으로 종류를 `maintain`으로 바꾼다) |
+| `baseline_failed` | change | `/3`의 신선한 baseline에 의도와 다른 assertion 실패 또는 내부 시도 불일치가 있다 | 실행자가 고침 |
+| `evidence_invalid` | change | `/3`의 저장된 간결한 근거가 유효하지 않다 | 실행자가 고침 |
 | `baseline_error` | change | B의 `error`가 E개 이하이고, 가장 최근 줄이 `error`다 | 실행자가 고침(다시 실행) |
 | `error_limit` | change, maintain | C나 B의 `error`가 E개를 넘었다. 같은 코드에서 검사 환경이 계속 판단을 내지 못한다 | 사용자 확인 |
 | `manual_unconfirmed` | manual | 유효한 `confirm`이 없다(없거나, 확인한 뒤 내용이 바뀌었다) | 사용자 확인 |
+
+`/3` change는 위 양의 근거 조건에 [구조화 결과 계약](check-result.md)을 함께 적용한다. `unknown`은 `error`와 같은 재시도 한도를 쓴다. baseline의 의도와 다른 assertion 실패나 내부 시도 불일치는 `fail`로 남고 `baseline_failed`다. 환경 오류·판정 불가와 섞인 경우에도 대상별 불리한 관측을 보존하며, 같은 입력의 뒤 통과로 이를 해소하지 않는다. 현재 입력에 대한 간결한 근거 자체가 부정합이면 `evidence_invalid`다. 선언이 바뀌어 낡은 입력이 된 기록은 신선도에서 제외한다. 알 수 없는 결과값과 부정합 저장 데이터는 모든 지원 규칙에서 `record_invalid`(사용자 확인)로 드러나며 완료 근거가 되지 않는다.
 
 선택 조건(목표 문서의 `(선택)` 표시)과 실행자가 더한 `EX-n`도 같은 방식으로 계산해 출력하지만, 상태를 막지 않는다. 필수 여부는 목표 문서에서만 읽는다.
 
@@ -229,6 +255,7 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
 | `test_definition_changed` | base에 있던 테스트 경로 파일이 수정·삭제됐고, 그 경로에 유효한 `confirm tests:`가 없다 | 사용자 확인 |
 | `spec_changed` | 현재 SPEC digest가 `start`의 digest와 다르고, 유효한 `confirm spec`이 없다 | 사용자 확인 |
 | `task_open` | required task가 `PROGRESS.md`에서 `done`이나 `dropped`가 아니다 | 실행자가 고침 |
+| `record_invalid` | 알 수 없는 결과값이나 부정합 저장 데이터가 있다 | 사용자 확인 |
 | `blocked` | 마지막 `block` 뒤에 `unblock`이 없다 | 원인 해소 |
 | `budget_exceeded` | 예산 창(§5.2) 안의 `check`·`baseline` 줄 수나 경과 시간이 예산을 넘었다 | 사용자 결정 |
 
@@ -237,7 +264,7 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
 다음 순서로 처음 맞는 것이 상태다. 모든 이유는 상태와 함께 출력한다.
 
 1. 유효한 완료 기록이 있다(§5.1) → `complete`. 이 경우 예산은 계산하지 않는다.
-2. 모든 required 조건이 충족됐고 목표 수준의 이유가 없다 → `complete`. `run-rules/2`에서는 남은 이유가 `budget_exceeded`뿐이어도 여기에 해당한다(§4.6).
+2. 모든 required 조건이 충족됐고 목표 수준의 이유가 없다 → `complete`. `run-rules/2`와 `run-rules/3`에서는 남은 이유가 `budget_exceeded`뿐이어도 여기에 해당한다(§4.6).
 3. `blocked` 이유가 있다 → `blocked`
 4. `budget_exceeded` 이유가 있다 → `budget_exhausted`
 5. "실행자가 고침" 이유가 하나라도 있다 → `incomplete`
@@ -297,7 +324,8 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
 | `lint` | lint 오류 `{ "code", "file", "line", "detail" }` |
 | `changes` | 사람이 봐야 할 변화(아래) |
 | `budget` | 예산 창(아래) 또는 시작 전이면 `null` |
-| `logs` | 실패·오류 기록의 `{ "seq", "target", "result", "path" }` |
+| `usage` | 전체 시도·결과·근거의 서로 다른 집계 축(아래) |
+| `logs` | 실패·오류 기록의 `{ "seq", "target", "result", "path" }`와 선택 `reason`(검증된 사유 코드 또는 `evidence_invalid`·`record_invalid`) |
 
 #### 조건 (`criteria[]`)
 
@@ -321,8 +349,23 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
 | `baselines` | `baseline` 줄 수 |
 | `unexpected_passes` | 그중 `unexpected_pass` |
 | `baseline_errors` | 그중 `error` |
+| `unknowns` | check 중 판정 불가(`unknown`) |
+| `baseline_unknowns` | baseline 중 판정 불가(`unknown`) |
+| `baseline_fails` | baseline 중 의도와 다른 assertion 실패(`fail`) |
 | `stale` | 신선하지 않은 `check`·`baseline` 줄 수 |
 | `fail_commits` | `fail`·`error`가 난 commit(앞 12자리) |
+
+#### 실행량 (`usage`)
+
+| 필드 | 의미 |
+| --- | --- |
+| `total` | 전체 check·baseline 시도 수 |
+| `checks`, `baselines` | 시도 종류별 수 |
+| `environment_errors`, `unknowns` | 오류·판정 불가 결과 수 |
+| `current_inputs`, `stale_inputs` | 현재 입력과 연결되는 시도·낡은 입력의 시도 수 |
+| `valid_evidence` | 현재 입력의 유효한 pass·기대 baseline 근거 수 |
+
+종류·결과·신선도는 서로 겹치는 축이다. 모든 열을 더해 총실행량으로 만들지 않는다. `valid_evidence`는 현재 입력의 양의 근거 부분집합이며 조건이나 목표 전체의 충족 수가 아니다.
 
 #### 이유 (`reasons[]`)
 
@@ -350,21 +393,29 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
 | --- | --- |
 | `window_start` | 예산 창이 시작한 줄의 seq |
 | `runs` | 창 안의 `check`·`baseline` 줄 수 |
-| `runs_limit` | `start`의 `budget.runs` |
+| `runs_limit` | `/1`·`/2`는 최초 상한, `/3`는 최신 유효 횟수 상한 |
+| `revision` | 현재 창의 최신 start/reopen/budget_change seq |
+| `remaining_runs` | 남은 횟수(최소 0) |
+| `excess_runs` | 초과 횟수(최소 0) |
+| `reached` | 사용량이 횟수 상한과 같은가 |
+| `history` | `{ "seq", "at", "change": <budget_change 객체> }` 목록. 이전 변경도 보존 |
 | `elapsed_seconds` | 창 안의 경과 시간 |
 | `elapsed_limit_seconds` | `start`의 `budget.elapsed_seconds` |
 | `exceeded` | 예산을 넘었는가 |
 
 ### 4.6 규칙 버전
 
-`start`의 `rules`가 계산 규칙을 정한다. 새 `ha start`는 `run-rules/2`를 기록한다. `run-rules/1`로 시작한 목표는 새 `ha`에서도 `run-rules/1`로 계산하고, 기록할 때 작업 트리를 보는 것(`tree_clean`, 경로 확인)도 `run-rules/1`을 따른다. `ha`가 지원하지 않는 규칙 버전의 목표에는 계산도 기록도 하지 않는다. `ha status`, `ha done`, `ha check`, `ha note`가 모두 66으로 끝난다. 시작 기록의 규칙 버전을 읽을 수 있으면, 그 뒤 기록의 무결성 오류가 있어도 미지원 규칙 거부가 우선한다.
+`start`의 `rules`가 계산 규칙을 정한다. 새 `ha start`는 `run-rules/3`를 기록한다. `/1`·`/2`로 시작한 목표는 새 바이너리에서도 해당 규칙으로 계산하고 이후 실행에도 새 결과·예산 의미를 섞지 않는다. 자동 이전이나 과거 기록 재작성은 하지 않는다. 새 change 검사는 구조화 결과 계약에 연동되어야 유효 근거를 얻는다.
 
-두 버전은 다음 두 가지만 다르다.
+`ha`가 지원하지 않는 규칙 버전에는 계산도 기록도 하지 않는다. `ha status`, `ha done`, `ha check`, `ha note`, `ha budget`이 66으로 끝난다. 시작 규칙을 읽을 수 있으면 그 뒤 무결성 오류보다 미지원 규칙 거부가 우선한다. 지원 규칙에서도 미지 결과·부정합 데이터는 성공 근거가 아니다. 유효한 구기록의 의미만 호환 대상으로 보존한다.
 
-| | `run-rules/1` | `run-rules/2` |
-| --- | --- | --- |
-| 묶음 문서(코드 상태에서 빼는 경로) | 자기 목표의 목표 문서와 실행 묶음 | 그에 더해 다른 목표의 실행 묶음 파일. PLAN이 `다른 목표 실행 묶음`을 선언하면 빼지 않는다 |
-| 남은 이유가 `budget_exceeded`뿐일 때 | `budget_exhausted` | `complete`. `ha done`이 완료 기록을 남긴다 |
+| | `run-rules/1` | `run-rules/2` | `run-rules/3` |
+| --- | --- | --- | --- |
+| 묶음 문서(코드 상태에서 빼는 경로) | 자기 목표의 목표 문서와 실행 묶음 | 다른 목표의 실행 묶음 파일도 포함. PLAN의 `다른 목표 실행 묶음` 선언은 입력으로 유지 | `/2`와 같음 |
+| 남은 이유가 `budget_exceeded`뿐일 때 | `budget_exhausted` | `complete`. `ha done`이 완료 기록을 남김 | `/2`와 같음 |
+| change의 실패·통과 근거 | 프로세스 종료 결과 | `/1`과 같음 | 선언한 대상·요구 위반·오류·호출 연결을 구조화 결과로 확인 |
+| 현재 창의 횟수 상한 변경 | 미지원 | 미지원 | `budget_change`, 사용량 유지 |
+| 재개 창의 횟수 상한 | 최초 start 상한 | 최초 start 상한 | 최신 유효 횟수 상한 계승 |
 
 **다른 목표의 실행 묶음 파일.** 자기 목표 디렉토리와 같은 부모 아래에서, 지금 작업 트리에 `SPEC.md`가 있는 다른 디렉토리 바로 아래의 `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl`, `tasks/`다. 그 디렉토리의 `SPEC.md`와 그것이 링크한 문서, `checks/` 같은 다른 파일은 코드다. 같은 부모 아래가 아니거나 `SPEC.md`가 없는 디렉토리(예: `examples/`, `testdata/` 아래의 목표 모양 디렉토리)도 코드다. 이 목록은 묶음 문서를 쓰는 모든 판단에 같이 쓴다.
 - 작업 트리가 깨끗한지: §3의 전제, `check`·`baseline`이 남기는 `tree_clean`, 경로 확인 `confirm`
@@ -374,7 +425,7 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
 
 같은 브랜치에서 여러 목표를 함께 진행할 때, 다른 목표가 진행 기록만 커밋해도 이 목표의 결과가 낡지 않게 하려는 것이다. 다른 목표의 실행 묶음을 검사 입력으로 읽는 목표는 PLAN `## 범위`에 `다른 목표 실행 묶음:` 항목을 두고 값으로 `검사 입력`을 쓴다([bundle.md](bundle.md) §2.2). 선언은 계산하고 기록할 때의 PLAN에서 읽는다.
 
-**예산 초과만 남은 완료.** 필수 조건이 모두 충족되고 남은 이유가 `budget_exceeded`뿐이면 상태는 `complete`이고, `ha done`이 완료 기록을 남긴다. 다른 이유가 하나라도 함께 남으면 §4.3의 순서 그대로다. 예를 들어 사용자 확인 이유와 함께면 `budget_exhausted`이고 두 이유가 모두 나온다. 예산 사용량과 초과 여부는 `budget`에 계속 나온다. 이것은 이미 얻은 근거로 완료를 기록하는 것이고, 예산을 넘겨 더 검증하거나 작업할 권한이 아니다. 더 쓰려면 지금처럼 사용자의 말을 인용한 `reopen`이 필요하다(§5.2). `ha check`는 실행 전에 예산을 확인하지 않는다.
+**예산 초과만 남은 완료.** 필수 조건이 모두 충족되고 남은 이유가 `budget_exceeded`뿐이면 상태는 `complete`이고, `ha done`이 완료 기록을 남긴다. 다른 이유가 하나라도 함께 남으면 §4.3의 순서 그대로다. 예를 들어 사용자 확인 이유와 함께면 `budget_exhausted`이고 두 이유가 모두 나온다. 예산 사용량과 초과 여부는 `budget`에 계속 나온다. 이것은 이미 얻은 근거로 완료를 기록하는 것이고, 예산을 넘겨 더 검증하거나 작업할 권한이 아니다. 추가 사용에는 사용자 근거가 필요하다. `/3`의 같은 창 횟수 증액은 `budget_change`, 명시적 재작업·새 창은 `reopen`이며 `/1`·`/2`는 기존 `reopen`을 쓴다(§5.2). `ha check`는 실행 전에 예산을 확인하지 않는다.
 
 
 ## 5. 완료 기록과 예산
@@ -386,7 +437,7 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
 완료 기록 d는 다음을 모두 만족하는 동안 **유효하다**.
 - 지금 작업 트리가 깨끗하다.
 - d.commit과 HEAD 사이에 묶음 문서 밖의 차이가 없다. 묶음 문서는 규칙 버전에 따른다(§4.6).
-- SPEC digest와 required 조건의 명령 digest가 d와 같다.
+- SPEC digest와 required 조건의 명령 digest가 d와 같다. `/3` change의 구조화 선언·생산자 입력도 같은 의미여야 한다.
 - d 이후에 `reopen` note가 없다.
 - d와 그 앞 줄의 `prev` 연결이 온전하다. 끊겼으면 완료 기록도 근거가 되지 않는다(`record_integrity`).
 
@@ -396,15 +447,34 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
 
 ### 5.2 예산
 
-예산은 진행 중인 작업에만 적용한다.
-- **한도**: `start` 줄의 `budget`. 진행 중에 PLAN의 예산을 바꿔도 계산에는 들어가지 않는다. 사용자가 더 쓰기로 하면 그 말을 인용한 `reopen`으로 새 창을 연다.
-- **예산 창**: 마지막 `start` 또는 `reopen` note부터 마지막 기록까지
-- **검증 실행 수**: 창 안의 `check`·`baseline` 줄 수
-- **경과 시간**: 창 안의 마지막 기록 `at`에서 창 시작 `at`을 뺀 값. 현재 시각을 쓰지 않으므로 기다리는 동안 상태를 조회하기만 해서는 늘지 않는다. 그러나 기다린 뒤 같은 창에 기록(예: `input`, `confirm`, `check`)이 붙으면 기다린 시간도 경과 시간에 들어간다. 쉬었다가 이어 갈 때 새 창이 필요하면 사용자의 말을 인용한 `reopen`으로 연다.
+예산은 진행 중인 작업에 적용한다. PLAN을 고치는 것만으로 진행 중 한도가 바뀌지는 않는다. 검사 실행 수는 CLI 호출 수가 아니라 `check`·`baseline` 줄 수다. 실패·오류·판정 불가·stale도 실제 시도라면 세며 baseline을 면제하지 않는다. 실행 전 거부와 worktree 준비 실패는 검사 실행과 구분한다. `/3`에서 선언한 overlay 파일을 준비할 수 없어 실행 전에 거부하면 검사 기록과 사용량이 생기지 않는다.
 
-`run-rules/2`에서는 필수 조건이 모두 충족되고 남은 이유가 예산 초과뿐이면 완료를 기록할 수 있다(§4.6).
+- **창**: 마지막 `start` 또는 `reopen`부터 마지막 저장 기록까지다. 검사 사용량은 기록 추가 순서로 귀속한다. 재개 전에 시작해 재개 뒤 기록된 검사도 새 창에 포함된다.
+- **경과 시간**: 마지막 저장 기록 `at`에서 창 시작 `at`을 뺀 값이다. 현재 시각 조회로 늘지 않는다. 예산 변경을 포함한 새 기록이 붙으면 기다린 시간도 들어간다.
+- **도달과 초과**: 사용량이 상한과 같으면 도달이고, `사용량 > 상한`일 때 초과다. 남은 횟수는 0 아래로 표시하지 않으며 초과량은 별도로 표시한다.
+- **실행 전 강제 제한 없음**: 예산은 동시 실행 슬롯을 예약하지 않고, 진행 중 검사를 종료하거나 검사 시작을 강제 차단하지 않는다. 예산 초과만 남은 완료는 추가 실행 권한이 아니다.
 
-사용자가 완료 뒤에 재작업을 요청하면, 에이전트는 그 요청을 인용해 `ha note reopen`을 남긴다. 그때부터 새 예산 창이 시작되고 이전 완료 기록은 무효가 된다.
+`/1`·`/2`의 한도는 항상 `start.budget`이다. 사용자 발화를 인용한 `reopen`은 같은 최초 상한의 새 창을 연다.
+
+`ha status <goal> --format json`의 `budget.window_start`, `revision`, `runs_limit`을 변경의 비교 대상으로 쓴다. 예를 들어 현재 창 1·개정 1·상한 50인 합성 목표의 변경 명령은 다음과 같다.
+
+```bash
+ha budget docs/specs/example --runs 100 --from 50 --window 1 --revision 1 --quote "검증 상한을 100회로 늘려줘" --context "이 목표의 현재 창 총상한 50회를 100회로 변경"
+```
+
+상태를 읽은 뒤 창이나 개정이 바뀌었다면 명령은 거부된다. 숫자를 임의로 갱신해 재시도하지 말고 변경된 상태와 사용자 요청의 적용 범위를 확인한다.
+
+`/3`의 `budget_change`는 **현재 창의 총 실행 횟수 상한**만 바꾼다. 48/50에서 100으로 바꾸면 48/100이고 잔여는 52다. 40으로 낮추면 48/40, 잔여 0, 초과 8이다. 시간 상한·창 시작·실제 사용량은 유지하며 변경 자체는 검사 횟수가 아니다. 증액에는 대상과 한도를 뒷받침하는 사용자 원문과 요청 문맥이 필요하고 감액에는 이유를 남긴다. 에이전트 해석은 원문과 구분하며, 호스트 출처가 검증되지 않은 인용은 실행자가 기록한 주장이다. 짧은 동의나 호출 토큰을 형식만으로 거부하지 않는다.
+
+변경은 현재 창·이전 예산 개정·이전 상한과 연결한다. 같은 창에 검사 기록이 추가돼도 사용량은 빠지지 않는다. 다른 변경이나 재개로 창·개정·상한이 달라졌으면 기록하지 않고 충돌을 알린다. 자동 합산·재적용하지 않는다. 빈 변경, 동일 값, 양수가 아닌 값, 지원하지 않는 시간 변경도 상한 변경 기록을 만들지 않는다.
+
+예산 변경만으로 재작업·새 창·unblock이 생기거나 실패·오류 한도가 초기화되지 않는다. 완료 기록이 있는 창은 명시적 재개가 필요하다. `/3`의 `reopen`은 최신 유효 횟수 상한과 최초 시간 상한을 계승하고 새 창 사용량을 센다. 이전 창의 사용량과 변경 이력은 남는다.
+
+출력 파일이 사라지거나 이름 변경에 실패해도 `/3`에서 실제 시도는 출력 참조가 빈 `error`·`process_output` 기록으로 보존한다. 이는 기록 저장소 자체의 쓰기 성공을 보증한다는 뜻은 아니다.
+
+기록 쓰기 후 동기화·닫기 오류는 이미 적용됐을 수 있다. 실패를 성공 또는 미적용으로 단정하지 않으며 저장 상태 확인 없이 다시 적용하지 않는다. 저장소 손상·쓰기 불능에도 무손실 기록을 보증하지 않는다.
+
+`/2`·`/3`는 필수 조건이 모두 충족되고 예산 초과만 남으면 완료를 기록할 수 있다(§4.6). 완료 뒤 재작업 요청은 `ha note reopen`으로 남기며 이전 완료 기록을 무효로 한다.
 
 ## 6. 규칙
 

@@ -191,7 +191,7 @@ func TestDocPathsCoverBundleFiles(t *testing.T) {
 func TestLintCodesMatchContract(t *testing.T) {
 	used := map[string]bool{}
 	call := regexp.MustCompile(`(?:problem\(|Code: )"([a-z_]+)"`)
-	for _, f := range []string{"bundle.go", "../goaldocs/goaldocs.go"} {
+	for _, f := range []string{"bundle.go", "evidence.go", "../goaldocs/goaldocs.go"} {
 		src, err := os.ReadFile(f)
 		if err != nil {
 			t.Fatal(err)

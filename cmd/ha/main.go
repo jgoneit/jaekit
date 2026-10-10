@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/jgoneit/jaekit/internal/bundle"
+	"github.com/jgoneit/jaekit/internal/evidence"
 	"github.com/jgoneit/jaekit/internal/gitx"
 	"github.com/jgoneit/jaekit/internal/goaldocs"
 	"github.com/jgoneit/jaekit/internal/record"
@@ -44,6 +45,9 @@ Usage:
   ha start  <goal> --request <quote> [--skill <path to SKILL.md>]
                    [--host-name <name>] [--host-version <version>] [--model <model>]
   ha check  <goal> [AC-n | EX-n | T001 ...] [--baseline]
+  ha budget <goal> --runs <total> --from <old-total> --window <seq> --revision <seq>
+                    [--quote <user words> --context <request context>]
+                    [--reason <reduction reason>] [--interpretation <agent interpretation>]
   ha note   <goal> block --cause <auth|permission|quota|environment|spec|other> [--quote <text>]
   ha note   <goal> unblock [--quote <text>]
   ha note   <goal> confirm <AC-n | scope:<path> | tests:<path> | spec> --quote <user words>
@@ -100,6 +104,8 @@ func runMain(argv []string, stdout, stderr io.Writer) int {
 		return c.start(rest)
 	case "check":
 		return c.check(rest)
+	case "budget":
+		return c.budget(rest)
 	case "note":
 		return c.note(rest)
 	case "status":
@@ -156,7 +162,12 @@ func openGoal(arg string) (*workspace, error) {
 	if err != nil {
 		return nil, err
 	}
-	b, err := bundle.Load(repo.Root, g)
+	records := filepath.Join(repo.Root, rel, "runs.jsonl")
+	lines, _, err := record.Read(records)
+	if err != nil {
+		return nil, err
+	}
+	b, err := bundle.LoadForRules(repo.Root, g, rules(lines))
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +177,7 @@ func openGoal(arg string) (*workspace, error) {
 		repo:    repo,
 		goal:    g,
 		bundle:  b,
-		records: filepath.Join(repo.Root, rel, "runs.jsonl"),
+		records: records,
 		lock:    filepath.Join(haDir, "lock"),
 		logDir:  filepath.Join(haDir, "runs", url.PathEscape(slashRel)),
 		logRel:  ".git/ha/runs/" + url.PathEscape(slashRel),
@@ -428,6 +439,23 @@ func (c *cli) check(in []string) int {
 			return code
 		}
 		clean := true
+		var invocation *evidence.Invocation
+		var declaration *evidence.Declaration
+		var binding string
+		var extraEnv []string
+		digest := bundle.Digest(t.command)
+		if row := w.bundle.Row(t.criterion); row != nil {
+			digest = row.CommandDigestFor(start.Rules)
+			if start.Rules == status.RulesV3 && t.kind == bundle.KindChange {
+				declaration, binding = row.Evidence, row.EvidenceDigest
+				invocation, err = evidence.Prepare(w.logDir)
+				if err != nil {
+					return c.fail(exitInternal, "before execution: prepare result report: %v", err)
+				}
+				defer invocation.Close()
+				extraEnv = invocation.Env(binding)
+			}
+		}
 		tmp, err := os.CreateTemp(w.logDir, ".pending-*.log")
 		if err != nil {
 			return c.fail(exitInternal, "%v", err)
@@ -436,19 +464,38 @@ func (c *cli) check(in []string) int {
 		var res run.Result
 		var overlay []record.Overlay
 		if baseline {
-			res, overlay, err = c.runBaseline(w, start.BaseCommit, head, t, tmp.Name())
+			res, overlay, err = c.runBaseline(w, start.BaseCommit, head, t, tmp.Name(), extraEnv...)
 		} else {
-			res, err = run.Exec(w.repo.Root, t.argv, checkTimeout, tmp.Name())
+			res, err = run.ExecWithEnv(w.repo.Root, t.argv, checkTimeout, tmp.Name(), extraEnv)
+		}
+		if start.Rules == status.RulesV3 && !res.Attempted && err == nil {
+			os.Remove(tmp.Name())
+			return c.fail(exitRefused, "before execution: baseline preparation failed; commit every check path at HEAD: %s", strings.Join(t.checks, ", "))
 		}
 		if err != nil {
-			os.Remove(tmp.Name())
-			return c.fail(exitInternal, "%v", err)
+			if !res.Attempted || start.Rules != status.RulesV3 {
+				os.Remove(tmp.Name())
+				return c.fail(exitInternal, "verification could not be recorded: %v", err)
+			}
+			// The process was attempted. Keep its usage even if its output
+			// could not be finalized; do not promote the partial output.
+			res.Outcome, res.Reason = run.Error, "process_output"
+			fmt.Fprintln(c.err, "ha: attempted verification had an output storage error; recording an error, not usable evidence")
 		}
 		var outputPath string
+		var outputLost bool
 		prepare := func(seq int) error {
 			name := strconv.Itoa(seq) + ".log"
 			if err := os.Rename(tmp.Name(), filepath.Join(w.logDir, name)); err != nil {
-				return err
+				if start.Rules != status.RulesV3 || !res.Attempted {
+					return err
+				}
+				// Output storage is distinct from record storage. Preserve an
+				// attempted run even when its raw output cannot be retained.
+				outputLost = true
+				res.Outcome, res.Reason, res.Digest = run.Error, "process_output", ""
+				fmt.Fprintln(c.err, "ha: output unavailable; recording the attempted verification as an error without a log reference")
+				return nil
 			}
 			outputPath = w.logRel + "/" + name
 			return nil
@@ -457,7 +504,22 @@ func (c *cli) check(in []string) int {
 		if baseline {
 			result = map[string]string{run.Pass: "unexpected_pass", run.Fail: "fail_as_expected", run.Error: "error"}[res.Outcome]
 		}
-		digest := bundle.Digest(t.command)
+		var proof *evidence.Summary
+		if invocation != nil {
+			summary := invocation.Classify(declaration, binding, res, baseline)
+			proof, result = &summary, summary.Result
+			_ = invocation.Close()
+		}
+		finalizeOutput := func() {
+			if !outputLost {
+				return
+			}
+			result = run.Error
+			if proof != nil {
+				*proof = invocation.Classify(declaration, binding, res, baseline)
+				result = proof.Result
+			}
+		}
 		tgt := record.Target{Criterion: t.criterion, Task: t.task, Index: t.index}
 		var entry record.Entry
 		if baseline {
@@ -466,6 +528,7 @@ func (c *cli) check(in []string) int {
 				Argv: t.argv, CommandDigest: digest, Commit: head, TreeClean: clean, SpecDigest: w.goal.Digest,
 				BaseCommit: start.BaseCommit, Overlay: overlay, Exit: res.Exit, Result: result,
 				DurationMS: res.Duration.Milliseconds(), OutputDigest: res.Digest,
+				Evidence: proof,
 			}
 			entry = bl
 			prepareBase := prepare
@@ -473,6 +536,8 @@ func (c *cli) check(in []string) int {
 				if err := prepareBase(seq); err != nil {
 					return err
 				}
+				finalizeOutput()
+				bl.Result, bl.OutputDigest = result, res.Digest
 				bl.OutputPath = outputPath
 				return nil
 			}
@@ -481,6 +546,7 @@ func (c *cli) check(in []string) int {
 				Header: record.Header{Kind: "check", HaVersion: version}, Target: tgt, CriterionKind: t.kind,
 				Argv: t.argv, CommandDigest: digest, Commit: head, TreeClean: clean, SpecDigest: w.goal.Digest,
 				Exit: res.Exit, Result: result, DurationMS: res.Duration.Milliseconds(), OutputDigest: res.Digest,
+				Evidence: proof,
 			}
 			entry = ck
 			prepareBase := prepare
@@ -488,6 +554,8 @@ func (c *cli) check(in []string) int {
 				if err := prepareBase(seq); err != nil {
 					return err
 				}
+				finalizeOutput()
+				ck.Result, ck.OutputDigest = result, res.Digest
 				ck.OutputPath = outputPath
 				return nil
 			}
@@ -505,6 +573,9 @@ func (c *cli) check(in []string) int {
 			kind = "baseline"
 		}
 		fmt.Fprintf(c.out, "%s %s %s (seq %d)\n", t.label(), kind, result, l.Seq)
+		if proof != nil {
+			fmt.Fprintf(c.out, "classification: %s\n", proof.Reason)
+		}
 		if result != run.Pass && result != "fail_as_expected" {
 			allGood = false
 		}
@@ -519,7 +590,7 @@ func (c *cli) check(in []string) int {
 // runBaseline runs the command in a temporary worktree of the base commit with
 // the condition's check files copied from HEAD. The user's working tree and
 // index are not touched.
-func (c *cli) runBaseline(w *workspace, base, head string, t target, logPath string) (run.Result, []record.Overlay, error) {
+func (c *cli) runBaseline(w *workspace, base, head string, t target, logPath string, extraEnv ...string) (run.Result, []record.Overlay, error) {
 	parent := filepath.Join(w.repo.GitDir, "ha", "worktrees")
 	if err := os.MkdirAll(parent, 0o755); err != nil {
 		return run.Result{}, nil, err
@@ -567,7 +638,7 @@ func (c *cli) runBaseline(w *workspace, base, head string, t target, logPath str
 		}
 		overlay = append(overlay, record.Overlay{Path: p, Digest: sha(data)})
 	}
-	res, err := run.Exec(tree, t.argv, checkTimeout, logPath)
+	res, err := run.ExecWithEnv(tree, t.argv, checkTimeout, logPath, extraEnv)
 	return res, overlay, err
 }
 
@@ -595,6 +666,23 @@ func (c *cli) note(in []string) int {
 	}
 	kind, quote := a.pos[1], strings.TrimSpace(a.vals["quote"])
 	e := &record.Note{Header: record.Header{Kind: "note", HaVersion: version}, Note: kind, Quote: quote}
+	var validate func([]record.Line) error
+	if kind == "reopen" && goalRules == status.RulesV3 {
+		before, err := status.FoldBudget(lines)
+		if err != nil {
+			return c.fail(exitRefused, "%v", err)
+		}
+		validate = func(current []record.Line) error {
+			after, err := status.FoldBudget(current)
+			if err != nil {
+				return err
+			}
+			if after.WindowStart != before.WindowStart || after.Revision != before.Revision {
+				return fmt.Errorf("budget conflict before reopen: current window %d, revision %d; read ha status and decide again", after.WindowStart, after.Revision)
+			}
+			return nil
+		}
+	}
 	switch kind {
 	case "block":
 		cause := a.vals["cause"]
@@ -627,9 +715,13 @@ func (c *cli) note(in []string) int {
 	default:
 		return c.fail(exitUsage, "unknown note kind %q", kind)
 	}
-	l, err := record.Append(w.records, w.lock, e, time.Now(), nil)
+	l, err := record.AppendChecked(w.records, w.lock, e, time.Now(), validate, nil)
 	if err != nil {
 		if errors.Is(err, record.ErrBroken) {
+			return c.fail(exitRefused, "%v", err)
+		}
+		var uncertain *record.UncertainWriteError
+		if validate != nil && !errors.As(err, &uncertain) {
 			return c.fail(exitRefused, "%v", err)
 		}
 		return c.fail(exitInternal, "%v", err)

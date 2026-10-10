@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/jgoneit/jaekit/internal/diag"
+	"github.com/jgoneit/jaekit/internal/evidence"
 	"github.com/jgoneit/jaekit/internal/goaldocs"
 	"github.com/jgoneit/jaekit/internal/markdown"
 )
@@ -35,18 +36,30 @@ var TaskStates = []string{"todo", "doing", "done", "dropped", "blocked"}
 
 // Row is one row of `## 조건표`.
 type Row struct {
-	ID         string
-	Kind       string
-	Command    string // plan command string; empty for manual rows
-	Argv       []string
-	Reason     string // manual rows: why no command
-	CheckPaths []string
-	Tasks      []string
-	Line       int
+	ID             string
+	Kind           string
+	Command        string // plan command string; empty for manual rows
+	Argv           []string
+	Reason         string // manual rows: why no command
+	CheckPaths     []string
+	Tasks          []string
+	Line           int
+	EvidencePath   string
+	Evidence       *evidence.Declaration
+	EvidenceDigest string
 }
 
 // CommandDigest is the sha256 of the plan command string.
 func (r Row) CommandDigest() string { return Digest(r.Command) }
+
+// CommandDigestFor binds the structured contract only under its opted-in rule.
+// Old goals keep their exact original command digest.
+func (r Row) CommandDigestFor(rules string) string {
+	if rules == "run-rules/3" && r.Kind == KindChange && r.EvidencePath != "" {
+		return Digest(r.Command + "\x00" + r.EvidencePath + "\x00" + r.EvidenceDigest)
+	}
+	return r.CommandDigest()
+}
 
 // Executor reports whether the row is an executor-added EX-n condition. Such
 // conditions are always optional.
@@ -206,6 +219,12 @@ func (l *loader) read(rel string) (string, bool, error) {
 // Load reads the bundle of goal g under root. Format problems are collected
 // in Bundle.Problems; err is only for I/O failures.
 func Load(root string, g *goaldocs.Goal) (*Bundle, error) {
+	return LoadForRules(root, g, "run-rules/3")
+}
+
+// LoadForRules preserves legacy free-form sections by reading structured result
+// declarations only for goals whose recorded rules opt into that contract.
+func LoadForRules(root string, g *goaldocs.Goal, rules string) (*Bundle, error) {
 	l := &loader{root: root, g: g, b: &Bundle{Dir: g.Dir, Progress: map[string]string{}}}
 	planPath := g.Dir + "/PLAN.md"
 	src, ok, err := l.read(planPath)
@@ -218,6 +237,9 @@ func Load(root string, g *goaldocs.Goal) (*Bundle, error) {
 		l.b.HasPlan = true
 		doc := markdown.Parse(src)
 		l.readRows(doc, planPath)
+		if rules == "run-rules/3" {
+			l.readEvidence(doc, planPath)
+		}
 		l.readScope(doc, planPath)
 		if err := l.readTasks(doc, planPath); err != nil {
 			return nil, err

@@ -24,16 +24,25 @@ const (
 
 // Result is the outcome of one command.
 type Result struct {
-	Outcome  string
-	Exit     *int // nil when the command did not start or timed out
-	Duration time.Duration
-	Digest   string // hex sha256 of the log file
+	Attempted bool // a process start was attempted, even if later output I/O failed
+	Outcome   string
+	Exit      *int   // nil when the command did not start or timed out
+	Reason    string // fixed code for process errors; never command output
+	Signal    string // signal number, even though legacy Outcome remains Fail
+	Duration  time.Duration
+	Digest    string // hex sha256 of the log file
 }
 
 // Exec runs argv in dir with stdin closed, writing stdout and stderr to the
 // file at logPath. When timeout passes, the whole process group is killed and
 // the outcome is Error.
 func Exec(dir string, argv []string, timeout time.Duration, logPath string) (Result, error) {
+	return ExecWithEnv(dir, argv, timeout, logPath, nil)
+}
+
+// ExecWithEnv adds invocation-specific environment values without changing the
+// legacy exit interpretation used by Exec. Later entries override inherited ones.
+func ExecWithEnv(dir string, argv []string, timeout time.Duration, logPath string, extraEnv []string) (Result, error) {
 	log, err := os.OpenFile(logPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {
 		return Result{}, err
@@ -42,12 +51,15 @@ func Exec(dir string, argv []string, timeout time.Duration, logPath string) (Res
 	start := time.Now()
 	cmd := exec.Command(argv[0], argv[1:]...)
 	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), extraEnv...)
 	cmd.Stdout = log
 	cmd.Stderr = log
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	res.Attempted = true
 	if err := cmd.Start(); err != nil {
 		fmt.Fprintf(log, "ha: could not start %q: %v\n", argv[0], err)
 		res.Outcome = Error
+		res.Reason = "process_start"
 	} else {
 		var timedOut atomic.Bool
 		timer := time.AfterFunc(timeout, func() {
@@ -60,6 +72,7 @@ func Exec(dir string, argv []string, timeout time.Duration, logPath string) (Res
 		case timedOut.Load():
 			fmt.Fprintf(log, "\nha: timed out after %s\n", timeout)
 			res.Outcome = Error
+			res.Reason = "process_timeout"
 		case waitErr == nil:
 			code := 0
 			res.Exit, res.Outcome = &code, Pass
@@ -68,18 +81,20 @@ func Exec(dir string, argv []string, timeout time.Duration, logPath string) (Res
 			if !errors.As(waitErr, &ee) {
 				fmt.Fprintf(log, "\nha: wait failed: %v\n", waitErr)
 				res.Outcome = Error
+				res.Reason = "process_wait"
 				break
 			}
 			code := ee.ExitCode()
 			if ws, ok := ee.Sys().(syscall.WaitStatus); ok && ws.Signaled() {
 				code = 128 + int(ws.Signal())
+				res.Signal = fmt.Sprint(int(ws.Signal()))
 			}
 			res.Exit, res.Outcome = &code, Fail
 		}
 	}
 	res.Duration = time.Since(start)
 	if err := log.Close(); err != nil {
-		return Result{}, err
+		return res, err
 	}
 	res.Digest, err = fileDigest(logPath)
 	return res, err

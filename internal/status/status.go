@@ -14,6 +14,7 @@ import (
 
 	"github.com/jgoneit/jaekit/internal/bundle"
 	"github.com/jgoneit/jaekit/internal/diag"
+	"github.com/jgoneit/jaekit/internal/evidence"
 	"github.com/jgoneit/jaekit/internal/gitx"
 	"github.com/jgoneit/jaekit/internal/goaldocs"
 	"github.com/jgoneit/jaekit/internal/record"
@@ -25,11 +26,12 @@ import (
 const (
 	RulesV1 = "run-rules/1"
 	RulesV2 = "run-rules/2"
-	Rules   = RulesV2
+	RulesV3 = "run-rules/3"
+	Rules   = RulesV3
 )
 
 // Supported reports whether this build computes goals started under rules.
-func Supported(rules string) bool { return rules == RulesV1 || rules == RulesV2 }
+func Supported(rules string) bool { return rules == RulesV1 || rules == RulesV2 || rules == RulesV3 }
 
 // Excludes returns the paths left out of the code state of goal g under
 // rules: the goal's own documents and bundle, and under run-rules/2 also the
@@ -37,7 +39,7 @@ func Supported(rules string) bool { return rules == RulesV1 || rules == RulesV2 
 // this goal's checks read them.
 func Excludes(root string, g *goaldocs.Goal, b *bundle.Bundle, rules string) ([]string, error) {
 	out := bundle.DocPaths(g)
-	if rules != RulesV2 || b.Scope.OtherBundlesInput {
+	if (rules != RulesV2 && rules != RulesV3) || b.Scope.OtherBundlesInput {
 		return out, nil
 	}
 	others, err := bundle.OtherGoalBundles(root, g)
@@ -94,6 +96,9 @@ var classOf = map[string]string{
 	"baseline_missing":         ClassExecutor,
 	"baseline_unexpected_pass": ClassExecutor,
 	"baseline_error":           ClassExecutor,
+	"baseline_failed":          ClassExecutor,
+	"evidence_invalid":         ClassExecutor,
+	"record_invalid":           ClassUser,
 	"lint_error":               ClassExecutor,
 	"not_started":              ClassExecutor,
 	"worktree_dirty":           ClassExecutor,
@@ -113,7 +118,7 @@ var classOf = map[string]string{
 type UnsupportedRulesError struct{ Rules string }
 
 func (e *UnsupportedRulesError) Error() string {
-	return fmt.Sprintf("goal was started with rules %q; this ha computes only %q and %q", e.Rules, RulesV1, RulesV2)
+	return fmt.Sprintf("goal was started with rules %q; this ha computes only %q, %q and %q", e.Rules, RulesV1, RulesV2, RulesV3)
 }
 
 // Input is everything the computation reads.
@@ -150,6 +155,7 @@ type Report struct {
 	Changes               Changes           `json:"changes"`
 	Budget                *Budget           `json:"budget"`
 	Logs                  []Log             `json:"logs"`
+	Usage                 Usage             `json:"usage"`
 	commandDigests        map[string]string // for the done line
 }
 
@@ -181,6 +187,9 @@ type Attempts struct {
 	BaselineErrors   int      `json:"baseline_errors"`
 	Stale            int      `json:"stale"`
 	FailCommits      []string `json:"fail_commits"`
+	Unknowns         int      `json:"unknowns"`
+	BaselineUnknowns int      `json:"baseline_unknowns"`
+	BaselineFails    int      `json:"baseline_fails"`
 }
 
 // Reason is one reason the goal is not complete.
@@ -234,12 +243,17 @@ type VersionChange struct {
 
 // Budget is the use of the current budget window.
 type Budget struct {
-	WindowStart         int   `json:"window_start"`
-	Runs                int   `json:"runs"`
-	RunsLimit           int   `json:"runs_limit"`
-	ElapsedSeconds      int64 `json:"elapsed_seconds"`
-	ElapsedLimitSeconds int64 `json:"elapsed_limit_seconds"`
-	Exceeded            bool  `json:"exceeded"`
+	WindowStart         int           `json:"window_start"`
+	Runs                int           `json:"runs"`
+	RunsLimit           int           `json:"runs_limit"`
+	ElapsedSeconds      int64         `json:"elapsed_seconds"`
+	ElapsedLimitSeconds int64         `json:"elapsed_limit_seconds"`
+	Exceeded            bool          `json:"exceeded"`
+	Revision            int           `json:"revision"`
+	RemainingRuns       int           `json:"remaining_runs"`
+	ExcessRuns          int           `json:"excess_runs"`
+	Reached             bool          `json:"reached"`
+	History             []BudgetEvent `json:"history"`
 }
 
 // Log points to the local output of a failed or errored run.
@@ -248,6 +262,7 @@ type Log struct {
 	Target string `json:"target"`
 	Result string `json:"result"`
 	Path   string `json:"path"`
+	Reason string `json:"reason,omitempty"`
 }
 
 type evaluator struct {
@@ -261,6 +276,7 @@ type evaluator struct {
 	same     map[string]bool
 	overlay  map[string]string
 	confirms map[string]bool
+	invalid  []string
 }
 
 // Compute evaluates the goal.
@@ -302,6 +318,9 @@ func Compute(in Input) (*Report, error) {
 	if n := len(in.Lines); n > 0 {
 		rep.RecordHead = &Head{Seq: in.Lines[n-1].Seq, SHA256: in.Lines[n-1].Hash()}
 	}
+	if err := e.collectUsage(rep); err != nil {
+		return nil, err
+	}
 	if err := e.readConfirms(rep); err != nil {
 		return nil, err
 	}
@@ -337,7 +356,7 @@ func Compute(in Input) (*Report, error) {
 		reasons = kept
 		rep.Status = Complete
 	} else {
-		if e.rules == RulesV2 && onlyBudget(reasons) {
+		if (e.rules == RulesV2 || e.rules == RulesV3) && onlyBudget(reasons) {
 			// run-rules/2: the evidence is complete and only the budget is
 			// over; the goal may record completion. rep.Budget still shows
 			// the use and that it was exceeded.
@@ -400,7 +419,7 @@ func (e *evaluator) sameAsHead(commit string) (bool, error) {
 
 func (e *evaluator) currentDigest(id string) string {
 	if r := e.in.Bundle.Row(id); r != nil {
-		return r.CommandDigest()
+		return r.CommandDigestFor(e.rules)
 	}
 	return ""
 }
@@ -501,6 +520,9 @@ func (e *evaluator) criteria(rep *Report) error {
 					}
 					ev.Attempts.FailCommits = appendUnique(ev.Attempts.FailCommits, short(l.Commit))
 				}
+				if l.Result == "unknown" {
+					ev.Attempts.Unknowns++
+				}
 				fresh, err := e.freshCheck(l)
 				if err != nil {
 					return err
@@ -517,6 +539,10 @@ func (e *evaluator) criteria(rep *Report) error {
 					ev.Attempts.UnexpectedPasses++
 				case "error":
 					ev.Attempts.BaselineErrors++
+				case "unknown":
+					ev.Attempts.BaselineUnknowns++
+				case "fail":
+					ev.Attempts.BaselineFails++
 				}
 				fresh, err := e.freshBaseline(l)
 				if err != nil {
@@ -581,6 +607,17 @@ func (e *evaluator) judge(id, kind string, C, B []*record.Line) string {
 	default:
 		return "criterion_missing"
 	}
+	for _, l := range append(append([]*record.Line{}, C...), B...) {
+		if !validResult(l, e.rules) {
+			return "record_invalid"
+		}
+		if e.rules == RulesV3 && kind == bundle.KindChange {
+			r := e.in.Bundle.Row(id)
+			if r == nil || evidence.ValidateStored(l.Evidence, r.Evidence, r.EvidenceDigest, l.Kind == "baseline", l.Result, l.Exit) != nil {
+				return "evidence_invalid"
+			}
+		}
+	}
 	last := func(ls []*record.Line) string {
 		if len(ls) == 0 {
 			return ""
@@ -588,7 +625,30 @@ func (e *evaluator) judge(id, kind string, C, B []*record.Line) string {
 		return ls[len(ls)-1].Result
 	}
 	cPass, cFail, cErr := count(C, "pass"), count(C, "fail"), count(C, "error")
-	bErr := count(B, "error")
+	bFail, bErr := count(B, "fail"), count(B, "error")
+	if e.rules == RulesV3 && kind == bundle.KindChange {
+		// An environment error or skipped observation can determine the
+		// overall result without erasing an assertion in the same report.
+		// All summaries above have already passed ValidateStored.
+		r := e.in.Bundle.Row(id)
+		for _, l := range C {
+			if l.Result != "fail" && evidence.HasAdverse(l.Evidence, r.Evidence, false) {
+				cFail++
+			}
+		}
+		for _, l := range B {
+			if l.Result != "fail" && evidence.HasAdverse(l.Evidence, r.Evidence, true) {
+				bFail++
+			}
+		}
+	}
+	if e.rules == RulesV3 {
+		cErr += count(C, "unknown")
+		bErr += count(B, "unknown")
+		if cErr > ErrorReruns || bErr > ErrorReruns {
+			return "error_limit"
+		}
+	}
 	switch {
 	case len(C) == 0:
 		return "criterion_missing"
@@ -596,7 +656,7 @@ func (e *evaluator) judge(id, kind string, C, B []*record.Line) string {
 		return "criterion_flaky"
 	case cFail > 0:
 		return "criterion_failed"
-	case cErr <= ErrorReruns && last(C) == "error":
+	case cErr <= ErrorReruns && (last(C) == "error" || last(C) == "unknown"):
 		return "criterion_error"
 	}
 	if kind == bundle.KindChange {
@@ -605,12 +665,20 @@ func (e *evaluator) judge(id, kind string, C, B []*record.Line) string {
 			return "baseline_missing"
 		case count(B, "unexpected_pass") > 0:
 			return "baseline_unexpected_pass"
-		case bErr <= ErrorReruns && last(B) == "error":
+		case bFail > 0:
+			return "baseline_failed"
+		case bErr <= ErrorReruns && (last(B) == "error" || last(B) == "unknown"):
 			return "baseline_error"
 		}
 	}
 	if cErr > ErrorReruns || bErr > ErrorReruns {
 		return "error_limit"
+	}
+	if cPass == 0 {
+		return "criterion_missing"
+	}
+	if kind == bundle.KindChange && count(B, "fail_as_expected") == 0 {
+		return "baseline_missing"
 	}
 	return ""
 }
@@ -696,6 +764,9 @@ func (e *evaluator) goalReasons(rep *Report) ([]Reason, error) {
 	if e.in.Integrity != nil {
 		add("record_integrity", e.in.Integrity.Error(), nil)
 	}
+	for _, detail := range e.invalid {
+		add("record_invalid", detail, nil)
+	}
 	if !e.clean {
 		var paths, details []string
 		for _, change := range e.dirty {
@@ -751,19 +822,27 @@ func (e *evaluator) goalReasons(rep *Report) ([]Reason, error) {
 		add("blocked", fmt.Sprintf("blocked since seq %d (cause: %s)", lastBlock.Seq, lastBlock.Cause), nil)
 	}
 	if e.start != nil {
-		bud, err := e.budget()
+		budgetReasons, err := e.budgetReasons(rep)
 		if err != nil {
 			return nil, err
 		}
-		rep.Budget = bud
-		if bud.Exceeded {
-			add("budget_exceeded", fmt.Sprintf("%d/%d runs, %ds/%ds in the window from seq %d", bud.Runs, bud.RunsLimit, bud.ElapsedSeconds, bud.ElapsedLimitSeconds, bud.WindowStart), nil)
-		}
+		rs = append(rs, budgetReasons...)
 	}
 	return rs, nil
 }
 
 func (e *evaluator) budget() (*Budget, error) {
+	if e.rules == RulesV3 {
+		state, err := FoldBudget(e.in.Lines)
+		if err != nil {
+			return nil, err
+		}
+		bud := &Budget{WindowStart: state.WindowStart, Revision: state.Revision, Runs: state.Runs,
+			RunsLimit: state.RunsLimit, ElapsedSeconds: state.ElapsedSeconds,
+			ElapsedLimitSeconds: state.ElapsedLimitSeconds, History: state.History}
+		finishBudget(bud)
+		return bud, nil
+	}
 	lines := e.in.Lines
 	ws := 0
 	for i, l := range lines {
@@ -771,7 +850,7 @@ func (e *evaluator) budget() (*Budget, error) {
 			ws = i
 		}
 	}
-	bud := &Budget{WindowStart: lines[ws].Seq}
+	bud := &Budget{WindowStart: lines[ws].Seq, Revision: lines[ws].Seq, History: []BudgetEvent{}}
 	if e.start.Budget != nil {
 		bud.RunsLimit, bud.ElapsedLimitSeconds = e.start.Budget.Runs, e.start.Budget.ElapsedSeconds
 	}
@@ -789,14 +868,21 @@ func (e *evaluator) budget() (*Budget, error) {
 		return nil, fmt.Errorf("record seq %d: bad time %q", lines[len(lines)-1].Seq, lines[len(lines)-1].At)
 	}
 	bud.ElapsedSeconds = int64(to.Sub(from) / time.Second)
-	bud.Exceeded = (bud.RunsLimit > 0 && bud.Runs > bud.RunsLimit) || (bud.ElapsedLimitSeconds > 0 && bud.ElapsedSeconds > bud.ElapsedLimitSeconds)
+	finishBudget(bud)
 	return bud, nil
 }
 
 // completionRecord returns the seq of a valid completion record, or nil.
 func (e *evaluator) completionRecord(rep *Report) (*int, error) {
-	if e.in.Integrity != nil || !e.clean {
+	if e.in.Integrity != nil || !e.clean || len(e.invalid) > 0 {
 		return nil, nil
+	}
+	if e.rules == RulesV3 {
+		for _, c := range rep.Criteria {
+			if c.Required && !c.Satisfied {
+				return nil, nil
+			}
+		}
 	}
 	lines := e.in.Lines
 	for i := len(lines) - 1; i >= 0; i-- {
@@ -844,7 +930,7 @@ func (e *evaluator) changes(rep *Report) {
 			if (l.Kind != "check" && l.Kind != "baseline") || l.Target == nil || l.Target.Criterion != id {
 				continue
 			}
-			if l.CommandDigest != row.CommandDigest() && !seenCmd[key{id, l.CommandDigest}] {
+			if l.CommandDigest != row.CommandDigestFor(e.rules) && !seenCmd[key{id, l.CommandDigest}] {
 				seenCmd[key{id, l.CommandDigest}] = true
 				rep.Changes.CommandChanged = append(rep.Changes.CommandChanged, CommandChange{Criterion: id, Seq: l.Seq, Before: l.Argv, After: row.Command})
 			}
@@ -872,7 +958,18 @@ func (e *evaluator) logs(rep *Report) {
 		if (l.Kind != "check" && l.Kind != "baseline") || l.Result == "pass" || l.Result == "fail_as_expected" {
 			continue
 		}
-		rep.Logs = append(rep.Logs, Log{Seq: l.Seq, Target: targetString(l.Target), Result: l.Result, Path: l.OutputPath})
+		log := Log{Seq: l.Seq, Target: targetString(l.Target), Result: l.Result, Path: l.OutputPath}
+		if !validResult(&l, e.rules) {
+			log.Result, log.Reason = "invalid", "record_invalid"
+		} else if e.rules == RulesV3 && l.CriterionKind == bundle.KindChange && l.Target != nil {
+			row := e.in.Bundle.Row(l.Target.Criterion)
+			if row != nil && evidence.ValidateStored(l.Evidence, row.Evidence, row.EvidenceDigest, l.Kind == "baseline", l.Result, l.Exit) == nil {
+				log.Reason = l.Evidence.Reason
+			} else {
+				log.Reason = "evidence_invalid"
+			}
+		}
+		rep.Logs = append(rep.Logs, log)
 	}
 }
 

@@ -1,0 +1,13 @@
+# New starts select /3; a plain change script has no classified evidence.
+ha start $GOAL --request "implement the synthetic goal"
+expect-exit 0
+expect-record 1 rules run-rules/3
+write tests/greeting.sh "exit 1\n"
+commit "add ordinary failing check"
+ha check $GOAL --baseline AC-1
+expect-exit 1
+expect-record 2 result unknown
+expect-output "unsupported_declaration"
+expect-unsatisfied AC-1
+expect-attempt AC-1 baseline_unknowns 1
+expect-records 2
