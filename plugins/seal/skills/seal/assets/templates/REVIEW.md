@@ -15,5 +15,12 @@
 ## 검증 방법과 환경
 <whether each command runs here; tools, data, network; how a cross-component flow is checked across the boundary>
 
+<for goals started with seal 0.1.10 or later; existing goals retain their starting format:
+- Expected-result grounds: requirement/public contract/agreed invariant and location; unresolved/conflicting grounds stay explicit
+- Planned observation boundary: scope and relevant environment; planned is not observed
+- Method and substitutes: synthetic inputs, fakes, fault injection or comparisons and what they replace
+- Failure classes not covered: gaps in the general property, examples and assumptions; check count is not a sufficiency score
+- Map every condition; shared condition groups may reference one explanation without repeated tables>
+
 ## 결론
 <ready | needs_user: reason>

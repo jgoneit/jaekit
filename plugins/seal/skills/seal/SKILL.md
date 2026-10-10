@@ -2,7 +2,7 @@
 name: seal
 description: Carry a goal in docs/specs/<goal>/ to recorded completion — plan, implement, verify through the ha binary, and resume in a new session. Use when the user calls this skill with a goal or asks to implement, finish, or continue a goal document, for example "$seal:seal docs/specs/x" in Codex, "/seal:seal docs/specs/x" in Claude Code, "docs/specs/x 구현해줘", or "docs/specs/x 이어서 해줘".
 metadata:
-  version: "0.1.9"
+  version: "0.1.10"
 ---
 
 # Seal
@@ -62,6 +62,7 @@ Follow the project's Git tracking and local retention policy for goal documents 
   - `ha note <goal> input --quote "…"` for any other instruction or answer during the run
 - When the goal documents change once a run has started, a later request from the user to continue or implement confirms that change. Record it with `ha note <goal> confirm spec --quote "…"`, quoting that request, and name the changed criteria in your report.
 - Terminal failures (authentication, permission, usage limits) are not retried. Record `ha note <goal> block --cause <auth|permission|quota|environment|spec|other> --quote "…"` and report.
+- Goals started with seal 0.1.10 or later connect expected-result grounds, observed boundaries, methods and substitutes, and uncovered failure classes in the existing review and report. Shared condition groups may reference one explanation. Distinguish planned from observed, evidence versions, and unknown event times from measured writing times. A report does not establish deployment, installation or real model calls. Older goals keep their starting format without fabricated observations.
 - The completion report format is in [references/bundle.md](references/bundle.md) (completion report). It always states assurance `local` and that the executor wrote the checks.
 
 ## Resuming

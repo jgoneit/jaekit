@@ -96,6 +96,19 @@ Summaries point to a document and section. They never replace a criterion.
 | 검증 방법과 환경 | Whether each command runs here; tools, data, network; how a cross-component flow is checked across the boundary |
 | 결론 | `ready` or `needs_user` with the reason |
 
+### Evidence and observation scope
+
+Goals started with seal 0.1.10 or later use these additions in their existing review and report. Existing goals retain their starting format; absent fields mean unrecorded, not failed or unexecuted. Never convert old records or invent past observations.
+
+- **Expected-result grounds**: the requirement, public contract or agreed invariant, with its location. If observed behavior or a reference implementation is the chosen standard, name the agreement and scope supporting that choice. Execution or a fake's expected value is not the authority for correctness.
+- **Planned observation boundary**: the shell, DB, HTTP, model or other boundary and scope to observe; include only environments that affect the condition. Distinguish planned, not performed, and observed.
+- **Method and substitutes**: synthetic inputs, fakes, fault injection and reference comparisons, including what they control or replace. One example is not the oracle for all inputs.
+- **Failure classes not covered**: gaps in general properties, representative examples and environment assumptions. Bound any claim of no remaining risk; check counts are not a sufficiency score.
+
+Map every condition to these axes and gaps. Shared condition groups may reference one explanation; repeated per-condition prose, duplicate tables and additional documents are not required. Show unresolved or conflicting grounds explicitly.
+
+Connect the planned review to observed report. When the condition, check, or environment changes, identify the versions and limits of earlier evidence. Separate recorded facts from the executor's interpretation. Unavailable sources and blocked execution remain unobserved with reasons.
+
 ## PROGRESS.md
 
 The check time and record head of `## 현재`, `## 타임라인`, and the table time rules apply to goals whose start record names seal 0.1.6 or later (the `skill:` line of `ha status`). A goal started with an earlier Seal keeps the PROGRESS form it started with.
@@ -118,6 +131,7 @@ Optional. Append entries for events that change a judgment or the next action, s
   - The time is ISO 8601 with its time zone (`+09:00`, or `Z` for UTC). Never invent a time you do not know.
   - The seq is the record head when the entry is written (the heading carries the seq only; the hash goes in `## 현재`; `seq none` while there is no record); an entry about a check run uses that run's seq. The record's hash chain backs the seq; nothing backs the time.
   - Kinds: `관측`, `원인`, `결정`, `조치`, `검증`, `막힘`, `재개`.
+- Time and judgment: distinguish event time and writing time, and name the time source. An unknown event time stays unknown; the heading may use the measured writing time. Include remaining conditions, new facts, hypothesis evidence and uncertainty to reduce where relevant; not every tool call. Repeating the same result with unchanged code, environment and hypothesis is not progress. Explain a changed hypothesis, separated cause or blocked condition when judgment changes.
 - Body marks: a cause is `가설`, `확정`, or `기각`; an action is `예정` or `반영`; a verification is `대기`, `통과`, or `실패` (for example `원인 [확정]: …`). Point to evidence by AC, commit, and seq; never copy check output.
 - Append only: never edit an earlier entry. When a judgment changes, a new entry says what was rejected and on what grounds. A small event that went from cause to verification at once may be one entry.
 - Record what changed a judgment or the next action: a new problem, a cause confirmed or changed, a change of approach, an important verification result, blocks and resumes. Every resume counts: a new session taking the goal up, a cleared block, an answer to a `needs_user` question. A `재개` entry notes where `## 현재` differed from the actual state, if it did.
@@ -132,6 +146,7 @@ Written when `ha done` records completion, or when work stops at `needs_user`, `
 2. Per-condition evidence (condition, result, record seq) when the output above does not already show it.
 3. Changed files and the conditions each served, marked as the agent's claim.
 4. Remaining limits: assumed decisions, `manual` conditions, assurance `local`, and that the executor wrote the checks.
-5. How to continue, when not complete.
+5. In the new reporting format, connect the planned review to observed report: expected grounds, actual boundaries, methods and substitutes, results, evidence and unobserved scope. Identify changed condition, check, or environment versions and evidence limits. State what was confirmed, not confirmed, and risky, with condition or shared-group references. A report does not establish deployment, installation or a real model call.
+6. How to continue, when not complete.
 
 Never paste verification output into any bundle file. Summarize the cause and point to `ha log <goal> <seq>`.

@@ -1,6 +1,6 @@
 {
   "name": "seal",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Carry a goal document to recorded completion: the agent plans, implements, and verifies, and completion is declared only from Seal Core run records.",
   "author": {
     "name": "Jaegon Seo",
@@ -9,7 +9,12 @@
   "homepage": "https://github.com/jgoneit/jaekit",
   "repository": "https://github.com/jgoneit/jaekit",
   "license": "MIT",
-  "keywords": ["completion", "verification", "run-records", "coding-agent"],
+  "keywords": [
+    "completion",
+    "verification",
+    "run-records",
+    "coding-agent"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Seal",
@@ -17,7 +22,11 @@
     "longDescription": "Seal lets a coding agent take a goal document to completion in one request: it keeps a plan and progress that another agent can resume, records checks and required user confirmations through the ha binary, and declares completion only after ha done records that the completion rules are satisfied. Start it with $seal:seal docs/specs/<goal> once the goal documents are saved.",
     "developerName": "Jaegon Seo",
     "category": "Developer Tools",
-    "capabilities": ["Interactive", "Read", "Write"],
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
     "websiteURL": "https://github.com/jgoneit/jaekit"
   }
 }
