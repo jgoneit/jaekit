@@ -14,6 +14,8 @@ These instructions apply to the entire repository.
 - `guides/` contains installation and usage documentation; `contracts/` defines current formats and behavior.
 - Keep documentation examples synthetic. Do not commit personal conversations, local environment details, private planning records, or raw execution output.
 - Root `docs/` is reserved for local development goals and is ignored. Test fixtures may use nested `docs/specs/` paths.
+- Keep root `docs/` as a plain folder, without a nested Git repository or a symlink to another checkout: `ha` finds the code repository from the goal path. Back up private goals to a separate repository outside this checkout; never force-add them to the public repository.
+- Put executable checks in tracked paths outside root `docs/` so baseline checks can run from the code commit.
 - Publish only reviewed product files. Do not link public documentation to private goals or historical execution records.
 - Change the contract and implementation together when behavior changes.
 

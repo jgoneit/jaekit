@@ -21,6 +21,15 @@ class PrivateReferences(unittest.TestCase):
         self.assertTrue(flagged(f"see https://github.com/{SIBLING}/pull/15"))
         self.assertTrue(flagged(f"git clone git@github.com:{SIBLING}.git"))
 
+    def test_sibling_repository_links_are_case_insensitive(self):
+        for url in (
+            f"https://GITHUB.COM/{SIBLING}",
+            f"https://github.com/{SIBLING.replace('jgoneit', 'JGONEIT')}",
+            f"git@github.com:{SIBLING.replace('jaekit', 'JaeKit')}.git",
+        ):
+            with self.subTest(url=url):
+                self.assertTrue(flagged(url))
+
     def test_public_repository_and_release_assets_pass(self):
         self.assertFalse(flagged("https://github.com/jgoneit/jaekit"))
         self.assertFalse(flagged("https://github.com/jgoneit/jaekit/releases/download/v0.1.2/jaekit-darwin-arm64.tar.gz"))

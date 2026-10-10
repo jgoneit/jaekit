@@ -38,7 +38,7 @@ If the command is missing and `which -a ha` is empty, check that installation fi
 
 ### Codex
 
-First [install ha](#install-ha) and [check its version](#check-the-version). The installation commands below require Codex CLI, the Terminal tool. Plugins work in Codex CLI and the desktop app; the Codex IDE extension does not support them.
+First [install ha](#install-ha) and [check its version](#check-the-version). The installation commands below require [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), the Terminal tool. Plugins work in Codex CLI and the desktop app; the Codex IDE extension does not support them.
 
 ```bash
 codex plugin marketplace add jgoneit/jaekit@v0.1.2
