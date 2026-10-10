@@ -58,6 +58,8 @@ Raw check output stays in `.git/ha/`, which Git does not track; you do not need 
 | `Cannot add marketplace "jaekit"` | The name is already registered. Follow [Move from a local path registration](INSTALL.en.md#move-from-a-local-path-registration) |
 | Seal stops and asks you to decide something | Answer the question. Your words are recorded before work continues. Some completion conditions may need your own confirmation |
 | An expired login, denied permission, or usage limit stops the work | Resolve the cause, then send `continue docs/specs/<goal>`. The same terminal failure is not retried |
+| Verification is refused because of uncommitted changes | Review the listed paths and tracked/untracked or symlink details, then resolve them according to the intended work. Unstarted checks consume no runs |
+| The plan budget is too small to start | Read the minimum, limit and shortfall from `ha estimate docs/specs/<goal>`. Decide a sufficient budget or split the goal before starting; this estimate does not change an existing run budget |
 | The budget ran out | Read what remains, decide whether to raise the check-run or elapsed-time limit, and say so. Seal records your words before continuing |
 
 The [operations guide](OPERATIONS.md) (Korean) describes the detailed reasons for user confirmation, blocked work, and budget stops. The steps above cover what you need to respond and continue.

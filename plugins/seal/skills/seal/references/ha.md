@@ -7,7 +7,8 @@
 | Command | Use |
 | --- | --- |
 | `ha lint <goal>` | Lists goal document and bundle format problems, one per line: code, file:line, detail. Exit 1 when any exist |
-| `ha start <goal> --request "<quote>" --skill <SKILL.md> [--host-name …] [--host-version …] [--model …]` | Records the start once per goal. Refuses lint problems and a second start |
+| `ha estimate <goal> [AC-n \| EX-n \| T001 …] [--baseline] [--format md\|json]` | Reads the PLAN lower bound, limit and shortfall, plus default and selected runs. Executes nothing; does not change records or budgets |
+| `ha start <goal> --request "<quote>" --skill <SKILL.md> [--host-name …] [--host-version …] [--model …]` | Records the start once per goal. Refuses lint problems, a second start, and a PLAN limit below the required minimum before writing a start record |
 | `ha check <goal> [AC-n \| EX-n \| T001 …]` | Runs the conditions' commands at HEAD and records each result. With no targets it runs every required `change` and `maintain` condition |
 | `ha check <goal> --baseline [AC-n …]` | Runs `change` conditions on a temporary worktree of the base commit with their check paths copied from HEAD. Expected result: `fail_as_expected` |
 | `ha note <goal> confirm <AC-n \| scope:<path> \| tests:<path> \| spec> --quote "…"` | Records a quoted user confirmation, bound to the current content. It loses effect if that content changes |
@@ -19,6 +20,12 @@
 | `ha log <goal> <seq> [--tail N]` | Shows the local output of one run. Output never leaves this clone |
 
 `ha check` exits 0 when every result is as expected and 1 otherwise. Other exits: 64 usage, 65 refused, 66 unsupported rules version, 70 internal error. `ha status`, `ha done`, `ha check`, and `ha note` exit 66 for a goal started under rules this `ha` does not compute, and record nothing.
+
+## Before execution
+
+The minimum is twice the required change count plus the required maintain count; manual conditions contribute zero. Default baseline selection also includes optional change rows. Explicit optional AC, EX and task commands add runs, and repeated targets count as repeated executions. Estimates use the current PLAN limit, not an existing run's remaining budget. They exclude retries, preparation and manual time and guarantee neither total time nor completion. `estimate` exits 1 for a shortfall or lint problems; `start` exits 65 for an insufficient limit. Neither automatically raises a limit or changes an existing budget window.
+
+Before each check, baseline or task process, `ha` inspects the working tree using the goal's exclusions. Dirty paths refuse that target and the remaining targets with exit 65; failed Git inspection exits 70. Diagnostics list repository-relative paths with tracked/untracked and observed symlink details. Review the specific path; do not automatically ignore or revert it. A refused target creates no check record, run usage or output file. Already executed results and usage remain, including errors and results that later become stale. This admission rule applies to future executions for both supported rule versions; historical records retain their meaning. Dirty `start` remains a warning.
 
 ## States
 
@@ -45,7 +52,7 @@ A goal is computed under the rules its start record names (`rules:` in `ha statu
 | `baseline_error` | executor | The latest baseline errored within the rerun limit |
 | `lint_error` | executor | `ha lint` reports problems |
 | `not_started` | executor | No `ha start` |
-| `worktree_dirty` | executor | Uncommitted changes outside the bundle documents |
+| `worktree_dirty` | executor | Uncommitted changes outside the bundle documents; paths and tracking/file-type details identify the changes |
 | `task_open` | executor | A required task is not `done` or `dropped` in `PROGRESS.md` |
 | `error_limit` | user | Errors exceeded the rerun limit on the same code |
 | `manual_unconfirmed` | user | A `manual` condition lacks a valid quoted confirmation |

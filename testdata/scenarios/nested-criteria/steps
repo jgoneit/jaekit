@@ -1,0 +1,10 @@
+# Explicit selection preserves indented descriptions in the parent's condition.
+replace $GOAL/SPEC.md "Status: Ready" "Status: Ready\nCriteria-Format: nested/1"
+replace $GOAL/SPEC.md "- **AC-2**" "  - Explain the greeting.\n\n  More detail after a blank line.\n- **AC-2**"
+ha lint $GOAL
+expect-exit 0
+include implement
+expect-status complete
+expect-reasons none
+ha done $GOAL
+expect-exit 0

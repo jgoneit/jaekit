@@ -40,6 +40,7 @@ const usage = `ha — Seal Core: run records and completion for one goal
 
 Usage:
   ha lint   <goal>
+  ha estimate <goal> [AC-n | EX-n | T001 ...] [--baseline] [--format md|json]
   ha start  <goal> --request <quote> [--skill <path to SKILL.md>]
                    [--host-name <name>] [--host-version <version>] [--model <model>]
   ha check  <goal> [AC-n | EX-n | T001 ...] [--baseline]
@@ -58,6 +59,7 @@ Usage:
 Exit codes
   status, done: 0 complete, 1 incomplete, 2 needs_user, 3 blocked, 4 budget_exhausted
   lint, check:  0 ok, 1 lint problems or a check that did not give the expected result
+  estimate:     0 sufficient PLAN limit, 1 shortfall or lint problems
   all:          64 usage, 65 refused, 66 unsupported rules version, 70 internal error
 
 Contract: contracts/run-record.md
@@ -92,6 +94,8 @@ func runMain(argv []string, stdout, stderr io.Writer) int {
 		return exitOK
 	case "lint":
 		return c.lint(rest)
+	case "estimate":
+		return c.estimate(rest)
 	case "start":
 		return c.start(rest)
 	case "check":
@@ -258,6 +262,10 @@ func (c *cli) start(in []string) int {
 	if c.printLint(w) > 0 {
 		return c.fail(exitRefused, "fix the lint problems above before ha start")
 	}
+	minimum := minimumRequiredRuns(w)
+	if w.bundle.Budget.Runs < minimum {
+		return c.fail(exitRefused, "minimum %d runs exceeds plan limit %d (shortfall %d); decide a sufficient budget before starting", minimum, w.bundle.Budget.Runs, minimum-w.bundle.Budget.Runs)
+	}
 	head, err := w.repo.Head()
 	if err != nil {
 		return c.fail(exitRefused, "%v", err)
@@ -294,6 +302,7 @@ func (c *cli) start(in []string) int {
 		return c.fail(exitInternal, "%v", err)
 	}
 	fmt.Fprintf(c.out, "started: seq %d, base %s, rules %s, budget %d runs / %ds\n", l.Seq, head[:12], status.Rules, bud.Runs, bud.ElapsedSeconds)
+	fmt.Fprintf(c.out, "minimum required: %d runs; plan limit: %d (retries and optional runs are additional)\n", minimum, bud.Runs)
 	if !clean {
 		fmt.Fprintln(c.err, "ha: warning: the working tree has uncommitted changes outside the bundle documents; results count only on a clean, committed tree")
 	}
@@ -410,18 +419,15 @@ func (c *cli) check(in []string) int {
 		return c.fail(exitInternal, "%v", err)
 	}
 	allGood := true
-	for _, t := range ts {
+	for i, t := range ts {
 		head, err := w.repo.Head()
 		if err != nil {
 			return c.fail(exitRefused, "%v", err)
 		}
-		clean, err := w.repo.Clean(excl)
-		if err != nil {
-			return c.fail(exitInternal, "%v", err)
+		if code := c.checkPreflight(w, excl, t.label(), i, len(ts)); code != exitOK {
+			return code
 		}
-		if !clean {
-			fmt.Fprintf(c.err, "ha: warning: uncommitted changes outside the bundle documents; the %s result will not count\n", t.label())
-		}
+		clean := true
 		tmp, err := os.CreateTemp(w.logDir, ".pending-*.log")
 		if err != nil {
 			return c.fail(exitInternal, "%v", err)

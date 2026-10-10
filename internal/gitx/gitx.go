@@ -77,12 +77,11 @@ func Pathspec(excludes []string) []string {
 // Clean reports whether the working tree has no tracked modifications and no
 // untracked files outside excludes. Ignored files do not count.
 func (r *Repo) Clean(excludes []string) (bool, error) {
-	args := append([]string{"status", "--porcelain=v1", "-z", "--untracked-files=all", "--ignore-submodules=none", "--"}, Pathspec(excludes)...)
-	out, err := r.run(args...)
+	changes, err := r.WorktreeChanges(excludes)
 	if err != nil {
 		return false, err
 	}
-	return len(out) == 0, nil
+	return len(changes) == 0, nil
 }
 
 // Same reports whether commits a and b have no differences outside excludes.

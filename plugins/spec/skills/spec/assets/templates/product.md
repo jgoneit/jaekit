@@ -1,6 +1,7 @@
 # <Title>
 
 Status: Draft
+Criteria-Format: nested/1
 
 ## Problem
 
@@ -37,6 +38,7 @@ Status: Draft
 
 ## Acceptance Criteria
 - **AC-1** <Observable result of the first flow.>
+  - <Supporting detail of this same criterion; omit when unnecessary.>
 - **AC-2** <Observable result of the second flow.>
 - **AC-3** <Observable result of the boundary case.>
 - **AC-4** <Existing behavior that keeps working.>

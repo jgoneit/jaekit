@@ -4,7 +4,9 @@ include check-file
 write src/greeting.txt "hello\n"
 progress T001 done
 ha check $GOAL
-expect-output "will not count"
+expect-exit 65
+expect-output "src/greeting.txt"
+expect-records 2
 commit "say hello"
 expect-status incomplete
 expect-reasons AC-1:criterion_missing AC-2:criterion_missing
