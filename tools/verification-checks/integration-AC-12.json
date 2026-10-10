@@ -1,0 +1,58 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-integration-probes",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/contract-checks/check.py",
+    "tools/contract-checks/finding-docs-AC-1.json",
+    "tools/contract-checks/finding-docs-AC-2.json",
+    "tools/contract-checks/finding-docs-AC-3.json",
+    "tools/contract-checks/finding-docs-AC-5.json",
+    "tools/contract-checks/finding-docs-AC-6.json",
+    "tools/contract-checks/finding_docs_check.py",
+    "tools/verification-checks/integration-map.json",
+    "tools/verification-checks/integration_results.py"
+  ],
+  "targets": [
+    {
+      "id": "findingdocs1.finding-docs.AC-1",
+      "violation": "finding-docs.AC-1.missing-contract"
+    },
+    {
+      "id": "findingdocs1.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "findingdocs2.finding-docs.AC-2",
+      "violation": "finding-docs.AC-2.missing-contract"
+    },
+    {
+      "id": "findingdocs2.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "findingdocs3.finding-docs.AC-3",
+      "violation": "finding-docs.AC-3.missing-contract"
+    },
+    {
+      "id": "findingdocs3.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "findingdocs5.finding-docs.AC-5",
+      "violation": "finding-docs.AC-5.missing-contract"
+    },
+    {
+      "id": "findingdocs5.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "findingdocs6.finding-docs.AC-6",
+      "violation": "finding-docs.AC-6.missing-contract"
+    },
+    {
+      "id": "findingdocs6.invocation",
+      "violation": "invocation-contract"
+    }
+  ]
+}

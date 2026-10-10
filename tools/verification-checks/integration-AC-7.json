@@ -1,0 +1,24 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-integration-probes",
+  "producer_version": "1",
+  "producer_paths": [
+    "internal/record/finding_test.go",
+    "internal/status/findings_test.go",
+    "tools/findings-checks/check.py",
+    "tools/findings-checks/declaration.json",
+    "tools/findings-checks/test_compatibility.py",
+    "tools/verification-checks/integration-map.json",
+    "tools/verification-checks/integration_results.py"
+  ],
+  "targets": [
+    {
+      "id": "findingsall.finding-contract",
+      "violation": "findings-command-unavailable"
+    },
+    {
+      "id": "findingsall.invocation",
+      "violation": "invocation-contract"
+    }
+  ]
+}
