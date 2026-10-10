@@ -2,7 +2,7 @@
 name: seal
 description: Carry a goal in docs/specs/<goal>/ to recorded completion — plan, implement, verify through the ha binary, and resume in a new session. Use when the user calls this skill with a goal or asks to implement, finish, or continue a goal document, for example "$seal:seal docs/specs/x" in Codex, "/seal:seal docs/specs/x" in Claude Code, "docs/specs/x 구현해줘", or "docs/specs/x 이어서 해줘".
 metadata:
-  version: "0.1.9"
+  version: "0.1.12"
 ---
 
 # Seal
@@ -48,6 +48,16 @@ Follow the project's Git tracking and local retention policy for goal documents 
 - An `error` result may be rerun once on the same code. Under `/3`, inconclusive results share that error limit. A `fail` stays in the record; fix the code or the check and verify again. Do not hide earlier failures behind a producer's final internal retry result.
 - Choose the checks, runner and verification method for the goal. A structured result contract does not require an official adapter or the reference producer. Python 3 is not a prerequisite for Seal; when it is already available, the optional [compatibility helper](scripts/check_core.py) can check the same contract deterministically.
 
+## Assurance policy
+
+Apply the selected assurance policy for this goal or project. Link required conditions and source, the effect of a false success, the relevant boundary, and evidence gaps; related conditions may share this explanation. Risk alone does not mandate a fixed review procedure. Low-risk exclusions need a reason, and the executor may not downgrade a selected required guarantee for convenience. Only unresolved outcome-changing guarantees need a user decision.
+
+Use the initial contract, check, and expected-result grounds as the independent reviewer's starting context, without the implementer's solution narrative. The reviewer may examine implementation and integration code when needed. Record the role, inputs, reviewed code/check versions, findings, limits, and inspectable references. Independent means a separate review with disclosed context, not a different model or certified identity. Renaming one's own work is not a separate review; review agreement alone is not completion evidence.
+
+When a required review or real-boundary observation is unavailable, keep completion pending. Record cause, affected conditions, missing evidence, and resolution in the bundle; keep the affected required work unfinished instead of calling it done. Continue independent useful work within existing authority and budget. An optional unobserved comparison may remain an explicit evaluation gap. Do not invent reviews, silently substitute fake results, install tools, increase cost, or expand permission to fill the gap without authority.
+
+The Native Agent chooses methods, timing, reviewers, and models within the selected guarantees. No fixed call order or model is required. Core does not route models, run mutations, score review sufficiency, or interpret a reviewer's approval as proof. See the bundle reference for counterexample handling and versioned evidence. These source requirements apply to new goals using Seal 0.1.11 or later and user-requested material verification redesigns; preserve older records without fabricating omitted reviews.
+
 ## Completion
 
 - Declare completion only when `ha done <goal>` exits 0 and prints a completion record. Paste that output unchanged into the completion report. A `complete` from `ha status` alone is not a completion.
@@ -62,7 +72,16 @@ Follow the project's Git tracking and local retention policy for goal documents 
   - `ha note <goal> input --quote "…"` for any other instruction or answer during the run
 - When the goal documents change once a run has started, a later request from the user to continue or implement confirms that change. Record it with `ha note <goal> confirm spec --quote "…"`, quoting that request, and name the changed criteria in your report.
 - Terminal failures (authentication, permission, usage limits) are not retried. Record `ha note <goal> block --cause <auth|permission|quota|environment|spec|other> --quote "…"` and report.
+- Goals started with seal 0.1.10 or later connect expected-result grounds, observed boundaries, methods and substitutes, and uncovered failure classes in the existing review and report. Shared condition groups may reference one explanation. Distinguish planned from observed, evidence versions, and unknown event times from measured writing times. A report does not establish deployment, installation or real model calls. Older goals keep their starting format without fabricated observations.
 - The completion report format is in [references/bundle.md](references/bundle.md) (completion report). It always states assurance `local` and that the executor wrote the checks.
+
+## Post-completion discoveries
+
+For new reports using Seal 0.1.12 or later, the document format in the bundle reference links later discoveries to their goal, target code, condition (or absent/unresolved link), and historical completion. Do not overwrite the original completion report, its evidence, or its reference time. Keep unresolved discoveries and rework request and progress visible beside that historical result; a confirmed existing-condition violation cannot be presented as a currently defect-free goal. Detail may live in one place with references from summaries.
+
+Record candidate, confirmed, duplicate, dismissed, or resolved claims with their source, reproduced scope, remaining uncertainty, and append-only corrections. A narrative status is not machine-verified finding state or a conflict-free latest view. Unknown IDs, event times, versions or evidence remain unknown; recording time does not substitute for an unknown event time.
+
+Documenting a discovery does not authorize rework and does not change the execution budget, historical completion, or user authority. Implementation still needs an explicit user request and the existing reopen rule; link its quoted source and the affected discovery to later evidence. Preserve original formats and records of older goals, and never fabricate past observations. A missing discovery section means unrecorded. Raw logs remain in their permitted local storage; public examples are synthetic. Structured Core queries are a separate contract, not a promise made by a Markdown state label.
 
 ## Resuming
 
