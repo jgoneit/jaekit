@@ -1,29 +1,85 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "unassigned-variable",
       "runner": "unittest",
       "file": "tools/release-checks/test_loader_invocations.py",
-      "test": "CoreInvocations.test_unassigned_variables_are_not_core"
+      "test": "CoreInvocations.test_unassigned_variables_are_not_core",
+      "result_targets": {
+        "additional_violations": [
+          "unassigned-variable.assertion-2",
+          "unassigned-variable.assertion-3",
+          "unassigned-variable.assertion-4",
+          "unassigned-variable.assertion-5",
+          "unassigned-variable.assertion-6",
+          "unassigned-variable.assertion-7",
+          "unassigned-variable.assertion-8"
+        ],
+        "execution": "unassigned-variable.execution",
+        "selection": "unassigned-variable.selection",
+        "attribution": "unassigned-variable.attribution"
+      }
     },
     {
       "target": "dynamic-value",
       "runner": "unittest",
       "file": "tools/release-checks/test_loader_invocations.py",
-      "test": "CoreInvocations.test_dynamic_values_are_not_core"
+      "test": "CoreInvocations.test_dynamic_values_are_not_core",
+      "result_targets": {
+        "additional_violations": [
+          "dynamic-value.assertion-2",
+          "dynamic-value.assertion-3",
+          "dynamic-value.assertion-4",
+          "dynamic-value.assertion-5",
+          "dynamic-value.assertion-6",
+          "dynamic-value.assertion-7",
+          "dynamic-value.assertion-8"
+        ],
+        "execution": "dynamic-value.execution",
+        "selection": "dynamic-value.selection",
+        "attribution": "dynamic-value.attribution"
+      }
     },
     {
       "target": "other-call",
       "runner": "unittest",
       "file": "tools/release-checks/test_loader_invocations.py",
-      "test": "CoreInvocations.test_assignment_in_another_call_is_not_core"
+      "test": "CoreInvocations.test_assignment_in_another_call_is_not_core",
+      "result_targets": {
+        "additional_violations": [
+          "other-call.assertion-2",
+          "other-call.assertion-3",
+          "other-call.assertion-4",
+          "other-call.assertion-5",
+          "other-call.assertion-6",
+          "other-call.assertion-7",
+          "other-call.assertion-8"
+        ],
+        "execution": "other-call.execution",
+        "selection": "other-call.selection",
+        "attribution": "other-call.attribution"
+      }
     },
     {
       "target": "other-program",
       "runner": "unittest",
       "file": "tools/release-checks/test_loader_invocations.py",
-      "test": "CoreInvocations.test_variable_naming_another_program_is_not_core"
+      "test": "CoreInvocations.test_variable_naming_another_program_is_not_core",
+      "result_targets": {
+        "additional_violations": [
+          "other-program.assertion-2",
+          "other-program.assertion-3",
+          "other-program.assertion-4",
+          "other-program.assertion-5",
+          "other-program.assertion-6",
+          "other-program.assertion-7",
+          "other-program.assertion-8"
+        ],
+        "execution": "other-program.execution",
+        "selection": "other-program.selection",
+        "attribution": "other-program.attribution"
+      }
     }
   ]
 }

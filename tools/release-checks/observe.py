@@ -17,8 +17,9 @@ import tempfile
 import uuid
 
 from shell_reader import covered
+import execution_provenance
 
-SCHEMA = "jaekit-execution/v1"
+SCHEMA = "jaekit-execution/v2"
 
 
 def digest(data):
@@ -52,6 +53,9 @@ def child(arguments):
     binary = os.environ["JAEKIT_OBSERVATION_BINARY"]
     expected = os.environ["JAEKIT_OBSERVATION_DIGEST"]
     call = uuid.uuid4().hex
+    records = os.environ.get("JAEKIT_OBSERVATION_RECORDS")
+    before = execution_provenance.observed_prefix(records) if records else None
+    cwd = str(Path.cwd().resolve())
     try:
         actual = identity(binary)
         if actual["sha256"] != expected:
@@ -63,9 +67,11 @@ def child(arguments):
         append(journal, {"kind": "core_start_error", "call": call})
         return 127
     append(journal, {"kind": "core_start", "call": call, "pid": process.pid,
-                     "executable": actual, "argv": [binary, *arguments]})
+                     "executable": actual, "argv": [binary, *arguments], "cwd": cwd, "records_before": before})
     code = process.wait()
-    append(journal, {"kind": "core_exit", "call": call, "pid": process.pid, "returncode": code})
+    append(journal, {"kind": "core_exit", "call": call, "pid": process.pid, "returncode": code,
+                     "cwd": str(Path.cwd().resolve()),
+                     "records_after": execution_provenance.observed_prefix(records) if records else None})
     return exit_code(code)
 
 
@@ -77,27 +83,42 @@ def collect(args):
         if Path(shell["path"]).name not in ("bash", "zsh"):
             raise ValueError("only bash and zsh are supported")
         script = args.script
+        context = execution_provenance.context(args.project, args.goal) if args.project else None
         report = {"schema": SCHEMA, "invocation": args.invocation, "run_id": uuid.uuid4().hex,
                   "launcher_argv": [sys.executable, str(Path(__file__).resolve()), *sys.argv[1:]],
                   "producer": identity(__file__), "core": core, "shell": shell,
                   "reader": identity(Path(__file__).with_name("shell_reader.py")),
+                  "provenance": identity(Path(__file__).with_name("execution_provenance.py")), "context": context,
                   "script_sha256": digest(script.encode()), "coverage": "bounded-launcher/v1",
                   "supported": covered(script), "events": []}
         with tempfile.TemporaryDirectory(prefix="jaekit-observe-") as directory:
             journal = Path(directory) / "events.jsonl"
+            # Launch the verified bytes from an isolated copy. Replacement and
+            # restoration of the requested path between hash and exec cannot
+            # change the actual Core image used by this original observation.
+            image = Path(directory) / "core-image"
+            image_bytes = Path(core["path"]).read_bytes()
+            if digest(image_bytes) != core["sha256"]:
+                raise ValueError("Core identity changed before isolated launch")
+            image.write_bytes(image_bytes)
+            image.chmod(0o500)
+            report["execution_image"] = identity(image)
             launcher = Path(directory) / "ha-observed"
             launcher.write_text("#!/bin/sh\nexec " + shlex.join([sys.executable, str(Path(__file__).resolve()), "child"]) + ' "$@"\n')
             launcher.chmod(0o700)
             env = {key: val for key, val in os.environ.items()
-                   if not key.startswith(("BASH_FUNC_", "JAEKIT_"))
+                   if not key.startswith(("BASH_FUNC_", "JAEKIT_", "GIT_"))
                    and key not in ("ENV", "BASH_ENV", "SHELLOPTS", "BASHOPTS", "ZDOTDIR")}
             env.update(JAEKIT_CORE=str(launcher), JAEKIT_OBSERVATION_JOURNAL=str(journal),
-                       JAEKIT_OBSERVATION_BINARY=core["path"], JAEKIT_OBSERVATION_DIGEST=core["sha256"])
+                       JAEKIT_OBSERVATION_BINARY=report["execution_image"]["path"], JAEKIT_OBSERVATION_DIGEST=core["sha256"])
+            if context:
+                env["JAEKIT_OBSERVATION_RECORDS"] = context["records"]
             append(journal, {"kind": "shell_start", "invocation": args.invocation,
                              "script_sha256": report["script_sha256"]})
             shell_argv = [shell["path"]] + (["--noprofile", "--norc"] if Path(shell["path"]).name == "bash" else ["-f"])
             try:
-                process = subprocess.Popen([*shell_argv, "-c", script], env=env)
+                process = subprocess.Popen([*shell_argv, "-c", script], env=env,
+                                           cwd=context["project"] if context else None)
                 code = process.wait()
                 append(journal, {"kind": "shell_exit", "returncode": code})
             except OSError:
@@ -107,7 +128,8 @@ def collect(args):
             # completion. The caller retains it and any failed native capture.
             report["events"] = [json.loads(line) for line in journal.read_text().splitlines()]
             try:
-                report["identity_unchanged"] = identity(core["path"]) == core and identity(shell["path"]) == shell
+                report["identity_unchanged"] = (identity(core["path"]) == core and identity(shell["path"]) == shell
+                                                and identity(image) == report["execution_image"])
             except OSError:
                 report["identity_unchanged"] = False
             encoded = (json.dumps(report, sort_keys=True) + "\n").encode()
@@ -134,11 +156,15 @@ def main():
     parser.add_argument("--shell", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--invocation", required=True)
+    parser.add_argument("--project")
+    parser.add_argument("--goal")
     try:
         separator = sys.argv.index("--")
     except ValueError:
         separator = len(sys.argv)
     args = parser.parse_args(sys.argv[1:separator])
+    if bool(args.project) != bool(args.goal):
+        parser.error("--project and --goal must be provided together")
     if len(sys.argv) != separator + 2:
         parser.error("provide exactly one original shell script after --")
     args.script = sys.argv[-1]

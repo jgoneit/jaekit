@@ -27,10 +27,14 @@ PRIVATE_REFERENCES = [
 def main():
     paths = subprocess.check_output(
         ["git", "ls-files", "-z"], cwd=ROOT
-    ).decode().split("\0")
+    ).decode("utf-8", errors="surrogateescape").split("\0")
     failures = []
     for name in filter(None, paths):
         path = Path(name)
+        # Path metadata is public even for binary files and fixture contents.
+        # repr keeps whitespace/newlines in one identifiable diagnostic.
+        if any(pattern.search(name) for pattern in PRIVATE_REFERENCES):
+            failures.append(f"{name!r}: path contains a private or historical reference")
         if name not in PUBLIC_FILES and path.parts[0] not in PUBLIC_DIRECTORIES:
             failures.append(f"{name}: outside the public file allowlist")
         if name == "evals/spec-cases/results.md":

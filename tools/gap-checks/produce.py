@@ -10,9 +10,12 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(ROOT / "tools"))
+import result_observations as results
 
 
-def observe(entry):
+def observe(entry, detailed=False):
     path = ROOT / entry["file"]
     sys.path.insert(0, str(path.parent))
     try:
@@ -20,23 +23,11 @@ def observe(entry):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         suite = unittest.defaultTestLoader.loadTestsFromTestCase(getattr(module, entry["class"]))
-        if suite.countTestCases() == 0:
-            return {"status": "error", "reason": "collection_error"}
-        result = unittest.TextTestRunner(verbosity=2).run(suite)
+        result = results.run_suite(suite, sys.stderr)
     except Exception:
         traceback.print_exc()
-        return {"status": "error", "reason": "collection_error"}
-    if result.errors:
-        return {"status": "error", "reason": "execution_error"}
-    if result.testsRun == 0:
-        return {"status": "error", "reason": "collection_error"}
-    if result.expectedFailures or result.unexpectedSuccesses:
-        return {"status": "error", "reason": "setup_error"}
-    if result.skipped:
-        return {"status": "skip", "reason": "skipped"}
-    if result.failures:
-        return {"status": "violation", "violation": "requirement-not-met"}
-    return {"status": "pass"}
+        result = results.failure("collection_error")
+    return result if detailed else results.summary(result)
 
 
 def main():
@@ -46,17 +37,22 @@ def main():
     target = sys.argv[1]
     if target not in entries:
         return 64
-    result = dict(target=target, attempt=1, **observe(entries[target]))
+    entry = entries[target]
+    names = entry["result_targets"]
+    results.target_ids(target, names)
+    facts = observe(entry, detailed=True)
+    print(json.dumps({"target": target, "facts": facts}), file=sys.stderr)
+    observations = results.observations(facts, target, names)
     if "HA_EVIDENCE_PATH" in os.environ:
         report = {"schema": "check-result/v1", "producer": "jaekit-gap-regressions",
-                  "producer_version": "1", "attempts_complete": True,
+                  "producer_version": "2", "attempts_complete": True,
                   "invocation": os.environ["HA_EVIDENCE_INVOCATION"],
                   "declaration_digest": os.environ["HA_EVIDENCE_DECLARATION_DIGEST"],
-                  "observations": [result]}
+                  "observations": observations}
         with open(os.environ["HA_EVIDENCE_PATH"], "x") as output:
             json.dump(report, output, separators=(",", ":"))
             output.write("\n")
-    return 0 if result["status"] == "pass" else 1
+    return 0 if all(item["status"] == "pass" for item in observations) else 1
 
 
 if __name__ == "__main__":

@@ -102,6 +102,13 @@ class Case(base.TraceCase):
         actual = [json.loads(line) for line in marker.read_text().splitlines()] if marker.exists() else []
         return argv, artifact, core, actual, result
 
+    def collected_arguments(self, host, value, phase):
+        """Read actual fake-child argv/receipt without certifying a Seal goal."""
+        capture, events, calls = self.checker.trace_context(host, value, phase)
+        observed = check.execution_trace.consume(self.checker, value, capture, calls, events, phase="spec")
+        return [[operation, *arguments] for invocations in observed.values()
+                for operation, arguments in invocations]
+
     def observed_value(self, host, phase, argv, artifact, core, receipt=None):
         command = shlex.join(argv)
         if host == "claude":
@@ -135,11 +142,17 @@ class AC1(Case):
     def test_same_request_accepts_full_and_phase_transcripts(self):
         for phase, commands in (("spec", ("ls",)), ("seal", base.SEAL_COMMANDS)):
             value = self.bound_claude(phase, commands)
-            self.accepts("claude", value, phase)
+            if phase == "seal":
+                self.accepts_candidates("claude", value, phase)
+            else:
+                self.accepts("claude", value, phase)
             number = 1 if phase == "spec" else 2
             entries = [e for e in self.read_events(value["session_trace"]) if e.get("promptId") == f"prompt-{number}"]
             value[phase]["session_trace"] = self.lines(entries)
-            self.accepts("claude", value, phase)
+            if phase == "seal":
+                self.accepts_candidates("claude", value, phase)
+            else:
+                self.accepts("claude", value, phase)
 
     def test_other_request_cannot_supply_the_skill(self):
         for phase, commands in (("spec", ("ls",)), ("seal", base.SEAL_COMMANDS)):
@@ -189,7 +202,7 @@ class AC3(Case):
                 code = f"await tools.exec_command({{{key}: 'ha note goal input'}})"
                 self.rejects("codex", self.codex_commands("spec", (code,), True), "spec", "execution work")
                 codes = [f"await tools.exec_command({{{key}: {json.dumps(c)}}})" for c in base.SEAL_COMMANDS]
-                self.accepts("codex", self.codex_commands("seal", codes, True), "seal")
+                self.accepts_candidates("codex", self.codex_commands("seal", codes, True), "seal")
 
     def test_dynamic_cmd_values_are_not_evaluated(self):
         with self.assertRaises(check.Unavailable):
@@ -292,14 +305,18 @@ class AC15(Case):
                         value = self.observed_value(host, phase, argv, artifact, core)
                         if len(expected) == 1:
                             self.rejects(host, value, phase, "execution work")
+                        elif phase == "seal":
+                            self.assertEqual(self.collected_arguments(host, value, phase), expected)
+                            self.unknown(host, value, phase)
                         else:
                             self.accepts(host, value, phase)
 
-    def test_complete_absence_is_missing_operation_not_unknown(self):
+    def test_complete_absence_does_not_certify_a_seal_goal(self):
         argv, artifact, core, actual, _ = self.collected('if false; then "$JAEKIT_CORE" start goal; fi')
         self.assertEqual(actual, [])
         value = self.observed_value("claude", "seal", argv, artifact, core)
-        self.rejects("claude", value, "seal", "does not observe ha start")
+        self.assertEqual(self.collected_arguments("claude", value, "seal"), [])
+        self.unknown("claude", value, "seal")
 
     def test_original_exit_output_and_invocation_are_preserved(self):
         argv, artifact, core, actual, result = self.collected('"$JAEKIT_CORE" check goal --fail')

@@ -1,11 +1,12 @@
 {
   "schema": "check-declaration/v1",
   "producer": "jaekit-goal-tests",
-  "producer_version": "1",
+  "producer_version": "2",
   "producer_paths": [
     "tools/goal-checks/produce.py",
     "tools/goal-checks/release-0-1-3-followups/AC-9.targets.json",
-    "tools/release-checks/test_loader_invocations.py"
+    "tools/release-checks/test_loader_invocations.py",
+    "tools/result_observations.py"
   ],
   "targets": [
     {
@@ -13,12 +14,132 @@
       "violation": "variable-core-missed"
     },
     {
+      "id": "claude-variable-forms.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-variable-forms.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-variable-forms.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-variable-forms.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-variable-forms.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-variable-forms.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-variable-forms.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-variable-forms.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-variable-forms.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-variable-forms.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "codex-variable-forms",
       "violation": "variable-core-missed"
     },
     {
+      "id": "codex-variable-forms.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-variable-forms.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-variable-forms.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-variable-forms.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-variable-forms.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-variable-forms.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-variable-forms.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-variable-forms.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-variable-forms.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-variable-forms.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "spec-variable-execution",
       "violation": "variable-execution-missed"
+    },
+    {
+      "id": "spec-variable-execution.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-variable-execution.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-variable-execution.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-variable-execution.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-variable-execution.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-variable-execution.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-variable-execution.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-variable-execution.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-variable-execution.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-variable-execution.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

@@ -1,11 +1,12 @@
 {
   "schema": "check-declaration/v1",
   "producer": "jaekit-goal-tests",
-  "producer_version": "1",
+  "producer_version": "2",
   "producer_paths": [
     "tools/goal-checks/produce.py",
     "tools/goal-checks/release-0-1-3-followups/AC-10.targets.json",
-    "tools/release-checks/test_loader_invocations.py"
+    "tools/release-checks/test_loader_invocations.py",
+    "tools/result_observations.py"
   ],
   "targets": [
     {
@@ -13,16 +14,176 @@
       "violation": "non-core-variable-accepted"
     },
     {
+      "id": "unassigned-variable.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unassigned-variable.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unassigned-variable.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unassigned-variable.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unassigned-variable.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unassigned-variable.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unassigned-variable.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unassigned-variable.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unassigned-variable.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unassigned-variable.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "dynamic-value",
       "violation": "non-core-variable-accepted"
+    },
+    {
+      "id": "dynamic-value.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dynamic-value.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dynamic-value.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dynamic-value.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dynamic-value.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dynamic-value.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dynamic-value.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dynamic-value.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dynamic-value.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dynamic-value.attribution",
+      "violation": "no-additional-violation"
     },
     {
       "id": "other-call",
       "violation": "non-core-variable-accepted"
     },
     {
+      "id": "other-call.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-call.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-call.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-call.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-call.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-call.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-call.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-call.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-call.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-call.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "other-program",
       "violation": "non-core-variable-accepted"
+    },
+    {
+      "id": "other-program.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-program.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-program.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-program.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-program.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-program.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-program.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-program.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-program.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-program.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

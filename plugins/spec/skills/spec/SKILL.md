@@ -3,7 +3,7 @@ name: spec
 description: Write or update goal documents (SPEC.md with AC-n completion criteria, user scenarios, and open decisions) for an idea or change the user explicitly asks to specify. Only for explicit spec requests; never for ordinary implementation requests. Writes the documents directly, reports, and stops; implementation starts with a new request.
 disable-model-invocation: true
 metadata:
-  version: "0.1.11"
+  version: "0.1.12"
 ---
 
 # Spec
@@ -63,6 +63,16 @@ Each such decision ends up in one of three places. When the user's words, existi
 Such a decision never adds a feature the user did not ask for to the scope or the criteria. The views are not a question list, and the goal documents do not record a check per view. For a small fix, cover only the decisions the change touches, including existing behavior the change affects.
 
 When a question has options, put the option you recommend first, with the reason and what each option gives up. When you show more than one draft, say which one you recommend and why. For behavior only the user knows, offer a concrete proposal they can adjust, and accept an answer outside the options you offered. When nothing in the request, the code, or the documents favors one option, say so instead of inventing a preference. A recommendation is not a decision until the user accepts it. When the user accepts it or leaves the choice to you, as in "decide for me", it becomes a decision whose source is a proposal stated in your report, and it goes into the list of decisions in your report.
+
+## Outcome boundaries
+
+For classification, authorization, or an external contract, connect only relevant boundaries to observable outcomes: the result for uninterpretable input, the observation unit (request, session, or transaction), before/after set invariants (what may be added, removed, or changed), and the supported environment. Two requests in one session cannot silently share evidence; the same name across installations need not identify the same object. Do not add an empty boundary table to every goal.
+
+Do not ask again when a public contract, the user's words, or an existing decision already settles the outcome; link its source. An unresolved outcome remains an Open Decision and keeps the document Draft. Today's implementation alone does not establish intended behavior. Implementation and verification methods within decided outcomes remain with the implementer: fixtures, snapshots, frameworks, database setup, and model assignment are not product support promises.
+
+State whether a criterion's cases form an exhaustive set or representative examples. Representative examples express an observable general property for the requested scope, including unlisted cases; an exhaustive set states the result for values outside the list. State the result outside the supported scope when it affects the outcome. Neither more examples nor a test command replaces that property.
+
+Relevant values and environments include space- or newline-containing names, symlinks, identical names in different locations, shallow clones, real versus fake systems, and concurrent ordering. Connect applicable failure and preservation outcomes to criteria or open decisions; do not turn these examples into a checklist for unrelated changes. Public OS, shell, and clone support is an outcome; how to test that support remains a method choice. Preserve existing criterion IDs, chosen format, editing scope, and historical documents; these additions create no retrospective obligation.
 
 ## Consistency check
 

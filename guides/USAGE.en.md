@@ -66,3 +66,7 @@ Raw check output stays in `.git/ha/`, which Git does not track; you do not need 
 | Seal stopped for Core compatibility | Read the executable it checked and the missing support. Follow [Update](INSTALL.en.md#update) to install the v0.1.3 combination, then check the capabilities of the Core actually selected. Do not bypass the check by automatically installing tools or switching rules |
 
 The [operations guide](OPERATIONS.md) (Korean) describes the detailed reasons for user confirmation, blocked work, and budget stops. The steps above cover what you need to respond and continue.
+
+## Source reporting format
+
+Seal 0.1.10 source separates expected-result grounds, observation boundaries, methods and substitutes, and unobserved scope in the existing review and report. Condition groups may share an explanation; a plan is not an observation. Existing goal formats and the current released installation remain unchanged. See the [synthetic reporting example](../examples/verification-reporting.md); it is not an actual execution record.

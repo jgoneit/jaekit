@@ -47,10 +47,11 @@ class Unavailable(Exception):
 def run(argv, **kwargs):
     # Git's partial-clone lazy fetching must not turn an audit into a download.
     env = dict(os.environ, GIT_NO_LAZY_FETCH="1", GIT_TERMINAL_PROMPT="0", GIT_NO_REPLACE_OBJECTS="1")
-    proc = subprocess.run(argv, capture_output=True, text=True, timeout=300, env=env, **kwargs)
+    text = kwargs.pop("text", True)
+    proc = subprocess.run(argv, capture_output=True, timeout=300, env=env, **kwargs)
     if proc.returncode != 0:
         raise Unavailable(f"{argv[0]} could not read the requested input")
-    return proc.stdout
+    return proc.stdout.decode("utf-8", "surrogateescape") if text else proc.stdout
 
 
 def digest(data):
@@ -103,6 +104,25 @@ def commit_additions(commit):
     return added_lines(patch, max(1, len(parents))), message.splitlines()
 
 
+def introduced_paths(commit):
+    """Names first present at this commit, using NUL-delimited tree metadata.
+
+    At a merge a path inherited from any parent is not introduced again.
+    Side branch commits remain in the explicitly selected rev-list range.
+    Every parent tree must be readable; an absent object is not an empty tree.
+    """
+    raw = run(["git", "cat-file", "-p", commit])
+    headers = raw.partition("\n\n")[0]
+    parents = [line[7:] for line in headers.splitlines() if line.startswith("parent ")]
+    def names(ref):
+        data = run(["git", "ls-tree", "-r", "-z", "--name-only", ref], text=False).decode("utf-8", "surrogateescape")
+        return set(filter(None, data.split("\0")))
+    introduced = names(commit)
+    for parent in parents:
+        introduced.difference_update(names(parent))
+    return introduced
+
+
 def history_boundary(base, head, problems):
     if not all(re.fullmatch(r"[0-9a-f]{40}", ref or "") for ref in (base, head)):
         raise Unavailable("history audit requires explicit full base and head commit ids")
@@ -121,11 +141,13 @@ def history_boundary(base, head, problems):
             raise Unavailable("history range crosses a shallow boundary")
     for commit in sorted(commits):
         added, messages = commit_additions(commit)
-        for kind, lines in (("added line", sorted(added)), ("commit message", messages)):
+        for kind, lines in (("added line", sorted(added)), ("commit message", messages),
+                            ("introduced path", sorted(introduced_paths(commit)))):
             for line in lines:
                 for pattern in PRIVATE:
                     if pattern.search(line):
-                        problems.append(f"{kind} contains a forbidden private reference")
+                        detail = f": {line!r}" if kind == "introduced path" else ""
+                        problems.append(f"{kind} contains a forbidden private reference{detail}")
 
 
 def public_release(expected, problems):
