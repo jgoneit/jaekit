@@ -114,10 +114,18 @@ class ArchiveChecks(unittest.TestCase):
         # Keep the expected public paths independent of REQUIRED: dropping a
         # validator requirement must not silently weaken this regression too.
         for missing in (
-            "assets", "assets/readme/flow.ko.svg", "assets/readme/flow.en.svg",
-            "assets/readme/example.ko.svg", "assets/readme/example.en.svg",
+            "assets", "assets/readme/hero.ko.png", "assets/readme/hero.en.png",
+            "assets/readme/brand/logo.png", "assets/readme/brand/logo.svg",
+            "assets/readme/brand/wordmark.png", "assets/readme/brand/wordmark.svg",
+            "assets/readme/brand/symbol.png", "assets/readme/brand/symbol.svg",
+            "assets/readme/source/build_brand.py",
+            "assets/readme/usage-flow.ko.png", "assets/readme/usage-flow.en.png",
+            "assets/readme/usage-flow.ko.svg", "assets/readme/usage-flow.en.svg",
             "assets/readme/SOURCES.md", "assets/readme/SOURCES.en.md",
-            "assets/readme/generate-flow.py", "assets/readme/generate-example.py",
+            "assets/readme/source/IMAGE-PROMPTS.md", "assets/readme/source/USAGE-FLOW.md",
+            "assets/readme/source/build_usage_flow.py", "assets/readme/source/render_usage_flow.cjs",
+            "assets/readme/source/usage-flow.layout.json", "assets/readme/source/FONT-LICENSE.txt",
+            "assets/readme/source/svg/usage-flow.ko.text.svg", "assets/readme/source/svg/usage-flow.en.text.svg",
             "guides/USAGE.md", "guides/USAGE.en.md", "guides/OPERATIONS.md",
             "contracts/README.md", "contracts/bundle.md", "contracts/goal-docs.md",
             "contracts/run-record.md", "contracts/role-card.md",
