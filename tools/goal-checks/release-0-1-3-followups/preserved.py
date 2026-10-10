@@ -17,13 +17,15 @@ import subprocess
 import sys
 
 CONFIG = Path(__file__).with_name("preserved.json")
+# Literal fragments are split so that these definitions, which are added
+# lines too, do not match themselves.
 PRIVATE = [
     re.compile(r"/(?:Users|home)/(?!runner/|user/|example/)[^\s/]+/"),
     re.compile("jaekit-" + "legacy"),
     re.compile(r"github\.com[/:]jgoneit/jaekit-[\w.-]+"),
     re.compile(r"(?:codex|claude)(?:-direct)?-host[\w-]*\.json"),
     re.compile(r"evidence-(?:seq|final|before)[\w-]*\.json"),
-    re.compile(r"/private/tmp/jaekit-"),
+    re.compile("/private/tmp/" + "jaekit-"),
 ]
 
 
