@@ -80,14 +80,20 @@ python3 <seal-skill>/scripts/check_core.py --ha <실제 Core 경로> --operation
 python3 <seal-skill>/scripts/check_core.py --ha <실제 Core 경로> --operation resume --goal <기존 목표>
 ```
 
-`--ha`는 기본 `ha`이며 PATH에서 처음 찾은 실행 파일을 사용한다. `--operation`은 `start`(기본), `resume`, `check`, `budget`이다. `start`에는 목표를 받지 않고 나머지 요청에는 기존 목표를 받는다. 기존 목표의 첫 `start`와 SPEC 형식 선택자만 읽으며 실제 기록 무결성 검증은 Core에 남긴다.
+`--ha`는 기본 `ha`이며 PATH에서 처음 찾은 실행 파일을 사용한다. `--operation`은 `start`(기본), `resume`, `check`, `budget`, `finding`이다. `start`에는 목표를 받지 않고 나머지 요청에는 기존 목표를 받는다. 기존 목표의 첫 `start`, 기록의 schema와 SPEC 형식 선택자를 읽으며 실제 기록 무결성 검증은 Core에 남긴다.
 
 도구는 symlink를 해소한 절대 경로로 한 번 조회한다. 조회 전후 SHA-256이 다르면 거부한다. 성공 시 응답의 `executable` 경로를 실제 Core 호출에도 사용한다. 해시는 영구 캐시나 비협조 외부 프로세스에 대한 교체 방지 보증이 아니다.
 
 stdout은 `seal-core-compatibility/v1` JSON이다. `compatible`, `reason`, `requested_executable`, `executable`, `sha256`, `ha_version`, `operation`, `rules`, `missing`을 제공한다. 아직 확인하지 못한 값은 null이며, 원문 Core 출력·목표 내용·사용자 발화를 복사하지 않는다. 실행 파일 경로는 로컬 진단 정보이므로 공개 보고에 그대로 옮길 필요가 없다.
 
 - 종료 `0`: 호환 확인 성공.
-- 종료 `2`: 확인 거부. `core_missing`, `query_unsupported`, `query_failed`, `query_timeout`, `binary_changed`, `unsupported_schema`, `invalid_capabilities`, `unsupported_default_rule`, `unsupported_stored_rule`, `unsupported_operation`, `missing_support`, `goal_unreadable`, `goal_format_invalid` 중 사유를 제공한다.
+- 종료 `2`: 확인 거부. `core_missing`, `query_unsupported`, `query_failed`, `query_timeout`, `binary_changed`, `unsupported_schema`, `invalid_capabilities`, `unsupported_default_rule`, `unsupported_stored_rule`, `unsupported_record_schema`, `unsupported_operation`, `missing_support`, `goal_unreadable`, `goal_format_invalid` 중 사유를 제공한다.
 - 종료 `64`: 도구 인수 오류.
 
 조회는 5초 후 중단하며 자동 재시도하지 않는다. 이 도구는 실제 시작·재개·검사·설치를 실행하거나 결과를 파일로 저장하지 않는다. 설치된 Codex·Claude가 이 지침을 실제로 따르는지는 별도 호스트 검증 대상이다.
+
+## 4. 선택적 완료 뒤 발견 확장
+
+[완료 뒤 발견](findings.md)을 지원하는 개발 Core는 `formats.finding`에 `run-finding/v1`, `features`에 `post-completion-findings/v1`을 추가한다. 위 v0.1.3 배포 예시는 해당 확장을 포함하지 않으며, 버전 숫자만으로 기능을 추정하지 않는다. 기존 시작·검사·예산 작업의 요구는 유지한다. 발견 입력과 조회에는 실제 실행 파일의 두 추가 지원, 저장된 규칙과 현재 조건 형식의 지원을 확인한다. 발견 작업만을 위해 실행 기능이나 `/3` 선언 지원을 요구하지 않는다.
+
+이 소스의 선택형 도구는 `--operation finding --goal <기존 목표>`를 지원한다. 기존 목표에 `run-finding/v1` 줄이 있으면 resume·check·budget도 두 추가 지원을 요구한다. 도구는 알려진 줄 schema의 존재를 읽으며 해시·이력의 무결성은 Core가 검증한다. 알 수 없는 schema는 거부한다. 이전 설치의 도구에 새 인수가 있다고 가정하지 않으며, 실제 capability를 직접 확인하는 방법도 유효하다. 지원을 확인하지 못하면 새 발견 기록을 쓰지 않는다.

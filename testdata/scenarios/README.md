@@ -30,6 +30,7 @@ Each directory is one scenario. `cmd/ha/scenario_test.go` builds a git repositor
 | `manual-confirmed` | EVALUATION §3.1 | `complete` after a quoted confirmation |
 | `bundle-docs-only` | EVALUATION §3.1 | records stay fresh |
 | `time-after-done` | EVALUATION §3.1 | still `complete`; deterministic output |
+| `findings-contract` | findings.md | actual JSON and human findings queries preserve the historical completion and deterministic state |
 | `reopen-after-done` | EVALUATION §3.1 | completion record voided, new budget window |
 | `complete-happy-path` | ROADMAP P1 | `complete` with a completion record; tree untouched |
 | `budget-runs` | INV-11 | under `run-rules/1`: `budget_exhausted`; quoted reopen opens a new window |

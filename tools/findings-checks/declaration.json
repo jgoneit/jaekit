@@ -3,7 +3,10 @@
   "producer": "jaekit-findings",
   "producer_version": "1",
   "producer_paths": [
-    "tools/findings-checks/check.py"
+    "tools/findings-checks/check.py",
+    "internal/record/finding_test.go",
+    "internal/status/findings_test.go",
+    "tools/findings-checks/test_compatibility.py"
   ],
   "targets": [
     {

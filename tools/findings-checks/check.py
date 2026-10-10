@@ -7,6 +7,7 @@ CLI lacking this command is distinct from build, setup, and process errors.
 from __future__ import annotations
 import argparse
 import copy
+import errno
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
@@ -15,6 +16,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -137,6 +139,14 @@ class Fixture:
         require(r.returncode==0,'findings-read-rejected',r.stdout+r.stderr)
         return decode(r)
 
+    def reject_raw(self, data):
+        with tempfile.NamedTemporaryFile() as inp:
+            inp.write(data);inp.flush()
+            before=self.records.read_bytes()
+            r=self.cli('finding',self.goal,'--input',inp.name)
+        require(r.returncode==64,'findings-malformed-input-accepted',r.stdout+r.stderr)
+        require(before==self.records.read_bytes(),'findings-rejected-write-mutated','malformed input changed records')
+
     def status(self):
         r=self.cli('status',self.goal,'--format','json')
         require(r.returncode==0,'findings-changed-completion',r.stdout+r.stderr)
@@ -158,10 +168,15 @@ def observe(binary,n,root,legacy):
         require(view['commit']==f.lines()[f.done-1]['commit'],'findings-code-lost',str(view))
         bad=f.request('bad');bad['completion']['sha256']='0'*64;f.mutate(bad,False)
         bad=f.request('other');bad['criteria']=['AC-99'];f.mutate(bad,False)
+        spec=f.root/f.goal/'SPEC.md';spec.write_text(spec.read_text().replace('AC-1','AC-2'))
+        f.mutate(f.request('historical'))
+        bad=f.request('current-only');bad['criteria']=['AC-2'];f.mutate(bad,False)
     elif n==2:
         f.mutate(item);new=f.update(item);new['event_at']='2000-01-01T00:00:00Z';f.mutate(new)
         view=f.report()['findings'][0]
         require(len(view['history'])==2 and view['history'][0]['change']['status']=='candidate','findings-history-lost',str(view))
+        md=f.cli('finding',f.goal,'--format','md').stdout
+        require('candidate' in md and 'confirmed' in md and 'synthetic:reproduction' in md,'findings-human-history-lost',md)
         require(view['change']['event_at']!=view['history'][-1]['at'],'findings-times-conflated',str(view))
         bad=f.update(new,'dismissed');bad['reason']='';f.mutate(bad,False)
     elif n==3:
@@ -182,8 +197,20 @@ def observe(binary,n,root,legacy):
         r=f.cli('note',f.goal,'reopen','--quote','Synthetic explicit rework');require(r.returncode==0,'findings-reopen-rejected',r.stderr)
         seq=f.lines()[-1]['seq'];new=f.update(item);new['rework']=f.ref(seq);f.mutate(new)
         require(f.report()['findings'][0]['rework_status']=='requested','findings-rework-link-lost','rework')
-        f.cli('done',f.goal)
+        r=f.cli('done',f.goal);require(r.returncode==0,'findings-rework-done-rejected',r.stdout+r.stderr)
         require(f.report()['findings'][0]['rework_status']=='completed','findings-rework-result-lost','done')
+        first_result=f.report()['findings'][0]['rework_completion']
+        md=f.cli('finding',f.goal,'--format','md').stdout
+        require('linked rework completion: seq '+str(first_result['seq']) in md,'findings-human-rework-result-lost',md)
+        r=f.cli('note',f.goal,'reopen','--quote','Synthetic unrelated later rework');require(r.returncode==0,'findings-reopen-rejected',r.stderr)
+        f.cli('done',f.goal)
+        require(f.report()['findings'][0]['rework_completion']==first_result,'findings-rework-window-conflated','later window replaced original result')
+        two=f.request('two');f.mutate(two)
+        f.cli('note',f.goal,'reopen','--quote','Synthetic unfinished rework')
+        two.update(request_id='two-rework',revision=f.report()['findings'][1]['revision'],rework=f.ref(f.lines()[-1]['seq']),reason='Link unfinished request')
+        f.mutate(two)
+        f.cli('note',f.goal,'reopen','--quote','Synthetic subsequent rework');f.cli('done',f.goal)
+        require(f.report()['findings'][1]['rework_status']=='requested' and f.report()['findings'][1]['rework_completion'] is None,'findings-rework-window-conflated','unfinished request borrowed later completion')
     elif n==6:
         receipt=f.mutate(item);before=f.records.read_bytes();again=f.mutate(item)
         require(before==f.records.read_bytes() and receipt['seq']==again['seq'],'findings-retry-duplicated','request id')
@@ -211,6 +238,8 @@ def observe(binary,n,root,legacy):
         report=f.report();require(report['candidate']==1 and report['confirmed']==0 and report['unresolved']==1,'findings-counts-conflated',str(report))
         require(report['findings'][1]['change']['mapping']=='unmapped','findings-mapping-lost',str(report))
     elif n==8:
+        for raw in (b'{"id":"one","ID":"two"}',b'{"ID":"one"}',b'{"completion":{"seq":1,"SEQ":2}}',b'{"document":{"REF":"x"}}',b'{"summary":"\xff"}'):
+            f.reject_raw(raw)
         f.mutate(item)
         require(f.records.read_bytes().startswith(f.original),'findings-history-rewritten','prefix changed')
         last=f.lines()[-1]
@@ -221,8 +250,46 @@ def observe(binary,n,root,legacy):
                 r=f.cli(*args,binary=legacy)
                 require(r.returncode!=0 and ('schema' in r.stdout+r.stderr or 'record' in r.stdout+r.stderr),'findings-legacy-accepted',r.stdout+r.stderr)
                 require(before==f.records.read_bytes(),'findings-legacy-mutated','old binary changed data')
+        # Coordinate the real CLI at its input-read boundary, after initial
+        # record inspection. Only this synthetic fixture is changed to a future
+        # rule, with its chain hashes rebuilt, before the locked append rereads.
+        with tempfile.TemporaryDirectory() as inputs:
+            fifo=Path(inputs)/'input';os.mkfifo(fifo)
+            process=subprocess.Popen([str(binary),'finding',f.goal,'--input',str(fifo)],cwd=f.root,env=f.env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+            try:
+                deadline=time.monotonic()+10
+                while True:
+                    try:
+                        fd=os.open(fifo,os.O_WRONLY|os.O_NONBLOCK);break
+                    except OSError as error:
+                        if error.errno!=errno.ENXIO or process.poll() is not None or time.monotonic()>deadline:
+                            raise Environment('setup_error','CLI did not reach coordinated input read') from error
+                        time.sleep(.01)
+                with os.fdopen(fd,'w') as writer:
+                    lines=f.lines();lines[0]['rules']='run-rules/future';raw=[]
+                    for i,line in enumerate(lines):
+                        if i:line['prev']=hashlib.sha256(raw[-1]).hexdigest()
+                        raw.append(json.dumps(line,separators=(',',':')).encode())
+                    f.records.write_bytes(b'\n'.join(raw)+b'\n');before=f.records.read_bytes()
+                    json.dump(f.request('future-rule'),writer)
+                out,err=process.communicate(timeout=10)
+                require(process.returncode==66 and before==f.records.read_bytes(),'findings-locked-rule-bypass',out+err)
+            finally:
+                if process.poll() is None:process.kill();process.communicate()
     elif n==9:
+        helper=ROOT/'plugins/seal/skills/seal/scripts/check_core.py'
+        def compatibility(executable, operation, accepted):
+            before=f.records.read_bytes()
+            r=run([sys.executable,helper,'--ha',executable,'--operation',operation,'--goal',str(f.root/f.goal)],f.root,f.env)
+            require(r.returncode==(0 if accepted else 2) and decode(r)['compatible']==accepted,'findings-compatibility-boundary',r.stdout+r.stderr)
+            require(before==f.records.read_bytes(),'findings-compatibility-mutated','helper changed goal')
+        compatibility(binary,'finding',True)
+        if legacy:
+            compatibility(legacy,'finding',False)
         f.mutate(item);a=f.cli('finding',f.goal,'--format','json');b=f.cli('finding',f.goal,'--format','json')
+        compatibility(binary,'resume',True)
+        if legacy:
+            compatibility(legacy,'resume',False)
         require(a.stdout==b.stdout,'findings-nondeterministic','query changed')
         require(f.status()['findings']==decode(a),'findings-status-diverged','standalone versus status')
         require(f.records.read_bytes().startswith(f.original),'findings-save-roundtrip-lost','original')
@@ -245,6 +312,40 @@ def observe(binary,n,root,legacy):
     else:
         raise Environment('setup_error','unknown criterion')
 
+def unit_properties(n):
+    if n==9:
+        result=run([sys.executable,'tools/findings-checks/test_compatibility.py'],ROOT)
+        if result.returncode:
+            if 'FAIL:' in result.stderr:
+                raise Violation('findings-compatibility-assertion',result.stdout+result.stderr)
+            raise Environment('execution_error',result.stdout+result.stderr)
+    names = {
+        6: ['TestFindingsConcurrentCASAndOtherEvents', 'TestFindingsReferencesAndReplay', 'TestFindingSchemaAndPersistenceUncertainty'],
+        8: ['TestFindingStrictInput'],
+        10: ['TestFindingsBudgetAllSavedRules'],
+    }.get(n, [])
+    if not names:
+        return
+    result = run(['go', 'test', '-count=1', '-json', './internal/record', './internal/status',
+                  '-run', '^(' + '|'.join(names) + ')$'], ROOT)
+    passed, failed = set(), set()
+    for line in result.stdout.splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        name = event.get('Test', '')
+        if event.get('Action') == 'pass':
+            passed.add(name)
+        if name and event.get('Action') == 'fail':
+            failed.add(name)
+    if failed:
+        raise Violation('findings-unit-assertion', ', '.join(sorted(failed)))
+    if result.returncode:
+        raise Environment('compile_error' if 'build failed' in result.stdout + result.stderr else 'execution_error', result.stdout + result.stderr)
+    if not set(names).issubset(passed):
+        raise Environment('collection_error', 'required findings unit properties were not observed')
+
 def main():
     p=argparse.ArgumentParser();p.add_argument('--criterion',default='all');p.add_argument('--binary');p.add_argument('--legacy');a=p.parse_args()
     result={'target':'finding-contract','attempt':1,'status':'pass'}
@@ -262,9 +363,10 @@ def main():
             probe=run([binary,'finding','--help'],ROOT)
             if 'unknown command "finding"' in probe.stderr and 'post-completion-findings/v1' not in capabilities.get('features',[]):
                 raise Violation('findings-command-unavailable','runnable CLI has no finding command')
+            require('post-completion-findings/v1' in capabilities.get('features',[]),'findings-capability-missing','command exists without support declaration')
             criteria=range(1,12) if a.criterion=='all' else [int(a.criterion)]
             for n in criteria:
-                root=temp/str(n);root.mkdir();observe(binary,n,root,a.legacy)
+                root=temp/str(n);root.mkdir();observe(binary,n,root,a.legacy);unit_properties(n)
             print('Observed findings properties:',a.criterion)
     except Violation as error:
         result.update(status='violation',violation=error.code);print(error.code+': '+error.detail,file=sys.stderr)
