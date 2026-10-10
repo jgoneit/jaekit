@@ -1,0 +1,35 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "printed-or-quoted",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_observed_invocations.py",
+      "test": "SpecCommandPosition.test_printed_or_quoted_core_commands_are_not_execution"
+    },
+    {
+      "target": "claude-printed-examples",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_observed_invocations.py",
+      "test": "SpecCommandPosition.test_claude_printed_examples_are_not_execution"
+    },
+    {
+      "target": "codex-exec-strings",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_observed_invocations.py",
+      "test": "SpecCommandPosition.test_codex_exec_strings_are_read_as_commands"
+    },
+    {
+      "target": "command-position-execution",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_observed_invocations.py",
+      "test": "SpecCommandPosition.test_core_commands_in_command_position_remain_execution"
+    },
+    {
+      "target": "claude-command-position-execution",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_observed_invocations.py",
+      "test": "SpecCommandPosition.test_claude_core_commands_in_command_position_remain_execution"
+    }
+  ]
+}

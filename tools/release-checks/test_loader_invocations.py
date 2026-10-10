@@ -2,8 +2,10 @@
 
 Synthetic traces follow the native event shapes. A Codex rollout lists every
 available Skill in its session metadata and injects an invoked Skill as a
-separate `<skill>` message; Claude stream-json starts each invocation with a
-`system`/`init` event listing plugin sources and installed paths.
+separate `<skill>` message. Claude stream-json starts each invocation with a
+`system`/`init` event listing every available plugin and Skill; its native
+session transcript records a slash-command invocation and the host's injected
+Skill directory as two linked entries.
 """
 import importlib.util
 import json
@@ -124,9 +126,28 @@ class TraceCase(unittest.TestCase):
         return [{"type": "assistant", "message": {"content": [
             {"type": "tool_use", "name": "Bash", "input": {"command": c}} for c in commands]}}]
 
-    def claude(self, spec_events=None, seal_commands=SEAL_COMMANDS, plugins=None):
-        spec, _, spec_root = self.installed("claude", "spec")
-        seal, _, seal_root = self.installed("claude", "seal")
+    @staticmethod
+    def invocation(skill, directory, session=SESSION, number=1):
+        """A transcript's slash-command entry and the host's injected Skill entry."""
+        uuid = f"entry-{number}"
+        return [{"type": "user", "userType": "external", "isSidechain": False, "sessionId": session,
+                 "uuid": uuid, "parentUuid": None, "promptId": f"prompt-{number}",
+                 "message": {"role": "user", "content": f"<command-message>{skill}</command-message>\n"
+                                                         f"<command-name>/{skill}</command-name>\n"
+                                                         "<command-args>synthetic request</command-args>"}},
+                {"type": "user", "userType": "external", "isSidechain": False, "isMeta": True,
+                 "sessionId": session, "uuid": f"{uuid}-skill", "parentUuid": uuid, "promptId": f"prompt-{number}",
+                 "message": {"role": "user", "content": [
+                     {"type": "text", "text": f"Base directory for this skill: {directory}\n\n# Synthetic\n"}]}}]
+
+    def claude(self, spec_events=None, seal_commands=SEAL_COMMANDS, plugins=None, transcript=None):
+        """A Claude observation; `transcript(spec_dir, seal_dir)` gives its session entries.
+
+        By default the transcript records both invocations. Pass a function
+        returning None to omit the transcript.
+        """
+        spec, spec_skill, spec_root = self.installed("claude", "spec")
+        seal, seal_skill, seal_root = self.installed("claude", "seal")
         if plugins is None:
             plugins = [{"name": "spec", "path": spec_root, "source": "spec@jaekit", "version": "0.1.0"},
                        {"name": "seal", "path": seal_root, "source": "seal@jaekit", "version": "0.1.0"}]
@@ -139,6 +160,12 @@ class TraceCase(unittest.TestCase):
         value["seal"] = self.capture(["claude", "-p", "--verbose", "--output-format", "stream-json",
                                       "--resume", SESSION, "/seal:seal " + GOAL],
                                      [init] + self.bash(*seal_commands) + done)
+        if transcript is None:
+            transcript = lambda spec_dir, seal_dir: (self.invocation("spec:spec", spec_dir)
+                                                     + self.invocation("seal:seal", seal_dir, number=2))
+        entries = transcript(str(Path(spec_skill).parent), str(Path(seal_skill).parent))
+        if entries is not None:
+            value["session_trace"] = self.lines(entries)
         return value, spec_root
 
 
@@ -185,20 +212,25 @@ class LoaderEvidence(TraceCase):
         self.rejects("codex", value, "spec", "loaded Skill")
 
     def test_claude_same_name_from_another_marketplace_is_not_loaded(self):
-        _, _, other = self.installed("claude", "spec", marketplace="other")
+        _, other_skill, other = self.installed("claude", "spec", marketplace="other")
 
         def spec_events(root):
             return self.bash("ls") + [{"type": "assistant", "message": {"content": [
                 {"type": "text", "text": f"Skill base directory: {root}"}]}}]
         value, _ = self.claude(spec_events, plugins=[
-            {"name": "spec", "path": other, "source": "spec@other", "version": "9.9.9"}])
+            {"name": "spec", "path": other, "source": "spec@other", "version": "9.9.9"}],
+            transcript=lambda spec_dir, seal_dir: self.invocation("spec:spec", str(Path(other_skill).parent)))
         self.rejects("claude", value, "spec", "loaded Skill")
 
     def test_claude_tool_output_mention_is_not_loaded(self):
         def spec_events(root):
             return self.bash(f"ls {root}") + [{"type": "user", "message": {"content": [
                 {"type": "tool_result", "content": f"{root}/skills/spec/SKILL.md"}]}}]
-        value, _ = self.claude(spec_events, plugins=[])
+
+        def transcript(spec_dir, seal_dir):
+            return [{"type": "user", "sessionId": SESSION, "uuid": "entry-1", "message": {"role": "user", "content": [
+                {"type": "tool_result", "content": f"Base directory for this skill: {spec_dir}"}]}}]
+        value, _ = self.claude(spec_events, plugins=[], transcript=transcript)
         self.rejects("claude", value, "spec", "loaded Skill")
 
 

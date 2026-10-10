@@ -1,0 +1,35 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "whole-session-transcript",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_observed_invocations.py",
+      "test": "ClaudeTranscriptLoad.test_whole_session_transcript_loads_each_phase_skill"
+    },
+    {
+      "target": "phase-snapshots",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_observed_invocations.py",
+      "test": "ClaudeTranscriptLoad.test_phase_snapshots_load_each_phase_skill"
+    },
+    {
+      "target": "phase-own-invocation",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_observed_invocations.py",
+      "test": "ClaudeTranscriptLoad.test_each_phase_needs_its_own_skill_invocation"
+    },
+    {
+      "target": "surrounding-entries",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_observed_invocations.py",
+      "test": "ClaudeTranscriptLoad.test_queue_and_other_entries_around_the_invocation_are_ignored"
+    },
+    {
+      "target": "earlier-claude-acceptance",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "LoaderEvidence.test_claude_session_plugin_is_loaded_in_both_phases"
+    }
+  ]
+}

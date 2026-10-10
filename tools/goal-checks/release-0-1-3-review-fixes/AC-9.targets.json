@@ -1,0 +1,73 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "loader-cases",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "LoaderEvidence"
+    },
+    {
+      "target": "checker-regressions",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_check.py",
+      "test": ""
+    },
+    {
+      "target": "no-evaluation",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "Documentation.test_checker_does_not_evaluate_observed_commands"
+    },
+    {
+      "target": "earlier-readme-forms",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "Documentation.test_readme_names_accepted_and_rejected_forms"
+    },
+    {
+      "target": "install-regressions",
+      "runner": "unittest",
+      "file": "tools/release/test_install.py",
+      "test": ""
+    },
+    {
+      "target": "install-data",
+      "runner": "unittest",
+      "file": "tools/release/test_install_data.py",
+      "test": ""
+    },
+    {
+      "target": "examples-index",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestExamplesIndexDescribesCurrentRelease"
+    },
+    {
+      "target": "update-guide",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestRelease011UpdateGuide"
+    },
+    {
+      "target": "uninstall-guide",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestRelease011UninstallGuide"
+    },
+    {
+      "target": "reference-guidance",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestRelease013ReferenceGuidance"
+    },
+    {
+      "target": "guide-links",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/check_public_docs.py"
+      ]
+    }
+  ]
+}

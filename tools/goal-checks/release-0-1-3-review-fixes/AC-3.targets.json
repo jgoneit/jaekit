@@ -1,0 +1,23 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "printed-required-operations",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_observed_invocations.py",
+      "test": "SealCommandPosition.test_required_operations_in_non_command_text_are_not_observed"
+    },
+    {
+      "target": "printed-baseline-flag",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_observed_invocations.py",
+      "test": "SealCommandPosition.test_printed_baseline_flag_is_not_a_baseline_attempt"
+    },
+    {
+      "target": "claude-printed-variable",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_observed_invocations.py",
+      "test": "SealCommandPosition.test_claude_printed_variable_start_is_not_observed"
+    }
+  ]
+}

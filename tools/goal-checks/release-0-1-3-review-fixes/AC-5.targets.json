@@ -1,0 +1,17 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "earlier-recognition",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "CoreInvocations"
+    },
+    {
+      "target": "wrappers-and-prefixes",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_observed_invocations.py",
+      "test": "KeptRecognition"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "evidence-not-located",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_observed_invocations.py",
+      "test": "EvidenceLocation.test_without_an_evidence_directory_nothing_is_located"
+    },
+    {
+      "target": "evidence-directory",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_observed_invocations.py",
+      "test": "EvidenceLocation.test_given_directory_is_the_only_evidence_root"
+    },
+    {
+      "target": "no-git-directory-search",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_observed_invocations.py",
+      "test": "EvidenceLocation.test_source_does_not_search_the_git_directory"
+    },
+    {
+      "target": "tracked-references",
+      "runner": "unittest",
+      "file": "tools/goal-checks/release-0-1-3-review-fixes/test_private_independence.py",
+      "test": "TrackedFiles"
+    },
+    {
+      "target": "fresh-clone",
+      "runner": "unittest",
+      "file": "tools/goal-checks/release-0-1-3-review-fixes/test_private_independence.py",
+      "test": "FreshClone"
+    }
+  ]
+}
