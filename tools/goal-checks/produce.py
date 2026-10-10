@@ -5,10 +5,10 @@ Usage: python3 tools/goal-checks/produce.py DECLARATION TARGETS
 
 Each target runs one existing unittest or Go test, a whole unittest module, or
 the documentation tests of ./plugins in a temporary copy whose file received an
-appended statement. A test assertion failure is the declared violation.
+appended statement. Observed assertion identities never come from declarations.
 Import, collection, build and setup problems are errors, never violations.
-The `command` runner reports only a repository script's exit status and is
-meant for maintain conditions, whose results do not use the structured report.
+The `command` runner needs an explicit exit contract for structured evidence;
+an undocumented command can only establish a successful maintain exit.
 Without the ha evidence environment the producer only sets its exit status,
 so maintain conditions and local runs use the same target files.
 """
@@ -26,8 +26,12 @@ import tempfile
 import traceback
 import unittest
 
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import result_observations as results
+
 PRODUCER = "jaekit-goal-tests"
-VERSION = "1"
+VERSION = "2"
 TIMEOUT = 900
 SKIP_COPY = {".git", ".claude", ".private", "docs"}
 
@@ -80,11 +84,12 @@ def go_events(argv, cwd):
     diagnostics = [proc.stderr]
     for event in events:
         test = event.get("Test")
+        key = (event.get("Package", ""), test or "")
         action = event.get("Action")
         if action == "output":
             output = event.get("Output", "")
             diagnostics.append(output)
-            outputs.setdefault(test or "", []).append(output)
+            outputs.setdefault(key, []).append(output)
             # Package output includes TestMain failures and post-test panics.
             sys.stderr.write(output)
         if not test:
@@ -92,9 +97,9 @@ def go_events(argv, cwd):
                 package_finals[event.get("Package", "")] = action
             continue
         if action == "run":
-            started.add(test)
+            started.add(key)
         if action in ("pass", "fail", "skip"):
-            finals[test] = action
+            finals[key] = action
     if not built:
         return "compile_error", finals, outputs
     failed = "fail" in finals.values()
@@ -113,21 +118,40 @@ def go_events(argv, cwd):
     return None, finals, outputs
 
 
-def run_go(check):
+def go_facts(error, finals, outputs, directory):
+    result = results.facts()
+    if error:
+        result["errors"].append(error)
+    for name, state in finals.items():
+        if state == "pass":
+            result["passed"] += 1
+        elif state == "skip":
+            result["skipped"].append("skipped")
+        elif state == "fail":
+            # Parent fail events can merely summarize failing subtests.
+            if any(child[0] == name[0] and child[1].startswith(name[1] + "/") and final == "fail"
+                   for child, final in finals.items()):
+                continue
+            output = "".join(outputs.get(name, []))
+            if re.search(r"^(?:panic:|fatal error:|runtime:|signal:|WARNING: DATA RACE)", output, re.MULTILINE):
+                continue
+            # Go's event stream cannot identify the assertion responsible for
+            # a failure: Log and Error share its output channel. Keep the
+            # observed failure but never infer a requirement ID from that text.
+            result["violations"].append("unclassified-assertion")
+            result["unclassified"] = True
+    if not finals and not error:
+        result["errors"].append("collection_error")
+    return result
+
+
+def run_go(check, detailed=False):
     name = check["test"]
     if not isinstance(name, str) or not name.startswith("Test") or not name.isidentifier():
         raise ValueError("invalid go test")
-    error, finals, _ = go_events(["go", "test", "-count=1", "-json", "-run", "^" + name + "$", check["package"]], Path.cwd())
-    if error:
-        return {"status": "error", "reason": error}
-    result = finals.get(name)
-    if result == "pass":
-        return {"status": "pass"}
-    if result == "fail":
-        return {"status": "violation"}
-    if result == "skip":
-        return {"status": "skip", "reason": "skipped"}
-    return {"status": "error", "reason": "collection_error"}
+    error, finals, outputs = go_events(["go", "test", "-count=1", "-json", "-run", "^" + name + "$", check["package"]], Path.cwd())
+    result = go_facts(error, finals, outputs, Path.cwd() / check["package"])
+    return result if detailed else results.summary(result)
 
 
 def copy_tree(source, destination):
@@ -144,7 +168,12 @@ def failure_lines(finals, outputs):
     return lines
 
 
-def run_go_docs(check):
+def run_go_docs(check, detailed=False):
+    result = go_docs_facts(check)
+    return result if detailed else results.summary(result)
+
+
+def go_docs_facts(check):
     """Run the plugins documentation tests on a copy, before and after a mutation.
 
     With `expect: pass` the unmodified copy must pass. With `expect: reject`
@@ -160,44 +189,44 @@ def run_go_docs(check):
         copy = Path(directory) / "repo"
         copy_tree(Path.cwd(), copy)
         error, finals, outputs = go_events(argv, copy)
-        if error:
-            return {"status": "error", "reason": error}
-        if not finals:
-            return {"status": "error", "reason": "collection_error"}
-        if all(action == "skip" for action in finals.values()):
-            return {"status": "skip", "reason": "skipped"}
+        initial = go_facts(error, finals, outputs, copy / "plugins")
+        if error or not finals:
+            return initial
         if expect == "pass":
-            failed = any(action == "fail" for action in finals.values())
-            return {"status": "violation"} if failed else {"status": "pass"}
+            return initial
+        if initial["violations"] or initial["errors"] or initial["skipped"]:
+            return initial
         before = failure_lines(finals, outputs)
         relative = local_file(check["path"]).relative_to(Path.cwd())
         with (copy / relative).open("a", encoding="utf-8") as output:
             output.write(check["append"])
         error, finals, outputs = go_events(argv, copy)
-    if error:
-        return {"status": "error", "reason": error}
-    if not finals:
-        return {"status": "error", "reason": "collection_error"}
-    if all(action == "skip" for action in finals.values()):
-        return {"status": "skip", "reason": "skipped"}
+        observed = go_facts(error, finals, outputs, copy / "plugins")
+    if observed["errors"] or observed["skipped"] or not finals:
+        return observed
     added = failure_lines(finals, outputs) - before
     if any(check["mentions"] in line for line in added):
-        return {"status": "pass"}
-    return {"status": "violation"}
+        result = results.facts()
+        result["passed"] = 1
+        return result
+    result = results.facts()
+    result["violations"].append("document-mutation-not-rejected")
+    return result
 
 
-def run_unittest(check):
-    argv = [sys.executable, str(Path(__file__).resolve()), "--unittest", check["file"], check.get("test", "")]
-    proc = subprocess.run(argv, cwd=Path.cwd(), env=go_env(), capture_output=True, text=True, timeout=TIMEOUT)
-    sys.stderr.write(proc.stderr)
-    lines = [line for line in proc.stdout.splitlines() if line.strip()]
-    try:
-        verdict = json.loads(lines[-1])
-    except (IndexError, ValueError):
-        return {"status": "error", "reason": "execution_error"}
-    if verdict.get("status") not in ("pass", "violation", "error", "skip"):
-        return {"status": "error", "reason": "execution_error"}
-    return verdict
+def run_unittest(check, detailed=False):
+    with tempfile.TemporaryDirectory(prefix="jaekit-unittest-observation-") as temporary:
+        output = Path(temporary) / "facts.json"
+        argv = [sys.executable, str(Path(__file__).resolve()), "--unittest", check["file"], check.get("test", ""), str(output)]
+        proc = subprocess.run(argv, cwd=Path.cwd(), env=go_env(), capture_output=True, text=True, timeout=TIMEOUT)
+        sys.stderr.write(proc.stdout + proc.stderr)
+        try:
+            verdict = json.loads(output.read_text())
+        except (OSError, ValueError):
+            verdict = results.failure("execution_error")
+    if (set(verdict) != set(results.facts()) or proc.returncode != 0):
+        verdict = results.failure("execution_error")
+    return verdict if detailed else results.summary(verdict)
 
 
 def unittest_child(file, test):
@@ -205,7 +234,7 @@ def unittest_child(file, test):
     try:
         path = local_file(file)
     except (OSError, ValueError):
-        return {"status": "error", "reason": "dependency_missing"}
+        return results.failure("dependency_missing")
     sys.path.insert(0, str(path.parent))
     try:
         spec = importlib.util.spec_from_file_location(path.stem, path)
@@ -214,13 +243,13 @@ def unittest_child(file, test):
         spec.loader.exec_module(module)
     except Exception:
         traceback.print_exc()
-        return {"status": "error", "reason": "import_error"}
+        return results.failure("import_error")
     loader = unittest.TestLoader()
     try:
         suite = loader.loadTestsFromName(test, module) if test else loader.loadTestsFromModule(module)
     except Exception:
         traceback.print_exc()
-        return {"status": "error", "reason": "collection_error"}
+        return results.failure("collection_error")
 
     def cases(item):
         if isinstance(item, unittest.TestSuite):
@@ -229,25 +258,12 @@ def unittest_child(file, test):
         else:
             yield item
     if any(type(case).__name__ == "_FailedTest" for case in cases(suite)) or loader.errors:
-        return {"status": "error", "reason": "collection_error"}
-    result = unittest.TextTestRunner(stream=sys.stderr, verbosity=2).run(suite)
-    if result.testsRun == 0:
-        return {"status": "error", "reason": "collection_error"}
-    if result.errors:
-        return {"status": "error", "reason": "execution_error"}
-    # unittest's expected outcomes are decorator states, not evidence that a
-    # declared requirement passed or failed. They can also wrap runtime errors.
-    if result.expectedFailures or result.unexpectedSuccesses:
-        return {"status": "error", "reason": "setup_error"}
-    if result.failures:
-        return {"status": "violation"}
-    if len(result.skipped) == result.testsRun:
-        return {"status": "skip", "reason": "skipped"}
-    return {"status": "pass"}
+        return results.failure("collection_error")
+    return results.run_suite(suite, sys.stderr)
 
 
-def run_command(check):
-    """Exit status of a repository script, for maintain conditions only."""
+def run_command(check, detailed=False):
+    """Only an explicit command contract can identify observed violations."""
     argv = check["argv"]
     if not isinstance(argv, list) or not argv or not all(isinstance(a, str) and a for a in argv):
         raise ValueError("invalid command")
@@ -255,36 +271,62 @@ def run_command(check):
         argv = [sys.executable, *argv[1:]]
     proc = subprocess.run(argv, cwd=Path.cwd(), env=go_env(), capture_output=True, text=True, timeout=TIMEOUT)
     sys.stderr.write(proc.stdout + proc.stderr)
-    return {"status": "pass"} if proc.returncode == 0 else {"status": "violation"}
+    result = results.facts()
+    contract = check.get("exit_contract")
+    if contract is None:
+        # The old command runner remains useful for maintain, not change.
+        if proc.returncode == 0 and "HA_EVIDENCE_PATH" not in os.environ:
+            result["passed"] = 1
+        else:
+            result["errors"].append("execution_error")
+    elif (not isinstance(contract, dict) or set(contract) != {"schema", "pass", "violations", "unverified"}
+          or contract["schema"] != "jaekit-command-exits/v1"):
+        raise ValueError("invalid command exit contract")
+    else:
+        passes, unknown, violations = contract["pass"], contract["unverified"], contract["violations"]
+        if (not isinstance(passes, list) or not isinstance(unknown, list) or not isinstance(violations, dict)
+                or any(type(x) is not int or not 0 <= x <= 255 for x in passes + unknown)
+                or any(not key.isdecimal() or not 1 <= int(key) <= 255
+                       or not isinstance(value, str) or not results.IDENTIFIER.fullmatch(value)
+                       for key, value in violations.items())
+                or len(set(passes + unknown + [int(k) for k in violations])) != len(passes) + len(unknown) + len(violations)):
+            raise ValueError("overlapping or invalid command exit contract")
+        if proc.returncode in passes:
+            result["passed"] = 1
+        elif proc.returncode in unknown:
+            result["skipped"].append("not_selected")
+        elif str(proc.returncode) in violations:
+            result["violations"].append(violations[str(proc.returncode)])
+        else:
+            result["errors"].append("execution_error")
+    return result if detailed else results.summary(result)
 
 
 RUNNERS = {"go": run_go, "go-docs": run_go_docs, "unittest": run_unittest, "command": run_command}
 
 
-def observe(check, declared):
-    observation = {"target": check["target"], "attempt": 1}
+def observe(check, declared=None):
     try:
-        verdict = RUNNERS[check["runner"]](check)
+        verdict = RUNNERS[check["runner"]](check, detailed=True)
     except subprocess.TimeoutExpired:
-        verdict = {"status": "error", "reason": "execution_error"}
+        verdict = results.failure("execution_error")
     except FileNotFoundError:
-        verdict = {"status": "error", "reason": "dependency_missing"}
+        verdict = results.failure("dependency_missing")
     except PermissionError:
-        verdict = {"status": "error", "reason": "permission_denied"}
+        verdict = results.failure("permission_denied")
     except (OSError, ValueError, TypeError, KeyError):
         traceback.print_exc()
-        verdict = {"status": "error", "reason": "setup_error"}
-    observation["status"] = verdict["status"]
-    if verdict["status"] == "violation":
-        observation["violation"] = declared["violation"]
-    elif verdict["status"] in ("error", "skip"):
-        observation["reason"] = verdict["reason"]
-    return observation
+        verdict = results.failure("setup_error")
+    # Full facts remain in the local output even when bounded slots overflow.
+    print(json.dumps({"target": check["target"], "facts": verdict}), file=sys.stderr)
+    return results.observations(verdict, check["target"], check["result_targets"])
 
 
 def main(argv):
-    if len(argv) == 4 and argv[1] == "--unittest":
-        print(json.dumps(unittest_child(argv[2], argv[3])))
+    if len(argv) == 5 and argv[1] == "--unittest":
+        verdict = unittest_child(argv[2], argv[3])
+        with open(argv[4], "x", encoding="utf-8") as output:
+            json.dump(verdict, output)
         return 0
     if len(argv) != 3:
         print("usage: produce.py DECLARATION TARGETS", file=sys.stderr)
@@ -292,18 +334,33 @@ def main(argv):
     try:
         declaration = json.loads(local_file(argv[1]).read_text(encoding="utf-8"))
         config = json.loads(local_file(argv[2]).read_text(encoding="utf-8"))
+        legacy_maintain = ("HA_EVIDENCE_PATH" not in os.environ
+                           and declaration.get("producer_version") == "1"
+                           and config.get("schema") == "jaekit-goal-targets/v1")
+        if legacy_maintain:
+            declaration["producer_version"] = VERSION
+            config["schema"] = "jaekit-goal-targets/v2"
+            expanded = []
+            expected = {item["id"]: item["violation"] for item in declaration["targets"]}
+            for check in config["checks"]:
+                check["result_targets"] = results.target_names(check["target"])
+                expanded.extend(results.declaration_targets(check["target"], expected[check["target"]], check["result_targets"]))
+            declaration["targets"] = expanded
         if (declaration["schema"] != "check-declaration/v1" or declaration["producer"] != PRODUCER
-                or declaration["producer_version"] != VERSION or config.get("schema") != "jaekit-goal-targets/v1"):
+                or declaration["producer_version"] != VERSION or config.get("schema") != "jaekit-goal-targets/v2"):
             raise ValueError("unsupported declaration or targets")
         targets = {target["id"]: target for target in declaration["targets"]}
         checks = config["checks"]
-        if len(checks) != len(targets) or {check["target"] for check in checks} != set(targets):
+        declared_ids = [target["id"] for target in declaration["targets"]]
+        selected_ids = [name for check in checks for name in results.target_ids(check["target"], check["result_targets"])]
+        if len(set(declared_ids)) != len(declared_ids) or len(set(selected_ids)) != len(selected_ids) or set(selected_ids) != set(targets):
             raise ValueError("targets do not match the declaration")
         observations = []
         for check in checks:
-            observation = observe(check, targets[check["target"]])
-            print(observation["target"], observation["status"], flush=True)
-            observations.append(observation)
+            items = observe(check)
+            for observation in items:
+                print(observation["target"], observation["status"], flush=True)
+            observations.extend(items)
         if "HA_EVIDENCE_PATH" in os.environ:
             report = {
                 "schema": "check-result/v1",

@@ -1,17 +1,58 @@
 {
   "schema": "check-declaration/v1",
   "producer": "jaekit-goal-tests",
-  "producer_version": "1",
+  "producer_version": "2",
   "producer_paths": [
     "tools/goal-checks/produce.py",
     "tools/goal-checks/release-0-1-3-review-fixes/AC-10.targets.json",
     "tools/release-checks/test_observed_invocations.py",
-    "tools/release-checks/test_loader_invocations.py"
+    "tools/release-checks/test_loader_invocations.py",
+    "tools/result_observations.py"
   ],
   "targets": [
     {
       "id": "readme-transcript-and-position",
       "violation": "readme-explanation-missing"
+    },
+    {
+      "id": "readme-transcript-and-position.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-transcript-and-position.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-transcript-and-position.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-transcript-and-position.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-transcript-and-position.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-transcript-and-position.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-transcript-and-position.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-transcript-and-position.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-transcript-and-position.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-transcript-and-position.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

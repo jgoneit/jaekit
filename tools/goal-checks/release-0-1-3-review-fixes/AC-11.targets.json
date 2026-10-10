@@ -1,5 +1,5 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "public-preservation",
@@ -7,7 +7,33 @@
       "argv": [
         "python3",
         "tools/goal-checks/release-0-1-3-followups/preserved.py"
-      ]
+      ],
+      "result_targets": {
+        "additional_violations": [
+          "public-preservation.assertion-2",
+          "public-preservation.assertion-3",
+          "public-preservation.assertion-4",
+          "public-preservation.assertion-5",
+          "public-preservation.assertion-6",
+          "public-preservation.assertion-7",
+          "public-preservation.assertion-8"
+        ],
+        "execution": "public-preservation.execution",
+        "selection": "public-preservation.selection",
+        "attribution": "public-preservation.attribution"
+      },
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {
+          "1": "preservation-contract-violation"
+        },
+        "unverified": [
+          2
+        ]
+      }
     },
     {
       "target": "synthetic-additions",
@@ -20,7 +46,21 @@
         "12071916201f0241f84b014ea7a07c4480062cd9",
         "--head",
         "46c7094bd3901b471b98a6581ed8388298108e2b"
-      ]
+      ],
+      "result_targets": {
+        "additional_violations": [
+          "synthetic-additions.assertion-2",
+          "synthetic-additions.assertion-3",
+          "synthetic-additions.assertion-4",
+          "synthetic-additions.assertion-5",
+          "synthetic-additions.assertion-6",
+          "synthetic-additions.assertion-7",
+          "synthetic-additions.assertion-8"
+        ],
+        "execution": "synthetic-additions.execution",
+        "selection": "synthetic-additions.selection",
+        "attribution": "synthetic-additions.attribution"
+      }
     }
   ]
 }

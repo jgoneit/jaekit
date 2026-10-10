@@ -1,11 +1,25 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "readme-transcript-and-position",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "Documentation.test_readme_explains_transcripts_command_position_and_limits"
+      "test": "Documentation.test_readme_explains_transcripts_command_position_and_limits",
+      "result_targets": {
+        "additional_violations": [
+          "readme-transcript-and-position.assertion-2",
+          "readme-transcript-and-position.assertion-3",
+          "readme-transcript-and-position.assertion-4",
+          "readme-transcript-and-position.assertion-5",
+          "readme-transcript-and-position.assertion-6",
+          "readme-transcript-and-position.assertion-7",
+          "readme-transcript-and-position.assertion-8"
+        ],
+        "execution": "readme-transcript-and-position.execution",
+        "selection": "readme-transcript-and-position.selection",
+        "attribution": "readme-transcript-and-position.attribution"
+      }
     }
   ]
 }

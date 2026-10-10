@@ -1,35 +1,105 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "install-regressions",
       "runner": "unittest",
       "file": "tools/release/test_install.py",
-      "test": ""
+      "test": "",
+      "result_targets": {
+        "additional_violations": [
+          "install-regressions.assertion-2",
+          "install-regressions.assertion-3",
+          "install-regressions.assertion-4",
+          "install-regressions.assertion-5",
+          "install-regressions.assertion-6",
+          "install-regressions.assertion-7",
+          "install-regressions.assertion-8"
+        ],
+        "execution": "install-regressions.execution",
+        "selection": "install-regressions.selection",
+        "attribution": "install-regressions.attribution"
+      }
     },
     {
       "target": "unsupported-platform",
       "runner": "unittest",
       "file": "tools/release/test_install_data.py",
-      "test": "DirectData.test_unsupported_platform_stops_before_changes"
+      "test": "DirectData.test_unsupported_platform_stops_before_changes",
+      "result_targets": {
+        "additional_violations": [
+          "unsupported-platform.assertion-2",
+          "unsupported-platform.assertion-3",
+          "unsupported-platform.assertion-4",
+          "unsupported-platform.assertion-5",
+          "unsupported-platform.assertion-6",
+          "unsupported-platform.assertion-7",
+          "unsupported-platform.assertion-8"
+        ],
+        "execution": "unsupported-platform.execution",
+        "selection": "unsupported-platform.selection",
+        "attribution": "unsupported-platform.attribution"
+      }
     },
     {
       "target": "reference-guidance",
       "runner": "go",
       "package": "./plugins",
-      "test": "TestRelease013ReferenceGuidance"
+      "test": "TestRelease013ReferenceGuidance",
+      "result_targets": {
+        "additional_violations": [
+          "reference-guidance.assertion-2",
+          "reference-guidance.assertion-3",
+          "reference-guidance.assertion-4",
+          "reference-guidance.assertion-5",
+          "reference-guidance.assertion-6",
+          "reference-guidance.assertion-7",
+          "reference-guidance.assertion-8"
+        ],
+        "execution": "reference-guidance.execution",
+        "selection": "reference-guidance.selection",
+        "attribution": "reference-guidance.attribution"
+      }
     },
     {
       "target": "update-guide",
       "runner": "go",
       "package": "./plugins",
-      "test": "TestRelease011UpdateGuide"
+      "test": "TestRelease011UpdateGuide",
+      "result_targets": {
+        "additional_violations": [
+          "update-guide.assertion-2",
+          "update-guide.assertion-3",
+          "update-guide.assertion-4",
+          "update-guide.assertion-5",
+          "update-guide.assertion-6",
+          "update-guide.assertion-7",
+          "update-guide.assertion-8"
+        ],
+        "execution": "update-guide.execution",
+        "selection": "update-guide.selection",
+        "attribution": "update-guide.attribution"
+      }
     },
     {
       "target": "uninstall-guide",
       "runner": "go",
       "package": "./plugins",
-      "test": "TestRelease011UninstallGuide"
+      "test": "TestRelease011UninstallGuide",
+      "result_targets": {
+        "additional_violations": [
+          "uninstall-guide.assertion-2",
+          "uninstall-guide.assertion-3",
+          "uninstall-guide.assertion-4",
+          "uninstall-guide.assertion-5",
+          "uninstall-guide.assertion-6",
+          "uninstall-guide.assertion-7",
+          "uninstall-guide.assertion-8"
+        ],
+        "execution": "uninstall-guide.execution",
+        "selection": "uninstall-guide.selection",
+        "attribution": "uninstall-guide.attribution"
+      }
     },
     {
       "target": "guide-links",
@@ -37,7 +107,21 @@
       "argv": [
         "python3",
         "tools/check_public_docs.py"
-      ]
+      ],
+      "result_targets": {
+        "additional_violations": [
+          "guide-links.assertion-2",
+          "guide-links.assertion-3",
+          "guide-links.assertion-4",
+          "guide-links.assertion-5",
+          "guide-links.assertion-6",
+          "guide-links.assertion-7",
+          "guide-links.assertion-8"
+        ],
+        "execution": "guide-links.execution",
+        "selection": "guide-links.selection",
+        "attribution": "guide-links.attribution"
+      }
     }
   ]
 }
