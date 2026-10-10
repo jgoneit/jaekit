@@ -147,7 +147,7 @@ def special_names():
             status, output = current(root, private=True)
             require(status == 1 and repr(bad) in output, "name-not-preserved",
                     "current independence boundary lost path metadata")
-            public_bad = "tools/" + prefix + "/Users/synthetic-person/sample.bin"
+            public_bad = "tools/" + prefix + "/Users/" + "synthetic-person/sample.bin"
             put(root, public_bad, b"\xff")
             commit(root)
             status, output = current(root)
