@@ -62,6 +62,16 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 	for _, path := range []string{"../README.md", "../README.en.md", "../guides/INSTALL.md", "../guides/INSTALL.en.md", "../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md"} {
 		t.Run(path, func(t *testing.T) {
 			content := read(t, path)
+			if path == "../README.md" || path == "../README.en.md" {
+				// The short README links the version matrix instead of repeating
+				// component identities and rule details in its introduction.
+				guide, heading, anchor := "../guides/INSTALL.md", "## 배포판과 개발 조합", "배포판과-개발-조합"
+				if path == "../README.en.md" {
+					guide, heading, anchor = "../guides/INSTALL.en.md", "## Release and development combinations", "release-and-development-combinations"
+				}
+				compatibilityContains(t, path, content, "v0.1.3", "ha 0.1.3", "("+strings.TrimPrefix(guide, "../")+"#"+anchor+")")
+				content += "\n" + visualSection(t, guide, heading)
+			}
 			compatibilityContains(t, path, content, "v0.1.3", "ha 0.1.3", "0.1.11", "0.1.9", "`/3`")
 			for _, stale := range []string{"unreleased", "미배포", "아직 배포하지 않았", "jaekit@v0.1.2", "jaekit#v0.1.2", "/releases/download/v0.1.2"} {
 				if strings.Contains(strings.ToLower(content), stale) {
