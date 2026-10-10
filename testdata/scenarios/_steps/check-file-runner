@@ -1,0 +1,3 @@
+# Add the AC-1 check (run through jaekit-test-runner) without running the baseline yet.
+write tests/greeting.sh "grep -qx hello src/greeting.txt\n"
+commit "add greeting check"

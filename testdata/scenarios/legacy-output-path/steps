@@ -1,0 +1,21 @@
+# run-output-paths AC-5: a record left by an older ha with an absolute output
+# path stays as written; new records chain after it and the goal completes.
+include start
+include check-file
+# Seq 2 is the last line, so rewriting it leaves a valid chain, the same shape
+# an older ha produced in a linked worktree.
+rewrite-record 2 output_path "\"/home/someone/repo/.git/worktrees/old/ha/runs/docs%2Fspecs%2Fgreet/2.log\""
+write src/greeting.txt "hello\n"
+progress T001 done
+commit "say hello"
+ha check $GOAL
+expect-exit 0
+expect-record 3 output_path .git/ha/runs/docs%2Fspecs%2Fgreet/3.log
+ha done $GOAL
+expect-exit 0
+expect-status complete
+expect-reasons none
+expect-completion-record present
+expect-record 2 output_path /home/someone/repo/.git/worktrees/old/ha/runs/docs%2Fspecs%2Fgreet/2.log
+ha log $GOAL 2
+expect-exit 0

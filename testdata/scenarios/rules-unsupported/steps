@@ -1,0 +1,5 @@
+# INV-21: a goal started under unknown rules is not computed.
+include start
+rewrite-record 1 rules "\"run-rules/99\""
+ha status $GOAL
+expect-exit 66

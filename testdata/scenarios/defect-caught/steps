@@ -1,0 +1,11 @@
+# EVALUATION §3 검사가 잡는 결함: the check catches a wrong implementation.
+include start
+include check-file
+write src/greeting.txt "hell\n"
+progress T001 done
+commit "almost hello"
+ha check $GOAL
+expect-exit 1
+expect-output "see output with: ha log"
+expect-status incomplete
+expect-reasons AC-1:criterion_failed

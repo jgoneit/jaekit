@@ -1,0 +1,8 @@
+# EVALUATION §3 검증 뒤 미커밋 변경: passing on a clean HEAD, then editing without committing.
+include implement
+write src/greeting.txt "hello\nworld\n"
+ha done $GOAL
+expect-exit 1
+expect-status incomplete
+expect-reason worktree_dirty
+expect-completion-record none

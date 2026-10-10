@@ -1,0 +1,9 @@
+# EVALUATION §3 오래된 결과: code changes after verification, then done without re-verifying.
+include implement
+write src/extra.txt "x\n"
+commit "more code"
+ha done $GOAL
+expect-exit 1
+expect-status incomplete
+expect-reasons AC-1:criterion_missing AC-2:criterion_missing
+expect-attempt AC-1 stale 1

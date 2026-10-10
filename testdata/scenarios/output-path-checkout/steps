@@ -1,0 +1,9 @@
+# run-output-paths AC-1: in a normal checkout, new records name their output
+# with the repository-relative path .git/ha/runs/<goal-key>/<seq>.log.
+include start
+include check-file
+expect-record 2 output_path .git/ha/runs/docs%2Fspecs%2Fgreet/2.log
+ha check $GOAL AC-1
+expect-exit 1
+expect-record 3 output_path .git/ha/runs/docs%2Fspecs%2Fgreet/3.log
+expect-no-local-paths

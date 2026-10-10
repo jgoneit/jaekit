@@ -1,0 +1,10 @@
+# run-rules/2: a declaration that cannot be read is a lint problem, not silently ignored.
+include start
+replace $GOAL/PLAN.md "- 테스트 경로: (기본값)" "- 테스트 경로: (기본값)\n- 다른 목표 실행 묶음: 아무거나"
+ha lint $GOAL
+expect-exit 1
+expect-output other_bundles_invalid
+replace $GOAL/PLAN.md "다른 목표 실행 묶음: 아무거나" "다른 목표 실행 묶음: `제외`"
+ha lint $GOAL
+expect-exit 1
+expect-output other_bundles_invalid

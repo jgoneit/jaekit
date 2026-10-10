@@ -1,0 +1,16 @@
+# EVALUATION §3 Goal 디렉토리 안 검사 변경: a check script inside the goal directory is code.
+include start
+write $GOAL/checks/greeting.sh "grep -qx hello src/greeting.txt\n"
+commit "add greeting check"
+ha check $GOAL --baseline AC-1
+expect-exit 0
+write src/greeting.txt "hello\n"
+progress T001 done
+commit "say hello"
+ha check $GOAL
+expect-exit 0
+expect-status complete
+write $GOAL/checks/greeting.sh "grep -q hello src/greeting.txt\n"
+commit "loosen the check"
+expect-status incomplete
+expect-reasons AC-1:criterion_missing AC-2:criterion_missing

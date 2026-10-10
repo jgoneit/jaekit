@@ -1,0 +1,24 @@
+# run-output-paths AC-1, AC-4: in a linked worktree, whose git directory lies
+# outside the working tree, new records name their output with the same
+# repository-relative path as a normal checkout, and the status and done log
+# lists carry no machine-specific path.
+worktree wt
+include start
+include check-file
+expect-record 2 output_path .git/ha/runs/docs%2Fspecs%2Fgreet/2.log
+ha check $GOAL AC-1
+expect-exit 1
+expect-record 3 output_path .git/ha/runs/docs%2Fspecs%2Fgreet/3.log
+ha status $GOAL
+expect-output "seq 3 AC-1 fail: .git/ha/runs/docs%2Fspecs%2Fgreet/3.log"
+write src/greeting.txt "hello\n"
+progress T001 done
+commit "say hello"
+ha check $GOAL
+expect-exit 0
+expect-record 4 output_path .git/ha/runs/docs%2Fspecs%2Fgreet/4.log
+ha done $GOAL --format json
+expect-exit 0
+expect-output "\"path\": \".git/ha/runs/docs%2Fspecs%2Fgreet/3.log\""
+expect-completion-record present
+expect-no-local-paths

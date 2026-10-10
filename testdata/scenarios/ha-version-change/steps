@@ -1,0 +1,4 @@
+# A record written by another ha version is listed for review.
+include implement
+rewrite-record 3 ha_version "\"0.0.9\""
+expect-change ha_version_changed 3

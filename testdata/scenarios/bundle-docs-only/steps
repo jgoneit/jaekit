@@ -1,0 +1,10 @@
+# EVALUATION §3.1: committing only bundle documents keeps earlier results fresh.
+include implement
+append $GOAL/PLAN.md "\n메모: 계획은 그대로다.\n"
+append $GOAL/REVIEW.md "추가 검토 없음\n"
+commit "bundle notes"
+expect-satisfied AC-1
+expect-satisfied AC-2
+expect-status complete
+ha done $GOAL
+expect-exit 0

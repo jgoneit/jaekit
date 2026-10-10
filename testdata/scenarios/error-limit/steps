@@ -1,0 +1,12 @@
+# EVALUATION §3 오류 반복 숨김: the same verification keeps erroring (here it cannot start).
+include start
+include check-file
+write src/greeting.txt "hello\n"
+progress T001 done
+commit "say hello"
+ha check $GOAL AC-1
+ha-without-runner check $GOAL AC-2
+expect-exit 1
+ha-without-runner check $GOAL AC-2
+expect-status needs_user
+expect-reasons AC-2:error_limit

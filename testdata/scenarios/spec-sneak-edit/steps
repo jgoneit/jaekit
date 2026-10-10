@@ -1,0 +1,11 @@
+# EVALUATION §3 SPEC 몰래 수정: the executor marks AC-2 optional in SPEC.md.
+include implement
+replace $GOAL/SPEC.md "- **AC-2** `src/keep.txt`" "- **AC-2** (선택) `src/keep.txt`"
+expect-status incomplete
+expect-reason spec_changed
+expect-reason criterion_missing AC-1
+ha check $GOAL --baseline AC-1
+ha check $GOAL
+expect-status needs_user
+expect-reasons spec_changed
+expect-change optional AC-2

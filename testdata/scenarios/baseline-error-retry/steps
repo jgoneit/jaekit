@@ -1,0 +1,15 @@
+# EVALUATION §3.1: the baseline errors once, then fails as expected on the same code.
+include start
+include check-file-runner
+ha-without-runner check $GOAL --baseline AC-1
+expect-exit 1
+expect-record 2 result error
+ha check $GOAL --baseline AC-1
+expect-exit 0
+write src/greeting.txt "hello\n"
+progress T001 done
+commit "say hello"
+ha check $GOAL
+ha done $GOAL
+expect-exit 0
+expect-status complete

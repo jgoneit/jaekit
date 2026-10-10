@@ -1,0 +1,13 @@
+{
+  "name": "spec",
+  "version": "0.1.10",
+  "description": "Turn an explicitly requested idea or change into goal documents with stable completion criteria that any coding agent can implement.",
+  "author": {
+    "name": "Jaegon Seo",
+    "url": "https://github.com/jgoneit"
+  },
+  "homepage": "https://github.com/jgoneit/jaekit",
+  "repository": "https://github.com/jgoneit/jaekit",
+  "license": "MIT",
+  "keywords": ["specification", "requirements", "acceptance-criteria", "goal-documents"]
+}

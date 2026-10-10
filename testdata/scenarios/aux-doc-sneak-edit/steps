@@ -1,0 +1,9 @@
+# EVALUATION §3 보조 문서 몰래 수정: an auxiliary goal document linked from SPEC.md changes.
+include implement
+write $GOAL/contract.md "# Output contract\n\nAnything goes.\n"
+expect-reason spec_changed
+expect-reason criterion_missing AC-2
+ha check $GOAL --baseline AC-1
+ha check $GOAL
+expect-status needs_user
+expect-reasons spec_changed

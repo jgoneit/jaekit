@@ -1,0 +1,10 @@
+# EVALUATION §3.1: a quoted rework request voids the completion record and opens a new window.
+include implement
+ha done $GOAL
+expect-exit 0
+ha note $GOAL reopen --quote "출력에 느낌표도 붙여줘"
+expect-completion-record none
+expect-budget-window 6
+ha done $GOAL
+expect-exit 0
+expect-completion-record present

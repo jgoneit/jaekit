@@ -1,0 +1,5 @@
+# Add the AC-1 check and confirm it fails on the base commit.
+write tests/greeting.sh "grep -qx hello src/greeting.txt\n"
+commit "add greeting check"
+ha check $GOAL --baseline AC-1
+expect-exit 0

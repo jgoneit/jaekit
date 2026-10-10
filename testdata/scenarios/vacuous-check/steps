@@ -1,0 +1,13 @@
+# EVALUATION §3 공허한 검사: the check passes before the implementation exists.
+include start
+write tests/greeting.sh "exit 0\n"
+commit "add a check that always passes"
+ha check $GOAL --baseline AC-1
+expect-exit 1
+expect-record 2 result unexpected_pass
+write src/greeting.txt "hello\n"
+progress T001 done
+commit "say hello"
+ha check $GOAL
+expect-status incomplete
+expect-reasons AC-1:baseline_unexpected_pass

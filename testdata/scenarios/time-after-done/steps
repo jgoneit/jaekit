@@ -1,0 +1,8 @@
+# EVALUATION §3.1: long after the completion record, the status is still complete.
+include implement
+ha done $GOAL
+ha note $GOAL input --quote "고마워"
+shift-time 6 5h
+expect-completion-record present
+expect-status complete
+expect-deterministic

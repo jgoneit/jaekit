@@ -1,0 +1,4 @@
+# ha lint passes on a valid bundle.
+ha lint $GOAL
+expect-exit 0
+expect-output "ok: no lint problems"

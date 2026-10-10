@@ -1,0 +1,5 @@
+interface:
+  display_name: "Spec"
+  short_description: "Write goal documents with stable completion criteria"
+policy:
+  allow_implicit_invocation: false

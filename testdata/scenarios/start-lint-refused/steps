@@ -1,0 +1,8 @@
+# ha start refuses a bundle with lint problems and needs a quoted request.
+ha start $GOAL
+expect-exit 64
+replace $GOAL/PLAN.md "- 검증 실행: 50\n" ""
+ha start $GOAL --request "구현해줘"
+expect-exit 65
+expect-output budget_missing
+expect-records 0

@@ -1,0 +1,17 @@
+# A decoded unsupported start wins over damage later in the record.
+include start
+ha note $GOAL input --quote "계속해"
+expect-exit 0
+rewrite-record 1 rules "\"run-rules/99\""
+replace $GOAL/runs.jsonl "\"seq\":2" "\"seq\":99"
+ha status $GOAL
+expect-exit 66
+ha done $GOAL
+expect-exit 66
+ha check $GOAL AC-2
+expect-exit 66
+ha check $GOAL --baseline AC-1
+expect-exit 66
+ha note $GOAL input --quote "계속해"
+expect-exit 66
+expect-records 2

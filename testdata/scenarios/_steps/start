@@ -1,0 +1,3 @@
+# Start the goal with a quoted request.
+ha start $GOAL --request "greet 구현해줘" --skill-name seal --skill-version 0.1.0
+expect-exit 0

@@ -1,0 +1,10 @@
+# EVALUATION §3 유지 조건 파괴: the implementation breaks the maintained file.
+include start
+include check-file
+write src/greeting.txt "hello\n"
+write src/keep.txt "kept\n"
+progress T001 done
+commit "say hello, change keep"
+ha check $GOAL
+expect-status incomplete
+expect-reasons AC-2:criterion_failed

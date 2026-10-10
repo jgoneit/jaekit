@@ -1,0 +1,9 @@
+# EVALUATION §3 테스트 약화: an existing test is edited; a quoted user confirmation clears it.
+include implement
+write tests/keep.sh "exit 0\n"
+commit "relax keep test"
+ha check $GOAL
+expect-status needs_user
+expect-reasons test_definition_changed
+ha note $GOAL confirm tests:tests/keep.sh --quote "keep 테스트 수정 승인"
+expect-status complete

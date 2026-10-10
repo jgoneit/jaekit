@@ -1,0 +1,5 @@
+# Without a start record nothing counts, and checks are refused.
+expect-status incomplete
+expect-reason not_started
+ha check $GOAL
+expect-exit 65

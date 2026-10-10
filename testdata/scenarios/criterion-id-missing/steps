@@ -1,0 +1,10 @@
+# EVALUATION §3 조건 ID 누락: AC-2 disappears from the condition table.
+include implement
+replace $GOAL/PLAN.md "| AC-2 | maintain | `sh tests/keep.sh` | — | T001 |\n" ""
+expect-status incomplete
+expect-reason lint_error
+ha lint $GOAL
+expect-exit 1
+expect-output criterion_not_in_plan
+ha check $GOAL
+expect-exit 65

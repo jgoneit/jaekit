@@ -1,0 +1,5 @@
+# A second start is refused; a start on a plan with lint problems is refused.
+include start
+ha start $GOAL --request "다시"
+expect-exit 65
+expect-output "already started"

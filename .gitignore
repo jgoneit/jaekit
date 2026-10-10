@@ -1,0 +1,12 @@
+.DS_Store
+/ha
+/dist/
+__pycache__/
+*.py[cod]
+node_modules/
+
+# Private planning records and local agent workspaces.
+/docs/
+/.claude/
+/.private/
+/evals/spec-cases/results.md

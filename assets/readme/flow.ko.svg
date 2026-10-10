@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="1032" viewBox="0 0 400 1032" role="img" aria-labelledby="title desc" xml:lang="ko">
+  <title id="title">요청에서 결과 확인까지</title>
+  <desc id="desc">사용자의 요청, Spec의 목표 정리 후 멈춤, 사용자의 확인과 별도 시작, Seal의 구현 검사 수정 반복, 완료 보고와 결과 확인의 다섯 단계. 결과를 바꾸는 질문에 답하고, 대화가 끊겨도 같은 목표를 이어 간다.</desc>
+  <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif; } .label { font-size: 14px; font-weight: 700; letter-spacing: .3px; } .heading { font-size: 20px; font-weight: 700; fill: #172b4d; } .body { font-size: 18px; fill: #31435b; }</style>
+  <defs><marker id="arrow" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L6 4 L1 7" fill="none" stroke="#6f849e" stroke-width="1.5"/></marker></defs>
+  <rect width="400" height="1032" rx="18" fill="#f6f8fc"/>
+  <text x="24" y="43" font-size="27" font-weight="750" fill="#172b4d">요청에서 결과 확인까지</text>
+  <text x="24" y="73" font-size="15" fill="#52657e">Spec으로 정리하고, Seal로 실행합니다</text>
+  <rect x="24" y="100" width="352" height="138" rx="14" fill="#ffffff" stroke="#cad5e2"/>
+  <circle cx="46" cy="125" r="11" fill="#3e5e89"/>
+  <text x="46" y="129" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">1</text>
+  <text class="label" x="65" y="130" fill="#3e5e89">사용자</text>
+  <text class="heading" x="44" y="162">원하는 일을 말합니다</text>
+  <text class="body" x="44" y="191">무엇을 바꾸고 싶은지</text>
+  <text class="body" x="44" y="215">에이전트에게 요청합니다.</text>
+  <path d="M200 245 V260" stroke="#6f849e" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <rect x="24" y="266" width="352" height="138" rx="14" fill="#edf5ff" stroke="#cad5e2"/>
+  <circle cx="46" cy="291" r="11" fill="#295fa7"/>
+  <text x="46" y="295" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">2</text>
+  <text class="label" x="65" y="296" fill="#295fa7">Spec · 목표 정리</text>
+  <text class="heading" x="44" y="328">목표를 쓰고 멈춥니다</text>
+  <text class="body" x="44" y="357">원하는 결과와 완료 조건을 정리합니다.</text>
+  <text class="body" x="44" y="381">정리된 목표를 사용자에게 돌려줍니다.</text>
+  <path d="M200 411 V426" stroke="#6f849e" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <rect x="24" y="432" width="352" height="138" rx="14" fill="#ffffff" stroke="#cad5e2"/>
+  <circle cx="46" cy="457" r="11" fill="#3e5e89"/>
+  <text x="46" y="461" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">3</text>
+  <text class="label" x="65" y="462" fill="#3e5e89">사용자</text>
+  <text class="heading" x="44" y="494">확인하고, 시작을 요청합니다</text>
+  <text class="body" x="44" y="523">목표를 읽고 필요한 내용을 고친 뒤</text>
+  <text class="body" x="44" y="547">별도로 “구현해줘”라고 요청합니다.</text>
+  <path d="M200 577 V592" stroke="#6f849e" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <rect x="24" y="598" width="352" height="138" rx="14" fill="#eaf7f4" stroke="#cad5e2"/>
+  <circle cx="46" cy="623" r="11" fill="#17715f"/>
+  <text x="46" y="627" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">4</text>
+  <text class="label" x="65" y="628" fill="#17715f">Seal · 작업 실행</text>
+  <text class="heading" x="44" y="660">구현 → 검사 → 수정</text>
+  <text class="body" x="44" y="689">필요한 조건을 충족할 때까지 반복합니다.</text>
+  <text class="body" x="44" y="713">작업마다 승인을 받을 필요는 없습니다.</text>
+  <path d="M200 743 V758" stroke="#6f849e" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <rect x="24" y="764" width="352" height="138" rx="14" fill="#eaf7f4" stroke="#cad5e2"/>
+  <circle cx="46" cy="789" r="11" fill="#17715f"/>
+  <text x="46" y="793" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">5</text>
+  <text class="label" x="65" y="794" fill="#17715f">Seal → 사용자</text>
+  <text class="heading" x="44" y="826">완료 보고를 읽고 확인합니다</text>
+  <text class="body" x="44" y="855">바뀐 결과와 확인한 내용을 받습니다.</text>
+  <text class="body" x="44" y="879">사용자가 직접 결과를 살펴봅니다.</text>
+  <text x="24" y="944" font-size="17" font-weight="700" fill="#172b4d">작업 중에도 이어집니다</text>
+  <text x="24" y="975" font-size="16" fill="#31435b">결과를 바꾸는 질문에는 답해 주세요.</text>
+  <text x="24" y="999" font-size="16" fill="#31435b">대화가 끊겨도 같은 목표를 이어 갈 수 있어요.</text>
+</svg>

@@ -1,0 +1,32 @@
+{
+  "name": "jaekit",
+  "interface": {
+    "displayName": "Jaekit"
+  },
+  "plugins": [
+    {
+      "name": "spec",
+      "source": {
+        "source": "local",
+        "path": "./plugins/spec"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "seal",
+      "source": {
+        "source": "local",
+        "path": "./plugins/seal"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

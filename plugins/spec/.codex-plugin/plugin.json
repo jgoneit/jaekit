@@ -1,0 +1,23 @@
+{
+  "name": "spec",
+  "version": "0.1.10",
+  "description": "Turn an explicitly requested idea or change into goal documents with stable completion criteria that any coding agent can implement.",
+  "author": {
+    "name": "Jaegon Seo",
+    "url": "https://github.com/jgoneit"
+  },
+  "homepage": "https://github.com/jgoneit/jaekit",
+  "repository": "https://github.com/jgoneit/jaekit",
+  "license": "MIT",
+  "keywords": ["specification", "requirements", "acceptance-criteria", "goal-documents"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Spec",
+    "shortDescription": "Write goal documents with stable completion criteria",
+    "longDescription": "Spec turns an explicitly requested idea or change into goal documents: SPEC.md with AC-n criteria, user scenarios tied to those criteria, and open decisions. It asks only questions that change the outcome, writes the documents directly, and never changes code itself. After writing and reporting it stops; implementation starts with a new request. Call it with $spec: an @Spec plugin mention does not load these rules.",
+    "developerName": "Jaegon Seo",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "websiteURL": "https://github.com/jgoneit/jaekit"
+  }
+}

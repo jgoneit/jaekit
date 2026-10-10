@@ -1,0 +1,26 @@
+# run-rules/2: another goal's SPEC.md, linked documents, and checks/, a directory without SPEC.md, and a goal-shaped directory outside the parent stay code.
+include implement
+append docs/specs/other/SPEC.md "\n추가 메모\n"
+commit "other spec"
+expect-unsatisfied AC-1
+expect-reason out_of_scope
+ha check $GOAL
+expect-satisfied AC-1
+append docs/specs/other/detail.md "추가\n"
+commit "other linked document"
+expect-unsatisfied AC-1
+ha check $GOAL
+expect-satisfied AC-1
+append docs/specs/other/checks/other.sh "test -s lib/other.txt\n"
+commit "other check"
+expect-unsatisfied AC-1
+ha check $GOAL
+expect-satisfied AC-1
+append docs/specs/notes/PROGRESS.md "메모\n"
+commit "notes without SPEC.md"
+expect-unsatisfied AC-1
+ha check $GOAL
+expect-satisfied AC-1
+append examples/demo/PROGRESS.md "| T002 | doing | |\n"
+commit "example progress"
+expect-unsatisfied AC-1

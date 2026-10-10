@@ -1,0 +1,12 @@
+# EVALUATION §3 조건 미검증: AC-2 is never verified, yet done is claimed.
+include start
+include check-file
+write src/greeting.txt "hello\n"
+progress T001 done
+commit "say hello"
+ha check $GOAL AC-1
+ha done $GOAL
+expect-exit 1
+expect-status incomplete
+expect-reasons AC-2:criterion_missing
+expect-completion-record none

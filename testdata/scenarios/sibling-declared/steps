@@ -1,0 +1,19 @@
+# run-rules/2: a goal whose PLAN declares that its checks read other goals' bundles treats them as code; the PLAN as it is now decides.
+include implement
+append docs/specs/other/PROGRESS.md "| T002 | doing | |\n"
+commit "other progress 1"
+expect-satisfied AC-1
+replace $GOAL/PLAN.md "- 테스트 경로: (기본값)" "- 테스트 경로: (기본값)\n- 다른 목표 실행 묶음: `검사 입력` (다른 목표의 진행 기록을 읽는 검사)"
+ha lint $GOAL
+expect-exit 0
+expect-unsatisfied AC-1
+expect-reason out_of_scope
+ha check $GOAL
+expect-exit 0
+expect-satisfied AC-1
+append docs/specs/other/PROGRESS.md "| T003 | doing | |\n"
+commit "other progress 2"
+expect-unsatisfied AC-1
+replace $GOAL/PLAN.md "\n- 다른 목표 실행 묶음: `검사 입력` (다른 목표의 진행 기록을 읽는 검사)" ""
+expect-satisfied AC-1
+expect-no-reason out_of_scope

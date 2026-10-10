@@ -1,0 +1,12 @@
+# run-rules/2: when the only remaining reason is budget_exceeded, the goal is complete and ha done records it; the budget stays visible.
+include implement
+expect-record 1 rules run-rules/2
+expect-status complete
+expect-reasons none
+ha status $GOAL --format json
+expect-output "\"exceeded\": true"
+ha done $GOAL
+expect-exit 0
+expect-output "(exceeded)"
+expect-completion-record present
+expect-deterministic

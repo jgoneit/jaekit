@@ -1,0 +1,9 @@
+# INV-11 under run-rules/1: exceeding the run budget stops with budget_exhausted; a quoted reopen starts a new window.
+include implement
+rewrite-record 1 rules "\"run-rules/1\""
+expect-status budget_exhausted
+expect-reasons budget_exceeded
+ha note $GOAL reopen --quote "예산을 더 써도 돼"
+expect-status complete
+ha done $GOAL
+expect-exit 0

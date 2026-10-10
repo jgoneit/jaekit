@@ -1,0 +1,70 @@
+name: 사용 보고 / Usage report
+description: Jaekit에 맡긴 작업과 결과를 알려 주세요. / Tell us what you handed to Jaekit and how it went.
+title: "[사용 보고 / Usage] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **이 issue는 공개됩니다. / This issue is public.**
+
+        회사 코드, 내부 이름, 비밀 값, 로그 원문은 넣지 말고 요약해 주세요.
+        Do not paste company code, internal names, secrets, or raw logs. Summarize instead.
+  - type: dropdown
+    id: host
+    attributes:
+      label: 쓴 host / Host
+      options:
+        - Claude Code
+        - Codex
+    validations:
+      required: true
+  - type: input
+    id: host-version
+    attributes:
+      label: host 버전 / Host version
+      description: "`claude --version` 또는 `codex --version`의 출력 / Output of `claude --version` or `codex --version`"
+      placeholder: "2.1.291 (Claude Code)"
+    validations:
+      required: true
+  - type: input
+    id: ha-version
+    attributes:
+      label: ha 버전 / ha version
+      description: "`ha --version`의 출력 / Output of `ha --version`"
+      placeholder: ha 0.1.2
+    validations:
+      required: true
+  - type: textarea
+    id: task
+    attributes:
+      label: 맡긴 작업 / Task you handed over
+      description: >-
+        공개해도 되는 요약으로 적어 주세요. 예: "웹 앱의 로그인 화면에 비밀번호 찾기 링크 추가, 완료 조건 5개" /
+        A summary you can share publicly, e.g. "Add a forgot-password link to a web app's login screen, 5 criteria"
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: 결과 / Result
+      options:
+        - 완료 / Complete
+        - 정할 것을 물음 / Asked me to decide
+        - 막힘 / Blocked
+        - 예산 소진 / Budget exhausted
+        - 중간에 멈춤 / Stopped partway
+    validations:
+      required: true
+  - type: input
+    id: duration
+    attributes:
+      label: 대략 걸린 시간 / Rough duration
+      placeholder: 예 40분 / e.g. 40 min
+  - type: textarea
+    id: worked
+    attributes:
+      label: 좋았던 점 / What worked
+  - type: textarea
+    id: stuck
+    attributes:
+      label: 막힌 점 / Where it got stuck

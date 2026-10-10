@@ -1,0 +1,14 @@
+# INV-21: a goal started under unknown rules is neither computed nor recorded.
+include start
+rewrite-record 1 rules "\"run-rules/99\""
+write tests/greeting.sh "grep -qx hello src/greeting.txt\n"
+commit "add greeting check"
+ha check $GOAL AC-2
+expect-exit 66
+ha check $GOAL --baseline AC-1
+expect-exit 66
+ha note $GOAL input --quote "계속해"
+expect-exit 66
+ha done $GOAL
+expect-exit 66
+expect-records 1

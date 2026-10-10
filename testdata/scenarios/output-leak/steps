@@ -1,0 +1,17 @@
+# EVALUATION §3 검증 출력 유출: command output stays in the local log only.
+include start
+write tests/greeting.sh "echo SECRET-TOKEN-1234\ngrep -qx hello src/greeting.txt\n"
+commit "add greeting check"
+ha check $GOAL --baseline AC-1
+write src/greeting.txt "hello\n"
+progress T001 done
+commit "say hello"
+ha check $GOAL
+ha done $GOAL
+expect-exit 0
+expect-absent SECRET-TOKEN-1234
+ha log $GOAL 3
+expect-exit 0
+expect-output SECRET-TOKEN-1234
+ha log $GOAL 3 --tail 0
+expect-exit 0

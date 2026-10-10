@@ -1,0 +1,16 @@
+# run-output-paths AC-2: in a linked worktree, ha log shows the output of a
+# run recorded there, and --tail N shows only the last N lines.
+worktree wt
+include start
+write tests/greeting.sh "echo FIRST-LOG-LINE\necho LAST-LOG-LINE\ngrep -qx hello src/greeting.txt\n"
+commit "add greeting check"
+ha check $GOAL --baseline AC-1
+expect-exit 0
+ha log $GOAL 2
+expect-exit 0
+expect-output FIRST-LOG-LINE
+expect-output LAST-LOG-LINE
+ha log $GOAL 2 --tail 1
+expect-exit 0
+expect-output LAST-LOG-LINE
+expect-no-output FIRST-LOG-LINE

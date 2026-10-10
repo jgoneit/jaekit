@@ -1,0 +1,20 @@
+# EVALUATION §3 실패 기록 삭제: a failed check line is removed from runs.jsonl.
+include start
+include check-file
+write src/greeting.txt "hell\n"
+progress T001 done
+commit "almost hello"
+ha check $GOAL AC-1
+expect-exit 1
+write src/greeting.txt "hello\n"
+commit "hello"
+ha check $GOAL
+expect-exit 0
+drop-record 3
+expect-status needs_user
+expect-reasons record_integrity
+ha check $GOAL AC-1
+expect-exit 65
+ha done $GOAL
+expect-exit 2
+expect-output "not recorded"

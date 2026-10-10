@@ -1,0 +1,10 @@
+# EVALUATION §3 미커밋 상태의 검증: checks run on an uncommitted tree do not count.
+include start
+include check-file
+write src/greeting.txt "hello\n"
+progress T001 done
+ha check $GOAL
+expect-output "will not count"
+commit "say hello"
+expect-status incomplete
+expect-reasons AC-1:criterion_missing AC-2:criterion_missing

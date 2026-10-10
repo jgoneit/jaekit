@@ -1,0 +1,17 @@
+# run-rules/2: budget_exceeded with another reason keeps the run-rules/1 order; both reasons are listed and no completion is recorded.
+include implement
+write tests/keep.sh "grep -qx keep src/keep.txt\n# 정리한 검사\n"
+commit "tidy keep test"
+ha check $GOAL
+expect-exit 0
+expect-status budget_exhausted
+expect-reasons budget_exceeded test_definition_changed
+ha done $GOAL
+expect-exit 4
+expect-completion-record none
+ha note $GOAL confirm tests:tests/keep.sh --quote "keep 검사 정리는 괜찮아"
+expect-status complete
+expect-reasons none
+ha note $GOAL block --cause other --quote "잠시 멈춰"
+expect-status blocked
+expect-reasons blocked budget_exceeded

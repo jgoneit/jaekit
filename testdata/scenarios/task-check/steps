@@ -1,0 +1,5 @@
+# Task commands from a task document are recorded against the task.
+include start
+ha check $GOAL T001
+expect-exit 0
+expect-record 2 target "{\"task\":\"T001\",\"index\":1}"

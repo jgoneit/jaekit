@@ -1,0 +1,15 @@
+# EVALUATION §3.1: a maintain check errors once, then passes on the same code.
+include start
+include check-file
+write src/greeting.txt "hello\n"
+progress T001 done
+commit "say hello"
+ha check $GOAL AC-1
+ha-without-runner check $GOAL AC-2
+expect-exit 1
+ha check $GOAL AC-2
+expect-exit 0
+expect-satisfied AC-2
+expect-attempt AC-2 errors 1
+ha done $GOAL
+expect-exit 0

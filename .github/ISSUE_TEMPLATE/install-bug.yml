@@ -1,0 +1,61 @@
+name: 설치·버그 / Install or bug
+description: 설치나 실행에서 막힌 점을 알려 주세요. / Tell us where installing or running got stuck.
+title: "[설치·버그 / Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **이 issue는 공개됩니다. / This issue is public.**
+
+        회사 코드, 내부 이름, 비밀 값, 로그 원문은 넣지 말고 요약해 주세요.
+        Do not paste company code, internal names, secrets, or raw logs. Summarize instead.
+  - type: textarea
+    id: symptom
+    attributes:
+      label: 증상 / Symptom
+      description: 무엇이 일어났는지, 보인 오류 메시지의 요지 / What happened, and the gist of any error message
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 재현 단계 / Steps to reproduce
+      placeholder: |
+        1. brew install jgoneit/tap/jaekit
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대한 것 / Expected
+    validations:
+      required: true
+  - type: input
+    id: os-cpu
+    attributes:
+      label: OS와 CPU / OS and CPU
+      placeholder: macOS 15 arm64 / Ubuntu 24.04 amd64
+    validations:
+      required: true
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: 설치 방법 / Install method
+      options:
+        - brew
+        - Release 파일 / Release file
+        - 소스 / Source
+    validations:
+      required: true
+  - type: input
+    id: ha-version
+    attributes:
+      label: ha 버전 / ha version
+      description: "`ha --version`의 출력 / Output of `ha --version`"
+      placeholder: ha 0.1.2
+  - type: input
+    id: host
+    attributes:
+      label: host와 버전 / Host and version
+      placeholder: Claude Code 2.1.291 / Codex 0.157.1

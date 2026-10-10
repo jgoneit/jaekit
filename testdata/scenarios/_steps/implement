@@ -1,0 +1,8 @@
+# A correct, verified implementation (seq 1 start, 2 baseline, 3 AC-1, 4 AC-2).
+include start
+include check-file
+write src/greeting.txt "hello\n"
+progress T001 done
+commit "say hello"
+ha check $GOAL
+expect-exit 0

@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Publish release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Check public files
+        run: |
+          python3 tools/check_public_tree.py
+          python3 tools/check_public_docs.py
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build release files
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          # Outside the checkout, so the build info shows a clean tree.
+          build="${RUNNER_TEMP}/build"
+          dist="${RUNNER_TEMP}/dist"
+          mkdir -p "${build}" "${dist}"
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
+            os="${target%/*}"
+            arch="${target#*/}"
+            name="ha_${version}_${os}_${arch}"
+            mkdir -p "${build}/${name}"
+            GOOS="${os}" GOARCH="${arch}" CGO_ENABLED=0 go build -trimpath \
+              -ldflags "-s -w -X main.version=${version}" \
+              -o "${build}/${name}/ha" ./cmd/ha
+            cp LICENSE README.md README.en.md "${build}/${name}/"
+            cp -R guides contracts assets "${build}/${name}/"
+            tar -C "${build}" -czf "${dist}/${name}.tar.gz" "${name}"
+          done
+          (cd "${dist}" && sha256sum -- *.tar.gz > checksums.txt)
+
+      - name: Smoke test
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          got="$("${RUNNER_TEMP}/build/ha_${version}_linux_amd64/ha" --version)"
+          test "${got}" = "ha ${version}"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "${TAG}" "${RUNNER_TEMP}"/dist/* \
+            --verify-tag \
+            --title "jaekit ${TAG}" \
+            --notes "macOS·Linux(arm64, amd64)용 Seal Core \`ha\`. 설치와 사용법은 README와 guides/INSTALL.md를 참고하세요."

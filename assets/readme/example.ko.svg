@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="642" viewBox="0 0 400 642" role="img" aria-labelledby="title desc" xml:lang="ko">
+  <title id="title">가상 예시 · 로그인 화면</title>
+  <desc id="desc">가상 로그인 화면 두 개. 변경 전에는 이메일, 비밀번호, 로그인 버튼이 있다. 목표로 하는 변경 후에는 같은 요소 아래 비밀번호 찾기 링크가 더해진다. 실제 앱 화면이나 검사 결과가 아니다.</desc>
+  <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif; }</style>
+  <rect width="400" height="642" rx="18" fill="#f6f8fc"/>
+  <text x="24" y="38" font-size="24" font-weight="700" fill="#172b4d">가상 예시 · 로그인 화면</text>
+  <text x="24" y="66" font-size="16" fill="#52657e">기존 로그인은 그대로, 새 링크를 더합니다</text>
+  <rect x="24" y="90" width="352" height="226" rx="14" fill="#ffffff" stroke="#cad5e2"/>
+  <text x="44" y="120" font-size="14" font-weight="700" fill="#3e5e89">변경 전</text>
+  <rect x="44" y="136" width="312" height="38" rx="6" fill="#f6f8fc" stroke="#cad5e2"/>
+  <text x="57" y="161" font-size="17" fill="#52657e">이메일</text>
+  <rect x="44" y="184" width="312" height="38" rx="6" fill="#f6f8fc" stroke="#cad5e2"/>
+  <text x="57" y="209" font-size="17" fill="#52657e">비밀번호</text>
+  <rect x="44" y="234" width="312" height="38" rx="6" fill="#295fa7"/>
+  <text x="200" y="259" text-anchor="middle" font-size="17" font-weight="700" fill="#ffffff">로그인</text>
+  <rect x="24" y="342" width="352" height="226" rx="14" fill="#ffffff" stroke="#cad5e2"/>
+  <text x="44" y="372" font-size="14" font-weight="700" fill="#3e5e89">변경 후 · 목표로 하는 모습</text>
+  <rect x="44" y="388" width="312" height="38" rx="6" fill="#f6f8fc" stroke="#cad5e2"/>
+  <text x="57" y="413" font-size="17" fill="#52657e">이메일</text>
+  <rect x="44" y="436" width="312" height="38" rx="6" fill="#f6f8fc" stroke="#cad5e2"/>
+  <text x="57" y="461" font-size="17" fill="#52657e">비밀번호</text>
+  <rect x="44" y="486" width="312" height="38" rx="6" fill="#295fa7"/>
+  <text x="200" y="511" text-anchor="middle" font-size="17" font-weight="700" fill="#ffffff">로그인</text>
+  <text x="200" y="552" text-anchor="middle" font-size="17" text-decoration="underline" fill="#295fa7">비밀번호 찾기</text>
+  <text x="200" y="613" text-anchor="middle" font-size="14" fill="#52657e">사용법 설명을 위한 그림 · 실행 결과가 아닙니다</text>
+</svg>

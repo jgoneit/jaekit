@@ -1,0 +1,16 @@
+# EVALUATION §3 확인 재사용: a scope confirmation does not cover later edits of the file.
+include implement
+write lib/other.txt "changed\n"
+commit "touch lib"
+ha check $GOAL
+expect-status needs_user
+expect-reasons out_of_scope
+ha note $GOAL confirm scope:lib/other.txt --quote "lib 변경은 괜찮아"
+expect-exit 0
+expect-status complete
+write lib/other.txt "changed again\n"
+commit "touch lib again"
+ha check $GOAL
+expect-status needs_user
+expect-reasons out_of_scope
+expect-change invalid_confirmations scope:lib/other.txt

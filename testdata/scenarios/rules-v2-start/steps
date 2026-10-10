@@ -1,0 +1,7 @@
+# run-rules/2: a new start records run-rules/2, and status reports it.
+include start
+expect-record 1 rules run-rules/2
+ha status $GOAL --format json
+expect-output "\"rules\": \"run-rules/2\""
+ha status $GOAL
+expect-output "run-rules/2"

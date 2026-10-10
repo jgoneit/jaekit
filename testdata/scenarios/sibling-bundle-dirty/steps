@@ -1,0 +1,13 @@
+# run-rules/2: uncommitted changes in another goal's bundle files leave this goal's tree clean, and new checks record a clean tree.
+include implement
+append docs/specs/other/PROGRESS.md "| T002 | doing | |\n"
+write docs/specs/other/tasks/T002.md "# T002\n"
+expect-no-reason worktree_dirty
+expect-status complete
+ha check $GOAL AC-2
+expect-exit 0
+expect-no-output "will not count"
+expect-record 5 tree_clean true
+expect-satisfied AC-2
+ha done $GOAL
+expect-exit 0

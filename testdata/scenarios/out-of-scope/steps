@@ -1,0 +1,9 @@
+# EVALUATION §3 범위 밖 변경: another module is modified.
+include implement
+write lib/other.txt "changed\n"
+commit "touch lib"
+ha check $GOAL
+ha done $GOAL
+expect-exit 2
+expect-status needs_user
+expect-reasons out_of_scope

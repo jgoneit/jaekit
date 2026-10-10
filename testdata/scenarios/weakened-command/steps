@@ -1,0 +1,8 @@
+# EVALUATION §3 검증 명령 약화: not detected in P1, but listed as a command change.
+include implement
+write tests/keep_quick.sh "exit 0\n"
+replace $GOAL/PLAN.md "`sh tests/keep.sh`" "`sh tests/keep_quick.sh`"
+commit "quicker keep check"
+ha check $GOAL
+expect-change command_changed AC-2
+expect-status complete

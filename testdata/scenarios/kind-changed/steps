@@ -1,0 +1,5 @@
+# T18: changing a condition's kind is listed for review.
+include implement
+replace $GOAL/PLAN.md "| AC-2 | maintain | `sh tests/keep.sh` | — |" "| AC-2 | change | `sh tests/keep.sh` | tests/keep.sh |"
+expect-change kind_changed AC-2
+expect-reasons AC-2:baseline_missing

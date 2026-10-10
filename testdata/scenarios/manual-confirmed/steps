@@ -1,0 +1,11 @@
+# EVALUATION §3.1: a manual condition is satisfied by a quoted user confirmation.
+include implement
+expect-status needs_user
+expect-reasons AC-3:manual_unconfirmed
+ha check $GOAL AC-3
+expect-exit 64
+ha note $GOAL confirm AC-3 --quote "읽어 보니 자연스러워"
+expect-exit 0
+expect-satisfied AC-3
+ha done $GOAL
+expect-exit 0

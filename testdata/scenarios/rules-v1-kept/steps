@@ -1,0 +1,14 @@
+# run-rules/1 goals keep run-rules/1 under the new ha: budget-only stays budget_exhausted, other goals' bundle files are code, and checks record the tree under run-rules/1.
+include implement
+rewrite-record 1 rules "\"run-rules/1\""
+ha status $GOAL --format json
+expect-output "\"rules\": \"run-rules/1\""
+expect-status budget_exhausted
+expect-reasons budget_exceeded
+append docs/specs/other/PROGRESS.md "| T002 | doing | |\n"
+ha check $GOAL AC-2
+expect-record 5 tree_clean false
+expect-reason worktree_dirty
+commit "other progress"
+expect-unsatisfied AC-1
+expect-reason out_of_scope

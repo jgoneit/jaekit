@@ -1,0 +1,10 @@
+# run-rules/2: a completion record stays valid when only another goal's bundle files change afterwards.
+include implement
+ha done $GOAL
+expect-exit 0
+append docs/specs/other/PROGRESS.md "| T001 | done | |\n"
+write docs/specs/other/runs.jsonl "{\"seq\":1}\n"
+commit "other goal record"
+expect-completion-record present
+expect-status complete
+expect-reasons none

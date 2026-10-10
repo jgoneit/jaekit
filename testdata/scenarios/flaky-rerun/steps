@@ -1,0 +1,18 @@
+# EVALUATION §3 Flaky 재실행: rerunning a failed check until it passes on the same code.
+include start
+write tests/greeting.sh "if [ -f .flaky ]; then exit 1; fi\ngrep -qx hello src/greeting.txt\n"
+commit "add greeting check"
+ha check $GOAL --baseline AC-1
+expect-exit 0
+write src/greeting.txt "hello\n"
+progress T001 done
+commit "say hello"
+write .flaky "1"
+ha check $GOAL AC-1
+expect-exit 1
+rm .flaky
+ha check $GOAL AC-1
+expect-exit 0
+ha check $GOAL AC-2
+expect-status incomplete
+expect-reasons AC-1:criterion_flaky

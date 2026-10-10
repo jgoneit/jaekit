@@ -1,0 +1,9 @@
+# EVALUATION §3 거짓 진행 기록: PROGRESS.md says done, the record says otherwise.
+include start
+progress T001 done
+commit "claim progress"
+ha done $GOAL
+expect-exit 1
+expect-status incomplete
+expect-reasons AC-1:criterion_missing AC-2:criterion_missing
+expect-no-reason task_open

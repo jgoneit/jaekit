@@ -1,0 +1,12 @@
+# Normal completion: done records completion; status is stable over time.
+include implement
+ha done $GOAL
+expect-exit 0
+expect-output "completion record: seq 5"
+expect-status complete
+expect-reasons none
+expect-completion-record present
+expect-record 2 result fail_as_expected
+expect-record 3 result pass
+expect-deterministic
+expect-untouched

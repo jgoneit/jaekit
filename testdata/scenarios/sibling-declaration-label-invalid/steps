@@ -1,0 +1,13 @@
+# run-rules/2: only the exact declaration label opts other goals' bundles into check inputs.
+include start
+replace $GOAL/PLAN.md "- 테스트 경로: (기본값)" "- 테스트 경로: (기본값)\n- 다른 목표 실행 묶음 여부: `검사 입력`"
+ha lint $GOAL
+expect-exit 1
+expect-output other_bundles_invalid
+replace $GOAL/PLAN.md "다른 목표 실행 묶음 여부: `검사 입력`" "다른 목표 실행 묶음 `검사 입력`"
+ha lint $GOAL
+expect-exit 1
+expect-output other_bundles_invalid
+replace $GOAL/PLAN.md "다른 목표 실행 묶음 `검사 입력`" "다른 목표 실행 묶음: `검사 입력` (다른 목표의 진행 기록을 읽는 검사)"
+ha lint $GOAL
+expect-exit 0

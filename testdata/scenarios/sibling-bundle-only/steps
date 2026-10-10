@@ -1,0 +1,15 @@
+# run-rules/2: another goal committing only its bundle files keeps this goal's results fresh, and those paths are not out of scope.
+include implement
+append docs/specs/other/PROGRESS.md "| T002 | doing | |\n"
+write docs/specs/other/PLAN.md "# PLAN — other\n"
+write docs/specs/other/REVIEW.md "# REVIEW — other\n"
+write docs/specs/other/runs.jsonl "{\"seq\":1}\n"
+write docs/specs/other/tasks/T001.md "# T001\n"
+commit "other goal progress"
+expect-satisfied AC-1
+expect-satisfied AC-2
+expect-reasons none
+expect-status complete
+ha done $GOAL
+expect-exit 0
+expect-records 5
