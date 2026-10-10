@@ -138,6 +138,22 @@ Optional. Append entries for events that change a judgment or the next action, s
 - Leave out routine edits and reads, repeated runs of the same failure, and progress reports with no change.
 - Length: an entry runs about 3 to 6 lines and `## 현재` about 5 to 8 lines. This is editing guidance, not a limit; a complex cause analysis may run longer.
 
+## Assurance policy and counterexamples
+
+For new goals started with Seal 0.1.11 or later, and requested material verification redesigns, REVIEW connects condition groups to risk (false-success impact, boundary, evidence gap), selected policy source, and required or optional guarantees. Explain exclusions instead of classifying by condition count. Preserve older formats and never fabricate retrospective reviews. No universal pre-baseline review order is prescribed.
+
+Keep expected-result grounds, observed boundary, and methods/substitutes separate. A comparison identifies the same property, input scope, and environment, the observed results and differences. A reachable real system alone does not require a call for every condition; the claimed property and policy determine necessity. Prefer structured original evidence with identity links over inferred execution text. A fake result or a single real-model success does not establish the entire external contract.
+
+Record a separate review's condition/check/code versions, provided context, role, inspectable reference, findings or no findings, not performed status, and limits. The initial input is the goal, public contract, check and expected grounds; it need not contain the implementer's solution narrative. Implementation and integration code may be inspected to follow actual paths. Different names or models do not certify independence or quality.
+
+Distinguish a candidate from reproduced counterexample: record input, expected violated condition, why the current check misses it, reproduction or rejection evidence, repair and remaining gaps. A confirmed original-condition violation prevents completion; reporting risk alone does not repair it. Link the changed check to the missed general property and repair evidence. A scope-changing proposal remains a decision, not automatic implementation.
+
+Generalize regressions to the shared input, state, or boundary property and state what they omit. Uninterpretable input is not successful evidence or an intended baseline violation. Preserve unobserved, environment error, skip, and observed violation separately. Explain evidence sufficiency separately from product allow/deny policy: uncertainty is neither execution absence nor an observed requirement failure.
+
+Required review or actual-boundary evidence gaps keep completion pending, with cause, affected conditions, missing evidence and resolution. Unrelated useful work may continue within authority and budget; optional comparisons can remain unobserved with their risk. Do not invent performance, auto-install dependencies, expand permissions or spending, or mark affected required work done without its evidence.
+
+When the goal, checks, code, grounds, environment, or assurance policy changes, preserve the reviewed versions and split the new applicable scope. In particular, do not reuse old review or comparison results as if they observed changed inputs. Native Agent chooses strategy; Core retains deterministic facts, local assurance, result distinctions, adverse history, authority and budget semantics.
+
 ## Completion report
 
 Written when `ha done` records completion, or when work stops at `needs_user`, `blocked`, or `budget_exhausted`:

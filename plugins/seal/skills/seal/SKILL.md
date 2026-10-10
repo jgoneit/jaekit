@@ -2,7 +2,7 @@
 name: seal
 description: Carry a goal in docs/specs/<goal>/ to recorded completion — plan, implement, verify through the ha binary, and resume in a new session. Use when the user calls this skill with a goal or asks to implement, finish, or continue a goal document, for example "$seal:seal docs/specs/x" in Codex, "/seal:seal docs/specs/x" in Claude Code, "docs/specs/x 구현해줘", or "docs/specs/x 이어서 해줘".
 metadata:
-  version: "0.1.10"
+  version: "0.1.11"
 ---
 
 # Seal
@@ -47,6 +47,16 @@ Follow the project's Git tracking and local retention policy for goal documents 
 - A result counts only when `ha check` recorded it on a clean, committed tree that still matches HEAD outside the bundle documents. Commit your changes. Test runs outside `ha` are useful while working but never count.
 - An `error` result may be rerun once on the same code. Under `/3`, inconclusive results share that error limit. A `fail` stays in the record; fix the code or the check and verify again. Do not hide earlier failures behind a producer's final internal retry result.
 - Choose the checks, runner and verification method for the goal. A structured result contract does not require an official adapter or the reference producer. Python 3 is not a prerequisite for Seal; when it is already available, the optional [compatibility helper](scripts/check_core.py) can check the same contract deterministically.
+
+## Assurance policy
+
+Apply the selected assurance policy for this goal or project. Link required conditions and source, the effect of a false success, the relevant boundary, and evidence gaps; related conditions may share this explanation. Risk alone does not mandate a fixed review procedure. Low-risk exclusions need a reason, and the executor may not downgrade a selected required guarantee for convenience. Only unresolved outcome-changing guarantees need a user decision.
+
+Use the initial contract, check, and expected-result grounds as the independent reviewer's starting context, without the implementer's solution narrative. The reviewer may examine implementation and integration code when needed. Record the role, inputs, reviewed code/check versions, findings, limits, and inspectable references. Independent means a separate review with disclosed context, not a different model or certified identity. Renaming one's own work is not a separate review; review agreement alone is not completion evidence.
+
+When a required review or real-boundary observation is unavailable, keep completion pending. Record cause, affected conditions, missing evidence, and resolution in the bundle; keep the affected required work unfinished instead of calling it done. Continue independent useful work within existing authority and budget. An optional unobserved comparison may remain an explicit evaluation gap. Do not invent reviews, silently substitute fake results, install tools, increase cost, or expand permission to fill the gap without authority.
+
+The Native Agent chooses methods, timing, reviewers, and models within the selected guarantees. No fixed call order or model is required. Core does not route models, run mutations, score review sufficiency, or interpret a reviewer's approval as proof. See the bundle reference for counterexample handling and versioned evidence. These source requirements apply to new goals using Seal 0.1.11 or later and user-requested material verification redesigns; preserve older records without fabricating omitted reviews.
 
 ## Completion
 

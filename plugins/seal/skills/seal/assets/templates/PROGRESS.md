@@ -35,3 +35,5 @@
 
 ## 완료 보고
 <for the reporting form introduced with seal 0.1.10: connect the planned review to observed report; expected grounds, actual boundaries, methods and substitutes, results, evidence and unobserved scope; identify each changed condition, check, or environment and its evidence limits; shared condition groups may reference one explanation; distinguish recorded facts from interpretation; retain local assurance and executor-authored checks; show confirmed, unconfirmed and risky boundaries; this prose does not establish deployment, installation or actual model calls; paste the actual recorder result unchanged when one exists, never invent an output for a synthetic example>
+
+<!-- Track required assurance gaps with cause, affected conditions, missing evidence and resolution; keep completion pending while they remain. Continue independent useful work within authority and budget. Preserve prior review versions when code, checks, scope or policy changes. -->

@@ -24,3 +24,5 @@
 
 ## 결론
 <ready | needs_user: reason>
+
+<!-- Assurance policy: identify condition groups, risk and exclusions, required or optional guarantees and policy source. Record review role, provided context, code and check versions, inspectable evidence, findings/no findings/not performed and limits. Connect each counterexample to reproduction/rejection, general property, repair and remaining gaps. Required gaps keep the affected work unfinished; chosen methods and timing remain with the executor. -->
