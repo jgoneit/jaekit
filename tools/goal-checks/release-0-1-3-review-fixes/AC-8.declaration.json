@@ -1,0 +1,34 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/release-0-1-3-review-fixes/AC-8.targets.json",
+    "tools/release-checks/test_observed_invocations.py",
+    "tools/release-checks/test_loader_invocations.py",
+    "tools/goal-checks/release-0-1-3-review-fixes/test_private_independence.py"
+  ],
+  "targets": [
+    {
+      "id": "evidence-not-located",
+      "violation": "private-evidence-located"
+    },
+    {
+      "id": "evidence-directory",
+      "violation": "evidence-directory-ignored"
+    },
+    {
+      "id": "no-git-directory-search",
+      "violation": "private-evidence-located"
+    },
+    {
+      "id": "tracked-references",
+      "violation": "private-reference-tracked"
+    },
+    {
+      "id": "fresh-clone",
+      "violation": "private-dependency"
+    }
+  ]
+}

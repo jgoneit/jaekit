@@ -1,0 +1,25 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/release-0-1-3-review-fixes/AC-3.targets.json",
+    "tools/release-checks/test_observed_invocations.py",
+    "tools/release-checks/test_loader_invocations.py"
+  ],
+  "targets": [
+    {
+      "id": "printed-required-operations",
+      "violation": "printed-core-observed"
+    },
+    {
+      "id": "printed-baseline-flag",
+      "violation": "printed-core-observed"
+    },
+    {
+      "id": "claude-printed-variable",
+      "violation": "printed-core-observed"
+    }
+  ]
+}

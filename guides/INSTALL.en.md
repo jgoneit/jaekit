@@ -121,6 +121,12 @@ Paste the commands below as they are. They pick the file for your OS and CPU, ve
       echo "Release data path is not an ordinary directory: $share" >&2
       exit 1
     fi
+    special="$(find "$share" ! -type f ! -type d -print)"
+    if [ -n "$special" ]; then
+      echo "Release data contains entries that are not ordinary files or directories; nothing was replaced:" >&2
+      printf '%s\n' "$special" >&2
+      exit 1
+    fi
     if ! diff -qr "$tmp/public" "$share"; then
       echo "Existing v0.1.3 data differs; nothing was replaced: $share" >&2
       exit 1
@@ -158,7 +164,7 @@ From your project root, run **one block** for your installation method to select
 package_root="$(brew --prefix jaekit)/share/jaekit"
 ```
 
-The direct-install commands above retain the checksum-verified public data in the versioned directory below. If data for that version already exists, identical contents are reused; different contents stop installation before replacing the binary. For a direct installation, use:
+The direct-install commands above retain the checksum-verified public data in the versioned directory below. If data for that version already exists, it is reused only when it consists of ordinary files and directories with identical contents. Different contents, or other entries such as symlinks, stop installation before replacing the binary and name the path. For a direct installation, use:
 
 ```bash
 package_root="$HOME/.local/share/jaekit/0.1.3"
@@ -207,6 +213,43 @@ Then check the version. It should print `ha 0.1.3`. If it prints another version
 ha --version
 ```
 
+After a Release file installation, the earlier versions' public data stays in `~/.local/share/jaekit/<version>`. Once the check above prints `ha 0.1.3`, the command below removes only the folders of versions older than the installed `0.1.3`. The current version's folder `~/.local/share/jaekit/0.1.3` and the files used by [Get the reference check](#get-the-reference-check), folders of newer versions, and entries whose names are not a three-number version like `0.1.2` stay. Names are checked in full without splitting at newlines or spaces; ordinary files and symlinks with version-like names stay too. Versions are compared as numbers, so `0.1.10` is newer than `0.1.3`. If `~/.local/share/jaekit` is a symlink, nothing is removed. Enumeration, version comparison, or deletion errors make the command fail; older folders already removed successfully are not restored. The data folder first appeared in v0.1.3, so there may be no earlier version to remove yet.
+
+```bash
+(
+  set -e
+  current=0.1.3
+  data_root="$HOME/.local/share/jaekit"
+  if [ -d "$data_root" ] && [ ! -L "$data_root" ]; then
+    find "$data_root" -mindepth 1 -maxdepth 1 -type d -exec sh -c '
+      set -e
+      current=$1
+      shift
+      for entry do
+        [ -d "$entry" ] && [ ! -L "$entry" ] || continue
+        version=${entry##*/}
+        case "$version" in "" | *[!0-9.]*) continue ;; esac
+        older=$(awk -v version="$version" -v current="$current" "
+          BEGIN {
+            if (version !~ /^[0-9]+[.][0-9]+[.][0-9]+$/) { print 0; exit }
+            split(version, v, /[.]/)
+            split(current, c, /[.]/)
+            for (i = 1; i <= 3; i++) {
+              if (v[i] + 0 != c[i] + 0) { print (v[i] + 0 < c[i] + 0); exit }
+            }
+            print 0
+          }")
+        case "$older" in
+          1) rm -rf "$entry" ;;
+          0) ;;
+          *) echo "Could not compare version: $version" >&2; exit 1 ;;
+        esac
+      done
+    ' sh "$current" {} +
+  fi
+)
+```
+
 For the plugins, register the marketplace again pinned to the new tag. Two marketplaces with the same name cannot be registered together, so remove it first. Removing it also removes the spec and seal plugins installed from it, so install them again. Paste only the commands for the host you use.
 
 Codex:
@@ -245,6 +288,12 @@ For an `ha` installed from a Release file:
 
 ```bash
 rm ~/.local/bin/ha
+```
+
+Also remove the folder where the direct installation keeps the public data. Reference check files you copied into your project (such as `tools/check-result-reference.py`) and your goal documents and records stay. If `~/.local/share/jaekit` is a symlink, only the link is removed and its target stays.
+
+```bash
+rm -rf ~/.local/share/jaekit
 ```
 
 Codex:

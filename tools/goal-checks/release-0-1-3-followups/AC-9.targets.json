@@ -1,0 +1,23 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "claude-variable-forms",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "CoreInvocations.test_claude_static_variable_forms_are_observed"
+    },
+    {
+      "target": "codex-variable-forms",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "CoreInvocations.test_codex_static_variable_in_shell_and_exec_payloads_is_observed"
+    },
+    {
+      "target": "spec-variable-execution",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "CoreInvocations.test_spec_phase_variable_execution_is_rejected"
+    }
+  ]
+}

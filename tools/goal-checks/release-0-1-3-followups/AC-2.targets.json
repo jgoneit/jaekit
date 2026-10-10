@@ -1,0 +1,47 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "stale-example-claim",
+      "runner": "go-docs",
+      "package": "./plugins",
+      "expect": "reject",
+      "path": "examples/README.md",
+      "append": "\n현재 배포판 v0.1.2의 사용 예시입니다.\n",
+      "mentions": "examples/README.md"
+    },
+    {
+      "target": "stale-readme-claim",
+      "runner": "go-docs",
+      "package": "./plugins",
+      "expect": "reject",
+      "path": "README.en.md",
+      "append": "\nThe current release is v0.1.2.\n",
+      "mentions": "README.en.md"
+    },
+    {
+      "target": "stale-guide-claim",
+      "runner": "go-docs",
+      "package": "./plugins",
+      "expect": "reject",
+      "path": "guides/USAGE.md",
+      "append": "\n현재 배포판은 **v0.1.2**입니다.\n",
+      "mentions": "guides/USAGE.md"
+    },
+    {
+      "target": "old-install-command",
+      "runner": "go-docs",
+      "package": "./plugins",
+      "expect": "reject",
+      "path": "guides/USAGE.md",
+      "append": "\n`codex plugin marketplace add jgoneit/jaekit@v0.1.2`\n",
+      "mentions": "guides/USAGE.md"
+    },
+    {
+      "target": "current-docs",
+      "runner": "go-docs",
+      "package": "./plugins",
+      "expect": "pass"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "AC-1": {
+    "file": "tools/gap-checks/test_observation.py",
+    "class": "AC1"
+  },
+  "AC-2": {
+    "file": "tools/gap-checks/test_observation.py",
+    "class": "AC2"
+  },
+  "AC-3": {
+    "file": "tools/gap-checks/test_observation.py",
+    "class": "AC3"
+  },
+  "AC-4": {
+    "file": "tools/gap-checks/test_history_results.py",
+    "class": "AC4"
+  },
+  "AC-5": {
+    "file": "tools/gap-checks/test_history_results.py",
+    "class": "AC5"
+  },
+  "AC-6": {
+    "file": "tools/gap-checks/test_history_results.py",
+    "class": "AC6"
+  },
+  "AC-7": {
+    "file": "tools/gap-checks/test_docs_environment.py",
+    "class": "AC7"
+  },
+  "AC-8": {
+    "file": "tools/gap-checks/test_docs_environment.py",
+    "class": "AC8"
+  },
+  "AC-10": {
+    "file": "tools/gap-checks/test_observation.py",
+    "class": "AC10"
+  }
+}

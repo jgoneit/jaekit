@@ -1,0 +1,22 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/release-0-1-3-review-fixes/AC-11.targets.json",
+    "tools/goal-checks/release-0-1-3-review-fixes/test_private_independence.py",
+    "tools/goal-checks/release-0-1-3-followups/preserved.py",
+    "tools/goal-checks/release-0-1-3-followups/preserved.json"
+  ],
+  "targets": [
+    {
+      "id": "public-preservation",
+      "violation": "public-release-changed"
+    },
+    {
+      "id": "synthetic-additions",
+      "violation": "native-identifier-added"
+    }
+  ]
+}

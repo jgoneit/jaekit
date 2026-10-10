@@ -12,11 +12,16 @@ from pathlib import Path, PurePosixPath
 import platform
 import re
 import shutil
+import shlex
 import subprocess
 import sys
 import tarfile
 import tempfile
 from urllib.request import urlopen
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import shell_reader
+import execution_trace
 
 ROOT = Path(__file__).resolve().parents[2]
 REPO = "jgoneit/jaekit"
@@ -132,9 +137,10 @@ def archive_files(data, target):
 
 
 class Checker:
-    def __init__(self):
-        common = checked(["git", "rev-parse", "--git-common-dir"]).decode().strip()
-        self.private = (ROOT / common).resolve() / "ha" / "release-0-1-3"
+    def __init__(self, evidence=None):
+        # Evidence is read only from the directory the maintainer names; the
+        # checkout and its Git directory are never searched for it.
+        self.private = Path(evidence).resolve() if evidence is not None else None
         self._evidence = None
         self._release = None
         self._downloads = {}
@@ -142,6 +148,8 @@ class Checker:
 
     def evidence(self):
         if self._evidence is None:
+            if self.private is None:
+                raise Unavailable("no evidence directory was given; pass --evidence DIR")
             try:
                 self._evidence = decode((self.private / "evidence.json").read_bytes())
             except OSError:
@@ -158,6 +166,8 @@ class Checker:
                 "artifact must identify a file and SHA256, not a success assertion")
         path = Path(value["path"])
         if not path.is_absolute():
+            if self.private is None:
+                raise Unavailable("no evidence directory was given; pass --evidence DIR")
             path = self.private / path
         try:
             data = path.read_bytes()
@@ -320,6 +330,11 @@ class Checker:
                     require((path.parent / relative).read_bytes()
                             == self.source(f"plugins/seal/skills/seal/{relative}"),
                             "installed Seal support file differs from the public tag")
+        if any(value.get(phase, {}).get("executions") for phase in ("spec", "seal")):
+            _, core_bytes = self.artifact(value.get("core"))
+            target = native_platform()
+            public = archive_files(self.download(f"ha_{VERSION}_{target}.tar.gz"), target)
+            require(core_bytes == public["ha"], "observed Core differs from the public native asset")
         return value
 
     def check_1(self):
@@ -404,10 +419,14 @@ class Checker:
                 "actual host model/session identity is missing")
         metadata = list(events)
         phase_events = list(events)
+        session_events = []
         rollout = capture.get("session_trace") or value.get("session_trace")
         if rollout:
             _, additional = self.artifact(rollout)
             session_events = json_lines(additional)
+        if name == "claude":
+            session_events = claude_request_events(events, session_events, session)
+        if rollout and name == "codex":
             require(session in native_identity(session_events)[0],
                     "rollout metadata belongs to a different native session")
             metadata.extend(session_events)
@@ -424,24 +443,53 @@ class Checker:
         require(skill in " ".join(argv) or skill.encode() in raw,
                 "host observation does not identify the requested Skill")
         installed_path, _ = self.artifact(value.get("plugins", {}).get(phase))
-        metadata_text = json.dumps(metadata, ensure_ascii=False)
-        require(str(installed_path) in metadata_text
-                or (name == "claude" and str(installed_path.parent.parent.parent) in metadata_text),
-                "native host trace does not identify the actual loaded Skill path")
         if phase == "seal":
             require(("resume" if name == "codex" else "--resume") in argv,
                     "implementation is not a separate resumed host request")
-        commands = tool_commands(phase_events)
         require(native_tools(phase_events), "native host trace has no observed tool execution")
+        calls = tool_invocations(phase_events)
+        commands = [command for _, command in calls]
+        try:
+            observed = execution_trace.consume(self, value, capture, calls, phase_events)
+        except (execution_trace.InvalidObservation, Failure, OSError, ValueError) as error:
+            raise Unavailable("execution observation is unverified: " + str(error)) from None
+        invocations, consumed = [], set()
+        for command_text in commands:
+            if command_text in observed:
+                if command_text not in consumed:
+                    invocations.extend(observed[command_text])
+                    consumed.add(command_text)
+            else:
+                ids = list(dict.fromkeys(str(call_id) for call_id, text in calls if text == command_text))
+                try:
+                    analysis = shell_analysis(command_text)
+                except Unavailable as error:
+                    raise Unavailable("Core execution is unverified [" + ", ".join(ids) + "]: " + str(error)) from None
+                if analysis.unknown:
+                    reasons = "; ".join(analysis.reasons) or "unresolved execution"
+                    raise Unavailable("Core execution is unverified [" + ", ".join(ids) + "]: " + reasons)
+                invocations.extend(analysis.calls)
         if phase == "spec":
-            require(not any(re.search(r"\bha[\"']?\s+(?:start|check|done|note|budget)\b", c)
-                            for c in commands), "Spec observation performed execution work")
+            require(not any(operation in SPEC_FORBIDDEN for operation, _ in invocations),
+                    "Spec observation performed execution work")
         else:
-            text = "\n".join(commands)
-            for operation in ("start", "check", "done"):
-                require(re.search(r"\bha[\"']?\s+" + operation + r"\b", text),
-                        f"native Seal trace does not observe ha {operation}")
-            require("--baseline" in text, "native Seal trace does not observe a baseline attempt")
+            observed = {operation for operation, _ in invocations}
+            for operation in SEAL_REQUIRED:
+                require(operation in observed, f"native Seal trace does not observe ha {operation}")
+            require(any(operation == "check" and "--baseline" in arguments for operation, arguments in invocations),
+                    "native Seal trace does not observe a baseline attempt")
+        # Only the host's own record of invoking this phase's Skill identifies
+        # the loaded Skill: not the available-Skill listing, the request, model
+        # text, tool calls or output, or another phase's events. Codex injects
+        # the Skill into the phase's events; Claude records the invocation in
+        # its native session transcript.
+        if name == "codex":
+            loaded = loaded_skill_paths(name, phase_events, skill)
+        else:
+            loaded = loaded_skill_paths(name, session_events, skill, session)
+        expected = installed_path if name == "codex" else installed_path.parent
+        require(any(same_path(path, expected) for path in loaded),
+                "native host trace does not identify the actual loaded Skill path")
         return commands
 
     def check_6(self):
@@ -596,29 +644,37 @@ def validate_selected_core(public_binary):
             "current PATH Core does not expose the release capabilities")
 
 
-def tool_commands(events):
-    commands = []
-    for event in events:
-        # Codex exec emits completed command_execution items.
+def tool_invocations(events):
+    """Native call IDs paired with their command strings, never prose IDs."""
+    result = []
+    def append(call_id, name, arguments):
+        try:
+            result.extend((call_id, command) for command in call_commands(name, arguments))
+        except Unavailable as error:
+            raise Unavailable(f"native command is unverified [{call_id}]: {error}") from None
+
+    for index, event in enumerate(events):
+        fallback = f"event-{index}"
         item = event.get("item", {})
-        if event.get("type") == "item.completed" and item.get("type") == "command_execution":
-            if isinstance(item.get("command"), str):
-                commands.append(item["command"])
-        if event.get("type") == "item.completed" and item.get("type") == "mcp_tool_call":
-            commands.extend(call_commands(item.get("tool", ""), item.get("arguments", {})))
+        if event.get("type") == "item.completed":
+            if item.get("type") == "command_execution":
+                append(item.get("id") or fallback, "exec_command", {"cmd": item.get("command")})
+            elif item.get("type") == "mcp_tool_call":
+                append(item.get("id") or fallback, item.get("tool", ""), item.get("arguments", {}))
         payload = event.get("payload", {})
         if event.get("type") == "response_item" and payload.get("type") in ("function_call", "custom_tool_call"):
-            commands.extend(call_commands(payload.get("name", ""),
-                                          payload.get("arguments", payload.get("input", {}))))
-        # Claude native stream emits assistant tool_use blocks.
+            append(payload.get("call_id") or fallback, payload.get("name", ""),
+                   payload.get("arguments", payload.get("input", {})))
         message = event.get("message", {})
-        if isinstance(message, dict):
-            for block in message.get("content", []) if isinstance(message.get("content"), list) else []:
-                if isinstance(block, dict) and block.get("type") == "tool_use":
-                    command_text = block.get("input", {}).get("command")
-                    if isinstance(command_text, str):
-                        commands.append(command_text)
-    return commands
+        content = message.get("content") if isinstance(message, dict) else None
+        for block in content if isinstance(content, list) else []:
+            if isinstance(block, dict) and block.get("type") == "tool_use":
+                append(block.get("id") or fallback, block.get("name", ""), block.get("input", {}))
+    return result
+
+
+def tool_commands(events):
+    return [command for _, command in tool_invocations(events)]
 
 
 def call_commands(name, arguments):
@@ -629,19 +685,364 @@ def call_commands(name, arguments):
             parsed = None
         if isinstance(parsed, dict):
             arguments = parsed
-        elif name in ("functions.exec", "exec") and "exec_command(" in arguments:
-            # The native custom-tool payload is JavaScript. Treat the observed
-            # invocation text as evidence, never evaluate or execute it here.
-            return [arguments]
+        elif name in ("functions.exec", "exec"):
+            # The native custom-tool payload is JavaScript. Its command strings
+            # are read as observations, never evaluated or executed here.
+            return script_commands(arguments)
     if isinstance(arguments, dict):
         if name.endswith("exec_command") or name in ("Bash", "bash", "shell_command"):
             text = arguments.get("cmd", arguments.get("command"))
-            return [text] if isinstance(text, str) else []
+            if not isinstance(text, str):
+                raise Unavailable("missing or unreadable command argument")
+            return [text]
         if name in ("functions.exec", "exec"):
             text = arguments.get("code", arguments.get("input", ""))
-            if isinstance(text, str) and "exec_command(" in text:
-                return [text]
+            if isinstance(text, str):
+                return script_commands(text)
+    if name.endswith("exec_command") or name in ("Bash", "bash", "shell_command", "functions.exec", "exec"):
+        raise Unavailable("missing or unreadable native command input")
     return []
+
+
+JS_ESCAPES = {"n": "\n", "r": "\r", "t": "\t", "b": "\b", "f": "\f", "v": "\v", "0": "\0"}
+JS_BINDING_FORBIDDEN = set("await break case catch class const continue debugger default delete do else enum "
+                           "export extends false finally for function if implements import in instanceof "
+                           "interface let new null package private protected public return static super "
+                           "switch this throw true try typeof var void while with yield eval arguments".split())
+
+
+def script_commands(code):
+    """Read only a small straight-line native JavaScript observation grammar.
+
+    This is not a JavaScript evaluator. Every token must belong to an explicit
+    data declaration, output call or supported direct tool call; unsupported
+    expressions cannot silently become an empty command list.
+    """
+    tokens, commands, bindings = js_tokens(code), [], set()
+    cursor = 0
+    reserved = {"tools", "exec_command", "text", "notify", "Promise"}
+
+    def at(value):
+        return cursor < len(tokens) and tokens[cursor] == ("code", value)
+
+    def take(value):
+        nonlocal cursor
+        if not at(value):
+            raise Unavailable("unsupported JavaScript syntax; expected " + value)
+        cursor += 1
+
+    def primitive():
+        nonlocal cursor
+        if cursor >= len(tokens):
+            raise Unavailable("missing JavaScript value")
+        token = tokens[cursor]
+        if token[0] == "code" and token[1].isdigit() and len(token[1]) > 1 and token[1].startswith("0"):
+            raise Unavailable("unsupported JavaScript leading-zero number")
+        if token[0] == "string" or (token[0] == "code" and (
+                token[1] in ("true", "false", "null") or token[1].isdigit())):
+            cursor += 1
+            return token
+        if at("-") and cursor + 1 < len(tokens) and tokens[cursor + 1][0] == "code" and tokens[cursor + 1][1].isdigit():
+            if len(tokens[cursor + 1][1]) > 1 and tokens[cursor + 1][1].startswith("0"):
+                raise Unavailable("unsupported JavaScript leading-zero number")
+            cursor += 2
+            return ("code", "-" + tokens[cursor - 1][1])
+        raise Unavailable("computed or unreadable JavaScript value")
+
+    def options():
+        nonlocal cursor
+        take("{")
+        fields = {}
+        while not at("}"):
+            if cursor >= len(tokens):
+                raise Unavailable("incomplete JavaScript options")
+            kind, key = tokens[cursor]
+            if kind not in ("code", "string") or not re.fullmatch(r"[A-Za-z_$][A-Za-z0-9_$]*", key):
+                raise Unavailable("unsupported JavaScript options property")
+            cursor += 1
+            take(":")
+            value = primitive()
+            if key in fields:
+                raise Unavailable("duplicate JavaScript options property")
+            fields[key] = value
+            if at("}"):
+                break
+            take(",")
+        take("}")
+        if fields.get("cmd", (None,))[0] != "string":
+            raise Unavailable("missing or computed JavaScript cmd property")
+        return fields["cmd"][1]
+
+    def expression(depth=0):
+        nonlocal cursor
+        if depth > 32:
+            raise Unavailable("JavaScript observation is nested too deeply")
+        if at("await"):
+            cursor += 1
+            expression(depth + 1)
+            return
+        if cursor >= len(tokens):
+            raise Unavailable("missing JavaScript expression")
+        kind, name = tokens[cursor]
+        if kind == "string" or name in ("true", "false", "null", "-") or (kind == "code" and name.isdigit()):
+            primitive()
+            return
+        if name in bindings:
+            cursor += 1
+            return
+        if at("["):
+            cursor += 1
+            while not at("]"):
+                expression(depth + 1)
+                if at("]"):
+                    break
+                take(",")
+            take("]")
+            return
+        if kind != "code" or name not in reserved:
+            raise Unavailable("unsupported JavaScript execution or control flow")
+        cursor += 1
+        if name in ("tools", "Promise"):
+            take(".")
+            allowed = ("exec_command",) if name == "tools" else ("all", "allSettled")
+            if cursor >= len(tokens) or tokens[cursor][0] != "code" or tokens[cursor][1] not in allowed:
+                raise Unavailable("unsupported JavaScript tool or Promise member")
+            name = tokens[cursor][1]
+            cursor += 1
+        take("(")
+        if name == "exec_command":
+            command = options()
+            take(")")
+            commands.append(command)
+            return
+        if name in ("all", "allSettled") and not at("["):
+            raise Unavailable("unsupported JavaScript Promise argument")
+        while not at(")"):
+            expression(depth + 1)
+            if at(")"):
+                break
+            take(",")
+        take(")")
+
+    while cursor < len(tokens):
+        if at(";"):
+            cursor += 1
+            continue
+        if tokens[cursor][0] == "code" and tokens[cursor][1] in ("const", "let", "var"):
+            cursor += 1
+            if cursor >= len(tokens) or tokens[cursor][0] != "code" or not re.fullmatch(r"[A-Za-z_$][A-Za-z0-9_$]*", tokens[cursor][1]):
+                raise Unavailable("unsupported JavaScript declaration")
+            name = tokens[cursor][1]
+            if name in reserved or name in bindings or name in JS_BINDING_FORBIDDEN:
+                raise Unavailable("JavaScript binding redefinition")
+            cursor += 1
+            take("=")
+            expression()
+            bindings.add(name)
+        else:
+            expression()
+        if cursor < len(tokens):
+            take(";")
+    return commands
+
+
+def js_tokens(code):
+    """Small lexical boundary: comments and plain strings never become code."""
+    result, index = [], 0
+    while index < len(code):
+        char = code[index]
+        if char.isspace():
+            index += 1
+            continue
+        if code.startswith("//", index):
+            end = code.find("\n", index)
+            index = len(code) if end < 0 else end + 1
+            continue
+        if code.startswith("/*", index):
+            end = code.find("*/", index + 2)
+            if end < 0:
+                raise Unavailable("unterminated JavaScript comment")
+            index = end + 2
+            continue
+        if char in ("'", '"', "`"):
+            start, index = index, index + 1
+            while index < len(code):
+                if code[index] == "\\":
+                    index += 2
+                elif char == "`" and code.startswith("${", index):
+                    raise Unavailable("computed JavaScript template")
+                elif code[index] == char:
+                    value = js_string(code, start)
+                    if value is None:
+                        raise Unavailable("unreadable JavaScript string")
+                    result.append(("string", value))
+                    index += 1
+                    break
+                else:
+                    index += 1
+            else:
+                raise Unavailable("unterminated JavaScript string")
+            continue
+        match = re.match(r"[A-Za-z_$][A-Za-z0-9_$]*|[0-9]+|\.\.\.|&&|\|\||=>|[{}()\[\].,:;?=+!*<>-]", code[index:])
+        if not match:
+            raise Unavailable("unsupported JavaScript token")
+        result.append(("code", match[0]))
+        index += match.end()
+    return result
+
+
+def js_string(code, start):
+    """A JavaScript string literal's value, or None when it is not a plain literal."""
+    quote = code[start:start + 1]
+    if quote not in ("'", '"', "`"):
+        return None
+    out, index = [], start + 1
+    while index < len(code):
+        char = code[index]
+        if char == quote:
+            return "".join(out)
+        if char == "\\":
+            escaped = code[index + 1:index + 2]
+            if escaped in "123456789\r" or (escaped == "0" and code[index + 2:index + 3].isdigit()):
+                return None
+            if escaped in ("x", "u"):
+                width = 2 if escaped == "x" else 4
+                digits = code[index + 2:index + 2 + width]
+                if not re.fullmatch(r"[0-9A-Fa-f]{%d}" % width, digits):
+                    return None
+                out.append(chr(int(digits, 16)))
+                index += 2 + width
+                continue
+            if escaped != "\n":
+                out.append(JS_ESCAPES.get(escaped, escaped))
+            index += 2
+            continue
+        if (quote == "`" and code.startswith("${", index)) or (char in "\n\r" and quote != "`"):
+            return None
+        out.append(char)
+        index += 1
+    return None
+
+
+SEAL_REQUIRED = ("start", "check", "done")
+SPEC_FORBIDDEN = ("start", "check", "done", "note", "budget")
+def shell_analysis(command_text):
+    try:
+        return shell_reader.analyse(command_text)
+    except shell_reader.ReadError as error:
+        raise Unavailable("shell syntax is unverified: " + str(error)) from None
+
+
+def core_invocations(command_text):
+    """Definite calls only; trace() separately rejects unresolved execution."""
+    return shell_analysis(command_text).calls
+
+
+def core_operations(command_text, operations):
+    return {operation for operation, _ in core_invocations(command_text) if operation in operations}
+
+
+SKILL_BLOCK = re.compile(r"<skill>\n<name>([^<\n]+)</name>\n<path>([^<\n]+)</path>")
+BASE_DIRECTORY = re.compile(r"Base directory for this skill: ([^\n]+)")
+
+
+def claude_request_events(capture, transcript, session):
+    """Bind a capture to one native prompt through common assistant/user UUIDs.
+
+    promptId may live on a parent request rather than on the assistant entry.
+    Walking parentUuid stops at that request, never at an older resumed turn.
+    """
+    def unknown():
+        raise Unavailable("loaded Skill request binding is missing or conflicting")
+    indexed = {}
+    for entry in transcript:
+        uuid = entry.get("uuid")
+        if isinstance(uuid, str):
+            if uuid in indexed and indexed[uuid] != entry:
+                unknown()
+            indexed[uuid] = entry
+    anchors = [entry["uuid"] for entry in capture if entry.get("type") in ("assistant", "user")
+               and isinstance(entry.get("uuid"), str)]
+    prompts = set()
+    for anchor in anchors:
+        if anchor not in indexed:
+            unknown()
+        current, seen, ids = indexed[anchor], set(), set()
+        while current is not None:
+            uuid = current.get("uuid")
+            if uuid in seen or current.get("sessionId") != session or current.get("isSidechain") is True:
+                unknown()
+            seen.add(uuid)
+            if isinstance(current.get("promptId"), str) and current["promptId"]:
+                ids.add(current["promptId"])
+            content = current.get("message", {}).get("content")
+            if current.get("type") == "user" and current.get("isMeta") is not True and isinstance(content, str):
+                break
+            parent = current.get("parentUuid")
+            if parent is None:
+                break
+            current = indexed.get(parent)
+        if len(ids) != 1:
+            unknown()
+        prompts.update(ids)
+    if len(prompts) != 1:
+        unknown()
+    prompt = next(iter(prompts))
+    return [entry for entry in transcript if entry.get("sessionId") == session
+            and entry.get("isSidechain") is not True and entry.get("promptId") == prompt]
+
+
+def entry_texts(entry):
+    message = entry.get("message")
+    content = message.get("content") if isinstance(message, dict) else None
+    if isinstance(content, str):
+        return [content]
+    return [block["text"] for block in content if isinstance(block, dict) and block.get("type") == "text"
+            and isinstance(block.get("text"), str)] if isinstance(content, list) else []
+
+
+def loaded_skill_paths(host, events, skill, session=None):
+    """Installed locations that the host's own invocation record reports for the Skill.
+
+    Codex injects an invoked Skill as a separate message beginning with a
+    `<skill>` block; its session metadata only lists available Skills. Claude's
+    native session transcript records a slash-command invocation as a user
+    entry naming `<command-name>/SKILL</command-name>`, followed by the
+    host's `isMeta` entry, whose `parentUuid` is that invocation's `uuid`,
+    beginning with the installed Skill directory. Both entries must belong to
+    the observed session. `system`/`init` lists available Skills only.
+    """
+    paths = []
+    invoked = set()
+    for event in events:
+        payload = event.get("payload")
+        if host == "codex" and event.get("type") == "response_item" and isinstance(payload, dict) \
+                and payload.get("type") == "message" and payload.get("role") == "user":
+            content = payload.get("content")
+            for item in content if isinstance(content, list) else []:
+                text = item.get("text") if isinstance(item, dict) and item.get("type") == "input_text" else None
+                match = SKILL_BLOCK.match(text) if isinstance(text, str) else None
+                if match and match.group(1) == skill:
+                    paths.append(match.group(2))
+        if host == "claude" and event.get("type") == "user" and session is not None \
+                and event.get("sessionId") == session and event.get("isSidechain") is not True:
+            texts = entry_texts(event)
+            if event.get("isMeta") is not True:
+                if isinstance(event.get("uuid"), str) \
+                        and any(f"<command-name>/{skill}</command-name>" in text for text in texts):
+                    invoked.add(event["uuid"])
+            elif event.get("parentUuid") in invoked and texts:
+                match = BASE_DIRECTORY.match(texts[0])
+                if match:
+                    paths.append(match.group(1))
+    return paths
+
+
+def same_path(reported, expected):
+    try:
+        return Path(reported).is_absolute() and Path(reported).resolve() == expected
+    except (OSError, ValueError):
+        return False
 
 
 def native_tools(events):
@@ -722,9 +1123,11 @@ def private_text(data):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("criterion", choices=[f"AC-{n}" for n in range(1, 12)])
+    parser.add_argument("--evidence", metavar="DIR",
+                        help="directory holding evidence.json and its relative observation files")
     args = parser.parse_args(argv)
     try:
-        checker = Checker()
+        checker = Checker(args.evidence)
         getattr(checker, "check_" + args.criterion[3:])()
     except Failure as error:
         print(f"FAIL {args.criterion}: {error}", file=sys.stderr)

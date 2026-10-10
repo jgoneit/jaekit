@@ -1,0 +1,47 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "wrapped-readme-claim",
+      "runner": "go-docs",
+      "package": "./plugins",
+      "expect": "reject",
+      "path": "README.en.md",
+      "append": "\nThe current release\nis v0.1.2.\n",
+      "mentions": "README.en.md:99 names v0.1.2"
+    },
+    {
+      "target": "wrapped-guide-claim",
+      "runner": "go-docs",
+      "package": "./plugins",
+      "expect": "reject",
+      "path": "guides/USAGE.md",
+      "append": "\n현재 배포판은\n**v0.1.2**입니다.\n",
+      "mentions": "guides/USAGE.md:70 names v0.1.2"
+    },
+    {
+      "target": "wrapped-example-claim",
+      "runner": "go-docs",
+      "package": "./plugins",
+      "expect": "reject",
+      "path": "examples/README.md",
+      "append": "\n이 예시는 현재\n배포판 v0.1.2 기준입니다.\n",
+      "mentions": "examples/README.md:22 names v0.1.2"
+    },
+    {
+      "target": "single-line-claim",
+      "runner": "go-docs",
+      "package": "./plugins",
+      "expect": "reject",
+      "path": "README.en.md",
+      "append": "\nThe current release is v0.1.2.\n",
+      "mentions": "README.en.md:99 names v0.1.2"
+    },
+    {
+      "target": "current-docs",
+      "runner": "go-docs",
+      "package": "./plugins",
+      "expect": "pass"
+    }
+  ]
+}

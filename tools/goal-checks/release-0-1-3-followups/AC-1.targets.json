@@ -1,0 +1,11 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "examples-index",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestExamplesIndexDescribesCurrentRelease"
+    }
+  ]
+}

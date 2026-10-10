@@ -1,0 +1,31 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/release-0-1-3-review-fixes/AC-7.targets.json"
+  ],
+  "targets": [
+    {
+      "id": "wrapped-readme-claim",
+      "violation": "stale-current-release-accepted"
+    },
+    {
+      "id": "wrapped-guide-claim",
+      "violation": "stale-current-release-accepted"
+    },
+    {
+      "id": "wrapped-example-claim",
+      "violation": "stale-current-release-accepted"
+    },
+    {
+      "id": "single-line-claim",
+      "violation": "stale-current-release-accepted"
+    },
+    {
+      "id": "current-docs",
+      "violation": "current-docs-rejected"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/release-0-1-3-review-fixes/AC-6.targets.json",
+    "tools/release/test_install_cleanup.py",
+    "tools/release/test_install_data.py",
+    "tools/release/test_install.py"
+  ],
+  "targets": [
+    {
+      "id": "older-versions-only",
+      "violation": "other-data-removed"
+    },
+    {
+      "id": "linked-or-missing-root",
+      "violation": "other-data-removed"
+    },
+    {
+      "id": "reference-after-cleanup",
+      "violation": "reference-copy-broken"
+    },
+    {
+      "id": "guides-describe-cleanup",
+      "violation": "cleanup-guidance-mismatch"
+    }
+  ]
+}

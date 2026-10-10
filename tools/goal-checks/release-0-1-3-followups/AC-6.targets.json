@@ -1,0 +1,43 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "install-regressions",
+      "runner": "unittest",
+      "file": "tools/release/test_install.py",
+      "test": ""
+    },
+    {
+      "target": "unsupported-platform",
+      "runner": "unittest",
+      "file": "tools/release/test_install_data.py",
+      "test": "DirectData.test_unsupported_platform_stops_before_changes"
+    },
+    {
+      "target": "reference-guidance",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestRelease013ReferenceGuidance"
+    },
+    {
+      "target": "update-guide",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestRelease011UpdateGuide"
+    },
+    {
+      "target": "uninstall-guide",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestRelease011UninstallGuide"
+    },
+    {
+      "target": "guide-links",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/check_public_docs.py"
+      ]
+    }
+  ]
+}

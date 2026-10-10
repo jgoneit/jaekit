@@ -1,0 +1,62 @@
+{
+  "AC-1": {
+    "file": "tools/review-checks/test_observation.py",
+    "class": "AC1"
+  },
+  "AC-2": {
+    "file": "tools/review-checks/test_observation.py",
+    "class": "AC2"
+  },
+  "AC-3": {
+    "file": "tools/review-checks/test_observation.py",
+    "class": "AC3"
+  },
+  "AC-4": {
+    "file": "tools/review-checks/test_observation.py",
+    "class": "AC4"
+  },
+  "AC-5": {
+    "file": "tools/review-checks/test_observation.py",
+    "class": "AC5"
+  },
+  "AC-6": {
+    "file": "tools/review-checks/test_observation.py",
+    "class": "AC6"
+  },
+  "AC-7": {
+    "file": "tools/review-checks/test_installation.py",
+    "class": "AC7"
+  },
+  "AC-8": {
+    "file": "tools/review-checks/test_platform_installation.py",
+    "class": "AC8"
+  },
+  "AC-9": {
+    "file": "tools/review-checks/test_producers.py",
+    "class": "AC9"
+  },
+  "AC-10": {
+    "file": "tools/review-checks/test_producers.py",
+    "class": "AC10"
+  },
+  "AC-11": {
+    "file": "tools/review-checks/test_producers.py",
+    "class": "AC11"
+  },
+  "AC-12": {
+    "file": "tools/review-checks/test_installation.py",
+    "class": "AC12"
+  },
+  "AC-13": {
+    "file": "tools/review-checks/test_preservation.py",
+    "class": "AC13"
+  },
+  "AC-14": {
+    "file": "tools/review-checks/test_observation.py",
+    "class": "AC14"
+  },
+  "AC-15": {
+    "file": "tools/review-checks/test_observation.py",
+    "class": "AC15"
+  }
+}

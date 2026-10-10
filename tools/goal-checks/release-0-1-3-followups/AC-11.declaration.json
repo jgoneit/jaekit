@@ -1,0 +1,32 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/release-0-1-3-followups/AC-11.targets.json",
+    "tools/release-checks/test_loader_invocations.py"
+  ],
+  "targets": [
+    {
+      "id": "checker-regressions",
+      "violation": "checker-regression"
+    },
+    {
+      "id": "literal-core",
+      "violation": "literal-core-missed"
+    },
+    {
+      "id": "spec-literal-execution",
+      "violation": "literal-execution-missed"
+    },
+    {
+      "id": "readme-forms",
+      "violation": "readme-forms-missing"
+    },
+    {
+      "id": "no-evaluation",
+      "violation": "observed-command-evaluated"
+    }
+  ]
+}

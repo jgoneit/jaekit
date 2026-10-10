@@ -1,0 +1,23 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "uninstall-data",
+      "runner": "unittest",
+      "file": "tools/release/test_install_data.py",
+      "test": "DirectData.test_uninstall_removes_binary_and_installed_data"
+    },
+    {
+      "target": "uninstall-linked-target",
+      "runner": "unittest",
+      "file": "tools/release/test_install_data.py",
+      "test": "DirectData.test_uninstall_keeps_the_target_of_a_linked_data_path"
+    },
+    {
+      "target": "brew-and-host-uninstall",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestRelease011UninstallGuide"
+    }
+  ]
+}

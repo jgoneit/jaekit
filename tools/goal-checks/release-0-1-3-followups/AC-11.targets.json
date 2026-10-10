@@ -1,0 +1,35 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "checker-regressions",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_check.py",
+      "test": ""
+    },
+    {
+      "target": "literal-core",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "CoreInvocations.test_literal_and_absolute_invocations_remain_observed"
+    },
+    {
+      "target": "spec-literal-execution",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "CoreInvocations.test_spec_phase_literal_execution_remains_rejected"
+    },
+    {
+      "target": "readme-forms",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "Documentation.test_readme_names_accepted_and_rejected_forms"
+    },
+    {
+      "target": "no-evaluation",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "Documentation.test_checker_does_not_evaluate_observed_commands"
+    }
+  ]
+}

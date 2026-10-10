@@ -1,0 +1,17 @@
+{
+  "schema": "jaekit-goal-preservation/v1",
+  "release": {
+    "repository": "jgoneit/jaekit",
+    "tag": "v0.1.3",
+    "commit": "86a5e8956be7c3e7e23ba1f27024d12c0ce566e3",
+    "release_id": 408879628,
+    "body_sha256": "fe54b931030d1b44bdc8dff318ddecebb3f97563f3ee83acdb44835e1cbe1521",
+    "assets": [
+      {"digest": "sha256:c33bfddaf489f68bb7f77b9b22dac9e16a99b53f5a278a0aebe410078eb244e0", "id": 627702180, "name": "checksums.txt", "size": 378},
+      {"digest": "sha256:0db541f77de8b9edc68ac1133d1b9e2cad2dc766e72190c1e33b67676d00c2b3", "id": 627702176, "name": "ha_0.1.3_darwin_amd64.tar.gz", "size": 1531604},
+      {"digest": "sha256:4d4dde8cad5f798b0a114140908ba1bb584d3544f7b4e905cb2c9ef401afee40", "id": 627702178, "name": "ha_0.1.3_darwin_arm64.tar.gz", "size": 1416788},
+      {"digest": "sha256:e98895a21e77fd82ee80e61d66c0b53dfec0f269452806e29a6db11b6ee9f73f", "id": 627702177, "name": "ha_0.1.3_linux_amd64.tar.gz", "size": 1542604},
+      {"digest": "sha256:dafc7460bfc446d3af83d3db1f55cd96e3ac20fbdc392f9f08483a482d06d48e", "id": 627702179, "name": "ha_0.1.3_linux_arm64.tar.gz", "size": 1397876}
+    ]
+  }
+}

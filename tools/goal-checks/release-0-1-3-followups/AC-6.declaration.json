@@ -1,0 +1,37 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/release-0-1-3-followups/AC-6.targets.json",
+    "tools/release/test_install_data.py",
+    "tools/release/test_install.py"
+  ],
+  "targets": [
+    {
+      "id": "install-regressions",
+      "violation": "install-regression"
+    },
+    {
+      "id": "unsupported-platform",
+      "violation": "unsupported-platform-changed"
+    },
+    {
+      "id": "reference-guidance",
+      "violation": "reference-guidance-changed"
+    },
+    {
+      "id": "update-guide",
+      "violation": "update-guide-changed"
+    },
+    {
+      "id": "uninstall-guide",
+      "violation": "uninstall-guide-changed"
+    },
+    {
+      "id": "guide-links",
+      "violation": "guide-anchor-broken"
+    }
+  ]
+}

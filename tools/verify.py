@@ -40,6 +40,18 @@ def verify_go(env: dict[str, str]):
     run("Go formatting", ["gofmt", "-l", "."], env, formatting=True)
     run("Go vet", ["go", "vet", "-mod=readonly", "./..."], env)
     run("Go tests", ["go", "test", "-mod=readonly", "./..."], env)
+    # These offline boundary regressions include real Go fixtures and local
+    # bash/zsh processes. Keep them in the Go group so docs-only verification
+    # does not acquire a Go dependency. Preservation checks are separate:
+    # they query a release and invoke this entry point themselves.
+    for filename in ("test_observation.py", "test_installation.py", "test_producers.py"):
+        run(f"Review boundaries ({filename})",
+            [sys.executable, "-m", "unittest", "discover", "-s", "tools/review-checks",
+             "-p", filename], env)
+    for filename in ("test_observation.py", "test_history_results.py", "test_docs_environment.py"):
+        run(f"Review gap regressions ({filename})",
+            [sys.executable, "-m", "unittest", "discover", "-s", "tools/gap-checks",
+             "-p", filename], env)
     # All build outputs live outside the checkout, including on failed checks.
     with tempfile.TemporaryDirectory(prefix="jaekit-verify-") as temporary:
         output = Path(temporary)
@@ -61,20 +73,39 @@ def verify_docs(env: dict[str, str]):
     for label, directory in (("Public checker regressions", "public-checks"),
                              ("Workflow regressions", "workflow-checks"),
                              ("Release archive regressions", "release"),
+                             ("Goal check regressions", "goal-checks"),
                              ("Release acceptance checker regressions", "release-checks")):
         run(label, [sys.executable, "-m", "unittest", "discover", "-s", f"tools/{directory}",
                     "-p", "test_*.py"], env)
+
+
+def prepare_shells(env: dict[str, str]):
+    """Check the exact executables that the Go group's shell fixtures will use."""
+    for name in ("bash", "zsh"):
+        selected = shutil.which(name, path=env.get("PATH"))
+        if selected is None:
+            raise CheckFailed(f"missing required tool: {name} (Go shell regressions)")
+        path = os.path.abspath(selected)
+        try:
+            result = subprocess.run([path, "--version"], env=env, timeout=5,
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except (OSError, subprocess.TimeoutExpired):
+            raise CheckFailed(f"required tool {name} cannot execute: {path} (Go shell regressions)") from None
+        if result.returncode:
+            raise CheckFailed(f"required tool {name} exited {result.returncode}: {path} (Go shell regressions)")
+        env["JAEKIT_TEST_" + name.upper()] = path
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("group", nargs="?", choices=("all", "go", "docs"), default="all")
     args = parser.parse_args()
-    required = ("git", "go", "gofmt") if args.group in ("all", "go") else ("git",)
+    required = ("git", "go", "gofmt", "bash", "zsh") if args.group in ("all", "go") else ("git",)
     missing = [tool for tool in required if shutil.which(tool) is None]
     if missing:
         for tool in missing:
-            print(f"FAIL: missing required tool: {tool}", file=sys.stderr)
+            scope = " (Go shell regressions)" if tool in ("bash", "zsh") else ""
+            print(f"FAIL: missing required tool: {tool}{scope}", file=sys.stderr)
         return 1
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GOTOOLCHAIN="local")
     # A user's cross-compilation settings must not turn the native smoke binary
@@ -83,6 +114,7 @@ def main() -> int:
     env.pop("GOARCH", None)
     try:
         if args.group in ("all", "go"):
+            prepare_shells(env)
             verify_go(env)
         if args.group in ("all", "docs"):
             verify_docs(env)

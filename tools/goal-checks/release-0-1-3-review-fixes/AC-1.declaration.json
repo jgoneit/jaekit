@@ -1,0 +1,33 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/release-0-1-3-review-fixes/AC-1.targets.json",
+    "tools/release-checks/test_observed_invocations.py",
+    "tools/release-checks/test_loader_invocations.py"
+  ],
+  "targets": [
+    {
+      "id": "whole-session-transcript",
+      "violation": "transcript-load-rejected"
+    },
+    {
+      "id": "phase-snapshots",
+      "violation": "transcript-load-rejected"
+    },
+    {
+      "id": "phase-own-invocation",
+      "violation": "other-phase-invocation-accepted"
+    },
+    {
+      "id": "surrounding-entries",
+      "violation": "transcript-load-rejected"
+    },
+    {
+      "id": "earlier-claude-acceptance",
+      "violation": "transcript-load-rejected"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "codex-loaded",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "LoaderEvidence.test_codex_injected_skill_is_loaded_in_both_phases"
+    },
+    {
+      "target": "claude-loaded",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "LoaderEvidence.test_claude_session_plugin_is_loaded_in_both_phases"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-gap-regressions",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/gap-checks/produce.py",
+    "tools/gap-checks/suites.json",
+    "tools/gap-checks/test_observation.py",
+    "tools/review-checks/test_observation.py",
+    "tools/release-checks/test_loader_invocations.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-1",
+      "violation": "requirement-not-met"
+    }
+  ]
+}

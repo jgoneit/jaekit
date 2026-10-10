@@ -1,0 +1,21 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/release-0-1-3-review-fixes/AC-5.targets.json",
+    "tools/release-checks/test_observed_invocations.py",
+    "tools/release-checks/test_loader_invocations.py"
+  ],
+  "targets": [
+    {
+      "id": "earlier-recognition",
+      "violation": "kept-form-changed"
+    },
+    {
+      "id": "wrappers-and-prefixes",
+      "violation": "kept-form-changed"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "readme-transcript-and-position",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_observed_invocations.py",
+      "test": "Documentation.test_readme_explains_transcripts_command_position_and_limits"
+    }
+  ]
+}

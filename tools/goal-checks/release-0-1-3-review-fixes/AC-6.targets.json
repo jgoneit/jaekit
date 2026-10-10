@@ -1,0 +1,29 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "older-versions-only",
+      "runner": "unittest",
+      "file": "tools/release/test_install_cleanup.py",
+      "test": "UpdateCleanup.test_only_versions_older_than_the_installed_one_are_removed"
+    },
+    {
+      "target": "linked-or-missing-root",
+      "runner": "unittest",
+      "file": "tools/release/test_install_cleanup.py",
+      "test": "UpdateCleanup.test_linked_or_missing_data_root_removes_nothing"
+    },
+    {
+      "target": "reference-after-cleanup",
+      "runner": "unittest",
+      "file": "tools/release/test_install_cleanup.py",
+      "test": "UpdateCleanup.test_reference_copy_still_works_after_cleanup"
+    },
+    {
+      "target": "guides-describe-cleanup",
+      "runner": "unittest",
+      "file": "tools/release/test_install_cleanup.py",
+      "test": "UpdateCleanup.test_both_guides_share_the_block_and_describe_it"
+    }
+  ]
+}

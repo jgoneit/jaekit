@@ -1,0 +1,29 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "unassigned-variable",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "CoreInvocations.test_unassigned_variables_are_not_core"
+    },
+    {
+      "target": "dynamic-value",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "CoreInvocations.test_dynamic_values_are_not_core"
+    },
+    {
+      "target": "other-call",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "CoreInvocations.test_assignment_in_another_call_is_not_core"
+    },
+    {
+      "target": "other-program",
+      "runner": "unittest",
+      "file": "tools/release-checks/test_loader_invocations.py",
+      "test": "CoreInvocations.test_variable_naming_another_program_is_not_core"
+    }
+  ]
+}

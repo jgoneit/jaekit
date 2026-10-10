@@ -60,12 +60,16 @@ class Fixture(unittest.TestCase):
             )
             (self.bin / name).write_text(source)
             (self.bin / name).chmod(0o700)
+        for name in ("bash", "zsh"):
+            # Availability probes are separate from verification commands.
+            (self.bin / name).write_text(f"#!{sys.executable}\nimport sys\nsys.exit(0)\n")
+            (self.bin / name).chmod(0o700)
         for name in ("check_public_tree.py", "check_public_docs.py"):
             (self.repo / "tools" / name).write_text(
                 f"NAME = {name!r}\n" + recorder +
                 "if os.environ.get('VERIFY_TEST_FAIL') == NAME: sys.exit(29)\n"
             )
-        for group in ("public-checks", "workflow-checks", "release", "release-checks"):
+        for group in ("public-checks", "workflow-checks", "release", "goal-checks", "release-checks"):
             directory = self.repo / "tools" / group
             directory.mkdir()
             (directory / "test_fixture.py").write_text(
@@ -75,6 +79,20 @@ class Fixture(unittest.TestCase):
                 "    def test_result(self):\n"
                 "        self.assertNotEqual(os.environ.get('VERIFY_TEST_FAIL'), NAME)\n"
             )
+        for group, filenames in (
+                ("review", ("test_observation.py", "test_installation.py", "test_producers.py")),
+                ("gap", ("test_observation.py", "test_history_results.py", "test_docs_environment.py"))):
+            directory = self.repo / "tools" / (group + "-checks")
+            directory.mkdir()
+            for filename in filenames:
+                label = group + ":" + filename
+                (directory / filename).write_text(
+                    f"NAME = {label!r}\n" + recorder +
+                    "import unittest\n"
+                    "class SyntheticCase(unittest.TestCase):\n"
+                    "    def test_result(self):\n"
+                    "        self.assertNotEqual(os.environ.get('VERIFY_TEST_FAIL'), NAME)\n"
+                )
         (self.repo / "docs/specs/synthetic").mkdir(parents=True)
         (self.repo / "docs/specs/synthetic/SPEC.md").write_text("Local synthetic goal\n")
         (self.repo / "code.go").write_text("package synthetic\n")
@@ -98,8 +116,10 @@ class InvocationCases(Fixture):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         commands = self.commands()
         self.assertEqual([item["name"] for item in commands],
-                         ["gofmt", "go", "go", "go", "go", "go", "go", "go", "ha", "ha",
-                          "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "release-checks"])
+                         ["gofmt", "go", "go", "review:test_observation.py", "review:test_installation.py",
+                          "review:test_producers.py", "gap:test_observation.py", "gap:test_history_results.py",
+                          "gap:test_docs_environment.py", "go", "go", "go", "go", "go", "ha", "ha",
+                          "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "goal-checks", "release-checks"])
         builds = [item for item in commands if item["name"] == "go" and item["args"][0] == "build"]
         self.assertEqual([(item["goos"], item["goarch"]) for item in builds],
                          [("linux", "amd64"), ("linux", "arm64"), ("darwin", "amd64"), ("darwin", "arm64"), (None, None)])
@@ -114,10 +134,11 @@ class InvocationCases(Fixture):
     def test_group_selection_does_not_require_unrelated_tools(self):
         (self.bin / "go").unlink()
         (self.bin / "gofmt").unlink()
+        (self.bin / "zsh").unlink()
         result = self.run_verify("docs")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual([item["name"] for item in self.commands()],
-                         ["check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "release-checks"])
+                         ["check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "goal-checks", "release-checks"])
 
     def test_go_group_uses_native_smoke_despite_cross_environment(self):
         result = self.run_verify("go", GOOS="other", GOARCH="other", GOTOOLCHAIN="auto")
@@ -138,6 +159,12 @@ class FailureCases(Fixture):
 
     def test_required_command_failures_are_identified_and_stop_execution(self):
         cases = (("gofmt", "Go formatting"), ("vet", "Go vet"), ("test", "Go tests"),
+                 ("review:test_observation.py", "Review boundaries (test_observation.py)"),
+                 ("review:test_installation.py", "Review boundaries (test_installation.py)"),
+                 ("review:test_producers.py", "Review boundaries (test_producers.py)"),
+                 ("gap:test_observation.py", "Review gap regressions (test_observation.py)"),
+                 ("gap:test_history_results.py", "Review gap regressions (test_history_results.py)"),
+                 ("gap:test_docs_environment.py", "Review gap regressions (test_docs_environment.py)"),
                  ("build:darwin/arm64", "Build darwin/arm64"), ("build", "Build native smoke binary"),
                  ("smoke:--version", "CLI version"), ("smoke:--help", "CLI help"),
                  ("check_public_tree.py", "Public file boundary"),
@@ -145,6 +172,7 @@ class FailureCases(Fixture):
                  ("public-checks", "Public checker regressions"),
                  ("workflow-checks", "Workflow regressions"),
                  ("release", "Release archive regressions"),
+                 ("goal-checks", "Goal check regressions"),
                  ("release-checks", "Release acceptance checker regressions"))
         for failure, label in cases:
             with self.subTest(failure=failure):
@@ -165,7 +193,7 @@ class FailureCases(Fixture):
                     self.assertEqual(last["args"], [failure.removeprefix("smoke:")])
 
     def test_missing_tools_fail_before_any_check(self):
-        for tool in ("go", "gofmt", "git"):
+        for tool in ("go", "gofmt", "git", "bash", "zsh"):
             with self.subTest(tool=tool):
                 path = self.bin / tool
                 path.rename(self.bin / (tool + "-hidden"))
