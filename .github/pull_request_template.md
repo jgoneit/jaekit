@@ -13,8 +13,13 @@ Describe the problem and the resulting behavior. Mention any compatibility or us
 ## 확인 방법과 결과 / Validation
 
 <!-- 실제로 확인한 명령·결과 또는 수동 확인 내용을 적어 주세요. 확인하지 못했다면 이유를 적어 주세요.
-For checks you actually ran, share commands and results or manual verification. If not checked, explain why.
-화면이 바뀌었다면 필요에 따라 스크린샷을 첨부해 주세요. / Add screenshots for visual changes when useful. -->
+For checks you actually ran, share commands and results or manual verification. If not checked, explain why. -->
+
+## 스크린샷 (선택) / Screenshots (optional)
+
+<!-- 화면 변경이나 문제 재현을 보여 주는 이미지·GIF가 있다면 첨부해 주세요. 필요하면 변경 전후를 함께 보여 주세요.
+Add images or GIFs that show a visual change or reproduce the problem. Include before and after views when useful.
+첨부할 자료가 없으면 이 항목을 지워도 됩니다. / Remove this section if there is nothing to attach. -->
 
 ## 관련 issue / Related issue (optional)
 
