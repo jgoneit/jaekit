@@ -254,6 +254,9 @@ func TestCheckPreflightStopsDirtyBatch(t *testing.T) {
 	for _, result := range []string{"0", "1"} {
 		t.Run("first exit "+result, func(t *testing.T) {
 			f := newPreflightFixture(t)
+			// This assertion preserves the legacy exit-code interpretation.
+			// The /3 partial-batch case lives in baseline_budget_test.go.
+			f.rules("run-rules/2")
 			f.put("tests/greeting.sh", "printf 'first\\n' >> \"$HA_PREFLIGHT_MARKER\"\nprintf dirty > became-dirty.txt\nexit "+result+"\n")
 			f.git("add", "tests/greeting.sh")
 			f.git("commit", "-q", "-m", "synthetic dirty producer")

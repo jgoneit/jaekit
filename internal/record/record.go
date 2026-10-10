@@ -12,11 +12,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"syscall"
 	"time"
+
+	"github.com/jgoneit/jaekit/internal/evidence"
 )
 
 // Schema is the run record schema identifier.
@@ -64,6 +67,39 @@ type Budget struct {
 	Cost           string `json:"cost"`
 }
 
+// BudgetChangeData replaces the current window's total run cap. Revision is
+// the preceding start, reopen, or budget_change sequence, never a check seq.
+type BudgetChangeData struct {
+	Goal           string `json:"goal"`
+	WindowStart    int    `json:"window_start"`
+	Revision       int    `json:"revision"`
+	PreviousRuns   int    `json:"previous_runs"`
+	Runs           int    `json:"runs"`
+	Quote          string `json:"quote"`
+	Context        string `json:"context"`
+	Interpretation string `json:"interpretation"`
+	Reason         string `json:"reason"`
+}
+
+// Unknown change fields cannot silently introduce unsupported time/cost edits.
+func (d *BudgetChangeData) UnmarshalJSON(data []byte) error {
+	type plain BudgetChangeData
+	var value plain
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&value); err != nil {
+		return err
+	}
+	*d = BudgetChangeData(value)
+	return nil
+}
+
+// BudgetChange is a /3 budget_change line.
+type BudgetChange struct {
+	Header
+	Change BudgetChangeData `json:"budget_change"`
+}
+
 // Target is what a check ran: a criterion, or one command of a task.
 type Target struct {
 	Criterion string `json:"criterion,omitempty"`
@@ -109,37 +145,39 @@ type Start struct {
 // Check is a `check` line.
 type Check struct {
 	Header
-	Target        Target   `json:"target"`
-	CriterionKind string   `json:"criterion_kind,omitempty"`
-	Argv          []string `json:"argv"`
-	CommandDigest string   `json:"command_digest"`
-	Commit        string   `json:"commit"`
-	TreeClean     bool     `json:"tree_clean"`
-	SpecDigest    string   `json:"spec_digest"`
-	Exit          *int     `json:"exit"`
-	Result        string   `json:"result"`
-	DurationMS    int64    `json:"duration_ms"`
-	OutputDigest  string   `json:"output_digest"`
-	OutputPath    string   `json:"output_path"`
+	Target        Target            `json:"target"`
+	CriterionKind string            `json:"criterion_kind,omitempty"`
+	Argv          []string          `json:"argv"`
+	CommandDigest string            `json:"command_digest"`
+	Commit        string            `json:"commit"`
+	TreeClean     bool              `json:"tree_clean"`
+	SpecDigest    string            `json:"spec_digest"`
+	Exit          *int              `json:"exit"`
+	Result        string            `json:"result"`
+	DurationMS    int64             `json:"duration_ms"`
+	OutputDigest  string            `json:"output_digest"`
+	OutputPath    string            `json:"output_path"`
+	Evidence      *evidence.Summary `json:"evidence,omitempty"`
 }
 
 // Baseline is a `baseline` line.
 type Baseline struct {
 	Header
-	Target        Target    `json:"target"`
-	CriterionKind string    `json:"criterion_kind"`
-	Argv          []string  `json:"argv"`
-	CommandDigest string    `json:"command_digest"`
-	Commit        string    `json:"commit"`
-	TreeClean     bool      `json:"tree_clean"`
-	SpecDigest    string    `json:"spec_digest"`
-	BaseCommit    string    `json:"base_commit"`
-	Overlay       []Overlay `json:"overlay"`
-	Exit          *int      `json:"exit"`
-	Result        string    `json:"result"`
-	DurationMS    int64     `json:"duration_ms"`
-	OutputDigest  string    `json:"output_digest"`
-	OutputPath    string    `json:"output_path"`
+	Target        Target            `json:"target"`
+	CriterionKind string            `json:"criterion_kind"`
+	Argv          []string          `json:"argv"`
+	CommandDigest string            `json:"command_digest"`
+	Commit        string            `json:"commit"`
+	TreeClean     bool              `json:"tree_clean"`
+	SpecDigest    string            `json:"spec_digest"`
+	BaseCommit    string            `json:"base_commit"`
+	Overlay       []Overlay         `json:"overlay"`
+	Exit          *int              `json:"exit"`
+	Result        string            `json:"result"`
+	DurationMS    int64             `json:"duration_ms"`
+	OutputDigest  string            `json:"output_digest"`
+	OutputPath    string            `json:"output_path"`
+	Evidence      *evidence.Summary `json:"evidence,omitempty"`
 }
 
 // Note is a `note` line.
@@ -178,6 +216,7 @@ type Line struct {
 	Skill          *Skill            `json:"skill"`
 	Rules          string            `json:"rules"`
 	Budget         *Budget           `json:"budget"`
+	BudgetChange   *BudgetChangeData `json:"budget_change"`
 	Target         *Target           `json:"target"`
 	CriterionKind  string            `json:"criterion_kind"`
 	Argv           []string          `json:"argv"`
@@ -189,6 +228,7 @@ type Line struct {
 	DurationMS     int64             `json:"duration_ms"`
 	OutputDigest   string            `json:"output_digest"`
 	OutputPath     string            `json:"output_path"`
+	Evidence       *evidence.Summary `json:"evidence"`
 	Note           string            `json:"note"`
 	Cause          string            `json:"cause"`
 	Subject        string            `json:"subject"`
@@ -296,6 +336,21 @@ func marshal(e Entry) ([]byte, error) {
 // before the line is encoded, so the caller can place files named by seq.
 // Append refuses to append to a broken chain.
 func Append(path, lockPath string, e Entry, now time.Time, prepare func(seq int) error) (Line, error) {
+	return AppendChecked(path, lockPath, e, now, nil, prepare)
+}
+
+// UncertainWriteError means an append may already be present. Read the stored
+// chain before deciding whether it applied; blindly retrying can duplicate it.
+type UncertainWriteError struct{ Err error }
+
+func (e *UncertainWriteError) Error() string {
+	return fmt.Sprintf("record write may have applied; inspect stored records before retrying: %v", e.Err)
+}
+func (e *UncertainWriteError) Unwrap() error { return e.Err }
+
+// AppendChecked validates against the latest complete chain under the append
+// lock, before prepare or writing. The callback may finish populating e.
+func AppendChecked(path, lockPath string, e Entry, now time.Time, validate func([]Line) error, prepare func(seq int) error) (Line, error) {
 	unlock, err := lock(lockPath)
 	if err != nil {
 		return Line{}, err
@@ -307,6 +362,11 @@ func Append(path, lockPath string, e Entry, now time.Time, prepare func(seq int)
 	}
 	if bad != nil {
 		return Line{}, fmt.Errorf("%w: %v", ErrBroken, bad)
+	}
+	if validate != nil {
+		if err := validate(lines); err != nil {
+			return Line{}, err
+		}
 	}
 	h := e.header()
 	h.Schema = Schema
@@ -330,15 +390,8 @@ func Append(path, lockPath string, e Entry, now time.Time, prepare func(seq int)
 	if err != nil {
 		return Line{}, err
 	}
-	if _, err := f.Write(append(append([]byte(nil), raw...), '\n')); err != nil {
-		f.Close()
-		return Line{}, err
-	}
-	if err := f.Sync(); err != nil {
-		f.Close()
-		return Line{}, err
-	}
-	if err := f.Close(); err != nil {
+	data := append(append([]byte(nil), raw...), '\n')
+	if err := persistLine(f, data); err != nil {
 		return Line{}, err
 	}
 	var l Line
@@ -347,6 +400,33 @@ func Append(path, lockPath string, e Entry, now time.Time, prepare func(seq int)
 	}
 	l.Raw = raw
 	return l, nil
+}
+
+type appendFile interface {
+	Write([]byte) (int, error)
+	Sync() error
+	Close() error
+}
+
+// persistLine separates the write boundary for fault injection. Every failure
+// after attempting a write is conservatively reported as potentially applied.
+func persistLine(f appendFile, data []byte) error {
+	n, err := f.Write(data)
+	if err != nil || n != len(data) {
+		f.Close()
+		if err == nil {
+			err = io.ErrShortWrite
+		}
+		return &UncertainWriteError{Err: err}
+	}
+	if err := f.Sync(); err != nil {
+		f.Close()
+		return &UncertainWriteError{Err: err}
+	}
+	if err := f.Close(); err != nil {
+		return &UncertainWriteError{Err: err}
+	}
+	return nil
 }
 
 // lock takes an exclusive advisory lock so concurrent ha processes (for

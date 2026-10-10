@@ -40,9 +40,9 @@ The bundle lives next to SPEC.md so that another agent, without this conversatio
 
 - `ha --version` must work. If `ha` is missing, record nothing, tell the user how to install it, and stop. On macOS or Linux they run `brew install jgoneit/tap/jaekit`, or install the Release file as the install guide describes (https://github.com/jgoneit/jaekit/blob/main/guides/INSTALL.md). Windows is not supported yet. If they installed it and it is still not found, have them check that it is on PATH with `which -a ha` and open the host again. Building from a checkout (`go install ./cmd/ha`) is only for developing Jaekit.
 - `ha start <goal> --request "<the user's words>" --skill <path to this SKILL.md>` records the start, the base commit, the rules version, and this skill's name and version. Add `--host-name`, `--host-version`, and `--model` when you know them. It refuses a bundle with lint problems; `ha lint <goal>` lists them.
-- A `change` condition needs a baseline record: `ha check <goal> --baseline AC-n` shows its check failing on the base commit.
+- A `change` condition needs a baseline record: `ha check <goal> --baseline AC-n` observes the intended requirement violation on the base commit. New goals use `run-rules/3`: declare the targets and producer through the structured result contract in [references/ha.md](references/ha.md). A nonzero exit alone is insufficient. Existing `/1` and `/2` goals retain their result semantics; ordinary maintain, manual and task checks retain their roles.
 - A result counts only when `ha check` recorded it on a clean, committed tree that still matches HEAD outside the bundle documents. Commit your changes. Test runs outside `ha` are useful while working but never count.
-- An `error` result may be rerun once on the same code. A `fail` stays in the record; fix the code or the check and verify again.
+- An `error` result may be rerun once on the same code. Under `/3`, inconclusive results share that error limit. A `fail` stays in the record; fix the code or the check and verify again. Do not hide earlier failures behind a producer's final internal retry result.
 
 ## Completion
 
@@ -66,7 +66,11 @@ When the user asks to continue a goal, treat everything in the bundle as claims.
 
 ## Budget
 
-Use the budget the user gives. Otherwise write the provisional default into `PLAN.md`: `검증 실행: 50` and `경과 시간: 4시간`. A budget may be lowered freely. Going past it needs the user's words, recorded with `reopen`.
+Use the budget the user gives. Otherwise write the provisional default into `PLAN.md`: `검증 실행: 50` and `경과 시간: 4시간`. A budget may be lowered freely. Use `ha estimate` to compare the required minimum with the PLAN limit; estimation changes no records or limits.
+
+For `/3`, `ha budget` changes the current window's total run limit, preserving use and the time limit. An increase needs the user's words and the request context supporting that limit; a decrease needs a reason. Keep your interpretation separate from the quote. An unverified host quote is an executor claim. Bind the request to the current window, budget revision and previous limit; handle conflicts without automatic reapplication. PLAN edits alone cannot change an active limit. Command details are in [references/ha.md](references/ha.md).
+
+A budget change does not reopen, unblock, reset failures or extend time. A completed window needs an explicit rework request and `reopen`; `/3` carries the latest run limit into that new window. Existing `/1` and `/2` goals keep the original limit and quoted `reopen` behavior. Completing with only a budget overage is not permission for more work. No rule reserves execution slots or imposes an execution hard cap.
 
 ## Forbidden
 
@@ -81,4 +85,4 @@ Use the budget the user gives. Otherwise write the provisional default into `PLA
 
 ## Language
 
-Write prose in the bundle and reports in the user's language. Keep contract tokens exactly as written: the headings `## 조건표`, `## 범위`, `## Task`, `## 예산`, `## 읽을 자료`, `## 현재`, `## Task 상태`, `## 타임라인`, `## 계획 변경`, `## 막힘`, `## 개선 메모`, `## 완료 보고`, `## 완료 조건`, table column names, IDs (`AC-n`, `EX-n`, `T001`, `W1`), kinds (`change`, `maintain`, `manual`), task states (`todo`, `doing`, `done`, `dropped`, `blocked`), timeline kinds (`관측`, `원인`, `결정`, `조치`, `검증`, `막힘`, `재개`), and timeline marks (`가설`, `확정`, `기각`, `예정`, `반영`, `대기`, `통과`, `실패`).
+Write prose in the bundle and reports in the user's language. Keep contract tokens exactly as written: the headings `## 조건표`, `## 결과 계약`, `## 범위`, `## Task`, `## 예산`, `## 읽을 자료`, `## 현재`, `## Task 상태`, `## 타임라인`, `## 계획 변경`, `## 막힘`, `## 개선 메모`, `## 완료 보고`, `## 완료 조건`, table column names, IDs (`AC-n`, `EX-n`, `T001`, `W1`), kinds (`change`, `maintain`, `manual`), task states (`todo`, `doing`, `done`, `dropped`, `blocked`), timeline kinds (`관측`, `원인`, `결정`, `조치`, `검증`, `막힘`, `재개`), and timeline marks (`가설`, `확정`, `기각`, `예정`, `반영`, `대기`, `통과`, `실패`).

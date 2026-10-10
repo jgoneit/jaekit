@@ -1,3 +1,5 @@
-# Start the goal with a quoted request.
+# Construct a legacy /2 goal to preserve its execution and record semantics.
+# New-rule scenarios start directly and assert their default version.
 ha start $GOAL --request "greet 구현해줘" --skill-name seal --skill-version 0.1.0
 expect-exit 0
+rewrite-record 1 rules "\"run-rules/2\""

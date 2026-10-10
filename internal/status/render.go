@@ -80,11 +80,16 @@ func (rep *Report) Markdown(goalArg string) string {
 	}
 	w("- rules: %s; skill: %s; ha: %s\n", rep.Rules, skill, rep.HaVersion)
 	w("- code: %s, tree clean: %s; goal digest: %s\n", shortHash(rep.Commit), yesNo(rep.TreeClean), shortHash(rep.SpecDigest))
+	u := rep.Usage
+	w("- attempts: %d total; types: %d check, %d baseline; outcomes: %d environment errors, %d unknown; inputs: %d current, %d stale; valid positive evidence: %d (overlapping axes)\n", u.Total, u.Checks, u.Baselines, u.EnvironmentErrors, u.Unknowns, u.CurrentInputs, u.StaleInputs, u.ValidEvidence)
 
 	w("\n### Criteria\n\n| ID | kind | required | satisfied | reason | records | attempts |\n| --- | --- | --- | --- | --- | --- | --- |\n")
 	for _, c := range rep.Criteria {
 		a := c.Attempts
 		attempts := fmt.Sprintf("checks %d (fail %d, error %d), baselines %d (unexpected pass %d, error %d), stale %d", a.Checks, a.Fails, a.Errors, a.Baselines, a.UnexpectedPasses, a.BaselineErrors, a.Stale)
+		if a.Unknowns+a.BaselineUnknowns+a.BaselineFails > 0 {
+			attempts += fmt.Sprintf("; unknown check %d, baseline %d; baseline fail %d", a.Unknowns, a.BaselineUnknowns, a.BaselineFails)
+		}
 		if len(a.FailCommits) > 0 {
 			attempts += "; failed at " + strings.Join(a.FailCommits, ", ")
 		}
@@ -142,11 +147,19 @@ func (rep *Report) Markdown(goalArg string) string {
 	if rep.Budget != nil {
 		bd := rep.Budget
 		w("\n### Budget\n\n- window from seq %d: %d/%d runs, %d/%d seconds%s\n", bd.WindowStart, bd.Runs, bd.RunsLimit, bd.ElapsedSeconds, bd.ElapsedLimitSeconds, map[bool]string{true: " (exceeded)", false: ""}[bd.Exceeded])
+		w("- budget revision: %d; remaining: %d runs; excess: %d runs; run cap reached: %s\n", bd.Revision, bd.RemainingRuns, bd.ExcessRuns, yesNo(bd.Reached))
+		for _, event := range bd.History {
+			w("- budget change seq %d, window %d: %d → %d runs (user attribution is a claim)\n", event.Seq, event.Change.WindowStart, event.Change.PreviousRuns, event.Change.Runs)
+		}
 	}
 	if len(rep.Logs) > 0 {
 		w("\n### Local output\n\nView with `ha log %s <seq>`; output is never copied into the record.\n\n", goalArg)
 		for _, l := range rep.Logs {
-			w("- seq %d %s %s: %s\n", l.Seq, l.Target, l.Result, l.Path)
+			reason := ""
+			if l.Reason != "" {
+				reason = " (" + l.Reason + ")"
+			}
+			w("- seq %d %s %s%s: %s\n", l.Seq, l.Target, l.Result, reason, l.Path)
 		}
 	}
 	return b.String()

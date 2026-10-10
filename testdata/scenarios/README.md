@@ -42,7 +42,9 @@ Each directory is one scenario. `cmd/ha/scenario_test.go` builds a git repositor
 | `sibling-declared` | run-rules-2 AC-8 | a PLAN declaration makes other goals' bundle files code; the current PLAN decides |
 | `sibling-declaration-invalid` | run-rules-2 AC-8 | an unreadable declaration is `other_bundles_invalid` |
 | `sibling-declaration-label-invalid` | run-rules-2 AC-8 | a malformed declaration label is `other_bundles_invalid`; only the exact key enables the input declaration |
-| `rules-v2-start` | run-rules-2 AC-9 | a new start records `run-rules/2` |
+| `rules-v2-start` | run-rules-2 AC-9 | an existing goal keeps `run-rules/2` |
+| `rules-v3-start` | structured baseline classification | a new start records `/3`; an unsupported script failure stays unknown |
+| `budget-v3-change` | same-window budget change | total limit changes preserve usage; stale revisions are refused; reopen inherits the latest limit |
 | `rules-v1-kept` | run-rules-2 AC-10 | historical `run-rules/1` budget semantics remain; a future dirty check is refused |
 | `blocked` | bundle.md §5 | `blocked` until unblock |
 | `not-started` | run-record.md §4.2 | `incomplete`, `not_started`; checks refused |
@@ -65,3 +67,10 @@ Each directory is one scenario. `cmd/ha/scenario_test.go` builds a git repositor
 EVALUATION §3 rows whose P1 expectation is "탐지 기대 없음" other than the command change (weak checks, special-casing, unrelated changes inside scope, tests that change sources) have no scenario: P1 does not claim to detect them.
 
 Budget scenarios explicitly reconstruct a small-cap historical start after admission, so they continue to test stored `/1` and `/2` budget semantics independently of the new minimum for future starts.
+
+## 구조화 근거와 예산 변경
+
+- `rules-v3-start`: 새 시작의 /3 선택과 미지원 스크립트 실패의 unknown 보존.
+- `budget-v3-change`: 같은 창의 횟수 상한 변경, 오래된 개정 거부, 재개 시 최신 상한 계승.
+
+기존 `_steps/start`를 쓰는 사례는 /2 시작 기록을 명시해 구규칙 호환성을 확인한다. /3 사례는 새 시작을 직접 호출한다. 구조화 결과의 실제 프로세스·기록·완료 연결과 오류 경계는 `cmd/ha/baseline_budget_test.go`에서도 검증한다.

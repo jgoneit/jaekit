@@ -31,12 +31,16 @@ Lint rules: every goal criterion appears once; every condition has a task; every
 
 Behavior that must be preserved belongs in the goal documents as a required criterion. If it is missing there but must not break, raise it with the user in `REVIEW.md` under open decisions; an `EX-n` row cannot protect it.
 
+### `## 결과 계약`
+
+For `run-rules/3` change conditions, map `ID | 선언 경로` in a Markdown table. The repository-relative JSON declaration identifies required targets, expected violations and the producer. Include the declaration and every producer/configuration file in `검사 경로` so the baseline receives them. See [ha.md](ha.md) for the report contract and actual reference producer. Generic runner nonzero exits alone are insufficient. Existing `/1` and `/2` goals and ordinary maintain, manual and task checks keep their roles.
+
 ### `## 범위`
 
 - `바꿀 수 있는 경로:` code-span globs relative to the repository root (`**` matches any depth), with the SPEC section they come from. Changes outside them need the user's confirmation.
 - `테스트 경로:` code-span globs of test definitions, or `(기본값)` for `tests/**`, `**/*_test.*`, `**/test_*.*`, `**/*.test.*`, `**/*.spec.*`. Editing or deleting a test that existed at base needs the user's confirmation.
 - `유지할 동작:` behavior to keep, from the SPEC's non-goals and current behavior.
-- `다른 목표 실행 묶음:` optional, only when a check reads other goals' bundle files (`PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl`, `tasks/`): ``- 다른 목표 실행 묶음: `검사 입력` (reason)``. Under `run-rules/2` those files leave the code state; the declaration keeps them in, so a change to them makes this goal's results stale. `ha` reads it from the plan as it is when it computes or records, so adding or removing it is a plan change. Any other value is the lint problem `other_bundles_invalid`.
+- `다른 목표 실행 묶음:` optional, only when a check reads other goals' bundle files (`PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl`, `tasks/`): ``- 다른 목표 실행 묶음: `검사 입력` (reason)``. Under `run-rules/2` and `run-rules/3` those files leave the code state; the declaration keeps them in, so a change to them makes this goal's results stale. `ha` reads it from the plan as it is when it computes or records, so adding or removing it is a plan change. Any other value is the lint problem `other_bundles_invalid`.
 
 ### `## Task`
 
@@ -50,6 +54,8 @@ Behavior that must be preserved belongs in the goal documents as a required crit
 - `검증 실행: <n>` — runs of `ha check`, baselines included, per budget window
 - `경과 시간: <duration>` — such as `4시간`, `90분`, `2h30m`, measured between record timestamps
 - `비용: <limit or 미관측>`
+
+PLAN budget values initialize a goal. Editing them does not change an active budget. Under `/3`, a recorded `budget_change` changes only the current window's total run limit and retains usage and elapsed time. Increases require a user quote and context; decreases require a reason. An explicit `reopen` carries the latest run limit and the original time limit into a new window. `/1` and `/2` retain their original start limit. See [ha.md](ha.md).
 
 ### `## 읽을 자료` (when tasks stay inside PLAN.md)
 

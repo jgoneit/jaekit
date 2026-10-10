@@ -1,4 +1,4 @@
-# run-rules/2: a new start records run-rules/2, and status reports it.
+# An existing run-rules/2 start keeps that rule under the new binary.
 include start
 expect-record 1 rules run-rules/2
 ha status $GOAL --format json
