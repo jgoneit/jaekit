@@ -1,0 +1,17 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "update-cleanup",
+      "runner": "unittest",
+      "file": "tools/release/test_install_data.py",
+      "test": "DirectData.test_update_cleanup_keeps_the_current_version"
+    },
+    {
+      "target": "update-linked-root",
+      "runner": "unittest",
+      "file": "tools/release/test_install_data.py",
+      "test": "DirectData.test_update_cleanup_does_not_follow_a_linked_data_root"
+    }
+  ]
+}

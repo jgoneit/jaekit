@@ -1,0 +1,16 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/release-0-1-3-followups/AC-1.targets.json",
+    "plugins/examples_index_test.go"
+  ],
+  "targets": [
+    {
+      "id": "examples-index",
+      "violation": "examples-index-stale"
+    }
+  ]
+}

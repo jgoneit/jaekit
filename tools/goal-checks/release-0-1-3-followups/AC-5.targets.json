@@ -1,0 +1,29 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "file-link",
+      "runner": "unittest",
+      "file": "tools/release/test_install_data.py",
+      "test": "DirectData.test_reuse_rejects_a_file_link_with_identical_content"
+    },
+    {
+      "target": "directory-link",
+      "runner": "unittest",
+      "file": "tools/release/test_install_data.py",
+      "test": "DirectData.test_reuse_rejects_a_directory_link_with_identical_content"
+    },
+    {
+      "target": "special-file",
+      "runner": "unittest",
+      "file": "tools/release/test_install_data.py",
+      "test": "DirectData.test_reuse_rejects_a_special_file"
+    },
+    {
+      "target": "identical-data",
+      "runner": "unittest",
+      "file": "tools/release/test_install.py",
+      "test": "InstallChecks.test_success_and_identical_data_retry"
+    }
+  ]
+}
