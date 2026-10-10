@@ -1,0 +1,14 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-findings",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/findings-checks/check.py"
+  ],
+  "targets": [
+    {
+      "id": "finding-contract",
+      "violation": "findings-command-unavailable"
+    }
+  ]
+}
