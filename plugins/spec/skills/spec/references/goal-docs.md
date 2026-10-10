@@ -48,7 +48,9 @@ Criteria-Format: nested/1
 - Criteria are required by default. Mark optional ones with `(선택)` right after the ID. Only the goal documents decide what is required.
 - Write observable results. Do not write implementation methods or verification commands.
 
-New documents put one unindented `Criteria-Format: nested/1` line near `Status:`, before the first level-two section. Fenced examples do not select a format. Duplicate selectors, an empty or unsupported value, and a selector after a level-two section are format errors; never silently use the old format instead.
+New documents put one unindented `Criteria-Format: nested/1` line near `Status:`, before the first level-two section. Fenced examples do not select a format. A selector indented with spaces or tabs before that first section is a `criteria_format` error. An indented quotation inside a section's body does not select a format and keeps its existing body interpretation. Duplicate selectors, an empty or unsupported value, and an unindented selector after a level-two section are format errors; never silently use the old format instead.
+
+For format selection, a closing fence uses the same backtick or tilde character at least as many times as the opening fence, followed only by spaces or tabs. A shorter fence or one followed by ordinary text stays inside the example. This boundary check applies only to selecting the format; it does not change the existing Markdown interpretation of criterion bodies or execution bundles.
 
 With `nested/1`:
 

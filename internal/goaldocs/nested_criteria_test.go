@@ -85,6 +85,9 @@ func TestNestedCriteriaDiagnostics(t *testing.T) {
 		{"root-too-deep", nestedHeader + "    - AC-1 first\n", "criterion_indentation", 6},
 		{"unknown-format", strings.Replace(nestedHeader, "nested/1", "nested/99", 1) + "- AC-1 first\n", "criteria_format", 3},
 		{"empty-format", strings.Replace(nestedHeader, "nested/1", "", 1) + "- AC-1 first\n", "criteria_format", 3},
+		{"one-space-format", strings.Replace(nestedHeader, "Criteria-Format:", " Criteria-Format:", 1) + "- AC-1 first\n\n  paragraph\n", "criteria_format", 3},
+		{"three-space-format", strings.Replace(nestedHeader, "Criteria-Format:", "   Criteria-Format:", 1) + "- AC-1 first\n\n  paragraph\n", "criteria_format", 3},
+		{"tab-format", strings.Replace(nestedHeader, "Criteria-Format:", "\tCriteria-Format:", 1) + "- AC-1 first\n\n  paragraph\n", "criteria_format", 3},
 		{"duplicate-format", strings.Replace(nestedHeader, "\n\n##", "\nCriteria-Format: nested/1\n\n##", 1) + "- AC-1 first\n", "criteria_format_duplicate", 4},
 		{"misplaced-format", "# Goal\nStatus: Ready\n## Acceptance Criteria\nCriteria-Format: nested/1\n- AC-1 first\n", "criteria_format", 4},
 	}
@@ -102,6 +105,14 @@ func TestNestedCriteriaDiagnostics(t *testing.T) {
 }
 
 func TestNestedCriteriaCompatibility(t *testing.T) {
+	for _, prefix := range []string{" ", "   ", "\t"} {
+		source := "# Goal\nStatus: Ready\n## Acceptance Criteria\n- AC-1 first\n" + prefix + "Criteria-Format: nested/1\n- AC-2 second\n"
+		quoted := loadNestedFixture(t, source)
+		want := []Criterion{{ID: "AC-1", Text: "first\nCriteria-Format: nested/1", Line: 4}, {ID: "AC-2", Text: "second", Line: 6}}
+		if len(quoted.Problems) != 0 || !reflect.DeepEqual(quoted.Criteria, want) {
+			t.Fatalf("legacy body quote with prefix %q: criteria=%#v problems=%v", prefix, quoted.Criteria, quoted.Problems)
+		}
+	}
 	legacy := "# Goal\nStatus: Ready\n## Acceptance Criteria\n- AC-1 first\n continued\n\tand tab\n    - existing body\n\n    ignored after blank\n  - AC-2 (선택) second\n"
 	g := loadNestedFixture(t, legacy)
 	if len(g.Problems) != 0 || len(g.Criteria) != 2 {
@@ -139,5 +150,38 @@ func TestNestedCriteriaCompatibility(t *testing.T) {
 	}
 	if again := loadNestedFixture(t, oldSource); again.Digest != old.Digest || !reflect.DeepEqual(again.Criteria, old.Criteria) {
 		t.Fatal("reading a selected document must not change later legacy reads")
+	}
+}
+
+func TestNestedCriteriaFenceBoundaries(t *testing.T) {
+	preamble := "# Goal\nStatus: Ready\n"
+	body := "## Acceptance Criteria\n- AC-1 first\n  - AC-2 (선택) second\n"
+	legacy := loadNestedFixture(t, preamble+body)
+	cases := []struct{ name, example string }{
+		{"shorter-backticks", "````markdown\n```\nCriteria-Format: nested/1\n```\n````\n"},
+		{"shorter-tildes", "~~~~markdown\n~~~\nCriteria-Format: nested/1\n~~~\n~~~~\n"},
+		{"closing-backticks-with-text", "```markdown\n``` still inside\nCriteria-Format: nested/1\n``` also inside\n```\n"},
+		{"closing-tildes-with-text", "~~~markdown\n~~~ still inside\nCriteria-Format: nested/1\n~~~ also inside\n~~~\n"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := loadNestedFixture(t, preamble+tc.example+body)
+			if len(g.Problems) != 0 || len(g.Criteria) != len(legacy.Criteria) {
+				t.Fatalf("fenced selector changed legacy criteria: %#v problems=%v", g.Criteria, g.Problems)
+			}
+			for i, got := range g.Criteria {
+				want := legacy.Criteria[i]
+				if got.ID != want.ID || got.Optional != want.Optional || got.Text != want.Text || got.TextSHA256() != want.TextSHA256() {
+					t.Fatalf("fenced selector changed criterion %s: %#v, want %#v", got.ID, got, want)
+				}
+			}
+			// A real selector after the example still opts in. The quoted value
+			// may even be unsupported without becoming active metadata.
+			example := strings.ReplaceAll(tc.example, "nested/1", "nested/99")
+			selected := loadNestedFixture(t, preamble+example+"Criteria-Format: nested/1\n"+body)
+			if len(selected.Problems) != 0 || len(selected.Criteria) != 1 || selected.Criteria[0].Text != "first\n- AC-2 (선택) second" {
+				t.Fatalf("real selector after fence was not selected: %#v problems=%v", selected.Criteria, selected.Problems)
+			}
+		})
 	}
 }
