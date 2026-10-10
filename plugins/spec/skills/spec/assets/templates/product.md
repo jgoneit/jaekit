@@ -36,6 +36,8 @@ Criteria-Format: nested/1
 
 - <An outcome-changing decision, the options considered, and why this one.> Source: <the user's words, a file path, an existing goal document, or a proposal stated in your report>
 
+<!-- Include only relevant outcome boundaries: uninterpretable input, observation unit, preserved set, supported environment. Link settled sources; leave unresolved outcomes open. Mark cases exhaustive or representative and state the general property or outside-list result. Omit irrelevant fields; keep methods with the implementer. -->
+
 ## Acceptance Criteria
 - **AC-1** <Observable result of the first flow.>
   - <Supporting detail of this same criterion; omit when unnecessary.>
