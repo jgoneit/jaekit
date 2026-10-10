@@ -154,6 +154,18 @@ Required review or actual-boundary evidence gaps keep completion pending, with c
 
 When the goal, checks, code, grounds, environment, or assurance policy changes, preserve the reviewed versions and split the new applicable scope. In particular, do not reuse old review or comparison results as if they observed changed inputs. Native Agent chooses strategy; Core retains deterministic facts, local assurance, result distinctions, adverse history, authority and budget semantics.
 
+## Post-completion discovery documents
+
+Seal 0.1.12 introduces an optional `## 완료 뒤 발견` detail section or a reference to the single detail location. New reports can use it; existing goals keep their original format and missing means unrecorded, not zero defects. Do not migrate old records or overwrite the original completion report. New details may be appended to older documents without inventing historical execution.
+
+A discovery identifies itself, target goal/code/completion reference, related condition or condition absent or unresolved, description, report source, reproduction evidence and observed scope, current confirmation claim, and follow-up. Unknown fields say unknown or none. Distinguish event time from recording time with their source; an unknown event time stays unknown. References identify permitted evidence locations; raw logs remain in existing local storage, not in shared bundle prose.
+
+Distinguish candidate, confirmed, duplicate, dismissed, and resolved claims; separate a new requirement from an existing-condition violation. Preserve the original report and append the correction target, new judgment, reason, and evidence. A duplicate references its canonical finding; resolution links repair and recheck evidence, including unobserved scope. Report count is not a unique confirmed-defect count. These are document claims, not a machine-validated latest state or concurrency resolution.
+
+The current summary shows historical completion, unresolved discoveries, and rework request/progress separately. A confirmed original-condition violation cannot be hidden behind a historical complete label. Keep detail in one place and link summaries rather than copying tables everywhere. Later fixes or checks never become evidence supposedly observed by the historical completion.
+
+A discovery, confirmation, dismissal or resolution note in prose does not reopen work or change the completion decision, budget, or permission. An explicit rework request links its actual quoted source, affected finding and later result; distinguish requested, planned, in progress, complete, and not requested. This document contract does not implement structured Core discovery queries or state transitions. Its synthetic public example demonstrates traceability, not actual host compliance.
+
 ## Completion report
 
 Written when `ha done` records completion, or when work stops at `needs_user`, `blocked`, or `budget_exhausted`:

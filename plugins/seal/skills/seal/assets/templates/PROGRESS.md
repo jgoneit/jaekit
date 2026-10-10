@@ -33,6 +33,10 @@
 
 ## 개선 메모
 
+## 완료 뒤 발견
+
+<For a new report: a finding ID, target goal and target code, completion reference, related condition or condition absent or unresolved, description/source/reproduced scope, confirmation claim, and follow-up. Keep event time and recording time with their source separate; unknown stays unknown. Preserve the original completion and append corrections with reasons/evidence. Show unresolved discoveries and rework request/progress separately, or reference the single detail location. Missing means unrecorded. This prose does not authorize work or change machine state.>
+
 ## 완료 보고
 <for the reporting form introduced with seal 0.1.10: connect the planned review to observed report; expected grounds, actual boundaries, methods and substitutes, results, evidence and unobserved scope; identify each changed condition, check, or environment and its evidence limits; shared condition groups may reference one explanation; distinguish recorded facts from interpretation; retain local assurance and executor-authored checks; show confirmed, unconfirmed and risky boundaries; this prose does not establish deployment, installation or actual model calls; paste the actual recorder result unchanged when one exists, never invent an output for a synthetic example>
 

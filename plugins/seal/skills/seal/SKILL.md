@@ -2,7 +2,7 @@
 name: seal
 description: Carry a goal in docs/specs/<goal>/ to recorded completion — plan, implement, verify through the ha binary, and resume in a new session. Use when the user calls this skill with a goal or asks to implement, finish, or continue a goal document, for example "$seal:seal docs/specs/x" in Codex, "/seal:seal docs/specs/x" in Claude Code, "docs/specs/x 구현해줘", or "docs/specs/x 이어서 해줘".
 metadata:
-  version: "0.1.11"
+  version: "0.1.12"
 ---
 
 # Seal
@@ -74,6 +74,14 @@ The Native Agent chooses methods, timing, reviewers, and models within the selec
 - Terminal failures (authentication, permission, usage limits) are not retried. Record `ha note <goal> block --cause <auth|permission|quota|environment|spec|other> --quote "…"` and report.
 - Goals started with seal 0.1.10 or later connect expected-result grounds, observed boundaries, methods and substitutes, and uncovered failure classes in the existing review and report. Shared condition groups may reference one explanation. Distinguish planned from observed, evidence versions, and unknown event times from measured writing times. A report does not establish deployment, installation or real model calls. Older goals keep their starting format without fabricated observations.
 - The completion report format is in [references/bundle.md](references/bundle.md) (completion report). It always states assurance `local` and that the executor wrote the checks.
+
+## Post-completion discoveries
+
+For new reports using Seal 0.1.12 or later, the document format in the bundle reference links later discoveries to their goal, target code, condition (or absent/unresolved link), and historical completion. Do not overwrite the original completion report, its evidence, or its reference time. Keep unresolved discoveries and rework request and progress visible beside that historical result; a confirmed existing-condition violation cannot be presented as a currently defect-free goal. Detail may live in one place with references from summaries.
+
+Record candidate, confirmed, duplicate, dismissed, or resolved claims with their source, reproduced scope, remaining uncertainty, and append-only corrections. A narrative status is not machine-verified finding state or a conflict-free latest view. Unknown IDs, event times, versions or evidence remain unknown; recording time does not substitute for an unknown event time.
+
+Documenting a discovery does not authorize rework and does not change the execution budget, historical completion, or user authority. Implementation still needs an explicit user request and the existing reopen rule; link its quoted source and the affected discovery to later evidence. Preserve original formats and records of older goals, and never fabricate past observations. A missing discovery section means unrecorded. Raw logs remain in their permitted local storage; public examples are synthetic. Structured Core queries are a separate contract, not a promise made by a Markdown state label.
 
 ## Resuming
 

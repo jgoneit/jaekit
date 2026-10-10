@@ -20,7 +20,7 @@
       "name": "seal",
       "source": "./plugins/seal",
       "description": "Carry a goal document to recorded completion: the agent plans, implements, and verifies, and completion is declared only from Seal Core run records.",
-      "version": "0.1.11",
+      "version": "0.1.12",
       "category": "development"
     }
   ]
