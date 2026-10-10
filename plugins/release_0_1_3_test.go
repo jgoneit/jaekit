@@ -50,7 +50,7 @@ func TestRelease013ProjectRecords(t *testing.T) {
 	for _, path := range []string{"spec/skills/spec/SKILL.md", "seal/skills/seal/SKILL.md"} {
 		content := read(t, path)
 		requireIn(t, path, content, "docs/specs/<goal>", "Do not force ignored private documents into Git", "not a requirement for other projects")
-		for _, localOnly := range []string{"jaekit-notes", "primary checkout", "launchd"} {
+		for _, localOnly := range []string{"private backup repository", "primary checkout", "launchd"} {
 			if strings.Contains(content, localOnly) {
 				t.Errorf("%s turned local retention infrastructure into a product requirement: %s", path, localOnly)
 			}
