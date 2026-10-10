@@ -94,7 +94,7 @@ func TestReleaseGuideReleaseFiles(t *testing.T) {
 func TestReleaseGuideVersionCheck(t *testing.T) {
 	requireIn(t, "INSTALL 버전 확인", mdSection(t, "../guides/INSTALL.md", "### 버전 확인"),
 		"ha --version\nwhich -a ha\n",
-		"`ha --version`은 `ha 0.1.2`을 출력해야 합니다.", "`which -a ha`의 첫 줄", "실제로 실행되는 파일",
+		"`ha --version`은 `ha 0.1.2`를 출력해야 합니다.", "`which -a ha`의 첫 줄", "실제로 실행되는 파일",
 		"PATH", "지우거나 PATH 순서를 바꿉니다", "`go env GOBIN`", "`$(go env GOPATH)/bin`",
 	)
 }
@@ -138,7 +138,7 @@ func TestReleaseGuideKeepsExisting(t *testing.T) {
 	TestSealStartCommandGuide(t)
 	TestGuidesDescribeDirectSave(t)
 	requireAll(t, "../guides/USAGE.md", "`docs/specs/<goal> 이어서 해줘`", "`@Spec`", "보장이 없습니다")
-	requireAll(t, "../guides/INSTALL.md", "기존의 다른 `spec`·`seal`", "설치되어 있으면 끕니다", "Skill 이름이 겹치기 때문", "(USAGE.md#문제-해결)")
+	requireAll(t, "../guides/INSTALL.md", "다른 플러그인과 혼동되면", "(USAGE.md#문제-해결)")
 }
 
 // the linked install guide goes brew, version
@@ -147,9 +147,9 @@ func TestReleaseGuideInstallOrder(t *testing.T) {
 	requireOrder(t, "INSTALL 기본 설치", mdSection(t, "../guides/INSTALL.md", "## 기본 설치"),
 		"brew install jgoneit/tap/jaekit",
 		"ha --version",
-		"claude plugin marketplace add jgoneit/jaekit#v0.1.2",
-		"claude plugin install spec@jaekit",
-		"claude plugin install seal@jaekit",
+		"codex plugin marketplace add jgoneit/jaekit@v0.1.2",
+		"codex plugin add spec@jaekit",
+		"codex plugin add seal@jaekit",
 	)
 }
 

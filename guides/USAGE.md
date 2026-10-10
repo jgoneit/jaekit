@@ -8,12 +8,14 @@
 
 아래 명령은 터미널이 아니라 **에이전트 대화에** 보냅니다. `<요청>`은 하고 싶은 일로, `<goal>`은 Spec이 알려 준 목표 폴더 이름으로 바꿉니다.
 
-| 할 일 | Claude Code | Codex |
+| 할 일 | Codex | Claude Code |
 | --- | --- | --- |
-| 목표 문서 작성 | `/spec <요청>` | `$spec <요청>` |
-| 구현 시작 | `/seal docs/specs/<goal>` | `$seal docs/specs/<goal>` |
+| 목표 문서 작성 | `$spec:spec <요청>` | `/spec:spec <요청>` |
+| 구현 시작 | `$seal:seal docs/specs/<goal>` | `/seal:seal docs/specs/<goal>` |
 
-Claude Code에서 같은 이름의 명령과 겹치면 `/spec:spec <요청>`과 `/seal:seal docs/specs/<goal>`을 씁니다. Codex에서는 `$`를 치고 목록에서 `spec:spec` 또는 `seal:seal`을 고릅니다. `@Spec`은 플러그인 언급이며 Spec의 지침을 불러오지 않으므로 목표 문서만 쓴다는 보장이 없습니다.
+Codex에서는 `$`를 입력하고 Jaekit에서 설치한 `spec:spec` 또는 `seal:seal`을 고른 뒤 요청을 이어 씁니다. `@Spec`은 플러그인 언급입니다. 목표 문서만 쓰는 Spec의 지침을 명확히 선택하려면 위의 스킬 호출을 사용합니다. 플러그인 언급만으로 같은 지침이 선택된다는 보장이 없습니다.
+
+`spec:spec`은 **플러그인 이름:스킬 이름**입니다. 예전 설치본과 이름이 겹쳐서 붙는 접두사가 아닙니다. Jaekit만 설치했어도 이 이름을 사용합니다. Codex는 `$`, Claude Code는 `/`로 호출합니다. 직접 설치한 단독 스킬의 짧은 이름이나 다른 에이전트의 호출법까지 같다고 가정하지 않습니다. [Codex 플러그인 이름 규칙](https://developers.openai.com/plugins/build/plugins#create-a-plugin-manually), [Codex의 스킬 호출 예시](https://learn.chatgpt.com/docs/security/plugin/code-changes#automate-reviews-in-cicd), [Claude Code 스킬 위치와 이름](https://code.claude.com/docs/en/skills#choose-where-skills-load)을 참고하세요.
 
 ## 목표를 고치거나 이어 가기
 
@@ -50,9 +52,9 @@ docs/specs/<goal> 이어서 해줘
 | 증상 | 할 일 |
 | --- | --- |
 | `ha: command not found` 또는 기대한 버전이 아니다 | [버전 확인](INSTALL.md#버전-확인)에서 설치 여부와 실제 실행 파일을 확인합니다 |
-| Claude Code에서 `/spec`이 다른 명령으로 실행된다 | 정식 이름 `/spec:spec <요청>`, `/seal:seal docs/specs/<goal>`을 씁니다 |
-| 예전 `spec`·`seal` 플러그인이 대신 동작한다 | `claude plugin list`로 찾고 `claude plugin disable <plugin>`으로 끕니다. `<plugin>`은 목록에서 확인한 이전 플러그인 이름입니다. Codex는 `~/.codex/config.toml`의 해당 플러그인을 `enabled = false`로 둡니다 |
-| Codex의 `@Spec`이 기대와 다르게 동작한다 | `$spec <요청>`으로 부릅니다. `$` 목록에서 `spec:spec`을 고릅니다 |
+| 스킬이 안 보이거나 짧은 이름이 다른 명령을 실행한다 | 설치 후 에이전트를 새로 엽니다. 위 표의 전체 이름을 쓰고, Codex에서는 `$` 목록에서 Jaekit의 스킬을 고릅니다 |
+| 예전 `spec`·`seal` 설치본이 함께 보인다 | Codex는 `codex plugin list`로 확인하고 `codex plugin remove <plugin>`으로 제거합니다. Claude Code는 `claude plugin list`와 `claude plugin uninstall <plugin>`을 씁니다. `<plugin>`에는 이전 설치본의 ID를 넣고, `spec@jaekit`·`seal@jaekit`은 유지합니다. 직접 복사한 스킬도 있다면 해당 설치 폴더를 별도로 정리하고 에이전트를 새로 엽니다 |
+| Codex의 `@Spec`이 기대와 다르게 동작한다 | `$` 목록에서 Jaekit의 `spec:spec`을 고르고 요청을 보냅니다 |
 | `Cannot add marketplace "jaekit"` 오류가 난다 | 같은 이름이 이미 등록되어 있습니다. [로컬 경로 등록에서 옮기기](INSTALL.md#로컬-경로-등록에서-옮기기)를 따릅니다 |
 | Seal이 멈추고 정할 것을 묻는다 | 질문에 답합니다. 답을 인용해 기록한 뒤 이어 갑니다. 직접 확인해야 하는 완료 조건도 있을 수 있습니다 |
 | 인증 만료·권한 거부·사용량 한도로 멈췄다 | 원인을 해소한 뒤 `docs/specs/<goal> 이어서 해줘`라고 보냅니다. 같은 실패를 반복하지 않습니다 |

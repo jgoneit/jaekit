@@ -8,12 +8,14 @@ This guide follows [your first task in the README](../README.en.md#your-first-ta
 
 Send these **in the agent conversation**, not Terminal. Replace `<request>` with the work you want and `<goal>` with the goal folder name Spec reports.
 
-| What to do | Claude Code | Codex |
+| What to do | Codex | Claude Code |
 | --- | --- | --- |
-| Write the goal | `/spec <request>` | `$spec <request>` |
-| Start implementation | `/seal docs/specs/<goal>` | `$seal docs/specs/<goal>` |
+| Write the goal | `$spec:spec <request>` | `/spec:spec <request>` |
+| Start implementation | `$seal:seal docs/specs/<goal>` | `/seal:seal docs/specs/<goal>` |
 
-If another Claude Code command has the same name, use `/spec:spec <request>` and `/seal:seal docs/specs/<goal>`. In Codex, type `$` and choose `spec:spec` or `seal:seal`. `@Spec` is a plugin mention and does not load Spec's instructions, so it does not guarantee that only goal documents are written.
+In Codex, type `$`, select `spec:spec` or `seal:seal` installed from Jaekit, then add your request. `@Spec` is a plugin mention. Use the skill invocation above to explicitly select Spec's instructions for writing goal documents only; a plugin mention alone does not guarantee the same instructions are selected.
+
+`spec:spec` means **plugin name:skill name**. This prefix is part of the plugin naming scheme, even when Jaekit is the only installation. Codex uses `$`; Claude Code uses `/`. Short names for separately installed skills and invocation in other agents may differ. See the [Codex plugin naming rules](https://developers.openai.com/plugins/build/plugins#create-a-plugin-manually), [Codex skill invocation example](https://learn.chatgpt.com/docs/security/plugin/code-changes#automate-reviews-in-cicd), and [Claude Code skill locations and names](https://code.claude.com/docs/en/skills#choose-where-skills-load).
 
 ## Changing a goal or continuing
 
@@ -50,9 +52,9 @@ Raw check output stays in `.git/ha/`, which Git does not track; you do not need 
 | Symptom | What to do |
 | --- | --- |
 | `ha: command not found`, or an unexpected version | Follow [Check the version](INSTALL.en.md#check-the-version) to check the installation and which executable runs |
-| `/spec` runs a different command in Claude Code | Use the full names `/spec:spec <request>` and `/seal:seal docs/specs/<goal>` |
-| Older `spec` or `seal` plugins run instead | Find them with `claude plugin list` and turn them off with `claude plugin disable <plugin>`. Replace `<plugin>` with the older plugin's name from the list. In Codex, set that plugin to `enabled = false` in `~/.codex/config.toml` |
-| `@Spec` in Codex behaves differently than expected | Use `$spec <request>`, choosing `spec:spec` from the `$` list |
+| A skill is missing, or a short name runs another command | Reopen the agent after installation. Use the full names in the table above; in Codex, select the Jaekit skill from the `$` menu |
+| Older `spec` or `seal` installations also appear | In Codex, check `codex plugin list` and remove the old installation with `codex plugin remove <plugin>`. In Claude Code, use `claude plugin list` and `claude plugin uninstall <plugin>`. Replace `<plugin>` with the old installation's ID; keep `spec@jaekit` and `seal@jaekit`. If you also copied standalone skills manually, remove their installation folders separately, then reopen the agent |
+| `@Spec` in Codex behaves differently than expected | Select Jaekit's `spec:spec` from the `$` menu, then send your request |
 | `Cannot add marketplace "jaekit"` | The name is already registered. Follow [Move from a local path registration](INSTALL.en.md#move-from-a-local-path-registration) |
 | Seal stops and asks you to decide something | Answer the question. Your words are recorded before work continues. Some completion conditions may need your own confirmation |
 | An expired login, denied permission, or usage limit stops the work | Resolve the cause, then send `continue docs/specs/<goal>`. The same terminal failure is not retried |

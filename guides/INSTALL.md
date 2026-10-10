@@ -13,7 +13,7 @@
 
 ## 기본 설치
 
-Git과 Claude Code 또는 Codex가 필요합니다. brew로 설치하려면 [Homebrew](https://brew.sh)도 준비합니다. 작업할 프로젝트는 Git으로 변경 이력을 관리하는 폴더여야 합니다. Jaekit 저장소를 clone(내 컴퓨터로 복사)할 필요는 없습니다.
+Git과 Codex 또는 Claude Code가 필요합니다. brew로 설치하려면 [Homebrew](https://brew.sh)도 준비합니다. 작업할 프로젝트는 Git으로 변경 이력을 관리하는 폴더여야 합니다. Jaekit 저장소를 clone(내 컴퓨터로 복사)할 필요는 없습니다.
 
 Windows에서는 Seal Core `ha`가 지원되지 않아 Seal을 쓸 수 없습니다. Spec은 `ha` 없이 목표 문서를 만들 수 있지만 Windows에서의 설치·동작은 아직 확인하지 않았습니다.
 
@@ -32,11 +32,27 @@ ha --version
 which -a ha
 ```
 
-`ha --version`은 `ha 0.1.2`을 출력해야 합니다. `which -a ha`의 첫 줄이 실제로 실행되는 파일입니다. PATH는 명령을 찾을 폴더의 순서입니다. 버전이 다르면 먼저 이 경로를 확인합니다. 예전에 `go install`로 만든 파일이 앞에 있다면 해당 파일을 지우거나 PATH 순서를 바꿉니다. 그 파일은 `go env GOBIN`이 가리키는 폴더, 비어 있으면 `$(go env GOPATH)/bin`에 있습니다.
+`ha --version`은 `ha 0.1.2`를 출력해야 합니다. `which -a ha`의 첫 줄이 실제로 실행되는 파일입니다. PATH는 명령을 찾을 폴더의 순서입니다. 버전이 다르면 먼저 이 경로를 확인합니다. 예전에 `go install`로 만든 파일이 앞에 있다면 해당 파일을 지우거나 PATH 순서를 바꿉니다. 그 파일은 `go env GOBIN`이 가리키는 폴더, 비어 있으면 `$(go env GOPATH)/bin`에 있습니다.
 
-명령을 못 찾고 `which -a ha`도 비어 있다면 설치가 끝났는지 확인하고, 설치한 폴더가 PATH에 있는지 봅니다. 에이전트도 `ha`를 찾을 수 있도록 설정한 뒤 Claude Code 또는 Codex를 새로 엽니다.
+명령을 못 찾고 `which -a ha`도 비어 있다면 설치가 끝났는지 확인하고, 설치한 폴더가 PATH에 있는지 봅니다. 에이전트도 `ha`를 찾을 수 있도록 설정한 뒤 Codex 또는 Claude Code를 새로 엽니다.
+
+### Codex
+
+먼저 [ha 설치](#ha-설치)와 [버전 확인](#버전-확인)을 마칩니다. 아래 설치 명령에는 터미널용 [Codex(Codex CLI)](https://learn.chatgpt.com/docs/codex/cli)가 필요합니다. 플러그인은 Codex CLI와 데스크톱 앱에서 사용할 수 있으며, Codex IDE 확장에서는 지원되지 않습니다.
+
+```bash
+codex plugin marketplace add jgoneit/jaekit@v0.1.2
+codex plugin add spec@jaekit
+codex plugin add seal@jaekit
+```
+
+`@v0.1.2`는 marketplace(플러그인 목록)를 해당 태그에 고정합니다. main이 바뀌어도 배포판의 spec 0.1.10·seal 0.1.8을 받습니다.
+
+Codex를 새로 열고 대화에 `$`를 입력해 Jaekit의 `spec:spec` 또는 `seal:seal`을 고릅니다. 호출 이름은 `$spec:spec`과 `$seal:seal`입니다. [첫 작업 맡기기](../README.md#첫-작업-맡기기)를 따라 해 봅니다. 다른 플러그인과 혼동되면 [문제 해결](USAGE.md#문제-해결)을 봅니다.
 
 ### Claude Code
+
+먼저 [ha 설치](#ha-설치)와 [버전 확인](#버전-확인)을 마칩니다. 그다음 아래 명령으로 Claude Code에 플러그인을 설치합니다.
 
 ```bash
 claude plugin marketplace add jgoneit/jaekit#v0.1.2
@@ -45,21 +61,9 @@ claude plugin install seal@jaekit
 claude plugin list
 ```
 
-마지막 목록에서 `spec@jaekit`, `seal@jaekit`가 enabled인지 봅니다. 기존의 다른 `spec`·`seal` 플러그인이 설치되어 있으면 끕니다. Skill 이름이 겹치기 때문입니다([충돌 해결](USAGE.md#문제-해결)).
+`#v0.1.2`는 marketplace를 해당 태그에 고정합니다. 마지막 목록에서 `spec@jaekit`, `seal@jaekit`가 enabled인지 봅니다. 다른 플러그인과 혼동되면 [문제 해결](USAGE.md#문제-해결)을 봅니다.
 
-### Codex
-
-먼저 [ha 설치](#ha-설치)와 [버전 확인](#버전-확인)을 마칩니다. 그다음 아래 명령으로 Codex에 플러그인을 설치합니다.
-
-```bash
-codex plugin marketplace add jgoneit/jaekit@v0.1.2
-codex plugin add spec@jaekit
-codex plugin add seal@jaekit
-```
-
-기존의 다른 `spec`·`seal` 플러그인이 있으면 끕니다([충돌 해결](USAGE.md#문제-해결)). Claude Code의 `#v0.1.2`와 Codex의 `@v0.1.2`는 플러그인을 제공하는 marketplace(플러그인 목록)를 해당 태그에 고정합니다. main이 바뀌어도 배포판의 spec 0.1.10·seal 0.1.8을 받습니다.
-
-설치한 에이전트를 새로 열고 [첫 작업을 맡깁니다](../README.md#첫-작업-맡기기). host별 호출 방법은 [사용 안내](USAGE.md#명령-보내기)에 있습니다.
+Claude Code를 새로 열고 대화에서 `/spec:spec <요청>`으로 목표를 정리한 뒤, 별도 메시지의 `/seal:seal docs/specs/<goal>`로 구현을 시작합니다. 플러그인의 스킬은 `/플러그인-이름:스킬-이름`으로 호출합니다. 목표 확인과 이어 가기는 [사용 안내](USAGE.md#명령-보내기)에 있습니다.
 
 ## Release 파일로 설치
 
@@ -100,7 +104,7 @@ brew 대신 [v0.1.2 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1
 )
 ```
 
-`~/.local/bin`이 PATH에 없으면 셸 설정(`~/.zshrc` 등)에 `export PATH="$HOME/.local/bin:$PATH"`를 더합니다. 브라우저로 직접 받은 파일을 macOS가 막으면 `xattr -d com.apple.quarantine ~/.local/bin/ha`로 풉니다. 그다음 [버전 확인](#버전-확인)과 [Claude Code](#claude-code) 또는 [Codex](#codex) 설치로 갑니다.
+`~/.local/bin`이 PATH에 없으면 셸 설정(`~/.zshrc` 등)에 `export PATH="$HOME/.local/bin:$PATH"`를 더합니다. 브라우저로 직접 받은 파일을 macOS가 막으면 `xattr -d com.apple.quarantine ~/.local/bin/ha`로 풉니다. 그다음 [버전 확인](#버전-확인)과 [Codex](#codex) 또는 [Claude Code](#claude-code) 설치로 갑니다.
 
 ## 업데이트
 
@@ -118,22 +122,13 @@ brew upgrade jgoneit/tap/jaekit
 
 Release 파일로 설치한 `ha`는 [Release 파일로 설치](#release-파일로-설치)의 명령을 다시 붙여 넣습니다. 새 버전의 파일이 `~/.local/bin/ha`를 덮어씁니다.
 
-그다음 버전을 확인합니다. `ha 0.1.2`이 나오면 됩니다. 다른 버전이 나오면 [버전 확인](#버전-확인)대로 `which -a ha`를 봅니다.
+그다음 버전을 확인합니다. `ha 0.1.2`가 나오면 됩니다. 다른 버전이 나오면 [버전 확인](#버전-확인)대로 `which -a ha`를 봅니다.
 
 ```bash
 ha --version
 ```
 
 plugin은 marketplace를 새 태그에 고정해 다시 등록합니다. 같은 이름의 marketplace는 둘을 함께 둘 수 없어서 먼저 지웁니다. 지우면 그 marketplace에서 설치한 spec·seal도 함께 지워지므로 다시 설치합니다. 쓰는 host의 명령만 붙여 넣으면 됩니다.
-
-Claude Code:
-
-```bash
-claude plugin marketplace remove jaekit
-claude plugin marketplace add jgoneit/jaekit#v0.1.2
-claude plugin install spec@jaekit
-claude plugin install seal@jaekit
-```
 
 Codex:
 
@@ -142,6 +137,15 @@ codex plugin marketplace remove jaekit
 codex plugin marketplace add jgoneit/jaekit@v0.1.2
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
+```
+
+Claude Code:
+
+```bash
+claude plugin marketplace remove jaekit
+claude plugin marketplace add jgoneit/jaekit#v0.1.2
+claude plugin install spec@jaekit
+claude plugin install seal@jaekit
 ```
 
 host를 새로 열면 새 버전의 Spec과 Seal이 실립니다.
@@ -164,20 +168,20 @@ Release 파일로 설치한 `ha`:
 rm ~/.local/bin/ha
 ```
 
-Claude Code:
-
-```bash
-claude plugin uninstall spec@jaekit
-claude plugin uninstall seal@jaekit
-claude plugin marketplace remove jaekit
-```
-
 Codex:
 
 ```bash
 codex plugin remove spec@jaekit
 codex plugin remove seal@jaekit
 codex plugin marketplace remove jaekit
+```
+
+Claude Code:
+
+```bash
+claude plugin uninstall spec@jaekit
+claude plugin uninstall seal@jaekit
+claude plugin marketplace remove jaekit
 ```
 
 작업한 저장소에 생긴 파일은 지우지 않고 그대로 남습니다. 목표 문서와 Seal이 만든 파일(`docs/specs/<goal>/`의 `SPEC.md`, `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl`)은 commit한 기록이고, 검사 출력 원문은 git이 추적하지 않는, 그 작업 트리의 Git 디렉토리 아래 `ha/`에 있습니다. 보통은 `.git/ha/`이고, `.git`이 파일인 linked worktree에서는 `git rev-parse --absolute-git-dir`이 알려 주는 디렉토리 아래에 있습니다.
@@ -194,15 +198,6 @@ gitdir="$(git rev-parse --absolute-git-dir)" && rm -rf "$gitdir/ha"
 
 이미 저장소 checkout 경로로 `jaekit` marketplace를 등록했으면, 그 등록을 지우고 `v0.1.2`에 고정한 GitHub 저장소로 다시 등록합니다. 같은 이름의 marketplace는 둘을 함께 둘 수 없습니다. 지우면 그 marketplace에서 설치한 spec·seal도 함께 지워지므로 다시 설치합니다.
 
-Claude Code:
-
-```bash
-claude plugin marketplace remove jaekit
-claude plugin marketplace add jgoneit/jaekit#v0.1.2
-claude plugin install spec@jaekit
-claude plugin install seal@jaekit
-```
-
 Codex:
 
 ```bash
@@ -210,6 +205,15 @@ codex plugin marketplace remove jaekit
 codex plugin marketplace add jgoneit/jaekit@v0.1.2
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
+```
+
+Claude Code:
+
+```bash
+claude plugin marketplace remove jaekit
+claude plugin marketplace add jgoneit/jaekit#v0.1.2
+claude plugin install spec@jaekit
+claude plugin install seal@jaekit
 ```
 
 예전에 `go install`로 만든 `ha`가 남아 있으면 [버전 확인](#버전-확인)대로 정리합니다.
@@ -227,20 +231,20 @@ ha --version
 
 checkout을 고치며 plugin을 쓰려면 checkout 경로를 marketplace로 등록합니다. 이 등록은 checkout의 plugin 파일을 그대로 씁니다. `<jaekit 경로>`는 checkout의 경로로 바꿉니다.
 
-Claude Code:
-
-```bash
-claude plugin marketplace add <jaekit 경로>
-claude plugin install spec@jaekit
-claude plugin install seal@jaekit
-```
-
 Codex:
 
 ```bash
 codex plugin marketplace add <jaekit 경로>
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
+```
+
+Claude Code:
+
+```bash
+claude plugin marketplace add <jaekit 경로>
+claude plugin install spec@jaekit
+claude plugin install seal@jaekit
 ```
 
 명령과 기록 형식은 [contracts/run-record.md](../contracts/run-record.md)에 있습니다.

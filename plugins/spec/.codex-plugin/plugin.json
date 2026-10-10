@@ -14,7 +14,7 @@
   "interface": {
     "displayName": "Spec",
     "shortDescription": "Write goal documents with stable completion criteria",
-    "longDescription": "Spec turns an explicitly requested idea or change into goal documents: SPEC.md with AC-n criteria, user scenarios tied to those criteria, and open decisions. It asks only questions that change the outcome, writes the documents directly, and never changes code itself. After writing and reporting it stops; implementation starts with a new request. Call it with $spec: an @Spec plugin mention does not load these rules.",
+    "longDescription": "Spec turns an explicitly requested idea or change into goal documents: SPEC.md with AC-n criteria, user scenarios tied to those criteria, and open decisions. It asks only questions that change the outcome, writes the documents directly, and never changes code itself. After writing and reporting it stops; implementation starts with a new request. In Codex, select spec:spec from the $ menu to explicitly load this skill; an @Spec plugin mention alone does not guarantee that these rules are selected.",
     "developerName": "Jaegon Seo",
     "category": "Developer Tools",
     "capabilities": ["Interactive", "Read", "Write"],

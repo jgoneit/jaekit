@@ -220,10 +220,10 @@ func TestRelease011Pins(t *testing.T) {
 			continue
 		}
 		if strings.HasPrefix(path, "../README") {
-			requireIn(t, path, text, "jgoneit/jaekit#"+rel011Tag)
-			guide := "guides/INSTALL.md#codex"
+			requireIn(t, path, text, "jgoneit/jaekit@"+rel011Tag)
+			guide := "guides/INSTALL.md#claude-code"
 			if strings.Contains(path, ".en.md") {
-				guide = "guides/INSTALL.en.md#codex"
+				guide = "guides/INSTALL.en.md#claude-code"
 			}
 			requireIn(t, path, text, "("+guide+")")
 		} else {

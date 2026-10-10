@@ -254,7 +254,7 @@ func TestReadmeVisualGuideAC8(t *testing.T) {
 			"brew install jgoneit/tap/jaekit", "ha --version", "ha 0.1.2", "which -a ha",
 			"claude plugin marketplace add jgoneit/jaekit#v0.1.2", "claude plugin install spec@jaekit", "claude plugin install seal@jaekit",
 			"codex plugin marketplace add jgoneit/jaekit@v0.1.2", "codex plugin add spec@jaekit", "codex plugin add seal@jaekit",
-			"/spec ", "/spec:spec ", "$spec ", "@Spec", "/seal docs/specs/<goal>", "/seal:seal", "$seal docs/specs/<goal>",
+			"/spec:spec ", "$spec:spec ", "@Spec", "/seal:seal docs/specs/<goal>", "$seal:seal docs/specs/<goal>",
 			"brew upgrade jgoneit/tap/jaekit", "brew uninstall jgoneit/tap/jaekit", "marketplace remove jaekit")
 		// A direct README -> INSTALL#codex entry bypasses preceding sections.
 		// Its own preamble must link both prerequisites before plugin commands.
@@ -305,7 +305,7 @@ func TestReadmeVisualGuideAC9(t *testing.T) {
 			}
 		}
 		guide := visualGuidance(t, l)
-		visualRequire(t, l.readme+" troubleshooting", guide, "ha: command not found", "which -a ha", "/spec:spec", "/seal:seal", "claude plugin disable <plugin>", "enabled = false", "@Spec", "$spec", "Cannot add marketplace")
+		visualRequire(t, l.readme+" troubleshooting", guide, "ha: command not found", "which -a ha", "/spec:spec", "/seal:seal", "claude plugin uninstall <plugin>", "codex plugin remove <plugin>", "@Spec", "$spec", "Cannot add marketplace")
 		if strings.Contains(l.readme, ".en.md") {
 			visualRequire(t, "English recovery", guide, "permission", "budget", "continue docs/specs/<goal>", "decide")
 		} else {

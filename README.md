@@ -10,7 +10,7 @@
 
 <p align="center"><a href="#설치">설치</a> · <a href="#가상-사용-예시">사용 예시</a> · <a href="guides/USAGE.md">사용 안내</a><br /><strong>한국어</strong> · <a href="README.en.md">English</a></p>
 
-Jaekit은 **Claude Code·Codex로 프로젝트 작업을 하는 사람**을 위한 도구입니다. **Spec**은 요청을 목표와 완료 조건으로 정리합니다. **Seal**은 에이전트가 그 목표에 따라 구현·검사·수정을 이어 가도록 합니다. 결과와 확인 기록을 함께 받고, 대화가 끊겨도 저장된 진행 상황에서 이어 갈 수 있습니다.
+Jaekit은 **Codex·Claude Code로 프로젝트 작업을 하는 사람**을 위한 도구입니다. **Spec**은 요청을 목표와 완료 조건으로 정리합니다. **Seal**은 에이전트가 그 목표에 따라 구현·검사·수정을 이어 가도록 합니다. 결과와 확인 기록을 함께 받고, 대화가 끊겨도 저장된 진행 상황에서 이어 갈 수 있습니다.
 
 현재 배포판은 **v0.1.2**, 실제 작업에 써 보며 다듬는 초기 개발 단계입니다.
 
@@ -36,9 +36,9 @@ Spec은 **새 링크가 기존 재설정 페이지로 연결되고, 로그인은
 
 ### 설치
 
-macOS에서 Claude Code로 시작하는 순서입니다. 먼저 [Homebrew](https://brew.sh)(프로그램 설치 도구), Git(파일 변경 이력 관리 도구), Claude Code가 필요합니다. 작업할 프로젝트도 Git으로 관리하는 폴더여야 합니다. 터미널은 명령을 입력해 프로그램을 실행하는 앱입니다.
+macOS에서 Codex로 시작하는 순서입니다. 먼저 [Homebrew](https://brew.sh)(프로그램 설치 도구), Git(파일 변경 이력 관리 도구), 터미널용 [Codex(Codex CLI)](https://learn.chatgpt.com/docs/codex/cli)가 필요합니다. 작업할 프로젝트도 Git으로 관리하는 폴더여야 합니다. 터미널은 명령을 입력해 프로그램을 실행하는 앱입니다.
 
-Codex 사용자는 [Codex 설치](guides/INSTALL.md#codex)로, Linux 또는 Homebrew 없이 설치하려면 [설치 안내](guides/INSTALL.md)로 갑니다. Jaekit 저장소를 복사해 올 필요는 없습니다.
+Claude Code 사용자는 [Claude Code 설치](guides/INSTALL.md#claude-code)로, Linux 또는 Homebrew 없이 설치하려면 [설치 안내](guides/INSTALL.md)로 갑니다. Jaekit 저장소를 복사해 올 필요는 없습니다.
 
 Windows에서는 기록 도구 `ha`(Seal Core)가 지원되지 않아 Seal을 쓸 수 없습니다. Spec은 `ha`가 필요 없지만, Windows에서의 설치와 동작은 아직 확인하지 않았습니다.
 
@@ -54,33 +54,33 @@ Windows에서는 기록 도구 `ha`(Seal Core)가 지원되지 않아 Seal을 �
    ha --version
    ```
 
-   `ha 0.1.2`이 나와야 합니다. 다르게 나오거나 명령을 못 찾으면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
+   `ha 0.1.2`가 나와야 합니다. 다르게 나오거나 명령을 못 찾으면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
 
-2. **같은 터미널에서 Claude Code에 두 플러그인을 설치합니다.** 플러그인은 에이전트에 기능을 더하는 구성입니다.
+2. **같은 터미널에서 Codex에 두 플러그인을 설치합니다.** 플러그인은 에이전트에 기능을 더하는 구성입니다.
 
    ```bash
-   claude plugin marketplace add jgoneit/jaekit#v0.1.2
-   claude plugin install spec@jaekit
-   claude plugin install seal@jaekit
+   codex plugin marketplace add jgoneit/jaekit@v0.1.2
+   codex plugin add spec@jaekit
+   codex plugin add seal@jaekit
    ```
 
-   `#v0.1.2`은 사용할 버전을 고정합니다. Claude Code를 새로 열면 `/spec`과 `/seal`을 쓸 수 있습니다. 기존 설치가 있다면 [업데이트](guides/INSTALL.md#업데이트)나 [이전 로컬 설치에서 전환](guides/INSTALL.md#로컬-경로-등록에서-옮기기)을 먼저 봅니다.
+   `@v0.1.2`는 사용할 버전을 고정합니다. 설치가 끝나면 Codex를 새로 엽니다. 기존 설치가 있다면 [업데이트](guides/INSTALL.md#업데이트)나 [이전 로컬 설치에서 전환](guides/INSTALL.md#로컬-경로-등록에서-옮기기)을 먼저 봅니다.
 
 ### 첫 작업 맡기기
 
-작업할 프로젝트 폴더에서 Claude Code를 열고 **에이전트 대화에** 보냅니다. 다음은 터미널 명령이 아닙니다.
+작업할 프로젝트 폴더에서 Codex CLI 또는 데스크톱 앱을 엽니다. **에이전트 대화에 `$`를 입력하고 목록에서 Jaekit의 `spec:spec`을 고른 뒤** 요청을 적습니다. 다음은 터미널 명령이 아닙니다.
 
 ```text
-/spec 로그인 화면에 "비밀번호 찾기" 링크를 추가해줘
+$spec:spec 로그인 화면에 "비밀번호 찾기" 링크를 추가해줘
 ```
 
-Spec이 알려 준 목표 문서를 읽고, 질문에 답하거나 고칠 것을 말합니다. 그다음 별도의 메시지로 시작합니다. 아래 `<goal>`은 그대로 입력하는 글자가 아니라 **Spec이 알려 준 목표 폴더 이름**으로 바꿀 자리입니다.
+Spec이 알려 준 목표 문서를 읽고, 질문에 답하거나 고칠 것을 말합니다. 그다음 별도의 메시지에서 `$` 목록의 Jaekit `seal:seal`을 골라 시작합니다. 아래 `<goal>`은 그대로 입력하는 글자가 아니라 **Spec이 알려 준 목표 폴더 이름**으로 바꿀 자리입니다.
 
 ```text
-/seal docs/specs/<goal>
+$seal:seal docs/specs/<goal>
 ```
 
-Codex에서는 대화에 `$`를 입력해 `spec:spec` 또는 `seal:seal`을 고릅니다. [호출 방법과 이어 가기](guides/USAGE.md)에 두 도구의 명령과 재개 방법이 있습니다.
+[호출 방법과 이어 가기](guides/USAGE.md)에 Claude Code 명령과 두 도구의 재개 방법이 있습니다.
 
 ## 자세히 알아보기
 

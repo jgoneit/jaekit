@@ -1,6 +1,6 @@
 ---
 name: seal
-description: Carry a goal in docs/specs/<goal>/ to recorded completion — plan, implement, verify through the ha binary, and resume in a new session. Use when the user calls this skill with a goal or asks to implement, finish, or continue a goal document, for example "/seal docs/specs/x", "docs/specs/x 구현해줘", or "docs/specs/x 이어서 해줘".
+description: Carry a goal in docs/specs/<goal>/ to recorded completion — plan, implement, verify through the ha binary, and resume in a new session. Use when the user calls this skill with a goal or asks to implement, finish, or continue a goal document, for example "$seal:seal docs/specs/x" in Codex, "/seal:seal docs/specs/x" in Claude Code, "docs/specs/x 구현해줘", or "docs/specs/x 이어서 해줘".
 metadata:
   version: "0.1.8"
 ---

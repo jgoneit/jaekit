@@ -6,7 +6,7 @@
 
 Spec은 요청을 `docs/specs/<goal>/SPEC.md`에 목표·범위·완료 조건으로 정리하고 보고한 뒤 멈춥니다. 결과를 바꾸는 질문에 답하거나 고칠 것을 말해 목표를 다듬습니다. `Status: Ready`는 문서가 준비됐다는 표시이며 구현을 시작하지는 않습니다.
 
-준비되면 별도 메시지로 `/seal docs/specs/<goal>`을 보냅니다. Claude Code에서 같은 이름의 명령과 겹치면 정식 이름 `/seal:seal docs/specs/<goal>`을 씁니다. Codex에서는 `$seal docs/specs/<goal>`을 씁니다. 이미 목표 문서가 있다면 바로 Seal에 맡겨도 됩니다. 에이전트가 계획·검사 방법을 검토하고 구현·검사·수정을 이어 갑니다. 매 작업마다 승인할 필요는 없습니다.
+준비되면 Codex 대화에서 `$` 목록의 `seal:seal`을 골라 별도 메시지로 `$seal:seal docs/specs/<goal>`을 보냅니다. Claude Code에서는 `/seal:seal docs/specs/<goal>`을 씁니다. 이미 목표 문서가 있다면 바로 Seal에 맡겨도 됩니다. 에이전트가 계획·검사 방법을 검토하고 구현·검사·수정을 이어 갑니다. 매 작업마다 승인할 필요는 없습니다.
 
 목표와 범위를 바꿀지는 사용자가 정합니다. Seal은 목표 문서를 고치지 않습니다. Spec으로 목표를 고쳤다면 별도로 `docs/specs/<goal> 이어서 해줘`라고 요청합니다. 자세한 문서 형식은 [목표 문서 계약](../contracts/goal-docs.md)과 [실행 묶음 계약](../contracts/bundle.md)에 있습니다.
 

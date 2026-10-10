@@ -10,7 +10,7 @@
 
 <p align="center"><a href="#install">Install</a> · <a href="#fictional-example">Example</a> · <a href="guides/USAGE.en.md">Usage guide</a><br /><a href="README.md">한국어</a> · <strong>English</strong></p>
 
-Jaekit is a tool for **people working on projects with Claude Code or Codex**. **Spec** turns a request into a goal and conditions for completion. **Seal** guides the agent through implementation, checks, and fixes against that goal. You receive the result and a record of what was verified. If the conversation ends, it can continue from the saved progress.
+Jaekit is a tool for **people working on projects with Codex or Claude Code**. **Spec** turns a request into a goal and conditions for completion. **Seal** guides the agent through implementation, checks, and fixes against that goal. You receive the result and a record of what was verified. If the conversation ends, it can continue from the saved progress.
 
 The current release is **v0.1.2**, an early version being refined through real work.
 
@@ -36,9 +36,9 @@ This is a **fictional illustration made to explain the workflow**, not an execut
 
 ### Install
 
-These steps use Claude Code on macOS. You need [Homebrew](https://brew.sh) (a program installer), Git (a tool that tracks file changes), and Claude Code. The project folder you work in must also be managed with Git. Terminal is the app where you type commands to run programs.
+These steps use Codex on macOS. You need [Homebrew](https://brew.sh) (a program installer), Git (a tool that tracks file changes), and [Codex CLI](https://learn.chatgpt.com/docs/codex/cli) (Codex's Terminal tool). The project folder you work in must also be managed with Git. Terminal is the app where you type commands to run programs.
 
-For Codex, use the [Codex installation](guides/INSTALL.en.md#codex). For Linux or an install without Homebrew, see the [install guide](guides/INSTALL.en.md). You do not need to copy the Jaekit repository to your computer.
+For Claude Code, use the [Claude Code installation](guides/INSTALL.en.md#claude-code). For Linux or an install without Homebrew, see the [install guide](guides/INSTALL.en.md). You do not need to copy the Jaekit repository to your computer.
 
 The record tool `ha` (Seal Core) does not support Windows, so Seal cannot run there. Spec does not need `ha`, but installing and running it on Windows has not been checked yet.
 
@@ -56,31 +56,31 @@ The record tool `ha` (Seal Core) does not support Windows, so Seal cannot run th
 
    It should print `ha 0.1.2`. If it prints another version or the command is missing, see [Check the version](guides/INSTALL.en.md#check-the-version).
 
-2. **In the same Terminal, install both plugins in Claude Code.** A plugin adds capabilities to the agent.
+2. **In the same Terminal, install both plugins in Codex.** A plugin adds capabilities to the agent.
 
    ```bash
-   claude plugin marketplace add jgoneit/jaekit#v0.1.2
-   claude plugin install spec@jaekit
-   claude plugin install seal@jaekit
+   codex plugin marketplace add jgoneit/jaekit@v0.1.2
+   codex plugin add spec@jaekit
+   codex plugin add seal@jaekit
    ```
 
-   `#v0.1.2` pins the version to use. Reopen Claude Code to use `/spec` and `/seal`. If you already installed Jaekit, first see [Update](guides/INSTALL.en.md#update) or [Move from a local path registration](guides/INSTALL.en.md#move-from-a-local-path-registration).
+   `@v0.1.2` pins the version to use. Reopen Codex after installation. If you already installed Jaekit, first see [Update](guides/INSTALL.en.md#update) or [Move from a local path registration](guides/INSTALL.en.md#move-from-a-local-path-registration).
 
 ### Your first task
 
-Open Claude Code in your project folder and send this **in the agent conversation**. This is not a Terminal command.
+Open Codex CLI or the desktop app in your project folder. **Type `$` in the agent conversation, choose Jaekit's `spec:spec` from the list**, then write your request. This is not a Terminal command.
 
 ```text
-/spec Add a "Forgot password" link to the login screen
+$spec:spec Add a "Forgot password" link to the login screen
 ```
 
-Read the goal document Spec gives you, answer any questions, or say what to change. Then start in a separate message. Replace `<goal>` below with **the goal folder name Spec reported**; it is not text to type literally.
+Read the goal document Spec gives you, answer any questions, or say what to change. Then, in a separate message, choose Jaekit's `seal:seal` from the `$` list to start. Replace `<goal>` below with **the goal folder name Spec reported**; it is not text to type literally.
 
 ```text
-/seal docs/specs/<goal>
+$seal:seal docs/specs/<goal>
 ```
 
-In Codex, type `$` in the conversation and select `spec:spec` or `seal:seal`. The [usage guide](guides/USAGE.en.md) has commands for both tools and instructions for continuing a task.
+The [usage guide](guides/USAGE.en.md) has Claude Code commands and instructions for continuing a task in either tool.
 
 ## More
 

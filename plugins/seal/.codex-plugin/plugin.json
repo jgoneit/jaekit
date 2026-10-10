@@ -14,7 +14,7 @@
   "interface": {
     "displayName": "Seal",
     "shortDescription": "Carry a goal to recorded, verified completion",
-    "longDescription": "Seal lets a coding agent take a goal document to completion in one request: it keeps a plan and progress that another agent can resume, records checks and required user confirmations through the ha binary, and declares completion only after ha done records that the completion rules are satisfied. Start it with $seal docs/specs/<goal> once the goal documents are saved.",
+    "longDescription": "Seal lets a coding agent take a goal document to completion in one request: it keeps a plan and progress that another agent can resume, records checks and required user confirmations through the ha binary, and declares completion only after ha done records that the completion rules are satisfied. Start it with $seal:seal docs/specs/<goal> once the goal documents are saved.",
     "developerName": "Jaegon Seo",
     "category": "Developer Tools",
     "capabilities": ["Interactive", "Read", "Write"],

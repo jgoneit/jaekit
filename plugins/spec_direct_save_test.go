@@ -184,7 +184,7 @@ func TestGuidesDescribeDirectSave(t *testing.T) {
 	requireAll(t, "../guides/USAGE.md",
 		"`docs/specs/<goal>/SPEC.md`", "바로 저장", "결정·출처", "보고한 뒤 멈춥니다",
 		"같은 문서를 고칩니다", "구현은 별도의 시작 요청",
-		"/seal docs/specs/<goal>",
+		"$seal:seal docs/specs/<goal>",
 	)
 	forbidAll(t, "../README.md", "초안 전문을 보여 준 뒤 동의하면")
 }
