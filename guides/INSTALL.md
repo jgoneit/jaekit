@@ -121,6 +121,12 @@ brew 대신 [v0.1.3 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1
       echo "Release data path is not an ordinary directory: $share" >&2
       exit 1
     fi
+    special="$(find "$share" ! -type f ! -type d -print)"
+    if [ -n "$special" ]; then
+      echo "Release data contains entries that are not ordinary files or directories; nothing was replaced:" >&2
+      printf '%s\n' "$special" >&2
+      exit 1
+    fi
     if ! diff -qr "$tmp/public" "$share"; then
       echo "Existing v0.1.3 data differs; nothing was replaced: $share" >&2
       exit 1
@@ -158,7 +164,7 @@ v0.1.3 배포 파일에는 `tools/check-result-reference.py`와 `examples/check-
 package_root="$(brew --prefix jaekit)/share/jaekit"
 ```
 
-위의 직접 설치 명령은 checksum을 확인한 공개 자료를 다음 버전별 폴더에 보관합니다. 같은 버전의 자료가 이미 있으면 내용이 같을 때만 재사용하고, 다르면 바이너리를 교체하기 전에 멈춥니다. 직접 설치했다면 다음을 씁니다.
+위의 직접 설치 명령은 checksum을 확인한 공개 자료를 다음 버전별 폴더에 보관합니다. 같은 버전의 자료가 이미 있으면 일반 파일과 폴더로만 이루어지고 내용이 같을 때만 재사용합니다. 내용이 다르거나 symlink 같은 다른 항목이 있으면 바이너리를 교체하기 전에 멈추고 그 경로를 알려 줍니다. 직접 설치했다면 다음을 씁니다.
 
 ```bash
 package_root="$HOME/.local/share/jaekit/0.1.3"
@@ -207,6 +213,12 @@ Release 파일로 설치한 `ha`는 [Release 파일로 설치](#release-파일�
 ha --version
 ```
 
+Release 파일로 설치했다면 이전 버전의 공개 자료가 `~/.local/share/jaekit/<버전>`에 그대로 남습니다. 위에서 `ha 0.1.3`를 확인한 뒤 아래 명령으로 이전 버전 자료만 지울 수 있습니다. 현재 버전 폴더 `~/.local/share/jaekit/0.1.3`와 [참조 검사 가져오기](#참조-검사-가져오기)에 쓰는 파일은 남습니다. `~/.local/share/jaekit`이 symlink이면 아무것도 지우지 않습니다.
+
+```bash
+find ~/.local/share/jaekit -mindepth 1 -maxdepth 1 ! -name 0.1.3 -exec rm -rf {} +
+```
+
 plugin은 marketplace를 새 태그에 고정해 다시 등록합니다. 같은 이름의 marketplace는 둘을 함께 둘 수 없어서 먼저 지웁니다. 지우면 그 marketplace에서 설치한 spec·seal도 함께 지워지므로 다시 설치합니다. 쓰는 host의 명령만 붙여 넣으면 됩니다.
 
 Codex:
@@ -245,6 +257,12 @@ Release 파일로 설치한 `ha`:
 
 ```bash
 rm ~/.local/bin/ha
+```
+
+직접 설치가 공개 자료를 보관한 폴더도 지웁니다. 자기 프로젝트에 복사한 참조 검사 파일(`tools/check-result-reference.py` 등)과 목표 문서·기록은 남습니다. `~/.local/share/jaekit`이 symlink이면 link만 지우고 가리키는 내용은 남깁니다.
+
+```bash
+rm -rf ~/.local/share/jaekit
 ```
 
 Codex:

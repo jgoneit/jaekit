@@ -424,24 +424,27 @@ class Checker:
         require(skill in " ".join(argv) or skill.encode() in raw,
                 "host observation does not identify the requested Skill")
         installed_path, _ = self.artifact(value.get("plugins", {}).get(phase))
-        metadata_text = json.dumps(metadata, ensure_ascii=False)
-        require(str(installed_path) in metadata_text
-                or (name == "claude" and str(installed_path.parent.parent.parent) in metadata_text),
-                "native host trace does not identify the actual loaded Skill path")
         if phase == "seal":
             require(("resume" if name == "codex" else "--resume") in argv,
                     "implementation is not a separate resumed host request")
         commands = tool_commands(phase_events)
         require(native_tools(phase_events), "native host trace has no observed tool execution")
         if phase == "spec":
-            require(not any(re.search(r"\bha[\"']?\s+(?:start|check|done|note|budget)\b", c)
-                            for c in commands), "Spec observation performed execution work")
+            require(not any(core_operations(c, SPEC_FORBIDDEN) for c in commands),
+                    "Spec observation performed execution work")
         else:
-            text = "\n".join(commands)
-            for operation in ("start", "check", "done"):
-                require(re.search(r"\bha[\"']?\s+" + operation + r"\b", text),
-                        f"native Seal trace does not observe ha {operation}")
-            require("--baseline" in text, "native Seal trace does not observe a baseline attempt")
+            observed = set()
+            for command_text in commands:
+                observed |= core_operations(command_text, SEAL_REQUIRED)
+            for operation in SEAL_REQUIRED:
+                require(operation in observed, f"native Seal trace does not observe ha {operation}")
+            require("--baseline" in "\n".join(commands), "native Seal trace does not observe a baseline attempt")
+        # Only the host's own loader metadata of this phase identifies the
+        # loaded Skill: not the available-Skill listing, the request, model
+        # text, tool calls or output, or another phase's events.
+        expected = installed_path if name == "codex" else installed_path.parent.parent.parent
+        require(any(same_path(path, expected) for path in loaded_skill_paths(name, phase_events, skill)),
+                "native host trace does not identify the actual loaded Skill path")
         return commands
 
     def check_6(self):
@@ -642,6 +645,78 @@ def call_commands(name, arguments):
             if isinstance(text, str) and "exec_command(" in text:
                 return [text]
     return []
+
+
+SEAL_REQUIRED = ("start", "check", "done")
+SPEC_FORBIDDEN = ("start", "check", "done", "note", "budget")
+# A command word: line start, whitespace, a shell separator, or the opening
+# quote of a wrapper's script (`zsh -lc '…'`, `exec_command({cmd: "…"})`).
+WORD = r"(?:^|(?<=[\s;&|(\"']))"
+ASSIGNMENT = re.compile(WORD + r"(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=")
+STATIC_VALUE = re.compile(r"""(?:"([^"$`\\]*)"|'([^']*)'|([^\s;&|<>()"'`$\\]+))(?=$|[\s;&|)"'\\])""")
+
+
+def core_operations(command_text, operations):
+    """Core operations invoked literally or through a statically assigned variable.
+
+    The text is only matched, never evaluated. A variable counts when the same
+    command text last assigned it, before the use, a static value whose final
+    path component is `ha`; values computed by substitution do not count.
+    """
+    names = "|".join(operations)
+    found = {m.group(1) for m in re.finditer(r"(?:^|(?<=[\s;&|(/\"'`]))ha[\"']?\s+(" + names + r")\b",
+                                             command_text)}
+    assignments = []
+    for match in ASSIGNMENT.finditer(command_text):
+        value = STATIC_VALUE.match(command_text, match.end())
+        static = next((g for g in value.groups() if g is not None), None) if value else None
+        assignments.append((match.start(), match.group(1), static))
+    use = re.compile(r"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))[\"'\\]*\s+(" + names + r")\b")
+    for match in use.finditer(command_text):
+        variable = match.group(1) or match.group(2)
+        earlier = [static for start, assigned, static in assignments
+                   if assigned == variable and start < match.start()]
+        if earlier and earlier[-1] is not None and PurePosixPath(earlier[-1]).name == "ha":
+            found.add(match.group(3))
+    return found
+
+
+SKILL_BLOCK = re.compile(r"<skill>\n<name>([^<\n]+)</name>\n<path>([^<\n]+)</path>")
+
+
+def loaded_skill_paths(host, events, skill):
+    """Installed locations that the host's loader reports for the invoked Skill.
+
+    Codex injects an invoked Skill as a separate message beginning with a
+    `<skill>` block; its session metadata only lists available Skills. Claude
+    reports each invocation's plugin sources and paths in `system`/`init`.
+    """
+    paths = []
+    plugin = skill.split(":", 1)[0]
+    for event in events:
+        payload = event.get("payload")
+        if host == "codex" and event.get("type") == "response_item" and isinstance(payload, dict) \
+                and payload.get("type") == "message" and payload.get("role") == "user":
+            content = payload.get("content")
+            for item in content if isinstance(content, list) else []:
+                text = item.get("text") if isinstance(item, dict) and item.get("type") == "input_text" else None
+                match = SKILL_BLOCK.match(text) if isinstance(text, str) else None
+                if match and match.group(1) == skill:
+                    paths.append(match.group(2))
+        if host == "claude" and event.get("type") == "system" and event.get("subtype") == "init" \
+                and isinstance(event.get("skills"), list) and skill in event["skills"]:
+            for entry in event.get("plugins") if isinstance(event.get("plugins"), list) else []:
+                if isinstance(entry, dict) and entry.get("source") == f"{plugin}@jaekit" \
+                        and isinstance(entry.get("path"), str):
+                    paths.append(entry["path"])
+    return paths
+
+
+def same_path(reported, expected):
+    try:
+        return Path(reported).is_absolute() and Path(reported).resolve() == expected
+    except (OSError, ValueError):
+        return False
 
 
 def native_tools(events):

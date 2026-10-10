@@ -101,6 +101,28 @@ the final rollout also contains Seal commands and cannot alone establish what
 the earlier Spec turn did. Native `response_item` function/custom-tool calls
 are read as observations, never evaluated or re-executed by this checker.
 
+The loaded Skill is identified only by the host's own loader metadata in that
+phase's events. For Codex, the invoked Skill is a separate message whose text
+begins with a `<skill>` block naming `spec:spec` or `seal:seal` and the
+installed `SKILL.md` path. For Claude, each invocation's `system`/`init` event
+must list the requested Skill and a `spec@jaekit` or `seal@jaekit` plugin
+entry whose path is the installed plugin directory. An installed path that
+appears only in the available-Skill listing of the session metadata, the
+request, model text, tool calls or their output, or another phase's events
+does not identify a loaded Skill. The Spec phase therefore needs its own
+rollout snapshot; the final whole-session rollout is read only for the Seal
+phase.
+
+Core commands are recognized in each observed tool command as a literal `ha`
+or path ending in `/ha`, or as a variable statically assigned such a path
+earlier in the same command text: `HA=/path/to/ha`, quoted values and
+`export`, separated by `;`, `&&` or a newline, and used as `$VAR`, `"$VAR"`
+or `${VAR}`. A variable assigned in another tool call, one whose latest
+assignment uses command substitution or another computed value, one naming a
+different program, and an unassigned variable are not Core commands. The same
+recognition decides the Seal phase's required `start`, `check` and `done`
+and the Spec phase's forbidden `start`, `check`, `done`, `note` and `budget`.
+
 The final repository must retain the `/3` start, real expected baseline failure,
 current pass, complete done record, and referenced raw logs. The checker checks
 record chaining, log digests, native tool-command observations, installed Core
