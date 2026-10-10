@@ -8,7 +8,7 @@ public_tree = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(public_tree)
 
 # Built by concatenation so this file does not trip the checker it tests.
-SIBLING = "jgoneit/" + "jaekit-notes"
+SIBLING = "jgoneit/" + "jaekit-fixture"
 
 
 def flagged(text):
