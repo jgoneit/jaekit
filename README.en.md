@@ -14,6 +14,8 @@ Jaekit is a tool for **people working on projects with Codex or Claude Code**. *
 
 The current release is **v0.1.2**, an early version being refined through real work.
 
+The installation commands on this page install v0.1.2 (spec 0.1.10 and seal 0.1.8). The development combination on main (ha 0.1.3-dev, spec 0.1.11 and seal 0.1.9) is unreleased. See [Release and development combinations](guides/INSTALL.en.md#release-and-development-combinations) for the scope of new document formats and compatibility checks.
+
 ## How it works
 
 ![Send a request. Spec writes the goal and stops. You review it and separately start Seal, which repeats implementation, checks, and fixes, then reports completion. You review the result.](assets/readme/flow.en.svg)

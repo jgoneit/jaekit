@@ -5,7 +5,7 @@ The bundle holds the changing plan and progress of one goal. Its single purpose:
 ```text
 docs/specs/<goal>/
   SPEC.md, <aux>.md   goal documents (the user's; read only)
-  PLAN.md             condition table, scope, tasks, budget
+  PLAN.md             condition table, result declarations, scope, tasks, budget
   REVIEW.md           review of the plan
   tasks/T001.md       per-task detail (optional; small goals keep tasks in PLAN.md)
   PROGRESS.md         current state, task states, timeline, changes, blocks, notes, completion report
@@ -34,6 +34,8 @@ Behavior that must be preserved belongs in the goal documents as a required crit
 ### `## 결과 계약`
 
 For `run-rules/3` change conditions, map `ID | 선언 경로` in a Markdown table. The repository-relative JSON declaration identifies required targets, expected violations and the producer. Include the declaration and every producer/configuration file in `검사 경로` so the baseline receives them. See [ha.md](ha.md) for the report contract and actual reference producer. Generic runner nonzero exits alone are insufficient. Existing `/1` and `/2` goals and ordinary maintain, manual and task checks keep their roles.
+
+The declaration and every `producer_paths` input must be tracked regular files whose bytes match HEAD. Commit them before checking; do not put the product behavior being changed among the overlaid check files. An undeclared `/3` command can still run and record `unknown`, but cannot establish change completion. The template is a starting point: replace its placeholders with a producer that actually observes the criterion. No particular runner or adapter is required.
 
 ### `## 범위`
 

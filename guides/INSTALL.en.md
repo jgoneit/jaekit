@@ -11,6 +11,17 @@ Installation, updates, and removal for the current release, `v0.1.2`. Supported 
 - Moving from a registration that points at a repository checkout: [Move from a local path registration](#move-from-a-local-path-registration)
 - Working on jaekit itself: [Build from source (development)](#build-from-source-development)
 
+## Release and development combinations
+
+| Combination | Core | Spec | Seal | Scope |
+| --- | --- | --- | --- | --- |
+| Current release `v0.1.2` | `ha 0.1.2` | 0.1.10 | 0.1.8 | Default rules `/2`; the pinned installation commands below |
+| Unreleased main | `ha 0.1.3-dev` | 0.1.11 | 0.1.9 | Default rules `/3`, `nested/1`, dirty/copy-safety and compatibility preflight, run estimation and total-limit changes |
+
+The development combination is unreleased. Installing or updating the current release does not satisfy the development Seal's requirements. Development Seal checks the actual Core executable's capabilities and stops before recording if support is missing or cannot be established. Matching version numbers or switching to older rules does not establish compatibility. The [Core capabilities contract](../contracts/core-capabilities.md) applies to the development combination.
+
+Spec writes documents without installing Core or querying its capabilities. New development Spec documents use `nested/1`, so implementing them requires a Core that supports that format. Existing document formats and `/1` or `/2` records are not converted automatically. Publishing binaries, updating Homebrew, checking installed host versions and evaluating model adherence remain follow-up work.
+
 ## Basic install
 
 You need Git and either Codex or Claude Code. For the brew route, install [Homebrew](https://brew.sh) too. Your project must be a folder whose changes are tracked with Git. You do not need to clone (copy to your computer) the Jaekit repository.
@@ -220,14 +231,14 @@ If an `ha` you built earlier with `go install` is still around, clean it up as [
 
 ## Build from source (development)
 
-An `ha` built from a repository checkout shows a development version (`ha 0.1.2-dev`). You need Go 1.26 or later and git. Run this from the root of the checkout.
+An `ha` built from a repository checkout shows a development version (`ha 0.1.3-dev`). You need Go 1.26 or later and git. Run this from the root of the checkout.
 
 ```bash
 go install ./cmd/ha
 ha --version
 ```
 
-The `ha` file goes to the folder `go env GOBIN` prints, or to `$(go env GOPATH)/bin` when that is empty. `ha --version` prints `ha 0.1.2-dev`.
+The `ha` file goes to the folder `go env GOBIN` prints, or to `$(go env GOPATH)/bin` when that is empty. `ha --version` prints `ha 0.1.3-dev`. Development Seal separately checks the actual support information from `ha capabilities --format json`. A Python compatibility helper is optional; Python 3 installation is not a prerequisite for Seal.
 
 To use the plugins while you change the checkout, register the checkout path as the marketplace. That registration uses the plugin files in the checkout as they are. Replace `<path to jaekit>` with the path of your checkout.
 

@@ -1,0 +1,15 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "repository-go-check",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/goal-checks/go-result.py",
+    "cmd/ha/baseline_safety_test.go"
+  ],
+  "targets": [
+    {
+      "id": "AC-3",
+      "violation": "ac-3-requirement"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "checks": [{
+    "target": "empty-summary",
+    "path": "src/textstats/empty-output.txt",
+    "equals": "0 0 0\n",
+    "violation": "incorrect-empty-summary",
+    "missing": "violation"
+  }]
+}

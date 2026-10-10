@@ -2,7 +2,7 @@
 name: seal
 description: Carry a goal in docs/specs/<goal>/ to recorded completion — plan, implement, verify through the ha binary, and resume in a new session. Use when the user calls this skill with a goal or asks to implement, finish, or continue a goal document, for example "$seal:seal docs/specs/x" in Codex, "/seal:seal docs/specs/x" in Claude Code, "docs/specs/x 구현해줘", or "docs/specs/x 이어서 해줘".
 metadata:
-  version: "0.1.8"
+  version: "0.1.9"
 ---
 
 # Seal
@@ -22,7 +22,7 @@ The bundle lives next to SPEC.md so that another agent, without this conversatio
 
 | File | Holds |
 | --- | --- |
-| `PLAN.md` | The condition table (every `AC-n` exactly once, kind, command, check paths, tasks), scope globs, tasks, budget |
+| `PLAN.md` | The condition table (every `AC-n` exactly once, kind, command, check paths, tasks), structured result declarations for `/3` change conditions, scope globs, tasks, budget |
 | `REVIEW.md` | The review of the plan: coverage, unneeded tasks, conflicts, open decisions, verification environment, conclusion |
 | `tasks/T001.md` | Per-task goal, grounds, prerequisites, reading material, scope, completion. Small goals may keep tasks inside PLAN.md |
 | `PROGRESS.md` | Current state with its check time and record head, task states, timeline, plan changes, blocks, improvement notes, completion report |
@@ -38,11 +38,13 @@ The bundle lives next to SPEC.md so that another agent, without this conversatio
 
 `ha` is the deterministic recorder. Commands, states, and reasons are in [references/ha.md](references/ha.md).
 
-- `ha --version` must work. If `ha` is missing, record nothing, tell the user how to install it, and stop. On macOS or Linux they run `brew install jgoneit/tap/jaekit`, or install the Release file as the install guide describes (https://github.com/jgoneit/jaekit/blob/main/guides/INSTALL.md). Windows is not supported yet. If they installed it and it is still not found, have them check that it is on PATH with `which -a ha` and open the host again. Building from a checkout (`go install ./cmd/ha`) is only for developing Jaekit.
+- If `ha` is missing, record nothing and stop. The current released combination uses `brew install jgoneit/tap/jaekit`, or the Release file described in https://github.com/jgoneit/jaekit/blob/main/guides/INSTALL.md; it does not yet provide this development skill's required capabilities. Do not promise that installing or updating the current release makes this skill compatible. Windows is not supported yet. If installation is complete but `ha` is not found, check PATH with `which -a ha` and reopen the host. Building from a checkout (`go install ./cmd/ha`) is only for developing Jaekit.
+- Before creating a start record, resolve the actual Core executable to an absolute path and use that path to query `capabilities --format json`. Check the fields against [the compatibility contract](references/ha.md#core-compatibility) before any state-changing command. `ha --version` succeeding is insufficient. Use the same checked absolute executable for subsequent Core commands; if its path or contents change, check again. Missing, unreadable or unsupported information and unmet requirements mean stop without writing records, identify the executable and reason, and do not install tools or fall back to an older rule automatically.
 - `ha start <goal> --request "<the user's words>" --skill <path to this SKILL.md>` records the start, the base commit, the rules version, and this skill's name and version. Add `--host-name`, `--host-version`, and `--model` when you know them. It refuses a bundle with lint problems; `ha lint <goal>` lists them.
 - A `change` condition needs a baseline record: `ha check <goal> --baseline AC-n` observes the intended requirement violation on the base commit. New goals use `run-rules/3`: declare the targets and producer through the structured result contract in [references/ha.md](references/ha.md). A nonzero exit alone is insufficient. Existing `/1` and `/2` goals retain their result semantics; ordinary maintain, manual and task checks retain their roles.
 - A result counts only when `ha check` recorded it on a clean, committed tree that still matches HEAD outside the bundle documents. Commit your changes. Test runs outside `ha` are useful while working but never count.
 - An `error` result may be rerun once on the same code. Under `/3`, inconclusive results share that error limit. A `fail` stays in the record; fix the code or the check and verify again. Do not hide earlier failures behind a producer's final internal retry result.
+- Choose the checks, runner and verification method for the goal. A structured result contract does not require an official adapter or the reference producer. Python 3 is not a prerequisite for Seal; when it is already available, the optional [compatibility helper](scripts/check_core.py) can check the same contract deterministically.
 
 ## Completion
 
@@ -63,6 +65,8 @@ The bundle lives next to SPEC.md so that another agent, without this conversatio
 ## Resuming
 
 When the user asks to continue a goal, treat everything in the bundle as claims. `PROGRESS.md` may be stale or wrong; `ha status <goal>` computes the actual state from the record, the bundle, and git. Trust the computed state, bring `PROGRESS.md` in line with it (for a goal started with seal 0.1.6 or later, restamp `## 현재` with the check time and record head, and append a `재개` entry to `## 타임라인` that notes where it differed, if it did), and carry on from the remaining reasons.
+
+Before changing an existing goal's state, check Core support using the rules saved by its start and the requested operation, as the compatibility contract describes. Do not require `/3` declarations for `/1` or `/2`, convert the goal, or rewrite its history. A newer default rule does not change the saved rule. If support cannot be established, report the reason before resuming or writing a record.
 
 ## Budget
 

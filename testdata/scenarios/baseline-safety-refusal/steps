@@ -1,0 +1,12 @@
+# Preparing a historical /2 baseline is also fail-closed before execution.
+include start
+include check-file
+replace docs/specs/greet/PLAN.md "tests/greeting.sh |" "tests/greeting.sh, tests/missing.sh |"
+ha check $GOAL --baseline AC-1
+expect-exit 65
+expect-output "tests/missing.sh"
+expect-output "0/1 targets executed, 1 not run"
+expect-records 2
+# The earlier valid baseline from check-file remains the only attempt.
+expect-attempt AC-1 baselines 1
+expect-attempt AC-1 checks 0

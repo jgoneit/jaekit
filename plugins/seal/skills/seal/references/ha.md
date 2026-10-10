@@ -2,10 +2,32 @@
 
 `ha` runs verification commands without a shell, appends `runs.jsonl`, and computes the goal state from the record, the bundle, and git only. The same inputs always give the same state; the current time is never used.
 
+This reference describes the unreleased development combination: ha 0.1.3-dev and Seal 0.1.9. Release v0.1.2 uses ha 0.1.2 and Seal 0.1.8; installing that release does not provide the new capability query or `/3` features.
+
+## Core compatibility
+
+Resolve the actual executable selected for `ha` to an absolute path. Run that exact executable with `capabilities --format json`, and use the same path for later Core commands. Check again when its path or contents change. A successful version command is not compatibility evidence; neither is a response obtained from a different executable. Do not cache approval across such changes.
+
+The response uses `schema: ha-capabilities/v1`, `ha_version`, `supported_rules`, `default_rules`, `formats` and `features`. These required fields must have the types and values described in the [Core capabilities contract](https://github.com/jgoneit/jaekit/blob/main/contracts/core-capabilities.md). Missing or malformed information, an unsupported schema, query failure, missing executable or unmet requirements mean stop before writing any record. Identify the executable and the reason; never fall back to older rules, install tools or alter records automatically. Current-release updates do not yet supply this development combination.
+
+For a **new start**, require all of the following:
+
+- `default_rules` is `run-rules/3`, and `supported_rules` includes it. A different default is unsupported by this skill even if `/3` appears in the supported list.
+- `formats.criteria` includes `legacy` and `nested/1`.
+- `formats.check_declaration`, `formats.check_result` and `formats.check_evidence` include `check-declaration/v1`, `check-result/v1` and `check-evidence/v1`, respectively.
+- `features` includes `estimate/v1`, `dirty-preflight/v1`, `baseline-safe-copy/v1`, `structured-change-results/v1` and `budget-change/v1`.
+
+For an **existing goal**, read its saved start rule and selected SPEC format without changing them. Seal 0.1.9 understands only `run-rules/1`, `run-rules/2` and `run-rules/3`; refuse any other saved rule even if Core lists it as supported. Require that rule in `supported_rules` and the selected format (`legacy` when absent) in `formats.criteria`. Resume and check operations require `baseline-safe-copy/v1` and `dirty-preflight/v1`; under `/3` they also require the three structured-result formats and `structured-change-results/v1`. A budget operation instead requires `/3`, its three structured-result formats and `budget-change/v1`; `/1` and `/2` do not support that operation. A different default rule does not invalidate an otherwise supported existing goal. Do not require `/3` declarations for legacy goals or move ordinary maintain, manual and task checks to the structured contract.
+
+When Python 3 is already available, the optional [check_core.py](../scripts/check_core.py) helper checks this same contract. From the project directory, use `python3 <skill>/scripts/check_core.py --ha <actual executable> --operation start`, substituting the actual skill path. For an existing goal, choose `--operation resume`, `check` or `budget` and add `--goal <existing goal>`. It reports `compatible`, `reason`, `executable`, `sha256`, `ha_version`, `operation`, `rules` and `missing`: exit 0 means compatible, 2 means refused and 64 means invalid arguments. Use the successful response's absolute `executable` afterward. Python is not required: the agent can read the actual Core JSON and apply the contract directly. Never treat missing Python as missing Core support.
+
+This checks source contracts and executable support. Whether installed Codex or Claude models follow the instructions in practice is a separate host evaluation; capability output does not establish that result. Spec document writing requires neither Core nor this query.
+
 ## Commands
 
 | Command | Use |
 | --- | --- |
+| `ha capabilities [--format json]` | Read-only support information without a goal or record; JSON is the default |
 | `ha lint <goal>` | Lists goal document and bundle format problems, one per line: code, file:line, detail. Exit 1 when any exist |
 | `ha estimate <goal> [AC-n \| EX-n \| T001 …] [--baseline] [--format md\|json]` | Reads the PLAN lower bound, limit and shortfall, plus default and selected runs. Executes nothing; does not change records or budgets |
 | `ha start <goal> --request "<quote>" --skill <SKILL.md> [--host-name …] [--host-version …] [--model …]` | Records the start once per goal. Refuses lint problems, a second start, and a PLAN limit below the required minimum before writing a start record |

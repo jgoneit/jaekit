@@ -3,10 +3,12 @@ name: spec
 description: Write or update goal documents (SPEC.md with AC-n completion criteria, user scenarios, and open decisions) for an idea or change the user explicitly asks to specify. Only for explicit spec requests; never for ordinary implementation requests. Writes the documents directly, reports, and stops; implementation starts with a new request.
 disable-model-invocation: true
 metadata:
-  version: "0.1.10"
+  version: "0.1.11"
 ---
 
 # Spec
+
+Spec writes goal documents without installing Core, querying its capabilities, or running verification. The implementing agent chooses the checks, runner and verification method after a separate implementation request.
 
 Turn the user's request and the repository context into goal documents that let any coding agent, in any later session, understand what must be true when the work is done. Produce documents only. Never implement, run, or schedule the work.
 

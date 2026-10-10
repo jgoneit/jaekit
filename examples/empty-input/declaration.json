@@ -1,0 +1,7 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-reference",
+  "producer_version": "1",
+  "producer_paths": ["tools/check-result-reference.py", "examples/empty-input/reference.json"],
+  "targets": [{"id": "empty-summary", "violation": "incorrect-empty-summary"}]
+}
