@@ -149,6 +149,11 @@ func estimateTestSnapshot(t *testing.T, root string) map[string][32]byte {
 }
 
 func TestEstimateAC8(t *testing.T) {
+	t.Run("insufficient plan before start", func(t *testing.T) {
+		estimateTestFixture(t, []estimateTestRow{{"AC-1", "change", false}, {"AC-2", "maintain", false}}, 2)
+		report := estimateTestJSON(t, 1)
+		estimateTestNumbers(t, report, map[string]int{"minimum_runs": 3, "plan_runs_limit": 2, "shortfall": 1})
+	})
 	t.Run("34 required changes", func(t *testing.T) {
 		var rows []estimateTestRow
 		for i := 1; i <= 34; i++ {
@@ -208,12 +213,6 @@ func TestStartBudgetAC9(t *testing.T) {
 	for _, limit := range []int{2, 3, 4} {
 		t.Run(fmt.Sprint(limit), func(t *testing.T) {
 			root := estimateTestFixture(t, []estimateTestRow{{"AC-1", "change", false}, {"AC-2", "maintain", false}}, limit)
-			wantEstimate := 0
-			if limit < 3 {
-				wantEstimate = 1
-			}
-			report := estimateTestJSON(t, wantEstimate)
-			estimateTestNumbers(t, report, map[string]int{"minimum_runs": 3, "plan_runs_limit": limit, "shortfall": max(0, 3-limit)})
 			before := estimateTestSnapshot(t, root)
 			code, text := estimateTestCLI("start", estimateTestGoal, "--request", "Run this synthetic goal")
 			if limit < 3 {
