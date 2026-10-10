@@ -1,0 +1,15 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "public-path-probes",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/public-checks/path_evidence.py",
+    "tools/public-checks/test_paths.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-1",
+      "violation": "path-not-rejected"
+    }
+  ]
+}
