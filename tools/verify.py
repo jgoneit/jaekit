@@ -40,6 +40,14 @@ def verify_go(env: dict[str, str]):
     run("Go formatting", ["gofmt", "-l", "."], env, formatting=True)
     run("Go vet", ["go", "vet", "-mod=readonly", "./..."], env)
     run("Go tests", ["go", "test", "-mod=readonly", "./..."], env)
+    # These offline boundary regressions include real Go fixtures and local
+    # bash/zsh processes. Keep them in the Go group so docs-only verification
+    # does not acquire a Go dependency. Preservation checks are separate:
+    # they query a release and invoke this entry point themselves.
+    for filename in ("test_observation.py", "test_installation.py", "test_producers.py"):
+        run(f"Review boundaries ({filename})",
+            [sys.executable, "-m", "unittest", "discover", "-s", "tools/review-checks",
+             "-p", filename], env)
     # All build outputs live outside the checkout, including on failed checks.
     with tempfile.TemporaryDirectory(prefix="jaekit-verify-") as temporary:
         output = Path(temporary)
@@ -61,6 +69,7 @@ def verify_docs(env: dict[str, str]):
     for label, directory in (("Public checker regressions", "public-checks"),
                              ("Workflow regressions", "workflow-checks"),
                              ("Release archive regressions", "release"),
+                             ("Goal check regressions", "goal-checks"),
                              ("Release acceptance checker regressions", "release-checks")):
         run(label, [sys.executable, "-m", "unittest", "discover", "-s", f"tools/{directory}",
                     "-p", "test_*.py"], env)

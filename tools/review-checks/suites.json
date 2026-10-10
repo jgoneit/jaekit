@@ -28,7 +28,7 @@
     "class": "AC7"
   },
   "AC-8": {
-    "file": "tools/review-checks/test_installation.py",
+    "file": "tools/review-checks/test_platform_installation.py",
     "class": "AC8"
   },
   "AC-9": {

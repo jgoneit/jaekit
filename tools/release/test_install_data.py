@@ -1,8 +1,8 @@
 """Run the published direct-install data steps against a synthetic home.
 
 The install, update and uninstall blocks are extracted from both guides. Every
-`$HOME` and `~/` in a block is rebound to a temporary directory and the child
-process gets that directory as HOME, so the real installation is untouched.
+`$HOME` and `~/` in a block is rebound to a temporary directory. The child
+process inherits HOME unchanged, and the real installation is untouched.
 """
 import os
 from pathlib import Path
@@ -49,7 +49,7 @@ class DirectData(unittest.TestCase):
         return Path(temp.name).resolve()
 
     def run_bash(self, script, home, cwd):
-        env = dict(os.environ, HOME=str(home))
+        env = dict(os.environ)
         result = subprocess.run(["/bin/bash", "-c", "set -e\n" + script], cwd=cwd, env=env,
                                 capture_output=True, text=True, timeout=30)
         self.assertEqual(result.returncode, 0, result.stderr)

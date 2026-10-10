@@ -45,12 +45,12 @@ class ClaudeTranscriptLoad(Case):
         self.accepts("claude", value, "seal")
 
     def test_phase_snapshots_load_each_phase_skill(self):
-        value, _ = self.claude(transcript=lambda spec_dir, seal_dir: None)
+        value, _ = self.claude()
         spec_dir = str(self.root / "claude/plugins/cache/jaekit/spec/0.1.0/skills/spec")
         seal_dir = str(self.root / "claude/plugins/cache/jaekit/seal/0.1.0/skills/seal")
-        value["spec"]["session_trace"] = self.lines(self.invocation("spec:spec", spec_dir))
-        value["seal"]["session_trace"] = self.lines(self.invocation("spec:spec", spec_dir)
-                                                    + self.invocation("seal:seal", seal_dir, number=2))
+        entries = [json.loads(line) for line in (self.root / value["session_trace"]["path"]).read_text().splitlines()]
+        value["spec"]["session_trace"] = self.lines([entry for entry in entries if entry.get("promptId") == "prompt-1"])
+        value["seal"]["session_trace"] = self.lines([entry for entry in entries if entry.get("promptId") == "prompt-2"])
         self.accepts("claude", value, "spec")
         self.accepts("claude", value, "seal")
 
@@ -221,7 +221,7 @@ class SpecCommandPosition(Case):
         for command in (f"ha start {GOAL}", f"{CORE} check {GOAL} AC-1", f'HA={CORE}; "$HA" done {GOAL}',
                         f"echo $(ha note {GOAL} input)", f'out="$({CORE} budget {GOAL} --runs 5)"',
                         f"echo `ha start {GOAL}`", f"zsh -lc 'ha check {GOAL} AC-1'",
-                        f'bash -c "HA={CORE}; \\$HA start {GOAL}"', f"ls && ha done {GOAL}"):
+                        f'bash -c "HA={CORE}; \\$HA start {GOAL}"', f"ls; ha done {GOAL}"):
             with self.subTest(command=command):
                 self.rejects("codex", self.codex_spec(command), "spec", "Spec observation performed execution work")
 
@@ -251,7 +251,7 @@ class KeptRecognition(Case):
     def test_wrappers_prefixes_and_env_command_exec_are_observed(self):
         commands = [f'bash -c "HA={CORE}; \\"\\$HA\\" start {GOAL} --request q"',
                     f"GOAL_DIR={GOAL} env HA_TRACE=1 ha check {GOAL} --baseline AC-1",
-                    f"command {CORE} check {GOAL} AC-1", f"cd repo && exec ha done {GOAL}"]
+                    f"command {CORE} check {GOAL} AC-1", f"cd repo; exec ha done {GOAL}"]
         self.accepts("claude", self.claude_seal(commands), "seal")
 
     def test_command_lookup_is_not_execution(self):

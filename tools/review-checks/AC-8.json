@@ -5,7 +5,8 @@
   "producer_paths": [
     "tools/review-checks/produce.py",
     "tools/review-checks/suites.json",
-    "tools/review-checks/test_installation.py"
+    "tools/review-checks/test_installation.py",
+    "tools/review-checks/test_platform_installation.py"
   ],
   "targets": [
     {

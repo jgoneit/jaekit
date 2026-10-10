@@ -125,56 +125,158 @@ transcript has both entries the host writes for it, each with the observed
    `uuid` and whose text begins with `Base directory for this skill:` and the
    installed Skill directory, the directory holding the indexed `SKILL.md`.
 
-Each phase is judged by its own Skill's invocation, so a whole-session
-transcript serves both phases. A typed request, model text, tool calls or
-their output, another Skill or installation directory, another session, and
-the available-Skill listing of the session metadata do not identify a loaded
-Skill. Commands for both hosts still come from the phase's own events.
+The capture is first bound to exactly one native request. Its assistant/user
+`uuid` values must identify transcript entries in the same session. Their
+`promptId`, directly or through the native `parentUuid` chain to the request,
+must agree. Missing anchors, conflicting request IDs, sidechains and foreign
+sessions are unverified. Only that request's linked invocation and `isMeta`
+entries can identify the loaded Skill. A full transcript and a snapshot with
+the same complete request evidence give the same result; previous or later
+requests cannot substitute for it. Original capture and transcript bytes stay
+unchanged. A manually attached phase label or a nearby timestamp is insufficient.
+The available-Skill listing alone never identifies an invocation.
 
-Core commands are recognized only in command position: the command word of a
-simple command that the observed shell text runs. The text is split into
-words with shell quoting, never evaluated. Simple commands are separated by
-`;`, `&`, `&&`, `|`, `||`, parentheses or a newline. Leading variable
-assignments and the reserved words `if`, `then`, `do`, `!`, `{` and similar
-are skipped, as are `env` (with its options and assignments), `command` and
-`exec`; `command -v` and `command -V` only describe a command. Commands inside
-`$(…)`, backquotes and process substitution count, and so do the static
-scripts given to `sh -c`, `bash -c`, `zsh -c`, `dash -c` or `ksh -c`,
-including combined options such as `zsh -lc '…'`, and the literal `cmd`
-strings of Codex `exec_command` calls.
+Core commands are recognized only in command position. The checker reads shell
+quoting and static command words without evaluating them. Direct `ha` and paths
+ending in `/ha`, variables statically assigned in the same scope, `env`,
+`command`, `exec`, and static `bash -c` / `zsh -c` (including `-lc`) wrappers
+remain supported. `command -v` and `-V` describe commands without running them.
+The spellings `$VAR`, `"$VAR"` and `${VAR}` use only bindings in this command;
+an assignment in another tool call does not carry over. A computed value from
+command substitution is not a static executable binding.
+Codex `exec_command` literal strings accept `cmd`, `'cmd'`, and `"cmd"` keys;
+computed JavaScript is never evaluated.
 
-A command word is Core when its final path component is `ha`: a literal `ha`
-or path ending in `/ha`, or a variable statically assigned such a path
-earlier in the same command text: `HA=/path/to/ha`, quoted values and
-`export`, separated by `;`, `&&` or a newline, and used as `$VAR`, `"$VAR"`
-or `${VAR}`. A variable assigned in another tool call, one whose latest
-assignment uses command substitution or another computed value, one naming a
-different program, and an unassigned variable are not Core commands. The word
-after the command word is the operation. The same recognition decides the Seal
-phase's required `start`, `check` (with `--baseline` among the arguments of at
-least one `check`) and `done`, and the Spec phase's forbidden `start`,
-`check`, `done`, `note` and `budget`.
+Command substitution in arguments, redirection targets and here-strings is
+read, including backquotes and process substitution. In an unquoted
+here-document, substitutions run but plain `ha start` text is only data.
+Quoting any part of the delimiter, or escaping an expansion, prevents that
+expansion. `printf`, `echo`, comments and ordinary quoted example strings do
+not establish Core execution. A baseline flag must belong to an actual `check`
+call, not to a different command's output or arguments.
 
-Text outside command position never runs Core, so the Spec phase may print or
-quote it and the Seal phase cannot satisfy a requirement with it:
-
-| Observed text | Core operation |
+| Observed text | Static result |
 | --- | --- |
-| `ha start goal`, `/opt/bin/ha check goal AC-1`, `cd repo && ha done goal` | yes |
-| `HA=/opt/bin/ha; "$HA" start goal`, `export HA=/opt/bin/ha` then `${HA} done goal` on the next line | yes |
-| `env TRACE=1 ha check goal --baseline AC-1`, `command ha check goal AC-1`, `exec ha done goal` | yes |
-| `echo $(ha note goal input)`, ``x=`ha start goal` ``, `zsh -lc 'ha check goal AC-1'` | yes |
-| `HA=/opt/ha; printf '%s' '$HA start goal'`, `echo "ha start"`, `HA=/opt/bin/ha; echo "$HA" start goal` | no: arguments of `printf` and `echo` |
-| `git commit -m "ha done goal"`, `NEXT="$HA start goal"` | no: a quoted string not passed to a shell |
-| `ls # ha start goal` | no: a comment |
-| `cat <<'EOF'` with `ha start goal` in the body | no: a here-document body |
-| `HA=$(command -v ha); $HA start goal` | no: a computed value |
+| `ha start goal`, `/opt/bin/ha check goal AC-1` | Core call |
+| `HA=/opt/bin/ha; "$HA" start goal`, `export HA=/opt/bin/ha` followed by `${HA} done goal` | Core call in the same scope |
+| `env TRACE=1 ha check goal --baseline AC-1`, `command ha check goal AC-1`, `exec ha done goal` | Core call |
+| `printf x > "$(ha start goal)"`, `cat <<< "$(ha note goal input)"` | Core call in the substitution |
+| `HA=/opt/ha; printf '%s' '$HA start goal'`, `echo "ha start"` | data only |
+| `cat <<'EOF'` with `$(ha start goal)` in the body | data only: quoted here-document |
+| `f() { ha start goal; }` without calling `f` | definition only |
+| `(HA=/opt/bin/ha); $HA start goal` | the child assignment does not identify the parent command |
+| `if false; then ha start goal; fi`, `false && ha start goal`, `f() { ha start goal; }; f` | actual execution evidence required |
 
-These forms are not interpreted, so Core commands inside them are not
-recognized: a here-document or here-string fed to a shell, `eval`, `source`
-and script files, other command runners such as `sudo`, `xargs`, `nohup`,
-`timeout` or `find -exec`, aliases and functions, and Core options placed
-before the operation.
+Subshell, background and pipeline scopes do not leak assignments into the
+parent. Where pipeline scope depends on the shell, an unconfirmed parent value
+is not invented. Conditional branches, `&&` / `||`, and invoked functions can
+contain Core candidates without proving they ran. Relevant uncertainty is
+unverified for both Spec and Seal, not a definite Spec violation or a fulfilled
+Seal operation. Control flow unrelated to Core does not itself block a result.
+
+Computed command names, aliases, `eval`, `source`, external scripts and other
+runners such as `sudo`, `xargs`, `nohup`, `timeout` or `find -exec` are
+not interpreted. Static recognition is bounded; it does not attest to every process
+that arbitrary shell text could launch. The observer below also has an explicit
+supported scope. Unsupported execution is never replaced with a fabricated
+completion or a claim that Core did not execute.
+
+### Optional evidence from the original execution
+
+Use `observe.py` **during the original execution**, in place of directly
+starting a shell, when conditions or functions need runtime evidence. The
+checker does not invoke the collector: **never replay** a historical command
+to repair missing evidence. Existing simple observations need no new format.
+Past ambiguous observations without this evidence remain unverified, with their
+original raw files and completion records preserved.
+
+For a new, authorized synthetic observation, an example tool command is:
+
+```bash
+/tmp/synthetic-python/bin/python3 /tmp/synthetic-checker/observe.py run \
+  --core /tmp/synthetic-core/ha --shell /bin/bash \
+  --output /tmp/private-observation/execution.json \
+  --invocation unique-original-invocation -- \
+  'f() { "$JAEKIT_CORE" check synthetic-goal --baseline AC-1; }; if true; then f; fi'
+```
+
+Use the actual installed Core path for a real observation. Put the
+absolute interpreter path reported by `sys.executable` and absolute collector
+path in the native command itself; resolve these before the original run.
+The example paths above are synthetic. Relative paths, PATH aliases and shell
+variables for the collector command are not supported evidence bindings.
+Keep the complete
+native tool command and its `tool_call_id`; after capture, attach the report
+artifact to the **same phase** using `executions`. The host entry's `core`
+artifact identifies the expected binary. These fields supplement native
+session/request evidence and never replace it:
+
+```json
+{
+  "core": {"path": "/tmp/synthetic-core/ha", "sha256": "FILE_SHA256"},
+  "spec": {
+    "executions": [
+      {"tool_call_id": "native-tool-call-id",
+       "report": {"path": "execution.json", "sha256": "FILE_SHA256"}}
+    ]
+  }
+}
+```
+
+`jaekit-execution/v1` records the unique invocation and fresh run ID, exact collector argv,
+script digest, producer/Core/shell byte identities, supported coverage, and
+ordered `shell_start`, `core_start`, `core_exit`, `shell_exit` events. Each event
+has a sequence and previous-event digest. The consumer matches the report to
+the exact native tool command and tool ID in the already identified request.
+After writing the report, the collector emits a `JAEKIT_EXECUTION_RECEIPT`
+diagnostic containing its run ID and report digest to stderr. That receipt must
+appear in the **same native tool call's result**: Claude `tool_result`, or Codex
+`function_call_output`, `custom_tool_call_output` or completed tool result.
+An index's `tool_call_id` alone cannot bind a report. Reusing an old report for
+a later identical command fails because the later result has a different
+receipt. Keep the original result output, including this diagnostic.
+Missing or duplicate bindings, changed bytes, unknown schemas, incomplete or
+conflicting events are unverified. An attached bad report never falls back to
+a more permissive static result.
+
+The controlled shell is bash without startup files or zsh with `-f`.
+`$JAEKIT_CORE` routes calls through a launcher that starts the identified binary
+once, records its actual expanded argv after successful process creation, and
+waits for its result. Original stdout and shell exit status are preserved;
+original stderr is followed by the collector's separate receipt diagnostic.
+Spawn failures differ from starts; a started child without an exit,
+or an interrupted collector, does not establish complete evidence. Existing
+output artifacts are not overwritten. Keep failed captures and reports too.
+
+Coverage is deliberately limited to explicit quoted `"$JAEKIT_CORE"` calls, simple
+assignments, functions defined unconditionally before use, branches and shell builtins listed in the
+collector's coverage policy (`:`, `true`, `false`, `echo`, a literal-format
+`printf` without `-v` or `%n`, and literal numeric `exit`/`return`). Test and
+arithmetic builtins such as `test`, `[` and `[[`, dynamic printf formats,
+declaration builtins, `IFS` changes and implicit variable setters are unsupported.
+Function definitions inside an uncalled function do not establish parent scope.
+The launcher variable is accepted only as the quoted command word, never as an
+assignment value, other argument or redirection target.
+Collector coverage excludes redirections; the separate static reader still
+recognizes substitutions in redirections and here-documents.
+Dynamic command names, arbitrary external
+programs, startup hooks, `eval`/`source`, asynchronous jobs, reserved observer
+variable rewrites and direct Core calls that bypass the launcher are
+unsupported. This is local observation, not signed third-party attestation or
+a system-wide process monitor. The checker independently checks coverage of
+the original script; an arbitrary `complete` flag is not proof.
+
+With complete supported evidence, taken branches and called functions supply
+only their actual Core calls. Untaken branches, uncalled functions and printed
+examples supply none. Complete evidence with a missing required Seal operation
+is a requirement failure; insufficient or unsupported evidence is unverified.
+A Spec no-execution result requires complete coverage of the observed command.
+
+Current-file checks do not require earlier private files or commits. The
+separate [history audit](../goal-checks/README.md) takes explicit base/head
+inputs; missing history is unverified, is never automatically fetched and is
+not a successful preservation check. Public release identity checks remain
+separate and still require their original release evidence.
 
 The final repository must retain the `/3` start, real expected baseline failure,
 current pass, complete done record, and referenced raw logs. The checker checks

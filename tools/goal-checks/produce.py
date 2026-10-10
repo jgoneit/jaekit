@@ -17,6 +17,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import stat
 import subprocess
@@ -63,7 +64,9 @@ def go_events(argv, cwd):
     for line in proc.stdout.splitlines():
         if line.startswith("{"):
             try:
-                events.append(json.loads(line))
+                event = json.loads(line)
+                if isinstance(event, dict):
+                    events.append(event)
             except ValueError:
                 pass
         else:
@@ -72,25 +75,51 @@ def go_events(argv, cwd):
     built = built and "[setup failed]" not in proc.stderr and "build failed" not in proc.stderr
     finals = {}
     outputs = {}
+    started = set()
+    package_finals = {}
+    diagnostics = [proc.stderr]
     for event in events:
         test = event.get("Test")
+        action = event.get("Action")
+        if action == "output":
+            output = event.get("Output", "")
+            diagnostics.append(output)
+            outputs.setdefault(test or "", []).append(output)
+            # Package output includes TestMain failures and post-test panics.
+            sys.stderr.write(output)
         if not test:
+            if action in ("pass", "fail", "skip"):
+                package_finals[event.get("Package", "")] = action
             continue
-        if event.get("Action") in ("pass", "fail", "skip"):
-            finals[test] = event["Action"]
-        if event.get("Action") == "output":
-            outputs.setdefault(test, []).append(event.get("Output", ""))
-            sys.stderr.write(event.get("Output", ""))
-    return built, finals, outputs
+        if action == "run":
+            started.add(test)
+        if action in ("pass", "fail", "skip"):
+            finals[test] = action
+    if not built:
+        return "compile_error", finals, outputs
+    failed = "fail" in finals.values()
+    package_failed = "fail" in package_finals.values()
+    runtime_failure = re.search(
+        r"^(?:panic:|fatal error:|runtime:|signal:|WARNING: DATA RACE|exit status (?:[2-9]|[1-9][0-9]+)\b)",
+        "".join(diagnostics), re.MULTILINE)
+    # Exit 1 with an ordinary assertion is valid. A process/package failure
+    # without that assertion, or a test that never finished, is not its proof.
+    if (proc.returncode not in (0, 1)
+            or (proc.returncode != 0 and runtime_failure)
+            or started.difference(finals)
+            or (proc.returncode == 0 and (failed or package_failed))
+            or (proc.returncode != 0 and not failed)):
+        return "execution_error", finals, outputs
+    return None, finals, outputs
 
 
 def run_go(check):
     name = check["test"]
     if not isinstance(name, str) or not name.startswith("Test") or not name.isidentifier():
         raise ValueError("invalid go test")
-    built, finals, _ = go_events(["go", "test", "-count=1", "-json", "-run", "^" + name + "$", check["package"]], Path.cwd())
-    if not built:
-        return {"status": "error", "reason": "compile_error"}
+    error, finals, _ = go_events(["go", "test", "-count=1", "-json", "-run", "^" + name + "$", check["package"]], Path.cwd())
+    if error:
+        return {"status": "error", "reason": error}
     result = finals.get(name)
     if result == "pass":
         return {"status": "pass"}
@@ -130,11 +159,13 @@ def run_go_docs(check):
     with tempfile.TemporaryDirectory(prefix="jaekit-goal-docs-") as directory:
         copy = Path(directory) / "repo"
         copy_tree(Path.cwd(), copy)
-        built, finals, outputs = go_events(argv, copy)
-        if not built:
-            return {"status": "error", "reason": "compile_error"}
+        error, finals, outputs = go_events(argv, copy)
+        if error:
+            return {"status": "error", "reason": error}
         if not finals:
             return {"status": "error", "reason": "collection_error"}
+        if all(action == "skip" for action in finals.values()):
+            return {"status": "skip", "reason": "skipped"}
         if expect == "pass":
             failed = any(action == "fail" for action in finals.values())
             return {"status": "violation"} if failed else {"status": "pass"}
@@ -142,11 +173,13 @@ def run_go_docs(check):
         relative = local_file(check["path"]).relative_to(Path.cwd())
         with (copy / relative).open("a", encoding="utf-8") as output:
             output.write(check["append"])
-        built, finals, outputs = go_events(argv, copy)
-    if not built:
-        return {"status": "error", "reason": "compile_error"}
+        error, finals, outputs = go_events(argv, copy)
+    if error:
+        return {"status": "error", "reason": error}
     if not finals:
         return {"status": "error", "reason": "collection_error"}
+    if all(action == "skip" for action in finals.values()):
+        return {"status": "skip", "reason": "skipped"}
     added = failure_lines(finals, outputs) - before
     if any(check["mentions"] in line for line in added):
         return {"status": "pass"}

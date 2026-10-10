@@ -88,6 +88,15 @@ class AC9(unittest.TestCase):
                                             capture_output=True, timeout=60)
                     self.assertEqual(result.returncode, 0,
                                      "[requirement] valid current files require no historical digest: " + result.stderr)
+                    for current_check in (["go", "test", "-mod=readonly", "./..."],
+                                          [sys.executable, "tools/verify.py", "docs"]):
+                        with self.subTest(check=current_check):
+                            checked = subprocess.run(current_check, cwd=repository, env=ENV, text=True,
+                                                     capture_output=True, timeout=900)
+                            self.assertEqual(
+                                checked.returncode, 0,
+                                "[requirement] ordinary product and public checks must pass without "
+                                "historical or private inputs: " + checked.stdout + checked.stderr)
                     bad = repository / "guides/synthetic-review.md"
                     bad.write_text("docs/specs/" + "release-" + "0-1-3" + "/runs.jsonl\n")
                     git(repository, "add", "guides/synthetic-review.md")

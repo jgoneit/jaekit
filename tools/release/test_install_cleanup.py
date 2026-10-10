@@ -2,7 +2,8 @@
 
 Only folders of versions older than the installed version are removed; the
 current and newer versions and entries that are not version folders stay.
-Every `$HOME` and `~/` in a block is rebound to a temporary directory.
+Every `$HOME` and `~/` in a block is rebound to a temporary directory; the
+process HOME is unchanged.
 """
 import os
 from pathlib import Path
@@ -38,7 +39,7 @@ class UpdateCleanup(unittest.TestCase):
         return Path(temp.name).resolve()
 
     def run_block(self, shell, block, home):
-        env = dict(os.environ, HOME=str(home))
+        env = dict(os.environ)
         argv = [shell, "-f", "-c", "set -e\n" + data.bind(block, home)] if shell.endswith("zsh") else \
             [shell, "-c", "set -e\n" + data.bind(block, home)]
         result = subprocess.run(argv, cwd=home, env=env, capture_output=True, text=True, timeout=30)
@@ -109,7 +110,7 @@ class UpdateCleanup(unittest.TestCase):
                 self.assertEqual((len(direct), len(copy)), (1, 1))
                 project = home / "project"
                 project.mkdir()
-                env = dict(os.environ, HOME=str(home))
+                env = dict(os.environ)
                 result = subprocess.run(["/bin/bash", "-c", "set -e\n" + data.bind(direct[0], home) + copy[0]],
                                         cwd=project, env=env, capture_output=True, text=True, timeout=30)
                 self.assertEqual(result.returncode, 0, result.stderr)

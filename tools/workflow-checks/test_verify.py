@@ -65,11 +65,22 @@ class Fixture(unittest.TestCase):
                 f"NAME = {name!r}\n" + recorder +
                 "if os.environ.get('VERIFY_TEST_FAIL') == NAME: sys.exit(29)\n"
             )
-        for group in ("public-checks", "workflow-checks", "release", "release-checks"):
+        for group in ("public-checks", "workflow-checks", "release", "goal-checks", "release-checks"):
             directory = self.repo / "tools" / group
             directory.mkdir()
             (directory / "test_fixture.py").write_text(
                 f"NAME = {group!r}\n" + recorder +
+                "import unittest\n"
+                "class SyntheticCase(unittest.TestCase):\n"
+                "    def test_result(self):\n"
+                "        self.assertNotEqual(os.environ.get('VERIFY_TEST_FAIL'), NAME)\n"
+            )
+        review = self.repo / "tools/review-checks"
+        review.mkdir()
+        for filename in ("test_observation.py", "test_installation.py", "test_producers.py"):
+            label = "review:" + filename
+            (review / filename).write_text(
+                f"NAME = {label!r}\n" + recorder +
                 "import unittest\n"
                 "class SyntheticCase(unittest.TestCase):\n"
                 "    def test_result(self):\n"
@@ -98,8 +109,9 @@ class InvocationCases(Fixture):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         commands = self.commands()
         self.assertEqual([item["name"] for item in commands],
-                         ["gofmt", "go", "go", "go", "go", "go", "go", "go", "ha", "ha",
-                          "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "release-checks"])
+                         ["gofmt", "go", "go", "review:test_observation.py", "review:test_installation.py",
+                          "review:test_producers.py", "go", "go", "go", "go", "go", "ha", "ha",
+                          "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "goal-checks", "release-checks"])
         builds = [item for item in commands if item["name"] == "go" and item["args"][0] == "build"]
         self.assertEqual([(item["goos"], item["goarch"]) for item in builds],
                          [("linux", "amd64"), ("linux", "arm64"), ("darwin", "amd64"), ("darwin", "arm64"), (None, None)])
@@ -117,7 +129,7 @@ class InvocationCases(Fixture):
         result = self.run_verify("docs")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual([item["name"] for item in self.commands()],
-                         ["check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "release-checks"])
+                         ["check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "goal-checks", "release-checks"])
 
     def test_go_group_uses_native_smoke_despite_cross_environment(self):
         result = self.run_verify("go", GOOS="other", GOARCH="other", GOTOOLCHAIN="auto")
@@ -138,6 +150,9 @@ class FailureCases(Fixture):
 
     def test_required_command_failures_are_identified_and_stop_execution(self):
         cases = (("gofmt", "Go formatting"), ("vet", "Go vet"), ("test", "Go tests"),
+                 ("review:test_observation.py", "Review boundaries (test_observation.py)"),
+                 ("review:test_installation.py", "Review boundaries (test_installation.py)"),
+                 ("review:test_producers.py", "Review boundaries (test_producers.py)"),
                  ("build:darwin/arm64", "Build darwin/arm64"), ("build", "Build native smoke binary"),
                  ("smoke:--version", "CLI version"), ("smoke:--help", "CLI help"),
                  ("check_public_tree.py", "Public file boundary"),
@@ -145,6 +160,7 @@ class FailureCases(Fixture):
                  ("public-checks", "Public checker regressions"),
                  ("workflow-checks", "Workflow regressions"),
                  ("release", "Release archive regressions"),
+                 ("goal-checks", "Goal check regressions"),
                  ("release-checks", "Release acceptance checker regressions"))
         for failure, label in cases:
             with self.subTest(failure=failure):

@@ -12,11 +12,16 @@ from pathlib import Path, PurePosixPath
 import platform
 import re
 import shutil
+import shlex
 import subprocess
 import sys
 import tarfile
 import tempfile
 from urllib.request import urlopen
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import shell_reader
+import execution_trace
 
 ROOT = Path(__file__).resolve().parents[2]
 REPO = "jgoneit/jaekit"
@@ -325,6 +330,11 @@ class Checker:
                     require((path.parent / relative).read_bytes()
                             == self.source(f"plugins/seal/skills/seal/{relative}"),
                             "installed Seal support file differs from the public tag")
+        if any(value.get(phase, {}).get("executions") for phase in ("spec", "seal")):
+            _, core_bytes = self.artifact(value.get("core"))
+            target = native_platform()
+            public = archive_files(self.download(f"ha_{VERSION}_{target}.tar.gz"), target)
+            require(core_bytes == public["ha"], "observed Core differs from the public native asset")
         return value
 
     def check_1(self):
@@ -414,6 +424,8 @@ class Checker:
         if rollout:
             _, additional = self.artifact(rollout)
             session_events = json_lines(additional)
+        if name == "claude":
+            session_events = claude_request_events(events, session_events, session)
         if rollout and name == "codex":
             require(session in native_identity(session_events)[0],
                     "rollout metadata belongs to a different native session")
@@ -436,7 +448,22 @@ class Checker:
                     "implementation is not a separate resumed host request")
         commands = tool_commands(phase_events)
         require(native_tools(phase_events), "native host trace has no observed tool execution")
-        invocations = [call for command_text in commands for call in core_invocations(command_text)]
+        calls = tool_invocations(phase_events)
+        try:
+            observed = execution_trace.consume(self, value, capture, calls, phase_events)
+        except (execution_trace.InvalidObservation, Failure, OSError, ValueError) as error:
+            raise Unavailable("execution observation is unverified: " + str(error)) from None
+        invocations, consumed = [], set()
+        for command_text in commands:
+            if command_text in observed:
+                if command_text not in consumed:
+                    invocations.extend(observed[command_text])
+                    consumed.add(command_text)
+            else:
+                analysis = shell_analysis(command_text)
+                if analysis.unknown:
+                    raise Unavailable("Core execution is unverified: conditional, function or dynamic invocation needs original execution evidence")
+                invocations.extend(analysis.calls)
         if phase == "spec":
             require(not any(operation in SPEC_FORBIDDEN for operation, _ in invocations),
                     "Spec observation performed execution work")
@@ -612,6 +639,30 @@ def validate_selected_core(public_binary):
             "current PATH Core does not expose the release capabilities")
 
 
+def tool_invocations(events):
+    """Native call IDs paired with their command strings, never prose IDs."""
+    result = []
+    for event in events:
+        item = event.get("item", {})
+        if event.get("type") == "item.completed":
+            if item.get("type") == "command_execution" and isinstance(item.get("command"), str):
+                result.append((item.get("id"), item["command"]))
+            elif item.get("type") == "mcp_tool_call":
+                result.extend((item.get("id"), c) for c in call_commands(item.get("tool", ""), item.get("arguments", {})))
+        payload = event.get("payload", {})
+        if event.get("type") == "response_item" and payload.get("type") in ("function_call", "custom_tool_call"):
+            result.extend((payload.get("call_id"), c) for c in call_commands(
+                payload.get("name", ""), payload.get("arguments", payload.get("input", {}))))
+        message = event.get("message", {})
+        content = message.get("content") if isinstance(message, dict) else None
+        for block in content if isinstance(content, list) else []:
+            if isinstance(block, dict) and block.get("type") == "tool_use":
+                command_text = block.get("input", {}).get("command")
+                if isinstance(command_text, str):
+                    result.append((block.get("id"), command_text))
+    return result
+
+
 def tool_commands(events):
     commands = []
     for event in events:
@@ -660,7 +711,7 @@ def call_commands(name, arguments):
     return []
 
 
-EXEC_CMD = re.compile(r"\bexec_command\s*\(\s*\{[^{}]*?\bcmd\s*:\s*")
+EXEC_CMD = re.compile(r"\bexec_command\s*\(\s*\{[^{}]*?(?:\bcmd|'cmd'|\"cmd\")\s*:\s*")
 JS_ESCAPES = {"n": "\n", "r": "\r", "t": "\t", "b": "\b", "f": "\f", "v": "\v", "0": "\0"}
 
 
@@ -707,383 +758,70 @@ def js_string(code, start):
 
 SEAL_REQUIRED = ("start", "check", "done")
 SPEC_FORBIDDEN = ("start", "check", "done", "note", "budget")
-SHELLS = {"sh", "bash", "zsh", "dash", "ksh"}
-# Reserved words before a command word; the words that follow `for`, `case`,
-# `select` and `function` are not command words.
-RESERVED = {"!", "{", "}", "if", "then", "else", "elif", "fi", "do", "done", "while", "until", "time", "esac"}
-COMPOUND = {"for", "case", "select", "function"}
-DECLARATIONS = {"export", "readonly", "declare", "typeset", "local"}
-ASSIGNMENT = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)(\+?)=")
-REDIRECTIONS = ("<<<", "<<-", "<<", "<>", "<&", ">>", ">&", ">|", "<", ">")
-ANSI_ESCAPES = {"n": "\n", "t": "\t", "r": "\r", "e": "\x1b", "a": "\a", "b": "\b", "f": "\f", "v": "\v"}
-NESTING = 32
-
-
-class ShellText:
-    """Split observed shell text into simple commands without evaluating it.
-
-    A command is a list of words; a word is a list of parts: ("text", value,
-    quoted), ("var", name), ("sub", commands) for command substitution, or
-    ("dynamic",) for any other expansion. Comments, redirection targets and
-    here-document bodies are dropped.
-    """
-
-    def __init__(self, text, level=0):
-        self.text, self.index, self.level = text, 0, level
-        self.heredocs = []
-
-    def at(self, offset=0):
-        position = self.index + offset
-        return self.text[position] if position < len(self.text) else ""
-
-    def commands(self, closing=False):
-        result, words, word, redirect, nesting = [], [], None, None, 0
-
-        def end_word():
-            nonlocal word, redirect
-            if word is None:
-                return
-            if redirect is None:
-                words.append(word)
-            elif redirect != "target":
-                self.heredocs.append(("".join(p[1] if p[0] == "text" else "$" for p in word),
-                                      redirect == "strip"))
-            word, redirect = None, None
-
-        def end_command():
-            nonlocal words
-            end_word()
-            if words:
-                result.append(words)
-            words = []
-
-        while self.index < len(self.text):
-            char = self.at()
-            if char == "\\" and self.at(1) == "\n":
-                self.index += 2
-            elif char in " \t":
-                end_word()
-                self.index += 1
-            elif char == "\n":
-                end_command()
-                self.index += 1
-                self.skip_heredocs()
-            elif char == "#" and word is None:
-                end = self.text.find("\n", self.index)
-                self.index = len(self.text) if end < 0 else end
-            elif char == "&" and self.at(1) == ">":
-                end_word()
-                self.index += 3 if self.at(2) == ">" else 2
-                redirect = "target"
-            elif char in ";&|":
-                end_command()
-                self.index += 1
-            elif char == "(":
-                end_command()
-                nesting += 1
-                self.index += 1
-            elif char == ")":
-                end_command()
-                self.index += 1
-                if closing and nesting == 0:
-                    return result
-                nesting = max(0, nesting - 1)
-            elif char in "<>" and self.at(1) == "(":
-                end_word()
-                self.index += 2
-                word = [("sub", self.nested())]
-            elif char in "<>":
-                if word is not None and len(word) == 1 and word[0][0] == "text" \
-                        and not word[0][2] and word[0][1].isdigit():
-                    word = None  # a file descriptor number, not an argument
-                end_word()
-                operator = next(op for op in REDIRECTIONS if self.text.startswith(op, self.index))
-                self.index += len(operator)
-                redirect = {"<<": "heredoc", "<<-": "strip"}.get(operator, "target")
-            else:
-                if word is None:
-                    word = []
-                self.part(word)
-        end_command()
-        return result
-
-    def nested(self):
-        if self.level >= NESTING:
-            raise Failure("observed command text is nested too deeply to read")
-        self.level += 1
-        try:
-            return self.commands(closing=True)
-        finally:
-            self.level -= 1
-
-    def skip_heredocs(self):
-        for delimiter, strip in self.heredocs:
-            while self.index < len(self.text):
-                end = self.text.find("\n", self.index)
-                line = self.text[self.index:] if end < 0 else self.text[self.index:end]
-                self.index = len(self.text) if end < 0 else end + 1
-                if (line.lstrip("\t") if strip else line) == delimiter:
-                    break
-        self.heredocs = []
-
-    def part(self, word):
-        char = self.at()
-        if char == "\\":
-            add_text(word, self.at(1), True)
-            self.index += 2
-        elif char == "'":
-            end = self.text.find("'", self.index + 1)
-            end = len(self.text) if end < 0 else end
-            add_text(word, self.text[self.index + 1:end], True)
-            self.index = end + 1
-        elif char == '"':
-            self.index += 1
-            self.double_quoted(word)
-        elif char == "$":
-            self.expansion(word, quoted=False)
-        elif char == "`":
-            self.backquoted(word)
-        else:
-            add_text(word, char, False)
-            self.index += 1
-
-    def double_quoted(self, word):
-        while self.index < len(self.text):
-            char = self.at()
-            if char == '"':
-                self.index += 1
-                return
-            if char == "\\" and self.at(1) in ('$', '`', '"', '\\', '\n'):
-                if self.at(1) != "\n":
-                    add_text(word, self.at(1), True)
-                self.index += 2
-            elif char == "$":
-                self.expansion(word, quoted=True)
-            elif char == "`":
-                self.backquoted(word)
-            else:
-                add_text(word, char, True)
-                self.index += 1
-
-    def expansion(self, word, quoted):
-        text, start, following = self.text, self.index, self.at(1)
-        name = re.compile(r"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))").match(text, start)
-        if following == "'" and not quoted:
-            out, index = [], start + 2
-            while index < len(text) and text[index] != "'":
-                if text[index] == "\\" and index + 1 < len(text):
-                    out.append(ANSI_ESCAPES.get(text[index + 1], text[index + 1]))
-                    index += 2
-                else:
-                    out.append(text[index])
-                    index += 1
-            add_text(word, "".join(out), True)
-            self.index = index + 1
-        elif text.startswith("$((", start):
-            self.index = balanced(text, start + 3, "(", ")", 2)
-            word.append(("dynamic",))
-        elif following == "(":
-            self.index += 2
-            word.append(("sub", self.nested()))
-        elif name:
-            word.append(("var", name.group(1) or name.group(2)))
-            self.index = name.end()
-        elif following == "{":
-            self.index = balanced(text, start + 2, "{", "}", 1)
-            word.append(("dynamic",))
-        elif following and (following.isdigit() or following in "@*#?$!-"):
-            word.append(("dynamic",))
-            self.index += 2
-        else:
-            add_text(word, "$", quoted)
-            self.index += 1
-
-    def backquoted(self, word):
-        out, index = [], self.index + 1
-        while index < len(self.text) and self.text[index] != "`":
-            if self.text[index] == "\\" and self.text[index + 1:index + 2] in ("`", "\\", "$"):
-                out.append(self.text[index + 1])
-                index += 2
-            else:
-                out.append(self.text[index])
-                index += 1
-        self.index = index + 1
-        if self.level >= NESTING:
-            raise Failure("observed command text is nested too deeply to read")
-        word.append(("sub", ShellText("".join(out), self.level + 1).commands()))
-
-
-def add_text(word, value, quoted):
-    if word and word[-1][0] == "text" and word[-1][2] == quoted:
-        word[-1] = ("text", word[-1][1] + value, quoted)
-    else:
-        word.append(("text", value, quoted))
-
-
-def balanced(text, index, opening, closing, depth):
-    while index < len(text) and depth:
-        if text[index] == opening:
-            depth += 1
-        elif text[index] == closing:
-            depth -= 1
-        index += 1
-    return index
-
-
-def word_value(word, scope):
-    """The word's text when every part is literal or a statically assigned variable."""
-    out = []
-    for part in word:
-        if part[0] == "text":
-            out.append(part[1])
-        elif part[0] == "var" and scope.get(part[1]) is not None:
-            out.append(scope[part[1]])
-        else:
-            return None
-    return "".join(out)
-
-
-def program_name(word, scope):
-    """The final path component of a command word, when the text settles it."""
-    value = word_value(word, scope)
-    if value is not None:
-        return PurePosixPath(value).name if value else ""
-    tail = []
-    for part in reversed(word):
-        if part[0] != "text":
-            break
-        tail.insert(0, part[1])
-    tail = "".join(tail)
-    return tail.rsplit("/", 1)[1] if "/" in tail else None
-
-
-def assignment(word):
-    """(name, static value or None) for a `NAME=value` word."""
-    if not word or word[0][0] != "text" or word[0][2]:
-        return None
-    match = ASSIGNMENT.match(word[0][1])
-    if not match:
-        return None
-    value = [("text", word[0][1][match.end():], False)] + word[1:]
-    static = None if match.group(2) or any(p[0] != "text" for p in value) else "".join(p[1] for p in value)
-    return match.group(1), static
+def shell_analysis(command_text):
+    try:
+        return shell_reader.analyse(command_text)
+    except shell_reader.ReadError as error:
+        raise Unavailable("shell syntax is unverified: " + str(error)) from None
 
 
 def core_invocations(command_text):
-    """(operation, arguments) of each Core command the text runs in command position.
-
-    The text is split into simple commands and never evaluated. A command word
-    is Core when its final path component is `ha`, literally or through a
-    variable that the same text last assigned a static value before the use.
-    Commands inside command substitution and `sh`/`bash`/`zsh -c` scripts
-    count; arguments of other commands, comments and here-document bodies do not.
-    """
-    found = []
-    run_commands(ShellText(command_text).commands(), {}, found, 0)
-    return found
+    """Definite calls only; trace() separately rejects unresolved execution."""
+    return shell_analysis(command_text).calls
 
 
 def core_operations(command_text, operations):
     return {operation for operation, _ in core_invocations(command_text) if operation in operations}
 
 
-def run_commands(commands, scope, found, level):
-    for words in commands:
-        for word in words:
-            for part in word:
-                if part[0] == "sub":
-                    run_commands(part[1], dict(scope), found, level)
-        prefix, index = {}, 0
-        while index < len(words) and assignment(words[index]):
-            name, value = assignment(words[index])
-            prefix[name] = value
-            index += 1
-        if index == len(words):
-            scope.update(prefix)
-        else:
-            run_command(words[index:], scope, prefix, found, level)
-
-
-def run_command(words, scope, prefix, found, level):
-    while words:
-        value, name = word_value(words[0], scope), program_name(words[0], scope)
-        if value in RESERVED:
-            words = words[1:]
-        elif value in COMPOUND or name is None:
-            return
-        elif name == "env":
-            words = words[1:]
-            while words:
-                option, pair = word_value(words[0], scope), assignment(words[0])
-                if pair:
-                    prefix[pair[0]] = pair[1]
-                    words = words[1:]
-                elif option in ("-u", "--unset", "-C", "--chdir", "-S", "--split-string"):
-                    words = words[2:]
-                elif option is not None and option.startswith("-"):
-                    words = words[1:]
-                else:
-                    break
-        elif name == "command":
-            words = words[1:]
-            while words and word_value(words[0], scope) in ("-p", "--"):
-                words = words[1:]
-            if words and (word_value(words[0], scope) or "").startswith("-"):
-                return  # `command -v` and `-V` describe a command without running it
-        elif name == "exec":
-            words = words[1:]
-            while words:
-                option = word_value(words[0], scope)
-                if option == "-a":
-                    words = words[2:]
-                elif option is not None and option.startswith("-"):
-                    words = words[1:]
-                else:
-                    break
-        else:
-            break
-    if not words:
-        return
-    name = program_name(words[0], scope)
-    arguments = [word_value(word, scope) for word in words[1:]]
-    if name in DECLARATIONS and word_value(words[0], scope) == name:
-        for word in words[1:]:
-            pair = assignment(word)
-            if pair:
-                scope[pair[0]] = pair[1]
-    elif name == "ha":
-        if arguments and arguments[0] is not None:
-            found.append((arguments[0], arguments[1:]))
-    elif name in SHELLS:
-        script = shell_script(arguments)
-        if script is not None:
-            if level >= NESTING:
-                raise Failure("observed command text is nested too deeply to read")
-            run_commands(ShellText(script).commands(), dict(scope, **prefix), found, level + 1)
-
-
-def shell_script(arguments):
-    """The script operand of `sh -c`, `bash -lc` and similar, when it is static."""
-    command_mode, index = False, 0
-    while index < len(arguments):
-        option = arguments[index]
-        if option is None:
-            return None
-        if option == "--":
-            index += 1
-            break
-        if len(option) < 2 or option[0] not in "-+":
-            break
-        if option[0] == "-" and not option.startswith("--") and "c" in option[1:]:
-            command_mode = True
-        index += 2 if option[-1] in "oO" and not option.startswith("--") else 1
-    if command_mode and index < len(arguments):
-        return arguments[index]
-    return None
-
-
 SKILL_BLOCK = re.compile(r"<skill>\n<name>([^<\n]+)</name>\n<path>([^<\n]+)</path>")
 BASE_DIRECTORY = re.compile(r"Base directory for this skill: ([^\n]+)")
+
+
+def claude_request_events(capture, transcript, session):
+    """Bind a capture to one native prompt through common assistant/user UUIDs.
+
+    promptId may live on a parent request rather than on the assistant entry.
+    Walking parentUuid stops at that request, never at an older resumed turn.
+    """
+    def unknown():
+        raise Unavailable("loaded Skill request binding is missing or conflicting")
+    indexed = {}
+    for entry in transcript:
+        uuid = entry.get("uuid")
+        if isinstance(uuid, str):
+            if uuid in indexed and indexed[uuid] != entry:
+                unknown()
+            indexed[uuid] = entry
+    anchors = [entry["uuid"] for entry in capture if entry.get("type") in ("assistant", "user")
+               and isinstance(entry.get("uuid"), str)]
+    prompts = set()
+    for anchor in anchors:
+        if anchor not in indexed:
+            unknown()
+        current, seen, ids = indexed[anchor], set(), set()
+        while current is not None:
+            uuid = current.get("uuid")
+            if uuid in seen or current.get("sessionId") != session or current.get("isSidechain") is True:
+                unknown()
+            seen.add(uuid)
+            if isinstance(current.get("promptId"), str) and current["promptId"]:
+                ids.add(current["promptId"])
+            content = current.get("message", {}).get("content")
+            if current.get("type") == "user" and current.get("isMeta") is not True and isinstance(content, str):
+                break
+            parent = current.get("parentUuid")
+            if parent is None:
+                break
+            current = indexed.get(parent)
+        if len(ids) != 1:
+            unknown()
+        prompts.update(ids)
+    if len(prompts) != 1:
+        unknown()
+    prompt = next(iter(prompts))
+    return [entry for entry in transcript if entry.get("sessionId") == session
+            and entry.get("isSidechain") is not True and entry.get("promptId") == prompt]
 
 
 def entry_texts(entry):

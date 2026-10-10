@@ -6,15 +6,21 @@
       "runner": "command",
       "argv": [
         "python3",
-        "tools/goal-checks/release-0-1-3-followups/preserved.py",
-        "12071916201f0241f84b014ea7a07c4480062cd9"
+        "tools/goal-checks/release-0-1-3-followups/preserved.py"
       ]
     },
     {
       "target": "synthetic-additions",
-      "runner": "unittest",
-      "file": "tools/goal-checks/release-0-1-3-review-fixes/test_private_independence.py",
-      "test": "AddedLines"
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/goal-checks/release-0-1-3-review-fixes/test_private_independence.py",
+        "--history",
+        "--base",
+        "12071916201f0241f84b014ea7a07c4480062cd9",
+        "--head",
+        "46c7094bd3901b471b98a6581ed8388298108e2b"
+      ]
     }
   ]
 }

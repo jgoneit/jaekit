@@ -245,6 +245,9 @@ class AC12(unittest.TestCase):
             ("guides/USAGE.md", "현재 배포판은\n**[v0.1.2](https://example.invalid/releases)**입니다.\n"),
             ("examples/README.md", "현재\n배포판은 [`v0.1.2`](https://example.invalid/releases)입니다.\n"),
             ("README.en.md", "The current release\nis [**v0.1.2**](https://example.invalid/releases).\n"),
+            ("README.en.md", "The current release is [_v0.1.2_](https://example.invalid/releases).\n"),
+            ("guides/USAGE.md", "현재 배포판은\n[__v0.1.2__](https://example.invalid/releases)입니다.\n"),
+            ("examples/README.md", "현재 배포판은 _[v0.1.2](https://example.invalid/releases)_입니다.\n"),
             ("README.en.md", "The current release is `[v0.1.2](https://example.invalid/releases)`.\n"),
         )
         for path, claim in claims:
@@ -256,6 +259,7 @@ class AC12(unittest.TestCase):
             "The current release is [v0.1.3](https://example.invalid/v0.1.2).\n",
             "The current release is [download](https://example.invalid/v0.1.2).\n",
             "현재 배포판은 [**v0.1.3**](https://example.invalid/v0.1.2)입니다.\n",
+            "The current release is [__v0.1.3__](https://example.invalid/v0.1.2).\n",
             "The current release\n\n[v0.1.2](https://example.invalid/old).\n",
             "The current release\r\n\r\n[v0.1.2](https://example.invalid/old).\r\n",
         )

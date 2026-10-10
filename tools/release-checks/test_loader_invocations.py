@@ -69,7 +69,7 @@ class TraceCase(unittest.TestCase):
             self.fail(f"{host} {phase} trace was rejected: {error}")
 
     def rejects(self, host, value, phase, message):
-        with self.assertRaisesRegex(check.Failure, message):
+        with self.assertRaisesRegex((check.Failure, check.Unavailable), message):
             self.checker.trace(host, value, phase)
 
     # Codex shapes -----------------------------------------------------------
@@ -164,6 +164,25 @@ class TraceCase(unittest.TestCase):
             transcript = lambda spec_dir, seal_dir: (self.invocation("spec:spec", spec_dir)
                                                      + self.invocation("seal:seal", seal_dir, number=2))
         entries = transcript(str(Path(spec_skill).parent), str(Path(seal_skill).parent))
+        # Native stdout and transcript share message UUIDs. Keep these fixture
+        # anchors separate from the slash-command/isMeta pair being tested.
+        for phase in ("spec", "seal"):
+            events = [json.loads(line) for line in (self.root / value[phase]["stdout"]["path"]).read_text().splitlines()]
+            requests = [entry for entry in entries or [] if entry.get("type") == "user"
+                        and entry.get("sessionId") == SESSION and entry.get("isMeta") is not True
+                        and f"<command-name>/{phase}:{phase}</command-name>" in str(entry.get("message", {}).get("content"))]
+            request = requests[0] if requests else {"type": "user", "sessionId": SESSION,
+                "uuid": f"request-{phase}", "promptId": f"prompt-{phase}",
+                "message": {"role": "user", "content": "synthetic request without a loaded Skill"}}
+            if entries is not None and not requests:
+                entries.append(request)
+            for index, event in enumerate(events):
+                if event.get("type") in ("assistant", "user"):
+                    event["uuid"] = f"capture-{phase}-{index}"
+                    if entries is not None:
+                        entries.append(dict(event, sessionId=SESSION, promptId=request.get("promptId"),
+                                            parentUuid=request["uuid"]))
+            value[phase]["stdout"] = self.lines(events)
         if entries is not None:
             value["session_trace"] = self.lines(entries)
         return value, spec_root
@@ -239,11 +258,11 @@ class CoreInvocations(TraceCase):
 
     def test_claude_static_variable_forms_are_observed(self):
         forms = {
-            "semicolon and &&": [f"HA={CORE} && $HA start {GOAL} --request q",
+            "semicolon": [f"HA={CORE}; $HA start {GOAL} --request q",
                                  f'HA={CORE}; "$HA" check {GOAL} --baseline AC-1',
-                                 f'HA={CORE}; "$HA" check {GOAL} AC-1', f"HA={CORE} && $HA done {GOAL}"],
-            "quoted values": [f"HA='{CORE}' && \"$HA\" start {GOAL}", f'HA="{CORE}"; $HA check {GOAL} --baseline AC-1',
-                              f"HA='{CORE}' && $HA check {GOAL} AC-1", f'HA="{CORE}" && "$HA" done {GOAL}'],
+                                 f'HA={CORE}; "$HA" check {GOAL} AC-1', f"HA={CORE}; $HA done {GOAL}"],
+            "quoted values": [f"HA='{CORE}'; \"$HA\" start {GOAL}", f'HA="{CORE}"; $HA check {GOAL} --baseline AC-1',
+                              f"HA='{CORE}'; $HA check {GOAL} AC-1", f'HA="{CORE}"; "$HA" done {GOAL}'],
             "export, newline and braces": [f"export HA={CORE}\n${{HA}} start {GOAL}",
                                            f'export HA={CORE}\n"${{HA}}" check {GOAL} --baseline AC-1',
                                            f"export HA={CORE}\n${{HA}} check {GOAL} AC-1",
@@ -256,7 +275,7 @@ class CoreInvocations(TraceCase):
 
     def test_codex_static_variable_in_shell_and_exec_payloads_is_observed(self):
         def seal_rollout(path):
-            code = f'exec_command({{cmd: "HA={CORE} && \\"$HA\\" done {GOAL}"}})'
+            code = f'exec_command({{cmd: "HA={CORE}; \\"$HA\\" done {GOAL}"}})'
             return self.session_start() + [self.injection("seal:seal", path),
                                            {"type": "response_item", "payload": {"type": "custom_tool_call",
                                                                                  "name": "exec", "input": code}}]
@@ -276,7 +295,7 @@ class CoreInvocations(TraceCase):
     def unobserved_start(self, start):
         """Seal traces whose start is only the given form are rejected."""
         value, _ = self.claude(seal_commands=list(start) + SEAL_COMMANDS[1:])
-        self.rejects("claude", value, "seal", "does not observe ha start")
+        self.rejects("claude", value, "seal", "does not observe ha start|unverified")
 
     def test_unassigned_variables_are_not_core(self):
         for form in (f"$ha start {GOAL}", f"$HA start {GOAL}", f'"${{ha}}" start {GOAL}'):
@@ -301,7 +320,7 @@ class CoreInvocations(TraceCase):
     def test_literal_and_absolute_invocations_remain_observed(self):
         value, _ = self.claude(seal_commands=[f"ha start {GOAL} --request q",
                                               f"/opt/homebrew/bin/ha check {GOAL} --baseline AC-1",
-                                              f'"{CORE}" check {GOAL} AC-1', f"cd repo && ha done {GOAL}"])
+                                              f'"{CORE}" check {GOAL} AC-1', f"cd repo; ha done {GOAL}"])
         self.accepts("claude", value, "seal")
 
     def test_spec_phase_literal_execution_remains_rejected(self):

@@ -95,10 +95,13 @@ class Case(base.TraceCase):
         result = subprocess.run(argv, capture_output=True, timeout=20)
         self.assertTrue(output.is_file(), "[requirement] collector must preserve a report, including failed runs")
         artifact = {"path": str(output), "sha256": check.digest(output.read_bytes())}
+        if not hasattr(self, "receipts"):
+            self.receipts = {}
+        self.receipts[str(output)] = result.stderr.decode()
         actual = [json.loads(line) for line in marker.read_text().splitlines()] if marker.exists() else []
         return argv, artifact, core, actual, result
 
-    def observed_value(self, host, phase, argv, artifact, core):
+    def observed_value(self, host, phase, argv, artifact, core, receipt=None):
         command = shlex.join(argv)
         if host == "claude":
             value = self.bound_claude(phase, (command,))
@@ -108,6 +111,22 @@ class Case(base.TraceCase):
             tool = "tool-codex-0"
         value["core"] = {"path": str(core), "sha256": check.digest(core.read_bytes())}
         value[phase]["executions"] = [{"tool_call_id": tool, "report": artifact}]
+        receipt = self.receipts.get(artifact["path"], "") if receipt is None else receipt
+        if host == "claude":
+            number = 1 if phase == "spec" else 2
+            event = {"type": "user", "uuid": f"result-{number}", "message": {"content": [
+                {"type": "tool_result", "tool_use_id": tool, "content": receipt}]}}
+            events = self.read_events(value[phase]["stdout"])
+            events.insert(-1, event)
+            value[phase]["stdout"] = self.lines(events)
+            entries = self.read_events(value["session_trace"])
+            entries.append(dict(event, sessionId=base.SESSION, promptId=f"prompt-{number}", parentUuid=f"reply-{number}"))
+            value["session_trace"] = self.lines(entries)
+        else:
+            entries = self.read_events(value[phase]["session_trace"])
+            entries.append({"type": "response_item", "payload": {"type": "function_call_output",
+                            "call_id": tool, "output": json.dumps({"output": receipt})}})
+            value[phase]["session_trace"] = self.lines(entries)
         return value
 
 
@@ -136,6 +155,10 @@ class AC1(Case):
 class AC2(Case):
     def test_no_native_request_anchor_is_unverified(self):
         value, _ = self.claude()
+        events = self.read_events(value["spec"]["stdout"])
+        for event in events:
+            event.pop("uuid", None)
+        value["spec"]["stdout"] = self.lines(events)
         self.unknown("claude", value, "spec")
 
     def test_conflicting_or_foreign_anchor_is_unverified(self):
@@ -148,6 +171,14 @@ class AC2(Case):
                 entries[-1]["sessionId"] = "other-session"
             value["session_trace"] = self.lines(entries)
             self.unknown("claude", value, "spec")
+
+    def test_one_matched_text_anchor_cannot_cover_an_unmatched_tool_call(self):
+        value = self.bound_claude()
+        events = self.read_events(value["spec"]["stdout"])
+        events.insert(-1, {"type": "assistant", "uuid": "unmatched-tool-message", "message": {"content": [
+            {"type": "tool_use", "id": "unmatched-tool", "name": "Bash", "input": {"command": "ls"}}]}})
+        value["spec"]["stdout"] = self.lines(events)
+        self.unknown("claude", value, "spec")
 
 
 class AC3(Case):
@@ -197,7 +228,9 @@ class AC5(Case):
 class AC6(Case):
     def test_uncertain_core_flow_without_collection_is_unverified(self):
         for command in ("if false; then ha start goal; fi", "false && ha start goal",
-                        "true || ha start goal", "f() { ha start goal; }; f"):
+                        "true || ha start goal", "f() { ha start goal; }; f",
+                        "if false; then ha() { printf data; }; fi; ha start goal",
+                        "{ f() { ha start goal; }; }; f"):
             for host in ("claude", "codex"):
                 with self.subTest(host=host, command=command):
                     value = self.bound_claude(commands=(command,)) if host == "claude" else self.codex_commands("spec", (command,))
@@ -218,6 +251,28 @@ class AC14(unittest.TestCase):
 
 
 class AC15(Case):
+    def test_shell_pipeline_scope_is_observed_not_predicted(self):
+        for shell, expected in (("bash", "outer"), ("zsh", "inner")):
+            argv, artifact, core, actual, result = self.collected(
+                'VALUE=outer; printf x | VALUE=inner; "$JAEKIT_CORE" note "$VALUE"', shell)
+            self.assertEqual(result.returncode, 0)
+            self.assertEqual(actual, [["note", expected]])
+            self.rejects("codex", self.observed_value("codex", "spec", argv, artifact, core), "spec", "execution work")
+
+    def test_an_old_report_cannot_replace_a_later_identical_command(self):
+        argv, first, core, _, _ = self.collected('if false; then "$JAEKIT_CORE" start goal; fi')
+        original = Path(first["path"]).read_bytes()
+        saved = self.write("first-execution.json", original)
+        # Two original synthetic executions, not checker replay. Keep the first
+        # bytes and collect a fresh native result for the identical second argv.
+        Path(first["path"]).unlink()
+        second = subprocess.run(argv, capture_output=True, timeout=20)
+        self.assertEqual(second.returncode, 0)
+        self.assertNotEqual(json.loads(original)["run_id"], json.loads(Path(first["path"]).read_bytes())["run_id"])
+        for host in ("claude", "codex"):
+            value = self.observed_value(host, "spec", argv, saved, core, second.stderr.decode())
+            self.unknown(host, value, "spec")
+
     def test_real_collection_taken_untaken_functions_and_expanded_arguments(self):
         scripts = [
             ('if false; then "$JAEKIT_CORE" start goal; fi; f() { "$JAEKIT_CORE" done goal; }; printf "ha start goal"', []),
@@ -286,6 +341,31 @@ class AC15(Case):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(actual, [])
         self.unknown("claude", self.observed_value("claude", "spec", argv, artifact, core), "spec")
+
+    def test_implicit_builtin_assignment_and_arithmetic_are_outside_coverage(self):
+        for script in ('printf -v JAEKIT_CORE "@CORE@"; "$JAEKIT_CORE" start goal',
+                       '[[ -v \'array[$(@CORE@ start goal)]\' ]]',
+                       'printf "%n" JAEKIT_CORE'):
+            argv, artifact, core, _, _ = self.collected(script)
+            self.unknown("claude", self.observed_value("claude", "spec", argv, artifact, core), "spec")
+
+    def test_forward_conditional_and_nested_definitions_do_not_authorize_external_commands(self):
+        for script in ('missing_f; missing_f() { "$JAEKIT_CORE" start goal; }',
+                       'if false; then missing_f() { "$JAEKIT_CORE" start goal; }; fi; missing_f',
+                       'f() { missing_g() { "$JAEKIT_CORE" start goal; }; }; missing_g'):
+            argv, artifact, core, _, _ = self.collected(script)
+            self.unknown("codex", self.observed_value("codex", "spec", argv, artifact, core), "spec")
+
+    def test_launcher_word_splitting_and_ifs_changes_are_outside_coverage(self):
+        for script in ('$JAEKIT_CORE start goal', 'IFS=/; "$JAEKIT_CORE" start goal'):
+            argv, artifact, core, _, _ = self.collected(script)
+            self.unknown("claude", self.observed_value("claude", "spec", argv, artifact, core), "spec")
+
+    def test_launcher_rewrite_cannot_claim_complete_coverage(self):
+        script = 'printf \'#!/bin/sh\\nexec @CORE@ "$@"\\n\' > "$JAEKIT_CORE"; "$JAEKIT_CORE" start goal'
+        argv, artifact, core, actual, _ = self.collected(script)
+        self.assertEqual(actual, [["start", "goal"]])
+        self.unknown("codex", self.observed_value("codex", "spec", argv, artifact, core), "spec")
 
 
 if __name__ == "__main__":
