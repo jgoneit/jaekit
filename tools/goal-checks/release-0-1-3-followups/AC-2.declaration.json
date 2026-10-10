@@ -1,10 +1,11 @@
 {
   "schema": "check-declaration/v1",
   "producer": "jaekit-goal-tests",
-  "producer_version": "1",
+  "producer_version": "2",
   "producer_paths": [
     "tools/goal-checks/produce.py",
-    "tools/goal-checks/release-0-1-3-followups/AC-2.targets.json"
+    "tools/goal-checks/release-0-1-3-followups/AC-2.targets.json",
+    "tools/result_observations.py"
   ],
   "targets": [
     {
@@ -12,20 +13,220 @@
       "violation": "stale-current-release-accepted"
     },
     {
+      "id": "stale-example-claim.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-example-claim.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-example-claim.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-example-claim.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-example-claim.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-example-claim.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-example-claim.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-example-claim.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-example-claim.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-example-claim.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "stale-readme-claim",
       "violation": "stale-current-release-accepted"
+    },
+    {
+      "id": "stale-readme-claim.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-readme-claim.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-readme-claim.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-readme-claim.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-readme-claim.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-readme-claim.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-readme-claim.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-readme-claim.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-readme-claim.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-readme-claim.attribution",
+      "violation": "no-additional-violation"
     },
     {
       "id": "stale-guide-claim",
       "violation": "stale-current-release-accepted"
     },
     {
+      "id": "stale-guide-claim.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-guide-claim.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-guide-claim.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-guide-claim.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-guide-claim.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-guide-claim.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-guide-claim.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-guide-claim.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-guide-claim.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-guide-claim.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "old-install-command",
       "violation": "old-install-command-accepted"
     },
     {
+      "id": "old-install-command.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "old-install-command.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "old-install-command.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "old-install-command.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "old-install-command.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "old-install-command.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "old-install-command.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "old-install-command.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "old-install-command.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "old-install-command.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "current-docs",
       "violation": "current-docs-rejected"
+    },
+    {
+      "id": "current-docs.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "current-docs.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "current-docs.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "current-docs.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "current-docs.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "current-docs.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "current-docs.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "current-docs.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "current-docs.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "current-docs.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

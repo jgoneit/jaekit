@@ -14,6 +14,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import result_observations as result_facts
+
 
 ROOT = Path(__file__).resolve().parents[2]
 PRESERVED = ROOT / "tools/goal-checks/release-0-1-3-followups/preserved.py"
@@ -304,24 +307,36 @@ class AC6(unittest.TestCase):
                        HA_EVIDENCE_DECLARATION_DIGEST="b" * 64)
             if producer == "goal":
                 declared = {"schema": "check-declaration/v1", "producer": "jaekit-goal-tests",
-                            "producer_version": "1", "targets": [{"id": "synthetic", "violation": "not-met"}]}
-                check = {"runner": "unittest", "target": "synthetic", "file": "fixture.py"}
+                            "producer_version": "2", "targets": result_facts.declaration_targets(
+                                "synthetic", "not-met", result_facts.target_names("synthetic"))}
+                check = {"runner": "unittest", "target": "synthetic", "file": "fixture.py",
+                         "result_targets": result_facts.target_names("synthetic")}
                 if unit != "module":
                     check["test"] = "Case.test_00" if unit == "method" else "Case"
                 (root / "declaration.json").write_text(json.dumps(declared))
-                (root / "targets.json").write_text(json.dumps({"schema": "jaekit-goal-targets/v1", "checks": [check]}))
+                (root / "targets.json").write_text(json.dumps({"schema": "jaekit-goal-targets/v2", "checks": [check]}))
                 argv = [sys.executable, str(ROOT / "tools/goal-checks/produce.py"), "declaration.json", "targets.json"]
             else:
                 directory = root / "tools/review-checks"
                 directory.mkdir(parents=True)
                 shutil.copyfile(ROOT / "tools/review-checks/produce.py", directory / "produce.py")
-                (directory / "suites.json").write_text(json.dumps({"fixture": {"file": "fixture.py", "class": "Case"}}))
+                shutil.copyfile(ROOT / "tools/result_observations.py", root / "tools/result_observations.py")
+                (directory / "suites.json").write_text(json.dumps({"fixture": {"file": "fixture.py", "class": "Case",
+                    "result_targets": result_facts.target_names("fixture")}}))
                 argv = [sys.executable, str(directory / "produce.py"), "fixture"]
             result = subprocess.run(argv, cwd=root, env=env, text=True, capture_output=True, timeout=30)
             self.assertTrue(report.is_file(), "producer must run and write its report: " + result.stderr)
             observations = json.loads(report.read_text())["observations"]
-            self.assertEqual(len(observations), 1, "fixture selects exactly one producer target")
-            return observations[0], result.returncode, result.stderr
+            self.assertEqual(len(observations), 11, "one run has independent assertion and completeness targets")
+            self.assertTrue(all(o['attempt'] == 1 for o in observations), "case outcomes are not retries")
+            # Retain the old decorator/error expectations while the new
+            # producer checks separately assert every preserved observation.
+            execution = next(o for o in observations if o['target'].endswith('.execution'))
+            selected = next(o for o in observations if o['target'].endswith('.selection'))
+            aggregate = execution if execution['status'] == 'error' else observations[0]
+            if aggregate['status'] not in ('violation', 'error') and selected['status'] == 'skip':
+                aggregate = selected
+            return aggregate, result.returncode, result.stderr
 
     def expect(self, producer, cases, status, reason=None, unit="class"):
         observation, code, stderr = self.producer_result(producer, cases, unit)

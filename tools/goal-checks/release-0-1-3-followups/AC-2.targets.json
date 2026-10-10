@@ -1,5 +1,5 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "stale-example-claim",
@@ -7,8 +7,22 @@
       "package": "./plugins",
       "expect": "reject",
       "path": "examples/README.md",
-      "append": "\n현재 배포판 v0.1.2의 사용 예시입니다.\n",
-      "mentions": "examples/README.md"
+      "append": "\n\ud604\uc7ac \ubc30\ud3ec\ud310 v0.1.2\uc758 \uc0ac\uc6a9 \uc608\uc2dc\uc785\ub2c8\ub2e4.\n",
+      "mentions": "examples/README.md",
+      "result_targets": {
+        "additional_violations": [
+          "stale-example-claim.assertion-2",
+          "stale-example-claim.assertion-3",
+          "stale-example-claim.assertion-4",
+          "stale-example-claim.assertion-5",
+          "stale-example-claim.assertion-6",
+          "stale-example-claim.assertion-7",
+          "stale-example-claim.assertion-8"
+        ],
+        "execution": "stale-example-claim.execution",
+        "selection": "stale-example-claim.selection",
+        "attribution": "stale-example-claim.attribution"
+      }
     },
     {
       "target": "stale-readme-claim",
@@ -17,7 +31,21 @@
       "expect": "reject",
       "path": "README.en.md",
       "append": "\nThe current release is v0.1.2.\n",
-      "mentions": "README.en.md"
+      "mentions": "README.en.md",
+      "result_targets": {
+        "additional_violations": [
+          "stale-readme-claim.assertion-2",
+          "stale-readme-claim.assertion-3",
+          "stale-readme-claim.assertion-4",
+          "stale-readme-claim.assertion-5",
+          "stale-readme-claim.assertion-6",
+          "stale-readme-claim.assertion-7",
+          "stale-readme-claim.assertion-8"
+        ],
+        "execution": "stale-readme-claim.execution",
+        "selection": "stale-readme-claim.selection",
+        "attribution": "stale-readme-claim.attribution"
+      }
     },
     {
       "target": "stale-guide-claim",
@@ -25,8 +53,22 @@
       "package": "./plugins",
       "expect": "reject",
       "path": "guides/USAGE.md",
-      "append": "\n현재 배포판은 **v0.1.2**입니다.\n",
-      "mentions": "guides/USAGE.md"
+      "append": "\n\ud604\uc7ac \ubc30\ud3ec\ud310\uc740 **v0.1.2**\uc785\ub2c8\ub2e4.\n",
+      "mentions": "guides/USAGE.md",
+      "result_targets": {
+        "additional_violations": [
+          "stale-guide-claim.assertion-2",
+          "stale-guide-claim.assertion-3",
+          "stale-guide-claim.assertion-4",
+          "stale-guide-claim.assertion-5",
+          "stale-guide-claim.assertion-6",
+          "stale-guide-claim.assertion-7",
+          "stale-guide-claim.assertion-8"
+        ],
+        "execution": "stale-guide-claim.execution",
+        "selection": "stale-guide-claim.selection",
+        "attribution": "stale-guide-claim.attribution"
+      }
     },
     {
       "target": "old-install-command",
@@ -35,13 +77,41 @@
       "expect": "reject",
       "path": "guides/USAGE.md",
       "append": "\n`codex plugin marketplace add jgoneit/jaekit@v0.1.2`\n",
-      "mentions": "guides/USAGE.md"
+      "mentions": "guides/USAGE.md",
+      "result_targets": {
+        "additional_violations": [
+          "old-install-command.assertion-2",
+          "old-install-command.assertion-3",
+          "old-install-command.assertion-4",
+          "old-install-command.assertion-5",
+          "old-install-command.assertion-6",
+          "old-install-command.assertion-7",
+          "old-install-command.assertion-8"
+        ],
+        "execution": "old-install-command.execution",
+        "selection": "old-install-command.selection",
+        "attribution": "old-install-command.attribution"
+      }
     },
     {
       "target": "current-docs",
       "runner": "go-docs",
       "package": "./plugins",
-      "expect": "pass"
+      "expect": "pass",
+      "result_targets": {
+        "additional_violations": [
+          "current-docs.assertion-2",
+          "current-docs.assertion-3",
+          "current-docs.assertion-4",
+          "current-docs.assertion-5",
+          "current-docs.assertion-6",
+          "current-docs.assertion-7",
+          "current-docs.assertion-8"
+        ],
+        "execution": "current-docs.execution",
+        "selection": "current-docs.selection",
+        "attribution": "current-docs.attribution"
+      }
     }
   ]
 }

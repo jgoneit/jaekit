@@ -1,16 +1,57 @@
 {
   "schema": "check-declaration/v1",
   "producer": "jaekit-review-regressions",
-  "producer_version": "1",
+  "producer_version": "2",
   "producer_paths": [
     "tools/review-checks/produce.py",
     "tools/review-checks/suites.json",
-    "tools/review-checks/test_producers.py"
+    "tools/review-checks/test_producers.py",
+    "tools/result_observations.py"
   ],
   "targets": [
     {
       "id": "AC-10",
       "violation": "requirement-not-met"
+    },
+    {
+      "id": "AC-10.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-10.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-10.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-10.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-10.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-10.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-10.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-10.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-10.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-10.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

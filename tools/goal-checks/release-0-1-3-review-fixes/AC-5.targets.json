@@ -1,17 +1,45 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "earlier-recognition",
       "runner": "unittest",
       "file": "tools/release-checks/test_loader_invocations.py",
-      "test": "CoreInvocations"
+      "test": "CoreInvocations",
+      "result_targets": {
+        "additional_violations": [
+          "earlier-recognition.assertion-2",
+          "earlier-recognition.assertion-3",
+          "earlier-recognition.assertion-4",
+          "earlier-recognition.assertion-5",
+          "earlier-recognition.assertion-6",
+          "earlier-recognition.assertion-7",
+          "earlier-recognition.assertion-8"
+        ],
+        "execution": "earlier-recognition.execution",
+        "selection": "earlier-recognition.selection",
+        "attribution": "earlier-recognition.attribution"
+      }
     },
     {
       "target": "wrappers-and-prefixes",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "KeptRecognition"
+      "test": "KeptRecognition",
+      "result_targets": {
+        "additional_violations": [
+          "wrappers-and-prefixes.assertion-2",
+          "wrappers-and-prefixes.assertion-3",
+          "wrappers-and-prefixes.assertion-4",
+          "wrappers-and-prefixes.assertion-5",
+          "wrappers-and-prefixes.assertion-6",
+          "wrappers-and-prefixes.assertion-7",
+          "wrappers-and-prefixes.assertion-8"
+        ],
+        "execution": "wrappers-and-prefixes.execution",
+        "selection": "wrappers-and-prefixes.selection",
+        "attribution": "wrappers-and-prefixes.attribution"
+      }
     }
   ]
 }
