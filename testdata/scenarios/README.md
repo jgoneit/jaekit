@@ -11,7 +11,7 @@ Each directory is one scenario. `cmd/ha/scenario_test.go` builds a git repositor
 | `maintain-broken` | EVALUATION §3 유지 조건 파괴 | `incomplete`, `AC-2:criterion_failed` |
 | `vacuous-check` | EVALUATION §3 공허한 검사 | `incomplete`, `AC-1:baseline_unexpected_pass` |
 | `stale-result` | EVALUATION §3 오래된 결과 | `incomplete`, stale criteria |
-| `dirty-check` | EVALUATION §3 미커밋 상태의 검증 | `incomplete`, records do not count |
+| `dirty-check` | 실행 전 작업 상태 확인 | exit 65 before process; no new records or usage |
 | `dirty-after-verify` | EVALUATION §3 검증 뒤 미커밋 변경 | `incomplete`, `worktree_dirty` |
 | `goal-dir-check-changed` | EVALUATION §3 Goal 디렉토리 안 검사 변경 | `incomplete`, stale criteria |
 | `error-limit` | EVALUATION §3 오류 반복 숨김 | `needs_user`, `AC-2:error_limit` |
@@ -43,9 +43,11 @@ Each directory is one scenario. `cmd/ha/scenario_test.go` builds a git repositor
 | `sibling-declaration-invalid` | run-rules-2 AC-8 | an unreadable declaration is `other_bundles_invalid` |
 | `sibling-declaration-label-invalid` | run-rules-2 AC-8 | a malformed declaration label is `other_bundles_invalid`; only the exact key enables the input declaration |
 | `rules-v2-start` | run-rules-2 AC-9 | a new start records `run-rules/2` |
-| `rules-v1-kept` | run-rules-2 AC-10 | a `run-rules/1` goal keeps run-rules/1 for status and new records |
+| `rules-v1-kept` | run-rules-2 AC-10 | historical `run-rules/1` budget semantics remain; a future dirty check is refused |
 | `blocked` | bundle.md §5 | `blocked` until unblock |
 | `not-started` | run-record.md §4.2 | `incomplete`, `not_started`; checks refused |
+| `start-budget-minimum` | run-record.md §1.1 | estimate and start report shortfall without a record; an equal cap is accepted |
+| `nested-criteria` | goal-docs.md | explicit nested format passes lint and the full verification/completion path |
 | `start-refused` | run-record.md §1 | second start refused |
 | `start-lint-refused` | run-record.md §1 | start refused on lint problems and without a request |
 | `rules-unsupported` | INV-21 | exit 66 |
@@ -61,3 +63,5 @@ Each directory is one scenario. `cmd/ha/scenario_test.go` builds a git repositor
 | `legacy-output-path` | run-record.md §2.2 | an older absolute `output_path` stays as written; `complete` after it |
 
 EVALUATION §3 rows whose P1 expectation is "탐지 기대 없음" other than the command change (weak checks, special-casing, unrelated changes inside scope, tests that change sources) have no scenario: P1 does not claim to detect them.
+
+Budget scenarios explicitly reconstruct a small-cap historical start after admission, so they continue to test stored `/1` and `/2` budget semantics independently of the new minimum for future starts.

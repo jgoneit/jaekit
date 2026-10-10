@@ -214,6 +214,9 @@ Spec의 정합성 확인([goal-docs.md](goal-docs.md) §3)과는 대상이 다�
 | `criteria_missing` | `## Acceptance Criteria` 절이 없거나 조건이 없다 |
 | `criterion_without_id` | `AC-n` ID가 없는 조건 |
 | `criterion_duplicate_id` | 같은 `AC-n`이 두 번 나온다 |
+| `criteria_format` | 목표 문서의 목록 형식 값이나 선택 표시 위치가 올바르지 않다 |
+| `criteria_format_duplicate` | 목표 문서에 목록 형식 선택 표시가 두 번 이상 나온다 |
+| `criterion_indentation` | 새 목록 형식의 들여쓰기가 애매하거나 지원되지 않는다 |
 | `goal_doc_link_missing` | SPEC.md나 보조 문서가 링크한 goal 디렉토리 안 문서가 없다 |
 | `proposal_invalid_id` | 작업 분해 제안의 ID가 `W1` 형식이 아니다 |
 | `proposal_duplicate_id` | 같은 `W` ID가 두 번 나온다 |

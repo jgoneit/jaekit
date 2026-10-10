@@ -1,6 +1,7 @@
 # <Title>
 
 Status: Draft
+Criteria-Format: nested/1
 
 ## Goal
 
@@ -30,6 +31,7 @@ Status: Draft
 
 ## Acceptance Criteria
 - **AC-1** <Observable result of the main flow, phrased from the caller's or user's side.>
+  - <Supporting detail of this same criterion; omit when unnecessary.>
 - **AC-2** <Observable result of the boundary case.>
 - **AC-3** <Existing behavior that keeps working.>
 

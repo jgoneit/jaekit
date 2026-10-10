@@ -1,5 +1,9 @@
 # run-rules/2: a failed condition is not hidden by budget_exceeded; no completion is recorded.
+# Start admission is new; reconstruct the earlier small-cap record explicitly.
+replace $GOAL/PLAN.md "검증 실행: 2" "검증 실행: 3"
 include implement
+replace $GOAL/PLAN.md "검증 실행: 3" "검증 실행: 2"
+rewrite-record 1 budget "{\"runs\":2,\"elapsed_seconds\":14400,\"cost\":\"미관측\"}"
 write src/greeting.txt "bye\n"
 commit "break greeting"
 ha check $GOAL

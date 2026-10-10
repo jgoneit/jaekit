@@ -1,6 +1,7 @@
 # <Title>
 
 Status: Draft
+Criteria-Format: nested/1
 
 ## Goal
 
@@ -12,6 +13,7 @@ Status: Draft
 
 ## Acceptance Criteria
 - **AC-1** <The observable result of the change.>
+  - <Supporting detail of this same criterion; omit when unnecessary.>
 - **AC-2** <Existing behavior that must not change, if there is one worth naming.>
 
 ## Open Decisions

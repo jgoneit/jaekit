@@ -115,7 +115,7 @@ func Load(root, dir string) (*Goal, error) {
 			break
 		}
 	}
-	g.readCriteria(doc, specPath)
+	g.readCriteria(doc, specPath, string(src))
 	g.readProposals(doc, specPath)
 	if err := g.collectDocs(root, specPath, string(src)); err != nil {
 		return nil, err
@@ -127,14 +127,18 @@ func (g *Goal) problem(code, file string, line int, format string, a ...any) {
 	g.Problems = append(g.Problems, diag.Problem{Code: code, File: file, Line: line, Detail: fmt.Sprintf(format, a...)})
 }
 
-func (g *Goal) readCriteria(doc *markdown.Doc, file string) {
+func (g *Goal) readCriteria(doc *markdown.Doc, file, source string) {
 	lines, ok := doc.Section(2, "Acceptance Criteria")
 	if !ok {
 		g.problem("criteria_missing", file, 0, "SPEC.md has no `## Acceptance Criteria` section")
 		return
 	}
+	items, valid := g.criteriaItems(source, lines, file)
+	if !valid {
+		return
+	}
 	seen := map[string]int{}
-	for _, it := range markdown.Items(lines) {
+	for _, it := range items {
 		m := criterionItem.FindStringSubmatch(it.Text)
 		if m == nil {
 			g.problem("criterion_without_id", file, it.Line, "criterion has no AC-n ID: %q", clip(it.Text))
@@ -158,6 +162,80 @@ func (g *Goal) readCriteria(doc *markdown.Doc, file string) {
 	if len(g.Criteria) == 0 && len(seen) == 0 {
 		g.problem("criteria_missing", file, 0, "`## Acceptance Criteria` has no AC-n criteria")
 	}
+}
+
+// criteriaItems keeps format selection in the goal document bytes, so changing
+// the interpretation also changes the goal digest used by existing evidence.
+// Unmarked documents and all execution-bundle lists keep the legacy reader.
+func (g *Goal) criteriaItems(source string, lines []markdown.Line, file string) ([]markdown.Item, bool) {
+	const key = "Criteria-Format:"
+	selected, valid, inSection := false, true, false
+	for _, line := range criteriaFormatLines(source) {
+		if strings.HasPrefix(line.Text, "## ") {
+			inSection = true
+		}
+		if !inSection && line.Text != strings.TrimLeft(line.Text, " \t") && strings.HasPrefix(strings.TrimLeft(line.Text, " \t"), key) {
+			g.problem("criteria_format", file, line.No, "the %s line before the first level-two section must not be indented", key)
+			valid = false
+			continue
+		}
+		if !strings.HasPrefix(line.Text, key) {
+			continue
+		}
+		if selected {
+			g.problem("criteria_format_duplicate", file, line.No, "SPEC.md must contain at most one %s line", key)
+			valid = false
+		}
+		selected = true
+		if inSection || strings.TrimSpace(strings.TrimPrefix(line.Text, key)) != "nested/1" {
+			g.problem("criteria_format", file, line.No, "use `Criteria-Format: nested/1` before the first level-two section, or omit the line to keep the legacy format")
+			valid = false
+		}
+	}
+	if !valid {
+		return nil, false
+	}
+	if !selected {
+		return markdown.Items(lines), true
+	}
+	items, problems := markdown.NestedItems(lines)
+	for _, p := range problems {
+		g.problem("criterion_indentation", file, p.Line, "%s", p.Detail)
+	}
+	return items, true
+}
+
+// criteriaFormatLines scans metadata independently of the legacy Markdown
+// reader. A shorter fence or a fence followed by text cannot expose a quoted
+// selector and silently opt an unchanged document into another interpretation.
+// This changes only format selection; criterion and bundle parsing stay intact.
+func criteriaFormatLines(source string) []markdown.Line {
+	var out []markdown.Line
+	var fence byte
+	fenceLength := 0
+	for i, text := range strings.Split(strings.ReplaceAll(source, "\r\n", "\n"), "\n") {
+		trimmed := strings.TrimLeft(text, " \t")
+		var marker byte
+		size := 0
+		if len(trimmed) > 0 && (trimmed[0] == '`' || trimmed[0] == '~') {
+			marker = trimmed[0]
+			for size < len(trimmed) && trimmed[size] == marker {
+				size++
+			}
+		}
+		if fenceLength > 0 {
+			if marker == fence && size >= fenceLength && strings.Trim(trimmed[size:], " \t") == "" {
+				fence, fenceLength = 0, 0
+			}
+			continue
+		}
+		if size >= 3 && (marker == '~' || !strings.Contains(trimmed[size:], "`")) {
+			fence, fenceLength = marker, size
+			continue
+		}
+		out = append(out, markdown.Line{No: i + 1, Text: text})
+	}
+	return out
 }
 
 func (g *Goal) readProposals(doc *markdown.Doc, file string) {

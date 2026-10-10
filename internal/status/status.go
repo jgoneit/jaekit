@@ -255,6 +255,7 @@ type evaluator struct {
 	rules    string
 	head     string
 	clean    bool
+	dirty    []gitx.WorktreeChange
 	excl     []string
 	start    *record.Line
 	same     map[string]bool
@@ -283,9 +284,10 @@ func Compute(in Input) (*Report, error) {
 	if e.head, err = in.Repo.Head(); err != nil {
 		return nil, err
 	}
-	if e.clean, err = in.Repo.Clean(e.excl); err != nil {
+	if e.dirty, err = in.Repo.WorktreeChanges(e.excl); err != nil {
 		return nil, err
 	}
+	e.clean = len(e.dirty) == 0
 	rep := &Report{
 		Schema: "status/v1", Goal: g.Dir, Assurance: "local", CheckAuthor: "executor",
 		Rules: e.rules, HaVersion: in.HaVersion, Commit: e.head, TreeClean: e.clean, SpecDigest: g.Digest,
@@ -695,7 +697,12 @@ func (e *evaluator) goalReasons(rep *Report) ([]Reason, error) {
 		add("record_integrity", e.in.Integrity.Error(), nil)
 	}
 	if !e.clean {
-		add("worktree_dirty", "uncommitted changes outside the bundle documents; commit or revert them", nil)
+		var paths, details []string
+		for _, change := range e.dirty {
+			paths = append(paths, change.Path)
+			details = append(details, change.String())
+		}
+		add("worktree_dirty", "uncommitted changes outside the bundle documents; commit or revert them: "+strings.Join(details, "; "), paths)
 	}
 	if e.start != nil {
 		changes, err := e.in.Repo.Changes(e.start.BaseCommit, e.head, e.excl)

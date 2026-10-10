@@ -1,6 +1,7 @@
 # <Title>
 
 Status: Draft
+Criteria-Format: nested/1
 
 ## Goal
 
@@ -35,6 +36,7 @@ Status: Draft
 
 ## Acceptance Criteria
 - **AC-1** <The core flow checked across the real boundary, end to end, as the user observes it.>
+  - <Supporting detail of this same criterion; omit when unnecessary.>
 - **AC-2** <Another observable flow result.>
 - **AC-3** <Observable result at a join when something is rejected or fails.>
 - **AC-4** <Existing behavior that keeps working.>

@@ -16,6 +16,7 @@ Read [references/goal-docs.md](references/goal-docs.md) before writing or editin
 
 - Location: `docs/specs/<goal>/SPEC.md`, plus auxiliary Markdown documents in the same directory that SPEC.md links. Use a short kebab-case `<goal>` name.
 - SPEC.md has a `Status:` line (`Draft` or `Ready`), the goal, scope and non-goals, constraints, decisions with reasons, `## Acceptance Criteria`, related context, and `## Open Decisions`.
+- New SPEC.md documents include `Criteria-Format: nested/1` near `Status:`, before the first level-two section. Use the nested-list contract in the reference. When editing an existing document, preserve its format selection or its absence unless the user explicitly decides to change it.
 - Every completion criterion has an ID `AC-n` that is stable within the goal. Optional criteria carry `(선택)` right after the ID. Criteria are required unless marked.
 - Write criteria as observable results close to what the user experiences, not as implementation steps. Prefer "a value the user saved appears again when it is fetched later" over "implement a save API". Never write verification commands.
 - A goal that changes behavior has `## 사용 시나리오`: representative flows, relevant failure or boundary cases, and behavior to keep, each tied to criterion IDs. A small fix needs one or two sentences, not a large document.
@@ -97,4 +98,4 @@ Check the documents before saving and report the result in the conversation; kee
 
 ## Language
 
-Write prose and ordinary headings in the user's language. Keep contract tokens exactly as written: `Status:`, `Draft`, `Ready`, `## Acceptance Criteria`, `## Open Decisions`, `## 사용 시나리오`, `## 작업 분해 제안`, `AC-n`, `W`, `(선택)`, the table headers `ID | 결과 | 조건 | 의존` and `종류 | 시나리오 | 조건`, and the scenario kinds `흐름`, `경계`, `유지`.
+Write prose and ordinary headings in the user's language. Keep contract tokens exactly as written: `Status:`, `Draft`, `Ready`, `Criteria-Format: nested/1`, `## Acceptance Criteria`, `## Open Decisions`, `## 사용 시나리오`, `## 작업 분해 제안`, `AC-n`, `W`, `(선택)`, the table headers `ID | 결과 | 조건 | 의존` and `종류 | 시나리오 | 조건`, and the scenario kinds `흐름`, `경계`, `유지`.

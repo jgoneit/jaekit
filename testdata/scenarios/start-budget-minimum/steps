@@ -1,0 +1,15 @@
+# A fresh start refuses a lower-than-minimum cap without creating a window.
+replace $GOAL/PLAN.md "검증 실행: 50" "검증 실행: 2"
+ha estimate $GOAL --format json
+expect-exit 1
+expect-output "\"minimum_runs\": 3"
+expect-output "\"shortfall\": 1"
+expect-records 0
+ha start $GOAL --request "implement"
+expect-exit 65
+expect-output "minimum 3 runs exceeds plan limit 2"
+expect-records 0
+replace $GOAL/PLAN.md "검증 실행: 2" "검증 실행: 3"
+include start
+expect-records 1
+expect-record 1 budget "{\"runs\":3,\"elapsed_seconds\":14400,\"cost\":\"미관측\"}"

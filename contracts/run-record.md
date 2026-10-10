@@ -14,7 +14,8 @@
 | 명령 | 하는 일 | 기록 |
 | --- | --- | --- |
 | `ha lint <goal>` | 목표 문서 형식(조건 ID), 실행 묶음 구조, 모든 조건 ID의 조건표 대응, 조건↔task 양방향 대응, 순환, 참조 파일 존재, 검증 방법 누락을 확인한다. 오류 코드는 [bundle.md](bundle.md) §8에 있다. | 없음 |
-| `ha start <goal> --request <인용> [--skill <SKILL.md>] [--host-name …] [--host-version …] [--model …]` | 시작을 기록한다. 이미 있으면 거절한다. 새 시작이 필요하면 사용자가 묶음을 새로 만든다. lint 오류가 있어도 거절한다. `--skill`을 주면 `ha`가 그 머리말에서 이름과 버전을 읽고 Skill 디렉토리의 digest를 계산한다(§2.1). | `start` |
+| `ha estimate <goal> [AC-n \| EX-n \| T001 ...] [--baseline] [--format md\|json]` | 현재 PLAN의 필수 최소 실행량, 상한·부족량, 기본 선택과 지정한 대상의 실행량을 읽기 전용으로 계산한다(§1.1). | 없음 |
+| `ha start <goal> --request <인용> [--skill <SKILL.md>] [--host-name …] [--host-version …] [--model …]` | 시작을 기록한다. 이미 있으면 거절한다. 새 시작이 필요하면 사용자가 묶음을 새로 만든다. lint 오류나 필수 최소 실행량보다 작은 PLAN 상한이 있어도 기록 생성 전에 거절한다. dirty 시작은 기존처럼 경고하며 허용한다. `--skill`을 주면 `ha`가 그 머리말에서 이름과 버전을 읽고 Skill 디렉토리의 digest를 계산한다(§2.1). | `start` |
 | `ha check <goal> [AC-n \| T00n ...]` | 지정한 조건이나 task의 검증 명령을 실행한다. 대상이 없으면 모든 required 조건을 실행한다(통합 검증). | `check` |
 | `ha check <goal> --baseline [AC-n ...]` | `change` 조건의 검사 경로만 base commit 임시 worktree에 덧씌워 실행한다. | `baseline` |
 | `ha note <goal> <block \| unblock \| confirm \| reopen \| input> [대상] --quote <인용> [--cause <원인>]` | 막힘, 해소, 사용자 확인, 사용자의 재작업 요청, 그 밖의 사용자 입력을 남긴다. 사용자 발화는 인용한다. `block`은 `--cause`가 필요하고, `confirm`은 대상(§2.4)과 인용이 필요하다. | `note` |
@@ -27,10 +28,38 @@
 **종료 코드**
 - `ha check`: 모든 결과가 기대대로면(`pass`, baseline은 `fail_as_expected`) 0, 아니면 1
 - `ha lint`: 오류가 없으면 0, 있으면 1
+- `ha estimate`: 필수 최소량을 PLAN 상한이 수용하면 0, 부족하거나 lint 오류가 있으면 1
 - `ha status`, `ha done`: §4.3
-- 모든 명령: 64 사용법 오류, 65 거절(시작 전, 이미 시작함, lint 오류, 끊긴 기록, 확인 조건 불충족), 66 지원하지 않는 규칙 버전, 70 내부 오류
+- 모든 명령: 64 사용법 오류, 65 거절(시작 전, 이미 시작함, lint 오류, 끊긴 기록, 확인 조건 불충족, dirty 검증, 시작 예산 부족), 66 지원하지 않는 규칙 버전, 70 내부 오류
 
 출력 원문은 git 디렉토리의 `ha/runs/<goal-key>/<seq>.log`에만 둔다. `<goal-key>`는 저장소 기준 goal 경로를 URL 경로 이스케이프한 것이다(예: `docs%2Fspecs%2Fempty-input`). 목표가 여럿이면 seq가 겹치기 때문이다. 커밋되는 기록과 `ha status`·`ha done`의 출력에는 결과, 이유, digest, 로컬 경로만 넣는다. 출력 원문은 넣지 않는다. 출력에 비밀이 섞일 수 있고, 상태 출력은 완료 보고를 거쳐 커밋되기 때문이다. 원문은 `ha log`로만 본다.
+
+### 1.1 실행 전 진단
+
+**작업 상태.** `check`·`baseline`·task 검증은 각 대상의 프로세스를 시작하기 직전에 적용 규칙의 제외 경로를 반영해 Git 상태를 확인한다. 제외되지 않는 변경이 있으면 exit 65로 거부한다. Git 상태를 읽지 못하면 exit 70이며 실행하지 않는다. 거부된 대상의 검사 기록·실행 횟수·출력 파일은 만들지 않는다. 여러 대상 중 앞선 대상만 실행됐다면 수행/미수행 개수를 출력하고 앞선 결과는 그대로 보존한다. 실행 후 생긴 오류나 stale 결과도 기록과 사용량에 남는다.
+
+진단은 저장소 상대 경로, tracked/untracked, 관측한 symlink 여부를 구분하며 삭제·이름 변경의 경로와 submodule 상태도 표시한다. untracked 경로는 해당 경로의 ignore 규칙 검토를 안내할 수 있으나 자동으로 바꾸지 않는다. tracked 변경을 ignore 추가로 해결할 수 있다고 안내하지 않는다. 실행 중 파일 변경을 원자적으로 막는 기능은 아니며 현재 완료 근거는 §3의 신선도 판정을 계속 적용한다.
+
+이 거부는 지원하는 `/1`·`/2` 목표의 앞으로 실행할 검사에 적용한다. 과거 `tree_clean: false` 기록의 결과와 사용량을 삭제하거나 재해석하지 않는다. 시작의 dirty 경고와 기존 Git ignore·규칙별 실행 문서 제외도 유지한다.
+
+**실행량.** `ha estimate`의 필수 최소량은 `필수 change × 2 + 필수 maintain`이다. manual은 0회이며 change 34개면 68회다. 실패 없는 새로운 실행의 하한이므로 재시도·환경 준비·수동 확인 시간·실제 총시간 또는 완료를 보장하지 않는다. 검사나 환경 probe를 실행하지 않고 기록·예산 창·작업 파일도 바꾸지 않는다.
+
+기본 `check`는 필수 change/maintain, 기본 `--baseline`은 조건표의 모든 change(선택 AC와 EX 포함)를 선택한다. `estimate`는 이 기본 실행량과 필수 하한을 넘는 추가량을 함께 표시한다. 명시한 대상은 실제 `check`와 같은 순서로 선택한다. 선택 AC·EX는 추가량, task의 각 명령은 각각 한 회이며, 중복 대상도 실제 실행과 같이 반복 계산한다. `--baseline`의 명시 대상은 change 조건만 허용한다. manual만 있는 기본 선택은 추정치 0이며 실제 `check`의 no-target 오류는 바뀌지 않는다.
+
+상한은 **현재 PLAN의 전체 상한**이다. 진행 중 목표의 남은 예산이 아니다. 새로운 `start`는 상한이 필수 하한보다 작으면 최소량·상한·부족량을 출력하고 기록을 만들기 전에 exit 65로 거부한다. 같은 값이면 시작할 수 있다. 선택 검사나 재시도 여유 때문에 자동 증액하지 않는다. 기존 목표의 상한과 재개 창은 §5.2 그대로이며 진행 중 검사에 예산 제한을 새로 적용하지 않는다.
+
+JSON 출력은 `schema: estimate/v1`이며 다음을 제공한다.
+
+| 필드 | 의미 |
+| --- | --- |
+| `goal`, `budget_source` | 저장소 상대 목표 경로, `PLAN.md` |
+| `required_change`, `required_maintain`, `minimum_runs` | 필수 종류별 수와 최소 실행량 |
+| `plan_runs_limit`, `shortfall`, `headroom` | PLAN 상한, 부족량, 하한 위의 여유. 부족량과 여유는 음수가 아니다 |
+| `default_check_runs`, `default_baseline_runs`, `default_additional_runs` | 기본 두 명령의 실행량과 합계에서 하한을 뺀 값 |
+| `selected` | `mode`, 순서와 중복을 보존한 `targets`, `runs`, `additional_runs`, `optional_runs`, `task_runs`, `repeated_required_runs` |
+| `limitation` | 추정치의 범위와 기존 예산 창을 바꾸지 않는다는 설명 |
+
+`selected.additional_runs`는 선택·task·필수 대상 중복의 합이다. 같은 phase에서 필수 대상을 처음 선택한 실행은 이미 하한에 포함되므로 추가량이 아니다. 여러 번의 CLI 호출을 합친 비용은 추적하지 않는다.
 
 ## 2. 줄 형식
 
@@ -302,8 +331,8 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
 | `code` | §4.1·§4.2의 이유 |
 | `class` | `executor`(실행자가 고침) \| `user`(사용자 확인) \| `blocked` \| `budget` |
 | `criterion` | 조건의 이유일 때 조건 ID |
-| `paths` | `out_of_scope`, `test_definition_changed`의 경로 |
-| `detail` | 설명(영어) |
+| `paths` | `out_of_scope`, `test_definition_changed`, `worktree_dirty`의 저장소 상대 경로 |
+| `detail` | 설명(영어). `worktree_dirty`는 경로별 tracked/untracked와 관측한 파일 유형·변경 상태를 포함한다 |
 
 #### 변화 (`changes`)
 

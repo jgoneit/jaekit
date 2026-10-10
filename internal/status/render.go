@@ -103,7 +103,8 @@ func (rep *Report) Markdown(goalArg string) string {
 		if r.Detail != "" {
 			line += ": " + r.Detail
 		}
-		if len(r.Paths) > 0 {
+		// Dirty details already contain quoted paths and their Git metadata.
+		if len(r.Paths) > 0 && r.Code != "worktree_dirty" {
 			line += " — " + strings.Join(r.Paths, ", ")
 		}
 		w("%s\n", line)

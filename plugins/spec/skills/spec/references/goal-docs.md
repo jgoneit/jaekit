@@ -17,6 +17,7 @@ The goal document set is SPEC.md plus every Markdown file inside the goal direct
 | Part | Content |
 | --- | --- |
 | `Status:` line | `Draft` while an outcome-changing decision is open, `Ready` when none is. A description, not an authorization |
+| `Criteria-Format:` line | New documents select `nested/1`. Existing documents without the line retain their original list interpretation |
 | Goal | What changes and why |
 | Scope and non-goals | What changes and what must not. A goal that changes existing code states today's behavior with the file path that shows it, and separates what changes from what stays the same |
 | `## 사용 시나리오` | For goals that change behavior: flows, boundary cases, and behavior to keep, tied to criteria |
@@ -32,8 +33,13 @@ Depth follows risk. Small changes do not need every part.
 ## Criteria
 
 ```markdown
+Criteria-Format: nested/1
+
 ## Acceptance Criteria
 - **AC-1** For an empty file, `textstats count` prints `0 0 0` and exits 0.
+  - The numbers are line, word, and byte counts.
+
+  An empty input still produces one output line.
 - **AC-2** Output for non-empty files does not change.
 - **AC-3** (선택) With `--json`, the same values are printed as JSON.
 ```
@@ -41,6 +47,20 @@ Depth follows risk. Small changes do not need every part.
 - Each criterion has an `AC-n` ID, stable within the goal. Keep the ID when the wording changes. Never reuse the number of a removed criterion.
 - Criteria are required by default. Mark optional ones with `(선택)` right after the ID. Only the goal documents decide what is required.
 - Write observable results. Do not write implementation methods or verification commands.
+
+New documents put one unindented `Criteria-Format: nested/1` line near `Status:`, before the first level-two section. Fenced examples do not select a format. A selector indented with spaces or tabs before that first section is a `criteria_format` error. An indented quotation inside a section's body does not select a format and keeps its existing body interpretation. Duplicate selectors, an empty or unsupported value, and an unindented selector after a level-two section are format errors; never silently use the old format instead.
+
+For format selection, a closing fence uses the same backtick or tilde character at least as many times as the opening fence, followed only by spaces or tabs. A shorter fence or one followed by ordinary text stays inside the example. This boundary check applies only to selecting the format; it does not change the existing Markdown interpretation of criterion bodies or execution bundles.
+
+With `nested/1`:
+
+- Use `-`, `*`, or `+` followed by spaces. The first list's zero to three leading spaces set the section's top-level indentation. Each item at that level needs its own unique criterion ID.
+- A body's indentation starts where the parent's text starts after its list marker. For `- AC-1 ...`, this is two spaces; two-, three-, and four-space child lists all belong to that criterion. A parent indented two spaces needs at least four for its body. More spaces after the parent's marker move that content column to the right.
+- Child list markers and their text stay in the body. An `AC-n` inside a child does not create another criterion. Trim leading and trailing whitespace on each content line; apply the same indentation rule to continuation sentences.
+- A blank line does not end the body if the next line reaches its content column. Preserve one blank line between connected paragraphs and omit trailing blank lines. A top-level list item, an unindented paragraph or subheading, or the section's end closes the body. Fenced code stays excluded.
+- Ambiguous indentation between the top-level and body columns, indented content without a parent, a first list indented four or more spaces, and tabs in indentation or after the marker are errors. Do not silently drop or automatically reindent them.
+
+Keep an existing document's selection or lack of selection unless the user explicitly chooses a format change. Unmarked documents keep their previous list, continuation, blank-line and tab behavior. Changing the selection changes the document's meaning and content; prior confirmations and verification evidence cannot silently stand for the newly interpreted text. Do not automatically convert existing documents or rewrite their historical records.
 
 ## User scenarios
 

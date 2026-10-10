@@ -1,5 +1,9 @@
 # run-rules/2: when the only remaining reason is budget_exceeded, the goal is complete and ha done records it; the budget stays visible.
+# Start admission is new; reconstruct the earlier small-cap record explicitly.
+replace $GOAL/PLAN.md "검증 실행: 2" "검증 실행: 3"
 include implement
+replace $GOAL/PLAN.md "검증 실행: 3" "검증 실행: 2"
+rewrite-record 1 budget "{\"runs\":2,\"elapsed_seconds\":14400,\"cost\":\"미관측\"}"
 expect-record 1 rules run-rules/2
 expect-status complete
 expect-reasons none
