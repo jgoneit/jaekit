@@ -340,3 +340,25 @@ The example acquisition check reads the release archive's reference producer
 and runnable example, then runs the archive validator's isolated native smoke.
 It does not install anything. The real two-host observations remain separate
 from this synthetic package smoke.
+
+## Archive resource limits
+
+Every archive consumer uses the same read-only parser. It permits at most
+256 MiB of cumulative member bodies and 10,000 physical entries, including
+directories, empty files, and PAX/GNU metadata headers. The exact limits are
+allowed; the next body is rejected before reading it if its declared size or
+entry would exceed either limit. Expanded logical file contents are separately
+limited to 256 MiB so metadata cannot override that bound. Individual files
+remain limited to 64 MiB. All decompressed bytes, including metadata, padding,
+and trailing streams, are bounded by 512 MiB; downloads remain limited to
+64 MiB compressed. Limit errors identify cumulative bytes, entry count, or
+expanded stream. Invalid sizes, incomplete tar/gzip data, and nonzero trailing
+data are rejected even if all required files were already encountered.
+
+Sparse extensions are unsupported and rejected before reading sparse maps.
+PAX size overrides must be nonnegative decimal integers. Ordinary PAX long
+names remain supported. Paths are inspected in memory without extraction or
+input mutation. Existing
+root, traversal, type, duplicate, and required-file checks still apply. Offline
+regressions use small patched limits and synthetic archives; they do not claim
+a live release observation or a measured memory-exhaustion test.
