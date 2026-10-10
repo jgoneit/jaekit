@@ -17,7 +17,8 @@ PUBLIC_FILES = {
     "README.en.md", "go.mod", "go.sum",
 }
 PRIVATE_REFERENCES = [
-    re.compile(r"https?://github\.com/jgoneit/jaekit-private(?:[/\s#]|$)"),
+    # Sibling repositories hold private history; match https, SSH, and link endings.
+    re.compile(r"github\.com[/:]jgoneit/jaekit-[\w.-]+"),
     re.compile(r"https?://github\.com/jgoneit/jaekit/(?:blob|commit)/[0-9a-f]{40}"),
     re.compile(r"/(?:Users|home)/(?!runner/|user/|example/)[^\s/]+/"),
 ]
