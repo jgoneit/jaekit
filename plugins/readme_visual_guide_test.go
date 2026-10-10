@@ -251,9 +251,9 @@ func TestReadmeVisualGuideAC8(t *testing.T) {
 	for _, l := range visualLanguages {
 		text := visualGuidance(t, l)
 		visualRequire(t, l.readme+" install and calls", text,
-			"brew install jgoneit/tap/jaekit", "ha --version", "ha 0.1.2", "which -a ha",
-			"claude plugin marketplace add jgoneit/jaekit#v0.1.2", "claude plugin install spec@jaekit", "claude plugin install seal@jaekit",
-			"codex plugin marketplace add jgoneit/jaekit@v0.1.2", "codex plugin add spec@jaekit", "codex plugin add seal@jaekit",
+			"brew install jgoneit/tap/jaekit", "ha --version", "ha 0.1.3", "which -a ha",
+			"claude plugin marketplace add jgoneit/jaekit#v0.1.3", "claude plugin install spec@jaekit", "claude plugin install seal@jaekit",
+			"codex plugin marketplace add jgoneit/jaekit@v0.1.3", "codex plugin add spec@jaekit", "codex plugin add seal@jaekit",
 			"/spec:spec ", "$spec:spec ", "@Spec", "/seal:seal docs/specs/<goal>", "$seal:seal docs/specs/<goal>",
 			"brew upgrade jgoneit/tap/jaekit", "brew uninstall jgoneit/tap/jaekit", "marketplace remove jaekit")
 		// A direct README -> INSTALL#codex entry bypasses preceding sections.
@@ -272,7 +272,7 @@ func TestReadmeVisualGuideAC8(t *testing.T) {
 			}
 			visualRequire(t, l.install+" Codex prerequisites", preamble, "(#"+installAnchor+")", "(#"+versionAnchor+")")
 			visualRequire(t, l.install+" ha prerequisite destination", visualSection(t, l.install, installHeading), "brew install jgoneit/tap/jaekit")
-			visualRequire(t, l.install+" version prerequisite destination", visualSection(t, l.install, versionHeading), "ha --version", "which -a ha", "ha 0.1.2")
+			visualRequire(t, l.install+" version prerequisite destination", visualSection(t, l.install, versionHeading), "ha --version", "which -a ha", "ha 0.1.3")
 		}
 
 		before := visualBeforeInstall(t, l)

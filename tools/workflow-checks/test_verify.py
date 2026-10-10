@@ -65,7 +65,7 @@ class Fixture(unittest.TestCase):
                 f"NAME = {name!r}\n" + recorder +
                 "if os.environ.get('VERIFY_TEST_FAIL') == NAME: sys.exit(29)\n"
             )
-        for group in ("public-checks", "workflow-checks"):
+        for group in ("public-checks", "workflow-checks", "release", "release-checks"):
             directory = self.repo / "tools" / group
             directory.mkdir()
             (directory / "test_fixture.py").write_text(
@@ -99,7 +99,7 @@ class InvocationCases(Fixture):
         commands = self.commands()
         self.assertEqual([item["name"] for item in commands],
                          ["gofmt", "go", "go", "go", "go", "go", "go", "go", "ha", "ha",
-                          "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks"])
+                          "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "release-checks"])
         builds = [item for item in commands if item["name"] == "go" and item["args"][0] == "build"]
         self.assertEqual([(item["goos"], item["goarch"]) for item in builds],
                          [("linux", "amd64"), ("linux", "arm64"), ("darwin", "amd64"), ("darwin", "arm64"), (None, None)])
@@ -117,7 +117,7 @@ class InvocationCases(Fixture):
         result = self.run_verify("docs")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual([item["name"] for item in self.commands()],
-                         ["check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks"])
+                         ["check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "release-checks"])
 
     def test_go_group_uses_native_smoke_despite_cross_environment(self):
         result = self.run_verify("go", GOOS="other", GOARCH="other", GOTOOLCHAIN="auto")
@@ -143,7 +143,9 @@ class FailureCases(Fixture):
                  ("check_public_tree.py", "Public file boundary"),
                  ("check_public_docs.py", "Public documentation"),
                  ("public-checks", "Public checker regressions"),
-                 ("workflow-checks", "Workflow regressions"))
+                 ("workflow-checks", "Workflow regressions"),
+                 ("release", "Release archive regressions"),
+                 ("release-checks", "Release acceptance checker regressions"))
         for failure, label in cases:
             with self.subTest(failure=failure):
                 self.log.unlink(missing_ok=True)

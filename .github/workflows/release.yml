@@ -30,17 +30,24 @@ jobs:
           python3 tools/check_public_docs.py
 
       - name: Test
-        run: go test ./...
+        run: |
+          go test ./...
+          python3 -m unittest discover -s tools/release -p 'test_*.py'
 
       - name: Build release files
         env:
           TAG: ${{ github.ref_name }}
         run: |
+          set -euo pipefail
+          [[ "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test -f "tools/release/notes/${TAG}.md"
           version="${TAG#v}"
           # Outside the checkout, so the build info shows a clean tree.
           build="${RUNNER_TEMP}/build"
           dist="${RUNNER_TEMP}/dist"
-          mkdir -p "${build}" "${dist}"
+          test ! -e "${build}"
+          test ! -e "${dist}"
+          mkdir "${build}" "${dist}"
           for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
             os="${target%/*}"
             arch="${target#*/}"
@@ -51,24 +58,34 @@ jobs:
               -o "${build}/${name}/ha" ./cmd/ha
             cp LICENSE README.md README.en.md "${build}/${name}/"
             cp -R guides contracts assets "${build}/${name}/"
+            mkdir -p "${build}/${name}/tools" "${build}/${name}/examples/check-result"
+            cp tools/check-result-reference.py "${build}/${name}/tools/"
+            for example in README.md declaration.json reference.json input.txt; do
+              cp "examples/check-result/${example}" "${build}/${name}/examples/check-result/"
+            done
             tar -C "${build}" -czf "${dist}/${name}.tar.gz" "${name}"
           done
           (cd "${dist}" && sha256sum -- *.tar.gz > checksums.txt)
 
-      - name: Smoke test
+      - name: Verify archives and native smoke
         env:
           TAG: ${{ github.ref_name }}
         run: |
-          version="${TAG#v}"
-          got="$("${RUNNER_TEMP}/build/ha_${version}_linux_amd64/ha" --version)"
-          test "${got}" = "ha ${version}"
+          python3 tools/release/check_archives.py \
+            --version "${TAG#v}" --dist "${RUNNER_TEMP}/dist" --run-native
 
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
+          set -euo pipefail
+          # create refuses an existing release; never delete assets or use --clobber.
           gh release create "${TAG}" "${RUNNER_TEMP}"/dist/* \
             --verify-tag \
             --title "jaekit ${TAG}" \
-            --notes "macOS·Linux(arm64, amd64)용 Seal Core \`ha\`. 설치와 사용법은 README와 guides/INSTALL.md를 참고하세요."
+            --notes-file "tools/release/notes/${TAG}.md"
+          gh release view "${TAG}" --json assets --jq '.assets[].name' > "${RUNNER_TEMP}/published-assets.txt"
+          python3 tools/release/check_archives.py \
+            --version "${TAG#v}" --dist "${RUNNER_TEMP}/dist" \
+            --published-assets "${RUNNER_TEMP}/published-assets.txt"

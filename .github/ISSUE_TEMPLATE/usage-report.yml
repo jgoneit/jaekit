@@ -60,4 +60,4 @@ body:
     attributes:
       label: ha 버전 / ha version
       description: "ha를 설치했다면 `ha --version`으로 확인할 수 있습니다. Spec만 사용했다면 비워 두세요. / If ha is installed, check with `ha --version`. Leave blank if you only used Spec."
-      placeholder: ha 0.1.2
+      placeholder: ha 0.1.3

@@ -1,6 +1,6 @@
 # 계약: Core 지원 정보와 Seal 호환 확인
 
-이 계약은 미배포 개발 조합인 Core `0.1.3-dev`·Seal `0.1.9`에 적용한다. 현재 배포판 `v0.1.2`에는 이 조회 명령이 없다. 개발 기능을 쓰기 위해 단순 업데이트만 하면 된다는 뜻이 아니며, 공개 배포와 설치본 확인은 별도다. Spec은 Core 설치나 이 조회 없이 문서를 작성한다.
+이 계약은 v0.1.3의 Core `0.1.3`·Seal `0.1.9`에 적용한다. 이전 배포판 `v0.1.2`에는 이 조회 명령이 없다. 업데이트 뒤에도 실제 실행 파일의 지원 정보를 확인하며 버전 숫자만으로 호환성을 판단하지 않는다. Spec은 Core 설치나 이 조회 없이 문서를 작성한다.
 
 ## 1. 목표 없는 조회
 
@@ -15,7 +15,7 @@ ha capabilities --format json
 ```json
 {
   "schema": "ha-capabilities/v1",
-  "ha_version": "0.1.3-dev",
+  "ha_version": "0.1.3",
   "supported_rules": ["run-rules/1", "run-rules/2", "run-rules/3"],
   "default_rules": "run-rules/3",
   "formats": {
@@ -67,13 +67,13 @@ ha capabilities --format json
 
 새 시작에서 모르는 기본 규칙이나 이전 기본 규칙으로 조용히 대체하지 않는다. 기존 목표는 기본 시작 규칙을 적용하지 않는다. 예를 들어 기본이 미래 `/4`여도 저장된 `/2`와 요청에 필요한 지원이 있다면 기존 `/2`의 확인은 통과할 수 있다. 새 `/3` 지원 때문에 `/1`·`/2` 목표나 기록을 변환하거나 결과 선언을 추가하도록 요구하지 않는다.
 
-조회 미지원·실패, 필수 정보 누락·해석 불가, 필요한 규칙·형식·기능 부족이면 확인한 대상과 이유를 알리고 새 시작·재개 등 상태 변경 전에 멈춘다. 호환 배포판이 아직 없으면 현재 `v0.1.2`를 다시 설치하면 해결된다고 안내하지 않는다.
+조회 미지원·실패, 필수 정보 누락·해석 불가, 필요한 규칙·형식·기능 부족이면 확인한 대상과 이유를 알리고 새 시작·재개 등 상태 변경 전에 멈춘다. 구버전이면 [설치 안내](../guides/INSTALL.md#업데이트)를 안내하되 자동 설치·업데이트하거나 구규칙으로 우회하지 않는다.
 
 호환 확인은 입력 lint, 저장 기록의 무결성, 사용자 구현 권한, 완료 판정을 대신하지 않는다. Core 자체에 새 시작 강제 차단을 추가하는 계약도 아니다. 직접 Core를 사용하는 미선언 `/3` change는 기존처럼 실제 시도를 기록하고 `unknown`으로 분류할 수 있다. 일반 maintain·manual·task 검사는 구조화 change 계약으로 강제 이전하지 않는다.
 
 ## 3. 선택적 결정적 소비 도구
 
-Python 3가 이미 있다면 Seal에 포함된 [check_core.py](../plugins/seal/skills/seal/scripts/check_core.py)로 같은 계약을 확인할 수 있다. 도구가 없거나 Python을 쓰지 않는 경우에도 위 계약을 직접 소비할 수 있다.
+Python 3가 이미 있다면 Seal에 포함된 [check_core.py](https://github.com/jgoneit/jaekit/blob/v0.1.3/plugins/seal/skills/seal/scripts/check_core.py)로 같은 계약을 확인할 수 있다. 도구가 없거나 Python을 쓰지 않는 경우에도 위 계약을 직접 소비할 수 있다.
 
 ```text
 python3 <seal-skill>/scripts/check_core.py --ha <실제 Core 경로> --operation start

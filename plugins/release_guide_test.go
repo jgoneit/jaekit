@@ -68,14 +68,14 @@ func requireOrder(t *testing.T, name, text string, ordered ...string) {
 func TestReleaseGuideReleaseFiles(t *testing.T) {
 	files := mdSection(t, "../guides/INSTALL.md", "## Release 파일로 설치")
 	requireIn(t, "INSTALL Release 파일로 설치", files,
-		"https://github.com/jgoneit/jaekit/releases/tag/v0.1.2",
-		"`ha_0.1.2_<os>_<arch>.tar.gz`",
+		"https://github.com/jgoneit/jaekit/releases/tag/v0.1.3",
+		"`ha_0.1.3_<os>_<arch>.tar.gz`",
 		"아래 명령은 고치지 않고 그대로 붙여 넣습니다.",
-		`name="ha_0.1.2_${os}_${arch}"`,
-		`url="https://github.com/jgoneit/jaekit/releases/download/v0.1.2"`,
+		`name="ha_0.1.3_${os}_${arch}"`,
+		`url="https://github.com/jgoneit/jaekit/releases/download/v0.1.3"`,
 		`curl -fsSLO "$url/$name.tar.gz"`,
 		`tar -xzf "$name.tar.gz"`,
-		`mv "$name/ha" "$HOME/.local/bin/ha"`,
+		`mv -f "$binary_tmp" "$bin/ha"`,
 		`export PATH="$HOME/.local/bin:$PATH"`,
 	)
 	forbidAll(t, "../README.md", "os=darwin arch=arm64")
@@ -94,7 +94,7 @@ func TestReleaseGuideReleaseFiles(t *testing.T) {
 func TestReleaseGuideVersionCheck(t *testing.T) {
 	requireIn(t, "INSTALL 버전 확인", mdSection(t, "../guides/INSTALL.md", "### 버전 확인"),
 		"ha --version\nwhich -a ha\n",
-		"`ha --version`은 `ha 0.1.2`를 출력해야 합니다.", "`which -a ha`의 첫 줄", "실제로 실행되는 파일",
+		"`ha --version`은 `ha 0.1.3`를 출력해야 합니다.", "`which -a ha`의 첫 줄", "실제로 실행되는 파일",
 		"PATH", "지우거나 PATH 순서를 바꿉니다", "`go env GOBIN`", "`$(go env GOPATH)/bin`",
 	)
 }
@@ -109,11 +109,11 @@ func TestReleaseGuideLocalMigration(t *testing.T) {
 	move := mdSection(t, "../guides/INSTALL.md", "## 로컬 경로 등록에서 옮기기")
 	requireIn(t, "INSTALL 로컬 경로 등록에서 옮기기", move,
 		"claude plugin marketplace remove jaekit\n"+
-			"claude plugin marketplace add jgoneit/jaekit#v0.1.2\n"+
+			"claude plugin marketplace add jgoneit/jaekit#v0.1.3\n"+
 			"claude plugin install spec@jaekit\n"+
 			"claude plugin install seal@jaekit\n",
 		"codex plugin marketplace remove jaekit\n"+
-			"codex plugin marketplace add jgoneit/jaekit@v0.1.2\n"+
+			"codex plugin marketplace add jgoneit/jaekit@v0.1.3\n"+
 			"codex plugin add spec@jaekit\n"+
 			"codex plugin add seal@jaekit\n",
 		"지우면 그 marketplace에서 설치한 spec·seal도 함께 지워지므로 다시 설치합니다.",
@@ -147,7 +147,7 @@ func TestReleaseGuideInstallOrder(t *testing.T) {
 	requireOrder(t, "INSTALL 기본 설치", mdSection(t, "../guides/INSTALL.md", "## 기본 설치"),
 		"brew install jgoneit/tap/jaekit",
 		"ha --version",
-		"codex plugin marketplace add jgoneit/jaekit@v0.1.2",
+		"codex plugin marketplace add jgoneit/jaekit@v0.1.3",
 		"codex plugin add spec@jaekit",
 		"codex plugin add seal@jaekit",
 	)

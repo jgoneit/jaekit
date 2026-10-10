@@ -4,7 +4,7 @@
 
 This guide follows [your first task in the README](../README.en.md#your-first-task). For installation, updates, and removal, see the [install guide](INSTALL.en.md).
 
-The current release v0.1.2 combines spec 0.1.10, seal 0.1.8 and default rules `/2`. The preflight refusal and run-estimation guidance below, and the operations guide's `/3` results and budget policy, apply to unreleased main (ha 0.1.3-dev, spec 0.1.11 and seal 0.1.9). See [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
+The current release v0.1.3 combines ha 0.1.3, spec 0.1.11, seal 0.1.9 and default rules `/3`. Preflight refusal, run estimation, `/3` result classification and budget policy apply to this release. Existing goals keep their saved rules. See [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
 
 ## Sending commands
 
@@ -45,7 +45,7 @@ Seal's default result currently ends at local changes and commits (saved entries
 
 ## Saved files
 
-The goal folder is `docs/specs/<goal>/`. Commit Spec's `SPEC.md`, Seal's `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl`, and any needed `tasks/` files to Git. They hold the goal, plan, plan review, progress and completion report, run record, and individual task descriptions. A commit saves history locally; publishing it is a separate step. Records can include user statements and working paths, so review them before sending them to a public repository.
+The goal folder is `docs/specs/<goal>/`. Spec's `SPEC.md`, Seal's `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl`, and any needed `tasks/` files hold the goal, plan, plan review, progress and completion report, run record, and individual task descriptions. Git tracking depends on project policy. Commit them when the project tracks them; keep them locally when the project treats them as private or ignored. Do not force ignored documents into Git. A commit saves history locally; publishing it is a separate step. Records can include user statements and working paths, so review them before sending them to a public repository. The Jaekit repository's own private `docs/` policy is not a requirement for other projects.
 
 Raw check output stays in `.git/ha/`, which Git does not track; you do not need to add anything to `.gitignore`. In a linked worktree (a separate working folder sharing the same Git history), it is under `ha/` in the Git directory printed by `git rev-parse --absolute-git-dir`. Output stays local. To inspect it, run `ha log <goal> <seq>` in Terminal: `<goal>` is the goal path and `<seq>` is the record number from the report.
 
@@ -62,7 +62,7 @@ Raw check output stays in `.git/ha/`, which Git does not track; you do not need 
 | An expired login, denied permission, or usage limit stops the work | Resolve the cause, then send `continue docs/specs/<goal>`. The same terminal failure is not retried |
 | Verification is refused because of uncommitted changes | Review the listed paths and tracked/untracked or symlink details, then resolve them according to the intended work. Unstarted checks consume no runs |
 | The plan budget is too small to start | Read the minimum, limit and shortfall from `ha estimate docs/specs/<goal>`. Decide a sufficient budget or split the goal before starting; this estimate does not change an existing run budget |
-| The budget ran out | Read what remains and decide whether to continue. Development `/3` can change the total run limit with your words and context, retaining usage and the time limit. Changing the elapsed-time limit is unsupported. Request an explicit reopen when a new window is needed. The release and existing `/1` or `/2` goals retain their reopen behavior with the original limits |
-| Development Seal stopped for Core compatibility | Read the executable it checked and the missing support. Installing or updating v0.1.2 does not provide the development combination. Check the [applicable versions](INSTALL.en.md#release-and-development-combinations); do not automatically install tools or switch rules |
+| The budget ran out | Read what remains and decide whether to continue. `/3` can change the total run limit with your words and context, retaining usage and the time limit. Changing the elapsed-time limit is unsupported. Request an explicit reopen when a new window is needed. Existing `/1` or `/2` goals retain their reopen behavior with the original limits |
+| Seal stopped for Core compatibility | Read the executable it checked and the missing support. Follow [Update](INSTALL.en.md#update) to install the v0.1.3 combination, then check the capabilities of the Core actually selected. Do not bypass the check by automatically installing tools or switching rules |
 
 The [operations guide](OPERATIONS.md) (Korean) describes the detailed reasons for user confirmation, blocked work, and budget stops. The steps above cover what you need to respond and continue.

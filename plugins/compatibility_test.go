@@ -22,7 +22,7 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 		Plugins  []manifest               `json:"plugins"`
 	}
 	readJSON(t, "../.claude-plugin/marketplace.json", &marketplace)
-	if marketplace.Metadata.Version != "0.1.2" {
+	if marketplace.Metadata.Version != "0.1.3" {
 		t.Errorf("[requirement] current released marketplace identity changed: %s", marketplace.Metadata.Version)
 	}
 	for name, want := range map[string]string{"spec": "0.1.11", "seal": "0.1.9"} {
@@ -62,21 +62,16 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 	for _, path := range []string{"../README.md", "../README.en.md", "../guides/INSTALL.md", "../guides/INSTALL.en.md", "../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md"} {
 		t.Run(path, func(t *testing.T) {
 			content := read(t, path)
-			compatibilityContains(t, path, content, "v0.1.2", "0.1.10", "0.1.8", "0.1.3-dev", "0.1.11", "0.1.9")
-			if strings.HasSuffix(path, ".en.md") {
-				compatibilityContains(t, path, strings.ToLower(content), "unreleased")
-			} else if !strings.Contains(content, "미배포") && !strings.Contains(content, "아직 배포하지 않았") {
-				t.Errorf("[requirement] %s does not distinguish the unreleased combination", path)
-			}
-			for _, futureInstall := range []string{"jaekit@v0.1.3", "jaekit#v0.1.3", "/releases/download/v0.1.3", "/releases/tag/v0.1.3"} {
-				if strings.Contains(content, futureInstall) {
-					t.Errorf("[requirement] %s directs installation of an unreleased artifact: %s", path, futureInstall)
+			compatibilityContains(t, path, content, "v0.1.3", "ha 0.1.3", "0.1.11", "0.1.9", "`/3`")
+			for _, stale := range []string{"unreleased", "미배포", "아직 배포하지 않았", "jaekit@v0.1.2", "jaekit#v0.1.2", "/releases/download/v0.1.2"} {
+				if strings.Contains(strings.ToLower(content), stale) {
+					t.Errorf("[requirement] %s retains obsolete release guidance: %s", path, stale)
 				}
 			}
 		})
 	}
 	for _, path := range []string{"../guides/INSTALL.md", "../guides/INSTALL.en.md"} {
-		compatibilityContains(t, path, read(t, path), "jaekit@v0.1.2", "jaekit#v0.1.2", "ha_0.1.2_${os}_${arch}", "contracts/core-capabilities.md")
+		compatibilityContains(t, path, read(t, path), "jaekit@v0.1.3", "jaekit#v0.1.3", "ha_0.1.3_${os}_${arch}", "contracts/core-capabilities.md", "ha 0.1.3-dev", "v0.1.2")
 	}
 	compatibilityContains(t, "Korean budget guidance", read(t, "../guides/USAGE.md"), "시간 상한 변경은 지원하지 않습니다", "횟수 총상한", "명시적 재개", "원래 한도")
 	compatibilityContains(t, "English budget guidance", read(t, "../guides/USAGE.en.md"), "Changing the elapsed-time limit is unsupported", "total run limit", "explicit reopen", "original limits")

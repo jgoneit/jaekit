@@ -2,13 +2,13 @@
 
 `ha` runs verification commands without a shell, appends `runs.jsonl`, and computes the goal state from the record, the bundle, and git only. The same inputs always give the same state; the current time is never used.
 
-This reference describes the unreleased development combination: ha 0.1.3-dev and Seal 0.1.9. Release v0.1.2 uses ha 0.1.2 and Seal 0.1.8; installing that release does not provide the new capability query or `/3` features.
+This reference describes release v0.1.3: ha 0.1.3 and Seal 0.1.9. Existing `/1`, `/2` and `/3` goals keep their saved rules; installation does not migrate their records or reset usage or time limits.
 
 ## Core compatibility
 
 Resolve the actual executable selected for `ha` to an absolute path. Run that exact executable with `capabilities --format json`, and use the same path for later Core commands. Check again when its path or contents change. A successful version command is not compatibility evidence; neither is a response obtained from a different executable. Do not cache approval across such changes.
 
-The response uses `schema: ha-capabilities/v1`, `ha_version`, `supported_rules`, `default_rules`, `formats` and `features`. These required fields must have the types and values described in the [Core capabilities contract](https://github.com/jgoneit/jaekit/blob/main/contracts/core-capabilities.md). Missing or malformed information, an unsupported schema, query failure, missing executable or unmet requirements mean stop before writing any record. Identify the executable and the reason; never fall back to older rules, install tools or alter records automatically. Current-release updates do not yet supply this development combination.
+The response uses `schema: ha-capabilities/v1`, `ha_version`, `supported_rules`, `default_rules`, `formats` and `features`. These required fields must have the types and values described in the [Core capabilities contract](https://github.com/jgoneit/jaekit/blob/v0.1.3/contracts/core-capabilities.md). Missing or malformed information, an unsupported schema, query failure, missing executable or unmet requirements mean stop before writing any record. Identify the executable and the reason; never fall back to older rules, install tools or alter records automatically.
 
 For a **new start**, require all of the following:
 
@@ -58,7 +58,9 @@ The `check-declaration/v1` object contains `producer`, `producer_version`, `prod
 
 Current success needs exit 0 and every target passing. Expected baseline failure needs nonzero exit and a declared violation, every required target observed, and no environment error or unintended assertion failure. Missing implementation can be a violation directly observed by a runnable check; import, collection, compilation and browser startup errors are not such evidence. `unknown` shares the error rerun limit. Later positive results do not erase adverse results on the same inputs, including observed assertion failures retained within an error or inconclusive report.
 
-The [public contract and executable reference](https://github.com/jgoneit/jaekit/blob/main/contracts/check-result.md) describe the JSON fields and `tools/check-result-reference.py`. The Python reference reads actual files and reports observations, without installing runner adapters. A generic script's nonzero exit alone is unsupported evidence. The compact `check-evidence/v1` summary preserves the classification without raw logs or file contents. An output-file failure following an actual attempt records `error` with `process_output` and retains its usage when record storage is writable; `output_path` and `output_digest` may be empty. Record-storage failure itself is not reported as successful recording, and a failed write can have uncertain application. Declaration, producer and target changes invalidate old evidence; missing raw logs or changing the current time do not. These are executor-authored local claims.
+The [public contract and executable reference](https://github.com/jgoneit/jaekit/blob/v0.1.3/contracts/check-result.md) describe the JSON fields and `tools/check-result-reference.py`. The Python reference reads actual files and reports observations, without installing runner adapters. A generic script's nonzero exit alone is unsupported evidence. The compact `check-evidence/v1` summary preserves the classification without raw logs or file contents. An output-file failure following an actual attempt records `error` with `process_output` and retains its usage when record storage is writable; `output_path` and `output_digest` may be empty. Record-storage failure itself is not reported as successful recording, and a failed write can have uncertain application. Declaration, producer and target changes invalidate old evidence; missing raw logs or changing the current time do not. These are executor-authored local claims.
+
+Release v0.1.3 includes the optional Python reference producer and a synthetic file-observation example for both direct and Homebrew installations. Follow [Get the reference check](https://github.com/jgoneit/jaekit/blob/v0.1.3/guides/INSTALL.en.md#get-the-reference-check) to copy them into the project without a development checkout. The reference needs Python 3; choosing it is optional and does not make Python or any particular runner a prerequisite for Seal.
 
 ## Budget changes
 

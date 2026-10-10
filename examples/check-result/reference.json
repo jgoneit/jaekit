@@ -1,0 +1,9 @@
+{
+  "checks": [{
+    "target": "greeting",
+    "path": "sample/input.txt",
+    "equals": "hello\n",
+    "violation": "missing-greeting",
+    "missing": "violation"
+  }]
+}
