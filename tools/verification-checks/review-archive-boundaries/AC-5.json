@@ -1,0 +1,16 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-review-archive-observer",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/review_archive_boundaries.py",
+    "tools/release/test_archive_bounds.py",
+    "tools/release-checks/test_archive_limits.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-5",
+      "violation": "archive-entry-point-inconsistent"
+    }
+  ]
+}
