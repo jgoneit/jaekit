@@ -1,0 +1,15 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-document-contracts",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/contract-checks/check.py",
+    "tools/contract-checks/finding_docs_check.py"
+  ],
+  "targets": [
+    {
+      "id": "finding-docs.AC-2",
+      "violation": "finding-docs.AC-2.missing-contract"
+    }
+  ]
+}

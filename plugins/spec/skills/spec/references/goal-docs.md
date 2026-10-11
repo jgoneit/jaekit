@@ -84,6 +84,14 @@ Keep an existing document's selection or lack of selection unless the user expli
 - A goal that joins components (UI and API, service and store, two services) has at least one criterion that checks the core flow across the real boundary. Separate component checks can all pass while the request path or data format between them is wrong. The implementer chooses how to verify it.
 - A small fix states its scenario in one or two sentences.
 
+## Outcome boundaries and examples
+
+Describe only relevant boundaries in existing decisions and criteria: the result for uninterpretable input, observation unit, before/after set invariants, and supported environment. A request is distinct from a session containing many requests; additions and removals outside the requested set need a preservation result. No separate empty table is required.
+
+Use the user's words, public contract, or existing decision as the source; ask only about unresolved outcomes. Code describes current behavior without establishing intent. Already settled boundaries need no repeated question. Official platform or shell support belongs in outcomes; fixtures, snapshots, frameworks, and model assignment remain implementation and verification choices within those outcomes.
+
+Mark cases as an exhaustive set or representative examples. A representative set has an observable general property over the requested scope; an exhaustive list has an outside-list result. Consider special names, symlinks, shallow clones, real versus fake systems, and concurrent ordering only when they can change this goal's result. Preserve existing IDs, document format, small-change depth, and the separation between writing and implementation.
+
 ## Work breakdown proposal
 
 | Column | Meaning |
