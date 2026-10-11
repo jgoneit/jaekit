@@ -1,35 +1,105 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "whole-session-transcript",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "ClaudeTranscriptLoad.test_whole_session_transcript_loads_each_phase_skill"
+      "test": "ClaudeTranscriptLoad.test_whole_session_transcript_loads_each_phase_skill",
+      "result_targets": {
+        "additional_violations": [
+          "whole-session-transcript.assertion-2",
+          "whole-session-transcript.assertion-3",
+          "whole-session-transcript.assertion-4",
+          "whole-session-transcript.assertion-5",
+          "whole-session-transcript.assertion-6",
+          "whole-session-transcript.assertion-7",
+          "whole-session-transcript.assertion-8"
+        ],
+        "execution": "whole-session-transcript.execution",
+        "selection": "whole-session-transcript.selection",
+        "attribution": "whole-session-transcript.attribution"
+      }
     },
     {
       "target": "phase-snapshots",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "ClaudeTranscriptLoad.test_phase_snapshots_load_each_phase_skill"
+      "test": "ClaudeTranscriptLoad.test_phase_snapshots_load_each_phase_skill",
+      "result_targets": {
+        "additional_violations": [
+          "phase-snapshots.assertion-2",
+          "phase-snapshots.assertion-3",
+          "phase-snapshots.assertion-4",
+          "phase-snapshots.assertion-5",
+          "phase-snapshots.assertion-6",
+          "phase-snapshots.assertion-7",
+          "phase-snapshots.assertion-8"
+        ],
+        "execution": "phase-snapshots.execution",
+        "selection": "phase-snapshots.selection",
+        "attribution": "phase-snapshots.attribution"
+      }
     },
     {
       "target": "phase-own-invocation",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "ClaudeTranscriptLoad.test_each_phase_needs_its_own_skill_invocation"
+      "test": "ClaudeTranscriptLoad.test_each_phase_needs_its_own_skill_invocation",
+      "result_targets": {
+        "additional_violations": [
+          "phase-own-invocation.assertion-2",
+          "phase-own-invocation.assertion-3",
+          "phase-own-invocation.assertion-4",
+          "phase-own-invocation.assertion-5",
+          "phase-own-invocation.assertion-6",
+          "phase-own-invocation.assertion-7",
+          "phase-own-invocation.assertion-8"
+        ],
+        "execution": "phase-own-invocation.execution",
+        "selection": "phase-own-invocation.selection",
+        "attribution": "phase-own-invocation.attribution"
+      }
     },
     {
       "target": "surrounding-entries",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "ClaudeTranscriptLoad.test_queue_and_other_entries_around_the_invocation_are_ignored"
+      "test": "ClaudeTranscriptLoad.test_queue_and_other_entries_around_the_invocation_are_ignored",
+      "result_targets": {
+        "additional_violations": [
+          "surrounding-entries.assertion-2",
+          "surrounding-entries.assertion-3",
+          "surrounding-entries.assertion-4",
+          "surrounding-entries.assertion-5",
+          "surrounding-entries.assertion-6",
+          "surrounding-entries.assertion-7",
+          "surrounding-entries.assertion-8"
+        ],
+        "execution": "surrounding-entries.execution",
+        "selection": "surrounding-entries.selection",
+        "attribution": "surrounding-entries.attribution"
+      }
     },
     {
       "target": "earlier-claude-acceptance",
       "runner": "unittest",
       "file": "tools/release-checks/test_loader_invocations.py",
-      "test": "LoaderEvidence.test_claude_session_plugin_is_loaded_in_both_phases"
+      "test": "LoaderEvidence.test_claude_session_plugin_is_loaded_in_both_phases",
+      "result_targets": {
+        "additional_violations": [
+          "earlier-claude-acceptance.assertion-2",
+          "earlier-claude-acceptance.assertion-3",
+          "earlier-claude-acceptance.assertion-4",
+          "earlier-claude-acceptance.assertion-5",
+          "earlier-claude-acceptance.assertion-6",
+          "earlier-claude-acceptance.assertion-7",
+          "earlier-claude-acceptance.assertion-8"
+        ],
+        "execution": "earlier-claude-acceptance.execution",
+        "selection": "earlier-claude-acceptance.selection",
+        "attribution": "earlier-claude-acceptance.attribution"
+      }
     }
   ]
 }

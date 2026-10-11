@@ -1,0 +1,17 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "status-json-order",
+      "runner": "unittest",
+      "file": "tools/findings-checks/test_stored_reuse.py",
+      "test": "QueryContract.test_status_json_follows_the_contract_order"
+    },
+    {
+      "target": "markdown-category",
+      "runner": "unittest",
+      "file": "tools/findings-checks/test_stored_reuse.py",
+      "test": "QueryContract.test_markdown_rows_show_each_category"
+    }
+  ]
+}

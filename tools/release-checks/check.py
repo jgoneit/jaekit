@@ -1,12 +1,26 @@
 #!/usr/bin/env python3
 """Opt-in, read-only release acceptance checks; see README.md for local evidence."""
-from __future__ import annotations
+# Only sys is imported before selecting the interpreter's own library paths.
+# A script directory or an embedding caller's checkout path must not supply
+# json.py, a stdlib package, or a helper package before source verification.
+import sys
+
+_CALLER_IMPORT_PATH = sys.path[:]
+_STDLIB_ROOT = getattr(sys, "_stdlib_dir", None)
+if not _STDLIB_ROOT:
+    _encodings_file = getattr(sys.modules.get("encodings"), "__file__", None)
+    if not _encodings_file or "/" not in _encodings_file:
+        raise ImportError("interpreter standard library location is unavailable")
+    _STDLIB_ROOT = _encodings_file.rsplit("/", 2)[0]
+_STDLIB_IMPORT_PATH = (_STDLIB_ROOT, _STDLIB_ROOT + "/lib-dynload")
+sys.path[:] = _STDLIB_IMPORT_PATH
 
 import argparse
 import base64
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 import hashlib
-import io
+import importlib.abc
+import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -16,22 +30,71 @@ import shutil
 import shlex
 import stat
 import subprocess
-import sys
-import tarfile
 import tempfile
 from urllib.request import urlopen
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import shell_reader
-import execution_trace
-import source_identity
-import execution_provenance
-import install_trace
 
-LOADED_SOURCE = {str(Path(path).resolve()): Path(path).read_bytes()
-                 for path in (__file__, shell_reader.__file__, execution_trace.__file__, source_identity.__file__,
-                              execution_provenance.__file__)}
-LOADED_SOURCE[str(Path(install_trace.__file__).resolve())] = install_trace.LOADED_SELF
+class RecordedSourceLoader(importlib.abc.SourceLoader):
+    """Import exactly the bytes recorded as loaded source, never cached bytecode."""
+
+    def __init__(self, path, data):
+        self.path, self.data = path, data
+
+    def get_filename(self, fullname):
+        return str(self.path)
+
+    def get_data(self, path):
+        return self.data
+
+
+LOADED_SOURCE = {str(Path(__file__).resolve()): Path(__file__).read_bytes()}
+
+
+def load_observation_module(name):
+    """Fixed files, not Python's package/module or bytecode search precedence."""
+    path = Path(__file__).resolve().with_name(name + ".py")
+    existing = sys.modules.get(name)
+    if existing is not None:
+        if Path(getattr(existing, "__file__", "")).resolve() != path.resolve():
+            raise ImportError("observation module already loaded from another source: " + name)
+        recorded = getattr(existing, "_JAEKIT_LOADED_SOURCE", None)
+        if isinstance(recorded, bytes):
+            LOADED_SOURCE[str(path.resolve())] = recorded
+            return existing
+    loader = RecordedSourceLoader(path, path.read_bytes())
+    spec = importlib.util.spec_from_loader(name, loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    try:
+        loader.exec_module(module)
+    except BaseException:
+        if existing is None:
+            sys.modules.pop(name, None)
+        else:
+            sys.modules[name] = existing
+        raise
+    module._JAEKIT_LOADED_SOURCE = loader.data
+    LOADED_SOURCE[str(path.resolve())] = loader.data
+    return module
+
+
+# Dependencies are loaded first; sibling imports resolve to these exact files.
+shell_reader = load_observation_module("shell_reader")
+execution_provenance = load_observation_module("execution_provenance")
+execution_trace = load_observation_module("execution_trace")
+source_identity = load_observation_module("source_identity")
+install_trace = load_observation_module("install_trace")
+
+
+@contextmanager
+def trusted_imports():
+    """Keep later imports within the trusted runtime while accepting evidence."""
+    previous = sys.path[:]
+    sys.path[:] = _STDLIB_IMPORT_PATH
+    try:
+        yield
+    finally:
+        sys.path[:] = previous
 
 ROOT = Path(__file__).resolve().parents[2]
 REPO = "jgoneit/jaekit"
@@ -215,27 +278,56 @@ def native_platform():
     return f"{system}_{arch}"
 
 
+def load_archive_reader():
+    # The validator and this checker share one reader; see README.md. Return
+    # the executed bytes so the verified tree binds them like other sources.
+    path = Path(__file__).resolve().parents[1] / "release" / "archive_reader.py"
+    loader = RecordedSourceLoader(path, path.read_bytes())
+    spec = importlib.util.spec_from_loader("jaekit_release_archive_reader", loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module, loader.data
+
+
+archive_reader, ARCHIVE_READER_SOURCE = load_archive_reader()
+LOADED_SOURCE[str(Path(archive_reader.__file__).resolve())] = ARCHIVE_READER_SOURCE
+# The embedding test/host keeps its own import search after checker bootstrap.
+# Public acceptance below re-enters the trusted search; its worker uses -I.
+sys.path[:] = _CALLER_IMPORT_PATH
+del _CALLER_IMPORT_PATH
+# Limits apply to every consumer of a downloaded or supplied release archive.
+ARCHIVE_MAX_COMPRESSED_BYTES = archive_reader.MAX_COMPRESSED_BYTES
+ARCHIVE_MAX_BYTES = archive_reader.MAX_BYTES
+ARCHIVE_MAX_ENTRIES = archive_reader.MAX_ENTRIES
+ARCHIVE_MAX_STREAM_BYTES = archive_reader.MAX_STREAM_BYTES
+ARCHIVE_MAX_FILE_BYTES = archive_reader.MAX_FILE_BYTES
+ARCHIVE_MAX_METADATA_BYTES = archive_reader.MAX_METADATA_BYTES
+ARCHIVE_MAX_METADATA_TOTAL_BYTES = archive_reader.MAX_METADATA_TOTAL_BYTES
+ARCHIVE_MAX_PAX_KEYS = archive_reader.MAX_PAX_KEYS
+
+
 def archive_files(data, target):
-    """Inspect in memory; never extract untrusted archive paths."""
+    """Inspect bounded bytes in memory; never extract archive paths to disk."""
     prefix = f"ha_{VERSION}_{target}/"
-    files = {}
     try:
-        with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as archive:
-            for member in archive:
-                name = member.name
-                path = PurePosixPath(name)
-                require(not path.is_absolute() and ".." not in path.parts,
-                        "unsafe archive entry")
-                require(name == prefix[:-1] or name.startswith(prefix),
-                        "archive root disagrees with platform name")
-                require(member.isdir() or member.isfile(), "archive contains a non-regular entry")
-                if member.isfile():
-                    relative = name[len(prefix):]
-                    require(relative and relative not in files, "duplicate archive entry")
-                    require(member.size <= 64 * 1024 * 1024, "oversized archive entry")
-                    files[relative] = archive.extractfile(member).read()
-    except (tarfile.TarError, OSError):
-        raise Failure("invalid release archive") from None
+        members = archive_reader.read(
+            data, compressed=ARCHIVE_MAX_COMPRESSED_BYTES, bytes=ARCHIVE_MAX_BYTES,
+            entries=ARCHIVE_MAX_ENTRIES, stream=ARCHIVE_MAX_STREAM_BYTES, file=ARCHIVE_MAX_FILE_BYTES,
+            metadata=ARCHIVE_MAX_METADATA_BYTES, metadata_total=ARCHIVE_MAX_METADATA_TOTAL_BYTES,
+            pax_keys=ARCHIVE_MAX_PAX_KEYS)
+    except archive_reader.Rejected as error:
+        raise Failure(str(error)) from None
+    files = {}
+    for member, body in members:
+        name = member.name
+        path = PurePosixPath(name)
+        require(not path.is_absolute() and ".." not in path.parts, "unsafe archive entry")
+        require(name == prefix[:-1] or name.startswith(prefix), "archive root disagrees with platform name")
+        require(member.isdir() or member.isfile(), "archive contains a non-regular entry")
+        if member.isfile():
+            relative = name[len(prefix):]
+            require(relative and relative not in files, "duplicate archive entry")
+            files[relative] = body
     for name in ("ha", "LICENSE", "README.md", "README.en.md", "guides/INSTALL.md",
                  "guides/INSTALL.en.md", "contracts/run-record.md"):
         require(name in files, f"release archive omits {name}")
@@ -253,6 +345,7 @@ class Checker:
         self._source = {}
         self.product_root = None
 
+    @trusted_imports()
     def selected(self, criterion):
         """Verify product identity and the explicitly selected checker snapshot."""
         expected = self.evidence()["release"].get("source_commit")
@@ -278,7 +371,7 @@ class Checker:
                                                                                  PublicProduct()))
                     request_data.update(product_root=str(product), product_tree=product_tree)
                 request = json.dumps(request_data)
-                process = subprocess.run([sys.executable, str(selected / "tools/release-checks/snapshot_worker.py")],
+                process = subprocess.run([sys.executable, "-I", str(selected / "tools/release-checks/snapshot_worker.py")],
                                          cwd=selected, input=request, capture_output=True, text=True, timeout=1200,
                                          env=dict({key: val for key, val in os.environ.items() if not key.startswith("GIT_")},
                                                   PYTHONDONTWRITEBYTECODE="1"))
@@ -360,10 +453,10 @@ class Checker:
             require(item.get("browser_download_url") == url, "asset URL disagrees with tag")
             try:
                 with urlopen(url, timeout=45) as response:
-                    data = response.read(64 * 1024 * 1024 + 1)
+                    data = response.read(ARCHIVE_MAX_COMPRESSED_BYTES + 1)
             except OSError:
                 raise Unavailable("public release asset download failed") from None
-            require(len(data) <= 64 * 1024 * 1024 and len(data) == item.get("size"),
+            require(len(data) <= ARCHIVE_MAX_COMPRESSED_BYTES and len(data) == item.get("size"),
                     "downloaded asset size differs from public metadata")
             require(item.get("digest") == "sha256:" + digest(data),
                     "downloaded asset digest differs from public metadata")

@@ -355,15 +355,82 @@ and runnable example, then runs the archive validator's isolated native smoke.
 It does not install anything. The real two-host observations remain separate
 from this synthetic package smoke.
 
+## Archive resource limits
+
+Every archive consumer reads through the same read-only parser,
+[`tools/release/archive_reader.py`](../release/archive_reader.py): this
+acceptance checker for downloads, release collection and installation, and the
+standalone validator [`tools/release/check_archives.py`](../release/check_archives.py)
+for `--dist` files and its native smoke. Reading one needed file never skips
+another limit.
+
+Each archive is at most 64 MiB compressed, whether downloaded or supplied with
+`--dist`. It permits at most 256 MiB of cumulative member bodies and 10,000
+physical entries, including directories, empty files, and PAX/GNU metadata
+headers. The exact limits are allowed; the next body is rejected before reading
+it if its declared size or entry would exceed either limit. Expanded logical
+file contents are separately limited to 256 MiB so metadata cannot override that
+bound. Individual files remain limited to 64 MiB. All decompressed bytes,
+including metadata, padding, and trailing streams, are bounded by 512 MiB.
+
+Known limitation ([#49](https://github.com/jgoneit/jaekit/issues/49)): an
+unsupported special type with a PAX-overridden size can consume more than the
+cumulative body limit before the consumer rejects its type. The expanded
+stream limit still applies. Such an archive is not accepted as a release.
+
+Each PAX or GNU long-name metadata body is limited to 64 KiB, and all metadata
+bodies in one archive to 1 MiB. Both are checked from the header, before
+`tarfile` reads, decodes, or splits the body into records, so long names and
+the number of PAX records cannot grow parsed objects beyond these bodies.
+Ordinary long names and PAX attributes remain supported.
+
+Accumulated global PAX state and each effective global/local attribute map are
+limited to 128 distinct keys. Replacing a key does not add another key. The
+global bound is checked before another header can copy that state; the effective
+bound is checked before copying attributes into a member. Together with the
+entry limit, this bounds retained dictionary amplification from small global
+headers and recursive local headers. Trailing slashes in PAX paths are
+normalized once in shared state so repeated global paths reuse that string.
+Metadata body limits still bound parsing
+of an individual header; this is not an absolute process memory limit.
+
+Limit errors identify compressed size, cumulative bytes, entry count, metadata,
+PAX keys, or expanded stream. Invalid sizes, corrupt or incomplete tar/gzip data
+(including a corrupt concatenated gzip member), and nonzero trailing data are
+rejected as an invalid or incomplete archive even if all required files were
+already encountered; zero padding and zero-filled concatenated gzip members
+remain accepted. The acceptance checker reports these as requirement failures;
+a failed download stays unverified. The validator exits 1 with the cause.
+
+Sparse extensions are unsupported and rejected before reading sparse maps.
+PAX size overrides must be nonnegative decimal integers. Paths are inspected in
+memory without extraction or input mutation; native smoke writes only bounded
+bodies into its temporary directory and removes it on success or refusal. The
+validator checks each checksum against exactly the bytes it parses. Existing
+root, traversal, type, duplicate, and required-file checks still apply, and the
+validator keeps its stricter canonical path, allowlist, permission, executable
+and platform checks. Offline regressions use small patched limits and synthetic
+archives; they do not claim a live release observation or a measured
+memory-exhaustion test.
+
 ## Required original execution and source identity
 
 Every official `check.py AC-n --evidence DIR` selection verifies the public
 product commit and the explicitly selected `checker_source` commit/tree.
 The checker verifies all its tracked current bytes before running the selected
 reader in an isolated copy of those Git blobs. Staged, unstaged, missing or
-changed loaded source is rejected; untracked Python imports beside the reader
-cannot supply acceptance. Changes to the original checkout during a check are
-not deleted. Later reads execute from the verified copy, so changing a source
+changed loaded source is rejected. Before ordinary imports, checker bootstrap
+uses the interpreter's standard-library paths and loads its named helpers from
+their exact recorded source bytes. A checkout module or package cannot replace
+those imports through Python's search order. Untracked Python source beside the
+reader is rejected even when Git ignore rules hide it. The selected observation
+keeps that import boundary, and its worker starts with isolated Python search
+and the same checker bootstrap. The interpreter and standard library remain
+trusted; this does not attest interpreter startup hooks or the operating system.
+Loaded source includes the shared archive reader
+`tools/release/archive_reader.py`, recorded from the bytes the checker executed.
+Changes to the original checkout during a check are not deleted. Later reads
+execute from the verified copy, so changing a source
 file and restoring it cannot substitute other bytes. The temporary repository
 contains only the current tree, with no private history. Git environment
 redirections cannot select or modify another repository. Missing access and
@@ -425,13 +492,25 @@ python /absolute/tools/release-checks/install_trace.py run --archive /absolute/r
 This explicit collector reads a local validated archive and performs the fixed
 `fresh-release-directory/v1` procedure. It places the Core and all support files
 in a new directory; it has no arbitrary command, model or network option.
-Set `package_root` to that directory and `binary` to its `ha`. Existing output,
-existing installation destinations, and symlink inputs/destinations are refused.
+Set `package_root` to that directory and `binary` to its `ha`. Parent-directory
+symlinks are allowed, including operating-system aliases and user-created links.
+The original `launcher_argv` preserves the requested destination; the report's
+`destination` identifies its canonical installation directory. A symlink at the
+destination itself, an existing actual destination (also through another alias),
+an existing report, or an archive input that is itself a symlink is refused.
 Failed reports and partial trees remain; they cannot count as a fresh install.
 
 The consumer binds the exact original argv and stderr `JAEKIT_INSTALL_RECEIPT`
 (invocation, run ID, report digest) to the archive bytes, loaded collector and
 validator source, observed prior absence, and installed Core/support files.
+The collector rechecks that the requested path still identifies that canonical
+directory before reporting completion. The read-only consumer applies the same
+parent-link policy and rechecks this connection before accepting the installed
+result. A changed or unavailable connection cannot be replaced with a successful
+installation at another path, even if its archive bytes match. These are local
+observations of path consistency, not an OS guarantee against concurrent path
+replacement. Neither a failed observation nor consumption repairs a previous
+report or deletes the files created by the original installation.
 A successful `true`, a version query, or a preplaced binary cannot substitute
 for installation. Unsupported or missing observation is unverified; a recorded
 conflict or failed procedure is not reported as successful installation.

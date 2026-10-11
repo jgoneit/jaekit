@@ -1,23 +1,65 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "claude-variable-forms",
       "runner": "unittest",
       "file": "tools/release-checks/test_loader_invocations.py",
-      "test": "CoreInvocations.test_claude_static_variable_forms_are_observed"
+      "test": "CoreInvocations.test_claude_static_variable_forms_are_observed",
+      "result_targets": {
+        "additional_violations": [
+          "claude-variable-forms.assertion-2",
+          "claude-variable-forms.assertion-3",
+          "claude-variable-forms.assertion-4",
+          "claude-variable-forms.assertion-5",
+          "claude-variable-forms.assertion-6",
+          "claude-variable-forms.assertion-7",
+          "claude-variable-forms.assertion-8"
+        ],
+        "execution": "claude-variable-forms.execution",
+        "selection": "claude-variable-forms.selection",
+        "attribution": "claude-variable-forms.attribution"
+      }
     },
     {
       "target": "codex-variable-forms",
       "runner": "unittest",
       "file": "tools/release-checks/test_loader_invocations.py",
-      "test": "CoreInvocations.test_codex_static_variable_in_shell_and_exec_payloads_is_observed"
+      "test": "CoreInvocations.test_codex_static_variable_in_shell_and_exec_payloads_is_observed",
+      "result_targets": {
+        "additional_violations": [
+          "codex-variable-forms.assertion-2",
+          "codex-variable-forms.assertion-3",
+          "codex-variable-forms.assertion-4",
+          "codex-variable-forms.assertion-5",
+          "codex-variable-forms.assertion-6",
+          "codex-variable-forms.assertion-7",
+          "codex-variable-forms.assertion-8"
+        ],
+        "execution": "codex-variable-forms.execution",
+        "selection": "codex-variable-forms.selection",
+        "attribution": "codex-variable-forms.attribution"
+      }
     },
     {
       "target": "spec-variable-execution",
       "runner": "unittest",
       "file": "tools/release-checks/test_loader_invocations.py",
-      "test": "CoreInvocations.test_spec_phase_variable_execution_is_rejected"
+      "test": "CoreInvocations.test_spec_phase_variable_execution_is_rejected",
+      "result_targets": {
+        "additional_violations": [
+          "spec-variable-execution.assertion-2",
+          "spec-variable-execution.assertion-3",
+          "spec-variable-execution.assertion-4",
+          "spec-variable-execution.assertion-5",
+          "spec-variable-execution.assertion-6",
+          "spec-variable-execution.assertion-7",
+          "spec-variable-execution.assertion-8"
+        ],
+        "execution": "spec-variable-execution.execution",
+        "selection": "spec-variable-execution.selection",
+        "attribution": "spec-variable-execution.attribution"
+      }
     }
   ]
 }

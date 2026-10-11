@@ -1,15 +1,57 @@
 {
   "schema": "check-declaration/v1",
   "producer": "repository-go-check",
-  "producer_version": "1",
+  "producer_version": "2",
   "producer_paths": [
     "tools/goal-checks/go-result.py",
-    "plugins/compatibility_test.go"
+    "plugins/compatibility_test.go",
+    "tools/goal-checks/produce.py",
+    "tools/result_observations.py"
   ],
   "targets": [
     {
       "id": "AC-11",
       "violation": "ac-11-requirement"
+    },
+    {
+      "id": "AC-11.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-11.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-11.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-11.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-11.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-11.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-11.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-11.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-11.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-11.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

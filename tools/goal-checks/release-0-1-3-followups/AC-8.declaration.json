@@ -1,11 +1,12 @@
 {
   "schema": "check-declaration/v1",
   "producer": "jaekit-goal-tests",
-  "producer_version": "1",
+  "producer_version": "2",
   "producer_paths": [
     "tools/goal-checks/produce.py",
     "tools/goal-checks/release-0-1-3-followups/AC-8.targets.json",
-    "tools/release-checks/test_loader_invocations.py"
+    "tools/release-checks/test_loader_invocations.py",
+    "tools/result_observations.py"
   ],
   "targets": [
     {
@@ -13,24 +14,264 @@
       "violation": "unloaded-skill-accepted"
     },
     {
+      "id": "codex-listing.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-listing.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-listing.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-listing.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-listing.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-listing.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-listing.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-listing.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-listing.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-listing.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "codex-mentions",
       "violation": "unloaded-skill-accepted"
+    },
+    {
+      "id": "codex-mentions.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-mentions.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-mentions.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-mentions.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-mentions.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-mentions.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-mentions.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-mentions.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-mentions.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-mentions.attribution",
+      "violation": "no-additional-violation"
     },
     {
       "id": "codex-other-phase",
       "violation": "unloaded-skill-accepted"
     },
     {
+      "id": "codex-other-phase.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-phase.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-phase.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-phase.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-phase.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-phase.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-phase.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-phase.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-phase.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-phase.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "codex-other-location",
       "violation": "foreign-skill-accepted"
+    },
+    {
+      "id": "codex-other-location.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-location.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-location.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-location.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-location.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-location.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-location.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-location.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-location.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-other-location.attribution",
+      "violation": "no-additional-violation"
     },
     {
       "id": "claude-other-marketplace",
       "violation": "foreign-skill-accepted"
     },
     {
+      "id": "claude-other-marketplace.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-other-marketplace.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-other-marketplace.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-other-marketplace.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-other-marketplace.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-other-marketplace.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-other-marketplace.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-other-marketplace.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-other-marketplace.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-other-marketplace.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "claude-tool-output",
       "violation": "unloaded-skill-accepted"
+    },
+    {
+      "id": "claude-tool-output.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-tool-output.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-tool-output.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-tool-output.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-tool-output.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-tool-output.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-tool-output.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-tool-output.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-tool-output.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-tool-output.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

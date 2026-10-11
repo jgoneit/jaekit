@@ -84,7 +84,7 @@ def snapshot(root, expected_tree, loaded):
         originals[name] = (mode, expected)
     # Root docs are ignored by repository policy. Untracked Python source next
     # to the reader can shadow a normal import, so it cannot supply acceptance.
-    for name in git(root, "ls-files", "--others", "--exclude-standard", "-z").split(b"\0"):
+    for name in git(root, "ls-files", "--others", "-z", "--", "tools/release-checks/").split(b"\0"):
         if name.startswith(b"tools/release-checks/") and name.endswith(b".py"):
             raise SourceMismatch("untracked observation source may change executed imports: " + ascii(os.fsdecode(name)))
     for path, original in loaded.items():

@@ -1,0 +1,15 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "archive-limit-probes",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/release-checks/archive_evidence.py",
+    "tools/release-checks/test_archive_limits.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-3",
+      "violation": "archive-family-accepted"
+    }
+  ]
+}

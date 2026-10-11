@@ -141,8 +141,11 @@ with mock.patch.object(check, 'api', side_effect=api), mock.patch.object(check.C
 
 class ShallowProductSource(unittest.TestCase):
     """A checkout without the released commit still verifies the authenticated public product."""
-    FILES = ("check.py", "shell_reader.py", "execution_trace.py", "execution_provenance.py",
-             "install_trace.py", "source_identity.py", "snapshot_worker.py")
+    @staticmethod
+    def files():
+        # Every source the acceptance checker records as loaded, plus its worker.
+        names = {Path(path).relative_to(ROOT).as_posix() for path in check.LOADED_SOURCE}
+        return sorted(names | {"tools/release-checks/snapshot_worker.py"})
 
     def git(self, root, *args):
         return subprocess.check_output(["git", *args], cwd=root, stderr=subprocess.DEVNULL,
@@ -156,8 +159,9 @@ class ShallowProductSource(unittest.TestCase):
         for directory in ("tools/release", "tools/release-checks"):
             (public / directory).mkdir(parents=True)
             (public / directory / "test_fixture.py").write_text(FIXTURE)
-        for name in self.FILES:
-            shutil.copyfile(ROOT / "tools/release-checks" / name, public / "tools/release-checks" / name)
+        for name in self.files():
+            (public / name).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / name, public / name)
         (public / "source-marker").write_text("product")
         for args in (("init", "-q"), ("config", "user.name", "Synthetic"), ("config", "user.email", "synthetic@example.invalid"),
                      ("config", "commit.gpgsign", "false"), ("add", "."), ("commit", "-qm", "synthetic public product")):
@@ -337,8 +341,9 @@ class SourceIdentityEvidence(unittest.TestCase):
                 self.fail('different loaded source entered the selected check')
 
     def test_offline_public_entry_runs_a_valid_selection_inside_the_verified_copy(self):
-        for name in ('check.py', 'shell_reader.py', 'execution_trace.py', 'execution_provenance.py', 'install_trace.py', 'source_identity.py', 'snapshot_worker.py'):
-            shutil.copyfile(ROOT / 'tools/release-checks' / name, self.root / 'tools/release-checks' / name)
+        for name in ShallowProductSource.files():
+            (self.root / name).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / name, self.root / name)
         for directory in ('tools/release', 'tools/release-checks'):
             path = self.root / directory / 'test_fixture.py'
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -441,6 +446,43 @@ class SourceIdentityEvidence(unittest.TestCase):
             with self.assertRaises(check.Failure):
                 checker.selected('AC-7')
             selected.assert_not_called()
+
+
+LOADED_PROBE = r"""
+import json, sys
+from pathlib import Path
+root = Path(sys.argv[1]).resolve()
+opened = set()
+def audit(event, args):
+    if event == "open" and isinstance(args[0], str) and args[0].endswith(".py"):
+        path = Path(args[0]).resolve()
+        if path.is_relative_to(root / "tools"):
+            opened.add(str(path))
+sys.addaudithook(audit)
+sys.path.insert(0, str(root / "tools/release-checks"))
+import check
+print(json.dumps({"opened": sorted(opened), "loaded": sorted(check.LOADED_SOURCE),
+                  "bytes": sorted(path for path, data in check.LOADED_SOURCE.items() if Path(path).read_bytes() == data)}))
+"""
+
+
+class LoadedSourceCoverage(unittest.TestCase):
+    """Every checkout source the acceptance checker executes is bound to the verified tree."""
+
+    def test_every_executed_checker_source_is_recorded_as_loaded(self):
+        # An empty cache prefix makes every import read its source file.
+        with tempfile.TemporaryDirectory(prefix="jaekit-loaded-source-") as cache:
+            result = subprocess.run([sys.executable, "-B", "-c", LOADED_PROBE, str(ROOT)], cwd=ROOT,
+                                    capture_output=True, text=True, timeout=120,
+                                    env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1", PYTHONPYCACHEPREFIX=cache))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        observed = json.loads(result.stdout)
+        self.assertIn(str((ROOT / "tools/release-checks/check.py").resolve()), observed["opened"])
+        missing = sorted(set(observed["opened"]) - set(observed["loaded"]))
+        if missing:
+            self.fail("[violation:integration-source-unbound] executed checker sources are not bound to the verified tree: "
+                      + ", ".join(Path(path).relative_to(ROOT).as_posix() for path in missing))
+        self.assertEqual(observed["bytes"], observed["loaded"], "recorded bytes are the current tracked sources")
 
 
 if __name__ == "__main__":

@@ -1,29 +1,85 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "init-listing-only",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "ClaudeNotLoaded.test_init_listing_and_request_argv_alone_are_not_loaded"
+      "test": "ClaudeNotLoaded.test_init_listing_and_request_argv_alone_are_not_loaded",
+      "result_targets": {
+        "additional_violations": [
+          "init-listing-only.assertion-2",
+          "init-listing-only.assertion-3",
+          "init-listing-only.assertion-4",
+          "init-listing-only.assertion-5",
+          "init-listing-only.assertion-6",
+          "init-listing-only.assertion-7",
+          "init-listing-only.assertion-8"
+        ],
+        "execution": "init-listing-only.execution",
+        "selection": "init-listing-only.selection",
+        "attribution": "init-listing-only.attribution"
+      }
     },
     {
       "target": "other-work-only",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "ClaudeNotLoaded.test_other_work_without_an_invocation_is_not_loaded"
+      "test": "ClaudeNotLoaded.test_other_work_without_an_invocation_is_not_loaded",
+      "result_targets": {
+        "additional_violations": [
+          "other-work-only.assertion-2",
+          "other-work-only.assertion-3",
+          "other-work-only.assertion-4",
+          "other-work-only.assertion-5",
+          "other-work-only.assertion-6",
+          "other-work-only.assertion-7",
+          "other-work-only.assertion-8"
+        ],
+        "execution": "other-work-only.execution",
+        "selection": "other-work-only.selection",
+        "attribution": "other-work-only.attribution"
+      }
     },
     {
       "target": "injection-required",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "ClaudeNotLoaded.test_invocation_needs_the_host_injected_skill_entry"
+      "test": "ClaudeNotLoaded.test_invocation_needs_the_host_injected_skill_entry",
+      "result_targets": {
+        "additional_violations": [
+          "injection-required.assertion-2",
+          "injection-required.assertion-3",
+          "injection-required.assertion-4",
+          "injection-required.assertion-5",
+          "injection-required.assertion-6",
+          "injection-required.assertion-7",
+          "injection-required.assertion-8"
+        ],
+        "execution": "injection-required.execution",
+        "selection": "injection-required.selection",
+        "attribution": "injection-required.attribution"
+      }
     },
     {
       "target": "foreign-record",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "ClaudeNotLoaded.test_other_skill_location_or_session_is_not_loaded"
+      "test": "ClaudeNotLoaded.test_other_skill_location_or_session_is_not_loaded",
+      "result_targets": {
+        "additional_violations": [
+          "foreign-record.assertion-2",
+          "foreign-record.assertion-3",
+          "foreign-record.assertion-4",
+          "foreign-record.assertion-5",
+          "foreign-record.assertion-6",
+          "foreign-record.assertion-7",
+          "foreign-record.assertion-8"
+        ],
+        "execution": "foreign-record.execution",
+        "selection": "foreign-record.selection",
+        "attribution": "foreign-record.attribution"
+      }
     }
   ]
 }
