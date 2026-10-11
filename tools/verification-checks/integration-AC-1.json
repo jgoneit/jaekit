@@ -1,0 +1,40 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-integration-probes",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/public-checks/AC-1.paths.json",
+    "tools/public-checks/AC-2.paths.json",
+    "tools/public-checks/AC-3.paths.json",
+    "tools/public-checks/path_evidence.py",
+    "tools/public-checks/test_paths.py",
+    "tools/verification-checks/integration-map.json",
+    "tools/verification-checks/integration_results.py"
+  ],
+  "targets": [
+    {
+      "id": "public1.AC-1",
+      "violation": "path-not-rejected"
+    },
+    {
+      "id": "public1.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "public2.AC-2",
+      "violation": "history-path-not-rejected"
+    },
+    {
+      "id": "public2.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "public3.AC-3",
+      "violation": "name-not-preserved"
+    },
+    {
+      "id": "public3.invocation",
+      "violation": "invocation-contract"
+    }
+  ]
+}

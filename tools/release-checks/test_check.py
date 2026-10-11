@@ -20,6 +20,7 @@ class EvidenceChecks(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.checker = object.__new__(check.Checker)
+        self.checker.product_root = self.root
         self.checker.private = self.root
         self.checker._evidence = None
         self.checker._release = None
@@ -119,10 +120,15 @@ class EvidenceChecks(unittest.TestCase):
                                                         "command": "ha start goal"}}, {"type": "turn.completed"}]
         context = [{"type": "session_meta", "payload": {"id": "session-1234"}},
                    {"type": "turn_context", "payload": {"model": "observed-model"}},
-                   {"type": "response_item", "payload": {"content": path}}]
+                   {"type": "response_item", "payload": {"type": "message", "role": "user",
+                    "content": [{"type": "input_text", "text":
+                                 f"<skill>\n<name>spec:spec</name>\n<path>{path}</path>\n---\nname: synthetic\n"}]}}]
         value = {"model": "observed-model", "session_id": "session-1234", "plugins": {"spec": skill},
                  "spec": self.capture(["codex", "exec", "--json", "$spec:spec a synthetic goal"], events),
                  "session_trace": self.artifact("rollout", "\n".join(json.dumps(e) for e in context))}
+        # This rollout is a snapshot of the Spec request, not a whole-session
+        # record that could contain a later unrelated Skill injection.
+        value["spec"]["session_trace"] = value.pop("session_trace")
         with self.assertRaisesRegex(check.Failure, "Spec observation performed"):
             self.checker.trace("codex", value, "spec")
         value["session_id"] = "different-session"

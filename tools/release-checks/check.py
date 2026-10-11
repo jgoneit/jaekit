@@ -1,10 +1,25 @@
 #!/usr/bin/env python3
 """Opt-in, read-only release acceptance checks; see README.md for local evidence."""
-from __future__ import annotations
+# Only sys is imported before selecting the interpreter's own library paths.
+# A script directory or an embedding caller's checkout path must not supply
+# json.py, a stdlib package, or a helper package before source verification.
+import sys
+
+_CALLER_IMPORT_PATH = sys.path[:]
+_STDLIB_ROOT = getattr(sys, "_stdlib_dir", None)
+if not _STDLIB_ROOT:
+    _encodings_file = getattr(sys.modules.get("encodings"), "__file__", None)
+    if not _encodings_file or "/" not in _encodings_file:
+        raise ImportError("interpreter standard library location is unavailable")
+    _STDLIB_ROOT = _encodings_file.rsplit("/", 2)[0]
+_STDLIB_IMPORT_PATH = (_STDLIB_ROOT, _STDLIB_ROOT + "/lib-dynload")
+sys.path[:] = _STDLIB_IMPORT_PATH
 
 import argparse
 import base64
+from contextlib import ExitStack, contextmanager
 import hashlib
+import importlib.abc
 import importlib.util
 import json
 import os
@@ -13,14 +28,73 @@ import platform
 import re
 import shutil
 import shlex
+import stat
 import subprocess
-import sys
 import tempfile
 from urllib.request import urlopen
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import shell_reader
-import execution_trace
+
+class RecordedSourceLoader(importlib.abc.SourceLoader):
+    """Import exactly the bytes recorded as loaded source, never cached bytecode."""
+
+    def __init__(self, path, data):
+        self.path, self.data = path, data
+
+    def get_filename(self, fullname):
+        return str(self.path)
+
+    def get_data(self, path):
+        return self.data
+
+
+LOADED_SOURCE = {str(Path(__file__).resolve()): Path(__file__).read_bytes()}
+
+
+def load_observation_module(name):
+    """Fixed files, not Python's package/module or bytecode search precedence."""
+    path = Path(__file__).resolve().with_name(name + ".py")
+    existing = sys.modules.get(name)
+    if existing is not None:
+        if Path(getattr(existing, "__file__", "")).resolve() != path.resolve():
+            raise ImportError("observation module already loaded from another source: " + name)
+        recorded = getattr(existing, "_JAEKIT_LOADED_SOURCE", None)
+        if isinstance(recorded, bytes):
+            LOADED_SOURCE[str(path.resolve())] = recorded
+            return existing
+    loader = RecordedSourceLoader(path, path.read_bytes())
+    spec = importlib.util.spec_from_loader(name, loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    try:
+        loader.exec_module(module)
+    except BaseException:
+        if existing is None:
+            sys.modules.pop(name, None)
+        else:
+            sys.modules[name] = existing
+        raise
+    module._JAEKIT_LOADED_SOURCE = loader.data
+    LOADED_SOURCE[str(path.resolve())] = loader.data
+    return module
+
+
+# Dependencies are loaded first; sibling imports resolve to these exact files.
+shell_reader = load_observation_module("shell_reader")
+execution_provenance = load_observation_module("execution_provenance")
+execution_trace = load_observation_module("execution_trace")
+source_identity = load_observation_module("source_identity")
+install_trace = load_observation_module("install_trace")
+
+
+@contextmanager
+def trusted_imports():
+    """Keep later imports within the trusted runtime while accepting evidence."""
+    previous = sys.path[:]
+    sys.path[:] = _STDLIB_IMPORT_PATH
+    try:
+        yield
+    finally:
+        sys.path[:] = previous
 
 ROOT = Path(__file__).resolve().parents[2]
 REPO = "jgoneit/jaekit"
@@ -67,6 +141,11 @@ def command(argv, cwd=ROOT, timeout=180):
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GH_PROMPT_DISABLED="1",
                GOTOOLCHAIN="local")
     env.pop("GH_DEBUG", None)
+    if argv[0] == sys.executable:
+        # Isolation of the worker does not propagate to a new interpreter.
+        # Keep script/discovery imports in the pinned source copy, while
+        # excluding paths back into the original, unverified checkout.
+        env.pop("PYTHONPATH", None)
     try:
         return subprocess.run(argv, cwd=cwd, env=env, capture_output=True,
                               timeout=timeout)
@@ -80,6 +159,57 @@ def checked(argv, cwd=ROOT, timeout=180):
     return result.stdout
 
 
+
+def query_core(verified_bytes, arguments, cwd=ROOT):
+    """Query an isolated copy of verified bytes, never reopen a mutable path."""
+    allowed = (arguments == ["--version"] or arguments == ["capabilities", "--format", "json"]
+               or (len(arguments) == 4 and arguments[0] == "status" and arguments[2:] == ["--format", "json"]))
+    require(allowed, "unsupported Core observation query")
+    with tempfile.TemporaryDirectory(prefix="jaekit-core-query-") as directory:
+        executable = Path(directory) / "ha"
+        executable.write_bytes(verified_bytes)
+        executable.chmod(0o500)
+        return checked([str(executable), *arguments], cwd)
+
+
+def installed_core_runs(path, verified_bytes):
+    """Run the selected installed path itself and confirm its bytes did not change.
+
+    The isolated byte query cannot show that this path can still execute here:
+    a removed execute bit, a lost path or an environment that refuses it.
+    Another Core earlier in PATH never stands in for the selected path.
+    """
+    def current():
+        try:
+            info = path.lstat()
+            data = path.read_bytes()
+        except FileNotFoundError:
+            raise Unavailable("selected installed Core path is missing") from None
+        except OSError:
+            raise Unavailable("selected installed Core path is unreadable") from None
+        require(stat.S_ISREG(info.st_mode) and data == verified_bytes,
+                "selected installed Core differs from the public native asset")
+        return info
+
+    before = current()
+    require(before.st_mode & 0o111 and os.access(path, os.X_OK),
+            "selected installed Core path is not executable")
+    with tempfile.TemporaryDirectory(prefix="jaekit-installed-path-") as directory:
+        try:
+            result = subprocess.run([str(path), "--version"], cwd=directory, capture_output=True, timeout=30,
+                                    env={key: value for key, value in os.environ.items() if not key.startswith("HA_")})
+        except subprocess.TimeoutExpired:
+            raise Unavailable("selected installed Core path did not answer") from None
+        except OSError:
+            raise Failure("selected installed Core path cannot be executed here") from None
+    after = current()
+    require((after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+            == (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns),
+            "selected installed Core changed while it was executed")
+    require(result.returncode == 0, "selected installed Core path cannot be executed here")
+    return result.stdout
+
+
 def api(path, *, absent=None):
     result = command(["gh", "api", "--hostname", "github.com", "--method", "GET",
                       "-H", "Accept: application/vnd.github+json", path], timeout=45)
@@ -88,6 +218,51 @@ def api(path, *, absent=None):
             raise Failure(absent)
         raise Unavailable("GitHub GET failed; release state remains unverified")
     return decode(result.stdout)
+
+
+class PublicProduct:
+    """Git objects of the released product, read through the authenticated GitHub API.
+
+    Used only for objects the checkout lacks. The caller verifies every blob by
+    its Git object ID and the materialized tree by its ID, so this channel
+    cannot substitute other bytes; nothing is fetched into the checkout.
+    """
+
+    @staticmethod
+    def get(path):
+        try:
+            return api(f"repos/{REPO}/{path}")
+        except (Unavailable, Failure):
+            raise source_identity.SourceUnavailable("public product source could not be read") from None
+
+    def commit_tree(self, commit):
+        value = self.get(f"git/commits/{commit}")
+        if not isinstance(value, dict) or value.get("sha") != commit:
+            raise source_identity.SourceUnavailable("public product commit could not be read")
+        return (value.get("tree") or {}).get("sha")
+
+    def tree(self, tree):
+        value = self.get(f"git/trees/{tree}?recursive=1")
+        if (not isinstance(value, dict) or value.get("sha") != tree or value.get("truncated") is not False
+                or not isinstance(value.get("tree"), list)):
+            raise source_identity.SourceUnavailable("public product tree listing is incomplete")
+        listing = []
+        for item in value["tree"]:
+            if not isinstance(item, dict) or not all(isinstance(item.get(key), str) for key in ("path", "mode", "type", "sha")):
+                raise source_identity.SourceUnavailable("public product tree listing is unreadable")
+            mode = "040000" if item["type"] == "tree" and item["mode"] in ("040000", "40000") else item["mode"]
+            listing.append((mode.encode(), item["type"].encode(), item["sha"].encode(), item["path"]))
+        return listing
+
+    def blob(self, oid):
+        value = self.get(f"git/blobs/{oid}")
+        if (not isinstance(value, dict) or value.get("sha") != oid or value.get("encoding") != "base64"
+                or not isinstance(value.get("content"), str)):
+            raise source_identity.SourceUnavailable("public product object could not be read")
+        try:
+            return base64.b64decode(value["content"].replace("\n", ""), validate=True)
+        except ValueError:
+            raise source_identity.SourceUnavailable("public product object could not be decoded") from None
 
 
 def release_snapshot(release, commit):
@@ -109,15 +284,22 @@ def native_platform():
 
 
 def load_archive_reader():
-    # The validator and this checker share one reader; see README.md.
+    # The validator and this checker share one reader; see README.md. Return
+    # the executed bytes so the verified tree binds them like other sources.
     path = Path(__file__).resolve().parents[1] / "release" / "archive_reader.py"
-    spec = importlib.util.spec_from_file_location("jaekit_release_archive_reader", path)
+    loader = RecordedSourceLoader(path, path.read_bytes())
+    spec = importlib.util.spec_from_loader("jaekit_release_archive_reader", loader)
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    loader.exec_module(module)
+    return module, loader.data
 
 
-archive_reader = load_archive_reader()
+archive_reader, ARCHIVE_READER_SOURCE = load_archive_reader()
+LOADED_SOURCE[str(Path(archive_reader.__file__).resolve())] = ARCHIVE_READER_SOURCE
+# The embedding test/host keeps its own import search after checker bootstrap.
+# Public acceptance below re-enters the trusted search; its worker uses -I.
+sys.path[:] = _CALLER_IMPORT_PATH
+del _CALLER_IMPORT_PATH
 # Limits apply to every consumer of a downloaded or supplied release archive.
 ARCHIVE_MAX_COMPRESSED_BYTES = archive_reader.MAX_COMPRESSED_BYTES
 ARCHIVE_MAX_BYTES = archive_reader.MAX_BYTES
@@ -166,6 +348,49 @@ class Checker:
         self._release = None
         self._downloads = {}
         self._source = {}
+        self.product_root = None
+
+    @trusted_imports()
+    def selected(self, criterion):
+        """Verify product identity and the explicitly selected checker snapshot."""
+        expected = self.evidence()["release"].get("source_commit")
+        require(isinstance(expected, str) and COMMIT.fullmatch(expected),
+                "verified release source commit is missing")
+        self.release()
+        published = api(f"repos/{REPO}/commits/{TAG}")
+        require(expected == published.get("sha"), "release source identity differs")
+        source = self.evidence().get("checker_source")
+        if not isinstance(source, dict) or set(source) != {"commit", "tree"} or not all(
+                isinstance(source[key], str) and COMMIT.fullmatch(source[key]) for key in source):
+            raise Unavailable("explicit checker source commit and tree are missing")
+        tree = source["tree"]
+        try:
+            if source_identity.git(ROOT, "rev-parse", "HEAD").decode().strip() != source["commit"]:
+                raise source_identity.SourceMismatch("checked tool commit differs from the selected checker source")
+            with ExitStack() as stack:
+                selected = stack.enter_context(source_identity.pinned(ROOT, tree, LOADED_SOURCE))
+                request_data = {"criterion": criterion, "evidence": str(self.private), "tree": tree}
+                if int(criterion[3:]) >= 7:
+                    product_tree = published.get("commit", {}).get("tree", {}).get("sha")
+                    product = stack.enter_context(source_identity.pinned_product(ROOT, expected, product_tree,
+                                                                                 PublicProduct()))
+                    request_data.update(product_root=str(product), product_tree=product_tree)
+                request = json.dumps(request_data)
+                process = subprocess.run([sys.executable, "-I", str(selected / "tools/release-checks/snapshot_worker.py")],
+                                         cwd=selected, input=request, capture_output=True, text=True, timeout=1200,
+                                         env=dict({key: val for key, val in os.environ.items() if not key.startswith("GIT_")},
+                                                  PYTHONDONTWRITEBYTECODE="1"))
+                if process.returncode:
+                    raise Unavailable("isolated source check did not complete")
+                result = decode(process.stdout.encode())
+                if result.get("status") == "fail":
+                    raise Failure(result.get("reason", "isolated source requirement failed"))
+                if result.get("status") != "pass":
+                    raise Unavailable(result.get("reason", "isolated source observation is unavailable"))
+        except source_identity.SourceMismatch as error:
+            raise Failure(str(error)) from None
+        except (source_identity.SourceUnavailable, subprocess.TimeoutExpired, OSError):
+            raise Unavailable("isolated verified source could not be observed") from None
 
     def evidence(self):
         if self._evidence is None:
@@ -272,8 +497,17 @@ class Checker:
         require(isinstance(value, dict), f"missing {name} installation observation")
         binary, data = self.artifact(value.get("binary"))
         target = native_platform()
-        files = archive_files(self.download(f"ha_{VERSION}_{target}.tar.gz"), target)
+        public_archive = self.download(f"ha_{VERSION}_{target}.tar.gz")
+        files = archive_files(public_archive, target)
         require(data == files["ha"], "selected installed Core differs from the public native asset")
+        if name == "direct":
+            try:
+                observed_binary = install_trace.consume(self, value, public_archive, target)
+            except install_trace.UnavailableInstallation as error:
+                raise Unavailable(str(error)) from None
+            except install_trace.InvalidInstallation as error:
+                raise Failure(str(error)) from None
+            require(observed_binary == binary, "installation observation names a different Core")
         install, _ = self.capture(value.get("install"))
         if name.startswith("brew_"):
             require(Path(install[0]).name == "brew" and "jaekit" in " ".join(install)
@@ -284,8 +518,11 @@ class Checker:
             argv, out = self.capture(value.get(key))
             require(Path(argv[0]).resolve() == binary and argv[1:] == suffix,
                     "installation capture queried a different executable or command")
-            current = checked([str(binary), *suffix])
+            current = query_core(data, suffix)
             require(current == out, "installed Core query changed since capture")
+            if key == "version":
+                require(installed_core_runs(binary, data) == out,
+                        "selected installed Core path answers differently from its capture")
             if key == "version":
                 require(out.strip() == b"ha 0.1.3", "installed Core has the wrong release version")
             else:
@@ -297,6 +534,8 @@ class Checker:
         if name == "brew_upgrade":
             _, before = self.capture(value.get("before_version"))
             require(before.strip() == b"ha 0.1.2", "upgrade does not establish the old installed version")
+        self._verified_core_bytes = getattr(self, "_verified_core_bytes", {})
+        self._verified_core_bytes[binary] = data
         return binary
 
     def host(self, name):
@@ -364,9 +603,9 @@ class Checker:
         expected = self.evidence()["release"].get("source_commit")
         require(isinstance(expected, str) and COMMIT.fullmatch(expected)
                 and expected == commit.get("sha"), "release tag differs from the identified source commit")
-        tree = checked(["git", "rev-parse", "HEAD^{tree}"]).decode().strip()
-        require(tree == commit.get("commit", {}).get("tree", {}).get("sha"),
-                "checked source tree differs from the released source")
+        require(isinstance(commit.get("commit", {}).get("tree", {}).get("sha"), str)
+                and COMMIT.fullmatch(commit["commit"]["tree"]["sha"]),
+                "published product source tree is unavailable")
         _, previous = self.artifact(self.evidence()["release"].get("previous"))
         old = api(f"repos/{REPO}/releases/tags/v0.1.2")
         old_commit = api(f"repos/{REPO}/commits/v0.1.2").get("sha")
@@ -414,7 +653,7 @@ class Checker:
             checked([sys.executable, str(validator), "--version", VERSION,
                      "--dist", directory, "--run-native"], timeout=300)
 
-    def trace(self, name, value, phase):
+    def trace_context(self, name, value, phase):
         capture = value.get(phase)
         argv, raw = self.capture(capture)
         require(Path(argv[0]).name == name, "flow capture is not a native host invocation")
@@ -469,9 +708,50 @@ class Checker:
                     "implementation is not a separate resumed host request")
         require(native_tools(phase_events), "native host trace has no observed tool execution")
         calls = tool_invocations(phase_events)
+        # Only the host's own record of invoking this phase's Skill identifies
+        # the loaded Skill: not the available-Skill listing, the request, model
+        # text, tool calls or output, or another phase's events. Codex injects
+        # the Skill into the phase's events; Claude records the invocation in
+        # its native session transcript.
+        if name == "codex":
+            loaded = loaded_skill_paths(name, phase_events, skill)
+        else:
+            loaded = loaded_skill_paths(name, session_events, skill, session)
+        expected = installed_path if name == "codex" else installed_path.parent
+        require(any(same_path(path, expected) for path in loaded),
+                "native host trace does not identify the actual loaded Skill path")
+        return capture, phase_events, calls
+
+    def trace_candidates(self, name, value, phase):
+        """Validate syntax/Skill candidates only; never certify Seal execution.
+
+        The release acceptance entry points always use trace(), which requires
+        original execution receipts and Core records for a Seal flow.
+        """
+        _, _, calls = self.trace_context(name, value, phase)
+        invocations = []
+        for call_id, command in calls:
+            analysis = shell_analysis(command)
+            if analysis.unknown:
+                raise Unavailable("Core execution is unverified [" + str(call_id) + "]: "
+                                  + "; ".join(analysis.reasons))
+            invocations.extend(analysis.calls)
+        if phase == "spec":
+            require(not any(operation in SPEC_FORBIDDEN for operation, _ in invocations),
+                    "Spec observation performed execution work")
+        else:
+            observed = {operation for operation, _ in invocations}
+            for operation in SEAL_REQUIRED:
+                require(operation in observed, f"native Seal trace does not observe ha {operation}")
+            require(any(op == "check" and "--baseline" in args for op, args in invocations),
+                    "native Seal trace does not observe a baseline attempt")
+        return [command for _, command in calls]
+
+    def trace(self, name, value, phase):
+        capture, phase_events, calls = self.trace_context(name, value, phase)
         commands = [command for _, command in calls]
         try:
-            observed = execution_trace.consume(self, value, capture, calls, phase_events)
+            observed = execution_trace.consume(self, value, capture, calls, phase_events, phase)
         except (execution_trace.InvalidObservation, Failure, OSError, ValueError) as error:
             raise Unavailable("execution observation is unverified: " + str(error)) from None
         invocations, consumed = [], set()
@@ -489,28 +769,39 @@ class Checker:
                 if analysis.unknown:
                     reasons = "; ".join(analysis.reasons) or "unresolved execution"
                     raise Unavailable("Core execution is unverified [" + ", ".join(ids) + "]: " + reasons)
+                if phase == "seal" and analysis.calls:
+                    raise Unavailable("Core execution is unverified [" + ", ".join(ids)
+                                      + "]: static text has no original execution and goal-record binding")
                 invocations.extend(analysis.calls)
         if phase == "spec":
             require(not any(operation in SPEC_FORBIDDEN for operation, _ in invocations),
                     "Spec observation performed execution work")
         else:
+            if not capture.get("executions"):
+                raise Unavailable("Seal execution has no original execution and goal-record observations")
             observed = {operation for operation, _ in invocations}
             for operation in SEAL_REQUIRED:
                 require(operation in observed, f"native Seal trace does not observe ha {operation}")
             require(any(operation == "check" and "--baseline" in arguments for operation, arguments in invocations),
                     "native Seal trace does not observe a baseline attempt")
-        # Only the host's own record of invoking this phase's Skill identifies
-        # the loaded Skill: not the available-Skill listing, the request, model
-        # text, tool calls or output, or another phase's events. Codex injects
-        # the Skill into the phase's events; Claude records the invocation in
-        # its native session transcript.
-        if name == "codex":
-            loaded = loaded_skill_paths(name, phase_events, skill)
-        else:
-            loaded = loaded_skill_paths(name, session_events, skill, session)
-        expected = installed_path if name == "codex" else installed_path.parent
-        require(any(same_path(path, expected) for path in loaded),
-                "native host trace does not identify the actual loaded Skill path")
+            require(any(operation == "check" and "--baseline" not in arguments for operation, arguments in invocations),
+                    "native Seal trace does not observe a current check attempt")
+        if phase == "seal":
+            binary, core_bytes = self.artifact(value.get("core"))
+            target = native_platform()
+            public = archive_files(self.download(f"ha_{VERSION}_{target}.tar.gz"), target)
+            require(core_bytes == public["ha"], "observed Core differs from the public native asset")
+            context = execution_provenance.context(value.get("project", ""), value.get("goal", ""))
+            project = Path(context["project"])
+            gitdir = execution_provenance.subprocess.run(
+                ["git", "-C", str(project), "rev-parse", "--absolute-git-dir"], capture_output=True, timeout=30,
+                env={key: val for key, val in os.environ.items() if not key.startswith("GIT_")})
+            if gitdir.returncode:
+                raise Unavailable("original goal Git storage is unavailable")
+            done_seq = validate_records(Path(context["records"]).read_bytes(), project,
+                                        Path(os.fsdecode(gitdir.stdout).strip()), value)
+            current = decode(query_core(core_bytes, ["status", context["goal"], "--format", "json"], project))
+            validate_completion(current, done_seq)
         return commands
 
     def check_6(self):
@@ -544,25 +835,33 @@ class Checker:
             records = (project / goal / "runs.jsonl").read_bytes()
             gitdir = checked(["git", "rev-parse", "--absolute-git-dir"], project).decode().strip()
             done_seq = validate_records(records, project, Path(gitdir), value)
-            report = decode(checked([str(binary), "status", goal, "--format", "json"], project))
+            report = decode(query_core(self._verified_core_bytes[binary], ["status", goal, "--format", "json"], project))
             validate_completion(report, done_seq)
 
     def check_7(self):
         checked(["go", "test", "-mod=readonly", "./cmd/ha", "./plugins", "-run",
-                 "^(TestCompatibilityAC7_|TestCompatibilityAC8_|TestCompatibilityAC12_)", "-count=1"], timeout=300)
+                 "^(TestCompatibilityAC7_|TestCompatibilityAC8_|TestCompatibilityAC12_)", "-count=1"],
+                cwd=self.product_source(), timeout=300)
+
+    def product_source(self):
+        if self.product_root is None:
+            raise Unavailable("verified product source snapshot is missing")
+        return self.product_root
 
     def check_8(self):
         checked(["go", "test", "-mod=readonly", "./cmd/ha", "./internal/status", "./internal/record",
                  "./internal/goaldocs", "./plugins", "-run",
                  "^(TestCompatibilityAC9_|TestBaselineBudget|TestBudget|TestBaselineSafetyAC5_|"
-                 "TestNestedCriteria|TestRelease011UninstallGuide|TestRelease011UpdateGuide)", "-count=1"], timeout=300)
+                 "TestNestedCriteria|TestRelease011UninstallGuide|TestRelease011UpdateGuide)", "-count=1"],
+                cwd=self.product_source(), timeout=300)
 
     def check_9(self):
-        market = decode((ROOT / ".claude-plugin/marketplace.json").read_bytes())
+        market = decode((self.product_source() / ".claude-plugin/marketplace.json").read_bytes())
         require(market.get("metadata", {}).get("version") == VERSION,
                 "source marketplace still identifies the previous release")
         checked(["go", "test", "-mod=readonly", "./plugins", "-run",
-                 "^(TestCompatibilityAC10_|TestCompatibilityAC11_|TestRelease|TestReadme)", "-count=1"], timeout=300)
+                 "^(TestCompatibilityAC10_|TestCompatibilityAC11_|TestRelease|TestReadme)", "-count=1"],
+                cwd=self.product_source(), timeout=300)
         note = self.release().get("body", "")
         require("0.1.3" in note and ("Spec" in note and "Seal" in note),
                 "public release notes do not identify the product combination")
@@ -570,13 +869,13 @@ class Checker:
     def check_10(self):
         for directory in ("tools/release", "tools/release-checks"):
             result = command([sys.executable, "-m", "unittest", "discover", "-s", directory,
-                              "-p", "test_*.py"], timeout=300)
+                              "-p", "test_*.py"], cwd=self.product_source(), timeout=300)
             require(result.returncode == 0 and re.search(rb"Ran [1-9][0-9]* tests?", result.stderr),
                     "release failure-protection regressions failed or did not run")
 
     def check_11(self):
-        checked([sys.executable, "tools/check_public_tree.py"])
-        checked([sys.executable, "tools/check_public_docs.py"])
+        checked([sys.executable, "tools/check_public_tree.py"], cwd=self.product_source())
+        checked([sys.executable, "tools/check_public_docs.py"], cwd=self.product_source())
         # Before publication the maintained boundary is covered by source and
         # packaging regressions. Once published, additionally inspect real assets.
         result = command(["gh", "api", "--method", "GET", f"repos/{REPO}/releases/tags/{TAG}"])
@@ -657,22 +956,34 @@ def validate_selected_core(public_binary):
     require(selected, "the current PATH does not select a Core executable")
     binary = Path(selected).resolve()
     require(binary.read_bytes() == public_binary, "current PATH selects a different Core than the public native asset")
-    require(checked([str(binary), "--version"]).strip() == b"ha 0.1.3",
+    require(query_core(public_binary, ["--version"]).strip() == b"ha 0.1.3",
             "current PATH selects the wrong Core version")
-    info = decode(checked([str(binary), "capabilities", "--format", "json"]))
+    info = decode(query_core(public_binary, ["capabilities", "--format", "json"]))
     require(info.get("schema") == "ha-capabilities/v1" and info.get("ha_version") == VERSION
             and info.get("default_rules") == "run-rules/3",
             "current PATH Core does not expose the release capabilities")
 
 
 def tool_invocations(events):
-    """Native call IDs paired with their command strings, never prose IDs."""
-    result = []
+    """Native call IDs paired with their command strings, never prose IDs.
+
+    Codex records one tool call both in exec JSON and in the phase rollout.
+    Representations with the same native ID and the same commands are one
+    call; the same ID with other commands is a contradiction, not two calls.
+    Events without a native ID are never joined.
+    """
+    result, seen = [], {}
     def append(call_id, name, arguments):
         try:
-            result.extend((call_id, command) for command in call_commands(name, arguments))
+            commands = call_commands(name, arguments)
         except Unavailable as error:
             raise Unavailable(f"native command is unverified [{call_id}]: {error}") from None
+        if isinstance(call_id, str) and not call_id.startswith("event-") and call_id in seen:
+            if seen[call_id] != commands:
+                raise Unavailable(f"native tool call has conflicting representations [{call_id}]")
+            return
+        seen[call_id] = commands
+        result.extend((call_id, command) for command in commands)
 
     for index, event in enumerate(events):
         fallback = f"event-{index}"
@@ -1141,6 +1452,7 @@ def private_text(data):
             "public release contains private environment references")
 
 
+@trusted_imports()
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("criterion", choices=[f"AC-{n}" for n in range(1, 12)])
@@ -1149,7 +1461,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         checker = Checker(args.evidence)
-        getattr(checker, "check_" + args.criterion[3:])()
+        checker.selected(args.criterion)
     except Failure as error:
         print(f"FAIL {args.criterion}: {error}", file=sys.stderr)
         return 1

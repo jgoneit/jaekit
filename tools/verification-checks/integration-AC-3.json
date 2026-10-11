@@ -1,0 +1,75 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-integration-probes",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/integration-map.json",
+    "tools/verification-checks/integration_results.py",
+    "tools/verification-checks/release-evidence/AC-1.json",
+    "tools/verification-checks/release-evidence/AC-2.json",
+    "tools/verification-checks/release-evidence/AC-3.json",
+    "tools/verification-checks/release-evidence/AC-4.json",
+    "tools/verification-checks/release-evidence/AC-5.json",
+    "tools/verification-checks/release-evidence/AC-6.json",
+    "tools/verification-checks/release-evidence/AC-8.json",
+    "tools/verification-checks/release_evidence.py"
+  ],
+  "targets": [
+    {
+      "id": "release1.AC-1",
+      "violation": "invalid-syntax-certified"
+    },
+    {
+      "id": "release1.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "release2.AC-2",
+      "violation": "unreached-call-certified"
+    },
+    {
+      "id": "release2.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "release3.AC-3",
+      "violation": "unbound-execution-certified"
+    },
+    {
+      "id": "release3.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "release4.AC-4",
+      "violation": "installation-substituted"
+    },
+    {
+      "id": "release4.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "release5.AC-5",
+      "violation": "unverified-source-used"
+    },
+    {
+      "id": "release5.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "release6.AC-6",
+      "violation": "connected-local-flow-missing"
+    },
+    {
+      "id": "release6.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "release8.AC-8",
+      "violation": "release-regression-not-selected"
+    },
+    {
+      "id": "release8.invocation",
+      "violation": "invocation-contract"
+    }
+  ]
+}

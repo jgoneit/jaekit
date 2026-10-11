@@ -1,0 +1,49 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-integration-probes",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/release-checks/AC-1.limits.json",
+    "tools/release-checks/AC-2.limits.json",
+    "tools/release-checks/AC-3.limits.json",
+    "tools/release-checks/AC-4.limits.json",
+    "tools/release-checks/archive_evidence.py",
+    "tools/release-checks/test_archive_limits.py",
+    "tools/verification-checks/integration-map.json",
+    "tools/verification-checks/integration_results.py"
+  ],
+  "targets": [
+    {
+      "id": "archive1.AC-1",
+      "violation": "archive-limits-absent"
+    },
+    {
+      "id": "archive1.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "archive2.AC-2",
+      "violation": "archive-read-before-limit"
+    },
+    {
+      "id": "archive2.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "archive3.AC-3",
+      "violation": "archive-family-accepted"
+    },
+    {
+      "id": "archive3.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "archive4.AC-4",
+      "violation": "archive-consumer-bypassed-limit"
+    },
+    {
+      "id": "archive4.invocation",
+      "violation": "invocation-contract"
+    }
+  ]
+}

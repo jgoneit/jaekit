@@ -1,0 +1,48 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-integration-probes",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/regression-checks/check.py",
+    "tools/regression-checks/declaration.json",
+    "tools/regression-checks/run_unittest.py",
+    "tools/regression-checks/test_checker.py",
+    "tools/regression-checks/test_map.py",
+    "tools/verification-checks/integration-map.json",
+    "tools/verification-checks/integration_results.py"
+  ],
+  "targets": [
+    {
+      "id": "regressions1.regression-contract",
+      "violation": "regression-map-missing"
+    },
+    {
+      "id": "regressions1.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "regressions2.regression-contract",
+      "violation": "regression-map-missing"
+    },
+    {
+      "id": "regressions2.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "regressions3.regression-contract",
+      "violation": "regression-map-missing"
+    },
+    {
+      "id": "regressions3.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "regressions4.regression-contract",
+      "violation": "regression-map-missing"
+    },
+    {
+      "id": "regressions4.invocation",
+      "violation": "invocation-contract"
+    }
+  ]
+}

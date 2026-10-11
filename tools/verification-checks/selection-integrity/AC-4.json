@@ -1,0 +1,152 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-selection-integrity",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/selection_integrity.py",
+    "tools/result_observations.py",
+    "tools/regression-checks/integration_selection_python.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-4",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-2",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-3",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-4",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-5",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-6",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-7",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-8",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-9",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-10",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-11",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-12",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-13",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-14",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-15",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-16",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-17",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-18",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-19",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-20",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-21",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-22",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-23",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-24",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-25",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-26",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-27",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-28",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-29",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-30",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-31",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.assertion-32",
+      "violation": "python-pattern-selection-mismatch"
+    },
+    {
+      "id": "AC-4.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-4.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-4.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

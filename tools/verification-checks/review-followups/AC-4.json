@@ -1,0 +1,20 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-review-followups-observer",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/review_followups.py",
+    "tools/verification-checks/review_release_evidence.py",
+    "tools/release-checks/integration_evidence_boundaries.py",
+    "tools/release-checks/integration_direct_install.py",
+    "tools/release-checks/integration_core_observation.py",
+    "tools/review-checks/test_observation.py",
+    "tools/release-checks/test_loader_invocations.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-4",
+      "violation": "integrated-release-evidence-lost"
+    }
+  ]
+}

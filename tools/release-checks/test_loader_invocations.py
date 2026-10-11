@@ -68,6 +68,23 @@ class TraceCase(unittest.TestCase):
         except check.Failure as error:
             self.fail(f"{host} {phase} trace was rejected: {error}")
 
+    def accepts_candidates(self, host, value, phase):
+        """Keep syntax/loader support separate from final execution evidence."""
+        try:
+            commands = self.checker.trace_candidates(host, value, phase)
+        except (check.Failure, check.Unavailable) as error:
+            self.fail(f"{host} {phase} syntax candidates were rejected: {error}")
+        # These fixtures contain no actual Core/goal record observations.
+        with self.assertRaises(check.Unavailable):
+            self.checker.trace(host, value, phase)
+        return commands
+
+    def rejects_candidates(self, host, value, phase, message):
+        with self.assertRaisesRegex((check.Failure, check.Unavailable), message):
+            self.checker.trace_candidates(host, value, phase)
+        with self.assertRaises(check.Unavailable):
+            self.checker.trace(host, value, phase)
+
     def rejects(self, host, value, phase, message):
         with self.assertRaisesRegex((check.Failure, check.Unavailable), message):
             self.checker.trace(host, value, phase)
@@ -194,12 +211,12 @@ class LoaderEvidence(TraceCase):
     def test_codex_injected_skill_is_loaded_in_both_phases(self):
         value, _ = self.codex(lambda path: self.session_start() + [self.listing(path), self.injection("spec:spec", path)])
         self.accepts("codex", value, "spec")
-        self.accepts("codex", value, "seal")
+        self.accepts_candidates("codex", value, "seal")
 
     def test_claude_session_plugin_is_loaded_in_both_phases(self):
         value, _ = self.claude()
         self.accepts("claude", value, "spec")
-        self.accepts("claude", value, "seal")
+        self.accepts_candidates("claude", value, "seal")
 
     def test_codex_available_listing_is_not_loaded(self):
         value, _ = self.codex(lambda path: self.session_start() + [self.listing(path)])
@@ -271,7 +288,7 @@ class CoreInvocations(TraceCase):
         for label, commands in forms.items():
             with self.subTest(form=label):
                 value, _ = self.claude(seal_commands=commands)
-                self.accepts("claude", value, "seal")
+                self.accepts_candidates("claude", value, "seal")
 
     def test_codex_static_variable_in_shell_and_exec_payloads_is_observed(self):
         def seal_rollout(path):
@@ -284,7 +301,7 @@ class CoreInvocations(TraceCase):
                     f"/bin/zsh -lc 'HA={CORE}; $HA check {GOAL} AC-1'"]
         value, _ = self.codex(lambda path: self.session_start() + [self.injection("spec:spec", path)],
                               seal_rollout, seal_commands=commands)
-        self.accepts("codex", value, "seal")
+        self.accepts_candidates("codex", value, "seal")
 
     def test_spec_phase_variable_execution_is_rejected(self):
         for command in (f"HA={CORE}; $HA start {GOAL} --request q", f'export HA="{CORE}"\n"${{HA}}" note {GOAL} input'):
@@ -295,7 +312,7 @@ class CoreInvocations(TraceCase):
     def unobserved_start(self, start):
         """Seal traces whose start is only the given form are rejected."""
         value, _ = self.claude(seal_commands=list(start) + SEAL_COMMANDS[1:])
-        self.rejects("claude", value, "seal", "does not observe ha start|unverified")
+        self.rejects_candidates("claude", value, "seal", "does not observe ha start|unverified")
 
     def test_unassigned_variables_are_not_core(self):
         for form in (f"$ha start {GOAL}", f"$HA start {GOAL}", f'"${{ha}}" start {GOAL}'):
@@ -321,7 +338,7 @@ class CoreInvocations(TraceCase):
         value, _ = self.claude(seal_commands=[f"ha start {GOAL} --request q",
                                               f"/opt/homebrew/bin/ha check {GOAL} --baseline AC-1",
                                               f'"{CORE}" check {GOAL} AC-1', f"cd repo; ha done {GOAL}"])
-        self.accepts("claude", value, "seal")
+        self.accepts_candidates("claude", value, "seal")
 
     def test_spec_phase_literal_execution_remains_rejected(self):
         for command in (f"ha note {GOAL} input", f"{CORE} budget {GOAL} --runs 5"):

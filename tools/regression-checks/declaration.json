@@ -1,0 +1,17 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-regression-map",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/regression-checks/check.py",
+    "tools/regression-checks/test_map.py",
+    "tools/regression-checks/test_checker.py",
+    "tools/regression-checks/run_unittest.py"
+  ],
+  "targets": [
+    {
+      "id": "regression-contract",
+      "violation": "regression-map-missing"
+    }
+  ]
+}

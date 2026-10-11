@@ -50,6 +50,14 @@ class Case(fixtures.Case):
         self.fail("[requirement] definite requirement violation must fail")
 
 
+    def definite_candidate_failure(self, host, value, message):
+        # The static requirement is still tested, while final acceptance needs
+        # actual Core/goal provenance absent from this fixture.
+        with self.assertRaisesRegex(check.Failure, message):
+            self.checker.trace_candidates(host, value, "seal")
+        self.unverified_value(host, value, "seal")
+
+
 class AC1(Case):
     def test_evaluators_and_sourced_files_are_unverified(self):
         for command in ("eval 'ha start goal'", "source ./runs-core.sh", ". ./runs-core.sh"):
@@ -137,7 +145,7 @@ class AC3(Case):
 
     def test_complete_missing_operation_is_not_unknown(self):
         for host in ("claude", "codex"):
-            self.definite_failure(host, self.native(host, "seal", ("ls",)), "seal", "does not observe ha start")
+            self.definite_candidate_failure(host, self.native(host, "seal", ("ls",)), "does not observe ha start")
 
 
 class AC10(Case):
@@ -146,8 +154,17 @@ class AC10(Case):
             'HA=/opt/bin/ha; "$HA" start goal',
             "env TRACE=1 ha check goal --baseline AC-1",
             "command /opt/bin/ha check goal AC-1", "exec ha done goal")
+        # exec still exposes its command candidate, but shell replacement is
+        # no longer a definite execution fact without an original run.
+        analysis = check.shell_analysis(commands[-1])
+        self.assertEqual(analysis.calls, [("done", ["goal"])])
+        self.assertTrue(analysis.unknown)
         for host in ("claude", "codex"):
-            self.accepts(host, self.native(host, "seal", commands), "seal")
+            value = self.native(host, "seal", commands)
+            with self.assertRaisesRegex(check.Unavailable, "exec replacement"):
+                self.checker.trace_candidates(host, value, "seal")
+            self.unverified_value(host, value, "seal")
+            self.accepts_candidates(host, self.native(host, "seal", commands[:-1] + ("ha done goal",)), "seal")
             self.definite_failure(host, self.native(host, "spec", ("bash -c 'ha start goal'",)),
                                   "spec", "execution work")
 
@@ -168,7 +185,7 @@ class AC10(Case):
             self.definite_failure(host, self.native(host, "spec", ('printf x > "$(ha start goal)"',)),
                                   "spec", "execution work")
             commands = ("ha start goal", "ha check goal AC-1", "echo --baseline", "ha done goal")
-            self.definite_failure(host, self.native(host, "seal", commands), "seal", "baseline attempt")
+            self.definite_candidate_failure(host, self.native(host, "seal", commands), "baseline attempt")
 
     def test_original_receipts_still_bind_supported_actual_runs(self):
         script = ('if false; then "$JAEKIT_CORE" note unused; fi; '
@@ -179,11 +196,16 @@ class AC10(Case):
         self.assertEqual(actual, [["start", "goal"], ["check", "goal", "--baseline", "AC-1"], ["done", "goal"]])
         for host in ("claude", "codex"):
             value = self.observed_value(host, "seal", argv, artifact, core)
-            self.accepts(host, value, "seal")
+            self.assertEqual(self.collected_arguments(host, value, "seal"), actual)
+            self.unverified_value(host, value, "seal")
             wrong = copy.deepcopy(value)
             wrong["seal"]["executions"][0]["tool_call_id"] = "another-native-call"
+            with self.assertRaises(check.execution_trace.InvalidObservation):
+                self.collected_arguments(host, wrong, "seal")
             self.unverified_value(host, wrong, "seal")
             missing = self.observed_value(host, "seal", argv, artifact, core, receipt="")
+            with self.assertRaises(check.execution_trace.InvalidObservation):
+                self.collected_arguments(host, missing, "seal")
             self.unverified_value(host, missing, "seal")
 
 

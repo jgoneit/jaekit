@@ -6,6 +6,7 @@ import shlex
 import re
 
 from shell_reader import covered
+import execution_provenance
 
 
 class InvalidObservation(Exception):
@@ -64,7 +65,7 @@ def native_results(events):
     return results
 
 
-def consume(checker, value, capture, calls, events):
+def consume(checker, value, capture, calls, events, phase="spec"):
     """Map native command strings to verified executed Core invocations.
 
     All association is through native tool-call IDs and the exact collector
@@ -75,6 +76,11 @@ def consume(checker, value, capture, calls, events):
     need(isinstance(entries, list), "execution observation index is invalid")
     result, used = {}, set()
     outputs = native_results(events)
+    expected = original = chain = None
+    if phase == "seal" and entries:
+        expected = execution_provenance.context(value.get("project", ""), value.get("goal", ""))
+        original = Path(expected["records"]).read_bytes()
+        chain = execution_provenance.records(original)
     for entry in entries:
         need(isinstance(entry, dict) and isinstance(entry.get("tool_call_id"), str), "native tool-call binding is missing")
         _, raw = checker.artifact(entry.get("report"))
@@ -82,7 +88,7 @@ def consume(checker, value, capture, calls, events):
             report = json.loads(raw)
         except (ValueError, UnicodeDecodeError):
             raise InvalidObservation("execution report is incomplete or malformed") from None
-        need(isinstance(report, dict) and report.get("schema") == "jaekit-execution/v1", "unsupported execution report schema")
+        need(isinstance(report, dict) and report.get("schema") == "jaekit-execution/v2", "unsupported execution report schema")
         argv = report.get("launcher_argv")
         need(isinstance(argv, list) and all(isinstance(a, str) for a in argv), "execution launcher argv is missing")
         matching = [(call_id, command) for call_id, command in calls if launcher(command) == argv]
@@ -92,9 +98,11 @@ def consume(checker, value, capture, calls, events):
         try:
             separator = argv.index("--")
             options = argv[3:separator]
-            need(len(options) == 8 and len(argv) == separator + 2, "unsupported collector invocation")
+            need(len(options) in (8, 12) and len(argv) == separator + 2, "unsupported collector invocation")
+            need(len(set(options[::2])) == len(options[::2]), "duplicate collector options")
             options = dict(zip(options[::2], options[1::2]))
-            need(set(options) == {"--core", "--shell", "--output", "--invocation"}, "unsupported collector options")
+            base_options = {"--core", "--shell", "--output", "--invocation"}
+            need(set(options) in (base_options, base_options | {"--project", "--goal"}), "unsupported collector options")
         except (ValueError, IndexError):
             raise InvalidObservation("invalid collector invocation") from None
         invocation = report.get("invocation")
@@ -128,9 +136,19 @@ def consume(checker, value, capture, calls, events):
              and producer_data == Path(__file__).with_name("observe.py").read_bytes(), "unsupported execution producer")
         _, reader_data = checker.artifact(report.get("reader"))
         need(reader_data == Path(__file__).with_name("shell_reader.py").read_bytes(), "unsupported collection coverage policy")
+        _, provenance_data = checker.artifact(report.get("provenance"))
+        need(provenance_data == Path(__file__).with_name("execution_provenance.py").read_bytes(),
+             "unsupported record provenance policy")
+        if phase == "seal":
+            need(report.get("context") == expected and options.get("--project") == expected["project"]
+                 and options.get("--goal") == expected["goal"], "execution project or goal context differs")
         core_path, core_bytes = checker.artifact(value.get("core"))
         core = {"path": str(core_path.resolve()), "sha256": digest(core_bytes)}
         need(report.get("core") == core and str(Path(options["--core"]).resolve()) == core["path"], "executed Core identity differs")
+        executable = report.get("execution_image")
+        need(isinstance(executable, dict) and set(executable) == {"path", "sha256"}
+             and isinstance(executable.get("path"), str) and Path(executable["path"]).is_absolute()
+             and executable["sha256"] == core["sha256"], "isolated executed Core bytes differ")
         shell_path, _ = checker.artifact(report.get("shell"))
         need(str(shell_path.resolve()) == str(Path(options["--shell"]).resolve()), "observed shell identity differs")
         events = report.get("events")
@@ -151,16 +169,18 @@ def consume(checker, value, capture, calls, events):
                 call, arguments = event.get("call"), event.get("argv")
                 need(isinstance(call, str) and call and call not in active and call not in finished,
                      "Core invocation is duplicated")
-                need(event.get("executable") == core and type(event.get("pid")) is int
+                need(event.get("executable") == executable and type(event.get("pid")) is int
                      and isinstance(arguments, list) and len(arguments) >= 2
-                     and all(isinstance(a, str) for a in arguments) and arguments[0] == core["path"],
+                     and all(isinstance(a, str) for a in arguments) and arguments[0] == executable["path"],
                      "actual Core start/argv identity is invalid")
-                active[call] = event["pid"]
+                active[call] = event
                 invocations.append((arguments[1], arguments[2:]))
             elif kind == "core_exit":
                 call = event.get("call")
-                need(call in active and event.get("pid") == active[call] and type(event.get("returncode")) is int,
+                need(isinstance(call, str) and call in active and event.get("pid") == active[call]["pid"] and type(event.get("returncode")) is int,
                      "Core completion has no matching start")
+                if phase == "seal":
+                    execution_provenance.record_delta(active[call], event, original, chain, expected)
                 del active[call]
                 finished.add(call)
             else:

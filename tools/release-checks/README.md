@@ -28,6 +28,7 @@ attempts; retain them separately and identify the subsequent successful capture.
     "source_commit": "FULL_PUBLIC_COMMIT_SHA",
     "previous": {"path": "previous-release.json", "sha256": "FILE_SHA256"}
   },
+  "checker_source": {"commit": "FULL_CHECKER_COMMIT_SHA", "tree": "FULL_CHECKER_TREE_SHA"},
   "installations": {
     "direct": {},
     "brew_fresh": {},
@@ -62,6 +63,12 @@ Each installation entry has `binary` (an artifact), `package_root` (the absolute
 path of its installed support-file directory), `install`, `version`, and
 `capabilities` (command captures). Version and capability captures must invoke
 that exact binary. The checker also queries the hash-verified installed binary.
+Because that query runs a private copy, the checker additionally runs the
+selected installed path itself (`--version`, in a temporary directory) and
+requires the captured output and the same verified bytes before and after. A
+removed execute bit or an environment that refuses the path is a requirement
+failure; a missing or unreadable path is unverified. Another runnable Core
+earlier in PATH or an executable copy never stands in for the selected path.
 The `brew_upgrade` entry additionally has a `before_version` capture of the old
 `ha 0.1.2` installation. Homebrew install captures identify `brew install` or
 `brew upgrade`; preserve actual command output. Fresh-install evidence must
@@ -136,7 +143,7 @@ requests cannot substitute for it. Original capture and transcript bytes stay
 unchanged. A manually attached phase label or a nearby timestamp is insufficient.
 The available-Skill listing alone never identifies an invocation.
 
-Core commands are recognized only in command position. The checker reads shell
+Core command candidates are recognized only in command position. The checker reads shell
 quoting and static command words without evaluating them. Direct `ha` and paths
 ending in `/ha`, variables statically assigned in the same scope, `env`,
 `command`, `exec`, and static `bash -c` / `zsh -c` (`-c`, `-lc` or `-cl`) wrappers
@@ -204,7 +211,10 @@ runners such as `sudo`, `xargs`, `nohup`, `timeout` or `find -exec` are
 not interpreted and yield unverified results for both phases. The same applies
 to other executables outside the explicit data-command scope below. The reason
 identifies the native tool-call ID, or its event index when the native format
-has no ID. A complete set of visible Seal calls cannot hide an additional
+has no ID. Codex records one tool call in both `exec --json` output and the
+phase rollout; representations with the same native ID and the same commands
+are one call. The same ID with other commands is a contradiction and is
+unverified, and events without a native ID are never joined. A complete set of visible Seal calls cannot hide an additional
 unresolved call. A complete supported observation missing a required operation
 is a requirement failure; an unsupported or unreadable observation is unverified.
 
@@ -221,7 +231,10 @@ opaque shell expansions are unverified. `env` supports assignments,
 `-i`/`--ignore-environment`, `-u`/`--unset`, `-C`/`--chdir` and `--`, with known
 option arguments. Split-string forms, other shell options and files are not
 silently stripped. `exit`/`return` accept at most one literal nonnegative integer;
-later commands are not definite execution. A function shadowing a wrapper is
+later commands are not definite execution. An invoked function's `exit` or
+`exec` replacement, including one in a nested call, ends the calling shell for
+this purpose; its `return` ends only the function. Subshell and pipeline exits
+stay in their scope. A function shadowing a wrapper is
 not unwrapped as that builtin. When wrapper lookup and a same-named function
 interact, execution evidence is required instead of assuming which body ran.
 
@@ -233,14 +246,21 @@ attaching its report does not make unsupported evaluators or external programs
 supported. Neither reader replays observed commands. Unsupported execution is
 never replaced with a fabricated completion or a claim that Core did not execute.
 
-### Optional evidence from the original execution
+### Evidence from the original execution
 
 Use `observe.py` **during the original execution**, in place of directly
-starting a shell, when conditions or functions need runtime evidence. The
+starting a shell, when recording Seal execution or resolving runtime uncertainty. The
 checker does not invoke the collector: **never replay** a historical command
-to repair missing evidence. Existing simple observations need no new format.
-Past ambiguous observations without this evidence remain unverified, with their
+to repair missing evidence. Static syntax alone cannot certify a Seal flow.
+Past Seal observations without the required bindings remain unverified, with their
 original raw files and completion records preserved.
+
+The observer and its launcher children select the trusted interpreter's
+standard-library paths before ordinary imports. Their coverage and record
+policies load from named source bytes, bypassing checkout packages and cached
+bytecode; the report identifies those loaded bytes. Command-line parsing and
+collection keep this import boundary and restore an embedding caller's search
+path afterward. Interpreter startup and the operating system remain trusted.
 
 For a new, authorized synthetic observation, an example tool command is:
 
@@ -248,8 +268,9 @@ For a new, authorized synthetic observation, an example tool command is:
 /tmp/synthetic-python/bin/python3 /tmp/synthetic-checker/observe.py run \
   --core /tmp/synthetic-core/ha --shell /bin/bash \
   --output /tmp/private-observation/execution.json \
-  --invocation unique-original-invocation -- \
-  'f() { "$JAEKIT_CORE" check synthetic-goal --baseline AC-1; }; if true; then f; fi'
+  --invocation unique-original-invocation \
+  --project /tmp/synthetic-project --goal docs/specs/synthetic-goal -- \
+  'f() { "$JAEKIT_CORE" check docs/specs/synthetic-goal --baseline AC-1; }; if true; then f; fi'
 ```
 
 Use the actual installed Core path for a real observation. Put the
@@ -266,7 +287,7 @@ session/request evidence and never replace it:
 ```json
 {
   "core": {"path": "/tmp/synthetic-core/ha", "sha256": "FILE_SHA256"},
-  "spec": {
+  "seal": {
     "executions": [
       {"tool_call_id": "native-tool-call-id",
        "report": {"path": "execution.json", "sha256": "FILE_SHA256"}}
@@ -275,7 +296,7 @@ session/request evidence and never replace it:
 }
 ```
 
-`jaekit-execution/v1` records the unique invocation and fresh run ID, exact collector argv,
+`jaekit-execution/v2` records the unique invocation and fresh run ID, exact collector argv,
 script digest, producer/Core/shell byte identities, supported coverage, and
 ordered `shell_start`, `core_start`, `core_exit`, `shell_exit` events. Each event
 has a sequence and previous-event digest. The consumer matches the report to
@@ -398,3 +419,123 @@ validator keeps its stricter canonical path, allowlist, permission, executable
 and platform checks. Offline regressions use small patched limits and synthetic
 archives; they do not claim a live release observation or a measured
 memory-exhaustion test.
+
+## Required original execution and source identity
+
+Every official `check.py AC-n --evidence DIR` selection verifies the public
+product commit and the explicitly selected `checker_source` commit/tree.
+The checker verifies all its tracked current bytes before running the selected
+reader in an isolated copy of those Git blobs. Staged, unstaged, missing or
+changed loaded source is rejected. Before ordinary imports, checker bootstrap
+uses the interpreter's standard-library paths and loads its named helpers from
+their exact recorded source bytes. A checkout module or package cannot replace
+those imports through Python's search order. Untracked Python source beside the
+reader is rejected even when Git ignore rules hide it. Command-line parsing and
+the selected observation keep that import boundary, and the worker starts with
+isolated Python search and the same checker bootstrap. Python child checks remove
+inherited `PYTHONPATH` for that invocation, keeping imports in the pinned source
+copy without changing the caller environment or tracked sibling imports. The
+interpreter and standard library remain trusted; this does not attest interpreter startup hooks or the operating system.
+Loaded source includes the shared archive reader
+`tools/release/archive_reader.py`, recorded from the bytes the checker executed.
+Changes to the original checkout during a check are not deleted. Later reads
+execute from the verified copy, so changing a source
+file and restoring it cannot substitute other bytes. The temporary repository
+contains only the current tree, with no private history. Git environment
+redirections cannot select or modify another repository. Missing access and
+unsupported source entries remain unverified.
+
+Product source and checker source may have different commits and trees. A newer
+reader can verify an unchanged public release. The source-based product checks
+AC-7 through AC-11 run against a separate snapshot of the public product commit
+and tree, not the newer reader checkout. Both identities are verified before
+execution. Objects already in the checkout are used first. A shallow or rebuilt
+checkout that lacks the released commit, its tree, or some blobs reads only
+those objects through the same authenticated GitHub API boundary (`git/commits`,
+`git/trees` and `git/blobs`). Each blob must match its Git object ID and the
+materialized tree the verified tree, so a different object or tree is a
+requirement failure. An unreadable, truncated or unsupported public object
+remains unverified. Nothing is fetched into, written to or reset in the
+original checkout, and there is no lazy fetch. Those product regressions do not replace the current
+reader's own common regression suite.
+
+A static command is a syntax candidate, not proof of executed Seal work.
+`trace_candidates()` is an internal syntax/Skill regression boundary; all
+release acceptance paths use `trace()`. Seal acceptance requires original
+`jaekit-execution/v2` reports, native tool-call receipts, and the selected goal's
+original record chain. Old reports and static/fake demonstrations are not
+silently promoted to this contract.
+
+For an original authorized Seal command, add both `--project ABS_PROJECT` and
+`--goal docs/specs/GOAL` to the `observe.py run` invocation. The project must be
+the actual Git root, and the goal must be inside it. The collector runs the
+shell in that project, records each Core child's actual cwd/argv and the goal
+record prefixes before and after execution, and preserves the original receipt.
+The required start, baseline check, current check and completion must append
+the corresponding original records for that goal. Core flag ordering, explicit
+multiple targets and default criterion selection retain their supported meaning;
+the whole appended check record sequence is bound to that invocation. Another goal, another
+request's sidecar, or a previous completion cannot fill a missing call.
+Original raw-log digests and current Core status corroborate the completed
+record chain. Missing or conflicting provenance remains unverified.
+
+The collector preserves the requested Core path separately from the actual
+isolated execution image. It executes a private copy of the verified bytes and
+reports both identities. A replacement and restoration of the requested binary
+cannot change the bytes selected for execution. The consumer compares the Core
+bytes with the public native asset and checks the report's image/start binding.
+The temporary image is removed after collection; its execution identity is the
+verified collector's local record, not an OS attestation or independent proof.
+Original installations and records are never rewritten by the consumer.
+
+## Direct installation receipt
+
+A direct installation requires the original `install.argv`, `exit_code`,
+`stdout`, `stderr`, and an `install.report` artifact. During the original
+installation, invoke an absolute Python and `install_trace.py` with:
+
+```text
+python /absolute/tools/release-checks/install_trace.py run --archive /absolute/release.tar.gz --target darwin_arm64 --destination /absolute/new-directory --output /absolute/new-report.json --invocation unique-install-id
+```
+
+This explicit collector reads a local validated archive and performs the fixed
+`fresh-release-directory/v1` procedure. It places the Core and all support files
+in a new directory; it has no arbitrary command, model or network option.
+Before ordinary imports, the collector selects the trusted interpreter's
+standard-library paths and loads the named `check.py` source bytes directly.
+That checker loads its helpers, including the shared archive reader, from
+their named source bytes. Checkout modules, packages and cached bytecode cannot
+replace those imports during collection, including imports made later in the
+procedure. The interpreter and its standard library remain trusted; this
+does not authenticate a substituted interpreter or attest OS execution.
+Set `package_root` to that directory and `binary` to its `ha`. Parent-directory
+symlinks are allowed, including operating-system aliases and user-created links.
+The original `launcher_argv` preserves the requested destination; the report's
+`destination` identifies its canonical installation directory. A symlink at the
+destination itself, an existing actual destination (also through another alias),
+an existing report, or an archive input that is itself a symlink is refused.
+Failed reports and partial trees remain; they cannot count as a fresh install.
+
+The consumer binds the exact original argv and stderr `JAEKIT_INSTALL_RECEIPT`
+(invocation, run ID, report digest) to the archive bytes, loaded collector and
+validator source, observed prior absence, and installed Core/support files.
+The collector rechecks that the requested path still identifies that canonical
+directory before reporting completion. The read-only consumer applies the same
+parent-link policy and rechecks this connection before accepting the installed
+result. A changed or unavailable connection cannot be replaced with a successful
+installation at another path, even if its archive bytes match. These are local
+observations of path consistency, not an OS guarantee against concurrent path
+replacement. Neither a failed observation nor consumption repairs a previous
+report or deletes the files created by the original installation.
+A successful `true`, a version query, or a preplaced binary cannot substitute
+for installation. Unsupported or missing observation is unverified; a recorded
+conflict or failed procedure is not reported as successful installation.
+
+The `integration_*.py` release regressions run through `tools/verify.py go` and
+the existing CI entry point. They use controlled actual Bash/Zsh, temporary Git
+projects, a locally built Core and actual local installation. Host envelopes
+and public-service responses are synthetic. These checks do not establish a
+new release, live Codex/Claude model session or platform deployment. The docs
+verification group retains its existing tool requirements.
+
+Read-only Core queries (`--version`, capabilities, and status) also execute a private copy of the verified public bytes rather than reopening the original executable path. Both source snapshots accept relative symlink chains only when they terminate at a verified regular file inside the same snapshot; external, dangling, cyclic, and directory-alias links are unverified. This is a supported source boundary, not an OS-level execution attestation.
