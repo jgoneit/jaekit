@@ -312,12 +312,28 @@
           "file": "cmd/ha/producer_semantics_test.go",
           "selector": "TestProducerFacts_AdverseAssertionSurvivesLaterSuccess",
           "group": "go"
+        },
+        {
+          "file": "tools/producer-checks/test_semantics.py",
+          "selector": "ProvidedCommandTargets",
+          "group": "go"
+        },
+        {
+          "file": "tools/producer-checks/test_semantics.py",
+          "selector": "OverflowWithErrors",
+          "group": "go"
+        },
+        {
+          "file": "tools/producer-checks/test_semantics.py",
+          "selector": "ExitContractKeys",
+          "group": "go"
         }
       ],
       "follow_up": [
         "https://github.com/jgoneit/jaekit/issues/20",
         "https://github.com/jgoneit/jaekit/issues/21",
-        "https://github.com/jgoneit/jaekit/issues/30"
+        "https://github.com/jgoneit/jaekit/issues/30",
+        "https://github.com/jgoneit/jaekit/issues/41"
       ]
     },
     {
@@ -523,6 +539,11 @@
           "file": "tools/release-checks/integration_evidence_boundaries.py",
           "selector": "ReachabilityEvidence",
           "group": "go"
+        },
+        {
+          "file": "tools/release-checks/integration_evidence_boundaries.py",
+          "selector": "FunctionScopeEvidence",
+          "group": "go"
         }
       ],
       "follow_up": [
@@ -540,7 +561,8 @@
         "tools/release-checks/execution_provenance.py",
         "tools/release-checks/source_identity.py",
         "tools/release-checks/install_trace.py",
-        "tools/release-checks/snapshot_worker.py"
+        "tools/release-checks/snapshot_worker.py",
+        "tools/release/archive_reader.py"
       ],
       "property": "Executable, project, goal, request and original tool call must bind to the claimed observation.",
       "examples": [
@@ -577,12 +599,29 @@
           "file": "tools/release-checks/integration_product_source.py",
           "selector": "ProductSource",
           "group": "go"
+        },
+        {
+          "file": "tools/release-checks/integration_evidence_boundaries.py",
+          "selector": "ShallowProductSource",
+          "group": "go"
+        },
+        {
+          "file": "tools/release-checks/integration_evidence_boundaries.py",
+          "selector": "LoadedSourceCoverage",
+          "group": "go"
+        },
+        {
+          "file": "tools/release-checks/integration_direct_install.py",
+          "selector": "InstalledPathAvailability",
+          "group": "go"
         }
       ],
       "follow_up": [
         "https://github.com/jgoneit/jaekit/issues/13",
         "https://github.com/jgoneit/jaekit/issues/14",
-        "https://github.com/jgoneit/jaekit/issues/15"
+        "https://github.com/jgoneit/jaekit/issues/15",
+        "https://github.com/jgoneit/jaekit/issues/43",
+        "https://github.com/jgoneit/jaekit/issues/44"
       ]
     },
     {
@@ -764,7 +803,9 @@
       "status": "protected",
       "sources": [
         "tools/release-checks/check.py",
-        "tools/release-checks/README.md"
+        "tools/release-checks/README.md",
+        "tools/release/archive_reader.py",
+        "tools/release/check_archives.py"
       ],
       "property": "The same bounded archive parser rejects invalid or unsupported observation inputs across archive collection and installation consumers while accepting supported archives.",
       "examples": [
@@ -782,10 +823,21 @@
           "file": "tools/release-checks/test_archive_limits.py",
           "selector": "ArchiveLimits",
           "group": "docs"
+        },
+        {
+          "file": "tools/release/test_archive_bounds.py",
+          "selector": "ValidatorBounds",
+          "group": "docs"
+        },
+        {
+          "file": "tools/release/test_archive_bounds.py",
+          "selector": "Preservation",
+          "group": "docs"
         }
       ],
       "follow_up": [
-        "https://github.com/jgoneit/jaekit/issues/16"
+        "https://github.com/jgoneit/jaekit/issues/16",
+        "https://github.com/jgoneit/jaekit/issues/42"
       ]
     },
     {
@@ -872,10 +924,37 @@
           "file": "internal/record/finding_test.go",
           "selector": "TestFindingSchemaAndPersistenceUncertainty",
           "group": "go"
+        },
+        {
+          "file": "internal/record/finding_size_test.go",
+          "selector": "TestFindingLineBound",
+          "group": "go"
+        },
+        {
+          "file": "cmd/ha/findings_review_test.go",
+          "selector": "TestFindingRetryEquivalentScenario",
+          "group": "go"
+        },
+        {
+          "file": "cmd/ha/findings_review_test.go",
+          "selector": "TestFindingRequiredListsScenario",
+          "group": "go"
+        },
+        {
+          "file": "cmd/ha/findings_review_test.go",
+          "selector": "TestFindingResolutionRefsScenario",
+          "group": "go"
+        },
+        {
+          "file": "cmd/ha/findings_review_test.go",
+          "selector": "TestFindingStoredReuseCLI",
+          "group": "go"
         }
       ],
       "follow_up": [
-        "https://github.com/jgoneit/jaekit/issues/24"
+        "https://github.com/jgoneit/jaekit/issues/24",
+        "https://github.com/jgoneit/jaekit/issues/39",
+        "https://github.com/jgoneit/jaekit/issues/40"
       ]
     },
     {

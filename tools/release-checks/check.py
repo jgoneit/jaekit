@@ -6,6 +6,7 @@ import argparse
 import base64
 from contextlib import ExitStack
 import hashlib
+import importlib.abc
 import importlib.util
 import json
 import os
@@ -214,16 +215,32 @@ def native_platform():
     return f"{system}_{arch}"
 
 
+class RecordedSourceLoader(importlib.abc.SourceLoader):
+    """Import exactly the bytes recorded as loaded source, without rereading the file."""
+
+    def __init__(self, path, data):
+        self.path, self.data = path, data
+
+    def get_filename(self, fullname):
+        return str(self.path)
+
+    def get_data(self, path):
+        return self.data
+
+
 def load_archive_reader():
-    # The validator and this checker share one reader; see README.md.
+    # The validator and this checker share one reader; see README.md. Return
+    # the executed bytes so the verified tree binds them like other sources.
     path = Path(__file__).resolve().parents[1] / "release" / "archive_reader.py"
-    spec = importlib.util.spec_from_file_location("jaekit_release_archive_reader", path)
+    loader = RecordedSourceLoader(path, path.read_bytes())
+    spec = importlib.util.spec_from_loader("jaekit_release_archive_reader", loader)
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    loader.exec_module(module)
+    return module, loader.data
 
 
-archive_reader = load_archive_reader()
+archive_reader, ARCHIVE_READER_SOURCE = load_archive_reader()
+LOADED_SOURCE[str(Path(archive_reader.__file__).resolve())] = ARCHIVE_READER_SOURCE
 # Limits apply to every consumer of a downloaded or supplied release archive.
 ARCHIVE_MAX_COMPRESSED_BYTES = archive_reader.MAX_COMPRESSED_BYTES
 ARCHIVE_MAX_BYTES = archive_reader.MAX_BYTES

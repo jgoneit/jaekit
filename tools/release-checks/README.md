@@ -405,7 +405,8 @@ product commit and the explicitly selected `checker_source` commit/tree.
 The checker verifies all its tracked current bytes before running the selected
 reader in an isolated copy of those Git blobs. Staged, unstaged, missing or
 changed loaded source is rejected; untracked Python imports beside the reader
-cannot supply acceptance. Changes to the original checkout during a check are
+cannot supply acceptance. Loaded source includes the shared archive reader
+`tools/release/archive_reader.py`, recorded from the bytes the checker executed. Changes to the original checkout during a check are
 not deleted. Later reads execute from the verified copy, so changing a source
 file and restoring it cannot substitute other bytes. The temporary repository
 contains only the current tree, with no private history. Git environment
