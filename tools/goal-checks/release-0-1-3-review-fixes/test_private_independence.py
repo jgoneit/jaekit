@@ -28,8 +28,8 @@ PRIVATE_REFERENCES = [
 
 
 def git(*args, cwd=ROOT):
-    return subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True,
-                          timeout=300).stdout
+    return subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True,
+                          timeout=300).stdout.decode("utf-8", errors="surrogateescape")
 
 
 def environment():
@@ -42,8 +42,11 @@ def environment():
 
 def tracked_texts():
     for name in git("ls-files", "-z").split("\0"):
-        if name and (ROOT / name).is_file() and not (ROOT / name).is_symlink():
-            yield name, (ROOT / name).read_bytes().decode("utf-8", errors="replace")
+        if name:
+            text = ""
+            if (ROOT / name).is_file() and not (ROOT / name).is_symlink():
+                text = (ROOT / name).read_bytes().decode("utf-8", errors="replace")
+            yield name, text
 
 
 class TrackedFiles(unittest.TestCase):
@@ -56,8 +59,10 @@ class TrackedFiles(unittest.TestCase):
     def test_tracked_files_hold_no_private_goal_references(self):
         found = []
         for name, text in tracked_texts():
-            found += [f"{name}: {m.group(0)}" for pattern in PRIVATE_REFERENCES for m in pattern.finditer(text)]
-        self.assertEqual(found, [])
+            found += [f"{name!r}: {kind} contains {m.group(0)!r}"
+                      for kind, value in (("path", name), ("content", text))
+                      for pattern in PRIVATE_REFERENCES for m in pattern.finditer(value)]
+        self.assertEqual(found, [], "\n".join(found))
 
 
 class FreshClone(unittest.TestCase):

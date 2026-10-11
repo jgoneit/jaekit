@@ -1,0 +1,15 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "retention-probes",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/goal-checks/retention_evidence.py",
+    "tools/goal-checks/test_retention.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-2",
+      "violation": "checkout-link-not-explicit"
+    }
+  ]
+}

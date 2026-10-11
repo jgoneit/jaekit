@@ -25,7 +25,7 @@ Run the current-file reference check from the checkout root:
 python3 tools/goal-checks/release-0-1-3-review-fixes/test_private_independence.py TrackedFiles
 ```
 
-It reads tracked files, without opening local goal material or earlier
+It reads tracked file paths as well as their contents, without opening local goal material or earlier
 commits. The `FreshClone` case additionally requires the ordinary checks to
 succeed in full and depth-1 clones. Equal errors in two checkouts are not proof
 of independence. Synthetic forbidden-content cases check that rejection still
@@ -45,7 +45,7 @@ not a successful preservation result.
 
 ## Explicit history audit
 
-To audit added lines and commit messages, provide both full commit IDs:
+To audit added lines, introduced file paths and commit messages, provide both full commit IDs:
 
 ```sh
 python3 tools/goal-checks/release-0-1-3-followups/preserved.py \
@@ -60,6 +60,12 @@ record was preserved. The range includes every commit reachable from head but
 not from base, including merged side branches. Each commit's added text and
 message are checked, so a later deletion or revert does not hide an earlier
 addition. Git diff attributes cannot hide added text from this audit.
+Path metadata is read with NUL separators, preserving spaces, tabs, newlines
+and Git quoting characters. A rename that introduces a forbidden name counts
+even when its content is unchanged or the path is removed later. At a merge,
+a path already present in any parent is inherited; side-branch introductions
+inside the selected range are still checked in their own commits. Missing
+parent or tree objects make the audit unverified, never an empty safe tree.
 Merge-resolution text added relative to every parent at the same result location
 is checked too; text merely inherited from a parent is not a new merge addition. Existing text
 outside the named range is not scanned as a new introduction, and an empty
