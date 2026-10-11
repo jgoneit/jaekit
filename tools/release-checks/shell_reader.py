@@ -246,16 +246,22 @@ def analyse(text):
     return result
 
 
+def stronger(first, second):
+    """Combine possible ends: a shell exit outranks a function return."""
+    return "exit" if "exit" in (first, second) else first or second
+
+
 def walk(tokens, scope, functions, result, uncertain=False, depth=0):
+    """Read tokens; return how they may end the current scope: None, "return" or "exit"."""
     if depth > 32:
         raise ReadError("recursive shell syntax")
-    control, stopped = 0, False
+    control, stopped = 0, None
     for node in commands(tokens):
         words = node["words"]
         first = literal(words[0])
         if first in ("if", "while", "until", "for", "select", "case"):
             control += 1
-        ambiguous = uncertain or node["conditional"] or control > 0 or stopped or node["background"]
+        ambiguous = uncertain or node["conditional"] or control > 0 or bool(stopped) or node["background"]
         definition_words = words[:]
         while definition_words and literal(definition_words[0]) in ("then", "else", "elif", "do"):
             definition_words = definition_words[1:]
@@ -271,7 +277,7 @@ def walk(tokens, scope, functions, result, uncertain=False, depth=0):
                 child = word[1] == "(" or node["isolated"]
                 ended = walk(word[2], dict(local) if child else local, dict(functions) if child else functions, result, ambiguous, depth + 1)
                 if ended and not child:
-                    stopped = True
+                    stopped = stronger(stopped, ended)
             else:
                 for part in word.word if isinstance(word, Redirect) else word:
                     if part[0] == "sub":
@@ -284,11 +290,11 @@ def walk(tokens, scope, functions, result, uncertain=False, depth=0):
         if plain:
             ended = run(plain, local, functions, result, ambiguous, depth)
             if ended and not node["isolated"]:
-                stopped = True
+                stopped = stronger(stopped, ended)
         if first in ("fi", "done", "esac"):
             control = max(0, control - 1)
         if first in ("exit", "return"):
-            stopped = True
+            stopped = stronger(stopped, first)
         if ambiguous and not node["isolated"]:
             for name in set(scope) | set(local):
                 if local.get(name) != scope.get(name):
@@ -310,8 +316,8 @@ def run(words, scope, functions, result, uncertain, depth):
         words = words[1:]
     if not words:
         scope.update(prefix)
-        return
-    wrapped, replacement = False, False
+        return None
+    wrapped, replacement, ended = False, False, None
     while words:
         name = value(words[0], scope)
         base = PurePosixPath(name).name if name else None
@@ -374,7 +380,9 @@ def run(words, scope, functions, result, uncertain, depth):
         if functions[name] is None:
             result.unresolved("conditional function definition")
         else:
-            walk(functions[name], scope, dict(functions), result, True, depth + 1)
+            # A return ends only the function; an exit or exec replacement inside
+            # it, including in a nested call, may end the calling shell too.
+            ended = walk(functions[name], scope, dict(functions), result, True, depth + 1)
     elif name in ("export", "readonly", "declare", "typeset", "local"):
         for word in words[1:]:
             pair = assignment(word)
@@ -406,7 +414,9 @@ def run(words, scope, functions, result, uncertain, depth):
     else:
         result.unresolved("unsupported evaluator or executable: " + str(base))
 
-    return replacement or name in ("exit", "return")
+    if replacement or name == "exit" or ended == "exit":
+        return "exit"
+    return "return" if name == "return" else None
 
 
 # Trusted conventional data/lookup commands, not a claim about arbitrary

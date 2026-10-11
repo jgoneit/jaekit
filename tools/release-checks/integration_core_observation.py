@@ -222,6 +222,41 @@ class ActualCore(fixtures.Case):
                    'run_id': report['run_id'], 'sha256': check.digest(encoded)}
         return argv, {'path': str(path), 'sha256': check.digest(encoded)}, 'JAEKIT_EXECUTION_RECEIPT ' + json.dumps(receipt) + '\n'
 
+    def with_exec_items(self, value, items):
+        """Add Codex exec JSON items for tool calls that the phase rollout also records."""
+        events = self.read_events(value['seal']['stdout'])
+        events[-1:-1] = [{'type': 'item.completed', 'item': {'id': call, 'type': 'command_execution', 'command': command,
+                                                            'aggregated_output': output, 'exit_code': 0, 'status': 'completed'}}
+                         for call, command, output in items]
+        value['seal']['stdout'] = self.lines(events)
+        return value
+
+    def test_codex_exec_json_and_rollout_of_one_call_are_one_execution(self):
+        project, reports = self.flow()
+        commands = [shlex.join(argv) for argv, _, _ in reports]
+        receipts = [receipt for _, _, receipt in reports]
+        before = (project / GOAL / 'runs.jsonl').read_bytes()
+        same = [(f'tool-codex-{index}', commands[index], receipts[index]) for index in range(len(reports))]
+        with self.public_core(), mock.patch.object(self.checker, 'download', return_value=b'synthetic archive'):
+            try:
+                self.checker.trace('codex', self.with_exec_items(self.envelope('codex', project, reports), same), 'seal')
+            except (check.Unavailable, check.Failure) as error:
+                self.fail('[violation:codex-representation-misjoined] one call in exec JSON and its rollout was refused: ' + str(error))
+            for label, items in (('same ID, other command', [('tool-codex-0', commands[0] + ' --other', receipts[0])]),
+                                 ('same command, other ID', [('tool-codex-other', commands[0], receipts[0])]),
+                                 ('same ID, other result', [('tool-codex-0', commands[0], receipts[1])])):
+                with self.subTest(label=label):
+                    altered = self.with_exec_items(self.envelope('codex', project, reports), items)
+                    try:
+                        self.checker.trace('codex', altered, 'seal')
+                    except check.Unavailable:
+                        pass
+                    except check.Failure as error:
+                        self.fail(f'[violation:codex-representation-misjoined] {label}: a conflict became a requirement failure: {error}')
+                    else:
+                        self.fail(f'[violation:codex-representation-misjoined] {label}: different calls or results were joined')
+        self.assertEqual((project / GOAL / 'runs.jsonl').read_bytes(), before, 'consumer changed original goal records')
+
     def test_execution_identity_cwd_goal_and_record_prefix_are_bound_at_final_consumer(self):
         project, reports = self.flow()
         def first_start(report):
