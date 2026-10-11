@@ -6,7 +6,7 @@
     "tools/verification-checks/selection_integrity.py",
     "tools/result_observations.py",
     "tools/regression-checks/integration_selection_go.py",
-    "tools/verification-checks/selection-integrity/AC-2.json"
+    "tools/regression-checks/integration_selection_go_layout.py"
   ],
   "targets": [
     {

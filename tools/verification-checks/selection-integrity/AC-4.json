@@ -5,8 +5,7 @@
   "producer_paths": [
     "tools/verification-checks/selection_integrity.py",
     "tools/result_observations.py",
-    "tools/regression-checks/integration_selection_python.py",
-    "tools/verification-checks/selection-integrity/AC-4.json"
+    "tools/regression-checks/integration_selection_python.py"
   ],
   "targets": [
     {

@@ -15,8 +15,8 @@ from result_observations import facts, observations, target_names
 
 
 SELECTIONS = {
-    'AC-1': ['integration_selection_go.GoDefinitions'],
-    'AC-2': ['integration_selection_go.GoBuildSelection'],
+    'AC-1': ['integration_selection_go.GoDefinitions', 'integration_selection_go_identifiers.GoIdentifierDefinitions'],
+    'AC-2': ['integration_selection_go.GoBuildSelection', 'integration_selection_go_layout.GoLayoutSelection'],
     'AC-3': ['integration_selection_python.PythonFilterSelection'],
     'AC-4': ['integration_selection_python.PythonPatternSelection'],
     'AC-5': ['integration_selection_go.PreservedGoSelection',
@@ -71,11 +71,18 @@ def verify_component(component):
     print('Component commit:', head, flush=True)
     paths = ['tools/go_selection.py', 'tools/regression_map.py',
              'tools/regression-checks/integration_selection_go.py',
-             'tools/regression-checks/integration_selection_python.py']
+             'tools/regression-checks/integration_selection_python.py',
+             'tools/regression-checks/integration_selection_go_identifiers.py',
+             'tools/regression-checks/integration_selection_go_layout.py',
+             'tools/regression-checks/integration_selection_go_runtime.py']
     for path in paths:
         if (component / path).read_bytes() != (ROOT / path).read_bytes():
             raise RuntimeError('component and integrated inputs differ: ' + path)
-    for filename in ('integration_selection_go.py', 'integration_selection_python.py'):
+    subprocess.run([sys.executable, '-B', 'tools/regression_map.py', '--format', 'json'],
+                   cwd=component, env=env, check=True, timeout=300)
+    for filename in ('integration_selection_go.py', 'integration_selection_go_identifiers.py',
+                     'integration_selection_go_layout.py', 'integration_selection_python.py',
+                     'integration_selection_go_runtime.py'):
         subprocess.run([sys.executable, '-B', '-m', 'unittest', 'discover',
                         '-s', 'tools/regression-checks', '-p', filename],
                        cwd=component, env=env, check=True, timeout=1800)
