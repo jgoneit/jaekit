@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import ast
-import fnmatch
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -14,26 +14,59 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 INVARIANTS = {f'I{n}' for n in range(1, 6)}
+_GO_READER = None
 # Statements that can end or skip the rest of a verification group.
 ENDING = (ast.Return, ast.Raise, ast.Break, ast.Continue, ast.If, ast.While, ast.Try,
           getattr(ast, 'TryStar', ast.Try), ast.Match, ast.Assert)
-# The common loader collects one selected file; tests are not executed.
+# Collect the actual discovery command, including its load_tests hooks, without
+# running test bodies. Keep class ownership separate from potentially identical
+# selector names in other modules and modules loaded under an explicit alias.
 COLLECT = r"""import json, sys, unittest
-loader = unittest.TestLoader()
-suite = loader.discover(sys.argv[1], pattern=sys.argv[2])
-def ids(suite):
+from pathlib import Path
+class Loader(unittest.TestLoader):
+    def __init__(self):
+        super().__init__()
+        self.sources = {}
+    def loadTestsFromModule(self, module, *, pattern=None):
+        for value in vars(module).values():
+            if (isinstance(value, type) and issubclass(value, unittest.TestCase)
+                    and value.__module__ == module.__name__):
+                self.sources[value] = getattr(module, '__file__', None)
+        return super().loadTestsFromModule(module, pattern=pattern)
+loader = Loader()
+selection = json.loads(sys.argv[1])
+loader.testNamePatterns = selection['names'] or None
+suite = loader.discover(selection['start'], pattern=selection['pattern'],
+                        top_level_dir=selection['top'])
+def cases(suite):
     for item in suite:
         if isinstance(item, unittest.TestSuite):
-            yield from ids(item)
+            yield from cases(item)
         else:
-            yield item.id()
-tests = sorted(ids(suite))
+            cls = type(item)
+            module = sys.modules.get(cls.__module__)
+            source = loader.sources.get(cls) or getattr(module, '__file__', None)
+            method = getattr(item, '_testMethodName', None)
+            yield {'file': str(Path(source).resolve()) if source else None,
+                   'selector': cls.__qualname__ + '.' + method if method else None}
+tests = list(cases(suite))
 print(json.dumps({'errors': len(loader.errors), 'tests': tests}))
 """
 
 
 class Invalid(ValueError):
     pass
+
+
+def go_reader():
+    """Load the fixed sibling reader only when Go source evidence is needed."""
+    global _GO_READER
+    if _GO_READER is None:
+        spec = importlib.util.spec_from_file_location('jaekit_go_selection', Path(__file__).with_name('go_selection.py'))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _GO_READER = module
+    return _GO_READER
 
 
 def pairs(items):
@@ -103,18 +136,54 @@ def ends_group(node):
     return False
 
 
-def collected(root, directory, name):
-    """Test IDs that the common unittest loader collects from one selected file."""
+def collected(root, selection):
+    """Source-owned selectors collected by one actual common discovery command."""
+    directory, pattern = selection[:2]
+    top, names = selection[2:] if len(selection) == 4 else (None, ())
+    for value in (directory, top):
+        if value is not None:
+            path = root / value
+            if not path.is_dir() or not path.resolve().is_relative_to(root.resolve()):
+                raise Invalid(f'unsupported unittest discovery directory: {value}')
+    configuration = dict(start=directory, pattern=pattern, top=top, names=names)
+    label = f'{directory}/{pattern}'
     try:
-        result = subprocess.run([sys.executable, '-c', COLLECT, directory, name], cwd=root,
+        result = subprocess.run([sys.executable, '-c', COLLECT, json.dumps(configuration)], cwd=root,
                                 env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'),
                                 capture_output=True, text=True, timeout=300)
         data = json.loads(result.stdout.strip().splitlines()[-1]) if result.stdout.strip() else None
     except (OSError, subprocess.TimeoutExpired, ValueError) as error:
-        raise Invalid(f'Python regression could not be collected: {directory}/{name}') from error
+        raise Invalid(f'Python regression could not be collected: {label}') from error
     if result.returncode or not isinstance(data, dict) or data.get('errors') or not isinstance(data.get('tests'), list):
-        raise Invalid(f'Python regression could not be collected: {directory}/{name}')
+        raise Invalid(f'Python regression could not be collected: {label}')
     return data['tests']
+
+
+def python_discovery(arguments):
+    """Parse the supported standard unittest discover inputs, failing closed."""
+    class DiscoveryParser(argparse.ArgumentParser):
+        def error(self, message):
+            raise Invalid(f'unsupported unittest discovery: {message}')
+
+    if any(not isinstance(value, str) for value in arguments):
+        raise Invalid('unsupported unittest discovery argument')
+    parser = DiscoveryParser(add_help=False, allow_abbrev=False)
+    parser.add_argument('-s', '--start-directory', dest='start', default='.')
+    parser.add_argument('-p', '--pattern', default='test*.py')
+    parser.add_argument('-t', '--top-level-directory', dest='top')
+    # Match unittest's positional discovery inputs and option precedence.
+    for name in ('start', 'pattern', 'top'):
+        parser.add_argument(name, nargs='?', default=argparse.SUPPRESS)
+    parser.add_argument('-k', dest='names', action='append', default=[])
+    for options in (('-v', '--verbose'), ('-q', '--quiet'), ('-f', '--failfast'),
+                    ('-c', '--catch'), ('-b', '--buffer'), ('--locals',)):
+        parser.add_argument(*options, action='store_true')
+    parsed = parser.parse_args(arguments)
+    names = tuple(value if '*' in value else f'*{value}*' for value in parsed.names)
+    # Preserve the existing simple selection representation for common callers.
+    if parsed.top is None and not names:
+        return parsed.start, parsed.pattern
+    return parsed.start, parsed.pattern, parsed.top, names
 
 
 def literal(node, bindings):
@@ -203,10 +272,7 @@ def selected_suites(root):
                     unfiltered_go_suite(argv)
                     output.add(('<go>', './...'))
                 if argv[1:4] == ['-m', 'unittest', 'discover']:
-                    try:
-                        output.add((argv[argv.index('-s') + 1], argv[argv.index('-p') + 1]))
-                    except (ValueError, IndexError) as error:
-                        raise Invalid('incomplete unittest discovery') from error
+                    output.add(python_discovery(argv[4:]))
             elif not isinstance(node, ast.Pass):
                 raise Invalid('unsupported verification statement')
 
@@ -227,20 +293,26 @@ def check_definition(root, check, selected, public, collections):
     if file.endswith('_test.go'):
         if group != 'go' or ('<go>', './...') not in selected[group]:
             raise Invalid(f'Go regression not selected: {file}')
-        if not re.fullmatch(r'Test[A-Za-z0-9_]+', selector) or not re.search(r'^func ' + re.escape(selector) + r'\(t \*testing\.T\)', path.read_text(), re.M):
-            raise Invalid(f'Go test definition missing: {file}:{selector}')
+        reader = go_reader()
+        try:
+            reader.validate_test(path, selector, root=root)
+        except reader.SelectionError as error:
+            raise Invalid(f'Go regression not selected: {file}:{selector}: {error}') from error
     elif file.endswith('.py'):
-        if not any(str(path.relative_to(root).parent) == directory and fnmatch.fnmatch(path.name, pattern)
-                   for directory, pattern in selected[group]):
-            raise Invalid(f'Python regression not selected: {file}')
         parts = selector.split('.')
         if len(parts) not in (1, 2) or not all(re.fullmatch(r'[A-Za-z_]\w*', p) for p in parts):
             raise Invalid(f'unsupported Python selector: {selector}')
-        relative = path.relative_to(root)
-        if relative not in collections:
-            collections[relative] = collected(root, str(relative.parent), relative.name)
-        prefix = f'{relative.stem}.{selector}'
-        if not any(test == prefix or (len(parts) == 1 and test.startswith(prefix + '.')) for test in collections[relative]):
+        for selection in sorted(selected[group], key=repr):
+            if selection[0] == '<go>':
+                continue
+            if selection not in collections:
+                collections[selection] = collected(root, selection)
+            if any(test['file'] == str(path.resolve()) and isinstance(test['selector'], str)
+                   and (test['selector'] == selector or
+                        (len(parts) == 1 and test['selector'].startswith(selector + '.')))
+                   for test in collections[selection]):
+                break
+        else:
             raise Invalid(f'Python test is not collected by the common loader: {file}:{selector}')
     else:
         raise Invalid(f'unsupported test type: {file}')
@@ -299,8 +371,11 @@ def validate(root, data):
             raise Invalid('followups must be public issue references')
     if covered != INVARIANTS:
         raise Invalid('every invariant requires explicit supported routes')
-    return dict(schema='regression-map/v1', assurance='selection-only', invariants=sorted(invariants),
-                protected=sorted(protected), gaps=sorted(gaps))
+    report = dict(schema='regression-map/v1', assurance='selection-only', invariants=sorted(invariants),
+                  protected=sorted(protected), gaps=sorted(gaps))
+    if any(check['file'].endswith('_test.go') for route in data['routes'] for check in route['checks']):
+        report['go_selection'] = dict(go_reader().CONTEXT)
+    return report
 
 
 def compare(before, after):
