@@ -30,12 +30,13 @@ func (c *cli) capabilities(in []string) int {
 		SupportedRules: []string{status.RulesV1, status.RulesV2, status.RulesV3},
 		DefaultRules:   status.Rules,
 		Formats: map[string][]string{
+			"finding":           {"run-finding/v1"},
 			"criteria":          {"legacy", "nested/1"},
 			"check_declaration": {"check-declaration/v1"},
 			"check_result":      {"check-result/v1"},
 			"check_evidence":    {"check-evidence/v1"},
 		},
-		Features: []string{"estimate/v1", "dirty-preflight/v1", "baseline-safe-copy/v1", "structured-change-results/v1", "budget-change/v1"},
+		Features: []string{"estimate/v1", "dirty-preflight/v1", "baseline-safe-copy/v1", "structured-change-results/v1", "budget-change/v1", "post-completion-findings/v1"},
 	}
 	if err := json.NewEncoder(c.out).Encode(report); err != nil {
 		return c.fail(exitInternal, "write capabilities: %v", err)

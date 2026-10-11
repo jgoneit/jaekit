@@ -1,35 +1,105 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "evidence-not-located",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "EvidenceLocation.test_without_an_evidence_directory_nothing_is_located"
+      "test": "EvidenceLocation.test_without_an_evidence_directory_nothing_is_located",
+      "result_targets": {
+        "additional_violations": [
+          "evidence-not-located.assertion-2",
+          "evidence-not-located.assertion-3",
+          "evidence-not-located.assertion-4",
+          "evidence-not-located.assertion-5",
+          "evidence-not-located.assertion-6",
+          "evidence-not-located.assertion-7",
+          "evidence-not-located.assertion-8"
+        ],
+        "execution": "evidence-not-located.execution",
+        "selection": "evidence-not-located.selection",
+        "attribution": "evidence-not-located.attribution"
+      }
     },
     {
       "target": "evidence-directory",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "EvidenceLocation.test_given_directory_is_the_only_evidence_root"
+      "test": "EvidenceLocation.test_given_directory_is_the_only_evidence_root",
+      "result_targets": {
+        "additional_violations": [
+          "evidence-directory.assertion-2",
+          "evidence-directory.assertion-3",
+          "evidence-directory.assertion-4",
+          "evidence-directory.assertion-5",
+          "evidence-directory.assertion-6",
+          "evidence-directory.assertion-7",
+          "evidence-directory.assertion-8"
+        ],
+        "execution": "evidence-directory.execution",
+        "selection": "evidence-directory.selection",
+        "attribution": "evidence-directory.attribution"
+      }
     },
     {
       "target": "no-git-directory-search",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "EvidenceLocation.test_source_does_not_search_the_git_directory"
+      "test": "EvidenceLocation.test_source_does_not_search_the_git_directory",
+      "result_targets": {
+        "additional_violations": [
+          "no-git-directory-search.assertion-2",
+          "no-git-directory-search.assertion-3",
+          "no-git-directory-search.assertion-4",
+          "no-git-directory-search.assertion-5",
+          "no-git-directory-search.assertion-6",
+          "no-git-directory-search.assertion-7",
+          "no-git-directory-search.assertion-8"
+        ],
+        "execution": "no-git-directory-search.execution",
+        "selection": "no-git-directory-search.selection",
+        "attribution": "no-git-directory-search.attribution"
+      }
     },
     {
       "target": "tracked-references",
       "runner": "unittest",
       "file": "tools/goal-checks/release-0-1-3-review-fixes/test_private_independence.py",
-      "test": "TrackedFiles"
+      "test": "TrackedFiles",
+      "result_targets": {
+        "additional_violations": [
+          "tracked-references.assertion-2",
+          "tracked-references.assertion-3",
+          "tracked-references.assertion-4",
+          "tracked-references.assertion-5",
+          "tracked-references.assertion-6",
+          "tracked-references.assertion-7",
+          "tracked-references.assertion-8"
+        ],
+        "execution": "tracked-references.execution",
+        "selection": "tracked-references.selection",
+        "attribution": "tracked-references.attribution"
+      }
     },
     {
       "target": "fresh-clone",
       "runner": "unittest",
       "file": "tools/goal-checks/release-0-1-3-review-fixes/test_private_independence.py",
-      "test": "FreshClone"
+      "test": "FreshClone",
+      "result_targets": {
+        "additional_violations": [
+          "fresh-clone.assertion-2",
+          "fresh-clone.assertion-3",
+          "fresh-clone.assertion-4",
+          "fresh-clone.assertion-5",
+          "fresh-clone.assertion-6",
+          "fresh-clone.assertion-7",
+          "fresh-clone.assertion-8"
+        ],
+        "execution": "fresh-clone.execution",
+        "selection": "fresh-clone.selection",
+        "attribution": "fresh-clone.attribution"
+      }
     }
   ]
 }

@@ -2,7 +2,7 @@
 
 `ha` runs verification commands without a shell, appends `runs.jsonl`, and computes the goal state from the record, the bundle, and git only. The same inputs always give the same state; the current time is never used.
 
-This reference describes release v0.1.3: ha 0.1.3 and Seal 0.1.9. Existing `/1`, `/2` and `/3` goals keep their saved rules; installation does not migrate their records or reset usage or time limits.
+The base commands below describe release v0.1.3: ha 0.1.3 and Seal 0.1.9. The optional post-completion findings extension requires additional capability support; those released binaries do not provide it. Existing `/1`, `/2` and `/3` goals keep their saved rules; installation does not migrate their records or reset usage or time limits.
 
 ## Core compatibility
 
@@ -19,7 +19,9 @@ For a **new start**, require all of the following:
 
 For an **existing goal**, read its saved start rule and selected SPEC format without changing them. Seal 0.1.9 understands only `run-rules/1`, `run-rules/2` and `run-rules/3`; refuse any other saved rule even if Core lists it as supported. Require that rule in `supported_rules` and the selected format (`legacy` when absent) in `formats.criteria`. Resume and check operations require `baseline-safe-copy/v1` and `dirty-preflight/v1`; under `/3` they also require the three structured-result formats and `structured-change-results/v1`. A budget operation instead requires `/3`, its three structured-result formats and `budget-change/v1`; `/1` and `/2` do not support that operation. A different default rule does not invalidate an otherwise supported existing goal. Do not require `/3` declarations for legacy goals or move ordinary maintain, manual and task checks to the structured contract.
 
-When Python 3 is already available, the optional [check_core.py](../scripts/check_core.py) helper checks this same contract. From the project directory, use `python3 <skill>/scripts/check_core.py --ha <actual executable> --operation start`, substituting the actual skill path. For an existing goal, choose `--operation resume`, `check` or `budget` and add `--goal <existing goal>`. It reports `compatible`, `reason`, `executable`, `sha256`, `ha_version`, `operation`, `rules` and `missing`: exit 0 means compatible, 2 means refused and 64 means invalid arguments. Use the successful response's absolute `executable` afterward. Python is not required: the agent can read the actual Core JSON and apply the contract directly. Never treat missing Python as missing Core support.
+For a **finding query or mutation**, also require `features` to include `post-completion-findings/v1` and `formats.finding` to include `run-finding/v1`. Resume, check and budget operations on a chain containing this extension require the same two additions. Finding operations keep the saved rule and selected criteria format; they do not require execution features or `/3` declarations just to register or read a claim. An unknown record schema means stop, leaving full chain validation to Core. Do not send new-format records to an unsupported executable or treat its ordinary completion output as a successful findings query.
+
+When Python 3 is already available, the optional [check_core.py](../scripts/check_core.py) helper checks this same contract. From the project directory, use `python3 <skill>/scripts/check_core.py --ha <actual executable> --operation start`, substituting the actual skill path. For an existing goal, choose `--operation resume`, `check`, `budget` or `finding` and add `--goal <existing goal>`. It reports `compatible`, `reason`, `executable`, `sha256`, `ha_version`, `operation`, `rules` and `missing`: exit 0 means compatible, 2 means refused and 64 means invalid arguments. Use the successful response's absolute `executable` afterward. Python is not required: the agent can read the actual Core JSON and apply the contract directly. Never treat missing Python as missing Core support.
 
 This checks source contracts and executable support. Whether installed Codex or Claude models follow the instructions in practice is a separate host evaluation; capability output does not establish that result. Spec document writing requires neither Core nor this query.
 
@@ -41,8 +43,18 @@ This checks source contracts and executable support. Whether installed Codex or 
 | `ha status <goal> [--format md\|json]` | Prints the computed state |
 | `ha done <goal> [--format md\|json]` | Computes the state and records it. When the state is `complete`, the line is the completion record |
 | `ha log <goal> <seq> [--tail N]` | Shows the local output of one run. Output never leaves this clone |
+| `ha finding <goal> [--format json\|md]` | Optional extension: read historical completion anchors, current findings, and explicit rework relations; default JSON |
+| `ha finding <goal> --input <JSON file>` | Optional extension: append an explicitly sourced claim or revision and return a JSON receipt |
 
 `ha check` exits 0 when every result is as expected and 1 otherwise. Other exits: 64 usage, 65 refused, 66 unsupported rules version, 70 internal error. `ha status`, `ha done`, `ha check`, and `ha note` exit 66 for a goal started under rules this `ha` does not compute, and record nothing.
+
+### Post-completion findings
+
+Use the [findings contract](https://github.com/jgoneit/jaekit/blob/main/contracts/findings.md) only after checking the exact executable's optional support. The goal is explicit; do not guess another goal from a review link. Base a revision on the existing findings and historical completion actually read. New entries start as candidates with a stable finding ID and request ID, exact completion seq/hash, historical criteria mapping, source and summary. Later judgments include the revision actually read, reason and evidence references. Core checks the relationships and stored structure, not whether a review claim is true. Document-only discoveries remain document claims until an explicit sourced registration; do not import free text as verified facts or edit the original completion report.
+
+Report the historical completion, current unresolved findings, and linked explicit rework status together. Registering a finding preserves the original completion and creates no rework authority. Only a user's rework request authorizes `note reopen`; afterward a finding may reference that saved request. A later completion is linked only within that reopen's window, stopping at the next reopen, and does not automatically resolve a finding. Resuming an existing goal requires querying its current findings as well as its computed execution state.
+
+On a revision conflict, read the stored history and reassess; do not overwrite the competing judgment. If writing or printing the receipt fails, the change may have applied. Requery by finding/request ID; an identical request can return its original receipt without an additional event. A broken chain requires explicit recovery, not an automatic retry. Old binaries reject the extension as record integrity failure, so retain a supporting executable for later queries and writes. No automatic migration, installation, reopen, or budget reset is implied.
 
 ## Before execution
 

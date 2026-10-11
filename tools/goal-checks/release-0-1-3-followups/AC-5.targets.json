@@ -1,29 +1,85 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "file-link",
       "runner": "unittest",
       "file": "tools/release/test_install_data.py",
-      "test": "DirectData.test_reuse_rejects_a_file_link_with_identical_content"
+      "test": "DirectData.test_reuse_rejects_a_file_link_with_identical_content",
+      "result_targets": {
+        "additional_violations": [
+          "file-link.assertion-2",
+          "file-link.assertion-3",
+          "file-link.assertion-4",
+          "file-link.assertion-5",
+          "file-link.assertion-6",
+          "file-link.assertion-7",
+          "file-link.assertion-8"
+        ],
+        "execution": "file-link.execution",
+        "selection": "file-link.selection",
+        "attribution": "file-link.attribution"
+      }
     },
     {
       "target": "directory-link",
       "runner": "unittest",
       "file": "tools/release/test_install_data.py",
-      "test": "DirectData.test_reuse_rejects_a_directory_link_with_identical_content"
+      "test": "DirectData.test_reuse_rejects_a_directory_link_with_identical_content",
+      "result_targets": {
+        "additional_violations": [
+          "directory-link.assertion-2",
+          "directory-link.assertion-3",
+          "directory-link.assertion-4",
+          "directory-link.assertion-5",
+          "directory-link.assertion-6",
+          "directory-link.assertion-7",
+          "directory-link.assertion-8"
+        ],
+        "execution": "directory-link.execution",
+        "selection": "directory-link.selection",
+        "attribution": "directory-link.attribution"
+      }
     },
     {
       "target": "special-file",
       "runner": "unittest",
       "file": "tools/release/test_install_data.py",
-      "test": "DirectData.test_reuse_rejects_a_special_file"
+      "test": "DirectData.test_reuse_rejects_a_special_file",
+      "result_targets": {
+        "additional_violations": [
+          "special-file.assertion-2",
+          "special-file.assertion-3",
+          "special-file.assertion-4",
+          "special-file.assertion-5",
+          "special-file.assertion-6",
+          "special-file.assertion-7",
+          "special-file.assertion-8"
+        ],
+        "execution": "special-file.execution",
+        "selection": "special-file.selection",
+        "attribution": "special-file.attribution"
+      }
     },
     {
       "target": "identical-data",
       "runner": "unittest",
       "file": "tools/release/test_install.py",
-      "test": "InstallChecks.test_success_and_identical_data_retry"
+      "test": "InstallChecks.test_success_and_identical_data_retry",
+      "result_targets": {
+        "additional_violations": [
+          "identical-data.assertion-2",
+          "identical-data.assertion-3",
+          "identical-data.assertion-4",
+          "identical-data.assertion-5",
+          "identical-data.assertion-6",
+          "identical-data.assertion-7",
+          "identical-data.assertion-8"
+        ],
+        "execution": "identical-data.execution",
+        "selection": "identical-data.selection",
+        "attribution": "identical-data.attribution"
+      }
     }
   ]
 }

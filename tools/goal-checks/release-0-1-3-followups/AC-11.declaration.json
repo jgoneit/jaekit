@@ -1,11 +1,12 @@
 {
   "schema": "check-declaration/v1",
   "producer": "jaekit-goal-tests",
-  "producer_version": "1",
+  "producer_version": "2",
   "producer_paths": [
     "tools/goal-checks/produce.py",
     "tools/goal-checks/release-0-1-3-followups/AC-11.targets.json",
-    "tools/release-checks/test_loader_invocations.py"
+    "tools/release-checks/test_loader_invocations.py",
+    "tools/result_observations.py"
   ],
   "targets": [
     {
@@ -13,20 +14,220 @@
       "violation": "checker-regression"
     },
     {
+      "id": "checker-regressions.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checker-regressions.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checker-regressions.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checker-regressions.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checker-regressions.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checker-regressions.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checker-regressions.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checker-regressions.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checker-regressions.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checker-regressions.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "literal-core",
       "violation": "literal-core-missed"
+    },
+    {
+      "id": "literal-core.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "literal-core.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "literal-core.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "literal-core.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "literal-core.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "literal-core.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "literal-core.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "literal-core.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "literal-core.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "literal-core.attribution",
+      "violation": "no-additional-violation"
     },
     {
       "id": "spec-literal-execution",
       "violation": "literal-execution-missed"
     },
     {
+      "id": "spec-literal-execution.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-literal-execution.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-literal-execution.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-literal-execution.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-literal-execution.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-literal-execution.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-literal-execution.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-literal-execution.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-literal-execution.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-literal-execution.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "readme-forms",
       "violation": "readme-forms-missing"
     },
     {
+      "id": "readme-forms.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-forms.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-forms.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-forms.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-forms.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-forms.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-forms.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-forms.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-forms.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readme-forms.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "no-evaluation",
       "violation": "observed-command-evaluated"
+    },
+    {
+      "id": "no-evaluation.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-evaluation.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-evaluation.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-evaluation.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-evaluation.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-evaluation.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-evaluation.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-evaluation.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-evaluation.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-evaluation.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

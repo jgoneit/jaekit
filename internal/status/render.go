@@ -67,6 +67,9 @@ func (rep *Report) Markdown(goalArg string) string {
 	default:
 		w("- completion record: none\n")
 	}
+	if rep.Findings != nil && len(rep.Findings.Findings) > 0 {
+		w("\n%s\n", rep.Findings.Markdown())
+	}
 	w("- assurance: local (an agent with the same user permissions can change checks and records)\n")
 	w("- check author: executor\n")
 	if rep.RecordHead != nil {

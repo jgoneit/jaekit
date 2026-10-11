@@ -1,62 +1,272 @@
 {
   "AC-1": {
     "file": "tools/review-checks/test_observation.py",
-    "class": "AC1"
+    "class": "AC1",
+    "result_targets": {
+      "additional_violations": [
+        "AC-1.assertion-2",
+        "AC-1.assertion-3",
+        "AC-1.assertion-4",
+        "AC-1.assertion-5",
+        "AC-1.assertion-6",
+        "AC-1.assertion-7",
+        "AC-1.assertion-8"
+      ],
+      "execution": "AC-1.execution",
+      "selection": "AC-1.selection",
+      "attribution": "AC-1.attribution"
+    }
   },
   "AC-2": {
     "file": "tools/review-checks/test_observation.py",
-    "class": "AC2"
+    "class": "AC2",
+    "result_targets": {
+      "additional_violations": [
+        "AC-2.assertion-2",
+        "AC-2.assertion-3",
+        "AC-2.assertion-4",
+        "AC-2.assertion-5",
+        "AC-2.assertion-6",
+        "AC-2.assertion-7",
+        "AC-2.assertion-8"
+      ],
+      "execution": "AC-2.execution",
+      "selection": "AC-2.selection",
+      "attribution": "AC-2.attribution"
+    }
   },
   "AC-3": {
     "file": "tools/review-checks/test_observation.py",
-    "class": "AC3"
+    "class": "AC3",
+    "result_targets": {
+      "additional_violations": [
+        "AC-3.assertion-2",
+        "AC-3.assertion-3",
+        "AC-3.assertion-4",
+        "AC-3.assertion-5",
+        "AC-3.assertion-6",
+        "AC-3.assertion-7",
+        "AC-3.assertion-8"
+      ],
+      "execution": "AC-3.execution",
+      "selection": "AC-3.selection",
+      "attribution": "AC-3.attribution"
+    }
   },
   "AC-4": {
     "file": "tools/review-checks/test_observation.py",
-    "class": "AC4"
+    "class": "AC4",
+    "result_targets": {
+      "additional_violations": [
+        "AC-4.assertion-2",
+        "AC-4.assertion-3",
+        "AC-4.assertion-4",
+        "AC-4.assertion-5",
+        "AC-4.assertion-6",
+        "AC-4.assertion-7",
+        "AC-4.assertion-8"
+      ],
+      "execution": "AC-4.execution",
+      "selection": "AC-4.selection",
+      "attribution": "AC-4.attribution"
+    }
   },
   "AC-5": {
     "file": "tools/review-checks/test_observation.py",
-    "class": "AC5"
+    "class": "AC5",
+    "result_targets": {
+      "additional_violations": [
+        "AC-5.assertion-2",
+        "AC-5.assertion-3",
+        "AC-5.assertion-4",
+        "AC-5.assertion-5",
+        "AC-5.assertion-6",
+        "AC-5.assertion-7",
+        "AC-5.assertion-8"
+      ],
+      "execution": "AC-5.execution",
+      "selection": "AC-5.selection",
+      "attribution": "AC-5.attribution"
+    }
   },
   "AC-6": {
     "file": "tools/review-checks/test_observation.py",
-    "class": "AC6"
+    "class": "AC6",
+    "result_targets": {
+      "additional_violations": [
+        "AC-6.assertion-2",
+        "AC-6.assertion-3",
+        "AC-6.assertion-4",
+        "AC-6.assertion-5",
+        "AC-6.assertion-6",
+        "AC-6.assertion-7",
+        "AC-6.assertion-8"
+      ],
+      "execution": "AC-6.execution",
+      "selection": "AC-6.selection",
+      "attribution": "AC-6.attribution"
+    }
   },
   "AC-7": {
     "file": "tools/review-checks/test_installation.py",
-    "class": "AC7"
+    "class": "AC7",
+    "result_targets": {
+      "additional_violations": [
+        "AC-7.assertion-2",
+        "AC-7.assertion-3",
+        "AC-7.assertion-4",
+        "AC-7.assertion-5",
+        "AC-7.assertion-6",
+        "AC-7.assertion-7",
+        "AC-7.assertion-8"
+      ],
+      "execution": "AC-7.execution",
+      "selection": "AC-7.selection",
+      "attribution": "AC-7.attribution"
+    }
   },
   "AC-8": {
     "file": "tools/review-checks/test_platform_installation.py",
-    "class": "AC8"
+    "class": "AC8",
+    "result_targets": {
+      "additional_violations": [
+        "AC-8.assertion-2",
+        "AC-8.assertion-3",
+        "AC-8.assertion-4",
+        "AC-8.assertion-5",
+        "AC-8.assertion-6",
+        "AC-8.assertion-7",
+        "AC-8.assertion-8"
+      ],
+      "execution": "AC-8.execution",
+      "selection": "AC-8.selection",
+      "attribution": "AC-8.attribution"
+    }
   },
   "AC-9": {
     "file": "tools/review-checks/test_producers.py",
-    "class": "AC9"
+    "class": "AC9",
+    "result_targets": {
+      "additional_violations": [
+        "AC-9.assertion-2",
+        "AC-9.assertion-3",
+        "AC-9.assertion-4",
+        "AC-9.assertion-5",
+        "AC-9.assertion-6",
+        "AC-9.assertion-7",
+        "AC-9.assertion-8"
+      ],
+      "execution": "AC-9.execution",
+      "selection": "AC-9.selection",
+      "attribution": "AC-9.attribution"
+    }
   },
   "AC-10": {
     "file": "tools/review-checks/test_producers.py",
-    "class": "AC10"
+    "class": "AC10",
+    "result_targets": {
+      "additional_violations": [
+        "AC-10.assertion-2",
+        "AC-10.assertion-3",
+        "AC-10.assertion-4",
+        "AC-10.assertion-5",
+        "AC-10.assertion-6",
+        "AC-10.assertion-7",
+        "AC-10.assertion-8"
+      ],
+      "execution": "AC-10.execution",
+      "selection": "AC-10.selection",
+      "attribution": "AC-10.attribution"
+    }
   },
   "AC-11": {
     "file": "tools/review-checks/test_producers.py",
-    "class": "AC11"
+    "class": "AC11",
+    "result_targets": {
+      "additional_violations": [
+        "AC-11.assertion-2",
+        "AC-11.assertion-3",
+        "AC-11.assertion-4",
+        "AC-11.assertion-5",
+        "AC-11.assertion-6",
+        "AC-11.assertion-7",
+        "AC-11.assertion-8"
+      ],
+      "execution": "AC-11.execution",
+      "selection": "AC-11.selection",
+      "attribution": "AC-11.attribution"
+    }
   },
   "AC-12": {
     "file": "tools/review-checks/test_installation.py",
-    "class": "AC12"
+    "class": "AC12",
+    "result_targets": {
+      "additional_violations": [
+        "AC-12.assertion-2",
+        "AC-12.assertion-3",
+        "AC-12.assertion-4",
+        "AC-12.assertion-5",
+        "AC-12.assertion-6",
+        "AC-12.assertion-7",
+        "AC-12.assertion-8"
+      ],
+      "execution": "AC-12.execution",
+      "selection": "AC-12.selection",
+      "attribution": "AC-12.attribution"
+    }
   },
   "AC-13": {
     "file": "tools/review-checks/test_preservation.py",
-    "class": "AC13"
+    "class": "AC13",
+    "result_targets": {
+      "additional_violations": [
+        "AC-13.assertion-2",
+        "AC-13.assertion-3",
+        "AC-13.assertion-4",
+        "AC-13.assertion-5",
+        "AC-13.assertion-6",
+        "AC-13.assertion-7",
+        "AC-13.assertion-8"
+      ],
+      "execution": "AC-13.execution",
+      "selection": "AC-13.selection",
+      "attribution": "AC-13.attribution"
+    }
   },
   "AC-14": {
     "file": "tools/review-checks/test_observation.py",
-    "class": "AC14"
+    "class": "AC14",
+    "result_targets": {
+      "additional_violations": [
+        "AC-14.assertion-2",
+        "AC-14.assertion-3",
+        "AC-14.assertion-4",
+        "AC-14.assertion-5",
+        "AC-14.assertion-6",
+        "AC-14.assertion-7",
+        "AC-14.assertion-8"
+      ],
+      "execution": "AC-14.execution",
+      "selection": "AC-14.selection",
+      "attribution": "AC-14.attribution"
+    }
   },
   "AC-15": {
     "file": "tools/review-checks/test_observation.py",
-    "class": "AC15"
+    "class": "AC15",
+    "result_targets": {
+      "additional_violations": [
+        "AC-15.assertion-2",
+        "AC-15.assertion-3",
+        "AC-15.assertion-4",
+        "AC-15.assertion-5",
+        "AC-15.assertion-6",
+        "AC-15.assertion-7",
+        "AC-15.assertion-8"
+      ],
+      "execution": "AC-15.execution",
+      "selection": "AC-15.selection",
+      "attribution": "AC-15.attribution"
+    }
   }
 }

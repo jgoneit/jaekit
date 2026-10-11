@@ -1,11 +1,25 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "examples-index",
       "runner": "go",
       "package": "./plugins",
-      "test": "TestExamplesIndexDescribesCurrentRelease"
+      "test": "TestExamplesIndexDescribesCurrentRelease",
+      "result_targets": {
+        "additional_violations": [
+          "examples-index.assertion-2",
+          "examples-index.assertion-3",
+          "examples-index.assertion-4",
+          "examples-index.assertion-5",
+          "examples-index.assertion-6",
+          "examples-index.assertion-7",
+          "examples-index.assertion-8"
+        ],
+        "execution": "examples-index.execution",
+        "selection": "examples-index.selection",
+        "attribution": "examples-index.attribution"
+      }
     }
   ]
 }

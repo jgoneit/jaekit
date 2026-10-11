@@ -1,0 +1,38 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/review-findings/AC-1.targets.json",
+    "tools/findings-checks/test_stored_reuse.py",
+    "tools/findings-checks/check.py",
+    "internal/record/finding_size_test.go"
+  ],
+  "targets": [
+    {
+      "id": "near-limit-ascii",
+      "violation": "stored-finding-unsupported"
+    },
+    {
+      "id": "escaped-separators",
+      "violation": "stored-finding-unsupported"
+    },
+    {
+      "id": "multilingual",
+      "violation": "stored-finding-unsupported"
+    },
+    {
+      "id": "input-over-limit",
+      "violation": "oversized-input-accepted"
+    },
+    {
+      "id": "reasons-told-apart",
+      "violation": "refusal-reasons-conflated"
+    },
+    {
+      "id": "core-line-bound",
+      "violation": "stored-line-unbounded"
+    }
+  ]
+}
