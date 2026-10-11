@@ -3,6 +3,7 @@
 import argparse
 import importlib.util
 import json
+import sys
 from pathlib import Path
 import unittest
 
@@ -13,6 +14,9 @@ def main():
     parser.add_argument('--selector',default='')
     parser.add_argument('--report',required=True)
     args=parser.parse_args()
+    # Match discovery's sibling imports inside this isolated runner process.
+    # The selected file is an explicit public registry input.
+    sys.path.insert(0, str(Path(args.file).resolve().parent))
     spec=importlib.util.spec_from_file_location('selected_regression',args.file)
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     loader=unittest.TestLoader()
