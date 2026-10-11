@@ -7,7 +7,9 @@
     "tools/result_observations.py",
     "tools/release-checks/test_import_provenance.py",
     "tools/release-checks/integration_install_imports.py",
-    "tools/release-checks/integration_direct_install.py"
+    "tools/release-checks/integration_direct_install.py",
+    "tools/release-checks/integration_observe_imports.py",
+    "tools/release-checks/integration_child_imports.py"
   ],
   "targets": [
     {
@@ -136,6 +138,134 @@
     },
     {
       "id": "AC-3.assertion-32",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-33",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-34",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-35",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-36",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-37",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-38",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-39",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-40",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-41",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-42",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-43",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-44",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-45",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-46",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-47",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-48",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-49",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-50",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-51",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-52",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-53",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-54",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-55",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-56",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-57",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-58",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-59",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-60",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-61",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-62",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-63",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-64",
       "violation": "unverified-import"
     },
     {

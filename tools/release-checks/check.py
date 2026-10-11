@@ -141,6 +141,11 @@ def command(argv, cwd=ROOT, timeout=180):
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GH_PROMPT_DISABLED="1",
                GOTOOLCHAIN="local")
     env.pop("GH_DEBUG", None)
+    if argv[0] == sys.executable:
+        # Isolation of the worker does not propagate to a new interpreter.
+        # Keep script/discovery imports in the pinned source copy, while
+        # excluding paths back into the original, unverified checkout.
+        env.pop("PYTHONPATH", None)
     try:
         return subprocess.run(argv, cwd=cwd, env=env, capture_output=True,
                               timeout=timeout)

@@ -16,14 +16,14 @@ from result_observations import facts, observations, target_names
 SELECTIONS = {
     'AC-1': ('regression-checks', ['test_merge_blockers.StaticGoSelection', 'integration_go_filters.FullGoEnvironment']),
     'AC-2': ('regression-checks', ['test_merge_blockers.ObserverOutcomes', 'integration_observer_core.ObserverCore']),
-    'AC-3': ('release-checks', ['test_import_provenance.ImportProvenance', 'integration_install_imports.CollectorImports']),
+    'AC-3': ('release-checks', ['test_import_provenance.ImportProvenance', 'integration_install_imports.CollectorImports', 'integration_observe_imports.ObserverImports', 'integration_child_imports.ChildImports']),
     'AC-4': ('release-checks', ['integration_install_destination.InstallationPathContract']),
     'AC-5': ('release-checks', ['integration_install_destination.InstallationPathBinding']),
     'AC-6': ('regression-checks', ['test_map', 'test_checker', 'test_merge_blockers.PreservedOutcomes', 'test_merge_blockers.PreservedStaticSelection', 'test_merge_blockers.PreservedSelectedRunner', 'integration_go_filters.PreservedGoSelection', 'test_observer_attribution']),
     'AC-7': ('release-checks', ['test_import_provenance.ImportProvenanceKeep', 'integration_product_source']),
     'AC-8': ('release-checks', ['integration_direct_install', 'test_archive_limits']),
 }
-SLOTS = {"AC-1": 32, "AC-2": 16, "AC-3": 32, "AC-4": 4, "AC-5": 4}
+SLOTS = {"AC-1": 32, "AC-2": 16, "AC-3": 64, "AC-4": 4, "AC-5": 4}
 RUNNER = r'''
 import json, sys, unittest
 sys.path.insert(0, sys.argv[1])
@@ -63,10 +63,10 @@ def verify_components(go_root, release_root):
                    'tools/regression-checks/integration_observer_core.py', 'tools/regression-checks/test_observer_attribution.py', 'tools/regression-checks/test_checker.py'],
          'regression-checks', ['test_merge_blockers.py', 'integration_go_filters.py', 'integration_observer_core.py', 'test_observer_attribution.py']),
         (release_root, ['tools/release-checks/check.py', 'tools/release-checks/source_identity.py',
-                        'tools/release-checks/snapshot_worker.py', 'tools/release-checks/install_trace.py',
+                        'tools/release-checks/snapshot_worker.py', 'tools/release-checks/install_trace.py', 'tools/release-checks/observe.py',
                         'tools/release-checks/test_import_provenance.py',
-                        'tools/release-checks/integration_install_destination.py', 'tools/release-checks/integration_install_imports.py'],
-         'release-checks', ['test_import_provenance.py', 'integration_install_destination.py', 'integration_install_imports.py']),
+                        'tools/release-checks/integration_install_destination.py', 'tools/release-checks/integration_install_imports.py', 'tools/release-checks/integration_observe_imports.py', 'tools/release-checks/integration_child_imports.py'],
+         'release-checks', ['test_import_provenance.py', 'integration_install_destination.py', 'integration_install_imports.py', 'integration_observe_imports.py', 'integration_child_imports.py']),
     ]
     env = {k: v for k, v in os.environ.items() if not k.startswith('HA_EVIDENCE_')}
     env['PYTHONDONTWRITEBYTECODE'] = '1'
