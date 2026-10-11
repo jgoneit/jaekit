@@ -1,23 +1,65 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "uninstall-data",
       "runner": "unittest",
       "file": "tools/release/test_install_data.py",
-      "test": "DirectData.test_uninstall_removes_binary_and_installed_data"
+      "test": "DirectData.test_uninstall_removes_binary_and_installed_data",
+      "result_targets": {
+        "additional_violations": [
+          "uninstall-data.assertion-2",
+          "uninstall-data.assertion-3",
+          "uninstall-data.assertion-4",
+          "uninstall-data.assertion-5",
+          "uninstall-data.assertion-6",
+          "uninstall-data.assertion-7",
+          "uninstall-data.assertion-8"
+        ],
+        "execution": "uninstall-data.execution",
+        "selection": "uninstall-data.selection",
+        "attribution": "uninstall-data.attribution"
+      }
     },
     {
       "target": "uninstall-linked-target",
       "runner": "unittest",
       "file": "tools/release/test_install_data.py",
-      "test": "DirectData.test_uninstall_keeps_the_target_of_a_linked_data_path"
+      "test": "DirectData.test_uninstall_keeps_the_target_of_a_linked_data_path",
+      "result_targets": {
+        "additional_violations": [
+          "uninstall-linked-target.assertion-2",
+          "uninstall-linked-target.assertion-3",
+          "uninstall-linked-target.assertion-4",
+          "uninstall-linked-target.assertion-5",
+          "uninstall-linked-target.assertion-6",
+          "uninstall-linked-target.assertion-7",
+          "uninstall-linked-target.assertion-8"
+        ],
+        "execution": "uninstall-linked-target.execution",
+        "selection": "uninstall-linked-target.selection",
+        "attribution": "uninstall-linked-target.attribution"
+      }
     },
     {
       "target": "brew-and-host-uninstall",
       "runner": "go",
       "package": "./plugins",
-      "test": "TestRelease011UninstallGuide"
+      "test": "TestRelease011UninstallGuide",
+      "result_targets": {
+        "additional_violations": [
+          "brew-and-host-uninstall.assertion-2",
+          "brew-and-host-uninstall.assertion-3",
+          "brew-and-host-uninstall.assertion-4",
+          "brew-and-host-uninstall.assertion-5",
+          "brew-and-host-uninstall.assertion-6",
+          "brew-and-host-uninstall.assertion-7",
+          "brew-and-host-uninstall.assertion-8"
+        ],
+        "execution": "brew-and-host-uninstall.execution",
+        "selection": "brew-and-host-uninstall.selection",
+        "attribution": "brew-and-host-uninstall.attribution"
+      }
     }
   ]
 }

@@ -1,17 +1,45 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "codex-loaded",
       "runner": "unittest",
       "file": "tools/release-checks/test_loader_invocations.py",
-      "test": "LoaderEvidence.test_codex_injected_skill_is_loaded_in_both_phases"
+      "test": "LoaderEvidence.test_codex_injected_skill_is_loaded_in_both_phases",
+      "result_targets": {
+        "additional_violations": [
+          "codex-loaded.assertion-2",
+          "codex-loaded.assertion-3",
+          "codex-loaded.assertion-4",
+          "codex-loaded.assertion-5",
+          "codex-loaded.assertion-6",
+          "codex-loaded.assertion-7",
+          "codex-loaded.assertion-8"
+        ],
+        "execution": "codex-loaded.execution",
+        "selection": "codex-loaded.selection",
+        "attribution": "codex-loaded.attribution"
+      }
     },
     {
       "target": "claude-loaded",
       "runner": "unittest",
       "file": "tools/release-checks/test_loader_invocations.py",
-      "test": "LoaderEvidence.test_claude_session_plugin_is_loaded_in_both_phases"
+      "test": "LoaderEvidence.test_claude_session_plugin_is_loaded_in_both_phases",
+      "result_targets": {
+        "additional_violations": [
+          "claude-loaded.assertion-2",
+          "claude-loaded.assertion-3",
+          "claude-loaded.assertion-4",
+          "claude-loaded.assertion-5",
+          "claude-loaded.assertion-6",
+          "claude-loaded.assertion-7",
+          "claude-loaded.assertion-8"
+        ],
+        "execution": "claude-loaded.execution",
+        "selection": "claude-loaded.selection",
+        "attribution": "claude-loaded.attribution"
+      }
     }
   ]
 }

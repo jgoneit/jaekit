@@ -1,0 +1,41 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "near-limit-ascii",
+      "runner": "unittest",
+      "file": "tools/findings-checks/test_stored_reuse.py",
+      "test": "StoredSupport.test_near_limit_ascii_record_stays_supported"
+    },
+    {
+      "target": "escaped-separators",
+      "runner": "unittest",
+      "file": "tools/findings-checks/test_stored_reuse.py",
+      "test": "StoredSupport.test_escaped_line_separators_stay_supported"
+    },
+    {
+      "target": "multilingual",
+      "runner": "unittest",
+      "file": "tools/findings-checks/test_stored_reuse.py",
+      "test": "StoredSupport.test_multilingual_record_stays_supported"
+    },
+    {
+      "target": "input-over-limit",
+      "runner": "unittest",
+      "file": "tools/findings-checks/test_stored_reuse.py",
+      "test": "StoredSupport.test_input_over_the_limit_is_refused"
+    },
+    {
+      "target": "reasons-told-apart",
+      "runner": "unittest",
+      "file": "tools/findings-checks/test_stored_reuse.py",
+      "test": "StoredSupport.test_oversized_damaged_and_unsupported_lines_are_told_apart"
+    },
+    {
+      "target": "core-line-bound",
+      "runner": "go",
+      "test": "TestFindingLineBound",
+      "package": "./internal/record"
+    }
+  ]
+}

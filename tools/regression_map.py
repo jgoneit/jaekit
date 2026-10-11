@@ -132,6 +132,34 @@ def literal(node, bindings):
     raise Invalid('unsupported dynamic verification selection')
 
 
+def unfiltered_go_suite(argv):
+    """Only claim the whole suite when explicit options cannot narrow it."""
+    arguments = iter(argv[2:])
+    for argument in arguments:
+        if not isinstance(argument, str):
+            raise Invalid('unsupported Go test argument')
+        if not argument.startswith('-'):
+            continue
+        name, separator, value = argument.lstrip('-').partition('=')
+        name = name.removeprefix('test.')
+        if name in ('args', 'exec') or argument == '--':
+            raise Invalid('unsupported Go test execution mode')
+        if name in ('run', 'skip', 'list', 'fuzz', 'count'):
+            if not separator:
+                value = next(arguments, None)
+            if not isinstance(value, str):
+                raise Invalid('incomplete Go test selection option')
+            if name == 'count':
+                digits = value[1:] if value[:1] in ('+', '-') else value
+                if not digits or any(char not in '0123456789' for char in digits) or int(value) <= 0:
+                    raise Invalid('Go test count cannot establish full selection')
+            elif value:
+                raise Invalid('filtered Go tests are not the full suite')
+        if name in ('short', 'c'):
+            if not separator or value not in ('0', 'f', 'F', 'FALSE', 'false', 'False'):
+                raise Invalid('restricted Go tests are not the full suite')
+
+
 def selected_suites(root):
     """Read the supported unconditional run/literal-loop subset, without eval.
 
@@ -172,6 +200,7 @@ def selected_suites(root):
                     raise Invalid('unsupported verification call')
                 argv = literal(call.args[1], bindings)
                 if argv[:2] == ['go', 'test'] and './...' in argv:
+                    unfiltered_go_suite(argv)
                     output.add(('<go>', './...'))
                 if argv[1:4] == ['-m', 'unittest', 'discover']:
                     try:

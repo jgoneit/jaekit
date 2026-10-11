@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
-import io
+import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -15,7 +15,6 @@ import shutil
 import shlex
 import subprocess
 import sys
-import tarfile
 import tempfile
 from urllib.request import urlopen
 
@@ -109,27 +108,49 @@ def native_platform():
     return f"{system}_{arch}"
 
 
+def load_archive_reader():
+    # The validator and this checker share one reader; see README.md.
+    path = Path(__file__).resolve().parents[1] / "release" / "archive_reader.py"
+    spec = importlib.util.spec_from_file_location("jaekit_release_archive_reader", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+archive_reader = load_archive_reader()
+# Limits apply to every consumer of a downloaded or supplied release archive.
+ARCHIVE_MAX_COMPRESSED_BYTES = archive_reader.MAX_COMPRESSED_BYTES
+ARCHIVE_MAX_BYTES = archive_reader.MAX_BYTES
+ARCHIVE_MAX_ENTRIES = archive_reader.MAX_ENTRIES
+ARCHIVE_MAX_STREAM_BYTES = archive_reader.MAX_STREAM_BYTES
+ARCHIVE_MAX_FILE_BYTES = archive_reader.MAX_FILE_BYTES
+ARCHIVE_MAX_METADATA_BYTES = archive_reader.MAX_METADATA_BYTES
+ARCHIVE_MAX_METADATA_TOTAL_BYTES = archive_reader.MAX_METADATA_TOTAL_BYTES
+ARCHIVE_MAX_PAX_KEYS = archive_reader.MAX_PAX_KEYS
+
+
 def archive_files(data, target):
-    """Inspect in memory; never extract untrusted archive paths."""
+    """Inspect bounded bytes in memory; never extract archive paths to disk."""
     prefix = f"ha_{VERSION}_{target}/"
-    files = {}
     try:
-        with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as archive:
-            for member in archive:
-                name = member.name
-                path = PurePosixPath(name)
-                require(not path.is_absolute() and ".." not in path.parts,
-                        "unsafe archive entry")
-                require(name == prefix[:-1] or name.startswith(prefix),
-                        "archive root disagrees with platform name")
-                require(member.isdir() or member.isfile(), "archive contains a non-regular entry")
-                if member.isfile():
-                    relative = name[len(prefix):]
-                    require(relative and relative not in files, "duplicate archive entry")
-                    require(member.size <= 64 * 1024 * 1024, "oversized archive entry")
-                    files[relative] = archive.extractfile(member).read()
-    except (tarfile.TarError, OSError):
-        raise Failure("invalid release archive") from None
+        members = archive_reader.read(
+            data, compressed=ARCHIVE_MAX_COMPRESSED_BYTES, bytes=ARCHIVE_MAX_BYTES,
+            entries=ARCHIVE_MAX_ENTRIES, stream=ARCHIVE_MAX_STREAM_BYTES, file=ARCHIVE_MAX_FILE_BYTES,
+            metadata=ARCHIVE_MAX_METADATA_BYTES, metadata_total=ARCHIVE_MAX_METADATA_TOTAL_BYTES,
+            pax_keys=ARCHIVE_MAX_PAX_KEYS)
+    except archive_reader.Rejected as error:
+        raise Failure(str(error)) from None
+    files = {}
+    for member, body in members:
+        name = member.name
+        path = PurePosixPath(name)
+        require(not path.is_absolute() and ".." not in path.parts, "unsafe archive entry")
+        require(name == prefix[:-1] or name.startswith(prefix), "archive root disagrees with platform name")
+        require(member.isdir() or member.isfile(), "archive contains a non-regular entry")
+        if member.isfile():
+            relative = name[len(prefix):]
+            require(relative and relative not in files, "duplicate archive entry")
+            files[relative] = body
     for name in ("ha", "LICENSE", "README.md", "README.en.md", "guides/INSTALL.md",
                  "guides/INSTALL.en.md", "contracts/run-record.md"):
         require(name in files, f"release archive omits {name}")
@@ -212,10 +233,10 @@ class Checker:
             require(item.get("browser_download_url") == url, "asset URL disagrees with tag")
             try:
                 with urlopen(url, timeout=45) as response:
-                    data = response.read(64 * 1024 * 1024 + 1)
+                    data = response.read(ARCHIVE_MAX_COMPRESSED_BYTES + 1)
             except OSError:
                 raise Unavailable("public release asset download failed") from None
-            require(len(data) <= 64 * 1024 * 1024 and len(data) == item.get("size"),
+            require(len(data) <= ARCHIVE_MAX_COMPRESSED_BYTES and len(data) == item.get("size"),
                     "downloaded asset size differs from public metadata")
             require(item.get("digest") == "sha256:" + digest(data),
                     "downloaded asset digest differs from public metadata")

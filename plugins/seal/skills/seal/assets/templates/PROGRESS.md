@@ -11,6 +11,7 @@
 ## 타임라인
 <optional entries, appended in time order; entries are claims; the rules are in the Seal bundle formats (references/bundle.md, `## 타임라인`):
 - heading: ### <time with its time zone> · seq <record head> — <kind> · <one-line summary>; never invent a time you do not know; `seq none` while there is no record, and an entry about a check run uses that run's seq; kinds `관측`, `원인`, `결정`, `조치`, `검증`, `막힘`, `재개`
+- time source: distinguish event time and writing time; unknown event time stays unknown and a measured writing time may head the entry; remaining conditions, new facts, hypothesis evidence and uncertainty to reduce belong only where relevant, not every tool call
 - marks: causes `가설`, `확정`, `기각`; actions `예정`, `반영`; checks `대기`, `통과`, `실패`
 - point to evidence by AC, commit, and seq; never copy check output
 - append only and never edit an earlier entry; when a judgment changes, a new entry says what was rejected and on what grounds; a small event that went from cause to verification at once may be one entry
@@ -32,4 +33,11 @@
 
 ## 개선 메모
 
+## 완료 뒤 발견
+
+<For a new report: a finding ID, target goal and target code, completion reference, related condition or condition absent or unresolved, description/source/reproduced scope, confirmation claim, and follow-up. Keep event time and recording time with their source separate; unknown stays unknown. Preserve the original completion and append corrections with reasons/evidence. Show unresolved discoveries and rework request/progress separately, or reference the single detail location. Missing means unrecorded. This prose does not authorize work or change machine state.>
+
 ## 완료 보고
+<for the reporting form introduced with seal 0.1.10: connect the planned review to observed report; expected grounds, actual boundaries, methods and substitutes, results, evidence and unobserved scope; identify each changed condition, check, or environment and its evidence limits; shared condition groups may reference one explanation; distinguish recorded facts from interpretation; retain local assurance and executor-authored checks; show confirmed, unconfirmed and risky boundaries; this prose does not establish deployment, installation or actual model calls; paste the actual recorder result unchanged when one exists, never invent an output for a synthetic example>
+
+<!-- Track required assurance gaps with cause, affected conditions, missing evidence and resolution; keep completion pending while they remain. Continue independent useful work within authority and budget. Preserve prior review versions when code, checks, scope or policy changes. -->

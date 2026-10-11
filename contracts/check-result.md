@@ -92,6 +92,8 @@
 
 기록에는 `check-evidence/v1`의 간결한 근거를 저장한다: `result`, `reason`, `declaration_digest`, `report_digest`, `invocation`, `targets`. 대상 관측만 넣고 검사한 파일의 실제 값이나 원문 로그를 복사하지 않는다. 현재 상태는 이 근거로 재구성하므로 원문 로그 부재나 현재 시각 변화만으로 판정이 달라지지 않는다. 선언과 보고서는 실행자가 작성할 수 있다. 보증 수준은 계속 `local`이며 독립된 요구 이해나 제3자 검증을 보증하지 않는다.
 
+저장소 개발용 goal·review·gap 생산자의 혼합 결과·실패 귀속과 버전 2 대상 구성은 [저장소 생산자 계약](repository-producers.md)에 별도로 정의한다. 이 계약의 보고 형식이나 일반 참조 생산자의 설치 계약을 바꾸지 않는다.
+
 ## 4. 실제 참조 연동
 
 [참조 생산자](../tools/check-result-reference.py)는 Python 3 표준 라이브러리만 사용한다. 필요한 프로젝트에 복사해 추적하고 선언·설정과 함께 검사 경로에 넣는다. 다른 러너·의존성을 자동 설치하지 않는다. pytest·Vitest·Playwright 어댑터가 내장돼 있다는 뜻이 아니다.

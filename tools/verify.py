@@ -20,8 +20,97 @@ class CheckFailed(Exception):
     pass
 
 
+def go_flag_fields(value: str):
+    """Read Go's quoted-field syntax, retaining the spelling of each argument.
+
+    Like cmd/internal/quoted.Split, quotes only enclose a whole field and
+    backslashes are literal. Shell parsing would change valid Go flag values.
+    """
+    fields = []
+    index = 0
+    while index < len(value):
+        if value[index] in " \t\r\n":
+            index += 1
+            continue
+        start = index
+        if value[index] in "\"'":
+            quote = value[index]
+            index += 1
+            end = value.find(quote, index)
+            if end < 0:
+                raise CheckFailed("cannot establish full Go selection: unterminated GOFLAGS quote")
+            field = value[index:end]
+            index = end + 1
+        else:
+            while index < len(value) and value[index] not in " \t\r\n":
+                index += 1
+            field = value[start:index]
+        fields.append((field, value[start:index]))
+    return fields
+
+
+def narrowing_go_flag(flag: str) -> bool:
+    """Identify test restrictions; refuse modes that cannot attest execution."""
+    if (not flag.startswith("-") or flag in ("-", "--") or
+            flag.startswith(("---", "-=", "--="))):
+        raise CheckFailed("cannot establish full Go selection: malformed GOFLAGS field")
+    name, separator, value = flag.lstrip("-").partition("=")
+    name = name.removeprefix("test.")
+    if name in ("run", "skip", "list", "fuzz", "count"):
+        if not separator:
+            raise CheckFailed(f"cannot establish full Go selection: GOFLAGS -{name} requires =value")
+        if name != "count":
+            return bool(value)
+        digits = value[1:] if value[:1] in ("+", "-") else value
+        if not digits or any(char not in "0123456789" for char in digits):
+            raise CheckFailed("cannot establish full Go selection: invalid GOFLAGS -count")
+        return int(value) <= 0
+    if name in ("short", "c"):
+        truth = ("1", "t", "T", "TRUE", "true", "True")
+        falsehood = ("0", "f", "F", "FALSE", "false", "False")
+        if separator and value not in truth + falsehood:
+            raise CheckFailed(f"cannot establish full Go selection: invalid GOFLAGS -{name}")
+        enabled = not separator or value in truth
+        if name == "c" and enabled:
+            raise CheckFailed("cannot establish full Go selection: compile-only GOFLAGS -c")
+        return enabled if name == "short" else False
+    if name == "args" or (name == "exec" and (not separator or value)):
+        raise CheckFailed(f"cannot establish full Go selection: unsupported GOFLAGS -{name}")
+    return False
+
+
+def full_go_environment(env: dict[str, str]) -> dict[str, str]:
+    """Override only effective test filters for this full-suite child process."""
+    try:
+        result = subprocess.run(["go", "env", "GOFLAGS"], cwd=ROOT, env=env,
+                                capture_output=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired, UnicodeError) as error:
+        raise CheckFailed(f"cannot read effective GOFLAGS: {error}") from None
+    if result.returncode:
+        raise CheckFailed(f"cannot read effective GOFLAGS (exit {result.returncode}): {os.fsdecode(result.stderr).strip()}")
+    # Query the selected Go executable so GOENV and installation defaults have
+    # exactly the same precedence as the subsequent test command. Never use -w.
+    # Text-mode pipes normalize carriage returns even inside quoted values.
+    value = os.fsdecode(result.stdout).removesuffix("\n")
+    retained, removed = [], []
+    for field, spelling in go_flag_fields(value):
+        (removed if narrowing_go_flag(field) else retained).append(spelling)
+    if not removed:
+        return env
+    print("NOTE: full Go test selection ignores these GOFLAGS test filters for this run: "
+          + " ".join(removed), flush=True)
+    # An empty environment value lets Go fall back to its persistent config.
+    # Whitespace is nonempty but Go parses it as zero flags.
+    return dict(env, GOFLAGS=" ".join(retained) or " ")
+
+
 def run(label: str, command: list[str], env: dict[str, str], *, formatting=False):
     print(f"RUN: {label}\n  {shlex.join(command)}", flush=True)
+    if command[:2] == ["go", "test"] and "./..." in command:
+        try:
+            env = full_go_environment(env)
+        except CheckFailed as error:
+            raise CheckFailed(f"{label}: {error}") from None
     try:
         result = subprocess.run(command, cwd=ROOT, env=env, text=True,
                                 stdout=subprocess.PIPE if formatting else None)
@@ -51,6 +140,13 @@ def verify_go(env: dict[str, str]):
     for filename in ("test_observation.py", "test_history_results.py", "test_docs_environment.py"):
         run(f"Review gap regressions ({filename})",
             [sys.executable, "-m", "unittest", "discover", "-s", "tools/gap-checks",
+             "-p", filename], env)
+    run("Producer semantic regressions (test_semantics.py)",
+        [sys.executable, "-m", "unittest", "discover", "-s", "tools/producer-checks",
+         "-p", "test_semantics.py"], env)
+    for filename in ("test_merge_blockers.py", "integration_go_filters.py", "integration_observer_core.py"):
+        run(f"Merge blocker regressions ({filename})",
+            [sys.executable, "-m", "unittest", "discover", "-s", "tools/regression-checks",
              "-p", filename], env)
     # All build outputs live outside the checkout, including on failed checks.
     with tempfile.TemporaryDirectory(prefix="jaekit-verify-") as temporary:

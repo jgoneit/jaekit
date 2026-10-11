@@ -81,7 +81,9 @@ class Fixture(unittest.TestCase):
             )
         for group, filenames in (
                 ("review", ("test_observation.py", "test_installation.py", "test_producers.py")),
-                ("gap", ("test_observation.py", "test_history_results.py", "test_docs_environment.py"))):
+                ("gap", ("test_observation.py", "test_history_results.py", "test_docs_environment.py")),
+                ("producer", ("test_semantics.py",)),
+                ("regression", ("test_merge_blockers.py", "integration_go_filters.py", "integration_observer_core.py"))):
             directory = self.repo / "tools" / (group + "-checks")
             directory.mkdir()
             for filename in filenames:
@@ -116,9 +118,11 @@ class InvocationCases(Fixture):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         commands = self.commands()
         self.assertEqual([item["name"] for item in commands],
-                         ["gofmt", "go", "go", "review:test_observation.py", "review:test_installation.py",
+                         ["gofmt", "go", "go", "go", "review:test_observation.py", "review:test_installation.py",
                           "review:test_producers.py", "gap:test_observation.py", "gap:test_history_results.py",
-                          "gap:test_docs_environment.py", "go", "go", "go", "go", "go", "ha", "ha",
+                          "gap:test_docs_environment.py", "producer:test_semantics.py",
+                          "regression:test_merge_blockers.py", "regression:integration_go_filters.py",
+                          "regression:integration_observer_core.py", "go", "go", "go", "go", "go", "ha", "ha",
                           "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "goal-checks", "release-checks"])
         builds = [item for item in commands if item["name"] == "go" and item["args"][0] == "build"]
         self.assertEqual([(item["goos"], item["goarch"]) for item in builds],
@@ -128,7 +132,10 @@ class InvocationCases(Fixture):
             self.assertEqual(item["no_bytecode"], "1")
             if item["name"] == "go":
                 self.assertEqual(item["toolchain"], "local")
-                self.assertIn("-mod=readonly", item["args"])
+                if item["args"][0] == "env":
+                    self.assertEqual(item["args"], ["env", "GOFLAGS"])
+                else:
+                    self.assertIn("-mod=readonly", item["args"])
         self.assertIn("PASS: all verification", result.stdout)
 
     def test_group_selection_does_not_require_unrelated_tools(self):
@@ -158,13 +165,17 @@ class FailureCases(Fixture):
         self.assertEqual(self.snapshot(), before)
 
     def test_required_command_failures_are_identified_and_stop_execution(self):
-        cases = (("gofmt", "Go formatting"), ("vet", "Go vet"), ("test", "Go tests"),
+        cases = (("gofmt", "Go formatting"), ("vet", "Go vet"), ("env", "Go tests"), ("test", "Go tests"),
                  ("review:test_observation.py", "Review boundaries (test_observation.py)"),
                  ("review:test_installation.py", "Review boundaries (test_installation.py)"),
                  ("review:test_producers.py", "Review boundaries (test_producers.py)"),
                  ("gap:test_observation.py", "Review gap regressions (test_observation.py)"),
                  ("gap:test_history_results.py", "Review gap regressions (test_history_results.py)"),
                  ("gap:test_docs_environment.py", "Review gap regressions (test_docs_environment.py)"),
+                 ("producer:test_semantics.py", "Producer semantic regressions (test_semantics.py)"),
+                 ("regression:test_merge_blockers.py", "Merge blocker regressions (test_merge_blockers.py)"),
+                 ("regression:integration_go_filters.py", "Merge blocker regressions (integration_go_filters.py)"),
+                 ("regression:integration_observer_core.py", "Merge blocker regressions (integration_observer_core.py)"),
                  ("build:darwin/arm64", "Build darwin/arm64"), ("build", "Build native smoke binary"),
                  ("smoke:--version", "CLI version"), ("smoke:--help", "CLI help"),
                  ("check_public_tree.py", "Public file boundary"),
@@ -185,7 +196,7 @@ class FailureCases(Fixture):
                 self.assertNotIn("PASS: all verification", output)
                 self.assertNotIn(f"PASS: {label}", output)
                 last = self.commands()[-1]
-                expected = "ha" if failure.startswith("smoke:") else "go" if failure.split(":")[0] in {"vet", "test", "build"} else failure
+                expected = "ha" if failure.startswith("smoke:") else "go" if failure.split(":")[0] in {"vet", "env", "test", "build"} else failure
                 self.assertEqual(last["name"], expected, "checks continued after a failure")
                 if expected == "go":
                     self.assertEqual(last["args"][0], failure.split(":")[0])
