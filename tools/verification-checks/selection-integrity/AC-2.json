@@ -1,0 +1,153 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-selection-integrity",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/selection_integrity.py",
+    "tools/result_observations.py",
+    "tools/regression-checks/integration_selection_go.py",
+    "tools/verification-checks/selection-integrity/AC-2.json"
+  ],
+  "targets": [
+    {
+      "id": "AC-2",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-2",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-3",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-4",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-5",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-6",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-7",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-8",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-9",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-10",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-11",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-12",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-13",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-14",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-15",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-16",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-17",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-18",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-19",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-20",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-21",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-22",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-23",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-24",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-25",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-26",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-27",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-28",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-29",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-30",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-31",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.assertion-32",
+      "violation": "go-build-selection-mismatch"
+    },
+    {
+      "id": "AC-2.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-2.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-2.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}
