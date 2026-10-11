@@ -45,5 +45,15 @@ class SpecContracts(unittest.TestCase):
                 observation, problems=checker.observe(root,SUITE,'AC-7')
                 self.assertEqual(observation['status'],'violation',problems)
 
+class SpecAttribution(unittest.TestCase):
+    def test_relations_are_reported_by_their_owners(self):
+        import ownership
+        ownership.assert_owned(self, checker, SUITE, "evals/spec-cases/decision-boundaries.md", [
+            ("| 전체 목록 | 열거한 값만 허용 | 거부 |", "| 전체 목록 | 열거한 값만 허용 | 허용 |", {"AC-3", "AC-7"}),
+            ("| Bash, Zsh, shallow clone |", "| Bash |", {"AC-1", "AC-4", "AC-7"}),
+            ("| 사용자 답 A |", "| 현재 구현 |", {"AC-2", "AC-7"}),
+            ("| 요청 | 근거 불충분 |", "| 세션 | 근거 불충분 |", {"AC-1", "AC-7"}),
+        ])
+
 if __name__ == '__main__':
     unittest.main()

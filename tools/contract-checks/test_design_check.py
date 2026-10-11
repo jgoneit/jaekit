@@ -36,4 +36,19 @@ class DesignContracts(unittest.TestCase):
      dest=root/name;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(checker.ROOT/name,dest)
     path=root/'examples/verification-design.md';text=path.read_text();self.assertIn(old,text);path.write_text(text.replace(old,new))
     result,problems=checker.observe(root,SUITE,'AC-9');self.assertEqual(result['status'],'violation',problems)
+
+class DesignAttribution(unittest.TestCase):
+ def test_relations_are_reported_by_their_owners(self):
+  import ownership
+  ownership.assert_owned(self,checker,SUITE,'examples/verification-design.md',[
+   ('| 별도 반례 검토자 | CP1 수정 재확인','| 구현자 | CP1 수정 재확인',{'AC-3','AC-9'}),
+   ('| 사용자 권한 범위 내 실제 경계 관측 |','| |',{'AC-6','AC-9'}),
+   ('| 도달하지 않은 명령은 실행 근거가 아니다 |','| 문자열 예시 하나 |',{'AC-5','AC-9'}),
+   ('| rejected | 대상과 호출의 연결 유지 |','| reproduced | 대상과 호출의 연결 유지 |',{'AC-4','AC-9'}),
+   ('E3의 fake 결과는 실제 모델 관측이 아니다','E3의 fake 결과는 실제 모델 관측이다',{'AC-2','AC-9'}),
+   ('| low-risk | AC-4 | low |','| low-risk | AC-4 | high |',{'AC-1','AC-9'}),
+   ('| code-v2 | check-v2 | R2 | E2 |','| code-v2 | check-v2 | R1 | E2 |',{'AC-7','AC-9'}),
+   ('## 보증 연결','## 보증 연결 없음',{'AC-1','AC-2','AC-4','AC-6','AC-7','AC-9'}),
+  ])
+
 if __name__=='__main__':unittest.main()

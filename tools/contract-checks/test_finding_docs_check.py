@@ -30,4 +30,15 @@ class FindingDocuments(unittest.TestCase):
      dest=root/name;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(checker.ROOT/name,dest)
     path=root/'examples/verification-findings.md';text=path.read_text();self.assertIn(old,text);path.write_text(text.replace(old,new))
     result,problems=checker.observe(root,SUITE,'AC-6');self.assertEqual(result['status'],'violation',problems)
+
+class FindingAttribution(unittest.TestCase):
+ def test_relations_are_reported_by_their_owners(self):
+  import ownership
+  ownership.assert_owned(self,checker,SUITE,'examples/verification-findings.md',[
+   ('| C1 | example-goal | code-v1 |','| C1 | example-goal | code-v2 |',{'AC-2','AC-6'}),
+   ('| 공개 계약의 허용 동작 |','| 근거 없음 |',{'AC-3','AC-6'}),
+   ('| F5 | 없음 | 없음 | 미요청 |','| F5 | U9 | 가상 자동 요청 | 진행 |',{'AC-4','AC-6'}),
+   ('| 기존 조건 위반 | 후보 | E1 | 미확인 |','| 기존 조건 위반 | 후보 | E9 | 미확인 |',{'AC-1','AC-6'}),
+  ])
+
 if __name__=='__main__':unittest.main()
