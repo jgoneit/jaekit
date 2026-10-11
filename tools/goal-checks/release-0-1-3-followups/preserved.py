@@ -186,6 +186,10 @@ def main(argv):
         message = str(error) if isinstance(error, Unavailable) else "required audit input is unavailable"
         print(f"UNVERIFIED: {message}", file=sys.stderr)
         return 2
+    except Exception as error:
+        # Exit 1 means audited problems; an internal failure is not one.
+        print(f"INTERNAL: {type(error).__name__}: {error}", file=sys.stderr)
+        return 70
     for problem in problems:
         print(problem)
     label = "history audit" if args.history else "public preservation"

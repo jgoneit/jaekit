@@ -87,7 +87,7 @@ python3 <seal-skill>/scripts/check_core.py --ha <실제 Core 경로> --operation
 stdout은 `seal-core-compatibility/v1` JSON이다. `compatible`, `reason`, `requested_executable`, `executable`, `sha256`, `ha_version`, `operation`, `rules`, `missing`을 제공한다. 아직 확인하지 못한 값은 null이며, 원문 Core 출력·목표 내용·사용자 발화를 복사하지 않는다. 실행 파일 경로는 로컬 진단 정보이므로 공개 보고에 그대로 옮길 필요가 없다.
 
 - 종료 `0`: 호환 확인 성공.
-- 종료 `2`: 확인 거부. `core_missing`, `query_unsupported`, `query_failed`, `query_timeout`, `binary_changed`, `unsupported_schema`, `invalid_capabilities`, `unsupported_default_rule`, `unsupported_stored_rule`, `unsupported_record_schema`, `unsupported_operation`, `missing_support`, `goal_unreadable`, `goal_format_invalid` 중 사유를 제공한다.
+- 종료 `2`: 확인 거부. `core_missing`, `query_unsupported`, `query_failed`, `query_timeout`, `binary_changed`, `unsupported_schema`, `invalid_capabilities`, `unsupported_default_rule`, `unsupported_stored_rule`, `unsupported_record_schema`, `unsupported_operation`, `missing_support`, `goal_unreadable`, `goal_record_oversized`, `goal_format_invalid` 중 사유를 제공한다. 저장된 발견 줄이 [계약 상한](findings.md#입력과-조회)을 넘으면 `goal_record_oversized`, 읽을 수 없거나 손상된 기록은 `goal_unreadable`, 알 수 없는 기록 schema는 `unsupported_record_schema`다.
 - 종료 `64`: 도구 인수 오류.
 
 조회는 5초 후 중단하며 자동 재시도하지 않는다. 이 도구는 실제 시작·재개·검사·설치를 실행하거나 결과를 파일로 저장하지 않는다. 설치된 Codex·Claude가 이 지침을 실제로 따르는지는 별도 호스트 검증 대상이다.

@@ -13,7 +13,7 @@ func (r *FindingsReport) Markdown() string {
 	fmt.Fprintf(&b, "### Post-completion findings\n\n- unresolved: %d (candidate %d; confirmed %d; confirmed existing-condition reports %d)\n", r.Unresolved, r.Candidate, r.Confirmed, r.ConfirmedExisting)
 	b.WriteString("- Reported claims; these counts do not measure every defect or authorize rework.\n")
 	for _, v := range r.Findings {
-		fmt.Fprintf(&b, "- %s: %s; revision %d; historical completion seq %d (%s); rework: %s\n", v.ID, v.Change.Status, v.Revision, v.Change.Completion.Seq, shortHash(v.Change.Completion.SHA256), v.ReworkStatus)
+		fmt.Fprintf(&b, "- %s: %s; category %s; revision %d; historical completion seq %d (%s); rework: %s\n", v.ID, v.Change.Status, strconv.Quote(v.Change.Category), v.Revision, v.Change.Completion.Seq, shortHash(v.Change.Completion.SHA256), v.ReworkStatus)
 		fmt.Fprintf(&b, "  - historical code: %s; spec: %s; mapping: %s; criteria: %s\n", strconv.Quote(v.Commit), strconv.Quote(v.SpecDigest), v.Change.Mapping, quotedFindingList(v.Change.Criteria))
 		fmt.Fprintf(&b, "  - source: %s; summary: %s\n", strconv.Quote(v.Change.Source), strconv.Quote(v.Change.Summary))
 		if v.Change.Rework != nil {

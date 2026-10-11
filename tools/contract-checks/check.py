@@ -3,6 +3,8 @@
 
 These checks establish document contracts and synthetic examples, not model
 compliance. Each registered condition owns its observed violation identifier.
+A broken example relation is reported only for the conditions that own its
+meaning; the condition that traces a whole example shares every relation.
 Declarations are consumed by Core, never used as the observation's answer.
 """
 from __future__ import annotations
@@ -83,46 +85,57 @@ def rows(root: Path, name: str, heading: str) -> list[dict[str, str]]:
 
 
 def reporting_links(root: Path, criterion: str) -> list[str]:
-    """Compare public planned/observed fields, not just their word presence."""
+    """Compare public planned/observed fields, not just their word presence.
+
+    Each broken relation is reported only for the criteria that own it. AC-7
+    traces the whole example and shares every relation.
+    """
     if criterion not in {"AC-1", "AC-2", "AC-4", "AC-5", "AC-7"}:
         return []
+    problems: list[str] = []
+
+    def problem(owners: set[str], message: str) -> None:
+        if criterion in owners | {"AC-7"}:
+            problems.append(message)
+
     planned = rows(root, "examples/empty-input/REVIEW.md", "## 근거 연결 예시")
     observed = rows(root, "examples/empty-input/PROGRESS.md", "## 관측 연결 예시")
-    if not planned or not observed:
-        return ["planned/observed public example relationship absent"]
+    shared = {"AC-1", "AC-2", "AC-4", "AC-5"}
     required_plan = {"그룹", "조건", "기대 결과의 근거", "관측할 경계", "시험 방법과 대체 환경", "검사 버전"}
     required_observed = {"조건", "검토 그룹", "검사 버전", "실제 관측 경계", "결과", "미관측", "시각 종류", "시각 출처"}
-    if any(set(row) != required_plan for row in planned) or any(set(row) != required_observed for row in observed):
-        return ["public example lacks unambiguous evidence columns"]
-    problems = []
-    groups = {row["그룹"]: row for row in planned}
-    if len(groups) != len(planned):
-        problems.append("duplicate planned group")
-    planned_conditions = [ac.strip() for row in planned for ac in row["조건"].split(",")]
-    if sorted(planned_conditions) != ["AC-1", "AC-2"]:
-        problems.append("shared group must cover each example condition exactly once")
-    if sorted(row["조건"] for row in observed) != ["AC-1", "AC-2"]:
-        problems.append("observed rows must cover each example condition exactly once")
-    for row in observed:
-        plan = groups.get(row["검토 그룹"])
-        if plan is None or row["조건"] not in [ac.strip() for ac in plan["조건"].split(",")]:
-            problems.append("observed condition does not belong to referenced group")
-            continue
-        if row["검사 버전"] != plan["검사 버전"]:
-            problems.append("planned and observed check versions differ without a new review")
-        # This public example expressly has no execution. Plans cannot become
-        # observations merely by copying the planned boundary or a timestamp.
-        if row["결과"] != "미수행" or row["실제 관측 경계"] != "미관측":
-            problems.append("unexecuted example promoted a plan to observed success")
-        if row["미관측"] != plan["관측할 경계"]:
-            problems.append("unobserved boundary lost the planned scope")
-        if row["시각 종류"] != "미상" or row["시각 출처"] != "기록 없음":
-            problems.append("unexecuted example invented an event time source")
+    if not planned or not observed:
+        problem(shared, "planned/observed public example relationship absent")
+    elif any(set(row) != required_plan for row in planned) or any(set(row) != required_observed for row in observed):
+        problem(shared, "public example lacks unambiguous evidence columns")
+    else:
+        groups = {row["그룹"]: row for row in planned}
+        if len(groups) != len(planned):
+            problem({"AC-1", "AC-4"}, "duplicate planned group")
+        planned_conditions = [ac.strip() for row in planned for ac in row["조건"].split(",")]
+        if sorted(planned_conditions) != ["AC-1", "AC-2"]:
+            problem({"AC-1", "AC-4"}, "shared group must cover each example condition exactly once")
+        if sorted(row["조건"] for row in observed) != ["AC-1", "AC-2"]:
+            problem({"AC-2", "AC-4"}, "observed rows must cover each example condition exactly once")
+        for row in observed:
+            plan = groups.get(row["검토 그룹"])
+            if plan is None or row["조건"] not in [ac.strip() for ac in plan["조건"].split(",")]:
+                problem({"AC-4"}, "observed condition does not belong to referenced group")
+                continue
+            if row["검사 버전"] != plan["검사 버전"]:
+                problem({"AC-4"}, "planned and observed check versions differ without a new review")
+            # This public example expressly has no execution. Plans cannot become
+            # observations merely by copying the planned boundary or a timestamp.
+            if row["결과"] != "미수행" or row["실제 관측 경계"] != "미관측":
+                problem({"AC-2", "AC-4"}, "unexecuted example promoted a plan to observed success")
+            if row["미관측"] != plan["관측할 경계"]:
+                problem({"AC-2"}, "unobserved boundary lost the planned scope")
+            if row["시각 종류"] != "미상" or row["시각 출처"] != "기록 없음":
+                problem({"AC-5"}, "unexecuted example invented an event time source")
     if criterion in {"AC-2", "AC-4", "AC-7"}:
         mixed = rows(root, "examples/verification-reporting.md", "## 관측 비교")
         required = {"대상", "기대 근거", "코드", "검사", "검토", "관측 경계", "대체 환경", "미관측"}
         if len(mixed) != 3 or any(set(row) != required for row in mixed):
-            problems.append("mixed observation example absent or malformed")
+            problem({"AC-2", "AC-4"}, "mixed observation example absent or malformed")
         else:
             by_target = {row["대상"]: row for row in mixed}
             for target, review, check, boundary, substitute, unobserved in (
@@ -133,7 +146,7 @@ def reporting_links(root: Path, criterion: str) -> list[str]:
                 expected = (review, check, boundary, substitute, unobserved)
                 actual = tuple(row.get(key) for key in ("검토", "검사", "관측 경계", "대체 환경", "미관측"))
                 if actual != expected or not row.get("기대 근거") or not row.get("코드"):
-                    problems.append(f"{target}: boundary/substitute/review version link incorrect")
+                    problem({"AC-2", "AC-4"}, f"{target}: boundary/substitute/review version link incorrect")
     return problems
 
 

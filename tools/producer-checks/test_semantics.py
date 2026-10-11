@@ -281,5 +281,176 @@ class GoReportBoundary(Fixture):
                 self.assertFalse(report.exists())
 
 
+def tagged(test, code, detail):
+    """Fail with an explicit requirement identity the producers can attribute."""
+    test.fail(f"[violation:{code}] {detail}")
+
+
+def load(path, name):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class ProvidedCommandTargets(Fixture):
+    """Command targets this repository provides keep their meaning in structured reports."""
+
+    def tracked_commands(self):
+        for path in sorted((ROOT / "tools/goal-checks").rglob("*.json")):
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(data, dict) and data.get("schema") == "jaekit-goal-targets/v2":
+                for check in data["checks"]:
+                    if check.get("runner") == "command":
+                        yield path.relative_to(ROOT).as_posix(), check
+
+    def docs_target(self):
+        source = "tools/goal-checks/release-0-1-3-followups/AC-6.targets.json"
+        checks = json.loads((ROOT / source).read_text(encoding="utf-8"))["checks"]
+        check = next(c for c in checks if c["target"] == "guide-links")
+        return {key: value for key, value in check.items() if key not in ("target", "result_targets")}
+
+    def docs_tree(self, readme, guide="# Guide\n"):
+        (self.root / "tools/check_public_docs.py").write_bytes((ROOT / "tools/check_public_docs.py").read_bytes())
+        (self.root / "guides").mkdir(exist_ok=True)
+        (self.root / "README.md").write_bytes(readme if isinstance(readme, bytes) else readme.encode())
+        (self.root / "guides/guide.md").write_text(guide)
+
+    def test_every_provided_command_target_has_an_exit_contract(self):
+        commands = list(self.tracked_commands())
+        self.assertTrue(commands, "no provided command targets were found")
+        for path, check in commands:
+            contract = check.get("exit_contract")
+            if not isinstance(contract, dict) or 0 not in contract.get("pass", []):
+                tagged(self, "provided-command-unusable", f"{path}: {check['target']} has no usable exit contract")
+
+    def test_provided_documentation_target_passes_and_keeps_failure_meanings(self):
+        check = self.docs_target()
+        self.docs_tree("[guide](guides/guide.md)\n")
+        _, report = self.run_producer(check=check)
+        if report["suite"]["status"] != "pass":
+            tagged(self, "provided-command-unusable", f"normal documents did not pass: {report}")
+        self.docs_tree("[guide](guides/absent.md)\n")
+        _, report = self.run_producer(check=check)
+        if report["suite"]["status"] != "violation":
+            tagged(self, "provided-command-unusable", f"a broken link was not a violation: {report}")
+        self.docs_tree(b"[guide](guides/guide.md)\n\xff\n")
+        _, report = self.run_producer(check=check)
+        if any(item["status"] == "violation" for item in report.values()):
+            tagged(self, "unreadable-documents-as-violation", f"an unreadable document became a violation: {report}")
+
+    def test_documentation_check_separates_problems_from_unobservable_input(self):
+        docs = load(ROOT / "tools/check_public_docs.py", "public_docs_exit_meaning")
+        cases = (("problem", "[guide](guides/absent.md)\n", 1), ("unreadable", b"\xff\n", None), ("empty", None, None))
+        for label, readme, wanted in cases:
+            with self.subTest(case=label), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                if readme is not None:
+                    (root / "README.md").write_bytes(readme if isinstance(readme, bytes) else readme.encode())
+                proc = subprocess.run([sys.executable, str(ROOT / "tools/check_public_docs.py"), str(root)],
+                                      env=ENV, capture_output=True, text=True, timeout=60)
+                if wanted is not None and proc.returncode != wanted:
+                    tagged(self, "provided-command-unusable", f"{label}: exit {proc.returncode}")
+                if wanted is None and proc.returncode in (0, 1):
+                    tagged(self, "unreadable-documents-as-violation", f"{label}: exit {proc.returncode} {proc.stderr}")
+        original = docs.check
+        docs.check = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("synthetic internal failure"))
+        argv = sys.argv
+        try:
+            sys.argv = ["check_public_docs.py", str(self.root)]
+            try:
+                code = docs.main()
+            except Exception:
+                code = 1  # the interpreter's exit status for an uncaught exception
+        finally:
+            docs.check, sys.argv = original, argv
+        if code in (0, 1):
+            tagged(self, "unreadable-documents-as-violation", f"an internal failure exited {code}")
+
+    def test_history_audit_internal_failure_is_not_its_violation_exit(self):
+        audit = load(ROOT / "tools/goal-checks/release-0-1-3-followups/preserved.py", "history_exit_meaning")
+        audit.history_boundary = lambda *args: (_ for _ in ()).throw(TypeError("synthetic internal failure"))
+        try:
+            code = audit.main(["preserved.py", "--history", "--base", "0" * 40, "--head", "1" * 40])
+        except Exception:
+            code = 1  # the interpreter's exit status for an uncaught exception
+        if code in (0, 1):
+            tagged(self, "unreadable-documents-as-violation", f"an internal audit failure exited {code}")
+
+
+class OverflowWithErrors(Fixture):
+    """More failures than slots and another error keep both facts."""
+
+    def test_overflow_and_execution_error_both_remain(self):
+        body = "".join(f"    def test_{i}(self): self.fail('[violation:failure-{i}] observed')\n" for i in range(4))
+        body += "    def test_z(self): raise RuntimeError('environment failed')\n"
+        for producer in ("goal", "review", "gap"):
+            with self.subTest(producer=producer):
+                proc, report = self.run_producer(body, producer=producer, slots=2)
+                reasons = [item.get("reason") for item in report.values() if item["status"] == "error"]
+                if "execution_error" not in reasons or "collection_error" not in reasons:
+                    tagged(self, "overflow-or-error-lost", f"{producer}: {report}")
+                if not any(item["status"] == "violation" for item in report.values()):
+                    tagged(self, "overflow-or-error-lost", f"{producer}: slot violations lost: {report}")
+                self.assertNotEqual(proc.returncode, 0)
+                self.assertIn("failure-3", proc.stderr)
+
+    def test_overflow_and_setup_error_both_remain(self):
+        body = "".join(f"    def test_{i}(self): self.fail('[violation:failure-{i}] observed')\n" for i in range(3))
+        body += "    @unittest.expectedFailure\n    def test_z(self): self.fail('decorated')\n"
+        proc, report = self.run_producer(body, slots=2)
+        reasons = [item.get("reason") for item in report.values() if item["status"] == "error"]
+        if "setup_error" not in reasons or "collection_error" not in reasons:
+            tagged(self, "overflow-or-error-lost", str(report))
+
+
+class ExitContractKeys(Fixture):
+    """Exit contract keys mean exactly the exit they name, or the contract is refused."""
+
+    def command(self, key, code=1):
+        marker = self.root / "ran"
+        marker.unlink(missing_ok=True)
+        contract = {"schema": "jaekit-command-exits/v1", "pass": [0], "violations": {key: "actual"}, "unverified": [2]}
+        return marker, {"runner": "command", "exit_contract": contract,
+                        "argv": [sys.executable, "-c", f"open({str(marker)!r}, 'w').close(); raise SystemExit({code})"]}
+
+    def test_noncanonical_keys_are_refused_before_the_command_runs(self):
+        for key in ("01", "\u0661", "+1", " 1", "1 ", "0", "256", "1.0"):
+            with self.subTest(key=key):
+                marker, check = self.command(key)
+                proc, report = self.run_producer(check=check)
+                if marker.exists() or any(item["status"] == "violation" for item in report.values()):
+                    tagged(self, "exit-key-mismatch", f"{key!r} was accepted: {report}")
+                if report["suite.execution"].get("reason") != "setup_error":
+                    tagged(self, "exit-key-mismatch", f"{key!r} was not refused as configuration: {report}")
+
+    def test_duplicate_keys_are_refused(self):
+        marker, check = self.command("1")
+        directory = self.root / "tools/goal-checks"
+        directory.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / "tools/goal-checks/produce.py", directory / "produce.py")
+        config = json.dumps({"schema": "jaekit-goal-targets/v2",
+                             "checks": [dict(check, target="suite", result_targets=names())]})
+        config = config.replace('"violations": {"1": "actual"}', '"violations": {"1": "actual", "1": "other"}')
+        self.assertIn('"1": "other"', config)
+        (self.root / "targets.json").write_text(config)
+        (self.root / "declaration.json").write_text(json.dumps(declaration()))
+        report = self.root / "report.json"
+        env = dict(ENV, HA_EVIDENCE_PATH=str(report), HA_EVIDENCE_INVOCATION="a" * 64,
+                   HA_EVIDENCE_DECLARATION_DIGEST="b" * 64)
+        proc = subprocess.run([sys.executable, str(directory / "produce.py"), "declaration.json", "targets.json"],
+                              cwd=self.root, env=env, capture_output=True, text=True, timeout=60)
+        if marker.exists() or proc.returncode != 2:
+            tagged(self, "exit-key-mismatch", f"duplicate exit keys were accepted: exit {proc.returncode}")
+
+    def test_canonical_keys_reach_their_exit(self):
+        for key, code in (("1", 1), ("255", 255)):
+            with self.subTest(key=key):
+                _, check = self.command(key, code)
+                proc, report = self.run_producer(check=check)
+                if report["suite"].get("violation") != "actual":
+                    tagged(self, "exit-key-mismatch", f"{key!r} did not reach exit {code}: {report}")
+
+
 if __name__ == "__main__":
     unittest.main()

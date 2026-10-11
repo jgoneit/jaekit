@@ -303,6 +303,9 @@ func Parse(data []byte) ([]Line, *IntegrityError, error) {
 			fail(n, "unsupported schema %q", l.Schema)
 		}
 		if l.Schema == FindingSchema {
+			if len(raw) > MaxFindingLine {
+				fail(n, "%v", ErrFindingTooLarge)
+			}
 			var event Finding
 			if err := strictFindingJSON(raw, &event); err != nil || l.Kind != "finding" || l.Finding == nil {
 				fail(n, "invalid finding extension: %v", err)
@@ -397,6 +400,9 @@ func AppendChecked(path, lockPath string, e Entry, now time.Time, validate func(
 	raw, err := marshal(e)
 	if err != nil {
 		return Line{}, err
+	}
+	if h.Schema == FindingSchema && len(raw) > MaxFindingLine {
+		return Line{}, ErrFindingTooLarge
 	}
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
 	if err != nil {

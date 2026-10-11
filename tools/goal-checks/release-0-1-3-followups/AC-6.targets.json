@@ -121,6 +121,18 @@
         "execution": "guide-links.execution",
         "selection": "guide-links.selection",
         "attribution": "guide-links.attribution"
+      },
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {
+          "1": "public-document-problem"
+        },
+        "unverified": [
+          3
+        ]
       }
     }
   ]

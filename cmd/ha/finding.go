@@ -61,7 +61,7 @@ func (c *cli) finding(in []string) int {
 	if err != nil {
 		return c.fail(exitUsage, "finding input: %v", err)
 	}
-	data, err := io.ReadAll(io.LimitReader(f, 1024*1024+1))
+	data, err := io.ReadAll(io.LimitReader(f, record.MaxFindingInput+1))
 	closeErr := f.Close()
 	if err != nil || closeErr != nil {
 		return c.fail(exitInternal, "read finding input: %v %v", err, closeErr)
@@ -98,7 +98,7 @@ func (c *cli) finding(in []string) int {
 			replayed = true
 			return c.findingReceipt(change.ID, change.RequestID, replay.Seq, replay.SHA256, replayed)
 		}
-		if rejected != nil || errors.Is(err, record.ErrBroken) {
+		if rejected != nil || errors.Is(err, record.ErrBroken) || errors.Is(err, record.ErrFindingTooLarge) {
 			return c.fail(exitRefused, "%v; inspect stored findings before a new change", err)
 		}
 		return c.fail(exitInternal, "%v", err)

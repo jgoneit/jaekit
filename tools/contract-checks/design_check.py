@@ -26,7 +26,13 @@ checker.REQUIREMENTS['design']={
 base_observe=checker.observe
 
 def observe(root,suite,criterion):
+ # Observers chain through checker.observe; relations apply to their own suite only.
+ if suite!='design':return base_observe(root,suite,criterion)
  observation,problems=base_observe(root,suite,criterion)
+ def problem(owners,message):
+  # A relation belongs to the criteria that own its meaning. AC-9 traces the
+  # whole example, so it shares every relation; others report only their own.
+  if criterion in owners|{'AC-9'}:problems.append(message)
  cases=checker.rows(root,'examples/verification-design.md','## 보증 연결')
  expected={
   'counterexample-fixed':('AC-1','high','goal-policy-A','required:performed','required:observed','reproduced:fixed','complete','code-v2','check-v2','R2','E2'),
@@ -37,37 +43,49 @@ def observe(root,suite,criterion):
   'low-risk':('AC-4','low','goal-policy-C','not-required','not-required','none','complete','code-v1','check-v1','none','E4'),
  }
  columns=('조건','위험','정책 출처','독립 검토','실제 비교','반례 결과','완료','코드','검사','검토','근거')
- if len(cases)!=len(expected) or {row.get('사례') for row in cases}!=set(expected): problems.append('assurance cases absent or identity ambiguous')
+ groups=((('조건','위험','정책 출처'),{'AC-1'},'risk and policy source link changed'),
+         (('독립 검토',),{'AC-1','AC-6'},'independent review requiredness or outcome changed'),
+         (('실제 비교',),{'AC-1','AC-2','AC-6'},'real comparison requiredness or observation changed'),
+         (('반례 결과',),{'AC-4'},'counterexample outcome link changed'),
+         (('완료',),{'AC-6'},'pending or complete link changed'),
+         (('코드','검사','검토'),{'AC-7'},'reviewed code/check/review versions changed'),
+         (('근거',),{'AC-6','AC-7'},'evidence or gap reference changed'))
+ if len(cases)!=len(expected) or {row.get('사례') for row in cases}!=set(expected):problem({'AC-1','AC-2','AC-4','AC-6','AC-7'},'assurance cases absent or identity ambiguous')
  for row in cases:
-  if tuple(row.get(column) for column in columns)!=expected.get(row.get('사례')): problems.append('requiredness/observation/completion links changed')
+  want=dict(zip(columns,expected.get(row.get('사례'),())))
+  for names,owners,message in groups:
+   if any(row.get(column)!=want.get(column) for column in names):problem(owners,message)
  reviews=checker.rows(root,'examples/verification-design.md','## 검토 내역')
- if len(reviews)!=2 or {r.get('ID') for r in reviews}!={'R1','R2'}: problems.append('separate versioned reviews absent')
+ if len(reviews)!=2 or {r.get('ID') for r in reviews}!={'R1','R2'}:problem({'AC-3','AC-7'},'separate versioned reviews absent')
  for row in reviews:
   version='v1' if row.get('ID')=='R1' else 'v2'
-  if row.get('코드')!='code-'+version or row.get('검사')!='check-'+version or row.get('초기 입력')!='목표, 계약, 검사, 기대 근거' or row.get('추가 맥락')!='해당 버전 구현·통합 코드' or row.get('역할')!='별도 반례 검토자': problems.append('review version/context/role link incorrect')
+  if row.get('코드')!='code-'+version or row.get('검사')!='check-'+version:problem({'AC-3','AC-7'},'review version link incorrect')
+  if row.get('초기 입력')!='목표, 계약, 검사, 기대 근거' or row.get('추가 맥락')!='해당 버전 구현·통합 코드' or row.get('역할')!='별도 반례 검토자':problem({'AC-3'},'review context/role link incorrect')
   expected_result='CP1 후보와 CP2 후보; 전체 셸 지원 보장 아님' if version=='v1' else 'CP1 수정 재확인; 해당 성질·환경에 한정'
-  if row.get('조건')!='AC-1' or row.get('근거')!=('E1' if version=='v1' else 'E2') or row.get('결과·한계')!=expected_result: problems.append('review condition/evidence/result/limits disagree with summary')
+  if row.get('조건')!='AC-1' or row.get('근거')!=('E1' if version=='v1' else 'E2') or row.get('결과·한계')!=expected_result:problem({'AC-3'},'review condition/evidence/result/limits disagree with summary')
  counterexamples=checker.rows(root,'examples/verification-design.md','## 반례 내역')
- if len(counterexamples)!=2: problems.append('counterexample and false-positive distinction absent')
+ if len(counterexamples)!=2:problem({'AC-4','AC-5'},'counterexample and false-positive distinction absent')
  else:
   by_id={r.get('ID'):r for r in counterexamples}
-  if by_id.get('CP1',{}).get('확인')!='reproduced' or by_id.get('CP1',{}).get('처리')!='check-v2; code-v2; E2' or by_id.get('CP1',{}).get('일반 성질')!='도달하지 않은 명령은 실행 근거가 아니다': problems.append('confirmed violation not linked to general regression and repair')
-  if by_id.get('CP2',{}).get('확인')!='rejected' or by_id.get('CP2',{}).get('처리')!='공개 계약의 허용 입력; E1': problems.append('false positive lacks rejection grounds')
+  if by_id.get('CP1',{}).get('확인')!='reproduced' or by_id.get('CP1',{}).get('처리')!='check-v2; code-v2; E2':problem({'AC-4'},'confirmed violation not linked to its repair')
+  if by_id.get('CP1',{}).get('일반 성질')!='도달하지 않은 명령은 실행 근거가 아니다':problem({'AC-5'},'confirmed violation not linked to a general regression')
+  if by_id.get('CP2',{}).get('확인')!='rejected' or by_id.get('CP2',{}).get('처리')!='공개 계약의 허용 입력; E1':problem({'AC-4'},'false positive lacks rejection grounds')
   for identifier,fields in {
    'CP1':('exec true 뒤 ha 호출 텍스트','AC-1; 문자열 존재를 실행으로 인정','지원 밖 셸 문법은 판정 불가'),
    'CP2':('허용된 대상 ID의 실제 실행','AC-1 위반 의심이나 공개 계약은 허용','다른 대상 ID는 별도 경계')}.items():
    row=by_id.get(identifier,{})
-   if tuple(row.get(c) for c in ('입력·상황','예상 위반·검사의 공백','남은 범위'))!=fields: problems.append('counterexample input/condition/gap differs from summarized observation')
+   if (row.get('입력·상황'),row.get('예상 위반·검사의 공백'))!=fields[:2]:problem({'AC-4'},'counterexample input/condition differs from summarized observation')
+   if row.get('남은 범위')!=fields[2]:problem({'AC-5'},'counterexample remaining gap differs from summarized observation')
  gaps=checker.rows(root,'examples/verification-design.md','## 부족한 필수 근거')
- if len(gaps)!=2 or {r.get('ID') for r in gaps}!={'G1','G2'} or any(not all(r.get(c) for c in ('영향 조건','원인','부족한 근거','해소 조건','계속할 작업')) for r in gaps): problems.append('required gap cause/condition/resolution absent')
+ if len(gaps)!=2 or {r.get('ID') for r in gaps}!={'G1','G2'} or any(not all(r.get(c) for c in ('영향 조건','원인','부족한 근거','해소 조건','계속할 작업')) for r in gaps):problem({'AC-6'},'required gap cause/condition/resolution absent')
  pending={r.get('근거'):r.get('조건') for r in cases if r.get('완료')=='pending'}
  for gap in gaps:
-  if gap.get('영향 조건')!=pending.get(gap.get('ID')): problems.append('gap targets a different condition than the required pending work')
+  if gap.get('영향 조건')!=pending.get(gap.get('ID')):problem({'AC-6'},'gap targets a different condition than the required pending work')
  path=root/'examples/verification-design.md'
  if path.exists():
   source=path.read_text()
-  for clause in ('실제 실행 기록이 아니다','E2는 R2·check-v2·code-v2의 가상 근거다','E3의 fake 결과는 실제 모델 관측이 아니다','R1을 v2의 검토로 재사용하지 않는다','확인된 위반을 위험 문구만 추가하여 닫지 않는다'):
-   if clause not in source: problems.append('synthetic assurance example lost scope/decision clause')
+  for clause,owners in (('실제 실행 기록이 아니다',set()),('E2는 R2·check-v2·code-v2의 가상 근거다',{'AC-7'}),('E3의 fake 결과는 실제 모델 관측이 아니다',{'AC-2'}),('R1을 v2의 검토로 재사용하지 않는다',{'AC-7'}),('확인된 위반을 위험 문구만 추가하여 닫지 않는다',{'AC-4'})):
+   if clause not in source:problem(owners,'synthetic assurance example lost scope/decision clause')
  if problems: observation.update(status='violation',violation=f'{suite}.{criterion}.missing-contract')
  return observation,problems
 checker.observe=observe
