@@ -144,7 +144,7 @@ def verify_go(env: dict[str, str]):
     run("Producer semantic regressions (test_semantics.py)",
         [sys.executable, "-m", "unittest", "discover", "-s", "tools/producer-checks",
          "-p", "test_semantics.py"], env)
-    for filename in ("integration_evidence_boundaries.py", "integration_core_observation.py", "integration_direct_install.py", "integration_product_source.py", "integration_install_destination.py", "integration_install_imports.py"):
+    for filename in ("integration_evidence_boundaries.py", "integration_core_observation.py", "integration_direct_install.py", "integration_product_source.py", "integration_install_destination.py", "integration_install_imports.py", "integration_observe_imports.py", "integration_child_imports.py"):
         run(f"Release evidence boundaries ({filename})",
             [sys.executable, "-m", "unittest", "discover", "-s", "tools/release-checks",
              "-p", filename], env)

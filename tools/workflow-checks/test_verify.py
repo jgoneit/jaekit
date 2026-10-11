@@ -84,7 +84,7 @@ class Fixture(unittest.TestCase):
                 ("review", ("test_observation.py", "test_installation.py", "test_producers.py")),
                 ("gap", ("test_observation.py", "test_history_results.py", "test_docs_environment.py")),
                 ("producer", ("test_semantics.py",)),
-                ("release", ("integration_evidence_boundaries.py", "integration_core_observation.py", "integration_direct_install.py", "integration_product_source.py", "integration_install_destination.py", "integration_install_imports.py")),
+                ("release", ("integration_evidence_boundaries.py", "integration_core_observation.py", "integration_direct_install.py", "integration_product_source.py", "integration_install_destination.py", "integration_install_imports.py", "integration_observe_imports.py", "integration_child_imports.py")),
                 ("regression", ("integration_go_filters.py",))):
             directory = self.repo / "tools" / (group + "-checks")
             directory.mkdir(exist_ok=True)
@@ -124,7 +124,7 @@ class InvocationCases(Fixture):
                           "review:test_producers.py", "gap:test_observation.py", "gap:test_history_results.py",
                           "gap:test_docs_environment.py", "producer:test_semantics.py", "release:integration_evidence_boundaries.py",
                           "release:integration_core_observation.py", "release:integration_direct_install.py",
-                          "release:integration_product_source.py", "release:integration_install_destination.py", "release:integration_install_imports.py",
+                          "release:integration_product_source.py", "release:integration_install_destination.py", "release:integration_install_imports.py", "release:integration_observe_imports.py", "release:integration_child_imports.py",
                           "regression:integration_go_filters.py",
                           "go", "go", "go", "go", "go", "ha", "ha",
                           "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "goal-checks", "release-checks"])
@@ -183,6 +183,8 @@ class FailureCases(Fixture):
                  ("release:integration_product_source.py", "Release evidence boundaries (integration_product_source.py)"),
                  ("release:integration_install_destination.py", "Release evidence boundaries (integration_install_destination.py)"),
                  ("release:integration_install_imports.py", "Release evidence boundaries (integration_install_imports.py)"),
+                 ("release:integration_observe_imports.py", "Release evidence boundaries (integration_observe_imports.py)"),
+                 ("release:integration_child_imports.py", "Release evidence boundaries (integration_child_imports.py)"),
                  ("regression:integration_go_filters.py", "Merge blocker regressions (integration_go_filters.py)"),
                  ("build:darwin/arm64", "Build darwin/arm64"), ("build", "Build native smoke binary"),
                  ("smoke:--version", "CLI version"), ("smoke:--help", "CLI help"),

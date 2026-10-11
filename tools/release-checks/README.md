@@ -255,6 +255,13 @@ to repair missing evidence. Static syntax alone cannot certify a Seal flow.
 Past Seal observations without the required bindings remain unverified, with their
 original raw files and completion records preserved.
 
+The observer and its launcher children select the trusted interpreter's
+standard-library paths before ordinary imports. Their coverage and record
+policies load from named source bytes, bypassing checkout packages and cached
+bytecode; the report identifies those loaded bytes. Command-line parsing and
+collection keep this import boundary and restore an embedding caller's search
+path afterward. Interpreter startup and the operating system remain trusted.
+
 For a new, authorized synthetic observation, an example tool command is:
 
 ```bash
@@ -425,8 +432,10 @@ their exact recorded source bytes. A checkout module or package cannot replace
 those imports through Python's search order. Untracked Python source beside the
 reader is rejected even when Git ignore rules hide it. Command-line parsing and
 the selected observation keep that import boundary, and the worker starts with
-isolated Python search and the same checker bootstrap. The interpreter and standard library remain
-trusted; this does not attest interpreter startup hooks or the operating system.
+isolated Python search and the same checker bootstrap. Python child checks remove
+inherited `PYTHONPATH` for that invocation, keeping imports in the pinned source
+copy without changing the caller environment or tracked sibling imports. The
+interpreter and standard library remain trusted; this does not attest interpreter startup hooks or the operating system.
 Loaded source includes the shared archive reader
 `tools/release/archive_reader.py`, recorded from the bytes the checker executed.
 Changes to the original checkout during a check are not deleted. Later reads

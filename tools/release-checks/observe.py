@@ -4,7 +4,22 @@
 The release checker never calls this program. Use `run` instead of launching
 the shell directly when new evidence is needed; it is not a replay command.
 """
+# The original collector and each launcher child must establish this boundary
+# before checkout modules or packages can shadow the trusted standard library.
+import sys
+
+_CALLER_IMPORT_PATH = sys.path[:]
+_STDLIB_ROOT = getattr(sys, "_stdlib_dir", None)
+if not _STDLIB_ROOT:
+    _encodings_file = getattr(sys.modules.get("encodings"), "__file__", None)
+    if not _encodings_file or "/" not in _encodings_file:
+        raise ImportError("interpreter standard library location is unavailable")
+    _STDLIB_ROOT = _encodings_file.rsplit("/", 2)[0]
+_STDLIB_IMPORT_PATH = (_STDLIB_ROOT, _STDLIB_ROOT + "/lib-dynload")
+sys.path[:] = _STDLIB_IMPORT_PATH
+
 import argparse
+from contextlib import contextmanager
 import fcntl
 import hashlib
 import json
@@ -12,18 +27,51 @@ import os
 from pathlib import Path
 import shlex
 import subprocess
-import sys
 import tempfile
 import uuid
 
-from shell_reader import covered
-import execution_provenance
+LOADED_SOURCE = {str(Path(__file__).resolve()): Path(__file__).read_bytes()}
+
+
+def load_policy(name):
+    """Read and execute a named source file, never a package or cached code."""
+    path = Path(__file__).resolve().with_name(name + ".py")
+    source = path.read_bytes()
+    module = type(sys)("jaekit_observe_" + name)
+    module.__file__ = str(path)
+    exec(compile(source, str(path), "exec"), module.__dict__)
+    LOADED_SOURCE[str(path.resolve())] = source
+    return module
+
+
+covered = load_policy("shell_reader").covered
+execution_provenance = load_policy("execution_provenance")
+sys.path[:] = _CALLER_IMPORT_PATH
+del _CALLER_IMPORT_PATH
 
 SCHEMA = "jaekit-execution/v2"
 
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
+
+
+@contextmanager
+def trusted_imports():
+    previous = sys.path[:]
+    sys.path[:] = _STDLIB_IMPORT_PATH
+    try:
+        yield
+    finally:
+        sys.path[:] = previous
+
+
+def loaded_identity(path):
+    path = Path(path).resolve(strict=True)
+    source = LOADED_SOURCE[str(path)]
+    if path.read_bytes() != source:
+        raise ValueError("observer source changed after loading")
+    return {"path": str(path), "sha256": digest(source)}
 
 
 def identity(path):
@@ -48,6 +96,7 @@ def exit_code(code):
     return 128 - code if code < 0 else code
 
 
+@trusted_imports()
 def child(arguments):
     journal = os.environ["JAEKIT_OBSERVATION_JOURNAL"]
     binary = os.environ["JAEKIT_OBSERVATION_BINARY"]
@@ -75,6 +124,7 @@ def child(arguments):
     return exit_code(code)
 
 
+@trusted_imports()
 def collect(args):
     output = Path(args.output)
     # Existing artifacts are immutable, including failed observations.
@@ -86,9 +136,9 @@ def collect(args):
         context = execution_provenance.context(args.project, args.goal) if args.project else None
         report = {"schema": SCHEMA, "invocation": args.invocation, "run_id": uuid.uuid4().hex,
                   "launcher_argv": [sys.executable, str(Path(__file__).resolve()), *sys.argv[1:]],
-                  "producer": identity(__file__), "core": core, "shell": shell,
-                  "reader": identity(Path(__file__).with_name("shell_reader.py")),
-                  "provenance": identity(Path(__file__).with_name("execution_provenance.py")), "context": context,
+                  "producer": loaded_identity(__file__), "core": core, "shell": shell,
+                  "reader": loaded_identity(Path(__file__).with_name("shell_reader.py")),
+                  "provenance": loaded_identity(Path(__file__).with_name("execution_provenance.py")), "context": context,
                   "script_sha256": digest(script.encode()), "coverage": "bounded-launcher/v1",
                   "supported": covered(script), "events": []}
         with tempfile.TemporaryDirectory(prefix="jaekit-observe-") as directory:
@@ -129,7 +179,9 @@ def collect(args):
             report["events"] = [json.loads(line) for line in journal.read_text().splitlines()]
             try:
                 report["identity_unchanged"] = (identity(core["path"]) == core and identity(shell["path"]) == shell
-                                                and identity(image) == report["execution_image"])
+                                                and identity(image) == report["execution_image"]
+                                                and all(identity(path)["sha256"] == digest(source)
+                                                        for path, source in LOADED_SOURCE.items()))
             except OSError:
                 report["identity_unchanged"] = False
             encoded = (json.dumps(report, sort_keys=True) + "\n").encode()
@@ -147,6 +199,7 @@ def collect(args):
         return exit_code(code)
 
 
+@trusted_imports()
 def main():
     if sys.argv[1:2] == ["child"]:
         return child(sys.argv[2:])
