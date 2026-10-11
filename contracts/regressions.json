@@ -1,0 +1,992 @@
+{
+  "schema": "regression-map/v1",
+  "invariants": [
+    {
+      "id": "I1",
+      "basis": [
+        "AGENTS.md",
+        "tools/review-checks/README.md",
+        "tools/gap-checks/README.md"
+      ],
+      "property": "Current-file checks do not need private goals, raw logs, or missing history. Explicit history audits report their required range separately."
+    },
+    {
+      "id": "I2",
+      "basis": [
+        "contracts/check-result.md",
+        "contracts/run-record.md"
+      ],
+      "property": "Observed pass, requirement violation, unexpected assertion, environment failure, missing execution and retries retain their meaning through producers and stored consumers."
+    },
+    {
+      "id": "I3",
+      "basis": [
+        "tools/review-checks/README.md",
+        "tools/gap-checks/README.md"
+      ],
+      "property": "Request binding and uncertainty survive all supported observation consumers. Text existence is not actual execution."
+    },
+    {
+      "id": "I4",
+      "basis": [
+        "AGENTS.md",
+        "tools/verify.py",
+        ".github/workflows/ci.yml"
+      ],
+      "property": "Required preflight executables are the executables used; missing tools and failed selected checks cannot yield shared verification success."
+    },
+    {
+      "id": "I5",
+      "basis": [
+        "AGENTS.md",
+        "tools/check_public_tree.py"
+      ],
+      "property": "Public scanning distinguishes its rule definitions and synthetic fixtures without exempting arbitrary input filenames or required path information."
+    }
+  ],
+  "routes": [
+    {
+      "id": "current-file-independence",
+      "invariant": "I1",
+      "status": "protected",
+      "sources": [
+        "tools/goal-checks/produce.py",
+        "tools/review-checks/produce.py",
+        "tools/gap-checks/produce.py",
+        "tools/gap-checks/preservation.py"
+      ],
+      "property": "Current TrackedFiles/public-file checks run in full and shallow public-only copies; explicit audits do not fetch absent history.",
+      "examples": [
+        "depth-one checkout",
+        "missing private observation inputs"
+      ],
+      "families": [
+        "full and shallow clones",
+        "missing explicit range and unavailable object"
+      ],
+      "boundary": "Explicit history audit needs its selected history range; absence is UNVERIFIED, not evidence that current files violate their contract.",
+      "checks": [
+        {
+          "file": "tools/review-checks/test_producers.py",
+          "selector": "AC9",
+          "group": "go"
+        },
+        {
+          "file": "tools/review-checks/test_producers.py",
+          "selector": "AC10.test_both_audits_require_an_explicit_range_and_do_not_fetch_missing_history",
+          "group": "go"
+        },
+        {
+          "file": "tools/gap-checks/test_history_results.py",
+          "selector": "AC4",
+          "group": "go"
+        },
+        {
+          "file": "tools/gap-checks/test_history_results.py",
+          "selector": "AC5",
+          "group": "go"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "stored-proof-independence",
+      "invariant": "I1",
+      "status": "protected",
+      "sources": [
+        "internal/evidence/result.go",
+        "internal/status/status.go",
+        "cmd/ha/main.go"
+      ],
+      "property": "Saved result proof can be classified after local raw logs are unavailable.",
+      "examples": [
+        "raw log removal after completion"
+      ],
+      "families": [
+        "positive baseline/current reference producer flow",
+        "stored proof query without raw payload"
+      ],
+      "boundary": "Stored integrity proof remains required; raw log absence is not a replacement for a missing structured report.",
+      "checks": [
+        {
+          "file": "cmd/ha/baseline_budget_test.go",
+          "selector": "TestBaselineBudgetAC1_ReferenceFlow",
+          "group": "go"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "structured-classification",
+      "invariant": "I2",
+      "status": "protected",
+      "sources": [
+        "internal/evidence/result.go",
+        "internal/evidence/declaration.go"
+      ],
+      "property": "Core classifies actual target/attempt/status/violation and keeps adverse mixed facts.",
+      "examples": [
+        "unexpected assertion",
+        "mixed pass and environment"
+      ],
+      "families": [
+        "normal, violated, unknown, error and retry reports",
+        "missing, malformed, unsafe and stale report identity"
+      ],
+      "boundary": "Unsupported or malformed reports are unknown/error, not the intended baseline assertion.",
+      "checks": [
+        {
+          "file": "internal/evidence/evidence_test.go",
+          "selector": "TestClassifyStructuredObservations",
+          "group": "go"
+        },
+        {
+          "file": "internal/evidence/evidence_test.go",
+          "selector": "TestAdverseObservationsSurviveMixedResults",
+          "group": "go"
+        },
+        {
+          "file": "internal/evidence/evidence_test.go",
+          "selector": "TestSummaryRetainsInterleavedRetryOrder",
+          "group": "go"
+        },
+        {
+          "file": "internal/evidence/evidence_test.go",
+          "selector": "TestMissingMalformedAndUnsafeReports",
+          "group": "go"
+        },
+        {
+          "file": "internal/evidence/evidence_test.go",
+          "selector": "TestProcessFailuresAndUnsupportedDeclaration",
+          "group": "go"
+        },
+        {
+          "file": "internal/evidence/evidence_test.go",
+          "selector": "TestStoredSummaryRejectsChangedEvidence",
+          "group": "go"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "stored-result-judgment",
+      "invariant": "I2",
+      "status": "protected",
+      "sources": [
+        "internal/status/status.go",
+        "internal/status/render.go"
+      ],
+      "property": "Stored evidence and current/baseline judgment preserve adverse, environment, retry and positive-evidence distinctions.",
+      "examples": [
+        "invalid result with a stored done",
+        "interleaved retry"
+      ],
+      "families": [
+        "saved result mutations",
+        "all saved rules and current versus baseline"
+      ],
+      "boundary": "A zero process exit does not turn adverse structured evidence into a pass.",
+      "checks": [
+        {
+          "file": "internal/status/evidence_v3_test.go",
+          "selector": "TestJudgmentRequiresPositiveEvidenceAllRules",
+          "group": "go"
+        },
+        {
+          "file": "internal/status/evidence_v3_test.go",
+          "selector": "TestStrictJudgmentPreservesAdverseEvidenceAndErrorCap",
+          "group": "go"
+        },
+        {
+          "file": "internal/status/evidence_v3_test.go",
+          "selector": "TestInvalidResultPreventsStoredCompletion",
+          "group": "go"
+        },
+        {
+          "file": "internal/status/evidence_v3_test.go",
+          "selector": "TestNativeRetryExitZeroRemainsAdverseNotMalformed",
+          "group": "go"
+        },
+        {
+          "file": "internal/status/evidence_v3_test.go",
+          "selector": "TestMixedEnvironmentCannotEraseAdverseObservation",
+          "group": "go"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "reference-producer-to-cli",
+      "invariant": "I2",
+      "status": "protected",
+      "sources": [
+        "cmd/ha/main.go",
+        "tools/check-result-reference.py"
+      ],
+      "property": "The shipped reference producer crosses actual ha check baseline/current/store/done boundaries with positive and adverse evidence.",
+      "examples": [
+        "actual missing feature baseline",
+        "wrong target or nonce"
+      ],
+      "families": [
+        "normal flow",
+        "unknown/mixed/environment/signal/retry/hidden retry"
+      ],
+      "boundary": "This protection applies to the reference producer. The three repository convenience producers have the distinct gaps below.",
+      "checks": [
+        {
+          "file": "cmd/ha/baseline_budget_test.go",
+          "selector": "TestBaselineBudgetAC1_ReferenceFlow",
+          "group": "go"
+        },
+        {
+          "file": "cmd/ha/baseline_budget_test.go",
+          "selector": "TestBaselineBudgetAC2_Environment",
+          "group": "go"
+        },
+        {
+          "file": "cmd/ha/baseline_budget_test.go",
+          "selector": "TestBaselineBudgetAC3_UnknownAndMixed",
+          "group": "go"
+        },
+        {
+          "file": "cmd/ha/baseline_budget_test.go",
+          "selector": "TestBaselineBudgetAC5_InvalidResultsAndRetries",
+          "group": "go"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "goal-producer-meaning",
+      "invariant": "I2",
+      "status": "protected",
+      "sources": [
+        "tools/goal-checks/produce.py",
+        "tools/result_observations.py",
+        "contracts/repository-producers.md"
+      ],
+      "property": "Repository convenience producer must preserve UNVERIFIED, mixed test facts and observed assertion identity independently of its declaration.",
+      "examples": [
+        "exit code 2",
+        "assertion plus skip",
+        "unrelated assertion matching declared expected ID"
+      ],
+      "families": [
+        "multiple adverse facts in one suite",
+        "go, unittest and command classification"
+      ],
+      "boundary": "Version-2 repository result contracts retain separate assertion/execution/selection/attribution targets. Untagged or ambiguous failures remain adverse with attribution error; source or output text is not guessed into the expected identifier. These are synthetic local process and actual Core current/baseline checks, not model or remote CI observations.",
+      "checks": [
+        {
+          "file": "tools/producer-checks/test_semantics.py",
+          "selector": "MixedFacts",
+          "group": "go"
+        },
+        {
+          "file": "tools/producer-checks/test_semantics.py",
+          "selector": "AssertionIdentity",
+          "group": "go"
+        },
+        {
+          "file": "tools/producer-checks/test_semantics.py",
+          "selector": "GoFacts",
+          "group": "go"
+        },
+        {
+          "file": "tools/producer-checks/test_semantics.py",
+          "selector": "CommandFacts",
+          "group": "go"
+        },
+        {
+          "file": "tools/producer-checks/test_semantics.py",
+          "selector": "GoReportBoundary",
+          "group": "go"
+        },
+        {
+          "file": "cmd/ha/producer_semantics_test.go",
+          "selector": "TestProducerFacts_CurrentAndBaselinePreserveObservedMeaning",
+          "group": "go"
+        },
+        {
+          "file": "cmd/ha/producer_semantics_test.go",
+          "selector": "TestProducerFacts_AdverseAssertionSurvivesLaterSuccess",
+          "group": "go"
+        }
+      ],
+      "follow_up": [
+        "https://github.com/jgoneit/jaekit/issues/20",
+        "https://github.com/jgoneit/jaekit/issues/21",
+        "https://github.com/jgoneit/jaekit/issues/30"
+      ]
+    },
+    {
+      "id": "review-producer-meaning",
+      "invariant": "I2",
+      "status": "protected",
+      "sources": [
+        "tools/review-checks/produce.py",
+        "tools/result_observations.py",
+        "contracts/repository-producers.md"
+      ],
+      "property": "Repository convenience producer must preserve UNVERIFIED, mixed test facts and observed assertion identity independently of its declaration.",
+      "examples": [
+        "exit code 2",
+        "assertion plus skip",
+        "unrelated assertion matching declared expected ID"
+      ],
+      "families": [
+        "multiple adverse facts in one suite",
+        "go, unittest and command classification"
+      ],
+      "boundary": "Version-2 repository result contracts retain separate assertion/execution/selection/attribution targets. Untagged or ambiguous failures remain adverse with attribution error; source or output text is not guessed into the expected identifier. These are synthetic local process and actual Core current/baseline checks, not model or remote CI observations.",
+      "checks": [
+        {
+          "file": "tools/producer-checks/test_semantics.py",
+          "selector": "MixedFacts",
+          "group": "go"
+        },
+        {
+          "file": "tools/producer-checks/test_semantics.py",
+          "selector": "AssertionIdentity",
+          "group": "go"
+        },
+        {
+          "file": "tools/producer-checks/test_semantics.py",
+          "selector": "GoFacts",
+          "group": "go"
+        },
+        {
+          "file": "cmd/ha/producer_semantics_test.go",
+          "selector": "TestProducerFacts_EachSuiteProducerReachesCore",
+          "group": "go"
+        },
+        {
+          "file": "cmd/ha/producer_semantics_test.go",
+          "selector": "TestProducerFacts_AdverseAssertionSurvivesLaterSuccess",
+          "group": "go"
+        }
+      ],
+      "follow_up": [
+        "https://github.com/jgoneit/jaekit/issues/20",
+        "https://github.com/jgoneit/jaekit/issues/21",
+        "https://github.com/jgoneit/jaekit/issues/30"
+      ]
+    },
+    {
+      "id": "gap-producer-meaning",
+      "invariant": "I2",
+      "status": "protected",
+      "sources": [
+        "tools/gap-checks/produce.py",
+        "tools/result_observations.py",
+        "contracts/repository-producers.md"
+      ],
+      "property": "Repository convenience producer must preserve UNVERIFIED, mixed test facts and observed assertion identity independently of its declaration.",
+      "examples": [
+        "exit code 2",
+        "assertion plus skip",
+        "unrelated assertion matching declared expected ID"
+      ],
+      "families": [
+        "multiple adverse facts in one suite",
+        "go, unittest and command classification"
+      ],
+      "boundary": "Version-2 repository result contracts retain separate assertion/execution/selection/attribution targets. Untagged or ambiguous failures remain adverse with attribution error; source or output text is not guessed into the expected identifier. These are synthetic local process and actual Core current/baseline checks, not model or remote CI observations.",
+      "checks": [
+        {
+          "file": "tools/producer-checks/test_semantics.py",
+          "selector": "MixedFacts",
+          "group": "go"
+        },
+        {
+          "file": "tools/producer-checks/test_semantics.py",
+          "selector": "AssertionIdentity",
+          "group": "go"
+        },
+        {
+          "file": "tools/producer-checks/test_semantics.py",
+          "selector": "GoFacts",
+          "group": "go"
+        },
+        {
+          "file": "cmd/ha/producer_semantics_test.go",
+          "selector": "TestProducerFacts_EachSuiteProducerReachesCore",
+          "group": "go"
+        },
+        {
+          "file": "cmd/ha/producer_semantics_test.go",
+          "selector": "TestProducerFacts_AdverseAssertionSurvivesLaterSuccess",
+          "group": "go"
+        }
+      ],
+      "follow_up": [
+        "https://github.com/jgoneit/jaekit/issues/20",
+        "https://github.com/jgoneit/jaekit/issues/21",
+        "https://github.com/jgoneit/jaekit/issues/30"
+      ]
+    },
+    {
+      "id": "native-request-and-uncertainty",
+      "invariant": "I3",
+      "status": "protected",
+      "sources": [
+        "tools/release-checks/check.py",
+        "tools/release-checks/execution_trace.py",
+        "tools/release-checks/shell_reader.py"
+      ],
+      "property": "Known supported native JSON/JavaScript/shell forms preserve request anchors, uncertain extra calls and original receipt binding through Spec/Seal consumers.",
+      "examples": [
+        "other request supplies a Skill",
+        "computed extra call after complete known operations"
+      ],
+      "families": [
+        "literal key variants",
+        "opaque evaluators, sourced files and unresolved control",
+        "normal direct calls and structured original receipts"
+      ],
+      "boundary": "This covers the explicit tested syntax and original-receipt checks; unsupported shell/identity gaps remain separate rows.",
+      "checks": [
+        {
+          "file": "tools/review-checks/test_observation.py",
+          "selector": "AC1",
+          "group": "go"
+        },
+        {
+          "file": "tools/review-checks/test_observation.py",
+          "selector": "AC2",
+          "group": "go"
+        },
+        {
+          "file": "tools/review-checks/test_observation.py",
+          "selector": "AC3",
+          "group": "go"
+        },
+        {
+          "file": "tools/review-checks/test_observation.py",
+          "selector": "AC6",
+          "group": "go"
+        },
+        {
+          "file": "tools/review-checks/test_observation.py",
+          "selector": "AC15",
+          "group": "go"
+        },
+        {
+          "file": "tools/gap-checks/test_observation.py",
+          "selector": "AC1",
+          "group": "go"
+        },
+        {
+          "file": "tools/gap-checks/test_observation.py",
+          "selector": "AC2",
+          "group": "go"
+        },
+        {
+          "file": "tools/gap-checks/test_observation.py",
+          "selector": "AC3",
+          "group": "go"
+        },
+        {
+          "file": "tools/gap-checks/test_observation.py",
+          "selector": "AC10",
+          "group": "go"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "shell-reachability-gap",
+      "invariant": "I3",
+      "status": "protected",
+      "sources": [
+        "tools/release-checks/check.py",
+        "tools/release-checks/shell_reader.py"
+      ],
+      "property": "Unparseable or unreachable calls must not count as observed execution.",
+      "examples": [
+        "unclosed backtick",
+        "exec true followed by ha calls"
+      ],
+      "families": [
+        "syntax failure",
+        "process replacement and unreachable commands"
+      ],
+      "boundary": "Controlled actual bash/zsh processes define the tested reachability family. Incomplete or unsupported syntax cannot supply execution or absence; arbitrary supplied transcripts are not executed by the consumer.",
+      "checks": [
+        {
+          "file": "tools/release-checks/integration_evidence_boundaries.py",
+          "selector": "SyntaxEvidence",
+          "group": "go"
+        },
+        {
+          "file": "tools/release-checks/integration_evidence_boundaries.py",
+          "selector": "ReachabilityEvidence",
+          "group": "go"
+        }
+      ],
+      "follow_up": [
+        "https://github.com/jgoneit/jaekit/issues/12",
+        "https://github.com/jgoneit/jaekit/issues/22"
+      ]
+    },
+    {
+      "id": "observation-identity-gap",
+      "invariant": "I3",
+      "status": "protected",
+      "sources": [
+        "tools/release-checks/check.py",
+        "tools/release-checks/execution_trace.py",
+        "tools/release-checks/execution_provenance.py",
+        "tools/release-checks/source_identity.py",
+        "tools/release-checks/install_trace.py",
+        "tools/release-checks/snapshot_worker.py"
+      ],
+      "property": "Executable, project, goal, request and original tool call must bind to the claimed observation.",
+      "examples": [
+        "another Core executable path",
+        "another goal in a synthetic receipt"
+      ],
+      "families": [
+        "identity substitutions",
+        "partial direct-install or tested-source provenance"
+      ],
+      "boundary": "Local real Core, original receipts, explicit goal/checkout and verified source images are tested. Missing source objects or unsupported records remain unavailable without fetching. Direct installation uses synthetic local archives and controlled fresh roots, not live release downloads or model sessions.",
+      "checks": [
+        {
+          "file": "tools/release-checks/integration_core_observation.py",
+          "selector": "CoreImageIsolation",
+          "group": "go"
+        },
+        {
+          "file": "tools/release-checks/integration_core_observation.py",
+          "selector": "ActualCore",
+          "group": "go"
+        },
+        {
+          "file": "tools/release-checks/integration_evidence_boundaries.py",
+          "selector": "SourceIdentityEvidence",
+          "group": "go"
+        },
+        {
+          "file": "tools/release-checks/integration_direct_install.py",
+          "selector": "DirectInstallation",
+          "group": "go"
+        },
+        {
+          "file": "tools/release-checks/integration_product_source.py",
+          "selector": "ProductSource",
+          "group": "go"
+        }
+      ],
+      "follow_up": [
+        "https://github.com/jgoneit/jaekit/issues/13",
+        "https://github.com/jgoneit/jaekit/issues/14",
+        "https://github.com/jgoneit/jaekit/issues/15"
+      ]
+    },
+    {
+      "id": "shared-tool-preflight",
+      "invariant": "I4",
+      "status": "protected",
+      "sources": [
+        "tools/verify.py",
+        "tools/review-checks/test_installation.py",
+        "tools/review-checks/test_observation.py",
+        ".github/workflows/ci.yml"
+      ],
+      "property": "Missing/unusable shells fail before shared checks, and the actual review launchers use preflight-selected absolute paths.",
+      "examples": [
+        "missing zsh",
+        "another shell path after preflight"
+      ],
+      "families": [
+        "missing, permission and interpreter errors",
+        "normal installation and observation launches",
+        "docs group without Go/zsh/Docker"
+      ],
+      "boundary": "Selection fixture uses controlled wrappers; actual shell semantic regressions remain in the Go group and run separately.",
+      "checks": [
+        {
+          "file": "tools/gap-checks/test_docs_environment.py",
+          "selector": "AC8",
+          "group": "go"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "shared-command-failures",
+      "invariant": "I4",
+      "status": "protected",
+      "sources": [
+        "tools/verify.py",
+        ".github/workflows/ci.yml"
+      ],
+      "property": "Existing unconditional groups retain failure forwarding, four builds, nonmutation and docs dependency boundaries.",
+      "examples": [
+        "one command exits nonzero",
+        "gofmt reports changed files"
+      ],
+      "families": [
+        "default/go/docs and invalid group",
+        "missing tool and cross compilation variables"
+      ],
+      "boundary": "Synthetic command fixtures verify invocation/failure wiring; they do not claim compiled-product or remote CI success.",
+      "checks": [
+        {
+          "file": "tools/workflow-checks/test_verify.py",
+          "selector": "InvocationCases",
+          "group": "docs"
+        },
+        {
+          "file": "tools/workflow-checks/test_verify.py",
+          "selector": "FailureCases",
+          "group": "docs"
+        },
+        {
+          "file": "tools/workflow-checks/test_verify.py",
+          "selector": "NonMutationCases",
+          "group": "docs"
+        },
+        {
+          "file": "tools/workflow-checks/test_repository.py",
+          "selector": "Integration",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "public-scanner-existing-scope",
+      "invariant": "I5",
+      "status": "protected",
+      "sources": [
+        "tools/check_public_tree.py"
+      ],
+      "property": "Existing tracked public-content scope rejects forbidden private references while accepting public synthetic names and rule definitions.",
+      "examples": [
+        "private sibling reference in a tracked guide",
+        "valid public repository and release references"
+      ],
+      "families": [
+        "case and punctuation variants",
+        "URL and SSH spellings"
+      ],
+      "boundary": "Existing policy excludes testdata content as synthetic fixture data; this is local to the scanner. Required current/history path inspection is the distinct gap below.",
+      "checks": [
+        {
+          "file": "tools/public-checks/test_tree.py",
+          "selector": "PrivateReferences",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "public-scanner-path-gap",
+      "invariant": "I5",
+      "status": "protected",
+      "sources": [
+        "tools/check_public_tree.py",
+        "tools/goal-checks/release-0-1-3-review-fixes/test_private_independence.py",
+        "tools/goal-checks/release-0-1-3-followups/preserved.py",
+        "tools/gap-checks/preservation.py"
+      ],
+      "property": "Each current-file and explicit history scanner inspects required path information under its existing forbidden-reference and synthetic-fixture policy.",
+      "examples": [
+        "forbidden reference only in a filename",
+        "added forbidden path removed by a later commit"
+      ],
+      "families": [
+        "added and renamed paths",
+        "spaces, tabs, line breaks and Git quoting",
+        "history edges and missing objects"
+      ],
+      "boundary": "Current-file and explicitly ranged history consumers retain their own forbidden-reference and synthetic-fixture policies. Missing history is unavailable; it is not required for current-file checks. Newline/tab/quoted names are filesystem paths, not line records.",
+      "checks": [
+        {
+          "file": "tools/public-checks/test_paths.py",
+          "selector": "CurrentPathChecks",
+          "group": "docs"
+        },
+        {
+          "file": "tools/public-checks/test_paths.py",
+          "selector": "HistoryPathChecks",
+          "group": "docs"
+        },
+        {
+          "file": "tools/public-checks/test_paths.py",
+          "selector": "NameChecks",
+          "group": "docs"
+        },
+        {
+          "file": "tools/public-checks/test_paths.py",
+          "selector": "PreservedBoundaries",
+          "group": "docs"
+        }
+      ],
+      "follow_up": [
+        "https://github.com/jgoneit/jaekit/issues/19"
+      ]
+    },
+    {
+      "id": "registry-selection-integrity",
+      "invariant": "I4",
+      "status": "protected",
+      "sources": [
+        "tools/regression_map.py",
+        "tools/workflow-checks/test_regressions.py"
+      ],
+      "property": "The public finite registry validates explicit existing definitions and common selection without claiming execution.",
+      "examples": [
+        "comment-only suite mention",
+        "unselected or removed test definition"
+      ],
+      "families": [
+        "normal finite map",
+        "missing, duplicate and unsupported entries",
+        "removed or narrowed protection and unsupported control flow"
+      ],
+      "boundary": "The static selector supports unconditional direct calls and literal loops only; actual execution is separate.",
+      "checks": [
+        {
+          "file": "tools/workflow-checks/test_regressions.py",
+          "selector": "RegistryConnection",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "archive-consumer-input-boundary",
+      "invariant": "I3",
+      "status": "protected",
+      "sources": [
+        "tools/release-checks/check.py",
+        "tools/release-checks/README.md"
+      ],
+      "property": "The same bounded archive parser rejects invalid or unsupported observation inputs across archive collection and installation consumers while accepting supported archives.",
+      "examples": [
+        "many empty entries",
+        "compressed cumulative body overflow"
+      ],
+      "families": [
+        "normal files and long names",
+        "entry/body/metadata/expanded-stream bounds",
+        "truncation, malformed size, sparse records and trailing data"
+      ],
+      "boundary": "Synthetic tar/gzip bytes and controlled download responses exercise local consumer boundaries. This is not an observation of a published archive, remote download or actual host installation.",
+      "checks": [
+        {
+          "file": "tools/release-checks/test_archive_limits.py",
+          "selector": "ArchiveLimits",
+          "group": "docs"
+        }
+      ],
+      "follow_up": [
+        "https://github.com/jgoneit/jaekit/issues/16"
+      ]
+    },
+    {
+      "id": "explicit-retention-inputs",
+      "invariant": "I1",
+      "status": "protected",
+      "sources": [
+        "tools/gap-checks/preservation.py",
+        "tools/gap-checks/README.md"
+      ],
+      "property": "Only an explicitly selected retention input reads local execution records; ordinary public checks keep separate inputs. Linked-worktree output lookup binds the selected checkout and stored digest.",
+      "examples": [
+        "linked worktree .git is a file",
+        "same relative log path in another worktree"
+      ],
+      "families": [
+        "primary and linked Git directories",
+        "missing/unreadable/digest mismatch and malformed records",
+        "Git environment redirection and read-only success"
+      ],
+      "boundary": "Local records are intentional inputs only to the explicit retention audit. The shared tests create synthetic records; they neither require nor transmit previous private executions, and a read-only audit is not an automatic backup service.",
+      "checks": [
+        {
+          "file": "tools/goal-checks/test_retention.py",
+          "selector": "RetentionChecks",
+          "group": "docs"
+        }
+      ],
+      "follow_up": [
+        "https://github.com/jgoneit/jaekit/issues/17"
+      ]
+    },
+    {
+      "id": "post-completion-recorded-facts",
+      "invariant": "I2",
+      "status": "protected",
+      "sources": [
+        "cmd/ha/finding.go",
+        "internal/record/finding.go",
+        "internal/status/findings.go",
+        "internal/status/findings_render.go",
+        "internal/status/budget.go",
+        "contracts/findings.md"
+      ],
+      "property": "Historical completion, current finding judgments and explicitly linked rework remain separate saved facts; post-completion notes cannot change historical execution budget or bypass revision conflicts.",
+      "examples": [
+        "candidate mistaken for confirmed defect",
+        "later independent reopen completion attached to old rework"
+      ],
+      "families": [
+        "normal append/query and exact replay",
+        "historical criterion/version references",
+        "strict JSON, concurrent revision conflict and uncertain persistence",
+        "all saved rules and budget noninterference"
+      ],
+      "boundary": "Actual built CLI and synthetic Git/file/concurrency fixtures check record structure and references, not the truth of a reported defect. The shared CLI suite does not require an installed historical binary; fixed legacy-binary observations are a separate release/development check.",
+      "checks": [
+        {
+          "file": "cmd/ha/findings_contract_test.go",
+          "selector": "TestFindingsPublicCLI",
+          "group": "go"
+        },
+        {
+          "file": "internal/status/findings_test.go",
+          "selector": "TestFindingsBudgetAllSavedRules",
+          "group": "go"
+        },
+        {
+          "file": "internal/status/findings_test.go",
+          "selector": "TestFindingsConcurrentCASAndOtherEvents",
+          "group": "go"
+        },
+        {
+          "file": "internal/status/findings_test.go",
+          "selector": "TestFindingsReferencesAndReplay",
+          "group": "go"
+        },
+        {
+          "file": "internal/record/finding_test.go",
+          "selector": "TestFindingStrictInput",
+          "group": "go"
+        },
+        {
+          "file": "internal/record/finding_test.go",
+          "selector": "TestFindingSchemaAndPersistenceUncertainty",
+          "group": "go"
+        }
+      ],
+      "follow_up": [
+        "https://github.com/jgoneit/jaekit/issues/24"
+      ]
+    },
+    {
+      "id": "spec-observation-boundary-contract",
+      "invariant": "I3",
+      "status": "protected",
+      "sources": [
+        "plugins/spec/skills/spec/SKILL.md",
+        "plugins/spec/skills/spec/references/goal-docs.md",
+        "contracts/goal-docs.md",
+        "evals/spec-cases/decision-boundaries.md"
+      ],
+      "property": "Public Spec guidance and loadable examples preserve observation unit, unsupported-input outcome, invariants, support assumptions and representative versus exhaustive examples.",
+      "examples": [
+        "unknown request unit left to implementation",
+        "representative syntax mistaken for exhaustive support"
+      ],
+      "families": [
+        "ready and unresolved draft examples",
+        "existing public decisions and implementation choices",
+        "mutated outcome-changing links"
+      ],
+      "boundary": "These regressions validate public document relationships and synthetic goal loading. They do not prove that a host or model follows the guidance or that the examples cover every future goal.",
+      "checks": [
+        {
+          "file": "plugins/spec_boundaries_contract_test.go",
+          "selector": "TestSpecBoundaryContractExamples",
+          "group": "go"
+        }
+      ],
+      "follow_up": [
+        "https://github.com/jgoneit/jaekit/issues/25"
+      ]
+    },
+    {
+      "id": "seal-evidence-and-assurance-contract",
+      "invariant": "I2",
+      "status": "protected",
+      "sources": [
+        "plugins/seal/skills/seal/SKILL.md",
+        "plugins/seal/skills/seal/references/bundle.md",
+        "contracts/bundle.md",
+        "contracts/role-card.md",
+        "examples/verification-reporting.md",
+        "examples/verification-design.md",
+        "examples/verification-findings.md"
+      ],
+      "property": "Seal public artifacts distinguish expected-result basis, observed boundary and substitutes; selected mandatory assurance gaps and later findings cannot be rewritten as successful observed completion.",
+      "examples": [
+        "fake result described as a real model observation",
+        "candidate or unresolved finding erased by a completion summary"
+      ],
+      "families": [
+        "normal grouped evidence and missing observations",
+        "counterexample reproduction/version links and mandatory review gaps",
+        "historical completion, correction, duplicate and explicit rework links"
+      ],
+      "boundary": "Public document and synthetic relationship mutations validate the contract. They are not actual model executions, an independent-review certificate, or Core enforcement of natural-language judgments.",
+      "checks": [
+        {
+          "file": "plugins/verification_reporting_test.go",
+          "selector": "TestVerificationReportingContracts",
+          "group": "go"
+        },
+        {
+          "file": "plugins/verification_design_test.go",
+          "selector": "TestVerificationDesignContracts",
+          "group": "go"
+        },
+        {
+          "file": "plugins/verification_finding_docs_test.go",
+          "selector": "TestVerificationFindingDocumentContracts",
+          "group": "go"
+        }
+      ],
+      "follow_up": [
+        "https://github.com/jgoneit/jaekit/issues/23",
+        "https://github.com/jgoneit/jaekit/issues/24",
+        "https://github.com/jgoneit/jaekit/issues/26"
+      ]
+    },
+    {
+      "id": "parent-result-adapter-meaning",
+      "invariant": "I2",
+      "status": "protected",
+      "sources": [
+        "tools/verification-checks/integration_results.py",
+        "tools/verification-checks/integration-map.json"
+      ],
+      "property": "Integration aggregation preserves each child target attempt/status/actual violation/reason and reports declaration/report/exit binding faults instead of synthesizing the expected failure.",
+      "examples": [
+        "actual assertion replaced by expected child declaration",
+        "exit zero contradicts adverse observations"
+      ],
+      "families": [
+        "mixed attempts and target prefixing",
+        "normal pass versus missing/malformed/misbound/incomplete reports",
+        "invalid child declarations"
+      ],
+      "boundary": "Synthetic producers exercise the adapter protocol. They are not product evidence; the integration goal separately invokes actual child probes on the combined source tree and records their observations.",
+      "checks": [
+        {
+          "file": "tools/workflow-checks/test_integration_results.py",
+          "selector": "IntegrationResultsTests",
+          "group": "docs"
+        }
+      ],
+      "follow_up": [
+        "https://github.com/jgoneit/jaekit/issues/27",
+        "https://github.com/jgoneit/jaekit/issues/30"
+      ]
+    }
+  ]
+}

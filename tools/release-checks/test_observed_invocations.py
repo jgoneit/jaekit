@@ -2,8 +2,9 @@
 
 A Claude Skill counts as loaded only through the native session transcript:
 the slash-command entry and the host's linked `isMeta` entry that names the
-installed Skill directory. A Core command counts only in command position;
-printed, quoted, commented and here-document text does not run it.
+installed Skill directory. Static Core candidates count only in command position; printed, quoted,
+commented and here-document text is data. These candidate fixtures do not
+certify actual Seal execution without its original structured observations.
 """
 import json
 from pathlib import Path
@@ -42,7 +43,7 @@ class ClaudeTranscriptLoad(Case):
     def test_whole_session_transcript_loads_each_phase_skill(self):
         value, _ = self.claude()
         self.accepts("claude", value, "spec")
-        self.accepts("claude", value, "seal")
+        self.accepts_candidates("claude", value, "seal")
 
     def test_phase_snapshots_load_each_phase_skill(self):
         value, _ = self.claude()
@@ -52,12 +53,12 @@ class ClaudeTranscriptLoad(Case):
         value["spec"]["session_trace"] = self.lines([entry for entry in entries if entry.get("promptId") == "prompt-1"])
         value["seal"]["session_trace"] = self.lines([entry for entry in entries if entry.get("promptId") == "prompt-2"])
         self.accepts("claude", value, "spec")
-        self.accepts("claude", value, "seal")
+        self.accepts_candidates("claude", value, "seal")
 
     def test_each_phase_needs_its_own_skill_invocation(self):
         value, _ = self.claude(transcript=lambda spec_dir, seal_dir: self.invocation("seal:seal", seal_dir))
         self.rejects("claude", value, "spec", "loaded Skill")
-        self.accepts("claude", value, "seal")
+        self.accepts_candidates("claude", value, "seal")
         value, _ = self.claude(transcript=lambda spec_dir, seal_dir: self.invocation("spec:spec", spec_dir))
         self.accepts("claude", value, "spec")
         self.rejects("claude", value, "seal", "loaded Skill")
@@ -73,7 +74,7 @@ class ClaudeTranscriptLoad(Case):
                 "seal:seal", seal_dir, number=2)
         value, _ = self.claude(transcript=transcript)
         self.accepts("claude", value, "spec")
-        self.accepts("claude", value, "seal")
+        self.accepts_candidates("claude", value, "seal")
 
 
 class ClaudeNotLoaded(Case):
@@ -188,18 +189,18 @@ class SealCommandPosition(Case):
                         with self.assertRaises(check.Unavailable):
                             self.checker.trace("codex", self.codex_seal(commands + [printed]), "seal")
                     else:
-                        self.rejects("codex", self.codex_seal(commands + [printed]), "seal",
+                        self.rejects_candidates("codex", self.codex_seal(commands + [printed]), "seal",
                                      f"does not observe ha {operation}")
 
     def test_printed_baseline_flag_is_not_a_baseline_attempt(self):
         for form in (f"ha check {GOAL} AC-1; echo --baseline", f'echo "ha check {GOAL} --baseline AC-1"'):
             with self.subTest(form=form):
                 commands = [self.REAL["start"], f"ha check {GOAL} AC-1", form, self.REAL["done"]]
-                self.rejects("codex", self.codex_seal(commands), "seal", "baseline attempt")
+                self.rejects_candidates("codex", self.codex_seal(commands), "seal", "baseline attempt")
 
     def test_claude_printed_variable_start_is_not_observed(self):
         commands = [f'HA=/opt/bin/ha; echo "$HA" start {GOAL}'] + SEAL_COMMANDS[1:]
-        self.rejects("claude", self.claude_seal(commands), "seal", "does not observe ha start")
+        self.rejects_candidates("claude", self.claude_seal(commands), "seal", "does not observe ha start")
 
 
 class SpecCommandPosition(Case):
@@ -261,7 +262,17 @@ class KeptRecognition(Case):
         commands = [f'bash -c "HA={CORE}; \\"\\$HA\\" start {GOAL} --request q"',
                     f"GOAL_DIR={GOAL} env HA_TRACE=1 ha check {GOAL} --baseline AC-1",
                     f"command {CORE} check {GOAL} AC-1", f"cd repo; exec ha done {GOAL}"]
-        self.accepts("claude", self.claude_seal(commands), "seal")
+        # The exec target remains a candidate; shell replacement does not
+        # establish actual reachability without the original execution record.
+        analysis = check.shell_analysis(commands[-1])
+        self.assertEqual(analysis.calls, [("done", [GOAL])])
+        self.assertTrue(analysis.unknown)
+        value = self.claude_seal(commands)
+        with self.assertRaisesRegex(check.Unavailable, "exec replacement"):
+            self.checker.trace_candidates("claude", value, "seal")
+        with self.assertRaises(check.Unavailable):
+            self.checker.trace("claude", value, "seal")
+        self.accepts_candidates("claude", self.claude_seal(commands[:-1] + [f"cd repo; ha done {GOAL}"]), "seal")
 
     def test_command_lookup_is_not_execution(self):
         for command in ("command -v ha", "command -V ha", "type ha", "which ha"):
@@ -290,7 +301,7 @@ class UnsupportedExecution(Case):
                            for i, command in enumerate(SEAL_COMMANDS))
             value, _ = self.codex(rollout("spec", "text('data')"),
                                   seal_rollout=rollout("seal", code), seal_commands=("ls",))
-            self.accepts("codex", value, "seal")
+            self.accepts_candidates("codex", value, "seal")
 
     def test_wrapper_function_shadowing_cannot_certify_absence(self):
         for command in ("env() { ha start goal; }; env", "command() { ha start goal; }; command printf data",

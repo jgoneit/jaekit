@@ -1,12 +1,13 @@
 {
   "schema": "check-declaration/v1",
   "producer": "jaekit-goal-tests",
-  "producer_version": "1",
+  "producer_version": "2",
   "producer_paths": [
     "tools/goal-checks/produce.py",
     "tools/goal-checks/release-0-1-3-followups/AC-4.targets.json",
     "tools/release/test_install_data.py",
-    "tools/release/test_install.py"
+    "tools/release/test_install.py",
+    "tools/result_observations.py"
   ],
   "targets": [
     {
@@ -14,8 +15,88 @@
       "violation": "old-data-cleanup-missing"
     },
     {
+      "id": "update-cleanup.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-cleanup.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-cleanup.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-cleanup.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-cleanup.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-cleanup.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-cleanup.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-cleanup.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-cleanup.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-cleanup.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "update-linked-root",
       "violation": "linked-root-followed"
+    },
+    {
+      "id": "update-linked-root.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-linked-root.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-linked-root.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-linked-root.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-linked-root.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-linked-root.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-linked-root.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-linked-root.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-linked-root.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-linked-root.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

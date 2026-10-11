@@ -1,35 +1,105 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "checker-regressions",
       "runner": "unittest",
       "file": "tools/release-checks/test_check.py",
-      "test": ""
+      "test": "",
+      "result_targets": {
+        "additional_violations": [
+          "checker-regressions.assertion-2",
+          "checker-regressions.assertion-3",
+          "checker-regressions.assertion-4",
+          "checker-regressions.assertion-5",
+          "checker-regressions.assertion-6",
+          "checker-regressions.assertion-7",
+          "checker-regressions.assertion-8"
+        ],
+        "execution": "checker-regressions.execution",
+        "selection": "checker-regressions.selection",
+        "attribution": "checker-regressions.attribution"
+      }
     },
     {
       "target": "literal-core",
       "runner": "unittest",
       "file": "tools/release-checks/test_loader_invocations.py",
-      "test": "CoreInvocations.test_literal_and_absolute_invocations_remain_observed"
+      "test": "CoreInvocations.test_literal_and_absolute_invocations_remain_observed",
+      "result_targets": {
+        "additional_violations": [
+          "literal-core.assertion-2",
+          "literal-core.assertion-3",
+          "literal-core.assertion-4",
+          "literal-core.assertion-5",
+          "literal-core.assertion-6",
+          "literal-core.assertion-7",
+          "literal-core.assertion-8"
+        ],
+        "execution": "literal-core.execution",
+        "selection": "literal-core.selection",
+        "attribution": "literal-core.attribution"
+      }
     },
     {
       "target": "spec-literal-execution",
       "runner": "unittest",
       "file": "tools/release-checks/test_loader_invocations.py",
-      "test": "CoreInvocations.test_spec_phase_literal_execution_remains_rejected"
+      "test": "CoreInvocations.test_spec_phase_literal_execution_remains_rejected",
+      "result_targets": {
+        "additional_violations": [
+          "spec-literal-execution.assertion-2",
+          "spec-literal-execution.assertion-3",
+          "spec-literal-execution.assertion-4",
+          "spec-literal-execution.assertion-5",
+          "spec-literal-execution.assertion-6",
+          "spec-literal-execution.assertion-7",
+          "spec-literal-execution.assertion-8"
+        ],
+        "execution": "spec-literal-execution.execution",
+        "selection": "spec-literal-execution.selection",
+        "attribution": "spec-literal-execution.attribution"
+      }
     },
     {
       "target": "readme-forms",
       "runner": "unittest",
       "file": "tools/release-checks/test_loader_invocations.py",
-      "test": "Documentation.test_readme_names_accepted_and_rejected_forms"
+      "test": "Documentation.test_readme_names_accepted_and_rejected_forms",
+      "result_targets": {
+        "additional_violations": [
+          "readme-forms.assertion-2",
+          "readme-forms.assertion-3",
+          "readme-forms.assertion-4",
+          "readme-forms.assertion-5",
+          "readme-forms.assertion-6",
+          "readme-forms.assertion-7",
+          "readme-forms.assertion-8"
+        ],
+        "execution": "readme-forms.execution",
+        "selection": "readme-forms.selection",
+        "attribution": "readme-forms.attribution"
+      }
     },
     {
       "target": "no-evaluation",
       "runner": "unittest",
       "file": "tools/release-checks/test_loader_invocations.py",
-      "test": "Documentation.test_checker_does_not_evaluate_observed_commands"
+      "test": "Documentation.test_checker_does_not_evaluate_observed_commands",
+      "result_targets": {
+        "additional_violations": [
+          "no-evaluation.assertion-2",
+          "no-evaluation.assertion-3",
+          "no-evaluation.assertion-4",
+          "no-evaluation.assertion-5",
+          "no-evaluation.assertion-6",
+          "no-evaluation.assertion-7",
+          "no-evaluation.assertion-8"
+        ],
+        "execution": "no-evaluation.execution",
+        "selection": "no-evaluation.selection",
+        "attribution": "no-evaluation.attribution"
+      }
     }
   ]
 }

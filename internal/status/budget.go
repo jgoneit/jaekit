@@ -96,6 +96,7 @@ func validateBudgetChange(state *BudgetState, d *record.BudgetChangeData) error 
 // FoldBudget checks budget event semantics while retaining /1 and /2 window
 // accounting. Callers separately validate the record hash chain.
 func FoldBudget(lines []record.Line) (*BudgetState, error) {
+	lines = record.ExecutionLines(lines)
 	var state *BudgetState
 	var originalRuns int
 	var from string

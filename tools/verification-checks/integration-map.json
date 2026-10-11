@@ -1,0 +1,542 @@
+{
+  "AC-1": [
+    {
+      "id": "public1",
+      "declaration": "tools/public-checks/AC-1.paths.json",
+      "argv": [
+        "python3",
+        "tools/public-checks/path_evidence.py",
+        "AC-1"
+      ]
+    },
+    {
+      "id": "public2",
+      "declaration": "tools/public-checks/AC-2.paths.json",
+      "argv": [
+        "python3",
+        "tools/public-checks/path_evidence.py",
+        "AC-2"
+      ]
+    },
+    {
+      "id": "public3",
+      "declaration": "tools/public-checks/AC-3.paths.json",
+      "argv": [
+        "python3",
+        "tools/public-checks/path_evidence.py",
+        "AC-3"
+      ]
+    }
+  ],
+  "AC-2": [
+    {
+      "id": "producer1",
+      "declaration": "tools/verification-checks/producer-results/AC-1.json",
+      "argv": [
+        "python3",
+        "tools/verification-checks/producer_results.py",
+        "AC-1"
+      ]
+    },
+    {
+      "id": "producer2",
+      "declaration": "tools/verification-checks/producer-results/AC-2.json",
+      "argv": [
+        "python3",
+        "tools/verification-checks/producer_results.py",
+        "AC-2"
+      ]
+    },
+    {
+      "id": "producer3",
+      "declaration": "tools/verification-checks/producer-results/AC-3.json",
+      "argv": [
+        "python3",
+        "tools/verification-checks/producer_results.py",
+        "AC-3"
+      ]
+    },
+    {
+      "id": "producer4",
+      "declaration": "tools/verification-checks/producer-results/AC-4.json",
+      "argv": [
+        "python3",
+        "tools/verification-checks/producer_results.py",
+        "AC-4"
+      ]
+    },
+    {
+      "id": "producer5",
+      "declaration": "tools/verification-checks/producer-results/AC-5.json",
+      "argv": [
+        "python3",
+        "tools/verification-checks/producer_results.py",
+        "AC-5"
+      ]
+    },
+    {
+      "id": "producer7",
+      "declaration": "tools/verification-checks/producer-results/AC-7.json",
+      "argv": [
+        "python3",
+        "tools/verification-checks/producer_results.py",
+        "AC-7"
+      ]
+    },
+    {
+      "id": "producer8",
+      "declaration": "tools/verification-checks/producer-results/AC-8.json",
+      "argv": [
+        "python3",
+        "tools/verification-checks/producer_results.py",
+        "AC-8"
+      ]
+    }
+  ],
+  "AC-4": [
+    {
+      "id": "archive1",
+      "declaration": "tools/release-checks/AC-1.limits.json",
+      "argv": [
+        "python3",
+        "tools/release-checks/archive_evidence.py",
+        "AC-1"
+      ]
+    },
+    {
+      "id": "archive2",
+      "declaration": "tools/release-checks/AC-2.limits.json",
+      "argv": [
+        "python3",
+        "tools/release-checks/archive_evidence.py",
+        "AC-2"
+      ]
+    },
+    {
+      "id": "archive3",
+      "declaration": "tools/release-checks/AC-3.limits.json",
+      "argv": [
+        "python3",
+        "tools/release-checks/archive_evidence.py",
+        "AC-3"
+      ]
+    },
+    {
+      "id": "archive4",
+      "declaration": "tools/release-checks/AC-4.limits.json",
+      "argv": [
+        "python3",
+        "tools/release-checks/archive_evidence.py",
+        "AC-4"
+      ]
+    }
+  ],
+  "AC-5": [
+    {
+      "id": "retention1",
+      "declaration": "tools/goal-checks/AC-1.retention.json",
+      "argv": [
+        "python3",
+        "tools/goal-checks/retention_evidence.py",
+        "AC-1"
+      ]
+    },
+    {
+      "id": "retention2",
+      "declaration": "tools/goal-checks/AC-2.retention.json",
+      "argv": [
+        "python3",
+        "tools/goal-checks/retention_evidence.py",
+        "AC-2"
+      ]
+    },
+    {
+      "id": "retention3",
+      "declaration": "tools/goal-checks/AC-3.retention.json",
+      "argv": [
+        "python3",
+        "tools/goal-checks/retention_evidence.py",
+        "AC-3"
+      ]
+    }
+  ],
+  "AC-6": [
+    {
+      "id": "reporting1",
+      "declaration": "tools/contract-checks/reporting-AC-1.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/check.py",
+        "reporting",
+        "AC-1"
+      ]
+    },
+    {
+      "id": "reporting2",
+      "declaration": "tools/contract-checks/reporting-AC-2.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/check.py",
+        "reporting",
+        "AC-2"
+      ]
+    },
+    {
+      "id": "reporting3",
+      "declaration": "tools/contract-checks/reporting-AC-3.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/check.py",
+        "reporting",
+        "AC-3"
+      ]
+    },
+    {
+      "id": "reporting4",
+      "declaration": "tools/contract-checks/reporting-AC-4.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/check.py",
+        "reporting",
+        "AC-4"
+      ]
+    },
+    {
+      "id": "reporting5",
+      "declaration": "tools/contract-checks/reporting-AC-5.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/check.py",
+        "reporting",
+        "AC-5"
+      ]
+    },
+    {
+      "id": "reporting6",
+      "declaration": "tools/contract-checks/reporting-AC-6.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/check.py",
+        "reporting",
+        "AC-6"
+      ]
+    },
+    {
+      "id": "reporting7",
+      "declaration": "tools/contract-checks/reporting-AC-7.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/check.py",
+        "reporting",
+        "AC-7"
+      ]
+    }
+  ],
+  "AC-7": [
+    {
+      "id": "findingsall",
+      "declaration": "tools/findings-checks/declaration.json",
+      "argv": [
+        "python3",
+        "tools/findings-checks/check.py",
+        "--criterion",
+        "all",
+        "--legacy",
+        "{legacy}"
+      ]
+    }
+  ],
+  "AC-8": [
+    {
+      "id": "spec1",
+      "declaration": "tools/contract-checks/spec-AC-1.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/spec_check.py",
+        "spec-boundaries",
+        "AC-1"
+      ]
+    },
+    {
+      "id": "spec2",
+      "declaration": "tools/contract-checks/spec-AC-2.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/spec_check.py",
+        "spec-boundaries",
+        "AC-2"
+      ]
+    },
+    {
+      "id": "spec3",
+      "declaration": "tools/contract-checks/spec-AC-3.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/spec_check.py",
+        "spec-boundaries",
+        "AC-3"
+      ]
+    },
+    {
+      "id": "spec4",
+      "declaration": "tools/contract-checks/spec-AC-4.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/spec_check.py",
+        "spec-boundaries",
+        "AC-4"
+      ]
+    },
+    {
+      "id": "spec7",
+      "declaration": "tools/contract-checks/spec-AC-7.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/spec_check.py",
+        "spec-boundaries",
+        "AC-7"
+      ]
+    }
+  ],
+  "AC-9": [
+    {
+      "id": "design1",
+      "declaration": "tools/contract-checks/design-AC-1.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/design_check.py",
+        "design",
+        "AC-1"
+      ]
+    },
+    {
+      "id": "design2",
+      "declaration": "tools/contract-checks/design-AC-2.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/design_check.py",
+        "design",
+        "AC-2"
+      ]
+    },
+    {
+      "id": "design3",
+      "declaration": "tools/contract-checks/design-AC-3.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/design_check.py",
+        "design",
+        "AC-3"
+      ]
+    },
+    {
+      "id": "design4",
+      "declaration": "tools/contract-checks/design-AC-4.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/design_check.py",
+        "design",
+        "AC-4"
+      ]
+    },
+    {
+      "id": "design5",
+      "declaration": "tools/contract-checks/design-AC-5.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/design_check.py",
+        "design",
+        "AC-5"
+      ]
+    },
+    {
+      "id": "design6",
+      "declaration": "tools/contract-checks/design-AC-6.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/design_check.py",
+        "design",
+        "AC-6"
+      ]
+    },
+    {
+      "id": "design7",
+      "declaration": "tools/contract-checks/design-AC-7.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/design_check.py",
+        "design",
+        "AC-7"
+      ]
+    },
+    {
+      "id": "design9",
+      "declaration": "tools/contract-checks/design-AC-9.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/design_check.py",
+        "design",
+        "AC-9"
+      ]
+    }
+  ],
+  "AC-10": [
+    {
+      "id": "regressions1",
+      "declaration": "tools/regression-checks/declaration.json",
+      "argv": [
+        "python3",
+        "tools/regression-checks/check.py",
+        "--criterion",
+        "1"
+      ]
+    },
+    {
+      "id": "regressions2",
+      "declaration": "tools/regression-checks/declaration.json",
+      "argv": [
+        "python3",
+        "tools/regression-checks/check.py",
+        "--criterion",
+        "2"
+      ]
+    },
+    {
+      "id": "regressions3",
+      "declaration": "tools/regression-checks/declaration.json",
+      "argv": [
+        "python3",
+        "tools/regression-checks/check.py",
+        "--criterion",
+        "3"
+      ]
+    },
+    {
+      "id": "regressions4",
+      "declaration": "tools/regression-checks/declaration.json",
+      "argv": [
+        "python3",
+        "tools/regression-checks/check.py",
+        "--criterion",
+        "4"
+      ]
+    }
+  ],
+  "AC-12": [
+    {
+      "id": "findingdocs1",
+      "declaration": "tools/contract-checks/finding-docs-AC-1.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/finding_docs_check.py",
+        "finding-docs",
+        "AC-1"
+      ]
+    },
+    {
+      "id": "findingdocs2",
+      "declaration": "tools/contract-checks/finding-docs-AC-2.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/finding_docs_check.py",
+        "finding-docs",
+        "AC-2"
+      ]
+    },
+    {
+      "id": "findingdocs3",
+      "declaration": "tools/contract-checks/finding-docs-AC-3.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/finding_docs_check.py",
+        "finding-docs",
+        "AC-3"
+      ]
+    },
+    {
+      "id": "findingdocs5",
+      "declaration": "tools/contract-checks/finding-docs-AC-5.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/finding_docs_check.py",
+        "finding-docs",
+        "AC-5"
+      ]
+    },
+    {
+      "id": "findingdocs6",
+      "declaration": "tools/contract-checks/finding-docs-AC-6.json",
+      "argv": [
+        "python3",
+        "tools/contract-checks/finding_docs_check.py",
+        "finding-docs",
+        "AC-6"
+      ]
+    }
+  ],
+  "AC-3": [
+    {
+      "id": "release1",
+      "declaration": "tools/verification-checks/release-evidence/AC-1.json",
+      "argv": [
+        "python3",
+        "tools/verification-checks/release_evidence.py",
+        "AC-1"
+      ]
+    },
+    {
+      "id": "release2",
+      "declaration": "tools/verification-checks/release-evidence/AC-2.json",
+      "argv": [
+        "python3",
+        "tools/verification-checks/release_evidence.py",
+        "AC-2"
+      ]
+    },
+    {
+      "id": "release3",
+      "declaration": "tools/verification-checks/release-evidence/AC-3.json",
+      "argv": [
+        "python3",
+        "tools/verification-checks/release_evidence.py",
+        "AC-3"
+      ]
+    },
+    {
+      "id": "release4",
+      "declaration": "tools/verification-checks/release-evidence/AC-4.json",
+      "argv": [
+        "python3",
+        "tools/verification-checks/release_evidence.py",
+        "AC-4"
+      ]
+    },
+    {
+      "id": "release5",
+      "declaration": "tools/verification-checks/release-evidence/AC-5.json",
+      "argv": [
+        "python3",
+        "tools/verification-checks/release_evidence.py",
+        "AC-5"
+      ]
+    },
+    {
+      "id": "release6",
+      "declaration": "tools/verification-checks/release-evidence/AC-6.json",
+      "argv": [
+        "python3",
+        "tools/verification-checks/release_evidence.py",
+        "AC-6"
+      ]
+    },
+    {
+      "id": "release8",
+      "declaration": "tools/verification-checks/release-evidence/AC-8.json",
+      "argv": [
+        "python3",
+        "tools/verification-checks/release_evidence.py",
+        "AC-8"
+      ]
+    }
+  ]
+}

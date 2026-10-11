@@ -1,23 +1,65 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "printed-required-operations",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "SealCommandPosition.test_required_operations_in_non_command_text_are_not_observed"
+      "test": "SealCommandPosition.test_required_operations_in_non_command_text_are_not_observed",
+      "result_targets": {
+        "additional_violations": [
+          "printed-required-operations.assertion-2",
+          "printed-required-operations.assertion-3",
+          "printed-required-operations.assertion-4",
+          "printed-required-operations.assertion-5",
+          "printed-required-operations.assertion-6",
+          "printed-required-operations.assertion-7",
+          "printed-required-operations.assertion-8"
+        ],
+        "execution": "printed-required-operations.execution",
+        "selection": "printed-required-operations.selection",
+        "attribution": "printed-required-operations.attribution"
+      }
     },
     {
       "target": "printed-baseline-flag",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "SealCommandPosition.test_printed_baseline_flag_is_not_a_baseline_attempt"
+      "test": "SealCommandPosition.test_printed_baseline_flag_is_not_a_baseline_attempt",
+      "result_targets": {
+        "additional_violations": [
+          "printed-baseline-flag.assertion-2",
+          "printed-baseline-flag.assertion-3",
+          "printed-baseline-flag.assertion-4",
+          "printed-baseline-flag.assertion-5",
+          "printed-baseline-flag.assertion-6",
+          "printed-baseline-flag.assertion-7",
+          "printed-baseline-flag.assertion-8"
+        ],
+        "execution": "printed-baseline-flag.execution",
+        "selection": "printed-baseline-flag.selection",
+        "attribution": "printed-baseline-flag.attribution"
+      }
     },
     {
       "target": "claude-printed-variable",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "SealCommandPosition.test_claude_printed_variable_start_is_not_observed"
+      "test": "SealCommandPosition.test_claude_printed_variable_start_is_not_observed",
+      "result_targets": {
+        "additional_violations": [
+          "claude-printed-variable.assertion-2",
+          "claude-printed-variable.assertion-3",
+          "claude-printed-variable.assertion-4",
+          "claude-printed-variable.assertion-5",
+          "claude-printed-variable.assertion-6",
+          "claude-printed-variable.assertion-7",
+          "claude-printed-variable.assertion-8"
+        ],
+        "execution": "claude-printed-variable.execution",
+        "selection": "claude-printed-variable.selection",
+        "attribution": "claude-printed-variable.attribution"
+      }
     }
   ]
 }

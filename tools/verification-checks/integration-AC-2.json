@@ -1,0 +1,75 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-integration-probes",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/integration-map.json",
+    "tools/verification-checks/integration_results.py",
+    "tools/verification-checks/producer-results/AC-1.json",
+    "tools/verification-checks/producer-results/AC-2.json",
+    "tools/verification-checks/producer-results/AC-3.json",
+    "tools/verification-checks/producer-results/AC-4.json",
+    "tools/verification-checks/producer-results/AC-5.json",
+    "tools/verification-checks/producer-results/AC-7.json",
+    "tools/verification-checks/producer-results/AC-8.json",
+    "tools/verification-checks/producer_results.py"
+  ],
+  "targets": [
+    {
+      "id": "producer1.AC-1",
+      "violation": "unverified-promoted"
+    },
+    {
+      "id": "producer1.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "producer2.AC-2",
+      "violation": "unsupported-exit-promoted"
+    },
+    {
+      "id": "producer2.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "producer3.AC-3",
+      "violation": "mixed-facts-lost"
+    },
+    {
+      "id": "producer3.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "producer4.AC-4",
+      "violation": "producer-meanings-diverge"
+    },
+    {
+      "id": "producer4.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "producer5.AC-5",
+      "violation": "core-observed-meaning-lost"
+    },
+    {
+      "id": "producer5.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "producer7.AC-7",
+      "violation": "expected-overwrites-observed"
+    },
+    {
+      "id": "producer7.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "producer8.AC-8",
+      "violation": "producer-regression-not-selected"
+    },
+    {
+      "id": "producer8.invocation",
+      "violation": "invocation-contract"
+    }
+  ]
+}

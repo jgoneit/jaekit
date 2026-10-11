@@ -1,29 +1,85 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "older-versions-only",
       "runner": "unittest",
       "file": "tools/release/test_install_cleanup.py",
-      "test": "UpdateCleanup.test_only_versions_older_than_the_installed_one_are_removed"
+      "test": "UpdateCleanup.test_only_versions_older_than_the_installed_one_are_removed",
+      "result_targets": {
+        "additional_violations": [
+          "older-versions-only.assertion-2",
+          "older-versions-only.assertion-3",
+          "older-versions-only.assertion-4",
+          "older-versions-only.assertion-5",
+          "older-versions-only.assertion-6",
+          "older-versions-only.assertion-7",
+          "older-versions-only.assertion-8"
+        ],
+        "execution": "older-versions-only.execution",
+        "selection": "older-versions-only.selection",
+        "attribution": "older-versions-only.attribution"
+      }
     },
     {
       "target": "linked-or-missing-root",
       "runner": "unittest",
       "file": "tools/release/test_install_cleanup.py",
-      "test": "UpdateCleanup.test_linked_or_missing_data_root_removes_nothing"
+      "test": "UpdateCleanup.test_linked_or_missing_data_root_removes_nothing",
+      "result_targets": {
+        "additional_violations": [
+          "linked-or-missing-root.assertion-2",
+          "linked-or-missing-root.assertion-3",
+          "linked-or-missing-root.assertion-4",
+          "linked-or-missing-root.assertion-5",
+          "linked-or-missing-root.assertion-6",
+          "linked-or-missing-root.assertion-7",
+          "linked-or-missing-root.assertion-8"
+        ],
+        "execution": "linked-or-missing-root.execution",
+        "selection": "linked-or-missing-root.selection",
+        "attribution": "linked-or-missing-root.attribution"
+      }
     },
     {
       "target": "reference-after-cleanup",
       "runner": "unittest",
       "file": "tools/release/test_install_cleanup.py",
-      "test": "UpdateCleanup.test_reference_copy_still_works_after_cleanup"
+      "test": "UpdateCleanup.test_reference_copy_still_works_after_cleanup",
+      "result_targets": {
+        "additional_violations": [
+          "reference-after-cleanup.assertion-2",
+          "reference-after-cleanup.assertion-3",
+          "reference-after-cleanup.assertion-4",
+          "reference-after-cleanup.assertion-5",
+          "reference-after-cleanup.assertion-6",
+          "reference-after-cleanup.assertion-7",
+          "reference-after-cleanup.assertion-8"
+        ],
+        "execution": "reference-after-cleanup.execution",
+        "selection": "reference-after-cleanup.selection",
+        "attribution": "reference-after-cleanup.attribution"
+      }
     },
     {
       "target": "guides-describe-cleanup",
       "runner": "unittest",
       "file": "tools/release/test_install_cleanup.py",
-      "test": "UpdateCleanup.test_both_guides_share_the_block_and_describe_it"
+      "test": "UpdateCleanup.test_both_guides_share_the_block_and_describe_it",
+      "result_targets": {
+        "additional_violations": [
+          "guides-describe-cleanup.assertion-2",
+          "guides-describe-cleanup.assertion-3",
+          "guides-describe-cleanup.assertion-4",
+          "guides-describe-cleanup.assertion-5",
+          "guides-describe-cleanup.assertion-6",
+          "guides-describe-cleanup.assertion-7",
+          "guides-describe-cleanup.assertion-8"
+        ],
+        "execution": "guides-describe-cleanup.execution",
+        "selection": "guides-describe-cleanup.selection",
+        "attribution": "guides-describe-cleanup.attribution"
+      }
     }
   ]
 }

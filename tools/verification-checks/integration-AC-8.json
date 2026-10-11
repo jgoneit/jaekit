@@ -1,0 +1,58 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-integration-probes",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/contract-checks/check.py",
+    "tools/contract-checks/spec-AC-1.json",
+    "tools/contract-checks/spec-AC-2.json",
+    "tools/contract-checks/spec-AC-3.json",
+    "tools/contract-checks/spec-AC-4.json",
+    "tools/contract-checks/spec-AC-7.json",
+    "tools/contract-checks/spec_check.py",
+    "tools/verification-checks/integration-map.json",
+    "tools/verification-checks/integration_results.py"
+  ],
+  "targets": [
+    {
+      "id": "spec1.spec-boundaries.AC-1",
+      "violation": "spec-boundaries.AC-1.missing-contract"
+    },
+    {
+      "id": "spec1.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "spec2.spec-boundaries.AC-2",
+      "violation": "spec-boundaries.AC-2.missing-contract"
+    },
+    {
+      "id": "spec2.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "spec3.spec-boundaries.AC-3",
+      "violation": "spec-boundaries.AC-3.missing-contract"
+    },
+    {
+      "id": "spec3.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "spec4.spec-boundaries.AC-4",
+      "violation": "spec-boundaries.AC-4.missing-contract"
+    },
+    {
+      "id": "spec4.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "spec7.spec-boundaries.AC-7",
+      "violation": "spec-boundaries.AC-7.missing-contract"
+    },
+    {
+      "id": "spec7.invocation",
+      "violation": "invocation-contract"
+    }
+  ]
+}

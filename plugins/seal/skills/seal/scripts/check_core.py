@@ -71,6 +71,9 @@ def validate(value):
     for key in ("criteria", *FORMATS):
         if not strings(formats.get(key)):
             raise Refusal("invalid_capabilities", ["formats:" + key])
+
+    if "finding" in formats and not strings(formats["finding"]):
+        raise Refusal("invalid_capabilities", ["formats:finding"])
     return value
 
 
@@ -114,6 +117,18 @@ def stored_goal(goal: str):
         path = Path(goal)
         with (path / "runs.jsonl").open(encoding="utf-8") as source:
             first = source.readline(1024 * 1024 + 1)
+            finding = False
+            for raw in source:
+                if len(raw) > 1024 * 1024:
+                    raise ValueError("oversized record")
+                event = decode(raw)
+                if not isinstance(event, dict):
+                    raise ValueError("invalid record")
+                schema = event.get("schema")
+                if schema == "run-finding/v1":
+                    finding = True
+                elif schema != "run/v1":
+                    raise Refusal("unsupported_record_schema")
         if len(first) > 1024 * 1024:
             raise ValueError("oversized start")
         start = decode(first)
@@ -123,34 +138,40 @@ def stored_goal(goal: str):
         if not isinstance(rules, str) or not rules:
             raise ValueError("missing rules")
         criteria = selected_format((path / "SPEC.md").read_text(encoding="utf-8"))
-        return rules, criteria
+        return rules, criteria, finding
     except (OSError, UnicodeError, ValueError, RecursionError):
         raise Refusal("goal_unreadable") from None
 
 
 def requirements(capabilities, operation: str, goal: str | None):
+    finding = operation == "finding"
     if operation == "start":
         rules, criteria = capabilities["default_rules"], {"legacy", "nested/1"}
         if rules != "run-rules/3":
             raise Refusal("unsupported_default_rule", [rules])
         features = START_FEATURES
     else:
-        rules, criteria_format = stored_goal(goal)
+        rules, criteria_format, has_findings = stored_goal(goal)
+        finding = finding or has_findings
         criteria = {criteria_format}
-        features = EXECUTION_FEATURES if operation in ("resume", "check") else {"budget-change/v1"}
+        features = (EXECUTION_FEATURES if operation in ("resume", "check")
+                    else {"budget-change/v1"} if operation == "budget" else set())
         if rules not in KNOWN_RULES or rules not in capabilities["supported_rules"]:
             raise Refusal("unsupported_stored_rule", [rules])
         if operation == "budget" and rules != "run-rules/3":
             raise Refusal("unsupported_operation", ["budget:" + rules])
-        if rules == "run-rules/3" and operation != "budget":
+        if rules == "run-rules/3" and operation in ("resume", "check"):
             features = features | {"structured-change-results/v1"}
     required_formats = {"criteria": criteria}
-    if rules == "run-rules/3":
+    if rules == "run-rules/3" and operation != "finding":
         required_formats.update({key: {value} for key, value in FORMATS.items()})
+    if finding:
+        features = features | {"post-completion-findings/v1"}
+        required_formats["finding"] = {"run-finding/v1"}
     missing = ["features:" + key for key in sorted(features - set(capabilities["features"]))]
     for kind, values in required_formats.items():
         missing += ["formats:" + kind + ":" + key
-                    for key in sorted(values - set(capabilities["formats"][kind]))]
+                    for key in sorted(values - set(capabilities["formats"].get(kind, [])))]
     if missing:
         raise Refusal("missing_support", missing)
     return rules
@@ -201,11 +222,11 @@ class Parser(argparse.ArgumentParser):
 def main() -> int:
     parser = Parser(description=__doc__)
     parser.add_argument("--ha", default="ha")
-    parser.add_argument("--operation", choices=("start", "resume", "check", "budget"), default="start")
+    parser.add_argument("--operation", choices=("start", "resume", "check", "budget", "finding"), default="start")
     parser.add_argument("--goal")
     args = parser.parse_args()
     if (args.operation == "start") == (args.goal is not None):
-        parser.error("start takes no --goal; resume/check/budget require --goal")
+        parser.error("start takes no --goal; resume/check/budget/finding require --goal")
     report = check(args.ha, args.operation, args.goal)
     print(json.dumps(report, sort_keys=True))
     return 0 if report["compatible"] else 2

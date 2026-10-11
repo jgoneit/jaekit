@@ -1,5 +1,5 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "wrapped-readme-claim",
@@ -8,7 +8,21 @@
       "expect": "reject",
       "path": "README.en.md",
       "append": "\nThe current release\nis v0.1.2.\n",
-      "mentions": "README.en.md:99 names v0.1.2"
+      "mentions": "README.en.md:99 names v0.1.2",
+      "result_targets": {
+        "additional_violations": [
+          "wrapped-readme-claim.assertion-2",
+          "wrapped-readme-claim.assertion-3",
+          "wrapped-readme-claim.assertion-4",
+          "wrapped-readme-claim.assertion-5",
+          "wrapped-readme-claim.assertion-6",
+          "wrapped-readme-claim.assertion-7",
+          "wrapped-readme-claim.assertion-8"
+        ],
+        "execution": "wrapped-readme-claim.execution",
+        "selection": "wrapped-readme-claim.selection",
+        "attribution": "wrapped-readme-claim.attribution"
+      }
     },
     {
       "target": "wrapped-guide-claim",
@@ -16,8 +30,22 @@
       "package": "./plugins",
       "expect": "reject",
       "path": "guides/USAGE.md",
-      "append": "\n현재 배포판은\n**v0.1.2**입니다.\n",
-      "mentions": "guides/USAGE.md:70 names v0.1.2"
+      "append": "\n\ud604\uc7ac \ubc30\ud3ec\ud310\uc740\n**v0.1.2**\uc785\ub2c8\ub2e4.\n",
+      "mentions": "guides/USAGE.md:70 names v0.1.2",
+      "result_targets": {
+        "additional_violations": [
+          "wrapped-guide-claim.assertion-2",
+          "wrapped-guide-claim.assertion-3",
+          "wrapped-guide-claim.assertion-4",
+          "wrapped-guide-claim.assertion-5",
+          "wrapped-guide-claim.assertion-6",
+          "wrapped-guide-claim.assertion-7",
+          "wrapped-guide-claim.assertion-8"
+        ],
+        "execution": "wrapped-guide-claim.execution",
+        "selection": "wrapped-guide-claim.selection",
+        "attribution": "wrapped-guide-claim.attribution"
+      }
     },
     {
       "target": "wrapped-example-claim",
@@ -25,8 +53,22 @@
       "package": "./plugins",
       "expect": "reject",
       "path": "examples/README.md",
-      "append": "\n이 예시는 현재\n배포판 v0.1.2 기준입니다.\n",
-      "mentions": "examples/README.md:22 names v0.1.2"
+      "append": "\n\uc774 \uc608\uc2dc\ub294 \ud604\uc7ac\n\ubc30\ud3ec\ud310 v0.1.2 \uae30\uc900\uc785\ub2c8\ub2e4.\n",
+      "mentions": "examples/README.md:22 names v0.1.2",
+      "result_targets": {
+        "additional_violations": [
+          "wrapped-example-claim.assertion-2",
+          "wrapped-example-claim.assertion-3",
+          "wrapped-example-claim.assertion-4",
+          "wrapped-example-claim.assertion-5",
+          "wrapped-example-claim.assertion-6",
+          "wrapped-example-claim.assertion-7",
+          "wrapped-example-claim.assertion-8"
+        ],
+        "execution": "wrapped-example-claim.execution",
+        "selection": "wrapped-example-claim.selection",
+        "attribution": "wrapped-example-claim.attribution"
+      }
     },
     {
       "target": "single-line-claim",
@@ -35,13 +77,41 @@
       "expect": "reject",
       "path": "README.en.md",
       "append": "\nThe current release is v0.1.2.\n",
-      "mentions": "README.en.md:99 names v0.1.2"
+      "mentions": "README.en.md:99 names v0.1.2",
+      "result_targets": {
+        "additional_violations": [
+          "single-line-claim.assertion-2",
+          "single-line-claim.assertion-3",
+          "single-line-claim.assertion-4",
+          "single-line-claim.assertion-5",
+          "single-line-claim.assertion-6",
+          "single-line-claim.assertion-7",
+          "single-line-claim.assertion-8"
+        ],
+        "execution": "single-line-claim.execution",
+        "selection": "single-line-claim.selection",
+        "attribution": "single-line-claim.attribution"
+      }
     },
     {
       "target": "current-docs",
       "runner": "go-docs",
       "package": "./plugins",
-      "expect": "pass"
+      "expect": "pass",
+      "result_targets": {
+        "additional_violations": [
+          "current-docs.assertion-2",
+          "current-docs.assertion-3",
+          "current-docs.assertion-4",
+          "current-docs.assertion-5",
+          "current-docs.assertion-6",
+          "current-docs.assertion-7",
+          "current-docs.assertion-8"
+        ],
+        "execution": "current-docs.execution",
+        "selection": "current-docs.selection",
+        "attribution": "current-docs.attribution"
+      }
     }
   ]
 }

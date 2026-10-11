@@ -60,7 +60,9 @@ class Lexer:
                     self.i += 1
                 body.append(self.at())
                 self.i += 1
-            self.i += bool(self.at())
+            if not self.at():
+                raise ReadError("unterminated shell backtick substitution")
+            self.i += 1
             word.append(("sub", Lexer("".join(body), self.level + 1).tokens()))
         else:
             match = re.match(r"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))", self.text[self.i:])
@@ -75,6 +77,8 @@ class Lexer:
                 while self.at() and depth:
                     depth += (self.at() == opening) - (self.at() == closing)
                     self.i += 1
+                if depth:
+                    raise ReadError("unterminated shell expansion")
                 word.append(("dynamic",))
             else:
                 word.append(("text", "$", False))
@@ -91,6 +95,8 @@ class Lexer:
             char = self.at()
             if char == "\\":
                 self.i += 1
+                if not self.at():
+                    raise ReadError("unterminated shell escape")
                 if self.at() != "\n":
                     add(self.at(), True)
                 self.i += bool(self.at())
@@ -263,7 +269,9 @@ def walk(tokens, scope, functions, result, uncertain=False, depth=0):
         for word in words:
             if isinstance(word, tuple) and word[0] == "group":
                 child = word[1] == "(" or node["isolated"]
-                walk(word[2], dict(local) if child else local, dict(functions) if child else functions, result, ambiguous, depth + 1)
+                ended = walk(word[2], dict(local) if child else local, dict(functions) if child else functions, result, ambiguous, depth + 1)
+                if ended and not child:
+                    stopped = True
             else:
                 for part in word.word if isinstance(word, Redirect) else word:
                     if part[0] == "sub":
@@ -274,7 +282,9 @@ def walk(tokens, scope, functions, result, uncertain=False, depth=0):
         while plain and literal(plain[0]) in ("if", "then", "else", "elif", "fi", "do", "done", "while", "until", "!", "time", "esac"):
             plain = plain[1:]
         if plain:
-            run(plain, local, functions, result, ambiguous, depth)
+            ended = run(plain, local, functions, result, ambiguous, depth)
+            if ended and not node["isolated"]:
+                stopped = True
         if first in ("fi", "done", "esac"):
             control = max(0, control - 1)
         if first in ("exit", "return"):
@@ -289,6 +299,8 @@ def walk(tokens, scope, functions, result, uncertain=False, depth=0):
                 if pair:
                     scope[pair[0]] = None
 
+    return stopped
+
 
 def run(words, scope, functions, result, uncertain, depth):
     prefix = {}
@@ -299,7 +311,7 @@ def run(words, scope, functions, result, uncertain, depth):
     if not words:
         scope.update(prefix)
         return
-    wrapped = False
+    wrapped, replacement = False, False
     while words:
         name = value(words[0], scope)
         base = PurePosixPath(name).name if name else None
@@ -334,6 +346,7 @@ def run(words, scope, functions, result, uncertain, depth):
                 else:
                     break
         elif base in ("command", "exec"):
+            replacement |= base == "exec"
             wrapped = True
             words = words[1:]
             while words and (value(words[0], scope) or "").startswith("-"):
@@ -355,6 +368,8 @@ def run(words, scope, functions, result, uncertain, depth):
     name = value(words[0], scope)
     base = PurePosixPath(name).name if name else None
     args = [value(w, scope) for w in words[1:]]
+    if replacement:
+        result.unresolved("exec replacement requires actual execution evidence")
     if name in functions:
         if functions[name] is None:
             result.unresolved("conditional function definition")
@@ -390,6 +405,8 @@ def run(words, scope, functions, result, uncertain, depth):
         return
     else:
         result.unresolved("unsupported evaluator or executable: " + str(base))
+
+    return replacement or name in ("exit", "return")
 
 
 # Trusted conventional data/lookup commands, not a claim about arbitrary

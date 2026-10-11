@@ -1,0 +1,40 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-integration-probes",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/goal-checks/AC-1.retention.json",
+    "tools/goal-checks/AC-2.retention.json",
+    "tools/goal-checks/AC-3.retention.json",
+    "tools/goal-checks/retention_evidence.py",
+    "tools/goal-checks/test_retention.py",
+    "tools/verification-checks/integration-map.json",
+    "tools/verification-checks/integration_results.py"
+  ],
+  "targets": [
+    {
+      "id": "retention1.AC-1",
+      "violation": "linked-audit-failed"
+    },
+    {
+      "id": "retention1.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "retention2.AC-2",
+      "violation": "checkout-link-not-explicit"
+    },
+    {
+      "id": "retention2.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "retention3.AC-3",
+      "violation": "retention-cause-lost"
+    },
+    {
+      "id": "retention3.invocation",
+      "violation": "invocation-contract"
+    }
+  ]
+}

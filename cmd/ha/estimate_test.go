@@ -38,7 +38,10 @@ func estimateTestWrite(t *testing.T, root, name, content string) {
 
 func estimateTestGit(t *testing.T, root string, args ...string) string {
 	t.Helper()
-	cmd := exec.Command("git", append([]string{"-c", "commit.gpgsign=false"}, args...)...)
+	// Fixture creation must finish writing before whole-repository snapshots.
+	// Disable only its detached maintenance; product Git commands and snapshot
+	// coverage (including all metadata and read errors) remain unchanged.
+	cmd := exec.Command("git", append([]string{"-c", "commit.gpgsign=false", "-c", "maintenance.auto=false", "-c", "gc.auto=0"}, args...)...)
 	cmd.Dir = root
 	out, err := cmd.CombinedOutput()
 	if err != nil {

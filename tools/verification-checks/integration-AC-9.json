@@ -1,0 +1,85 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-integration-probes",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/contract-checks/check.py",
+    "tools/contract-checks/design-AC-1.json",
+    "tools/contract-checks/design-AC-2.json",
+    "tools/contract-checks/design-AC-3.json",
+    "tools/contract-checks/design-AC-4.json",
+    "tools/contract-checks/design-AC-5.json",
+    "tools/contract-checks/design-AC-6.json",
+    "tools/contract-checks/design-AC-7.json",
+    "tools/contract-checks/design-AC-9.json",
+    "tools/contract-checks/design_check.py",
+    "tools/verification-checks/integration-map.json",
+    "tools/verification-checks/integration_results.py"
+  ],
+  "targets": [
+    {
+      "id": "design1.design.AC-1",
+      "violation": "design.AC-1.missing-contract"
+    },
+    {
+      "id": "design1.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "design2.design.AC-2",
+      "violation": "design.AC-2.missing-contract"
+    },
+    {
+      "id": "design2.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "design3.design.AC-3",
+      "violation": "design.AC-3.missing-contract"
+    },
+    {
+      "id": "design3.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "design4.design.AC-4",
+      "violation": "design.AC-4.missing-contract"
+    },
+    {
+      "id": "design4.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "design5.design.AC-5",
+      "violation": "design.AC-5.missing-contract"
+    },
+    {
+      "id": "design5.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "design6.design.AC-6",
+      "violation": "design.AC-6.missing-contract"
+    },
+    {
+      "id": "design6.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "design7.design.AC-7",
+      "violation": "design.AC-7.missing-contract"
+    },
+    {
+      "id": "design7.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "design9.design.AC-9",
+      "violation": "design.AC-9.missing-contract"
+    },
+    {
+      "id": "design9.invocation",
+      "violation": "invocation-contract"
+    }
+  ]
+}

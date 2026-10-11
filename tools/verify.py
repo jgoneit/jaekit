@@ -52,6 +52,13 @@ def verify_go(env: dict[str, str]):
         run(f"Review gap regressions ({filename})",
             [sys.executable, "-m", "unittest", "discover", "-s", "tools/gap-checks",
              "-p", filename], env)
+    run("Producer semantic regressions (test_semantics.py)",
+        [sys.executable, "-m", "unittest", "discover", "-s", "tools/producer-checks",
+         "-p", "test_semantics.py"], env)
+    for filename in ("integration_evidence_boundaries.py", "integration_core_observation.py", "integration_direct_install.py", "integration_product_source.py"):
+        run(f"Release evidence boundaries ({filename})",
+            [sys.executable, "-m", "unittest", "discover", "-s", "tools/release-checks",
+             "-p", filename], env)
     # All build outputs live outside the checkout, including on failed checks.
     with tempfile.TemporaryDirectory(prefix="jaekit-verify-") as temporary:
         output = Path(temporary)

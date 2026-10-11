@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 import base64
+from contextlib import ExitStack
 import hashlib
 import io
+import gzip
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -22,6 +24,14 @@ from urllib.request import urlopen
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shell_reader
 import execution_trace
+import source_identity
+import execution_provenance
+import install_trace
+
+LOADED_SOURCE = {str(Path(path).resolve()): Path(path).read_bytes()
+                 for path in (__file__, shell_reader.__file__, execution_trace.__file__, source_identity.__file__,
+                              execution_provenance.__file__)}
+LOADED_SOURCE[str(Path(install_trace.__file__).resolve())] = install_trace.LOADED_SELF
 
 ROOT = Path(__file__).resolve().parents[2]
 REPO = "jgoneit/jaekit"
@@ -81,6 +91,19 @@ def checked(argv, cwd=ROOT, timeout=180):
     return result.stdout
 
 
+
+def query_core(verified_bytes, arguments, cwd=ROOT):
+    """Query an isolated copy of verified bytes, never reopen a mutable path."""
+    allowed = (arguments == ["--version"] or arguments == ["capabilities", "--format", "json"]
+               or (len(arguments) == 4 and arguments[0] == "status" and arguments[2:] == ["--format", "json"]))
+    require(allowed, "unsupported Core observation query")
+    with tempfile.TemporaryDirectory(prefix="jaekit-core-query-") as directory:
+        executable = Path(directory) / "ha"
+        executable.write_bytes(verified_bytes)
+        executable.chmod(0o500)
+        return checked([str(executable), *arguments], cwd)
+
+
 def api(path, *, absent=None):
     result = command(["gh", "api", "--hostname", "github.com", "--method", "GET",
                       "-H", "Accept: application/vnd.github+json", path], timeout=45)
@@ -109,27 +132,114 @@ def native_platform():
     return f"{system}_{arch}"
 
 
+# Limits apply to every consumer of a downloaded or supplied release archive.
+ARCHIVE_MAX_BYTES = 256 * 1024 * 1024
+ARCHIVE_MAX_ENTRIES = 10000
+ARCHIVE_MAX_STREAM_BYTES = 512 * 1024 * 1024
+ARCHIVE_MAX_FILE_BYTES = 64 * 1024 * 1024
+
+
+class ArchiveReader:
+    """Bound decompression, including metadata and tar padding, without seeking back."""
+    def __init__(self, source):
+        self.source, self.position = source, 0
+
+    def tell(self):
+        return self.position
+
+    def read(self, size=-1):
+        remaining = ARCHIVE_MAX_STREAM_BYTES - self.position
+        requested = remaining + 1 if size < 0 else min(size, remaining + 1)
+        value = self.source.read(requested)
+        self.position += len(value)
+        require(self.position <= ARCHIVE_MAX_STREAM_BYTES, "archive expanded stream limit exceeded")
+        return value
+
+    def seek(self, offset, whence=0):
+        target = offset if whence == 0 else self.position + offset
+        require(whence in (0, 1) and target >= self.position, "invalid archive seek")
+        while self.position < target:
+            if not self.read(min(65536, target - self.position)):
+                raise EOFError("incomplete archive body")
+        return self.position
+
+
+class BoundedTarInfo(tarfile.TarInfo):
+    def _proc_member(self, archive):
+        # tarfile processes PAX/GNU metadata before yielding a logical member.
+        # Count/check each physical header here, before that metadata is read.
+        entries = getattr(archive, "bounded_entries", 0) + 1
+        total = getattr(archive, "bounded_bytes", 0) + self.size
+        require(entries <= ARCHIVE_MAX_ENTRIES, "archive entry count limit exceeded")
+        require(self.size >= 0, "invalid negative archive size")
+        require(total <= ARCHIVE_MAX_BYTES, "archive cumulative byte limit exceeded")
+        archive.bounded_entries, archive.bounded_bytes = entries, total
+        return super()._proc_member(archive)
+
+
+    def _apply_pax_info(self, pax_headers, encoding, errors):
+        if "size" in pax_headers:
+            require(re.fullmatch(r"[0-9]+", pax_headers["size"]) is not None,
+                    "invalid archive PAX size")
+            size = pax_headers["size"].lstrip("0") or "0"
+            maximum = str(ARCHIVE_MAX_FILE_BYTES)
+            require(len(size) < len(maximum) or (len(size) == len(maximum) and size <= maximum),
+                    "oversized archive entry")
+            # Avoid Python's integer digit limit being silently interpreted as
+            # size zero by tarfile, even for a long but valid leading-zero value.
+            pax_headers["size"] = size
+        require(not any(key.startswith("GNU.sparse.") for key in pax_headers),
+                "unsupported sparse archive entry")
+        return super()._apply_pax_info(pax_headers, encoding, errors)
+
+    def _proc_sparse(self, *args):
+        raise Failure("unsupported sparse archive entry")
+
+    # Sparse maps can consume hidden extension blocks or logical body bytes
+    # before TarFile yields the entry. Release packages contain regular files;
+    # reject these extensions before their maps are interpreted.
+    _proc_gnusparse_00 = _proc_sparse
+    _proc_gnusparse_01 = _proc_sparse
+    _proc_gnusparse_10 = _proc_sparse
+
+
 def archive_files(data, target):
-    """Inspect in memory; never extract untrusted archive paths."""
+    """Inspect bounded bytes in memory; never extract archive paths to disk."""
     prefix = f"ha_{VERSION}_{target}/"
-    files = {}
+    files, logical_bytes = {}, 0
     try:
-        with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as archive:
-            for member in archive:
-                name = member.name
-                path = PurePosixPath(name)
-                require(not path.is_absolute() and ".." not in path.parts,
-                        "unsafe archive entry")
-                require(name == prefix[:-1] or name.startswith(prefix),
-                        "archive root disagrees with platform name")
-                require(member.isdir() or member.isfile(), "archive contains a non-regular entry")
-                if member.isfile():
-                    relative = name[len(prefix):]
-                    require(relative and relative not in files, "duplicate archive entry")
-                    require(member.size <= 64 * 1024 * 1024, "oversized archive entry")
-                    files[relative] = archive.extractfile(member).read()
-    except (tarfile.TarError, OSError):
-        raise Failure("invalid release archive") from None
+        with gzip.GzipFile(fileobj=io.BytesIO(data), mode="rb") as compressed:
+            reader = ArchiveReader(compressed)
+            with tarfile.open(fileobj=reader, mode="r:", tarinfo=BoundedTarInfo) as archive:
+                for member in archive:
+                    name = member.name
+                    path = PurePosixPath(name)
+                    require(not path.is_absolute() and ".." not in path.parts,
+                            "unsafe archive entry")
+                    require(name == prefix[:-1] or name.startswith(prefix),
+                            "archive root disagrees with platform name")
+                    require(member.isdir() or member.isfile(), "archive contains a non-regular entry")
+                    require(member.size >= 0, "invalid negative archive size")
+                    if member.isfile():
+                        relative = name[len(prefix):]
+                        require(relative and relative not in files, "duplicate archive entry")
+                        require(member.size <= ARCHIVE_MAX_FILE_BYTES, "oversized archive entry")
+                        logical_bytes += member.size
+                        require(logical_bytes <= ARCHIVE_MAX_BYTES,
+                                "archive cumulative byte limit exceeded")
+                        value = archive.extractfile(member).read()
+                        require(len(value) == member.size, "incomplete archive entry")
+                        files[relative] = value
+                # Tar iteration stops at the first zero header. Validate the
+                # entire remainder and gzip trailer, including concatenated
+                # streams, rather than accepting an early set of required files.
+                padding = reader.tell() - archive.offset
+                while chunk := reader.read(65536):
+                    require(not any(chunk), "nonzero data after archive end")
+                    padding += len(chunk)
+                require(padding >= 1024, "incomplete archive end markers")
+    except (tarfile.TarError, OSError, EOFError, ValueError, OverflowError, RecursionError):
+        raise Failure("invalid or incomplete release archive") from None
     for name in ("ha", "LICENSE", "README.md", "README.en.md", "guides/INSTALL.md",
                  "guides/INSTALL.en.md", "contracts/run-record.md"):
         require(name in files, f"release archive omits {name}")
@@ -145,6 +255,47 @@ class Checker:
         self._release = None
         self._downloads = {}
         self._source = {}
+        self.product_root = None
+
+    def selected(self, criterion):
+        """Verify product identity and the explicitly selected checker snapshot."""
+        expected = self.evidence()["release"].get("source_commit")
+        require(isinstance(expected, str) and COMMIT.fullmatch(expected),
+                "verified release source commit is missing")
+        self.release()
+        published = api(f"repos/{REPO}/commits/{TAG}")
+        require(expected == published.get("sha"), "release source identity differs")
+        source = self.evidence().get("checker_source")
+        if not isinstance(source, dict) or set(source) != {"commit", "tree"} or not all(
+                isinstance(source[key], str) and COMMIT.fullmatch(source[key]) for key in source):
+            raise Unavailable("explicit checker source commit and tree are missing")
+        tree = source["tree"]
+        try:
+            if source_identity.git(ROOT, "rev-parse", "HEAD").decode().strip() != source["commit"]:
+                raise source_identity.SourceMismatch("checked tool commit differs from the selected checker source")
+            with ExitStack() as stack:
+                selected = stack.enter_context(source_identity.pinned(ROOT, tree, LOADED_SOURCE))
+                request_data = {"criterion": criterion, "evidence": str(self.private), "tree": tree}
+                if int(criterion[3:]) >= 7:
+                    product_tree = published.get("commit", {}).get("tree", {}).get("sha")
+                    product = stack.enter_context(source_identity.pinned_product(ROOT, expected, product_tree))
+                    request_data.update(product_root=str(product), product_tree=product_tree)
+                request = json.dumps(request_data)
+                process = subprocess.run([sys.executable, str(selected / "tools/release-checks/snapshot_worker.py")],
+                                         cwd=selected, input=request, capture_output=True, text=True, timeout=1200,
+                                         env=dict({key: val for key, val in os.environ.items() if not key.startswith("GIT_")},
+                                                  PYTHONDONTWRITEBYTECODE="1"))
+                if process.returncode:
+                    raise Unavailable("isolated source check did not complete")
+                result = decode(process.stdout.encode())
+                if result.get("status") == "fail":
+                    raise Failure(result.get("reason", "isolated source requirement failed"))
+                if result.get("status") != "pass":
+                    raise Unavailable(result.get("reason", "isolated source observation is unavailable"))
+        except source_identity.SourceMismatch as error:
+            raise Failure(str(error)) from None
+        except (source_identity.SourceUnavailable, subprocess.TimeoutExpired, OSError):
+            raise Unavailable("isolated verified source could not be observed") from None
 
     def evidence(self):
         if self._evidence is None:
@@ -251,8 +402,17 @@ class Checker:
         require(isinstance(value, dict), f"missing {name} installation observation")
         binary, data = self.artifact(value.get("binary"))
         target = native_platform()
-        files = archive_files(self.download(f"ha_{VERSION}_{target}.tar.gz"), target)
+        public_archive = self.download(f"ha_{VERSION}_{target}.tar.gz")
+        files = archive_files(public_archive, target)
         require(data == files["ha"], "selected installed Core differs from the public native asset")
+        if name == "direct":
+            try:
+                observed_binary = install_trace.consume(self, value, public_archive, target)
+            except install_trace.UnavailableInstallation as error:
+                raise Unavailable(str(error)) from None
+            except install_trace.InvalidInstallation as error:
+                raise Failure(str(error)) from None
+            require(observed_binary == binary, "installation observation names a different Core")
         install, _ = self.capture(value.get("install"))
         if name.startswith("brew_"):
             require(Path(install[0]).name == "brew" and "jaekit" in " ".join(install)
@@ -263,7 +423,7 @@ class Checker:
             argv, out = self.capture(value.get(key))
             require(Path(argv[0]).resolve() == binary and argv[1:] == suffix,
                     "installation capture queried a different executable or command")
-            current = checked([str(binary), *suffix])
+            current = query_core(data, suffix)
             require(current == out, "installed Core query changed since capture")
             if key == "version":
                 require(out.strip() == b"ha 0.1.3", "installed Core has the wrong release version")
@@ -276,6 +436,8 @@ class Checker:
         if name == "brew_upgrade":
             _, before = self.capture(value.get("before_version"))
             require(before.strip() == b"ha 0.1.2", "upgrade does not establish the old installed version")
+        self._verified_core_bytes = getattr(self, "_verified_core_bytes", {})
+        self._verified_core_bytes[binary] = data
         return binary
 
     def host(self, name):
@@ -343,9 +505,9 @@ class Checker:
         expected = self.evidence()["release"].get("source_commit")
         require(isinstance(expected, str) and COMMIT.fullmatch(expected)
                 and expected == commit.get("sha"), "release tag differs from the identified source commit")
-        tree = checked(["git", "rev-parse", "HEAD^{tree}"]).decode().strip()
-        require(tree == commit.get("commit", {}).get("tree", {}).get("sha"),
-                "checked source tree differs from the released source")
+        require(isinstance(commit.get("commit", {}).get("tree", {}).get("sha"), str)
+                and COMMIT.fullmatch(commit["commit"]["tree"]["sha"]),
+                "published product source tree is unavailable")
         _, previous = self.artifact(self.evidence()["release"].get("previous"))
         old = api(f"repos/{REPO}/releases/tags/v0.1.2")
         old_commit = api(f"repos/{REPO}/commits/v0.1.2").get("sha")
@@ -393,7 +555,7 @@ class Checker:
             checked([sys.executable, str(validator), "--version", VERSION,
                      "--dist", directory, "--run-native"], timeout=300)
 
-    def trace(self, name, value, phase):
+    def trace_context(self, name, value, phase):
         capture = value.get(phase)
         argv, raw = self.capture(capture)
         require(Path(argv[0]).name == name, "flow capture is not a native host invocation")
@@ -448,9 +610,50 @@ class Checker:
                     "implementation is not a separate resumed host request")
         require(native_tools(phase_events), "native host trace has no observed tool execution")
         calls = tool_invocations(phase_events)
+        # Only the host's own record of invoking this phase's Skill identifies
+        # the loaded Skill: not the available-Skill listing, the request, model
+        # text, tool calls or output, or another phase's events. Codex injects
+        # the Skill into the phase's events; Claude records the invocation in
+        # its native session transcript.
+        if name == "codex":
+            loaded = loaded_skill_paths(name, phase_events, skill)
+        else:
+            loaded = loaded_skill_paths(name, session_events, skill, session)
+        expected = installed_path if name == "codex" else installed_path.parent
+        require(any(same_path(path, expected) for path in loaded),
+                "native host trace does not identify the actual loaded Skill path")
+        return capture, phase_events, calls
+
+    def trace_candidates(self, name, value, phase):
+        """Validate syntax/Skill candidates only; never certify Seal execution.
+
+        The release acceptance entry points always use trace(), which requires
+        original execution receipts and Core records for a Seal flow.
+        """
+        _, _, calls = self.trace_context(name, value, phase)
+        invocations = []
+        for call_id, command in calls:
+            analysis = shell_analysis(command)
+            if analysis.unknown:
+                raise Unavailable("Core execution is unverified [" + str(call_id) + "]: "
+                                  + "; ".join(analysis.reasons))
+            invocations.extend(analysis.calls)
+        if phase == "spec":
+            require(not any(operation in SPEC_FORBIDDEN for operation, _ in invocations),
+                    "Spec observation performed execution work")
+        else:
+            observed = {operation for operation, _ in invocations}
+            for operation in SEAL_REQUIRED:
+                require(operation in observed, f"native Seal trace does not observe ha {operation}")
+            require(any(op == "check" and "--baseline" in args for op, args in invocations),
+                    "native Seal trace does not observe a baseline attempt")
+        return [command for _, command in calls]
+
+    def trace(self, name, value, phase):
+        capture, phase_events, calls = self.trace_context(name, value, phase)
         commands = [command for _, command in calls]
         try:
-            observed = execution_trace.consume(self, value, capture, calls, phase_events)
+            observed = execution_trace.consume(self, value, capture, calls, phase_events, phase)
         except (execution_trace.InvalidObservation, Failure, OSError, ValueError) as error:
             raise Unavailable("execution observation is unverified: " + str(error)) from None
         invocations, consumed = [], set()
@@ -468,28 +671,39 @@ class Checker:
                 if analysis.unknown:
                     reasons = "; ".join(analysis.reasons) or "unresolved execution"
                     raise Unavailable("Core execution is unverified [" + ", ".join(ids) + "]: " + reasons)
+                if phase == "seal" and analysis.calls:
+                    raise Unavailable("Core execution is unverified [" + ", ".join(ids)
+                                      + "]: static text has no original execution and goal-record binding")
                 invocations.extend(analysis.calls)
         if phase == "spec":
             require(not any(operation in SPEC_FORBIDDEN for operation, _ in invocations),
                     "Spec observation performed execution work")
         else:
+            if not capture.get("executions"):
+                raise Unavailable("Seal execution has no original execution and goal-record observations")
             observed = {operation for operation, _ in invocations}
             for operation in SEAL_REQUIRED:
                 require(operation in observed, f"native Seal trace does not observe ha {operation}")
             require(any(operation == "check" and "--baseline" in arguments for operation, arguments in invocations),
                     "native Seal trace does not observe a baseline attempt")
-        # Only the host's own record of invoking this phase's Skill identifies
-        # the loaded Skill: not the available-Skill listing, the request, model
-        # text, tool calls or output, or another phase's events. Codex injects
-        # the Skill into the phase's events; Claude records the invocation in
-        # its native session transcript.
-        if name == "codex":
-            loaded = loaded_skill_paths(name, phase_events, skill)
-        else:
-            loaded = loaded_skill_paths(name, session_events, skill, session)
-        expected = installed_path if name == "codex" else installed_path.parent
-        require(any(same_path(path, expected) for path in loaded),
-                "native host trace does not identify the actual loaded Skill path")
+            require(any(operation == "check" and "--baseline" not in arguments for operation, arguments in invocations),
+                    "native Seal trace does not observe a current check attempt")
+        if phase == "seal":
+            binary, core_bytes = self.artifact(value.get("core"))
+            target = native_platform()
+            public = archive_files(self.download(f"ha_{VERSION}_{target}.tar.gz"), target)
+            require(core_bytes == public["ha"], "observed Core differs from the public native asset")
+            context = execution_provenance.context(value.get("project", ""), value.get("goal", ""))
+            project = Path(context["project"])
+            gitdir = execution_provenance.subprocess.run(
+                ["git", "-C", str(project), "rev-parse", "--absolute-git-dir"], capture_output=True, timeout=30,
+                env={key: val for key, val in os.environ.items() if not key.startswith("GIT_")})
+            if gitdir.returncode:
+                raise Unavailable("original goal Git storage is unavailable")
+            done_seq = validate_records(Path(context["records"]).read_bytes(), project,
+                                        Path(os.fsdecode(gitdir.stdout).strip()), value)
+            current = decode(query_core(core_bytes, ["status", context["goal"], "--format", "json"], project))
+            validate_completion(current, done_seq)
         return commands
 
     def check_6(self):
@@ -523,25 +737,33 @@ class Checker:
             records = (project / goal / "runs.jsonl").read_bytes()
             gitdir = checked(["git", "rev-parse", "--absolute-git-dir"], project).decode().strip()
             done_seq = validate_records(records, project, Path(gitdir), value)
-            report = decode(checked([str(binary), "status", goal, "--format", "json"], project))
+            report = decode(query_core(self._verified_core_bytes[binary], ["status", goal, "--format", "json"], project))
             validate_completion(report, done_seq)
 
     def check_7(self):
         checked(["go", "test", "-mod=readonly", "./cmd/ha", "./plugins", "-run",
-                 "^(TestCompatibilityAC7_|TestCompatibilityAC8_|TestCompatibilityAC12_)", "-count=1"], timeout=300)
+                 "^(TestCompatibilityAC7_|TestCompatibilityAC8_|TestCompatibilityAC12_)", "-count=1"],
+                cwd=self.product_source(), timeout=300)
+
+    def product_source(self):
+        if self.product_root is None:
+            raise Unavailable("verified product source snapshot is missing")
+        return self.product_root
 
     def check_8(self):
         checked(["go", "test", "-mod=readonly", "./cmd/ha", "./internal/status", "./internal/record",
                  "./internal/goaldocs", "./plugins", "-run",
                  "^(TestCompatibilityAC9_|TestBaselineBudget|TestBudget|TestBaselineSafetyAC5_|"
-                 "TestNestedCriteria|TestRelease011UninstallGuide|TestRelease011UpdateGuide)", "-count=1"], timeout=300)
+                 "TestNestedCriteria|TestRelease011UninstallGuide|TestRelease011UpdateGuide)", "-count=1"],
+                cwd=self.product_source(), timeout=300)
 
     def check_9(self):
-        market = decode((ROOT / ".claude-plugin/marketplace.json").read_bytes())
+        market = decode((self.product_source() / ".claude-plugin/marketplace.json").read_bytes())
         require(market.get("metadata", {}).get("version") == VERSION,
                 "source marketplace still identifies the previous release")
         checked(["go", "test", "-mod=readonly", "./plugins", "-run",
-                 "^(TestCompatibilityAC10_|TestCompatibilityAC11_|TestRelease|TestReadme)", "-count=1"], timeout=300)
+                 "^(TestCompatibilityAC10_|TestCompatibilityAC11_|TestRelease|TestReadme)", "-count=1"],
+                cwd=self.product_source(), timeout=300)
         note = self.release().get("body", "")
         require("0.1.3" in note and ("Spec" in note and "Seal" in note),
                 "public release notes do not identify the product combination")
@@ -549,13 +771,13 @@ class Checker:
     def check_10(self):
         for directory in ("tools/release", "tools/release-checks"):
             result = command([sys.executable, "-m", "unittest", "discover", "-s", directory,
-                              "-p", "test_*.py"], timeout=300)
+                              "-p", "test_*.py"], cwd=self.product_source(), timeout=300)
             require(result.returncode == 0 and re.search(rb"Ran [1-9][0-9]* tests?", result.stderr),
                     "release failure-protection regressions failed or did not run")
 
     def check_11(self):
-        checked([sys.executable, "tools/check_public_tree.py"])
-        checked([sys.executable, "tools/check_public_docs.py"])
+        checked([sys.executable, "tools/check_public_tree.py"], cwd=self.product_source())
+        checked([sys.executable, "tools/check_public_docs.py"], cwd=self.product_source())
         # Before publication the maintained boundary is covered by source and
         # packaging regressions. Once published, additionally inspect real assets.
         result = command(["gh", "api", "--method", "GET", f"repos/{REPO}/releases/tags/{TAG}"])
@@ -636,9 +858,9 @@ def validate_selected_core(public_binary):
     require(selected, "the current PATH does not select a Core executable")
     binary = Path(selected).resolve()
     require(binary.read_bytes() == public_binary, "current PATH selects a different Core than the public native asset")
-    require(checked([str(binary), "--version"]).strip() == b"ha 0.1.3",
+    require(query_core(public_binary, ["--version"]).strip() == b"ha 0.1.3",
             "current PATH selects the wrong Core version")
-    info = decode(checked([str(binary), "capabilities", "--format", "json"]))
+    info = decode(query_core(public_binary, ["capabilities", "--format", "json"]))
     require(info.get("schema") == "ha-capabilities/v1" and info.get("ha_version") == VERSION
             and info.get("default_rules") == "run-rules/3",
             "current PATH Core does not expose the release capabilities")
@@ -1128,7 +1350,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         checker = Checker(args.evidence)
-        getattr(checker, "check_" + args.criterion[3:])()
+        checker.selected(args.criterion)
     except Failure as error:
         print(f"FAIL {args.criterion}: {error}", file=sys.stderr)
         return 1

@@ -1,12 +1,13 @@
 {
   "schema": "check-declaration/v1",
   "producer": "jaekit-goal-tests",
-  "producer_version": "1",
+  "producer_version": "2",
   "producer_paths": [
     "tools/goal-checks/produce.py",
     "tools/goal-checks/release-0-1-3-review-fixes/AC-5.targets.json",
     "tools/release-checks/test_observed_invocations.py",
-    "tools/release-checks/test_loader_invocations.py"
+    "tools/release-checks/test_loader_invocations.py",
+    "tools/result_observations.py"
   ],
   "targets": [
     {
@@ -14,8 +15,88 @@
       "violation": "kept-form-changed"
     },
     {
+      "id": "earlier-recognition.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "earlier-recognition.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "earlier-recognition.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "earlier-recognition.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "earlier-recognition.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "earlier-recognition.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "earlier-recognition.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "earlier-recognition.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "earlier-recognition.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "earlier-recognition.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "wrappers-and-prefixes",
       "violation": "kept-form-changed"
+    },
+    {
+      "id": "wrappers-and-prefixes.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "wrappers-and-prefixes.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "wrappers-and-prefixes.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "wrappers-and-prefixes.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "wrappers-and-prefixes.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "wrappers-and-prefixes.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "wrappers-and-prefixes.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "wrappers-and-prefixes.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "wrappers-and-prefixes.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "wrappers-and-prefixes.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

@@ -1,0 +1,75 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-integration-probes",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/contract-checks/check.py",
+    "tools/contract-checks/reporting-AC-1.json",
+    "tools/contract-checks/reporting-AC-2.json",
+    "tools/contract-checks/reporting-AC-3.json",
+    "tools/contract-checks/reporting-AC-4.json",
+    "tools/contract-checks/reporting-AC-5.json",
+    "tools/contract-checks/reporting-AC-6.json",
+    "tools/contract-checks/reporting-AC-7.json",
+    "tools/verification-checks/integration-map.json",
+    "tools/verification-checks/integration_results.py"
+  ],
+  "targets": [
+    {
+      "id": "reporting1.reporting.AC-1",
+      "violation": "reporting.AC-1.missing-contract"
+    },
+    {
+      "id": "reporting1.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "reporting2.reporting.AC-2",
+      "violation": "reporting.AC-2.missing-contract"
+    },
+    {
+      "id": "reporting2.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "reporting3.reporting.AC-3",
+      "violation": "reporting.AC-3.missing-contract"
+    },
+    {
+      "id": "reporting3.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "reporting4.reporting.AC-4",
+      "violation": "reporting.AC-4.missing-contract"
+    },
+    {
+      "id": "reporting4.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "reporting5.reporting.AC-5",
+      "violation": "reporting.AC-5.missing-contract"
+    },
+    {
+      "id": "reporting5.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "reporting6.reporting.AC-6",
+      "violation": "reporting.AC-6.missing-contract"
+    },
+    {
+      "id": "reporting6.invocation",
+      "violation": "invocation-contract"
+    },
+    {
+      "id": "reporting7.reporting.AC-7",
+      "violation": "reporting.AC-7.missing-contract"
+    },
+    {
+      "id": "reporting7.invocation",
+      "violation": "invocation-contract"
+    }
+  ]
+}

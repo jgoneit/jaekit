@@ -5,6 +5,7 @@
 - [목표 문서](goal-docs.md): Spec이 만들고 Seal이 읽는 Markdown
 - [실행 묶음](bundle.md): 계획, 진행과 완료 보고
 - [실행 기록](run-record.md): `ha` 명령, `run/v1`, `status/v1`, 규칙 버전
+- [공통 회귀 연결](regressions.md): I1~I5의 제품 경로, 보호 회귀와 미해결 공백
 - [Seal 실행자의 역할](role-card.md): 권한과 완료 규칙
 
 설치와 실제 사용은 [사용 안내](../guides/USAGE.md)에서 시작한다.

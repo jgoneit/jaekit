@@ -11,6 +11,8 @@ Criteria-Format: nested/1
 
 <One or two sentences: who does what and what they see afterwards. Name any existing behavior that must stay the same.>
 
+<!-- Include only relevant outcome boundaries: uninterpretable input, observation unit, preserved set, supported environment. Link settled sources; leave unresolved outcomes open. Mark cases exhaustive or representative and state the general property or outside-list result. Omit irrelevant fields; keep methods with the implementer. -->
+
 ## Acceptance Criteria
 - **AC-1** <The observable result of the change.>
   - <Supporting detail of this same criterion; omit when unnecessary.>

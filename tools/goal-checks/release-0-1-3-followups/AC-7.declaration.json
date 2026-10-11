@@ -1,11 +1,12 @@
 {
   "schema": "check-declaration/v1",
   "producer": "jaekit-goal-tests",
-  "producer_version": "1",
+  "producer_version": "2",
   "producer_paths": [
     "tools/goal-checks/produce.py",
     "tools/goal-checks/release-0-1-3-followups/AC-7.targets.json",
-    "tools/release-checks/test_loader_invocations.py"
+    "tools/release-checks/test_loader_invocations.py",
+    "tools/result_observations.py"
   ],
   "targets": [
     {
@@ -13,8 +14,88 @@
       "violation": "codex-loader-rejected"
     },
     {
+      "id": "codex-loaded.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-loaded.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-loaded.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-loaded.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-loaded.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-loaded.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-loaded.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-loaded.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-loaded.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-loaded.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "claude-loaded",
       "violation": "claude-loader-rejected"
+    },
+    {
+      "id": "claude-loaded.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-loaded.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-loaded.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-loaded.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-loaded.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-loaded.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-loaded.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-loaded.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-loaded.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-loaded.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }
