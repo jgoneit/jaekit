@@ -104,6 +104,17 @@ def children(criterion):
     """A component violation or error is never upgraded to a pass here."""
     statuses = []
     for argv in CHILDREN[criterion]:
+        if argv[0] == "tools/goal-checks/produce.py":
+            # Its version 1 declarations are supported only as maintain runs
+            # without structured evidence; only a zero exit is a pass.
+            process = subprocess.run([sys.executable, "-B", *argv], cwd=ROOT, env=clean_env(), capture_output=True,
+                                     text=True, timeout=3600)
+            print(" ".join(argv), "-> exit", process.returncode, file=sys.stderr)
+            if process.returncode:
+                print(process.stdout[-3000:] + process.stderr[-3000:], file=sys.stderr)
+                raise Unobserved(" ".join(argv))
+            statuses.append("pass")
+            continue
         with tempfile.TemporaryDirectory(prefix="jaekit-followups-child-") as directory:
             report = Path(directory) / "result.json"
             env = dict(clean_env(), HA_EVIDENCE_PATH=str(report), HA_EVIDENCE_INVOCATION="review-followups-component",
