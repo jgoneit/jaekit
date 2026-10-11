@@ -4,7 +4,8 @@
 Each criterion runs selected common regressions from tools/regression-checks in a
 child process. A run is the criterion's violation only when every failing case
 names that criterion's identity with an explicit [violation:...] tag. Untagged
-failures, errors, skips and an empty selection remain errors.
+failures, errors, skips, expected failures, unexpected successes and an empty
+selection remain errors.
 """
 import json
 import os
@@ -42,6 +43,12 @@ class Result(unittest.TestResult):
     def addSkip(self, test, reason):
         super().addSkip(test, reason)
         self.cases.append(("skip", test.id(), reason))
+    def addExpectedFailure(self, test, err):
+        super().addExpectedFailure(test, err)
+        self.cases.append(("expected_failure", test.id(), self._exc_info_to_string(err, test)))
+    def addUnexpectedSuccess(self, test):
+        super().addUnexpectedSuccess(test)
+        self.cases.append(("unexpected_success", test.id(), "expectedFailure test succeeded"))
 result = Result()
 unittest.defaultTestLoader.loadTestsFromNames(sys.argv[1:]).run(result)
 print("JAEKIT_OBSERVED " + json.dumps({"run": result.testsRun, "cases": result.cases}))

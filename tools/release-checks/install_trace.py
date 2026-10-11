@@ -67,6 +67,21 @@ def relative_name(name):
             and "\\" not in name and "\0" not in name)
 
 
+def resolved_destination(requested):
+    """Allow parent aliases, but never use a destination that is itself a link."""
+    need(not requested.is_symlink(), "installation destination is a symlink")
+    destination = requested.resolve()
+    need(destination.parent.is_dir(), "installation destination parent must exist")
+    return destination
+
+
+def same_destination(requested, destination):
+    """Recheck the observed request/result link; this is not OS race attestation."""
+    need(resolved_destination(requested) == destination
+         and not destination.is_symlink() and destination.resolve() == destination
+         and destination.is_dir(), "installation destination changed or differs")
+
+
 def install_files(destination, files, created=None):
     """Create only a new tree. Never remove an original or partial result."""
     need(files and "ha" in files and all(relative_name(name) for name in files),
@@ -102,7 +117,7 @@ def collect(args, launcher_argv=None):
     import check as validator
     archive_limit = getattr(validator, "ARCHIVE_MAX_BYTES", 256 * 1024 * 1024)
     archive = Path(args.archive)
-    destination = Path(args.destination)
+    requested = destination = Path(args.destination)
     output = Path(args.output)
     need(archive.is_absolute() and destination.is_absolute() and output.is_absolute(),
          "collector paths must be absolute")
@@ -127,16 +142,15 @@ def collect(args, launcher_argv=None):
             files = validator.archive_files(raw, args.target)
             need(not destination.is_symlink() and not destination.exists(),
                  "fresh installation destination already exists")
-            destination = destination.resolve()
+            destination = resolved_destination(requested)
             report["destination"] = str(destination)
-            need(destination.parent.is_dir() and not destination.parent.is_symlink(),
-                 "installation destination parent must exist without a symlink")
             report["installed"] = install_files(destination, files,
                                                  lambda: report.update(before_absent=True))
             report["core"] = identity(destination / "ha")
             report["identity_unchanged"] = (identity(archive, archive_limit) == report["archive"]
                                             and identity(__file__) == report["producer"]
                                             and identity(validator.__file__) == report["validator"])
+            same_destination(requested, destination)
             report["completed"] = report["identity_unchanged"]
         except Exception as error:
             # Failure is preserved as an incomplete report; it never supplies
@@ -225,9 +239,8 @@ def consume(checker, installation, public_archive_bytes, target):
     archive_path, archive = checker.artifact(report.get("archive"))
     need(archive_path == Path(options["--archive"]).resolve() and not Path(options["--archive"]).is_symlink()
          and archive == public_archive_bytes, "installation used a different archive")
-    destination = Path(options["--destination"])
-    need(not destination.is_symlink(), "installation destination is a symlink")
-    destination = destination.resolve()
+    requested = Path(options["--destination"])
+    destination = resolved_destination(requested)
     need(report.get("destination") == str(destination)
          and destination.is_dir(), "installation destination differs or is missing")
     need(isinstance(installation.get("package_root"), str)
@@ -240,7 +253,7 @@ def consume(checker, installation, public_archive_bytes, target):
         need(relative_name(name), "unsupported installed member path")
         path = destination / name
         try:
-            need(all(not parent.is_symlink() for parent in path.parents if parent != destination.parent),
+            need(all(not (destination / parent).is_symlink() for parent in Path(name).parents),
                  "installed member traverses a symlink")
             need(regular(path) == data, "installed member differs from original installation")
         except OSError:
@@ -250,6 +263,7 @@ def consume(checker, installation, public_archive_bytes, target):
          and report.get("core") == {"path": str(core_path), "sha256": digest(core)},
          "installed Core is not the observed installation result")
     need(core_path.stat().st_mode & 0o111, "installed Core is not executable")
+    same_destination(requested, destination)
     return core_path
 
 

@@ -3,13 +3,22 @@
 The public check.py entry verifies public source identity and creates the source
 copy before calling this helper. Calling this worker alone is not that gate.
 """
+import sys
+
+# Load the named source before ordinary imports. A sibling json package or a
+# check package must not execute before the checked reader establishes imports.
+_check_path = (__file__.rpartition("/")[0] + "/" if "/" in __file__ else "") + "check.py"
+check = type(sys)("check")
+check.__file__ = _check_path
+sys.modules["check"] = check
+with open(_check_path, "rb") as _source:
+    exec(compile(_source.read(), _check_path, "exec"), check.__dict__)
+
 import json
 from contextlib import ExitStack
 from pathlib import Path
-import sys
 
 WORKER_BYTES = Path(__file__).read_bytes()
-import check
 
 
 def main():

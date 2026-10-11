@@ -419,10 +419,18 @@ Every official `check.py AC-n --evidence DIR` selection verifies the public
 product commit and the explicitly selected `checker_source` commit/tree.
 The checker verifies all its tracked current bytes before running the selected
 reader in an isolated copy of those Git blobs. Staged, unstaged, missing or
-changed loaded source is rejected; untracked Python imports beside the reader
-cannot supply acceptance. Loaded source includes the shared archive reader
-`tools/release/archive_reader.py`, recorded from the bytes the checker executed. Changes to the original checkout during a check are
-not deleted. Later reads execute from the verified copy, so changing a source
+changed loaded source is rejected. Before ordinary imports, checker bootstrap
+uses the interpreter's standard-library paths and loads its named helpers from
+their exact recorded source bytes. A checkout module or package cannot replace
+those imports through Python's search order. Untracked Python source beside the
+reader is rejected even when Git ignore rules hide it. The selected observation
+keeps that import boundary, and its worker starts with isolated Python search
+and the same checker bootstrap. The interpreter and standard library remain
+trusted; this does not attest interpreter startup hooks or the operating system.
+Loaded source includes the shared archive reader
+`tools/release/archive_reader.py`, recorded from the bytes the checker executed.
+Changes to the original checkout during a check are not deleted. Later reads
+execute from the verified copy, so changing a source
 file and restoring it cannot substitute other bytes. The temporary repository
 contains only the current tree, with no private history. Git environment
 redirections cannot select or modify another repository. Missing access and
@@ -484,13 +492,25 @@ python /absolute/tools/release-checks/install_trace.py run --archive /absolute/r
 This explicit collector reads a local validated archive and performs the fixed
 `fresh-release-directory/v1` procedure. It places the Core and all support files
 in a new directory; it has no arbitrary command, model or network option.
-Set `package_root` to that directory and `binary` to its `ha`. Existing output,
-existing installation destinations, and symlink inputs/destinations are refused.
+Set `package_root` to that directory and `binary` to its `ha`. Parent-directory
+symlinks are allowed, including operating-system aliases and user-created links.
+The original `launcher_argv` preserves the requested destination; the report's
+`destination` identifies its canonical installation directory. A symlink at the
+destination itself, an existing actual destination (also through another alias),
+an existing report, or an archive input that is itself a symlink is refused.
 Failed reports and partial trees remain; they cannot count as a fresh install.
 
 The consumer binds the exact original argv and stderr `JAEKIT_INSTALL_RECEIPT`
 (invocation, run ID, report digest) to the archive bytes, loaded collector and
 validator source, observed prior absence, and installed Core/support files.
+The collector rechecks that the requested path still identifies that canonical
+directory before reporting completion. The read-only consumer applies the same
+parent-link policy and rechecks this connection before accepting the installed
+result. A changed or unavailable connection cannot be replaced with a successful
+installation at another path, even if its archive bytes match. These are local
+observations of path consistency, not an OS guarantee against concurrent path
+replacement. Neither a failed observation nor consumption repairs a previous
+report or deletes the files created by the original installation.
 A successful `true`, a version query, or a preplaced binary cannot substitute
 for installation. Unsupported or missing observation is unverified; a recorded
 conflict or failed procedure is not reported as successful installation.

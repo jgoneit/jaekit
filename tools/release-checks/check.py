@@ -1,10 +1,23 @@
 #!/usr/bin/env python3
 """Opt-in, read-only release acceptance checks; see README.md for local evidence."""
-from __future__ import annotations
+# Only sys is imported before selecting the interpreter's own library paths.
+# A script directory or an embedding caller's checkout path must not supply
+# json.py, a stdlib package, or a helper package before source verification.
+import sys
+
+_CALLER_IMPORT_PATH = sys.path[:]
+_STDLIB_ROOT = getattr(sys, "_stdlib_dir", None)
+if not _STDLIB_ROOT:
+    _encodings_file = getattr(sys.modules.get("encodings"), "__file__", None)
+    if not _encodings_file or "/" not in _encodings_file:
+        raise ImportError("interpreter standard library location is unavailable")
+    _STDLIB_ROOT = _encodings_file.rsplit("/", 2)[0]
+_STDLIB_IMPORT_PATH = (_STDLIB_ROOT, _STDLIB_ROOT + "/lib-dynload")
+sys.path[:] = _STDLIB_IMPORT_PATH
 
 import argparse
 import base64
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 import hashlib
 import importlib.abc
 import importlib.util
@@ -17,21 +30,71 @@ import shutil
 import shlex
 import stat
 import subprocess
-import sys
 import tempfile
 from urllib.request import urlopen
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import shell_reader
-import execution_trace
-import source_identity
-import execution_provenance
-import install_trace
 
-LOADED_SOURCE = {str(Path(path).resolve()): Path(path).read_bytes()
-                 for path in (__file__, shell_reader.__file__, execution_trace.__file__, source_identity.__file__,
-                              execution_provenance.__file__)}
-LOADED_SOURCE[str(Path(install_trace.__file__).resolve())] = install_trace.LOADED_SELF
+class RecordedSourceLoader(importlib.abc.SourceLoader):
+    """Import exactly the bytes recorded as loaded source, never cached bytecode."""
+
+    def __init__(self, path, data):
+        self.path, self.data = path, data
+
+    def get_filename(self, fullname):
+        return str(self.path)
+
+    def get_data(self, path):
+        return self.data
+
+
+LOADED_SOURCE = {str(Path(__file__).resolve()): Path(__file__).read_bytes()}
+
+
+def load_observation_module(name):
+    """Fixed files, not Python's package/module or bytecode search precedence."""
+    path = Path(__file__).resolve().with_name(name + ".py")
+    existing = sys.modules.get(name)
+    if existing is not None:
+        if Path(getattr(existing, "__file__", "")).resolve() != path.resolve():
+            raise ImportError("observation module already loaded from another source: " + name)
+        recorded = getattr(existing, "_JAEKIT_LOADED_SOURCE", None)
+        if isinstance(recorded, bytes):
+            LOADED_SOURCE[str(path.resolve())] = recorded
+            return existing
+    loader = RecordedSourceLoader(path, path.read_bytes())
+    spec = importlib.util.spec_from_loader(name, loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    try:
+        loader.exec_module(module)
+    except BaseException:
+        if existing is None:
+            sys.modules.pop(name, None)
+        else:
+            sys.modules[name] = existing
+        raise
+    module._JAEKIT_LOADED_SOURCE = loader.data
+    LOADED_SOURCE[str(path.resolve())] = loader.data
+    return module
+
+
+# Dependencies are loaded first; sibling imports resolve to these exact files.
+shell_reader = load_observation_module("shell_reader")
+execution_provenance = load_observation_module("execution_provenance")
+execution_trace = load_observation_module("execution_trace")
+source_identity = load_observation_module("source_identity")
+install_trace = load_observation_module("install_trace")
+
+
+@contextmanager
+def trusted_imports():
+    """Keep later imports within the trusted runtime while accepting evidence."""
+    previous = sys.path[:]
+    sys.path[:] = _STDLIB_IMPORT_PATH
+    try:
+        yield
+    finally:
+        sys.path[:] = previous
 
 ROOT = Path(__file__).resolve().parents[2]
 REPO = "jgoneit/jaekit"
@@ -215,19 +278,6 @@ def native_platform():
     return f"{system}_{arch}"
 
 
-class RecordedSourceLoader(importlib.abc.SourceLoader):
-    """Import exactly the bytes recorded as loaded source, without rereading the file."""
-
-    def __init__(self, path, data):
-        self.path, self.data = path, data
-
-    def get_filename(self, fullname):
-        return str(self.path)
-
-    def get_data(self, path):
-        return self.data
-
-
 def load_archive_reader():
     # The validator and this checker share one reader; see README.md. Return
     # the executed bytes so the verified tree binds them like other sources.
@@ -241,6 +291,10 @@ def load_archive_reader():
 
 archive_reader, ARCHIVE_READER_SOURCE = load_archive_reader()
 LOADED_SOURCE[str(Path(archive_reader.__file__).resolve())] = ARCHIVE_READER_SOURCE
+# The embedding test/host keeps its own import search after checker bootstrap.
+# Public acceptance below re-enters the trusted search; its worker uses -I.
+sys.path[:] = _CALLER_IMPORT_PATH
+del _CALLER_IMPORT_PATH
 # Limits apply to every consumer of a downloaded or supplied release archive.
 ARCHIVE_MAX_COMPRESSED_BYTES = archive_reader.MAX_COMPRESSED_BYTES
 ARCHIVE_MAX_BYTES = archive_reader.MAX_BYTES
@@ -291,6 +345,7 @@ class Checker:
         self._source = {}
         self.product_root = None
 
+    @trusted_imports()
     def selected(self, criterion):
         """Verify product identity and the explicitly selected checker snapshot."""
         expected = self.evidence()["release"].get("source_commit")
@@ -316,7 +371,7 @@ class Checker:
                                                                                  PublicProduct()))
                     request_data.update(product_root=str(product), product_tree=product_tree)
                 request = json.dumps(request_data)
-                process = subprocess.run([sys.executable, str(selected / "tools/release-checks/snapshot_worker.py")],
+                process = subprocess.run([sys.executable, "-I", str(selected / "tools/release-checks/snapshot_worker.py")],
                                          cwd=selected, input=request, capture_output=True, text=True, timeout=1200,
                                          env=dict({key: val for key, val in os.environ.items() if not key.startswith("GIT_")},
                                                   PYTHONDONTWRITEBYTECODE="1"))
