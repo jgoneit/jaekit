@@ -1,0 +1,11 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "required-lists",
+      "runner": "go",
+      "test": "TestFindingRequiredListsScenario",
+      "package": "./cmd/ha"
+    }
+  ]
+}

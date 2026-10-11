@@ -1,0 +1,11 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "retry-equivalent",
+      "runner": "go",
+      "test": "TestFindingRetryEquivalentScenario",
+      "package": "./cmd/ha"
+    }
+  ]
+}

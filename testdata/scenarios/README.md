@@ -1,6 +1,6 @@
 # Seal Core scenarios
 
-Each directory is one scenario. `cmd/ha/scenario_test.go` builds a git repository from `_base/` plus the scenario's `files/`, commits it as the base, and runs `steps` line by line. Shared step sequences are in `_steps/`. Verification commands are small shell scripts run as argv (`sh tests/x.sh`), never as shell strings.
+Each directory is one scenario. `cmd/ha/scenario_test.go` builds a git repository from `_base/` plus the scenario's `files/`, commits it as the base, and runs `steps` line by line. Shared step sequences are in `_steps/`. `finding-input <path> <json>` writes a finding request in which `$COMPLETION` names the latest completion record. Verification commands are small shell scripts run as argv (`sh tests/x.sh`), never as shell strings.
 
 | Scenario | Source | Expected |
 | --- | --- | --- |
@@ -31,6 +31,9 @@ Each directory is one scenario. `cmd/ha/scenario_test.go` builds a git repositor
 | `bundle-docs-only` | EVALUATION §3.1 | records stay fresh |
 | `time-after-done` | EVALUATION §3.1 | still `complete`; deterministic output |
 | `findings-contract` | findings.md | actual JSON and human findings queries preserve the historical completion and deterministic state |
+| `findings-retry-equivalent` | findings.md 이력·충돌·저장 실패 | a retry that only writes out or omits an empty optional list returns the original receipt; different content stays refused |
+| `findings-required-lists` | findings.md 입력과 조회 | omitted, null or mistyped required lists are refused with exit 64 and no record; empty arrays stay arrays |
+| `findings-resolution-refs` | findings.md 입력과 조회 | current `resolution_refs` only on `resolved`; earlier references stay in history |
 | `reopen-after-done` | EVALUATION §3.1 | completion record voided, new budget window |
 | `complete-happy-path` | ROADMAP P1 | `complete` with a completion record; tree untouched |
 | `budget-runs` | INV-11 | under `run-rules/1`: `budget_exhausted`; quoted reopen opens a new window |
