@@ -18,6 +18,7 @@ Spec Skill이 원래 요청을 빠짐없이, 왜곡 없이 목표 문서로 옮�
 | [admin-order-search](admin-order-search.md) | 추천 | 새 주문이 검색에 바로 보여야 하는지를 추천과 이유, 선택지마다 잃는 것과 함께 먼저 묻는다 |
 | [draft-then-ready](draft-then-ready.md) | 바로 저장 | 저장 동의를 묻지 않고 첫 응답에서 목표 문서를 `Status: Draft`로 쓰며 남은 결정을 묻고, 답을 받으면 같은 문서를 `Ready`로 고친다 |
 | [target-then-draft](target-then-draft.md) | 작성 대상 선택 | 같은 동작을 다루는 목표 문서가 있는데 요청이 작성 대상을 말하지 않으면, 첫 응답에서 어떤 목표 문서도 쓰지 않고 추천과 이유를 붙여 작성 대상만 묻는다. 대상을 받으면 그 문서만 고치고 남은 결정은 `Status: Draft`로 쓰고 묻는다. 답을 받으면 같은 문서를 `Ready`로 고친다 |
+| [decision-boundaries](decision-boundaries.md) | 판정 경계와 예시 범위 | 미결정과 사용자 답, 기존 계약의 무질문, 표본·전체 목록과 관련 환경을 연결한다 |
 
 ## 상태
 
