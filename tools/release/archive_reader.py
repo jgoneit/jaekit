@@ -18,6 +18,7 @@ MAX_STREAM_BYTES = 512 * 1024 * 1024
 MAX_FILE_BYTES = 64 * 1024 * 1024
 MAX_METADATA_BYTES = 64 * 1024
 MAX_METADATA_TOTAL_BYTES = 1024 * 1024
+MAX_PAX_KEYS = 128
 METADATA_TYPES = (tarfile.XHDTYPE, tarfile.XGLTYPE, tarfile.SOLARIS_XHDTYPE,
                   tarfile.GNUTYPE_LONGNAME, tarfile.GNUTYPE_LONGLINK)
 
@@ -76,9 +77,15 @@ class BoundedTarInfo(tarfile.TarInfo):
             stream.metadata += self.size
             require(self.size <= limits["metadata"] and stream.metadata <= limits["metadata_total"],
                     "archive metadata limit exceeded")
+        # Global keys accumulate across headers. Check before the next PAX
+        # header can snapshot that state, including recursive local headers.
+        require(len(archive.pax_headers) <= limits["pax_keys"], "archive PAX key limit exceeded")
         return super()._proc_member(archive)
 
     def _apply_pax_info(self, pax_headers, encoding, errors):
+        # Also bound the combined global/local map before tarfile copies it
+        # into the retained member. The entry cap bounds the number of copies.
+        require(len(pax_headers) <= self.stream.limits["pax_keys"], "archive PAX key limit exceeded")
         if "size" in pax_headers:
             require(re.fullmatch(r"[0-9]+", pax_headers["size"]) is not None,
                     "invalid archive PAX size")
@@ -91,6 +98,10 @@ class BoundedTarInfo(tarfile.TarInfo):
             pax_headers["size"] = size
         require(not any(key.startswith("GNU.sparse.") for key in pax_headers),
                 "unsupported sparse archive entry")
+        # tarfile strips these slashes per member. Normalize shared global
+        # state once so a long path is not allocated again for every member.
+        if "path" in pax_headers:
+            pax_headers["path"] = pax_headers["path"].rstrip("/")
         return super()._apply_pax_info(pax_headers, encoding, errors)
 
     def _proc_sparse(self, *args):
@@ -106,7 +117,7 @@ class BoundedTarInfo(tarfile.TarInfo):
 
 LIMITS = {"compressed": MAX_COMPRESSED_BYTES, "bytes": MAX_BYTES, "entries": MAX_ENTRIES,
           "stream": MAX_STREAM_BYTES, "file": MAX_FILE_BYTES, "metadata": MAX_METADATA_BYTES,
-          "metadata_total": MAX_METADATA_TOTAL_BYTES}
+          "metadata_total": MAX_METADATA_TOTAL_BYTES, "pax_keys": MAX_PAX_KEYS}
 
 
 def read(data, **overrides):

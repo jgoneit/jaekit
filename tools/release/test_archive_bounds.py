@@ -248,7 +248,8 @@ def validator_limits():
             refused(lambda: validate(dist), "cumulative byte", code, "body beyond the cumulative limit")
         # The first archive in order is refused; its last body crosses the limit.
         last = members[-1].name.split("/", 1)[1]
-        require(not any(name.endswith("/" + last) for name in calls), code,
+        rejected_name = dist.prefix(sorted(release.TARGETS)[0]) + "/" + last
+        require(rejected_name not in calls, code,
                 "the validator read a body beyond the cumulative limit")
     for name in LIMIT_NAMES:
         value = getattr(release, name, None)
@@ -342,6 +343,88 @@ class ValidatorBounds(unittest.TestCase):
 
     def test_corrupt_or_trailing_data_is_refused_with_its_cause(self):
         validator_corruption()
+
+
+class PaxKeys(unittest.TestCase):
+    @staticmethod
+    def archive(*globals, local=None, empty_local=0):
+        raw = b"".join(tarfile.TarInfo.create_pax_global_header(value) for value in globals)
+        header = tarfile.TarInfo("pax")
+        header.type = tarfile.XHDTYPE
+        raw += header.tobuf(tarfile.USTAR_FORMAT) * empty_local
+        for name in ("first", "second"):
+            info = tarfile.TarInfo(name)
+            if name == "first" and local:
+                info.pax_headers = local
+            raw += info.tobuf(tarfile.PAX_FORMAT)
+        return gzip.compress(raw + b"\0" * 1024)
+
+    def test_global_local_and_accumulated_keys_before_copies(self):
+        keys = {f"k{n}": "v" for n in range(128)}
+        original = tarfile.TarInfo._apply_pax_info
+        copies = []
+
+        def capture(member, headers, *args):
+            copies.append(len(headers))
+            return original(member, headers, *args)
+
+        for label, data in (
+                ("single global", self.archive(dict(keys, extra="v"))),
+                ("accumulated globals", self.archive(keys, {"extra": "v"})),
+                ("global plus local", self.archive(keys, local={"extra": "v"})),
+                ("local only", self.archive(local=dict(keys, extra="v")))):
+            with self.subTest(label=label), mock.patch.object(tarfile.TarInfo, "_apply_pax_info", capture):
+                copies.clear()
+                with self.assertRaisesRegex(ValueError, "PAX key limit"):
+                    release.archive_reader.read(data)
+                self.assertTrue(all(count <= 128 for count in copies))
+
+        # Local headers copy global state before reading the next header.
+        # An oversized global map must be stopped before even entering here.
+        original_pax = tarfile.TarInfo._proc_pax
+        entered = []
+
+        def capture_pax(member, archive):
+            entered.append(member.type)
+            return original_pax(member, archive)
+
+        with mock.patch.object(tarfile.TarInfo, "_proc_pax", capture_pax):
+            with self.assertRaisesRegex(ValueError, "PAX key limit"):
+                release.archive_reader.read(self.archive(dict(keys, extra="v"), empty_local=3))
+        self.assertNotIn(tarfile.XHDTYPE, entered)
+
+    def test_exact_limit_overwrites_and_local_scope_remain_supported(self):
+        keys = {f"k{n}": "v" for n in range(127)} | {"uname": "global"}
+        data = self.archive(keys, {"uname": "updated"}, local={"uname": "local"})
+        members = release.archive_reader.read(data)
+        self.assertEqual([member.uname for member, _ in members], ["local", "updated"])
+        self.assertEqual([len(member.pax_headers) for member, _ in members], [128, 128])
+
+    def test_validator_and_native_smoke_share_key_bound(self):
+        with workspace() as (root, scratch):
+            dist = Dist(root)
+            native = native_target()
+            for count in (128, 129, 5000):
+                dist.write(native, pax={f"k{n}": "v" for n in range(count)})
+                before = dist.snapshot()
+                for consumer in (validate, smoke):
+                    with self.subTest(count=count, consumer=consumer.__name__):
+                        if count == 128:
+                            consumer(dist)
+                        else:
+                            with self.assertRaisesRegex(ValueError, "PAX key limit"):
+                                consumer(dist)
+                self.assertEqual(dist.snapshot(), before)
+                self.assertEqual(list(scratch.iterdir()), [])
+
+    def test_global_path_normalization_reuses_storage_and_keeps_local_scope(self):
+        name = "n" * 60000
+        members = release.archive_reader.read(self.archive({"path": name + "///"}))
+        self.assertEqual([member.name for member, _ in members], [name, name])
+        self.assertIs(members[0][0].name, members[1][0].name)
+        members = release.archive_reader.read(
+            self.archive({"path": "global///"}, local={"path": "local//"}))
+        self.assertEqual([member.name for member, _ in members], ["local", "global"])
 
 
 class Preservation(unittest.TestCase):

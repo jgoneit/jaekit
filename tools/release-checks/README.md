@@ -359,14 +359,29 @@ file contents are separately limited to 256 MiB so metadata cannot override that
 bound. Individual files remain limited to 64 MiB. All decompressed bytes,
 including metadata, padding, and trailing streams, are bounded by 512 MiB.
 
+Known limitation ([#49](https://github.com/jgoneit/jaekit/issues/49)): an
+unsupported special type with a PAX-overridden size can consume more than the
+cumulative body limit before the consumer rejects its type. The expanded
+stream limit still applies. Such an archive is not accepted as a release.
+
 Each PAX or GNU long-name metadata body is limited to 64 KiB, and all metadata
 bodies in one archive to 1 MiB. Both are checked from the header, before
 `tarfile` reads, decodes, or splits the body into records, so long names and
 the number of PAX records cannot grow parsed objects beyond these bodies.
 Ordinary long names and PAX attributes remain supported.
 
+Accumulated global PAX state and each effective global/local attribute map are
+limited to 128 distinct keys. Replacing a key does not add another key. The
+global bound is checked before another header can copy that state; the effective
+bound is checked before copying attributes into a member. Together with the
+entry limit, this bounds retained dictionary amplification from small global
+headers and recursive local headers. Trailing slashes in PAX paths are
+normalized once in shared state so repeated global paths reuse that string.
+Metadata body limits still bound parsing
+of an individual header; this is not an absolute process memory limit.
+
 Limit errors identify compressed size, cumulative bytes, entry count, metadata,
-or expanded stream. Invalid sizes, corrupt or incomplete tar/gzip data
+PAX keys, or expanded stream. Invalid sizes, corrupt or incomplete tar/gzip data
 (including a corrupt concatenated gzip member), and nonzero trailing data are
 rejected as an invalid or incomplete archive even if all required files were
 already encountered; zero padding and zero-filled concatenated gzip members
