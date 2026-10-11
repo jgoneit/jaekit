@@ -60,6 +60,18 @@
         "execution": "synthetic-additions.execution",
         "selection": "synthetic-additions.selection",
         "attribution": "synthetic-additions.attribution"
+      },
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {
+          "1": "history-audit-problem"
+        },
+        "unverified": [
+          2
+        ]
       }
     }
   ]
