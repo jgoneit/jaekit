@@ -6,8 +6,7 @@ import argparse
 import base64
 from contextlib import ExitStack
 import hashlib
-import io
-import gzip
+import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -17,7 +16,6 @@ import shutil
 import shlex
 import subprocess
 import sys
-import tarfile
 import tempfile
 from urllib.request import urlopen
 
@@ -132,114 +130,47 @@ def native_platform():
     return f"{system}_{arch}"
 
 
+def load_archive_reader():
+    # The validator and this checker share one reader; see README.md.
+    path = Path(__file__).resolve().parents[1] / "release" / "archive_reader.py"
+    spec = importlib.util.spec_from_file_location("jaekit_release_archive_reader", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+archive_reader = load_archive_reader()
 # Limits apply to every consumer of a downloaded or supplied release archive.
-ARCHIVE_MAX_BYTES = 256 * 1024 * 1024
-ARCHIVE_MAX_ENTRIES = 10000
-ARCHIVE_MAX_STREAM_BYTES = 512 * 1024 * 1024
-ARCHIVE_MAX_FILE_BYTES = 64 * 1024 * 1024
-
-
-class ArchiveReader:
-    """Bound decompression, including metadata and tar padding, without seeking back."""
-    def __init__(self, source):
-        self.source, self.position = source, 0
-
-    def tell(self):
-        return self.position
-
-    def read(self, size=-1):
-        remaining = ARCHIVE_MAX_STREAM_BYTES - self.position
-        requested = remaining + 1 if size < 0 else min(size, remaining + 1)
-        value = self.source.read(requested)
-        self.position += len(value)
-        require(self.position <= ARCHIVE_MAX_STREAM_BYTES, "archive expanded stream limit exceeded")
-        return value
-
-    def seek(self, offset, whence=0):
-        target = offset if whence == 0 else self.position + offset
-        require(whence in (0, 1) and target >= self.position, "invalid archive seek")
-        while self.position < target:
-            if not self.read(min(65536, target - self.position)):
-                raise EOFError("incomplete archive body")
-        return self.position
-
-
-class BoundedTarInfo(tarfile.TarInfo):
-    def _proc_member(self, archive):
-        # tarfile processes PAX/GNU metadata before yielding a logical member.
-        # Count/check each physical header here, before that metadata is read.
-        entries = getattr(archive, "bounded_entries", 0) + 1
-        total = getattr(archive, "bounded_bytes", 0) + self.size
-        require(entries <= ARCHIVE_MAX_ENTRIES, "archive entry count limit exceeded")
-        require(self.size >= 0, "invalid negative archive size")
-        require(total <= ARCHIVE_MAX_BYTES, "archive cumulative byte limit exceeded")
-        archive.bounded_entries, archive.bounded_bytes = entries, total
-        return super()._proc_member(archive)
-
-
-    def _apply_pax_info(self, pax_headers, encoding, errors):
-        if "size" in pax_headers:
-            require(re.fullmatch(r"[0-9]+", pax_headers["size"]) is not None,
-                    "invalid archive PAX size")
-            size = pax_headers["size"].lstrip("0") or "0"
-            maximum = str(ARCHIVE_MAX_FILE_BYTES)
-            require(len(size) < len(maximum) or (len(size) == len(maximum) and size <= maximum),
-                    "oversized archive entry")
-            # Avoid Python's integer digit limit being silently interpreted as
-            # size zero by tarfile, even for a long but valid leading-zero value.
-            pax_headers["size"] = size
-        require(not any(key.startswith("GNU.sparse.") for key in pax_headers),
-                "unsupported sparse archive entry")
-        return super()._apply_pax_info(pax_headers, encoding, errors)
-
-    def _proc_sparse(self, *args):
-        raise Failure("unsupported sparse archive entry")
-
-    # Sparse maps can consume hidden extension blocks or logical body bytes
-    # before TarFile yields the entry. Release packages contain regular files;
-    # reject these extensions before their maps are interpreted.
-    _proc_gnusparse_00 = _proc_sparse
-    _proc_gnusparse_01 = _proc_sparse
-    _proc_gnusparse_10 = _proc_sparse
+ARCHIVE_MAX_COMPRESSED_BYTES = archive_reader.MAX_COMPRESSED_BYTES
+ARCHIVE_MAX_BYTES = archive_reader.MAX_BYTES
+ARCHIVE_MAX_ENTRIES = archive_reader.MAX_ENTRIES
+ARCHIVE_MAX_STREAM_BYTES = archive_reader.MAX_STREAM_BYTES
+ARCHIVE_MAX_FILE_BYTES = archive_reader.MAX_FILE_BYTES
+ARCHIVE_MAX_METADATA_BYTES = archive_reader.MAX_METADATA_BYTES
+ARCHIVE_MAX_METADATA_TOTAL_BYTES = archive_reader.MAX_METADATA_TOTAL_BYTES
 
 
 def archive_files(data, target):
     """Inspect bounded bytes in memory; never extract archive paths to disk."""
     prefix = f"ha_{VERSION}_{target}/"
-    files, logical_bytes = {}, 0
     try:
-        with gzip.GzipFile(fileobj=io.BytesIO(data), mode="rb") as compressed:
-            reader = ArchiveReader(compressed)
-            with tarfile.open(fileobj=reader, mode="r:", tarinfo=BoundedTarInfo) as archive:
-                for member in archive:
-                    name = member.name
-                    path = PurePosixPath(name)
-                    require(not path.is_absolute() and ".." not in path.parts,
-                            "unsafe archive entry")
-                    require(name == prefix[:-1] or name.startswith(prefix),
-                            "archive root disagrees with platform name")
-                    require(member.isdir() or member.isfile(), "archive contains a non-regular entry")
-                    require(member.size >= 0, "invalid negative archive size")
-                    if member.isfile():
-                        relative = name[len(prefix):]
-                        require(relative and relative not in files, "duplicate archive entry")
-                        require(member.size <= ARCHIVE_MAX_FILE_BYTES, "oversized archive entry")
-                        logical_bytes += member.size
-                        require(logical_bytes <= ARCHIVE_MAX_BYTES,
-                                "archive cumulative byte limit exceeded")
-                        value = archive.extractfile(member).read()
-                        require(len(value) == member.size, "incomplete archive entry")
-                        files[relative] = value
-                # Tar iteration stops at the first zero header. Validate the
-                # entire remainder and gzip trailer, including concatenated
-                # streams, rather than accepting an early set of required files.
-                padding = reader.tell() - archive.offset
-                while chunk := reader.read(65536):
-                    require(not any(chunk), "nonzero data after archive end")
-                    padding += len(chunk)
-                require(padding >= 1024, "incomplete archive end markers")
-    except (tarfile.TarError, OSError, EOFError, ValueError, OverflowError, RecursionError):
-        raise Failure("invalid or incomplete release archive") from None
+        members = archive_reader.read(
+            data, compressed=ARCHIVE_MAX_COMPRESSED_BYTES, bytes=ARCHIVE_MAX_BYTES,
+            entries=ARCHIVE_MAX_ENTRIES, stream=ARCHIVE_MAX_STREAM_BYTES, file=ARCHIVE_MAX_FILE_BYTES,
+            metadata=ARCHIVE_MAX_METADATA_BYTES, metadata_total=ARCHIVE_MAX_METADATA_TOTAL_BYTES)
+    except archive_reader.Rejected as error:
+        raise Failure(str(error)) from None
+    files = {}
+    for member, body in members:
+        name = member.name
+        path = PurePosixPath(name)
+        require(not path.is_absolute() and ".." not in path.parts, "unsafe archive entry")
+        require(name == prefix[:-1] or name.startswith(prefix), "archive root disagrees with platform name")
+        require(member.isdir() or member.isfile(), "archive contains a non-regular entry")
+        if member.isfile():
+            relative = name[len(prefix):]
+            require(relative and relative not in files, "duplicate archive entry")
+            files[relative] = body
     for name in ("ha", "LICENSE", "README.md", "README.en.md", "guides/INSTALL.md",
                  "guides/INSTALL.en.md", "contracts/run-record.md"):
         require(name in files, f"release archive omits {name}")
@@ -363,10 +294,10 @@ class Checker:
             require(item.get("browser_download_url") == url, "asset URL disagrees with tag")
             try:
                 with urlopen(url, timeout=45) as response:
-                    data = response.read(64 * 1024 * 1024 + 1)
+                    data = response.read(ARCHIVE_MAX_COMPRESSED_BYTES + 1)
             except OSError:
                 raise Unavailable("public release asset download failed") from None
-            require(len(data) <= 64 * 1024 * 1024 and len(data) == item.get("size"),
+            require(len(data) <= ARCHIVE_MAX_COMPRESSED_BYTES and len(data) == item.get("size"),
                     "downloaded asset size differs from public metadata")
             require(item.get("digest") == "sha256:" + digest(data),
                     "downloaded asset digest differs from public metadata")

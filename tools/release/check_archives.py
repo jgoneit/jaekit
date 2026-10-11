@@ -3,11 +3,14 @@
 
 No download, installation, upload, tag changes, or writes to the source tree.
 Native smoke files live in a temporary directory and use only packaged inputs.
+Archives are read only through the shared bounded reader (archive_reader.py);
+its limits are published in tools/release-checks/README.md.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -17,7 +20,6 @@ import shutil
 import struct
 import subprocess
 import sys
-import tarfile
 import tempfile
 
 TARGETS = ("linux_amd64", "linux_arm64", "darwin_amd64", "darwin_arm64")
@@ -47,6 +49,25 @@ REQUIRED = {
 ROOT_FILES = {"ha", "LICENSE", "README.md", "README.en.md"}
 ROOT_DIRECTORIES = {"guides", "contracts", "assets", "tools", "examples"}
 EXAMPLE_FILES = {name for name in REQUIRED if name.startswith("examples/")}
+
+
+def load_archive_reader():
+    path = Path(__file__).resolve().with_name("archive_reader.py")
+    spec = importlib.util.spec_from_file_location("jaekit_release_archive_reader", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+archive_reader = load_archive_reader()
+# The same published limits as the acceptance checker; see archive_reader.py.
+ARCHIVE_MAX_COMPRESSED_BYTES = archive_reader.MAX_COMPRESSED_BYTES
+ARCHIVE_MAX_BYTES = archive_reader.MAX_BYTES
+ARCHIVE_MAX_ENTRIES = archive_reader.MAX_ENTRIES
+ARCHIVE_MAX_STREAM_BYTES = archive_reader.MAX_STREAM_BYTES
+ARCHIVE_MAX_FILE_BYTES = archive_reader.MAX_FILE_BYTES
+ARCHIVE_MAX_METADATA_BYTES = archive_reader.MAX_METADATA_BYTES
+ARCHIVE_MAX_METADATA_TOTAL_BYTES = archive_reader.MAX_METADATA_TOTAL_BYTES
 
 
 def require(ok: bool, message: str):
@@ -79,9 +100,26 @@ def checksum_entries(text: str):
     return entries
 
 
-def archive_files(archive: tarfile.TarFile, prefix: str):
+def read_archive(path: Path, checksum: str | None = None):
+    """Read one archive file once within the compressed limit, then parse it bounded.
+
+    A given checksum is checked against exactly the bytes that are parsed.
+    """
+    require(path.stat().st_size <= ARCHIVE_MAX_COMPRESSED_BYTES, "archive compressed size limit exceeded")
+    with path.open("rb") as source:
+        data = source.read(ARCHIVE_MAX_COMPRESSED_BYTES + 1)
+    if checksum is not None:
+        require(hashlib.sha256(data).hexdigest() == checksum, "checksum mismatch: " + path.name)
+    return archive_reader.read(
+        data, compressed=ARCHIVE_MAX_COMPRESSED_BYTES, bytes=ARCHIVE_MAX_BYTES, entries=ARCHIVE_MAX_ENTRIES,
+        stream=ARCHIVE_MAX_STREAM_BYTES, file=ARCHIVE_MAX_FILE_BYTES, metadata=ARCHIVE_MAX_METADATA_BYTES,
+        metadata_total=ARCHIVE_MAX_METADATA_TOTAL_BYTES)
+
+
+def archive_files(members, prefix: str):
+    """Map each packaged file to (member, body); bodies come from the bounded reader."""
     files, names = {}, set()
-    for member in archive.getmembers():
+    for member, body in members:
         name = member.name.rstrip("/")
         path = PurePosixPath(name)
         require(name and not path.is_absolute() and ".." not in path.parts
@@ -109,15 +147,14 @@ def archive_files(archive: tarfile.TarFile, prefix: str):
             require(str(relative) in EXAMPLE_FILES | {"examples", "examples/check-result"},
                     "archive contains an unexpected example file")
         if member.isfile():
-            files[str(relative)] = member
+            files[str(relative)] = (member, body)
     require(REQUIRED <= files.keys(), "archive is missing required files: " + ", ".join(sorted(REQUIRED - files.keys())))
-    require(files["ha"].mode & 0o111 != 0, "archive Core is not executable")
+    require(files["ha"][0].mode & 0o111 != 0, "archive Core is not executable")
     return files
 
 
-def check_platform(archive: tarfile.TarFile, binary: tarfile.TarInfo, target: str):
-    with archive.extractfile(binary) as source:
-        header = source.read(64)
+def check_platform(binary: bytes, target: str):
+    header = binary[:64]
     require(len(header) >= 20, "packaged Core has no supported executable header")
     system, arch = target.split("_")
     if system == "linux":
@@ -138,10 +175,9 @@ def check(dist: Path, version: str, published_assets: Path | None = None):
     checksums = checksum_entries((dist / "checksums.txt").read_text(encoding="utf-8"))
     require(checksums.keys() == names, "checksum file does not name exactly the four release archives")
     for name in sorted(names):
-        require(digest(dist / name) == checksums[name], "checksum mismatch: " + name)
-        with tarfile.open(dist / name, "r:gz") as archive:
-            files = archive_files(archive, name.removesuffix(".tar.gz"))
-            check_platform(archive, files["ha"], name.removeprefix("ha_" + version + "_").removesuffix(".tar.gz"))
+        members = read_archive(dist / name, checksums[name])
+        files = archive_files(members, name.removesuffix(".tar.gz"))
+        check_platform(files["ha"][1], name.removeprefix("ha_" + version + "_").removesuffix(".tar.gz"))
     if published_assets is not None:
         uploaded = published_assets.read_text(encoding="utf-8").splitlines()
         require(len(uploaded) == len(set(uploaded)) and set(uploaded) == actual,
@@ -166,14 +202,15 @@ def native_smoke(dist: Path, version: str):
     with tempfile.TemporaryDirectory(prefix="jaekit-release-smoke-") as directory:
         root = Path(directory)
         package = root / "package"
-        with tarfile.open(dist / (prefix + ".tar.gz"), "r:gz") as archive:
-            files = archive_files(archive, prefix)
-            for name, member in files.items():
-                destination = package / name
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                with archive.extractfile(member) as source, destination.open("xb") as output:
-                    shutil.copyfileobj(source, output)
-                destination.chmod(member.mode & 0o777)
+        members = read_archive(dist / (prefix + ".tar.gz"))
+        files = archive_files(members, prefix)
+        # Only bounded bodies reach the disk, inside the temporary directory.
+        for name, (member, body) in files.items():
+            destination = package / name
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            with destination.open("xb") as output:
+                output.write(body)
+            destination.chmod(member.mode & 0o777)
         binary = str(package / "ha")
         require(invoke([binary, "--version"], root).strip() == "ha " + version,
                 "packaged Core version does not match the release")
@@ -244,7 +281,7 @@ def main():
     try:
         check(args.dist, args.version, args.published_assets)
         target = native_smoke(args.dist, args.version) if args.run_native else None
-    except (OSError, ValueError, KeyError, TypeError, tarfile.TarError, subprocess.TimeoutExpired) as error:
+    except (OSError, ValueError, KeyError, TypeError, subprocess.TimeoutExpired) as error:
         print("FAIL: " + str(error), file=sys.stderr)
         return 1
     suffix = f"; native {target} Core and reference violation/pass" if target else ""
