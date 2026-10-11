@@ -91,6 +91,17 @@ class PublicContract(unittest.TestCase):
                     checker.emit([])
             self.assertEqual(path.read_text(), "previous invocation")
 
+class ReportingAttribution(unittest.TestCase):
+    def test_relations_are_reported_by_their_owners(self):
+        if SUITE != "reporting":
+            return
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import ownership
+        ownership.assert_owned(self, checker, SUITE, "examples/empty-input/PROGRESS.md", [
+            ("| 미상 | 기록 없음 |", "| 사건 | 작성 시계 |", {"AC-5", "AC-7"}),
+            ("| example-check-v1 | 미관측 |", "| check-v0 | 미관측 |", {"AC-4", "AC-7"}),
+            ("| 미관측 | 미수행 |", "| 실제 모델 | 통과 |", {"AC-2", "AC-4", "AC-7"}),
+        ])
 
 if __name__ == "__main__":
     unittest.main()
