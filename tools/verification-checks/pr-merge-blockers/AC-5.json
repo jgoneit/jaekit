@@ -1,0 +1,20 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-merge-blockers",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/pr_merge_blockers.py",
+    "tools/result_observations.py",
+    "tools/release-checks/integration_install_destination.py",
+    "tools/release-checks/integration_direct_install.py"
+  ],
+  "targets": [
+    {"id": "AC-5", "violation": "installation-path-binding"},
+    {"id": "AC-5.assertion-2", "violation": "installation-path-binding"},
+    {"id": "AC-5.assertion-3", "violation": "installation-path-binding"},
+    {"id": "AC-5.assertion-4", "violation": "installation-path-binding"},
+    {"id": "AC-5.execution", "violation": "no-additional-violation"},
+    {"id": "AC-5.selection", "violation": "no-additional-violation"},
+    {"id": "AC-5.attribution", "violation": "no-additional-violation"}
+  ]
+}

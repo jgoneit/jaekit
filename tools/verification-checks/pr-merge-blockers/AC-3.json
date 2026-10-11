@@ -1,0 +1,23 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-merge-blockers",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/pr_merge_blockers.py",
+    "tools/result_observations.py",
+    "tools/release-checks/test_import_provenance.py"
+  ],
+  "targets": [
+    {"id": "AC-3", "violation": "unverified-import"},
+    {"id": "AC-3.assertion-2", "violation": "unverified-import"},
+    {"id": "AC-3.assertion-3", "violation": "unverified-import"},
+    {"id": "AC-3.assertion-4", "violation": "unverified-import"},
+    {"id": "AC-3.assertion-5", "violation": "unverified-import"},
+    {"id": "AC-3.assertion-6", "violation": "unverified-import"},
+    {"id": "AC-3.assertion-7", "violation": "unverified-import"},
+    {"id": "AC-3.assertion-8", "violation": "unverified-import"},
+    {"id": "AC-3.execution", "violation": "no-additional-violation"},
+    {"id": "AC-3.selection", "violation": "no-additional-violation"},
+    {"id": "AC-3.attribution", "violation": "no-additional-violation"}
+  ]
+}
