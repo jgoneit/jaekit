@@ -1447,6 +1447,7 @@ def private_text(data):
             "public release contains private environment references")
 
 
+@trusted_imports()
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("criterion", choices=[f"AC-{n}" for n in range(1, 12)])

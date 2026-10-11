@@ -144,11 +144,11 @@ def verify_go(env: dict[str, str]):
     run("Producer semantic regressions (test_semantics.py)",
         [sys.executable, "-m", "unittest", "discover", "-s", "tools/producer-checks",
          "-p", "test_semantics.py"], env)
-    for filename in ("integration_evidence_boundaries.py", "integration_core_observation.py", "integration_direct_install.py", "integration_product_source.py", "integration_install_destination.py"):
+    for filename in ("integration_evidence_boundaries.py", "integration_core_observation.py", "integration_direct_install.py", "integration_product_source.py", "integration_install_destination.py", "integration_install_imports.py"):
         run(f"Release evidence boundaries ({filename})",
             [sys.executable, "-m", "unittest", "discover", "-s", "tools/release-checks",
              "-p", filename], env)
-    for filename in ("test_merge_blockers.py", "integration_go_filters.py", "integration_observer_core.py"):
+    for filename in ("test_merge_blockers.py", "integration_go_filters.py", "integration_observer_core.py", "test_observer_attribution.py"):
         run(f"Merge blocker regressions ({filename})",
             [sys.executable, "-m", "unittest", "discover", "-s", "tools/regression-checks",
              "-p", filename], env)

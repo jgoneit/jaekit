@@ -5,19 +5,150 @@
   "producer_paths": [
     "tools/verification-checks/pr_merge_blockers.py",
     "tools/result_observations.py",
-    "tools/release-checks/test_import_provenance.py"
+    "tools/release-checks/test_import_provenance.py",
+    "tools/release-checks/integration_install_imports.py",
+    "tools/release-checks/integration_direct_install.py"
   ],
   "targets": [
-    {"id": "AC-3", "violation": "unverified-import"},
-    {"id": "AC-3.assertion-2", "violation": "unverified-import"},
-    {"id": "AC-3.assertion-3", "violation": "unverified-import"},
-    {"id": "AC-3.assertion-4", "violation": "unverified-import"},
-    {"id": "AC-3.assertion-5", "violation": "unverified-import"},
-    {"id": "AC-3.assertion-6", "violation": "unverified-import"},
-    {"id": "AC-3.assertion-7", "violation": "unverified-import"},
-    {"id": "AC-3.assertion-8", "violation": "unverified-import"},
-    {"id": "AC-3.execution", "violation": "no-additional-violation"},
-    {"id": "AC-3.selection", "violation": "no-additional-violation"},
-    {"id": "AC-3.attribution", "violation": "no-additional-violation"}
+    {
+      "id": "AC-3",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-2",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-3",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-4",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-5",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-6",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-7",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-8",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-9",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-10",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-11",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-12",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-13",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-14",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-15",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-16",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-17",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-18",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-19",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-20",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-21",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-22",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-23",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-24",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-25",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-26",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-27",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-28",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-29",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-30",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-31",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.assertion-32",
+      "violation": "unverified-import"
+    },
+    {
+      "id": "AC-3.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-3.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "AC-3.attribution",
+      "violation": "no-additional-violation"
+    }
   ]
 }
