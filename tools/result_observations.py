@@ -161,6 +161,11 @@ def observations(result, primary, names):
         errors.remove("execution_error")
         errors.insert(0, "execution_error")
     if len(result["violations"]) > len(slots):
+        if errors:
+            # The execution facet already reports another error. The last slot
+            # carries the incompleteness instead, so neither fact is lost.
+            report[len(slots) - 1] = {"target": slots[-1], "attempt": 1, "status": "error",
+                                      "reason": "collection_error"}
         errors.append("collection_error")
     facets = [(names["execution"], "error", errors[0] if errors else None),
               (names["selection"], "skip", result["skipped"][0] if result["skipped"] else None),

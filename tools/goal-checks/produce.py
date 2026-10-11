@@ -34,6 +34,16 @@ PRODUCER = "jaekit-goal-tests"
 VERSION = "2"
 TIMEOUT = 900
 SKIP_COPY = {".git", ".claude", ".private", "docs"}
+# A violation key is an exit code 1-255 written in canonical ASCII decimal.
+EXIT_KEY = re.compile(r"[1-9][0-9]{0,2}\Z")
+
+
+def unique_object(pairs):
+    """Refuse duplicate JSON keys instead of keeping the last value."""
+    keys = [key for key, _ in pairs]
+    if len(set(keys)) != len(keys):
+        raise ValueError("duplicate JSON object key")
+    return dict(pairs)
 
 
 def local_file(name):
@@ -269,28 +279,31 @@ def run_command(check, detailed=False):
         raise ValueError("invalid command")
     if argv[0] == "python3":
         argv = [sys.executable, *argv[1:]]
+    contract = check.get("exit_contract")
+    # The contract is validated before the command runs. A violation key is
+    # the exit code's canonical ASCII form, so lookup names the same exit.
+    if contract is not None:
+        if (not isinstance(contract, dict) or set(contract) != {"schema", "pass", "violations", "unverified"}
+                or contract["schema"] != "jaekit-command-exits/v1"):
+            raise ValueError("invalid command exit contract")
+        passes, unknown, violations = contract["pass"], contract["unverified"], contract["violations"]
+        if (not isinstance(passes, list) or not isinstance(unknown, list) or not isinstance(violations, dict)
+                or any(type(x) is not int or not 0 <= x <= 255 for x in passes + unknown)
+                or any(not EXIT_KEY.fullmatch(key) or int(key) > 255
+                       or not isinstance(value, str) or not results.IDENTIFIER.fullmatch(value)
+                       for key, value in violations.items())
+                or len(set(passes + unknown + [int(k) for k in violations])) != len(passes) + len(unknown) + len(violations)):
+            raise ValueError("overlapping or invalid command exit contract")
     proc = subprocess.run(argv, cwd=Path.cwd(), env=go_env(), capture_output=True, text=True, timeout=TIMEOUT)
     sys.stderr.write(proc.stdout + proc.stderr)
     result = results.facts()
-    contract = check.get("exit_contract")
     if contract is None:
         # The old command runner remains useful for maintain, not change.
         if proc.returncode == 0 and "HA_EVIDENCE_PATH" not in os.environ:
             result["passed"] = 1
         else:
             result["errors"].append("execution_error")
-    elif (not isinstance(contract, dict) or set(contract) != {"schema", "pass", "violations", "unverified"}
-          or contract["schema"] != "jaekit-command-exits/v1"):
-        raise ValueError("invalid command exit contract")
     else:
-        passes, unknown, violations = contract["pass"], contract["unverified"], contract["violations"]
-        if (not isinstance(passes, list) or not isinstance(unknown, list) or not isinstance(violations, dict)
-                or any(type(x) is not int or not 0 <= x <= 255 for x in passes + unknown)
-                or any(not key.isdecimal() or not 1 <= int(key) <= 255
-                       or not isinstance(value, str) or not results.IDENTIFIER.fullmatch(value)
-                       for key, value in violations.items())
-                or len(set(passes + unknown + [int(k) for k in violations])) != len(passes) + len(unknown) + len(violations)):
-            raise ValueError("overlapping or invalid command exit contract")
         if proc.returncode in passes:
             result["passed"] = 1
         elif proc.returncode in unknown:
@@ -332,8 +345,8 @@ def main(argv):
         print("usage: produce.py DECLARATION TARGETS", file=sys.stderr)
         return 2
     try:
-        declaration = json.loads(local_file(argv[1]).read_text(encoding="utf-8"))
-        config = json.loads(local_file(argv[2]).read_text(encoding="utf-8"))
+        declaration = json.loads(local_file(argv[1]).read_text(encoding="utf-8"), object_pairs_hook=unique_object)
+        config = json.loads(local_file(argv[2]).read_text(encoding="utf-8"), object_pairs_hook=unique_object)
         legacy_maintain = ("HA_EVIDENCE_PATH" not in os.environ
                            and declaration.get("producer_version") == "1"
                            and config.get("schema") == "jaekit-goal-targets/v1")
