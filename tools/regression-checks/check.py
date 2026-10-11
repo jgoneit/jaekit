@@ -19,6 +19,8 @@ class Environment(Exception):
 def run(argv):
     env={k:v for k,v in os.environ.items() if not k.startswith('HA_EVIDENCE_')}
     env['PYTHONDONTWRITEBYTECODE']='1'
+    # Match tools/verify.py: never download a different Go toolchain.
+    env['GOTOOLCHAIN']='local'
     try:
         return subprocess.run(argv,cwd=ROOT,env=env,capture_output=True,text=True,timeout=1800)
     except (OSError,subprocess.TimeoutExpired) as error:

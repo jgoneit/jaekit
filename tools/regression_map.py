@@ -6,12 +6,30 @@ import argparse
 import ast
 import fnmatch
 import json
+import os
 from pathlib import Path
 import re
+import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 INVARIANTS = {f'I{n}' for n in range(1, 6)}
+# Statements that can end or skip the rest of a verification group.
+ENDING = (ast.Return, ast.Raise, ast.Break, ast.Continue, ast.If, ast.While, ast.Try,
+          getattr(ast, 'TryStar', ast.Try), ast.Match, ast.Assert)
+# The common loader collects one selected file; tests are not executed.
+COLLECT = r"""import json, sys, unittest
+loader = unittest.TestLoader()
+suite = loader.discover(sys.argv[1], pattern=sys.argv[2])
+def ids(suite):
+    for item in suite:
+        if isinstance(item, unittest.TestSuite):
+            yield from ids(item)
+        else:
+            yield item.id()
+tests = sorted(ids(suite))
+print(json.dumps({'errors': len(loader.errors), 'tests': tests}))
+"""
 
 
 class Invalid(ValueError):
@@ -44,13 +62,59 @@ def strings(value, label):
         raise Invalid(f'{label}: duplicate values')
 
 
-def source(root, name):
+def tracked(root):
+    """Tracked files of the Git source checkout at root; history is not read."""
+    try:
+        top = subprocess.run(['git', 'rev-parse', '--show-toplevel'], cwd=root, capture_output=True, text=True)
+        files = subprocess.run(['git', 'ls-files', '-z'], cwd=root, capture_output=True)
+    except OSError as error:
+        raise Invalid('registry validation requires git and a source checkout') from error
+    if top.returncode or files.returncode or Path(top.stdout.strip()).resolve() != Path(root).resolve():
+        raise Invalid('registry validation requires a Git source checkout at the repository root')
+    return {name for name in files.stdout.decode('utf-8', 'surrogateescape').split('\0') if name}
+
+
+def source(root, name, public):
     if not isinstance(name, str) or not name or Path(name).is_absolute() or '..' in Path(name).parts:
         raise Invalid(f'unsafe source path: {name!r}')
+    parts = Path(name).parts
+    if '.git' in parts or parts[0] == 'docs':
+        raise Invalid(f'repository metadata or local goal documents are not public sources: {name}')
     path = root / name
     if path.is_symlink() or not path.is_file() or not path.resolve().is_relative_to(root.resolve()):
         raise Invalid(f'missing or nonregular source: {name}')
+    if Path(name).as_posix() not in public:
+        raise Invalid(f'untracked source is not public evidence: {name}')
     return path
+
+
+def ends_group(node):
+    """Whether a context body can end or skip the rest of its group."""
+    for child in ast.walk(node):
+        if isinstance(child, ENDING):
+            return True
+        if isinstance(child, ast.Call):
+            func = child.func
+            if isinstance(func, ast.Name) and func.id in ('exit', 'quit'):
+                return True
+            if (isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name) and
+                    (func.value.id, func.attr) in (('sys', 'exit'), ('os', '_exit'), ('os', 'abort'))):
+                return True
+    return False
+
+
+def collected(root, directory, name):
+    """Test IDs that the common unittest loader collects from one selected file."""
+    try:
+        result = subprocess.run([sys.executable, '-c', COLLECT, directory, name], cwd=root,
+                                env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'),
+                                capture_output=True, text=True, timeout=300)
+        data = json.loads(result.stdout.strip().splitlines()[-1]) if result.stdout.strip() else None
+    except (OSError, subprocess.TimeoutExpired, ValueError) as error:
+        raise Invalid(f'Python regression could not be collected: {directory}/{name}') from error
+    if result.returncode or not isinstance(data, dict) or data.get('errors') or not isinstance(data.get('tests'), list):
+        raise Invalid(f'Python regression could not be collected: {directory}/{name}')
+    return data['tests']
 
 
 def literal(node, bindings):
@@ -73,6 +137,8 @@ def selected_suites(root):
 
     Control flow that can hide a selected call is refused. Build-only with
     blocks are outside this selection parser; they are exercised by verify.py.
+    A with body that selects tests, or can end or skip the rest of the group,
+    is refused because later selections might not be reached.
     """
     tree = ast.parse((root / 'tools/verify.py').read_text())
     result = {'go': set(), 'docs': set()}
@@ -85,6 +151,8 @@ def selected_suites(root):
                 constants = {n.value for n in ast.walk(node) if isinstance(n, ast.Constant) and isinstance(n.value, str)}
                 if 'test' in constants or 'discover' in constants or 'unittest' in constants:
                     raise Invalid('test selection inside unsupported context manager')
+                if ends_group(node):
+                    raise Invalid('unsupported control flow inside context manager')
                 continue
             if isinstance(node, ast.For):
                 values = literal(node.iter, bindings)
@@ -121,10 +189,10 @@ def selected_suites(root):
     return result
 
 
-def check_definition(root, check, selected):
+def check_definition(root, check, selected, public, collections):
     fields(check, 'file selector group', 'check')
     file, selector, group = (check[k] for k in ('file', 'selector', 'group'))
-    path = source(root, file)
+    path = source(root, file, public)
     if group not in selected or not isinstance(selector, str):
         raise Invalid('unknown group or selector')
     if file.endswith('_test.go'):
@@ -139,12 +207,12 @@ def check_definition(root, check, selected):
         parts = selector.split('.')
         if len(parts) not in (1, 2) or not all(re.fullmatch(r'[A-Za-z_]\w*', p) for p in parts):
             raise Invalid(f'unsupported Python selector: {selector}')
-        classes = [n for n in ast.parse(path.read_text()).body if isinstance(n, ast.ClassDef) and n.name == parts[0]]
-        if len(classes) != 1:
-            raise Invalid(f'Python class missing: {file}:{selector}')
-        names = [n.name for n in classes[0].body if isinstance(n, ast.FunctionDef) and n.name.startswith('test_')]
-        if not names or (len(parts) == 2 and parts[1] not in names):
-            raise Invalid(f'Python test missing: {file}:{selector}')
+        relative = path.relative_to(root)
+        if relative not in collections:
+            collections[relative] = collected(root, str(relative.parent), relative.name)
+        prefix = f'{relative.stem}.{selector}'
+        if not any(test == prefix or (len(parts) == 1 and test.startswith(prefix + '.')) for test in collections[relative]):
+            raise Invalid(f'Python test is not collected by the common loader: {file}:{selector}')
     else:
         raise Invalid(f'unsupported test type: {file}')
 
@@ -154,6 +222,7 @@ def validate(root, data):
     if data['schema'] != 'regression-map/v1':
         raise Invalid('unsupported registry schema')
     selected = selected_suites(root)
+    public, collections = tracked(root), {}
     invariants = set()
     for row in data['invariants']:
         fields(row, 'id basis property', 'invariant')
@@ -162,7 +231,7 @@ def validate(root, data):
         invariants.add(row['id'])
         strings(row['basis'], 'basis')
         for basis in row['basis']:
-            source(root, basis)
+            source(root, basis, public)
         if not isinstance(row['property'], str) or not row['property'].strip():
             raise Invalid('missing invariant property')
     if invariants != INVARIANTS:
@@ -180,7 +249,7 @@ def validate(root, data):
         for key in ('sources', 'examples', 'families'):
             strings(route[key], key)
         for name in route['sources']:
-            source(root, name)
+            source(root, name, public)
         for key in ('property', 'boundary'):
             if not isinstance(route[key], str) or not route[key].strip():
                 raise Invalid(f'missing route {key}')
@@ -188,7 +257,7 @@ def validate(root, data):
             if not isinstance(route['checks'], list) or not route['checks']:
                 raise Invalid('protection requires selected checks')
             for check in route['checks']:
-                check_definition(root, check, selected)
+                check_definition(root, check, selected, public, collections)
             protected.append(identifier)
         elif route['status'] == 'gap':
             strings(route['follow_up'], 'gap followup')
@@ -206,7 +275,11 @@ def validate(root, data):
 
 
 def compare(before, after):
-    """Surface removal, demotion, scope edits and narrower checks for review."""
+    """Surface removal, demotion, scope edits and narrower checks for review.
+
+    Invariant property or basis edits, additions and removals are reported
+    with every route under that invariant; they are not judged automatically.
+    """
     current = {r['id']: r for r in after['routes']}
     lost = []
     for old in before['routes']:
@@ -219,8 +292,12 @@ def compare(before, after):
         if (any(old[k] != new[k] for k in ('invariant', 'sources', 'property', 'families', 'boundary')) or
             any(check not in new['checks'] for check in old['checks'])):
             lost.append(old['id'])
+    old, new = ({row['id']: row for row in data['invariants']} for data in (before, after))
+    changed = sorted(key for key in set(old) | set(new) if old.get(key) != new.get(key))
     return {'lost_protection': sorted(lost),
-            'added_routes': sorted(set(current) - {r['id'] for r in before['routes']})}
+            'added_routes': sorted(set(current) - {r['id'] for r in before['routes']}),
+            'changed_invariants': changed,
+            'affected_routes': sorted({r['id'] for r in before['routes'] + after['routes'] if r['invariant'] in changed})}
 
 
 def main():
