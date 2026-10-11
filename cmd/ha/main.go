@@ -54,6 +54,7 @@ Usage:
   ha note   <goal> confirm <AC-n | scope:<path> | tests:<path> | spec> --quote <user words>
   ha note   <goal> reopen --quote <user words>
   ha note   <goal> input --quote <user words>
+  ha finding <goal> [--input <JSON file>] [--format json|md]
   ha status <goal> [--format md|json]
   ha done   <goal> [--format md|json]
   ha log    <goal> <seq> [--tail N]
@@ -109,6 +110,8 @@ func runMain(argv []string, stdout, stderr io.Writer) int {
 		return c.check(rest)
 	case "budget":
 		return c.budget(rest)
+	case "finding":
+		return c.finding(rest)
 	case "note":
 		return c.note(rest)
 	case "status":

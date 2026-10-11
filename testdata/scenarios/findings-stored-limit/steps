@@ -1,0 +1,23 @@
+# Stored finding bytes include JSON whitespace but exclude the line feed.
+# Exact 2 MiB + 64 KiB is supported; one extra byte is out of range.
+include implement
+ha done $GOAL
+expect-exit 0
+finding-input .git/one.json "{\"id\":\"one\",\"request_id\":\"create-one\",\"revision\":0,\"completion\":$COMPLETION,\"criteria\":[],\"mapping\":\"unmapped\",\"status\":\"candidate\",\"category\":\"unknown\",\"summary\":\"Synthetic finding\",\"source\":\"synthetic-review\",\"evidence\":[]}"
+ha finding $GOAL --input .git/one.json
+expect-exit 0
+pad-record 6 2162688
+ha finding $GOAL
+expect-exit 0
+ha status $GOAL --format json
+expect-no-reason record_integrity
+pad-record 6 2162689
+ha finding $GOAL
+expect-exit 65
+expect-output "finding line exceeds 2162688 bytes"
+ha finding $GOAL --input .git/one.json
+expect-exit 65
+expect-records 6
+ha status $GOAL --format json
+expect-reason record_integrity
+expect-output "finding line exceeds 2162688 bytes"
