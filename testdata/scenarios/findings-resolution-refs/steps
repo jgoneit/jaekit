@@ -1,0 +1,33 @@
+# Current resolution references belong only to the resolved status. A request
+# that contradicts this is refused; a later revision away from resolved keeps
+# the earlier references in history only.
+include implement
+ha done $GOAL
+expect-exit 0
+finding-input .git/candidate.json "{\"id\":\"one\",\"request_id\":\"candidate-refs\",\"revision\":0,\"completion\":$COMPLETION,\"criteria\":[],\"mapping\":\"unmapped\",\"status\":\"candidate\",\"category\":\"unknown\",\"summary\":\"Synthetic finding\",\"source\":\"synthetic-review\",\"evidence\":[],\"resolution_refs\":[\"synthetic:fix\"]}"
+ha finding $GOAL --input .git/candidate.json
+expect-exit 65
+expect-output "resolution_refs"
+expect-records 5
+finding-input .git/one.json "{\"id\":\"one\",\"request_id\":\"create-one\",\"revision\":0,\"completion\":$COMPLETION,\"criteria\":[],\"mapping\":\"unmapped\",\"status\":\"candidate\",\"category\":\"unknown\",\"summary\":\"Synthetic finding\",\"source\":\"synthetic-review\",\"evidence\":[]}"
+ha finding $GOAL --input .git/one.json
+expect-exit 0
+expect-records 6
+finding-input .git/resolved.json "{\"id\":\"one\",\"request_id\":\"resolve-one\",\"revision\":6,\"completion\":$COMPLETION,\"criteria\":[],\"mapping\":\"unmapped\",\"status\":\"resolved\",\"category\":\"unknown\",\"summary\":\"Synthetic finding\",\"source\":\"synthetic-review\",\"evidence\":[\"synthetic:check\"],\"reason\":\"Fixed\",\"resolution_refs\":[\"synthetic:fix\"]}"
+ha finding $GOAL --input .git/resolved.json
+expect-exit 0
+expect-records 7
+finding-input .git/kept-refs.json "{\"id\":\"one\",\"request_id\":\"confirm-kept-refs\",\"revision\":7,\"completion\":$COMPLETION,\"criteria\":[],\"mapping\":\"unmapped\",\"status\":\"confirmed\",\"category\":\"unknown\",\"summary\":\"Synthetic finding\",\"source\":\"synthetic-review\",\"evidence\":[\"synthetic:check\"],\"reason\":\"Regressed\",\"resolution_refs\":[\"synthetic:fix\"]}"
+ha finding $GOAL --input .git/kept-refs.json
+expect-exit 65
+expect-output "resolution_refs"
+expect-records 7
+finding-input .git/confirmed.json "{\"id\":\"one\",\"request_id\":\"confirm-one\",\"revision\":7,\"completion\":$COMPLETION,\"criteria\":[],\"mapping\":\"unmapped\",\"status\":\"confirmed\",\"category\":\"unknown\",\"summary\":\"Synthetic finding\",\"source\":\"synthetic-review\",\"evidence\":[\"synthetic:check\"],\"reason\":\"Regressed\"}"
+ha finding $GOAL --input .git/confirmed.json
+expect-exit 0
+expect-records 8
+ha finding $GOAL --format md
+expect-exit 0
+expect-output "- one: confirmed"
+expect-output "resolution [\"synthetic:fix\"]"
+expect-completion-record present

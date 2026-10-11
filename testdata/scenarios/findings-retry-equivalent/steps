@@ -1,0 +1,33 @@
+# A retried request is the same logical change whether an empty optional list
+# is written out or omitted: the original receipt returns and nothing is
+# appended. Different content under the same request id is still refused.
+include implement
+ha done $GOAL
+expect-exit 0
+finding-input .git/one.json "{\"id\":\"one\",\"request_id\":\"create-one\",\"revision\":0,\"completion\":$COMPLETION,\"criteria\":[],\"mapping\":\"unmapped\",\"status\":\"candidate\",\"category\":\"unknown\",\"summary\":\"Synthetic finding\",\"source\":\"synthetic-review\",\"evidence\":[],\"resolution_refs\":[]}"
+ha finding $GOAL --input .git/one.json
+expect-exit 0
+expect-output "\"seq\":6,"
+expect-output "\"replayed\":false"
+ha finding $GOAL --input .git/one.json
+expect-exit 0
+expect-output "\"seq\":6,"
+expect-output "\"replayed\":true"
+expect-records 6
+finding-input .git/two.json "{\"id\":\"two\",\"request_id\":\"create-two\",\"revision\":0,\"completion\":$COMPLETION,\"criteria\":[],\"mapping\":\"unmapped\",\"status\":\"candidate\",\"category\":\"unknown\",\"summary\":\"Second synthetic finding\",\"source\":\"synthetic-review\",\"evidence\":[]}"
+ha finding $GOAL --input .git/two.json
+expect-exit 0
+expect-output "\"seq\":7,"
+finding-input .git/two-again.json "{\"id\":\"two\",\"request_id\":\"create-two\",\"revision\":0,\"completion\":$COMPLETION,\"criteria\":[],\"mapping\":\"unmapped\",\"status\":\"candidate\",\"category\":\"unknown\",\"summary\":\"Second synthetic finding\",\"source\":\"synthetic-review\",\"evidence\":[],\"resolution_refs\":[]}"
+ha finding $GOAL --input .git/two-again.json
+expect-exit 0
+expect-output "\"seq\":7,"
+expect-output "\"replayed\":true"
+expect-records 7
+finding-input .git/changed.json "{\"id\":\"one\",\"request_id\":\"create-one\",\"revision\":0,\"completion\":$COMPLETION,\"criteria\":[],\"mapping\":\"unmapped\",\"status\":\"candidate\",\"category\":\"unknown\",\"summary\":\"Changed synthetic finding\",\"source\":\"synthetic-review\",\"evidence\":[]}"
+ha finding $GOAL --input .git/changed.json
+expect-exit 65
+expect-output "different content"
+expect-records 7
+expect-completion-record present
+expect-deterministic

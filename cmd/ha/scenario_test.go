@@ -329,6 +329,27 @@ func (s *scenario) do(st step) {
 		}
 		f.WriteString(a[2])
 		f.Close()
+	case "finding-input":
+		// Writes a finding request in which $COMPLETION names the latest
+		// successful completion record by seq and exact line hash.
+		need(3)
+		lines := s.records(st)
+		ref := ""
+		for i := len(lines) - 1; i >= 0 && ref == ""; i-- {
+			var m map[string]any
+			if json.Unmarshal(lines[i], &m) == nil && m["kind"] == "done" && m["status"] == "complete" {
+				h := sha256.Sum256(lines[i])
+				ref = fmt.Sprintf(`{"seq":%d,"sha256":"%s"}`, i+1, hex.EncodeToString(h[:]))
+			}
+		}
+		if ref == "" {
+			s.fatalf(st, "no completion record")
+		}
+		p := s.file(a[1])
+		os.MkdirAll(filepath.Dir(p), 0o755)
+		if err := os.WriteFile(p, []byte(strings.ReplaceAll(a[2], "$COMPLETION", ref)), 0o644); err != nil {
+			s.fatalf(st, "%v", err)
+		}
 	case "replace":
 		need(4)
 		data, err := os.ReadFile(s.file(a[1]))

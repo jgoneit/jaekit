@@ -217,6 +217,7 @@ type Line struct {
 	Rules          string            `json:"rules"`
 	Budget         *Budget           `json:"budget"`
 	BudgetChange   *BudgetChangeData `json:"budget_change"`
+	Finding        *FindingChange    `json:"finding"`
 	Target         *Target           `json:"target"`
 	CriterionKind  string            `json:"criterion_kind"`
 	Argv           []string          `json:"argv"`
@@ -298,8 +299,16 @@ func Parse(data []byte) ([]Line, *IntegrityError, error) {
 			continue
 		}
 		l.Raw = append([]byte(nil), raw...)
-		if l.Schema != Schema {
-			fail(n, "schema is %q, want %q", l.Schema, Schema)
+		if l.Schema != Schema && l.Schema != FindingSchema {
+			fail(n, "unsupported schema %q", l.Schema)
+		}
+		if l.Schema == FindingSchema {
+			var event Finding
+			if err := strictFindingJSON(raw, &event); err != nil || l.Kind != "finding" || l.Finding == nil {
+				fail(n, "invalid finding extension: %v", err)
+			}
+		} else if l.Kind == "finding" || l.Finding != nil {
+			fail(n, "finding requires schema %q", FindingSchema)
 		}
 		if l.Seq != n {
 			fail(n, "seq is %d, want %d", l.Seq, n)
@@ -370,6 +379,9 @@ func AppendChecked(path, lockPath string, e Entry, now time.Time, validate func(
 	}
 	h := e.header()
 	h.Schema = Schema
+	if _, ok := e.(*Finding); ok {
+		h.Schema = FindingSchema
+	}
 	h.Seq = len(lines) + 1
 	h.Prev = nil
 	if len(lines) > 0 {
@@ -385,6 +397,9 @@ func AppendChecked(path, lockPath string, e Entry, now time.Time, validate func(
 	raw, err := marshal(e)
 	if err != nil {
 		return Line{}, err
+	}
+	if h.Schema == FindingSchema && len(raw) > MaxFindingLine {
+		return Line{}, ErrFindingTooLarge
 	}
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
 	if err != nil {

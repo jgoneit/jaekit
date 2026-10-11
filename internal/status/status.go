@@ -154,8 +154,9 @@ type Report struct {
 	Lint                  []diag.Problem    `json:"lint"`
 	Changes               Changes           `json:"changes"`
 	Budget                *Budget           `json:"budget"`
-	Logs                  []Log             `json:"logs"`
+	Findings              *FindingsReport   `json:"findings"`
 	Usage                 Usage             `json:"usage"`
+	Logs                  []Log             `json:"logs"`
 	commandDigests        map[string]string // for the done line
 }
 
@@ -317,6 +318,11 @@ func Compute(in Input) (*Report, error) {
 	}
 	if n := len(in.Lines); n > 0 {
 		rep.RecordHead = &Head{Seq: in.Lines[n-1].Seq, SHA256: in.Lines[n-1].Hash()}
+	}
+	if findings, err := FoldFindings(in.Lines, g.Dir); err != nil {
+		e.invalid = append(e.invalid, err.Error())
+	} else {
+		rep.Findings = findings
 	}
 	if err := e.collectUsage(rep); err != nil {
 		return nil, err
@@ -843,7 +849,7 @@ func (e *evaluator) budget() (*Budget, error) {
 		finishBudget(bud)
 		return bud, nil
 	}
-	lines := e.in.Lines
+	lines := record.ExecutionLines(e.in.Lines)
 	ws := 0
 	for i, l := range lines {
 		if l.Kind == "start" || (l.Kind == "note" && l.Note == "reopen") {

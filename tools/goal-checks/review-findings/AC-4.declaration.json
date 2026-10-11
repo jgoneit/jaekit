@@ -1,0 +1,21 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/review-findings/AC-4.targets.json",
+    "cmd/ha/findings_review_test.go",
+    "cmd/ha/scenario_test.go",
+    "testdata/scenarios/_steps/implement",
+    "testdata/scenarios/_steps/start",
+    "testdata/scenarios/_steps/check-file",
+    "testdata/scenarios/findings-resolution-refs/steps"
+  ],
+  "targets": [
+    {
+      "id": "resolution-refs",
+      "violation": "resolution-refs-contradict-status"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "resolution-refs",
+      "runner": "go",
+      "test": "TestFindingResolutionRefsScenario",
+      "package": "./cmd/ha"
+    }
+  ]
+}
