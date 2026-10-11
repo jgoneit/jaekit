@@ -303,6 +303,9 @@ func Parse(data []byte) ([]Line, *IntegrityError, error) {
 			fail(n, "unsupported schema %q", l.Schema)
 		}
 		if l.Schema == FindingSchema {
+			if len(raw) > MaxFindingLine {
+				fail(n, "%v", ErrFindingTooLarge)
+			}
 			var event Finding
 			if err := strictFindingJSON(raw, &event); err != nil || l.Kind != "finding" || l.Finding == nil {
 				fail(n, "invalid finding extension: %v", err)

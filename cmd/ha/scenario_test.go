@@ -392,6 +392,21 @@ func (s *scenario) do(st step) {
 		}
 		lines[n-1] = re.ReplaceAll(lines[n-1], []byte(`"`+a[2]+`":`+a[3]))
 		s.writeRecords(st, lines, true)
+	case "pad-record":
+		// JSON whitespace changes stored byte size without changing its claims.
+		need(3)
+		n, err := strconv.Atoi(a[1])
+		lines := s.records(st)
+		if err != nil || n < 1 || n > len(lines) {
+			s.fatalf(st, "invalid record number")
+		}
+		size, err := strconv.Atoi(a[2])
+		raw := bytes.TrimRight(lines[n-1], " \t")
+		if err != nil || size < len(raw) {
+			s.fatalf(st, "padding size must fit the existing record")
+		}
+		lines[n-1] = append(raw, bytes.Repeat([]byte(" "), size-len(raw))...)
+		s.writeRecords(st, lines, true)
 	case "shift-time":
 		need(3)
 		n, _ := strconv.Atoi(a[1])
