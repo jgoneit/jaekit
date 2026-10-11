@@ -1,0 +1,11 @@
+# Findings are a read-only independent view before any discovery is recorded.
+include implement
+ha done $GOAL
+expect-exit 0
+ha finding $GOAL --format json
+expect-exit 0
+ha finding $GOAL --format md
+expect-exit 0
+expect-completion-record present
+expect-status complete
+expect-deterministic

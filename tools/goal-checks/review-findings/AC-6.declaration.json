@@ -1,0 +1,17 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/review-findings/AC-6.targets.json",
+    "tools/findings-checks/test_stored_reuse.py",
+    "tools/findings-checks/check.py"
+  ],
+  "targets": [
+    {
+      "id": "store-support-query-retry",
+      "violation": "stored-roundtrip-broken"
+    }
+  ]
+}
