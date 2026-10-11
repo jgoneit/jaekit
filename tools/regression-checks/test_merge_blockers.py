@@ -106,7 +106,7 @@ class ObserverOutcomes(ObserverFixture):
                     if (observation.get('status') != 'error' or observation.get('reason') != 'execution_error'
                             or result.returncode == 0 or category.upper() not in result.stderr):
                         self.fail('[violation:unittest-outcome-hidden] a non-passing unittest category '
-                                  f'was hidden or accepted: {category}, {observation!r}, {result.stderr!r}')
+                                  f'was hidden or accepted: {category}, {observation!r}; exit={result.returncode}')
 
 
 class PreservedOutcomes(ObserverFixture):
