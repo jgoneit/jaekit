@@ -1,0 +1,20 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-review-producer-observer",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/review_producer_results.py",
+    "tools/verification-checks/producer_results.py",
+    "tools/producer-checks/test_semantics.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-1.provided-command-unusable",
+      "violation": "provided-command-unusable"
+    },
+    {
+      "id": "AC-1.unreadable-documents-as-violation",
+      "violation": "unreadable-documents-as-violation"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-review-producer-observer",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/review_producer_results.py",
+    "tools/verification-checks/producer_results.py",
+    "tools/contract-checks/ownership.py",
+    "tools/contract-checks/test_check.py",
+    "tools/contract-checks/test_design_check.py",
+    "tools/contract-checks/test_finding_docs_check.py",
+    "tools/contract-checks/test_spec_check.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-4.unrelated-relation-attributed",
+      "violation": "unrelated-relation-attributed"
+    },
+    {
+      "id": "AC-4.owned-relation-missed",
+      "violation": "owned-relation-missed"
+    }
+  ]
+}
