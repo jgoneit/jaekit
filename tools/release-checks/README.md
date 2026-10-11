@@ -423,9 +423,9 @@ changed loaded source is rejected. Before ordinary imports, checker bootstrap
 uses the interpreter's standard-library paths and loads its named helpers from
 their exact recorded source bytes. A checkout module or package cannot replace
 those imports through Python's search order. Untracked Python source beside the
-reader is rejected even when Git ignore rules hide it. The selected observation
-keeps that import boundary, and its worker starts with isolated Python search
-and the same checker bootstrap. The interpreter and standard library remain
+reader is rejected even when Git ignore rules hide it. Command-line parsing and
+the selected observation keep that import boundary, and the worker starts with
+isolated Python search and the same checker bootstrap. The interpreter and standard library remain
 trusted; this does not attest interpreter startup hooks or the operating system.
 Loaded source includes the shared archive reader
 `tools/release/archive_reader.py`, recorded from the bytes the checker executed.
@@ -492,6 +492,13 @@ python /absolute/tools/release-checks/install_trace.py run --archive /absolute/r
 This explicit collector reads a local validated archive and performs the fixed
 `fresh-release-directory/v1` procedure. It places the Core and all support files
 in a new directory; it has no arbitrary command, model or network option.
+Before ordinary imports, the collector selects the trusted interpreter's
+standard-library paths and loads the named `check.py` source bytes directly.
+That checker loads its helpers, including the shared archive reader, from
+their named source bytes. Checkout modules, packages and cached bytecode cannot
+replace those imports during collection, including imports made later in the
+procedure. The interpreter and its standard library remain trusted; this
+does not authenticate a substituted interpreter or attest OS execution.
 Set `package_root` to that directory and `binary` to its `ha`. Parent-directory
 symlinks are allowed, including operating-system aliases and user-created links.
 The original `launcher_argv` preserves the requested destination; the report's

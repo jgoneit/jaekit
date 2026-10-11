@@ -4,15 +4,32 @@
 The checker never starts this collector. Its fixed procedure installs a local,
 validated archive into a fresh directory; no command from evidence is executed.
 """
+# The explicitly invoked collector has the same trusted-interpreter boundary as
+# check.py. Establish it before a checkout module/package can shadow stdlib.
+import sys
+
+_CALLER_IMPORT_PATH = sys.path[:]
+_STDLIB_ROOT = getattr(sys, "_stdlib_dir", None)
+if not _STDLIB_ROOT:
+    _encodings_file = getattr(sys.modules.get("encodings"), "__file__", None)
+    if not _encodings_file or "/" not in _encodings_file:
+        raise ImportError("interpreter standard library location is unavailable")
+    _STDLIB_ROOT = _encodings_file.rsplit("/", 2)[0]
+_STDLIB_IMPORT_PATH = (_STDLIB_ROOT, _STDLIB_ROOT + "/lib-dynload")
+sys.path[:] = _STDLIB_IMPORT_PATH
+
 import argparse
+from contextlib import contextmanager
 import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
 import re
 import stat
-import sys
 import uuid
+
+sys.path[:] = _CALLER_IMPORT_PATH
+del _CALLER_IMPORT_PATH
 
 SCHEMA = "jaekit-direct-install/v1"
 PROCEDURE = "fresh-release-directory/v1"
@@ -36,6 +53,44 @@ def need(condition, reason):
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
+
+
+@contextmanager
+def trusted_imports():
+    """Exclude checkout imports for the complete original installation."""
+    previous = sys.path[:]
+    sys.path[:] = _STDLIB_IMPORT_PATH
+    try:
+        yield
+    finally:
+        sys.path[:] = previous
+
+
+def load_validator():
+    """Load the fixed check.py bytes, never a sibling package or cached code."""
+    path = Path(__file__).resolve().with_name("check.py")
+    existing = sys.modules.get("check")
+    if existing is not None:
+        need(Path(getattr(existing, "__file__", "")).resolve() == path,
+             "installation validator is loaded from another source")
+        recorded = getattr(existing, "LOADED_SOURCE", {}).get(str(path))
+        need(isinstance(recorded, bytes) and recorded == regular(path),
+             "installation validator loaded source is unavailable or changed")
+        return existing
+    source = regular(path)
+    validator = type(sys)("check")
+    validator.__file__ = str(path)
+    sys.modules["check"] = validator
+    try:
+        exec(compile(source, str(path), "exec"), validator.__dict__)
+        need(validator.LOADED_SOURCE.get(str(path)) == source,
+             "installation validator changed while loading")
+    except BaseException:
+        sys.modules.pop("check", None)
+        raise
+    # check.py loads all of its helpers, including the shared archive reader,
+    # from their named source bytes and records the bytes that actually ran.
+    return validator
 
 
 def regular(path, limit=None):
@@ -111,10 +166,11 @@ def install_files(destination, files, created=None):
     return installed
 
 
+@trusted_imports()
 def collect(args, launcher_argv=None):
     # Import only in the explicitly invoked collector. The read-only consumer
     # shares the validator through its checked caller, avoiding circular import.
-    import check as validator
+    validator = load_validator()
     archive_limit = getattr(validator, "ARCHIVE_MAX_BYTES", 256 * 1024 * 1024)
     archive = Path(args.archive)
     requested = destination = Path(args.destination)
@@ -267,6 +323,7 @@ def consume(checker, installation, public_archive_bytes, target):
     return core_path
 
 
+@trusted_imports()
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=["run"])
