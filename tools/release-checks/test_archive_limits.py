@@ -237,6 +237,15 @@ def corruption():
 
 
 class ArchiveLimits(unittest.TestCase):
+    def test_global_pax_key_limit_keeps_normal_archives(self):
+        for count in (128, 129, 5000):
+            data = package(pax={f"k{n}": "v" for n in range(count)})
+            with self.subTest(count=count):
+                if count == 128:
+                    self.assertEqual(set(check.archive_files(data, TARGET)), set(REQUIRED))
+                else:
+                    reject(data, "PAX key limit")
+
     def test_finite_public_limits_count_empty_and_directory_entries(self):
         finite_contract()
     def test_limit_is_checked_before_body_and_truncation_is_rejected(self):

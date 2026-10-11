@@ -68,6 +68,7 @@ ARCHIVE_MAX_STREAM_BYTES = archive_reader.MAX_STREAM_BYTES
 ARCHIVE_MAX_FILE_BYTES = archive_reader.MAX_FILE_BYTES
 ARCHIVE_MAX_METADATA_BYTES = archive_reader.MAX_METADATA_BYTES
 ARCHIVE_MAX_METADATA_TOTAL_BYTES = archive_reader.MAX_METADATA_TOTAL_BYTES
+ARCHIVE_MAX_PAX_KEYS = archive_reader.MAX_PAX_KEYS
 
 
 def require(ok: bool, message: str):
@@ -113,7 +114,7 @@ def read_archive(path: Path, checksum: str | None = None):
     return archive_reader.read(
         data, compressed=ARCHIVE_MAX_COMPRESSED_BYTES, bytes=ARCHIVE_MAX_BYTES, entries=ARCHIVE_MAX_ENTRIES,
         stream=ARCHIVE_MAX_STREAM_BYTES, file=ARCHIVE_MAX_FILE_BYTES, metadata=ARCHIVE_MAX_METADATA_BYTES,
-        metadata_total=ARCHIVE_MAX_METADATA_TOTAL_BYTES)
+        metadata_total=ARCHIVE_MAX_METADATA_TOTAL_BYTES, pax_keys=ARCHIVE_MAX_PAX_KEYS)
 
 
 def archive_files(members, prefix: str):
