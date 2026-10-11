@@ -18,6 +18,20 @@ class Runner(unittest.TestCase):
             path=Path(directory)/'test_sample.py';path.write_text(source)
             check.python_tests(path)
 
+    def test_selected_file_loads_real_sibling_dependency(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/'selected_sibling.py').write_text('value = 7\n')
+            path=root/'test_sample.py'
+            path.write_text("import unittest, selected_sibling\nclass Sample(unittest.TestCase):\n def test_one(self): self.assertEqual(selected_sibling.value, 7)\n")
+            try:
+                check.python_tests(path, 'Sample')
+            except check.Environment as error:
+                self.fail('[violation:discovery-environment-differs] a sibling import that discovery supports failed: '+str(error.detail)[-300:])
+            (root/'selected_sibling.py').write_text('value = 9\n')
+            with self.assertRaises(check.Environment, msg='[violation:discovery-environment-differs] a changed sibling module did not surface'):
+                check.python_tests(path, 'Sample')
+
     def test_actual_zero_and_skipped_unittest_runs_are_unverified(self):
         for source in ("import unittest", "import unittest\n@unittest.skip('synthetic unavailable')\nclass Sample(unittest.TestCase):\n def test_one(self):pass"):
             with self.subTest(source=source), self.assertRaises(check.Environment):
@@ -59,6 +73,19 @@ class Runner(unittest.TestCase):
         source="import unittest,os\nclass Sample(unittest.TestCase):\n def test_one(self):self.assertFalse(any(k.startswith('HA_EVIDENCE_') for k in os.environ))"
         with patch.dict(os.environ,{'HA_EVIDENCE_PATH':'synthetic-parent-artifact'}):
             self.selected(source)
+
+
+class LocalToolchain(unittest.TestCase):
+    def test_regression_commands_never_download_a_go_toolchain(self):
+        observed={}
+        def record(argv, **options):
+            observed.update(options.get('env') or {})
+            return subprocess.CompletedProcess(argv, 0, '', '')
+        with patch.object(check.subprocess, 'run', side_effect=record):
+            check.run(['go', 'version'])
+        if observed.get('GOTOOLCHAIN')!='local':
+            self.fail('[violation:discovery-environment-differs] regression commands may download a Go toolchain: '
+                      +repr(observed.get('GOTOOLCHAIN')))
 
 
 if __name__=='__main__':unittest.main()

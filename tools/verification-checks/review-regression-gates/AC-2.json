@@ -1,0 +1,15 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-review-regression-observer",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/review_regression_gates.py",
+    "tools/regression-checks/test_map.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-2",
+      "violation": "selector-not-discoverable"
+    }
+  ]
+}
