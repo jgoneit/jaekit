@@ -398,6 +398,9 @@ func AppendChecked(path, lockPath string, e Entry, now time.Time, validate func(
 	if err != nil {
 		return Line{}, err
 	}
+	if h.Schema == FindingSchema && len(raw) > MaxFindingLine {
+		return Line{}, ErrFindingTooLarge
+	}
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
 	if err != nil {
 		return Line{}, err

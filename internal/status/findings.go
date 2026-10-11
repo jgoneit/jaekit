@@ -1,9 +1,9 @@
 package status
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -85,6 +85,11 @@ func validateFinding(lines []record.Line, c record.FindingChange, old *FindingVi
 	if strings.TrimSpace(c.Summary) == "" || strings.TrimSpace(c.Source) == "" || strings.TrimSpace(c.Category) == "" {
 		return nil, findingError("summary, source and category are required claims")
 	}
+	// Required lists are arrays. A stored null or omitted list is reported,
+	// never read as an empty one.
+	if c.Criteria == nil || c.Evidence == nil {
+		return nil, findingError("criteria and evidence must be arrays")
+	}
 	if !findingTime(c.EventAt) || !findingList(c.Criteria) || !findingList(c.Evidence) || !findingList(c.ResolutionRefs) {
 		return nil, findingError("invalid time or reference list")
 	}
@@ -147,6 +152,11 @@ func validateFinding(lines []record.Line, c record.FindingChange, old *FindingVi
 	}
 	if c.Status == "resolved" && len(c.ResolutionRefs) == 0 {
 		return nil, findingError("resolution needs explicit follow-up references")
+	}
+	// Earlier resolution references stay in history; the current revision
+	// carries them only while it is resolved.
+	if c.Status != "resolved" && len(c.ResolutionRefs) != 0 {
+		return nil, findingError("resolution_refs require resolved status")
 	}
 	if c.Status == "duplicate" {
 		if c.DuplicateOf == "" {
@@ -282,7 +292,17 @@ func NewFinding(lines []record.Line, goal string, change record.FindingChange) (
 	}
 	for _, l := range lines {
 		if l.Finding != nil && l.Finding.RequestID == change.RequestID {
-			if !reflect.DeepEqual(*l.Finding, change) {
+			// Compare the stored wire content: an empty optional list and its
+			// omission are the same request once written.
+			stored, err := json.Marshal(*l.Finding)
+			if err != nil {
+				return nil, err
+			}
+			retried, err := json.Marshal(change)
+			if err != nil {
+				return nil, err
+			}
+			if !bytes.Equal(stored, retried) {
 				return nil, findingError("request id already names different content")
 			}
 			return nil, &FindingReplay{Seq: l.Seq, SHA256: l.Hash()}

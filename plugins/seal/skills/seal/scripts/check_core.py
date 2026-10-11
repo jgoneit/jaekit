@@ -26,6 +26,9 @@ EXECUTION_FEATURES = {"dirty-preflight/v1", "baseline-safe-copy/v1"}
 START_FEATURES = EXECUTION_FEATURES | {
     "estimate/v1", "structured-change-results/v1", "budget-change/v1",
 }
+# Stored finding line bound (contracts/findings.md): a 1 MiB input at most
+# doubles when re-encoded, plus the record header.
+MAX_FINDING_LINE = 2 * 1024 * 1024 + 64 * 1024
 
 
 class Refusal(Exception):
@@ -119,13 +122,15 @@ def stored_goal(goal: str):
             first = source.readline(1024 * 1024 + 1)
             finding = False
             for raw in source:
-                if len(raw) > 1024 * 1024:
-                    raise ValueError("oversized record")
                 event = decode(raw)
                 if not isinstance(event, dict):
                     raise ValueError("invalid record")
                 schema = event.get("schema")
                 if schema == "run-finding/v1":
+                    # A finding line the Core can store is accepted; past the
+                    # contracted bound it is out of range, not damaged.
+                    if len(raw.rstrip("\n").encode("utf-8")) > MAX_FINDING_LINE:
+                        raise Refusal("goal_record_oversized")
                     finding = True
                 elif schema != "run/v1":
                     raise Refusal("unsupported_record_schema")

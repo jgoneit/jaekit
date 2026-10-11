@@ -65,18 +65,42 @@ func (v *FindingChange) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MaxFindingInput bounds one finding request. MaxFindingLine bounds the stored
+// line made from it: re-encoding at most doubles the input (U+2028 and U+2029
+// become six-byte escapes) and the record header adds far less than 64 KiB.
+const (
+	MaxFindingInput = 1024 * 1024
+	MaxFindingLine  = 2*MaxFindingInput + 64*1024
+)
+
+// ErrFindingTooLarge refuses a finding line past MaxFindingLine before it is
+// written, so support checks never meet a line the Core produced past the bound.
+var ErrFindingTooLarge = fmt.Errorf("finding line exceeds %d bytes", MaxFindingLine)
+
 // DecodeFinding accepts one bounded JSON object with no duplicate or unknown
 // fields. It does not read references or infer claims from a document's text.
+// The required lists must be written as arrays; omission and null are refused.
 func DecodeFinding(data []byte) (FindingChange, error) {
 	var out FindingChange
 	if trimmed := bytes.TrimSpace(data); len(trimmed) == 0 || trimmed[0] != '{' {
 		return out, errors.New("finding input must be one JSON object")
 	}
-	if len(data) > 1024*1024 {
+	if len(data) > MaxFindingInput {
 		return out, errors.New("finding input exceeds 1 MiB")
 	}
-	err := strictFindingJSON(data, &out)
-	return out, err
+	if err := strictFindingJSON(data, &out); err != nil {
+		return out, err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return out, err
+	}
+	for _, name := range []string{"criteria", "evidence"} {
+		if value := bytes.TrimSpace(fields[name]); len(value) == 0 || value[0] != '[' {
+			return out, fmt.Errorf("%s must be a JSON array", name)
+		}
+	}
+	return out, nil
 }
 
 func strictFindingJSON(data []byte, out any) error {

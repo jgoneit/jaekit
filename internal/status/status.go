@@ -154,9 +154,9 @@ type Report struct {
 	Lint                  []diag.Problem    `json:"lint"`
 	Changes               Changes           `json:"changes"`
 	Budget                *Budget           `json:"budget"`
-	Logs                  []Log             `json:"logs"`
-	Usage                 Usage             `json:"usage"`
 	Findings              *FindingsReport   `json:"findings"`
+	Usage                 Usage             `json:"usage"`
+	Logs                  []Log             `json:"logs"`
 	commandDigests        map[string]string // for the done line
 }
 
