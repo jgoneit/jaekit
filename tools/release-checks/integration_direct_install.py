@@ -196,10 +196,14 @@ class DirectInstallation(unittest.TestCase):
             self.consume(value)
 
     def test_other_validator_source_is_not_the_verified_procedure(self):
-        alternate = self.root / "alternate-procedure"
-        alternate.mkdir()
+        alternate = self.root / "alternate-procedure" / "release-checks"
+        alternate.mkdir(parents=True)
         for path in Path(install_trace.__file__).parent.glob("*.py"):
             shutil.copyfile(path, alternate / path.name)
+        # The checker loads the shared archive reader from its sibling directory.
+        reader = Path(install_trace.__file__).resolve().parents[1] / "release" / "archive_reader.py"
+        (alternate.parent / "release").mkdir()
+        shutil.copyfile(reader, alternate.parent / "release" / reader.name)
         validator = alternate / "check.py"
         validator.write_bytes(validator.read_bytes() + b"\n# different validator source bytes\n")
         result, value = self.run_install(alternate / "install_trace.py")

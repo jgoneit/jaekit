@@ -341,8 +341,9 @@ class SourceIdentityEvidence(unittest.TestCase):
                 self.fail('different loaded source entered the selected check')
 
     def test_offline_public_entry_runs_a_valid_selection_inside_the_verified_copy(self):
-        for name in ('check.py', 'shell_reader.py', 'execution_trace.py', 'execution_provenance.py', 'install_trace.py', 'source_identity.py', 'snapshot_worker.py'):
-            shutil.copyfile(ROOT / 'tools/release-checks' / name, self.root / 'tools/release-checks' / name)
+        for name in ShallowProductSource.files():
+            (self.root / name).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / name, self.root / name)
         for directory in ('tools/release', 'tools/release-checks'):
             path = self.root / directory / 'test_fixture.py'
             path.parent.mkdir(parents=True, exist_ok=True)
