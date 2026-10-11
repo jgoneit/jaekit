@@ -14,6 +14,7 @@ import platform
 import re
 import shutil
 import shlex
+import stat
 import subprocess
 import sys
 import tarfile
@@ -103,6 +104,44 @@ def query_core(verified_bytes, arguments, cwd=ROOT):
         return checked([str(executable), *arguments], cwd)
 
 
+def installed_core_runs(path, verified_bytes):
+    """Run the selected installed path itself and confirm its bytes did not change.
+
+    The isolated byte query cannot show that this path can still execute here:
+    a removed execute bit, a lost path or an environment that refuses it.
+    Another Core earlier in PATH never stands in for the selected path.
+    """
+    def current():
+        try:
+            info = path.lstat()
+            data = path.read_bytes()
+        except FileNotFoundError:
+            raise Unavailable("selected installed Core path is missing") from None
+        except OSError:
+            raise Unavailable("selected installed Core path is unreadable") from None
+        require(stat.S_ISREG(info.st_mode) and data == verified_bytes,
+                "selected installed Core differs from the public native asset")
+        return info
+
+    before = current()
+    require(before.st_mode & 0o111 and os.access(path, os.X_OK),
+            "selected installed Core path is not executable")
+    with tempfile.TemporaryDirectory(prefix="jaekit-installed-path-") as directory:
+        try:
+            result = subprocess.run([str(path), "--version"], cwd=directory, capture_output=True, timeout=30,
+                                    env={key: value for key, value in os.environ.items() if not key.startswith("HA_")})
+        except subprocess.TimeoutExpired:
+            raise Unavailable("selected installed Core path did not answer") from None
+        except OSError:
+            raise Failure("selected installed Core path cannot be executed here") from None
+    after = current()
+    require((after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+            == (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns),
+            "selected installed Core changed while it was executed")
+    require(result.returncode == 0, "selected installed Core path cannot be executed here")
+    return result.stdout
+
+
 def api(path, *, absent=None):
     result = command(["gh", "api", "--hostname", "github.com", "--method", "GET",
                       "-H", "Accept: application/vnd.github+json", path], timeout=45)
@@ -111,6 +150,51 @@ def api(path, *, absent=None):
             raise Failure(absent)
         raise Unavailable("GitHub GET failed; release state remains unverified")
     return decode(result.stdout)
+
+
+class PublicProduct:
+    """Git objects of the released product, read through the authenticated GitHub API.
+
+    Used only for objects the checkout lacks. The caller verifies every blob by
+    its Git object ID and the materialized tree by its ID, so this channel
+    cannot substitute other bytes; nothing is fetched into the checkout.
+    """
+
+    @staticmethod
+    def get(path):
+        try:
+            return api(f"repos/{REPO}/{path}")
+        except (Unavailable, Failure):
+            raise source_identity.SourceUnavailable("public product source could not be read") from None
+
+    def commit_tree(self, commit):
+        value = self.get(f"git/commits/{commit}")
+        if not isinstance(value, dict) or value.get("sha") != commit:
+            raise source_identity.SourceUnavailable("public product commit could not be read")
+        return (value.get("tree") or {}).get("sha")
+
+    def tree(self, tree):
+        value = self.get(f"git/trees/{tree}?recursive=1")
+        if (not isinstance(value, dict) or value.get("sha") != tree or value.get("truncated") is not False
+                or not isinstance(value.get("tree"), list)):
+            raise source_identity.SourceUnavailable("public product tree listing is incomplete")
+        listing = []
+        for item in value["tree"]:
+            if not isinstance(item, dict) or not all(isinstance(item.get(key), str) for key in ("path", "mode", "type", "sha")):
+                raise source_identity.SourceUnavailable("public product tree listing is unreadable")
+            mode = "040000" if item["type"] == "tree" and item["mode"] in ("040000", "40000") else item["mode"]
+            listing.append((mode.encode(), item["type"].encode(), item["sha"].encode(), item["path"]))
+        return listing
+
+    def blob(self, oid):
+        value = self.get(f"git/blobs/{oid}")
+        if (not isinstance(value, dict) or value.get("sha") != oid or value.get("encoding") != "base64"
+                or not isinstance(value.get("content"), str)):
+            raise source_identity.SourceUnavailable("public product object could not be read")
+        try:
+            return base64.b64decode(value["content"].replace("\n", ""), validate=True)
+        except ValueError:
+            raise source_identity.SourceUnavailable("public product object could not be decoded") from None
 
 
 def release_snapshot(release, commit):
@@ -190,7 +274,8 @@ class Checker:
                 request_data = {"criterion": criterion, "evidence": str(self.private), "tree": tree}
                 if int(criterion[3:]) >= 7:
                     product_tree = published.get("commit", {}).get("tree", {}).get("sha")
-                    product = stack.enter_context(source_identity.pinned_product(ROOT, expected, product_tree))
+                    product = stack.enter_context(source_identity.pinned_product(ROOT, expected, product_tree,
+                                                                                 PublicProduct()))
                     request_data.update(product_root=str(product), product_tree=product_tree)
                 request = json.dumps(request_data)
                 process = subprocess.run([sys.executable, str(selected / "tools/release-checks/snapshot_worker.py")],
@@ -337,6 +422,9 @@ class Checker:
                     "installation capture queried a different executable or command")
             current = query_core(data, suffix)
             require(current == out, "installed Core query changed since capture")
+            if key == "version":
+                require(installed_core_runs(binary, data) == out,
+                        "selected installed Core path answers differently from its capture")
             if key == "version":
                 require(out.strip() == b"ha 0.1.3", "installed Core has the wrong release version")
             else:
@@ -779,13 +867,25 @@ def validate_selected_core(public_binary):
 
 
 def tool_invocations(events):
-    """Native call IDs paired with their command strings, never prose IDs."""
-    result = []
+    """Native call IDs paired with their command strings, never prose IDs.
+
+    Codex records one tool call both in exec JSON and in the phase rollout.
+    Representations with the same native ID and the same commands are one
+    call; the same ID with other commands is a contradiction, not two calls.
+    Events without a native ID are never joined.
+    """
+    result, seen = [], {}
     def append(call_id, name, arguments):
         try:
-            result.extend((call_id, command) for command in call_commands(name, arguments))
+            commands = call_commands(name, arguments)
         except Unavailable as error:
             raise Unavailable(f"native command is unverified [{call_id}]: {error}") from None
+        if isinstance(call_id, str) and not call_id.startswith("event-") and call_id in seen:
+            if seen[call_id] != commands:
+                raise Unavailable(f"native tool call has conflicting representations [{call_id}]")
+            return
+        seen[call_id] = commands
+        result.extend((call_id, command) for command in commands)
 
     for index, event in enumerate(events):
         fallback = f"event-{index}"

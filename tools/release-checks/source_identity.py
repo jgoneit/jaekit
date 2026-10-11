@@ -42,7 +42,8 @@ def snapshot(root, expected_tree, loaded):
         git(root, "diff", "--cached", "--name-only", "-z", "HEAD", "--").split(b"\0")
         + git(root, "diff", "--name-only", "-z", "--").split(b"\0")) - {b""})
     if changed:
-        raise SourceMismatch("checked source has staged or unstaged changes")
+        paths = ", ".join(ascii(os.fsdecode(name)) for name in changed)
+        raise SourceMismatch("checked source has staged or unstaged changes: " + paths)
     entries = []
     for row in git(root, "ls-tree", "-rz", "HEAD").split(b"\0"):
         if row:
@@ -67,32 +68,32 @@ def snapshot(root, expected_tree, loaded):
             info = path.lstat()
             if mode == b"120000":
                 if not stat.S_ISLNK(info.st_mode):
-                    raise SourceMismatch("source file type changed")
+                    raise SourceMismatch("source file type changed: " + ascii(name))
                 actual = os.fsencode(os.readlink(path))
             else:
                 if not stat.S_ISREG(info.st_mode) or bool(info.st_mode & 0o111) != (mode == b"100755"):
-                    raise SourceMismatch("source file mode changed")
+                    raise SourceMismatch("source file mode changed: " + ascii(name))
                 actual = path.read_bytes()
         except FileNotFoundError:
-            raise SourceMismatch("source file is missing") from None
+            raise SourceMismatch("source file is missing: " + ascii(name)) from None
         except OSError:
-            raise SourceUnavailable("source file is unreadable") from None
+            raise SourceUnavailable("source file is unreadable: " + ascii(name)) from None
         if actual != expected:
-            raise SourceMismatch("checked source bytes differ from the verified source")
+            raise SourceMismatch("checked source bytes differ from the verified source: " + ascii(name))
         files[name] = hashlib.sha256(actual).hexdigest()
         originals[name] = (mode, expected)
     # Root docs are ignored by repository policy. Untracked Python source next
     # to the reader can shadow a normal import, so it cannot supply acceptance.
     for name in git(root, "ls-files", "--others", "--exclude-standard", "-z").split(b"\0"):
         if name.startswith(b"tools/release-checks/") and name.endswith(b".py"):
-            raise SourceMismatch("untracked observation source may change executed imports")
+            raise SourceMismatch("untracked observation source may change executed imports: " + ascii(os.fsdecode(name)))
     for path, original in loaded.items():
         try:
             relative = Path(path).resolve().relative_to(root).as_posix()
         except ValueError:
             raise SourceMismatch("executed observation module is outside the verified source") from None
         if files.get(relative) != hashlib.sha256(original).hexdigest():
-            raise SourceMismatch("loaded observation module differs from the verified source")
+            raise SourceMismatch("loaded observation module differs from the verified source: " + ascii(relative))
     return {"head": git(root, "rev-parse", "HEAD"), "index": git(root, "ls-files", "--stage", "-z"),
             "files": files, "originals": originals}
 
@@ -180,35 +181,38 @@ def pinned(root, expected_tree, loaded):
             yield selected
 
 
-@contextmanager
-def pinned_product(root, commit, tree):
-    """Read explicit public commit objects into an independent product tree.
-
-    This is separate from the reader's checked worktree. It never fetches,
-    resets, cleans, or checks out files in the source repository. The caller
-    supplies the commit and tree already identified by the public release.
-    Missing local objects remain unavailable instead of falling back to HEAD.
-    """
-    if not all(isinstance(value, str) and re.fullmatch(r"[0-9a-f]{40}", value)
-               for value in (commit, tree)):
-        raise SourceUnavailable("public product commit and tree identities are missing or unsupported")
-    root = Path(root).resolve()
-    kind = git(root, "cat-file", "-t", commit).strip()
+def local_listing(root, commit, tree):
+    """The released tree from local objects, or None when the checkout lacks them."""
+    try:
+        kind = git(root, "cat-file", "-t", commit).strip()
+    except SourceUnavailable:
+        return None
     if kind != b"commit":
         raise SourceMismatch("public product identity does not identify a commit")
     actual_tree = git(root, "rev-parse", commit + "^{tree}").decode().strip()
     if actual_tree != tree:
         raise SourceMismatch("public product commit differs from the verified release tree")
-    entries = []
-    names = set()
-    for row in git(root, "ls-tree", "-rz", tree).split(b"\0"):
-        if not row:
-            continue
-        metadata, name = row.split(b"\t", 1)
-        mode, object_kind, oid = metadata.split()
-        decoded = os.fsdecode(name)
+    try:
+        rows = git(root, "ls-tree", "-rz", tree)
+    except SourceUnavailable:
+        return None
+    listing = []
+    for row in rows.split(b"\0"):
+        if row:
+            metadata, name = row.split(b"\t", 1)
+            mode, object_kind, oid = metadata.split()
+            listing.append((mode, object_kind, oid, os.fsdecode(name)))
+    return listing
+
+
+def checked_entries(listing):
+    entries, names = [], set()
+    for mode, object_kind, oid, decoded in listing:
+        if object_kind == b"tree" and mode == b"040000":
+            continue  # a recursive public listing also names directories
         path = Path(decoded)
         if (object_kind != b"blob" or mode not in (b"100644", b"100755", b"120000")
+                or not re.fullmatch(rb"[0-9a-f]{40}", oid)
                 or path.is_absolute() or any(part in (".", "..") or part.casefold() == ".git" for part in path.parts)
                 or decoded in names or path.as_posix() != decoded):
             raise SourceUnavailable("public product tree contains an unsupported entry")
@@ -219,18 +223,28 @@ def pinned_product(root, commit, tree):
     if any(parent.as_posix() in names for _, _, name in entries
            for parent in Path(name).parents if parent != Path(".")):
         raise SourceUnavailable("public product tree has conflicting file and directory paths")
+    return entries
+
+
+def object_bytes(root, entries, public):
+    """Local blob bytes, with only missing blobs read from the public source."""
     objects = git(root, "cat-file", "--batch", input=b"".join(oid + b"\n" for _, oid, _ in entries))
     cursor, files = 0, []
     for mode, oid, name in entries:
         end = objects.find(b"\n", cursor)
+        if end < 0:
+            raise SourceUnavailable("public product object response is truncated")
         header = objects[cursor:end].split()
+        cursor = end + 1
+        if header == [oid, b"missing"] and public is not None:
+            files.append((mode, oid, name, public.blob(oid.decode())))
+            continue
         if len(header) != 3 or header[:2] != [oid, b"blob"]:
             raise SourceUnavailable("public product object is missing or unreadable")
         try:
             size = int(header[2])
         except ValueError:
             raise SourceUnavailable("public product object size is unreadable") from None
-        cursor = end + 1
         data = objects[cursor:cursor + size]
         if size < 0 or len(data) != size or objects[cursor + size:cursor + size + 1] != b"\n":
             raise SourceUnavailable("public product object is truncated")
@@ -238,6 +252,35 @@ def pinned_product(root, commit, tree):
         files.append((mode, oid, name, data))
     if cursor != len(objects):
         raise SourceUnavailable("public product object response contains unrelated bytes")
+    return files
+
+
+@contextmanager
+def pinned_product(root, commit, tree, public=None):
+    """Materialize the explicit public commit and tree as an independent product tree.
+
+    This is separate from the reader's checked worktree. It never fetches,
+    resets, cleans, or checks out files in the source repository. The caller
+    supplies the commit and tree already identified by the public release.
+    Objects already in the source repository are used first. Only when the
+    checkout lacks the released commit, its tree, or some of its blobs does the
+    optional `public` reader supply them from the authenticated public source:
+    each blob must match its Git object ID and the materialized tree the
+    verified tree ID. Without a reader, missing objects remain unavailable
+    instead of falling back to HEAD.
+    """
+    if not all(isinstance(value, str) and re.fullmatch(r"[0-9a-f]{40}", value)
+               for value in (commit, tree)):
+        raise SourceUnavailable("public product commit and tree identities are missing or unsupported")
+    root = Path(root).resolve()
+    listing = local_listing(root, commit, tree)
+    if listing is None:
+        if public is None:
+            raise SourceUnavailable("public product commit is not available locally")
+        if public.commit_tree(commit) != tree:
+            raise SourceMismatch("public product commit differs from the verified release tree")
+        listing = public.tree(tree)
+    files = object_bytes(root, checked_entries(listing), public)
     with tempfile.TemporaryDirectory(prefix="jaekit-public-product-") as directory:
         selected = Path(directory)
         try:

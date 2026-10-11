@@ -63,6 +63,12 @@ Each installation entry has `binary` (an artifact), `package_root` (the absolute
 path of its installed support-file directory), `install`, `version`, and
 `capabilities` (command captures). Version and capability captures must invoke
 that exact binary. The checker also queries the hash-verified installed binary.
+Because that query runs a private copy, the checker additionally runs the
+selected installed path itself (`--version`, in a temporary directory) and
+requires the captured output and the same verified bytes before and after. A
+removed execute bit or an environment that refuses the path is a requirement
+failure; a missing or unreadable path is unverified. Another runnable Core
+earlier in PATH or an executable copy never stands in for the selected path.
 The `brew_upgrade` entry additionally has a `before_version` capture of the old
 `ha 0.1.2` installation. Homebrew install captures identify `brew install` or
 `brew upgrade`; preserve actual command output. Fresh-install evidence must
@@ -205,7 +211,10 @@ runners such as `sudo`, `xargs`, `nohup`, `timeout` or `find -exec` are
 not interpreted and yield unverified results for both phases. The same applies
 to other executables outside the explicit data-command scope below. The reason
 identifies the native tool-call ID, or its event index when the native format
-has no ID. A complete set of visible Seal calls cannot hide an additional
+has no ID. Codex records one tool call in both `exec --json` output and the
+phase rollout; representations with the same native ID and the same commands
+are one call. The same ID with other commands is a contradiction and is
+unverified, and events without a native ID are never joined. A complete set of visible Seal calls cannot hide an additional
 unresolved call. A complete supported observation missing a required operation
 is a requirement failure; an unsupported or unreadable observation is unverified.
 
@@ -222,7 +231,10 @@ opaque shell expansions are unverified. `env` supports assignments,
 `-i`/`--ignore-environment`, `-u`/`--unset`, `-C`/`--chdir` and `--`, with known
 option arguments. Split-string forms, other shell options and files are not
 silently stripped. `exit`/`return` accept at most one literal nonnegative integer;
-later commands are not definite execution. A function shadowing a wrapper is
+later commands are not definite execution. An invoked function's `exit` or
+`exec` replacement, including one in a nested call, ends the calling shell for
+this purpose; its `return` ends only the function. Subshell and pipeline exits
+stay in their scope. A function shadowing a wrapper is
 not unwrapped as that builtin. When wrapper lookup and a same-named function
 interact, execution evidence is required instead of assuming which body ran.
 
@@ -361,9 +373,14 @@ Product source and checker source may have different commits and trees. A newer
 reader can verify an unchanged public release. The source-based product checks
 AC-7 through AC-11 run against a separate snapshot of the public product commit
 and tree, not the newer reader checkout. Both identities are verified before
-execution. The public commit's objects must already be available locally; a
-missing commit/blob remains unverified, with no fetch, lazy fetch or original
-checkout modification. Those product regressions do not replace the current
+execution. Objects already in the checkout are used first. A shallow or rebuilt
+checkout that lacks the released commit, its tree, or some blobs reads only
+those objects through the same authenticated GitHub API boundary (`git/commits`,
+`git/trees` and `git/blobs`). Each blob must match its Git object ID and the
+materialized tree the verified tree, so a different object or tree is a
+requirement failure. An unreadable, truncated or unsupported public object
+remains unverified. Nothing is fetched into, written to or reset in the
+original checkout, and there is no lazy fetch. Those product regressions do not replace the current
 reader's own common regression suite.
 
 A static command is a syntax candidate, not proof of executed Seal work.
