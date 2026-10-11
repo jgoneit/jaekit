@@ -1,0 +1,16 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-review-followups-observer",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/review_followups.py",
+    "tools/release-checks/integration_evidence_boundaries.py",
+    "tools/review-checks/test_observation.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-7",
+      "violation": "integration-source-unbound"
+    }
+  ]
+}

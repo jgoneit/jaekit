@@ -1,0 +1,15 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-review-followups-observer",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/review_followups.py",
+    "tools/regression_map.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-8",
+      "violation": "review-regression-unlinked"
+    }
+  ]
+}
