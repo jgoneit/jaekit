@@ -148,6 +148,9 @@ def verify_go(env: dict[str, str]):
         run(f"Merge blocker regressions ({filename})",
             [sys.executable, "-m", "unittest", "discover", "-s", "tools/regression-checks",
              "-p", filename], env)
+    run("Go selection execution (integration_selection_go_runtime.py)",
+        [sys.executable, "-m", "unittest", "discover", "-s", "tools/regression-checks",
+         "-p", "integration_selection_go_runtime.py"], env)
     # All build outputs live outside the checkout, including on failed checks.
     with tempfile.TemporaryDirectory(prefix="jaekit-verify-") as temporary:
         output = Path(temporary)
@@ -173,6 +176,10 @@ def verify_docs(env: dict[str, str]):
                              ("Release acceptance checker regressions", "release-checks")):
         run(label, [sys.executable, "-m", "unittest", "discover", "-s", f"tools/{directory}",
                     "-p", "test_*.py"], env)
+    for filename in ("integration_selection_go.py", "integration_selection_go_identifiers.py", "integration_selection_go_layout.py", "integration_selection_python.py"):
+        run(f"Static selection regressions ({filename})",
+            [sys.executable, "-m", "unittest", "discover", "-s", "tools/regression-checks",
+             "-p", filename], env)
 
 
 def prepare_shells(env: dict[str, str]):

@@ -580,7 +580,8 @@
       "status": "protected",
       "sources": [
         "tools/regression_map.py",
-        "tools/workflow-checks/test_regressions.py"
+        "tools/workflow-checks/test_regressions.py",
+        "tools/go_selection.py"
       ],
       "property": "The public finite registry validates explicit existing definitions and common selection without claiming execution.",
       "examples": [
@@ -598,6 +599,51 @@
           "file": "tools/workflow-checks/test_regressions.py",
           "selector": "RegistryConnection",
           "group": "docs"
+        },
+        {
+          "file": "tools/regression-checks/integration_selection_go.py",
+          "selector": "GoDefinitions",
+          "group": "docs"
+        },
+        {
+          "file": "tools/regression-checks/integration_selection_go.py",
+          "selector": "GoBuildSelection",
+          "group": "docs"
+        },
+        {
+          "file": "tools/regression-checks/integration_selection_go.py",
+          "selector": "PreservedGoSelection",
+          "group": "docs"
+        },
+        {
+          "file": "tools/regression-checks/integration_selection_go_identifiers.py",
+          "selector": "GoIdentifierDefinitions",
+          "group": "docs"
+        },
+        {
+          "file": "tools/regression-checks/integration_selection_go_layout.py",
+          "selector": "GoLayoutSelection",
+          "group": "docs"
+        },
+        {
+          "file": "tools/regression-checks/integration_selection_python.py",
+          "selector": "PythonFilterSelection",
+          "group": "docs"
+        },
+        {
+          "file": "tools/regression-checks/integration_selection_python.py",
+          "selector": "PythonPatternSelection",
+          "group": "docs"
+        },
+        {
+          "file": "tools/regression-checks/integration_selection_python.py",
+          "selector": "PreservedPythonSelection",
+          "group": "docs"
+        },
+        {
+          "file": "tools/regression-checks/integration_selection_go_runtime.py",
+          "selector": "GoRuntimeSelection",
+          "group": "go"
         }
       ],
       "follow_up": []
