@@ -1,12 +1,13 @@
 {
   "schema": "check-declaration/v1",
   "producer": "jaekit-goal-tests",
-  "producer_version": "1",
+  "producer_version": "2",
   "producer_paths": [
     "tools/goal-checks/produce.py",
     "tools/goal-checks/release-0-1-3-followups/AC-5.targets.json",
     "tools/release/test_install_data.py",
-    "tools/release/test_install.py"
+    "tools/release/test_install.py",
+    "tools/result_observations.py"
   ],
   "targets": [
     {
@@ -14,16 +15,176 @@
       "violation": "linked-data-reused"
     },
     {
+      "id": "file-link.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "file-link.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "file-link.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "file-link.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "file-link.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "file-link.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "file-link.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "file-link.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "file-link.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "file-link.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "directory-link",
       "violation": "linked-data-reused"
+    },
+    {
+      "id": "directory-link.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "directory-link.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "directory-link.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "directory-link.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "directory-link.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "directory-link.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "directory-link.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "directory-link.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "directory-link.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "directory-link.attribution",
+      "violation": "no-additional-violation"
     },
     {
       "id": "special-file",
       "violation": "special-data-reused"
     },
     {
+      "id": "special-file.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "special-file.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "special-file.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "special-file.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "special-file.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "special-file.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "special-file.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "special-file.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "special-file.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "special-file.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "identical-data",
       "violation": "identical-data-refused"
+    },
+    {
+      "id": "identical-data.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "identical-data.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "identical-data.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "identical-data.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "identical-data.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "identical-data.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "identical-data.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "identical-data.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "identical-data.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "identical-data.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

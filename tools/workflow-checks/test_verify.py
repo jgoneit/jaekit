@@ -81,7 +81,8 @@ class Fixture(unittest.TestCase):
             )
         for group, filenames in (
                 ("review", ("test_observation.py", "test_installation.py", "test_producers.py")),
-                ("gap", ("test_observation.py", "test_history_results.py", "test_docs_environment.py"))):
+                ("gap", ("test_observation.py", "test_history_results.py", "test_docs_environment.py")),
+                ("producer", ("test_semantics.py",))):
             directory = self.repo / "tools" / (group + "-checks")
             directory.mkdir()
             for filename in filenames:
@@ -118,7 +119,7 @@ class InvocationCases(Fixture):
         self.assertEqual([item["name"] for item in commands],
                          ["gofmt", "go", "go", "review:test_observation.py", "review:test_installation.py",
                           "review:test_producers.py", "gap:test_observation.py", "gap:test_history_results.py",
-                          "gap:test_docs_environment.py", "go", "go", "go", "go", "go", "ha", "ha",
+                          "gap:test_docs_environment.py", "producer:test_semantics.py", "go", "go", "go", "go", "go", "ha", "ha",
                           "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "goal-checks", "release-checks"])
         builds = [item for item in commands if item["name"] == "go" and item["args"][0] == "build"]
         self.assertEqual([(item["goos"], item["goarch"]) for item in builds],
@@ -165,6 +166,7 @@ class FailureCases(Fixture):
                  ("gap:test_observation.py", "Review gap regressions (test_observation.py)"),
                  ("gap:test_history_results.py", "Review gap regressions (test_history_results.py)"),
                  ("gap:test_docs_environment.py", "Review gap regressions (test_docs_environment.py)"),
+                 ("producer:test_semantics.py", "Producer semantic regressions (test_semantics.py)"),
                  ("build:darwin/arm64", "Build darwin/arm64"), ("build", "Build native smoke binary"),
                  ("smoke:--version", "CLI version"), ("smoke:--help", "CLI help"),
                  ("check_public_tree.py", "Public file boundary"),

@@ -1,35 +1,105 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "printed-or-quoted",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "SpecCommandPosition.test_printed_or_quoted_core_commands_are_not_execution"
+      "test": "SpecCommandPosition.test_printed_or_quoted_core_commands_are_not_execution",
+      "result_targets": {
+        "additional_violations": [
+          "printed-or-quoted.assertion-2",
+          "printed-or-quoted.assertion-3",
+          "printed-or-quoted.assertion-4",
+          "printed-or-quoted.assertion-5",
+          "printed-or-quoted.assertion-6",
+          "printed-or-quoted.assertion-7",
+          "printed-or-quoted.assertion-8"
+        ],
+        "execution": "printed-or-quoted.execution",
+        "selection": "printed-or-quoted.selection",
+        "attribution": "printed-or-quoted.attribution"
+      }
     },
     {
       "target": "claude-printed-examples",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "SpecCommandPosition.test_claude_printed_examples_are_not_execution"
+      "test": "SpecCommandPosition.test_claude_printed_examples_are_not_execution",
+      "result_targets": {
+        "additional_violations": [
+          "claude-printed-examples.assertion-2",
+          "claude-printed-examples.assertion-3",
+          "claude-printed-examples.assertion-4",
+          "claude-printed-examples.assertion-5",
+          "claude-printed-examples.assertion-6",
+          "claude-printed-examples.assertion-7",
+          "claude-printed-examples.assertion-8"
+        ],
+        "execution": "claude-printed-examples.execution",
+        "selection": "claude-printed-examples.selection",
+        "attribution": "claude-printed-examples.attribution"
+      }
     },
     {
       "target": "codex-exec-strings",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "SpecCommandPosition.test_codex_exec_strings_are_read_as_commands"
+      "test": "SpecCommandPosition.test_codex_exec_strings_are_read_as_commands",
+      "result_targets": {
+        "additional_violations": [
+          "codex-exec-strings.assertion-2",
+          "codex-exec-strings.assertion-3",
+          "codex-exec-strings.assertion-4",
+          "codex-exec-strings.assertion-5",
+          "codex-exec-strings.assertion-6",
+          "codex-exec-strings.assertion-7",
+          "codex-exec-strings.assertion-8"
+        ],
+        "execution": "codex-exec-strings.execution",
+        "selection": "codex-exec-strings.selection",
+        "attribution": "codex-exec-strings.attribution"
+      }
     },
     {
       "target": "command-position-execution",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "SpecCommandPosition.test_core_commands_in_command_position_remain_execution"
+      "test": "SpecCommandPosition.test_core_commands_in_command_position_remain_execution",
+      "result_targets": {
+        "additional_violations": [
+          "command-position-execution.assertion-2",
+          "command-position-execution.assertion-3",
+          "command-position-execution.assertion-4",
+          "command-position-execution.assertion-5",
+          "command-position-execution.assertion-6",
+          "command-position-execution.assertion-7",
+          "command-position-execution.assertion-8"
+        ],
+        "execution": "command-position-execution.execution",
+        "selection": "command-position-execution.selection",
+        "attribution": "command-position-execution.attribution"
+      }
     },
     {
       "target": "claude-command-position-execution",
       "runner": "unittest",
       "file": "tools/release-checks/test_observed_invocations.py",
-      "test": "SpecCommandPosition.test_claude_core_commands_in_command_position_remain_execution"
+      "test": "SpecCommandPosition.test_claude_core_commands_in_command_position_remain_execution",
+      "result_targets": {
+        "additional_violations": [
+          "claude-command-position-execution.assertion-2",
+          "claude-command-position-execution.assertion-3",
+          "claude-command-position-execution.assertion-4",
+          "claude-command-position-execution.assertion-5",
+          "claude-command-position-execution.assertion-6",
+          "claude-command-position-execution.assertion-7",
+          "claude-command-position-execution.assertion-8"
+        ],
+        "execution": "claude-command-position-execution.execution",
+        "selection": "claude-command-position-execution.selection",
+        "attribution": "claude-command-position-execution.attribution"
+      }
     }
   ]
 }
