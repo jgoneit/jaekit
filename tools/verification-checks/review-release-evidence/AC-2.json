@@ -1,0 +1,17 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-review-release-observer",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/review_release_evidence.py",
+    "tools/release-checks/integration_evidence_boundaries.py",
+    "tools/review-checks/test_observation.py",
+    "tools/release-checks/test_loader_invocations.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-2",
+      "violation": "unreachable-call-certified"
+    }
+  ]
+}

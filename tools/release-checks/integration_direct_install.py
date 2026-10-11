@@ -2,6 +2,7 @@
 import copy
 import io
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -247,6 +248,90 @@ class DirectInstallation(unittest.TestCase):
         self.assertTrue(report["before_absent"])
         self.assertFalse(report["completed"])
         self.assertTrue((self.destination / "collision").is_file())
+
+
+class InstalledPathAvailability(unittest.TestCase):
+    """Homebrew evidence: the selected installed path itself must run, not only its verified bytes.
+
+    The Homebrew install capture is synthetic; the installed file, its mode,
+    the Core and every version/capabilities query are real.
+    """
+    @classmethod
+    def setUpClass(cls):
+        cls.build = tempfile.TemporaryDirectory(prefix="jaekit-installed-path-core-")
+        cls.core = Path(cls.build.name) / "ha"
+        subprocess.run(["go", "build", "-ldflags=-X main.version=0.1.3", "-o", str(cls.core), "./cmd/ha"], cwd=ROOT, check=True,
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.build.cleanup()
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(prefix="jaekit-installed-path-")
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        target = check.native_platform()
+        self.archive = io.BytesIO()
+        with tarfile.open(fileobj=self.archive, mode="w:gz") as archive:
+            for name, data in {"ha": self.core.read_bytes(), "LICENSE": b"synthetic license\n", "README.md": b"support\n",
+                               "README.en.md": b"support\n", "guides/INSTALL.md": b"install\n",
+                               "guides/INSTALL.en.md": b"install\n", "contracts/run-record.md": b"contract\n"}.items():
+                member = tarfile.TarInfo(f"ha_{check.VERSION}_{target}/" + name)
+                member.size = len(data)
+                archive.addfile(member, io.BytesIO(data))
+        self.binary = self.root / "Cellar/jaekit/0.1.3/bin/ha"
+        self.binary.parent.mkdir(parents=True)
+        self.binary.write_bytes(self.core.read_bytes())
+        self.binary.chmod(0o755)
+        value = {"binary": self.artifact(self.binary), "package_root": str(self.root / "Cellar/jaekit/0.1.3/share/jaekit"),
+                 "install": self.capture("install", ["/usr/local/bin/brew", "install", "jgoneit/tap/jaekit"],
+                                         b"synthetic Homebrew output\n")}
+        for key, suffix in (("version", ["--version"]), ("capabilities", ["capabilities", "--format", "json"])):
+            result = subprocess.run([str(self.binary), *suffix], capture_output=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            value[key] = self.capture(key, [str(self.binary), *suffix], result.stdout)
+        self.checker = check.Checker(self.root)
+        self.checker._evidence = {"installations": {"brew_fresh": value}}
+
+    def artifact(self, path):
+        return {"path": str(path), "sha256": install_trace.digest(path.read_bytes())}
+
+    def capture(self, key, argv, stdout):
+        out, err = self.root / (key + ".out"), self.root / (key + ".err")
+        out.write_bytes(stdout)
+        err.write_bytes(b"")
+        return {"argv": argv, "exit_code": 0, "stdout": self.artifact(out), "stderr": self.artifact(err)}
+
+    def installation(self):
+        with mock.patch.object(self.checker, "download", return_value=self.archive.getvalue()):
+            return self.checker.installation("brew_fresh")
+
+    def test_selected_installed_path_must_itself_be_executable(self):
+        self.assertEqual(self.installation(), self.binary.resolve())
+        # Another runnable Core earlier in PATH must not stand in for the selected path.
+        other = self.root / "other-path"
+        other.mkdir()
+        shutil.copy2(self.binary, other / "ha")
+        self.binary.chmod(0o644)
+        with mock.patch.dict(os.environ, {"PATH": str(other) + os.pathsep + os.environ.get("PATH", "")}):
+            try:
+                self.installation()
+            except check.Failure:
+                pass
+            except check.Unavailable as error:
+                self.fail(f"[violation:installed-path-unusable-accepted] a non-executable path was only unverified: {error}")
+            else:
+                self.fail("[violation:installed-path-unusable-accepted] a non-executable installed path was accepted")
+        self.assertEqual(self.binary.stat().st_mode & 0o777, 0o644, "the checker changed the installation")
+        self.assertEqual(self.binary.read_bytes(), self.core.read_bytes(), "the checker changed the installation")
+        self.binary.chmod(0o755)
+        self.assertEqual(self.installation(), self.binary.resolve())
+
+    def test_missing_installed_path_remains_unverified(self):
+        self.binary.unlink()
+        with self.assertRaises(check.Unavailable):
+            self.installation()
 
 
 if __name__ == "__main__":
