@@ -26,6 +26,8 @@ checker.REQUIREMENTS['design']={
 base_observe=checker.observe
 
 def observe(root,suite,criterion):
+ # Observers chain through checker.observe; relations apply to their own suite only.
+ if suite!='design':return base_observe(root,suite,criterion)
  observation,problems=base_observe(root,suite,criterion)
  def problem(owners,message):
   # A relation belongs to the criteria that own its meaning. AC-9 traces the
