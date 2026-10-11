@@ -1,0 +1,14 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-release-observer",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/release_evidence.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-5",
+      "violation": "unverified-source-used"
+    }
+  ]
+}
