@@ -83,7 +83,7 @@ class Fixture(unittest.TestCase):
                 ("review", ("test_observation.py", "test_installation.py", "test_producers.py")),
                 ("gap", ("test_observation.py", "test_history_results.py", "test_docs_environment.py")),
                 ("producer", ("test_semantics.py",)),
-                ("regression", ("test_merge_blockers.py", "integration_go_filters.py", "integration_observer_core.py"))):
+                ("regression", ("test_merge_blockers.py", "integration_go_filters.py", "integration_observer_core.py", "test_observer_attribution.py"))):
             directory = self.repo / "tools" / (group + "-checks")
             directory.mkdir()
             for filename in filenames:
@@ -122,7 +122,8 @@ class InvocationCases(Fixture):
                           "review:test_producers.py", "gap:test_observation.py", "gap:test_history_results.py",
                           "gap:test_docs_environment.py", "producer:test_semantics.py",
                           "regression:test_merge_blockers.py", "regression:integration_go_filters.py",
-                          "regression:integration_observer_core.py", "go", "go", "go", "go", "go", "ha", "ha",
+                          "regression:integration_observer_core.py", "regression:test_observer_attribution.py",
+                          "go", "go", "go", "go", "go", "ha", "ha",
                           "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "goal-checks", "release-checks"])
         builds = [item for item in commands if item["name"] == "go" and item["args"][0] == "build"]
         self.assertEqual([(item["goos"], item["goarch"]) for item in builds],
@@ -176,6 +177,7 @@ class FailureCases(Fixture):
                  ("regression:test_merge_blockers.py", "Merge blocker regressions (test_merge_blockers.py)"),
                  ("regression:integration_go_filters.py", "Merge blocker regressions (integration_go_filters.py)"),
                  ("regression:integration_observer_core.py", "Merge blocker regressions (integration_observer_core.py)"),
+                 ("regression:test_observer_attribution.py", "Merge blocker regressions (test_observer_attribution.py)"),
                  ("build:darwin/arm64", "Build darwin/arm64"), ("build", "Build native smoke binary"),
                  ("smoke:--version", "CLI version"), ("smoke:--help", "CLI help"),
                  ("check_public_tree.py", "Public file boundary"),

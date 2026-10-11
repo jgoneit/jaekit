@@ -29,8 +29,12 @@ class Runner(unittest.TestCase):
             except check.Environment as error:
                 self.fail('[violation:discovery-environment-differs] a sibling import that discovery supports failed: '+str(error.detail)[-300:])
             (root/'selected_sibling.py').write_text('value = 9\n')
-            with self.assertRaises(check.Environment, msg='[violation:discovery-environment-differs] a changed sibling module did not surface'):
+            try:
                 check.python_tests(path, 'Sample')
+            except check.Environment:
+                pass
+            else:
+                self.fail('[violation:discovery-environment-differs] a changed sibling module did not surface')
 
     def test_actual_zero_and_skipped_unittest_runs_are_unverified(self):
         for source in ("import unittest", "import unittest\n@unittest.skip('synthetic unavailable')\nclass Sample(unittest.TestCase):\n def test_one(self):pass"):

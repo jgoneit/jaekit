@@ -144,7 +144,7 @@ def verify_go(env: dict[str, str]):
     run("Producer semantic regressions (test_semantics.py)",
         [sys.executable, "-m", "unittest", "discover", "-s", "tools/producer-checks",
          "-p", "test_semantics.py"], env)
-    for filename in ("test_merge_blockers.py", "integration_go_filters.py", "integration_observer_core.py"):
+    for filename in ("test_merge_blockers.py", "integration_go_filters.py", "integration_observer_core.py", "test_observer_attribution.py"):
         run(f"Merge blocker regressions ({filename})",
             [sys.executable, "-m", "unittest", "discover", "-s", "tools/regression-checks",
              "-p", filename], env)
