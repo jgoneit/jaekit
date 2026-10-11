@@ -1,4 +1,5 @@
 """Bounded synthetic tar/gzip inputs; no network or disk extraction."""
+import contextlib
 import gzip
 import importlib.util
 import io
@@ -28,9 +29,9 @@ def require(value, code, message):
         raise ArchiveViolation(code, message)
 
 
-def package(extra=(), *, pax=None):
+def package(extra=(), *, pax=None, fmt=tarfile.PAX_FORMAT):
     out = io.BytesIO()
-    with tarfile.open(fileobj=out, mode="w:gz", format=tarfile.PAX_FORMAT,
+    with tarfile.open(fileobj=out, mode="w:gz", format=fmt,
                       pax_headers=pax) as archive:
         for name, body, kind in [(n, b"x", tarfile.REGTYPE) for n in REQUIRED] + list(extra):
             member = tarfile.TarInfo(PREFIX + name)
@@ -141,6 +142,100 @@ def consumer_paths():
             raise ArchiveViolation("archive-consumer-bypassed-limit", "installation bypassed the parser limit")
 
 
+# Published in README.md (Archive resource limits).
+METADATA = 64 * 1024
+METADATA_TOTAL = 1024 * 1024
+# A second gzip member with a valid header and a reserved deflate block type.
+CORRUPT_MEMBER = gzip.compress(b"\0" * 1024)[:10] + b"\xff" * 16
+
+
+@contextlib.contextmanager
+def parsed():
+    """Record the size of every PAX/GNU metadata body tarfile starts to parse."""
+    sizes = []
+
+    def recorded(original):
+        def method(self, archive):
+            sizes.append(self.size)
+            return original(self, archive)
+        return method
+
+    with patch.object(tarfile.TarInfo, "_proc_pax", recorded(tarfile.TarInfo._proc_pax)), \
+         patch.object(tarfile.TarInfo, "_proc_gnulong", recorded(tarfile.TarInfo._proc_gnulong)):
+        yield sizes
+
+
+def metadata():
+    """PAX/GNU metadata is bounded before tarfile reads or parses it."""
+    code = "archive-metadata-unbounded"
+    many = METADATA_TOTAL // (METADATA - 1024) + 1
+    for label, value in (
+            ("PAX path", package([("nested/" + "p" * METADATA, b"x", tarfile.REGTYPE)])),
+            ("GNU long name", package([("nested/" + "g" * METADATA, b"x", tarfile.REGTYPE)], fmt=tarfile.GNU_FORMAT)),
+            ("PAX records", package(pax={f"r{n}": "v" for n in range(METADATA // 8)})),
+            ("metadata total", package([(f"nested/{n:02d}" + "t" * (METADATA - 1024), b"", tarfile.REGTYPE)
+                                        for n in range(many)]))):
+        with parsed() as sizes:
+            reject(value, "metadata limit", code)
+        require(max(sizes, default=0) <= METADATA and sum(sizes) <= METADATA_TOTAL, code,
+                f"{label}: tarfile parsed {sum(sizes)} metadata bytes before the limit")
+    for fmt in (tarfile.PAX_FORMAT, tarfile.GNU_FORMAT):
+        name = "nested/" + "/".join(["n" * 200] * 3)
+        value = package([(name, b"ok", tarfile.REGTYPE)], fmt=fmt)
+        with parsed() as sizes:
+            require(name in check.archive_files(value, TARGET), code, "a supported long name was lost")
+        size = max(sizes)
+        for limit in ("ARCHIVE_MAX_METADATA_BYTES", "ARCHIVE_MAX_METADATA_TOTAL_BYTES"):
+            with limits(**{limit: size}):
+                check.archive_files(value, TARGET)
+            with limits(**{limit: size - 1}):
+                reject(value, "metadata limit", code)
+
+
+def corruption():
+    """Corrupt or trailing data is a handled requirement failure, not a traceback or success."""
+    code = "archive-corruption-accepted"
+    data = package()
+    for label, value, cause in (
+            ("corrupt concatenated gzip member", data + CORRUPT_MEMBER, "invalid or incomplete"),
+            ("truncated gzip trailer", data[:-4], "invalid or incomplete"),
+            ("nonzero data after the tar end", gzip.compress(gzip.decompress(data) + b"trailing"), "nonzero")):
+        try:
+            check.archive_files(value, TARGET)
+        except check.Failure as error:
+            require(cause in str(error), code, f"{label}: refusal lost its cause: {error}")
+        except Exception as error:
+            raise ArchiveViolation(code, f"{label}: unhandled {type(error).__name__}: {error}")
+        else:
+            raise ArchiveViolation(code, f"{label}: accepted")
+    check.archive_files(data + gzip.compress(b"\0" * 4096), TARGET)
+    # A corrupt public asset is a requirement failure; a failed download stays unverified.
+    collector = check.Checker()
+    name = "ha_0.1.3_" + TARGET + ".tar.gz"
+    corrupt = data + CORRUPT_MEMBER
+    with patch.object(check, "PLATFORMS", (TARGET,)), \
+         patch.object(collector, "assets", return_value={name: {}, "checksums.txt": {}}), \
+         patch.object(collector, "download", side_effect=lambda n: corrupt if n == name else
+                      (check.digest(corrupt) + "  " + name + "\n").encode()):
+        try:
+            collector.archives()
+        except check.Failure as error:
+            require("invalid or incomplete" in str(error), code, f"release archives: {error}")
+        except Exception as error:
+            raise ArchiveViolation(code, f"release archives: unhandled {type(error).__name__}: {error}")
+        else:
+            raise ArchiveViolation(code, "release archives accepted a corrupt gzip member")
+    url = f"https://github.com/{check.REPO}/releases/download/{check.TAG}/{name}"
+    with patch.object(collector, "assets", return_value={name: {"browser_download_url": url}}), \
+         patch.object(check, "urlopen", side_effect=OSError("offline")):
+        try:
+            collector.download(name)
+        except check.Unavailable:
+            pass
+        else:
+            raise ArchiveViolation(code, "a failed download was not reported as unverified")
+
+
 class ArchiveLimits(unittest.TestCase):
     def test_finite_public_limits_count_empty_and_directory_entries(self):
         finite_contract()
@@ -171,6 +266,12 @@ class ArchiveLimits(unittest.TestCase):
                          {"GNU.sparse.major": "1", "GNU.sparse.minor": "0", "GNU.sparse.realsize": "999999"}):
             reject(package(pax=metadata), "unsupported sparse")
         reject(package([("sparse", b"", tarfile.GNUTYPE_SPARSE)]), "unsupported sparse")
+
+    def test_metadata_is_bounded_before_tarfile_parses_it(self):
+        metadata()
+
+    def test_corrupt_or_trailing_data_is_a_handled_failure(self):
+        corruption()
 
     def test_pax_long_names_and_normal_padding_remain_supported(self):
         name = "nested/" + "n" * 180
