@@ -1,0 +1,11 @@
+{
+  "schema": "jaekit-goal-targets/v1",
+  "checks": [
+    {
+      "target": "store-support-query-retry",
+      "runner": "unittest",
+      "file": "tools/findings-checks/test_stored_reuse.py",
+      "test": "StoredRoundTrip.test_store_support_query_and_retry"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-producer-observer",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/producer_results.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-1",
+      "violation": "unverified-promoted"
+    }
+  ]
+}

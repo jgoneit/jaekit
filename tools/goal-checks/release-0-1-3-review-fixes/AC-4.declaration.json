@@ -1,12 +1,13 @@
 {
   "schema": "check-declaration/v1",
   "producer": "jaekit-goal-tests",
-  "producer_version": "1",
+  "producer_version": "2",
   "producer_paths": [
     "tools/goal-checks/produce.py",
     "tools/goal-checks/release-0-1-3-review-fixes/AC-4.targets.json",
     "tools/release-checks/test_observed_invocations.py",
-    "tools/release-checks/test_loader_invocations.py"
+    "tools/release-checks/test_loader_invocations.py",
+    "tools/result_observations.py"
   ],
   "targets": [
     {
@@ -14,20 +15,220 @@
       "violation": "printed-core-rejected"
     },
     {
+      "id": "printed-or-quoted.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "printed-or-quoted.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "printed-or-quoted.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "printed-or-quoted.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "printed-or-quoted.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "printed-or-quoted.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "printed-or-quoted.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "printed-or-quoted.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "printed-or-quoted.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "printed-or-quoted.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "claude-printed-examples",
       "violation": "printed-core-rejected"
+    },
+    {
+      "id": "claude-printed-examples.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-printed-examples.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-printed-examples.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-printed-examples.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-printed-examples.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-printed-examples.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-printed-examples.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-printed-examples.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-printed-examples.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-printed-examples.attribution",
+      "violation": "no-additional-violation"
     },
     {
       "id": "codex-exec-strings",
       "violation": "printed-core-rejected"
     },
     {
+      "id": "codex-exec-strings.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-exec-strings.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-exec-strings.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-exec-strings.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-exec-strings.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-exec-strings.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-exec-strings.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-exec-strings.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-exec-strings.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codex-exec-strings.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "command-position-execution",
       "violation": "execution-accepted"
     },
     {
+      "id": "command-position-execution.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "command-position-execution.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "command-position-execution.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "command-position-execution.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "command-position-execution.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "command-position-execution.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "command-position-execution.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "command-position-execution.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "command-position-execution.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "command-position-execution.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "claude-command-position-execution",
       "violation": "execution-accepted"
+    },
+    {
+      "id": "claude-command-position-execution.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-command-position-execution.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-command-position-execution.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-command-position-execution.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-command-position-execution.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-command-position-execution.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-command-position-execution.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-command-position-execution.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-command-position-execution.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "claude-command-position-execution.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

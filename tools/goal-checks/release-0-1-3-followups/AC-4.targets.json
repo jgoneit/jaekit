@@ -1,17 +1,45 @@
 {
-  "schema": "jaekit-goal-targets/v1",
+  "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
       "target": "update-cleanup",
       "runner": "unittest",
       "file": "tools/release/test_install_data.py",
-      "test": "DirectData.test_update_cleanup_keeps_the_current_version"
+      "test": "DirectData.test_update_cleanup_keeps_the_current_version",
+      "result_targets": {
+        "additional_violations": [
+          "update-cleanup.assertion-2",
+          "update-cleanup.assertion-3",
+          "update-cleanup.assertion-4",
+          "update-cleanup.assertion-5",
+          "update-cleanup.assertion-6",
+          "update-cleanup.assertion-7",
+          "update-cleanup.assertion-8"
+        ],
+        "execution": "update-cleanup.execution",
+        "selection": "update-cleanup.selection",
+        "attribution": "update-cleanup.attribution"
+      }
     },
     {
       "target": "update-linked-root",
       "runner": "unittest",
       "file": "tools/release/test_install_data.py",
-      "test": "DirectData.test_update_cleanup_does_not_follow_a_linked_data_root"
+      "test": "DirectData.test_update_cleanup_does_not_follow_a_linked_data_root",
+      "result_targets": {
+        "additional_violations": [
+          "update-linked-root.assertion-2",
+          "update-linked-root.assertion-3",
+          "update-linked-root.assertion-4",
+          "update-linked-root.assertion-5",
+          "update-linked-root.assertion-6",
+          "update-linked-root.assertion-7",
+          "update-linked-root.assertion-8"
+        ],
+        "execution": "update-linked-root.execution",
+        "selection": "update-linked-root.selection",
+        "attribution": "update-linked-root.attribution"
+      }
     }
   ]
 }

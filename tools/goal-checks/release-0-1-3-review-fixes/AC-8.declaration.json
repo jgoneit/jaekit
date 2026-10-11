@@ -1,13 +1,14 @@
 {
   "schema": "check-declaration/v1",
   "producer": "jaekit-goal-tests",
-  "producer_version": "1",
+  "producer_version": "2",
   "producer_paths": [
     "tools/goal-checks/produce.py",
     "tools/goal-checks/release-0-1-3-review-fixes/AC-8.targets.json",
     "tools/release-checks/test_observed_invocations.py",
     "tools/release-checks/test_loader_invocations.py",
-    "tools/goal-checks/release-0-1-3-review-fixes/test_private_independence.py"
+    "tools/goal-checks/release-0-1-3-review-fixes/test_private_independence.py",
+    "tools/result_observations.py"
   ],
   "targets": [
     {
@@ -15,20 +16,220 @@
       "violation": "private-evidence-located"
     },
     {
+      "id": "evidence-not-located.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-not-located.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-not-located.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-not-located.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-not-located.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-not-located.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-not-located.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-not-located.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-not-located.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-not-located.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "evidence-directory",
       "violation": "evidence-directory-ignored"
+    },
+    {
+      "id": "evidence-directory.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-directory.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-directory.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-directory.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-directory.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-directory.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-directory.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-directory.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-directory.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "evidence-directory.attribution",
+      "violation": "no-additional-violation"
     },
     {
       "id": "no-git-directory-search",
       "violation": "private-evidence-located"
     },
     {
+      "id": "no-git-directory-search.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-git-directory-search.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-git-directory-search.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-git-directory-search.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-git-directory-search.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-git-directory-search.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-git-directory-search.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-git-directory-search.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-git-directory-search.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-git-directory-search.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "tracked-references",
       "violation": "private-reference-tracked"
     },
     {
+      "id": "tracked-references.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tracked-references.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tracked-references.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tracked-references.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tracked-references.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tracked-references.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tracked-references.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tracked-references.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tracked-references.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tracked-references.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "fresh-clone",
       "violation": "private-dependency"
+    },
+    {
+      "id": "fresh-clone.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fresh-clone.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fresh-clone.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fresh-clone.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fresh-clone.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fresh-clone.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fresh-clone.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fresh-clone.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fresh-clone.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fresh-clone.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

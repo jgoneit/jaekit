@@ -110,10 +110,25 @@ def check(root: Path, paths: list[Path] | None = None) -> tuple[int, list[str]]:
 
 
 def main() -> int:
+    """Exit 1 only for problems found in readable documents.
+
+    No documents or an unreadable document is UNVERIFIED (3); an internal
+    failure is 70. Neither is reported as a documentation problem.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", nargs="?", type=Path, default=Path(__file__).resolve().parent.parent)
     args = parser.parse_args()
-    count, problems = check(args.root)
+    try:
+        if not documents(args.root.resolve()):
+            print("UNVERIFIED: no public documentation found", file=sys.stderr)
+            return 3
+        count, problems = check(args.root)
+    except (OSError, UnicodeError) as error:
+        print(f"UNVERIFIED: a public document could not be read: {error}", file=sys.stderr)
+        return 3
+    except Exception as error:
+        print(f"INTERNAL: {type(error).__name__}: {error}", file=sys.stderr)
+        return 70
     for problem in problems:
         print(problem, file=sys.stderr)
     print(f"public documents: {len(documents(args.root.resolve()))}; local links: {count}; problems: {len(problems)}")

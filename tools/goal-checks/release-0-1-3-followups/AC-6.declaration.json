@@ -1,12 +1,13 @@
 {
   "schema": "check-declaration/v1",
   "producer": "jaekit-goal-tests",
-  "producer_version": "1",
+  "producer_version": "2",
   "producer_paths": [
     "tools/goal-checks/produce.py",
     "tools/goal-checks/release-0-1-3-followups/AC-6.targets.json",
     "tools/release/test_install_data.py",
-    "tools/release/test_install.py"
+    "tools/release/test_install.py",
+    "tools/result_observations.py"
   ],
   "targets": [
     {
@@ -14,24 +15,264 @@
       "violation": "install-regression"
     },
     {
+      "id": "install-regressions.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "install-regressions.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "install-regressions.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "install-regressions.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "install-regressions.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "install-regressions.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "install-regressions.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "install-regressions.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "install-regressions.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "install-regressions.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "unsupported-platform",
       "violation": "unsupported-platform-changed"
+    },
+    {
+      "id": "unsupported-platform.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unsupported-platform.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unsupported-platform.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unsupported-platform.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unsupported-platform.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unsupported-platform.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unsupported-platform.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unsupported-platform.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unsupported-platform.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unsupported-platform.attribution",
+      "violation": "no-additional-violation"
     },
     {
       "id": "reference-guidance",
       "violation": "reference-guidance-changed"
     },
     {
+      "id": "reference-guidance.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-guidance.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-guidance.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-guidance.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-guidance.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-guidance.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-guidance.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-guidance.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-guidance.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-guidance.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "update-guide",
       "violation": "update-guide-changed"
+    },
+    {
+      "id": "update-guide.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-guide.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-guide.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-guide.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-guide.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-guide.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-guide.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-guide.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-guide.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "update-guide.attribution",
+      "violation": "no-additional-violation"
     },
     {
       "id": "uninstall-guide",
       "violation": "uninstall-guide-changed"
     },
     {
+      "id": "uninstall-guide.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "uninstall-guide.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "uninstall-guide.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "uninstall-guide.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "uninstall-guide.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "uninstall-guide.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "uninstall-guide.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "uninstall-guide.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "uninstall-guide.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "uninstall-guide.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "guide-links",
       "violation": "guide-anchor-broken"
+    },
+    {
+      "id": "guide-links.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guide-links.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guide-links.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guide-links.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guide-links.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guide-links.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guide-links.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guide-links.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guide-links.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guide-links.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

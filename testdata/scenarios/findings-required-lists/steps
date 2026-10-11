@@ -1,0 +1,29 @@
+# Required lists are explicit arrays in a new request. Omission, null and
+# other types are refused before anything is stored; empty arrays stay arrays
+# in the stored record and in queries.
+include implement
+ha done $GOAL
+expect-exit 0
+finding-input .git/omitted.json "{\"id\":\"one\",\"request_id\":\"omitted\",\"revision\":0,\"completion\":$COMPLETION,\"mapping\":\"unmapped\",\"status\":\"candidate\",\"category\":\"unknown\",\"summary\":\"Synthetic finding\",\"source\":\"synthetic-review\",\"evidence\":[]}"
+ha finding $GOAL --input .git/omitted.json
+expect-exit 64
+expect-output "criteria"
+finding-input .git/null.json "{\"id\":\"one\",\"request_id\":\"null\",\"revision\":0,\"completion\":$COMPLETION,\"criteria\":[],\"mapping\":\"unmapped\",\"status\":\"candidate\",\"category\":\"unknown\",\"summary\":\"Synthetic finding\",\"source\":\"synthetic-review\",\"evidence\":null}"
+ha finding $GOAL --input .git/null.json
+expect-exit 64
+expect-output "evidence"
+finding-input .git/type.json "{\"id\":\"one\",\"request_id\":\"type\",\"revision\":0,\"completion\":$COMPLETION,\"criteria\":\"AC-1\",\"mapping\":\"linked\",\"status\":\"candidate\",\"category\":\"unknown\",\"summary\":\"Synthetic finding\",\"source\":\"synthetic-review\",\"evidence\":[]}"
+ha finding $GOAL --input .git/type.json
+expect-exit 64
+expect-records 5
+finding-input .git/empty.json "{\"id\":\"one\",\"request_id\":\"empty\",\"revision\":0,\"completion\":$COMPLETION,\"criteria\":[],\"mapping\":\"unmapped\",\"status\":\"candidate\",\"category\":\"unknown\",\"summary\":\"Synthetic finding\",\"source\":\"synthetic-review\",\"evidence\":[]}"
+ha finding $GOAL --input .git/empty.json
+expect-exit 0
+expect-records 6
+ha finding $GOAL --format json
+expect-exit 0
+expect-output "\"criteria\":[]"
+expect-output "\"evidence\":[]"
+expect-no-output "\"criteria\":null"
+expect-no-output "\"evidence\":null"
+expect-completion-record present
