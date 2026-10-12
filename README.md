@@ -33,9 +33,9 @@ Spec은 목표 문서를 작성한 뒤 **멈춥니다**. 내용을 확인하고 
 
 ### 설치
 
-아래는 **macOS + Codex**로 시작하는 순서입니다. [Homebrew](https://brew.sh)(프로그램 설치 도구), Git, [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), **Git으로 관리하는 작업할 프로젝트 폴더**가 필요합니다. Jaekit 저장소를 clone할 필요는 없습니다.
+아래는 **macOS에서 Claude Code 또는 Codex**로 시작하는 순서입니다. [Homebrew](https://brew.sh)(프로그램 설치 도구), Git, Claude Code 또는 [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), **Git으로 관리하는 작업할 프로젝트 폴더**가 필요합니다. Jaekit 저장소를 clone할 필요는 없습니다.
 
-Claude Code는 [Claude Code 설치](guides/INSTALL.md#claude-code), Linux 또는 Homebrew 없는 환경은 [설치 안내](guides/INSTALL.md)를 따릅니다. Windows에서는 기록 도구 `ha`가 지원되지 않아 Seal을 쓸 수 없습니다. Spec은 `ha`가 필요 없지만 Windows의 설치·동작은 아직 확인하지 않았습니다.
+Linux 또는 Homebrew 없는 환경은 [설치 안내](guides/INSTALL.md)를 따릅니다. Windows에서는 기록 도구 `ha`가 지원되지 않아 Seal을 쓸 수 없습니다. Spec은 `ha`가 필요 없지만 Windows의 설치·동작은 아직 확인하지 않았습니다.
 
 **1. 터미널에서 기록 도구 `ha`를 설치합니다.** 아래 블록을 하나씩 실행하고 끝날 때까지 기다립니다.
 
@@ -49,7 +49,19 @@ ha --version
 
 `ha 0.1.4`가 나와야 합니다. 명령을 찾지 못하거나 버전이 다르면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
 
-**2. 같은 터미널에서 Codex 플러그인을 설치합니다.**
+**2. 같은 터미널에서 사용할 에이전트의 플러그인을 설치합니다.** Claude Code 또는 Codex 중 사용하는 쪽의 블록을 실행합니다. 이미 설치했다면 [업데이트](guides/INSTALL.md#업데이트) 또는 [기존 로컬 설치에서 전환](guides/INSTALL.md#로컬-경로-등록에서-옮기기)을 먼저 확인합니다.
+
+**Claude Code**
+
+```bash
+claude plugin marketplace add jgoneit/jaekit#v0.1.4
+claude plugin install spec@jaekit
+claude plugin install seal@jaekit
+```
+
+설치 후 **Claude Code를 새로 엽니다.** `#v0.1.4`는 사용할 배포판을 고정합니다. 자세한 내용은 [Claude Code 설치](guides/INSTALL.md#claude-code)를 봅니다.
+
+**Codex**
 
 ```bash
 codex plugin marketplace add jgoneit/jaekit@v0.1.4
@@ -57,7 +69,7 @@ codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-설치 후 **Codex를 새로 엽니다.** `@v0.1.4`는 사용할 배포판을 고정합니다. 이미 설치했다면 [업데이트](guides/INSTALL.md#업데이트) 또는 [기존 로컬 설치에서 전환](guides/INSTALL.md#로컬-경로-등록에서-옮기기)을 먼저 확인합니다.
+설치 후 **Codex를 새로 엽니다.** `@v0.1.4`는 사용할 배포판을 고정합니다.
 
 ### 첫 작업 맡기기
 

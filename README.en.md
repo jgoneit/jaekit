@@ -33,9 +33,9 @@ When the required completion conditions are met, Seal saves a completion record 
 
 ### Install
 
-These steps use **macOS + Codex**. You need [Homebrew](https://brew.sh) (a program installer), Git, [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), and **a project folder managed with Git**. You do not need to clone the Jaekit repository.
+These steps use **Claude Code or Codex on macOS**. You need [Homebrew](https://brew.sh) (a program installer), Git, Claude Code or [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), and **a project folder managed with Git**. You do not need to clone the Jaekit repository.
 
-For Claude Code, follow the [Claude Code installation](guides/INSTALL.en.md#claude-code). For Linux or an install without Homebrew, see the [install guide](guides/INSTALL.en.md). The record tool `ha` does not support Windows, so Seal cannot run there. Spec does not need `ha`, but its installation and operation on Windows have not been checked yet.
+For Linux or an install without Homebrew, see the [install guide](guides/INSTALL.en.md). The record tool `ha` does not support Windows, so Seal cannot run there. Spec does not need `ha`, but its installation and operation on Windows have not been checked yet.
 
 **1. In Terminal, install the record tool `ha`.** Run one block at a time and wait for it to finish.
 
@@ -49,7 +49,19 @@ ha --version
 
 It should print `ha 0.1.4`. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
 
-**2. In the same Terminal, install the Codex plugins.**
+**2. In the same Terminal, install the plugins for your agent.** Run the block for Claude Code or Codex, whichever you use. If you already installed Jaekit, first see [Update](guides/INSTALL.en.md#update) or [Move from a local path registration](guides/INSTALL.en.md#move-from-a-local-path-registration).
+
+**Claude Code**
+
+```bash
+claude plugin marketplace add jgoneit/jaekit#v0.1.4
+claude plugin install spec@jaekit
+claude plugin install seal@jaekit
+```
+
+**Reopen Claude Code after installation.** `#v0.1.4` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
+
+**Codex**
 
 ```bash
 codex plugin marketplace add jgoneit/jaekit@v0.1.4
@@ -57,7 +69,7 @@ codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-**Reopen Codex after installation.** `@v0.1.4` pins the release to use. If you already installed Jaekit, first see [Update](guides/INSTALL.en.md#update) or [Move from a local path registration](guides/INSTALL.en.md#move-from-a-local-path-registration).
+**Reopen Codex after installation.** `@v0.1.4` pins the release to use.
 
 ### Your first task
 
