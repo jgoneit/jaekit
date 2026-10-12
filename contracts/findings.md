@@ -4,6 +4,8 @@
 
 ## 지원과 호환
 
+완료 뒤 발견은 Core 0.1.4와 Seal 0.1.12에 포함된다. v0.1.3 Core는 이 확장을 지원하지 않는다.
+
 `capabilities`의 `features`에 `post-completion-findings/v1`, `formats.finding`에 `run-finding/v1`이 있는 실행 파일이 이 기능을 지원한다. 기능 사용 전에 실제 선택한 바이너리의 두 항목을 확인한다. 버전 문자열만으로 추정하지 않는다. 추가 형식·기능이 없는 소비자에게 쓰기를 맡기거나 새 자료를 정상 조회했다고 설명하지 않는다.
 
 기존 `run/v1` 기록과 시작의 `run-rules/1`, `/2`, `/3`는 바꾸지 않는다. 새 발견만 같은 `runs.jsonl` 해시 체인에 `schema: run-finding/v1`, `kind: finding`으로 추가한다. 기존 schema에 알 수 없는 note나 kind를 추가하는 방식은 구형 소비자가 무시할 수 있으므로 사용하지 않는다. 과거 줄 바이트·순번·해시는 유지된다.

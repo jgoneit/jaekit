@@ -40,8 +40,8 @@ class AC7(unittest.TestCase):
 
     def test_colon_keeps_current_versions_url_only_history_and_paragraph_boundaries(self):
         claims = (
-            "The current release: [__v0.1.3__](https://example.invalid/v0.1.2).\n",
-            "현재 배포판:\n[`v0.1.3`](https://example.invalid/v0.1.2)입니다.\n",
+            "The current release: [__v0.1.4__](https://example.invalid/v0.1.2).\n",
+            "현재 배포판:\n[`v0.1.4`](https://example.invalid/v0.1.2)입니다.\n",
             "The current release: [download](https://example.invalid/v0.1.2).\n",
             "The current release:\n\n[v0.1.2](https://example.invalid/history).\n",
             "현재 릴리스:\r\n\r\n[v0.1.2](https://example.invalid/history).\r\n",

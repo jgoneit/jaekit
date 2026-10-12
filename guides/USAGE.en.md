@@ -4,7 +4,7 @@
 
 This guide follows [your first task in the README](../README.en.md#your-first-task). For installation, updates, and removal, see the [install guide](INSTALL.en.md).
 
-The current release v0.1.3 combines ha 0.1.3, spec 0.1.11, seal 0.1.9 and default rules `/3`. Preflight refusal, run estimation, `/3` result classification and budget policy apply to this release. Existing goals keep their saved rules. See [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
+The current release v0.1.4 combines ha 0.1.4, spec 0.1.12, seal 0.1.12 and default rules `/3`. Preflight refusal, run estimation, `/3` result classification and budget policy apply to this release. Existing goals keep their saved rules. See [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
 
 ## Sending commands
 
@@ -63,10 +63,10 @@ Raw check output stays in `.git/ha/`, which Git does not track; you do not need 
 | Verification is refused because of uncommitted changes | Review the listed paths and tracked/untracked or symlink details, then resolve them according to the intended work. Unstarted checks consume no runs |
 | The plan budget is too small to start | Read the minimum, limit and shortfall from `ha estimate docs/specs/<goal>`. Decide a sufficient budget or split the goal before starting; this estimate does not change an existing run budget |
 | The budget ran out | Read what remains and decide whether to continue. `/3` can change the total run limit with your words and context, retaining usage and the time limit. Changing the elapsed-time limit is unsupported. Request an explicit reopen when a new window is needed. Existing `/1` or `/2` goals retain their reopen behavior with the original limits |
-| Seal stopped for Core compatibility | Read the executable it checked and the missing support. Follow [Update](INSTALL.en.md#update) to install the v0.1.3 combination, then check the capabilities of the Core actually selected. Do not bypass the check by automatically installing tools or switching rules |
+| Seal stopped for Core compatibility | Read the executable it checked and the missing support. Follow [Update](INSTALL.en.md#update) to install the v0.1.4 combination, then check the capabilities of the Core actually selected. Do not bypass the check by automatically installing tools or switching rules |
 
 The [operations guide](OPERATIONS.md) (Korean) describes the detailed reasons for user confirmation, blocked work, and budget stops. The steps above cover what you need to respond and continue.
 
-## Source reporting format
+## Verification reporting format
 
-Seal 0.1.10 source separates expected-result grounds, observation boundaries, methods and substitutes, and unobserved scope in the existing review and report. Condition groups may share an explanation; a plan is not an observation. Existing goal formats and the current released installation remain unchanged. See the [synthetic reporting example](../examples/verification-reporting.md); it is not an actual execution record.
+The reporting format introduced in Seal 0.1.10 separates expected-result grounds, observation boundaries, methods and substitutes, and unobserved scope in the existing review and report. Condition groups may share an explanation; a plan is not an observation. The current release includes this format in Seal 0.1.12; existing goal formats stay unchanged. See the [synthetic reporting example](../examples/verification-reporting.md); it is not an actual execution record.

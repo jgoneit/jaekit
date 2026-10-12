@@ -24,7 +24,7 @@ ROOT = HERE.parents[1]
 spec = importlib.util.spec_from_file_location("bounded_release_archives", HERE / "check_archives.py")
 release = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(release)
-VERSION = "0.1.3"
+VERSION = "0.1.4"
 # Published in tools/release-checks/README.md (Archive resource limits).
 ENTRIES = 10000
 METADATA = 64 * 1024

@@ -2,7 +2,7 @@
 
 **한국어** · [English](INSTALL.en.md)
 
-현재 배포판 `v0.1.3`의 설치·업데이트·제거 안내입니다. macOS·Linux의 arm64·amd64를 지원합니다. 아래 명령은 **터미널에서** 실행합니다. 설치 뒤 에이전트에게 보낼 말은 [첫 사용 안내](../README.md#첫-작업-맡기기)에 있습니다.
+현재 배포판 `v0.1.4`의 설치·업데이트·제거 안내입니다. macOS·Linux의 arm64·amd64를 지원합니다. 아래 명령은 **터미널에서** 실행합니다. 설치 뒤 에이전트에게 보낼 말은 [첫 사용 안내](../README.md#첫-작업-맡기기)에 있습니다.
 
 - 처음 설치할 때: [기본 설치](#기본-설치)
 - brew를 쓰지 않을 때: [Release 파일로 설치](#release-파일로-설치)
@@ -16,13 +16,14 @@
 
 | 구분 | Core | Spec | Seal | 적용 범위 |
 | --- | --- | --- | --- | --- |
-| 현재 배포판 `v0.1.3` | `ha 0.1.3` | 0.1.11 | 0.1.9 | 기본 규칙 `/3`, `nested/1`, 실행 전 dirty·복사 안전성·지원 확인, 횟수 추정·총상한 변경 |
+| 현재 배포판 `v0.1.4` | `ha 0.1.4` | 0.1.12 | 0.1.12 | 기본 규칙 `/3`, `nested/1`, 실행 전 dirty·복사 안전성·지원 확인, 횟수 추정·총상한 변경, 완료 뒤 발견·검증 근거와 보증 정책 보고 |
+| 이전 배포판 `v0.1.3` | `ha 0.1.3` | 0.1.11 | 0.1.9 | 기본 규칙 `/3`, 지원 조회·횟수 추정·총상한 변경; 완료 뒤 발견 확장 없음 |
 | 이전 배포판 `v0.1.2` | `ha 0.1.2` | 0.1.10 | 0.1.8 | 기본 규칙 `/2`; 새 Seal의 지원 요구를 충족하지 않음 |
-| 소스 빌드 | `ha 0.1.3-dev` | checkout의 버전 | checkout의 버전 | 개발용 식별자이며 배포 파일의 설치 근거가 아님 |
+| 소스 빌드 | `ha 0.1.4-dev` | checkout의 버전 | checkout의 버전 | 개발용 식별자이며 배포 파일의 설치 근거가 아님 |
 
-아래 태그 고정 설치 명령은 v0.1.3을 받습니다. Seal은 실제 사용할 Core의 지원 정보를 확인하고, 확인할 수 없거나 부족하면 기록 전에 멈춥니다. 버전 숫자만 맞추거나 구규칙으로 바꿔 진행하지 않습니다. 지원 조건은 [Core 지원 정보 계약](../contracts/core-capabilities.md)에 있습니다.
+아래 태그 고정 설치 명령은 v0.1.4를 받습니다. Seal은 실제 사용할 Core의 지원 정보를 확인하고, 확인할 수 없거나 부족하면 기록 전에 멈춥니다. 버전 숫자만 맞추거나 구규칙으로 바꿔 진행하지 않습니다. 지원 조건은 [Core 지원 정보 계약](../contracts/core-capabilities.md)에 있습니다.
 
-Spec은 Core 설치나 지원 조회 없이 문서를 작성합니다. Spec 0.1.11의 새 문서는 `nested/1`을 사용하므로 구현을 맡길 때는 그 형식을 지원하는 Core가 필요합니다. 기존 목표의 형식과 `/1`·`/2`·`/3` 기록, 사용량과 시간 한도는 업데이트로 바꾸지 않습니다. 실제 호스트 확인 범위는 [v0.1.3 릴리스 노트](https://github.com/jgoneit/jaekit/releases/tag/v0.1.3)에 따릅니다.
+Spec은 Core 설치나 지원 조회 없이 문서를 작성합니다. Spec 0.1.12의 새 문서는 `nested/1`을 사용하므로 구현을 맡길 때는 그 형식을 지원하는 Core가 필요합니다. 기존 목표의 형식과 `/1`·`/2`·`/3` 기록, 사용량과 시간 한도는 업데이트로 바꾸지 않습니다. 실제 호스트 확인 범위는 [v0.1.4 릴리스 노트](https://github.com/jgoneit/jaekit/releases/tag/v0.1.4)에 따릅니다.
 
 ## 기본 설치
 
@@ -45,7 +46,7 @@ ha --version
 which -a ha
 ```
 
-`ha --version`은 `ha 0.1.3`를 출력해야 합니다. `which -a ha`의 첫 줄이 실제로 실행되는 파일입니다. PATH는 명령을 찾을 폴더의 순서입니다. 버전이 다르면 먼저 이 경로를 확인합니다. 예전에 `go install`로 만든 파일이 앞에 있다면 해당 파일을 지우거나 PATH 순서를 바꿉니다. 그 파일은 `go env GOBIN`이 가리키는 폴더, 비어 있으면 `$(go env GOPATH)/bin`에 있습니다.
+`ha --version`은 `ha 0.1.4`를 출력해야 합니다. `which -a ha`의 첫 줄이 실제로 실행되는 파일입니다. PATH는 명령을 찾을 폴더의 순서입니다. 버전이 다르면 먼저 이 경로를 확인합니다. 예전에 `go install`로 만든 파일이 앞에 있다면 해당 파일을 지우거나 PATH 순서를 바꿉니다. 그 파일은 `go env GOBIN`이 가리키는 폴더, 비어 있으면 `$(go env GOPATH)/bin`에 있습니다.
 
 명령을 못 찾고 `which -a ha`도 비어 있다면 설치가 끝났는지 확인하고, 설치한 폴더가 PATH에 있는지 봅니다. 에이전트도 `ha`를 찾을 수 있도록 설정한 뒤 Codex 또는 Claude Code를 새로 엽니다.
 
@@ -54,12 +55,12 @@ which -a ha
 먼저 [ha 설치](#ha-설치)와 [버전 확인](#버전-확인)을 마칩니다. 아래 설치 명령에는 터미널용 [Codex(Codex CLI)](https://learn.chatgpt.com/docs/codex/cli)가 필요합니다. 플러그인은 Codex CLI와 데스크톱 앱에서 사용할 수 있으며, Codex IDE 확장에서는 지원되지 않습니다.
 
 ```bash
-codex plugin marketplace add jgoneit/jaekit@v0.1.3
+codex plugin marketplace add jgoneit/jaekit@v0.1.4
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-`@v0.1.3`는 marketplace(플러그인 목록)를 해당 태그에 고정합니다. main이 바뀌어도 배포판의 spec 0.1.11·seal 0.1.9을 받습니다.
+`@v0.1.4`는 marketplace(플러그인 목록)를 해당 태그에 고정합니다. main이 바뀌어도 배포판의 spec 0.1.12·seal 0.1.12을 받습니다.
 
 Codex를 새로 열고 대화에 `$`를 입력해 Jaekit의 `spec:spec` 또는 `seal:seal`을 고릅니다. 호출 이름은 `$spec:spec`과 `$seal:seal`입니다. [첫 작업 맡기기](../README.md#첫-작업-맡기기)를 따라 해 봅니다. 다른 플러그인과 혼동되면 [문제 해결](USAGE.md#문제-해결)을 봅니다.
 
@@ -68,19 +69,19 @@ Codex를 새로 열고 대화에 `$`를 입력해 Jaekit의 `spec:spec` 또는 `
 먼저 [ha 설치](#ha-설치)와 [버전 확인](#버전-확인)을 마칩니다. 그다음 아래 명령으로 Claude Code에 플러그인을 설치합니다.
 
 ```bash
-claude plugin marketplace add jgoneit/jaekit#v0.1.3
+claude plugin marketplace add jgoneit/jaekit#v0.1.4
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 claude plugin list
 ```
 
-`#v0.1.3`는 marketplace를 해당 태그에 고정합니다. 마지막 목록에서 `spec@jaekit`, `seal@jaekit`가 enabled인지 봅니다. 다른 플러그인과 혼동되면 [문제 해결](USAGE.md#문제-해결)을 봅니다.
+`#v0.1.4`는 marketplace를 해당 태그에 고정합니다. 마지막 목록에서 `spec@jaekit`, `seal@jaekit`가 enabled인지 봅니다. 다른 플러그인과 혼동되면 [문제 해결](USAGE.md#문제-해결)을 봅니다.
 
 Claude Code를 새로 열고 대화에서 `/spec:spec <요청>`으로 목표를 정리한 뒤, 별도 메시지의 `/seal:seal docs/specs/<goal>`로 구현을 시작합니다. 플러그인의 스킬은 `/플러그인-이름:스킬-이름`으로 호출합니다. 목표 확인과 이어 가기는 [사용 안내](USAGE.md#명령-보내기)에 있습니다.
 
 ## Release 파일로 설치
 
-brew 대신 [v0.1.3 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1.3)의 파일 `ha_0.1.3_<os>_<arch>.tar.gz`로 설치할 수 있습니다. `<os>`는 `darwin`(macOS) 또는 `linux`, `<arch>`는 `arm64`(Apple Silicon 등) 또는 `amd64`(Intel 등)입니다.
+brew 대신 [v0.1.4 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1.4)의 파일 `ha_0.1.4_<os>_<arch>.tar.gz`로 설치할 수 있습니다. `<os>`는 `darwin`(macOS) 또는 `linux`, `<arch>`는 `arm64`(Apple Silicon 등) 또는 `amd64`(Intel 등)입니다.
 
 아래 명령은 고치지 않고 그대로 붙여 넣습니다. OS와 CPU를 보고 자기 플랫폼 파일을 받아 checksum을 확인한 뒤 `~/.local/bin/ha`에 둡니다. 지원하지 않는 OS나 CPU에서는 아무것도 받거나 설치하지 않고 멈춥니다.
 
@@ -97,8 +98,8 @@ brew 대신 [v0.1.3 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1
     x86_64 | amd64) arch=amd64 ;;
     *) echo "지원하지 않는 CPU입니다: $(uname -m)" >&2; exit 1 ;;
   esac
-  name="ha_0.1.3_${os}_${arch}"
-  url="https://github.com/jgoneit/jaekit/releases/download/v0.1.3"
+  name="ha_0.1.4_${os}_${arch}"
+  url="https://github.com/jgoneit/jaekit/releases/download/v0.1.4"
   tmp="$(mktemp -d)"
   binary_tmp=
   trap 'rm -rf "$tmp"; if [ -n "$binary_tmp" ]; then rm -f "$binary_tmp"; fi' EXIT
@@ -115,7 +116,7 @@ brew 대신 [v0.1.3 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1
   mkdir "$tmp/public"
   cp -R "$name/tools" "$name/examples" "$name/guides" "$name/contracts" "$name/assets" "$tmp/public/"
   cp "$name/README.md" "$name/README.en.md" "$name/LICENSE" "$tmp/public/"
-  share="$HOME/.local/share/jaekit/0.1.3"
+  share="$HOME/.local/share/jaekit/0.1.4"
   if [ -e "$share" ] || [ -L "$share" ]; then
     if [ ! -d "$share" ] || [ -L "$share" ]; then
       echo "Release data path is not an ordinary directory: $share" >&2
@@ -128,7 +129,7 @@ brew 대신 [v0.1.3 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1
       exit 1
     fi
     if ! diff -qr "$tmp/public" "$share"; then
-      echo "Existing v0.1.3 data differs; nothing was replaced: $share" >&2
+      echo "Existing v0.1.4 data differs; nothing was replaced: $share" >&2
       exit 1
     fi
   else
@@ -156,7 +157,7 @@ brew 대신 [v0.1.3 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1
 
 ## 참조 검사 가져오기
 
-v0.1.3 배포 파일에는 `tools/check-result-reference.py`와 `examples/check-result/`가 들어 있습니다. 개발 checkout이나 Go 설치 없이 자기 프로젝트로 복사할 수 있습니다. 이 생산자는 Python 3 표준 라이브러리만 사용합니다. Python은 이 검사를 선택할 때만 필요하며 Spec·Seal의 필수 조건이 아닙니다. 다른 러너는 구현자가 선택합니다. pytest·Vitest·Playwright 자동 연동은 제공하지 않습니다.
+v0.1.4 배포 파일에는 `tools/check-result-reference.py`와 `examples/check-result/`가 들어 있습니다. 개발 checkout이나 Go 설치 없이 자기 프로젝트로 복사할 수 있습니다. 이 생산자는 Python 3 표준 라이브러리만 사용합니다. Python은 이 검사를 선택할 때만 필요하며 Spec·Seal의 필수 조건이 아닙니다. 다른 러너는 구현자가 선택합니다. pytest·Vitest·Playwright 자동 연동은 제공하지 않습니다.
 
 프로젝트 루트에서 설치 방식에 맞는 **한 블록만** 실행해 자료 경로를 정합니다. Homebrew의 `pkgshare` 위치는 다음과 같습니다.
 
@@ -167,7 +168,7 @@ package_root="$(brew --prefix jaekit)/share/jaekit"
 위의 직접 설치 명령은 checksum을 확인한 공개 자료를 다음 버전별 폴더에 보관합니다. 같은 버전의 자료가 이미 있으면 일반 파일과 폴더로만 이루어지고 내용이 같을 때만 재사용합니다. 내용이 다르거나 symlink 같은 다른 항목이 있으면 바이너리를 교체하기 전에 멈추고 그 경로를 알려 줍니다. 직접 설치했다면 다음을 씁니다.
 
 ```bash
-package_root="$HOME/.local/share/jaekit/0.1.3"
+package_root="$HOME/.local/share/jaekit/0.1.4"
 ```
 
 이어 같은 터미널의 프로젝트 루트에서 다음을 실행합니다. 예시 파일이 이미 있으면 덮어쓰지 않고 멈춥니다.
@@ -193,7 +194,7 @@ package_root="$HOME/.local/share/jaekit/0.1.3"
 
 ## 업데이트
 
-`ha`와 두 plugin을 함께 새 버전으로 옮깁니다. 설치할 때 쓴 도구로 올립니다. 아래는 v0.1.3로 옮기는 명령입니다. 명령 블록은 하나씩 붙여 넣습니다.
+`ha`와 두 plugin을 함께 새 버전으로 옮깁니다. 설치할 때 쓴 도구로 올립니다. 아래는 v0.1.4로 옮기는 명령입니다. 명령 블록은 하나씩 붙여 넣습니다.
 
 brew로 설치한 `ha`는 brew가 tap을 새로 받은 뒤 올립니다.
 
@@ -207,18 +208,18 @@ brew upgrade jgoneit/tap/jaekit
 
 Release 파일로 설치한 `ha`는 [Release 파일로 설치](#release-파일로-설치)의 명령을 다시 붙여 넣습니다. 새 버전의 파일이 `~/.local/bin/ha`를 덮어씁니다.
 
-그다음 버전을 확인합니다. `ha 0.1.3`가 나오면 됩니다. 다른 버전이 나오면 [버전 확인](#버전-확인)대로 `which -a ha`를 봅니다.
+그다음 버전을 확인합니다. `ha 0.1.4`가 나오면 됩니다. 다른 버전이 나오면 [버전 확인](#버전-확인)대로 `which -a ha`를 봅니다.
 
 ```bash
 ha --version
 ```
 
-Release 파일로 설치했다면 이전 버전의 공개 자료가 `~/.local/share/jaekit/<버전>`에 그대로 남습니다. 위에서 `ha 0.1.3`를 확인한 뒤 아래 명령으로 설치한 버전 `0.1.3`보다 오래된 버전 폴더만 지울 수 있습니다. 현재 버전 폴더 `~/.local/share/jaekit/0.1.3`와 [참조 검사 가져오기](#참조-검사-가져오기)에 쓰는 파일, 더 새 버전 폴더, `0.1.2`처럼 세 숫자로 된 버전 이름이 아닌 항목은 남습니다. 이름은 줄바꿈이나 공백으로 나누지 않고 전체를 판단하며, 버전처럼 보이는 일반 파일과 symlink도 남깁니다. 버전은 숫자로 비교하므로 `0.1.10`은 `0.1.3`보다 새 버전입니다. `~/.local/share/jaekit`이 symlink이면 아무것도 지우지 않습니다. 열거·버전 비교·삭제가 실패하면 명령은 실패로 종료하며, 그 전에 정상적으로 삭제한 구버전 폴더를 복원하지는 않습니다. 자료 폴더는 v0.1.3부터 생겼으므로 지금은 지울 이전 버전이 없을 수 있습니다.
+Release 파일로 설치했다면 이전 버전의 공개 자료가 `~/.local/share/jaekit/<버전>`에 그대로 남습니다. 위에서 `ha 0.1.4`를 확인한 뒤 아래 명령으로 설치한 버전 `0.1.4`보다 오래된 버전 폴더만 지울 수 있습니다. 현재 버전 폴더 `~/.local/share/jaekit/0.1.4`와 [참조 검사 가져오기](#참조-검사-가져오기)에 쓰는 파일, 더 새 버전 폴더, `0.1.2`처럼 세 숫자로 된 버전 이름이 아닌 항목은 남습니다. 이름은 줄바꿈이나 공백으로 나누지 않고 전체를 판단하며, 버전처럼 보이는 일반 파일과 symlink도 남깁니다. 버전은 숫자로 비교하므로 `0.1.10`은 `0.1.4`보다 새 버전입니다. `~/.local/share/jaekit`이 symlink이면 아무것도 지우지 않습니다. 열거·버전 비교·삭제가 실패하면 명령은 실패로 종료하며, 그 전에 정상적으로 삭제한 구버전 폴더를 복원하지는 않습니다. 자료 폴더는 v0.1.3부터 생겼습니다.
 
 ```bash
 (
   set -e
-  current=0.1.3
+  current=0.1.4
   data_root="$HOME/.local/share/jaekit"
   if [ -d "$data_root" ] && [ ! -L "$data_root" ]; then
     find "$data_root" -mindepth 1 -maxdepth 1 -type d -exec sh -c '
@@ -256,7 +257,7 @@ Codex:
 
 ```bash
 codex plugin marketplace remove jaekit
-codex plugin marketplace add jgoneit/jaekit@v0.1.3
+codex plugin marketplace add jgoneit/jaekit@v0.1.4
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
@@ -265,7 +266,7 @@ Claude Code:
 
 ```bash
 claude plugin marketplace remove jaekit
-claude plugin marketplace add jgoneit/jaekit#v0.1.3
+claude plugin marketplace add jgoneit/jaekit#v0.1.4
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 ```
@@ -324,13 +325,13 @@ gitdir="$(git rev-parse --absolute-git-dir)" && rm -rf "$gitdir/ha"
 
 ## 로컬 경로 등록에서 옮기기
 
-이미 저장소 checkout 경로로 `jaekit` marketplace를 등록했으면, 그 등록을 지우고 `v0.1.3`에 고정한 GitHub 저장소로 다시 등록합니다. 같은 이름의 marketplace는 둘을 함께 둘 수 없습니다. 지우면 그 marketplace에서 설치한 spec·seal도 함께 지워지므로 다시 설치합니다.
+이미 저장소 checkout 경로로 `jaekit` marketplace를 등록했으면, 그 등록을 지우고 `v0.1.4`에 고정한 GitHub 저장소로 다시 등록합니다. 같은 이름의 marketplace는 둘을 함께 둘 수 없습니다. 지우면 그 marketplace에서 설치한 spec·seal도 함께 지워지므로 다시 설치합니다.
 
 Codex:
 
 ```bash
 codex plugin marketplace remove jaekit
-codex plugin marketplace add jgoneit/jaekit@v0.1.3
+codex plugin marketplace add jgoneit/jaekit@v0.1.4
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
@@ -339,7 +340,7 @@ Claude Code:
 
 ```bash
 claude plugin marketplace remove jaekit
-claude plugin marketplace add jgoneit/jaekit#v0.1.3
+claude plugin marketplace add jgoneit/jaekit#v0.1.4
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 ```
@@ -348,14 +349,14 @@ claude plugin install seal@jaekit
 
 ## 소스에서 빌드 (개발)
 
-저장소 checkout에서 빌드한 `ha`는 개발 버전(`ha 0.1.3-dev`)을 표시합니다. Go 1.26 이상과 git이 필요합니다. checkout의 루트에서 실행합니다.
+저장소 checkout에서 빌드한 `ha`는 개발 버전(`ha 0.1.4-dev`)을 표시합니다. Go 1.26 이상과 git이 필요합니다. checkout의 루트에서 실행합니다.
 
 ```bash
 go install ./cmd/ha
 ha --version
 ```
 
-`ha` 파일은 `go env GOBIN`이 가리키는 폴더에 생기고, 그 값이 비어 있으면 `$(go env GOPATH)/bin`에 생깁니다. `ha --version`은 `ha 0.1.3-dev`를 출력합니다. Seal은 별도로 `ha capabilities --format json`의 실제 지원 정보를 확인합니다. 선택적인 Python 호환 검사 도우미도 있지만 Python 3 설치가 Seal의 필수 조건은 아닙니다.
+`ha` 파일은 `go env GOBIN`이 가리키는 폴더에 생기고, 그 값이 비어 있으면 `$(go env GOPATH)/bin`에 생깁니다. `ha --version`은 `ha 0.1.4-dev`를 출력합니다. Seal은 별도로 `ha capabilities --format json`의 실제 지원 정보를 확인합니다. 선택적인 Python 호환 검사 도우미도 있지만 Python 3 설치가 Seal의 필수 조건은 아닙니다.
 
 checkout을 고치며 plugin을 쓰려면 checkout 경로를 marketplace로 등록합니다. 이 등록은 checkout의 plugin 파일을 그대로 씁니다. `<jaekit 경로>`는 checkout의 경로로 바꿉니다.
 

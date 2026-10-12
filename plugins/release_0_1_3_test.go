@@ -15,7 +15,7 @@ func TestRelease013ReferenceGuidance(t *testing.T) {
 		section := mdSection(t, guide.path, guide.heading)
 		requireIn(t, guide.path, section,
 			`package_root="$(brew --prefix jaekit)/share/jaekit"`,
-			`package_root="$HOME/.local/share/jaekit/0.1.3"`,
+			`package_root="$HOME/.local/share/jaekit/0.1.4"`,
 			`cp "$package_root/tools/check-result-reference.py" tools/`,
 			`cp "$package_root/examples/check-result/declaration.json" checks/`,
 			`cp "$package_root/examples/check-result/reference.json" checks/`,
