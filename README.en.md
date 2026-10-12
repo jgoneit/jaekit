@@ -73,9 +73,17 @@ codex plugin add seal@jaekit
 
 ### Your first task
 
-Open Codex CLI or the desktop app in your project folder. **From here on, type in the agent conversation, not Terminal.**
+Open Claude Code, Codex CLI, or the Codex desktop app in your project folder. **From here on, type in the agent conversation, not Terminal.**
 
-**1. Ask Spec.** Type `$`, choose Jaekit's `spec:spec` from the list, and describe the work you want.
+**1. Ask Spec.** Use the example for your agent and describe the work you want.
+
+**Claude Code**
+
+```text
+/spec:spec Add a "Forgot password" link to the login screen
+```
+
+**Codex** — Type `$` and choose Jaekit's `spec:spec` from the list.
 
 ```text
 $spec:spec Add a "Forgot password" link to the login screen
@@ -85,13 +93,21 @@ This is a **fictional example** of a project that already has a password reset p
 
 **2. Review the goal.** Read the document Spec gives you and say what needs changing. In this example, the completion conditions are that the new link opens the existing reset page and login keeps working as before.
 
-**3. Start Seal in a separate message.** Choose Jaekit's `seal:seal` from the `$` list and specify the goal folder.
+**3. Start Seal in a separate message.** Specify the goal folder.
+
+**Claude Code**
+
+```text
+/seal:seal docs/specs/<goal>
+```
+
+**Codex** — Choose Jaekit's `seal:seal` from the `$` list.
 
 ```text
 $seal:seal docs/specs/<goal>
 ```
 
-Replace `<goal>` with **the actual goal folder name Spec reported**. If its name is `password-link`, the full path is `docs/specs/password-link`. For Claude Code's `/spec:spec` and `/seal:seal` commands, see the [usage guide](guides/USAGE.en.md#sending-commands).
+Replace `<goal>` with **the actual goal folder name Spec reported**. If its name is `password-link`, the full path is `docs/specs/password-link`. For more on sending commands, see the [usage guide](guides/USAGE.en.md#sending-commands).
 
 ### If the conversation ends
 

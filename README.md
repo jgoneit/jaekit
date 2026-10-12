@@ -73,9 +73,17 @@ codex plugin add seal@jaekit
 
 ### 첫 작업 맡기기
 
-작업할 프로젝트 폴더에서 Codex CLI 또는 데스크톱 앱을 엽니다. **이제부터는 터미널이 아니라 에이전트 대화에 입력합니다.**
+작업할 프로젝트 폴더에서 Claude Code 또는 Codex(CLI·데스크톱 앱)를 엽니다. **이제부터는 터미널이 아니라 에이전트 대화에 입력합니다.**
 
-**1. Spec에 요청합니다.** `$`를 입력하고 목록에서 Jaekit의 `spec:spec`을 고른 뒤, 원하는 작업을 적습니다.
+**1. Spec에 요청합니다.** 사용하는 에이전트에 맞는 예시로 원하는 작업을 적습니다.
+
+**Claude Code**
+
+```text
+/spec:spec 로그인 화면에 "비밀번호 찾기" 링크를 추가해줘
+```
+
+**Codex** — `$`를 입력하고 목록에서 Jaekit의 `spec:spec`을 고릅니다.
 
 ```text
 $spec:spec 로그인 화면에 "비밀번호 찾기" 링크를 추가해줘
@@ -85,13 +93,21 @@ $spec:spec 로그인 화면에 "비밀번호 찾기" 링크를 추가해줘
 
 **2. 목표를 확인합니다.** Spec이 알려 준 문서를 읽고 수정할 내용을 말합니다. 이 예시라면 “새 링크가 기존 재설정 페이지로 연결되는지”, “기존 로그인이 그대로 동작하는지”가 완료 조건입니다.
 
-**3. 별도 메시지로 Seal을 시작합니다.** `$` 목록에서 Jaekit의 `seal:seal`을 고르고 목표 폴더를 지정합니다.
+**3. 별도 메시지로 Seal을 시작합니다.** 목표 폴더를 지정합니다.
+
+**Claude Code**
+
+```text
+/seal:seal docs/specs/<goal>
+```
+
+**Codex** — `$` 목록에서 Jaekit의 `seal:seal`을 고릅니다.
 
 ```text
 $seal:seal docs/specs/<goal>
 ```
 
-`<goal>`은 **Spec이 알려 준 실제 목표 폴더 이름으로 바꾸는 자리**입니다. 이름이 `password-link`라면 전체 경로는 `docs/specs/password-link`입니다. Claude Code의 `/spec:spec`·`/seal:seal` 호출은 [사용 안내](guides/USAGE.md#명령-보내기)를 참고하세요.
+`<goal>`은 **Spec이 알려 준 실제 목표 폴더 이름으로 바꾸는 자리**입니다. 이름이 `password-link`라면 전체 경로는 `docs/specs/password-link`입니다. 자세한 호출 방법은 [사용 안내](guides/USAGE.md#명령-보내기)를 참고하세요.
 
 ### 대화가 끊겼다면
 
