@@ -1,0 +1,10 @@
+{
+  "entries": [
+    {
+      "path": "plugins/spec/skills"
+    },
+    {
+      "path": "plugins/seal/skills"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "name": "spec",
+  "version": "0.1.12",
+  "description": "Turn an explicitly requested idea or change into goal documents with stable completion criteria that any coding agent can implement."
+}
