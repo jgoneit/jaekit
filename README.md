@@ -33,9 +33,9 @@ Spec은 목표 문서를 작성한 뒤 **멈춥니다**. 내용을 확인하고 
 
 ### 설치
 
-아래는 **macOS + Codex**로 시작하는 순서입니다. [Homebrew](https://brew.sh)(프로그램 설치 도구), Git, [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), **Git으로 관리하는 작업할 프로젝트 폴더**가 필요합니다. Jaekit 저장소를 clone할 필요는 없습니다.
+아래는 **macOS에서 Claude Code 또는 Codex**로 시작하는 순서입니다. [Homebrew](https://brew.sh)(프로그램 설치 도구), Git, Claude Code 또는 [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), **Git으로 관리하는 작업할 프로젝트 폴더**가 필요합니다. Jaekit 저장소를 clone할 필요는 없습니다.
 
-Claude Code는 [Claude Code 설치](guides/INSTALL.md#claude-code), Linux 또는 Homebrew 없는 환경은 [설치 안내](guides/INSTALL.md)를 따릅니다. Windows에서는 기록 도구 `ha`가 지원되지 않아 Seal을 쓸 수 없습니다. Spec은 `ha`가 필요 없지만 Windows의 설치·동작은 아직 확인하지 않았습니다.
+Linux 또는 Homebrew 없는 환경은 [설치 안내](guides/INSTALL.md)를 따릅니다. Windows에서는 기록 도구 `ha`가 지원되지 않아 Seal을 쓸 수 없습니다. Spec은 `ha`가 필요 없지만 Windows의 설치·동작은 아직 확인하지 않았습니다.
 
 **1. 터미널에서 기록 도구 `ha`를 설치합니다.** 아래 블록을 하나씩 실행하고 끝날 때까지 기다립니다.
 
@@ -49,7 +49,19 @@ ha --version
 
 `ha 0.1.4`가 나와야 합니다. 명령을 찾지 못하거나 버전이 다르면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
 
-**2. 같은 터미널에서 Codex 플러그인을 설치합니다.**
+**2. 같은 터미널에서 사용할 에이전트의 플러그인을 설치합니다.** Claude Code 또는 Codex 중 사용하는 쪽의 블록을 실행합니다. 이미 설치했다면 [업데이트](guides/INSTALL.md#업데이트) 또는 [기존 로컬 설치에서 전환](guides/INSTALL.md#로컬-경로-등록에서-옮기기)을 먼저 확인합니다.
+
+**Claude Code**
+
+```bash
+claude plugin marketplace add jgoneit/jaekit#v0.1.4
+claude plugin install spec@jaekit
+claude plugin install seal@jaekit
+```
+
+설치 후 **Claude Code를 새로 엽니다.** `#v0.1.4`는 사용할 배포판을 고정합니다. 자세한 내용은 [Claude Code 설치](guides/INSTALL.md#claude-code)를 봅니다.
+
+**Codex**
 
 ```bash
 codex plugin marketplace add jgoneit/jaekit@v0.1.4
@@ -57,13 +69,21 @@ codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-설치 후 **Codex를 새로 엽니다.** `@v0.1.4`는 사용할 배포판을 고정합니다. 이미 설치했다면 [업데이트](guides/INSTALL.md#업데이트) 또는 [기존 로컬 설치에서 전환](guides/INSTALL.md#로컬-경로-등록에서-옮기기)을 먼저 확인합니다.
+설치 후 **Codex를 새로 엽니다.** `@v0.1.4`는 사용할 배포판을 고정합니다.
 
 ### 첫 작업 맡기기
 
-작업할 프로젝트 폴더에서 Codex CLI 또는 데스크톱 앱을 엽니다. **이제부터는 터미널이 아니라 에이전트 대화에 입력합니다.**
+작업할 프로젝트 폴더에서 Claude Code 또는 Codex(CLI·데스크톱 앱)를 엽니다. **이제부터는 터미널이 아니라 에이전트 대화에 입력합니다.**
 
-**1. Spec에 요청합니다.** `$`를 입력하고 목록에서 Jaekit의 `spec:spec`을 고른 뒤, 원하는 작업을 적습니다.
+**1. Spec에 요청합니다.** 사용하는 에이전트에 맞는 예시로 원하는 작업을 적습니다.
+
+**Claude Code**
+
+```text
+/spec:spec 로그인 화면에 "비밀번호 찾기" 링크를 추가해줘
+```
+
+**Codex** — `$`를 입력하고 목록에서 Jaekit의 `spec:spec`을 고릅니다.
 
 ```text
 $spec:spec 로그인 화면에 "비밀번호 찾기" 링크를 추가해줘
@@ -73,13 +93,21 @@ $spec:spec 로그인 화면에 "비밀번호 찾기" 링크를 추가해줘
 
 **2. 목표를 확인합니다.** Spec이 알려 준 문서를 읽고 수정할 내용을 말합니다. 이 예시라면 “새 링크가 기존 재설정 페이지로 연결되는지”, “기존 로그인이 그대로 동작하는지”가 완료 조건입니다.
 
-**3. 별도 메시지로 Seal을 시작합니다.** `$` 목록에서 Jaekit의 `seal:seal`을 고르고 목표 폴더를 지정합니다.
+**3. 별도 메시지로 Seal을 시작합니다.** 목표 폴더를 지정합니다.
+
+**Claude Code**
+
+```text
+/seal:seal docs/specs/<goal>
+```
+
+**Codex** — `$` 목록에서 Jaekit의 `seal:seal`을 고릅니다.
 
 ```text
 $seal:seal docs/specs/<goal>
 ```
 
-`<goal>`은 **Spec이 알려 준 실제 목표 폴더 이름으로 바꾸는 자리**입니다. 이름이 `password-link`라면 전체 경로는 `docs/specs/password-link`입니다. Claude Code의 `/spec:spec`·`/seal:seal` 호출은 [사용 안내](guides/USAGE.md#명령-보내기)를 참고하세요.
+`<goal>`은 **Spec이 알려 준 실제 목표 폴더 이름으로 바꾸는 자리**입니다. 이름이 `password-link`라면 전체 경로는 `docs/specs/password-link`입니다. 자세한 호출 방법은 [사용 안내](guides/USAGE.md#명령-보내기)를 참고하세요.
 
 ### 대화가 끊겼다면
 
