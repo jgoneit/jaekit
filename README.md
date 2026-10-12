@@ -49,7 +49,7 @@ ha --version
 
 `ha 0.1.4`가 나와야 합니다. 명령을 찾지 못하거나 버전이 다르면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
 
-**2. 같은 터미널에서 사용할 에이전트의 플러그인을 설치합니다.** Claude Code, Codex 또는 Antigravity 중 사용하는 쪽의 블록을 실행합니다. 이미 설치했다면 [업데이트](guides/INSTALL.md#업데이트) 또는 [기존 로컬 설치에서 전환](guides/INSTALL.md#로컬-경로-등록에서-옮기기)을 먼저 확인합니다.
+**2. 같은 터미널에서 사용할 에이전트의 플러그인을 설치합니다.** Claude Code 또는 Codex 중 사용하는 쪽의 블록을 실행합니다. 이미 설치했다면 [업데이트](guides/INSTALL.md#업데이트) 또는 [기존 로컬 설치에서 전환](guides/INSTALL.md#로컬-경로-등록에서-옮기기)을 먼저 확인합니다.
 
 **Claude Code**
 
@@ -71,23 +71,13 @@ codex plugin add seal@jaekit
 
 설치 후 **Codex를 새로 엽니다.** `@v0.1.4`는 사용할 배포판을 고정합니다.
 
-**Antigravity**
-
-```bash
-agy plugin install plugins/spec
-agy plugin install plugins/seal
-```
-
-설치 후 `agy plugin list`로 확인합니다. Claude Code에 이미 설치했다면 `agy plugin import claude`로 가져올 수도 있습니다.
-
-
 ### 첫 작업 맡기기
 
-작업할 프로젝트 폴더에서 Claude Code, Codex(CLI·데스크톱 앱), 또는 Antigravity를 엽니다. **이제부터는 터미널이 아니라 에이전트 대화에 입력합니다.**
+작업할 프로젝트 폴더에서 Claude Code 또는 Codex(CLI·데스크톱 앱)를 엽니다. **이제부터는 터미널이 아니라 에이전트 대화에 입력합니다.**
 
 **1. Spec에 요청합니다.** 사용하는 에이전트에 맞는 예시로 원하는 작업을 적습니다.
 
-**Claude Code & Antigravity**
+**Claude Code**
 
 ```text
 /spec:spec 로그인 화면에 "비밀번호 찾기" 링크를 추가해줘
@@ -105,7 +95,7 @@ $spec:spec 로그인 화면에 "비밀번호 찾기" 링크를 추가해줘
 
 **3. 별도 메시지로 Seal을 시작합니다.** 목표 폴더를 지정합니다.
 
-**Claude Code & Antigravity**
+**Claude Code**
 
 ```text
 /seal:seal docs/specs/<goal>
