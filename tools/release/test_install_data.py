@@ -117,12 +117,12 @@ class DirectData(unittest.TestCase):
             with self.subTest(guide=filename):
                 home = self.home()
                 share = home / ".local/share/jaekit"
-                for version in ("0.1.1", "0.1.2", "0.1.3"):
+                for version in ("0.1.1", "0.1.2", "0.1.3", "0.1.4"):
                     self.version_data(share, version)
                 cleanup = [b for b in direct_blocks(filename, "update") if ".local/share/jaekit" in b]
                 self.assertEqual(len(cleanup), 1, f"{filename} update has no single data cleanup block")
                 self.run_bash(bind(cleanup[0], home), home, home)
-                self.assertEqual(sorted(p.name for p in share.iterdir()), ["0.1.3"])
+                self.assertEqual(sorted(p.name for p in share.iterdir()), ["0.1.4"])
                 prose = section(filename, SECTIONS[filename]["update"])
                 self.assertIn("~/.local/share/jaekit", prose)
                 # The current version's reference acquisition still works.
@@ -134,9 +134,9 @@ class DirectData(unittest.TestCase):
                 project.mkdir()
                 self.run_bash(bind(direct[0], home) + copy[0], home, project)
                 self.assertEqual((project / "tools/check-result-reference.py").read_text(),
-                                 "synthetic 0.1.3 tools/check-result-reference.py\n")
+                                 "synthetic 0.1.4 tools/check-result-reference.py\n")
                 self.assertEqual((project / "sample/input.txt").read_text(),
-                                 "synthetic 0.1.3 examples/check-result/input.txt\n")
+                                 "synthetic 0.1.4 examples/check-result/input.txt\n")
 
     def test_update_cleanup_does_not_follow_a_linked_data_root(self):
         for filename in SECTIONS:

@@ -12,7 +12,7 @@
 
 Jaekit keeps **goals and check records for project work you delegate to Codex or Claude Code**. **Spec** defines the work and its completion conditions; **Seal** guides the agent through that goal and keeps a record of its checks. If the conversation ends, you can continue from saved progress.
 
-The current release is **v0.1.3**, an early version being refined through real work.
+The current release is **v0.1.4**, an early version being refined through real work.
 
 <details>
 <summary>View the Jaekit introduction illustration</summary>
@@ -47,17 +47,17 @@ brew install jgoneit/tap/jaekit
 ha --version
 ```
 
-It should print `ha 0.1.3`. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
+It should print `ha 0.1.4`. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
 
 **2. In the same Terminal, install the Codex plugins.**
 
 ```bash
-codex plugin marketplace add jgoneit/jaekit@v0.1.3
+codex plugin marketplace add jgoneit/jaekit@v0.1.4
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-**Reopen Codex after installation.** `@v0.1.3` pins the release to use. If you already installed Jaekit, first see [Update](guides/INSTALL.en.md#update) or [Move from a local path registration](guides/INSTALL.en.md#move-from-a-local-path-registration).
+**Reopen Codex after installation.** `@v0.1.4` pins the release to use. If you already installed Jaekit, first see [Update](guides/INSTALL.en.md#update) or [Move from a local path registration](guides/INSTALL.en.md#move-from-a-local-path-registration).
 
 ### Your first task
 
