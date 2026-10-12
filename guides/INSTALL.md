@@ -64,9 +64,9 @@ codex plugin add seal@jaekit
 
 Codex를 새로 열고 대화에 `$`를 입력해 Jaekit의 `spec:spec` 또는 `seal:seal`을 고릅니다. 호출 이름은 `$spec:spec`과 `$seal:seal`입니다. [첫 작업 맡기기](../README.md#첫-작업-맡기기)를 따라 해 봅니다. 다른 플러그인과 혼동되면 [문제 해결](USAGE.md#문제-해결)을 봅니다.
 
-### Antigravity (agy)
+### Antigravity
 
-먼저 [ha 설치](#ha-설치)와 [버전 확인](#버전-확인)을 마칩니다. 아래 설치 명령에는 터미널용 [Antigravity CLI(`agy`)](https://antigravity.google)가 필요합니다.
+먼저 [ha 설치](#ha-설치)와 [버전 확인](#버전-확인)을 마칩니다. 아래 설치 명령에는 터미널용 [Antigravity](https://antigravity.google)가 필요합니다.
 
 ```bash
 agy plugin install plugins/spec

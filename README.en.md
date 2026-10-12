@@ -49,7 +49,7 @@ ha --version
 
 It should print `ha 0.1.4`. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
 
-**2. In the same Terminal, install the plugins for your agent.** Run the block for Claude Code, Codex, or Antigravity (`agy`), whichever you use. If you already installed Jaekit, first see [Update](guides/INSTALL.en.md#update) or [Move from a local path registration](guides/INSTALL.en.md#move-from-a-local-path-registration).
+**2. In the same Terminal, install the plugins for your agent.** Run the block for Claude Code, Codex, or Antigravity, whichever you use. If you already installed Jaekit, first see [Update](guides/INSTALL.en.md#update) or [Move from a local path registration](guides/INSTALL.en.md#move-from-a-local-path-registration).
 
 **Claude Code**
 
@@ -71,7 +71,7 @@ codex plugin add seal@jaekit
 
 **Reopen Codex after installation.** `@v0.1.4` pins the release to use.
 
-**Antigravity (`agy`)**
+**Antigravity**
 
 ```bash
 agy plugin install plugins/spec
@@ -83,11 +83,11 @@ Verify with `agy plugin list`. If you already installed in Claude Code, you can 
 
 ### Your first task
 
-Open Claude Code, Codex CLI, or the Codex desktop app in your project folder. **From here on, type in the agent conversation, not Terminal.**
+Open Claude Code, Codex CLI, the Codex desktop app, or Antigravity in your project folder. **From here on, type in the agent conversation, not Terminal.**
 
 **1. Ask Spec.** Use the example for your agent and describe the work you want.
 
-**Claude Code**
+**Claude Code & Antigravity**
 
 ```text
 /spec:spec Add a "Forgot password" link to the login screen
@@ -105,7 +105,7 @@ This is a **fictional example** of a project that already has a password reset p
 
 **3. Start Seal in a separate message.** Specify the goal folder.
 
-**Claude Code**
+**Claude Code & Antigravity**
 
 ```text
 /seal:seal docs/specs/<goal>

@@ -64,9 +64,9 @@ codex plugin add seal@jaekit
 
 Reopen Codex, type `$` in the conversation, and choose Jaekit's `spec:spec` or `seal:seal`. The invocation names are `$spec:spec` and `$seal:seal`. Follow [your first task](../README.en.md#your-first-task). If you confuse them with another plugin, see [troubleshooting](USAGE.en.md#troubleshooting).
 
-### Antigravity (agy)
+### Antigravity
 
-First [install ha](#install-ha) and [check its version](#check-the-version). The installation commands below require [Antigravity CLI (`agy`)](https://antigravity.google).
+First [install ha](#install-ha) and [check its version](#check-the-version). The installation commands below require [Antigravity](https://antigravity.google).
 
 ```bash
 agy plugin install plugins/spec
