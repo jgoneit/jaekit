@@ -49,7 +49,7 @@ ha --version
 
 It should print `ha 0.1.4`. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
 
-**2. In the same Terminal, install the plugins for your agent.** Run the block for Claude Code or Codex, whichever you use. If you already installed Jaekit, first see [Update](guides/INSTALL.en.md#update) or [Move from a local path registration](guides/INSTALL.en.md#move-from-a-local-path-registration).
+**2. In the same Terminal, install the plugins for your agent.** Run the block for Claude Code, Codex, or Antigravity (`agy`), whichever you use. If you already installed Jaekit, first see [Update](guides/INSTALL.en.md#update) or [Move from a local path registration](guides/INSTALL.en.md#move-from-a-local-path-registration).
 
 **Claude Code**
 
@@ -70,6 +70,16 @@ codex plugin add seal@jaekit
 ```
 
 **Reopen Codex after installation.** `@v0.1.4` pins the release to use.
+
+**Antigravity (`agy`)**
+
+```bash
+agy plugin install plugins/spec
+agy plugin install plugins/seal
+```
+
+Verify with `agy plugin list`. If you already installed in Claude Code, you can also import them with `agy plugin import claude`.
+
 
 ### Your first task
 

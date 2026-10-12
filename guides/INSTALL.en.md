@@ -64,6 +64,24 @@ codex plugin add seal@jaekit
 
 Reopen Codex, type `$` in the conversation, and choose Jaekit's `spec:spec` or `seal:seal`. The invocation names are `$spec:spec` and `$seal:seal`. Follow [your first task](../README.en.md#your-first-task). If you confuse them with another plugin, see [troubleshooting](USAGE.en.md#troubleshooting).
 
+### Antigravity (agy)
+
+First [install ha](#install-ha) and [check its version](#check-the-version). The installation commands below require [Antigravity CLI (`agy`)](https://antigravity.google).
+
+```bash
+agy plugin install plugins/spec
+agy plugin install plugins/seal
+```
+
+Alternatively, if you already have the plugins installed in Claude Code, you can import them directly:
+
+```bash
+agy plugin import claude
+```
+
+After installation, verify with `agy plugin list` that `spec` and `seal` are listed. Open `agy` and use `spec: <request>` in the conversation to define the goal, then `docs/specs/<goal> 구현하고 완료해줘` (or implement and complete) in a separate message to start implementation.
+
+
 ### Claude Code
 
 First [install ha](#install-ha) and [check its version](#check-the-version). Then install the plugins in Claude Code with the commands below.

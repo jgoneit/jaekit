@@ -64,6 +64,24 @@ codex plugin add seal@jaekit
 
 Codex를 새로 열고 대화에 `$`를 입력해 Jaekit의 `spec:spec` 또는 `seal:seal`을 고릅니다. 호출 이름은 `$spec:spec`과 `$seal:seal`입니다. [첫 작업 맡기기](../README.md#첫-작업-맡기기)를 따라 해 봅니다. 다른 플러그인과 혼동되면 [문제 해결](USAGE.md#문제-해결)을 봅니다.
 
+### Antigravity (agy)
+
+먼저 [ha 설치](#ha-설치)와 [버전 확인](#버전-확인)을 마칩니다. 아래 설치 명령에는 터미널용 [Antigravity CLI(`agy`)](https://antigravity.google)가 필요합니다.
+
+```bash
+agy plugin install plugins/spec
+agy plugin install plugins/seal
+```
+
+또는 Claude Code에 이미 플러그인을 설치했다면 아래 명령으로 한 번에 가져올 수 있습니다.
+
+```bash
+agy plugin import claude
+```
+
+설치 후 `agy plugin list`로 `spec`과 `seal`이 정상적으로 등록되었는지 확인합니다. `agy`를 열고 대화에서 `spec: <요청>`으로 목표를 정리한 뒤, 별도 메시지의 `docs/specs/<goal> 구현하고 완료해줘`로 구현을 시작합니다.
+
+
 ### Claude Code
 
 먼저 [ha 설치](#ha-설치)와 [버전 확인](#버전-확인)을 마칩니다. 그다음 아래 명령으로 Claude Code에 플러그인을 설치합니다.
