@@ -83,9 +83,11 @@ function Invoke-JaekitAcceptanceStep($Step) {
         # exact product diagnostic, never just a setup error or arbitrary exit.
         $ErrorActionPreference = 'Continue'
         $PSNativeCommandUseErrorActionPreference = $false
-        $LASTEXITCODE = $null
+        # Native commands update the global automatic variable. A local reset
+        # would shadow that update, leaving a successful child's code null.
+        $global:LASTEXITCODE = $null
         $messages = @(& $shell -NoProfile -NonInteractive -File $Step.Script @arguments 2>&1)
-        $code = $LASTEXITCODE
+        $code = $global:LASTEXITCODE
     } finally { $ErrorActionPreference = $previousPreference }
     $diagnostic = ($messages | ForEach-Object { $_.ToString() }) -join "`n"
     # Keep child warnings and preserved-backup locations visible even when the
