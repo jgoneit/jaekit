@@ -70,15 +70,24 @@ ends it before candidate code executes:
 & {
     $first = Get-JaekitVerifiedCandidate (Get-Location).Path
     $next = Get-JaekitVerifiedCandidate '..\next'
-    & $first.Acceptance -Archive $first.Archive -Checksums $first.Checksums -UpdateArchive $next.Archive -UpdateChecksums $next.Checksums -ConsentUserInstallation
+    & $first.Acceptance -Archive $first.Archive -Checksums $first.Checksums -UpdateArchive $next.Archive -UpdateChecksums $next.Checksums -UpdateInstaller $next.Install -UpdateUninstaller $next.Uninstall -ConsentUserInstallation
 }
 ```
 <!-- END WINDOWS VERIFIED ACCEPTANCE -->
 
+The required update script paths come from the same verified update candidate.
+The first candidate supplies initial installation and its later removal; update
+failures, update/reinstall and removal after update execute the update candidate's
+installer/uninstaller and their own helper. Missing or mismatched paths stop the
+procedure; they never fall back to the first candidate's scripts. Expected refusal
+cases require their product diagnostic as well as exit 1, so shell startup or
+helper failures cannot masquerade as a successful safety check.
+
 This entrypoint exercises both shells, cross-shell updates, repeated install,
 checksum failure, an unmanaged file conflict, a locked executable, junction
-refusal, prior-version retention, removal and exact PATH ownership even when a
-user adds an equivalent environment-variable alias later. It refuses
+refusal, prior-version retention, removal and exact PATH order when a user adds an intervening item, an identical
+PATH entry and an equivalent environment-variable alias later. Only the earlier
+installer-owned literal is removed; the later entries retain their order. It refuses
 an existing installation. On failure it preserves diagnostics and avoids forcing
 cleanup or restoring a stale PATH snapshot. It does not test Core goal execution,
 agent Skill loading, every filesystem race, or public download availability.
@@ -106,6 +115,16 @@ failures; the ordinary descendant timeout fixture uses actual child processes.
 It then builds and executes the current-source Windows candidate and checks its
 manifest, checksums, Unicode/spaced drive paths, unsafe archive entries and
 junction refusal using that shell's actual .NET/filesystem behavior.
+
+The trusted developer runner `native_acceptance_checks.ps1` extracts the current
+production acceptance planner and launcher through PowerShell AST, checks that
+the real orchestration invokes them for every stage, and drives them from the
+exact public acceptance example using inert child candidates. It observes each
+candidate/helper identity and shell, plus valid-checksum updater installer, helper
+and uninstaller failures. Missing inputs, a failed shell and unrelated refusal
+diagnostics cannot pass. It preserves real user installation, PATH and policy
+state; it is developer evidence, not a Windows 11 user installation lifecycle.
+There is no product Server bypass option.
 
 The trusted developer runner `native_preflight_checks.ps1` reads the exact
 preflight and action blocks from both public Windows guides and this acceptance

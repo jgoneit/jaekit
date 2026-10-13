@@ -18,18 +18,9 @@ try {
     if ($null -eq $installed) { Write-Output "No managed installation at $root"; return }
     Assert-ExecutableReplaceable $root
     $beforePath = Read-UserPath
-    $afterPath = $beforePath.value
-    $pathChanged = $false
-    if ($installed.state.owns_path) {
-        $entries = New-Object 'Collections.Generic.List[string]'
-        foreach ($entry in $beforePath.value.Split(';')) { $entries.Add($entry) }
-        # One entry was added. Keep unrelated entries, their order and any
-        # duplicate someone added later; never replace the whole PATH snapshot.
-        for ($i = $entries.Count - 1; $i -ge 0; $i--) {
-            if ($entries[$i] -ceq $bin) { $entries.RemoveAt($i); $pathChanged = $true; break }
-        }
-        $afterPath = $entries -join ';'
-    }
+    $pathRemoval = Get-OwnedPathRemoval $beforePath.value $bin $installed.state.owns_path
+    $afterPath = $pathRemoval.value
+    $pathChanged = $pathRemoval.changed
     $backup = Join-Path ([IO.Path]::GetDirectoryName($root)) ('.jaekit-remove-' + [Guid]::NewGuid().ToString('N'))
     [IO.Directory]::Move($root, $backup)
     try {

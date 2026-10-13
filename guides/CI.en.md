@@ -34,6 +34,8 @@ Windows Server runs developer fixtures and checks that product install/remove co
 
 The Windows job disables newline conversion through Git environment options scoped to the initial checkout step, preserving committed bytes. It does not modify Git configuration files or user projects, and later checks and fixtures do not inherit these options. Native command scenarios observe unsafe declaration/producer-path refusal and record preservation. Both PowerShell versions execute the Korean and English guides' preflight code against a valid candidate and altered archives/scripts. The real candidate is verified without execution; installation, removal and acceptance entrypoint connections use isolated inert synthetic code. These observations remain separate from Windows 11 installation lifecycle acceptance.
 
+Developer lifecycle checks connect the current acceptance stage selection and child execution logic to isolated candidate code, distinguishing the first and update candidates. A valid checksum cannot hide a failure in the new candidate's code. PATH checks use the product removal logic and its callers to observe preservation of later identical entries, aliases and unrelated ordering. These fixtures do not change real user installation, PATH or policy and do not replace full Windows 11 installation acceptance.
+
 An Ubuntu run is not a WSL2 run. CI does not establish WSL2 installation, installed agent Skill loading, a real agent session or session resumption. Those observations remain separate. No CI success publishes a release, changes a version, or proves installation from a public release URL.
 
 ## Local checks

@@ -293,6 +293,22 @@ function Test-PathEntry([string]$Entry, [string]$Bin) {
     return $expanded.Equals($Bin.TrimEnd('\', '/'), [StringComparison]::OrdinalIgnoreCase)
 }
 
+function Get-OwnedPathRemoval([string]$Value, [string]$Bin, [bool]$Owned) {
+    if (-not $Owned) { return @{value = $Value; changed = $false} }
+    $entries = New-Object 'Collections.Generic.List[string]'
+    foreach ($entry in $Value.Split(';')) { $entries.Add($entry) }
+    # Installation appends only when no equivalent entry exists. Preserve
+    # duplicate literals appended later, including their position among other
+    # entries. The saved state does not reconstruct arbitrary user reordering.
+    for ($i = 0; $i -lt $entries.Count; $i++) {
+        if ($entries[$i] -ceq $Bin) {
+            $entries.RemoveAt($i)
+            return @{value = ($entries -join ';'); changed = $true}
+        }
+    }
+    return @{value = $Value; changed = $false}
+}
+
 function Write-UserPath([hashtable]$Before, [string]$After, [bool]$DeleteValue) {
     $current = Read-UserPath
     if ($current.value -cne $Before.value -or $current.exists -ne $Before.exists -or $current.kind -ne $Before.kind) {
@@ -306,16 +322,19 @@ function Write-UserPath([hashtable]$Before, [string]$After, [bool]$DeleteValue) 
 }
 
 function Update-ProcessPath([string]$Bin, [bool]$Add) {
-    $entries = New-Object 'Collections.Generic.List[string]'
-    foreach ($entry in $env:Path.Split(';')) { $entries.Add($entry) }
-    $index = -1
-    for ($i = $entries.Count - 1; $i -ge 0; $i--) {
-        $matchesEntry = if ($Add) { Test-PathEntry $entries[$i] $Bin } else { $entries[$i] -ceq $Bin }
-        if ($matchesEntry) { $index = $i; break }
+    if ($Add) {
+        $entries = New-Object 'Collections.Generic.List[string]'
+        foreach ($entry in $env:Path.Split(';')) { $entries.Add($entry) }
+        $index = -1
+        for ($i = $entries.Count - 1; $i -ge 0; $i--) {
+            if (Test-PathEntry $entries[$i] $Bin) { $index = $i; break }
+        }
+        if ($index -lt 0) { $entries.Add($Bin) }
+        $env:Path = $entries -join ';'
+    } else {
+        $removal = Get-OwnedPathRemoval $env:Path $Bin $true
+        $env:Path = $removal.value
     }
-    if ($Add -and $index -lt 0) { $entries.Add($Bin) }
-    elseif (-not $Add -and $index -ge 0) { $entries.RemoveAt($index) }
-    $env:Path = $entries -join ';'
     [Jaekit.InstallPlatform]::NotifyEnvironment()
 }
 

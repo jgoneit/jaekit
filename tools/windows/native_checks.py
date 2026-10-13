@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(ROOT / "tools/ci"))
 from native_results import native_results
+sys.path.insert(0, str(ROOT / "tools/windows"))
+from lifecycle_results import acceptance_report, path_report
 
 MODULE = "github.com/jgoneit/jaekit/"
 NATIVE = {
@@ -105,7 +107,8 @@ def checked(argv: list[str], output: Path, label: str, timeout: int = 300) -> st
 def failure_tails(output: Path) -> None:
     """Keep first native failures diagnosable without publishing full transcripts."""
     remaining = 24000
-    for name in ("source-status.stdout.log", "preflight-runtime.stderr.log", "preflight-runtime.stdout.log",
+    for name in ("source-status.stdout.log", "acceptance-runtime.stderr.log", "acceptance-runtime.stdout.log",
+                 "path-order-runtime.stderr.log", "path-order-runtime.stdout.log", "preflight-runtime.stderr.log", "preflight-runtime.stdout.log",
                  "package-runtime/install-refusal.log", "package-runtime/uninstall-refusal.log",
                  "package-runtime.stderr.log", "package-runtime.stdout.log", "package.stderr.log",
                  "build.stderr.log", "go-test.stderr.log", "go-test.jsonl", "go-test.stdout.log"):
@@ -143,7 +146,8 @@ def main() -> int:
                               "installation_type": args.installation_type, "os_build": args.os_build,
                               "shell_version": args.shell_version, "shell_edition": args.shell_edition},
               "native_tests": {"required": REQUIRED, "passed": [], "skipped": []},
-              "package_checks": [], "preflight_checks": {}, "server_rejection": {}, "failures": [],
+              "package_checks": [], "preflight_checks": {}, "acceptance_dispatch": {}, "path_order_checks": {},
+              "server_rejection": {}, "failures": [],
               "unverified": ["windows11-install-lifecycle", "wsl2", "host-skills", "public-release"]}
     try:
         if sys.platform != "win32" or platform.machine().lower() not in ("amd64", "x86_64"):
@@ -203,6 +207,22 @@ def main() -> int:
             raise RuntimeError("public preflight verified a different candidate")
         if result.returncode:
             raise RuntimeError("guide preflight execution failed")
+        for script, label, key, validate, sources in (
+                ("native_acceptance_checks.ps1", "acceptance-runtime", "acceptance_dispatch", acceptance_report,
+                 {name: digest(ROOT / name) for name in
+                  ("tools/windows/acceptance.ps1", "tools/windows/README.md")}),
+                ("native_path_checks.ps1", "path-order-runtime", "path_order_checks", path_report,
+                 {"common": digest(ROOT / "tools/windows/common.ps1"),
+                  "uninstall": digest(ROOT / "tools/windows/uninstall.ps1")})):
+            result_path = output / (label + "-results.json")
+            result = capture([args.shell_executable, "-NoProfile", "-NonInteractive", "-File",
+                              str(ROOT / "tools/windows" / script), "-OutputPath", str(result_path)], output, label)
+            if not result_path.is_file():
+                raise RuntimeError(label + " produced no report")
+            report[key] = json.loads(result_path.read_text(encoding="utf-8-sig"))
+            validate(report[key], args.shell_version, sources)
+            if result.returncode:
+                raise RuntimeError(label + " execution failed")
         package_result = output / "package-results.json"
         result = capture([args.shell_executable, "-NoProfile", "-NonInteractive", "-File",
                           str(ROOT / "tools/windows/native_package_checks.ps1"), "-CandidateDirectory",

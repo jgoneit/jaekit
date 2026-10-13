@@ -59,7 +59,7 @@ class PreflightDocumentationTests(unittest.TestCase):
         self.assertLess(code.index("$first = Get-JaekitVerifiedCandidate"), entry)
         self.assertLess(code.index("$next = Get-JaekitVerifiedCandidate"), entry)
         self.assertIn("-Archive $first.Archive -Checksums $first.Checksums", code)
-        self.assertIn("-UpdateArchive $next.Archive -UpdateChecksums $next.Checksums -ConsentUserInstallation", code)
+        self.assertIn("-UpdateArchive $next.Archive -UpdateChecksums $next.Checksums -UpdateInstaller $next.Install -UpdateUninstaller $next.Uninstall -ConsentUserInstallation", code)
         self.assertNotRegex(text, r"(?m)^\s*\.\\acceptance\.ps1\b")
 
     def test_missing_duplicate_or_malformed_example_is_rejected(self):

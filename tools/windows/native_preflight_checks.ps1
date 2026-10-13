@@ -54,13 +54,14 @@ function Write-Fixture([string]$Directory, [string]$Version) {
         # All code in these fixtures is authored here and only records arguments.
         $body = @'
 [CmdletBinding()]
-param([string]$Archive, [string]$Checksums, [string]$UpdateArchive, [string]$UpdateChecksums,
+param([string]$Archive, [string]$Checksums, [string]$UpdateArchive, [string]$UpdateChecksums, [string]$UpdateInstaller, [string]$UpdateUninstaller,
       [switch]$AddToPath, [switch]$ConsentUserInstallation)
 . (Join-Path $PSScriptRoot 'common.ps1')
 [IO.File]::AppendAllText($env:JAEKIT_PREFLIGHT_CANARY, '__ACTION__' + "`n")
 [IO.File]::WriteAllText($env:JAEKIT_PREFLIGHT_ENTRY, (ConvertTo-Json -Compress -InputObject ([ordered]@{
     action = '__ACTION__'; script = $PSCommandPath; archive = $Archive; checksums = $Checksums
     update_archive = $UpdateArchive; update_checksums = $UpdateChecksums
+    update_installer = $UpdateInstaller; update_uninstaller = $UpdateUninstaller
     add_to_path = [bool]$AddToPath; consent = [bool]$ConsentUserInstallation
 })))
 '@
@@ -200,7 +201,7 @@ try {
                 }
                 if ($action -eq 'install') { Require ($entry.add_to_path -eq $true) 'Guide lost explicit PATH consent.' }
                 if ($action -eq 'acceptance') {
-                    Require ($entry.update_archive -ceq (Join-Path $next 'ha_0.1.5-dev_windows_amd64.zip') -and $entry.update_checksums -ceq (Join-Path $next 'checksums.txt') -and $entry.consent -eq $true) 'Acceptance did not bind both verified candidates and explicit consent.'
+                    Require ($entry.update_archive -ceq (Join-Path $next 'ha_0.1.5-dev_windows_amd64.zip') -and $entry.update_checksums -ceq (Join-Path $next 'checksums.txt') -and $entry.update_installer -ceq (Join-Path $next 'install.ps1') -and $entry.update_uninstaller -ceq (Join-Path $next 'uninstall.ps1') -and $entry.consent -eq $true) 'Acceptance did not bind both verified candidates and explicit consent.'
                 }
             } else {
                 Require ($null -ne $expectedError) ('Missing rejection expectation: ' + $case)
