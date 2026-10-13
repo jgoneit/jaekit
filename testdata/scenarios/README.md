@@ -2,6 +2,8 @@
 
 Each directory is one scenario. `cmd/ha/scenario_test.go` builds a git repository from `_base/` plus the scenario's `files/`, commits it as the base, and runs `steps` line by line. Shared step sequences are in `_steps/`. `finding-input <path> <json>` writes a finding request in which `$COMPLETION` names the latest completion record. `pad-record <seq> <bytes>` pads a stored line with JSON whitespace to the requested byte length, excluding the line feed, and updates subsequent hashes. Verification commands are small shell scripts run as argv (`sh tests/x.sh`), never as shell strings.
 
+The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evidence-paths/README.md) instead supplies the shell-independent `TestNativeEvidencePathScenarios` and Windows-only `TestNativeWindowsEvidencePathScenarios`. They invoke a built `ha` process and a real producer to check unsafe declaration/producer paths, exit status, and preservation of existing evidence. Both entrypoints are required by Windows native CI; the ordinary `steps` runner does not interpret their JSON inputs.
+
 | Scenario | Source | Expected |
 | --- | --- | --- |
 | `unverified-criterion` | EVALUATION §3 조건 미검증 | `incomplete`, `AC-2:criterion_missing` |

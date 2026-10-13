@@ -9,7 +9,7 @@ Windows ARM64·x86, 이전 Windows, 네트워크/UNC 저장소와 같은 checkou
 ## 준비
 
 - 64비트 Windows PowerShell 5.1 또는 PowerShell 7을 엽니다. Git과 사용할 에이전트는 별도로 준비합니다. 설치기는 Git·에이전트·PowerShell·Windows 기능을 설치하거나 관리자 권한을 요청하지 않습니다.
-- 검토한 같은 후보 묶음에서 `ha_<version>_windows_amd64.zip`, `checksums.txt`, `install.ps1`, `uninstall.ps1`, `common.ps1`을 받습니다. 설치기는 로컬 파일만 읽고 다운로드나 공개 배포를 수행하지 않습니다. 취득에 실패했으면 설치가 시작된 것이 아닙니다.
+- 검토한 같은 후보 묶음에서 `ha_<version>_windows_amd64.zip`, `checksums.txt`, `install.ps1`, `uninstall.ps1`, `common.ps1`, `acceptance.ps1`을 받습니다. 이 여섯 파일만 들어 있는 전용 폴더를 사용합니다. 설치기는 로컬 파일만 읽고 다운로드나 공개 배포를 수행하지 않습니다. 취득에 실패했으면 설치가 시작된 것이 아닙니다.
 - checksum은 가져온 파일들이 후보의 내용과 맞는지 확인합니다. 같은 출처에서 변조된 checksum까지 신뢰할 수 있게 만드는 서명은 아닙니다. 스크립트도 실행할 코드이므로 출처와 내용을 확인합니다.
 - 회사 또는 PC의 실행 정책이 스크립트를 막으면 해당 정책에 따라 처리합니다. 설치기는 실행 정책·보안 설정을 바꾸거나 우회 옵션으로 다시 실행하지 않습니다.
 
@@ -17,11 +17,86 @@ Windows ARM64·x86, 이전 Windows, 네트워크/UNC 저장소와 같은 checkou
 
 ## 설치와 확인
 
-후보 파일 폴더에서 실행합니다. 아래 버전은 후보 이름을 보여 주는 예시입니다. 받은 파일 이름으로 바꿉니다.
+신뢰한 출처에서 이 안내와 `checksums.txt`를 확인한 뒤, 아래 함수 정의를 PowerShell에 붙여 넣습니다. 후보에서 가져온 스크립트나 helper는 아직 실행하지 않습니다. 이 코드는 PowerShell 기본 기능만으로 ZIP과 네 개별 스크립트를 모두 검사하며, 후보 코드에 의존하지 않습니다. 새 PowerShell 세션에서도 먼저 이 정의를 준비합니다.
 
+<!-- BEGIN WINDOWS CANDIDATE PREFLIGHT -->
 ```powershell
-.\install.ps1 -Archive .\ha_0.1.4-dev_windows_amd64.zip -Checksums .\checksums.txt -AddToPath
+function Get-JaekitVerifiedCandidate([string]$Directory) {
+    $ErrorActionPreference = 'Stop'
+    $root = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Directory)
+    $root = [IO.Path]::GetFullPath($root)
+    if ($root -notmatch '^[A-Za-z]:\\' -or -not [IO.Directory]::Exists($root)) {
+        throw 'Candidate must be an existing local drive directory.'
+    }
+    $ancestor = $root
+    while ($ancestor) {
+        if (([IO.File]::GetAttributes($ancestor) -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw 'Candidate path must not contain links or reparse points.'
+        }
+        $parent = [IO.Directory]::GetParent($ancestor)
+        if ($null -eq $parent) { break }
+        $ancestor = $parent.FullName
+    }
+    $names = @()
+    foreach ($path in [IO.Directory]::GetFileSystemEntries($root)) {
+        $attributes = [IO.File]::GetAttributes($path)
+        if (($attributes -band ([IO.FileAttributes]::Directory -bor [IO.FileAttributes]::ReparsePoint)) -ne 0) {
+            throw 'Candidate entries must be ordinary files.'
+        }
+        $names += [IO.Path]::GetFileName($path)
+    }
+    $archives = @($names | Where-Object { $_ -cmatch '^ha_[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*)?_windows_amd64\.zip$' })
+    if ($archives.Count -ne 1) { throw 'Expected exactly one Windows candidate ZIP.' }
+    $expected = @($archives[0], 'common.ps1', 'install.ps1', 'uninstall.ps1', 'acceptance.ps1')
+    if ($names.Count -ne 6 -or $names -cnotcontains 'checksums.txt') {
+        throw 'Candidate file inventory is incomplete or unexpected.'
+    }
+    foreach ($name in $names) {
+        if ($name -cne 'checksums.txt' -and $expected -cnotcontains $name) {
+            throw 'Candidate file inventory is incomplete or unexpected.'
+        }
+    }
+    $checksums = Join-Path $root 'checksums.txt'
+    if ((Get-Item -LiteralPath $checksums).Length -gt 1048576) { throw 'Checksum file is too large.' }
+    $lines = [IO.File]::ReadAllLines($checksums, [Text.Encoding]::ASCII)
+    $seen = @{}
+    foreach ($line in $lines) {
+        if ($line -cnotmatch '^([a-fA-F0-9]{64})  (.+)$') { throw 'Malformed SHA-256 checksum entry.' }
+        $digest = $Matches[1]
+        $name = $Matches[2]
+        if ($expected -cnotcontains $name) { throw 'Unexpected or unsafe checksum path.' }
+        if ($seen.ContainsKey($name)) { throw 'Duplicate checksum entry.' }
+        $seen[$name] = $digest
+    }
+    if ($seen.Count -ne $expected.Count) { throw 'Missing checksum entry.' }
+    foreach ($name in $expected) {
+        $path = Join-Path $root $name
+        if (-not [IO.File]::Exists($path)) { throw ('Missing candidate file: ' + $name) }
+        $limit = if ($name -ceq $archives[0]) { 134217728 } else { 33554432 }
+        if ((Get-Item -LiteralPath $path).Length -gt $limit) { throw ('Candidate file is too large: ' + $name) }
+        if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ine $seen[$name]) {
+            throw ('SHA-256 mismatch: ' + $name)
+        }
+    }
+    return [pscustomobject]@{
+        Directory = $root; Archive = (Join-Path $root $archives[0]); Checksums = $checksums
+        Install = (Join-Path $root 'install.ps1'); Uninstall = (Join-Path $root 'uninstall.ps1')
+        Acceptance = (Join-Path $root 'acceptance.ps1')
+    }
+}
 ```
+<!-- END WINDOWS CANDIDATE PREFLIGHT -->
+
+후보 파일 폴더로 이동한 뒤 아래 블록 전체를 실행합니다. ZIP과 네 스크립트 중 하나라도 검증되지 않으면 블록이 중단되어 설치 코드를 실행하지 않습니다. checksum 목록의 누락·중복·잘못된 digest·후보 밖 경로와 예상하지 않은 파일도 거부합니다. 검증 직후 같은 사용자 권한의 다른 프로세스가 파일을 바꾸는 공격을 격리하는 절차는 아닙니다.
+
+<!-- BEGIN WINDOWS VERIFIED INSTALL -->
+```powershell
+& {
+    $candidate = Get-JaekitVerifiedCandidate (Get-Location).Path
+    & $candidate.Install -Archive $candidate.Archive -Checksums $candidate.Checksums -AddToPath
+}
+```
+<!-- END WINDOWS VERIFIED INSTALL -->
 
 `-AddToPath`는 **현재 사용자 PATH에 설치 폴더 한 항목을 추가**하는 선택입니다. 생략하면 PATH는 바뀌지 않으며 실행 파일의 절대 경로를 사용합니다. 같은 경로가 이미 있으면 중복 추가하거나 기존 항목을 설치기의 소유로 바꾸지 않습니다. 시스템 PATH·전역 Git 설정은 변경하지 않습니다.
 
@@ -68,7 +143,7 @@ Git이 clean이라고 해도 CRLF 변환 때문에 선언·생산자 파일의 �
 
 ## 재설치·업데이트·실패
 
-같은 버전의 같은 후보는 동일 명령으로 재설치합니다. 다른 내용의 동일 버전 후보는 기존 자료와 충돌하므로 거부됩니다. 새 버전은 새 후보 파일을 지정하면 됩니다. PowerShell 5.1에서 설치한 결과를 PowerShell 7로 업데이트하거나 반대로 사용할 수 있도록 같은 사용자 경로와 관리 상태를 사용합니다.
+같은 버전의 같은 후보는 위 설치 블록 전체를 다시 실행하여 재검증한 뒤 재설치합니다. 다른 내용의 동일 버전 후보는 기존 자료와 충돌하므로 거부됩니다. 업데이트할 때는 새 후보의 여섯 파일만 있는 폴더로 이동한 뒤 위 설치 블록 전체를 실행합니다. 이전 후보의 검증 결과를 새 후보에 재사용하지 않습니다. PowerShell 5.1에서 설치한 결과를 PowerShell 7로 업데이트하거나 반대로 사용할 수 있도록 같은 사용자 경로와 관리 상태를 사용합니다.
 
 설치기는 checksum·전체 파일 목록·내용을 확인하고 새 트리를 준비한 뒤 기존 설치를 교체합니다. 이전 버전 자료는 자동 삭제하지 않습니다. 무결성 불일치, 링크/junction 경로, 관리되지 않거나 편집된 파일, 사용 중이어서 교체할 수 없는 실행 파일, 파일 접근 실패는 성공으로 표시하지 않습니다. 사용 중인 `ha`와 검사를 종료하거나 충돌 원인을 확인한 뒤 다시 시도합니다. 기존 정상 설치와 프로젝트 파일은 보존하며, 교체 후 실패하면 이전 설치를 복구합니다.
 
@@ -76,11 +151,16 @@ Git이 clean이라고 해도 CRLF 변환 때문에 선언·생산자 파일의 �
 
 ## 제거
 
-`ha`와 검사를 종료한 뒤 후보 폴더의 `uninstall.ps1`을 사용하거나 설치된 같은 스크립트를 실행합니다.
+`ha`와 검사를 종료합니다. 위 함수 정의를 준비하고, 신뢰한 checksum과 여섯 파일을 보관한 후보 폴더에서 아래 블록 전체를 실행합니다. 제거 코드와 `common.ps1`도 실행 전에 다시 검증합니다. 검증을 생략하고 설치 내부 사본을 바로 실행하지 않습니다.
 
+<!-- BEGIN WINDOWS VERIFIED REMOVE -->
 ```powershell
-& (Join-Path $jaekitData 'tools\windows\uninstall.ps1')
+& {
+    $candidate = Get-JaekitVerifiedCandidate (Get-Location).Path
+    & $candidate.Uninstall
+}
 ```
+<!-- END WINDOWS VERIFIED REMOVE -->
 
 제거기는 전체 관리 목록을 확인한 뒤 해당 사용자 설치와 설치기가 추가한 PATH 한 항목만 제거합니다. 예전 버전의 관리 자료도 함께 제거됩니다. 기존부터 있던 PATH 항목과 무관한 설정·다른 사용자 설치·WSL 설치는 제거하지 않습니다. 프로젝트에 복사한 검사·예시, 목표 문서, `runs.jsonl`, Git 디렉터리의 원문 로그는 설치 관리 대상이 아니므로 보존됩니다.
 
@@ -88,4 +168,4 @@ Git이 clean이라고 해도 CRLF 변환 때문에 선언·생산자 파일의 �
 
 ## 확인 범위
 
-[후보 도구 안내](../tools/windows/README.md)는 패키지 생성과 실제 Windows 설치 생명주기를 확인하는 별도 진입점을 설명합니다. 로컬 패키지 회귀, Windows 교차 빌드, PowerShell 5.1·7의 실제 설치·업데이트·제거, Core 목표 실행, 에이전트 Skill 사용, 공개 URL 설치를 각각 구분합니다. 수행하지 않은 항목은 미확인으로 남깁니다.
+[후보 도구 안내](../tools/windows/README.md)는 패키지 생성과 실제 Windows 설치 생명주기를 확인하는 별도 진입점을 설명합니다. `acceptance.ps1`을 사용할 때는 그 안내의 블록으로 첫 후보와 업데이트 후보의 여섯 파일을 모두 먼저 검증하고, 실제 사용자 설치에 명시적으로 동의합니다. Server 개발자 CI의 사전 검증 성공은 Windows 11 설치 성공이 아닙니다. 로컬 패키지 회귀, Windows 교차 빌드, PowerShell 5.1·7의 실제 설치·업데이트·제거, Core 목표 실행, 에이전트 Skill 사용, 공개 URL 설치를 각각 구분합니다. 수행하지 않은 항목은 미확인으로 남깁니다.

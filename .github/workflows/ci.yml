@@ -76,6 +76,14 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Preserve committed source bytes in the disposable checkout
+        shell: powershell
+        run: |
+          git config --local core.autocrlf false
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot configure disposable checkout line endings.' }
+          git checkout-index --force --all
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot restore committed source bytes.' }
+
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:

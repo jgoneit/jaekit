@@ -5,10 +5,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import stat
 import struct
+import subprocess
 import tempfile
 import zipfile
 
@@ -19,6 +21,12 @@ RESERVED = re.compile(r"(?:CON|PRN|AUX|NUL|COM[1-9\u00b9\u00b2\u00b3]|LPT[1-9\u0
 MAX_FILES = 2048
 MAX_FILE = 32 * 1024 * 1024
 MAX_TOTAL = 128 * 1024 * 1024
+PUBLIC_DIRECTORIES = ("guides", "contracts", "assets")
+PUBLIC_FILES = ("LICENSE", "README.md", "README.en.md", "tools/check-result-reference.py",
+                *(f"examples/check-result/{name}" for name in
+                  ("README.md", "declaration.json", "reference.json", "input.txt")),
+                *(f"tools/windows/{name}" for name in
+                  ("common.ps1", "install.ps1", "uninstall.ps1", "acceptance.ps1", "README.md")))
 
 
 def safe_name(name: str) -> None:
@@ -54,23 +62,96 @@ def windows_amd64(data: bytes) -> None:
         raise ValueError("binary is not a Windows amd64 PE32+ executable")
 
 
+def git(root: Path, *args: str) -> bytes:
+    # Read-only commands must not refresh the user's index as a side effect.
+    result = subprocess.run(["git", "--no-replace-objects", "-C", str(root), *args],
+                            env={**os.environ, "GIT_OPTIONAL_LOCKS": "0"},
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    if result.returncode:
+        raise ValueError("cannot read committed package sources with git " + args[0])
+    return result.stdout
+
+
+def public_path(name: str) -> bool:
+    return name in PUBLIC_FILES or any(name.startswith(directory + "/")
+                                       for directory in PUBLIC_DIRECTORIES)
+
+
+def public_index(root: Path) -> dict[str, tuple[str, str]]:
+    entries = {}
+    for entry in git(root, "ls-files", "--stage", "-z").split(b"\0"):
+        if not entry:
+            continue
+        metadata, path = entry.split(b"\t", 1)
+        name = os.fsdecode(path)
+        if public_path(name):
+            mode, oid, stage = metadata.decode("ascii").split()
+            if stage != "0" or name in entries:
+                raise ValueError(f"unmerged public package source: {name}")
+            entries[name] = (mode, oid)
+    return entries
+
+
+def reject_public_links(root: Path) -> None:
+    # Preserve the existing refusal of even untracked links, without collecting
+    # or reading untracked/ignored regular files for the candidate.
+    def raise_walk_error(error: OSError) -> None:
+        raise error
+
+    for directory in PUBLIC_DIRECTORIES:
+        parent = root / directory
+        if parent.is_symlink():
+            raise ValueError(f"symlink source is not allowed: {parent}")
+        for current, directories, names in os.walk(parent, onerror=raise_walk_error, followlinks=False):
+            for name in directories + names:
+                path = Path(current) / name
+                if path.is_symlink():
+                    raise ValueError(f"symlink source is not allowed: {path}")
+
+
 def collect(binary: Path, root: Path = ROOT) -> dict[str, bytes]:
+    # The explicitly supplied build is not a source-tree input. It keeps its
+    # existing PE and regular-file checks, independently of Git tracking.
     files = {"ha.exe": read_regular(binary)}
     windows_amd64(files["ha.exe"])
-    fixed = ["LICENSE", "README.md", "README.en.md", "tools/check-result-reference.py"]
-    fixed += [f"examples/check-result/{name}" for name in
-              ("README.md", "declaration.json", "reference.json", "input.txt")]
-    fixed += [f"tools/windows/{name}" for name in
-              ("common.ps1", "install.ps1", "uninstall.ps1", "acceptance.ps1", "README.md")]
-    for directory in ("guides", "contracts", "assets"):
-        for path in sorted((root / directory).rglob("*")):
-            if path.is_symlink():
-                raise ValueError(f"symlink source is not allowed: {path}")
-            if path.is_file():
-                fixed.append(path.relative_to(root).as_posix())
-    for name in fixed:
+    top = os.fsdecode(git(root, "rev-parse", "--show-toplevel")).rstrip("\r\n")
+    if Path(top).resolve() != root.resolve():
+        raise ValueError("package source must be the Git working-tree root")
+    head = git(root, "rev-parse", "--verify", "HEAD^{commit}").strip().decode("ascii")
+    committed = {}
+    for entry in git(root, "ls-tree", "-r", "-z", "--full-tree", head).split(b"\0"):
+        if not entry:
+            continue
+        metadata, path = entry.split(b"\t", 1)
+        name = os.fsdecode(path)
+        if public_path(name):
+            mode, kind, oid = metadata.decode("ascii").split()
+            if kind != "blob" or mode not in ("100644", "100755"):
+                raise ValueError(f"committed package source is not a regular file: {name}")
+            committed[name] = (mode, oid)
+    if not set(PUBLIC_FILES).issubset(committed):
+        raise ValueError("required public package source is missing from HEAD")
+    if public_index(root) != committed:
+        raise ValueError("staged public package sources differ from HEAD")
+    reject_public_links(root)
+    filemode = git(root, "config", "--bool", "--default=true", "--get", "core.filemode").strip() == b"true"
+    for name, (mode, oid) in sorted(committed.items()):
         safe_name(name)
-        files[name] = read_regular(root / name)
+        data = read_regular(root / name)
+        if filemode and bool((root / name).stat().st_mode & stat.S_IXUSR) != (mode == "100755"):
+            raise ValueError(f"public package source mode differs from HEAD: {name}")
+        # Git's clean filters and CRLF conversion can hide byte differences
+        # from status/diff. Hash the actual bytes as a Git blob, without filters.
+        algorithm = {40: "sha1", 64: "sha256"}.get(len(oid))
+        if algorithm is None:
+            raise ValueError("unsupported Git object identity")
+        digest = hashlib.new(algorithm, b"blob " + str(len(data)).encode("ascii") + b"\0" + data)
+        if digest.hexdigest() != oid:
+            raise ValueError(f"public package source bytes differ from HEAD: {name}")
+        files[name] = data
+    if (git(root, "rev-parse", "--verify", "HEAD^{commit}").strip().decode("ascii") != head
+            or public_index(root) != committed):
+        raise ValueError("public package source identity changed during collection")
     keys = [name.casefold() for name in files]
     if len(set(keys)) != len(keys):
         raise ValueError("case-insensitive package path collision")

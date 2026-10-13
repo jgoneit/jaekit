@@ -5,6 +5,9 @@ Run the real Windows installer lifecycle against two reviewed local candidates.
 Requires Windows 11 x64, both PowerShell 5.1 and 7, and no existing Jaekit
 installation. ConsentUserInstallation explicitly authorizes temporarily using
 the real current-user install directory and adding/removing its user PATH entry.
+Before invoking this script, use the trusted guide preflight on both complete
+candidates, including all loose scripts. This script cannot retroactively verify
+its own already-executed code. See the verified block in tools/windows/README.md.
 This does not test Core goal execution or actual host Skill loading.
 #>
 [CmdletBinding()]

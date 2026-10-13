@@ -25,13 +25,43 @@ NATIVE = {
     "internal/record": ["TestNativeConcurrentProcessesPreserveRecords", "TestNativeLockIsReleasedWhenOwnerExits"],
     "internal/evidence": ["TestNativeCleanCRLFStillRequiresCommittedBytes", "TestNativeWindowsEvidencePaths"],
     "cmd/ha": ["TestNativeCoreGitLifecycle", "TestNativeCoreGitLifecycle/linked=false",
-               "TestNativeCoreGitLifecycle/linked=true", "TestNativeBaselineRejectsJunction"],
+               "TestNativeCoreGitLifecycle/linked=true", "TestNativeBaselineRejectsJunction",
+               "TestNativeEvidencePathScenarios", "TestNativeWindowsEvidencePathScenarios"],
 }
 REQUIRED = sorted(MODULE + package + "/" + test for package, tests in NATIVE.items() for test in tests)
 PACKAGE_CHECKS = ["candidate-manifest-sha256", "candidate-native-version-capabilities",
                   "space-unicode-drive-path", "checksum-refusal", "archive-traversal-refusal",
                   "archive-case-collision-refusal", "archive-file-directory-collision-refusal",
                   "archive-reserved-name-refusal", "archive-stream-name-refusal", "junction-path-refusal"]
+PREFLIGHT_FILES = ("archive", "common", "install", "uninstall", "acceptance")
+PREFLIGHT_CASES = {"actual-candidate", "valid-install", "valid-remove", "valid-acceptance",
+                   "invalid-digest", "mismatched-digest", "duplicate-entry", "ambiguous-case-entry",
+                   "unsafe-relative-entry", "unsafe-absolute-entry", "unexpected-entry",
+                   "unexpected-script", "directory-entry"}
+PREFLIGHT_CASES.update(action + "-tampered-" + name for action in
+                       ("install", "remove", "acceptance-first", "acceptance-update") for name in PREFLIGHT_FILES)
+PREFLIGHT_CASES.update("missing-file-" + name for name in (*PREFLIGHT_FILES, "checksums"))
+PREFLIGHT_CASES.update("missing-entry-" + name for name in PREFLIGHT_FILES)
+
+
+def validate_preflight_report(report: dict, shell_version: str) -> None:
+    if (report.get("schema") != "jaekit-windows-preflight/v1" or report.get("status") != "passed"
+            or report.get("shell_version") != shell_version or report.get("failures")):
+        raise RuntimeError("same-shell guide preflight report is absent, invalid, or failed")
+    guides = report.get("guides", [])
+    if len(guides) != 2 or {row.get("path") for row in guides} != {"guides/WINDOWS.md", "guides/WINDOWS.en.md"}:
+        raise RuntimeError("both public guide preflight observations are required")
+    for guide in guides:
+        for field in ("required", "passed"):
+            names = guide.get(field, [])
+            if len(names) != len(PREFLIGHT_CASES) or set(names) != PREFLIGHT_CASES:
+                raise RuntimeError("guide preflight cases missing or duplicated: " + field)
+        if guide.get("skipped") or not re.fullmatch(r"[a-f0-9]{64}", guide.get("definition_sha256", "")):
+            raise RuntimeError("guide preflight skipped or source digest missing")
+        actions = guide.get("action_sha256", {})
+        if set(actions) != {"install", "remove", "acceptance"} or any(
+                not isinstance(value, str) or not re.fullmatch(r"[a-f0-9]{64}", value) for value in actions.values()):
+            raise RuntimeError("guide action source identities missing")
 
 
 def validate_package_report(report: dict, shell_version: str, server: bool) -> None:
@@ -75,7 +105,8 @@ def checked(argv: list[str], output: Path, label: str, timeout: int = 300) -> st
 def failure_tails(output: Path) -> None:
     """Keep first native failures diagnosable without publishing full transcripts."""
     remaining = 24000
-    for name in ("package-runtime/install-refusal.log", "package-runtime/uninstall-refusal.log",
+    for name in ("preflight-runtime.stderr.log", "preflight-runtime.stdout.log",
+                 "package-runtime/install-refusal.log", "package-runtime/uninstall-refusal.log",
                  "package-runtime.stderr.log", "package-runtime.stdout.log", "package.stderr.log",
                  "build.stderr.log", "go-test.stderr.log", "go-test.jsonl", "go-test.stdout.log"):
         path = output / name
@@ -112,7 +143,7 @@ def main() -> int:
                               "installation_type": args.installation_type, "os_build": args.os_build,
                               "shell_version": args.shell_version, "shell_edition": args.shell_edition},
               "native_tests": {"required": REQUIRED, "passed": [], "skipped": []},
-              "package_checks": [], "server_rejection": {}, "failures": [],
+              "package_checks": [], "preflight_checks": {}, "server_rejection": {}, "failures": [],
               "unverified": ["windows11-install-lifecycle", "wsl2", "host-skills", "public-release"]}
     try:
         if sys.platform != "win32" or platform.machine().lower() not in ("amd64", "x86_64"):
@@ -155,6 +186,23 @@ def main() -> int:
         archive = output / "candidate" / f"ha_{version}_windows_amd64.zip"
         report["candidate"] = {"version": version, "source_commit": source, "binary_sha256": digest(binary),
                                "archive_sha256": digest(archive)}
+        preflight_result = output / "preflight-results.json"
+        result = capture([args.shell_executable, "-NoProfile", "-NonInteractive", "-File",
+                          str(ROOT / "tools/windows/native_preflight_checks.ps1"), "-CandidateDirectory",
+                          str(output / "candidate"), "-OutputPath", str(preflight_result)], output, "preflight-runtime")
+        if not preflight_result.is_file():
+            raise RuntimeError("guide preflight produced no report")
+        report["preflight_checks"] = json.loads(preflight_result.read_text(encoding="utf-8-sig"))
+        validate_preflight_report(report["preflight_checks"], args.shell_version)
+        expected_candidate = {"archive_sha256": digest(archive),
+                              "checksums_sha256": digest(output / "candidate/checksums.txt"),
+                              "loose_sha256": {name: digest(output / "candidate" / name) for name in
+                                               ("common.ps1", "install.ps1", "uninstall.ps1", "acceptance.ps1")}}
+        if any(guide.get("actual_candidate") != expected_candidate
+               for guide in report["preflight_checks"]["guides"]):
+            raise RuntimeError("public preflight verified a different candidate")
+        if result.returncode:
+            raise RuntimeError("guide preflight execution failed")
         package_result = output / "package-results.json"
         result = capture([args.shell_executable, "-NoProfile", "-NonInteractive", "-File",
                           str(ROOT / "tools/windows/native_package_checks.ps1"), "-CandidateDirectory",

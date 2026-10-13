@@ -24,6 +24,14 @@ hashes, reproducibility, conflict preservation and source boundaries. They do no
 execute `ha.exe`, PowerShell or Windows filesystem operations. A successful local
 test is never a Windows acceptance result.
 
+Before invoking any candidate script, prepare the independent
+`Get-JaekitVerifiedCandidate` function from the trusted [Windows guide](../../guides/WINDOWS.en.md).
+Its install, reinstall/update and removal blocks check the ZIP and all four loose
+scripts before executing any candidate code, including `common.ps1`. Keep the
+complete six-file candidate together. Checksums establish equality to the trusted
+list, not authentication if the list and files come from a compromised source.
+No unchecked bootstrap script, policy bypass or new product prerequisite is used.
+
 `install.ps1` accepts local `-Archive` and `-Checksums` files. It verifies the
 archive before extraction, checks every manifest file, executes the staged
 binary's version and capabilities, and audits any existing managed installation.
@@ -48,13 +56,24 @@ deleting unrecognized data.
 
 On a disposable Windows user account without an existing Jaekit installation or
 Jaekit user PATH entry,
-review and run `acceptance.ps1` with two different-version candidates. Both
-PowerShell executables must already be present. The explicit consent flag permits
-temporary installation at the real user path and adding/removing its PATH entry:
+prepare that same trusted guide function, then review `acceptance.ps1` and use
+two different-version candidates. Place the first candidate in the current
+directory and the update candidate in the sibling `next` directory (adjust that
+path if needed). Both complete candidates are verified before the acceptance
+script or its helper starts. Both PowerShell executables must already be present.
+The explicit consent flag permits temporary installation at the real user path
+and adding/removing its PATH entry. Run the entire block; verification failure
+ends it before candidate code executes:
 
+<!-- BEGIN WINDOWS VERIFIED ACCEPTANCE -->
 ```powershell
-.\acceptance.ps1 -Archive .\ha_0.1.4-dev_windows_amd64.zip -Checksums .\checksums.txt -UpdateArchive ..\next\ha_0.1.5-dev_windows_amd64.zip -UpdateChecksums ..\next\checksums.txt -ConsentUserInstallation
+& {
+    $first = Get-JaekitVerifiedCandidate (Get-Location).Path
+    $next = Get-JaekitVerifiedCandidate '..\next'
+    & $first.Acceptance -Archive $first.Archive -Checksums $first.Checksums -UpdateArchive $next.Archive -UpdateChecksums $next.Checksums -ConsentUserInstallation
+}
 ```
+<!-- END WINDOWS VERIFIED ACCEPTANCE -->
 
 This entrypoint exercises both shells, cross-shell updates, repeated install,
 checksum failure, an unmanaged file conflict, a locked executable, junction
@@ -87,6 +106,17 @@ failures; the ordinary descendant timeout fixture uses actual child processes.
 It then builds and executes the current-source Windows candidate and checks its
 manifest, checksums, Unicode/spaced drive paths, unsafe archive entries and
 junction refusal using that shell's actual .NET/filesystem behavior.
+
+The trusted developer runner `native_preflight_checks.ps1` reads the exact
+preflight and action blocks from both public Windows guides and this acceptance
+example. In each shell it verifies the actual built candidate without executing
+its code, then uses inert synthetic candidates to observe install/remove/acceptance
+entrypoint binding and rejection before the execution canary. ZIP and all four
+script mismatches, missing files or entries, malformed/duplicate/unsafe checksum
+entries and unexpected files must stop the complete action block and preserve
+fixture contents. Both acceptance inputs are tested. These developer helpers
+are source tools, not an unchecked candidate bootstrap or Windows 11 lifecycle
+acceptance. Their fixtures never install or change user PATH or policy.
 
 On actual Server, the candidate installer and uninstaller must both reject the
 platform with their original Windows 11 diagnostic. The probe refuses an existing

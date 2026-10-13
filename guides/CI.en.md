@@ -32,6 +32,8 @@ The Unix lifecycle builds the current source into real native candidates, then e
 
 Windows Server runs developer fixtures and checks that product install/remove commands safely refuse the unsupported environment. It does not change the installer's **Windows 11 Client x64** requirement. GitHub's Windows runners have administrator privileges, so these results do not establish ordinary-user installation behavior on Windows 11. See the [candidate guide](WINDOWS.en.md) for that separate acceptance scope.
 
+The Windows job disables newline conversion only in its disposable checkout's local Git configuration and restores the committed bytes. It does not change global Git settings or user projects. Native command scenarios observe unsafe declaration/producer-path refusal and record preservation. Both PowerShell versions execute the Korean and English guides' preflight code against a valid candidate and altered archives/scripts. The real candidate is verified without execution; installation, removal and acceptance entrypoint connections use isolated inert synthetic code. These observations remain separate from Windows 11 installation lifecycle acceptance.
+
 An Ubuntu run is not a WSL2 run. CI does not establish WSL2 installation, installed agent Skill loading, a real agent session or session resumption. Those observations remain separate. No CI success publishes a release, changes a version, or proves installation from a public release URL.
 
 ## Local checks
