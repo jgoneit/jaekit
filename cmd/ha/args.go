@@ -11,12 +11,23 @@ type args struct {
 	pos   []string
 	vals  map[string]string
 	bools map[string]bool
+	lists map[string][]string
 }
 
 func parseArgs(in []string, valueFlags, boolFlags []string) (*args, error) {
-	a := &args{vals: map[string]string{}, bools: map[string]bool{}}
+	return parseFlags(in, valueFlags, nil, boolFlags)
+}
+
+// parseFlags also accepts list flags, which may repeat and keep their order.
+func parseFlags(in []string, valueFlags, listFlags, boolFlags []string) (*args, error) {
+	a := &args{vals: map[string]string{}, bools: map[string]bool{}, lists: map[string][]string{}}
 	isValue := map[string]bool{}
 	for _, f := range valueFlags {
+		isValue[f] = true
+	}
+	isList := map[string]bool{}
+	for _, f := range listFlags {
+		isList[f] = true
 		isValue[f] = true
 	}
 	isBool := map[string]bool{}
@@ -47,6 +58,15 @@ func parseArgs(in []string, valueFlags, boolFlags []string) (*args, error) {
 				}
 				i++
 				value = in[i]
+			}
+			if isList[name] {
+				a.lists[name] = append(a.lists[name], value)
+				continue
+			}
+			// Commands that take list flags refuse a repeated single value;
+			// the older commands keep their last-value behavior.
+			if _, repeated := a.vals[name]; repeated && listFlags != nil {
+				return nil, fmt.Errorf("--%s is given more than once", name)
 			}
 			a.vals[name] = value
 		default:

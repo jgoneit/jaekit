@@ -55,6 +55,7 @@ Usage:
   ha note   <goal> reopen --quote <user words>
   ha note   <goal> input --quote <user words>
   ha finding <goal> [--input <JSON file>] [--format json|md]
+  ha history <goal> [add|current|list|show] ...   (see ha history --help)
   ha status <goal> [--format md|json]
   ha done   <goal> [--format md|json]
   ha log    <goal> <seq> [--tail N]
@@ -112,6 +113,8 @@ func runMain(argv []string, stdout, stderr io.Writer) int {
 		return c.budget(rest)
 	case "finding":
 		return c.finding(rest)
+	case "history":
+		return c.history(rest)
 	case "note":
 		return c.note(rest)
 	case "status":
