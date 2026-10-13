@@ -64,11 +64,47 @@ an existing installation. On failure it preserves diagnostics and avoids forcing
 cleanup or restoring a stale PATH snapshot. It does not test Core goal execution,
 agent Skill loading, every filesystem race, or public download availability.
 
-For developer fixtures from a Windows source checkout with Git and the Go version
-in `go.mod`, run `tools\windows\native_checks.ps1` in PowerShell. This is a separate
-source-development path, not an installed-user prerequisite or a substitute for
-`acceptance.ps1`, installed Core goal execution, or host Skill observations. The
-developer entrypoint is not included in the candidate payload.
+For developer fixtures, use a clean Windows source checkout with Git, Python 3
+and the Go version in `go.mod`. Run this command separately in Windows PowerShell
+5.1 and PowerShell 7, choosing a new output directory outside the checkout for
+each run:
+
+```powershell
+.\tools\windows\native_checks.ps1 -OutputDirectory "$env:TEMP\jaekit-native-ps51"
+```
+
+This developer entrypoint supports actual Windows Server x64 as well as Windows
+11 Client x64. It reads the native CPU, actual Windows installation type, shell
+version, effective Go target and source commit; it does not bypass or replace the
+product installer guard. Product installation still requires Windows 11 Client
+x64. The developer helpers are not included in the candidate payload.
+
+Each invocation executes the selected native Core tests, including both ordinary
+and linked Git worktrees, and retains the raw Go JSON stream. Missing, skipped,
+failed or unfinished selected tests cannot produce a passing report. The
+unconfirmed-shutdown and admission-failure fixtures include deliberate injected
+failures; the ordinary descendant timeout fixture uses actual child processes.
+It then builds and executes the current-source Windows candidate and checks its
+manifest, checksums, Unicode/spaced drive paths, unsafe archive entries and
+junction refusal using that shell's actual .NET/filesystem behavior.
+
+On actual Server, the candidate installer and uninstaller must both reject the
+platform with their original Windows 11 diagnostic. The probe refuses an existing
+Jaekit installation and compares installation/scratch presence, raw user PATH
+value and kind, machine/process PATH and execution policies before and after each
+refusal. Only hashes and preservation booleans enter the summary. On Client,
+these two Server probes are explicitly inapplicable and no install is attempted.
+
+`summary.json`, `go-test.jsonl` and per-command logs remain in the output directory.
+Failures also print bounded tails of the relevant public fixture logs to the job
+output; raw PATH snapshots are never printed or saved.
+The `JAEKIT_CI_REPORT` line identifies the source, environment, actual required
+scenario results, package checks and scope limits. Use the summary and raw Go
+stream for CI artifacts; `candidate/` and `package-runtime/` contain disposable
+synthetic test data, not release assets. A successful Server developer result is
+not Windows 11 installation lifecycle, WSL2, host Skill, or public release
+acceptance. Run `acceptance.ps1` separately on the supported Client environment
+for its explicitly authorized installation lifecycle.
 
 User instructions: [한국어](../../guides/WINDOWS.md),
 [English](../../guides/WINDOWS.en.md).

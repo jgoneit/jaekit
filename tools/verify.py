@@ -178,6 +178,7 @@ def verify_docs(env: dict[str, str]):
     run("Public documentation", [sys.executable, "tools/check_public_docs.py"], env)
     for label, directory in (("Public checker regressions", "public-checks"),
                              ("Workflow regressions", "workflow-checks"),
+                             ("Native CI checker regressions", "ci"),
                              ("Release archive regressions", "release"),
                              ("Windows candidate packaging regressions", "windows"),
                              ("Goal check regressions", "goal-checks"),

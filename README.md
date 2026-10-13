@@ -148,6 +148,7 @@ docs/specs/<goal> 이어서 해줘
 - [사용 안내·목표 수정·재개](guides/USAGE.md) · [문제 해결](guides/USAGE.md#문제-해결)
 - [자세한 운영 규칙](guides/OPERATIONS.md) · [명령·기록 형식](contracts/run-record.md)
 - [이미지 설명과 수정 방법](assets/readme/SOURCES.md)
+- [Ubuntu·macOS·Windows CI의 검사 범위](guides/CI.md)
 
 사용 경험이나 막힌 점은 [사용 보고·설치·버그 issue](https://github.com/jgoneit/jaekit/issues/new/choose)로 남겨 주세요. issue는 공개되므로 회사 코드, 내부 이름, 비밀 값과 로그 원문은 제외해 주세요.
 

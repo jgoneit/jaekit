@@ -11,11 +11,14 @@ permissions:
 
 jobs:
   go:
-    name: Seal Core
+    name: Core / Ubuntu
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -23,20 +26,105 @@ jobs:
           go-version-file: go.mod
           cache: false
 
+      - name: Describe tested source and runner
+        shell: bash
+        run: python3 tools/ci/describe_run.py --shell bash
+
       - name: Prepare shell regression environment
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y zsh
 
-      - name: Verify Seal Core
+      - name: Verify common Core checks
         run: python3 tools/verify.py go
+
+      - name: Verify native Core and direct installation
+        shell: bash
+        run: python3 tools/ci/native_unix.py --report "$RUNNER_TEMP/native-unix.json"
+
+  macos:
+    name: Core / macOS
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Describe tested source and runner
+        shell: bash
+        run: python3 tools/ci/describe_run.py --shell bash
+
+      - name: Verify native Core and direct installation
+        shell: bash
+        run: python3 tools/ci/native_unix.py --report "$RUNNER_TEMP/native-unix.json"
+
+  windows:
+    name: Core / Windows
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Describe tested source and runner
+        shell: powershell
+        run: python tools/ci/describe_run.py --shell powershell
+
+      - name: Verify native developer checks on PowerShell 5.1
+        shell: powershell
+        run: ./tools/windows/native_checks.ps1 -OutputDirectory "$env:RUNNER_TEMP/jaekit-windows-ps51"
+
+      - name: Verify native developer checks on PowerShell 7
+        shell: pwsh
+        run: ./tools/windows/native_checks.ps1 -OutputDirectory "$env:RUNNER_TEMP/jaekit-windows-ps7"
+
+  core:
+    name: Seal Core
+    needs: [go, macos, windows]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Require every native Core job to succeed
+        env:
+          JAEKIT_CI_NEEDS: ${{ toJSON(needs) }}
+        run: python3 tools/ci/require_success.py
 
   docs:
     name: Public documentation
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Verify public documentation
         run: python3 tools/verify.py docs

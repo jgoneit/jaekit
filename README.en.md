@@ -148,6 +148,7 @@ The project keeps goal documents, work plans, progress and completion reports, a
 - [Usage, changing a goal, and resuming](guides/USAGE.en.md) · [Troubleshooting](guides/USAGE.en.md#troubleshooting)
 - [Detailed operations](guides/OPERATIONS.md) · [Command and record formats](contracts/run-record.md) (both in Korean)
 - [About the images and how to edit them](assets/readme/SOURCES.en.md)
+- [What Ubuntu, macOS and Windows CI checks](guides/CI.en.md)
 
 Share your experience or where you got stuck in a [usage report or install/bug issue](https://github.com/jgoneit/jaekit/issues/new/choose). Issues are public: leave out company code, internal names, secrets, and raw logs.
 
