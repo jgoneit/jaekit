@@ -6,6 +6,7 @@ Installation, updates, and removal for the current release, `v0.1.4`. Supported 
 
 - First installation: [Basic install](#basic-install)
 - Without brew: [Install from a Release file](#install-from-a-release-file)
+- For Linux tools on Windows: [WSL2 preparation guide — actual use unverified](WSL.en.md)
 - To use the reference producer and example: [Get the reference check](#get-the-reference-check)
 - Moving to a new version: [Update](#update)
 - Stopping using it: [Uninstall](#uninstall)
@@ -30,6 +31,8 @@ Spec writes documents without installing Core or querying capabilities. New Spec
 You need Git and either Codex or Claude Code. For the brew route, install [Homebrew](https://brew.sh) too. Your project must be a folder whose changes are tracked with Git. You do not need to clone (copy to your computer) the Jaekit repository.
 
 Seal Core `ha` does not support Windows, so Seal cannot run there. Spec can write goal documents without `ha`, but its installation and operation on Windows have not been checked yet.
+
+This describes native Windows execution. A [separate guide](WSL.en.md) prepares the Linux release route for Ubuntu 24.04 LTS x64 in WSL2. Actual WSL2 installation, execution, and agent use have not been checked yet; ordinary Linux results do not establish them.
 
 ### Install ha
 

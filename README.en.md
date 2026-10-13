@@ -37,6 +37,8 @@ These steps use **Claude Code or Codex on macOS**. You need [Homebrew](https://b
 
 For Linux or an install without Homebrew, see the [install guide](guides/INSTALL.en.md). The record tool `ha` does not support Windows, so Seal cannot run there. Spec does not need `ha`, but its installation and operation on Windows have not been checked yet.
 
+For Linux tools on Windows, see the [WSL2 preparation guide](guides/WSL.en.md). The Ubuntu 24.04 LTS x64 route is being prepared; installation and agent use in actual WSL2 have not been checked yet. The Windows limitation above refers to native execution.
+
 **1. In Terminal, install the record tool `ha`.** Run one block at a time and wait for it to finish.
 
 ```bash
