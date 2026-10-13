@@ -163,6 +163,9 @@ def verify_go(env: dict[str, str]):
             run(f"Build {target}",
                 ["go", "build", "-mod=readonly", "-o", str(output / f"ha-{goos}-{goarch}"), "./cmd/ha"],
                 dict(env, GOOS=goos, GOARCH=goarch, CGO_ENABLED="0"))
+        windows_env = dict(env, GOOS="windows", GOARCH="amd64", CGO_ENABLED="0")
+        run("Build Windows candidate (compile only)",
+            ["go", "build", "-mod=readonly", "-o", str(output / "ha-windows-amd64.exe"), "./cmd/ha"], windows_env)
         binary = output / "ha"
         run("Build native smoke binary",
             ["go", "build", "-mod=readonly", "-o", str(binary), "./cmd/ha"], env)
@@ -176,6 +179,7 @@ def verify_docs(env: dict[str, str]):
     for label, directory in (("Public checker regressions", "public-checks"),
                              ("Workflow regressions", "workflow-checks"),
                              ("Release archive regressions", "release"),
+                             ("Windows candidate packaging regressions", "windows"),
                              ("Goal check regressions", "goal-checks"),
                              ("Release acceptance checker regressions", "release-checks")):
         run(label, [sys.executable, "-m", "unittest", "discover", "-s", f"tools/{directory}",

@@ -35,7 +35,7 @@ When the required completion conditions are met, Seal saves a completion record 
 
 These steps use **Claude Code or Codex on macOS**. You need [Homebrew](https://brew.sh) (a program installer), Git, Claude Code or [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), and **a project folder managed with Git**. You do not need to clone the Jaekit repository.
 
-For Linux or an install without Homebrew, see the [install guide](guides/INSTALL.en.md). The record tool `ha` does not support Windows, so Seal cannot run there. Spec does not need `ha`, but its installation and operation on Windows have not been checked yet.
+For Linux or an install without Homebrew, see the [install guide](guides/INSTALL.en.md). In the current public release, the record tool `ha` does not support Windows, so Seal cannot run there. Spec does not need `ha`, but its installation and operation on Windows have not been checked yet. The separate [Windows native candidate guide](guides/WINDOWS.en.md) covers package and verification preparation for Windows 11 x64 with PowerShell 5.1/7; actual Windows execution and host behavior remain unverified.
 
 **1. In Terminal, install the record tool `ha`.** Run one block at a time and wait for it to finish.
 

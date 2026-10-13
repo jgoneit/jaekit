@@ -1,0 +1,91 @@
+# Windows 네이티브 후보 설치 안내
+
+**한국어** · [English](WINDOWS.en.md)
+
+이 안내는 **Windows 11 x64, Windows PowerShell 5.1·PowerShell 7**을 대상으로 준비한 로컬 후보 설치 경로입니다. 현재 공개 배포판 `v0.1.4`에 Windows 파일이 있다는 뜻이 아닙니다. 후보 패키지 생성과 교차 빌드는 Windows에서의 설치·실행 관측이나 에이전트의 실제 Skill 사용을 증명하지 않습니다. 해당 후보의 확인 결과와 미확인 범위를 함께 읽습니다.
+
+Windows ARM64·x86, 이전 Windows, 네트워크/UNC 저장소와 같은 checkout의 Windows·WSL 교차 사용은 이 경로의 지원 대상이 아닙니다. WSL 지원과 네이티브 지원은 별개입니다.
+
+## 준비
+
+- 64비트 Windows PowerShell 5.1 또는 PowerShell 7을 엽니다. Git과 사용할 에이전트는 별도로 준비합니다. 설치기는 Git·에이전트·PowerShell·Windows 기능을 설치하거나 관리자 권한을 요청하지 않습니다.
+- 검토한 같은 후보 묶음에서 `ha_<version>_windows_amd64.zip`, `checksums.txt`, `install.ps1`, `uninstall.ps1`, `common.ps1`을 받습니다. 설치기는 로컬 파일만 읽고 다운로드나 공개 배포를 수행하지 않습니다. 취득에 실패했으면 설치가 시작된 것이 아닙니다.
+- checksum은 가져온 파일들이 후보의 내용과 맞는지 확인합니다. 같은 출처에서 변조된 checksum까지 신뢰할 수 있게 만드는 서명은 아닙니다. 스크립트도 실행할 코드이므로 출처와 내용을 확인합니다.
+- 회사 또는 PC의 실행 정책이 스크립트를 막으면 해당 정책에 따라 처리합니다. 설치기는 실행 정책·보안 설정을 바꾸거나 우회 옵션으로 다시 실행하지 않습니다.
+
+일반 설치에 Go·Homebrew·Bash·zsh·WSL이나 Jaekit 소스 checkout은 필요하지 않습니다. 프로젝트 검사가 별도 도구를 요구한다면 그 검사의 의존성입니다. 참조 검사 생산자를 사용하는 경우에만 해당 예시의 Python 요구사항을 확인합니다.
+
+## 설치와 확인
+
+후보 파일 폴더에서 실행합니다. 아래 버전은 후보 이름을 보여 주는 예시입니다. 받은 파일 이름으로 바꿉니다.
+
+```powershell
+.\install.ps1 -Archive .\ha_0.1.4-dev_windows_amd64.zip -Checksums .\checksums.txt -AddToPath
+```
+
+`-AddToPath`는 **현재 사용자 PATH에 설치 폴더 한 항목을 추가**하는 선택입니다. 생략하면 PATH는 바뀌지 않으며 실행 파일의 절대 경로를 사용합니다. 같은 경로가 이미 있으면 중복 추가하거나 기존 항목을 설치기의 소유로 바꾸지 않습니다. 시스템 PATH·전역 Git 설정은 변경하지 않습니다.
+
+설치 위치는 Windows가 알려 주는 현재 사용자의 LocalApplicationData 아래 `Jaekit`입니다. 보통 `%LOCALAPPDATA%\Jaekit`이며, 다음과 같이 찾습니다.
+
+```powershell
+$jaekitRoot = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Jaekit'
+$jaekitExe = Join-Path $jaekitRoot 'bin\ha.exe'
+& $jaekitExe --version
+& $jaekitExe capabilities --format json
+Get-Command ha -All
+```
+
+설치기는 교체 전에 후보 실행 파일의 버전과 지원 정보를 확인합니다. 위 결과의 버전은 후보의 버전과 같아야 합니다. `Get-Command`에서 다른 `ha`가 먼저 선택된다면 그 경로와 새 설치 경로를 구분합니다. 임의로 기존 파일을 삭제하지 말고 사용할 경로를 선택합니다. Seal에도 확인한 실제 실행 파일을 사용해야 합니다.
+
+설치기는 현재 PowerShell의 PATH를 갱신하고 Windows에 환경 변경을 알립니다. 이미 열린 에이전트·터미널의 부모 앱은 옛 PATH를 유지할 수 있으므로 부모 앱까지 종료한 뒤 새 세션을 엽니다. 계속 옛 환경을 상속하면 다시 로그인하거나 절대 경로를 사용합니다. PATH·버전 확인 성공은 목표 완료나 에이전트 Skill 로딩 결과가 아닙니다.
+
+목표 문서와 검사 코드는 로컬 Windows Git 프로젝트에 둡니다. [기존 호스트 설치 안내](INSTALL.md)의 플러그인 설치·활성화 계약은 그대로 적용하되, Linux/macOS에서 확인한 호스트 동작을 Windows에서의 실사용 결과로 대신하지 않습니다. 이 후보 설치기는 플러그인을 설치하거나 재설계하지 않습니다.
+
+## 공개 자료와 검사 명령
+
+각 버전의 안내·계약·참조 예시는 `versions\<version>`에 있습니다. 현재 버전 경로를 확인하고, 예시는 프로젝트의 **존재하지 않는 새 폴더**로 복사합니다.
+
+```powershell
+$jaekitState = Get-Content -LiteralPath (Join-Path $jaekitRoot 'managed.json') -Raw | ConvertFrom-Json
+$jaekitData = Join-Path (Join-Path $jaekitRoot 'versions') $jaekitState.current_version
+$jaekitExample = Join-Path (Get-Location).Path 'jaekit-reference-example'
+if (Test-Path -LiteralPath $jaekitExample) { throw '복사 대상이 이미 있습니다.' }
+Copy-Item -LiteralPath (Join-Path $jaekitData 'examples\check-result') -Destination $jaekitExample -Recurse
+```
+
+참조 생산자는 같은 버전의 `tools\check-result-reference.py`에 있습니다. 프로젝트에서 쓸 때는 예시 README의 선언·생산자 경로를 프로젝트 배치에 맞춥니다. 관리되는 설치 폴더 안에서 예시나 문서를 편집하지 않습니다. 그 폴더의 파일을 바꾸거나 새 파일을 넣으면 업데이트·제거가 자료 보존을 위해 멈춥니다.
+
+PowerShell에서 `ha`를 호출하더라도 PLAN의 검사 명령은 기존 argv 형식입니다. 파이프·리다이렉트·PowerShell 식을 자동 해석하지 않습니다. 절대 Windows 경로는 역슬래시를 유지하는 따옴표 표기를 쓰거나 `/` 구분자를 사용합니다. 아래는 명령 표기의 합성 예시이며 실제 검사 결과가 아닙니다.
+
+```text
+'C:\Program Files\Example\checker.exe' 'C:\작업 폴더\input.txt'
+C:/Tools/checker.exe 'C:/작업 폴더/input.txt'
+```
+
+셸 스크립트를 실행하려면 실행할 셸과 스크립트 인수를 명시합니다. 필요한 셸과 실행 정책은 프로젝트의 선택이며 `ha`가 이를 준비하거나 변경하지 않습니다.
+
+Git이 clean이라고 해도 CRLF 변환 때문에 선언·생산자 파일의 바이트가 HEAD와 다를 수 있습니다. 기존 증거의 바이트 동일성 조건을 유지하므로, 이때는 검사 파일의 실제 내용과 프로젝트의 `.gitattributes`·checkout 조건을 확인합니다. 승인된 프로젝트 정책에 따라 checkout을 맞추고 다시 검사합니다. 설치기나 Core가 전역 `core.autocrlf`, 파일 바이트, 과거 digest·기록을 자동으로 바꾸지 않습니다.
+
+## 재설치·업데이트·실패
+
+같은 버전의 같은 후보는 동일 명령으로 재설치합니다. 다른 내용의 동일 버전 후보는 기존 자료와 충돌하므로 거부됩니다. 새 버전은 새 후보 파일을 지정하면 됩니다. PowerShell 5.1에서 설치한 결과를 PowerShell 7로 업데이트하거나 반대로 사용할 수 있도록 같은 사용자 경로와 관리 상태를 사용합니다.
+
+설치기는 checksum·전체 파일 목록·내용을 확인하고 새 트리를 준비한 뒤 기존 설치를 교체합니다. 이전 버전 자료는 자동 삭제하지 않습니다. 무결성 불일치, 링크/junction 경로, 관리되지 않거나 편집된 파일, 사용 중이어서 교체할 수 없는 실행 파일, 파일 접근 실패는 성공으로 표시하지 않습니다. 사용 중인 `ha`와 검사를 종료하거나 충돌 원인을 확인한 뒤 다시 시도합니다. 기존 정상 설치와 프로젝트 파일은 보존하며, 교체 후 실패하면 이전 설치를 복구합니다.
+
+복구 자체나 마지막 임시 자료 정리가 실패하면 남은 백업 위치를 알립니다. 그 상태에서는 표시된 경로를 확인하고 보존된 자료를 비교한 뒤 정리합니다. 무관한 사용자 자료를 포함한 폴더를 강제로 삭제하거나 링크 대상을 따라가 삭제하지 않습니다. 이 설치기는 같은 사용자 권한의 다른 프로세스가 의도적으로 경로를 바꾸는 상황을 격리하지 않습니다.
+
+## 제거
+
+`ha`와 검사를 종료한 뒤 후보 폴더의 `uninstall.ps1`을 사용하거나 설치된 같은 스크립트를 실행합니다.
+
+```powershell
+& (Join-Path $jaekitData 'tools\windows\uninstall.ps1')
+```
+
+제거기는 전체 관리 목록을 확인한 뒤 해당 사용자 설치와 설치기가 추가한 PATH 한 항목만 제거합니다. 예전 버전의 관리 자료도 함께 제거됩니다. 기존부터 있던 PATH 항목과 무관한 설정·다른 사용자 설치·WSL 설치는 제거하지 않습니다. 프로젝트에 복사한 검사·예시, 목표 문서, `runs.jsonl`, Git 디렉터리의 원문 로그는 설치 관리 대상이 아니므로 보존됩니다.
+
+편집된 파일·미등록 파일·링크·사용 중인 실행 파일 때문에 멈추면 그 이유를 먼저 확인합니다. 이를 우회하는 강제 삭제 옵션은 없습니다.
+
+## 확인 범위
+
+[후보 도구 안내](../tools/windows/README.md)는 패키지 생성과 실제 Windows 설치 생명주기를 확인하는 별도 진입점을 설명합니다. 로컬 패키지 회귀, Windows 교차 빌드, PowerShell 5.1·7의 실제 설치·업데이트·제거, Core 목표 실행, 에이전트 Skill 사용, 공개 URL 설치를 각각 구분합니다. 수행하지 않은 항목은 미확인으로 남깁니다.

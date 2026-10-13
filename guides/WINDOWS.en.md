@@ -1,0 +1,91 @@
+# Native Windows candidate installation
+
+[한국어](WINDOWS.md) · **English**
+
+This is a local candidate installation path targeting **Windows 11 x64 with Windows PowerShell 5.1 and PowerShell 7**. It does not mean the current public release, `v0.1.4`, includes Windows files. Candidate packaging and cross-compilation do not establish Windows installation, execution, or actual agent Skill loading. Read the observations and remaining gaps for the particular candidate.
+
+Windows ARM64/x86, earlier Windows versions, network/UNC repositories and using the same checkout from both Windows and WSL are outside this path's support scope. WSL and native Windows support are separate.
+
+## Prerequisites
+
+- Open 64-bit Windows PowerShell 5.1 or PowerShell 7. Prepare Git and your agent separately. The installer does not install Git, agents, PowerShell or Windows features, and does not request elevation.
+- Obtain `ha_<version>_windows_amd64.zip`, `checksums.txt`, `install.ps1`, `uninstall.ps1` and `common.ps1` from the same reviewed candidate. The installer reads local files; it does not download or publish anything. A failed download is not a started installation.
+- Checksums establish that files match the candidate contents. They are not signatures that authenticate a compromised checksum source. Review the scripts' source and contents as code before running them.
+- If your PC or organization's execution policy blocks scripts, follow that policy. The installer does not change security settings or relaunch itself with policy-bypass options.
+
+Ordinary installation does not require Go, Homebrew, Bash, zsh, WSL or a Jaekit source checkout. Dependencies of a selected project check remain that check's dependencies. Python is needed only if you choose to use the reference producer that requires it.
+
+## Install and identify
+
+Run this from the candidate directory. The version below is an example candidate name; substitute the files you received.
+
+```powershell
+.\install.ps1 -Archive .\ha_0.1.4-dev_windows_amd64.zip -Checksums .\checksums.txt -AddToPath
+```
+
+`-AddToPath` explicitly permits adding **one current-user PATH entry**. Omit it to leave PATH unchanged and invoke the absolute executable path. An equivalent pre-existing entry is neither duplicated nor claimed by the installer. System PATH and global Git settings do not change.
+
+The fixed installation directory is `Jaekit` under the current user's Windows LocalApplicationData directory, normally `%LOCALAPPDATA%\Jaekit`. Locate it with:
+
+```powershell
+$jaekitRoot = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Jaekit'
+$jaekitExe = Join-Path $jaekitRoot 'bin\ha.exe'
+& $jaekitExe --version
+& $jaekitExe capabilities --format json
+Get-Command ha -All
+```
+
+Before replacement the installer executes the candidate's version and capability queries. The displayed version must match the candidate. If `Get-Command` selects a different `ha` first, distinguish that path from the new installation and choose the intended executable; do not delete other installations blindly. Seal must use the actual executable whose capabilities were checked.
+
+The installer refreshes PATH in the current PowerShell process and sends a Windows environment-change notification. Already-running parent applications may retain the old environment. Close the terminal's or agent's parent app and reopen it; sign out and in, or use the absolute path, if the old environment persists. PATH and version checks establish neither goal completion nor host Skill loading.
+
+Keep goal documents and checks in a local Windows Git project. The plugin installation and activation contract in the [existing host guide](INSTALL.en.md) still applies, but observations from Linux/macOS do not establish Windows host use. This candidate installer does not install or redesign plugins.
+
+## Public files and check commands
+
+Each version's guides, contracts and reference example are in `versions\<version>`. Locate the current data and copy the example to a **new, absent directory** in your project:
+
+```powershell
+$jaekitState = Get-Content -LiteralPath (Join-Path $jaekitRoot 'managed.json') -Raw | ConvertFrom-Json
+$jaekitData = Join-Path (Join-Path $jaekitRoot 'versions') $jaekitState.current_version
+$jaekitExample = Join-Path (Get-Location).Path 'jaekit-reference-example'
+if (Test-Path -LiteralPath $jaekitExample) { throw 'The copy destination already exists.' }
+Copy-Item -LiteralPath (Join-Path $jaekitData 'examples\check-result') -Destination $jaekitExample -Recurse
+```
+
+The producer is in that version's `tools\check-result-reference.py`. Follow the example README and adjust declaration/producer locations to your project layout. Do not edit the managed installation or store project files inside it. Modified or additional files cause update and removal to stop rather than discard your data.
+
+Even when you invoke `ha` from PowerShell, PLAN check commands retain the existing argv format. Pipes, redirection and PowerShell expressions are not interpreted automatically. Quote absolute Windows paths to preserve backslashes, or use `/` separators. These are synthetic command-format examples, not executed checks:
+
+```text
+'C:\Program Files\Example\checker.exe' 'C:\Work folder\input.txt'
+C:/Tools/checker.exe 'C:/Work folder/input.txt'
+```
+
+To run a shell script, explicitly name its shell and script arguments. The chosen shell and its execution policy belong to the project; `ha` does not prepare or change them.
+
+Git may consider a tree clean while CRLF conversion makes declaration or producer bytes differ from HEAD. The existing byte-identity requirement still applies. Inspect the check files, project `.gitattributes` and checkout conditions, then use the project's approved policy and check again. Neither the installer nor Core automatically changes global `core.autocrlf`, file bytes, old digests or records.
+
+## Reinstall, update and failures
+
+Run the same command to reinstall identical contents of the same version. Different contents under the same version are rejected as a conflict. To update, name the new candidate files. PowerShell 5.1 and 7 share the same per-user directory and management state, including when one shell updates an installation made by the other.
+
+The installer validates checksums and the full file inventory, stages a new tree, then replaces the existing installation. Earlier version data is not automatically deleted. Integrity failures, links/junctions, unknown or edited files, a running executable that cannot be replaced, and file-access failures are not reported as success. Stop users of `ha` or resolve the conflict before retrying. Existing installation and project contents are preserved; if promotion fails, the previous installation is restored.
+
+If rollback itself or final temporary-data cleanup fails, the remaining backup location is reported. Inspect and compare preserved data before cleanup. Do not forcibly delete folders containing unrelated files or follow links to delete their targets. The installer does not isolate another same-user process deliberately changing paths concurrently.
+
+## Remove
+
+Stop `ha` and its checks. Use `uninstall.ps1` from the candidate directory, or the installed copy:
+
+```powershell
+& (Join-Path $jaekitData 'tools\windows\uninstall.ps1')
+```
+
+Removal audits the complete inventory, then removes only the current user's managed tree and one installer-owned PATH entry. Managed data for older versions is removed with that tree. Pre-existing PATH entries, unrelated settings, other users' installations and WSL installations remain. Checks/examples copied into projects, goals, `runs.jsonl` and raw output in Git directories are not installation-managed files and remain intact.
+
+If removal stops on modified or unknown files, links or a running executable, inspect the cause first. There is no forced-deletion option.
+
+## Evidence scope
+
+The [candidate tools guide](../tools/windows/README.md) describes package creation and a separate real-Windows installer lifecycle entrypoint. Distinguish local package regressions, Windows cross-compilation, actual PowerShell 5.1/7 installation/update/removal, Core goal execution, host Skill use and installation from a public URL. Leave unobserved items unverified.

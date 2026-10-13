@@ -70,7 +70,7 @@ class Fixture(unittest.TestCase):
                 f"NAME = {name!r}\n" + recorder +
                 "if os.environ.get('VERIFY_TEST_FAIL') == NAME: sys.exit(29)\n"
             )
-        for group in ("public-checks", "workflow-checks", "release", "goal-checks", "release-checks"):
+        for group in ("public-checks", "workflow-checks", "release", "windows", "goal-checks", "release-checks"):
             directory = self.repo / "tools" / group
             directory.mkdir()
             (directory / "test_fixture.py").write_text(
@@ -117,7 +117,7 @@ class Fixture(unittest.TestCase):
 
 
 class InvocationCases(Fixture):
-    def test_default_runs_all_groups_and_four_targets(self):
+    def test_default_runs_all_groups_and_four_release_targets_plus_windows_candidate(self):
         result = self.run_verify()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         commands = self.commands()
@@ -129,14 +129,14 @@ class InvocationCases(Fixture):
                           "release:integration_product_source.py", "release:integration_install_destination.py", "release:integration_install_imports.py", "release:integration_observe_imports.py", "release:integration_child_imports.py",
                           "regression:test_merge_blockers.py", "regression:integration_go_filters.py", "regression:integration_observer_core.py", "regression:test_observer_attribution.py",
                           "regression:integration_selection_go_runtime.py",
-                          "go", "go", "go", "go", "go", "ha", "ha",
-                          "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "goal-checks", "release-checks",
+                          "go", "go", "go", "go", "go", "go", "ha", "ha",
+                          "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "windows", "goal-checks", "release-checks",
                           "regression:integration_selection_go.py", "regression:integration_selection_go_identifiers.py",
                           "regression:integration_selection_go_layout.py", "regression:integration_selection_python.py"])
         builds = [item for item in commands if item["name"] == "go" and item["args"][0] == "build"]
         self.assertEqual([(item["goos"], item["goarch"]) for item in builds],
-                         [("linux", "amd64"), ("linux", "arm64"), ("darwin", "amd64"), ("darwin", "arm64"), (None, None)])
-        self.assertTrue(all(item["cgo"] == "0" for item in builds[:4]))
+                         [("linux", "amd64"), ("linux", "arm64"), ("darwin", "amd64"), ("darwin", "arm64"), ("windows", "amd64"), (None, None)])
+        self.assertTrue(all(item["cgo"] == "0" for item in builds[:5]))
         for item in commands:
             self.assertEqual(item["no_bytecode"], "1")
             if item["name"] == "go":
@@ -154,7 +154,7 @@ class InvocationCases(Fixture):
         result = self.run_verify("docs")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual([item["name"] for item in self.commands()],
-                         ["check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "goal-checks", "release-checks",
+                         ["check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "windows", "goal-checks", "release-checks",
                           "regression:integration_selection_go.py", "regression:integration_selection_go_identifiers.py",
                           "regression:integration_selection_go_layout.py", "regression:integration_selection_python.py"])
 
@@ -197,13 +197,15 @@ class FailureCases(Fixture):
                  ("regression:integration_observer_core.py", "Merge blocker regressions (integration_observer_core.py)"),
                  ("regression:test_observer_attribution.py", "Merge blocker regressions (test_observer_attribution.py)"),
                  ("regression:integration_selection_go_runtime.py", "Go selection execution (integration_selection_go_runtime.py)"),
-                 ("build:darwin/arm64", "Build darwin/arm64"), ("build", "Build native smoke binary"),
+                 ("build:darwin/arm64", "Build darwin/arm64"),
+                 ("build:windows/amd64", "Build Windows candidate (compile only)"), ("build", "Build native smoke binary"),
                  ("smoke:--version", "CLI version"), ("smoke:--help", "CLI help"),
                  ("check_public_tree.py", "Public file boundary"),
                  ("check_public_docs.py", "Public documentation"),
                  ("public-checks", "Public checker regressions"),
                  ("workflow-checks", "Workflow regressions"),
                  ("release", "Release archive regressions"),
+                 ("windows", "Windows candidate packaging regressions"),
                  ("goal-checks", "Goal check regressions"),
                  ("release-checks", "Release acceptance checker regressions"),
                  ("regression:integration_selection_go.py", "Static selection regressions (integration_selection_go.py)"),
