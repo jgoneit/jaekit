@@ -94,9 +94,10 @@ function Invoke-JaekitAcceptanceStep($Step) {
     # stage succeeds or produces its expected refusal and the result is ignored.
     if ($diagnostic) { Write-Host $diagnostic }
     if ($Step.ExpectedDiagnostic) {
-        # PowerShell's native error formatter can wrap the product message.
-        # Normalize presentation whitespace only; keep the original output.
-        $comparison = [regex]::Replace($diagnostic, '\s+', ' ')
+        # PowerShell's native formatter can color and wrap the message.
+        # Normalize presentation only; keep the original diagnostic output.
+        $comparison = [regex]::Replace($diagnostic, '\x1b\[[0-?]*[ -/]*[@-~]', '')
+        $comparison = [regex]::Replace($comparison, '\s+', ' ')
         if ($code -ne 1 -or -not $comparison.Contains($Step.ExpectedDiagnostic)) {
             throw ('Acceptance step ' + $Step.Name + ': expected product refusal was not observed. Exit=' + $code + '. ' + $diagnostic)
         }

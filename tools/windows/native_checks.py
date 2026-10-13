@@ -124,7 +124,12 @@ def failure_tails(output: Path) -> None:
         if data:
             remaining -= len(data)
             print("Captured public fixture log tail: " + name)
-            print(data.decode("utf-8", errors="replace"))
+            diagnostic = data.decode("utf-8", errors="replace")
+            # Windows redirected stdout may be cp1252 even when the raw log is
+            # UTF-8. Escape only characters this console cannot encode, so a
+            # diagnostic cannot prevent the final failed report from printing.
+            encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+            print(diagnostic.encode(encoding, errors="backslashreplace").decode(encoding))
 
 
 def main() -> int:
