@@ -283,7 +283,11 @@ func Check(d Decision) error {
 	keys := map[string]bool{}
 	for i, e := range d.Evidence {
 		if err := checkEvidence(e); err != nil {
-			return fmt.Errorf("evidence %d: %w", i+1, err)
+			var he *Error
+			if errors.As(err, &he) {
+				return &Error{Code: he.Code, Detail: fmt.Sprintf("evidence %d: %s", i+1, he.Detail)}
+			}
+			return err
 		}
 		key, _ := json.Marshal(Evidence{Type: e.Type, Seq: e.Seq, Path: e.Path, Section: e.Section, Commit: strings.ToLower(e.Commit), Repository: e.Repository, Ref: e.Ref})
 		if keys[string(key)] {
