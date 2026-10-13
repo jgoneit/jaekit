@@ -3,7 +3,8 @@
   "producer": "jaekit-decision-history",
   "producer_version": "1",
   "producer_paths": [
-    "tools/history-checks/check.py"
+    "tools/history-checks/check.py",
+    "tools/history-checks/platform_probe.sh"
   ],
   "targets": [
     {
