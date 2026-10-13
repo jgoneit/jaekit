@@ -49,6 +49,8 @@ The goal folder is `docs/specs/<goal>/`. Spec's `SPEC.md`, Seal's `PLAN.md`, `RE
 
 Raw check output stays in `.git/ha/`, which Git does not track; you do not need to add anything to `.gitignore`. In a linked worktree (a separate working folder sharing the same Git history), it is under `ha/` in the Git directory printed by `git rev-parse --absolute-git-dir`. Output stays local. To inspect it, run `ha log <goal> <seq>` in Terminal: `<goal>` is the goal path and `<seq>` is the record number from the report.
 
+With a Core that supports decision history (capability `decision-history/v1`), Seal can keep the summaries, evidence and correction links of its observations, causes, decisions, actions and verifications in the optional [decision history](../contracts/decision-history.md). Release v0.1.4's `ha 0.1.4` does not provide it. The history stays local under `ha/history/` in the common Git directory that every working folder of the repository shares, and it does not travel to a new clone or another computer. So `PROGRESS.md` still holds the current state, important decisions with short reasons, and how to resume without it. Read the current judgments with `ha history <goal>` and one event's evidence and neighboring links with `ha history <goal> show <event ID>`. Recording or correcting history changes no completion, check result or budget, and the feature adds no approval step.
+
 ## Troubleshooting
 
 | Symptom | What to do |

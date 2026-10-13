@@ -23,6 +23,7 @@
 | `ha status <goal> [--format md\|json]` | 기록·묶음·git에서 상태를 계산해 출력한다(§4). | 없음 |
 | `ha done <goal>` | 완료를 주장한다. `ha status`와 같은 계산을 하고 그 결과를 기록한다. 결과가 `complete`면 이 줄이 **완료 기록**이다(§5). exit code는 `ha status`와 같다. | `done` |
 | `ha log <goal> <seq> [--tail N]` | 그 실행의 로컬 출력 원문을 보여 준다. 로컬에서 읽기 위한 것이다. | 없음 |
+| `ha history <goal> [add \| current \| list \| show] …` | 선택적 [판단 이력](decision-history.md)을 등록·조회한다. 공통 Git 디렉토리의 별도 이력에 쓰며 상태 계산은 이 이력을 읽지 않는다. | 없음 (`runs.jsonl` 밖) |
 
 `ha`는 검증 명령을 셸 없이 argv로 실행한다. 명령마다 시간 제한(기본 900초)을 둔다. 시간 제한이 되면 그 명령의 프로세스 그룹 전체를 끝낸다. `check`, `baseline`, `note`, `start`, `budget_change`는 기록에 덧붙이기 전에 git 디렉토리의 `ha/lock`을 잡는다. 그래서 여러 `ha`가 동시에 덧붙여도 연결이 끊기지 않는다.
 

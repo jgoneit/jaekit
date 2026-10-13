@@ -75,8 +75,9 @@ def validate(value):
         if not strings(formats.get(key)):
             raise Refusal("invalid_capabilities", ["formats:" + key])
 
-    if "finding" in formats and not strings(formats["finding"]):
-        raise Refusal("invalid_capabilities", ["formats:finding"])
+    for key in ("finding", "decision_history"):
+        if key in formats and not strings(formats[key]):
+            raise Refusal("invalid_capabilities", ["formats:" + key])
     return value
 
 
@@ -168,11 +169,16 @@ def requirements(capabilities, operation: str, goal: str | None):
         if rules == "run-rules/3" and operation in ("resume", "check"):
             features = features | {"structured-change-results/v1"}
     required_formats = {"criteria": criteria}
-    if rules == "run-rules/3" and operation != "finding":
+    if rules == "run-rules/3" and operation not in ("finding", "history"):
         required_formats.update({key: {value} for key, value in FORMATS.items()})
     if finding:
         features = features | {"post-completion-findings/v1"}
         required_formats["finding"] = {"run-finding/v1"}
+    if operation == "history":
+        # Decision history is optional and lives outside runs.jsonl; using it
+        # needs only its own support besides the saved rule and format.
+        features = features | {"decision-history/v1"}
+        required_formats["decision_history"] = {"decision-history/v1"}
     missing = ["features:" + key for key in sorted(features - set(capabilities["features"]))]
     for kind, values in required_formats.items():
         missing += ["formats:" + kind + ":" + key
@@ -227,11 +233,11 @@ class Parser(argparse.ArgumentParser):
 def main() -> int:
     parser = Parser(description=__doc__)
     parser.add_argument("--ha", default="ha")
-    parser.add_argument("--operation", choices=("start", "resume", "check", "budget", "finding"), default="start")
+    parser.add_argument("--operation", choices=("start", "resume", "check", "budget", "finding", "history"), default="start")
     parser.add_argument("--goal")
     args = parser.parse_args()
     if (args.operation == "start") == (args.goal is not None):
-        parser.error("start takes no --goal; resume/check/budget/finding require --goal")
+        parser.error("start takes no --goal; resume/check/budget/finding/history require --goal")
     report = check(args.ha, args.operation, args.goal)
     print(json.dumps(report, sort_keys=True))
     return 0 if report["compatible"] else 2

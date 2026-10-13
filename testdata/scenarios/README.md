@@ -35,6 +35,7 @@ Each directory is one scenario. `cmd/ha/scenario_test.go` builds a git repositor
 | `findings-required-lists` | findings.md 입력과 조회 | omitted, null or mistyped required lists are refused with exit 64 and no record; empty arrays stay arrays |
 | `findings-resolution-refs` | findings.md 입력과 조회 | current `resolution_refs` only on `resolved`; earlier references stay in history |
 | `findings-stored-limit` | findings.md 입력과 조회 | stored findings at the byte limit remain readable; oversized records block queries and writes without changing the chain |
+| `decision-history-flow` | decision-history.md | events, relations, a stale correction and a replay leave completion and the tree unchanged; current judgments mark corrected grounds; a linked worktree shares the history |
 | `reopen-after-done` | EVALUATION §3.1 | completion record voided, new budget window |
 | `complete-happy-path` | ROADMAP P1 | `complete` with a completion record; tree untouched |
 | `budget-runs` | INV-11 | under `run-rules/1`: `budget_exhausted`; quoted reopen opens a new window |

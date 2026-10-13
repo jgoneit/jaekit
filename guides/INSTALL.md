@@ -313,14 +313,16 @@ claude plugin uninstall seal@jaekit
 claude plugin marketplace remove jaekit
 ```
 
-설치·업데이트·제거는 작업한 프로젝트의 문서·기록·출력 원문을 지우지 않습니다. 목표 문서와 Seal이 만든 파일(`docs/specs/<goal>/`의 `SPEC.md`, `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl`)의 Git 추적 여부는 프로젝트 정책에 따릅니다. 추적된 기록과 ignore한 비공개 기록 모두 그대로 남습니다. 검사 출력 원문은 git이 추적하지 않는, 그 작업 트리의 Git 디렉토리 아래 `ha/`에 있습니다. 보통은 `.git/ha/`이고, `.git`이 파일인 linked worktree에서는 `git rev-parse --absolute-git-dir`이 알려 주는 디렉토리 아래에 있습니다.
+설치·업데이트·제거는 작업한 프로젝트의 문서·기록·출력 원문을 지우지 않습니다. 목표 문서와 Seal이 만든 파일(`docs/specs/<goal>/`의 `SPEC.md`, `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl`)의 Git 추적 여부는 프로젝트 정책에 따릅니다. 추적된 기록과 ignore한 비공개 기록 모두 그대로 남습니다. 검사 출력 원문은 git이 추적하지 않는, 그 작업 트리의 Git 디렉토리 아래 `ha/runs/`에 있습니다. 보통은 `.git/ha/` 아래이고, `.git`이 파일인 linked worktree에서는 `git rev-parse --absolute-git-dir`이 알려 주는 디렉토리 아래에 있습니다.
+
+선택 기능인 [판단 이력](../contracts/decision-history.md)은 같은 저장소의 모든 작업 트리가 공유하는 공통 Git 디렉토리(`git rev-parse --git-common-dir`)의 `ha/history/` 아래에 실행 시작 기록별로 있습니다. 일반 checkout에서는 검사 출력 원문과 같은 `.git/ha/` 아래입니다. linked worktree를 제거해도 이 이력은 남지만, 남은 이력이 목표 문서나 검사 출력 원문의 보존·복원을 보증하지는 않습니다. 새 clone이나 다른 기기에는 따라가지 않으며, Git 디렉토리 전체를 지우면 함께 사라지고 자동으로 복구되지 않습니다.
 
 목표 문서와 기록도 지우기로 했다면 먼저 보관 필요 여부와 Git 추적 상태를 확인합니다. 추적 중인 목표는 그 저장소의 루트에서 `git rm -r docs/specs/<goal>`로 지운 뒤 commit합니다. 추적하지 않는 목표는 이 명령의 대상이 아니므로 프로젝트의 로컬 보관 정책에 따라 별도로 정리합니다. ignore한 문서를 강제로 Git에 추가하지 않습니다.
 
-검사 출력 원문도 지우려면 Jaekit의 검사가 돌고 있지 않을 때(Seal이 작업 중이 아닐 때) 그 작업 트리에서 아래 명령을 붙여 넣습니다. 그 작업 트리에 있는 모든 목표의 검사 출력 원문이 지워집니다. 다른 작업 트리의 출력과 목표 문서·실행 기록은 남습니다.
+검사 출력 원문도 지우려면 Jaekit의 검사가 돌고 있지 않을 때(Seal이 작업 중이 아닐 때) 그 작업 트리에서 아래 명령을 붙여 넣습니다. 그 작업 트리에 있는 모든 목표의 검사 출력 원문이 지워집니다. 판단 이력, 다른 작업 트리의 출력과 목표 문서·실행 기록은 남습니다.
 
 ```bash
-gitdir="$(git rev-parse --absolute-git-dir)" && rm -rf "$gitdir/ha"
+gitdir="$(git rev-parse --absolute-git-dir)" && rm -rf "$gitdir/ha/runs"
 ```
 
 ## 로컬 경로 등록에서 옮기기
