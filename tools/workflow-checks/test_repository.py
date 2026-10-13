@@ -61,7 +61,7 @@ class Integration(unittest.TestCase):
             "macos": ("Core / macOS", "macos-15", [
                 "python3 tools/ci/describe_run.py --shell bash",
                 'python3 tools/ci/native_unix.py --report "$RUNNER_TEMP/native-unix.json"']),
-            "windows": ("Core / Windows", "windows-2025", ["|",
+            "windows": ("Core / Windows", "windows-2025", [
                 "python tools/ci/describe_run.py --shell powershell",
                 './tools/windows/native_checks.ps1 -OutputDirectory "$env:RUNNER_TEMP/jaekit-windows-ps51"',
                 './tools/windows/native_checks.ps1 -OutputDirectory "$env:RUNNER_TEMP/jaekit-windows-ps7"']),
@@ -77,9 +77,13 @@ class Integration(unittest.TestCase):
                                  commands)
         windows = block(jobs, "windows", 2)
         self.assertEqual(re.findall(r"^\s+shell: (.+)$", windows, flags=re.M),
-                         ["powershell", "powershell", "powershell", "pwsh"])
-        self.assertIn('git config --local core.autocrlf false', windows)
-        self.assertIn('git checkout-index --force --all', windows)
+                         ["powershell", "powershell", "pwsh"])
+        checkout = windows.split('      - name: Set up Go')[0]
+        self.assertIn("GIT_CONFIG_COUNT: '1'", checkout)
+        self.assertIn('GIT_CONFIG_KEY_0: core.autocrlf', checkout)
+        self.assertIn("GIT_CONFIG_VALUE_0: 'false'", checkout)
+        self.assertNotRegex(windows, r'(?m)^    env:')
+        self.assertNotIn('GIT_CONFIG_', windows.split('      - name: Set up Go')[1])
         self.assertNotIn('git config --global', windows)
         self.assertEqual(workflow.count("python3 tools/verify.py go"), 1)
         self.assertEqual(workflow.count("python3 tools/verify.py docs"), 1)

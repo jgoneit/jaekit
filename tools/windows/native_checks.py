@@ -105,7 +105,7 @@ def checked(argv: list[str], output: Path, label: str, timeout: int = 300) -> st
 def failure_tails(output: Path) -> None:
     """Keep first native failures diagnosable without publishing full transcripts."""
     remaining = 24000
-    for name in ("preflight-runtime.stderr.log", "preflight-runtime.stdout.log",
+    for name in ("source-status.stdout.log", "preflight-runtime.stderr.log", "preflight-runtime.stdout.log",
                  "package-runtime/install-refusal.log", "package-runtime/uninstall-refusal.log",
                  "package-runtime.stderr.log", "package-runtime.stdout.log", "package.stderr.log",
                  "build.stderr.log", "go-test.stderr.log", "go-test.jsonl", "go-test.stdout.log"):
