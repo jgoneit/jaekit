@@ -70,7 +70,7 @@ class Fixture(unittest.TestCase):
                 f"NAME = {name!r}\n" + recorder +
                 "if os.environ.get('VERIFY_TEST_FAIL') == NAME: sys.exit(29)\n"
             )
-        for group in ("public-checks", "workflow-checks", "release", "windows", "goal-checks", "release-checks"):
+        for group in ("public-checks", "workflow-checks", "ci", "release", "windows", "goal-checks", "release-checks"):
             directory = self.repo / "tools" / group
             directory.mkdir()
             (directory / "test_fixture.py").write_text(
@@ -130,7 +130,7 @@ class InvocationCases(Fixture):
                           "regression:test_merge_blockers.py", "regression:integration_go_filters.py", "regression:integration_observer_core.py", "regression:test_observer_attribution.py",
                           "regression:integration_selection_go_runtime.py",
                           "go", "go", "go", "go", "go", "go", "ha", "ha",
-                          "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "windows", "goal-checks", "release-checks",
+                          "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "ci", "release", "windows", "goal-checks", "release-checks",
                           "regression:integration_selection_go.py", "regression:integration_selection_go_identifiers.py",
                           "regression:integration_selection_go_layout.py", "regression:integration_selection_python.py"])
         builds = [item for item in commands if item["name"] == "go" and item["args"][0] == "build"]
@@ -154,7 +154,7 @@ class InvocationCases(Fixture):
         result = self.run_verify("docs")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual([item["name"] for item in self.commands()],
-                         ["check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "release", "windows", "goal-checks", "release-checks",
+                         ["check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "ci", "release", "windows", "goal-checks", "release-checks",
                           "regression:integration_selection_go.py", "regression:integration_selection_go_identifiers.py",
                           "regression:integration_selection_go_layout.py", "regression:integration_selection_python.py"])
 
@@ -204,6 +204,7 @@ class FailureCases(Fixture):
                  ("check_public_docs.py", "Public documentation"),
                  ("public-checks", "Public checker regressions"),
                  ("workflow-checks", "Workflow regressions"),
+                 ("ci", "Native CI checker regressions"),
                  ("release", "Release archive regressions"),
                  ("windows", "Windows candidate packaging regressions"),
                  ("goal-checks", "Goal check regressions"),

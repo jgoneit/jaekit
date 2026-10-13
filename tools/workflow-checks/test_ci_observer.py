@@ -69,6 +69,9 @@ class CurrentRunAdmission(unittest.TestCase):
         self.run = {"id": 7, "run_attempt": 1, "head_sha": HEAD, "event": "pull_request",
                     "status": "completed", "conclusion": "success", "html_url": "https://example.invalid/run/7"}
         self.runs = [self.run]
+        self.after_log = None
+        self.local_head, self.local_tree, self.dirty = HEAD, TREE, ""
+        self.pr = {"head": {"sha": HEAD}, "base": {"sha": BASE}, "state": "open"}
         self.jobs = [{"id": i, "name": name, "status": "completed", "conclusion": "success",
                       "steps": [{"status": "completed", "conclusion": "success"}]} for i, name in enumerate(sorted(observer.REQUIRED))]
         self.commit = {"parents": [{"sha": HEAD}, {"sha": BASE}], "tree": {"sha": TREE}}
@@ -78,7 +81,7 @@ class CurrentRunAdmission(unittest.TestCase):
 
     def api(self, path):
         if path.endswith("/pulls/1"):
-            return {"head": {"sha": HEAD}, "base": {"sha": BASE}, "state": "open"}
+            return json.loads(json.dumps(self.pr))
         if "/ci.yml/runs?" in path:
             return {"workflow_runs": self.runs}
         if "/jobs?" in path:
@@ -93,10 +96,15 @@ class CurrentRunAdmission(unittest.TestCase):
         if argv[:3] == ["gh", "pr", "view"]:
             return json.dumps({"number": 1, "headRefOid": HEAD})
         if argv == ["git", "rev-parse", "HEAD"]:
-            return HEAD
+            return self.local_head
         if argv == ["git", "rev-parse", "HEAD^{tree}"]:
-            return TREE
+            return self.local_tree
+        if argv == ["git", "status", "--porcelain"]:
+            return self.dirty
         if argv[:3] == ["gh", "run", "view"]:
+            if self.after_log is not None:
+                mutate, self.after_log = self.after_log, None
+                mutate()
             job = next(j for j in self.jobs if str(j["id"]) == argv[argv.index("--job") + 1])
             context = {"source_sha": SOURCE, "head_sha": HEAD, "base_sha": BASE, "event": "pull_request",
                        "runner_os": observer.JOBS[job["name"]], "os": "synthetic", "arch": "synthetic", "shell": "synthetic"}
@@ -116,6 +124,30 @@ class CurrentRunAdmission(unittest.TestCase):
         self.runs.append(newer)
         with self.assertRaises(observer.Violation):
             self.observe()
+
+    def test_newer_pending_run_started_while_reading_logs_is_rejected(self):
+        self.after_log = lambda: self.runs.append(dict(self.run, id=8, status="in_progress", conclusion=None))
+        with self.assertRaisesRegex(observer.Violation, "latest run changed"):
+            self.observe()
+
+    def test_head_base_or_state_changed_while_reading_logs_is_rejected(self):
+        for field in ("head", "base", "state"):
+            self.setUp()
+            def mutate():
+                if field == "state":
+                    self.pr[field] = "closed"
+                else:
+                    self.pr[field]["sha"] = "e" * 40
+            self.after_log = mutate
+            with self.subTest(field=field), self.assertRaisesRegex(observer.Violation, "PR changed"):
+                self.observe()
+
+    def test_local_source_changed_while_reading_logs_is_rejected(self):
+        for field, value in (("local_head", "e" * 40), ("local_tree", "e" * 40), ("dirty", " M source.go")):
+            self.setUp()
+            self.after_log = lambda: setattr(self, field, value)
+            with self.subTest(field=field), self.assertRaisesRegex(observer.Violation, "local source changed"):
+                self.observe()
 
     def test_missing_job_and_each_non_success_step_are_rejected(self):
         for outcome in ("failure", "skipped", "cancelled", None):

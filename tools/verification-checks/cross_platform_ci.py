@@ -138,6 +138,7 @@ def native_report(report, operating_system, source):
 def live_run():
     repo = json.loads(command(["gh", "repo", "view", "--json", "nameWithOwner"]))["nameWithOwner"]
     head = command(["git", "rev-parse", "HEAD"]).strip()
+    local_tree = command(["git", "rev-parse", "HEAD^{tree}"]).strip()
     pr_info = json.loads(command(["gh", "pr", "view", "--json", "number,headRefOid"]))
     require(pr_info["headRefOid"] == head, "PR does not point at current local HEAD")
     pr = api(f"repos/{repo}/pulls/{pr_info['number']}")
@@ -148,6 +149,8 @@ def live_run():
     require(matches, "current-head PR CI run missing")
     run = max(matches, key=lambda item: (item["id"], item.get("run_attempt", 1)))
     require(run.get("status") == "completed" and run.get("conclusion") == "success", "latest PR CI is not successful")
+    run_identity = (run["id"], run["run_attempt"], run["status"], run["conclusion"])
+    base = pr["base"]["sha"]
     jobs = api(f"repos/{repo}/actions/runs/{run['id']}/attempts/{run['run_attempt']}/jobs?per_page=100")
     rows = jobs.get("jobs", [])
     require(jobs.get("total_count") == len(rows), "truncated job list")
@@ -186,8 +189,22 @@ def live_run():
     commit = api(f"repos/{repo}/git/commits/{source}")
     if source != head:
         require({head, pr["base"]["sha"]} <= {row["sha"] for row in commit["parents"]}, "PR merge parent mismatch")
-    local_tree = command(["git", "rev-parse", "HEAD^{tree}"]).strip()
     require(commit["tree"]["sha"] == local_tree, "CI source tree differs from current local tree")
+    # API calls and job logs are not a transactional snapshot. Revalidate the
+    # immutable source and latest attempt before admitting the observations.
+    final_pr = api(f"repos/{repo}/pulls/{pr_info['number']}")
+    require(final_pr.get("state") == "open" and final_pr["head"]["sha"] == head and
+            final_pr["base"]["sha"] == base, "PR changed during CI observation")
+    final_runs = api(f"repos/{repo}/actions/workflows/ci.yml/runs?event=pull_request&head_sha={head}&per_page=100")
+    latest = [r for r in final_runs.get("workflow_runs", []) if r.get("head_sha") == head and
+              r.get("event") == "pull_request"]
+    require(latest, "latest run disappeared during observation")
+    latest = max(latest, key=lambda item: (item["id"], item.get("run_attempt", 1)))
+    require((latest.get("id"), latest.get("run_attempt"), latest.get("status"), latest.get("conclusion")) == run_identity,
+            "latest run changed during CI observation")
+    require(command(["git", "rev-parse", "HEAD"]).strip() == head and
+            command(["git", "rev-parse", "HEAD^{tree}"]).strip() == local_tree and
+            not command(["git", "status", "--porcelain"]).strip(), "local source changed during CI observation")
     print(json.dumps({"repository": repo, "pull_request": pr_info["number"], "head": head,
                       "base": pr["base"]["sha"], "tested_source": source, "run_id": run["id"],
                       "run_attempt": run["run_attempt"], "url": run["html_url"], "jobs": sorted(REQUIRED)}))
