@@ -78,6 +78,7 @@ func main() {
 
 type cli struct {
 	out, err io.Writer
+	execute  checkExecutor
 }
 
 func (c *cli) fail(code int, format string, a ...any) int {
@@ -475,7 +476,7 @@ func (c *cli) check(in []string) int {
 		if baseline {
 			res, overlay, err = c.runBaseline(w, start.BaseCommit, head, t, tmp.Name(), extraEnv...)
 		} else {
-			res, err = run.ExecWithEnv(w.repo.Root, t.argv, checkTimeout, tmp.Name(), extraEnv)
+			res, err = c.executeCheck(w.repo.Root, t.argv, checkTimeout, tmp.Name(), extraEnv)
 		}
 		if baseline && !res.Attempted {
 			os.Remove(tmp.Name())
@@ -630,7 +631,7 @@ func (c *cli) runBaseline(w *workspace, base, head string, t target, logPath str
 	if err != nil {
 		return run.Result{}, nil, err
 	}
-	res, err := run.ExecWithEnv(tree, t.argv, checkTimeout, logPath, extraEnv)
+	res, err := c.executeCheck(tree, t.argv, checkTimeout, logPath, extraEnv)
 	return res, overlay, err
 }
 

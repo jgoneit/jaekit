@@ -35,7 +35,7 @@ Spec은 목표 문서를 작성한 뒤 **멈춥니다**. 내용을 확인하고 
 
 아래는 **macOS에서 Claude Code 또는 Codex**로 시작하는 순서입니다. [Homebrew](https://brew.sh)(프로그램 설치 도구), Git, Claude Code 또는 [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), **Git으로 관리하는 작업할 프로젝트 폴더**가 필요합니다. Jaekit 저장소를 clone할 필요는 없습니다.
 
-Linux 또는 Homebrew 없는 환경은 [설치 안내](guides/INSTALL.md)를 따릅니다. Windows에서는 기록 도구 `ha`가 지원되지 않아 Seal을 쓸 수 없습니다. Spec은 `ha`가 필요 없지만 Windows의 설치·동작은 아직 확인하지 않았습니다.
+Linux 또는 Homebrew 없는 환경은 [설치 안내](guides/INSTALL.md)를 따릅니다. 현재 공개 릴리스에서 Windows는 기록 도구 `ha`가 지원되지 않아 Seal을 쓸 수 없습니다. Spec은 `ha`가 필요 없지만 Windows의 설치·동작은 아직 확인하지 않았습니다. 별도 [Windows 네이티브 후보 안내](guides/WINDOWS.md)는 Windows 11 x64·PowerShell 5.1/7의 설치물과 검증 준비를 다루며, 실제 Windows 실행과 호스트 동작은 미확인입니다.
 
 **1. 터미널에서 기록 도구 `ha`를 설치합니다.** 아래 블록을 하나씩 실행하고 끝날 때까지 기다립니다.
 
@@ -148,6 +148,7 @@ docs/specs/<goal> 이어서 해줘
 - [사용 안내·목표 수정·재개](guides/USAGE.md) · [문제 해결](guides/USAGE.md#문제-해결)
 - [자세한 운영 규칙](guides/OPERATIONS.md) · [명령·기록 형식](contracts/run-record.md)
 - [이미지 설명과 수정 방법](assets/readme/SOURCES.md)
+- [Ubuntu·macOS·Windows CI의 검사 범위](guides/CI.md)
 
 사용 경험이나 막힌 점은 [사용 보고·설치·버그 issue](https://github.com/jgoneit/jaekit/issues/new/choose)로 남겨 주세요. issue는 공개되므로 회사 코드, 내부 이름, 비밀 값과 로그 원문은 제외해 주세요.
 

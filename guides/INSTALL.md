@@ -29,7 +29,7 @@ Spec은 Core 설치나 지원 조회 없이 문서를 작성합니다. Spec 0.1.
 
 Git과 Codex 또는 Claude Code가 필요합니다. brew로 설치하려면 [Homebrew](https://brew.sh)도 준비합니다. 작업할 프로젝트는 Git으로 변경 이력을 관리하는 폴더여야 합니다. Jaekit 저장소를 clone(내 컴퓨터로 복사)할 필요는 없습니다.
 
-Windows에서는 Seal Core `ha`가 지원되지 않아 Seal을 쓸 수 없습니다. Spec은 `ha` 없이 목표 문서를 만들 수 있지만 Windows에서의 설치·동작은 아직 확인하지 않았습니다.
+현재 공개 릴리스의 Seal Core `ha`는 Windows를 지원하지 않습니다. [Windows 네이티브 후보 안내](WINDOWS.md)는 별도 후보 패키지를 다룹니다. Windows 11 x64·PowerShell 5.1/7의 실제 설치·Core 실행·호스트 동작은 아직 확인하지 않았으며, 교차 빌드와 로컬 검사는 그 근거를 대신하지 않습니다.
 
 ### ha 설치
 

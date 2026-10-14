@@ -10,8 +10,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"sync/atomic"
-	"syscall"
 	"time"
 )
 
@@ -42,37 +40,73 @@ func Exec(dir string, argv []string, timeout time.Duration, logPath string) (Res
 
 // ExecWithEnv adds invocation-specific environment values without changing the
 // legacy exit interpretation used by Exec. Later entries override inherited ones.
+type processController interface {
+	kill() error
+	finish() error
+}
+
+type processStarter func(*exec.Cmd) (processController, error)
+
+// A process may have inherited the log handle before admission failed. A
+// bounded cleanup failure cannot establish an immutable output digest.
+var errUnfinalizedProcess = errors.New("process output finalization is unconfirmed")
+
 func ExecWithEnv(dir string, argv []string, timeout time.Duration, logPath string, extraEnv []string) (Result, error) {
+	return execWithStarter(dir, argv, timeout, logPath, extraEnv, startProcess)
+}
+
+func execWithStarter(dir string, argv []string, timeout time.Duration, logPath string, extraEnv []string, starter processStarter) (Result, error) {
 	log, err := os.OpenFile(logPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {
 		return Result{}, err
 	}
 	res := Result{}
+	var finalizationErr error
 	start := time.Now()
 	cmd := exec.Command(argv[0], argv[1:]...)
 	cmd.Dir = dir
 	cmd.Env = append(os.Environ(), extraEnv...)
 	cmd.Stdout = log
 	cmd.Stderr = log
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	res.Attempted = true
-	if err := cmd.Start(); err != nil {
-		fmt.Fprintf(log, "ha: could not start %q: %v\n", argv[0], err)
-		res.Outcome = Error
-		res.Reason = "process_start"
+	group, startErr := starter(cmd)
+	if startErr != nil {
+		fmt.Fprintf(log, "ha: could not start %q: %v\n", argv[0], startErr)
+		res.Outcome, res.Reason = Error, "process_start"
+		if errors.Is(startErr, errUnfinalizedProcess) {
+			finalizationErr = startErr
+		}
 	} else {
-		var timedOut atomic.Bool
-		timer := time.AfterFunc(timeout, func() {
-			timedOut.Store(true)
-			_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-		})
-		waitErr := cmd.Wait()
-		timer.Stop()
+		waited := make(chan error, 1)
+		go func() { waited <- cmd.Wait() }()
+		timer := time.NewTimer(timeout)
+		var waitErr, controlErr error
+		timedOut := false
+		select {
+		case waitErr = <-waited:
+			timer.Stop()
+		case <-timer.C:
+			timedOut = true
+			controlErr = group.kill()
+			if controlErr != nil {
+				_ = cmd.Process.Kill()
+			}
+			// A failed termination must not leave the recorder waiting forever.
+			select {
+			case waitErr = <-waited:
+			case <-time.After(5 * time.Second):
+				controlErr = errors.Join(controlErr, errors.New("process did not exit after termination"))
+			}
+		}
+		controlErr = errors.Join(controlErr, group.finish())
 		switch {
-		case timedOut.Load():
+		case controlErr != nil:
+			fmt.Fprintf(log, "\nha: process control failed: %v\n", controlErr)
+			res.Outcome, res.Reason = Error, "process_wait"
+			finalizationErr = fmt.Errorf("output cannot be finalized after process control failure: %w", controlErr)
+		case timedOut:
 			fmt.Fprintf(log, "\nha: timed out after %s\n", timeout)
-			res.Outcome = Error
-			res.Reason = "process_timeout"
+			res.Outcome, res.Reason = Error, "process_timeout"
 		case waitErr == nil:
 			code := 0
 			res.Exit, res.Outcome = &code, Pass
@@ -80,14 +114,12 @@ func ExecWithEnv(dir string, argv []string, timeout time.Duration, logPath strin
 			var ee *exec.ExitError
 			if !errors.As(waitErr, &ee) {
 				fmt.Fprintf(log, "\nha: wait failed: %v\n", waitErr)
-				res.Outcome = Error
-				res.Reason = "process_wait"
+				res.Outcome, res.Reason = Error, "process_wait"
 				break
 			}
 			code := ee.ExitCode()
-			if ws, ok := ee.Sys().(syscall.WaitStatus); ok && ws.Signaled() {
-				code = 128 + int(ws.Signal())
-				res.Signal = fmt.Sprint(int(ws.Signal()))
+			if signalCode, signal := processSignal(ee); signal != "" {
+				code, res.Signal = signalCode, signal
 			}
 			res.Exit, res.Outcome = &code, Fail
 		}
@@ -95,6 +127,9 @@ func ExecWithEnv(dir string, argv []string, timeout time.Duration, logPath strin
 	res.Duration = time.Since(start)
 	if err := log.Close(); err != nil {
 		return res, err
+	}
+	if finalizationErr != nil {
+		return res, finalizationErr
 	}
 	res.Digest, err = fileDigest(logPath)
 	return res, err

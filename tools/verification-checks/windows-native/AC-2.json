@@ -1,0 +1,14 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-windows-native",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/windows_native.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-2",
+      "violation": "native-behavior-missing"
+    }
+  ]
+}

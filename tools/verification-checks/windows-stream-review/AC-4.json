@@ -1,0 +1,17 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "windows-stream-review",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/windows_stream_review.py",
+    "tools/verification-checks/cross_platform_ci.py",
+    "tools/windows/stream_results.py",
+    "tools/windows/stream_cases.json"
+  ],
+  "targets": [
+    {
+      "id": "AC-4",
+      "violation": "windows-stream-boundary-missing"
+    }
+  ]
+}

@@ -29,7 +29,7 @@ Spec writes documents without installing Core or querying capabilities. New Spec
 
 You need Git and either Codex or Claude Code. For the brew route, install [Homebrew](https://brew.sh) too. Your project must be a folder whose changes are tracked with Git. You do not need to clone (copy to your computer) the Jaekit repository.
 
-Seal Core `ha` does not support Windows, so Seal cannot run there. Spec can write goal documents without `ha`, but its installation and operation on Windows have not been checked yet.
+The current public release of Seal Core `ha` does not support Windows. The [Windows native candidate guide](WINDOWS.en.md) covers a separate candidate package. Actual installation, Core execution and host behavior on Windows 11 x64 with PowerShell 5.1/7 remain unverified; cross-compilation and local tests do not establish them.
 
 ### Install ha
 

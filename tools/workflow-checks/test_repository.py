@@ -48,37 +48,84 @@ class Guidance(unittest.TestCase):
 
 
 class Integration(unittest.TestCase):
-    def test_each_required_ci_job_uses_the_shared_entrypoint(self):
+    def test_common_checks_and_native_checks_are_connected_once(self):
         workflow = read(".github/workflows/ci.yml")
         jobs = block(workflow, "jobs")
-        self.assertEqual(set(re.findall(r"^  (\w+):$", jobs, flags=re.M)), {"go", "docs"})
-        for group, name in (("go", "Seal Core"), ("docs", "Public documentation")):
-            with self.subTest(group=group):
-                job = block(jobs, group, 2)
+        self.assertEqual(set(re.findall(r"^  (\w+):$", jobs, flags=re.M)),
+                         {"go", "macos", "windows", "core", "docs"})
+        expected = {
+            "go": ("Core / Ubuntu", "ubuntu-24.04", [
+                "python3 tools/ci/describe_run.py --shell bash", "|",
+                "python3 tools/verify.py go",
+                'python3 tools/ci/native_unix.py --report "$RUNNER_TEMP/native-unix.json"']),
+            "macos": ("Core / macOS", "macos-15", [
+                "python3 tools/ci/describe_run.py --shell bash",
+                'python3 tools/ci/native_unix.py --report "$RUNNER_TEMP/native-unix.json"']),
+            "windows": ("Core / Windows", "windows-2025", [
+                "python tools/ci/describe_run.py --shell powershell",
+                './tools/windows/native_checks.ps1 -OutputDirectory "$env:RUNNER_TEMP/jaekit-windows-ps51"',
+                './tools/windows/native_checks.ps1 -OutputDirectory "$env:RUNNER_TEMP/jaekit-windows-ps7"']),
+            "core": ("Seal Core", "ubuntu-24.04", ["python3 tools/ci/require_success.py"]),
+            "docs": ("Public documentation", "ubuntu-24.04", ["python3 tools/verify.py docs"]),
+        }
+        for key, (name, runner, commands) in expected.items():
+            with self.subTest(job=key):
+                job = block(jobs, key, 2)
                 self.assertRegex(job, rf"(?m)^    name: {re.escape(name)}$")
-                # The Go job prepares its shell dependency before validation;
-                # both jobs still use the shared entrypoint for verification.
-                preparation = ["|"] if group == "go" else []
+                self.assertRegex(job, rf"(?m)^    runs-on: {re.escape(runner)}$")
                 self.assertEqual(re.findall(r"^\s+run: (.+)$", job, flags=re.M),
-                                 preparation + [f"python3 tools/verify.py {group}"])
+                                 commands)
+        windows = block(jobs, "windows", 2)
+        self.assertEqual(re.findall(r"^\s+shell: (.+)$", windows, flags=re.M),
+                         ["powershell", "powershell", "pwsh"])
+        checkout = windows.split('      - name: Set up Go')[0]
+        self.assertIn("GIT_CONFIG_COUNT: '1'", checkout)
+        self.assertIn('GIT_CONFIG_KEY_0: core.autocrlf', checkout)
+        self.assertIn("GIT_CONFIG_VALUE_0: 'false'", checkout)
+        self.assertNotRegex(windows, r'(?m)^    env:')
+        self.assertNotIn('GIT_CONFIG_', windows.split('      - name: Set up Go')[1])
+        self.assertNotIn('git config --global', windows)
+        self.assertEqual(workflow.count("python3 tools/verify.py go"), 1)
+        self.assertEqual(workflow.count("python3 tools/verify.py docs"), 1)
+        self.assertNotIn("python3 tools/verify.py all", workflow)
+
+    def test_core_gate_runs_after_all_native_jobs_even_if_one_fails(self):
+        jobs = block(read(".github/workflows/ci.yml"), "jobs")
+        core = block(jobs, "core", 2)
+        self.assertRegex(core, r"(?m)^    needs: \[go, macos, windows\]$")
+        self.assertRegex(core, r"(?m)^    if: \$\{\{ always\(\) \}\}$")
+        self.assertRegex(core, r"(?m)^          JAEKIT_CI_NEEDS: \$\{\{ toJSON\(needs\) \}\}$")
+        self.assertEqual(len(re.findall(r"^\s+if:", core, flags=re.M)), 1)
+        for key in ("go", "macos", "windows", "docs"):
+            job = block(jobs, key, 2)
+            self.assertNotRegex(job, r"(?m)^    (?:if|needs):")
 
     def test_required_jobs_remain_unconditional_and_use_pinned_actions(self):
         workflow = read(".github/workflows/ci.yml")
         events = block(workflow, "on")
+        self.assertEqual(set(re.findall(r"^  (\w+):$", events, flags=re.M)),
+                         {"pull_request", "push"})
         self.assertRegex(events, r"(?m)^  pull_request:$")
         self.assertRegex(block(events, "push", 2), r"(?m)^      - main$")
         self.assertEqual(block(workflow, "permissions").strip(), "contents: read")
-        # A skipped job may satisfy GitHub's required check. Keep both jobs
-        # unconditional and never hide a failing step behind continue-on-error.
-        self.assertNotRegex(workflow, r"(?m)^\s+(?:if|needs|continue-on-error|paths|paths-ignore|branches-ignore):")
+        # Only the aggregate job uses a condition, to run after unsuccessful needs.
+        # Windows' second shell has a separately tested step-level condition.
+        # Worker skips and continue-on-error must never turn failure into green.
+        self.assertEqual(len(re.findall(r"^    if:", workflow, flags=re.M)), 1)
+        self.assertEqual(len(re.findall(r"^        if:", workflow, flags=re.M)), 1)
+        self.assertEqual(len(re.findall(r"^\s+needs:", workflow, flags=re.M)), 1)
+        self.assertNotRegex(workflow, r"(?m)^\s+(?:continue-on-error|paths|paths-ignore|branches-ignore):")
         self.assertEqual(len(re.findall(r"^\s*permissions:", workflow, flags=re.M)), 1)
         actions = re.findall(r"^\s+uses: ([^\s#]+)", workflow, flags=re.M)
-        self.assertEqual(len(actions), 3)
-        self.assertEqual([action.split("@", 1)[0] for action in actions],
-                         ["actions/checkout", "actions/setup-go", "actions/checkout"])
+        action_names = [action.split("@", 1)[0] for action in actions]
+        self.assertEqual(action_names.count("actions/checkout"), 5)
+        self.assertEqual(action_names.count("actions/setup-go"), 3)
+        self.assertEqual(action_names.count("actions/setup-python"), 1)
+        self.assertEqual(set(action_names), {"actions/checkout", "actions/setup-go", "actions/setup-python"})
         for action in actions:
             self.assertRegex(action, r"@[0-9a-f]{40}$")
-        self.assertRegex(workflow, r"(?m)^\s+go-version-file: go\.mod$")
+        self.assertEqual(len(re.findall(r"^\s+go-version-file: go\.mod$", workflow, flags=re.M)), 3)
+        self.assertEqual(len(re.findall(r"^\s+persist-credentials: false$", workflow, flags=re.M)), 5)
 
 
 if __name__ == "__main__":
