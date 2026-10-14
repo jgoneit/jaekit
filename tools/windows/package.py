@@ -17,7 +17,9 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = "jaekit-windows-package/v1"
 VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*)?\Z")
-RESERVED = re.compile(r"(?:CON|PRN|AUX|NUL|COM[1-9\u00b9\u00b2\u00b3]|LPT[1-9\u00b9\u00b2\u00b3])(?:\..*)?\Z", re.I)
+# Package policy is deliberately conservative across supported Windows hosts:
+# console names with extensions are refused even where the OS treats them as files.
+RESERVED = re.compile(r"(?:CON|CONIN\$|CONOUT\$|PRN|AUX|NUL|COM[1-9\u00b9\u00b2\u00b3]|LPT[1-9\u00b9\u00b2\u00b3])(?:\..*)?\Z", re.I)
 MAX_FILES = 2048
 MAX_FILE = 32 * 1024 * 1024
 MAX_TOTAL = 128 * 1024 * 1024

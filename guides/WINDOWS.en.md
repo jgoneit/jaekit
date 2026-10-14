@@ -147,6 +147,8 @@ Rerun the entire installation block to verify and reinstall identical contents o
 
 The installer validates checksums and the full file inventory, stages a new tree, then replaces the existing installation. Earlier version data is not automatically deleted. Integrity failures, links/junctions, unknown or edited files, a running executable that cannot be replaced, and file-access failures are not reported as success. Stop users of `ha` or resolve the conflict before retrying. Existing installation and project contents are preserved; if promotion fails, the previous installation is restored.
 
+Package paths reject `CONIN$` and `CONOUT$` components regardless of case or filename extension. If an existing installation inventory contains one, reinstall, update and removal stop while preserving its files. This check does not automatically delete or rename incompatible data.
+
 If rollback itself or final temporary-data cleanup fails, the remaining backup location is reported. Inspect and compare preserved data before cleanup. Do not forcibly delete folders containing unrelated files or follow links to delete their targets. The installer does not isolate another same-user process deliberately changing paths concurrently.
 
 ## Remove

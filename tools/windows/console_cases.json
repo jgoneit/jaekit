@@ -1,0 +1,22 @@
+{
+  "rejected": [
+    {"id": "conin-root", "path": "CONIN$"},
+    {"id": "conin-lower", "path": "assets/conin$"},
+    {"id": "conin-extension", "path": "assets/CoNiN$.txt"},
+    {"id": "conin-multiple-extensions", "path": "assets/CONIN$.tar.gz"},
+    {"id": "conin-component", "path": "assets/CONIN$/item.txt"},
+    {"id": "conin-extension-component", "path": "assets/coNiN$.txt/item.txt"},
+    {"id": "conout-root", "path": "CONOUT$"},
+    {"id": "conout-lower", "path": "assets/conout$"},
+    {"id": "conout-extension", "path": "assets/CoNoUt$.safe"},
+    {"id": "conout-multiple-extensions", "path": "assets/CONOUT$.tar.gz"},
+    {"id": "conout-component", "path": "assets/CONOUT$/item.txt"},
+    {"id": "conout-extension-component", "path": "assets/coNoUt$.txt/item.txt"}
+  ],
+  "allowed": [
+    {"id": "coninx", "path": "assets/CONINX"},
+    {"id": "conout-extra", "path": "assets/CONOUT$extra"},
+    {"id": "conin-lookalike", "path": "assets/CONIN-notdevice"},
+    {"id": "unicode-space", "path": "assets/\ud55c\uae00 space/file name.txt"}
+  ]
+}

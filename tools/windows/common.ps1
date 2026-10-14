@@ -84,10 +84,12 @@ function Enter-InstallLock([string]$Root) {
 }
 
 function Assert-PackageName([string]$Name) {
+    # Conservative package policy, independent of OS-specific device resolution.
+    # A console name with any extension is refused in every path component.
     if ([string]::IsNullOrEmpty($Name) -or $Name.Contains('\') -or $Name.StartsWith('/')) { throw "Unsafe package path: $Name" }
     foreach ($part in $Name.Split('/')) {
         if (!$part -or $part -eq '.' -or $part -eq '..' -or $part -match '[ .]$' -or
-            $part -match '[\x00-\x1f:<>"|?*]' -or $part -match '^(?i:CON|PRN|AUX|NUL|COM[1-9\u00b9\u00b2\u00b3]|LPT[1-9\u00b9\u00b2\u00b3])(?:\..*)?$') {
+            $part -match '[\x00-\x1f:<>"|?*]' -or $part -match '^(?i:CON|CONIN\$|CONOUT\$|PRN|AUX|NUL|COM[1-9\u00b9\u00b2\u00b3]|LPT[1-9\u00b9\u00b2\u00b3])(?:\..*)?$') {
             throw "Unsafe package path: $Name"
         }
     }

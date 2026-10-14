@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT / "tools/ci"))
 from native_results import native_results
 sys.path.insert(0, str(ROOT / "tools/windows"))
 from lifecycle_results import acceptance_report, path_report
+from console_results import console_report
 
 MODULE = "github.com/jgoneit/jaekit/"
 NATIVE = {
@@ -28,7 +29,14 @@ NATIVE = {
     "internal/evidence": ["TestNativeCleanCRLFStillRequiresCommittedBytes", "TestNativeWindowsEvidencePaths"],
     "cmd/ha": ["TestNativeCoreGitLifecycle", "TestNativeCoreGitLifecycle/linked=false",
                "TestNativeCoreGitLifecycle/linked=true", "TestNativeBaselineRejectsJunction",
-               "TestNativeEvidencePathScenarios", "TestNativeWindowsEvidencePathScenarios"],
+               "TestNativeEvidencePathScenarios", "TestNativeWindowsEvidencePathScenarios",
+               "TestNativeWindowsProcessControlScenarios", "TestNativeProcessTimeoutScenarios",
+               "TestNativeProcessUnconfirmedShutdownScenarios",
+               *("TestNativeWindowsProcessControlScenarios/" + case for case in
+                 ("parent-pass-check", "parent-violation-check", "parent-pass-baseline", "parent-violation-baseline")),
+               *("TestNativeProcessTimeoutScenarios/" + case for case in ("timeout-check", "timeout-baseline")),
+               *("TestNativeProcessUnconfirmedShutdownScenarios/" + case for case in
+                 ("rules-3-check", "rules-3-baseline", "rules-2-check", "rules-2-baseline", "rules-1-check", "rules-1-baseline"))],
 }
 REQUIRED = sorted(MODULE + package + "/" + test for package, tests in NATIVE.items() for test in tests)
 PACKAGE_CHECKS = ["candidate-manifest-sha256", "candidate-native-version-capabilities",
@@ -108,6 +116,7 @@ def failure_tails(output: Path) -> None:
     """Keep first native failures diagnosable without publishing full transcripts."""
     remaining = 24000
     for name in ("source-status.stdout.log", "acceptance-runtime.stderr.log", "acceptance-runtime.stdout.log",
+                 "console-path-runtime.stderr.log", "console-path-runtime.stdout.log",
                  "path-order-runtime.stderr.log", "path-order-runtime.stdout.log", "preflight-runtime.stderr.log", "preflight-runtime.stdout.log",
                  "package-runtime/install-refusal.log", "package-runtime/uninstall-refusal.log",
                  "package-runtime.stderr.log", "package-runtime.stdout.log", "package.stderr.log",
@@ -152,6 +161,7 @@ def main() -> int:
                               "shell_version": args.shell_version, "shell_edition": args.shell_edition},
               "native_tests": {"required": REQUIRED, "passed": [], "skipped": []},
               "package_checks": [], "preflight_checks": {}, "acceptance_dispatch": {}, "path_order_checks": {},
+              "console_path_checks": {},
               "server_rejection": {}, "failures": [],
               "unverified": ["windows11-install-lifecycle", "wsl2", "host-skills", "public-release"]}
     try:
@@ -228,6 +238,19 @@ def main() -> int:
             validate(report[key], args.shell_version, sources)
             if result.returncode:
                 raise RuntimeError(label + " execution failed")
+        console_result = output / "console-path-results.json"
+        result = capture([args.shell_executable, "-NoProfile", "-NonInteractive", "-File",
+                          str(ROOT / "tools/windows/native_console_checks.ps1"), "-CandidateDirectory",
+                          str(output / "candidate"), "-OutputPath", str(console_result)], output, "console-path-runtime")
+        if not console_result.is_file():
+            raise RuntimeError("console path checks produced no report")
+        report["console_path_checks"] = json.loads(console_result.read_text(encoding="utf-8-sig"))
+        console_report(report["console_path_checks"], args.shell_version,
+                       {name: digest(ROOT / name) for name in
+                        ("tools/windows/package.py", "tools/windows/common.ps1",
+                         "tools/windows/install.ps1", "tools/windows/uninstall.ps1")})
+        if result.returncode:
+            raise RuntimeError("console path checks execution failed")
         package_result = output / "package-results.json"
         result = capture([args.shell_executable, "-NoProfile", "-NonInteractive", "-File",
                           str(ROOT / "tools/windows/native_package_checks.ps1"), "-CandidateDirectory",

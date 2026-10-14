@@ -11,7 +11,10 @@ matches its runtime version, and a new output directory. It copies only the
 selected public files, includes every payload file in a SHA-256 manifest, and
 writes a deterministic ZIP, detached checksums and the installer scripts. It
 refuses source links, unsafe Windows paths, oversized inputs and an existing
-candidate directory. A PE header check establishes file format, not runtime
+candidate directory. Package paths reserve `CONIN$` and `CONOUT$`, including
+case variants and extension forms, in every path component. This conservative
+package policy is separate from Core's OS-specific evidence-path rules.
+A PE header check establishes file format, not runtime
 correctness. Review public inputs before distributing a candidate.
 
 ```text
@@ -112,6 +115,12 @@ and linked Git worktrees, and retains the raw Go JSON stream. Missing, skipped,
 failed or unfinished selected tests cannot produce a passing report. The
 unconfirmed-shutdown and admission-failure fixtures include deliberate injected
 failures; the ordinary descendant timeout fixture uses actual child processes.
+Command-level process scenarios also connect actual cleanup and timeout to CLI
+exit, records, stable output and status for current and baseline checks. A
+confirmed timeout retains a stable digest. A test-only execution boundary injects
+unconfirmed output finalization separately; this observes command error recording,
+not a real Windows API failure. Product timeout defaults and public options stay
+unchanged, as do legacy rule error semantics.
 It then builds and executes the current-source Windows candidate and checks its
 manifest, checksums, Unicode/spaced drive paths, unsafe archive entries and
 junction refusal using that shell's actual .NET/filesystem behavior.
@@ -125,6 +134,14 @@ and uninstaller failures. Missing inputs, a failed shell and unrelated refusal
 diagnostics cannot pass. It preserves real user installation, PATH and policy
 state; it is developer evidence, not a Windows 11 user installation lifecycle.
 There is no product Server bypass option.
+
+The trusted developer runner `native_console_checks.ps1` exercises the product
+name, manifest, inventory, copy and ZIP boundaries, plus extracted install/remove
+orchestration with temporary environment adapters. Rejection happens before a
+console device or archive entry data stream is opened. Fixtures preserve existing
+candidate and installation data; they do not migrate incompatible inventory or
+change real user PATH, policy or installation. Source hashes and the actual shell
+bind the observations to the current product code.
 
 The trusted developer runner `native_preflight_checks.ps1` reads the exact
 preflight and action blocks from both public Windows guides and this acceptance

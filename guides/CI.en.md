@@ -36,6 +36,10 @@ The Windows job disables newline conversion through Git environment options scop
 
 Developer lifecycle checks connect the current acceptance stage selection and child execution logic to isolated candidate code, distinguishing the first and update candidates. A valid checksum cannot hide a failure in the new candidate's code. PATH checks use the product removal logic and its callers to observe preservation of later identical entries, aliases and unrelated ordering. These fixtures do not change real user installation, PATH or policy and do not replace full Windows 11 installation acceptance.
 
+Windows command-level process scenarios connect child cleanup and timeout to CLI exit, records, stable output and status. A confirmed timeout retains its stable log digest; unconfirmed shutdown is separately injected at the command's execution boundary to check error recording without usable output evidence. That injection is not a reproduced Windows API failure, and it adds no public timeout or fault-injection option.
+
+Both Windows shells also exercise product package-name checks and isolated install/remove orchestration. Console-device names, including the package policy's extension forms, must be refused before extraction writes. Existing incompatible inventory is preserved rather than migrated or deleted. These fixtures do not open console devices or modify real user installation, PATH or policy.
+
 An Ubuntu run is not a WSL2 run. CI does not establish WSL2 installation, installed agent Skill loading, a real agent session or session resumption. Those observations remain separate. No CI success publishes a release, changes a version, or proves installation from a public release URL.
 
 ## Local checks

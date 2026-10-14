@@ -65,7 +65,10 @@ class CandidatePackageTests(unittest.TestCase):
         self.binary.write_bytes(synthetic_pe())
 
     def git(self, *args):
+        # Keep automatic maintenance out of byte-for-byte fixture snapshots,
+        # including the first setup commit, without changing any Git config.
         result = subprocess.run(["git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                                 "-c", "gc.auto=0", "-c", "maintenance.auto=false",
                                  "-c", "commit.gpgsign=false", "-c", "core.hooksPath=" + str(self.base / "no-hooks"),
                                  "-C", str(self.source), *args],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
