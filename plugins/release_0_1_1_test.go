@@ -41,8 +41,10 @@ var rel011En = rel011Lang{
 }
 
 // rel011RemoveOutput deletes the raw check output under the working tree's own
-// Git directory, which is not .git in a linked worktree.
-const rel011RemoveOutput = `gitdir="$(git rev-parse --absolute-git-dir)" && rm -rf "$gitdir/ha"` + "\n"
+// Git directory, which is not .git in a linked worktree. It removes only
+// ha/runs, so the decision history shared through the common Git directory
+// (contracts/decision-history.md) stays.
+const rel011RemoveOutput = `gitdir="$(git rev-parse --absolute-git-dir)" && rm -rf "$gitdir/ha/runs"` + "\n"
 
 // rel011BeforeSteps includes prerequisites up to the first install command.
 func rel011BeforeSteps(t *testing.T, l rel011Lang) string {

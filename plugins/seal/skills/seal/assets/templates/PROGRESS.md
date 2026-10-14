@@ -17,7 +17,8 @@
 - append only and never edit an earlier entry; when a judgment changes, a new entry says what was rejected and on what grounds; a small event that went from cause to verification at once may be one entry
 - record events that change a judgment or the next action: a new problem, a cause confirmed or changed, a change of approach, an important verification result, blocks and resumes (every resume counts: a new session taking the goal up, a cleared block, an answer to a `needs_user` question; a `재개` entry notes where `## 현재` differed from the actual state, if it did)
 - leave out routine edits and reads, repeated runs of the same failure, and progress reports with no change
-- an entry runs about 3 to 6 lines and `## 현재` about 5 to 8 lines; this is editing guidance, not a limit, and a complex cause analysis may run longer>
+- an entry runs about 3 to 6 lines and `## 현재` about 5 to 8 lines; this is editing guidance, not a limit, and a complex cause analysis may run longer
+- with the optional decision history (goals started with seal 0.1.13 or later): the detail lives once in the history; an entry here is a short index line with the event ID (`D<n>`), `## 현재` still stands on its own with event IDs only as auxiliary references, plan-change and block rows point by time and event ID, and only events whose registration succeeded are referenced; without a stored event, write the entry as above>
 
 ## 계획 변경
 | 시각 | 변경 | 이유 | 영향 | 다시 검토한 것 |

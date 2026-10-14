@@ -2,6 +2,8 @@
 
 Each directory is one scenario. `cmd/ha/scenario_test.go` builds a git repository from `_base/` plus the scenario's `files/`, commits it as the base, and runs `steps` line by line. Shared step sequences are in `_steps/`. `finding-input <path> <json>` writes a finding request in which `$COMPLETION` names the latest completion record. `pad-record <seq> <bytes>` pads a stored line with JSON whitespace to the requested byte length, excluding the line feed, and updates subsequent hashes. Verification commands are small shell scripts run as argv (`sh tests/x.sh`), never as shell strings.
 
+The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evidence-paths/README.md) instead supplies the shell-independent `TestNativeEvidencePathScenarios` and Windows-only `TestNativeWindowsEvidencePathScenarios`. They invoke a built `ha` process and a real producer to check unsafe declaration/producer paths, exit status, and preservation of existing evidence. Both entrypoints are required by Windows native CI; the ordinary `steps` runner does not interpret their JSON inputs.
+
 | Scenario | Source | Expected |
 | --- | --- | --- |
 | `unverified-criterion` | EVALUATION §3 조건 미검증 | `incomplete`, `AC-2:criterion_missing` |
@@ -35,6 +37,8 @@ Each directory is one scenario. `cmd/ha/scenario_test.go` builds a git repositor
 | `findings-required-lists` | findings.md 입력과 조회 | omitted, null or mistyped required lists are refused with exit 64 and no record; empty arrays stay arrays |
 | `findings-resolution-refs` | findings.md 입력과 조회 | current `resolution_refs` only on `resolved`; earlier references stay in history |
 | `findings-stored-limit` | findings.md 입력과 조회 | stored findings at the byte limit remain readable; oversized records block queries and writes without changing the chain |
+| `decision-history-flow` | decision-history.md | events, relations, a stale correction and a replay leave completion and the tree unchanged; current judgments mark corrected grounds; Markdown keeps an external version whole; a linked worktree shares the history |
+| `history-rules-unsupported` | decision-history.md | an unsupported start rule yields exit 66 and `history_unsupported:` for default/current/list, both show forms, new registration and the original request; no run record is added |
 | `reopen-after-done` | EVALUATION §3.1 | completion record voided, new budget window |
 | `complete-happy-path` | ROADMAP P1 | `complete` with a completion record; tree untouched |
 | `budget-runs` | INV-11 | under `run-rules/1`: `budget_exhausted`; quoted reopen opens a new window |

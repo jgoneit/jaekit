@@ -35,7 +35,7 @@ When the required completion conditions are met, Seal saves a completion record 
 
 These steps use **Claude Code or Codex on macOS**. You need [Homebrew](https://brew.sh) (a program installer), Git, Claude Code or [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), and **a project folder managed with Git**. You do not need to clone the Jaekit repository.
 
-For Linux or an install without Homebrew, see the [install guide](guides/INSTALL.en.md). The record tool `ha` does not support Windows, so Seal cannot run there. Spec does not need `ha`, but its installation and operation on Windows have not been checked yet.
+For Linux or an install without Homebrew, see the [install guide](guides/INSTALL.en.md). In the current public release, the record tool `ha` does not support Windows, so Seal cannot run there. Spec does not need `ha`, but its installation and operation on Windows have not been checked yet. The separate [Windows native candidate guide](guides/WINDOWS.en.md) covers package and verification preparation for Windows 11 x64 with PowerShell 5.1/7; actual Windows execution and host behavior remain unverified.
 
 For Linux tools on Windows, see the [WSL2 preparation guide](guides/WSL.en.md). The Ubuntu 24.04 LTS x64 route is being prepared; installation and agent use in actual WSL2 have not been checked yet. The Windows limitation above refers to native execution.
 
@@ -150,6 +150,7 @@ The project keeps goal documents, work plans, progress and completion reports, a
 - [Usage, changing a goal, and resuming](guides/USAGE.en.md) · [Troubleshooting](guides/USAGE.en.md#troubleshooting)
 - [Detailed operations](guides/OPERATIONS.md) · [Command and record formats](contracts/run-record.md) (both in Korean)
 - [About the images and how to edit them](assets/readme/SOURCES.en.md)
+- [What Ubuntu, macOS and Windows CI checks](guides/CI.en.md)
 
 Share your experience or where you got stuck in a [usage report or install/bug issue](https://github.com/jgoneit/jaekit/issues/new/choose). Issues are public: leave out company code, internal names, secrets, and raw logs.
 

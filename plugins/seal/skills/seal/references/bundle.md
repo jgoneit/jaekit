@@ -138,6 +138,21 @@ Optional. Append entries for events that change a judgment or the next action, s
 - Leave out routine edits and reads, repeated runs of the same failure, and progress reports with no change.
 - Length: an entry runs about 3 to 6 lines and `## 현재` about 5 to 8 lines. This is editing guidance, not a limit; a complex cause analysis may run longer.
 
+### PROGRESS with decision history
+
+Goals started with seal 0.1.13 or later may keep detailed judgments once in the optional decision history ([contract](https://github.com/jgoneit/jaekit/blob/main/contracts/decision-history.md), `ha history` in [ha.md](ha.md#decision-history)) and refer to them from PROGRESS by event ID (`D<n>`). A goal started with an earlier Seal keeps the PROGRESS form and document duties it started with; supporting environments may add auxiliary history, but never omit originally required explanations retroactively or convert past timelines. `ha` does not read PROGRESS prose, and an event ID reference changes no task state or completion.
+
+| Section | With decision history |
+| --- | --- |
+| `## 현재` | Keeps the current state, important decisions with short reasons, open problems, and how to resume understandable without the history. Related event IDs are auxiliary references |
+| `## 타임라인` | A short index of the important events a handover needs: the usual heading (time, seq, kind, one-line summary) plus the event ID that holds the detail. It does not copy every event |
+| `## 계획 변경`, `## 막힘` | Rows keep their columns and the needed summary, and point to the detail by time and event ID |
+
+- Write the detailed reason, evidence and relations once in the history and read them with the Markdown query. Do not keep a query result as a separately maintained Markdown source or generate PROGRESS from it. No sentence counts or fixed writing order.
+- Refer only to events whose registration succeeded. When the history was not used, is unavailable, failed, or a write's application is unconfirmed, leave the explanation in Markdown in the `## 타임라인` form above. Required handover content never survives as an event ID alone.
+- The history is local data in the Git common directory and does not travel to a new clone or another machine. There, the detailed reasons, evidence and relations are absent; the current state, important decisions with short reasons, and resume method kept in PROGRESS only partly make up for that. That is not a restoration of the history.
+- The executor chooses which events to record, when, which relations to link, and whether to fold a small event into one. Record the same events the timeline rules name. The feature adds no human approval step and no retrospective duty.
+
 ## Assurance policy and counterexamples
 
 For new goals started with Seal 0.1.11 or later, and requested material verification redesigns, REVIEW connects condition groups to risk (false-success impact, boundary, evidence gap), selected policy source, and required or optional guarantees. Explain exclusions instead of classifying by condition count. Preserve older formats and never fabricate retrospective reviews. No universal pre-baseline review order is prescribed.

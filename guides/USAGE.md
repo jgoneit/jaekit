@@ -49,6 +49,8 @@ docs/specs/<goal> 이어서 해줘
 
 검사 출력 원문은 Git이 추적하지 않는 `.git/ha/`에 남으므로 `.gitignore`에 더할 것은 없습니다. linked worktree(Git 이력을 공유하는 별도 작업 폴더)에서는 `git rev-parse --absolute-git-dir`이 알려 주는 Git 폴더 아래 `ha/`에 있습니다. 출력은 로컬에만 있으며 확인이 필요하면 터미널에서 `ha log <goal> <seq>`를 실행합니다. 여기서 `<goal>`은 목표 경로, `<seq>`는 보고에 나온 기록 번호입니다.
 
+판단 이력을 지원하는 Core(지원 정보 `decision-history/v1`)에서는 Seal이 관측·원인·결정·조치·검증의 요약과 근거, 정정 관계를 선택 기능인 [판단 이력](../contracts/decision-history.md)에 남길 수 있습니다. 배포판 v0.1.4의 `ha 0.1.4`에는 이 기능이 없습니다. 이력은 같은 저장소의 모든 작업 폴더가 공유하는 공통 Git 폴더의 `ha/history/`에 로컬로만 있으며 새 clone이나 다른 컴퓨터에는 따라가지 않습니다. 그래서 `PROGRESS.md`는 이력 없이도 현재 상태, 중요한 결정과 짧은 이유, 재개 방법을 담습니다. 현재 판단은 `ha history <goal>`, 한 사건의 근거와 앞뒤 관계는 `ha history <goal> show <사건 ID>`로 읽습니다. 이력을 쓰거나 고쳐도 완료, 검사 결과, 예산은 바뀌지 않으며 이 기능만의 승인 단계도 없습니다.
+
 ## 문제 해결
 
 | 증상 | 할 일 |

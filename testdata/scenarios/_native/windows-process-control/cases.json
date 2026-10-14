@@ -1,0 +1,20 @@
+{
+  "parent": [
+    {"id":"parent-pass-check","mode":"parent-greeting","rules":"run-rules/3","baseline":false,"code":0,"result":"pass","exit":0},
+    {"id":"parent-violation-check","mode":"parent-violation","rules":"run-rules/3","baseline":false,"code":1,"result":"fail","exit":3},
+    {"id":"parent-pass-baseline","mode":"parent-pass","rules":"run-rules/3","baseline":true,"code":1,"result":"unexpected_pass","exit":0},
+    {"id":"parent-violation-baseline","mode":"parent-violation","rules":"run-rules/3","baseline":true,"code":0,"result":"fail_as_expected","exit":3}
+  ],
+  "timeout": [
+    {"id":"timeout-check","mode":"timeout","rules":"run-rules/3","baseline":false,"code":1,"result":"error"},
+    {"id":"timeout-baseline","mode":"timeout","rules":"run-rules/3","baseline":true,"code":1,"result":"error"}
+  ],
+  "unconfirmed": [
+    {"id":"rules-3-check","mode":"pass","rules":"run-rules/3","baseline":false,"code":1,"result":"error"},
+    {"id":"rules-3-baseline","mode":"pass","rules":"run-rules/3","baseline":true,"code":1,"result":"error"},
+    {"id":"rules-2-check","mode":"pass","rules":"run-rules/2","baseline":false,"code":70},
+    {"id":"rules-2-baseline","mode":"pass","rules":"run-rules/2","baseline":true,"code":70},
+    {"id":"rules-1-check","mode":"pass","rules":"run-rules/1","baseline":false,"code":70},
+    {"id":"rules-1-baseline","mode":"pass","rules":"run-rules/1","baseline":true,"code":70}
+  ]
+}

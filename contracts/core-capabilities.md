@@ -53,6 +53,7 @@ ha capabilities --format json
 | `structured-change-results/v1` | `/3` change의 호출에 연결된 구조화 분류와 전체 시도 이력 보존 |
 | `budget-change/v1` | `/3` 현재 창의 횟수 총상한 변경, 사용량·시간 상한 보존과 개정 충돌 거부 |
 | `post-completion-findings/v1` | 역사적 완료에 연결된 발견 주장·개정·재작업 관계를 보존하는 선택적 확장 |
+| `decision-history/v1` | 실행 기록과 분리된 판단 이력의 등록·관계·조회를 제공하는 선택적 확장(§5). 위 v0.1.4 예시에는 없다 |
 
 기능의 상세 의미는 [실행 기록](run-record.md), [결과 계약](check-result.md), [목표 문서](goal-docs.md)에 따른다. 지원 정보는 독립 인증이나 코드 무결성 증명이 아니다.
 
@@ -100,3 +101,11 @@ stdout은 `seal-core-compatibility/v1` JSON이다. `compatible`, `reason`, `requ
 Core 0.1.4는 [완료 뒤 발견](findings.md)을 포함하며 `formats.finding`에 `run-finding/v1`, `features`에 `post-completion-findings/v1`을 제공한다. 위 v0.1.4 배포 예시에도 두 항목이 있다. v0.1.3 Core에는 이 확장이 없으므로 실제 지원 정보를 확인하며, 버전 숫자만으로 기능을 추정하지 않는다. 기존 시작·검사·예산 작업의 요구는 유지한다. 발견 입력과 조회에는 실제 실행 파일의 두 추가 지원, 저장된 규칙과 현재 조건 형식의 지원을 확인한다. 발견 작업만을 위해 실행 기능이나 `/3` 선언 지원을 요구하지 않는다.
 
 Seal 0.1.12에 포함된 선택형 도구는 `--operation finding --goal <기존 목표>`를 지원한다. 기존 목표에 `run-finding/v1` 줄이 있으면 resume·check·budget도 두 추가 지원을 요구한다. 도구는 알려진 줄 schema의 존재를 읽으며 해시·이력의 무결성은 Core가 검증한다. 알 수 없는 schema는 거부한다. 이전 설치의 도구에 새 인수가 있다고 가정하지 않으며, 실제 capability를 직접 확인하는 방법도 유효하다. 지원을 확인하지 못하면 새 발견 기록을 쓰지 않는다.
+
+## 5. 선택적 판단 이력 확장
+
+[판단 이력](decision-history.md)을 지원하는 Core는 `formats.decision_history`에 `decision-history/v1`, `features`에 `decision-history/v1`을 제공한다. 배포판 v0.1.4(`ha 0.1.4`)에는 이 확장이 없다. 이력의 등록과 조회에는 실제 실행 파일의 두 추가 지원, 저장된 시작 규칙과 현재 조건 형식의 지원을 확인한다. 판단 이력은 `runs.jsonl` 밖에 있으므로 이 확장은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 추가되지 않는다. 지원이 없으면 이력을 쓰지 않고 기존 Markdown으로 인계한다.
+
+Seal 0.1.13에 포함된 선택형 도구는 `--operation history --goal <기존 목표>`로 같은 확인을 한다. 이전 설치의 도구에 이 인수가 있다고 가정하지 않으며, 실제 capability를 직접 확인하는 방법도 유효하다.
+
+현재 소스의 macOS·Linux 실행 파일과 Windows x64 로컬 후보는 두 판단 이력 항목을 같은 의미로 제공한다. Windows에서도 등록·재전송·정정·기본/current·list·두 방식의 show가 대상이며, 지원 정보만 있고 직접 호출은 일괄 미지원인 형태가 아니다. 이 기능 광고가 공개 Windows 릴리스나 Windows 11 설치·호스트 사용 인수를 뜻하지는 않는다. 플랫폼과 저장소 범위는 [판단 이력 계약](decision-history.md#1-지원과-호환)과 [Windows 후보 안내](../guides/WINDOWS.md)에 따른다.

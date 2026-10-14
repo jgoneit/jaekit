@@ -55,6 +55,7 @@ Usage:
   ha note   <goal> reopen --quote <user words>
   ha note   <goal> input --quote <user words>
   ha finding <goal> [--input <JSON file>] [--format json|md]
+  ha history <goal> [add|current|list|show] ...   (see ha history --help)
   ha status <goal> [--format md|json]
   ha done   <goal> [--format md|json]
   ha log    <goal> <seq> [--tail N]
@@ -77,6 +78,7 @@ func main() {
 
 type cli struct {
 	out, err io.Writer
+	execute  checkExecutor
 }
 
 func (c *cli) fail(code int, format string, a ...any) int {
@@ -112,6 +114,8 @@ func runMain(argv []string, stdout, stderr io.Writer) int {
 		return c.budget(rest)
 	case "finding":
 		return c.finding(rest)
+	case "history":
+		return c.history(rest)
 	case "note":
 		return c.note(rest)
 	case "status":
@@ -472,7 +476,7 @@ func (c *cli) check(in []string) int {
 		if baseline {
 			res, overlay, err = c.runBaseline(w, start.BaseCommit, head, t, tmp.Name(), extraEnv...)
 		} else {
-			res, err = run.ExecWithEnv(w.repo.Root, t.argv, checkTimeout, tmp.Name(), extraEnv)
+			res, err = c.executeCheck(w.repo.Root, t.argv, checkTimeout, tmp.Name(), extraEnv)
 		}
 		if baseline && !res.Attempted {
 			os.Remove(tmp.Name())
@@ -627,7 +631,7 @@ func (c *cli) runBaseline(w *workspace, base, head string, t target, logPath str
 	if err != nil {
 		return run.Result{}, nil, err
 	}
-	res, err := run.ExecWithEnv(tree, t.argv, checkTimeout, logPath, extraEnv)
+	res, err := c.executeCheck(tree, t.argv, checkTimeout, logPath, extraEnv)
 	return res, overlay, err
 }
 

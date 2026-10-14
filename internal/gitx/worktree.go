@@ -138,5 +138,5 @@ func parseWorktreeChanges(out []byte) ([]WorktreeChange, error) {
 
 func worktreePath(name string) bool {
 	clean := filepath.Clean(filepath.FromSlash(name))
-	return name != "" && !filepath.IsAbs(clean) && clean != "." && clean != ".." && !strings.HasPrefix(clean, ".."+string(filepath.Separator))
+	return name != "" && filepath.IsLocal(clean) && clean != "."
 }

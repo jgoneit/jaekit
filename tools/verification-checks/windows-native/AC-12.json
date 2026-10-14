@@ -1,0 +1,14 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-windows-docs",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/windows/docs_check.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-12",
+      "violation": "native-candidate-missing"
+    }
+  ]
+}

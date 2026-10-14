@@ -1,0 +1,19 @@
+{
+  "portable": [
+    {"id": "outside-traversal", "path": "../outside.txt"},
+    {"id": "outside-absolute", "path": "$OUTSIDE"},
+    {"id": "noncanonical", "path": "checks/../declaration.json"},
+    {"id": "backslash", "path": "checks\\declaration.json"},
+    {"id": "git-metadata", "path": ".git/config"}
+  ],
+  "windows": [
+    {"id": "drive-relative", "path": "$DRIVE_RELATIVE"},
+    {"id": "drive-absolute", "path": "$OUTSIDE"},
+    {"id": "alternate-data-stream", "path": "src/greeting.txt:stream"},
+    {"id": "device-nul", "path": "NUL"},
+    {"id": "device-con", "path": "checks/CON"},
+    {"id": "device-conin", "path": "checks/CONIN$"},
+    {"id": "device-conout", "path": "checks/CONOUT$"},
+    {"id": "device-com1", "path": "checks/COM1"}
+  ]
+}

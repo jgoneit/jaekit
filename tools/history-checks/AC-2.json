@@ -1,0 +1,14 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-decision-history",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/history-checks/check.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-2",
+      "violation": "history-command-unavailable"
+    }
+  ]
+}

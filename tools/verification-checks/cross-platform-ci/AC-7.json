@@ -1,0 +1,14 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "cross-platform-ci",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/cross_platform_ci.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-7",
+      "violation": "native-ci-contract-missing"
+    }
+  ]
+}
