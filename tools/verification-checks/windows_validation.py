@@ -71,14 +71,25 @@ def live_reports():
     ci = load("validation_ci", "tools/verification-checks/cross_platform_ci.py")
     reports = []
     original = ci.command
+    escape_flags = None
 
     def observed(argv, *args, **kwargs):
-        if argv[:3] == ["gh", "pr", "view"]:
-            argv = [*argv[:3], "67", "--repo", "jgoneit/jaekit", *argv[3:]]
-        output = original(argv, *args, **kwargs)
+        nonlocal escape_flags
         if argv[:3] == ["gh", "run", "view"] and "--log" in argv:
+            # The shared observer already selected this job from the current
+            # run attempt. gh run view can silently truncate long JSON lines;
+            # fetch the raw job log without that line-scanning renderer.
+            repository = argv[argv.index("--repo") + 1]
+            job = argv[argv.index("--job") + 1]
+            if escape_flags is None:
+                advertised = original(["gh", "api", "--help"]).split()
+                escape_flags = ["--allow-escape-sequences"] if "--allow-escape-sequences" in advertised else []
+            # Preserve escapes in captured raw data; never print the log here.
+            output = original(["gh", "api", "--method", "GET", *escape_flags,
+                               f"repos/{repository}/actions/jobs/{job}/logs"], *args, **kwargs)
             reports.extend(ci.records(output, "JAEKIT_CI_REPORT "))
-        return output
+            return output
+        return original(argv, *args, **kwargs)
 
     ci.command = observed
     try:
