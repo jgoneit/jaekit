@@ -67,42 +67,22 @@ def feature_boundary(criterion):
         require(JUNCTION in native, "junction CLI entrypoint is not required by native checks")
 
 
-def live_reports():
-    ci = load("validation_ci", "tools/verification-checks/cross_platform_ci.py")
+def live_reports(observer=None):
+    ci = observer if observer is not None else load("validation_ci", "tools/verification-checks/cross_platform_ci.py")
     reports = []
-    original = ci.command
-    escape_flags = None
 
-    def observed(argv, *args, **kwargs):
-        nonlocal escape_flags
-        if argv[:3] == ["gh", "run", "view"] and "--log" in argv:
-            # The shared observer already selected this job from the current
-            # run attempt. gh run view can silently truncate long JSON lines;
-            # fetch the raw job log without that line-scanning renderer.
-            repository = argv[argv.index("--repo") + 1]
-            job = argv[argv.index("--job") + 1]
-            if escape_flags is None:
-                advertised = original(["gh", "api", "--help"]).split()
-                escape_flags = ["--allow-escape-sequences"] if "--allow-escape-sequences" in advertised else []
-            # Preserve escapes in captured raw data; never print the log here.
-            output = original(["gh", "api", "--method", "GET", *escape_flags,
-                               f"repos/{repository}/actions/jobs/{job}/logs"], *args, **kwargs)
-            reports.extend(ci.records(output, "JAEKIT_CI_REPORT "))
-            return output
-        return original(argv, *args, **kwargs)
+    def observed(report, operating_system, source):
+        if operating_system == "Windows":
+            reports.append(report)
 
-    ci.command = observed
     try:
         ci.configuration_present()
-        repository, _ = ci.live_run()
+        repository, _ = ci.live_run(native_validator=observed)
         require(repository == "jgoneit/jaekit", "wrong repository")
     except ci.Violation as error:
         raise Violation(str(error)) from None
-    finally:
-        ci.command = original
-    windows = [row for row in reports if row.get("schema") == "jaekit-native-windows/v1"]
-    require(len(windows) == 2, "two Windows reports required")
-    return windows
+    require(len(reports) == 2, "two Windows reports required")
+    return reports
 
 
 def validate_boundaries(reports):

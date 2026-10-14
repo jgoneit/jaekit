@@ -57,8 +57,6 @@ class WindowsJobLogCollection(unittest.TestCase):
         if argv[:3] == ["gh", "pr", "view"]:
             self.assertEqual(argv, ["gh", "pr", "view", "--json", "number,headRefOid"])
             return json.dumps({"number": PR_NUMBER, "headRefOid": fixtures.HEAD})
-        if argv[:3] == ["gh", "run", "view"]:
-            return self.truncated_view(self.fixture.command(argv, **kwargs))
         if argv[:4] == ["gh", "api", "--method", "GET"]:
             self.assertEqual(self.commands.count(["gh", "api", "--help"]), 1)
             if self.log_error is not None:
@@ -69,9 +67,7 @@ class WindowsJobLogCollection(unittest.TestCase):
             self.assertIn(argv[-1], paths)
             job = paths[argv[-1]]
             # Reuse the real observer's existing source/runner/report fixture.
-            return "\x1b[0m\n" + self.fixture.command([
-                "gh", "run", "view", "7", "--repo", "jgoneit/jaekit",
-                "--attempt", "1", "--job", str(job["id"]), "--log"])
+            return "\x1b[0m\n" + self.fixture.job_log(job["id"])
         return self.fixture.command(argv, **kwargs)
 
     def observe(self):
@@ -83,7 +79,7 @@ class WindowsJobLogCollection(unittest.TestCase):
             try:
                 return validation.live_reports()
             finally:
-                self.assertIs(self.ci.command, original, "command hook was not restored")
+                self.assertIs(self.ci.command, original, "shared transport was replaced")
                 self.assertEqual(self.commands.count(["gh", "api", "--help"]), 1)
                 self.assertFalse(any(argv[:3] == ["gh", "run", "view"] for argv in self.commands),
                                  "line-scanning run-view logs were used as a fallback")
@@ -98,7 +94,7 @@ class WindowsJobLogCollection(unittest.TestCase):
                 self.expected_escape_flags = []
             with self.subTest(modern=modern):
                 job = next(job for job in self.fixture.jobs if job["name"] == "Core / Windows")
-                raw = self.fixture.command(["gh", "run", "view", "7", "--job", str(job["id"]), "--log"])
+                raw = self.fixture.job_log(job["id"])
                 report_lines = [line for line in raw.splitlines() if line.startswith("JAEKIT_CI_REPORT ")]
                 self.assertEqual(len(report_lines), 2)
                 self.assertTrue(all(len(line.encode("utf-8")) > 64 * 1024 for line in report_lines))

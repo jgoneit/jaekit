@@ -1,0 +1,29 @@
+# contracts/decision-history.md: every otherwise valid history operation uses
+# the public history_unsupported identifier for an unsupported start rule.
+include start
+ha history $GOAL add --kind 관측 --summary "original observation" --request-id original
+expect-exit 0
+expect-output "\"id\":\"D1\""
+rewrite-record 1 rules "\"run-rules/99\""
+ha history $GOAL
+expect-exit 66
+expect-output "history_unsupported:"
+ha history $GOAL current
+expect-exit 66
+expect-output "history_unsupported:"
+ha history $GOAL list
+expect-exit 66
+expect-output "history_unsupported:"
+ha history $GOAL show D1
+expect-exit 66
+expect-output "history_unsupported:"
+ha history $GOAL show --request-id original
+expect-exit 66
+expect-output "history_unsupported:"
+ha history $GOAL add --kind 관측 --summary "new observation" --request-id new
+expect-exit 66
+expect-output "history_unsupported:"
+ha history $GOAL add --kind 관측 --summary "original observation" --request-id original
+expect-exit 66
+expect-output "history_unsupported:"
+expect-records 1

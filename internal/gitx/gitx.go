@@ -56,6 +56,40 @@ func Open(dir string) (*Repo, error) {
 
 func (r *Repo) run(args ...string) ([]byte, error) { return run(r.Root, args...) }
 
+// CommonDir returns the absolute git directory shared by every working tree of
+// this repository. In a normal checkout it is GitDir; in a linked worktree it
+// is the main repository's git directory, not the worktree's own.
+func (r *Repo) CommonDir() (string, error) {
+	out, err := r.run("rev-parse", "--git-common-dir")
+	if err != nil {
+		return "", err
+	}
+	dir := strings.TrimSuffix(string(out), "\n")
+	if dir == "" || strings.Contains(dir, "\n") {
+		return "", fmt.Errorf("unexpected git rev-parse output: %q", out)
+	}
+	if !filepath.IsAbs(dir) {
+		dir = filepath.Join(r.Root, dir)
+	}
+	return filepath.Clean(dir), nil
+}
+
+// ResolveCommit reports the full id of a commit named by a hexadecimal id
+// when this local repository has it. It never fetches; a shallow or partial
+// clone reports false for commits it does not hold.
+func (r *Repo) ResolveCommit(id string) (string, bool) {
+	for _, c := range id {
+		if !strings.ContainsRune("0123456789abcdefABCDEF", c) {
+			return "", false
+		}
+	}
+	out, err := r.run("rev-parse", "--verify", "--quiet", "--end-of-options", id+"^{commit}")
+	if err != nil {
+		return "", false
+	}
+	return strings.TrimSpace(string(out)), true
+}
+
 // Head returns the commit id of HEAD.
 func (r *Repo) Head() (string, error) {
 	out, err := r.run("rev-parse", "--verify", "HEAD^{commit}")

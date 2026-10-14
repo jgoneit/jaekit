@@ -28,8 +28,38 @@ NATIVE = {
                      "TestNativeJobLayout"],
     "internal/record": ["TestNativeConcurrentProcessesPreserveRecords", "TestNativeLockIsReleasedWhenOwnerExits"],
     "internal/evidence": ["TestNativeCleanCRLFStillRequiresCommittedBytes", "TestNativeWindowsEvidencePaths"],
+    "internal/history": ["TestNativeHistoryStorageLifecycle", "TestNativeHistoryStorageLocks",
+                         "TestNativeHistoryStorageIntegrity", "TestNativeHistoryStoragePathSafety",
+                         "TestNativeStorageBoundsHistoryLines", "TestNativeShowRejectsMalformedIdentifiers",
+                         "TestNativeShowPreservesValidIdentifierLookup",
+                         *("TestNativeHistoryStorageLifecycle/" + case for case in
+                           ("registration_replay_and_correction", "concurrent_stores_and_corrections",
+                            "lineage_and_current", "evidence_replay_preserves_observation", "case_alias_shares_storage")),
+                         *("TestNativeHistoryStorageLocks/" + case for case in
+                           ("reader_waits_for_writer", "first_registration_retry", "shared_readers_exclude_writer",
+                            "process_exit_releases_ownership")),
+                         *("TestNativeHistoryStorageIntegrity/" + case for case in
+                           ("absence_damage_and_unsupported", "trailing_loss", "interrupted_marker_catches_up",
+                            "uncertain_append_retry", "last_replacement_failure_is_uncertain",
+                            "snapshot_survives_marker_replacement", "snapshot_opens_before_rename_source_closes")),
+                         *("TestNativeHistoryStoragePathSafety/junction_" + case for case in
+                           ("common", "ha", "history", "start", "events.jsonl", "lock", "last", "last.tmp")),
+                         "TestNativeHistoryStoragePathSafety/open_ancestors_and_lock_cannot_be_replaced",
+                         "TestNativeHistoryStoragePathSafety/hard-linked_files_cannot_redirect_reads_or_writes",
+                         *("TestNativeHistoryStoragePathSafety/hard-linked_files_cannot_redirect_reads_or_writes/" + case
+                           for case in ("events.jsonl", "lock", "last", "last.tmp"))],
     "cmd/ha": ["TestNativeCoreGitLifecycle", "TestNativeCoreGitLifecycle/linked=false",
                "TestNativeCoreGitLifecycle/linked=true", "TestNativeBaselineRejectsJunction",
+               "TestNativeHistoryGitLifecycle", "TestNativeHistoryFileEvidence",
+               "TestNativeHistoryRequestIDPresence",
+               "TestNativeHistoryWindowsFileBoundaries",
+               *("TestNativeHistoryGitLifecycle/linked=" + value for value in ("false", "true")),
+               *("TestNativeHistoryFileEvidence/replace-" + kind for kind in ("file", "directory", "removed")),
+               *("TestNativeHistoryFileEvidence/" + case for case in
+                 ("initial_size_boundary", "growth_after_check", "growth_during_read")),
+               *("TestNativeHistoryWindowsFileBoundaries/" + case for case in
+                 ("special-references", "stable-parent-and-outside", "junction-race-parent",
+                  "junction-race-root", "confined-reparse", "sharing-denial")),
                "TestNativeWindowsBaselineJunctionScenarios",
                *("TestNativeWindowsBaselineJunctionScenarios/" + case for case in
                  ("regular-before", "parent-junction", "leaf-junction", "partial-batch", "regular-after")),
@@ -116,9 +146,61 @@ def checked(argv: list[str], output: Path, label: str, timeout: int = 300) -> st
     return (output / (label + ".stdout.log")).read_text(encoding="utf-8-sig").strip()
 
 
+def failed_native_output(path: Path, limit: int = 12000) -> bytes:
+    """Keep failed tests' messages even when later passing tests fill the tail."""
+    incomplete = False
+    try:
+        events = []
+        with path.open(encoding="utf-8", errors="replace") as stream:
+            for line in stream:
+                try:
+                    event = json.loads(line)
+                except ValueError:
+                    incomplete = True
+                    continue
+                # Go's JSON compiler diagnostics use ImportPath, not Package.
+                if (isinstance(event, dict) and event.get("Action") in ("build-output", "build-fail")
+                        and isinstance(event.get("ImportPath"), str)):
+                    event = dict(event, Package=event["ImportPath"], Test=None,
+                                 Action=event["Action"].removeprefix("build-"))
+                if (isinstance(event, dict) and isinstance(event.get("Package"), str)
+                        and (event.get("Test") is None or isinstance(event.get("Test"), str))):
+                    events.append(event)
+                else:
+                    incomplete = True
+    except OSError as error:
+        return ("[native test diagnostics unavailable: " + type(error).__name__ + "]\n").encode()[:limit]
+    failed = {(event.get("Package"), event.get("Test")) for event in events
+              if event.get("Action") == "fail"}
+    selected = bytearray()
+    for event in events:
+        key = (event.get("Package"), event.get("Test"))
+        if event.get("Action") != "output" or key not in failed or not isinstance(event.get("Output"), str):
+            continue
+        label = "/".join(str(part) for part in key if part)
+        message = (label + ": " + event["Output"]).encode("utf-8", errors="backslashreplace")
+        room = limit + 1 - len(selected)
+        selected.extend(message[:room])
+        if len(message) > room:
+            break
+    if incomplete:
+        selected.extend(b"\n[native test diagnostics incomplete: malformed events omitted]\n")
+    if len(selected) > limit:
+        marker = b"\n[failed native output truncated]\n"
+        return bytes(selected[:max(0, limit - len(marker))]) + marker[:limit]
+    return bytes(selected)
+
+
 def failure_tails(output: Path) -> None:
     """Keep first native failures diagnosable without publishing full transcripts."""
     remaining = 24000
+    failed = failed_native_output(output / "go-test.jsonl")
+    if failed:
+        remaining -= len(failed)
+        print("Captured failed native test output:")
+        encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+        diagnostic = failed.decode("utf-8", errors="replace")
+        print(diagnostic.encode(encoding, errors="backslashreplace").decode(encoding))
     for name in ("source-status.stdout.log", "acceptance-runtime.stderr.log", "acceptance-runtime.stdout.log",
                  "stream-runtime.stderr.log", "stream-runtime.stdout.log",
                  "console-path-runtime.stderr.log", "console-path-runtime.stdout.log",
@@ -127,17 +209,24 @@ def failure_tails(output: Path) -> None:
                  "package-runtime.stderr.log", "package-runtime.stdout.log", "package.stderr.log",
                  "build.stderr.log", "go-test.stderr.log", "go-test.jsonl", "go-test.stdout.log"):
         path = output / name
-        if not path.is_file() or remaining <= 0:
+        if not path.is_file():
             continue
+        if remaining <= 0:
+            print("[remaining public fixture diagnostics omitted: output limit]")
+            break
         try:
             with path.open("rb") as stream:
-                stream.seek(max(0, path.stat().st_size - min(6000, remaining)))
+                offset = max(0, path.stat().st_size - min(6000, remaining))
+                stream.seek(offset)
                 data = stream.read(min(6000, remaining))
-        except OSError:
+        except OSError as error:
+            print("[public fixture diagnostics unavailable: " + name + "; " + type(error).__name__ + "]")
             continue
         if data:
             remaining -= len(data)
             print("Captured public fixture log tail: " + name)
+            if offset:
+                print("[earlier public fixture output omitted: tail limit]")
             diagnostic = data.decode("utf-8", errors="replace")
             # Windows redirected stdout may be cp1252 even when the raw log is
             # UTF-8. Escape only characters this console cannot encode, so a
@@ -296,9 +385,12 @@ def main() -> int:
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
         report["failures"].append(str(exc))
     finally:
-        (output / "summary.json").write_text(json.dumps(report, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
         if report["status"] != "passed":
-            failure_tails(output)
+            try:
+                failure_tails(output)
+            except (OSError, UnicodeError, ValueError) as exc:
+                report["diagnostics"] = {"status": "unavailable", "reason": type(exc).__name__}
+        (output / "summary.json").write_text(json.dumps(report, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
         print("JAEKIT_CI_REPORT " + json.dumps(report, separators=(",", ":"), ensure_ascii=True))
     return 0 if report["status"] == "passed" else 1
 

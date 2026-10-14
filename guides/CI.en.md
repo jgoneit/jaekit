@@ -10,7 +10,7 @@ The [CI workflow](../.github/workflows/ci.yml) runs on pull requests and pushes 
 | --- | --- |
 | `Core / Ubuntu` | Ubuntu 24.04 x64: the existing common Go/regression suite and macOS/Linux cross-builds, plus actual native Core and isolated direct-install lifecycle checks |
 | `Core / macOS` | `macos-15`, arm64: selected native Core fixtures and the actual native candidate's isolated direct-install lifecycle |
-| `Core / Windows` | Windows Server 2025 x64: selected native Core, candidate/package/path checks and unsupported-product-installation refusal, through both Windows PowerShell 5.1 and PowerShell 7 |
+| `Core / Windows` | Windows Server 2025 x64: selected native Core, decision history, candidate/package/path checks and unsupported-product-installation refusal, through both Windows PowerShell 5.1 and PowerShell 7 |
 | `Seal Core` | Requires all three Core jobs in the same run to finish with `success` |
 | `Public documentation` | Ubuntu: public file/document checks and their offline regressions, performed once |
 
@@ -23,6 +23,12 @@ Ubuntu retains the common suite, including the four macOS/Linux build targets an
 Open the job logs for the current PR revision. Each native job prints one `JAEKIT_CI_CONTEXT` JSON line containing its checkout SHA, event, PR head/base SHAs, actual OS/CPU, runner metadata and shell version. GitHub can check out a PR integration commit, so its SHA may differ from the PR head. Keep that relationship when comparing a result with local source.
 
 Each native checker prints `JAEKIT_CI_REPORT` with its actual observations and source commit. The Unix checker also writes the requested report file; the Windows checker keeps reports and fixture data in its selected temporary output directory. Required native test names must have actual passing results. A skipped or absent fixture is not replaced by a count of selected tests, an empty helper run, or a configuration check. A report belongs to that job's source and environment, and does not establish results on another architecture or shell.
+
+Windows decision-history checks connect the actual CLI, Git, shared history store and file evidence in each PowerShell version. Required names cover ordinary and linked worktrees, add/replay/correction, default/current/list and both show forms, concurrent writes/reads, lock-owner exit, integrity/uncertain writes and file-safety boundaries. An absent history package or required case, skip, failure or interrupted test cannot pass that shell and propagates to the Windows job and `Seal Core` aggregate. Existing Core tests and cross-build success cannot substitute for these observations.
+
+CI collection delivers both complete machine-readable PowerShell reports to the existing Windows validation consumer. Reports lost to a long-line display limit, missing or duplicate reports, truncation and collection errors are not success. The observer ties the current head/base to the tested integration commit and Git tree, run and attempt, and rejects a changed observation basis instead of reusing earlier success.
+
+Windows failure diagnostics select failed tests' output before bounded tails of public synthetic fixture logs. Long passing output must not hide an earlier failure reason; output limits, inaccessible files and malformed diagnostics are identified. A diagnostic collection failure preserves the original failure. Product failures, preparation or collection failures and unobserved results remain distinct, and incomplete diagnostics do not establish a cause. This does not publish full transcripts or private development data.
 
 The workflow uses isolated runner workspaces and temporary paths. Actions are pinned to commits, Go follows `go.mod`, and the workflow token has `contents: read`. No additional secrets, private goals, local execution records or AI service are CI inputs. Private development files must still stay out of commits and published logs.
 

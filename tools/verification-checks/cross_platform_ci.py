@@ -135,7 +135,7 @@ def native_report(report, operating_system, source):
                     row.get("installed_version") == candidate["version"], "selected installed binary differs")
 
 
-def live_run():
+def live_run(native_validator=None):
     repo = json.loads(command(["gh", "repo", "view", "--json", "nameWithOwner"]))["nameWithOwner"]
     head = command(["git", "rev-parse", "HEAD"]).strip()
     local_tree = command(["git", "rev-parse", "HEAD^{tree}"]).strip()
@@ -157,6 +157,7 @@ def live_run():
     require(len(rows) == len(REQUIRED) and {j.get("name") for j in rows} == REQUIRED,
             "required jobs missing or ambiguous")
     sources = set()
+    escape_flags = None
     for job in rows:
         require(job.get("status") == "completed" and job.get("conclusion") == "success", "required job did not succeed")
         steps = job.get("steps", [])
@@ -164,8 +165,15 @@ def live_run():
                 "required job has missing/skipped/failed step")
         if job["name"] not in JOBS:
             continue
-        log = command(["gh", "run", "view", str(run["id"]), "--repo", repo,
-                       "--attempt", str(run["run_attempt"]), "--job", str(job["id"]), "--log"])
+        # gh run view scans lines with a fixed-size buffer. Native reports can
+        # exceed it; the raw job endpoint preserves each complete JSON record.
+        if escape_flags is None:
+            advertised = command(["gh", "api", "--help"]).split()
+            escape_flags = ["--allow-escape-sequences"] if "--allow-escape-sequences" in advertised else []
+        # Older gh versions already preserve escapes and do not have the flag.
+        # Keep raw output private; only parsed observations leave this function.
+        log = command(["gh", "api", "--method", "GET", *escape_flags,
+                       f"repos/{repo}/actions/jobs/{job['id']}/logs"])
         contexts = records(log, "JAEKIT_CI_CONTEXT ")
         require(len(contexts) == 1, "unique job context missing")
         context = contexts[0]
@@ -180,6 +188,8 @@ def live_run():
         require(len(reports) == (2 if JOBS[job["name"]] == "Windows" else 1), "native report missing/duplicate")
         for report in reports:
             native_report(report, JOBS[job["name"]], source)
+            if native_validator is not None:
+                native_validator(report, JOBS[job["name"]], source)
         if JOBS[job["name"]] == "Windows":
             versions = [str(r["environment"]["shell_version"]) for r in reports]
             require(any(v.startswith("5.1") for v in versions) and any(v.startswith("7.") for v in versions),

@@ -1,0 +1,50 @@
+# contracts/decision-history.md: decision events stay apart from the run
+# record. Registration, relations, corrections and queries leave completion,
+# status and the working tree as they were; a linked worktree shares the history.
+include implement
+ha history $GOAL
+expect-exit 0
+expect-output "history: absent"
+ha history $GOAL add --kind 원인 --status 가설 --summary "the first item is assumed" --target AC-1 --ref run:2 --request-id cause-1
+expect-exit 0
+expect-output "\"id\":\"D1\""
+ha history $GOAL add --kind 관측 --summary "an empty greeting reproduces" --target AC-1 --checked-ref file:src/greeting.txt
+expect-exit 0
+ha history $GOAL add --kind 결정 --summary "write the greeting once" --target T001 --builds-on D1 --builds-on D2
+expect-exit 0
+ha history $GOAL add --kind 원인 --status 기각 --summary "the buffer boundary is the cause" --target AC-1 --supersedes D1
+expect-exit 0
+expect-output "\"id\":\"D4\""
+ha history $GOAL add --kind 원인 --summary "a stale correction" --supersedes D1
+expect-exit 65
+expect-output "correction_conflict"
+ha history $GOAL add --kind 원인 --status 가설 --summary "the first item is assumed" --target AC-1 --ref run:2 --request-id cause-1
+expect-exit 0
+expect-output "\"replayed\":true"
+ha history $GOAL
+expect-exit 0
+expect-output "D3 · 결정 · T001 · write the greeting once (linked grounds D1 corrected by D4)"
+expect-no-output "- D1 ·"
+ha history $GOAL show D3 --format md
+expect-exit 0
+expect-output "builds_on D1 · 원인 [가설] · the first item is assumed (lineage same)"
+write .git/ci.json "{\"decision\":{\"kind\":\"검증\",\"summary\":\"the release build passed\",\"evidence\":[{\"type\":\"external\",\"ref\":\"https://example.invalid/ci\",\"version\":\"release-2026-10-14-rc1\"}]}}"
+ha history $GOAL add --input .git/ci.json
+expect-exit 0
+expect-output "\"id\":\"D5\""
+ha history $GOAL show D5 --format md
+expect-exit 0
+expect-output "external https://example.invalid/ci · content not checked · version release-2026-10-14-rc1 · recorded not_checked"
+ha done $GOAL
+expect-exit 0
+expect-completion-record present
+expect-status complete
+expect-deterministic
+expect-untouched
+worktree history-wt
+ha history $GOAL list
+expect-exit 0
+expect-output "D4 · 원인 [기각]"
+ha history $GOAL add --kind 재개 --summary "resumed in a linked worktree"
+expect-exit 0
+expect-output "\"id\":\"D6\""

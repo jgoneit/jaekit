@@ -16,12 +16,14 @@ import unittest
 
 ROOT = Path.cwd()
 GOAL = "release-" + "0-1-3"
+# The shared Git directory is a public location (decision history uses it).
+# That the release checker never searches it for private evidence is checked
+# in tools/release-checks/test_observed_invocations.py.
 PRIVATE_REFERENCES = [
     re.compile(re.escape(prefix + GOAL)) for prefix in
     ("docs/specs/", "docs%2Fspecs%2F", "ha/", "worktrees/")
 ] + [
     re.compile(re.escape('"' + GOAL + '"')),
-    re.compile("--git-" + "common-dir"),
     re.compile(r"(?:codex|claude)(?:-direct)?-(?:spec|seal|host)[\w.-]*\.(?:stdout|stderr|jsonl?)\b"),
     re.compile(r"\bevidence-(?:seq|final|before)[\w-]*\.json"),
 ]
