@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+import fcntl
 import hashlib
 import json
 import os
@@ -281,7 +282,7 @@ def ac1(binary, temp):
     require(after['runs'] == before['runs'] and after['tree'] == before['tree'], 'history-changed-run-or-tree', 'run record or working tree changed')
     added = set(after['ha']) - set(before['ha'])
     rel = str(f.history_dir().relative_to(f.common() / 'ha'))
-    require(added <= {rel + '/events.jsonl', rel + '/lock'} and rel + '/events.jsonl' in added,
+    require(added <= {rel + '/events.jsonl', rel + '/lock', rel + '/last'} and {rel + '/events.jsonl', rel + '/last'} <= added,
             'history-stored-elsewhere', sorted(added))
     require(all(after['ha'][k] == v for k, v in before['ha'].items()), 'history-changed-other-data', 'existing local data changed')
     lines = f.history_bytes().splitlines()
@@ -357,6 +358,22 @@ def ac2(binary, temp):
     bad.write_text(json.dumps({'decision': {'kind': '관측', 'summary': 'x', 'verified': True}}))
     f.add('--input', str(bad), expect=64, code='invalid_input')
     require(f.history_bytes() == before, 'history-rejected-input-stored', 'history changed')
+    # Only a path that does not exist is missing. One whose parents cannot be
+    # traversed or resolved is unreadable, and the stored record never changes.
+    locked = f.root / 'src' / 'locked'
+    (locked / 'sub').mkdir(parents=True)
+    (locked / 'sub' / 'b.md').write_text('b\n')
+    os.symlink('loop', f.root / 'src' / 'loop')
+    want = {'src/none/deeper.md': 'missing', 'src/value/under.md': 'missing', 'src/loop/c.md': 'unreadable'}
+    if os.geteuid() != 0:
+        want['src/locked/sub/b.md'] = 'unreadable'
+    os.chmod(locked, 0)
+    try:
+        r = f.add('--kind', '관측', '--summary', 'paths', *[x for p in want for x in ('--ref', 'file:' + p)])
+    finally:
+        os.chmod(locked, 0o755)
+    states = {e['path']: e['recorded']['state'] for e in f.view('show', r['id'])['event']['evidence']}
+    require(states == want, 'history-unknown-path-recorded-missing', states)
 
 
 def ac3(binary, temp):
@@ -531,6 +548,16 @@ def ac5(binary, temp):
     md = f.md('list')
     for i in f.view('list')['items']:
         require('- %s · ' % i['id'] in md and i['summary'] in md, 'history-formats-diverge', i['id'])
+    # Executor-given versions that share a prefix stay distinct in Markdown.
+    data = temp / 'external.json'
+    data.write_text(json.dumps({'decision': {'kind': '검증', 'summary': 'external builds', 'evidence': [
+        {'type': 'external', 'ref': 'https://example.invalid/ci/1', 'version': 'release-2026-10-14-rc1'},
+        {'type': 'external', 'ref': 'https://example.invalid/ci/2', 'version': 'release-2026-10-14-rc2'}]}}))
+    ext = f.add('--input', str(data))['id']
+    versions = [e['recorded']['version'] for e in f.view('show', ext)['event']['evidence']]
+    shown = f.md('show', ext)
+    require(versions == ['release-2026-10-14-rc1', 'release-2026-10-14-rc2'] and all('version %s ' % v in shown for v in versions),
+            'history-formats-diverge', shown)
     before = f.snapshot()
     for args in (['current'], ['list', '--since', cursor], ['show', 'D1'], ['current', '--format', 'json']):
         f.h(*args)
@@ -588,13 +615,75 @@ def ac6(binary, temp):
     require(shown['event']['id'] == receipt['id'], 'history-request-unconfirmable', shown)
     r = f.h('show', '--request-id', 'never-sent')
     require(r.returncode == 65 and code_of(r) == 'unknown_event', 'history-request-unconfirmable', r.stderr)
-    result = run(['go', 'test', '-count=1', '-json', './internal/history', '-run',
-                  '^(TestUncertainWriteCanBeConfirmedByRequest|TestDamageAndUnsupportedAreDistinct|TestSymlinkedStorageIsRefused|TestStrictInput)$'], ROOT)
-    passed = {json.loads(l).get('Test') for l in result.stdout.splitlines() if l.startswith('{') and json.loads(l).get('Action') == 'pass'}
-    failed = {json.loads(l).get('Test') for l in result.stdout.splitlines() if l.startswith('{') and json.loads(l).get('Action') == 'fail'} - {None}
-    require(not failed, 'history-unit-assertion', failed)
-    if result.returncode or not {'TestUncertainWriteCanBeConfirmedByRequest', 'TestDamageAndUnsupportedAreDistinct', 'TestSymlinkedStorageIsRefused', 'TestStrictInput'} <= passed:
-        raise Environment('collection_error', result.stdout[-2000:] + result.stderr)
+    # Losing trailing events is damage: nothing reads as a shorter history, and
+    # a lost event's ID and request are not stored again with other content.
+    t = Fixture(binary, temp / 'tail')
+    for n in range(3):
+        t.add('--kind', '관측', '--summary', 'event %d' % n, '--request-id', 'tail-%d' % n)
+    hist = t.history_dir()
+    full = (hist / 'events.jsonl').read_bytes()
+    last = (hist / 'last').read_bytes() if (hist / 'last').exists() else None
+    lines = full.splitlines(keepends=True)
+
+    def restore():
+        (hist / 'events.jsonl').write_bytes(full)
+        if last is None:
+            (hist / 'last').unlink(missing_ok=True)
+        else:
+            (hist / 'last').write_bytes(last)
+    for name, change in (('last line', lambda: (hist / 'events.jsonl').write_bytes(b''.join(lines[:2]))),
+                         ('all lines', lambda: (hist / 'events.jsonl').write_bytes(b'')),
+                         ('events file', lambda: (hist / 'events.jsonl').unlink()),
+                         ('last record', lambda: (hist / 'last').unlink(missing_ok=True))):
+        restore()
+        change()
+        q = t.h('list', '--format', 'json')
+        a = t.h('add', '--kind', '결정', '--summary', 'different content', '--request-id', 'tail-2')
+        require((q.returncode, code_of(q), a.returncode, code_of(a)) == (65, 'history_corrupt', 65, 'history_corrupt'),
+                'history-tail-loss-hidden', '%s: %s %s' % (name, q.stdout + q.stderr, a.stdout + a.stderr))
+    restore()
+    require(t.view('list')['total'] == 3, 'history-tail-loss-hidden', 'restored history')
+    # Reads refuse a symlink anywhere on the storage path, as writes do.
+    for level in ('ha', 'history', 'start'):
+        k = Fixture(binary, temp / ('read-link-' + level))
+        k.add('--kind', '관측', '--summary', 'real')
+        target = {'ha': k.common() / 'ha', 'history': k.common() / 'ha' / 'history', 'start': k.history_dir()}[level]
+        moved = temp / ('moved-' + level)
+        target.rename(moved)
+        os.symlink(moved, target)
+        q = k.h('list', '--format', 'json')
+        require(q.returncode == 70 and code_of(q) == 'history_unreadable', 'history-read-through-link', '%s: %s' % (level, q.stdout + q.stderr))
+    # A query waits for a registration in progress instead of reading its line.
+    w = Fixture(binary, temp / 'wait')
+    w.add('--kind', '관측', '--summary', 'first')
+    with open(w.history_dir() / 'lock', 'r+') as held:
+        fcntl.flock(held, fcntl.LOCK_EX)
+        proc = subprocess.Popen([str(binary), 'history', w.goal, 'list', '--format', 'json'], cwd=w.root, env=w.env,
+                                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            proc.wait(timeout=1)
+            waited = False
+        except subprocess.TimeoutExpired:
+            waited = True
+        fcntl.flock(held, fcntl.LOCK_UN)
+    out, err = proc.communicate(timeout=60)
+    require(waited and proc.returncode == 0 and json.loads(out or '{}').get('total') == 1, 'history-read-during-write', err)
+    # Large registrations from a linked worktree never read as damage elsewhere.
+    c = Fixture(binary, temp / 'concurrent')
+    peer = c.worktree('peer')
+    c.add('--kind', '관측', '--summary', 'seed')
+    refs = [x for n in range(40) for x in ('--ref', 'external:https://example.invalid/%d/%s' % (n, 'y' * 400))]
+    def writer():
+        for n in range(15):
+            c.h('add', '--kind', '관측', '--summary', 'large %d' % n, '--reason', 'x' * (16 * 1024), *refs, cwd=peer)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        job = pool.submit(writer)
+        seen = set()
+        while not job.done():
+            q = c.h('list', '--limit', '1', '--format', 'json')
+            seen.add((q.returncode, code_of(q)))
+        job.result()
+    require(seen <= {(0, '')} and c.view('list')['total'] == 16, 'history-read-during-write', seen)
     # A symlinked storage path is refused through the CLI too.
     s = Fixture(binary, temp / 'symlink')
     outside = temp / 'outside'
@@ -603,6 +692,15 @@ def ac6(binary, temp):
     os.symlink(outside, s.common() / 'ha' / 'history')
     r = s.h('add', '--kind', '관측', '--summary', 'x')
     require(r.returncode == 70 and code_of(r) == 'history_unreadable' and not any(outside.iterdir()), 'history-wrote-through-link', r.stderr)
+    # Fault-injected writes and lock timing are observed at the store boundary.
+    units = {'TestUncertainWriteCanBeConfirmedByRequest', 'TestDamageAndUnsupportedAreDistinct', 'TestSymlinkedStorageIsRefused', 'TestStrictInput',
+             'TestTrailingEventLossIsDamage', 'TestInterruptedRecordCatchesUp', 'TestReadsRefuseSymlinkedStorage', 'TestReadsWaitForRegistration'}
+    result = run(['go', 'test', '-count=1', '-json', './internal/history', '-run', '^(%s)$' % '|'.join(sorted(units))], ROOT)
+    passed = {json.loads(l).get('Test') for l in result.stdout.splitlines() if l.startswith('{') and json.loads(l).get('Action') == 'pass'}
+    failed = {json.loads(l).get('Test') for l in result.stdout.splitlines() if l.startswith('{') and json.loads(l).get('Action') == 'fail'} - {None}
+    require(not failed, 'history-unit-assertion', failed)
+    if result.returncode or not units <= passed:
+        raise Environment('collection_error', result.stdout[-2000:] + result.stderr)
 
 
 def ac7(binary, temp):
@@ -721,7 +819,7 @@ def ac9(binary, temp):
         odd = Fixture(binary, temp / ('odd%d' % n), goal=name)
         odd.add('--kind', '관측', '--summary', 'odd name')
         stored = sorted(p.relative_to(odd.common() / 'ha' / 'history') for p in (odd.common() / 'ha' / 'history').rglob('*') if p.is_file())
-        require([str(p) for p in stored] == [odd.start_sha() + '/events.jsonl', odd.start_sha() + '/lock'], 'history-path-steered', stored)
+        require([str(p) for p in stored] == [odd.start_sha() + '/events.jsonl', odd.start_sha() + '/last', odd.start_sha() + '/lock'], 'history-path-steered', stored)
     # Worktree removal keeps the history; a new clone does not carry it.
     f.git('worktree', 'remove', '--force', str(wt))
     require(ids(f.view('list')['items']) == ['D1', 'D2'], 'history-removed-with-worktree', 'after worktree removal')
@@ -796,12 +894,14 @@ def ac10(binary, temp, capabilities):
     if native.returncode:
         raise Environment('execution_error', native.stdout + native.stderr)
     reference = normalize(native.stdout)
-    require(reference.get('current', (1,))[0] == 0 and len(reference) == 18, 'history-probe-incomplete', reference)
+    require(reference.get('current', (1,))[0] == 0 and len(reference) == 22, 'history-probe-incomplete', reference)
     require(reference['absent'][1].get('history') == 'absent', 'history-platform-semantics', reference['absent'])
     expect = {'query-before-start': 65, 'absent': 0, 'not-started': 65, 'replay': 0, 'request-conflict': 65, 'bad-status': 64, 'bad-relation': 65,
-              'bad-target': 65, 'stale': 65, 'reject': 0}
+              'bad-target': 65, 'stale': 65, 'reject': 0, 'tail-removed': 65, 'tail-add': 65, 'read-link': 70, 'restored': 0}
     for name, code in expect.items():
         require(reference[name][0] == code, 'history-platform-semantics', (name, reference[name]))
+    require(reference['tail-removed'][1] == reference['tail-add'][1] == 'history_corrupt' and reference['read-link'][1] == 'history_unreadable',
+            'history-platform-semantics', reference)
     observed = ['native']
     if shutil.which('docker') is None:
         raise Environment('dependency_missing', 'docker is required to run the Linux binaries')
@@ -893,11 +993,15 @@ def ac12(binary, temp, capabilities):
             require(line.strip() and line in output, 'history-example-diverges', 'missing %r in\n%s' % (line, output))
     # Every public description names the same optional feature and limits.
     docs = {
-        'contracts/decision-history.md': ['decision-history/v1', '선택 기능', 'correction_conflict', 'write_uncertain', 'local', 'Agent Wiki', '새 clone', '§5.3'],
+        'contracts/decision-history.md': ['decision-history/v1', '선택 기능', 'correction_conflict', 'write_uncertain', 'local', 'Agent Wiki', '새 clone', '§5.3',
+                                          '/last', '쓰지도 읽지도 않는다', '진행 중인 등록이 끝날 때까지 기다려', '끝에서부터 지운 온전한 줄',
+                                          '`last`와 이력을 함께 지우거나 이전 상태로 되돌린 경우는 드러나지 않는다', '실행자가 준 식별 값은 줄이지 않아',
+                                          '`missing`(경로가 없음)'],
         'contracts/core-capabilities.md': ['decision-history/v1', 'formats.decision_history', 'v0.1.4', '--operation history'],
         'contracts/bundle.md': ['decision-history.md', 'Seal 0.1.13'],
         'plugins/seal/skills/seal/SKILL.md': ['decision-history/v1', 'ha history', 'Events are claims', 'Goals started earlier keep their PROGRESS form'],
-        'plugins/seal/skills/seal/references/ha.md': ['decision-history/v1', 'formats.decision_history', 'correction_conflict', 'write_uncertain', 'executor claims', '--operation', 'history'],
+        'plugins/seal/skills/seal/references/ha.md': ['decision-history/v1', 'formats.decision_history', 'correction_conflict', 'write_uncertain', 'executor claims', '--operation', 'history',
+                                                      'Removed trailing events count as damage'],
         'plugins/seal/skills/seal/references/bundle.md': ['decision history', 'event ID'],
         'guides/USAGE.md': ['decision-history/v1', '판단 이력', '새 clone', 'v0.1.4'],
         'guides/USAGE.en.md': ['decision-history/v1', 'decision history', 'new clone', 'v0.1.4'],

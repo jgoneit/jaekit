@@ -46,3 +46,15 @@ step current-pdf history $G current --keyword PDF --format json
 step show history $G show D3 --format json
 step page history $G list --limit 2 --format json
 step status status $G --format json
+H=$(ls -d .git/ha/history/*)
+cp "$H/events.jsonl" "$WORK/events.saved"
+sed '$d' "$WORK/events.saved" > "$H/events.jsonl"
+step tail-removed history $G list --format json
+step tail-add history $G add --kind 관측 --summary again --request-id reject-1
+cp "$WORK/events.saved" "$H/events.jsonl"
+mv .git/ha/history "$WORK/moved-history"
+ln -s "$WORK/moved-history" .git/ha/history
+step read-link history $G list --format json
+rm .git/ha/history
+mv "$WORK/moved-history" .git/ha/history
+step restored history $G list --limit 2 --format json
