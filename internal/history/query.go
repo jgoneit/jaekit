@@ -95,6 +95,8 @@ type Related struct {
 	Summary  string `json:"summary"`
 	Lineage  string `json:"lineage"`
 	Current  bool   `json:"current"`
+	// After is the last correction the supersedes relation acknowledged.
+	After string `json:"after,omitempty"`
 }
 
 // EvidenceView is one evidence reference with what was observed at
@@ -442,7 +444,9 @@ func Run(in Input, q Query) (*View, error) {
 			v.Predecessors = append(v.Predecessors, g.related(b, "builds_on"))
 		}
 		for _, s := range e.Decision.Supersedes {
-			v.Predecessors = append(v.Predecessors, g.related(s.ID, "supersedes"))
+			r := g.related(s.ID, "supersedes")
+			r.After = s.After
+			v.Predecessors = append(v.Predecessors, r)
 		}
 		var successors []Related
 		for i := target + 1; i < g.end; i++ {
@@ -454,7 +458,9 @@ func Run(in Input, q Query) (*View, error) {
 			}
 			for _, s := range later.Supersedes {
 				if s.ID == e.ID {
-					successors = append(successors, g.related(in.Events[i].ID, "supersedes"))
+					r := g.related(in.Events[i].ID, "supersedes")
+					r.After = s.After
+					successors = append(successors, r)
 				}
 			}
 		}

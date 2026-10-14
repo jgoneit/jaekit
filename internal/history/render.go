@@ -166,6 +166,9 @@ func relatedLine(r Related) string {
 	if r.Current {
 		current = ", current"
 	}
+	if r.After != "" {
+		current += ", after " + r.After
+	}
 	return fmt.Sprintf("- %s %s · %s · %s (lineage %s%s)\n", r.Relation, r.ID, claim(r.Kind, r.Status), r.Summary, r.Lineage, current)
 }
 

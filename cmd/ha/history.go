@@ -359,7 +359,7 @@ func (c *cli) historyAdd(a *args, w *workspace, store *history.Store, facts hist
 		var replay *history.Replay
 		if !errors.As(err, &replay) {
 			if history.Code(err) == "write_uncertain" {
-				return c.fail(exitInternal, "%v; the event may have been stored under request id %s. Before writing again, repeat this request with --request-id %s or run: ha history %s show --request-id %s",
+				return c.fail(exitInternal, "%v; confirm request id %s before writing again: repeat this request with --request-id %s or run: ha history %s show --request-id %s",
 					err, request, request, w.arg, request)
 			}
 			return c.historyFail(err)

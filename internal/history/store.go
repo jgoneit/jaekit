@@ -79,14 +79,28 @@ func (s *Store) Load() (string, []Event, error) {
 			return "", nil, fail("history_unreadable", "%s is not a plain directory; refusing to read through it", dir)
 		}
 	}
-	unlock, err := share(filepath.Join(s.Dir(), "lock"))
-	if err != nil {
-		return "", nil, err
+	lockPath := filepath.Join(s.Dir(), "lock")
+	for {
+		unlock, held, err := share(lockPath)
+		if err != nil {
+			return "", nil, err
+		}
+		if !held {
+			unlockedRead()
+		}
+		state, events, _, err := s.load()
+		unlock()
+		// Without a lock no registration had started when this read began. If
+		// the first registration created the lock since, its line may have been
+		// read half written: read again under the lock.
+		if _, statErr := os.Lstat(lockPath); held || errors.Is(statErr, fs.ErrNotExist) {
+			return state, events, err
+		}
 	}
-	defer unlock()
-	state, events, _, err := s.load()
-	return state, events, err
 }
+
+// unlockedRead separates a read without the lock for tests.
+var unlockedRead = func() {}
 
 // load reads the history and checks it against the last stored event. lag
 // reports that the record of the last event is one event behind, which a
@@ -340,26 +354,26 @@ func lock(p string) (func(), error) {
 
 // share holds the registration lock shared while a query reads. Queries create
 // nothing: without a lock file no registration has started here, so there is
-// nothing to wait for.
-func share(p string) (func(), error) {
+// nothing to wait for, and held is false.
+func share(p string) (unlock func(), held bool, err error) {
 	if err := regularOrAbsent(p); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	f, err := os.OpenFile(p, os.O_RDONLY|syscall.O_NOFOLLOW, 0)
 	if errors.Is(err, fs.ErrNotExist) {
-		return func() {}, nil
+		return func() {}, false, nil
 	}
 	if err != nil {
-		return nil, fail("history_unreadable", "%v", err)
+		return nil, false, fail("history_unreadable", "%v", err)
 	}
 	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_SH); err != nil {
 		f.Close()
-		return nil, fail("history_unreadable", "%v", err)
+		return nil, false, fail("history_unreadable", "%v", err)
 	}
 	return func() {
 		syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
 		f.Close()
-	}, nil
+	}, true, nil
 }
 
 // Replay reports that a request was already stored. The caller returns the
@@ -429,9 +443,11 @@ func (s *Store) Append(now time.Time, haVersion string, build func([]Event) (*Ev
 		return nil, err
 	}
 	e.Raw = raw
-	// The event is stored. If its record cannot be written, the record stays
-	// one event behind: reads accept that and the next registration repairs
-	// it, or refuses when it cannot.
-	_ = s.writeLast(*e)
+	// The event is stored, but until its record is written the loss of this
+	// last line would go unnoticed. Say so instead of returning a receipt; the
+	// same request replays once the record catches up.
+	if err := s.writeLast(*e); err != nil {
+		return nil, fail("write_uncertain", "%s was stored, but the record of the last stored event was not updated (%v); until it is, removing %s from the end of the history is not detected", e.ID, err, e.ID)
+	}
 	return e, nil
 }

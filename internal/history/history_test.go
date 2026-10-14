@@ -572,6 +572,81 @@ func TestReadsWaitForRegistration(t *testing.T) {
 	}
 }
 
+func TestFirstRegistrationReadWaits(t *testing.T) {
+	s := newStore(t)
+	if err := os.MkdirAll(s.Dir(), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Between a query finding no lock and reading, the first registration
+	// creates the lock and has half written its line.
+	defer func() { unlockedRead = func() {} }()
+	unlockedRead = func() {
+		unlockedRead = func() {}
+		f, err := os.OpenFile(filepath.Join(s.Dir(), "lock"), os.O_CREATE|os.O_RDWR, 0o644)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		syscall.Flock(int(f.Fd()), syscall.LOCK_EX)
+		os.WriteFile(s.file(), []byte(`{"schema":"decision-history/v1","seq":1`), 0o644)
+		go func() {
+			time.Sleep(150 * time.Millisecond)
+			// The registration is abandoned before it stores anything.
+			os.Remove(s.file())
+			syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+			f.Close()
+		}()
+	}
+	if state, events, err := s.Load(); err != nil || state != Absent || events != nil {
+		t.Fatalf("a read during the first registration must not report its half-written line: %v %v %d", err, state, len(events))
+	}
+}
+
+func TestUnanchoredRegistrationIsReported(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("permissions do not restrict root")
+	}
+	s := newStore(t)
+	f := facts(runHashes(2, "a"))
+	mustAdd(t, s, f, "r1", Decision{Kind: "관측", Summary: "first"})
+	d := Decision{Kind: "관측", Summary: "second"}
+	// The events file stays writable; the record of the last event cannot be replaced.
+	os.Chmod(s.Dir(), 0o555)
+	_, err := add(t, s, f, "r2", d)
+	os.Chmod(s.Dir(), 0o755)
+	if Code(err) != "write_uncertain" || !strings.Contains(err.Error(), "D2 was stored") {
+		t.Fatalf("an unrecorded last event must be reported: %v", err)
+	}
+	if _, events, err := s.Load(); err != nil || len(events) != 2 {
+		t.Fatalf("the stored event reads: %v %d", err, len(events))
+	}
+	if _, err := add(t, s, f, "r2", d); !isReplay(err, "D2") {
+		t.Fatalf("the same request must replay once the record catches up: %v", err)
+	}
+	data, _ := os.ReadFile(s.file())
+	os.WriteFile(s.file(), data[:bytes.IndexByte(data, '\n')+1], 0o644)
+	if _, _, err := s.Load(); Code(err) != "history_corrupt" {
+		t.Fatalf("after catching up, losing D2 is damage: %v", err)
+	}
+}
+
+func TestMarkdownShowsAcknowledgedCorrection(t *testing.T) {
+	s := newStore(t)
+	runs := runHashes(2, "a")
+	f := facts(runs)
+	mustAdd(t, s, f, "r1", Decision{Kind: "원인", Summary: "first"})
+	mustAdd(t, s, f, "r2", Decision{Kind: "원인", Summary: "fix", Supersedes: []Supersede{{ID: "D1"}}})
+	mustAdd(t, s, f, "r3", Decision{Kind: "원인", Summary: "second fix", Supersedes: []Supersede{{ID: "D1", After: "D2"}}})
+	v := query(t, s, runs, Query{Mode: "show", ID: "D3"})
+	if len(v.Predecessors) != 1 || v.Predecessors[0].After != "D2" || !strings.Contains(v.Markdown(), "- supersedes D1 · 원인 · first (lineage same, after D2)") {
+		t.Fatalf("predecessor:\n%s", v.Markdown())
+	}
+	md := query(t, s, runs, Query{Mode: "show", ID: "D1"}).Markdown()
+	if !strings.Contains(md, "- supersedes D3 · 원인 · second fix (lineage same, current, after D2)") {
+		t.Fatalf("successor:\n%s", md)
+	}
+}
+
 func TestMarkdownKeepsExternalVersions(t *testing.T) {
 	s := newStore(t)
 	runs := runHashes(2, "a")
