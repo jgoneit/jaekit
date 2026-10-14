@@ -23,7 +23,7 @@ expect-exit 0
 expect-output "\"replayed\":true"
 ha history $GOAL
 expect-exit 0
-expect-output "D3 · 결정 · T001 · write the greeting once (linked grounds D1 later corrected by D4)"
+expect-output "D3 · 결정 · T001 · write the greeting once (linked grounds D1 corrected by D4)"
 expect-no-output "- D1 ·"
 ha history $GOAL show D3 --format md
 expect-exit 0

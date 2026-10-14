@@ -39,7 +39,7 @@ func marks(it Item) []string {
 		m = append(m, "corrected in another lineage by "+strings.Join(it.OtherCorrections, ", "))
 	}
 	for _, gr := range it.GroundsCorrected {
-		m = append(m, "linked grounds "+gr.ID+" later corrected by "+strings.Join(gr.By, ", "))
+		m = append(m, "linked grounds "+gr.ID+" corrected by "+strings.Join(gr.By, ", "))
 	}
 	if c := it.Context; c != nil {
 		if c.Code != "same" {

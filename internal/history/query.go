@@ -51,7 +51,8 @@ type Chain struct {
 	Valid  bool
 }
 
-// Grounds names a builds_on event that was later corrected in the selected lineage.
+// Grounds names a builds_on event corrected in the selected lineage, regardless
+// of whether the correction precedes, is, or follows the dependent event.
 type Grounds struct {
 	ID string   `json:"id"`
 	By []string `json:"by"`

@@ -27,6 +27,10 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 PROBE = Path(__file__).resolve().parent / 'platform_probe.sh'
+FILE_BOUNDARY_TESTS = {'TestFileEvidenceRejectsReplacedLeaf', 'TestFileEvidenceRejectsReplacedParent', 'TestFileEvidenceRejectsReplacedRoot',
+                       'TestFileEvidencePreservesStablePathStates', 'TestFileEvidencePreservesSearchOnlyDirectories',
+                       'TestFileEvidenceConfinedWalkRejectsLinks', 'TestFileEvidenceBoundsDirectoryDescriptors',
+                       'TestFileEvidenceBoundsGrowth'}
 
 
 class Violation(Exception):
@@ -86,6 +90,18 @@ def probe(binary):
 def code_of(result):
     match = re.search(r'ha: ([a-z_]+):', result.stderr)
     return match[1] if match else ''
+
+
+def unit_observations(package, names):
+    """Require every named boundary test to run; a missing test is not a pass."""
+    result = run(['go', 'test', '-count=1', '-json', package,
+                  '-run', '^(%s)$' % '|'.join(sorted(names))], ROOT)
+    events = [json.loads(line) for line in result.stdout.splitlines() if line.startswith('{')]
+    failed = {e.get('Test') for e in events if e.get('Action') == 'fail'} - {None}
+    passed = {e.get('Test') for e in events if e.get('Action') == 'pass'}
+    require(not failed, 'history-unit-assertion', sorted(failed))
+    if result.returncode or not set(names) <= passed:
+        raise Environment('collection_error', result.stdout[-2000:] + result.stderr)
 
 
 SPEC = '''# Synthetic
@@ -374,6 +390,47 @@ def ac2(binary, temp):
         os.chmod(locked, 0o755)
     states = {e['path']: e['recorded']['state'] for e in f.view('show', r['id'])['event']['evidence']}
     require(states == want, 'history-unknown-path-recorded-missing', states)
+    evidence_read_boundaries(binary, temp / 'read-boundaries')
+    unit_observations('./cmd/ha', FILE_BOUNDARY_TESTS)
+    unit_observations('./internal/history', {'TestFileEvidenceObservationBoundaries'})
+
+
+def evidence_read_boundaries(binary, temp):
+    f = Fixture(binary, temp / 'repo')
+    bounded = f.root / 'src/bounded'
+    with bounded.open('wb') as out:
+        out.truncate(64 * 1024 * 1024)
+    exact = f.add('--kind', '관측', '--summary', 'exact limit', '--ref', 'file:src/bounded', '--request-id', 'exact')
+    recorded = f.view('show', exact['id'])['event']['evidence'][0]['recorded']
+    require(recorded['state'] == 'read' and recorded['version'].startswith('sha256:'),
+            'history-file-limit-boundary', recorded)
+    with bounded.open('ab') as out:
+        out.write(b'x')
+    oversized = f.add('--kind', '관측', '--summary', 'over limit', '--ref', 'file:src/bounded')
+    over = f.view('show', oversized['id'])['event']['evidence'][0]
+    require(over['recorded'] == {'version': '', 'state': 'too_large'} and over['now'] == 'unidentified',
+            'history-file-limit-boundary', over)
+    changed = f.view('show', exact['id'])['event']['evidence'][0]
+    require(changed['recorded'] == recorded and changed['now'] == 'unavailable',
+            'history-file-observation-rewritten', changed)
+    before = f.history_bytes()
+    bounded.unlink()
+    os.mkfifo(bounded)
+    replay = f.add('--kind', '관측', '--summary', 'exact limit', '--ref', 'file:src/bounded', '--request-id', 'exact')
+    require(replay['replayed'] and replay['id'] == exact['id'] and f.history_bytes() == before,
+            'history-replay-rereads-file', replay)
+    for query in ([], ['current'], ['list']):
+        require(f.view(*query)['total'] == 2, 'history-summary-rereads-file', query)
+    outside = temp / 'outside'
+    outside.mkdir()
+    (outside / 'value').write_text('outside content')
+    os.symlink(outside, f.root / 'src/outside')
+    os.symlink(outside / 'value', f.root / 'src/link')
+    expected = {'src/bounded': 'not_regular', 'src/link': 'not_regular', 'src/outside/value': 'outside', 'src': 'not_regular'}
+    r = f.add('--kind', '관측', '--summary', 'unsafe files', *[x for path in expected for x in ('--ref', 'file:' + path)])
+    states = {e['path']: e['recorded'] for e in f.view('show', r['id'])['event']['evidence']}
+    require(states == {p: {'version': '', 'state': state} for p, state in expected.items()},
+            'history-file-boundary-escaped', states)
 
 
 def ac3(binary, temp):
@@ -455,7 +512,7 @@ def ac4(binary, temp):
     require(ids(f.view('current', '--keyword', 'PDF')['items']) == [] and 'D1' not in ids(f.view('current', '--target', 'T001')['items']),
             'history-filter-resurrected', 'D1')
     md = f.md('current')
-    require('linked grounds D1 later corrected by D4' in md and '- D1 ·' not in md, 'history-grounds-correction-hidden', md)
+    require('linked grounds D1 corrected by D4' in md and '- D1 ·' not in md, 'history-grounds-correction-hidden', md)
     for word in ('unresolved', 'not done', 'unfinished', 'stale judgment', 'verified'):
         require(word not in md.lower(), 'history-absence-judged', word)
     # Head advance alone keeps the lineage; the recorded snapshot stays.
@@ -493,6 +550,31 @@ def ac4(binary, temp):
     require(broken['run_chain'] == 'broken' and broken['items'] == [] and broken['other_lineage']['count'] == 4
             and all(o['lineage'] == 'unverifiable' for o in broken['other_lineage']['ids']), 'history-broken-chain-trusted', broken)
     runs.write_bytes(data)
+    neutral_grounds(binary, temp / 'neutral')
+    unit_observations('./internal/history', {'TestGroundsCorrectionsPreserveEarlierSameAndLaterEvents',
+                                           'TestGroundsCorrectionsRespectSelectedLineage',
+                                           'TestGroundsCorrectionPagesKeepOriginalBoundary'})
+
+
+def neutral_grounds(binary, temp):
+    f = Fixture(binary, temp / 'repo')
+    f.add('--kind', '관측', '--summary', 'original')
+    f.add('--kind', '관측', '--summary', 'earlier correction', '--supersedes', 'D1')
+    f.add('--kind', '결정', '--summary', 'keep me', '--target', 'T001', '--builds-on', 'D1', '--request-id', 'uses-old')
+    f.add('--kind', '관측', '--summary', 'uses and corrects', '--builds-on', 'D1', '--supersedes', 'D1@D2')
+    f.add('--kind', '관측', '--summary', 'later correction', '--supersedes', 'D1@D4')
+    expected = [{'id': 'D1', 'by': ['D2', 'D4', 'D5']}]
+    before = f.snapshot()
+    queries = ([], ['current'], ['list'], ['current', '--target', 'T001', '--keyword', 'keep'],
+               ['show', 'D3'], ['show', '--request-id', 'uses-old'], ['show', 'D4'])
+    for query in queries:
+        view = f.view(*query)
+        event = view['event'] if query and query[0] == 'show' else item(view, 'D3')
+        require(event['current'] and event['grounds_corrected'] == expected, 'history-correction-information-lost', event)
+        md = f.md(*query)
+        require('linked grounds D1 corrected by D2, D4, D5' in md and 'later corrected' not in md,
+                'history-correction-time-misreported', md)
+    require(f.snapshot() == before, 'history-query-wrote', 'neutral display changed storage')
 
 
 def ac5(binary, temp):
@@ -579,6 +661,7 @@ def ac5(binary, temp):
 
 
 def ac6(binary, temp):
+    unsupported_history_rules(binary, temp / 'unsupported-rules')
     f = Fixture(binary, temp / 'main')
     f.add('--kind', '관측', '--summary', 'first')
     before = f.history_bytes()
@@ -730,6 +813,36 @@ def ac6(binary, temp):
     require(not failed, 'history-unit-assertion', failed)
     if result.returncode or not units <= passed:
         raise Environment('collection_error', result.stdout[-2000:] + result.stderr)
+
+
+def unsupported_history_rules(binary, temp):
+    queries = ([], ['current'], ['list'], ['show', 'D1'], ['show', '--request-id', 'old'],
+               ['add', '--kind', '관측', '--summary', 'new', '--request-id', 'new'],
+               ['add', '--kind', '관측', '--summary', 'old', '--request-id', 'old'])
+    for populated in (False, True):
+        f = Fixture(binary, temp / str(populated))
+        if populated:
+            f.add('--kind', '관측', '--summary', 'old', '--request-id', 'old')
+        original = f.history_dir()
+        path = f.root / f.goal / 'runs.jsonl'
+        rows = [json.loads(line) for line in path.read_bytes().splitlines()]
+        rows[0]['rules'] = 'run-rules/999'
+        encoded = []
+        for row in rows:
+            row['prev'] = hashlib.sha256(encoded[-1]).hexdigest() if encoded else None
+            encoded.append(json.dumps(row, separators=(',', ':'), ensure_ascii=False).encode())
+        path.write_bytes(b'\n'.join(encoded) + b'\n')
+        if populated:
+            # Make the unsupported start's storage present as well. It must
+            # still be rejected before reading or changing any history data.
+            shutil.copytree(original, f.history_dir())
+        before = f.snapshot()
+        for query in queries:
+            result = f.h(*query)
+            require(result.returncode == 66 and code_of(result) == 'history_unsupported',
+                    'history-unsupported-rules-unidentified', (query, result.returncode, result.stderr))
+            require(f.snapshot() == before, 'history-unsupported-rules-mutated', query)
+            require(f.history_dir().exists() == populated, 'history-unsupported-storage-created', query)
 
 
 def ac7(binary, temp):
@@ -944,6 +1057,18 @@ def ac10(binary, temp, capabilities):
         if r.returncode or 'STEP' not in r.stdout:
             raise Environment('dependency_missing' if 'No such image' in r.stderr else 'execution_error', r.stdout + r.stderr)
         require(normalize(r.stdout) == reference, 'history-platform-semantics', 'linux/%s differs from native' % arch)
+        # The replacement and growth boundaries rely on Unix open flags.
+        # Execute on both Linux arches as a non-root user so permission
+        # compatibility tests cannot silently bypass directory access rules.
+        env = dict(os.environ, CGO_ENABLED='0', GOOS='linux', GOARCH=arch)
+        compiled = run(['go', 'test', '-c', '-o', out / 'evidence.test', './cmd/ha'], ROOT, env)
+        if compiled.returncode:
+            raise Environment('compile_error', compiled.stdout + compiled.stderr)
+        boundary = run(['docker', 'run', '--rm', '--pull', 'never', '--network', 'none', '--user', '1000:1000', '--platform', 'linux/' + arch,
+                        '-v', '%s:/out:ro' % out, '--entrypoint', '/out/evidence.test', 'jaekit-check-git:' + arch,
+                        '-test.v', '-test.run=^(%s)$' % '|'.join(sorted(FILE_BOUNDARY_TESTS))], ROOT, timeout=600)
+        require(boundary.returncode == 0 and all('--- PASS: ' + name + ' ' in boundary.stdout for name in FILE_BOUNDARY_TESTS),
+                'history-platform-file-boundary', boundary.stdout + boundary.stderr)
         observed.append('linux/' + arch)
     print('observed platforms:', ', '.join(observed), '; darwin/amd64 built only', file=sys.stderr)
     # An executable without the feature is never taken for one that has it.

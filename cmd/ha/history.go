@@ -95,47 +95,96 @@ func newRequestID() (string, error) {
 	return "auto-" + hex.EncodeToString(b), nil
 }
 
-// fileVersion hashes a repository file at registration or query. It reads
-// regular files inside the repository only and never follows a symlink.
+const fileEvidenceLimit = 64 << 20
+
+// fileVersion hashes a repository file at registration or query. Parent links
+// may resolve inside the repository; a final symlink is never read through.
 func fileVersion(root string) func(string) (string, string) {
 	return func(p string) (string, string) {
-		full := filepath.Join(root, filepath.FromSlash(p))
-		realRoot, err := filepath.EvalSymlinks(root)
-		if err != nil {
-			return "", "unreadable"
-		}
-		parent, err := filepath.EvalSymlinks(filepath.Dir(full))
-		if err != nil {
-			// Only a path that does not exist is missing. A parent that cannot be
-			// traversed or resolved leaves the file's existence unknown.
-			if errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR) {
-				return "", "missing"
-			}
-			return "", "unreadable"
-		}
-		if rel, err := filepath.Rel(realRoot, parent); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-			return "", "outside"
-		}
-		info, err := os.Lstat(full)
-		if errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR) {
-			return "", "missing"
-		}
-		if err != nil {
-			return "", "unreadable"
-		}
-		if !info.Mode().IsRegular() {
-			return "", "not_regular"
-		}
-		if info.Size() > 64<<20 {
-			return "", "too_large"
-		}
-		data, err := os.ReadFile(full)
-		if err != nil {
-			return "", "unreadable"
-		}
-		h := sha256.Sum256(data)
-		return "sha256:" + hex.EncodeToString(h[:]), "read"
+		return observeFileEvidence(root, p, nil)
 	}
+}
+
+// afterCheck separates the checked handle from the pathname open for tests.
+func observeFileEvidence(root, p string, afterCheck func()) (string, string) {
+	full := filepath.Join(root, filepath.FromSlash(p))
+	realRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return "", "unreadable"
+	}
+	repo, err := openFileEvidenceRoot(realRoot)
+	if err != nil {
+		return "", "unreadable"
+	}
+	defer repo.Close()
+	parent, err := filepath.EvalSymlinks(filepath.Dir(full))
+	if err != nil {
+		return "", fileEvidenceError(err)
+	}
+	rel, err := filepath.Rel(realRoot, parent)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", "outside"
+	}
+	base := filepath.Base(full)
+	checked, err := os.Lstat(filepath.Join(parent, base))
+	if err != nil {
+		return "", fileEvidenceError(err)
+	}
+	if !checked.Mode().IsRegular() {
+		return "", "not_regular"
+	}
+	if checked.Size() > fileEvidenceLimit {
+		return "", "too_large"
+	}
+	// Open each parent from the pinned root without following a new symlink.
+	// Keep the file inode alive until the read ends, so it cannot be reused.
+	confined, err := openConfinedFileEvidence(repo, rel, base)
+	if err != nil {
+		return "", fileEvidenceError(err)
+	}
+	defer confined.Close()
+	info, err := confined.Stat()
+	if err != nil || !info.Mode().IsRegular() || !os.SameFile(checked, info) {
+		return "", "unreadable"
+	}
+	if afterCheck != nil {
+		afterCheck()
+	}
+	// Check the original path too: canonicalizing an existing parent link must
+	// not hide a concurrent replacement of that link. Require the confined
+	// inode before reading any bytes; a final symlink is rejected by the OS.
+	f, err := os.OpenFile(full, os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		return "", fileEvidenceError(err)
+	}
+	defer f.Close()
+	opened, err := f.Stat()
+	if err != nil || !opened.Mode().IsRegular() || !os.SameFile(info, opened) {
+		return "", "unreadable"
+	}
+	if opened.Size() > fileEvidenceLimit {
+		return "", "too_large"
+	}
+	return hashFileEvidence(f)
+}
+
+func fileEvidenceError(err error) string {
+	if errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR) {
+		return "missing"
+	}
+	return "unreadable"
+}
+
+func hashFileEvidence(r io.Reader) (string, string) {
+	h := sha256.New()
+	n, err := io.Copy(h, io.LimitReader(r, fileEvidenceLimit+1))
+	if err != nil {
+		return "", "unreadable"
+	}
+	if n > fileEvidenceLimit {
+		return "", "too_large"
+	}
+	return "sha256:" + hex.EncodeToString(h.Sum(nil)), "read"
 }
 
 func (c *cli) history(in []string) int {
@@ -201,7 +250,7 @@ func (c *cli) history(in []string) int {
 		return c.fail(exitRefused, "not_started: the goal has no start record; decision history needs an existing ha start and never starts a run")
 	}
 	if !status.Supported(rules(lines)) {
-		return c.fail(exitRules, "%v", &status.UnsupportedRulesError{Rules: rules(lines)})
+		return c.fail(exitRules, "history_unsupported: %v", &status.UnsupportedRulesError{Rules: rules(lines)})
 	}
 	common, err := w.repo.CommonDir()
 	if err != nil {
