@@ -97,9 +97,21 @@ function Invoke-JaekitAcceptanceStep($Step) {
         # PowerShell's native formatter can color and wrap the message.
         # Normalize presentation only; keep the original diagnostic output.
         $comparison = [regex]::Replace($diagnostic, '\x1b\[[0-?]*[ -/]*[@-~]', '')
+        # A numbered source line identifies a ConciseView frame. Strip one
+        # continuation gutter only in that frame, preserving literal message
+        # pipes and the child's default ErrorView (including NormalView).
+        if ([regex]::IsMatch($comparison, '(?m)^[ \t]+[0-9]+[ \t]+\|')) {
+            $comparison = [regex]::Replace($comparison, '(?m)^[ \t]+\|[ \t]?', '')
+        }
         $comparison = [regex]::Replace($comparison, '\s+', ' ')
-        if ($code -ne 1 -or -not $comparison.Contains($Step.ExpectedDiagnostic)) {
-            throw ('Acceptance step ' + $Step.Name + ': expected product refusal was not observed. Exit=' + $code + '. ' + $diagnostic)
+        $exitText = if ($null -eq $code) { '<unobserved>' } else { [string]$code }
+        $detail = 'Acceptance step ' + $Step.Name + ': Exit=' + $exitText + '; Expected=' + $Step.ExpectedDiagnostic +
+            "`nRaw diagnostic:`n" + $diagnostic + "`nComparison:`n" + $comparison
+        if ($null -eq $code -or $code -ne 1) {
+            throw ('Expected product refusal exit was not observed. ' + $detail)
+        }
+        if (-not $comparison.Contains($Step.ExpectedDiagnostic)) {
+            throw ('Expected product refusal diagnostic was not observed. ' + $detail)
         }
     } elseif ($code -ne 0) {
         throw ('Acceptance step ' + $Step.Name + ': candidate execution failed. Exit=' + $code + '. ' + $diagnostic)

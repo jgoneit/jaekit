@@ -65,7 +65,7 @@ if ('__ORIGIN__' -eq 'update' -and $env:JAEKIT_ACCEPTANCE_CASE -eq 'update-helpe
 param([string]$Archive, [string]$Checksums, [switch]$AddToPath)
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'common.ps1')
-$event = @{stage=$env:JAEKIT_ACCEPTANCE_STAGE; origin='__ORIGIN__'; entrypoint='__ACTION__'; shell=$PSVersionTable.PSVersion.ToString(); archive=$Archive; checksums=$Checksums; path_consent=[bool]$AddToPath}
+$event = @{stage=$env:JAEKIT_ACCEPTANCE_STAGE; origin='__ORIGIN__'; entrypoint='__ACTION__'; shell=$PSVersionTable.PSVersion.ToString(); error_view=[string]$ErrorView; script_directory=$PSScriptRoot; archive=$Archive; checksums=$Checksums; path_consent=[bool]$AddToPath}
 [IO.File]::AppendAllText($env:JAEKIT_ACCEPTANCE_EVENTS, (ConvertTo-Json -Compress -InputObject $event) + "`n")
 if ('__ORIGIN__' -eq 'update' -and '__ACTION__' -eq 'install' -and $env:JAEKIT_ACCEPTANCE_CASE -eq 'update-installer-failure') { throw 'INJECTED_UPDATE_INSTALLER_FAILURE' }
 if ('__ORIGIN__' -eq 'update' -and '__ACTION__' -eq 'uninstall' -and $env:JAEKIT_ACCEPTANCE_CASE -eq 'update-uninstaller-failure') { throw 'INJECTED_UPDATE_UNINSTALLER_FAILURE' }
@@ -78,9 +78,14 @@ $diagnostic = switch ($env:JAEKIT_ACCEPTANCE_STAGE) {
     default { '' }
 }
 if ($env:JAEKIT_ACCEPTANCE_CASE -eq 'unexpected-refusal-diagnostic' -and $env:JAEKIT_ACCEPTANCE_STAGE -eq 'checksum-refusal') { $diagnostic = 'UNRELATED_SETUP_FAILURE' }
+if ($env:JAEKIT_ACCEPTANCE_CASE -eq 'embedded-pipe-refusal' -and $env:JAEKIT_ACCEPTANCE_STAGE -eq 'checksum-refusal') { $diagnostic = 'Archive checksum is missing, duplicated or does | not match.' }
+if ($env:JAEKIT_ACCEPTANCE_CASE -eq 'success-nonzero-exit' -and $env:JAEKIT_ACCEPTANCE_STAGE -eq 'first-install') { exit 1 }
+if ($env:JAEKIT_ACCEPTANCE_CASE -eq 'refusal-missing-diagnostic' -and $env:JAEKIT_ACCEPTANCE_STAGE -eq 'checksum-refusal') { exit 1 }
 if ($diagnostic) {
-    # Exercise the product's Write-Error path, including wrapped messages.
-    Write-Error -ErrorAction Continue ('Installation failed: ' + $diagnostic.Replace(' ', " `n"))
+    # Preserve the default child ErrorView. A nested invocation produces the
+    # same host-rendered error boundary as the actual product try/catch flow.
+    & { Write-Error -ErrorAction Continue ('Installation failed: ' + $diagnostic.Replace(' ', " `n") + ' ' + $PSScriptRoot) }
+    if ($env:JAEKIT_ACCEPTANCE_CASE -eq 'refusal-zero-exit' -and $env:JAEKIT_ACCEPTANCE_STAGE -eq 'checksum-refusal') { exit 0 }
     exit 1
 }
 exit 0
@@ -147,7 +152,7 @@ try {
     $guardCalls = @($commands | Where-Object { $_.GetCommandName() -eq 'Assert-WindowsPlatform' })
     Require ($guardCalls.Count -eq 1 -and $guardCalls[0].Extent.StartOffset -lt $planCalls[0].Extent.StartOffset) 'Client guard must remain before actual lifecycle execution.'
     $report.production_stages = @($stageNames)
-    $report.required = @($stageNames | ForEach-Object { 'dispatch-' + $_ }) + @('update-installer-failure', 'update-helper-failure', 'update-uninstaller-failure', 'missing-update-script', 'wrong-update-script', 'shell-start-failure', 'unexpected-refusal-diagnostic')
+    $report.required = @($stageNames | ForEach-Object { 'dispatch-' + $_ }) + @('update-installer-failure', 'update-helper-failure', 'update-uninstaller-failure', 'missing-update-script', 'wrong-update-script', 'shell-start-failure', 'unexpected-refusal-diagnostic', 'embedded-pipe-refusal', 'refusal-zero-exit', 'refusal-missing-diagnostic', 'success-nonzero-exit')
     $definition = Read-PublicBlock (Join-Path $root 'guides/WINDOWS.en.md') 'CANDIDATE PREFLIGHT'
     $example = Read-PublicBlock $readmePath 'VERIFIED ACCEPTANCE'
     $env:JAEKIT_ACCEPTANCE_SHELL51 = (Get-Command powershell.exe -CommandType Application -ErrorAction Stop).Source
@@ -174,7 +179,8 @@ __BINDING__
 '@
     $wrapper = $wrapper.Replace('__BINDING__', $binding).Replace('__STAGES__', (($stageNames | ForEach-Object { "'" + $_ + "'" }) -join ','))
     foreach ($case in @('valid') + @($report.required | Where-Object { -not $_.StartsWith('dispatch-') })) {
-        $caseRoot = Join-Path $work $case
+        $longSegment = ('long space ' + [char]0xd55c + [char]0xae00 + ' path ') * 4
+        $caseRoot = Join-Path (Join-Path $work $longSegment.TrimEnd()) $case
         $first = Join-Path $caseRoot 'first'; $next = Join-Path $caseRoot 'next'
         Write-Fixture $first 'first' $wrapper
         Write-Fixture $next 'update' '# Inert update acceptance is verified, not executed.'
@@ -204,13 +210,21 @@ __BINDING__
                 Require ($observed.Count -eq 2 -and $observed[0].entrypoint -ceq 'helper' -and $observed[1].entrypoint -ceq $action) ('Wrong actual helper/entrypoint: ' + $stage)
                 Require ($observed[0].origin -ceq $origin -and $observed[1].origin -ceq $origin) ('Wrong candidate actually executed: ' + $stage)
                 Require ($observed[0].shell.StartsWith($shellPrefix) -and $observed[1].shell.StartsWith($shellPrefix)) ('Wrong actual child shell: ' + $stage)
+                $defaultView = if ($shellPrefix -eq '5.1.') { 'NormalView' } else { 'ConciseView' }
+                Require ($observed[1].error_view -ceq $defaultView) ('Default child error display changed: ' + $stage)
+                $childDirectory = [string]$observed[1].script_directory
+                $expectedDirectory = if ($origin -eq 'first') { $first } else { $next }
+                Require ($childDirectory -ceq $expectedDirectory -and $childDirectory.Length -ge 100 -and
+                    $childDirectory.Contains(' ') -and $childDirectory -match '[^\x00-\x7f]') ('Long space/Unicode candidate path was not executed: ' + $stage)
                 if ($action -eq 'install') {
                     $directory = if ($origin -eq 'first') { $first } else { $next }
                     $archiveName = if ($origin -eq 'first') { 'ha_0.1.4-dev_windows_amd64.zip' } else { 'ha_0.1.5-dev_windows_amd64.zip' }
                     $expectedArchive = if ($stage -eq 'checksum-refusal') { Join-Path $caseRoot 'bad-checksum.zip' } else { Join-Path $directory $archiveName }
                     Require ($observed[1].archive -ceq $expectedArchive -and $observed[1].checksums -ceq (Join-Path $directory 'checksums.txt') -and $observed[1].path_consent -eq $true) ('Mixed candidate inputs or lost PATH consent: ' + $stage)
                 }
-                $report.stages += @{stage=$stage; candidate=$origin; child_shell=$observed[1].shell; installer_or_uninstaller=$action; helper=$observed[0].origin}
+                $report.stages += @{stage=$stage; candidate=$origin; child_shell=$observed[1].shell; child_error_view=$observed[1].error_view
+                    candidate_path_length=$childDirectory.Length; candidate_path_has_space=$childDirectory.Contains(' ')
+                    candidate_path_has_unicode=($childDirectory -match '[^\x00-\x7f]'); installer_or_uninstaller=$action; helper=$observed[0].origin}
                 $report.passed += 'dispatch-' + $stage
             }
         } else {
@@ -224,6 +238,10 @@ __BINDING__
                 'wrong-update-script' { 'binding' }
                 'shell-start-failure' { 'first-install' }
                 'unexpected-refusal-diagnostic' { 'checksum-refusal' }
+                'embedded-pipe-refusal' { 'checksum-refusal' }
+                'refusal-zero-exit' { 'checksum-refusal' }
+                'refusal-missing-diagnostic' { 'checksum-refusal' }
+                'success-nonzero-exit' { 'first-install' }
             }
             $expectedDiagnostic = switch ($case) {
                 'update-installer-failure' { 'INJECTED_UPDATE_INSTALLER_FAILURE' }
@@ -233,6 +251,10 @@ __BINDING__
                 'wrong-update-script' { 'Candidate input points to a different directory: update/install' }
                 'shell-start-failure' { 'shell could not start:' }
                 'unexpected-refusal-diagnostic' { 'UNRELATED_SETUP_FAILURE' }
+                'embedded-pipe-refusal' { 'Expected product refusal diagnostic was not observed.' }
+                'refusal-zero-exit' { 'Expected product refusal exit was not observed.' }
+                'refusal-missing-diagnostic' { 'Expected product refusal diagnostic was not observed.' }
+                'success-nonzero-exit' { 'candidate execution failed. Exit=1.' }
             }
             Require ($failure.stage -ceq $expectedStage -and $failure.message.Contains($expectedDiagnostic)) ('Wrong failure stage or diagnostic: ' + $case + ': ' + $failure.message)
             $failedEntrypoint = switch ($case) {

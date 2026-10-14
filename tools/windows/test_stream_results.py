@@ -15,6 +15,10 @@ def valid_report():
               "environment_after_sha256": "b" * 64, "environment_preserved": True,
               "unverified": ["fixture-platform-root-lock-path", "injected-errors-and-stage-timing",
                              "unsupported-filesystem-simulated", "windows11-install-lifecycle"], "observations": []}
+    report["diagnostic_controls"] = {"required": sorted(results.REFUSAL_CONTROLS),
+                                     "passed": sorted(results.REFUSAL_CONTROLS),
+                                     "observations": [{"case": name, "accepted": wanted, "expected_acceptance": wanted}
+                                                      for name, wanted in results.REFUSAL_CONTROLS.items()]}
     report["unrelated_before"] = {"default_sha256": "e" * 64, "streams": [
         {"path": ".", "name": ":notes:$DATA", "size": 1, "sha256": "f" * 64}]}
     report["unrelated_after"] = deepcopy(report["unrelated_before"])
@@ -28,7 +32,7 @@ def valid_report():
             streams = [{"path": target["path"], "name": ":" + target["stream"] + ":$DATA",
                         "size": len(data), "sha256": hashlib.sha256(data).hexdigest()}]
             row.update(boundary=boundary, rejected=True, diagnostic_identifies_target=True,
-                       exit_code=1, source_inventory_called=True, path_write_count=0)
+                       exit_code=1, source_inventory_called=True, path_write_count=0, child_error_view="NormalView")
         elif name == "read-only-inputs":
             streams = [{"path": str(i), "name": ":Zone.Identifier:$DATA", "size": 1, "sha256": "c" * 64} for i in range(6)]
             row["input_stream_count"] = 6
@@ -67,6 +71,13 @@ class StreamReportTests(unittest.TestCase):
                      lambda r: r.update(environment_after_sha256="c" * 64),
                      lambda r: r["unrelated_after"]["streams"].clear(),
                      lambda r: r.update(unverified=[])]
+        mutations.extend((lambda r: r.pop("diagnostic_controls"),
+                          lambda r: r["diagnostic_controls"]["passed"].pop(),
+                          lambda r: r["diagnostic_controls"]["observations"].pop(),
+                          lambda r: r["diagnostic_controls"]["required"].append("plain-refusal"),
+                          lambda r: r["diagnostic_controls"]["observations"][2].update(accepted=True),
+                          lambda r: r["diagnostic_controls"]["observations"][0].update(accepted=False),
+                          lambda r: r["diagnostic_controls"]["observations"][0].update(expected_acceptance=False)))
         for mutate in mutations:
             changed = deepcopy(report); mutate(changed)
             with self.subTest(mutation=mutate), self.assertRaises(ValueError):
@@ -81,6 +92,7 @@ class StreamReportTests(unittest.TestCase):
             ("inventory-root", lambda r: r.update(kind="injected_error")),
             ("inventory-root", lambda r: r.update(diagnostic_identifies_target=False)),
             ("reinstall-root", lambda r: r.update(exit_code=True)),
+            ("reinstall-root", lambda r: r.update(child_error_view="ConciseView")),
             ("update-root", lambda r: r.update(path_write_count=1)),
             ("uninstall-root", lambda r: r.update(source_inventory_called=False)),
             ("normal-update", lambda r: r.update(rejected=True)),

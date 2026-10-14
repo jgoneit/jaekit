@@ -17,7 +17,9 @@ class LifecycleResults(unittest.TestCase):
                                        ("Get-JaekitAcceptanceSteps", "Invoke-JaekitAcceptanceStep")},
             "production_stages": list(results.STAGES),
             "stages": [{"stage": name, "candidate": candidate, "helper": candidate,
-                        "installer_or_uninstaller": action, "child_shell": version + "1"}
+                        "installer_or_uninstaller": action, "child_shell": version + "1",
+                        "candidate_path_length": 140, "candidate_path_has_space": True, "candidate_path_has_unicode": True,
+                        "child_error_view": "NormalView" if version == "5.1" else "ConciseView"}
                        for name, (candidate, action, version) in results.STAGES.items()],
             "failure_observations": [{"case": name, "stage": results.FAILURE_STAGES[name], "rejected": True,
                                       "marker_observed": True} for name in sorted(results.FAILURE_CASES)],
@@ -51,6 +53,10 @@ class LifecycleResults(unittest.TestCase):
                 lambda r: r["stages"][5].update(candidate="first"),
                 lambda r: r["stages"][5].update(helper="first"),
                 lambda r: r["stages"][5].update(child_shell="5.1.1"),
+                lambda r: r["stages"][5].update(child_error_view="NormalView"),
+                lambda r: r["stages"][5].update(candidate_path_length=20),
+                lambda r: r["stages"][5].update(candidate_path_has_space=False),
+                lambda r: r["stages"][5].update(candidate_path_has_unicode=False),
                 lambda r: r["stages"].pop(), lambda r: r["production_stages"].reverse(),
                 lambda r: r.update(environment_after_sha256="d" * 64),
                 lambda r: r.update(source_function_sha256={}),

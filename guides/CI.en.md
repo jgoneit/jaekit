@@ -42,6 +42,10 @@ Both Windows shells also exercise product package-name checks and isolated insta
 
 Alternate data stream (ADS) checks observe stream names and bytes on actual NTFS files, installation roots and subdirectories. Each PowerShell version connects product inventory and reinstall/update/removal with temporary/backup cleanup, refusal, preservation and normal acceptance. Inspection failures or unsupported-stream results injected at a test boundary remain distinct from actual filesystem observations. Missing, skipped or failed required cases cannot pass, and real user installation, PATH and policy are preserved. These results do not replace Windows 11 ordinary-user installation acceptance.
 
+After shared preparation and source identification succeed, PS7 checks still run if PS5.1 checks fail, unless the job is cancelled or reaches its time limit. Either shell's failure remains a failure of the Windows job and required aggregate. Missing results after preparation failure, cancellation or timeout are not successes. Both complete shell reports include the package checks following ADS observations.
+
+Diagnostic controls distinguish correct refusals from wrong reasons, targets and exit values. The isolated ADS child's display setting and public acceptance's default display setting are observed separately. Baseline junction scenarios use the temporary worktree created by the actual CLI to observe refusal before execution, record and external-data preservation, and safe ordinary-file execution. They add no product bypass option.
+
 An Ubuntu run is not a WSL2 run. CI does not establish WSL2 installation, installed agent Skill loading, a real agent session or session resumption. Those observations remain separate. No CI success publishes a release, changes a version, or proves installation from a public release URL.
 
 ## Local checks

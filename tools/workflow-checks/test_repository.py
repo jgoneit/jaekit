@@ -98,7 +98,7 @@ class Integration(unittest.TestCase):
         self.assertEqual(len(re.findall(r"^\s+if:", core, flags=re.M)), 1)
         for key in ("go", "macos", "windows", "docs"):
             job = block(jobs, key, 2)
-            self.assertNotRegex(job, r"(?m)^\s+(?:if|needs):")
+            self.assertNotRegex(job, r"(?m)^    (?:if|needs):")
 
     def test_required_jobs_remain_unconditional_and_use_pinned_actions(self):
         workflow = read(".github/workflows/ci.yml")
@@ -108,9 +108,11 @@ class Integration(unittest.TestCase):
         self.assertRegex(events, r"(?m)^  pull_request:$")
         self.assertRegex(block(events, "push", 2), r"(?m)^      - main$")
         self.assertEqual(block(workflow, "permissions").strip(), "contents: read")
-        # Only the aggregate uses a condition, to run after unsuccessful needs.
+        # Only the aggregate job uses a condition, to run after unsuccessful needs.
+        # Windows' second shell has a separately tested step-level condition.
         # Worker skips and continue-on-error must never turn failure into green.
-        self.assertEqual(len(re.findall(r"^\s+if:", workflow, flags=re.M)), 1)
+        self.assertEqual(len(re.findall(r"^    if:", workflow, flags=re.M)), 1)
+        self.assertEqual(len(re.findall(r"^        if:", workflow, flags=re.M)), 1)
         self.assertEqual(len(re.findall(r"^\s+needs:", workflow, flags=re.M)), 1)
         self.assertNotRegex(workflow, r"(?m)^\s+(?:continue-on-error|paths|paths-ignore|branches-ignore):")
         self.assertEqual(len(re.findall(r"^\s*permissions:", workflow, flags=re.M)), 1)

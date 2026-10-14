@@ -26,6 +26,10 @@ FAILURE_STAGES = {
     "wrong-update-script": "binding",
     "shell-start-failure": "first-install",
     "unexpected-refusal-diagnostic": "checksum-refusal",
+    "embedded-pipe-refusal": "checksum-refusal",
+    "refusal-zero-exit": "checksum-refusal",
+    "refusal-missing-diagnostic": "checksum-refusal",
+    "success-nonzero-exit": "first-install",
 }
 FAILURE_CASES = set(FAILURE_STAGES)
 ACCEPTANCE_CASES = {"dispatch-" + name for name in STAGES} | FAILURE_CASES
@@ -86,6 +90,11 @@ def acceptance_report(report, shell_version, sources):
                 and row.get("installer_or_uninstaller") == action, "wrong candidate code executed")
         require(isinstance(row.get("child_shell"), str) and row["child_shell"].startswith(version),
                 "candidate stage executed in the wrong child shell")
+        require(row.get("child_error_view") == ("NormalView" if version == "5.1" else "ConciseView"),
+                "candidate stage did not use the default child error display")
+        require(type(row.get("candidate_path_length")) is int and row["candidate_path_length"] >= 100
+                and row.get("candidate_path_has_space") is True and row.get("candidate_path_has_unicode") is True,
+                "long space/Unicode candidate execution is absent")
     failures = report.get("failure_observations", [])
     require(isinstance(failures, list) and all(isinstance(r, dict) for r in failures), "invalid failure observations")
     names([row.get("case") for row in failures], FAILURE_CASES, "negative cases")

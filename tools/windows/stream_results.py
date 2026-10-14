@@ -13,6 +13,10 @@ NORMAL = set(MATRIX["normal"])
 ERRORS = set(MATRIX["errors"])
 LATE = set(MATRIX["late"])
 STREAM_CASES = set(TARGETS) | NORMAL | ERRORS | LATE
+REFUSAL_CONTROLS = {"plain-refusal": True, "formatted-refusal": True,
+                    "wrong-reason": False, "wrong-target": False, "target-prefix-collision": False,
+                    "missing-diagnostic": False, "zero-exit": False, "missing-exit": False,
+                    "setup-failure": False}
 SOURCE_PATHS = ("tools/windows/common.ps1", "tools/windows/install.ps1", "tools/windows/uninstall.ps1",
                 "tools/windows/native_stream_checks.ps1", "tools/windows/stream_cases.json", "guides/WINDOWS.en.md")
 
@@ -54,6 +58,23 @@ def stream_report(report, shell_version, sources):
                 and len(names) == len(STREAM_CASES) and set(names) == STREAM_CASES,
                 "stream cases missing or duplicated: " + field)
     require(report.get("failures") == [] and report.get("skipped") == [], "stream cases failed or skipped")
+    controls = report.get("diagnostic_controls")
+    require(isinstance(controls, dict), "refusal decision controls are absent")
+    for field in ("required", "passed"):
+        names = controls.get(field)
+        require(isinstance(names, list) and all(isinstance(name, str) for name in names)
+                and len(names) == len(REFUSAL_CONTROLS) and set(names) == set(REFUSAL_CONTROLS),
+                "refusal decision controls missing or duplicated: " + field)
+    observed = controls.get("observations")
+    require(isinstance(observed, list) and all(isinstance(row, dict) for row in observed),
+            "refusal decision observations are absent")
+    ids = [row.get("case") for row in observed]
+    require(all(isinstance(name, str) for name in ids) and len(ids) == len(REFUSAL_CONTROLS)
+            and set(ids) == set(REFUSAL_CONTROLS), "refusal decision observations missing or duplicated")
+    for row in observed:
+        wanted = REFUSAL_CONTROLS[row["case"]]
+        require(row.get("accepted") is wanted and row.get("expected_acceptance") is wanted,
+                "wrong refusal decision: " + row["case"])
     require(digest(report.get("environment_before_sha256")) and report.get("environment_preserved") is True
             and report["environment_before_sha256"] == report.get("environment_after_sha256"),
             "stream fixtures changed real user state")
@@ -82,6 +103,7 @@ def stream_report(report, shell_version, sources):
             require(wanted in row["before"]["streams"], "actual named-stream bytes were not observed: " + name)
             if boundary in ("reinstall", "update", "uninstall"):
                 require(type(row.get("exit_code")) is int and row["exit_code"] == 1
+                        and row.get("child_error_view") == "NormalView"
                         and row.get("source_inventory_called") is True
                         and type(row.get("path_write_count")) is int and row["path_write_count"] == 0,
                         "operation did not refuse before PATH mutation: " + name)

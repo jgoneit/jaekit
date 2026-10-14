@@ -11,6 +11,7 @@ $report = [ordered]@{
     schema = 'jaekit-windows-streams/v1'; status = 'failed'; shell_version = $PSVersionTable.PSVersion.ToString()
     source_sha256 = @{}; filesystem = ''; actual_named_stream_roundtrip = $false
     required = @(); passed = @(); skipped = @(); observations = @(); failures = @()
+    diagnostic_controls = @{required = @(); passed = @(); observations = @()}
     environment_before_sha256 = ''; environment_after_sha256 = ''; environment_preserved = $false
     unrelated_before = $null; unrelated_after = $null; unrelated_preserved = $false
     unverified = @('fixture-platform-root-lock-path', 'injected-errors-and-stage-timing', 'unsupported-filesystem-simulated', 'windows11-install-lifecycle')
@@ -25,6 +26,49 @@ function Bytes-Digest([byte[]]$Bytes) {
 function String-Digest([string]$Value) { return (Bytes-Digest ([Text.Encoding]::UTF8.GetBytes($Value))) }
 function Save-Json([string]$Path, $Value) { [IO.File]::WriteAllText($Path, (ConvertTo-Json -Depth 16 -InputObject $Value), $utf8) }
 function Comparison([string]$Text) { return [regex]::Replace([regex]::Replace($Text, '\x1B\[[0-?]*[ -/]*[@-~]', ''), '\s+', ' ') }
+function Operation-Detail($Result, [string]$Expected, [string]$Case) {
+    $comparison = Comparison $Result.text
+    $exitText = if ($null -eq $Result.code) { '<unobserved>' } else { [string]$Result.code }
+    return ('Case=' + $Case + '; Exit=' + $exitText + '; Expected=' + $Expected +
+        "`nRaw diagnostic:`n" + $Result.text + "`nComparison:`n" + $comparison
+    )
+}
+function Require-OperationRefusal($Result, [string]$Expected, [string]$Case) {
+    $comparison = Comparison $Result.text
+    $detail = Operation-Detail $Result $Expected $Case
+    Require ($null -ne $Result.code -and $Result.code -eq 1) ('Wrong stream refusal exit. ' + $detail)
+    Require ($comparison.Contains($Expected)) ('Wrong stream refusal diagnostic. ' + $detail)
+}
+function Check-RefusalControls {
+    $escape = [string][char]27
+    $target = 'C:\synthetic fixture\managed-root'
+    $expected = 'Named data stream; nothing will be replaced or deleted: ' + $target + ' (:notes:$DATA)'
+    $plain = 'Installation failed: ' + $expected
+    $controls = @(
+        @{case = 'plain-refusal'; code = 1; text = $plain; accepted = $true},
+        @{case = 'formatted-refusal'; code = 1; text = ($escape + '[31m' + $plain.Replace(' ', " `n") + $escape + '[0m'); accepted = $true},
+        @{case = 'wrong-reason'; code = 1; text = ('Unrelated error: ' + $target + ' (:notes:$DATA)'); accepted = $false},
+        @{case = 'wrong-target'; code = 1; text = $plain.Replace($target, 'C:\synthetic fixture\other-root'); accepted = $false},
+        @{case = 'target-prefix-collision'; code = 1; text = $plain.Replace($target, ($target + '-other')); accepted = $false},
+        @{case = 'missing-diagnostic'; code = 1; text = ''; accepted = $false},
+        @{case = 'zero-exit'; code = 0; text = $plain; accepted = $false},
+        @{case = 'missing-exit'; code = $null; text = $plain; accepted = $false},
+        @{case = 'setup-failure'; code = 1; text = 'The requested child shell could not start.'; accepted = $false}
+    )
+    foreach ($control in $controls) {
+        $report.diagnostic_controls.required += $control.case
+        $accepted = $true; $failure = ''
+        try { Require-OperationRefusal $control $expected $control.case }
+        catch { $accepted = $false; $failure = $_.ToString() }
+        Require ($accepted -eq $control.accepted) ('Incorrect refusal control decision: ' + $control.case)
+        if (-not $accepted) {
+            Require ($failure.Contains('Exit=') -and $failure.Contains('Expected=') -and
+                $failure.Contains('Raw diagnostic:') -and $failure.Contains('Comparison:')) 'Refusal failure lost its distinct observations.'
+        }
+        $report.diagnostic_controls.observations += @{case = $control.case; accepted = $accepted; expected_acceptance = $control.accepted}
+        $report.diagnostic_controls.passed += $control.case
+    }
+}
 function Snapshot-Environment {
     $local = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
     $user = Read-UserPath
@@ -124,6 +168,7 @@ try {
     Require (-not (Test-Path -LiteralPath $work)) 'Refuse to overwrite stream observations.'
     [IO.Directory]::CreateDirectory($work) | Out-Null
     $canWrite = $true
+    Check-RefusalControls
     $drive = New-Object IO.DriveInfo([IO.Path]::GetPathRoot($work))
     $report.filesystem = $drive.DriveFormat
     Require ($report.filesystem -ceq 'NTFS') 'Actual NTFS is required; other filesystems are not skipped or impersonated.'
@@ -249,6 +294,8 @@ function Snapshot-Tree([string]$Directory, [string]$Current = '', [string]$Previ
     $probePath = Join-Path $work 'stream-operation.ps1'
     $probe = @'
 param([string]$Common, [string]$Oracle, [string]$CasePath, [string]$ResultPath)
+# This preference belongs to this isolated child, not to the caller or product.
+$global:ErrorView = 'NormalView'
 . $Common
 . $Oracle
 $item = [IO.File]::ReadAllText($CasePath, [Text.Encoding]::UTF8) | ConvertFrom-Json
@@ -308,7 +355,7 @@ $flow = [scriptblock]::Create((@($initializers | ForEach-Object { $_.Extent.Text
 $Archive = [string]$item.archive; $Checksums = [string]$item.checksums; $AddToPath = $false
 try { & $flow }
 finally {
-    $value = @{shell_version = $PSVersionTable.PSVersion.ToString(); inventory_calls = $script:inventoryCalls
+    $value = @{shell_version = $PSVersionTable.PSVersion.ToString(); error_view = [string]$ErrorView; inventory_calls = $script:inventoryCalls
         path_write_count = $script:pathWrites; injected_error_count = $script:streamFaults
         stage_injected = $script:stageInjected; cleanup_refused = $script:cleanupRefused
         preserved_target = $script:preservedTarget; target_before = $script:targetBefore; target_after = $script:targetAfter}
@@ -326,14 +373,19 @@ finally {
             $path = Target-Path $directory $target.path $current
             Add-FixtureStream $path $target.stream $target.hex
             $before = Snapshot-Tree $directory $current $previousVersion
+            # Include the existing stream suffix so a different path with this
+            # target as a prefix cannot satisfy the diagnostic assertion.
+            $expectedDiagnostic = 'Named data stream; nothing will be replaced or deleted: ' + $path + ' (:' + $target.stream + ':$DATA)'
             $row = @{case = $case; kind = 'actual_ntfs'; boundary = $boundary; rejected = $true; before = $before; diagnostic_identifies_target = $true}
-            if ($boundary -eq 'inventory') { Refusal { Read-Installation $directory } ('Named data stream; nothing will be replaced or deleted: ' + $path) }
-            elseif ($boundary -eq 'cleanup') { Refusal { Remove-OrdinaryTree $directory } ('Named data stream; nothing will be replaced or deleted: ' + $path) }
+            if ($boundary -eq 'inventory') { Refusal { Read-Installation $directory } $expectedDiagnostic }
+            elseif ($boundary -eq 'cleanup') { Refusal { Remove-OrdinaryTree $directory } $expectedDiagnostic }
             else {
                 $action = if ($boundary -eq 'uninstall') { 'uninstall' } else { 'install' }
                 $result = Operation $case $directory $action
-                Require ($result.code -eq 1 -and (Comparison $result.text).Contains(('Named data stream; nothing will be replaced or deleted: ' + $path))) ('Wrong lifecycle stream refusal: ' + $case + ': ' + $result.text)
+                Require-OperationRefusal $result $expectedDiagnostic $case
                 Require ($result.observed.shell_version -ceq $report.shell_version -and $result.observed.inventory_calls -eq 1 -and $result.observed.path_write_count -eq 0) 'Inventory refusal did not precede lifecycle mutations.'
+                Require ($result.observed.error_view -ceq 'NormalView') 'The isolated child did not apply its diagnostic display setting.'
+                $row.child_error_view = $result.observed.error_view
                 $row.exit_code = $result.code; $row.source_inventory_called = $true; $row.path_write_count = $result.observed.path_write_count
             }
             $row.after = Snapshot-Tree $directory $current $previousVersion
@@ -349,7 +401,9 @@ finally {
         else {
             $action = if ($case -eq 'normal-uninstall') { 'uninstall' } else { 'install' }
             $result = Operation $case $directory $action
-            Require ($result.code -eq 0 -and $result.observed.path_write_count -eq 0 -and $result.observed.inventory_calls -gt 0) ('Ordinary lifecycle failed: ' + $case + ': ' + $result.text)
+            $detail = Operation-Detail $result 'exit 0; inventory called; no PATH writes' $case
+            Require ($result.code -eq 0) ('Ordinary lifecycle exit failed. ' + $detail)
+            Require ($result.observed.path_write_count -eq 0 -and $result.observed.inventory_calls -gt 0) ('Ordinary lifecycle boundary failed. ' + $detail)
             if ($action -eq 'uninstall') { Require (-not (Test-Path -LiteralPath $directory)) 'Ordinary uninstall left its target.' }
             else {
                 $installed = Read-Installation $directory
@@ -374,7 +428,7 @@ finally {
     . ([scriptblock]::Create($preflight.Groups[1].Value))
     Get-JaekitVerifiedCandidate $inputs | Out-Null
     $result = Operation 'read-only-inputs' (Join-Path $work 'input-install') 'install' '' '' $inputs
-    Require ($result.code -eq 0) ('Download metadata caused a new input refusal: ' + $result.text)
+    Require ($result.code -eq 0) ('Download metadata caused a new input refusal. ' + (Operation-Detail $result 'exit 0; read-only input metadata preserved' 'read-only-inputs'))
     Observe @{case = 'read-only-inputs'; kind = 'actual_ntfs'; rejected = $false; before = $before; after = (Snapshot-Tree $inputs); input_stream_count = $inputFiles.Count}
 
     foreach ($boundary in @('inventory', 'cleanup', 'reinstall', 'update', 'uninstall')) {
@@ -398,7 +452,8 @@ finally {
         } else {
             $action = if ($boundary -eq 'uninstall') { 'uninstall' } else { 'install' }
             $result = Operation $case $directory $action 'enumeration' $faultPath
-            Require ($result.code -eq 1 -and $result.observed.injected_error_count -eq 1 -and $result.observed.path_write_count -eq 0 -and (Comparison $result.text).Contains('INJECTED_STREAM_ENUMERATION_FAILURE')) 'Enumeration uncertainty did not stop the product operation.'
+            Require-OperationRefusal $result 'INJECTED_STREAM_ENUMERATION_FAILURE' $case
+            Require ($result.observed.injected_error_count -eq 1 -and $result.observed.path_write_count -eq 0) ('Enumeration uncertainty crossed the mutation boundary. ' + (Operation-Detail $result 'one injected failure; no PATH writes' $case))
         }
         Observe @{case = $case; kind = 'injected_error'; rejected = $true; injected_branch_observed = $true; before = $before; after = (Snapshot-Tree $directory)}
     }
@@ -439,11 +494,15 @@ finally {
         $result = Operation $case $directory $action $mode
         $observed = $result.observed
         $committed = $mode -eq 'backup'
-        Require ($result.code -eq $(if ($committed) { 0 } else { 1 }) -and $observed.stage_injected -and $observed.cleanup_refused -and $observed.path_write_count -eq 0) ('Wrong late stream outcome: ' + $case + ': ' + $result.text)
+        $expectedExit = if ($committed) { 0 } else { 1 }
+        $detail = Operation-Detail $result ('exit ' + $expectedExit + '; late stream tree preserved') $case
+        Require ($result.code -eq $expectedExit) ('Wrong late stream exit. ' + $detail)
+        Require ($observed.stage_injected -and $observed.cleanup_refused -and $observed.path_write_count -eq 0) ('Wrong late stream boundary. ' + $detail)
         $preservedTarget = [string]$observed.preserved_target
         Require ($preservedTarget.StartsWith($work + '\') -and [IO.Directory]::Exists($preservedTarget)) 'Late refusal lost its preserved tree.'
         $diagnostic = Comparison $result.text
-        Require ($diagnostic.Contains('Named data stream; nothing will be replaced or deleted:') -and $diagnostic.Contains($preservedTarget)) 'Cleanup warning omitted its reason or preserved location.'
+        $expectedDiagnostic = 'Named data stream; nothing will be replaced or deleted: ' + $preservedTarget + ' (:late-notes:$DATA)'
+        Require ($diagnostic.Contains($expectedDiagnostic)) ('Cleanup warning omitted its reason or preserved location. ' + (Operation-Detail $result $expectedDiagnostic $case))
         if ($action -eq 'uninstall') { Require (-not (Test-Path -LiteralPath $directory) -and $diagnostic.Contains('Removal committed')) 'Removal outcome and cleanup warning were conflated.' }
         else {
             Read-Installation $directory | Out-Null

@@ -30,6 +30,9 @@ NATIVE = {
     "internal/evidence": ["TestNativeCleanCRLFStillRequiresCommittedBytes", "TestNativeWindowsEvidencePaths"],
     "cmd/ha": ["TestNativeCoreGitLifecycle", "TestNativeCoreGitLifecycle/linked=false",
                "TestNativeCoreGitLifecycle/linked=true", "TestNativeBaselineRejectsJunction",
+               "TestNativeWindowsBaselineJunctionScenarios",
+               *("TestNativeWindowsBaselineJunctionScenarios/" + case for case in
+                 ("regular-before", "parent-junction", "leaf-junction", "partial-batch", "regular-after")),
                "TestNativeEvidencePathScenarios", "TestNativeWindowsEvidencePathScenarios",
                "TestNativeWindowsProcessControlScenarios", "TestNativeProcessTimeoutScenarios",
                "TestNativeProcessUnconfirmedShutdownScenarios",
