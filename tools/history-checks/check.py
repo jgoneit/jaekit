@@ -27,7 +27,8 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 PROBE = Path(__file__).resolve().parent / 'platform_probe.sh'
-STORAGE_BOUNDARY_TESTS = {'TestStoragePinsDirectoryHierarchy', 'TestStorageRejectsReplacedLeaf'}
+STORAGE_BOUNDARY_TESTS = {'TestStoragePinsDirectoryHierarchy', 'TestStorageRejectsReplacedLeaf',
+                          'TestNativeStorageBoundsHistoryLines'}
 FILE_BOUNDARY_TESTS = {'TestFileEvidenceRejectsReplacedLeaf', 'TestFileEvidenceRejectsReplacedParent', 'TestFileEvidenceRejectsReplacedRoot',
                        'TestFileEvidencePreservesStablePathStates', 'TestFileEvidencePreservesSearchOnlyDirectories',
                        'TestFileEvidenceConfinedWalkRejectsLinks', 'TestFileEvidenceBoundsDirectoryDescriptors',
@@ -674,9 +675,25 @@ def ac6(binary, temp):
         (['--kind', '관측', '--summary', 'x', '--ref', 'run:99'], 65, 'invalid_reference'),
         (['--kind', '관측', '--summary', 'x', '--builds-on', 'D5'], 65, 'invalid_relation'),
         (['--kind', '관측', '--summary', 'x', '--request-id', '../escape'], 64, 'invalid_input'),
+        (['--kind', '관측', '--summary', 'x', '--request-id', ''], 64, 'invalid_input'),
     ]
     for args, exit_code, err in cases:
         f.add(*args, expect=exit_code, code=err)
+    for empty_request in ('', None):
+        empty_input = temp / 'empty-request.json'
+        empty_input.write_text(json.dumps({'request_id': empty_request,
+                                          'decision': {'kind': '관측', 'summary': 'empty id'}}))
+        f.add('--input', str(empty_input), expect=64, code='invalid_input')
+    for args in (['show', 'D0'], ['show', 'D1\nforged'], ['show', '--request-id='],
+                 ['show', '--request-id', '../escape'], ['show', '--request-id', 'bad\nforged']):
+        result = f.h(*args)
+        require(result.returncode == 64 and code_of(result) == 'invalid_input'
+                and len(result.stderr.splitlines()) == 1,
+                'history-invalid-identifier-accepted', (args, result.returncode, result.stderr))
+    result = f.h('show', 'D999')
+    require(result.returncode == 65 and code_of(result) == 'unknown_event',
+            'history-storage-states-conflated', result.stderr)
+    require(f.history_bytes() == before, 'history-rejected-input-stored', 'query changed history')
     f.add('--kind', '관측', '--summary', 'fix', '--supersedes', 'D1')
     before = f.history_bytes()
     f.add('--kind', '관측', '--summary', 'late', '--supersedes', 'D1', expect=65, code='correction_conflict')
@@ -1102,6 +1119,22 @@ def ac10(binary, temp, capabilities):
         require(report.get('compatible') is compatible, 'history-support-misreported', r.stdout + r.stderr)
     require(report['reason'] == 'missing_support' and report['missing'] == ['features:decision-history/v1', 'formats:decision_history:decision-history/v1'],
             'history-support-misreported', report)
+    # This synthetic capability/goal pair exercises only helper admission:
+    # history does not inherit the optional findings support requirement.
+    history_only = dict(capabilities, features=['decision-history/v1'],
+                        formats={k: v for k, v in capabilities['formats'].items() if k != 'finding'})
+    (temp / 'history-only.json').write_text(json.dumps(history_only))
+    history_ha = temp / 'history-only-ha'
+    history_ha.write_text('#!/bin/sh\ncat "%s"\n' % (temp / 'history-only.json'))
+    history_ha.chmod(0o755)
+    helper_goal = temp / 'helper-goal-with-findings'
+    helper_goal.mkdir()
+    (helper_goal / 'SPEC.md').write_text(SPEC)
+    (helper_goal / 'runs.jsonl').write_bytes(f.runs() + b'{"schema":"run-finding/v1"}\n')
+    r = run([sys.executable, helper, '--ha', history_ha, '--operation', 'history', '--goal', helper_goal], ROOT)
+    report = json.loads(r.stdout or '{}')
+    require(r.returncode == 0 and report.get('compatible') is True,
+            'history-support-misreported', r.stdout + r.stderr)
     # Require actual Windows execution; cross-compilation is only a build gate.
     import ci_observer
     try:

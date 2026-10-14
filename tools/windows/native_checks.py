@@ -30,6 +30,8 @@ NATIVE = {
     "internal/evidence": ["TestNativeCleanCRLFStillRequiresCommittedBytes", "TestNativeWindowsEvidencePaths"],
     "internal/history": ["TestNativeHistoryStorageLifecycle", "TestNativeHistoryStorageLocks",
                          "TestNativeHistoryStorageIntegrity", "TestNativeHistoryStoragePathSafety",
+                         "TestNativeStorageBoundsHistoryLines", "TestNativeShowRejectsMalformedIdentifiers",
+                         "TestNativeShowPreservesValidIdentifierLookup",
                          *("TestNativeHistoryStorageLifecycle/" + case for case in
                            ("registration_replay_and_correction", "concurrent_stores_and_corrections",
                             "lineage_and_current", "evidence_replay_preserves_observation", "case_alias_shares_storage")),
@@ -49,6 +51,7 @@ NATIVE = {
     "cmd/ha": ["TestNativeCoreGitLifecycle", "TestNativeCoreGitLifecycle/linked=false",
                "TestNativeCoreGitLifecycle/linked=true", "TestNativeBaselineRejectsJunction",
                "TestNativeHistoryGitLifecycle", "TestNativeHistoryFileEvidence",
+               "TestNativeHistoryRequestIDPresence",
                "TestNativeHistoryWindowsFileBoundaries",
                *("TestNativeHistoryGitLifecycle/linked=" + value for value in ("false", "true")),
                *("TestNativeHistoryFileEvidence/replace-" + kind for kind in ("file", "directory", "removed")),

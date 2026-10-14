@@ -334,6 +334,19 @@ func (g *engine) related(id, relation string) Related {
 // Run answers a query from verified stored events and the selected run chain.
 // It reads nothing else and never writes.
 func Run(in Input, q Query) (*View, error) {
+	if q.Mode == "show" {
+		if (q.ID == "") == (q.RequestID == "") {
+			return nil, fail("invalid_input", "show requires exactly one event id or request id")
+		}
+		if q.ID != "" && !eventID.MatchString(q.ID) {
+			return nil, fail("invalid_input", "event id must be D followed by a positive integer without leading zeros")
+		}
+		if q.RequestID != "" {
+			if err := CheckRequestID(q.RequestID); err != nil {
+				return nil, err
+			}
+		}
+	}
 	if q.Limit == 0 {
 		q.Limit = DefaultLimit
 	}

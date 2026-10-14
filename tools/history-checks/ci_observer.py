@@ -13,6 +13,10 @@ spec.loader.exec_module(validation)
 # Independent admission expectations: do not derive these from the runner's
 # selection list, which could accidentally omit the behavior under review.
 HISTORY = {
+    'github.com/jgoneit/jaekit/cmd/ha/TestNativeHistoryRequestIDPresence',
+    'github.com/jgoneit/jaekit/internal/history/TestNativeStorageBoundsHistoryLines',
+    'github.com/jgoneit/jaekit/internal/history/TestNativeShowRejectsMalformedIdentifiers',
+    'github.com/jgoneit/jaekit/internal/history/TestNativeShowPreservesValidIdentifierLookup',
     'github.com/jgoneit/jaekit/cmd/ha/TestNativeHistoryFileEvidence',
     'github.com/jgoneit/jaekit/cmd/ha/TestNativeHistoryFileEvidence/growth_after_check',
     'github.com/jgoneit/jaekit/cmd/ha/TestNativeHistoryFileEvidence/growth_during_read',

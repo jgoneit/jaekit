@@ -382,6 +382,11 @@ func DecodeInput(data []byte) (Decision, string, error) {
 	if _, ok := fields["decision"]; !ok {
 		return Decision{}, "", fail("invalid_input", "input needs a decision object")
 	}
+	if _, supplied := fields["request_id"]; supplied {
+		if err := CheckRequestID(in.RequestID); err != nil {
+			return Decision{}, "", err
+		}
+	}
 	return in.Decision, in.RequestID, nil
 }
 

@@ -175,6 +175,9 @@ func (s *windowsStorage) read(name string) ([]byte, error) {
 		return nil, err
 	}
 	defer f.Close()
+	if name == "events.jsonl" {
+		return readEventLines(f)
+	}
 	return io.ReadAll(f)
 }
 

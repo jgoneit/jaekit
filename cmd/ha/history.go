@@ -233,6 +233,11 @@ func (c *cli) history(in []string) int {
 			return c.fail(exitUsage, "--%s does not apply to ha history %s", name, sub)
 		}
 	}
+	if request, supplied := a.vals["request-id"]; supplied {
+		if err := history.CheckRequestID(request); err != nil {
+			return c.historyFail(err)
+		}
+	}
 	wantPos := 2
 	if sub == "show" && a.vals["request-id"] == "" {
 		wantPos = 3

@@ -129,6 +129,9 @@ func (s *Store) load(tx storage) (state string, events []Event, lag bool, err er
 		}
 		return Absent, nil, false, nil
 	}
+	if Code(err) == "history_corrupt" {
+		return "", nil, false, err
+	}
 	if err != nil {
 		return "", nil, false, fail("history_unreadable", "%v", err)
 	}

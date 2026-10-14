@@ -158,7 +158,7 @@ def requirements(capabilities, operation: str, goal: str | None):
         features = START_FEATURES
     else:
         rules, criteria_format, has_findings = stored_goal(goal)
-        finding = finding or has_findings
+        finding = finding or (has_findings and operation != "history")
         criteria = {criteria_format}
         features = (EXECUTION_FEATURES if operation in ("resume", "check")
                     else {"budget-change/v1"} if operation == "budget" else set())
