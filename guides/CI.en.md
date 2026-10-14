@@ -40,6 +40,8 @@ Windows command-level process scenarios connect child cleanup and timeout to CLI
 
 Both Windows shells also exercise product package-name checks and isolated install/remove orchestration. Console-device names, including the package policy's extension forms, must be refused before extraction writes. Existing incompatible inventory is preserved rather than migrated or deleted. These fixtures do not open console devices or modify real user installation, PATH or policy.
 
+Alternate data stream (ADS) checks observe stream names and bytes on actual NTFS files, installation roots and subdirectories. Each PowerShell version connects product inventory and reinstall/update/removal with temporary/backup cleanup, refusal, preservation and normal acceptance. Inspection failures or unsupported-stream results injected at a test boundary remain distinct from actual filesystem observations. Missing, skipped or failed required cases cannot pass, and real user installation, PATH and policy are preserved. These results do not replace Windows 11 ordinary-user installation acceptance.
+
 An Ubuntu run is not a WSL2 run. CI does not establish WSL2 installation, installed agent Skill loading, a real agent session or session resumption. Those observations remain separate. No CI success publishes a release, changes a version, or proves installation from a public release URL.
 
 ## Local checks

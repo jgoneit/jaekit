@@ -57,6 +57,18 @@ unreplaceable executable cause refusal. If final backup cleanup fails, the
 operation reports the preserved backup location instead of traversing links or
 deleting unrecognized data.
 
+Inventory and cleanup inspect named alternate data streams (ADS) on the tree
+root, subdirectories and files. Any named data stream, including an empty stream
+or `Zone.Identifier`, causes refusal and preservation; inspection errors never
+mean absence. Default unnamed data and filesystem structural metadata are not
+additional user data. A filesystem confirmed not to support named streams keeps
+its existing behavior. No stream is automatically deleted, unblocked or migrated.
+This also prevents a failed candidate inventory audit from being followed by
+cleanup that deletes the rejected stream. Cleanup after a committed operation
+reports the retained path separately from the installed or removed state.
+Read-only original archives, checksums and loose candidate scripts are not
+newly rejected merely because they carry download metadata.
+
 On a disposable Windows user account without an existing Jaekit installation or
 Jaekit user PATH entry,
 prepare that same trusted guide function, then review `acceptance.ps1` and use
@@ -142,6 +154,15 @@ console device or archive entry data stream is opened. Fixtures preserve existin
 candidate and installation data; they do not migrate incompatible inventory or
 change real user PATH, policy or installation. Source hashes and the actual shell
 bind the observations to the current product code.
+
+The developer stream checks use actual NTFS data streams in both PowerShell
+versions. They connect product inventory and lifecycle refusal to the preserved
+stream names and bytes, including file, root and subdirectory cases, and cover
+temporary/backup cleanup and normal operations. Inspection failures or unsupported
+filesystem results introduced at a test boundary are labeled as injected, not
+reported as actual disk or Windows API failures. Required missing, skipped or
+failed cases cannot pass. These isolated observations preserve real user state
+and do not establish a Windows 11 ordinary-user installation lifecycle.
 
 The trusted developer runner `native_preflight_checks.ps1` reads the exact
 preflight and action blocks from both public Windows guides and this acceptance

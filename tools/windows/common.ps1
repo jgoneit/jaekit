@@ -70,6 +70,106 @@ function Get-Sha256([string]$Path) {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 
+function Initialize-InstallStreams {
+    if ('Jaekit.InstallStreams' -as [type]) { return }
+    Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
+namespace Jaekit {
+  public static class InstallStreams {
+    private const uint FileNamedStreams = 0x00040000;
+    private const int ErrorHandleEof = 38;
+    private static readonly IntPtr InvalidHandle = new IntPtr(-1);
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct StreamData {
+      public long Size;
+      [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 296)] public string Name;
+    }
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetVolumePathNameW(string path, StringBuilder volumePath, uint bufferLength);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetVolumeInformationW(string root, StringBuilder volumeName, uint volumeNameSize,
+      out uint serial, out uint maximumComponentLength, out uint flags, StringBuilder fileSystemName, uint fileSystemNameSize);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+    private static extern IntPtr FindFirstStreamW(string path, int level, out StreamData data, uint flags);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool FindNextStreamW(IntPtr handle, out StreamData data);
+    [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool FindClose(IntPtr handle);
+
+    private static IOException Failure(string path, string operation, int error) {
+      return new IOException("Cannot inspect named data streams: " + path + " (" + operation +
+        ", Win32 error " + error + ").", new Win32Exception(error));
+    }
+
+    public static string[] Read(string path) {
+      // A successful volume query without FILE_NAMED_STREAMS is positive evidence
+      // of unsupported streams. An enumeration error alone is never that evidence.
+      File.GetAttributes(path);
+      StringBuilder volumePath = new StringBuilder(32768);
+      if (!GetVolumePathNameW(path, volumePath, (uint)volumePath.Capacity))
+        throw Failure(path, "GetVolumePathNameW", Marshal.GetLastWin32Error());
+      uint serial, maximumComponentLength, flags;
+      if (!GetVolumeInformationW(volumePath.ToString(), null, 0, out serial,
+          out maximumComponentLength, out flags, null, 0))
+        throw Failure(path, "GetVolumeInformationW", Marshal.GetLastWin32Error());
+      if ((flags & FileNamedStreams) == 0) return new string[0];
+
+      StreamData data;
+      IntPtr handle = FindFirstStreamW(path, 0, out data, 0);
+      if (handle == InvalidHandle) {
+        int error = Marshal.GetLastWin32Error();
+        if (error == ErrorHandleEof) return new string[0];
+        throw Failure(path, "FindFirstStreamW", error);
+      }
+      try {
+        List<string> names = new List<string>();
+        while (true) {
+          // This API enumerates $DATA only, not NTFS structural metadata. Do not
+          // filter by size or exempt download metadata such as Zone.Identifier.
+          if (!String.Equals(data.Name, "::$DATA", StringComparison.OrdinalIgnoreCase)) {
+            if (String.IsNullOrEmpty(data.Name) || data.Name.Length <= 7 ||
+                !data.Name.StartsWith(":", StringComparison.Ordinal) ||
+                !data.Name.EndsWith(":$DATA", StringComparison.OrdinalIgnoreCase))
+              throw new IOException("Cannot inspect named data streams: " + path + " (unexpected stream name).");
+            names.Add(data.Name);
+          }
+          if (!FindNextStreamW(handle, out data)) {
+            int error = Marshal.GetLastWin32Error();
+            if (error != ErrorHandleEof) throw Failure(path, "FindNextStreamW", error);
+            break;
+          }
+        }
+        return names.ToArray();
+      } finally {
+        if (!FindClose(handle)) throw Failure(path, "FindClose", Marshal.GetLastWin32Error());
+      }
+    }
+  }
+}
+'@
+}
+
+function Get-ItemDataStreams([string]$Path) {
+    Initialize-InstallStreams
+    return [Jaekit.InstallStreams]::Read($Path)
+}
+
+function Assert-NoNamedStreams([string]$Path) {
+    $full = Assert-OrdinaryPath $Path
+    foreach ($stream in @(Get-ItemDataStreams $full)) {
+        throw "Named data stream; nothing will be replaced or deleted: $full ($stream)"
+    }
+}
+
 function Enter-InstallLock([string]$Root) {
     $sha = [Security.Cryptography.SHA256]::Create()
     try { $id = [BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($Root.ToUpperInvariant()))).Replace('-', '') }
@@ -130,6 +230,7 @@ function Read-PackageManifest([string]$Directory) {
 
 function Assert-TreeInventory([string]$Directory, [hashtable]$Expected) {
     Assert-OrdinaryPath $Directory | Out-Null
+    Assert-NoNamedStreams $Directory
     $allowedDirs = @{}
     foreach ($name in $Expected.Keys) {
         $parts = $name.Split('/')
@@ -142,6 +243,7 @@ function Assert-TreeInventory([string]$Directory, [hashtable]$Expected) {
         $dir = $stack.Pop()
         foreach ($path in [IO.Directory]::GetFileSystemEntries($dir)) {
             Assert-OrdinaryPath $path | Out-Null
+            Assert-NoNamedStreams $path
             $name = $path.Substring($Directory.Length + 1).Replace('\', '/')
             $attrs = [IO.File]::GetAttributes($path)
             if ($attrs -band [IO.FileAttributes]::Directory) {
@@ -343,14 +445,18 @@ function Update-ProcessPath([string]$Bin, [bool]$Add) {
 function Remove-OrdinaryTree([string]$Directory) {
     if (-not [IO.Directory]::Exists($Directory)) { return }
     Assert-OrdinaryPath $Directory | Out-Null
+    Assert-NoNamedStreams $Directory
     $stack = New-Object 'Collections.Generic.Stack[string]'
     $stack.Push($Directory)
     while ($stack.Count -gt 0) {
         foreach ($path in [IO.Directory]::GetFileSystemEntries($stack.Pop())) {
             Assert-OrdinaryPath $path | Out-Null
+            Assert-NoNamedStreams $path
             if ([IO.Directory]::Exists($path)) { $stack.Push($path) }
         }
     }
+    # Finish the entire inspection before deleting any item. A refused candidate
+    # or backup must not lose its extra data through the caller's finally block.
     [IO.Directory]::Delete($Directory, $true)
 }
 

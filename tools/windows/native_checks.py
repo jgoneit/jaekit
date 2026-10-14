@@ -18,6 +18,7 @@ from native_results import native_results
 sys.path.insert(0, str(ROOT / "tools/windows"))
 from lifecycle_results import acceptance_report, path_report
 from console_results import console_report
+from stream_results import stream_report, SOURCE_PATHS as STREAM_SOURCE_PATHS
 
 MODULE = "github.com/jgoneit/jaekit/"
 NATIVE = {
@@ -116,6 +117,7 @@ def failure_tails(output: Path) -> None:
     """Keep first native failures diagnosable without publishing full transcripts."""
     remaining = 24000
     for name in ("source-status.stdout.log", "acceptance-runtime.stderr.log", "acceptance-runtime.stdout.log",
+                 "stream-runtime.stderr.log", "stream-runtime.stdout.log",
                  "console-path-runtime.stderr.log", "console-path-runtime.stdout.log",
                  "path-order-runtime.stderr.log", "path-order-runtime.stdout.log", "preflight-runtime.stderr.log", "preflight-runtime.stdout.log",
                  "package-runtime/install-refusal.log", "package-runtime/uninstall-refusal.log",
@@ -162,6 +164,7 @@ def main() -> int:
               "native_tests": {"required": REQUIRED, "passed": [], "skipped": []},
               "package_checks": [], "preflight_checks": {}, "acceptance_dispatch": {}, "path_order_checks": {},
               "console_path_checks": {},
+              "stream_checks": {},
               "server_rejection": {}, "failures": [],
               "unverified": ["windows11-install-lifecycle", "wsl2", "host-skills", "public-release"]}
     try:
@@ -251,6 +254,17 @@ def main() -> int:
                          "tools/windows/install.ps1", "tools/windows/uninstall.ps1")})
         if result.returncode:
             raise RuntimeError("console path checks execution failed")
+        stream_result = output / "stream-results.json"
+        result = capture([args.shell_executable, "-NoProfile", "-NonInteractive", "-File",
+                          str(ROOT / "tools/windows/native_stream_checks.ps1"), "-CandidateDirectory",
+                          str(output / "candidate"), "-OutputPath", str(stream_result)], output, "stream-runtime")
+        if not stream_result.is_file():
+            raise RuntimeError("stream checks produced no report")
+        report["stream_checks"] = json.loads(stream_result.read_text(encoding="utf-8-sig"))
+        stream_report(report["stream_checks"], args.shell_version,
+                      {name: digest(ROOT / name) for name in STREAM_SOURCE_PATHS})
+        if result.returncode:
+            raise RuntimeError("stream checks execution failed")
         package_result = output / "package-results.json"
         result = capture([args.shell_executable, "-NoProfile", "-NonInteractive", "-File",
                           str(ROOT / "tools/windows/native_package_checks.ps1"), "-CandidateDirectory",

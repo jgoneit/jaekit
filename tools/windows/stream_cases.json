@@ -1,0 +1,16 @@
+{
+  "targets": [
+    {"id": "root", "path": ".", "stream": "notes", "hex": "726f6f742064617461"},
+    {"id": "bin-directory", "path": "bin", "stream": "Zone.Identifier", "hex": "5b5a6f6e655472616e736665725d0d0a5a6f6e6549643d330d0a"},
+    {"id": "executable", "path": "bin/ha.exe", "stream": "notes", "hex": "6578652064617461"},
+    {"id": "state", "path": "managed.json", "stream": "empty", "hex": ""},
+    {"id": "version-directory", "path": "versions/{current}", "stream": "notes", "hex": "76657273696f6e2064617461"},
+    {"id": "nested-directory", "path": "versions/{current}/guides", "stream": "empty", "hex": ""},
+    {"id": "current-file", "path": "versions/{current}/LICENSE", "stream": "Zone.Identifier", "hex": "5b5a6f6e655472616e736665725d0d0a5a6f6e6549643d330d0a"},
+    {"id": "previous-file", "path": "versions/{previous}/LICENSE", "stream": "notes", "hex": "70726576696f75732064617461"}
+  ],
+  "boundaries": ["inventory", "cleanup", "reinstall", "update", "uninstall"],
+  "normal": ["normal-install", "normal-reinstall", "normal-update", "normal-uninstall", "normal-cleanup", "read-only-inputs"],
+  "errors": ["enumeration-inventory", "enumeration-cleanup", "enumeration-reinstall", "enumeration-update", "enumeration-uninstall", "capability-api-failure", "unsupported-filesystem"],
+  "late": ["staged-stream-refusal", "install-backup-preserved", "uninstall-backup-preserved"]
+}

@@ -149,6 +149,10 @@ The installer validates checksums and the full file inventory, stages a new tree
 
 Package paths reject `CONIN$` and `CONOUT$` components regardless of case or filename extension. If an existing installation inventory contains one, reinstall, update and removal stop while preserving its files. This check does not automatically delete or rename incompatible data.
 
+Reinstall, update and removal stop before changing an installation whose root, subdirectories or files have named alternate data streams (ADS). Even when the default file content is unchanged, empty streams and metadata such as `Zone.Identifier` are additional data to preserve. A failed stream inspection is not treated as absence. The default unnamed data and filesystem structural metadata are not additional user streams; existing local filesystems confirmed not to support named streams remain usable.
+
+This policy covers managed, replacement and deletion trees, including extracted candidates. It does not newly reject or delete download metadata on read-only source ZIPs, checksums or loose candidate scripts. Inspect the target and stream identified by the diagnostic. The installer does not automatically delete, unblock or migrate streams. Temporary or previous-backup cleanup also preserves the tree and reports its location when a stream is present or inspection fails. If installation or removal already committed before cleanup failed, distinguish the applied operation from the remaining data.
+
 If rollback itself or final temporary-data cleanup fails, the remaining backup location is reported. Inspect and compare preserved data before cleanup. Do not forcibly delete folders containing unrelated files or follow links to delete their targets. The installer does not isolate another same-user process deliberately changing paths concurrently.
 
 ## Remove
