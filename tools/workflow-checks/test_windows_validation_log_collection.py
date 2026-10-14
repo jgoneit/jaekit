@@ -28,6 +28,9 @@ class WindowsJobLogCollection(unittest.TestCase):
         self.commands = []
         self.api_paths = []
         self.log_error = None
+        self.help_error = None
+        self.api_help = "FLAGS\n  --allow-escape-sequences  Allow escape sequences in API output\n"
+        self.expected_escape_flags = ["--allow-escape-sequences"]
 
     @staticmethod
     def truncated_view(log):
@@ -45,6 +48,10 @@ class WindowsJobLogCollection(unittest.TestCase):
 
     def command(self, argv, **kwargs):
         self.commands.append(argv)
+        if argv == ["gh", "api", "--help"]:
+            if self.help_error is not None:
+                raise self.help_error
+            return self.api_help
         if argv[:3] == ["gh", "repo", "view"]:
             return json.dumps({"nameWithOwner": "jgoneit/jaekit"})
         if argv[:3] == ["gh", "pr", "view"]:
@@ -53,14 +60,14 @@ class WindowsJobLogCollection(unittest.TestCase):
         if argv[:3] == ["gh", "run", "view"]:
             return self.truncated_view(self.fixture.command(argv, **kwargs))
         if argv[:4] == ["gh", "api", "--method", "GET"]:
+            self.assertEqual(self.commands.count(["gh", "api", "--help"]), 1)
             if self.log_error is not None:
                 raise self.log_error
             paths = {f"repos/jgoneit/jaekit/actions/jobs/{job['id']}/logs": job
                      for job in self.fixture.jobs if job["name"] in self.ci.JOBS}
-            self.assertEqual(argv[4], "--allow-escape-sequences")
-            self.assertIn(argv[5], paths)
-            self.assertEqual(len(argv), 6)
-            job = paths[argv[5]]
+            self.assertEqual(argv[4:-1], self.expected_escape_flags)
+            self.assertIn(argv[-1], paths)
+            job = paths[argv[-1]]
             # Reuse the real observer's existing source/runner/report fixture.
             return "\x1b[0m\n" + self.fixture.command([
                 "gh", "run", "view", "7", "--repo", "jgoneit/jaekit",
@@ -77,27 +84,45 @@ class WindowsJobLogCollection(unittest.TestCase):
                 return validation.live_reports()
             finally:
                 self.assertIs(self.ci.command, original, "command hook was not restored")
+                self.assertEqual(self.commands.count(["gh", "api", "--help"]), 1)
                 self.assertFalse(any(argv[:3] == ["gh", "run", "view"] for argv in self.commands),
                                  "line-scanning run-view logs were used as a fallback")
                 self.assertNotIn("\x1b", stdout.getvalue(), "raw log escapes were printed")
                 self.assertNotIn("JAEKIT_CI_REPORT ", stdout.getvalue(), "raw reports were printed")
 
     def test_raw_selected_job_logs_preserve_both_oversized_json_reports(self):
-        job = next(job for job in self.fixture.jobs if job["name"] == "Core / Windows")
-        raw = self.fixture.command(["gh", "run", "view", "7", "--job", str(job["id"]), "--log"])
-        report_lines = [line for line in raw.splitlines() if line.startswith("JAEKIT_CI_REPORT ")]
-        self.assertEqual(len(report_lines), 2)
-        self.assertTrue(all(len(line.encode("utf-8")) > 64 * 1024 for line in report_lines))
-        self.assertEqual(self.ci.records(self.truncated_view(raw), "JAEKIT_CI_REPORT "), [])
-        rows = self.observe()
-        self.assertEqual([row["environment"]["shell_version"] for row in rows], ["5.1", "7.5"])
-        self.assertTrue(all(row["synthetic_transport_padding"] == "x" * (92 * 1024) for row in rows))
-        expected = {f"repos/jgoneit/jaekit/actions/jobs/{job['id']}/logs"
-                    for job in self.fixture.jobs if job["name"] in self.ci.JOBS}
-        actual = [argv[5] for argv in self.commands if argv[:4] == ["gh", "api", "--method", "GET"]]
-        self.assertEqual(set(actual), expected)
-        self.assertEqual(len(actual), len(expected))
-        self.assertIn("repos/jgoneit/jaekit/actions/runs/7/attempts/1/jobs?per_page=100", self.api_paths)
+        for modern in (True, False):
+            self.setUp()
+            if not modern:
+                self.api_help = "FLAGS\n  --hostname string  The GitHub hostname\n"
+                self.expected_escape_flags = []
+            with self.subTest(modern=modern):
+                job = next(job for job in self.fixture.jobs if job["name"] == "Core / Windows")
+                raw = self.fixture.command(["gh", "run", "view", "7", "--job", str(job["id"]), "--log"])
+                report_lines = [line for line in raw.splitlines() if line.startswith("JAEKIT_CI_REPORT ")]
+                self.assertEqual(len(report_lines), 2)
+                self.assertTrue(all(len(line.encode("utf-8")) > 64 * 1024 for line in report_lines))
+                self.assertEqual(self.ci.records(self.truncated_view(raw), "JAEKIT_CI_REPORT "), [])
+                rows = self.observe()
+                self.assertEqual([row["environment"]["shell_version"] for row in rows], ["5.1", "7.5"])
+                self.assertTrue(all(row["synthetic_transport_padding"] == "x" * (92 * 1024) for row in rows))
+                expected = {f"repos/jgoneit/jaekit/actions/jobs/{job['id']}/logs"
+                            for job in self.fixture.jobs if job["name"] in self.ci.JOBS}
+                actual = [argv[-1] for argv in self.commands if argv[:4] == ["gh", "api", "--method", "GET"]]
+                self.assertEqual(set(actual), expected)
+                self.assertEqual(len(actual), len(expected))
+                self.assertIn("repos/jgoneit/jaekit/actions/runs/7/attempts/1/jobs?per_page=100", self.api_paths)
+
+    def test_capability_requires_the_exact_advertised_option(self):
+        self.api_help = "FLAGS\n  --allow-escape-sequences-extra  A different synthetic option\n"
+        self.expected_escape_flags = []
+        self.observe()
+
+    def test_help_failure_propagates_before_any_job_log_request(self):
+        self.help_error = self.ci.ObservationError("synthetic help request failed")
+        with self.assertRaisesRegex(self.ci.ObservationError, "help request failed"):
+            self.observe()
+        self.assertFalse(any(argv[:4] == ["gh", "api", "--method", "GET"] for argv in self.commands))
 
     def test_current_branch_pr_is_used_without_a_fixed_number(self):
         self.observe()
