@@ -424,11 +424,9 @@ finally {
         Require ($changed.Remove($capabilityImports[0].Index, $stub.Length).Insert($capabilityImports[0].Index, $capabilityImports[0].Value) -ceq $source) 'Capability fixture changed the decision algorithm.'
         $changed = $changed.Replace('class InstallStreams', ('class ' + $className))
         Add-Type -TypeDefinition $changed
-        $type = ('Jaekit.' + $className) -as [type]
         $before = Snapshot-Tree $template
-        $method = $type.GetMethod('Read')
-        if ($case -eq 'capability-api-failure') { Refusal { $method.Invoke($null, @($template)) } 'Cannot inspect named data streams:' }
-        else { Require (@($method.Invoke($null, @($template))).Count -eq 0) 'Confirmed unsupported capability was rejected.' }
+        if ($case -eq 'capability-api-failure') { Refusal { [Jaekit.StreamCapabilityFailureFixture]::Read([string]$template) } 'Cannot inspect named data streams:' }
+        else { Require (@([Jaekit.StreamUnsupportedFixture]::Read([string]$template)).Count -eq 0) 'Confirmed unsupported capability was rejected.' }
         Observe @{case = $case; kind = $(if ($success -eq 'true') { 'injected_unsupported' } else { 'injected_error' }); rejected = ($success -ne 'true'); injected_branch_observed = $true; before = $before; after = (Snapshot-Tree $template)}
     }
 
