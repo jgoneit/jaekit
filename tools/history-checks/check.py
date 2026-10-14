@@ -558,6 +558,16 @@ def ac5(binary, temp):
     shown = f.md('show', ext)
     require(versions == ['release-2026-10-14-rc1', 'release-2026-10-14-rc2'] and all('version %s ' % v in shown for v in versions),
             'history-formats-diverge', shown)
+    # A correction's acknowledged last correction shows in Markdown as in JSON.
+    a = Fixture(binary, temp / 'after')
+    a.add('--kind', '원인', '--summary', 'first')
+    a.add('--kind', '원인', '--summary', 'fix', '--supersedes', 'D1')
+    a.add('--kind', '원인', '--summary', 'second fix', '--supersedes', 'D1@D2')
+    pred = a.view('show', 'D3')['predecessors']
+    md3, md1 = a.md('show', 'D3'), a.md('show', 'D1')
+    require([(p['relation'], p['id'], p.get('after')) for p in pred] == [('supersedes', 'D1', 'D2')]
+            and '- supersedes D1 · 원인 · first (lineage same, after D2)' in md3
+            and '- supersedes D3 · 원인 · second fix (lineage same, current, after D2)' in md1, 'history-formats-diverge', md3 + md1)
     before = f.snapshot()
     for args in (['current'], ['list', '--since', cursor], ['show', 'D1'], ['current', '--format', 'json']):
         f.h(*args)
@@ -693,8 +703,27 @@ def ac6(binary, temp):
     r = s.h('add', '--kind', '관측', '--summary', 'x')
     require(r.returncode == 70 and code_of(r) == 'history_unreadable' and not any(outside.iterdir()), 'history-wrote-through-link', r.stderr)
     # Fault-injected writes and lock timing are observed at the store boundary.
+    # A stored line whose last-event record cannot be written is reported, not
+    # acknowledged as a plain success; the same request then replays.
+    if os.geteuid() != 0:
+        u = Fixture(binary, temp / 'unanchored')
+        u.add('--kind', '관측', '--summary', 'first')
+        os.chmod(u.history_dir(), 0o555)
+        try:
+            r = u.h('add', '--kind', '관측', '--summary', 'second', '--request-id', 'second-1')
+        finally:
+            os.chmod(u.history_dir(), 0o755)
+        shown = u.view('show', '--request-id', 'second-1')['event']['id']
+        again = u.add('--kind', '관측', '--summary', 'second', '--request-id', 'second-1')
+        require(r.returncode == 70 and code_of(r) == 'write_uncertain' and 'D2 was stored' in r.stderr and 'second-1' in r.stderr
+                and shown == 'D2' and again['replayed'] and again['id'] == 'D2', 'history-unanchored-success', (r.returncode, r.stderr, again))
+        events = u.history_dir() / 'events.jsonl'
+        events.write_bytes(events.read_bytes().splitlines(keepends=True)[0])
+        q = u.h('list', '--format', 'json')
+        require(q.returncode == 65 and code_of(q) == 'history_corrupt', 'history-tail-loss-hidden', q.stdout + q.stderr)
     units = {'TestUncertainWriteCanBeConfirmedByRequest', 'TestDamageAndUnsupportedAreDistinct', 'TestSymlinkedStorageIsRefused', 'TestStrictInput',
-             'TestTrailingEventLossIsDamage', 'TestInterruptedRecordCatchesUp', 'TestReadsRefuseSymlinkedStorage', 'TestReadsWaitForRegistration'}
+             'TestTrailingEventLossIsDamage', 'TestInterruptedRecordCatchesUp', 'TestReadsRefuseSymlinkedStorage', 'TestReadsWaitForRegistration',
+             'TestFirstRegistrationReadWaits', 'TestUnanchoredRegistrationIsReported'}
     result = run(['go', 'test', '-count=1', '-json', './internal/history', '-run', '^(%s)$' % '|'.join(sorted(units))], ROOT)
     passed = {json.loads(l).get('Test') for l in result.stdout.splitlines() if l.startswith('{') and json.loads(l).get('Action') == 'pass'}
     failed = {json.loads(l).get('Test') for l in result.stdout.splitlines() if l.startswith('{') and json.loads(l).get('Action') == 'fail'} - {None}
@@ -996,12 +1025,14 @@ def ac12(binary, temp, capabilities):
         'contracts/decision-history.md': ['decision-history/v1', '선택 기능', 'correction_conflict', 'write_uncertain', 'local', 'Agent Wiki', '새 clone', '§5.3',
                                           '/last', '쓰지도 읽지도 않는다', '진행 중인 등록이 끝날 때까지 기다려', '끝에서부터 지운 온전한 줄',
                                           '`last`와 이력을 함께 지우거나 이전 상태로 되돌린 경우는 드러나지 않는다', '실행자가 준 식별 값은 줄이지 않아',
-                                          '`missing`(경로가 없음)'],
+                                          '`missing`(경로가 없음)', '첫 등록이 진행 중일 때도 같다', '두 플래그를 섞어 준 순서는 보존하지 않는다',
+                                          '사건의 순서는 `seq`가 정한다', '`last`가 한 사건 뒤처질 수 있다', '`after D<n>`',
+                                          '제어 문자가 든 경로는 JSON으로 읽는다', '사건은 저장했지만 `last`를 갱신하지 못함'],
         'contracts/core-capabilities.md': ['decision-history/v1', 'formats.decision_history', 'v0.1.4', '--operation history'],
         'contracts/bundle.md': ['decision-history.md', 'Seal 0.1.13'],
         'plugins/seal/skills/seal/SKILL.md': ['decision-history/v1', 'ha history', 'Events are claims', 'Goals started earlier keep their PROGRESS form'],
         'plugins/seal/skills/seal/references/ha.md': ['decision-history/v1', 'formats.decision_history', 'correction_conflict', 'write_uncertain', 'executor claims', '--operation', 'history',
-                                                      'Removed trailing events count as damage'],
+                                                      'Removed trailing events count as damage', 'stored before its last-event record could be updated'],
         'plugins/seal/skills/seal/references/bundle.md': ['decision history', 'event ID'],
         'guides/USAGE.md': ['decision-history/v1', '판단 이력', '새 clone', 'v0.1.4'],
         'guides/USAGE.en.md': ['decision-history/v1', 'decision history', 'new clone', 'v0.1.4'],
