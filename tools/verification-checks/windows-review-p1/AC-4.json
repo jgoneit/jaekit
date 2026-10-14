@@ -1,0 +1,15 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "windows-review-p1",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/windows_review_p1.py",
+    "tools/verification-checks/cross_platform_ci.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-4",
+      "violation": "windows-review-boundary-missing"
+    }
+  ]
+}

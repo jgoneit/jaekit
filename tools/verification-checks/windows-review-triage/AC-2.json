@@ -1,0 +1,17 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "windows-review-triage",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/windows_review_triage.py",
+    "tools/verification-checks/cross_platform_ci.py",
+    "tools/windows/console_results.py",
+    "tools/windows/console_cases.json"
+  ],
+  "targets": [
+    {
+      "id": "AC-2",
+      "violation": "windows-review-boundary-missing"
+    }
+  ]
+}

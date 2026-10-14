@@ -1,0 +1,16 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "windows-lifecycle-review",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/windows_lifecycle_review.py",
+    "tools/verification-checks/cross_platform_ci.py",
+    "tools/windows/lifecycle_results.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-1",
+      "violation": "windows-lifecycle-boundary-missing"
+    }
+  ]
+}

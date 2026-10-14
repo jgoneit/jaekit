@@ -48,7 +48,7 @@ func baselineFiles(repo *gitx.Repo, base, head string, paths []string) ([]baseli
 				break
 			}
 			if baseMode == "120000" {
-				return nil, fmt.Errorf("check path %q: base component %q is a symlink", p, component)
+				return nil, fmt.Errorf("check path %q: base component %q is a symlink or irregular entry", p, component)
 			}
 			if i < len(parts)-1 && baseMode != "040000" {
 				return nil, fmt.Errorf("check path %q: base parent %q is not a directory", p, component)
@@ -87,8 +87,8 @@ func baselineDestination(root *os.Root, p string) error {
 			return fmt.Errorf("check path %q: inspect baseline component %q: %w", p, component, err)
 		}
 		switch {
-		case info.Mode()&os.ModeSymlink != 0:
-			return fmt.Errorf("check path %q: baseline component %q is a symlink", p, component)
+		case info.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0:
+			return fmt.Errorf("check path %q: baseline component %q is a symlink or irregular entry", p, component)
 		case i < len(parts)-1 && !info.IsDir():
 			return fmt.Errorf("check path %q: baseline parent %q is not a directory", p, component)
 		case i == len(parts)-1 && !info.Mode().IsRegular():

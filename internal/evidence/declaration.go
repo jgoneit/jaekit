@@ -50,7 +50,7 @@ func digest(data []byte) string {
 // ValidPath accepts a canonical repository-relative file path.
 func ValidPath(p string) bool {
 	return p != "" && p != "." && p != ".." && !strings.HasPrefix(p, "../") &&
-		!path.IsAbs(p) && path.Clean(p) == p && !strings.ContainsAny(p, "\\\x00\r\n\t") &&
+		!path.IsAbs(p) && filepath.IsLocal(filepath.FromSlash(p)) && path.Clean(p) == p && !strings.ContainsAny(p, "\\\x00\r\n\t") &&
 		!strings.Contains("/"+p+"/", "/.git/")
 }
 
@@ -69,8 +69,8 @@ func ReadInput(root, p string) ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("evidence input %q is unavailable", p)
 		}
-		if info.Mode()&os.ModeSymlink != 0 || (i < len(parts)-1 && !info.IsDir()) || (i == len(parts)-1 && !info.Mode().IsRegular()) {
-			return nil, fmt.Errorf("evidence input %q must be a regular file without symlink components", p)
+		if info.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 || (i < len(parts)-1 && !info.IsDir()) || (i == len(parts)-1 && !info.Mode().IsRegular()) {
+			return nil, fmt.Errorf("evidence input %q must be a regular file without symlink or irregular components", p)
 		}
 	}
 	git := func(args ...string) ([]byte, error) {
@@ -92,6 +92,9 @@ func ReadInput(root, p string) ([]byte, error) {
 		return nil, err
 	}
 	if !bytes.Equal(data, committed) {
+		if bytes.Equal(bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n")), bytes.ReplaceAll(committed, []byte("\r\n"), []byte("\n"))) {
+			return nil, fmt.Errorf("evidence input %q differs from HEAD in CRLF/LF line endings; use checkout attributes that preserve the committed bytes before checking (ha does not change files or Git settings)", p)
+		}
 		return nil, fmt.Errorf("evidence input %q differs from HEAD; commit it before checking", p)
 	}
 	return data, nil

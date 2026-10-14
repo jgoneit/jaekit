@@ -1,0 +1,16 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "windows-validation-stability",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/windows_validation.py",
+    "tools/verification-checks/cross_platform_ci.py",
+    "tools/workflow-checks/test_windows_shell_conditions.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-1",
+      "violation": "windows-validation-boundary-missing"
+    }
+  ]
+}
