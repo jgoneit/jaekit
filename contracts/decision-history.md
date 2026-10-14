@@ -15,11 +15,13 @@
 ```text
 <git-common-dir>/ha/history/<start-sha256>/events.jsonl   사건 (한 줄에 한 사건)
 <git-common-dir>/ha/history/<start-sha256>/lock           등록 잠금
+<git-common-dir>/ha/history/<start-sha256>/last           마지막으로 저장한 사건의 순번과 줄 sha256
 ```
 
 - `<git-common-dir>`는 `git rev-parse --git-common-dir`가 알려 주는, 같은 저장소의 모든 작업 트리가 공유하는 Git 디렉토리다. 일반 checkout에서는 `.git`이다. 기본 checkout과 linked worktree는 같은 이력과 같은 잠금을 쓴다. 작업 트리별 Git 디렉토리의 실행 기록 잠금(`ha/lock`)은 이력 등록을 보호하지 않는다.
 - `<start-sha256>`는 해당 실행 시작 기록 줄의 원문 sha256이다. 목표 경로나 branch 이름을 쓰지 않으므로 경로에 허용된 공백·줄바꿈 같은 문자가 저장 위치를 바꾸지 않는다. 다른 시작 기록과 다른 저장소의 이력은 섞이지 않는다. 같은 시작 기록 원문을 가진 실행 묶음 사본은 같은 이력을 공유한다.
-- Core는 이 경로의 디렉토리·파일이 symlink이거나 일반 디렉토리·파일이 아니면 쓰지 않는다(`history_unreadable`). 조회는 파일이나 디렉토리를 만들지 않는다.
+- Core는 이 경로의 디렉토리·파일이 symlink이거나 일반 디렉토리·파일이 아니면 쓰지도 읽지도 않는다(`history_unreadable`). 조회도 그 너머의 자료를 이 저장소의 이력으로 보이지 않는다. 조회는 파일이나 디렉토리를 만들지 않는다.
+- 조회는 다른 작업 트리에서 진행 중인 등록이 끝날 때까지 기다려 그 등록 전이나 후의 온전한 이력을 읽는다. 쓰는 도중의 줄을 손상으로 보고하지 않는다.
 - 로컬 자료다. Git이 추적하지 않으며 새 clone이나 다른 기기로 따라가지 않는다. 자동 백업·동기화·export/import·분기 병합·손상 복구는 없다. linked worktree를 제거해도 이력은 남지만, 남은 이력이 목표 문서나 검사 출력 원문의 보존·복원을 보증하지 않는다. 검사 출력 원문만 지우는 안내([설치 안내](../guides/INSTALL.md#제거))는 `ha/runs/`만 지우고 이력을 남긴다. Git 디렉토리 전체 삭제처럼 보존 범위를 벗어나는 행위는 복구하지 않는다.
 - 목표 디렉토리를 옮겨도 같은 시작 기록 원문이면 같은 이력을 찾는다. 이때 조회는 당시와 현재의 목표 경로·문서 digest 차이를 표시하며 바뀐 경로·내용의 유효성을 자동으로 인정하지 않는다.
 
@@ -53,7 +55,7 @@ ha history <goal> show <Dn> | --request-id <식별자> [--page <커서>] [--limi
 
 | 정보 | 작성 책임과 의미 |
 | --- | --- |
-| `id`, `seq`, `prev` | Core가 붙인다. `id`는 이력 안 순번의 `D<n>`이다. `prev`는 직전 줄 원문의 sha256이며 첫 줄은 `null`이다. 이 연결로 수정·삭제를 손상으로 드러낸다. 같은 사용자 권한의 위조를 막지는 못하므로 보증은 `local`이다 |
+| `id`, `seq`, `prev` | Core가 붙인다. `id`는 이력 안 순번의 `D<n>`이다. `prev`는 직전 줄 원문의 sha256이며 첫 줄은 `null`이다. 이 연결로 중간 줄의 수정·삭제와 잘린 줄을 손상으로 드러낸다. 끝에서부터 지운 온전한 줄은 `last`가 기록한 마지막 사건과 대조해 손상으로 드러내며, 사라진 사건의 ID·요청 식별자를 다른 내용에 다시 쓰지 않는다. `last`와 이력을 함께 지우거나 이전 상태로 되돌린 경우는 드러나지 않는다. 같은 사용자 권한의 위조를 막지는 못하므로 보증은 `local`이다 |
 | `request_id` | 요청 식별자. ASCII 영숫자로 시작하는 영숫자·`_.:/-`, 1~128자. 이력 안에서 고유하다 |
 | `decision.kind`, `decision.status` | 종류와 주장 상태. 아래 표 |
 | `decision.summary` | 한 줄 요약. 1~1024바이트 |
@@ -84,7 +86,7 @@ ha history <goal> show <Dn> | --request-id <식별자> [--page <커서>] [--limi
 | `type` | 입력 | 등록 시 관측(`context.evidence[].state`) | 조회 시 현재 비교 |
 | --- | --- | --- | --- |
 | `run` | `seq`, 선택 `sha256` | 같은 목표 실행 기록의 그 줄이 있고 해시가 맞으면 `matched`이며 `version`에 그 줄의 sha256을 남긴다. 없거나 해시가 다르면 거부 | 현재 실행 기록의 같은 줄과 `same`·`different`·`unverifiable` |
-| `file` | 저장소 기준 `path`, 선택 `section` | 저장소 안의 일반 파일이면 `read`와 내용 sha256(`version`). `missing`, `not_regular`(symlink 포함), `outside`, `unreadable`, `too_large`(64 MiB 초과)이면 버전 미식별 | `unchanged`·`changed`·`unavailable`·`unidentified` |
+| `file` | 저장소 기준 `path`, 선택 `section` | 저장소 안의 일반 파일이면 `read`와 내용 sha256(`version`). `missing`(경로가 없음), `not_regular`(symlink 포함), `outside`, `unreadable`(권한·symlink 순환 등으로 그 경로나 상위 경로를 확인할 수 없음), `too_large`(64 MiB 초과)이면 버전 미식별 | `unchanged`·`changed`·`unavailable`·`unidentified` |
 | `commit` | `commit`(7~64자리 16진수), 선택 `repository` | 이 저장소에서 찾으면 `found`와 전체 id. 없으면 `not_found`(얕은 clone 포함), 다른 저장소면 `other_repository`. fetch하지 않는다 | 등록 시 관측 그대로 |
 | `external` | `ref`(URL·issue·리뷰 댓글 등), 선택 `version` | `not_checked`. `version`이 있으면 실행자가 준 버전 식별 주장이다 | `not_checked` |
 
@@ -132,6 +134,8 @@ ha history <goal> show <Dn> | --request-id <식별자> [--page <커서>] [--limi
 - **이어읽기.** 한 번에 기본 20건, 최대 200건(`--limit`)을 보인다. 목록·직접 후속·대체 안내가 잘리면 `truncated`, 보인 수와 전체 수, 다음 페이지 커서(`next`, `p1.…`)를 준다. 페이지 커서는 첫 페이지의 이력 범위, 선택한 실행 head, 조회 조건을 고정하므로 그 사이 새 정정이 저장되어도 누락·중복 없이 이어진다. 그 실행 head를 현재 체인에서 확인할 수 없으면 `cursor_stale`로 재조회가 필요함을 알린다. 다른 이력의 커서는 `cursor_invalid`, 다른 조건의 커서는 `cursor_mismatch`다. 다음 변경분 조회는 새 경계 커서로 이력 경계를 전진시키며 같은 계보의 정상적인 head 전진을 반영한다. 계보가 갈라졌거나 기준을 확인할 수 없으면 이전 결과에 이어지는 변경분으로 처리하지 않는다.
 - **부재.** 이력 파일이 없으면 `history: absent`로 답한다. 이것은 이 저장소에 이력이 저장되어 있지 않다는 뜻일 뿐 과거에 한 번도 기록하지 않았다는 뜻이 아니다.
 
+Markdown은 Core가 계산한 해시를 앞 12자로 줄여 보일 수 있다. 외부 근거의 `version`처럼 실행자가 준 식별 값은 줄이지 않아 JSON과 같은 값으로 구분된다.
+
 조회는 파일·실행 기록을 만들거나 바꾸지 않고 모델이나 외부 서비스를 호출하지 않는다. 같은 저장 자료와 같은 Git 상태의 조회는 같은 결과를 낸다.
 
 ## 9. 영수증과 오류
@@ -148,10 +152,10 @@ ha history <goal> show <Dn> | --request-id <식별자> [--page <커서>] [--limi
 | 65 | `correction_conflict` | 같은 판단의 다른 정정이 먼저 저장됨 |
 | 65 | `request_conflict` | 같은 요청 식별자가 다른 내용을 가리킴 |
 | 65 | `not_started`, `run_record_broken` | 시작 기록 없음, 등록 전 실행 기록 체인 손상 |
-| 65 | `history_corrupt` | 저장된 이력의 손상(잘린 줄, 수정·삭제, 해시 연결·순번·관계 위반, 상한 초과 줄) |
+| 65 | `history_corrupt` | 저장된 이력의 손상(잘린 줄, 수정·삭제, 끝에서 사라진 사건, 해시 연결·순번·관계 위반, `last`와의 불일치, 상한 초과 줄) |
 | 65 | `unknown_event`, `cursor_invalid`, `cursor_stale`, `cursor_mismatch` | 조회 대상·커서 오류 |
 | 66 | `history_unsupported` | 이 실행 파일이 읽지 못하는 schema, 또는 지원하지 않는 시작 규칙 |
-| 70 | `history_unreadable` | 저장소 읽기·권한·경로 오류, symlink 등 비정상 저장 경로 |
+| 70 | `history_unreadable` | 저장소 읽기·권한·경로 오류, 등록과 조회 모두에서 symlink 등 비정상 저장 경로 |
 | 70 | `write_uncertain` | 쓰기·동기화·닫기 실패로 적용 여부를 알 수 없음 |
 
 거부는 이력을 바꾸지 않는다. 손상·미지원 이력은 정상 전체 이력으로 보이거나 빈 성공 결과로 바뀌지 않으며, 조회와 추가 등록이 같은 오류로 멈춘다. 자동으로 잘라내거나 복구하지 않는다. `write_uncertain`은 성공이나 미적용으로 단정하지 않는다. 오류가 알려 주는 요청 식별자로 `show --request-id`를 조회하거나 같은 요청을 같은 식별자로 다시 보내 적용 여부를 확인한다. 손상 때문에 확인할 수 없으면 그 한계가 오류로 드러난다.
@@ -191,4 +195,4 @@ ha history docs/specs/empty-input show D3
 
 ## 12. 보증 한계
 
-판단 이력의 보증 수준은 `local`이다. 같은 사용자 권한의 실행자는 파일을 고칠 수 있으며, 해시 연결은 사고를 드러낼 뿐 위조를 막지 않는다. 사건은 실행자의 주장이며 Agent Wiki, 자동 전송, 미래 모델의 성능 향상을 구현하거나 보장하지 않는다. 토큰 절감·재개 시간·오판 감소 같은 효과는 이 기능의 완료로 주장하지 않는다.
+판단 이력의 보증 수준은 `local`이다. 같은 사용자 권한의 실행자는 파일을 고칠 수 있으며, 해시 연결과 `last`는 사고를 드러낼 뿐 위조를 막지 않는다. 이력 디렉토리 전체를 지우거나 이전 사본으로 되돌린 경우는 드러나지 않는다. 사건은 실행자의 주장이며 Agent Wiki, 자동 전송, 미래 모델의 성능 향상을 구현하거나 보장하지 않는다. 토큰 절감·재개 시간·오판 감소 같은 효과는 이 기능의 완료로 주장하지 않는다.

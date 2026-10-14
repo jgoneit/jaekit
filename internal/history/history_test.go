@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -460,5 +461,127 @@ func TestPagesKeepTheirBoundary(t *testing.T) {
 	in.Chain = Chain{Hashes: runHashes(2, "other"), Valid: true}
 	if _, err := Run(in, Query{Mode: "current", Page: *first.Next}); Code(err) != "cursor_stale" {
 		t.Errorf("stale lineage: %v", err)
+	}
+}
+
+func TestTrailingEventLossIsDamage(t *testing.T) {
+	s := newStore(t)
+	f := facts(runHashes(2, "a"))
+	for i := 1; i <= 3; i++ {
+		mustAdd(t, s, f, fmt.Sprintf("r%d", i), Decision{Kind: "관측", Summary: fmt.Sprintf("event %d", i)})
+	}
+	original, _ := os.ReadFile(s.file())
+	last, _ := os.ReadFile(s.last())
+	lines := bytes.SplitAfter(original, []byte("\n"))
+	cases := map[string]func(){
+		"last line removed": func() { os.WriteFile(s.file(), bytes.Join(lines[:2], nil), 0o644) },
+		"all lines removed": func() { os.WriteFile(s.file(), nil, 0o644) },
+		"history removed":   func() { os.Remove(s.file()) },
+		"record removed":    func() { os.Remove(s.last()) },
+		"record rewritten":  func() { os.WriteFile(s.last(), bytes.Replace(last, []byte(`"seq":3`), []byte(`"seq":2`), 1), 0o644) },
+		"record invalid":    func() { os.WriteFile(s.last(), []byte("{}\n"), 0o644) },
+	}
+	for name, damage := range cases {
+		os.WriteFile(s.file(), original, 0o644)
+		os.WriteFile(s.last(), last, 0o644)
+		damage()
+		if _, _, err := s.Load(); Code(err) != "history_corrupt" {
+			t.Errorf("%s: load %v", name, err)
+		}
+		// The lost event's ID and request are never stored again with other content.
+		if _, err := add(t, s, f, "r3", Decision{Kind: "결정", Summary: "different content"}); Code(err) != "history_corrupt" {
+			t.Errorf("%s: append %v", name, err)
+		}
+	}
+}
+
+func TestInterruptedRecordCatchesUp(t *testing.T) {
+	s := newStore(t)
+	f := facts(runHashes(2, "a"))
+	mustAdd(t, s, f, "r1", Decision{Kind: "관측", Summary: "first"})
+	// The first line was stored but not its record.
+	os.Remove(s.last())
+	if _, events, err := s.Load(); err != nil || len(events) != 1 {
+		t.Fatalf("a record one event behind must read: %v %d", err, len(events))
+	}
+	if _, err := os.Stat(s.last()); !errors.Is(err, os.ErrNotExist) {
+		t.Fatal("reading repaired the record")
+	}
+	mustAdd(t, s, f, "r2", Decision{Kind: "관측", Summary: "second"})
+	saved, _ := os.ReadFile(s.last())
+	mustAdd(t, s, f, "r3", Decision{Kind: "관측", Summary: "third"})
+	os.WriteFile(s.last(), saved, 0o644)
+	if _, events, err := s.Load(); err != nil || len(events) != 3 {
+		t.Fatalf("lagging record: %v %d", err, len(events))
+	}
+	if e := mustAdd(t, s, f, "r4", Decision{Kind: "관측", Summary: "fourth"}); e.ID != "D4" {
+		t.Fatalf("append after a lagging record stored %s", e.ID)
+	}
+	if _, events, err := s.Load(); err != nil || len(events) != 4 {
+		t.Fatalf("after catch-up: %v %d", err, len(events))
+	}
+}
+
+func TestReadsRefuseSymlinkedStorage(t *testing.T) {
+	for _, level := range []int{0, 1, 2} {
+		s := newStore(t)
+		mustAdd(t, s, facts(runHashes(2, "a")), "r1", Decision{Kind: "관측", Summary: "real"})
+		dir := s.dirs()[level]
+		moved := filepath.Join(t.TempDir(), "moved")
+		if err := os.Rename(dir, moved); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(moved, dir); err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := s.Load(); Code(err) != "history_unreadable" {
+			t.Errorf("symlinked %s: %v", filepath.Base(dir), err)
+		}
+	}
+}
+
+func TestReadsWaitForRegistration(t *testing.T) {
+	s := newStore(t)
+	mustAdd(t, s, facts(runHashes(2, "a")), "r1", Decision{Kind: "관측", Summary: "first"})
+	f, err := os.OpenFile(filepath.Join(s.Dir(), "lock"), os.O_RDWR, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		_, _, err := s.Load()
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		t.Fatalf("a read finished during a registration: %v", err)
+	case <-time.After(200 * time.Millisecond):
+	}
+	syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("read after the registration: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("a read did not resume after the registration")
+	}
+}
+
+func TestMarkdownKeepsExternalVersions(t *testing.T) {
+	s := newStore(t)
+	runs := runHashes(2, "a")
+	mustAdd(t, s, facts(runs), "r1", Decision{Kind: "검증", Summary: "ci", Evidence: []Evidence{
+		{Type: "external", Ref: "https://example.invalid/ci", Version: "release-2026-10-14-rc1"}, {Type: "run", Seq: 2}}})
+	md := query(t, s, runs, Query{Mode: "show", ID: "D1"}).Markdown()
+	if !strings.Contains(md, "version release-2026-10-14-rc1 ") {
+		t.Fatalf("external version shortened:\n%s", md)
+	}
+	if !strings.Contains(md, "version "+runs[1][:12]+" ") || strings.Contains(md, runs[1]) {
+		t.Fatalf("Core hashes keep their short form:\n%s", md)
 	}
 }

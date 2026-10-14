@@ -38,6 +38,15 @@ func (s *Store) Dir() string { return filepath.Join(s.common, "ha", "history", s
 
 func (s *Store) file() string { return filepath.Join(s.Dir(), "events.jsonl") }
 
+// last names the event Core stored most recently, so that losing whole
+// trailing lines of events.jsonl shows as damage instead of a shorter history.
+func (s *Store) last() string { return filepath.Join(s.Dir(), "last") }
+
+// dirs are the directories from the common Git directory down to this history.
+func (s *Store) dirs() []string {
+	return []string{filepath.Join(s.common, "ha"), filepath.Join(s.common, "ha", "history"), s.Dir()}
+}
+
 // Present reports whether a history file exists. Absent means only that no
 // history is stored here; it does not show that none was ever recorded.
 const (
@@ -55,27 +64,123 @@ func (e Event) Hash() string { return hashBytes(e.Raw) }
 
 // Load reads and verifies the stored history without creating or changing
 // anything. Absence, unreadable storage, damage, and an unsupported schema are
-// distinct results.
+// distinct results. It waits for a registration in progress, so a line being
+// written is never mistaken for damage.
 func (s *Store) Load() (string, []Event, error) {
-	info, err := os.Lstat(s.file())
-	if errors.Is(err, fs.ErrNotExist) {
-		return Absent, nil, nil
+	for _, dir := range s.dirs() {
+		info, err := os.Lstat(dir)
+		if errors.Is(err, fs.ErrNotExist) {
+			return Absent, nil, nil
+		}
+		if err != nil {
+			return "", nil, fail("history_unreadable", "%v", err)
+		}
+		if info.Mode()&fs.ModeSymlink != 0 || !info.IsDir() {
+			return "", nil, fail("history_unreadable", "%s is not a plain directory; refusing to read through it", dir)
+		}
 	}
-	if err != nil {
-		return "", nil, fail("history_unreadable", "%v", err)
-	}
-	if !info.Mode().IsRegular() {
-		return "", nil, fail("history_unreadable", "%s is not a regular file", s.file())
-	}
-	data, err := os.ReadFile(s.file())
-	if err != nil {
-		return "", nil, fail("history_unreadable", "%v", err)
-	}
-	events, err := Parse(data, s.start)
+	unlock, err := share(filepath.Join(s.Dir(), "lock"))
 	if err != nil {
 		return "", nil, err
 	}
-	return Present, events, nil
+	defer unlock()
+	state, events, _, err := s.load()
+	return state, events, err
+}
+
+// load reads the history and checks it against the last stored event. lag
+// reports that the record of the last event is one event behind, which a
+// registration interrupted after writing its line leaves behind.
+func (s *Store) load() (state string, events []Event, lag bool, err error) {
+	last, err := s.readLast()
+	if err != nil {
+		return "", nil, false, err
+	}
+	info, err := os.Lstat(s.file())
+	if errors.Is(err, fs.ErrNotExist) {
+		if last.Seq > 0 {
+			return "", nil, false, fail("history_corrupt", "events.jsonl is missing but D%d was stored; the stored history is not repaired", last.Seq)
+		}
+		return Absent, nil, false, nil
+	}
+	if err != nil {
+		return "", nil, false, fail("history_unreadable", "%v", err)
+	}
+	if !info.Mode().IsRegular() {
+		return "", nil, false, fail("history_unreadable", "%s is not a regular file", s.file())
+	}
+	data, err := os.ReadFile(s.file())
+	if err != nil {
+		return "", nil, false, fail("history_unreadable", "%v", err)
+	}
+	if events, err = Parse(data, s.start); err != nil {
+		return "", nil, false, err
+	}
+	n := len(events)
+	switch {
+	case last.Seq > n:
+		return "", nil, false, fail("history_corrupt", "the history ends at D%d but D%d was stored; trailing events were removed and are not restored", n, last.Seq)
+	case last.Seq > 0 && events[last.Seq-1].Hash() != last.SHA256:
+		return "", nil, false, fail("history_corrupt", "D%d differs from the event stored as D%d", last.Seq, last.Seq)
+	case n > last.Seq+1:
+		return "", nil, false, fail("history_corrupt", "the record of the last stored event names D%d but the history has %d events", last.Seq, n)
+	}
+	return Present, events, n == last.Seq+1, nil
+}
+
+// lastEvent is the content of the last file: the seq and line hash of the
+// event Core stored most recently. An absent file means none yet.
+type lastEvent struct {
+	Seq    int    `json:"seq"`
+	SHA256 string `json:"sha256"`
+}
+
+func (s *Store) readLast() (lastEvent, error) {
+	var last lastEvent
+	if err := regularOrAbsent(s.last()); err != nil {
+		return last, err
+	}
+	data, err := os.ReadFile(s.last())
+	if errors.Is(err, fs.ErrNotExist) {
+		return last, nil
+	}
+	if err != nil {
+		return last, fail("history_unreadable", "%v", err)
+	}
+	if err := strictJSON(bytes.TrimSuffix(data, []byte("\n")), &last); err != nil || last.Seq < 1 || !sha256Hex.MatchString(last.SHA256) {
+		return lastEvent{}, fail("history_corrupt", "the record of the last stored event is invalid")
+	}
+	return last, nil
+}
+
+// writeLast replaces the last file atomically after the event line is stored.
+func (s *Store) writeLast(e Event) error {
+	data, _ := json.Marshal(lastEvent{Seq: e.Seq, SHA256: e.Hash()})
+	tmp := s.last() + ".tmp"
+	for _, p := range []string{tmp, s.last()} {
+		if err := regularOrAbsent(p); err != nil {
+			return err
+		}
+	}
+	f, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC|syscall.O_NOFOLLOW, 0o644)
+	if err != nil {
+		return fail("history_unreadable", "%v", err)
+	}
+	if _, err := f.Write(append(data, '\n')); err != nil {
+		f.Close()
+		return fail("history_unreadable", "%v", err)
+	}
+	if err := f.Sync(); err != nil {
+		f.Close()
+		return fail("history_unreadable", "%v", err)
+	}
+	if err := f.Close(); err != nil {
+		return fail("history_unreadable", "%v", err)
+	}
+	if err := os.Rename(tmp, s.last()); err != nil {
+		return fail("history_unreadable", "%v", err)
+	}
+	return nil
 }
 
 // Parse verifies stored bytes: one schema, consecutive seq, the prev chain,
@@ -233,6 +338,30 @@ func lock(p string) (func(), error) {
 	}, nil
 }
 
+// share holds the registration lock shared while a query reads. Queries create
+// nothing: without a lock file no registration has started here, so there is
+// nothing to wait for.
+func share(p string) (func(), error) {
+	if err := regularOrAbsent(p); err != nil {
+		return nil, err
+	}
+	f, err := os.OpenFile(p, os.O_RDONLY|syscall.O_NOFOLLOW, 0)
+	if errors.Is(err, fs.ErrNotExist) {
+		return func() {}, nil
+	}
+	if err != nil {
+		return nil, fail("history_unreadable", "%v", err)
+	}
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_SH); err != nil {
+		f.Close()
+		return nil, fail("history_unreadable", "%v", err)
+	}
+	return func() {
+		syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+		f.Close()
+	}, nil
+}
+
 // Replay reports that a request was already stored. The caller returns the
 // original receipt and appends nothing.
 type Replay struct{ Event Event }
@@ -244,7 +373,7 @@ func (r *Replay) Error() string { return "request already stored as " + r.Event.
 // the event to add, a *Replay, or a refusal. Append fills seq, prev, id, the
 // recorded time, and the ha version.
 func (s *Store) Append(now time.Time, haVersion string, build func([]Event) (*Event, error)) (*Event, error) {
-	for _, dir := range []string{filepath.Join(s.common, "ha"), filepath.Join(s.common, "ha", "history"), s.Dir()} {
+	for _, dir := range s.dirs() {
 		if err := ensureDir(dir); err != nil {
 			return nil, err
 		}
@@ -254,9 +383,16 @@ func (s *Store) Append(now time.Time, haVersion string, build func([]Event) (*Ev
 		return nil, err
 	}
 	defer unlock()
-	_, events, err := s.Load()
+	_, events, lag, err := s.load()
 	if err != nil {
 		return nil, err
+	}
+	// An earlier registration stored its line but not the record of it. Catch
+	// the record up first so it never falls more than one event behind.
+	if lag {
+		if err := s.writeLast(events[len(events)-1]); err != nil {
+			return nil, err
+		}
 	}
 	e, err := build(events)
 	if err != nil {
@@ -293,5 +429,9 @@ func (s *Store) Append(now time.Time, haVersion string, build func([]Event) (*Ev
 		return nil, err
 	}
 	e.Raw = raw
+	// The event is stored. If its record cannot be written, the record stays
+	// one event behind: reads accept that and the next registration repairs
+	// it, or refuses when it cannot.
+	_ = s.writeLast(*e)
 	return e, nil
 }

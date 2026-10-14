@@ -175,8 +175,13 @@ func evidenceLine(ev EvidenceView) string {
 		checked = "content checked (claim)"
 	}
 	version := "version unidentified"
-	if ev.Recorded.Version != "" {
-		version = "version " + head12(strings.TrimPrefix(ev.Recorded.Version, "sha256:"))
+	if v := ev.Recorded.Version; v != "" {
+		// Hashes Core computed are shortened; an executor's external version is
+		// arbitrary text whose prefix may not tell versions apart.
+		if ev.Type != "external" {
+			v = head12(strings.TrimPrefix(v, "sha256:"))
+		}
+		version = "version " + v
 	}
 	var what string
 	switch ev.Type {

@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/jgoneit/jaekit/internal/history"
@@ -105,13 +106,18 @@ func fileVersion(root string) func(string) (string, string) {
 		}
 		parent, err := filepath.EvalSymlinks(filepath.Dir(full))
 		if err != nil {
-			return "", "missing"
+			// Only a path that does not exist is missing. A parent that cannot be
+			// traversed or resolved leaves the file's existence unknown.
+			if errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR) {
+				return "", "missing"
+			}
+			return "", "unreadable"
 		}
 		if rel, err := filepath.Rel(realRoot, parent); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 			return "", "outside"
 		}
 		info, err := os.Lstat(full)
-		if errors.Is(err, fs.ErrNotExist) {
+		if errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR) {
 			return "", "missing"
 		}
 		if err != nil {

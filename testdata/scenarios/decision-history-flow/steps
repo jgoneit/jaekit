@@ -28,6 +28,13 @@ expect-no-output "- D1 ·"
 ha history $GOAL show D3 --format md
 expect-exit 0
 expect-output "builds_on D1 · 원인 [가설] · the first item is assumed (lineage same)"
+write .git/ci.json "{\"decision\":{\"kind\":\"검증\",\"summary\":\"the release build passed\",\"evidence\":[{\"type\":\"external\",\"ref\":\"https://example.invalid/ci\",\"version\":\"release-2026-10-14-rc1\"}]}}"
+ha history $GOAL add --input .git/ci.json
+expect-exit 0
+expect-output "\"id\":\"D5\""
+ha history $GOAL show D5 --format md
+expect-exit 0
+expect-output "external https://example.invalid/ci · content not checked · version release-2026-10-14-rc1 · recorded not_checked"
 ha done $GOAL
 expect-exit 0
 expect-completion-record present
@@ -40,4 +47,4 @@ expect-exit 0
 expect-output "D4 · 원인 [기각]"
 ha history $GOAL add --kind 재개 --summary "resumed in a linked worktree"
 expect-exit 0
-expect-output "\"id\":\"D5\""
+expect-output "\"id\":\"D6\""
