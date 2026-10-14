@@ -6,7 +6,11 @@
     "tools/history-checks/check.py",
     "tools/history-checks/platform_probe.sh",
     "tools/history-checks/ci_observer.py",
-    "tools/verification-checks/cross_platform_ci.py"
+    "tools/verification-checks/cross_platform_ci.py",
+    "tools/verification-checks/windows_validation.py",
+    "tools/windows/stream_results.py",
+    "tools/windows/stream_cases.json",
+    "tools/windows/lifecycle_results.py"
   ],
   "targets": [
     {

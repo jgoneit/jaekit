@@ -91,6 +91,8 @@ class CurrentRunAdmission(unittest.TestCase):
         raise AssertionError(path)
 
     def command(self, argv, **kwargs):
+        if argv == ["gh", "api", "--help"]:
+            return "FLAGS\n  --allow-escape-sequences  Allow escape sequences in API output\n"
         if argv[:3] == ["gh", "repo", "view"]:
             return json.dumps({"nameWithOwner": "synthetic/repository"})
         if argv[:3] == ["gh", "pr", "view"]:
@@ -101,16 +103,19 @@ class CurrentRunAdmission(unittest.TestCase):
             return self.local_tree
         if argv == ["git", "status", "--porcelain"]:
             return self.dirty
-        if argv[:3] == ["gh", "api", "--allow-escape-sequences"]:
-            if self.after_log is not None:
-                mutate, self.after_log = self.after_log, None
-                mutate()
-            job = next(j for j in self.jobs if str(j["id"]) == argv[-1].split("/")[-2])
-            context = {"source_sha": SOURCE, "head_sha": HEAD, "base_sha": BASE, "event": "pull_request",
-                       "runner_os": observer.JOBS[job["name"]], "os": "synthetic", "arch": "synthetic", "shell": "synthetic"}
-            return "JAEKIT_CI_CONTEXT " + json.dumps(context) + "\n" + "\n".join(
-                "JAEKIT_CI_REPORT " + json.dumps(r) for r in self.reports[job["name"]])
+        if argv[:4] == ["gh", "api", "--method", "GET"]:
+            return self.job_log(int(argv[-1].split("/")[-2]))
         raise AssertionError(argv)
+
+    def job_log(self, job_id):
+        if self.after_log is not None:
+            mutate, self.after_log = self.after_log, None
+            mutate()
+        job = next(j for j in self.jobs if j["id"] == job_id)
+        context = {"source_sha": SOURCE, "head_sha": HEAD, "base_sha": BASE, "event": "pull_request",
+                   "runner_os": observer.JOBS[job["name"]], "os": "synthetic", "arch": "synthetic", "shell": "synthetic"}
+        return "JAEKIT_CI_CONTEXT " + json.dumps(context) + "\n" + "\n".join(
+            "JAEKIT_CI_REPORT " + json.dumps(r) for r in self.reports[job["name"]])
 
     def observe(self):
         with patch.object(observer, "api", self.api), patch.object(observer, "command", self.command):

@@ -111,7 +111,7 @@ func observeFileEvidence(root, p string, afterCheck func()) (string, string) {
 		return "", "unreadable"
 	}
 	full := filepath.Join(root, filepath.FromSlash(p))
-	realRoot, err := filepath.EvalSymlinks(root)
+	realRoot, err := resolveFileEvidencePath(root)
 	if err != nil {
 		return "", "unreadable"
 	}
@@ -120,7 +120,7 @@ func observeFileEvidence(root, p string, afterCheck func()) (string, string) {
 		return "", "unreadable"
 	}
 	defer repo.Close()
-	parent, err := filepath.EvalSymlinks(filepath.Dir(full))
+	parent, err := resolveFileEvidencePath(filepath.Dir(full))
 	if err != nil {
 		return "", fileEvidenceError(err)
 	}

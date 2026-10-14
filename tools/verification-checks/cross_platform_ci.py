@@ -157,6 +157,7 @@ def live_run(native_validator=None):
     require(len(rows) == len(REQUIRED) and {j.get("name") for j in rows} == REQUIRED,
             "required jobs missing or ambiguous")
     sources = set()
+    escape_flags = None
     for job in rows:
         require(job.get("status") == "completed" and job.get("conclusion") == "success", "required job did not succeed")
         steps = job.get("steps", [])
@@ -166,7 +167,12 @@ def live_run(native_validator=None):
             continue
         # gh run view scans lines with a fixed-size buffer. Native reports can
         # exceed it; the raw job endpoint preserves each complete JSON record.
-        log = command(["gh", "api", "--allow-escape-sequences", "--method", "GET",
+        if escape_flags is None:
+            advertised = command(["gh", "api", "--help"]).split()
+            escape_flags = ["--allow-escape-sequences"] if "--allow-escape-sequences" in advertised else []
+        # Older gh versions already preserve escapes and do not have the flag.
+        # Keep raw output private; only parsed observations leave this function.
+        log = command(["gh", "api", "--method", "GET", *escape_flags,
                        f"repos/{repo}/actions/jobs/{job['id']}/logs"])
         contexts = records(log, "JAEKIT_CI_CONTEXT ")
         require(len(contexts) == 1, "unique job context missing")

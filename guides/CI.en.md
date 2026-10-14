@@ -26,6 +26,10 @@ Each native checker prints `JAEKIT_CI_REPORT` with its actual observations and s
 
 Windows decision-history checks connect the actual CLI, Git, shared history store and file evidence in each PowerShell version. Required names cover ordinary and linked worktrees, add/replay/correction, default/current/list and both show forms, concurrent writes/reads, lock-owner exit, integrity/uncertain writes and file-safety boundaries. An absent history package or required case, skip, failure or interrupted test cannot pass that shell and propagates to the Windows job and `Seal Core` aggregate. Existing Core tests and cross-build success cannot substitute for these observations.
 
+CI collection delivers both complete machine-readable PowerShell reports to the existing Windows validation consumer. Reports lost to a long-line display limit, missing or duplicate reports, truncation and collection errors are not success. The observer ties the current head/base to the tested integration commit and Git tree, run and attempt, and rejects a changed observation basis instead of reusing earlier success.
+
+Windows failure diagnostics select failed tests' output before bounded tails of public synthetic fixture logs. Long passing output must not hide an earlier failure reason; output limits, inaccessible files and malformed diagnostics are identified. A diagnostic collection failure preserves the original failure. Product failures, preparation or collection failures and unobserved results remain distinct, and incomplete diagnostics do not establish a cause. This does not publish full transcripts or private development data.
+
 The workflow uses isolated runner workspaces and temporary paths. Actions are pinned to commits, Go follows `go.mod`, and the workflow token has `contents: read`. No additional secrets, private goals, local execution records or AI service are CI inputs. Private development files must still stay out of commits and published logs.
 
 ## Installation and support boundaries

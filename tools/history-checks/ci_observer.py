@@ -6,6 +6,9 @@ ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location("history_native_ci", ROOT / "tools/verification-checks/cross_platform_ci.py")
 ci = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ci)
+spec = importlib.util.spec_from_file_location("history_windows_validation", ROOT / "tools/verification-checks/windows_validation.py")
+validation = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(validation)
 
 # Independent admission expectations: do not derive these from the runner's
 # selection list, which could accidentally omit the behavior under review.
@@ -78,8 +81,16 @@ def history_report(report, operating_system, source):
 
 
 def observe():
-    ci.configuration_present()
-    return ci.live_run(native_validator=history_report)
+    # The existing consumer must receive the same complete reports admitted by
+    # the shared observer, not a separate collection from another run attempt.
+    try:
+        reports = validation.live_reports(observer=ci)
+        validation.validate_boundaries(reports)
+    except validation.Violation as error:
+        raise ci.Violation(str(error)) from None
+    for report in reports:
+        history_report(report, "Windows", report["source_commit"])
+    return reports
 
 
 if __name__ == "__main__":

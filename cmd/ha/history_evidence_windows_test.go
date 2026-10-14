@@ -20,7 +20,7 @@ func evidenceJunction(t *testing.T, target, name string) {
 	t.Helper()
 	out, err := exec.Command("cmd.exe", "/c", "mklink", "/J", name, target).CombinedOutput()
 	if err != nil {
-		t.Fatalf("create native junction: %v: %s", err, out)
+		t.Fatalf("create native junction %q -> %q: %v: %s", name, target, err, out)
 	}
 }
 
@@ -64,14 +64,22 @@ func TestNativeHistoryWindowsFileBoundaries(t *testing.T) {
 		outside := t.TempDir()
 		evidenceWrite(t, filepath.Join(outside, "evidence"), "outside")
 		evidenceJunction(t, outside, filepath.Join(root, "outside"))
-		for name, state := range map[string]string{"parent/evidence": "read", "outside/evidence": "outside", "parent": "not_regular", "missing/x": "missing"} {
+		original, state := fileVersion(root)("actual/evidence")
+		if state != "read" {
+			t.Fatalf("ordinary evidence before junction checks: %q/%s", original, state)
+		}
+		for name, state := range map[string]string{"parent/evidence": "read", "outside/evidence": "outside", "parent": "not_regular", "missing/x": "missing", "actual/evidence/x": "missing"} {
 			version, got := fileVersion(root)(name)
-			if got != state || (state != "read" && version != "") {
+			if got != state || (state != "read" && version != "") || (state == "read" && version != original) {
 				t.Fatalf("%s: %q/%s, want %s", name, version, got, state)
 			}
 		}
+		linkedRoot := filepath.Join(t.TempDir(), "repo")
+		evidenceJunction(t, root, linkedRoot)
+		if v, s := fileVersion(linkedRoot)("parent/evidence"); s != "read" || v != original {
+			t.Fatalf("stable root and parent junctions: %q/%s, want %q/read", v, s, original)
+		}
 		// Windows drive and path casing identify the same anchored file.
-		original, state := fileVersion(root)("actual/evidence")
 		if v, s := fileVersion(strings.ToUpper(root))("ACTUAL/EVIDENCE"); state != "read" || s != "read" || v != original {
 			t.Fatalf("case changed repository identity: %q/%s vs %q/%s", original, state, v, s)
 		}
@@ -79,22 +87,35 @@ func TestNativeHistoryWindowsFileBoundaries(t *testing.T) {
 	for _, component := range []string{"parent", "root"} {
 		t.Run("junction-race-"+component, func(t *testing.T) {
 			root := filepath.Join(t.TempDir(), "repo")
-			evidenceWrite(t, filepath.Join(root, "docs", "evidence"), "inside")
+			name := root
+			if component == "parent" {
+				actual := filepath.Join(root, "actual")
+				evidenceWrite(t, filepath.Join(actual, "evidence"), "inside")
+				name = filepath.Join(root, "docs")
+				evidenceJunction(t, actual, name)
+			} else {
+				actual := filepath.Join(filepath.Dir(root), "actual")
+				evidenceWrite(t, filepath.Join(actual, "docs", "evidence"), "inside")
+				evidenceJunction(t, actual, name)
+			}
 			outside := t.TempDir()
 			evidenceWrite(t, filepath.Join(outside, "docs", "evidence"), "outside")
 			evidenceWrite(t, filepath.Join(outside, "evidence"), "outside")
+			if version, state := fileVersion(root)("docs/evidence"); state != "read" {
+				t.Fatalf("initial %s junction did not read inside target: %q/%s", component, version, state)
+			}
+			swapped := false
 			version, state := observeFileEvidence(root, "docs/evidence", func() {
-				name := root
-				if component == "parent" {
-					name = filepath.Join(root, "docs")
-				}
-				if err := os.Rename(name, name+".original"); err != nil {
-					t.Fatal(err)
+				// Replace the link itself; its target and the checked child remain
+				// pinned. Windows may refuse renaming a directory with open children.
+				if err := os.Remove(name); err != nil {
+					t.Fatalf("remove original %s junction %q after checked open: %v", component, name, err)
 				}
 				evidenceJunction(t, outside, name)
+				swapped = true
 			})
-			if version != "" || state != "unreadable" {
-				t.Fatalf("replaced %s read redirected bytes: %q/%s", component, version, state)
+			if !swapped || version != "" || state != "unreadable" {
+				t.Fatalf("replaced %s junction (swapped=%t) read redirected bytes: %q/%s", component, swapped, version, state)
 			}
 		})
 	}

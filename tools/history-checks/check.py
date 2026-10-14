@@ -1170,9 +1170,9 @@ def ac12(binary, temp, capabilities):
     # Every public description names the same optional feature and limits.
     docs = {
         'contracts/decision-history.md': ['decision-history/v1', '선택 기능', 'correction_conflict', 'write_uncertain', 'local', 'Agent Wiki', '새 clone', '§5.3',
-                                          '/last', '쓰지도 읽지도 않는다', '진행 중인 등록이 끝날 때까지 기다려', '끝에서부터 지운 온전한 줄',
+                                          '/last', '쓰지도 읽지도 않는다', '등록 잠금이 있으면 기다리며', '끝에서부터 지운 온전한 줄',
                                           '`last`와 이력을 함께 지우거나 이전 상태로 되돌린 경우는 드러나지 않는다', '실행자가 준 식별 값은 줄이지 않아',
-                                          '`missing`(경로가 없음)', '첫 등록이 진행 중일 때도 같다', '두 플래그를 섞어 준 순서는 보존하지 않는다',
+                                          '`missing`(경로가 없음)', '첫 등록의 저장 디렉터리가 아직 없으면 등록 전의 부재를 반환할 수 있다', '첫 등록 잠금이 생기면 잠금 아래에서 다시 읽어', '두 플래그를 섞어 준 순서는 보존하지 않는다',
                                           '사건의 순서는 `seq`가 정한다', '`last`가 한 사건 뒤처질 수 있다', '`after D<n>`',
                                           '제어 문자가 든 경로는 JSON으로 읽는다', '사건은 저장했지만 `last`를 갱신하지 못함'],
         'contracts/core-capabilities.md': ['decision-history/v1', 'formats.decision_history', 'v0.1.4', '--operation history'],

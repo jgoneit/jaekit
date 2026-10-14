@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location("windows_native_checks", Path(__file__).with_name("native_checks.py"))
 native = importlib.util.module_from_spec(spec)
@@ -155,6 +156,93 @@ class WindowsNativeReportTests(unittest.TestCase):
             self.assertNotIn("old-output", stream.getvalue())
             self.assertNotIn("must-not-print", stream.getvalue())
             self.assertLess(len(stream.getvalue()), 6500)
+
+    def test_early_failed_subtest_output_survives_later_successes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            events = [
+                {"Action": "output", "Package": "fixture/one", "Test": "TestParent/child",
+                 "Output": "junction rename: synthetic access denied\n"},
+                {"Action": "fail", "Package": "fixture/one", "Test": "TestParent/child"},
+                {"Action": "output", "Package": "fixture/two", "Test": "TestParent/child",
+                 "Output": "unrelated successful output\n"},
+                {"Action": "pass", "Package": "fixture/two", "Test": "TestParent/child"},
+                {"Action": "output", "Package": "fixture/one", "Test": "TestLater",
+                 "Output": "later passing output " * 4000},
+                {"Action": "pass", "Package": "fixture/one", "Test": "TestLater"},
+            ]
+            (directory / "go-test.jsonl").write_text("\n".join(json.dumps(e) for e in events))
+            stream = io.StringIO()
+            with redirect_stdout(stream):
+                native.failure_tails(directory)
+            self.assertIn("fixture/one/TestParent/child: junction rename: synthetic access denied", stream.getvalue())
+            self.assertNotIn("unrelated successful output", stream.getvalue())
+            self.assertLess(len(stream.getvalue()), 25000)
+
+    def test_failed_test_output_has_a_bounded_explicit_truncation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "go-test.jsonl"
+            path.write_text("\n".join(json.dumps(e) for e in [
+                {"Action": "output", "Package": "fixture", "Test": "TestFail", "Output": "x" * 40000},
+                {"Action": "fail", "Package": "fixture", "Test": "TestFail"},
+            ]))
+            output = native.failed_native_output(path)
+            self.assertLessEqual(len(output), 12000)
+            self.assertIn(b"failed native output truncated", output)
+
+    def test_failure_at_output_limit_still_reports_later_omission(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "go-test.jsonl"
+            label = "fixture/TestFail: "
+            events = [
+                {"Action": "output", "Package": "fixture", "Test": "TestFail",
+                 "Output": "x" * (128 - len(label))},
+                {"Action": "output", "Package": "fixture", "Test": "TestFail", "Output": "later reason"},
+                {"Action": "fail", "Package": "fixture", "Test": "TestFail"},
+            ]
+            path.write_text("\n".join(json.dumps(e) for e in events))
+            output = native.failed_native_output(path, limit=128)
+            self.assertLessEqual(len(output), 128)
+            self.assertIn(b"failed native output truncated", output)
+
+    def test_build_failure_reason_survives_later_passing_output(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "go-test.jsonl"
+            events = [
+                {"Action": "build-output", "ImportPath": "fixture/broken", "Output": "broken.go:2: undefined: syntheticName\n"},
+                {"Action": "build-fail", "ImportPath": "fixture/broken"},
+                {"Action": "output", "Package": "fixture/ok", "Test": "TestOK", "Output": "later output " * 4000},
+                {"Action": "pass", "Package": "fixture/ok", "Test": "TestOK"},
+            ]
+            path.write_text("\n".join(json.dumps(e) for e in events))
+            selected = native.failed_native_output(path)
+            self.assertIn(b"fixture/broken: broken.go:2: undefined: syntheticName", selected)
+            self.assertNotIn(b"later output", selected)
+
+    def test_unavailable_or_malformed_diagnostics_are_explicit(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "go-test.jsonl"
+            self.assertIn(b"unavailable", native.failed_native_output(path))
+            path.write_text('{"Action": "output"\n')
+            self.assertIn(b"incomplete", native.failed_native_output(path))
+
+    def test_diagnostic_collection_failure_preserves_original_failed_report(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "new"
+            argv = ["native_checks.py", "--output", str(output), "--shell-executable", "synthetic",
+                    "--shell-version", "5.1", "--shell-edition", "Desktop",
+                    "--installation-type", "Server", "--os-build", "26100"]
+            stream = io.StringIO()
+            with patch.object(native.sys, "argv", argv), patch.object(native.sys, "platform", "synthetic"), \
+                    patch.object(native, "failure_tails", side_effect=OSError("synthetic diagnostic failure")), \
+                    redirect_stdout(stream):
+                result = native.main()
+            self.assertEqual(result, 1)
+            report = json.loads(stream.getvalue().split("JAEKIT_CI_REPORT ", 1)[1])
+            self.assertEqual(report["status"], "failed")
+            self.assertIn("requires actual native Windows", report["failures"][0])
+            self.assertEqual(report["diagnostics"]["status"], "unavailable")
+            self.assertEqual(json.loads((output / "summary.json").read_text()), report)
 
 
 if __name__ == "__main__":

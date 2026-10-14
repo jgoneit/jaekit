@@ -15,6 +15,10 @@ import (
 // O_NOFOLLOW rejects links introduced after path canonicalization.
 const fileEvidenceDirectoryFlags = fileEvidenceDirectoryAccess | unix.O_DIRECTORY | unix.O_NOFOLLOW | unix.O_CLOEXEC
 
+func resolveFileEvidencePath(name string) (string, error) {
+	return filepath.EvalSymlinks(name)
+}
+
 func openFileEvidenceRoot(name string) (*os.File, error) {
 	fd, err := unix.Open(name, fileEvidenceDirectoryFlags, 0)
 	if err != nil {
