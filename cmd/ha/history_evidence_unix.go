@@ -59,3 +59,10 @@ func openConfinedFileEvidence(root *os.File, parent, base string) (*os.File, err
 	}
 	return os.NewFile(uintptr(file), filepath.Join(root.Name(), parent, base)), nil
 }
+
+// Unix names retain their existing interpretation, including colon characters.
+func validFileEvidencePath(string) bool { return true }
+
+func openOriginalFileEvidence(_ string, _ *os.File, full string) (*os.File, error) {
+	return os.OpenFile(full, os.O_RDONLY|unix.O_NOFOLLOW|unix.O_NONBLOCK, 0)
+}

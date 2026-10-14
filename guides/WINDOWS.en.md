@@ -116,6 +116,14 @@ The installer refreshes PATH in the current PowerShell process and sends a Windo
 
 Keep goal documents and checks in a local Windows Git project. The plugin installation and activation contract in the [existing host guide](INSTALL.en.md) still applies, but observations from Linux/macOS do not establish Windows host use. This candidate installer does not install or redesign plugins.
 
+## Optional decision history
+
+The current-source Windows x64 local candidate provides [decision history](../contracts/decision-history.md): add, replay, correction, default/current, list and show by event ID or request ID. Verify that the selected executable declares `decision-history/v1` in both `features` and `formats.decision_history`. Public release v0.1.4 does not contain this extension; a version number alone does not establish support.
+
+Ordinary and linked worktrees on local drives share the Git common directory's history and lock, including paths with spaces and Unicode. Junctions and reparse points in storage paths are refused as `history_unreadable`. File references passing the existing relative-path grammar that Windows interprets as devices, named pipes, alternate data streams or drive-relative paths are not opened: they remain `unreadable` observations without a version, without rejecting an otherwise valid event. Existing data and valid macOS/Linux names are not rewritten or automatically repaired.
+
+[CI](CI.en.md) checks actual history and existing Core boundaries on Windows Server in both PowerShell 5.1 and 7. Those results do not establish Windows 11 installation, agent Skill use or a public Windows release. This guide's existing platform and local-repository scope still applies.
+
 ## Public files and check commands
 
 Each version's guides, contracts and reference example are in `versions\<version>`. Locate the current data and copy the example to a **new, absent directory** in your project:

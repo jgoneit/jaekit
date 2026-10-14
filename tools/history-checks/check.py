@@ -6,7 +6,7 @@ local repositories (normal checkouts, linked worktrees, diverged run records,
 clones). No declaration is read to choose an observed violation: a runnable
 CLI without the command is reported as the missing feature, distinct from
 build, setup, and process errors. Fixtures are synthetic; nothing reads private
-documents or the network.
+documents. AC-10 additionally observes the current public PR CI through GitHub.
 """
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 PROBE = Path(__file__).resolve().parent / 'platform_probe.sh'
+STORAGE_BOUNDARY_TESTS = {'TestStoragePinsDirectoryHierarchy', 'TestStorageRejectsReplacedLeaf'}
 FILE_BOUNDARY_TESTS = {'TestFileEvidenceRejectsReplacedLeaf', 'TestFileEvidenceRejectsReplacedParent', 'TestFileEvidenceRejectsReplacedRoot',
                        'TestFileEvidencePreservesStablePathStates', 'TestFileEvidencePreservesSearchOnlyDirectories',
                        'TestFileEvidenceConfinedWalkRejectsLinks', 'TestFileEvidenceBoundsDirectoryDescriptors',
@@ -685,6 +686,11 @@ def ac6(binary, temp):
     good = events.read_bytes()
     states = {}
     for name, data, mode in (('corrupt', good[:-4], 0o644), ('edited', good.replace(b'first', b'fiRst'), 0o644),
+                             ('missing-schema', good.replace(b'"schema":"decision-history/v1",', b'', 1), 0o644),
+                             ('null-schema', good.replace(b'"schema":"decision-history/v1"', b'"schema":null', 1), 0o644),
+                             ('empty-schema', good.replace(b'"schema":"decision-history/v1"', b'"schema":""', 1), 0o644),
+                             ('duplicate-schema', good.replace(b'"schema":"decision-history/v1"', b'"schema":null,"schema":"decision-history/v9"', 1), 0o644),
+                             ('cased-schema', good.replace(b'"schema":"decision-history/v1"', b'"Schema":"decision-history/v9"', 1), 0o644),
                              ('unsupported', good + b'{"schema":"decision-history/v9"}\n', 0o644), ('unreadable', good, 0o000)):
         events.write_bytes(data)
         os.chmod(events, mode)
@@ -695,6 +701,8 @@ def ac6(binary, temp):
     events.write_bytes(good)
     want = {'corrupt': (65, 'history_corrupt', 65, 'history_corrupt'), 'edited': (65, 'history_corrupt', 65, 'history_corrupt'),
             'unsupported': (66, 'history_unsupported', 66, 'history_unsupported'), 'unreadable': (70, 'history_unreadable', 70, 'history_unreadable')}
+    for name in ('missing-schema', 'null-schema', 'empty-schema', 'duplicate-schema', 'cased-schema'):
+        want[name] = (65, 'history_corrupt', 65, 'history_corrupt')
     if os.geteuid() == 0:
         want.pop('unreadable')
         states.pop('unreadable')
@@ -806,7 +814,7 @@ def ac6(binary, temp):
         require(q.returncode == 65 and code_of(q) == 'history_corrupt', 'history-tail-loss-hidden', q.stdout + q.stderr)
     units = {'TestUncertainWriteCanBeConfirmedByRequest', 'TestDamageAndUnsupportedAreDistinct', 'TestSymlinkedStorageIsRefused', 'TestStrictInput',
              'TestTrailingEventLossIsDamage', 'TestInterruptedRecordCatchesUp', 'TestReadsRefuseSymlinkedStorage', 'TestReadsWaitForRegistration',
-             'TestFirstRegistrationReadWaits', 'TestUnanchoredRegistrationIsReported'}
+             'TestFirstRegistrationReadWaits', 'TestUnanchoredRegistrationIsReported'} | STORAGE_BOUNDARY_TESTS
     result = run(['go', 'test', '-count=1', '-json', './internal/history', '-run', '^(%s)$' % '|'.join(sorted(units))], ROOT)
     passed = {json.loads(l).get('Test') for l in result.stdout.splitlines() if l.startswith('{') and json.loads(l).get('Action') == 'pass'}
     failed = {json.loads(l).get('Test') for l in result.stdout.splitlines() if l.startswith('{') and json.loads(l).get('Action') == 'fail'} - {None}
@@ -1029,7 +1037,7 @@ def ac10(binary, temp, capabilities):
     require(capabilities['formats'].get('decision_history') == ['decision-history/v1'] and 'decision-history/v1' in capabilities['features'],
             'history-capability-missing', capabilities)
     binaries = {}
-    for target in ('darwin/arm64', 'darwin/amd64', 'linux/arm64', 'linux/amd64'):
+    for target in ('darwin/arm64', 'darwin/amd64', 'linux/arm64', 'linux/amd64', 'windows/amd64'):
         goos, goarch = target.split('/')
         binaries[target] = build(temp, goos, goarch, 'ha-%s-%s' % (goos, goarch))
     native = run(['sh', str(PROBE), binary, temp / 'native'], ROOT)
@@ -1069,6 +1077,14 @@ def ac10(binary, temp, capabilities):
                         '-test.v', '-test.run=^(%s)$' % '|'.join(sorted(FILE_BOUNDARY_TESTS))], ROOT, timeout=600)
         require(boundary.returncode == 0 and all('--- PASS: ' + name + ' ' in boundary.stdout for name in FILE_BOUNDARY_TESTS),
                 'history-platform-file-boundary', boundary.stdout + boundary.stderr)
+        compiled = run(['go', 'test', '-c', '-o', out / 'storage.test', './internal/history'], ROOT, env)
+        if compiled.returncode:
+            raise Environment('compile_error', compiled.stdout + compiled.stderr)
+        storage = run(['docker', 'run', '--rm', '--pull', 'never', '--network', 'none', '--user', '1000:1000', '--platform', 'linux/' + arch,
+                       '-v', '%s:/out:ro' % out, '--entrypoint', '/out/storage.test', 'jaekit-check-git:' + arch,
+                       '-test.v', '-test.run=^(%s)$' % '|'.join(sorted(STORAGE_BOUNDARY_TESTS))], ROOT, timeout=600)
+        require(storage.returncode == 0 and all('--- PASS: ' + name + ' ' in storage.stdout for name in STORAGE_BOUNDARY_TESTS),
+                'history-platform-storage-boundary', storage.stdout + storage.stderr)
         observed.append('linux/' + arch)
     print('observed platforms:', ', '.join(observed), '; darwin/amd64 built only', file=sys.stderr)
     # An executable without the feature is never taken for one that has it.
@@ -1086,12 +1102,18 @@ def ac10(binary, temp, capabilities):
         require(report.get('compatible') is compatible, 'history-support-misreported', r.stdout + r.stderr)
     require(report['reason'] == 'missing_support' and report['missing'] == ['features:decision-history/v1', 'formats:decision_history:decision-history/v1'],
             'history-support-misreported', report)
-    # Platform support stays where it was: no new Windows claim for history.
-    for path in ('contracts/decision-history.md', 'guides/USAGE.md', 'guides/USAGE.en.md', 'plugins/seal/skills/seal/references/ha.md'):
-        require('Windows' not in text(path), 'history-windows-claimed', path)
-    require('Windows' not in section(text('contracts/core-capabilities.md'), '## 5. 선택적 판단 이력 확장'), 'history-windows-claimed', 'core-capabilities')
-    require('Windows에서는 Seal Core `ha`가 지원되지 않아' in text('guides/INSTALL.md') and 'Seal Core `ha` does not support Windows' in text('guides/INSTALL.en.md'),
-            'history-windows-claimed', 'install guides')
+    # Require actual Windows execution; cross-compilation is only a build gate.
+    import ci_observer
+    try:
+        ci_observer.observe()
+    except ci_observer.ci.Violation as error:
+        raise Violation('history-platform-semantics', str(error)) from error
+    except ci_observer.ci.ObservationError as error:
+        raise Environment('execution_error', str(error)) from error
+    for path in ('contracts/decision-history.md', 'contracts/core-capabilities.md',
+                 'plugins/seal/skills/seal/SKILL.md', 'plugins/seal/skills/seal/references/ha.md',
+                 'guides/WINDOWS.md', 'guides/WINDOWS.en.md'):
+        require('Windows' in text(path), 'history-windows-support-undocumented', path)
 
 
 def ac11(binary, temp):

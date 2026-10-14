@@ -101,11 +101,11 @@ class CurrentRunAdmission(unittest.TestCase):
             return self.local_tree
         if argv == ["git", "status", "--porcelain"]:
             return self.dirty
-        if argv[:3] == ["gh", "run", "view"]:
+        if argv[:3] == ["gh", "api", "--allow-escape-sequences"]:
             if self.after_log is not None:
                 mutate, self.after_log = self.after_log, None
                 mutate()
-            job = next(j for j in self.jobs if str(j["id"]) == argv[argv.index("--job") + 1])
+            job = next(j for j in self.jobs if str(j["id"]) == argv[-1].split("/")[-2])
             context = {"source_sha": SOURCE, "head_sha": HEAD, "base_sha": BASE, "event": "pull_request",
                        "runner_os": observer.JOBS[job["name"]], "os": "synthetic", "arch": "synthetic", "shell": "synthetic"}
             return "JAEKIT_CI_CONTEXT " + json.dumps(context) + "\n" + "\n".join(
@@ -117,6 +117,17 @@ class CurrentRunAdmission(unittest.TestCase):
             return observer.live_run()
 
     def test_synthetic_success_binds_all_jobs_and_merge_tree(self):
+        self.assertEqual(self.observe(), ("synthetic/repository", HEAD))
+
+    def test_extension_validates_each_native_report(self):
+        calls = []
+        with patch.object(observer, "api", self.api), patch.object(observer, "command", self.command):
+            observer.live_run(lambda report, os, source: calls.append((os, source)))
+        self.assertEqual(sorted(calls), [("Linux", SOURCE), ("Windows", SOURCE), ("Windows", SOURCE), ("macOS", SOURCE)])
+
+    def test_reports_larger_than_scanner_limit_are_not_truncated(self):
+        row = self.reports["Core / Windows"][0]
+        row["padding"] = "x" * 100000
         self.assertEqual(self.observe(), ("synthetic/repository", HEAD))
 
     def test_latest_run_failure_cannot_reuse_older_success(self):

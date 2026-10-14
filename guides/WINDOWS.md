@@ -116,6 +116,14 @@ Get-Command ha -All
 
 목표 문서와 검사 코드는 로컬 Windows Git 프로젝트에 둡니다. [기존 호스트 설치 안내](INSTALL.md)의 플러그인 설치·활성화 계약은 그대로 적용하되, Linux/macOS에서 확인한 호스트 동작을 Windows에서의 실사용 결과로 대신하지 않습니다. 이 후보 설치기는 플러그인을 설치하거나 재설계하지 않습니다.
 
+## 선택적 판단 이력
+
+현재 소스의 Windows x64 로컬 후보는 [판단 이력](../contracts/decision-history.md)의 등록·재전송·정정·기본/current·list·사건 ID 또는 요청 식별자로 하는 show를 제공합니다. 실제 선택한 실행 파일의 `features`와 `formats.decision_history`에 모두 `decision-history/v1`이 있는지 확인합니다. 공개 배포판 v0.1.4에는 이 확장이 없으며 버전 숫자만으로 지원을 추정하지 않습니다.
+
+로컬 드라이브의 일반 checkout과 linked worktree는 공백·한글 경로에서도 같은 Git 공통 디렉터리의 이력과 잠금을 공유합니다. 저장 경로의 junction/reparse point는 `history_unreadable`로 거부합니다. 기존 상대 경로 문법을 통과했지만 Windows 장치·named pipe·ADS·드라이브 상대 경로로 해석되는 파일 근거는 열지 않고 `unreadable`·버전 미식별로 남기며, 유효한 사건 전체를 거부하지 않습니다. 기존 자료와 macOS/Linux 파일 이름의 의미를 바꾸거나 자동으로 복구하지 않습니다.
+
+[CI](CI.md)는 Windows Server에서 PowerShell 5.1·7 각각의 실제 판단 이력과 기존 Core 경계를 검사합니다. 이는 Windows 11 설치·에이전트 Skill 사용이나 공개 Windows 배포를 확인한 결과가 아닙니다. 이 안내의 기존 플랫폼·로컬 저장소 범위는 그대로 적용됩니다.
+
 ## 공개 자료와 검사 명령
 
 각 버전의 안내·계약·참조 예시는 `versions\<version>`에 있습니다. 현재 버전 경로를 확인하고, 예시는 프로젝트의 **존재하지 않는 새 폴더**로 복사합니다.

@@ -107,3 +107,5 @@ Seal 0.1.12에 포함된 선택형 도구는 `--operation finding --goal <기존
 [판단 이력](decision-history.md)을 지원하는 Core는 `formats.decision_history`에 `decision-history/v1`, `features`에 `decision-history/v1`을 제공한다. 배포판 v0.1.4(`ha 0.1.4`)에는 이 확장이 없다. 이력의 등록과 조회에는 실제 실행 파일의 두 추가 지원, 저장된 시작 규칙과 현재 조건 형식의 지원을 확인한다. 판단 이력은 `runs.jsonl` 밖에 있으므로 이 확장은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 추가되지 않는다. 지원이 없으면 이력을 쓰지 않고 기존 Markdown으로 인계한다.
 
 Seal 0.1.13에 포함된 선택형 도구는 `--operation history --goal <기존 목표>`로 같은 확인을 한다. 이전 설치의 도구에 이 인수가 있다고 가정하지 않으며, 실제 capability를 직접 확인하는 방법도 유효하다.
+
+현재 소스의 macOS·Linux 실행 파일과 Windows x64 로컬 후보는 두 판단 이력 항목을 같은 의미로 제공한다. Windows에서도 등록·재전송·정정·기본/current·list·두 방식의 show가 대상이며, 지원 정보만 있고 직접 호출은 일괄 미지원인 형태가 아니다. 이 기능 광고가 공개 Windows 릴리스나 Windows 11 설치·호스트 사용 인수를 뜻하지는 않는다. 플랫폼과 저장소 범위는 [판단 이력 계약](decision-history.md#1-지원과-호환)과 [Windows 후보 안내](../guides/WINDOWS.md)에 따른다.

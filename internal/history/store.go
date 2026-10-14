@@ -9,11 +9,11 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"strconv"
-	"syscall"
+	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // Store is the history of one start record in one repository:
@@ -67,36 +67,48 @@ func (e Event) Hash() string { return hashBytes(e.Raw) }
 // distinct results. It waits for a registration in progress, so a line being
 // written is never mistaken for damage.
 func (s *Store) Load() (string, []Event, error) {
-	for _, dir := range s.dirs() {
-		info, err := os.Lstat(dir)
-		if errors.Is(err, fs.ErrNotExist) {
-			return Absent, nil, nil
-		}
+	tx, err := s.openStorage(false)
+	if errors.Is(err, fs.ErrNotExist) {
+		return Absent, nil, nil
+	}
+	if err != nil {
+		return "", nil, fail("history_unreadable", "%v", err)
+	}
+	defer tx.close()
+	for {
+		unlock, held, err := tx.acquire(true)
 		if err != nil {
 			return "", nil, fail("history_unreadable", "%v", err)
-		}
-		if info.Mode()&fs.ModeSymlink != 0 || !info.IsDir() {
-			return "", nil, fail("history_unreadable", "%s is not a plain directory; refusing to read through it", dir)
-		}
-	}
-	lockPath := filepath.Join(s.Dir(), "lock")
-	for {
-		unlock, held, err := share(lockPath)
-		if err != nil {
-			return "", nil, err
 		}
 		if !held {
 			unlockedRead()
 		}
-		state, events, _, err := s.load()
+		state, events, _, loadErr := s.load(tx)
 		unlock()
-		// Without a lock no registration had started when this read began. If
-		// the first registration created the lock since, its line may have been
-		// read half written: read again under the lock.
-		if _, statErr := os.Lstat(lockPath); held || errors.Is(statErr, fs.ErrNotExist) {
-			return state, events, err
+		if held {
+			return state, events, loadErr
+		}
+		// The first writer may have created its lock while this unlocked read
+		// saw a partial line. Retry under that lock rather than report corruption.
+		present, err := tx.lockPresent()
+		if err != nil {
+			return "", nil, fail("history_unreadable", "%v", err)
+		}
+		if !present {
+			return state, events, loadErr
 		}
 	}
+}
+
+// storage supplies the platform I/O for one complete operation. Windows pins
+// its directory and uses handle-relative no-reparse access for descendants.
+type storage interface {
+	close()
+	read(string) ([]byte, error)
+	appendFile() (appendFile, error)
+	replaceLast([]byte) error
+	acquire(shared bool) (unlock func(), held bool, err error)
+	lockPresent() (bool, error)
 }
 
 // unlockedRead separates a read without the lock for tests.
@@ -105,25 +117,18 @@ var unlockedRead = func() {}
 // load reads the history and checks it against the last stored event. lag
 // reports that the record of the last event is one event behind, which a
 // registration interrupted after writing its line leaves behind.
-func (s *Store) load() (state string, events []Event, lag bool, err error) {
-	last, err := s.readLast()
+func (s *Store) load(tx storage) (state string, events []Event, lag bool, err error) {
+	last, err := s.readLast(tx)
 	if err != nil {
 		return "", nil, false, err
 	}
-	info, err := os.Lstat(s.file())
+	data, err := tx.read("events.jsonl")
 	if errors.Is(err, fs.ErrNotExist) {
 		if last.Seq > 0 {
 			return "", nil, false, fail("history_corrupt", "events.jsonl is missing but D%d was stored; the stored history is not repaired", last.Seq)
 		}
 		return Absent, nil, false, nil
 	}
-	if err != nil {
-		return "", nil, false, fail("history_unreadable", "%v", err)
-	}
-	if !info.Mode().IsRegular() {
-		return "", nil, false, fail("history_unreadable", "%s is not a regular file", s.file())
-	}
-	data, err := os.ReadFile(s.file())
 	if err != nil {
 		return "", nil, false, fail("history_unreadable", "%v", err)
 	}
@@ -149,12 +154,9 @@ type lastEvent struct {
 	SHA256 string `json:"sha256"`
 }
 
-func (s *Store) readLast() (lastEvent, error) {
+func (s *Store) readLast(tx storage) (lastEvent, error) {
 	var last lastEvent
-	if err := regularOrAbsent(s.last()); err != nil {
-		return last, err
-	}
-	data, err := os.ReadFile(s.last())
+	data, err := tx.read("last")
 	if errors.Is(err, fs.ErrNotExist) {
 		return last, nil
 	}
@@ -168,33 +170,60 @@ func (s *Store) readLast() (lastEvent, error) {
 }
 
 // writeLast replaces the last file atomically after the event line is stored.
-func (s *Store) writeLast(e Event) error {
+func (s *Store) writeLast(tx storage, e Event) error {
 	data, _ := json.Marshal(lastEvent{Seq: e.Seq, SHA256: e.Hash()})
-	tmp := s.last() + ".tmp"
-	for _, p := range []string{tmp, s.last()} {
-		if err := regularOrAbsent(p); err != nil {
-			return err
-		}
-	}
-	f, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC|syscall.O_NOFOLLOW, 0o644)
-	if err != nil {
-		return fail("history_unreadable", "%v", err)
-	}
-	if _, err := f.Write(append(data, '\n')); err != nil {
-		f.Close()
-		return fail("history_unreadable", "%v", err)
-	}
-	if err := f.Sync(); err != nil {
-		f.Close()
-		return fail("history_unreadable", "%v", err)
-	}
-	if err := f.Close(); err != nil {
-		return fail("history_unreadable", "%v", err)
-	}
-	if err := os.Rename(tmp, s.last()); err != nil {
+	if err := tx.replaceLast(append(data, '\n')); err != nil {
 		return fail("history_unreadable", "%v", err)
 	}
 	return nil
+}
+
+// storedSchema requires an unambiguous exact schema key without applying the
+// current event payload's field or nesting restrictions to unknown versions.
+func storedSchema(raw []byte) (string, error) {
+	if !utf8.Valid(raw) {
+		return "", errors.New("JSON must be valid UTF-8")
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	opening, err := decoder.Token()
+	if err != nil || opening != json.Delim('{') {
+		return "", errors.New("history line must be a JSON object")
+	}
+	seen := map[string]bool{}
+	var schema string
+	for decoder.More() {
+		token, err := decoder.Token()
+		if err != nil {
+			return "", err
+		}
+		key, ok := token.(string)
+		if !ok || seen[key] {
+			return "", errors.New("history object has an invalid or duplicate field")
+		}
+		seen[key] = true
+		if key != "schema" && strings.EqualFold(key, "schema") {
+			return "", errors.New("schema field must use its exact wire name")
+		}
+		var value json.RawMessage
+		if err := decoder.Decode(&value); err != nil {
+			return "", err
+		}
+		if key == "schema" {
+			if err := json.Unmarshal(value, &schema); err != nil || schema == "" {
+				return "", errors.New("schema is empty or not a string")
+			}
+		}
+	}
+	if _, err := decoder.Token(); err != nil {
+		return "", err
+	}
+	if _, err := decoder.Token(); err != io.EOF {
+		return "", errors.New("trailing data after the history object")
+	}
+	if !seen["schema"] {
+		return "", errors.New("schema is missing")
+	}
+	return schema, nil
 }
 
 // Parse verifies stored bytes: one schema, consecutive seq, the prev chain,
@@ -218,14 +247,14 @@ func Parse(data []byte, start string) ([]Event, error) {
 		if len(raw) > MaxLine {
 			return nil, corrupt(n, "the line exceeds %d bytes", MaxLine)
 		}
-		var head struct {
-			Schema string `json:"schema"`
+		// Inspect only the envelope before dispatching. A future version may
+		// define payload fields and nesting that the current Event cannot read.
+		schema, err := storedSchema(raw)
+		if err != nil {
+			return nil, corrupt(n, "%v", err)
 		}
-		if err := json.Unmarshal(raw, &head); err != nil {
-			return nil, corrupt(n, "not valid JSON")
-		}
-		if head.Schema != Schema {
-			return nil, fail("history_unsupported", "line %d uses schema %q; this ha reads %s only", n, head.Schema, Schema)
+		if schema != Schema {
+			return nil, fail("history_unsupported", "line %d uses schema %q; this ha reads %s only", n, schema, Schema)
 		}
 		var e Event
 		if err := strictJSON(raw, &e); err != nil {
@@ -301,81 +330,6 @@ func persistLine(f appendFile, data []byte) error {
 	return nil
 }
 
-// ensureDir creates one directory level, refusing a symlink or a non-directory
-// so that a link cannot redirect writes outside the history area.
-func ensureDir(p string) error {
-	info, err := os.Lstat(p)
-	if errors.Is(err, fs.ErrNotExist) {
-		if err := os.Mkdir(p, 0o755); err != nil && !errors.Is(err, fs.ErrExist) {
-			return fail("history_unreadable", "%v", err)
-		}
-		info, err = os.Lstat(p)
-	}
-	if err != nil {
-		return fail("history_unreadable", "%v", err)
-	}
-	if info.Mode()&fs.ModeSymlink != 0 || !info.IsDir() {
-		return fail("history_unreadable", "%s is not a plain directory; refusing to write through it", p)
-	}
-	return nil
-}
-
-func regularOrAbsent(p string) error {
-	info, err := os.Lstat(p)
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil
-	}
-	if err != nil {
-		return fail("history_unreadable", "%v", err)
-	}
-	if !info.Mode().IsRegular() {
-		return fail("history_unreadable", "%s is not a regular file; refusing to write through it", p)
-	}
-	return nil
-}
-
-func lock(p string) (func(), error) {
-	if err := regularOrAbsent(p); err != nil {
-		return nil, err
-	}
-	f, err := os.OpenFile(p, os.O_CREATE|os.O_RDWR|syscall.O_NOFOLLOW, 0o644)
-	if err != nil {
-		return nil, fail("history_unreadable", "%v", err)
-	}
-	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
-		f.Close()
-		return nil, fail("history_unreadable", "%v", err)
-	}
-	return func() {
-		syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
-		f.Close()
-	}, nil
-}
-
-// share holds the registration lock shared while a query reads. Queries create
-// nothing: without a lock file no registration has started here, so there is
-// nothing to wait for, and held is false.
-func share(p string) (unlock func(), held bool, err error) {
-	if err := regularOrAbsent(p); err != nil {
-		return nil, false, err
-	}
-	f, err := os.OpenFile(p, os.O_RDONLY|syscall.O_NOFOLLOW, 0)
-	if errors.Is(err, fs.ErrNotExist) {
-		return func() {}, false, nil
-	}
-	if err != nil {
-		return nil, false, fail("history_unreadable", "%v", err)
-	}
-	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_SH); err != nil {
-		f.Close()
-		return nil, false, fail("history_unreadable", "%v", err)
-	}
-	return func() {
-		syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
-		f.Close()
-	}, true, nil
-}
-
 // Replay reports that a request was already stored. The caller returns the
 // original receipt and appends nothing.
 type Replay struct{ Event Event }
@@ -387,24 +341,24 @@ func (r *Replay) Error() string { return "request already stored as " + r.Event.
 // the event to add, a *Replay, or a refusal. Append fills seq, prev, id, the
 // recorded time, and the ha version.
 func (s *Store) Append(now time.Time, haVersion string, build func([]Event) (*Event, error)) (*Event, error) {
-	for _, dir := range s.dirs() {
-		if err := ensureDir(dir); err != nil {
-			return nil, err
-		}
-	}
-	unlock, err := lock(filepath.Join(s.Dir(), "lock"))
+	tx, err := s.openStorage(true)
 	if err != nil {
-		return nil, err
+		return nil, fail("history_unreadable", "%v", err)
+	}
+	defer tx.close()
+	unlock, _, err := tx.acquire(false)
+	if err != nil {
+		return nil, fail("history_unreadable", "%v", err)
 	}
 	defer unlock()
-	_, events, lag, err := s.load()
+	_, events, lag, err := s.load(tx)
 	if err != nil {
 		return nil, err
 	}
 	// An earlier registration stored its line but not the record of it. Catch
 	// the record up first so it never falls more than one event behind.
 	if lag {
-		if err := s.writeLast(events[len(events)-1]); err != nil {
+		if err := s.writeLast(tx, events[len(events)-1]); err != nil {
 			return nil, err
 		}
 	}
@@ -432,10 +386,7 @@ func (s *Store) Append(now time.Time, haVersion string, build func([]Event) (*Ev
 	if len(raw) > MaxLine {
 		return nil, fail("limit_exceeded", "the stored event would exceed %d bytes", MaxLine)
 	}
-	if err := regularOrAbsent(s.file()); err != nil {
-		return nil, err
-	}
-	f, err := os.OpenFile(s.file(), os.O_WRONLY|os.O_APPEND|os.O_CREATE|syscall.O_NOFOLLOW, 0o644)
+	f, err := tx.appendFile()
 	if err != nil {
 		return nil, fail("history_unreadable", "%v", err)
 	}
@@ -446,7 +397,7 @@ func (s *Store) Append(now time.Time, haVersion string, build func([]Event) (*Ev
 	// The event is stored, but until its record is written the loss of this
 	// last line would go unnoticed. Say so instead of returning a receipt; the
 	// same request replays once the record catches up.
-	if err := s.writeLast(*e); err != nil {
+	if err := s.writeLast(tx, *e); err != nil {
 		return nil, fail("write_uncertain", "%s was stored, but the record of the last stored event was not updated (%v); until it is, removing %s from the end of the history is not detected", e.ID, err, e.ID)
 	}
 	return e, nil

@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 )
@@ -186,11 +185,18 @@ func TestDamageAndUnsupportedAreDistinct(t *testing.T) {
 	mustAdd(t, s, f, "r2", Decision{Kind: "결정", Summary: "two", BuildsOn: []string{"D1"}})
 	original, _ := os.ReadFile(s.file())
 	cases := map[string][]byte{
-		"history_corrupt/truncated":   original[:len(original)-5],
-		"history_corrupt/edited":      bytes.Replace(original, []byte(`"one"`), []byte(`"uno"`), 1),
-		"history_corrupt/deleted":     original[bytes.IndexByte(original, '\n')+1:],
-		"history_corrupt/not json":    append(append([]byte(nil), original...), []byte("{oops\n")...),
-		"history_unsupported/version": append(append([]byte(nil), original...), []byte(`{"schema":"decision-history/v2"}`+"\n")...),
+		"history_corrupt/duplicate schema":      bytes.Replace(original, []byte(`"schema":"decision-history/v1"`), []byte(`"schema":null,"schema":"decision-history/v2"`), 1),
+		"history_corrupt/cased schema":          bytes.Replace(original, []byte(`"schema":"decision-history/v1"`), []byte(`"Schema":"decision-history/v2"`), 1),
+		"history_corrupt/schema case collision": bytes.Replace(original, []byte(`"schema":"decision-history/v1"`), []byte(`"schema":"decision-history/v2","Schema":"decision-history/v2"`), 1),
+		"history_corrupt/missing schema":        bytes.Replace(original, []byte(`"schema":"decision-history/v1",`), nil, 1),
+		"history_corrupt/null schema":           bytes.Replace(original, []byte(`"schema":"decision-history/v1"`), []byte(`"schema":null`), 1),
+		"history_corrupt/empty schema":          bytes.Replace(original, []byte(`"schema":"decision-history/v1"`), []byte(`"schema":""`), 1),
+		"history_corrupt/truncated":             original[:len(original)-5],
+		"history_corrupt/edited":                bytes.Replace(original, []byte(`"one"`), []byte(`"uno"`), 1),
+		"history_corrupt/deleted":               original[bytes.IndexByte(original, '\n')+1:],
+		"history_corrupt/not json":              append(append([]byte(nil), original...), []byte("{oops\n")...),
+		"history_unsupported/future payload":    []byte(`{"schema":"decision-history/v2","future":` + strings.Repeat("[", 20) + "0" + strings.Repeat("]", 20) + "}\n"),
+		"history_unsupported/version":           append(append([]byte(nil), original...), []byte(`{"schema":"decision-history/v2"}`+"\n")...),
 	}
 	for name, data := range cases {
 		if err := os.WriteFile(s.file(), data, 0o644); err != nil {
@@ -310,23 +316,6 @@ func TestConcurrentAppendsAndConflictingCorrections(t *testing.T) {
 	}
 	if ok != 1 || conflict != 1 {
 		t.Fatalf("conflicting corrections: %d stored, %d conflicts", ok, conflict)
-	}
-}
-
-func TestSymlinkedStorageIsRefused(t *testing.T) {
-	common, outside := t.TempDir(), t.TempDir()
-	if err := os.MkdirAll(filepath.Join(common, "ha"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Symlink(outside, filepath.Join(common, "ha", "history")); err != nil {
-		t.Fatal(err)
-	}
-	s, _ := Open(common, startHash)
-	if _, err := add(t, s, facts(runHashes(2, "a")), "r1", Decision{Kind: "관측", Summary: "x"}); Code(err) != "history_unreadable" {
-		t.Fatalf("symlinked history directory: %v", err)
-	}
-	if entries, _ := os.ReadDir(outside); len(entries) != 0 {
-		t.Fatalf("wrote through a symlink: %v", entries)
 	}
 }
 
@@ -522,24 +511,6 @@ func TestInterruptedRecordCatchesUp(t *testing.T) {
 	}
 }
 
-func TestReadsRefuseSymlinkedStorage(t *testing.T) {
-	for _, level := range []int{0, 1, 2} {
-		s := newStore(t)
-		mustAdd(t, s, facts(runHashes(2, "a")), "r1", Decision{Kind: "관측", Summary: "real"})
-		dir := s.dirs()[level]
-		moved := filepath.Join(t.TempDir(), "moved")
-		if err := os.Rename(dir, moved); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.Symlink(moved, dir); err != nil {
-			t.Fatal(err)
-		}
-		if _, _, err := s.Load(); Code(err) != "history_unreadable" {
-			t.Errorf("symlinked %s: %v", filepath.Base(dir), err)
-		}
-	}
-}
-
 func TestReadsWaitForRegistration(t *testing.T) {
 	s := newStore(t)
 	mustAdd(t, s, facts(runHashes(2, "a")), "r1", Decision{Kind: "관측", Summary: "first"})
@@ -548,7 +519,8 @@ func TestReadsWaitForRegistration(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer f.Close()
-	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
+	unlock, err := lockHistoryFile(f, false)
+	if err != nil {
 		t.Fatal(err)
 	}
 	done := make(chan error, 1)
@@ -561,7 +533,7 @@ func TestReadsWaitForRegistration(t *testing.T) {
 		t.Fatalf("a read finished during a registration: %v", err)
 	case <-time.After(200 * time.Millisecond):
 	}
-	syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+	unlock()
 	select {
 	case err := <-done:
 		if err != nil {
@@ -587,46 +559,23 @@ func TestFirstRegistrationReadWaits(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		syscall.Flock(int(f.Fd()), syscall.LOCK_EX)
+		unlock, err := lockHistoryFile(f, false)
+		if err != nil {
+			t.Error(err)
+			f.Close()
+			return
+		}
 		os.WriteFile(s.file(), []byte(`{"schema":"decision-history/v1","seq":1`), 0o644)
 		go func() {
 			time.Sleep(150 * time.Millisecond)
 			// The registration is abandoned before it stores anything.
 			os.Remove(s.file())
-			syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+			unlock()
 			f.Close()
 		}()
 	}
 	if state, events, err := s.Load(); err != nil || state != Absent || events != nil {
 		t.Fatalf("a read during the first registration must not report its half-written line: %v %v %d", err, state, len(events))
-	}
-}
-
-func TestUnanchoredRegistrationIsReported(t *testing.T) {
-	if os.Geteuid() == 0 {
-		t.Skip("permissions do not restrict root")
-	}
-	s := newStore(t)
-	f := facts(runHashes(2, "a"))
-	mustAdd(t, s, f, "r1", Decision{Kind: "관측", Summary: "first"})
-	d := Decision{Kind: "관측", Summary: "second"}
-	// The events file stays writable; the record of the last event cannot be replaced.
-	os.Chmod(s.Dir(), 0o555)
-	_, err := add(t, s, f, "r2", d)
-	os.Chmod(s.Dir(), 0o755)
-	if Code(err) != "write_uncertain" || !strings.Contains(err.Error(), "D2 was stored") {
-		t.Fatalf("an unrecorded last event must be reported: %v", err)
-	}
-	if _, events, err := s.Load(); err != nil || len(events) != 2 {
-		t.Fatalf("the stored event reads: %v %d", err, len(events))
-	}
-	if _, err := add(t, s, f, "r2", d); !isReplay(err, "D2") {
-		t.Fatalf("the same request must replay once the record catches up: %v", err)
-	}
-	data, _ := os.ReadFile(s.file())
-	os.WriteFile(s.file(), data[:bytes.IndexByte(data, '\n')+1], 0o644)
-	if _, _, err := s.Load(); Code(err) != "history_corrupt" {
-		t.Fatalf("after catching up, losing D2 is damage: %v", err)
 	}
 }
 

@@ -107,6 +107,9 @@ func fileVersion(root string) func(string) (string, string) {
 
 // afterCheck separates the checked handle from the pathname open for tests.
 func observeFileEvidence(root, p string, afterCheck func()) (string, string) {
+	if !validFileEvidencePath(p) {
+		return "", "unreadable"
+	}
 	full := filepath.Join(root, filepath.FromSlash(p))
 	realRoot, err := filepath.EvalSymlinks(root)
 	if err != nil {
@@ -153,7 +156,7 @@ func observeFileEvidence(root, p string, afterCheck func()) (string, string) {
 	// Check the original path too: canonicalizing an existing parent link must
 	// not hide a concurrent replacement of that link. Require the confined
 	// inode before reading any bytes; a final symlink is rejected by the OS.
-	f, err := os.OpenFile(full, os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+	f, err := openOriginalFileEvidence(root, repo, full)
 	if err != nil {
 		return "", fileEvidenceError(err)
 	}

@@ -60,6 +60,10 @@ def check_policy(workflow):
     second = steps["Verify native developer checks on PowerShell 7"]
     require("shell: powershell" in first and "shell: pwsh" in second, "wrong shell binding")
     require("jaekit-windows-ps51" in first and "jaekit-windows-ps7" in second, "shell output separation missing")
+    for source, directory in ((first, "ps51"), (second, "ps7")):
+        command = './tools/windows/native_checks.ps1 -OutputDirectory "$env:RUNNER_TEMP/jaekit-windows-' + directory + '"'
+        require(re.search(r"(?m)^        run: " + re.escape(command) + r"$", source),
+                "both shells must invoke the complete native suite, including history")
     require("continue-on-error" not in first + second, "shell failure must remain a failure")
     require(not re.search(r"(?m)^        if:", first), "PS5.1 must run after successful preparation")
     match = re.search(r"(?m)^        if: \$\{\{ (.+) \}\}$", second)
@@ -90,6 +94,14 @@ class WindowsShellConditions(unittest.TestCase):
         source = (ROOT / ".github/workflows/ci.yml").read_text()
         with self.assertRaises(AssertionError):
             check_policy(source.replace("!cancelled()", "success()"))
+
+    def test_either_shell_cannot_replace_native_history_with_a_build_or_subset(self):
+        source = (ROOT / ".github/workflows/ci.yml").read_text()
+        for shell in ("ps51", "ps7"):
+            command = './tools/windows/native_checks.ps1 -OutputDirectory "$env:RUNNER_TEMP/jaekit-windows-' + shell + '"'
+            for replacement in ("go build ./cmd/ha", "Write-Output 'jaekit-windows-" + shell + "'"):
+                with self.subTest(shell=shell, replacement=replacement), self.assertRaises(AssertionError):
+                    check_policy(source.replace(command, replacement))
 
     def test_optimized_python_still_rejects_a_missing_preparation_guard(self):
         source = (ROOT / ".github/workflows/ci.yml").read_text()

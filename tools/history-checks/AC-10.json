@@ -4,7 +4,9 @@
   "producer_version": "1",
   "producer_paths": [
     "tools/history-checks/check.py",
-    "tools/history-checks/platform_probe.sh"
+    "tools/history-checks/platform_probe.sh",
+    "tools/history-checks/ci_observer.py",
+    "tools/verification-checks/cross_platform_ci.py"
   ],
   "targets": [
     {
