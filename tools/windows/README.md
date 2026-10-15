@@ -33,7 +33,9 @@ Its install, reinstall/update and removal blocks check the ZIP and all four loos
 scripts before executing any candidate code, including `common.ps1`. Keep the
 complete six-file candidate together. Checksums establish equality to the trusted
 list, not authentication if the list and files come from a compromised source.
-No unchecked bootstrap script, policy bypass or new product prerequisite is used.
+These candidate tools use no unchecked bootstrap script, policy bypass or new product
+prerequisite. The public release blocks described below are a separate path: they run
+only checked installer code from a checked release archive, with a process-scoped Bypass.
 
 `install.ps1` accepts local `-Archive` and `-Checksums` files. It verifies the
 archive before extraction, checks every manifest file, executes the staged
@@ -195,3 +197,75 @@ for its explicitly authorized installation lifecycle.
 
 User instructions: [한국어](../../guides/WINDOWS.md),
 [English](../../guides/WINDOWS.en.md).
+
+## Public release path
+
+The public install and removal blocks in the [Windows guide](../../guides/WINDOWS.en.md#install-from-a-public-release)
+download only the release's `ha_<version>_windows_amd64.zip` and `checksums.txt`.
+They require exactly one matching checksum line and SHA-256 before extracting
+only `tools/windows/install.ps1` (or `uninstall.ps1`) and `common.ps1` from that
+archive. The extracted code runs in a new process of the same PowerShell
+executable with `-NoProfile -ExecutionPolicy Bypass -File`; the persistent
+CurrentUser and LocalMachine policies are never changed, and a Group Policy
+execution policy still takes precedence. A nonzero child exit ends the block as a
+failure and leaves the window's PATH unchanged. The installer itself, its Windows
+11 Client guard and its managed state are the same as for candidates.
+
+The release workflow (`.github/workflows/release.yml`) builds this archive with
+`tools/windows/package.py` from a `-buildvcs=false` Windows build, adds it to
+the release's single `checksums.txt`, and checks it with
+`tools/release/check_archives.py` before upload. Pull requests and manual runs
+build and check the same files without publishing. Its Windows job runs
+`public_blocks.py ci` in Windows PowerShell 5.1 and PowerShell 7 on Windows
+Server: it checks the exact built archive with the installer's own package
+verification and Core identity, then pastes the guide's blocks (rebinding only
+the download source and version) under a persistent Restricted CurrentUser
+policy. With the real archive the installer must stop at its Windows 11 guard;
+probe archives, whose installer code only records how it started, show the
+success path, failures, checksum refusals and a Group Policy refusal. Server
+results are not Windows 11 installation results.
+
+## Windows 11 acceptance of a public release candidate
+
+A Windows archive is published only when the annotated release tag links a
+Windows 11 acceptance of exactly that archive. Acceptance needs a Windows 11
+Client x64 user account without an existing Jaekit installation or Jaekit user
+PATH entry, both PowerShell editions, Git, Python 3 and a checkout of the commit
+to be tagged.
+
+1. Run the Release workflow manually (`workflow_dispatch`) on the commit to be
+   tagged, once with an older version (for example `0.1.4`) and once with the
+   release version (for example `0.1.5`). Nothing is published. Download each
+   run's `release-files` artifact into its own new directory.
+2. In that checkout on Windows 11, review and run:
+
+   ```text
+   python tools/windows/public_blocks.py acceptance --first <older release-files> --next <release-version release-files> --report <new report path> --consent-user-installation
+   ```
+
+   It refuses an existing installation, temporarily sets the CurrentUser policy
+   to Restricted in both editions (restoring the original values afterwards),
+   checks that a checksum mismatch installs nothing, then pastes the guide's
+   blocks: install the older version in Windows PowerShell 5.1, update to the
+   release version in PowerShell 7, remove in PowerShell 7, and repeat with the
+   editions swapped. Each step checks `ha --version` in the same window, the
+   user PATH entry and removal. It changes the real user installation; the
+   consent flag is required.
+3. When every step passes it prints one line:
+
+   ```text
+   Windows-Accepted-SHA256: <sha256 of the release-version archive>
+   ```
+
+   Put that line in the annotated tag message of the same commit
+   (`git tag -a v<version>`). The publication job reads the tag object, and
+   `tools/release/windows_gate.py` keeps the Windows archive only when the tag
+   carries exactly one such line equal to the archive the Windows job checked.
+   A lightweight tag, a missing or repeated line or another digest leaves the
+   Windows archive out and publishes the four macOS/Linux archives with their
+   checksums. The Windows build omits VCS stamps, so a manual run and the tag
+   build of one commit and version produce the same archive; if they still
+   differ, the archive is left out rather than published unchecked.
+
+The digest line is the maintainer's statement that the acceptance passed; the
+report from step 2 is the record behind it and stays outside the repository.

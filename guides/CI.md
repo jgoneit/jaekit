@@ -54,6 +54,16 @@ Windows의 명령 단위 프로세스 시나리오는 하위 프로세스 정리
 
 Ubuntu 실행은 WSL2 실행이 아닙니다. CI는 WSL2 설치, 설치된 에이전트 Skill의 로딩, 실제 에이전트 세션과 재개를 확인하지 않습니다. 이 관측은 별도로 남습니다. CI 성공이 릴리스 게시·버전 변경·공개 배포 URL에서의 설치 성공을 뜻하지도 않습니다.
 
+## 릴리스 workflow
+
+[릴리스 workflow](../.github/workflows/release.yml)는 태그 push뿐 아니라 PR과 수동 실행에서도 같은 빌드와 검사를 실행합니다. 게시는 태그 push에서만 합니다.
+
+- `Build release files`(Ubuntu): macOS·Linux tar.gz 4개와 Windows ZIP 1개를 만들고, 다섯 아카이브를 나열한 `checksums.txt` 하나를 만듭니다. 게시 전 검사로 ZIP 내부 manifest·파일 해시·경로·Windows 실행 파일 형식까지 확인합니다. PR 실행은 PR head 커밋을 빌드하고, 그 실제 소스 커밋과 ZIP SHA-256을 `release-build-info`에 남깁니다.
+- `Windows release archive`(Windows Server 2025): 같은 ZIP을 PowerShell 5.1과 7 각각에서 설치기 자체의 패키지 검증으로 확인하고 `ha --version`·`capabilities`를 실행합니다. 그다음 [공개 설치·제거 블록](WINDOWS.md#공개-릴리스로-설치)을 내려받는 출처와 버전만 바꿔 그대로 붙여 넣습니다. 실제 ZIP으로는 설치기가 Windows 11 가드에서 멈추는 것을, 시험용 ZIP으로는 성공·실패·체크섬 거부·그룹 정책 거부에서 부모 PATH·실행 정책·자식 셸을 관측합니다. 보고서는 `release-windows-reports`에 남습니다.
+- `Publish release`: 태그 push에서만 실행합니다. Windows job이 확인한 ZIP과 게시할 ZIP이 다르면 아무것도 게시하지 않습니다. 태그 주석에 그 ZIP의 Windows 11 확인 줄이 없으면 Windows ZIP을 빼고 macOS·Linux 파일만 게시합니다.
+
+이 workflow는 `main`의 필수 검사(`Seal Core`, `Public documentation`)가 아닙니다. Server에서의 확인은 Windows 11 설치 성공이 아니며, 실제 설치·업데이트·제거는 [Windows 11 확인 절차](../tools/windows/README.md)에서 확인합니다.
+
 ## 로컬 검사
 
 푸시·공개 전에 최종 후보와 같은 검증 입력에서 저장소의 공통 검증 진입점이 한 번 통과해야 합니다. 그 한 번이 커밋 전·푸시 전 요구를 함께 충족하며, 커밋 전후 어느 쪽에서 실행해도 됩니다. 같은 입력에 대해 전체 검증을 두 번 실행할 필요는 없습니다.

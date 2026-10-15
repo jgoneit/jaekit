@@ -311,6 +311,53 @@ ARCHIVE_MAX_METADATA_TOTAL_BYTES = archive_reader.MAX_METADATA_TOTAL_BYTES
 ARCHIVE_MAX_PAX_KEYS = archive_reader.MAX_PAX_KEYS
 
 
+WINDOWS_ARCHIVE = f"ha_{VERSION}_windows_amd64.zip"
+
+
+def windows_archive(data):
+    """Inspect the optional Windows archive in memory: manifest, hashes, PE."""
+    import io
+    import zipfile
+    require(len(data) <= ARCHIVE_MAX_COMPRESSED_BYTES, "Windows archive exceeds the compressed limit")
+    try:
+        archive = zipfile.ZipFile(io.BytesIO(data))
+    except zipfile.BadZipFile:
+        raise Failure("Windows archive is not a readable ZIP") from None
+    files = {}
+    with archive:
+        entries = archive.infolist()
+        require(0 < len(entries) <= 2048, "Windows archive entry count is out of bounds")
+        total = 0
+        for entry in entries:
+            path = PurePosixPath(entry.filename)
+            require(not entry.is_dir() and not path.is_absolute() and ".." not in path.parts
+                    and "\\" not in entry.filename and entry.filename not in files,
+                    "unsafe Windows archive entry")
+            total += entry.file_size
+            require(entry.file_size <= ARCHIVE_MAX_FILE_BYTES and total <= ARCHIVE_MAX_BYTES,
+                    "Windows archive exceeds the expanded limit")
+            with archive.open(entry) as stream:
+                body = stream.read(entry.file_size + 1)
+            require(len(body) == entry.file_size, "Windows archive entry size differs from its header")
+            files[entry.filename] = body
+    try:
+        manifest = json.loads(files["package.json"].decode("utf-8"))
+    except (KeyError, UnicodeError, json.JSONDecodeError):
+        raise Failure("Windows archive has no readable manifest") from None
+    require(isinstance(manifest, dict) and manifest.get("version") == VERSION
+            and isinstance(manifest.get("files"), list), "Windows archive manifest disagrees with the release")
+    listed = {item.get("path"): item for item in manifest["files"] if isinstance(item, dict)}
+    require(listed.keys() == files.keys() - {"package.json"}, "Windows archive files differ from its manifest")
+    for name, item in listed.items():
+        require(item.get("size") == len(files[name]) and item.get("sha256") == digest(files[name]),
+                "Windows archive file differs from its manifest")
+    binary = files.get("ha.exe", b"")
+    offset = int.from_bytes(binary[0x3C:0x40], "little") if len(binary) >= 64 else 0
+    require(binary[:2] == b"MZ" and binary[offset:offset + 6] == b"PE\0\0\x64\x86",
+            "Windows archive Core is not a Windows amd64 executable")
+    return files
+
+
 def archive_files(data, target):
     """Inspect bounded bytes in memory; never extract archive paths to disk."""
     prefix = f"ha_{VERSION}_{target}/"
@@ -447,8 +494,11 @@ class Checker:
         values = self.release().get("assets", [])
         names = [a.get("name") for a in values]
         expected = {f"ha_{VERSION}_{p}.tar.gz" for p in PLATFORMS} | {"checksums.txt"}
-        require(set(names) == expected and len(names) == len(expected),
-                "public release must contain exactly four archives and checksums.txt")
+        # A Windows archive is published only with a Windows 11 acceptance link;
+        # without it a release carries the four archives and checksums.txt.
+        shapes = (expected, expected | {WINDOWS_ARCHIVE})
+        require(set(names) in shapes and len(names) == len(set(names)),
+                "public release must contain exactly four archives, an optional Windows archive and checksums.txt")
         return {a["name"]: a for a in values}
 
     def download(self, name):
@@ -472,7 +522,7 @@ class Checker:
         checksums = self.download("checksums.txt").decode("ascii")
         rows = {}
         for line in checksums.splitlines():
-            match = re.fullmatch(r"([0-9a-f]{64})\s+\*?(ha_[A-Za-z0-9_.]+\.tar\.gz)", line)
+            match = re.fullmatch(r"([0-9a-f]{64})\s+\*?(ha_[A-Za-z0-9_.]+\.(?:tar\.gz|zip))", line)
             require(match and match[2] not in rows, "invalid or duplicate checksum entry")
             rows[match[2]] = match[1]
         require(set(rows) == set(self.assets()) - {"checksums.txt"}, "checksum set differs from assets")
@@ -482,6 +532,10 @@ class Checker:
             data = self.download(name)
             require(digest(data) == rows[name], "archive checksum does not match checksums.txt")
             result[target] = archive_files(data, target)
+        if WINDOWS_ARCHIVE in rows:
+            data = self.download(WINDOWS_ARCHIVE)
+            require(digest(data) == rows[WINDOWS_ARCHIVE], "archive checksum does not match checksums.txt")
+            windows_archive(data)
         return result
 
     def source(self, path):

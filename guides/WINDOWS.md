@@ -2,16 +2,161 @@
 
 **한국어** · [English](WINDOWS.en.md)
 
-이 안내는 **Windows 11 x64, Windows PowerShell 5.1·PowerShell 7**을 대상으로 준비한 로컬 후보 설치 경로입니다. 현재 공개 배포판 `v0.1.4`에 Windows 파일이 있다는 뜻이 아닙니다. 후보 패키지 생성과 교차 빌드는 Windows에서의 설치·실행 관측이나 에이전트의 실제 Skill 사용을 증명하지 않습니다. 해당 후보의 확인 결과와 미확인 범위를 함께 읽습니다.
+이 안내는 **Windows 11 x64, Windows PowerShell 5.1·PowerShell 7**을 대상으로 두 경로를 다룹니다. 하나는 Windows 파일이 든 공개 릴리스에서 설치하는 [공개 릴리스 경로](#공개-릴리스로-설치)이고, 다른 하나는 그 아래의 로컬 후보 설치 경로입니다. 현재 공개 배포판 `v0.1.4`에 Windows 파일이 있다는 뜻이 아닙니다. 후보 패키지 생성과 교차 빌드는 Windows에서의 설치·실행 관측이나 에이전트의 실제 Skill 사용을 증명하지 않습니다. 해당 후보의 확인 결과와 미확인 범위를 함께 읽습니다.
 
 Windows ARM64·x86, 이전 Windows, 네트워크/UNC 저장소와 같은 checkout의 Windows·WSL 교차 사용은 이 경로의 지원 대상이 아닙니다. WSL 지원과 네이티브 지원은 별개입니다.
+
+## 공개 릴리스로 설치
+
+이 경로는 Go·Python·Git·Jaekit checkout 없이, 공개 릴리스의 파일과 PowerShell 블록 하나로 `ha`를 설치합니다. Windows 11 x64의 Windows PowerShell 5.1 또는 PowerShell 7 창에 블록 전체를 고치지 않고 붙여 넣습니다. 64비트 창을 쓰고, Git과 에이전트는 따로 준비합니다.
+
+블록은 다음 순서로만 진행합니다.
+
+- 블록에 적힌 버전의 `ha_<version>_windows_amd64.zip`과 `checksums.txt` 두 파일만 GitHub Release에서 받습니다.
+- `checksums.txt`에 그 ZIP이 정확히 한 번 있고 SHA-256이 맞을 때만 다음으로 넘어갑니다. 받기에 실패하거나 항목이 없거나 둘 이상이거나 값이 다르면, ZIP 안의 어떤 코드도 실행하지 않고 멈춥니다.
+- 확인한 ZIP에서 설치 코드(`tools/windows/install.ps1`과 `common.ps1`)만 꺼냅니다. 그 코드를 지금 창과 같은 PowerShell 실행 파일(5.1이면 Windows PowerShell, 7이면 PowerShell 7)의 새 프로세스에서 `-NoProfile -ExecutionPolicy Bypass -File`로 실행합니다. 설치 코드는 ZIP과 체크섬을 다시 확인하고 `-AddToPath`로 현재 사용자 PATH에 설치 폴더 한 항목을 추가합니다.
+- 설치 코드가 실패하면 블록도 성공 안내 없이 실패로 끝나고, 이 창의 PATH는 바꾸지 않습니다. 성공하면 이 창의 PATH에 설치 폴더가 없을 때만 덧붙여 바로 `ha`를 쓸 수 있게 합니다. 다른 `ha`가 앞에 있으면 경고합니다. 이미 열린 다른 터미널과 앱은 다시 시작해야 새 PATH를 읽습니다.
+- 받은 임시 파일은 끝나면 지우고, 지우지 못하면 그 위치를 알립니다.
+
+**실행 정책.** Windows 11의 기본 실행 정책은 Restricted이지만, 붙여 넣은 블록은 스크립트 파일이 아니라 명령이므로 실행됩니다. 블록은 영구 실행 정책(CurrentUser·LocalMachine)을 바꾸지 않고, 바꾸라고 요구하지도 않습니다. Bypass는 검증한 설치·제거 코드를 실행하는 그 새 프로세스와 그 하위 프로세스에만 적용됩니다. 그룹 정책(MachinePolicy·UserPolicy)으로 정한 실행 정책은 이 옵션보다 우선합니다. 회사 정책이 스크립트를 막으면 블록은 아무것도 설치하지 않고 실패로 끝납니다. 아래 [후보 경로](#준비)는 이 옵션을 쓰지 않습니다.
+
+**체크섬.** 체크섬은 받은 ZIP이 같은 릴리스의 목록과 같은지 확인할 뿐, 출처를 인증하는 서명이 아닙니다. 이 안내와 블록은 신뢰한 출처에서 읽습니다.
+
+아직 Windows 파일이 든 공개 릴리스는 없으며, 현재 배포판 `v0.1.4`에도 Windows 파일이 없습니다. 아래 블록은 Windows 파일이 든 첫 릴리스가 게시된 뒤부터 동작합니다. 블록의 버전 값(예정 `0.1.5`)은 그 릴리스를 준비할 때 확정합니다. 그 전에는 아래의 후보 경로를 씁니다.
+
+<!-- BEGIN WINDOWS PUBLIC INSTALL -->
+```powershell
+& {
+    $ErrorActionPreference = 'Stop'
+    $ProgressPreference = 'SilentlyContinue'
+    $version = '0.1.5'
+    $source = 'https://github.com/jgoneit/jaekit/releases/download/v' + $version
+    $name = 'ha_' + $version + '_windows_amd64.zip'
+    $shell = (Get-Process -Id $PID).Path
+    if (@('powershell.exe', 'pwsh.exe') -notcontains [IO.Path]::GetFileName($shell).ToLowerInvariant()) {
+        throw 'Paste this block into Windows PowerShell 5.1 or PowerShell 7.'
+    }
+    $work = Join-Path ([IO.Path]::GetTempPath()) ('jaekit-' + [Guid]::NewGuid().ToString('N'))
+    [void][IO.Directory]::CreateDirectory($work)
+    try {
+        $archive = Join-Path $work $name
+        $checksums = Join-Path $work 'checksums.txt'
+        Invoke-WebRequest -UseBasicParsing -Uri ($source + '/' + $name) -OutFile $archive
+        Invoke-WebRequest -UseBasicParsing -Uri ($source + '/checksums.txt') -OutFile $checksums
+        $listed = @([IO.File]::ReadAllLines($checksums) | Where-Object { $_.EndsWith('  ' + $name) })
+        if ($listed.Count -ne 1 -or $listed[0] -cnotmatch '^[0-9a-f]{64}  ') {
+            throw ('checksums.txt must list ' + $name + ' exactly once.')
+        }
+        if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ne $listed[0].Substring(0, 64)) {
+            throw ('SHA-256 mismatch: ' + $name)
+        }
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        $zip = [IO.Compression.ZipFile]::OpenRead($archive)
+        try {
+            foreach ($script in 'common.ps1', 'install.ps1') {
+                $entries = @($zip.Entries | Where-Object { $_.FullName -ceq ('tools/windows/' + $script) })
+                if ($entries.Count -ne 1 -or $entries[0].Length -gt 1048576) {
+                    throw ('The archive must contain one tools/windows/' + $script)
+                }
+                [IO.Compression.ZipFileExtensions]::ExtractToFile($entries[0], (Join-Path $work $script))
+            }
+        } finally { $zip.Dispose() }
+        Write-Output ('Running the verified installer in ' + $shell)
+        $ErrorActionPreference = 'Continue'
+        & $shell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $work 'install.ps1') -Archive $archive -Checksums $checksums -AddToPath
+        $code = $LASTEXITCODE
+        $ErrorActionPreference = 'Stop'
+        if ($code -ne 0) { throw ('The installer stopped with exit code ' + $code + '; see its message above.') }
+        $bin = Join-Path (Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Jaekit') 'bin'
+        $exe = Join-Path $bin 'ha.exe'
+        if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw ('The installer exited 0, but ' + $exe + ' is missing.') }
+        if (@($env:Path -split ';' | Where-Object { $_.TrimEnd('\') -ieq $bin }).Count -eq 0) {
+            if ($env:Path -and -not $env:Path.EndsWith(';')) { $env:Path += ';' }
+            $env:Path += $bin
+        }
+        $found = @(Get-Command ha -ErrorAction SilentlyContinue)
+        if ($found.Count -eq 0 -or $found[0].CommandType -ne 'Application' -or $found[0].Source -ine $exe) {
+            Write-Warning ('Another ha comes first in this window. Run ' + $exe + ' directly or reorder PATH.')
+        }
+        Write-Output ('ha ' + $version + ' is ready in this window. Restart other open terminals and apps, or sign out and in, so they load the new PATH.')
+    } finally {
+        try { [IO.Directory]::Delete($work, $true) } catch { Write-Warning ('Remove the temporary files yourself: ' + $work) }
+    }
+}
+```
+<!-- END WINDOWS PUBLIC INSTALL -->
+
+### 공개 릴리스 업데이트
+
+새 버전 안내에 있는 설치 블록을 그대로 다시 붙여 넣습니다. 설치 코드는 같은 사용자 위치의 설치를 새 버전으로 바꾸고, 이전 버전 자료는 지우지 않습니다. 같은 버전은 다시 검증한 뒤 재설치합니다. PowerShell 5.1로 설치한 것을 PowerShell 7에서 업데이트해도 같은 관리 상태를 씁니다. 업데이트가 실패하면 설치 코드가 기존 설치를 복구하고, 블록은 실패로 끝납니다.
+
+### 공개 릴리스 제거
+
+`ha`와 검사를 종료한 뒤 아래 블록을 붙여 넣습니다. 설치 블록과 같은 방식으로 받은 파일을 확인한 뒤, 확인한 ZIP의 제거 코드(`tools/windows/uninstall.ps1`과 `common.ps1`)만 실행합니다. 이미 설치된 사본을 검증 없이 실행하지 않습니다. 이 블록도 Windows 파일이 든 첫 공개 릴리스가 게시된 뒤부터 동작합니다.
+
+<!-- BEGIN WINDOWS PUBLIC REMOVE -->
+```powershell
+& {
+    $ErrorActionPreference = 'Stop'
+    $ProgressPreference = 'SilentlyContinue'
+    $version = '0.1.5'
+    $source = 'https://github.com/jgoneit/jaekit/releases/download/v' + $version
+    $name = 'ha_' + $version + '_windows_amd64.zip'
+    $shell = (Get-Process -Id $PID).Path
+    if (@('powershell.exe', 'pwsh.exe') -notcontains [IO.Path]::GetFileName($shell).ToLowerInvariant()) {
+        throw 'Paste this block into Windows PowerShell 5.1 or PowerShell 7.'
+    }
+    $work = Join-Path ([IO.Path]::GetTempPath()) ('jaekit-' + [Guid]::NewGuid().ToString('N'))
+    [void][IO.Directory]::CreateDirectory($work)
+    try {
+        $archive = Join-Path $work $name
+        $checksums = Join-Path $work 'checksums.txt'
+        Invoke-WebRequest -UseBasicParsing -Uri ($source + '/' + $name) -OutFile $archive
+        Invoke-WebRequest -UseBasicParsing -Uri ($source + '/checksums.txt') -OutFile $checksums
+        $listed = @([IO.File]::ReadAllLines($checksums) | Where-Object { $_.EndsWith('  ' + $name) })
+        if ($listed.Count -ne 1 -or $listed[0] -cnotmatch '^[0-9a-f]{64}  ') {
+            throw ('checksums.txt must list ' + $name + ' exactly once.')
+        }
+        if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ne $listed[0].Substring(0, 64)) {
+            throw ('SHA-256 mismatch: ' + $name)
+        }
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        $zip = [IO.Compression.ZipFile]::OpenRead($archive)
+        try {
+            foreach ($script in 'common.ps1', 'uninstall.ps1') {
+                $entries = @($zip.Entries | Where-Object { $_.FullName -ceq ('tools/windows/' + $script) })
+                if ($entries.Count -ne 1 -or $entries[0].Length -gt 1048576) {
+                    throw ('The archive must contain one tools/windows/' + $script)
+                }
+                [IO.Compression.ZipFileExtensions]::ExtractToFile($entries[0], (Join-Path $work $script))
+            }
+        } finally { $zip.Dispose() }
+        Write-Output ('Running the verified uninstaller in ' + $shell)
+        $ErrorActionPreference = 'Continue'
+        & $shell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $work 'uninstall.ps1')
+        $code = $LASTEXITCODE
+        $ErrorActionPreference = 'Stop'
+        if ($code -ne 0) { throw ('The uninstaller stopped with exit code ' + $code + '; see its message above.') }
+        Write-Output 'Removal finished. Terminals and apps that were already open keep their old PATH until they restart.'
+    } finally {
+        try { [IO.Directory]::Delete($work, $true) } catch { Write-Warning ('Remove the temporary files yourself: ' + $work) }
+    }
+}
+```
+<!-- END WINDOWS PUBLIC REMOVE -->
+
+제거 코드는 관리 목록을 확인한 뒤 설치와 설치기가 추가한 PATH 한 항목만 지웁니다. 프로젝트의 목표 문서·기록·로그는 남습니다. 이미 열린 창과 앱은 다시 시작할 때까지 예전 PATH를 유지합니다.
+
+### 공개 경로의 확인 범위
+
+Windows Server 2025의 CI와 릴리스 smoke는 PowerShell 5.1과 7 각각에서 이 블록 텍스트를 실제로 실행합니다. 다운로드, 체크섬 확인, 같은 셸의 자식 실행, 실패 전달, PATH·정책 불변을 관측합니다. 설치 코드는 Windows 11 Client만 허용하므로, Server 결과는 Windows 11 설치 성공이 아닙니다. 실제 설치·업데이트·제거는 [Windows 11 확인 절차](../tools/windows/README.md)에서 확인합니다. 공개 릴리스는 그 확인과 연결된 Windows ZIP만 게시하고, 연결이 없으면 macOS·Linux 파일만 게시합니다.
 
 ## 준비
 
 - 64비트 Windows PowerShell 5.1 또는 PowerShell 7을 엽니다. Git과 사용할 에이전트는 별도로 준비합니다. 설치기는 Git·에이전트·PowerShell·Windows 기능을 설치하거나 관리자 권한을 요청하지 않습니다.
 - 검토한 같은 후보 묶음에서 `ha_<version>_windows_amd64.zip`, `checksums.txt`, `install.ps1`, `uninstall.ps1`, `common.ps1`, `acceptance.ps1`을 받습니다. 이 여섯 파일만 들어 있는 전용 폴더를 사용합니다. 설치기는 로컬 파일만 읽고 다운로드나 공개 배포를 수행하지 않습니다. 취득에 실패했으면 설치가 시작된 것이 아닙니다.
 - checksum은 가져온 파일들이 후보의 내용과 맞는지 확인합니다. 같은 출처에서 변조된 checksum까지 신뢰할 수 있게 만드는 서명은 아닙니다. 스크립트도 실행할 코드이므로 출처와 내용을 확인합니다.
-- 회사 또는 PC의 실행 정책이 스크립트를 막으면 해당 정책에 따라 처리합니다. 설치기는 실행 정책·보안 설정을 바꾸거나 우회 옵션으로 다시 실행하지 않습니다.
+- 회사 또는 PC의 실행 정책이 스크립트를 막으면 해당 정책에 따라 처리합니다. 이 후보 경로의 설치기는 실행 정책·보안 설정을 바꾸거나 우회 옵션으로 다시 실행하지 않습니다. 공개 릴리스 경로만 검증한 설치·제거 코드에 한해 프로세스 한정 Bypass를 씁니다([실행 정책](#공개-릴리스로-설치)).
 
 일반 설치에 Go·Homebrew·Bash·zsh·WSL이나 Jaekit 소스 checkout은 필요하지 않습니다. 프로젝트 검사가 별도 도구를 요구한다면 그 검사의 의존성입니다. 참조 검사 생산자를 사용하는 경우에만 해당 예시의 Python 요구사항을 확인합니다.
 

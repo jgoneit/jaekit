@@ -362,6 +362,20 @@ and runnable example, then runs the archive validator's isolated native smoke.
 It does not install anything. The real two-host observations remain separate
 from this synthetic package smoke.
 
+## Windows archive
+
+A release publishes the Windows archive `ha_<version>_windows_amd64.zip` only
+with a Windows 11 acceptance link (see `tools/windows/README.md`); otherwise it
+publishes the four macOS/Linux archives and `checksums.txt`. Both shapes are
+accepted here. When the Windows archive is present, its `checksums.txt` entry
+must match, and its in-memory manifest, file hashes and Windows amd64
+executable are checked; nothing is extracted.
+
+For any published tag, `python3 tools/release/check_published.py --tag vX.Y.Z`
+downloads the public assets within the archive limits, compares their sizes and
+GitHub digests, and applies the same pre-publication rules
+(`tools/release/check_archives.py`), including the full Windows archive check.
+
 ## Archive resource limits
 
 Every archive consumer reads through the same read-only parser,
