@@ -143,6 +143,18 @@ class WindowsRelease(Fixture):
         with self.assertRaisesRegex(ValueError, "checksum mismatch"):
             release.check(self.dist, VERSION)
 
+    def test_manifest_json_the_installer_refuses_is_refused(self):
+        manifest = {"schema": "jaekit-windows-package/v1", "version": VERSION, "os": "windows", "arch": "amd64",
+                    "files": [{"path": name, "size": len(body), "sha256": hashlib.sha256(body).hexdigest()}
+                              for name, body in sorted(self.files.items())]}
+        for label, changed in {"an empty property name": dict(manifest, **{"": 0}),
+                               "names differing only in case": dict(manifest, Schema="other"),
+                               "a non-finite number": dict(manifest, extra=float("nan"))}.items():
+            with self.subTest(label=label):
+                self.write(manifest=changed)
+                with self.assertRaisesRegex(ValueError, "Windows archive manifest"):
+                    release.check(self.dist, VERSION)
+
     def test_repeated_and_case_colliding_paths_are_refused(self):
         repeated = zipfile.ZipInfo("LICENSE", date_time=(1980, 1, 1, 0, 0, 0))
         folded = zipfile.ZipInfo("license", date_time=(1980, 1, 1, 0, 0, 0))
@@ -153,6 +165,14 @@ class WindowsRelease(Fixture):
                 with self.assertRaisesRegex(ValueError, message):
                     release.check(self.dist, VERSION)
 
+
+    def test_names_windows_treats_as_one_are_refused(self):
+        # casefold (package.py) and upper-case (NTFS, PowerShell) comparisons.
+        for pair in (("guides/\u03c2.md", "guides/\u03c3.md"), ("guides/\u0131.md", "guides/i.md")):
+            with self.subTest(pair=pair):
+                self.write(files=dict(self.files, **{name: b"guide\n" for name in pair}))
+                with self.assertRaisesRegex(ValueError, "differ only in case"):
+                    release.check(self.dist, VERSION)
 
     def test_a_file_named_like_a_folder_in_another_case_is_refused(self):
         self.write(files=dict(self.files, **{"GUIDES": b"file\n", "guides/EXTRA.md": b"guide\n"}))
@@ -280,6 +300,10 @@ class PublishedRelease(Fixture):
                 else:
                     with self.assertRaises(OSError):
                         published.read_tag("jgoneit/jaekit", "v" + VERSION)
+        def oversized(url, limit, accept=""):
+            raise ValueError("download exceeds the release archive limit: " + url)
+        with unittest.mock.patch.object(published, "fetch", side_effect=oversized), self.assertRaises(OSError):
+            published.read_tag("jgoneit/jaekit", "v" + VERSION)
         with unittest.mock.patch.object(published, "fetch", return_value=b"{not json"), \
                 contextlib.redirect_stderr(io.StringIO()) as errors:
             self.assertEqual(published.main(["--tag", "v" + VERSION]), 2)

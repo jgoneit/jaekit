@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+from http.client import HTTPException
 import importlib.util
 import json
 from pathlib import Path
@@ -46,15 +47,22 @@ windows_gate = load_sibling("jaekit_windows_gate", "windows_gate.py")
 
 def fetch(url: str, limit: int, accept: str = "application/octet-stream") -> bytes:
     request = Request(url, headers={"Accept": accept, "User-Agent": "jaekit-release-check"})
-    with urlopen(request, timeout=60) as response:
-        data = response.read(limit + 1)
+    try:
+        with urlopen(request, timeout=60) as response:
+            data = response.read(limit + 1)
+    except HTTPException as error:
+        # A truncated or malformed HTTP response, such as IncompleteRead.
+        raise Unreadable(f"the response could not be read ({type(error).__name__}): {url}") from None
     if len(data) > limit:
         raise ValueError("download exceeds the release archive limit: " + url)
     return data
 
 
 def fetch_json(url: str, limit: int) -> dict:
-    data = fetch(url, limit, "application/vnd.github+json")
+    try:
+        data = fetch(url, limit, "application/vnd.github+json")
+    except ValueError:
+        raise Unreadable("the response exceeds its read limit: " + url) from None
     try:
         value = json.loads(data.decode("utf-8"))
     except (UnicodeError, json.JSONDecodeError):
@@ -78,14 +86,14 @@ def read_tag(repo: str, tag: str) -> tuple[bool, str]:
     names, the same object the publication job reads with `git cat-file tag`.
     A lightweight tag has no message.
     """
-    ref = fetch_json(f"https://api.github.com/repos/{repo}/git/ref/tags/{tag}", 1024 * 1024)
+    ref = fetch_json(f"https://api.github.com/repos/{repo}/git/ref/tags/{tag}", 4 * 1024 * 1024)
     target = ref.get("object")
     if (ref.get("ref") != "refs/tags/" + tag or not isinstance(target, dict)
             or not isinstance(target.get("type"), str) or not OBJECT.fullmatch(str(target.get("sha")))):
         raise Unreadable("the tag reference response is malformed: " + tag)
     if target["type"] != "tag":
         return False, ""
-    value = fetch_json(f"https://api.github.com/repos/{repo}/git/tags/{target['sha']}", 1024 * 1024)
+    value = fetch_json(f"https://api.github.com/repos/{repo}/git/tags/{target['sha']}", 4 * 1024 * 1024)
     if value.get("sha") != target["sha"] or not isinstance(value.get("message"), str):
         raise Unreadable("the tag object response is malformed: " + tag)
     return True, value["message"]

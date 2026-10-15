@@ -153,7 +153,9 @@ jobs:
     name: Windows release archive
     needs: build
     runs-on: windows-2025
-    timeout-minutes: 30
+    # 30 minutes for the checks publication depends on, plus the 10-minute
+    # limit of the observation-only contract comparison below.
+    timeout-minutes: 40
     outputs:
       sha256: ${{ steps.checked.outputs.sha256 }}
     steps:

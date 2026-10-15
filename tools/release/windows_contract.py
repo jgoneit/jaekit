@@ -9,8 +9,10 @@ PowerShell 7. Besides a normal archive, the cases are formats the installer
 itself refuses: the manifest size limit, a non-integer size, DOS directory or
 reparse-point attributes and entry names with a NUL or a backslash.
 
-  ci --report PATH   Windows only. Writes jaekit-windows-contract/v1 and exits
-                     1 unless every verdict is the expected one.
+  ci --report PATH   Windows only. Writes jaekit-windows-contract/v1 (rewritten
+                     after each case, `complete` only at the end) and exits 1
+                     unless every verdict is the expected one. An installer
+                     exception other than its own refusal is `error`.
 
 The release workflow keeps this report as an observation: the step never
 changes which files are published. Nothing is installed; each archive is
@@ -25,6 +27,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import stat
 import struct
 import subprocess
@@ -36,6 +39,13 @@ ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = "jaekit-windows-contract/v1"
 VERSION = "0.0.0"
 VERDICT = "JAEKIT_CONTRACT "
+# The installer's own refusals (common.ps1). Any other exception, such as a
+# file access error, is no verdict on the archive.
+REFUSALS = ("Package manifest is too large", "Invalid package file entry types", "Unsafe or duplicate archive entry",
+            "Unsafe package path", "Unsupported package manifest", "Invalid or duplicate manifest file",
+            "Package manifest exceeds limits", "Missing package file", "Too many archive entries",
+            "Expanded archive exceeds size limit", "Archive file/directory collision", "Package file size differs",
+            "Archive name and manifest version differ", "Archive checksum is missing")
 
 
 def load(name: str, path: str):
@@ -97,8 +107,8 @@ def archive(files: dict[str, bytes], listed, attributes=None, written=None) -> b
     return data
 
 
-def cases() -> list[tuple[str, str, bytes]]:
-    """(name, expected verdict, archive bytes)."""
+def cases() -> list[tuple[str, str, bytes, str]]:
+    """(name, expected verdict, archive bytes, the installer's refusal for it)."""
     files = package_files()
     one = dict(files, **{"LICENSE": b"x"})
     boolean = manifest(one)
@@ -108,14 +118,17 @@ def cases() -> list[tuple[str, str, bytes]]:
     oversized = json.dumps(manifest(files), sort_keys=True, indent=2).encode() + b" " * (1024 * 1024) + b"\n"
     regular = (stat.S_IFREG | 0o644) << 16
     return [
-        ("normal", "accept", archive(files, manifest(files))),
-        ("an oversized manifest", "reject", archive(files, oversized)),
-        ("a boolean size", "reject", archive(one, boolean)),
-        ("a DOS directory attribute", "reject", archive(files, manifest(files), {"LICENSE": regular | 0x10})),
-        ("a DOS reparse-point attribute", "reject", archive(files, manifest(files), {"LICENSE": regular | 0x400})),
-        ("a NUL in an entry name", "reject", archive(files, manifest(files), written={"LICENSE": "LICENSE\0x"})),
+        ("normal", "accept", archive(files, manifest(files)), ""),
+        ("an oversized manifest", "reject", archive(files, oversized), "Package manifest is too large"),
+        ("a boolean size", "reject", archive(one, boolean), "Invalid package file entry types"),
+        ("a DOS directory attribute", "reject", archive(files, manifest(files), {"LICENSE": regular | 0x10}),
+         "Unsafe or duplicate archive entry"),
+        ("a DOS reparse-point attribute", "reject", archive(files, manifest(files), {"LICENSE": regular | 0x400}),
+         "Unsafe or duplicate archive entry"),
+        ("a NUL in an entry name", "reject", archive(files, manifest(files), written={"LICENSE": "LICENSE\0x"}),
+         "Unsafe package path"),
         ("a backslash in an entry name", "reject",
-         archive(files, manifest(files), written={"guides/WINDOWS.md": "guides\\WINDOWS.md"})),
+         archive(files, manifest(files), written={"guides/WINDOWS.md": "guides\\WINDOWS.md"}), "Unsafe package path"),
     ]
 
 
@@ -153,10 +166,22 @@ def installer_verdict(shell: str, directory: Path, destination: Path) -> tuple[s
     return "error", f"exit {code}: {err.strip()[-500:]}"
 
 
-def contract(installer=installer_verdict, shells=("powershell", "pwsh")) -> dict:
-    report = {"schema": SCHEMA, "version": VERSION, "cases": []}
+def classify(verdict: str, reason: str, refusal: str) -> str:
+    """A refusal counts only as the installer's own refusal (the case's, when
+    it names one); any other exception is `error`, not agreement."""
+    if verdict != "reject":
+        return verdict
+    if refusal:
+        return "reject" if refusal in reason else "error"
+    return "reject" if any(known in reason for known in REFUSALS) else "error"
+
+
+def contract(installer=installer_verdict, shells=("powershell", "pwsh"), progress=None) -> dict:
+    """Judge every case; `progress(report)` sees the report after each case,
+    marked complete only at the end."""
+    report = {"schema": SCHEMA, "version": VERSION, "complete": False, "cases": [], "passed": False}
     with tempfile.TemporaryDirectory(prefix="jaekit-windows-contract-") as temp:
-        for number, (name, expected, data) in enumerate(cases()):
+        for number, (name, expected, data, refusal) in enumerate(cases()):
             directory = Path(temp) / f"case-{number}"
             directory.mkdir()
             path = directory / f"ha_{VERSION}_windows_amd64.zip"
@@ -165,9 +190,13 @@ def contract(installer=installer_verdict, shells=("powershell", "pwsh")) -> dict
             python, reason = python_verdict(path)
             verdicts, reasons = {}, {}
             for shell in shells:
-                verdicts[shell], reasons[shell] = installer(shell, directory, Path(temp) / f"expanded-{number}-{shell}")
+                verdict, reasons[shell] = installer(shell, directory, Path(temp) / f"expanded-{number}-{shell}")
+                verdicts[shell] = classify(verdict, reasons[shell], refusal)
             report["cases"].append({"name": name, "expected": expected, "python": python, "python_reason": reason,
                                     "installer": verdicts, "installer_reasons": reasons})
+            if progress:
+                progress(report)
+    report["complete"] = True
     report["passed"] = all(case["python"] == case["expected"]
                            and all(verdict == case["expected"] for verdict in case["installer"].values())
                            for case in report["cases"])
@@ -177,11 +206,19 @@ def contract(installer=installer_verdict, shells=("powershell", "pwsh")) -> dict
 def ci(args) -> int:
     if os.name != "nt":
         raise SystemExit("ci mode compares with the installer and runs on Windows only")
-    report = contract()
-    report["source_commit"] = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    source = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     path = Path(args.report)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    def write(report):
+        # Written after every case: a step cut off by its time limit still
+        # leaves what it judged, marked incomplete.
+        path.write_text(json.dumps(dict(report, source_commit=source), indent=2, sort_keys=True) + "\n",
+                        encoding="utf-8")
+
+    write({"schema": SCHEMA, "version": VERSION, "complete": False, "cases": [], "passed": False})
+    report = contract(progress=write)
+    write(report)
     for case in report["cases"]:
         print(f"{case['name']}: expected {case['expected']}, python {case['python']}, "
               + ", ".join(f"{shell} {verdict}" for shell, verdict in sorted(case["installer"].items())))
