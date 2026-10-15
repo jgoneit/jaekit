@@ -1,0 +1,324 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/verify-feedback-loop/AC-5.targets.json",
+    "tools/workflow-checks/test_verify.py",
+    "tools/gap-checks/test_docs_environment.py",
+    "tools/workflow-checks/test_repository.py",
+    "tools/regression-checks/integration_go_filters.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "verify-invocation",
+      "violation": "existing-invocation-changed"
+    },
+    {
+      "id": "verify-invocation.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-invocation.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-invocation.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-invocation.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-invocation.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-invocation.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-invocation.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-invocation.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-invocation.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-invocation.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-failures",
+      "violation": "existing-failure-forwarding-changed"
+    },
+    {
+      "id": "verify-failures.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-failures.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-failures.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-failures.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-failures.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-failures.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-failures.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-failures.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-failures.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-failures.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-nonmutation",
+      "violation": "existing-nonmutation-changed"
+    },
+    {
+      "id": "verify-nonmutation.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-nonmutation.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-nonmutation.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-nonmutation.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-nonmutation.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-nonmutation.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-nonmutation.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-nonmutation.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-nonmutation.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-nonmutation.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-preflight",
+      "violation": "existing-shell-preflight-changed"
+    },
+    {
+      "id": "shell-preflight.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-preflight.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-preflight.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-preflight.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-preflight.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-preflight.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-preflight.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-preflight.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-preflight.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-preflight.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-entrypoints",
+      "violation": "existing-ci-entrypoint-changed"
+    },
+    {
+      "id": "ci-entrypoints.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-entrypoints.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-entrypoints.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-entrypoints.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-entrypoints.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-entrypoints.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-entrypoints.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-entrypoints.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-entrypoints.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-entrypoints.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "documented-command",
+      "violation": "documented-command-changed"
+    },
+    {
+      "id": "documented-command.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "documented-command.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "documented-command.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "documented-command.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "documented-command.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "documented-command.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "documented-command.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "documented-command.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "documented-command.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "documented-command.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goflags-filtering",
+      "violation": "goflags-filtering-changed"
+    },
+    {
+      "id": "goflags-filtering.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goflags-filtering.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goflags-filtering.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goflags-filtering.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goflags-filtering.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goflags-filtering.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goflags-filtering.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goflags-filtering.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goflags-filtering.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goflags-filtering.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

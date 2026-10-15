@@ -1,0 +1,85 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "untracked-refused",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_feedback.py",
+      "test": "InputPreflight.test_untracked_input_stops_every_group_before_checks",
+      "result_targets": {
+        "additional_violations": [
+          "untracked-refused.assertion-2",
+          "untracked-refused.assertion-3",
+          "untracked-refused.assertion-4",
+          "untracked-refused.assertion-5",
+          "untracked-refused.assertion-6",
+          "untracked-refused.assertion-7",
+          "untracked-refused.assertion-8"
+        ],
+        "execution": "untracked-refused.execution",
+        "selection": "untracked-refused.selection",
+        "attribution": "untracked-refused.attribution"
+      }
+    },
+    {
+      "target": "clean-input-proceeds",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_feedback.py",
+      "test": "InputPreflight.test_ignored_files_and_tracked_edits_do_not_stop_verification",
+      "result_targets": {
+        "additional_violations": [
+          "clean-input-proceeds.assertion-2",
+          "clean-input-proceeds.assertion-3",
+          "clean-input-proceeds.assertion-4",
+          "clean-input-proceeds.assertion-5",
+          "clean-input-proceeds.assertion-6",
+          "clean-input-proceeds.assertion-7",
+          "clean-input-proceeds.assertion-8"
+        ],
+        "execution": "clean-input-proceeds.execution",
+        "selection": "clean-input-proceeds.selection",
+        "attribution": "clean-input-proceeds.attribution"
+      }
+    },
+    {
+      "target": "unreadable-git-stops",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_feedback.py",
+      "test": "InputPreflight.test_unreadable_git_state_stops_before_checks",
+      "result_targets": {
+        "additional_violations": [
+          "unreadable-git-stops.assertion-2",
+          "unreadable-git-stops.assertion-3",
+          "unreadable-git-stops.assertion-4",
+          "unreadable-git-stops.assertion-5",
+          "unreadable-git-stops.assertion-6",
+          "unreadable-git-stops.assertion-7",
+          "unreadable-git-stops.assertion-8"
+        ],
+        "execution": "unreadable-git-stops.execution",
+        "selection": "unreadable-git-stops.selection",
+        "attribution": "unreadable-git-stops.attribution"
+      }
+    },
+    {
+      "target": "input-check-read-only",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_feedback.py",
+      "test": "InputPreflight.test_input_check_reads_without_changing_files_or_git_state",
+      "result_targets": {
+        "additional_violations": [
+          "input-check-read-only.assertion-2",
+          "input-check-read-only.assertion-3",
+          "input-check-read-only.assertion-4",
+          "input-check-read-only.assertion-5",
+          "input-check-read-only.assertion-6",
+          "input-check-read-only.assertion-7",
+          "input-check-read-only.assertion-8"
+        ],
+        "execution": "input-check-read-only.execution",
+        "selection": "input-check-read-only.selection",
+        "attribution": "input-check-read-only.attribution"
+      }
+    }
+  ]
+}

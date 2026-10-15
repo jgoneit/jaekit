@@ -1,0 +1,237 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/verify-feedback-loop/AC-6.targets.json",
+    "tools/workflow-checks/test_verify_feedback.py",
+    "tools/workflow-checks/test_verify.py",
+    "tools/workflow-checks/test_ci_observer.py",
+    "tools/workflow-checks/test_regressions.py",
+    "tools/regression-checks/test_map.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "preserved-interface",
+      "violation": "line-or-interface-changed"
+    },
+    {
+      "id": "preserved-interface.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved-interface.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved-interface.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved-interface.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved-interface.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved-interface.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved-interface.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved-interface.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved-interface.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved-interface.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-labels",
+      "violation": "failure-labels-changed"
+    },
+    {
+      "id": "failure-labels.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-labels.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-labels.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-labels.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-labels.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-labels.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-labels.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-labels.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-labels.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-labels.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "module-consumer",
+      "violation": "module-consumer-changed"
+    },
+    {
+      "id": "module-consumer.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "module-consumer.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "module-consumer.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "module-consumer.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "module-consumer.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "module-consumer.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "module-consumer.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "module-consumer.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "module-consumer.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "module-consumer.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "registry-selection",
+      "violation": "registry-selection-changed"
+    },
+    {
+      "id": "registry-selection.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "registry-selection.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "registry-selection.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "registry-selection.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "registry-selection.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "registry-selection.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "registry-selection.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "registry-selection.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "registry-selection.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "registry-selection.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "selection-parser",
+      "violation": "selection-parser-changed"
+    },
+    {
+      "id": "selection-parser.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "selection-parser.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "selection-parser.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "selection-parser.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "selection-parser.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "selection-parser.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "selection-parser.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "selection-parser.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "selection-parser.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "selection-parser.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

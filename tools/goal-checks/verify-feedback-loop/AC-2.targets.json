@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "step-times",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_feedback.py",
+      "test": "ElapsedTime.test_successful_groups_show_each_step_and_total_time",
+      "result_targets": {
+        "additional_violations": [
+          "step-times.assertion-2",
+          "step-times.assertion-3",
+          "step-times.assertion-4",
+          "step-times.assertion-5",
+          "step-times.assertion-6",
+          "step-times.assertion-7",
+          "step-times.assertion-8"
+        ],
+        "execution": "step-times.execution",
+        "selection": "step-times.selection",
+        "attribution": "step-times.attribution"
+      }
+    },
+    {
+      "target": "timing-guidance",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_feedback.py",
+      "test": "ElapsedTime.test_timing_units_and_intervals_are_documented",
+      "result_targets": {
+        "additional_violations": [
+          "timing-guidance.assertion-2",
+          "timing-guidance.assertion-3",
+          "timing-guidance.assertion-4",
+          "timing-guidance.assertion-5",
+          "timing-guidance.assertion-6",
+          "timing-guidance.assertion-7",
+          "timing-guidance.assertion-8"
+        ],
+        "execution": "timing-guidance.execution",
+        "selection": "timing-guidance.selection",
+        "attribution": "timing-guidance.attribution"
+      }
+    }
+  ]
+}

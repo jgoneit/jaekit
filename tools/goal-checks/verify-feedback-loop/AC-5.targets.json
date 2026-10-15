@@ -1,0 +1,145 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "verify-invocation",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify.py",
+      "test": "InvocationCases",
+      "result_targets": {
+        "additional_violations": [
+          "verify-invocation.assertion-2",
+          "verify-invocation.assertion-3",
+          "verify-invocation.assertion-4",
+          "verify-invocation.assertion-5",
+          "verify-invocation.assertion-6",
+          "verify-invocation.assertion-7",
+          "verify-invocation.assertion-8"
+        ],
+        "execution": "verify-invocation.execution",
+        "selection": "verify-invocation.selection",
+        "attribution": "verify-invocation.attribution"
+      }
+    },
+    {
+      "target": "verify-failures",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify.py",
+      "test": "FailureCases",
+      "result_targets": {
+        "additional_violations": [
+          "verify-failures.assertion-2",
+          "verify-failures.assertion-3",
+          "verify-failures.assertion-4",
+          "verify-failures.assertion-5",
+          "verify-failures.assertion-6",
+          "verify-failures.assertion-7",
+          "verify-failures.assertion-8"
+        ],
+        "execution": "verify-failures.execution",
+        "selection": "verify-failures.selection",
+        "attribution": "verify-failures.attribution"
+      }
+    },
+    {
+      "target": "verify-nonmutation",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify.py",
+      "test": "NonMutationCases",
+      "result_targets": {
+        "additional_violations": [
+          "verify-nonmutation.assertion-2",
+          "verify-nonmutation.assertion-3",
+          "verify-nonmutation.assertion-4",
+          "verify-nonmutation.assertion-5",
+          "verify-nonmutation.assertion-6",
+          "verify-nonmutation.assertion-7",
+          "verify-nonmutation.assertion-8"
+        ],
+        "execution": "verify-nonmutation.execution",
+        "selection": "verify-nonmutation.selection",
+        "attribution": "verify-nonmutation.attribution"
+      }
+    },
+    {
+      "target": "shell-preflight",
+      "runner": "unittest",
+      "file": "tools/gap-checks/test_docs_environment.py",
+      "test": "AC8",
+      "result_targets": {
+        "additional_violations": [
+          "shell-preflight.assertion-2",
+          "shell-preflight.assertion-3",
+          "shell-preflight.assertion-4",
+          "shell-preflight.assertion-5",
+          "shell-preflight.assertion-6",
+          "shell-preflight.assertion-7",
+          "shell-preflight.assertion-8"
+        ],
+        "execution": "shell-preflight.execution",
+        "selection": "shell-preflight.selection",
+        "attribution": "shell-preflight.attribution"
+      }
+    },
+    {
+      "target": "ci-entrypoints",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_repository.py",
+      "test": "Integration",
+      "result_targets": {
+        "additional_violations": [
+          "ci-entrypoints.assertion-2",
+          "ci-entrypoints.assertion-3",
+          "ci-entrypoints.assertion-4",
+          "ci-entrypoints.assertion-5",
+          "ci-entrypoints.assertion-6",
+          "ci-entrypoints.assertion-7",
+          "ci-entrypoints.assertion-8"
+        ],
+        "execution": "ci-entrypoints.execution",
+        "selection": "ci-entrypoints.selection",
+        "attribution": "ci-entrypoints.attribution"
+      }
+    },
+    {
+      "target": "documented-command",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_repository.py",
+      "test": "Guidance.test_default_validation_is_documented_before_publication",
+      "result_targets": {
+        "additional_violations": [
+          "documented-command.assertion-2",
+          "documented-command.assertion-3",
+          "documented-command.assertion-4",
+          "documented-command.assertion-5",
+          "documented-command.assertion-6",
+          "documented-command.assertion-7",
+          "documented-command.assertion-8"
+        ],
+        "execution": "documented-command.execution",
+        "selection": "documented-command.selection",
+        "attribution": "documented-command.attribution"
+      }
+    },
+    {
+      "target": "goflags-filtering",
+      "runner": "unittest",
+      "file": "tools/regression-checks/integration_go_filters.py",
+      "test": "",
+      "result_targets": {
+        "additional_violations": [
+          "goflags-filtering.assertion-2",
+          "goflags-filtering.assertion-3",
+          "goflags-filtering.assertion-4",
+          "goflags-filtering.assertion-5",
+          "goflags-filtering.assertion-6",
+          "goflags-filtering.assertion-7",
+          "goflags-filtering.assertion-8"
+        ],
+        "execution": "goflags-filtering.execution",
+        "selection": "goflags-filtering.selection",
+        "attribution": "goflags-filtering.attribution"
+      }
+    }
+  ]
+}

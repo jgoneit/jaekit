@@ -1,0 +1,105 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "failure-times",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_feedback.py",
+      "test": "InterruptedTime.test_failed_step_shows_step_and_total_time",
+      "result_targets": {
+        "additional_violations": [
+          "failure-times.assertion-2",
+          "failure-times.assertion-3",
+          "failure-times.assertion-4",
+          "failure-times.assertion-5",
+          "failure-times.assertion-6",
+          "failure-times.assertion-7",
+          "failure-times.assertion-8"
+        ],
+        "execution": "failure-times.execution",
+        "selection": "failure-times.selection",
+        "attribution": "failure-times.attribution"
+      }
+    },
+    {
+      "target": "interrupt-times",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_feedback.py",
+      "test": "InterruptedTime.test_keyboard_interrupt_shows_the_step_and_both_times",
+      "result_targets": {
+        "additional_violations": [
+          "interrupt-times.assertion-2",
+          "interrupt-times.assertion-3",
+          "interrupt-times.assertion-4",
+          "interrupt-times.assertion-5",
+          "interrupt-times.assertion-6",
+          "interrupt-times.assertion-7",
+          "interrupt-times.assertion-8"
+        ],
+        "execution": "interrupt-times.execution",
+        "selection": "interrupt-times.selection",
+        "attribution": "interrupt-times.attribution"
+      }
+    },
+    {
+      "target": "preflight-times",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_feedback.py",
+      "test": "InterruptedTime.test_preflight_refusal_shows_that_no_check_started_and_total_time",
+      "result_targets": {
+        "additional_violations": [
+          "preflight-times.assertion-2",
+          "preflight-times.assertion-3",
+          "preflight-times.assertion-4",
+          "preflight-times.assertion-5",
+          "preflight-times.assertion-6",
+          "preflight-times.assertion-7",
+          "preflight-times.assertion-8"
+        ],
+        "execution": "preflight-times.execution",
+        "selection": "preflight-times.selection",
+        "attribution": "preflight-times.attribution"
+      }
+    },
+    {
+      "target": "input-refusal-times",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_feedback.py",
+      "test": "InputRefusalTime.test_input_refusal_shows_that_no_check_started_and_total_time",
+      "result_targets": {
+        "additional_violations": [
+          "input-refusal-times.assertion-2",
+          "input-refusal-times.assertion-3",
+          "input-refusal-times.assertion-4",
+          "input-refusal-times.assertion-5",
+          "input-refusal-times.assertion-6",
+          "input-refusal-times.assertion-7",
+          "input-refusal-times.assertion-8"
+        ],
+        "execution": "input-refusal-times.execution",
+        "selection": "input-refusal-times.selection",
+        "attribution": "input-refusal-times.attribution"
+      }
+    },
+    {
+      "target": "other-signal-output",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_feedback.py",
+      "test": "InterruptedTime.test_other_signals_keep_completed_step_times_and_the_last_run_line",
+      "result_targets": {
+        "additional_violations": [
+          "other-signal-output.assertion-2",
+          "other-signal-output.assertion-3",
+          "other-signal-output.assertion-4",
+          "other-signal-output.assertion-5",
+          "other-signal-output.assertion-6",
+          "other-signal-output.assertion-7",
+          "other-signal-output.assertion-8"
+        ],
+        "execution": "other-signal-output.execution",
+        "selection": "other-signal-output.selection",
+        "attribution": "other-signal-output.attribution"
+      }
+    }
+  ]
+}

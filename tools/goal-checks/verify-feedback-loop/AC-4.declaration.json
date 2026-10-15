@@ -1,0 +1,58 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/verify-feedback-loop/AC-4.targets.json",
+    "tools/workflow-checks/test_verify_feedback.py",
+    "tools/workflow-checks/test_verify.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "single-pass-guidance",
+      "violation": "single-pass-guidance-missing"
+    },
+    {
+      "id": "single-pass-guidance.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "single-pass-guidance.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "single-pass-guidance.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "single-pass-guidance.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "single-pass-guidance.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "single-pass-guidance.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "single-pass-guidance.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "single-pass-guidance.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "single-pass-guidance.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "single-pass-guidance.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}
