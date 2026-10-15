@@ -33,8 +33,8 @@ def load_check_archives():
 check_archives = load_check_archives()
 
 
-def fetch(url: str, limit: int) -> bytes:
-    request = Request(url, headers={"Accept": "application/octet-stream", "User-Agent": "jaekit-release-check"})
+def fetch(url: str, limit: int, accept: str = "application/octet-stream") -> bytes:
+    request = Request(url, headers={"Accept": accept, "User-Agent": "jaekit-release-check"})
     with urlopen(request, timeout=60) as response:
         data = response.read(limit + 1)
     if len(data) > limit:
@@ -43,7 +43,8 @@ def fetch(url: str, limit: int) -> bytes:
 
 
 def release(repo: str, tag: str):
-    data = fetch(f"https://api.github.com/repos/{repo}/releases/tags/{tag}", 4 * 1024 * 1024)
+    data = fetch(f"https://api.github.com/repos/{repo}/releases/tags/{tag}", 4 * 1024 * 1024,
+                 "application/vnd.github+json")
     value = json.loads(data.decode("utf-8"))
     if value.get("tag_name") != tag or value.get("draft") is not False:
         raise ValueError("the tag has no published release")
