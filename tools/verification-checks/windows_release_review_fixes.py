@@ -150,12 +150,16 @@ def manifest_for(files, version):
 def write_zip(path, files, manifest, attributes=None, flags=None, written=None):
     """The package.py layout. `attributes` overrides an entry's external
     attributes; `flags` sets general-purpose bits in both of its headers after
-    writing (ZipFile clears them); `written` stores an entry under another raw
-    name of the same length, such as one with a NUL that ZIP readers cut."""
+    writing (ZipFile clears them); `written` stores an entry under other raw
+    name bytes of the same length, such as a NUL that ZIP readers cut or a
+    cp437 byte without the UTF-8 flag."""
     attributes, flags, written = attributes or {}, flags or {}, written or {}
     body = manifest if isinstance(manifest, bytes) else (json.dumps(manifest, sort_keys=True, indent=2) + "\n").encode()
     entries = dict(files, **{"package.json": body})
-    placeholders = {name: raw.replace("\0", "!") for name, raw in written.items()}
+    raws = {name: raw if isinstance(raw, bytes) else raw.encode("utf-8") for name, raw in written.items()}
+    placeholders = {name: bytes(b if 0x20 < b < 0x7F else 0x21 for b in raw).decode("ascii") for name, raw in raws.items()}
+    # The name zipfile reads back: cp437 without the UTF-8 flag, as written otherwise.
+    stored_names = {name: raw.decode("cp437") if isinstance(raw, bytes) else raw for name, raw in written.items()}
     output = io.BytesIO()
     with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for name, data in sorted(entries.items()):
@@ -174,16 +178,17 @@ def write_zip(path, files, manifest, attributes=None, flags=None, written=None):
         for header in (offset + 8, local + 6):
             struct.pack_into("<H", data, header, struct.unpack_from("<H", data, header)[0] | flags.get(name, 0))
         offset += 46 + length + extra + comment
-    for name, raw in written.items():
-        placeholder = placeholders[name].encode("utf-8")
-        if len(placeholder) != len(raw.encode("utf-8")) or data.count(placeholder) != 2:
+    for name, raw in raws.items():
+        placeholder = placeholders[name].encode("ascii")
+        if len(placeholder) != len(raw) or data.count(placeholder) != 2:
             raise ObservationError("a synthetic raw entry name could not be written")
-        data = bytearray(bytes(data).replace(placeholder, raw.encode("utf-8")))
+        data = bytearray(bytes(data).replace(placeholder, raw))
     path.write_bytes(bytes(data))
     with zipfile.ZipFile(path) as archive:
         stored = {info.orig_filename: info for info in archive.infolist()}
-    if any(stored[written.get(name, name)].flag_bits & bits != bits for name, bits in flags.items()) \
-            or not set(written.values()) <= stored.keys():
+    if any(stored[stored_names.get(name, name)].flag_bits & bits != bits for name, bits in flags.items()) \
+            or not set(stored_names.values()) <= stored.keys() \
+            or any(stored[stored_names[name]].flag_bits & 0x800 for name, raw in written.items() if isinstance(raw, bytes)):
         raise ObservationError("the synthetic ZIP does not carry its tampered fields")
 
 
@@ -345,6 +350,10 @@ def mutation(kind):
             built = manifest_for(files, version)
             built["files"].append(dict(built["files"][0]))
             return files, built, options
+        elif kind == "an empty manifest property name":
+            return files, dict(manifest_for(files, version), **{"": 0}), options
+        elif kind == "manifest property names differing only in case":
+            return files, dict(manifest_for(files, version), Schema="jaekit-windows-package/v1"), options
         elif kind == "a malformed manifest entry":
             built = manifest_for(files, version)
             built["files"][0]["sha256"] = built["files"][0]["sha256"].upper()
@@ -380,6 +389,11 @@ def mutation(kind):
             options["attributes"] = {"LICENSE": ((stat.S_IFREG | 0o644) << 16) | 0x400}
         elif kind == "a NUL in an entry name":
             options["written"] = {"LICENSE": "LICENSE\0x"}
+        elif kind == "a non-ASCII name without the UTF-8 flag":
+            files["guides/\u00e9.md"] = b"x\n"
+            options["written"] = {"guides/\u00e9.md": b"guides/\x82.md"}
+        elif kind == "names differing only in Unicode case":
+            files["guides/\u03c2.md"], files["guides/\u03c3.md"] = b"x\n", b"y\n"
         elif kind == "a PE32 Core":
             files["ha.exe"] = pe_amd64(optional=0x10B)
         elif kind == "a path outside the package scope":
@@ -393,10 +407,11 @@ def mutation(kind):
 
 
 TAMPERED = ("only the Core and its manifest", "another operating system", "another architecture", "another schema",
-            "a repeated manifest entry", "a malformed manifest entry", "a boolean size", "a fractional size",
-            "an oversized manifest",
+            "a repeated manifest entry", "a malformed manifest entry", "an empty manifest property name",
+            "manifest property names differing only in case", "a boolean size", "a fractional size", "an oversized manifest",
             "a reserved name", "names differing only in case", "a link entry", "an encrypted entry",
-            "a DOS directory attribute", "a DOS reparse-point attribute", "a NUL in an entry name", "a PE32 Core",
+            "a DOS directory attribute", "a DOS reparse-point attribute", "a NUL in an entry name",
+            "a non-ASCII name without the UTF-8 flag", "names differing only in Unicode case", "a PE32 Core",
             "a path outside the package scope", "a cache file")
 
 
@@ -450,8 +465,13 @@ def ac2():
     with tempfile.TemporaryDirectory(prefix="jaekit-review-fix-contract-", dir=SCRATCH) as temp:
         repo, sha, latest = release_run()
         listed = api(f"repos/{repo}/actions/runs/{latest['id']}/artifacts?per_page=100")
-        require("release-windows-contract" in {item.get("name") for item in listed.get("artifacts", [])},
-                "HEAD's release run did not compare the archive rule with the installer")
+        if "release-windows-contract" not in {item.get("name") for item in listed.get("artifacts", [])}:
+            jobs = api(f"repos/{repo}/actions/runs/{latest['id']}/attempts/{latest['run_attempt']}/jobs?per_page=100")
+            steps = {step.get("name") for job in jobs.get("jobs", []) if job.get("name") == "Windows release archive"
+                     for step in job.get("steps", [])}
+            if "Compare the archive rule with the installer" in steps:
+                raise ObservationError("HEAD's release run compared the rule with the installer but kept no report")
+            raise Violation("HEAD's release run did not compare the archive rule with the installer")
         artifact("release-windows-contract", Path(temp))
         path = Path(temp) / "windows-contract.json"
         require(path.is_file(), "HEAD's release run left no Windows contract report")
@@ -459,6 +479,11 @@ def ac2():
     require(report.get("schema") == "jaekit-windows-contract/v1" and report.get("source_commit") == sha,
             "the Windows contract report does not describe HEAD")
     cases = {case.get("name"): case for case in report.get("cases", [])}
+    verdicts = [value for case in cases.values() for value in (case.get("python"), *(case.get("installer") or {}).values())]
+    if report.get("complete") is not True or "error" in verdicts:
+        # Cut off by its time limit, or an exception that is not a verdict.
+        raise ObservationError("the Windows contract comparison did not judge every case: "
+                               + json.dumps([case for case in cases.values() if "error" in json.dumps(case)])[:500])
     for name in ("normal", "an oversized manifest", "a boolean size", "a DOS directory attribute",
                  "a DOS reparse-point attribute"):
         case = cases.get(name)
