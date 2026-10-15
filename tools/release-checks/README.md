@@ -386,9 +386,10 @@ name: every Windows short (8.3) name holds `~` (`ABCDEF~1.MD` for
 another entry's short name would be the same file to the installer. Common
 verification (`python3 tools/verify.py`, through
 `tools/release/test_windows_names.py`) builds the same archive from the
-committed public files at HEAD, with a synthetic Core, and judges it with this
-rule, so a committed public file the rule refuses fails the pull request
-before the release build would stop the whole release. When the Windows
+committed public files at HEAD, and from the public files staged for the next
+commit, with a synthetic Core, and judges it with this rule, so a committed
+public file the rule refuses fails the pull request before the release build
+would stop the whole release. Untracked or ignored files do not count. When the Windows
 archive is published, the check also reads the
 tag object and requires the link the publication gate
 (`tools/release/windows_gate.py`) requires: an annotated tag whose message has

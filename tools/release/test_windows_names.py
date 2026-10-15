@@ -8,6 +8,7 @@ workflow); here the comparison's cases, verdicts and report fields are checked.
 """
 import importlib.util
 import os
+import sys
 from pathlib import Path
 import subprocess
 import tempfile
@@ -31,6 +32,7 @@ def load(name, path):
 contract = load("windows_names_contract", HERE / "windows_contract.py")
 archives = contract.check_archives
 package = archives.windows_package
+releases = load("windows_names_release", HERE / "test_windows_release.py")
 
 
 def required():
@@ -39,7 +41,11 @@ def required():
 
 
 def judge(files):
-    """The release build's Windows archive of `files`, judged by the rule."""
+    """The release build's Windows archive of `files`, judged by the rule.
+    Like package.py, each name is checked first, so a name a Windows-hosted
+    zipfile would rewrite (a backslash) is still reported as written."""
+    for name in files:
+        package.safe_name(name)
     files = dict(files, **{"ha.exe": contract.pe_amd64()})
     data = contract.archive(files, contract.manifest(files))
     with tempfile.TemporaryDirectory(prefix="jaekit-windows-names-") as folder:
@@ -52,8 +58,9 @@ REFUSED = (
     (("guides/café.md",), "not printable ASCII"),
     (("guides/Node_Modules/notes.md",), "local metadata or generated cache"),
     (("guides/tool.PYC",), "local metadata or generated cache"),
-    (("guides/CON.md",), "unsafe path"),
-    (("guides/notes.md.",), "unsafe path"),
+    (("guides/CON.md",), "unsafe Windows package path"),
+    (("guides/notes.md.",), "unsafe Windows package path"),
+    (("guides/a\\b.md",), "unsafe Windows package path"),
     (("guides/Extra.md", "guides/extra.md"), "differ only in case"),
     (("guides/Extra", "guides/extra/notes.md"), "file/directory collision"),
     (("guides/abcdef~1.md",), "short name"),
@@ -63,11 +70,16 @@ REFUSED = (
 class CommittedPublicFiles(unittest.TestCase):
     def test_committed_public_files_pass_the_windows_rule(self):
         # package.py packages exactly these files for the release; a file the
-        # rule refuses would stop the whole release at its archive check.
-        try:
-            judge(package.committed_public_files(ROOT))
-        except ValueError as error:
-            self.fail(f"a committed public file would stop the release's Windows archive: {error}")
+        # rule refuses would stop the whole release at its archive check. The
+        # files staged for the next commit are judged as well, so a check run
+        # before the commit already sees them; in a fresh checkout they are
+        # the same files.
+        for staged in (False, True):
+            with self.subTest(staged=staged):
+                try:
+                    judge(package.committed_public_files(ROOT, staged=staged))
+                except ValueError as error:
+                    self.fail(f"a committed public file would stop the release's Windows archive: {error}")
 
     def repository(self, committed, staged=None, links=()):
         """A synthetic repository; files go through Git's objects only, so pairs a
@@ -99,9 +111,10 @@ class CommittedPublicFiles(unittest.TestCase):
                 root = self.repository(dict(required(), **dict.fromkeys(names, BODY)))
                 with self.assertRaises(ValueError) as caught:
                     judge(package.committed_public_files(root))
-                self.assertIn(reason, str(caught.exception))
+                message = str(caught.exception)
+                self.assertIn(reason, message)
                 for name in names:
-                    self.assertIn(name, str(caught.exception))
+                    self.assertTrue(name in message or repr(name) in message, message)
 
     def test_a_committed_file_over_the_size_limit_is_named(self):
         large = b"\0" * (archives.WINDOWS_MAX_FILE_BYTES + 1)
@@ -109,17 +122,30 @@ class CommittedPublicFiles(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "size limit: guides/large.bin"):
             judge(package.committed_public_files(root))
 
-    def test_only_the_committed_files_count(self):
+    def test_untracked_ignored_and_unstaged_files_do_not_count(self):
         root = self.repository(dict(required(), **{"docs/private.md": BODY}),
-                               staged={"guides/staged~1.md": BODY, "guides/WINDOWS.md": b"staged\n"})
+                               staged={"guides/WINDOWS.md": b"staged\n"})
         (root / "guides").mkdir()
         (root / "guides/untracked~1.md").write_bytes(BODY)
         (root / "guides/WINDOWS.md").write_bytes(b"changed in the working tree\n")
         (root / "guides/__pycache__").mkdir()
         (root / "guides/__pycache__/notes.pyc").write_bytes(BODY)
-        files = package.committed_public_files(root)
-        self.assertEqual(required(), files)
-        judge(files)
+        self.assertEqual(required(), package.committed_public_files(root))
+        staged = package.committed_public_files(root, staged=True)
+        self.assertEqual(dict(required(), **{"guides/WINDOWS.md": b"staged\n"}), staged)
+        judge(staged)
+
+    def test_a_staged_file_the_rule_refuses_is_named(self):
+        root = self.repository(required(), staged={"guides/CON.md": BODY})
+        judge(package.committed_public_files(root))
+        with self.assertRaisesRegex(ValueError, "unsafe Windows package path: 'guides/CON.md'"):
+            judge(package.committed_public_files(root, staged=True))
+
+    @unittest.skipIf(sys.platform == "win32", "Windows passes arguments as text, not bytes")
+    def test_a_committed_path_that_is_not_utf8_is_named(self):
+        root = self.repository(dict(required(), **{"guides/caf\udce9.md": BODY}))
+        with self.assertRaisesRegex(ValueError, r"not UTF-8: 'guides/caf\\udce9\.md'"):
+            package.committed_public_files(root)
 
     def test_a_source_snapshot_without_git_gives_its_public_files(self):
         with tempfile.TemporaryDirectory(prefix="jaekit-snapshot-names-") as folder:
@@ -140,7 +166,7 @@ class CommittedPublicFiles(unittest.TestCase):
             package.committed_public_files(root)
 
 
-class ShortNames(unittest.TestCase):
+class ShortNames(releases.Fixture):
     def test_a_tilde_anywhere_in_an_entry_name_is_refused(self):
         # Every Windows short name holds `~`; an entry named like another
         # entry's short name would be the same file on such a volume.
@@ -149,6 +175,20 @@ class ShortNames(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "short name") as caught:
                     judge(dict(required(), **{name: BODY}))
                 self.assertIn(name, str(caught.exception))
+
+    def test_the_published_release_check_refuses_the_same_archive(self):
+        # check_published.py judges a downloaded release with the same rule.
+        page = releases.PublishedRelease
+        name = "guides/abcdef~1.md"
+        self.write(dict(self.files, **{name: BODY}))
+
+        def unread(repo, tag):
+            raise AssertionError("a refused archive is judged before its tag is read")
+
+        with self.assertRaisesRegex(ValueError, "short name") as caught:
+            releases.published.check_release("jgoneit/jaekit", "v" + releases.VERSION, page.metadata(self),
+                                             lambda url: page.download(self, url), tag_reader=unread)
+        self.assertIn(name, str(caught.exception))
 
     def test_collisions_name_both_paths(self):
         for names, reason in REFUSED[5:7]:

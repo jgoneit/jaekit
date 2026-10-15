@@ -899,7 +899,7 @@
         "tools/windows/package.py",
         "tools/windows/common.ps1"
       ],
-      "property": "One Windows ZIP rule (check_archives.windows_files) judges an archive the same way before and after publication: it refuses what the installer's package check refuses and paths package.py does not package, and accepts a package.py archive of printable-ASCII public files with exactly package.py's manifest fields. A published Windows archive also needs the tag link the publication gate requires.",
+      "property": "One Windows ZIP rule (check_archives.windows_files) judges an archive the same way before and after publication: it refuses what the installer's package check refuses and paths package.py does not package, and accepts a package.py archive of printable-ASCII public files without `~` with exactly package.py's manifest fields. A published Windows archive also needs the tag link the publication gate requires.",
       "examples": [
         "a boolean manifest size",
         "a published Windows archive under a tag without its acceptance link"
@@ -1255,7 +1255,7 @@
         "tools/windows/package.py",
         "tools/release/check_archives.py"
       ],
-      "property": "Common verification judges the committed public files at HEAD (the files a source snapshot without Git holds) with the Windows archive rule, in package.py's layout with a synthetic Core. A committed public file the rule refuses fails it with its path and reason before the release build would; untracked, ignored, staged or changed working-tree files do not count.",
+      "property": "Common verification judges the committed public files at HEAD, and the public files staged in Git's index for the next commit (the same files in a fresh checkout; a source snapshot without Git gives the files it holds), with package.py's name check and the Windows archive rule, in package.py's layout with a synthetic Core. A committed or staged public file the rule refuses fails it with its path and reason before the release build would; untracked or ignored files and unstaged changes do not change its verdict.",
       "examples": [
         "a committed guides/Node_Modules/notes.md"
       ],
@@ -1289,7 +1289,7 @@
         "`~` in a file or folder name",
         "case and file/folder collisions"
       ],
-      "boundary": "Synthetic ZIPs in package.py's layout exercise the Python rule locally; whether a given Windows volume creates short names is not observed.",
+      "boundary": "Synthetic ZIPs in package.py's layout exercise the Python rule and check_published.py's judgment of a synthetic published release locally; whether a given Windows volume creates short names is not observed.",
       "checks": [
         {
           "file": "tools/release/test_windows_names.py",
