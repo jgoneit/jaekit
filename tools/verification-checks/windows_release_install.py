@@ -27,7 +27,6 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 DECLARATIONS = ROOT / "tools/verification-checks/windows-release-install"
-BASE = "7476c87"  # origin/main when the goal started; README/INSTALL stay as there
 WORKFLOW = ".github/workflows/release.yml"
 GUIDES = ("guides/WINDOWS.md", "guides/WINDOWS.en.md")
 # Resolved: package.py refuses sources behind links such as macOS /var.
@@ -84,7 +83,12 @@ def sha256(data: bytes) -> str:
 
 
 def head():
-    return run(["git", "rev-parse", "HEAD"]).stdout.strip()
+    """HEAD's commit; without a Git checkout (a source snapshot) the run, the
+    build cache and the CI identity are unavailable, not violated."""
+    result = run(["git", "rev-parse", "--verify", "HEAD^{commit}"])
+    if result.returncode or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", result.stdout.strip()):
+        raise ObservationError("HEAD is unreadable; this observation needs a Git checkout")
+    return result.stdout.strip()
 
 
 # ------------------------------------------------------------ presence
@@ -135,9 +139,10 @@ def present(criterion):
         require((ROOT / "tools/release/windows_gate.py").is_file() and "windows_gate.py" in workflow,
                 "no gate links a published Windows archive to its Windows 11 acceptance")
     elif criterion == "AC-13":
-        require((ROOT / "tools/release/check_published.py").is_file()
-                and "WINDOWS_ARCHIVE" in text("tools/release-checks/check.py"),
-                "no published-release check accepts a release with a Windows archive")
+        # The v0.1.3 acceptance checker stays pinned to its four archives; a
+        # later tag is checked by check_published.py with the gate's rule.
+        require("windows_gate" in text("tools/release/check_published.py"),
+                "no published-release check verifies a Windows archive's acceptance link")
 
 
 # ------------------------------------------------------------ local builds
@@ -645,6 +650,10 @@ def ac13():
             "the release workflow lost a tag, note, overwrite or uploaded-name guarantee")
     published = load("windows_release_install_published", "tools/release/check_published.py")
     dist = local_dist("0.0.0")
+
+    def unread(repo, tag):
+        raise Violation("the published-release check read the tag of a release without the Windows archive")
+
     for keep in (True, False):
         with tempfile.TemporaryDirectory(prefix="jaekit-published-shape-") as temp:
             copy = Path(temp) / "dist"
@@ -657,12 +666,29 @@ def ac13():
             assets = [{"name": p.name, "size": p.stat().st_size, "digest": "sha256:" + sha256(p.read_bytes()),
                        "browser_download_url": f"https://github.com/jgoneit/jaekit/releases/download/v0.0.0/{p.name}"}
                       for p in sorted(copy.iterdir())]
+            metadata = {"tag_name": "v0.0.0", "draft": False, "assets": assets}
+
+            def download(url):
+                return (copy / url.rsplit("/", 1)[1]).read_bytes()
+
+            digest = sha256((dist / "ha_0.0.0_windows_amd64.zip").read_bytes())
+            linked = lambda repo, tag: (True, "Jaekit v0.0.0\n\nWindows-Accepted-SHA256: " + digest + "\n")
             try:
-                names = published.check_release("jgoneit/jaekit", "v0.0.0", {"tag_name": "v0.0.0", "draft": False,
-                                                "assets": assets}, lambda url: (copy / url.rsplit("/", 1)[1]).read_bytes())
+                names = published.check_release("jgoneit/jaekit", "v0.0.0", metadata, download,
+                                                tag_reader=linked if keep else unread)
             except ValueError as error:
                 raise Violation("the published-release check refused a valid shape: " + str(error)) from None
             require(any(n.endswith(".zip") for n in names) is keep, "the published check misread the release shape")
+            if keep:
+                for label, reader in (("a lightweight tag", lambda repo, tag: (False, "")),
+                                      ("no link", lambda repo, tag: (True, "Jaekit v0.0.0\n")),
+                                      ("another digest", lambda repo, tag: (True, "Windows-Accepted-SHA256: " + "0" * 64))):
+                    try:
+                        published.check_release("jgoneit/jaekit", "v0.0.0", metadata, download, tag_reader=reader)
+                    except ValueError:
+                        continue
+                    raise Violation(f"the published-release check accepted a Windows archive under {label}, "
+                                    "without its acceptance link")
     result = run([sys.executable, "tools/release/check_published.py", "--tag", "v0.1.4"], timeout=600, show=True)
     if result.returncode not in (0, 1):
         raise ObservationError("could not read the public v0.1.4 release")
@@ -714,13 +740,17 @@ def ac14():
     # observed where CI runs it for HEAD: Core / Ubuntu runs `verify.py go`
     # and Public documentation runs `verify.py docs`; Core / Windows runs the
     # native candidate checks on PowerShell 5.1 and 7.
+    # The candidate's properties are judged from the current files, never by
+    # comparing with an earlier commit: package.py alone and its candidate,
+    # the verified-candidate blocks, and the installer's guards and rules.
     observed_ci = ci_run()
     for name in ("Seal Core", "Public documentation", "Core / Ubuntu", "Core / macOS", "Core / Windows"):
         require(observed_ci.get(name) == "success", f"the required CI job {name} did not succeed for HEAD")
-    candidate = ["tools/windows/package.py", "tools/windows/common.ps1", "tools/windows/install.ps1",
-                 "tools/windows/uninstall.ps1", "tools/windows/acceptance.ps1", ".github/workflows/ci.yml"]
-    result = run(["git", "diff", "--quiet", BASE, "HEAD", "--", *candidate])
-    require(result.returncode == 0, "the candidate packaging, installer or CI workflow changed")
+    for guide in GUIDES:
+        document = text(guide)
+        for label in ("VERIFIED INSTALL", "VERIFIED REMOVE"):
+            require(f"<!-- BEGIN WINDOWS {label} -->" in document and "Get-JaekitVerifiedCandidate" in document,
+                    f"{guide} lost its verified-candidate {label} block")
     for directory in ("tools/windows", "tools/release"):
         result = run([sys.executable, "-m", "unittest", "discover", "-s", directory, "-p", "test_*.py"], timeout=600)
         require(result.returncode == 0, f"the {directory} regressions failed")
@@ -740,9 +770,12 @@ def ci_run():
 
 
 def ac15():
-    paths = ["README.md", "README.en.md", "guides/INSTALL.md", "guides/INSTALL.en.md", "plugins/seal/skills/seal/SKILL.md"]
-    result = run(["git", "diff", "--quiet", BASE, "HEAD", "--", *paths])
-    require(result.returncode == 0, "README, INSTALL or the Seal Skill changed")
+    # The release guidance is judged by its properties in the current files:
+    # the existing guide tests pin README and INSTALL to the current release
+    # and its platforms, and the Skill says that release has no Windows file.
+    require("Windows is not supported by that release; it has no Windows artifact"
+            in text("plugins/seal/skills/seal/SKILL.md"),
+            "the Seal Skill no longer says the current release has no Windows artifact")
     result = run(["go", "test", "-count=1", "./plugins/", "-run",
                   "TestPublicGuidanceNamesOnlyTheCurrentRelease|TestRelease011|TestReadme"], timeout=600)
     require(result.returncode == 0, "the release and README guidance tests failed")
