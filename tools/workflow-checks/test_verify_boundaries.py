@@ -54,6 +54,20 @@ class InheritedGitState(feedback.GitFixture):
         self.require(not marker.exists() and self.snapshot() == before, "input-check-mutated-state",
                      "the input listing ran a configured fsmonitor hook or changed the checkout")
 
+    def test_inherited_command_line_configuration_cannot_run_fsmonitor(self):
+        # A Git alias or hook can launch verification with `git -c` settings.
+        marker = self.root / "fsmonitor-ran"
+        hook = self.root / "fsmonitor-hook"
+        hook.write_text(f"#!{sys.executable}\nimport pathlib\npathlib.Path({str(marker)!r}).write_text('ran')\n")
+        hook.chmod(0o700)
+        (self.repo / "tools/new_tool.py").write_text("print('not tracked yet')\n")
+        before = self.snapshot()
+        inherited = f"'core.fsmonitor'='{hook}'"
+        for group in ("docs", "go"):
+            self.run_verify(group, GIT_CONFIG_PARAMETERS=inherited)
+        self.require(not marker.exists() and self.snapshot() == before, "input-check-mutated-state",
+                     "an inherited command-line fsmonitor setting ran during the input listing")
+
 
 class EarlyInterrupt(feedback.TimingFixture):
     def test_interrupt_during_tool_discovery_reports_that_no_check_started(self):

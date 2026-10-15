@@ -120,6 +120,26 @@
         "selection": "fsmonitor-not-run.selection",
         "attribution": "fsmonitor-not-run.attribution"
       }
+    },
+    {
+      "target": "inherited-config-fsmonitor",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_boundaries.py",
+      "test": "InheritedGitState.test_inherited_command_line_configuration_cannot_run_fsmonitor",
+      "result_targets": {
+        "additional_violations": [
+          "inherited-config-fsmonitor.assertion-2",
+          "inherited-config-fsmonitor.assertion-3",
+          "inherited-config-fsmonitor.assertion-4",
+          "inherited-config-fsmonitor.assertion-5",
+          "inherited-config-fsmonitor.assertion-6",
+          "inherited-config-fsmonitor.assertion-7",
+          "inherited-config-fsmonitor.assertion-8"
+        ],
+        "execution": "inherited-config-fsmonitor.execution",
+        "selection": "inherited-config-fsmonitor.selection",
+        "attribution": "inherited-config-fsmonitor.attribution"
+      }
     }
   ]
 }

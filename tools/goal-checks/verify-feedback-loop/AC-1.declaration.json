@@ -274,6 +274,50 @@
     {
       "id": "fsmonitor-not-run.attribution",
       "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-config-fsmonitor",
+      "violation": "input-check-mutated-state"
+    },
+    {
+      "id": "inherited-config-fsmonitor.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-config-fsmonitor.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-config-fsmonitor.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-config-fsmonitor.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-config-fsmonitor.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-config-fsmonitor.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-config-fsmonitor.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-config-fsmonitor.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-config-fsmonitor.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-config-fsmonitor.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

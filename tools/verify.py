@@ -241,6 +241,9 @@ def untracked_inputs(env: dict[str, str]) -> list[str]:
     command = ["git", "--no-optional-locks", "ls-files", "-z", "--others", "--exclude-standard", "--", "."]
     git_env = {key: value for key, value in env.items() if key not in GIT_SELECTION}
     # A configured fsmonitor hook is an arbitrary program; this read never runs it.
+    # Inherited `git -c` settings would override the value below, so the
+    # listing does not inherit them.
+    git_env.pop("GIT_CONFIG_PARAMETERS", None)
     count = git_env.get("GIT_CONFIG_COUNT", "0")
     index = int(count) if count.isdigit() else 0
     git_env.update({"GIT_CONFIG_COUNT": str(index + 1), f"GIT_CONFIG_KEY_{index}": "core.fsmonitor",
