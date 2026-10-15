@@ -222,13 +222,68 @@ class PublishedRelease(Fixture):
     def download(self, url):
         return (self.dist / url.rsplit("/", 1)[1]).read_bytes()
 
+    def tag(self, message, annotated=True):
+        return lambda repo, tag: (annotated, message)
+
+    def linked(self):
+        return self.tag(f"jaekit v{VERSION}\n\nWindows-Accepted-SHA256: {release.digest(self.dist / ZIP)}\n")
+
     def test_both_published_shapes_pass(self):
-        archives = published.check_release("jgoneit/jaekit", "v" + VERSION, self.metadata(), self.download)
+        archives = published.check_release("jgoneit/jaekit", "v" + VERSION, self.metadata(), self.download,
+                                           tag_reader=self.linked())
         self.assertIn(ZIP, archives)
         (self.dist / ZIP).unlink()
         self.checksums()
-        archives = published.check_release("jgoneit/jaekit", "v" + VERSION, self.metadata(), self.download)
+
+        def unread(repo, tag):
+            raise AssertionError("a release without the Windows archive does not need its tag")
+
+        archives = published.check_release("jgoneit/jaekit", "v" + VERSION, self.metadata(), self.download,
+                                           tag_reader=unread)
         self.assertNotIn(ZIP, archives)
+
+    def test_a_published_windows_archive_needs_its_acceptance_link(self):
+        digest = release.digest(self.dist / ZIP)
+        line = "Windows-Accepted-SHA256: " + digest
+        for label, reader in {
+            "lightweight tag": self.tag("", annotated=False),
+            "no line": self.tag(f"jaekit v{VERSION}\n"),
+            "two lines": self.tag(f"{line}\n{line}\n"),
+            "uppercase digest": self.tag(line.upper().replace("WINDOWS-ACCEPTED-SHA256", "Windows-Accepted-SHA256")),
+            "another digest": self.tag("Windows-Accepted-SHA256: " + "0" * 64),
+        }.items():
+            with self.subTest(label=label), self.assertRaisesRegex(ValueError, "acceptance link"):
+                published.check_release("jgoneit/jaekit", "v" + VERSION, self.metadata(), self.download,
+                                        tag_reader=reader)
+
+    def test_tag_responses_are_read_like_the_publication_job(self):
+        ref = f"https://api.github.com/repos/jgoneit/jaekit/git/ref/tags/v{VERSION}"
+        tag_object = "https://api.github.com/repos/jgoneit/jaekit/git/tags/" + "7" * 40
+        responses = {
+            "lightweight": {ref: {"ref": f"refs/tags/v{VERSION}", "object": {"type": "commit", "sha": "c" * 40}}},
+            "annotated": {ref: {"ref": f"refs/tags/v{VERSION}", "object": {"type": "tag", "sha": "7" * 40}},
+                          tag_object: {"sha": "7" * 40, "message": "jaekit\n\nWindows-Accepted-SHA256: x\n"}},
+            "another ref": {ref: {"ref": "refs/tags/v9.9.9", "object": {"type": "commit", "sha": "c" * 40}}},
+            "no message": {ref: {"ref": f"refs/tags/v{VERSION}", "object": {"type": "tag", "sha": "7" * 40}},
+                           tag_object: {"sha": "7" * 40}},
+            "a list": {ref: [{"ref": f"refs/tags/v{VERSION}"}]},
+        }
+        for label, table in responses.items():
+            def fetch(url, limit, accept="", table=table):
+                return json.dumps(table[url]).encode()
+            with self.subTest(label=label), unittest.mock.patch.object(published, "fetch", side_effect=fetch):
+                if label == "lightweight":
+                    self.assertEqual(published.read_tag("jgoneit/jaekit", "v" + VERSION), (False, ""))
+                elif label == "annotated":
+                    self.assertEqual(published.read_tag("jgoneit/jaekit", "v" + VERSION),
+                                     (True, "jaekit\n\nWindows-Accepted-SHA256: x\n"))
+                else:
+                    with self.assertRaises(OSError):
+                        published.read_tag("jgoneit/jaekit", "v" + VERSION)
+        with unittest.mock.patch.object(published, "fetch", return_value=b"{not json"), \
+                contextlib.redirect_stderr(io.StringIO()) as errors:
+            self.assertEqual(published.main(["--tag", "v" + VERSION]), 2)
+        self.assertIn("ERROR:", errors.getvalue())
 
     def test_unexpected_assets_and_changed_downloads_fail(self):
         metadata = self.metadata()
