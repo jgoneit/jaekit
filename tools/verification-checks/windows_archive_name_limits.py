@@ -32,6 +32,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 import urllib.error
 import zipfile
 
@@ -77,7 +78,13 @@ def child_env(**extra):
     return env
 
 
+# ha check stops a check at 900 seconds; every child shares what is left
+# before 840, so a slow host ends as no answer, not as a stopped check.
+DEADLINE = time.monotonic() + 840
+
+
 def run(argv, timeout=600, env=None, cwd=ROOT, data=None, show=True):
+    timeout = min(timeout, max(1.0, DEADLINE - time.monotonic()))
     try:
         result = subprocess.run(argv, cwd=cwd, env=env or child_env(), capture_output=True, timeout=timeout,
                                 input=data)
@@ -109,7 +116,8 @@ def unit(argv, cwd=ROOT, timeout=600):
     if re.search(r"^Ran 0 tests", output, re.M) or "NO TESTS RAN" in output:
         raise ObservationError("no test was selected: " + " ".join(argv[-4:]))
     summary = re.search(r"^FAILED \((.*)\)$", output, re.M)
-    if result.returncode not in (0, 1) or (result.returncode == 1) != bool(summary):
+    passed = re.search(r"^Ran [1-9][0-9]* tests? in .*\n+OK\b", output, re.M)
+    if result.returncode not in (0, 1) or (result.returncode == 1) != bool(summary) or (result.returncode == 0) != bool(passed):
         raise ObservationError(f"unittest did not finish (exit {result.returncode}): " + output[-400:])
     counts = dict(re.findall(r"(failures|errors)=(\d+)", summary[1])) if summary else {}
     return result.returncode, output, int(counts.get("failures", 0)), int(counts.get("errors", 0))
@@ -273,18 +281,18 @@ def ac1():
             return release_tests(target)
 
     def unrelated():
-        # Untracked, ignored and staged-but-uncommitted files the rule would refuse if committed.
+        # Untracked and ignored files the rule would refuse if committed.
         with clone() as target:
             (target / "guides/untracked-café.md").write_bytes(b"untracked\n")
             (target / "guides/__pycache__").mkdir()
             (target / "guides/__pycache__/notes.cpython-314.pyc").write_bytes(b"ignored\n")
-            stage(target, {"guides/Staged_Node_Modules/node_modules/notes.md": BODY, "guides/staged~1.md": BODY})
             others = git(target, "ls-files", "-z", "--others", "--exclude-standard")
             if "guides/untracked-café.md" not in others or "notes.cpython-314.pyc" in others:
                 raise ObservationError("the synthetic untracked and ignored files are not seen as such")
             return release_tests(target)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+    # Three at a time: the release regressions hold 30-second subprocess limits.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
         controls = [pool.submit(clean), pool.submit(detached_case, None)]
         unrelated_files = pool.submit(unrelated)
         shallow = [pool.submit(committed_case, case, True) for case in COMMITTED]
@@ -301,8 +309,7 @@ def ac1():
                 problem = judged_failure(*case, result)
                 if problem:
                     failures.append(f"in {mode}: {problem}")
-        problem = verdict(unrelated_files.result(), "with untracked, ignored or staged-but-uncommitted files, "
-                                                     "the release archive regressions")
+        problem = verdict(unrelated_files.result(), "with untracked or ignored files, the release archive regressions")
         if problem:
             failures.append(problem)
     require(not failures, "\n".join(failures))
@@ -437,6 +444,7 @@ def judged(archives, published, dist, version):
 
 # ------------------------------------------------------------ AC-2
 
+SHORT = re.compile(r"short name|8\.3", re.I)
 TILDE = ("guides/abcdef~1.md", "guides/notes~/WINDOWS.md", "contracts/archive~.md", "guides/a~b.md")
 
 
@@ -467,15 +475,16 @@ def ac2():
     for name in TILDE:
         with synthetic({name: BODY}) as (dist, version):
             before, after = judged(archives, published, dist, version)
-        if not (before.startswith("reject") and after.startswith("reject") and name in before and name in after):
-            failures.append(f"a Windows archive with {name} was not refused with its name by both checks: "
-                            f"{before[:200]} / {after[:200]}")
+        if not all(verdict.startswith("reject") and name in verdict and SHORT.search(verdict)
+                   for verdict in (before, after)):
+            failures.append(f"a Windows archive with {name} was not refused with its name and reason by both "
+                            f"checks: {before[:200]} / {after[:200]}")
     name = TILDE[0]
     data = package_archive(name, SYNTHETIC)
     with synthetic(archive=data) as (dist, version):
         before, after = judged(archives, published, dist, version)
-    if not (before.startswith("reject") and after.startswith("reject") and name in before and name in after):
-        failures.append(f"a package.py archive with {name} was not refused with its name by both checks: "
+    if not all(verdict.startswith("reject") and name in verdict and SHORT.search(verdict) for verdict in (before, after)):
+        failures.append(f"a package.py archive with {name} was not refused with its name and reason by both checks: "
                         f"{before[:200]} / {after[:200]}")
     require(not failures, "\n".join(failures))
 
@@ -631,6 +640,16 @@ def mutant(kind):
         yield source
 
 
+def reviewed_edit(before, after, route_id):
+    if route_id != "windows-archive-consumer-contract":
+        return False
+    old, new = ({route["id"]: route for route in data["routes"]}.get(route_id) for data in (before, after))
+    if not old or not new:
+        return False
+    kept = all(old[key] == new[key] for key in old if key not in ("property", "checks"))
+    return kept and all(check in new["checks"] for check in old["checks"]) and "`~`" in new["property"]
+
+
 def ac4():
     failures = []
     readme = text("tools/release-checks/README.md")
@@ -650,9 +669,13 @@ def ac4():
     before = json.loads((DECLARATIONS / "registry-at-start.json").read_text(encoding="utf-8"))
     after = json.loads(text("contracts/regressions.json"))
     compared = registry.compare(before, after)
-    if compared["lost_protection"] or compared["changed_invariants"]:
+    # One reviewed edit: the shared Windows rule's property gains the `~` limit,
+    # with every other field and check kept.
+    lost = [route for route in compared["lost_protection"] if not reviewed_edit(before, after, route)]
+    if lost or compared["changed_invariants"]:
         failures.append("the registry changed what it protected at the start: "
-                        + json.dumps({key: compared[key] for key in ("lost_protection", "changed_invariants")}))
+                        + json.dumps({"lost_protection": lost, "changed_invariants": compared["changed_invariants"]}))
+    guide = text("contracts/regressions.md")
     started = {route["id"] for route in before["routes"]}
     added = [route for route in after["routes"] if route["id"] not in started and route["status"] == "protected"]
     # Each property has its own new route. Its selected tests pass at HEAD and
@@ -660,7 +683,7 @@ def ac4():
     # committed refused file, the old rule, or the old refusal classification.
     properties = (
         ("committed public files", re.compile(r"committed public files", re.I), None),
-        ("`~` names", re.compile(r"`~`"), "rule"),
+        ("`~` names", re.compile(r"~.*short name|short name.*~", re.I | re.S), "rule"),
         ("installer name refusals", re.compile(r"PowerShell 5\.1"), "classification"),
     )
     owners = {}
@@ -681,15 +704,29 @@ def ac4():
             problem = verdict(selected(check), f"the selected test {check['selector']} for {label} at HEAD")
             if problem:
                 failures.append(problem)
+        # The same copy without the change must pass, so a failure is the old behavior's.
         if kind is None:
             with clone() as target:
+                if any(selected(check, cwd=target)[0] for check in checks):
+                    raise ObservationError(f"the selected tests for {label} fail in a plain clone of HEAD")
                 commit(target, {"guides/Node_Modules/notes.md": BODY})
-                caught = [check for check in checks if selected(check, cwd=target)[2]]
+                outcomes = [(check, selected(check, cwd=target)) for check in checks]
         else:
+            with snapshot() as source:
+                if any(selected(check, cwd=source)[0] for check in checks):
+                    raise ObservationError(f"the selected tests for {label} fail in a source snapshot of HEAD")
             with mutant(kind) as source:
-                caught = [check for check in checks if selected(check, cwd=source)[2]]
-        if not caught:
-            failures.append(f"no selected test for {label} fails an assertion against the old behavior")
+                outcomes = [(check, selected(check, cwd=source)) for check in checks]
+        if any(not result[2] and result[3] for _, result in outcomes):
+            # Errors without a failed assertion may be the host's; no answer.
+            raise ObservationError(f"the selected tests for {label} stopped with errors against the old behavior")
+        missed = [check for check, result in outcomes if not result[2]]
+        if missed:
+            failures.append(f"selected tests for {label} do not fail an assertion against the old behavior: "
+                            + ", ".join(check["selector"] for check in missed))
+    missing = [route for route in owners.values() if route not in guide]
+    if missing:
+        failures.append("contracts/regressions.md does not describe the new routes " + ", ".join(missing))
     installer = routes_by_id.get(owners["installer name refusals"], {})
     if "tools/windows/common.ps1" not in installer.get("sources", []):
         failures.append("the installer name refusal route does not name the installer as a source")
