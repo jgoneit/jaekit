@@ -1,0 +1,14 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "windows-release-install",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/windows_release_install.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-5",
+      "violation": "public-block-failure-unhandled"
+    }
+  ]
+}
