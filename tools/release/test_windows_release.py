@@ -4,6 +4,7 @@ Synthetic files only; no network, installation, tag or publication.
 """
 import contextlib
 import hashlib
+import http.client
 import importlib.util
 import io
 import json
@@ -147,9 +148,12 @@ class WindowsRelease(Fixture):
         manifest = {"schema": "jaekit-windows-package/v1", "version": VERSION, "os": "windows", "arch": "amd64",
                     "files": [{"path": name, "size": len(body), "sha256": hashlib.sha256(body).hexdigest()}
                               for name, body in sorted(self.files.items())]}
+        entries = [dict(item, note=1.0) for item in manifest["files"]]
         for label, changed in {"an empty property name": dict(manifest, **{"": 0}),
                                "names differing only in case": dict(manifest, Schema="other"),
-                               "a non-finite number": dict(manifest, extra=float("nan"))}.items():
+                               "a non-finite number": dict(manifest, extra=float("nan")),
+                               "an out-of-range number": dict(manifest, extra=float("inf")),
+                               "an extra entry field": dict(manifest, files=entries)}.items():
             with self.subTest(label=label):
                 self.write(manifest=changed)
                 with self.assertRaisesRegex(ValueError, "Windows archive manifest"):
@@ -166,12 +170,12 @@ class WindowsRelease(Fixture):
                     release.check(self.dist, VERSION)
 
 
-    def test_names_windows_treats_as_one_are_refused(self):
-        # casefold (package.py) and upper-case (NTFS, PowerShell) comparisons.
-        for pair in (("guides/\u03c2.md", "guides/\u03c3.md"), ("guides/\u0131.md", "guides/i.md")):
-            with self.subTest(pair=pair):
-                self.write(files=dict(self.files, **{name: b"guide\n" for name in pair}))
-                with self.assertRaisesRegex(ValueError, "differ only in case"):
+    def test_non_ascii_names_are_refused(self):
+        # Windows may fold, normalize or ignore parts of them differently.
+        for name in ("guides/\u03c2.md", "guides/\u0131.md", "guides/cafe\u0301.md"):
+            with self.subTest(name=name):
+                self.write(files=dict(self.files, **{name: b"guide\n"}))
+                with self.assertRaisesRegex(ValueError, "non-ASCII name"):
                     release.check(self.dist, VERSION)
 
     def test_a_file_named_like_a_folder_in_another_case_is_refused(self):
@@ -304,6 +308,25 @@ class PublishedRelease(Fixture):
             raise ValueError("download exceeds the release archive limit: " + url)
         with unittest.mock.patch.object(published, "fetch", side_effect=oversized), self.assertRaises(OSError):
             published.read_tag("jgoneit/jaekit", "v" + VERSION)
+
+    def test_truncated_responses_are_unreadable(self):
+        class Short(io.BytesIO):
+            headers = {"Content-Length": "100"}
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                self.close()
+
+        class Broken(Short):
+            def read(self, size=-1):
+                raise http.client.IncompleteRead(b"partial", 50)
+
+        for response in (Short(b"x" * 50), Broken()):
+            with self.subTest(response=type(response).__name__), \
+                    unittest.mock.patch.object(published, "urlopen", return_value=response), self.assertRaises(OSError):
+                published.fetch("https://example.invalid/asset", 1000)
         with unittest.mock.patch.object(published, "fetch", return_value=b"{not json"), \
                 contextlib.redirect_stderr(io.StringIO()) as errors:
             self.assertEqual(published.main(["--tag", "v" + VERSION]), 2)

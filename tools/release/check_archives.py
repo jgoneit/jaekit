@@ -72,6 +72,9 @@ WINDOWS_MAX_MANIFEST_BYTES = 1024 * 1024
 WINDOWS_SHA256 = re.compile(r"[0-9a-f]{64}")
 # DOS directory (0x10) and reparse-point (0x400) attributes; the installer refuses both.
 WINDOWS_DOS_REFUSED = 0x410
+# The fields package.py writes, and nothing else.
+WINDOWS_MANIFEST_FIELDS = {"schema", "version", "os", "arch", "files"}
+WINDOWS_ENTRY_FIELDS = {"path", "size", "sha256"}
 
 
 def load_archive_reader():
@@ -210,34 +213,31 @@ def check_platform(binary: bytes, target: str):
                 "packaged Core platform differs from archive name: " + target)
 
 
-def windows_fold(name: str) -> str:
-    """One key for names Windows treats as the same: NTFS and PowerShell compare
-    upper-cased names (ı and i match), package.py compares casefold (ς and σ)."""
-    return name.upper().casefold()
-
-
 def windows_manifest(data: bytes):
-    """Parse package.json no more leniently than the installer's ConvertFrom-Json.
+    """Parse package.json, accepting only the fields package.py writes.
 
-    PowerShell refuses empty property names and names that differ only in
-    case, and has no NaN or Infinity; Python's json would accept all of them
-    (keeping the last of repeated names).
+    Python's json is laxer than the installer's ConvertFrom-Json (NaN,
+    out-of-range numbers, deep nesting, empty or case-repeated property
+    names). With exactly package.py's fields, of their exact types checked
+    below, none of that reaches the installer.
     """
     def unique(pairs):
-        names = {}
-        for name, _ in pairs:
-            require(name != "" and windows_fold(name) not in names,
-                    "Windows archive manifest has an empty or repeated property name")
-            names[windows_fold(name)] = name
+        names = [name for name, _ in pairs]
+        require(len(names) == len(set(names)), "Windows archive manifest repeats a property")
         return dict(pairs)
 
     def constant(value):
         raise ValueError("Windows archive manifest has a non-finite number: " + value)
 
     try:
-        return json.loads(data.decode("utf-8"), object_pairs_hook=unique, parse_constant=constant)
+        manifest = json.loads(data.decode("utf-8"), object_pairs_hook=unique, parse_constant=constant)
     except (UnicodeError, json.JSONDecodeError, RecursionError):
         raise ValueError("Windows archive manifest is not JSON") from None
+    require(isinstance(manifest, dict) and manifest.keys() == WINDOWS_MANIFEST_FIELDS
+            and isinstance(manifest["files"], list)
+            and all(isinstance(item, dict) and item.keys() == WINDOWS_ENTRY_FIELDS for item in manifest["files"]),
+            "Windows archive manifest has fields package.py does not write")
+    return manifest
 
 
 def windows_files(path: Path, checksum: str, version: str):
@@ -265,10 +265,11 @@ def windows_files(path: Path, checksum: str, version: str):
             # zipfile cuts a name at NUL and, on Windows, turns backslashes
             # into slashes; the installer sees the stored name and refuses it.
             require(entry.orig_filename == name, "Windows archive has an unsafe path: " + repr(entry.orig_filename))
-            # Without the UTF-8 flag zipfile reads a name as cp437 and .NET as
-            # another code page; package.py sets the flag for any non-ASCII name.
-            require(name.isascii() or entry.flag_bits & 0x800,
-                    "Windows archive has a non-ASCII name without the UTF-8 flag: " + repr(name))
+            # The installer compares names in a culture-aware PowerShell hashtable
+            # and NTFS by its own upper-case table; for non-ASCII text (code
+            # pages, normalization forms, ignorable characters) Python cannot
+            # reproduce either. package.py's public files are ASCII.
+            require(name.isascii(), "Windows archive has a non-ASCII name: " + repr(name))
             try:
                 windows_package.safe_name(name)
             except ValueError:
@@ -289,11 +290,11 @@ def windows_files(path: Path, checksum: str, version: str):
             files[name] = body
     lowered = {}
     for name in files:
-        require(windows_fold(name) not in lowered, "Windows archive has paths that differ only in case")
-        lowered[windows_fold(name)] = name
+        require(name.lower() not in lowered, "Windows archive has paths that differ only in case")
+        lowered[name.lower()] = name
     for name in files:
         # Windows compares parent folders without case, like the file names.
-        parts = windows_fold(name).split("/")
+        parts = name.lower().split("/")
         require(not any("/".join(parts[:index]) in lowered for index in range(1, len(parts))),
                 "Windows archive has a file/directory collision")
     for name in files:

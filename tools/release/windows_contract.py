@@ -11,8 +11,8 @@ reparse-point attributes and entry names with a NUL or a backslash.
 
   ci --report PATH   Windows only. Writes jaekit-windows-contract/v1 (rewritten
                      after each case, `complete` only at the end) and exits 1
-                     unless every verdict is the expected one. An installer
-                     exception other than its own refusal is `error`.
+                     unless every verdict is the expected one. A file access
+                     error in the installer is `error`, not a verdict.
 
 The release workflow keeps this report as an observation: the step never
 changes which files are published. Nothing is installed; each archive is
@@ -39,13 +39,17 @@ ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = "jaekit-windows-contract/v1"
 VERSION = "0.0.0"
 VERDICT = "JAEKIT_CONTRACT "
-# The installer's own refusals (common.ps1). Any other exception, such as a
-# file access error, is no verdict on the archive.
+# The installer's own refusals (common.ps1) count as refusals whatever their
+# exception type. Otherwise a file access error is no verdict on the archive;
+# any other exception (a script throw, invalid JSON or ZIP data) refuses it.
 REFUSALS = ("Package manifest is too large", "Invalid package file entry types", "Unsafe or duplicate archive entry",
             "Unsafe package path", "Unsupported package manifest", "Invalid or duplicate manifest file",
             "Package manifest exceeds limits", "Missing package file", "Too many archive entries",
             "Expanded archive exceeds size limit", "Archive file/directory collision", "Package file size differs",
-            "Archive name and manifest version differ", "Archive checksum is missing")
+            "Archive name and manifest version differ", "Archive checksum is missing", "Archive stream exceeds declared size",
+            "Truncated archive entry", "Candidate archive or checksums exceed size limits")
+ENVIRONMENT = ("System.IO.IOException", "System.IO.DirectoryNotFoundException", "System.IO.FileNotFoundException",
+               "System.IO.PathTooLongException", "System.IO.DriveNotFoundException", "System.UnauthorizedAccessException")
 
 
 def load(name: str, path: str):
@@ -107,8 +111,8 @@ def archive(files: dict[str, bytes], listed, attributes=None, written=None) -> b
     return data
 
 
-def cases() -> list[tuple[str, str, bytes, str]]:
-    """(name, expected verdict, archive bytes, the installer's refusal for it)."""
+def cases() -> list[tuple[str, str, bytes]]:
+    """(name, expected verdict, archive bytes)."""
     files = package_files()
     one = dict(files, **{"LICENSE": b"x"})
     boolean = manifest(one)
@@ -118,17 +122,14 @@ def cases() -> list[tuple[str, str, bytes, str]]:
     oversized = json.dumps(manifest(files), sort_keys=True, indent=2).encode() + b" " * (1024 * 1024) + b"\n"
     regular = (stat.S_IFREG | 0o644) << 16
     return [
-        ("normal", "accept", archive(files, manifest(files)), ""),
-        ("an oversized manifest", "reject", archive(files, oversized), "Package manifest is too large"),
-        ("a boolean size", "reject", archive(one, boolean), "Invalid package file entry types"),
-        ("a DOS directory attribute", "reject", archive(files, manifest(files), {"LICENSE": regular | 0x10}),
-         "Unsafe or duplicate archive entry"),
-        ("a DOS reparse-point attribute", "reject", archive(files, manifest(files), {"LICENSE": regular | 0x400}),
-         "Unsafe or duplicate archive entry"),
-        ("a NUL in an entry name", "reject", archive(files, manifest(files), written={"LICENSE": "LICENSE\0x"}),
-         "Unsafe package path"),
+        ("normal", "accept", archive(files, manifest(files))),
+        ("an oversized manifest", "reject", archive(files, oversized)),
+        ("a boolean size", "reject", archive(one, boolean)),
+        ("a DOS directory attribute", "reject", archive(files, manifest(files), {"LICENSE": regular | 0x10})),
+        ("a DOS reparse-point attribute", "reject", archive(files, manifest(files), {"LICENSE": regular | 0x400})),
+        ("a NUL in an entry name", "reject", archive(files, manifest(files), written={"LICENSE": "LICENSE\0x"})),
         ("a backslash in an entry name", "reject",
-         archive(files, manifest(files), written={"guides/WINDOWS.md": "guides\\WINDOWS.md"}), "Unsafe package path"),
+         archive(files, manifest(files), written={"guides/WINDOWS.md": "guides\\WINDOWS.md"})),
     ]
 
 
@@ -155,7 +156,7 @@ def installer_verdict(shell: str, directory: Path, destination: Path) -> tuple[s
         f"  Expand-CheckedPackage {quote(directory / name)} {quote(directory / 'checksums.txt')} {quote(destination)} | Out-Null",
         f"  [Console]::Out.WriteLine('{VERDICT}accept')",
         "} catch {",
-        f"  [Console]::Out.WriteLine('{VERDICT}reject ' + $_.Exception.Message)",
+        f"  [Console]::Out.WriteLine('{VERDICT}reject ' + $_.Exception.GetType().FullName + ': ' + $_.Exception.Message)",
         "}",
     ])
     code, out, err = blocks.command(blocks.shell_path(shell), text, blocks.base_env(), bypass=True)
@@ -166,14 +167,13 @@ def installer_verdict(shell: str, directory: Path, destination: Path) -> tuple[s
     return "error", f"exit {code}: {err.strip()[-500:]}"
 
 
-def classify(verdict: str, reason: str, refusal: str) -> str:
-    """A refusal counts only as the installer's own refusal (the case's, when
-    it names one); any other exception is `error`, not agreement."""
-    if verdict != "reject":
+def classify(verdict: str, reason: str) -> str:
+    """`reason` is "<exception type>: <message>". A file access error is
+    `error`, neither agreement nor disagreement, unless it carries one of the
+    installer's own refusals."""
+    if verdict != "reject" or any(known in reason for known in REFUSALS):
         return verdict
-    if refusal:
-        return "reject" if refusal in reason else "error"
-    return "reject" if any(known in reason for known in REFUSALS) else "error"
+    return "error" if reason.split(":", 1)[0] in ENVIRONMENT else "reject"
 
 
 def contract(installer=installer_verdict, shells=("powershell", "pwsh"), progress=None) -> dict:
@@ -181,7 +181,7 @@ def contract(installer=installer_verdict, shells=("powershell", "pwsh"), progres
     marked complete only at the end."""
     report = {"schema": SCHEMA, "version": VERSION, "complete": False, "cases": [], "passed": False}
     with tempfile.TemporaryDirectory(prefix="jaekit-windows-contract-") as temp:
-        for number, (name, expected, data, refusal) in enumerate(cases()):
+        for number, (name, expected, data) in enumerate(cases()):
             directory = Path(temp) / f"case-{number}"
             directory.mkdir()
             path = directory / f"ha_{VERSION}_windows_amd64.zip"
@@ -191,7 +191,7 @@ def contract(installer=installer_verdict, shells=("powershell", "pwsh"), progres
             verdicts, reasons = {}, {}
             for shell in shells:
                 verdict, reasons[shell] = installer(shell, directory, Path(temp) / f"expanded-{number}-{shell}")
-                verdicts[shell] = classify(verdict, reasons[shell], refusal)
+                verdicts[shell] = classify(verdict, reasons[shell])
             report["cases"].append({"name": name, "expected": expected, "python": python, "python_reason": reason,
                                     "installer": verdicts, "installer_reasons": reasons})
             if progress:
