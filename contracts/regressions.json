@@ -851,9 +851,10 @@
         "tools/release-checks/check.py",
         "tools/release-checks/README.md",
         "tools/release/archive_reader.py",
-        "tools/release/check_archives.py"
+        "tools/release/check_archives.py",
+        "tools/release/check_published.py"
       ],
-      "property": "The same bounded archive parser rejects invalid or unsupported observation inputs across archive collection and installation consumers while accepting supported archives.",
+      "property": "The same bounded tar/gzip parser rejects invalid or unsupported observation inputs across archive collection, installation and published-release consumers while accepting supported archives. The Windows ZIP is read by its own rule (windows-archive-consumer-contract), not by this parser.",
       "examples": [
         "many empty entries",
         "compressed cumulative body overflow"
@@ -885,6 +886,124 @@
         "https://github.com/jgoneit/jaekit/issues/16",
         "https://github.com/jgoneit/jaekit/issues/42"
       ]
+    },
+    {
+      "id": "windows-archive-consumer-contract",
+      "invariant": "I3",
+      "status": "protected",
+      "sources": [
+        "tools/release/check_archives.py",
+        "tools/release/check_published.py",
+        "tools/release/windows_gate.py",
+        "tools/release/windows_contract.py",
+        "tools/windows/package.py",
+        "tools/windows/common.ps1"
+      ],
+      "property": "One Windows ZIP rule (check_archives.windows_files) judges an archive the same way before and after publication: it refuses what the installer's package check refuses and paths package.py does not package, and accepts a package.py archive. A published Windows archive also needs the tag link the publication gate requires.",
+      "examples": [
+        "a boolean manifest size",
+        "a published Windows archive under a tag without its acceptance link"
+      ],
+      "families": [
+        "manifest size, entry types and digests",
+        "DOS attributes, raw entry names and package scope",
+        "tag kind and link count, format and digest"
+      ],
+      "boundary": "Synthetic ZIPs and GitHub-shaped tag responses exercise the Python rule and the published-release check locally. The installer comparison runs only in the release workflow's Windows job (tools/release/windows_contract.py report) and is not a selected regression; no published archive or real tag is observed here.",
+      "checks": [
+        {
+          "file": "tools/release/test_windows_release.py",
+          "selector": "WindowsRelease",
+          "group": "docs"
+        },
+        {
+          "file": "tools/release/test_windows_release.py",
+          "selector": "PublishedRelease",
+          "group": "docs"
+        },
+        {
+          "file": "tools/release/test_windows_contract.py",
+          "selector": "WindowsContract",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "repository-check-history-independence",
+      "invariant": "I1",
+      "status": "protected",
+      "sources": [
+        "tools/check_repository_checks.py",
+        "tools/verification-checks/windows_release_install.py",
+        "tools/verification-checks/windows_release_review_fixes.py"
+      ],
+      "property": "Tracked Python checks under tools/ pass no fixed commit to Git, directly or through a name, so they judge current files in full, shallow and snapshot sources.",
+      "examples": [
+        "git diff against a goal-start commit"
+      ],
+      "families": [
+        "revision literals, rev:path and ranges",
+        "names bound to commit literals"
+      ],
+      "boundary": "A static reading of tracked tools/ Python. Arguments built elsewhere, shell strings, values read from files or other modules and all-decimal object names are outside it.",
+      "checks": [
+        {
+          "file": "tools/public-checks/test_repository_checks.py",
+          "selector": "RepositoryChecks.test_fixed_commits_passed_to_git_are_reported",
+          "group": "docs"
+        },
+        {
+          "file": "tools/public-checks/test_repository_checks.py",
+          "selector": "RepositoryChecks.test_hex_values_outside_git_and_current_revisions_are_normal",
+          "group": "docs"
+        },
+        {
+          "file": "tools/public-checks/test_repository_checks.py",
+          "selector": "RepositoryChecks.test_the_repository_passes",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "release-checker-import-boundary",
+      "invariant": "I3",
+      "status": "protected",
+      "sources": [
+        "tools/check_repository_checks.py",
+        "tools/release-checks/check.py",
+        "tools/release-checks/install_trace.py",
+        "tools/release-checks/observe.py"
+      ],
+      "property": "Release check modules with a standard-library bootstrap import nothing from the caller's path after it: later imports stay inside trusted_imports() or name modules the bootstrap loaded, and code that imports check.py directly runs no caller module.",
+      "examples": [
+        "a late zipfile import in an archive judgment",
+        "import check inside the installation consumer"
+      ],
+      "families": [
+        "function and module-level imports after the bootstrap",
+        "direct import with modules shadowing standard names"
+      ],
+      "boundary": "A static reading of tracked modules that restore _CALLER_IMPORT_PATH, plus one direct-import process with synthetic archives. Dynamic imports (importlib.import_module) are outside it.",
+      "checks": [
+        {
+          "file": "tools/public-checks/test_repository_checks.py",
+          "selector": "RepositoryChecks.test_late_imports_after_the_bootstrap_are_reported",
+          "group": "docs"
+        },
+        {
+          "file": "tools/public-checks/test_repository_checks.py",
+          "selector": "RepositoryChecks.test_the_repository_passes",
+          "group": "docs"
+        },
+        {
+          "file": "tools/release-checks/test_direct_import_boundary.py",
+          "selector": "DirectImportBoundary",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
     },
     {
       "id": "explicit-retention-inputs",
