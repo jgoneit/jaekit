@@ -111,6 +111,55 @@ def reject_public_links(root: Path) -> None:
                     raise ValueError(f"symlink source is not allowed: {path}")
 
 
+def committed_public_files(root: Path = ROOT) -> dict[str, bytes]:
+    """The public files package.py packages, as committed at HEAD.
+
+    Read from Git's objects rather than the working tree, so untracked,
+    ignored, staged or changed files and the host's file-name rules play no
+    part. A source snapshot without Git gives the public files it holds.
+    """
+    if not (root / ".git").exists():
+        # Links above the snapshot (such as /var on macOS) are the host's, not the source's.
+        root = root.resolve()
+        files = {name: read_regular(root / name) for name in PUBLIC_FILES if (root / name).exists()}
+        for directory in PUBLIC_DIRECTORIES:
+            for current, directories, names in os.walk(root / directory, followlinks=False):
+                for name in directories + names:
+                    if (Path(current) / name).is_symlink():
+                        raise ValueError(f"symlink source is not allowed: {Path(current) / name}")
+                for name in names:
+                    files[(Path(current) / name).relative_to(root).as_posix()] = read_regular(Path(current) / name)
+        return files
+    head = git(root, "rev-parse", "--verify", "HEAD^{commit}").strip().decode("ascii")
+    entries = []
+    for entry in git(root, "ls-tree", "-r", "-z", "--full-tree", head).split(b"\0"):
+        if not entry:
+            continue
+        metadata, path = entry.split(b"\t", 1)
+        name = os.fsdecode(path)
+        if public_path(name):
+            mode, kind, oid = metadata.decode("ascii").split()
+            if kind != "blob" or mode not in ("100644", "100755"):
+                raise ValueError(f"committed package source is not a regular file: {name}")
+            entries.append((name, oid))
+    result = subprocess.run(["git", "--no-replace-objects", "-C", str(root), "cat-file", "--batch"],
+                            input="".join(oid + "\n" for _, oid in entries).encode("ascii"),
+                            env={**os.environ, "GIT_OPTIONAL_LOCKS": "0"},
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    if result.returncode:
+        raise ValueError("cannot read committed package sources with git cat-file")
+    files, output, offset = {}, result.stdout, 0
+    for name, oid in entries:
+        end = output.find(b"\n", offset)
+        header = output[offset:end].decode("ascii", "replace").split()
+        if end < 0 or len(header) != 3 or header[0] != oid or header[1] != "blob" or not header[2].isdigit():
+            raise ValueError(f"cannot read committed package source: {name}")
+        size = int(header[2])
+        files[name] = output[end + 1:end + 1 + size]
+        offset = end + 1 + size + 1
+    return files
+
+
 def collect(binary: Path, root: Path = ROOT) -> dict[str, bytes]:
     # The explicitly supplied build is not a source-tree input. It keeps its
     # existing PE and regular-file checks, independently of Git tracking.

@@ -7,12 +7,18 @@ Python; on Windows, the installer's package check (Expand-CheckedPackage in
 tools/windows/common.ps1) judges the same file in Windows PowerShell 5.1 and
 PowerShell 7. Besides a normal archive, the cases are formats the installer
 itself refuses: the manifest size limit, a non-integer size, DOS directory or
-reparse-point attributes and entry names with a NUL or a backslash.
+reparse-point attributes, and entry names with a NUL, another control
+character or one of the characters Windows paths refuse (backslash, quote,
+colon, `<`, `>`, `|`, `?`, `*`). Those names must meet the
+installer's own name refusal; refused for another reason, such as a script
+error, they are `other`, not agreement.
 
   ci --report PATH   Windows only. Writes jaekit-windows-contract/v1 (rewritten
                      after each case, `complete` only at the end) and exits 1
                      unless every verdict is the expected one. A file access
-                     error in the installer is `error`, not a verdict.
+                     error in the installer is `error`, not a verdict. Each case
+                     names its stored entry name and whether the installer
+                     created its destination.
 
 The release workflow keeps this report as an observation: the step never
 changes which files are published. Nothing is installed; each archive is
@@ -48,6 +54,21 @@ REFUSALS = ("Package manifest is too large", "Invalid package file entry types",
             "Expanded archive exceeds size limit", "Archive file/directory collision", "Package file size differs",
             "Archive name and manifest version differ", "Archive checksum is missing", "Archive stream exceeds declared size",
             "Truncated archive entry", "Candidate archive or checksums exceed size limits")
+NAME_REFUSAL = "Unsafe package path"
+# Raw stored entry names, each in place of one package file of the same case.
+STORED_NAMES = {
+    "a NUL in an entry name": "LICENSE\0x",
+    "a control character in an entry name": "LICENSE\x01x",
+    "a backslash in an entry name": "guides\\WINDOWS.md",
+    "a quote in an entry name": 'LICENSE"x',
+    "a less-than sign in an entry name": "LICENSE<x",
+    "a greater-than sign in an entry name": "LICENSE>x",
+    "a vertical bar in an entry name": "LICENSE|x",
+    "a colon in an entry name": "LICENSE:x",
+    "a question mark in an entry name": "LICENSE?x",
+    "an asterisk in an entry name": "LICENSE*x",
+    "a unit separator in an entry name": "LICENSE\x1fx",
+}
 ENVIRONMENT = frozenset(("System.IO.IOException", "System.IO.DirectoryNotFoundException", "System.IO.FileNotFoundException",
                "System.IO.PathTooLongException", "System.IO.DriveNotFoundException", "System.UnauthorizedAccessException"))
 
@@ -93,7 +114,8 @@ def archive(files: dict[str, bytes], listed, attributes=None, written=None) -> b
     length, such as one with a NUL or a backslash that ZIP writers normalize."""
     body = listed if isinstance(listed, bytes) else (json.dumps(listed, sort_keys=True, indent=2) + "\n").encode()
     written = written or {}
-    placeholders = {name: raw.replace("\0", "!").replace("\\", "!") for name, raw in written.items()}
+    placeholders = {name: "".join("!" if ord(char) < 32 or char in '\\":<>|?*' else char for char in raw)
+                    for name, raw in written.items()}
     output = io.BytesIO()
     with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as target:
         for name, data in sorted(dict(files, **{"package.json": body}).items()):
@@ -127,10 +149,13 @@ def cases() -> list[tuple[str, str, bytes]]:
         ("a boolean size", "reject", archive(one, boolean)),
         ("a DOS directory attribute", "reject", archive(files, manifest(files), {"LICENSE": regular | 0x10})),
         ("a DOS reparse-point attribute", "reject", archive(files, manifest(files), {"LICENSE": regular | 0x400})),
-        ("a NUL in an entry name", "reject", archive(files, manifest(files), written={"LICENSE": "LICENSE\0x"})),
-        ("a backslash in an entry name", "reject",
-         archive(files, manifest(files), written={"guides/WINDOWS.md": "guides\\WINDOWS.md"})),
-    ]
+    ] + [(name, "reject", archive(files, manifest(files), written={original(stored): stored}))
+         for name, stored in STORED_NAMES.items()]
+
+
+def original(stored: str) -> str:
+    """The package file a raw stored name stands in for."""
+    return "guides/WINDOWS.md" if stored.startswith("guides") else "LICENSE"
 
 
 def python_verdict(path: Path) -> tuple[str, str]:
@@ -172,14 +197,19 @@ def installer_verdict(shell: str, directory: Path, destination: Path) -> tuple[s
     return "error", f"exit {code}: {err.strip()[-500:]}"
 
 
-def classify(verdict: str, reason: str) -> str:
+def classify(verdict: str, reason: str, required: str | None = None) -> str:
     """`reason` is "<exception types, outermost first>: <message>". A file
     access error anywhere in the chain is `error`, neither agreement nor
     disagreement, unless the message carries one of the installer's own
-    refusals."""
-    if verdict != "reject" or any(known in reason for known in REFUSALS):
+    refusals. A case that `required` one refusal and met another is `other`."""
+    environment = ENVIRONMENT.intersection(reason.split(":", 1)[0].split(","))
+    if verdict != "reject":
         return verdict
-    return "error" if ENVIRONMENT.intersection(reason.split(":", 1)[0].split(",")) else "reject"
+    if required is not None and required not in reason:
+        return "error" if environment else "other"
+    if any(known in reason for known in REFUSALS):
+        return verdict
+    return "error" if environment else "reject"
 
 
 def contract(installer=installer_verdict, shells=("powershell", "pwsh"), progress=None) -> dict:
@@ -194,12 +224,15 @@ def contract(installer=installer_verdict, shells=("powershell", "pwsh"), progres
             path.write_bytes(data)
             (directory / "checksums.txt").write_text(f"{sha256(data)}  {path.name}\n", encoding="utf-8")
             python, reason = python_verdict(path)
-            verdicts, reasons = {}, {}
+            verdicts, reasons, wrote = {}, {}, {}
             for shell in shells:
-                verdict, reasons[shell] = installer(shell, directory, Path(temp) / f"expanded-{number}-{shell}")
-                verdicts[shell] = classify(verdict, reasons[shell])
+                destination = Path(temp) / f"expanded-{number}-{shell}"
+                verdict, reasons[shell] = installer(shell, directory, destination)
+                verdicts[shell] = classify(verdict, reasons[shell], NAME_REFUSAL if name in STORED_NAMES else None)
+                wrote[shell] = destination.exists()
             report["cases"].append({"name": name, "expected": expected, "python": python, "python_reason": reason,
-                                    "installer": verdicts, "installer_reasons": reasons})
+                                    "installer": verdicts, "installer_reasons": reasons,
+                                    "stored_name": STORED_NAMES.get(name), "installer_wrote": wrote})
             if progress:
                 progress(report)
     report["complete"] = True

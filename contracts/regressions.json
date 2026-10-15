@@ -1246,6 +1246,84 @@
         "https://github.com/jgoneit/jaekit/issues/27",
         "https://github.com/jgoneit/jaekit/issues/30"
       ]
+    },
+    {
+      "id": "windows-committed-public-files",
+      "invariant": "I1",
+      "status": "protected",
+      "sources": [
+        "tools/windows/package.py",
+        "tools/release/check_archives.py"
+      ],
+      "property": "Common verification judges the committed public files at HEAD (the files a source snapshot without Git holds) with the Windows archive rule, in package.py's layout with a synthetic Core. A committed public file the rule refuses fails it with its path and reason before the release build would; untracked, ignored, staged or changed working-tree files do not count.",
+      "examples": [
+        "a committed guides/Node_Modules/notes.md"
+      ],
+      "families": [
+        "names, cases and folders the rule refuses",
+        "working-tree, index and snapshot inputs"
+      ],
+      "boundary": "HEAD's own committed files and synthetic Git repositories exercise the reader and the rule locally; the release build itself is not run here.",
+      "checks": [
+        {
+          "file": "tools/release/test_windows_names.py",
+          "selector": "CommittedPublicFiles",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "windows-archive-short-names",
+      "invariant": "I3",
+      "status": "protected",
+      "sources": [
+        "tools/release/check_archives.py",
+        "tools/release/check_published.py"
+      ],
+      "property": "The Windows archive rule shared before and after publication refuses an entry with `~` anywhere in its name and names it, because every Windows short name holds `~`; it names both paths of a case or file/folder collision.",
+      "examples": [
+        "guides/abcdef~1.md beside guides/abcdefghij.md"
+      ],
+      "families": [
+        "`~` in a file or folder name",
+        "case and file/folder collisions"
+      ],
+      "boundary": "Synthetic ZIPs in package.py's layout exercise the Python rule locally; whether a given Windows volume creates short names is not observed.",
+      "checks": [
+        {
+          "file": "tools/release/test_windows_names.py",
+          "selector": "ShortNames",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "windows-installer-name-refusal",
+      "invariant": "I3",
+      "status": "protected",
+      "sources": [
+        "tools/windows/common.ps1",
+        "tools/release/windows_contract.py"
+      ],
+      "property": "The installer comparison has a case for a NUL, other control characters and each of the characters Windows paths refuse (backslash, quote, colon, `<`, `>`, `|`, `?`, `*`) in an entry name, which the rule refuses; it reports each stored name and whether the installer wrote its destination, and counts a refusal of such a name on Windows PowerShell 5.1 or PowerShell 7 as agreement only with the installer's own `Unsafe package path` message, an incidental script error as `other`.",
+      "examples": [
+        "Windows PowerShell 5.1 ending a NUL-name archive with a PropertyNotFoundException"
+      ],
+      "families": [
+        "control characters and characters Windows paths refuse",
+        "own refusal, incidental error, file access error"
+      ],
+      "boundary": "The selected tests check the cases, the rule's verdicts and the report with a stand-in installer; the installer itself runs only in the release workflow's Windows job (tools/release/windows_contract.py report), not as a selected regression.",
+      "checks": [
+        {
+          "file": "tools/release/test_windows_names.py",
+          "selector": "InstallerNameCases",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
     }
   ]
 }

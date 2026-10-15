@@ -272,6 +272,12 @@ def windows_files(path: Path, checksum: str, version: str):
             # printable ASCII.
             require(name.isascii() and name.isprintable(),
                     "Windows archive has a name that is not printable ASCII: " + repr(name))
+            # Every Windows short (8.3) name holds `~`, such as ABCDEF~1.MD for
+            # abcdefghij.md. On a volume that creates short names, an entry named
+            # like another entry's short name would be the same file to the
+            # installer; package.py's public files use no `~`.
+            require("~" not in name,
+                    "Windows archive has a name with `~`, which Windows short names use: " + repr(name))
             try:
                 windows_package.safe_name(name)
             except ValueError:
@@ -283,7 +289,7 @@ def windows_files(path: Path, checksum: str, version: str):
             require(entry.flag_bits & 0x1 == 0, "Windows archive contains an encrypted entry")
             require(entry.compress_type in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED), "Windows archive uses an unsupported compression")
             require(name not in files, "Windows archive repeats a path")
-            require(entry.file_size <= WINDOWS_MAX_FILE_BYTES, "Windows archive file exceeds the size limit")
+            require(entry.file_size <= WINDOWS_MAX_FILE_BYTES, "Windows archive file exceeds the size limit: " + name)
             total += entry.file_size
             require(total <= WINDOWS_MAX_BYTES, "Windows archive expands beyond the size limit")
             with archive.open(entry) as stream:
@@ -292,13 +298,15 @@ def windows_files(path: Path, checksum: str, version: str):
             files[name] = body
     lowered = {}
     for name in files:
-        require(name.lower() not in lowered, "Windows archive has paths that differ only in case")
+        require(name.lower() not in lowered,
+                f"Windows archive has paths that differ only in case: {lowered.get(name.lower())!r}, {name!r}")
         lowered[name.lower()] = name
     for name in files:
         # Windows compares parent folders without case, like the file names.
         parts = name.lower().split("/")
-        require(not any("/".join(parts[:index]) in lowered for index in range(1, len(parts))),
-                "Windows archive has a file/directory collision")
+        folders = ["/".join(parts[:index]) for index in range(1, len(parts))]
+        clash = next((lowered[folder] for folder in folders if folder in lowered), None)
+        require(clash is None, f"Windows archive has a file/directory collision: {clash!r}, {name!r}")
     for name in files:
         # Only what package.py packages: the Core, its manifest and public files.
         require(name in ("ha.exe", "package.json") or windows_package.public_path(name),

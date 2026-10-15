@@ -277,10 +277,18 @@ function Expand-CheckedPackage([string]$Archive, [string]$Checksums, [string]$De
     $zip = $null
     try {
         $zip = New-Object IO.Compression.ZipArchive($stream, [IO.Compression.ZipArchiveMode]::Read, $false)
+        # .NET Framework (Windows PowerShell 5.1) cannot list entries whose
+        # names hold characters a path may not contain. Read as a property,
+        # that failure would become $null; the method call keeps it.
+        try {
+            $entries = $zip.get_Entries()
+        } catch [ArgumentException] {
+            throw 'Unsafe package path: an archive entry name is not a valid path.'
+        }
         $names = @{}
         $total = 0L
-        if ($zip.Entries.Count -gt 2048) { throw 'Too many archive entries.' }
-        foreach ($entry in $zip.Entries) {
+        if ($entries.Count -gt 2048) { throw 'Too many archive entries.' }
+        foreach ($entry in $entries) {
             $name = $entry.FullName
             Assert-PackageName $name
             $type = ([int64]$entry.ExternalAttributes -shr 16) -band 0xF000
@@ -298,7 +306,7 @@ function Expand-CheckedPackage([string]$Archive, [string]$Checksums, [string]$De
             }
         }
         [IO.Directory]::CreateDirectory($Destination) | Out-Null
-        foreach ($entry in $zip.Entries) {
+        foreach ($entry in $entries) {
             $target = Join-PackagePath $Destination $entry.FullName
             [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($target)) | Out-Null
             $inputStream = $entry.Open()

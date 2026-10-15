@@ -380,9 +380,16 @@ sizes and GitHub digests, and applies the pre-publication rules
 looser than the installer's package check and refuses paths `package.py` does
 not package. It accepts only printable ASCII names and only the manifest fields
 `package.py` writes, because the installer compares names and reads JSON in
-ways Python cannot reproduce for other input; a committed public file with
-another name fails the release build's archive check and stops the whole
-release. When the Windows archive is published, the check also reads the
+ways Python cannot reproduce for other input. It also refuses `~` anywhere in a
+name: every Windows short (8.3) name holds `~` (`ABCDEF~1.MD` for
+`abcdefghij.md`), and on a volume that creates short names an entry named like
+another entry's short name would be the same file to the installer. Common
+verification (`python3 tools/verify.py`, through
+`tools/release/test_windows_names.py`) builds the same archive from the
+committed public files at HEAD, with a synthetic Core, and judges it with this
+rule, so a committed public file the rule refuses fails the pull request
+before the release build would stop the whole release. When the Windows
+archive is published, the check also reads the
 tag object and requires the link the publication gate
 (`tools/release/windows_gate.py`) requires: an annotated tag whose message has
 exactly one `Windows-Accepted-SHA256` line equal to the archive's SHA-256. A
