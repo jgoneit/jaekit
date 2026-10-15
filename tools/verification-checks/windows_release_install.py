@@ -277,13 +277,6 @@ def cases(observed, shell):
     return {case["name"]: case for case in observed["reports"][shell]["cases"]}
 
 
-def scope(observation, name):
-    for item in observation.get("policy_list") or []:
-        if item.get("scope") == name:
-            return item.get("policy")
-    return None
-
-
 def each_case(observed, names, check):
     for shell in ("powershell", "pwsh"):
         found = cases(observed, shell)
@@ -469,11 +462,13 @@ def ac6():
                 f"{shell} CurrentUser policy was not restored")
         for case in report["cases"]:
             obs = case["observed"]
-            require(scope(obs, "CurrentUser") == "Restricted" and scope(obs, "Process") in ("Undefined", None),
+            before, after = obs.get("policies_before") or {}, obs.get("policies_after") or {}
+            require(before.get("CurrentUser") == "Restricted" and obs.get("process_policy") == "",
                     f"{shell} {case['name']} did not start with a persistent Restricted policy and no Process policy")
-            require(obs.get("policy_after") == obs.get("policy_before"), f"{shell} {case['name']} changed the policy")
-            if case["name"] != "group-policy-allsigned":
-                require(obs.get("policy_before") == "Restricted", f"{shell} {case['name']} was not effectively Restricted")
+            require(all(before.get(name) == after.get(name) for name in ("CurrentUser", "LocalMachine")),
+                    f"{shell} {case['name']} changed a persistent policy")
+            require(obs.get("scripts_before") == "UnauthorizedAccess" == obs.get("scripts_after"),
+                    f"{shell} {case['name']} window could run script files")
             marker = case.get("marker")
             if marker:
                 require(marker.get("policy") == "Bypass" and marker.get("process_policy") == "Bypass"
@@ -481,7 +476,8 @@ def ac6():
                         f"{shell} child Bypass was not process-scoped")
         found = {case["name"]: case for case in report["cases"]}
         gpo = found.get("group-policy-allsigned")
-        require(gpo is not None and gpo.get("passed") is True and gpo["observed"].get("policy_before") == "AllSigned"
+        require(gpo is not None and gpo.get("passed") is True
+                and (gpo["observed"].get("policies_before") or {}).get("MachinePolicy") == "AllSigned"
                 and gpo["observed"].get("status") == "error" and gpo.get("marker") is None
                 and gpo["observed"].get("path_after") == gpo["observed"].get("path_before"),
                 f"{shell} Group Policy did not take precedence over the block")
@@ -703,12 +699,20 @@ def ac12():
 
 
 def ac14():
+    # The full common verification outlasts one recorded check, so it is
+    # observed where CI runs it for HEAD: Core / Ubuntu runs `verify.py go`
+    # and Public documentation runs `verify.py docs`; Core / Windows runs the
+    # native candidate checks on PowerShell 5.1 and 7.
     observed_ci = ci_run()
-    verify = run([sys.executable, "tools/verify.py"], timeout=3000, show=False)
-    print(verify.stdout[-3000:])
-    require(verify.returncode == 0, "the common verification failed")
     for name in ("Seal Core", "Public documentation", "Core / Ubuntu", "Core / macOS", "Core / Windows"):
         require(observed_ci.get(name) == "success", f"the required CI job {name} did not succeed for HEAD")
+    candidate = ["tools/windows/package.py", "tools/windows/common.ps1", "tools/windows/install.ps1",
+                 "tools/windows/uninstall.ps1", "tools/windows/acceptance.ps1", ".github/workflows/ci.yml"]
+    result = run(["git", "diff", "--quiet", BASE, "HEAD", "--", *candidate])
+    require(result.returncode == 0, "the candidate packaging, installer or CI workflow changed")
+    for directory in ("tools/windows", "tools/release"):
+        result = run([sys.executable, "-m", "unittest", "discover", "-s", directory, "-p", "test_*.py"], timeout=600)
+        require(result.returncode == 0, f"the {directory} regressions failed")
 
 
 def ci_run():

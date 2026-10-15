@@ -46,6 +46,8 @@ SCHEMA = "jaekit-windows-public-blocks/v1"
 GUARD = "Windows 11 client is required"
 POLICY_FAILURES = ("running scripts is disabled", "cannot be loaded", "not digitally signed")
 READY = "is ready in this window"
+# What PowerShell reports when the effective policy stops a script file.
+SCRIPTS_BLOCKED = "UnauthorizedAccess"
 REMOVED = "Removal finished"
 GPO_KEYS = {"powershell": r"SOFTWARE\Policies\Microsoft\Windows\PowerShell",
             "pwsh": r"SOFTWARE\Policies\Microsoft\PowerShellCore"}
@@ -96,17 +98,26 @@ def bind(code: str, base_url: str, version: str) -> str:
     return VERSION_LINE.sub(lambda _: f"$version = '{version}'", code)
 
 
-def wrapper(code: str) -> str:
-    """A paste in a console, plus an observer that reports after the block ends."""
+def wrapper(code: str, probe: Path) -> str:
+    """A paste in a console, plus an observer that reports after the block ends.
+
+    The observer avoids the Security module: PowerShell 7 does not load its
+    type data under Restricted. Whether the window may run a script file is
+    observed by trying one before and after the block.
+    """
+    literal = str(probe).replace("'", "''")
+    blocked = ("try {{ $null = & '{0}'; ${1} = 'ran' }} catch {{ ${1} = [string]$_.FullyQualifiedErrorId }}")
     return "\n".join([
         "$ErrorActionPreference = 'Stop'",
         "$jaekitPathBefore = $env:Path",
-        "$jaekitPolicyBefore = [string](Get-ExecutionPolicy)",
+        "$jaekitProcessPolicy = [string]$env:PSExecutionPolicyPreference",
+        blocked.format(literal, "jaekitScriptsBefore"),
         "$jaekitStatus = 'ok'",
         "$jaekitError = ''",
         "try {",
         code,
         "} catch { $jaekitStatus = 'error'; $jaekitError = [string]$_ }",
+        blocked.format(literal, "jaekitScriptsAfter"),
         "$jaekitFound = @(Get-Command ha -ErrorAction SilentlyContinue)",
         "$jaekitHa = $null",
         "if ($jaekitFound.Count -gt 0) { $jaekitHa = [ordered]@{ type = [string]$jaekitFound[0].CommandType; "
@@ -115,9 +126,8 @@ def wrapper(code: str) -> str:
         "$jaekitReport = [ordered]@{ status = $jaekitStatus; error = $jaekitError; path_before = $jaekitPathBefore; "
         "path_after = [string]$env:Path; shell = [string](Get-Process -Id $PID).Path; "
         "edition = [string]$PSVersionTable.PSEdition; ps_version = [string]$PSVersionTable.PSVersion; "
-        "policy_before = $jaekitPolicyBefore; policy_after = [string](Get-ExecutionPolicy); "
-        "policy_list = @(Get-ExecutionPolicy -List | ForEach-Object { [ordered]@{ scope = [string]$_.Scope; "
-        "policy = [string]$_.ExecutionPolicy } }); ha = $jaekitHa }",
+        "process_policy = $jaekitProcessPolicy; scripts_before = $jaekitScriptsBefore; "
+        "scripts_after = $jaekitScriptsAfter; ha = $jaekitHa }",
         f"[Console]::Out.WriteLine('{REPORT}' + ($jaekitReport | ConvertTo-Json -Compress -Depth 4))",
     ]) + "\n"
 
@@ -232,10 +242,10 @@ def shell_path(name: str) -> str:
 
 
 def base_env() -> dict[str, str]:
-    env = dict(os.environ)
-    env.pop("PSExecutionPolicyPreference", None)  # no inherited Process policy
-    env.pop("PSModulePath", None)  # let each edition choose its own modules
-    return env
+    """The runner's environment without an inherited Process policy or module
+    path, so each edition starts like a new window. Windows names ignore case."""
+    drop = {"PSEXECUTIONPOLICYPREFERENCE", "PSMODULEPATH"}
+    return {key: value for key, value in os.environ.items() if key.upper() not in drop}
 
 
 def command(shell: str, text: str, env: dict[str, str], timeout: int = 300, bypass: bool = False):
@@ -248,23 +258,35 @@ def command(shell: str, text: str, env: dict[str, str], timeout: int = 300, bypa
     return result.returncode, result.stdout, result.stderr
 
 
+def policies(shell: str, env: dict[str, str]) -> dict[str, str]:
+    """Each policy scope, read by a separate process the persistent policy cannot stop."""
+    text = ("Get-ExecutionPolicy -List | ForEach-Object { "
+            "[Console]::Out.WriteLine([string]$_.Scope + '=' + [string]$_.ExecutionPolicy) }")
+    code, out, err = command(shell, text, env, bypass=True)
+    found = dict(line.strip().split("=", 1) for line in out.splitlines() if "=" in line)
+    require(code == 0 and "CurrentUser" in found, "could not read the execution policies: " + (err or out)[-2000:])
+    return found
+
+
 def set_current_user_policy(shell: str, policy: str, env: dict[str, str]):
-    code, out, err = command(shell, f"Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy {policy} -Force", env)
-    require(code == 0, f"could not set the CurrentUser execution policy to {policy}: {err or out}")
-
-
-def current_user_policy(shell: str, env: dict[str, str]) -> str:
-    code, out, err = command(shell, "[Console]::Out.WriteLine([string](Get-ExecutionPolicy -Scope CurrentUser))", env)
-    lines = out.strip().splitlines()
-    require(code == 0 and lines, "could not read the CurrentUser execution policy: " + err)
-    return lines[-1].strip()
+    # The helper's own process-scoped Bypass outranks CurrentUser, which
+    # PowerShell reports as an override error; the value read back decides.
+    command(shell, f"Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy {policy} -Force "
+                   "-ErrorAction SilentlyContinue", env, bypass=True)
+    found = policies(shell, env).get("CurrentUser")
+    require(found == policy, f"could not set the CurrentUser execution policy to {policy} (it is {found})")
 
 
 def paste(shell: str, code: str, env: dict[str, str], work: Path) -> dict:
-    """Run the text as a pasted command (Invoke-Expression), not a script file."""
-    source = work / "paste.txt"
-    source.write_text(wrapper(code), encoding="utf-8-sig")
+    """Run the text as a pasted command (Invoke-Expression), not a script file.
+
+    The persistent policies are read before and after by separate processes.
+    """
+    source, probe = work / "paste.txt", work / "observer-probe.ps1"
+    probe.write_text("'observer probe ran'\n", encoding="utf-8")
+    source.write_text(wrapper(code, probe), encoding="utf-8-sig")
     literal = str(source).replace("'", "''")
+    before = policies(shell, env)
     result = subprocess.run([shell, "-NoProfile", "-NonInteractive", "-Command",
                              f"Invoke-Expression ([IO.File]::ReadAllText('{literal}'))"],
                             env=env, capture_output=True, timeout=600, encoding="utf-8", errors="replace")
@@ -274,6 +296,7 @@ def paste(shell: str, code: str, env: dict[str, str], work: Path) -> dict:
     observed["exit_code"] = result.returncode
     observed["output"] = "\n".join(line for line in result.stdout.splitlines() if not line.startswith(REPORT))[-6000:]
     observed["errors"] = result.stderr[-6000:]
+    observed["policies_before"], observed["policies_after"] = before, policies(shell, env)
     return observed
 
 
@@ -352,13 +375,6 @@ def restore_gpo(edition_key: str, previous: dict):
                 winreg.SetValueEx(handle, name, 0, old[1], old[0])
 
 
-def policy_scope(observed: dict, scope: str) -> str:
-    for item in observed.get("policy_list") or []:
-        if item.get("scope") == scope:
-            return item.get("policy", "")
-    return ""
-
-
 def judge(case: dict, shell: str) -> list[str]:
     """Problems with one CI case; an empty list means the expectation held."""
     expect, observed, problems = case["expect"], case["observed"], []
@@ -369,12 +385,16 @@ def judge(case: dict, shell: str) -> list[str]:
         if not ok:
             problems.append(message)
 
+    before, after = observed.get("policies_before") or {}, observed.get("policies_after") or {}
     check(observed.get("shell", "").lower() == shell.lower(), "the block did not run in the selected shell")
-    check(observed.get("policy_before") == expect.get("policy", "Restricted"),
-          "the parent's effective policy was not " + expect.get("policy", "Restricted"))
-    check(policy_scope(observed, "Process") in ("Undefined", ""), "the parent inherited a Process policy")
-    check(policy_scope(observed, "CurrentUser") == "Restricted", "the persistent CurrentUser policy changed")
-    check(observed.get("policy_after") == observed.get("policy_before"), "the parent's effective policy changed")
+    check(observed.get("process_policy") == "", "the parent inherited a Process policy")
+    check(before.get("CurrentUser") == "Restricted", "the persistent CurrentUser policy was not Restricted")
+    check(before.get("MachinePolicy") == expect.get("machine_policy", "Undefined"),
+          "the Group Policy was not " + expect.get("machine_policy", "Undefined"))
+    for scope in ("CurrentUser", "LocalMachine"):
+        check(after.get(scope) == before.get(scope), f"the persistent {scope} policy changed")
+    check(observed.get("scripts_before") == SCRIPTS_BLOCKED, "the parent could run a script file before the block")
+    check(observed.get("scripts_after") == SCRIPTS_BLOCKED, "the parent could run a script file after the block")
     check(observed.get("status") == expect["status"], f"block status {observed.get('status')}, expected {expect['status']}")
     check(case.get("temporary_left") == [], "the block left temporary files: " + repr(case.get("temporary_left")))
     if expect["status"] == "error" or expect.get("path") == "unchanged":
@@ -444,7 +464,7 @@ def ci(args) -> int:
               "archive": {"name": name, "sha256": sha256(real)}, "expected_sha256": args.expected_sha256,
               "block_sha256": {kind: sha256(code.encode()) for kind, code in blocks.items()},
               "blocks_identical": True, "cases": []}
-    original = current_user_policy(shell, env)
+    original = policies(shell, env)["CurrentUser"]
     report["original_current_user_policy"] = original
     probe = probe_archive(real)
     with tempfile.TemporaryDirectory(prefix="jaekit-public-blocks-") as temp, Server() as server:
@@ -491,15 +511,15 @@ def ci(args) -> int:
             try:
                 # Group Policy outranks the block's process-scoped Bypass: the
                 # unsigned installer must not run and nothing may look installed.
-                expect = {"status": "error", "child": "none", "policy": "AllSigned",
+                expect = {"status": "error", "child": "none", "machine_policy": "AllSigned",
                           "contains": ["Running the verified installer in"], "absent": [READY]}
                 report["cases"].append(run_case(server, shell, env, work, "group-policy-allsigned", "install",
                                                 blocks["install"], version, probe_files, expect))
             finally:
                 restore_gpo(args.shell, previous)
         finally:
-            set_current_user_policy(shell, original if original else "Undefined", env)
-        report["restored_current_user_policy"] = current_user_policy(shell, env)
+            set_current_user_policy(shell, original, env)
+        report["restored_current_user_policy"] = policies(shell, env)["CurrentUser"]
     report["passed"] = (report["smoke"]["passed"] and all(case["passed"] for case in report["cases"])
                         and report["restored_current_user_policy"] == original)
     write_report(Path(args.report), report)
@@ -563,7 +583,7 @@ def acceptance(args) -> int:
     blocks = public_blocks()
     env = base_env()
     shells = {name: shell_path(name) for name in ("powershell", "pwsh")}
-    originals = {name: current_user_policy(path, env) for name, path in shells.items()}
+    originals = {name: policies(path, env)["CurrentUser"] for name, path in shells.items()}
     steps = [("powershell", "install", first), ("pwsh", "install", newer), ("pwsh", "remove", newer),
              ("pwsh", "install", first), ("powershell", "install", newer), ("powershell", "remove", newer)]
     report = {"schema": SCHEMA, "mode": "acceptance", "first": {"version": first[3], "sha256": sha256(first[1])},
@@ -589,8 +609,12 @@ def acceptance(args) -> int:
                 problems = []
                 if observed.get("status") != status:
                     problems.append(f"status {observed.get('status')}, expected {status}")
-                if policy_scope(observed, "CurrentUser") != "Restricted" or observed.get("policy_before") != "Restricted":
+                if (observed["policies_before"].get("CurrentUser") != "Restricted"
+                        or observed.get("scripts_before") != SCRIPTS_BLOCKED or observed.get("process_policy") != ""):
                     problems.append("the block did not start under a persistent Restricted policy")
+                if any(observed["policies_after"].get(scope) != observed["policies_before"].get(scope)
+                       for scope in ("CurrentUser", "LocalMachine")):
+                    problems.append("the block changed a persistent execution policy")
                 if status == "error":
                     if jaekit.exists():
                         problems.append("a failed block left an installation")
@@ -610,7 +634,7 @@ def acceptance(args) -> int:
                     break
         finally:
             for name, path in shells.items():
-                set_current_user_policy(path, originals[name] or "Undefined", env)
+                set_current_user_policy(path, originals[name], env)
     report["passed"] = len(report["steps"]) == len(steps) + 1 and not any(step["problems"] for step in report["steps"])
     if report["passed"]:
         report["accepted_sha256"] = report["next"]["sha256"]

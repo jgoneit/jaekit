@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import unittest.mock
 from urllib.request import urlopen
 from urllib.error import HTTPError
 import zipfile
@@ -91,9 +92,39 @@ class GuideBlocks(unittest.TestCase):
 
     def test_wrapper_runs_the_block_unchanged_inside_an_observer(self):
         code = blocks.public_blocks()["remove"]
-        text = blocks.wrapper(code)
+        text = blocks.wrapper(code, Path("C:/work/it's/observer-probe.ps1"))
         self.assertIn("\n" + code + "\n", text)
         self.assertTrue(text.rstrip().endswith("ConvertTo-Json -Compress -Depth 4))"))
+        # PowerShell 7 cannot load the Security module under Restricted, so the
+        # window itself never asks for its policy; it tries a script file.
+        self.assertNotIn("Get-ExecutionPolicy", text)
+        self.assertEqual(text.count("& 'C:/work/it''s/observer-probe.ps1'"), 2)
+        before, after = text.index("jaekitScriptsBefore ="), text.index("jaekitScriptsAfter =")
+        self.assertLess(before, text.index(code))
+        self.assertLess(text.index(code), after)
+
+    def test_environment_drops_inherited_policy_and_module_path_in_any_case(self):
+        inherited = {"PSMODULEPATH": "C:/ps7/Modules", "PSExecutionPolicyPreference": "Bypass", "PATH": "C:/bin"}
+        with unittest.mock.patch.dict(blocks.os.environ, inherited, clear=True):
+            self.assertEqual(blocks.base_env(), {"PATH": "C:/bin"})
+
+
+class Judgement(unittest.TestCase):
+    def case(self, **observed):
+        restricted = {"MachinePolicy": "Undefined", "CurrentUser": "Restricted", "LocalMachine": "RemoteSigned"}
+        base = {"shell": "C:/pwsh.exe", "process_policy": "", "scripts_before": blocks.SCRIPTS_BLOCKED,
+                "scripts_after": blocks.SCRIPTS_BLOCKED, "status": "error", "path_before": "a", "path_after": "a",
+                "policies_before": dict(restricted), "policies_after": dict(restricted), "output": "", "errors": ""}
+        base.update(observed)
+        return {"expect": {"status": "error", "child": "none"}, "observed": base, "marker": None, "temporary_left": []}
+
+    def test_policy_observations_decide_the_case(self):
+        self.assertEqual(blocks.judge(self.case(), "C:/pwsh.exe"), [])
+        changed = {"MachinePolicy": "Undefined", "CurrentUser": "Restricted", "LocalMachine": "Bypass"}
+        for observed in ({"process_policy": "Bypass"}, {"scripts_before": "ran"}, {"scripts_after": "ran"},
+                         {"policies_after": changed}, {"policies_before": dict(changed, CurrentUser="RemoteSigned")}):
+            with self.subTest(observed=observed):
+                self.assertTrue(blocks.judge(self.case(**observed), "C:/pwsh.exe"))
 
 
 class Archives(unittest.TestCase):
