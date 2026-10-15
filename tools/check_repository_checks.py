@@ -6,9 +6,9 @@ the current files by their properties, without an earlier commit (AGENTS.md).
 A finding is a 7-40 digit lowercase hexadecimal object name, optionally
 followed by `:path`, `..`, `^` or `~` (`7476c87:README.md`, `7476c87..HEAD`),
 written in the arguments of a Git call or bound to a name used there. A Git
-call is a call whose function name ends in `git`, or whose positional
-arguments (or an argument list) contain the string "git"; keyword values such
-as `input` are not Git arguments. Hexadecimal values that never reach
+call is a call whose function name ends in `git`, or whose positional or
+`args=` arguments (or an argument list) contain the string "git"; other
+keyword values such as `input` are not Git arguments. Hexadecimal values that never reach
 Git, such as SHA-256 digests or synthetic object IDs, and `HEAD` are fine.
 
 Late imports: a module that declares a standard-library import boundary
@@ -78,9 +78,9 @@ def call_name(node: ast.Call) -> str:
 
 
 def arguments(node: ast.Call):
-    """Positional arguments and their list items: the command line. Keyword
-    values (input, cwd, env) are not Git arguments."""
-    for value in node.args:
+    """Positional arguments, an `args=` value and their list items: the
+    command line. Other keyword values (input, cwd, env) are not Git arguments."""
+    for value in [*node.args, *(keyword.value for keyword in node.keywords if keyword.arg == "args")]:
         if isinstance(value, ast.Starred):
             value = value.value
         yield value

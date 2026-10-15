@@ -52,8 +52,10 @@ class RepositoryChecks(unittest.TestCase):
                 return run(["git", "log", "7476c87..HEAD"])
             def nested(run, path):
                 return run(["git", "show", f"{BASE}:{path}"])
+            def keyword():
+                return subprocess.run(args=["git", "diff", "7476c87", "HEAD"])
             """})
-        self.assertEqual(["tools/a.py:4", "tools/a.py:6", "tools/a.py:8", "tools/a.py:10"],
+        self.assertEqual(["tools/a.py:4", "tools/a.py:6", "tools/a.py:8", "tools/a.py:10", "tools/a.py:12"],
                          [finding.split(": ", 1)[0] for finding in findings])
 
     def test_hex_values_outside_git_and_current_revisions_are_normal(self):

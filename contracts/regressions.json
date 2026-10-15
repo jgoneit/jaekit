@@ -999,6 +999,11 @@
         },
         {
           "file": "tools/public-checks/test_repository_checks.py",
+          "selector": "RepositoryChecks.test_an_import_defined_during_the_bootstrap_but_run_later_is_reported",
+          "group": "docs"
+        },
+        {
+          "file": "tools/public-checks/test_repository_checks.py",
           "selector": "RepositoryChecks.test_the_repository_passes",
           "group": "docs"
         },
