@@ -36,6 +36,8 @@ DECLARATIONS = ROOT / "tools/verification-checks/windows-release-review-fixes"
 REPO = "jgoneit/jaekit"
 EARLIER = "tools/verification-checks/windows_release_install.py"
 SCRATCH = Path(tempfile.gettempdir()).resolve()
+# Not a public tag: a request that escaped the fake GitHub could not reach a real one.
+SYNTHETIC = "9.8.7"
 # Registry routes protected when this goal started; a fix must not demote them.
 PROTECTED_ROUTES = (
     "archive-consumer-input-boundary", "current-file-independence", "explicit-retention-inputs",
@@ -145,19 +147,44 @@ def manifest_for(files, version):
             "files": [{"path": name, "size": len(body), "sha256": sha256(body)} for name, body in sorted(files.items())]}
 
 
-def write_zip(path, files, manifest, attributes=None, flags=None):
-    """The package.py layout; `attributes`/`flags` override one entry's ZIP fields."""
-    attributes, flags = attributes or {}, flags or {}
+def write_zip(path, files, manifest, attributes=None, flags=None, written=None):
+    """The package.py layout. `attributes` overrides an entry's external
+    attributes; `flags` sets general-purpose bits in both of its headers after
+    writing (ZipFile clears them); `written` stores an entry under another raw
+    name of the same length, such as one with a NUL that ZIP readers cut."""
+    attributes, flags, written = attributes or {}, flags or {}, written or {}
     body = manifest if isinstance(manifest, bytes) else (json.dumps(manifest, sort_keys=True, indent=2) + "\n").encode()
     entries = dict(files, **{"package.json": body})
-    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+    placeholders = {name: raw.replace("\0", "!") for name, raw in written.items()}
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for name, data in sorted(entries.items()):
-            info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+            info = zipfile.ZipInfo(placeholders.get(name, name), date_time=(1980, 1, 1, 0, 0, 0))
             info.create_system = 3
             info.external_attr = attributes.get(name, (stat.S_IFREG | 0o644) << 16)
             info.compress_type = zipfile.ZIP_DEFLATED
-            info.flag_bits |= flags.get(name, 0)
             archive.writestr(info, data)
+    data = bytearray(output.getvalue())
+    end = data.rfind(b"PK\x05\x06")
+    count, _, offset = struct.unpack_from("<HII", data, end + 10)
+    for _ in range(count):
+        length, extra, comment = struct.unpack_from("<HHH", data, offset + 28)
+        name = bytes(data[offset + 46:offset + 46 + length]).decode("utf-8")
+        local = struct.unpack_from("<I", data, offset + 42)[0]
+        for header in (offset + 8, local + 6):
+            struct.pack_into("<H", data, header, struct.unpack_from("<H", data, header)[0] | flags.get(name, 0))
+        offset += 46 + length + extra + comment
+    for name, raw in written.items():
+        placeholder = placeholders[name].encode("utf-8")
+        if len(placeholder) != len(raw.encode("utf-8")) or data.count(placeholder) != 2:
+            raise ObservationError("a synthetic raw entry name could not be written")
+        data = bytearray(bytes(data).replace(placeholder, raw.encode("utf-8")))
+    path.write_bytes(bytes(data))
+    with zipfile.ZipFile(path) as archive:
+        stored = {info.orig_filename: info for info in archive.infolist()}
+    if any(stored[written.get(name, name)].flag_bits & bits != bits for name, bits in flags.items()) \
+            or not set(written.values()) <= stored.keys():
+        raise ObservationError("the synthetic ZIP does not carry its tampered fields")
 
 
 @contextlib.contextmanager
@@ -223,10 +250,13 @@ def routes(dist, version, message=None, tag="lightweight"):
 
 def published_cli(published, table, version):
     """Run the published-release check's command line against `table`."""
+    unrouted = []
+
     def urlopen(request, timeout=None):
         url = getattr(request, "full_url", request)
         value = table.get(url)
         if value is None:
+            unrouted.append(url)
             raise urllib.error.URLError("unrouted " + url)
         if isinstance(value, BaseException):
             raise value
@@ -240,6 +270,9 @@ def published_cli(published, table, version):
             code = published.main(["--tag", f"v{version}", "--repo", REPO])
     finally:
         published.urlopen = original
+    if unrouted:
+        raise ObservationError("the published-release check requested what the fake GitHub does not serve: "
+                               + ", ".join(unrouted))
     return code, errors.getvalue()
 
 
@@ -248,28 +281,39 @@ def published_cli(published, table, version):
 def ac1():
     published = load("review_fix_published", "tools/release/check_published.py")
     gate = load("review_fix_gate", "tools/release/windows_gate.py")
-    with synthetic() as (dist, version):
+    with synthetic(version=SYNTHETIC) as (dist, version):
         digest = sha256((dist / f"ha_{version}_windows_amd64.zip").read_bytes())
         line = "Windows-Accepted-SHA256: " + digest
+        opening = f"Jaekit v{version}\n\n"
+        # None: the expected verdict is the gate's own reading of the message.
         cases = (
             ("a lightweight tag", None, "lightweight", 1),
             ("no acceptance line", f"Jaekit v{version}\n", "annotated", 1),
-            ("two acceptance lines", f"Jaekit v{version}\n\n{line}\n{line}\n", "annotated", 1),
-            ("an uppercase digest", f"Jaekit v{version}\n\nWindows-Accepted-SHA256: {digest.upper()}\n", "annotated", 1),
-            ("another digest", f"Jaekit v{version}\n\nWindows-Accepted-SHA256: {'0' * 64}\n", "annotated", 1),
-            ("its acceptance link", f"Jaekit v{version}\n\n{line}\n", "annotated", 0),
+            ("two acceptance lines", f"{opening}{line}\n{line}\n", "annotated", 1),
+            ("an uppercase digest", f"{opening}Windows-Accepted-SHA256: {digest.upper()}\n", "annotated", 1),
+            ("another digest", f"{opening}Windows-Accepted-SHA256: {'0' * 64}\n", "annotated", 1),
+            ("its acceptance link", f"{opening}{line}\n", "annotated", 0),
+            ("its acceptance link with CRLF line ends", f"Jaekit v{version}\r\n\r\n{line}\r\n", "annotated", None),
+            ("its acceptance link without a space", f"{opening}Windows-Accepted-SHA256:{digest}\n", "annotated", None),
+            ("an indented acceptance line", f"{opening} {line}\n", "annotated", None),
+            ("text before the acceptance key", f"{opening}See {line}\n", "annotated", None),
             ("an unreachable tag", None, "unreachable", 2),
             ("a malformed tag response", None, "malformed", 2),
         )
         for label, message, tag, expected in cases:
+            if expected is None:
+                expected = 0 if gate.accepted(message)[0] == digest else 1
             code, errors = published_cli(published, routes(dist, version, message, tag), version)
+            if code == 2 and expected != 2:
+                raise ObservationError(f"the published-release check could not read the synthetic release ({label}): "
+                                       + errors.strip()[-300:])
             require(code == expected, f"the published-release check exited {code} for a Windows archive with {label}; "
                                       f"expected {expected}: {errors.strip()[-300:]}")
             if message is not None:
                 link, _ = gate.accepted(message)
                 require((link == digest) == (expected == 0),
                         f"the gate and the published-release check disagree on {label}")
-    with synthetic(windows=False) as (dist, version):
+    with synthetic(windows=False, version=SYNTHETIC) as (dist, version):
         for tag in ("lightweight", "unreachable"):
             code, errors = published_cli(published, routes(dist, version, None, tag), version)
             require(code == 0, f"a release without the Windows archive depended on its tag ({tag}): {errors.strip()[-300:]}")
@@ -293,9 +337,17 @@ def mutation(kind):
             files = {"ha.exe": files["ha.exe"]}
         elif kind == "another operating system":
             return files, dict(manifest_for(files, version), os="linux"), options
+        elif kind == "another architecture":
+            return files, dict(manifest_for(files, version), arch="arm64"), options
+        elif kind == "another schema":
+            return files, dict(manifest_for(files, version), schema="jaekit-windows-package/v2"), options
         elif kind == "a repeated manifest entry":
             built = manifest_for(files, version)
             built["files"].append(dict(built["files"][0]))
+            return files, built, options
+        elif kind == "a malformed manifest entry":
+            built = manifest_for(files, version)
+            built["files"][0]["sha256"] = built["files"][0]["sha256"].upper()
             return files, built, options
         elif kind == "a boolean size":
             files["LICENSE"] = b"x"
@@ -303,6 +355,13 @@ def mutation(kind):
             for item in built["files"]:
                 if item["path"] == "LICENSE":
                     item["size"] = True
+            return files, built, options
+        elif kind == "a fractional size":
+            files["LICENSE"] = b"x"
+            built = manifest_for(files, version)
+            for item in built["files"]:
+                if item["path"] == "LICENSE":
+                    item["size"] = 1.0
             return files, built, options
         elif kind == "an oversized manifest":
             body = json.dumps(manifest_for(files, version), sort_keys=True, indent=2).encode()
@@ -319,6 +378,8 @@ def mutation(kind):
             options["attributes"] = {"LICENSE": ((stat.S_IFREG | 0o644) << 16) | 0x10}
         elif kind == "a DOS reparse-point attribute":
             options["attributes"] = {"LICENSE": ((stat.S_IFREG | 0o644) << 16) | 0x400}
+        elif kind == "a NUL in an entry name":
+            options["written"] = {"LICENSE": "LICENSE\0x"}
         elif kind == "a PE32 Core":
             files["ha.exe"] = pe_amd64(optional=0x10B)
         elif kind == "a path outside the package scope":
@@ -331,10 +392,12 @@ def mutation(kind):
     return apply
 
 
-TAMPERED = ("only the Core and its manifest", "another operating system", "a repeated manifest entry",
-            "a boolean size", "an oversized manifest", "a reserved name", "names differing only in case",
-            "a link entry", "an encrypted entry", "a DOS directory attribute", "a DOS reparse-point attribute",
-            "a PE32 Core", "a path outside the package scope", "a cache file")
+TAMPERED = ("only the Core and its manifest", "another operating system", "another architecture", "another schema",
+            "a repeated manifest entry", "a malformed manifest entry", "a boolean size", "a fractional size",
+            "an oversized manifest",
+            "a reserved name", "names differing only in case", "a link entry", "an encrypted entry",
+            "a DOS directory attribute", "a DOS reparse-point attribute", "a NUL in an entry name", "a PE32 Core",
+            "a path outside the package scope", "a cache file")
 
 
 def judged(archives, published, dist, version):
@@ -375,20 +438,23 @@ def artifact(name, directory):
 def ac2():
     archives = load("review_fix_archives", "tools/release/check_archives.py")
     published = load("review_fix_published_rules", "tools/release/check_published.py")
-    with synthetic() as (dist, version):
+    with synthetic(version=SYNTHETIC) as (dist, version):
         before, after = judged(archives, published, dist, version)
         require(before == after == "accept", f"a normal Windows archive was not accepted: {before} / {after}")
     for kind in TAMPERED:
-        with synthetic(mutate=mutation(kind)) as (dist, version):
+        with synthetic(mutate=mutation(kind), version=SYNTHETIC) as (dist, version):
             before, after = judged(archives, published, dist, version)
             require(before.startswith("reject") and after.startswith("reject"),
                     f"a Windows archive with {kind} was not refused by both checks: {before} / {after}")
     package_archive(archives)
     with tempfile.TemporaryDirectory(prefix="jaekit-review-fix-contract-", dir=SCRATCH) as temp:
-        sha, _ = artifact("release-windows-reports", Path(temp))
+        repo, sha, latest = release_run()
+        listed = api(f"repos/{repo}/actions/runs/{latest['id']}/artifacts?per_page=100")
+        require("release-windows-contract" in {item.get("name") for item in listed.get("artifacts", [])},
+                "HEAD's release run did not compare the archive rule with the installer")
+        artifact("release-windows-contract", Path(temp))
         path = Path(temp) / "windows-contract.json"
-        if not path.is_file():
-            raise ObservationError("HEAD's release run left no Windows contract report")
+        require(path.is_file(), "HEAD's release run left no Windows contract report")
         report = json.loads(path.read_text(encoding="utf-8"))
     require(report.get("schema") == "jaekit-windows-contract/v1" and report.get("source_commit") == sha,
             "the Windows contract report does not describe HEAD")
@@ -426,9 +492,11 @@ def package_archive(archives):
 
 # ------------------------------------------------------------ AC-3 and AC-4
 
-SHAPES = r'''
+SHAPES = r"""
 import importlib.util, json, sys
 path, shadow = sys.argv[1], sys.argv[2]
+shadows = ("zipfile", "tarfile", "gzip", "bz2", "lzma", "csv")
+result = {"preloaded": sorted(name for name in shadows if name in sys.modules)}
 if shadow:
     sys.path.insert(0, shadow)
 spec = importlib.util.spec_from_file_location("embedded_acceptance_check", path)
@@ -436,16 +504,20 @@ check = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(check)
 four = [f"ha_{check.VERSION}_{p}.tar.gz" for p in check.PLATFORMS] + ["checksums.txt"]
 windows = f"ha_{check.VERSION}_windows_amd64.zip"
-result = {"tag": check.TAG, "windows_rule": hasattr(check, "windows_archive") or hasattr(check, "WINDOWS_ARCHIVE")}
+result.update(tag=check.TAG, windows_rule=hasattr(check, "windows_archive") or hasattr(check, "WINDOWS_ARCHIVE"))
+def outcome(call):
+    try:
+        call()
+        return "accept"
+    except check.Failure as error:
+        return "reject: " + str(error)
+    except Exception as error:
+        return f"error: {type(error).__name__}: {error}"
 def shape(names):
     checker = check.Checker()
     checker._release = {"tag_name": check.TAG, "draft": False, "prerelease": False,
                         "assets": [{"name": name} for name in names]}
-    try:
-        checker.assets()
-        return "accept"
-    except check.Failure as error:
-        return "reject: " + str(error)
+    return outcome(checker.assets)
 for label, names in (("four", four), ("windows", four + [windows]), ("extra", four + ["install.ps1"])):
     result[label] = shape(names)
 if len(sys.argv) > 3:
@@ -456,18 +528,14 @@ if len(sys.argv) > 3:
         checker._release = {"tag_name": check.TAG, "draft": False, "prerelease": False,
                             "assets": [{"name": name} for name in names]}
         checker.download = lambda name, data=data: data[name]
-        calls = [("assets", checker.assets), ("archives", checker.archives)]
+        steps = [("assets", checker.assets), ("archives", checker.archives)]
         if label == "windows" and hasattr(check, "windows_archive"):
-            calls.append(("windows_archive", lambda: check.windows_archive(data[windows])))
-        for step, call in calls:
-            try:
-                call()
-            except Exception as error:
-                result.setdefault(label + "_errors", []).append(f"{step}: {type(error).__name__}: {error}")
+            steps.append(("windows_archive", lambda: check.windows_archive(data[windows])))
+        result[label + "_steps"] = {step: outcome(call) for step, call in steps}
     module = sys.modules.get("zipfile")
     result["zipfile"] = getattr(module, "__file__", None)
 print(json.dumps(result))
-'''
+"""
 
 
 def acceptance_shapes(shadow="", data=()):
@@ -475,16 +543,20 @@ def acceptance_shapes(shadow="", data=()):
     result = run(argv, timeout=300, cwd=shadow or ROOT)
     if result.returncode:
         raise ObservationError("the acceptance checker could not be loaded for observation")
-    return json.loads(result.stdout.strip().splitlines()[-1])
+    shapes = json.loads(result.stdout.strip().splitlines()[-1])
+    if shapes["preloaded"]:
+        raise ObservationError("the interpreter loaded " + ", ".join(shapes["preloaded"])
+                               + " before the acceptance checker; caller modules cannot be observed")
+    return shapes
 
 
 def ac3():
     shapes = acceptance_shapes()
     require(shapes["tag"] == "v0.1.3", "the acceptance checker is no longer pinned to v0.1.3")
     require(shapes["four"] == "accept", "the acceptance checker refused the real v0.1.3 shape: " + shapes["four"])
-    require(shapes["windows"].startswith("reject") and "checksums.txt" in shapes["windows"],
-            "the v0.1.3 acceptance checker accepted a Windows archive")
-    require(shapes["extra"].startswith("reject"), "the v0.1.3 acceptance checker accepted another asset")
+    require(shapes["windows"].startswith("reject: ") and "archive" in shapes["windows"],
+            "the v0.1.3 acceptance checker accepted a Windows archive: " + shapes["windows"])
+    require(shapes["extra"].startswith("reject: "), "the v0.1.3 acceptance checker accepted another asset")
     require(not shapes["windows_rule"], "the v0.1.3 acceptance checker keeps a separate Windows archive rule")
 
 
@@ -506,22 +578,51 @@ def ac4():
                 for path in dist.iterdir():
                     shutil.copyfile(path, target / path.name)
             directories.append(str(target))
-        result = acceptance_shapes(str(shadow), directories)
+        shadowed = acceptance_shapes(str(shadow), directories)
         executed = marker.read_text().split() if marker.exists() else []
-        loaded = str(result.get("zipfile") or "")
+        loaded = str(shadowed.get("zipfile") or "")
+        control = acceptance_shapes("", directories)
     require(not executed, "embedding the acceptance checker executed caller modules: " + ", ".join(executed))
     require(not loaded.startswith(temp), "the acceptance checker loaded zipfile from the caller's import path")
-    if result.get("four_errors"):
-        raise ObservationError("the acceptance checker could not judge synthetic v0.1.3 archives: "
-                               + "; ".join(result["four_errors"]))
+    for label in ("four", "windows"):
+        steps = control[label + "_steps"]
+        if any(value.startswith("error: ") for value in steps.values()):
+            raise ObservationError(f"the acceptance checker could not judge the synthetic {label} release: {steps}")
+    require(control["four_steps"] == {"assets": "accept", "archives": "accept"},
+            "the acceptance checker refused synthetic v0.1.3 archives: " + json.dumps(control["four_steps"]))
+    for label in ("four", "windows"):
+        require(shadowed[label + "_steps"] == control[label + "_steps"],
+                f"caller modules changed the acceptance checker's judgment of the {label} release")
 
 
 # ------------------------------------------------------------ AC-5
 
+EARLIER_RUN = r"""
+import runpy, sys
+script = sys.argv[1]
+sys.argv = sys.argv[1:]
+sys.path[0] = script.rsplit("/", 1)[0]
+try:
+    runpy.run_path(script, run_name="__main__")
+except SystemExit:
+    raise
+except BaseException as error:
+    print(f"earlier producer crashed: {type(error).__name__}: {error}", file=sys.stderr)
+    sys.exit(3)
+"""
+
+
 def earlier(criterion, root):
-    """Run the earlier producer for one criterion; return its exit code."""
-    result = run([sys.executable, str(root / EARLIER), criterion], timeout=600, cwd=root)
-    return result.returncode, (result.stdout + result.stderr).strip()[-400:]
+    """Run the earlier producer for one criterion; return its exit code.
+
+    An uncaught exception would also exit 1, so it is told apart from a
+    reported violation and treated as an observation error.
+    """
+    result = run([sys.executable, "-c", EARLIER_RUN, str(root / EARLIER), criterion], timeout=600, cwd=root)
+    output = (result.stdout + result.stderr).strip()[-400:]
+    if result.returncode not in (0, 1, 2):
+        raise ObservationError(f"the earlier producer did not finish {criterion}: {output}")
+    return result.returncode, output
 
 
 @contextlib.contextmanager
@@ -554,25 +655,32 @@ def snapshot():
         yield target
 
 
+EARLIER_CRITERIA = tuple(f"AC-{number}" for number in range(1, 16))
+
+
 def ac5():
-    full = {criterion: earlier(criterion, ROOT) for criterion in ("AC-15",)}
+    full = {criterion: earlier(criterion, ROOT) for criterion in EARLIER_CRITERIA}
     with shallow_clone() as clone:
-        shallow = {criterion: earlier(criterion, clone) for criterion in ("AC-15",)}
-        for criterion, (code, output) in shallow.items():
-            require(code != 1, f"the earlier producer reports a violation for {criterion} in a depth-one clone: {output}")
-            require(code == full[criterion][0], f"{criterion} differs between full and depth-one clones")
-        if full["AC-15"][0] == 2:
-            raise ObservationError("the earlier producer could not observe AC-15: " + full["AC-15"][1])
-        shallow_14 = earlier("AC-14", clone)
-    full_14 = earlier("AC-14", ROOT)
-    require(shallow_14[0] != 1, "the earlier producer reports an AC-14 violation in a depth-one clone: " + shallow_14[1])
-    if 2 in (full_14[0], shallow_14[0]):
-        raise ObservationError("the earlier producer could not observe AC-14: " + (full_14[1] or shallow_14[1]))
-    require(full_14[0] == shallow_14[0] == 0, "AC-14 differs between full and depth-one clones")
+        shallow = {criterion: earlier(criterion, clone) for criterion in EARLIER_CRITERIA}
     with snapshot() as source:
-        for criterion in ("AC-15", "AC-14"):
-            code, output = earlier(criterion, source)
-            require(code != 1, f"the earlier producer reports a violation for {criterion} without a Git directory: {output}")
+        detached = {criterion: earlier(criterion, source) for criterion in EARLIER_CRITERIA}
+    for criterion in EARLIER_CRITERIA:
+        require(shallow[criterion][0] != 1 or full[criterion][0] == 1,
+                f"the earlier producer reports a violation for {criterion} in a depth-one clone: {shallow[criterion][1]}")
+    for criterion in EARLIER_CRITERIA:
+        require(detached[criterion][0] != 1 or full[criterion][0] == 1,
+                f"the earlier producer reports a violation for {criterion} without a Git directory: "
+                + detached[criterion][1])
+    # README, INSTALL and the Skill are judged from file contents alone; the
+    # other conditions may need HEAD's identity or its CI and then stop with
+    # an observation error instead.
+    require(detached["AC-15"][0] == full["AC-15"][0],
+            "AC-15 differs between a checkout and a source snapshot: " + detached["AC-15"][1])
+    for criterion in EARLIER_CRITERIA:
+        if 2 in (full[criterion][0], shallow[criterion][0]):
+            raise ObservationError(f"the earlier producer could not observe {criterion}: "
+                                   + (full[criterion][1] if full[criterion][0] == 2 else shallow[criterion][1]))
+        require(shallow[criterion][0] == full[criterion][0], f"{criterion} differs between full and depth-one clones")
     require("7476c87" not in text(EARLIER), "the earlier producer still names its goal-start commit")
 
 
@@ -612,6 +720,8 @@ def guarded():
     with trusted_imports():
         import csv
     return csv
+import gzip
+import json.decoder
 '''
 
 
@@ -631,14 +741,20 @@ def ac6():
         output = result.stdout + result.stderr
     require(result.returncode == 1, "the repository check did not fail on synthetic violations")
     for location in ("tools/verification-checks/history_fixture.py:4", "tools/verification-checks/history_fixture.py:6",
-                     "tools/release-checks/bootstrap_fixture.py:12"):
-        require(location in output, f"the repository check did not report {location}")
-    for location in ("history_normal.py", "bootstrap_fixture.py:15", "bootstrap_fixture.py:19"):
+                     "tools/release-checks/bootstrap_fixture.py:12", "tools/release-checks/bootstrap_fixture.py:21"):
+        require(f"{location}:" in output, f"the repository check did not report {location}")
+    for location in ("history_normal.py", "bootstrap_fixture.py:15:", "bootstrap_fixture.py:19:",
+                     "bootstrap_fixture.py:22:"):
         require(location not in output, f"the repository check reported a normal case: {location}")
-    verify = text("tools/verify.py")
-    require('("Public checker regressions", "public-checks")' in verify
-            and (ROOT / "tools/public-checks/test_repository_checks.py").is_file(),
-            "the common verification does not run the repository check regressions")
+    # The docs group discovers test_*.py under tools/public-checks; the
+    # regression must exist there and scan the actual checkout.
+    regression = ROOT / "tools/public-checks/test_repository_checks.py"
+    require('("Public checker regressions", "public-checks")' in text("tools/verify.py") and regression.is_file()
+            and "def test_the_repository_passes" in text("tools/public-checks/test_repository_checks.py"),
+            "the common verification does not run the repository check against this checkout")
+    result = run([sys.executable, "-m", "unittest", "discover", "-s", "tools/public-checks", "-p",
+                  "test_repository_checks.py"], timeout=600)
+    require(result.returncode == 0, "the repository check regressions failed")
 
 
 # ------------------------------------------------------------ AC-7
@@ -673,11 +789,15 @@ def ac13():
         if "def verify_link(" in source:
             # Mutation: the published-release check ignores the acceptance link.
             target.write_text(source + "\n\ndef verify_link(*args, **kwargs):\n    return None\n", encoding="utf-8")
+        elif "accepted(" in source:
+            raise ObservationError("the published-release check reads the link outside verify_link; "
+                                   "the mutation cannot disable it")
         code, output = earlier("AC-13", clone)
     if code == 2:
         raise ObservationError("the earlier producer could not observe AC-13: " + output)
-    require(code == 1 and "acceptance link" in output,
-            "the earlier producer does not detect a published Windows archive without its acceptance link")
+    require(code == 1, "the earlier producer does not detect a published Windows archive without its acceptance link")
+    if "acceptance link" not in output:
+        raise ObservationError("the earlier producer's AC-13 failed for another reason: " + output)
     for number in range(1, 16):
         code, output = earlier(f"AC-{number}", ROOT)
         if code == 2:
@@ -687,32 +807,51 @@ def ac13():
 
 # ------------------------------------------------------------ AC-14
 
+REGISTRY_AT_START = DECLARATIONS / "registry-at-start.json"
+WINDOWS_CONSUMERS = {"tools/release/check_archives.py", "tools/release/check_published.py"}
+IMPORT_BOUNDARY = {"tools/check_repository_checks.py", "tools/release-checks/check.py",
+                   "tools/release-checks/install_trace.py", "tools/release-checks/observe.py"}
+GUARD_REGRESSION = "tools/public-checks/test_repository_checks.py"
+
+
 def ac14():
     module = load("review_fix_regression_map", "tools/regression_map.py")
     try:
         registry = module.load(ROOT)
         report = module.validate(ROOT, registry)
-    except Exception as error:  # the registry's own Invalid and read errors
+    except module.Invalid as error:
+        if "requires git" in str(error) or "Git source checkout" in str(error):
+            raise ObservationError(f"the regression registry could not be read: {error}") from None
         raise Violation(f"the regression registry does not validate: {error}") from None
+    start = json.loads(REGISTRY_AT_START.read_text(encoding="utf-8"))
+    require(registry["invariants"] == start["invariants"], "the registry invariants changed")
     routes_by_id = {route["id"]: route for route in registry["routes"]}
-    for identifier in PROTECTED_ROUTES:
-        require(identifier in report["protected"], f"registry route {identifier} lost its protection")
-    expected = {
-        "windows-archive-consumer-contract": ("I3", ("tools/release/check_archives.py", "tools/release/check_published.py",
-                                                     "tools/release/windows_gate.py")),
-        "repository-check-history-independence": ("I1", ("tools/check_repository_checks.py",
-                                                         "tools/verification-checks/windows_release_install.py")),
-        "release-checker-import-boundary": ("I3", ("tools/check_repository_checks.py",
-                                                   "tools/release-checks/check.py")),
-    }
-    for identifier, (invariant, sources) in expected.items():
-        route = routes_by_id.get(identifier)
-        require(route is not None and route["invariant"] == invariant and identifier in report["protected"],
-                f"the registry does not protect {identifier} under {invariant}")
-        require(set(sources) <= set(route["sources"]), f"registry route {identifier} omits its consumers")
+    for old in start["routes"]:
+        identifier, new = old["id"], routes_by_id.get(old["id"])
+        require(new is not None and identifier in report["protected"], f"registry route {identifier} lost its protection")
+        require(new["invariant"] == old["invariant"] and set(old["sources"]) <= set(new["sources"])
+                and all(check in new["checks"] for check in old["checks"]),
+                f"registry route {identifier} narrowed its invariant, consumers or regressions")
+        if identifier != "archive-consumer-input-boundary":
+            require(all(new[key] == old[key] for key in ("property", "families", "boundary")),
+                    f"registry route {identifier} changed its protected property")
     archive_route = routes_by_id["archive-consumer-input-boundary"]
-    require("tar" in archive_route["property"].lower() and "check_published.py" not in archive_route["sources"],
-            "the archive parser route still claims the Windows ZIP consumers")
+    windows = [route for route in registry["routes"] if route["invariant"] == "I3"
+               and WINDOWS_CONSUMERS <= set(route["sources"])
+               and re.search(r"windows|zip", route["property"], re.I)]
+    require(windows, "no I3 route reflects the Windows archive consumers, as protection or as a gap")
+    require(archive_route in windows or re.search(r"\btar\b|tar\.gz|tar/gzip", archive_route["property"], re.I),
+            "the archive parser route still claims every archive consumer reads through its parser")
+
+    def guarded(route, sources):
+        return (route["id"] in report["protected"] and sources <= set(route["sources"])
+                and any(check["file"] == GUARD_REGRESSION for check in route["checks"]))
+
+    require(any(route["invariant"] == "I1" and guarded(route, {"tools/check_repository_checks.py"})
+                for route in registry["routes"]),
+            "the fixed-commit check is not connected to I1 as protection")
+    require(any(guarded(route, IMPORT_BOUNDARY) for route in registry["routes"]),
+            "the late-import check is not connected to the import boundary as protection")
 
 
 # ------------------------------------------------------------ maintain
