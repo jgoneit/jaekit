@@ -1,0 +1,14 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "windows-archive-name-limits",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/windows_archive_name_limits.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-1",
+      "violation": "committed-public-names-unchecked"
+    }
+  ]
+}
