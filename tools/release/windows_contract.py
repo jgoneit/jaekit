@@ -48,8 +48,8 @@ REFUSALS = ("Package manifest is too large", "Invalid package file entry types",
             "Expanded archive exceeds size limit", "Archive file/directory collision", "Package file size differs",
             "Archive name and manifest version differ", "Archive checksum is missing", "Archive stream exceeds declared size",
             "Truncated archive entry", "Candidate archive or checksums exceed size limits")
-ENVIRONMENT = ("System.IO.IOException", "System.IO.DirectoryNotFoundException", "System.IO.FileNotFoundException",
-               "System.IO.PathTooLongException", "System.IO.DriveNotFoundException", "System.UnauthorizedAccessException")
+ENVIRONMENT = frozenset(("System.IO.IOException", "System.IO.DirectoryNotFoundException", "System.IO.FileNotFoundException",
+               "System.IO.PathTooLongException", "System.IO.DriveNotFoundException", "System.UnauthorizedAccessException"))
 
 
 def load(name: str, path: str):
@@ -156,10 +156,12 @@ def installer_verdict(shell: str, directory: Path, destination: Path) -> tuple[s
         f"  Expand-CheckedPackage {quote(directory / name)} {quote(directory / 'checksums.txt')} {quote(destination)} | Out-Null",
         f"  [Console]::Out.WriteLine('{VERDICT}accept')",
         "} catch {",
-        # PowerShell wraps a .NET method's exception in MethodInvocationException;
-        # the base exception says whether it was a file access error.
-        "  $base = $_.Exception.GetBaseException()",
-        f"  [Console]::Out.WriteLine('{VERDICT}reject ' + $base.GetType().FullName + ': ' + $_.Exception.Message)",
+        # PowerShell wraps a .NET method's exception in MethodInvocationException,
+        # and a file access error can wrap another one, such as Win32Exception:
+        # every type in the chain is reported.
+        "  $types = @(); $inner = $_.Exception",
+        "  while ($inner) { $types += $inner.GetType().FullName; $inner = $inner.InnerException }",
+        f"  [Console]::Out.WriteLine('{VERDICT}reject ' + ($types -join ',') + ': ' + $_.Exception.Message)",
         "}",
     ])
     code, out, err = blocks.command(blocks.shell_path(shell), text, blocks.base_env(), bypass=True)
@@ -171,12 +173,13 @@ def installer_verdict(shell: str, directory: Path, destination: Path) -> tuple[s
 
 
 def classify(verdict: str, reason: str) -> str:
-    """`reason` is "<base exception type>: <message>". A file access error is
-    `error`, neither agreement nor disagreement, unless it carries one of the
-    installer's own refusals."""
+    """`reason` is "<exception types, outermost first>: <message>". A file
+    access error anywhere in the chain is `error`, neither agreement nor
+    disagreement, unless the message carries one of the installer's own
+    refusals."""
     if verdict != "reject" or any(known in reason for known in REFUSALS):
         return verdict
-    return "error" if reason.split(":", 1)[0] in ENVIRONMENT else "reject"
+    return "error" if ENVIRONMENT.intersection(reason.split(":", 1)[0].split(",")) else "reject"
 
 
 def contract(installer=installer_verdict, shells=("powershell", "pwsh"), progress=None) -> dict:

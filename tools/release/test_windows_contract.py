@@ -58,6 +58,11 @@ class WindowsContract(unittest.TestCase):
             "reject", "System.UnauthorizedAccessException: Access to the path is denied."))
         self.assertFalse(denied["passed"])
         self.assertEqual({"error"}, {verdict for case in denied["cases"] for verdict in case["installer"].values()})
+        # Also when it is wrapped, or wraps the operating system's own error.
+        wrapped = contract.contract(lambda shell, directory, destination: (
+            "reject", "System.Management.Automation.MethodInvocationException,System.IO.IOException,"
+                      "System.ComponentModel.Win32Exception: Exception calling \"ExtractToFile\": The file is in use."))
+        self.assertEqual({"error"}, {verdict for case in wrapped["cases"] for verdict in case["installer"].values()})
         # Refusing the normal archive for any other reason is a disagreement.
         refused = contract.contract(lambda shell, directory, destination: (
             "reject", "System.Management.Automation.RuntimeException: Installed/package file differs: LICENSE"))
@@ -77,13 +82,18 @@ class WindowsContract(unittest.TestCase):
 
 class PackagedArchive(unittest.TestCase):
     def test_public_package_paths_are_printable_ascii(self):
-        # The Windows archive rule accepts only such names; a public file named
-        # otherwise would stop the Windows archive before publication.
+        # The Windows archive rule accepts only such names. package.py packages
+        # the committed public files, so a tracked one named otherwise would fail
+        # the release build's archive check and stop the whole release.
         package = contract.check_archives.windows_package
         root = HERE.parents[1]
-        names = [name for name in package.PUBLIC_FILES]
-        for directory in package.PUBLIC_DIRECTORIES:
-            names += [path.relative_to(root).as_posix() for path in (root / directory).rglob("*") if path.is_file()]
+        if (root / ".git").exists():
+            names = list(package.public_index(root))
+        else:
+            # A source snapshot without Git holds only the committed files.
+            names = [path.relative_to(root).as_posix() for directory in package.PUBLIC_DIRECTORIES
+                     for path in (root / directory).rglob("*") if path.is_file()] + list(package.PUBLIC_FILES)
+        self.assertTrue(set(package.PUBLIC_FILES) <= set(names))
         self.assertEqual([], [name for name in names if not (name.isascii() and name.isprintable())])
 
     def test_a_package_py_archive_passes_the_rule(self):

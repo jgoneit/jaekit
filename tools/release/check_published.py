@@ -49,14 +49,15 @@ def fetch(url: str, limit: int, accept: str = "application/octet-stream") -> byt
     request = Request(url, headers={"Accept": accept, "User-Agent": "jaekit-release-check"})
     try:
         with urlopen(request, timeout=60) as response:
-            declared = getattr(response, "headers", {}).get("Content-Length") or ""
             data = response.read(limit + 1)
+            # http.client's count of declared bytes not yet read (None without
+            # a length): a connection closed early can return fewer bytes
+            # without an error.
+            remaining = getattr(response, "length", None)
     except HTTPException as error:
         # A truncated or malformed HTTP response, such as IncompleteRead.
         raise Unreadable(f"the response could not be read ({type(error).__name__}): {url}") from None
-    # A connection closed early can return fewer bytes without an error.
-    declared = declared.strip()
-    if re.fullmatch(r"[0-9]+", declared) and len(data) < min(int(declared), limit + 1):
+    if remaining and len(data) <= limit:
         raise Unreadable("the response ended before its declared length: " + url)
     if len(data) > limit:
         raise ValueError("download exceeds the release archive limit: " + url)

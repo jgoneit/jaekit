@@ -183,6 +183,15 @@ class WindowsRelease(Fixture):
                 with self.assertRaisesRegex(ValueError, "not printable ASCII"):
                     release.check(self.dist, VERSION)
 
+    def test_local_metadata_and_caches_are_refused_in_any_case(self):
+        # Windows reads the expanded folder without case.
+        for name in ("guides/.git/config", "guides/.GIT/config", "guides/NODE_MODULES/x.md",
+                     "guides/__PyCache__/x.md", "guides/tool.PYC"):
+            with self.subTest(name=name):
+                self.write(files=dict(self.files, **{name: b"x\n"}))
+                with self.assertRaisesRegex(ValueError, "local metadata or generated cache"):
+                    release.check(self.dist, VERSION)
+
     def test_a_file_named_like_a_folder_in_another_case_is_refused(self):
         self.write(files=dict(self.files, **{"GUIDES": b"file\n", "guides/EXTRA.md": b"guide\n"}))
         with self.assertRaisesRegex(ValueError, "file/directory collision"):
@@ -315,26 +324,35 @@ class PublishedRelease(Fixture):
             published.read_tag("jgoneit/jaekit", "v" + VERSION)
 
     def test_truncated_responses_are_unreadable(self):
-        class Short(io.BytesIO):
-            headers = {"Content-Length": "100"}
+        class Socket:
+            def __init__(self, data):
+                self.data = data
 
-            def __enter__(self):
-                return self
+            def makefile(self, mode):
+                return io.BytesIO(self.data)
 
-            def __exit__(self, *args):
-                self.close()
+        def response(headers, body):
+            # http.client's own response, over a connection that ends after `body`.
+            value = http.client.HTTPResponse(Socket(b"HTTP/1.1 200 OK\r\n" + headers + b"\r\n" + body))
+            value.begin()
+            return value
 
-        class Broken(Short):
-            def read(self, size=-1):
-                raise http.client.IncompleteRead(b"partial", 50)
+        def fetch(value, limit=1000):
+            with unittest.mock.patch.object(published, "urlopen", return_value=value):
+                return published.fetch("https://example.invalid/asset", limit)
 
-        class Padded(Short):
-            headers = {"Content-Length": "100 "}
-
-        for response in (Short(b"x" * 50), Padded(b"x" * 50), Broken()):
-            with self.subTest(response=type(response).__name__), \
-                    unittest.mock.patch.object(published, "urlopen", return_value=response), self.assertRaises(OSError):
-                published.fetch("https://example.invalid/asset", 1000)
+        for label, value in (("short", response(b"Content-Length: 100\r\n", b"x" * 50)),
+                             ("padded", response(b"Content-Length:  100 \r\n", b"x" * 50)),
+                             ("empty", response(b"Content-Length: 100\r\n", b""))):
+            with self.subTest(response=label), self.assertRaises(OSError):
+                fetch(value)
+        broken = response(b"Transfer-Encoding: chunked\r\n", b"40\r\n" + b"x" * 10)
+        with self.subTest(response="incomplete chunk"), self.assertRaises(OSError):
+            fetch(broken)
+        self.assertEqual(b"x" * 50, fetch(response(b"Content-Length: 50\r\n", b"x" * 50)))
+        self.assertEqual(b"x" * 50, fetch(response(b"Connection: close\r\n", b"x" * 50)))
+        with self.assertRaisesRegex(ValueError, "exceeds the release archive limit"):
+            fetch(response(b"Content-Length: 2000\r\n", b"x" * 2000))
         with unittest.mock.patch.object(published, "fetch", return_value=b"{not json"), \
                 contextlib.redirect_stderr(io.StringIO()) as errors:
             self.assertEqual(published.main(["--tag", "v" + VERSION]), 2)

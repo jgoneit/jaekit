@@ -303,7 +303,9 @@ def windows_files(path: Path, checksum: str, version: str):
         # Only what package.py packages: the Core, its manifest and public files.
         require(name in ("ha.exe", "package.json") or windows_package.public_path(name),
                 "Windows archive has a path package.py does not package: " + name)
-        require(not LOCAL_PARTS.intersection(name.split("/")) and PurePosixPath(name).suffix not in CACHE_SUFFIXES,
+        # Without case, as Windows reads the expanded folder.
+        require(not LOCAL_PARTS.intersection(name.lower().split("/"))
+                and PurePosixPath(name).suffix.lower() not in CACHE_SUFFIXES,
                 "Windows archive contains local metadata or generated cache: " + name)
     require(WINDOWS_REQUIRED <= files.keys(),
             "Windows archive is missing required files: " + ", ".join(sorted(WINDOWS_REQUIRED - files.keys())))
