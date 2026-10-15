@@ -467,8 +467,11 @@ def ac2():
         listed = api(f"repos/{repo}/actions/runs/{latest['id']}/artifacts?per_page=100")
         if "release-windows-contract" not in {item.get("name") for item in listed.get("artifacts", [])}:
             jobs = api(f"repos/{repo}/actions/runs/{latest['id']}/attempts/{latest['run_attempt']}/jobs?per_page=100")
-            steps = {step.get("name") for job in jobs.get("jobs", []) if job.get("name") == "Windows release archive"
-                     for step in job.get("steps", [])}
+            windows = [job for job in jobs.get("jobs", []) if job.get("name") == "Windows release archive"]
+            if not windows or windows[0].get("conclusion") not in ("success", "failure"):
+                # Skipped or cancelled, for instance after a failed build: no answer.
+                raise ObservationError("the Windows job of HEAD's release run did not run to an end")
+            steps = {step.get("name") for step in windows[0].get("steps", [])}
             if "Compare the archive rule with the installer" in steps:
                 raise ObservationError("HEAD's release run compared the rule with the installer but kept no report")
             raise Violation("HEAD's release run did not compare the archive rule with the installer")
