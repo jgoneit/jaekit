@@ -364,26 +364,39 @@ from this synthetic package smoke.
 
 ## Windows archive
 
-A release publishes the Windows archive `ha_<version>_windows_amd64.zip` only
-with a Windows 11 acceptance link (see `tools/windows/README.md`); otherwise it
-publishes the four macOS/Linux archives and `checksums.txt`. Both shapes are
-accepted here. When the Windows archive is present, its `checksums.txt` entry
-must match, and its in-memory manifest, file hashes and Windows amd64
-executable are checked; nothing is extracted.
+This checker accepts only the shape v0.1.3 was published with: the four
+macOS/Linux archives and `checksums.txt`. v0.1.3 has no Windows archive, so a
+Windows ZIP or any other asset fails the asset check, and the checker keeps no
+rule for Windows archive contents.
 
-For any published tag, `python3 tools/release/check_published.py --tag vX.Y.Z`
-downloads the public assets within the archive limits, compares their sizes and
-GitHub digests, and applies the same pre-publication rules
-(`tools/release/check_archives.py`), including the full Windows archive check.
+Later releases publish the Windows archive `ha_<version>_windows_amd64.zip`
+only with a Windows 11 acceptance link (see `tools/windows/README.md`);
+otherwise they publish the four archives and `checksums.txt`. For any published
+tag, `python3 tools/release/check_published.py --tag vX.Y.Z` checks either
+shape: it downloads the public assets within the archive limits, compares their
+sizes and GitHub digests, and applies the pre-publication rules
+(`tools/release/check_archives.py`). There is one Windows archive content rule,
+`check_archives.windows_files`, used before and after publication; it is no
+looser than the installer's package check and refuses paths `package.py` does
+not package. When the Windows archive is published, the check also reads the
+tag object and requires the link the publication gate
+(`tools/release/windows_gate.py`) requires: an annotated tag whose message has
+exactly one `Windows-Accepted-SHA256` line equal to the archive's SHA-256. A
+release without the Windows archive does not need its tag. Exit 1 is a failed
+check; exit 2 means the release or its tag could not be read.
 
 ## Archive resource limits
 
-Every archive consumer reads through the same read-only parser,
+Every tar.gz archive consumer reads through the same read-only parser,
 [`tools/release/archive_reader.py`](../release/archive_reader.py): this
-acceptance checker for downloads, release collection and installation, and the
+acceptance checker for downloads, release collection and installation, the
+published-release check, and the
 standalone validator [`tools/release/check_archives.py`](../release/check_archives.py)
 for `--dist` files and its native smoke. Reading one needed file never skips
-another limit.
+another limit. The Windows ZIP is not read by this parser:
+`check_archives.windows_files` reads it in memory under the installer's limits
+(2,048 entries, 32 MiB per file, 128 MiB in total and a 1 MiB manifest) within
+the same 64 MiB compressed limit.
 
 Each archive is at most 64 MiB compressed, whether downloaded or supplied with
 `--dist`. It permits at most 256 MiB of cumulative member bodies and 10,000

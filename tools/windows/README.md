@@ -263,7 +263,10 @@ to be tagged.
    carries exactly one such line equal to the archive the Windows job checked.
    A lightweight tag, a missing or repeated line or another digest leaves the
    Windows archive out and publishes the four macOS/Linux archives with their
-   checksums. The Windows build omits VCS stamps, so a manual run and the tag
+   checksums. After publication, `python3 tools/release/check_published.py
+   --tag v<version>` applies the same rule to the published tag: a published
+   Windows archive fails unless its annotated tag carries exactly one
+   `Windows-Accepted-SHA256` line equal to that archive's SHA-256. The Windows build omits VCS stamps, so a manual run and the tag
    build of one commit and version produce the same archive; if they still
    differ, the archive is left out rather than published unchecked.
 

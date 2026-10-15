@@ -59,8 +59,8 @@ Ubuntu 실행은 WSL2 실행이 아닙니다. CI는 WSL2 설치, 설치된 에�
 [릴리스 workflow](../.github/workflows/release.yml)는 태그 push뿐 아니라 PR과 수동 실행에서도 같은 빌드와 검사를 실행합니다. 게시는 태그 push에서만 합니다.
 
 - `Build release files`(Ubuntu): macOS·Linux tar.gz 4개와 Windows ZIP 1개를 만들고, 다섯 아카이브를 나열한 `checksums.txt` 하나를 만듭니다. 게시 전 검사로 ZIP 내부 manifest·파일 해시·경로·Windows 실행 파일 형식까지 확인합니다. PR 실행은 PR head 커밋을 빌드하고, 그 실제 소스 커밋과 ZIP SHA-256을 `release-build-info`에 남깁니다.
-- `Windows release archive`(Windows Server 2025): 같은 ZIP을 PowerShell 5.1과 7 각각에서 설치기 자체의 패키지 검증으로 확인하고 `ha --version`·`capabilities`를 실행합니다. 그다음 [공개 설치·제거 블록](WINDOWS.md#공개-릴리스로-설치)을 내려받는 출처와 버전만 바꿔 그대로 붙여 넣습니다. 실제 ZIP으로는 설치기가 Windows 11 가드에서 멈추는 것을, 시험용 ZIP으로는 성공·실패·체크섬 거부·그룹 정책 거부에서 부모 PATH·실행 정책·자식 셸을 관측합니다. 보고서는 `release-windows-reports`에 남습니다.
-- `Publish release`: 태그 push에서만 실행합니다. Windows job이 확인한 ZIP과 게시할 ZIP이 다르면 아무것도 게시하지 않습니다. 태그 주석에 그 ZIP의 Windows 11 확인 줄이 없으면 Windows ZIP을 빼고 macOS·Linux 파일만 게시합니다.
+- `Windows release archive`(Windows Server 2025): 같은 ZIP을 PowerShell 5.1과 7 각각에서 설치기 자체의 패키지 검증으로 확인하고 `ha --version`·`capabilities`를 실행합니다. 그다음 [공개 설치·제거 블록](WINDOWS.md#공개-릴리스로-설치)을 내려받는 출처와 버전만 바꿔 그대로 붙여 넣습니다. 실제 ZIP으로는 설치기가 Windows 11 가드에서 멈추는 것을, 시험용 ZIP으로는 성공·실패·체크섬 거부·그룹 정책 거부에서 부모 PATH·실행 정책·자식 셸을 관측합니다. 보고서는 `release-windows-reports`에 남습니다. 또 합성 ZIP(manifest 한도·크기 타입·DOS 속성·원래 항목 이름)으로 아카이브 규칙과 설치기의 패키지 검증을 두 셸에서 대조하고 그 보고서를 `release-windows-contract`에 남깁니다. 이 대조는 관측이며 게시 대상을 바꾸지 않습니다.
+- `Publish release`: 태그 push에서만 실행합니다. Windows job이 확인한 ZIP과 게시할 ZIP이 다르면 아무것도 게시하지 않습니다. 태그 주석에 그 ZIP의 Windows 11 확인 줄이 없으면 Windows ZIP을 빼고 macOS·Linux 파일만 게시합니다. 게시 뒤에는 `tools/release/check_published.py`가 같은 아카이브 규칙으로 게시된 태그를 확인하고, Windows ZIP이 게시되었으면 태그 객체의 같은 확인 줄도 확인합니다.
 
 이 workflow는 `main`의 필수 검사(`Seal Core`, `Public documentation`)가 아닙니다. Server에서의 확인은 Windows 11 설치 성공이 아니며, 실제 설치·업데이트·제거는 [Windows 11 확인 절차](../tools/windows/README.md)에서 확인합니다.
 
