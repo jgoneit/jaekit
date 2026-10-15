@@ -6,14 +6,16 @@ the current files by their properties, without an earlier commit (AGENTS.md).
 A finding is a 7-40 digit lowercase hexadecimal object name, optionally
 followed by `:path`, `..`, `^` or `~` (`7476c87:README.md`, `7476c87..HEAD`),
 written in the arguments of a Git call or bound to a name used there. A Git
-call is a call whose function name ends in `git`, or whose arguments (or an
-argument list) contain the string "git". Hexadecimal values that never reach
+call is a call whose function name ends in `git`, or whose positional
+arguments (or an argument list) contain the string "git"; keyword values such
+as `input` are not Git arguments. Hexadecimal values that never reach
 Git, such as SHA-256 digests or synthetic object IDs, and `HEAD` are fine.
 
 Late imports: a module that declares a standard-library import boundary
 restores the caller's import path after its bootstrap
 (`sys.path[:] = _CALLER_IMPORT_PATH`). Any later import of a module the
-bootstrap did not already load could then run a module from the caller's
+bootstrap did not already load (an import inside a function defined during
+the bootstrap runs later) could then run a module from the caller's
 path. Such an import must sit inside `with trusted_imports():` or in a
 function decorated with `@trusted_imports()`; a submodule of a package the
 bootstrap loaded resolves through that package and is fine.
@@ -76,7 +78,9 @@ def call_name(node: ast.Call) -> str:
 
 
 def arguments(node: ast.Call):
-    for value in [*node.args, *(keyword.value for keyword in node.keywords)]:
+    """Positional arguments and their list items: the command line. Keyword
+    values (input, cwd, env) are not Git arguments."""
+    for value in node.args:
         if isinstance(value, ast.Starred):
             value = value.value
         yield value
@@ -156,12 +160,19 @@ def import_findings(tree: ast.Module):
     if restore is None:
         return
     loaded = set()
+
+    def executed(node):
+        # Imports the bootstrap runs itself; a function body runs later.
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            loaded.update(imported(node))
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            for child in ast.iter_child_nodes(node):
+                executed(child)
+
     for node in tree.body:
         if node.lineno >= restore:
             break
-        for inner in ast.walk(node):
-            if isinstance(inner, (ast.Import, ast.ImportFrom)):
-                loaded.update(imported(inner))
+        executed(node)
     found = []
 
     def visit(node, inside_trust, at_module):

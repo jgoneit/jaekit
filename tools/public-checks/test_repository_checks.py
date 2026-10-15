@@ -64,6 +64,7 @@ class RepositoryChecks(unittest.TestCase):
             def current(history):
                 print(OID, DIGEST)
                 history("add", "commit:" + OID)
+                subprocess.run(["git", "hash-object", "--stdin"], input="deadbeef", text=True)
                 return subprocess.run(["git", "rev-parse", "HEAD"])
             """}))
 
@@ -88,6 +89,19 @@ class RepositoryChecks(unittest.TestCase):
             """)})
         self.assertEqual(["tools/c.py:10", "tools/c.py:12", "tools/c.py:13"],
                          [finding.split(": ", 1)[0] for finding in findings])
+
+    def test_an_import_defined_during_the_bootstrap_but_run_later_is_reported(self):
+        findings = self.scan({"tools/f.py": """\
+            import sys
+            _CALLER_IMPORT_PATH = sys.path[:]
+            sys.path[:] = (sys.prefix,)
+            def parse():
+                import zipfile
+                return zipfile
+            sys.path[:] = _CALLER_IMPORT_PATH
+            parse()
+            """})
+        self.assertEqual(["tools/f.py:5"], [finding.split(": ", 1)[0] for finding in findings])
 
     def test_modules_without_a_bootstrap_may_import_late(self):
         self.assertEqual([], self.scan({"tools/d.py": "def late():\n    import zipfile\n    return zipfile\n"}))
