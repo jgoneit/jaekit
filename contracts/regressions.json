@@ -899,7 +899,7 @@
         "tools/windows/package.py",
         "tools/windows/common.ps1"
       ],
-      "property": "One Windows ZIP rule (check_archives.windows_files) judges an archive the same way before and after publication: it refuses what the installer's package check refuses and paths package.py does not package, and accepts a package.py archive. A published Windows archive also needs the tag link the publication gate requires.",
+      "property": "One Windows ZIP rule (check_archives.windows_files) judges an archive the same way before and after publication: it refuses what the installer's package check refuses and paths package.py does not package, and accepts a package.py archive of printable-ASCII public files with exactly package.py's manifest fields. A published Windows archive also needs the tag link the publication gate requires.",
       "examples": [
         "a boolean manifest size",
         "a published Windows archive under a tag without its acceptance link"
@@ -929,6 +929,11 @@
         {
           "file": "tools/release/test_windows_contract.py",
           "selector": "PackagedArchive",
+          "group": "docs"
+        },
+        {
+          "file": "tools/release/test_windows_contract.py",
+          "selector": "PackagedArchive.test_public_package_paths_are_printable_ascii",
           "group": "docs"
         }
       ],

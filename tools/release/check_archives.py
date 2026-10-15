@@ -267,9 +267,11 @@ def windows_files(path: Path, checksum: str, version: str):
             require(entry.orig_filename == name, "Windows archive has an unsafe path: " + repr(entry.orig_filename))
             # The installer compares names in a culture-aware PowerShell hashtable
             # and NTFS by its own upper-case table; for non-ASCII text (code
-            # pages, normalization forms, ignorable characters) Python cannot
-            # reproduce either. package.py's public files are ASCII.
-            require(name.isascii(), "Windows archive has a non-ASCII name: " + repr(name))
+            # pages, normalization forms) and ignorable characters such as DEL,
+            # Python cannot reproduce either. package.py's public files are
+            # printable ASCII.
+            require(name.isascii() and name.isprintable(),
+                    "Windows archive has a name that is not printable ASCII: " + repr(name))
             try:
                 windows_package.safe_name(name)
             except ValueError:

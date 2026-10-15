@@ -76,6 +76,16 @@ class WindowsContract(unittest.TestCase):
 
 
 class PackagedArchive(unittest.TestCase):
+    def test_public_package_paths_are_printable_ascii(self):
+        # The Windows archive rule accepts only such names; a public file named
+        # otherwise would stop the Windows archive before publication.
+        package = contract.check_archives.windows_package
+        root = HERE.parents[1]
+        names = [name for name in package.PUBLIC_FILES]
+        for directory in package.PUBLIC_DIRECTORIES:
+            names += [path.relative_to(root).as_posix() for path in (root / directory).rglob("*") if path.is_file()]
+        self.assertEqual([], [name for name in names if not (name.isascii() and name.isprintable())])
+
     def test_a_package_py_archive_passes_the_rule(self):
         # package.py's own synthetic Git source fixture and a synthetic PE32+ Core.
         fixture = package_tests.CandidatePackageTests("prepare")

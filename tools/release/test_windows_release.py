@@ -152,12 +152,17 @@ class WindowsRelease(Fixture):
         for label, changed in {"an empty property name": dict(manifest, **{"": 0}),
                                "names differing only in case": dict(manifest, Schema="other"),
                                "a non-finite number": dict(manifest, extra=float("nan")),
-                               "an out-of-range number": dict(manifest, extra=float("inf")),
                                "an extra entry field": dict(manifest, files=entries)}.items():
             with self.subTest(label=label):
                 self.write(manifest=changed)
                 with self.assertRaisesRegex(ValueError, "Windows archive manifest"):
                     release.check(self.dist, VERSION)
+        # A number JSON allows but no size can be, in a field package.py writes.
+        sized = dict(manifest, files=[dict(manifest["files"][0], size="SIZE")] + manifest["files"][1:])
+        raw = json.dumps(sized).replace('"SIZE"', "1e400").encode()
+        self.write(manifest=False, extra=[(zipfile.ZipInfo("package.json", date_time=(1980, 1, 1, 0, 0, 0)), raw)])
+        with self.assertRaisesRegex(ValueError, "Windows archive manifest has an invalid entry"):
+            release.check(self.dist, VERSION)
 
     def test_repeated_and_case_colliding_paths_are_refused(self):
         repeated = zipfile.ZipInfo("LICENSE", date_time=(1980, 1, 1, 0, 0, 0))
@@ -172,10 +177,10 @@ class WindowsRelease(Fixture):
 
     def test_non_ascii_names_are_refused(self):
         # Windows may fold, normalize or ignore parts of them differently.
-        for name in ("guides/\u03c2.md", "guides/\u0131.md", "guides/cafe\u0301.md"):
+        for name in ("guides/\u03c2.md", "guides/\u0131.md", "guides/cafe\u0301.md", "guides/a\x7f.md"):
             with self.subTest(name=name):
                 self.write(files=dict(self.files, **{name: b"guide\n"}))
-                with self.assertRaisesRegex(ValueError, "non-ASCII name"):
+                with self.assertRaisesRegex(ValueError, "not printable ASCII"):
                     release.check(self.dist, VERSION)
 
     def test_a_file_named_like_a_folder_in_another_case_is_refused(self):
@@ -323,7 +328,10 @@ class PublishedRelease(Fixture):
             def read(self, size=-1):
                 raise http.client.IncompleteRead(b"partial", 50)
 
-        for response in (Short(b"x" * 50), Broken()):
+        class Padded(Short):
+            headers = {"Content-Length": "100 "}
+
+        for response in (Short(b"x" * 50), Padded(b"x" * 50), Broken()):
             with self.subTest(response=type(response).__name__), \
                     unittest.mock.patch.object(published, "urlopen", return_value=response), self.assertRaises(OSError):
                 published.fetch("https://example.invalid/asset", 1000)

@@ -156,7 +156,10 @@ def installer_verdict(shell: str, directory: Path, destination: Path) -> tuple[s
         f"  Expand-CheckedPackage {quote(directory / name)} {quote(directory / 'checksums.txt')} {quote(destination)} | Out-Null",
         f"  [Console]::Out.WriteLine('{VERDICT}accept')",
         "} catch {",
-        f"  [Console]::Out.WriteLine('{VERDICT}reject ' + $_.Exception.GetType().FullName + ': ' + $_.Exception.Message)",
+        # PowerShell wraps a .NET method's exception in MethodInvocationException;
+        # the base exception says whether it was a file access error.
+        "  $base = $_.Exception.GetBaseException()",
+        f"  [Console]::Out.WriteLine('{VERDICT}reject ' + $base.GetType().FullName + ': ' + $_.Exception.Message)",
         "}",
     ])
     code, out, err = blocks.command(blocks.shell_path(shell), text, blocks.base_env(), bypass=True)
@@ -168,7 +171,7 @@ def installer_verdict(shell: str, directory: Path, destination: Path) -> tuple[s
 
 
 def classify(verdict: str, reason: str) -> str:
-    """`reason` is "<exception type>: <message>". A file access error is
+    """`reason` is "<base exception type>: <message>". A file access error is
     `error`, neither agreement nor disagreement, unless it carries one of the
     installer's own refusals."""
     if verdict != "reject" or any(known in reason for known in REFUSALS):

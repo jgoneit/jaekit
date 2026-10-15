@@ -378,7 +378,10 @@ sizes and GitHub digests, and applies the pre-publication rules
 (`tools/release/check_archives.py`). There is one Windows archive content rule,
 `check_archives.windows_files`, used before and after publication; it is no
 looser than the installer's package check and refuses paths `package.py` does
-not package. When the Windows archive is published, the check also reads the
+not package. It accepts only printable ASCII names and only the manifest fields
+`package.py` writes, because the installer compares names and reads JSON in
+ways Python cannot reproduce for other input; a public file with another name
+would stop the Windows archive before publication. When the Windows archive is published, the check also reads the
 tag object and requires the link the publication gate
 (`tools/release/windows_gate.py`) requires: an annotated tag whose message has
 exactly one `Windows-Accepted-SHA256` line equal to the archive's SHA-256. A
