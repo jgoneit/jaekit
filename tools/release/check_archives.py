@@ -7,8 +7,11 @@ acceptance link publishes the four archives and their checksums only.
 
 No download, installation, upload, tag changes, or writes to the source tree.
 Native smoke files live in a temporary directory and use only packaged inputs.
-Archives are read only through the shared bounded reader (archive_reader.py);
-its limits are published in tools/release-checks/README.md.
+The tar.gz archives are read only through the shared bounded reader
+(archive_reader.py), whose limits are published in
+tools/release-checks/README.md. The Windows ZIP has its own bounded in-memory
+rule (windows_files), the one the published-release check also applies; it is
+no looser than the installer's package check (tools/windows/common.ps1).
 """
 from __future__ import annotations
 
@@ -55,18 +58,20 @@ REQUIRED = {
 ROOT_FILES = {"ha", "LICENSE", "README.md", "README.en.md"}
 ROOT_DIRECTORIES = {"guides", "contracts", "assets", "tools", "examples"}
 EXAMPLE_FILES = {name for name in REQUIRED if name.startswith("examples/")}
+# Local metadata and generated caches never belong in a release archive.
+LOCAL_PARTS = {".git", "__pycache__", "node_modules"}
+CACHE_SUFFIXES = {".pyc", ".pyo"}
 
 
 WINDOWS_SCHEMA = "jaekit-windows-package/v1"
 WINDOWS_MAX_ENTRIES = 2048
 WINDOWS_MAX_FILE_BYTES = 32 * 1024 * 1024
 WINDOWS_MAX_BYTES = 128 * 1024 * 1024
-WINDOWS_REQUIRED = {
-    "ha.exe", "package.json", "LICENSE", "README.md", "README.en.md",
-    "guides/WINDOWS.md", "guides/WINDOWS.en.md",
-    "tools/windows/common.ps1", "tools/windows/install.ps1", "tools/windows/uninstall.ps1",
-    "tools/check-result-reference.py",
-}
+# The installer reads at most this much manifest (common.ps1 Read-PackageManifest).
+WINDOWS_MAX_MANIFEST_BYTES = 1024 * 1024
+WINDOWS_SHA256 = re.compile(r"[0-9a-f]{64}")
+# DOS directory (0x10) and reparse-point (0x400) attributes; the installer refuses both.
+WINDOWS_DOS_REFUSED = 0x410
 
 
 def load_archive_reader():
@@ -90,6 +95,11 @@ def load_windows_package():
 
 
 windows_package = load_windows_package()
+# What package.py always packages (the Core, its manifest and the public files
+# it requires) and the guides the installer requires (Read-PackageManifest);
+# package.public_path() bounds everything else.
+WINDOWS_REQUIRED = {"ha.exe", "package.json", "guides/WINDOWS.md", "guides/WINDOWS.en.md",
+                    *windows_package.PUBLIC_FILES}
 # The same published limits as the acceptance checker; see archive_reader.py.
 ARCHIVE_MAX_COMPRESSED_BYTES = archive_reader.MAX_COMPRESSED_BYTES
 ARCHIVE_MAX_BYTES = archive_reader.MAX_BYTES
@@ -173,8 +183,7 @@ def archive_files(members, prefix: str):
         top = relative.parts[0]
         require(top in ROOT_DIRECTORIES or (len(relative.parts) == 1 and top in ROOT_FILES),
                 "archive contains a file outside the release allowlist")
-        require(not {".git", "__pycache__", "node_modules"}.intersection(relative.parts)
-                and relative.suffix not in {".pyc", ".pyo"},
+        require(not LOCAL_PARTS.intersection(relative.parts) and relative.suffix not in CACHE_SUFFIXES,
                 "archive contains local metadata or generated cache")
         if top == "tools":
             require(str(relative) in {"tools", "tools/check-result-reference.py"},
@@ -204,8 +213,10 @@ def check_platform(binary: bytes, target: str):
 def windows_files(path: Path, checksum: str, version: str):
     """Verify the Windows archive in memory: bounded, manifest-complete and safe.
 
-    Mirrors the installer's own checks (common.ps1 Expand-CheckedPackage)
-    before publication; nothing is extracted to disk.
+    The one Windows archive rule, applied before publication and by the
+    published-release check. It refuses at least what the installer's own
+    checks refuse (common.ps1 Expand-CheckedPackage, Read-PackageManifest) and
+    any path package.py would not package; nothing is extracted to disk.
     """
     require(path.stat().st_size <= ARCHIVE_MAX_COMPRESSED_BYTES, "Windows archive compressed size limit exceeded")
     with path.open("rb") as source:
@@ -221,12 +232,17 @@ def windows_files(path: Path, checksum: str, version: str):
         require(0 < len(entries) <= WINDOWS_MAX_ENTRIES, "Windows archive entry count is out of bounds")
         for entry in entries:
             name = entry.filename
+            # zipfile cuts a name at NUL and, on Windows, turns backslashes
+            # into slashes; the installer sees the stored name and refuses it.
+            require(entry.orig_filename == name, "Windows archive has an unsafe path: " + repr(entry.orig_filename))
             try:
                 windows_package.safe_name(name)
             except ValueError:
                 raise ValueError("Windows archive has an unsafe path: " + repr(name)) from None
             kind = (entry.external_attr >> 16) & 0o170000
             require(not entry.is_dir() and kind in (0, 0o100000), "Windows archive contains a directory, link or special file")
+            require(entry.external_attr & WINDOWS_DOS_REFUSED == 0,
+                    "Windows archive entry has a DOS directory or reparse-point attribute: " + name)
             require(entry.flag_bits & 0x1 == 0, "Windows archive contains an encrypted entry")
             require(entry.compress_type in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED), "Windows archive uses an unsupported compression")
             require(name not in files, "Windows archive repeats a path")
@@ -246,8 +262,15 @@ def windows_files(path: Path, checksum: str, version: str):
         parts = name.lower().split("/")
         require(not any("/".join(parts[:index]) in lowered for index in range(1, len(parts))),
                 "Windows archive has a file/directory collision")
+    for name in files:
+        # Only what package.py packages: the Core, its manifest and public files.
+        require(name in ("ha.exe", "package.json") or windows_package.public_path(name),
+                "Windows archive has a path package.py does not package: " + name)
+        require(not LOCAL_PARTS.intersection(name.split("/")) and PurePosixPath(name).suffix not in CACHE_SUFFIXES,
+                "Windows archive contains local metadata or generated cache: " + name)
     require(WINDOWS_REQUIRED <= files.keys(),
             "Windows archive is missing required files: " + ", ".join(sorted(WINDOWS_REQUIRED - files.keys())))
+    require(len(files["package.json"]) <= WINDOWS_MAX_MANIFEST_BYTES, "Windows archive manifest exceeds 1 MiB")
     try:
         manifest = json.loads(files["package.json"].decode("utf-8"))
     except (UnicodeError, json.JSONDecodeError):
@@ -262,6 +285,11 @@ def windows_files(path: Path, checksum: str, version: str):
     for item in listed:
         require(isinstance(item, dict) and isinstance(item.get("path"), str) and item["path"] not in expected,
                 "Windows archive manifest has an invalid or repeated entry")
+        # JSON true and 1.0 compare equal to 1 in Python; the installer takes
+        # only integer sizes and lowercase digests.
+        require(type(item.get("size")) is int and 0 <= item["size"] <= WINDOWS_MAX_FILE_BYTES
+                and isinstance(item.get("sha256"), str) and WINDOWS_SHA256.fullmatch(item["sha256"]),
+                "Windows archive manifest has an invalid entry: " + item["path"])
         expected[item["path"]] = item
     require(expected.keys() == files.keys() - {"package.json"},
             "Windows archive files differ from its manifest")
