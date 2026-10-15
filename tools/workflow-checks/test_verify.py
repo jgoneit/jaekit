@@ -121,8 +121,9 @@ class InvocationCases(Fixture):
         result = self.run_verify()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         commands = self.commands()
+        # The read-only input listing precedes every check.
         self.assertEqual([item["name"] for item in commands],
-                         ["gofmt", "go", "go", "go", "review:test_observation.py", "review:test_installation.py",
+                         ["git", "gofmt", "go", "go", "go", "review:test_observation.py", "review:test_installation.py",
                           "review:test_producers.py", "gap:test_observation.py", "gap:test_history_results.py",
                           "gap:test_docs_environment.py", "producer:test_semantics.py", "release:integration_evidence_boundaries.py",
                           "release:integration_core_observation.py", "release:integration_direct_install.py",
@@ -154,7 +155,7 @@ class InvocationCases(Fixture):
         result = self.run_verify("docs")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual([item["name"] for item in self.commands()],
-                         ["check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "ci", "release", "windows", "goal-checks", "release-checks",
+                         ["git", "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "ci", "release", "windows", "goal-checks", "release-checks",
                           "regression:integration_selection_go.py", "regression:integration_selection_go_identifiers.py",
                           "regression:integration_selection_go_layout.py", "regression:integration_selection_python.py"])
 
@@ -172,7 +173,7 @@ class FailureCases(Fixture):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("FAIL: Go formatting", result.stdout + result.stderr)
         self.assertIn("bad.go", result.stdout + result.stderr)
-        self.assertEqual([item["name"] for item in self.commands()], ["gofmt"])
+        self.assertEqual([item["name"] for item in self.commands()], ["git", "gofmt"])
         self.assertEqual(self.snapshot(), before)
 
     def test_required_command_failures_are_identified_and_stop_execution(self):
@@ -262,7 +263,10 @@ class NonMutationCases(Fixture):
                 self.assertEqual(result.returncode == 0, not failure, result.stdout + result.stderr)
                 self.assertEqual(self.snapshot(), before)
                 for item in self.commands():
-                    self.assertNotEqual(item["name"], "git", "verification must not change Git state")
+                    if item["name"] == "git":
+                        # Only the read-only listing of untracked verification input.
+                        self.assertEqual(item["args"][:4], ["--no-optional-locks", "ls-files", "-z", "--others"],
+                                         "verification must not change Git state")
                     if item["name"] == "go" and item["args"][0] == "build":
                         binary = Path(item["args"][item["args"].index("-o") + 1])
                         self.assertFalse(binary.is_relative_to(self.repo))

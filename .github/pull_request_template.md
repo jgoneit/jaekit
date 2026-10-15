@@ -21,8 +21,8 @@ For a simple change without a significant design decision, remove this section o
 
 <!-- 실제로 실행한 명령과 결과, 또는 수동 확인 절차와 관찰한 결과를 함께 적어 주세요.
 Share the commands and results, or manual steps and observed results, for checks you actually performed.
-커밋·푸시·공개 전 기본 검증 명령은 `python3 tools/verify.py`입니다.
-Run `python3 tools/verify.py` before committing, pushing, or publishing.
+푸시·공개 전에 최종 후보와 같은 검증 입력에서 `python3 tools/verify.py`가 한 번 통과해야 합니다(커밋 전후 어느 쪽이든 되며, 같은 입력을 두 번 실행하지 않습니다).
+Before pushing or publishing, `python3 tools/verify.py` must pass once on the same verification input as the final candidate (before or after committing; do not run it twice on the same input).
 확인하지 못한 항목과 이유를 명시하고, 검증한 범위까지만 설명해 주세요.
 State what was not checked and why, and limit claims to the scope actually verified.
 예: 문서 검사 통과는 실제 설치·실행이나 GitHub 화면 확인을 의미하지 않습니다.

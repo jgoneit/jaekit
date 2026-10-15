@@ -10,14 +10,24 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGETS = ("linux/amd64", "linux/arm64", "darwin/amd64", "darwin/arm64")
+# Untracked paths shown before the count of the remaining ones.
+LISTED_INPUTS = 50
+# Elapsed times use the monotonic clock: a step runs from its RUN line to its
+# result, the whole run from the start of main() to its final line.
+STEPS = {"active": None, "started": False}
 
 
 class CheckFailed(Exception):
     pass
+
+
+def seconds(start: float) -> str:
+    return f"{time.monotonic() - start:.1f}s"
 
 
 def go_flag_fields(value: str):
@@ -105,6 +115,8 @@ def full_go_environment(env: dict[str, str]) -> dict[str, str]:
 
 
 def run(label: str, command: list[str], env: dict[str, str], *, formatting=False):
+    started = time.monotonic()
+    STEPS.update(active=(label, started), started=True)
     print(f"RUN: {label}\n  {shlex.join(command)}", flush=True)
     if command[:2] == ["go", "test"] and "./..." in command:
         try:
@@ -122,7 +134,8 @@ def run(label: str, command: list[str], env: dict[str, str], *, formatting=False
         raise CheckFailed(f"{label}: exit {result.returncode}")
     if formatting and result.stdout.strip():
         raise CheckFailed(f"{label}: files listed above need gofmt; no files were rewritten")
-    print(f"PASS: {label}", flush=True)
+    STEPS["active"] = None
+    print(f"PASS: {label} ({seconds(started)})", flush=True)
 
 
 def verify_go(env: dict[str, str]):
@@ -208,7 +221,53 @@ def prepare_shells(env: dict[str, str]):
         env["JAEKIT_TEST_" + name.upper()] = path
 
 
+def untracked_inputs(env: dict[str, str]) -> list[str]:
+    """List untracked files that Git does not ignore, without changing Git state."""
+    command = ["git", "--no-optional-locks", "ls-files", "-z", "--others", "--exclude-standard", "--", "."]
+    try:
+        result = subprocess.run(command, cwd=ROOT, env=env, capture_output=True, timeout=120)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise CheckFailed(f"cannot read untracked files from Git: {error}") from None
+    if result.returncode:
+        detail = os.fsdecode(result.stderr).strip().splitlines()
+        raise CheckFailed(f"cannot read untracked files from Git (exit {result.returncode})"
+                          + (f": {detail[0]}" if detail else ""))
+    return [os.fsdecode(name) for name in result.stdout.split(b"\0") if name]
+
+
+def shown(path: str) -> str:
+    return path if path.isprintable() else path.encode("unicode_escape", "backslashreplace").decode("ascii")
+
+
+def check_input(env: dict[str, str]):
+    """Stop before any check when the verification input is not fully tracked."""
+    untracked = untracked_inputs(env)
+    if not untracked:
+        return
+    lines = [f"untracked files are not part of the verification input ({len(untracked)}):"]
+    lines += ["  " + shown(path) for path in untracked[:LISTED_INPUTS]]
+    if len(untracked) > LISTED_INPUTS:
+        lines.append(f"  ... and {len(untracked) - LISTED_INPUTS} more")
+    lines.append("Add product and check files that verification needs with `git add`. For local files "
+                 "that are not meant to be published, review .gitignore or .git/info/exclude. "
+                 "Verification does not add, exclude or delete files.")
+    raise CheckFailed("\n".join(lines))
+
+
+def stopped(error: Exception, start: float):
+    active = STEPS["active"]
+    if active is not None:
+        print(f"FAIL: {error} (step {seconds(active[1])}, total {seconds(start)})", file=sys.stderr)
+    elif not STEPS["started"]:
+        print(f"FAIL: {error}", file=sys.stderr)
+        print(f"FAIL: verification stopped before any check started (total {seconds(start)})", file=sys.stderr)
+    else:
+        print(f"FAIL: {error} (total {seconds(start)})", file=sys.stderr)
+
+
 def main() -> int:
+    start = time.monotonic()
+    STEPS.update(active=None, started=False)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("group", nargs="?", choices=("all", "go", "docs"), default="all")
     args = parser.parse_args()
@@ -218,6 +277,7 @@ def main() -> int:
         for tool in missing:
             scope = " (Go shell regressions)" if tool in ("bash", "zsh") else ""
             print(f"FAIL: missing required tool: {tool}{scope}", file=sys.stderr)
+        print(f"FAIL: verification stopped before any check started (total {seconds(start)})", file=sys.stderr)
         return 1
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GOTOOLCHAIN="local")
     # A user's cross-compilation settings must not turn the native smoke binary
@@ -227,16 +287,26 @@ def main() -> int:
     try:
         if args.group in ("all", "go"):
             prepare_shells(env)
+        check_input(env)
+        if args.group in ("all", "go"):
             verify_go(env)
         if args.group in ("all", "docs"):
             verify_docs(env)
     except CheckFailed as error:
-        print(f"FAIL: {error}", file=sys.stderr)
+        stopped(error, start)
         return 1
     except KeyboardInterrupt:
-        print("FAIL: verification interrupted", file=sys.stderr)
+        active = STEPS["active"]
+        if active is not None:
+            print(f"FAIL: verification interrupted during {active[0]} "
+                  f"(step {seconds(active[1])}, total {seconds(start)})", file=sys.stderr)
+        elif not STEPS["started"]:
+            print(f"FAIL: verification interrupted before any check started (total {seconds(start)})",
+                  file=sys.stderr)
+        else:
+            print(f"FAIL: verification interrupted (total {seconds(start)})", file=sys.stderr)
         return 130
-    print(f"PASS: {args.group} verification", flush=True)
+    print(f"PASS: {args.group} verification (total {seconds(start)})", flush=True)
     return 0
 
 
