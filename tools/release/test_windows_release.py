@@ -2,6 +2,7 @@
 
 Synthetic files only; no network, installation, tag or publication.
 """
+import contextlib
 import hashlib
 import importlib.util
 import io
@@ -10,6 +11,7 @@ from pathlib import Path
 import struct
 import tempfile
 import unittest
+import unittest.mock
 import zipfile
 
 
@@ -152,6 +154,11 @@ class WindowsRelease(Fixture):
                     release.check(self.dist, VERSION)
 
 
+    def test_a_file_named_like_a_folder_in_another_case_is_refused(self):
+        self.write(files=dict(self.files, **{"GUIDES": b"file\n", "guides/EXTRA.md": b"guide\n"}))
+        with self.assertRaisesRegex(ValueError, "file/directory collision"):
+            release.check(self.dist, VERSION)
+
 class PublicationGate(Fixture):
     def digest(self):
         return release.digest(self.dist / ZIP)
@@ -236,6 +243,18 @@ class PublishedRelease(Fixture):
         with self.assertRaisesRegex(ValueError, "exactly four"):
             published.check_release("jgoneit/jaekit", "v" + VERSION, metadata, self.download)
 
+
+    def test_an_unreadable_release_is_an_error_not_a_failure(self):
+        def unreachable(*_args, **_kwargs):
+            raise OSError("network unreachable")
+        with unittest.mock.patch.object(published, "check_release", side_effect=unreachable), \
+                contextlib.redirect_stderr(io.StringIO()) as errors:
+            self.assertEqual(published.main(["--tag", "v" + VERSION]), 2)
+        self.assertIn("ERROR: network unreachable", errors.getvalue())
+        with unittest.mock.patch.object(published, "check_release", side_effect=ValueError("bad asset")), \
+                contextlib.redirect_stderr(io.StringIO()) as errors:
+            self.assertEqual(published.main(["--tag", "v" + VERSION]), 1)
+        self.assertIn("FAIL: bad asset", errors.getvalue())
 
 if __name__ == "__main__":
     unittest.main()

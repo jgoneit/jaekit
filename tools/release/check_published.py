@@ -5,7 +5,8 @@ Reads the public release metadata, downloads each asset within the archive
 limits into a temporary directory, compares sizes and GitHub's digests, then
 applies check_archives.check. Both published shapes are accepted: the four
 macOS/Linux archives alone, or with the Windows archive. Nothing is installed
-or uploaded.
+or uploaded. Exit 1 means the release failed a check; exit 2 means it could
+not be read.
 """
 from __future__ import annotations
 
@@ -90,7 +91,11 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         archives = check_release(args.repo, args.tag)
-    except (OSError, ValueError, KeyError, TypeError) as error:
+    except OSError as error:
+        # The release could not be read: no judgement about its files.
+        print("ERROR: " + str(error), file=sys.stderr)
+        return 2
+    except (ValueError, KeyError, TypeError) as error:
         print("FAIL: " + str(error), file=sys.stderr)
         return 1
     windows = "with" if any(name.endswith(".zip") for name in archives) else "without"

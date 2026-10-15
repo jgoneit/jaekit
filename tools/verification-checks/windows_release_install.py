@@ -438,15 +438,19 @@ def ac5():
         require(obs.get("path_after") == obs.get("path_before"), f"{shell} {case['name']} changed the window PATH")
         require("is ready in this window" not in obs.get("output", "") and "Removal finished" not in obs.get("output", ""),
                 f"{shell} {case['name']} reported success")
-        if case["name"] in ("checksum-missing", "checksum-duplicate", "checksum-mismatch", "download-missing"):
+        if case["name"] in ("checksum-missing", "checksum-duplicate", "checksum-mismatch", "checksum-foreign-name",
+                            "download-missing", "remove-checksum-missing", "remove-checksum-mismatch",
+                            "remove-download-missing"):
             require(case.get("marker") is None and "Running the verified" not in obs.get("output", ""),
                     f"{shell} ran archive code after {case['name']}")
         if case["name"] in ("probe-install-fails", "probe-remove-fails", "real-install", "real-remove"):
             require("stopped with exit code" in obs.get("error", "") + obs.get("output", ""),
                     f"{shell} {case['name']} did not pass on the child's exit code")
 
-    each_case(observed, ("checksum-missing", "checksum-duplicate", "checksum-mismatch", "download-missing",
-                         "probe-install-fails", "probe-remove-fails", "real-install", "real-remove"), check)
+    each_case(observed, ("checksum-missing", "checksum-duplicate", "checksum-mismatch", "checksum-foreign-name",
+                         "download-missing", "remove-checksum-missing", "remove-checksum-mismatch",
+                         "remove-download-missing", "probe-install-fails", "probe-remove-fails", "real-install",
+                         "real-remove"), check)
 
 
 def ac6():
@@ -475,12 +479,12 @@ def ac6():
                         and marker.get("current_user_policy") == "Restricted",
                         f"{shell} child Bypass was not process-scoped")
         found = {case["name"]: case for case in report["cases"]}
-        gpo = found.get("group-policy-allsigned")
-        require(gpo is not None and gpo.get("passed") is True
-                and (gpo["observed"].get("policies_before") or {}).get("MachinePolicy") == "AllSigned"
-                and gpo["observed"].get("status") == "error" and gpo.get("marker") is None
-                and gpo["observed"].get("path_after") == gpo["observed"].get("path_before"),
-                f"{shell} Group Policy did not take precedence over the block")
+        for gpo in (found.get("group-policy-allsigned"), found.get("group-policy-allsigned-remove")):
+            require(gpo is not None and gpo.get("passed") is True
+                    and gpo.get("group_policy") == "AllSigned"
+                    and gpo["observed"].get("status") == "error" and gpo.get("marker") is None
+                    and gpo["observed"].get("path_after") == gpo["observed"].get("path_before"),
+                    f"{shell} Group Policy did not take precedence over a block")
         real = (found["real-install"]["observed"].get("output", "") + found["real-install"]["observed"].get("errors", "")).lower()
         require(not any(phrase in real for phrase in ("running scripts is disabled", "cannot be loaded", "not digitally signed")),
                 f"{shell} the Restricted policy blocked the checked installer")
@@ -506,12 +510,19 @@ def ac7():
             require(obs.get("status") == "ok" and marker.get("script") == "uninstall"
                     and marker.get("edition") == obs.get("edition") and "Removal finished" in obs.get("output", "")
                     and obs.get("path_after") == obs.get("path_before"), f"{shell} removal path failed")
+        elif case["name"].startswith("remove-"):
+            # The removal block downloads and checks its own archive too.
+            require(obs.get("status") == "error" and case.get("marker") is None
+                    and "Running the verified uninstaller" not in obs.get("output", "")
+                    and "Removal finished" not in obs.get("output", "")
+                    and obs.get("path_after") == obs.get("path_before"), f"{shell} {case['name']} ran unchecked code")
         else:
             output = (obs.get("output", "") + obs.get("errors", "")).lower()
             require(obs.get("status") == "error" and "running the verified uninstaller in" in output
                     and "windows 11 client is required" in output, f"{shell} real removal did not reach the uninstaller")
 
-    each_case(observed, ("probe-remove", "real-remove"), check)
+    each_case(observed, ("probe-remove", "real-remove", "remove-checksum-missing", "remove-checksum-mismatch",
+                         "remove-download-missing"), check)
 
 
 def ac8():
@@ -653,7 +664,7 @@ def ac13():
                 raise Violation("the published-release check refused a valid shape: " + str(error)) from None
             require(any(n.endswith(".zip") for n in names) is keep, "the published check misread the release shape")
     result = run([sys.executable, "tools/release/check_published.py", "--tag", "v0.1.4"], timeout=600, show=True)
-    if result.returncode and "FAIL:" not in result.stderr:
+    if result.returncode not in (0, 1):
         raise ObservationError("could not read the public v0.1.4 release")
     require(result.returncode == 0, "the published-release check refused the existing v0.1.4 release")
     for directory in ("tools/release-checks", "tools/release"):

@@ -242,8 +242,9 @@ def windows_files(path: Path, checksum: str, version: str):
         require(name.lower() not in lowered, "Windows archive has paths that differ only in case")
         lowered[name.lower()] = name
     for name in files:
-        parts = name.split("/")
-        require(not any("/".join(parts[:index]) in files for index in range(1, len(parts))),
+        # Windows compares parent folders without case, like the file names.
+        parts = name.lower().split("/")
+        require(not any("/".join(parts[:index]) in lowered for index in range(1, len(parts))),
                 "Windows archive has a file/directory collision")
     require(WINDOWS_REQUIRED <= files.keys(),
             "Windows archive is missing required files: " + ", ".join(sorted(WINDOWS_REQUIRED - files.keys())))

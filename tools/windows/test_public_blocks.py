@@ -126,6 +126,15 @@ class Judgement(unittest.TestCase):
             with self.subTest(observed=observed):
                 self.assertTrue(blocks.judge(self.case(**observed), "C:/pwsh.exe"))
 
+    def test_group_policy_is_judged_from_the_value_applied_during_the_paste(self):
+        case = self.case()
+        case["expect"]["machine_policy"] = "AllSigned"
+        self.assertTrue(blocks.judge(case, "C:/pwsh.exe"))
+        case["group_policy"] = "AllSigned"
+        self.assertEqual(blocks.judge(case, "C:/pwsh.exe"), [])
+        case["observed"]["policies_before"]["MachinePolicy"] = "AllSigned"
+        self.assertTrue(blocks.judge(case, "C:/pwsh.exe"))
+
 
 class Archives(unittest.TestCase):
     def test_probe_archive_replaces_only_the_lifecycle_scripts(self):
@@ -143,11 +152,12 @@ class Archives(unittest.TestCase):
         data, name = b"zip", "ha_0.0.0_windows_amd64.zip"
         digest = hashlib.sha256(data).hexdigest()
         lines = {variant: blocks.checksum_lines(name, data, variant).decode().splitlines()
-                 for variant in ("valid", "missing", "duplicate", "mismatch")}
+                 for variant in ("valid", "missing", "duplicate", "mismatch", "foreign")}
         self.assertEqual([line for line in lines["valid"] if line.endswith(name)], [digest + "  " + name])
         self.assertFalse([line for line in lines["missing"] if line.endswith(name)])
         self.assertEqual(len([line for line in lines["duplicate"] if line.endswith(name)]), 2)
         self.assertNotIn(digest, "".join(lines["mismatch"]))
+        self.assertEqual([line for line in lines["foreign"] if line.endswith(name)], [digest + "  other  " + name])
 
     def test_release_directory_must_list_its_archive_once(self):
         with tempfile.TemporaryDirectory() as directory:

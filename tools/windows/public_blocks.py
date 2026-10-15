@@ -175,7 +175,9 @@ def checksum_lines(name: str, data: bytes, variant: str = "valid") -> bytes:
     line = f"{sha256(data)}  {name}\n"
     other = "0" * 64 + "  ha_0.0.0_linux_amd64.tar.gz\n"
     return {"valid": other + line, "missing": other, "duplicate": other + line + line,
-            "mismatch": other + f"{'1' * 64}  {name}\n"}[variant].encode()
+            "mismatch": other + f"{'1' * 64}  {name}\n",
+            # The right digest, but for another file whose name ends like it.
+            "foreign": other + f"{sha256(data)}  other  {name}\n"}[variant].encode()
 
 
 def release_files(directory: Path) -> tuple[str, bytes, bytes, str]:
@@ -278,15 +280,11 @@ def set_current_user_policy(shell: str, policy: str, env: dict[str, str]):
 
 
 def paste(shell: str, code: str, env: dict[str, str], work: Path) -> dict:
-    """Run the text as a pasted command (Invoke-Expression), not a script file.
-
-    The persistent policies are read before and after by separate processes.
-    """
+    """Run the text as a pasted command (Invoke-Expression), not a script file."""
     source, probe = work / "paste.txt", work / "observer-probe.ps1"
     probe.write_text("'observer probe ran'\n", encoding="utf-8")
     source.write_text(wrapper(code, probe), encoding="utf-8-sig")
     literal = str(source).replace("'", "''")
-    before = policies(shell, env)
     result = subprocess.run([shell, "-NoProfile", "-NonInteractive", "-Command",
                              f"Invoke-Expression ([IO.File]::ReadAllText('{literal}'))"],
                             env=env, capture_output=True, timeout=600, encoding="utf-8", errors="replace")
@@ -296,8 +294,29 @@ def paste(shell: str, code: str, env: dict[str, str], work: Path) -> dict:
     observed["exit_code"] = result.returncode
     observed["output"] = "\n".join(line for line in result.stdout.splitlines() if not line.startswith(REPORT))[-6000:]
     observed["errors"] = result.stderr[-6000:]
-    observed["policies_before"], observed["policies_after"] = before, policies(shell, env)
     return observed
+
+
+def observed_paste(shell: str, code: str, env: dict[str, str], work: Path, edition_key: str,
+                   group_policy: str | None = None) -> tuple[dict, str]:
+    """Paste with the persistent policies read before and after by separate processes.
+
+    A Group Policy is set only around the paste: under it PowerShell 7 cannot
+    load the Security module that reads policies, so its value is read back
+    from the registry instead. Returns the observation and that value.
+    """
+    before = policies(shell, env)
+    previous = gpo(edition_key, group_policy) if group_policy else None
+    applied = ""
+    try:
+        if group_policy:
+            applied = gpo_value(edition_key)
+        observed = paste(shell, code, env, work)
+    finally:
+        if previous is not None:
+            restore_gpo(edition_key, previous)
+    observed["policies_before"], observed["policies_after"] = before, policies(shell, env)
+    return observed, applied
 
 
 def path_key(env: dict[str, str]) -> str:
@@ -362,6 +381,13 @@ def gpo(edition_key: str, value: str | None):
     return previous
 
 
+def gpo_value(edition_key: str) -> str:
+    import winreg
+    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, GPO_KEYS[edition_key]) as handle:
+        enabled = winreg.QueryValueEx(handle, "EnableScripts")[0]
+        return str(winreg.QueryValueEx(handle, "ExecutionPolicy")[0]) if enabled == 1 else ""
+
+
 def restore_gpo(edition_key: str, previous: dict):
     import winreg
     with winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, GPO_KEYS[edition_key], 0, winreg.KEY_ALL_ACCESS) as handle:
@@ -389,8 +415,9 @@ def judge(case: dict, shell: str) -> list[str]:
     check(observed.get("shell", "").lower() == shell.lower(), "the block did not run in the selected shell")
     check(observed.get("process_policy") == "", "the parent inherited a Process policy")
     check(before.get("CurrentUser") == "Restricted", "the persistent CurrentUser policy was not Restricted")
-    check(before.get("MachinePolicy") == expect.get("machine_policy", "Undefined"),
-          "the Group Policy was not " + expect.get("machine_policy", "Undefined"))
+    check(before.get("MachinePolicy") == "Undefined", "a Group Policy was in force before the case")
+    check(case.get("group_policy", "") == expect.get("machine_policy", ""),
+          "the Group Policy during the paste was not " + (expect.get("machine_policy") or "absent"))
     for scope in ("CurrentUser", "LocalMachine"):
         check(after.get(scope) == before.get(scope), f"the persistent {scope} policy changed")
     check(observed.get("scripts_before") == SCRIPTS_BLOCKED, "the parent could run a script file before the block")
@@ -429,7 +456,8 @@ def judge(case: dict, shell: str) -> list[str]:
     return problems
 
 
-def run_case(server, shell, env, work, name, kind, code, version, files, expect, extra_env=None):
+def run_case(server, shell, env, work, name, kind, code, version, files, expect, extra_env=None,
+             edition_key="", group_policy=None):
     case_dir = work / name
     temporary = case_dir / "temp"
     temporary.mkdir(parents=True)
@@ -438,12 +466,13 @@ def run_case(server, shell, env, work, name, kind, code, version, files, expect,
                      JAEKIT_PROBE_EXIT="0", NO_PROXY="127.0.0.1", no_proxy="127.0.0.1")
     child_env.update(extra_env or {})
     base = server.publish(name, version, files)
-    observed = paste(shell, bind(code, base, version), child_env, case_dir)
-    case = {"name": name, "block": kind, "expect": expect, "observed": observed,
+    observed, applied = observed_paste(shell, bind(code, base, version), child_env, case_dir, edition_key, group_policy)
+    case = {"name": name, "block": kind, "expect": expect, "observed": observed, "group_policy": applied,
             "marker": json.loads(marker.read_text(encoding="utf-8-sig")) if marker.exists() else None,
             "temporary_left": sorted(path.name for path in temporary.iterdir())}
     case["problems"] = judge(case, shell)
     case["passed"] = not case["problems"]
+    print(("PASS " if case["passed"] else "FAIL ") + name + "".join("\n  - " + p for p in case["problems"]), flush=True)
     jaekit = local_appdata() / "Jaekit"
     if jaekit.exists():
         shutil.rmtree(jaekit)
@@ -470,8 +499,8 @@ def ci(args) -> int:
     with tempfile.TemporaryDirectory(prefix="jaekit-public-blocks-") as temp, Server() as server:
         work = Path(temp)
         report["smoke"] = smoke(shell, env, directory, name, version, work)
-        set_current_user_policy(shell, "Restricted", env)
         try:
+            set_current_user_policy(shell, "Restricted", env)
             real_files = {name: real, "checksums.txt": checksums}
             probe_files = {name: probe, "checksums.txt": checksum_lines(name, probe)}
             failing = ["The installer stopped with exit code"]
@@ -497,34 +526,50 @@ def ci(args) -> int:
                 ("checksum-mismatch", "install", {name: probe, "checksums.txt": checksum_lines(name, probe, "mismatch")},
                  {"status": "error", "child": "none", "contains": ["SHA-256 mismatch"],
                   "absent": ["Running the verified installer"]}, None),
+                ("checksum-foreign-name", "install", {name: probe, "checksums.txt": checksum_lines(name, probe, "foreign")},
+                 {"status": "error", "child": "none", "contains": ["exactly once"],
+                  "absent": ["Running the verified installer"]}, None),
                 ("download-missing", "install", {"checksums.txt": checksum_lines(name, probe)},
                  {"status": "error", "child": "none", "absent": ["Running the verified installer"]}, None),
                 ("probe-remove", "remove", probe_files, {"status": "ok", "child": "ran", "script": "uninstall",
                  "path": "unchanged", "contains": [REMOVED]}, None),
                 ("probe-remove-fails", "remove", probe_files, {"status": "error", "child": "ran", "script": "uninstall",
                  "contains": ["The uninstaller stopped with exit code 4"], "absent": [REMOVED]}, {"JAEKIT_PROBE_EXIT": "4"}),
+                ("remove-checksum-missing", "remove", {name: probe, "checksums.txt": checksum_lines(name, probe, "missing")},
+                 {"status": "error", "child": "none", "contains": ["exactly once"],
+                  "absent": ["Running the verified uninstaller", REMOVED]}, None),
+                ("remove-checksum-mismatch", "remove", {name: probe, "checksums.txt": checksum_lines(name, probe, "mismatch")},
+                 {"status": "error", "child": "none", "contains": ["SHA-256 mismatch"],
+                  "absent": ["Running the verified uninstaller", REMOVED]}, None),
+                ("remove-download-missing", "remove", {"checksums.txt": checksum_lines(name, probe)},
+                 {"status": "error", "child": "none", "absent": ["Running the verified uninstaller", REMOVED]}, None),
             ]
-            for case_name, kind, files, expect, extra in cases:
+            cases = [(*case, None) for case in cases]
+            # Group Policy outranks the blocks' process-scoped Bypass: the
+            # unsigned scripts must not run and nothing may look installed.
+            cases += [
+                ("group-policy-allsigned", "install", probe_files, {"status": "error", "child": "none",
+                 "machine_policy": "AllSigned", "contains": ["Running the verified installer in"], "absent": [READY]},
+                 None, "AllSigned"),
+                ("group-policy-allsigned-remove", "remove", probe_files, {"status": "error", "child": "none",
+                 "machine_policy": "AllSigned", "contains": ["Running the verified uninstaller in"],
+                 "absent": [REMOVED]}, None, "AllSigned"),
+            ]
+            for case_name, kind, files, expect, extra, group_policy in cases:
                 report["cases"].append(run_case(server, shell, env, work, case_name, kind, blocks[kind], version,
-                                                files, expect, extra))
-            previous = gpo(args.shell, "AllSigned")
-            try:
-                # Group Policy outranks the block's process-scoped Bypass: the
-                # unsigned installer must not run and nothing may look installed.
-                expect = {"status": "error", "child": "none", "machine_policy": "AllSigned",
-                          "contains": ["Running the verified installer in"], "absent": [READY]}
-                report["cases"].append(run_case(server, shell, env, work, "group-policy-allsigned", "install",
-                                                blocks["install"], version, probe_files, expect))
-            finally:
-                restore_gpo(args.shell, previous)
+                                                files, expect, extra, args.shell, group_policy))
+        except Exception as error:
+            report["error"] = f"{type(error).__name__}: {error}"
+            raise
         finally:
-            set_current_user_policy(shell, original, env)
-        report["restored_current_user_policy"] = policies(shell, env)["CurrentUser"]
-    report["passed"] = (report["smoke"]["passed"] and all(case["passed"] for case in report["cases"])
-                        and report["restored_current_user_policy"] == original)
-    write_report(Path(args.report), report)
-    for case in report["cases"]:
-        print(("PASS " if case["passed"] else "FAIL ") + case["name"] + "".join("\n  - " + p for p in case["problems"]))
+            try:
+                set_current_user_policy(shell, original, env)
+                report["restored_current_user_policy"] = policies(shell, env)["CurrentUser"]
+            finally:
+                report["passed"] = (report["smoke"]["passed"] and "error" not in report
+                                    and all(case["passed"] for case in report["cases"])
+                                    and report.get("restored_current_user_policy") == original)
+                write_report(Path(args.report), report)
     print(("PASS" if report["smoke"]["passed"] else "FAIL") + " smoke of " + name)
     return 0 if report["passed"] else 1
 
@@ -605,7 +650,7 @@ def acceptance(args) -> int:
                 step_env = dict(env, TEMP=str(case_dir / "temp"), TMP=str(case_dir / "temp"),
                                 NO_PROXY="127.0.0.1", no_proxy="127.0.0.1")
                 base = server.publish(f"step-{index}", files[3], served)
-                observed = paste(shells[shell], bind(blocks[kind], base, files[3]), step_env, case_dir)
+                observed, _ = observed_paste(shells[shell], bind(blocks[kind], base, files[3]), step_env, case_dir, shell)
                 problems = []
                 if observed.get("status") != status:
                     problems.append(f"status {observed.get('status')}, expected {status}")

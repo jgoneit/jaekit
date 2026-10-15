@@ -44,7 +44,7 @@ No public release with Windows files exists yet, and the current release, `v0.1.
         Invoke-WebRequest -UseBasicParsing -Uri ($source + '/' + $name) -OutFile $archive
         Invoke-WebRequest -UseBasicParsing -Uri ($source + '/checksums.txt') -OutFile $checksums
         $listed = @([IO.File]::ReadAllLines($checksums) | Where-Object { $_.EndsWith('  ' + $name) })
-        if ($listed.Count -ne 1 -or $listed[0] -cnotmatch '^[0-9a-f]{64}  ') {
+        if ($listed.Count -ne 1 -or $listed[0] -cnotmatch ('^[0-9a-f]{64}  ' + [regex]::Escape($name) + '$')) {
             throw ('checksums.txt must list ' + $name + ' exactly once.')
         }
         if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ne $listed[0].Substring(0, 64)) {
@@ -114,7 +114,7 @@ Close `ha` and running checks, then paste the block below. It checks the downloa
         Invoke-WebRequest -UseBasicParsing -Uri ($source + '/' + $name) -OutFile $archive
         Invoke-WebRequest -UseBasicParsing -Uri ($source + '/checksums.txt') -OutFile $checksums
         $listed = @([IO.File]::ReadAllLines($checksums) | Where-Object { $_.EndsWith('  ' + $name) })
-        if ($listed.Count -ne 1 -or $listed[0] -cnotmatch '^[0-9a-f]{64}  ') {
+        if ($listed.Count -ne 1 -or $listed[0] -cnotmatch ('^[0-9a-f]{64}  ' + [regex]::Escape($name) + '$')) {
             throw ('checksums.txt must list ' + $name + ' exactly once.')
         }
         if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ne $listed[0].Substring(0, 64)) {
