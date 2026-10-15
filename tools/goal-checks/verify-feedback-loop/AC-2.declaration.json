@@ -6,6 +6,7 @@
     "tools/goal-checks/produce.py",
     "tools/goal-checks/verify-feedback-loop/AC-2.targets.json",
     "tools/workflow-checks/test_verify_feedback.py",
+    "tools/workflow-checks/test_verify_boundaries.py",
     "tools/workflow-checks/test_verify.py",
     "tools/result_observations.py"
   ],
@@ -96,6 +97,50 @@
     },
     {
       "id": "timing-guidance.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock",
+      "violation": "unavailable-time-hidden"
+    },
+    {
+      "id": "unavailable-clock.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.attribution",
       "violation": "no-additional-violation"
     }
   ]

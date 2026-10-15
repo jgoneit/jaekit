@@ -6,6 +6,7 @@
     "tools/goal-checks/produce.py",
     "tools/goal-checks/verify-feedback-loop/AC-1.targets.json",
     "tools/workflow-checks/test_verify_feedback.py",
+    "tools/workflow-checks/test_verify_boundaries.py",
     "tools/workflow-checks/test_verify.py",
     "tools/result_observations.py"
   ],
@@ -184,6 +185,94 @@
     },
     {
       "id": "input-check-read-only.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-selection",
+      "violation": "untracked-input-not-refused"
+    },
+    {
+      "id": "inherited-selection.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-selection.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-selection.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-selection.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-selection.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-selection.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-selection.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-selection.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-selection.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "inherited-selection.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fsmonitor-not-run",
+      "violation": "input-check-mutated-state"
+    },
+    {
+      "id": "fsmonitor-not-run.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fsmonitor-not-run.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fsmonitor-not-run.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fsmonitor-not-run.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fsmonitor-not-run.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fsmonitor-not-run.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fsmonitor-not-run.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fsmonitor-not-run.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fsmonitor-not-run.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "fsmonitor-not-run.attribution",
       "violation": "no-additional-violation"
     }
   ]

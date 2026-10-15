@@ -40,6 +40,26 @@
         "selection": "timing-guidance.selection",
         "attribution": "timing-guidance.attribution"
       }
+    },
+    {
+      "target": "unavailable-clock",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_boundaries.py",
+      "test": "UnavailableClock.test_unavailable_clock_is_shown_without_changing_the_result",
+      "result_targets": {
+        "additional_violations": [
+          "unavailable-clock.assertion-2",
+          "unavailable-clock.assertion-3",
+          "unavailable-clock.assertion-4",
+          "unavailable-clock.assertion-5",
+          "unavailable-clock.assertion-6",
+          "unavailable-clock.assertion-7",
+          "unavailable-clock.assertion-8"
+        ],
+        "execution": "unavailable-clock.execution",
+        "selection": "unavailable-clock.selection",
+        "attribution": "unavailable-clock.attribution"
+      }
     }
   ]
 }

@@ -19,15 +19,30 @@ TARGETS = ("linux/amd64", "linux/arm64", "darwin/amd64", "darwin/arm64")
 LISTED_INPUTS = 50
 # Elapsed times use the monotonic clock: a step runs from its RUN line to its
 # result, the whole run from the start of main() to its final line.
+CLOCK = time.monotonic
 STEPS = {"active": None, "started": False}
+# Variables that select another repository, worktree or index. The input
+# listing always describes the checkout that contains this file.
+GIT_SELECTION = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
+                 "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_COMMON_DIR", "GIT_NAMESPACE", "GIT_PREFIX",
+                 "GIT_IMPLICIT_WORK_TREE", "GIT_SHALLOW_FILE", "GIT_GRAFT_FILE")
 
 
 class CheckFailed(Exception):
     pass
 
 
-def seconds(start: float) -> str:
-    return f"{time.monotonic() - start:.1f}s"
+def now():
+    """Read the monotonic clock; an unavailable clock never changes a result."""
+    try:
+        return CLOCK()
+    except OSError:
+        return None
+
+
+def seconds(start) -> str:
+    end = now()
+    return "time unavailable" if start is None or end is None else f"{end - start:.1f}s"
 
 
 def go_flag_fields(value: str):
@@ -115,7 +130,7 @@ def full_go_environment(env: dict[str, str]) -> dict[str, str]:
 
 
 def run(label: str, command: list[str], env: dict[str, str], *, formatting=False):
-    started = time.monotonic()
+    started = now()
     STEPS.update(active=(label, started), started=True)
     print(f"RUN: {label}\n  {shlex.join(command)}", flush=True)
     if command[:2] == ["go", "test"] and "./..." in command:
@@ -224,8 +239,14 @@ def prepare_shells(env: dict[str, str]):
 def untracked_inputs(env: dict[str, str]) -> list[str]:
     """List untracked files that Git does not ignore, without changing Git state."""
     command = ["git", "--no-optional-locks", "ls-files", "-z", "--others", "--exclude-standard", "--", "."]
+    git_env = {key: value for key, value in env.items() if key not in GIT_SELECTION}
+    # A configured fsmonitor hook is an arbitrary program; this read never runs it.
+    count = git_env.get("GIT_CONFIG_COUNT", "0")
+    index = int(count) if count.isdigit() else 0
+    git_env.update({"GIT_CONFIG_COUNT": str(index + 1), f"GIT_CONFIG_KEY_{index}": "core.fsmonitor",
+                    f"GIT_CONFIG_VALUE_{index}": "false"})
     try:
-        result = subprocess.run(command, cwd=ROOT, env=env, capture_output=True, timeout=120)
+        result = subprocess.run(command, cwd=ROOT, env=git_env, capture_output=True, timeout=120)
     except (OSError, subprocess.TimeoutExpired) as error:
         raise CheckFailed(f"cannot read untracked files from Git: {error}") from None
     if result.returncode:
@@ -254,7 +275,7 @@ def check_input(env: dict[str, str]):
     raise CheckFailed("\n".join(lines))
 
 
-def stopped(error: Exception, start: float):
+def stopped(error: Exception, start):
     active = STEPS["active"]
     if active is not None:
         print(f"FAIL: {error} (step {seconds(active[1])}, total {seconds(start)})", file=sys.stderr)
@@ -266,25 +287,25 @@ def stopped(error: Exception, start: float):
 
 
 def main() -> int:
-    start = time.monotonic()
+    start = now()
     STEPS.update(active=None, started=False)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("group", nargs="?", choices=("all", "go", "docs"), default="all")
     args = parser.parse_args()
-    required = ("git", "go", "gofmt", "bash", "zsh") if args.group in ("all", "go") else ("git",)
-    missing = [tool for tool in required if shutil.which(tool) is None]
-    if missing:
-        for tool in missing:
-            scope = " (Go shell regressions)" if tool in ("bash", "zsh") else ""
-            print(f"FAIL: missing required tool: {tool}{scope}", file=sys.stderr)
-        print(f"FAIL: verification stopped before any check started (total {seconds(start)})", file=sys.stderr)
-        return 1
-    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GOTOOLCHAIN="local")
-    # A user's cross-compilation settings must not turn the native smoke binary
-    # into a binary that cannot run on this host. Targets set these explicitly.
-    env.pop("GOOS", None)
-    env.pop("GOARCH", None)
     try:
+        required = ("git", "go", "gofmt", "bash", "zsh") if args.group in ("all", "go") else ("git",)
+        missing = [tool for tool in required if shutil.which(tool) is None]
+        if missing:
+            for tool in missing:
+                scope = " (Go shell regressions)" if tool in ("bash", "zsh") else ""
+                print(f"FAIL: missing required tool: {tool}{scope}", file=sys.stderr)
+            print(f"FAIL: verification stopped before any check started (total {seconds(start)})", file=sys.stderr)
+            return 1
+        env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GOTOOLCHAIN="local")
+        # A user's cross-compilation settings must not turn the native smoke binary
+        # into a binary that cannot run on this host. Targets set these explicitly.
+        env.pop("GOOS", None)
+        env.pop("GOARCH", None)
         if args.group in ("all", "go"):
             prepare_shells(env)
         check_input(env)

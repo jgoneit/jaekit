@@ -23,6 +23,8 @@ For a simple change without a significant design decision, remove this section o
 Share the commands and results, or manual steps and observed results, for checks you actually performed.
 푸시·공개 전에 최종 후보와 같은 검증 입력에서 `python3 tools/verify.py`가 한 번 통과해야 합니다(커밋 전후 어느 쪽이든 되며, 같은 입력을 두 번 실행하지 않습니다).
 Before pushing or publishing, `python3 tools/verify.py` must pass once on the same verification input as the final candidate (before or after committing; do not run it twice on the same input).
+검증 입력은 추적 파일, 검증 명령과 그룹, 결과에 영향을 주는 도구·설정·환경이며 이 중 하나가 바뀌면 다시 검증합니다. 커밋 식별자만 바뀐 것은 입력 변경이 아닙니다. 개발 중에는 좁은 검사를 써도 되며, 이 재사용은 다른 환경의 성공을 보증하지 않고 Seal 기록이나 필수 CI 요구를 바꾸지 않습니다.
+The verification input is the tracked files, the verification command and group, and the tools, settings and environment that affect the result; verify again when any of them changes. A new commit ID alone is not an input change. Narrower checks are fine during development; this reuse does not establish success in other environments and does not change Seal records or required CI.
 확인하지 못한 항목과 이유를 명시하고, 검증한 범위까지만 설명해 주세요.
 State what was not checked and why, and limit claims to the scope actually verified.
 예: 문서 검사 통과는 실제 설치·실행이나 GitHub 화면 확인을 의미하지 않습니다.

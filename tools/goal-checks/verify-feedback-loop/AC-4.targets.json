@@ -20,6 +20,26 @@
         "selection": "single-pass-guidance.selection",
         "attribution": "single-pass-guidance.attribution"
       }
+    },
+    {
+      "target": "template-limits",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_boundaries.py",
+      "test": "PullRequestGuidance.test_pull_request_template_states_the_input_and_reuse_limits",
+      "result_targets": {
+        "additional_violations": [
+          "template-limits.assertion-2",
+          "template-limits.assertion-3",
+          "template-limits.assertion-4",
+          "template-limits.assertion-5",
+          "template-limits.assertion-6",
+          "template-limits.assertion-7",
+          "template-limits.assertion-8"
+        ],
+        "execution": "template-limits.execution",
+        "selection": "template-limits.selection",
+        "attribution": "template-limits.attribution"
+      }
     }
   ]
 }

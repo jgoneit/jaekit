@@ -80,6 +80,46 @@
         "selection": "input-check-read-only.selection",
         "attribution": "input-check-read-only.attribution"
       }
+    },
+    {
+      "target": "inherited-selection",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_boundaries.py",
+      "test": "InheritedGitState.test_inherited_repository_selection_cannot_hide_untracked_input",
+      "result_targets": {
+        "additional_violations": [
+          "inherited-selection.assertion-2",
+          "inherited-selection.assertion-3",
+          "inherited-selection.assertion-4",
+          "inherited-selection.assertion-5",
+          "inherited-selection.assertion-6",
+          "inherited-selection.assertion-7",
+          "inherited-selection.assertion-8"
+        ],
+        "execution": "inherited-selection.execution",
+        "selection": "inherited-selection.selection",
+        "attribution": "inherited-selection.attribution"
+      }
+    },
+    {
+      "target": "fsmonitor-not-run",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_boundaries.py",
+      "test": "InheritedGitState.test_configured_fsmonitor_hook_is_not_run",
+      "result_targets": {
+        "additional_violations": [
+          "fsmonitor-not-run.assertion-2",
+          "fsmonitor-not-run.assertion-3",
+          "fsmonitor-not-run.assertion-4",
+          "fsmonitor-not-run.assertion-5",
+          "fsmonitor-not-run.assertion-6",
+          "fsmonitor-not-run.assertion-7",
+          "fsmonitor-not-run.assertion-8"
+        ],
+        "execution": "fsmonitor-not-run.execution",
+        "selection": "fsmonitor-not-run.selection",
+        "attribution": "fsmonitor-not-run.attribution"
+      }
     }
   ]
 }

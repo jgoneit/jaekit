@@ -6,6 +6,7 @@
     "tools/goal-checks/produce.py",
     "tools/goal-checks/verify-feedback-loop/AC-3.targets.json",
     "tools/workflow-checks/test_verify_feedback.py",
+    "tools/workflow-checks/test_verify_boundaries.py",
     "tools/workflow-checks/test_verify.py",
     "tools/result_observations.py"
   ],
@@ -228,6 +229,50 @@
     },
     {
       "id": "other-signal-output.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt",
+      "violation": "interrupt-time-missing"
+    },
+    {
+      "id": "early-interrupt.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.attribution",
       "violation": "no-additional-violation"
     }
   ]

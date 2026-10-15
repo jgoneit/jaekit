@@ -100,6 +100,26 @@
         "selection": "other-signal-output.selection",
         "attribution": "other-signal-output.attribution"
       }
+    },
+    {
+      "target": "early-interrupt",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_boundaries.py",
+      "test": "EarlyInterrupt.test_interrupt_during_tool_discovery_reports_that_no_check_started",
+      "result_targets": {
+        "additional_violations": [
+          "early-interrupt.assertion-2",
+          "early-interrupt.assertion-3",
+          "early-interrupt.assertion-4",
+          "early-interrupt.assertion-5",
+          "early-interrupt.assertion-6",
+          "early-interrupt.assertion-7",
+          "early-interrupt.assertion-8"
+        ],
+        "execution": "early-interrupt.execution",
+        "selection": "early-interrupt.selection",
+        "attribution": "early-interrupt.attribution"
+      }
     }
   ]
 }
