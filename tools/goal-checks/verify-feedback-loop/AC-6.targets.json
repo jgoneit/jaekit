@@ -1,0 +1,105 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "preserved-interface",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_feedback.py",
+      "test": "PreservedInterface",
+      "result_targets": {
+        "additional_violations": [
+          "preserved-interface.assertion-2",
+          "preserved-interface.assertion-3",
+          "preserved-interface.assertion-4",
+          "preserved-interface.assertion-5",
+          "preserved-interface.assertion-6",
+          "preserved-interface.assertion-7",
+          "preserved-interface.assertion-8"
+        ],
+        "execution": "preserved-interface.execution",
+        "selection": "preserved-interface.selection",
+        "attribution": "preserved-interface.attribution"
+      }
+    },
+    {
+      "target": "failure-labels",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify.py",
+      "test": "FailureCases.test_required_command_failures_are_identified_and_stop_execution",
+      "result_targets": {
+        "additional_violations": [
+          "failure-labels.assertion-2",
+          "failure-labels.assertion-3",
+          "failure-labels.assertion-4",
+          "failure-labels.assertion-5",
+          "failure-labels.assertion-6",
+          "failure-labels.assertion-7",
+          "failure-labels.assertion-8"
+        ],
+        "execution": "failure-labels.execution",
+        "selection": "failure-labels.selection",
+        "attribution": "failure-labels.attribution"
+      }
+    },
+    {
+      "target": "module-consumer",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_ci_observer.py",
+      "test": "",
+      "result_targets": {
+        "additional_violations": [
+          "module-consumer.assertion-2",
+          "module-consumer.assertion-3",
+          "module-consumer.assertion-4",
+          "module-consumer.assertion-5",
+          "module-consumer.assertion-6",
+          "module-consumer.assertion-7",
+          "module-consumer.assertion-8"
+        ],
+        "execution": "module-consumer.execution",
+        "selection": "module-consumer.selection",
+        "attribution": "module-consumer.attribution"
+      }
+    },
+    {
+      "target": "registry-selection",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_regressions.py",
+      "test": "",
+      "result_targets": {
+        "additional_violations": [
+          "registry-selection.assertion-2",
+          "registry-selection.assertion-3",
+          "registry-selection.assertion-4",
+          "registry-selection.assertion-5",
+          "registry-selection.assertion-6",
+          "registry-selection.assertion-7",
+          "registry-selection.assertion-8"
+        ],
+        "execution": "registry-selection.execution",
+        "selection": "registry-selection.selection",
+        "attribution": "registry-selection.attribution"
+      }
+    },
+    {
+      "target": "selection-parser",
+      "runner": "unittest",
+      "file": "tools/regression-checks/test_map.py",
+      "test": "",
+      "result_targets": {
+        "additional_violations": [
+          "selection-parser.assertion-2",
+          "selection-parser.assertion-3",
+          "selection-parser.assertion-4",
+          "selection-parser.assertion-5",
+          "selection-parser.assertion-6",
+          "selection-parser.assertion-7",
+          "selection-parser.assertion-8"
+        ],
+        "execution": "selection-parser.execution",
+        "selection": "selection-parser.selection",
+        "attribution": "selection-parser.attribution"
+      }
+    }
+  ]
+}

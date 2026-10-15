@@ -56,11 +56,17 @@ An Ubuntu run is not a WSL2 run. CI does not establish WSL2 installation, instal
 
 ## Local checks
 
-Before committing or publishing, run the repository's common verification entrypoint:
+Before pushing or publishing, the repository's common verification entrypoint must pass once on the same verification input as the final candidate. That one pass satisfies both the commit and the push requirement, whether it runs before or after the commit; do not run the full verification twice for the same input:
 
 ```bash
 python3 tools/verify.py
 ```
+
+The verification input is the tracked files (content, path, mode and tracking state), the verification command and group, and the tools, settings and environment that affect the result. If any of them changes, an earlier pass is not evidence for the new input; a different commit ID alone is not such a change. Narrower checks that fit the change are fine during development. This reuse only removes duplicate runs from this guidance: it does not establish success with other tools, settings or environments, does not make an ordinary run a Seal record, and does not change freshness, baseline, failure history, independent review or required CI requirements.
+
+Untracked files that Git does not ignore stop verification before any check starts, and their paths are listed. Track product and check files that verification needs with `git add`; for local files that are not published, review `.gitignore` or `.git/info/exclude`. Verification does not add, exclude or delete files. If Git state cannot be read, verification stops instead of assuming a clean tree.
+
+Each step's pass or failure line shows that step's elapsed time, and the last line shows the total time, in seconds with one decimal. A step runs from its `RUN:` line to its result; the total time runs from the start of verification to its last line. Both use a monotonic clock. A keyboard interrupt reports the interrupted step and both times; a stop before any check reports that no check started and the total time. Times are not used to decide results.
 
 This checks the current development host and shared regressions. It does not run other operating systems. The Unix native lifecycle is a separate source-development check, requiring a clean, committed checkout and the existing Git, Python, Go and shell prerequisites. Go must target the current native host without effective `GOFLAGS` overrides:
 
