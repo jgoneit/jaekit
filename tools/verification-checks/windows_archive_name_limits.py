@@ -99,15 +99,31 @@ def git(cwd, *args, data=None):
 
 
 def unit(argv, cwd=ROOT, timeout=600):
-    """Run unittest; (exit code, output). A test that could not be loaded, or
-    no test at all, is an observation error rather than a failed check."""
+    """Run unittest; (exit code, output, failed assertions, errors). A module
+    that could not be loaded, no test at all, or a run that ended without its
+    summary (a signal, a crash) is an observation error, not a failed check."""
     result = run([sys.executable, *argv], cwd=cwd, timeout=timeout, show=False)
     output = result.stdout + result.stderr
     if "unittest.loader._FailedTest" in output or "unittest.loader.ModuleImportFailure" in output:
         raise ObservationError("a selected test module could not be loaded: " + output[-600:])
     if re.search(r"^Ran 0 tests", output, re.M) or "NO TESTS RAN" in output:
         raise ObservationError("no test was selected: " + " ".join(argv[-4:]))
-    return result.returncode, output
+    summary = re.search(r"^FAILED \((.*)\)$", output, re.M)
+    if result.returncode not in (0, 1) or (result.returncode == 1) != bool(summary):
+        raise ObservationError(f"unittest did not finish (exit {result.returncode}): " + output[-400:])
+    counts = dict(re.findall(r"(failures|errors)=(\d+)", summary[1])) if summary else {}
+    return result.returncode, output, int(counts.get("failures", 0)), int(counts.get("errors", 0))
+
+
+def verdict(result, label):
+    """None for a passing run. Failed assertions are a violation; errors alone
+    (an exception in a test, which may be the host's) are no answer."""
+    code, output, failures, _ = result
+    if code == 0:
+        return None
+    if failures:
+        return f"{label} failed: " + output.strip()[-300:]
+    raise ObservationError(f"{label} stopped with errors only: " + output.strip()[-400:])
 
 
 def load(name, path, root=ROOT):
@@ -200,6 +216,7 @@ def release_tests(target):
 # ------------------------------------------------------------ AC-1
 
 BODY = b"Synthetic public document.\n"
+LARGE = b"\0" * (32 * 1024 * 1024 + 1)
 COMMITTED = (
     ("a non-ASCII name", ("guides/café.md",), r"printable ASCII|non-ASCII"),
     ("local metadata in another case", ("guides/Node_Modules/notes.md",), r"local metadata|generated cache"),
@@ -210,16 +227,25 @@ COMMITTED = (
     ("a file named like a folder in another case", ("guides/Extra", "guides/extra/notes.md"),
      r"file/directory collision"),
     ("a short-name-like name", ("guides/abcdef~1.md",), r"short name|8\.3"),
+    ("a file over the size limit", ("guides/large.bin",), r"size limit"),
 )
 # A case-insensitive file system cannot hold these pairs in a source snapshot.
 ON_DISK = tuple(case for case in COMMITTED if len(case[1]) == 1)
 
 
-def judged_failure(label, names, reason, code, output):
+def body(name):
+    return LARGE if name == "guides/large.bin" else BODY
+
+
+def judged_failure(label, names, reason, result):
     """None when the run failed naming every path and the reason, else why not."""
+    code, output, failures, _ = result
     if code == 0:
         return f"a committed public file with {label} ({', '.join(names)}) does not fail the release archive regressions"
     if not all(name in output for name in names) or not re.search(reason, output, re.I):
+        if not failures:
+            raise ObservationError(f"the release archive regressions stopped with errors only for {label}: "
+                                   + output.strip()[-400:])
         return (f"the failure for {label} does not name {', '.join(names)} with the reason: "
                 + output.strip()[-300:])
     return None
@@ -232,14 +258,14 @@ def ac1():
 
     def committed_case(case, depth):
         with clone(depth) as target:
-            commit(target, {name: BODY for name in case[1]})
+            commit(target, {name: body(name) for name in case[1]})
             return case, release_tests(target)
 
     def detached_case(case):
         with snapshot() as source:
             for name in case[1] if case else ():
                 (source / name).parent.mkdir(parents=True, exist_ok=True)
-                (source / name).write_bytes(BODY)
+                (source / name).write_bytes(body(name))
             return case, release_tests(source)
 
     def clean():
@@ -258,27 +284,27 @@ def ac1():
                 raise ObservationError("the synthetic untracked and ignored files are not seen as such")
             return release_tests(target)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
         controls = [pool.submit(clean), pool.submit(detached_case, None)]
         unrelated_files = pool.submit(unrelated)
         shallow = [pool.submit(committed_case, case, True) for case in COMMITTED]
         full = [pool.submit(committed_case, case, False) for case in COMMITTED]
         loose = [pool.submit(detached_case, case) for case in ON_DISK]
-        control_results = [future.result() for future in controls]
-        if any(code for code, _ in (control_results[0], control_results[1][1])):
-            raise ObservationError("the release archive regressions fail without any added file: "
-                                   + (control_results[0][1] + control_results[1][1][1])[-600:])
+        for result in (controls[0].result(), controls[1].result()[1]):
+            if result[0]:
+                raise ObservationError("the release archive regressions fail without any added file: "
+                                       + result[1][-600:])
         failures = []
         for mode, futures in (("a depth-one clone", shallow), ("a full clone", full), ("a source snapshot", loose)):
             for future in futures:
-                case, (code, output) = future.result()
-                problem = judged_failure(*case, code, output)
+                case, result = future.result()
+                problem = judged_failure(*case, result)
                 if problem:
                     failures.append(f"in {mode}: {problem}")
-        code, output = unrelated_files.result()
-        if code:
-            failures.append("untracked, ignored or staged-but-uncommitted files changed the release archive "
-                            "regressions' verdict: " + output.strip()[-300:])
+        problem = verdict(unrelated_files.result(), "with untracked, ignored or staged-but-uncommitted files, "
+                                                     "the release archive regressions")
+        if problem:
+            failures.append(problem)
     require(not failures, "\n".join(failures))
 
 
@@ -411,7 +437,7 @@ def judged(archives, published, dist, version):
 
 # ------------------------------------------------------------ AC-2
 
-TILDE = ("guides/abcdef~1.md", "guides/notes~/WINDOWS.md", "contracts/archive~.md")
+TILDE = ("guides/abcdef~1.md", "guides/notes~/WINDOWS.md", "contracts/archive~.md", "guides/a~b.md")
 
 
 def package_archive(name, version):
@@ -517,12 +543,13 @@ def contract_report():
 # ------------------------------------------------------------ AC-3
 
 SHELLS = ("powershell", "pwsh")
-NAME_CHARACTERS = {"\0": "NUL", "\x01": "control character", '"': "quote", "<": "less-than sign",
-                   ">": "greater-than sign", "|": "vertical bar"}
+NAME_CHARACTERS = {"\0": "NUL", "\x01": "control character", "\x1f": "unit separator", "\\": "backslash",
+                   '"': "quote", "<": "less-than sign", ">": "greater-than sign", "|": "vertical bar",
+                   ":": "colon", "?": "question mark", "*": "asterisk"}
 
 
 # A report from before this goal names no stored entry names; its one such case is known.
-KNOWN_NAME_CASES = {"a NUL in an entry name": "\0"}
+KNOWN_NAME_CASES = {"a NUL in an entry name": "\0", "a backslash in an entry name": "\\"}
 
 
 def name_case(case):
@@ -574,11 +601,33 @@ def selected(check, cwd=ROOT):
                 cwd=cwd)
 
 
+def function_source(source, name):
+    """(start line, end line, text) of a module-level function."""
+    node = next((node for node in ast.parse(source).body if isinstance(node, ast.FunctionDef) and node.name == name),
+                None)
+    if node is None:
+        raise ObservationError(f"no function {name} to compare")
+    lines = source.splitlines(keepends=True)
+    return node.lineno, node.end_lineno, "".join(lines[node.lineno - 1:node.end_lineno])
+
+
 @contextlib.contextmanager
-def at_start(path):
-    """A snapshot of HEAD whose `path` is the file as it was when this goal started."""
+def mutant(kind):
+    """A snapshot of HEAD with one behavior as it was when this goal started:
+    the whole Windows rule (`rule`), or only the installer comparison's
+    classification of a refusal (`classification`)."""
     with snapshot() as source:
-        shutil.copyfile(AT_START[path], source / path)
+        if kind == "rule":
+            shutil.copyfile(AT_START["tools/release/check_archives.py"], source / "tools/release/check_archives.py")
+        else:
+            path = source / "tools/release/windows_contract.py"
+            current = path.read_text(encoding="utf-8")
+            start, end, _ = function_source(current, "classify")
+            _, _, old = function_source(AT_START["tools/release/windows_contract.py"].read_text(encoding="utf-8"),
+                                        "classify")
+            old = re.sub(r"def classify\((.*?)\)", r"def classify(\1, *_)", old, count=1)
+            lines = current.splitlines(keepends=True)
+            path.write_text("".join(lines[:start - 1]) + old + "".join(lines[end:]), encoding="utf-8")
         yield source
 
 
@@ -606,13 +655,13 @@ def ac4():
                         + json.dumps({key: compared[key] for key in ("lost_protection", "changed_invariants")}))
     started = {route["id"] for route in before["routes"]}
     added = [route for route in after["routes"] if route["id"] not in started and route["status"] == "protected"]
-    # Each property has its own new route whose selected tests pass at HEAD and
-    # fail against the old behavior: a committed refused file, or the file as
-    # it was when this goal started.
+    # Each property has its own new route. Its selected tests pass at HEAD and
+    # fail an assertion when only that behavior is as it was at the start: a
+    # committed refused file, the old rule, or the old refusal classification.
     properties = (
         ("committed public files", re.compile(r"committed public files", re.I), None),
-        ("`~` names", re.compile(r"`~`"), "tools/release/check_archives.py"),
-        ("installer name refusals", re.compile(r"PowerShell 5\.1"), "tools/release/windows_contract.py"),
+        ("`~` names", re.compile(r"`~`"), "rule"),
+        ("installer name refusals", re.compile(r"PowerShell 5\.1"), "classification"),
     )
     owners = {}
     for label, pattern, _ in properties:
@@ -623,24 +672,24 @@ def ac4():
             owners[label] = found[0]["id"]
     require(not failures, "\n".join(failures))
     routes_by_id = {route["id"]: route for route in after["routes"]}
-    for label, _, old in properties:
+    for label, _, kind in properties:
         checks = [check for check in routes_by_id[owners[label]]["checks"] if check["file"].endswith(".py")]
         if not checks:
             failures.append(f"the route for {label} selects no Python test")
             continue
         for check in checks:
-            code, output = selected(check)
-            if code:
-                failures.append(f"the selected test {check['selector']} for {label} fails at HEAD: " + output[-300:])
-        if old is None:
+            problem = verdict(selected(check), f"the selected test {check['selector']} for {label} at HEAD")
+            if problem:
+                failures.append(problem)
+        if kind is None:
             with clone() as target:
                 commit(target, {"guides/Node_Modules/notes.md": BODY})
-                caught = [check for check in checks if selected(check, cwd=target)[0]]
+                caught = [check for check in checks if selected(check, cwd=target)[2]]
         else:
-            with at_start(old) as source:
-                caught = [check for check in checks if selected(check, cwd=source)[0]]
+            with mutant(kind) as source:
+                caught = [check for check in checks if selected(check, cwd=source)[2]]
         if not caught:
-            failures.append(f"no selected test for {label} fails against the old behavior")
+            failures.append(f"no selected test for {label} fails an assertion against the old behavior")
     installer = routes_by_id.get(owners["installer name refusals"], {})
     if "tools/windows/common.ps1" not in installer.get("sources", []):
         failures.append("the installer name refusal route does not name the installer as a source")
@@ -650,8 +699,8 @@ def ac4():
 # ------------------------------------------------------------ maintained behavior
 
 def ac5():
-    code, output = release_tests(ROOT)
-    require(code == 0, "HEAD's committed public files fail the release archive regressions: " + output[-600:])
+    problem = verdict(release_tests(ROOT), "HEAD's release archive regressions with its committed public files")
+    require(problem is None, problem)
     judged_steps(jobs("release.yml").get("Build release files"), "the release build",
                  ("Verify archives and native smoke",))
     judged_steps(jobs("ci.yml").get("Public documentation"), "the common verification in CI",
@@ -667,14 +716,15 @@ def ac6():
         with synthetic(windows=False, tar_extra=extra) as (dist, version):
             try:
                 archives.check(dist, version)
-                verdict, reason = True, ""
+                judgment, reason = True, ""
             except ValueError as error:
-                verdict, reason = False, str(error)
-        if verdict != accepted or (not accepted and "local metadata or generated cache" not in reason):
+                judgment, reason = False, str(error)
+        if judgment != accepted or (not accepted and "local metadata or generated cache" not in reason):
             failures.append(f"the tar.gz rule changed its verdict for {sorted(extra) or 'a normal release'}: {reason}")
-    code, output = unit(["-m", "unittest", "discover", "-s", "tools/release", "-p", "test_archives.py"])
-    if code:
-        failures.append("the tar.gz archive regressions failed: " + output[-300:])
+    problem = verdict(unit(["-m", "unittest", "discover", "-s", "tools/release", "-p", "test_archives.py"]),
+                      "the tar.gz archive regressions")
+    if problem:
+        failures.append(problem)
     require(not failures, "\n".join(failures))
 
 
@@ -702,15 +752,17 @@ def ac7():
                      ("Verify native developer checks on PowerShell 5.1", "Verify native developer checks on PowerShell 7"))
     except Violation as error:
         failures.append(str(error))
-    code, output = unit(["-m", "unittest", "discover", "-s", "tools/windows", "-p", "test_*.py"])
-    if code:
-        failures.append("the Windows packaging and public block regressions failed: " + output[-300:])
+    problem = verdict(unit(["-m", "unittest", "discover", "-s", "tools/windows", "-p", "test_*.py"]),
+                      "the Windows packaging and public block regressions")
+    if problem:
+        failures.append(problem)
     require(not failures, "\n".join(failures))
 
 
 def ac8():
-    code, output = unit(["-m", "unittest", "discover", "-s", "tools/release", "-p", "test_windows_release.py"])
-    require(code == 0, "the publication gate and published-release regressions failed: " + output[-300:])
+    problem = verdict(unit(["-m", "unittest", "discover", "-s", "tools/release", "-p", "test_windows_release.py"]),
+                      "the publication gate and published-release regressions")
+    require(problem is None, problem)
     for tag, expected, reason in (("v0.1.4", 0, ""), ("v0.1.3", 1, "archive is missing required files")):
         result = run([sys.executable, "tools/release/check_published.py", "--tag", tag], timeout=600, show=False)
         if result.returncode == 2:
