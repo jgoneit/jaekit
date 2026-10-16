@@ -1172,6 +1172,32 @@
         "https://github.com/jgoneit/jaekit/issues/27",
         "https://github.com/jgoneit/jaekit/issues/30"
       ]
+    },
+    {
+      "id": "entry-name-ci-observation",
+      "invariant": "I3",
+      "status": "protected",
+      "sources": [
+        "tools/goal-checks/windows-entry-name-refusal/ci_runs.py"
+      ],
+      "property": "The goal reader counts a pull request CI result only when the Windows job's tested-source context names this commit and a merge with this checkout's tree, and the release run tested the same merge; only a failed observation step is a failure, and a missing, cancelled, skipped, unfinished or setup-stopped observation is unobserved.",
+      "examples": [
+        "observation step cancelled",
+        "tested merge with another tree"
+      ],
+      "families": [
+        "CI run binding to the checked tree",
+        "job and step conclusions"
+      ],
+      "boundary": "Synthetic GitHub responses replace gh; the actual API and job logs are read only when the goal check runs. It reads no repository history beyond the checked-out commit and tree identifiers.",
+      "checks": [
+        {
+          "file": "tools/goal-checks/test_entry_name_ci_runs.py",
+          "selector": "CiRuns",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
     }
   ]
 }
