@@ -1180,16 +1180,19 @@
       "sources": [
         "tools/goal-checks/windows-entry-name-refusal/ci_runs.py"
       ],
-      "property": "The goal reader counts a pull request CI result only when the Windows job's tested-source context names this commit and a merge with this checkout's tree, and the release run tested the same merge. It reports a failure only when a shell's native check report names a failed name-character refusal; a missing, cancelled, skipped, unfinished, setup-stopped or otherwise unattributed step failure is unobserved.",
+      "property": "The goal reader counts a pull request CI result only when the Windows job's tested-source context names this commit and a merge with this checkout's tree, the release run tested the same merge, each native report names that tested source, and every selected run and the checkout are unchanged when read again before the result. It reports a failure only when a shell's native check report names a failed name-character refusal; a missing, cancelled, skipped, unfinished, setup-stopped or otherwise unattributed step failure is unobserved.",
       "examples": [
         "observation step cancelled",
         "build stopped before the refusal cases ran",
-        "tested merge with another tree"
+        "tested merge with another tree",
+        "native report from another source",
+        "rerun started while the runs were read"
       ],
       "families": [
         "CI run binding to the checked tree",
         "job and step conclusions",
-        "per-shell native check reports"
+        "per-shell native check reports",
+        "consistency of the runs and checkout read"
       ],
       "boundary": "Synthetic GitHub responses replace gh; the actual API and job logs are read only when the goal check runs. It reads no repository history beyond the checked-out commit and tree identifiers.",
       "checks": [

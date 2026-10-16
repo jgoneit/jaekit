@@ -34,14 +34,24 @@ class World:
         self.jobs = {1: [job(10, "Core / Windows", ci.OBSERVATIONS[("ci.yml", "Core / Windows")])],
                      2: [job(20, "Windows release archive", ci.OBSERVATIONS[("release.yml", "Windows release archive")])]}
         self.context = {"event": "pull_request", "head_sha": HEAD, "base_sha": BASE, "source_sha": MERGE}
-        self.reports = [{"status": "passed", "environment": {"shell_version": version},
+        self.reports = [{"schema": ci.REPORT_SCHEMA, "status": "passed", "source_commit": MERGE,
+                         "environment": {"shell_version": version},
                          "package_checks": ["checksum-refusal", ci.CASE], "failures": []}
                         for version in ("5.1.26100.1", "7.5.3")]
         self.trees = {MERGE: TREE}
         self.log_lines = None
+        # Runs and the checkout as read again after the first read, when they move.
+        self.later_runs = {}
+        self.later_head = None
+        self.listed = set()
+        self.read_head = 0
 
     def run(self, argv):
         if argv[:2] == ["git", "rev-parse"]:
+            if argv[2] == "HEAD":
+                self.read_head += 1
+                if self.read_head > 1 and self.later_head:
+                    return self.later_head + "\n"
             return {"HEAD": HEAD, "HEAD^{tree}": TREE}[argv[2]] + "\n"
         if argv[:3] == ["gh", "repo", "view"]:
             return json.dumps({"nameWithOwner": REPO})
@@ -50,6 +60,9 @@ class World:
     def api(self, path):
         if "/actions/workflows/" in path:
             workflow = path.split("/actions/workflows/")[1].split("/")[0]
+            if workflow in self.listed and workflow in self.later_runs:
+                return {"workflow_runs": [self.later_runs[workflow]]}
+            self.listed.add(workflow)
             return {"workflow_runs": [self.runs[workflow]] if workflow in self.runs else []}
         if "/actions/runs/" in path:
             return {"jobs": self.jobs[int(path.split("/actions/runs/")[1].split("/")[0])]}
@@ -116,6 +129,9 @@ class CiRuns(unittest.TestCase):
             step(world, 1, "Verify native developer checks on PowerShell 5.1")["conclusion"] = "failure"
             world.jobs[1][0]["conclusion"] = "failure"
 
+        def rerun_started(world, workflow):
+            world.later_runs[workflow] = dict(world.runs[workflow], run_attempt=2, status="queued")
+
         def release_check_failed(world):
             step(world, 2, "Check the archive and public blocks on PowerShell 7")["conclusion"] = "failure"
             world.jobs[2][0]["conclusion"] = "failure"
@@ -136,6 +152,9 @@ class CiRuns(unittest.TestCase):
             "release run tested another base": lambda world: world.runs["release.yml"]["pull_requests"][0]["base"].update(sha="9" * 40),
             "native step stopped before the cases ran": build_stopped,
             "release check failed for an unattributed reason": release_check_failed,
+            "CI rerun started while it was read": lambda world: rerun_started(world, "ci.yml"),
+            "release rerun started while it was read": lambda world: rerun_started(world, "release.yml"),
+            "checkout moved while the runs were read": lambda world: setattr(world, "later_head", "f" * 40),
         }
         for label, change in cases.items():
             world = World()
@@ -150,12 +169,33 @@ class CiRuns(unittest.TestCase):
                 "name character 0x00 fixture: the placeholder must appear once in a local header and once in the central directory."]),
             "report without the case": lambda world: world.reports[1].update(package_checks=["checksum-refusal"]),
             "two reports for one shell": lambda world: world.reports.append(copy.deepcopy(world.reports[0])),
+            "reports from another source": lambda world: [report.update(source_commit="9" * 40) for report in world.reports],
+            "a report without its source": lambda world: world.reports[1].update(source_commit=None),
+            "a report with another schema": lambda world: world.reports[0].update(schema="jaekit-native-windows/v0"),
+            "a refusal failure from another source": lambda world: world.reports[0].update(
+                source_commit="9" * 40, status="failed",
+                failures=["name character 0x00 refusal: Expected refusal was not observed: Unsafe package path"]),
+            "CI rerun started while it was read": lambda world: rerun_started(world, "ci.yml"),
         }
         for label, change in ac1.items():
             world = World()
             change(world)
             with self.subTest(criterion="AC-1", case=label):
                 self.assertEqual(world.main("AC-1"), 2)
+
+    def test_job_log_passes_the_escape_flag_only_when_gh_has_it(self):
+        for help_text, flags in (("FLAGS\n  --allow-escape-sequences   Allow printing terminal escape sequences\n",
+                                  ["--allow-escape-sequences"]),
+                                 ("FLAGS\n  -X, --method string   The HTTP method\n", [])):
+            calls = []
+
+            def run(argv):
+                calls.append(argv)
+                return help_text if argv[:3] == ["gh", "api", "--help"] else "log\n"
+
+            with self.subTest(flags=flags), mock.patch.object(ci, "run", run):
+                self.assertEqual(ci.job_log(REPO, 10), "log\n")
+                self.assertEqual(calls[-1], ["gh", "api", "--method", "GET", *flags, f"repos/{REPO}/actions/jobs/10/logs"])
 
 
 if __name__ == "__main__":

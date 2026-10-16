@@ -10,12 +10,16 @@ Reads GitHub Actions through the gh CLI for the commit checked out here.
   checkout's tree, and its pull request head must be this commit.
 - A release run counts only when its pull request has the same head and base
   as that context, so it tested the same merge.
+- API calls and job logs are not one snapshot. Before returning, each selected
+  run is read again and must still be the latest, with the same attempt, status
+  and conclusion, and the checkout must still have the same HEAD and tree.
 - AC-1 also requires the checked tree's native checks to demand the installer's
   name-character refusals. The Windows job runs them in Windows PowerShell 5.1
   and PowerShell 7.
 
 Each native check step prints `JAEKIT_CI_REPORT` (tools/windows/native_checks.py)
-with its shell version, package checks and failures.
+with its schema, source commit, shell version, package checks and failures. A
+report counts only when its source commit is the tested source of the context.
 
 Exit 0 when every observation step succeeded and, for AC-1, both shells'
 reports passed with the name-character case. Exit 1 only for an observed
@@ -24,9 +28,10 @@ report names a failed refusal of a built name-character case. A refusal with
 another message is such a failure: the installer must refuse with its own name
 message. Exit 2 when it was not observed:
 GitHub or the commit cannot be read, the run is missing or tested another tree,
-a step is unfinished, cancelled or skipped, or a step failed for a reason this
-reader cannot attribute to the property, such as a build that stopped before
-the cases ran or a case that could not be built.
+a step is unfinished, cancelled or skipped, a run or the checkout changed while
+it was read, a report came from another source, or a step failed for a reason
+this reader cannot attribute to the property, such as a build that stopped
+before the cases ran or a case that could not be built.
 """
 import importlib.util
 import json
@@ -51,6 +56,7 @@ CRITERIA = {
 CONTEXT = re.compile(r"JAEKIT_CI_CONTEXT (\{.*\})\s*$")
 REPORT = re.compile(r"JAEKIT_CI_REPORT (\{.*\})\s*$")
 CASE = "archive-name-character-refusal"
+REPORT_SCHEMA = "jaekit-native-windows/v1"
 # Failure texts that only an installer outcome of a built name-character case
 # produces: the package check's "refusal" label (not its "fixture" label, which
 # means the case could not be built) and the report validator's message.
@@ -77,7 +83,10 @@ def api(path):
 
 
 def job_log(repo, job_id):
-    return run(["gh", "api", "--method", "GET", "--allow-escape-sequences", f"repos/{repo}/actions/jobs/{job_id}/logs"])
+    # Newer gh refuses output with terminal escape sequences unless this flag is
+    # given; older gh prints them and does not know the flag.
+    escapes = ["--allow-escape-sequences"] if "--allow-escape-sequences" in run(["gh", "api", "--help"]).split() else []
+    return run(["gh", "api", "--method", "GET", *escapes, f"repos/{repo}/actions/jobs/{job_id}/logs"])
 
 
 def tree_demands_cases():
@@ -114,8 +123,12 @@ def lines_matching(log, pattern):
     return [match.group(1) for line in log.splitlines() if (match := pattern.search(line))]
 
 
+def identity(run):
+    return tuple(run.get(key) for key in ("id", "run_attempt", "status", "conclusion"))
+
+
 def tested_context(log, head, tree, repo, job):
-    """The pull request base of the run whose Windows job tested this tree."""
+    """The pull request base and tested source of the run whose Windows job tested this tree."""
     contexts = lines_matching(log, CONTEXT)
     if len(contexts) != 1:
         raise Unobserved(f"expected one tested-source context in job {job['id']}, found {len(contexts)}")
@@ -124,12 +137,14 @@ def tested_context(log, head, tree, repo, job):
         raise Unobserved("the Windows job did not test this commit's pull request")
     if api(f"repos/{repo}/git/commits/{context['source_sha']}")["tree"]["sha"] != tree:
         raise Unobserved("the Windows job tested a merge whose tree differs from this checkout")
-    return context["base_sha"]
+    return context["base_sha"], context["source_sha"]
 
 
-def refusal_outcome(log):
+def refusal_outcome(log, source):
     """AC-1 in each shell's native check report: 'success', 'failure' or 'unobserved'."""
     reports = [json.loads(text) for text in lines_matching(log, REPORT)]
+    if any(report.get("schema") != REPORT_SCHEMA or report.get("source_commit") != source for report in reports):
+        return "unobserved"
     outcomes = []
     for pattern in SHELLS.values():
         found = [report for report in reports
@@ -167,7 +182,7 @@ def observe(criterion):
     runs = {workflow: latest_run(repo, workflow, head) for workflow in {workflow for workflow, _ in CRITERIA[criterion]}}
     windows = find_job(repo, runs[CONTEXT_JOB[0]], CONTEXT_JOB[1])
     log = job_log(repo, windows["id"])
-    base = tested_context(log, head, tree, repo, windows)
+    base, source = tested_context(log, head, tree, repo, windows)
     results = {}
     for workflow, name in CRITERIA[criterion]:
         pulls = [pull for pull in runs[workflow].get("pull_requests", [])
@@ -176,9 +191,14 @@ def observe(criterion):
             raise Unobserved(f"the {workflow} run did not test the same pull request merge")
         results[f"{workflow} / {name}"] = outcome(find_job(repo, runs[workflow], name), OBSERVATIONS[(workflow, name)])
     if criterion == "AC-1":
-        refusals = refusal_outcome(log)
+        refusals = refusal_outcome(log, source)
         steps = results[f"{CONTEXT_JOB[0]} / {CONTEXT_JOB[1]}"]
         results["name-character refusals"] = refusals if refusals == "failure" or steps == "success" else "unobserved"
+    for workflow, selected in runs.items():
+        if identity(latest_run(repo, workflow, head)) != identity(selected):
+            raise Unobserved(f"the latest {workflow} run changed while it was read")
+    if run(["git", "rev-parse", "HEAD"]).strip() != head or run(["git", "rev-parse", "HEAD^{tree}"]).strip() != tree:
+        raise Unobserved("the checkout changed while the runs were read")
     return results
 
 
