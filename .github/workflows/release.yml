@@ -252,6 +252,14 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
+          # The remote tag must still name the commit these files were built
+          # from; a moved or recreated tag stops publication.
+          tagged="$(git ls-remote origin "refs/tags/${TAG}^{}" | cut -f 1)"
+          if [ -z "${tagged}" ]; then tagged="$(git ls-remote origin "refs/tags/${TAG}" | cut -f 1)"; fi
+          if [ "${tagged}" != "${GITHUB_SHA}" ]; then
+            echo "REFUSED: ${TAG} now names ${tagged:-nothing}, not the built commit ${GITHUB_SHA}" >&2
+            exit 1
+          fi
           # create refuses an existing release; never delete assets or use --clobber.
           gh release create "${TAG}" "${RUNNER_TEMP}"/dist/* \
             --verify-tag \
