@@ -153,9 +153,7 @@ jobs:
     name: Windows release archive
     needs: build
     runs-on: windows-2025
-    # 30 minutes for the checks publication depends on, plus the limits of
-    # the observation-only contract comparison (10) and its upload (5).
-    timeout-minutes: 45
+    timeout-minutes: 30
     outputs:
       sha256: ${{ steps.checked.outputs.sha256 }}
     steps:
@@ -199,28 +197,6 @@ jobs:
           VERSION: ${{ needs.build.outputs.version }}
           EXPECTED: ${{ needs.build.outputs.windows_sha256 }}
         run: python tools/windows/public_blocks.py ci --dist "$env:RUNNER_TEMP/dist" --version $env:VERSION --expected-sha256 $env:EXPECTED --shell pwsh --report "$env:RUNNER_TEMP/reports/windows-pwsh.json"
-
-      # An observation only: the archive to publish is checked by the steps
-      # above, and a disagreement on these synthetic archives never changes
-      # what is published. The report is kept apart from the shell reports.
-      - name: Compare the archive rule with the installer
-        id: contract
-        if: ${{ !cancelled() && steps.checkout.outcome == 'success' && steps.setup_python.outcome == 'success' }}
-        continue-on-error: true
-        timeout-minutes: 10
-        shell: pwsh
-        run: python tools/release/windows_contract.py ci --report "$env:RUNNER_TEMP/contract/windows-contract.json"
-
-      - name: Keep the Windows contract report
-        if: ${{ always() }}
-        continue-on-error: true
-        timeout-minutes: 5
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: release-windows-contract
-          path: ${{ runner.temp }}/contract
-          if-no-files-found: warn
-          retention-days: 30
 
       - name: Keep Windows reports
         if: ${{ always() }}

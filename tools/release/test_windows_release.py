@@ -27,6 +27,11 @@ release = load("windows_release_archives", "check_archives.py")
 gate = load("windows_release_gate", "windows_gate.py")
 published = load("windows_release_published", "check_published.py")
 fixtures = load("windows_release_fixtures", "test_archives.py")
+# Not imported as a name here, so discovery does not collect its tests twice.
+_spec = importlib.util.spec_from_file_location(
+    "windows_release_package_tests", Path(__file__).resolve().parents[1] / "windows/test_package.py")
+package_tests = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(package_tests)
 VERSION = fixtures.VERSION
 ZIP = f"ha_{VERSION}_windows_amd64.zip"
 
@@ -144,58 +149,38 @@ class WindowsRelease(Fixture):
         with self.assertRaisesRegex(ValueError, "checksum mismatch"):
             release.check(self.dist, VERSION)
 
-    def test_manifest_json_the_installer_refuses_is_refused(self):
+    def test_manifest_fields_other_than_package_py_fields_are_refused(self):
         manifest = {"schema": "jaekit-windows-package/v1", "version": VERSION, "os": "windows", "arch": "amd64",
                     "files": [{"path": name, "size": len(body), "sha256": hashlib.sha256(body).hexdigest()}
                               for name, body in sorted(self.files.items())]}
-        entries = [dict(item, note=1.0) for item in manifest["files"]]
-        for label, changed in {"an empty property name": dict(manifest, **{"": 0}),
-                               "names differing only in case": dict(manifest, Schema="other"),
-                               "a non-finite number": dict(manifest, extra=float("nan")),
+        entries = [dict(item, note=1) for item in manifest["files"]]
+        for label, changed in {"an extra field": dict(manifest, note=1),
                                "an extra entry field": dict(manifest, files=entries)}.items():
             with self.subTest(label=label):
                 self.write(manifest=changed)
-                with self.assertRaisesRegex(ValueError, "Windows archive manifest"):
+                with self.assertRaisesRegex(ValueError, "fields package.py does not write"):
                     release.check(self.dist, VERSION)
-        # A number JSON allows but no size can be, in a field package.py writes.
-        sized = dict(manifest, files=[dict(manifest["files"][0], size="SIZE")] + manifest["files"][1:])
-        raw = json.dumps(sized).replace('"SIZE"', "1e400").encode()
-        self.write(manifest=False, extra=[(zipfile.ZipInfo("package.json", date_time=(1980, 1, 1, 0, 0, 0)), raw)])
-        with self.assertRaisesRegex(ValueError, "Windows archive manifest has an invalid entry"):
+
+    def test_repeated_paths_are_refused(self):
+        self.write(extra=[(zipfile.ZipInfo("LICENSE", date_time=(1980, 1, 1, 0, 0, 0)), b"again")])
+        with self.assertRaisesRegex(ValueError, "repeats a path"):
             release.check(self.dist, VERSION)
 
-    def test_repeated_and_case_colliding_paths_are_refused(self):
-        repeated = zipfile.ZipInfo("LICENSE", date_time=(1980, 1, 1, 0, 0, 0))
-        folded = zipfile.ZipInfo("license", date_time=(1980, 1, 1, 0, 0, 0))
-        for message, extra in {"repeats a path": [(repeated, b"again")],
-                               "differ only in case": [(folded, b"again")]}.items():
-            with self.subTest(message=message):
-                self.write(extra=extra)
-                with self.assertRaisesRegex(ValueError, message):
-                    release.check(self.dist, VERSION)
-
-
-    def test_non_ascii_names_are_refused(self):
-        # Windows may fold, normalize or ignore parts of them differently.
-        for name in ("guides/\u03c2.md", "guides/\u0131.md", "guides/cafe\u0301.md", "guides/a\x7f.md"):
-            with self.subTest(name=name):
-                self.write(files=dict(self.files, **{name: b"guide\n"}))
-                with self.assertRaisesRegex(ValueError, "not printable ASCII"):
-                    release.check(self.dist, VERSION)
-
-    def test_local_metadata_and_caches_are_refused_in_any_case(self):
-        # Windows reads the expanded folder without case.
-        for name in ("guides/.git/config", "guides/.GIT/config", "guides/NODE_MODULES/x.md",
-                     "guides/__PyCache__/x.md", "guides/tool.PYC"):
-            with self.subTest(name=name):
-                self.write(files=dict(self.files, **{name: b"x\n"}))
-                with self.assertRaisesRegex(ValueError, "local metadata or generated cache"):
-                    release.check(self.dist, VERSION)
-
-    def test_a_file_named_like_a_folder_in_another_case_is_refused(self):
-        self.write(files=dict(self.files, **{"GUIDES": b"file\n", "guides/EXTRA.md": b"guide\n"}))
-        with self.assertRaisesRegex(ValueError, "file/directory collision"):
+    def test_paths_package_py_does_not_package_are_refused(self):
+        self.write(files=dict(self.files, **{"notes/extra.md": b"x\n"}))
+        with self.assertRaisesRegex(ValueError, "path package.py does not package"):
             release.check(self.dist, VERSION)
+
+    def test_a_package_py_archive_passes_the_check(self):
+        # package.py's own synthetic Git source fixture and a synthetic PE32+ Core.
+        fixture = package_tests.CandidatePackageTests("prepare")
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        path = fixture.prepare(version="0.0.0")
+        self.assertEqual("ha_0.0.0_windows_amd64.zip", path.name)
+        files = release.windows_files(path, hashlib.sha256(path.read_bytes()).hexdigest(), "0.0.0")
+        self.assertIn("ha.exe", files)
+
 
 class PublicationGate(Fixture):
     def digest(self):

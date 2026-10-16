@@ -10,8 +10,9 @@ Native smoke files live in a temporary directory and use only packaged inputs.
 The tar.gz archives are read only through the shared bounded reader
 (archive_reader.py), whose limits are published in
 tools/release-checks/README.md. The Windows ZIP has its own bounded in-memory
-rule (windows_files), the one the published-release check also applies; it is
-no looser than the installer's package check (tools/windows/common.ps1).
+structural check (windows_files). The installer's own package check
+(tools/windows/common.ps1) judges that exact archive in the release
+workflow's Windows job; this check does not reproduce it.
 """
 from __future__ import annotations
 
@@ -67,11 +68,6 @@ WINDOWS_SCHEMA = "jaekit-windows-package/v1"
 WINDOWS_MAX_ENTRIES = 2048
 WINDOWS_MAX_FILE_BYTES = 32 * 1024 * 1024
 WINDOWS_MAX_BYTES = 128 * 1024 * 1024
-# The installer reads at most this much manifest (common.ps1 Read-PackageManifest).
-WINDOWS_MAX_MANIFEST_BYTES = 1024 * 1024
-WINDOWS_SHA256 = re.compile(r"[0-9a-f]{64}")
-# DOS directory (0x10) and reparse-point (0x400) attributes; the installer refuses both.
-WINDOWS_DOS_REFUSED = 0x410
 # The fields package.py writes, and nothing else.
 WINDOWS_MANIFEST_FIELDS = {"schema", "version", "os", "arch", "files"}
 WINDOWS_ENTRY_FIELDS = {"path", "size", "sha256"}
@@ -214,23 +210,9 @@ def check_platform(binary: bytes, target: str):
 
 
 def windows_manifest(data: bytes):
-    """Parse package.json, accepting only the fields package.py writes.
-
-    Python's json is laxer than the installer's ConvertFrom-Json (NaN,
-    out-of-range numbers, deep nesting, empty or case-repeated property
-    names). With exactly package.py's fields, of their exact types checked
-    below, none of that reaches the installer.
-    """
-    def unique(pairs):
-        names = [name for name, _ in pairs]
-        require(len(names) == len(set(names)), "Windows archive manifest repeats a property")
-        return dict(pairs)
-
-    def constant(value):
-        raise ValueError("Windows archive manifest has a non-finite number: " + value)
-
+    """Parse package.json with exactly the fields package.py writes."""
     try:
-        manifest = json.loads(data.decode("utf-8"), object_pairs_hook=unique, parse_constant=constant)
+        manifest = json.loads(data.decode("utf-8"))
     except (UnicodeError, json.JSONDecodeError, RecursionError):
         raise ValueError("Windows archive manifest is not JSON") from None
     require(isinstance(manifest, dict) and manifest.keys() == WINDOWS_MANIFEST_FIELDS
@@ -241,12 +223,12 @@ def windows_manifest(data: bytes):
 
 
 def windows_files(path: Path, checksum: str, version: str):
-    """Verify the Windows archive in memory: bounded, manifest-complete and safe.
+    """Verify the Windows archive in memory: bounded, manifest-complete and package.py-shaped.
 
-    The one Windows archive rule, applied before publication and by the
-    published-release check. It refuses at least what the installer's own
-    checks refuse (common.ps1 Expand-CheckedPackage, Read-PackageManifest) and
-    any path package.py would not package; nothing is extracted to disk.
+    A structural check of what package.py builds, before publication; nothing
+    is extracted to disk. Path safety and the PE format reuse package.py's
+    rules. The installer's own package check is not reproduced here: the
+    release workflow's Windows job runs it on this exact archive.
     """
     require(path.stat().st_size <= ARCHIVE_MAX_COMPRESSED_BYTES, "Windows archive compressed size limit exceeded")
     with path.open("rb") as source:
@@ -263,32 +245,20 @@ def windows_files(path: Path, checksum: str, version: str):
         for entry in entries:
             name = entry.filename
             # zipfile cuts a name at NUL and, on Windows, turns backslashes
-            # into slashes; the installer sees the stored name and refuses it.
+            # into slashes; judge the stored name.
             require(entry.orig_filename == name, "Windows archive has an unsafe path: " + repr(entry.orig_filename))
-            # The installer compares names in a culture-aware PowerShell hashtable
-            # and NTFS by its own upper-case table; for non-ASCII text (code
-            # pages, normalization forms) and ignorable characters such as DEL,
-            # Python cannot reproduce either. package.py's public files are
-            # printable ASCII.
-            require(name.isascii() and name.isprintable(),
-                    "Windows archive has a name that is not printable ASCII: " + repr(name))
-            # Every Windows short (8.3) name holds `~`, such as ABCDEF~1.MD for
-            # abcdefghij.md. On a volume that creates short names, an entry named
-            # like another entry's short name would be the same file to the
-            # installer; package.py's public files use no `~`.
-            require("~" not in name,
-                    "Windows archive has a name with `~`, which Windows short names use: " + repr(name))
             try:
                 windows_package.safe_name(name)
             except ValueError:
                 raise ValueError("Windows archive has an unsafe path: " + repr(name)) from None
             kind = (entry.external_attr >> 16) & 0o170000
             require(not entry.is_dir() and kind in (0, 0o100000), "Windows archive contains a directory, link or special file")
-            require(entry.external_attr & WINDOWS_DOS_REFUSED == 0,
-                    "Windows archive entry has a DOS directory or reparse-point attribute: " + name)
             require(entry.flag_bits & 0x1 == 0, "Windows archive contains an encrypted entry")
             require(entry.compress_type in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED), "Windows archive uses an unsupported compression")
             require(name not in files, "Windows archive repeats a path")
+            # Only what package.py packages: the Core, its manifest and public files.
+            require(name in ("ha.exe", "package.json") or windows_package.public_path(name),
+                    "Windows archive has a path package.py does not package: " + name)
             require(entry.file_size <= WINDOWS_MAX_FILE_BYTES, "Windows archive file exceeds the size limit: " + name)
             total += entry.file_size
             require(total <= WINDOWS_MAX_BYTES, "Windows archive expands beyond the size limit")
@@ -296,50 +266,22 @@ def windows_files(path: Path, checksum: str, version: str):
                 body = stream.read(entry.file_size + 1)
             require(len(body) == entry.file_size, "Windows archive entry size differs from its header")
             files[name] = body
-    lowered = {}
-    for name in files:
-        require(name.lower() not in lowered,
-                f"Windows archive has paths that differ only in case: {lowered.get(name.lower())!r}, {name!r}")
-        lowered[name.lower()] = name
-    for name in files:
-        # Windows compares parent folders without case, like the file names.
-        parts = name.lower().split("/")
-        folders = ["/".join(parts[:index]) for index in range(1, len(parts))]
-        clash = next((lowered[folder] for folder in folders if folder in lowered), None)
-        require(clash is None, f"Windows archive has a file/directory collision: {clash!r}, {name!r}")
-    for name in files:
-        # Only what package.py packages: the Core, its manifest and public files.
-        require(name in ("ha.exe", "package.json") or windows_package.public_path(name),
-                "Windows archive has a path package.py does not package: " + name)
-        # Without case, as Windows reads the expanded folder.
-        require(not LOCAL_PARTS.intersection(name.lower().split("/"))
-                and PurePosixPath(name).suffix.lower() not in CACHE_SUFFIXES,
-                "Windows archive contains local metadata or generated cache: " + name)
     require(WINDOWS_REQUIRED <= files.keys(),
             "Windows archive is missing required files: " + ", ".join(sorted(WINDOWS_REQUIRED - files.keys())))
-    require(len(files["package.json"]) <= WINDOWS_MAX_MANIFEST_BYTES, "Windows archive manifest exceeds 1 MiB")
     manifest = windows_manifest(files["package.json"])
-    require(isinstance(manifest, dict) and manifest.get("schema") == WINDOWS_SCHEMA
-            and manifest.get("os") == "windows" and manifest.get("arch") == "amd64",
+    require(manifest["schema"] == WINDOWS_SCHEMA and manifest["os"] == "windows" and manifest["arch"] == "amd64",
             "Windows archive manifest has an unexpected schema or platform")
-    require(manifest.get("version") == version, "Windows archive manifest version differs from the release")
-    listed = manifest.get("files")
-    require(isinstance(listed, list), "Windows archive manifest lists no files")
+    require(manifest["version"] == version, "Windows archive manifest version differs from the release")
     expected = {}
-    for item in listed:
-        require(isinstance(item, dict) and isinstance(item.get("path"), str) and item["path"] not in expected,
+    for item in manifest["files"]:
+        require(isinstance(item["path"], str) and item["path"] not in expected,
                 "Windows archive manifest has an invalid or repeated entry")
-        # JSON true and 1.0 compare equal to 1 in Python; the installer takes
-        # only integer sizes and lowercase digests.
-        require(type(item.get("size")) is int and 0 <= item["size"] <= WINDOWS_MAX_FILE_BYTES
-                and isinstance(item.get("sha256"), str) and WINDOWS_SHA256.fullmatch(item["sha256"]),
-                "Windows archive manifest has an invalid entry: " + item["path"])
         expected[item["path"]] = item
     require(expected.keys() == files.keys() - {"package.json"},
             "Windows archive files differ from its manifest")
     for name, item in expected.items():
         body = files[name]
-        require(item.get("size") == len(body) and item.get("sha256") == hashlib.sha256(body).hexdigest(),
+        require(item["size"] == len(body) and item["sha256"] == hashlib.sha256(body).hexdigest(),
                 "Windows archive file differs from its manifest: " + name)
     try:
         windows_package.windows_amd64(files["ha.exe"])

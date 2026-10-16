@@ -375,21 +375,13 @@ otherwise they publish the four archives and `checksums.txt`. For any published
 tag, `python3 tools/release/check_published.py --tag vX.Y.Z` checks either
 shape: it downloads the public assets within the archive limits, compares their
 sizes and GitHub digests, and applies the pre-publication rules
-(`tools/release/check_archives.py`). There is one Windows archive content rule,
-`check_archives.windows_files`, used before and after publication; it is no
-looser than the installer's package check and refuses paths `package.py` does
-not package. It accepts only printable ASCII names and only the manifest fields
-`package.py` writes, because the installer compares names and reads JSON in
-ways Python cannot reproduce for other input. It also refuses `~` anywhere in a
-name: every Windows short (8.3) name holds `~` (`ABCDEF~1.MD` for
-`abcdefghij.md`), and on a volume that creates short names an entry named like
-another entry's short name would be the same file to the installer. Common
-verification (`python3 tools/verify.py`, through
-`tools/release/test_windows_names.py`) builds the same archive from the
-committed public files at HEAD, and from the public files staged for the next
-commit, with a synthetic Core, and judges it with this rule, so a committed
-public file the rule refuses fails the pull request before the release build
-would stop the whole release. Untracked or ignored files do not count. When the Windows
+(`tools/release/check_archives.py`). The Windows archive check,
+`check_archives.windows_files`, is structural: the files `package.py` packages
+and no others, exactly the manifest fields it writes, matching sizes and
+SHA-256 digests, `package.py`'s path rules and the Windows amd64 executable
+format. It does not reproduce the installer's package check; the release
+workflow's Windows job runs that check on the exact archive before
+publication. When the Windows
 archive is published, the check also reads the
 tag object and requires the link the publication gate
 (`tools/release/windows_gate.py`) requires: an annotated tag whose message has
