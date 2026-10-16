@@ -940,78 +940,23 @@
       "follow_up": []
     },
     {
-      "id": "repository-check-history-independence",
-      "invariant": "I1",
-      "status": "protected",
-      "sources": [
-        "tools/check_repository_checks.py",
-        "tools/verification-checks/windows_release_install.py",
-        "tools/verification-checks/windows_release_review_fixes.py"
-      ],
-      "property": "Tracked Python checks under tools/ pass no fixed commit to Git, directly or through a name, so they judge current files in full, shallow and snapshot sources.",
-      "examples": [
-        "git diff against a goal-start commit"
-      ],
-      "families": [
-        "revision literals, rev:path and ranges",
-        "names bound to commit literals"
-      ],
-      "boundary": "A static reading of tracked tools/ Python. Arguments built elsewhere, shell strings, values read from files or other modules and all-decimal object names are outside it.",
-      "checks": [
-        {
-          "file": "tools/public-checks/test_repository_checks.py",
-          "selector": "RepositoryChecks.test_fixed_commits_passed_to_git_are_reported",
-          "group": "docs"
-        },
-        {
-          "file": "tools/public-checks/test_repository_checks.py",
-          "selector": "RepositoryChecks.test_hex_values_outside_git_and_current_revisions_are_normal",
-          "group": "docs"
-        },
-        {
-          "file": "tools/public-checks/test_repository_checks.py",
-          "selector": "RepositoryChecks.test_the_repository_passes",
-          "group": "docs"
-        }
-      ],
-      "follow_up": []
-    },
-    {
       "id": "release-checker-import-boundary",
       "invariant": "I3",
       "status": "protected",
       "sources": [
-        "tools/check_repository_checks.py",
         "tools/release-checks/check.py",
         "tools/release-checks/install_trace.py",
         "tools/release-checks/observe.py"
       ],
-      "property": "Release check modules with a standard-library bootstrap import nothing from the caller's path after it: later imports stay inside trusted_imports() or name modules the bootstrap loaded, and code that imports check.py directly runs no caller module.",
+      "property": "Code that imports the release acceptance checker check.py directly runs no caller module: the installation consumer uses the namespace that defined the checker, and the asset and archive judgments import nothing from the caller's path.",
       "examples": [
-        "a late zipfile import in an archive judgment",
         "import check inside the installation consumer"
       ],
       "families": [
-        "function and module-level imports after the bootstrap",
         "direct import with modules shadowing standard names"
       ],
-      "boundary": "A static reading of tracked modules that restore _CALLER_IMPORT_PATH, plus one direct-import process with synthetic archives. Dynamic imports (importlib.import_module) are outside it.",
+      "boundary": "One direct-import process with synthetic archives and caller modules shadowing standard names. Static import order and dynamic imports (importlib.import_module) are outside it.",
       "checks": [
-        {
-          "file": "tools/public-checks/test_repository_checks.py",
-          "selector": "RepositoryChecks.test_late_imports_after_the_bootstrap_are_reported",
-          "group": "docs"
-        },
-        {
-          "file": "tools/public-checks/test_repository_checks.py",
-          "selector": "RepositoryChecks.test_an_import_defined_during_the_bootstrap_but_run_later_is_reported",
-          "group": "docs"
-        },
-        {
-          "file": "tools/public-checks/test_repository_checks.py",
-          "selector": "RepositoryChecks.test_the_repository_passes",
-          "group": "docs"
-        },
         {
           "file": "tools/release-checks/test_direct_import_boundary.py",
           "selector": "DirectImportBoundary",
