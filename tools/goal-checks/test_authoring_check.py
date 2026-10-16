@@ -83,6 +83,7 @@ class CurrentTree(unittest.TestCase):
                 ("Apply these rules without asking for confirmation, approval, or permission.", []),
                 ("Never ask or confirm with the user.", []),
                 ("Never ask for approval or confirm with the user.", []),
+                ("Apply these rules without asking for approval and ask the user.", ["ask"]),
                 ("Open questions go to REVIEW.md.", []),
                 ("새로 묻지 않는다, 사용자에게 승인을 받는다.", ["승인을 받"]),
                 ("They add no user confirmation, approval or question: the executor applies them.", []),

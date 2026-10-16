@@ -179,7 +179,9 @@ ASKING = re.compile(r"(?i)\b(ask|asks|asking|approval|approve|confirmation|confi
 NOT_ASKING = re.compile(r"(?i)without asking|never ask|not ask|add no user|no user confirmation"
                         r"|document-conflict rule|only the user resolves|묻지 않|새로 묻지|더하지 않|문서 충돌 규칙|사용자만 해소")
 GOVERNED_WORDS = {"the", "a", "an", "any", "user", "users", "for", "to", "of", "or", "and"}
-NEGATED_VERB = re.compile(r"(?i)without asking|never ask|not ask")
+# "without asking" governs gerunds, not a following base-form verb, so only these
+# phrases carry their negation over to another asking verb.
+NEGATED_VERB = re.compile(r"(?i)never ask|not ask")
 # A list the phrase governs continues after a comma only with another asking noun.
 ASKING_NOUNS = re.compile(r"(?i)approval|confirmation|permission")
 
