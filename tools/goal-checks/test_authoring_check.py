@@ -56,7 +56,7 @@ def go_events(results):
 class ResultMeaning(unittest.TestCase):
     """I2: a failing regression is a violation; a tool that cannot run is never one."""
 
-    def run_regressions(self, go_code, go_out, docs_code=0, which=shutil.which):
+    def run_regressions(self, go_code, go_out, docs_code=0, which=lambda tool: "/usr/bin/" + tool):
         def fake(argv, **kwargs):
             if argv[0] == "go":
                 self.assertEqual((kwargs["env"]["GOFLAGS"], kwargs["env"]["GOWORK"]), ("", "off"))
@@ -88,6 +88,8 @@ class ResultMeaning(unittest.TestCase):
                                which=lambda tool: None if tool == "go" else "/bin/" + tool),
             "missing git": dict(go_code=0, go_out=go_events(self.passing()),
                                 which=lambda tool: None if tool == "git" else "/bin/" + tool),
+            "missing python3": dict(go_code=0, go_out=go_events(self.passing()),
+                                    which=lambda tool: None if tool == "python3" else "/bin/" + tool),
             "build failure": dict(go_code=1, go_out=""),
             "required test skipped": dict(go_code=0, go_out=go_events(skipped)),
             "required test absent": dict(go_code=0, go_out=go_events({"TestOther": "pass"})),

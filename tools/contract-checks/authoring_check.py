@@ -184,6 +184,10 @@ PRIVATE = (
 # History-dependent tokens a template check command must not carry.
 HISTORY_TOKENS = re.compile(r"\bgit\b|HEAD[~^]|@\{|origin/|merge-base|(?<![0-9A-Za-z])[0-9a-f]{7,40}(?![0-9A-Za-z])")
 
+# The plugin package runs under go; its tests launch git fixtures and python3
+# contract suites. A test that fails because one of them cannot start has not
+# observed the guidance, so all three are checked before the run.
+REQUIRED_TOOLS = ("go", "git", "python3")
 REQUIRED_GO_TESTS = ("TestManifestsAndVersionsAgree", "TestCompatibilityAC10_SourceVersions",
                      "TestSealSkillPrescribesNoOrder", "TestSealSkillCarriesCompletionRules",
                      "TestExampleFromTemplatesPassesLint", "TestRunRules2SealGuide")
@@ -230,9 +234,11 @@ def regressions(root):
     A failing test is an observed contradiction. A missing tool, a build or
     setup failure, or required tests that did not run is not an observation and
     raises, which the caller reports as error. Inherited Go flags are cleared so
-    they cannot skip the required tests.
+    they cannot skip the required tests. A failure inside a test whose tools
+    all started is read as observed; the tests only read tracked files and
+    build synthetic fixtures with those tools.
     """
-    for tool in ("go", "git"):
+    for tool in REQUIRED_TOOLS:
         if shutil.which(tool) is None:
             raise RuntimeError(f"{tool} is not available")
     env = dict(os.environ, GOFLAGS="", GOWORK="off")
