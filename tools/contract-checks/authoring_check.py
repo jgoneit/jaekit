@@ -176,7 +176,9 @@ NOT_ASKING = re.compile(r"(?i)without asking|never ask|not ask|add no user|no us
 PRIVATE = (
     (re.compile(r"(?<![0-9A-Za-z])[0-9a-f]{7,40}(?![0-9A-Za-z])"), "commit-like hexadecimal"),
     (re.compile(r"(?i)\bPR ?#\d+|/pull/\d+|discussion_r\d+|(?<![\w`])#\d{2,}\b"), "pull request reference"),
-    (re.compile(r"/(?:Users|home)/[^\s/`]+/|-worktrees/|[A-Za-z]:\\Users\\"), "local path"),
+    # Checkout-local absolute paths on macOS, Linux, containers and Windows.
+    (re.compile(r"(?<![\w.])/(?:Users|home|root|workspaces?|private|var/folders|tmp|mnt|srv|Volumes)/[^\s/`]+"
+                r"|-worktrees/|(?<![A-Za-z])[A-Za-z]:[\\/][^\s`]"), "local path"),
     (re.compile(r"docs/specs?/(?!(?:<goal>|x|example|sample)(?:/|\b))[A-Za-z0-9]"), "concrete goal path"),
     (re.compile(r"\.\./[A-Za-z0-9._-]+/(?:SPEC|CONTEXT|PLAN|REVIEW|PROGRESS)\.md"), "link to another goal's documents"),
     (re.compile(r"runs\.jsonl:\d+|seq \d+ \("), "execution record reference"),
@@ -233,15 +235,16 @@ def regressions(root):
 
     A failing test is an observed contradiction. A missing tool, a build or
     setup failure, or required tests that did not run is not an observation and
-    raises, which the caller reports as error. Inherited Go flags are cleared so
-    they cannot skip the required tests. A failure inside a test whose tools
+    raises, which the caller reports as error. Go flags are overridden with a
+    single space: an empty GOFLAGS would fall back to a value persisted with
+    `go env -w`, which could skip the required tests. A failure inside a test whose tools
     all started is read as observed; the tests only read tracked files and
     build synthetic fixtures with those tools.
     """
     for tool in REQUIRED_TOOLS:
         if shutil.which(tool) is None:
             raise RuntimeError(f"{tool} is not available")
-    env = dict(os.environ, GOFLAGS="", GOWORK="off")
+    env = dict(os.environ, GOFLAGS=" ", GOWORK="off")
     go = subprocess.run(["go", "test", "-count=1", "-json", "./plugins/"], cwd=root, capture_output=True,
                         text=True, env=env)
     results, outputs = {}, {}
@@ -362,6 +365,9 @@ def observe(root, suite, criterion):
                 if ASKING.search(sentence) and not NOT_ASKING.search(sentence):
                     problems.append(f"{name}: guidance may add a user step: {sentence.strip()[:160]}")
     if criterion == "AC-10":
+        for name in sorted({name for name, _ in SECTIONS.values()}):
+            if read(root, name) is None:
+                problems.append(f"{name}: required product artifact absent")
         for name, text in changed_texts(root):
             for pattern, label in PRIVATE:
                 for match in pattern.finditer(text):

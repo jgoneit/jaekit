@@ -1183,7 +1183,8 @@
       "property": "The Seal check-authoring producer judges only the files of the checked tree: a copy without Git metadata or history gives the same verdicts, and a missing product file is an observed violation.",
       "examples": [
         "copy of the read files without .git",
-        "missing Seal skill file"
+        "missing Seal skill file",
+        "missing Seal skill file under the private-content criterion"
       ],
       "families": [
         "checkout and history-less copy",
@@ -1217,7 +1218,7 @@
         "tool preflight",
         "producer exception to check-result error"
       ],
-      "boundary": "Synthetic process results replace go and the documentation check; the actual commands run when the producer checks a tree. Inherited GOFLAGS and GOWORK are cleared for the child process only.",
+      "boundary": "Synthetic process results replace go and the documentation check; the actual commands run when the producer checks a tree. The child process overrides GOFLAGS with a single space, so flags persisted with `go env -w` cannot skip the required tests, and sets GOWORK=off.",
       "checks": [
         {
           "file": "tools/goal-checks/test_authoring_check.py",

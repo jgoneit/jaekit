@@ -39,12 +39,23 @@ class CurrentTree(unittest.TestCase):
                                      authoring_check.observe(checker.ROOT, "authoring", criterion))
 
     def test_missing_product_file_is_an_observed_violation(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            copy([path for path in INPUTS if path != authoring_check.SKILL], root)
-            observation, problems = authoring_check.observe(root, "authoring", "AC-1")
-            self.assertEqual(observation["status"], "violation")
-            self.assertIn(f"{authoring_check.SKILL}: required product artifact absent", problems)
+        for criterion in ("AC-1", "AC-10"):
+            with self.subTest(criterion=criterion), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                copy([path for path in INPUTS if path != authoring_check.SKILL], root)
+                observation, problems = authoring_check.observe(root, "authoring", criterion)
+                self.assertEqual(observation["status"], "violation")
+                self.assertIn(f"{authoring_check.SKILL}: required product artifact absent", problems)
+
+    def test_local_paths_in_new_guidance_are_found(self):
+        pattern = next(pattern for pattern, label in authoring_check.PRIVATE if label == "local path")
+        for text in ("/Users/example/x", "/home/user/x", "/root/project/x", "/workspace/repo/x", "/workspaces/repo",
+                     "/private/var/folders/ab/x", "/tmp/build/x", "../repo-worktrees/goal", "C:\\work\\x", "D:/src/x"):
+            with self.subTest(text=text):
+                self.assertTrue(pattern.search(text))
+        for text in ("https://example.invalid/a", "references/bundle.md", "docs/specs/<goal>/PLAN.md", "a: b", "HEAD~n"):
+            with self.subTest(text=text):
+                self.assertFalse(pattern.search(text))
 
 
 def go_events(results):
@@ -59,7 +70,8 @@ class ResultMeaning(unittest.TestCase):
     def run_regressions(self, go_code, go_out, docs_code=0, which=lambda tool: "/usr/bin/" + tool):
         def fake(argv, **kwargs):
             if argv[0] == "go":
-                self.assertEqual((kwargs["env"]["GOFLAGS"], kwargs["env"]["GOWORK"]), ("", "off"))
+                # A single space overrides GOFLAGS persisted with `go env -w`; empty would not.
+                self.assertEqual((kwargs["env"]["GOFLAGS"], kwargs["env"]["GOWORK"]), (" ", "off"))
                 return subprocess.CompletedProcess(argv, go_code, go_out, "build output")
             return subprocess.CompletedProcess(argv, docs_code, "", "docs output")
         with mock.patch.object(authoring_check.subprocess, "run", side_effect=fake), \
