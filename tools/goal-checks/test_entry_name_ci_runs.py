@@ -83,7 +83,8 @@ class CiRuns(unittest.TestCase):
                 self.assertEqual(World().main(criterion), 0)
 
     def test_a_named_refusal_failure_in_a_shell_report_is_a_failure(self):
-        for index, failure in ((0, "name character 0x00: Expected refusal was not observed: Unsafe package path"),
+        for index, failure in ((0, "name character 0x00 refusal: Expected refusal was not observed: Unsafe package path"),
+                               (0, "name character 0x7c refusal: The property 'Count' cannot be found on this object."),
                                (1, "installer name-character refusals are incomplete; missing: 0x22")):
             world = World()
             world.reports[index].update(status="failed", failures=["package/runtime report contains a failure", failure])
@@ -144,6 +145,9 @@ class CiRuns(unittest.TestCase):
         ac1 = {
             "native step stopped before the cases ran": build_stopped,
             "no report for PowerShell 7": lambda world: world.reports.pop(),
+            "a case could not be built": lambda world: world.reports[0].update(status="failed", failures=[
+                "package/runtime report contains a failure",
+                "name character 0x00 fixture: the placeholder must appear once in a local header and once in the central directory."]),
             "report without the case": lambda world: world.reports[1].update(package_checks=["checksum-refusal"]),
             "two reports for one shell": lambda world: world.reports.append(copy.deepcopy(world.reports[0])),
         }

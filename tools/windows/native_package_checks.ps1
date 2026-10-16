@@ -161,42 +161,49 @@ try {
     $placeholder = 'assets/name-probe-@.txt'
     $marker = $placeholder.IndexOf('@')
     $latin1 = [Text.Encoding]::GetEncoding(28591)
+    # Failure labels keep the two apart for readers of the report: "fixture"
+    # means the case could not be built, "refusal" means the installer did not
+    # refuse the built case with its own name message or left something behind.
     foreach ($code in $codes) {
         Require ($code -ge 0 -and $code -le 127) ('Name character is outside ASCII: ' + $code)
         $label = 'name character 0x' + $code.ToString('x2')
-        $directory = Join-Path $work ('name-character-' + $code.ToString('x2'))
-        [IO.Directory]::CreateDirectory($directory) | Out-Null
-        $modified = Join-Path $directory ([IO.Path]::GetFileName($archive))
-        [IO.File]::Copy($archive, $modified, $false)
-        $zip = [IO.Compression.ZipFile]::Open($modified, [IO.Compression.ZipArchiveMode]::Update)
         try {
-            $entry = $zip.CreateEntry($placeholder)
-            $stream = $entry.Open()
-            try { $stream.WriteByte(120) } finally { $stream.Dispose() }
-        } finally { $zip.Dispose() }
-        $bytes = [IO.File]::ReadAllBytes($modified)
-        $text = $latin1.GetString($bytes)
-        $offsets = @()
-        $at = $text.IndexOf($placeholder, [StringComparison]::Ordinal)
-        while ($at -ge 0) {
-            $offsets += $at
-            $at = $text.IndexOf($placeholder, $at + 1, [StringComparison]::Ordinal)
+            $directory = Join-Path $work ('name-character-' + $code.ToString('x2'))
+            [IO.Directory]::CreateDirectory($directory) | Out-Null
+            $modified = Join-Path $directory ([IO.Path]::GetFileName($archive))
+            [IO.File]::Copy($archive, $modified, $false)
+            $zip = [IO.Compression.ZipFile]::Open($modified, [IO.Compression.ZipArchiveMode]::Update)
+            try {
+                $entry = $zip.CreateEntry($placeholder)
+                $stream = $entry.Open()
+                try { $stream.WriteByte(120) } finally { $stream.Dispose() }
+            } finally { $zip.Dispose() }
+            $bytes = [IO.File]::ReadAllBytes($modified)
+            $text = $latin1.GetString($bytes)
+            $offsets = @()
+            $at = $text.IndexOf($placeholder, [StringComparison]::Ordinal)
+            while ($at -ge 0) {
+                $offsets += $at
+                $at = $text.IndexOf($placeholder, $at + 1, [StringComparison]::Ordinal)
+            }
+            Require ($offsets.Count -eq 2) 'the placeholder must appear once in a local header and once in the central directory.'
+            foreach ($offset in $offsets) { $bytes[$offset + $marker] = [byte]$code }
+            [IO.File]::WriteAllBytes($modified, $bytes)
+            $sums = Join-Path $directory 'checksums.txt'
+            [IO.File]::WriteAllText($sums, (Get-Sha256 $modified) + '  ' + [IO.Path]::GetFileName($modified) + "`n", $utf8)
+            $rejectedDestination = Join-Path $directory 'must-not-exist'
+            $before = @(Get-ChildItem -LiteralPath $directory -Recurse -Force | ForEach-Object { $_.FullName }) -join "`n"
+        } catch {
+            throw ($label + ' fixture: ' + $_.ToString())
         }
-        Require ($offsets.Count -eq 2) ($label + ': the placeholder must appear once in a local header and once in the central directory.')
-        foreach ($offset in $offsets) { $bytes[$offset + $marker] = [byte]$code }
-        [IO.File]::WriteAllBytes($modified, $bytes)
-        $sums = Join-Path $directory 'checksums.txt'
-        [IO.File]::WriteAllText($sums, (Get-Sha256 $modified) + '  ' + [IO.Path]::GetFileName($modified) + "`n", $utf8)
-        $rejectedDestination = Join-Path $directory 'must-not-exist'
-        $before = @(Get-ChildItem -LiteralPath $directory -Recurse -Force | ForEach-Object { $_.FullName }) -join "`n"
         try {
             Require-Refusal { Expand-CheckedPackage $modified $sums $rejectedDestination } 'Unsafe package path'
+            Require (-not (Test-Path -LiteralPath $rejectedDestination)) 'the refusal wrote an extraction directory.'
+            $after = @(Get-ChildItem -LiteralPath $directory -Recurse -Force | ForEach-Object { $_.FullName }) -join "`n"
+            Require ($after -ceq $before) 'the refusal left files behind.'
         } catch {
-            throw ($label + ': ' + $_.ToString())
+            throw ($label + ' refusal: ' + $_.ToString())
         }
-        Require (-not (Test-Path -LiteralPath $rejectedDestination)) ($label + ': the refusal wrote an extraction directory.')
-        $after = @(Get-ChildItem -LiteralPath $directory -Recurse -Force | ForEach-Object { $_.FullName }) -join "`n"
-        Require ($after -ceq $before) ($label + ': the refusal left files behind.')
         $report.name_character_refusals += $code
     }
     $report.package_checks += 'archive-name-character-refusal'

@@ -20,11 +20,13 @@ with its shell version, package checks and failures.
 Exit 0 when every observation step succeeded and, for AC-1, both shells'
 reports passed with the name-character case. Exit 1 only for an observed
 failure of the property: the tree does not demand the cases, or a shell's
-report names a failed name-character refusal. Exit 2 when it was not observed:
+report names a failed refusal of a built name-character case. A refusal with
+another message is such a failure: the installer must refuse with its own name
+message. Exit 2 when it was not observed:
 GitHub or the commit cannot be read, the run is missing or tested another tree,
 a step is unfinished, cancelled or skipped, or a step failed for a reason this
 reader cannot attribute to the property, such as a build that stopped before
-the cases ran.
+the cases ran or a case that could not be built.
 """
 import importlib.util
 import json
@@ -49,9 +51,10 @@ CRITERIA = {
 CONTEXT = re.compile(r"JAEKIT_CI_CONTEXT (\{.*\})\s*$")
 REPORT = re.compile(r"JAEKIT_CI_REPORT (\{.*\})\s*$")
 CASE = "archive-name-character-refusal"
-# Failure texts that only the name-character refusal cases produce: the
-# package check's per-character label and the report validator's message.
-REFUSAL_FAILURE = re.compile(r"name character 0x[0-9a-f]{2}:|installer name-character refusals are incomplete")
+# Failure texts that only an installer outcome of a built name-character case
+# produces: the package check's "refusal" label (not its "fixture" label, which
+# means the case could not be built) and the report validator's message.
+REFUSAL_FAILURE = re.compile(r"name character 0x[0-9a-f]{2} refusal:|installer name-character refusals are incomplete")
 SHELLS = {"Windows PowerShell 5.1": re.compile(r"5\.1\."), "PowerShell 7": re.compile(r"7\.")}
 
 
