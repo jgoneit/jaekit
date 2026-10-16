@@ -50,10 +50,12 @@ class CurrentTree(unittest.TestCase):
     def test_local_paths_in_new_guidance_are_found(self):
         pattern = next(pattern for pattern, label in authoring_check.PRIVATE if label == "local path")
         for text in ("/Users/example/x", "/home/user/x", "/root/project/x", "/workspace/repo/x", "/workspaces/repo",
-                     "/private/var/folders/ab/x", "/tmp/build/x", "../repo-worktrees/goal", "C:\\work\\x", "D:/src/x"):
+                     "/private/var/folders/ab/x", "/tmp/build/x", "../repo-worktrees/goal", "C:\\work\\x", "D:/src/x",
+                     "/opt/runner/repo", "/var/tmp/build", "cd /workspace", "/workspace."):
             with self.subTest(text=text):
                 self.assertTrue(pattern.search(text))
-        for text in ("https://example.invalid/a", "references/bundle.md", "docs/specs/<goal>/PLAN.md", "a: b", "HEAD~n"):
+        for text in ("https://example.invalid/a", "references/bundle.md", "docs/specs/<goal>/PLAN.md", "a: b", "HEAD~n",
+                     "https://example.invalid/opt/x", "and/or", "/workspaces-guide"):
             with self.subTest(text=text):
                 self.assertFalse(pattern.search(text))
 
@@ -81,6 +83,31 @@ class CurrentTree(unittest.TestCase):
                 ("사용자에게 묻지 않고 기록한다.", [])):
             with self.subTest(sentence=sentence):
                 self.assertEqual(authoring_check.new_user_steps(sentence), steps)
+
+    def test_malformed_marketplace_values_are_observed_violations(self):
+        for field, value in (("metadata", []), ("plugins", [1]), ("plugins", {"name": "seal"})):
+            with self.subTest(field=field, value=value), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                copy(INPUTS, root)
+                path = root / ".claude-plugin/marketplace.json"
+                market = json.loads(path.read_text())
+                market[field] = value
+                path.write_text(json.dumps(market))
+                observation, problems = authoring_check.observe(root, "authoring", "AC-8")
+                self.assertEqual(observation["status"], "violation")
+
+    def test_maintain_example_may_list_a_current_tree_helper(self):
+        for check_path, status in ((" tools/checks/current_tree.py ", "pass"), (" origin/main:tools/x.py ", "violation")):
+            with self.subTest(check_path=check_path), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                copy(INPUTS, root)
+                plan = root / authoring_check.PLAN
+                text = plan.read_text()
+                row = next(line for line in text.split("\n") if line.startswith("| AC-2 | maintain |"))
+                cells = row.strip("|").split("|")
+                cells[3] = check_path
+                plan.write_text(text.replace(row, "|" + "|".join(cells) + "|"))
+                self.assertEqual(authoring_check.observe(root, "authoring", "AC-2")[0]["status"], status)
 
     def test_malformed_manifest_is_an_observed_violation(self):
         for path, text in (("plugins/seal/.codex-plugin/plugin.json", "{ not json"),
@@ -149,6 +176,8 @@ class ResultMeaning(unittest.TestCase):
                 authoring_check.REQUIRED_GO_TESTS[0]: "fail"}), starts=lambda tool: 126 if tool == "python3" else 0),
             "git on PATH cannot start": dict(go_code=0, go_out=go_events(self.passing()),
                                              starts=lambda tool: 1 if tool == "git" else 0),
+            "go killed by a signal after a failure": dict(go_code=-9, go_out=go_events(self.passing() | {
+                authoring_check.REQUIRED_GO_TESTS[0]: "fail"})),
             "build failure": dict(go_code=1, go_out=""),
             "required test skipped": dict(go_code=0, go_out=go_events(skipped)),
             "required test absent": dict(go_code=0, go_out=go_events({"TestOther": "pass"})),

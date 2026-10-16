@@ -1218,7 +1218,10 @@
         "missing Seal skill file under the private-content criterion",
         "malformed plugin manifest",
         "goal path with a placeholder prefix",
-        "exempt phrase next to a new user step"
+        "exempt phrase next to a new user step",
+        "malformed marketplace metadata or plugins",
+        "maintain example with a current-tree helper path",
+        "checkout-local path under /opt or /var"
       ],
       "families": [
         "checkout and history-less copy",
@@ -1244,11 +1247,12 @@
         "tools/contract-checks/authoring_check.py",
         "tools/contract-checks/check.py"
       ],
-      "property": "A failing required plugin regression or public documentation check is a violation; a missing tool, a tool on PATH that cannot start, build failure, skipped or absent required test, or crashed check is an error, never a violation or a pass.",
+      "property": "A failing required plugin regression or public documentation check is a violation; a missing tool, a tool on PATH that cannot start, a run ended by a signal, build failure, skipped or absent required test, or crashed check is an error, never a violation or a pass.",
       "examples": [
         "required Go test failed",
         "go not on PATH",
-        "python3 on PATH cannot start"
+        "python3 on PATH cannot start",
+        "go test killed by a signal after a failure"
       ],
       "families": [
         "Go JSON test events",

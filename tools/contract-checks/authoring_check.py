@@ -184,7 +184,7 @@ PRIVATE = (
     (re.compile(r"(?<![0-9A-Za-z])[0-9a-f]{7,40}(?![0-9A-Za-z])"), "commit-like hexadecimal"),
     (re.compile(r"(?i)\bPR ?#\d+|/pull/\d+|discussion_r\d+|(?<![\w`])#\d{2,}\b"), "pull request reference"),
     # Checkout-local absolute paths on macOS, Linux, containers and Windows.
-    (re.compile(r"(?<![\w.])/(?:Users|home|root|workspaces?|private|var/folders|tmp|mnt|srv|Volumes)/[^\s/`]+"
+    (re.compile(r"(?<![\w.])/(?:Users|home|root|workspaces?|private|var|tmp|mnt|srv|opt|Volumes)(?:/[^\s/`]+|(?![\w/-])(?!\.\w))"
                 r"|-worktrees/|(?<![A-Za-z])[A-Za-z]:[\\/][^\s`]"), "local path"),
     # A placeholder segment is exempt only when the path ends there or continues
     # with "/": "docs/specs/example/SPEC.md", not "docs/specs/example-private/".
@@ -290,8 +290,8 @@ def regressions(root):
     """Run the skill and contract consistency regressions in this tree.
 
     A failing test is an observed contradiction. A missing tool, a build or
-    setup failure, or required tests that did not run is not an observation and
-    raises, which the caller reports as error. Go flags are overridden with a
+    setup failure, a run ended by a signal, or required tests that did not run
+    is not an observation and raises, which the caller reports as error. Go flags are overridden with a
     single space: an empty GOFLAGS would fall back to a value persisted with
     `go env -w`, which could skip the required tests. A failure inside a test whose tools
     all started is read as observed; the tests only read tracked files and
@@ -323,7 +323,7 @@ def regressions(root):
                 outputs[name] = outputs.get(name, "") + event.get("Output", "")
     failed = sorted(name for name, action in results.items() if action == "fail")
     missing = [name for name in REQUIRED_GO_TESTS if results.get(name) not in ("pass", "fail")]
-    if go.returncode != 0 and not failed:
+    if go.returncode < 0 or (go.returncode != 0 and not failed):
         raise RuntimeError("plugin regressions could not run: " + (go.stderr or go.stdout)[-400:])
     if missing:
         raise RuntimeError(f"required plugin regressions did not run: {missing}")
@@ -384,7 +384,7 @@ def observe(root, suite, criterion):
             problems.append(f"{PLAN}: maintain example row absent")
         else:
             cells = [cell.strip() for cell in maintain[0].strip("|").split("|")]
-            if len(cells) != 5 or HISTORY_TOKENS.search(cells[2]) or cells[3] != "—":
+            if len(cells) != 5 or HISTORY_TOKENS.search(cells[2]) or HISTORY_TOKENS.search(cells[3]):
                 problems.append(f"{PLAN}: maintain example depends on history: {maintain[0]}")
         # The guidance states Core's out_of_scope; the Core source and reference must say the same.
         require("internal/status/status.go", read(root, "internal/status/status.go"),
@@ -410,9 +410,13 @@ def observe(root, suite, criterion):
             if market is None:
                 problems.append(".claude-plugin/marketplace.json is absent or not a JSON object")
                 market = {}
-            if market.get("metadata", {}).get("version") != "0.1.4":
+            metadata, entries = market.get("metadata"), market.get("plugins")
+            if not isinstance(metadata, dict) or metadata.get("version") != "0.1.4":
                 problems.append("marketplace release identity is not 0.1.4")
-            if [p.get("version") for p in market.get("plugins", []) if p.get("name") == "seal"] != [want]:
+            if not isinstance(entries, list) or not all(isinstance(entry, dict) for entry in entries):
+                problems.append(".claude-plugin/marketplace.json plugins is not a list of objects")
+                entries = []
+            if [entry.get("version") for entry in entries if entry.get("name") == "seal"] != [want]:
                 problems.append(f"marketplace seal entry does not carry {want}")
             if f"Seal {want}" not in (section(root, "skill") or ""):
                 problems.append(f"guidance does not name Seal {want} as its starting version")
