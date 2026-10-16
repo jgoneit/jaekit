@@ -71,6 +71,9 @@ class CurrentTree(unittest.TestCase):
         for sentence, steps in (
                 ("Without asking about the boundary, ask the user to approve the migration.", ["ask", "approve"]),
                 ("Ask the user to confirm the plan.", ["Ask", "confirm"]),
+                ("Ask the user to confirm the plan without asking about non-goals.", ["Ask", "confirm"]),
+                ("Without asking the user, ask for approval.", ["ask", "approval"]),
+                ("Never ask the user for permission to apply these rules.", []),
                 ("새로 묻지 않는다, 사용자에게 승인을 받는다.", ["승인을 받"]),
                 ("They add no user confirmation, approval or question: the executor applies them.", []),
                 ("Record it as an explicit assumption, without asking the user.", []),

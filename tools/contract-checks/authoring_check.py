@@ -170,12 +170,13 @@ ASKING = re.compile(r"(?i)\b(ask|asks|asking|approval|approve|confirmation|confi
                     r"|묻는다|묻고|물어|승인을 받|확인을 받|사용자 결정이 필요|사용자 확인이 필요|사용자에게 확인")
 # A phrase that says no step is added, or that names an existing point the
 # user already resolves, exempts only the asking words it governs: those inside
-# it, those it lists right after it ("add no user confirmation, approval or
-# question"), and those earlier in the same clause that it negates afterwards,
-# as Korean does. Other asking words in the sentence are still new steps.
+# it, those right after it with only an object or a list between ("never ask
+# the user for permission", "add no user confirmation, approval or question"),
+# and, for a Korean phrase, which negates afterwards, those earlier in the same
+# clause. Other asking words in the sentence are still new steps.
 NOT_ASKING = re.compile(r"(?i)without asking|never ask|not ask|add no user|no user confirmation"
                         r"|document-conflict rule|only the user resolves|묻지 않|새로 묻지|더하지 않|문서 충돌 규칙|사용자만 해소")
-LIST_GLUE = re.compile(r"(?i)(?:\s|,|\bor\b|\band\b|\buser\b)*")
+GOVERNED_WORDS = {"the", "a", "an", "any", "user", "users", "for", "to", "of", "or", "and"}
 
 PRIVATE = (
     (re.compile(r"(?<![0-9A-Za-z])[0-9a-f]{7,40}(?![0-9A-Za-z])"), "commit-like hexadecimal"),
@@ -192,6 +193,18 @@ PRIVATE = (
 )
 
 
+def governed(between):
+    """Whether text between an exemption phrase and a later asking word is only
+    the phrase's object or a list of asking words."""
+    previous = None
+    for token in re.findall(r"@|\w+|[^\w\s]", ASKING.sub("@", between)):
+        if token == "@" or token.lower() in GOVERNED_WORDS or (token == "," and previous == "@"):
+            previous = token
+            continue
+        return False
+    return True
+
+
 def new_user_steps(sentence):
     """Asking words in a sentence that no exemption phrase governs."""
     exempt = [match.span() for match in NOT_ASKING.finditer(sentence)]
@@ -200,8 +213,9 @@ def new_user_steps(sentence):
         start, end = match.span()
         covered = any(
             (left <= start and end <= right)
-            or (right <= start and LIST_GLUE.fullmatch(ASKING.sub(" ", sentence[right:start])))
-            or (end <= left and not re.search(r"[,;:]", sentence[end:left]))
+            or (right <= start and governed(sentence[right:start]))
+            or (end <= left and re.search(r"[가-힣]", sentence[left:right])
+                and not re.search(r"[,;:]", sentence[end:left]))
             for left, right in exempt)
         if not covered:
             steps.append(match.group(0))
