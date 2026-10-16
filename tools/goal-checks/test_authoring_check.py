@@ -57,6 +57,39 @@ class CurrentTree(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertFalse(pattern.search(text))
 
+    def test_placeholder_goal_paths_exempt_only_the_placeholder_segment(self):
+        pattern = next(pattern for pattern, label in authoring_check.PRIVATE if label == "concrete goal path")
+        for text in ("docs/specs/example-private/PLAN.md", "docs/specs/x-secret/SPEC.md", "docs/specs/sample.v2/SPEC.md",
+                     "docs/spec/real-goal/SPEC.md"):
+            with self.subTest(text=text):
+                self.assertTrue(pattern.search(text))
+        for text in ("docs/specs/<goal>/SPEC.md", "docs/specs/example/PLAN.md", "see `docs/specs/x`", "docs/specs/sample."):
+            with self.subTest(text=text):
+                self.assertFalse(pattern.search(text))
+
+    def test_an_exempt_phrase_does_not_hide_another_user_step(self):
+        for sentence, steps in (
+                ("Without asking about the boundary, ask the user to approve the migration.", ["ask", "approve"]),
+                ("Ask the user to confirm the plan.", ["Ask", "confirm"]),
+                ("새로 묻지 않는다, 사용자에게 승인을 받는다.", ["승인을 받"]),
+                ("They add no user confirmation, approval or question: the executor applies them.", []),
+                ("Record it as an explicit assumption, without asking the user.", []),
+                ("사용자에게 묻지 않고 기록한다.", [])):
+            with self.subTest(sentence=sentence):
+                self.assertEqual(authoring_check.new_user_steps(sentence), steps)
+
+    def test_malformed_manifest_is_an_observed_violation(self):
+        for path, text in (("plugins/seal/.codex-plugin/plugin.json", "{ not json"),
+                           ("plugins/seal/.claude-plugin/plugin.json", "[]"),
+                           (".claude-plugin/marketplace.json", "{ not json")):
+            with self.subTest(path=path), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                copy(INPUTS, root)
+                (root / path).write_text(text)
+                observation, problems = authoring_check.observe(root, "authoring", "AC-8")
+                self.assertEqual(observation["status"], "violation")
+                self.assertIn(f"{path} is absent or not a JSON object", problems)
+
 
 def go_events(results):
     lines = [json.dumps({"Action": "run", "Test": name}) for name in results]
@@ -67,8 +100,14 @@ def go_events(results):
 class ResultMeaning(unittest.TestCase):
     """I2: a failing regression is a violation; a tool that cannot run is never one."""
 
-    def run_regressions(self, go_code, go_out, docs_code=0, which=lambda tool: "/usr/bin/" + tool):
+    def run_regressions(self, go_code, go_out, docs_code=0, which=lambda tool: "/usr/bin/" + tool,
+                        starts=lambda tool: 0):
+        probes = list(authoring_check.REQUIRED_TOOLS.values())
+
         def fake(argv, **kwargs):
+            if argv in probes:
+                # Each tool is started once; a tool that exists but cannot start fails here.
+                return subprocess.CompletedProcess(argv, starts(argv[0]), "", "cannot start")
             if argv[0] == "go":
                 # A single space overrides GOFLAGS persisted with `go env -w`; empty would not.
                 self.assertEqual((kwargs["env"]["GOFLAGS"], kwargs["env"]["GOWORK"]), (" ", "off"))
@@ -102,6 +141,10 @@ class ResultMeaning(unittest.TestCase):
                                 which=lambda tool: None if tool == "git" else "/bin/" + tool),
             "missing python3": dict(go_code=0, go_out=go_events(self.passing()),
                                     which=lambda tool: None if tool == "python3" else "/bin/" + tool),
+            "python3 on PATH cannot start": dict(go_code=1, go_out=go_events(self.passing() | {
+                authoring_check.REQUIRED_GO_TESTS[0]: "fail"}), starts=lambda tool: 126 if tool == "python3" else 0),
+            "git on PATH cannot start": dict(go_code=0, go_out=go_events(self.passing()),
+                                             starts=lambda tool: 1 if tool == "git" else 0),
             "build failure": dict(go_code=1, go_out=""),
             "required test skipped": dict(go_code=0, go_out=go_events(skipped)),
             "required test absent": dict(go_code=0, go_out=go_events({"TestOther": "pass"})),

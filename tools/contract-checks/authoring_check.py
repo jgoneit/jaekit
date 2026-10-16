@@ -168,10 +168,14 @@ USER_REASONS = {"record_invalid", "error_limit", "manual_unconfirmed", "record_i
                 "out_of_scope", "test_definition_changed", "spec_changed"}
 ASKING = re.compile(r"(?i)\b(ask|asks|asking|approval|approve|confirmation|confirm|permission)\b"
                     r"|묻는다|묻고|물어|승인을 받|확인을 받|사용자 결정이 필요|사용자 확인이 필요|사용자에게 확인")
-# A sentence that says no step is added, or that names an existing point the
-# user already resolves, is not a new step.
+# A phrase that says no step is added, or that names an existing point the
+# user already resolves, exempts only the asking words it governs: those inside
+# it, those it lists right after it ("add no user confirmation, approval or
+# question"), and those earlier in the same clause that it negates afterwards,
+# as Korean does. Other asking words in the sentence are still new steps.
 NOT_ASKING = re.compile(r"(?i)without asking|never ask|not ask|add no user|no user confirmation"
                         r"|document-conflict rule|only the user resolves|묻지 않|새로 묻지|더하지 않|문서 충돌 규칙|사용자만 해소")
+LIST_GLUE = re.compile(r"(?i)(?:\s|,|\bor\b|\band\b|\buser\b)*")
 
 PRIVATE = (
     (re.compile(r"(?<![0-9A-Za-z])[0-9a-f]{7,40}(?![0-9A-Za-z])"), "commit-like hexadecimal"),
@@ -179,17 +183,38 @@ PRIVATE = (
     # Checkout-local absolute paths on macOS, Linux, containers and Windows.
     (re.compile(r"(?<![\w.])/(?:Users|home|root|workspaces?|private|var/folders|tmp|mnt|srv|Volumes)/[^\s/`]+"
                 r"|-worktrees/|(?<![A-Za-z])[A-Za-z]:[\\/][^\s`]"), "local path"),
-    (re.compile(r"docs/specs?/(?!(?:<goal>|x|example|sample)(?:/|\b))[A-Za-z0-9]"), "concrete goal path"),
+    # A placeholder segment is exempt only when the path ends there or continues
+    # with "/": "docs/specs/example/SPEC.md", not "docs/specs/example-private/".
+    (re.compile(r"docs/specs?/(?!(?:<goal>|x|example|sample)(?:/|(?![\w.-])|\.(?![\w-])))[A-Za-z0-9]"),
+     "concrete goal path"),
     (re.compile(r"\.\./[A-Za-z0-9._-]+/(?:SPEC|CONTEXT|PLAN|REVIEW|PROGRESS)\.md"), "link to another goal's documents"),
     (re.compile(r"runs\.jsonl:\d+|seq \d+ \("), "execution record reference"),
 )
+
+
+def new_user_steps(sentence):
+    """Asking words in a sentence that no exemption phrase governs."""
+    exempt = [match.span() for match in NOT_ASKING.finditer(sentence)]
+    steps = []
+    for match in ASKING.finditer(sentence):
+        start, end = match.span()
+        covered = any(
+            (left <= start and end <= right)
+            or (right <= start and LIST_GLUE.fullmatch(ASKING.sub(" ", sentence[right:start])))
+            or (end <= left and not re.search(r"[,;:]", sentence[end:left]))
+            for left, right in exempt)
+        if not covered:
+            steps.append(match.group(0))
+    return steps
+
+
 # History-dependent tokens a template check command must not carry.
 HISTORY_TOKENS = re.compile(r"\bgit\b|HEAD[~^]|@\{|origin/|merge-base|(?<![0-9A-Za-z])[0-9a-f]{7,40}(?![0-9A-Za-z])")
 
 # The plugin package runs under go; its tests launch git fixtures and python3
 # contract suites. A test that fails because one of them cannot start has not
-# observed the guidance, so all three are checked before the run.
-REQUIRED_TOOLS = ("go", "git", "python3")
+# observed the guidance, so each of the three is started once before the run.
+REQUIRED_TOOLS = {"go": ["go", "version"], "git": ["git", "--version"], "python3": ["python3", "-c", "pass"]}
 REQUIRED_GO_TESTS = ("TestManifestsAndVersionsAgree", "TestCompatibilityAC10_SourceVersions",
                      "TestSealSkillPrescribesNoOrder", "TestSealSkillCarriesCompletionRules",
                      "TestExampleFromTemplatesPassesLint", "TestRunRules2SealGuide")
@@ -225,6 +250,15 @@ def row(root, key, label):
     return rows[0] if len(rows) == 1 else None
 
 
+def json_object(text):
+    """A product manifest's object, or None when it is absent or malformed."""
+    try:
+        value = json.loads(text) if text is not None else None
+    except json.JSONDecodeError:
+        return None
+    return value if isinstance(value, dict) else None
+
+
 def version(text):
     match = re.search(r'(?m)^\s+version: "(\d+)\.(\d+)\.(\d+)"$', text or "")
     return tuple(int(part) for part in match.groups()) if match else None
@@ -241,9 +275,15 @@ def regressions(root):
     all started is read as observed; the tests only read tracked files and
     build synthetic fixtures with those tools.
     """
-    for tool in REQUIRED_TOOLS:
+    for tool, probe in REQUIRED_TOOLS.items():
         if shutil.which(tool) is None:
             raise RuntimeError(f"{tool} is not available")
+        try:
+            started = subprocess.run(probe, cwd=root, capture_output=True, text=True, timeout=60)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise RuntimeError(f"{tool} cannot start: {exc}") from None
+        if started.returncode != 0:
+            raise RuntimeError(f"{tool} cannot start: {(started.stderr or started.stdout)[-200:]}")
     env = dict(os.environ, GOFLAGS=" ", GOWORK="off")
     go = subprocess.run(["go", "test", "-count=1", "-json", "./plugins/"], cwd=root, capture_output=True,
                         text=True, env=env)
@@ -339,10 +379,15 @@ def observe(root, suite, criterion):
         else:
             want = ".".join(map(str, skill))
             for host in ("plugins/seal/.claude-plugin/plugin.json", "plugins/seal/.codex-plugin/plugin.json"):
-                text = read(root, host)
-                if text is None or json.loads(text).get("version") != want:
+                manifest = json_object(read(root, host))
+                if manifest is None:
+                    problems.append(f"{host} is absent or not a JSON object")
+                elif manifest.get("version") != want:
                     problems.append(f"{host} does not carry {want}")
-            market = json.loads(read(root, ".claude-plugin/marketplace.json") or "{}")
+            market = json_object(read(root, ".claude-plugin/marketplace.json"))
+            if market is None:
+                problems.append(".claude-plugin/marketplace.json is absent or not a JSON object")
+                market = {}
             if market.get("metadata", {}).get("version") != "0.1.4":
                 problems.append("marketplace release identity is not 0.1.4")
             if [p.get("version") for p in market.get("plugins", []) if p.get("name") == "seal"] != [want]:
@@ -362,7 +407,7 @@ def observe(root, suite, criterion):
             problems.append(f"user-resolved reasons changed: {sorted(found ^ USER_REASONS)}")
         for name, text in changed_texts(root):
             for sentence in re.split(r"(?<=[.!?])\s+|\n", text):
-                if ASKING.search(sentence) and not NOT_ASKING.search(sentence):
+                if new_user_steps(sentence):
                     problems.append(f"{name}: guidance may add a user step: {sentence.strip()[:160]}")
     if criterion == "AC-10":
         for name in sorted({name for name, _ in SECTIONS.values()}):
