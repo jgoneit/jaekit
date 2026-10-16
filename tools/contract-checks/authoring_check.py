@@ -177,6 +177,8 @@ ASKING = re.compile(r"(?i)\b(ask|asks|asking|approval|approve|confirmation|confi
 NOT_ASKING = re.compile(r"(?i)without asking|never ask|not ask|add no user|no user confirmation"
                         r"|document-conflict rule|only the user resolves|묻지 않|새로 묻지|더하지 않|문서 충돌 규칙|사용자만 해소")
 GOVERNED_WORDS = {"the", "a", "an", "any", "user", "users", "for", "to", "of", "or", "and"}
+# A list the phrase governs continues after a comma only with another asking noun.
+ASKING_NOUNS = re.compile(r"(?i)approval|confirmation|permission")
 
 PRIVATE = (
     (re.compile(r"(?<![0-9A-Za-z])[0-9a-f]{7,40}(?![0-9A-Za-z])"), "commit-like hexadecimal"),
@@ -193,13 +195,19 @@ PRIVATE = (
 )
 
 
-def governed(between):
+def governed(between, word):
     """Whether text between an exemption phrase and a later asking word is only
-    the phrase's object or a list of asking words."""
-    previous = None
-    for token in re.findall(r"@|\w+|[^\w\s]", ASKING.sub("@", between)):
-        if token == "@" or token.lower() in GOVERNED_WORDS or (token == "," and previous == "@"):
-            previous = token
+    the phrase's object or a list of asking nouns. After a comma the list goes on
+    only with an asking noun, so a new imperative ("..., ask the user") is not
+    governed."""
+    tokens = re.findall(r"@[^@]*@|\w+|[^\w\s]", ASKING.sub(lambda m: f"@{m.group(0)}@", between))
+    tokens.append(f"@{word}@")
+    for index, token in enumerate(tokens[:-1]):
+        if token.startswith("@") or token.lower() in GOVERNED_WORDS:
+            continue
+        following = tokens[index + 1]
+        if (token == "," and index and tokens[index - 1].startswith("@")
+                and following.startswith("@") and ASKING_NOUNS.fullmatch(following.strip("@"))):
             continue
         return False
     return True
@@ -213,7 +221,7 @@ def new_user_steps(sentence):
         start, end = match.span()
         covered = any(
             (left <= start and end <= right)
-            or (right <= start and governed(sentence[right:start]))
+            or (right <= start and governed(sentence[right:start], match.group(0)))
             or (end <= left and re.search(r"[가-힣]", sentence[left:right])
                 and not re.search(r"[,;:]", sentence[end:left]))
             for left, right in exempt)
