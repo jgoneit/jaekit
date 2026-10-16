@@ -16,7 +16,7 @@ import subprocess
 from urllib.parse import quote
 
 
-CHECKS = ("Seal Core", "Public documentation")
+CHECKS = ("Seal Core", "Public documentation", "Release candidate")
 APP_ID = 15368  # github-actions on github.com
 TIMEOUT = 20
 MAX_PAGES = 10

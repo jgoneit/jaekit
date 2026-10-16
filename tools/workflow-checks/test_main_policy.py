@@ -12,14 +12,14 @@ from unittest import mock
 
 SOURCE = Path(__file__).resolve().parents[1] / "check_main_policy.py"
 COMMIT = "a" * 40
+CHECKS = ("Seal Core", "Public documentation", "Release candidate")
 
 
 def protection():
     return {
         "required_status_checks": {
-            "strict": True, "contexts": ["Seal Core", "Public documentation"],
-            "checks": [{"context": name, "app_id": 15368}
-                       for name in ("Seal Core", "Public documentation")],
+            "strict": True, "contexts": list(CHECKS),
+            "checks": [{"context": name, "app_id": 15368} for name in CHECKS],
         },
         "enforce_admins": {"enabled": True},
         "required_pull_request_reviews": None,
@@ -30,7 +30,7 @@ def protection():
 def runs():
     return [{"id": number, "name": name, "app": {"id": 15368}, "head_sha": COMMIT,
              "status": "completed", "conclusion": "success"}
-            for number, name in enumerate(("Seal Core", "Public documentation"), 1)]
+            for number, name in enumerate(CHECKS, 1)]
 
 
 class MainPolicy(unittest.TestCase):
@@ -199,7 +199,7 @@ class MainPolicy(unittest.TestCase):
         filler = [{"id": 9, "name": "Unrelated"}] * 100
         with mock.patch.object(self.checker, "api", side_effect=[{"check_runs": filler}, {"check_runs": runs()}]) as api:
             result = self.checker.pages("repos/example/project/commits/ref/check-runs?filter=all", "check_runs")
-        self.assertEqual(102, len(result))
+        self.assertEqual(100 + len(CHECKS), len(result))
         self.assertIn("page=2", api.call_args.args[0])
         with mock.patch.object(self.checker, "api", return_value=filler) as api:
             with self.assertRaisesRegex(self.checker.EvidenceError, "pagination_limit"):

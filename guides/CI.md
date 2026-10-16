@@ -13,8 +13,9 @@
 | `Core / Windows` | Windows Server 2025 x64: Windows PowerShell 5.1과 PowerShell 7 각각의 네이티브 Core·판단 이력·후보 패키지·경로 검사, 미지원 제품 설치 환경의 거부 |
 | `Seal Core` | 같은 실행의 세 Core 작업이 모두 `success`여야 성공 |
 | `Public documentation` | Ubuntu: 공개 파일·문서 검사와 오프라인 회귀 검사를 한 번 수행 |
+| `Release candidate` | 같은 [릴리스 workflow](#릴리스-workflow) 실행의 `Build release files`와 `Windows release archive`가 모두 `success`로 끝나야 함 |
 
-main은 기존과 같이 GitHub Actions의 정확한 `Seal Core`, `Public documentation` 결과를 필수로 요구합니다. Core 집계는 선행 작업이 실패해도 실행되며 실패·누락·건너뜀·취소·알 수 없는 결과를 거부합니다. 대기 상태나 이전 실행의 성공은 현재 실행을 충족하지 않습니다. 네이티브 작업은 `continue-on-error`나 경로 필터로 생략한 검사를 성공으로 바꾸지 않습니다.
+main은 GitHub Actions의 정확한 `Seal Core`, `Public documentation`, `Release candidate` 결과를 필수로 요구합니다. `Release candidate`는 [릴리스 workflow](#릴리스-workflow)에서 나옵니다. Core 집계는 선행 작업이 실패해도 실행되며 실패·누락·건너뜀·취소·알 수 없는 결과를 거부합니다. 대기 상태나 이전 실행의 성공은 현재 실행을 충족하지 않습니다. 네이티브 작업은 `continue-on-error`나 경로 필터로 생략한 검사를 성공으로 바꾸지 않습니다.
 
 Ubuntu는 macOS/Linux 네 플랫폼 빌드와 Windows 후보 교차 빌드를 포함한 공통 검사 범위를 유지합니다. 교차 빌드 성공은 컴파일만 확인합니다. 추가 네이티브 작업은 현재 소스를 해당 호스트에서 실행하며, 공통 검사 전체나 문서 검사를 모두 반복하지 않습니다.
 
@@ -62,7 +63,7 @@ Ubuntu 실행은 WSL2 실행이 아닙니다. CI는 WSL2 설치, 설치된 에�
 - `Windows release archive`(Windows Server 2025): 같은 ZIP을 PowerShell 5.1과 7 각각에서 설치기 자체의 패키지 검증으로 확인하고 `ha --version`·`capabilities`를 실행합니다. 그다음 [공개 설치·제거 블록](WINDOWS.md#공개-릴리스로-설치)을 내려받는 출처와 버전만 바꿔 그대로 붙여 넣습니다. 실제 ZIP으로는 설치기가 Windows 11 가드에서 멈추는 것을, 시험용 ZIP으로는 성공·실패·체크섬 거부에서 부모 PATH·실행 정책·자식 셸을 관측합니다. 보고서는 `release-windows-reports`에 남습니다.
 - `Publish release`: 태그 push에서만 실행합니다. Windows job이 확인한 ZIP과 게시할 ZIP이 다르면 아무것도 게시하지 않습니다. 태그의 릴리스 노트(`tools/release/notes/vX.Y.Z.md`)에 그 ZIP의 Windows 11 확인 줄이 없으면 Windows ZIP을 빼고 macOS·Linux 파일만 게시합니다. ZIP을 포함할 때는 가이드의 공개 블록이 그 릴리스 버전을 설치하지 않으면 아무것도 게시하지 않습니다. 원격 태그가 더 이상 파일을 빌드한 커밋을 가리키지 않아도 멈춥니다. 게시 뒤에는 게시된 자산 이름을 확인한 파일과 대조합니다.
 
-이 workflow는 `main`의 필수 검사(`Seal Core`, `Public documentation`)가 아닙니다. Server에서의 확인은 Windows 11 설치 성공이 아니며, 실제 설치·재설치·제거는 [Windows 11 확인 절차](../tools/windows/README.md)에서 확인합니다.
+이 workflow의 `Release candidate` job은 `main`의 필수 검사입니다. `Build release files`와 `Windows release archive` 뒤에 둘 중 하나가 실패해도 실행되며, 같은 실행에서 둘 다 성공해야만 성공합니다. 건너뛰거나 취소되거나 실패한 job은 이 검사를 충족하지 않고, workflow에 path filter가 없어 모든 PR이 이 결과를 보고합니다. Server에서의 확인은 Windows 11 설치 성공이 아니며, 실제 설치·재설치·제거는 [Windows 11 확인 절차](../tools/windows/README.md)에서 확인합니다.
 
 ## 로컬 검사
 

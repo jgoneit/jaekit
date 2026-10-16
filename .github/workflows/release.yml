@@ -205,6 +205,26 @@ jobs:
           EXPECTED: ${{ needs.build.outputs.windows_sha256 }}
         run: Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "sha256=$env:EXPECTED"
 
+  candidate:
+    name: Release candidate
+    needs: [build, windows]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # main requires this check. A skipped or cancelled job would satisfy a
+      # required check on its own, so only two successes from this run pass.
+      - name: Require the build and Windows jobs from this run to succeed
+        env:
+          BUILD: ${{ needs.build.result }}
+          WINDOWS: ${{ needs.windows.result }}
+        run: |
+          if [ "${BUILD}" != success ] || [ "${WINDOWS}" != success ]; then
+            echo "FAIL: Release candidate: build ${BUILD}, Windows ${WINDOWS}" >&2
+            exit 1
+          fi
+          echo "PASS: Release candidate: the build and Windows jobs succeeded in this run."
+
   publish:
     name: Publish release
     needs: [build, windows]

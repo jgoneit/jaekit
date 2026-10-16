@@ -43,7 +43,7 @@ This runs the common checks also used by the Ubuntu and documentation CI jobs: G
 
 The `docs` group does not add a Go or zsh prerequisite. Docker is only needed for the separately selected Linux container check, not ordinary validation or product use. The Ubuntu Go CI job prepares zsh before invoking the same verification entrypoint.
 
-Main requires the `Seal Core` and `Public documentation` checks. `Seal Core` succeeds only when `Core / Ubuntu`, `Core / macOS`, and `Core / Windows` from the same workflow run all succeed. Failure, missing results, skipping, cancellation, and pending work do not satisfy this gate. See [the CI guide](guides/CI.en.md) for each job's observed scope and source identity. These rules do not make files private after they have been pushed to a public branch; run the public checks locally before publishing.
+Main requires the `Seal Core`, `Public documentation` and `Release candidate` checks. `Seal Core` succeeds only when `Core / Ubuntu`, `Core / macOS`, and `Core / Windows` from the same workflow run all succeed; `Release candidate` succeeds only when `Build release files` and `Windows release archive` from the same Release workflow run both succeed. Failure, missing results, skipping, cancellation, and pending work do not satisfy these gates. See [the CI guide](guides/CI.en.md) for each job's observed scope and source identity. These rules do not make files private after they have been pushed to a public branch; run the public checks locally before publishing.
 
 A document check establishes consistency, not runtime or host installation success.
 
