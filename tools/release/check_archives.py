@@ -1,16 +1,25 @@
 #!/usr/bin/env python3
 """Check release files before upload, optionally exercise the native archive.
 
+The four macOS/Linux archives are always required. The Windows archive is
+optional unless --require-windows: a release left without a Windows 11
+acceptance link publishes the four archives and their checksums only.
+
 No download, installation, upload, tag changes, or writes to the source tree.
 Native smoke files live in a temporary directory and use only packaged inputs.
-Archives are read only through the shared bounded reader (archive_reader.py);
-its limits are published in tools/release-checks/README.md.
+The tar.gz archives are read only through the shared bounded reader
+(archive_reader.py), whose limits are published in
+tools/release-checks/README.md. The Windows ZIP has its own bounded in-memory
+structural check (windows_files). The installer's own package check
+(tools/windows/common.ps1) judges that exact archive in the release
+workflow's Windows job; this check does not reproduce it.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -21,6 +30,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import zipfile
 
 TARGETS = ("linux_amd64", "linux_arm64", "darwin_amd64", "darwin_arm64")
 REQUIRED = {
@@ -49,6 +59,18 @@ REQUIRED = {
 ROOT_FILES = {"ha", "LICENSE", "README.md", "README.en.md"}
 ROOT_DIRECTORIES = {"guides", "contracts", "assets", "tools", "examples"}
 EXAMPLE_FILES = {name for name in REQUIRED if name.startswith("examples/")}
+# Local metadata and generated caches never belong in a release archive.
+LOCAL_PARTS = {".git", "__pycache__", "node_modules"}
+CACHE_SUFFIXES = {".pyc", ".pyo"}
+
+
+WINDOWS_SCHEMA = "jaekit-windows-package/v1"
+WINDOWS_MAX_ENTRIES = 2048
+WINDOWS_MAX_FILE_BYTES = 32 * 1024 * 1024
+WINDOWS_MAX_BYTES = 128 * 1024 * 1024
+# The fields package.py writes, and nothing else.
+WINDOWS_MANIFEST_FIELDS = {"schema", "version", "os", "arch", "files"}
+WINDOWS_ENTRY_FIELDS = {"path", "size", "sha256"}
 
 
 def load_archive_reader():
@@ -60,6 +82,23 @@ def load_archive_reader():
 
 
 archive_reader = load_archive_reader()
+
+
+def load_windows_package():
+    """The Windows package rules (path safety, PE format) have one source."""
+    path = Path(__file__).resolve().parents[1] / "windows" / "package.py"
+    spec = importlib.util.spec_from_file_location("jaekit_windows_package", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+windows_package = load_windows_package()
+# What package.py always packages (the Core, its manifest and the public files
+# it requires) and the guides the installer requires (Read-PackageManifest);
+# package.public_path() bounds everything else.
+WINDOWS_REQUIRED = {"ha.exe", "package.json", "guides/WINDOWS.md", "guides/WINDOWS.en.md",
+                    *windows_package.PUBLIC_FILES}
 # The same published limits as the acceptance checker; see archive_reader.py.
 ARCHIVE_MAX_COMPRESSED_BYTES = archive_reader.MAX_COMPRESSED_BYTES
 ARCHIVE_MAX_BYTES = archive_reader.MAX_BYTES
@@ -82,6 +121,11 @@ def release_names(version: str):
     return {f"ha_{version}_{target}.tar.gz" for target in TARGETS}
 
 
+def windows_name(version: str):
+    release_names(version)
+    return f"ha_{version}_windows_amd64.zip"
+
+
 def digest(path: Path):
     result = hashlib.sha256()
     with path.open("rb") as source:
@@ -93,7 +137,7 @@ def digest(path: Path):
 def checksum_entries(text: str):
     entries = {}
     for line in text.splitlines():
-        match = re.fullmatch(r"([0-9a-f]{64})  (ha_[^/\\]+\.tar\.gz)", line)
+        match = re.fullmatch(r"([0-9a-f]{64})  (ha_[^/\\]+\.(?:tar\.gz|zip))", line)
         require(match is not None, "checksums.txt contains an invalid line")
         checksum, name = match.groups()
         require(name not in entries, "checksums.txt repeats an archive")
@@ -138,8 +182,7 @@ def archive_files(members, prefix: str):
         top = relative.parts[0]
         require(top in ROOT_DIRECTORIES or (len(relative.parts) == 1 and top in ROOT_FILES),
                 "archive contains a file outside the release allowlist")
-        require(not {".git", "__pycache__", "node_modules"}.intersection(relative.parts)
-                and relative.suffix not in {".pyc", ".pyo"},
+        require(not LOCAL_PARTS.intersection(relative.parts) and relative.suffix not in CACHE_SUFFIXES,
                 "archive contains local metadata or generated cache")
         if top == "tools":
             require(str(relative) in {"tools", "tools/check-result-reference.py"},
@@ -166,24 +209,111 @@ def check_platform(binary: bytes, target: str):
                 "packaged Core platform differs from archive name: " + target)
 
 
-def check(dist: Path, version: str, published_assets: Path | None = None):
+def windows_manifest(data: bytes):
+    """Parse package.json with exactly the fields package.py writes."""
+    try:
+        manifest = json.loads(data.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError, RecursionError):
+        raise ValueError("Windows archive manifest is not JSON") from None
+    require(isinstance(manifest, dict) and manifest.keys() == WINDOWS_MANIFEST_FIELDS
+            and isinstance(manifest["files"], list)
+            and all(isinstance(item, dict) and item.keys() == WINDOWS_ENTRY_FIELDS for item in manifest["files"]),
+            "Windows archive manifest has fields package.py does not write")
+    return manifest
+
+
+def windows_files(path: Path, checksum: str, version: str):
+    """Verify the Windows archive in memory: bounded, manifest-complete and package.py-shaped.
+
+    A structural check of what package.py builds, before publication; nothing
+    is extracted to disk. Path safety and the PE format reuse package.py's
+    rules. The installer's own package check is not reproduced here: the
+    release workflow's Windows job runs it on this exact archive.
+    """
+    require(path.stat().st_size <= ARCHIVE_MAX_COMPRESSED_BYTES, "Windows archive compressed size limit exceeded")
+    with path.open("rb") as source:
+        data = source.read(ARCHIVE_MAX_COMPRESSED_BYTES + 1)
+    require(hashlib.sha256(data).hexdigest() == checksum, "checksum mismatch: " + path.name)
+    try:
+        archive = zipfile.ZipFile(io.BytesIO(data))
+    except zipfile.BadZipFile:
+        raise ValueError("Windows archive is not a readable ZIP") from None
+    files, total = {}, 0
+    with archive:
+        entries = archive.infolist()
+        require(0 < len(entries) <= WINDOWS_MAX_ENTRIES, "Windows archive entry count is out of bounds")
+        for entry in entries:
+            name = entry.filename
+            # zipfile cuts a name at NUL and, on Windows, turns backslashes
+            # into slashes; judge the stored name.
+            require(entry.orig_filename == name, "Windows archive has an unsafe path: " + repr(entry.orig_filename))
+            try:
+                windows_package.safe_name(name)
+            except ValueError:
+                raise ValueError("Windows archive has an unsafe path: " + repr(name)) from None
+            kind = (entry.external_attr >> 16) & 0o170000
+            require(not entry.is_dir() and kind in (0, 0o100000), "Windows archive contains a directory, link or special file")
+            require(entry.flag_bits & 0x1 == 0, "Windows archive contains an encrypted entry")
+            require(entry.compress_type in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED), "Windows archive uses an unsupported compression")
+            require(name not in files, "Windows archive repeats a path")
+            # Only what package.py packages: the Core, its manifest and public files.
+            require(name in ("ha.exe", "package.json") or windows_package.public_path(name),
+                    "Windows archive has a path package.py does not package: " + name)
+            require(entry.file_size <= WINDOWS_MAX_FILE_BYTES, "Windows archive file exceeds the size limit: " + name)
+            total += entry.file_size
+            require(total <= WINDOWS_MAX_BYTES, "Windows archive expands beyond the size limit")
+            with archive.open(entry) as stream:
+                body = stream.read(entry.file_size + 1)
+            require(len(body) == entry.file_size, "Windows archive entry size differs from its header")
+            files[name] = body
+    require(WINDOWS_REQUIRED <= files.keys(),
+            "Windows archive is missing required files: " + ", ".join(sorted(WINDOWS_REQUIRED - files.keys())))
+    manifest = windows_manifest(files["package.json"])
+    require(manifest["schema"] == WINDOWS_SCHEMA and manifest["os"] == "windows" and manifest["arch"] == "amd64",
+            "Windows archive manifest has an unexpected schema or platform")
+    require(manifest["version"] == version, "Windows archive manifest version differs from the release")
+    expected = {}
+    for item in manifest["files"]:
+        require(isinstance(item["path"], str) and item["path"] not in expected,
+                "Windows archive manifest has an invalid or repeated entry")
+        expected[item["path"]] = item
+    require(expected.keys() == files.keys() - {"package.json"},
+            "Windows archive files differ from its manifest")
+    for name, item in expected.items():
+        body = files[name]
+        require(item["size"] == len(body) and item["sha256"] == hashlib.sha256(body).hexdigest(),
+                "Windows archive file differs from its manifest: " + name)
+    try:
+        windows_package.windows_amd64(files["ha.exe"])
+    except ValueError as error:
+        raise ValueError("Windows archive Core: " + str(error)) from None
+    return files
+
+
+def check(dist: Path, version: str, published_assets: Path | None = None, require_windows: bool = False):
     names = release_names(version)
+    windows = windows_name(version)
     require(dist.is_dir(), "release output directory does not exist")
     actual = {path.name for path in dist.iterdir()}
-    require(actual == names | {"checksums.txt"}, "release output must contain exactly four archives and checksums.txt")
+    archives = names | ({windows} if windows in actual else set())
+    require(actual == archives | {"checksums.txt"} and (windows in actual or not require_windows),
+            "release output must contain exactly four archives, the Windows archive when required, and checksums.txt")
     for name in actual:
         require((dist / name).is_file() and not (dist / name).is_symlink(), "release output must contain regular files")
     checksums = checksum_entries((dist / "checksums.txt").read_text(encoding="utf-8"))
-    require(checksums.keys() == names, "checksum file does not name exactly the four release archives")
+    require(checksums.keys() == archives,
+            "checksum file does not name exactly the four release archives and any Windows archive present")
     for name in sorted(names):
         members = read_archive(dist / name, checksums[name])
         files = archive_files(members, name.removesuffix(".tar.gz"))
         check_platform(files["ha"][1], name.removeprefix("ha_" + version + "_").removesuffix(".tar.gz"))
+    if windows in archives:
+        windows_files(dist / windows, checksums[windows], version)
     if published_assets is not None:
         uploaded = published_assets.read_text(encoding="utf-8").splitlines()
         require(len(uploaded) == len(set(uploaded)) and set(uploaded) == actual,
                 "published release asset names differ from the validated local files")
-    return sorted(names)
+    return sorted(archives)
 
 
 def invoke(argv, cwd: Path, env=None, expected=0):
@@ -278,15 +408,17 @@ def main():
     parser.add_argument("--version", required=True)
     parser.add_argument("--run-native", action="store_true")
     parser.add_argument("--published-assets", type=Path)
+    parser.add_argument("--require-windows", action="store_true")
     args = parser.parse_args()
     try:
-        check(args.dist, args.version, args.published_assets)
+        archives = check(args.dist, args.version, args.published_assets, args.require_windows)
         target = native_smoke(args.dist, args.version) if args.run_native else None
     except (OSError, ValueError, KeyError, TypeError, subprocess.TimeoutExpired) as error:
         print("FAIL: " + str(error), file=sys.stderr)
         return 1
     suffix = f"; native {target} Core and reference violation/pass" if target else ""
-    print("PASS: four release archives, checksums and required public files" + suffix)
+    windows = "and the Windows archive " if windows_name(args.version) in archives else ""
+    print("PASS: four release archives " + windows + "with checksums and required public files" + suffix)
     return 0
 
 

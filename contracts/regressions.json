@@ -887,6 +887,66 @@
       ]
     },
     {
+      "id": "windows-archive-consumer-contract",
+      "invariant": "I3",
+      "status": "protected",
+      "sources": [
+        "tools/release/check_archives.py",
+        "tools/release/windows_gate.py",
+        "tools/windows/package.py"
+      ],
+      "property": "A structural Windows ZIP check (check_archives.windows_files) accepts a package.py archive and refuses one whose file set, paths (package.py's path rules and scope), manifest field names, version or platform, file sizes or SHA-256 digests, or Core format differ from what package.py builds. The publication gate keeps a Windows archive only when the Windows job checked those bytes and the release notes carry exactly one acceptance line with their digest.",
+      "examples": [
+        "an install.ps1 that differs from its manifest entry",
+        "release notes that link another archive digest"
+      ],
+      "families": [
+        "manifest fields, sizes and digests",
+        "unsafe paths, links and package scope",
+        "acceptance line count, format and digest"
+      ],
+      "boundary": "Synthetic ZIPs, a package.py archive built from package.py's own synthetic source and synthetic release notes exercise the check and the gate locally. Installer-specific refusals (case folding, DOS attributes, the manifest size limit) are left to the installer's own package check, which runs on the exact archive only in the release workflow's Windows job; no published archive is observed here.",
+      "checks": [
+        {
+          "file": "tools/release/test_windows_release.py",
+          "selector": "WindowsRelease",
+          "group": "docs"
+        },
+        {
+          "file": "tools/release/test_windows_release.py",
+          "selector": "PublicationGate",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "release-checker-import-boundary",
+      "invariant": "I3",
+      "status": "protected",
+      "sources": [
+        "tools/release-checks/check.py",
+        "tools/release-checks/install_trace.py",
+        "tools/release-checks/observe.py"
+      ],
+      "property": "Code that imports the release acceptance checker check.py directly runs no caller module: the installation consumer uses the namespace that defined the checker, and the asset and archive judgments import nothing from the caller's path.",
+      "examples": [
+        "import check inside the installation consumer"
+      ],
+      "families": [
+        "direct import with modules shadowing standard names"
+      ],
+      "boundary": "One direct-import process with synthetic archives and caller modules shadowing standard names. Static import order and dynamic imports (importlib.import_module) are outside it.",
+      "checks": [
+        {
+          "file": "tools/release-checks/test_direct_import_boundary.py",
+          "selector": "DirectImportBoundary",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
+    },
+    {
       "id": "explicit-retention-inputs",
       "invariant": "I1",
       "status": "protected",

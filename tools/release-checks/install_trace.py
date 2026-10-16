@@ -236,9 +236,24 @@ def _decode(raw):
         raise UnavailableInstallation("installation report is malformed or incomplete") from None
 
 
+def defining_validator(checker):
+    """The namespace of the check.py that defined this checker.
+
+    Importing `check` here would search the caller's import path and could run
+    another module or a second copy of check.py. The checker's own module ran
+    the recorded bytes (LOADED_SOURCE) that the receipt is compared with.
+    """
+    for owner in type(checker).__mro__:
+        namespace = getattr(vars(owner).get("archives"), "__globals__", None)
+        if (namespace is not None and isinstance(namespace.get("LOADED_SOURCE"), dict)
+                and callable(namespace.get("archive_files")) and isinstance(namespace.get("__file__"), str)):
+            return namespace
+    raise UnavailableInstallation("installation validator is unavailable")
+
+
 def consume(checker, installation, public_archive_bytes, target):
     """Read an original command capture; never replay it or repair its output."""
-    import check as validator
+    validator = defining_validator(checker)
     capture = installation.get("install")
     if not isinstance(capture, dict) or not isinstance(capture.get("report"), dict):
         raise UnavailableInstallation("original direct installation report is missing")
@@ -285,7 +300,7 @@ def consume(checker, installation, public_archive_bytes, target):
     need(producer_path == Path(argv[1]).resolve() and producer == LOADED_SELF,
          "installation collector differs from checked source")
     validator_path, validator_bytes = checker.artifact(report.get("validator"))
-    loaded_validator = validator.LOADED_SOURCE[str(Path(validator.__file__).resolve())]
+    loaded_validator = validator["LOADED_SOURCE"][str(Path(validator["__file__"]).resolve())]
     need(validator_path == producer_path.with_name("check.py") and validator_bytes == loaded_validator,
          "installation archive validator differs from checked source")
     need(report.get("target") == target == options["--target"], "installation platform differs")
@@ -302,7 +317,7 @@ def consume(checker, installation, public_archive_bytes, target):
     need(isinstance(installation.get("package_root"), str)
          and Path(installation["package_root"]).resolve() == destination,
          "support files belong to another installation")
-    files = validator.archive_files(public_archive_bytes, target)
+    files = validator["archive_files"](public_archive_bytes, target)
     expected_files = [{"path": name, "sha256": digest(data)} for name, data in sorted(files.items())]
     need(report.get("installed") == expected_files, "installation member evidence differs from the archive")
     for name, data in files.items():

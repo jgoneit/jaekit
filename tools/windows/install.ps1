@@ -111,7 +111,7 @@ try {
         try { Update-ProcessPath $bin $true }
         catch { Write-Warning "Installation committed; reopen the terminal's parent app to load user PATH: $_" }
     }
-    Write-Output "Installed local candidate $version at $root"
+    Write-Output "Installed ha $version at $root"
     Write-Output "Executable: $bin\ha.exe"
     Write-Output "Public data: $root\versions\$version"
     if ($afterPath -cne $beforePath.value) {
@@ -119,7 +119,7 @@ try {
     } elseif (-not $alreadyOnPath) {
         Write-Output "PATH was not changed. Invoke the absolute executable path, or rerun with -AddToPath."
     }
-    Write-Output 'No public release was published. Install identity checks do not verify a project goal or host Skill loading.'
+    Write-Output 'Install identity checks do not verify a project goal or host Skill loading.'
 } catch {
     Write-Error -ErrorAction Continue ("Installation failed: " + $_)
     exit 1

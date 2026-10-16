@@ -1,22 +1,36 @@
 name: Release
 
+# A version tag builds, checks and publishes. Pull requests and manual runs
+# build and check the same files without publishing, so a Windows 11
+# acceptance candidate comes from the same path as the tag build.
 on:
   push:
     tags:
       - 'v*'
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Candidate version (X.Y.Z); nothing is published
+        required: true
 
 permissions:
   contents: read
 
 jobs:
-  release:
-    name: Publish release
+  build:
+    name: Build release files
     runs-on: ubuntu-24.04
-    permissions:
-      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      windows_sha256: ${{ steps.windows.outputs.sha256 }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # A pull request builds its head commit, not a merge commit.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -34,14 +48,36 @@ jobs:
           go test ./...
           python3 -m unittest discover -s tools/release -p 'test_*.py'
 
-      - name: Build release files
+      - name: Select release version
+        id: version
         env:
+          EVENT: ${{ github.event_name }}
           TAG: ${{ github.ref_name }}
+          REQUESTED: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          [[ "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          test -f "tools/release/notes/${TAG}.md"
-          version="${TAG#v}"
+          case "${EVENT}" in
+            push)
+              [[ "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+              test -f "tools/release/notes/${TAG}.md"
+              version="${TAG#v}"
+              ;;
+            workflow_dispatch)
+              version="${REQUESTED}"
+              ;;
+            *)
+              version=0.0.0
+              ;;
+          esac
+          [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build release files
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          version="${VERSION}"
           # Outside the checkout, so the build info shows a clean tree.
           build="${RUNNER_TEMP}/build"
           dist="${RUNNER_TEMP}/dist"
@@ -65,14 +101,150 @@ jobs:
             done
             tar -C "${build}" -czf "${dist}/${name}.tar.gz" "${name}"
           done
-          (cd "${dist}" && sha256sum -- *.tar.gz > checksums.txt)
+          # Without VCS stamps a candidate and the tag build of one commit
+          # produce the same Windows bytes; Go records tags in build info.
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -buildvcs=false \
+            -ldflags "-s -w -X main.version=${version}" \
+            -o "${build}/windows-amd64/ha.exe" ./cmd/ha
+          python3 tools/windows/package.py --binary "${build}/windows-amd64/ha.exe" \
+            --version "${version}" --output "${build}/windows-candidate"
+          # Only the archive is a release file; the candidate's own checksums
+          # and loose scripts stay out of the release.
+          cp "${build}/windows-candidate/ha_${version}_windows_amd64.zip" "${dist}/"
+          (cd "${dist}" && sha256sum -- *.tar.gz *.zip > checksums.txt)
 
       - name: Verify archives and native smoke
         env:
-          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           python3 tools/release/check_archives.py \
-            --version "${TAG#v}" --dist "${RUNNER_TEMP}/dist" --run-native
+            --version "${VERSION}" --dist "${RUNNER_TEMP}/dist" --run-native --require-windows
+
+      - name: Record the built Windows archive
+        id: windows
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          sha256="$(sha256sum "${RUNNER_TEMP}/dist/ha_${VERSION}_windows_amd64.zip" | cut -d ' ' -f 1)"
+          echo "sha256=${sha256}" >> "${GITHUB_OUTPUT}"
+
+      - name: Keep release files for the Windows job and publication
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-files
+          path: ${{ runner.temp }}/dist
+          if-no-files-found: error
+          retention-days: 30
+
+  windows:
+    name: Windows release archive
+    needs: build
+    runs-on: windows-2025
+    timeout-minutes: 30
+    outputs:
+      sha256: ${{ steps.checked.outputs.sha256 }}
+    steps:
+      - name: Check out repository
+        id: checkout
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: 'false'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        id: setup_python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Download the built release files
+        id: download
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-files
+          path: ${{ runner.temp }}/dist
+
+      - name: Check the archive and public blocks on Windows PowerShell 5.1
+        id: ps51
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          EXPECTED: ${{ needs.build.outputs.windows_sha256 }}
+        run: python tools/windows/public_blocks.py ci --dist "$env:RUNNER_TEMP/dist" --version $env:VERSION --expected-sha256 $env:EXPECTED --shell powershell --report "$env:RUNNER_TEMP/reports/windows-powershell.json"
+
+      - name: Check the archive and public blocks on PowerShell 7
+        id: ps7
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' && steps.setup_python.outcome == 'success' && steps.download.outcome == 'success' }}
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          EXPECTED: ${{ needs.build.outputs.windows_sha256 }}
+        run: python tools/windows/public_blocks.py ci --dist "$env:RUNNER_TEMP/dist" --version $env:VERSION --expected-sha256 $env:EXPECTED --shell pwsh --report "$env:RUNNER_TEMP/reports/windows-pwsh.json"
+
+      - name: Keep Windows reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-windows-reports
+          path: ${{ runner.temp }}/reports
+          if-no-files-found: warn
+          retention-days: 30
+
+      # Both shells checked this digest, which each one compared with the
+      # downloaded archive; outcome ignores any continue-on-error.
+      - name: Report the checked archive
+        id: checked
+        if: ${{ steps.ps51.outcome == 'success' && steps.ps7.outcome == 'success' }}
+        shell: pwsh
+        env:
+          EXPECTED: ${{ needs.build.outputs.windows_sha256 }}
+        run: Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "sha256=$env:EXPECTED"
+
+  publish:
+    name: Publish release
+    needs: [build, windows]
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download the checked release files
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-files
+          path: ${{ runner.temp }}/dist
+
+      - name: Select the published files
+        env:
+          TAG: ${{ github.ref_name }}
+          CHECKED: ${{ needs.windows.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          # Stops before publication when the Windows job checked other bytes;
+          # without a matching acceptance link in the tagged checkout's release
+          # notes the Windows archive is left out.
+          python3 tools/release/windows_gate.py --dist "${RUNNER_TEMP}/dist" --version "${TAG#v}" \
+            --checked-sha256 "${CHECKED}" --notes "tools/release/notes/${TAG}.md"
+          # A published Windows archive needs guides whose blocks install it;
+          # CI binds the version, so only this check sees a stale guide.
+          if [ -e "${RUNNER_TEMP}/dist/ha_${TAG#v}_windows_amd64.zip" ]; then
+            shipped="$(python3 tools/windows/public_blocks.py version)"
+            if [ "${shipped}" != "${TAG#v}" ]; then
+              echo "REFUSED: the Windows guides install ${shipped}, not ${TAG#v}; nothing is published" >&2
+              exit 1
+            fi
+          fi
+          python3 tools/release/check_archives.py --version "${TAG#v}" --dist "${RUNNER_TEMP}/dist"
 
       - name: Publish release
         env:
@@ -80,6 +252,14 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
+          # The remote tag must still name the commit these files were built
+          # from; a moved or recreated tag stops publication.
+          tagged="$(git ls-remote origin "refs/tags/${TAG}^{}" | cut -f 1)"
+          if [ -z "${tagged}" ]; then tagged="$(git ls-remote origin "refs/tags/${TAG}" | cut -f 1)"; fi
+          if [ "${tagged}" != "${GITHUB_SHA}" ]; then
+            echo "REFUSED: ${TAG} now names ${tagged:-nothing}, not the built commit ${GITHUB_SHA}" >&2
+            exit 1
+          fi
           # create refuses an existing release; never delete assets or use --clobber.
           gh release create "${TAG}" "${RUNNER_TEMP}"/dist/* \
             --verify-tag \

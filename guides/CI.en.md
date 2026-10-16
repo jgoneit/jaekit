@@ -54,6 +54,16 @@ Diagnostic controls distinguish correct refusals from wrong reasons, targets and
 
 An Ubuntu run is not a WSL2 run. CI does not establish WSL2 installation, installed agent Skill loading, a real agent session or session resumption. Those observations remain separate. No CI success publishes a release, changes a version, or proves installation from a public release URL.
 
+## Release workflow
+
+The [release workflow](../.github/workflows/release.yml) runs the same build and checks for pull requests and manual runs as for a tag push. Only a tag push publishes.
+
+- `Build release files` (Ubuntu) builds the four macOS/Linux tar.gz archives and one Windows ZIP, and writes one `checksums.txt` that lists all five archives. The pre-publication check verifies the ZIP down to its manifest, file hashes, paths and Windows executable format. A pull request builds its head commit.
+- `Windows release archive` (Windows Server 2025) checks the same ZIP in PowerShell 5.1 and 7 with the installer's own package verification and runs `ha --version` and `capabilities`. It then pastes the [public install and removal blocks](WINDOWS.en.md#install-from-a-public-release) unchanged except for the download source and version. With the real ZIP it observes the installer stopping at its Windows 11 guard; with probe ZIPs it observes the parent PATH, execution policy and child shell for success, failure and checksum refusal. Reports are kept as `release-windows-reports`.
+- `Publish release` runs only for a tag push. If the ZIP the Windows job checked differs from the ZIP to be published, nothing is published. Without a Windows 11 acceptance line for that ZIP in the tag's release notes (`tools/release/notes/vX.Y.Z.md`), it leaves out the Windows ZIP and publishes the macOS and Linux files only. When it keeps the ZIP, it publishes nothing unless the guides' public blocks install that release version. It also stops if the remote tag no longer names the commit the files were built from. After publishing it compares the published asset names with the checked files.
+
+This workflow is not one of `main`'s required checks (`Seal Core`, `Public documentation`). A Server result is not a Windows 11 installation success; actual installation, reinstallation and removal are checked by the [Windows 11 check procedure](../tools/windows/README.md).
+
 ## Local checks
 
 Before pushing or publishing, the repository's common verification entrypoint must pass once on the same verification input as the final candidate. That one pass satisfies both the commit and the push requirement, whether it runs before or after the commit; do not run the full verification twice for the same input:
