@@ -179,6 +179,7 @@ ASKING = re.compile(r"(?i)\b(ask|asks|asking|approval|approve|confirmation|confi
 NOT_ASKING = re.compile(r"(?i)without asking|never ask|not ask|add no user|no user confirmation"
                         r"|document-conflict rule|only the user resolves|묻지 않|새로 묻지|더하지 않|문서 충돌 규칙|사용자만 해소")
 GOVERNED_WORDS = {"the", "a", "an", "any", "user", "users", "for", "to", "of", "or", "and"}
+NEGATED_VERB = re.compile(r"(?i)without asking|never ask|not ask")
 # A list the phrase governs continues after a comma only with another asking noun.
 ASKING_NOUNS = re.compile(r"(?i)approval|confirmation|permission")
 
@@ -188,7 +189,7 @@ PRIVATE = (
     # Checkout-local absolute paths on macOS, Linux, containers and Windows.
     # Any absolute path of two or more segments that is not part of a URL or a
     # relative path, a bare well-known root, a worktree folder or a Windows drive.
-    (re.compile(r"(?<![\w.:/~<>-])/[A-Za-z0-9._-]+/[A-Za-z0-9._-]"
+    (re.compile(r"(?<![\w.:/~<>-])/[^\s/`]+/[^\s/`]"
                 r"|(?<![\w.:/~<>-])/(?:Users|home|root|workspaces?|private|var|tmp|mnt|srv|opt|builds|usr|Volumes)(?![\w/-])(?!\.\w)"
                 r"|-worktrees/|(?<![A-Za-z])[A-Za-z]:[\\/][^\s`]"), "local path"),
     # A placeholder segment is exempt only when the path ends there or continues
@@ -200,12 +201,13 @@ PRIVATE = (
 )
 
 
-def governed(between, word):
+def governed(between, word, negated_verb):
     """Whether text between an exemption phrase and a later asking word is only
-    the phrase's object or a list it governs. A list is homogeneous: after an
-    asking noun, the list goes on only with more asking nouns joined by commas,
-    "or" or "and", so an asking verb there ("..., ask the user", "... and ask
-    the user") starts a new step."""
+    the phrase's object or a list it governs. After an asking noun, the list goes
+    on with more asking nouns joined by commas, "or" or "and". A negated verb
+    ("never ask for approval or confirm") also governs another asking verb joined
+    by "or" or "and"; a negated noun list ("add no user approval and ask the
+    user") does not, and an asking verb after a comma always starts a new step."""
     tokens = re.findall(r"@[^@]*@|\w+|[^\w\s]", ASKING.sub(lambda m: f"@{m.group(0)}@", between))
     tokens.append(f"@{word}@")
 
@@ -215,7 +217,8 @@ def governed(between, word):
     seen_noun = False
     for index, token in enumerate(tokens):
         if token.startswith("@"):
-            if seen_noun and not noun(token):
+            joined = index and tokens[index - 1].lower() in ("or", "and")
+            if seen_noun and not noun(token) and not (negated_verb and joined):
                 return False
             seen_noun = seen_noun or noun(token)
         elif token == ",":
@@ -235,7 +238,8 @@ def new_user_steps(sentence):
         start, end = match.span()
         covered = any(
             (left <= start and end <= right)
-            or (right <= start and governed(sentence[right:start], match.group(0)))
+            or (right <= start and governed(sentence[right:start], match.group(0),
+                                            NEGATED_VERB.fullmatch(sentence[left:right]) is not None))
             or (end <= left and re.search(r"[가-힣]", sentence[left:right])
                 and not re.search(r"[,;:]", sentence[end:left]))
             for left, right in exempt)
