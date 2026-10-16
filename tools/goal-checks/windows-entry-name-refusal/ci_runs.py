@@ -14,10 +14,17 @@ Reads GitHub Actions through the gh CLI for the commit checked out here.
   name-character refusals. The Windows job runs them in Windows PowerShell 5.1
   and PowerShell 7.
 
-Exit 0 when every observation step succeeded. Exit 1 when an observation step
-failed or the tree does not demand the cases. Exit 2 when nothing was observed:
-GitHub or the commit cannot be read, the run is missing or for another tree, or
-a job or step is unfinished, cancelled, skipped or stopped in setup.
+Each native check step prints `JAEKIT_CI_REPORT` (tools/windows/native_checks.py)
+with its shell version, package checks and failures.
+
+Exit 0 when every observation step succeeded and, for AC-1, both shells'
+reports passed with the name-character case. Exit 1 only for an observed
+failure of the property: the tree does not demand the cases, or a shell's
+report names a failed name-character refusal. Exit 2 when it was not observed:
+GitHub or the commit cannot be read, the run is missing or tested another tree,
+a step is unfinished, cancelled or skipped, or a step failed for a reason this
+reader cannot attribute to the property, such as a build that stopped before
+the cases ran.
 """
 import importlib.util
 import json
@@ -40,6 +47,12 @@ CRITERIA = {
     "AC-3": [("ci.yml", "Core / Windows"), ("release.yml", "Windows release archive")],
 }
 CONTEXT = re.compile(r"JAEKIT_CI_CONTEXT (\{.*\})\s*$")
+REPORT = re.compile(r"JAEKIT_CI_REPORT (\{.*\})\s*$")
+CASE = "archive-name-character-refusal"
+# Failure texts that only the name-character refusal cases produce: the
+# package check's per-character label and the report validator's message.
+REFUSAL_FAILURE = re.compile(r"name character 0x[0-9a-f]{2}:|installer name-character refusals are incomplete")
+SHELLS = {"Windows PowerShell 5.1": re.compile(r"5\.1\."), "PowerShell 7": re.compile(r"7\.")}
 
 
 class Unobserved(Exception):
@@ -94,10 +107,13 @@ def find_job(repo, run, name):
     return matches[0]
 
 
-def tested_context(repo, job, head, tree):
+def lines_matching(log, pattern):
+    return [match.group(1) for line in log.splitlines() if (match := pattern.search(line))]
+
+
+def tested_context(log, head, tree, repo, job):
     """The pull request base of the run whose Windows job tested this tree."""
-    contexts = [match.group(1) for line in job_log(repo, job["id"]).splitlines()
-                if (match := CONTEXT.search(line))]
+    contexts = lines_matching(log, CONTEXT)
     if len(contexts) != 1:
         raise Unobserved(f"expected one tested-source context in job {job['id']}, found {len(contexts)}")
     context = json.loads(contexts[0])
@@ -108,8 +124,24 @@ def tested_context(repo, job, head, tree):
     return context["base_sha"]
 
 
+def refusal_outcome(log):
+    """AC-1 in each shell's native check report: 'success', 'failure' or 'unobserved'."""
+    reports = [json.loads(text) for text in lines_matching(log, REPORT)]
+    outcomes = []
+    for pattern in SHELLS.values():
+        found = [report for report in reports
+                 if pattern.match(str(report.get("environment", {}).get("shell_version", "")))]
+        if len(found) != 1:
+            return "unobserved"
+        report = found[0]
+        if any(REFUSAL_FAILURE.search(str(failure)) for failure in report.get("failures", [])):
+            return "failure"
+        outcomes.append(report.get("status") == "passed" and CASE in report.get("package_checks", []))
+    return "success" if all(outcomes) else "unobserved"
+
+
 def outcome(job, steps):
-    """'success', 'failure' (an observation step failed) or 'unobserved'."""
+    """'success' when every observation step succeeded, otherwise 'unobserved'."""
     conclusions = {}
     for step in job.get("steps", []):
         if step.get("name") in steps:
@@ -120,8 +152,6 @@ def outcome(job, steps):
         if len(found) != 1 or found[0][0] != "completed":
             return "unobserved"
         observed.append(found[0][1])
-    if "failure" in observed:
-        return "failure"
     if all(value == "success" for value in observed) and job.get("conclusion") == "success":
         return "success"
     return "unobserved"
@@ -132,7 +162,9 @@ def observe(criterion):
     tree = run(["git", "rev-parse", "HEAD^{tree}"]).strip()
     repo = json.loads(run(["gh", "repo", "view", "--json", "nameWithOwner"]))["nameWithOwner"]
     runs = {workflow: latest_run(repo, workflow, head) for workflow in {workflow for workflow, _ in CRITERIA[criterion]}}
-    base = tested_context(repo, find_job(repo, runs[CONTEXT_JOB[0]], CONTEXT_JOB[1]), head, tree)
+    windows = find_job(repo, runs[CONTEXT_JOB[0]], CONTEXT_JOB[1])
+    log = job_log(repo, windows["id"])
+    base = tested_context(log, head, tree, repo, windows)
     results = {}
     for workflow, name in CRITERIA[criterion]:
         pulls = [pull for pull in runs[workflow].get("pull_requests", [])
@@ -140,6 +172,10 @@ def observe(criterion):
         if len(pulls) != 1:
             raise Unobserved(f"the {workflow} run did not test the same pull request merge")
         results[f"{workflow} / {name}"] = outcome(find_job(repo, runs[workflow], name), OBSERVATIONS[(workflow, name)])
+    if criterion == "AC-1":
+        refusals = refusal_outcome(log)
+        steps = results[f"{CONTEXT_JOB[0]} / {CONTEXT_JOB[1]}"]
+        results["name-character refusals"] = refusals if refusals == "failure" or steps == "success" else "unobserved"
     return results
 
 

@@ -34,6 +34,9 @@ class World:
         self.jobs = {1: [job(10, "Core / Windows", ci.OBSERVATIONS[("ci.yml", "Core / Windows")])],
                      2: [job(20, "Windows release archive", ci.OBSERVATIONS[("release.yml", "Windows release archive")])]}
         self.context = {"event": "pull_request", "head_sha": HEAD, "base_sha": BASE, "source_sha": MERGE}
+        self.reports = [{"status": "passed", "environment": {"shell_version": version},
+                         "package_checks": ["checksum-refusal", ci.CASE], "failures": []}
+                        for version in ("5.1.26100.1", "7.5.3")]
         self.trees = {MERGE: TREE}
         self.log_lines = None
 
@@ -57,7 +60,8 @@ class World:
     def job_log(self, repo, job_id):
         lines = self.log_lines if self.log_lines is not None else [
             "2026-01-01T00:00:00Z python tools/ci/describe_run.py --shell powershell",
-            "2026-01-01T00:00:01Z JAEKIT_CI_CONTEXT " + json.dumps(self.context)]
+            "2026-01-01T00:00:01Z JAEKIT_CI_CONTEXT " + json.dumps(self.context),
+            *("2026-01-01T00:00:02Z JAEKIT_CI_REPORT " + json.dumps(report) for report in self.reports)]
         return "\n".join(lines) + "\n"
 
     def main(self, criterion, demanded=True):
@@ -78,14 +82,16 @@ class CiRuns(unittest.TestCase):
             with self.subTest(criterion=criterion):
                 self.assertEqual(World().main(criterion), 0)
 
-    def test_failed_observation_step_is_a_failure(self):
-        for run_id, name in ((1, "Verify native developer checks on PowerShell 5.1"),
-                             (2, "Check the archive and public blocks on PowerShell 7")):
+    def test_a_named_refusal_failure_in_a_shell_report_is_a_failure(self):
+        for index, failure in ((0, "name character 0x00: Expected refusal was not observed: Unsafe package path"),
+                               (1, "installer name-character refusals are incomplete; missing: 0x22")):
             world = World()
-            step(world, run_id, name)["conclusion"] = "failure"
-            world.jobs[run_id][0]["conclusion"] = "failure"
-            with self.subTest(step=name):
-                self.assertEqual(world.main("AC-3"), 1)
+            world.reports[index].update(status="failed", failures=["package/runtime report contains a failure", failure])
+            name = ci.OBSERVATIONS[("ci.yml", "Core / Windows")][index]
+            step(world, 1, name)["conclusion"] = "failure"
+            world.jobs[1][0]["conclusion"] = "failure"
+            with self.subTest(failure=failure):
+                self.assertEqual(world.main("AC-1"), 1)
 
     def test_tree_that_does_not_demand_the_cases_is_a_failure(self):
         self.assertEqual(World().main("AC-1", demanded=False), 1)
@@ -104,6 +110,15 @@ class CiRuns(unittest.TestCase):
         def post_step_failed(world):
             world.jobs[2][0]["conclusion"] = "failure"
 
+        def build_stopped(world):
+            world.reports[0].update(status="failed", failures=["candidate build timed out"])
+            step(world, 1, "Verify native developer checks on PowerShell 5.1")["conclusion"] = "failure"
+            world.jobs[1][0]["conclusion"] = "failure"
+
+        def release_check_failed(world):
+            step(world, 2, "Check the archive and public blocks on PowerShell 7")["conclusion"] = "failure"
+            world.jobs[2][0]["conclusion"] = "failure"
+
         cases = {
             "cancelled observation step": cancelled,
             "setup failure before the checks": setup_failed,
@@ -118,12 +133,25 @@ class CiRuns(unittest.TestCase):
             "two tested-source contexts": lambda world: setattr(world, "log_lines", [
                 "JAEKIT_CI_CONTEXT " + json.dumps(world.context)] * 2),
             "release run tested another base": lambda world: world.runs["release.yml"]["pull_requests"][0]["base"].update(sha="9" * 40),
+            "native step stopped before the cases ran": build_stopped,
+            "release check failed for an unattributed reason": release_check_failed,
         }
         for label, change in cases.items():
             world = World()
             change(world)
             with self.subTest(case=label):
                 self.assertEqual(world.main("AC-3"), 2)
+        ac1 = {
+            "native step stopped before the cases ran": build_stopped,
+            "no report for PowerShell 7": lambda world: world.reports.pop(),
+            "report without the case": lambda world: world.reports[1].update(package_checks=["checksum-refusal"]),
+            "two reports for one shell": lambda world: world.reports.append(copy.deepcopy(world.reports[0])),
+        }
+        for label, change in ac1.items():
+            world = World()
+            change(world)
+            with self.subTest(criterion="AC-1", case=label):
+                self.assertEqual(world.main("AC-1"), 2)
 
 
 if __name__ == "__main__":
