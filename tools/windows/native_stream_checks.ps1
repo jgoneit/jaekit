@@ -506,7 +506,7 @@ finally {
         if ($action -eq 'uninstall') { Require (-not (Test-Path -LiteralPath $directory) -and $diagnostic.Contains('Removal committed')) 'Removal outcome and cleanup warning were conflated.' }
         else {
             Read-Installation $directory | Out-Null
-            Require ($diagnostic.Contains($(if ($committed) { 'Installed local candidate' } else { 'Installation failed:' }))) 'Install outcome was not reported.'
+            Require ($diagnostic.Contains($(if ($committed) { 'Installed ha ' } else { 'Installation failed:' }))) 'Install outcome was not reported.'
             if (-not $committed) { Require ((ConvertTo-Json -Compress -Depth 12 -InputObject $installationBefore) -ceq (ConvertTo-Json -Compress -Depth 12 -InputObject (Snapshot-Tree $directory))) 'Staged refusal changed the original installation.' }
         }
         Observe @{case = $case; kind = 'actual_ntfs_injected_stage'; rejected = (-not $committed); committed = $committed; exit_code = $result.code
