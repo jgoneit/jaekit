@@ -76,7 +76,13 @@ REQUIRED = sorted(MODULE + package + "/" + test for package, tests in NATIVE.ite
 PACKAGE_CHECKS = ["candidate-manifest-sha256", "candidate-native-version-capabilities",
                   "space-unicode-drive-path", "checksum-refusal", "archive-traversal-refusal",
                   "archive-case-collision-refusal", "archive-file-directory-collision-refusal",
-                  "archive-reserved-name-refusal", "archive-stream-name-refusal", "junction-path-refusal"]
+                  "archive-reserved-name-refusal", "archive-stream-name-refusal", "archive-name-character-refusal",
+                  "junction-path-refusal"]
+# Every character the installer's name rule refuses (Assert-PackageName in
+# common.ps1). Each is placed in an entry name of the actual candidate and must
+# be refused with the installer's own message in the shell being checked; on
+# Windows PowerShell 5.1 some fail while .NET Framework lists the entries.
+NAME_RULE_CHARACTERS = tuple(range(0x20)) + tuple(ord(character) for character in ':<>"|?*')
 PREFLIGHT_FILES = ("archive", "common", "install", "uninstall", "acceptance")
 PREFLIGHT_CASES = {"actual-candidate", "valid-install", "valid-remove", "valid-acceptance",
                    "invalid-digest", "mismatched-digest", "duplicate-entry", "ambiguous-case-entry",
@@ -116,6 +122,13 @@ def validate_package_report(report: dict, shell_version: str, server: bool) -> N
     checks = report.get("package_checks", [])
     if len(checks) != len(PACKAGE_CHECKS) or set(checks) != set(PACKAGE_CHECKS) or report.get("failures"):
         raise RuntimeError("package runtime report is incomplete or has failures")
+    refused = report.get("name_character_refusals")
+    if (not isinstance(refused, list) or any(type(code) is not int for code in refused)
+            or len(refused) != len(set(refused)) or set(refused) != set(NAME_RULE_CHARACTERS)):
+        observed = set(refused) if isinstance(refused, list) else set()
+        missing = sorted(set(NAME_RULE_CHARACTERS) - {code for code in observed if type(code) is int})
+        raise RuntimeError("installer name-character refusals are incomplete; missing: "
+                           + (", ".join("0x%02x" % code for code in missing) or "none (duplicate or invalid entries)"))
     if server:
         for action in ("install", "uninstall"):
             actual = report.get("server_rejection", {}).get(action, {})
@@ -360,7 +373,8 @@ def main() -> int:
         package_result = output / "package-results.json"
         result = capture([args.shell_executable, "-NoProfile", "-NonInteractive", "-File",
                           str(ROOT / "tools/windows/native_package_checks.ps1"), "-CandidateDirectory",
-                          str(output / "candidate"), "-OutputPath", str(package_result)], output, "package-runtime")
+                          str(output / "candidate"), "-OutputPath", str(package_result), "-NameCharacterCodes",
+                          ",".join(str(code) for code in NAME_RULE_CHARACTERS)], output, "package-runtime")
         if package_result.is_file():
             package_report = json.loads(package_result.read_text(encoding="utf-8-sig"))
             report["package_checks"] = package_report.get("package_checks", [])

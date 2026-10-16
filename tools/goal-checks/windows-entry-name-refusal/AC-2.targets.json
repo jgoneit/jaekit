@@ -1,0 +1,65 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "rule-characters",
+      "runner": "unittest",
+      "file": "tools/windows/test_name_character_refusals.py",
+      "test": "RuleCharacters.test_required_characters_are_the_installer_rule",
+      "result_targets": {
+        "additional_violations": [
+          "rule-characters.assertion-2",
+          "rule-characters.assertion-3",
+          "rule-characters.assertion-4",
+          "rule-characters.assertion-5",
+          "rule-characters.assertion-6",
+          "rule-characters.assertion-7",
+          "rule-characters.assertion-8"
+        ],
+        "execution": "rule-characters.execution",
+        "selection": "rule-characters.selection",
+        "attribution": "rule-characters.attribution"
+      }
+    },
+    {
+      "target": "report-requires-refusals",
+      "runner": "unittest",
+      "file": "tools/windows/test_name_character_refusals.py",
+      "test": "ReportValidation.test_package_report_requires_every_character_refusal",
+      "result_targets": {
+        "additional_violations": [
+          "report-requires-refusals.assertion-2",
+          "report-requires-refusals.assertion-3",
+          "report-requires-refusals.assertion-4",
+          "report-requires-refusals.assertion-5",
+          "report-requires-refusals.assertion-6",
+          "report-requires-refusals.assertion-7",
+          "report-requires-refusals.assertion-8"
+        ],
+        "execution": "report-requires-refusals.execution",
+        "selection": "report-requires-refusals.selection",
+        "attribution": "report-requires-refusals.attribution"
+      }
+    },
+    {
+      "target": "both-ci-shells",
+      "runner": "unittest",
+      "file": "tools/windows/test_name_character_refusals.py",
+      "test": "ContinuousIntegration.test_both_ci_shells_run_the_name_character_cases",
+      "result_targets": {
+        "additional_violations": [
+          "both-ci-shells.assertion-2",
+          "both-ci-shells.assertion-3",
+          "both-ci-shells.assertion-4",
+          "both-ci-shells.assertion-5",
+          "both-ci-shells.assertion-6",
+          "both-ci-shells.assertion-7",
+          "both-ci-shells.assertion-8"
+        ],
+        "execution": "both-ci-shells.execution",
+        "selection": "both-ci-shells.selection",
+        "attribution": "both-ci-shells.attribution"
+      }
+    }
+  ]
+}
