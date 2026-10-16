@@ -63,6 +63,28 @@ PLAN budget values initialize a goal. Editing them does not change an active bud
 
 Same four groups as a task document.
 
+## Check inputs
+
+Seal 0.1.14 adds these rules for checks written or changed from that version on, whichever Seal version started the goal. They never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md` for this reason alone, and they add no user confirmation, approval or question: the executor applies them, without asking the user, and decides whether an existing check is worth rewriting.
+
+**What a check may read.** Every check in the condition table, `change`, `maintain`, `EX-n` and task commands alike, together with every producer, configuration or helper file it runs or reads, judges only the tree being checked and the external inputs its condition names. The tree being checked is HEAD with its tracked files, or the base tree the baseline overlays. The general property: a full clone and a history-less clone of the same tree give the same verdict. Typical history dependence to avoid:
+
+- a pinned SHA, or a base read from the start record or Core output, written into a check;
+- a diff against an earlier commit, a merge-base, a remote-tracking branch, a relative ref such as `HEAD~n`, or a log range;
+- files read from another worktree or another checkout.
+
+History in a synthetic repository the check builds itself, such as a temporary fixture created with `git init`, is not repository history.
+
+**Maintain conditions.** A `maintain` condition is observed as the property the goal documents require: content, output, format or behavior in the tree being checked. A check that confirms a file is unchanged since the base commit is not an observation of that property. When the requirement is that a path does not change at all, two history-free means exist. Leave the path outside `바꿀 수 있는 경로`, so that Core reports any committed change to it since the base commit as `out_of_scope`, which only the user resolves. Or compare the file with the expected content written in a tracked check file. A check may also observe the property the file must keep, for example that a block still contains the required commands.
+
+**Change conditions and the baseline.** The baseline is Core's mechanism: `ha check --baseline` runs the condition on a temporary worktree of the base commit with the check paths copied from HEAD. Check code never checks out, reads or compares the base commit to imitate that run. It observes the required property in whatever tree it runs on, so it reports the declared violation on the base commit and a pass after the change.
+
+**Conditions about history.** Some conditions concern history or refs themselves, such as a tag's type or a commit message format. Such a check reads only the range and refs the condition names. When that history is missing or unreadable, the result is unobserved, environment error or skip, as distinguished under the assurance policy below, neither a violation nor a pass. `REVIEW.md` records why the check needs history and the range it reads.
+
+**Declared boundaries.** A component the goal documents point to or change may declare its own scope or trust boundary: it is pinned to a version or release, preserves past verdicts, isolates imports or limits its inputs. That declaration is current behavior; keep it unless the goal documents explicitly change it. When the goal documents can be satisfied either by widening the component or by adding a separate one, choose the reading that keeps the declaration, write it in `REVIEW.md` as an explicit assumption and repeat it in the report, without asking the user. When the goal documents do change the component, new code stays inside the boundary it declares: a new import, for example, goes through the same import boundary. When no reading satisfies both, the document-conflict rule of `REVIEW.md` applies.
+
+Synthetic example: a goal keeps the install block of `guides/INSTALL.md` as it is. The `maintain` check reads the current guide and observes that the block still downloads from the release URL pattern and verifies the checksum, instead of comparing the file with the base commit. The guide stays outside `바꿀 수 있는 경로`, so Core reports any committed change to it as `out_of_scope`.
+
 ## tasks/T001.md
 
 | Section | Content |
@@ -92,8 +114,8 @@ Summaries point to a document and section. They never replace a criterion.
 | 요구사항 대응 | `ha lint` result; SPEC scope and non-goals reflected in tasks; user scenarios covered by the condition table; differences from the work breakdown proposal and why |
 | 불필요한 task | Tasks that serve no condition |
 | 문서 충돌 | Conflicts among SPEC, project documents, and code. Never resolve them by editing the goal documents; ask |
-| 중요한 미결정 | Open decisions in the goal documents and new outcome-changing ones. Close each with the user's quoted answer or an explicit assumption that the report repeats |
-| 검증 방법과 환경 | Whether each command runs here; tools, data, network; how a cross-component flow is checked across the boundary |
+| 중요한 미결정 | Open decisions in the goal documents and new outcome-changing ones. Close each with the user's quoted answer or an explicit assumption that the report repeats. A reading that keeps a component's declared scope or trust boundary is such an assumption, not a question ([Check inputs](#check-inputs)) |
+| 검증 방법과 환경 | Whether each command runs here; tools, data, network and repository history (a check reads history only for a condition about history, with the range it reads); how a cross-component flow is checked across the boundary |
 | 결론 | `ready` or `needs_user` with the reason |
 
 ### Evidence and observation scope

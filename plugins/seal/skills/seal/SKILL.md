@@ -2,7 +2,7 @@
 name: seal
 description: Carry a goal in docs/specs/<goal>/ to recorded completion — plan, implement, verify through the ha binary, and resume in a new session. Use when the user calls this skill with a goal or asks to implement, finish, or continue a goal document, for example "$seal:seal docs/specs/x" in Codex, "/seal:seal docs/specs/x" in Claude Code, "docs/specs/x 구현해줘", or "docs/specs/x 이어서 해줘".
 metadata:
-  version: "0.1.13"
+  version: "0.1.14"
 ---
 
 # Seal
@@ -47,6 +47,16 @@ Follow the project's Git tracking and local retention policy for goal documents 
 - A result counts only when `ha check` recorded it on a clean, committed tree that still matches HEAD outside the bundle documents. Commit your changes. Test runs outside `ha` are useful while working but never count.
 - An `error` result may be rerun once on the same code. Under `/3`, inconclusive results share that error limit. A `fail` stays in the record; fix the code or the check and verify again. Do not hide earlier failures behind a producer's final internal retry result.
 - Choose the checks, runner and verification method for the goal. A structured result contract does not require an official adapter or the reference producer. Python 3 is not a prerequisite for Seal; when it is already available, the optional [compatibility helper](scripts/check_core.py) can check the same contract deterministically.
+
+## Check inputs
+
+These rules cover every check in the condition table: `change`, `maintain`, `EX-n` and task commands, and every producer, configuration or helper file such a command runs or reads. They apply to checks written or changed from Seal 0.1.14 on, whichever Seal version started the goal, and they add no user confirmation, approval or question: the executor applies them and decides whether an existing check needs rewriting. They never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md` for this reason alone. Details and synthetic examples are in [references/bundle.md](references/bundle.md#check-inputs).
+
+- A check judges only the tree being checked and the external inputs its condition names. It never embeds the goal's start or base commit or any other fixed commit, including a base read from the start record or Core output, and never reads other commits, refs or objects of the repository to decide. A full clone and a history-less clone of the same tree give the same verdict. History in a synthetic repository the check creates for itself is outside this rule.
+- Observe a `maintain` condition as the property the goal documents require, such as content, output, format or behavior, in the tree being checked. Confirming that a file is unchanged since the base commit does not observe that property. When a path must not change at all, leave it outside `바꿀 수 있는 경로`: Core reports a committed change to it since the base as `out_of_scope`, which only the user resolves. A check may also compare the file with expected content written in a tracked check file.
+- The violation a `change` condition shows on the base commit is observed only by Core's baseline run. Check code never checks out, reads or compares the base commit to imitate it: the same check observes the required property wherever it runs, which gives a violation on the base commit and a pass after the change.
+- When a condition is itself about repository history or refs, such as a tag's type or a commit message format, the check reads only the range and refs the condition names. Missing or unreadable history is an error or unobserved, neither a violation nor a pass. The pre-execution review (`REVIEW.md`) records why such a check is needed and the range it reads.
+- When a component that the goal documents point to or change declares its own scope or trust boundary, such as being pinned to a version or release, preserving past verdicts, isolating imports or limiting its inputs, that declaration is current behavior: keep it unless the goal documents explicitly change it. When the goal documents can be met either by widening that component or by adding a separate one, choose the reading that keeps the declaration, and record it in `REVIEW.md` as an explicit assumption that the report repeats, without asking the user. When the goal documents do change the component, new code stays inside the boundary it declares; for example, a new import goes through the same import boundary. When no reading satisfies both the declaration and the goal documents, the existing document-conflict rule applies.
 
 ## Assurance policy
 
