@@ -149,7 +149,7 @@ Windows ARM64·x86, 이전 Windows, 네트워크/UNC 저장소와 같은 checkou
 
 ### 공개 경로의 확인 범위
 
-Windows Server 2025의 CI와 릴리스 smoke는 PowerShell 5.1과 7 각각에서 이 블록 텍스트를 실제로 실행합니다. 다운로드, 체크섬 확인, 같은 셸의 자식 실행, 실패 전달, PATH·정책 불변을 관측합니다. 설치 코드는 Windows 11 Client만 허용하므로, Server 결과는 Windows 11 설치 성공이 아닙니다. 실제 설치·업데이트·제거는 [Windows 11 확인 절차](../tools/windows/README.md)에서 확인합니다. 공개 릴리스는 그 확인과 연결된 Windows ZIP만 게시하고, 연결이 없으면 macOS·Linux 파일만 게시합니다.
+Windows Server 2025의 CI와 릴리스 smoke는 PowerShell 5.1과 7 각각에서 이 블록 텍스트를 실제로 실행합니다. 다운로드, 체크섬 확인, 같은 셸의 자식 실행, 실패 전달, 창의 PATH, 붙여 넣은 뒤에도 그 창에서 스크립트가 실행되지 않음을 관측합니다. 설치 코드는 Windows 11 Client만 허용하므로, Server 결과는 Windows 11 설치 성공이 아닙니다. 실제 설치·재설치·제거는 [Windows 11 확인 절차](../tools/windows/README.md)에서 확인합니다. 공개 릴리스는 그 확인과 연결된 Windows ZIP만 게시하고, 연결이 없으면 macOS·Linux 파일만 게시합니다.
 
 ## 준비
 

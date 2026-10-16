@@ -195,10 +195,11 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-      # Runs only when every step above succeeded: both shells checked this
-      # digest, which each one compared with the downloaded archive.
+      # Both shells checked this digest, which each one compared with the
+      # downloaded archive; outcome ignores any continue-on-error.
       - name: Report the checked archive
         id: checked
+        if: ${{ steps.ps51.outcome == 'success' && steps.ps7.outcome == 'success' }}
         shell: pwsh
         env:
           EXPECTED: ${{ needs.build.outputs.windows_sha256 }}

@@ -50,6 +50,10 @@ class GuideBlocks(unittest.TestCase):
                 self.assertIn("$shell = (Get-Process -Id $PID).Path", code)
                 self.assertIn("'common.ps1', '" + script + "'", code)
                 self.assertNotIn("Set-ExecutionPolicy", code)
+                # CI observes only that the window still blocks scripts, which a
+                # LocalMachine change would not show; no block writes the registry.
+                for write in ("hklm:", "hkcu:", "registry::", "set-itemproperty", "new-itemproperty", "reg.exe", "reg add"):
+                    self.assertNotIn(write, code.lower())
                 self.assertNotIn("Invoke-Expression", code)
                 self.assertNotIn("iex ", code)
                 self.assertNotIn('"', code)

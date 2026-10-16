@@ -247,14 +247,17 @@ editions, Python 3 and a checkout of this repository.
    install and removal blocks from the guides inside the archive, with only the
    download source changed. It refuses an archive whose guides install another
    version, so a stale guide is found here rather than when the tag is pushed.
-3. With the persistent CurrentUser policy at Restricted (Windows 11's default;
-   `Get-ExecutionPolicy -List` shows it), paste the install block into Windows
-   PowerShell 5.1 and check `ha --version` in the same window and the user
-   PATH entry. Paste it again into PowerShell 7, which updates the existing
-   installation, and check again. Paste the removal block and check that the
-   installation and its PATH entry are gone. To check an update from the
-   previous public release, first install that release with its own published
-   block.
+3. Windows PowerShell 5.1 and PowerShell 7 keep separate CurrentUser
+   policies, and a new account usually shows `Undefined` there. In each
+   edition, note the value from `Get-ExecutionPolicy -List`, run
+   `Set-ExecutionPolicy -Scope CurrentUser Restricted`, and restore the noted
+   value after the checks. Paste the install block into Windows PowerShell 5.1
+   and check `ha --version` in the same window and the user PATH entry. Paste
+   it into PowerShell 7, which reinstalls over the existing installation, and
+   check again. Paste the removal block and check that the installation and its
+   PATH entry are gone. Once a public release with Windows files exists, also
+   install that release with its own published block first, to check an
+   update from it.
 4. When every check passes, add the line `serve` printed to
    `tools/release/notes/v<version>.md`:
 
@@ -274,3 +277,5 @@ editions, Python 3 and a checkout of this repository.
    they still differ, the archive is left out rather than published unchecked.
 
 The digest line is the maintainer's statement that these checks passed.
+Review a change that adds or edits it as a release attestation: any commit the
+tag points to can carry it.

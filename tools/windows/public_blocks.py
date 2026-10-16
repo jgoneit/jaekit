@@ -535,8 +535,11 @@ def serve(args) -> int:
             print(bind(found[kind], base, version))
         print(f"When every check in tools/windows/README.md passes, add this line to tools/release/notes/v{version}.md:")
         print(f"Windows-Accepted-SHA256: {sha256(data)}", flush=True)
+        stop = threading.Event()
         try:
-            threading.Event().wait()
+            # A timed wait lets Ctrl+C through on Windows.
+            while not stop.wait(0.5):
+                pass
         except KeyboardInterrupt:
             pass
     return 0
@@ -559,7 +562,7 @@ def main(argv=None) -> int:
             print(block_version(public_blocks()))
             return 0
         return {"ci": ci, "serve": serve}[args.mode](args)
-    except (Failure, OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
+    except (Failure, OSError, ValueError, KeyError, zipfile.BadZipFile, subprocess.SubprocessError) as error:
         print("FAIL: " + str(error), file=sys.stderr)
         return 1
 

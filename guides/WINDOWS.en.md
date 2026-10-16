@@ -149,7 +149,7 @@ The removal code checks the managed inventory and removes only the installation 
 
 ### Evidence scope of the public path
 
-CI and release smoke on Windows Server 2025 execute this block text in PowerShell 5.1 and 7. They observe the download, checksum check, child process in the same shell, failure propagation and unchanged PATH and policy. The installer accepts only Windows 11 Client, so a Server result is not a Windows 11 installation success. Actual installation, update and removal are checked by the [Windows 11 acceptance procedure](../tools/windows/README.md). A public release includes only a Windows ZIP linked to that acceptance; without the link it publishes the macOS and Linux files only.
+CI and release smoke on Windows Server 2025 execute this block text in PowerShell 5.1 and 7. They observe the download, checksum check, child process in the same shell, failure propagation, the window's PATH and that the window still cannot run scripts afterwards. The installer accepts only Windows 11 Client, so a Server result is not a Windows 11 installation success. Actual installation, reinstallation and removal are checked by the [Windows 11 check procedure](../tools/windows/README.md). A public release includes only a Windows ZIP linked to that acceptance; without the link it publishes the macOS and Linux files only.
 
 ## Prerequisites
 
