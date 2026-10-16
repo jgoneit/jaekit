@@ -256,6 +256,15 @@ jobs:
           # without a matching acceptance link the Windows archive is left out.
           python3 tools/release/windows_gate.py --dist "${RUNNER_TEMP}/dist" --version "${TAG#v}" \
             --checked-sha256 "${CHECKED}" --tag-message "${RUNNER_TEMP}/tag-message.txt"
+          # A published Windows archive needs guides whose blocks install it;
+          # CI binds the version, so only this check sees a stale guide.
+          if [ -e "${RUNNER_TEMP}/dist/ha_${TAG#v}_windows_amd64.zip" ]; then
+            shipped="$(python3 tools/windows/public_blocks.py version)"
+            if [ "${shipped}" != "${TAG#v}" ]; then
+              echo "REFUSED: the Windows guides install ${shipped}, not ${TAG#v}; nothing is published" >&2
+              exit 1
+            fi
+          fi
           python3 tools/release/check_archives.py --version "${TAG#v}" --dist "${RUNNER_TEMP}/dist"
 
       - name: Publish release

@@ -78,6 +78,17 @@ class GuideBlocks(unittest.TestCase):
         with self.assertRaises(blocks.Failure):
             blocks.bind(code + "\n$version = '1.2.3'", "http://x", "0.0.0")
 
+    def test_version_is_the_one_both_blocks_install(self):
+        found = blocks.public_blocks()
+        version = blocks.block_version(found)
+        self.assertRegex(version, r"^[0-9]+\.[0-9]+\.[0-9]+$")
+        self.assertIn(f"$version = '{version}'", found["install"])
+        with self.assertRaisesRegex(blocks.Failure, "different versions"):
+            blocks.block_version(dict(found, remove=found["remove"].replace(version, "9.9.9")))
+        with unittest.mock.patch("sys.stdout", new_callable=io.StringIO) as output:
+            self.assertEqual(blocks.main(["version"]), 0)
+        self.assertEqual(output.getvalue(), version + "\n")
+
     def test_a_divergent_translation_is_refused(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

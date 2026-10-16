@@ -12,6 +12,7 @@ Modes:
               updates and removes the real user installation; needs explicit
               consent and prints the Windows-Accepted-SHA256 line for the tag.
   checked     Combine CI reports into the archive digest the publication job uses.
+  version     Print the version the checkout's public blocks install.
 
 Only the block's download source and version are rebound; the block text is
 otherwise executed exactly as written in guides/WINDOWS.md and WINDOWS.en.md.
@@ -87,6 +88,17 @@ def public_blocks(root: Path = ROOT) -> dict[str, str]:
         require(found[0] == found[1], f"the Korean and English {label} blocks differ")
         result[kind] = found[0]
     return result
+
+
+def block_version(found: dict[str, str]) -> str:
+    """The one version the install and remove blocks set."""
+    versions = set()
+    for code in found.values():
+        values = VERSION_LINE.findall(code)
+        require(len(values) == 1, "each block must set $version exactly once")
+        versions.add(values[0])
+    require(len(versions) == 1, "the install and remove blocks set different versions")
+    return versions.pop()
 
 
 def bind(code: str, base_url: str, version: str) -> str:
@@ -710,8 +722,12 @@ def main(argv=None) -> int:
     accept.add_argument("--next", required=True)
     accept.add_argument("--report", required=True)
     accept.add_argument("--consent-user-installation", action="store_true")
+    sub.add_parser("version")
     args = parser.parse_args(argv)
     try:
+        if args.mode == "version":
+            print(block_version(public_blocks()))
+            return 0
         return {"ci": ci, "checked": checked, "acceptance": acceptance}[args.mode](args)
     except (Failure, OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
         print("FAIL: " + str(error), file=sys.stderr)
