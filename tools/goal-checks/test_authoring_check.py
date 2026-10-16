@@ -51,11 +51,12 @@ class CurrentTree(unittest.TestCase):
         pattern = next(pattern for pattern, label in authoring_check.PRIVATE if label == "local path")
         for text in ("/Users/example/x", "/home/user/x", "/root/project/x", "/workspace/repo/x", "/workspaces/repo",
                      "/private/var/folders/ab/x", "/tmp/build/x", "../repo-worktrees/goal", "C:\\work\\x", "D:/src/x",
-                     "/opt/runner/repo", "/var/tmp/build", "cd /workspace", "/workspace."):
+                     "/opt/runner/repo", "/var/tmp/build", "cd /workspace", "/workspace.", "/builds/group/project",
+                     "/usr/src/project"):
             with self.subTest(text=text):
                 self.assertTrue(pattern.search(text))
         for text in ("https://example.invalid/a", "references/bundle.md", "docs/specs/<goal>/PLAN.md", "a: b", "HEAD~n",
-                     "https://example.invalid/opt/x", "and/or", "/workspaces-guide"):
+                     "https://example.invalid/opt/x", "and/or", "/workspaces-guide", "`/seal:seal`", "2>/dev/null", "../x/y"):
             with self.subTest(text=text):
                 self.assertFalse(pattern.search(text))
 
@@ -77,6 +78,11 @@ class CurrentTree(unittest.TestCase):
                 ("Without asking the user, ask for approval.", ["ask", "approval"]),
                 ("Never ask the user for permission to apply these rules.", []),
                 ("Without asking for approval, ask the user to confirm the plan.", ["ask", "confirm"]),
+                ("They add no user confirmation or approval and ask the user to approve deployment.", ["ask", "approve"]),
+                ("Question the user before applying the migration.", ["Question"]),
+                ("Apply these rules without asking for confirmation, approval, or permission.", []),
+                ("Never ask or confirm with the user.", []),
+                ("Open questions go to REVIEW.md.", []),
                 ("새로 묻지 않는다, 사용자에게 승인을 받는다.", ["승인을 받"]),
                 ("They add no user confirmation, approval or question: the executor applies them.", []),
                 ("Record it as an explicit assumption, without asking the user.", []),

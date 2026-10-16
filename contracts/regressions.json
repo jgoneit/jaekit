@@ -1221,7 +1221,10 @@
         "exempt phrase next to a new user step",
         "malformed marketplace metadata or plugins",
         "maintain example with a current-tree helper path",
-        "checkout-local path under /opt or /var"
+        "checkout-local path under /opt or /var",
+        "question verb aimed at the user",
+        "exempt noun list followed by a new imperative",
+        "absolute path outside the listed roots"
       ],
       "families": [
         "checkout and history-less copy",

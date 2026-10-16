@@ -167,6 +167,8 @@ USER_POINTS = [
 USER_REASONS = {"record_invalid", "error_limit", "manual_unconfirmed", "record_integrity",
                 "out_of_scope", "test_definition_changed", "spec_changed"}
 ASKING = re.compile(r"(?i)\b(ask|asks|asking|approval|approve|confirmation|confirm|permission)\b"
+                    r"|\b(?:question|quer(?:y|ie))(?:s|d|ed|ing)?(?=\s+(?:the\s+|a\s+|any\s+)?users?\b)"
+                    r"|질문한다|질문하고|질문해|사용자에게 질문"
                     r"|묻는다|묻고|물어|승인을 받|확인을 받|사용자 결정이 필요|사용자 확인이 필요|사용자에게 확인")
 # A phrase that says no step is added, or that names an existing point the
 # user already resolves, exempts only the asking words it governs: those inside
@@ -184,7 +186,10 @@ PRIVATE = (
     (re.compile(r"(?<![0-9A-Za-z])[0-9a-f]{7,40}(?![0-9A-Za-z])"), "commit-like hexadecimal"),
     (re.compile(r"(?i)\bPR ?#\d+|/pull/\d+|discussion_r\d+|(?<![\w`])#\d{2,}\b"), "pull request reference"),
     # Checkout-local absolute paths on macOS, Linux, containers and Windows.
-    (re.compile(r"(?<![\w.])/(?:Users|home|root|workspaces?|private|var|tmp|mnt|srv|opt|Volumes)(?:/[^\s/`]+|(?![\w/-])(?!\.\w))"
+    # Any absolute path of two or more segments that is not part of a URL or a
+    # relative path, a bare well-known root, a worktree folder or a Windows drive.
+    (re.compile(r"(?<![\w.:/~<>-])/[A-Za-z0-9._-]+/[A-Za-z0-9._-]"
+                r"|(?<![\w.:/~<>-])/(?:Users|home|root|workspaces?|private|var|tmp|mnt|srv|opt|builds|usr|Volumes)(?![\w/-])(?!\.\w)"
                 r"|-worktrees/|(?<![A-Za-z])[A-Za-z]:[\\/][^\s`]"), "local path"),
     # A placeholder segment is exempt only when the path ends there or continues
     # with "/": "docs/specs/example/SPEC.md", not "docs/specs/example-private/".
@@ -197,19 +202,28 @@ PRIVATE = (
 
 def governed(between, word):
     """Whether text between an exemption phrase and a later asking word is only
-    the phrase's object or a list of asking nouns. After a comma the list goes on
-    only with an asking noun, so a new imperative ("..., ask the user") is not
-    governed."""
+    the phrase's object or a list it governs. A list is homogeneous: after an
+    asking noun, the list goes on only with more asking nouns joined by commas,
+    "or" or "and", so an asking verb there ("..., ask the user", "... and ask
+    the user") starts a new step."""
     tokens = re.findall(r"@[^@]*@|\w+|[^\w\s]", ASKING.sub(lambda m: f"@{m.group(0)}@", between))
     tokens.append(f"@{word}@")
-    for index, token in enumerate(tokens[:-1]):
-        if token.startswith("@") or token.lower() in GOVERNED_WORDS:
-            continue
-        following = tokens[index + 1]
-        if (token == "," and index and tokens[index - 1].startswith("@")
-                and following.startswith("@") and ASKING_NOUNS.fullmatch(following.strip("@"))):
-            continue
-        return False
+
+    def noun(token):
+        return token.startswith("@") and ASKING_NOUNS.fullmatch(token.strip("@")) is not None
+
+    seen_noun = False
+    for index, token in enumerate(tokens):
+        if token.startswith("@"):
+            if seen_noun and not noun(token):
+                return False
+            seen_noun = seen_noun or noun(token)
+        elif token == ",":
+            following = next((t for t in tokens[index + 1:] if t.lower() not in ("or", "and")), "")
+            if not (index and noun(tokens[index - 1]) and noun(following)):
+                return False
+        elif token.lower() not in GOVERNED_WORDS:
+            return False
     return True
 
 
