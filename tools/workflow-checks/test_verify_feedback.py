@@ -54,9 +54,20 @@ class TimingFixture(verification.Fixture, Observed):
             "time.sleep(30)\n")
 
     def start_and_wait(self, marker, *groups):
-        process = subprocess.Popen([sys.executable, str(self.repo / "tools/verify.py"), *groups],
-                                   cwd=self.root, env=self.env, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE, text=True)
+        # A parent that ignores SIGINT, such as a background job of a
+        # non-interactive shell, passes that on, and Python then installs no
+        # KeyboardInterrupt handler. Start verify.py from such a parent, with
+        # the default disposition restored just before verify.py runs.
+        launcher = ("import os, signal, sys\n"
+                    "signal.signal(signal.SIGINT, signal.SIG_DFL)\n"
+                    "os.execv(sys.executable, [sys.executable, *sys.argv[1:]])\n")
+        inherited = signal.signal(signal.SIGINT, signal.SIG_IGN)
+        try:
+            process = subprocess.Popen([sys.executable, "-c", launcher, str(self.repo / "tools/verify.py"), *groups],
+                                       cwd=self.root, env=self.env, stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE, text=True)
+        finally:
+            signal.signal(signal.SIGINT, inherited)
         self.addCleanup(self.stop, process, marker)
         deadline = time.monotonic() + 20
         while not marker.exists() or not marker.read_text():
