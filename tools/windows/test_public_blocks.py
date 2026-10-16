@@ -6,7 +6,6 @@ beyond 127.0.0.1, installation or policy change.
 import hashlib
 import importlib.util
 import io
-import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -65,6 +64,13 @@ class GuideBlocks(unittest.TestCase):
         remove = blocks.public_blocks()["remove"]
         self.assertNotIn("$env:Path +=", remove)
 
+    def test_the_remove_block_verifies_downloads_with_the_install_blocks_text(self):
+        # CI runs the checksum and download failures with the install block only.
+        found = blocks.public_blocks()
+        head = {kind: code[:code.index("Add-Type -AssemblyName")] for kind, code in found.items()}
+        self.assertIn("Get-FileHash", head["install"])
+        self.assertEqual(head["install"], head["remove"])
+
     def test_binding_changes_only_the_source_and_version(self):
         code = blocks.public_blocks()["install"]
         bound = blocks.bind(code, "http://127.0.0.1:1234/case", "0.0.0")
@@ -122,29 +128,18 @@ class GuideBlocks(unittest.TestCase):
 
 class Judgement(unittest.TestCase):
     def case(self, **observed):
-        restricted = {"MachinePolicy": "Undefined", "CurrentUser": "Restricted", "LocalMachine": "RemoteSigned"}
         base = {"shell": "C:/pwsh.exe", "process_policy": "", "scripts_before": blocks.SCRIPTS_BLOCKED,
                 "scripts_after": blocks.SCRIPTS_BLOCKED, "status": "error", "path_before": "a", "path_after": "a",
-                "policies_before": dict(restricted), "policies_after": dict(restricted), "output": "", "errors": ""}
+                "output": "", "errors": ""}
         base.update(observed)
         return {"expect": {"status": "error", "child": "none"}, "observed": base, "marker": None, "temporary_left": []}
 
     def test_policy_observations_decide_the_case(self):
         self.assertEqual(blocks.judge(self.case(), "C:/pwsh.exe"), [])
-        changed = {"MachinePolicy": "Undefined", "CurrentUser": "Restricted", "LocalMachine": "Bypass"}
         for observed in ({"process_policy": "Bypass"}, {"scripts_before": "ran"}, {"scripts_after": "ran"},
-                         {"policies_after": changed}, {"policies_before": dict(changed, CurrentUser="RemoteSigned")}):
+                         {"path_after": "b"}, {"shell": "C:/powershell.exe"}):
             with self.subTest(observed=observed):
                 self.assertTrue(blocks.judge(self.case(**observed), "C:/pwsh.exe"))
-
-    def test_group_policy_is_judged_from_the_value_applied_during_the_paste(self):
-        case = self.case()
-        case["expect"]["machine_policy"] = "AllSigned"
-        self.assertTrue(blocks.judge(case, "C:/pwsh.exe"))
-        case["group_policy"] = "AllSigned"
-        self.assertEqual(blocks.judge(case, "C:/pwsh.exe"), [])
-        case["observed"]["policies_before"]["MachinePolicy"] = "AllSigned"
-        self.assertTrue(blocks.judge(case, "C:/pwsh.exe"))
 
 
 class Archives(unittest.TestCase):
@@ -191,33 +186,36 @@ class Archives(unittest.TestCase):
                 urlopen(base + "/v1.2.3/other.zip", timeout=10)
 
 
-class Checked(unittest.TestCase):
-    def reports(self, directory, **changes):
-        paths = []
-        for shell in ("powershell", "pwsh"):
-            report = {"schema": blocks.SCHEMA, "mode": "ci", "shell": shell, "passed": True,
-                      "source_commit": "a" * 40, "expected_sha256": "b" * 64, "archive": {"sha256": "b" * 64}}
-            report.update(changes.get(shell, {}))
-            path = Path(directory) / f"{shell}.json"
-            path.write_text(json.dumps(report))
-            paths.append(str(path))
-        return paths
+class Candidate(unittest.TestCase):
+    def directory(self, root, version, guides):
+        out = io.BytesIO()
+        with zipfile.ZipFile(out, "w") as archive:
+            archive.writestr("ha.exe", b"synthetic")
+            for guide, text in guides.items():
+                archive.writestr(guide, text)
+        data, name = out.getvalue(), f"ha_{version}_windows_amd64.zip"
+        (root / name).write_bytes(data)
+        (root / "checksums.txt").write_bytes(blocks.checksum_lines(name, data))
+        return root
 
-    def test_checked_digest_requires_two_passing_reports_for_the_same_archive(self):
+    def guides(self, version):
+        texts = {guide: (blocks.ROOT / guide).read_text(encoding="utf-8") for guide in blocks.GUIDES}
+        shipped = blocks.block_version(blocks.public_blocks())
+        return {guide: text.replace(f"$version = '{shipped}'", f"$version = '{version}'") for guide, text in texts.items()}
+
+    def test_the_candidates_own_guides_supply_blocks_for_its_version(self):
         with tempfile.TemporaryDirectory() as directory:
-            output = Path(directory) / "output"
-            args = ["checked", "--expected-sha256", "b" * 64, "--github-output", str(output)]
-            for path in self.reports(directory):
-                args += ["--report", path]
-            self.assertEqual(blocks.main(args), 0)
-            self.assertEqual(output.read_text(), "sha256=" + "b" * 64 + "\n")
-            for changes in ({"pwsh": {"passed": False}}, {"pwsh": {"archive": {"sha256": "c" * 64}}},
-                            {"pwsh": {"source_commit": "d" * 40}}):
-                args = ["checked", "--expected-sha256", "b" * 64]
-                for path in self.reports(directory, **changes):
-                    args += ["--report", path]
-                with self.subTest(changes=changes):
-                    self.assertEqual(blocks.main(args), 1)
+            root = self.directory(Path(directory), "7.8.9", self.guides("7.8.9"))
+            name, _, _, version, found = blocks.candidate(root)
+            self.assertEqual((name, version), ("ha_7.8.9_windows_amd64.zip", "7.8.9"))
+            self.assertIn("$version = '7.8.9'", found["install"])
+
+    def test_guides_for_another_version_or_none_are_refused(self):
+        for guides, message in ((self.guides("7.8.8"), "install 7.8.8, not 7.8.9"), ({}, "no Windows guides")):
+            with self.subTest(message=message), tempfile.TemporaryDirectory() as directory:
+                root = self.directory(Path(directory), "7.8.9", guides)
+                with self.assertRaisesRegex(blocks.Failure, message):
+                    blocks.candidate(root)
 
 
 if __name__ == "__main__":

@@ -370,37 +370,27 @@ Windows ZIP or any other asset fails the asset check, and the checker keeps no
 rule for Windows archive contents.
 
 Later releases publish the Windows archive `ha_<version>_windows_amd64.zip`
-only with a Windows 11 acceptance link (see `tools/windows/README.md`);
-otherwise they publish the four archives and `checksums.txt`. For any published
-tag, `python3 tools/release/check_published.py --tag vX.Y.Z` checks either
-shape: it downloads the public assets within the archive limits, compares their
-sizes and GitHub digests, and applies the pre-publication rules
-(`tools/release/check_archives.py`). The Windows archive check,
-`check_archives.windows_files`, is structural: the files `package.py` packages
-and no others, exactly the manifest fields it writes, matching sizes and
-SHA-256 digests, `package.py`'s path rules and the Windows amd64 executable
-format. It does not reproduce the installer's package check; the release
-workflow's Windows job runs that check on the exact archive before
-publication. When the Windows
-archive is published, the check also reads the
-tag object and requires the link the publication gate
-(`tools/release/windows_gate.py`) requires: an annotated tag whose message has
-exactly one `Windows-Accepted-SHA256` line equal to the archive's SHA-256. A
-release without the Windows archive does not need its tag. Exit 1 is a failed
-check; exit 2 means the release or its tag could not be read.
+only when their release notes link a Windows 11 check of it (see
+`tools/windows/README.md`); otherwise they publish the four archives and
+`checksums.txt`. Before publication, `tools/release/check_archives.py` checks
+the Windows archive's structure (`check_archives.windows_files`): the files
+`package.py` packages and no others, the manifest field names it writes,
+version and platform, matching sizes and SHA-256 digests, `package.py`'s path
+rules and the Windows amd64 executable format. It does not reproduce the
+installer's package check (case folding, DOS attributes, the manifest size
+limit); the release workflow's Windows job runs that check on the exact archive
+before publication.
 
 ## Archive resource limits
 
 Every tar.gz archive consumer reads through the same read-only parser,
 [`tools/release/archive_reader.py`](../release/archive_reader.py): this
-acceptance checker for downloads, release collection and installation, the
-published-release check, and the
+acceptance checker for downloads, release collection and installation, and the
 standalone validator [`tools/release/check_archives.py`](../release/check_archives.py)
 for `--dist` files and its native smoke. Reading one needed file never skips
 another limit. The Windows ZIP is not read by this parser:
-`check_archives.windows_files` reads it in memory under the installer's limits
-(2,048 entries, 32 MiB per file, 128 MiB in total and a 1 MiB manifest) within
-the same 64 MiB compressed limit.
+`check_archives.windows_files` reads it in memory with at most 2,048 entries,
+32 MiB per file and 128 MiB in total, within the same 64 MiB compressed limit.
 
 Each archive is at most 64 MiB compressed, whether downloaded or supplied with
 `--dist`. It permits at most 256 MiB of cumulative member bodies and 10,000

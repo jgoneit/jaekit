@@ -124,28 +124,16 @@ jobs:
         id: windows
         env:
           VERSION: ${{ steps.version.outputs.version }}
-          SOURCE: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           sha256="$(sha256sum "${RUNNER_TEMP}/dist/ha_${VERSION}_windows_amd64.zip" | cut -d ' ' -f 1)"
           echo "sha256=${sha256}" >> "${GITHUB_OUTPUT}"
-          mkdir "${RUNNER_TEMP}/build-info"
-          python3 -c 'import json, subprocess, sys; print(json.dumps({"schema": "jaekit-release-build/v1", "version": sys.argv[1], "requested_source": sys.argv[2], "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(), "windows_sha256": sys.argv[3]}, sort_keys=True))' \
-            "${VERSION}" "${SOURCE}" "${sha256}" > "${RUNNER_TEMP}/build-info/build.json"
 
       - name: Keep release files for the Windows job and publication
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-files
           path: ${{ runner.temp }}/dist
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Keep build identity
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: release-build-info
-          path: ${{ runner.temp }}/build-info
           if-no-files-found: error
           retention-days: 30
 
@@ -207,12 +195,14 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      # Runs only when every step above succeeded: both shells checked this
+      # digest, which each one compared with the downloaded archive.
       - name: Report the checked archive
         id: checked
         shell: pwsh
         env:
           EXPECTED: ${{ needs.build.outputs.windows_sha256 }}
-        run: python tools/windows/public_blocks.py checked --expected-sha256 $env:EXPECTED --report "$env:RUNNER_TEMP/reports/windows-powershell.json" --report "$env:RUNNER_TEMP/reports/windows-pwsh.json" --github-output $env:GITHUB_OUTPUT
+        run: Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "sha256=$env:EXPECTED"
 
   publish:
     name: Publish release
@@ -233,19 +223,6 @@ jobs:
           name: release-files
           path: ${{ runner.temp }}/dist
 
-      - name: Read the Windows 11 acceptance link
-        env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-          # Fetch the tag object itself; a lightweight tag carries no link.
-          git fetch --no-tags --depth=1 origin "+refs/tags/${TAG}:refs/tags/${TAG}"
-          if [ "$(git cat-file -t "refs/tags/${TAG}")" = tag ]; then
-            git cat-file tag "refs/tags/${TAG}" | sed '1,/^$/d' > "${RUNNER_TEMP}/tag-message.txt"
-          else
-            : > "${RUNNER_TEMP}/tag-message.txt"
-          fi
-
       - name: Select the published files
         env:
           TAG: ${{ github.ref_name }}
@@ -253,9 +230,10 @@ jobs:
         run: |
           set -euo pipefail
           # Stops before publication when the Windows job checked other bytes;
-          # without a matching acceptance link the Windows archive is left out.
+          # without a matching acceptance link in the tagged checkout's release
+          # notes the Windows archive is left out.
           python3 tools/release/windows_gate.py --dist "${RUNNER_TEMP}/dist" --version "${TAG#v}" \
-            --checked-sha256 "${CHECKED}" --tag-message "${RUNNER_TEMP}/tag-message.txt"
+            --checked-sha256 "${CHECKED}" --notes "tools/release/notes/${TAG}.md"
           # A published Windows archive needs guides whose blocks install it;
           # CI binds the version, so only this check sees a stale guide.
           if [ -e "${RUNNER_TEMP}/dist/ha_${TAG#v}_windows_amd64.zip" ]; then

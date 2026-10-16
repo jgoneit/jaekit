@@ -3,7 +3,8 @@
 
 The Windows job must have checked exactly the archive about to be published;
 otherwise nothing is published. The Windows archive stays only when the
-annotated tag message carries exactly one line
+tag's reviewed release notes (tools/release/notes/v<version>.md, read from the
+tagged checkout) carry exactly one line
 
     Windows-Accepted-SHA256: <64 lowercase hex>
 
@@ -46,9 +47,9 @@ def accepted(message: str) -> tuple[str | None, str]:
         if match:
             values.append(match[1].strip())
     if not values:
-        return None, "the tag message has no Windows-Accepted-SHA256 line"
+        return None, "the release notes have no Windows-Accepted-SHA256 line"
     if len(values) > 1:
-        return None, "the tag message has more than one Windows-Accepted-SHA256 line"
+        return None, "the release notes have more than one Windows-Accepted-SHA256 line"
     if not HEX.fullmatch(values[0]):
         return None, "the Windows-Accepted-SHA256 value is not 64 lowercase hex digits"
     return values[0], ""
@@ -73,9 +74,9 @@ def select(dist: Path, version: str, checked: str, message: str) -> tuple[bool, 
         raise Refused("checksums.txt does not list the checked Windows archive exactly once")
     link, reason = accepted(message)
     if link is not None and link == actual:
-        return True, "the tag links the Windows 11 acceptance of this archive"
+        return True, "the release notes link the Windows 11 acceptance of this archive"
     if link is not None:
-        reason = "the tag links another archive digest"
+        reason = "the release notes link another archive digest"
     archive.unlink()
     rest = [line for line in lines if line not in windows]
     checksums.write_text("".join(line + "\n" for line in rest), encoding="utf-8")
@@ -87,10 +88,10 @@ def main(argv=None):
     parser.add_argument("--dist", required=True, type=Path)
     parser.add_argument("--version", required=True)
     parser.add_argument("--checked-sha256", required=True)
-    parser.add_argument("--tag-message", required=True, type=Path)
+    parser.add_argument("--notes", required=True, type=Path)
     args = parser.parse_args(argv)
     try:
-        message = args.tag_message.read_text(encoding="utf-8")
+        message = args.notes.read_text(encoding="utf-8")
         kept, reason = select(args.dist, args.version, args.checked_sha256, message)
     except (OSError, UnicodeError, Refused) as error:
         print("REFUSED: " + str(error), file=sys.stderr)

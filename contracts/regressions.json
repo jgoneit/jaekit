@@ -851,10 +851,9 @@
         "tools/release-checks/check.py",
         "tools/release-checks/README.md",
         "tools/release/archive_reader.py",
-        "tools/release/check_archives.py",
-        "tools/release/check_published.py"
+        "tools/release/check_archives.py"
       ],
-      "property": "The same bounded tar/gzip parser rejects invalid or unsupported observation inputs across archive collection, installation and published-release consumers while accepting supported archives. The Windows ZIP is read by its own rule (windows-archive-consumer-contract), not by this parser.",
+      "property": "The same bounded archive parser rejects invalid or unsupported observation inputs across archive collection and installation consumers while accepting supported archives.",
       "examples": [
         "many empty entries",
         "compressed cumulative body overflow"
@@ -893,21 +892,20 @@
       "status": "protected",
       "sources": [
         "tools/release/check_archives.py",
-        "tools/release/check_published.py",
         "tools/release/windows_gate.py",
         "tools/windows/package.py"
       ],
-      "property": "One structural Windows ZIP check (check_archives.windows_files) judges an archive the same way before and after publication: it accepts a package.py archive and refuses one whose files, manifest fields, sizes or digests, paths or Core format differ from what package.py builds. A published Windows archive also needs the tag link the publication gate requires.",
+      "property": "A structural Windows ZIP check (check_archives.windows_files) accepts a package.py archive and refuses one whose file set, paths (package.py's path rules and scope), manifest field names, version or platform, file sizes or SHA-256 digests, or Core format differ from what package.py builds. The publication gate keeps a Windows archive only when the Windows job checked those bytes and the release notes carry exactly one acceptance line with their digest.",
       "examples": [
         "an install.ps1 that differs from its manifest entry",
-        "a published Windows archive under a tag without its acceptance link"
+        "release notes that link another archive digest"
       ],
       "families": [
         "manifest fields, sizes and digests",
         "unsafe paths, links and package scope",
-        "tag kind and link count, format and digest"
+        "acceptance line count, format and digest"
       ],
-      "boundary": "Synthetic ZIPs, a package.py archive built from package.py's own synthetic source and GitHub-shaped tag responses exercise the check locally. The installer's own package check runs on the exact archive only in the release workflow's Windows job; no published archive or real tag is observed here.",
+      "boundary": "Synthetic ZIPs, a package.py archive built from package.py's own synthetic source and synthetic release notes exercise the check and the gate locally. Installer-specific refusals (case folding, DOS attributes, the manifest size limit) are left to the installer's own package check, which runs on the exact archive only in the release workflow's Windows job; no published archive is observed here.",
       "checks": [
         {
           "file": "tools/release/test_windows_release.py",
@@ -916,7 +914,7 @@
         },
         {
           "file": "tools/release/test_windows_release.py",
-          "selector": "PublishedRelease",
+          "selector": "PublicationGate",
           "group": "docs"
         }
       ],

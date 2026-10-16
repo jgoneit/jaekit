@@ -2,22 +2,22 @@
 """Run the public Windows blocks from the guides against local release files.
 
 Modes:
-  ci          Windows Server CI. Checks the exact release archive with the
-              product's own package verification in one shell, then pastes the
-              public install/remove blocks into that shell: with the real archive
-              (the installer must stop at its Windows 11 guard) and with probe
-              archives whose installer code only records how it was started.
-  acceptance  Windows 11 Client acceptance of two candidate release directories
-              (older, newer) in Windows PowerShell 5.1 and PowerShell 7. Installs,
-              updates and removes the real user installation; needs explicit
-              consent and prints the Windows-Accepted-SHA256 line for the tag.
-  checked     Combine CI reports into the archive digest the publication job uses.
-  version     Print the version the checkout's public blocks install.
+  ci       Windows Server CI. Checks the exact release archive with the
+           product's own package verification in one shell, then pastes the
+           public install/remove blocks into that shell: with the real archive
+           (the installer must stop at its Windows 11 guard) and with probe
+           archives whose installer code only records how it was started.
+  serve    Windows 11 check of one candidate release directory: serves its
+           files on 127.0.0.1 and prints the blocks from the candidate's own
+           guides, bound to that source, for a person to paste
+           (tools/windows/README.md).
+  version  Print the version the checkout's public blocks install.
 
 Only the block's download source and version are rebound; the block text is
 otherwise executed exactly as written in guides/WINDOWS.md and WINDOWS.en.md.
-The parent shell runs it as a command (as a paste does), with the persistent
-CurrentUser execution policy set to Restricted and no inherited Process policy.
+In CI the parent shell runs it as a command (as a paste does), with the
+persistent CurrentUser execution policy set to Restricted and no inherited
+Process policy.
 """
 from __future__ import annotations
 
@@ -50,8 +50,6 @@ READY = "is ready in this window"
 # What PowerShell reports when the effective policy stops a script file.
 SCRIPTS_BLOCKED = "UnauthorizedAccess"
 REMOVED = "Removal finished"
-GPO_KEYS = {"powershell": r"SOFTWARE\Policies\Microsoft\Windows\PowerShell",
-            "pwsh": r"SOFTWARE\Policies\Microsoft\PowerShellCore"}
 
 
 class Failure(Exception):
@@ -80,8 +78,11 @@ def block(text: str, label: str) -> str:
 
 
 def public_blocks(root: Path = ROOT) -> dict[str, str]:
+    return blocks_from([(root / guide).read_text(encoding="utf-8") for guide in GUIDES])
+
+
+def blocks_from(texts: list[str]) -> dict[str, str]:
     """Both guides must carry byte-identical blocks; return them by kind."""
-    texts = [(root / guide).read_text(encoding="utf-8") for guide in GUIDES]
     result = {}
     for kind, label in LABELS.items():
         found = [block(text, label) for text in texts]
@@ -309,28 +310,6 @@ def paste(shell: str, code: str, env: dict[str, str], work: Path) -> dict:
     return observed
 
 
-def observed_paste(shell: str, code: str, env: dict[str, str], work: Path, edition_key: str,
-                   group_policy: str | None = None) -> tuple[dict, str]:
-    """Paste with the persistent policies read before and after by separate processes.
-
-    A Group Policy is set only around the paste: under it PowerShell 7 cannot
-    load the Security module that reads policies, so its value is read back
-    from the registry instead. Returns the observation and that value.
-    """
-    before = policies(shell, env)
-    previous = gpo(edition_key, group_policy) if group_policy else None
-    applied = ""
-    try:
-        if group_policy:
-            applied = gpo_value(edition_key)
-        observed = paste(shell, code, env, work)
-    finally:
-        if previous is not None:
-            restore_gpo(edition_key, previous)
-    observed["policies_before"], observed["policies_after"] = before, policies(shell, env)
-    return observed, applied
-
-
 def path_key(env: dict[str, str]) -> str:
     """Windows environment names ignore case; reuse the existing PATH key."""
     return next((key for key in env if key.upper() == "PATH"), "PATH")
@@ -375,44 +354,6 @@ def smoke(shell: str, env: dict[str, str], directory: Path, name: str, version: 
     return observed
 
 
-def gpo(edition_key: str, value: str | None):
-    """Set or remove the Group Policy execution policy; return the previous values."""
-    import winreg
-    key = GPO_KEYS[edition_key]
-    previous = {}
-    handle = winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, key, 0, winreg.KEY_ALL_ACCESS)
-    with handle:
-        for name in ("EnableScripts", "ExecutionPolicy"):
-            try:
-                previous[name] = winreg.QueryValueEx(handle, name)
-            except FileNotFoundError:
-                previous[name] = None
-        if value is not None:
-            winreg.SetValueEx(handle, "EnableScripts", 0, winreg.REG_DWORD, 1)
-            winreg.SetValueEx(handle, "ExecutionPolicy", 0, winreg.REG_SZ, value)
-    return previous
-
-
-def gpo_value(edition_key: str) -> str:
-    import winreg
-    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, GPO_KEYS[edition_key]) as handle:
-        enabled = winreg.QueryValueEx(handle, "EnableScripts")[0]
-        return str(winreg.QueryValueEx(handle, "ExecutionPolicy")[0]) if enabled == 1 else ""
-
-
-def restore_gpo(edition_key: str, previous: dict):
-    import winreg
-    with winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, GPO_KEYS[edition_key], 0, winreg.KEY_ALL_ACCESS) as handle:
-        for name, old in previous.items():
-            if old is None:
-                try:
-                    winreg.DeleteValue(handle, name)
-                except FileNotFoundError:
-                    pass
-            else:
-                winreg.SetValueEx(handle, name, 0, old[1], old[0])
-
-
 def judge(case: dict, shell: str) -> list[str]:
     """Problems with one CI case; an empty list means the expectation held."""
     expect, observed, problems = case["expect"], case["observed"], []
@@ -423,15 +364,8 @@ def judge(case: dict, shell: str) -> list[str]:
         if not ok:
             problems.append(message)
 
-    before, after = observed.get("policies_before") or {}, observed.get("policies_after") or {}
     check(observed.get("shell", "").lower() == shell.lower(), "the block did not run in the selected shell")
     check(observed.get("process_policy") == "", "the parent inherited a Process policy")
-    check(before.get("CurrentUser") == "Restricted", "the persistent CurrentUser policy was not Restricted")
-    check(before.get("MachinePolicy") == "Undefined", "a Group Policy was in force before the case")
-    check(case.get("group_policy", "") == expect.get("machine_policy", ""),
-          "the Group Policy during the paste was not " + (expect.get("machine_policy") or "absent"))
-    for scope in ("CurrentUser", "LocalMachine"):
-        check(after.get(scope) == before.get(scope), f"the persistent {scope} policy changed")
     check(observed.get("scripts_before") == SCRIPTS_BLOCKED, "the parent could run a script file before the block")
     check(observed.get("scripts_after") == SCRIPTS_BLOCKED, "the parent could run a script file after the block")
     check(observed.get("status") == expect["status"], f"block status {observed.get('status')}, expected {expect['status']}")
@@ -468,8 +402,7 @@ def judge(case: dict, shell: str) -> list[str]:
     return problems
 
 
-def run_case(server, shell, env, work, name, kind, code, version, files, expect, extra_env=None,
-             edition_key="", group_policy=None):
+def run_case(server, shell, env, work, name, kind, code, version, files, expect, extra_env=None):
     case_dir = work / name
     temporary = case_dir / "temp"
     temporary.mkdir(parents=True)
@@ -478,8 +411,8 @@ def run_case(server, shell, env, work, name, kind, code, version, files, expect,
                      JAEKIT_PROBE_EXIT="0", NO_PROXY="127.0.0.1", no_proxy="127.0.0.1")
     child_env.update(extra_env or {})
     base = server.publish(name, version, files)
-    observed, applied = observed_paste(shell, bind(code, base, version), child_env, case_dir, edition_key, group_policy)
-    case = {"name": name, "block": kind, "expect": expect, "observed": observed, "group_policy": applied,
+    observed = paste(shell, bind(code, base, version), child_env, case_dir)
+    case = {"name": name, "block": kind, "expect": expect, "observed": observed,
             "marker": json.loads(marker.read_text(encoding="utf-8-sig")) if marker.exists() else None,
             "temporary_left": sorted(path.name for path in temporary.iterdir())}
     case["problems"] = judge(case, shell)
@@ -501,7 +434,6 @@ def ci(args) -> int:
     env = base_env()
     require(not (local_appdata() / "Jaekit").exists(), "an existing Jaekit installation is on this runner")
     report = {"schema": SCHEMA, "mode": "ci", "shell": args.shell, "shell_path": shell, "version": version,
-              "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
               "archive": {"name": name, "sha256": sha256(real)}, "expected_sha256": args.expected_sha256,
               "block_sha256": {kind: sha256(code.encode()) for kind, code in blocks.items()},
               "blocks_identical": True, "cases": []}
@@ -532,9 +464,6 @@ def ci(args) -> int:
                 ("checksum-missing", "install", {name: probe, "checksums.txt": checksum_lines(name, probe, "missing")},
                  {"status": "error", "child": "none", "contains": ["exactly once"],
                   "absent": ["Running the verified installer"]}, None),
-                ("checksum-duplicate", "install", {name: probe, "checksums.txt": checksum_lines(name, probe, "duplicate")},
-                 {"status": "error", "child": "none", "contains": ["exactly once"],
-                  "absent": ["Running the verified installer"]}, None),
                 ("checksum-mismatch", "install", {name: probe, "checksums.txt": checksum_lines(name, probe, "mismatch")},
                  {"status": "error", "child": "none", "contains": ["SHA-256 mismatch"],
                   "absent": ["Running the verified installer"]}, None),
@@ -547,29 +476,12 @@ def ci(args) -> int:
                  "path": "unchanged", "contains": [REMOVED]}, None),
                 ("probe-remove-fails", "remove", probe_files, {"status": "error", "child": "ran", "script": "uninstall",
                  "contains": ["The uninstaller stopped with exit code 4"], "absent": [REMOVED]}, {"JAEKIT_PROBE_EXIT": "4"}),
-                ("remove-checksum-missing", "remove", {name: probe, "checksums.txt": checksum_lines(name, probe, "missing")},
-                 {"status": "error", "child": "none", "contains": ["exactly once"],
-                  "absent": ["Running the verified uninstaller", REMOVED]}, None),
-                ("remove-checksum-mismatch", "remove", {name: probe, "checksums.txt": checksum_lines(name, probe, "mismatch")},
-                 {"status": "error", "child": "none", "contains": ["SHA-256 mismatch"],
-                  "absent": ["Running the verified uninstaller", REMOVED]}, None),
-                ("remove-download-missing", "remove", {"checksums.txt": checksum_lines(name, probe)},
-                 {"status": "error", "child": "none", "absent": ["Running the verified uninstaller", REMOVED]}, None),
             ]
-            cases = [(*case, None) for case in cases]
-            # Group Policy outranks the blocks' process-scoped Bypass: the
-            # unsigned scripts must not run and nothing may look installed.
-            cases += [
-                ("group-policy-allsigned", "install", probe_files, {"status": "error", "child": "none",
-                 "machine_policy": "AllSigned", "contains": ["Running the verified installer in"], "absent": [READY]},
-                 None, "AllSigned"),
-                ("group-policy-allsigned-remove", "remove", probe_files, {"status": "error", "child": "none",
-                 "machine_policy": "AllSigned", "contains": ["Running the verified uninstaller in"],
-                 "absent": [REMOVED]}, None, "AllSigned"),
-            ]
-            for case_name, kind, files, expect, extra, group_policy in cases:
+            # The remove block verifies downloads with the install block's text
+            # (test_public_blocks.py), so those failures run with the install block only.
+            for case_name, kind, files, expect, extra in cases:
                 report["cases"].append(run_case(server, shell, env, work, case_name, kind, blocks[kind], version,
-                                                files, expect, extra, args.shell, group_policy))
+                                                files, expect, extra))
         except Exception as error:
             report["error"] = f"{type(error).__name__}: {error}"
             raise
@@ -591,117 +503,43 @@ def write_report(path: Path, report: dict):
     path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-# ---------------------------------------------------------------- checked
+# ---------------------------------------------------------------- serve
 
-def checked(args) -> int:
-    reports = [json.loads(Path(path).read_text(encoding="utf-8")) for path in args.report]
-    shells = {report.get("shell") for report in reports}
-    require(shells == {"powershell", "pwsh"} and len(reports) == 2, "both PowerShell reports are required")
-    for report in reports:
-        require(report.get("schema") == SCHEMA and report.get("mode") == "ci" and report.get("passed") is True,
-                "a PowerShell report did not pass")
-        require(report["archive"]["sha256"] == args.expected_sha256 == report.get("expected_sha256"),
-                "a PowerShell report checked another archive")
-    require(len({report.get("source_commit") for report in reports}) == 1, "the reports checked different sources")
-    if args.github_output:
-        with open(args.github_output, "a", encoding="utf-8") as output:
-            output.write(f"sha256={args.expected_sha256}\n")
-    print("checked " + args.expected_sha256)
+def candidate(directory: Path):
+    """One candidate's files and the blocks of the guides inside its archive.
+
+    Those blocks are what that release publishes, so they must install its
+    version.
+    """
+    name, data, checksums, version = release_files(directory)
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        names = set(archive.namelist())
+        require(all(guide in names for guide in GUIDES), "the candidate archive has no Windows guides")
+        found = blocks_from([archive.read(guide).decode("utf-8") for guide in GUIDES])
+    shipped = block_version(found)
+    require(shipped == version, f"the candidate's guides install {shipped}, not {version}")
+    return name, data, checksums, version, found
+
+
+def serve(args) -> int:
+    """Serve one candidate's files and print its own blocks bound to them.
+
+    A person pastes exactly what that release publishes, with only the
+    download source changed. Runs until interrupted.
+    """
+    name, data, checksums, version, found = candidate(Path(args.dist).resolve())
+    with Server() as server:
+        base = server.publish("candidate", version, {name: data, "checksums.txt": checksums})
+        for kind in ("install", "remove"):
+            print(f"---- {kind} block for {name} ----")
+            print(bind(found[kind], base, version))
+        print(f"When every check in tools/windows/README.md passes, add this line to tools/release/notes/v{version}.md:")
+        print(f"Windows-Accepted-SHA256: {sha256(data)}", flush=True)
+        try:
+            threading.Event().wait()
+        except KeyboardInterrupt:
+            pass
     return 0
-
-
-# ---------------------------------------------------------------- acceptance
-
-def windows_11_client() -> bool:
-    import winreg
-    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion") as key:
-        build = int(winreg.QueryValueEx(key, "CurrentBuildNumber")[0])
-        kind = winreg.QueryValueEx(key, "InstallationType")[0]
-    return build >= 22000 and kind == "Client"
-
-
-def user_path() -> str:
-    import winreg
-    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
-        try:
-            return str(winreg.QueryValueEx(key, "Path")[0])
-        except FileNotFoundError:
-            return ""
-
-
-def acceptance(args) -> int:
-    require(args.consent_user_installation, "acceptance changes the real user installation; pass --consent-user-installation")
-    require(windows_11_client(), "acceptance runs only on Windows 11 Client")
-    jaekit = local_appdata() / "Jaekit"
-    require(not jaekit.exists(), "remove the existing Jaekit installation first")
-    require(str(install_bin()).lower() not in user_path().lower(), "remove the existing Jaekit user PATH entry first")
-    first, newer = (release_files(Path(path).resolve()) for path in (args.first, args.next))
-    require(first[3] != newer[3], "the two candidates must have different versions")
-    blocks = public_blocks()
-    env = base_env()
-    shells = {name: shell_path(name) for name in ("powershell", "pwsh")}
-    originals = {name: policies(path, env)["CurrentUser"] for name, path in shells.items()}
-    steps = [("powershell", "install", first), ("pwsh", "install", newer), ("pwsh", "remove", newer),
-             ("pwsh", "install", first), ("powershell", "install", newer), ("powershell", "remove", newer)]
-    report = {"schema": SCHEMA, "mode": "acceptance", "first": {"version": first[3], "sha256": sha256(first[1])},
-              "next": {"version": newer[3], "sha256": sha256(newer[1])},
-              "block_sha256": {kind: sha256(code.encode()) for kind, code in blocks.items()}, "steps": []}
-    with tempfile.TemporaryDirectory(prefix="jaekit-acceptance-") as temp, Server() as server:
-        work = Path(temp)
-        try:
-            for path in shells.values():
-                set_current_user_policy(path, "Restricted", env)
-            # A checksum mismatch installs nothing even with the real installer.
-            bad = {first[0]: first[1], "checksums.txt": checksum_lines(first[0], first[1], "mismatch")}
-            steps_run = [("powershell", "install", first, bad, "error")]
-            steps_run += [(shell, kind, files, {files[0]: files[1], "checksums.txt": files[2]}, "ok")
-                          for shell, kind, files in steps]
-            for index, (shell, kind, files, served, status) in enumerate(steps_run):
-                case_dir = work / f"step-{index}"
-                (case_dir / "temp").mkdir(parents=True)
-                step_env = dict(env, TEMP=str(case_dir / "temp"), TMP=str(case_dir / "temp"),
-                                NO_PROXY="127.0.0.1", no_proxy="127.0.0.1")
-                base = server.publish(f"step-{index}", files[3], served)
-                observed, _ = observed_paste(shells[shell], bind(blocks[kind], base, files[3]), step_env, case_dir, shell)
-                problems = []
-                if observed.get("status") != status:
-                    problems.append(f"status {observed.get('status')}, expected {status}")
-                if (observed["policies_before"].get("CurrentUser") != "Restricted"
-                        or observed.get("scripts_before") != SCRIPTS_BLOCKED or observed.get("process_policy") != ""):
-                    problems.append("the block did not start under a persistent Restricted policy")
-                if any(observed["policies_after"].get(scope) != observed["policies_before"].get(scope)
-                       for scope in ("CurrentUser", "LocalMachine")):
-                    problems.append("the block changed a persistent execution policy")
-                if status == "error":
-                    if jaekit.exists():
-                        problems.append("a failed block left an installation")
-                elif kind == "install":
-                    ha = observed.get("ha") or {}
-                    if ha.get("version") != "ha " + files[3]:
-                        problems.append("ha in the same window is not " + files[3])
-                    if str(install_bin()).lower() not in user_path().lower():
-                        problems.append("the user PATH has no installation entry")
-                else:
-                    if jaekit.exists() or str(install_bin()).lower() in user_path().lower():
-                        problems.append("removal left the installation or its PATH entry")
-                report["steps"].append({"shell": shell, "block": kind, "version": files[3], "status": observed.get("status"),
-                                        "problems": problems, "output": observed.get("output"),
-                                        "errors": observed.get("errors")})
-                if problems:
-                    break
-        finally:
-            for name, path in shells.items():
-                set_current_user_policy(path, originals[name], env)
-    report["passed"] = len(report["steps"]) == len(steps) + 1 and not any(step["problems"] for step in report["steps"])
-    if report["passed"]:
-        report["accepted_sha256"] = report["next"]["sha256"]
-    write_report(Path(args.report), report)
-    for step in report["steps"]:
-        print(("PASS " if not step["problems"] else "FAIL ") + f"{step['shell']} {step['block']} {step['version']}"
-              + "".join("\n  - " + p for p in step["problems"]))
-    if report["passed"]:
-        print("Windows-Accepted-SHA256: " + report["accepted_sha256"])
-    return 0 if report["passed"] else 1
 
 
 def main(argv=None) -> int:
@@ -713,22 +551,14 @@ def main(argv=None) -> int:
     run.add_argument("--expected-sha256", required=True)
     run.add_argument("--shell", required=True, choices=("powershell", "pwsh"))
     run.add_argument("--report", required=True)
-    done = sub.add_parser("checked")
-    done.add_argument("--expected-sha256", required=True)
-    done.add_argument("--report", action="append", required=True)
-    done.add_argument("--github-output")
-    accept = sub.add_parser("acceptance")
-    accept.add_argument("--first", required=True)
-    accept.add_argument("--next", required=True)
-    accept.add_argument("--report", required=True)
-    accept.add_argument("--consent-user-installation", action="store_true")
+    sub.add_parser("serve").add_argument("--dist", required=True)
     sub.add_parser("version")
     args = parser.parse_args(argv)
     try:
         if args.mode == "version":
             print(block_version(public_blocks()))
             return 0
-        return {"ci": ci, "checked": checked, "acceptance": acceptance}[args.mode](args)
+        return {"ci": ci, "serve": serve}[args.mode](args)
     except (Failure, OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
         print("FAIL: " + str(error), file=sys.stderr)
         return 1

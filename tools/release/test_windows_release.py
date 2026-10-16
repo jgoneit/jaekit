@@ -1,18 +1,13 @@
-"""Windows release archive, publication gate and published-tag regressions.
+"""Windows release archive and publication gate regressions.
 
 Synthetic files only; no network, installation, tag or publication.
 """
-import contextlib
 import hashlib
-import http.client
 import importlib.util
-import io
 import json
 from pathlib import Path
 import struct
-import tempfile
 import unittest
-import unittest.mock
 import zipfile
 
 
@@ -25,7 +20,6 @@ def load(name, filename):
 
 release = load("windows_release_archives", "check_archives.py")
 gate = load("windows_release_gate", "windows_gate.py")
-published = load("windows_release_published", "check_published.py")
 fixtures = load("windows_release_fixtures", "test_archives.py")
 # Not imported as a name here, so discovery does not collect its tests twice.
 _spec = importlib.util.spec_from_file_location(
@@ -220,154 +214,16 @@ class PublicationGate(Fixture):
         self.assertEqual({path.name: path.read_bytes() for path in self.dist.iterdir()}, before)
 
     def test_command_line_reports_the_decision(self):
-        message = self.dist.parent / "tag-message.txt"
-        message.write_text("")
+        notes = self.dist.parent / "notes.md"
+        notes.write_text("")
         self.assertEqual(gate.main(["--dist", str(self.dist), "--version", VERSION,
-                                    "--checked-sha256", self.digest(), "--tag-message", str(message)]), 0)
+                                    "--checked-sha256", self.digest(), "--notes", str(notes)]), 0)
         self.assertFalse((self.dist / ZIP).exists())
         self.write()
         self.assertEqual(gate.main(["--dist", str(self.dist), "--version", VERSION,
-                                    "--checked-sha256", "0" * 64, "--tag-message", str(message)]), 1)
+                                    "--checked-sha256", "0" * 64, "--notes", str(notes)]), 1)
         self.assertTrue((self.dist / ZIP).exists())
 
-
-class PublishedRelease(Fixture):
-    def metadata(self, names=None):
-        assets = []
-        for path in sorted(self.dist.iterdir()):
-            if names is not None and path.name not in names:
-                continue
-            data = path.read_bytes()
-            assets.append({"name": path.name, "size": len(data), "digest": "sha256:" + hashlib.sha256(data).hexdigest(),
-                           "browser_download_url": f"https://github.com/jgoneit/jaekit/releases/download/v{VERSION}/{path.name}"})
-        return {"tag_name": "v" + VERSION, "draft": False, "assets": assets}
-
-    def download(self, url):
-        return (self.dist / url.rsplit("/", 1)[1]).read_bytes()
-
-    def tag(self, message, annotated=True):
-        return lambda repo, tag: (annotated, message)
-
-    def linked(self):
-        return self.tag(f"jaekit v{VERSION}\n\nWindows-Accepted-SHA256: {release.digest(self.dist / ZIP)}\n")
-
-    def test_both_published_shapes_pass(self):
-        archives = published.check_release("jgoneit/jaekit", "v" + VERSION, self.metadata(), self.download,
-                                           tag_reader=self.linked())
-        self.assertIn(ZIP, archives)
-        (self.dist / ZIP).unlink()
-        self.checksums()
-
-        def unread(repo, tag):
-            raise AssertionError("a release without the Windows archive does not need its tag")
-
-        archives = published.check_release("jgoneit/jaekit", "v" + VERSION, self.metadata(), self.download,
-                                           tag_reader=unread)
-        self.assertNotIn(ZIP, archives)
-
-    def test_a_published_windows_archive_needs_its_acceptance_link(self):
-        digest = release.digest(self.dist / ZIP)
-        line = "Windows-Accepted-SHA256: " + digest
-        for label, reader in {
-            "lightweight tag": self.tag("", annotated=False),
-            "no line": self.tag(f"jaekit v{VERSION}\n"),
-            "two lines": self.tag(f"{line}\n{line}\n"),
-            "uppercase digest": self.tag(line.upper().replace("WINDOWS-ACCEPTED-SHA256", "Windows-Accepted-SHA256")),
-            "another digest": self.tag("Windows-Accepted-SHA256: " + "0" * 64),
-        }.items():
-            with self.subTest(label=label), self.assertRaisesRegex(ValueError, "acceptance link"):
-                published.check_release("jgoneit/jaekit", "v" + VERSION, self.metadata(), self.download,
-                                        tag_reader=reader)
-
-    def test_tag_responses_are_read_like_the_publication_job(self):
-        ref = f"https://api.github.com/repos/jgoneit/jaekit/git/ref/tags/v{VERSION}"
-        tag_object = "https://api.github.com/repos/jgoneit/jaekit/git/tags/" + "7" * 40
-        responses = {
-            "lightweight": {ref: {"ref": f"refs/tags/v{VERSION}", "object": {"type": "commit", "sha": "c" * 40}}},
-            "annotated": {ref: {"ref": f"refs/tags/v{VERSION}", "object": {"type": "tag", "sha": "7" * 40}},
-                          tag_object: {"sha": "7" * 40, "message": "jaekit\n\nWindows-Accepted-SHA256: x\n"}},
-            "another ref": {ref: {"ref": "refs/tags/v9.9.9", "object": {"type": "commit", "sha": "c" * 40}}},
-            "no message": {ref: {"ref": f"refs/tags/v{VERSION}", "object": {"type": "tag", "sha": "7" * 40}},
-                           tag_object: {"sha": "7" * 40}},
-            "a list": {ref: [{"ref": f"refs/tags/v{VERSION}"}]},
-        }
-        for label, table in responses.items():
-            def fetch(url, limit, accept="", table=table):
-                return json.dumps(table[url]).encode()
-            with self.subTest(label=label), unittest.mock.patch.object(published, "fetch", side_effect=fetch):
-                if label == "lightweight":
-                    self.assertEqual(published.read_tag("jgoneit/jaekit", "v" + VERSION), (False, ""))
-                elif label == "annotated":
-                    self.assertEqual(published.read_tag("jgoneit/jaekit", "v" + VERSION),
-                                     (True, "jaekit\n\nWindows-Accepted-SHA256: x\n"))
-                else:
-                    with self.assertRaises(OSError):
-                        published.read_tag("jgoneit/jaekit", "v" + VERSION)
-        def oversized(url, limit, accept=""):
-            raise ValueError("download exceeds the release archive limit: " + url)
-        with unittest.mock.patch.object(published, "fetch", side_effect=oversized), self.assertRaises(OSError):
-            published.read_tag("jgoneit/jaekit", "v" + VERSION)
-
-    def test_truncated_responses_are_unreadable(self):
-        class Socket:
-            def __init__(self, data):
-                self.data = data
-
-            def makefile(self, mode):
-                return io.BytesIO(self.data)
-
-        def response(headers, body):
-            # http.client's own response, over a connection that ends after `body`.
-            value = http.client.HTTPResponse(Socket(b"HTTP/1.1 200 OK\r\n" + headers + b"\r\n" + body))
-            value.begin()
-            return value
-
-        def fetch(value, limit=1000):
-            with unittest.mock.patch.object(published, "urlopen", return_value=value):
-                return published.fetch("https://example.invalid/asset", limit)
-
-        for label, value in (("short", response(b"Content-Length: 100\r\n", b"x" * 50)),
-                             ("padded", response(b"Content-Length:  100 \r\n", b"x" * 50)),
-                             ("empty", response(b"Content-Length: 100\r\n", b""))):
-            with self.subTest(response=label), self.assertRaises(OSError):
-                fetch(value)
-        broken = response(b"Transfer-Encoding: chunked\r\n", b"40\r\n" + b"x" * 10)
-        with self.subTest(response="incomplete chunk"), self.assertRaises(OSError):
-            fetch(broken)
-        self.assertEqual(b"x" * 50, fetch(response(b"Content-Length: 50\r\n", b"x" * 50)))
-        self.assertEqual(b"x" * 50, fetch(response(b"Connection: close\r\n", b"x" * 50)))
-        with self.assertRaisesRegex(ValueError, "exceeds the release archive limit"):
-            fetch(response(b"Content-Length: 2000\r\n", b"x" * 2000))
-        with unittest.mock.patch.object(published, "fetch", return_value=b"{not json"), \
-                contextlib.redirect_stderr(io.StringIO()) as errors:
-            self.assertEqual(published.main(["--tag", "v" + VERSION]), 2)
-        self.assertIn("ERROR:", errors.getvalue())
-
-    def test_unexpected_assets_and_changed_downloads_fail(self):
-        metadata = self.metadata()
-        metadata["assets"].append(dict(metadata["assets"][0], name="install.ps1"))
-        with self.assertRaisesRegex(ValueError, "unexpected or repeated"):
-            published.check_release("jgoneit/jaekit", "v" + VERSION, metadata, self.download)
-        metadata = self.metadata()
-        metadata["assets"][0]["digest"] = "sha256:" + "0" * 64
-        with self.assertRaisesRegex(ValueError, "digest differs"):
-            published.check_release("jgoneit/jaekit", "v" + VERSION, metadata, self.download)
-        metadata = self.metadata(names=release.release_names(VERSION) | {ZIP})
-        with self.assertRaisesRegex(ValueError, "exactly four"):
-            published.check_release("jgoneit/jaekit", "v" + VERSION, metadata, self.download)
-
-
-    def test_an_unreadable_release_is_an_error_not_a_failure(self):
-        def unreachable(*_args, **_kwargs):
-            raise OSError("network unreachable")
-        with unittest.mock.patch.object(published, "check_release", side_effect=unreachable), \
-                contextlib.redirect_stderr(io.StringIO()) as errors:
-            self.assertEqual(published.main(["--tag", "v" + VERSION]), 2)
-        self.assertIn("ERROR: network unreachable", errors.getvalue())
-        with unittest.mock.patch.object(published, "check_release", side_effect=ValueError("bad asset")), \
-                contextlib.redirect_stderr(io.StringIO()) as errors:
-            self.assertEqual(published.main(["--tag", "v" + VERSION]), 1)
-        self.assertIn("FAIL: bad asset", errors.getvalue())
 
 if __name__ == "__main__":
     unittest.main()

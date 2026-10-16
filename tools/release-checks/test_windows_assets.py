@@ -1,8 +1,7 @@
 """The v0.1.3 acceptance checker accepts only the four archives and checksums.txt.
 
-v0.1.3 was published without a Windows archive. A later tag, with or without
-one, is checked by tools/release/check_published.py instead. Synthetic inputs
-only; no network, extraction or installation.
+v0.1.3 was published without a Windows archive; this checker keeps no rule for
+one. Synthetic inputs only; no network, extraction or installation.
 """
 import importlib.util
 from pathlib import Path
