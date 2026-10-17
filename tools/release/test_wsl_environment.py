@@ -41,9 +41,11 @@ assert sys.argv[1:] == ['/etc/os-release']
 print('ID=' + os.environ.get('WSL_FIXTURE_DISTRO','ubuntu'))
 print('VERSION_ID="24.04"')
 ''')
+        # Paths under WSL_FIXTURE_DRIVE stand for a mounted Windows drive.
         self.stub('stat', '''#!/usr/bin/env python3
-import os
-print(os.environ['WSL_FIXTURE_FS'])
+import os, sys
+drive = os.environ.get('WSL_FIXTURE_DRIVE')
+print('9p' if drive and sys.argv[-1].startswith(drive) else os.environ['WSL_FIXTURE_FS'])
 ''')
         for name in ('ha', 'codex'):
             self.stub(name, '#!/bin/sh\necho DO_NOT_EXECUTE >&2\nexit 99\n')
@@ -69,6 +71,7 @@ print(os.environ['WSL_FIXTURE_FS'])
         result = self.run_check()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn(f'Repository: {self.project.resolve()}', result.stdout)
+        self.assertIn(f'Common Git directory: {self.project.resolve() / ".git"}', result.stdout)
         self.assertIn('actual goal execution remain unverified', result.stdout)
         self.assertNotIn('DO_NOT_EXECUTE', result.stdout + result.stderr)
         self.assertEqual(self.project_files(), before)
@@ -97,6 +100,29 @@ print(os.environ['WSL_FIXTURE_FS'])
         result = self.run_check(plain)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('Git repository root under the Linux home', result.stderr)
+
+    def test_git_directories_on_a_windows_drive_refused(self):
+        drive = self.root / 'drive'
+        drive.mkdir()
+        # A linked worktree under home whose repository lives on the drive,
+        # and a repository whose separate Git directory is on the drive.
+        main = drive / 'main'
+        self.git_init(main)
+        subprocess.run(['git', '-C', str(main), '-c', 'user.name=Fixture', '-c',
+                        'user.email=fixture@example.invalid', 'commit', '-q', '--no-verify',
+                        '--allow-empty', '-m', 'fixture'], check=True)
+        linked = self.root / 'linked'
+        subprocess.run(['git', '-C', str(main), 'worktree', 'add', '-q', str(linked)], check=True)
+        separate = self.root / 'separate'
+        subprocess.run(['git', 'init', '-q', '--separate-git-dir', str(drive / 'separate.git'),
+                        str(separate)], check=True)
+        for project in (linked, separate):
+            with self.subTest(project=project.name):
+                result = self.run_check(project, WSL_FIXTURE_DRIVE=str(drive))
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('filesystem is outside the checked Linux route (9p)', result.stderr)
+                self.assertIn(str(drive), result.stderr)
+                self.assertNotIn('prerequisites identified', result.stdout)
 
     def test_unsupported_environments_refused(self):
         for changes in ({'WSL_FIXTURE_OS': 'Darwin'}, {'WSL_FIXTURE_KERNEL': '6.8.0-generic'},

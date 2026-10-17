@@ -71,7 +71,7 @@ The [environment check tool](../tools/wsl/check-environment.sh) under developmen
 bash "<candidate-public-data>/tools/wsl/check-environment.sh" "<project-path>" codex
 ```
 
-The tool checks for WSL2, Ubuntu 24.04, and x86_64, then inspects and displays the resolved paths of Git and `ha`. If you supply a host command, it also checks that path. It runs that Linux Git's `rev-parse` to check that the project is inside a Git repository under Linux home. It does not install anything or change settings. It fails if it cannot establish this route's conditions; that result does not block an existing ordinary Linux installation.
+The tool checks for WSL2, Ubuntu 24.04, and x86_64, then inspects and displays the resolved paths of Git and `ha`. If you supply a host command, it also checks that path. It runs that Linux Git's `rev-parse` to check that the project is inside a Git repository under Linux home, and that the Git directory and common Git directory, where `ha` keeps its records, are also on the Linux filesystem. A linked worktree of a repository on a Windows drive is refused by this condition. It does not install anything or change settings. It fails if it cannot establish this route's conditions; that result does not block an existing ordinary Linux installation.
 
 Path checks do not independently attest execution. You must separately observe whether the host loaded the Skill, a check process actually checked the requirement, and a goal reached completion. A successful environment check does not establish the whole WSL2 workflow.
 

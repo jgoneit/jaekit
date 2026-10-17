@@ -50,13 +50,26 @@ for tool in git ha "${2:-}"; do
   printf '%s: %s\n' "$tool" "$selected"
 done
 
-# ha finds the code repository from the goal path. Ask the selected Linux Git,
-# read-only, whether the project is inside a worktree rooted under home.
-repository="$("$git_command" -C "$project" rev-parse --show-toplevel 2>/dev/null)" ||
+# ha finds the code repository from the goal path, keeps run records in its Git
+# directory and decision history in the common Git directory. Ask the selected
+# Linux Git, read-only, for all three; a linked worktree or a separate Git
+# directory can put the last two elsewhere.
+git_paths="$("$git_command" -C "$project" rev-parse --path-format=absolute \
+  --show-toplevel --absolute-git-dir --git-common-dir 2>/dev/null)" ||
   fail "Git does not recognize the project as a worktree: $project"
+# A missing line leaves its value empty, which realpath -e then reports.
+{ read -r repository; read -r git_dir; read -r common_dir; } <<< "$git_paths" || true
 repository="$(realpath -e -- "$repository")" || fail 'cannot resolve the Git repository root'
 [[ "$repository" == "$linux_home/"* ]] || fail 'put the Git repository root under the Linux home directory'
 printf 'Repository: %s\n' "$repository"
+git_directory() {
+  local path
+  path="$(realpath -e -- "$2")" || fail "cannot resolve the $1"
+  linux_path "$path"
+  printf '%s: %s\n' "$1" "$path"
+}
+git_directory 'Git directory' "$git_dir"
+git_directory 'Common Git directory' "$common_dir"
 
 printf '%s\n' 'WSL2 route prerequisites identified. No files or settings changed.' \
   'Host Skill loading and actual goal execution remain unverified.' \
