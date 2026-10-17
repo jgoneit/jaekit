@@ -42,6 +42,46 @@
       }
     },
     {
+      "target": "kept-confirmations",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "KeptGuarantees.test_run_rules_4_keeps_confirmations_and_record_integrity",
+      "result_targets": {
+        "additional_violations": [
+          "kept-confirmations.assertion-2",
+          "kept-confirmations.assertion-3",
+          "kept-confirmations.assertion-4",
+          "kept-confirmations.assertion-5",
+          "kept-confirmations.assertion-6",
+          "kept-confirmations.assertion-7",
+          "kept-confirmations.assertion-8"
+        ],
+        "execution": "kept-confirmations.execution",
+        "selection": "kept-confirmations.selection",
+        "attribution": "kept-confirmations.attribution"
+      }
+    },
+    {
+      "target": "error-limit-recovery-only",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "KeptGuarantees.test_run_rules_4_clears_an_error_limit_only_by_recovery",
+      "result_targets": {
+        "additional_violations": [
+          "error-limit-recovery-only.assertion-2",
+          "error-limit-recovery-only.assertion-3",
+          "error-limit-recovery-only.assertion-4",
+          "error-limit-recovery-only.assertion-5",
+          "error-limit-recovery-only.assertion-6",
+          "error-limit-recovery-only.assertion-7",
+          "error-limit-recovery-only.assertion-8"
+        ],
+        "execution": "error-limit-recovery-only.execution",
+        "selection": "error-limit-recovery-only.selection",
+        "attribution": "error-limit-recovery-only.attribution"
+      }
+    },
+    {
       "target": "budget-only-complete",
       "runner": "unittest",
       "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",

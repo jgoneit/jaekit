@@ -98,6 +98,94 @@
       "violation": "no-additional-violation"
     },
     {
+      "id": "kept-confirmations",
+      "violation": "rules-4-integrity-missing"
+    },
+    {
+      "id": "kept-confirmations.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-confirmations.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-confirmations.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-confirmations.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-confirmations.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-confirmations.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-confirmations.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-confirmations.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-confirmations.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-confirmations.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-limit-recovery-only",
+      "violation": "rules-4-integrity-missing"
+    },
+    {
+      "id": "error-limit-recovery-only.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-limit-recovery-only.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-limit-recovery-only.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-limit-recovery-only.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-limit-recovery-only.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-limit-recovery-only.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-limit-recovery-only.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-limit-recovery-only.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-limit-recovery-only.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-limit-recovery-only.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "budget-only-complete",
       "violation": "rules-4-integrity-missing"
     },

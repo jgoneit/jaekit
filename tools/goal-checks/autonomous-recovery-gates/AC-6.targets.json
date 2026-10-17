@@ -5,7 +5,7 @@
       "target": "error-recovery",
       "runner": "unittest",
       "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
-      "test": "Recovery.test_recovery_after_the_error_limit",
+      "test": "Recovery.test_recovery_is_bound_to_its_condition_and_input",
       "result_targets": {
         "additional_violations": [
           "error-recovery.assertion-2",

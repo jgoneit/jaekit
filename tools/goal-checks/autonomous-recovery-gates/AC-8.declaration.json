@@ -52,6 +52,50 @@
     {
       "id": "time-limit-notice.attribution",
       "violation": "no-additional-violation"
+    },
+    {
+      "id": "time-limit-approximate",
+      "violation": "time-limit-notice-missing"
+    },
+    {
+      "id": "time-limit-approximate.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "time-limit-approximate.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "time-limit-approximate.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "time-limit-approximate.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "time-limit-approximate.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "time-limit-approximate.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "time-limit-approximate.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "time-limit-approximate.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "time-limit-approximate.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "time-limit-approximate.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

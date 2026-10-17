@@ -45,7 +45,7 @@
       "target": "old-core-refuses",
       "runner": "unittest",
       "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
-      "test": "OldCoreRefuses.test_released_core_refuses_run_rules_4",
+      "test": "OldCoreRefuses.test_core_without_run_rules_4_refuses_such_a_goal",
       "result_targets": {
         "additional_violations": [
           "old-core-refuses.assertion-2",
