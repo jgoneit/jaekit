@@ -50,12 +50,19 @@ func TestMarkdownUnmetSummary(t *testing.T) {
 // A stale completion keeps the existing none and ha done forms around it.
 func TestMarkdownStaleCompletionLine(t *testing.T) {
 	rep := &Report{Goal: "docs/specs/g", Status: Complete, CompleteWithoutRecord: true, Criteria: []Criterion{},
-		staleCompletion: &StaleCompletion{Seq: 5, Commit: "0123456789abcdef", Reasons: []string{"reopened at seq 6"}}}
+		doneState: &DoneState{LatestSeq: 5, LatestCommit: "0123456789abcdef", LatestStatus: Complete,
+			Completion: &StaleCompletion{Seq: 5, Commit: "0123456789abcdef", Reasons: []string{"reopened at seq 6"}}}}
 	want := "- completion record: none; latest completion seq 5 (commit 0123456789ab) is no longer valid: reopened at seq 6; run `ha done docs/specs/g` to record completion\n"
 	if out := rep.Markdown("docs/specs/g"); !strings.Contains(out, want) {
 		t.Errorf("missing %q:\n%s", want, out)
 	}
-	rep.staleCompletion = nil
+	rep.doneState = &DoneState{LatestSeq: 8, LatestCommit: "fedcba9876543210", LatestStatus: Incomplete,
+		Completion: &StaleCompletion{Seq: 5, Commit: "0123456789abcdef", Reasons: []string{"goal documents changed"}}}
+	want = "- completion record: none; latest done seq 8 (commit fedcba987654) recorded incomplete, not a completion; latest completion seq 5 (commit 0123456789ab) is no longer valid: goal documents changed; run `ha done docs/specs/g` to record completion\n"
+	if out := rep.Markdown("/repo/docs/specs/g"); !strings.Contains(out, want) {
+		t.Errorf("missing %q:\n%s", want, out)
+	}
+	rep.doneState = nil
 	if out := rep.Markdown("docs/specs/g"); !strings.Contains(out, "- completion record: none; run `ha done docs/specs/g` to record completion\n") {
 		t.Errorf("the ha done hint changed:\n%s", out)
 	}

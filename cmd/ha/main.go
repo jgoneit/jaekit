@@ -607,7 +607,7 @@ func (c *cli) check(in []string) int {
 	}
 	for _, m := range missed {
 		if m.output != "" {
-			fmt.Fprintf(c.out, "output for %s: ha log %s %d\n", m.label, w.goal.Dir, m.seq)
+			fmt.Fprintf(c.out, "output for %s: ha log %s %d\n", m.label, status.DisplayGoal(w.arg, w.goal.Dir), m.seq)
 		} else {
 			fmt.Fprintf(c.out, "output for %s: no stored output (seq %d)\n", m.label, m.seq)
 		}

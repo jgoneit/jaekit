@@ -306,15 +306,18 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
   - baseline 이유면 기대와 다른 결과를 낸 가장 최근 baseline을 고른다.
   - 그 밖에는 통과하지 않은 가장 최근 check를 고른다.
   - 그런 기록이 없으면 그 종류의 가장 최근 기록을 고른다.
-- 그 기록에 저장된 원문이 있으면, 저장소 루트에서 실행할 정확한 명령 `ha log <goal> <seq>`를 함께 보인다. `<goal>`은 저장소 기준 goal 경로다.
+- 그 기록에 저장된 원문이 있으면, 정확한 명령 `ha log <goal> <seq>`를 함께 보인다.
+  - `<goal>`은 명령에 준 goal 인수 그대로다. 같은 디렉토리에서 그 명령을 실행하면 된다.
+  - 인수가 절대 경로면 저장소 기준 goal 경로를 쓴다. 이 명령은 저장소 루트에서 실행한다. 사람용 출력에는 절대 경로가 들어가지 않는다.
+  - `ha done` 안내와 로컬 출력 위치의 `ha log` 안내도 같은 goal 표기를 쓴다.
 - 원문이 없는 기록은 `no stored output`이라고 보이고 명령을 만들지 않는다. 원문이 없는 경우는 출력 저장 실패와 출력 경로가 없는 기록이다.
 - 신선한 기록이 없는 조건은 `no fresh record`라고 보이고 seq를 만들지 않는다. 실행 전에 거절된 시도는 기록을 남기지 않으므로 이 경우다. `manual` 조건은 기록 대신 확인을 기다리므로 이 표시를 붙이지 않는다.
 - 목표 수준의 이유는 코드와 분류를 보인다.
 - 표와 `### Reasons` 목록은 그대로 둔다.
 
 완료 기록 줄은 유효한 완료 기록이 없을 때 다음과 같이 보인다.
-- 가장 최근 완료 기록(`status: complete`인 `done` 줄)이 있으면, 그 seq와 commit을 보인다.
-- 함께 무효가 된 이유를 모두 보인다. 이유는 §5.1의 유효 조건 가운데 깨진 것이고, 이 순서로 보인다.
+- 가장 최근 `done` 줄의 상태가 `complete`가 아니면, 그 seq와 commit, 그리고 그 줄이 완료가 아닌 상태로 기록됐다는 사실을 보인다. 그런 줄은 완료였던 적이 없다.
+- 가장 최근 완료 기록(`status: complete`인 `done` 줄)이 있으면, 그 seq와 commit, 그리고 무효가 된 이유를 모두 보인다. 이유는 §5.1의 유효 조건 가운데 깨진 것이고, 이 순서로 보인다.
   1. 기록 연결 끊김
   2. 무효한 저장 기록
   3. 묶음 문서 밖의 미커밋 변경
@@ -323,9 +326,20 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
   6. required 명령 변경(조건 ID)
   7. 뒤따른 `reopen`(seq)
   8. `/3`에서 required 조건이 모두 충족되지 않음
-- 완료 기록이 한 번도 없으면 지금처럼 `none`이다. 완료 조건만 충족한 목표에는 지금처럼 `ha done` 안내를 붙인다.
+- `done` 줄이 하나도 없으면 지금처럼 `none`이다. 완료 조건만 충족한 목표에는 지금처럼 `ha done` 안내를 붙인다.
 
-`ha check`는 기대대로 끝나지 않은 대상마다 대상별 결과 줄 뒤에 `output for <대상>: ha log <goal> <seq>`를 출력한다. 원문이 저장되지 않은 대상에는 `output for <대상>: no stored output (seq N)`을 출력한다. 대상별 결과 줄과 종료 코드는 바뀌지 않는다.
+합성 예시(완료 뒤 코드가 바뀌고, `ha done`을 다시 실행해 미완료가 기록된 목표):
+
+```text
+- completion record: none; latest done seq 9 (commit 2b7e01c4a9d3) recorded incomplete, not a completion; latest completion seq 6 (commit 8f3a2d91c0b7) is no longer valid: code outside the bundle documents changed since that commit; required conditions are not all satisfied
+
+### Unmet
+
+- AC-2 `criterion_failed` (executor): seq 8, output `ha log docs/specs/example 8`
+- AC-3 `criterion_missing` (executor): no fresh record
+```
+
+`ha check`는 기대대로 끝나지 않은 대상마다 대상별 결과 줄 뒤에 `output for <대상>: ha log <goal> <seq>`를 출력한다. `<goal>` 표기는 위와 같다. 원문이 저장되지 않은 대상에는 `output for <대상>: no stored output (seq N)`을 출력한다. 대상별 결과 줄과 종료 코드는 바뀌지 않는다.
 
 이 출력은 판정·`status/v1`·완료 기록·`ha log`를 바꾸지 않는다. 같은 기록·묶음·Git이면 같다.
 

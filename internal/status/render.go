@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -52,13 +53,24 @@ func cell(s string) string {
 	return strings.ReplaceAll(s, "|", `\|`)
 }
 
+// DisplayGoal is the goal path that commands in human output name: the
+// argument as given, so a command works from the same directory, or the
+// repository-relative goal path (run from the repository root) when the
+// argument is absolute. Human output never carries an absolute path.
+func DisplayGoal(arg, repoGoal string) string {
+	if arg == "" || filepath.IsAbs(arg) || strings.HasPrefix(arg, "/") {
+		return repoGoal
+	}
+	return arg
+}
+
 // unmet lists what keeps the goal from completing before the criteria table:
 // each unsatisfied required criterion with its reason, class and the fresh
 // record the reason rests on, then each goal-level reason. A record whose
-// output was stored gets the exact `ha log` command, run from the repository
-// root; others say that no output is stored. Nothing is listed once the goal
-// is complete.
-func (rep *Report) unmet(w func(string, ...any)) {
+// output was stored gets the exact `ha log` command (see DisplayGoal);
+// others say that no output is stored. Nothing is listed once the goal is
+// complete.
+func (rep *Report) unmet(w func(string, ...any), goal string) {
 	if rep.Status == Complete || len(rep.Reasons) == 0 {
 		return
 	}
@@ -71,7 +83,7 @@ func (rep *Report) unmet(w func(string, ...any)) {
 		line := fmt.Sprintf("- %s `%s` (%s)", r.Criterion, r.Code, r.Class)
 		switch j, ok := rep.judged[r.Criterion]; {
 		case ok && j.Output != "":
-			line += fmt.Sprintf(": seq %d, output `ha log %s %d`", j.Seq, rep.Goal, j.Seq)
+			line += fmt.Sprintf(": seq %d, output `ha log %s %d`", j.Seq, goal, j.Seq)
 		case ok:
 			line += fmt.Sprintf(": seq %d, no stored output", j.Seq)
 		case r.Code != "manual_unconfirmed":
@@ -88,16 +100,23 @@ func (rep *Report) Markdown(goalArg string) string {
 	w := func(format string, a ...any) { fmt.Fprintf(&b, format, a...) }
 	w("## ha status: %s\n\n", rep.Goal)
 	w("- status: **%s** (exit %d)\n", rep.Status, rep.ExitCode)
+	goal := DisplayGoal(goalArg, rep.Goal)
 	if rep.CompletionRecord != nil {
 		w("- completion record: seq %d\n", *rep.CompletionRecord)
 	} else {
 		line := "- completion record: none"
-		if s := rep.staleCompletion; s != nil {
-			line += fmt.Sprintf("; latest completion seq %d (commit %s) is no longer valid: %s",
-				s.Seq, shortHash(s.Commit), strings.Join(s.Reasons, "; "))
+		if d := rep.doneState; d != nil {
+			if d.LatestStatus != Complete {
+				line += fmt.Sprintf("; latest done seq %d (commit %s) recorded %s, not a completion",
+					d.LatestSeq, shortHash(d.LatestCommit), d.LatestStatus)
+			}
+			if s := d.Completion; s != nil {
+				line += fmt.Sprintf("; latest completion seq %d (commit %s) is no longer valid: %s",
+					s.Seq, shortHash(s.Commit), strings.Join(s.Reasons, "; "))
+			}
 		}
 		if rep.CompleteWithoutRecord {
-			line += fmt.Sprintf("; run `ha done %s` to record completion", goalArg)
+			line += fmt.Sprintf("; run `ha done %s` to record completion", goal)
 		}
 		w("%s\n", line)
 	}
@@ -120,7 +139,7 @@ func (rep *Report) Markdown(goalArg string) string {
 	u := rep.Usage
 	w("- attempts: %d total; types: %d check, %d baseline; outcomes: %d environment errors, %d unknown; inputs: %d current, %d stale; valid positive evidence: %d (overlapping axes)\n", u.Total, u.Checks, u.Baselines, u.EnvironmentErrors, u.Unknowns, u.CurrentInputs, u.StaleInputs, u.ValidEvidence)
 
-	rep.unmet(w)
+	rep.unmet(w, goal)
 
 	w("\n### Criteria\n\n| ID | kind | required | satisfied | reason | records | attempts |\n| --- | --- | --- | --- | --- | --- | --- |\n")
 	for _, c := range rep.Criteria {
@@ -192,7 +211,7 @@ func (rep *Report) Markdown(goalArg string) string {
 		}
 	}
 	if len(rep.Logs) > 0 {
-		w("\n### Local output\n\nView with `ha log %s <seq>`; output is never copied into the record.\n\n", goalArg)
+		w("\n### Local output\n\nView with `ha log %s <seq>`; output is never copied into the record.\n\n", goal)
 		for _, l := range rep.Logs {
 			reason := ""
 			if l.Reason != "" {

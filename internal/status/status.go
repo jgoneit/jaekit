@@ -158,10 +158,10 @@ type Report struct {
 	Usage                 Usage             `json:"usage"`
 	Logs                  []Log             `json:"logs"`
 	commandDigests        map[string]string // for the done line
-	// judged and staleCompletion feed the human output only; status/v1 is
+	// judged and doneState feed the human output only; status/v1 is
 	// unchanged.
-	judged          map[string]JudgedRecord
-	staleCompletion *StaleCompletion
+	judged    map[string]JudgedRecord
+	doneState *DoneState
 }
 
 // JudgedRecord is the fresh record an unsatisfied criterion's reason rests
@@ -179,6 +179,17 @@ type StaleCompletion struct {
 	Reasons []string
 }
 
+// DoneState describes the done records of a goal without a valid completion
+// record: the latest done record of any status, and the latest completion
+// record with why it no longer holds when that is a different line or the
+// same one.
+type DoneState struct {
+	LatestSeq    int
+	LatestCommit string
+	LatestStatus string
+	Completion   *StaleCompletion
+}
+
 // Judged returns the record an unsatisfied criterion's reason rests on, if
 // there is a fresh one.
 func (rep *Report) Judged(id string) (JudgedRecord, bool) {
@@ -186,8 +197,9 @@ func (rep *Report) Judged(id string) (JudgedRecord, bool) {
 	return j, ok
 }
 
-// Stale returns the latest completion record that is no longer valid, or nil.
-func (rep *Report) Stale() *StaleCompletion { return rep.staleCompletion }
+// Done returns the done records of a goal without a valid completion
+// record, or nil when there is a valid one or no done record at all.
+func (rep *Report) Done() *DoneState { return rep.doneState }
 
 // Head identifies the last record line.
 type Head struct {
@@ -374,9 +386,7 @@ func Compute(in Input) (*Report, error) {
 		return nil, err
 	}
 	if completion == nil {
-		if rep.staleCompletion, err = e.stale(rep); err != nil {
-			return nil, err
-		}
+		rep.doneState = e.doneState(rep)
 	}
 	var reasons []Reason
 	for _, c := range rep.Criteria {
@@ -1005,11 +1015,23 @@ func (e *evaluator) completionRecord(rep *Report) (*int, error) {
 	return nil, nil
 }
 
+// doneState names the latest done record and, through stale, why the latest
+// completion record no longer holds. A goal without done records gets nil.
+func (e *evaluator) doneState(rep *Report) *DoneState {
+	lines := e.in.Lines
+	for i := len(lines) - 1; i >= 0; i-- {
+		if d := lines[i]; d.Kind == "done" {
+			return &DoneState{LatestSeq: d.Seq, LatestCommit: d.Commit, LatestStatus: d.Status, Completion: e.stale(rep)}
+		}
+	}
+	return nil
+}
+
 // stale explains why the latest completion record no longer holds. It checks
 // the same conditions as completionRecord (run-record.md §5.1) and reports
 // every one that is broken, in a fixed order. Without such a record it
 // returns nil.
-func (e *evaluator) stale(rep *Report) (*StaleCompletion, error) {
+func (e *evaluator) stale(rep *Report) *StaleCompletion {
 	lines := e.in.Lines
 	for i := len(lines) - 1; i >= 0; i-- {
 		d := lines[i]
@@ -1059,9 +1081,9 @@ func (e *evaluator) stale(rep *Report) (*StaleCompletion, error) {
 				}
 			}
 		}
-		return s, nil
+		return s
 	}
-	return nil, nil
+	return nil
 }
 
 func (e *evaluator) changes(rep *Report) {
