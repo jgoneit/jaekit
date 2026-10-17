@@ -33,12 +33,39 @@ var (
 	cpuSources = map[string]bool{"wait4-rusage": true, "job-object-accounting": true}
 )
 
+// timingCPU shows a recorded CPU value key by key. A key the record has is
+// shown, as null when its value is damaged; a measured value shows all five
+// keys (run-record.md §1.2).
 type timingCPU struct {
-	Status   string `json:"status"`
-	UserMS   *int64 `json:"user_ms,omitempty"`
-	SystemMS *int64 `json:"system_ms,omitempty"`
-	Scope    string `json:"scope,omitempty"`
-	Source   string `json:"source,omitempty"`
+	Status   *string
+	UserMS   *int64
+	SystemMS *int64
+	Scope    *string
+	Source   *string
+	shown    map[string]bool
+}
+
+func (c timingCPU) MarshalJSON() ([]byte, error) {
+	var b bytes.Buffer
+	b.WriteByte('{')
+	for _, item := range []struct {
+		name  string
+		value any
+	}{{"status", c.Status}, {"user_ms", c.UserMS}, {"system_ms", c.SystemMS}, {"scope", c.Scope}, {"source", c.Source}} {
+		if !c.shown[item.name] {
+			continue
+		}
+		value, err := json.Marshal(item.value)
+		if err != nil {
+			return nil, err
+		}
+		if b.Len() > 1 {
+			b.WriteByte(',')
+		}
+		fmt.Fprintf(&b, "%q:%s", item.name, value)
+	}
+	b.WriteByte('}')
+	return b.Bytes(), nil
 }
 
 type timingRun struct {
@@ -215,56 +242,65 @@ func permille(elapsed, limit int64) (int64, bool) {
 	return int64(q), true
 }
 
-// cpuOf reads a CPU value. A measured value whose user or system time alone is
-// damaged keeps the rest, and names the damaged times (run-record.md §1.2);
-// any other damage makes the whole value unreadable.
+// cpuOf reads a CPU value one key at a time and names the damaged keys
+// (run-record.md §1.2). Only a value that is not an object is unreadable.
 func cpuOf(v json.RawMessage) (*timingCPU, []string, bool) {
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(v, &fields); err != nil || fields == nil {
 		return nil, nil, false
 	}
-	var cpu timingCPU
-	if json.Unmarshal(fields["status"], &cpu.Status) != nil {
-		return nil, nil, false
-	}
-	for name, target := range map[string]*string{"scope": &cpu.Scope, "source": &cpu.Source} {
-		if raw, ok := fields[name]; ok && json.Unmarshal(raw, target) != nil {
-			return nil, nil, false
-		}
-	}
-	if (cpu.Scope != "" && !cpuScopes[cpu.Scope]) || (cpu.Source != "" && !cpuSources[cpu.Source]) {
-		return nil, nil, false
-	}
+	cpu := &timingCPU{shown: map[string]bool{"status": true}}
 	var damaged []string
-	switch cpu.Status {
-	case run.CPUMeasured:
-		if cpu.Scope == "" || cpu.Source == "" {
-			return nil, nil, false
-		}
-		for _, item := range []struct {
-			name   string
-			target **int64
-		}{{"user_ms", &cpu.UserMS}, {"system_ms", &cpu.SystemMS}} {
-			if ms, ok := wholeMS(fields[item.name]); ok {
-				*item.target = &ms
-			} else {
-				damaged = append(damaged, item.name)
-			}
-		}
-		if len(damaged) == 2 {
-			return nil, nil, false
-		}
-	case run.CPUUnavailable, run.CPUFailed:
-		if _, ok := fields["user_ms"]; ok {
-			return nil, nil, false
-		}
-		if _, ok := fields["system_ms"]; ok {
-			return nil, nil, false
-		}
-	default:
-		return nil, nil, false
+	var status string
+	if json.Unmarshal(fields["status"], &status) == nil &&
+		(status == run.CPUMeasured || status == run.CPUUnavailable || status == run.CPUFailed) {
+		cpu.Status = &status
+	} else {
+		damaged = append(damaged, "status")
 	}
-	return &cpu, damaged, true
+	measured := status == run.CPUMeasured
+	// A measured value shows every key; another keeps the keys it has.
+	present := func(name string) (json.RawMessage, bool) {
+		raw, ok := fields[name]
+		if ok || measured {
+			cpu.shown[name] = true
+		}
+		if !ok && measured {
+			damaged = append(damaged, name)
+		}
+		return raw, ok
+	}
+	for _, item := range []struct {
+		name   string
+		target **int64
+	}{{"user_ms", &cpu.UserMS}, {"system_ms", &cpu.SystemMS}} {
+		raw, ok := present(item.name)
+		if !ok {
+			continue
+		}
+		if ms, valid := wholeMS(raw); valid && (cpu.Status == nil || measured) {
+			*item.target = &ms
+		} else {
+			damaged = append(damaged, item.name)
+		}
+	}
+	for _, item := range []struct {
+		name   string
+		codes  map[string]bool
+		target **string
+	}{{"scope", cpuScopes, &cpu.Scope}, {"source", cpuSources, &cpu.Source}} {
+		raw, ok := present(item.name)
+		if !ok {
+			continue
+		}
+		var code string
+		if json.Unmarshal(raw, &code) == nil && item.codes[code] {
+			*item.target = &code
+		} else {
+			damaged = append(damaged, item.name)
+		}
+	}
+	return cpu, damaged, true
 }
 
 func timingMarkdown(rep timingReport) string {
@@ -298,17 +334,27 @@ func timingMarkdown(rep timingReport) string {
 			reached = map[bool]string{true: "yes", false: "no"}[*r.LimitReached]
 		}
 		cpu := absent(r.Unavailable["cpu"])
-		if r.CPU != nil {
-			switch r.CPU.Status {
-			case run.CPUMeasured:
-				shown := func(ms *int64, name string) string {
-					if ms == nil {
-						return absent(r.Unavailable["cpu."+name])
-					}
-					return seconds(*ms)
+		if c := r.CPU; c != nil {
+			time := func(ms *int64, name string) string {
+				if ms == nil {
+					return absent(r.Unavailable["cpu."+name])
 				}
-				cpu = fmt.Sprintf("%s / %s (%s, %s)", shown(r.CPU.UserMS, "user_ms"), shown(r.CPU.SystemMS, "system_ms"), r.CPU.Scope, r.CPU.Source)
-			case run.CPUFailed:
+				return seconds(*ms)
+			}
+			code := func(value *string, name string) string {
+				if value == nil {
+					return absent(r.Unavailable["cpu."+name])
+				}
+				return *value
+			}
+			measured := fmt.Sprintf("%s / %s (%s, %s)", time(c.UserMS, "user_ms"), time(c.SystemMS, "system_ms"),
+				code(c.Scope, "scope"), code(c.Source, "source"))
+			switch {
+			case c.Status == nil:
+				cpu = "status " + absent(r.Unavailable["cpu.status"]) + ": " + measured
+			case *c.Status == run.CPUMeasured:
+				cpu = measured
+			case *c.Status == run.CPUFailed:
 				cpu = "measurement failed"
 			default:
 				cpu = "not available"

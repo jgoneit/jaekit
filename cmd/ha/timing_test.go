@@ -36,9 +36,7 @@ func TestTimingViewReadsEachValueOnItsOwn(t *testing.T) {
 		"quoted and negative numbers": {`{"limit_ms":"900000","limit_elapsed_ms":-1,"limit_reached":"no","cpu":{"status":"measured","user_ms":1,"system_ms":2,"scope":"process-and-waited-descendants","source":"wait4-rusage"}}`,
 			map[string]string{"limit_ms": timingInvalid, "limit_elapsed_ms": timingInvalid, "limit_reached": timingInvalid,
 				"limit_use_permille": timingInvalid}},
-		"free-form scope": {`{"limit_ms":1000,"limit_elapsed_ms":500,"limit_reached":false,"cpu":{"status":"measured","user_ms":1,"system_ms":2,"scope":"/home/user/secret","source":"wait4-rusage"}}`,
-			map[string]string{"cpu": timingInvalid}},
-		"unavailable cpu with values": {`{"limit_ms":1000,"limit_elapsed_ms":500,"limit_reached":false,"cpu":{"status":"failed","user_ms":0}}`,
+		"cpu is not an object": {`{"limit_ms":1000,"limit_elapsed_ms":500,"limit_reached":false,"cpu":7}`,
 			map[string]string{"cpu": timingInvalid}},
 	}
 	for name, c := range cases {
@@ -85,7 +83,8 @@ func TestTimingViewHidesOnlyTheDamagedCPUTime(t *testing.T) {
 		timing := `{"limit_ms":1000,"limit_elapsed_ms":500,"limit_reached":false,"cpu":{"status":"measured","user_ms":200,"system_ms":300,"scope":"process-and-waited-descendants","source":"wait4-rusage"}}`
 		timing = strings.Replace(timing, `"`+field+`":`, `"`+field+`":-`, 1)
 		r := timingOf(timingLine(timing))
-		if r.CPU == nil || r.CPU.Scope != "process-and-waited-descendants" || r.CPU.Source != "wait4-rusage" {
+		if r.CPU == nil || r.CPU.Scope == nil || *r.CPU.Scope != "process-and-waited-descendants" ||
+			r.CPU.Source == nil || *r.CPU.Source != "wait4-rusage" {
 			t.Fatalf("%s damaged: cpu %+v", field, r.CPU)
 		}
 		values := map[string]*int64{"user_ms": r.CPU.UserMS, "system_ms": r.CPU.SystemMS}
@@ -99,6 +98,64 @@ func TestTimingViewHidesOnlyTheDamagedCPUTime(t *testing.T) {
 		if !strings.Contains(md, "0.300 s") && !strings.Contains(md, "0.200 s") || !strings.Contains(md, absent(timingInvalid)) {
 			t.Fatalf("%s damaged: Markdown %s", field, md)
 		}
+	}
+}
+
+// Each CPU value is read on its own: a damaged status, scope, source or time
+// hides only itself, and the JSON keeps the damaged key as null
+// (run-record.md §1.2).
+func TestTimingViewReadsEachCPUValueOnItsOwn(t *testing.T) {
+	intact := `{"status":"measured","user_ms":200,"system_ms":300,"scope":"process-and-waited-descendants","source":"wait4-rusage"}`
+	cases := map[string]struct {
+		cpu, json string
+		want      map[string]string
+	}{
+		"free-form scope": {strings.Replace(intact, `"process-and-waited-descendants"`, `"/home/user/secret"`, 1),
+			`{"status":"measured","user_ms":200,"system_ms":300,"scope":null,"source":"wait4-rusage"}`,
+			map[string]string{"cpu.scope": timingInvalid}},
+		"source of the wrong type": {strings.Replace(intact, `"wait4-rusage"`, `5`, 1),
+			`{"status":"measured","user_ms":200,"system_ms":300,"scope":"process-and-waited-descendants","source":null}`,
+			map[string]string{"cpu.source": timingInvalid}},
+		"both times damaged": {strings.Replace(strings.Replace(intact, `200`, `-1`, 1), `300`, `"x"`, 1),
+			`{"status":"measured","user_ms":null,"system_ms":null,"scope":"process-and-waited-descendants","source":"wait4-rusage"}`,
+			map[string]string{"cpu.user_ms": timingInvalid, "cpu.system_ms": timingInvalid}},
+		"measured without its scope": {`{"status":"measured","user_ms":200,"system_ms":300,"source":"wait4-rusage"}`,
+			`{"status":"measured","user_ms":200,"system_ms":300,"scope":null,"source":"wait4-rusage"}`,
+			map[string]string{"cpu.scope": timingInvalid}},
+		"unknown status": {strings.Replace(intact, `"measured"`, `"guessed"`, 1),
+			`{"status":null,"user_ms":200,"system_ms":300,"scope":"process-and-waited-descendants","source":"wait4-rusage"}`,
+			map[string]string{"cpu.status": timingInvalid}},
+		"failed with a time": {`{"status":"failed","user_ms":0,"scope":"job-process-tree","source":"job-object-accounting"}`,
+			`{"status":"failed","user_ms":null,"scope":"job-process-tree","source":"job-object-accounting"}`,
+			map[string]string{"cpu.user_ms": timingInvalid}},
+		"intact unavailable": {`{"status":"unavailable"}`, `{"status":"unavailable"}`, map[string]string{}},
+		"intact measured":    {intact, intact, map[string]string{}},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			r := timingOf(timingLine(`{"limit_ms":1000,"limit_elapsed_ms":500,"limit_reached":false,"cpu":` + c.cpu + `}`))
+			if len(r.Unavailable) != len(c.want) {
+				t.Fatalf("unavailable %v, want %v", r.Unavailable, c.want)
+			}
+			for field, reason := range c.want {
+				if r.Unavailable[field] != reason {
+					t.Fatalf("unavailable %v, want %v", r.Unavailable, c.want)
+				}
+			}
+			got, err := json.Marshal(r.CPU)
+			if err != nil || string(got) != c.json {
+				t.Fatalf("cpu %s (%v), want %s", got, err, c.json)
+			}
+			md := timingMarkdown(timingReport{Schema: timingSchema, Goal: "docs/specs/g", Runs: []timingRun{r}})
+			if strings.Contains(md, "/home/user/secret") || strings.Contains(md, "guessed") {
+				t.Fatalf("a free-form record value reached the view:\n%s", md)
+			}
+			for recorded, shown := range map[string]string{`"user_ms":200`: "0.200 s", `"system_ms":300`: "0.300 s"} {
+				if strings.Contains(c.json, recorded) && !strings.Contains(md, shown) {
+					t.Fatalf("an intact CPU time is missing from the Markdown view:\n%s", md)
+				}
+			}
+		})
 	}
 }
 
