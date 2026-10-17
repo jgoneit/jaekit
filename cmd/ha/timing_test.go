@@ -21,7 +21,8 @@ func timingLine(timing string) record.Line {
 }
 
 // Lines written before the timing field existed, null values and damaged
-// values each hide only the value concerned (run-record.md §1.2).
+// values each hide only the value concerned (run-record.md §1.2). Only an
+// absent field is not recorded: a timing that is null is not an object.
 func TestTimingViewReadsEachValueOnItsOwn(t *testing.T) {
 	cases := map[string]struct {
 		timing string
@@ -32,6 +33,8 @@ func TestTimingViewReadsEachValueOnItsOwn(t *testing.T) {
 		"timer never started": {`{"limit_ms":900000,"limit_elapsed_ms":null,"limit_reached":false,"cpu":{"status":"unavailable"}}`,
 			map[string]string{"limit_elapsed_ms": timingNotMeasured, "limit_use_permille": timingNotMeasured}},
 		"timing is not an object": {`[1,2]`, map[string]string{"limit_ms": timingInvalid, "limit_elapsed_ms": timingInvalid,
+			"limit_use_permille": timingInvalid, "limit_reached": timingInvalid, "cpu": timingInvalid}},
+		"timing is null": {`null`, map[string]string{"limit_ms": timingInvalid, "limit_elapsed_ms": timingInvalid,
 			"limit_use_permille": timingInvalid, "limit_reached": timingInvalid, "cpu": timingInvalid}},
 		"quoted and negative numbers": {`{"limit_ms":"900000","limit_elapsed_ms":-1,"limit_reached":"no","cpu":{"status":"measured","user_ms":1,"system_ms":2,"scope":"process-and-waited-descendants","source":"wait4-rusage"}}`,
 			map[string]string{"limit_ms": timingInvalid, "limit_elapsed_ms": timingInvalid, "limit_reached": timingInvalid,
@@ -183,6 +186,26 @@ func TestTimingViewNamesTheGoalWithoutAnAbsolutePath(t *testing.T) {
 		code, text := estimateTestCLI("timing", filepath.Join(root, estimateTestGoal), "--format", format)
 		if code != 0 || strings.Contains(text, root) || !strings.Contains(text, estimateTestGoal) {
 			t.Fatalf("%s view of an absolute goal path (exit %d): %s", format, code, text)
+		}
+	}
+}
+
+type failingWriter struct{}
+
+func (failingWriter) Write([]byte) (int, error) { return 0, os.ErrClosed }
+
+// A view that could not be written is not reported as delivered, in either
+// format, as with the status and capabilities output.
+func TestTimingViewReportsAFailedWrite(t *testing.T) {
+	root := estimateTestFixture(t, []estimateTestRow{{id: "AC-1", kind: "maintain"}}, 50)
+	if code, text := estimateTestCLI("start", estimateTestGoal, "--request", "synthetic", "--skill-name", "seal", "--skill-version", "0.1.0"); code != 0 {
+		t.Fatalf("start exit %d: %s", code, text)
+	}
+	for _, format := range []string{"json", "md"} {
+		var stderr strings.Builder
+		code := runMain([]string{"timing", filepath.Join(root, estimateTestGoal), "--format", format}, failingWriter{}, &stderr)
+		if code != exitInternal || !strings.Contains(stderr.String(), "write time view") {
+			t.Fatalf("%s view to a closed output: exit %d, stderr %q", format, code, stderr.String())
 		}
 	}
 }
