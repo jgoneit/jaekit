@@ -22,8 +22,9 @@ documentation checks it starts with. A replaced `go` or `all` verification
 counts as a full Go suite. Violations come only from explicit
 `[violation:...]` failures. Missing tools, a route that cannot be read, checks
 that cannot be collected or that fail for reasons other than the observed
-property raise Unavailable, an execution error. A judgment that never ran in a
-copy while the route failed was not observed, and is an execution error too.
+property raise Unavailable, an execution error. A judgment that ran in a copy
+without passing, or never ran there while the route failed, was not observed as
+a violation, and is an execution error too.
 """
 import importlib.util
 import io
@@ -492,19 +493,23 @@ def ran_in_both(run, script):
 def require_judged(case, run, scripts, violation, what):
     """Each script judged and passed in both copies.
 
-    A judgment that ran and failed is the violation whatever the route did. One
-    that never ran is the violation only when the route passed: after a route
-    failure it may simply not have been reached, which is not an observation.
+    Only a judgment that never ran while the route passed is the violation. A
+    judgment that ran without passing is not observed as one: a nonzero exit of
+    these tools also covers inputs they could not read, unverified results and
+    crashes. One that never ran after a route failure may not have been reached.
+    Both are execution errors.
     """
     runs = {script: judged_runs(run, script) for script in scripts}
     failed = {script: sorted(kind for kind, codes in found.items() if 0 not in codes) for script, found in runs.items()}
     missing = {script: sorted({"full", "shallow"} - set(found)) for script, found in runs.items()}
     failed = {script: kinds for script, kinds in failed.items() if kinds}
     missing = {script: kinds for script, kinds in missing.items() if kinds}
-    if missing and not failed and any(code != 0 for code, _, _ in run.results.values()):
+    if failed:
+        raise Unavailable(f"{what} ran in a copy without passing: {failed}; their exit does not tell a finding "
+                          "from a failure to judge")
+    if missing:
         assert_route_passed(run)
-    require(case, not failed and not missing, violation,
-            f"{what} that failed in a copy: {failed}; that did not run in a copy: {missing}")
+    require(case, not missing, violation, f"{what} that did not run in a copy: {missing}")
     assert_route_passed(run)
 
 
@@ -606,6 +611,9 @@ class Judgments(unittest.TestCase):
                 marker = f"jaekit-observer-{kind}-{where}-{index}"
                 mutated = Run(creators, mutate=(script, kind, marker, where), fast=True)
                 codes = [code for code, _, _ in mutated.results.values()]
+                if any(code not in (0, 1, 2) for code in codes):
+                    raise Unavailable(f"{script} {kind} in {where}: route checks ended with {codes}: "
+                                      + json.dumps([o[-2000:] for _, o, _ in mutated.results.values()])[:4000])
                 applied = [e for e in mutated.entries if e.get("mutation") == kind and e["script"] == script
                            and e.get("rc") == 1 and Run.kind(e["copy"]) == where]
                 if not applied:
