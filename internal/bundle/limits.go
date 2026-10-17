@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/jgoneit/jaekit/internal/markdown"
 )
 
 // Command time limits (contracts/bundle.md §2.5). A run-rules/4 plan may
@@ -61,52 +59,6 @@ func parseLimit(s string) (time.Duration, bool) {
 		d += time.Duration(n) * unit
 	}
 	return d, d > 0
-}
-
-// readLimits reads `## 시간 제한` after the condition table and the tasks.
-// The section is optional; a declaration it cannot apply is a lint problem,
-// so a run never starts under a limit the plan did not mean.
-func (l *loader) readLimits(doc *markdown.Doc, file string) {
-	lines, ok := doc.Section(2, LimitsSection)
-	if !ok {
-		return
-	}
-	l.b.Limits = map[string]time.Duration{}
-	for _, it := range markdown.Items(lines) {
-		key, value, found := strings.Cut(it.Text, ":")
-		if !found {
-			l.problem("time_limit_invalid", file, it.Line, "`## %s` items look like `- AC-3: 30분` or `- T002 명령 1: 20분`: %q", LimitsSection, it.Text)
-			continue
-		}
-		key = strings.TrimSpace(key)
-		d, valid := parseLimit(value)
-		if !valid {
-			l.problem("time_limit_invalid", file, it.Line, "%s: the limit must be a positive number of 시간, 분 or 초: %q", key, strings.TrimSpace(value))
-			continue
-		}
-		if d > MaxLimit {
-			l.problem("time_limit_invalid", file, it.Line, "%s: %s exceeds the maximum of %d seconds", key, strings.TrimSpace(value), int64(MaxLimit/time.Second))
-			continue
-		}
-		label := key
-		if m := limitTask.FindStringSubmatch(key); m != nil {
-			n, _ := strconv.Atoi(m[2])
-			t := l.b.Task(m[1])
-			if t == nil || n > len(t.Commands) {
-				l.problem("time_limit_invalid", file, it.Line, "%s: no such task command", key)
-				continue
-			}
-			label = LimitLabel("", m[1], n)
-		} else if r := l.b.Row(key); r == nil || r.Kind == KindManual {
-			l.problem("time_limit_invalid", file, it.Line, "%s: no condition with a command", key)
-			continue
-		}
-		if _, dup := l.b.Limits[label]; dup {
-			l.problem("time_limit_invalid", file, it.Line, "%s: declared twice", key)
-			continue
-		}
-		l.b.Limits[label] = d
-	}
 }
 
 // LimitDigest binds a run-rules/4 command digest to its applied limit, so a

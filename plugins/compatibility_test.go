@@ -25,9 +25,9 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 	if marketplace.Metadata.Version != "0.1.4" {
 		t.Errorf("[requirement] current released marketplace identity changed: %s", marketplace.Metadata.Version)
 	}
-	// Seal 0.1.15 is the source version that adds final-candidate evidence
-	// guidance; the released marketplace identity above stays v0.1.4.
-	for name, want := range map[string]string{"spec": "0.1.12", "seal": "0.1.15"} {
+	// Seal 0.1.16 is the source version that starts goals under run-rules/4;
+	// the released marketplace identity above stays v0.1.4.
+	for name, want := range map[string]string{"spec": "0.1.12", "seal": "0.1.16"} {
 		t.Run(name, func(t *testing.T) {
 			_, version := frontMatter(t, filepath.Join(name, "skills", name, "SKILL.md"))
 			if version != want {

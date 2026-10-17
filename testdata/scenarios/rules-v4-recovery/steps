@@ -1,0 +1,37 @@
+# run-rules/4: an error limit clears only by a recover note for the same
+# condition and input; the executor has two, the user can allow more.
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/4
+expect-exit 0
+ha-without-runner check $GOAL AC-2
+expect-exit 1
+ha-without-runner check $GOAL AC-2
+expect-reason AC-2:error_limit
+ha note $GOAL recover AC-2 --input baseline --change "runner restored"
+expect-exit 64
+ha note $GOAL recover AC-1 --input baseline --change "runner restored"
+expect-exit 65
+ha note $GOAL input --quote "계속 진행해"
+expect-reason AC-2:error_limit
+ha note $GOAL recover AC-2 --input check --change "runner restored on PATH"
+expect-exit 0
+expect-no-reason AC-2:error_limit
+ha-without-runner check $GOAL AC-2
+ha-without-runner check $GOAL AC-2
+expect-reason AC-2:error_limit
+ha note $GOAL recover AC-2 --input check --change "runner restored again"
+expect-exit 0
+ha-without-runner check $GOAL AC-2
+ha-without-runner check $GOAL AC-2
+ha note $GOAL recover AC-2 --input check --change "third try"
+expect-exit 65
+expect-reason AC-2:error_limit
+ha note $GOAL allow-recovery AC-2 --input check --count 1 --quote "한 번 더 회복해도 돼"
+expect-exit 0
+ha note $GOAL recover AC-2 --input check --change "runner restored a third time"
+expect-exit 0
+ha check $GOAL AC-2
+expect-exit 0
+expect-satisfied AC-2
+ha status $GOAL --format json
+expect-output "\"used\": 3"
+expect-output "\"remaining\": 0"

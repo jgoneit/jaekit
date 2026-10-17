@@ -16,14 +16,21 @@ import shutil
 import subprocess
 import sys
 
-KNOWN_RULES = {"run-rules/1", "run-rules/2", "run-rules/3"}
+KNOWN_RULES = {"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4"}
+# Seal starts new goals under run-rules/4, chosen with `ha start --rules`; the
+# Core's default rule stays run-rules/3.
+START_RULES = "run-rules/4"
+STRUCTURED_RULES = {"run-rules/3", "run-rules/4"}
 FORMATS = {
     "check_declaration": "check-declaration/v1",
     "check_result": "check-result/v1",
     "check_evidence": "check-evidence/v1",
 }
 EXECUTION_FEATURES = {"dirty-preflight/v1", "baseline-safe-copy/v1"}
-START_FEATURES = EXECUTION_FEATURES | {
+RULES4_FEATURES = {
+    "test-authority/v1", "reported-wait/v1", "preapproved-runs/v1", "error-recovery/v1", "command-time-limits/v1",
+}
+START_FEATURES = EXECUTION_FEATURES | RULES4_FEATURES | {
     "estimate/v1", "structured-change-results/v1", "budget-change/v1",
 }
 # Stored finding line bound (contracts/findings.md): a 1 MiB input at most
@@ -152,9 +159,11 @@ def stored_goal(goal: str):
 def requirements(capabilities, operation: str, goal: str | None):
     finding = operation == "finding"
     if operation == "start":
-        rules, criteria = capabilities["default_rules"], {"legacy", "nested/1"}
-        if rules != "run-rules/3":
-            raise Refusal("unsupported_default_rule", [rules])
+        rules, criteria = START_RULES, {"legacy", "nested/1"}
+        if capabilities["default_rules"] != "run-rules/3":
+            raise Refusal("unsupported_default_rule", [capabilities["default_rules"]])
+        if rules not in capabilities["supported_rules"]:
+            raise Refusal("missing_support", ["supported_rules:" + rules])
         features = START_FEATURES
     else:
         rules, criteria_format, has_findings = stored_goal(goal)
@@ -164,12 +173,14 @@ def requirements(capabilities, operation: str, goal: str | None):
                     else {"budget-change/v1"} if operation == "budget" else set())
         if rules not in KNOWN_RULES or rules not in capabilities["supported_rules"]:
             raise Refusal("unsupported_stored_rule", [rules])
-        if operation == "budget" and rules != "run-rules/3":
+        if operation == "budget" and rules not in STRUCTURED_RULES:
             raise Refusal("unsupported_operation", ["budget:" + rules])
-        if rules == "run-rules/3" and operation in ("resume", "check"):
+        if rules in STRUCTURED_RULES and operation in ("resume", "check"):
             features = features | {"structured-change-results/v1"}
+        if rules == "run-rules/4" and operation in ("resume", "check", "budget"):
+            features = features | RULES4_FEATURES
     required_formats = {"criteria": criteria}
-    if rules == "run-rules/3" and operation not in ("finding", "history"):
+    if rules in STRUCTURED_RULES and operation not in ("finding", "history"):
         required_formats.update({key: {value} for key, value in FORMATS.items()})
     if finding:
         features = features | {"post-completion-findings/v1"}

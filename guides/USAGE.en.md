@@ -53,6 +53,16 @@ A Core that supports the time view (capability `run-timing/v1`) keeps, for each 
 
 With a Core that supports decision history (capability `decision-history/v1`), Seal can keep the summaries, evidence and correction links of its observations, causes, decisions, actions and verifications in the optional [decision history](../contracts/decision-history.md). Release v0.1.4's `ha 0.1.4` does not provide it. The history stays local under `ha/history/` in the common Git directory that every working folder of the repository shares, and it does not travel to a new clone or another computer. So `PROGRESS.md` still holds the current state, important decisions with short reasons, and how to resume without it. Read the current judgments with `ha history <goal>` and one event's evidence and neighboring links with `ha history <goal> show <event ID>`. Recording or correcting history changes no completion, check result or budget, and the feature adds no approval step.
 
+## Autonomy (run-rules/4)
+
+Seal 0.1.16 starts new goals with `ha start --rules run-rules/4` when the Core supports `run-rules/4` and its five features. The Core's default rule stays `run-rules/3`, and a goal that has already started keeps the rule it started with. Under the new rule, Seal does not ask again about work the authority it already has covers.
+
+- When your request allows test changes inside the scope, Seal records its reading with `--test-authority`. When it changes or moves an existing test, it records which conditions the file checks and how with `ha note <goal> test-change`, and the change needs no confirmation. A weakening change or one outside the scope still asks for your confirmation.
+- While it waits for your answer to a question, it reports the wait with `ha note <goal> wait`, and records `resume` if it continues without the answer. Only reported waits leave the budget's elapsed time.
+- A run limit you approve in advance is recorded with `ha budget <goal> --preapprove`; within it, Seal raises the limit with a reason.
+- When a check passed its error limit because of something Seal can fix in how it runs, such as a missing tool, Seal records `recover`. Each condition and input allows two; `allow-recovery` lets you allow more. Earlier failures stay in the record.
+- A long check gets its own limit, up to two hours, in the plan's `## 시간 제한` section. When an earlier run reached or neared its limit, a notice appears before the run.
+
 ## Troubleshooting
 
 | Symptom | What to do |
