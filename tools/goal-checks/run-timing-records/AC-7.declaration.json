@@ -5,6 +5,7 @@
   "producer_paths": [
     "tools/goal-checks/produce.py",
     "tools/goal-checks/run-timing-records/AC-7.targets.json",
+    "tools/goal-checks/run-timing-records/observe_timing.py",
     "tools/result_observations.py"
   ],
   "targets": [
@@ -50,6 +51,50 @@
     },
     {
       "id": "native-process.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "cpu-failure",
+      "violation": "cpu-failure-changes-the-run"
+    },
+    {
+      "id": "cpu-failure.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "cpu-failure.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "cpu-failure.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "cpu-failure.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "cpu-failure.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "cpu-failure.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "cpu-failure.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "cpu-failure.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "cpu-failure.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "cpu-failure.attribution",
       "violation": "no-additional-violation"
     }
   ]

@@ -35,6 +35,26 @@
         "selection": "native-process.selection",
         "attribution": "native-process.attribution"
       }
+    },
+    {
+      "target": "cpu-failure",
+      "runner": "unittest",
+      "file": "tools/goal-checks/run-timing-records/observe_timing.py",
+      "test": "CpuFailure.test_cpu_collection_failure_changes_no_run_handling",
+      "result_targets": {
+        "additional_violations": [
+          "cpu-failure.assertion-2",
+          "cpu-failure.assertion-3",
+          "cpu-failure.assertion-4",
+          "cpu-failure.assertion-5",
+          "cpu-failure.assertion-6",
+          "cpu-failure.assertion-7",
+          "cpu-failure.assertion-8"
+        ],
+        "execution": "cpu-failure.execution",
+        "selection": "cpu-failure.selection",
+        "attribution": "cpu-failure.attribution"
+      }
     }
   ]
 }

@@ -2,9 +2,14 @@
 
 Every observation builds `ha` from the checked tree and runs that executable
 on a synthetic goal repository made from testdata/scenarios/_base, in a
-temporary directory. AC-2 also runs a Linux build in the repository's local
-check container (`jaekit-check-git`, never pulled, no network) and, for
-Windows, reads the GitHub Actions run that tested the checked commit; AC-5 also builds the
+temporary directory. One build differs only in its fixed time limit: the
+checked tree's `cmd/ha/main.go` with that constant set to a few seconds, laid
+over the tree with `go build -overlay`, so a timed-out run is recorded in
+seconds instead of fifteen minutes. AC-2 also runs a Linux build in the
+repository's local check container (`jaekit-check-git`, never pulled, no
+network) and, for Windows, runs the repository's CI reader
+(tools/verification-checks/cross_platform_ci.py AC-1) on the real pull request
+run of the checked commit, accepting only its pass. AC-5 also builds the
 released v0.1.4 from its tag, the ref the criterion names. Nothing else reads
 history, and the checked tree is never written.
 
@@ -13,6 +18,7 @@ tag, CI run or GitHub response that is missing or unusable raises Unavailable,
 an execution error.
 """
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -27,12 +33,21 @@ ROOT = Path(__file__).resolve().parents[3]
 BASE = ROOT / "testdata/scenarios/_base"
 GOAL = "docs/specs/greet"
 LIMIT_MS = 900000
+# The fixed limit as the checked tree writes it, and the shortened build's.
+LIMIT_LINE = "const checkTimeout = 900 * time.Second"
+SHORT_LIMIT_MS = 3000
+# A timed-out run's limit interval ends at the timeout decision: within this
+# much of the limit, however long the cleanup after it takes.
+DECISION_SLACK_MS = 1000
+# Shell loops that use measurable processor time (EX-3) and outlast the short
+# limit (EX-4).
+BURN = "i=0\nwhile [ $i -lt 400000 ]; do i=$((i+1)); done\n"
+SLEEP = "sleep 20\n"
 REQUEST = "타이밍 관측용 합성 목표를 구현해줘"
 # Strings a run's environment, output and location carry; none may reach a
 # timing field or the time view (AC-9).
 SECRET = "jaekit-observed-environment-value"
 OUTPUT = "JAEKIT-OBSERVED-COMMAND-OUTPUT"
-RUN_TIMING = "github.com/jgoneit/jaekit/internal/run/TestNativeRunTiming/exit"
 # The executable's identity at the goal's base commit (AC-8).
 BASE_FEATURES = ["estimate/v1", "dirty-preflight/v1", "baseline-safe-copy/v1", "structured-change-results/v1",
                  "budget-change/v1", "post-completion-findings/v1", "decision-history/v1"]
@@ -40,8 +55,14 @@ BASE_FORMATS = {"finding": ["run-finding/v1"], "decision_history": ["decision-hi
                 "criteria": ["legacy", "nested/1"], "check_declaration": ["check-declaration/v1"],
                 "check_result": ["check-result/v1"], "check_evidence": ["check-evidence/v1"]}
 BASE_RULES = ["run-rules/1", "run-rules/2", "run-rules/3"]
-VIEW_KEYS = {"seq", "target", "kind", "result", "duration_ms", "limit_ms", "limit_elapsed_ms", "limit_use_permille",
-             "limit_reached", "cpu", "unavailable"}
+# `ha estimate --format json` for the synthetic goal at the goal's base commit,
+# without the goal path (AC-8).
+BASE_ESTIMATE = '{"budget_source": "PLAN.md", "default_additional_runs": 0, "default_baseline_runs": 1, "default_check_runs": 2, "headroom": 47, "limitation": "Fresh required lower bound only; excludes retries, preparation and manual time. Not a total-time estimate or completion guarantee. PLAN limit is not an existing run\'s remaining budget; existing records and budget windows are unchanged.", "minimum_runs": 3, "plan_runs_limit": 50, "required_change": 1, "required_maintain": 1, "schema": "estimate/v1", "selected": {"additional_runs": 0, "mode": "check", "optional_runs": 0, "repeated_required_runs": 0, "runs": 2, "targets": ["AC-1", "AC-2"], "task_runs": 0}, "shortfall": 0}'
+# The implementation's test that makes CPU collection fail on a started
+# process (PLAN 판단 근거, AC-7).
+CPU_FAILURE_TEST = "TestCPUCollectionFailureKeepsTheRun"
+# Values every time view row shows, either as a value or as unavailable.
+VIEW_VALUES = ("limit_ms", "limit_elapsed_ms", "limit_reached", "cpu")
 
 
 class Unavailable(Exception):
@@ -61,17 +82,37 @@ def run(argv, cwd, env=None, timeout=600, stdin=None):
         raise Unavailable(f"{argv[0]}: {error}") from None
 
 
-def build(out, tree=ROOT, goos=None, goarch=None):
+def build(out, tree=ROOT, goos=None, goarch=None, overlay=None):
     env = dict(os.environ, CGO_ENABLED="0")
     for key, value in (("GOOS", goos), ("GOARCH", goarch)):
         if value:
             env[key] = value
         else:
             env.pop(key, None)
-    result = run(["go", "build", "-o", out, "./cmd/ha"], tree, env, timeout=600)
+    flags = ["-overlay", overlay] if overlay else []
+    result = run(["go", "build", *flags, "-o", out, "./cmd/ha"], tree, env, timeout=600)
     if result.returncode:
         raise Unavailable(f"go build in {tree.name}: {result.stderr.decode(errors='replace')[-2000:]}")
     return out
+
+
+def build_short(out):
+    """`ha` from the checked tree with its fixed limit shortened to SHORT_LIMIT_MS."""
+    main = ROOT / "cmd/ha/main.go"
+    try:
+        text = main.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as error:
+        raise Unavailable(f"cmd/ha/main.go: {error}") from None
+    if text.count(LIMIT_LINE) != 1:
+        raise Unavailable("cmd/ha/main.go does not declare the fixed limit as one constant")
+    out = Path(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    short = out.parent / "main_short_limit.go"
+    short.write_text(text.replace(LIMIT_LINE, f"const checkTimeout = {SHORT_LIMIT_MS} * time.Millisecond"),
+                     encoding="utf-8")
+    overlay = out.parent / "short_limit_overlay.json"
+    overlay.write_text(json.dumps({"Replace": {str(main): str(short)}}), encoding="utf-8")
+    return build(out, overlay=overlay)
 
 
 def digest_tree(path):
@@ -83,20 +124,27 @@ def digest_tree(path):
 
 
 class Fixture:
-    """A synthetic goal repository and the record one `ha` executable makes in it."""
+    """A synthetic goal repository and the record `ha` executables make in it.
+
+    Legacy rules (`/1`, `/2`) check AC-1 by exit code. The default rule (`/3`)
+    checks it with the repository's reference producer and a structured
+    result declaration, so both record a change baseline and check.
+    """
 
     PLAN = """# PLAN — greet
 
 ## 조건표
 | ID | 종류 | 검증 명령 | 검사 경로 | Task |
 | --- | --- | --- | --- | --- |
-| AC-1 | change | `sh tests/greeting.sh` | tests/greeting.sh | T001 |
+| AC-1 | change | {ac1} | T001 |
 | AC-2 | maintain | `sh tests/keep.sh` | — | T001 |
 | EX-1 | maintain | `sh tests/fails.sh` | — | T001 |
 | EX-2 | maintain | `jaekit-timing-missing-checker` | — | T001 |
-
+| EX-3 | maintain | `sh tests/burn.sh` | — | T001 |
+| EX-4 | maintain | `sh tests/sleep.sh` | — | T001 |
+{contract}
 ## 범위
-- 바꿀 수 있는 경로: `src/**`, `tests/**` (SPEC: 범위와 비목표)
+- 바꿀 수 있는 경로: `src/**`, `tests/**`, `checks/**` (SPEC: 범위와 비목표)
 - 테스트 경로: (기본값)
 - 유지할 동작: `src/keep.txt`
 
@@ -110,17 +158,40 @@ class Fixture:
 - 경과 시간: 4시간
 - 비용: 미관측
 """
+    LEGACY_AC1 = "`sh tests/greeting.sh` | tests/greeting.sh"
+    STRUCTURED_AC1 = ("`python3 checks/reference.py checks/declaration.json checks/reference.json` | "
+                      "checks/reference.py, checks/reference.json, checks/declaration.json")
+    CONTRACT = "\n## 결과 계약\n| ID | 선언 경로 |\n| --- | --- |\n| AC-1 | checks/declaration.json |\n"
     TASK = "# T001\n\n## 목표\ngreeting says hello\n\n## 완료 조건\n- AC-1과 AC-2가 통과한다.\n- `sh tests/keep.sh`\n"
 
-    def __init__(self, directory, ha, rules="run-rules/2"):
-        self.root, self.ha_path = Path(directory) / "repo", Path(ha)
+    def __init__(self, directory, ha, rules="run-rules/2", short=None):
+        self.root, self.ha_path, self.short = Path(directory) / "repo", Path(ha), short
         shutil.copytree(BASE, self.root)
         goal = self.root / GOAL
-        (goal / "PLAN.md").write_text(self.PLAN, encoding="utf-8")
+        structured = rules is None
+        (goal / "PLAN.md").write_text(self.PLAN.format(
+            ac1=self.STRUCTURED_AC1 if structured else self.LEGACY_AC1,
+            contract=self.CONTRACT if structured else ""), encoding="utf-8")
         (goal / "tasks").mkdir()
         (goal / "tasks/T001.md").write_text(self.TASK, encoding="utf-8")
         (self.root / "tests/fails.sh").write_text(f"echo {OUTPUT}\nexit 3\n", encoding="utf-8")
         (self.root / "tests/keep.sh").write_text(f"echo {OUTPUT}\ngrep -qx keep src/keep.txt\n", encoding="utf-8")
+        (self.root / "tests/burn.sh").write_text(BURN, encoding="utf-8")
+        (self.root / "tests/sleep.sh").write_text(SLEEP, encoding="utf-8")
+        (self.root / "tests/greeting.sh").write_text("grep -qx hello src/greeting.txt\n", encoding="utf-8")
+        checks = self.root / "checks"
+        checks.mkdir()
+        try:
+            shutil.copyfile(ROOT / "tools/check-result-reference.py", checks / "reference.py")
+        except OSError as error:
+            raise Unavailable(f"tools/check-result-reference.py: {error}") from None
+        (checks / "declaration.json").write_text(json.dumps({
+            "schema": "check-declaration/v1", "producer": "jaekit-reference", "producer_version": "1",
+            "producer_paths": ["checks/reference.py", "checks/reference.json"],
+            "targets": [{"id": "greeting", "violation": "missing-greeting"}]}), encoding="utf-8")
+        (checks / "reference.json").write_text(json.dumps({"mode": "reference", "checks": [
+            {"target": "greeting", "path": "src/greeting.txt", "equals": "hello\n", "violation": "missing-greeting",
+             "missing": "violation"}]}), encoding="utf-8")
         self.env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "HA_"))}
         self.env.update(JAEKIT_OBSERVED_SECRET=SECRET, GIT_AUTHOR_NAME="Observer", GIT_AUTHOR_EMAIL="observer@example.invalid",
                         GIT_COMMITTER_NAME="Observer", GIT_COMMITTER_EMAIL="observer@example.invalid")
@@ -151,29 +222,40 @@ class Fixture:
         except (OSError, ValueError) as error:
             raise Unavailable(f"runs.jsonl: {error}") from None
 
-    def flow(self):
-        """start, baseline, passing, failing and unstartable checks, a task command, a refused check.
-
-        Under the default rule a change baseline needs a structured result, so
-        that flow records only the maintain, EX and task runs.
-        """
+    def start(self):
         started = self.ha("start", GOAL, "--request", REQUEST, "--skill-name", "seal", "--skill-version", "0.1.0")
         if started.returncode:
             raise Unavailable(f"ha start: {started.stderr.decode(errors='replace')}")
         if self.rules:
-            # The legacy rule keeps a plain-exit baseline without a structured result.
+            # The legacy rules keep a plain-exit baseline without a structured result.
             raw = self.records_path.read_bytes()
             self.records_path.write_bytes(re.sub(rb'"rules":"[^"]*"', b'"rules":"' + self.rules.encode() + b'"', raw))
-        if self.rules:
-            (self.root / "tests/greeting.sh").write_text("grep -qx hello src/greeting.txt\n", encoding="utf-8")
-            self.commit("add greeting check")
-            self.expect(self.ha("check", GOAL, "--baseline", "AC-1"), 0, "baseline")
-            (self.root / "src/greeting.txt").write_text("hello\n", encoding="utf-8")
-            self.commit("say hello")
-        self.expect(self.ha("check", GOAL, *(["AC-1", "AC-2"] if self.rules else ["AC-2"])), 0, "checks")
+
+    def flow(self):
+        """A change baseline and check, passing, failing, unstartable, CPU-using and (with the
+        short-limit build) timed-out checks, a task command, and a refused check."""
+        self.start()
+        return self.flow_after_start()
+
+    def flow_after_start(self):
+        if self.rules is None:
+            # An undecidable attempt: the producer cannot read its configuration and writes no report.
+            config = (self.root / "checks/reference.json").read_bytes()
+            (self.root / "checks/reference.json").write_text("{", encoding="utf-8")
+            self.commit("break the producer configuration")
+            self.expect(self.ha("check", GOAL, "AC-1"), 1, "undecidable check")
+            (self.root / "checks/reference.json").write_bytes(config)
+            self.commit("restore the producer configuration")
+        self.expect(self.ha("check", GOAL, "--baseline", "AC-1"), 0, "baseline")
+        (self.root / "src/greeting.txt").write_text("hello\n", encoding="utf-8")
+        self.commit("say hello")
+        self.expect(self.ha("check", GOAL, "AC-1", "AC-2"), 0, "checks")
         self.expect(self.ha("check", GOAL, "EX-1"), 1, "failing check")
         self.expect(self.ha("check", GOAL, "EX-2"), 1, "unstartable check")
+        self.expect(self.ha("check", GOAL, "EX-3"), 0, "CPU-using check")
         self.expect(self.ha("check", GOAL, "T001"), 0, "task command")
+        if self.short:
+            self.expect(self.ha("check", GOAL, "EX-4", ha=self.short), 1, "timed-out check")
         before = self.records_path.read_bytes()
         (self.root / "src/keep.txt").write_text("changed\n", encoding="utf-8")
         refused = self.ha("check", GOAL, "AC-2")
@@ -190,6 +272,12 @@ class Fixture:
                               + (result.stdout + result.stderr).decode(errors="replace")[-2000:])
 
 
+def short_fixture(directory, rules=None):
+    """A fixture whose flow also records a timed-out run with the short-limit build."""
+    base = Path(directory)
+    return Fixture(base, build(base / "ha"), rules=rules, short=build_short(base / "short" / "ha"))
+
+
 def runs_of(records):
     return [r for r in records if r.get("kind") in ("check", "baseline")]
 
@@ -199,33 +287,61 @@ def label(line):
     return f"seq {line.get('seq')} {target.get('criterion') or target.get('task')} {line.get('kind')}"
 
 
+def criterion(line):
+    return (line.get("target") or {}).get("criterion")
+
+
 def started(line):
     return (line.get("argv") or [""])[0] != "jaekit-timing-missing-checker"
 
 
+def timed_out(line):
+    return criterion(line) == "EX-4"
+
+
+def whole(value):
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
 def timing_problems(line):
-    """What a check or baseline line lacks of its limit, limit interval and limit decision (AC-1)."""
+    """What a check or baseline line lacks of its limit, limit interval and limit decision (AC-1).
+
+    The timed-out line (EX-4) ran with the short-limit build, so its applied
+    limit is SHORT_LIMIT_MS and the limit was reached.
+    """
     timing = line.get("timing")
     if not isinstance(timing, dict):
         return [f"{label(line)}: no timing"]
     problems = []
-    if not isinstance(line.get("duration_ms"), int):
+    duration = line.get("duration_ms")
+    if not whole(duration):
         problems.append(f"{label(line)}: duration_ms lost")
-    if timing.get("limit_ms") != LIMIT_MS or isinstance(timing.get("limit_ms"), bool):
-        problems.append(f"{label(line)}: limit_ms {timing.get('limit_ms')!r}")
-    if timing.get("limit_reached") is not False:
+        duration = -1
+    limit = SHORT_LIMIT_MS if timed_out(line) else LIMIT_MS
+    if timing.get("limit_ms") != limit or not whole(timing.get("limit_ms")):
+        problems.append(f"{label(line)}: limit_ms {timing.get('limit_ms')!r}, not the applied {limit}")
+    if timing.get("limit_reached") is not timed_out(line):
         problems.append(f"{label(line)}: limit_reached {timing.get('limit_reached')!r}")
     elapsed = timing.get("limit_elapsed_ms", "absent")
-    if started(line):
-        if not isinstance(elapsed, int) or isinstance(elapsed, bool) or not 0 <= elapsed <= line.get("duration_ms", -1):
-            problems.append(f"{label(line)}: limit_elapsed_ms {elapsed!r} for duration {line.get('duration_ms')!r}")
-    elif elapsed is not None:
-        problems.append(f"{label(line)}: a process that never started has limit_elapsed_ms {elapsed!r}, not null")
+    if not started(line):
+        if elapsed is not None:
+            problems.append(f"{label(line)}: a process that never started has limit_elapsed_ms {elapsed!r}, not null")
+    elif not whole(elapsed) or not 0 <= elapsed <= duration:
+        problems.append(f"{label(line)}: limit_elapsed_ms {elapsed!r} for duration {duration!r}")
+    elif timed_out(line) and not limit <= elapsed <= limit + DECISION_SLACK_MS:
+        problems.append(f"{label(line)}: a timed-out run's limit interval {elapsed} ms does not end at the "
+                        f"timeout decision ({limit} ms limit)")
     return problems
 
 
 def cpu_problems(line):
-    """What a check or baseline line lacks of its CPU measurement (AC-2)."""
+    """What a check or baseline line lacks of its CPU measurement (AC-2).
+
+    A started process has measured, whole, non-negative times with a scope and
+    a source; the CPU-using check (EX-3) has more than zero in total, so a 0
+    written for an unmeasured value does not pass. A process that never
+    started is unavailable, with no times.
+    """
     cpu = (line.get("timing") or {}).get("cpu") if isinstance(line.get("timing"), dict) else None
     if not isinstance(cpu, dict):
         return [f"{label(line)}: no cpu"]
@@ -233,59 +349,12 @@ def cpu_problems(line):
         return [] if cpu.get("status") == "unavailable" and "user_ms" not in cpu and "system_ms" not in cpu else \
             [f"{label(line)}: a process that never started reports cpu {cpu}"]
     values = [cpu.get("user_ms"), cpu.get("system_ms")]
-    if cpu.get("status") != "measured" or not all(isinstance(v, int) and not isinstance(v, bool) and v >= 0 for v in values) \
+    if cpu.get("status") != "measured" or not all(whole(v) and v >= 0 for v in values) \
             or not cpu.get("scope") or not cpu.get("source"):
         return [f"{label(line)}: cpu {cpu}"]
+    if criterion(line) == "EX-3" and sum(values) <= 0:
+        return [f"{label(line)}: a CPU-using run reports {values} ms"]
     return []
-
-
-TIMEOUT_TEST = r'''package run
-
-import (
-	"encoding/json"
-	"os"
-	"path/filepath"
-	"reflect"
-	"testing"
-	"time"
-)
-
-// TestObservedTimingTimeout reports the runner's limit fields by name, so it
-// compiles whether or not they exist.
-func TestObservedTimingTimeout(t *testing.T) {
-	dir := t.TempDir()
-	res, err := Exec(dir, []string{os.Getenv("JAEKIT_OBSERVE_SLEEPER"), "-c", "import time; time.sleep(30)"},
-		400*time.Millisecond, filepath.Join(dir, "out.log"))
-	facts := map[string]any{"error": err != nil, "outcome": res.Outcome, "reason": res.Reason,
-		"duration_ms": res.Duration.Milliseconds()}
-	value := reflect.ValueOf(res)
-	for _, name := range []string{"Limit", "LimitElapsed", "LimitReached"} {
-		field := value.FieldByName(name)
-		if !field.IsValid() {
-			facts[name] = "absent"
-			continue
-		}
-		switch x := field.Interface().(type) {
-		case time.Duration:
-			facts[name] = x.Milliseconds()
-		case *time.Duration:
-			if x == nil {
-				facts[name] = nil
-			} else {
-				facts[name] = x.Milliseconds()
-			}
-		case bool:
-			facts[name] = x
-		default:
-			facts[name] = "unexpected type"
-		}
-	}
-	data, _ := json.Marshal(facts)
-	if err := os.WriteFile(os.Getenv("JAEKIT_OBSERVE_FACTS"), data, 0o600); err != nil {
-		t.Fatal(err)
-	}
-}
-'''
 
 
 # --- AC-1 -------------------------------------------------------------------
@@ -293,41 +362,33 @@ func TestObservedTimingTimeout(t *testing.T) {
 class Records(unittest.TestCase):
     """AC-1: every new check and baseline line keeps its limit, limit interval and limit decision."""
 
+    KINDS = {("baseline", "AC-1"), ("check", "AC-1"), ("check", "AC-2"), ("check", "EX-1"), ("check", "EX-2"),
+             ("check", "EX-3"), ("check", "EX-4"), ("check", "T001")}
+
+    def recorded(self, directory, rules):
+        fixture = short_fixture(directory, rules=rules)
+        lines = runs_of(fixture.flow())
+        seen = {(l["kind"], criterion(l) or (l.get("target") or {}).get("task")) for l in lines}
+        undecided = [l for l in lines if l.get("result") == "unknown"]
+        if not self.KINDS <= seen or fixture.refusal_wrote or (rules is None) != bool(undecided):
+            raise Unavailable(f"the synthetic flow recorded {sorted(seen)}; refusal wrote: {fixture.refusal_wrote}")
+        return lines
+
     def test_check_and_baseline_lines_keep_their_limit_interval(self):
-        with tempfile.TemporaryDirectory(prefix="jaekit-timing-") as directory:
-            fixture = Fixture(directory, build(Path(directory) / "ha"))
-            lines = runs_of(fixture.flow())
-            kinds = {("baseline", "AC-1"), ("check", "AC-1"), ("check", "AC-2"), ("check", "EX-1"), ("check", "EX-2"),
-                     ("check", "T001")}
-            seen = {(l["kind"], (l.get("target") or {}).get("criterion") or (l.get("target") or {}).get("task")) for l in lines}
-            if not kinds <= seen or fixture.refusal_wrote:
-                raise Unavailable(f"the synthetic flow recorded {sorted(seen)}; refusal wrote: {fixture.refusal_wrote}")
-            problems = [p for line in lines for p in timing_problems(line)]
-            require(self, not problems, "run-timing-not-recorded", "; ".join(problems))
+        problems = []
+        for rules in ("run-rules/2", None):
+            with tempfile.TemporaryDirectory(prefix="jaekit-timing-") as directory:
+                problems += [f"{rules or 'default rules'}: {p}" for line in self.recorded(directory, rules)
+                             if not timed_out(line) for p in timing_problems(line)]
+        require(self, not problems, "run-timing-not-recorded", "; ".join(problems))
 
     def test_the_limit_interval_ends_at_the_timeout_decision(self):
         with tempfile.TemporaryDirectory(prefix="jaekit-timing-timeout-") as directory:
-            base = Path(directory)
-            source, facts = base / "observed_test.go", base / "facts.json"
-            source.write_text(TIMEOUT_TEST, encoding="utf-8")
-            overlay = base / "overlay.json"
-            overlay.write_text(json.dumps({"Replace": {str(ROOT / "internal/run/zz_observed_timing_test.go"): str(source)}}))
-            env = dict(os.environ, JAEKIT_OBSERVE_SLEEPER=sys.executable, JAEKIT_OBSERVE_FACTS=str(facts))
-            result = run(["go", "test", "-count=1", "-overlay", overlay, "-run", "^TestObservedTimingTimeout$",
-                          "./internal/run"], ROOT, env, timeout=300)
-            if result.returncode or not facts.exists():
-                raise Unavailable("runner observation: " + (result.stdout + result.stderr).decode(errors="replace")[-2000:])
-            seen = json.loads(facts.read_text())
-            if seen["outcome"] != "error" or seen["reason"] != "process_timeout" or seen["error"]:
-                raise Unavailable(f"the sleeping process did not time out: {seen}")
-            absent = [name for name in ("Limit", "LimitElapsed", "LimitReached") if seen[name] == "absent"]
-            problems = [f"the runner keeps no {name}" for name in absent]
-            if not absent:
-                elapsed = seen["LimitElapsed"]
-                if seen["Limit"] != 400 or seen["LimitReached"] is not True or not isinstance(elapsed, int) \
-                        or not 400 <= elapsed <= seen["duration_ms"]:
-                    problems.append(f"limit interval of a timed-out run: {seen}")
-            require(self, not problems, "run-timing-not-recorded", "; ".join(problems))
+            lines = [line for line in self.recorded(directory, None) if timed_out(line)]
+            if len(lines) != 1 or lines[0].get("result") != "error":
+                raise Unavailable(f"the short-limit check did not record one timed-out run: {lines}")
+            problems = timing_problems(lines[0])
+        require(self, not problems, "run-timing-not-recorded", "; ".join(problems))
 
 
 # --- AC-2 -------------------------------------------------------------------
@@ -343,7 +404,7 @@ def container_records(directory, arch):
     steps = out / "steps.sh"
     steps.write_text("set -e\ncd /work\n"
                      f"/out/ha start {GOAL} --request '{REQUEST}' --skill-name seal --skill-version 0.1.0\n"
-                     f"/out/ha check {GOAL} AC-2\n", encoding="utf-8")
+                     f"/out/ha check {GOAL} AC-2\n/out/ha check {GOAL} EX-3\n", encoding="utf-8")
     result = run(["docker", "run", "--rm", "--pull", "never", "--network", "none", "--platform", "linux/" + arch,
                   "-e", "GIT_CONFIG_COUNT=1", "-e", "GIT_CONFIG_KEY_0=safe.directory", "-e", "GIT_CONFIG_VALUE_0=*",
                   "-v", f"{out}:/out:ro", "-v", f"{fixture.root}:/work", "--entrypoint", "sh",
@@ -353,104 +414,65 @@ def container_records(directory, arch):
     return runs_of(fixture.records())
 
 
-def gh_json(path):
-    result = run(["gh", "api", "--method", "GET", path], ROOT, timeout=120)
-    if result.returncode:
-        raise Unavailable("GitHub request failed; check authentication and permission")
+# The native tests that read timing on Windows, by package (AC-2): the runner's
+# measurement and a recorded check's line.
+WINDOWS_TIMING = {"internal/run": "TestNativeRunTiming/exit", "cmd/ha": "TestNativeRecordedTiming"}
+
+
+def windows_native_tests():
+    """{package: [test]} the checked tree's Windows native checks require."""
+    sys.path.insert(0, str(ROOT / "tools/windows"))
     try:
-        return json.loads(result.stdout)
-    except ValueError:
-        raise Unavailable("invalid GitHub JSON") from None
+        spec = importlib.util.spec_from_file_location("observed_native_checks", ROOT / "tools/windows/native_checks.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return {package: list(tests) for package, tests in module.NATIVE.items()}
+    except Exception as error:
+        raise Unavailable(f"tools/windows/native_checks.py cannot be loaded: {error!r}") from None
+    finally:
+        sys.path.remove(str(ROOT / "tools/windows"))
 
 
-# This goal's own check files. CI never runs them, so a commit that changes
-# only these files is tested by its parent's CI run.
-OWN_CHECKS = "tools/goal-checks/run-timing-records/"
+def real_run_passes():
+    """Raise Unavailable unless the repository's CI reader passes the real pull request run of the checked commit.
 
-
-def ci_reports():
-    """The Windows native reports of the latest CI run of the checked code.
-
-    That is the checked commit's run or, when it has none, the run of the
-    nearest first-parent ancestor from which the checked commit changes only
-    this goal's own check files.
+    The reader binds the run to the open pull request whose head is the
+    checked commit and to the checked tree, and requires every job and step
+    and every Windows native report to have passed; the native checks report
+    `passed` only when all their required tests passed.
     """
-    head = run(["git", "rev-parse", "HEAD"], ROOT, timeout=60).stdout.decode().strip()
-    if not re.fullmatch(r"[0-9a-f]{40}", head):
-        raise Unavailable("the checked commit cannot be read")
-    repo = run(["gh", "repo", "view", "--json", "nameWithOwner"], ROOT, timeout=120)
-    if repo.returncode:
-        raise Unavailable("GitHub repository cannot be read")
-    try:
-        name = json.loads(repo.stdout)["nameWithOwner"]
-    except (ValueError, KeyError, TypeError):
-        raise Unavailable("GitHub repository cannot be read") from None
-    tested = head
-    while True:
-        runs = [r for r in gh_json(f"repos/{name}/actions/workflows/ci.yml/runs?head_sha={tested}&per_page=100")
-                .get("workflow_runs", []) if r.get("head_sha") == tested]
-        if runs:
-            break
-        parent = run(["git", "rev-parse", "--verify", "--quiet", f"{tested}^"], ROOT, timeout=60)
-        if parent.returncode or not parent.stdout.strip():
-            break
-        changed = run(["git", "diff", "--name-only", "-z", parent.stdout.decode().strip(), head], ROOT, timeout=60)
-        if changed.returncode or any(not path.startswith(OWN_CHECKS)
-                                     for path in filter(None, changed.stdout.decode(errors="replace").split("\0"))):
-            break
-        tested = parent.stdout.decode().strip()
-    if not runs:
-        raise Unavailable(f"no CI run has tested the code of {head[:12]} yet")
-    latest = max(runs, key=lambda r: (r["id"], r.get("run_attempt", 1)))
-    if latest.get("status") != "completed" or latest.get("conclusion") != "success":
-        raise Unavailable(f"the latest CI run of {tested[:12]} is {latest.get('status')}/{latest.get('conclusion')}")
-    jobs = gh_json(f"repos/{name}/actions/runs/{latest['id']}/attempts/{latest.get('run_attempt', 1)}/jobs?per_page=100")
-    # Job logs carry terminal escapes; older gh prints them without the flag.
-    flags = ["--allow-escape-sequences"] if "--allow-escape-sequences" in run(["gh", "api", "--help"], ROOT, timeout=60) \
-        .stdout.decode(errors="replace").split() else []
-    found = []
-    for job in jobs.get("jobs", []):
-        # One Windows job with both shells, or one job per shell.
-        if not str(job.get("name", "")).startswith("Core / Windows"):
-            continue
-        log = run(["gh", "api", "--method", "GET", *flags, f"repos/{name}/actions/jobs/{job['id']}/logs"], ROOT, timeout=300)
-        if log.returncode:
-            raise Unavailable(f"the log of {job.get('name')} cannot be read")
-        for line in log.stdout.decode(errors="replace").splitlines():
-            at = line.find("JAEKIT_CI_REPORT {")
-            if at >= 0:
-                try:
-                    found.append(json.loads(line[at + len("JAEKIT_CI_REPORT "):]))
-                except ValueError:
-                    raise Unavailable(f"a native report of {job.get('name')} is not JSON") from None
-    if len(found) != 2:
-        raise Unavailable(f"{len(found)} Windows native reports, not one per PowerShell")
-    return found
+    env = {k: v for k, v in os.environ.items() if not k.startswith("HA_EVIDENCE")}
+    result = run([sys.executable, "tools/verification-checks/cross_platform_ci.py", "AC-1"], ROOT, env, timeout=900)
+    if result.returncode:
+        raise Unavailable(f"the CI reader did not pass a real run of the checked commit (exit {result.returncode}): "
+                          + result.stderr.decode(errors="replace").strip()[-500:])
 
 
 class Cpu(unittest.TestCase):
     """AC-2: runs recorded on macOS, Linux and Windows keep their CPU time with its scope."""
 
     def test_local_records_keep_cpu_with_scope(self):
+        # The local half is macOS; Linux runs in the container below.
+        if sys.platform != "darwin":
+            raise Unavailable(f"the local CPU observation runs on macOS, not {sys.platform}")
         with tempfile.TemporaryDirectory(prefix="jaekit-timing-cpu-") as directory:
-            fixture = Fixture(directory, build(Path(directory) / "ha"))
-            problems = [f"{sys.platform}: {p}" for line in runs_of(fixture.flow()) for p in cpu_problems(line)]
+            fixture = Fixture(directory, build(Path(directory) / "ha"), rules=None)
+            problems = [f"macOS: {p}" for line in runs_of(fixture.flow()) for p in cpu_problems(line)]
             arch = {"arm64": "arm64", "aarch64": "arm64", "x86_64": "amd64", "amd64": "amd64"}.get(os.uname().machine)
             if arch is None:
                 raise Unavailable(f"no Linux check image for {os.uname().machine}")
             lines = container_records(directory, arch)
-            if not lines:
-                raise Unavailable("the Linux run recorded no check")
+            if {criterion(line) for line in lines} != {"AC-2", "EX-3"}:
+                raise Unavailable(f"the Linux run recorded {[label(line) for line in lines]}")
             problems += [f"linux/{arch}: {p}" for line in lines for p in cpu_problems(line)]
             require(self, not problems, "cpu-not-recorded", "; ".join(problems))
 
     def test_windows_ci_measures_cpu(self):
         # macOS and Linux runs are recorded locally; Windows runs only in CI.
-        missing = [f"Windows report {index + 1} ({(row.get('environment') or {}).get('shell_version')})"
-                   for index, row in enumerate(ci_reports())
-                   if RUN_TIMING not in (row.get("native_tests") or {}).get("passed", [])]
-        require(self, not missing, "cpu-not-recorded",
-                f"Windows native CI did not pass {RUN_TIMING} in: {', '.join(missing)}")
+        required = windows_native_tests()
+        missing = [f"{package} {test}" for package, test in WINDOWS_TIMING.items() if test not in required.get(package, [])]
+        require(self, not missing, "cpu-not-recorded", f"Windows native CI does not require {', '.join(missing)}")
+        real_run_passes()
 
 
 # --- AC-3 -------------------------------------------------------------------
@@ -459,12 +481,31 @@ def view(fixture, *extra):
     return fixture.ha("timing", GOAL, *extra)
 
 
+def table(text):
+    """(header cells, {seq: row cells}) of the time view's Markdown table."""
+    rows = [line for line in text.splitlines() if line.startswith("|")]
+    if len(rows) < 2:
+        return [], {}
+    cells = lambda line: [cell.strip() for cell in line.strip().strip("|").split("|")]
+    body = {}
+    for line in rows[2:]:
+        row = cells(line)
+        if row and row[0].isdigit():
+            body[int(row[0])] = row
+    return cells(rows[0]), body
+
+
+def column(header, word):
+    found = [index for index, name in enumerate(header) if word in name.lower()]
+    return found[0] if len(found) == 1 else None
+
+
 class TimeView(unittest.TestCase):
     """AC-3: a read-only time view, for people and machines."""
 
     def test_the_time_view_shows_each_run_and_changes_nothing(self):
         with tempfile.TemporaryDirectory(prefix="jaekit-timing-view-") as directory:
-            fixture = Fixture(directory, build(Path(directory) / "ha"))
+            fixture = short_fixture(directory)
             lines = runs_of(fixture.flow())
             before = (fixture.records_path.read_bytes(), digest_tree(fixture.root / ".git/ha"),
                       fixture.git("status", "--porcelain", "--untracked-files=all"))
@@ -487,12 +528,16 @@ class TimeView(unittest.TestCase):
                 for row, line in zip(rows, lines):
                     timing = line.get("timing") or {}
                     expected = {"seq": line["seq"], "target": line.get("target"), "kind": line["kind"],
-                                "result": line.get("result"), "duration_ms": line.get("duration_ms"),
-                                "limit_ms": timing.get("limit_ms"), "limit_elapsed_ms": timing.get("limit_elapsed_ms"),
-                                "limit_reached": timing.get("limit_reached")}
-                    if set(row) != VIEW_KEYS or any(row.get(k) != v for k, v in expected.items()):
-                        problems.append(f"seq {line['seq']}: view {row}")
+                                "result": line.get("result"), "duration_ms": line.get("duration_ms")}
+                    expected.update({name: timing.get(name) for name in VIEW_VALUES})
+                    if any(row.get(k) != v for k, v in expected.items()):
+                        problems.append(f"seq {line['seq']}: view {row}, record {expected}")
                         continue
+                    # A value the row does not show is named unavailable, and only then.
+                    unavailable = row.get("unavailable") or {}
+                    for name in VIEW_VALUES:
+                        if (row.get(name) is None) != (name in unavailable):
+                            problems.append(f"seq {line['seq']}: {name} {row.get(name)!r}, unavailable {unavailable}")
                     elapsed = timing.get("limit_elapsed_ms")
                     use = None if elapsed is None else elapsed * 1000 // timing["limit_ms"]
                     if row.get("limit_use_permille") != use:
@@ -501,10 +546,26 @@ class TimeView(unittest.TestCase):
                         or "overlap" not in report.get("total_meaning", "") or "budget" not in report.get("total_meaning", ""):
                     problems.append(f"total {report.get('total_duration_ms')}: {report.get('total_meaning')!r}")
             text = md.stdout.decode(errors="replace")
-            for want in ["| seq | target | kind | result | duration | limit | limit elapsed | limit use | limit reached |",
-                         "T001 command 1", "not the goal's elapsed time or budget"]:
-                if md.returncode or want not in text:
-                    problems.append(f"Markdown view lacks {want!r} (exit {md.returncode})")
+            header, body = table(text)
+            by = {criterion(l) or (l.get("target") or {}).get("task"): l for l in lines if l["kind"] == "check"}
+            places = {word: column(header, word) for word in ("reached", "elapsed", "cpu")}
+            if md.returncode or set(body) != {l["seq"] for l in lines} or None in places.values():
+                problems.append(f"Markdown view (exit {md.returncode}) has columns {header} and rows {sorted(body)}")
+            else:
+                cell = lambda key, word: body[by[key]["seq"]][places[word]]
+                # The timed-out run reads differently from a finished one; an unstarted run shows no time.
+                if cell("EX-4", "reached") == cell("AC-2", "reached"):
+                    problems.append("Markdown shows the timed-out run's limit as not reached")
+                for word in ("elapsed", "cpu"):
+                    if re.search(r"\d", cell("EX-2", word)):
+                        problems.append(f"Markdown shows a time for the unstarted run's {word}: {cell('EX-2', word)!r}")
+                for line in lines:
+                    cpu = (line.get("timing") or {}).get("cpu") or {}
+                    if cpu.get("status") == "measured" and cpu.get("scope") not in body[line["seq"]][places["cpu"]]:
+                        problems.append(f"Markdown CPU of seq {line['seq']} lacks its scope")
+            for want in ("T001 command 1", "not the goal's elapsed time or budget"):
+                if want not in text:
+                    problems.append(f"Markdown view lacks {want!r}")
             contract = (ROOT / "contracts/run-record.md").read_text(encoding="utf-8")
             for word in ("`ha timing`", "`timing/v1`", "`limit_use_permille`", "`limit_elapsed_ms`"):
                 if word not in contract:
@@ -514,16 +575,54 @@ class TimeView(unittest.TestCase):
 
 # --- AC-4 -------------------------------------------------------------------
 
-def without_timing(raw):
-    """The record bytes with every timing field removed and the chain rehashed."""
-    lines, out, prev = raw.splitlines(), [], None
+def member_span(line, key):
+    """(start, end) of `,"key":value` (or `"key":value,`) in one compact JSON object line, or None."""
+    marker = b'"' + key.encode() + b'":'
+    at = line.find(marker)
+    if at < 0:
+        return None
+    index, depth, quoted = at + len(marker), 0, False
+    while index < len(line):
+        char = line[index:index + 1]
+        if quoted:
+            if char == b"\\":
+                index += 1
+            elif char == b'"':
+                quoted = False
+        elif char == b'"':
+            quoted = True
+        elif char in b"{[":
+            depth += 1
+        elif char in b"}]":
+            if depth == 0:
+                break
+            depth -= 1
+        elif char == b"," and depth == 0:
+            break
+        index += 1
+    if line[at - 1:at] == b",":
+        return at - 1, index
+    return at, index + 1 if line[index:index + 1] == b"," else index
+
+
+def rechain(lines):
+    """Record bytes from lines with each prev hash recomputed."""
+    out, prev = [], None
     for line in lines:
-        line = re.sub(rb',"timing":\{"limit_ms":[^{}]*"cpu":\{[^{}]*\}\}', b"", line)
         if prev is not None:
             line = re.sub(rb'"prev":"[0-9a-f]{64}"', b'"prev":"' + prev.encode() + b'"', line, count=1)
         out.append(line)
         prev = hashlib.sha256(line).hexdigest()
     return b"\n".join(out) + b"\n"
+
+
+def without_timing(raw):
+    """The record bytes with every timing member removed, whatever its key order, and the chain rehashed."""
+    lines = []
+    for line in raw.splitlines():
+        span = member_span(line, "timing")
+        lines.append(line if span is None else line[:span[0]] + line[span[1]:])
+    return rechain(lines)
 
 
 def status_facts(fixture, *, done=False):
@@ -533,6 +632,19 @@ def status_facts(fixture, *, done=False):
     except ValueError:
         raise Unavailable(f"status JSON: {(result.stdout + result.stderr).decode(errors='replace')[-1000:]}") from None
     return result.returncode, normalize(doc)
+
+
+def judged(fixture, raw):
+    """(status, done) facts of the record bytes raw, leaving raw in place.
+
+    `ha done` appends a line even when it does not complete, so the record is
+    put back after it.
+    """
+    fixture.records_path.write_bytes(raw)
+    status = status_facts(fixture)
+    done = status_facts(fixture, done=True)
+    fixture.records_path.write_bytes(raw)
+    return status, done
 
 
 def normalize(value):
@@ -545,22 +657,21 @@ def normalize(value):
 
 
 class Judgment(unittest.TestCase):
-    """AC-4: the timing fields change no status, reason, usage or budget."""
+    """AC-4: the timing fields change no status, completion, reason, usage or budget."""
 
     def test_status_is_the_same_with_and_without_timing(self):
         problems = []
         for rules in ("run-rules/1", "run-rules/2", None):
             with tempfile.TemporaryDirectory(prefix="jaekit-timing-status-") as directory:
-                fixture = Fixture(directory, build(Path(directory) / "ha"), rules=rules)
+                fixture = short_fixture(directory, rules=rules)
                 fixture.flow()
-                with_timing = status_facts(fixture)
                 raw = fixture.records_path.read_bytes()
-                fixture.records_path.write_bytes(without_timing(raw))
-                if b'"timing"' in fixture.records_path.read_bytes():
+                if b'"timing"' in without_timing(raw):
                     raise Unavailable("timing fields could not be removed from the synthetic record")
-                stripped = status_facts(fixture)
-                if with_timing != stripped:
-                    problems.append(f"{rules or 'default rules'}: status differs without timing")
+                with_timing, stripped = judged(fixture, raw), judged(fixture, without_timing(raw))
+                for name, kept, removed in zip(("status", "done"), with_timing, stripped):
+                    if kept != removed:
+                        problems.append(f"{rules or 'default rules'}: {name} differs without timing")
         require(self, not problems, "timing-changes-judgment", "; ".join(problems))
 
 
@@ -584,8 +695,7 @@ class Compatibility(unittest.TestCase):
             finally:
                 run(["git", "worktree", "remove", "--force", released_tree], ROOT, timeout=120)
             fixture = Fixture(base, build(base / "ha"), rules=None)
-            fixture.ha("start", GOAL, "--request", REQUEST, "--skill-name", "seal", "--skill-version", "0.1.0")
-            fixture.commit("goal started") if fixture.git("status", "--porcelain").strip() else None
+            fixture.start()
             fixture.expect(fixture.ha("check", GOAL, "AC-2"), 0, "check")
             problems = []
             first = fixture.records_path.read_bytes()
@@ -596,75 +706,93 @@ class Compatibility(unittest.TestCase):
             extended = fixture.ha("check", GOAL, "AC-2", ha=released)
             if extended.returncode:
                 problems.append(f"v0.1.4 could not extend the record: exit {extended.returncode}")
-            after = fixture.records_path.read_bytes()
-            if not after.startswith(first):
-                problems.append("an earlier line was rewritten")
-            again = fixture.ha("status", GOAL, "--format", "json")
-            if again.returncode != new_status.returncode or b"integrity" in again.stdout + again.stderr:
-                problems.append(f"the current ha reads the extended record with exit {again.returncode}")
+            second = fixture.records_path.read_bytes()
+            if not second.startswith(first):
+                problems.append("v0.1.4 rewrote an earlier line")
+            # The current ha extends the record after the line without timing.
+            again = fixture.ha("check", GOAL, "AC-2")
+            third = fixture.records_path.read_bytes()
+            if again.returncode or not third.startswith(second) or len(third.splitlines()) != len(second.splitlines()) + 1:
+                problems.append(f"the current ha did not append after the v0.1.4 line without rewriting it: exit {again.returncode}")
+            status = fixture.ha("status", GOAL, "--format", "json")
+            if status.returncode != new_status.returncode or b"integrity" in status.stdout + status.stderr:
+                problems.append(f"the current ha reads the extended record with exit {status.returncode}")
             shown = fixture.ha("timing", GOAL, "--format", "json")
             try:
                 rows = json.loads(shown.stdout)["runs"]
             except (ValueError, KeyError, TypeError):
                 rows = []
-            unrecorded = {"limit_ms": "not_recorded", "limit_elapsed_ms": "not_recorded", "limit_reached": "not_recorded",
-                          "cpu": "not_recorded"}
-            last = rows[-1] if rows else {}
-            if len(rows) != 2 or {k: last.get("unavailable", {}).get(k) for k in unrecorded} != unrecorded \
-                    or any(last.get(k) is not None for k in unrecorded):
-                problems.append(f"the v0.1.4 line is not shown as not recorded: {rows}")
+            unrecorded = {name: "not_recorded" for name in VIEW_VALUES}
+            if len(rows) != 3 or {k: (rows[1].get("unavailable") or {}).get(k) for k in unrecorded} != unrecorded \
+                    or any(rows[1].get(k) is not None for k in unrecorded) \
+                    or any(row.get("unavailable") for row in (rows[0], rows[2])):
+                problems.append(f"the v0.1.4 line is not shown as not recorded between timed lines: {rows}")
             require(self, not problems, "unrecorded-timing-not-shown", "; ".join(problems))
 
 
 # --- AC-6 -------------------------------------------------------------------
 
-def damage(raw, seq):
-    """raw with one line's timing values given wrong types, and the chain rehashed."""
-    lines, out, prev = raw.splitlines(), [], None
-    for index, line in enumerate(lines, 1):
-        if index == seq:
-            line = re.sub(rb'"limit_ms":[0-9]+', b'"limit_ms":"x"', line, count=1)
-            line = re.sub(rb'"cpu":\{[^{}]*\}', b'"cpu":7', line, count=1)
-        if prev is not None:
-            line = re.sub(rb'"prev":"[0-9a-f]{64}"', b'"prev":"' + prev.encode() + b'"', line, count=1)
-        out.append(line)
-        prev = hashlib.sha256(line).hexdigest()
-    return b"\n".join(out) + b"\n"
+def damage(raw, damaged):
+    """raw with the given lines' timing members rewritten, and the chain rehashed.
+
+    damaged: {seq: [(pattern, replacement), ...]}, each applied once inside that line's timing member.
+    """
+    lines, applied = raw.splitlines(), 0
+    for index, line in enumerate(lines):
+        for pattern, replacement in damaged.get(index + 1, []):
+            span = member_span(line, "timing")
+            if span is None:
+                continue
+            member, count = re.subn(pattern, replacement, line[span[0]:span[1]], count=1)
+            line, applied = line[:span[0]] + member + line[span[1]:], applied + count
+        lines[index] = line
+    return rechain(lines), applied
 
 
 class Damage(unittest.TestCase):
     """AC-6: a damaged timing value hides only itself; broken JSON or chains stay integrity errors."""
 
+    def timing_rows(self, fixture):
+        shown = fixture.ha("timing", GOAL, "--format", "json")
+        try:
+            return {r["seq"]: r for r in json.loads(shown.stdout)["runs"]}
+        except (ValueError, KeyError, TypeError):
+            return {}
+
     def test_damaged_timing_values_are_isolated(self):
         with tempfile.TemporaryDirectory(prefix="jaekit-timing-damage-") as directory:
             fixture = Fixture(directory, build(Path(directory) / "ha"))
             lines = runs_of(fixture.flow())
-            seq = lines[1]["seq"]
-            before = status_facts(fixture)
-            fixture.records_path.write_bytes(damage(fixture.records_path.read_bytes(), seq))
-            problems = []
-            if b'"limit_ms":"x"' not in fixture.records_path.read_bytes():
+            by = {criterion(l): l["seq"] for l in lines if l["kind"] == "check"}
+            typed, valued = by["AC-2"], by["EX-3"]
+            intact = fixture.records_path.read_bytes()
+            before, original = judged(fixture, intact), self.timing_rows(fixture)
+            raw, applied = damage(intact, {
+                # Wrong types on one line, wrong values on another.
+                typed: [(rb'"limit_ms":[0-9]+', b'"limit_ms":"x"'), (rb'"cpu":\{[^{}]*\}', b'"cpu":7')],
+                valued: [(rb'"user_ms":[0-9]+', b'"user_ms":-5'), (rb'"limit_elapsed_ms":[0-9]+', b'"limit_elapsed_ms":-1')]})
+            if applied != 4:
                 # Nothing to damage: the executable keeps no timing value.
-                require(self, False, "damaged-timing-not-isolated", f"seq {seq} keeps no timing value to damage")
-            if status_facts(fixture) != before:
-                problems.append("status changed after a timing value was damaged")
-            shown = fixture.ha("timing", GOAL, "--format", "json")
-            try:
-                rows = {r["seq"]: r for r in json.loads(shown.stdout)["runs"]}
-            except (ValueError, KeyError, TypeError):
-                rows = {}
-            damaged = rows.get(seq, {})
-            if damaged.get("unavailable", {}).get("limit_ms") != "invalid" or damaged.get("unavailable", {}).get("cpu") != "invalid" \
-                    or damaged.get("limit_elapsed_ms") is None or damaged.get("limit_reached") is not False:
-                problems.append(f"damaged line shown as {damaged}")
-            others = [r for s, r in rows.items() if s != seq and s != lines[-3]["seq"] and r.get("unavailable")]
-            if len(rows) != len(lines) or any(r.get("unavailable") for s, r in rows.items()
-                                              if s != seq and r.get("limit_elapsed_ms") is not None):
-                problems.append(f"other lines lost values: {others}")
+                require(self, False, "damaged-timing-not-isolated", f"the record keeps {applied} of 4 timing values to damage")
+            problems = []
+            if judged(fixture, raw) != before:
+                problems.append("status or done changed after timing values were damaged")
+            rows = self.timing_rows(fixture)
+            invalid = lambda row, name: (row.get("unavailable") or {}).get(name) == "invalid" and row.get(name) is None
+            kept = lambda seq, *names: all(rows.get(seq, {}).get(n) == original.get(seq, {}).get(n) for n in names)
+            if not (invalid(rows.get(typed, {}), "limit_ms") and invalid(rows.get(typed, {}), "cpu")
+                    and kept(typed, "limit_elapsed_ms", "limit_reached")):
+                problems.append(f"type-damaged line shown as {rows.get(typed)}")
+            if not (invalid(rows.get(valued, {}), "cpu") and invalid(rows.get(valued, {}), "limit_elapsed_ms")
+                    and kept(valued, "limit_ms", "limit_reached")):
+                problems.append(f"value-damaged line shown as {rows.get(valued)}")
+            others = [seq for seq in original if seq not in (typed, valued) and rows.get(seq) != original[seq]]
+            if set(rows) != set(original) or others:
+                problems.append(f"undamaged lines changed in the view: {others}")
             # A line that is not JSON is still an integrity error.
-            raw = fixture.records_path.read_bytes().splitlines()
-            raw[-1] = raw[-1][:-5]
-            fixture.records_path.write_bytes(b"\n".join(raw) + b"\n")
+            broken_lines = fixture.records_path.read_bytes().splitlines()
+            broken_lines[-1] = broken_lines[-1][:-5]
+            fixture.records_path.write_bytes(b"\n".join(broken_lines) + b"\n")
             broken = fixture.ha("status", GOAL, "--format", "json")
             refused = fixture.ha("timing", GOAL)
             if b"integrity" not in broken.stdout + broken.stderr and b"chain" not in broken.stdout + broken.stderr:
@@ -675,6 +803,16 @@ class Damage(unittest.TestCase):
 
 
 # --- AC-8 -------------------------------------------------------------------
+
+def estimate_facts(fixture):
+    result = fixture.ha("estimate", GOAL, "--format", "json")
+    try:
+        facts = json.loads(result.stdout)
+    except ValueError:
+        raise Unavailable(f"estimate JSON (exit {result.returncode})") from None
+    facts.pop("goal", None)
+    return json.dumps(facts, sort_keys=True)
+
 
 class Capabilities(unittest.TestCase):
     """AC-8: the time view is an optional capability; log, tail, estimate and Core checks stay the same."""
@@ -692,45 +830,79 @@ class Capabilities(unittest.TestCase):
             if caps.get("supported_rules") != BASE_RULES or caps.get("default_rules") != "run-rules/3":
                 problems.append(f"rules {caps.get('supported_rules')} / {caps.get('default_rules')}")
             features, formats = caps.get("features", []), caps.get("formats", {})
-            if features[:len(BASE_FEATURES)] != BASE_FEATURES or any(formats.get(k) != v for k, v in BASE_FORMATS.items()):
+            if not set(BASE_FEATURES) <= set(features) or any(formats.get(k) != v for k, v in BASE_FORMATS.items()):
                 problems.append(f"existing features or formats changed: {features} {formats}")
             if "run-timing/v1" not in features or formats.get("timing") != ["timing/v1"]:
                 problems.append(f"the time view is not listed: {features} {formats}")
-            core = ROOT / "plugins/seal/skills/seal/scripts/check_core.py"
-            checked = run([sys.executable, core, "--ha", ha, "--operation", "start"], ROOT, timeout=120)
-            if checked.returncode:
-                problems.append("check_core.py start refuses this executable")
             # An executable without the time view is still accepted for ordinary work.
             older = base / "ha-without-timing"
             older.write_text("#!/bin/sh\nif [ \"$1\" = capabilities ]; then printf '%s\\n' '"
                              + json.dumps(dict(caps, features=BASE_FEATURES, formats=BASE_FORMATS)) + "'; exit 0; fi\n"
                              f"exec {ha} \"$@\"\n", encoding="utf-8")
             older.chmod(0o755)
-            checked = run([sys.executable, core, "--ha", older, "--operation", "start"], ROOT, timeout=120)
-            if checked.returncode:
-                problems.append("check_core.py requires the time view for an ordinary start")
-            fixture = Fixture(base, ha)
-            lines = runs_of(fixture.flow())
-            checked = run([sys.executable, core, "--ha", ha, "--operation", "check", "--goal", fixture.root / GOAL],
-                          fixture.root, timeout=120)
-            if checked.returncode:
-                problems.append("check_core.py check refuses this executable for a started goal: "
-                                + checked.stdout.decode(errors="replace")[-500:])
+            core = ROOT / "plugins/seal/skills/seal/scripts/check_core.py"
+            for name, executable in (("this executable", ha), ("an executable without the time view", older)):
+                checked = run([sys.executable, core, "--ha", executable, "--operation", "start"], ROOT, timeout=120)
+                if checked.returncode:
+                    problems.append(f"check_core.py start refuses {name}")
+            fixture = Fixture(base, ha, rules=None)
+            fixture.start()
+            if estimate_facts(fixture) != BASE_ESTIMATE:
+                problems.append(f"estimate after start differs from the base commit's: {estimate_facts(fixture)}")
+            lines = runs_of(fixture.flow_after_start())
+            for name, executable in (("this executable", ha), ("an executable without the time view", older)):
+                for operation in ("resume", "check"):
+                    checked = run([sys.executable, core, "--ha", executable, "--operation", operation,
+                                   "--goal", fixture.root / GOAL], fixture.root, timeout=120)
+                    if checked.returncode:
+                        problems.append(f"check_core.py {operation} refuses {name} for a started goal: "
+                                        + checked.stdout.decode(errors="replace")[-300:])
+            if estimate_facts(fixture) != BASE_ESTIMATE:
+                problems.append("estimate after the runs differs from the base commit's")
             seq = lines[0]["seq"]
             log = fixture.root / ".git/ha/runs" / GOAL.replace("/", "%2F") / f"{seq}.log"
             shown, tail = fixture.ha("log", GOAL, str(seq)), fixture.ha("log", GOAL, str(seq), "--tail", "1")
             if not log.is_file() or shown.stdout != log.read_bytes() or tail.stdout != (log.read_bytes().splitlines(True) or [b""])[-1]:
                 problems.append("ha log or --tail no longer prints the raw output")
-            estimate = fixture.ha("estimate", GOAL, "--format", "json")
-            try:
-                if json.loads(estimate.stdout).get("schema") != "estimate/v1":
-                    problems.append("estimate is no longer estimate/v1")
-            except ValueError:
-                problems.append("estimate JSON")
             require(self, not problems, "time-view-capability-missing", "; ".join(problems))
 
 
 # --- AC-9 -------------------------------------------------------------------
+
+def blocks(text):
+    """Paragraphs, with each table row and list item as its own block."""
+    found = []
+    for paragraph in re.split(r"\n\s*\n", text):
+        lines = paragraph.splitlines()
+        if lines and all(line.startswith(("|", "- ", "  ")) for line in lines):
+            found += lines
+        else:
+            found.append(paragraph)
+    return found
+
+
+# What each document explains, element by element; the words of one element
+# appear together in one block (AC-9).
+EXPLAINED = {
+    "contracts/run-record.md": {
+        "the limit interval and what it leaves out": ("`limit_elapsed_ms`", "제한 타이머", "정리"),
+        "the CPU states": ("`cpu`", "`measured`", "`unavailable`", "`failed`"),
+        "that a missing value is not filled": ("`unavailable`", "0"),
+        "the CPU scope per system": ("`cpu.scope`", "운영체제", "비교하지"),
+        "that judgment and budget do not use it": ("`timing`", "판정", "예산"),
+    },
+    "guides/USAGE.md": {
+        "the view and that judgment and budget do not use it": ("ha timing", "판정", "예산"),
+        "the limit interval and what it leaves out": ("제한 구간", "타이머", "정리"),
+        "the CPU scope and that unmeasured CPU is not 0": ("CPU", "범위", "0이 아니라"),
+    },
+    "guides/USAGE.en.md": {
+        "the view and that judgment and budget do not use it": ("ha timing", "status", "budget"),
+        "the limit interval and what it leaves out": ("limit interval", "timer", "cleanup"),
+        "the CPU scope and that unmeasured CPU is not 0": ("CPU", "Job Object", "never as 0"),
+    },
+}
+
 
 class Privacy(unittest.TestCase):
     """AC-9: no path, environment value or command output in timing fields or the view; documented meaning."""
@@ -742,16 +914,48 @@ class Privacy(unittest.TestCase):
             texts = {"timing fields": json.dumps([l.get("timing") for l in lines]),
                      "time view": view(fixture).stdout.decode(errors="replace"),
                      "time view JSON": view(fixture, "--format", "json").stdout.decode(errors="replace")}
-            forbidden = {SECRET, OUTPUT, str(fixture.root), os.path.realpath(fixture.root), str(Path.home())}
+            forbidden = {SECRET, OUTPUT, str(fixture.root), os.path.realpath(fixture.root)}
+            home = str(Path.home())
+            if len(home.strip("/")) > 0:
+                forbidden.add(home)
             problems = [f"{where} contains {value!r}" for where, text in texts.items() for value in forbidden if value in text]
-            docs = {"contracts/run-record.md": ("`timing`", "`limit_ms`", "`limit_elapsed_ms`", "`limit_reached`", "`cpu`",
-                                                "`ha timing`"),
-                    "guides/USAGE.md": ("ha timing", "판정", "예산"),
-                    "guides/USAGE.en.md": ("ha timing", "status", "budget")}
-            for path, words in docs.items():
-                text = (ROOT / path).read_text(encoding="utf-8")
-                problems += [f"{path} does not explain {w}" for w in words if w not in text]
+            for path, elements in EXPLAINED.items():
+                try:
+                    found = blocks((ROOT / path).read_text(encoding="utf-8"))
+                except (OSError, UnicodeDecodeError) as error:
+                    raise Unavailable(f"{path}: {error}") from None
+                problems += [f"{path} does not explain {element}" for element, words in elements.items()
+                             if not any(all(word in block for word in words) for block in found)]
             require(self, not problems, "timing-docs-missing", "; ".join(problems))
+
+
+# --- AC-7 -------------------------------------------------------------------
+
+class CpuFailure(unittest.TestCase):
+    """AC-7: a CPU collection failure leaves the run's result, evidence and process handling as they were."""
+
+    def test_cpu_collection_failure_changes_no_run_handling(self):
+        with tempfile.TemporaryDirectory(prefix="jaekit-timing-cpu-failure-") as directory:
+            fixture = Fixture(directory, build(Path(directory) / "ha"), rules=None)
+            lines = runs_of(fixture.flow())
+        measures = any(((l.get("timing") or {}).get("cpu") or {}).get("status") == "measured" for l in lines)
+        if not measures:
+            # Nothing collects CPU here, so a collection failure cannot change anything.
+            return
+        result = run(["go", "test", "-count=1", "-json", "-run", f"^{CPU_FAILURE_TEST}$", "./internal/run"], ROOT,
+                     timeout=600)
+        actions = {}
+        for raw in result.stdout.splitlines():
+            try:
+                event = json.loads(raw)
+            except ValueError:
+                continue
+            if event.get("Test") == CPU_FAILURE_TEST and event.get("Action") in ("pass", "fail", "skip"):
+                actions[event["Action"]] = True
+        if "fail" in actions:
+            self.fail(f"[violation:cpu-failure-changes-the-run] {CPU_FAILURE_TEST} failed")
+        if "pass" not in actions:
+            raise Unavailable(f"{CPU_FAILURE_TEST} did not run in ./internal/run (exit {result.returncode})")
 
 
 if __name__ == "__main__":
