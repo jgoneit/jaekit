@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "time-limit-notice",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "TimeLimitNotice.test_notice_before_a_run_that_reached_or_neared_its_limit",
+      "result_targets": {
+        "additional_violations": [
+          "time-limit-notice.assertion-2",
+          "time-limit-notice.assertion-3",
+          "time-limit-notice.assertion-4",
+          "time-limit-notice.assertion-5",
+          "time-limit-notice.assertion-6",
+          "time-limit-notice.assertion-7",
+          "time-limit-notice.assertion-8"
+        ],
+        "execution": "time-limit-notice.execution",
+        "selection": "time-limit-notice.selection",
+        "attribution": "time-limit-notice.attribution"
+      }
+    }
+  ]
+}

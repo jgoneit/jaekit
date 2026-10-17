@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "test-authority",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "TestAuthority.test_reasoned_test_change_inside_the_authority_needs_no_confirmation",
+      "result_targets": {
+        "additional_violations": [
+          "test-authority.assertion-2",
+          "test-authority.assertion-3",
+          "test-authority.assertion-4",
+          "test-authority.assertion-5",
+          "test-authority.assertion-6",
+          "test-authority.assertion-7",
+          "test-authority.assertion-8"
+        ],
+        "execution": "test-authority.execution",
+        "selection": "test-authority.selection",
+        "attribution": "test-authority.attribution"
+      }
+    },
+    {
+      "target": "test-classification",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "TestAuthority.test_authority_and_classification_stay_as_started",
+      "result_targets": {
+        "additional_violations": [
+          "test-classification.assertion-2",
+          "test-classification.assertion-3",
+          "test-classification.assertion-4",
+          "test-classification.assertion-5",
+          "test-classification.assertion-6",
+          "test-classification.assertion-7",
+          "test-classification.assertion-8"
+        ],
+        "execution": "test-classification.execution",
+        "selection": "test-classification.selection",
+        "attribution": "test-classification.attribution"
+      }
+    }
+  ]
+}

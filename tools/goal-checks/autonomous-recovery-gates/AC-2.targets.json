@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "test-moves",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "TestMoves.test_moves_need_every_new_path_and_weakening_stays_with_the_user",
+      "result_targets": {
+        "additional_violations": [
+          "test-moves.assertion-2",
+          "test-moves.assertion-3",
+          "test-moves.assertion-4",
+          "test-moves.assertion-5",
+          "test-moves.assertion-6",
+          "test-moves.assertion-7",
+          "test-moves.assertion-8"
+        ],
+        "execution": "test-moves.execution",
+        "selection": "test-moves.selection",
+        "attribution": "test-moves.attribution"
+      }
+    }
+  ]
+}

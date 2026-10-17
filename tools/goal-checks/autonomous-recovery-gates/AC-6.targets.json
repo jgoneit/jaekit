@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "error-recovery",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "Recovery.test_recovery_after_the_error_limit",
+      "result_targets": {
+        "additional_violations": [
+          "error-recovery.assertion-2",
+          "error-recovery.assertion-3",
+          "error-recovery.assertion-4",
+          "error-recovery.assertion-5",
+          "error-recovery.assertion-6",
+          "error-recovery.assertion-7",
+          "error-recovery.assertion-8"
+        ],
+        "execution": "error-recovery.execution",
+        "selection": "error-recovery.selection",
+        "attribution": "error-recovery.attribution"
+      }
+    },
+    {
+      "target": "recovery-limit",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "Recovery.test_recovery_limit_and_kept_failures",
+      "result_targets": {
+        "additional_violations": [
+          "recovery-limit.assertion-2",
+          "recovery-limit.assertion-3",
+          "recovery-limit.assertion-4",
+          "recovery-limit.assertion-5",
+          "recovery-limit.assertion-6",
+          "recovery-limit.assertion-7",
+          "recovery-limit.assertion-8"
+        ],
+        "execution": "recovery-limit.execution",
+        "selection": "recovery-limit.selection",
+        "attribution": "recovery-limit.attribution"
+      }
+    }
+  ]
+}

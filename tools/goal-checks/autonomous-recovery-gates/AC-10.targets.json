@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "core-identity",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "CoreIdentity.test_new_seal_starts_and_resumes_only_on_a_supporting_core",
+      "result_targets": {
+        "additional_violations": [
+          "core-identity.assertion-2",
+          "core-identity.assertion-3",
+          "core-identity.assertion-4",
+          "core-identity.assertion-5",
+          "core-identity.assertion-6",
+          "core-identity.assertion-7",
+          "core-identity.assertion-8"
+        ],
+        "execution": "core-identity.execution",
+        "selection": "core-identity.selection",
+        "attribution": "core-identity.attribution"
+      }
+    }
+  ]
+}

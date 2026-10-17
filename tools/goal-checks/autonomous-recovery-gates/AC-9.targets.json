@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "autonomy-guidance",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "Guidance.test_seal_guidance_covers_the_new_autonomy",
+      "result_targets": {
+        "additional_violations": [
+          "autonomy-guidance.assertion-2",
+          "autonomy-guidance.assertion-3",
+          "autonomy-guidance.assertion-4",
+          "autonomy-guidance.assertion-5",
+          "autonomy-guidance.assertion-6",
+          "autonomy-guidance.assertion-7",
+          "autonomy-guidance.assertion-8"
+        ],
+        "execution": "autonomy-guidance.execution",
+        "selection": "autonomy-guidance.selection",
+        "attribution": "autonomy-guidance.attribution"
+      }
+    }
+  ]
+}
