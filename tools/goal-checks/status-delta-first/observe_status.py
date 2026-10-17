@@ -122,7 +122,20 @@ class Observed(unittest.TestCase):
         self.home = self.base / "home"
         self.home.mkdir()
         self.env = isolated_env(self.home)
-        files = {
+        for name, text in self.fixture_files().items():
+            path = self.repo / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
+        self.git("init", "-q", "-b", "main")
+        self.commit("fixture")
+        self.run_ha("start", GOAL, "--request", "greeting을 hello로 바꿔줘", expect=(0,))
+        self.after_start()
+
+    def after_start(self):
+        pass
+
+    def fixture_files(self):
+        return {
             f"{GOAL}/SPEC.md": SPEC,
             f"{GOAL}/PLAN.md": PLAN.format(greeting="sh tests/greeting.sh"),
             f"{GOAL}/REVIEW.md": "# REVIEW — g\n\n## 결론\nready\n",
@@ -133,13 +146,6 @@ class Observed(unittest.TestCase):
             # The marker is command output: it may reach `ha log`, never status.
             "tests/greeting.sh": f"echo {SECRET}\necho \"$STATUS_DELTA_ENV\"\ngrep -qx hello src/greeting.txt\n",
         }
-        for name, text in files.items():
-            path = self.repo / name
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(text, encoding="utf-8")
-        self.git("init", "-q", "-b", "main")
-        self.commit("fixture")
-        self.run_ha("start", GOAL, "--request", "greeting을 hello로 바꿔줘", expect=(0,))
 
     def tearDown(self):
         shutil.rmtree(self.base, ignore_errors=True)
@@ -239,6 +245,42 @@ class UnmetSummary(Observed):
         summary = head_of(self.status())
         failed = item(summary, "AC-2 ")
         self.require(f"`ha log {GOAL} {again['AC-2']}`" in failed and failed.count("ha log") == 1,
+                     "unmet-summary-missing", summary)
+
+
+class BaselineReason(Observed):
+    """A change condition whose baseline already passes: the reason rests on that baseline.
+
+    Plain script checks cannot establish run-rules/3 baselines, so the start
+    line, still the only record, is rewritten to run-rules/2 as the Go
+    scenario runner does. Rewriting the last line keeps the hash chain intact.
+    """
+
+    def fixture_files(self):
+        files = super().fixture_files()
+        files[f"{GOAL}/SPEC.md"] = SPEC.replace("## Open Decisions", "- **AC-3** a vacuous check.\n\n## Open Decisions")
+        files[f"{GOAL}/PLAN.md"] = PLAN.format(greeting="sh tests/greeting.sh").replace(
+            "| AC-2 | maintain |", "| AC-3 | change | `sh tests/vacuous.sh` | tests/vacuous.sh | T001 |\n| AC-2 | maintain |")
+        files[f"{GOAL}/PLAN.md"] = files[f"{GOAL}/PLAN.md"].replace("| AC-1, AC-2 |", "| AC-1, AC-2, AC-3 |")
+        files["tests/vacuous.sh"] = "exit 0\n"
+        return files
+
+    def after_start(self):
+        records = self.repo / GOAL / "runs.jsonl"
+        lines = records.read_bytes().splitlines(keepends=True)
+        if len(lines) != 1 or lines[0].count(b'"rules":"run-rules/3"') != 1:
+            raise Unavailable("unexpected start record")
+        records.write_bytes(lines[0].replace(b'"rules":"run-rules/3"', b'"rules":"run-rules/2"'))
+
+    def test_baseline_reason_points_to_its_baseline(self):
+        result = self.run_ha("check", GOAL, "--baseline", "AC-3", expect=(1,))
+        match = re.search(r"^AC-3 baseline unexpected_pass \(seq (\d+)\)$", result.stdout, re.M)
+        if not match:
+            raise Unavailable("baseline did not pass unexpectedly: " + result.stdout)
+        self.check("AC-3")
+        summary = head_of(self.status())
+        line = item(summary, "AC-3 ")
+        self.require("`baseline_unexpected_pass`" in line and f"`ha log {GOAL} {match.group(1)}`" in line,
                      "unmet-summary-missing", summary)
 
 

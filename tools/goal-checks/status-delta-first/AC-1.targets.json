@@ -40,6 +40,26 @@
         "selection": "unmet-latest.selection",
         "attribution": "unmet-latest.attribution"
       }
+    },
+    {
+      "target": "unmet-baseline",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "BaselineReason.test_baseline_reason_points_to_its_baseline",
+      "result_targets": {
+        "additional_violations": [
+          "unmet-baseline.assertion-2",
+          "unmet-baseline.assertion-3",
+          "unmet-baseline.assertion-4",
+          "unmet-baseline.assertion-5",
+          "unmet-baseline.assertion-6",
+          "unmet-baseline.assertion-7",
+          "unmet-baseline.assertion-8"
+        ],
+        "execution": "unmet-baseline.execution",
+        "selection": "unmet-baseline.selection",
+        "attribution": "unmet-baseline.attribution"
+      }
     }
   ]
 }
