@@ -560,26 +560,35 @@ def table(text):
     return cells(rows[0]), body
 
 
-TIME = re.compile(r"(\d+)(?:\.(\d+))?\s*(ms|s)\b")
+TIME = re.compile(r"(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?\s*(ms|s)\b")
 
 
 def shown_ms(text):
-    """The times a Markdown cell shows, in milliseconds (`12 ms`, `3 s`, `1.250 s`).
-
-    A cell whose digits are not all such times, or whose milliseconds have a
-    fraction, uses a notation this check cannot read: the value is unobserved.
-    """
-    if re.search(r"\d", TIME.sub("", text)):
-        raise Unavailable(f"the Markdown view writes a time this check cannot read: {text!r}")
+    """The times a Markdown cell shows, in milliseconds (`12 ms`, `1,234 ms`, `3 s`, `1.250 s`)."""
     found = []
     for whole_part, fraction, unit in TIME.findall(text):
+        whole_part = int(whole_part.replace(",", ""))
         if unit == "ms":
-            found.append(None if fraction else int(whole_part))
+            found.append(None if fraction else whole_part)
         else:
-            found.append(None if len(fraction) > 3 else int(whole_part) * 1000 + int(fraction.ljust(3, "0") or 0))
-    if None in found:
-        raise Unavailable(f"the Markdown view writes a time this check cannot read: {text!r}")
+            found.append(None if len(fraction) > 3 else whole_part * 1000 + int(fraction.ljust(3, "0") or 0))
     return found
+
+
+def shows_times(text, values):
+    """Whether a Markdown cell shows the recorded times, in order, among whatever else it shows.
+
+    When it does not, and some number in it is not a time this check reads
+    (`1m 2s`, a fraction of a millisecond), its notation leaves the value
+    unobserved; otherwise the cell shows other times than the record's.
+    """
+    found = shown_ms(text)
+    rest = iter(found)
+    if all(any(value == shown for shown in rest) for value in values):
+        return True
+    if None in found or re.search(r"\d", TIME.sub("", text)):
+        raise Unavailable(f"the Markdown view writes a time this check cannot read: {text!r}")
+    return False
 
 
 def column(header, word):
@@ -659,7 +668,7 @@ class TimeView(unittest.TestCase):
                     if cpu.get("status") == "measured":
                         times["cpu"] = [cpu.get("user_ms"), cpu.get("system_ms")]
                     for word, values in times.items():
-                        if shown_ms(row[places[word]].split("(")[0]) != values:
+                        if not shows_times(row[places[word]], values):
                             problems.append(f"Markdown {word} of seq {line['seq']} shows {row[places[word]]!r}, "
                                             f"not {values} ms")
             for want in ("T001 command 1", "not the goal's elapsed time or budget"):
@@ -749,14 +758,14 @@ def judged(fixture, raw, clocks=None):
     `ha done` appends a line even when it does not complete, so the record is
     put back after it. That line carries the time of the call, so done's
     window elapsed time is compared apart: clocks receives it with the
-    monotonic time of the call.
+    monotonic times before and after the call.
     """
     fixture.records_path.write_bytes(raw)
     status = status_facts(fixture)
     called = time.monotonic()
     facts = status_facts(fixture, done=True)
     if clocks is not None:
-        clocks.append((window_elapsed(facts), called))
+        clocks.append((window_elapsed(facts), called, time.monotonic()))
     done = untimed(facts)
     fixture.records_path.write_bytes(raw)
     return status, done
@@ -788,11 +797,11 @@ class Judgment(unittest.TestCase):
                 for name, kept, removed in zip(("status", "done"), with_timing, stripped):
                     if kept != removed:
                         problems.append(f"{rules or 'default rules'}: {name} differs without timing")
-                # Done's window time may differ only by the time between the two calls.
-                (first, at), (second, later) = clocks
-                if None in (first, second) or abs(first - second) > math.ceil(later - at) + 1:
+                # Done's window time may differ only by the time from the first call to the end of the second.
+                (first, at, _), (second, _, ended) = clocks
+                if None in (first, second) or abs(first - second) > math.ceil(ended - at) + 1:
                     problems.append(f"{rules or 'default rules'}: done's window elapsed time {first} s became "
-                                    f"{second} s in {later - at:.1f} s")
+                                    f"{second} s within {ended - at:.1f} s")
         require(self, not problems, "timing-changes-judgment", "; ".join(problems))
 
 
