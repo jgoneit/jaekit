@@ -302,6 +302,21 @@ class RecordReasons(Observed):
                      "unmet-summary-missing", summary)
 
 
+class GoalReasonClass(Observed):
+    def test_goal_level_user_reason_shows_its_class(self):
+        self.check(want={"AC-1": "pass", "AC-2": "fail"})
+        records = self.repo / GOAL / "runs.jsonl"
+        lines = records.read_bytes().splitlines(keepends=True)
+        if len(lines) < 2 or lines[0].count(b'"quote":"') != 1:
+            raise Unavailable("unexpected start record")
+        # Editing an earlier line breaks the next line's link to it.
+        lines[0] = lines[0].replace(b'"quote":"', b'"quote":"edited ')
+        records.write_bytes(b"".join(lines))
+        summary = head_of(self.status())
+        self.require(item(summary, "`record_integrity` ") == "- `record_integrity` (user)",
+                     "unmet-summary-missing", summary)
+
+
 class BaselineReason(Observed):
     """A change condition whose baseline already passes: the reason rests on that baseline.
 
@@ -398,9 +413,6 @@ class InvalidatedCompletion(Observed):
         lines[0] = lines[0].replace(b'"quote":"', b'"quote":"edited ')
         records.write_bytes(b"".join(lines))
         self.invalidated(seq, commit, "record chain broken")
-        summary = head_of(self.status())
-        self.require(item(summary, "`record_integrity` ") == "- `record_integrity` (user)",
-                     "invalidated-completion-hidden", summary)
 
     def test_latest_done_of_any_state_is_named(self):
         seq, commit = self.complete()
@@ -450,17 +462,23 @@ class ScenarioPinsReasons(unittest.TestCase):
     """The behavioral scenario that pins stale-completion reasons exists and passes."""
 
     def test_completion_invalidated_scenario_passes(self):
+        steps = ROOT / "testdata/scenarios/completion-invalidated/steps"
+        text = steps.read_text(encoding="utf-8") if steps.is_file() else ""
+        pinned = [line for line in text.splitlines() if line.startswith("expect-output ")]
+        if not any("is no longer valid: " in line and "code outside the bundle documents changed" in line
+                   for line in pinned) or not any("reopened at seq " in line for line in pinned):
+            self.fail("[violation:stale-reason-scenario-missing] the scenario does not pin the reasons: " + text)
         env = dict(os.environ, GOTOOLCHAIN="local", GOFLAGS="-mod=readonly")
         try:
             result = subprocess.run(["go", "test", "-count=1", "-v", "-run", "^TestScenarios$/^completion-invalidated$",
                                      "./cmd/ha"], cwd=ROOT, env=env, capture_output=True, text=True, timeout=900)
         except (OSError, subprocess.TimeoutExpired) as error:
             raise Unavailable(f"go test: {error}") from None
-        if result.returncode not in (0, 1) or "[build failed]" in result.stdout + result.stderr:
-            raise Unavailable("scenario tests could not run: " + result.stdout + result.stderr)
-        if not (ROOT / "testdata/scenarios/completion-invalidated/steps").is_file() or \
-                "--- PASS: TestScenarios/completion-invalidated" not in result.stdout:
+        if "--- FAIL: TestScenarios/completion-invalidated" in result.stdout:
             self.fail("[violation:stale-reason-scenario-missing] " + result.stdout[-4000:])
+        if result.returncode != 0 or "--- PASS: TestScenarios/completion-invalidated" not in result.stdout:
+            # Toolchain, module, build or setup failures never reach the scenario.
+            raise Unavailable("scenario tests could not run: " + result.stdout + result.stderr)
 
 
 class CheckOutput(Observed):
@@ -501,10 +519,11 @@ class Preserved(Observed):
     """Judgment, JSON, exit codes, done, log, per-target lines, table and reasons keep their meaning."""
 
     def test_judgment_json_and_exit_codes(self):
-        result, seqs = self.check(want={"AC-1": "pass", "AC-2": "fail"})
-        self.require(result.returncode == 1 and f"AC-1 check pass (seq {seqs['AC-1']})" in result.stdout.splitlines()
-                     and f"AC-2 check fail (seq {seqs['AC-2']})" in result.stdout.splitlines(),
+        result = self.run_ha("check", GOAL, expect=(0, 1))
+        lines = result.stdout.splitlines()
+        self.require(result.returncode == 1 and lines[:2] == ["AC-1 check pass (seq 2)", "AC-2 check fail (seq 3)"],
                      "check-result-lines-changed", result.stdout)
+        seqs = {"AC-1": 2, "AC-2": 3}
         status = self.run_ha("status", GOAL, "--format", "json", expect=(1,))
         report = json.loads(status.stdout)
         criteria = {c["id"]: (c["satisfied"], c["reason"]) for c in report["criteria"]}
@@ -593,5 +612,10 @@ class Documents(unittest.TestCase):
                         "no longer valid", "output for <target>: ha log <goal> <seq>", "`status/v1`",
                         "synthetic example", "```text", "docs/specs/example")
                       if p not in reference])
+        for name, body in (("run-record.md §4.4", contract), ("references/ha.md Status output", reference)):
+            examples = "\n".join(re.findall(r"^```text\n(.*?)^```", body, re.S | re.M))
+            paths = set(re.findall(r"docs/specs/([^\s`/]+)", examples))
+            if paths - {"example"}:
+                missing.append(f"{name}: example names a goal other than docs/specs/example: {sorted(paths)}")
         if missing:
             self.fail("[violation:status-output-docs-missing] " + "\n".join(missing))

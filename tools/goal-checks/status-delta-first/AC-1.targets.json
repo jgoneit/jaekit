@@ -120,6 +120,26 @@
         "selection": "unmet-invalid.selection",
         "attribution": "unmet-invalid.attribution"
       }
+    },
+    {
+      "target": "unmet-goal-user-class",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "GoalReasonClass.test_goal_level_user_reason_shows_its_class",
+      "result_targets": {
+        "additional_violations": [
+          "unmet-goal-user-class.assertion-2",
+          "unmet-goal-user-class.assertion-3",
+          "unmet-goal-user-class.assertion-4",
+          "unmet-goal-user-class.assertion-5",
+          "unmet-goal-user-class.assertion-6",
+          "unmet-goal-user-class.assertion-7",
+          "unmet-goal-user-class.assertion-8"
+        ],
+        "execution": "unmet-goal-user-class.execution",
+        "selection": "unmet-goal-user-class.selection",
+        "attribution": "unmet-goal-user-class.attribution"
+      }
     }
   ]
 }

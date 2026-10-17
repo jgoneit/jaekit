@@ -272,6 +272,50 @@
     {
       "id": "unmet-invalid.attribution",
       "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class",
+      "violation": "unmet-summary-missing"
+    },
+    {
+      "id": "unmet-goal-user-class.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }
