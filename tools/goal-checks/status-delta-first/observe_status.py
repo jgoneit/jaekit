@@ -509,9 +509,12 @@ class ScenarioPinsReasons(unittest.TestCase):
         except (OSError, subprocess.TimeoutExpired) as error:
             raise Unavailable(f"go test: {error}") from None
         # A control scenario with the same `implement` setup and fixture
-        # commands, which this goal does not change, must pass first; if it
-        # fails, the fixture environment (Git, sh, grep, ...) is the cause.
-        if f"--- PASS: TestScenarios/{CONTROL}" not in result.stdout:
+        # commands runs alongside. If it fails before any expectation in its
+        # own steps file, the fixture environment (Git, sh, grep, ...) or the
+        # shared setup is the cause. A failure at its own expectation is a
+        # product result and does not hide the scenario's assertions.
+        if (f"--- PASS: TestScenarios/{CONTROL}" not in result.stdout
+                and not re.search(rf"{CONTROL}/steps:\d+: expect-", result.stdout)):
             raise Unavailable(f"the fixture environment failed the control scenario {CONTROL}: "
                               + result.stdout[-4000:] + result.stderr[-2000:])
         # With a working fixture, the scenario's own result is a failed
