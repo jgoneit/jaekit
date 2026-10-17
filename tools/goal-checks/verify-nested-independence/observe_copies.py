@@ -52,6 +52,10 @@ JUDGMENTS = {
     "tools/check_public_docs.py": "public documentation",
 }
 PUBLIC = ("tools/check_public_tree.py", "tools/check_public_docs.py")
+# Exits that mean a judgment found a problem. check_public_docs.py uses 1 only
+# for problems in readable documents (3 unverified, 70 internal); the others
+# also exit nonzero for unreadable inputs or uncaught errors.
+FINDING_EXITS = {"tools/check_public_docs.py": {1}}
 TRACKED = "tools/goal-checks/release-0-1-3-review-fixes/test_private_independence.py"
 TIMEOUT = 900
 
@@ -493,23 +497,30 @@ def ran_in_both(run, script):
 def require_judged(case, run, scripts, violation, what):
     """Each script judged and passed in both copies.
 
-    Only a judgment that never ran while the route passed is the violation. A
-    judgment that ran without passing is not observed as one: a nonzero exit of
-    these tools also covers inputs they could not read, unverified results and
-    crashes. One that never ran after a route failure may not have been reached.
-    Both are execution errors.
+    The violation is a judgment that never ran in a copy while the route
+    passed, or one that ran there and exited with the code its tool keeps for a
+    problem found (FINDING_EXITS). Any other run without passing is not observed
+    as one: those exits also cover unreadable inputs, unverified results and
+    crashes. A judgment that never ran after a route failure may not have been
+    reached. Both are execution errors.
     """
     runs = {script: judged_runs(run, script) for script in scripts}
-    failed = {script: sorted(kind for kind, codes in found.items() if 0 not in codes) for script, found in runs.items()}
-    missing = {script: sorted({"full", "shallow"} - set(found)) for script, found in runs.items()}
-    failed = {script: kinds for script, kinds in failed.items() if kinds}
-    missing = {script: kinds for script, kinds in missing.items() if kinds}
-    if failed:
-        raise Unavailable(f"{what} ran in a copy without passing: {failed}; their exit does not tell a finding "
+    found = {script: sorted(kind for kind, codes in kinds.items()
+                            if 0 not in codes and set(codes) & FINDING_EXITS.get(script, set()))
+             for script, kinds in runs.items()}
+    unjudged = {script: sorted(kind for kind, codes in kinds.items()
+                               if 0 not in codes and not set(codes) & FINDING_EXITS.get(script, set()))
+                for script, kinds in runs.items()}
+    missing = {script: sorted({"full", "shallow"} - set(kinds)) for script, kinds in runs.items()}
+    found, unjudged, missing = ({script: kinds for script, kinds in table.items() if kinds}
+                                for table in (found, unjudged, missing))
+    if unjudged:
+        raise Unavailable(f"{what} ran in a copy without passing: {unjudged}; their exit does not tell a finding "
                           "from a failure to judge")
-    if missing:
+    if missing and not found:
         assert_route_passed(run)
-    require(case, not missing, violation, f"{what} that did not run in a copy: {missing}")
+    require(case, not found and not missing, violation,
+            f"{what} that found a problem in a copy: {found}; that did not run in a copy: {missing}")
     assert_route_passed(run)
 
 
