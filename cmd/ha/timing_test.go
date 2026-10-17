@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -125,5 +127,53 @@ func TestTimingViewNamesTheGoalWithoutAnAbsolutePath(t *testing.T) {
 		if code != 0 || strings.Contains(text, root) || !strings.Contains(text, estimateTestGoal) {
 			t.Fatalf("%s view of an absolute goal path (exit %d): %s", format, code, text)
 		}
+	}
+}
+
+// The Seal consumer reads formats.timing as optional, and a present value with
+// the wrong type is uninterpretable like any other format (core-capabilities.md).
+func TestCapabilityConsumerChecksTheOptionalTimingFormat(t *testing.T) {
+	helper, err := filepath.Abs("../../plugins/seal/skills/seal/scripts/check_core.py")
+	if err != nil {
+		t.Fatal(err)
+	}
+	python, err := exec.LookPath("python3")
+	if err != nil {
+		t.Fatal("test environment requires Python 3 for the optional consumer check")
+	}
+	for _, tc := range []struct {
+		name   string
+		timing any
+		exit   int
+		reason string
+	}{
+		{"absent", nil, 0, "compatible"},
+		{"listed", []string{"timing/v1"}, 0, "compatible"},
+		{"wrong type", 5, 2, "invalid_capabilities"},
+		{"empty name", []string{""}, 2, "invalid_capabilities"},
+		{"duplicate name", []string{"timing/v1", "timing/v1"}, 2, "invalid_capabilities"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			response := compatibilityMutate(t, func(v map[string]any) {
+				if tc.timing != nil {
+					v["formats"].(map[string]any)["timing"] = tc.timing
+				}
+			})
+			core := compatibilityFake(t, t.TempDir(), response, 0, false)
+			cmd := exec.Command(python, helper, "--ha", core, "--operation", "start")
+			cmd.Dir = t.TempDir()
+			cmd.Env = append(os.Environ(), "PYTHONDONTWRITEBYTECODE=1")
+			out, err := cmd.CombinedOutput()
+			code := 0
+			if exit, ok := err.(*exec.ExitError); ok {
+				code = exit.ExitCode()
+			} else if err != nil {
+				t.Fatal(err)
+			}
+			var report map[string]any
+			if json.Unmarshal(out, &report) != nil || code != tc.exit || report["reason"] != tc.reason {
+				t.Fatalf("consumer decision: exit %d, %s; want %d/%s", code, out, tc.exit, tc.reason)
+			}
+		})
 	}
 }
