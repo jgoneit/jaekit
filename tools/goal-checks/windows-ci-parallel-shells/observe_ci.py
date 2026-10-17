@@ -49,9 +49,12 @@ UNCHANGED_JOBS = {
     "macos": "7b4f3fae7f618166fee594ad0de3f9191c26dc563dc4a03202d2945803dd827c",
     "docs": "aaf360dd39e6108f214c1b8dbecd458e826ae90a05f21cecb2baa2407c84bcb2",
 }
-# What a recorded report carried at the base commit (cross_platform_ci.py there).
-# Synthetic reports are built from these, not from the reader under test, so a
-# reader that starts requiring more of recorded reports is caught (AC-4).
+# What a recorded report carries and the base commit's reader (cross_platform_ci.py
+# there) requires: real Windows reports carry the name-character package check
+# since tools/windows/native_checks.py added it, and the base reader requires it
+# since the fix merged under these checks. Synthetic reports are built from these,
+# not from the reader under test, so a reader that starts requiring more of
+# recorded reports than the base reader is caught (AC-4).
 RECORDED = {
     "scenarios": {"TestNativeAdmissionFailureHasNoOutputDigest", "TestNativeUnconfirmedShutdownHasNoOutputDigest",
                   "TestNativeArgvEnvironmentAndOutcomes", "TestNativeTimeoutStopsDescendantWrites",
