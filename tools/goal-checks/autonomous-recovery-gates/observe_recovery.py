@@ -854,17 +854,6 @@ def notices(result, target):
     return [line for line in lines[:end] if line.startswith(NOTICE) and f" {target} " in f"{line} "]
 
 
-# "safe" or "safely" in any case; it counts as negated only right after "not"
-# or "never", optionally followed by "known (to be)". The notice form is fixed,
-# so any other wording that calls a run safe is refused.
-SAFETY = re.compile(r"\b(?:(not|never)\s+(?:known\s+(?:to\s+be\s+)?)?)?safe(?:ly)?\b", re.I)
-
-
-def affirms_safety(line):
-    """True when the notice calls the run safe anywhere other than directly negated."""
-    return any(match.group(1) is None for match in SAFETY.finditer(line))
-
-
 class TimeLimitNotice(unittest.TestCase):
     """AC-8: before a run, the executor learns of earlier runs at or near their limit.
 
@@ -880,8 +869,10 @@ class TimeLimitNotice(unittest.TestCase):
             require(self, f.start_new(), "time-limit-notice-missing", "no run-rules/4 goal")
             problems = []
             first = notices(f.must(f.ha("check", GOAL, "EX-5", timeout=120), "first EX-5"), "EX-5")
-            if len(first) != 1 or "risk unknown" not in first[0] or affirms_safety(first[0]):
-                problems.append(f"the first run did not say its time risk is unknown without calling it safe: {first}")
+            # The PLAN fixes the content to one of three forms and never "safe";
+            # with no earlier run the only form is `risk unknown`.
+            if first != [f"{NOTICE} EX-5 risk unknown"]:
+                problems.append(f"the first run's notice is not exactly `{NOTICE} EX-5 risk unknown`: {first}")
             near = f.records()[-1]
             f.must(f.ha("check", GOAL, "EX-4", timeout=120), "timed-out EX-4", codes=(1,))
             reached = f.records()[-1]
