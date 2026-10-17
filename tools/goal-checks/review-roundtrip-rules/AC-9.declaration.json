@@ -6,6 +6,8 @@
     "tools/goal-checks/produce.py",
     "tools/goal-checks/review-roundtrip-rules/AC-9.targets.json",
     "tools/gap-checks/test_docs_environment.py",
+    "tools/workflow-checks/test_verify.py",
+    "tools/review-checks/test_installation.py",
     "tools/result_observations.py"
   ],
   "targets": [
