@@ -4,8 +4,12 @@
 Git repositories in temporary directories. Each goal has two maintain
 conditions: AC-1 passes on the fixture and AC-2 passes only after
 `src/greeting.txt` says hello. Nothing reads private documents, the real HOME
-or global Git configuration. A failed build, Git or `ha` invocation that
-cannot run is an error, never a violation; only an observed output property is.
+or global Git configuration.
+
+A failed build, a Git or `ha` step that cannot run, and a fixture step that
+ends differently than the fixture requires (for example a check that errors
+where it should fail) are errors, never violations. Only an observed output
+property is a violation, named by an explicit `[violation:...]` tag.
 """
 import json
 import os
@@ -26,6 +30,7 @@ ENV_SECRET = "status-delta-env-marker-93ab"
 STATUS_FIELDS = {"schema", "goal", "status", "exit_code", "assurance", "check_author", "rules", "ha_version",
                  "skill", "record_head", "completion_record", "complete_without_record", "commit", "tree_clean",
                  "spec_digest", "criteria", "reasons", "lint", "changes", "budget", "findings", "usage", "logs"}
+RESULT_LINE = re.compile(r"^(\S+) (check|baseline) (\S+) \(seq (\d+)\)$", re.M)
 
 SPEC = """# Greeting says hello
 
@@ -81,7 +86,7 @@ PROGRESS = """# PROGRESS — g
 
 
 class Unavailable(Exception):
-    """A tool or fixture step could not run; reported as an error."""
+    """A tool or fixture step could not run as required; reported as an error."""
 
 
 def isolated_env(home):
@@ -164,24 +169,26 @@ class Observed(unittest.TestCase):
         self.git("add", "-A")
         self.git("commit", "-q", "-m", message)
 
-    def run_ha(self, *args, expect=None):
+    def run_ha(self, *args, expect=None, cwd=None):
         try:
-            result = subprocess.run([str(self.ha), *args], cwd=self.repo, env=self.env, capture_output=True,
-                                    text=True, timeout=300)
+            result = subprocess.run([str(self.ha), *args], cwd=cwd or self.repo, env=self.env,
+                                    capture_output=True, text=True, timeout=300)
         except (OSError, subprocess.TimeoutExpired) as error:
             raise Unavailable(f"ha {args[0]}: {error}") from None
         if expect is not None and result.returncode not in expect:
             raise Unavailable(f"ha {' '.join(args)} exited {result.returncode}: {result.stdout}{result.stderr}")
         return result
 
-    def check(self, *targets):
-        result = self.run_ha("check", GOAL, *targets, expect=(0, 1))
-        seqs = {m.group(1): int(m.group(2))
-                for m in re.finditer(r"^(\S+) check \S+ \(seq (\d+)\)$", result.stdout, re.M)}
-        return result, seqs
+    def check(self, *targets, want=None, goal=GOAL, cwd=None):
+        """Run ha check; `want` maps each target to the result the fixture requires."""
+        result = self.run_ha("check", goal, *targets, expect=(0, 1), cwd=cwd)
+        found = {m.group(1): (m.group(3), int(m.group(4))) for m in RESULT_LINE.finditer(result.stdout)}
+        if want is not None and {t: r for t, (r, _) in found.items()} != want:
+            raise Unavailable(f"fixture checks ended {found}, not {want}: {result.stdout}{result.stderr}")
+        return result, {t: s for t, (_, s) in found.items()}
 
-    def status(self):
-        return self.run_ha("status", GOAL, expect=(0, 1, 2, 3, 4)).stdout
+    def status(self, goal=GOAL, cwd=None):
+        return self.run_ha("status", goal, expect=(0, 1, 2, 3, 4), cwd=cwd).stdout
 
     def say_hello(self):
         (self.repo / "src/greeting.txt").write_text("hello\n", encoding="utf-8")
@@ -191,12 +198,16 @@ class Observed(unittest.TestCase):
     def complete(self):
         """Record a completion and return its seq and commit."""
         self.say_hello()
-        self.check()
+        self.check(want={"AC-1": "pass", "AC-2": "pass"})
         done = self.run_ha("done", GOAL, expect=(0,)).stdout
         match = re.search(r"^- completion record: seq (\d+)$", done, re.M)
         if not match:
             raise Unavailable("ha done did not record a completion: " + done)
         return int(match.group(1)), self.git("rev-parse", "HEAD").strip()
+
+    def change_code(self):
+        (self.repo / "src/extra.txt").write_text("x\n", encoding="utf-8")
+        self.commit("more code")
 
     def block_output(self, seq):
         """Make storing the output of run `seq` fail after the process ran."""
@@ -228,24 +239,39 @@ def completion_line(text):
     return item(text, "completion record:")
 
 
+def log_line(criterion, reason, cls, seq, goal=GOAL):
+    return f"- {criterion} `{reason}` ({cls}): seq {seq}, output `ha log {goal} {seq}`"
+
+
 class UnmetSummary(Observed):
     def test_unmet_conditions_and_goal_reasons_come_before_the_table(self):
-        _, seqs = self.check()
+        _, seqs = self.check(want={"AC-1": "pass", "AC-2": "fail"})
         summary = head_of(self.status())
-        failed = item(summary, "AC-2 ")
-        open_task = item(summary, "`task_open`")
-        self.require(all(part in failed for part in ("`criterion_failed`", "(executor)",
-                                                     f"`ha log {GOAL} {seqs['AC-2']}`"))
-                     and "(executor)" in open_task and not item(summary, "AC-1 "),
+        self.require(item(summary, "AC-2 ") == log_line("AC-2", "criterion_failed", "executor", seqs["AC-2"])
+                     and item(summary, "`task_open` ") == "- `task_open` (executor)"
+                     and not item(summary, "AC-1 "),
                      "unmet-summary-missing", summary)
 
     def test_summary_points_to_the_latest_fresh_record(self):
-        self.check()
-        _, again = self.check("AC-2")
+        self.check(want={"AC-1": "pass", "AC-2": "fail"})
+        _, again = self.check("AC-2", want={"AC-2": "fail"})
         summary = head_of(self.status())
-        failed = item(summary, "AC-2 ")
-        self.require(f"`ha log {GOAL} {again['AC-2']}`" in failed and failed.count("ha log") == 1,
+        self.require(item(summary, "AC-2 ") == log_line("AC-2", "criterion_failed", "executor", again["AC-2"]),
                      "unmet-summary-missing", summary)
+
+    def test_command_runs_from_the_directory_it_names(self):
+        _, seqs = self.check(want={"AC-1": "pass", "AC-2": "fail"})
+        sub = self.repo / "src"
+        summary = head_of(self.status(goal="../" + GOAL, cwd=sub))
+        line = item(summary, "AC-2 ")
+        command = re.search(r"`(ha log [^`]+)`", line)
+        opened = None
+        if command:
+            words = command.group(1).split()
+            opened = self.run_ha(*words[1:], cwd=sub)
+        self.require(line == log_line("AC-2", "criterion_failed", "executor", seqs["AC-2"], goal="../" + GOAL)
+                     and opened is not None and opened.returncode == 0 and SECRET in opened.stdout,
+                     "unmet-summary-missing", f"{summary}\n{opened.stdout if opened else ''}")
 
 
 class RecordReasons(Observed):
@@ -255,15 +281,14 @@ class RecordReasons(Observed):
         # Each blocked output makes the attempted run an error without a log.
         self.block_output(2)
         self.block_output(3)
-        self.check("AC-2")
-        _, last = self.check("AC-2")
+        self.check("AC-2", want={"AC-2": "error"})
+        _, last = self.check("AC-2", want={"AC-2": "error"})
         summary = head_of(self.status())
-        line = item(summary, "AC-2 ")
-        self.require("`error_limit`" in line and f"seq {last['AC-2']}," in line and "no stored output" in line,
+        self.require(item(summary, "AC-2 ") == f"- AC-2 `error_limit` (user): seq {last['AC-2']}, no stored output",
                      "unmet-summary-missing", summary)
 
     def test_invalid_record_points_to_that_record(self):
-        _, seqs = self.check("AC-2")
+        _, seqs = self.check("AC-2", want={"AC-2": "fail"})
         records = self.repo / GOAL / "runs.jsonl"
         lines = records.read_bytes().splitlines(keepends=True)
         # The last line can change without breaking the chain; an unknown
@@ -273,8 +298,7 @@ class RecordReasons(Observed):
         lines[-1] = lines[-1].replace(b'"result":"fail"', b'"result":"invented"')
         records.write_bytes(b"".join(lines))
         summary = head_of(self.status())
-        line = item(summary, "AC-2 ")
-        self.require("`record_invalid`" in line and f"seq {seqs['AC-2']}," in line,
+        self.require(item(summary, "AC-2 ") == log_line("AC-2", "record_invalid", "user", seqs["AC-2"]),
                      "unmet-summary-missing", summary)
 
 
@@ -307,43 +331,46 @@ class BaselineReason(Observed):
         match = re.search(r"^AC-3 baseline unexpected_pass \(seq (\d+)\)$", result.stdout, re.M)
         if not match:
             raise Unavailable("baseline did not pass unexpectedly: " + result.stdout)
-        self.check("AC-3")
+        self.check("AC-3", want={"AC-3": "pass"})
         summary = head_of(self.status())
-        line = item(summary, "AC-3 ")
-        self.require("`baseline_unexpected_pass`" in line and f"`ha log {GOAL} {match.group(1)}`" in line,
+        self.require(item(summary, "AC-3 ") == log_line("AC-3", "baseline_unexpected_pass", "executor",
+                                                        match.group(1)),
                      "unmet-summary-missing", summary)
 
 
 class MissingOutput(Observed):
     def test_condition_without_a_fresh_record_gets_no_seq(self):
-        self.check("AC-1")
+        self.check("AC-1", want={"AC-1": "pass"})
         summary = head_of(self.status())
-        missing = item(summary, "AC-2 ")
-        self.require("`criterion_missing`" in missing and "no fresh record" in missing
-                     and "seq" not in missing and "ha log" not in missing,
+        self.require(item(summary, "AC-2 ") == "- AC-2 `criterion_missing` (executor): no fresh record",
+                     "no-record-state-missing", summary)
+
+    def test_stale_record_is_not_cited(self):
+        self.check(want={"AC-1": "pass", "AC-2": "fail"})
+        self.change_code()
+        summary = head_of(self.status())
+        self.require(item(summary, "AC-2 ") == "- AC-2 `criterion_missing` (executor): no fresh record",
                      "no-record-state-missing", summary)
 
     def test_record_without_stored_output_gets_no_log_command(self):
         self.block_output(2)
-        _, seqs = self.check("AC-2")
-        if seqs.get("AC-2") != 2:
+        _, seqs = self.check("AC-2", want={"AC-2": "error"})
+        if seqs["AC-2"] != 2:
             raise Unavailable(f"unexpected record sequence: {seqs}")
         summary = head_of(self.status())
-        errored = item(summary, "AC-2 ")
-        self.require("seq 2" in errored and "no stored output" in errored and "ha log" not in errored,
+        self.require(item(summary, "AC-2 ") == "- AC-2 `criterion_error` (executor): seq 2, no stored output",
                      "no-output-state-missing", summary)
 
 
 class InvalidatedCompletion(Observed):
     def invalidated(self, seq, commit, reason):
         line = completion_line(self.status())
-        self.require(f"seq {seq}" in line and commit[:12] in line and "no longer valid" in line and reason in line,
-                     "invalidated-completion-hidden", line)
+        self.require(f"latest completion seq {seq} (commit {commit[:12]}) is no longer valid: " in line
+                     and reason in line, "invalidated-completion-hidden", line)
 
     def test_code_change_after_completion(self):
         seq, commit = self.complete()
-        (self.repo / "src/extra.txt").write_text("x\n", encoding="utf-8")
-        self.commit("more code")
+        self.change_code()
         self.invalidated(seq, commit, "code outside the bundle documents changed")
 
     def test_reopen_after_completion(self):
@@ -371,48 +398,112 @@ class InvalidatedCompletion(Observed):
         lines[0] = lines[0].replace(b'"quote":"', b'"quote":"edited ')
         records.write_bytes(b"".join(lines))
         self.invalidated(seq, commit, "record chain broken")
+        summary = head_of(self.status())
+        self.require(item(summary, "`record_integrity` ") == "- `record_integrity` (user)",
+                     "invalidated-completion-hidden", summary)
+
+    def test_latest_done_of_any_state_is_named(self):
+        seq, commit = self.complete()
+        self.change_code()
+        again = self.run_ha("done", GOAL, expect=(1,)).stdout
+        if "- status: **incomplete**" not in again:
+            raise Unavailable("the second done did not record incomplete: " + again)
+        latest = len((self.repo / GOAL / "runs.jsonl").read_bytes().splitlines())
+        head = self.git("rev-parse", "HEAD").strip()
+        line = completion_line(self.status())
+        self.require(f"latest done seq {latest} (commit {head[:12]}) recorded incomplete, not a completion" in line
+                     and f"latest completion seq {seq} (commit {commit[:12]}) is no longer valid" in line,
+                     "invalidated-completion-hidden", line)
 
     def test_command_change_after_completion(self):
         seq, commit = self.complete()
         (self.repo / GOAL / "PLAN.md").write_text(PLAN.format(greeting="sh ./tests/greeting.sh"), encoding="utf-8")
         self.commit("change the command")
         self.invalidated(seq, commit, "required command changed: AC-2")
-        # Existing forms stay: no completion record at all, and a goal that only
-        # needs `ha done` (checked on a fresh repository below).
+
+
+class DoneForms(Observed):
+    """Done records that never completed, and the forms that stay as they are."""
+
+    def test_only_an_unfinished_done_is_named(self):
+        self.check(want={"AC-1": "pass", "AC-2": "fail"})
+        self.run_ha("done", GOAL, expect=(1,))
+        latest = len((self.repo / GOAL / "runs.jsonl").read_bytes().splitlines())
+        head = self.git("rev-parse", "HEAD").strip()
+        line = completion_line(self.status())
+        self.require(line == f"- completion record: none; latest done seq {latest} (commit {head[:12]}) "
+                             "recorded incomplete, not a completion",
+                     "invalidated-completion-hidden", line)
+        # A goal without done records keeps `none`, and one that only needs
+        # `ha done` keeps its hint.
         self.tearDown()
         self.setUp()
         self.require(completion_line(self.status()) == "- completion record: none",
                      "invalidated-completion-hidden", "a goal without done records changed its line")
         self.say_hello()
-        self.check()
+        self.check(want={"AC-1": "pass", "AC-2": "pass"})
         self.require(completion_line(self.status()) == f"- completion record: none; run `ha done {GOAL}` to record completion",
                      "invalidated-completion-hidden", "the ha done hint changed")
 
 
+class ScenarioPinsReasons(unittest.TestCase):
+    """The behavioral scenario that pins stale-completion reasons exists and passes."""
+
+    def test_completion_invalidated_scenario_passes(self):
+        env = dict(os.environ, GOTOOLCHAIN="local", GOFLAGS="-mod=readonly")
+        try:
+            result = subprocess.run(["go", "test", "-count=1", "-v", "-run", "^TestScenarios$/^completion-invalidated$",
+                                     "./cmd/ha"], cwd=ROOT, env=env, capture_output=True, text=True, timeout=900)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise Unavailable(f"go test: {error}") from None
+        if result.returncode not in (0, 1) or "[build failed]" in result.stdout + result.stderr:
+            raise Unavailable("scenario tests could not run: " + result.stdout + result.stderr)
+        if not (ROOT / "testdata/scenarios/completion-invalidated/steps").is_file() or \
+                "--- PASS: TestScenarios/completion-invalidated" not in result.stdout:
+            self.fail("[violation:stale-reason-scenario-missing] " + result.stdout[-4000:])
+
+
 class CheckOutput(Observed):
     def test_failed_check_names_the_log_of_each_failed_target(self):
-        result, seqs = self.check()
-        out = result.stdout
-        self.require(f"ha log {GOAL} {seqs['AC-2']}" in out and "<seq>" not in out
-                     and f"ha log {GOAL} {seqs['AC-1']}" not in out,
-                     "check-log-command-missing", out)
+        (self.repo / "src/keep.txt").write_text("changed\n", encoding="utf-8")
+        self.commit("break keep")
+        result, seqs = self.check(want={"AC-1": "fail", "AC-2": "fail"})
+        lines = result.stdout.splitlines()
+        self.require(f"output for AC-1: ha log {GOAL} {seqs['AC-1']}" in lines
+                     and f"output for AC-2: ha log {GOAL} {seqs['AC-2']}" in lines
+                     and "<seq>" not in result.stdout,
+                     "check-log-command-missing", result.stdout)
+
+    def test_passing_targets_get_no_log_command_and_commands_run_where_named(self):
+        sub = self.repo / "src"
+        result, seqs = self.check(want={"AC-1": "pass", "AC-2": "fail"}, goal="../" + GOAL, cwd=sub)
+        lines = result.stdout.splitlines()
+        named = f"output for AC-2: ha log ../{GOAL} {seqs['AC-2']}"
+        opened = self.run_ha("log", "../" + GOAL, str(seqs["AC-2"]), cwd=sub) if named in lines else None
+        absolute, more = self.check("AC-2", want={"AC-2": "fail"}, goal=str(self.repo / GOAL))
+        self.require(named in lines and not any(line.startswith("output for AC-1") for line in lines)
+                     and opened is not None and SECRET in opened.stdout
+                     and f"output for AC-2: ha log {GOAL} {more['AC-2']}" in absolute.stdout.splitlines()
+                     and str(self.repo) not in absolute.stdout,
+                     "check-log-command-missing", result.stdout + absolute.stdout)
 
     def test_target_without_stored_output_is_named(self):
         self.block_output(2)
-        result, seqs = self.check("AC-2")
-        out = result.stdout
-        self.require(seqs.get("AC-2") == 2 and "no stored output" in item(out, "") + out
-                     and f"ha log {GOAL} 2" not in out and "<seq>" not in out,
-                     "check-no-output-state-missing", out)
+        result, seqs = self.check("AC-2", want={"AC-2": "error"})
+        if seqs["AC-2"] != 2:
+            raise Unavailable(f"unexpected record sequence: {seqs}")
+        lines = result.stdout.splitlines()
+        self.require("output for AC-2: no stored output (seq 2)" in lines and "ha log" not in result.stdout,
+                     "check-no-output-state-missing", result.stdout)
 
 
 class Preserved(Observed):
-    """Judgment, JSON, exit codes, done, log and per-target lines keep their meaning."""
+    """Judgment, JSON, exit codes, done, log, per-target lines, table and reasons keep their meaning."""
 
     def test_judgment_json_and_exit_codes(self):
-        result, seqs = self.check()
-        self.require(result.returncode == 1 and re.search(r"^AC-1 check pass \(seq \d+\)$", result.stdout, re.M)
-                     and re.search(r"^AC-2 check fail \(seq \d+\)$", result.stdout, re.M),
+        result, seqs = self.check(want={"AC-1": "pass", "AC-2": "fail"})
+        self.require(result.returncode == 1 and f"AC-1 check pass (seq {seqs['AC-1']})" in result.stdout.splitlines()
+                     and f"AC-2 check fail (seq {seqs['AC-2']})" in result.stdout.splitlines(),
                      "check-result-lines-changed", result.stdout)
         status = self.run_ha("status", GOAL, "--format", "json", expect=(1,))
         report = json.loads(status.stdout)
@@ -423,6 +514,15 @@ class Preserved(Observed):
                      and criteria == {"AC-1": (True, ""), "AC-2": (False, "criterion_failed")}
                      and codes == ["criterion_failed", "task_open"],
                      "status-json-changed", status.stdout)
+        markdown = self.status()
+        reasons = markdown.split("### Reasons\n\n", 1)[1].split("\n\n", 1)[0].splitlines() \
+            if "### Reasons\n\n" in markdown else []
+        self.require(re.search(r"^\| AC-2 \| maintain \| yes \| no \| criterion_failed \| — \| checks 1 \(fail 1, error 0\)",
+                               markdown, re.M)
+                     and re.search(r"^\| AC-1 \| maintain \| yes \| yes \| — \| \d+ \|", markdown, re.M)
+                     and reasons[:1] == ["- `criterion_failed` (executor) AC-2"]
+                     and len(reasons) == 2 and reasons[1].startswith("- `task_open` (executor)"),
+                     "status-table-or-reasons-changed", markdown)
         log = self.run_ha("log", GOAL, str(seqs["AC-2"]), expect=(0,)).stdout
         tail = self.run_ha("log", GOAL, str(seqs["AC-2"]), "--tail", "1", expect=(0,)).stdout
         self.require(SECRET in log and ENV_SECRET in log and SECRET not in tail and ENV_SECRET in tail,
@@ -435,22 +535,23 @@ class Preserved(Observed):
         self.require(report["status"] == "complete" and report["completion_record"] == seq
                      and set(report) == STATUS_FIELDS,
                      "status-json-changed", status.stdout)
-        check, _ = self.check()
-        self.require(check.returncode == 0 and "ha log" not in check.stdout, "check-result-lines-changed",
+        check, _ = self.check(want={"AC-1": "pass", "AC-2": "pass"})
+        self.require(check.returncode == 0 and "output for" not in check.stdout, "check-result-lines-changed",
                      check.stdout)
 
 
 class Deterministic(Observed):
     def test_human_output_is_stable_and_contains_no_output_paths_or_values(self):
-        seq, _ = self.complete()
+        self.complete()
         (self.repo / "src/greeting.txt").write_text("hi again\n", encoding="utf-8")
         self.commit("break the greeting")
-        self.check()
+        self.check(want={"AC-1": "pass", "AC-2": "fail"})
         first = self.status()
         time.sleep(1.1)
         second = self.status()
+        absolute = self.status(goal=str(self.repo / GOAL))
         leaked = [value for value in (SECRET, ENV_SECRET, str(self.base), str(self.home), str(self.temporary))
-                  if value in first]
+                  if value in first or value in absolute]
         self.require(first == second and not leaked, "status-output-unstable",
                      f"leaked: {leaked}; equal: {first == second}")
 
@@ -464,20 +565,19 @@ def section(text, heading):
     except ValueError:
         return ""
     end = start
+    fence = False
     while end < len(lines):
+        if lines[end].startswith("```"):
+            fence = not fence
         match = re.match(r"(#{1,6}) ", lines[end])
-        if match and len(match.group(1)) <= level:
+        if match and not fence and len(match.group(1)) <= level:
             break
         end += 1
     return "\n".join(lines[start:end])
 
 
 class Documents(unittest.TestCase):
-    """Fixed phrases in the output contract and the Seal reference; no build."""
-
-    def require(self, condition, violation, detail=""):
-        if not condition:
-            self.fail(f"[violation:{violation}] {detail}")
+    """Fixed phrases and a synthetic example in the contract and the Seal reference; no build."""
 
     def test_contract_and_reference_describe_the_new_output(self):
         contract = section((ROOT / "contracts/run-record.md").read_text(encoding="utf-8"), "### 4.4 출력")
@@ -485,10 +585,13 @@ class Documents(unittest.TestCase):
                             "## Status output")
         missing = ([f"run-record.md §4.4: {p}" for p in (
                         "미충족 요약", "`ha log <goal> <seq>`", "no stored output", "no fresh record",
-                        "무효가 된 이유", "output for <대상>: ha log <goal> <seq>", "판정·`status/v1`")
+                        "무효가 된 이유", "output for <대상>: ha log <goal> <seq>", "판정·`status/v1`",
+                        "합성 예시", "```text", "docs/specs/example")
                     if p not in contract]
                    + [f"references/ha.md Status output: {p}" for p in (
                         "unmet summary", "`ha log <goal> <seq>`", "no stored output", "no fresh record",
-                        "no longer valid", "output for <target>: ha log <goal> <seq>", "`status/v1`")
+                        "no longer valid", "output for <target>: ha log <goal> <seq>", "`status/v1`",
+                        "synthetic example", "```text", "docs/specs/example")
                       if p not in reference])
-        self.require(not missing, "status-output-docs-missing", "\n".join(missing))
+        if missing:
+            self.fail("[violation:status-output-docs-missing] " + "\n".join(missing))

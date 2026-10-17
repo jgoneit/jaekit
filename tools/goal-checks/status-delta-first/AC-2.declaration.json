@@ -54,6 +54,50 @@
       "violation": "no-additional-violation"
     },
     {
+      "id": "no-stale-record",
+      "violation": "no-record-state-missing"
+    },
+    {
+      "id": "no-stale-record.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-stale-record.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-stale-record.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-stale-record.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-stale-record.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-stale-record.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-stale-record.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-stale-record.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-stale-record.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "no-stale-record.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "no-output",
       "violation": "no-output-state-missing"
     },

@@ -98,6 +98,50 @@
       "violation": "no-additional-violation"
     },
     {
+      "id": "unmet-command-cwd",
+      "violation": "unmet-summary-missing"
+    },
+    {
+      "id": "unmet-command-cwd.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "unmet-baseline",
       "violation": "unmet-summary-missing"
     },

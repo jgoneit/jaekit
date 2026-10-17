@@ -42,6 +42,26 @@
       }
     },
     {
+      "target": "unmet-command-cwd",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "UnmetSummary.test_command_runs_from_the_directory_it_names",
+      "result_targets": {
+        "additional_violations": [
+          "unmet-command-cwd.assertion-2",
+          "unmet-command-cwd.assertion-3",
+          "unmet-command-cwd.assertion-4",
+          "unmet-command-cwd.assertion-5",
+          "unmet-command-cwd.assertion-6",
+          "unmet-command-cwd.assertion-7",
+          "unmet-command-cwd.assertion-8"
+        ],
+        "execution": "unmet-command-cwd.execution",
+        "selection": "unmet-command-cwd.selection",
+        "attribution": "unmet-command-cwd.attribution"
+      }
+    },
+    {
       "target": "unmet-baseline",
       "runner": "unittest",
       "file": "tools/goal-checks/status-delta-first/observe_status.py",

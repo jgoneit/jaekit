@@ -22,6 +22,26 @@
       }
     },
     {
+      "target": "check-cwd",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "CheckOutput.test_passing_targets_get_no_log_command_and_commands_run_where_named",
+      "result_targets": {
+        "additional_violations": [
+          "check-cwd.assertion-2",
+          "check-cwd.assertion-3",
+          "check-cwd.assertion-4",
+          "check-cwd.assertion-5",
+          "check-cwd.assertion-6",
+          "check-cwd.assertion-7",
+          "check-cwd.assertion-8"
+        ],
+        "execution": "check-cwd.execution",
+        "selection": "check-cwd.selection",
+        "attribution": "check-cwd.attribution"
+      }
+    },
+    {
       "target": "check-no-output",
       "runner": "unittest",
       "file": "tools/goal-checks/status-delta-first/observe_status.py",

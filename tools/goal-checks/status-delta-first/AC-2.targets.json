@@ -22,6 +22,26 @@
       }
     },
     {
+      "target": "no-stale-record",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "MissingOutput.test_stale_record_is_not_cited",
+      "result_targets": {
+        "additional_violations": [
+          "no-stale-record.assertion-2",
+          "no-stale-record.assertion-3",
+          "no-stale-record.assertion-4",
+          "no-stale-record.assertion-5",
+          "no-stale-record.assertion-6",
+          "no-stale-record.assertion-7",
+          "no-stale-record.assertion-8"
+        ],
+        "execution": "no-stale-record.execution",
+        "selection": "no-stale-record.selection",
+        "attribution": "no-stale-record.attribution"
+      }
+    },
+    {
       "target": "no-output",
       "runner": "unittest",
       "file": "tools/goal-checks/status-delta-first/observe_status.py",

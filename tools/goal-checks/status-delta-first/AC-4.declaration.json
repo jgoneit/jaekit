@@ -54,6 +54,50 @@
       "violation": "no-additional-violation"
     },
     {
+      "id": "check-cwd",
+      "violation": "check-log-command-missing"
+    },
+    {
+      "id": "check-cwd.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-cwd.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-cwd.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-cwd.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-cwd.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-cwd.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-cwd.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-cwd.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-cwd.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-cwd.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
       "id": "check-no-output",
       "violation": "check-no-output-state-missing"
     },
