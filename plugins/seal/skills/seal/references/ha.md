@@ -2,7 +2,7 @@
 
 `ha` runs verification commands without a shell, appends `runs.jsonl`, and computes the goal state from the record, the bundle, and git only. The same inputs always give the same state; the current time is never used.
 
-The commands below describe release v0.1.4: ha 0.1.4 and Seal 0.1.12. This release includes the optional post-completion findings extension; verify its additional capabilities on the actual executable before use. Seal 0.1.13 adds guidance for the optional decision history extension, which ha 0.1.4 does not provide; use it only with an executable that declares it (see [Decision history](#decision-history)). Core v0.1.3 does not provide that extension. Existing `/1`, `/2` and `/3` goals keep their saved rules; installation does not migrate their records or reset usage or time limits.
+The commands below describe release v0.1.4: ha 0.1.4 and Seal 0.1.12. This release includes the optional post-completion findings extension; verify its additional capabilities on the actual executable before use. Seal 0.1.13 adds guidance for the optional decision history extension, which ha 0.1.4 does not provide; use it only with an executable that declares it (see [Decision history](#decision-history)). Core v0.1.3 does not provide that extension. Seal 0.1.14 adds check-authoring guidance ([What checks read](#what-checks-read)) without a Core change. Existing `/1`, `/2` and `/3` goals keep their saved rules; installation does not migrate their records or reset usage or time limits.
 
 ## Core compatibility
 
@@ -144,6 +144,10 @@ A goal is computed under the rules its start record names (`rules:` in `ha statu
 | `spec_changed` | user | The goal documents differ from the start |
 | `blocked` | — | See states |
 | `budget_exceeded` | — | See states |
+
+## What checks read
+
+`ha` uses the base commit in three places: the baseline, which runs `change` conditions on a temporary worktree of the base commit with their check paths copied from HEAD; `out_of_scope`, the files changed since base outside `바꿀 수 있는 경로`; and `test_definition_changed`. Checks themselves judge the tree they run in and never read the base commit or other history, so the same check gives the baseline's violation and the later pass. See [bundle.md](bundle.md#check-inputs).
 
 ## Freshness
 

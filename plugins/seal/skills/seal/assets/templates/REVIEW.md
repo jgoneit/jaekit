@@ -10,10 +10,10 @@
 <none, or conflicts among SPEC, project documents, and code>
 
 ## 중요한 미결정
-<none, or each open decision closed by the user's quoted answer or an explicit assumption>
+<none, or each open decision closed by the user's quoted answer or an explicit assumption; a reading that keeps a component's declared scope or trust boundary is such an assumption, not a question>
 
 ## 검증 방법과 환경
-<whether each command runs here; tools, data, network; how a cross-component flow is checked across the boundary>
+<whether each command runs here; tools, data, network and repository history (a check reads history only when its condition is about history; name the range it reads); how a cross-component flow is checked across the boundary>
 
 <for goals started with seal 0.1.10 or later; existing goals retain their starting format:
 - Expected-result grounds: requirement/public contract/agreed invariant and location; unresolved/conflicting grounds stay explicit

@@ -1203,6 +1203,74 @@
         }
       ],
       "follow_up": []
+    },
+    {
+      "id": "authoring-check-current-tree",
+      "invariant": "I1",
+      "status": "protected",
+      "sources": [
+        "tools/contract-checks/authoring_check.py"
+      ],
+      "property": "The Seal check-authoring producer judges only the files of the checked tree: a copy without Git metadata or history gives the same verdicts, and a missing or malformed product file is an observed violation. Its guidance scans flag a concrete goal path that only starts with a placeholder name, and an exemption phrase exempts only the asking words it governs.",
+      "examples": [
+        "copy of the read files without .git",
+        "missing Seal skill file",
+        "missing Seal skill file under the private-content criterion",
+        "malformed plugin manifest",
+        "goal path with a placeholder prefix",
+        "exempt phrase next to a new user step",
+        "malformed marketplace metadata or plugins",
+        "maintain example with a current-tree helper path",
+        "checkout-local path under /opt or /var",
+        "question verb aimed at the user",
+        "exempt noun list followed by a new imperative",
+        "absolute path outside the listed roots"
+      ],
+      "families": [
+        "checkout and history-less copy",
+        "absent product artifact",
+        "malformed product artifact",
+        "guidance text scans"
+      ],
+      "boundary": "Covers the file-reading criteria. The consistency criterion also runs the plugin Go regressions and the public documentation check in the checked tree; their result meaning is the authoring-check-result-meaning route.",
+      "checks": [
+        {
+          "file": "tools/goal-checks/test_authoring_check.py",
+          "selector": "CurrentTree",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "authoring-check-result-meaning",
+      "invariant": "I2",
+      "status": "protected",
+      "sources": [
+        "tools/contract-checks/authoring_check.py",
+        "tools/contract-checks/check.py"
+      ],
+      "property": "A failing required plugin regression or public documentation check is a violation; a missing tool, a tool on PATH that cannot start, a run ended by a signal, build failure, skipped or absent required test, or crashed check is an error, never a violation or a pass.",
+      "examples": [
+        "required Go test failed",
+        "go not on PATH",
+        "python3 on PATH cannot start",
+        "go test killed by a signal after a failure"
+      ],
+      "families": [
+        "Go JSON test events",
+        "tool preflight",
+        "producer exception to check-result error"
+      ],
+      "boundary": "Synthetic process results replace go and the documentation check; the actual commands run when the producer checks a tree. The child process overrides GOFLAGS with a single space, so flags persisted with `go env -w` cannot skip the required tests, and sets GOWORK=off.",
+      "checks": [
+        {
+          "file": "tools/goal-checks/test_authoring_check.py",
+          "selector": "ResultMeaning",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
     }
   ]
 }
