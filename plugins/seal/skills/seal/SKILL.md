@@ -2,7 +2,7 @@
 name: seal
 description: Carry a goal in docs/specs/<goal>/ to recorded completion — plan, implement, verify through the ha binary, and resume in a new session. Use when the user calls this skill with a goal or asks to implement, finish, or continue a goal document, for example "$seal:seal docs/specs/x" in Codex, "/seal:seal docs/specs/x" in Claude Code, "docs/specs/x 구현해줘", or "docs/specs/x 이어서 해줘".
 metadata:
-  version: "0.1.14"
+  version: "0.1.15"
 ---
 
 # Seal
@@ -58,6 +58,13 @@ These rules cover every check in the condition table: `change`, `maintain`, `EX-
 - When a condition is itself about repository history or refs, such as a tag's type or a commit message format, the check reads only the range and refs the condition names. Missing or unreadable history is an error or unobserved, neither a violation nor a pass. A structured `change` check reports that state itself. Core records a `maintain`, `EX-n` or task command by its exit status alone, and any nonzero exit is a failure, so before running such a check, check that the named range and refs can be read. When they cannot, record no result: for a required condition or task, record a block with cause `environment`; an `EX-n` check stays unobserved and never blocks completion. The pre-execution review (`REVIEW.md`) records why such a check is needed and the range it reads.
 - When a component that the goal documents point to or change declares its own scope or trust boundary, such as being pinned to a version or release, preserving past verdicts, isolating imports or limiting its inputs, that declaration is current behavior: keep it unless the goal documents explicitly change it. When the goal documents can be met either by widening that component or by adding a separate one, choose the reading that keeps the declaration, and record it in `REVIEW.md` as an explicit assumption that the report repeats, without asking the user. When the goal documents do change the component, new code stays inside the boundary it declares; for example, a new import goes through the same import boundary. When no reading satisfies both the declaration and the goal documents, the existing document-conflict rule applies.
 
+## Final candidate evidence
+
+Plan where the expensive evidence comes from before recording anything. Formats are in [references/bundle.md](references/bundle.md#final-candidate-evidence).
+
+- While exploring, run narrow checks that fit the change. Write in `PLAN.md` that the expensive full verification a condition needs is recorded once with `ha check` on the final candidate. Running the full verification once for development and once more for the record on the same candidate is a cost to avoid, not extra assurance.
+- When several required conditions need the same full regression, let one condition own it and have each other condition observe its own property. This only assigns the shared run: it does not drop or weaken any condition, and each condition still needs its own recorded result.
+
 ## Assurance policy
 
 Apply the selected assurance policy for this goal or project. Link required conditions and source, the effect of a false success, the relevant boundary, and evidence gaps; related conditions may share this explanation. Risk alone does not mandate a fixed review procedure. Low-risk exclusions need a reason, and the executor may not downgrade a selected required guarantee for convenience. Only unresolved outcome-changing guarantees need a user decision.
@@ -73,6 +80,7 @@ The Native Agent chooses methods, timing, reviewers, and models within the selec
 - Declare completion only when `ha done <goal>` exits 0 and prints a completion record. Paste that output unchanged into the completion report. A `complete` from `ha status` alone is not a completion.
 - When `ha done` records completion, report it without waiting for the user to check the result. The user evaluates the result later, on their own.
 - Once a completion record exists, take up the goal again only when the user asks for rework, and record that request with `reopen`.
+- After a completion record, a user's request to apply remote review or pull request comments is a rework request. Record it with `reopen`, quoting that request. Commit the fixes, re-record on the final head every required check the change made stale (Core's freshness decides which), and record completion again with `ha done` before the head is sent or merged.
 - `incomplete`: keep working on the listed reasons.
 - `needs_user`: ask the user about each listed item.
 - `blocked` or `budget_exhausted`: stop, write in `PROGRESS.md` what remains and how to continue, and report it.
@@ -84,6 +92,7 @@ The Native Agent chooses methods, timing, reviewers, and models within the selec
 - Terminal failures (authentication, permission, usage limits) are not retried. Record `ha note <goal> block --cause <auth|permission|quota|environment|spec|other> --quote "…"` and report.
 - Goals started with seal 0.1.10 or later connect expected-result grounds, observed boundaries, methods and substitutes, and uncovered failure classes in the existing review and report. Shared condition groups may reference one explanation. Distinguish planned from observed, evidence versions, and unknown event times from measured writing times. A report does not establish deployment, installation or real model calls. Older goals keep their starting format without fabricated observations.
 - The completion report format is in [references/bundle.md](references/bundle.md) (completion report). It always states assurance `local` and that the executor wrote the checks.
+- For goals started with Seal 0.1.15 or later, the completion report names the completion record's seq and commit and says whether the head to be sent or merged is that commit. When it is not, the report says that the difference is not covered by the completion. Goals started with an earlier Seal keep the report format they started with.
 
 ## Post-completion discoveries
 
@@ -92,6 +101,8 @@ For new reports using Seal 0.1.12 or later, the document format in the bundle re
 Record candidate, confirmed, duplicate, dismissed, or resolved claims with their source, reproduced scope, remaining uncertainty, and append-only corrections. A narrative status is not machine-verified finding state or a conflict-free latest view. Unknown IDs, event times, versions or evidence remain unknown; recording time does not substitute for an unknown event time.
 
 Documenting a discovery does not authorize rework and does not change the execution budget, historical completion, or user authority. Implementation still needs an explicit user request and the existing reopen rule; link its quoted source and the affected discovery to later evidence. Preserve original formats and records of older goals, and never fabricate past observations. A missing discovery section means unrecorded. Raw logs remain in their permitted local storage; public examples are synthetic. Structured Core queries are a separate contract, not a promise made by a Markdown state label.
+
+Review or pull request comments that arrive without the user's request are not authority to change the completed goal's code. Record them as post-completion discoveries and report them; a change still needs the user's request and `reopen`.
 
 ## Decision history
 
