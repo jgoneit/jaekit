@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
+	"math/bits"
 	"strings"
 
 	"github.com/jgoneit/jaekit/internal/record"
@@ -83,7 +85,8 @@ func (c *cli) timing(in []string) int {
 	if bad != nil {
 		return c.fail(exitRefused, "%v; the time view reads only an intact record", bad)
 	}
-	rep := timingReport{Schema: timingSchema, Goal: w.arg, Runs: []timingRun{}, TotalMeaning: totalMeaning}
+	// The repository-relative goal directory, never the argument as given (no absolute paths).
+	rep := timingReport{Schema: timingSchema, Goal: w.goal.Dir, Runs: []timingRun{}, TotalMeaning: totalMeaning}
 	for _, l := range lines {
 		if l.Kind != "check" && l.Kind != "baseline" {
 			continue
@@ -152,8 +155,11 @@ func timingOf(l record.Line) timingRun {
 		}
 	}
 	if r.LimitMS != nil && r.LimitElapsedMS != nil {
-		use := *r.LimitElapsedMS * 1000 / *r.LimitMS
-		r.LimitUsePermille = &use
+		if use, ok := permille(*r.LimitElapsedMS, *r.LimitMS); ok {
+			r.LimitUsePermille = &use
+		} else {
+			r.Unavailable["limit_use_permille"] = timingInvalid
+		}
 	} else {
 		r.Unavailable["limit_use_permille"] = timingNotRecorded
 		if r.Unavailable["limit_ms"] == timingInvalid || r.Unavailable["limit_elapsed_ms"] == timingInvalid {
@@ -164,8 +170,11 @@ func timingOf(l record.Line) timingRun {
 	}
 	if v, ok := fields["cpu"]; !ok {
 		r.Unavailable["cpu"] = timingNotRecorded
-	} else if cpu, ok := cpuOf(v); ok {
+	} else if cpu, damaged, ok := cpuOf(v); ok {
 		r.CPU = cpu
+		for _, name := range damaged {
+			r.Unavailable["cpu."+name] = timingInvalid
+		}
 	} else {
 		r.Unavailable["cpu"] = timingInvalid
 	}
@@ -189,42 +198,73 @@ func wholeMS(v json.RawMessage) (int64, bool) {
 	return ms, err == nil && ms >= 0
 }
 
-func cpuOf(v json.RawMessage) (*timingCPU, bool) {
+// permille is elapsed*1000/limit, exact in 128 bits; false when it does not
+// fit a non-negative int64 or the limit is zero.
+func permille(elapsed, limit int64) (int64, bool) {
+	if elapsed < 0 || limit <= 0 {
+		return 0, false
+	}
+	hi, lo := bits.Mul64(uint64(elapsed), 1000)
+	if hi >= uint64(limit) {
+		return 0, false
+	}
+	q, _ := bits.Div64(hi, lo, uint64(limit))
+	if q > math.MaxInt64 {
+		return 0, false
+	}
+	return int64(q), true
+}
+
+// cpuOf reads a CPU value. A measured value whose user or system time alone is
+// damaged keeps the rest, and names the damaged times (run-record.md §1.2);
+// any other damage makes the whole value unreadable.
+func cpuOf(v json.RawMessage) (*timingCPU, []string, bool) {
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(v, &fields); err != nil || fields == nil {
-		return nil, false
+		return nil, nil, false
 	}
 	var cpu timingCPU
 	if json.Unmarshal(fields["status"], &cpu.Status) != nil {
-		return nil, false
+		return nil, nil, false
 	}
 	for name, target := range map[string]*string{"scope": &cpu.Scope, "source": &cpu.Source} {
 		if raw, ok := fields[name]; ok && json.Unmarshal(raw, target) != nil {
-			return nil, false
+			return nil, nil, false
 		}
 	}
 	if (cpu.Scope != "" && !cpuScopes[cpu.Scope]) || (cpu.Source != "" && !cpuSources[cpu.Source]) {
-		return nil, false
+		return nil, nil, false
 	}
+	var damaged []string
 	switch cpu.Status {
 	case run.CPUMeasured:
-		user, okUser := wholeMS(fields["user_ms"])
-		system, okSystem := wholeMS(fields["system_ms"])
-		if !okUser || !okSystem || cpu.Scope == "" || cpu.Source == "" {
-			return nil, false
+		if cpu.Scope == "" || cpu.Source == "" {
+			return nil, nil, false
 		}
-		cpu.UserMS, cpu.SystemMS = &user, &system
+		for _, item := range []struct {
+			name   string
+			target **int64
+		}{{"user_ms", &cpu.UserMS}, {"system_ms", &cpu.SystemMS}} {
+			if ms, ok := wholeMS(fields[item.name]); ok {
+				*item.target = &ms
+			} else {
+				damaged = append(damaged, item.name)
+			}
+		}
+		if len(damaged) == 2 {
+			return nil, nil, false
+		}
 	case run.CPUUnavailable, run.CPUFailed:
 		if _, ok := fields["user_ms"]; ok {
-			return nil, false
+			return nil, nil, false
 		}
 		if _, ok := fields["system_ms"]; ok {
-			return nil, false
+			return nil, nil, false
 		}
 	default:
-		return nil, false
+		return nil, nil, false
 	}
-	return &cpu, true
+	return &cpu, damaged, true
 }
 
 func timingMarkdown(rep timingReport) string {
@@ -261,7 +301,13 @@ func timingMarkdown(rep timingReport) string {
 		if r.CPU != nil {
 			switch r.CPU.Status {
 			case run.CPUMeasured:
-				cpu = fmt.Sprintf("%s / %s (%s, %s)", seconds(*r.CPU.UserMS), seconds(*r.CPU.SystemMS), r.CPU.Scope, r.CPU.Source)
+				shown := func(ms *int64, name string) string {
+					if ms == nil {
+						return absent(r.Unavailable["cpu."+name])
+					}
+					return seconds(*ms)
+				}
+				cpu = fmt.Sprintf("%s / %s (%s, %s)", shown(r.CPU.UserMS, "user_ms"), shown(r.CPU.SystemMS, "system_ms"), r.CPU.Scope, r.CPU.Source)
 			case run.CPUFailed:
 				cpu = "measurement failed"
 			default:

@@ -75,15 +75,15 @@ JSON 출력은 `schema: estimate/v1`이며 다음을 제공한다.
 | 필드 | 의미 |
 | --- | --- |
 | `schema` | `"timing/v1"` |
-| `goal` | 명령에 준 목표 경로 |
+| `goal` | 저장소 기준 목표 디렉터리. 명령에 절대 경로를 줘도 상대 경로다 |
 | `runs[]` | 기록 순서의 실행. `seq`, `target`, `kind`, `result`, `duration_ms`, `limit_ms`, `limit_elapsed_ms`, `limit_use_permille`, `limit_reached`, `cpu`, `unavailable` |
 | `total_duration_ms` | 나열한 실행의 `duration_ms` 합 |
 | `total_meaning` | 합계의 뜻. 실행은 겹칠 수 있고, 이 합은 목표 경과 시간이나 예산이 아니다 |
 
-- 단위는 밀리초 정수다. `limit_use_permille`은 `limit_elapsed_ms × 1000 ÷ limit_ms`의 정수 몫(소수 버림)이다. 두 값 중 하나라도 없으면 `null`이다.
+- 단위는 밀리초 정수다. `limit_use_permille`은 `limit_elapsed_ms × 1000 ÷ limit_ms`의 정수 몫(소수 버림)이다. 두 값 중 하나라도 없으면 `null`이다. 몫이 64비트 정수를 넘으면 `null`이고 `invalid`다.
 - 값이 없으면 그 필드는 `null`이고, `unavailable`에 이유가 있다. `not_recorded`는 그 값이 줄에 없다는 뜻이다(이 필드가 생기기 전에 기록한 줄 등). `not_measured`는 기록된 `null`, 곧 제한 타이머가 켜지지 않았다는 뜻이다. `invalid`는 타입이나 값이 맞지 않는다는 뜻이다. 0이나 900초 같은 값으로 채우거나 규칙 버전에서 추정하지 않는다.
 - 한 값이 손상돼도 그 값만 `invalid`다. 같은 줄의 다른 값과 다른 줄은 그대로 보인다.
-- `cpu`는 `{ "status", "user_ms", "system_ms", "scope", "source" }`다. `scope`·`source`는 §2.2의 고정 코드만 보이고, 그 밖의 값은 `invalid`다. 그래서 기록에 들어간 임의 문자열이 보기로 나오지 않는다.
+- `cpu`는 `{ "status", "user_ms", "system_ms", "scope", "source" }`다. `scope`·`source`는 §2.2의 고정 코드만 보이고, 그 밖의 값은 `invalid`다. 그래서 기록에 들어간 임의 문자열이 보기로 나오지 않는다. 측정된 CPU의 `user_ms`나 `system_ms` 하나만 손상되면 그 값만 없고, `unavailable`에 `cpu.user_ms`나 `cpu.system_ms`가 `invalid`로 나온다. 나머지 CPU 값은 그대로다.
 
 사람이 읽는 형식은 같은 값을 표 하나로 보이고, 실행 시간의 합과 그 합이 목표 경과 시간이나 예산이 아니라는 문장을 덧붙인다.
 
