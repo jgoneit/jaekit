@@ -126,10 +126,10 @@ func preapprovedRaise(state *BudgetState, d *record.BudgetChangeData) bool {
 		strings.TrimSpace(d.Quote) == "" && strings.TrimSpace(d.Reason) != ""
 }
 
-// userSet is a run limit change that carries the user's quote and its request
-// context.
+// userSet is a run limit change that carries the user's quote. A decrease
+// needs no request context, so the quote alone marks the user's limit.
 func userSet(d *record.BudgetChangeData) bool {
-	return strings.TrimSpace(d.Quote) != "" && strings.TrimSpace(d.Context) != ""
+	return strings.TrimSpace(d.Quote) != ""
 }
 
 // FoldBudget checks budget event semantics while retaining /1 and /2 window
