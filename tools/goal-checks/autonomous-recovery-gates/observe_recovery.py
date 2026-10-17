@@ -239,10 +239,14 @@ class Fixture:
         except (OSError, ValueError) as error:
             raise Unavailable(f"runs.jsonl: {error}") from None
 
-    def start(self, *extra):
-        """`ha start` with the default rule; the result tells whether the option was known."""
+    def start(self, *extra, rules=RULES):
+        """`ha start`, choosing run-rules/4 unless rules is None (the default rule).
+
+        The result tells whether `ha` knew the options; nothing is recorded when it did not.
+        """
+        chosen = ("--rules", rules) if rules else ()
         return self.ha("start", GOAL, "--request", REQUEST, "--skill-name", "seal", "--skill-version", "0.1.16",
-                       *extra)
+                       *chosen, *extra)
 
     def must(self, result, what, codes=(0,)):
         if result.returncode not in codes:
@@ -695,7 +699,7 @@ class TimeLimits(unittest.TestCase):
     def test_earlier_rules_keep_nine_hundred_seconds(self):
         with Directory() as d:
             f = Fixture(d, limits="\n## 시간 제한\n- EX-5: 1s\n")
-            f.must(f.start(), "start")
+            f.must(f.start(rules=None), "start")
             raw = f.records_path.read_bytes()
             f.records_path.write_bytes(re.sub(rb'"rules":"[^"]*"', b'"rules":"run-rules/3"', raw, count=1))
             result = f.ha("check", GOAL, "EX-5", timeout=120)
@@ -837,16 +841,21 @@ def load(path, name):
 
 
 class CoreIdentity(unittest.TestCase):
-    """AC-10: the new Core is identified; Seal stops on a Core without the support."""
+    """AC-10: the new Core is identified; Seal starts run-rules/4 only on a Core that supports it.
+
+    Core keeps run-rules/3 as its default rule; a goal chooses run-rules/4 with
+    `ha start --rules run-rules/4`, which the new Seal passes (PLAN 구현 결정).
+    """
 
     def test_new_seal_starts_and_resumes_only_on_a_supporting_core(self):
         problems = []
         ha = ha_binary()
         caps = json.loads(run([ha, "capabilities", "--format", "json"], ROOT).stdout or b"{}")
-        if caps.get("default_rules") != RULES or RULES not in caps.get("supported_rules", []) \
-                or "run-rules/3" not in caps.get("supported_rules", []) \
+        # The default rule stays run-rules/3, so earlier Seal versions and identity paths keep working.
+        if caps.get("default_rules") != "run-rules/3" or RULES not in caps.get("supported_rules", []) \
+                or not {"run-rules/1", "run-rules/2", "run-rules/3"} <= set(caps.get("supported_rules", [])) \
                 or not set(NEW_FEATURES) <= set(caps.get("features", [])):
-            problems.append(f"capabilities do not state run-rules/4 and its features: {caps}")
+            problems.append(f"capabilities do not state run-rules/4 and its features beside the kept default: {caps}")
         checker = ROOT / "plugins/seal/skills/seal/scripts/check_core.py"
         started = run([sys.executable, checker, "--ha", ha, "--operation", "start"], ROOT)
         try:
@@ -867,7 +876,7 @@ class CoreIdentity(unittest.TestCase):
                 problems.append("the Seal Core checker accepted a Core without a run-rules/4 feature")
             # An existing run-rules/3 goal resumes as it did.
             f = Fixture(d + "/goal")
-            f.must(f.start(), "start")
+            f.must(f.start(rules=None), "start")
             raw = f.records_path.read_bytes()
             f.records_path.write_bytes(re.sub(rb'"rules":"[^"]*"', b'"rules":"run-rules/3"', raw, count=1))
             resumed = run([sys.executable, checker, "--ha", ha, "--operation", "resume", "--goal",
@@ -879,9 +888,6 @@ class CoreIdentity(unittest.TestCase):
             native.identity(ha, dict(os.environ), caps.get("ha_version"), ROOT)
         except Exception as error:  # the identity function raises its own refusal type
             problems.append(f"tools/ci/native_unix.py does not identify the new Core: {error}")
-        archives = (ROOT / "tools/release/check_archives.py").read_text(encoding="utf-8")
-        if f'"{RULES}"' not in archives:
-            problems.append("tools/release/check_archives.py does not expect the new default rule")
         for path in ("tools/windows/install.ps1", "tools/windows/native_package_checks.ps1"):
             if "run-rules/3" not in (ROOT / path).read_text(encoding="utf-8"):
                 problems.append(f"{path} no longer checks run-rules/3 support")
@@ -899,7 +905,7 @@ class OldRules(unittest.TestCase):
             with Directory() as d:
                 tool = Path(d) / "tools/keep-check"
                 f = Fixture(d, ac2=f"`{tool}`")
-                f.must(f.start(), "start")
+                f.must(f.start(rules=None), "start")
                 raw = f.records_path.read_bytes()
                 f.records_path.write_bytes(re.sub(rb'"rules":"[^"]*"', b'"rules":"' + rules.encode() + b'"',
                                                   raw, count=1))
@@ -949,7 +955,7 @@ class OldCoreRefuses(unittest.TestCase):
                 if built.returncode:
                     raise Unavailable(f"go build v0.1.4: {text(built)[-1000:]}")
                 f = Fixture(Path(d) / "goal")
-                f.must(f.start(), "start")
+                f.must(f.start(rules=None), "start")
                 raw = f.records_path.read_bytes()
                 if not raw.startswith(b"{") or b'"rules":"run-rules/4"' not in raw:
                     raw = re.sub(rb'"rules":"[^"]*"', b'"rules":"run-rules/4"', raw, count=1)
