@@ -16,3 +16,11 @@ expect-exit 0
 ha note $GOAL reopen --quote "느낌표도 붙여줘"
 ha status $GOAL
 expect-output "is no longer valid: code outside the bundle documents changed since that commit; reopened at seq 8; run `ha done docs/specs/greet` to record completion"
+append docs/specs/greet/SPEC.md "\nOne more sentence.\n"
+replace docs/specs/greet/PLAN.md "`sh tests/keep.sh`" "`sh ./tests/keep.sh`"
+commit "change the goal and a command"
+ha status $GOAL
+expect-output "goal documents changed; required command changed: AC-2; reopened at seq 8"
+drop-record 2
+ha status $GOAL
+expect-output "is no longer valid: record chain broken; "
