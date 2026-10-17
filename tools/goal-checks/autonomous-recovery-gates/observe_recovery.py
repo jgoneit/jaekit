@@ -869,10 +869,13 @@ class TimeLimitNotice(unittest.TestCase):
             require(self, f.start_new(), "time-limit-notice-missing", "no run-rules/4 goal")
             problems = []
             first = notices(f.must(f.ha("check", GOAL, "EX-5", timeout=120), "first EX-5"), "EX-5")
-            # The PLAN fixes the content to one of three forms and never "safe";
-            # with no earlier run the only form is `risk unknown`.
-            if first != [f"{NOTICE} EX-5 risk unknown"]:
-                problems.append(f"the first run's notice is not exactly `{NOTICE} EX-5 risk unknown`: {first}")
+            # With no earlier run the notice is the `risk unknown` form. Text after
+            # it may explain, but no notice form mentions safety, so any "safe"
+            # is read as a claim rather than guessing at negations.
+            if (len(first) != 1 or not first[0].startswith(f"{NOTICE} EX-5 risk unknown")
+                    or re.search("safe", first[0], re.I)):
+                problems.append(f"the first run's notice is not `{NOTICE} EX-5 risk unknown` "
+                                f"without a mention of safety: {first}")
             near = f.records()[-1]
             f.must(f.ha("check", GOAL, "EX-4", timeout=120), "timed-out EX-4", codes=(1,))
             reached = f.records()[-1]
