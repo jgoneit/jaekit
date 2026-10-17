@@ -159,6 +159,6 @@ Every status output states assurance `local`: an agent with the same user permis
 
 ## Final head
 
-`ha check` runs each condition's command as its own process, so conditions that need the same full regression each run it unless one condition owns it and the others observe their own property (Seal bundle reference, final candidate evidence).
+`ha check` runs each condition's command as its own process, so conditions that need the same full regression each run it. It is recommended that one condition owns it and the others observe their own property; this is not a required procedure, and it does not drop or weaken a condition (Seal bundle reference, final candidate evidence).
 
 A completion record covers its commit while the code outside the bundle documents equals HEAD. When the user asks, after completion, to apply remote review or pull request comments, record that request with `ha note <goal> reopen --quote "…"`. After the fixes are committed, a code change leaves earlier `check` records stale, and a baseline stays fresh while it ran on the start's base commit and its check files equal HEAD's. Re-record the stale required checks on the final head and run `ha done` again before the head is sent or merged. Comments without such a request do not reopen the goal.
