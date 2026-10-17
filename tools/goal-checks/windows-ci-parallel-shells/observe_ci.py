@@ -7,7 +7,9 @@ process or as child processes on synthetic inputs, and the readers' `gh` and
 does. When the checked workflow runs each PowerShell in its own job, the Live
 tests also run the repository's CI reader (tools/verification-checks/
 cross_platform_ci.py AC-1) on the real pull request run of the checked commit
-and accept only its pass; they never decode CI data themselves. Violations come
+and accept only its pass; they never decode CI data themselves. A workflow
+without a job per PowerShell has no such run, and the Live tests report that
+from the workflow itself. Violations come
 only from explicit `[violation:...]` failures. A module that cannot be loaded, a
 reader that raises something other than its own `Violation`, a real run the CI
 reader does not pass, or a tool that cannot start raises Unavailable, an
@@ -138,12 +140,13 @@ def job_settings(body):
     return "\n".join(lines)
 
 
-def concurrency_group(body, key):
+def concurrency_group(body, key, workflow):
     """The job-level concurrency group, or None.
 
     Read inline, as a flow mapping or as a `group:` line, without quotes.
-    `${{ github.job }}` becomes the job key, the one context that differs
-    between the jobs of one run; other expressions stay as written.
+    `${{ github.job }}` becomes the job key and `${{ github.workflow }}` the
+    workflow's name, the two contexts whose values the workflow text fixes;
+    other expressions stay as written.
     """
     text = "\n".join(without_comment(line) for line in body.split("\n"))
     inline = re.search(r"(?m)^    concurrency:[ \t]*(\S.*?)[ \t]*$", text)
@@ -160,7 +163,38 @@ def concurrency_group(body, key):
         group = re.search(r"(?m)^      group:[ \t]*(\S.*?)[ \t]*$", nested)
         value = group[1] if group else ""
     value = value.strip().strip("'\"")
+    value = re.sub(r"\$\{\{\s*github\.workflow\s*\}\}", workflow, value)
     return re.sub(r"\$\{\{\s*github\.job\s*\}\}", key, value)
+
+
+EXPRESSION = re.compile(r"\$\{\{.*?\}\}")
+
+
+def may_share(first, second):
+    """Whether two concurrency groups can name the same group at run time.
+
+    The text outside expressions is fixed, so two groups certainly differ when
+    the text before their first expression, or after their last, disagrees
+    within the shorter of the two. Anything else may be the same group.
+    """
+    if first is None or second is None:
+        return False
+    if first == second:
+        return True
+    parts = [EXPRESSION.split(group) for group in (first, second)]
+    if all(len(part) == 1 for part in parts):
+        return False
+    heads, tails = [part[0] for part in parts], [part[-1] for part in parts]
+    length = min(map(len, heads))
+    if heads[0][:length] != heads[1][:length]:
+        return False
+    length = min(map(len, tails))
+    return not (length and tails[0][-length:] != tails[1][-length:])
+
+
+def workflow_name(text):
+    found = re.search(r"(?m)^name:[ \t]*(\S.*?)[ \t]*$", text)
+    return found[1].strip("'\"") if found else ""
 
 
 def steps(body):
@@ -207,7 +241,7 @@ class Layout(unittest.TestCase):
             problems.append(f"{len(windows)} Windows job(s), not two")
         shells, groups = [], {}
         for key, (name, body) in windows.items():
-            groups[key] = concurrency_group(body, key)
+            groups[key] = concurrency_group(body, key, workflow_name(text))
             native = native_steps(body)
             if len(native) != 1:
                 problems.append(f"{key}: {len(native)} native suite steps, not one")
@@ -227,9 +261,8 @@ class Layout(unittest.TestCase):
         if sorted(filter(None, shells)) != ["powershell", "pwsh"]:
             problems.append(f"native suite shells {shells}, not one job each for powershell and pwsh")
         # A group shared by both jobs runs one after the other; a group of one job's own does not.
-        shared = [group for group in groups.values() if group is not None]
-        if len(shared) == 2 and shared[0] == shared[1]:
-            problems.append(f"both Windows jobs share the concurrency group {shared[0]!r}")
+        if len(groups) == 2 and may_share(*groups.values()):
+            problems.append(f"the Windows jobs may share a concurrency group: {list(groups.values())}")
         require(self, not problems, "windows-shells-share-a-job", "; ".join(problems))
 
 
@@ -312,11 +345,14 @@ def real_jobs():
 
 
 class Live(unittest.TestCase):
-    """AC-1, AC-2 and AC-3 at the real boundary, once the checked workflow runs each shell in its own job.
+    """AC-1, AC-2 and AC-3 at the real boundary.
 
-    A workflow without a job per PowerShell has no such run to read; the static
-    tests above judge it.
+    A workflow without a job per PowerShell cannot have a run that meets them,
+    so each test reports its violation from the checked workflow without
+    reading a run. Otherwise it reads the real run through the CI reader.
     """
+
+    NO_SHELL_JOBS = "the checked workflow has no job per PowerShell, so no run of it has one"
 
     def shell_job_names(self):
         shells = shell_jobs(read(CI))
@@ -324,26 +360,21 @@ class Live(unittest.TestCase):
 
     def test_the_real_run_runs_each_powershell_in_its_own_job(self):
         names = self.shell_job_names()
-        if names is None:
-            return
-        jobs = real_jobs()
-        require(self, names <= jobs and "Core / Windows" not in jobs, "windows-shells-share-a-job",
-                f"the real run's jobs {sorted(jobs)} lack {sorted(names - jobs)}")
+        jobs = real_jobs() if names else set()
+        require(self, names is not None and names <= jobs, "windows-shells-share-a-job",
+                self.NO_SHELL_JOBS if names is None else f"the real run's jobs {sorted(jobs)} lack {sorted(names - jobs)}")
 
     def test_the_real_run_passes_seal_core_with_both_shell_jobs(self):
         names = self.shell_job_names()
-        if names is None:
-            return
-        jobs = real_jobs()
-        require(self, "Seal Core" in jobs and names <= jobs, "seal-core-misses-a-shell-job",
-                f"the real run's jobs {sorted(jobs)}")
+        jobs = real_jobs() if names else set()
+        require(self, names is not None and "Seal Core" in jobs and names <= jobs, "seal-core-misses-a-shell-job",
+                self.NO_SHELL_JOBS if names is None else f"the real run's jobs {sorted(jobs)}")
 
     def test_the_reader_reads_the_real_two_job_run(self):
         names = self.shell_job_names()
-        if names is None:
-            return
-        jobs = real_jobs()
-        require(self, names <= jobs, "two-job-reports-not-read", f"the reader read jobs {sorted(jobs)}")
+        jobs = real_jobs() if names else set()
+        require(self, names is not None and names <= jobs, "two-job-reports-not-read",
+                self.NO_SHELL_JOBS if names is None else f"the reader read jobs {sorted(jobs)}")
 
 
 # --- AC-3, AC-4 -------------------------------------------------------------
@@ -692,12 +723,13 @@ class Documents(unittest.TestCase):
         missing = []
         agents = next((p for p in read("AGENTS.md").split("\n\n") if "`Seal Core` succeeds only when" in p), "")
         missing += [f"AGENTS.md Main requires: `{name}`" for name in names if f"`{name}`" not in agents]
-        if "`Core / Windows` from" in agents:
+        # The single job's name, unless a shell job took it.
+        if "Core / Windows" not in names and "`Core / Windows` from" in agents:
             missing.append("AGENTS.md Main requires still names the single `Core / Windows` job")
         for path, heading in (("guides/CI.en.md", "## Required results"), ("guides/CI.md", "## 필수 결과")):
             body = section(read(path), heading)
             missing += [f"{path} {heading}: `{name}`" for name in names if f"`{name}`" not in body]
-            if "| `Core / Windows` |" in body:
+            if "Core / Windows" not in names and "| `Core / Windows` |" in body:
                 missing.append(f"{path} {heading}: a single `Core / Windows` row")
             seal = next((line for line in body.splitlines() if line.startswith("| `Seal Core` |")), "")
             missing += [f"{path} Seal Core row: `{name}`" for name in names if f"`{name}`" not in seal]
