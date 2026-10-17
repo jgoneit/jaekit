@@ -140,6 +140,94 @@
     {
       "id": "unmet-baseline.attribution",
       "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit",
+      "violation": "unmet-summary-missing"
+    },
+    {
+      "id": "unmet-error-limit.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid",
+      "violation": "unmet-summary-missing"
+    },
+    {
+      "id": "unmet-invalid.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

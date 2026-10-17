@@ -248,6 +248,36 @@ class UnmetSummary(Observed):
                      "unmet-summary-missing", summary)
 
 
+class RecordReasons(Observed):
+    """Reasons that rest on error records or on an invalid stored record."""
+
+    def test_error_limit_points_to_the_latest_error(self):
+        # Each blocked output makes the attempted run an error without a log.
+        self.block_output(2)
+        self.block_output(3)
+        self.check("AC-2")
+        _, last = self.check("AC-2")
+        summary = head_of(self.status())
+        line = item(summary, "AC-2 ")
+        self.require("`error_limit`" in line and f"seq {last['AC-2']}," in line and "no stored output" in line,
+                     "unmet-summary-missing", summary)
+
+    def test_invalid_record_points_to_that_record(self):
+        _, seqs = self.check("AC-2")
+        records = self.repo / GOAL / "runs.jsonl"
+        lines = records.read_bytes().splitlines(keepends=True)
+        # The last line can change without breaking the chain; an unknown
+        # result value makes that stored record invalid.
+        if len(lines) != seqs["AC-2"] or lines[-1].count(b'"result":"fail"') != 1:
+            raise Unavailable("unexpected check record")
+        lines[-1] = lines[-1].replace(b'"result":"fail"', b'"result":"invented"')
+        records.write_bytes(b"".join(lines))
+        summary = head_of(self.status())
+        line = item(summary, "AC-2 ")
+        self.require("`record_invalid`" in line and f"seq {seqs['AC-2']}," in line,
+                     "unmet-summary-missing", summary)
+
+
 class BaselineReason(Observed):
     """A change condition whose baseline already passes: the reason rests on that baseline.
 
@@ -330,6 +360,17 @@ class InvalidatedCompletion(Observed):
             spec.write("\nOne more sentence.\n")
         self.commit("edit the goal")
         self.invalidated(seq, commit, "goal documents changed")
+
+    def test_broken_record_chain_after_completion(self):
+        seq, commit = self.complete()
+        records = self.repo / GOAL / "runs.jsonl"
+        lines = records.read_bytes().splitlines(keepends=True)
+        if lines[0].count(b'"quote":"') != 1:
+            raise Unavailable("unexpected start record")
+        # Editing an earlier line breaks the next line's link to it.
+        lines[0] = lines[0].replace(b'"quote":"', b'"quote":"edited ')
+        records.write_bytes(b"".join(lines))
+        self.invalidated(seq, commit, "record chain broken")
 
     def test_command_change_after_completion(self):
         seq, commit = self.complete()

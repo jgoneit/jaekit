@@ -184,6 +184,50 @@
     {
       "id": "stale-command.attribution",
       "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain",
+      "violation": "invalidated-completion-hidden"
+    },
+    {
+      "id": "stale-chain.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

@@ -60,6 +60,46 @@
         "selection": "unmet-baseline.selection",
         "attribution": "unmet-baseline.attribution"
       }
+    },
+    {
+      "target": "unmet-error-limit",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "RecordReasons.test_error_limit_points_to_the_latest_error",
+      "result_targets": {
+        "additional_violations": [
+          "unmet-error-limit.assertion-2",
+          "unmet-error-limit.assertion-3",
+          "unmet-error-limit.assertion-4",
+          "unmet-error-limit.assertion-5",
+          "unmet-error-limit.assertion-6",
+          "unmet-error-limit.assertion-7",
+          "unmet-error-limit.assertion-8"
+        ],
+        "execution": "unmet-error-limit.execution",
+        "selection": "unmet-error-limit.selection",
+        "attribution": "unmet-error-limit.attribution"
+      }
+    },
+    {
+      "target": "unmet-invalid",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "RecordReasons.test_invalid_record_points_to_that_record",
+      "result_targets": {
+        "additional_violations": [
+          "unmet-invalid.assertion-2",
+          "unmet-invalid.assertion-3",
+          "unmet-invalid.assertion-4",
+          "unmet-invalid.assertion-5",
+          "unmet-invalid.assertion-6",
+          "unmet-invalid.assertion-7",
+          "unmet-invalid.assertion-8"
+        ],
+        "execution": "unmet-invalid.execution",
+        "selection": "unmet-invalid.selection",
+        "attribution": "unmet-invalid.attribution"
+      }
     }
   ]
 }

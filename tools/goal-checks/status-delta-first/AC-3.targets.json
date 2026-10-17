@@ -80,6 +80,26 @@
         "selection": "stale-command.selection",
         "attribution": "stale-command.attribution"
       }
+    },
+    {
+      "target": "stale-chain",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "InvalidatedCompletion.test_broken_record_chain_after_completion",
+      "result_targets": {
+        "additional_violations": [
+          "stale-chain.assertion-2",
+          "stale-chain.assertion-3",
+          "stale-chain.assertion-4",
+          "stale-chain.assertion-5",
+          "stale-chain.assertion-6",
+          "stale-chain.assertion-7",
+          "stale-chain.assertion-8"
+        ],
+        "execution": "stale-chain.execution",
+        "selection": "stale-chain.selection",
+        "attribution": "stale-chain.attribution"
+      }
     }
   ]
 }
