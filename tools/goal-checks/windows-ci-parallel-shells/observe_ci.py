@@ -42,9 +42,9 @@ UNCHANGED = {
 # The CI jobs AC-6 keeps, by the sha256 of their settings and commands at the
 # base commit (job_settings), multi-line run blocks included.
 UNCHANGED_JOBS = {
-    "go": "2e1e30f9043bed129aa95f1a633e73dcc7c9ca6dedde0c25411c62684ac60bdb",
-    "macos": "1762cbc97083df615968f6715325a88d78226f563fe4e2b130c80c0951e02013",
-    "docs": "cce3e44596601f637dc5ff3f6a7fd4fb0aa2084dc49c3cb6c7065a7523671e6e",
+    "go": "1b5129fb83d80e6990cd372c0220e77df4fca5dac01db37a7fec20a5bcb5b3d2",
+    "macos": "7b4f3fae7f618166fee594ad0de3f9191c26dc563dc4a03202d2945803dd827c",
+    "docs": "aaf360dd39e6108f214c1b8dbecd458e826ae90a05f21cecb2baa2407c84bcb2",
 }
 # What a recorded report carried at the base commit (cross_platform_ci.py there).
 # Synthetic reports are built from these, not from the reader under test, so a
@@ -111,24 +111,55 @@ def jobs(text):
     return {key: block(body, key, 2) for key in re.findall(r"(?m)^  ([A-Za-z0-9_-]+):$", body)}
 
 
+def without_comment(line):
+    """line without a YAML comment: a `#` after whitespace and outside quotes."""
+    quote = None
+    for index, char in enumerate(line):
+        if quote:
+            quote = None if char == quote else quote
+        elif char in "'\"":
+            quote = char
+        elif char == "#" and (index == 0 or line[index - 1] in " \t"):
+            return line[:index].rstrip()
+    return line
+
+
 def job_settings(body):
-    """A job's keys, values and commands: its block without comment lines and trailing blank lines."""
-    lines = [line for line in (body or "").split("\n") if not line.lstrip().startswith("#")]
+    """A job's keys, values and commands: its block without comments and trailing blank lines."""
+    lines = []
+    for line in (body or "").split("\n"):
+        kept = without_comment(line)
+        # A blank line stays; a line that held only a comment goes.
+        if kept.strip() or not line.strip():
+            lines.append(kept)
     while lines and not lines[-1].strip():
         lines.pop()
     return "\n".join(lines)
 
 
-def concurrency_group(body):
-    """The job-level concurrency group as written (inline or `group:`), without quotes, or None."""
-    inline = re.search(r"(?m)^    concurrency:[ \t]*(\S.*?)[ \t]*$", body)
+def concurrency_group(body, key):
+    """The job-level concurrency group, or None.
+
+    Read inline, as a flow mapping or as a `group:` line, without quotes.
+    `${{ github.job }}` becomes the job key, the one context that differs
+    between the jobs of one run; other expressions stay as written.
+    """
+    text = "\n".join(without_comment(line) for line in body.split("\n"))
+    inline = re.search(r"(?m)^    concurrency:[ \t]*(\S.*?)[ \t]*$", text)
     if inline:
-        return inline[1].strip("'\"")
-    nested = block(body, "concurrency", 4)
-    if nested is None:
-        return None
-    group = re.search(r"(?m)^      group:[ \t]*(\S.*?)[ \t]*$", nested)
-    return group[1].strip("'\"") if group else ""
+        value = inline[1]
+        flow = re.fullmatch(r"\{(.*)\}", value)
+        if flow:
+            group = re.search(r"(?:^|,)\s*['\"]?group['\"]?\s*:\s*([^,]+)", flow[1])
+            value = group[1] if group else ""
+    else:
+        nested = block(text, "concurrency", 4)
+        if nested is None:
+            return None
+        group = re.search(r"(?m)^      group:[ \t]*(\S.*?)[ \t]*$", nested)
+        value = group[1] if group else ""
+    value = value.strip().strip("'\"")
+    return re.sub(r"\$\{\{\s*github\.job\s*\}\}", key, value)
 
 
 def steps(body):
@@ -175,7 +206,7 @@ class Layout(unittest.TestCase):
             problems.append(f"{len(windows)} Windows job(s), not two")
         shells, groups = [], {}
         for key, (name, body) in windows.items():
-            groups[key] = concurrency_group(body)
+            groups[key] = concurrency_group(body, key)
             native = native_steps(body)
             if len(native) != 1:
                 problems.append(f"{key}: {len(native)} native suite steps, not one")
