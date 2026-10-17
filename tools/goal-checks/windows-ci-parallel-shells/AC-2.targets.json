@@ -25,7 +25,7 @@
       "target": "real-seal-core",
       "runner": "unittest",
       "file": "tools/goal-checks/windows-ci-parallel-shells/observe_ci.py",
-      "test": "Live.test_the_real_run_passes_seal_core_after_both_shell_jobs",
+      "test": "Live.test_the_real_run_passes_seal_core_with_both_shell_jobs",
       "result_targets": {
         "additional_violations": [
           "real-seal-core.assertion-2",

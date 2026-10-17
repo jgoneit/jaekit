@@ -1,16 +1,17 @@
 """The Windows CI layout, its aggregate and the readers of its reports.
 
-Every observation reads the checked tree, and the Live tests also read the CI
-run that GitHub Actions made of the checked commit. The workflow is read as text
-in this repository's indentation-based layout; the aggregate and the readers run
-in this process or as child processes on synthetic inputs, and the readers'
-`gh` and `git` calls are answered by a stand-in, as
-tools/workflow-checks/test_ci_observer.py does. Only the Live tests make GitHub
-requests; until a completed CI run of the checked commit exists they are
-Unavailable. Violations come only from explicit `[violation:...]` failures. A
-module that cannot be loaded, a reader that raises something other than its own
-`Violation`, a GitHub request that fails, or a tool that cannot start raises
-Unavailable, an execution error.
+Every observation reads the checked tree. The workflow is read as text in this
+repository's indentation-based layout; the aggregate and the readers run in this
+process or as child processes on synthetic inputs, and the readers' `gh` and
+`git` calls are answered by a stand-in, as tools/workflow-checks/test_ci_observer.py
+does. When the checked workflow runs each PowerShell in its own job, the Live
+tests also run the repository's CI reader (tools/verification-checks/
+cross_platform_ci.py AC-1) on the real pull request run of the checked commit
+and accept only its pass; they never decode CI data themselves. Violations come
+only from explicit `[violation:...]` failures. A module that cannot be loaded, a
+reader that raises something other than its own `Violation`, a real run the CI
+reader does not pass, or a tool that cannot start raises Unavailable, an
+execution error.
 """
 import hashlib
 import importlib.util
@@ -283,131 +284,66 @@ class Aggregate(unittest.TestCase):
         require(self, not problems, "seal-core-misses-a-shell-job", "; ".join(problems))
 
 
-# --- AC-1, AC-2 on the real run ----------------------------------------------
+# --- AC-1, AC-2, AC-3 on the real run -----------------------------------------
 
-def gh(args, timeout=120):
-    try:
-        result = subprocess.run(["gh", *args], cwd=ROOT, capture_output=True, timeout=timeout)
-    except (OSError, subprocess.TimeoutExpired) as error:
-        raise Unavailable(f"gh {args[0]}: {error}") from None
-    if result.returncode:
-        raise Unavailable("GitHub request failed; check authentication and permission")
-    return result.stdout.decode(errors="replace")
+def real_jobs():
+    """Job names of the real pull request run of the checked commit, as the CI reader passed it.
 
-
-def gh_json(path):
-    try:
-        return json.loads(gh(["api", "--method", "GET", path]))
-    except ValueError:
-        raise Unavailable("invalid GitHub JSON") from None
-
-
-# This goal's own check files. CI never runs them, so a commit that changes
-# only these files is tested by its parent's CI run.
-OWN_CHECKS = "tools/goal-checks/windows-ci-parallel-shells/"
-
-
-def git(*args):
-    try:
-        result = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, timeout=60)
-    except (OSError, subprocess.TimeoutExpired) as error:
-        raise Unavailable(f"git {args[0]}: {error}") from None
-    return result.returncode, result.stdout
-
-
-def real_run():
-    """(jobs, {Windows job name: shell versions of its reports}) of the latest CI run of the checked code.
-
-    That is the checked commit's run or, when it has none, the run of the
-    nearest first-parent ancestor from which the checked commit changes only
-    this goal's own check files.
+    The reader binds the run to the open pull request whose head is the
+    checked commit and to the checked tree, requires every job and step of the
+    latest attempt to have succeeded, and reads each native report once. Any
+    other outcome means the real run was not observed.
     """
-    code, out = git("rev-parse", "HEAD")
-    head = out.strip()
-    if code or not re.fullmatch(r"[0-9a-f]{40}", head):
-        raise Unavailable("the checked commit cannot be read")
+    env = {k: v for k, v in os.environ.items() if not k.startswith("HA_EVIDENCE")}
     try:
-        name = json.loads(gh(["repo", "view", "--json", "nameWithOwner"]))["nameWithOwner"]
-    except (ValueError, KeyError, TypeError):
-        raise Unavailable("GitHub repository cannot be read") from None
-    tested = head
-    while True:
-        runs = [r for r in gh_json(f"repos/{name}/actions/workflows/ci.yml/runs?head_sha={tested}&per_page=100")
-                .get("workflow_runs", []) if r.get("head_sha") == tested]
-        if runs:
-            break
-        code, out = git("rev-parse", "--verify", "--quiet", f"{tested}^")
-        parent = out.strip()
-        if code or not parent:
-            break
-        code, out = git("diff", "--name-only", "-z", parent, head)
-        if code or any(not path.startswith(OWN_CHECKS) for path in filter(None, out.split("\0"))):
-            break
-        tested = parent
-    if not runs:
-        raise Unavailable(f"no CI run has tested the code of {head[:12]} yet")
-    latest = max(runs, key=lambda r: (r["id"], r.get("run_attempt", 1)))
-    if latest.get("status") != "completed":
-        raise Unavailable(f"the latest CI run of {tested[:12]} is {latest.get('status')}")
-    jobs = gh_json(f"repos/{name}/actions/runs/{latest['id']}/attempts/{latest.get('run_attempt', 1)}"
-                   "/jobs?per_page=100").get("jobs", [])
-    # Job logs carry terminal escapes; older gh prints them without the flag.
-    flags = ["--allow-escape-sequences"] if "--allow-escape-sequences" in gh(["api", "--help"], 60).split() else []
-    windows = {}
-    for job in jobs:
-        if not str(job.get("name", "")).startswith("Core / Windows"):
-            continue
-        versions = []
-        for line in gh(["api", "--method", "GET", *flags, f"repos/{name}/actions/jobs/{job['id']}/logs"],
-                       300).splitlines():
-            at = line.find("JAEKIT_CI_REPORT {")
-            if at >= 0:
-                try:
-                    row = json.loads(line[at + len("JAEKIT_CI_REPORT "):])
-                except ValueError:
-                    raise Unavailable(f"a native report of {job.get('name')} is not JSON") from None
-                versions.append(str((row.get("environment") or {}).get("shell_version") or ""))
-        windows[job["name"]] = versions
-    return jobs, windows
+        result = subprocess.run([sys.executable, "tools/verification-checks/cross_platform_ci.py", "AC-1"], cwd=ROOT,
+                                env=env, capture_output=True, text=True, timeout=900)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise Unavailable(f"cross_platform_ci.py: {error}") from None
+    if result.returncode:
+        raise Unavailable(f"the CI reader did not pass a real run of the checked commit (exit {result.returncode}): "
+                          + result.stderr.strip()[-500:])
+    summaries = [line for line in result.stdout.splitlines() if line.startswith("{")]
+    try:
+        jobs = json.loads(summaries[-1])["jobs"]
+    except (IndexError, ValueError, KeyError, TypeError):
+        raise Unavailable("the CI reader passed without its run summary") from None
+    return set(jobs)
 
 
 class Live(unittest.TestCase):
-    """AC-1 and AC-2 at the real boundary: the CI run GitHub Actions made of the checked commit."""
+    """AC-1, AC-2 and AC-3 at the real boundary, once the checked workflow runs each shell in its own job.
 
-    def test_the_real_run_reports_each_powershell_from_its_own_job(self):
-        jobs, windows = real_run()
-        conclusions = {job.get("name"): job.get("conclusion") for job in jobs}
-        problems = []
-        if len(windows) != 2:
-            problems.append(f"{len(windows)} Windows job(s) in the run: {sorted(windows)}")
-        shells = []
-        for name, versions in sorted(windows.items()):
-            if conclusions.get(name) != "success":
-                problems.append(f"{name}: {conclusions.get(name)}")
-            if len(versions) != 1:
-                problems.append(f"{name}: {len(versions)} native reports, not one")
-            shells += ["5.1" if v.startswith("5.1") else "7" if v.startswith("7.") else v for v in versions]
-        if sorted(shells) != ["5.1", "7"]:
-            problems.append(f"shells reported {shells}, not one job each for PowerShell 5.1 and 7")
-        require(self, not problems, "windows-shells-share-a-job", "; ".join(problems))
+    A workflow without a job per PowerShell has no such run to read; the static
+    tests above judge it.
+    """
 
-    def test_the_real_run_passes_seal_core_after_both_shell_jobs(self):
-        jobs, windows = real_run()
-        by_name = {job.get("name"): job for job in jobs}
-        core = by_name.get("Seal Core")
-        problems = []
-        if core is None or core.get("conclusion") != "success":
-            problems.append(f"Seal Core: {core and core.get('conclusion')}")
-        if len(windows) != 2:
-            problems.append(f"Seal Core ran with {len(windows)} Windows job(s), not one per shell")
-        for name in sorted(windows):
-            job = by_name[name]
-            if job.get("conclusion") != "success":
-                problems.append(f"{name}: {job.get('conclusion')}")
-            # ISO 8601 times in UTC compare as text.
-            elif core and str(core.get("started_at") or "") < str(job.get("completed_at") or "~"):
-                problems.append(f"Seal Core started before {name} completed")
-        require(self, not problems, "seal-core-misses-a-shell-job", "; ".join(problems))
+    def shell_job_names(self):
+        shells = shell_jobs(read(CI))
+        return {name for _, name in shells.values()} if set(shells) == {"powershell", "pwsh"} else None
+
+    def test_the_real_run_runs_each_powershell_in_its_own_job(self):
+        names = self.shell_job_names()
+        if names is None:
+            return
+        jobs = real_jobs()
+        require(self, names <= jobs and "Core / Windows" not in jobs, "windows-shells-share-a-job",
+                f"the real run's jobs {sorted(jobs)} lack {sorted(names - jobs)}")
+
+    def test_the_real_run_passes_seal_core_with_both_shell_jobs(self):
+        names = self.shell_job_names()
+        if names is None:
+            return
+        jobs = real_jobs()
+        require(self, "Seal Core" in jobs and names <= jobs, "seal-core-misses-a-shell-job",
+                f"the real run's jobs {sorted(jobs)}")
+
+    def test_the_reader_reads_the_real_two_job_run(self):
+        names = self.shell_job_names()
+        if names is None:
+            return
+        jobs = real_jobs()
+        require(self, names <= jobs, "two-job-reports-not-read", f"the reader read jobs {sorted(jobs)}")
 
 
 # --- AC-3, AC-4 -------------------------------------------------------------

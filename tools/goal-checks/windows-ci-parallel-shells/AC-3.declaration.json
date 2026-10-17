@@ -52,6 +52,50 @@
     {
       "id": "two-job-readers.attribution",
       "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-readers",
+      "violation": "two-job-reports-not-read"
+    },
+    {
+      "id": "real-readers.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-readers.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-readers.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-readers.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-readers.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-readers.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-readers.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-readers.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-readers.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-readers.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }
