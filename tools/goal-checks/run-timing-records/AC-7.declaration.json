@@ -1,0 +1,56 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/run-timing-records/AC-7.targets.json",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "native-process",
+      "violation": "existing-check-failed"
+    },
+    {
+      "id": "native-process.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native-process.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native-process.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native-process.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native-process.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native-process.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native-process.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native-process.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native-process.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native-process.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

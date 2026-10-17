@@ -1,0 +1,57 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/run-timing-records/AC-6.targets.json",
+    "tools/goal-checks/run-timing-records/observe_timing.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "damage",
+      "violation": "damaged-timing-not-isolated"
+    },
+    {
+      "id": "damage.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "damage.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "damage.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "damage.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "damage.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "damage.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "damage.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "damage.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "damage.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "damage.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

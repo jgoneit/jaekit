@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "local-cpu",
+      "runner": "unittest",
+      "file": "tools/goal-checks/run-timing-records/observe_timing.py",
+      "test": "Cpu.test_local_records_keep_cpu_with_scope",
+      "result_targets": {
+        "additional_violations": [
+          "local-cpu.assertion-2",
+          "local-cpu.assertion-3",
+          "local-cpu.assertion-4",
+          "local-cpu.assertion-5",
+          "local-cpu.assertion-6",
+          "local-cpu.assertion-7",
+          "local-cpu.assertion-8"
+        ],
+        "execution": "local-cpu.execution",
+        "selection": "local-cpu.selection",
+        "attribution": "local-cpu.attribution"
+      }
+    },
+    {
+      "target": "ci-cpu",
+      "runner": "unittest",
+      "file": "tools/goal-checks/run-timing-records/observe_timing.py",
+      "test": "Cpu.test_windows_ci_measures_cpu",
+      "result_targets": {
+        "additional_violations": [
+          "ci-cpu.assertion-2",
+          "ci-cpu.assertion-3",
+          "ci-cpu.assertion-4",
+          "ci-cpu.assertion-5",
+          "ci-cpu.assertion-6",
+          "ci-cpu.assertion-7",
+          "ci-cpu.assertion-8"
+        ],
+        "execution": "ci-cpu.execution",
+        "selection": "ci-cpu.selection",
+        "attribution": "ci-cpu.attribution"
+      }
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "judgment",
+      "runner": "unittest",
+      "file": "tools/goal-checks/run-timing-records/observe_timing.py",
+      "test": "Judgment.test_status_is_the_same_with_and_without_timing",
+      "result_targets": {
+        "additional_violations": [
+          "judgment.assertion-2",
+          "judgment.assertion-3",
+          "judgment.assertion-4",
+          "judgment.assertion-5",
+          "judgment.assertion-6",
+          "judgment.assertion-7",
+          "judgment.assertion-8"
+        ],
+        "execution": "judgment.execution",
+        "selection": "judgment.selection",
+        "attribution": "judgment.attribution"
+      }
+    },
+    {
+      "target": "scenarios",
+      "runner": "command",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run",
+        "^TestScenarios$",
+        "./cmd/ha"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "scenarios.assertion-2",
+          "scenarios.assertion-3",
+          "scenarios.assertion-4",
+          "scenarios.assertion-5",
+          "scenarios.assertion-6",
+          "scenarios.assertion-7",
+          "scenarios.assertion-8"
+        ],
+        "execution": "scenarios.execution",
+        "selection": "scenarios.selection",
+        "attribution": "scenarios.attribution"
+      }
+    },
+    {
+      "target": "status",
+      "runner": "command",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "./internal/status"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "status.assertion-2",
+          "status.assertion-3",
+          "status.assertion-4",
+          "status.assertion-5",
+          "status.assertion-6",
+          "status.assertion-7",
+          "status.assertion-8"
+        ],
+        "execution": "status.execution",
+        "selection": "status.selection",
+        "attribution": "status.attribution"
+      }
+    }
+  ]
+}

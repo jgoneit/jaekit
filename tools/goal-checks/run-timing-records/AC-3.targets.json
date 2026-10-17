@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "time-view",
+      "runner": "unittest",
+      "file": "tools/goal-checks/run-timing-records/observe_timing.py",
+      "test": "TimeView.test_the_time_view_shows_each_run_and_changes_nothing",
+      "result_targets": {
+        "additional_violations": [
+          "time-view.assertion-2",
+          "time-view.assertion-3",
+          "time-view.assertion-4",
+          "time-view.assertion-5",
+          "time-view.assertion-6",
+          "time-view.assertion-7",
+          "time-view.assertion-8"
+        ],
+        "execution": "time-view.execution",
+        "selection": "time-view.selection",
+        "attribution": "time-view.attribution"
+      }
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "native-process",
+      "runner": "command",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run",
+        "^TestNative",
+        "./internal/run",
+        "./cmd/ha"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "native-process.assertion-2",
+          "native-process.assertion-3",
+          "native-process.assertion-4",
+          "native-process.assertion-5",
+          "native-process.assertion-6",
+          "native-process.assertion-7",
+          "native-process.assertion-8"
+        ],
+        "execution": "native-process.execution",
+        "selection": "native-process.selection",
+        "attribution": "native-process.attribution"
+      }
+    }
+  ]
+}
