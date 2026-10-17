@@ -52,6 +52,35 @@ func cell(s string) string {
 	return strings.ReplaceAll(s, "|", `\|`)
 }
 
+// unmet lists what keeps the goal from completing before the criteria table:
+// each unsatisfied required criterion with its reason, class and the fresh
+// record the reason rests on, then each goal-level reason. A record whose
+// output was stored gets the exact `ha log` command, run from the repository
+// root; others say that no output is stored. Nothing is listed once the goal
+// is complete.
+func (rep *Report) unmet(w func(string, ...any)) {
+	if rep.Status == Complete || len(rep.Reasons) == 0 {
+		return
+	}
+	w("\n### Unmet\n\n")
+	for _, r := range rep.Reasons {
+		if r.Criterion == "" {
+			w("- `%s` (%s)\n", r.Code, r.Class)
+			continue
+		}
+		line := fmt.Sprintf("- %s `%s` (%s)", r.Criterion, r.Code, r.Class)
+		switch j, ok := rep.judged[r.Criterion]; {
+		case ok && j.Output != "":
+			line += fmt.Sprintf(": seq %d, output `ha log %s %d`", j.Seq, rep.Goal, j.Seq)
+		case ok:
+			line += fmt.Sprintf(": seq %d, no stored output", j.Seq)
+		case r.Code != "manual_unconfirmed":
+			line += ": no fresh record"
+		}
+		w("%s\n", line)
+	}
+}
+
 // Markdown renders the report for people and for pasting into PROGRESS.md.
 // It never contains command output.
 func (rep *Report) Markdown(goalArg string) string {
@@ -59,13 +88,18 @@ func (rep *Report) Markdown(goalArg string) string {
 	w := func(format string, a ...any) { fmt.Fprintf(&b, format, a...) }
 	w("## ha status: %s\n\n", rep.Goal)
 	w("- status: **%s** (exit %d)\n", rep.Status, rep.ExitCode)
-	switch {
-	case rep.CompletionRecord != nil:
+	if rep.CompletionRecord != nil {
 		w("- completion record: seq %d\n", *rep.CompletionRecord)
-	case rep.CompleteWithoutRecord:
-		w("- completion record: none; run `ha done %s` to record completion\n", goalArg)
-	default:
-		w("- completion record: none\n")
+	} else {
+		line := "- completion record: none"
+		if s := rep.staleCompletion; s != nil {
+			line += fmt.Sprintf("; latest completion seq %d (commit %s) is no longer valid: %s",
+				s.Seq, shortHash(s.Commit), strings.Join(s.Reasons, "; "))
+		}
+		if rep.CompleteWithoutRecord {
+			line += fmt.Sprintf("; run `ha done %s` to record completion", goalArg)
+		}
+		w("%s\n", line)
 	}
 	if rep.Findings != nil && len(rep.Findings.Findings) > 0 {
 		w("\n%s\n", rep.Findings.Markdown())
@@ -85,6 +119,8 @@ func (rep *Report) Markdown(goalArg string) string {
 	w("- code: %s, tree clean: %s; goal digest: %s\n", shortHash(rep.Commit), yesNo(rep.TreeClean), shortHash(rep.SpecDigest))
 	u := rep.Usage
 	w("- attempts: %d total; types: %d check, %d baseline; outcomes: %d environment errors, %d unknown; inputs: %d current, %d stale; valid positive evidence: %d (overlapping axes)\n", u.Total, u.Checks, u.Baselines, u.EnvironmentErrors, u.Unknowns, u.CurrentInputs, u.StaleInputs, u.ValidEvidence)
+
+	rep.unmet(w)
 
 	w("\n### Criteria\n\n| ID | kind | required | satisfied | reason | records | attempts |\n| --- | --- | --- | --- | --- | --- | --- |\n")
 	for _, c := range rep.Criteria {

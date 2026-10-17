@@ -118,6 +118,14 @@ Status exposes budget revision, remaining/excess runs, reached state and change 
 
 A goal is computed under the rules its start record names (`rules:` in `ha status`). Under `run-rules/2` and `run-rules/3`, a goal whose required conditions are all satisfied and whose only remaining reason is `budget_exceeded` is `complete`: `ha done` records the evidence already gathered, and the status still shows the budget as exceeded. That is not leave to keep working past the budget; more checks or work past it still need the user's words. `/3` can record a same-window run-limit increase with `ha budget`; an explicit new window uses `reopen`. `/1` and `/2` retain the quoted `reopen` behavior. Under `run-rules/1` the same goal is `budget_exhausted`.
 
+## Status output
+
+The Markdown form of `ha status` and `ha done` lists what keeps a goal from completing ahead of the criteria table, under `### Unmet`. This unmet summary names each unsatisfied required condition with its reason and who resolves it, and each goal-level reason. For a condition whose reason rests on a fresh record it gives that record's seq and, when the run's output was stored, the exact command `ha log <goal> <seq>` to open it, run from the repository root. A record without stored output says `no stored output` and gets no command; a condition without a fresh record says `no fresh record` and gets no seq. A complete goal has no summary.
+
+When an earlier completion record no longer holds, the completion line names that record's seq and commit and why it is no longer valid: a broken record chain, invalid stored records, uncommitted changes outside the bundle documents, code changed since that commit, changed goal documents, a changed required command, a later `reopen`, or, under `run-rules/3`, required conditions that are no longer all satisfied. A goal that never recorded completion still shows `none`.
+
+A failed `ha check` prints, for each target that did not meet its expectation, `output for <target>: ha log <goal> <seq>`, or `no stored output` with the seq. The per-target result lines and exit codes are unchanged. None of this changes judgment, `status/v1`, the completion record or `ha log`; the human output never contains command output.
+
 ## Reasons
 
 | Reason | Who resolves it | Typical cause |

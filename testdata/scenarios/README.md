@@ -40,6 +40,7 @@ The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evi
 | `decision-history-flow` | decision-history.md | events, relations, a stale correction and a replay leave completion and the tree unchanged; current judgments mark corrected grounds; Markdown keeps an external version whole; a linked worktree shares the history |
 | `history-rules-unsupported` | decision-history.md | an unsupported start rule yields exit 66 and `history_unsupported:` for default/current/list, both show forms, new registration and the original request; no run record is added |
 | `reopen-after-done` | EVALUATION §3.1 | completion record voided, new budget window |
+| `completion-invalidated` | run-record.md §5.1 | a completion that no longer holds names its seq, commit and each broken condition; unmet conditions are listed before the table |
 | `complete-happy-path` | ROADMAP P1 | `complete` with a completion record; tree untouched |
 | `budget-runs` | INV-11 | under `run-rules/1`: `budget_exhausted`; quoted reopen opens a new window |
 | `budget-only-complete` | run-rules-2 AC-1 | `run-rules/2`: only `budget_exceeded` left → `complete` and a completion record; the budget still shows as exceeded |

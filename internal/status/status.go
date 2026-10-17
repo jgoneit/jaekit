@@ -158,7 +158,36 @@ type Report struct {
 	Usage                 Usage             `json:"usage"`
 	Logs                  []Log             `json:"logs"`
 	commandDigests        map[string]string // for the done line
+	// judged and staleCompletion feed the human output only; status/v1 is
+	// unchanged.
+	judged          map[string]JudgedRecord
+	staleCompletion *StaleCompletion
 }
+
+// JudgedRecord is the fresh record an unsatisfied criterion's reason rests
+// on. Output is the record's stored output path, empty when none was kept.
+type JudgedRecord struct {
+	Seq    int
+	Output string
+}
+
+// StaleCompletion is the latest completion record that is no longer valid,
+// with each broken condition of run-record.md §5.1 in a fixed order.
+type StaleCompletion struct {
+	Seq     int
+	Commit  string
+	Reasons []string
+}
+
+// Judged returns the record an unsatisfied criterion's reason rests on, if
+// there is a fresh one.
+func (rep *Report) Judged(id string) (JudgedRecord, bool) {
+	j, ok := rep.judged[id]
+	return j, ok
+}
+
+// Stale returns the latest completion record that is no longer valid, or nil.
+func (rep *Report) Stale() *StaleCompletion { return rep.staleCompletion }
 
 // Head identifies the last record line.
 type Head struct {
@@ -311,7 +340,7 @@ func Compute(in Input) (*Report, error) {
 		Criteria: []Criterion{}, Reasons: []Reason{}, Lint: bundle.Lint(g, b), Logs: []Log{},
 		Changes: Changes{CommandChanged: []CommandChange{}, KindChanged: []KindChange{}, Optional: []string{},
 			InvalidConfirmations: []InvalidConfirmation{}, HaVersionChanged: []VersionChange{}},
-		commandDigests: map[string]string{},
+		commandDigests: map[string]string{}, judged: map[string]JudgedRecord{},
 	}
 	if e.start != nil && e.start.Skill != nil {
 		rep.Skill = e.start.Skill
@@ -343,6 +372,11 @@ func Compute(in Input) (*Report, error) {
 	completion, err := e.completionRecord(rep)
 	if err != nil {
 		return nil, err
+	}
+	if completion == nil {
+		if rep.staleCompletion, err = e.stale(rep); err != nil {
+			return nil, err
+		}
 	}
 	var reasons []Reason
 	for _, c := range rep.Criteria {
@@ -563,6 +597,9 @@ func (e *evaluator) criteria(rep *Report) error {
 		}
 		ev.Reason = e.judge(c.id, kind, C, B)
 		ev.Satisfied = ev.Reason == ""
+		if l := e.judgedLine(c.id, kind, ev.Reason, C, B); l != nil {
+			rep.judged[c.id] = JudgedRecord{Seq: l.Seq, Output: l.OutputPath}
+		}
 		if ev.Satisfied {
 			for _, l := range append(C, B...) {
 				ev.Records = append(ev.Records, l.Seq)
@@ -572,6 +609,55 @@ func (e *evaluator) criteria(rep *Report) error {
 		rep.Criteria = append(rep.Criteria, ev)
 	}
 	return nil
+}
+
+// judgedLine returns the fresh record an unsatisfied criterion's reason
+// rests on: the offending line for invalid records, otherwise the latest
+// fresh line of the kind the reason names whose result is not the expected
+// one, falling back to the latest line of that kind. Reasons without a
+// record (no fresh line, manual conditions) return nil.
+func (e *evaluator) judgedLine(id, kind, reason string, C, B []*record.Line) *record.Line {
+	latest := func(ls []*record.Line, expected string) *record.Line {
+		for i := len(ls) - 1; i >= 0; i-- {
+			if ls[i].Result != expected {
+				return ls[i]
+			}
+		}
+		if len(ls) > 0 {
+			return ls[len(ls)-1]
+		}
+		return nil
+	}
+	switch reason {
+	case "", "manual_unconfirmed":
+		return nil
+	case "record_invalid", "evidence_invalid":
+		for _, l := range append(append([]*record.Line{}, C...), B...) {
+			if !validResult(l, e.rules) {
+				return l
+			}
+			if e.rules == RulesV3 && kind == bundle.KindChange {
+				r := e.in.Bundle.Row(id)
+				if r == nil || evidence.ValidateStored(l.Evidence, r.Evidence, r.EvidenceDigest, l.Kind == "baseline", l.Result, l.Exit) != nil {
+					return l
+				}
+			}
+		}
+		return nil
+	case "baseline_missing", "baseline_unexpected_pass", "baseline_failed", "baseline_error":
+		return latest(B, "fail_as_expected")
+	case "error_limit":
+		all := append(append([]*record.Line{}, C...), B...)
+		sort.SliceStable(all, func(i, j int) bool { return all[i].Seq < all[j].Seq })
+		for i := len(all) - 1; i >= 0; i-- {
+			if all[i].Result == "error" || all[i].Result == "unknown" {
+				return all[i]
+			}
+		}
+		return nil
+	default:
+		return latest(C, "pass")
+	}
 }
 
 func samePaths(paths []string, overlay []record.Overlay) bool {
@@ -915,6 +1001,65 @@ func (e *evaluator) completionRecord(rep *Report) (*int, error) {
 		}
 		seq := d.Seq
 		return &seq, nil
+	}
+	return nil, nil
+}
+
+// stale explains why the latest completion record no longer holds. It checks
+// the same conditions as completionRecord (run-record.md §5.1) and reports
+// every one that is broken, in a fixed order. Without such a record it
+// returns nil.
+func (e *evaluator) stale(rep *Report) (*StaleCompletion, error) {
+	lines := e.in.Lines
+	for i := len(lines) - 1; i >= 0; i-- {
+		d := lines[i]
+		if d.Kind != "done" || d.Status != Complete {
+			continue
+		}
+		s := &StaleCompletion{Seq: d.Seq, Commit: d.Commit, Reasons: []string{}}
+		if e.in.Integrity != nil {
+			s.Reasons = append(s.Reasons, "record chain broken")
+		}
+		if len(e.invalid) > 0 {
+			s.Reasons = append(s.Reasons, "stored records are invalid")
+		}
+		if !e.clean {
+			s.Reasons = append(s.Reasons, "working tree has uncommitted changes outside the bundle documents")
+		}
+		// The explanation must never make status fail where it did not
+		// before, so a commit Git cannot compare is a reason, not an error.
+		if same, err := e.sameAsHead(d.Commit); err != nil {
+			s.Reasons = append(s.Reasons, "that commit cannot be compared with HEAD")
+		} else if !same {
+			s.Reasons = append(s.Reasons, "code outside the bundle documents changed since that commit")
+		}
+		if d.SpecDigest != e.in.Goal.Digest {
+			s.Reasons = append(s.Reasons, "goal documents changed")
+		}
+		var commands []string
+		for _, c := range rep.Criteria {
+			if c.Required && d.CommandDigests[c.ID] != rep.commandDigests[c.ID] {
+				commands = append(commands, c.ID)
+			}
+		}
+		if len(commands) > 0 {
+			s.Reasons = append(s.Reasons, "required command changed: "+strings.Join(commands, ", "))
+		}
+		for _, l := range lines[i+1:] {
+			if l.Kind == "note" && l.Note == "reopen" {
+				s.Reasons = append(s.Reasons, fmt.Sprintf("reopened at seq %d", l.Seq))
+				break
+			}
+		}
+		if e.rules == RulesV3 {
+			for _, c := range rep.Criteria {
+				if c.Required && !c.Satisfied {
+					s.Reasons = append(s.Reasons, "required conditions are not all satisfied")
+					break
+				}
+			}
+		}
+		return s, nil
 	}
 	return nil, nil
 }

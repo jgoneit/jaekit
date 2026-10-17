@@ -440,6 +440,14 @@ func (c *cli) check(in []string) int {
 		return c.fail(exitInternal, "%v", err)
 	}
 	allGood := true
+	// Each target that did not meet its expectation, in run order, for the
+	// output pointers printed after the result lines.
+	type unmet struct {
+		label  string
+		seq    int
+		output string
+	}
+	var missed []unmet
 	for i, t := range ts {
 		head, err := w.repo.Head()
 		if err != nil {
@@ -591,12 +599,19 @@ func (c *cli) check(in []string) int {
 		}
 		if result != run.Pass && result != "fail_as_expected" {
 			allGood = false
+			missed = append(missed, unmet{t.label(), l.Seq, outputPath})
 		}
 	}
 	if allGood {
 		return exitOK
 	}
-	fmt.Fprintf(c.out, "see output with: ha log %s <seq>\n", w.arg)
+	for _, m := range missed {
+		if m.output != "" {
+			fmt.Fprintf(c.out, "output for %s: ha log %s %d\n", m.label, w.goal.Dir, m.seq)
+		} else {
+			fmt.Fprintf(c.out, "output for %s: no stored output (seq %d)\n", m.label, m.seq)
+		}
+	}
 	return exitProblems
 }
 

@@ -6,6 +6,9 @@ progress T001 done
 commit "almost hello"
 ha check $GOAL
 expect-exit 1
-expect-output "see output with: ha log"
+expect-output "output for AC-1: ha log docs/specs/greet 3"
+expect-no-output "<seq>"
 expect-status incomplete
 expect-reasons AC-1:criterion_failed
+ha status $GOAL
+expect-output "- AC-1 `criterion_failed` (executor): seq 3, output `ha log docs/specs/greet 3`"
