@@ -125,7 +125,7 @@ The Markdown form of `ha status` lists what keeps a goal from completing ahead o
 When the latest `done` record was not a completion, the completion line names its seq, commit and recorded state. When an earlier completion record no longer holds, the line names that record's seq and commit and why it is no longer valid: a broken record chain, invalid stored records, uncommitted changes outside the bundle documents, code changed since that commit, changed goal documents, a changed required command, a later `reopen`, or, under `run-rules/3`, required conditions that are no longer all satisfied. A goal without any `done` record still shows `none`. `ha done` prints its earlier form: no unmet summary, and no `done` details on its completion line. A synthetic example of `ha status`:
 
 ```text
-- completion record: none; latest completion seq 6 (commit 8f3a2d91c0b7) is no longer valid: reopened at seq 7
+- completion record: none; latest completion seq 6 (commit 8f3a2d91c0b7) is no longer valid: code outside the bundle documents changed since that commit; required conditions are not all satisfied
 
 ### Unmet
 
