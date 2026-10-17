@@ -55,7 +55,7 @@
         "tools/gap-checks/produce.py",
         "tools/gap-checks/preservation.py"
       ],
-      "property": "Current TrackedFiles/public-file checks run in full and shallow public-only copies; explicit audits do not fetch absent history.",
+      "property": "Current TrackedFiles checks, public file and documentation checks and the route producers' current-file judgments run in full and shallow public-only copies; the full Go suite and the docs group run once in the original tree; explicit audits do not fetch absent history.",
       "examples": [
         "depth-one checkout",
         "missing private observation inputs"
