@@ -145,7 +145,8 @@ func timingOf(l record.Line) timingRun {
 	if l.Target != nil {
 		r.Target = *l.Target
 	}
-	// Only an absent field is not recorded; a null timing is not an object.
+	// A line without timing is not recorded, and a key missing from the object
+	// below is not recorded on its own. A null timing is not an object: invalid.
 	raw := bytes.TrimSpace(l.Timing)
 	if len(raw) == 0 {
 		for _, name := range []string{"limit_ms", "limit_elapsed_ms", "limit_use_permille", "limit_reached", "cpu"} {
