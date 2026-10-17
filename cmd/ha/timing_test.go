@@ -26,11 +26,11 @@ func TestTimingViewReadsEachValueOnItsOwn(t *testing.T) {
 		want   map[string]string
 	}{
 		"line without timing": {"", map[string]string{"limit_ms": timingNotRecorded, "limit_elapsed_ms": timingNotRecorded,
-			"limit_reached": timingNotRecorded, "cpu": timingNotRecorded}},
+			"limit_use_permille": timingNotRecorded, "limit_reached": timingNotRecorded, "cpu": timingNotRecorded}},
 		"timer never started": {`{"limit_ms":900000,"limit_elapsed_ms":null,"limit_reached":false,"cpu":{"status":"unavailable"}}`,
 			map[string]string{"limit_elapsed_ms": timingNotMeasured, "limit_use_permille": timingNotMeasured}},
 		"timing is not an object": {`[1,2]`, map[string]string{"limit_ms": timingInvalid, "limit_elapsed_ms": timingInvalid,
-			"limit_reached": timingInvalid, "cpu": timingInvalid}},
+			"limit_use_permille": timingInvalid, "limit_reached": timingInvalid, "cpu": timingInvalid}},
 		"quoted and negative numbers": {`{"limit_ms":"900000","limit_elapsed_ms":-1,"limit_reached":"no","cpu":{"status":"measured","user_ms":1,"system_ms":2,"scope":"process-and-waited-descendants","source":"wait4-rusage"}}`,
 			map[string]string{"limit_ms": timingInvalid, "limit_elapsed_ms": timingInvalid, "limit_reached": timingInvalid,
 				"limit_use_permille": timingInvalid}},

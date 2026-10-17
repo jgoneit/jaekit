@@ -116,14 +116,14 @@ func timingOf(l record.Line) timingRun {
 	}
 	raw := bytes.TrimSpace(l.Timing)
 	if len(raw) == 0 || bytes.Equal(raw, []byte("null")) {
-		for _, name := range []string{"limit_ms", "limit_elapsed_ms", "limit_reached", "cpu"} {
+		for _, name := range []string{"limit_ms", "limit_elapsed_ms", "limit_use_permille", "limit_reached", "cpu"} {
 			r.Unavailable[name] = timingNotRecorded
 		}
 		return r
 	}
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &fields); err != nil || fields == nil {
-		for _, name := range []string{"limit_ms", "limit_elapsed_ms", "limit_reached", "cpu"} {
+		for _, name := range []string{"limit_ms", "limit_elapsed_ms", "limit_use_permille", "limit_reached", "cpu"} {
 			r.Unavailable[name] = timingInvalid
 		}
 		return r
