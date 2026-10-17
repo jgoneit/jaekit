@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "final-candidate-plan",
+      "runner": "unittest",
+      "file": "tools/goal-checks/final-candidate-evidence/observe_guidance.py",
+      "test": "FinalCandidatePlan.test_guidance_plans_the_full_verification_once_on_the_final_candidate",
+      "result_targets": {
+        "additional_violations": [
+          "final-candidate-plan.assertion-2",
+          "final-candidate-plan.assertion-3",
+          "final-candidate-plan.assertion-4",
+          "final-candidate-plan.assertion-5",
+          "final-candidate-plan.assertion-6",
+          "final-candidate-plan.assertion-7",
+          "final-candidate-plan.assertion-8"
+        ],
+        "execution": "final-candidate-plan.execution",
+        "selection": "final-candidate-plan.selection",
+        "attribution": "final-candidate-plan.attribution"
+      }
+    }
+  ]
+}
