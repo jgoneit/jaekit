@@ -8,7 +8,10 @@ tree's contracts/regressions.json lists them, with a process log:
 - a `sitecustomize` module on PYTHONPATH records every Python process whose
   script, or else whose working directory, lies inside a public copy (a Git
   work tree, other than this checkout, whose tools/verify.py matches this
-  checkout's), with its script, arguments and exit code;
+  checkout's), with its script, arguments and exit code. A current-file
+  judgment is recorded for the tree it reads by its own interface (its
+  script's tree, its working directory, an explicit root argument or the
+  checkout its retention input names), wherever its script lives;
 - a `go` executable first on PATH records every Go command whose directory
   (`-C` or the working directory) lies inside a public copy.
 
@@ -19,7 +22,8 @@ documentation checks it starts with. A replaced `go` or `all` verification
 counts as a full Go suite. Violations come only from explicit
 `[violation:...]` failures. Missing tools, a route that cannot be read, checks
 that cannot be collected or that fail for reasons other than the observed
-property raise Unavailable, an execution error.
+property raise Unavailable, an execution error. A judgment that never ran in a
+copy while the route failed was not observed, and is an execution error too.
 """
 import importlib.util
 import io
@@ -111,6 +115,16 @@ def full_suite(args):
             and not any(a in filters or a.startswith(tuple(f + "=" for f in filters)) for a in args))
 
 
+def option(args, name):
+    """The value of an argparse option given as `name value` or `name=value`, else None."""
+    for index, arg in enumerate(args):
+        if arg.startswith(name + "="):
+            return arg[len(name) + 1:]
+        if arg == name and index + 1 < len(args):
+            return args[index + 1]
+    return None
+
+
 def judging(script, args):
     """Whether a run of a watched script is the judgment AC-4 names, not help or a no-op."""
     if any(a in ("-h", "--help") for a in args):
@@ -120,7 +134,7 @@ def judging(script, args):
     if script in ("tools/review-checks/produce.py", "tools/gap-checks/produce.py"):
         return len(args) == 1 and re.fullmatch(r"AC-[0-9]+", args[0]) is not None
     if script == "tools/gap-checks/preservation.py":
-        return "--retention" in args and args.index("--retention") + 1 < len(args)
+        return option(args, "--retention") not in (None, "")
     if script == "tools/check_public_tree.py":
         return not args
     if script == "tools/check_public_docs.py":
@@ -179,6 +193,54 @@ import sys
 
 WATCHED = set(json.loads(os.environ.get("JAEKIT_OBSERVE_WATCHED", "[]")))
 PUBLIC = json.loads(os.environ.get("JAEKIT_OBSERVE_PUBLIC", "[]"))
+JUDGMENTS = set(json.loads(os.environ.get("JAEKIT_OBSERVE_JUDGMENTS", "[]")))
+
+def _home(path, root):
+    """(tree, script relative to it) for a script in a public copy or in this checkout."""
+    for tree in filter(None, (_public_copy(path.parent, root), root)):
+        try:
+            return tree, path.relative_to(tree).as_posix()
+        except ValueError:
+            pass
+    return None, None
+
+def _option(args, name):
+    for index, arg in enumerate(args):
+        if arg.startswith(name + "="):
+            return arg[len(name) + 1:]
+        if arg == name and index + 1 < len(args):
+            return args[index + 1]
+    return None
+
+def _judged(script, home, args, cwd):
+    """The tree a current-file judgment reads, by its own command-line interface."""
+    if script == "tools/goal-checks/produce.py":
+        return cwd
+    if script == "tools/check_public_docs.py":
+        positional = [a for a in args if not a.startswith("-")]
+        return (cwd / positional[0]).resolve() if positional else home
+    if script == "tools/gap-checks/preservation.py":
+        try:
+            checkout = json.loads((cwd / _option(args, "--retention")).read_text(encoding="utf-8"))["checkout"]
+            return Path(checkout).resolve()
+        except (TypeError, OSError, ValueError, KeyError):
+            return None
+    return home
+
+def _applied(copy):
+    """Whether this run's mutation has already failed its target in this copy."""
+    try:
+        lines = Path(os.environ["JAEKIT_OBSERVE_LOG"]).read_bytes().splitlines()
+    except OSError:
+        return False
+    for line in lines:
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        if entry.get("mutation") and entry.get("copy", {}).get("path") == str(copy):
+            return True
+    return False
 
 def _script(argv, cwd):
     i = 0
@@ -221,16 +283,23 @@ def _observe():
     cwd = Path.cwd().resolve()
     argv = list(sys.orig_argv[1:])
     path, rest = _script(argv, cwd)
-    # The copy a process judges: where its script lives, else where it runs.
-    copy = (_public_copy(path.parent, root) if path is not None else None) or _public_copy(cwd, root)
+    home, name = _home(path, root) if path is not None else (None, None)
+    if name in JUDGMENTS:
+        # A judgment belongs to the tree it reads, wherever its script lives.
+        judged = _judged(name, home, rest, cwd)
+        copy = _public_copy(judged, root) if judged is not None else None
+        script = name
+    else:
+        # Any other process: where its script lives, else where it runs.
+        copy = (_public_copy(path.parent, root) if path is not None else None) or _public_copy(cwd, root)
+        script = None
+        if path is not None and copy is not None:
+            try:
+                script = path.relative_to(copy).as_posix()
+            except ValueError:
+                script = "outside:" + str(path)
     if copy is None:
         return
-    script = None
-    if path is not None:
-        try:
-            script = path.relative_to(copy).as_posix()
-        except ValueError:
-            script = "outside:" + str(path)
     facts = _facts(copy)
     entry = {"kind": "python", "argv": argv, "script": script, "args": rest, "copy": facts}
     if script == "tools/verify.py":
@@ -260,7 +329,9 @@ def _observe():
                                     "--quiet", "HEAD~1^{commit}"], capture_output=True, text=True)
             if check.returncode != 0:
                 _fail(entry, f"{script}: needs history beyond the checked commit (HEAD~1, {marker})")
-    elif os.environ.get("JAEKIT_OBSERVE_FAST") and script in json.loads(os.environ.get("JAEKIT_OBSERVE_JUDGMENTS", "[]")):
+    elif os.environ.get("JAEKIT_OBSERVE_FAST") and script in JUDGMENTS and _applied(copy):
+        # Only after the target failed in this copy: a judgment that runs
+        # earlier may be the one that starts the target.
         entry.update(rc=0, replaced=True)
         _log(entry)
         os._exit(0)
@@ -404,9 +475,37 @@ def require(case, condition, violation, message):
         case.fail(f"[violation:{violation}] {message}")
 
 
+def judged_runs(run, script):
+    """{copy kind: exit codes} of the runs in which script made its judgment."""
+    found = {}
+    for entry in run.python(script):
+        if judging(script, entry.get("args", [])):
+            found.setdefault(Run.kind(entry["copy"]), []).append(entry.get("rc"))
+    return found
+
+
 def ran_in_both(run, script):
     """The copy kinds in which script made its judgment and exited 0."""
-    return {Run.kind(e["copy"]) for e in run.python(script) if e.get("rc") == 0 and judging(script, e.get("args", []))}
+    return {kind for kind, codes in judged_runs(run, script).items() if 0 in codes}
+
+
+def require_judged(case, run, scripts, violation, what):
+    """Each script judged and passed in both copies.
+
+    A judgment that ran and failed is the violation whatever the route did. One
+    that never ran is the violation only when the route passed: after a route
+    failure it may simply not have been reached, which is not an observation.
+    """
+    runs = {script: judged_runs(run, script) for script in scripts}
+    failed = {script: sorted(kind for kind, codes in found.items() if 0 not in codes) for script, found in runs.items()}
+    missing = {script: sorted({"full", "shallow"} - set(found)) for script, found in runs.items()}
+    failed = {script: kinds for script, kinds in failed.items() if kinds}
+    missing = {script: kinds for script, kinds in missing.items() if kinds}
+    if missing and not failed and any(code != 0 for code, _, _ in run.results.values()):
+        assert_route_passed(run)
+    require(case, not failed and not missing, violation,
+            f"{what} that failed in a copy: {failed}; that did not run in a copy: {missing}")
+    assert_route_passed(run)
 
 
 def nested_full_suites(run):
@@ -456,12 +555,7 @@ class DocsRuns(unittest.TestCase):
         assert_route_passed(run)
 
     def test_public_checks_run_and_pass_in_both_copies(self):
-        run = Run(route_checks())
-        missing = {script: sorted({"full", "shallow"} - ran_in_both(run, script)) for script in PUBLIC}
-        missing = {script: kinds for script, kinds in missing.items() if kinds}
-        require(self, not missing, "public-checks-not-in-copies",
-                f"public checks that did not run and pass in a copy: {missing}")
-        assert_route_passed(run)
+        require_judged(self, Run(route_checks()), PUBLIC, "public-checks-not-in-copies", "public checks")
 
     def test_all_group_runs_the_docs_group_once_here(self):
         calls = {group: dispatch(group) for group in ("all", "go", "docs")}
@@ -491,12 +585,8 @@ class Judgments(unittest.TestCase):
     """AC-4: each current-file judgment runs in both copies, and a dependency fails the group."""
 
     def test_judgments_run_and_pass_in_both_copies(self):
-        run = Run(route_checks())
-        missing = {script: sorted({"full", "shallow"} - ran_in_both(run, script)) for script in JUDGMENTS}
-        missing = {script: kinds for script, kinds in missing.items() if kinds}
-        require(self, not missing, "current-file-judgment-not-in-copies",
-                f"current-file judgments that did not run and pass in a copy: {missing}")
-        assert_route_passed(run)
+        require_judged(self, Run(route_checks()), JUDGMENTS, "current-file-judgment-not-in-copies",
+                       "current-file judgments")
 
     def test_private_input_or_history_dependency_fails_the_go_group(self):
         run = Run(route_checks())
@@ -516,18 +606,21 @@ class Judgments(unittest.TestCase):
                 marker = f"jaekit-observer-{kind}-{where}-{index}"
                 mutated = Run(creators, mutate=(script, kind, marker, where), fast=True)
                 codes = [code for code, _, _ in mutated.results.values()]
-                if any(code not in (0, 1) for code in codes):
-                    raise Unavailable(f"{script} {kind} in {where}: route checks ended with {codes}: "
-                                      + json.dumps([o[-2000:] for _, o, _ in mutated.results.values()])[:4000])
                 applied = [e for e in mutated.entries if e.get("mutation") == kind and e["script"] == script
                            and e.get("rc") == 1 and Run.kind(e["copy"]) == where]
                 if not applied:
                     raise Unavailable(f"{script}: the {kind} dependency was not reached in the {where} copy")
-                failed = [output for code, output, _ in mutated.results.values() if code == 1]
-                if not (failed and any(marker in output for output in failed)):
+                # A failure (1) or a unittest error (2) both fail the group; an
+                # error that does not show the needed input may have another cause.
+                failed = [output for code, output, _ in mutated.results.values() if code in (1, 2)]
+                shown = any(marker in output for output in failed)
+                if not shown and 2 in codes:
+                    raise Unavailable(f"{script} {kind} in {where}: route checks ended with {codes} without the "
+                                      "needed input: " + json.dumps([o[-2000:] for _, o, _ in mutated.results.values()])[:4000])
+                if not (failed and shown):
                     unreported.append(f"{JUDGMENTS[script]} ({script}) needing {kind} input in the {where} copy: "
                                       f"route checks {'failed' if failed else 'passed'}, the failure "
-                                      f"{'shows' if any(marker in o for o in failed) else 'does not show'} "
+                                      f"{'shows' if shown else 'does not show'} "
                                       "the needed input")
         require(self, not unreported, "dependency-failure-not-reported", "\n".join(unreported))
 
