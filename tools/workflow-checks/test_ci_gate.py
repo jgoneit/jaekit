@@ -21,17 +21,18 @@ def load(name):
 
 gate = load("require_success")
 describe = load("describe_run")
+NATIVE = ("go", "macos", "windows_ps51", "windows_ps7")
 
 
 class RequiredNativeJobs(unittest.TestCase):
     def results(self):
-        return {name: {"result": "success", "outputs": {}} for name in ("go", "macos", "windows")}
+        return {name: {"result": "success", "outputs": {}} for name in NATIVE}
 
-    def test_all_three_successful_jobs_pass(self):
+    def test_all_native_jobs_successful_pass(self):
         gate.require_success(json.dumps(self.results()))
 
     def test_every_non_success_is_rejected_for_every_native_job(self):
-        for name in ("go", "macos", "windows"):
+        for name in NATIVE:
             for status in ("failure", "cancelled", "skipped", "pending", "queued", "", None, True, "Success"):
                 with self.subTest(job=name, status=status):
                     jobs = self.results()
@@ -40,15 +41,20 @@ class RequiredNativeJobs(unittest.TestCase):
                         gate.require_success(json.dumps(jobs))
 
     def test_missing_extra_or_invalid_jobs_do_not_pass(self):
-        for name in ("go", "macos", "windows"):
+        for name in NATIVE:
             jobs = self.results()
             del jobs[name]
             with self.assertRaises(ValueError):
                 gate.require_success(json.dumps(jobs))
-        jobs = self.results()
-        jobs["previous_run"] = {"result": "success"}
+        for extra in ("previous_run", "windows"):
+            jobs = self.results()
+            jobs[extra] = {"result": "success"}
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                gate.require_success(json.dumps(jobs))
+        # A run recorded before the shells were split has no shell job results.
+        recorded = {name: {"result": "success"} for name in ("go", "macos", "windows")}
         with self.assertRaises(ValueError):
-            gate.require_success(json.dumps(jobs))
+            gate.require_success(json.dumps(recorded))
         for row in ({}, None, "success", []):
             jobs = self.results()
             jobs["macos"] = row
@@ -57,7 +63,8 @@ class RequiredNativeJobs(unittest.TestCase):
 
     def test_malformed_or_duplicate_input_fails(self):
         for raw in (None, "", "not json", "null", "[]", "{}",
-                    '{"go":{"result":"failure","result":"success"},"macos":{"result":"success"},"windows":{"result":"success"}}'):
+                    '{"go":{"result":"failure","result":"success"},"macos":{"result":"success"},'
+                    '"windows_ps51":{"result":"success"},"windows_ps7":{"result":"success"}}'):
             with self.subTest(raw=raw), self.assertRaises(ValueError):
                 gate.require_success(raw)
 
