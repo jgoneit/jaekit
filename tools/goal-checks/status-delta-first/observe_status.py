@@ -11,6 +11,7 @@ ends differently than the fixture requires (for example a check that errors
 where it should fail) are errors, never violations. Only an observed output
 property is a violation, named by an explicit `[violation:...]` tag.
 """
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -498,34 +499,28 @@ class ScenarioPinsReasons(unittest.TestCase):
             self.fail(f"[violation:stale-reason-scenario-missing] the scenario does not pin: {unpinned}")
         if not (shutil.which("git") and shutil.which("sh")):
             raise Unavailable("the scenario runner needs git and sh")
-        env = dict(os.environ, GOTOOLCHAIN="local", GOFLAGS="-mod=readonly")
-        name = "TestScenarios/completion-invalidated"
+        # The goal producer's own Go classification: build, panic, timeout and
+        # unfinished-test failures are errors; an ordinary failure is an
+        # unclassified assertion, never a named requirement
+        # (contracts/repository-producers.md).
         try:
-            result = subprocess.run(["go", "test", "-count=1", "-json", "-run",
-                                     "^TestScenarios$/^completion-invalidated$", "./cmd/ha"],
-                                    cwd=ROOT, env=env, capture_output=True, text=True, timeout=900)
-        except (OSError, subprocess.TimeoutExpired) as error:
-            raise Unavailable(f"go test: {error}") from None
-        actions, output = {}, []
-        for line in result.stdout.splitlines():
-            try:
-                event = json.loads(line)
-            except ValueError:
-                continue
-            if event.get("Test") == name:
-                if event.get("Action") in ("pass", "fail", "skip"):
-                    actions[name] = event["Action"]
-                elif event.get("Action") == "output":
-                    output.append(event.get("Output", ""))
-        if actions.get(name) == "pass" and result.returncode == 0:
-            return
-        if actions.get(name) == "fail":
-            # A Go failure names no requirement from its output, so it stays
-            # an unclassified assertion failure (contracts/repository-producers.md).
-            self.fail("scenario completion-invalidated failed:\n" + "".join(output)[-4000:])
-        # Build, toolchain or process failures, or a skipped scenario, never
-        # reach the scenario's assertions.
-        raise Unavailable("scenario tests could not run: " + result.stdout[-4000:] + result.stderr[-2000:])
+            spec = importlib.util.spec_from_file_location("goal_producer", ROOT / "tools/goal-checks/produce.py")
+            producer = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(producer)
+            error, finals, outputs = producer.go_events(
+                ["go", "test", "-count=1", "-json", "-run", "^TestScenarios$/^completion-invalidated$", "./cmd/ha"],
+                ROOT)
+        except (OSError, subprocess.SubprocessError, ImportError, SyntaxError) as failure:
+            raise Unavailable(f"go test: {failure!r}") from None
+        facts = producer.go_facts(error, finals, outputs, ROOT / "cmd/ha")
+        scenario = [state for (_, test), state in finals.items() if test == "TestScenarios/completion-invalidated"]
+        if facts["errors"] or facts["skipped"] or (scenario != ["pass"] and not facts["violations"]):
+            raise Unavailable(f"scenario tests could not run: errors {facts['errors']}, skipped {facts['skipped']}, "
+                              f"result {scenario}")
+        if facts["violations"]:
+            self.fail("scenario completion-invalidated failed:\n"
+                      + "".join(outputs.get(("github.com/jgoneit/jaekit/cmd/ha", "TestScenarios/completion-invalidated"),
+                                            []))[-4000:])
 
 
 class CheckOutput(Observed):
