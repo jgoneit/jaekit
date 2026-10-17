@@ -45,6 +45,7 @@ This checks source contracts and executable support. Whether installed Codex or 
 | `ha status <goal> [--format md\|json]` | Prints the computed state |
 | `ha done <goal> [--format md\|json]` | Computes the state and records it. When the state is `complete`, the line is the completion record |
 | `ha log <goal> <seq> [--tail N]` | Shows the local output of one run. Output never leaves this clone |
+| `ha timing <goal> [--format md\|json]` | Optional extension: a read-only view of each recorded run's duration, applied time limit, time inside the limit with its proximity, whether the limit fired, and CPU time. It executes nothing, and decisions and budgets never use these values |
 | `ha finding <goal> [--format json\|md]` | Optional extension: read historical completion anchors, current findings, and explicit rework relations; default JSON |
 | `ha finding <goal> --input <JSON file>` | Optional extension: append an explicitly sourced claim or revision and return a JSON receipt |
 | `ha history <goal> add --kind <kind> --summary "…" [--status …] [--reason "…"] [--target …] [--ref …] [--checked-ref …] [--builds-on Dn] [--supersedes Dn[@Dm]] [--request-id …]` | Optional decision history: records one judgment event in one call and returns a JSON receipt. Never touches `runs.jsonl` |
