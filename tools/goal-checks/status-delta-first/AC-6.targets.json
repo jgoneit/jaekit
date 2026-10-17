@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "deterministic",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "Deterministic",
+      "result_targets": {
+        "additional_violations": [
+          "deterministic.assertion-2",
+          "deterministic.assertion-3",
+          "deterministic.assertion-4",
+          "deterministic.assertion-5",
+          "deterministic.assertion-6",
+          "deterministic.assertion-7",
+          "deterministic.assertion-8"
+        ],
+        "execution": "deterministic.execution",
+        "selection": "deterministic.selection",
+        "attribution": "deterministic.attribution"
+      }
+    }
+  ]
+}

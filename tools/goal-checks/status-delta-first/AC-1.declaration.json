@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/status-delta-first/AC-1.targets.json",
+    "tools/goal-checks/status-delta-first/observe_status.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "unmet-summary",
+      "violation": "unmet-summary-missing"
+    },
+    {
+      "id": "unmet-summary.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest",
+      "violation": "unmet-summary-missing"
+    },
+    {
+      "id": "unmet-latest.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

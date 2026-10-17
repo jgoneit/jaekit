@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/status-delta-first/AC-4.targets.json",
+    "tools/goal-checks/status-delta-first/observe_status.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "check-log",
+      "violation": "check-log-command-missing"
+    },
+    {
+      "id": "check-log.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-log.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-log.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-log.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-log.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-log.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-log.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-log.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-log.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-log.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-no-output",
+      "violation": "check-no-output-state-missing"
+    },
+    {
+      "id": "check-no-output.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-no-output.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-no-output.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-no-output.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-no-output.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-no-output.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-no-output.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-no-output.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-no-output.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "check-no-output.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

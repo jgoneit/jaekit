@@ -1,0 +1,85 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "stale-code",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "InvalidatedCompletion.test_code_change_after_completion",
+      "result_targets": {
+        "additional_violations": [
+          "stale-code.assertion-2",
+          "stale-code.assertion-3",
+          "stale-code.assertion-4",
+          "stale-code.assertion-5",
+          "stale-code.assertion-6",
+          "stale-code.assertion-7",
+          "stale-code.assertion-8"
+        ],
+        "execution": "stale-code.execution",
+        "selection": "stale-code.selection",
+        "attribution": "stale-code.attribution"
+      }
+    },
+    {
+      "target": "stale-reopen",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "InvalidatedCompletion.test_reopen_after_completion",
+      "result_targets": {
+        "additional_violations": [
+          "stale-reopen.assertion-2",
+          "stale-reopen.assertion-3",
+          "stale-reopen.assertion-4",
+          "stale-reopen.assertion-5",
+          "stale-reopen.assertion-6",
+          "stale-reopen.assertion-7",
+          "stale-reopen.assertion-8"
+        ],
+        "execution": "stale-reopen.execution",
+        "selection": "stale-reopen.selection",
+        "attribution": "stale-reopen.attribution"
+      }
+    },
+    {
+      "target": "stale-goal-docs",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "InvalidatedCompletion.test_goal_document_change_after_completion",
+      "result_targets": {
+        "additional_violations": [
+          "stale-goal-docs.assertion-2",
+          "stale-goal-docs.assertion-3",
+          "stale-goal-docs.assertion-4",
+          "stale-goal-docs.assertion-5",
+          "stale-goal-docs.assertion-6",
+          "stale-goal-docs.assertion-7",
+          "stale-goal-docs.assertion-8"
+        ],
+        "execution": "stale-goal-docs.execution",
+        "selection": "stale-goal-docs.selection",
+        "attribution": "stale-goal-docs.attribution"
+      }
+    },
+    {
+      "target": "stale-command",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "InvalidatedCompletion.test_command_change_after_completion",
+      "result_targets": {
+        "additional_violations": [
+          "stale-command.assertion-2",
+          "stale-command.assertion-3",
+          "stale-command.assertion-4",
+          "stale-command.assertion-5",
+          "stale-command.assertion-6",
+          "stale-command.assertion-7",
+          "stale-command.assertion-8"
+        ],
+        "execution": "stale-command.execution",
+        "selection": "stale-command.selection",
+        "attribution": "stale-command.attribution"
+      }
+    }
+  ]
+}

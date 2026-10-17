@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "unmet-summary",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "UnmetSummary.test_unmet_conditions_and_goal_reasons_come_before_the_table",
+      "result_targets": {
+        "additional_violations": [
+          "unmet-summary.assertion-2",
+          "unmet-summary.assertion-3",
+          "unmet-summary.assertion-4",
+          "unmet-summary.assertion-5",
+          "unmet-summary.assertion-6",
+          "unmet-summary.assertion-7",
+          "unmet-summary.assertion-8"
+        ],
+        "execution": "unmet-summary.execution",
+        "selection": "unmet-summary.selection",
+        "attribution": "unmet-summary.attribution"
+      }
+    },
+    {
+      "target": "unmet-latest",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "UnmetSummary.test_summary_points_to_the_latest_fresh_record",
+      "result_targets": {
+        "additional_violations": [
+          "unmet-latest.assertion-2",
+          "unmet-latest.assertion-3",
+          "unmet-latest.assertion-4",
+          "unmet-latest.assertion-5",
+          "unmet-latest.assertion-6",
+          "unmet-latest.assertion-7",
+          "unmet-latest.assertion-8"
+        ],
+        "execution": "unmet-latest.execution",
+        "selection": "unmet-latest.selection",
+        "attribution": "unmet-latest.attribution"
+      }
+    }
+  ]
+}
