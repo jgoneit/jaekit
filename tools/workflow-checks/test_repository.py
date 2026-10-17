@@ -100,6 +100,22 @@ class Integration(unittest.TestCase):
             job = block(jobs, key, 2)
             self.assertNotRegex(job, r"(?m)^    (?:if|needs):")
 
+    def test_release_candidate_gate_requires_both_release_jobs_from_the_run(self):
+        jobs = block(read(".github/workflows/release.yml"), "jobs")
+        gate = block(jobs, "candidate", 2)
+        self.assertRegex(gate, r"(?m)^    name: Release candidate$")
+        self.assertRegex(gate, r"(?m)^    needs: \[build, windows\]$")
+        self.assertRegex(gate, r"(?m)^    if: \$\{\{ always\(\) \}\}$")
+        self.assertIn("BUILD: ${{ needs.build.result }}", gate)
+        self.assertIn("WINDOWS: ${{ needs.windows.result }}", gate)
+        self.assertIn('if [ "${BUILD}" != success ] || [ "${WINDOWS}" != success ]; then', gate)
+        for key in ("build", "windows"):
+            self.assertNotRegex(block(jobs, key, 2), r"(?m)^\s+continue-on-error:")
+        events = block(read(".github/workflows/release.yml"), "on")
+        # A path filter would leave the required check missing on other pull requests.
+        self.assertRegex(events, r"(?m)^  pull_request:$")
+        self.assertNotIn("paths", events)
+
     def test_required_jobs_remain_unconditional_and_use_pinned_actions(self):
         workflow = read(".github/workflows/ci.yml")
         events = block(workflow, "on")
