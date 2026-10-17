@@ -1,0 +1,15 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-wsl-route",
+  "producer_version": "1",
+  "producer_paths": [
+    "tools/verification-checks/wsl.py",
+    "tools/release/test_wsl_environment.py"
+  ],
+  "targets": [
+    {
+      "id": "AC-7",
+      "violation": "wsl-route-missing"
+    }
+  ]
+}

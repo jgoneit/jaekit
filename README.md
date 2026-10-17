@@ -37,6 +37,8 @@ Spec은 목표 문서를 작성한 뒤 **멈춥니다**. 내용을 확인하고 
 
 Linux 또는 Homebrew 없는 환경은 [설치 안내](guides/INSTALL.md)를 따릅니다. 현재 공개 릴리스에서 Windows는 기록 도구 `ha`가 지원되지 않아 Seal을 쓸 수 없습니다. Spec은 `ha`가 필요 없지만 Windows의 설치·동작은 아직 확인하지 않았습니다. 별도 [Windows 네이티브 후보 안내](guides/WINDOWS.md)는 Windows 11 x64·PowerShell 5.1/7의 설치물과 검증 준비를 다루며, 실제 Windows 실행과 호스트 동작은 미확인입니다.
 
+Windows에서 Linux 도구를 쓰려면 [WSL2 준비 안내](guides/WSL.md)를 참고하세요. Ubuntu 24.04 LTS x64 경로를 준비 중이며, 실제 WSL2 설치와 에이전트 사용은 아직 확인하지 않았습니다. 위 Windows 제한은 네이티브 실행에 관한 것입니다.
+
 **1. 터미널에서 기록 도구 `ha`를 설치합니다.** 아래 블록을 하나씩 실행하고 끝날 때까지 기다립니다.
 
 ```bash

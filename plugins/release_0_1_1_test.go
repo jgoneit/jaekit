@@ -118,7 +118,8 @@ func TestRelease011Prerequisites(t *testing.T) {
 
 // on the first screen or before the quick
 // start, the README states Windows as checked: no Seal, Spec unchecked. It
-// does not claim Seal, Spec, or WSL work on Windows.
+// does not claim checked native Windows support. WSL preparation has its own
+// explicitly unverified route and does not change the native Windows boundary.
 func TestRelease011Windows(t *testing.T) {
 	for _, l := range visualLanguages {
 		before := visualBeforeInstall(t, l)
@@ -128,7 +129,11 @@ func TestRelease011Windows(t *testing.T) {
 		} else {
 			visualRequire(t, l.readme, before, "Windows", "Seal을 쓸 수 없습니다", "Spec은 `ha`가 필요 없지만", "아직 확인하지 않았습니다")
 		}
-		forbidAll(t, l.readme, "WSL")
+		if strings.Contains(l.readme, ".en.md") {
+			visualRequire(t, l.readme, read(t, l.readme), "guides/WSL.en.md")
+		} else {
+			visualRequire(t, l.readme, read(t, l.readme), "guides/WSL.md")
+		}
 	}
 }
 

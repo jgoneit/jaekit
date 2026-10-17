@@ -94,8 +94,9 @@ jobs:
               -o "${build}/${name}/ha" ./cmd/ha
             cp LICENSE README.md README.en.md "${build}/${name}/"
             cp -R guides contracts assets "${build}/${name}/"
-            mkdir -p "${build}/${name}/tools" "${build}/${name}/examples/check-result"
+            mkdir -p "${build}/${name}/tools/wsl" "${build}/${name}/examples/check-result"
             cp tools/check-result-reference.py "${build}/${name}/tools/"
+            cp tools/wsl/check-environment.sh "${build}/${name}/tools/wsl/"
             for example in README.md declaration.json reference.json input.txt; do
               cp "examples/check-result/${example}" "${build}/${name}/examples/check-result/"
             done

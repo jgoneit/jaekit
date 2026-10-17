@@ -53,6 +53,8 @@ REQUIRED = {
     "assets/readme/source/usage-flow.layout.json", "assets/readme/source/FONT-LICENSE.txt",
     "assets/readme/source/svg/usage-flow.ko.text.svg", "assets/readme/source/svg/usage-flow.en.text.svg",
     "tools/check-result-reference.py",
+    "tools/wsl/check-environment.sh",
+    "guides/WSL.md", "guides/WSL.en.md",
     "examples/check-result/README.md", "examples/check-result/declaration.json",
     "examples/check-result/reference.json", "examples/check-result/input.txt",
 }
@@ -185,7 +187,8 @@ def archive_files(members, prefix: str):
         require(not LOCAL_PARTS.intersection(relative.parts) and relative.suffix not in CACHE_SUFFIXES,
                 "archive contains local metadata or generated cache")
         if top == "tools":
-            require(str(relative) in {"tools", "tools/check-result-reference.py"},
+            require(str(relative) in {"tools", "tools/check-result-reference.py",
+                                     "tools/wsl", "tools/wsl/check-environment.sh"},
                     "archive contains an unexpected tool")
         if top == "examples":
             require(str(relative) in EXAMPLE_FILES | {"examples", "examples/check-result"},
