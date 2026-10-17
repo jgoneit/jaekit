@@ -854,6 +854,12 @@ def notices(result, target):
     return [line for line in lines[:end] if line.startswith(NOTICE) and f" {target} " in f"{line} "]
 
 
+def affirms_safety(line):
+    """True when a clause of a notice calls the run safe without a negation in that clause."""
+    return any(re.search(r"\bsafe\b", clause) and not re.search(r"\b(?:not|never|no|cannot|unknown)\b", clause)
+               for clause in re.split(r"[|;,.]", line))
+
+
 class TimeLimitNotice(unittest.TestCase):
     """AC-8: before a run, the executor learns of earlier runs at or near their limit.
 
@@ -869,8 +875,8 @@ class TimeLimitNotice(unittest.TestCase):
             require(self, f.start_new(), "time-limit-notice-missing", "no run-rules/4 goal")
             problems = []
             first = notices(f.must(f.ha("check", GOAL, "EX-5", timeout=120), "first EX-5"), "EX-5")
-            if len(first) != 1 or "risk unknown" not in first[0]:
-                problems.append(f"the first run did not say its time risk is unknown: {first}")
+            if len(first) != 1 or "risk unknown" not in first[0] or affirms_safety(first[0]):
+                problems.append(f"the first run did not say its time risk is unknown without calling it safe: {first}")
             near = f.records()[-1]
             f.must(f.ha("check", GOAL, "EX-4", timeout=120), "timed-out EX-4", codes=(1,))
             reached = f.records()[-1]
@@ -1269,8 +1275,8 @@ class OldCoreRefuses(unittest.TestCase):
 
 def changed_types(before, after, path=""):
     """Keys of `before` whose JSON type differs in `after`, recursively; added keys are fine."""
-    kind = lambda value: "number" if isinstance(value, (int, float)) and not isinstance(value, bool) \
-        else type(value).__name__
+    # An integer stays an integer: a Core that decodes it as one rejects 50.0.
+    kind = lambda value: type(value).__name__
     changed = []
     for key, value in before.items():
         name = f"{path}{key}"
