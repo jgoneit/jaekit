@@ -96,9 +96,12 @@ class CheckBoundaries(Observed):
 
     def test_an_inverted_boundary_rule_is_reported(self):
         # "can be placed outside" keeps every other phrase of the rule, so only
-        # the prohibition itself tells the two rules apart.
-        inverted = section(agents(), RULES_HEADING).replace("cannot be placed outside", "can be placed outside")
-        self.assertTrue(missing(inverted, [REQUIRED_INPUTS_STAY_INSIDE]))
+        # the prohibition itself tells the two rules apart. Fixed text keeps
+        # this independent of the AGENTS.md wording the check above reads.
+        rule = ("- Inputs that a SPEC criterion, a contract, a protected regression path or a selected assurance\n"
+                "  requires {} be placed outside a check's boundary.")
+        self.assertEqual(missing(rule.format("cannot"), [REQUIRED_INPUTS_STAY_INSIDE]), [])
+        self.assertNotEqual(missing(rule.format("can"), [REQUIRED_INPUTS_STAY_INSIDE]), [])
 
     def test_input_failures_have_declared_result_meanings(self):
         absent = missing(section(agents(), RULES_HEADING), [
