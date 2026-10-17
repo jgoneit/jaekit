@@ -23,8 +23,9 @@ counts as a full Go suite. Violations come only from explicit
 `[violation:...]` failures. Missing tools, a route that cannot be read, checks
 that cannot be collected or that fail for reasons other than the observed
 property raise Unavailable, an execution error. A judgment that ran in a copy
-without passing, or never ran there while the route failed, was not observed as
-a violation, and is an execution error too.
+without passing is the violation only when it exited with its tool's own
+problem code (FINDING_EXITS); with any other exit, or when it never ran there
+while the route failed, it was not observed as one, and is an execution error.
 """
 import importlib.util
 import io
