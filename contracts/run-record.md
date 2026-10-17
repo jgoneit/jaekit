@@ -82,7 +82,7 @@ JSON 출력은 `schema: estimate/v1`이며 다음을 제공한다.
 
 - 단위는 밀리초 정수다. `limit_use_permille`은 `limit_elapsed_ms × 1000 ÷ limit_ms`의 정수 몫(소수 버림)이다. 두 값 중 하나라도 없으면 `null`이다. 몫이 64비트 정수를 넘으면 `null`이고 `invalid`다.
 - 값이 없으면 그 필드는 `null`이고, `unavailable`에 이유가 있다. `not_recorded`는 그 값이 줄에 없다는 뜻이다(이 필드가 생기기 전에 기록한 줄 등). `not_measured`는 기록된 `null`, 곧 제한 타이머가 켜지지 않았다는 뜻이다. `invalid`는 타입이나 값이 맞지 않는다는 뜻이다. 0이나 900초 같은 값으로 채우거나 규칙 버전에서 추정하지 않는다.
-- 한 값이 손상돼도 그 값만 `invalid`다. 같은 줄의 다른 값과 다른 줄은 그대로 보인다. 줄에 `timing` 필드가 없을 때만 다섯 값이 `not_recorded`다. `timing`이 `null`이거나 객체가 아니면 다섯 값이 모두 `invalid`다.
+- 한 값이 손상돼도 그 값만 `invalid`다. 같은 줄의 다른 값과 다른 줄은 그대로 보인다. `timing` 필드가 없으면 다섯 값이 모두 `not_recorded`이고, 객체에 없는 키도 `not_recorded`다. `timing`이 `null`이거나 객체가 아니면 다섯 값이 모두 `invalid`다.
 - `cpu`는 기록의 `{ "status", "user_ms", "system_ms", "scope", "source" }`를 키마다 따로 읽어 보인다. 기록에 있는 키는 그대로 나오고, 그 값이 손상됐으면 그 키만 `null`이며 `unavailable`의 `cpu.<키>`가 `invalid`다. 같은 CPU의 다른 키는 그대로 보인다. `status`가 `measured`면 다섯 키가 모두 나오고, 기록에 없는 키도 `null`과 `invalid`다. `unavailable`·`failed`는 기록에 있는 키만 나오며, 그 상태에 시간이 있으면 그 시간은 `null`과 `invalid`다. `status`가 세 값이 아니면 `null`과 `invalid`다. `scope`·`source`는 §2.2의 고정 코드만 보이고, 그 밖의 값은 `null`과 `invalid`다. 그래서 기록에 들어간 임의 문자열이 보기로 나오지 않는다. `cpu`가 객체가 아니면 `cpu`가 `null`이고 `unavailable`의 `cpu`가 `invalid`다.
 
 사람이 읽는 형식은 같은 값을 표 하나로 보이고, 실행 시간의 합과 그 합이 목표 경과 시간이나 예산이 아니라는 문장을 덧붙인다. CPU 칸은 상태가 무엇이든 JSON이 보이는 키를 같은 값이나 같은 이용 불가 표시로 보인다.

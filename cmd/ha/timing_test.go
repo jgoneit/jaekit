@@ -21,8 +21,8 @@ func timingLine(timing string) record.Line {
 }
 
 // Lines written before the timing field existed, null values and damaged
-// values each hide only the value concerned (run-record.md §1.2). Only an
-// absent field is not recorded: a timing that is null is not an object.
+// values each hide only the value concerned (run-record.md §1.2). An absent
+// field or key is not recorded; a timing that is null is not an object.
 func TestTimingViewReadsEachValueOnItsOwn(t *testing.T) {
 	cases := map[string]struct {
 		timing string
@@ -34,6 +34,8 @@ func TestTimingViewReadsEachValueOnItsOwn(t *testing.T) {
 			map[string]string{"limit_elapsed_ms": timingNotMeasured, "limit_use_permille": timingNotMeasured}},
 		"timing is not an object": {`[1,2]`, map[string]string{"limit_ms": timingInvalid, "limit_elapsed_ms": timingInvalid,
 			"limit_use_permille": timingInvalid, "limit_reached": timingInvalid, "cpu": timingInvalid}},
+		"timing without keys": {`{}`, map[string]string{"limit_ms": timingNotRecorded, "limit_elapsed_ms": timingNotRecorded,
+			"limit_use_permille": timingNotRecorded, "limit_reached": timingNotRecorded, "cpu": timingNotRecorded}},
 		"timing is null": {`null`, map[string]string{"limit_ms": timingInvalid, "limit_elapsed_ms": timingInvalid,
 			"limit_use_permille": timingInvalid, "limit_reached": timingInvalid, "cpu": timingInvalid}},
 		"quoted and negative numbers": {`{"limit_ms":"900000","limit_elapsed_ms":-1,"limit_reached":"no","cpu":{"status":"measured","user_ms":1,"system_ms":2,"scope":"process-and-waited-descendants","source":"wait4-rusage"}}`,
