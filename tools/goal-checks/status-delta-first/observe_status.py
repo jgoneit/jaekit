@@ -458,9 +458,6 @@ class DoneForms(Observed):
                      "invalidated-completion-hidden", "the ha done hint changed")
 
 
-# An existing scenario on the same `implement` setup whose output this goal
-# does not change; it separates fixture-environment failures from results.
-CONTROL = "complete-happy-path"
 # The reason phrases the scenario must pin (contract §5.1 order, AC-3).
 STALE_REASONS = ("is no longer valid: ", "code outside the bundle documents changed", "goal documents changed",
                  "required command changed: ", "reopened at seq ", "record chain broken")
@@ -502,36 +499,33 @@ class ScenarioPinsReasons(unittest.TestCase):
         if not (shutil.which("git") and shutil.which("sh")):
             raise Unavailable("the scenario runner needs git and sh")
         env = dict(os.environ, GOTOOLCHAIN="local", GOFLAGS="-mod=readonly")
+        name = "TestScenarios/completion-invalidated"
         try:
-            result = subprocess.run(["go", "test", "-count=1", "-v", "-run",
-                                     f"^TestScenarios$/^(completion-invalidated|{CONTROL})$", "./cmd/ha"],
+            result = subprocess.run(["go", "test", "-count=1", "-json", "-run",
+                                     "^TestScenarios$/^completion-invalidated$", "./cmd/ha"],
                                     cwd=ROOT, env=env, capture_output=True, text=True, timeout=900)
         except (OSError, subprocess.TimeoutExpired) as error:
             raise Unavailable(f"go test: {error}") from None
-        # A control scenario with the same `implement` setup and fixture
-        # commands runs alongside. If it fails before any expectation in its
-        # own steps file, the fixture environment (Git, sh, grep, ...) or the
-        # shared setup is the cause. A failure at its own expectation is a
-        # product result and does not hide the scenario's assertions.
-        if (f"--- PASS: TestScenarios/{CONTROL}" not in result.stdout
-                and not re.search(rf"{CONTROL}/steps:\d+: expect-", result.stdout)):
-            raise Unavailable(f"the fixture environment failed the control scenario {CONTROL}: "
-                              + result.stdout[-4000:] + result.stderr[-2000:])
-        # With a working fixture, the scenario's own result is a failed
-        # expectation in its own steps file, or a failed reason assertion
-        # wherever it is pinned. The runner reports the latter as
-        # `output does not contain "<text>"` with the text Go-quoted on one
-        # line. Shared `_steps` setup expectations, Git and fixture steps that
-        # fail are neither.
-        failed = [line.split('output does not contain "', 1)[1] for line in result.stdout.splitlines()
-                  if 'output does not contain "' in line]
-        if ("--- FAIL: TestScenarios/completion-invalidated" in result.stdout
-                and (re.search(r"completion-invalidated/steps:\d+: expect-", result.stdout)
-                     or any(reason in text for text in failed for reason in STALE_REASONS))):
-            self.fail("[violation:stale-reason-scenario-missing] " + result.stdout[-4000:])
-        if result.returncode != 0 or "--- PASS: TestScenarios/completion-invalidated" not in result.stdout:
-            # Toolchain, module, build or setup failures never reach the scenario.
-            raise Unavailable("scenario tests could not run: " + result.stdout + result.stderr)
+        actions, output = {}, []
+        for line in result.stdout.splitlines():
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            if event.get("Test") == name:
+                if event.get("Action") in ("pass", "fail", "skip"):
+                    actions[name] = event["Action"]
+                elif event.get("Action") == "output":
+                    output.append(event.get("Output", ""))
+        if actions.get(name) == "pass" and result.returncode == 0:
+            return
+        if actions.get(name) == "fail":
+            # A Go failure names no requirement from its output, so it stays
+            # an unclassified assertion failure (contracts/repository-producers.md).
+            self.fail("scenario completion-invalidated failed:\n" + "".join(output)[-4000:])
+        # Build, toolchain or process failures, or a skipped scenario, never
+        # reach the scenario's assertions.
+        raise Unavailable("scenario tests could not run: " + result.stdout[-4000:] + result.stderr[-2000:])
 
 
 class CheckOutput(Observed):
