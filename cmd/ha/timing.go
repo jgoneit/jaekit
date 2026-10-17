@@ -354,10 +354,19 @@ func timingMarkdown(rep timingReport) string {
 				cpu = "status " + absent(r.Unavailable["cpu.status"]) + ": " + measured
 			case *c.Status == run.CPUMeasured:
 				cpu = measured
-			case *c.Status == run.CPUFailed:
-				cpu = "measurement failed"
 			default:
-				cpu = "not available"
+				// Without a measurement the cell keeps the keys the JSON view
+				// shows: their values, or the same invalid markers.
+				parts := []string{map[bool]string{true: "measurement failed", false: "not available"}[*c.Status == run.CPUFailed]}
+				for _, k := range []struct{ name, label, value string }{
+					{"user_ms", "user", time(c.UserMS, "user_ms")}, {"system_ms", "system", time(c.SystemMS, "system_ms")},
+					{"scope", "scope", code(c.Scope, "scope")}, {"source", "source", code(c.Source, "source")},
+				} {
+					if c.shown[k.name] {
+						parts = append(parts, k.label+" "+k.value)
+					}
+				}
+				cpu = strings.Join(parts, "; ")
 			}
 		}
 		fmt.Fprintf(&b, "| %d | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n",

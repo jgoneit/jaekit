@@ -234,3 +234,35 @@ func TestCapabilityConsumerChecksTheOptionalTimingFormat(t *testing.T) {
 		})
 	}
 }
+
+// The Markdown view shows the CPU keys the JSON view shows, with the same
+// values or the same invalid markers, whatever the status (run-record.md §1.2).
+func TestTimingMarkdownShowsEachKeptCPUValue(t *testing.T) {
+	for name, c := range map[string]struct {
+		cpu  string
+		want []string
+		not  []string
+	}{
+		"failed with a time": {`{"status":"failed","user_ms":0,"scope":"job-process-tree","source":"job-object-accounting"}`,
+			[]string{"measurement failed; user unavailable (invalid); scope job-process-tree; source job-object-accounting"}, nil},
+		"unavailable with a damaged scope": {`{"status":"unavailable","scope":"/home/user/secret"}`,
+			[]string{"not available; scope unavailable (invalid)"}, []string{"/home/user/secret"}},
+		"intact unavailable": {`{"status":"unavailable"}`, []string{"| not available |"}, []string{"not available;"}},
+		"intact failed":      {`{"status":"failed"}`, []string{"| measurement failed |"}, []string{"measurement failed;"}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			r := timingOf(timingLine(`{"limit_ms":1000,"limit_elapsed_ms":500,"limit_reached":false,"cpu":` + c.cpu + `}`))
+			md := timingMarkdown(timingReport{Schema: timingSchema, Goal: "docs/specs/g", Runs: []timingRun{r}})
+			for _, s := range c.want {
+				if !strings.Contains(md, s) {
+					t.Fatalf("Markdown lacks %q:\n%s", s, md)
+				}
+			}
+			for _, s := range c.not {
+				if strings.Contains(md, s) {
+					t.Fatalf("Markdown shows %q:\n%s", s, md)
+				}
+			}
+		})
+	}
+}
