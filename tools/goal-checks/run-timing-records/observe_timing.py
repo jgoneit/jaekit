@@ -244,8 +244,8 @@ class Fixture:
         self.env.update(JAEKIT_OBSERVED_SECRET=SECRET, GIT_AUTHOR_NAME="Observer", GIT_AUTHOR_EMAIL="observer@example.invalid",
                         GIT_COMMITTER_NAME="Observer", GIT_COMMITTER_EMAIL="observer@example.invalid",
                         GIT_AUTHOR_DATE="2026-01-01T00:00:00+00:00", GIT_COMMITTER_DATE="2026-01-01T00:00:00+00:00")
-        # Record seqs of the runs the short-limit build made.
-        self.short_seqs = set()
+        # Record seqs of the runs the short-limit build made, and each step's exit.
+        self.short_seqs, self.exits, self.lenient = set(), [], False
         self.git("init", "-q", "-b", "main")
         self.commit("base")
         self.rules = rules
@@ -319,9 +319,10 @@ class Fixture:
         self.refusal_wrote = self.records_path.read_bytes() != before
         return self.records()
 
-    @staticmethod
-    def expect(result, code, what):
-        if result.returncode != code:
+    def expect(self, result, code, what):
+        """Keep each step's exit; a lenient fixture (AC-7) lets the caller compare them instead of stopping."""
+        self.exits.append((what, result.returncode))
+        if result.returncode != code and not self.lenient:
             raise Unavailable(f"ha {what} exited {result.returncode}, not {code}: "
                               + (result.stdout + result.stderr).decode(errors="replace")[-2000:])
 
@@ -1031,6 +1032,33 @@ def comparable(line):
     return kept
 
 
+def by_order(value, commits):
+    """value with each commit ID, full or abbreviated, named by its place in commits.
+
+    The fixture commits its record too, so two fixtures with the same flow
+    have different commit IDs for the same code.
+    """
+    if isinstance(value, dict):
+        return {k: by_order(v, commits) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [by_order(v, commits) for v in value]
+    if isinstance(value, str) and re.fullmatch(r"[0-9a-f]{7,40}", value):
+        found = [index for index, commit in enumerate(commits) if commit.startswith(value)]
+        if len(found) == 1:
+            return f"commit {found[0]}"
+    return value
+
+
+def differences(first, second, path="status"):
+    """The paths at which two JSON values differ."""
+    if isinstance(first, dict) and isinstance(second, dict):
+        return [d for key in sorted(set(first) | set(second), key=str)
+                for d in differences(first.get(key), second.get(key), f"{path}.{key}")]
+    if isinstance(first, list) and isinstance(second, list) and len(first) == len(second):
+        return [d for index, pair in enumerate(zip(first, second)) for d in differences(*pair, f"{path}[{index}]")]
+    return [] if first == second else [f"{path}: {first!r} became {second!r}"]
+
+
 def cpu_of(line):
     timing = line.get("timing")
     return (timing.get("cpu") or {}) if isinstance(timing, dict) else {}
@@ -1053,21 +1081,28 @@ class CpuFailure(unittest.TestCase):
                 return
             failing = Fixture(base / "failing", build_overlaid(base / "failing" / "ha", CPU_FAILURE), rules=None,
                               short=build_short(base / "failing-short" / "ha", CPU_FAILURE))
+            failing.lenient = True
             failed_lines = failing.flow()
-            problems = []
-            if [comparable(line) for line in kept_lines] != [comparable(line) for line in failed_lines]:
-                problems += [f"seq {a.get('seq')}: {comparable(a)} became {comparable(b)}"
-                             for a, b in zip(kept_lines, failed_lines) if comparable(a) != comparable(b)] or \
+            orders = [fixture.git("rev-list", "--reverse", "--all").split() for fixture in (measured, failing)]
+            kept = lambda line: by_order(comparable(line), orders[0])
+            failed = lambda line: by_order(comparable(line), orders[1])
+            problems = [f"ha {what} exited {b} instead of {a}"
+                        for (what, a), (_, b) in zip(measured.exits, failing.exits) if a != b]
+            if [kept(line) for line in kept_lines] != [failed(line) for line in failed_lines]:
+                problems += [f"seq {a.get('seq')}: {kept(a)} became {failed(b)}"
+                             for a, b in zip(kept_lines, failed_lines) if kept(a) != failed(b)] or \
                             [f"{len(kept_lines)} lines became {len(failed_lines)}"]
             for line in runs_of(failed_lines):
                 cpu = cpu_of(line)
                 if started(line) and (cpu.get("status") != "failed" or "user_ms" in cpu or "system_ms" in cpu):
                     problems.append(f"{label(line)}: a failed collection is recorded as {cpu}")
-                kept = next(l for l in kept_lines if l.get("seq") == line.get("seq"))
-                if measured.ha("log", GOAL, str(kept["seq"])).stdout != failing.ha("log", GOAL, str(line["seq"])).stdout:
+                if measured.ha("log", GOAL, str(line["seq"])).stdout != failing.ha("log", GOAL, str(line["seq"])).stdout:
                     problems.append(f"{label(line)}: its output differs")
-            if status_facts(measured) != status_facts(failing):
-                problems.append("status differs")
+            # The budget window's elapsed time comes from record times, which two flows never share.
+            untimed = lambda facts: json.loads(
+                re.sub(r'"elapsed_seconds": [0-9]+', '"elapsed_seconds": null', json.dumps(facts)))
+            problems += differences(by_order(untimed(status_facts(measured)), orders[0]),
+                                    by_order(untimed(status_facts(failing)), orders[1]))
         require(self, not problems, "cpu-failure-changes-the-run", "; ".join(problems))
 
 
