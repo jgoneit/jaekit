@@ -1,0 +1,63 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "unchanged",
+      "runner": "unittest",
+      "file": "tools/goal-checks/windows-ci-parallel-shells/observe_ci.py",
+      "test": "Unchanged.test_other_jobs_required_names_and_entrypoint_are_unchanged",
+      "result_targets": {
+        "additional_violations": [
+          "unchanged.assertion-2",
+          "unchanged.assertion-3",
+          "unchanged.assertion-4",
+          "unchanged.assertion-5",
+          "unchanged.assertion-6",
+          "unchanged.assertion-7",
+          "unchanged.assertion-8"
+        ],
+        "execution": "unchanged.execution",
+        "selection": "unchanged.selection",
+        "attribution": "unchanged.attribution"
+      }
+    },
+    {
+      "target": "release-gate",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/workflow-checks",
+        "-p",
+        "test_repository.py",
+        "-k",
+        "test_release_candidate_gate"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "release-gate.assertion-2",
+          "release-gate.assertion-3",
+          "release-gate.assertion-4",
+          "release-gate.assertion-5",
+          "release-gate.assertion-6",
+          "release-gate.assertion-7",
+          "release-gate.assertion-8"
+        ],
+        "execution": "release-gate.execution",
+        "selection": "release-gate.selection",
+        "attribution": "release-gate.attribution"
+      }
+    }
+  ]
+}

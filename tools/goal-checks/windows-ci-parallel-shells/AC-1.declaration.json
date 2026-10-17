@@ -1,0 +1,57 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/windows-ci-parallel-shells/AC-1.targets.json",
+    "tools/goal-checks/windows-ci-parallel-shells/observe_ci.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "shell-jobs",
+      "violation": "windows-shells-share-a-job"
+    },
+    {
+      "id": "shell-jobs.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-jobs.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-jobs.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-jobs.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-jobs.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-jobs.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-jobs.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-jobs.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-jobs.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "shell-jobs.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "seal-core",
+      "runner": "unittest",
+      "file": "tools/goal-checks/windows-ci-parallel-shells/observe_ci.py",
+      "test": "Aggregate.test_seal_core_requires_every_native_job_including_both_shells",
+      "result_targets": {
+        "additional_violations": [
+          "seal-core.assertion-2",
+          "seal-core.assertion-3",
+          "seal-core.assertion-4",
+          "seal-core.assertion-5",
+          "seal-core.assertion-6",
+          "seal-core.assertion-7",
+          "seal-core.assertion-8"
+        ],
+        "execution": "seal-core.execution",
+        "selection": "seal-core.selection",
+        "attribution": "seal-core.attribution"
+      }
+    }
+  ]
+}

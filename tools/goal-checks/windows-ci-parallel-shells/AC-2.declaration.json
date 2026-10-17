@@ -1,0 +1,57 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/windows-ci-parallel-shells/AC-2.targets.json",
+    "tools/goal-checks/windows-ci-parallel-shells/observe_ci.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "seal-core",
+      "violation": "seal-core-misses-a-shell-job"
+    },
+    {
+      "id": "seal-core.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-core.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-core.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-core.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-core.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-core.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-core.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-core.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-core.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-core.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}
