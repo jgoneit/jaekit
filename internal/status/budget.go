@@ -126,6 +126,12 @@ func preapprovedRaise(state *BudgetState, d *record.BudgetChangeData) bool {
 		strings.TrimSpace(d.Quote) == "" && strings.TrimSpace(d.Reason) != ""
 }
 
+// userSet is a run limit change that carries the user's quote and its request
+// context.
+func userSet(d *record.BudgetChangeData) bool {
+	return strings.TrimSpace(d.Quote) != "" && strings.TrimSpace(d.Context) != ""
+}
+
 // FoldBudget checks budget event semantics while retaining /1 and /2 window
 // accounting. Callers separately validate the record hash chain.
 func FoldBudget(lines []record.Line) (*BudgetState, error) {
@@ -163,9 +169,11 @@ func FoldBudget(lines []record.Line) (*BudgetState, error) {
 			case d.PreapprovedRuns != 0:
 				n := d.PreapprovedRuns
 				state.PreapprovedRuns = &n
-			case d.Runs < state.RunsLimit:
+			case d.Runs < state.RunsLimit && !userSet(d):
 				state.inheritRuns = min(state.inheritRuns, d.Runs)
 			case !preapprovedRaise(state, d):
+				// A limit the user set with a quote, raise or decrease, is the
+				// one a new window carries (run-record.md §4.7).
 				state.inheritRuns = d.Runs
 			}
 			state.RunsLimit, state.Revision = l.BudgetChange.Runs, l.Seq
