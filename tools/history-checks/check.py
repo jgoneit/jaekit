@@ -956,7 +956,9 @@ def documents(n):
             body = section(text(path), heading)
             for word in words:
                 require(word in body, 'history-progress-roles-missing', '%s %s lacks %r' % (path, heading, word))
-        require('version: "0.1.13"' in text('plugins/seal/skills/seal/SKILL.md'), 'history-progress-roles-missing', 'Seal version boundary')
+        seal = re.search(r'^\s*version: "(\d+)\.(\d+)\.(\d+)"', text('plugins/seal/skills/seal/SKILL.md'), re.M)
+        require(seal is not None and tuple(map(int, seal.groups())) >= (0, 1, 13),
+                'history-progress-roles-missing', 'Seal version boundary: 0.1.13 or later')
         result = run(['go', 'test', '-count=1', './plugins', '-run', 'Progress|Timeline|SealSkill|Compatibility'], ROOT)
         if result.returncode:
             if '--- FAIL' in result.stdout:
