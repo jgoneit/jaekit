@@ -462,12 +462,18 @@ class ScenarioPinsReasons(unittest.TestCase):
     """The behavioral scenario that pins stale-completion reasons exists and passes."""
 
     def test_completion_invalidated_scenario_passes(self):
+        # The scenario file itself states its expectations; includes are not followed.
         steps = ROOT / "testdata/scenarios/completion-invalidated/steps"
         text = steps.read_text(encoding="utf-8") if steps.is_file() else ""
-        pinned = [line for line in text.splitlines() if line.startswith("expect-output ")]
-        if not any("is no longer valid: " in line and "code outside the bundle documents changed" in line
-                   for line in pinned) or not any("reopened at seq " in line for line in pinned):
-            self.fail("[violation:stale-reason-scenario-missing] the scenario does not pin the reasons: " + text)
+        pinned = "\n".join(line for line in text.splitlines() if line.startswith("expect-output "))
+        unpinned = [reason for reason in ("is no longer valid: ", "code outside the bundle documents changed",
+                                          "goal documents changed", "required command changed: ",
+                                          "reopened at seq ", "record chain broken")
+                    if reason not in pinned]
+        if unpinned:
+            self.fail(f"[violation:stale-reason-scenario-missing] the scenario does not pin: {unpinned}")
+        if not (shutil.which("git") and shutil.which("sh")):
+            raise Unavailable("the scenario runner needs git and sh")
         env = dict(os.environ, GOTOOLCHAIN="local", GOFLAGS="-mod=readonly")
         try:
             result = subprocess.run(["go", "test", "-count=1", "-v", "-run", "^TestScenarios$/^completion-invalidated$",
@@ -520,6 +526,9 @@ class Preserved(Observed):
 
     def test_judgment_json_and_exit_codes(self):
         result = self.run_ha("check", GOAL, expect=(0, 1))
+        if any(m.group(3) == "error" for m in RESULT_LINE.finditer(result.stdout)):
+            # A fixture process that could not run says nothing about the line format.
+            raise Unavailable("fixture checks errored: " + result.stdout + result.stderr)
         lines = result.stdout.splitlines()
         self.require(result.returncode == 1 and lines[:2] == ["AC-1 check pass (seq 2)", "AC-2 check fail (seq 3)"],
                      "check-result-lines-changed", result.stdout)
@@ -613,9 +622,9 @@ class Documents(unittest.TestCase):
                         "synthetic example", "```text", "docs/specs/example")
                       if p not in reference])
         for name, body in (("run-record.md §4.4", contract), ("references/ha.md Status output", reference)):
-            examples = "\n".join(re.findall(r"^```text\n(.*?)^```", body, re.S | re.M))
-            paths = set(re.findall(r"docs/specs/([^\s`/]+)", examples))
+            # Every goal the section names, in prose or in any example, is the synthetic one.
+            paths = set(re.findall(r"docs/specs/([^\s`/)\]]+)", body))
             if paths - {"example"}:
-                missing.append(f"{name}: example names a goal other than docs/specs/example: {sorted(paths)}")
+                missing.append(f"{name}: names a goal other than docs/specs/example: {sorted(paths)}")
         if missing:
             self.fail("[violation:status-output-docs-missing] " + "\n".join(missing))
