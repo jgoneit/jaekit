@@ -61,7 +61,8 @@ RECORDED = {
     "package_checks": {"candidate-manifest-sha256", "candidate-native-version-capabilities",
                        "space-unicode-drive-path", "checksum-refusal", "archive-traversal-refusal",
                        "archive-case-collision-refusal", "archive-file-directory-collision-refusal",
-                       "archive-reserved-name-refusal", "archive-stream-name-refusal", "junction-path-refusal"},
+                       "archive-reserved-name-refusal", "archive-stream-name-refusal",
+                       "archive-name-character-refusal", "junction-path-refusal"},
     "install": {"fresh", "reinstall", "checksum_rejection_preserves", "conflict_rejection_preserves",
                 "update", "old_data_cleanup", "uninstall_preserves"},
 }
