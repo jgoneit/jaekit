@@ -33,9 +33,7 @@
         "pass": [
           0
         ],
-        "violations": {
-          "1": "existing-check-failed"
-        },
+        "violations": {},
         "unverified": []
       },
       "result_targets": {

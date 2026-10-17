@@ -36,6 +36,29 @@ UNCHANGED = {
     ".github/workflows/release.yml": "702ded1163bf98f156a31e99868140a6080eb04b0804af28e5d229eab4ea6b46",
     "tools/windows/native_checks.ps1": "409693b3585fba47bb9401513b0b279d5d29c153ab8e7a759b54eecf1c3eb029",
 }
+# The CI jobs AC-6 keeps, by the sha256 of their whole block at the base commit,
+# multi-line run blocks included.
+UNCHANGED_JOBS = {
+    "go": "af96675d567bc4ca1144bb414f0fb657ce0ec51a64d3e03d6cb34092c42d0510",
+    "macos": "b53160f568bcf63ff1c23aa3733cdca04b498e8423679c40b669d96de1c32c02",
+    "docs": "cce3e44596601f637dc5ff3f6a7fd4fb0aa2084dc49c3cb6c7065a7523671e6e",
+}
+# What a recorded report carried at the base commit (cross_platform_ci.py there).
+# Synthetic reports are built from these, not from the reader under test, so a
+# reader that starts requiring more of recorded reports is caught (AC-4).
+RECORDED = {
+    "scenarios": {"TestNativeAdmissionFailureHasNoOutputDigest", "TestNativeUnconfirmedShutdownHasNoOutputDigest",
+                  "TestNativeArgvEnvironmentAndOutcomes", "TestNativeTimeoutStopsDescendantWrites",
+                  "TestNativeConcurrentProcessesPreserveRecords", "TestNativeLockIsReleasedWhenOwnerExits",
+                  "TestNativeCleanCRLFStillRequiresCommittedBytes", "TestNativeCoreGitLifecycle"},
+    "windows": {"TestNativeJobLayout", "TestNativeBaselineRejectsJunction", "TestNativeWindowsEvidencePaths"},
+    "package_checks": {"candidate-manifest-sha256", "candidate-native-version-capabilities",
+                       "space-unicode-drive-path", "checksum-refusal", "archive-traversal-refusal",
+                       "archive-case-collision-refusal", "archive-file-directory-collision-refusal",
+                       "archive-reserved-name-refusal", "archive-stream-name-refusal", "junction-path-refusal"},
+    "install": {"fresh", "reinstall", "checksum_rejection_preserves", "conflict_rejection_preserves",
+                "update", "old_data_cleanup", "uninstall_preserves"},
+}
 
 
 class Unavailable(Exception):
@@ -141,7 +164,7 @@ class Layout(unittest.TestCase):
             missing = [prep for prep in PREPARATION if prep not in before]
             if missing:
                 problems.append(f"{key}: preparation before the native suite lacks {missing}")
-            if re.search(r"(?m)^    (?:needs|if):", body) or re.search(r"(?m)^        if:", step):
+            if re.search(r"(?m)^    (?:needs|if|concurrency):", body) or re.search(r"(?m)^        if:", step):
                 problems.append(f"{key}: waits on another job or conditions its native suite")
             if "continue-on-error" in body:
                 problems.append(f"{key}: continue-on-error")
@@ -160,7 +183,10 @@ def aggregate(needs):
                                 capture_output=True, text=True, timeout=60)
     except (OSError, subprocess.TimeoutExpired) as error:
         raise Unavailable(f"require_success.py: {error}") from None
-    if result.returncode not in (0, 1):
+    passed = result.returncode == 0 and result.stdout.startswith("PASS: Seal Core")
+    rejected = result.returncode == 1 and result.stderr.startswith("FAIL: Seal Core:")
+    if not (passed or rejected):
+        # A crash or a syntax error also exits 1; only the gate's own lines count.
         raise Unavailable(f"require_success.py exited {result.returncode}: {result.stderr[-1000:]}")
     return result.returncode
 
@@ -201,17 +227,16 @@ class Aggregate(unittest.TestCase):
 # --- AC-3, AC-4 -------------------------------------------------------------
 
 def report(shell_version, windows=True, source=SOURCE):
-    ci = Readers.ci
-    names = ci.SCENARIOS | {"TestNativeCoreGitLifecycle/linked=false", "TestNativeCoreGitLifecycle/linked=true"}
+    names = RECORDED["scenarios"] | {"TestNativeCoreGitLifecycle/linked=false", "TestNativeCoreGitLifecycle/linked=true"}
     if windows:
-        names |= ci.WINDOWS
+        names |= RECORDED["windows"]
     row = {"schema": "jaekit-native-windows/v1" if windows else "jaekit-native-unix/v1", "status": "passed",
            "source_commit": source,
            "environment": {"shell_version": shell_version, "goarch": "amd64",
                            "goos": "windows" if windows else "linux", "installation_type": "Server"},
            "native_tests": {"required": sorted(names), "passed": sorted(names), "skipped": []}}
     if windows:
-        row.update(package_checks=sorted(ci.PACKAGE_CHECKS),
+        row.update(package_checks=sorted(RECORDED["package_checks"]),
                    candidate={"source_commit": source, "capabilities": {"synthetic": True},
                               "binary_sha256": "digest", "archive_sha256": "digest"},
                    server_rejection={"install": {"rejected": True, "preserved": True},
@@ -219,7 +244,7 @@ def report(shell_version, windows=True, source=SOURCE):
     else:
         row.update(candidates={"current": {"version": "synthetic", "capabilities": {"synthetic": True},
                                            "binary_sha256": "digest"}},
-                   installations=[{"guide": guide, "checks": sorted(ci.INSTALL), "binary_sha256": "digest",
+                   installations=[{"guide": guide, "checks": sorted(RECORDED["install"]), "binary_sha256": "digest",
                                    "installed_version": "synthetic"}
                                   for guide in ("guides/INSTALL.md", "guides/INSTALL.en.md")])
     return row
@@ -237,6 +262,7 @@ class SyntheticRun:
         for name, versions in windows.items():
             self.reports[name] = [report(version) for version in versions]
             self.os[name] = "Windows"
+        self.sources = {}
         names = sorted(set(self.reports) | {"Seal Core", "Public documentation"})
         self.jobs = [{"id": index, "name": name, "status": "completed", "conclusion": "success",
                       "steps": [{"status": "completed", "conclusion": "success"}]}
@@ -270,7 +296,8 @@ class SyntheticRun:
             return ""
         if argv[:4] == ["gh", "api", "--method", "GET"]:
             job = next(j for j in self.jobs if j["id"] == int(argv[-1].split("/")[-2]))
-            context = {"source_sha": SOURCE, "head_sha": HEAD, "base_sha": BASE, "event": "pull_request",
+            context = {"source_sha": self.sources.get(job["name"], SOURCE), "head_sha": HEAD, "base_sha": BASE,
+                       "event": "pull_request",
                        "runner_os": self.os.get(job["name"], "Linux"), "os": "synthetic", "arch": "synthetic",
                        "shell": "synthetic"}
             return "JAEKIT_CI_CONTEXT " + json.dumps(context) + "\n" + "\n".join(
@@ -330,6 +357,14 @@ class Readers(unittest.TestCase):
         other = SyntheticRun({five: [VERSIONS["powershell"]], seven: [VERSIONS["pwsh"]]})
         other.reports[seven][0]["source_commit"] = "e" * 40
         bad["a report from another commit"] = other
+        bad["each shell's report in the other shell's job"] = SyntheticRun({five: [VERSIONS["pwsh"]],
+                                                                            seven: [VERSIONS["powershell"]]})
+        apart = SyntheticRun({five: [VERSIONS["powershell"]], seven: [VERSIONS["pwsh"]]})
+        apart.sources[seven] = "e" * 40
+        apart.reports[seven][0]["source_commit"] = "e" * 40
+        bad["one shell job tested another source"] = apart
+        bad["both layouts in one run"] = SyntheticRun({"Core / Windows": [VERSIONS["powershell"], VERSIONS["pwsh"]],
+                                                       five: [VERSIONS["powershell"]], seven: [VERSIONS["pwsh"]]})
         accepted = {case: outcomes for case, run in bad.items()
                     if "pass" in (outcomes := self.read(run)).values()}
         require(self, set(good.values()) == {"pass"} and not accepted, "two-job-reports-not-read",
@@ -337,25 +372,42 @@ class Readers(unittest.TestCase):
 
     def test_one_job_runs_keep_their_judgments(self):
         name = "Core / Windows"
-        good = self.read(SyntheticRun({name: [VERSIONS["powershell"], VERSIONS["pwsh"]]}))
-        same = self.read(SyntheticRun({name: [VERSIONS["pwsh"], VERSIONS["pwsh"]]}))
-        missing = self.read(SyntheticRun({name: [VERSIONS["pwsh"]]}))
-        self.assertEqual((good, same, missing),
-                         ({"cross_platform_ci": "pass", "windows_validation": "pass"},
-                          {"cross_platform_ci": "rejected", "windows_validation": "rejected"},
-                          {"cross_platform_ci": "rejected", "windows_validation": "rejected"}),
-                         "a recorded one-job run is judged differently")
+        five, seven = VERSIONS["powershell"], VERSIONS["pwsh"]
+        # Judgments of the base readers (cross_platform_ci.py:188,194-196 there):
+        # exactly two reports, one of each shell, in either order.
+        cases = {"both shells": ([five, seven], "pass"), "both shells, 7 first": ([seven, five], "pass"),
+                 "the same shell twice": ([seven, seven], "rejected"), "one report": ([seven], "rejected"),
+                 "a third report": ([five, seven, five], "rejected")}
+        judged = {case: self.read(SyntheticRun({name: versions})) for case, (versions, _) in cases.items()}
+        expected = {case: {"cross_platform_ci": outcome, "windows_validation": outcome}
+                    for case, (_, outcome) in cases.items()}
+        self.assertEqual(judged, expected, "a recorded one-job run is judged differently")
 
 
 # --- AC-5 -----------------------------------------------------------------
 
+# Runs one test file: 0 passed, 1 only assertion failures, 2 errors, 3 nothing collected.
+RUNNER = r'''
+import sys, unittest
+loader = unittest.TestLoader()
+suite = loader.discover(sys.argv[1], pattern=sys.argv[2])
+if loader.errors or not suite.countTestCases():
+    sys.exit(3)
+result = unittest.TextTestRunner(verbosity=2).run(suite)
+sys.exit(0 if result.wasSuccessful() else 2 if result.errors else 1)
+'''
+
+
 def workflow_tests(root):
-    """Exit codes of the workflow regressions that fix the CI layout, run in root."""
+    """0 (passed) or 1 (an assertion failed) for each workflow regression that fixes the CI layout, run in root.
+
+    An import, fixture or test error is not a rejection: it raises Unavailable.
+    """
     codes = {}
     for name in ("test_repository.py", "test_windows_shell_conditions.py"):
         try:
-            result = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tools/workflow-checks",
-                                     "-p", name], cwd=root, capture_output=True, text=True, timeout=300,
+            result = subprocess.run([sys.executable, "-c", RUNNER, "tools/workflow-checks", name], cwd=root,
+                                    capture_output=True, text=True, timeout=300,
                                     env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
         except (OSError, subprocess.TimeoutExpired) as error:
             raise Unavailable(f"{name}: {error}") from None
@@ -363,6 +415,44 @@ def workflow_tests(root):
             raise Unavailable(f"{name} exited {result.returncode}: {result.stderr[-1000:]}")
         codes[name] = result.returncode
     return codes
+
+
+def in_job(text, key, anchor, line):
+    """text with line inserted after the first line of job key that matches anchor."""
+    lines = text.split("\n")
+    start = lines.index(f"  {key}:")
+    for index in range(start + 1, len(lines)):
+        if lines[index].startswith("  ") and not lines[index].startswith("   ") and lines[index].strip():
+            break
+        if re.fullmatch(anchor, lines[index]):
+            return "\n".join(lines[:index + 1] + [line] + lines[index + 1:])
+    raise Unavailable(f"{key}: no line matches {anchor}")
+
+
+def layout_mutations(text, shells):
+    """{case: workflow text} that each break the two-job layout in one way."""
+    keys = {shell: key for shell, (key, _) in shells.items()}
+    mutations = {}
+    for shell, key in keys.items():
+        other = next(k for s, k in keys.items() if s != shell)
+        _, run, _ = native_steps(windows_jobs(text)[key][1])[0]
+        for replacement in ("go build ./cmd/ha", f"Write-Output 'jaekit-windows-{shell}'"):
+            mutations[f"{key} running {replacement!r}"] = text.replace(run, replacement, 1)
+        mutations[f"{key} waiting on {other}"] = in_job(text, key, r"    name: .+", f"    needs: [{other}]")
+        mutations[f"{key} sharing a concurrency group"] = in_job(text, key, r"    name: .+",
+                                                                 "    concurrency: jaekit-windows-native")
+        step = re.escape(f"        run: {run}")
+        mutations[f"{key} continuing after a native failure"] = in_job(text, key, step, "        continue-on-error: true")
+        mutations[f"{key} conditioning its native suite"] = in_job(text, key, step, "        if: ${{ always() }}")
+    # Both shells back in one job: the second job's native step moves into the first.
+    first, second = keys["powershell"], keys["pwsh"]
+    bodies = jobs(text)
+    step = native_steps(bodies[second])[0][2].rstrip("\n")
+    merged = text.replace(f"  {second}:\n{bodies[second]}\n", "", 1)
+    merged = merged.replace(f"  {first}:\n{bodies[first]}", f"  {first}:\n{bodies[first].rstrip()}\n\n{step}", 1)
+    merged = re.sub(r"(?m)^(    needs: \[.*), " + re.escape(second) + r"\]$", r"\1]", merged)
+    mutations["both shells in one job"] = merged
+    return mutations
 
 
 def tracked_copy(directory):
@@ -397,12 +487,12 @@ class Regressions(unittest.TestCase):
         if not problems:
             with tempfile.TemporaryDirectory(prefix="jaekit-workflow-mutation-") as directory:
                 copy = tracked_copy(directory)
-                for shell, (key, _) in shells.items():
-                    _, run, _ = native_steps(windows_jobs(text)[key][1])[0]
-                    for replacement in ("go build ./cmd/ha", f"Write-Output 'jaekit-windows-{shell}'"):
-                        (copy / CI).write_text(text.replace(run, replacement, 1), encoding="utf-8")
-                        if not any(workflow_tests(copy).values()):
-                            accepted.append(f"{key} running {replacement!r}")
+                for case, mutated in layout_mutations(text, shells).items():
+                    if mutated == text:
+                        raise Unavailable(f"mutation {case} did not change the workflow")
+                    (copy / CI).write_text(mutated, encoding="utf-8")
+                    if not any(workflow_tests(copy).values()):
+                        accepted.append(case)
         problems += [f"the workflow regressions accept {case}" for case in accepted]
         try:
             routes = {r["id"]: r for r in json.loads(read("contracts/regressions.json"))["routes"]}
@@ -439,6 +529,9 @@ class Unchanged(unittest.TestCase):
                         re.findall(r"(?m)^\s+run: (.+)$", body))
             if (observed[0] and observed[0][1], observed[1] and observed[1][1], observed[2]) != (name, runner, commands):
                 differences.append(key)
+        for key, digest in UNCHANGED_JOBS.items():
+            if hashlib.sha256((workflow.get(key) or "").encode()).hexdigest() != digest:
+                differences.append(f"{CI} job {key}")
         for path, digest in UNCHANGED.items():
             try:
                 if hashlib.sha256((ROOT / path).read_bytes()).hexdigest() != digest:
