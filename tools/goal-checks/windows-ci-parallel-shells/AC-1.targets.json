@@ -20,6 +20,26 @@
         "selection": "shell-jobs.selection",
         "attribution": "shell-jobs.attribution"
       }
+    },
+    {
+      "target": "real-shell-jobs",
+      "runner": "unittest",
+      "file": "tools/goal-checks/windows-ci-parallel-shells/observe_ci.py",
+      "test": "Live.test_the_real_run_reports_each_powershell_from_its_own_job",
+      "result_targets": {
+        "additional_violations": [
+          "real-shell-jobs.assertion-2",
+          "real-shell-jobs.assertion-3",
+          "real-shell-jobs.assertion-4",
+          "real-shell-jobs.assertion-5",
+          "real-shell-jobs.assertion-6",
+          "real-shell-jobs.assertion-7",
+          "real-shell-jobs.assertion-8"
+        ],
+        "execution": "real-shell-jobs.execution",
+        "selection": "real-shell-jobs.selection",
+        "attribution": "real-shell-jobs.attribution"
+      }
     }
   ]
 }

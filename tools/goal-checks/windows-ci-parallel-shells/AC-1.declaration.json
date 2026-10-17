@@ -52,6 +52,50 @@
     {
       "id": "shell-jobs.attribution",
       "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-shell-jobs",
+      "violation": "windows-shells-share-a-job"
+    },
+    {
+      "id": "real-shell-jobs.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-shell-jobs.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-shell-jobs.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-shell-jobs.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-shell-jobs.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-shell-jobs.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-shell-jobs.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-shell-jobs.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-shell-jobs.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-shell-jobs.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

@@ -52,6 +52,50 @@
     {
       "id": "seal-core.attribution",
       "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-seal-core",
+      "violation": "seal-core-misses-a-shell-job"
+    },
+    {
+      "id": "real-seal-core.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-seal-core.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-seal-core.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-seal-core.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-seal-core.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-seal-core.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-seal-core.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-seal-core.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-seal-core.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "real-seal-core.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

@@ -1,13 +1,16 @@
 """The Windows CI layout, its aggregate and the readers of its reports.
 
-Every observation reads the checked tree only. The workflow is read as text in
-this repository's indentation-based layout; the aggregate and the readers run
-in this process or as child processes on synthetic inputs. No GitHub request is
-made: runs and job logs are synthetic, and the readers' `gh` and `git` calls are
-answered by a stand-in, as tools/workflow-checks/test_ci_observer.py does.
-Violations come only from explicit `[violation:...]` failures. A module that
-cannot be loaded, a reader that raises something other than its own
-`Violation`, or a tool that cannot start raises Unavailable, an execution error.
+Every observation reads the checked tree, and the Live tests also read the CI
+run that GitHub Actions made of the checked commit. The workflow is read as text
+in this repository's indentation-based layout; the aggregate and the readers run
+in this process or as child processes on synthetic inputs, and the readers'
+`gh` and `git` calls are answered by a stand-in, as
+tools/workflow-checks/test_ci_observer.py does. Only the Live tests make GitHub
+requests; until a completed CI run of the checked commit exists they are
+Unavailable. Violations come only from explicit `[violation:...]` failures. A
+module that cannot be loaded, a reader that raises something other than its own
+`Violation`, a GitHub request that fails, or a tool that cannot start raises
+Unavailable, an execution error.
 """
 import hashlib
 import importlib.util
@@ -36,11 +39,11 @@ UNCHANGED = {
     ".github/workflows/release.yml": "702ded1163bf98f156a31e99868140a6080eb04b0804af28e5d229eab4ea6b46",
     "tools/windows/native_checks.ps1": "409693b3585fba47bb9401513b0b279d5d29c153ab8e7a759b54eecf1c3eb029",
 }
-# The CI jobs AC-6 keeps, by the sha256 of their whole block at the base commit,
-# multi-line run blocks included.
+# The CI jobs AC-6 keeps, by the sha256 of their settings and commands at the
+# base commit (job_settings), multi-line run blocks included.
 UNCHANGED_JOBS = {
-    "go": "af96675d567bc4ca1144bb414f0fb657ce0ec51a64d3e03d6cb34092c42d0510",
-    "macos": "b53160f568bcf63ff1c23aa3733cdca04b498e8423679c40b669d96de1c32c02",
+    "go": "2e1e30f9043bed129aa95f1a633e73dcc7c9ca6dedde0c25411c62684ac60bdb",
+    "macos": "1762cbc97083df615968f6715325a88d78226f563fe4e2b130c80c0951e02013",
     "docs": "cce3e44596601f637dc5ff3f6a7fd4fb0aa2084dc49c3cb6c7065a7523671e6e",
 }
 # What a recorded report carried at the base commit (cross_platform_ci.py there).
@@ -108,6 +111,26 @@ def jobs(text):
     return {key: block(body, key, 2) for key in re.findall(r"(?m)^  ([A-Za-z0-9_-]+):$", body)}
 
 
+def job_settings(body):
+    """A job's keys, values and commands: its block without comment lines and trailing blank lines."""
+    lines = [line for line in (body or "").split("\n") if not line.lstrip().startswith("#")]
+    while lines and not lines[-1].strip():
+        lines.pop()
+    return "\n".join(lines)
+
+
+def concurrency_group(body):
+    """The job-level concurrency group as written (inline or `group:`), without quotes, or None."""
+    inline = re.search(r"(?m)^    concurrency:[ \t]*(\S.*?)[ \t]*$", body)
+    if inline:
+        return inline[1].strip("'\"")
+    nested = block(body, "concurrency", 4)
+    if nested is None:
+        return None
+    group = re.search(r"(?m)^      group:[ \t]*(\S.*?)[ \t]*$", nested)
+    return group[1].strip("'\"") if group else ""
+
+
 def steps(body):
     return re.findall(r"(?ms)^      - name: [^\n]+\n.*?(?=^      - name:|\Z)", body)
 
@@ -150,8 +173,9 @@ class Layout(unittest.TestCase):
         problems = []
         if len(windows) != 2:
             problems.append(f"{len(windows)} Windows job(s), not two")
-        shells = []
+        shells, groups = [], {}
         for key, (name, body) in windows.items():
+            groups[key] = concurrency_group(body)
             native = native_steps(body)
             if len(native) != 1:
                 problems.append(f"{key}: {len(native)} native suite steps, not one")
@@ -164,12 +188,16 @@ class Layout(unittest.TestCase):
             missing = [prep for prep in PREPARATION if prep not in before]
             if missing:
                 problems.append(f"{key}: preparation before the native suite lacks {missing}")
-            if re.search(r"(?m)^    (?:needs|if|concurrency):", body) or re.search(r"(?m)^        if:", step):
+            if re.search(r"(?m)^    (?:needs|if):", body) or re.search(r"(?m)^        if:", step):
                 problems.append(f"{key}: waits on another job or conditions its native suite")
             if "continue-on-error" in body:
                 problems.append(f"{key}: continue-on-error")
         if sorted(filter(None, shells)) != ["powershell", "pwsh"]:
             problems.append(f"native suite shells {shells}, not one job each for powershell and pwsh")
+        # A group shared by both jobs runs one after the other; a group of one job's own does not.
+        shared = [group for group in groups.values() if group is not None]
+        if len(shared) == 2 and shared[0] == shared[1]:
+            problems.append(f"both Windows jobs share the concurrency group {shared[0]!r}")
         require(self, not problems, "windows-shells-share-a-job", "; ".join(problems))
 
 
@@ -221,6 +249,133 @@ class Aggregate(unittest.TestCase):
                 problems.append(f"aggregate accepted a missing {key}")
         if aggregate(dict(success, unexpected={"result": "success"})) != 1:
             problems.append("aggregate accepted an unexpected job result")
+        require(self, not problems, "seal-core-misses-a-shell-job", "; ".join(problems))
+
+
+# --- AC-1, AC-2 on the real run ----------------------------------------------
+
+def gh(args, timeout=120):
+    try:
+        result = subprocess.run(["gh", *args], cwd=ROOT, capture_output=True, timeout=timeout)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise Unavailable(f"gh {args[0]}: {error}") from None
+    if result.returncode:
+        raise Unavailable("GitHub request failed; check authentication and permission")
+    return result.stdout.decode(errors="replace")
+
+
+def gh_json(path):
+    try:
+        return json.loads(gh(["api", "--method", "GET", path]))
+    except ValueError:
+        raise Unavailable("invalid GitHub JSON") from None
+
+
+# This goal's own check files. CI never runs them, so a commit that changes
+# only these files is tested by its parent's CI run.
+OWN_CHECKS = "tools/goal-checks/windows-ci-parallel-shells/"
+
+
+def git(*args):
+    try:
+        result = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise Unavailable(f"git {args[0]}: {error}") from None
+    return result.returncode, result.stdout
+
+
+def real_run():
+    """(jobs, {Windows job name: shell versions of its reports}) of the latest CI run of the checked code.
+
+    That is the checked commit's run or, when it has none, the run of the
+    nearest first-parent ancestor from which the checked commit changes only
+    this goal's own check files.
+    """
+    code, out = git("rev-parse", "HEAD")
+    head = out.strip()
+    if code or not re.fullmatch(r"[0-9a-f]{40}", head):
+        raise Unavailable("the checked commit cannot be read")
+    try:
+        name = json.loads(gh(["repo", "view", "--json", "nameWithOwner"]))["nameWithOwner"]
+    except (ValueError, KeyError, TypeError):
+        raise Unavailable("GitHub repository cannot be read") from None
+    tested = head
+    while True:
+        runs = [r for r in gh_json(f"repos/{name}/actions/workflows/ci.yml/runs?head_sha={tested}&per_page=100")
+                .get("workflow_runs", []) if r.get("head_sha") == tested]
+        if runs:
+            break
+        code, out = git("rev-parse", "--verify", "--quiet", f"{tested}^")
+        parent = out.strip()
+        if code or not parent:
+            break
+        code, out = git("diff", "--name-only", "-z", parent, head)
+        if code or any(not path.startswith(OWN_CHECKS) for path in filter(None, out.split("\0"))):
+            break
+        tested = parent
+    if not runs:
+        raise Unavailable(f"no CI run has tested the code of {head[:12]} yet")
+    latest = max(runs, key=lambda r: (r["id"], r.get("run_attempt", 1)))
+    if latest.get("status") != "completed":
+        raise Unavailable(f"the latest CI run of {tested[:12]} is {latest.get('status')}")
+    jobs = gh_json(f"repos/{name}/actions/runs/{latest['id']}/attempts/{latest.get('run_attempt', 1)}"
+                   "/jobs?per_page=100").get("jobs", [])
+    # Job logs carry terminal escapes; older gh prints them without the flag.
+    flags = ["--allow-escape-sequences"] if "--allow-escape-sequences" in gh(["api", "--help"], 60).split() else []
+    windows = {}
+    for job in jobs:
+        if not str(job.get("name", "")).startswith("Core / Windows"):
+            continue
+        versions = []
+        for line in gh(["api", "--method", "GET", *flags, f"repos/{name}/actions/jobs/{job['id']}/logs"],
+                       300).splitlines():
+            at = line.find("JAEKIT_CI_REPORT {")
+            if at >= 0:
+                try:
+                    row = json.loads(line[at + len("JAEKIT_CI_REPORT "):])
+                except ValueError:
+                    raise Unavailable(f"a native report of {job.get('name')} is not JSON") from None
+                versions.append(str((row.get("environment") or {}).get("shell_version") or ""))
+        windows[job["name"]] = versions
+    return jobs, windows
+
+
+class Live(unittest.TestCase):
+    """AC-1 and AC-2 at the real boundary: the CI run GitHub Actions made of the checked commit."""
+
+    def test_the_real_run_reports_each_powershell_from_its_own_job(self):
+        jobs, windows = real_run()
+        conclusions = {job.get("name"): job.get("conclusion") for job in jobs}
+        problems = []
+        if len(windows) != 2:
+            problems.append(f"{len(windows)} Windows job(s) in the run: {sorted(windows)}")
+        shells = []
+        for name, versions in sorted(windows.items()):
+            if conclusions.get(name) != "success":
+                problems.append(f"{name}: {conclusions.get(name)}")
+            if len(versions) != 1:
+                problems.append(f"{name}: {len(versions)} native reports, not one")
+            shells += ["5.1" if v.startswith("5.1") else "7" if v.startswith("7.") else v for v in versions]
+        if sorted(shells) != ["5.1", "7"]:
+            problems.append(f"shells reported {shells}, not one job each for PowerShell 5.1 and 7")
+        require(self, not problems, "windows-shells-share-a-job", "; ".join(problems))
+
+    def test_the_real_run_passes_seal_core_after_both_shell_jobs(self):
+        jobs, windows = real_run()
+        by_name = {job.get("name"): job for job in jobs}
+        core = by_name.get("Seal Core")
+        problems = []
+        if core is None or core.get("conclusion") != "success":
+            problems.append(f"Seal Core: {core and core.get('conclusion')}")
+        if len(windows) != 2:
+            problems.append(f"Seal Core ran with {len(windows)} Windows job(s), not one per shell")
+        for name in sorted(windows):
+            job = by_name[name]
+            if job.get("conclusion") != "success":
+                problems.append(f"{name}: {job.get('conclusion')}")
+            # ISO 8601 times in UTC compare as text.
+            elif core and str(core.get("started_at") or "") < str(job.get("completed_at") or "~"):
+                problems.append(f"Seal Core started before {name} completed")
         require(self, not problems, "seal-core-misses-a-shell-job", "; ".join(problems))
 
 
@@ -362,6 +517,7 @@ class Readers(unittest.TestCase):
         apart = SyntheticRun({five: [VERSIONS["powershell"]], seven: [VERSIONS["pwsh"]]})
         apart.sources[seven] = "e" * 40
         apart.reports[seven][0]["source_commit"] = "e" * 40
+        apart.reports[seven][0]["candidate"]["source_commit"] = "e" * 40
         bad["one shell job tested another source"] = apart
         bad["both layouts in one run"] = SyntheticRun({"Core / Windows": [VERSIONS["powershell"], VERSIONS["pwsh"]],
                                                        five: [VERSIONS["powershell"]], seven: [VERSIONS["pwsh"]]})
@@ -387,6 +543,8 @@ class Readers(unittest.TestCase):
 # --- AC-5 -----------------------------------------------------------------
 
 # Runs one test file: 0 passed, 1 only assertion failures, 2 errors, 3 nothing collected.
+# Expected failures, unexpected successes and skips are setup errors, as in
+# tools/result_observations.py, so they never count as a pass or a rejection.
 RUNNER = r'''
 import sys, unittest
 loader = unittest.TestLoader()
@@ -394,7 +552,9 @@ suite = loader.discover(sys.argv[1], pattern=sys.argv[2])
 if loader.errors or not suite.countTestCases():
     sys.exit(3)
 result = unittest.TextTestRunner(verbosity=2).run(suite)
-sys.exit(0 if result.wasSuccessful() else 2 if result.errors else 1)
+if result.errors or result.expectedFailures or result.unexpectedSuccesses or result.skipped:
+    sys.exit(2)
+sys.exit(0 if result.wasSuccessful() else 1)
 '''
 
 
@@ -439,13 +599,14 @@ def layout_mutations(text, shells):
         for replacement in ("go build ./cmd/ha", f"Write-Output 'jaekit-windows-{shell}'"):
             mutations[f"{key} running {replacement!r}"] = text.replace(run, replacement, 1)
         mutations[f"{key} waiting on {other}"] = in_job(text, key, r"    name: .+", f"    needs: [{other}]")
-        mutations[f"{key} sharing a concurrency group"] = in_job(text, key, r"    name: .+",
-                                                                 "    concurrency: jaekit-windows-native")
         step = re.escape(f"        run: {run}")
         mutations[f"{key} continuing after a native failure"] = in_job(text, key, step, "        continue-on-error: true")
         mutations[f"{key} conditioning its native suite"] = in_job(text, key, step, "        if: ${{ always() }}")
-    # Both shells back in one job: the second job's native step moves into the first.
     first, second = keys["powershell"], keys["pwsh"]
+    shared = in_job(text, first, r"    name: .+", "    concurrency: jaekit-windows-native")
+    mutations["both shell jobs in one concurrency group"] = in_job(shared, second, r"    name: .+",
+                                                                   "    concurrency: jaekit-windows-native")
+    # Both shells back in one job: the second job's native step moves into the first.
     bodies = jobs(text)
     step = native_steps(bodies[second])[0][2].rstrip("\n")
     merged = text.replace(f"  {second}:\n{bodies[second]}\n", "", 1)
@@ -530,7 +691,7 @@ class Unchanged(unittest.TestCase):
             if (observed[0] and observed[0][1], observed[1] and observed[1][1], observed[2]) != (name, runner, commands):
                 differences.append(key)
         for key, digest in UNCHANGED_JOBS.items():
-            if hashlib.sha256((workflow.get(key) or "").encode()).hexdigest() != digest:
+            if hashlib.sha256(job_settings(workflow.get(key)).encode()).hexdigest() != digest:
                 differences.append(f"{CI} job {key}")
         for path, digest in UNCHANGED.items():
             try:
