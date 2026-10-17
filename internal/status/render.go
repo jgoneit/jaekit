@@ -128,6 +128,42 @@ func (rep *Report) Markdown(goalArg string) string {
 		}
 	}
 
+	if rep.TestAuthority != nil || len(rep.TestChanges) > 0 {
+		w("\n### Test changes\n\n")
+		if a := rep.TestAuthority; a != nil {
+			w("- authority: %s (executor's reading of the start request %q; paths %s)\n", cell(a.Interpretation), a.RequestQuote, strings.Join(a.Allowed, ", "))
+		} else {
+			w("- authority: none recorded at start; every changed test needs the user's confirmation\n")
+		}
+		for _, t := range rep.TestChanges {
+			state := "needs the user's confirmation: " + t.Reason
+			switch {
+			case t.Exempt:
+				state = "no confirmation needed"
+			case t.Confirmed:
+				state = "confirmed by the user"
+			}
+			line := fmt.Sprintf("- `%s` %s: %s", t.Path, t.Change, state)
+			if r := t.Rationale; r != nil {
+				line += fmt.Sprintf(" — reason (seq %d, %s claim): %s checks %s", r.Seq, r.Claim, cell(r.How), strings.Join(r.Criteria, ", "))
+				if len(r.MovedTo) > 0 {
+					line += "; moved to " + strings.Join(r.MovedTo, ", ")
+				}
+				if r.Weakened {
+					line += "; marked as weakening"
+				}
+			}
+			w("%s\n", line)
+		}
+	}
+	if len(rep.Recoveries) > 0 {
+		w("\n### Error recovery\n\n")
+		for _, r := range rep.Recoveries {
+			w("- %s %s: %d error(s) since the last recovery%s; recoveries used %d of %d, remaining %d\n", r.Criterion, r.Input, r.Errors,
+				map[bool]string{true: " (past the limit)", false: ""}[r.LimitReached], r.Used, r.Allowed, r.Remaining)
+		}
+	}
+
 	ch := rep.Changes
 	if len(ch.CommandChanged)+len(ch.KindChanged)+len(ch.Optional)+len(ch.InvalidConfirmations)+len(ch.HaVersionChanged) > 0 {
 		w("\n### Changes to review\n\n")
@@ -151,6 +187,12 @@ func (rep *Report) Markdown(goalArg string) string {
 		bd := rep.Budget
 		w("\n### Budget\n\n- window from seq %d: %d/%d runs, %d/%d seconds%s\n", bd.WindowStart, bd.Runs, bd.RunsLimit, bd.ElapsedSeconds, bd.ElapsedLimitSeconds, map[bool]string{true: " (exceeded)", false: ""}[bd.Exceeded])
 		w("- budget revision: %d; remaining: %d runs; excess: %d runs; run cap reached: %s\n", bd.Revision, bd.RemainingRuns, bd.ExcessRuns, yesNo(bd.Reached))
+		if bd.ReportedWaitSeconds != nil && bd.SpanSeconds != nil {
+			w("- elapsed leaves out %d seconds of waits the executor reported (window span %d seconds)\n", *bd.ReportedWaitSeconds, *bd.SpanSeconds)
+		}
+		if bd.PreapprovedRuns != nil {
+			w("- the user pre-approved up to %d runs in this window\n", *bd.PreapprovedRuns)
+		}
 		for _, event := range bd.History {
 			w("- budget change seq %d, window %d: %d → %d runs (user attribution is a claim)\n", event.Seq, event.Change.WindowStart, event.Change.PreviousRuns, event.Change.Runs)
 		}

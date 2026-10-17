@@ -29,9 +29,9 @@ func validResult(l *record.Line, rules string) bool {
 		case "fail":
 			return validFailureExit(l, rules)
 		case "error":
-			return rules == RulesV3 || l.Exit == nil
+			return Structured(rules) || l.Exit == nil
 		case "unknown":
-			return rules == RulesV3 && l.CriterionKind == bundle.KindChange
+			return Structured(rules) && l.CriterionKind == bundle.KindChange
 		}
 	}
 	if l.Kind == "baseline" {
@@ -41,11 +41,11 @@ func validResult(l *record.Line, rules string) bool {
 		case "unexpected_pass":
 			return l.Exit != nil && *l.Exit == 0
 		case "error":
-			return rules == RulesV3 || l.Exit == nil
+			return Structured(rules) || l.Exit == nil
 		case "unknown":
-			return rules == RulesV3 && l.CriterionKind == bundle.KindChange
+			return Structured(rules) && l.CriterionKind == bundle.KindChange
 		case "fail":
-			return rules == RulesV3 && l.CriterionKind == bundle.KindChange && validFailureExit(l, rules)
+			return Structured(rules) && l.CriterionKind == bundle.KindChange && validFailureExit(l, rules)
 		}
 	}
 	return false
@@ -60,7 +60,7 @@ func validFailureExit(l *record.Line, rules string) bool {
 	}
 	// A native runner can exit zero after retrying a failed assertion. Its
 	// complete history remains a failure; fresh evidence is revalidated by judge.
-	return rules == RulesV3 && l.CriterionKind == bundle.KindChange && l.Evidence != nil &&
+	return Structured(rules) && l.CriterionKind == bundle.KindChange && l.Evidence != nil &&
 		l.Evidence.Schema == evidence.SummarySchema && l.Evidence.Result == "fail" && l.Evidence.Reason == "inconsistent_attempts"
 }
 
@@ -74,7 +74,7 @@ func finishBudget(b *Budget) {
 func (e *evaluator) collectUsage(rep *Report) error {
 	for i := range e.in.Lines {
 		l := &e.in.Lines[i]
-		if l.Kind == "budget_change" && e.rules != RulesV3 {
+		if l.Kind == "budget_change" && !Structured(e.rules) {
 			e.invalid = append(e.invalid, fmt.Sprintf("seq %d: budget_change is unsupported under %s", l.Seq, e.rules))
 		}
 		if l.Kind != "check" && l.Kind != "baseline" {
@@ -117,7 +117,7 @@ func (e *evaluator) collectUsage(rep *Report) error {
 		if !fresh || !valid || (l.Result != "pass" && l.Result != "fail_as_expected") {
 			continue
 		}
-		if e.rules == RulesV3 && l.CriterionKind == bundle.KindChange {
+		if Structured(e.rules) && l.CriterionKind == bundle.KindChange {
 			if l.Target == nil {
 				continue
 			}
