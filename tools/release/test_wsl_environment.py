@@ -19,6 +19,9 @@ class WSLDiagnosticTests(unittest.TestCase):
         self.bin.mkdir()
         self.project = self.root / '프로젝트 with spaces'
         self.project.mkdir()
+        # The script asks the user's Git about the project, so it is a real
+        # repository and Git is not stubbed.
+        self.git_init(self.project)
         self.env = dict(os.environ, PATH=str(self.bin) + os.pathsep + os.environ['PATH'],
                         WSL_FIXTURE_ROOT=str(self.root), WSL_FIXTURE_FS='ext2/ext3')
         # Do not change HOME. Stub canonicalization only for the fixture's home;
@@ -42,7 +45,7 @@ print('VERSION_ID="24.04"')
 import os
 print(os.environ['WSL_FIXTURE_FS'])
 ''')
-        for name in ('git', 'ha', 'codex'):
+        for name in ('ha', 'codex'):
             self.stub(name, '#!/bin/sh\necho DO_NOT_EXECUTE >&2\nexit 99\n')
 
     def stub(self, name, content):
@@ -50,24 +53,60 @@ print(os.environ['WSL_FIXTURE_FS'])
         path.write_text(content)
         path.chmod(0o755)
 
+    @staticmethod
+    def git_init(path):
+        subprocess.run(['git', 'init', '-q', str(path)], check=True)
+
+    def project_files(self):
+        return sorted(path.relative_to(self.project) for path in self.project.rglob('*'))
+
     def run_check(self, project=None, host='codex', **changes):
         return subprocess.run([shutil.which('bash'), str(SCRIPT), str(project or self.project), host],
                               env=dict(self.env, **changes), capture_output=True, text=True)
 
     def test_scoped_paths_are_reported_without_executing_tools(self):
+        before = self.project_files()
         result = self.run_check()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn(str(self.project.resolve()), result.stdout)
+        self.assertIn(f'Repository: {self.project.resolve()}', result.stdout)
         self.assertIn('actual goal execution remain unverified', result.stdout)
         self.assertNotIn('DO_NOT_EXECUTE', result.stdout + result.stderr)
-        self.assertEqual(list(self.project.iterdir()), [])
+        self.assertEqual(self.project_files(), before)
+
+    def test_project_inside_a_repository_reports_its_root(self):
+        nested = self.project / 'nested'
+        nested.mkdir()
+        result = self.run_check(nested)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(f'Repository: {self.project.resolve()}', result.stdout)
+
+    def test_directory_outside_a_git_worktree_refused(self):
+        plain = self.root / 'plain'
+        plain.mkdir()
+        result = self.run_check(plain)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Git does not recognize the project as a worktree', result.stderr)
+        self.assertNotIn('prerequisites identified', result.stdout)
+
+    def test_repository_rooted_at_or_above_home_refused(self):
+        # Home itself is a repository, so the plain directory's worktree root
+        # is home rather than a project under it.
+        self.git_init(self.root)
+        plain = self.root / 'plain'
+        plain.mkdir()
+        result = self.run_check(plain)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Git repository root under the Linux home', result.stderr)
 
     def test_unsupported_environments_refused(self):
         for changes in ({'WSL_FIXTURE_OS': 'Darwin'}, {'WSL_FIXTURE_KERNEL': '6.8.0-generic'},
                         {'WSL_FIXTURE_CPU': 'aarch64'}, {'WSL_FIXTURE_DISTRO': 'debian'},
-                        {'WSL_FIXTURE_FS': '9p'}):
+                        {'WSL_FIXTURE_FS': '9p'}, {'WSL_FIXTURE_FS': 'overlayfs'},
+                        {'WSL_FIXTURE_FS': 'tmpfs'}):
             with self.subTest(changes=changes):
-                self.assertNotEqual(self.run_check(**changes).returncode, 0)
+                result = self.run_check(**changes)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn('prerequisites identified', result.stdout)
 
     def test_symlink_escape_refused(self):
         with tempfile.TemporaryDirectory() as outside:

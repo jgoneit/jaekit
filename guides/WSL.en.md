@@ -71,19 +71,15 @@ The [environment check tool](../tools/wsl/check-environment.sh) under developmen
 bash "<candidate-public-data>/tools/wsl/check-environment.sh" "<project-path>" codex
 ```
 
-The tool checks for WSL2, Ubuntu 24.04, and x86_64, then inspects and displays the project under Linux home and the resolved paths of Git and `ha`. If you supply a host command, it also checks that path. It does not install anything or change settings. It fails if it cannot establish this route's conditions; that result does not block an existing ordinary Linux installation.
+The tool checks for WSL2, Ubuntu 24.04, and x86_64, then inspects and displays the resolved paths of Git and `ha`. If you supply a host command, it also checks that path. It runs that Linux Git's `rev-parse` to check that the project is inside a Git repository under Linux home. It does not install anything or change settings. It fails if it cannot establish this route's conditions; that result does not block an existing ordinary Linux installation.
 
 Path checks do not independently attest execution. You must separately observe whether the host loaded the Skill, a check process actually checked the requirement, and a goal reached completion. A successful environment check does not establish the whole WSL2 workflow.
 
-### Build local candidate files
+### Get candidate files
 
-Building a candidate from a reviewed source checkout requires Git, Python 3, and the Go version required by `go.mod`. Run the following at the repository root to create a Linux amd64 archive, `checksums.txt`, and `candidate-provenance.json` in a separate temporary output directory. The command prints that location.
+The [Release workflow](../.github/workflows/release.yml) in GitHub Actions builds candidate files. Run it manually (`workflow_dispatch`) on the branch to check and enter a candidate version (`X.Y.Z`). When the run finishes, download its `release-files` artifact into a new directory. Its `ha_<version>_linux_amd64.tar.gz` and `checksums.txt` are the candidate, and the extracted `ha_<version>_linux_amd64` directory is the public data directory for the command above. A pull request's Release workflow run leaves the same artifact with version `0.0.0`.
 
-```bash
-python3 tools/wsl/build-candidate.py
-```
-
-The fixed version `0.0.0-wsl-candidate` is not a public release version. The provenance file records the base commit, whether uncommitted changes were present, and the archive's SHA-256. With uncommitted changes, the commit alone does not reproduce the candidate. The command does not install, execute Core or Skills, create tags, or publish; building a candidate is not execution evidence. Do not substitute this version string into the v0.1.4 installation block above.
+The workflow checks out the commit it runs on and builds and checks the files with the same steps as a tag build, so local files and uncommitted changes that are not in that commit cannot enter the candidate. Manual and pull request runs publish nothing, and a candidate version is not a public release version. Do not substitute it into the v0.1.4 installation block above. Building a candidate is not evidence of actual WSL2 execution.
 
 ## Use it with an agent
 

@@ -29,13 +29,16 @@ linux_path() {
   local path="$1" kind
   case "$path" in /mnt/*|*.exe|*.EXE) fail "Windows or mounted-drive path selected: $path";; esac
   kind="$(stat -f -c %T -- "$path")" || fail "cannot inspect filesystem: $path"
-  case "$kind" in ext2/ext3|ext4|btrfs|xfs|tmpfs|overlayfs) ;;
+  # Container overlays and memory filesystems are not the distribution's own
+  # Linux filesystem that this route covers.
+  case "$kind" in ext2/ext3|ext4|btrfs|xfs) ;;
     *) fail "filesystem is outside the checked Linux route ($kind): $path";;
   esac
 }
 linux_path "$project"
 printf 'Project: %s\n' "$project"
 
+git_command=''
 for tool in git ha "${2:-}"; do
   [[ -n "$tool" ]] || continue
   # Only resolve a command name or path, never eval it or invoke the host.
@@ -43,8 +46,17 @@ for tool in git ha "${2:-}"; do
   [[ -f "$selected" && -x "$selected" ]] || fail "not an executable file: $selected"
   selected="$(realpath -e -- "$selected")" || fail "cannot resolve command: $tool"
   linux_path "$selected"
+  [[ "$tool" == git && -z "$git_command" ]] && git_command="$selected"
   printf '%s: %s\n' "$tool" "$selected"
 done
+
+# ha finds the code repository from the goal path. Ask the selected Linux Git,
+# read-only, whether the project is inside a worktree rooted under home.
+repository="$("$git_command" -C "$project" rev-parse --show-toplevel 2>/dev/null)" ||
+  fail "Git does not recognize the project as a worktree: $project"
+repository="$(realpath -e -- "$repository")" || fail 'cannot resolve the Git repository root'
+[[ "$repository" == "$linux_home/"* ]] || fail 'put the Git repository root under the Linux home directory'
+printf 'Repository: %s\n' "$repository"
 
 printf '%s\n' 'WSL2 route prerequisites identified. No files or settings changed.' \
   'Host Skill loading and actual goal execution remain unverified.' \

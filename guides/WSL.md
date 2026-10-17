@@ -71,19 +71,15 @@ v0.1.4를 설치했다면 버전은 `ha 0.1.4`여야 합니다. 여러 설치가
 bash "<candidate-public-data>/tools/wsl/check-environment.sh" "<project-path>" codex
 ```
 
-이 도구는 WSL2·Ubuntu 24.04·x86_64 여부, Linux 홈의 프로젝트와 Git·`ha`의 실제 경로를 확인해 표시합니다. 호스트 명령을 지정하면 그 경로도 확인합니다. 설치나 설정 변경은 하지 않습니다. 이 경로의 조건을 확인할 수 없으면 실패하며, 그 결과가 기존 일반 Linux 설치를 차단하는 것은 아닙니다.
+이 도구는 WSL2·Ubuntu 24.04·x86_64 여부와 Git·`ha`의 실제 경로를 확인해 표시합니다. 호스트 명령을 지정하면 그 경로도 확인합니다. 확인한 Linux Git의 `rev-parse`로 프로젝트가 Linux 홈 아래 Git 저장소 안에 있는지도 확인합니다. 설치나 설정 변경은 하지 않습니다. 이 경로의 조건을 확인할 수 없으면 실패하며, 그 결과가 기존 일반 Linux 설치를 차단하는 것은 아닙니다.
 
 경로 확인은 실행을 독립적으로 증명하지 않습니다. 호스트가 Skill을 불러왔는지, 검사 프로세스가 실제 요구를 검증했는지, 목표가 완료됐는지는 에이전트 사용 단계에서 따로 확인해야 합니다. 도구가 성공해도 실제 WSL2 작업 전체가 검증됐다고 보고하지 않습니다.
 
-### 개발용 후보 파일 만들기
+### 후보 파일 받기
 
-검토한 소스 checkout에서 후보 파일을 만들려면 Git·Python 3와 `go.mod`가 요구하는 Go가 필요합니다. 저장소 루트에서 다음을 실행하면 별도 임시 출력 폴더에 Linux amd64 archive, `checksums.txt`, `candidate-provenance.json`을 만듭니다. 출력 위치는 명령이 알려 줍니다.
+후보 파일은 GitHub Actions의 [Release workflow](../.github/workflows/release.yml)가 만듭니다. 확인할 브랜치에서 Release workflow를 수동 실행(`workflow_dispatch`)하고 후보 버전(`X.Y.Z`)을 입력합니다. 실행이 끝나면 `release-files` artifact를 새 폴더에 내려받습니다. 그 안의 `ha_<version>_linux_amd64.tar.gz`와 `checksums.txt`가 후보이고, 압축을 푼 `ha_<version>_linux_amd64` 폴더가 위 명령의 공개 자료 폴더입니다. Pull request의 Release workflow 실행도 같은 artifact를 남기며, 이때 버전은 `0.0.0`입니다.
 
-```bash
-python3 tools/wsl/build-candidate.py
-```
-
-후보 버전은 `0.0.0-wsl-candidate`로 고정되며 공개 릴리스 버전이 아닙니다. provenance에는 기준 commit, 미커밋 변경 여부와 archive의 SHA-256이 들어갑니다. 미커밋 변경이 있으면 commit만으로 후보 내용을 재현할 수 없습니다. 이 명령은 설치·Core 실행·Skill 사용·태그 생성·게시를 하지 않으며, 후보를 만들었다는 사실은 실제 실행 근거가 아닙니다. 위 v0.1.4 설치 블록의 버전을 이 문자열로 바꿔 사용하지 않습니다.
+이 workflow는 실행한 commit을 새로 checkout해 태그 빌드와 같은 단계로 파일을 만들고 검사합니다. 그래서 그 commit에 없는 로컬 파일이나 커밋하지 않은 변경은 후보에 들어가지 않습니다. 수동 실행과 pull request 실행은 아무것도 게시하지 않으며, 후보 버전은 공개 릴리스 버전이 아닙니다. 위 v0.1.4 설치 블록의 버전을 후보 버전으로 바꿔 사용하지 않습니다. 후보를 만들었다는 사실은 실제 WSL2 실행 근거가 아닙니다.
 
 ## 에이전트에서 사용하기
 
