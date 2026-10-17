@@ -23,6 +23,7 @@ an execution error.
 import hashlib
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -30,6 +31,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -558,14 +560,25 @@ def table(text):
     return cells(rows[0]), body
 
 
+TIME = re.compile(r"(\d+)(?:\.(\d+))?\s*(ms|s)\b")
+
+
 def shown_ms(text):
-    """The times a Markdown cell shows, in milliseconds (`12 ms`, `3 s`, `1.250 s`)."""
+    """The times a Markdown cell shows, in milliseconds (`12 ms`, `3 s`, `1.250 s`).
+
+    A cell whose digits are not all such times, or whose milliseconds have a
+    fraction, uses a notation this check cannot read: the value is unobserved.
+    """
+    if re.search(r"\d", TIME.sub("", text)):
+        raise Unavailable(f"the Markdown view writes a time this check cannot read: {text!r}")
     found = []
-    for whole_part, fraction, unit in re.findall(r"(\d+)(?:\.(\d+))?\s*(ms|s)\b", text):
+    for whole_part, fraction, unit in TIME.findall(text):
         if unit == "ms":
             found.append(None if fraction else int(whole_part))
         else:
             found.append(None if len(fraction) > 3 else int(whole_part) * 1000 + int(fraction.ljust(3, "0") or 0))
+    if None in found:
+        raise Unavailable(f"the Markdown view writes a time this check cannot read: {text!r}")
     return found
 
 
@@ -725,16 +738,26 @@ def untimed(facts):
     return json.loads(re.sub(r'"elapsed_seconds": [0-9]+', '"elapsed_seconds": null', json.dumps(facts)))
 
 
-def judged(fixture, raw):
+def window_elapsed(facts):
+    found = re.findall(r'"elapsed_seconds": ([0-9]+)', json.dumps(facts))
+    return int(found[0]) if len(found) == 1 else None
+
+
+def judged(fixture, raw, clocks=None):
     """(status, done) facts of the record bytes raw, leaving raw in place.
 
     `ha done` appends a line even when it does not complete, so the record is
     put back after it. That line carries the time of the call, so done's
-    window elapsed time is left out.
+    window elapsed time is compared apart: clocks receives it with the
+    monotonic time of the call.
     """
     fixture.records_path.write_bytes(raw)
     status = status_facts(fixture)
-    done = untimed(status_facts(fixture, done=True))
+    called = time.monotonic()
+    facts = status_facts(fixture, done=True)
+    if clocks is not None:
+        clocks.append((window_elapsed(facts), called))
+    done = untimed(facts)
     fixture.records_path.write_bytes(raw)
     return status, done
 
@@ -760,10 +783,16 @@ class Judgment(unittest.TestCase):
                 raw = fixture.records_path.read_bytes()
                 if b'"timing"' in without_timing(raw):
                     raise Unavailable("timing fields could not be removed from the synthetic record")
-                with_timing, stripped = judged(fixture, raw), judged(fixture, without_timing(raw))
+                clocks = []
+                with_timing, stripped = judged(fixture, raw, clocks), judged(fixture, without_timing(raw), clocks)
                 for name, kept, removed in zip(("status", "done"), with_timing, stripped):
                     if kept != removed:
                         problems.append(f"{rules or 'default rules'}: {name} differs without timing")
+                # Done's window time may differ only by the time between the two calls.
+                (first, at), (second, later) = clocks
+                if None in (first, second) or abs(first - second) > math.ceil(later - at) + 1:
+                    problems.append(f"{rules or 'default rules'}: done's window elapsed time {first} s became "
+                                    f"{second} s in {later - at:.1f} s")
         require(self, not problems, "timing-changes-judgment", "; ".join(problems))
 
 

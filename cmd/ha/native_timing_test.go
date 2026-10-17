@@ -1,10 +1,11 @@
+//go:build windows
+
 package main
 
 import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -18,9 +19,10 @@ func main(){
 }
 `
 
-// TestNativeRecordedTiming records one check through the CLI on the current
-// system and reads its record line: the applied limit, the limit interval and
-// the CPU time with this system's scope and source (run-record.md §2.2).
+// TestNativeRecordedTiming records one check through the CLI on Windows and
+// reads its record line: the applied limit, the limit interval and the CPU
+// time with the Windows scope and source (run-record.md §2.2). macOS and
+// Linux record lines are observed by the goal checks on those systems.
 func TestNativeRecordedTiming(t *testing.T) {
 	base, err := filepath.Abs(filepath.Join(scenarioRoot, "_base"))
 	if err != nil {
@@ -77,13 +79,10 @@ func TestNativeRecordedTiming(t *testing.T) {
 		*timing.LimitElapsedMS < 0 || *timing.LimitElapsedMS > line.DurationMS {
 		t.Fatalf("limit values of a finished check: %+v, duration %d", timing, line.DurationMS)
 	}
-	scope, source := "process-and-waited-descendants", "wait4-rusage"
-	if runtime.GOOS == "windows" {
-		scope, source = "job-process-tree", "job-object-accounting"
-	}
+	scope, source := "job-process-tree", "job-object-accounting"
 	cpu := timing.CPU
 	if cpu.Status != "measured" || cpu.UserMS == nil || cpu.SystemMS == nil || *cpu.UserMS+*cpu.SystemMS <= 0 ||
 		cpu.Scope != scope || cpu.Source != source {
-		t.Fatalf("cpu of a check that used processor time on %s: %+v", runtime.GOOS, cpu)
+		t.Fatalf("cpu of a check that used processor time on Windows: %+v", cpu)
 	}
 }
