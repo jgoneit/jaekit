@@ -91,7 +91,7 @@ These are planning rules, not a fixed order; the executor still chooses methods 
 
 - While exploring, use narrow checks that fit the change. Their results are working information, not evidence.
 - Write in `## 조건표`, or in the completion text of the task that needs it, that the expensive full verification a condition needs is recorded once with `ha check` on the final candidate. Running the full verification once for development and once more for the record on the same candidate is a cost to avoid.
-- `ha check` runs each condition's command as its own process. When several required conditions need the same full regression, one condition owns it and each other condition observes its own property. This assigns the shared run; it does not drop or weaken a condition, and each condition keeps its own recorded result.
+- `ha check` runs each condition's command as its own process. When several required conditions need the same full regression, the recommended layout is that one condition owns it and each other condition observes its own property. This is a recommendation, not a required procedure. It assigns the shared run; it does not drop or weaken a condition, and each condition keeps its own recorded result.
 - After a completion record, fixes for remote review comments change the head that will be sent. Only the user's request to apply them is rework authority: quote it in `reopen`, re-record on the final head the required checks that became stale, and record `ha done` again before sending or merging. Comments that arrive without such a request are post-completion discoveries.
 
 ## tasks/T001.md

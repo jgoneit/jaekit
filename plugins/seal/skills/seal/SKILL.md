@@ -63,7 +63,7 @@ These rules cover every check in the condition table: `change`, `maintain`, `EX-
 Plan where the expensive evidence comes from before recording anything. Formats are in [references/bundle.md](references/bundle.md#final-candidate-evidence).
 
 - While exploring, run narrow checks that fit the change. Write in `PLAN.md` that the expensive full verification a condition needs is recorded once with `ha check` on the final candidate. Running the full verification once for development and once more for the record on the same candidate is a cost to avoid, not extra assurance.
-- When several required conditions need the same full regression, let one condition own it and have each other condition observe its own property. This only assigns the shared run: it does not drop or weaken any condition, and each condition still needs its own recorded result.
+- When several required conditions need the same full regression, it is recommended that one condition own it and each other condition observe its own property. This is a recommendation, not a required procedure. It only assigns the shared run: it does not drop or weaken any condition, and each condition still needs its own recorded result.
 
 ## Assurance policy
 
