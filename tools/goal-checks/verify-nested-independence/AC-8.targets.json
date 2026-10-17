@@ -33,8 +33,12 @@
         "pass": [
           0
         ],
-        "violations": {},
-        "unverified": []
+        "violations": {
+          "1": "public-docs-problem"
+        },
+        "unverified": [
+          3
+        ]
       },
       "result_targets": {
         "additional_violations": [

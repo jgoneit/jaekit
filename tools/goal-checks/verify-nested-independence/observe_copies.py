@@ -5,16 +5,18 @@ replaced by a recorder; no step executes. Dynamic observations run the go-group
 checks of the protected `current-file-independence` route, as the checked
 tree's contracts/regressions.json lists them, with a process log:
 
-- a `sitecustomize` module on PYTHONPATH records every Python process started
-  inside a public copy (a Git work tree, other than this checkout, whose
-  tools/verify.py matches this checkout's), with its script and exit code;
-- a `go` executable first on PATH records every Go command started inside a
-  public copy.
+- a `sitecustomize` module on PYTHONPATH records every Python process whose
+  script, or else whose working directory, lies inside a public copy (a Git
+  work tree, other than this checkout, whose tools/verify.py matches this
+  checkout's), with its script, arguments and exit code;
+- a `go` executable first on PATH records every Go command whose directory
+  (`-C` or the working directory) lies inside a public copy.
 
-A full Go suite (`go test` with `./...` and no -run/-list/-bench filter) and a
+A full Go suite (`go test` with `./...` and no -run/-list filter) and a
 tools/verify.py run inside a copy are recorded and then replaced: the suite by a
 successful no-op, a `docs` or `all` verification by the two public file and
-documentation checks it starts with. Violations come only from explicit
+documentation checks it starts with. A replaced `go` or `all` verification
+counts as a full Go suite. Violations come only from explicit
 `[violation:...]` failures. Missing tools, a route that cannot be read, checks
 that cannot be collected or that fail for reasons other than the observed
 property raise Unavailable, an execution error.
@@ -24,6 +26,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -99,10 +102,30 @@ def dispatch(group):
 
 
 def full_suite(args):
-    """`go test` over ./... without a test or package filter; args exclude `go`."""
-    filters = ("-run", "-list", "-bench")
+    """`go test` over ./... without a -run or -list filter; args exclude `go`.
+
+    A benchmark flag does not filter: the ordinary tests still run first.
+    """
+    filters = ("-run", "-list")
     return (args[:1] == ["test"] and "./..." in args
             and not any(a in filters or a.startswith(tuple(f + "=" for f in filters)) for a in args))
+
+
+def judging(script, args):
+    """Whether a run of a watched script is the judgment AC-4 names, not help or a no-op."""
+    if any(a in ("-h", "--help") for a in args):
+        return False
+    if script == "tools/goal-checks/produce.py":
+        return len(args) == 2 and all(a.endswith(".json") for a in args)
+    if script in ("tools/review-checks/produce.py", "tools/gap-checks/produce.py"):
+        return len(args) == 1 and re.fullmatch(r"AC-[0-9]+", args[0]) is not None
+    if script == "tools/gap-checks/preservation.py":
+        return "--retention" in args and args.index("--retention") + 1 < len(args)
+    if script == "tools/check_public_tree.py":
+        return not args
+    if script == "tools/check_public_docs.py":
+        return len(args) <= 1
+    return True
 
 
 # --- dynamic observations ------------------------------------------------
@@ -154,42 +177,59 @@ import sys
 WATCHED = set(json.loads(os.environ.get("JAEKIT_OBSERVE_WATCHED", "[]")))
 PUBLIC = json.loads(os.environ.get("JAEKIT_OBSERVE_PUBLIC", "[]"))
 
-def _script(argv, cwd, copy):
+def _script(argv, cwd):
     i = 0
     while i < len(argv):
         a = argv[i]
         if a in ("-m", "-c"):
-            return None
+            return None, []
         if a in ("-W", "-X"):
             i += 2
             continue
         if a.startswith("-"):
             i += 1
             continue
-        path = Path(a) if os.path.isabs(a) else cwd / a
-        try:
-            return path.resolve().relative_to(copy).as_posix(), argv[i + 1:]
-        except ValueError:
-            return "outside:" + str(path), argv[i + 1:]
-    return None
+        return (Path(a) if os.path.isabs(a) else cwd / a).resolve(), argv[i + 1:]
+    return None, []
+
+def _kind(facts):
+    if facts["shallow"] and facts["commits"] == 1:
+        return "shallow"
+    if not facts["shallow"] and (facts["commits"] or 0) >= 2:
+        return "full"
+    return "other"
 
 def _run(argv, cwd):
-    env = dict(os.environ, JAEKIT_OBSERVE_CHILD="1")
+    # Only this direct child skips observation; its own children are observed.
+    env = dict(os.environ, JAEKIT_OBSERVE_WRAPPER=str(os.getpid()))
     child = subprocess.run([sys.executable, *argv], cwd=cwd, env=env, capture_output=True)
     os.write(1, child.stdout)
     os.write(2, child.stderr)
     return child
 
+def _fail(entry, message):
+    os.write(2, (message + "\n").encode())
+    entry.update(rc=1, stderr=message)
+    _log(entry)
+    os._exit(1)
+
 def _observe():
     root = Path(os.environ["JAEKIT_OBSERVE_ROOT"])
     cwd = Path.cwd().resolve()
-    copy = _public_copy(cwd, root)
+    argv = list(sys.orig_argv[1:])
+    path, rest = _script(argv, cwd)
+    # The copy a process judges: where its script lives, else where it runs.
+    copy = (_public_copy(path.parent, root) if path is not None else None) or _public_copy(cwd, root)
     if copy is None:
         return
-    argv = list(sys.orig_argv[1:])
-    found = _script(argv, cwd, copy)
-    script, rest = found if found else (None, [])
-    entry = {"kind": "python", "argv": argv, "script": script, "copy": _facts(copy)}
+    script = None
+    if path is not None:
+        try:
+            script = path.relative_to(copy).as_posix()
+        except ValueError:
+            script = "outside:" + str(path)
+    facts = _facts(copy)
+    entry = {"kind": "python", "argv": argv, "script": script, "args": rest, "copy": facts}
     if script == "tools/verify.py":
         group = rest[0] if rest else "all"
         entry.update(group=group, replaced=True)
@@ -204,29 +244,19 @@ def _observe():
     if script not in WATCHED:
         _log(entry)
         return
-    target, _, rest_mutation = os.environ.get("JAEKIT_OBSERVE_MUTATE", "").partition("|")
-    kind, _, marker = rest_mutation.partition("|")
-    if target == script:
+    target, kind, marker, where = (os.environ.get("JAEKIT_OBSERVE_MUTATE", "") + "|||").split("|")[:4]
+    if target == script and where == _kind(facts):
         entry["mutation"] = kind
         if kind == "private":
-            needed = copy / "docs/specs" / marker / "SPEC.md"
             try:
-                needed.read_bytes()
+                (copy / "docs/specs" / marker / "SPEC.md").read_bytes()
             except OSError as error:
-                message = f"{script}: needs private goal document docs/specs/{marker}/SPEC.md: {error}"
-                os.write(2, (message + "\n").encode())
-                entry.update(rc=1, stderr=message)
-                _log(entry)
-                os._exit(1)
+                _fail(entry, f"{script}: needs private goal document docs/specs/{marker}/SPEC.md: {error}")
         elif kind == "history":
             check = subprocess.run(["git", "-C", str(copy), "rev-parse", "--verify", "--quiet", "HEAD~1^{commit}"],
                                    capture_output=True, text=True)
             if check.returncode != 0:
-                message = f"{script}: needs history beyond the checked commit (HEAD~1, {marker})"
-                os.write(2, (message + "\n").encode())
-                entry.update(rc=1, stderr=message)
-                _log(entry)
-                os._exit(1)
+                _fail(entry, f"{script}: needs history beyond the checked commit (HEAD~1, {marker})")
     elif os.environ.get("JAEKIT_OBSERVE_FAST") and script in json.loads(os.environ.get("JAEKIT_OBSERVE_JUDGMENTS", "[]")):
         entry.update(rc=0, replaced=True)
         _log(entry)
@@ -237,7 +267,7 @@ def _observe():
     _log(entry)
     os._exit(child.returncode)
 
-if os.environ.get("JAEKIT_OBSERVE_LOG") and not os.environ.get("JAEKIT_OBSERVE_CHILD"):
+if os.environ.get("JAEKIT_OBSERVE_LOG") and os.environ.get("JAEKIT_OBSERVE_WRAPPER") != str(os.getppid()):
     _observe()
 '''
 
@@ -247,10 +277,15 @@ import sys
 def _main():
     real, root = os.environ["JAEKIT_OBSERVE_GO"], Path(os.environ["JAEKIT_OBSERVE_ROOT"])
     args = sys.argv[1:]
-    copy = _public_copy(Path.cwd().resolve(), root)
-    filters = ("-run", "-list", "-bench")
-    full = (args[:1] == ["test"] and "./..." in args
-            and not any(a in filters or a.startswith(tuple(f + "=" for f in filters)) for a in args))
+    where, rest = Path.cwd(), args
+    if args[:1] == ["-C"] and len(args) > 1:
+        where, rest = where / args[1], args[2:]
+    elif args[:1] and args[0].startswith("-C="):
+        where, rest = where / args[0][3:], args[1:]
+    copy = _public_copy(where.resolve(), root)
+    filters = ("-run", "-list")
+    full = (rest[:1] == ["test"] and "./..." in rest
+            and not any(a in filters or a.startswith(tuple(f + "=" for f in filters)) for a in rest))
     if copy is not None:
         _log({"kind": "go", "argv": args, "full_suite": full, "replaced": full, "copy": _facts(copy)})
         if full:
@@ -318,7 +353,7 @@ class Run:
                        JAEKIT_OBSERVE_JUDGMENTS=json.dumps(sorted(JUDGMENTS)),
                        PATH=str(shims) + os.pathsep + os.environ.get("PATH", ""),
                        PYTHONPATH=os.pathsep.join(filter(None, (str(site), os.environ.get("PYTHONPATH")))))
-            for key in ("JAEKIT_OBSERVE_MUTATE", "JAEKIT_OBSERVE_FAST", "JAEKIT_OBSERVE_CHILD",
+            for key in ("JAEKIT_OBSERVE_MUTATE", "JAEKIT_OBSERVE_FAST", "JAEKIT_OBSERVE_WRAPPER",
                         "HA_EVIDENCE_PATH", "HA_EVIDENCE_INVOCATION", "HA_EVIDENCE_DECLARATION_DIGEST"):
                 env.pop(key, None)
             if mutate:
@@ -365,16 +400,20 @@ def require(case, condition, violation, message):
         case.fail(f"[violation:{violation}] {message}")
 
 
-def ran_in_both(run, script, check=lambda entry: entry.get("rc") == 0):
-    """The copy kinds in which script ran and passed `check`."""
-    kinds = set()
-    for entry in run.python(script):
-        if check(entry):
-            kinds.add(Run.kind(entry["copy"]))
-    return kinds
+def ran_in_both(run, script):
+    """The copy kinds in which script made its judgment and exited 0."""
+    return {Run.kind(e["copy"]) for e in run.python(script) if e.get("rc") == 0 and judging(script, e.get("args", []))}
 
 
-def assert_route_passed(case, run):
+def nested_full_suites(run):
+    """Full Go suites started inside copies, directly or through a go or all verification."""
+    return ([[e["copy"]["path"], e["argv"]] for e in run.entries if e["kind"] == "go" and e["full_suite"]]
+            + [[e["copy"]["path"], e["argv"]] for e in run.entries
+               if e["kind"] == "python" and e["script"] == "tools/verify.py" and e.get("group") in ("go", "all")])
+
+
+def assert_route_passed(run):
+    """Called after the observed property: a route failure for another reason is an error."""
     failed = {f"{file} {selector}": output[-3000:] for (file, selector), (code, output, _) in run.results.items()
               if code != 0}
     if failed:
@@ -385,16 +424,16 @@ class SuiteRuns(unittest.TestCase):
     """AC-1: one full Go suite per group run, in this checkout only."""
 
     def test_go_and_all_groups_run_the_full_go_suite_once_in_this_checkout(self):
-        direct = {group: [command for _, command in group_steps(*functions) if full_suite(command[1:])
-                          and command[0] == "go"]
+        direct = {group: [command for _, command in group_steps(*functions)
+                          if command[0] == "go" and full_suite(command[1:])]
                   for group, functions in (("go", ("verify_go",)), ("all", ("verify_go", "verify_docs")))}
         run = Run(route_checks())
-        nested = [e for e in run.entries if e["kind"] == "go" and e["full_suite"]]
-        assert_route_passed(self, run)
+        nested = nested_full_suites(run)
         for group in ("go", "all"):
             require(self, len(direct[group]) == 1 and not nested, "full-go-suite-repeated",
                     f"{group} group: {len(direct[group])} full Go suite(s) in this checkout and {len(nested)} "
-                    f"inside public copies: " + json.dumps([[e['copy']['path'], e['argv']] for e in nested]))
+                    f"inside public copies: " + json.dumps(nested))
+        assert_route_passed(run)
 
 
 class DocsRuns(unittest.TestCase):
@@ -402,7 +441,6 @@ class DocsRuns(unittest.TestCase):
 
     def test_copies_do_not_rerun_the_docs_group(self):
         run = Run(route_checks())
-        assert_route_passed(self, run)
         nested = [e for e in run.entries if e["kind"] == "python" and e["script"] == "tools/verify.py"
                   and e.get("group") in ("all", "docs")]
         go_steps = {tuple(command) for _, command in group_steps("verify_go")}
@@ -411,14 +449,15 @@ class DocsRuns(unittest.TestCase):
                 f"{len(nested)} docs-group verification(s) inside public copies: "
                 + json.dumps([[e['copy']['path'], e['argv']] for e in nested])
                 + f"; go-group steps shared with the docs group: {sorted(go_steps.intersection(docs_steps))}")
+        assert_route_passed(run)
 
     def test_public_checks_run_and_pass_in_both_copies(self):
         run = Run(route_checks())
-        assert_route_passed(self, run)
         missing = {script: sorted({"full", "shallow"} - ran_in_both(run, script)) for script in PUBLIC}
         missing = {script: kinds for script, kinds in missing.items() if kinds}
         require(self, not missing, "public-checks-not-in-copies",
                 f"public checks that did not run and pass in a copy: {missing}")
+        assert_route_passed(run)
 
     def test_all_group_runs_the_docs_group_once_here(self):
         calls = {group: dispatch(group) for group in ("all", "go", "docs")}
@@ -431,7 +470,7 @@ class CopyBoundary(unittest.TestCase):
 
     def test_two_public_only_copies_accept_and_reject_current_files(self):
         run = Run(route_checks())
-        assert_route_passed(self, run)
+        assert_route_passed(run)
         copies = run.copies()
         kinds = sorted(Run.kind(copy) for copy in copies.values())
         private = sorted(path for path, copy in copies.items() if copy["docs"] or copy["ha"])
@@ -449,36 +488,43 @@ class Judgments(unittest.TestCase):
 
     def test_judgments_run_and_pass_in_both_copies(self):
         run = Run(route_checks())
-        assert_route_passed(self, run)
         missing = {script: sorted({"full", "shallow"} - ran_in_both(run, script)) for script in JUDGMENTS}
         missing = {script: kinds for script, kinds in missing.items() if kinds}
         require(self, not missing, "current-file-judgment-not-in-copies",
                 f"current-file judgments that did not run and pass in a copy: {missing}")
+        assert_route_passed(run)
 
     def test_private_input_or_history_dependency_fails_the_go_group(self):
         run = Run(route_checks())
-        assert_route_passed(self, run)
+        assert_route_passed(run)
         creators = run.creators()
         unreported = []
+        # A private input is absent from both copies, so it must fail the group
+        # from each copy on its own; history beyond the checked commit is
+        # absent only from the shallow copy.
+        cases = (("private", "full"), ("private", "shallow"), ("history", "shallow"))
         for index, script in enumerate(sorted(JUDGMENTS)):
             if {"full", "shallow"} - ran_in_both(run, script):
                 # Not run in both copies: a dependency there cannot fail the group.
                 unreported.append(f"{JUDGMENTS[script]} ({script}) does not run in both public copies")
                 continue
-            for kind in ("private", "history"):
-                marker = f"jaekit-observer-{kind}-{index}"
-                mutated = Run(creators, mutate=(script, kind, marker), fast=True)
+            for kind, where in cases:
+                marker = f"jaekit-observer-{kind}-{where}-{index}"
+                mutated = Run(creators, mutate=(script, kind, marker, where), fast=True)
+                codes = [code for code, _, _ in mutated.results.values()]
+                if any(code not in (0, 1) for code in codes):
+                    raise Unavailable(f"{script} {kind} in {where}: route checks ended with {codes}: "
+                                      + json.dumps([o[-2000:] for _, o, _ in mutated.results.values()])[:4000])
                 applied = [e for e in mutated.entries if e.get("mutation") == kind and e["script"] == script
-                           and e.get("rc") == 1]
+                           and e.get("rc") == 1 and Run.kind(e["copy"]) == where]
                 if not applied:
-                    raise Unavailable(f"{script}: the {kind} dependency was not reached in a copy")
-                outcomes = list(mutated.results.values())
-                failed = any(code == 1 for code, _, _ in outcomes)
-                shown = any(marker in output for _, output, _ in outcomes)
-                if not (failed and shown):
-                    unreported.append(f"{JUDGMENTS[script]} ({script}) needing {kind} input: "
-                                      f"route checks {'failed' if failed else 'passed'}, "
-                                      f"message {'shows' if shown else 'does not show'} the needed input")
+                    raise Unavailable(f"{script}: the {kind} dependency was not reached in the {where} copy")
+                failed = [output for code, output, _ in mutated.results.values() if code == 1]
+                if not (failed and any(marker in output for output in failed)):
+                    unreported.append(f"{JUDGMENTS[script]} ({script}) needing {kind} input in the {where} copy: "
+                                      f"route checks {'failed' if failed else 'passed'}, the failure "
+                                      f"{'shows' if any(marker in o for o in failed) else 'does not show'} "
+                                      "the needed input")
         require(self, not unreported, "dependency-failure-not-reported", "\n".join(unreported))
 
 

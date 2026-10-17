@@ -55,7 +55,7 @@
     },
     {
       "id": "public-docs",
-      "violation": "existing-check-failed"
+      "violation": "public-docs-problem"
     },
     {
       "id": "public-docs.assertion-2",
