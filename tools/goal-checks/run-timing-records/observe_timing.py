@@ -20,6 +20,7 @@ Violations come only from explicit `[violation:...]` failures. A tool, image,
 tag, CI run or GitHub response that is missing or unusable raises Unavailable,
 an execution error.
 """
+import collections
 import hashlib
 import importlib.util
 import json
@@ -560,12 +561,12 @@ def table(text):
     return cells(rows[0]), body
 
 
-# A number not inside a word, with what follows it: `12 ms`, `1,234 ms`, `1.250 s`, `41.2%`, `1m`.
-NUMBER = re.compile(r"(?<!\w)(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?\s*(%|[^\W\d_]+)?")
+# A number not inside a word, with what follows it: `12 ms`, `1,234 ms`, `1.250 s`, `41.2%`, `412` per mille, `1m`.
+NUMBER = re.compile(r"(?<!\w)(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?\s*(%|\u2030|[^\W\d_]+)?")
 
 
 def shown_ms(text):
-    """The times a Markdown cell shows, in milliseconds, leaving out percentages.
+    """The times a Markdown cell shows, in milliseconds, leaving out proximity (percent, per mille).
 
     A number in another notation (`1m`, `250 us`, a bare `3`, a fraction of a
     millisecond) is None: this check cannot read its value.
@@ -573,7 +574,7 @@ def shown_ms(text):
     found = []
     for whole_part, fraction, unit in NUMBER.findall(text):
         whole_part = int(whole_part.replace(",", ""))
-        if unit == "%":
+        if unit in ("%", "\u2030"):
             continue
         if unit == "ms":
             found.append(None if fraction else whole_part)
@@ -584,17 +585,26 @@ def shown_ms(text):
     return found
 
 
-def shows_times(text, values):
-    """Whether a Markdown cell shows the recorded times, in order, among the other times it shows.
+def shows_times(text, values, extras=()):
+    """Whether a Markdown cell shows the recorded times, in the order given.
 
-    A number this check cannot read leaves the cell unobserved, whether or not
-    the recorded times are also there: `1m 3s` would otherwise read as 3 s.
+    Beside them the cell may show `extras`, recorded values that belong with
+    it (the limit beside its elapsed time, the CPU total beside its parts), and
+    proximity in percent or per mille. A cell this check cannot read without
+    guessing leaves the value unobserved: a number in another notation (`1m 3s`
+    would otherwise read as 3 s, and a bare ratio could be a time without its
+    unit), or a time that is neither recorded for the cell nor among the
+    extras, where the check cannot tell which time the view means.
     """
     found = shown_ms(text)
     if None in found:
         raise Unavailable(f"the Markdown view writes a time this check cannot read: {text!r}")
     rest = iter(found)
-    return all(any(value == shown for shown in rest) for value in values)
+    if not all(any(value == shown for shown in rest) for value in values):
+        return False
+    if collections.Counter(found) - collections.Counter(values) - collections.Counter(extras):
+        raise Unavailable(f"the Markdown view writes a time the record does not keep for this cell: {text!r}")
+    return True
 
 
 def cpu_order(cpu, *texts):
@@ -677,13 +687,14 @@ class TimeView(unittest.TestCase):
                     if cpu.get("status") == "measured" and cpu.get("scope") not in row[places["cpu"]]:
                         problems.append(f"Markdown CPU of seq {line['seq']} lacks its scope")
                     # Each time the record keeps is shown as that time.
-                    times = {"duration": [line.get("duration_ms")]}
+                    times = {"duration": ([line.get("duration_ms")], ())}
                     if timing.get("limit_elapsed_ms") is not None:
-                        times["elapsed"] = [timing["limit_elapsed_ms"]]
+                        times["elapsed"] = ([timing["limit_elapsed_ms"]], [timing.get("limit_ms")])
                     if cpu.get("status") == "measured":
-                        times["cpu"] = cpu_order(cpu, row[places["cpu"]], header[places["cpu"]])
-                    for word, values in times.items():
-                        if not shows_times(row[places[word]], values):
+                        times["cpu"] = (cpu_order(cpu, row[places["cpu"]], header[places["cpu"]]),
+                                        [sum(filter(None, (cpu.get("user_ms"), cpu.get("system_ms"))))])
+                    for word, (values, extras) in times.items():
+                        if not shows_times(row[places[word]], values, extras):
                             problems.append(f"Markdown {word} of seq {line['seq']} shows {row[places[word]]!r}, "
                                             f"not {values} ms")
             for want in ("T001 command 1", "not the goal's elapsed time or budget"):
