@@ -20,7 +20,6 @@ Violations come only from explicit `[violation:...]` failures. A tool, image,
 tag, CI run or GitHub response that is missing or unusable raises Unavailable,
 an execution error.
 """
-import collections
 import hashlib
 import importlib.util
 import json
@@ -585,26 +584,24 @@ def shown_ms(text):
     return found
 
 
-def shows_times(text, values, extras=()):
-    """Whether a Markdown cell shows the recorded times, in the order given.
+def shows_times(text, values):
+    """Whether a Markdown cell shows exactly the recorded times, in the order given.
 
-    Beside them the cell may show `extras`, recorded values that belong with
-    it (the limit beside its elapsed time, the CPU total beside its parts), and
-    proximity in percent or per mille. A cell this check cannot read without
-    guessing leaves the value unobserved: a number in another notation (`1m 3s`
-    would otherwise read as 3 s, and a bare ratio could be a time without its
-    unit), or a time that is neither recorded for the cell nor among the
-    extras, where the check cannot tell which time the view means.
+    Proximity in percent or per mille may stand beside them. A cell that shows
+    no time, or as many times as recorded but other ones, does not show them.
+    Any other cell leaves the value unobserved instead of being guessed at: a
+    number in another notation (`1m 3s` would otherwise read as 3 s, and a
+    bare ratio could be a time without its unit), or more or fewer times than
+    recorded, where the check cannot tell which time the view means by which.
     """
     found = shown_ms(text)
     if None in found:
         raise Unavailable(f"the Markdown view writes a time this check cannot read: {text!r}")
-    rest = iter(found)
-    if not all(any(value == shown for shown in rest) for value in values):
+    if found == values:
+        return True
+    if not found or len(found) == len(values):
         return False
-    if collections.Counter(found) - collections.Counter(values) - collections.Counter(extras):
-        raise Unavailable(f"the Markdown view writes a time the record does not keep for this cell: {text!r}")
-    return True
+    raise Unavailable(f"the Markdown view writes {len(found)} times where the record keeps {len(values)}: {text!r}")
 
 
 def cpu_order(cpu, *texts):
@@ -687,14 +684,13 @@ class TimeView(unittest.TestCase):
                     if cpu.get("status") == "measured" and cpu.get("scope") not in row[places["cpu"]]:
                         problems.append(f"Markdown CPU of seq {line['seq']} lacks its scope")
                     # Each time the record keeps is shown as that time.
-                    times = {"duration": ([line.get("duration_ms")], ())}
+                    times = {"duration": [line.get("duration_ms")]}
                     if timing.get("limit_elapsed_ms") is not None:
-                        times["elapsed"] = ([timing["limit_elapsed_ms"]], [timing.get("limit_ms")])
+                        times["elapsed"] = [timing["limit_elapsed_ms"]]
                     if cpu.get("status") == "measured":
-                        times["cpu"] = (cpu_order(cpu, row[places["cpu"]], header[places["cpu"]]),
-                                        [sum(filter(None, (cpu.get("user_ms"), cpu.get("system_ms"))))])
-                    for word, (values, extras) in times.items():
-                        if not shows_times(row[places[word]], values, extras):
+                        times["cpu"] = cpu_order(cpu, row[places["cpu"]], header[places["cpu"]])
+                    for word, values in times.items():
+                        if not shows_times(row[places[word]], values):
                             problems.append(f"Markdown {word} of seq {line['seq']} shows {row[places[word]]!r}, "
                                             f"not {values} ms")
             for want in ("T001 command 1", "not the goal's elapsed time or budget"):
