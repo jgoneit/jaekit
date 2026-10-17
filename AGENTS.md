@@ -52,8 +52,8 @@ These rules apply to goals carried in this repository and to their pull requests
 
 - State whether each finding links to a criterion, rule or contract, and whether this change introduced it.
 - A counterexample on an input that a SPEC criterion, a contract or a protected regression path requires is a defect. Mark an edge case that lies outside the stated check boundary and links to nothing as low severity, separately.
-- A check that counts an input failure (a missing file, corrupt input, a tool that cannot start, a signal) as a violation is a defect.
-- Read the check boundaries stated in the pull request description as grounds for your judgment.
+- A check that counts an input failure (a missing file, corrupt input, a tool that cannot start, a signal) as a violation is a defect, unless the check declares that case as a violation where the check result contract allows it, such as `missing: violation`.
+- Read the check boundaries stated in the pull request description as grounds for your judgment. A boundary added after a finding does not cover that finding.
 
 ## Validation
 
