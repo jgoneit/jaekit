@@ -45,16 +45,27 @@ Usage:
   ha lint   <goal>
   ha estimate <goal> [AC-n | EX-n | T001 ...] [--baseline] [--format md|json]
   ha start  <goal> --request <quote> [--skill <path to SKILL.md>]
+                   [--rules run-rules/4] [--test-authority <agent interpretation>]
                    [--host-name <name>] [--host-version <version>] [--model <model>]
   ha check  <goal> [AC-n | EX-n | T001 ...] [--baseline]
   ha budget <goal> --runs <total> --from <old-total> --window <seq> --revision <seq>
                     [--quote <user words> --context <request context>]
-                    [--reason <reduction reason>] [--interpretation <agent interpretation>]
+                    [--reason <reason>] [--interpretation <agent interpretation>]
+  ha budget <goal> --preapprove <total> --window <seq> --revision <seq>
+                    --quote <user words> --context <request context>      (run-rules/4)
   ha note   <goal> block --cause <auth|permission|quota|environment|spec|other> [--quote <text>]
   ha note   <goal> unblock [--quote <text>]
   ha note   <goal> confirm <AC-n | scope:<path> | tests:<path> | spec> --quote <user words>
   ha note   <goal> reopen --quote <user words>
   ha note   <goal> input --quote <user words>
+  ha note   <goal> test-change tests:<path> --criteria <AC-n,...> --how <how it is checked>
+                   [--moved-to <path> ...] [--weakened]                   (run-rules/4)
+  ha note   <goal> wait --reason <decision asked>                         (run-rules/4)
+  ha note   <goal> resume                                                 (run-rules/4)
+  ha note   <goal> recover <AC-n> --input check|baseline --change <changed condition>
+                                                                          (run-rules/4)
+  ha note   <goal> allow-recovery <AC-n> --input check|baseline --count <n> --quote <user words>
+                                                                          (run-rules/4)
   ha finding <goal> [--input <JSON file>] [--format json|md]
   ha history <goal> [add|current|list|show] ...   (see ha history --help)
   ha status <goal> [--format md|json]

@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -83,6 +84,29 @@ func TestCompatibilityRunRules4Goals(t *testing.T) {
 		}
 		if code, report := decide(t, core, operation, v4); code != 2 || report["reason"] != "unsupported_stored_rule" {
 			t.Fatalf("%s of a run-rules/4 goal on a Core without it: exit %d, %v", operation, code, report)
+		}
+	}
+}
+
+// The built-in help names every run-rules/4 form the parser accepts, so the
+// only way to start a /4 goal and its notes can be found from ha --help.
+func TestUsageNamesTheRunRules4Forms(t *testing.T) {
+	for _, form := range []string{"--rules run-rules/4", "--test-authority", "--preapprove <total>"} {
+		if !strings.Contains(usage, form) {
+			t.Errorf("ha --help does not show %q", form)
+		}
+	}
+	for kind := range rules4Notes {
+		_, entry, ok := strings.Cut(usage, "  ha note   <goal> "+kind+" ")
+		if !ok {
+			t.Errorf("ha --help does not show the %s note", kind)
+			continue
+		}
+		entry, _, _ = strings.Cut(entry, "\n  ha ")
+		for flag := range noteFlags[kind] {
+			if !strings.Contains(entry, "--"+flag) {
+				t.Errorf("ha --help does not show --%s for %s notes", flag, kind)
+			}
 		}
 	}
 }
