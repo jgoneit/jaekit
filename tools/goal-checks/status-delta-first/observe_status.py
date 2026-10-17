@@ -514,13 +514,17 @@ class ScenarioPinsReasons(unittest.TestCase):
             raise Unavailable(f"go test: {failure!r}") from None
         facts = producer.go_facts(error, finals, outputs, ROOT / "cmd/ha")
         scenario = [state for (_, test), state in finals.items() if test == "TestScenarios/completion-invalidated"]
+        failed = "".join(outputs.get(("github.com/jgoneit/jaekit/cmd/ha", "TestScenarios/completion-invalidated"),
+                                     []))[-4000:]
         if facts["errors"] or facts["skipped"] or (scenario != ["pass"] and not facts["violations"]):
+            # An observed assertion failure stays a fact next to the error.
+            if facts["violations"]:
+                with self.subTest("scenario assertion"):
+                    self.fail("scenario completion-invalidated failed:\n" + failed)
             raise Unavailable(f"scenario tests could not run: errors {facts['errors']}, skipped {facts['skipped']}, "
                               f"result {scenario}")
         if facts["violations"]:
-            self.fail("scenario completion-invalidated failed:\n"
-                      + "".join(outputs.get(("github.com/jgoneit/jaekit/cmd/ha", "TestScenarios/completion-invalidated"),
-                                            []))[-4000:])
+            self.fail("scenario completion-invalidated failed:\n" + failed)
 
 
 class CheckOutput(Observed):
