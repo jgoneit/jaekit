@@ -32,14 +32,16 @@ def history_problems(body, command):
     problems = []
     if f"        run: {command}" not in body.splitlines():
         problems.append(f"does not run {command}")
-    if len(re.findall(r"(?m)^        uses: actions/checkout@", body)) != 1:
+    if len(re.findall(r"actions/checkout@", body)) != 1:
         problems.append("does not check out exactly once")
-    depth = re.findall(r"(?m)^          fetch-depth:\s*(\S+)", body)
-    if any(value.strip("'\"") != "1" for value in depth):
+    # Any spelling of the checkout inputs: block lines or a flow mapping.
+    depth = re.findall(r"fetch-depth['\"]?\s*:\s*['\"]?([^\s,}'\"]+)", body)
+    if any(value != "1" for value in depth):
         problems.append(f"checks out fetch-depth {depth}")
-    if re.search(r"(?m)^          fetch-tags:\s*['\"]?true", body):
+    if re.search(r"fetch-tags['\"]?\s*:\s*['\"]?true", body):
         problems.append("fetches tags")
-    if re.search(r"git\s+(?:fetch|pull)|--unshallow|--deepen", body):
+    # A git command anywhere in a step that fetches, pulls or deepens history.
+    if re.search(r"\bgit\b[^\n]*?\s(?:fetch|pull)\b|--unshallow|--deepen|--shallow-since|--shallow-exclude", body):
         problems.append("fetches more history")
     return problems
 
@@ -61,6 +63,9 @@ class HistoryLessCheckouts(unittest.TestCase):
                     "full history": body.replace(checkout, checkout + "\n          fetch-depth: 0", 1),
                     "tags": body.replace(checkout, checkout + "\n          fetch-tags: true", 1),
                     "fetch step": body + "\n\n      - name: Fetch history\n        run: git fetch --unshallow origin",
+                    "flow mapping": body.replace(checkout, "        with: { persist-credentials: false, fetch-depth: 0 }", 1),
+                    "git options before fetch": body + "\n\n      - name: Fetch more\n"
+                                                       "        run: git -C \"$GITHUB_WORKSPACE\" fetch --depth=50 origin",
                     "second checkout": body + "\n\n      - name: Check out again\n"
                                               "        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"}.items():
                 with self.subTest(job=key, case=case):
