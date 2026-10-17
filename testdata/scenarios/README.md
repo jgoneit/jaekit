@@ -71,6 +71,7 @@ The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evi
 | `lint-ok` | bundle.md §8 | `ha lint` passes on a valid bundle |
 | `output-path-checkout` | run-record.md §2.2 | `output_path` is `.git/ha/runs/<goal-key>/<seq>.log`; no local path anywhere |
 | `output-path-worktree` | run-record.md §2.2 | same `output_path` in a linked worktree; log lists in status and done carry it |
+| `timing-view` | run-record.md §1.2, §2.2 | `ha timing` shows each run's limit, limit interval and CPU; damaged values show as invalid while status stays `complete`; nothing is written |
 | `worktree-log` | run-record.md §1 | `ha log` and `--tail` work in a linked worktree |
 | `legacy-output-path` | run-record.md §2.2 | an older absolute `output_path` stays as written; `complete` after it |
 
