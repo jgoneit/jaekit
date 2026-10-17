@@ -17,4 +17,8 @@ ha note $GOAL allow-recovery AC-2 --input check --count 1 --quote "더 해도 �
 expect-exit 65
 ha budget $GOAL --preapprove 80 --window 1 --revision 1 --quote "80회까지" --context "이 창"
 expect-exit 65
+ha note $GOAL input --quote "계속 진행해" --reason "asked which greeting"
+expect-exit 64
+ha note $GOAL confirm spec --quote "문서 변경 승인" --how "keep check"
+expect-exit 64
 expect-records 1

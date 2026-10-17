@@ -143,11 +143,19 @@ func (rep *Report) Markdown(goalArg string) string {
 			case t.Confirmed:
 				state = "confirmed by the user"
 			}
-			line := fmt.Sprintf("- `%s` %s: %s", t.Path, t.Change, state)
+			version := "deleted"
+			if t.Blob != "" {
+				version = "blob " + t.Blob
+			}
+			line := fmt.Sprintf("- `%s` %s (%s): %s", t.Path, t.Change, version, state)
 			if r := t.Rationale; r != nil {
 				line += fmt.Sprintf(" — reason (seq %d, %s claim): %s checks %s", r.Seq, r.Claim, cell(r.How), strings.Join(r.Criteria, ", "))
 				if len(r.MovedTo) > 0 {
-					line += "; moved to " + strings.Join(r.MovedTo, ", ")
+					var moved []string
+					for _, m := range r.MovedTo {
+						moved = append(moved, fmt.Sprintf("`%s` (blob %s)", m.Path, m.Blob))
+					}
+					line += "; moved to " + strings.Join(moved, ", ")
 				}
 				if r.Weakened {
 					line += "; marked as weakening"

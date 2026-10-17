@@ -1,0 +1,30 @@
+# run-rules/4: a split test stays exempt only while every linked file stays as
+# recorded, and a reason recorded for a modified version does not cover a later
+# deletion of the file.
+ha start $GOAL --request "keep 테스트도 필요하면 고쳐줘" --rules run-rules/4 --test-authority "tests/** 안의 기존 시험을 고쳐도 된다"
+expect-exit 0
+write tests/keep.sh "test -f src/keep.txt\n"
+write tests/keep-more.sh "test -s src/keep.txt\n"
+commit "split keep test"
+ha note $GOAL test-change tests:tests/keep.sh --criteria AC-2 --how "src/keep.txt가 남아 있는지 본다" --moved-to tests/keep-more.sh
+expect-exit 0
+expect-no-reason test_definition_changed
+write tests/keep-more.sh "exit 0\n"
+commit "relax the split part"
+expect-reason test_definition_changed
+ha status $GOAL --format json
+expect-output "a moved-to file changed after the reason: tests/keep-more.sh"
+write tests/keep-more.sh "test -s src/keep.txt\n"
+commit "restore the split part"
+expect-no-reason test_definition_changed
+rm tests/keep.sh
+commit "drop the rest of keep test"
+expect-reason test_definition_changed
+ha status $GOAL --format json
+expect-output "the file changed after the reason"
+ha note $GOAL test-change tests:tests/keep.sh --criteria AC-2 --how "keep-more.sh가 같은 확인을 한다" --moved-to tests/keep-more.sh
+expect-exit 0
+expect-no-reason test_definition_changed
+ha status $GOAL
+expect-output "`tests/keep.sh` deleted (deleted): no confirmation needed"
+expect-output "moved to `tests/keep-more.sh` (blob "

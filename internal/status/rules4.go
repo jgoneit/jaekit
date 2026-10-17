@@ -40,19 +40,27 @@ type TestChange struct {
 // Rationale is the last test-change note for a path. It is the executor's
 // claim; Core checks only its links and the file versions it names.
 type Rationale struct {
-	Seq      int      `json:"seq"`
-	Claim    string   `json:"claim"`
-	Criteria []string `json:"criteria"`
-	How      string   `json:"how"`
-	MovedTo  []string `json:"moved_to,omitempty"`
-	Weakened bool     `json:"weakened"`
+	Seq      int         `json:"seq"`
+	Claim    string      `json:"claim"`
+	Criteria []string    `json:"criteria"`
+	How      string      `json:"how"`
+	MovedTo  []MovedFile `json:"moved_to,omitempty"`
+	Weakened bool        `json:"weakened"`
+}
+
+// MovedFile is a file a moved or split test now lives in, at the version the
+// reason was recorded for.
+type MovedFile struct {
+	Path string `json:"path"`
+	Blob string `json:"blob"`
 }
 
 // Recovery is the error-limit state of one condition input under run-rules/4.
 type Recovery struct {
 	Criterion    string `json:"criterion"`
 	Input        string `json:"input"`
-	Errors       int    `json:"errors"` // fresh errors and unknowns since the last recovery
+	Errors       int    `json:"errors"`     // fresh errors and unknowns no recovery named
+	ErrorSeqs    []int  `json:"error_seqs"` // their records
 	LimitReached bool   `json:"limit_reached"`
 	Used         int    `json:"used"`
 	Allowed      int    `json:"allowed"`
@@ -60,7 +68,8 @@ type Recovery struct {
 }
 
 type recoveryState struct {
-	used, allowed, after int // after: errors at or before this seq leave the limit
+	used, allowed int
+	cleared       map[int]bool // the error and unknown records recoveries named
 }
 
 // foldRecoveries applies recover notes in record order, each only while a
@@ -70,7 +79,7 @@ func foldRecoveries(lines []record.Line) map[string]*recoveryState {
 	get := func(d *record.RecoveryData) *recoveryState {
 		key := d.Criterion + "\x00" + d.Input
 		if out[key] == nil {
-			out[key] = &recoveryState{allowed: ExecutorRecoveries}
+			out[key] = &recoveryState{allowed: ExecutorRecoveries, cleared: map[int]bool{}}
 		}
 		return out[key]
 	}
@@ -86,7 +95,9 @@ func foldRecoveries(lines []record.Line) map[string]*recoveryState {
 		case "recover":
 			if st := get(l.Recovery); st.used < st.allowed {
 				st.used++
-				st.after = l.Seq
+				for _, seq := range l.Recovery.Clears {
+					st.cleared[seq] = true
+				}
 			}
 		}
 	}
@@ -97,19 +108,25 @@ func (e *evaluator) recovery(id, input string) *recoveryState {
 	if st := e.recoveries[id+"\x00"+input]; st != nil {
 		return st
 	}
-	return &recoveryState{allowed: ExecutorRecoveries}
+	return &recoveryState{allowed: ExecutorRecoveries, cleared: map[int]bool{}}
 }
 
-// errorsSince counts fresh errors and unknowns after the input's last recovery.
-func (e *evaluator) errorsSince(id, input string, ls []*record.Line) int {
-	after := e.recovery(id, input).after
-	n := 0
+// unrecovered lists the fresh errors and unknowns of an input that no
+// recovery named. An error that becomes fresh again after its input changed
+// and came back still counts unless a recovery named it.
+func (e *evaluator) unrecovered(id, input string, ls []*record.Line) []int {
+	cleared := e.recovery(id, input).cleared
+	var seqs []int
 	for _, l := range ls {
-		if l.Seq > after && (l.Result == "error" || l.Result == "unknown") {
-			n++
+		if (l.Result == "error" || l.Result == "unknown") && !cleared[l.Seq] {
+			seqs = append(seqs, l.Seq)
 		}
 	}
-	return n
+	return seqs
+}
+
+func (e *evaluator) errorsSince(id, input string, ls []*record.Line) int {
+	return len(e.unrecovered(id, input, ls))
 }
 
 func (e *evaluator) reportRecoveries(rep *Report, id, kind string, C, B []*record.Line) {
@@ -121,11 +138,12 @@ func (e *evaluator) reportRecoveries(rep *Report, id, kind string, C, B []*recor
 	}
 	for _, input := range names {
 		st := e.recovery(id, input)
-		errs := e.errorsSince(id, input, inputs[input])
+		seqs := e.unrecovered(id, input, inputs[input])
+		errs := len(seqs)
 		if st.used == 0 && st.allowed == ExecutorRecoveries && errs <= ErrorReruns {
 			continue
 		}
-		rep.Recoveries = append(rep.Recoveries, Recovery{Criterion: id, Input: input, Errors: errs,
+		rep.Recoveries = append(rep.Recoveries, Recovery{Criterion: id, Input: input, Errors: errs, ErrorSeqs: seqs,
 			LimitReached: errs > ErrorReruns, Used: st.used, Allowed: st.allowed, Remaining: max(0, st.allowed-st.used)})
 	}
 }
@@ -174,7 +192,7 @@ func (e *evaluator) testChanges(rep *Report, changes []gitx.Change) ([]string, e
 			d := note.TestChange
 			r := &Rationale{Seq: note.Seq, Claim: "executor", Criteria: append([]string{}, d.Criteria...), How: d.How, Weakened: d.Weakened}
 			for _, m := range d.MovedTo {
-				r.MovedTo = append(r.MovedTo, m.Path)
+				r.MovedTo = append(r.MovedTo, MovedFile{Path: m.Path, Blob: m.Blob})
 			}
 			tc.Rationale = r
 		}
@@ -205,13 +223,16 @@ func (e *evaluator) testExemption(scope *record.ScopeCopy, tc TestChange, note *
 	case len(note.TestChange.Criteria) == 0 || strings.TrimSpace(note.TestChange.How) == "":
 		return "the reason names no condition or check method", nil
 	}
-	if tc.Change == "modified" {
-		if note.Bound == nil || note.Bound.Blob != tc.Blob {
-			return "the file changed after the reason", nil
-		}
-		return "", nil
+	// The reason covers the path as it is now, its content or its deletion,
+	// and every file it names as the test's new home.
+	now := tc.Blob
+	if tc.Change == "deleted" {
+		now = gitx.Deleted
 	}
-	if len(note.TestChange.MovedTo) == 0 {
+	if note.Bound == nil || note.Bound.Blob != now {
+		return "the file changed after the reason", nil
+	}
+	if tc.Change == "deleted" && len(note.TestChange.MovedTo) == 0 {
 		return "a deletion whose reason names no new path", nil
 	}
 	for _, m := range note.TestChange.MovedTo {
@@ -293,7 +314,9 @@ func reportedWait(window []record.Line) int64 {
 			case answers(next):
 				t, ok = unix(next.At)
 			case next.Kind == "check" || next.Kind == "baseline":
-				if t, ok = unix(next.StartedAt); ok && t <= at {
+				// A run that starts in the note's own second ends the wait
+				// there: the order inside one second is unknown.
+				if t, ok = unix(next.StartedAt); ok && t < at {
 					ok = false
 				}
 			}

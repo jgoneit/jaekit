@@ -136,7 +136,15 @@ func (e *evaluator) freshTask(l *record.Line) (bool, error) {
 		return false, nil
 	}
 	t := e.in.Bundle.Task(l.Target.Task)
-	if t == nil || l.Target.Index < 1 || l.Target.Index > len(t.Commands) || l.CommandDigest != bundle.Digest(t.Commands[l.Target.Index-1]) {
+	if t == nil || l.Target.Index < 1 || l.Target.Index > len(t.Commands) {
+		return false, nil
+	}
+	digest := bundle.Digest(t.Commands[l.Target.Index-1])
+	if e.rules == RulesV4 {
+		// run-rules/4 binds a task command to its applied limit, as ha check records it.
+		digest = bundle.LimitDigest(digest, e.in.Bundle.Limit(bundle.LimitLabel("", t.ID, l.Target.Index)))
+	}
+	if l.CommandDigest != digest {
 		return false, nil
 	}
 	return e.sameAsHead(l.Commit)

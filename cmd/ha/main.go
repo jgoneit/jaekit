@@ -629,6 +629,7 @@ func (c *cli) check(in []string) int {
 		if baseline {
 			kind = "baseline"
 		}
+		lines = append(lines, l) // later targets' notices see this run
 		fmt.Fprintf(c.out, "%s %s %s (seq %d)\n", t.label(), kind, result, l.Seq)
 		if proof != nil {
 			fmt.Fprintf(c.out, "classification: %s\n", proof.Reason)
@@ -752,6 +753,14 @@ var blockCauses = []string{"auth", "permission", "quota", "environment", "spec",
 // §4.7); earlier rules refuse them before writing.
 var rules4Notes = map[string]bool{"test-change": true, "wait": true, "resume": true, "recover": true, "allow-recovery": true}
 
+// noteFlags are the run-rules/4 options each note kind takes.
+var noteFlags = map[string]map[string]bool{
+	"test-change":    {"criteria": true, "how": true, "moved-to": true, "weakened": true},
+	"wait":           {"reason": true},
+	"recover":        {"input": true, "change": true},
+	"allow-recovery": {"input": true, "count": true},
+}
+
 func (c *cli) note(in []string) int {
 	a, err := parseFlags(in, []string{"quote", "cause", "reason", "criteria", "how", "input", "change", "count"}, []string{"moved-to"}, []string{"weakened"})
 	if err != nil {
@@ -759,6 +768,15 @@ func (c *cli) note(in []string) int {
 	}
 	if len(a.pos) < 2 {
 		return c.fail(exitUsage, "usage: ha note <goal> <block|unblock|confirm|reopen|input|test-change|wait|resume|recover|allow-recovery> ...")
+	}
+	// The run-rules/4 options belong to their note kinds; every other kind
+	// refuses them as an unknown flag, as before they existed.
+	for _, name := range []string{"reason", "criteria", "how", "input", "change", "count", "moved-to", "weakened"} {
+		_, val := a.vals[name]
+		_, list := a.lists[name]
+		if (val || list || a.bools[name]) && !noteFlags[a.pos[1]][name] {
+			return c.fail(exitUsage, "unknown flag --%s for %s notes", name, a.pos[1])
+		}
 	}
 	w, code := c.openOrFail(a, 2)
 	if w == nil {
@@ -955,6 +973,7 @@ func (c *cli) recoverable(w *workspace, lines []record.Line, d *record.RecoveryD
 		if r.Remaining <= 0 {
 			return fmt.Errorf("%s %s input has no recovery left; the user can allow more with allow-recovery", d.Criterion, d.Input)
 		}
+		d.Clears = append([]int(nil), r.ErrorSeqs...)
 		return nil
 	}
 	return fmt.Errorf("%s %s input is not past its error limit; nothing to recover", d.Criterion, d.Input)

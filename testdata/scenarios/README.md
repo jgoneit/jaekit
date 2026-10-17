@@ -61,6 +61,10 @@ The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evi
 | `rules-v4-recovery` | run-record.md §4.7 error recovery | an error limit clears only by `recover` for its condition and input; a third recovery needs `allow-recovery` |
 | `rules-v4-time-limit` | bundle.md §2.5 | a limit over the maximum refuses the start (`time_limit_invalid`); a declared limit ends the check with an error, and the rerun prints a notice |
 | `rules-v4-forms-refused` | run-record.md §4.6 | `/3` goals refuse the `run-rules/4` notes and pre-approval with 65; `--test-authority` without `--rules run-rules/4` is a usage error; nothing recorded |
+| `rules-v4-test-split` | run-record.md §4.7 test changes | a split test stays exempt only while every linked file is as recorded; a reason for a modified version does not cover a later deletion |
+| `rules-v4-wait-same-second` | run-record.md §4.7 reported waits | a run that starts in the wait note's own second ends the wait |
+| `rules-v4-recovery-input` | run-record.md §4.7 error recovery | a recovery takes out only the error records it named; errors of an input that changed and came back count again |
+| `rules-v4-task-check` | run-record.md §4.7 time limits | a task command recorded under its applied limit is a current input |
 | `rules-v1-kept` | run-rules-2 AC-10 | historical `run-rules/1` budget semantics remain; a future dirty check is refused |
 | `blocked` | bundle.md §5 | `blocked` until unblock |
 | `not-started` | run-record.md §4.2 | `incomplete`, `not_started`; checks refused |

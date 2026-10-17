@@ -47,18 +47,19 @@ func parseLimit(s string) (time.Duration, bool) {
 	if m == nil || (m[1] == "" && m[2] == "" && m[3] == "") {
 		return 0, false
 	}
-	var d time.Duration
-	for i, unit := range []time.Duration{time.Hour, time.Minute, time.Second} {
+	var seconds int64
+	for i, unit := range []int64{3600, 60, 1} {
 		if m[i+1] == "" {
 			continue
 		}
 		n, err := strconv.ParseInt(m[i+1], 10, 64)
-		if err != nil || n > 1_000_000_000 {
-			return 0, false
+		if err != nil || n > int64(MaxLimit/time.Second)/unit {
+			// Too large to be a limit: report it as over the maximum, never wrapped.
+			return MaxLimit + time.Second, true
 		}
-		d += time.Duration(n) * unit
+		seconds += n * unit
 	}
-	return d, d > 0
+	return time.Duration(seconds) * time.Second, seconds > 0
 }
 
 // LimitDigest binds a run-rules/4 command digest to its applied limit, so a

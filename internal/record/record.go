@@ -246,6 +246,9 @@ type RecoveryData struct {
 	Input     string `json:"input"`
 	Change    string `json:"change,omitempty"`
 	Count     int    `json:"count,omitempty"`
+	// Clears names the error and unknown records a recover note takes out of
+	// the input's error limit: the ones that counted when it was recorded.
+	Clears []int `json:"clears,omitempty"`
 }
 
 // Note is a `note` line.
