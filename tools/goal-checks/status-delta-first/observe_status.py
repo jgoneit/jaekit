@@ -502,10 +502,11 @@ class ScenarioPinsReasons(unittest.TestCase):
                                      "./cmd/ha"], cwd=ROOT, env=env, capture_output=True, text=True, timeout=900)
         except (OSError, subprocess.TimeoutExpired) as error:
             raise Unavailable(f"go test: {error}") from None
-        # Only a failed expectation step is the scenario's own result; setup,
-        # Git and fixture steps that fail never reach an expectation.
+        # Only a failed expectation in the scenario's own steps file is its
+        # result. Shared `_steps` setup expectations, Git and fixture steps
+        # that fail stop before the scenario's own assertions.
         if ("--- FAIL: TestScenarios/completion-invalidated" in result.stdout
-                and re.search(r"(completion-invalidated/steps|_steps/[^:\s]+):\d+: expect-", result.stdout)):
+                and re.search(r"completion-invalidated/steps:\d+: expect-", result.stdout)):
             self.fail("[violation:stale-reason-scenario-missing] " + result.stdout[-4000:])
         if result.returncode != 0 or "--- PASS: TestScenarios/completion-invalidated" not in result.stdout:
             # Toolchain, module, build or setup failures never reach the scenario.
@@ -648,7 +649,10 @@ class Documents(unittest.TestCase):
                       if p not in reference])
         for name, body in (("run-record.md §4.4", contract), ("references/ha.md Status output", reference)):
             # Every goal the section names, in prose or in any example, is the synthetic one.
-            paths = set(re.findall(r"docs/specs/([A-Za-z0-9_-]+)", body))
+            # Goal names are kebab-case ASCII; a trailing period, particle or
+            # other punctuation is not part of the name, an inner period is.
+            paths = {match.group(1) or match.group(0)
+                     for match in re.finditer(r"docs/specs/(?:([A-Za-z0-9._-]*[A-Za-z0-9_-])|[^\x00-\x7f])", body)}
             if paths - {"example"}:
                 missing.append(f"{name}: names a goal other than docs/specs/example: {sorted(paths)}")
         if missing:
