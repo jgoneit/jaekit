@@ -504,14 +504,16 @@ class ScenarioPinsReasons(unittest.TestCase):
                                      "./cmd/ha"], cwd=ROOT, env=env, capture_output=True, text=True, timeout=900)
         except (OSError, subprocess.TimeoutExpired) as error:
             raise Unavailable(f"go test: {error}") from None
-        # Only a failed reason assertion is the scenario's result, wherever it
-        # is pinned. The runner reports it as `output does not contain "<text>"`
-        # with the text Go-quoted on one line. Setup, Git and fixture steps and
-        # other expectations that fail are not reason assertions.
+        # The scenario's own result is a failed expectation in its own steps
+        # file, or a failed reason assertion wherever it is pinned. The runner
+        # reports the latter as `output does not contain "<text>"` with the
+        # text Go-quoted on one line. Shared `_steps` setup expectations, Git
+        # and fixture steps that fail are neither.
         failed = [line.split('output does not contain "', 1)[1] for line in result.stdout.splitlines()
                   if 'output does not contain "' in line]
         if ("--- FAIL: TestScenarios/completion-invalidated" in result.stdout
-                and any(reason in text for text in failed for reason in STALE_REASONS)):
+                and (re.search(r"completion-invalidated/steps:\d+: expect-", result.stdout)
+                     or any(reason in text for text in failed for reason in STALE_REASONS))):
             self.fail("[violation:stale-reason-scenario-missing] " + result.stdout[-4000:])
         if result.returncode != 0 or "--- PASS: TestScenarios/completion-invalidated" not in result.stdout:
             # Toolchain, module, build or setup failures never reach the scenario.
