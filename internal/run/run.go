@@ -80,6 +80,10 @@ func ExecWithEnv(dir string, argv []string, timeout time.Duration, logPath strin
 	return execWithStarter(dir, argv, timeout, logPath, extraEnv, startProcess)
 }
 
+// collectCPU reads a finished process's CPU time. Tests replace it to make the
+// collection fail; the run's result, output and limit values do not depend on it.
+var collectCPU = processCPU
+
 func execWithStarter(dir string, argv []string, timeout time.Duration, logPath string, extraEnv []string, starter processStarter) (Result, error) {
 	log, err := os.OpenFile(logPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {
@@ -129,7 +133,7 @@ func execWithStarter(dir string, argv []string, timeout time.Duration, logPath s
 			}
 		}
 		controlErr = errors.Join(controlErr, group.finish())
-		res.CPU = processCPU(cmd, group)
+		res.CPU = collectCPU(cmd, group)
 		switch {
 		case controlErr != nil:
 			fmt.Fprintf(log, "\nha: process control failed: %v\n", controlErr)

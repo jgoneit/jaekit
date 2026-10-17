@@ -1,6 +1,8 @@
 package run
 
 import (
+	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -53,4 +55,45 @@ func TestNativeRunTiming(t *testing.T) {
 			t.Fatalf("a process that never started has no limit interval or CPU: %+v", res)
 		}
 	})
+}
+
+// TestCPUCollectionFailureKeepsTheRun makes CPU collection fail for a process
+// that ran. The result, exit code, output digest, log and limit values are the
+// same as with a working collection; only the CPU state says it failed.
+func TestCPUCollectionFailureKeepsTheRun(t *testing.T) {
+	dir := t.TempDir()
+	env := []string{"HA_NATIVE_HELPER=1", "HA_NATIVE_MODE=arguments", "HA_NATIVE_EXIT=3"}
+	measured, err := ExecWithEnv(dir, helperCommand(t), 10*time.Second, filepath.Join(dir, "measured.log"), env)
+	if err != nil || measured.CPU.Status != CPUMeasured {
+		t.Fatalf("measured run: %+v %v", measured, err)
+	}
+	original := collectCPU
+	t.Cleanup(func() { collectCPU = original })
+	collectCPU = func(*exec.Cmd, processController) CPU {
+		return CPU{Status: CPUFailed, Scope: measured.CPU.Scope, Source: measured.CPU.Source}
+	}
+	failed, err := ExecWithEnv(dir, helperCommand(t), 10*time.Second, filepath.Join(dir, "failed.log"), env)
+	if err != nil {
+		t.Fatalf("a CPU collection failure ended the run with an error: %v", err)
+	}
+	if failed.CPU.Status != CPUFailed || failed.CPU.User != 0 || failed.CPU.System != 0 {
+		t.Fatalf("cpu after a collection failure: %+v", failed.CPU)
+	}
+	same := failed.Attempted == measured.Attempted && failed.Outcome == measured.Outcome &&
+		failed.Reason == measured.Reason && failed.Signal == measured.Signal && failed.Digest == measured.Digest &&
+		failed.Limit == measured.Limit && failed.LimitReached == measured.LimitReached &&
+		(failed.LimitElapsed == nil) == (measured.LimitElapsed == nil) &&
+		failed.Exit != nil && measured.Exit != nil && *failed.Exit == *measured.Exit
+	if !same {
+		t.Fatalf("the run changed with a CPU collection failure:\nmeasured %+v\nfailed   %+v", measured, failed)
+	}
+	logs := [2][]byte{}
+	for i, name := range []string{"measured.log", "failed.log"} {
+		if logs[i], err = os.ReadFile(filepath.Join(dir, name)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if string(logs[0]) != string(logs[1]) {
+		t.Fatalf("the output changed with a CPU collection failure: %q %q", logs[0], logs[1])
+	}
 }
