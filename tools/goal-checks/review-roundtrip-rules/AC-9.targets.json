@@ -9,6 +9,14 @@
         "tools/verify.py",
         "docs"
       ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
       "result_targets": {
         "additional_violations": [
           "docs-group.assertion-2",
@@ -34,6 +42,14 @@
         "-mod=readonly",
         "./plugins"
       ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
       "result_targets": {
         "additional_violations": [
           "plugin-docs.assertion-2",
@@ -47,6 +63,25 @@
         "execution": "plugin-docs.execution",
         "selection": "plugin-docs.selection",
         "attribution": "plugin-docs.attribution"
+      }
+    },
+    {
+      "target": "docs-environment",
+      "runner": "unittest",
+      "file": "tools/gap-checks/test_docs_environment.py",
+      "result_targets": {
+        "additional_violations": [
+          "docs-environment.assertion-2",
+          "docs-environment.assertion-3",
+          "docs-environment.assertion-4",
+          "docs-environment.assertion-5",
+          "docs-environment.assertion-6",
+          "docs-environment.assertion-7",
+          "docs-environment.assertion-8"
+        ],
+        "execution": "docs-environment.execution",
+        "selection": "docs-environment.selection",
+        "attribution": "docs-environment.attribution"
       }
     }
   ]

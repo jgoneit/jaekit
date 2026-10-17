@@ -77,8 +77,8 @@ class Observed(unittest.TestCase):
 class CheckBoundaries(Observed):
     def test_boundaries_are_recorded_in_review_before_findings(self):
         absent = missing(section(agents(), RULES_HEADING), [
-            ("observation boundary", "failure kinds", "review.md", "before the plan round"),
-            ("grounds for classifying a finding", "only when", "recorded before"),
+            ("for each new check", "observation boundary", "failure kinds", "review.md", "before the plan round"),
+            ("grounds for classifying a finding", "only when", "recorded before that finding"),
         ])
         self.require(not absent, "boundary-record-rule-missing", f"AGENTS.md lacks: {absent}")
 
@@ -103,8 +103,9 @@ class CheckBoundaries(Observed):
         absent = missing(section(agents(), RULES_HEADING), [
             ("open-ended", "goal documents", "representative forms"),
             ("new checks", "fixed tokens", "commands", "links", "version", "instead of scanning an open category"),
-            ("new ci observer", "tools/verification-checks/cross_platform_ci.py", "goal-specific judgment"),
-            ("protected path", "separate goal"),
+            ("new ci observer", "reuses", "tools/verification-checks/cross_platform_ci.py",
+             "only its goal-specific judgment"),
+            ("protected path", "changes only in a separate goal"),
         ])
         self.require(not absent, "check-authoring-rule-missing", f"AGENTS.md lacks: {absent}")
 
@@ -121,8 +122,8 @@ class ReviewFindings(Observed):
 
     def test_pull_request_rounds_stop_after_three(self):
         absent = missing(section(agents(), RULES_HEADING), [
-            ("more than three", "remote review rounds", "criterion-linked fixes", "stop", "two readings",
-             "wait for the answer"),
+            ("more than three", "remote review rounds", "criterion-linked fixes", "stop", "recurring findings",
+             "criterion they trace to", "two readings", "wait for the answer"),
         ])
         self.require(not absent, "pr-round-limit-missing", f"AGENTS.md lacks: {absent}")
 
@@ -137,7 +138,9 @@ class ReviewFindings(Observed):
         reviewers = section(section(agents(), RULES_HEADING), REVIEWERS_HEADING)
         absent = missing(reviewers, [
             ("links to a criterion, rule or contract", "introduced"),
-            ("counterexample", "defect", "low severity", "outside", "boundary", "links to nothing"),
+            ("counterexample", "input that a spec criterion, a contract or a protected regression path requires",
+             "is a defect"),
+            ("edge case", "outside the stated check boundary", "links to nothing", "low severity"),
             ("input failure", "missing file", "corrupt input", "cannot start", "signal", "violation", "defect"),
             ("pull request description", "check boundaries", "grounds"),
         ])
@@ -150,8 +153,9 @@ class PullRequestTemplate(Observed):
         template = (ROOT / ".github/pull_request_template.md").read_text(encoding="utf-8")
         focus = section(template, REVIEW_FOCUS)
         text = normalized(focus)
-        korean = ("관측", "경계", "덮지 않는", "defer", "비공개 목표", "로컬 경로")
-        english = ("observation boundary", "does not cover", "deferred", "private goal", "local path")
+        korean = ("관측", "경계", "덮지 않는", "defer한", "비공개 목표", "기록", "로컬 경로", "넣지 말")
+        english = ("observation boundary", "does not cover", "deferred review findings", "private goal names",
+                   "records", "local paths", "leave out")
         absent = [phrase for phrase in korean + english if phrase not in text]
         self.require(focus.strip() and not absent, "pr-template-boundary-missing",
                      f"pull request template Review focus lacks: {absent or 'the section'}")
