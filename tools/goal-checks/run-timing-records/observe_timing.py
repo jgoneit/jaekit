@@ -560,35 +560,50 @@ def table(text):
     return cells(rows[0]), body
 
 
-TIME = re.compile(r"(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?\s*(ms|s)\b")
+# A number not inside a word, with what follows it: `12 ms`, `1,234 ms`, `1.250 s`, `41.2%`, `1m`.
+NUMBER = re.compile(r"(?<!\w)(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?\s*(%|[^\W\d_]+)?")
 
 
 def shown_ms(text):
-    """The times a Markdown cell shows, in milliseconds (`12 ms`, `1,234 ms`, `3 s`, `1.250 s`)."""
+    """The times a Markdown cell shows, in milliseconds, leaving out percentages.
+
+    A number in another notation (`1m`, `250 us`, a bare `3`, a fraction of a
+    millisecond) is None: this check cannot read its value.
+    """
     found = []
-    for whole_part, fraction, unit in TIME.findall(text):
+    for whole_part, fraction, unit in NUMBER.findall(text):
         whole_part = int(whole_part.replace(",", ""))
+        if unit == "%":
+            continue
         if unit == "ms":
             found.append(None if fraction else whole_part)
-        else:
+        elif unit == "s":
             found.append(None if len(fraction) > 3 else whole_part * 1000 + int(fraction.ljust(3, "0") or 0))
+        else:
+            found.append(None)
     return found
 
 
 def shows_times(text, values):
-    """Whether a Markdown cell shows the recorded times, in order, among whatever else it shows.
+    """Whether a Markdown cell shows the recorded times, in order, among the other times it shows.
 
-    When it does not, and some number in it is not a time this check reads
-    (`1m 2s`, a fraction of a millisecond), its notation leaves the value
-    unobserved; otherwise the cell shows other times than the record's.
+    A number this check cannot read leaves the cell unobserved, whether or not
+    the recorded times are also there: `1m 3s` would otherwise read as 3 s.
     """
     found = shown_ms(text)
-    rest = iter(found)
-    if all(any(value == shown for shown in rest) for value in values):
-        return True
-    if None in found or re.search(r"\d", TIME.sub("", text)):
+    if None in found:
         raise Unavailable(f"the Markdown view writes a time this check cannot read: {text!r}")
-    return False
+    rest = iter(found)
+    return all(any(value == shown for shown in rest) for value in values)
+
+
+def cpu_order(cpu, *texts):
+    """The recorded CPU times in the order the view names them: the cell's labels, else its column's, else user first."""
+    for text in map(str.lower, texts):
+        if "user" in text and "system" in text:
+            names = ["system_ms", "user_ms"] if text.index("system") < text.index("user") else ["user_ms", "system_ms"]
+            return [cpu.get(name) for name in names]
+    return [cpu.get("user_ms"), cpu.get("system_ms")]
 
 
 def column(header, word):
@@ -666,7 +681,7 @@ class TimeView(unittest.TestCase):
                     if timing.get("limit_elapsed_ms") is not None:
                         times["elapsed"] = [timing["limit_elapsed_ms"]]
                     if cpu.get("status") == "measured":
-                        times["cpu"] = [cpu.get("user_ms"), cpu.get("system_ms")]
+                        times["cpu"] = cpu_order(cpu, row[places["cpu"]], header[places["cpu"]])
                     for word, values in times.items():
                         if not shows_times(row[places[word]], values):
                             problems.append(f"Markdown {word} of seq {line['seq']} shows {row[places[word]]!r}, "
