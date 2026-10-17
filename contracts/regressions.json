@@ -85,6 +85,11 @@
           "file": "tools/gap-checks/test_history_results.py",
           "selector": "AC5",
           "group": "go"
+        },
+        {
+          "file": "tools/workflow-checks/test_history_less_checkouts.py",
+          "selector": "HistoryLessCheckouts",
+          "group": "docs"
         }
       ],
       "follow_up": []
