@@ -1,0 +1,111 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "same-guidance",
+      "runner": "unittest",
+      "file": "tools/goal-checks/final-candidate-evidence/observe_guidance.py",
+      "test": "SameGuidance.test_every_place_carries_its_part",
+      "result_targets": {
+        "additional_violations": [
+          "same-guidance.assertion-2",
+          "same-guidance.assertion-3",
+          "same-guidance.assertion-4",
+          "same-guidance.assertion-5",
+          "same-guidance.assertion-6",
+          "same-guidance.assertion-7",
+          "same-guidance.assertion-8"
+        ],
+        "execution": "same-guidance.execution",
+        "selection": "same-guidance.selection",
+        "attribution": "same-guidance.attribution"
+      }
+    },
+    {
+      "target": "seal-version",
+      "runner": "unittest",
+      "file": "tools/goal-checks/final-candidate-evidence/observe_guidance.py",
+      "test": "SameGuidance.test_seal_version_is_raised_and_agrees",
+      "result_targets": {
+        "additional_violations": [
+          "seal-version.assertion-2",
+          "seal-version.assertion-3",
+          "seal-version.assertion-4",
+          "seal-version.assertion-5",
+          "seal-version.assertion-6",
+          "seal-version.assertion-7",
+          "seal-version.assertion-8"
+        ],
+        "execution": "seal-version.execution",
+        "selection": "seal-version.selection",
+        "attribution": "seal-version.attribution"
+      }
+    },
+    {
+      "target": "plugin-consistency",
+      "runner": "command",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "./plugins/"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "plugin-consistency.assertion-2",
+          "plugin-consistency.assertion-3",
+          "plugin-consistency.assertion-4",
+          "plugin-consistency.assertion-5",
+          "plugin-consistency.assertion-6",
+          "plugin-consistency.assertion-7",
+          "plugin-consistency.assertion-8"
+        ],
+        "execution": "plugin-consistency.execution",
+        "selection": "plugin-consistency.selection",
+        "attribution": "plugin-consistency.attribution"
+      }
+    },
+    {
+      "target": "public-docs",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/check_public_docs.py"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {
+          "1": "public-docs-problem"
+        },
+        "unverified": [
+          3
+        ]
+      },
+      "result_targets": {
+        "additional_violations": [
+          "public-docs.assertion-2",
+          "public-docs.assertion-3",
+          "public-docs.assertion-4",
+          "public-docs.assertion-5",
+          "public-docs.assertion-6",
+          "public-docs.assertion-7",
+          "public-docs.assertion-8"
+        ],
+        "execution": "public-docs.execution",
+        "selection": "public-docs.selection",
+        "attribution": "public-docs.attribution"
+      }
+    }
+  ]
+}

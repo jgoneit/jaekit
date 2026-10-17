@@ -1,0 +1,57 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/final-candidate-evidence/AC-4.targets.json",
+    "tools/goal-checks/final-candidate-evidence/observe_guidance.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "completion-coverage",
+      "violation": "completion-coverage-missing"
+    },
+    {
+      "id": "completion-coverage.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "completion-coverage.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "completion-coverage.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "completion-coverage.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "completion-coverage.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "completion-coverage.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "completion-coverage.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "completion-coverage.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "completion-coverage.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "completion-coverage.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}
