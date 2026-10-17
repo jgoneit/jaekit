@@ -458,14 +458,36 @@ class DoneForms(Observed):
                      "invalidated-completion-hidden", "the ha done hint changed")
 
 
+def scenario_lines(file, depth=0):
+    """The step lines of a scenario file, as cmd/ha/scenario_test.go loads them."""
+    if depth > 3:
+        raise Unavailable(f"include nesting too deep at {file}")
+    try:
+        text = file.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as error:
+        raise Unavailable(f"scenario steps: {error}") from None
+    out = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        words = line.split()
+        if words[0] == "include" and len(words) > 1:
+            out += scenario_lines(ROOT / "testdata/scenarios/_steps" / words[1], depth + 1)
+            continue
+        out.append(line)
+    return out
+
+
 class ScenarioPinsReasons(unittest.TestCase):
     """The behavioral scenario that pins stale-completion reasons exists and passes."""
 
     def test_completion_invalidated_scenario_passes(self):
-        # The scenario file itself states its expectations; includes are not followed.
+        # Expectations are read the way the Go runner reads them: trimmed lines,
+        # with included `_steps` files expanded.
         steps = ROOT / "testdata/scenarios/completion-invalidated/steps"
-        text = steps.read_text(encoding="utf-8") if steps.is_file() else ""
-        pinned = "\n".join(line for line in text.splitlines() if line.startswith("expect-output "))
+        lines = scenario_lines(steps) if steps.is_file() else []
+        pinned = "\n".join(line for line in lines if line.startswith("expect-output "))
         unpinned = [reason for reason in ("is no longer valid: ", "code outside the bundle documents changed",
                                           "goal documents changed", "required command changed: ",
                                           "reopened at seq ", "record chain broken")
@@ -480,7 +502,10 @@ class ScenarioPinsReasons(unittest.TestCase):
                                      "./cmd/ha"], cwd=ROOT, env=env, capture_output=True, text=True, timeout=900)
         except (OSError, subprocess.TimeoutExpired) as error:
             raise Unavailable(f"go test: {error}") from None
-        if "--- FAIL: TestScenarios/completion-invalidated" in result.stdout:
+        # Only a failed expectation step is the scenario's own result; setup,
+        # Git and fixture steps that fail never reach an expectation.
+        if ("--- FAIL: TestScenarios/completion-invalidated" in result.stdout
+                and re.search(r"(completion-invalidated/steps|_steps/[^:\s]+):\d+: expect-", result.stdout)):
             self.fail("[violation:stale-reason-scenario-missing] " + result.stdout[-4000:])
         if result.returncode != 0 or "--- PASS: TestScenarios/completion-invalidated" not in result.stdout:
             # Toolchain, module, build or setup failures never reach the scenario.
@@ -623,7 +648,7 @@ class Documents(unittest.TestCase):
                       if p not in reference])
         for name, body in (("run-record.md §4.4", contract), ("references/ha.md Status output", reference)):
             # Every goal the section names, in prose or in any example, is the synthetic one.
-            paths = set(re.findall(r"docs/specs/([^\s`/)\]]+)", body))
+            paths = set(re.findall(r"docs/specs/([A-Za-z0-9_-]+)", body))
             if paths - {"example"}:
                 missing.append(f"{name}: names a goal other than docs/specs/example: {sorted(paths)}")
         if missing:
