@@ -1,0 +1,53 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "docs-group",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/verify.py",
+        "docs"
+      ],
+      "result_targets": {
+        "additional_violations": [
+          "docs-group.assertion-2",
+          "docs-group.assertion-3",
+          "docs-group.assertion-4",
+          "docs-group.assertion-5",
+          "docs-group.assertion-6",
+          "docs-group.assertion-7",
+          "docs-group.assertion-8"
+        ],
+        "execution": "docs-group.execution",
+        "selection": "docs-group.selection",
+        "attribution": "docs-group.attribution"
+      }
+    },
+    {
+      "target": "plugin-docs",
+      "runner": "command",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-mod=readonly",
+        "./plugins"
+      ],
+      "result_targets": {
+        "additional_violations": [
+          "plugin-docs.assertion-2",
+          "plugin-docs.assertion-3",
+          "plugin-docs.assertion-4",
+          "plugin-docs.assertion-5",
+          "plugin-docs.assertion-6",
+          "plugin-docs.assertion-7",
+          "plugin-docs.assertion-8"
+        ],
+        "execution": "plugin-docs.execution",
+        "selection": "plugin-docs.selection",
+        "attribution": "plugin-docs.attribution"
+      }
+    }
+  ]
+}

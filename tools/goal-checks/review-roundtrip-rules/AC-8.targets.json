@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "pr-template-boundary",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_review_rules.py",
+      "test": "PullRequestTemplate.test_review_focus_asks_for_boundaries_and_deferred_findings",
+      "result_targets": {
+        "additional_violations": [
+          "pr-template-boundary.assertion-2",
+          "pr-template-boundary.assertion-3",
+          "pr-template-boundary.assertion-4",
+          "pr-template-boundary.assertion-5",
+          "pr-template-boundary.assertion-6",
+          "pr-template-boundary.assertion-7",
+          "pr-template-boundary.assertion-8"
+        ],
+        "execution": "pr-template-boundary.execution",
+        "selection": "pr-template-boundary.selection",
+        "attribution": "pr-template-boundary.attribution"
+      }
+    }
+  ]
+}
