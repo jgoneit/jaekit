@@ -458,6 +458,11 @@ class DoneForms(Observed):
                      "invalidated-completion-hidden", "the ha done hint changed")
 
 
+# The reason phrases the scenario must pin (contract §5.1 order, AC-3).
+STALE_REASONS = ("is no longer valid: ", "code outside the bundle documents changed", "goal documents changed",
+                 "required command changed: ", "reopened at seq ", "record chain broken")
+
+
 def scenario_lines(file, depth=0):
     """The step lines of a scenario file, as cmd/ha/scenario_test.go loads them."""
     if depth > 3:
@@ -488,10 +493,7 @@ class ScenarioPinsReasons(unittest.TestCase):
         steps = ROOT / "testdata/scenarios/completion-invalidated/steps"
         lines = scenario_lines(steps) if steps.is_file() else []
         pinned = "\n".join(line for line in lines if line.startswith("expect-output "))
-        unpinned = [reason for reason in ("is no longer valid: ", "code outside the bundle documents changed",
-                                          "goal documents changed", "required command changed: ",
-                                          "reopened at seq ", "record chain broken")
-                    if reason not in pinned]
+        unpinned = [reason for reason in STALE_REASONS if reason not in pinned]
         if unpinned:
             self.fail(f"[violation:stale-reason-scenario-missing] the scenario does not pin: {unpinned}")
         if not (shutil.which("git") and shutil.which("sh")):
@@ -502,11 +504,14 @@ class ScenarioPinsReasons(unittest.TestCase):
                                      "./cmd/ha"], cwd=ROOT, env=env, capture_output=True, text=True, timeout=900)
         except (OSError, subprocess.TimeoutExpired) as error:
             raise Unavailable(f"go test: {error}") from None
-        # Only a failed expectation in the scenario's own steps file is its
-        # result. Shared `_steps` setup expectations, Git and fixture steps
-        # that fail stop before the scenario's own assertions.
+        # Only a failed reason assertion is the scenario's result, wherever it
+        # is pinned. The runner reports it as `output does not contain "<text>"`
+        # with the text Go-quoted on one line. Setup, Git and fixture steps and
+        # other expectations that fail are not reason assertions.
+        failed = [line.split('output does not contain "', 1)[1] for line in result.stdout.splitlines()
+                  if 'output does not contain "' in line]
         if ("--- FAIL: TestScenarios/completion-invalidated" in result.stdout
-                and re.search(r"completion-invalidated/steps:\d+: expect-", result.stdout)):
+                and any(reason in text for text in failed for reason in STALE_REASONS)):
             self.fail("[violation:stale-reason-scenario-missing] " + result.stdout[-4000:])
         if result.returncode != 0 or "--- PASS: TestScenarios/completion-invalidated" not in result.stdout:
             # Toolchain, module, build or setup failures never reach the scenario.
