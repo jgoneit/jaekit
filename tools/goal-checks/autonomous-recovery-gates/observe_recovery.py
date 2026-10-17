@@ -593,7 +593,8 @@ class Waits(unittest.TestCase):
             f, raw = self.flow(d, [("implement", None)])
             if raw is not None:
                 f.must(f.ha("done", GOAL), "done")
-                completion = f.records()[-1]["seq"]
+                done = f.records_path.read_bytes().splitlines()[-1]
+                completion = {"seq": json.loads(done)["seq"], "sha256": hashlib.sha256(done).hexdigest()}
                 f.must(f.ha("note", GOAL, "wait", "--reason", "q"), "wait after completion")
                 finding = f.root / ".git/finding.json"
                 finding.write_text(json.dumps({
