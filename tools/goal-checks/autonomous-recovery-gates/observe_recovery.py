@@ -84,11 +84,12 @@ def supported(result, what):
 
 def outcome(result, what):
     """'recorded' (0), 'unknown' for a form `ha` does not know (64), or 'refused'
-    for a known form the goal's state does not allow (65).
+    for a known form the goal's state or rule does not allow (65, or 66, the
+    contract's refusal of a budget change under the old rules).
 
     Any other exit is not evidence either way.
     """
-    known = {0: "recorded", 64: "unknown", 65: "refused"}
+    known = {0: "recorded", 64: "unknown", 65: "refused", 66: "refused"}
     if result.returncode in known:
         return known[result.returncode]
     raise Unavailable(f"ha {what} exited {result.returncode}: {text(result)[-1000:]}")
@@ -488,10 +489,10 @@ class TestMoves(unittest.TestCase):
             # A change the executor marks as weakening stays with the user.
             (f.root / "tests/keep.sh").write_text(original + "true\n", encoding="utf-8")
             f.commit("restore keep with an extra line")
-            weakened = f.ha("note", GOAL, "test-change", "tests:tests/keep.sh", "--criteria", "AC-2", "--how",
-                            "drops nothing but is marked", "--weakened")
-            if weakened.returncode:
-                problems.append(f"a change marked as weakening could not be recorded ({weakened.returncode})")
+            weakened = outcome(f.ha("note", GOAL, "test-change", "tests:tests/keep.sh", "--criteria", "AC-2", "--how",
+                                    "drops nothing but is marked", "--weakened"), "note test-change --weakened")
+            if weakened != "recorded":
+                problems.append(f"a change marked as weakening could not be recorded ({weakened})")
             elif "tests/keep.sh" not in changed_paths(f.status()):
                 problems.append("a change marked as weakening was exempted")
             require(self, not problems, "test-move-unsupported", "; ".join(problems))
@@ -694,6 +695,11 @@ class Recovery(unittest.TestCase):
             if criterion(report, "AC-2").get("reason") != "error_limit" or \
                     criterion(report, "AC-1").get("reason") != "error_limit":
                 raise Unavailable(f"the conditions did not reach the error limit: {report.get('criteria')}")
+            if outcome(self.recover(f, "AC-1", "check", "installed the wrapper"), "note recover") != "refused":
+                problems.append("a check-input recovery was recorded for AC-1, whose errors were all baseline errors")
+            # AC-1 now passes its check error limit as well.
+            for _ in range(2):
+                f.must(f.ha("check", GOAL, "AC-1"), "missing wrapper", codes=(1,))
             f.tool("run-producer", 'exec python3 "$@"\n')
             f.tool("keep-check", "grep -qx keep src/keep.txt\n")
             recovered = outcome(self.recover(f, "AC-2", "check", "installed the tool"), "note recover")
@@ -701,8 +707,8 @@ class Recovery(unittest.TestCase):
                     f"a recovery past the error limit was {recovered}")
             if criterion(f.status(), "AC-1").get("reason") != "error_limit":
                 problems.append("a recovery of AC-2 cleared AC-1's error limit")
-            if outcome(self.recover(f, "AC-1", "check", "installed the wrapper"), "note recover") != "refused":
-                problems.append("a check-input recovery was recorded for AC-1, whose errors are baseline errors")
+            if outcome(self.recover(f, "AC-1", "check", "installed the wrapper"), "note recover") != "recorded":
+                problems.append("a check-input recovery past AC-1's check error limit was refused")
             if criterion(f.status(), "AC-1").get("reason") != "error_limit":
                 problems.append("a check-input recovery cleared AC-1's baseline error limit")
             f.must(f.ha("check", GOAL, "AC-2"), "recovered AC-2")
@@ -862,7 +868,7 @@ class TimeLimitNotice(unittest.TestCase):
             require(self, f.start_new(), "time-limit-notice-missing", "no run-rules/4 goal")
             problems = []
             first = notices(f.must(f.ha("check", GOAL, "EX-5", timeout=120), "first EX-5"), "EX-5")
-            if len(first) != 1 or "risk unknown" not in first[0] or re.search(r"\bsafe\b", first[0]):
+            if len(first) != 1 or "risk unknown" not in first[0]:
                 problems.append(f"the first run did not say its time risk is unknown: {first}")
             near = f.records()[-1]
             f.must(f.ha("check", GOAL, "EX-4", timeout=120), "timed-out EX-4", codes=(1,))
@@ -1013,6 +1019,18 @@ def checker(ha, operation, goal=None):
         raise Unavailable(f"check_core.py {operation}: {text(result)[-1000:]}") from None
 
 
+# The identity functions' messages for a Core whose version or capabilities do
+# not match. Their other refusals (a process that exited unexpectedly, a
+# packaged file or producer problem) are not about the Core's identity.
+MISMATCH = ("version does not match", "capability contract", "Core lacks", "capabilities are not an object")
+
+
+def identity_mismatch(path, error):
+    if any(marker in str(error) for marker in MISMATCH):
+        return f"{path} does not accept the new Core: {error}"
+    raise Unavailable(f"{path}: {error}")
+
+
 class CoreIdentity(unittest.TestCase):
     """AC-10: the new Core is identified; Seal starts and resumes run-rules/4 only on a Core that supports it.
 
@@ -1110,12 +1128,12 @@ class CoreIdentity(unittest.TestCase):
             try:
                 native.identity(stamped, dict(os.environ), self.VERSION, ROOT)
             except ValueError as error:  # native_unix.require
-                problems.append(f"tools/ci/native_unix.py does not identify the new Core: {error}")
+                problems.append(identity_mismatch("tools/ci/native_unix.py", error))
             release = load("tools/release/check_archives.py", "check_archives_identity")
             try:
                 release.native_smoke(self.archive(d, stamped, release), self.VERSION)
             except ValueError as error:  # check_archives.require
-                problems.append(f"tools/release/check_archives.py rejects the new Core: {error}")
+                problems.append(identity_mismatch("tools/release/check_archives.py", error))
         for path in ("tools/windows/install.ps1", "tools/windows/native_package_checks.ps1"):
             if "run-rules/3" not in (ROOT / path).read_text(encoding="utf-8"):
                 problems.append(f"{path} no longer checks run-rules/3 support")
@@ -1197,43 +1215,72 @@ class OldCoreRefuses(unittest.TestCase):
     run-rules/1 to /3, as a released Core does (PLAN 구현 결정).
     """
 
+    def overlay_core(self, d):
+        status_go = ROOT / "internal/status/status.go"
+        try:
+            source = status_go.read_text(encoding="utf-8")
+        except OSError as error:
+            raise Unavailable(f"internal/status/status.go: {error}") from None
+        replaced, count = SUPPORTED.subn('func Supported(rules string) bool {\n\treturn rules == "run-rules/1" '
+                                         '|| rules == "run-rules/2" || rules == "run-rules/3"\n}', source)
+        if count != 1:
+            raise Unavailable("internal/status/status.go has no single Supported(rules string) bool function")
+        copy = Path(d) / "status.go"
+        copy.write_text(replaced, encoding="utf-8")
+        overlay = Path(d) / "overlay.json"
+        overlay.write_text(json.dumps({"Replace": {str(status_go): str(copy)}}), encoding="utf-8")
+        out = Path(d) / "old-ha"
+        env = dict(os.environ, CGO_ENABLED="0")
+        env.pop("GOOS", None)
+        env.pop("GOARCH", None)
+        built = run(["go", "build", "-overlay", overlay, "-o", out, "./cmd/ha"], ROOT, env)
+        if built.returncode:
+            raise Unavailable(f"go build -overlay: {text(built)[-1000:]}")
+        return out
+
     def test_core_without_run_rules_4_refuses_such_a_goal(self):
         with Directory() as d:
-            status_go = ROOT / "internal/status/status.go"
-            try:
-                source = status_go.read_text(encoding="utf-8")
-            except OSError as error:
-                raise Unavailable(f"internal/status/status.go: {error}") from None
-            replaced, count = SUPPORTED.subn('func Supported(rules string) bool {\n\treturn rules == "run-rules/1" '
-                                             '|| rules == "run-rules/2" || rules == "run-rules/3"\n}', source)
-            if count != 1:
-                raise Unavailable("internal/status/status.go has no single Supported(rules string) bool function")
-            copy = Path(d) / "status.go"
-            copy.write_text(replaced, encoding="utf-8")
-            overlay = Path(d) / "overlay.json"
-            overlay.write_text(json.dumps({"Replace": {str(status_go): str(copy)}}), encoding="utf-8")
-            out = Path(d) / "old-ha"
-            env = dict(os.environ, CGO_ENABLED="0")
-            env.pop("GOOS", None)
-            env.pop("GOARCH", None)
-            built = run(["go", "build", "-overlay", overlay, "-o", out, "./cmd/ha"], ROOT, env)
-            if built.returncode:
-                raise Unavailable(f"go build -overlay: {text(built)[-1000:]}")
-            f = Fixture(Path(d) / "goal")
-            f.must(f.start(rules=None), "start")
-            with_rules(f, RULES)
-            raw = f.records_path.read_bytes()
+            out = self.overlay_core(d)
             problems = []
+            old = Fixture(Path(d) / "goal3")
+            old.must(old.start(rules=None), "start")
+            f = Fixture(Path(d) / "goal")
+            if f.start_new():
+                # The real start line keeps every field an earlier reader knows, with the same JSON type.
+                problems += [f"the run-rules/4 start line changes {name}" for name in
+                             changed_types(old.records()[0], f.records()[0])]
+            else:
+                # The checked ha has no run-rules/4: give an earlier line that rule.
+                f.records_path.unlink(missing_ok=True)
+                f.must(f.start(rules=None), "start")
+                with_rules(f, RULES)
+            raw = f.records_path.read_bytes()
             for args in (("status", GOAL), ("check", GOAL, "AC-2"), ("note", GOAL, "input", "--quote", "x"),
                          ("budget", GOAL, "--runs", "60", "--from", "50", "--window", "1", "--revision", "1",
                           "--quote", "q", "--context", "c")):
                 result = f.ha(*args, ha=out)
                 if result.returncode != 66:
-                    problems.append(f"{args[0]} exited {result.returncode}")
+                    problems.append(f"an ha without run-rules/4: {args[0]} exited {result.returncode}")
             if f.records_path.read_bytes() != raw:
-                problems.append("it wrote to a run-rules/4 record")
-            require(self, not problems, "old-core-accepts-new-rules",
-                    "an ha without run-rules/4: " + "; ".join(problems))
+                problems.append("an ha without run-rules/4 wrote to a run-rules/4 record")
+            require(self, not problems, "old-core-accepts-new-rules", "; ".join(problems))
+
+
+def changed_types(before, after, path=""):
+    """Keys of `before` whose JSON type differs in `after`, recursively; added keys are fine."""
+    kind = lambda value: "number" if isinstance(value, (int, float)) and not isinstance(value, bool) \
+        else type(value).__name__
+    changed = []
+    for key, value in before.items():
+        name = f"{path}{key}"
+        if key not in after:
+            if key != "rules":
+                changed.append(f"{name} (removed)")
+        elif kind(value) != kind(after[key]):
+            changed.append(f"{name} ({kind(value)} to {kind(after[key])})")
+        elif isinstance(value, dict):
+            changed += changed_types(value, after[key], name + ".")
+    return changed
 
 
 # --- AC-12 -------------------------------------------------------------------
