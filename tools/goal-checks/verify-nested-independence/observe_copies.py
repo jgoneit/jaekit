@@ -152,9 +152,12 @@ def _public_copy(start, root):
     return None
 
 def _facts(copy):
+    # The real Git found before any check changed PATH, so a check's own Git
+    # wrapper never sees the observer's reads.
     env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    env["GIT_NO_LAZY_FETCH"] = "1"
     try:
-        count = subprocess.run(["git", "-C", str(copy), "rev-list", "--count", "HEAD"], env=env,
+        count = subprocess.run([os.environ["JAEKIT_OBSERVE_GIT"], "-C", str(copy), "rev-list", "--count", "HEAD"], env=env,
                                capture_output=True, text=True, timeout=60).stdout.strip()
     except (OSError, subprocess.SubprocessError):
         count = ""
@@ -253,8 +256,8 @@ def _observe():
             except OSError as error:
                 _fail(entry, f"{script}: needs private goal document docs/specs/{marker}/SPEC.md: {error}")
         elif kind == "history":
-            check = subprocess.run(["git", "-C", str(copy), "rev-parse", "--verify", "--quiet", "HEAD~1^{commit}"],
-                                   capture_output=True, text=True)
+            check = subprocess.run([os.environ["JAEKIT_OBSERVE_GIT"], "-C", str(copy), "rev-parse", "--verify",
+                                    "--quiet", "HEAD~1^{commit}"], capture_output=True, text=True)
             if check.returncode != 0:
                 _fail(entry, f"{script}: needs history beyond the checked commit (HEAD~1, {marker})")
     elif os.environ.get("JAEKIT_OBSERVE_FAST") and script in json.loads(os.environ.get("JAEKIT_OBSERVE_JUDGMENTS", "[]")):
@@ -348,6 +351,7 @@ class Run:
             log = base / "log.jsonl"
             env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", JAEKIT_OBSERVE_LOG=str(log),
                        JAEKIT_OBSERVE_ROOT=str(ROOT.resolve()), JAEKIT_OBSERVE_GO=shutil.which("go"),
+                       JAEKIT_OBSERVE_GIT=shutil.which("git"),
                        JAEKIT_OBSERVE_WATCHED=json.dumps(sorted({*JUDGMENTS, TRACKED})),
                        JAEKIT_OBSERVE_PUBLIC=json.dumps(list(PUBLIC)),
                        JAEKIT_OBSERVE_JUDGMENTS=json.dumps(sorted(JUDGMENTS)),
