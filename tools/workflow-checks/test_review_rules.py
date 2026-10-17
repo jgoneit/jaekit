@@ -63,6 +63,10 @@ def missing(text, rules):
             if not any(all(phrase in item for phrase in rule) for item in listed)]
 
 
+REQUIRED_INPUTS_STAY_INSIDE = ("spec criterion", "contract", "protected regression path", "selected assurance",
+                              "cannot be placed outside", "boundary")
+
+
 def agents():
     return (ROOT / "AGENTS.md").read_text(encoding="utf-8")
 
@@ -84,12 +88,17 @@ class CheckBoundaries(Observed):
 
     def test_boundaries_cannot_exclude_required_inputs(self):
         absent = missing(section(agents(), RULES_HEADING), [
-            ("spec criterion", "contract", "protected regression path", "selected assurance", "outside",
-             "boundary"),
+            REQUIRED_INPUTS_STAY_INSIDE,
             ("counterexample", "fixed", "blocks completion"),
             ("narrowing a boundary", "scope change", "user decides"),
         ])
         self.require(not absent, "boundary-limit-rule-missing", f"AGENTS.md lacks: {absent}")
+
+    def test_an_inverted_boundary_rule_is_reported(self):
+        # "can be placed outside" keeps every other phrase of the rule, so only
+        # the prohibition itself tells the two rules apart.
+        inverted = section(agents(), RULES_HEADING).replace("cannot be placed outside", "can be placed outside")
+        self.assertTrue(missing(inverted, [REQUIRED_INPUTS_STAY_INSIDE]))
 
     def test_input_failures_have_declared_result_meanings(self):
         absent = missing(section(agents(), RULES_HEADING), [
