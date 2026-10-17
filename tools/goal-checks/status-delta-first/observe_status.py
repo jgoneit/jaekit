@@ -458,6 +458,9 @@ class DoneForms(Observed):
                      "invalidated-completion-hidden", "the ha done hint changed")
 
 
+# An existing scenario on the same `implement` setup whose output this goal
+# does not change; it separates fixture-environment failures from results.
+CONTROL = "complete-happy-path"
 # The reason phrases the scenario must pin (contract §5.1 order, AC-3).
 STALE_REASONS = ("is no longer valid: ", "code outside the bundle documents changed", "goal documents changed",
                  "required command changed: ", "reopened at seq ", "record chain broken")
@@ -500,15 +503,23 @@ class ScenarioPinsReasons(unittest.TestCase):
             raise Unavailable("the scenario runner needs git and sh")
         env = dict(os.environ, GOTOOLCHAIN="local", GOFLAGS="-mod=readonly")
         try:
-            result = subprocess.run(["go", "test", "-count=1", "-v", "-run", "^TestScenarios$/^completion-invalidated$",
-                                     "./cmd/ha"], cwd=ROOT, env=env, capture_output=True, text=True, timeout=900)
+            result = subprocess.run(["go", "test", "-count=1", "-v", "-run",
+                                     f"^TestScenarios$/^(completion-invalidated|{CONTROL})$", "./cmd/ha"],
+                                    cwd=ROOT, env=env, capture_output=True, text=True, timeout=900)
         except (OSError, subprocess.TimeoutExpired) as error:
             raise Unavailable(f"go test: {error}") from None
-        # The scenario's own result is a failed expectation in its own steps
-        # file, or a failed reason assertion wherever it is pinned. The runner
-        # reports the latter as `output does not contain "<text>"` with the
-        # text Go-quoted on one line. Shared `_steps` setup expectations, Git
-        # and fixture steps that fail are neither.
+        # A control scenario with the same `implement` setup and fixture
+        # commands, which this goal does not change, must pass first; if it
+        # fails, the fixture environment (Git, sh, grep, ...) is the cause.
+        if f"--- PASS: TestScenarios/{CONTROL}" not in result.stdout:
+            raise Unavailable(f"the fixture environment failed the control scenario {CONTROL}: "
+                              + result.stdout[-4000:] + result.stderr[-2000:])
+        # With a working fixture, the scenario's own result is a failed
+        # expectation in its own steps file, or a failed reason assertion
+        # wherever it is pinned. The runner reports the latter as
+        # `output does not contain "<text>"` with the text Go-quoted on one
+        # line. Shared `_steps` setup expectations, Git and fixture steps that
+        # fail are neither.
         failed = [line.split('output does not contain "', 1)[1] for line in result.stdout.splitlines()
                   if 'output does not contain "' in line]
         if ("--- FAIL: TestScenarios/completion-invalidated" in result.stdout
