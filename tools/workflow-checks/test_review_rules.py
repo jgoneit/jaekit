@@ -77,7 +77,7 @@ class Observed(unittest.TestCase):
 class CheckBoundaries(Observed):
     def test_boundaries_are_recorded_in_review_before_findings(self):
         absent = missing(section(agents(), RULES_HEADING), [
-            ("for each new check", "observation boundary", "failure kinds", "review.md", "before the plan round"),
+            ("for each check a goal adds or changes", "observation boundary", "failure kinds", "review.md", "before the plan round"),
             ("grounds for classifying a finding", "only when", "recorded before that finding"),
         ])
         self.require(not absent, "boundary-record-rule-missing", f"AGENTS.md lacks: {absent}")
