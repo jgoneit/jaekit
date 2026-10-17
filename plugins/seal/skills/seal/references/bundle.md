@@ -219,7 +219,7 @@ Review or pull request comments received without the user's request are discover
 Written when `ha done` records completion, or when work stops at `needs_user`, `blocked`, or `budget_exhausted`:
 
 1. The `ha done` output (completion) or `ha status --format md` output (stop), pasted unchanged. It contains results, reasons, digests, and seqs, never command output.
-2. For goals started with Seal 0.1.15 or later, the completion coverage: the completion record's seq and commit, whether the head to be sent or merged is that commit, and, when it is not, that the difference is not covered by the completion. Goals started with an earlier Seal keep the report format they started with.
+2. For goals started with Seal 0.1.15 or later, the completion coverage: the completion record's seq and commit, whether the head to be sent or merged is that commit, and, when it is not, that the difference is not covered by the completion; a difference only in the bundle documents is covered, since the completion record stays valid for it. Goals started with an earlier Seal keep the report format they started with.
 3. Per-condition evidence (condition, result, record seq) when the output above does not already show it.
 4. Changed files and the conditions each served, marked as the agent's claim.
 5. Remaining limits: assumed decisions, `manual` conditions, assurance `local`, and that the executor wrote the checks.

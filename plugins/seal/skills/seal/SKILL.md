@@ -92,7 +92,7 @@ The Native Agent chooses methods, timing, reviewers, and models within the selec
 - Terminal failures (authentication, permission, usage limits) are not retried. Record `ha note <goal> block --cause <auth|permission|quota|environment|spec|other> --quote "…"` and report.
 - Goals started with seal 0.1.10 or later connect expected-result grounds, observed boundaries, methods and substitutes, and uncovered failure classes in the existing review and report. Shared condition groups may reference one explanation. Distinguish planned from observed, evidence versions, and unknown event times from measured writing times. A report does not establish deployment, installation or real model calls. Older goals keep their starting format without fabricated observations.
 - The completion report format is in [references/bundle.md](references/bundle.md) (completion report). It always states assurance `local` and that the executor wrote the checks.
-- For goals started with Seal 0.1.15 or later, the completion report names the completion record's seq and commit and says whether the head to be sent or merged is that commit. When it is not, the report says that the difference is not covered by the completion. Goals started with an earlier Seal keep the report format they started with.
+- For goals started with Seal 0.1.15 or later, the completion report names the completion record's seq and commit and says whether the head to be sent or merged is that commit. When it is not, the report says that the difference is not covered by the completion; a difference only in the bundle documents is covered, since the completion record stays valid for it. Goals started with an earlier Seal keep the report format they started with.
 
 ## Post-completion discoveries
 
