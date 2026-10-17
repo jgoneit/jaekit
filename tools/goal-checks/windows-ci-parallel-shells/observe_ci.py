@@ -171,12 +171,13 @@ def concurrency_group(body, key, workflow):
 EXPRESSION = re.compile(r"\$\{\{.*?\}\}")
 
 
-def may_share(first, second):
-    """Whether two concurrency groups can name the same group at run time.
+def shared_group(first, second):
+    """Whether two concurrency groups name the same group at run time: True, False or None (cannot tell).
 
-    The text outside expressions is fixed, so two groups certainly differ when
-    the text before their first expression, or after their last, disagrees
-    within the shorter of the two. Anything else may be the same group.
+    Equal text is the same group. The text outside expressions is fixed, so
+    two groups certainly differ when neither has an expression, or when the
+    text before their first expression, or after their last, disagrees within
+    the shorter of the two. Otherwise the expressions' values decide.
     """
     if first is None or second is None:
         return False
@@ -190,12 +191,14 @@ def may_share(first, second):
     if heads[0][:length] != heads[1][:length]:
         return False
     length = min(map(len, tails))
-    return not (length and tails[0][-length:] != tails[1][-length:])
+    if length and tails[0][-length:] != tails[1][-length:]:
+        return False
+    return None
 
 
 def workflow_name(text):
-    found = re.search(r"(?m)^name:[ \t]*(\S.*?)[ \t]*$", text)
-    return found[1].strip("'\"") if found else ""
+    found = re.search(r"(?m)^name:[ \t]*(\S.*?)[ \t]*$", "\n".join(without_comment(line) for line in text.split("\n")))
+    return found[1].strip().strip("'\"") if found else ""
 
 
 def steps(body):
@@ -262,8 +265,12 @@ class Layout(unittest.TestCase):
         if sorted(filter(None, shells)) != ["powershell", "pwsh"]:
             problems.append(f"native suite shells {shells}, not one job each for powershell and pwsh")
         # A group shared by both jobs runs one after the other; a group of one job's own does not.
-        if len(groups) == 2 and may_share(*groups.values()):
-            problems.append(f"the Windows jobs may share a concurrency group: {list(groups.values())}")
+        shared = shared_group(*groups.values()) if len(groups) == 2 else False
+        if shared:
+            problems.append(f"both Windows jobs share the concurrency group {list(groups.values())[0]!r}")
+        if shared is None and not problems:
+            raise Unavailable(f"whether the concurrency groups {list(groups.values())} are one group depends on "
+                              "their expressions' values")
         require(self, not problems, "windows-shells-share-a-job", "; ".join(problems))
 
 
@@ -518,7 +525,9 @@ class Readers(unittest.TestCase):
         apart.reports[seven][0]["source_commit"] = "e" * 40
         apart.reports[seven][0]["candidate"]["source_commit"] = "e" * 40
         bad["one shell job tested another source"] = apart
-        bad["both layouts in one run"] = SyntheticRun({"Core / Windows": [VERSIONS["powershell"], VERSIONS["pwsh"]],
+        # The single job's name, unless a shell job took it.
+        single = next(name for name in ("Core / Windows", "Core / Windows (both shells)") if name not in (five, seven))
+        bad["both layouts in one run"] = SyntheticRun({single: [VERSIONS["powershell"], VERSIONS["pwsh"]],
                                                        five: [VERSIONS["powershell"]], seven: [VERSIONS["pwsh"]]})
         accepted = {case: outcomes for case, run in bad.items()
                     if "pass" in (outcomes := self.read(run)).values()}
