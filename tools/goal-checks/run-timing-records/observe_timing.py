@@ -720,15 +720,21 @@ def status_facts(fixture, *, done=False):
     return result.returncode, normalize(doc)
 
 
+def untimed(facts):
+    """Status facts without the budget window's elapsed time, which comes from record times."""
+    return json.loads(re.sub(r'"elapsed_seconds": [0-9]+', '"elapsed_seconds": null', json.dumps(facts)))
+
+
 def judged(fixture, raw):
     """(status, done) facts of the record bytes raw, leaving raw in place.
 
     `ha done` appends a line even when it does not complete, so the record is
-    put back after it.
+    put back after it. That line carries the time of the call, so done's
+    window elapsed time is left out.
     """
     fixture.records_path.write_bytes(raw)
     status = status_facts(fixture)
-    done = status_facts(fixture, done=True)
+    done = untimed(status_facts(fixture, done=True))
     fixture.records_path.write_bytes(raw)
     return status, done
 
@@ -1099,8 +1105,6 @@ class CpuFailure(unittest.TestCase):
                 if measured.ha("log", GOAL, str(line["seq"])).stdout != failing.ha("log", GOAL, str(line["seq"])).stdout:
                     problems.append(f"{label(line)}: its output differs")
             # The budget window's elapsed time comes from record times, which two flows never share.
-            untimed = lambda facts: json.loads(
-                re.sub(r'"elapsed_seconds": [0-9]+', '"elapsed_seconds": null', json.dumps(facts)))
             problems += differences(by_order(untimed(status_facts(measured)), orders[0]),
                                     by_order(untimed(status_facts(failing)), orders[1]))
         require(self, not problems, "cpu-failure-changes-the-run", "; ".join(problems))
