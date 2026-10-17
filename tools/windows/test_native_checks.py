@@ -102,6 +102,7 @@ class WindowsNativeReportTests(unittest.TestCase):
     def valid(self):
         return {"schema": "jaekit-native-windows-package/v1", "status": "passed", "shell_version": "5.1.1",
                 "package_checks": native.PACKAGE_CHECKS[:], "failures": [],
+                "name_character_refusals": list(native.NAME_RULE_CHARACTERS),
                 "server_rejection": {action: {"rejected": True, "preserved": True, "exit_code": 1,
                                               "before_sha256": "a" * 64, "after_sha256": "a" * 64}
                                      for action in ("install", "uninstall")}}

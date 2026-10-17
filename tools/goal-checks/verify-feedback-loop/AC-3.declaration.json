@@ -1,0 +1,279 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/verify-feedback-loop/AC-3.targets.json",
+    "tools/workflow-checks/test_verify_feedback.py",
+    "tools/workflow-checks/test_verify_boundaries.py",
+    "tools/workflow-checks/test_verify.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "failure-times",
+      "violation": "failure-time-missing"
+    },
+    {
+      "id": "failure-times.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-times.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-times.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-times.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-times.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-times.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-times.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-times.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-times.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "failure-times.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "interrupt-times",
+      "violation": "interrupt-time-missing"
+    },
+    {
+      "id": "interrupt-times.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "interrupt-times.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "interrupt-times.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "interrupt-times.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "interrupt-times.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "interrupt-times.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "interrupt-times.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "interrupt-times.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "interrupt-times.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "interrupt-times.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preflight-times",
+      "violation": "preflight-time-missing"
+    },
+    {
+      "id": "preflight-times.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preflight-times.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preflight-times.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preflight-times.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preflight-times.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preflight-times.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preflight-times.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preflight-times.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preflight-times.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preflight-times.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "input-refusal-times",
+      "violation": "preflight-time-missing"
+    },
+    {
+      "id": "input-refusal-times.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "input-refusal-times.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "input-refusal-times.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "input-refusal-times.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "input-refusal-times.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "input-refusal-times.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "input-refusal-times.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "input-refusal-times.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "input-refusal-times.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "input-refusal-times.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-signal-output",
+      "violation": "completed-step-time-missing"
+    },
+    {
+      "id": "other-signal-output.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-signal-output.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-signal-output.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-signal-output.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-signal-output.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-signal-output.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-signal-output.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-signal-output.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-signal-output.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "other-signal-output.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt",
+      "violation": "interrupt-time-missing"
+    },
+    {
+      "id": "early-interrupt.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "early-interrupt.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

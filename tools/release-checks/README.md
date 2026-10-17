@@ -362,14 +362,35 @@ and runnable example, then runs the archive validator's isolated native smoke.
 It does not install anything. The real two-host observations remain separate
 from this synthetic package smoke.
 
+## Windows archive
+
+This checker accepts only the shape v0.1.3 was published with: the four
+macOS/Linux archives and `checksums.txt`. v0.1.3 has no Windows archive, so a
+Windows ZIP or any other asset fails the asset check, and the checker keeps no
+rule for Windows archive contents.
+
+Later releases publish the Windows archive `ha_<version>_windows_amd64.zip`
+only when their release notes link a Windows 11 check of it (see
+`tools/windows/README.md`); otherwise they publish the four archives and
+`checksums.txt`. Before publication, `tools/release/check_archives.py` checks
+the Windows archive's structure (`check_archives.windows_files`): the files
+`package.py` packages and no others, the manifest field names it writes,
+version and platform, matching sizes and SHA-256 digests, `package.py`'s path
+rules and the Windows amd64 executable format. It does not reproduce the
+installer's package check (case folding, DOS attributes, the manifest size
+limit); the release workflow's Windows job runs that check on the exact archive
+before publication.
+
 ## Archive resource limits
 
-Every archive consumer reads through the same read-only parser,
+Every tar.gz archive consumer reads through the same read-only parser,
 [`tools/release/archive_reader.py`](../release/archive_reader.py): this
 acceptance checker for downloads, release collection and installation, and the
 standalone validator [`tools/release/check_archives.py`](../release/check_archives.py)
 for `--dist` files and its native smoke. Reading one needed file never skips
-another limit.
+another limit. The Windows ZIP is not read by this parser:
+`check_archives.windows_files` reads it in memory with at most 2,048 entries,
+32 MiB per file and 128 MiB in total, within the same 64 MiB compressed limit.
 
 Each archive is at most 64 MiB compressed, whether downloaded or supplied with
 `--dist`. It permits at most 256 MiB of cumulative member bodies and 10,000

@@ -887,6 +887,66 @@
       ]
     },
     {
+      "id": "windows-archive-consumer-contract",
+      "invariant": "I3",
+      "status": "protected",
+      "sources": [
+        "tools/release/check_archives.py",
+        "tools/release/windows_gate.py",
+        "tools/windows/package.py"
+      ],
+      "property": "A structural Windows ZIP check (check_archives.windows_files) accepts a package.py archive and refuses one whose file set, paths (package.py's path rules and scope), manifest field names, version or platform, file sizes or SHA-256 digests, or Core format differ from what package.py builds. The publication gate keeps a Windows archive only when the Windows job checked those bytes and the release notes carry exactly one acceptance line with their digest.",
+      "examples": [
+        "an install.ps1 that differs from its manifest entry",
+        "release notes that link another archive digest"
+      ],
+      "families": [
+        "manifest fields, sizes and digests",
+        "unsafe paths, links and package scope",
+        "acceptance line count, format and digest"
+      ],
+      "boundary": "Synthetic ZIPs, a package.py archive built from package.py's own synthetic source and synthetic release notes exercise the check and the gate locally. Installer-specific refusals (case folding, DOS attributes, the manifest size limit) are left to the installer's own package check, which runs on the exact archive only in the release workflow's Windows job; no published archive is observed here.",
+      "checks": [
+        {
+          "file": "tools/release/test_windows_release.py",
+          "selector": "WindowsRelease",
+          "group": "docs"
+        },
+        {
+          "file": "tools/release/test_windows_release.py",
+          "selector": "PublicationGate",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "release-checker-import-boundary",
+      "invariant": "I3",
+      "status": "protected",
+      "sources": [
+        "tools/release-checks/check.py",
+        "tools/release-checks/install_trace.py",
+        "tools/release-checks/observe.py"
+      ],
+      "property": "Code that imports the release acceptance checker check.py directly runs no caller module: the installation consumer uses the namespace that defined the checker, and the asset and archive judgments import nothing from the caller's path.",
+      "examples": [
+        "import check inside the installation consumer"
+      ],
+      "families": [
+        "direct import with modules shadowing standard names"
+      ],
+      "boundary": "One direct-import process with synthetic archives and caller modules shadowing standard names. Static import order and dynamic imports (importlib.import_module) are outside it.",
+      "checks": [
+        {
+          "file": "tools/release-checks/test_direct_import_boundary.py",
+          "selector": "DirectImportBoundary",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
+    },
+    {
       "id": "explicit-retention-inputs",
       "invariant": "I1",
       "status": "protected",
@@ -1112,6 +1172,105 @@
         "https://github.com/jgoneit/jaekit/issues/27",
         "https://github.com/jgoneit/jaekit/issues/30"
       ]
+    },
+    {
+      "id": "entry-name-ci-observation",
+      "invariant": "I3",
+      "status": "protected",
+      "sources": [
+        "tools/goal-checks/windows-entry-name-refusal/ci_runs.py"
+      ],
+      "property": "The goal reader counts a pull request CI result only when the Windows job's tested-source context names this commit and a merge with this checkout's tree, the release run tested the same merge, each native report names that tested source, and every selected run and the checkout are unchanged when read again before the result. It reports a failure only when a shell's native check report names a failed name-character refusal; a missing, cancelled, skipped, unfinished, setup-stopped or otherwise unattributed step failure is unobserved.",
+      "examples": [
+        "observation step cancelled",
+        "build stopped before the refusal cases ran",
+        "tested merge with another tree",
+        "native report from another source",
+        "rerun started while the runs were read"
+      ],
+      "families": [
+        "CI run binding to the checked tree",
+        "job and step conclusions",
+        "per-shell native check reports",
+        "consistency of the runs and checkout read"
+      ],
+      "boundary": "Synthetic GitHub responses replace gh; the actual API and job logs are read only when the goal check runs. It reads no repository history beyond the checked-out commit and tree identifiers.",
+      "checks": [
+        {
+          "file": "tools/goal-checks/test_entry_name_ci_runs.py",
+          "selector": "CiRuns",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "authoring-check-current-tree",
+      "invariant": "I1",
+      "status": "protected",
+      "sources": [
+        "tools/contract-checks/authoring_check.py"
+      ],
+      "property": "The Seal check-authoring producer judges only the files of the checked tree: a copy without Git metadata or history gives the same verdicts, and a missing or malformed product file is an observed violation. Its guidance scans flag a concrete goal path that only starts with a placeholder name, and an exemption phrase exempts only the asking words it governs.",
+      "examples": [
+        "copy of the read files without .git",
+        "missing Seal skill file",
+        "missing Seal skill file under the private-content criterion",
+        "malformed plugin manifest",
+        "goal path with a placeholder prefix",
+        "exempt phrase next to a new user step",
+        "malformed marketplace metadata or plugins",
+        "maintain example with a current-tree helper path",
+        "checkout-local path under /opt or /var",
+        "question verb aimed at the user",
+        "exempt noun list followed by a new imperative",
+        "absolute path outside the listed roots"
+      ],
+      "families": [
+        "checkout and history-less copy",
+        "absent product artifact",
+        "malformed product artifact",
+        "guidance text scans"
+      ],
+      "boundary": "Covers the file-reading criteria. The consistency criterion also runs the plugin Go regressions and the public documentation check in the checked tree; their result meaning is the authoring-check-result-meaning route.",
+      "checks": [
+        {
+          "file": "tools/goal-checks/test_authoring_check.py",
+          "selector": "CurrentTree",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
+    },
+    {
+      "id": "authoring-check-result-meaning",
+      "invariant": "I2",
+      "status": "protected",
+      "sources": [
+        "tools/contract-checks/authoring_check.py",
+        "tools/contract-checks/check.py"
+      ],
+      "property": "A failing required plugin regression or public documentation check is a violation; a missing tool, a tool on PATH that cannot start, a run ended by a signal, build failure, skipped or absent required test, or crashed check is an error, never a violation or a pass.",
+      "examples": [
+        "required Go test failed",
+        "go not on PATH",
+        "python3 on PATH cannot start",
+        "go test killed by a signal after a failure"
+      ],
+      "families": [
+        "Go JSON test events",
+        "tool preflight",
+        "producer exception to check-result error"
+      ],
+      "boundary": "Synthetic process results replace go and the documentation check; the actual commands run when the producer checks a tree. The child process overrides GOFLAGS with a single space, so flags persisted with `go env -w` cannot skip the required tests, and sets GOWORK=off.",
+      "checks": [
+        {
+          "file": "tools/goal-checks/test_authoring_check.py",
+          "selector": "ResultMeaning",
+          "group": "docs"
+        }
+      ],
+      "follow_up": []
     }
   ]
 }

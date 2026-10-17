@@ -1,0 +1,147 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/verify-feedback-loop/AC-2.targets.json",
+    "tools/workflow-checks/test_verify_feedback.py",
+    "tools/workflow-checks/test_verify_boundaries.py",
+    "tools/workflow-checks/test_verify.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "step-times",
+      "violation": "step-time-missing"
+    },
+    {
+      "id": "step-times.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "step-times.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "step-times.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "step-times.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "step-times.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "step-times.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "step-times.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "step-times.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "step-times.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "step-times.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timing-guidance",
+      "violation": "timing-guidance-missing"
+    },
+    {
+      "id": "timing-guidance.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timing-guidance.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timing-guidance.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timing-guidance.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timing-guidance.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timing-guidance.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timing-guidance.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timing-guidance.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timing-guidance.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timing-guidance.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock",
+      "violation": "unavailable-time-hidden"
+    },
+    {
+      "id": "unavailable-clock.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unavailable-clock.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

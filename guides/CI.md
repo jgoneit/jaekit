@@ -13,8 +13,9 @@
 | `Core / Windows` | Windows Server 2025 x64: Windows PowerShell 5.1과 PowerShell 7 각각의 네이티브 Core·판단 이력·후보 패키지·경로 검사, 미지원 제품 설치 환경의 거부 |
 | `Seal Core` | 같은 실행의 세 Core 작업이 모두 `success`여야 성공 |
 | `Public documentation` | Ubuntu: 공개 파일·문서 검사와 오프라인 회귀 검사를 한 번 수행 |
+| `Release candidate` | 같은 [릴리스 workflow](#릴리스-workflow) 실행의 `Build release files`와 `Windows release archive`가 모두 `success`로 끝나야 함 |
 
-main은 기존과 같이 GitHub Actions의 정확한 `Seal Core`, `Public documentation` 결과를 필수로 요구합니다. Core 집계는 선행 작업이 실패해도 실행되며 실패·누락·건너뜀·취소·알 수 없는 결과를 거부합니다. 대기 상태나 이전 실행의 성공은 현재 실행을 충족하지 않습니다. 네이티브 작업은 `continue-on-error`나 경로 필터로 생략한 검사를 성공으로 바꾸지 않습니다.
+main은 GitHub Actions의 정확한 `Seal Core`, `Public documentation`, `Release candidate` 결과를 필수로 요구합니다. `Release candidate`는 [릴리스 workflow](#릴리스-workflow)에서 나옵니다. Core 집계는 선행 작업이 실패해도 실행되며 실패·누락·건너뜀·취소·알 수 없는 결과를 거부합니다. 대기 상태나 이전 실행의 성공은 현재 실행을 충족하지 않습니다. 네이티브 작업은 `continue-on-error`나 경로 필터로 생략한 검사를 성공으로 바꾸지 않습니다.
 
 Ubuntu는 macOS/Linux 네 플랫폼 빌드와 Windows 후보 교차 빌드를 포함한 공통 검사 범위를 유지합니다. 교차 빌드 성공은 컴파일만 확인합니다. 추가 네이티브 작업은 현재 소스를 해당 호스트에서 실행하며, 공통 검사 전체나 문서 검사를 모두 반복하지 않습니다.
 
@@ -54,13 +55,29 @@ Windows의 명령 단위 프로세스 시나리오는 하위 프로세스 정리
 
 Ubuntu 실행은 WSL2 실행이 아닙니다. CI는 WSL2 설치, 설치된 에이전트 Skill의 로딩, 실제 에이전트 세션과 재개를 확인하지 않습니다. 이 관측은 별도로 남습니다. CI 성공이 릴리스 게시·버전 변경·공개 배포 URL에서의 설치 성공을 뜻하지도 않습니다.
 
+## 릴리스 workflow
+
+[릴리스 workflow](../.github/workflows/release.yml)는 태그 push뿐 아니라 PR과 수동 실행에서도 같은 빌드와 검사를 실행합니다. 게시는 태그 push에서만 합니다.
+
+- `Build release files`(Ubuntu): macOS·Linux tar.gz 4개와 Windows ZIP 1개를 만들고, 다섯 아카이브를 나열한 `checksums.txt` 하나를 만듭니다. 게시 전 검사로 ZIP 내부 manifest·파일 해시·경로·Windows 실행 파일 형식까지 확인합니다. PR 실행은 PR head 커밋을 빌드합니다.
+- `Windows release archive`(Windows Server 2025): 같은 ZIP을 PowerShell 5.1과 7 각각에서 설치기 자체의 패키지 검증으로 확인하고 `ha --version`·`capabilities`를 실행합니다. 그다음 [공개 설치·제거 블록](WINDOWS.md#공개-릴리스로-설치)을 내려받는 출처와 버전만 바꿔 그대로 붙여 넣습니다. 실제 ZIP으로는 설치기가 Windows 11 가드에서 멈추는 것을, 시험용 ZIP으로는 성공·실패·체크섬 거부에서 부모 PATH·실행 정책·자식 셸을 관측합니다. 보고서는 `release-windows-reports`에 남습니다.
+- `Publish release`: 태그 push에서만 실행합니다. Windows job이 확인한 ZIP과 게시할 ZIP이 다르면 아무것도 게시하지 않습니다. 태그의 릴리스 노트(`tools/release/notes/vX.Y.Z.md`)에 그 ZIP의 Windows 11 확인 줄이 없으면 Windows ZIP을 빼고 macOS·Linux 파일만 게시합니다. ZIP을 포함할 때는 가이드의 공개 블록이 그 릴리스 버전을 설치하지 않으면 아무것도 게시하지 않습니다. 원격 태그가 더 이상 파일을 빌드한 커밋을 가리키지 않아도 멈춥니다. 게시 뒤에는 게시된 자산 이름을 확인한 파일과 대조합니다.
+
+이 workflow의 `Release candidate` job은 `main`의 필수 검사입니다. `Build release files`와 `Windows release archive` 뒤에 둘 중 하나가 실패해도 실행되며, 같은 실행에서 둘 다 성공해야만 성공합니다. 건너뛰거나 취소되거나 실패한 job은 이 검사를 충족하지 않고, workflow에 path filter가 없어 모든 PR이 이 결과를 보고합니다. Server에서의 확인은 Windows 11 설치 성공이 아니며, 실제 설치·재설치·제거는 [Windows 11 확인 절차](../tools/windows/README.md)에서 확인합니다.
+
 ## 로컬 검사
 
-커밋·공개 전에 저장소의 공통 검증 진입점을 실행합니다.
+푸시·공개 전에 최종 후보와 같은 검증 입력에서 저장소의 공통 검증 진입점이 한 번 통과해야 합니다. 그 한 번이 커밋 전·푸시 전 요구를 함께 충족하며, 커밋 전후 어느 쪽에서 실행해도 됩니다. 같은 입력에 대해 전체 검증을 두 번 실행할 필요는 없습니다.
 
 ```bash
 python3 tools/verify.py
 ```
+
+검증 입력은 추적 파일의 내용·경로·모드·추적 상태, 검증 명령과 그룹, 결과에 영향을 주는 도구·설정·환경입니다. 이 중 하나라도 바뀌면 이전 통과는 새 입력의 근거가 아닙니다. 커밋 식별자가 바뀐 것만으로 입력이 바뀌었다고 보지 않습니다. 개발 중에는 변경에 맞는 좁은 검사를 써도 됩니다. 이 재사용은 이 안내의 중복 실행만 없앱니다. 다른 도구·설정·환경에서의 성공을 보증하지 않고, 일반 검증 실행을 Seal 기록으로 인정하거나 기존 신선도·baseline·실패 이력·독립 검토·필수 CI 요구를 바꾸지 않습니다.
+
+Git이 무시하지 않는 추적되지 않은 파일이 있으면 어떤 검사도 시작하기 전에 그 경로를 보이고 멈춥니다. 검증에 필요한 제품·검사 파일은 `git add`로 추적하고, 공개하지 않을 로컬 파일은 `.gitignore`나 `.git/info/exclude`를 검토하세요. 검증은 파일을 추가·제외·삭제하지 않습니다. Git 상태를 읽지 못하면 깨끗하다고 추정하지 않고 멈춥니다.
+
+각 단계의 통과·실패 줄에는 그 단계의 시간이, 마지막 줄에는 전체 시간이 초 단위(소수 첫째 자리)로 표시됩니다. 단계 시간은 그 단계의 `RUN:` 줄부터 결과까지, 전체 시간은 검증 시작부터 마지막 줄까지이며 단조 시계로 잽니다. 키보드 인터럽트로 멈추면 중단된 단계와 두 시간이, 검사 전에 멈추면 검사가 시작되지 않았다는 사실과 전체 시간이 보입니다. 시간은 검사 결과를 정하는 데 쓰이지 않습니다.
 
 현재 개발 호스트와 공통 회귀를 검사하며 다른 OS를 실행하지는 않습니다. Unix 네이티브 설치 수명주기는 변경을 커밋한 깨끗한 checkout과 기존 Git·Python·Go·셸 선행 도구가 필요한 별도 소스 개발 검사입니다. Go의 실제 대상은 현재 네이티브 호스트여야 하고 적용되는 `GOFLAGS` 재정의가 없어야 합니다.
 

@@ -1,0 +1,145 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "untracked-refused",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_feedback.py",
+      "test": "InputPreflight.test_untracked_input_stops_every_group_before_checks",
+      "result_targets": {
+        "additional_violations": [
+          "untracked-refused.assertion-2",
+          "untracked-refused.assertion-3",
+          "untracked-refused.assertion-4",
+          "untracked-refused.assertion-5",
+          "untracked-refused.assertion-6",
+          "untracked-refused.assertion-7",
+          "untracked-refused.assertion-8"
+        ],
+        "execution": "untracked-refused.execution",
+        "selection": "untracked-refused.selection",
+        "attribution": "untracked-refused.attribution"
+      }
+    },
+    {
+      "target": "clean-input-proceeds",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_feedback.py",
+      "test": "InputPreflight.test_ignored_files_and_tracked_edits_do_not_stop_verification",
+      "result_targets": {
+        "additional_violations": [
+          "clean-input-proceeds.assertion-2",
+          "clean-input-proceeds.assertion-3",
+          "clean-input-proceeds.assertion-4",
+          "clean-input-proceeds.assertion-5",
+          "clean-input-proceeds.assertion-6",
+          "clean-input-proceeds.assertion-7",
+          "clean-input-proceeds.assertion-8"
+        ],
+        "execution": "clean-input-proceeds.execution",
+        "selection": "clean-input-proceeds.selection",
+        "attribution": "clean-input-proceeds.attribution"
+      }
+    },
+    {
+      "target": "unreadable-git-stops",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_feedback.py",
+      "test": "InputPreflight.test_unreadable_git_state_stops_before_checks",
+      "result_targets": {
+        "additional_violations": [
+          "unreadable-git-stops.assertion-2",
+          "unreadable-git-stops.assertion-3",
+          "unreadable-git-stops.assertion-4",
+          "unreadable-git-stops.assertion-5",
+          "unreadable-git-stops.assertion-6",
+          "unreadable-git-stops.assertion-7",
+          "unreadable-git-stops.assertion-8"
+        ],
+        "execution": "unreadable-git-stops.execution",
+        "selection": "unreadable-git-stops.selection",
+        "attribution": "unreadable-git-stops.attribution"
+      }
+    },
+    {
+      "target": "input-check-read-only",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_feedback.py",
+      "test": "InputPreflight.test_input_check_reads_without_changing_files_or_git_state",
+      "result_targets": {
+        "additional_violations": [
+          "input-check-read-only.assertion-2",
+          "input-check-read-only.assertion-3",
+          "input-check-read-only.assertion-4",
+          "input-check-read-only.assertion-5",
+          "input-check-read-only.assertion-6",
+          "input-check-read-only.assertion-7",
+          "input-check-read-only.assertion-8"
+        ],
+        "execution": "input-check-read-only.execution",
+        "selection": "input-check-read-only.selection",
+        "attribution": "input-check-read-only.attribution"
+      }
+    },
+    {
+      "target": "inherited-selection",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_boundaries.py",
+      "test": "InheritedGitState.test_inherited_repository_selection_cannot_hide_untracked_input",
+      "result_targets": {
+        "additional_violations": [
+          "inherited-selection.assertion-2",
+          "inherited-selection.assertion-3",
+          "inherited-selection.assertion-4",
+          "inherited-selection.assertion-5",
+          "inherited-selection.assertion-6",
+          "inherited-selection.assertion-7",
+          "inherited-selection.assertion-8"
+        ],
+        "execution": "inherited-selection.execution",
+        "selection": "inherited-selection.selection",
+        "attribution": "inherited-selection.attribution"
+      }
+    },
+    {
+      "target": "fsmonitor-not-run",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_boundaries.py",
+      "test": "InheritedGitState.test_configured_fsmonitor_hook_is_not_run",
+      "result_targets": {
+        "additional_violations": [
+          "fsmonitor-not-run.assertion-2",
+          "fsmonitor-not-run.assertion-3",
+          "fsmonitor-not-run.assertion-4",
+          "fsmonitor-not-run.assertion-5",
+          "fsmonitor-not-run.assertion-6",
+          "fsmonitor-not-run.assertion-7",
+          "fsmonitor-not-run.assertion-8"
+        ],
+        "execution": "fsmonitor-not-run.execution",
+        "selection": "fsmonitor-not-run.selection",
+        "attribution": "fsmonitor-not-run.attribution"
+      }
+    },
+    {
+      "target": "inherited-config-fsmonitor",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_verify_boundaries.py",
+      "test": "InheritedGitState.test_inherited_command_line_configuration_cannot_run_fsmonitor",
+      "result_targets": {
+        "additional_violations": [
+          "inherited-config-fsmonitor.assertion-2",
+          "inherited-config-fsmonitor.assertion-3",
+          "inherited-config-fsmonitor.assertion-4",
+          "inherited-config-fsmonitor.assertion-5",
+          "inherited-config-fsmonitor.assertion-6",
+          "inherited-config-fsmonitor.assertion-7",
+          "inherited-config-fsmonitor.assertion-8"
+        ],
+        "execution": "inherited-config-fsmonitor.execution",
+        "selection": "inherited-config-fsmonitor.selection",
+        "attribution": "inherited-config-fsmonitor.attribution"
+      }
+    }
+  ]
+}

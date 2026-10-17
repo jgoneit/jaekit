@@ -13,8 +13,9 @@ The [CI workflow](../.github/workflows/ci.yml) runs on pull requests and pushes 
 | `Core / Windows` | Windows Server 2025 x64: selected native Core, decision history, candidate/package/path checks and unsupported-product-installation refusal, through both Windows PowerShell 5.1 and PowerShell 7 |
 | `Seal Core` | Requires all three Core jobs in the same run to finish with `success` |
 | `Public documentation` | Ubuntu: public file/document checks and their offline regressions, performed once |
+| `Release candidate` | Requires `Build release files` and `Windows release archive` in the same [release workflow](#release-workflow) run to finish with `success` |
 
-Main continues to require the exact `Seal Core` and `Public documentation` checks from GitHub Actions. The Core gate runs even after a prerequisite fails and rejects failures, missing results, skipped jobs, cancellation and unknown states. Waiting or a successful older run does not satisfy the current run. Native workers do not use `continue-on-error` or path filters to turn omitted work into a successful check.
+Main requires the exact `Seal Core`, `Public documentation` and `Release candidate` checks from GitHub Actions; `Release candidate` comes from the [release workflow](#release-workflow). The Core gate runs even after a prerequisite fails and rejects failures, missing results, skipped jobs, cancellation and unknown states. Waiting or a successful older run does not satisfy the current run. Native workers do not use `continue-on-error` or path filters to turn omitted work into a successful check.
 
 Ubuntu retains the common suite, including the four macOS/Linux build targets and the Windows candidate cross-build. Cross-build success only establishes compilation. The additional native jobs run current-source code on their actual host; they do not repeat the entire common suite or all documentation checks.
 
@@ -54,13 +55,29 @@ Diagnostic controls distinguish correct refusals from wrong reasons, targets and
 
 An Ubuntu run is not a WSL2 run. CI does not establish WSL2 installation, installed agent Skill loading, a real agent session or session resumption. Those observations remain separate. No CI success publishes a release, changes a version, or proves installation from a public release URL.
 
+## Release workflow
+
+The [release workflow](../.github/workflows/release.yml) runs the same build and checks for pull requests and manual runs as for a tag push. Only a tag push publishes.
+
+- `Build release files` (Ubuntu) builds the four macOS/Linux tar.gz archives and one Windows ZIP, and writes one `checksums.txt` that lists all five archives. The pre-publication check verifies the ZIP down to its manifest, file hashes, paths and Windows executable format. A pull request builds its head commit.
+- `Windows release archive` (Windows Server 2025) checks the same ZIP in PowerShell 5.1 and 7 with the installer's own package verification and runs `ha --version` and `capabilities`. It then pastes the [public install and removal blocks](WINDOWS.en.md#install-from-a-public-release) unchanged except for the download source and version. With the real ZIP it observes the installer stopping at its Windows 11 guard; with probe ZIPs it observes the parent PATH, execution policy and child shell for success, failure and checksum refusal. Reports are kept as `release-windows-reports`.
+- `Publish release` runs only for a tag push. If the ZIP the Windows job checked differs from the ZIP to be published, nothing is published. Without a Windows 11 acceptance line for that ZIP in the tag's release notes (`tools/release/notes/vX.Y.Z.md`), it leaves out the Windows ZIP and publishes the macOS and Linux files only. When it keeps the ZIP, it publishes nothing unless the guides' public blocks install that release version. It also stops if the remote tag no longer names the commit the files were built from. After publishing it compares the published asset names with the checked files.
+
+Its `Release candidate` job is one of `main`'s required checks: it runs after `Build release files` and `Windows release archive`, even when one of them fails, and succeeds only when both succeed in the same run. A skipped, cancelled or failed job does not satisfy it, and the workflow has no path filter, so every pull request reports it. A Server result is not a Windows 11 installation success; actual installation, reinstallation and removal are checked by the [Windows 11 check procedure](../tools/windows/README.md).
+
 ## Local checks
 
-Before committing or publishing, run the repository's common verification entrypoint:
+Before pushing or publishing, the repository's common verification entrypoint must pass once on the same verification input as the final candidate. That one pass satisfies both the commit and the push requirement, whether it runs before or after the commit; do not run the full verification twice for the same input:
 
 ```bash
 python3 tools/verify.py
 ```
+
+The verification input is the tracked files (content, path, mode and tracking state), the verification command and group, and the tools, settings and environment that affect the result. If any of them changes, an earlier pass is not evidence for the new input; a different commit ID alone is not such a change. Narrower checks that fit the change are fine during development. This reuse only removes duplicate runs from this guidance: it does not establish success with other tools, settings or environments, does not make an ordinary run a Seal record, and does not change freshness, baseline, failure history, independent review or required CI requirements.
+
+Untracked files that Git does not ignore stop verification before any check starts, and their paths are listed. Track product and check files that verification needs with `git add`; for local files that are not published, review `.gitignore` or `.git/info/exclude`. Verification does not add, exclude or delete files. If Git state cannot be read, verification stops instead of assuming a clean tree.
+
+Each step's pass or failure line shows that step's elapsed time, and the last line shows the total time, in seconds with one decimal. A step runs from its `RUN:` line to its result; the total time runs from the start of verification to its last line. Both use a monotonic clock. A keyboard interrupt reports the interrupted step and both times; a stop before any check reports that no check started and the total time. Times are not used to decide results.
 
 This checks the current development host and shared regressions. It does not run other operating systems. The Unix native lifecycle is a separate source-development check, requiring a clean, committed checkout and the existing Git, Python, Go and shell prerequisites. Go must target the current native host without effective `GOFLAGS` overrides:
 
