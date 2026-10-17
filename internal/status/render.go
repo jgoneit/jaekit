@@ -167,7 +167,7 @@ func (rep *Report) Markdown(goalArg string) string {
 	if len(rep.Recoveries) > 0 {
 		w("\n### Error recovery\n\n")
 		for _, r := range rep.Recoveries {
-			w("- %s %s: %d error(s) since the last recovery%s; recoveries used %d of %d, remaining %d\n", r.Criterion, r.Input, r.Errors,
+			w("- %s %s: %d error(s) no recovery named%s; recoveries used %d of %d, remaining %d\n", r.Criterion, r.Input, r.Errors,
 				map[bool]string{true: " (past the limit)", false: ""}[r.LimitReached], r.Used, r.Allowed, r.Remaining)
 		}
 	}

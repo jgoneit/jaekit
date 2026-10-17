@@ -83,7 +83,19 @@ func foldRecoveries(lines []record.Line) map[string]*recoveryState {
 		}
 		return out[key]
 	}
-	for _, l := range record.ExecutionLines(lines) {
+	execution := record.ExecutionLines(lines)
+	bySeq := map[int]record.Line{}
+	for _, l := range execution {
+		bySeq[l.Seq] = l
+	}
+	// A recover note clears only earlier error or unknown records of its own
+	// condition and input, whatever else its list names.
+	clearable := func(d *record.RecoveryData, note, seq int) bool {
+		named, ok := bySeq[seq]
+		return ok && seq < note && named.Kind == d.Input && named.Target != nil && named.Target.Criterion == d.Criterion &&
+			(named.Result == "error" || named.Result == "unknown")
+	}
+	for _, l := range execution {
 		if l.Kind != "note" || l.Recovery == nil {
 			continue
 		}
@@ -96,7 +108,9 @@ func foldRecoveries(lines []record.Line) map[string]*recoveryState {
 			if st := get(l.Recovery); st.used < st.allowed {
 				st.used++
 				for _, seq := range l.Recovery.Clears {
-					st.cleared[seq] = true
+					if clearable(l.Recovery, l.Seq, seq) {
+						st.cleared[seq] = true
+					}
 				}
 			}
 		}

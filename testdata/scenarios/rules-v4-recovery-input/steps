@@ -16,3 +16,11 @@ expect-record 6 recovery "{\"criterion\":\"AC-2\",\"input\":\"check\",\"change\"
 expect-no-reason AC-2:error_limit
 replace $GOAL/PLAN.md "\n## 시간 제한\n- AC-2: 10분\n" ""
 expect-reason AC-2:error_limit
+# A recovery list that names later records clears none of them.
+rewrite-record 6 recovery "{\"criterion\":\"AC-2\",\"input\":\"check\",\"change\":\"runner restored on PATH\",\"clears\":[4,5,7,8]}"
+append $GOAL/PLAN.md "\n## 시간 제한\n- AC-2: 10분\n"
+expect-no-reason AC-2:error_limit
+ha-without-runner check $GOAL AC-2
+ha-without-runner check $GOAL AC-2
+expect-record 8 result error
+expect-reason AC-2:error_limit
