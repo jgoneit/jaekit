@@ -2,10 +2,13 @@
 
 Every observation builds `ha` from the checked tree and runs that executable
 on a synthetic goal repository made from testdata/scenarios/_base, in a
-temporary directory. One build differs only in its fixed time limit: the
-checked tree's `cmd/ha/main.go` with that constant set to a few seconds, laid
-over the tree with `go build -overlay`, so a timed-out run is recorded in
-seconds instead of fifteen minutes. AC-2 also runs a Linux build in the
+temporary directory. Some builds lay a few files over the checked tree with
+`go build -overlay`. The short-limit build sets the fixed time limit in
+`cmd/ha/main.go` to a few seconds, so a timed-out run is recorded in seconds
+instead of fifteen minutes, and pauses in the process cleanup of
+`internal/run/process_unix.go`, after the limit interval ends. The CPU-failure
+build adds a file to `internal/run` that makes every CPU collection fail
+(AC-7). AC-2 also runs a Linux build in the
 repository's local check container (`jaekit-check-git`, never pulled, no
 network) and, for Windows, runs the repository's CI reader
 (tools/verification-checks/cross_platform_ci.py AC-1) on the real pull request
@@ -39,6 +42,33 @@ SHORT_LIMIT_MS = 3000
 # A timed-out run's limit interval ends at the timeout decision: within this
 # much of the limit, however long the cleanup after it takes.
 DECISION_SLACK_MS = 1000
+# The short-limit build pauses this long when it kills a timed-out process
+# group and again when it finishes any process. Both come after the limit
+# interval ends, so they separate it from duration_ms (AC-1).
+CLEANUP_PAUSE_MS = 1500
+PROCESS_UNIX = "internal/run/process_unix.go"
+KILL_LINE = "func (g *processGroup) kill() error {"
+FINISH_LINE = "func (g *processGroup) finish() error { return nil }"
+PAUSE_SOURCE = f"""//go:build !windows
+
+package run
+
+import "time"
+
+// Added by the run-timing-records observer: a cleanup that takes a known time.
+func observedCleanupPause() {{ time.Sleep({CLEANUP_PAUSE_MS} * time.Millisecond) }}
+"""
+# A file the CPU-failure build adds to internal/run: the implementation's
+# collection seam (PLAN 판단 근거) fails for every process (AC-7).
+CPU_FAILURE = {"internal/run/zz_observed_cpu_failure.go": """package run
+
+import "os/exec"
+
+// Added by the run-timing-records observer: every CPU collection fails.
+func init() {
+	collectCPU = func(*exec.Cmd, processController) CPU { return CPU{Status: CPUFailed} }
+}
+"""}
 # Shell loops that use measurable processor time (EX-3) and outlast the short
 # limit (EX-4).
 BURN = "i=0\nwhile [ $i -lt 400000 ]; do i=$((i+1)); done\n"
@@ -58,9 +88,6 @@ BASE_RULES = ["run-rules/1", "run-rules/2", "run-rules/3"]
 # `ha estimate --format json` for the synthetic goal at the goal's base commit,
 # without the goal path (AC-8).
 BASE_ESTIMATE = '{"budget_source": "PLAN.md", "default_additional_runs": 0, "default_baseline_runs": 1, "default_check_runs": 2, "headroom": 47, "limitation": "Fresh required lower bound only; excludes retries, preparation and manual time. Not a total-time estimate or completion guarantee. PLAN limit is not an existing run\'s remaining budget; existing records and budget windows are unchanged.", "minimum_runs": 3, "plan_runs_limit": 50, "required_change": 1, "required_maintain": 1, "schema": "estimate/v1", "selected": {"additional_runs": 0, "mode": "check", "optional_runs": 0, "repeated_required_runs": 0, "runs": 2, "targets": ["AC-1", "AC-2"], "task_runs": 0}, "shortfall": 0}'
-# The implementation's test that makes CPU collection fail on a started
-# process (PLAN 판단 근거, AC-7).
-CPU_FAILURE_TEST = "TestCPUCollectionFailureKeepsTheRun"
 # Values every time view row shows, either as a value or as unavailable.
 VIEW_VALUES = ("limit_ms", "limit_elapsed_ms", "limit_reached", "cpu")
 
@@ -96,23 +123,43 @@ def build(out, tree=ROOT, goos=None, goarch=None, overlay=None):
     return out
 
 
-def build_short(out):
-    """`ha` from the checked tree with its fixed limit shortened to SHORT_LIMIT_MS."""
-    main = ROOT / "cmd/ha/main.go"
+def tree_text(path):
     try:
-        text = main.read_text(encoding="utf-8")
+        return (ROOT / path).read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as error:
-        raise Unavailable(f"cmd/ha/main.go: {error}") from None
-    if text.count(LIMIT_LINE) != 1:
-        raise Unavailable("cmd/ha/main.go does not declare the fixed limit as one constant")
+        raise Unavailable(f"{path}: {error}") from None
+
+
+def build_overlaid(out, files):
+    """`ha` from the checked tree with files ({tree path: content}) laid over it."""
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    short = out.parent / "main_short_limit.go"
-    short.write_text(text.replace(LIMIT_LINE, f"const checkTimeout = {SHORT_LIMIT_MS} * time.Millisecond"),
-                     encoding="utf-8")
-    overlay = out.parent / "short_limit_overlay.json"
-    overlay.write_text(json.dumps({"Replace": {str(main): str(short)}}), encoding="utf-8")
+    replace = {}
+    for index, (path, content) in enumerate(sorted(files.items())):
+        laid = out.parent / f"overlay-{index}-{Path(path).name}"
+        laid.write_text(content, encoding="utf-8")
+        replace[str(ROOT / path)] = str(laid)
+    overlay = out.parent / "overlay.json"
+    overlay.write_text(json.dumps({"Replace": replace}), encoding="utf-8")
     return build(out, overlay=overlay)
+
+
+def short_files():
+    """The short-limit build's files: a few-second limit and a known cleanup pause."""
+    main, process = tree_text("cmd/ha/main.go"), tree_text(PROCESS_UNIX)
+    if main.count(LIMIT_LINE) != 1:
+        raise Unavailable("cmd/ha/main.go does not declare the fixed limit as one constant")
+    if process.count(KILL_LINE) != 1 or process.count(FINISH_LINE) != 1:
+        raise Unavailable(f"{PROCESS_UNIX} does not kill and finish a process group as the pause expects")
+    return {"cmd/ha/main.go": main.replace(LIMIT_LINE, f"const checkTimeout = {SHORT_LIMIT_MS} * time.Millisecond"),
+            PROCESS_UNIX: process.replace(KILL_LINE, KILL_LINE + "\n\tobservedCleanupPause()").replace(
+                FINISH_LINE, "func (g *processGroup) finish() error { observedCleanupPause(); return nil }"),
+            "internal/run/zz_observed_cleanup_pause.go": PAUSE_SOURCE}
+
+
+def build_short(out, extra=None):
+    """`ha` from the checked tree with the short limit and cleanup pause (and extra files)."""
+    return build_overlaid(out, {**short_files(), **(extra or {})})
 
 
 def digest_tree(path):
@@ -193,8 +240,12 @@ class Fixture:
             {"target": "greeting", "path": "src/greeting.txt", "equals": "hello\n", "violation": "missing-greeting",
              "missing": "violation"}]}), encoding="utf-8")
         self.env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "HA_"))}
+        # Fixed dates make two fixtures' commits the same (AC-7 compares two records).
         self.env.update(JAEKIT_OBSERVED_SECRET=SECRET, GIT_AUTHOR_NAME="Observer", GIT_AUTHOR_EMAIL="observer@example.invalid",
-                        GIT_COMMITTER_NAME="Observer", GIT_COMMITTER_EMAIL="observer@example.invalid")
+                        GIT_COMMITTER_NAME="Observer", GIT_COMMITTER_EMAIL="observer@example.invalid",
+                        GIT_AUTHOR_DATE="2026-01-01T00:00:00+00:00", GIT_COMMITTER_DATE="2026-01-01T00:00:00+00:00")
+        # Record seqs of the runs the short-limit build made.
+        self.short_seqs = set()
         self.git("init", "-q", "-b", "main")
         self.commit("base")
         self.rules = rules
@@ -233,7 +284,7 @@ class Fixture:
 
     def flow(self):
         """A change baseline and check, passing, failing, unstartable, CPU-using and (with the
-        short-limit build) timed-out checks, a task command, and a refused check."""
+        short-limit build) timed-out and finished checks, a task command, and a refused check."""
         self.start()
         return self.flow_after_start()
 
@@ -256,6 +307,9 @@ class Fixture:
         self.expect(self.ha("check", GOAL, "T001"), 0, "task command")
         if self.short:
             self.expect(self.ha("check", GOAL, "EX-4", ha=self.short), 1, "timed-out check")
+            self.short_seqs.add(self.records()[-1]["seq"])
+            self.expect(self.ha("check", GOAL, "EX-1", ha=self.short), 1, "finished check, short-limit build")
+            self.short_seqs.add(self.records()[-1]["seq"])
         before = self.records_path.read_bytes()
         (self.root / "src/keep.txt").write_text("changed\n", encoding="utf-8")
         refused = self.ha("check", GOAL, "AC-2")
@@ -275,6 +329,7 @@ class Fixture:
 def short_fixture(directory, rules=None):
     """A fixture whose flow also records a timed-out run with the short-limit build."""
     base = Path(directory)
+    base.mkdir(parents=True, exist_ok=True)
     return Fixture(base, build(base / "ha"), rules=rules, short=build_short(base / "short" / "ha"))
 
 
@@ -303,11 +358,12 @@ def whole(value):
     return isinstance(value, int) and not isinstance(value, bool)
 
 
-def timing_problems(line):
+def timing_problems(line, short=False):
     """What a check or baseline line lacks of its limit, limit interval and limit decision (AC-1).
 
-    The timed-out line (EX-4) ran with the short-limit build, so its applied
-    limit is SHORT_LIMIT_MS and the limit was reached.
+    A line the short-limit build made (short) has the limit SHORT_LIMIT_MS,
+    and its duration includes the cleanup pauses after the limit interval:
+    one after every process, another after killing a timed-out one (EX-4).
     """
     timing = line.get("timing")
     if not isinstance(timing, dict):
@@ -317,7 +373,7 @@ def timing_problems(line):
     if not whole(duration):
         problems.append(f"{label(line)}: duration_ms lost")
         duration = -1
-    limit = SHORT_LIMIT_MS if timed_out(line) else LIMIT_MS
+    limit = SHORT_LIMIT_MS if short else LIMIT_MS
     if timing.get("limit_ms") != limit or not whole(timing.get("limit_ms")):
         problems.append(f"{label(line)}: limit_ms {timing.get('limit_ms')!r}, not the applied {limit}")
     if timing.get("limit_reached") is not timed_out(line):
@@ -331,6 +387,9 @@ def timing_problems(line):
     elif timed_out(line) and not limit <= elapsed <= limit + DECISION_SLACK_MS:
         problems.append(f"{label(line)}: a timed-out run's limit interval {elapsed} ms does not end at the "
                         f"timeout decision ({limit} ms limit)")
+    elif short and duration - elapsed < CLEANUP_PAUSE_MS * (2 if timed_out(line) else 1):
+        problems.append(f"{label(line)}: limit interval {elapsed} ms of duration {duration} ms includes "
+                        f"the cleanup pause after it")
     return problems
 
 
@@ -370,24 +429,25 @@ class Records(unittest.TestCase):
         lines = runs_of(fixture.flow())
         seen = {(l["kind"], criterion(l) or (l.get("target") or {}).get("task")) for l in lines}
         undecided = [l for l in lines if l.get("result") == "unknown"]
-        if not self.KINDS <= seen or fixture.refusal_wrote or (rules is None) != bool(undecided):
+        if not self.KINDS <= seen or fixture.refusal_wrote or (rules is None) != bool(undecided) \
+                or len(fixture.short_seqs) != 2:
             raise Unavailable(f"the synthetic flow recorded {sorted(seen)}; refusal wrote: {fixture.refusal_wrote}")
-        return lines
+        return [(line, line["seq"] in fixture.short_seqs) for line in lines]
 
     def test_check_and_baseline_lines_keep_their_limit_interval(self):
         problems = []
         for rules in ("run-rules/2", None):
             with tempfile.TemporaryDirectory(prefix="jaekit-timing-") as directory:
-                problems += [f"{rules or 'default rules'}: {p}" for line in self.recorded(directory, rules)
-                             if not timed_out(line) for p in timing_problems(line)]
+                problems += [f"{rules or 'default rules'}: {p}" for line, short in self.recorded(directory, rules)
+                             if not timed_out(line) for p in timing_problems(line, short)]
         require(self, not problems, "run-timing-not-recorded", "; ".join(problems))
 
     def test_the_limit_interval_ends_at_the_timeout_decision(self):
         with tempfile.TemporaryDirectory(prefix="jaekit-timing-timeout-") as directory:
-            lines = [line for line in self.recorded(directory, None) if timed_out(line)]
-            if len(lines) != 1 or lines[0].get("result") != "error":
+            lines = [(line, short) for line, short in self.recorded(directory, None) if timed_out(line)]
+            if len(lines) != 1 or lines[0][0].get("result") != "error" or not lines[0][1]:
                 raise Unavailable(f"the short-limit check did not record one timed-out run: {lines}")
-            problems = timing_problems(lines[0])
+            problems = timing_problems(*lines[0])
         require(self, not problems, "run-timing-not-recorded", "; ".join(problems))
 
 
@@ -414,9 +474,11 @@ def container_records(directory, arch):
     return runs_of(fixture.records())
 
 
-# The native tests that read timing on Windows, by package (AC-2): the runner's
-# measurement and a recorded check's line.
-WINDOWS_TIMING = {"internal/run": "TestNativeRunTiming/exit", "cmd/ha": "TestNativeRecordedTiming"}
+# The native test that reads a recorded check's timing line on Windows (AC-2).
+# It is cmd/ha/native_timing_test.go, written with these checks: it asserts the
+# applied limit, the limit interval and measured CPU with the Windows scope and
+# source, and changing it after the base commit is a changed test.
+WINDOWS_TIMING = {"cmd/ha": "TestNativeRecordedTiming"}
 
 
 def windows_native_tests():
@@ -495,6 +557,17 @@ def table(text):
     return cells(rows[0]), body
 
 
+def shown_ms(text):
+    """The times a Markdown cell shows, in milliseconds (`12 ms`, `3 s`, `1.250 s`)."""
+    found = []
+    for whole_part, fraction, unit in re.findall(r"(\d+)(?:\.(\d+))?\s*(ms|s)\b", text):
+        if unit == "ms":
+            found.append(None if fraction else int(whole_part))
+        else:
+            found.append(None if len(fraction) > 3 else int(whole_part) * 1000 + int(fraction.ljust(3, "0") or 0))
+    return found
+
+
 def column(header, word):
     found = [index for index, name in enumerate(header) if word in name.lower()]
     return found[0] if len(found) == 1 else None
@@ -548,7 +621,7 @@ class TimeView(unittest.TestCase):
             text = md.stdout.decode(errors="replace")
             header, body = table(text)
             by = {criterion(l) or (l.get("target") or {}).get("task"): l for l in lines if l["kind"] == "check"}
-            places = {word: column(header, word) for word in ("reached", "elapsed", "cpu")}
+            places = {word: column(header, word) for word in ("duration", "reached", "elapsed", "cpu")}
             if md.returncode or set(body) != {l["seq"] for l in lines} or None in places.values():
                 problems.append(f"Markdown view (exit {md.returncode}) has columns {header} and rows {sorted(body)}")
             else:
@@ -560,9 +633,21 @@ class TimeView(unittest.TestCase):
                     if re.search(r"\d", cell("EX-2", word)):
                         problems.append(f"Markdown shows a time for the unstarted run's {word}: {cell('EX-2', word)!r}")
                 for line in lines:
-                    cpu = (line.get("timing") or {}).get("cpu") or {}
-                    if cpu.get("status") == "measured" and cpu.get("scope") not in body[line["seq"]][places["cpu"]]:
+                    timing = line.get("timing") or {}
+                    cpu = timing.get("cpu") or {}
+                    row = body[line["seq"]]
+                    if cpu.get("status") == "measured" and cpu.get("scope") not in row[places["cpu"]]:
                         problems.append(f"Markdown CPU of seq {line['seq']} lacks its scope")
+                    # Each time the record keeps is shown as that time.
+                    times = {"duration": [line.get("duration_ms")]}
+                    if timing.get("limit_elapsed_ms") is not None:
+                        times["elapsed"] = [timing["limit_elapsed_ms"]]
+                    if cpu.get("status") == "measured":
+                        times["cpu"] = [cpu.get("user_ms"), cpu.get("system_ms")]
+                    for word, values in times.items():
+                        if shown_ms(row[places[word]].split("(")[0]) != values:
+                            problems.append(f"Markdown {word} of seq {line['seq']} shows {row[places[word]]!r}, "
+                                            f"not {values} ms")
             for want in ("T001 command 1", "not the goal's elapsed time or budget"):
                 if want not in text:
                     problems.append(f"Markdown view lacks {want!r}")
@@ -783,8 +868,14 @@ class Damage(unittest.TestCase):
             if not (invalid(rows.get(typed, {}), "limit_ms") and invalid(rows.get(typed, {}), "cpu")
                     and kept(typed, "limit_elapsed_ms", "limit_reached")):
                 problems.append(f"type-damaged line shown as {rows.get(typed)}")
-            if not (invalid(rows.get(valued, {}), "cpu") and invalid(rows.get(valued, {}), "limit_elapsed_ms")
-                    and kept(valued, "limit_ms", "limit_reached")):
+            def only_user_hidden(row):
+                # The damaged user_ms alone unavailable, the rest of the CPU value as recorded.
+                cpu, recorded = row.get("cpu"), (original.get(valued) or {}).get("cpu") or {}
+                rest = lambda value: {k: v for k, v in value.items() if k != "user_ms"}
+                return isinstance(cpu, dict) and cpu.get("user_ms") is None and rest(cpu) == rest(recorded) and any(
+                    "user_ms" in key and reason == "invalid" for key, reason in (row.get("unavailable") or {}).items())
+            if not ((invalid(rows.get(valued, {}), "cpu") or only_user_hidden(rows.get(valued, {})))
+                    and invalid(rows.get(valued, {}), "limit_elapsed_ms") and kept(valued, "limit_ms", "limit_reached")):
                 problems.append(f"value-damaged line shown as {rows.get(valued)}")
             others = [seq for seq in original if seq not in (typed, valued) and rows.get(seq) != original[seq]]
             if set(rows) != set(original) or others:
@@ -931,31 +1022,53 @@ class Privacy(unittest.TestCase):
 
 # --- AC-7 -------------------------------------------------------------------
 
+def comparable(line):
+    """A record line without what differs between two runs of the same check: its chain, time and timing."""
+    kept = {k: v for k, v in line.items() if k not in ("prev", "at", "duration_ms", "timing")}
+    if isinstance(kept.get("evidence"), dict):
+        # The producer's report carries the attempt's own invocation ID.
+        kept["evidence"] = {k: v for k, v in kept["evidence"].items() if k not in ("invocation", "report_digest")}
+    return kept
+
+
+def cpu_of(line):
+    timing = line.get("timing")
+    return (timing.get("cpu") or {}) if isinstance(timing, dict) else {}
+
+
 class CpuFailure(unittest.TestCase):
-    """AC-7: a CPU collection failure leaves the run's result, evidence and process handling as they were."""
+    """AC-7: a CPU collection failure leaves the run's result, evidence, usage and process handling as they were.
+
+    The same flow runs twice from the same commits: with the checked tree's
+    `ha`, and with builds whose every CPU collection fails.
+    """
 
     def test_cpu_collection_failure_changes_no_run_handling(self):
         with tempfile.TemporaryDirectory(prefix="jaekit-timing-cpu-failure-") as directory:
-            fixture = Fixture(directory, build(Path(directory) / "ha"), rules=None)
-            lines = runs_of(fixture.flow())
-        measures = any(((l.get("timing") or {}).get("cpu") or {}).get("status") == "measured" for l in lines)
-        if not measures:
-            # Nothing collects CPU here, so a collection failure cannot change anything.
-            return
-        result = run(["go", "test", "-count=1", "-json", "-run", f"^{CPU_FAILURE_TEST}$", "./internal/run"], ROOT,
-                     timeout=600)
-        actions = {}
-        for raw in result.stdout.splitlines():
-            try:
-                event = json.loads(raw)
-            except ValueError:
-                continue
-            if event.get("Test") == CPU_FAILURE_TEST and event.get("Action") in ("pass", "fail", "skip"):
-                actions[event["Action"]] = True
-        if "fail" in actions:
-            self.fail(f"[violation:cpu-failure-changes-the-run] {CPU_FAILURE_TEST} failed")
-        if "pass" not in actions:
-            raise Unavailable(f"{CPU_FAILURE_TEST} did not run in ./internal/run (exit {result.returncode})")
+            base = Path(directory)
+            measured = short_fixture(base / "measured", rules=None)
+            kept_lines = measured.flow()
+            if not any(cpu_of(line).get("status") == "measured" for line in runs_of(kept_lines)):
+                # Nothing collects CPU here, so a collection failure cannot change anything.
+                return
+            failing = Fixture(base / "failing", build_overlaid(base / "failing" / "ha", CPU_FAILURE), rules=None,
+                              short=build_short(base / "failing-short" / "ha", CPU_FAILURE))
+            failed_lines = failing.flow()
+            problems = []
+            if [comparable(line) for line in kept_lines] != [comparable(line) for line in failed_lines]:
+                problems += [f"seq {a.get('seq')}: {comparable(a)} became {comparable(b)}"
+                             for a, b in zip(kept_lines, failed_lines) if comparable(a) != comparable(b)] or \
+                            [f"{len(kept_lines)} lines became {len(failed_lines)}"]
+            for line in runs_of(failed_lines):
+                cpu = cpu_of(line)
+                if started(line) and (cpu.get("status") != "failed" or "user_ms" in cpu or "system_ms" in cpu):
+                    problems.append(f"{label(line)}: a failed collection is recorded as {cpu}")
+                kept = next(l for l in kept_lines if l.get("seq") == line.get("seq"))
+                if measured.ha("log", GOAL, str(kept["seq"])).stdout != failing.ha("log", GOAL, str(line["seq"])).stdout:
+                    problems.append(f"{label(line)}: its output differs")
+            if status_facts(measured) != status_facts(failing):
+                problems.append("status differs")
+        require(self, not problems, "cpu-failure-changes-the-run", "; ".join(problems))
 
 
 if __name__ == "__main__":
