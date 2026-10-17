@@ -120,20 +120,21 @@ A goal is computed under the rules its start record names (`rules:` in `ha statu
 
 ## Status output
 
-The Markdown form of `ha status` and `ha done` lists what keeps a goal from completing ahead of the criteria table, under `### Unmet`. This unmet summary names each unsatisfied required condition with its reason and who resolves it, and each goal-level reason. For a condition whose reason rests on a fresh record it gives that record's seq and, when the run's output was stored, the exact command `ha log <goal> <seq>` to open it. The command names the goal argument as given, so it runs from the same directory; an absolute argument becomes the repository-relative goal path, run from the repository root, so human output carries no absolute path. A record without stored output says `no stored output` and gets no command; a condition without a fresh record says `no fresh record` and gets no seq. A complete goal has no summary.
+The Markdown form of `ha status` lists what keeps a goal from completing ahead of the criteria table, under `### Unmet`. This unmet summary names each unsatisfied required condition with its reason and who resolves it, and each goal-level reason. For a condition whose reason rests on a fresh record it gives that record's seq and, when the run's output was stored, the exact command `ha log <goal> <seq>` to open it. The command names the goal argument as given, so it runs from the same directory; an absolute argument becomes the repository-relative goal path, run from the repository root, so human output carries no absolute path. A goal path with characters other than letters, digits and `-_./@%+=:,` is single-quoted so a copied command passes it as one argument. A record without stored output says `no stored output` and gets no command; a condition without a fresh record says `no fresh record` and gets no seq. A complete goal has no summary.
 
-When the latest `done` record was not a completion, the completion line names its seq, commit and recorded state. When an earlier completion record no longer holds, the line names that record's seq and commit and why it is no longer valid: a broken record chain, invalid stored records, uncommitted changes outside the bundle documents, code changed since that commit, changed goal documents, a changed required command, a later `reopen`, or, under `run-rules/3`, required conditions that are no longer all satisfied. A goal without any `done` record still shows `none`. A synthetic example:
+When the latest `done` record was not a completion, the completion line names its seq, commit and recorded state. When an earlier completion record no longer holds, the line names that record's seq and commit and why it is no longer valid: a broken record chain, invalid stored records, uncommitted changes outside the bundle documents, code changed since that commit, changed goal documents, a changed required command, a later `reopen`, or, under `run-rules/3`, required conditions that are no longer all satisfied. A goal without any `done` record still shows `none`. `ha done` prints its earlier form: no unmet summary, and no `done` details on its completion line. A synthetic example of `ha status`:
 
 ```text
-- completion record: none; latest completion seq 6 (commit 8f3a2d91c0b7) is no longer valid: reopened at seq 7; run `ha done docs/specs/example` to record completion
+- completion record: none; latest completion seq 6 (commit 8f3a2d91c0b7) is no longer valid: reopened at seq 7
 
 ### Unmet
 
-- AC-2 `criterion_error` (executor): seq 8, no stored output
+- AC-2 `criterion_failed` (executor): seq 8, output `ha log docs/specs/example 8`
+- AC-3 `criterion_error` (executor): seq 9, no stored output
 - `task_open` (executor)
 ```
 
-A failed `ha check` prints, for each target that did not meet its expectation, `output for <target>: ha log <goal> <seq>`, or `no stored output` with the seq. The per-target result lines and exit codes are unchanged. None of this changes judgment, `status/v1`, the completion record or `ha log`; the human output never contains command output.
+A failed `ha check` prints, for each target that did not meet its expectation, `output for <target>: ha log <goal> <seq>`, or `no stored output` with the seq, also when a later target is refused or cannot be recorded. The per-target result lines and exit codes are unchanged. None of this changes judgment, `status/v1`, the completion record or `ha log`; the human output never contains command output.
 
 ## Reasons
 
