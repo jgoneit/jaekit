@@ -854,10 +854,15 @@ def notices(result, target):
     return [line for line in lines[:end] if line.startswith(NOTICE) and f" {target} " in f"{line} "]
 
 
+# "safe" or "safely" in any case; it counts as negated only right after "not"
+# or "never", optionally followed by "known (to be)". The notice form is fixed,
+# so any other wording that calls a run safe is refused.
+SAFETY = re.compile(r"\b(?:(not|never)\s+(?:known\s+(?:to\s+be\s+)?)?)?safe(?:ly)?\b", re.I)
+
+
 def affirms_safety(line):
-    """True when a clause of a notice calls the run safe without a negation in that clause."""
-    return any(re.search(r"\bsafe\b", clause) and not re.search(r"\b(?:not|never|no|cannot|unknown)\b", clause)
-               for clause in re.split(r"[|;,.]", line))
+    """True when the notice calls the run safe anywhere other than directly negated."""
+    return any(match.group(1) is None for match in SAFETY.finditer(line))
 
 
 class TimeLimitNotice(unittest.TestCase):
