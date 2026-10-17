@@ -528,7 +528,7 @@ class Guides(unittest.TestCase):
             "required CI jobs")),
         "guides/CI.md": ("## 로컬 검사", (
             "전체 Go 시험을 한 번", "공개 사본 두 개", "depth 1 clone", "현재 파일 판정",
-            "전체 Go 시험과 `docs` 그룹을 되풀이하지 않는다", "필수 CI job")),
+            "전체 Go 시험과 `docs` 그룹을 되풀이하지 않습니다", "필수 CI job")),
     }
 
     def test_ci_guides_describe_the_go_group_scope(self):
