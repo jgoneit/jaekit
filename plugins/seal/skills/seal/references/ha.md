@@ -147,7 +147,7 @@ A goal is computed under the rules its start record names (`rules:` in `ha statu
 
 ## What checks read
 
-`ha` uses the base commit in three places: the baseline, which runs `change` conditions on a temporary worktree of the base commit with their check paths copied from HEAD; `out_of_scope`, the files changed since base outside `바꿀 수 있는 경로`; and `test_definition_changed`. Checks themselves judge the tree they run in and never read the base commit or other history, so the same check gives the baseline's violation and the later pass. See [bundle.md](bundle.md#check-inputs).
+`ha` uses the base commit in three places: the baseline, which runs `change` conditions on a temporary worktree of the base commit with their check paths copied from HEAD; `out_of_scope`, the files changed since base outside `바꿀 수 있는 경로`; and `test_definition_changed`. Checks themselves judge the tree they run in and never read the base commit or other history, so the same check gives the baseline's violation and the later pass. The exception is a condition about history or refs itself, such as a tag's type, whose check reads only the range and refs the condition names. See [bundle.md](bundle.md#check-inputs).
 
 ## Freshness
 
