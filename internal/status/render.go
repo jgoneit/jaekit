@@ -53,15 +53,27 @@ func cell(s string) string {
 	return strings.ReplaceAll(s, "|", `\|`)
 }
 
-// DisplayGoal is the goal path that commands in human output name: the
-// argument as given, so a command works from the same directory, or the
-// repository-relative goal path (run from the repository root) when the
-// argument is absolute. Human output never carries an absolute path.
+// DisplayGoal is the goal path that commands in human output name, as one
+// shell word: the argument as given, so a command works from the same
+// directory, or the repository-relative goal path (run from the repository
+// root) when the argument is absolute. Human output never carries an
+// absolute path.
 func DisplayGoal(arg, repoGoal string) string {
 	if arg == "" || filepath.IsAbs(arg) || strings.HasPrefix(arg, "/") {
-		return repoGoal
+		return shellWord(repoGoal)
 	}
-	return arg
+	return shellWord(arg)
+}
+
+// shellWord leaves a path of ordinary characters as it is and single-quotes
+// any other, so a copied command passes it as one argument.
+func shellWord(s string) string {
+	for _, r := range s {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune("-_./@%+=:,", r)) {
+			return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+		}
+	}
+	return s
 }
 
 // unmet lists what keeps the goal from completing before the criteria table:
@@ -71,7 +83,7 @@ func DisplayGoal(arg, repoGoal string) string {
 // others say that no output is stored. Nothing is listed once the goal is
 // complete.
 func (rep *Report) unmet(w func(string, ...any), goal string) {
-	if rep.Status == Complete || len(rep.Reasons) == 0 {
+	if rep.plain || rep.Status == Complete || len(rep.Reasons) == 0 {
 		return
 	}
 	w("\n### Unmet\n\n")
@@ -91,6 +103,15 @@ func (rep *Report) unmet(w func(string, ...any), goal string) {
 		}
 		w("%s\n", line)
 	}
+}
+
+// DoneMarkdown renders what `ha done` prints. Its completion record output
+// stays as it was before the unmet summary and done details, which belong
+// to `ha status` (run-record.md §4.4).
+func (rep *Report) DoneMarkdown(goalArg string) string {
+	plain := *rep
+	plain.plain, plain.doneState = true, nil
+	return plain.Markdown(goalArg)
 }
 
 // Markdown renders the report for people and for pasting into PROGRESS.md.

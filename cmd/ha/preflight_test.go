@@ -264,6 +264,12 @@ func TestCheckPreflightStopsDirtyBatch(t *testing.T) {
 			if code != 65 || !strings.Contains(out, "1/2 targets executed, 1 not run") {
 				t.Fatalf("batch: exit %d: %s", code, out)
 			}
+			// A target that failed before a later one was refused keeps its
+			// output pointer (status-delta AC-4).
+			pointer := "output for AC-1: ha log " + scenarioGoal + " 2"
+			if strings.Contains(out, pointer) != (result == "1") {
+				t.Fatalf("output pointer for the first target (want %v): %s", result == "1", out)
+			}
 			lines := bytes.Split(bytes.TrimSpace(f.read(scenarioGoal+"/runs.jsonl")), []byte("\n"))
 			if len(lines) != 2 || len(f.logs()) != 1 {
 				t.Fatalf("batch did not preserve exactly the first run: records %d, logs %d", len(lines), len(f.logs()))

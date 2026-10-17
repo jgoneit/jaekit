@@ -71,3 +71,34 @@ func TestMarkdownStaleCompletionLine(t *testing.T) {
 		t.Errorf("the none line changed:\n%s", out)
 	}
 }
+
+func TestDisplayGoalIsOneShellWord(t *testing.T) {
+	for arg, want := range map[string]string{
+		"docs/specs/g":           "docs/specs/g",
+		"../docs/specs/g":        "../docs/specs/g",
+		"docs/specs/my goal":     "'docs/specs/my goal'",
+		"docs/specs/it's":        `'docs/specs/it'\''s'`,
+		"/abs/repo/docs/specs/g": "docs/specs/g",
+	} {
+		if got := DisplayGoal(arg, "docs/specs/g"); got != want {
+			t.Errorf("DisplayGoal(%q) = %q, want %q", arg, got, want)
+		}
+	}
+	if got := DisplayGoal("/abs/repo/docs/specs/my goal", "docs/specs/my goal"); got != "'docs/specs/my goal'" {
+		t.Errorf("absolute argument with a space = %q", got)
+	}
+}
+
+func TestDoneMarkdownKeepsTheOutputOfHaDone(t *testing.T) {
+	rep := &Report{Goal: "docs/specs/g", Status: Incomplete, ExitCode: 1,
+		Reasons:   []Reason{{Code: "task_open", Class: "executor"}},
+		doneState: &DoneState{LatestSeq: 7, LatestCommit: "0123456789abcdef", LatestStatus: Incomplete}}
+	out := rep.DoneMarkdown("docs/specs/g")
+	if !strings.Contains(out, "- completion record: none\n") || strings.Contains(out, "### Unmet") ||
+		strings.Contains(out, "latest done seq") {
+		t.Fatalf("ha done output changed:\n%s", out)
+	}
+	if status := rep.Markdown("docs/specs/g"); !strings.Contains(status, "### Unmet") || !strings.Contains(status, "latest done seq 7") {
+		t.Fatalf("ha status lost the summary:\n%s", status)
+	}
+}

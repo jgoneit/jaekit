@@ -162,6 +162,9 @@ type Report struct {
 	// unchanged.
 	judged    map[string]JudgedRecord
 	doneState *DoneState
+	// plain renders without the unmet summary and done details: the
+	// output of `ha done`, which stays as it was.
+	plain bool
 }
 
 // JudgedRecord is the fresh record an unsatisfied criterion's reason rests

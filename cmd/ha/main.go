@@ -448,6 +448,18 @@ func (c *cli) check(in []string) int {
 		output string
 	}
 	var missed []unmet
+	// The pointers are printed however the batch ends, so a target that did
+	// not meet its expectation keeps its pointer when a later target is
+	// refused or cannot be recorded.
+	defer func() {
+		for _, m := range missed {
+			if m.output != "" {
+				fmt.Fprintf(c.out, "output for %s: ha log %s %d\n", m.label, status.DisplayGoal(w.arg, w.goal.Dir), m.seq)
+			} else {
+				fmt.Fprintf(c.out, "output for %s: no stored output (seq %d)\n", m.label, m.seq)
+			}
+		}
+	}()
 	for i, t := range ts {
 		head, err := w.repo.Head()
 		if err != nil {
@@ -604,13 +616,6 @@ func (c *cli) check(in []string) int {
 	}
 	if allGood {
 		return exitOK
-	}
-	for _, m := range missed {
-		if m.output != "" {
-			fmt.Fprintf(c.out, "output for %s: ha log %s %d\n", m.label, status.DisplayGoal(w.arg, w.goal.Dir), m.seq)
-		} else {
-			fmt.Fprintf(c.out, "output for %s: no stored output (seq %d)\n", m.label, m.seq)
-		}
 	}
 	return exitProblems
 }
@@ -818,7 +823,7 @@ func (c *cli) status(in []string, done bool) int {
 	}
 	if done {
 		if bad != nil {
-			c.print(rep, w, format)
+			c.printDone(rep, w, format)
 			fmt.Fprintf(c.err, "ha: not recorded: %v\n", bad)
 			return rep.ExitCode
 		}
@@ -829,10 +834,23 @@ func (c *cli) status(in []string, done bool) int {
 			return code
 		}
 	}
-	if err := c.print(rep, w, format); err != nil {
+	show := c.print
+	if done {
+		show = c.printDone
+	}
+	if err := show(rep, w, format); err != nil {
 		return c.fail(exitInternal, "%v", err)
 	}
 	return rep.ExitCode
+}
+
+// printDone prints `ha done` output, which keeps its earlier form.
+func (c *cli) printDone(rep *status.Report, w *workspace, format string) error {
+	if format == "json" {
+		return c.print(rep, w, format)
+	}
+	_, err := io.WriteString(c.out, rep.DoneMarkdown(w.arg))
+	return err
 }
 
 func (c *cli) print(rep *status.Report, w *workspace, format string) error {
