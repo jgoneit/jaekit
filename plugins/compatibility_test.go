@@ -144,6 +144,30 @@ func TestCompatibilitySealReferenceLinksRunRules4Reopen(t *testing.T) {
 	}
 }
 
+// Each section that gives the /3 reopen limit also points to run-record.md
+// §4.7 for /4, so "/4 keeps every /3 rule" does not lead to the /3 limit.
+func TestCompatibilitySealRun3ReopenLinksRunRules4(t *testing.T) {
+	for _, s := range []struct{ path, heading string }{
+		{"seal/skills/seal/SKILL.md", "## Budget"},
+		{"seal/skills/seal/references/bundle.md", "### `## 예산`"},
+		{"seal/skills/seal/references/ha.md", "## Budget changes"},
+	} {
+		compatibilityContains(t, s.path, mdSection(t, s.path, s.heading), "contracts/run-record.md#47-run-rules4")
+	}
+}
+
+// The status JSON contract says which run limit a /4 window shows.
+func TestCompatibilityRunRecordRunsLimitNamesRunRules4(t *testing.T) {
+	const path = "../contracts/run-record.md"
+	for _, line := range strings.Split(mdSection(t, path, "#### 예산 (`budget`)"), "\n") {
+		if strings.HasPrefix(line, "| `runs_limit` |") {
+			compatibilityContains(t, path+" runs_limit row", line, "`/4`", "§4.7")
+			return
+		}
+	}
+	t.Fatalf("%s has no runs_limit row in the budget table", path)
+}
+
 func TestCompatibilityAC12_SpecAndVerificationBoundaries(t *testing.T) {
 	specPath := "spec/skills/spec/SKILL.md"
 	spec := read(t, specPath)

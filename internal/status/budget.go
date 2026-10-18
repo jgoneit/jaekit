@@ -48,9 +48,11 @@ type BudgetState struct {
 	Completed           bool
 	History             []BudgetEvent
 	// run-rules/4: ElapsedSeconds is SpanSeconds less ReportedWaitSeconds.
-	// PreapprovedRuns is the window's pre-approved limit; a new window starts
-	// from the last limit the user set (inheritRuns), not from a raise within
-	// a pre-approval.
+	// PreapprovedRuns is the window's pre-approved limit, which a reopen
+	// clears. A reopen starts the new window from inheritRuns: the start
+	// limit or the last quoted run limit change, lowered by any later
+	// decrease below it. Neither a pre-approval record nor an unquoted
+	// increase within one changes it (run-record.md §4.7).
 	SpanSeconds         int64
 	ReportedWaitSeconds int64
 	PreapprovedRuns     *int
