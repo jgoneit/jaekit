@@ -1,6 +1,6 @@
-<h1 align="center">
-  <img src="assets/readme/brand/logo.svg" alt="Jaekit" width="280" />
-</h1>
+<p align="center">
+  <img src="assets/readme/hero.ko.png" alt="Jaekit — AI 코딩 작업, 목표부터 완료 근거까지. Codex·Claude Code와 함께 사용합니다." width="880" />
+</p>
 
 <p align="center">
   <a href="https://github.com/jgoneit/jaekit/releases"><img src="https://img.shields.io/github/v/release/jgoneit/jaekit?display_name=tag&amp;label=release&amp;color=4F6CF7" alt="최신 릴리스" /></a>
@@ -17,13 +17,6 @@ Jaekit은 **Codex·Claude Code에 맡긴 작업을 목표부터 완료 기록까
 - **Seal**은 에이전트가 그 목표대로 구현·검사·수정하게 하고, 검사 기록으로 완료를 판단합니다.
 
 현재 배포판은 **v0.1.6**입니다. 실제 작업에 써 보며 다듬는 초기 개발 단계입니다.
-
-<details>
-<summary>Jaekit 소개 이미지 보기</summary>
-
-![Jaekit — AI 코딩 작업, 목표부터 완료 근거까지. Codex·Claude Code와 함께 사용합니다.](assets/readme/hero.ko.png)
-
-</details>
 
 ## 이럴 때 좋습니다
 
@@ -122,7 +115,9 @@ flowchart TD
 
 </details>
 
-**1. 터미널에서 기록 도구 `ha`를 설치합니다.** 블록은 하나씩 실행하고, 끝날 때까지 기다립니다.
+#### 1. 터미널에서 기록 도구 `ha` 설치하기
+
+블록은 하나씩 실행하고, 끝날 때까지 기다립니다.
 
 ```bash
 brew install jgoneit/tap/jaekit
@@ -137,7 +132,9 @@ which -a ha
 
 Homebrew 없이 설치하려면 이 단계 대신 [Release 파일로 설치](guides/INSTALL.md#release-파일로-설치)의 블록을 붙여 넣습니다. OS와 CPU에 맞는 파일을 받아 checksum을 확인한 뒤 `~/.local/bin/ha`에 둡니다. 다른 설치 방법과 자세한 설명은 [설치 안내](guides/INSTALL.md)에 있습니다.
 
-**2. 같은 터미널에서 에이전트 플러그인을 설치합니다.** 쓰는 쪽 블록만 실행합니다.
+#### 2. 에이전트 플러그인 설치하기
+
+같은 터미널에서 쓰는 쪽 블록만 실행합니다.
 
 이미 설치했다면 아래 [업데이트](#업데이트)를 따릅니다. 저장소 checkout 경로로 등록해 쓰던 경우에는 [로컬 경로 등록에서 옮기기](guides/INSTALL.md#로컬-경로-등록에서-옮기기)를 먼저 봅니다.
 
@@ -150,7 +147,8 @@ claude plugin install seal@jaekit
 claude plugin list
 ```
 
-마지막 목록에 `spec@jaekit`, `seal@jaekit`가 enabled로 보이면 됩니다. 설치 후 **Claude Code를 새로 엽니다.** `#v0.1.6`은 사용할 배포판을 고정합니다. 자세한 내용은 [Claude Code 설치](guides/INSTALL.md#claude-code)를 봅니다.
+> [!TIP]
+> 설치 후 **Claude Code를 새로 엽니다.** 마지막 목록에 `spec@jaekit`, `seal@jaekit`가 enabled로 보이면 됩니다. `#v0.1.6`은 사용할 배포판을 고정합니다. 자세한 내용은 [Claude Code 설치](guides/INSTALL.md#claude-code)를 봅니다.
 
 **Codex**
 
@@ -160,15 +158,19 @@ codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-설치 후 **Codex를 새로 엽니다.** `@v0.1.6`은 사용할 배포판을 고정합니다.
+> [!TIP]
+> 설치 후 **Codex를 새로 엽니다.** `@v0.1.6`은 사용할 배포판을 고정합니다.
 
 ### 첫 작업 맡기기
 
 작업할 프로젝트 폴더에서 Claude Code 또는 Codex(CLI·데스크톱 앱)를 엽니다.
 
-**이제부터는 터미널이 아니라 에이전트 대화에 입력합니다.**
+> [!IMPORTANT]
+> 이제부터는 터미널이 아니라 에이전트 대화에 입력합니다.
 
-**1. Spec에 요청합니다.** 사용하는 에이전트에 맞는 예시로 원하는 작업을 적습니다.
+#### 1. Spec에 요청하기
+
+사용하는 에이전트에 맞는 예시로 원하는 작업을 적습니다.
 
 **Claude Code**
 
@@ -182,13 +184,18 @@ codex plugin add seal@jaekit
 $spec:spec 로그인 화면에 "비밀번호 찾기" 링크를 추가해줘
 ```
 
-위 요청은 재설정 페이지가 이미 있는 프로젝트를 가정한 **가상 예시**이며, 실행하거나 검증을 마친 사례가 아닙니다. 실제 프로젝트에서 원하는 작업으로 바꿔 보내세요.
+> [!NOTE]
+> 위 요청은 재설정 페이지가 이미 있는 프로젝트를 가정한 **가상 예시**이며, 실행하거나 검증을 마친 사례가 아닙니다. 실제 프로젝트에서 원하는 작업으로 바꿔 보내세요.
 
-**2. 목표를 확인합니다.** Spec이 알려 준 문서를 읽고 고칠 내용을 말합니다.
+#### 2. 목표 확인하기
+
+Spec이 알려 준 문서를 읽고 고칠 내용을 말합니다.
 
 이 예시라면 “새 링크가 기존 재설정 페이지로 연결되는지”, “기존 로그인이 그대로 동작하는지”가 완료 조건입니다.
 
-**3. 별도 메시지로 Seal을 시작합니다.** 목표 폴더를 지정합니다.
+#### 3. 별도 메시지로 Seal 시작하기
+
+목표 폴더를 지정합니다.
 
 **Claude Code**
 
@@ -202,7 +209,8 @@ $spec:spec 로그인 화면에 "비밀번호 찾기" 링크를 추가해줘
 $seal:seal docs/specs/<goal>
 ```
 
-`<goal>`은 **Spec이 알려 준 실제 목표 폴더 이름으로 바꾸는 자리**입니다. 이름이 `password-link`라면 전체 경로는 `docs/specs/password-link`입니다.
+> [!TIP]
+> `<goal>`은 **Spec이 알려 준 실제 목표 폴더 이름으로 바꾸는 자리**입니다. 이름이 `password-link`라면 전체 경로는 `docs/specs/password-link`입니다.
 
 자세한 호출 방법은 [사용 안내](guides/USAGE.md#명령-보내기)를 참고하세요.
 
@@ -218,9 +226,12 @@ docs/specs/<goal> 이어서 해줘
 
 ### 업데이트
 
-새 배포판이 나오면 `ha`와 두 플러그인을 **함께** 올립니다. 버전이 섞이면 Seal이 기록하기 전에 멈출 수 있습니다.
+> [!WARNING]
+> 새 배포판이 나오면 `ha`와 두 플러그인을 **함께** 올립니다. 버전이 섞이면 Seal이 기록하기 전에 멈출 수 있습니다.
 
-**1. `ha`를 올립니다.** Homebrew로 설치했다면 아래 두 블록을 차례로 실행합니다.
+#### 1. `ha` 올리기
+
+Homebrew로 설치했다면 아래 두 블록을 차례로 실행합니다.
 
 ```bash
 brew update
@@ -232,7 +243,7 @@ brew upgrade jgoneit/tap/jaekit
 
 Release 파일로 설치했다면 [Release 파일로 설치](guides/INSTALL.md#release-파일로-설치)의 블록을 다시 붙여 넣습니다.
 
-**2. 실제로 실행되는 `ha`를 확인합니다.**
+#### 2. 실제로 실행되는 `ha` 확인하기
 
 ```bash
 ha --version
@@ -243,7 +254,9 @@ which -a ha
 
 Homebrew와 Release 파일로 둘 다 설치했다면, 쓰지 않는 쪽을 지우거나 같은 버전으로 올립니다. 한쪽만 올리면 앞선 쪽의 옛 버전이 계속 실행될 수 있습니다.
 
-**3. 플러그인을 새 배포판으로 다시 등록합니다.** marketplace를 지우면 그 안의 spec·seal도 함께 지워지므로 다시 설치합니다.
+#### 3. 플러그인을 새 배포판으로 다시 등록하기
+
+marketplace를 지우면 그 안의 spec·seal도 함께 지워지므로 다시 설치합니다.
 
 **Claude Code**
 
@@ -263,7 +276,9 @@ codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-**4. Claude Code·Codex를 새로 엽니다.** 새 Spec·Seal은 새로 연 세션부터 쓰입니다.
+#### 4. Claude Code·Codex 다시 열기
+
+새 Spec·Seal은 새로 연 세션부터 쓰입니다.
 
 업데이트는 목표 문서와 실행 기록을 지우지 않습니다. 이전 버전 자료 정리와 제거는 [업데이트](guides/INSTALL.md#업데이트)·[제거](guides/INSTALL.md#제거)를 봅니다.
 
@@ -342,8 +357,10 @@ None.
 
 - **status**는 `ha`가 실행 기록·Git·목표 문서로 계산한 값이며, 에이전트의 주장이 아닙니다. completion record에 seq가 있으면 `ha done`이 완료를 기록했다는 뜻입니다.
 - **records**는 `runs.jsonl`의 줄 번호(seq)입니다. AC-1의 seq 2는 시작 commit에서 돌린 검사가 선언대로 실패한 기록이고, seq 3은 같은 검사가 결과에서 통과한 기록입니다.
-- **assurance: local**과 **check author: executor**는 에이전트가 내 컴퓨터에서 검사를 작성하고 실행했다는 뜻입니다. 독립된 제3자의 검증이 아니므로 바뀐 검사와 실제 결과도 함께 확인합니다.
 - 실행의 출력 원문은 `.git/ha/`에 남습니다. 터미널에서 `ha log docs/specs/password-link 3`으로 봅니다.
+
+> [!IMPORTANT]
+> **assurance: local**과 **check author: executor**는 에이전트가 내 컴퓨터에서 검사를 작성하고 실행했다는 뜻입니다. 독립된 제3자의 검증이 아니므로 바뀐 검사와 실제 결과도 함께 확인합니다.
 
 완료 전에 작업이 멈추면 보고에는 대신 `ha status`가 들어가고, 무엇이 부족한지 `### Unmet` 목록으로 보입니다.
 

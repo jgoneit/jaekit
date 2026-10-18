@@ -113,7 +113,7 @@ This change does not open a new window. It does not reset the time limit, elapse
 
 Budget is measured from the last start or `reopen` to the timestamp of the last saved record. A status check alone does not increase elapsed time, but if a new record is appended—including a budget change—the waiting time is included. Checks executed across resumptions are counted in the window where they are recorded. Actual attempts of checks and baselines, errors and inconclusive verdicts, and valid versus stale results are separate aggregation axes. Baselines are also included in usage.
 
-Reaching the limit means usage equals the limit; exceeding it means usage actually surpassed the limit. A goal with a completion record does not enter `budget_exhausted` as time passes. Under `/2` and `/3`, if all required conditions are satisfied and only budget exhaustion remains, completion can be recorded. This is not authority for additional execution; nor is budget a mechanism that automatically blocks check execution or terminates running checks.
+Reaching the limit means usage equals the limit; exceeding it means usage actually surpassed the limit. A goal with a completion record does not enter `budget_exhausted` as time passes. Under `/2`, `/3` and `/4`, if all required conditions are satisfied and only budget exhaustion remains, completion can be recorded. This is not authority for additional execution; nor is budget a mechanism that automatically blocks check execution or terminates running checks.
 
 ## Continuing in a new conversation
 

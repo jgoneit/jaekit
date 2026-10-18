@@ -1,6 +1,6 @@
-<h1 align="center">
-  <img src="assets/readme/brand/logo.svg" alt="Jaekit" width="280" />
-</h1>
+<p align="center">
+  <img src="assets/readme/hero.en.png" alt="Jaekit — AI coding work, from goals to completion evidence. Use it with Codex or Claude Code." width="880" />
+</p>
 
 <p align="center">
   <a href="https://github.com/jgoneit/jaekit/releases"><img src="https://img.shields.io/github/v/release/jgoneit/jaekit?display_name=tag&amp;label=release&amp;color=4F6CF7" alt="Latest release" /></a>
@@ -17,13 +17,6 @@ Jaekit **carries work you delegate to Codex or Claude Code from a goal to a comp
 - **Seal** has the agent implement, check, and fix the work toward that goal, and judges completion from check records.
 
 The current release is **v0.1.6**, an early version being refined through real work.
-
-<details>
-<summary>View the Jaekit introduction illustration</summary>
-
-![Jaekit — AI coding work, from goals to completion evidence. Use it with Codex or Claude Code.](assets/readme/hero.en.png)
-
-</details>
 
 ## Why use it
 
@@ -122,7 +115,9 @@ Then check your agent.
 
 </details>
 
-**1. In Terminal, install the record tool `ha`.** Run one block at a time and wait for it to finish.
+#### 1. Install the record tool `ha` in Terminal
+
+Run one block at a time and wait for it to finish.
 
 ```bash
 brew install jgoneit/tap/jaekit
@@ -137,7 +132,9 @@ It should print `ha 0.1.6`. The first line of `which -a ha` is the file that act
 
 To install without Homebrew, paste the block under [Install from a Release file](guides/INSTALL.en.md#install-from-a-release-file) instead of this step. It downloads the file for your OS and CPU, checks its checksum, and puts it at `~/.local/bin/ha`. Other methods and details are in the [install guide](guides/INSTALL.en.md).
 
-**2. In the same Terminal, install the plugins for your agent.** Run only the block for the agent you use.
+#### 2. Install the plugins for your agent
+
+In the same Terminal, run only the block for the agent you use.
 
 If you already installed Jaekit, follow [Update](#update) below. If you registered a repository checkout path, first see [Move from a local path registration](guides/INSTALL.en.md#move-from-a-local-path-registration).
 
@@ -150,7 +147,8 @@ claude plugin install seal@jaekit
 claude plugin list
 ```
 
-The final list should show `spec@jaekit` and `seal@jaekit` as enabled. **Reopen Claude Code after installation.** `#v0.1.6` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
+> [!TIP]
+> **Reopen Claude Code after installation.** The final list should show `spec@jaekit` and `seal@jaekit` as enabled. `#v0.1.6` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
 
 **Codex**
 
@@ -160,15 +158,19 @@ codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-**Reopen Codex after installation.** `@v0.1.6` pins the release to use.
+> [!TIP]
+> **Reopen Codex after installation.** `@v0.1.6` pins the release to use.
 
 ### Your first task
 
 Open Claude Code, Codex CLI, or the Codex desktop app in your project folder.
 
-**From here on, type in the agent conversation, not Terminal.**
+> [!IMPORTANT]
+> From here on, type in the agent conversation, not Terminal.
 
-**1. Ask Spec.** Use the example for your agent and describe the work you want.
+#### 1. Ask Spec
+
+Use the example for your agent and describe the work you want.
 
 **Claude Code**
 
@@ -182,13 +184,18 @@ Open Claude Code, Codex CLI, or the Codex desktop app in your project folder.
 $spec:spec Add a "Forgot password" link to the login screen
 ```
 
-This is a **fictional example** of a project that already has a password reset page, not an executed or verified case. Replace it with the work you want in your own project.
+> [!NOTE]
+> This is a **fictional example** of a project that already has a password reset page, not an executed or verified case. Replace it with the work you want in your own project.
 
-**2. Review the goal.** Read the document Spec gives you and say what needs changing.
+#### 2. Review the goal
+
+Read the document Spec gives you and say what needs changing.
 
 In this example, the completion conditions are that the new link opens the existing reset page and login keeps working as before.
 
-**3. Start Seal in a separate message.** Specify the goal folder.
+#### 3. Start Seal in a separate message
+
+Specify the goal folder.
 
 **Claude Code**
 
@@ -202,7 +209,8 @@ In this example, the completion conditions are that the new link opens the exist
 $seal:seal docs/specs/<goal>
 ```
 
-Replace `<goal>` with **the actual goal folder name Spec reported**. If its name is `password-link`, the full path is `docs/specs/password-link`.
+> [!TIP]
+> Replace `<goal>` with **the actual goal folder name Spec reported**. If its name is `password-link`, the full path is `docs/specs/password-link`.
 
 For more on sending commands, see the [usage guide](guides/USAGE.en.md#sending-commands).
 
@@ -218,9 +226,12 @@ Replace `<goal>` with its actual folder name to continue from the saved goal and
 
 ### Update
 
-When a new release comes out, update `ha` and both plugins **together**. With mixed versions, Seal may stop before recording.
+> [!WARNING]
+> When a new release comes out, update `ha` and both plugins **together**. With mixed versions, Seal may stop before recording.
 
-**1. Update `ha`.** If you installed it with Homebrew, run these two blocks in order.
+#### 1. Update `ha`
+
+If you installed it with Homebrew, run these two blocks in order.
 
 ```bash
 brew update
@@ -232,7 +243,7 @@ brew upgrade jgoneit/tap/jaekit
 
 If you installed from a Release file, paste the block under [Install from a Release file](guides/INSTALL.en.md#install-from-a-release-file) again.
 
-**2. Check which `ha` actually runs.**
+#### 2. Check which `ha` actually runs
 
 ```bash
 ha --version
@@ -243,7 +254,9 @@ If the new version does not appear, look at the first line of `which -a ha`. Tha
 
 If you installed both with Homebrew and from a Release file, remove the one you do not use or update it to the same version. Updating only one can leave the older one earlier on PATH still running.
 
-**3. Register the plugins again for the new release.** Removing the marketplace also removes its spec and seal, so install them again.
+#### 3. Register the plugins again for the new release
+
+Removing the marketplace also removes its spec and seal, so install them again.
 
 **Claude Code**
 
@@ -263,7 +276,9 @@ codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-**4. Reopen Claude Code or Codex.** The new Spec and Seal load in newly opened sessions.
+#### 4. Reopen Claude Code or Codex
+
+The new Spec and Seal load in newly opened sessions.
 
 Updating does not delete goal documents or run records. To clean up earlier versions' data or uninstall, see [Update](guides/INSTALL.en.md#update) and [Uninstall](guides/INSTALL.en.md#uninstall).
 
@@ -342,8 +357,10 @@ How to read it:
 
 - **status** is computed by `ha` from the run record, Git and the goal documents; it is not the agent's own claim. A completion record seq means `ha done` recorded it.
 - **records** are line numbers (seq) in `runs.jsonl`. For AC-1, seq 2 is the check run on the starting commit, failing as declared, and seq 3 is the same check passing on the result.
-- **assurance: local** and **check author: executor** mean the agent wrote and ran the checks on your computer. This is not independent third-party verification, so review the changed checks and the actual result too.
 - The raw output of a run stays in `.git/ha/`. `ha log docs/specs/password-link 3` prints it in Terminal.
+
+> [!IMPORTANT]
+> **assurance: local** and **check author: executor** mean the agent wrote and ran the checks on your computer. This is not independent third-party verification, so review the changed checks and the actual result too.
 
 If the work stops before completion, the report shows `ha status` instead, with an `### Unmet` list of what is missing:
 

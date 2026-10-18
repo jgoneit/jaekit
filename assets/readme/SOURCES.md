@@ -12,7 +12,7 @@ README에는 제공된 Jaekit 브랜드 이미지와 제품의 역할을 설명�
 | 워드마크 | <img src="brand/wordmark.svg" width="160" alt="Jaekit 워드마크"> | [원본 PNG](brand/wordmark.png) · [표시용 SVG](brand/wordmark.svg) |
 | 작은 심볼 | <img src="brand/symbol.svg" width="40" alt="Jaekit 심볼"> | [원본 PNG](brand/symbol.png) · [표시용 SVG](brand/symbol.svg) |
 
-제공된 세 PNG 원본은 변경하지 않고 보관합니다. 표시용 SVG는 원본 PNG 바이트를 그대로 포함하고, 검은 로고가 다크 모드에서도 보이도록 둥근 흰색 바탕을 제공합니다. 원본 비율과 투명 여백을 유지합니다. README 상단에는 기본 로고를 사용하고, 나머지 형태는 이 안내에서 확인할 수 있습니다.
+제공된 세 PNG 원본은 변경하지 않고 보관합니다. 표시용 SVG는 원본 PNG 바이트를 그대로 포함하고, 검은 로고가 다크 모드에서도 보이도록 둥근 흰색 바탕을 제공합니다. 원본 비율과 투명 여백을 유지합니다. README 상단에는 워드마크가 들어간 대표 이미지를 보여 주고, 로고·워드마크·심볼은 이 안내에서 확인할 수 있습니다.
 
 표시용 SVG는 [build_brand.py](source/build_brand.py)로 다시 만듭니다. Python 3 표준 라이브러리만 필요하며 저장소 루트에서 실행합니다. 이 명령은 PNG를 수정하지 않습니다.
 

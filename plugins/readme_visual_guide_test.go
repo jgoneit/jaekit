@@ -29,8 +29,6 @@ var visualLanguages = []visualLang{
 		intro: []string{"Claude Code", "Codex", "work", "goal", "Spec", "Seal"}},
 }
 
-const visualBrand = "assets/readme/brand/logo.svg"
-
 // visualEnglish reports the English README, which is README.md; the install
 // guide names keep their language suffix.
 func visualEnglish(l visualLang) bool { return strings.HasSuffix(l.install, ".en.md") }
@@ -143,37 +141,25 @@ func TestReadmeVisualGuideAC1(t *testing.T) {
 	for _, l := range visualLanguages {
 		intro, _, _ := strings.Cut(visualRead(t, l.readme), "\n## ")
 		visualRequire(t, l.readme+" intro", visualProse(intro), l.intro...)
-		header := regexp.MustCompile(`(?is)^\s*<h1\b[^>]*>(.*?)</h1>`).FindStringSubmatch(intro)
-		if header == nil {
-			t.Errorf("%s lacks a brand heading before the introduction and flow", l.readme)
+		// The hero carries the wordmark, so it opens the README in place of a
+		// separate logo heading and stays visible rather than collapsed.
+		top := regexp.MustCompile(`(?is)^\s*<p\b[^>]*>\s*(<img\b[^>]*>)\s*</p>`).FindStringSubmatch(intro)
+		if top == nil || visualAttribute(top[1], "src") != l.hero {
+			t.Errorf("%s must open with the hero before the introduction and flow", l.readme)
 		} else {
-			visualImage(t, l.readme+" brand heading", header[1], visualBrand)
-			width, err := strconv.Atoi(visualAttribute(visualHTMLImage(header[1], visualBrand), "width"))
-			if err != nil || width <= 0 || width > 320 {
-				t.Errorf("%s brand heading needs a display width between 1 and 320 pixels", l.readme)
-			}
-			if strings.Contains(header[1], l.hero) {
-				t.Errorf("%s puts the large hero in the brand heading", l.readme)
+			visualImage(t, l.readme+" hero", top[1], l.hero)
+			width, err := strconv.Atoi(visualAttribute(top[1], "width"))
+			if err != nil || width <= 0 || width > 960 {
+				t.Errorf("%s hero needs a display width between 1 and 960 pixels", l.readme)
 			}
 		}
-		collapsedHero := false
-		for _, detail := range regexp.MustCompile(`(?is)<details\b([^>]*)>(.*?)</details>`).FindAllStringSubmatch(intro, -1) {
-			if !strings.Contains(detail[2], l.hero) {
-				continue
-			}
-			visualImage(t, l.readme+" optional hero", detail[2], l.hero)
-			if regexp.MustCompile(`(?i)(?:^|\s)open(?:\s|=|$)`).MatchString(detail[1]) {
-				t.Errorf("%s hero details must be closed by default", l.readme)
-			} else {
-				collapsedHero = true
-			}
+		if n := strings.Count(intro, l.hero); n != 1 {
+			t.Errorf("%s shows the hero %d times in the introduction, want 1", l.readme, n)
 		}
-		if !collapsedHero {
-			t.Errorf("%s must keep the hero in closed details before the usage flow", l.readme)
-		}
-		visibleIntro := regexp.MustCompile(`(?is)<details\b[^>]*>.*?</details>`).ReplaceAllString(intro, "")
-		if strings.Contains(visibleIntro, l.hero) {
-			t.Errorf("%s displays the large hero outside its optional details", l.readme)
+		for _, detail := range regexp.MustCompile(`(?is)<details\b[^>]*>.*?</details>`).FindAllString(intro, -1) {
+			if strings.Contains(detail, l.hero) {
+				t.Errorf("%s hides the hero in collapsed details", l.readme)
+			}
 		}
 		for _, internal := range []string{"SPEC.md", "PLAN.md", "AC-1", "seq "} {
 			if strings.Contains(intro, internal) {

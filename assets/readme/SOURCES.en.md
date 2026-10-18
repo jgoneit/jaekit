@@ -12,7 +12,7 @@ The README uses supplied Jaekit branding alongside conceptual illustrations of t
 | Wordmark | <img src="brand/wordmark.svg" width="160" alt="Jaekit wordmark"> | [Original PNG](brand/wordmark.png) · [Display SVG](brand/wordmark.svg) |
 | Small symbol | <img src="brand/symbol.svg" width="40" alt="Jaekit symbol"> | [Original PNG](brand/symbol.png) · [Display SVG](brand/symbol.svg) |
 
-The three supplied PNGs are preserved unchanged. Each display SVG embeds the original PNG bytes on a rounded white surface so the black artwork stays visible in dark mode. The original aspect ratio and transparent padding are preserved. The primary logo appears at the top of the README; the other variants are shown here for reference.
+The three supplied PNGs are preserved unchanged. Each display SVG embeds the original PNG bytes on a rounded white surface so the black artwork stays visible in dark mode. The original aspect ratio and transparent padding are preserved. The README opens with the hero image, which includes the wordmark; the logo, wordmark and symbol are shown here for reference.
 
 Rebuild the display SVGs with [build_brand.py](source/build_brand.py). It uses only the Python 3 standard library. Run it from the repository root; it does not modify the PNGs.
 
