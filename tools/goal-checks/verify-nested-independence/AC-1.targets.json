@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "suite-runs",
+      "runner": "unittest",
+      "file": "tools/goal-checks/verify-nested-independence/observe_copies.py",
+      "test": "SuiteRuns.test_go_and_all_groups_run_the_full_go_suite_once_in_this_checkout",
+      "result_targets": {
+        "additional_violations": [
+          "suite-runs.assertion-2",
+          "suite-runs.assertion-3",
+          "suite-runs.assertion-4",
+          "suite-runs.assertion-5",
+          "suite-runs.assertion-6",
+          "suite-runs.assertion-7",
+          "suite-runs.assertion-8"
+        ],
+        "execution": "suite-runs.execution",
+        "selection": "suite-runs.selection",
+        "attribution": "suite-runs.attribution"
+      }
+    }
+  ]
+}

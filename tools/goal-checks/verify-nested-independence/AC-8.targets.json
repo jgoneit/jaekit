@@ -1,0 +1,59 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "ci-guides",
+      "runner": "unittest",
+      "file": "tools/goal-checks/verify-nested-independence/observe_copies.py",
+      "test": "Guides.test_ci_guides_describe_the_go_group_scope",
+      "result_targets": {
+        "additional_violations": [
+          "ci-guides.assertion-2",
+          "ci-guides.assertion-3",
+          "ci-guides.assertion-4",
+          "ci-guides.assertion-5",
+          "ci-guides.assertion-6",
+          "ci-guides.assertion-7",
+          "ci-guides.assertion-8"
+        ],
+        "execution": "ci-guides.execution",
+        "selection": "ci-guides.selection",
+        "attribution": "ci-guides.attribution"
+      }
+    },
+    {
+      "target": "public-docs",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/check_public_docs.py"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {
+          "1": "public-docs-problem"
+        },
+        "unverified": [
+          3
+        ]
+      },
+      "result_targets": {
+        "additional_violations": [
+          "public-docs.assertion-2",
+          "public-docs.assertion-3",
+          "public-docs.assertion-4",
+          "public-docs.assertion-5",
+          "public-docs.assertion-6",
+          "public-docs.assertion-7",
+          "public-docs.assertion-8"
+        ],
+        "execution": "public-docs.execution",
+        "selection": "public-docs.selection",
+        "attribution": "public-docs.attribution"
+      }
+    }
+  ]
+}

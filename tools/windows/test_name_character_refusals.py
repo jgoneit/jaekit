@@ -71,9 +71,10 @@ class ReportValidation(unittest.TestCase):
 class ContinuousIntegration(unittest.TestCase):
     def test_both_ci_shells_run_the_name_character_cases(self):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-        job = workflow[workflow.index("\n  windows:\n"):]
-        job = job[:re.search(r"\n  [a-z][a-z0-9_-]*:\n", job[1:]).start() + 1]
-        steps = re.findall(r"\n      - name: [^\n]*\n(?:        [^\n]*\n)*", job)
+        # Each Windows job runs its own shell's native checks, or one job runs both.
+        jobs = re.split(r"\n(?=  [a-z][a-z0-9_-]*:\n)", workflow[workflow.index("\njobs:\n"):])
+        windows = [job + "\n" for job in jobs if re.search(r"\n    runs-on: windows", job)]
+        steps = [step for job in windows for step in re.findall(r"\n      - name: [^\n]*\n(?:        [^\n]*\n)*", job)]
         shells = {re.search(r"\n        shell: (\S+)", step).group(1) for step in steps
                   if "run: ./tools/windows/native_checks.ps1 " in step and re.search(r"\n        shell: ", step)}
         launcher = (ROOT / "tools/windows/native_checks.py").read_text(encoding="utf-8")

@@ -19,11 +19,15 @@ spec.loader.exec_module(validation)
 
 
 class WindowsJobLogCollection(unittest.TestCase):
-    def setUp(self):
+    def setUp(self, windows=None):
         self.fixture = fixtures.CurrentRunAdmission()
         self.fixture.setUp()
-        for row in self.fixture.reports["Core / Windows"]:
-            row["synthetic_transport_padding"] = "x" * (92 * 1024)
+        if windows is not None:
+            self.fixture.layout(windows)
+        self.windows = [name for name, os in self.fixture.os.items() if os == "Windows"]
+        for name in self.windows:
+            for row in self.fixture.reports[name]:
+                row["synthetic_transport_padding"] = "x" * (92 * 1024)
         self.ci = fixtures.observer
         self.commands = []
         self.api_paths = []
@@ -62,7 +66,7 @@ class WindowsJobLogCollection(unittest.TestCase):
             if self.log_error is not None:
                 raise self.log_error
             paths = {f"repos/jgoneit/jaekit/actions/jobs/{job['id']}/logs": job
-                     for job in self.fixture.jobs if job["name"] in self.ci.JOBS}
+                     for job in self.fixture.jobs if job["name"] in self.fixture.os}
             self.assertEqual(argv[4:-1], self.expected_escape_flags)
             self.assertIn(argv[-1], paths)
             job = paths[argv[-1]]
@@ -87,23 +91,27 @@ class WindowsJobLogCollection(unittest.TestCase):
                 self.assertNotIn("JAEKIT_CI_REPORT ", stdout.getvalue(), "raw reports were printed")
 
     def test_raw_selected_job_logs_preserve_both_oversized_json_reports(self):
+        layouts = {"one job per shell": None, "recorded one-job run": {"Core / Windows": ["5.1", "7.5"]}}
         for modern in (True, False):
-            self.setUp()
+          for layout, windows in layouts.items():
+            self.setUp(windows)
             if not modern:
                 self.api_help = "FLAGS\n  --hostname string  The GitHub hostname\n"
                 self.expected_escape_flags = []
-            with self.subTest(modern=modern):
-                job = next(job for job in self.fixture.jobs if job["name"] == "Core / Windows")
-                raw = self.fixture.job_log(job["id"])
-                report_lines = [line for line in raw.splitlines() if line.startswith("JAEKIT_CI_REPORT ")]
+            with self.subTest(modern=modern, layout=layout):
+                report_lines = []
+                for job in self.fixture.jobs:
+                    if job["name"] in self.windows:
+                        raw = self.fixture.job_log(job["id"])
+                        report_lines += [line for line in raw.splitlines() if line.startswith("JAEKIT_CI_REPORT ")]
+                        self.assertEqual(self.ci.records(self.truncated_view(raw), "JAEKIT_CI_REPORT "), [])
                 self.assertEqual(len(report_lines), 2)
                 self.assertTrue(all(len(line.encode("utf-8")) > 64 * 1024 for line in report_lines))
-                self.assertEqual(self.ci.records(self.truncated_view(raw), "JAEKIT_CI_REPORT "), [])
                 rows = self.observe()
                 self.assertEqual([row["environment"]["shell_version"] for row in rows], ["5.1", "7.5"])
                 self.assertTrue(all(row["synthetic_transport_padding"] == "x" * (92 * 1024) for row in rows))
                 expected = {f"repos/jgoneit/jaekit/actions/jobs/{job['id']}/logs"
-                            for job in self.fixture.jobs if job["name"] in self.ci.JOBS}
+                            for job in self.fixture.jobs if job["name"] in self.fixture.os}
                 actual = [argv[-1] for argv in self.commands if argv[:4] == ["gh", "api", "--method", "GET"]]
                 self.assertEqual(set(actual), expected)
                 self.assertEqual(len(actual), len(expected))
@@ -126,11 +134,20 @@ class WindowsJobLogCollection(unittest.TestCase):
         self.assertNotIn("repos/jgoneit/jaekit/pulls/67", self.api_paths)
 
     def test_missing_or_duplicate_windows_reports_remain_rejected(self):
+        for name in (fixtures.FIVE, fixtures.SEVEN):
+            for count in (0, 2):
+                self.setUp()
+                rows = self.fixture.reports[name]
+                self.fixture.reports[name] = (rows + rows)[:count]
+                with self.subTest(job=name, count=count), \
+                        self.assertRaisesRegex(validation.Violation, "native report missing/duplicate"):
+                    self.observe()
         for count in (0, 1, 3):
-            self.setUp()
+            self.setUp({"Core / Windows": ["5.1", "7.5"]})
             rows = self.fixture.reports["Core / Windows"]
             self.fixture.reports["Core / Windows"] = (rows + rows)[:count]
-            with self.subTest(count=count), self.assertRaisesRegex(validation.Violation, "native report missing/duplicate"):
+            with self.subTest(job="Core / Windows", count=count), \
+                    self.assertRaisesRegex(validation.Violation, "native report missing/duplicate"):
                 self.observe()
 
     def test_job_log_api_error_propagates_without_run_view_fallback(self):

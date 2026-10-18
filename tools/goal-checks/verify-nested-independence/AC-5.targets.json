@@ -1,0 +1,65 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "explicit-audits",
+      "runner": "unittest",
+      "file": "tools/review-checks/test_producers.py",
+      "test": "AC10.test_both_audits_require_an_explicit_range_and_do_not_fetch_missing_history",
+      "result_targets": {
+        "additional_violations": [
+          "explicit-audits.assertion-2",
+          "explicit-audits.assertion-3",
+          "explicit-audits.assertion-4",
+          "explicit-audits.assertion-5",
+          "explicit-audits.assertion-6",
+          "explicit-audits.assertion-7",
+          "explicit-audits.assertion-8"
+        ],
+        "execution": "explicit-audits.execution",
+        "selection": "explicit-audits.selection",
+        "attribution": "explicit-audits.attribution"
+      }
+    },
+    {
+      "target": "history-additions",
+      "runner": "unittest",
+      "file": "tools/gap-checks/test_history_results.py",
+      "test": "AC4",
+      "result_targets": {
+        "additional_violations": [
+          "history-additions.assertion-2",
+          "history-additions.assertion-3",
+          "history-additions.assertion-4",
+          "history-additions.assertion-5",
+          "history-additions.assertion-6",
+          "history-additions.assertion-7",
+          "history-additions.assertion-8"
+        ],
+        "execution": "history-additions.execution",
+        "selection": "history-additions.selection",
+        "attribution": "history-additions.attribution"
+      }
+    },
+    {
+      "target": "history-missing",
+      "runner": "unittest",
+      "file": "tools/gap-checks/test_history_results.py",
+      "test": "AC5",
+      "result_targets": {
+        "additional_violations": [
+          "history-missing.assertion-2",
+          "history-missing.assertion-3",
+          "history-missing.assertion-4",
+          "history-missing.assertion-5",
+          "history-missing.assertion-6",
+          "history-missing.assertion-7",
+          "history-missing.assertion-8"
+        ],
+        "execution": "history-missing.execution",
+        "selection": "history-missing.selection",
+        "attribution": "history-missing.attribution"
+      }
+    }
+  ]
+}
