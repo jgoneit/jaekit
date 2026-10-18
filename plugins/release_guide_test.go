@@ -78,14 +78,14 @@ func TestReleaseGuideReleaseFiles(t *testing.T) {
 		`mv -f "$binary_tmp" "$bin/ha"`,
 		`export PATH="$HOME/.local/bin:$PATH"`,
 	)
-	forbidAll(t, "../README.md", "os=darwin arch=arm64")
+	forbidAll(t, "../README.ko.md", "os=darwin arch=arm64")
 	requireIn(t, "release workflow", read(t, "../.github/workflows/release.yml"),
 		`name="ha_${version}_${os}_${arch}"`,
 		`-o "${build}/${name}/ha" ./cmd/ha`,
 		`tar -C "${build}" -czf "${dist}/${name}.tar.gz" "${name}"`,
 		"for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do",
 	)
-	requireIn(t, "README 설치", mdSection(t, "../README.md", "### 설치"),
+	requireIn(t, "README 설치", mdSection(t, "../README.ko.md", "### 설치"),
 		"(guides/INSTALL.md)")
 }
 
@@ -104,7 +104,7 @@ func TestReleaseGuideVersionCheck(t *testing.T) {
 // repository instead, then reinstall both plugins, for both hosts. The guide
 // is in guides/INSTALL.md, linked from the README .
 func TestReleaseGuideLocalMigration(t *testing.T) {
-	requireIn(t, "README 설치", mdSection(t, "../README.md", "### 설치"),
+	requireIn(t, "README 설치", mdSection(t, "../README.ko.md", "### 설치"),
 		"(guides/INSTALL.md#로컬-경로-등록에서-옮기기)")
 	move := mdSection(t, "../guides/INSTALL.md", "## 로컬 경로 등록에서 옮기기")
 	requireIn(t, "INSTALL 로컬 경로 등록에서 옮기기", move,

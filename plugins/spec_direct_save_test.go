@@ -180,13 +180,13 @@ func TestGoalDocsContractWritesDirectly(t *testing.T) {
 // direct save, the report, the stop, change requests, and the separate
 // implementation request.
 func TestGuidesDescribeDirectSave(t *testing.T) {
-	requireAll(t, "../README.md", "(guides/USAGE.md)")
+	requireAll(t, "../README.ko.md", "(guides/USAGE.md)")
 	requireAll(t, "../guides/USAGE.md",
 		"`docs/specs/<goal>/SPEC.md`", "바로 저장", "결정·출처", "보고한 뒤 멈춥니다",
 		"같은 문서를 고칩니다", "구현은 별도의 시작 요청",
 		"$seal:seal docs/specs/<goal>",
 	)
-	forbidAll(t, "../README.md", "초안 전문을 보여 준 뒤 동의하면")
+	forbidAll(t, "../README.ko.md", "초안 전문을 보여 준 뒤 동의하면")
 }
 
 // Synthetic cases require direct save and count outside changes until Spec stops.

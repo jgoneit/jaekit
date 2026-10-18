@@ -2,7 +2,7 @@
 
 **한국어** · [English](INSTALL.en.md)
 
-현재 배포판 `v0.1.6`의 설치·업데이트·제거 안내입니다. macOS·Linux의 arm64·amd64를 지원합니다. 아래 명령은 **터미널에서** 실행합니다. 설치 뒤 에이전트에게 보낼 말은 [첫 사용 안내](../README.md#첫-작업-맡기기)에 있습니다.
+현재 배포판 `v0.1.6`의 설치·업데이트·제거 안내입니다. macOS·Linux의 arm64·amd64를 지원합니다. 아래 명령은 **터미널에서** 실행합니다. 설치 뒤 에이전트에게 보낼 말은 [첫 사용 안내](../README.ko.md#첫-작업-맡기기)에 있습니다.
 
 - 처음 설치할 때: [기본 설치](#기본-설치)
 - brew를 쓰지 않을 때: [Release 파일로 설치](#release-파일로-설치)
@@ -30,7 +30,7 @@ Spec은 Core 설치나 지원 조회 없이 문서를 작성합니다. Spec 0.1.
 
 ## 기본 설치
 
-Git과 Codex 또는 Claude Code가 필요합니다. brew로 설치하려면 [Homebrew](https://brew.sh)도 준비합니다. 작업할 프로젝트는 Git으로 변경 이력을 관리하는 폴더여야 합니다. Jaekit 저장소를 clone(내 컴퓨터로 복사)할 필요는 없습니다.
+Git과 Codex, Claude Code, Antigravity 가운데 하나가 필요합니다. brew로 설치하려면 [Homebrew](https://brew.sh)도 준비합니다. 작업할 프로젝트는 Git으로 변경 이력을 관리하는 폴더여야 합니다. Jaekit 저장소를 clone(내 컴퓨터로 복사)할 필요는 없습니다. Antigravity 설치만 플러그인을 옮겨 담을 임시 사본을 내려받습니다.
 
 현재 공개 릴리스의 Seal Core `ha`는 Windows를 지원하지 않습니다. [Windows 네이티브 후보 안내](WINDOWS.md)는 별도 후보 패키지를 다룹니다. Windows 11 x64·PowerShell 5.1/7의 실제 설치·Core 실행·호스트 동작은 아직 확인하지 않았으며, 교차 빌드와 로컬 검사는 그 근거를 대신하지 않습니다.
 
@@ -67,7 +67,7 @@ codex plugin add seal@jaekit
 
 `@v0.1.6`은 marketplace(플러그인 목록)를 해당 태그에 고정합니다. main이 바뀌어도 배포판의 spec 0.1.12·seal 0.1.17을 받습니다.
 
-Codex를 새로 열고 대화에 `$`를 입력해 Jaekit의 `spec:spec` 또는 `seal:seal`을 고릅니다. 호출 이름은 `$spec:spec`과 `$seal:seal`입니다. [첫 작업 맡기기](../README.md#첫-작업-맡기기)를 따라 해 봅니다. 다른 플러그인과 혼동되면 [문제 해결](USAGE.md#문제-해결)을 봅니다.
+Codex를 새로 열고 대화에 `$`를 입력해 Jaekit의 `spec:spec` 또는 `seal:seal`을 고릅니다. 호출 이름은 `$spec:spec`과 `$seal:seal`입니다. [첫 작업 맡기기](../README.ko.md#첫-작업-맡기기)를 따라 해 봅니다. 다른 플러그인과 혼동되면 [문제 해결](USAGE.md#문제-해결)을 봅니다.
 
 ### Claude Code
 
@@ -83,6 +83,24 @@ claude plugin list
 `#v0.1.6`은 marketplace를 해당 태그에 고정합니다. 마지막 목록에서 `spec@jaekit`, `seal@jaekit`가 enabled인지 봅니다. 다른 플러그인과 혼동되면 [문제 해결](USAGE.md#문제-해결)을 봅니다.
 
 Claude Code를 새로 열고 대화에서 `/spec:spec <요청>`으로 목표를 정리한 뒤, 별도 메시지의 `/seal:seal docs/specs/<goal>`로 구현을 시작합니다. 플러그인의 스킬은 `/플러그인-이름:스킬-이름`으로 호출합니다. 목표 확인과 이어 가기는 [사용 안내](USAGE.md#명령-보내기)에 있습니다.
+
+### Antigravity
+
+먼저 [ha 설치](#ha-설치)와 [버전 확인](#버전-확인)을 마칩니다. 아래 명령에는 Antigravity CLI `agy`가 필요합니다. `agy`는 내 컴퓨터의 폴더에서 플러그인을 설치하므로, 처음 두 줄이 `v0.1.6` 태그를 임시 폴더에 내려받습니다. `agy`가 플러그인을 자기 설정 폴더로 복사하므로 내려받은 사본은 설치 뒤 필요 없습니다.
+
+```bash
+jaekit_src="$(mktemp -d)/jaekit"
+git clone --depth 1 --branch v0.1.6 https://github.com/jgoneit/jaekit.git "$jaekit_src"
+agy plugin install "$jaekit_src/plugins/spec"
+agy plugin install "$jaekit_src/plugins/seal"
+agy plugin list
+```
+
+Git이 "detached HEAD" 안내를 출력할 수 있으며, 태그를 내려받을 때의 정상 동작입니다. 마지막 목록에서 `spec` 0.1.12와 `seal` 0.1.17이 enabled인지 봅니다.
+
+Antigravity를 새로 열고 Claude Code와 같이 대화에서 `/spec:spec <요청>`으로 목표를 정리한 뒤, 별도 메시지의 `/seal:seal docs/specs/<goal>`로 구현을 시작합니다.
+
+**Antigravity의 Seal에는 제한이 있습니다.** Antigravity는 스킬 지침의 앞 24 KB만 읽습니다. Spec은 이 안에 들어갑니다. Seal 0.1.17은 더 길어서 Antigravity에서는 마지막 부분(재개, 예산, 금지 사항, 언어 규칙)이 실리지 않으며, `agy plugin validate "$jaekit_src/plugins/seal"`가 이를 알립니다. 완료 판정은 여전히 `ha`가 기록으로 계산하지만, 에이전트는 그 지침을 받지 못합니다. 한도 안에 들어가는 Seal이 배포되기 전까지는 Seal을 Claude Code나 Codex에서 쓰거나, Antigravity에서 쓴다면 이 점을 염두에 두고 결과를 확인합니다. 위 설치와 `/spec:spec` 호출은 macOS의 `agy` 1.4.2에서 확인했으며, Antigravity에서 Seal 전체 실행은 아직 확인하지 않았습니다.
 
 ## Release 파일로 설치
 
@@ -276,6 +294,16 @@ claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 ```
 
+Antigravity: 새 태그를 내려받아 이전 버전 위에 설치합니다.
+
+```bash
+jaekit_src="$(mktemp -d)/jaekit"
+git clone --depth 1 --branch v0.1.6 https://github.com/jgoneit/jaekit.git "$jaekit_src"
+agy plugin install "$jaekit_src/plugins/spec"
+agy plugin install "$jaekit_src/plugins/seal"
+agy plugin list
+```
+
 host를 새로 열면 새 버전의 Spec과 Seal이 실립니다.
 
 ## 제거
@@ -316,6 +344,13 @@ Claude Code:
 claude plugin uninstall spec@jaekit
 claude plugin uninstall seal@jaekit
 claude plugin marketplace remove jaekit
+```
+
+Antigravity:
+
+```bash
+agy plugin uninstall spec
+agy plugin uninstall seal
 ```
 
 설치·업데이트·제거는 작업한 프로젝트의 문서·기록·출력 원문을 지우지 않습니다. 목표 문서와 Seal이 만든 파일(`docs/specs/<goal>/`의 `SPEC.md`, `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl`)의 Git 추적 여부는 프로젝트 정책에 따릅니다. 추적된 기록과 ignore한 비공개 기록 모두 그대로 남습니다. 검사 출력 원문은 git이 추적하지 않는, 그 작업 트리의 Git 디렉토리 아래 `ha/runs/`에 있습니다. 보통은 `.git/ha/` 아래이고, `.git`이 파일인 linked worktree에서는 `git rev-parse --absolute-git-dir`이 알려 주는 디렉토리 아래에 있습니다.

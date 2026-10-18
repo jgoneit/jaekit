@@ -23,7 +23,7 @@ type rel011Lang struct {
 }
 
 var rel011Ko = rel011Lang{
-	readme: "../README.md", install: "../guides/INSTALL.md", installLink: "guides/INSTALL.md",
+	readme: "../README.ko.md", install: "../guides/INSTALL.md", installLink: "guides/INSTALL.md",
 	quick: "## 시작하기", installSec: "### 설치",
 	release: "## Release 파일로 설치", update: "## 업데이트", uninstall: "## 제거",
 	updateProse: []string{"(#release-파일로-설치)", "`ha 0.1.6`"},
@@ -32,7 +32,7 @@ var rel011Ko = rel011Lang{
 }
 
 var rel011En = rel011Lang{
-	readme: "../README.en.md", install: "../guides/INSTALL.en.md", installLink: "guides/INSTALL.en.md",
+	readme: "../README.md", install: "../guides/INSTALL.en.md", installLink: "guides/INSTALL.en.md",
 	quick: "## Get started", installSec: "### Install",
 	release: "## Install from a Release file", update: "## Update", uninstall: "## Uninstall",
 	updateProse: []string{"(#install-from-a-release-file)", "`ha 0.1.6`"},
@@ -123,13 +123,13 @@ func TestRelease011Prerequisites(t *testing.T) {
 func TestRelease011Windows(t *testing.T) {
 	for _, l := range visualLanguages {
 		before := visualBeforeInstall(t, l)
-		if strings.Contains(l.readme, ".en.md") {
+		if visualEnglish(l) {
 			visualRequire(t, l.readme, before, "`ha`", "does not support Windows", "Seal cannot run there", "Spec does not need `ha`")
 			visualRequirePattern(t, l.readme+" unchecked Spec on Windows", before, `(?i)(has|have) not been checked`)
 		} else {
 			visualRequire(t, l.readme, before, "Windows", "Seal을 쓸 수 없습니다", "Spec은 `ha`가 필요 없지만", "아직 확인하지 않았습니다")
 		}
-		if strings.Contains(l.readme, ".en.md") {
+		if visualEnglish(l) {
 			visualRequire(t, l.readme, read(t, l.readme), "guides/WSL.en.md")
 		} else {
 			visualRequire(t, l.readme, read(t, l.readme), "guides/WSL.md")
@@ -219,7 +219,7 @@ func TestRelease011UninstallGuide(t *testing.T) {
 
 // the README, the install guides, the
 func TestRelease011Pins(t *testing.T) {
-	for _, path := range []string{"../README.md", "../README.en.md", "../guides/INSTALL.md", "../guides/INSTALL.en.md",
+	for _, path := range []string{"../README.md", "../README.ko.md", "../guides/INSTALL.md", "../guides/INSTALL.en.md",
 		"../.github/ISSUE_TEMPLATE/usage-report.yml", "../.github/ISSUE_TEMPLATE/install-bug.yml"} {
 		text := read(t, path)
 		// 0.1.6-dev, the version a checkout build prints, is not a release.
@@ -230,11 +230,18 @@ func TestRelease011Pins(t *testing.T) {
 			requireIn(t, path, text, "ha "+rel011Version)
 			continue
 		}
+		// The Antigravity steps download the tag itself; no other tag may stay.
+		requireIn(t, path, text, "--branch "+rel011Tag+" https://github.com/jgoneit/jaekit.git")
+		for _, m := range regexp.MustCompile(`--branch (\S+)`).FindAllStringSubmatch(text, -1) {
+			if m[1] != rel011Tag {
+				t.Errorf("%s downloads %s instead of %s", path, m[1], rel011Tag)
+			}
+		}
 		if strings.HasPrefix(path, "../README") {
 			requireIn(t, path, text, "jgoneit/jaekit@"+rel011Tag)
-			guide := "guides/INSTALL.md#claude-code"
-			if strings.Contains(path, ".en.md") {
-				guide = "guides/INSTALL.en.md#claude-code"
+			guide := "guides/INSTALL.en.md#claude-code"
+			if strings.HasSuffix(path, ".ko.md") {
+				guide = "guides/INSTALL.md#claude-code"
 			}
 			requireIn(t, path, text, "("+guide+")")
 		} else {

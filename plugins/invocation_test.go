@@ -9,7 +9,7 @@ import (
 // description name the explicit skill call on each host and distinguish it
 // from a Codex @Spec plugin mention.
 func TestSpecInvocationGuide(t *testing.T) {
-	requireAll(t, "../README.md", "(guides/USAGE.md)")
+	requireAll(t, "../README.ko.md", "(guides/USAGE.md)")
 	for _, c := range []struct {
 		path  string
 		musts []string
@@ -29,7 +29,7 @@ func TestSpecInvocationGuide(t *testing.T) {
 // The linked usage guide gives the namespaced Seal skill invocation on
 // each host as the step after Spec.
 func TestSealStartCommandGuide(t *testing.T) {
-	requireAll(t, "../README.md", "(guides/USAGE.md)")
+	requireAll(t, "../README.ko.md", "(guides/USAGE.md)")
 	for _, path := range []string{"../guides/USAGE.md"} {
 		text := read(t, path)
 		for _, s := range []string{"`/seal:seal docs/specs/<goal>`", "`$seal:seal docs/specs/<goal>`"} {

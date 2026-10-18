@@ -14,7 +14,7 @@ PUBLIC_DIRECTORIES = {
 }
 PUBLIC_FILES = {
     ".gitignore", "AGENTS.md", "CLAUDE.md", "LICENSE", "README.md",
-    "README.en.md", "go.mod", "go.sum",
+    "README.ko.md", "README.en.md", "go.mod", "go.sum",
 }
 PRIVATE_REFERENCES = [
     # Sibling repositories hold private history; match https, SSH, and link endings.

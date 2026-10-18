@@ -29,7 +29,11 @@ func TestPublicGuidanceNamesOnlyTheCurrentRelease(t *testing.T) {
 	if current == "" {
 		t.Fatal("../.claude-plugin/marketplace.json names no product release")
 	}
-	paths := []string{"../README.md", "../README.en.md"}
+	// Every root README: README.md, its translations and the README.en.md pointer.
+	paths, err := filepath.Glob("../README*.md")
+	if err != nil || len(paths) == 0 {
+		t.Fatalf("no root README: %v", err)
+	}
 	guides, err := filepath.Glob("../guides/*.md")
 	if err != nil || len(guides) == 0 {
 		t.Fatalf("no public guides: %v", err)

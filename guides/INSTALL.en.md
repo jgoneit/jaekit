@@ -2,7 +2,7 @@
 
 [한국어](INSTALL.md) · **English**
 
-Installation, updates, and removal for the current release, `v0.1.6`. Supported platforms are macOS and Linux on arm64 and amd64. Run the commands below **in Terminal**. After installing, see [your first task](../README.en.md#your-first-task) for what to send to the agent.
+Installation, updates, and removal for the current release, `v0.1.6`. Supported platforms are macOS and Linux on arm64 and amd64. Run the commands below **in Terminal**. After installing, see [your first task](../README.md#your-first-task) for what to send to the agent.
 
 - First installation: [Basic install](#basic-install)
 - Without brew: [Install from a Release file](#install-from-a-release-file)
@@ -30,7 +30,7 @@ Spec writes documents without installing Core or querying capabilities. New Spec
 
 ## Basic install
 
-You need Git and either Codex or Claude Code. For the brew route, install [Homebrew](https://brew.sh) too. Your project must be a folder whose changes are tracked with Git. You do not need to clone (copy to your computer) the Jaekit repository.
+You need Git and one of Codex, Claude Code, or Antigravity. For the brew route, install [Homebrew](https://brew.sh) too. Your project must be a folder whose changes are tracked with Git. You do not need to clone (copy to your computer) the Jaekit repository; the Antigravity steps download a temporary copy only to install the plugins from it.
 
 The current public release of Seal Core `ha` does not support Windows. The [Windows native candidate guide](WINDOWS.en.md) covers a separate candidate package. Actual installation, Core execution and host behavior on Windows 11 x64 with PowerShell 5.1/7 remain unverified; cross-compilation and local tests do not establish them.
 
@@ -67,7 +67,7 @@ codex plugin add seal@jaekit
 
 `@v0.1.6` pins the marketplace (the source of the plugin list) to that tag. Even when main changes, you get the release's spec 0.1.12 and seal 0.1.17.
 
-Reopen Codex, type `$` in the conversation, and choose Jaekit's `spec:spec` or `seal:seal`. The invocation names are `$spec:spec` and `$seal:seal`. Follow [your first task](../README.en.md#your-first-task). If you confuse them with another plugin, see [troubleshooting](USAGE.en.md#troubleshooting).
+Reopen Codex, type `$` in the conversation, and choose Jaekit's `spec:spec` or `seal:seal`. The invocation names are `$spec:spec` and `$seal:seal`. Follow [your first task](../README.md#your-first-task). If you confuse them with another plugin, see [troubleshooting](USAGE.en.md#troubleshooting).
 
 ### Claude Code
 
@@ -83,6 +83,24 @@ claude plugin list
 `#v0.1.6` pins the marketplace to that tag. Check that `spec@jaekit` and `seal@jaekit` are enabled in the list. If you confuse them with another plugin, see [troubleshooting](USAGE.en.md#troubleshooting).
 
 Reopen Claude Code and use `/spec:spec <request>` in the conversation to define the goal, then `/seal:seal docs/specs/<goal>` in a separate message to start implementation. Plugin skills use `/plugin-name:skill-name`. The [usage guide](USAGE.en.md#sending-commands) explains how to review the goal and continue a task.
+
+### Antigravity
+
+First [install ha](#install-ha) and [check its version](#check-the-version). The commands below need the Antigravity CLI `agy`. `agy` installs plugins from a folder on your computer, so the first two lines download the `v0.1.6` tag into a temporary folder. `agy` copies the plugins into its own settings, so the downloaded copy is not needed afterwards.
+
+```bash
+jaekit_src="$(mktemp -d)/jaekit"
+git clone --depth 1 --branch v0.1.6 https://github.com/jgoneit/jaekit.git "$jaekit_src"
+agy plugin install "$jaekit_src/plugins/spec"
+agy plugin install "$jaekit_src/plugins/seal"
+agy plugin list
+```
+
+Git may print a note about a "detached HEAD"; that is expected when you download a tag. The final list should show `spec` 0.1.12 and `seal` 0.1.17 as enabled.
+
+Reopen Antigravity and use `/spec:spec <request>` to define the goal, then `/seal:seal docs/specs/<goal>` in a separate message to start implementation, the same as in Claude Code.
+
+**Seal in Antigravity is limited.** Antigravity loads only the first 24 KB of a skill's instructions. Spec fits. Seal 0.1.17 is longer, so in Antigravity its last sections (resuming, budget, forbidden actions, and language) are not loaded; `agy plugin validate "$jaekit_src/plugins/seal"` reports this. `ha` still decides completion from the records, but the agent does not receive those instructions. Until a Seal release fits within the limit, prefer Claude Code or Codex for Seal, or review Seal's work in Antigravity with this in mind. The installation above and the `/spec:spec` call were checked with `agy` 1.4.2 on macOS; a full Seal run in Antigravity has not been checked.
 
 ## Install from a Release file
 
@@ -276,6 +294,16 @@ claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 ```
 
+Antigravity: download the new tag and install over the earlier version.
+
+```bash
+jaekit_src="$(mktemp -d)/jaekit"
+git clone --depth 1 --branch v0.1.6 https://github.com/jgoneit/jaekit.git "$jaekit_src"
+agy plugin install "$jaekit_src/plugins/spec"
+agy plugin install "$jaekit_src/plugins/seal"
+agy plugin list
+```
+
 Open the host again to load the new Spec and Seal.
 
 ## Uninstall
@@ -316,6 +344,13 @@ Claude Code:
 claude plugin uninstall spec@jaekit
 claude plugin uninstall seal@jaekit
 claude plugin marketplace remove jaekit
+```
+
+Antigravity:
+
+```bash
+agy plugin uninstall spec
+agy plugin uninstall seal
 ```
 
 Installation, updates and removal preserve your project's documents, records and raw output. Whether Git tracks the goal documents and the files Seal made (`SPEC.md`, `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, and `runs.jsonl` in `docs/specs/<goal>/`) depends on project policy. Both tracked records and ignored private records stay. Raw check output is under `ha/runs/` in that working tree's Git directory, which git does not track. That is usually under `.git/ha/`; in a linked worktree, where `.git` is a file, it is under the directory that `git rev-parse --absolute-git-dir` prints.

@@ -2,7 +2,7 @@
 
 [한국어](USAGE.md) · **English**
 
-This guide follows [your first task in the README](../README.en.md#your-first-task). For installation, updates, and removal, see the [install guide](INSTALL.en.md).
+This guide follows [your first task in the README](../README.md#your-first-task). For installation, updates, and removal, see the [install guide](INSTALL.en.md).
 
 The current release v0.1.6 combines ha 0.1.6, spec 0.1.12, seal 0.1.17 and default rules `/3`. Starting with Seal 0.1.16, Seal starts new goals under `run-rules/4`. Preflight refusal, run estimation, `/3` result classification and budget policy apply to this release. Existing goals keep their saved rules. See [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
 
@@ -10,14 +10,14 @@ The current release v0.1.6 combines ha 0.1.6, spec 0.1.12, seal 0.1.17 and defau
 
 Send these **in the agent conversation**, not Terminal. Replace `<request>` with the work you want and `<goal>` with the goal folder name Spec reports.
 
-| What to do | Codex | Claude Code |
+| What to do | Codex | Claude Code · Antigravity |
 | --- | --- | --- |
 | Write the goal | `$spec:spec <request>` | `/spec:spec <request>` |
 | Start implementation | `$seal:seal docs/specs/<goal>` | `/seal:seal docs/specs/<goal>` |
 
 In Codex, type `$`, select `spec:spec` or `seal:seal` installed from Jaekit, then add your request. `@Spec` is a plugin mention. Use the skill invocation above to explicitly select Spec's instructions for writing goal documents only; a plugin mention alone does not guarantee the same instructions are selected.
 
-`spec:spec` means **plugin name:skill name**. This prefix is part of the plugin naming scheme, even when Jaekit is the only installation. Codex uses `$`; Claude Code uses `/`. Short names for separately installed skills and invocation in other agents may differ. See the [Codex plugin naming rules](https://developers.openai.com/plugins/build/plugins#create-a-plugin-manually), [Codex skill invocation example](https://learn.chatgpt.com/docs/security/plugin/code-changes#automate-reviews-in-cicd), and [Claude Code skill locations and names](https://code.claude.com/docs/en/skills#choose-where-skills-load).
+`spec:spec` means **plugin name:skill name**. This prefix is part of the plugin naming scheme, even when Jaekit is the only installation. Codex uses `$`; Claude Code and Antigravity use `/`. Seal in Antigravity has a [skill length limit](INSTALL.en.md#antigravity). Short names for separately installed skills and invocation in other agents may differ. See the [Codex plugin naming rules](https://developers.openai.com/plugins/build/plugins#create-a-plugin-manually), [Codex skill invocation example](https://learn.chatgpt.com/docs/security/plugin/code-changes#automate-reviews-in-cicd), and [Claude Code skill locations and names](https://code.claude.com/docs/en/skills#choose-where-skills-load).
 
 ## Changing a goal or continuing
 
