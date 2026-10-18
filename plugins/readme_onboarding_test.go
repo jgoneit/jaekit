@@ -164,26 +164,40 @@ func onboardInstallOK(t *testing.T, l onboardLang) {
 	forbidAll(t, l.readme, "uname -s", "go install ./cmd/ha")
 }
 
-// The README's update steps are the install guide's own commands. Every block
-// in the README update section appears unchanged in the guide's update or
-// version-check section, and the README gives the whole update: ha, the
-// actual executable, and both hosts' plugins.
-func TestOnboardReadmeUpdateMatchesInstall(t *testing.T) {
-	for _, c := range []struct{ readme, update, install, guideUpdate, guideCheck string }{
-		{"../README.md", "### 업데이트", "../guides/INSTALL.md", "## 업데이트", "### 버전 확인"},
-		{"../README.en.md", "### Update", "../guides/INSTALL.en.md", "## Update", "### Check the version"},
+// Every command the README shows is the install guide's own command for the
+// same step: each block in the README install section appears unchanged in
+// the guide's basic installation, each block in its update section appears
+// unchanged in the guide's update or version-check section, and no README
+// block anywhere differs from all of the guide's blocks. The README update
+// gives the whole update: ha, the actual executable, and both hosts' plugins.
+func TestOnboardReadmeCommandsMatchInstall(t *testing.T) {
+	for _, c := range []struct{ readme, install, guide, installSec, update, guideUpdate, guideCheck string }{
+		{"../README.md", "### 설치", "../guides/INSTALL.md", "## 기본 설치", "### 업데이트", "## 업데이트", "### 버전 확인"},
+		{"../README.en.md", "### Install", "../guides/INSTALL.en.md", "## Basic install", "### Update", "## Update", "### Check the version"},
 	} {
-		readme := onboardBlocks(mdSection(t, c.readme, c.update), "bash")
-		guide := append(onboardBlocks(mdSection(t, c.install, c.guideUpdate), "bash"),
-			onboardBlocks(mdSection(t, c.install, c.guideCheck), "bash")...)
-		for _, want := range []string{"brew update\n", "brew upgrade jgoneit/tap/jaekit\n", onboardCheck, onboardMoveCC, onboardMoveCX} {
-			if !slices.Contains(readme, want) {
-				t.Errorf("%s %s lacks the block %q", c.readme, c.update, want)
+		guideAll := onboardBlocks(read(t, c.guide), "bash")
+		guideInstall := onboardBlocks(mdSection(t, c.guide, c.installSec), "bash")
+		guideUpdate := append(onboardBlocks(mdSection(t, c.guide, c.guideUpdate), "bash"),
+			onboardBlocks(mdSection(t, c.guide, c.guideCheck), "bash")...)
+		for _, sec := range []struct {
+			heading string
+			guide   []string
+		}{{c.install, guideInstall}, {c.update, guideUpdate}} {
+			for _, block := range onboardBlocks(mdSection(t, c.readme, sec.heading), "bash") {
+				if !slices.Contains(sec.guide, block) {
+					t.Errorf("%s %s block differs from the same step in %s: %q", c.readme, sec.heading, c.guide, block)
+				}
 			}
 		}
-		for _, block := range readme {
-			if !slices.Contains(guide, block) {
-				t.Errorf("%s %s block differs from %s: %q", c.readme, c.update, c.install, block)
+		for _, block := range onboardBlocks(read(t, c.readme), "bash") {
+			if !slices.Contains(guideAll, block) {
+				t.Errorf("%s block is not one of %s's commands: %q", c.readme, c.guide, block)
+			}
+		}
+		update := onboardBlocks(mdSection(t, c.readme, c.update), "bash")
+		for _, want := range []string{"brew update\n", "brew upgrade jgoneit/tap/jaekit\n", onboardCheck, onboardMoveCC, onboardMoveCX} {
+			if !slices.Contains(update, want) {
+				t.Errorf("%s %s lacks the block %q", c.readme, c.update, want)
 			}
 		}
 	}

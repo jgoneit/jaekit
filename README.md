@@ -31,7 +31,7 @@ Jaekit은 **Codex·Claude Code에 맡긴 작업을 목표부터 완료 기록까
 - **대화가 끊겨도 이어 가고 싶을 때**
   목표·계획·진행 기록이 프로젝트 폴더에 남습니다. 새 대화에서 같은 목표를 지정하면 저장된 지점부터 이어 갑니다.
 - **단계마다 승인하지 않고 맡기고 싶을 때**
-  에이전트가 계획·구현·검사를 이어서 진행합니다. 결과를 바꾸는 결정이나 직접 확인이 필요할 때만 묻습니다.
+  에이전트가 계획·구현·검사를 이어서 진행합니다. 결과를 바꾸는 결정이나 직접 확인이 필요할 때 묻습니다.
 - **구현 전에 요청부터 정리하고 싶을 때**
   Spec만 따로 쓸 수 있습니다. 목표와 완료 조건을 문서로 남겨 두고, 준비됐을 때 Seal을 시작합니다.
 
@@ -47,7 +47,7 @@ Jaekit은 **Codex·Claude Code에 맡긴 작업을 목표부터 완료 기록까
 
 ### 준비물
 
-- **Git으로 관리하는 작업 프로젝트 폴더.** Jaekit 저장소를 clone할 필요는 없습니다.
+- **Git**과 **Git으로 관리하는 작업 프로젝트 폴더.** Jaekit 저장소를 clone할 필요는 없습니다.
 - **Claude Code** 또는 **[Codex CLI](https://learn.chatgpt.com/docs/codex/cli)**
 - macOS·Linux에서는 **[Homebrew](https://brew.sh)**(프로그램 설치 도구)를 권장합니다. 없으면 Release 파일로 설치합니다.
 
@@ -59,14 +59,14 @@ Jaekit은 **Codex·Claude Code에 맡긴 작업을 목표부터 완료 기록까
 | --- | --- | --- | --- |
 | macOS (Apple Silicon·Intel) | 사용 | 사용 | 아래 Homebrew 명령 |
 | Linux (arm64·amd64) | 사용 | 사용 | Homebrew가 있으면 아래 명령, 없으면 [Release 파일로 설치](guides/INSTALL.md#release-파일로-설치) |
-| Windows의 WSL2 (Ubuntu 24.04 x64) | 준비됨·실사용 미확인 | 준비됨·실사용 미확인 | [WSL2 준비 안내](guides/WSL.md)를 따라 Linux 방법으로 설치 |
+| Windows의 WSL2 (Ubuntu 24.04 x64) | 준비됨·실사용 미확인 | 준비됨·실사용 미확인 | [WSL2 준비 안내](guides/WSL.md)를 따라 Release 파일로 설치 |
 | Windows (네이티브) | 미확인 | 사용 불가 | 아직 공개 설치 파일 없음 |
 
 **Windows 사용자**
 
-- 현재 공개 릴리스에서 Windows는 기록 도구 `ha`가 지원되지 않아 Seal을 쓸 수 없습니다.
+- 현재 공개 릴리스에서 네이티브 Windows는 기록 도구 `ha`가 지원되지 않아 Seal을 쓸 수 없습니다. 이 제한은 네이티브 실행에 관한 것입니다.
 - Spec은 `ha`가 필요 없지만, Windows에서의 설치와 동작은 아직 확인하지 않았습니다.
-- WSL2의 Ubuntu 24.04 LTS x64에서는 Linux 방법을 씁니다. 실제 WSL2 설치와 에이전트 사용은 아직 확인하지 않았습니다. → [WSL2 준비 안내](guides/WSL.md)
+- WSL2의 Ubuntu 24.04 LTS x64에서는 Linux용 Release 파일로 설치합니다. Homebrew는 필요하지 않습니다. 실제 WSL2 설치와 에이전트 사용은 아직 확인하지 않았습니다. → [WSL2 준비 안내](guides/WSL.md)
 - 네이티브 Windows(Windows 11 x64, PowerShell 5.1·7)는 개발 중인 후보만 있고, 실제 실행은 확인 전입니다. → [Windows 네이티브 후보 안내](guides/WINDOWS.md)
 
 **1. 터미널에서 기록 도구 `ha`를 설치합니다.** 블록은 하나씩 실행하고, 끝날 때까지 기다립니다.
@@ -77,9 +77,10 @@ brew install jgoneit/tap/jaekit
 
 ```bash
 ha --version
+which -a ha
 ```
 
-`ha 0.1.5`가 나오면 됩니다. 명령을 찾지 못하거나 버전이 다르면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
+`ha 0.1.5`가 나오면 됩니다. `which -a ha`의 첫 줄이 실제로 실행되는 파일입니다. 명령을 찾지 못하거나 버전이 다르면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
 
 Homebrew 없이 설치하려면 이 단계 대신 [Release 파일로 설치](guides/INSTALL.md#release-파일로-설치)의 블록을 붙여 넣습니다. OS와 CPU에 맞는 파일을 받아 checksum을 확인한 뒤 `~/.local/bin/ha`에 둡니다. 다른 설치 방법과 자세한 설명은 [설치 안내](guides/INSTALL.md)에 있습니다.
 
@@ -93,9 +94,10 @@ Homebrew 없이 설치하려면 이 단계 대신 [Release 파일로 설치](gui
 claude plugin marketplace add jgoneit/jaekit#v0.1.5
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
+claude plugin list
 ```
 
-설치 후 **Claude Code를 새로 엽니다.** `#v0.1.5`는 사용할 배포판을 고정합니다. 자세한 내용은 [Claude Code 설치](guides/INSTALL.md#claude-code)를 봅니다.
+마지막 목록에 `spec@jaekit`, `seal@jaekit`가 enabled로 보이면 됩니다. 설치 후 **Claude Code를 새로 엽니다.** `#v0.1.5`는 사용할 배포판을 고정합니다. 자세한 내용은 [Claude Code 설치](guides/INSTALL.md#claude-code)를 봅니다.
 
 **Codex**
 

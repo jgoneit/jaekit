@@ -31,7 +31,7 @@ The current release is **v0.1.5**, an early version being refined through real w
 - **You want to pick up where a conversation ended**
   Goals, plans, and progress records stay in the project folder. In a new conversation, specify the same goal to continue from the saved point.
 - **You do not want to approve every step**
-  The agent plans, implements, and checks on its own. It asks only when a decision affects the outcome or a check needs your confirmation.
+  The agent plans, implements, and checks on its own. It asks when a decision affects the outcome or a check needs your confirmation.
 - **You want to define the request before implementing it**
   Spec works on its own. Keep the goal and completion conditions as a document and start Seal when you are ready.
 
@@ -47,7 +47,7 @@ The current release is **v0.1.5**, an early version being refined through real w
 
 ### What you need
 
-- **A project folder managed with Git.** You do not need to clone the Jaekit repository.
+- **Git** and **a project folder managed with Git.** You do not need to clone the Jaekit repository.
 - **Claude Code** or **[Codex CLI](https://learn.chatgpt.com/docs/codex/cli)**
 - On macOS and Linux, **[Homebrew](https://brew.sh)** (a program installer) is recommended. Without it, install from a Release file.
 
@@ -59,14 +59,14 @@ First check what you can use in your environment.
 | --- | --- | --- | --- |
 | macOS (Apple Silicon, Intel) | Yes | Yes | The Homebrew command below |
 | Linux (arm64, amd64) | Yes | Yes | The command below with Homebrew; otherwise [Install from a Release file](guides/INSTALL.en.md#install-from-a-release-file) |
-| WSL2 on Windows (Ubuntu 24.04 x64) | Prepared, not yet checked in use | Prepared, not yet checked in use | Follow the [WSL2 preparation guide](guides/WSL.en.md) and install the Linux way |
+| WSL2 on Windows (Ubuntu 24.04 x64) | Prepared, not yet checked in use | Prepared, not yet checked in use | Follow the [WSL2 preparation guide](guides/WSL.en.md) and install from a Release file |
 | Windows (native) | Not checked | Not available | No public installation files yet |
 
 **Windows users**
 
-- In the current public release, the record tool `ha` does not support Windows, so Seal cannot run there.
+- In the current public release, the record tool `ha` does not support Windows natively, so Seal cannot run there. This limitation refers to native execution.
 - Spec does not need `ha`, but its installation and operation on Windows have not been checked yet.
-- In WSL2 with Ubuntu 24.04 LTS x64, install the Linux way. Installation and agent use in actual WSL2 have not been checked yet. → [WSL2 preparation guide](guides/WSL.en.md)
+- In WSL2 with Ubuntu 24.04 LTS x64, install from the Linux Release file; Homebrew is not needed. Installation and agent use in actual WSL2 have not been checked yet. → [WSL2 preparation guide](guides/WSL.en.md)
 - Native Windows (Windows 11 x64, PowerShell 5.1 and 7) has only a candidate under development; actual execution has not been checked. → [Windows native candidate guide](guides/WINDOWS.en.md)
 
 **1. In Terminal, install the record tool `ha`.** Run one block at a time and wait for it to finish.
@@ -77,9 +77,10 @@ brew install jgoneit/tap/jaekit
 
 ```bash
 ha --version
+which -a ha
 ```
 
-It should print `ha 0.1.5`. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
+It should print `ha 0.1.5`. The first line of `which -a ha` is the file that actually runs. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
 
 To install without Homebrew, paste the block under [Install from a Release file](guides/INSTALL.en.md#install-from-a-release-file) instead of this step. It downloads the file for your OS and CPU, checks its checksum, and puts it at `~/.local/bin/ha`. Other methods and details are in the [install guide](guides/INSTALL.en.md).
 
@@ -93,9 +94,10 @@ If you already installed Jaekit, follow [Update](#update) below. If you register
 claude plugin marketplace add jgoneit/jaekit#v0.1.5
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
+claude plugin list
 ```
 
-**Reopen Claude Code after installation.** `#v0.1.5` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
+The final list should show `spec@jaekit` and `seal@jaekit` as enabled. **Reopen Claude Code after installation.** `#v0.1.5` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
 
 **Codex**
 
