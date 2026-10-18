@@ -1,0 +1,17 @@
+# status-delta AC-5: ha done keeps its output; the unmet summary and done details are for ha status.
+include implement
+write src/greeting.txt "bye\n"
+commit "break the greeting"
+ha check $GOAL
+expect-exit 1
+ha done $GOAL
+expect-exit 1
+expect-output "- completion record: none\n"
+expect-no-output "### Unmet"
+expect-no-output "latest done seq"
+ha done $GOAL
+expect-exit 1
+expect-output "- completion record: none\n"
+expect-no-output "latest done seq"
+ha status $GOAL
+expect-output "### Unmet"

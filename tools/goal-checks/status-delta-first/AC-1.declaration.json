@@ -1,0 +1,321 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/status-delta-first/AC-1.targets.json",
+    "tools/goal-checks/status-delta-first/observe_status.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "unmet-summary",
+      "violation": "unmet-summary-missing"
+    },
+    {
+      "id": "unmet-summary.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-summary.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest",
+      "violation": "unmet-summary-missing"
+    },
+    {
+      "id": "unmet-latest.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-latest.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd",
+      "violation": "unmet-summary-missing"
+    },
+    {
+      "id": "unmet-command-cwd.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-command-cwd.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-baseline",
+      "violation": "unmet-summary-missing"
+    },
+    {
+      "id": "unmet-baseline.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-baseline.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-baseline.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-baseline.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-baseline.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-baseline.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-baseline.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-baseline.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-baseline.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-baseline.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit",
+      "violation": "unmet-summary-missing"
+    },
+    {
+      "id": "unmet-error-limit.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-error-limit.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid",
+      "violation": "unmet-summary-missing"
+    },
+    {
+      "id": "unmet-invalid.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-invalid.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class",
+      "violation": "unmet-summary-missing"
+    },
+    {
+      "id": "unmet-goal-user-class.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unmet-goal-user-class.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

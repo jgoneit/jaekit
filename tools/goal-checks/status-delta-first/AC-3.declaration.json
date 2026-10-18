@@ -1,0 +1,365 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/status-delta-first/AC-3.targets.json",
+    "tools/goal-checks/status-delta-first/observe_status.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "stale-code",
+      "violation": "invalidated-completion-hidden"
+    },
+    {
+      "id": "stale-code.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-code.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-code.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-code.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-code.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-code.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-code.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-code.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-code.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-code.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-reopen",
+      "violation": "invalidated-completion-hidden"
+    },
+    {
+      "id": "stale-reopen.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-reopen.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-reopen.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-reopen.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-reopen.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-reopen.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-reopen.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-reopen.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-reopen.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-reopen.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-goal-docs",
+      "violation": "invalidated-completion-hidden"
+    },
+    {
+      "id": "stale-goal-docs.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-goal-docs.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-goal-docs.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-goal-docs.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-goal-docs.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-goal-docs.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-goal-docs.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-goal-docs.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-goal-docs.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-goal-docs.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-command",
+      "violation": "invalidated-completion-hidden"
+    },
+    {
+      "id": "stale-command.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-command.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-command.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-command.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-command.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-command.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-command.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-command.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-command.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-command.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain",
+      "violation": "invalidated-completion-hidden"
+    },
+    {
+      "id": "stale-chain.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-chain.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-latest-done",
+      "violation": "invalidated-completion-hidden"
+    },
+    {
+      "id": "stale-latest-done.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-latest-done.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-latest-done.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-latest-done.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-latest-done.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-latest-done.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-latest-done.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-latest-done.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-latest-done.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-latest-done.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "done-forms",
+      "violation": "invalidated-completion-hidden"
+    },
+    {
+      "id": "done-forms.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "done-forms.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "done-forms.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "done-forms.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "done-forms.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "done-forms.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "done-forms.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "done-forms.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "done-forms.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "done-forms.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-scenario",
+      "violation": "stale-reason-scenario-missing"
+    },
+    {
+      "id": "stale-scenario.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-scenario.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-scenario.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-scenario.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-scenario.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-scenario.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-scenario.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-scenario.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-scenario.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "stale-scenario.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

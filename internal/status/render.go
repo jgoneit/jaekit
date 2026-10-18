@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -52,6 +53,67 @@ func cell(s string) string {
 	return strings.ReplaceAll(s, "|", `\|`)
 }
 
+// DisplayGoal is the goal path that commands in human output name, as one
+// shell word: the argument as given, so a command works from the same
+// directory, or the repository-relative goal path (run from the repository
+// root) when the argument is absolute. Human output never carries an
+// absolute path.
+func DisplayGoal(arg, repoGoal string) string {
+	if arg == "" || filepath.IsAbs(arg) || strings.HasPrefix(arg, "/") {
+		return shellWord(repoGoal)
+	}
+	return shellWord(arg)
+}
+
+// shellWord leaves a path of ordinary characters as it is and single-quotes
+// any other, so a copied command passes it as one argument.
+func shellWord(s string) string {
+	for _, r := range s {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune("-_./@%+=:,", r)) {
+			return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+		}
+	}
+	return s
+}
+
+// unmet lists what keeps the goal from completing before the criteria table:
+// each unsatisfied required criterion with its reason, class and the fresh
+// record the reason rests on, then each goal-level reason. A record whose
+// output was stored gets the exact `ha log` command (see DisplayGoal);
+// others say that no output is stored. Nothing is listed once the goal is
+// complete.
+func (rep *Report) unmet(w func(string, ...any), goal string) {
+	if rep.plain || rep.Status == Complete || len(rep.Reasons) == 0 {
+		return
+	}
+	w("\n### Unmet\n\n")
+	for _, r := range rep.Reasons {
+		if r.Criterion == "" {
+			w("- `%s` (%s)\n", r.Code, r.Class)
+			continue
+		}
+		line := fmt.Sprintf("- %s `%s` (%s)", r.Criterion, r.Code, r.Class)
+		switch j, ok := rep.judged[r.Criterion]; {
+		case ok && j.Output != "":
+			line += fmt.Sprintf(": seq %d, output `ha log %s %d`", j.Seq, goal, j.Seq)
+		case ok:
+			line += fmt.Sprintf(": seq %d, no stored output", j.Seq)
+		case r.Code != "manual_unconfirmed":
+			line += ": no fresh record"
+		}
+		w("%s\n", line)
+	}
+}
+
+// DoneMarkdown renders what `ha done` prints. Its completion record output
+// stays as it was before the unmet summary and done details, which belong
+// to `ha status` (run-record.md §4.4).
+func (rep *Report) DoneMarkdown(goalArg string) string {
+	plain := *rep
+	plain.plain, plain.doneState = true, nil
+	return plain.Markdown(goalArg)
+}
+
 // Markdown renders the report for people and for pasting into PROGRESS.md.
 // It never contains command output.
 func (rep *Report) Markdown(goalArg string) string {
@@ -59,13 +121,25 @@ func (rep *Report) Markdown(goalArg string) string {
 	w := func(format string, a ...any) { fmt.Fprintf(&b, format, a...) }
 	w("## ha status: %s\n\n", rep.Goal)
 	w("- status: **%s** (exit %d)\n", rep.Status, rep.ExitCode)
-	switch {
-	case rep.CompletionRecord != nil:
+	goal := DisplayGoal(goalArg, rep.Goal)
+	if rep.CompletionRecord != nil {
 		w("- completion record: seq %d\n", *rep.CompletionRecord)
-	case rep.CompleteWithoutRecord:
-		w("- completion record: none; run `ha done %s` to record completion\n", goalArg)
-	default:
-		w("- completion record: none\n")
+	} else {
+		line := "- completion record: none"
+		if d := rep.doneState; d != nil {
+			if d.LatestStatus != Complete {
+				line += fmt.Sprintf("; latest done seq %d (commit %s) recorded %s, not a completion",
+					d.LatestSeq, shortHash(d.LatestCommit), d.LatestStatus)
+			}
+			if s := d.Completion; s != nil {
+				line += fmt.Sprintf("; latest completion seq %d (commit %s) is no longer valid: %s",
+					s.Seq, shortHash(s.Commit), strings.Join(s.Reasons, "; "))
+			}
+		}
+		if rep.CompleteWithoutRecord {
+			line += fmt.Sprintf("; run `ha done %s` to record completion", goal)
+		}
+		w("%s\n", line)
 	}
 	if rep.Findings != nil && len(rep.Findings.Findings) > 0 {
 		w("\n%s\n", rep.Findings.Markdown())
@@ -85,6 +159,8 @@ func (rep *Report) Markdown(goalArg string) string {
 	w("- code: %s, tree clean: %s; goal digest: %s\n", shortHash(rep.Commit), yesNo(rep.TreeClean), shortHash(rep.SpecDigest))
 	u := rep.Usage
 	w("- attempts: %d total; types: %d check, %d baseline; outcomes: %d environment errors, %d unknown; inputs: %d current, %d stale; valid positive evidence: %d (overlapping axes)\n", u.Total, u.Checks, u.Baselines, u.EnvironmentErrors, u.Unknowns, u.CurrentInputs, u.StaleInputs, u.ValidEvidence)
+
+	rep.unmet(w, goal)
 
 	w("\n### Criteria\n\n| ID | kind | required | satisfied | reason | records | attempts |\n| --- | --- | --- | --- | --- | --- | --- |\n")
 	for _, c := range rep.Criteria {
@@ -156,7 +232,7 @@ func (rep *Report) Markdown(goalArg string) string {
 		}
 	}
 	if len(rep.Logs) > 0 {
-		w("\n### Local output\n\nView with `ha log %s <seq>`; output is never copied into the record.\n\n", goalArg)
+		w("\n### Local output\n\nView with `ha log %s <seq>`; output is never copied into the record.\n\n", goal)
 		for _, l := range rep.Logs {
 			reason := ""
 			if l.Reason != "" {

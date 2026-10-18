@@ -1,0 +1,165 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "stale-code",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "InvalidatedCompletion.test_code_change_after_completion",
+      "result_targets": {
+        "additional_violations": [
+          "stale-code.assertion-2",
+          "stale-code.assertion-3",
+          "stale-code.assertion-4",
+          "stale-code.assertion-5",
+          "stale-code.assertion-6",
+          "stale-code.assertion-7",
+          "stale-code.assertion-8"
+        ],
+        "execution": "stale-code.execution",
+        "selection": "stale-code.selection",
+        "attribution": "stale-code.attribution"
+      }
+    },
+    {
+      "target": "stale-reopen",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "InvalidatedCompletion.test_reopen_after_completion",
+      "result_targets": {
+        "additional_violations": [
+          "stale-reopen.assertion-2",
+          "stale-reopen.assertion-3",
+          "stale-reopen.assertion-4",
+          "stale-reopen.assertion-5",
+          "stale-reopen.assertion-6",
+          "stale-reopen.assertion-7",
+          "stale-reopen.assertion-8"
+        ],
+        "execution": "stale-reopen.execution",
+        "selection": "stale-reopen.selection",
+        "attribution": "stale-reopen.attribution"
+      }
+    },
+    {
+      "target": "stale-goal-docs",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "InvalidatedCompletion.test_goal_document_change_after_completion",
+      "result_targets": {
+        "additional_violations": [
+          "stale-goal-docs.assertion-2",
+          "stale-goal-docs.assertion-3",
+          "stale-goal-docs.assertion-4",
+          "stale-goal-docs.assertion-5",
+          "stale-goal-docs.assertion-6",
+          "stale-goal-docs.assertion-7",
+          "stale-goal-docs.assertion-8"
+        ],
+        "execution": "stale-goal-docs.execution",
+        "selection": "stale-goal-docs.selection",
+        "attribution": "stale-goal-docs.attribution"
+      }
+    },
+    {
+      "target": "stale-command",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "InvalidatedCompletion.test_command_change_after_completion",
+      "result_targets": {
+        "additional_violations": [
+          "stale-command.assertion-2",
+          "stale-command.assertion-3",
+          "stale-command.assertion-4",
+          "stale-command.assertion-5",
+          "stale-command.assertion-6",
+          "stale-command.assertion-7",
+          "stale-command.assertion-8"
+        ],
+        "execution": "stale-command.execution",
+        "selection": "stale-command.selection",
+        "attribution": "stale-command.attribution"
+      }
+    },
+    {
+      "target": "stale-chain",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "InvalidatedCompletion.test_broken_record_chain_after_completion",
+      "result_targets": {
+        "additional_violations": [
+          "stale-chain.assertion-2",
+          "stale-chain.assertion-3",
+          "stale-chain.assertion-4",
+          "stale-chain.assertion-5",
+          "stale-chain.assertion-6",
+          "stale-chain.assertion-7",
+          "stale-chain.assertion-8"
+        ],
+        "execution": "stale-chain.execution",
+        "selection": "stale-chain.selection",
+        "attribution": "stale-chain.attribution"
+      }
+    },
+    {
+      "target": "stale-latest-done",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "InvalidatedCompletion.test_latest_done_of_any_state_is_named",
+      "result_targets": {
+        "additional_violations": [
+          "stale-latest-done.assertion-2",
+          "stale-latest-done.assertion-3",
+          "stale-latest-done.assertion-4",
+          "stale-latest-done.assertion-5",
+          "stale-latest-done.assertion-6",
+          "stale-latest-done.assertion-7",
+          "stale-latest-done.assertion-8"
+        ],
+        "execution": "stale-latest-done.execution",
+        "selection": "stale-latest-done.selection",
+        "attribution": "stale-latest-done.attribution"
+      }
+    },
+    {
+      "target": "done-forms",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "DoneForms.test_only_an_unfinished_done_is_named",
+      "result_targets": {
+        "additional_violations": [
+          "done-forms.assertion-2",
+          "done-forms.assertion-3",
+          "done-forms.assertion-4",
+          "done-forms.assertion-5",
+          "done-forms.assertion-6",
+          "done-forms.assertion-7",
+          "done-forms.assertion-8"
+        ],
+        "execution": "done-forms.execution",
+        "selection": "done-forms.selection",
+        "attribution": "done-forms.attribution"
+      }
+    },
+    {
+      "target": "stale-scenario",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "ScenarioPinsReasons.test_completion_invalidated_scenario_passes",
+      "result_targets": {
+        "additional_violations": [
+          "stale-scenario.assertion-2",
+          "stale-scenario.assertion-3",
+          "stale-scenario.assertion-4",
+          "stale-scenario.assertion-5",
+          "stale-scenario.assertion-6",
+          "stale-scenario.assertion-7",
+          "stale-scenario.assertion-8"
+        ],
+        "execution": "stale-scenario.execution",
+        "selection": "stale-scenario.selection",
+        "attribution": "stale-scenario.attribution"
+      }
+    }
+  ]
+}
