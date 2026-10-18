@@ -4,6 +4,7 @@ These checks use synthetic repositories and real local Go processes. They do
 not read earlier goals, run a host, publish anything or invoke the recorder.
 """
 from contextlib import contextmanager, redirect_stderr
+import hashlib
 import importlib.util
 import io
 import json
@@ -61,6 +62,22 @@ def forbidden_path():
     return "/" + "home" + "/" + "fixture-account" + "/" + "trace.json"
 
 
+def current_file_checks(retention):
+    """Current-file judgments for a public copy, run from the copy's root."""
+    python = sys.executable
+    return [
+        ("public file boundary", [python, "tools/check_public_tree.py"]),
+        ("public documentation", [python, "tools/check_public_docs.py"]),
+        ("goal test producer", [python, "tools/goal-checks/produce.py",
+                                "tools/review-checks/current-files.declaration.json",
+                                "tools/review-checks/current-files.targets.json"]),
+        ("review regression producer", [python, "tools/review-checks/produce.py", "AC-10"]),
+        ("gap regression producer", [python, "tools/gap-checks/produce.py", "AC-5"]),
+        ("preservation producer", [python, "tools/gap-checks/preservation.py", "--retention", str(retention),
+                                   "--retention-only"]),
+    ]
+
+
 class AC9(unittest.TestCase):
     def test_current_tree_accepts_valid_files_and_rejects_bad_files_without_ancestors(self):
         with tempfile.TemporaryDirectory(prefix="jaekit-current-tree-") as directory:
@@ -88,15 +105,23 @@ class AC9(unittest.TestCase):
                                             capture_output=True, timeout=60)
                     self.assertEqual(result.returncode, 0,
                                      "[requirement] valid current files require no historical digest: " + result.stderr)
-                    for current_check in (["go", "test", "-mod=readonly", "./..."],
-                                          [sys.executable, "tools/verify.py", "docs"]):
-                        with self.subTest(check=current_check):
+                    # The full Go suite and the docs group run once, in the original
+                    # tree. Each copy observes only current-file judgments: the
+                    # public checks and the producers of the current-file route.
+                    retention = Path(directory) / f"{repository.name}-retention.json"
+                    retention.write_text(json.dumps({"checkout": str(repository), "documents": {
+                        "README.md": hashlib.sha256((repository / "README.md").read_bytes()).hexdigest()}}))
+                    for label, current_check in current_file_checks(retention):
+                        with self.subTest(check=label):
                             checked = subprocess.run(current_check, cwd=repository, env=ENV, text=True,
                                                      capture_output=True, timeout=900)
                             self.assertEqual(
                                 checked.returncode, 0,
-                                "[requirement] ordinary product and public checks must pass without "
-                                "historical or private inputs: " + checked.stdout + checked.stderr)
+                                f"[requirement] {label} must judge current files in the {repository.name} "
+                                "public copy (no docs/, no .git/ha"
+                                + (", no ancestor commit" if repository is shallow else "")
+                                + ") without private goal documents, raw logs or history beyond the checked "
+                                "commit:\n" + (checked.stdout + checked.stderr)[-4000:])
                     bad = repository / "guides/synthetic-review.md"
                     bad.write_text("docs/specs/" + "release-" + "0-1-3" + "/runs.jsonl\n")
                     git(repository, "add", "guides/synthetic-review.md")

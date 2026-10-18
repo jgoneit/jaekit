@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "tracked-files",
+      "runner": "unittest",
+      "file": "tools/goal-checks/release-0-1-3-review-fixes/test_private_independence.py",
+      "test": "TrackedFiles",
+      "result_targets": {
+        "additional_violations": [
+          "tracked-files.assertion-2",
+          "tracked-files.assertion-3",
+          "tracked-files.assertion-4",
+          "tracked-files.assertion-5",
+          "tracked-files.assertion-6",
+          "tracked-files.assertion-7",
+          "tracked-files.assertion-8"
+        ],
+        "execution": "tracked-files.execution",
+        "selection": "tracked-files.selection",
+        "attribution": "tracked-files.attribution"
+      }
+    }
+  ]
+}
