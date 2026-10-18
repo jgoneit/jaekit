@@ -27,6 +27,30 @@ func TestComputationNeverReadsTheClock(t *testing.T) {
 	}
 }
 
+// The BudgetState comment gives the /4 reopen limit as run-record.md §4.7
+// does: later decreases count, and a pre-approval record does not.
+func TestBudgetStateCommentFollowsRunRules4Reopen(t *testing.T) {
+	src, err := os.ReadFile("budget.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, body, ok := strings.Cut(string(src), "type BudgetState struct {")
+	body, _, closed := strings.Cut(body, "\n}\n")
+	if !ok || !closed {
+		t.Fatal("budget.go has no BudgetState struct")
+	}
+	comment := strings.ReplaceAll(body, "\n\t// ", " ")
+	for _, want := range []string{"lowered by any later decrease below it",
+		"Neither a pre-approval record nor an unquoted increase within one changes it", "(run-record.md §4.7)"} {
+		if !strings.Contains(comment, want) {
+			t.Errorf("[requirement] budget.go BudgetState comment is missing %q", want)
+		}
+	}
+	if old := "from the last limit the user set (inheritRuns)"; strings.Contains(comment, old) {
+		t.Errorf("[requirement] budget.go BudgetState comment still says %q", old)
+	}
+}
+
 func TestDecideOrder(t *testing.T) {
 	r := func(code string) Reason { return Reason{Code: code, Class: classOf[code]} }
 	cases := []struct {
