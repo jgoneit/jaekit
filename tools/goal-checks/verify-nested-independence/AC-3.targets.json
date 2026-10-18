@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "copy-boundary",
+      "runner": "unittest",
+      "file": "tools/goal-checks/verify-nested-independence/observe_copies.py",
+      "test": "CopyBoundary",
+      "result_targets": {
+        "additional_violations": [
+          "copy-boundary.assertion-2",
+          "copy-boundary.assertion-3",
+          "copy-boundary.assertion-4",
+          "copy-boundary.assertion-5",
+          "copy-boundary.assertion-6",
+          "copy-boundary.assertion-7",
+          "copy-boundary.assertion-8"
+        ],
+        "execution": "copy-boundary.execution",
+        "selection": "copy-boundary.selection",
+        "attribution": "copy-boundary.attribution"
+      }
+    }
+  ]
+}

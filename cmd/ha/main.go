@@ -59,6 +59,7 @@ Usage:
   ha status <goal> [--format md|json]
   ha done   <goal> [--format md|json]
   ha log    <goal> <seq> [--tail N]
+  ha timing <goal> [--format md|json]
   ha --version
 
 <goal> is a goal directory such as docs/specs/empty-input.
@@ -124,6 +125,8 @@ func runMain(argv []string, stdout, stderr io.Writer) int {
 		return c.status(rest, true)
 	case "log":
 		return c.log(rest)
+	case "timing":
+		return c.timing(rest)
 	}
 	return c.fail(exitUsage, "unknown command %q; run ha --help", cmd)
 }
@@ -561,7 +564,7 @@ func (c *cli) check(in []string) int {
 				Argv: t.argv, CommandDigest: digest, Commit: head, TreeClean: clean, SpecDigest: w.goal.Digest,
 				BaseCommit: start.BaseCommit, Overlay: overlay, Exit: res.Exit, Result: result,
 				DurationMS: res.Duration.Milliseconds(), OutputDigest: res.Digest,
-				Evidence: proof,
+				Evidence: proof, Timing: timing(res, checkTimeout),
 			}
 			entry = bl
 			prepareBase := prepare
@@ -579,7 +582,7 @@ func (c *cli) check(in []string) int {
 				Header: record.Header{Kind: "check", HaVersion: version}, Target: tgt, CriterionKind: t.kind,
 				Argv: t.argv, CommandDigest: digest, Commit: head, TreeClean: clean, SpecDigest: w.goal.Digest,
 				Exit: res.Exit, Result: result, DurationMS: res.Duration.Milliseconds(), OutputDigest: res.Digest,
-				Evidence: proof,
+				Evidence: proof, Timing: timing(res, checkTimeout),
 			}
 			entry = ck
 			prepareBase := prepare
@@ -618,6 +621,26 @@ func (c *cli) check(in []string) int {
 		return exitOK
 	}
 	return exitProblems
+}
+
+// timing is the record form of a run's process measurement (run-record.md
+// §2.2). limit is the time limit ha applied to the run.
+func timing(res run.Result, limit time.Duration) *record.Timing {
+	t := &record.Timing{LimitMS: limit.Milliseconds(), LimitReached: res.LimitReached,
+		CPU: record.CPU{Status: res.CPU.Status, Scope: res.CPU.Scope, Source: res.CPU.Source}}
+	if res.LimitElapsed != nil {
+		ms := res.LimitElapsed.Milliseconds()
+		t.LimitElapsedMS = &ms
+	}
+	switch res.CPU.Status {
+	case run.CPUMeasured:
+		user, system := res.CPU.User.Milliseconds(), res.CPU.System.Milliseconds()
+		t.CPU.UserMS, t.CPU.SystemMS = &user, &system
+	case run.CPUFailed:
+	default:
+		t.CPU.Status = run.CPUUnavailable
+	}
+	return t
 }
 
 // runBaseline runs the command in a temporary worktree of the base commit with

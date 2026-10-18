@@ -16,8 +16,14 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
-JOBS = {"Core / Ubuntu": "Linux", "Core / macOS": "macOS", "Core / Windows": "Windows"}
-REQUIRED = set(JOBS) | {"Seal Core", "Public documentation"}
+UNIX_JOBS = {"Core / Ubuntu": "Linux", "Core / macOS": "macOS"}
+# PowerShell versions each Windows job reports. Each shell has its own job;
+# runs recorded before that split have one job that reports both shells.
+WINDOWS_JOBS = {"Core / Windows PowerShell 5.1": ("5.1",), "Core / Windows PowerShell 7": ("7.",)}
+ONE_JOB_WINDOWS = {"Core / Windows": ("5.1", "7.")}
+AGGREGATES = {"Seal Core", "Public documentation"}
+JOBS = {**UNIX_JOBS, **dict.fromkeys(WINDOWS_JOBS, "Windows")}
+REQUIRED = set(JOBS) | AGGREGATES
 SCENARIOS = {
     "TestNativeAdmissionFailureHasNoOutputDigest", "TestNativeUnconfirmedShutdownHasNoOutputDigest",
     "TestNativeArgvEnvironmentAndOutcomes", "TestNativeTimeoutStopsDescendantWrites",
@@ -28,7 +34,8 @@ WINDOWS = {"TestNativeJobLayout", "TestNativeBaselineRejectsJunction", "TestNati
 PACKAGE_CHECKS = {"candidate-manifest-sha256", "candidate-native-version-capabilities",
                   "space-unicode-drive-path", "checksum-refusal", "archive-traversal-refusal",
                   "archive-case-collision-refusal", "archive-file-directory-collision-refusal",
-                  "archive-reserved-name-refusal", "archive-stream-name-refusal", "junction-path-refusal"}
+                  "archive-reserved-name-refusal", "archive-stream-name-refusal", "archive-name-character-refusal",
+                  "junction-path-refusal"}
 INSTALL = {"fresh", "reinstall", "checksum_rejection_preserves", "conflict_rejection_preserves",
            "update", "old_data_cleanup", "uninstall_preserves"}
 
@@ -86,7 +93,9 @@ def records(log, prefix):
 
 def configuration_present():
     workflow = (ROOT / ".github/workflows/ci.yml").read_text()
-    require(all(f"name: {name}" in workflow for name in REQUIRED), "native CI jobs or aggregate missing")
+    names = {line.strip() for line in workflow.splitlines()}
+    require(any(all(f"name: {name}" in names for name in set(UNIX_JOBS) | AGGREGATES | set(layout))
+                for layout in (WINDOWS_JOBS, ONE_JOB_WINDOWS)), "native CI jobs or aggregate missing")
     require("tools/ci/native_unix.py" in workflow and "tools/windows/native_checks.ps1" in workflow,
             "native runtime entrypoints missing from CI")
     require("needs:" in workflow and "always()" in workflow, "required aggregate wiring missing")
@@ -154,8 +163,11 @@ def live_run(native_validator=None):
     jobs = api(f"repos/{repo}/actions/runs/{run['id']}/attempts/{run['run_attempt']}/jobs?per_page=100")
     rows = jobs.get("jobs", [])
     require(jobs.get("total_count") == len(rows), "truncated job list")
-    require(len(rows) == len(REQUIRED) and {j.get("name") for j in rows} == REQUIRED,
-            "required jobs missing or ambiguous")
+    names = {j.get("name") for j in rows}
+    layout = next((windows for windows in (WINDOWS_JOBS, ONE_JOB_WINDOWS)
+                   if names == set(UNIX_JOBS) | AGGREGATES | set(windows)), None)
+    require(layout is not None and len(rows) == len(names), "required jobs missing or ambiguous")
+    native = {**UNIX_JOBS, **dict.fromkeys(layout, "Windows")}
     sources = set()
     escape_flags = None
     for job in rows:
@@ -163,7 +175,7 @@ def live_run(native_validator=None):
         steps = job.get("steps", [])
         require(steps and all(s.get("status") == "completed" and s.get("conclusion") == "success" for s in steps),
                 "required job has missing/skipped/failed step")
-        if job["name"] not in JOBS:
+        if job["name"] not in native:
             continue
         # gh run view scans lines with a fixed-size buffer. Native reports can
         # exceed it; the raw job endpoint preserves each complete JSON record.
@@ -180,20 +192,22 @@ def live_run(native_validator=None):
         source = context.get("source_sha")
         require(context.get("event") == "pull_request" and context.get("head_sha") == head and
                 context.get("base_sha") == pr["base"]["sha"], "PR context/head/base mismatch")
-        require(context.get("runner_os") == JOBS[job["name"]] and context.get("os") and context.get("arch")
+        require(context.get("runner_os") == native[job["name"]] and context.get("os") and context.get("arch")
                 and context.get("shell"), "actual runner OS/CPU/shell missing")
         require(isinstance(source, str) and re.fullmatch(r"[0-9a-f]{40}", source), "source SHA missing")
         sources.add(source)
         reports = records(log, "JAEKIT_CI_REPORT ")
-        require(len(reports) == (2 if JOBS[job["name"]] == "Windows" else 1), "native report missing/duplicate")
+        shells = layout.get(job["name"], (None,))
+        require(len(reports) == len(shells), "native report missing/duplicate")
         for report in reports:
-            native_report(report, JOBS[job["name"]], source)
+            native_report(report, native[job["name"]], source)
             if native_validator is not None:
-                native_validator(report, JOBS[job["name"]], source)
-        if JOBS[job["name"]] == "Windows":
+                native_validator(report, native[job["name"]], source)
+        if native[job["name"]] == "Windows":
+            # Each shell this job runs reports exactly once.
             versions = [str(r["environment"]["shell_version"]) for r in reports]
-            require(any(v.startswith("5.1") for v in versions) and any(v.startswith("7.") for v in versions),
-                    "both actual PowerShell 5.1 and 7 required")
+            require(all(sum(v.startswith(shell) for v in versions) == 1 for shell in shells),
+                    "actual PowerShell " + " and ".join(s.rstrip(".") for s in shells) + " required in " + job["name"])
     require(len(sources) == 1, "OS jobs tested different sources")
     source = sources.pop()
     commit = api(f"repos/{repo}/git/commits/{source}")
@@ -217,7 +231,7 @@ def live_run(native_validator=None):
             not command(["git", "status", "--porcelain"]).strip(), "local source changed during CI observation")
     print(json.dumps({"repository": repo, "pull_request": pr_info["number"], "head": head,
                       "base": pr["base"]["sha"], "tested_source": source, "run_id": run["id"],
-                      "run_attempt": run["run_attempt"], "url": run["html_url"], "jobs": sorted(REQUIRED)}))
+                      "run_attempt": run["run_attempt"], "url": run["html_url"], "jobs": sorted(names)}))
     return repo, head
 
 

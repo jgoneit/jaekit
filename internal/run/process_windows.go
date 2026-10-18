@@ -52,7 +52,11 @@ type threadEntry struct {
 	Flags                       uint32
 }
 
-type processGroup struct{ job syscall.Handle }
+type processGroup struct {
+	job syscall.Handle
+	// accounting is the job's last accounting after every process ended.
+	accounting *jobAccounting
+}
 
 func winCall(proc *syscall.LazyProc, args ...uintptr) error {
 	ok, _, err := proc.Call(args...)
@@ -167,6 +171,7 @@ func (g *processGroup) finish() error {
 			return err
 		}
 		if accounting.ActiveProcesses == 0 {
+			g.accounting = &accounting
 			return nil
 		}
 		if time.Now().After(deadline) {
@@ -177,3 +182,18 @@ func (g *processGroup) finish() error {
 }
 
 func processSignal(_ *exec.ExitError) (int, string) { return 0, "" }
+
+// processCPU reads the user and kernel time the Job Object accounted for every
+// process that ran in the job, read after all of them ended.
+func processCPU(_ *exec.Cmd, controller processController) CPU {
+	cpu := CPU{Status: CPUFailed, Scope: "job-process-tree", Source: "job-object-accounting"}
+	g, ok := controller.(*processGroup)
+	if !ok || g.accounting == nil {
+		return cpu
+	}
+	// Job accounting counts in 100-nanosecond units.
+	cpu.Status = CPUMeasured
+	cpu.User = time.Duration(g.accounting.UserTime) * 100
+	cpu.System = time.Duration(g.accounting.KernelTime) * 100
+	return cpu
+}

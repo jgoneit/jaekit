@@ -1,0 +1,133 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "one-job-readers",
+      "runner": "unittest",
+      "file": "tools/goal-checks/windows-ci-parallel-shells/observe_ci.py",
+      "test": "Readers.test_one_job_runs_keep_their_judgments",
+      "result_targets": {
+        "additional_violations": [
+          "one-job-readers.assertion-2",
+          "one-job-readers.assertion-3",
+          "one-job-readers.assertion-4",
+          "one-job-readers.assertion-5",
+          "one-job-readers.assertion-6",
+          "one-job-readers.assertion-7",
+          "one-job-readers.assertion-8"
+        ],
+        "execution": "one-job-readers.execution",
+        "selection": "one-job-readers.selection",
+        "attribution": "one-job-readers.attribution"
+      }
+    },
+    {
+      "target": "entry-name-route",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/goal-checks",
+        "-p",
+        "test_entry_name_ci_runs.py"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "entry-name-route.assertion-2",
+          "entry-name-route.assertion-3",
+          "entry-name-route.assertion-4",
+          "entry-name-route.assertion-5",
+          "entry-name-route.assertion-6",
+          "entry-name-route.assertion-7",
+          "entry-name-route.assertion-8"
+        ],
+        "execution": "entry-name-route.execution",
+        "selection": "entry-name-route.selection",
+        "attribution": "entry-name-route.attribution"
+      }
+    },
+    {
+      "target": "observer-regressions",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/workflow-checks",
+        "-p",
+        "test_ci_observer.py"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "observer-regressions.assertion-2",
+          "observer-regressions.assertion-3",
+          "observer-regressions.assertion-4",
+          "observer-regressions.assertion-5",
+          "observer-regressions.assertion-6",
+          "observer-regressions.assertion-7",
+          "observer-regressions.assertion-8"
+        ],
+        "execution": "observer-regressions.execution",
+        "selection": "observer-regressions.selection",
+        "attribution": "observer-regressions.attribution"
+      }
+    },
+    {
+      "target": "log-collection",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/workflow-checks",
+        "-p",
+        "test_windows_validation_log_collection.py"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "log-collection.assertion-2",
+          "log-collection.assertion-3",
+          "log-collection.assertion-4",
+          "log-collection.assertion-5",
+          "log-collection.assertion-6",
+          "log-collection.assertion-7",
+          "log-collection.assertion-8"
+        ],
+        "execution": "log-collection.execution",
+        "selection": "log-collection.selection",
+        "attribution": "log-collection.attribution"
+      }
+    }
+  ]
+}

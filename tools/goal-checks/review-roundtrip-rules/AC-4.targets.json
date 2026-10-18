@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "pr-round-limit",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_review_rules.py",
+      "test": "ReviewFindings.test_pull_request_rounds_stop_after_three",
+      "result_targets": {
+        "additional_violations": [
+          "pr-round-limit.assertion-2",
+          "pr-round-limit.assertion-3",
+          "pr-round-limit.assertion-4",
+          "pr-round-limit.assertion-5",
+          "pr-round-limit.assertion-6",
+          "pr-round-limit.assertion-7",
+          "pr-round-limit.assertion-8"
+        ],
+        "execution": "pr-round-limit.execution",
+        "selection": "pr-round-limit.selection",
+        "attribution": "pr-round-limit.attribution"
+      }
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/run-timing-records/AC-1.targets.json",
+    "tools/goal-checks/run-timing-records/observe_timing.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "records",
+      "violation": "run-timing-not-recorded"
+    },
+    {
+      "id": "records.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "records.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "records.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "records.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "records.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "records.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "records.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "records.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "records.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "records.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timeout-interval",
+      "violation": "run-timing-not-recorded"
+    },
+    {
+      "id": "timeout-interval.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timeout-interval.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timeout-interval.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timeout-interval.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timeout-interval.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timeout-interval.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timeout-interval.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timeout-interval.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timeout-interval.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "timeout-interval.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

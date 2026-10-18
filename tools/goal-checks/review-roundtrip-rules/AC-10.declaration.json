@@ -1,0 +1,57 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/review-roundtrip-rules/AC-10.targets.json",
+    "tools/workflow-checks/test_review_rules.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "reviewer-criteria",
+      "violation": "reviewer-criteria-missing"
+    },
+    {
+      "id": "reviewer-criteria.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reviewer-criteria.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reviewer-criteria.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reviewer-criteria.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reviewer-criteria.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reviewer-criteria.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reviewer-criteria.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reviewer-criteria.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reviewer-criteria.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reviewer-criteria.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

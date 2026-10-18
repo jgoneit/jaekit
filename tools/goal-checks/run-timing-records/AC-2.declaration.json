@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/run-timing-records/AC-2.targets.json",
+    "tools/goal-checks/run-timing-records/observe_timing.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "local-cpu",
+      "violation": "cpu-not-recorded"
+    },
+    {
+      "id": "local-cpu.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local-cpu.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local-cpu.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local-cpu.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local-cpu.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local-cpu.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local-cpu.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local-cpu.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local-cpu.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local-cpu.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-cpu",
+      "violation": "cpu-not-recorded"
+    },
+    {
+      "id": "ci-cpu.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-cpu.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-cpu.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-cpu.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-cpu.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-cpu.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-cpu.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-cpu.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-cpu.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-cpu.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

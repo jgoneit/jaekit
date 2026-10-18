@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "compatibility",
+      "runner": "unittest",
+      "file": "tools/goal-checks/run-timing-records/observe_timing.py",
+      "test": "Compatibility.test_released_ha_reads_and_extends_records_with_timing",
+      "result_targets": {
+        "additional_violations": [
+          "compatibility.assertion-2",
+          "compatibility.assertion-3",
+          "compatibility.assertion-4",
+          "compatibility.assertion-5",
+          "compatibility.assertion-6",
+          "compatibility.assertion-7",
+          "compatibility.assertion-8"
+        ],
+        "execution": "compatibility.execution",
+        "selection": "compatibility.selection",
+        "attribution": "compatibility.attribution"
+      }
+    }
+  ]
+}

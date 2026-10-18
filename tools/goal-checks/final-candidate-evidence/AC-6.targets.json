@@ -1,0 +1,447 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "kept-rules",
+      "runner": "unittest",
+      "file": "tools/goal-checks/final-candidate-evidence/observe_guidance.py",
+      "test": "Kept.test_rework_rule_and_formats_stay",
+      "result_targets": {
+        "additional_violations": [
+          "kept-rules.assertion-2",
+          "kept-rules.assertion-3",
+          "kept-rules.assertion-4",
+          "kept-rules.assertion-5",
+          "kept-rules.assertion-6",
+          "kept-rules.assertion-7",
+          "kept-rules.assertion-8"
+        ],
+        "execution": "kept-rules.execution",
+        "selection": "kept-rules.selection",
+        "attribution": "kept-rules.attribution"
+      }
+    },
+    {
+      "target": "authoring-ac-1",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/contract-checks/authoring_check.py",
+        "AC-1"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {
+          "1": "earlier-seal-guidance-changed"
+        },
+        "unverified": [
+          2
+        ]
+      },
+      "result_targets": {
+        "additional_violations": [
+          "authoring-ac-1.assertion-2",
+          "authoring-ac-1.assertion-3",
+          "authoring-ac-1.assertion-4",
+          "authoring-ac-1.assertion-5",
+          "authoring-ac-1.assertion-6",
+          "authoring-ac-1.assertion-7",
+          "authoring-ac-1.assertion-8"
+        ],
+        "execution": "authoring-ac-1.execution",
+        "selection": "authoring-ac-1.selection",
+        "attribution": "authoring-ac-1.attribution"
+      }
+    },
+    {
+      "target": "authoring-ac-2",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/contract-checks/authoring_check.py",
+        "AC-2"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {
+          "1": "earlier-seal-guidance-changed"
+        },
+        "unverified": [
+          2
+        ]
+      },
+      "result_targets": {
+        "additional_violations": [
+          "authoring-ac-2.assertion-2",
+          "authoring-ac-2.assertion-3",
+          "authoring-ac-2.assertion-4",
+          "authoring-ac-2.assertion-5",
+          "authoring-ac-2.assertion-6",
+          "authoring-ac-2.assertion-7",
+          "authoring-ac-2.assertion-8"
+        ],
+        "execution": "authoring-ac-2.execution",
+        "selection": "authoring-ac-2.selection",
+        "attribution": "authoring-ac-2.attribution"
+      }
+    },
+    {
+      "target": "authoring-ac-3",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/contract-checks/authoring_check.py",
+        "AC-3"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {
+          "1": "earlier-seal-guidance-changed"
+        },
+        "unverified": [
+          2
+        ]
+      },
+      "result_targets": {
+        "additional_violations": [
+          "authoring-ac-3.assertion-2",
+          "authoring-ac-3.assertion-3",
+          "authoring-ac-3.assertion-4",
+          "authoring-ac-3.assertion-5",
+          "authoring-ac-3.assertion-6",
+          "authoring-ac-3.assertion-7",
+          "authoring-ac-3.assertion-8"
+        ],
+        "execution": "authoring-ac-3.execution",
+        "selection": "authoring-ac-3.selection",
+        "attribution": "authoring-ac-3.attribution"
+      }
+    },
+    {
+      "target": "authoring-ac-4",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/contract-checks/authoring_check.py",
+        "AC-4"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {
+          "1": "earlier-seal-guidance-changed"
+        },
+        "unverified": [
+          2
+        ]
+      },
+      "result_targets": {
+        "additional_violations": [
+          "authoring-ac-4.assertion-2",
+          "authoring-ac-4.assertion-3",
+          "authoring-ac-4.assertion-4",
+          "authoring-ac-4.assertion-5",
+          "authoring-ac-4.assertion-6",
+          "authoring-ac-4.assertion-7",
+          "authoring-ac-4.assertion-8"
+        ],
+        "execution": "authoring-ac-4.execution",
+        "selection": "authoring-ac-4.selection",
+        "attribution": "authoring-ac-4.attribution"
+      }
+    },
+    {
+      "target": "authoring-ac-5",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/contract-checks/authoring_check.py",
+        "AC-5"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {
+          "1": "earlier-seal-guidance-changed"
+        },
+        "unverified": [
+          2
+        ]
+      },
+      "result_targets": {
+        "additional_violations": [
+          "authoring-ac-5.assertion-2",
+          "authoring-ac-5.assertion-3",
+          "authoring-ac-5.assertion-4",
+          "authoring-ac-5.assertion-5",
+          "authoring-ac-5.assertion-6",
+          "authoring-ac-5.assertion-7",
+          "authoring-ac-5.assertion-8"
+        ],
+        "execution": "authoring-ac-5.execution",
+        "selection": "authoring-ac-5.selection",
+        "attribution": "authoring-ac-5.attribution"
+      }
+    },
+    {
+      "target": "authoring-ac-6",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/contract-checks/authoring_check.py",
+        "AC-6"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {
+          "1": "earlier-seal-guidance-changed"
+        },
+        "unverified": [
+          2
+        ]
+      },
+      "result_targets": {
+        "additional_violations": [
+          "authoring-ac-6.assertion-2",
+          "authoring-ac-6.assertion-3",
+          "authoring-ac-6.assertion-4",
+          "authoring-ac-6.assertion-5",
+          "authoring-ac-6.assertion-6",
+          "authoring-ac-6.assertion-7",
+          "authoring-ac-6.assertion-8"
+        ],
+        "execution": "authoring-ac-6.execution",
+        "selection": "authoring-ac-6.selection",
+        "attribution": "authoring-ac-6.attribution"
+      }
+    },
+    {
+      "target": "authoring-ac-9",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/contract-checks/authoring_check.py",
+        "AC-9"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {
+          "1": "earlier-seal-guidance-changed"
+        },
+        "unverified": [
+          2
+        ]
+      },
+      "result_targets": {
+        "additional_violations": [
+          "authoring-ac-9.assertion-2",
+          "authoring-ac-9.assertion-3",
+          "authoring-ac-9.assertion-4",
+          "authoring-ac-9.assertion-5",
+          "authoring-ac-9.assertion-6",
+          "authoring-ac-9.assertion-7",
+          "authoring-ac-9.assertion-8"
+        ],
+        "execution": "authoring-ac-9.execution",
+        "selection": "authoring-ac-9.selection",
+        "attribution": "authoring-ac-9.attribution"
+      }
+    },
+    {
+      "target": "authoring-ac-10",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/contract-checks/authoring_check.py",
+        "AC-10"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {
+          "1": "earlier-seal-guidance-changed"
+        },
+        "unverified": [
+          2
+        ]
+      },
+      "result_targets": {
+        "additional_violations": [
+          "authoring-ac-10.assertion-2",
+          "authoring-ac-10.assertion-3",
+          "authoring-ac-10.assertion-4",
+          "authoring-ac-10.assertion-5",
+          "authoring-ac-10.assertion-6",
+          "authoring-ac-10.assertion-7",
+          "authoring-ac-10.assertion-8"
+        ],
+        "execution": "authoring-ac-10.execution",
+        "selection": "authoring-ac-10.selection",
+        "attribution": "authoring-ac-10.attribution"
+      }
+    },
+    {
+      "target": "design-guidance",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/contract-checks/design_check.py",
+        "design",
+        "all"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {
+          "1": "earlier-seal-guidance-changed"
+        },
+        "unverified": [
+          2
+        ]
+      },
+      "result_targets": {
+        "additional_violations": [
+          "design-guidance.assertion-2",
+          "design-guidance.assertion-3",
+          "design-guidance.assertion-4",
+          "design-guidance.assertion-5",
+          "design-guidance.assertion-6",
+          "design-guidance.assertion-7",
+          "design-guidance.assertion-8"
+        ],
+        "execution": "design-guidance.execution",
+        "selection": "design-guidance.selection",
+        "attribution": "design-guidance.attribution"
+      }
+    },
+    {
+      "target": "finding-guidance",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/contract-checks/finding_docs_check.py",
+        "finding-docs",
+        "all"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {
+          "1": "earlier-seal-guidance-changed"
+        },
+        "unverified": [
+          2
+        ]
+      },
+      "result_targets": {
+        "additional_violations": [
+          "finding-guidance.assertion-2",
+          "finding-guidance.assertion-3",
+          "finding-guidance.assertion-4",
+          "finding-guidance.assertion-5",
+          "finding-guidance.assertion-6",
+          "finding-guidance.assertion-7",
+          "finding-guidance.assertion-8"
+        ],
+        "execution": "finding-guidance.execution",
+        "selection": "finding-guidance.selection",
+        "attribution": "finding-guidance.attribution"
+      }
+    },
+    {
+      "target": "reporting-guidance",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/contract-checks/check.py",
+        "reporting",
+        "all"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {
+          "1": "earlier-seal-guidance-changed"
+        },
+        "unverified": [
+          2
+        ]
+      },
+      "result_targets": {
+        "additional_violations": [
+          "reporting-guidance.assertion-2",
+          "reporting-guidance.assertion-3",
+          "reporting-guidance.assertion-4",
+          "reporting-guidance.assertion-5",
+          "reporting-guidance.assertion-6",
+          "reporting-guidance.assertion-7",
+          "reporting-guidance.assertion-8"
+        ],
+        "execution": "reporting-guidance.execution",
+        "selection": "reporting-guidance.selection",
+        "attribution": "reporting-guidance.attribution"
+      }
+    },
+    {
+      "target": "core-judgments",
+      "runner": "command",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run",
+        "^TestScenarios$",
+        "./cmd/ha"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "core-judgments.assertion-2",
+          "core-judgments.assertion-3",
+          "core-judgments.assertion-4",
+          "core-judgments.assertion-5",
+          "core-judgments.assertion-6",
+          "core-judgments.assertion-7",
+          "core-judgments.assertion-8"
+        ],
+        "execution": "core-judgments.execution",
+        "selection": "core-judgments.selection",
+        "attribution": "core-judgments.attribution"
+      }
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/verify-nested-independence/AC-4.targets.json",
+    "tools/goal-checks/verify-nested-independence/observe_copies.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "judgments-in-copies",
+      "violation": "current-file-judgment-not-in-copies"
+    },
+    {
+      "id": "judgments-in-copies.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "judgments-in-copies.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "judgments-in-copies.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "judgments-in-copies.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "judgments-in-copies.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "judgments-in-copies.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "judgments-in-copies.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "judgments-in-copies.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "judgments-in-copies.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "judgments-in-copies.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dependencies-fail-group",
+      "violation": "dependency-failure-not-reported"
+    },
+    {
+      "id": "dependencies-fail-group.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dependencies-fail-group.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dependencies-fail-group.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dependencies-fail-group.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dependencies-fail-group.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dependencies-fail-group.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dependencies-fail-group.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dependencies-fail-group.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dependencies-fail-group.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "dependencies-fail-group.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

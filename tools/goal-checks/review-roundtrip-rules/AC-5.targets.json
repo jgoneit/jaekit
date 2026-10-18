@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "input-failure",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_review_rules.py",
+      "test": "CheckBoundaries.test_input_failures_have_declared_result_meanings",
+      "result_targets": {
+        "additional_violations": [
+          "input-failure.assertion-2",
+          "input-failure.assertion-3",
+          "input-failure.assertion-4",
+          "input-failure.assertion-5",
+          "input-failure.assertion-6",
+          "input-failure.assertion-7",
+          "input-failure.assertion-8"
+        ],
+        "execution": "input-failure.execution",
+        "selection": "input-failure.selection",
+        "attribution": "input-failure.attribution"
+      }
+    }
+  ]
+}

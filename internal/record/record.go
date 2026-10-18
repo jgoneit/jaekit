@@ -157,6 +157,7 @@ type Check struct {
 	OutputDigest  string            `json:"output_digest"`
 	OutputPath    string            `json:"output_path"`
 	Evidence      *evidence.Summary `json:"evidence,omitempty"`
+	Timing        *Timing           `json:"timing,omitempty"`
 }
 
 // Baseline is a `baseline` line.
@@ -177,6 +178,29 @@ type Baseline struct {
 	OutputDigest  string            `json:"output_digest"`
 	OutputPath    string            `json:"output_path"`
 	Evidence      *evidence.Summary `json:"evidence,omitempty"`
+	Timing        *Timing           `json:"timing,omitempty"`
+}
+
+// Timing is the optional process measurement of a check or baseline line
+// (run-record.md §2.2). It is never an input to status, freshness, usage or
+// budget, and readers take it from Line.Timing without failing the record.
+type Timing struct {
+	// LimitMS is the time limit applied to this run, in milliseconds.
+	LimitMS int64 `json:"limit_ms"`
+	// LimitElapsedMS runs from the limit timer's start to the observed exit or
+	// the timeout decision; null when the timer never started.
+	LimitElapsedMS *int64 `json:"limit_elapsed_ms"`
+	LimitReached   bool   `json:"limit_reached"`
+	CPU            CPU    `json:"cpu"`
+}
+
+// CPU is the processor time the system reported, with what it covers.
+type CPU struct {
+	Status   string `json:"status"`
+	UserMS   *int64 `json:"user_ms,omitempty"`
+	SystemMS *int64 `json:"system_ms,omitempty"`
+	Scope    string `json:"scope,omitempty"`
+	Source   string `json:"source,omitempty"`
 }
 
 // Note is a `note` line.
@@ -206,29 +230,31 @@ type Done struct {
 // zero. Raw is the exact line bytes without the newline.
 type Line struct {
 	Header
-	Goal           string            `json:"goal"`
-	BaseCommit     string            `json:"base_commit"`
-	TreeClean      bool              `json:"tree_clean"`
-	SpecDigest     string            `json:"spec_digest"`
-	Request        *Request          `json:"request"`
-	Host           *Host             `json:"host"`
-	Skill          *Skill            `json:"skill"`
-	Rules          string            `json:"rules"`
-	Budget         *Budget           `json:"budget"`
-	BudgetChange   *BudgetChangeData `json:"budget_change"`
-	Finding        *FindingChange    `json:"finding"`
-	Target         *Target           `json:"target"`
-	CriterionKind  string            `json:"criterion_kind"`
-	Argv           []string          `json:"argv"`
-	CommandDigest  string            `json:"command_digest"`
-	Commit         string            `json:"commit"`
-	Overlay        []Overlay         `json:"overlay"`
-	Exit           *int              `json:"exit"`
-	Result         string            `json:"result"`
-	DurationMS     int64             `json:"duration_ms"`
-	OutputDigest   string            `json:"output_digest"`
-	OutputPath     string            `json:"output_path"`
-	Evidence       *evidence.Summary `json:"evidence"`
+	Goal          string            `json:"goal"`
+	BaseCommit    string            `json:"base_commit"`
+	TreeClean     bool              `json:"tree_clean"`
+	SpecDigest    string            `json:"spec_digest"`
+	Request       *Request          `json:"request"`
+	Host          *Host             `json:"host"`
+	Skill         *Skill            `json:"skill"`
+	Rules         string            `json:"rules"`
+	Budget        *Budget           `json:"budget"`
+	BudgetChange  *BudgetChangeData `json:"budget_change"`
+	Finding       *FindingChange    `json:"finding"`
+	Target        *Target           `json:"target"`
+	CriterionKind string            `json:"criterion_kind"`
+	Argv          []string          `json:"argv"`
+	CommandDigest string            `json:"command_digest"`
+	Commit        string            `json:"commit"`
+	Overlay       []Overlay         `json:"overlay"`
+	Exit          *int              `json:"exit"`
+	Result        string            `json:"result"`
+	DurationMS    int64             `json:"duration_ms"`
+	OutputDigest  string            `json:"output_digest"`
+	OutputPath    string            `json:"output_path"`
+	Evidence      *evidence.Summary `json:"evidence"`
+	// Timing stays undecoded: a damaged measurement must not break the record.
+	Timing         json.RawMessage   `json:"timing"`
 	Note           string            `json:"note"`
 	Cause          string            `json:"cause"`
 	Subject        string            `json:"subject"`

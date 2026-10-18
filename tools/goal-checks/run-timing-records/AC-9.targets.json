@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "privacy-docs",
+      "runner": "unittest",
+      "file": "tools/goal-checks/run-timing-records/observe_timing.py",
+      "test": "Privacy.test_timing_carries_no_local_data_and_is_documented",
+      "result_targets": {
+        "additional_violations": [
+          "privacy-docs.assertion-2",
+          "privacy-docs.assertion-3",
+          "privacy-docs.assertion-4",
+          "privacy-docs.assertion-5",
+          "privacy-docs.assertion-6",
+          "privacy-docs.assertion-7",
+          "privacy-docs.assertion-8"
+        ],
+        "execution": "privacy-docs.execution",
+        "selection": "privacy-docs.selection",
+        "attribution": "privacy-docs.attribution"
+      }
+    }
+  ]
+}

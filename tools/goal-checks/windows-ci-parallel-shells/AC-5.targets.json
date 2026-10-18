@@ -1,0 +1,55 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "workflow-regressions",
+      "runner": "unittest",
+      "file": "tools/goal-checks/windows-ci-parallel-shells/observe_ci.py",
+      "test": "Regressions.test_workflow_regressions_fix_the_two_shell_jobs",
+      "result_targets": {
+        "additional_violations": [
+          "workflow-regressions.assertion-2",
+          "workflow-regressions.assertion-3",
+          "workflow-regressions.assertion-4",
+          "workflow-regressions.assertion-5",
+          "workflow-regressions.assertion-6",
+          "workflow-regressions.assertion-7",
+          "workflow-regressions.assertion-8"
+        ],
+        "execution": "workflow-regressions.execution",
+        "selection": "workflow-regressions.selection",
+        "attribution": "workflow-regressions.attribution"
+      }
+    },
+    {
+      "target": "regression-map",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/regression_map.py"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "regression-map.assertion-2",
+          "regression-map.assertion-3",
+          "regression-map.assertion-4",
+          "regression-map.assertion-5",
+          "regression-map.assertion-6",
+          "regression-map.assertion-7",
+          "regression-map.assertion-8"
+        ],
+        "execution": "regression-map.execution",
+        "selection": "regression-map.selection",
+        "attribution": "regression-map.attribution"
+      }
+    }
+  ]
+}

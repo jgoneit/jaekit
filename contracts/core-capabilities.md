@@ -41,9 +41,10 @@ ha capabilities --format json
 | `default_rules` | 새 `start`가 선택하는 규칙. `supported_rules` 안에 있어야 한다 |
 | `formats.criteria` | `legacy`는 선택자 없는 기존 문서, `nested/1`은 명시적으로 선택한 새 목록 형식 |
 | `formats.check_declaration`, `check_result`, `check_evidence` | 지원하는 선언·생산자 보고·저장 요약의 schema 목록 |
+| `formats.timing` | 시간 보기(`ha timing --format json`)의 schema 목록. 선택적이며 없을 수 있다 |
 | `features` | 아래 기능 식별자 목록 |
 
-위 필드는 모두 필수다. 목록은 중복 없는 문자열 배열이며 각 문자열은 비어 있지 않다. 빈 형식·기능 목록은 해당 지원이 없다는 뜻이다. 중복 JSON 키, 잘못된 타입, 필수 정보 누락, 손상·뒤에 붙은 JSON은 해석 불가다. 같은 schema의 추가 필드·새 목록 항목은 허용하되 소비자가 아는 필수 지원을 대신하지 않는다.
+선택적이라고 적은 `formats.timing`을 뺀 위 필드는 모두 필수다. 목록은 중복 없는 문자열 배열이며 각 문자열은 비어 있지 않다. 빈 형식·기능 목록은 해당 지원이 없다는 뜻이다. 중복 JSON 키, 잘못된 타입, 필수 정보 누락, 손상·뒤에 붙은 JSON은 해석 불가다. 같은 schema의 추가 필드·새 목록 항목은 허용하되 소비자가 아는 필수 지원을 대신하지 않는다.
 
 | 기능 | 약속 |
 | --- | --- |
@@ -54,6 +55,9 @@ ha capabilities --format json
 | `budget-change/v1` | `/3` 현재 창의 횟수 총상한 변경, 사용량·시간 상한 보존과 개정 충돌 거부 |
 | `post-completion-findings/v1` | 역사적 완료에 연결된 발견 주장·개정·재작업 관계를 보존하는 선택적 확장 |
 | `decision-history/v1` | 실행 기록과 분리된 판단 이력의 등록·관계·조회를 제공하는 선택적 확장(§5). 위 v0.1.4 예시에는 없다 |
+| `run-timing/v1` | `check`·`baseline` 줄의 `timing` 측정값 기록과 읽기 전용 시간 보기(`ha timing`)를 제공하는 선택적 확장. 위 v0.1.4 예시에는 없다 |
+
+시간 보기를 지원하는 Core는 `formats.timing`에 `timing/v1`, `features`에 `run-timing/v1`을 제공한다([실행 기록](run-record.md) §1.2, §2.2). 측정값은 판정·예산에 쓰이지 않으므로 이 확장은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 추가되지 않는다. 지원이 없는 Core에서도 일반 실행은 그대로이고, 시간 보기만 쓸 수 없다.
 
 기능의 상세 의미는 [실행 기록](run-record.md), [결과 계약](check-result.md), [목표 문서](goal-docs.md)에 따른다. 지원 정보는 독립 인증이나 코드 무결성 증명이 아니다.
 

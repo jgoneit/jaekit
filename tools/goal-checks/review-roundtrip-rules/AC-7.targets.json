@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "check-authoring",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_review_rules.py",
+      "test": "CheckBoundaries.test_new_checks_avoid_open_scans_and_reuse_ci_observation",
+      "result_targets": {
+        "additional_violations": [
+          "check-authoring.assertion-2",
+          "check-authoring.assertion-3",
+          "check-authoring.assertion-4",
+          "check-authoring.assertion-5",
+          "check-authoring.assertion-6",
+          "check-authoring.assertion-7",
+          "check-authoring.assertion-8"
+        ],
+        "execution": "check-authoring.execution",
+        "selection": "check-authoring.selection",
+        "attribution": "check-authoring.attribution"
+      }
+    }
+  ]
+}

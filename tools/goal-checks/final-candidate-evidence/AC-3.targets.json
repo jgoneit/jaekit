@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "rework-after-review",
+      "runner": "unittest",
+      "file": "tools/goal-checks/final-candidate-evidence/observe_guidance.py",
+      "test": "ReworkAfterReview.test_guidance_records_completion_again_on_the_final_head",
+      "result_targets": {
+        "additional_violations": [
+          "rework-after-review.assertion-2",
+          "rework-after-review.assertion-3",
+          "rework-after-review.assertion-4",
+          "rework-after-review.assertion-5",
+          "rework-after-review.assertion-6",
+          "rework-after-review.assertion-7",
+          "rework-after-review.assertion-8"
+        ],
+        "execution": "rework-after-review.execution",
+        "selection": "rework-after-review.selection",
+        "attribution": "rework-after-review.attribution"
+      }
+    }
+  ]
+}

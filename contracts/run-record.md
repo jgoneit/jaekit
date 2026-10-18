@@ -23,6 +23,7 @@
 | `ha status <goal> [--format md\|json]` | 기록·묶음·git에서 상태를 계산해 출력한다(§4). | 없음 |
 | `ha done <goal>` | 완료를 주장한다. `ha status`와 같은 계산을 하고 그 결과를 기록한다. 결과가 `complete`면 이 줄이 **완료 기록**이다(§5). exit code는 `ha status`와 같다. | `done` |
 | `ha log <goal> <seq> [--tail N]` | 그 실행의 로컬 출력 원문을 보여 준다. 로컬에서 읽기 위한 것이다. | 없음 |
+| `ha timing <goal> [--format md\|json]` | 기록을 읽기만 해서 실행마다 시간 제한·제한 구간 경과·CPU를 보여 준다(§1.2). 검사를 실행하지 않고, 판정·예산에 쓰지 않는다. | 없음 |
 | `ha history <goal> [add \| current \| list \| show] …` | 선택적 [판단 이력](decision-history.md)을 등록·조회한다. 공통 Git 디렉토리의 별도 이력에 쓰며 상태 계산은 이 이력을 읽지 않는다. | 없음 (`runs.jsonl` 밖) |
 
 `ha`는 검증 명령을 셸 없이 argv로 실행한다. 명령마다 시간 제한(기본 900초)을 둔다. 시간 제한이 되면 Unix에서는 그 명령의 프로세스 그룹, Windows 네이티브 후보에서는 실행 전에 배정한 kill-on-close Job Object를 종료한다. Windows는 일반 하위 프로세스가 끝났는지 확인한 뒤 출력을 확정하며, 프로세스 제어·종료 확인에 실패하면 통과 근거나 최종 출력 digest를 만들지 않는다. 시작 뒤 정리 실패도 제한된 시간 안에 오류로 반환한다. 임의의 외부 서비스나 별도 권한으로 실행한 프로세스를 격리하는 보장은 아니다. `check`, `baseline`, `note`, `start`, `budget_change`는 기록에 덧붙이기 전에 git 디렉토리의 `ha/lock`을 잡는다. Unix는 `flock`, Windows 네이티브 후보는 같은 파일의 배타적 `LockFileEx` 잠금을 사용하며, 프로세스 종료로 OS 잠금이 해제되어도 손상된 기록은 기존 연결 검증에서 거부한다. 그래서 여러 `ha`가 동시에 덧붙여도 연결이 끊기지 않는다.
@@ -32,6 +33,7 @@
 - `ha lint`: 오류가 없으면 0, 있으면 1
 - `ha estimate`: 필수 최소량을 PLAN 상한이 수용하면 0, 부족하거나 lint 오류가 있으면 1
 - `ha status`, `ha done`: §4.3
+- `ha timing`: 성공 0. 끊긴 기록은 65(거절)이며 아무것도 보여 주지 않는다. 보기를 출력에 쓰지 못하면 70이다
 - `ha budget`: 성공 0, 잘못된 인수 64, 값·창·개정·완료 상태 등의 거부 65, 구규칙 또는 미지원 규칙 66, 내부 오류·쓰기 적용 불확실성 70
 - 모든 명령: 64 사용법 오류, 65 거절(시작 전, 이미 시작함, lint 오류, 끊긴 기록, 확인 조건 불충족, dirty 검증, 시작 예산 부족), 66 지원하지 않는 규칙 버전, 70 내부 오류
 
@@ -63,6 +65,27 @@ JSON 출력은 `schema: estimate/v1`이며 다음을 제공한다.
 | `limitation` | 추정치의 범위와 기존 예산 창을 바꾸지 않는다는 설명 |
 
 `selected.additional_runs`는 선택·task·필수 대상 중복의 합이다. 같은 phase에서 필수 대상을 처음 선택한 실행은 이미 하한에 포함되므로 추가량이 아니다. 여러 번의 CLI 호출을 합친 비용은 추적하지 않는다.
+
+### 1.2 시간 보기 (`ha timing`)
+
+`ha timing <goal>`은 기록의 `check`·`baseline` 줄마다 순번, 대상(조건 ID, 또는 task와 그 명령 순번), 종류(`check`·`baseline`), 결과, `duration_ms`, 적용 제한, 제한 구간 경과와 근접도, 제한 발동 여부, CPU를 보여 준다. 값의 뜻은 §2.2의 `timing`이다. 이 보기는 검사를 실행하지 않고 기록·로그·잠금·작업 트리를 바꾸지 않는다. 상태 계산·신선도·사용량·예산은 이 값을 읽지 않는다. 기록이 끊겼으면 아무것도 보여 주지 않고 65로 끝난다.
+
+`--format json`은 `timing/v1` 문서 하나다.
+
+| 필드 | 의미 |
+| --- | --- |
+| `schema` | `"timing/v1"` |
+| `goal` | 저장소 기준 목표 디렉터리. 명령에 절대 경로를 줘도 상대 경로다 |
+| `runs[]` | 기록 순서의 실행. `seq`, `target`, `kind`, `result`, `duration_ms`, `limit_ms`, `limit_elapsed_ms`, `limit_use_permille`, `limit_reached`, `cpu`, `unavailable` |
+| `total_duration_ms` | 나열한 실행의 `duration_ms` 합 |
+| `total_meaning` | 합계의 뜻. 실행은 겹칠 수 있고, 이 합은 목표 경과 시간이나 예산이 아니다 |
+
+- 단위는 밀리초 정수다. `limit_use_permille`은 `limit_elapsed_ms × 1000 ÷ limit_ms`의 정수 몫(소수 버림)이다. 두 값 중 하나라도 없으면 `null`이다. 몫이 64비트 정수를 넘으면 `null`이고 `invalid`다.
+- 값이 없으면 그 필드는 `null`이고, `unavailable`에 이유가 있다. `not_recorded`는 그 값이 줄에 없다는 뜻이다(이 필드가 생기기 전에 기록한 줄 등). `not_measured`는 기록된 `null`, 곧 제한 타이머가 켜지지 않았다는 뜻이다. `invalid`는 타입이나 값이 맞지 않는다는 뜻이다. 0이나 900초 같은 값으로 채우거나 규칙 버전에서 추정하지 않는다.
+- 한 값이 손상돼도 그 값만 `invalid`다. 같은 줄의 다른 값과 다른 줄은 그대로 보인다. `timing` 필드가 없으면 다섯 값이 모두 `not_recorded`이고, 객체에 없는 키도 `not_recorded`다. `timing`이 `null`이거나 객체가 아니면 다섯 값이 모두 `invalid`다.
+- `cpu`는 기록의 `{ "status", "user_ms", "system_ms", "scope", "source" }`를 키마다 따로 읽어 보인다. 기록에 있는 키는 그대로 나오고, 그 값이 손상됐으면 그 키만 `null`이며 `unavailable`의 `cpu.<키>`가 `invalid`다. 같은 CPU의 다른 키는 그대로 보인다. `status`가 `measured`면 다섯 키가 모두 나오고, 기록에 없는 키도 `null`과 `invalid`다. `unavailable`·`failed`는 기록에 있는 키만 나오며, 그 상태에 시간이 있으면 그 시간은 `null`과 `invalid`다. `status`가 세 값이 아니면 `null`과 `invalid`다. `scope`·`source`는 §2.2의 고정 코드만 보이고, 그 밖의 값은 `null`과 `invalid`다. 그래서 기록에 들어간 임의 문자열이 보기로 나오지 않는다. `cpu`가 객체가 아니면 `cpu`가 `null`이고 `unavailable`의 `cpu`가 `invalid`다.
+
+사람이 읽는 형식은 같은 값을 표 하나로 보이고, 실행 시간의 합과 그 합이 목표 경과 시간이나 예산이 아니라는 문장을 덧붙인다. CPU 칸은 상태가 무엇이든 JSON이 보이는 키를 같은 값이나 같은 이용 불가 표시로 보인다.
 
 ## 2. 줄 형식
 
@@ -116,7 +139,23 @@ goal 디렉토리 안의 다른 파일(검증 스크립트, fixture 등)은 코�
 | `spec_digest` | 실행 시점의 SPEC digest |
 | `exit` | exit code. 시작 실패나 시간 초과면 `null` |
 | `result` | `/1`·`/2`와 일반 maintain·task는 `pass`(exit 0) \| `fail`(exit ≠ 0) \| `error`(시작 실패, 시간 초과). `/3` change는 [구조화 결과 계약](check-result.md)에 따라 분류한다. |
+| `timing` | 선택적 프로세스 측정값(아래). 판정·신선도·사용량·예산에 쓰지 않는다. |
 | `duration_ms`, `output_digest`, `output_path` | 실행 시간, 출력 digest, 로컬 출력 위치(저장소 기준 경로, 예: `.git/ha/runs/<goal-key>/7.log`). `output_path`에는 절대 경로를 쓰지 않는다. linked worktree에서도 형식이 같고, 이때 `.git`은 그 작업 트리의 git 디렉토리를 뜻한다. 이전 `ha`가 남긴 절대 경로는 고쳐 쓰지 않고 그대로 읽는다. `/3`에서 실제 시도 뒤 출력 저장이 실패하면 `error`·`process_output`으로 시도와 사용량을 남기고 `output_path`·`output_digest`는 빈 값일 수 있다. |
+
+`timing`은 이 실행의 측정값이다. 이 필드가 없는 줄(이전 `ha`의 줄)은 그 값이 기록되지 않은 것이다.
+
+| 필드 | 의미 |
+| --- | --- |
+| `limit_ms` | 이 실행에 적용한 시간 제한. 밀리초 정수 하나이며, 두 목표가 함께 쓰는 적용 제한의 유일한 기록값이다 |
+| `limit_elapsed_ms` | 제한 타이머가 켜진 때(프로세스 시작에 성공한 뒤)부터 프로세스 종료를 확인했거나 시간 초과를 결정한 때까지. 그 뒤의 하위 프로세스 정리·종료 확인 시간은 들어가지 않는다. 프로세스가 시작하지 못해 타이머가 켜지지 않았으면 `null`이다 |
+| `limit_reached` | 시간 제한이 발동했는가 |
+| `cpu` | `{ "status", "user_ms", "system_ms", "scope", "source" }`. `status`는 `measured`, `unavailable`(실행된 프로세스가 없거나 운영체제가 주지 않음), `failed`(읽기 실패)다. `user_ms`·`system_ms`는 `measured`일 때만 있다 |
+
+`cpu.scope`와 `cpu.source`는 고정 코드다. Unix(macOS·Linux)는 `process-and-waited-descendants`·`wait4-rusage`다. `wait4`가 돌려준 값으로, 실행한 프로세스와 그 프로세스가 기다린 하위 프로세스만 센다. 시간 제한으로 프로세스 그룹째 종료된, 기다리지 않은 하위 프로세스는 들어가지 않는다. Windows는 `job-process-tree`·`job-object-accounting`이다. 실행 전에 배정한 Job Object에서 돈 모든 프로세스를, 모두 끝난 뒤 센다. 두 범위가 달라 운영체제 사이의 값을 같은 뜻으로 비교하지 않는다.
+
+`duration_ms`의 뜻은 그대로다. 명령 준비·프로세스 시작 전에 재기 시작해 종료 대기·정리 뒤에 끝난다. 그래서 `duration_ms`를 `limit_ms`로 나눈 값은 정확한 여유가 아니고, 근접도는 `limit_elapsed_ms`로 본다(§1.2). 실행 전 거부와 준비 실패는 실행이 아니므로 줄도 측정값도 만들지 않는다. 측정값에는 절대 경로, 환경 변수 값, 명령 출력이 들어가지 않는다.
+
+`timing`의 값은 판정하지 않으므로, 타입이나 값이 손상된 `timing`은 기록의 무결성 오류가 아니다. 읽는 쪽은 그 값만 이용 불가로 다룬다. JSON 자체의 손상과 `seq`·`prev` 연결 끊김은 지금처럼 무결성 오류다. 알 수 없는 필드를 무시하고 원문 바이트로 해시를 잇는 이전 `ha`(v0.1.4 이하)는 이 필드가 든 기록을 자기 지원 규칙 안에서 읽고 이어 쓴다.
 
 `/3` change 줄에는 `evidence`가 더해진다. [check-result.md](check-result.md)의 `check-evidence/v1` 간결한 근거이며 선언·생산자 입력, 호출, 보고 digest와 대상별 관측을 연결한다. `unknown`은 판정 불가이고 통과가 아니다.
 

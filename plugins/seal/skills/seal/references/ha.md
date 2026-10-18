@@ -45,6 +45,7 @@ This checks source contracts and executable support. Whether installed Codex or 
 | `ha status <goal> [--format md\|json]` | Prints the computed state |
 | `ha done <goal> [--format md\|json]` | Computes the state and records it. When the state is `complete`, the line is the completion record |
 | `ha log <goal> <seq> [--tail N]` | Shows the local output of one run. Output never leaves this clone |
+| `ha timing <goal> [--format md\|json]` | Optional extension: a read-only view of each recorded run's duration, applied time limit, time inside the limit with its proximity, whether the limit fired, and CPU time. It executes nothing, and decisions and budgets never use these values |
 | `ha finding <goal> [--format json\|md]` | Optional extension: read historical completion anchors, current findings, and explicit rework relations; default JSON |
 | `ha finding <goal> --input <JSON file>` | Optional extension: append an explicitly sourced claim or revision and return a JSON receipt |
 | `ha history <goal> add --kind <kind> --summary "…" [--status …] [--reason "…"] [--target …] [--ref …] [--checked-ref …] [--builds-on Dn] [--supersedes Dn[@Dm]] [--request-id …]` | Optional decision history: records one judgment event in one call and returns a JSON receipt. Never touches `runs.jsonl` |
@@ -174,3 +175,9 @@ A check result counts only while all of these hold: the tree is clean now and wa
 Under `run-rules/2` and `run-rules/3`, the bundle files of other goals count as bundle documents too: `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl`, and `tasks/` of every other directory with a `SPEC.md` under the same parent. That holds for freshness, the clean tree, scope, and the completion record, so another goal on the same branch committing its progress leaves these results fresh. Their `SPEC.md`, linked documents, and `checks/` stay code. When a check of this goal reads other goals' bundle files, the plan declares it in `## 범위` with ``다른 목표 실행 묶음: `검사 입력` ``; with the declaration those files stay in the code state. `ha` reads the declaration from the plan as it is when it computes or records. Under `run-rules/1` every other goal's file is code.
 
 Every status output states assurance `local`: an agent with the same user permissions can change checks and records.
+
+## Final head
+
+`ha check` runs each condition's command as its own process, so conditions that need the same full regression each run it. It is recommended that one condition owns it and the others observe their own property; this is not a required procedure, and it does not drop or weaken a condition (Seal bundle reference, final candidate evidence).
+
+A completion record covers its commit while it stays valid and `ha status` names it: among other conditions, the code outside the bundle documents equals HEAD and the goal documents and required commands are unchanged. When the user asks, after completion, to apply remote review or pull request comments, record that request with `ha note <goal> reopen --quote "…"`. After the fixes are committed, a code change leaves earlier `check` records stale, and a baseline stays fresh while it ran on the start's base commit and its check files equal HEAD's. Re-record the stale required checks on the final head and run `ha done` again before the head is sent or merged. Comments without such a request do not reopen the goal.
