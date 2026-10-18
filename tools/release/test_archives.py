@@ -114,6 +114,7 @@ class ArchiveChecks(unittest.TestCase):
         # Keep the expected public paths independent of REQUIRED: dropping a
         # validator requirement must not silently weaken this regression too.
         for missing in (
+            "README.md", "README.ko.md",
             "assets", "assets/readme/hero.ko.png", "assets/readme/hero.en.png",
             "assets/readme/brand/logo.png", "assets/readme/brand/logo.svg",
             "assets/readme/brand/wordmark.png", "assets/readme/brand/wordmark.svg",
@@ -136,6 +137,14 @@ class ArchiveChecks(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "missing required") as failure:
                     release.check(self.dist, VERSION)
                 self.assertIn(missing, str(failure.exception))
+
+    def test_english_pointer_page_is_not_packaged(self):
+        # README.md is the English README; README.en.md only points to it.
+        extra = tarfile.TarInfo(f"ha_{VERSION}_linux_amd64/README.en.md")
+        self.archive("linux_amd64", extra=extra)
+        self.checksums()
+        with self.assertRaisesRegex(ValueError, "outside the release allowlist"):
+            release.check(self.dist, VERSION)
 
     def test_unsafe_private_or_link_members_are_refused(self):
         prefix = f"ha_{VERSION}_linux_amd64"

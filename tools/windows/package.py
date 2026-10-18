@@ -24,7 +24,7 @@ MAX_FILES = 2048
 MAX_FILE = 32 * 1024 * 1024
 MAX_TOTAL = 128 * 1024 * 1024
 PUBLIC_DIRECTORIES = ("guides", "contracts", "assets")
-PUBLIC_FILES = ("LICENSE", "README.md", "README.en.md", "tools/check-result-reference.py",
+PUBLIC_FILES = ("LICENSE", "README.md", "README.ko.md", "tools/check-result-reference.py",
                 *(f"examples/check-result/{name}" for name in
                   ("README.md", "declaration.json", "reference.json", "input.txt")),
                 *(f"tools/windows/{name}" for name in

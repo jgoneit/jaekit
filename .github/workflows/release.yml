@@ -92,7 +92,7 @@ jobs:
             GOOS="${os}" GOARCH="${arch}" CGO_ENABLED=0 go build -trimpath \
               -ldflags "-s -w -X main.version=${version}" \
               -o "${build}/${name}/ha" ./cmd/ha
-            cp LICENSE README.md README.en.md "${build}/${name}/"
+            cp LICENSE README.md README.ko.md "${build}/${name}/"
             cp -R guides contracts assets "${build}/${name}/"
             mkdir -p "${build}/${name}/tools/wsl" "${build}/${name}/examples/check-result"
             cp tools/check-result-reference.py "${build}/${name}/tools/"

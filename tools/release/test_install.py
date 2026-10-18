@@ -5,6 +5,7 @@ process HOME and CODEX_HOME are unchanged. Command wrappers inject failures;
 these checks do not install a public release or establish platform support.
 """
 import hashlib
+import importlib.util
 import os
 from pathlib import Path
 import re
@@ -23,6 +24,19 @@ OLD = b"existing executable\n"
 NEW = b"synthetic replacement executable\n"
 GUIDES = (("INSTALL.md", "## Release 파일로 설치"),
           ("INSTALL.en.md", "## Install from a Release file"))
+spec = importlib.util.spec_from_file_location("release_archives", Path(__file__).with_name("check_archives.py"))
+release = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(release)
+# The last published release whose archives carry README.en.md. It is a fact
+# about published files, so a version bump never changes it; the tuple form
+# keeps a bump that replaces the dotted version from rewriting it.
+LAST_POINTER_RELEASE = (0, 1, 6)
+# The root documents of the archive the guides download. Archives after that
+# release carry the files check_archives requires instead, so a version bump
+# that keeps the old cp line in the guides fails here.
+DOCUMENTS = (("README.md", "README.en.md", "LICENSE")
+             if tuple(int(part) for part in NAME.split("_")[1].split(".")) <= LAST_POINTER_RELEASE
+             else tuple(sorted(release.ROOT_FILES - {"ha"})))
 
 
 def install_block(filename, heading):
@@ -79,7 +93,7 @@ class InstallChecks(unittest.TestCase):
         for folder in ("tools", "examples", "guides", "contracts", "assets"):
             (package / folder).mkdir()
             (package / folder / "fixture.txt").write_text("synthetic public file\n")
-        for name in ("README.md", "README.en.md", "LICENSE"):
+        for name in DOCUMENTS:
             (package / name).write_text("synthetic public document\n")
         (package / "ha").write_bytes(NEW)
         (package / "ha").chmod(0o755)
@@ -125,6 +139,8 @@ class InstallChecks(unittest.TestCase):
                     self.assertEqual(binary.read_bytes(), NEW)
                     self.assertTrue(binary.stat().st_mode & 0o111)
                     self.assertEqual((share / "tools/fixture.txt").read_text(), "synthetic public file\n")
+                    for name in DOCUMENTS:
+                        self.assertEqual((share / name).read_text(), "synthetic public document\n")
                     self.assertEqual(sorted(p.name for p in binary.parent.iterdir()), ["ha"])
 
     def test_checksum_data_and_replacement_failures_preserve_binary(self):

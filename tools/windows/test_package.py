@@ -44,7 +44,7 @@ class CandidatePackageTests(unittest.TestCase):
         isolated = mock.patch.dict(os.environ, environment, clear=True)
         isolated.start()
         self.addCleanup(isolated.stop)
-        names = ["LICENSE", "README.md", "README.en.md", "tools/check-result-reference.py",
+        names = ["LICENSE", "README.md", "README.ko.md", "README.en.md", "tools/check-result-reference.py",
                  "guides/WINDOWS.md", "guides/WINDOWS.en.md", "contracts/run-record.md",
                  "assets/logo.svg", "docs/specs/private/SPEC.md", "private.txt"]
         names += [f"examples/check-result/{name}" for name in
@@ -111,6 +111,9 @@ class CandidatePackageTests(unittest.TestCase):
                 self.assertEqual(entry["sha256"], hashlib.sha256(data).hexdigest())
             self.assertFalse(any(name.startswith(("docs/", ".git/")) for name in zf.namelist()))
             self.assertNotIn("private.txt", zf.namelist())
+            # README.md is the English README; the README.en.md pointer page stays out.
+            self.assertIn("README.ko.md", zf.namelist())
+            self.assertNotIn("README.en.md", zf.namelist())
             self.assertEqual(synthetic_pe(), zf.read("ha.exe"))
             for info in zf.infolist():
                 self.assertEqual(stat.S_IFREG, stat.S_IFMT(info.external_attr >> 16))
