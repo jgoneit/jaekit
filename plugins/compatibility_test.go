@@ -116,13 +116,14 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 			}
 		}
 	}
-	compatibilityContains(t, "operations guide", read(t, "../guides/OPERATIONS.md"), "새 목표를 `run-rules/4`로 시작합니다", "USAGE.md#자율-처리-run-rules4")
-	// A /4 reopen carries the start limit or the last limit the user set
-	// with a quote, not raises made within a pre-approval (run-record.md §4.7).
-	if operations := read(t, "../guides/OPERATIONS.md"); strings.Contains(operations, "`/3`·`/4`의 새 창은 최신") {
-		t.Error("[requirement] the operations guide says a /4 reopen carries the latest run limit")
-	} else {
-		compatibilityContains(t, "operations guide", operations, "사전 승인과 그 안의 증액은 이어받지 않습니다")
+	// The operations guide names the /4 start and points to the contract for
+	// what /4 adds to the /3 budget rules, instead of restating those rules.
+	operations := read(t, "../guides/OPERATIONS.md")
+	compatibilityContains(t, "operations guide", operations, "새 목표를 `run-rules/4`로 시작합니다", "USAGE.md#자율-처리-run-rules4", "run-record.md#47-run-rules4")
+	for _, restated := range []string{"`/4`의 새 창은", "`/3`·`/4`의 새 창은", "`/4`에서는"} {
+		if strings.Contains(operations, restated) {
+			t.Errorf("[requirement] the operations guide restates a /4 budget rule: %q", restated)
+		}
 	}
 	compatibilityContains(t, "Korean WSL guide", read(t, "../guides/WSL.md"), "v0.1.5 파일의 공개 자료", "v0.1.4 이하 배포 파일에는 없습니다")
 	compatibilityContains(t, "English WSL guide", read(t, "../guides/WSL.en.md"), "public data of the v0.1.5 files", "Release files of v0.1.4 and earlier do not have it")
