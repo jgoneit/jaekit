@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "classification-time",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_review_rules.py",
+      "test": "ReviewFindings.test_classification_uses_the_reviewed_commit",
+      "result_targets": {
+        "additional_violations": [
+          "classification-time.assertion-2",
+          "classification-time.assertion-3",
+          "classification-time.assertion-4",
+          "classification-time.assertion-5",
+          "classification-time.assertion-6",
+          "classification-time.assertion-7",
+          "classification-time.assertion-8"
+        ],
+        "execution": "classification-time.execution",
+        "selection": "classification-time.selection",
+        "attribution": "classification-time.attribution"
+      }
+    }
+  ]
+}

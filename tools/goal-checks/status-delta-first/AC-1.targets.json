@@ -1,0 +1,145 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "unmet-summary",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "UnmetSummary.test_unmet_conditions_and_goal_reasons_come_before_the_table",
+      "result_targets": {
+        "additional_violations": [
+          "unmet-summary.assertion-2",
+          "unmet-summary.assertion-3",
+          "unmet-summary.assertion-4",
+          "unmet-summary.assertion-5",
+          "unmet-summary.assertion-6",
+          "unmet-summary.assertion-7",
+          "unmet-summary.assertion-8"
+        ],
+        "execution": "unmet-summary.execution",
+        "selection": "unmet-summary.selection",
+        "attribution": "unmet-summary.attribution"
+      }
+    },
+    {
+      "target": "unmet-latest",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "UnmetSummary.test_summary_points_to_the_latest_fresh_record",
+      "result_targets": {
+        "additional_violations": [
+          "unmet-latest.assertion-2",
+          "unmet-latest.assertion-3",
+          "unmet-latest.assertion-4",
+          "unmet-latest.assertion-5",
+          "unmet-latest.assertion-6",
+          "unmet-latest.assertion-7",
+          "unmet-latest.assertion-8"
+        ],
+        "execution": "unmet-latest.execution",
+        "selection": "unmet-latest.selection",
+        "attribution": "unmet-latest.attribution"
+      }
+    },
+    {
+      "target": "unmet-command-cwd",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "UnmetSummary.test_command_runs_from_the_directory_it_names",
+      "result_targets": {
+        "additional_violations": [
+          "unmet-command-cwd.assertion-2",
+          "unmet-command-cwd.assertion-3",
+          "unmet-command-cwd.assertion-4",
+          "unmet-command-cwd.assertion-5",
+          "unmet-command-cwd.assertion-6",
+          "unmet-command-cwd.assertion-7",
+          "unmet-command-cwd.assertion-8"
+        ],
+        "execution": "unmet-command-cwd.execution",
+        "selection": "unmet-command-cwd.selection",
+        "attribution": "unmet-command-cwd.attribution"
+      }
+    },
+    {
+      "target": "unmet-baseline",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "BaselineReason.test_baseline_reason_points_to_its_baseline",
+      "result_targets": {
+        "additional_violations": [
+          "unmet-baseline.assertion-2",
+          "unmet-baseline.assertion-3",
+          "unmet-baseline.assertion-4",
+          "unmet-baseline.assertion-5",
+          "unmet-baseline.assertion-6",
+          "unmet-baseline.assertion-7",
+          "unmet-baseline.assertion-8"
+        ],
+        "execution": "unmet-baseline.execution",
+        "selection": "unmet-baseline.selection",
+        "attribution": "unmet-baseline.attribution"
+      }
+    },
+    {
+      "target": "unmet-error-limit",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "RecordReasons.test_error_limit_points_to_the_latest_error",
+      "result_targets": {
+        "additional_violations": [
+          "unmet-error-limit.assertion-2",
+          "unmet-error-limit.assertion-3",
+          "unmet-error-limit.assertion-4",
+          "unmet-error-limit.assertion-5",
+          "unmet-error-limit.assertion-6",
+          "unmet-error-limit.assertion-7",
+          "unmet-error-limit.assertion-8"
+        ],
+        "execution": "unmet-error-limit.execution",
+        "selection": "unmet-error-limit.selection",
+        "attribution": "unmet-error-limit.attribution"
+      }
+    },
+    {
+      "target": "unmet-invalid",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "RecordReasons.test_invalid_record_points_to_that_record",
+      "result_targets": {
+        "additional_violations": [
+          "unmet-invalid.assertion-2",
+          "unmet-invalid.assertion-3",
+          "unmet-invalid.assertion-4",
+          "unmet-invalid.assertion-5",
+          "unmet-invalid.assertion-6",
+          "unmet-invalid.assertion-7",
+          "unmet-invalid.assertion-8"
+        ],
+        "execution": "unmet-invalid.execution",
+        "selection": "unmet-invalid.selection",
+        "attribution": "unmet-invalid.attribution"
+      }
+    },
+    {
+      "target": "unmet-goal-user-class",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "GoalReasonClass.test_goal_level_user_reason_shows_its_class",
+      "result_targets": {
+        "additional_violations": [
+          "unmet-goal-user-class.assertion-2",
+          "unmet-goal-user-class.assertion-3",
+          "unmet-goal-user-class.assertion-4",
+          "unmet-goal-user-class.assertion-5",
+          "unmet-goal-user-class.assertion-6",
+          "unmet-goal-user-class.assertion-7",
+          "unmet-goal-user-class.assertion-8"
+        ],
+        "execution": "unmet-goal-user-class.execution",
+        "selection": "unmet-goal-user-class.selection",
+        "attribution": "unmet-goal-user-class.attribution"
+      }
+    }
+  ]
+}

@@ -1,0 +1,144 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/verify-nested-independence/AC-7.targets.json",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "verify-entrypoint",
+      "violation": "existing-check-failed"
+    },
+    {
+      "id": "verify-entrypoint.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-entrypoint.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-entrypoint.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-entrypoint.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-entrypoint.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-entrypoint.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-entrypoint.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-entrypoint.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-entrypoint.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verify-entrypoint.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-jobs",
+      "violation": "existing-check-failed"
+    },
+    {
+      "id": "ci-jobs.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-jobs.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-jobs.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-jobs.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-jobs.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-jobs.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-jobs.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-jobs.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-jobs.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-jobs.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "main-policy",
+      "violation": "existing-check-failed"
+    },
+    {
+      "id": "main-policy.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "main-policy.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "main-policy.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "main-policy.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "main-policy.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "main-policy.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "main-policy.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "main-policy.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "main-policy.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "main-policy.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

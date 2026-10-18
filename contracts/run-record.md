@@ -35,7 +35,7 @@
 - `ha lint`: 오류가 없으면 0, 있으면 1
 - `ha estimate`: 필수 최소량을 PLAN 상한이 수용하면 0, 부족하거나 lint 오류가 있으면 1
 - `ha status`, `ha done`: §4.3
-- `ha timing`: 성공 0. 끊긴 기록은 65(거절)이며 아무것도 보여 주지 않는다
+- `ha timing`: 성공 0. 끊긴 기록은 65(거절)이며 아무것도 보여 주지 않는다. 보기를 출력에 쓰지 못하면 70이다
 - `ha budget`: 성공 0, 잘못된 인수 64, 값·창·개정·완료 상태 등의 거부 65(`/3` 목표의 `--preapprove` 포함), 구규칙 또는 미지원 규칙 66, 내부 오류·쓰기 적용 불확실성 70
 - 모든 명령: 64 사용법 오류, 65 거절(시작 전, 이미 시작함, lint 오류, 끊긴 기록, 확인 조건 불충족, dirty 검증, 시작 예산 부족), 66 지원하지 않는 규칙 버전, 70 내부 오류
 
@@ -84,7 +84,7 @@ JSON 출력은 `schema: estimate/v1`이며 다음을 제공한다.
 
 - 단위는 밀리초 정수다. `limit_use_permille`은 `limit_elapsed_ms × 1000 ÷ limit_ms`의 정수 몫(소수 버림)이다. 두 값 중 하나라도 없으면 `null`이다. 몫이 64비트 정수를 넘으면 `null`이고 `invalid`다.
 - 값이 없으면 그 필드는 `null`이고, `unavailable`에 이유가 있다. `not_recorded`는 그 값이 줄에 없다는 뜻이다(이 필드가 생기기 전에 기록한 줄 등). `not_measured`는 기록된 `null`, 곧 제한 타이머가 켜지지 않았다는 뜻이다. `invalid`는 타입이나 값이 맞지 않는다는 뜻이다. 0이나 900초 같은 값으로 채우거나 규칙 버전에서 추정하지 않는다.
-- 한 값이 손상돼도 그 값만 `invalid`다. 같은 줄의 다른 값과 다른 줄은 그대로 보인다.
+- 한 값이 손상돼도 그 값만 `invalid`다. 같은 줄의 다른 값과 다른 줄은 그대로 보인다. `timing` 필드가 없으면 다섯 값이 모두 `not_recorded`이고, 객체에 없는 키도 `not_recorded`다. `timing`이 `null`이거나 객체가 아니면 다섯 값이 모두 `invalid`다.
 - `cpu`는 기록의 `{ "status", "user_ms", "system_ms", "scope", "source" }`를 키마다 따로 읽어 보인다. 기록에 있는 키는 그대로 나오고, 그 값이 손상됐으면 그 키만 `null`이며 `unavailable`의 `cpu.<키>`가 `invalid`다. 같은 CPU의 다른 키는 그대로 보인다. `status`가 `measured`면 다섯 키가 모두 나오고, 기록에 없는 키도 `null`과 `invalid`다. `unavailable`·`failed`는 기록에 있는 키만 나오며, 그 상태에 시간이 있으면 그 시간은 `null`과 `invalid`다. `status`가 세 값이 아니면 `null`과 `invalid`다. `scope`·`source`는 §2.2의 고정 코드만 보이고, 그 밖의 값은 `null`과 `invalid`다. 그래서 기록에 들어간 임의 문자열이 보기로 나오지 않는다. `cpu`가 객체가 아니면 `cpu`가 `null`이고 `unavailable`의 `cpu`가 `invalid`다.
 
 사람이 읽는 형식은 같은 값을 표 하나로 보이고, 실행 시간의 합과 그 합이 목표 경과 시간이나 예산이 아니라는 문장을 덧붙인다. CPU 칸은 상태가 무엇이든 JSON이 보이는 키를 같은 값이나 같은 이용 불가 표시로 보인다.
@@ -347,6 +347,53 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
   - 무효가 된 사용자 확인(§2.4)
   - 목표 진행 중에 `ha_version`이 바뀐 줄
 - **로컬 출력 위치**: 실패·오류 기록의 로컬 출력 경로. 내용은 `ha log`로 본다.
+
+상태가 `complete`가 아니면 사람용 출력은 조건 표 앞에 **미충족 요약**(`### Unmet`)을 둔다.
+- 미충족 required 조건마다 ID, 이유 코드, 분류(§4.1의 `executor`·`user` 등)를 보인다.
+- 그 이유가 기대는 신선한 기록이 있으면 그 seq를 보인다. 기록은 다음과 같이 고른다.
+  - 기록이 무효면 문제가 된 줄을 고른다.
+  - baseline 이유면 기대와 다른 결과를 낸 가장 최근 baseline을 고른다.
+  - `error_limit`이면 check와 baseline 가운데 가장 최근 오류·판정 불가 기록을 고른다.
+  - 그 밖에는 통과하지 않은 가장 최근 check를 고른다.
+  - 그런 기록이 없으면 그 종류의 가장 최근 신선한 기록을 고른다.
+- 그 기록에 저장된 원문이 있으면, 정확한 명령 `ha log <goal> <seq>`를 함께 보인다.
+  - `<goal>`은 명령에 준 goal 인수 그대로다. 같은 디렉토리에서 그 명령을 실행하면 된다.
+  - 인수가 절대 경로면 저장소 기준 goal 경로를 쓴다. 이 명령은 저장소 루트에서 실행한다. 사람용 출력에는 절대 경로가 들어가지 않는다.
+  - `ha done` 안내와 로컬 출력 위치의 `ha log` 안내도 같은 goal 표기를 쓴다.
+  - goal 표기에 영문자·숫자·`-_./@%+=:,` 밖의 문자가 있으면 작은따옴표로 감싸, 복사한 명령에서 한 인수로 넘어가게 한다.
+- 원문이 없는 기록은 `no stored output`이라고 보이고 명령을 만들지 않는다. 원문이 없는 경우는 출력 저장 실패와 출력 경로가 없는 기록이다.
+- 신선한 기록이 없는 조건은 `no fresh record`라고 보이고 seq를 만들지 않는다. 실행 전에 거절된 시도는 기록을 남기지 않으므로 이 경우다. `manual` 조건은 기록 대신 확인을 기다리므로 이 표시를 붙이지 않는다.
+- 목표 수준의 이유는 코드와 분류를 보인다.
+- 표와 `### Reasons` 목록은 그대로 둔다.
+- `ha done`의 사람용 출력은 이 요약을 두지 않고, 완료 기록 줄에도 아래 `done` 정보를 붙이지 않는다. `ha done` 출력은 이전 형식 그대로다.
+
+완료 기록 줄은 유효한 완료 기록이 없을 때 다음과 같이 보인다.
+- 가장 최근 `done` 줄의 상태가 `complete`가 아니면, 그 seq와 commit, 그리고 그 줄이 완료가 아닌 상태로 기록됐다는 사실을 보인다. 그런 줄은 완료였던 적이 없다.
+- 가장 최근 완료 기록(`status: complete`인 `done` 줄)이 있으면, 그 seq와 commit, 그리고 무효가 된 이유를 모두 보인다. 이유는 §5.1의 유효 조건 가운데 깨진 것이고, 이 순서로 보인다.
+  1. 기록 연결 끊김
+  2. 무효한 저장 기록
+  3. 묶음 문서 밖의 미커밋 변경
+  4. 그 commit 뒤 코드 변경(Git이 비교할 수 없는 commit 포함)
+  5. 목표 문서 변경
+  6. required 명령 변경(조건 ID)
+  7. 뒤따른 `reopen`(seq)
+  8. `/3`에서 required 조건이 모두 충족되지 않음
+- `done` 줄이 하나도 없으면 지금처럼 `none`이다. 완료 조건만 충족한 목표에는 지금처럼 `ha done` 안내를 붙인다.
+
+합성 예시(완료 뒤 코드가 바뀌고, `ha done`을 다시 실행해 미완료가 기록된 목표):
+
+```text
+- completion record: none; latest done seq 9 (commit 2b7e01c4a9d3) recorded incomplete, not a completion; latest completion seq 6 (commit 8f3a2d91c0b7) is no longer valid: code outside the bundle documents changed since that commit; required conditions are not all satisfied
+
+### Unmet
+
+- AC-2 `criterion_failed` (executor): seq 8, output `ha log docs/specs/example 8`
+- AC-3 `criterion_missing` (executor): no fresh record
+```
+
+`ha check`는 기대대로 끝나지 않은 대상마다 대상별 결과 줄 뒤에 `output for <대상>: ha log <goal> <seq>`를 출력한다. 뒤의 대상이 실행 전에 거절되거나 기록되지 못해 묶음이 일찍 끝나도, 그 전에 기록된 대상의 줄은 출력한다. `<goal>` 표기는 위와 같다. 원문이 저장되지 않은 대상에는 `output for <대상>: no stored output (seq N)`을 출력한다. 대상별 결과 줄과 종료 코드는 바뀌지 않는다.
+
+이 출력은 판정·`status/v1`·완료 기록·`ha log`를 바꾸지 않는다. 같은 기록·묶음·Git이면 같다.
 
 `--format md`(기본)는 사람이 읽고 `PROGRESS.md`에 붙이는 형식이다. 표지와 이유 코드는 계약 그대로 쓰고, 설명 문장은 영어로 쓴다.
 

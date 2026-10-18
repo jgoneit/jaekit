@@ -1,0 +1,65 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "no-record",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "MissingOutput.test_condition_without_a_fresh_record_gets_no_seq",
+      "result_targets": {
+        "additional_violations": [
+          "no-record.assertion-2",
+          "no-record.assertion-3",
+          "no-record.assertion-4",
+          "no-record.assertion-5",
+          "no-record.assertion-6",
+          "no-record.assertion-7",
+          "no-record.assertion-8"
+        ],
+        "execution": "no-record.execution",
+        "selection": "no-record.selection",
+        "attribution": "no-record.attribution"
+      }
+    },
+    {
+      "target": "no-stale-record",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "MissingOutput.test_stale_record_is_not_cited",
+      "result_targets": {
+        "additional_violations": [
+          "no-stale-record.assertion-2",
+          "no-stale-record.assertion-3",
+          "no-stale-record.assertion-4",
+          "no-stale-record.assertion-5",
+          "no-stale-record.assertion-6",
+          "no-stale-record.assertion-7",
+          "no-stale-record.assertion-8"
+        ],
+        "execution": "no-stale-record.execution",
+        "selection": "no-stale-record.selection",
+        "attribution": "no-stale-record.attribution"
+      }
+    },
+    {
+      "target": "no-output",
+      "runner": "unittest",
+      "file": "tools/goal-checks/status-delta-first/observe_status.py",
+      "test": "MissingOutput.test_record_without_stored_output_gets_no_log_command",
+      "result_targets": {
+        "additional_violations": [
+          "no-output.assertion-2",
+          "no-output.assertion-3",
+          "no-output.assertion-4",
+          "no-output.assertion-5",
+          "no-output.assertion-6",
+          "no-output.assertion-7",
+          "no-output.assertion-8"
+        ],
+        "execution": "no-output.execution",
+        "selection": "no-output.selection",
+        "attribution": "no-output.attribution"
+      }
+    }
+  ]
+}

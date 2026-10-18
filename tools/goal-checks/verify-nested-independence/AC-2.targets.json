@@ -1,0 +1,65 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "copies-skip-docs",
+      "runner": "unittest",
+      "file": "tools/goal-checks/verify-nested-independence/observe_copies.py",
+      "test": "DocsRuns.test_copies_do_not_rerun_the_docs_group",
+      "result_targets": {
+        "additional_violations": [
+          "copies-skip-docs.assertion-2",
+          "copies-skip-docs.assertion-3",
+          "copies-skip-docs.assertion-4",
+          "copies-skip-docs.assertion-5",
+          "copies-skip-docs.assertion-6",
+          "copies-skip-docs.assertion-7",
+          "copies-skip-docs.assertion-8"
+        ],
+        "execution": "copies-skip-docs.execution",
+        "selection": "copies-skip-docs.selection",
+        "attribution": "copies-skip-docs.attribution"
+      }
+    },
+    {
+      "target": "copies-run-public",
+      "runner": "unittest",
+      "file": "tools/goal-checks/verify-nested-independence/observe_copies.py",
+      "test": "DocsRuns.test_public_checks_run_and_pass_in_both_copies",
+      "result_targets": {
+        "additional_violations": [
+          "copies-run-public.assertion-2",
+          "copies-run-public.assertion-3",
+          "copies-run-public.assertion-4",
+          "copies-run-public.assertion-5",
+          "copies-run-public.assertion-6",
+          "copies-run-public.assertion-7",
+          "copies-run-public.assertion-8"
+        ],
+        "execution": "copies-run-public.execution",
+        "selection": "copies-run-public.selection",
+        "attribution": "copies-run-public.attribution"
+      }
+    },
+    {
+      "target": "all-runs-docs-once",
+      "runner": "unittest",
+      "file": "tools/goal-checks/verify-nested-independence/observe_copies.py",
+      "test": "DocsRuns.test_all_group_runs_the_docs_group_once_here",
+      "result_targets": {
+        "additional_violations": [
+          "all-runs-docs-once.assertion-2",
+          "all-runs-docs-once.assertion-3",
+          "all-runs-docs-once.assertion-4",
+          "all-runs-docs-once.assertion-5",
+          "all-runs-docs-once.assertion-6",
+          "all-runs-docs-once.assertion-7",
+          "all-runs-docs-once.assertion-8"
+        ],
+        "execution": "all-runs-docs-once.execution",
+        "selection": "all-runs-docs-once.selection",
+        "attribution": "all-runs-docs-once.attribution"
+      }
+    }
+  ]
+}

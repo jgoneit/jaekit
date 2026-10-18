@@ -127,10 +127,14 @@ func (c *cli) timing(in []string) int {
 		if err != nil {
 			return c.fail(exitInternal, "write time view: %v", err)
 		}
-		_, _ = c.out.Write(append(b, '\n'))
+		if _, err := c.out.Write(append(b, '\n')); err != nil {
+			return c.fail(exitInternal, "write time view: %v", err)
+		}
 		return exitOK
 	}
-	_, _ = io.WriteString(c.out, timingMarkdown(rep))
+	if _, err := io.WriteString(c.out, timingMarkdown(rep)); err != nil {
+		return c.fail(exitInternal, "write time view: %v", err)
+	}
 	return exitOK
 }
 
@@ -141,8 +145,10 @@ func timingOf(l record.Line) timingRun {
 	if l.Target != nil {
 		r.Target = *l.Target
 	}
+	// A line without timing is not recorded, and a key missing from the object
+	// below is not recorded on its own. A null timing is not an object: invalid.
 	raw := bytes.TrimSpace(l.Timing)
-	if len(raw) == 0 || bytes.Equal(raw, []byte("null")) {
+	if len(raw) == 0 {
 		for _, name := range []string{"limit_ms", "limit_elapsed_ms", "limit_use_permille", "limit_reached", "cpu"} {
 			r.Unavailable[name] = timingNotRecorded
 		}

@@ -1,0 +1,57 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/status-delta-first/AC-6.targets.json",
+    "tools/goal-checks/status-delta-first/observe_status.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "deterministic",
+      "violation": "status-output-unstable"
+    },
+    {
+      "id": "deterministic.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "deterministic.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "deterministic.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "deterministic.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "deterministic.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "deterministic.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "deterministic.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "deterministic.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "deterministic.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "deterministic.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

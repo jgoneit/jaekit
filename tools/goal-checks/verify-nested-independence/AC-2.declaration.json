@@ -1,0 +1,145 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/verify-nested-independence/AC-2.targets.json",
+    "tools/goal-checks/verify-nested-independence/observe_copies.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "copies-skip-docs",
+      "violation": "docs-group-repeated-in-copies"
+    },
+    {
+      "id": "copies-skip-docs.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-skip-docs.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-skip-docs.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-skip-docs.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-skip-docs.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-skip-docs.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-skip-docs.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-skip-docs.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-skip-docs.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-skip-docs.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-run-public",
+      "violation": "public-checks-not-in-copies"
+    },
+    {
+      "id": "copies-run-public.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-run-public.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-run-public.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-run-public.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-run-public.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-run-public.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-run-public.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-run-public.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-run-public.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "copies-run-public.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "all-runs-docs-once",
+      "violation": "docs-group-not-run-once"
+    },
+    {
+      "id": "all-runs-docs-once.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "all-runs-docs-once.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "all-runs-docs-once.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "all-runs-docs-once.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "all-runs-docs-once.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "all-runs-docs-once.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "all-runs-docs-once.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "all-runs-docs-once.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "all-runs-docs-once.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "all-runs-docs-once.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

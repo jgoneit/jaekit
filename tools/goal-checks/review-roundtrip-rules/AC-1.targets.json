@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "boundary-record",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_review_rules.py",
+      "test": "CheckBoundaries.test_boundaries_are_recorded_in_review_before_findings",
+      "result_targets": {
+        "additional_violations": [
+          "boundary-record.assertion-2",
+          "boundary-record.assertion-3",
+          "boundary-record.assertion-4",
+          "boundary-record.assertion-5",
+          "boundary-record.assertion-6",
+          "boundary-record.assertion-7",
+          "boundary-record.assertion-8"
+        ],
+        "execution": "boundary-record.execution",
+        "selection": "boundary-record.selection",
+        "attribution": "boundary-record.attribution"
+      }
+    }
+  ]
+}

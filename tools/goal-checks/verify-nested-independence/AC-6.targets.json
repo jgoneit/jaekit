@@ -1,0 +1,55 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "route-observation",
+      "runner": "unittest",
+      "file": "tools/goal-checks/verify-nested-independence/observe_copies.py",
+      "test": "RegressionRoute.test_route_records_the_new_observation",
+      "result_targets": {
+        "additional_violations": [
+          "route-observation.assertion-2",
+          "route-observation.assertion-3",
+          "route-observation.assertion-4",
+          "route-observation.assertion-5",
+          "route-observation.assertion-6",
+          "route-observation.assertion-7",
+          "route-observation.assertion-8"
+        ],
+        "execution": "route-observation.execution",
+        "selection": "route-observation.selection",
+        "attribution": "route-observation.attribution"
+      }
+    },
+    {
+      "target": "regression-map",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/regression_map.py"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "regression-map.assertion-2",
+          "regression-map.assertion-3",
+          "regression-map.assertion-4",
+          "regression-map.assertion-5",
+          "regression-map.assertion-6",
+          "regression-map.assertion-7",
+          "regression-map.assertion-8"
+        ],
+        "execution": "regression-map.execution",
+        "selection": "regression-map.selection",
+        "attribution": "regression-map.attribution"
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "remote-triage",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_review_rules.py",
+      "test": "ReviewFindings.test_remote_findings_use_the_local_triage",
+      "result_targets": {
+        "additional_violations": [
+          "remote-triage.assertion-2",
+          "remote-triage.assertion-3",
+          "remote-triage.assertion-4",
+          "remote-triage.assertion-5",
+          "remote-triage.assertion-6",
+          "remote-triage.assertion-7",
+          "remote-triage.assertion-8"
+        ],
+        "execution": "remote-triage.execution",
+        "selection": "remote-triage.selection",
+        "attribution": "remote-triage.attribution"
+      }
+    }
+  ]
+}
