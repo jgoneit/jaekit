@@ -1,0 +1,147 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/review-roundtrip-rules/AC-9.targets.json",
+    "tools/gap-checks/test_docs_environment.py",
+    "tools/workflow-checks/test_verify.py",
+    "tools/review-checks/test_installation.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "docs-group",
+      "violation": "existing-check-failed"
+    },
+    {
+      "id": "docs-group.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-group.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-group.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-group.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-group.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-group.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-group.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-group.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-group.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-group.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugin-docs",
+      "violation": "existing-check-failed"
+    },
+    {
+      "id": "plugin-docs.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugin-docs.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugin-docs.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugin-docs.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugin-docs.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugin-docs.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugin-docs.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugin-docs.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugin-docs.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugin-docs.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-environment",
+      "violation": "existing-check-failed"
+    },
+    {
+      "id": "docs-environment.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-environment.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-environment.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-environment.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-environment.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-environment.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-environment.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-environment.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-environment.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "docs-environment.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

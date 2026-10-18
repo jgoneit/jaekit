@@ -42,7 +42,13 @@ Specify the commits, settings, or functionality to revert and any documentation,
 ## 리뷰 포인트 / Review focus
 
 <!-- 리뷰어가 판단해 주었으면 하는 부분을 구체적으로 적어 주세요.
-State the specific points you want the reviewer to assess. -->
+State the specific points you want the reviewer to assess.
+이 변경의 검사가 관측하는 경계와 덮지 않는 실패 종류를 적어 주세요. 입력 실패(파일 없음·깨짐·도구 시작 불가·signal)가 어떤 결과가 되는지도 함께 적어 주세요.
+State the observation boundary of this change's checks and the failure kinds it does not cover, including the result of each input failure (missing file, corrupt input, a tool that cannot start, a signal).
+defer한 리뷰 지적이 있으면 지적마다 그 이유를 적어 주세요.
+List any deferred review findings with the reason for each.
+비공개 목표 이름·기록·로컬 경로는 넣지 말고 공개할 수 있는 말로 적어 주세요.
+Use public wording: leave out private goal names, records and local paths. -->
 
 ## 참고 자료 (선택) / References (optional)
 
