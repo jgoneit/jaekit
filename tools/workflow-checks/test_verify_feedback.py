@@ -129,8 +129,11 @@ class GitFixture(verification.Fixture, Observed):
         self.git(self.repo, "commit", "--quiet", "--message", "synthetic checkout")
 
     def git(self, cwd, *args):
+        # Fixture commits start no background maintenance, which could still
+        # be changing .git while a test reads, snapshots or removes it.
         return subprocess.run([self.real_git, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
-                               "-c", "init.defaultBranch=main", "-c", "commit.gpgsign=false", *args],
+                               "-c", "init.defaultBranch=main", "-c", "commit.gpgsign=false",
+                               "-c", "gc.auto=0", "-c", "maintenance.auto=false", *args],
                               cwd=cwd, env=self.env, check=True, capture_output=True, text=True, timeout=30)
 
     def run_in(self, checkout, *groups):
