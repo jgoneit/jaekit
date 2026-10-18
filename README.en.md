@@ -12,7 +12,7 @@
 
 Jaekit keeps **goals and check records for project work you delegate to Codex or Claude Code**. **Spec** defines the work and its completion conditions; **Seal** guides the agent through that goal and keeps a record of its checks. If the conversation ends, you can continue from saved progress.
 
-The current release is **v0.1.4**, an early version being refined through real work.
+The current release is **v0.1.5**, an early version being refined through real work.
 
 <details>
 <summary>View the Jaekit introduction illustration</summary>
@@ -49,29 +49,29 @@ brew install jgoneit/tap/jaekit
 ha --version
 ```
 
-It should print `ha 0.1.4`. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
+It should print `ha 0.1.5`. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
 
 **2. In the same Terminal, install the plugins for your agent.** Run the block for Claude Code or Codex, whichever you use. If you already installed Jaekit, first see [Update](guides/INSTALL.en.md#update) or [Move from a local path registration](guides/INSTALL.en.md#move-from-a-local-path-registration).
 
 **Claude Code**
 
 ```bash
-claude plugin marketplace add jgoneit/jaekit#v0.1.4
+claude plugin marketplace add jgoneit/jaekit#v0.1.5
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 ```
 
-**Reopen Claude Code after installation.** `#v0.1.4` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
+**Reopen Claude Code after installation.** `#v0.1.5` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
 
 **Codex**
 
 ```bash
-codex plugin marketplace add jgoneit/jaekit@v0.1.4
+codex plugin marketplace add jgoneit/jaekit@v0.1.5
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-**Reopen Codex after installation.** `@v0.1.4` pins the release to use.
+**Reopen Codex after installation.** `@v0.1.5` pins the release to use.
 
 ### Your first task
 
