@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "wait-boundaries",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "Waits.test_only_reported_waits_outside_runs_are_excluded",
+      "result_targets": {
+        "additional_violations": [
+          "wait-boundaries.assertion-2",
+          "wait-boundaries.assertion-3",
+          "wait-boundaries.assertion-4",
+          "wait-boundaries.assertion-5",
+          "wait-boundaries.assertion-6",
+          "wait-boundaries.assertion-7",
+          "wait-boundaries.assertion-8"
+        ],
+        "execution": "wait-boundaries.execution",
+        "selection": "wait-boundaries.selection",
+        "attribution": "wait-boundaries.attribution"
+      }
+    }
+  ]
+}

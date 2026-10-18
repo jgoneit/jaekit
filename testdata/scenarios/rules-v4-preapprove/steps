@@ -1,0 +1,24 @@
+# run-rules/4: a quoted pre-approval lets the executor raise the run limit up
+# to it with a reason alone; beyond it the quote is needed, and reopen returns
+# to the last limit set without the pre-approval.
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/4
+expect-exit 0
+ha budget $GOAL --runs 60 --from 50 --window 1 --revision 1 --reason "more checks"
+expect-exit 65
+ha budget $GOAL --preapprove 80 --window 1 --revision 1 --quote "80회까지는 알아서 늘려" --context "이 창의 사전 승인"
+expect-exit 0
+expect-output "pre-approved: up to 80"
+ha budget $GOAL --runs 70 --from 50 --window 1 --revision 2 --reason "more checks"
+expect-exit 0
+ha budget $GOAL --runs 90 --from 70 --window 1 --revision 3 --reason "even more checks"
+expect-exit 65
+expect-records 3
+ha status $GOAL --format json
+expect-output "\"runs_limit\": 70"
+expect-output "\"preapproved_runs\": 80"
+ha note $GOAL reopen --quote "다시 이어서 해줘"
+expect-exit 0
+ha status $GOAL --format json
+expect-output "\"runs_limit\": 50"
+ha budget $GOAL --runs 75 --from 50 --window 4 --revision 4 --reason "more checks"
+expect-exit 65

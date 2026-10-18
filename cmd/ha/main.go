@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -44,16 +45,27 @@ Usage:
   ha lint   <goal>
   ha estimate <goal> [AC-n | EX-n | T001 ...] [--baseline] [--format md|json]
   ha start  <goal> --request <quote> [--skill <path to SKILL.md>]
+                   [--rules run-rules/4] [--test-authority <agent interpretation>]
                    [--host-name <name>] [--host-version <version>] [--model <model>]
   ha check  <goal> [AC-n | EX-n | T001 ...] [--baseline]
   ha budget <goal> --runs <total> --from <old-total> --window <seq> --revision <seq>
                     [--quote <user words> --context <request context>]
-                    [--reason <reduction reason>] [--interpretation <agent interpretation>]
+                    [--reason <reason>] [--interpretation <agent interpretation>]
+  ha budget <goal> --preapprove <total> --window <seq> --revision <seq>
+                    --quote <user words> --context <request context>      (run-rules/4)
   ha note   <goal> block --cause <auth|permission|quota|environment|spec|other> [--quote <text>]
   ha note   <goal> unblock [--quote <text>]
   ha note   <goal> confirm <AC-n | scope:<path> | tests:<path> | spec> --quote <user words>
   ha note   <goal> reopen --quote <user words>
   ha note   <goal> input --quote <user words>
+  ha note   <goal> test-change tests:<path> --criteria <AC-n,...> --how <how it is checked>
+                   [--moved-to <path> ...] [--weakened]                   (run-rules/4)
+  ha note   <goal> wait --reason <decision asked>                         (run-rules/4)
+  ha note   <goal> resume                                                 (run-rules/4)
+  ha note   <goal> recover <AC-n> --input check|baseline --change <changed condition>
+                                                                          (run-rules/4)
+  ha note   <goal> allow-recovery <AC-n> --input check|baseline --count <n> --quote <user words>
+                                                                          (run-rules/4)
   ha finding <goal> [--input <JSON file>] [--format json|md]
   ha history <goal> [add|current|list|show] ...   (see ha history --help)
   ha status <goal> [--format md|json]
@@ -261,7 +273,7 @@ func (c *cli) lint(in []string) int {
 }
 
 func (c *cli) start(in []string) int {
-	a, err := parseArgs(in, []string{"request", "skill", "skill-name", "skill-version", "host-name", "host-version", "model"}, nil)
+	a, err := parseArgs(in, []string{"request", "skill", "skill-name", "skill-version", "host-name", "host-version", "model", "rules", "test-authority"}, nil)
 	if err != nil {
 		return c.fail(exitUsage, "%v", err)
 	}
@@ -272,6 +284,22 @@ func (c *cli) start(in []string) int {
 	quote := strings.TrimSpace(a.vals["request"])
 	if quote == "" {
 		return c.fail(exitUsage, "--request is required: quote the user's request that authorizes this goal")
+	}
+	// run-rules/4 is chosen, never the default (run-record.md §4.6).
+	goalRules := status.Rules
+	if r, ok := a.vals["rules"]; ok && r != status.Rules {
+		if r != status.RulesV4 {
+			return c.fail(exitUsage, "--rules accepts %s or %s", status.RulesV3, status.RulesV4)
+		}
+		goalRules = r
+		if w.bundle, err = bundle.LoadForRules(w.repo.Root, w.goal, goalRules); err != nil {
+			return c.fail(exitInternal, "%v", err)
+		}
+	}
+	interpretation, hasAuthority := a.vals["test-authority"]
+	interpretation = strings.TrimSpace(interpretation)
+	if hasAuthority && (goalRules != status.RulesV4 || interpretation == "") {
+		return c.fail(exitUsage, "--test-authority needs --rules %s and the executor's reading of the request", status.RulesV4)
 	}
 	lines, bad, err := w.read()
 	if err != nil {
@@ -294,7 +322,7 @@ func (c *cli) start(in []string) int {
 	if err != nil {
 		return c.fail(exitRefused, "%v", err)
 	}
-	excl, err := w.excludes(status.Rules)
+	excl, err := w.excludes(goalRules)
 	if err != nil {
 		return c.fail(exitInternal, "%v", err)
 	}
@@ -318,14 +346,22 @@ func (c *cli) start(in []string) int {
 		Request:    record.Request{Source: "conversation", Quote: quote},
 		Host:       record.Host{Name: a.vals["host-name"], Version: a.vals["host-version"], Model: a.vals["model"]},
 		Skill:      skill,
-		Rules:      status.Rules,
+		Rules:      goalRules,
 		Budget:     record.Budget{Runs: bud.Runs, ElapsedSeconds: bud.ElapsedSeconds, Cost: bud.Cost},
+	}
+	if goalRules == status.RulesV4 {
+		// The authority range and the test classification stay as started.
+		e.Scope = &record.ScopeCopy{Allowed: append([]string{}, w.bundle.Scope.Allowed...),
+			Tests: append([]string{}, w.bundle.Scope.Tests...)}
+		if hasAuthority {
+			e.TestAuthority = &record.TestAuthority{Interpretation: interpretation}
+		}
 	}
 	l, err := record.Append(w.records, w.lock, e, time.Now(), nil)
 	if err != nil {
 		return c.fail(exitInternal, "%v", err)
 	}
-	fmt.Fprintf(c.out, "started: seq %d, base %s, rules %s, budget %d runs / %ds\n", l.Seq, head[:12], status.Rules, bud.Runs, bud.ElapsedSeconds)
+	fmt.Fprintf(c.out, "started: seq %d, base %s, rules %s, budget %d runs / %ds\n", l.Seq, head[:12], goalRules, bud.Runs, bud.ElapsedSeconds)
 	fmt.Fprintf(c.out, "minimum required: %d runs; plan limit: %d (retries and optional runs are additional)\n", minimum, bud.Runs)
 	if !clean {
 		fmt.Fprintln(c.err, "ha: warning: the working tree has uncommitted changes outside the bundle documents; results count only on a clean, committed tree")
@@ -340,7 +376,8 @@ type target struct {
 	kind      string
 	command   string
 	argv      []string
-	checks    []string // baseline overlay paths
+	checks    []string      // baseline overlay paths
+	limit     time.Duration // the applied time limit; zero means checkTimeout
 }
 
 func (t target) label() string {
@@ -476,10 +513,21 @@ func (c *cli) check(in []string) int {
 		var declaration *evidence.Declaration
 		var binding string
 		var extraEnv []string
+		limit := checkTimeout
+		if start.Rules == status.RulesV4 {
+			limit = w.bundle.Limit(t.label())
+			if notice := timeLimitNotice(lines, t.label()); notice != "" {
+				fmt.Fprintln(c.out, notice)
+			}
+		}
+		t.limit = limit
 		digest := bundle.Digest(t.command)
+		if start.Rules == status.RulesV4 {
+			digest = bundle.LimitDigest(digest, limit)
+		}
 		if row := w.bundle.Row(t.criterion); row != nil {
 			digest = row.CommandDigestFor(start.Rules)
-			if start.Rules == status.RulesV3 && t.kind == bundle.KindChange {
+			if status.Structured(start.Rules) && t.kind == bundle.KindChange {
 				declaration, binding = row.Evidence, row.EvidenceDigest
 				invocation, err = evidence.Prepare(w.logDir)
 				if err != nil {
@@ -496,10 +544,14 @@ func (c *cli) check(in []string) int {
 		tmp.Close()
 		var res run.Result
 		var overlay []record.Overlay
+		var startedAt string
+		if start.Rules == status.RulesV4 {
+			startedAt = time.Now().UTC().Format(time.RFC3339)
+		}
 		if baseline {
 			res, overlay, err = c.runBaseline(w, start.BaseCommit, head, t, tmp.Name(), extraEnv...)
 		} else {
-			res, err = c.executeCheck(w.repo.Root, t.argv, checkTimeout, tmp.Name(), extraEnv)
+			res, err = c.executeCheck(w.repo.Root, t.argv, limit, tmp.Name(), extraEnv)
 		}
 		if baseline && !res.Attempted {
 			os.Remove(tmp.Name())
@@ -509,7 +561,7 @@ func (c *cli) check(in []string) int {
 			return c.fail(exitRefused, "before execution: baseline preparation for %s: %v; %d/%d targets executed, %d not run", t.label(), err, i, len(ts), len(ts)-i)
 		}
 		if err != nil {
-			if !res.Attempted || start.Rules != status.RulesV3 {
+			if !res.Attempted || !status.Structured(start.Rules) {
 				os.Remove(tmp.Name())
 				return c.fail(exitInternal, "verification could not be recorded: %v", err)
 			}
@@ -523,7 +575,7 @@ func (c *cli) check(in []string) int {
 		prepare := func(seq int) error {
 			name := strconv.Itoa(seq) + ".log"
 			if err := os.Rename(tmp.Name(), filepath.Join(w.logDir, name)); err != nil {
-				if start.Rules != status.RulesV3 || !res.Attempted {
+				if !status.Structured(start.Rules) || !res.Attempted {
 					return err
 				}
 				// Output storage is distinct from record storage. Preserve an
@@ -564,7 +616,7 @@ func (c *cli) check(in []string) int {
 				Argv: t.argv, CommandDigest: digest, Commit: head, TreeClean: clean, SpecDigest: w.goal.Digest,
 				BaseCommit: start.BaseCommit, Overlay: overlay, Exit: res.Exit, Result: result,
 				DurationMS: res.Duration.Milliseconds(), OutputDigest: res.Digest,
-				Evidence: proof, Timing: timing(res, checkTimeout),
+				Evidence: proof, Timing: timing(res, limit), StartedAt: startedAt,
 			}
 			entry = bl
 			prepareBase := prepare
@@ -582,7 +634,7 @@ func (c *cli) check(in []string) int {
 				Header: record.Header{Kind: "check", HaVersion: version}, Target: tgt, CriterionKind: t.kind,
 				Argv: t.argv, CommandDigest: digest, Commit: head, TreeClean: clean, SpecDigest: w.goal.Digest,
 				Exit: res.Exit, Result: result, DurationMS: res.Duration.Milliseconds(), OutputDigest: res.Digest,
-				Evidence: proof, Timing: timing(res, checkTimeout),
+				Evidence: proof, Timing: timing(res, limit), StartedAt: startedAt,
 			}
 			entry = ck
 			prepareBase := prepare
@@ -608,6 +660,7 @@ func (c *cli) check(in []string) int {
 		if baseline {
 			kind = "baseline"
 		}
+		lines = append(lines, l) // later targets' notices see this run
 		fmt.Fprintf(c.out, "%s %s %s (seq %d)\n", t.label(), kind, result, l.Seq)
 		if proof != nil {
 			fmt.Fprintf(c.out, "classification: %s\n", proof.Reason)
@@ -621,6 +674,49 @@ func (c *cli) check(in []string) int {
 		return exitOK
 	}
 	return exitProblems
+}
+
+// Notice before a run-rules/4 run (run-record.md §4.7): earlier runs of the same
+// target that reached their limit or used at least noticePermille of it.
+const (
+	noticePrefix   = "time-limit notice:"
+	noticePermille = 800
+)
+
+// timeLimitNotice reads the record only. It names the latest earlier run of
+// the target that reached or neared its limit, says its time risk is unknown
+// when no earlier run kept a limit, and is empty otherwise. A run without its
+// limit interval is judged from duration_ms and marked approximate.
+func timeLimitNotice(lines []record.Line, label string) string {
+	known := false
+	for i := len(lines) - 1; i >= 0; i-- {
+		l := lines[i]
+		if (l.Kind != "check" && l.Kind != "baseline") || l.Target == nil ||
+			bundle.LimitLabel(l.Target.Criterion, l.Target.Task, l.Target.Index) != label {
+			continue
+		}
+		r := timingOf(l)
+		if r.LimitMS == nil || *r.LimitMS <= 0 {
+			continue
+		}
+		known = true
+		switch {
+		case r.LimitReached != nil && *r.LimitReached:
+			return fmt.Sprintf("%s %s seq %d limit reached", noticePrefix, label, l.Seq)
+		case r.LimitUsePermille != nil:
+			if *r.LimitUsePermille >= noticePermille {
+				return fmt.Sprintf("%s %s seq %d %d‰ of the limit", noticePrefix, label, l.Seq, *r.LimitUsePermille)
+			}
+		case r.LimitElapsedMS == nil && l.DurationMS >= 0 && l.DurationMS <= math.MaxInt64/1000:
+			if use := l.DurationMS * 1000 / *r.LimitMS; use >= noticePermille {
+				return fmt.Sprintf("%s %s seq %d %d‰ of the limit (approximate)", noticePrefix, label, l.Seq, use)
+			}
+		}
+	}
+	if !known {
+		return fmt.Sprintf("%s %s risk unknown", noticePrefix, label)
+	}
+	return ""
 }
 
 // timing is the record form of a run's process measurement (run-record.md
@@ -674,19 +770,44 @@ func (c *cli) runBaseline(w *workspace, base, head string, t target, logPath str
 	if err != nil {
 		return run.Result{}, nil, err
 	}
-	res, err := c.executeCheck(tree, t.argv, checkTimeout, logPath, extraEnv)
+	limit := t.limit
+	if limit == 0 {
+		limit = checkTimeout
+	}
+	res, err := c.executeCheck(tree, t.argv, limit, logPath, extraEnv)
 	return res, overlay, err
 }
 
 var blockCauses = []string{"auth", "permission", "quota", "environment", "spec", "other"}
 
+// rules4Notes are the note kinds only run-rules/4 goals record (run-record.md
+// §4.7); earlier rules refuse them before writing.
+var rules4Notes = map[string]bool{"test-change": true, "wait": true, "resume": true, "recover": true, "allow-recovery": true}
+
+// noteFlags are the run-rules/4 options each note kind takes.
+var noteFlags = map[string]map[string]bool{
+	"test-change":    {"criteria": true, "how": true, "moved-to": true, "weakened": true},
+	"wait":           {"reason": true},
+	"recover":        {"input": true, "change": true},
+	"allow-recovery": {"input": true, "count": true},
+}
+
 func (c *cli) note(in []string) int {
-	a, err := parseArgs(in, []string{"quote", "cause"}, nil)
+	a, err := parseFlags(in, []string{"quote", "cause", "reason", "criteria", "how", "input", "change", "count"}, []string{"moved-to"}, []string{"weakened"})
 	if err != nil {
 		return c.fail(exitUsage, "%v", err)
 	}
 	if len(a.pos) < 2 {
-		return c.fail(exitUsage, "usage: ha note <goal> <block|unblock|confirm|reopen|input> ...")
+		return c.fail(exitUsage, "usage: ha note <goal> <block|unblock|confirm|reopen|input|test-change|wait|resume|recover|allow-recovery> ...")
+	}
+	// The run-rules/4 options belong to their note kinds; every other kind
+	// refuses them as an unknown flag, as before they existed.
+	for _, name := range []string{"reason", "criteria", "how", "input", "change", "count", "moved-to", "weakened"} {
+		_, val := a.vals[name]
+		_, list := a.lists[name]
+		if (val || list || a.bools[name]) && !noteFlags[a.pos[1]][name] {
+			return c.fail(exitUsage, "unknown flag --%s for %s notes", name, a.pos[1])
+		}
 	}
 	w, code := c.openOrFail(a, 2)
 	if w == nil {
@@ -701,9 +822,12 @@ func (c *cli) note(in []string) int {
 		return c.fail(exitRules, "%v", &status.UnsupportedRulesError{Rules: goalRules})
 	}
 	kind, quote := a.pos[1], strings.TrimSpace(a.vals["quote"])
+	if rules4Notes[kind] && goalRules != status.RulesV4 {
+		return c.fail(exitRefused, "%s notes need a goal started with %s; this goal keeps %s", kind, status.RulesV4, goalRules)
+	}
 	e := &record.Note{Header: record.Header{Kind: "note", HaVersion: version}, Note: kind, Quote: quote}
 	var validate func([]record.Line) error
-	if kind == "reopen" && goalRules == status.RulesV3 {
+	if kind == "reopen" && status.Structured(goalRules) {
 		before, err := status.FoldBudget(lines)
 		if err != nil {
 			return c.fail(exitRefused, "%v", err)
@@ -748,6 +872,51 @@ func (c *cli) note(in []string) int {
 		if quote == "" {
 			return c.fail(exitUsage, "%s needs --quote with the user's words", kind)
 		}
+	case "test-change":
+		if len(a.pos) < 3 || !strings.HasPrefix(a.pos[2], "tests:") || a.pos[2] == "tests:" {
+			return c.fail(exitUsage, "test-change needs a subject tests:<path>")
+		}
+		e.Subject = a.pos[2]
+		data, code, err := c.testChange(w, strings.TrimPrefix(e.Subject, "tests:"), a, goalRules)
+		if err != nil {
+			return c.fail(code, "%v", err)
+		}
+		e.TestChange, e.Bound = &data.TestChangeData, &record.Bound{Blob: data.boundBlob}
+	case "wait":
+		if e.Reason = strings.TrimSpace(a.vals["reason"]); e.Reason == "" {
+			return c.fail(exitUsage, "wait needs --reason naming the decision the user was asked")
+		}
+	case "resume":
+	case "recover", "allow-recovery":
+		if len(a.pos) < 3 {
+			return c.fail(exitUsage, "%s needs a condition ID", kind)
+		}
+		data := &record.RecoveryData{Criterion: a.pos[2], Input: a.vals["input"]}
+		row := w.bundle.Row(data.Criterion)
+		if row == nil || row.Kind == bundle.KindManual {
+			return c.fail(exitUsage, "%s: %s is not a condition with a command", kind, data.Criterion)
+		}
+		if data.Input != "check" && (data.Input != "baseline" || row.Kind != bundle.KindChange) {
+			return c.fail(exitUsage, "%s needs --input check, or --input baseline for a change condition", kind)
+		}
+		if kind == "recover" {
+			if data.Change = strings.TrimSpace(a.vals["change"]); data.Change == "" {
+				return c.fail(exitUsage, "recover needs --change naming what changed in how the check runs")
+			}
+		} else {
+			n, err := strconv.Atoi(a.vals["count"])
+			if err != nil || n <= 0 {
+				return c.fail(exitUsage, "allow-recovery needs --count <positive number>")
+			}
+			if quote == "" {
+				return c.fail(exitUsage, "allow-recovery needs --quote with the user's words")
+			}
+			data.Count = n
+		}
+		e.Recovery = data
+		if kind == "recover" {
+			validate = func(current []record.Line) error { return c.recoverable(w, current, data) }
+		}
 	default:
 		return c.fail(exitUsage, "unknown note kind %q", kind)
 	}
@@ -764,6 +933,81 @@ func (c *cli) note(in []string) int {
 	}
 	fmt.Fprintf(c.out, "noted: %s (seq %d)\n", strings.TrimSpace(kind+" "+e.Subject), l.Seq)
 	return exitOK
+}
+
+type testChangeNote struct {
+	record.TestChangeData
+	boundBlob string
+}
+
+// testChange reads a test-change note's reason and binds it to the file at
+// HEAD, and each moved-to path to its file (run-record.md §4.7).
+func (c *cli) testChange(w *workspace, path string, a *args, rules string) (*testChangeNote, int, error) {
+	n := &testChangeNote{TestChangeData: record.TestChangeData{How: strings.TrimSpace(a.vals["how"]), Weakened: a.bools["weakened"]}}
+	for _, id := range strings.Split(a.vals["criteria"], ",") {
+		if id = strings.TrimSpace(id); id == "" {
+			continue
+		}
+		if w.goal.Criterion(id) == nil && w.bundle.Row(id) == nil {
+			return nil, exitUsage, fmt.Errorf("test-change: %s is not a condition of this goal", id)
+		}
+		n.Criteria = append(n.Criteria, id)
+	}
+	if len(n.Criteria) == 0 || n.How == "" {
+		return nil, exitUsage, errors.New("test-change needs --criteria <AC-n,...> and --how saying how the file checks them")
+	}
+	excl, err := w.excludes(rules)
+	if err != nil {
+		return nil, exitInternal, err
+	}
+	clean, err := w.repo.Clean(excl)
+	if err != nil {
+		return nil, exitInternal, err
+	}
+	if !clean {
+		return nil, exitRefused, errors.New("commit or revert changes before recording a test change; it binds to the files at HEAD")
+	}
+	head, err := w.repo.Head()
+	if err != nil {
+		return nil, exitRefused, err
+	}
+	if n.boundBlob, err = w.repo.Blob(head, path); err != nil {
+		return nil, exitInternal, err
+	}
+	for _, moved := range a.lists["moved-to"] {
+		blob, err := w.repo.Blob(head, moved)
+		if err != nil {
+			return nil, exitInternal, err
+		}
+		if blob == gitx.Deleted {
+			return nil, exitRefused, fmt.Errorf("test-change: moved-to path %s does not exist at HEAD", moved)
+		}
+		n.MovedTo = append(n.MovedTo, record.MovedPath{Path: moved, Blob: blob})
+	}
+	return n, 0, nil
+}
+
+// recoverable refuses a recover note unless the condition's input is past its
+// error limit and a recovery remains (run-record.md §4.7).
+func (c *cli) recoverable(w *workspace, lines []record.Line, d *record.RecoveryData) error {
+	rep, err := status.Compute(status.Input{Repo: w.repo, Goal: w.goal, Bundle: w.bundle, Lines: lines, HaVersion: version})
+	if err != nil {
+		return err
+	}
+	for _, r := range rep.Recoveries {
+		if r.Criterion != d.Criterion || r.Input != d.Input {
+			continue
+		}
+		if !r.LimitReached {
+			return fmt.Errorf("%s %s input is not past its error limit; nothing to recover", d.Criterion, d.Input)
+		}
+		if r.Remaining <= 0 {
+			return fmt.Errorf("%s %s input has no recovery left; the user can allow more with allow-recovery", d.Criterion, d.Input)
+		}
+		d.Clears = append([]int(nil), r.ErrorSeqs...)
+		return nil
+	}
+	return fmt.Errorf("%s %s input is not past its error limit; nothing to recover", d.Criterion, d.Input)
 }
 
 // bound computes the value a confirmation is tied to (run-record.md §2.4).

@@ -1,0 +1,26 @@
+# run-rules/4: a declared command time limit applies, a limit past the maximum
+# is a lint problem, and a rerun of a limited check prints a notice first.
+append $GOAL/PLAN.md "\n## 시간 제한\n- AC-2: 3시간\n"
+commit "limit AC-2 beyond the maximum"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/4
+expect-exit 65
+expect-output time_limit_invalid
+expect-records 0
+replace $GOAL/PLAN.md "- AC-2: 3시간\n" "- AC-2: 5124096시간\n"
+commit "limit AC-2 by a count that overflows a duration"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/4
+expect-exit 65
+expect-output "exceeds the maximum"
+expect-records 0
+replace $GOAL/PLAN.md "- AC-2: 5124096시간\n" "- AC-2: 1초\n"
+write tests/keep.sh "sleep 5\n"
+commit "slow keep check under a one-second limit"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/4
+expect-exit 0
+ha check $GOAL AC-2
+expect-exit 1
+expect-record 2 result error
+ha check $GOAL AC-2
+expect-output "time-limit notice: AC-2 seq 2 limit reached"
+ha check $GOAL AC-2 AC-2
+expect-output "time-limit notice: AC-2 seq 4 limit reached"

@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/autonomous-recovery-gates/AC-6.targets.json",
+    "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "error-recovery",
+      "violation": "error-recovery-unsupported"
+    },
+    {
+      "id": "error-recovery.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-recovery.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-recovery.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-recovery.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-recovery.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-recovery.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-recovery.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-recovery.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-recovery.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "error-recovery.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "recovery-limit",
+      "violation": "error-recovery-unsupported"
+    },
+    {
+      "id": "recovery-limit.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "recovery-limit.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "recovery-limit.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "recovery-limit.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "recovery-limit.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "recovery-limit.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "recovery-limit.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "recovery-limit.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "recovery-limit.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "recovery-limit.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

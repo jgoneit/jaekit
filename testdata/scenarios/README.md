@@ -57,6 +57,17 @@ The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evi
 | `rules-v2-start` | run-rules-2 AC-9 | an existing goal keeps `run-rules/2` |
 | `rules-v3-start` | structured baseline classification | a new start records `/3`; an unsupported script failure stays unknown |
 | `budget-v3-change` | same-window budget change | total limit changes preserve usage; stale revisions are refused; reopen inherits the latest limit |
+| `rules-v4-test-change` | run-record.md §4.7 test changes | a reasoned edit inside the recorded authority clears `test_definition_changed`; a weakening mark or a later edit keeps it until `confirm tests:` |
+| `rules-v4-wait` | run-record.md §4.7 reported waits | a wait ends at the quoted answer or the start of a later run; `reported_wait_seconds`, `span_seconds` and `elapsed_seconds` follow |
+| `rules-v4-preapprove` | run-record.md §4.7 pre-approval | a reason alone raises the limit up to the quoted pre-approval; beyond it, or after `reopen`, it is refused |
+| `rules-v4-preapprove-quoted` | run-record.md §4.7 pre-approval | `reopen` carries a quoted decrease below a pre-approved raise; an unquoted reduction above the user's limit is not carried |
+| `rules-v4-recovery` | run-record.md §4.7 error recovery | an error limit clears only by `recover` for its condition and input; a third recovery needs `allow-recovery` |
+| `rules-v4-time-limit` | bundle.md §2.5 | a limit over the maximum refuses the start (`time_limit_invalid`); a declared limit ends the check with an error, and the rerun prints a notice |
+| `rules-v4-forms-refused` | run-record.md §4.6 | `/3` goals refuse the `run-rules/4` notes and pre-approval with 65; `--test-authority` without `--rules run-rules/4` is a usage error; nothing recorded |
+| `rules-v4-test-split` | run-record.md §4.7 test changes | a split test stays exempt only while every linked file is as recorded; a reason for a modified version does not cover a later deletion |
+| `rules-v4-wait-same-second` | run-record.md §4.7 reported waits | a run that starts in the wait note's own second ends the wait |
+| `rules-v4-recovery-input` | run-record.md §4.7 error recovery | a recovery takes out only the error records it named; errors of an input that changed and came back count again |
+| `rules-v4-task-check` | run-record.md §4.7 time limits | a task command recorded under its applied limit is a current input |
 | `rules-v1-kept` | run-rules-2 AC-10 | historical `run-rules/1` budget semantics remain; a future dirty check is refused |
 | `blocked` | bundle.md §5 | `blocked` until unblock |
 | `not-started` | run-record.md §4.2 | `incomplete`, `not_started`; checks refused |

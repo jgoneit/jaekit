@@ -1,0 +1,24 @@
+# Earlier rules refuse the run-rules/4 forms and record nothing.
+ha start $GOAL --request "implement the synthetic goal" --test-authority "tests/** 수정 허용"
+expect-exit 64
+expect-records 0
+ha start $GOAL --request "implement the synthetic goal"
+expect-exit 0
+expect-record 1 rules run-rules/3
+ha note $GOAL wait --reason "asked which greeting"
+expect-exit 65
+ha note $GOAL resume
+expect-exit 65
+ha note $GOAL test-change tests:tests/keep.sh --criteria AC-2 --how "keep check"
+expect-exit 65
+ha note $GOAL recover AC-2 --input check --change "runner"
+expect-exit 65
+ha note $GOAL allow-recovery AC-2 --input check --count 1 --quote "더 해도 돼"
+expect-exit 65
+ha budget $GOAL --preapprove 80 --window 1 --revision 1 --quote "80회까지" --context "이 창"
+expect-exit 65
+ha note $GOAL input --quote "계속 진행해" --reason "asked which greeting"
+expect-exit 64
+ha note $GOAL confirm spec --quote "문서 변경 승인" --how "keep check"
+expect-exit 64
+expect-records 1

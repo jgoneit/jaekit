@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "command-time-limits",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "TimeLimits.test_declared_limits_are_applied_and_bound_to_the_command",
+      "result_targets": {
+        "additional_violations": [
+          "command-time-limits.assertion-2",
+          "command-time-limits.assertion-3",
+          "command-time-limits.assertion-4",
+          "command-time-limits.assertion-5",
+          "command-time-limits.assertion-6",
+          "command-time-limits.assertion-7",
+          "command-time-limits.assertion-8"
+        ],
+        "execution": "command-time-limits.execution",
+        "selection": "command-time-limits.selection",
+        "attribution": "command-time-limits.attribution"
+      }
+    }
+  ]
+}

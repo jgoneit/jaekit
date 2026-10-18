@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "reported-wait",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "Waits.test_reported_wait_leaves_the_elapsed_budget",
+      "result_targets": {
+        "additional_violations": [
+          "reported-wait.assertion-2",
+          "reported-wait.assertion-3",
+          "reported-wait.assertion-4",
+          "reported-wait.assertion-5",
+          "reported-wait.assertion-6",
+          "reported-wait.assertion-7",
+          "reported-wait.assertion-8"
+        ],
+        "execution": "reported-wait.execution",
+        "selection": "reported-wait.selection",
+        "attribution": "reported-wait.attribution"
+      }
+    }
+  ]
+}

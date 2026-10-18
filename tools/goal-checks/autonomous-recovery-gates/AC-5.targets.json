@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "preapproved-runs",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "Preapproval.test_executor_raises_within_the_preapproved_limit",
+      "result_targets": {
+        "additional_violations": [
+          "preapproved-runs.assertion-2",
+          "preapproved-runs.assertion-3",
+          "preapproved-runs.assertion-4",
+          "preapproved-runs.assertion-5",
+          "preapproved-runs.assertion-6",
+          "preapproved-runs.assertion-7",
+          "preapproved-runs.assertion-8"
+        ],
+        "execution": "preapproved-runs.execution",
+        "selection": "preapproved-runs.selection",
+        "attribution": "preapproved-runs.attribution"
+      }
+    }
+  ]
+}

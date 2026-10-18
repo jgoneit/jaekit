@@ -1,0 +1,163 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "old-rules",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "OldRules.test_earlier_rules_keep_confirmations_error_limits_and_budget",
+      "result_targets": {
+        "additional_violations": [
+          "old-rules.assertion-2",
+          "old-rules.assertion-3",
+          "old-rules.assertion-4",
+          "old-rules.assertion-5",
+          "old-rules.assertion-6",
+          "old-rules.assertion-7",
+          "old-rules.assertion-8"
+        ],
+        "execution": "old-rules.execution",
+        "selection": "old-rules.selection",
+        "attribution": "old-rules.attribution"
+      }
+    },
+    {
+      "target": "old-rules-limit",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "TimeLimits.test_earlier_rules_keep_nine_hundred_seconds",
+      "result_targets": {
+        "additional_violations": [
+          "old-rules-limit.assertion-2",
+          "old-rules-limit.assertion-3",
+          "old-rules-limit.assertion-4",
+          "old-rules-limit.assertion-5",
+          "old-rules-limit.assertion-6",
+          "old-rules-limit.assertion-7",
+          "old-rules-limit.assertion-8"
+        ],
+        "execution": "old-rules-limit.execution",
+        "selection": "old-rules-limit.selection",
+        "attribution": "old-rules-limit.attribution"
+      }
+    },
+    {
+      "target": "old-core-refuses",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "OldCoreRefuses.test_core_without_run_rules_4_refuses_such_a_goal",
+      "result_targets": {
+        "additional_violations": [
+          "old-core-refuses.assertion-2",
+          "old-core-refuses.assertion-3",
+          "old-core-refuses.assertion-4",
+          "old-core-refuses.assertion-5",
+          "old-core-refuses.assertion-6",
+          "old-core-refuses.assertion-7",
+          "old-core-refuses.assertion-8"
+        ],
+        "execution": "old-core-refuses.execution",
+        "selection": "old-core-refuses.selection",
+        "attribution": "old-core-refuses.attribution"
+      }
+    },
+    {
+      "target": "core-scenarios",
+      "runner": "command",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run",
+        "^TestScenarios$",
+        "./cmd/ha"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "core-scenarios.assertion-2",
+          "core-scenarios.assertion-3",
+          "core-scenarios.assertion-4",
+          "core-scenarios.assertion-5",
+          "core-scenarios.assertion-6",
+          "core-scenarios.assertion-7",
+          "core-scenarios.assertion-8"
+        ],
+        "execution": "core-scenarios.execution",
+        "selection": "core-scenarios.selection",
+        "attribution": "core-scenarios.attribution"
+      }
+    },
+    {
+      "target": "status-tests",
+      "runner": "command",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "./internal/status"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "status-tests.assertion-2",
+          "status-tests.assertion-3",
+          "status-tests.assertion-4",
+          "status-tests.assertion-5",
+          "status-tests.assertion-6",
+          "status-tests.assertion-7",
+          "status-tests.assertion-8"
+        ],
+        "execution": "status-tests.execution",
+        "selection": "status-tests.selection",
+        "attribution": "status-tests.attribution"
+      }
+    },
+    {
+      "target": "plugin-tests",
+      "runner": "command",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "./plugins/"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "plugin-tests.assertion-2",
+          "plugin-tests.assertion-3",
+          "plugin-tests.assertion-4",
+          "plugin-tests.assertion-5",
+          "plugin-tests.assertion-6",
+          "plugin-tests.assertion-7",
+          "plugin-tests.assertion-8"
+        ],
+        "execution": "plugin-tests.execution",
+        "selection": "plugin-tests.selection",
+        "attribution": "plugin-tests.attribution"
+      }
+    }
+  ]
+}

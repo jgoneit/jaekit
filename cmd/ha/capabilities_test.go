@@ -41,7 +41,7 @@ func TestCompatibilityAC7_GoallessReadOnlyQuery(t *testing.T) {
 		t.Fatalf("[requirement] wrong capability identity/default: %v", report)
 	}
 	wanted := map[string]any{
-		"supported_rules": []any{"run-rules/1", "run-rules/2", "run-rules/3"},
+		"supported_rules": []any{"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4"},
 		"formats": map[string]any{
 			"finding":          []any{"run-finding/v1"},
 			"decision_history": []any{"decision-history/v1"},
@@ -49,7 +49,8 @@ func TestCompatibilityAC7_GoallessReadOnlyQuery(t *testing.T) {
 			"check_result": []any{"check-result/v1"}, "check_evidence": []any{"check-evidence/v1"},
 			"timing": []any{"timing/v1"},
 		},
-		"features": []any{"estimate/v1", "dirty-preflight/v1", "baseline-safe-copy/v1", "structured-change-results/v1", "budget-change/v1", "post-completion-findings/v1", "decision-history/v1", "run-timing/v1"},
+		"features": []any{"estimate/v1", "dirty-preflight/v1", "baseline-safe-copy/v1", "structured-change-results/v1", "budget-change/v1", "post-completion-findings/v1", "decision-history/v1", "run-timing/v1",
+			"test-authority/v1", "reported-wait/v1", "preapproved-runs/v1", "error-recovery/v1", "command-time-limits/v1"},
 	}
 	for key, want := range wanted {
 		if !reflect.DeepEqual(report[key], want) {
@@ -75,7 +76,7 @@ func TestCompatibilityAC7_GoallessReadOnlyQuery(t *testing.T) {
 	}
 }
 
-const compatibilityJSON = `{"schema":"ha-capabilities/v1","ha_version":"synthetic","supported_rules":["run-rules/1","run-rules/2","run-rules/3"],"default_rules":"run-rules/3","formats":{"criteria":["legacy","nested/1"],"check_declaration":["check-declaration/v1"],"check_result":["check-result/v1"],"check_evidence":["check-evidence/v1"]},"features":["estimate/v1","dirty-preflight/v1","baseline-safe-copy/v1","structured-change-results/v1","budget-change/v1"]}`
+const compatibilityJSON = `{"schema":"ha-capabilities/v1","ha_version":"synthetic","supported_rules":["run-rules/1","run-rules/2","run-rules/3","run-rules/4"],"default_rules":"run-rules/3","formats":{"criteria":["legacy","nested/1"],"check_declaration":["check-declaration/v1"],"check_result":["check-result/v1"],"check_evidence":["check-evidence/v1"]},"features":["estimate/v1","dirty-preflight/v1","baseline-safe-copy/v1","structured-change-results/v1","budget-change/v1","test-authority/v1","reported-wait/v1","preapproved-runs/v1","error-recovery/v1","command-time-limits/v1"]}`
 
 func compatibilityWrite(t *testing.T, path, content string, mode os.FileMode) {
 	t.Helper()
@@ -182,7 +183,7 @@ func TestCompatibilityAC8_ConsumerAndActualBinary(t *testing.T) {
 			t.Fatal(err)
 		}
 		hash := sha256.Sum256(data)
-		if report["executable"] != resolved || report["sha256"] != hex.EncodeToString(hash[:]) || report["rules"] != "run-rules/3" {
+		if report["executable"] != resolved || report["sha256"] != hex.EncodeToString(hash[:]) || report["rules"] != "run-rules/4" {
 			t.Fatalf("[requirement] decision does not bind the actual binary: %v", report)
 		}
 		entries, err := os.ReadDir(dir)
@@ -205,6 +206,9 @@ func TestCompatibilityAC8_ConsumerAndActualBinary(t *testing.T) {
 		{"missing field", compatibilityMutate(t, func(v map[string]any) { delete(v, "features") }), "invalid_capabilities", 0},
 		{"wrong field type", compatibilityMutate(t, func(v map[string]any) { v["features"] = true }), "invalid_capabilities", 0},
 		{"missing feature", compatibilityMutate(t, func(v map[string]any) { v["features"] = []string{"estimate/v1"} }), "missing_support", 0},
+		{"no run-rules/4 to start new goals", compatibilityMutate(t, func(v map[string]any) {
+			v["supported_rules"] = []string{"run-rules/1", "run-rules/2", "run-rules/3"}
+		}), "missing_support", 0},
 		{"missing result format", compatibilityMutate(t, func(v map[string]any) { v["formats"].(map[string]any)["check_result"] = []string{} }), "missing_support", 0},
 		{"unknown default", compatibilityMutate(t, func(v map[string]any) {
 			v["default_rules"] = "run-rules/4"

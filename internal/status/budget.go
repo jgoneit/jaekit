@@ -47,6 +47,14 @@ type BudgetState struct {
 	ElapsedSeconds      int64
 	Completed           bool
 	History             []BudgetEvent
+	// run-rules/4: ElapsedSeconds is SpanSeconds less ReportedWaitSeconds.
+	// PreapprovedRuns is the window's pre-approved limit; a new window starts
+	// from the last limit the user set (inheritRuns), not from a raise within
+	// a pre-approval.
+	SpanSeconds         int64
+	ReportedWaitSeconds int64
+	PreapprovedRuns     *int
+	inheritRuns         int
 }
 
 // BudgetChangeRequest states the budget revision the caller intended to edit.
@@ -54,6 +62,9 @@ type BudgetState struct {
 type BudgetChangeRequest struct {
 	WindowStart, Revision, PreviousRuns, Runs int
 	Quote, Context, Interpretation, Reason    string
+	// Preapprove, under run-rules/4, records the user's pre-approved limit for
+	// the window instead of changing the limit.
+	Preapprove int
 }
 
 // BudgetError is a refused change or an invalid persisted budget event.
@@ -66,8 +77,8 @@ func budgetError(format string, args ...any) error {
 }
 
 func validateBudgetChange(state *BudgetState, d *record.BudgetChangeData) error {
-	if state.Rules != RulesV3 {
-		return budgetError("budget changes require %s; goal uses %s", RulesV3, state.Rules)
+	if !Structured(state.Rules) {
+		return budgetError("budget changes require %s or %s; goal uses %s", RulesV3, RulesV4, state.Rules)
 	}
 	if state.Completed {
 		return budgetError("window %d has a completion record; quote a rework request with reopen first", state.WindowStart)
@@ -78,6 +89,19 @@ func validateBudgetChange(state *BudgetState, d *record.BudgetChangeData) error 
 	if d.Goal != state.Goal || d.WindowStart != state.WindowStart || d.Revision != state.Revision || d.PreviousRuns != state.RunsLimit {
 		return budgetError("budget conflict: current goal %s, window %d, revision %d, runs limit %d", state.Goal, state.WindowStart, state.Revision, state.RunsLimit)
 	}
+	if d.PreapprovedRuns != 0 {
+		switch {
+		case state.Rules != RulesV4:
+			return budgetError("a pre-approved run limit requires %s; goal uses %s", RulesV4, state.Rules)
+		case d.Runs != d.PreviousRuns:
+			return budgetError("a pre-approval does not change the run limit")
+		case d.PreapprovedRuns <= state.RunsLimit:
+			return budgetError("the pre-approved limit %d must be above the run limit %d", d.PreapprovedRuns, state.RunsLimit)
+		case strings.TrimSpace(d.Quote) == "" || strings.TrimSpace(d.Context) == "":
+			return budgetError("a pre-approved run limit requires the user's quote and its request context")
+		}
+		return nil
+	}
 	if d.Runs <= 0 {
 		return budgetError("run limit must be a positive integer")
 	}
@@ -85,12 +109,27 @@ func validateBudgetChange(state *BudgetState, d *record.BudgetChangeData) error 
 		return budgetError("run limit is unchanged (%d)", d.Runs)
 	}
 	if d.Runs > d.PreviousRuns && (strings.TrimSpace(d.Quote) == "" || strings.TrimSpace(d.Context) == "") {
-		return budgetError("increasing the run limit requires the user's quote and its request context")
+		if !preapprovedRaise(state, d) {
+			return budgetError("increasing the run limit requires the user's quote and its request context, or a reason within the window's pre-approved limit")
+		}
 	}
 	if d.Runs < d.PreviousRuns && strings.TrimSpace(d.Reason) == "" {
 		return budgetError("reducing the run limit requires a reason")
 	}
 	return nil
+}
+
+// preapprovedRaise is an executor's increase within the user's pre-approved
+// limit for the window, with a reason and without a quote (run-rules/4).
+func preapprovedRaise(state *BudgetState, d *record.BudgetChangeData) bool {
+	return state.Rules == RulesV4 && state.PreapprovedRuns != nil && d.Runs <= *state.PreapprovedRuns &&
+		strings.TrimSpace(d.Quote) == "" && strings.TrimSpace(d.Reason) != ""
+}
+
+// userSet is a run limit change that carries the user's quote. A decrease
+// needs no request context, so the quote alone marks the user's limit.
+func userSet(d *record.BudgetChangeData) bool {
+	return strings.TrimSpace(d.Quote) != ""
 }
 
 // FoldBudget checks budget event semantics while retaining /1 and /2 window
@@ -100,7 +139,8 @@ func FoldBudget(lines []record.Line) (*BudgetState, error) {
 	var state *BudgetState
 	var originalRuns int
 	var from string
-	for _, l := range lines {
+	window := 0
+	for i, l := range lines {
 		switch l.Kind {
 		case "start":
 			if state != nil {
@@ -113,10 +153,11 @@ func FoldBudget(lines []record.Line) (*BudgetState, error) {
 			if l.Budget != nil {
 				state.RunsLimit, state.ElapsedLimitSeconds = l.Budget.Runs, l.Budget.ElapsedSeconds
 			}
-			if l.Rules == RulesV3 && (state.RunsLimit <= 0 || state.ElapsedLimitSeconds <= 0) {
+			if Structured(l.Rules) && (state.RunsLimit <= 0 || state.ElapsedLimitSeconds <= 0) {
 				return nil, budgetError("record seq %d: invalid start budget", l.Seq)
 			}
 			originalRuns, from = state.RunsLimit, l.At
+			state.inheritRuns = state.RunsLimit
 		case "budget_change":
 			if state == nil {
 				return nil, budgetError("record seq %d: budget change before start", l.Seq)
@@ -124,14 +165,29 @@ func FoldBudget(lines []record.Line) (*BudgetState, error) {
 			if err := validateBudgetChange(state, l.BudgetChange); err != nil {
 				return nil, budgetError("record seq %d: %v", l.Seq, err)
 			}
+			switch d := l.BudgetChange; {
+			case d.PreapprovedRuns != 0:
+				n := d.PreapprovedRuns
+				state.PreapprovedRuns = &n
+			case d.Runs < state.RunsLimit && !userSet(d):
+				state.inheritRuns = min(state.inheritRuns, d.Runs)
+			case !preapprovedRaise(state, d):
+				// A limit the user set with a quote, raise or decrease, is the
+				// one a new window carries (run-record.md §4.7).
+				state.inheritRuns = d.Runs
+			}
 			state.RunsLimit, state.Revision = l.BudgetChange.Runs, l.Seq
 			state.History = append(state.History, BudgetEvent{Seq: l.Seq, At: l.At, Change: *l.BudgetChange})
 		case "note":
 			if state != nil && l.Note == "reopen" {
 				state.WindowStart, state.Revision = l.Seq, l.Seq
 				state.Runs, state.Completed, from = 0, false, l.At
-				if state.Rules != RulesV3 {
+				window = i
+				if !Structured(state.Rules) {
 					state.RunsLimit = originalRuns
+				}
+				if state.Rules == RulesV4 {
+					state.RunsLimit, state.PreapprovedRuns = state.inheritRuns, nil
 				}
 			}
 		case "check", "baseline":
@@ -159,6 +215,11 @@ func FoldBudget(lines []record.Line) (*BudgetState, error) {
 		return nil, budgetError("bad last record time %q", lines[len(lines)-1].At)
 	}
 	state.ElapsedSeconds = int64(end.Sub(start) / time.Second)
+	if state.Rules == RulesV4 {
+		state.SpanSeconds = state.ElapsedSeconds
+		state.ReportedWaitSeconds = reportedWait(lines[window:])
+		state.ElapsedSeconds = state.SpanSeconds - state.ReportedWaitSeconds
+	}
 	return state, nil
 }
 
@@ -171,7 +232,11 @@ func NewBudgetChange(lines []record.Line, req BudgetChangeRequest) (*record.Budg
 	}
 	d := record.BudgetChangeData{Goal: state.Goal, WindowStart: req.WindowStart, Revision: req.Revision,
 		PreviousRuns: req.PreviousRuns, Runs: req.Runs, Quote: req.Quote, Context: req.Context,
-		Interpretation: req.Interpretation, Reason: req.Reason}
+		Interpretation: req.Interpretation, Reason: req.Reason, PreapprovedRuns: req.Preapprove}
+	if req.Preapprove != 0 {
+		// A pre-approval leaves the limit as it is.
+		d.PreviousRuns, d.Runs = state.RunsLimit, state.RunsLimit
+	}
 	if err := validateBudgetChange(state, &d); err != nil {
 		return nil, err
 	}

@@ -1,0 +1,8 @@
+# run-rules/4: a task command recorded under its applied limit is a current input.
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/4
+expect-exit 0
+ha check $GOAL T001
+expect-exit 0
+ha status $GOAL --format json
+expect-output "\"current_inputs\": 1"
+expect-output "\"stale_inputs\": 0"

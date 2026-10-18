@@ -56,6 +56,11 @@ ha capabilities --format json
 | `post-completion-findings/v1` | 역사적 완료에 연결된 발견 주장·개정·재작업 관계를 보존하는 선택적 확장 |
 | `decision-history/v1` | 실행 기록과 분리된 판단 이력의 등록·관계·조회를 제공하는 선택적 확장(§5). 위 v0.1.4 예시에는 없다 |
 | `run-timing/v1` | `check`·`baseline` 줄의 `timing` 측정값 기록과 읽기 전용 시간 보기(`ha timing`)를 제공하는 선택적 확장. 위 v0.1.4 예시에는 없다 |
+| `test-authority/v1` | `run-rules/4`의 시험 변경 권한·시작 범위 사본과 `test-change` 근거(§6) |
+| `reported-wait/v1` | `run-rules/4`의 `wait`·`resume` 신고와 `started_at`, 신고한 대기를 뺀 예산 경과(§6) |
+| `preapproved-runs/v1` | `run-rules/4`의 사전 승인 상한과 그 안의 이유만 있는 증액(§6) |
+| `error-recovery/v1` | `run-rules/4`의 `recover`·`allow-recovery`와 회복 횟수 표시(§6) |
+| `command-time-limits/v1` | `run-rules/4`의 PLAN `## 시간 제한`, 명령 digest의 적용 제한, 실행 전 안내(§6) |
 
 시간 보기를 지원하는 Core는 `formats.timing`에 `timing/v1`, `features`에 `run-timing/v1`을 제공한다([실행 기록](run-record.md) §1.2, §2.2). 측정값은 판정·예산에 쓰이지 않으므로 이 확장은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 추가되지 않는다. 지원이 없는 Core에서도 일반 실행은 그대로이고, 시간 보기만 쓸 수 없다.
 
@@ -69,9 +74,9 @@ ha capabilities --format json
 
 | 요청 | 선택할 규칙과 필요한 지원 |
 | --- | --- |
-| 새 시작 | `default_rules`가 `run-rules/3`이며 지원 목록에도 있어야 한다. `criteria`의 `legacy`·`nested/1`, 선언·보고·요약의 각 v1, 완료 뒤 발견 확장을 제외한 위 다섯 실행 기능이 모두 필요하다 |
-| 기존 목표 재개·검사 | `start`에 저장된 `/1`·`/2`·`/3`과 목표가 선택한 criteria 형식을 지원해야 한다. `dirty-preflight/v1`, `baseline-safe-copy/v1`이 필요하다. 저장 규칙이 `/3`이면 선언·보고·요약 v1과 `structured-change-results/v1`도 필요하다 |
-| 기존 목표 횟수 상한 변경 | 저장 규칙이 `/3`이고 `budget-change/v1`을 지원해야 한다. 해당 목표의 criteria 형식과 `/3` 선언·보고·요약 형식도 지원해야 한다. `/1`·`/2`에는 이 동작을 적용하지 않는다 |
+| 새 시작 | `default_rules`가 `run-rules/3`이며 지원 목록에도 있어야 한다. `criteria`의 `legacy`·`nested/1`, 선언·보고·요약의 각 v1, 완료 뒤 발견 확장을 제외한 위 다섯 실행 기능이 모두 필요하다. Seal 0.1.16은 지원 목록에 `run-rules/4`, 기능에 §6의 다섯도 요구하고 `ha start --rules run-rules/4`로 시작한다 |
+| 기존 목표 재개·검사 | `start`에 저장된 `/1`·`/2`·`/3`·`/4`와 목표가 선택한 criteria 형식을 지원해야 한다. `dirty-preflight/v1`, `baseline-safe-copy/v1`이 필요하다. 저장 규칙이 `/3`·`/4`면 선언·보고·요약 v1과 `structured-change-results/v1`도 필요하고, `/4`면 §6의 다섯 기능도 필요하다 |
+| 기존 목표 횟수 상한 변경 | 저장 규칙이 `/3`·`/4`이고 `budget-change/v1`을 지원해야 한다. 해당 목표의 criteria 형식과 선언·보고·요약 형식도 지원해야 하고, `/4`면 §6의 다섯 기능도 필요하다. `/1`·`/2`에는 이 동작을 적용하지 않는다 |
 
 새 시작에서 모르는 기본 규칙이나 이전 기본 규칙으로 조용히 대체하지 않는다. 기존 목표는 기본 시작 규칙을 적용하지 않는다. 예를 들어 기본이 미래 `/4`여도 저장된 `/2`와 요청에 필요한 지원이 있다면 기존 `/2`의 확인은 통과할 수 있다. 새 `/3` 지원 때문에 `/1`·`/2` 목표나 기록을 변환하거나 결과 선언을 추가하도록 요구하지 않는다.
 
@@ -113,3 +118,9 @@ Seal 0.1.12에 포함된 선택형 도구는 `--operation finding --goal <기존
 Seal 0.1.13에 포함된 선택형 도구는 `--operation history --goal <기존 목표>`로 같은 확인을 한다. 이전 설치의 도구에 이 인수가 있다고 가정하지 않으며, 실제 capability를 직접 확인하는 방법도 유효하다.
 
 현재 소스의 macOS·Linux 실행 파일과 Windows x64 로컬 후보는 두 판단 이력 항목을 같은 의미로 제공한다. Windows에서도 등록·재전송·정정·기본/current·list·두 방식의 show가 대상이며, 지원 정보만 있고 직접 호출은 일괄 미지원인 형태가 아니다. 이 기능 광고가 공개 Windows 릴리스나 Windows 11 설치·호스트 사용 인수를 뜻하지는 않는다. 플랫폼과 저장소 범위는 [판단 이력 계약](decision-history.md#1-지원과-호환)과 [Windows 후보 안내](../guides/WINDOWS.md)에 따른다.
+
+## 6. run-rules/4 기능
+
+`run-rules/4`를 지원하는 Core는 `supported_rules`에 `run-rules/4`, `features`에 `test-authority/v1`, `reported-wait/v1`, `preapproved-runs/v1`, `error-recovery/v1`, `command-time-limits/v1`을 함께 제공한다. `default_rules`는 `run-rules/3` 그대로다. 그래서 기본 규칙을 확인하는 이전 Seal과 배포·설치 식별은 바뀌지 않는다. 새 규칙은 `ha start --rules run-rules/4`로만 고른다. 다섯 기능의 의미는 [실행 기록](run-record.md) §4.7이다.
+
+Seal 0.1.16의 확인 도구는 새 시작에서 이 규칙과 다섯 기능을 모두 요구하고 시작 규칙으로 `run-rules/4`를 낸다. 하나라도 없으면 기록 전에 거부한다. 저장 규칙이 `/4`인 목표의 재개·검사·횟수 상한 변경도 다섯 기능을 요구한다. `/1`·`/2`·`/3` 목표의 요구는 그대로다. `/4`를 지원하지 않는 Core는 그 목표를 66으로 거부하고 기록하지 않는다.

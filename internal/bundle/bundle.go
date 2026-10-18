@@ -47,18 +47,25 @@ type Row struct {
 	EvidencePath   string
 	Evidence       *evidence.Declaration
 	EvidenceDigest string
+	// Limit is the time limit a run-rules/4 goal applies to the command.
+	Limit time.Duration
 }
 
 // CommandDigest is the sha256 of the plan command string.
 func (r Row) CommandDigest() string { return Digest(r.Command) }
 
 // CommandDigestFor binds the structured contract only under its opted-in rule.
-// Old goals keep their exact original command digest.
+// Old goals keep their exact original command digest. Under run-rules/4 the
+// digest also binds the command's applied time limit.
 func (r Row) CommandDigestFor(rules string) string {
-	if rules == "run-rules/3" && r.Kind == KindChange && r.EvidencePath != "" {
-		return Digest(r.Command + "\x00" + r.EvidencePath + "\x00" + r.EvidenceDigest)
+	digest := r.CommandDigest()
+	if (rules == "run-rules/3" || rules == "run-rules/4") && r.Kind == KindChange && r.EvidencePath != "" {
+		digest = Digest(r.Command + "\x00" + r.EvidencePath + "\x00" + r.EvidenceDigest)
 	}
-	return r.CommandDigest()
+	if rules == "run-rules/4" {
+		digest = LimitDigest(digest, r.Limit)
+	}
+	return digest
 }
 
 // Executor reports whether the row is an executor-added EX-n condition. Such
@@ -112,6 +119,8 @@ type Bundle struct {
 	Budget   Budget
 	Progress map[string]string // task ID -> state
 	Problems []diag.Problem
+	// Limits holds the run-rules/4 `## 시간 제한` declarations by command label.
+	Limits map[string]time.Duration
 }
 
 // Row returns the plan row for a criterion ID, or nil.
@@ -237,7 +246,7 @@ func LoadForRules(root string, g *goaldocs.Goal, rules string) (*Bundle, error) 
 		l.b.HasPlan = true
 		doc := markdown.Parse(src)
 		l.readRows(doc, planPath)
-		if rules == "run-rules/3" {
+		if rules == "run-rules/3" || rules == "run-rules/4" {
 			l.readEvidence(doc, planPath)
 		}
 		l.readScope(doc, planPath)
@@ -245,6 +254,12 @@ func LoadForRules(root string, g *goaldocs.Goal, rules string) (*Bundle, error) 
 			return nil, err
 		}
 		l.readBudget(doc, planPath)
+		if rules == "run-rules/4" {
+			l.readLimits(doc, planPath)
+			for i := range l.b.Rows {
+				l.b.Rows[i].Limit = l.b.Limit(l.b.Rows[i].ID)
+			}
+		}
 	}
 	for _, name := range []string{"REVIEW.md", "PROGRESS.md"} {
 		_, ok, err := l.read(g.Dir + "/" + name)
@@ -644,4 +659,50 @@ func Lint(g *goaldocs.Goal, b *Bundle) []diag.Problem {
 	out := append(append([]diag.Problem(nil), g.Problems...), b.Problems...)
 	diag.Sort(out)
 	return out
+}
+
+// readLimits reads `## 시간 제한` after the condition table and the tasks.
+// The section is optional; a declaration it cannot apply is a lint problem,
+// so a run never starts under a limit the plan did not mean.
+func (l *loader) readLimits(doc *markdown.Doc, file string) {
+	lines, ok := doc.Section(2, LimitsSection)
+	if !ok {
+		return
+	}
+	l.b.Limits = map[string]time.Duration{}
+	for _, it := range markdown.Items(lines) {
+		key, value, found := strings.Cut(it.Text, ":")
+		if !found {
+			l.problem("time_limit_invalid", file, it.Line, "`## %s` items look like `- AC-3: 30분` or `- T002 명령 1: 20분`: %q", LimitsSection, it.Text)
+			continue
+		}
+		key = strings.TrimSpace(key)
+		d, valid := parseLimit(value)
+		if !valid {
+			l.problem("time_limit_invalid", file, it.Line, "%s: the limit must be a positive number of 시간, 분 or 초: %q", key, strings.TrimSpace(value))
+			continue
+		}
+		if d > MaxLimit {
+			l.problem("time_limit_invalid", file, it.Line, "%s: %s exceeds the maximum of %d seconds", key, strings.TrimSpace(value), int64(MaxLimit/time.Second))
+			continue
+		}
+		label := key
+		if m := limitTask.FindStringSubmatch(key); m != nil {
+			n, _ := strconv.Atoi(m[2])
+			t := l.b.Task(m[1])
+			if t == nil || n > len(t.Commands) {
+				l.problem("time_limit_invalid", file, it.Line, "%s: no such task command", key)
+				continue
+			}
+			label = LimitLabel("", m[1], n)
+		} else if r := l.b.Row(key); r == nil || r.Kind == KindManual {
+			l.problem("time_limit_invalid", file, it.Line, "%s: no condition with a command", key)
+			continue
+		}
+		if _, dup := l.b.Limits[label]; dup {
+			l.problem("time_limit_invalid", file, it.Line, "%s: declared twice", key)
+			continue
+		}
+		l.b.Limits[label] = d
+	}
 }

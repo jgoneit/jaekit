@@ -1,0 +1,36 @@
+# run-rules/4: reopen carries the last limit the user set with a quote, even
+# a decrease below a pre-approved raise and a quoted decrease without its
+# context. An executor's reduction that stays above the user's limit is not
+# carried.
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/4
+expect-exit 0
+ha budget $GOAL --preapprove 80 --window 1 --revision 1 --quote "80회까지는 알아서 늘려" --context "이 창의 사전 승인"
+expect-exit 0
+ha budget $GOAL --runs 70 --from 50 --window 1 --revision 2 --reason "more checks"
+expect-exit 0
+ha budget $GOAL --runs 65 --from 70 --window 1 --revision 3 --reason "fewer checks"
+expect-exit 0
+ha note $GOAL reopen --quote "다시 이어서 해줘"
+expect-exit 0
+ha status $GOAL --format json
+expect-output "\"runs_limit\": 50"
+ha budget $GOAL --preapprove 80 --window 5 --revision 5 --quote "80회까지는 알아서 늘려" --context "이 창의 사전 승인"
+expect-exit 0
+ha budget $GOAL --runs 70 --from 50 --window 5 --revision 6 --reason "more checks"
+expect-exit 0
+ha budget $GOAL --runs 60 --from 70 --window 5 --revision 7 --reason "the user chose 60" --quote "60회로 줄여" --context "사용자가 정한 이 창의 상한"
+expect-exit 0
+ha note $GOAL reopen --quote "한 번 더 이어서 해줘"
+expect-exit 0
+ha status $GOAL --format json
+expect-output "\"runs_limit\": 60"
+ha budget $GOAL --preapprove 80 --window 9 --revision 9 --quote "80회까지는 알아서 늘려" --context "이 창의 사전 승인"
+expect-exit 0
+ha budget $GOAL --runs 75 --from 60 --window 9 --revision 10 --reason "more checks"
+expect-exit 0
+ha budget $GOAL --runs 70 --from 75 --window 9 --revision 11 --reason "the user chose 70" --quote "70회로 줄여"
+expect-exit 0
+ha note $GOAL reopen --quote "마지막으로 이어서 해줘"
+expect-exit 0
+ha status $GOAL --format json
+expect-output "\"runs_limit\": 70"

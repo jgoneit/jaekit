@@ -1,0 +1,16 @@
+# run-rules/4: a run that starts in the wait note's own second ends the wait,
+# because the order inside one second is unknown.
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/4
+expect-exit 0
+ha note $GOAL wait --reason "asked which greeting to use"
+ha check $GOAL AC-2
+expect-exit 0
+ha note $GOAL input --quote "hello로 해줘"
+rewrite-record 1 at "\"2026-01-01T00:00:00Z\""
+rewrite-record 2 at "\"2026-01-01T00:10:00Z\""
+rewrite-record 3 started_at "\"2026-01-01T00:10:00Z\""
+rewrite-record 3 at "\"2026-01-01T00:10:05Z\""
+rewrite-record 4 at "\"2026-01-01T01:10:00Z\""
+ha status $GOAL --format json
+expect-output "\"reported_wait_seconds\": 0"
+expect-output "\"elapsed_seconds\": 4200"

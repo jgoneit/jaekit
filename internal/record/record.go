@@ -78,6 +78,9 @@ type BudgetChangeData struct {
 	Context        string `json:"context"`
 	Interpretation string `json:"interpretation"`
 	Reason         string `json:"reason"`
+	// PreapprovedRuns, under run-rules/4 only, records the user's
+	// pre-approved run limit for the window; Runs stays PreviousRuns.
+	PreapprovedRuns int `json:"preapproved_runs,omitempty"`
 }
 
 // Unknown change fields cannot silently introduce unsupported time/cost edits.
@@ -127,18 +130,33 @@ type CriterionResult struct {
 	Records   []int  `json:"records"`
 }
 
+// TestAuthority is the executor's reading of the start request as permission
+// to change tests inside the scope copy (run-rules/4). It is a claim.
+type TestAuthority struct {
+	Interpretation string `json:"interpretation"`
+}
+
+// ScopeCopy is the plan's scope at start (run-rules/4): the authority range
+// and the test classification stay as started.
+type ScopeCopy struct {
+	Allowed []string `json:"allowed"`
+	Tests   []string `json:"tests"`
+}
+
 // Start is a `start` line.
 type Start struct {
 	Header
-	Goal       string  `json:"goal"`
-	BaseCommit string  `json:"base_commit"`
-	TreeClean  bool    `json:"tree_clean"`
-	SpecDigest string  `json:"spec_digest"`
-	Request    Request `json:"request"`
-	Host       Host    `json:"host"`
-	Skill      Skill   `json:"skill"`
-	Rules      string  `json:"rules"`
-	Budget     Budget  `json:"budget"`
+	Goal          string         `json:"goal"`
+	BaseCommit    string         `json:"base_commit"`
+	TreeClean     bool           `json:"tree_clean"`
+	SpecDigest    string         `json:"spec_digest"`
+	Request       Request        `json:"request"`
+	Host          Host           `json:"host"`
+	Skill         Skill          `json:"skill"`
+	Rules         string         `json:"rules"`
+	Budget        Budget         `json:"budget"`
+	TestAuthority *TestAuthority `json:"test_authority,omitempty"`
+	Scope         *ScopeCopy     `json:"scope,omitempty"`
 }
 
 // Check is a `check` line.
@@ -158,6 +176,7 @@ type Check struct {
 	OutputPath    string            `json:"output_path"`
 	Evidence      *evidence.Summary `json:"evidence,omitempty"`
 	Timing        *Timing           `json:"timing,omitempty"`
+	StartedAt     string            `json:"started_at,omitempty"`
 }
 
 // Baseline is a `baseline` line.
@@ -179,6 +198,7 @@ type Baseline struct {
 	OutputPath    string            `json:"output_path"`
 	Evidence      *evidence.Summary `json:"evidence,omitempty"`
 	Timing        *Timing           `json:"timing,omitempty"`
+	StartedAt     string            `json:"started_at,omitempty"`
 }
 
 // Timing is the optional process measurement of a check or baseline line
@@ -203,14 +223,45 @@ type CPU struct {
 	Source   string `json:"source,omitempty"`
 }
 
+// MovedPath is a new file a moved or split test now lives in, with its blob
+// at the commit the note was recorded on.
+type MovedPath struct {
+	Path string `json:"path"`
+	Blob string `json:"blob"`
+}
+
+// TestChangeData is the executor's reason for changing a test under
+// run-rules/4: which conditions the file checks and how. It is a claim.
+type TestChangeData struct {
+	Criteria []string    `json:"criteria"`
+	How      string      `json:"how"`
+	MovedTo  []MovedPath `json:"moved_to,omitempty"`
+	Weakened bool        `json:"weakened"`
+}
+
+// RecoveryData names a condition and input whose error limit a recover note
+// resets, or that an allow-recovery note grants more recoveries (run-rules/4).
+type RecoveryData struct {
+	Criterion string `json:"criterion"`
+	Input     string `json:"input"`
+	Change    string `json:"change,omitempty"`
+	Count     int    `json:"count,omitempty"`
+	// Clears names the error and unknown records a recover note takes out of
+	// the input's error limit: the ones that counted when it was recorded.
+	Clears []int `json:"clears,omitempty"`
+}
+
 // Note is a `note` line.
 type Note struct {
 	Header
-	Note    string `json:"note"`
-	Cause   string `json:"cause,omitempty"`
-	Subject string `json:"subject,omitempty"`
-	Bound   *Bound `json:"bound,omitempty"`
-	Quote   string `json:"quote"`
+	Note       string          `json:"note"`
+	Cause      string          `json:"cause,omitempty"`
+	Subject    string          `json:"subject,omitempty"`
+	Bound      *Bound          `json:"bound,omitempty"`
+	Quote      string          `json:"quote"`
+	Reason     string          `json:"reason,omitempty"`
+	TestChange *TestChangeData `json:"test_change,omitempty"`
+	Recovery   *RecoveryData   `json:"recovery,omitempty"`
 }
 
 // Done is a `done` line.
@@ -239,6 +290,12 @@ type Line struct {
 	Skill         *Skill            `json:"skill"`
 	Rules         string            `json:"rules"`
 	Budget        *Budget           `json:"budget"`
+	TestAuthority *TestAuthority    `json:"test_authority"`
+	Scope         *ScopeCopy        `json:"scope"`
+	StartedAt     string            `json:"started_at"`
+	Reason        string            `json:"reason"`
+	TestChange    *TestChangeData   `json:"test_change"`
+	Recovery      *RecoveryData     `json:"recovery"`
 	BudgetChange  *BudgetChangeData `json:"budget_change"`
 	Finding       *FindingChange    `json:"finding"`
 	Target        *Target           `json:"target"`

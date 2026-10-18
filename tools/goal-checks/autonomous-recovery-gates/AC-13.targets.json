@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "autonomy-docs",
+      "runner": "unittest",
+      "file": "tools/goal-checks/autonomous-recovery-gates/observe_recovery.py",
+      "test": "Documents.test_contracts_and_guides_describe_run_rules_4",
+      "result_targets": {
+        "additional_violations": [
+          "autonomy-docs.assertion-2",
+          "autonomy-docs.assertion-3",
+          "autonomy-docs.assertion-4",
+          "autonomy-docs.assertion-5",
+          "autonomy-docs.assertion-6",
+          "autonomy-docs.assertion-7",
+          "autonomy-docs.assertion-8"
+        ],
+        "execution": "autonomy-docs.execution",
+        "selection": "autonomy-docs.selection",
+        "attribution": "autonomy-docs.attribution"
+      }
+    }
+  ]
+}
