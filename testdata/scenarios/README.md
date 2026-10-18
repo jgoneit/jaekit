@@ -61,6 +61,7 @@ The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evi
 | `rules-v4-wait` | run-record.md §4.7 reported waits | a wait ends at the quoted answer or the start of a later run; `reported_wait_seconds`, `span_seconds` and `elapsed_seconds` follow |
 | `rules-v4-preapprove` | run-record.md §4.7 pre-approval | a reason alone raises the limit up to the quoted pre-approval; beyond it, or after `reopen`, it is refused |
 | `rules-v4-preapprove-quoted` | run-record.md §4.7 pre-approval | `reopen` carries a quoted decrease below a pre-approved raise; an unquoted reduction above the user's limit is not carried |
+| `rules-v4-reopen-decrease` | run-record.md §4.7 pre-approval | `reopen` carries a reasoned decrease below the start limit; after a quoted raise, a reasoned decrease below it is carried even above the previous window's limit |
 | `rules-v4-recovery` | run-record.md §4.7 error recovery | an error limit clears only by `recover` for its condition and input; a third recovery needs `allow-recovery` |
 | `rules-v4-time-limit` | bundle.md §2.5 | a limit over the maximum refuses the start (`time_limit_invalid`); a declared limit ends the check with an error, and the rerun prints a notice |
 | `rules-v4-forms-refused` | run-record.md §4.6 | `/3` goals refuse the `run-rules/4` notes and pre-approval with 65; `--test-authority` without `--rules run-rules/4` is a usage error; nothing recorded |
