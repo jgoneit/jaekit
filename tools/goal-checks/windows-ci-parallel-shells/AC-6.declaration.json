@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/windows-ci-parallel-shells/AC-6.targets.json",
+    "tools/goal-checks/windows-ci-parallel-shells/observe_ci.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "unchanged",
+      "violation": "existing-check-failed"
+    },
+    {
+      "id": "unchanged.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unchanged.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unchanged.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unchanged.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unchanged.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unchanged.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unchanged.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unchanged.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unchanged.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unchanged.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "release-gate",
+      "violation": "existing-check-failed"
+    },
+    {
+      "id": "release-gate.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "release-gate.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "release-gate.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "release-gate.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "release-gate.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "release-gate.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "release-gate.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "release-gate.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "release-gate.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "release-gate.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

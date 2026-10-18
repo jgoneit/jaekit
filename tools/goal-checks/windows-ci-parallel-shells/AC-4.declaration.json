@@ -1,0 +1,189 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/windows-ci-parallel-shells/AC-4.targets.json",
+    "tools/goal-checks/windows-ci-parallel-shells/observe_ci.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "one-job-readers",
+      "violation": "existing-check-failed"
+    },
+    {
+      "id": "one-job-readers.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "one-job-readers.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "one-job-readers.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "one-job-readers.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "one-job-readers.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "one-job-readers.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "one-job-readers.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "one-job-readers.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "one-job-readers.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "one-job-readers.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "entry-name-route",
+      "violation": "existing-check-failed"
+    },
+    {
+      "id": "entry-name-route.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "entry-name-route.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "entry-name-route.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "entry-name-route.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "entry-name-route.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "entry-name-route.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "entry-name-route.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "entry-name-route.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "entry-name-route.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "entry-name-route.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "observer-regressions",
+      "violation": "existing-check-failed"
+    },
+    {
+      "id": "observer-regressions.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "observer-regressions.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "observer-regressions.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "observer-regressions.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "observer-regressions.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "observer-regressions.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "observer-regressions.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "observer-regressions.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "observer-regressions.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "observer-regressions.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "log-collection",
+      "violation": "existing-check-failed"
+    },
+    {
+      "id": "log-collection.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "log-collection.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "log-collection.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "log-collection.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "log-collection.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "log-collection.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "log-collection.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "log-collection.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "log-collection.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "log-collection.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

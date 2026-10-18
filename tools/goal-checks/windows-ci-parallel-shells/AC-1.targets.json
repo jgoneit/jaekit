@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "shell-jobs",
+      "runner": "unittest",
+      "file": "tools/goal-checks/windows-ci-parallel-shells/observe_ci.py",
+      "test": "Layout.test_each_powershell_runs_the_native_suite_in_its_own_job",
+      "result_targets": {
+        "additional_violations": [
+          "shell-jobs.assertion-2",
+          "shell-jobs.assertion-3",
+          "shell-jobs.assertion-4",
+          "shell-jobs.assertion-5",
+          "shell-jobs.assertion-6",
+          "shell-jobs.assertion-7",
+          "shell-jobs.assertion-8"
+        ],
+        "execution": "shell-jobs.execution",
+        "selection": "shell-jobs.selection",
+        "attribution": "shell-jobs.attribution"
+      }
+    },
+    {
+      "target": "real-shell-jobs",
+      "runner": "unittest",
+      "file": "tools/goal-checks/windows-ci-parallel-shells/observe_ci.py",
+      "test": "Live.test_the_real_run_runs_each_powershell_in_its_own_job",
+      "result_targets": {
+        "additional_violations": [
+          "real-shell-jobs.assertion-2",
+          "real-shell-jobs.assertion-3",
+          "real-shell-jobs.assertion-4",
+          "real-shell-jobs.assertion-5",
+          "real-shell-jobs.assertion-6",
+          "real-shell-jobs.assertion-7",
+          "real-shell-jobs.assertion-8"
+        ],
+        "execution": "real-shell-jobs.execution",
+        "selection": "real-shell-jobs.selection",
+        "attribution": "real-shell-jobs.attribution"
+      }
+    }
+  ]
+}

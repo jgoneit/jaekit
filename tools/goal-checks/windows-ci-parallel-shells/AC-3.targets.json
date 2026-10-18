@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "two-job-readers",
+      "runner": "unittest",
+      "file": "tools/goal-checks/windows-ci-parallel-shells/observe_ci.py",
+      "test": "Readers.test_two_job_runs_read_one_report_of_each_shell",
+      "result_targets": {
+        "additional_violations": [
+          "two-job-readers.assertion-2",
+          "two-job-readers.assertion-3",
+          "two-job-readers.assertion-4",
+          "two-job-readers.assertion-5",
+          "two-job-readers.assertion-6",
+          "two-job-readers.assertion-7",
+          "two-job-readers.assertion-8"
+        ],
+        "execution": "two-job-readers.execution",
+        "selection": "two-job-readers.selection",
+        "attribution": "two-job-readers.attribution"
+      }
+    },
+    {
+      "target": "real-readers",
+      "runner": "unittest",
+      "file": "tools/goal-checks/windows-ci-parallel-shells/observe_ci.py",
+      "test": "Live.test_the_reader_reads_the_real_two_job_run",
+      "result_targets": {
+        "additional_violations": [
+          "real-readers.assertion-2",
+          "real-readers.assertion-3",
+          "real-readers.assertion-4",
+          "real-readers.assertion-5",
+          "real-readers.assertion-6",
+          "real-readers.assertion-7",
+          "real-readers.assertion-8"
+        ],
+        "execution": "real-readers.execution",
+        "selection": "real-readers.selection",
+        "attribution": "real-readers.attribution"
+      }
+    }
+  ]
+}
