@@ -6,9 +6,9 @@
 
 ## 1. 지원과 호환
 
-`capabilities`의 `features`에 `decision-history/v1`, `formats.decision_history`에 `decision-history/v1`이 있는 실행 파일이 이 기능을 지원한다([지원 정보](core-capabilities.md) §5). 이 기능은 배포판 `v0.1.4`(`ha 0.1.4`)에 없다. 기능을 쓰기 전에 실제 선택한 실행 파일의 두 항목을 확인하며 버전 숫자만으로 추정하지 않는다. 기능이 없으면 이력을 쓰지 않고 기존 Markdown에 설명을 남긴다. 자동 설치·업그레이드는 없다.
+`capabilities`의 `features`에 `decision-history/v1`, `formats.decision_history`에 `decision-history/v1`이 있는 실행 파일이 이 기능을 지원한다([지원 정보](core-capabilities.md) §5). 이 기능은 배포판 `v0.1.5`(`ha 0.1.5`)부터 제공하며 `v0.1.4`(`ha 0.1.4`)에는 없다. 기능을 쓰기 전에 실제 선택한 실행 파일의 두 항목을 확인하며 버전 숫자만으로 추정하지 않는다. 기능이 없으면 이력을 쓰지 않고 기존 Markdown에 설명을 남긴다. 자동 설치·업그레이드는 없다.
 
-판단 이력은 유효한 시작 기록이 있는 목표에만 쓴다. 시작 기록이 없으면 등록을 거부하며(`not_started`) 실행을 시작하지 않는다. 시작 기록의 규칙(`run-rules/1`·`/2`·`/3`)과 관계없이 쓸 수 있으며 저장된 규칙을 바꾸지 않는다.
+판단 이력은 유효한 시작 기록이 있는 목표에만 쓴다. 시작 기록이 없으면 등록을 거부하며(`not_started`) 실행을 시작하지 않는다. 시작 기록의 규칙(`run-rules/1`·`/2`·`/3`·`/4`)과 관계없이 쓸 수 있으며 저장된 규칙을 바꾸지 않는다.
 
 현재 소스는 macOS·Linux의 arm64·amd64와 [Windows x64 로컬 후보](../guides/WINDOWS.md)에서 같은 등록·재전송·정정·기본/current·list·두 방식의 show를 제공한다. Windows의 일반 checkout과 linked worktree도 같은 Git 공통 디렉터리의 이력과 잠금을 공유한다. Windows ARM64·x86, 네트워크/UNC 저장소와 같은 checkout의 Windows·WSL 교차 사용은 포함하지 않는다. [Windows Server의 두 PowerShell 개발자 CI](../guides/CI.md)는 Windows 11 사용자 설치·에이전트 사용·공개 Windows 릴리스와 별개의 관측이다.
 

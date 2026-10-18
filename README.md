@@ -12,7 +12,7 @@
 
 Jaekit은 **Codex·Claude Code로 맡긴 프로젝트 작업의 목표와 확인 기록을 남기는 도구**입니다. **Spec**은 원하는 일과 완료 조건을 정리하고, **Seal**은 에이전트가 그 목표에 따라 작업을 이어 가고 확인 기록을 남기도록 합니다. 대화가 끊겨도 저장된 진행 상황에서 이어 갈 수 있습니다.
 
-현재 배포판은 **v0.1.4**, 실제 작업에 써 보며 다듬는 초기 개발 단계입니다.
+현재 배포판은 **v0.1.5**, 실제 작업에 써 보며 다듬는 초기 개발 단계입니다.
 
 <details>
 <summary>Jaekit 소개 이미지 보기</summary>
@@ -49,29 +49,29 @@ brew install jgoneit/tap/jaekit
 ha --version
 ```
 
-`ha 0.1.4`가 나와야 합니다. 명령을 찾지 못하거나 버전이 다르면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
+`ha 0.1.5`가 나와야 합니다. 명령을 찾지 못하거나 버전이 다르면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
 
 **2. 같은 터미널에서 사용할 에이전트의 플러그인을 설치합니다.** Claude Code 또는 Codex 중 사용하는 쪽의 블록을 실행합니다. 이미 설치했다면 [업데이트](guides/INSTALL.md#업데이트) 또는 [기존 로컬 설치에서 전환](guides/INSTALL.md#로컬-경로-등록에서-옮기기)을 먼저 확인합니다.
 
 **Claude Code**
 
 ```bash
-claude plugin marketplace add jgoneit/jaekit#v0.1.4
+claude plugin marketplace add jgoneit/jaekit#v0.1.5
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 ```
 
-설치 후 **Claude Code를 새로 엽니다.** `#v0.1.4`는 사용할 배포판을 고정합니다. 자세한 내용은 [Claude Code 설치](guides/INSTALL.md#claude-code)를 봅니다.
+설치 후 **Claude Code를 새로 엽니다.** `#v0.1.5`는 사용할 배포판을 고정합니다. 자세한 내용은 [Claude Code 설치](guides/INSTALL.md#claude-code)를 봅니다.
 
 **Codex**
 
 ```bash
-codex plugin marketplace add jgoneit/jaekit@v0.1.4
+codex plugin marketplace add jgoneit/jaekit@v0.1.5
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-설치 후 **Codex를 새로 엽니다.** `@v0.1.4`는 사용할 배포판을 고정합니다.
+설치 후 **Codex를 새로 엽니다.** `@v0.1.5`는 사용할 배포판을 고정합니다.
 
 ### 첫 작업 맡기기
 

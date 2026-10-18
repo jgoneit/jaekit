@@ -15,9 +15,9 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 GUIDES = {"INSTALL.md": "## 업데이트", "INSTALL.en.md": "## Update"}
-CURRENT = "0.1.4"
-OLDER = ("0.0.9", "0.0.10", "0.1.1", "0.1.3")
-NEWER = ("0.1.5", "0.1.10", "0.2.0", "1.0.0")
+CURRENT = "0.1.5"
+OLDER = ("0.0.9", "0.0.10", "0.1.1", "0.1.3", "0.1.4")
+NEWER = ("0.1.6", "0.1.10", "0.2.0", "1.0.0")
 SHELLS = tuple(os.environ.get("JAEKIT_TEST_" + name.upper()) or shutil.which(name) or name
                for name in ("bash", "zsh"))
 
@@ -257,10 +257,10 @@ class AC12(unittest.TestCase):
 
     def test_urls_and_separate_paragraphs_are_not_release_claims(self):
         claims = (
-            "The current release is [v0.1.4](https://example.invalid/v0.1.2).\n",
+            "The current release is [v0.1.5](https://example.invalid/v0.1.2).\n",
             "The current release is [download](https://example.invalid/v0.1.2).\n",
-            "현재 배포판은 [**v0.1.4**](https://example.invalid/v0.1.2)입니다.\n",
-            "The current release is [__v0.1.4__](https://example.invalid/v0.1.2).\n",
+            "현재 배포판은 [**v0.1.5**](https://example.invalid/v0.1.2)입니다.\n",
+            "The current release is [__v0.1.5__](https://example.invalid/v0.1.2).\n",
             "The current release\n\n[v0.1.2](https://example.invalid/old).\n",
             "The current release\r\n\r\n[v0.1.2](https://example.invalid/old).\r\n",
         )

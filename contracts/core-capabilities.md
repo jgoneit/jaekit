@@ -1,6 +1,6 @@
 # 계약: Core 지원 정보와 Seal 호환 확인
 
-이 계약은 v0.1.4의 Core `0.1.4`·Seal `0.1.12`에 적용한다. 지원 정보 조회는 v0.1.3에서 도입했으며 이전 배포판 `v0.1.2`에는 이 명령이 없다. 업데이트 뒤에도 실제 실행 파일의 지원 정보를 확인하며 버전 숫자만으로 호환성을 판단하지 않는다. Spec은 Core 설치나 이 조회 없이 문서를 작성한다.
+이 계약은 v0.1.5의 Core `0.1.5`·Seal `0.1.16`에 적용한다. 지원 정보 조회는 v0.1.3에서 도입했으며 이전 배포판 `v0.1.2`에는 이 명령이 없다. 업데이트 뒤에도 실제 실행 파일의 지원 정보를 확인하며 버전 숫자만으로 호환성을 판단하지 않는다. Spec은 Core 설치나 이 조회 없이 문서를 작성한다.
 
 ## 1. 목표 없는 조회
 
@@ -15,20 +15,24 @@ ha capabilities --format json
 ```json
 {
   "schema": "ha-capabilities/v1",
-  "ha_version": "0.1.4",
-  "supported_rules": ["run-rules/1", "run-rules/2", "run-rules/3"],
+  "ha_version": "0.1.5",
+  "supported_rules": ["run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4"],
   "default_rules": "run-rules/3",
   "formats": {
     "criteria": ["legacy", "nested/1"],
     "check_declaration": ["check-declaration/v1"],
     "check_result": ["check-result/v1"],
     "check_evidence": ["check-evidence/v1"],
-    "finding": ["run-finding/v1"]
+    "finding": ["run-finding/v1"],
+    "decision_history": ["decision-history/v1"],
+    "timing": ["timing/v1"]
   },
   "features": [
     "estimate/v1", "dirty-preflight/v1", "baseline-safe-copy/v1",
     "structured-change-results/v1", "budget-change/v1",
-    "post-completion-findings/v1"
+    "post-completion-findings/v1", "decision-history/v1", "run-timing/v1",
+    "test-authority/v1", "reported-wait/v1", "preapproved-runs/v1",
+    "error-recovery/v1", "command-time-limits/v1"
   ]
 }
 ```
@@ -54,8 +58,8 @@ ha capabilities --format json
 | `structured-change-results/v1` | `/3` change의 호출에 연결된 구조화 분류와 전체 시도 이력 보존 |
 | `budget-change/v1` | `/3` 현재 창의 횟수 총상한 변경, 사용량·시간 상한 보존과 개정 충돌 거부 |
 | `post-completion-findings/v1` | 역사적 완료에 연결된 발견 주장·개정·재작업 관계를 보존하는 선택적 확장 |
-| `decision-history/v1` | 실행 기록과 분리된 판단 이력의 등록·관계·조회를 제공하는 선택적 확장(§5). 위 v0.1.4 예시에는 없다 |
-| `run-timing/v1` | `check`·`baseline` 줄의 `timing` 측정값 기록과 읽기 전용 시간 보기(`ha timing`)를 제공하는 선택적 확장. 위 v0.1.4 예시에는 없다 |
+| `decision-history/v1` | 실행 기록과 분리된 판단 이력의 등록·관계·조회를 제공하는 선택적 확장(§5) |
+| `run-timing/v1` | `check`·`baseline` 줄의 `timing` 측정값 기록과 읽기 전용 시간 보기(`ha timing`)를 제공하는 선택적 확장 |
 | `test-authority/v1` | `run-rules/4`의 시험 변경 권한·시작 범위 사본과 `test-change` 근거(§6) |
 | `reported-wait/v1` | `run-rules/4`의 `wait`·`resume` 신고와 `started_at`, 신고한 대기를 뺀 예산 경과(§6) |
 | `preapproved-runs/v1` | `run-rules/4`의 사전 승인 상한과 그 안의 이유만 있는 증액(§6) |
@@ -66,7 +70,7 @@ ha capabilities --format json
 
 기능의 상세 의미는 [실행 기록](run-record.md), [결과 계약](check-result.md), [목표 문서](goal-docs.md)에 따른다. 지원 정보는 독립 인증이나 코드 무결성 증명이 아니다.
 
-## 2. Seal 0.1.12의 소비 계약
+## 2. Seal 0.1.16의 소비 계약
 
 호환 확인은 상태를 바꾸는 작업 전에 수행한다. 실제 사용할 실행 파일의 절대 경로를 확정하고 **그 경로**로 조회한다. 성공한 실행 파일과 이후 사용할 Core가 달라지면 이전 확인을 재사용하지 않는다. PATH의 다른 파일, 다른 세션의 결과, 버전 문자열만으로 대체하지 않는다. 확인 뒤에도 경로·바이너리가 바뀌었으면 다시 확인한다. 조회는 자동 설치·권한 확대·목표 또는 기록 변경의 권한을 주지 않는다.
 
@@ -86,7 +90,7 @@ ha capabilities --format json
 
 ## 3. 선택적 결정적 소비 도구
 
-Python 3가 이미 있다면 Seal에 포함된 [check_core.py](https://github.com/jgoneit/jaekit/blob/v0.1.4/plugins/seal/skills/seal/scripts/check_core.py)로 같은 계약을 확인할 수 있다. 도구가 없거나 Python을 쓰지 않는 경우에도 위 계약을 직접 소비할 수 있다.
+Python 3가 이미 있다면 Seal에 포함된 [check_core.py](https://github.com/jgoneit/jaekit/blob/v0.1.5/plugins/seal/skills/seal/scripts/check_core.py)로 같은 계약을 확인할 수 있다. 도구가 없거나 Python을 쓰지 않는 경우에도 위 계약을 직접 소비할 수 있다.
 
 ```text
 python3 <seal-skill>/scripts/check_core.py --ha <실제 Core 경로> --operation start
@@ -107,13 +111,13 @@ stdout은 `seal-core-compatibility/v1` JSON이다. `compatible`, `reason`, `requ
 
 ## 4. 선택적 완료 뒤 발견 확장
 
-Core 0.1.4는 [완료 뒤 발견](findings.md)을 포함하며 `formats.finding`에 `run-finding/v1`, `features`에 `post-completion-findings/v1`을 제공한다. 위 v0.1.4 배포 예시에도 두 항목이 있다. v0.1.3 Core에는 이 확장이 없으므로 실제 지원 정보를 확인하며, 버전 숫자만으로 기능을 추정하지 않는다. 기존 시작·검사·예산 작업의 요구는 유지한다. 발견 입력과 조회에는 실제 실행 파일의 두 추가 지원, 저장된 규칙과 현재 조건 형식의 지원을 확인한다. 발견 작업만을 위해 실행 기능이나 `/3` 선언 지원을 요구하지 않는다.
+Core 0.1.4부터 [완료 뒤 발견](findings.md)을 포함하며 `formats.finding`에 `run-finding/v1`, `features`에 `post-completion-findings/v1`을 제공한다. 위 v0.1.5 배포 예시에도 두 항목이 있다. v0.1.3 Core에는 이 확장이 없으므로 실제 지원 정보를 확인하며, 버전 숫자만으로 기능을 추정하지 않는다. 기존 시작·검사·예산 작업의 요구는 유지한다. 발견 입력과 조회에는 실제 실행 파일의 두 추가 지원, 저장된 규칙과 현재 조건 형식의 지원을 확인한다. 발견 작업만을 위해 실행 기능이나 `/3` 선언 지원을 요구하지 않는다.
 
 Seal 0.1.12에 포함된 선택형 도구는 `--operation finding --goal <기존 목표>`를 지원한다. 기존 목표에 `run-finding/v1` 줄이 있으면 resume·check·budget도 두 추가 지원을 요구한다. 도구는 알려진 줄 schema의 존재를 읽으며 해시·이력의 무결성은 Core가 검증한다. 알 수 없는 schema는 거부한다. 이전 설치의 도구에 새 인수가 있다고 가정하지 않으며, 실제 capability를 직접 확인하는 방법도 유효하다. 지원을 확인하지 못하면 새 발견 기록을 쓰지 않는다.
 
 ## 5. 선택적 판단 이력 확장
 
-[판단 이력](decision-history.md)을 지원하는 Core는 `formats.decision_history`에 `decision-history/v1`, `features`에 `decision-history/v1`을 제공한다. 배포판 v0.1.4(`ha 0.1.4`)에는 이 확장이 없다. 이력의 등록과 조회에는 실제 실행 파일의 두 추가 지원, 저장된 시작 규칙과 현재 조건 형식의 지원을 확인한다. 판단 이력은 `runs.jsonl` 밖에 있으므로 이 확장은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 추가되지 않는다. 지원이 없으면 이력을 쓰지 않고 기존 Markdown으로 인계한다.
+[판단 이력](decision-history.md)을 지원하는 Core는 `formats.decision_history`에 `decision-history/v1`, `features`에 `decision-history/v1`을 제공한다. 배포판 v0.1.5(`ha 0.1.5`)부터 이 확장을 제공하며 v0.1.4(`ha 0.1.4`)에는 없다. 이력의 등록과 조회에는 실제 실행 파일의 두 추가 지원, 저장된 시작 규칙과 현재 조건 형식의 지원을 확인한다. 판단 이력은 `runs.jsonl` 밖에 있으므로 이 확장은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 추가되지 않는다. 지원이 없으면 이력을 쓰지 않고 기존 Markdown으로 인계한다.
 
 Seal 0.1.13에 포함된 선택형 도구는 `--operation history --goal <기존 목표>`로 같은 확인을 한다. 이전 설치의 도구에 이 인수가 있다고 가정하지 않으며, 실제 capability를 직접 확인하는 방법도 유효하다.
 

@@ -4,7 +4,7 @@
 
 Windows에서 WSL2의 **Ubuntu 24.04 LTS amd64(x64)** 안에 Jaekit을 설치하는 경로입니다. **실제 WSL2 설치·실행과 에이전트의 Skill 사용은 아직 확인하지 않았습니다.** 이 문서는 사용 경로의 준비 상태를 설명하며, WSL2 지원 검증이 끝났다는 뜻이 아닙니다.
 
-현재 공개 배포판은 `v0.1.4`입니다. 아래에서 연결하는 설치 명령은 그 배포판의 Linux 파일을 받습니다. 이 안내와 개발 중인 도구가 v0.1.4 파일에 포함됐다고 가정하지 마세요. 후보 패키지의 확인, 공개 릴리스 게시, 공개 URL에서 받은 파일의 설치는 각각 별도입니다.
+현재 공개 배포판은 `v0.1.5`입니다. 아래에서 연결하는 설치 명령은 그 배포판의 Linux 파일을 받습니다. 이 안내와 [환경 확인 도구](#후보-패키지의-선택적-환경-확인)는 v0.1.5 파일의 공개 자료에 들어 있고, v0.1.4 이하 파일에는 없습니다. 후보 패키지의 확인, 공개 릴리스 게시, 공개 URL에서 받은 파일의 설치는 각각 별도입니다.
 
 ## 작업할 환경
 
@@ -40,7 +40,7 @@ Ubuntu 버전은 `24.04`, CPU는 `x86_64`여야 합니다. 프로젝트는 Linux
 
 1. 해당 Ubuntu 배포판에 Linux용 Git과 사용할 에이전트 CLI를 준비합니다. 현재 공개 설치 안내의 호스트는 Codex CLI와 Claude Code입니다. Windows에 설치한 앱이나 `.exe`가 WSL의 설치를 대신하지 않습니다. 인증과 실행 권한도 사용할 Linux 호스트에서 준비합니다.
 2. 같은 Linux 터미널에서 [Release 파일로 설치](INSTALL.md#release-파일로-설치)의 블록을 실행합니다. Git 외에 안내가 사용하는 `curl`, `tar`, checksum 도구와 기본 Linux 명령이 필요합니다. 누락된 도구는 먼저 준비합니다. Jaekit 소스 checkout·Go·Homebrew는 필요하지 않습니다.
-3. 이 조합은 `ha_0.1.4_linux_amd64.tar.gz`와 `checksums.txt`를 사용합니다. 실행 파일은 `~/.local/bin/ha`, 공개 자료는 `~/.local/share/jaekit/0.1.4`에 놓입니다. 공개 자료를 수정해 설치본으로 쓰지 말고 필요한 파일을 프로젝트로 가져옵니다.
+3. 이 조합은 `ha_0.1.5_linux_amd64.tar.gz`와 `checksums.txt`를 사용합니다. 실행 파일은 `~/.local/bin/ha`, 공개 자료는 `~/.local/share/jaekit/0.1.5`에 놓입니다. 공개 자료를 수정해 설치본으로 쓰지 말고 필요한 파일을 프로젝트로 가져옵니다.
 4. [Codex](INSTALL.md#codex) 또는 [Claude Code](INSTALL.md#claude-code) 설치 절에서 사용하는 쪽만 따릅니다. 플러그인 설치도 같은 배포판의 Linux CLI에서 합니다. 다른 호스트의 패키징이나 호출 이름은 이 안내에서 바꾸지 않습니다.
 
 `~/.local/bin`이 PATH에 없다면 현재 Linux 셸에 다음을 적용할 수 있습니다. 이 설정은 현재 셸과 여기서 시작하는 프로세스에만 적용됩니다.
@@ -59,13 +59,13 @@ ha --version
 ha capabilities --format json
 ```
 
-v0.1.4를 설치했다면 버전은 `ha 0.1.4`여야 합니다. 여러 설치가 있으면 PATH에서 앞선 파일이 선택됩니다. Windows 경로·`.exe`나 의도하지 않은 예전 설치가 선택되면 먼저 해당 배포판의 PATH와 설치 위치를 바로잡습니다. Core 지원 정보는 [호환성 계약](../contracts/core-capabilities.md)에 따라 판단하며 버전 문자열만으로 충분하지 않습니다.
+v0.1.5를 설치했다면 버전은 `ha 0.1.5`여야 합니다. 여러 설치가 있으면 PATH에서 앞선 파일이 선택됩니다. Windows 경로·`.exe`나 의도하지 않은 예전 설치가 선택되면 먼저 해당 배포판의 PATH와 설치 위치를 바로잡습니다. Core 지원 정보는 [호환성 계약](../contracts/core-capabilities.md)에 따라 판단하며 버전 문자열만으로 충분하지 않습니다.
 
 [참조 검사 가져오기](INSTALL.md#참조-검사-가져오기)의 직접 설치 경로를 사용하면 공개 자료를 프로젝트에 가져올 수 있습니다. 이미 있는 파일은 덮어쓰지 않습니다. Python 3는 이 참조 검사 생산자를 선택했을 때만 필요합니다.
 
 ## 후보 패키지의 선택적 환경 확인
 
-개발 중인 [환경 확인 도구](../tools/wsl/check-environment.sh)는 **공개 v0.1.4 배포 파일에 없습니다**. 위 배포판 설치에 필요한 도구도 아닙니다. 검토한 소스나 후보 패키지의 공개 자료에 `tools/wsl/check-environment.sh`가 있을 때만 사용할 수 있습니다. 두 자리 표시자를 실제 자료 폴더와 프로젝트 경로로 바꿉니다. 마지막 `codex`는 사용할 Linux 호스트 명령이며, `claude`로 바꾸거나 생략할 수 있습니다.
+[환경 확인 도구](../tools/wsl/check-environment.sh)는 공개 v0.1.5 배포 파일의 공개 자료(`~/.local/share/jaekit/0.1.5/tools/wsl/check-environment.sh`)에 들어 있습니다. v0.1.4 이하 배포 파일에는 없습니다. 위 배포판 설치에 필요한 도구는 아닙니다. 공개 자료나 검토한 소스, 후보 패키지에 `tools/wsl/check-environment.sh`가 있을 때만 사용할 수 있습니다. 두 자리 표시자를 실제 자료 폴더와 프로젝트 경로로 바꿉니다. 마지막 `codex`는 사용할 Linux 호스트 명령이며, `claude`로 바꾸거나 생략할 수 있습니다.
 
 ```bash
 bash "<candidate-public-data>/tools/wsl/check-environment.sh" "<project-path>" codex
@@ -79,7 +79,7 @@ bash "<candidate-public-data>/tools/wsl/check-environment.sh" "<project-path>" c
 
 후보 파일은 GitHub Actions의 [Release workflow](../.github/workflows/release.yml)가 만듭니다. 확인할 브랜치에서 Release workflow를 수동 실행(`workflow_dispatch`)하고 후보 버전(`X.Y.Z`)을 입력합니다. 실행이 끝나면 `release-files` artifact를 새 폴더에 내려받습니다. 그 안의 `ha_<version>_linux_amd64.tar.gz`와 `checksums.txt`가 후보이고, 압축을 푼 `ha_<version>_linux_amd64` 폴더가 위 명령의 공개 자료 폴더입니다. Pull request의 Release workflow 실행도 같은 artifact를 남기며, 이때 버전은 `0.0.0`입니다.
 
-이 workflow는 실행한 commit을 새로 checkout해 태그 빌드와 같은 단계로 파일을 만들고 검사합니다. 그래서 그 commit에 없는 로컬 파일이나 커밋하지 않은 변경은 후보에 들어가지 않습니다. 수동 실행과 pull request 실행은 아무것도 게시하지 않으며, 후보 버전은 공개 릴리스 버전이 아닙니다. 위 v0.1.4 설치 블록의 버전을 후보 버전으로 바꿔 사용하지 않습니다. 후보를 만들었다는 사실은 실제 WSL2 실행 근거가 아닙니다.
+이 workflow는 실행한 commit을 새로 checkout해 태그 빌드와 같은 단계로 파일을 만들고 검사합니다. 그래서 그 commit에 없는 로컬 파일이나 커밋하지 않은 변경은 후보에 들어가지 않습니다. 수동 실행과 pull request 실행은 아무것도 게시하지 않으며, 후보 버전은 공개 릴리스 버전이 아닙니다. 위 v0.1.5 설치 블록의 버전을 후보 버전으로 바꿔 사용하지 않습니다. 후보를 만들었다는 사실은 실제 WSL2 실행 근거가 아닙니다.
 
 ## 에이전트에서 사용하기
 
@@ -117,4 +117,4 @@ Spec에 작은 변경을 요청하면 목표 문서를 쓰고 멈춥니다. 내�
 | 실제 WSL2의 패키지 설치·실행 | 기록한 WSL·배포판·CPU·패키지 조합의 결과 |
 | 실제 Linux 호스트의 Skill 사용 | 그 호스트·모델·Skill 버전에서 관측한 흐름 |
 
-표의 마지막 두 단계에 대한 실제 WSL2 관측은 아직 없습니다. 소스나 후보 패키지의 검사 성공을 실제 WSL2·호스트 사용 성공으로 올려 쓰지 않습니다. 현재 공개 배포판의 확인 범위는 [v0.1.4 릴리스 노트](https://github.com/jgoneit/jaekit/releases/tag/v0.1.4)를 따릅니다. 완료 보고의 보증 수준은 계속 `local`이며 독립된 제3자 검증을 뜻하지 않습니다.
+표의 마지막 두 단계에 대한 실제 WSL2 관측은 아직 없습니다. 소스나 후보 패키지의 검사 성공을 실제 WSL2·호스트 사용 성공으로 올려 쓰지 않습니다. 현재 공개 배포판의 확인 범위는 [v0.1.5 릴리스 노트](https://github.com/jgoneit/jaekit/releases/tag/v0.1.5)를 따릅니다. 완료 보고의 보증 수준은 계속 `local`이며 독립된 제3자 검증을 뜻하지 않습니다.

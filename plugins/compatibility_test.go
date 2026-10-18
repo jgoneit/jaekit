@@ -22,11 +22,10 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 		Plugins  []manifest               `json:"plugins"`
 	}
 	readJSON(t, "../.claude-plugin/marketplace.json", &marketplace)
-	if marketplace.Metadata.Version != "0.1.4" {
+	if marketplace.Metadata.Version != "0.1.5" {
 		t.Errorf("[requirement] current released marketplace identity changed: %s", marketplace.Metadata.Version)
 	}
-	// Seal 0.1.16 is the source version that starts goals under run-rules/4;
-	// the released marketplace identity above stays v0.1.4.
+	// Seal 0.1.16 starts goals under run-rules/4 and ships in release v0.1.5.
 	for name, want := range map[string]string{"spec": "0.1.12", "seal": "0.1.16"} {
 		t.Run(name, func(t *testing.T) {
 			_, version := frontMatter(t, filepath.Join(name, "skills", name, "SKILL.md"))
@@ -51,7 +50,16 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 			}
 		})
 	}
-	compatibilityContains(t, "Core development version", read(t, "../cmd/ha/main.go"), `var version = "0.1.4-dev"`)
+	compatibilityContains(t, "Core development version", read(t, "../cmd/ha/main.go"), `var version = "0.1.5-dev"`)
+	// These package a checkout build, which prints the development version;
+	// install.ps1 refuses a manifest version the executable does not print.
+	for _, path := range []string{"../tools/windows/docs_check.py", "../tools/windows/README.md"} {
+		content := read(t, path)
+		compatibilityContains(t, path, content, "0.1.5-dev")
+		if strings.Contains(content, "0.1.4-dev") {
+			t.Errorf("[requirement] %s packages a checkout build as 0.1.4-dev", path)
+		}
+	}
 	// Codex's marketplace format has no component version field.
 	var codex map[string]any
 	readJSON(t, "../.agents/plugins/marketplace.json", &codex)
@@ -71,13 +79,11 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 				if path == "../README.en.md" {
 					guide, heading, anchor = "../guides/INSTALL.en.md", "## Release and development combinations", "release-and-development-combinations"
 				}
-				compatibilityContains(t, path, content, "v0.1.4", "ha 0.1.4", "("+strings.TrimPrefix(guide, "../")+"#"+anchor+")")
+				compatibilityContains(t, path, content, "v0.1.5", "ha 0.1.5", "("+strings.TrimPrefix(guide, "../")+"#"+anchor+")")
 				content += "\n" + visualSection(t, guide, heading)
 			}
-			compatibilityContains(t, path, content, "v0.1.4", "ha 0.1.4", "0.1.12", "`/3`")
-			if strings.Count(content, "0.1.12") < 2 {
-				t.Errorf("[requirement] %s must identify both Spec and Seal at 0.1.12", path)
-			}
+			// Spec 0.1.12 and Seal 0.1.16 make up the current release.
+			compatibilityContains(t, path, content, "v0.1.5", "ha 0.1.5", "0.1.12", "0.1.16", "`/3`")
 			for _, stale := range []string{"unreleased", "미배포", "아직 배포하지 않았", "jaekit@v0.1.2", "jaekit#v0.1.2", "/releases/download/v0.1.2"} {
 				if strings.Contains(strings.ToLower(content), stale) {
 					t.Errorf("[requirement] %s retains obsolete release guidance: %s", path, stale)
@@ -86,10 +92,41 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 		})
 	}
 	for _, path := range []string{"../guides/INSTALL.md", "../guides/INSTALL.en.md"} {
-		compatibilityContains(t, path, read(t, path), "jaekit@v0.1.4", "jaekit#v0.1.4", "ha_0.1.4_${os}_${arch}", "contracts/core-capabilities.md", "ha 0.1.4-dev", "v0.1.2")
+		compatibilityContains(t, path, read(t, path), "jaekit@v0.1.5", "jaekit#v0.1.5", "ha_0.1.5_${os}_${arch}", "contracts/core-capabilities.md", "ha 0.1.5-dev", "v0.1.2")
 	}
 	compatibilityContains(t, "Korean budget guidance", read(t, "../guides/USAGE.md"), "시간 상한 변경은 지원하지 않습니다", "횟수 총상한", "명시적 재개", "원래 한도")
 	compatibilityContains(t, "English budget guidance", read(t, "../guides/USAGE.en.md"), "Changing the elapsed-time limit is unsupported", "total run limit", "explicit reopen", "original limits")
+	// A release bump must not move a claim about what earlier releases lack
+	// onto the release that now ships it.
+	// Nor may it leave the previous release's Seal named as the current one,
+	// or new goals described as starting under /3.
+	for _, dir := range []string{"../guides", "../contracts", "../examples"} {
+		paths, err := filepath.Glob(filepath.Join(dir, "*.md"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, path := range paths {
+			content := read(t, path)
+			for _, stale := range []string{"v0.1.5 이하", "v0.1.5 and earlier", "v0.1.5 파일에 포함됐다고 가정하지", "included in the v0.1.5 files",
+				"현재 배포판의 Seal 0.1.12", "current release includes this format in Seal 0.1.12", "새 목표가 쓰는 `/3`",
+				"새 목표는 `run-rules/3`으로 시작합니다"} {
+				if strings.Contains(content, stale) {
+					t.Errorf("[requirement] %s keeps stale current-release wording: %q", path, stale)
+				}
+			}
+		}
+	}
+	// The operations guide names the /4 start and points to the contract for
+	// what /4 adds to the /3 budget rules, instead of restating those rules.
+	operations := read(t, "../guides/OPERATIONS.md")
+	compatibilityContains(t, "operations guide", operations, "새 목표를 `run-rules/4`로 시작합니다", "USAGE.md#자율-처리-run-rules4", "run-record.md#47-run-rules4")
+	for _, restated := range []string{"`/4`의 새 창은", "`/3`·`/4`의 새 창은", "`/4`에서는"} {
+		if strings.Contains(operations, restated) {
+			t.Errorf("[requirement] the operations guide restates a /4 budget rule: %q", restated)
+		}
+	}
+	compatibilityContains(t, "Korean WSL guide", read(t, "../guides/WSL.md"), "v0.1.5 파일의 공개 자료", "v0.1.4 이하 배포 파일에는 없습니다")
+	compatibilityContains(t, "English WSL guide", read(t, "../guides/WSL.en.md"), "public data of the v0.1.5 files", "Release files of v0.1.4 and earlier do not have it")
 }
 
 func TestCompatibilityAC12_SpecAndVerificationBoundaries(t *testing.T) {
