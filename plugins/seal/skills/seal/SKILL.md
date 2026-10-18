@@ -139,7 +139,7 @@ Use the budget the user gives. Otherwise write the provisional default into `PLA
 
 For `/3`, `ha budget` changes the current window's total run limit, preserving use and the time limit. An increase needs the user's words and the request context supporting that limit; a decrease needs a reason. Keep your interpretation separate from the quote. An unverified host quote is an executor claim. Bind the request to the current window, budget revision and previous limit; handle conflicts without automatic reapplication. PLAN edits alone cannot change an active limit. Command details are in [references/ha.md](references/ha.md).
 
-A budget change does not reopen, unblock, reset failures or extend time. A completed window needs an explicit rework request and `reopen`; `/3` carries the latest run limit into that new window. Existing `/1` and `/2` goals keep the original limit and quoted `reopen` behavior. Completing with only a budget overage is not permission for more work. No rule reserves execution slots or imposes an execution hard cap.
+A budget change does not reopen, unblock, reset failures or extend time. A completed window needs an explicit rework request and `reopen`; `/3` carries the latest run limit into that new window, and [run-record.md §4.7](https://github.com/jgoneit/jaekit/blob/v0.1.5/contracts/run-record.md#47-run-rules4) defines the run limit of a reopened `/4` window. Existing `/1` and `/2` goals keep the original limit and quoted `reopen` behavior. Completing with only a budget overage is not permission for more work. No rule reserves execution slots or imposes an execution hard cap.
 
 ## Forbidden
 

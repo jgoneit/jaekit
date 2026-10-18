@@ -495,7 +495,7 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
 | --- | --- |
 | `window_start` | 예산 창이 시작한 줄의 seq |
 | `runs` | 창 안의 `check`·`baseline` 줄 수 |
-| `runs_limit` | `/1`·`/2`는 최초 상한, `/3`는 최신 유효 횟수 상한 |
+| `runs_limit` | `/1`·`/2`는 최초 상한, `/3`는 최신 유효 횟수 상한, `/4`는 현재 창의 횟수 상한. `/4`의 재개 창은 §4.7이 정한 새 창의 상한에서 시작한다 |
 | `revision` | 현재 창의 최신 start/reopen/budget_change seq |
 | `remaining_runs` | 남은 횟수(최소 0) |
 | `excess_runs` | 초과 횟수(최소 0) |
