@@ -444,3 +444,38 @@ func TestOnboardFeedback(t *testing.T) {
 	requireIn(t, "Korean feedback", read(t, onboardKo.readme)+read(t, onboardKo.usage), "공개", "비밀", "로그 원문")
 	requireIn(t, "English feedback", read(t, onboardEn.readme)+read(t, onboardEn.usage), "public", "secrets", "raw logs")
 }
+
+// README.en.md was the English README before README.md took its place. It
+// keeps every heading it had then, each linking the same section of
+// README.md, so older links with a section anchor still lead somewhere.
+func TestOnboardEnglishPointerKeepsAnchors(t *testing.T) {
+	pointer := read(t, "../README.en.md")
+	kept, moved := onboardAnchors(pointer), onboardAnchors(read(t, "../README.md"))
+	for _, anchor := range []string{"why-use-it", "how-it-works", "get-started", "what-you-need", "install", "update", "your-first-task", "if-the-conversation-ends", "before-you-start", "more"} {
+		if !kept[anchor] {
+			t.Errorf("README.en.md lacks the former heading #%s", anchor)
+		}
+		if !moved[anchor] {
+			t.Errorf("README.md lacks #%s", anchor)
+		}
+		requireIn(t, "README.en.md", pointer, "(README.md#"+anchor+")")
+	}
+}
+
+// The run record example in each README names every kind of line ha writes,
+// including the finding lines that run-finding/v1 adds.
+func TestReadmeRecordKinds(t *testing.T) {
+	for _, path := range []string{"../README.md", "../README.ko.md"} {
+		text := read(t, path)
+		start := strings.Index(text, "<strong>runs.jsonl</strong>")
+		if start < 0 {
+			t.Fatalf("%s has no runs.jsonl example", path)
+		}
+		end := strings.Index(text[start:], "</details>")
+		if end < 0 {
+			t.Fatalf("%s leaves the runs.jsonl example open", path)
+		}
+		requireIn(t, path+" runs.jsonl", text[start:start+end],
+			"`start`", "`check`", "`baseline`", "`note`", "`budget_change`", "`done`", "`finding`", "`record_integrity`")
+	}
+}
