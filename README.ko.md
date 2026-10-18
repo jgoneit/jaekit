@@ -9,7 +9,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-168975" alt="MIT 라이선스" /></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <strong>한국어</strong><br /><a href="#설치">설치</a> · <a href="#업데이트">업데이트</a> · <a href="#첫-작업-맡기기">첫 작업</a> · <a href="#남는-문서와-기록">남는 기록</a> · <a href="guides/USAGE.md">사용 안내</a></p>
+<p align="center"><a href="README.md">English</a> · <strong>한국어</strong><br /><a href="#설치">설치</a> · <a href="#첫-작업-맡기기">첫 작업</a> · <a href="#업데이트">업데이트</a> · <a href="#남는-문서와-기록">남는 기록</a> · <a href="guides/USAGE.md">사용 안내</a></p>
 
 Jaekit은 **Codex·Claude Code에 맡긴 작업을 목표부터 완료 기록까지 이어 주는 도구**입니다.
 
@@ -27,13 +27,13 @@ Jaekit은 **Codex·Claude Code에 맡긴 작업을 목표부터 완료 기록까
 
 ## 이럴 때 좋습니다
 
-- **"다 했습니다"를 기록으로 확인하고 싶을 때**
+- **"다 했습니다"를 기록으로 확인하고 싶을 때**<br>
   필수 완료 조건이 검사 기록이나 필요한 사용자 확인으로 충족돼야 완료가 남습니다. 무엇을 바꿨고 어떻게 검사했는지는 완료 보고에서 봅니다.
-- **대화가 끊겨도 이어 가고 싶을 때**
+- **대화가 끊겨도 이어 가고 싶을 때**<br>
   목표·계획·진행 기록이 프로젝트 폴더에 남습니다. 새 대화에서 같은 목표를 지정하면 저장된 지점부터 이어 갑니다.
-- **단계마다 승인하지 않고 맡기고 싶을 때**
+- **단계마다 승인하지 않고 맡기고 싶을 때**<br>
   에이전트가 계획·구현·검사를 이어서 진행합니다. 결과를 바꾸는 결정이나 직접 확인이 필요할 때 묻습니다.
-- **구현 전에 요청부터 정리하고 싶을 때**
+- **구현 전에 요청부터 정리하고 싶을 때**<br>
   Spec만 따로 쓸 수 있습니다. 목표와 완료 조건을 문서로 남겨 두고, 준비됐을 때 Seal을 시작합니다.
 
 ## 사용 흐름
@@ -112,12 +112,15 @@ flowchart TD
 | Claude Code | 사용 | 사용 | `/spec:spec`, `/seal:seal` |
 | Codex (CLI·데스크톱 앱) | 사용 | 사용 | `$spec:spec`, `$seal:seal` |
 
-**Windows 사용자**
+<details>
+<summary><strong>Windows 사용자</strong>: 지금 쓸 수 있는 것</summary>
 
 - 현재 공개 릴리스에서 네이티브 Windows는 기록 도구 `ha`가 지원되지 않아 Seal을 쓸 수 없습니다. 이 제한은 네이티브 실행에 관한 것입니다.
 - Spec은 `ha`가 필요 없지만, Windows에서의 설치와 동작은 아직 확인하지 않았습니다.
 - WSL2의 Ubuntu 24.04 LTS x64에서는 Linux용 Release 파일로 설치합니다. Homebrew는 필요하지 않습니다. 실제 WSL2 설치와 에이전트 사용은 아직 확인하지 않았습니다. → [WSL2 준비 안내](guides/WSL.md)
 - 네이티브 Windows(Windows 11 x64, PowerShell 5.1·7)는 개발 중인 후보만 있고, 실제 실행은 확인 전입니다. → [Windows 네이티브 후보 안내](guides/WINDOWS.md)
+
+</details>
 
 **1. 터미널에서 기록 도구 `ha`를 설치합니다.** 블록은 하나씩 실행하고, 끝날 때까지 기다립니다.
 
@@ -158,57 +161,6 @@ codex plugin add seal@jaekit
 ```
 
 설치 후 **Codex를 새로 엽니다.** `@v0.1.6`은 사용할 배포판을 고정합니다.
-
-### 업데이트
-
-새 배포판이 나오면 `ha`와 두 플러그인을 **함께** 올립니다. 버전이 섞이면 Seal이 기록하기 전에 멈출 수 있습니다.
-
-**1. `ha`를 올립니다.** Homebrew로 설치했다면 아래 두 블록을 차례로 실행합니다.
-
-```bash
-brew update
-```
-
-```bash
-brew upgrade jgoneit/tap/jaekit
-```
-
-Release 파일로 설치했다면 [Release 파일로 설치](guides/INSTALL.md#release-파일로-설치)의 블록을 다시 붙여 넣습니다.
-
-**2. 실제로 실행되는 `ha`를 확인합니다.**
-
-```bash
-ha --version
-which -a ha
-```
-
-새 버전이 나오지 않으면 `which -a ha`의 첫 줄을 봅니다. 그 파일이 실제로 실행됩니다.
-
-Homebrew와 Release 파일로 둘 다 설치했다면, 쓰지 않는 쪽을 지우거나 같은 버전으로 올립니다. 한쪽만 올리면 앞선 쪽의 옛 버전이 계속 실행될 수 있습니다.
-
-**3. 플러그인을 새 배포판으로 다시 등록합니다.** marketplace를 지우면 그 안의 spec·seal도 함께 지워지므로 다시 설치합니다.
-
-**Claude Code**
-
-```bash
-claude plugin marketplace remove jaekit
-claude plugin marketplace add jgoneit/jaekit#v0.1.6
-claude plugin install spec@jaekit
-claude plugin install seal@jaekit
-```
-
-**Codex**
-
-```bash
-codex plugin marketplace remove jaekit
-codex plugin marketplace add jgoneit/jaekit@v0.1.6
-codex plugin add spec@jaekit
-codex plugin add seal@jaekit
-```
-
-**4. Claude Code·Codex를 새로 엽니다.** 새 Spec·Seal은 새로 연 세션부터 쓰입니다.
-
-업데이트는 목표 문서와 실행 기록을 지우지 않습니다. 이전 버전 자료 정리와 제거는 [업데이트](guides/INSTALL.md#업데이트)·[제거](guides/INSTALL.md#제거)를 봅니다.
 
 ### 첫 작업 맡기기
 
@@ -263,6 +215,57 @@ docs/specs/<goal> 이어서 해줘
 ```
 
 `<goal>`을 실제 폴더 이름으로 바꾸면 저장된 목표와 진행 기록에서 이어 갑니다.
+
+### 업데이트
+
+새 배포판이 나오면 `ha`와 두 플러그인을 **함께** 올립니다. 버전이 섞이면 Seal이 기록하기 전에 멈출 수 있습니다.
+
+**1. `ha`를 올립니다.** Homebrew로 설치했다면 아래 두 블록을 차례로 실행합니다.
+
+```bash
+brew update
+```
+
+```bash
+brew upgrade jgoneit/tap/jaekit
+```
+
+Release 파일로 설치했다면 [Release 파일로 설치](guides/INSTALL.md#release-파일로-설치)의 블록을 다시 붙여 넣습니다.
+
+**2. 실제로 실행되는 `ha`를 확인합니다.**
+
+```bash
+ha --version
+which -a ha
+```
+
+새 버전이 나오지 않으면 `which -a ha`의 첫 줄을 봅니다. 그 파일이 실제로 실행됩니다.
+
+Homebrew와 Release 파일로 둘 다 설치했다면, 쓰지 않는 쪽을 지우거나 같은 버전으로 올립니다. 한쪽만 올리면 앞선 쪽의 옛 버전이 계속 실행될 수 있습니다.
+
+**3. 플러그인을 새 배포판으로 다시 등록합니다.** marketplace를 지우면 그 안의 spec·seal도 함께 지워지므로 다시 설치합니다.
+
+**Claude Code**
+
+```bash
+claude plugin marketplace remove jaekit
+claude plugin marketplace add jgoneit/jaekit#v0.1.6
+claude plugin install spec@jaekit
+claude plugin install seal@jaekit
+```
+
+**Codex**
+
+```bash
+codex plugin marketplace remove jaekit
+codex plugin marketplace add jgoneit/jaekit@v0.1.6
+codex plugin add spec@jaekit
+codex plugin add seal@jaekit
+```
+
+**4. Claude Code·Codex를 새로 엽니다.** 새 Spec·Seal은 새로 연 세션부터 쓰입니다.
+
+업데이트는 목표 문서와 실행 기록을 지우지 않습니다. 이전 버전 자료 정리와 제거는 [업데이트](guides/INSTALL.md#업데이트)·[제거](guides/INSTALL.md#제거)를 봅니다.
 
 ## 남는 문서와 기록
 

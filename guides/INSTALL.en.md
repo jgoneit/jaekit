@@ -219,6 +219,9 @@ Then check the version. It should print `ha 0.1.6`. If it prints another version
 ha --version
 ```
 
+<details>
+<summary>Optional, Release file installs only: remove earlier versions' data</summary>
+
 After a Release file installation, the earlier versions' public data stays in `~/.local/share/jaekit/<version>`. Once the check above prints `ha 0.1.6`, the command below removes only the folders of versions older than the installed `0.1.6`. The current version's folder `~/.local/share/jaekit/0.1.6` and the files used by [Get the reference check](#get-the-reference-check), folders of newer versions, and entries whose names are not a three-number version like `0.1.2` stay. Names are checked in full without splitting at newlines or spaces; ordinary files and symlinks with version-like names stay too. Versions are compared as numbers, so `0.1.10` is newer than `0.1.6`. If `~/.local/share/jaekit` is a symlink, nothing is removed. Enumeration, version comparison, or deletion errors make the command fail; older folders already removed successfully are not restored. The data folder first appeared in v0.1.3.
 
 ```bash
@@ -255,6 +258,8 @@ After a Release file installation, the earlier versions' public data stays in `~
   fi
 )
 ```
+
+</details>
 
 For the plugins, register the marketplace again pinned to the new tag. Two marketplaces with the same name cannot be registered together, so remove it first. Removing it also removes the spec and seal plugins installed from it, so install them again. Paste only the commands for the host you use.
 

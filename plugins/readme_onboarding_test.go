@@ -292,12 +292,13 @@ func TestOnboardQuickStartShort(t *testing.T) { TestReadmeVisualGuideAC2(t) }
 // the operations guide's first setup agrees with the
 // README and the install guide, and every section it names exists there.
 func TestOnboardOperationsSetup(t *testing.T) {
-	requireAll(t, "../guides/OPERATIONS.md", "(INSTALL.md)", "(USAGE.md)")
+	requireAll(t, "../guides/OPERATIONS.md", "(INSTALL.md)", "(USAGE.md)", "(OPERATIONS.en.md)")
+	requireAll(t, "../guides/OPERATIONS.en.md", "(INSTALL.en.md)", "(USAGE.en.md)", "(OPERATIONS.md)")
 }
 
 func onboardFiles(t *testing.T) []string {
 	t.Helper()
-	files := []string{"../README.md", "../README.ko.md", "../README.en.md", "../guides/INSTALL.md", "../guides/INSTALL.en.md", "../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md"}
+	files := []string{"../README.md", "../README.ko.md", "../README.en.md", "../guides/INSTALL.md", "../guides/INSTALL.en.md", "../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md", "../guides/OPERATIONS.en.md"}
 	forms, _ := filepath.Glob("../.github/ISSUE_TEMPLATE/*.yml")
 	if len(forms) == 0 {
 		t.Error("no issue templates")
