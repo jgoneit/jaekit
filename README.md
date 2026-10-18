@@ -410,7 +410,7 @@ None
 <details>
 <summary><strong>runs.jsonl</strong>: the run record behind the report</summary>
 
-Every `ha` command that records something appends one JSON line: `start`, `check`, `baseline`, `note` (your quoted confirmations and answers), `budget_change` and `done`. Each line carries the hash of the line before it (`prev`), so an edited or removed line breaks the chain; `ha` then reports `record_integrity` instead of counting the record. A shortened `done` line:
+`ha` appends one JSON line for each recorded event: `start`; a `check` or `baseline` line for each target it runs, so `ha check <goal> AC-1 AC-2` adds two lines; `note` (your quoted confirmations and answers); `budget_change`; `done`; and `finding` for findings recorded after completion. Each line carries the hash of the line before it (`prev`), so editing or removing an earlier line breaks the chain and `ha` reports `record_integrity`. The last line has no later line to expose a change. The record head (seq and hash) in the completion report is the last line when `ha done` ran; later lines such as notes or findings can follow it. A shortened `done` line:
 
 ```text
 {"schema":"run/v1","seq":5,"prev":"a22dbbfe…","kind":"done","status":"complete","commit":"aa4bd917…","tree_clean":true,"criteria":[{"id":"AC-1","kind":"change","satisfied":true,"records":[2,3]},{"id":"AC-2","kind":"maintain","satisfied":true,"records":[4]}]}
