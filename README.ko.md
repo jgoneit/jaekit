@@ -410,7 +410,7 @@ Criteria-Format: nested/1
 <details>
 <summary><strong>runs.jsonl</strong>: 보고 뒤에 있는 실행 기록</summary>
 
-기록을 남기는 `ha` 명령은 JSON 한 줄씩 덧붙입니다. `start`, `check`, `baseline`, `note`(인용한 사용자 확인과 답), `budget_change`, `done`이 있습니다. 각 줄은 앞 줄의 해시(`prev`)를 담아서, 줄을 고치거나 지우면 연결이 끊기고 `ha`는 그 기록을 세지 않고 `record_integrity`로 알립니다. 줄인 `done` 줄 예시입니다.
+`ha`는 기록하는 사건마다 JSON 한 줄을 덧붙입니다. `start`, 실행한 대상마다 한 줄인 `check`·`baseline`(`ha check <goal> AC-1 AC-2`는 두 줄), `note`(인용한 사용자 확인과 답), `budget_change`, `done`, 완료 뒤 기록한 발견의 `finding`이 있습니다. 각 줄은 앞 줄의 해시(`prev`)를 담아서, 앞선 줄을 고치거나 지우면 연결이 끊기고 `ha`가 `record_integrity`로 알립니다. 마지막 줄은 뒤에 이어지는 줄이 없어 바뀌어도 드러나지 않으므로, 완료 보고의 record head(seq와 해시)와 비교해 확인합니다. 줄인 `done` 줄 예시입니다.
 
 ```text
 {"schema":"run/v1","seq":5,"prev":"a22dbbfe…","kind":"done","status":"complete","commit":"aa4bd917…","tree_clean":true,"criteria":[{"id":"AC-1","kind":"change","satisfied":true,"records":[2,3]},{"id":"AC-2","kind":"maintain","satisfied":true,"records":[4]}]}
