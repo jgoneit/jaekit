@@ -223,7 +223,6 @@ func TestOnboardReadmeCommandsMatchInstall(t *testing.T) {
 				{"", check},
 				{"**Claude Code**", onboardGuideBlock(t, c.guide, "### Claude Code", "claude plugin marketplace add")},
 				{"**Codex**", onboardGuideBlock(t, c.guide, "### Codex", "codex plugin marketplace add")},
-				{"**Antigravity**", onboardGuideBlock(t, c.guide, "### Antigravity", "jaekit_src=")},
 			},
 			c.update: {
 				{"", onboardGuideBlock(t, c.guide, c.guideUpdate, "brew update")},
@@ -231,7 +230,6 @@ func TestOnboardReadmeCommandsMatchInstall(t *testing.T) {
 				{"", check},
 				{"**Claude Code**", onboardGuideBlock(t, c.guide, c.guideUpdate, "claude plugin marketplace remove")},
 				{"**Codex**", onboardGuideBlock(t, c.guide, c.guideUpdate, "codex plugin marketplace remove")},
-				{"**Antigravity**", onboardGuideBlock(t, c.guide, c.guideUpdate, "jaekit_src=")},
 			},
 		}
 		for _, heading := range []string{c.install, c.update} {
@@ -244,7 +242,7 @@ func TestOnboardReadmeCommandsMatchInstall(t *testing.T) {
 				if got[i][1] != w[1] {
 					t.Errorf("%s %s block %d differs from %s: got %q, want %q", c.readme, heading, i+1, c.guide, got[i][1], w[1])
 				}
-				if w[0] != "" && got[i][0] != w[0] && !strings.HasPrefix(got[i][0], w[0]+" — ") {
+				if w[0] != "" && got[i][0] != w[0] {
 					t.Errorf("%s %s block %d follows %q, want the label %q", c.readme, heading, i+1, got[i][0], w[0])
 				}
 			}

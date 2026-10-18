@@ -490,7 +490,7 @@ func TestReadmeVisualGuideAC10(t *testing.T) {
 				continue
 			}
 			line = regexp.MustCompile(`<[^>]+>`).ReplaceAllString(line, "<>")
-			if strings.HasPrefix(line, "brew ") || strings.HasPrefix(line, "claude plugin ") || strings.HasPrefix(line, "codex plugin ") || strings.HasPrefix(line, "agy plugin ") || strings.HasPrefix(line, "git clone ") || strings.HasPrefix(line, "jaekit_src=") || line == "ha --version" || line == "which -a ha" {
+			if strings.HasPrefix(line, "brew ") || strings.HasPrefix(line, "claude plugin ") || strings.HasPrefix(line, "codex plugin ") || line == "ha --version" || line == "which -a ha" {
 				out = append(out, line)
 			}
 		}

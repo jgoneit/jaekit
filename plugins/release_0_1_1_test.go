@@ -230,13 +230,6 @@ func TestRelease011Pins(t *testing.T) {
 			requireIn(t, path, text, "ha "+rel011Version)
 			continue
 		}
-		// The Antigravity steps download the tag itself; no other tag may stay.
-		requireIn(t, path, text, "--branch "+rel011Tag+" https://github.com/jgoneit/jaekit.git")
-		for _, m := range regexp.MustCompile(`--branch (\S+)`).FindAllStringSubmatch(text, -1) {
-			if m[1] != rel011Tag {
-				t.Errorf("%s downloads %s instead of %s", path, m[1], rel011Tag)
-			}
-		}
 		if strings.HasPrefix(path, "../README") {
 			requireIn(t, path, text, "jgoneit/jaekit@"+rel011Tag)
 			guide := "guides/INSTALL.en.md#claude-code"

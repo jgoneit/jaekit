@@ -5,13 +5,13 @@
 <p align="center">
   <a href="https://github.com/jgoneit/jaekit/releases"><img src="https://img.shields.io/github/v/release/jgoneit/jaekit?display_name=tag&amp;label=release&amp;color=4F6CF7" alt="Latest release" /></a>
   <a href="guides/INSTALL.en.md"><img src="https://img.shields.io/badge/macOS%20%C2%B7%20Linux-arm64%20%C2%B7%20amd64-596579" alt="macOS and Linux, arm64 and amd64" /></a>
-  <a href="guides/INSTALL.en.md#basic-install"><img src="https://img.shields.io/badge/agents-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Antigravity-8A63D2" alt="Claude Code, Codex and Antigravity" /></a>
+  <a href="guides/INSTALL.en.md#basic-install"><img src="https://img.shields.io/badge/agents-Claude%20Code%20%C2%B7%20Codex-8A63D2" alt="Claude Code and Codex" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-168975" alt="MIT license" /></a>
 </p>
 
 <p align="center"><strong>English</strong> · <a href="README.ko.md">한국어</a><br /><a href="#install">Install</a> · <a href="#update">Update</a> · <a href="#your-first-task">First task</a> · <a href="#what-you-get">What you get</a> · <a href="guides/USAGE.en.md">Usage guide</a></p>
 
-Jaekit **carries work you delegate to Claude Code, Codex, or Antigravity from a goal to a completion record**.
+Jaekit **carries work you delegate to Codex or Claude Code from a goal to a completion record**.
 
 - **Spec** turns what you want into a goal document with completion conditions.
 - **Seal** has the agent implement, check, and fix the work toward that goal, and judges completion from check records.
@@ -91,7 +91,7 @@ flowchart TD
 ### What you need
 
 - **Git** and **a project folder managed with Git.** You do not need to clone the Jaekit repository.
-- **Claude Code**, **[Codex CLI](https://learn.chatgpt.com/docs/codex/cli)**, or the **Antigravity CLI** (`agy`)
+- **Claude Code** or **[Codex CLI](https://learn.chatgpt.com/docs/codex/cli)**
 - On macOS and Linux, **[Homebrew](https://brew.sh)** (a program installer) is recommended. Without it, install from a Release file.
 
 ### Install
@@ -111,7 +111,6 @@ Then check your agent.
 | --- | --- | --- | --- |
 | Claude Code | Yes | Yes | `/spec:spec`, `/seal:seal` |
 | Codex (CLI, desktop app) | Yes | Yes | `$spec:spec`, `$seal:seal` |
-| Antigravity (`agy`) | Yes | Limited: part of Seal's instructions is not loaded ([details](guides/INSTALL.en.md#antigravity)) | `/spec:spec`, `/seal:seal` |
 
 **Windows users**
 
@@ -160,18 +159,6 @@ codex plugin add seal@jaekit
 
 **Reopen Codex after installation.** `@v0.1.6` pins the release to use.
 
-**Antigravity**
-
-```bash
-jaekit_src="$(mktemp -d)/jaekit"
-git clone --depth 1 --branch v0.1.6 https://github.com/jgoneit/jaekit.git "$jaekit_src"
-agy plugin install "$jaekit_src/plugins/spec"
-agy plugin install "$jaekit_src/plugins/seal"
-agy plugin list
-```
-
-`agy` installs plugins from a folder, so this first downloads the `v0.1.6` tag into a temporary folder; a "detached HEAD" note from Git is expected. The final list should show `spec` and `seal` as enabled. **Reopen Antigravity after installation.** Antigravity loads only the first 24 KB of a skill, so the end of Seal's instructions (resuming, budget, forbidden actions, language) is not loaded there. See [Antigravity installation](guides/INSTALL.en.md#antigravity) before you use Seal in Antigravity.
-
 ### Update
 
 When a new release comes out, update `ha` and both plugins **together**. With mixed versions, Seal may stop before recording.
@@ -219,29 +206,19 @@ codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-**Antigravity** — installing the new tag replaces the earlier version.
-
-```bash
-jaekit_src="$(mktemp -d)/jaekit"
-git clone --depth 1 --branch v0.1.6 https://github.com/jgoneit/jaekit.git "$jaekit_src"
-agy plugin install "$jaekit_src/plugins/spec"
-agy plugin install "$jaekit_src/plugins/seal"
-agy plugin list
-```
-
-**4. Reopen Claude Code, Codex, or Antigravity.** The new Spec and Seal load in newly opened sessions.
+**4. Reopen Claude Code or Codex.** The new Spec and Seal load in newly opened sessions.
 
 Updating does not delete goal documents or run records. To clean up earlier versions' data or uninstall, see [Update](guides/INSTALL.en.md#update) and [Uninstall](guides/INSTALL.en.md#uninstall).
 
 ### Your first task
 
-Open Claude Code, Codex CLI, the Codex desktop app, or Antigravity in your project folder.
+Open Claude Code, Codex CLI, or the Codex desktop app in your project folder.
 
 **From here on, type in the agent conversation, not Terminal.**
 
 **1. Ask Spec.** Use the example for your agent and describe the work you want.
 
-**Claude Code · Antigravity**
+**Claude Code**
 
 ```text
 /spec:spec Add a "Forgot password" link to the login screen
@@ -261,7 +238,7 @@ In this example, the completion conditions are that the new link opens the exist
 
 **3. Start Seal in a separate message.** Specify the goal folder.
 
-**Claude Code · Antigravity**
+**Claude Code**
 
 ```text
 /seal:seal docs/specs/<goal>

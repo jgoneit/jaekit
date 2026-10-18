@@ -5,13 +5,13 @@
 <p align="center">
   <a href="https://github.com/jgoneit/jaekit/releases"><img src="https://img.shields.io/github/v/release/jgoneit/jaekit?display_name=tag&amp;label=release&amp;color=4F6CF7" alt="최신 릴리스" /></a>
   <a href="guides/INSTALL.md"><img src="https://img.shields.io/badge/macOS%20%C2%B7%20Linux-arm64%20%C2%B7%20amd64-596579" alt="macOS·Linux, arm64·amd64" /></a>
-  <a href="guides/INSTALL.md#기본-설치"><img src="https://img.shields.io/badge/agents-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Antigravity-8A63D2" alt="Claude Code·Codex·Antigravity" /></a>
+  <a href="guides/INSTALL.md#기본-설치"><img src="https://img.shields.io/badge/agents-Claude%20Code%20%C2%B7%20Codex-8A63D2" alt="Claude Code·Codex" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-168975" alt="MIT 라이선스" /></a>
 </p>
 
 <p align="center"><a href="README.md">English</a> · <strong>한국어</strong><br /><a href="#설치">설치</a> · <a href="#업데이트">업데이트</a> · <a href="#첫-작업-맡기기">첫 작업</a> · <a href="#남는-문서와-기록">남는 기록</a> · <a href="guides/USAGE.md">사용 안내</a></p>
 
-Jaekit은 **Claude Code·Codex·Antigravity에 맡긴 작업을 목표부터 완료 기록까지 이어 주는 도구**입니다.
+Jaekit은 **Codex·Claude Code에 맡긴 작업을 목표부터 완료 기록까지 이어 주는 도구**입니다.
 
 - **Spec**은 원하는 일을 목표 문서와 완료 조건으로 정리합니다.
 - **Seal**은 에이전트가 그 목표대로 구현·검사·수정하게 하고, 검사 기록으로 완료를 판단합니다.
@@ -91,7 +91,7 @@ flowchart TD
 ### 준비물
 
 - **Git**과 **Git으로 관리하는 작업 프로젝트 폴더.** Jaekit 저장소를 clone할 필요는 없습니다.
-- **Claude Code**, **[Codex CLI](https://learn.chatgpt.com/docs/codex/cli)**, **Antigravity CLI**(`agy`) 가운데 하나
+- **Claude Code** 또는 **[Codex CLI](https://learn.chatgpt.com/docs/codex/cli)**
 - macOS·Linux에서는 **[Homebrew](https://brew.sh)**(프로그램 설치 도구)를 권장합니다. 없으면 Release 파일로 설치합니다.
 
 ### 설치
@@ -111,7 +111,6 @@ flowchart TD
 | --- | --- | --- | --- |
 | Claude Code | 사용 | 사용 | `/spec:spec`, `/seal:seal` |
 | Codex (CLI·데스크톱 앱) | 사용 | 사용 | `$spec:spec`, `$seal:seal` |
-| Antigravity (`agy`) | 사용 | 제한: Seal 지침 일부가 실리지 않음 ([자세히](guides/INSTALL.md#antigravity)) | `/spec:spec`, `/seal:seal` |
 
 **Windows 사용자**
 
@@ -160,18 +159,6 @@ codex plugin add seal@jaekit
 
 설치 후 **Codex를 새로 엽니다.** `@v0.1.6`은 사용할 배포판을 고정합니다.
 
-**Antigravity**
-
-```bash
-jaekit_src="$(mktemp -d)/jaekit"
-git clone --depth 1 --branch v0.1.6 https://github.com/jgoneit/jaekit.git "$jaekit_src"
-agy plugin install "$jaekit_src/plugins/spec"
-agy plugin install "$jaekit_src/plugins/seal"
-agy plugin list
-```
-
-`agy`는 폴더에서 플러그인을 설치하므로 먼저 `v0.1.6` 태그를 임시 폴더에 내려받습니다. Git의 "detached HEAD" 안내는 정상입니다. 마지막 목록에 `spec`, `seal`이 enabled로 보이면 됩니다. 설치 후 **Antigravity를 새로 엽니다.** Antigravity는 스킬의 앞 24 KB만 읽어서 Seal 지침의 끝부분(재개, 예산, 금지 사항, 언어 규칙)이 실리지 않습니다. Antigravity에서 Seal을 쓰기 전에 [Antigravity 설치](guides/INSTALL.md#antigravity)를 봅니다.
-
 ### 업데이트
 
 새 배포판이 나오면 `ha`와 두 플러그인을 **함께** 올립니다. 버전이 섞이면 Seal이 기록하기 전에 멈출 수 있습니다.
@@ -219,29 +206,19 @@ codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-**Antigravity** — 새 태그로 설치하면 이전 버전을 바꿉니다.
-
-```bash
-jaekit_src="$(mktemp -d)/jaekit"
-git clone --depth 1 --branch v0.1.6 https://github.com/jgoneit/jaekit.git "$jaekit_src"
-agy plugin install "$jaekit_src/plugins/spec"
-agy plugin install "$jaekit_src/plugins/seal"
-agy plugin list
-```
-
-**4. Claude Code·Codex·Antigravity를 새로 엽니다.** 새 Spec·Seal은 새로 연 세션부터 쓰입니다.
+**4. Claude Code·Codex를 새로 엽니다.** 새 Spec·Seal은 새로 연 세션부터 쓰입니다.
 
 업데이트는 목표 문서와 실행 기록을 지우지 않습니다. 이전 버전 자료 정리와 제거는 [업데이트](guides/INSTALL.md#업데이트)·[제거](guides/INSTALL.md#제거)를 봅니다.
 
 ### 첫 작업 맡기기
 
-작업할 프로젝트 폴더에서 Claude Code, Codex(CLI·데스크톱 앱) 또는 Antigravity를 엽니다.
+작업할 프로젝트 폴더에서 Claude Code 또는 Codex(CLI·데스크톱 앱)를 엽니다.
 
 **이제부터는 터미널이 아니라 에이전트 대화에 입력합니다.**
 
 **1. Spec에 요청합니다.** 사용하는 에이전트에 맞는 예시로 원하는 작업을 적습니다.
 
-**Claude Code · Antigravity**
+**Claude Code**
 
 ```text
 /spec:spec 로그인 화면에 "비밀번호 찾기" 링크를 추가해줘
@@ -261,7 +238,7 @@ $spec:spec 로그인 화면에 "비밀번호 찾기" 링크를 추가해줘
 
 **3. 별도 메시지로 Seal을 시작합니다.** 목표 폴더를 지정합니다.
 
-**Claude Code · Antigravity**
+**Claude Code**
 
 ```text
 /seal:seal docs/specs/<goal>

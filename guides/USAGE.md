@@ -10,14 +10,14 @@
 
 아래 명령은 터미널이 아니라 **에이전트 대화에** 보냅니다. `<요청>`은 하고 싶은 일로, `<goal>`은 Spec이 알려 준 목표 폴더 이름으로 바꿉니다.
 
-| 할 일 | Codex | Claude Code · Antigravity |
+| 할 일 | Codex | Claude Code |
 | --- | --- | --- |
 | 목표 문서 작성 | `$spec:spec <요청>` | `/spec:spec <요청>` |
 | 구현 시작 | `$seal:seal docs/specs/<goal>` | `/seal:seal docs/specs/<goal>` |
 
 Codex에서는 `$`를 입력하고 Jaekit에서 설치한 `spec:spec` 또는 `seal:seal`을 고른 뒤 요청을 이어 씁니다. `@Spec`은 플러그인 언급입니다. 목표 문서만 쓰는 Spec의 지침을 명확히 선택하려면 위의 스킬 호출을 사용합니다. 플러그인 언급만으로 같은 지침이 선택된다는 보장이 없습니다.
 
-`spec:spec`은 **플러그인 이름:스킬 이름**입니다. 예전 설치본과 이름이 겹쳐서 붙는 접두사가 아닙니다. Jaekit만 설치했어도 이 이름을 사용합니다. Codex는 `$`, Claude Code와 Antigravity는 `/`로 호출합니다. Antigravity의 Seal에는 [스킬 길이 제한](INSTALL.md#antigravity)이 있습니다. 직접 설치한 단독 스킬의 짧은 이름이나 다른 에이전트의 호출법까지 같다고 가정하지 않습니다. [Codex 플러그인 이름 규칙](https://developers.openai.com/plugins/build/plugins#create-a-plugin-manually), [Codex의 스킬 호출 예시](https://learn.chatgpt.com/docs/security/plugin/code-changes#automate-reviews-in-cicd), [Claude Code 스킬 위치와 이름](https://code.claude.com/docs/en/skills#choose-where-skills-load)을 참고하세요.
+`spec:spec`은 **플러그인 이름:스킬 이름**입니다. 예전 설치본과 이름이 겹쳐서 붙는 접두사가 아닙니다. Jaekit만 설치했어도 이 이름을 사용합니다. Codex는 `$`, Claude Code는 `/`로 호출합니다. 직접 설치한 단독 스킬의 짧은 이름이나 다른 에이전트의 호출법까지 같다고 가정하지 않습니다. [Codex 플러그인 이름 규칙](https://developers.openai.com/plugins/build/plugins#create-a-plugin-manually), [Codex의 스킬 호출 예시](https://learn.chatgpt.com/docs/security/plugin/code-changes#automate-reviews-in-cicd), [Claude Code 스킬 위치와 이름](https://code.claude.com/docs/en/skills#choose-where-skills-load)을 참고하세요.
 
 ## 목표를 고치거나 이어 가기
 
