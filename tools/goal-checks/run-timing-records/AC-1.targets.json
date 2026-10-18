@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "records",
+      "runner": "unittest",
+      "file": "tools/goal-checks/run-timing-records/observe_timing.py",
+      "test": "Records.test_check_and_baseline_lines_keep_their_limit_interval",
+      "result_targets": {
+        "additional_violations": [
+          "records.assertion-2",
+          "records.assertion-3",
+          "records.assertion-4",
+          "records.assertion-5",
+          "records.assertion-6",
+          "records.assertion-7",
+          "records.assertion-8"
+        ],
+        "execution": "records.execution",
+        "selection": "records.selection",
+        "attribution": "records.attribution"
+      }
+    },
+    {
+      "target": "timeout-interval",
+      "runner": "unittest",
+      "file": "tools/goal-checks/run-timing-records/observe_timing.py",
+      "test": "Records.test_the_limit_interval_ends_at_the_timeout_decision",
+      "result_targets": {
+        "additional_violations": [
+          "timeout-interval.assertion-2",
+          "timeout-interval.assertion-3",
+          "timeout-interval.assertion-4",
+          "timeout-interval.assertion-5",
+          "timeout-interval.assertion-6",
+          "timeout-interval.assertion-7",
+          "timeout-interval.assertion-8"
+        ],
+        "execution": "timeout-interval.execution",
+        "selection": "timeout-interval.selection",
+        "attribution": "timeout-interval.attribution"
+      }
+    }
+  ]
+}

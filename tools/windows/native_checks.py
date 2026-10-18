@@ -25,7 +25,8 @@ NATIVE = {
     "internal/run": ["TestNativeAdmissionFailureHasNoOutputDigest",
                      "TestNativeUnconfirmedShutdownHasNoOutputDigest",
                      "TestNativeArgvEnvironmentAndOutcomes", "TestNativeTimeoutStopsDescendantWrites",
-                     "TestNativeJobLayout"],
+                     "TestNativeJobLayout", "TestNativeRunTiming", "TestNativeRunTiming/exit",
+                     "TestNativeRunTiming/timeout", "TestNativeRunTiming/start_failure"],
     "internal/record": ["TestNativeConcurrentProcessesPreserveRecords", "TestNativeLockIsReleasedWhenOwnerExits"],
     "internal/evidence": ["TestNativeCleanCRLFStillRequiresCommittedBytes", "TestNativeWindowsEvidencePaths"],
     "internal/history": ["TestNativeHistoryStorageLifecycle", "TestNativeHistoryStorageLocks",
@@ -48,7 +49,7 @@ NATIVE = {
                          "TestNativeHistoryStoragePathSafety/hard-linked_files_cannot_redirect_reads_or_writes",
                          *("TestNativeHistoryStoragePathSafety/hard-linked_files_cannot_redirect_reads_or_writes/" + case
                            for case in ("events.jsonl", "lock", "last", "last.tmp"))],
-    "cmd/ha": ["TestNativeCoreGitLifecycle", "TestNativeCoreGitLifecycle/linked=false",
+    "cmd/ha": ["TestNativeRecordedTiming", "TestNativeCoreGitLifecycle", "TestNativeCoreGitLifecycle/linked=false",
                "TestNativeCoreGitLifecycle/linked=true", "TestNativeBaselineRejectsJunction",
                "TestNativeHistoryGitLifecycle", "TestNativeHistoryFileEvidence",
                "TestNativeHistoryRequestIDPresence",

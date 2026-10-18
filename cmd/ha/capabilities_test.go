@@ -47,8 +47,9 @@ func TestCompatibilityAC7_GoallessReadOnlyQuery(t *testing.T) {
 			"decision_history": []any{"decision-history/v1"},
 			"criteria":         []any{"legacy", "nested/1"}, "check_declaration": []any{"check-declaration/v1"},
 			"check_result": []any{"check-result/v1"}, "check_evidence": []any{"check-evidence/v1"},
+			"timing": []any{"timing/v1"},
 		},
-		"features": []any{"estimate/v1", "dirty-preflight/v1", "baseline-safe-copy/v1", "structured-change-results/v1", "budget-change/v1", "post-completion-findings/v1", "decision-history/v1"},
+		"features": []any{"estimate/v1", "dirty-preflight/v1", "baseline-safe-copy/v1", "structured-change-results/v1", "budget-change/v1", "post-completion-findings/v1", "decision-history/v1", "run-timing/v1"},
 	}
 	for key, want := range wanted {
 		if !reflect.DeepEqual(report[key], want) {

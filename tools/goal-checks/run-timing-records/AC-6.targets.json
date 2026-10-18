@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "damage",
+      "runner": "unittest",
+      "file": "tools/goal-checks/run-timing-records/observe_timing.py",
+      "test": "Damage.test_damaged_timing_values_are_isolated",
+      "result_targets": {
+        "additional_violations": [
+          "damage.assertion-2",
+          "damage.assertion-3",
+          "damage.assertion-4",
+          "damage.assertion-5",
+          "damage.assertion-6",
+          "damage.assertion-7",
+          "damage.assertion-8"
+        ],
+        "execution": "damage.execution",
+        "selection": "damage.selection",
+        "attribution": "damage.attribution"
+      }
+    }
+  ]
+}

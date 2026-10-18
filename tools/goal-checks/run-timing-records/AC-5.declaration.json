@@ -1,0 +1,57 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/run-timing-records/AC-5.targets.json",
+    "tools/goal-checks/run-timing-records/observe_timing.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "compatibility",
+      "violation": "unrecorded-timing-not-shown"
+    },
+    {
+      "id": "compatibility.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "compatibility.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "compatibility.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "compatibility.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "compatibility.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "compatibility.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "compatibility.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "compatibility.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "compatibility.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "compatibility.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

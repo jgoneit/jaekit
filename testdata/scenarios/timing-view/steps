@@ -1,0 +1,34 @@
+# Process timing on check and baseline lines: the time view reads it, and status ignores it even when damaged.
+include implement
+ha timing $GOAL --format json
+expect-exit 0
+expect-output "\"schema\":\"timing/v1\""
+expect-output "\"seq\":2,\"target\":{\"criterion\":\"AC-1\"},\"kind\":\"baseline\",\"result\":\"fail_as_expected\""
+expect-output "\"limit_ms\":900000"
+expect-output "\"limit_reached\":false"
+expect-output "\"unavailable\":{}"
+expect-output "runs can overlap, and this is not the goal's elapsed time or budget"
+ha timing $GOAL
+expect-exit 0
+expect-output "| 2 | AC-1 | baseline | fail_as_expected |"
+expect-output "Runs can overlap; this is not the goal's elapsed time or budget."
+rewrite-record 3 limit_ms "\"900000\""
+rewrite-record 4 cpu "{\"status\":\"measured\",\"user_ms\":-1,\"system_ms\":5,\"scope\":\"/home/user/secret\",\"source\":\"wait4-rusage\"}"
+ha status $GOAL
+expect-status complete
+expect-reasons none
+ha timing $GOAL --format json
+expect-exit 0
+expect-output "\"limit_ms\":null,\"limit_elapsed_ms\":"
+expect-output "\"unavailable\":{\"limit_ms\":\"invalid\",\"limit_use_permille\":\"invalid\"}"
+expect-output "\"cpu\":{\"status\":\"measured\",\"user_ms\":null,\"system_ms\":5,\"scope\":null,\"source\":\"wait4-rusage\"}"
+expect-output "\"unavailable\":{\"cpu.scope\":\"invalid\",\"cpu.user_ms\":\"invalid\"}"
+ha timing $GOAL
+expect-output "unavailable (invalid)"
+expect-untouched
+expect-no-local-paths
+expect-records 4
+drop-record 3
+ha timing $GOAL
+expect-exit 65
+expect-output "the time view reads only an intact record"

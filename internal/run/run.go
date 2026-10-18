@@ -29,6 +29,31 @@ type Result struct {
 	Signal    string // signal number, even though legacy Outcome remains Fail
 	Duration  time.Duration
 	Digest    string // hex sha256 of the log file
+
+	// Limit is the time limit applied to the process. LimitElapsed runs from
+	// the limit timer's start, after a successful process start, until the
+	// process exit was observed or the timeout was decided; later cleanup is
+	// not included. It is nil when the timer never started.
+	Limit        time.Duration
+	LimitElapsed *time.Duration
+	LimitReached bool
+	CPU          CPU
+}
+
+// CPU states. A value that was not measured is never reported as zero.
+const (
+	CPUMeasured    = "measured"
+	CPUUnavailable = "unavailable" // no process ran, or the system does not report it
+	CPUFailed      = "failed"      // the system reports it, but reading it failed
+)
+
+// CPU is the processor time the system reported for one command. Scope names
+// which processes it covers, Source the interface that reported it.
+type CPU struct {
+	Status       string
+	User, System time.Duration
+	Scope        string
+	Source       string
 }
 
 // Exec runs argv in dir with stdin closed, writing stdout and stderr to the
@@ -55,12 +80,16 @@ func ExecWithEnv(dir string, argv []string, timeout time.Duration, logPath strin
 	return execWithStarter(dir, argv, timeout, logPath, extraEnv, startProcess)
 }
 
+// collectCPU reads a finished process's CPU time. Tests replace it to make the
+// collection fail; the run's result, output and limit values do not depend on it.
+var collectCPU = processCPU
+
 func execWithStarter(dir string, argv []string, timeout time.Duration, logPath string, extraEnv []string, starter processStarter) (Result, error) {
 	log, err := os.OpenFile(logPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {
 		return Result{}, err
 	}
-	res := Result{}
+	res := Result{Limit: timeout, CPU: CPU{Status: CPUUnavailable}}
 	var finalizationErr error
 	start := time.Now()
 	cmd := exec.Command(argv[0], argv[1:]...)
@@ -79,13 +108,18 @@ func execWithStarter(dir string, argv []string, timeout time.Duration, logPath s
 	} else {
 		waited := make(chan error, 1)
 		go func() { waited <- cmd.Wait() }()
+		timerStart := time.Now()
 		timer := time.NewTimer(timeout)
 		var waitErr, controlErr error
 		timedOut := false
 		select {
 		case waitErr = <-waited:
 			timer.Stop()
+			elapsed := time.Since(timerStart)
+			res.LimitElapsed = &elapsed
 		case <-timer.C:
+			elapsed := time.Since(timerStart)
+			res.LimitElapsed, res.LimitReached = &elapsed, true
 			timedOut = true
 			controlErr = group.kill()
 			if controlErr != nil {
@@ -99,6 +133,7 @@ func execWithStarter(dir string, argv []string, timeout time.Duration, logPath s
 			}
 		}
 		controlErr = errors.Join(controlErr, group.finish())
+		res.CPU = collectCPU(cmd, group)
 		switch {
 		case controlErr != nil:
 			fmt.Fprintf(log, "\nha: process control failed: %v\n", controlErr)

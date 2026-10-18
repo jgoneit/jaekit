@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os/exec"
 	"syscall"
+	"time"
 )
 
 type processGroup struct{ pid int }
@@ -33,4 +34,22 @@ func processSignal(err *exec.ExitError) (int, string) {
 		return 128 + int(status.Signal()), fmt.Sprint(int(status.Signal()))
 	}
 	return 0, ""
+}
+
+// processCPU reads the user and system time wait4 reported for the process:
+// its own use and that of the descendants it waited for. Descendants that
+// were killed with the process group without being waited for are not counted.
+func processCPU(cmd *exec.Cmd, _ processController) CPU {
+	cpu := CPU{Status: CPUFailed, Scope: "process-and-waited-descendants", Source: "wait4-rusage"}
+	if cmd.ProcessState == nil {
+		return cpu
+	}
+	usage, ok := cmd.ProcessState.SysUsage().(*syscall.Rusage)
+	if !ok || usage == nil {
+		return cpu
+	}
+	cpu.Status = CPUMeasured
+	cpu.User = time.Duration(usage.Utime.Nano())
+	cpu.System = time.Duration(usage.Stime.Nano())
+	return cpu
 }
