@@ -9,7 +9,7 @@ expect-exit 0
 ha note $GOAL reopen --quote "다시 이어서 해줘"
 expect-exit 0
 ha status $GOAL --format json
-expect-output "\"runs_limit\": 40"
+expect-output "\"runs_limit\": 40,"
 ha budget $GOAL --runs 60 --from 40 --window 3 --revision 3 --quote "60회로 늘려" --context "사용자가 정한 이 창의 상한"
 expect-exit 0
 ha budget $GOAL --runs 55 --from 60 --window 3 --revision 4 --reason "fewer checks"
@@ -17,4 +17,4 @@ expect-exit 0
 ha note $GOAL reopen --quote "한 번 더 이어서 해줘"
 expect-exit 0
 ha status $GOAL --format json
-expect-output "\"runs_limit\": 55"
+expect-output "\"runs_limit\": 55,"
