@@ -13,7 +13,7 @@ spec = importlib.util.spec_from_file_location("release_archives", Path(__file__)
 release = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(release)
 ROOT = Path(__file__).resolve().parents[2]
-VERSION = "0.1.5"
+VERSION = "0.1.6"
 
 
 def executable_header(target):

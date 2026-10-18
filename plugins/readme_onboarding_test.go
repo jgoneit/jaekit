@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -21,22 +22,22 @@ type onboardLang struct {
 var onboardKo = onboardLang{
 	readme: "../README.md", install: "../guides/INSTALL.md", usage: "../guides/USAGE.md", otherInstall: "INSTALL.en.md",
 	installDocSecs: []string{"## Release 파일로 설치", "## 로컬 경로 등록에서 옮기기", "## 소스에서 빌드 (개발)"},
-	installDoc2:    []string{"`ha 0.1.5-dev`", "아래 명령은 고치지 않고 그대로 붙여 넣습니다.", "`go env GOBIN`", "`$(go env GOPATH)/bin`"},
+	installDoc2:    []string{"`ha 0.1.6-dev`", "아래 명령은 고치지 않고 그대로 붙여 넣습니다.", "`go env GOBIN`", "`$(go env GOPATH)/bin`"},
 }
 var onboardEn = onboardLang{
 	readme: "../README.en.md", install: "../guides/INSTALL.en.md", usage: "../guides/USAGE.en.md", otherInstall: "INSTALL.md",
 	installDocSecs: []string{"## Install from a Release file", "## Move from a local path registration", "## Build from source (development)"},
-	installDoc2:    []string{"`ha 0.1.5-dev`", "Paste the commands below as they are.", "`go env GOBIN`", "`$(go env GOPATH)/bin`"},
+	installDoc2:    []string{"`ha 0.1.6-dev`", "Paste the commands below as they are.", "`go env GOBIN`", "`$(go env GOPATH)/bin`"},
 }
 
 // Blocks that both languages give the same way.
 const (
 	onboardBrew   = "brew install jgoneit/tap/jaekit\n"
 	onboardCheck  = "ha --version\nwhich -a ha\n"
-	onboardClaude = "claude plugin marketplace add jgoneit/jaekit#v0.1.5\nclaude plugin install spec@jaekit\nclaude plugin install seal@jaekit\n"
-	onboardCodex  = "codex plugin marketplace add jgoneit/jaekit@v0.1.5\ncodex plugin add spec@jaekit\ncodex plugin add seal@jaekit\n"
-	onboardMoveCC = "claude plugin marketplace remove jaekit\nclaude plugin marketplace add jgoneit/jaekit#v0.1.5\nclaude plugin install spec@jaekit\nclaude plugin install seal@jaekit\n"
-	onboardMoveCX = "codex plugin marketplace remove jaekit\ncodex plugin marketplace add jgoneit/jaekit@v0.1.5\ncodex plugin add spec@jaekit\ncodex plugin add seal@jaekit\n"
+	onboardClaude = "claude plugin marketplace add jgoneit/jaekit#v0.1.6\nclaude plugin install spec@jaekit\nclaude plugin install seal@jaekit\n"
+	onboardCodex  = "codex plugin marketplace add jgoneit/jaekit@v0.1.6\ncodex plugin add spec@jaekit\ncodex plugin add seal@jaekit\n"
+	onboardMoveCC = "claude plugin marketplace remove jaekit\nclaude plugin marketplace add jgoneit/jaekit#v0.1.6\nclaude plugin install spec@jaekit\nclaude plugin install seal@jaekit\n"
+	onboardMoveCX = "codex plugin marketplace remove jaekit\ncodex plugin marketplace add jgoneit/jaekit@v0.1.6\ncodex plugin add spec@jaekit\ncodex plugin add seal@jaekit\n"
 	onboardDev    = "go install ./cmd/ha\nha --version\n"
 )
 
@@ -160,7 +161,118 @@ func onboardInstallOK(t *testing.T, l onboardLang) {
 	}
 	requireIn(t, l.install, doc, l.installDoc2...)
 	requireIn(t, l.install, doc, "("+l.otherInstall+")")
-	forbidAll(t, l.readme, "remove jaekit", "uname -s", "go install ./cmd/ha")
+	forbidAll(t, l.readme, "uname -s", "go install ./cmd/ha")
+}
+
+// onboardLabeledBlocks returns the fenced bash blocks of text in order, each
+// with the nearest non-blank line before its fence.
+func onboardLabeledBlocks(text string) [][2]string {
+	var out [][2]string
+	lines := strings.Split(text, "\n")
+	for i := 0; i < len(lines); i++ {
+		if lines[i] != "```bash" {
+			continue
+		}
+		label := ""
+		for j := i - 1; j >= 0; j-- {
+			if strings.TrimSpace(lines[j]) != "" {
+				label = lines[j]
+				break
+			}
+		}
+		var body []string
+		for i++; i < len(lines) && lines[i] != "```"; i++ {
+			body = append(body, lines[i])
+		}
+		out = append(out, [2]string{label, strings.Join(body, "\n") + "\n"})
+	}
+	return out
+}
+
+// onboardGuideBlock returns the guide's bash block in heading that starts
+// with prefix.
+func onboardGuideBlock(t *testing.T, path, heading, prefix string) string {
+	t.Helper()
+	for _, block := range onboardBlocks(mdSection(t, path, heading), "bash") {
+		if strings.HasPrefix(block, prefix) {
+			return block
+		}
+	}
+	t.Fatalf("%s %s has no block starting %q", path, heading, prefix)
+	return ""
+}
+
+// Every command the README shows is the install guide's own command for the
+// same step and host. The README install and update sections list, in order,
+// exactly the guide's blocks for each step, and each host's block follows
+// that host's label. Every bash block anywhere in the README is one of the
+// guide's blocks. Within the README, a code fence is only a column-0 ```bash
+// or ```text opening and its ``` closing, so no command escapes the
+// comparison in a bare, tilde, indented or other-language fence. Inline code
+// and prose are outside this check.
+func TestOnboardReadmeCommandsMatchInstall(t *testing.T) {
+	for _, c := range []struct{ readme, install, update, guide, guideInstall, guideHa, guideCheck, guideUpdate string }{
+		{"../README.md", "### 설치", "### 업데이트", "../guides/INSTALL.md", "## 기본 설치", "### ha 설치", "### 버전 확인", "## 업데이트"},
+		{"../README.en.md", "### Install", "### Update", "../guides/INSTALL.en.md", "## Basic install", "### Install ha", "### Check the version", "## Update"},
+	} {
+		check := onboardGuideBlock(t, c.guide, c.guideCheck, "ha --version")
+		want := map[string][][2]string{
+			c.install: {
+				{"", onboardGuideBlock(t, c.guide, c.guideHa, "brew install")},
+				{"", check},
+				{"**Claude Code**", onboardGuideBlock(t, c.guide, "### Claude Code", "claude plugin marketplace add")},
+				{"**Codex**", onboardGuideBlock(t, c.guide, "### Codex", "codex plugin marketplace add")},
+			},
+			c.update: {
+				{"", onboardGuideBlock(t, c.guide, c.guideUpdate, "brew update")},
+				{"", onboardGuideBlock(t, c.guide, c.guideUpdate, "brew upgrade")},
+				{"", check},
+				{"**Claude Code**", onboardGuideBlock(t, c.guide, c.guideUpdate, "claude plugin marketplace remove")},
+				{"**Codex**", onboardGuideBlock(t, c.guide, c.guideUpdate, "codex plugin marketplace remove")},
+			},
+		}
+		for _, heading := range []string{c.install, c.update} {
+			got := onboardLabeledBlocks(mdSection(t, c.readme, heading))
+			if len(got) != len(want[heading]) {
+				t.Errorf("%s %s has %d command blocks, want %d", c.readme, heading, len(got), len(want[heading]))
+				continue
+			}
+			for i, w := range want[heading] {
+				if got[i][1] != w[1] {
+					t.Errorf("%s %s block %d differs from %s: got %q, want %q", c.readme, heading, i+1, c.guide, got[i][1], w[1])
+				}
+				if w[0] != "" && got[i][0] != w[0] {
+					t.Errorf("%s %s block %d follows %q, want the label %q", c.readme, heading, i+1, got[i][0], w[0])
+				}
+			}
+		}
+		guideAll := onboardBlocks(read(t, c.guide), "bash")
+		for _, block := range onboardBlocks(read(t, c.readme), "bash") {
+			if !slices.Contains(guideAll, block) {
+				t.Errorf("%s block is not one of %s's commands: %q", c.readme, c.guide, block)
+			}
+		}
+		open := false
+		for n, line := range strings.Split(read(t, c.readme), "\n") {
+			trimmed := strings.TrimLeft(line, " \t")
+			if !strings.HasPrefix(trimmed, "```") && !strings.HasPrefix(trimmed, "~~~") {
+				continue
+			}
+			switch {
+			case trimmed != line || strings.HasPrefix(trimmed, "~~~"):
+				t.Errorf("%s:%d uses the fence %q; fences start at column 0 with backticks", c.readme, n+1, line)
+			case !open && (line == "```bash" || line == "```text"):
+				open = true
+			case open && line == "```":
+				open = false
+			default:
+				t.Errorf("%s:%d uses the fence %q; only ```bash and ```text open a block", c.readme, n+1, line)
+			}
+		}
+		if open {
+			t.Errorf("%s leaves a code fence open", c.readme)
+		}
+	}
 }
 
 func TestOnboardFirstScreen(t *testing.T) { TestReadmeVisualGuideAC1(t) }
