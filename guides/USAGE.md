@@ -70,13 +70,16 @@ flowchart LR
     S -->|needs_user · 2| U["질문에 답하기"]
     S -->|blocked · 3| B["원인을 해소한 뒤<br/>docs/specs/#lt;goal#gt;<br/>이어서 해줘 보내기"]
     S -->|budget_exhausted · 4| E["예산 결정"]
+    S -->|"오류 · 64 이상"| X["오류 메시지를 읽고<br/>문제 해결 보기"]
     classDef you fill:#EEF1FE,stroke:#4F6CF7,color:#1B2559
     classDef sealStep fill:#FFF3E3,stroke:#C9761F,color:#4A2A06
     classDef record fill:#F1F3F5,stroke:#596579,color:#1F2328
     class S record
-    class C,U,B,E,R you
+    class C,U,B,E,R,X you
     class I,D sealStep
 ```
+
+64 이상은 작업 상태가 아니라 오류입니다. 64는 사용법 오류, 65는 시작하지 않은 목표나 끊긴 기록 같은 거절, 66은 Core가 지원하지 않는 규칙 버전, 70은 내부 오류입니다. 메시지를 읽고 [문제 해결](#문제-해결)을 봅니다.
 
 ### 완료 근거와 재작업
 

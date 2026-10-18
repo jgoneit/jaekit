@@ -70,13 +70,16 @@ flowchart LR
     S -->|needs_user · 2| U["Answer the question"]
     S -->|blocked · 3| B["Fix the cause, then send<br/>continue docs/specs/#lt;goal#gt;"]
     S -->|budget_exhausted · 4| E["Decide on the budget"]
+    S -->|"error · 64+"| X["Read the error message,<br/>then see Troubleshooting"]
     classDef you fill:#EEF1FE,stroke:#4F6CF7,color:#1B2559
     classDef sealStep fill:#FFF3E3,stroke:#C9761F,color:#4A2A06
     classDef record fill:#F1F3F5,stroke:#596579,color:#1F2328
     class S record
-    class C,U,B,E,R you
+    class C,U,B,E,R,X you
     class I,D sealStep
 ```
+
+Exit codes 64 and above are errors, not work statuses: 64 for a usage error, 65 for a refusal such as a goal that has not started or a broken record, 66 for a rule version the Core does not support, and 70 for an internal error. Read the message, then see [Troubleshooting](#troubleshooting).
 
 ### Completion evidence and rework
 
