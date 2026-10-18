@@ -59,21 +59,23 @@ docs/specs/<goal> 이어서 해줘
 
 ### 결과에 따라 할 일
 
-`ha status` / `ha done`의 결과에 따라 다음에 할 일을 확인합니다. 숫자는 종료 코드입니다.
+`ha status` / `ha done`의 결과에 따라 다음에 할 일을 확인합니다. 숫자는 종료 코드입니다. `ha status`의 `complete`만으로는 완료가 아닙니다. 출력에 완료 기록이 나오기 전까지는 Seal이 `ha done`으로 완료를 기록합니다.
 
 ```mermaid
 flowchart LR
-    S["ha status / ha done"] -->|complete · 0| C["결과 확인"]
+    S["ha status / ha done"] -->|complete · 0| R{"완료 기록이 있나요?"}
+    R -->|"아직 없음"| D["Seal이 ha done 실행"]
+    R -->|"seq N"| C["결과 확인"]
     S -->|incomplete · 1| I["Seal이 계속 작업하도록 두기"]
     S -->|needs_user · 2| U["질문에 답하기"]
-    S -->|blocked · 3| B["원인을 해소한 뒤<br/>docs/specs/#lt;goal#gt; 이어서 해줘<br/>보내기"]
+    S -->|blocked · 3| B["원인을 해소한 뒤<br/>docs/specs/#lt;goal#gt;<br/>이어서 해줘 보내기"]
     S -->|budget_exhausted · 4| E["예산 결정"]
     classDef you fill:#EEF1FE,stroke:#4F6CF7,color:#1B2559
     classDef sealStep fill:#FFF3E3,stroke:#C9761F,color:#4A2A06
     classDef record fill:#F1F3F5,stroke:#596579,color:#1F2328
     class S record
-    class C,U,B,E you
-    class I sealStep
+    class C,U,B,E,R you
+    class I,D sealStep
 ```
 
 ### 완료 근거와 재작업

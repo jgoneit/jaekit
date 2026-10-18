@@ -59,11 +59,13 @@ Start with what changed and what was verified. The report appears in the convers
 
 ### What to do next
 
-Use the `ha status` / `ha done` result to find your next step. The numbers are exit codes.
+Use the `ha status` / `ha done` result to find your next step. The numbers are exit codes. A `complete` from `ha status` alone is not a completion: until the output names a completion record, Seal records one with `ha done`.
 
 ```mermaid
 flowchart LR
-    S["ha status / ha done"] -->|complete · 0| C["Review the result"]
+    S["ha status / ha done"] -->|complete · 0| R{"Completion record?"}
+    R -->|"none yet"| D["Seal runs ha done"]
+    R -->|"seq N"| C["Review the result"]
     S -->|incomplete · 1| I["Let Seal keep working"]
     S -->|needs_user · 2| U["Answer the question"]
     S -->|blocked · 3| B["Fix the cause, then send<br/>continue docs/specs/#lt;goal#gt;"]
@@ -72,8 +74,8 @@ flowchart LR
     classDef sealStep fill:#FFF3E3,stroke:#C9761F,color:#4A2A06
     classDef record fill:#F1F3F5,stroke:#596579,color:#1F2328
     class S record
-    class C,U,B,E you
-    class I sealStep
+    class C,U,B,E,R you
+    class I,D sealStep
 ```
 
 ### Completion evidence and rework
