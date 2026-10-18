@@ -27,10 +27,15 @@ GUIDES = (("INSTALL.md", "## Release 파일로 설치"),
 spec = importlib.util.spec_from_file_location("release_archives", Path(__file__).with_name("check_archives.py"))
 release = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(release)
-# The root documents of the archive the guides download. v0.1.6 archives carry
-# README.en.md; later ones carry the files check_archives requires instead, so a
-# version bump that keeps the old cp line in the guides fails here.
-DOCUMENTS = (("README.md", "README.en.md", "LICENSE") if NAME == "ha_0.1.6_linux_amd64"
+# The last published release whose archives carry README.en.md. It is a fact
+# about published files, so a version bump never changes it; the tuple form
+# keeps a bump that replaces the dotted version from rewriting it.
+LAST_POINTER_RELEASE = (0, 1, 6)
+# The root documents of the archive the guides download. Archives after that
+# release carry the files check_archives requires instead, so a version bump
+# that keeps the old cp line in the guides fails here.
+DOCUMENTS = (("README.md", "README.en.md", "LICENSE")
+             if tuple(int(part) for part in NAME.split("_")[1].split(".")) <= LAST_POINTER_RELEASE
              else tuple(sorted(release.ROOT_FILES - {"ha"})))
 
 
