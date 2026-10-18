@@ -25,8 +25,9 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 	if marketplace.Metadata.Version != "0.1.5" {
 		t.Errorf("[requirement] current released marketplace identity changed: %s", marketplace.Metadata.Version)
 	}
-	// Seal 0.1.16 starts goals under run-rules/4 and ships in release v0.1.5.
-	for name, want := range map[string]string{"spec": "0.1.12", "seal": "0.1.16"} {
+	// Seal 0.1.17 links the run-rules/4 reopen limit to its contract; the
+	// released marketplace identity above stays v0.1.5.
+	for name, want := range map[string]string{"spec": "0.1.12", "seal": "0.1.17"} {
 		t.Run(name, func(t *testing.T) {
 			_, version := frontMatter(t, filepath.Join(name, "skills", name, "SKILL.md"))
 			if version != want {
@@ -127,6 +128,20 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 	}
 	compatibilityContains(t, "Korean WSL guide", read(t, "../guides/WSL.md"), "v0.1.5 파일의 공개 자료", "v0.1.4 이하 배포 파일에는 없습니다")
 	compatibilityContains(t, "English WSL guide", read(t, "../guides/WSL.en.md"), "public data of the v0.1.5 files", "Release files of v0.1.4 and earlier do not have it")
+}
+
+// The Seal reference points to run-record.md §4.7 for the run limit a /4
+// reopen carries, instead of restating it: the restatement lost the
+// contract's "later decreases are reflected" qualifier.
+func TestCompatibilitySealReferenceLinksRunRules4Reopen(t *testing.T) {
+	const path = "seal/skills/seal/references/ha.md"
+	compatibilityContains(t, path, mdSection(t, path, "## run-rules/4"), "contracts/run-record.md#47-run-rules4")
+	reference := read(t, path)
+	for _, restated := range []string{"new window starts from", "last limit the user set", "`/4` reopens with"} {
+		if strings.Contains(reference, restated) {
+			t.Errorf("[requirement] %s restates the /4 reopen limit: %q", path, restated)
+		}
+	}
 }
 
 func TestCompatibilityAC12_SpecAndVerificationBoundaries(t *testing.T) {
