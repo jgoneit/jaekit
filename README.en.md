@@ -15,7 +15,7 @@ Jaekit **carries work you delegate to Codex or Claude Code from a goal to a comp
 - **Spec** turns what you want into a goal document with completion conditions.
 - **Seal** has the agent implement, check, and fix the work toward that goal, and judges completion from check records.
 
-The current release is **v0.1.5**, an early version being refined through real work.
+The current release is **v0.1.6**, an early version being refined through real work.
 
 <details>
 <summary>View the Jaekit introduction illustration</summary>
@@ -80,7 +80,7 @@ ha --version
 which -a ha
 ```
 
-It should print `ha 0.1.5`. The first line of `which -a ha` is the file that actually runs. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
+It should print `ha 0.1.6`. The first line of `which -a ha` is the file that actually runs. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
 
 To install without Homebrew, paste the block under [Install from a Release file](guides/INSTALL.en.md#install-from-a-release-file) instead of this step. It downloads the file for your OS and CPU, checks its checksum, and puts it at `~/.local/bin/ha`. Other methods and details are in the [install guide](guides/INSTALL.en.md).
 
@@ -91,23 +91,23 @@ If you already installed Jaekit, follow [Update](#update) below. If you register
 **Claude Code**
 
 ```bash
-claude plugin marketplace add jgoneit/jaekit#v0.1.5
+claude plugin marketplace add jgoneit/jaekit#v0.1.6
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 claude plugin list
 ```
 
-The final list should show `spec@jaekit` and `seal@jaekit` as enabled. **Reopen Claude Code after installation.** `#v0.1.5` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
+The final list should show `spec@jaekit` and `seal@jaekit` as enabled. **Reopen Claude Code after installation.** `#v0.1.6` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
 
 **Codex**
 
 ```bash
-codex plugin marketplace add jgoneit/jaekit@v0.1.5
+codex plugin marketplace add jgoneit/jaekit@v0.1.6
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-**Reopen Codex after installation.** `@v0.1.5` pins the release to use.
+**Reopen Codex after installation.** `@v0.1.6` pins the release to use.
 
 ### Update
 
@@ -142,7 +142,7 @@ If you installed both with Homebrew and from a Release file, remove the one you 
 
 ```bash
 claude plugin marketplace remove jaekit
-claude plugin marketplace add jgoneit/jaekit#v0.1.5
+claude plugin marketplace add jgoneit/jaekit#v0.1.6
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 ```
@@ -151,7 +151,7 @@ claude plugin install seal@jaekit
 
 ```bash
 codex plugin marketplace remove jaekit
-codex plugin marketplace add jgoneit/jaekit@v0.1.5
+codex plugin marketplace add jgoneit/jaekit@v0.1.6
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```

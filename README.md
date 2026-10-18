@@ -15,7 +15,7 @@ Jaekit은 **Codex·Claude Code에 맡긴 작업을 목표부터 완료 기록까
 - **Spec**은 원하는 일을 목표 문서와 완료 조건으로 정리합니다.
 - **Seal**은 에이전트가 그 목표대로 구현·검사·수정하게 하고, 검사 기록으로 완료를 판단합니다.
 
-현재 배포판은 **v0.1.5**입니다. 실제 작업에 써 보며 다듬는 초기 개발 단계입니다.
+현재 배포판은 **v0.1.6**입니다. 실제 작업에 써 보며 다듬는 초기 개발 단계입니다.
 
 <details>
 <summary>Jaekit 소개 이미지 보기</summary>
@@ -80,7 +80,7 @@ ha --version
 which -a ha
 ```
 
-`ha 0.1.5`가 나오면 됩니다. `which -a ha`의 첫 줄이 실제로 실행되는 파일입니다. 명령을 찾지 못하거나 버전이 다르면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
+`ha 0.1.6`이 나오면 됩니다. `which -a ha`의 첫 줄이 실제로 실행되는 파일입니다. 명령을 찾지 못하거나 버전이 다르면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
 
 Homebrew 없이 설치하려면 이 단계 대신 [Release 파일로 설치](guides/INSTALL.md#release-파일로-설치)의 블록을 붙여 넣습니다. OS와 CPU에 맞는 파일을 받아 checksum을 확인한 뒤 `~/.local/bin/ha`에 둡니다. 다른 설치 방법과 자세한 설명은 [설치 안내](guides/INSTALL.md)에 있습니다.
 
@@ -91,23 +91,23 @@ Homebrew 없이 설치하려면 이 단계 대신 [Release 파일로 설치](gui
 **Claude Code**
 
 ```bash
-claude plugin marketplace add jgoneit/jaekit#v0.1.5
+claude plugin marketplace add jgoneit/jaekit#v0.1.6
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 claude plugin list
 ```
 
-마지막 목록에 `spec@jaekit`, `seal@jaekit`가 enabled로 보이면 됩니다. 설치 후 **Claude Code를 새로 엽니다.** `#v0.1.5`는 사용할 배포판을 고정합니다. 자세한 내용은 [Claude Code 설치](guides/INSTALL.md#claude-code)를 봅니다.
+마지막 목록에 `spec@jaekit`, `seal@jaekit`가 enabled로 보이면 됩니다. 설치 후 **Claude Code를 새로 엽니다.** `#v0.1.6`은 사용할 배포판을 고정합니다. 자세한 내용은 [Claude Code 설치](guides/INSTALL.md#claude-code)를 봅니다.
 
 **Codex**
 
 ```bash
-codex plugin marketplace add jgoneit/jaekit@v0.1.5
+codex plugin marketplace add jgoneit/jaekit@v0.1.6
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-설치 후 **Codex를 새로 엽니다.** `@v0.1.5`는 사용할 배포판을 고정합니다.
+설치 후 **Codex를 새로 엽니다.** `@v0.1.6`은 사용할 배포판을 고정합니다.
 
 ### 업데이트
 
@@ -142,7 +142,7 @@ Homebrew와 Release 파일로 둘 다 설치했다면, 쓰지 않는 쪽을 지�
 
 ```bash
 claude plugin marketplace remove jaekit
-claude plugin marketplace add jgoneit/jaekit#v0.1.5
+claude plugin marketplace add jgoneit/jaekit#v0.1.6
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 ```
@@ -151,7 +151,7 @@ claude plugin install seal@jaekit
 
 ```bash
 codex plugin marketplace remove jaekit
-codex plugin marketplace add jgoneit/jaekit@v0.1.5
+codex plugin marketplace add jgoneit/jaekit@v0.1.6
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
