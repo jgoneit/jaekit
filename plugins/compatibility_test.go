@@ -108,13 +108,15 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 		for _, path := range paths {
 			content := read(t, path)
 			for _, stale := range []string{"v0.1.5 이하", "v0.1.5 and earlier", "v0.1.5 파일에 포함됐다고 가정하지", "included in the v0.1.5 files",
-				"현재 배포판의 Seal 0.1.12", "current release includes this format in Seal 0.1.12", "새 목표가 쓰는 `/3`"} {
+				"현재 배포판의 Seal 0.1.12", "current release includes this format in Seal 0.1.12", "새 목표가 쓰는 `/3`",
+				"새 목표는 `run-rules/3`으로 시작합니다"} {
 				if strings.Contains(content, stale) {
 					t.Errorf("[requirement] %s keeps stale current-release wording: %q", path, stale)
 				}
 			}
 		}
 	}
+	compatibilityContains(t, "operations guide", read(t, "../guides/OPERATIONS.md"), "새 목표를 `run-rules/4`로 시작합니다", "USAGE.md#자율-처리-run-rules4")
 	compatibilityContains(t, "Korean WSL guide", read(t, "../guides/WSL.md"), "v0.1.5 파일의 공개 자료", "v0.1.4 이하 배포 파일에는 없습니다")
 	compatibilityContains(t, "English WSL guide", read(t, "../guides/WSL.en.md"), "public data of the v0.1.5 files", "Release files of v0.1.4 and earlier do not have it")
 }
