@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "shared-regression",
+      "runner": "unittest",
+      "file": "tools/goal-checks/final-candidate-evidence/observe_guidance.py",
+      "test": "SharedRegression.test_guidance_gives_a_shared_regression_to_one_condition",
+      "result_targets": {
+        "additional_violations": [
+          "shared-regression.assertion-2",
+          "shared-regression.assertion-3",
+          "shared-regression.assertion-4",
+          "shared-regression.assertion-5",
+          "shared-regression.assertion-6",
+          "shared-regression.assertion-7",
+          "shared-regression.assertion-8"
+        ],
+        "execution": "shared-regression.execution",
+        "selection": "shared-regression.selection",
+        "attribution": "shared-regression.attribution"
+      }
+    }
+  ]
+}

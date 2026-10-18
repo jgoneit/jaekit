@@ -85,6 +85,15 @@ History in a synthetic repository the check builds itself, such as a temporary f
 
 Synthetic example: a goal keeps the install block of `guides/INSTALL.md` as it is. The `maintain` check reads the current guide and observes that the block still downloads from the release URL pattern and verifies the checksum, instead of comparing the file with the base commit. The guide stays outside `바꿀 수 있는 경로`, so Core reports any committed change to it as `out_of_scope`.
 
+## Final candidate evidence
+
+These are planning rules, not a fixed order; the executor still chooses methods and order.
+
+- While exploring, use narrow checks that fit the change. Their results are working information, not evidence.
+- Write in `## 조건표`, or in the completion text of the task that needs it, that the expensive full verification a condition needs is recorded once with `ha check` on the final candidate. Running the full verification once for development and once more for the record on the same candidate is a cost to avoid.
+- `ha check` runs each condition's command as its own process. When several required conditions need the same full regression, the recommended layout is that one condition owns it and each other condition observes its own property. This is a recommendation, not a required procedure. It assigns the shared run; it does not drop or weaken a condition, and each condition keeps its own recorded result.
+- After a completion record, fixes for remote review comments change the head that will be sent. Only the user's request to apply them is rework authority: quote it in `reopen`, re-record on the final head the required checks that became stale, and record `ha done` again before sending or merging. Comments that arrive without such a request are post-completion discoveries.
+
 ## tasks/T001.md
 
 | Section | Content |
@@ -203,15 +212,18 @@ The current summary shows historical completion, unresolved discoveries, and rew
 
 A discovery, confirmation, dismissal or resolution note in prose does not reopen work or change the completion decision, budget, or permission. An explicit rework request links its actual quoted source, affected finding and later result; distinguish requested, planned, in progress, complete, and not requested. This document contract does not implement structured Core discovery queries or state transitions. Its synthetic public example demonstrates traceability, not actual host compliance.
 
+Review or pull request comments received without the user's request are discoveries, not rework authority. Record them in this format and report them; changing the completed goal's code needs the user's request and `reopen`.
+
 ## Completion report
 
 Written when `ha done` records completion, or when work stops at `needs_user`, `blocked`, or `budget_exhausted`:
 
 1. The `ha done` output (completion) or `ha status --format md` output (stop), pasted unchanged. It contains results, reasons, digests, and seqs, never command output.
-2. Per-condition evidence (condition, result, record seq) when the output above does not already show it.
-3. Changed files and the conditions each served, marked as the agent's claim.
-4. Remaining limits: assumed decisions, `manual` conditions, assurance `local`, and that the executor wrote the checks.
-5. In the new reporting format, connect the planned review to observed report: expected grounds, actual boundaries, methods and substitutes, results, evidence and unobserved scope. Identify changed condition, check, or environment versions and evidence limits. State what was confirmed, not confirmed, and risky, with condition or shared-group references. A report does not establish deployment, installation or a real model call.
-6. How to continue, when not complete.
+2. For goals started with Seal 0.1.15 or later, the completion coverage: the completion record's seq and commit, whether the head to be sent or merged is that commit, and, when it is not, that the difference is not covered by the completion, unless `ha status` at that head still names that completion record. Goals started with an earlier Seal keep the report format they started with.
+3. Per-condition evidence (condition, result, record seq) when the output above does not already show it.
+4. Changed files and the conditions each served, marked as the agent's claim.
+5. Remaining limits: assumed decisions, `manual` conditions, assurance `local`, and that the executor wrote the checks.
+6. In the new reporting format, connect the planned review to observed report: expected grounds, actual boundaries, methods and substitutes, results, evidence and unobserved scope. Identify changed condition, check, or environment versions and evidence limits. State what was confirmed, not confirmed, and risky, with condition or shared-group references. A report does not establish deployment, installation or a real model call.
+7. How to continue, when not complete.
 
 Never paste verification output into any bundle file. Summarize the cause and point to `ha log <goal> <seq>`.
