@@ -1,6 +1,6 @@
-<h1 align="center">
-  <img src="assets/readme/brand/logo.svg" alt="Jaekit" width="280" />
-</h1>
+<p align="center">
+  <img src="assets/readme/hero.en.png" alt="Jaekit — AI coding work, from goals to completion evidence. Use it with Codex or Claude Code." width="880" />
+</p>
 
 <p align="center">
   <a href="https://github.com/jgoneit/jaekit/releases"><img src="https://img.shields.io/github/v/release/jgoneit/jaekit?display_name=tag&amp;label=release&amp;color=4F6CF7" alt="Latest release" /></a>
@@ -9,7 +9,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-168975" alt="MIT license" /></a>
 </p>
 
-<p align="center"><strong>English</strong> · <a href="README.ko.md">한국어</a><br /><a href="#install">Install</a> · <a href="#update">Update</a> · <a href="#your-first-task">First task</a> · <a href="#what-you-get">What you get</a> · <a href="guides/USAGE.en.md">Usage guide</a></p>
+<p align="center"><strong>English</strong> · <a href="README.ko.md">한국어</a><br /><a href="#install">Install</a> · <a href="#your-first-task">First task</a> · <a href="#update">Update</a> · <a href="#what-you-get">What you get</a> · <a href="guides/USAGE.en.md">Usage guide</a></p>
 
 Jaekit **carries work you delegate to Codex or Claude Code from a goal to a completion record**.
 
@@ -18,25 +18,22 @@ Jaekit **carries work you delegate to Codex or Claude Code from a goal to a comp
 
 The current release is **v0.1.6**, an early version being refined through real work.
 
-<details>
-<summary>View the Jaekit introduction illustration</summary>
-
-![Jaekit — AI coding work, from goals to completion evidence. Use it with Codex or Claude Code.](assets/readme/hero.en.png)
-
-</details>
-
 ## Why use it
 
-- **You want "done" backed by records**
+- **You want "done" backed by records**<br>
   Completion is recorded only when the required completion conditions are met by recorded checks or necessary user confirmations. The completion report shows what changed and how it was checked.
-- **You want to pick up where a conversation ended**
+- **You want to pick up where a conversation ended**<br>
   Goals, plans, and progress records stay in the project folder. In a new conversation, specify the same goal to continue from the saved point.
-- **You do not want to approve every step**
+- **You do not want to approve every step**<br>
   The agent plans, implements, and checks on its own. It asks when a decision affects the outcome or a check needs your confirmation.
-- **You want to define the request before implementing it**
+- **You want to define the request before implementing it**<br>
   Spec works on its own. Keep the goal and completion conditions as a document and start Seal when you are ready.
 
 ## How it works
+
+![Fictional walkthrough of password-link: ask Spec with /spec:spec, review the goal, start Seal in a separate message, run the checks (AC-1 fails before the change and passes after it, AC-2 still passes), then read the completion report from ha done.](assets/readme/demo.en.gif)
+
+An illustrated sequence, not a recording of a real run. The diagram below shows each step and who acts.
 
 ```mermaid
 flowchart TD
@@ -112,14 +109,19 @@ Then check your agent.
 | Claude Code | Yes | Yes | `/spec:spec`, `/seal:seal` |
 | Codex (CLI, desktop app) | Yes | Yes | `$spec:spec`, `$seal:seal` |
 
-**Windows users**
+<details>
+<summary><strong>Windows users</strong>: what works today</summary>
 
 - In the current public release, the record tool `ha` does not support Windows natively, so Seal cannot run there. This limitation refers to native execution.
 - Spec does not need `ha`, but its installation and operation on Windows have not been checked yet.
 - In WSL2 with Ubuntu 24.04 LTS x64, install from the Linux Release file; Homebrew is not needed. Installation and agent use in actual WSL2 have not been checked yet. → [WSL2 preparation guide](guides/WSL.en.md)
 - Native Windows (Windows 11 x64, PowerShell 5.1 and 7) has only a candidate under development; actual execution has not been checked. → [Windows native candidate guide](guides/WINDOWS.en.md)
 
-**1. In Terminal, install the record tool `ha`.** Run one block at a time and wait for it to finish.
+</details>
+
+#### 1. Install the record tool `ha` in Terminal
+
+Run one block at a time and wait for it to finish.
 
 ```bash
 brew install jgoneit/tap/jaekit
@@ -134,7 +136,9 @@ It should print `ha 0.1.6`. The first line of `which -a ha` is the file that act
 
 To install without Homebrew, paste the block under [Install from a Release file](guides/INSTALL.en.md#install-from-a-release-file) instead of this step. It downloads the file for your OS and CPU, checks its checksum, and puts it at `~/.local/bin/ha`. Other methods and details are in the [install guide](guides/INSTALL.en.md).
 
-**2. In the same Terminal, install the plugins for your agent.** Run only the block for the agent you use.
+#### 2. Install the plugins for your agent
+
+In the same Terminal, run only the block for the agent you use.
 
 If you already installed Jaekit, follow [Update](#update) below. If you registered a repository checkout path, first see [Move from a local path registration](guides/INSTALL.en.md#move-from-a-local-path-registration).
 
@@ -147,7 +151,8 @@ claude plugin install seal@jaekit
 claude plugin list
 ```
 
-The final list should show `spec@jaekit` and `seal@jaekit` as enabled. **Reopen Claude Code after installation.** `#v0.1.6` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
+> [!TIP]
+> **Reopen Claude Code after installation.** The final list should show `spec@jaekit` and `seal@jaekit` as enabled. `#v0.1.6` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
 
 **Codex**
 
@@ -157,13 +162,80 @@ codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-**Reopen Codex after installation.** `@v0.1.6` pins the release to use.
+> [!TIP]
+> **Reopen Codex after installation.** `@v0.1.6` pins the release to use.
+
+### Your first task
+
+Open Claude Code, Codex CLI, or the Codex desktop app in your project folder.
+
+> [!IMPORTANT]
+> From here on, type in the agent conversation, not Terminal.
+
+#### 1. Ask Spec
+
+Use the example for your agent and describe the work you want.
+
+**Claude Code**
+
+```text
+/spec:spec Add a "Forgot password" link to the login screen
+```
+
+**Codex** — Type `$` and choose Jaekit's `spec:spec` from the list.
+
+```text
+$spec:spec Add a "Forgot password" link to the login screen
+```
+
+> [!NOTE]
+> This is a **fictional example** of a project that already has a password reset page, not an executed or verified case. Replace it with the work you want in your own project.
+
+#### 2. Review the goal
+
+Read the document Spec gives you and say what needs changing.
+
+In this example, the completion conditions are that the new link opens the existing reset page and login keeps working as before.
+
+#### 3. Start Seal in a separate message
+
+Specify the goal folder.
+
+**Claude Code**
+
+```text
+/seal:seal docs/specs/<goal>
+```
+
+**Codex** — Choose Jaekit's `seal:seal` from the `$` list.
+
+```text
+$seal:seal docs/specs/<goal>
+```
+
+> [!TIP]
+> Replace `<goal>` with **the actual goal folder name Spec reported**. If its name is `password-link`, the full path is `docs/specs/password-link`.
+
+For more on sending commands, see the [usage guide](guides/USAGE.en.md#sending-commands).
+
+### If the conversation ends
+
+Open **a new conversation in the same project folder** and specify the same goal.
+
+```text
+continue docs/specs/<goal>
+```
+
+Replace `<goal>` with its actual folder name to continue from the saved goal and progress records.
 
 ### Update
 
-When a new release comes out, update `ha` and both plugins **together**. With mixed versions, Seal may stop before recording.
+> [!WARNING]
+> When a new release comes out, update `ha` and both plugins **together**. With mixed versions, Seal may stop before recording.
 
-**1. Update `ha`.** If you installed it with Homebrew, run these two blocks in order.
+#### 1. Update `ha`
+
+If you installed it with Homebrew, run these two blocks in order.
 
 ```bash
 brew update
@@ -175,7 +247,7 @@ brew upgrade jgoneit/tap/jaekit
 
 If you installed from a Release file, paste the block under [Install from a Release file](guides/INSTALL.en.md#install-from-a-release-file) again.
 
-**2. Check which `ha` actually runs.**
+#### 2. Check which `ha` actually runs
 
 ```bash
 ha --version
@@ -186,7 +258,9 @@ If the new version does not appear, look at the first line of `which -a ha`. Tha
 
 If you installed both with Homebrew and from a Release file, remove the one you do not use or update it to the same version. Updating only one can leave the older one earlier on PATH still running.
 
-**3. Register the plugins again for the new release.** Removing the marketplace also removes its spec and seal, so install them again.
+#### 3. Register the plugins again for the new release
+
+Removing the marketplace also removes its spec and seal, so install them again.
 
 **Claude Code**
 
@@ -206,67 +280,20 @@ codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-**4. Reopen Claude Code or Codex.** The new Spec and Seal load in newly opened sessions.
+#### 4. Reopen Claude Code or Codex
+
+The new Spec and Seal load in newly opened sessions.
 
 Updating does not delete goal documents or run records. To clean up earlier versions' data or uninstall, see [Update](guides/INSTALL.en.md#update) and [Uninstall](guides/INSTALL.en.md#uninstall).
 
-### Your first task
-
-Open Claude Code, Codex CLI, or the Codex desktop app in your project folder.
-
-**From here on, type in the agent conversation, not Terminal.**
-
-**1. Ask Spec.** Use the example for your agent and describe the work you want.
-
-**Claude Code**
-
-```text
-/spec:spec Add a "Forgot password" link to the login screen
-```
-
-**Codex** — Type `$` and choose Jaekit's `spec:spec` from the list.
-
-```text
-$spec:spec Add a "Forgot password" link to the login screen
-```
-
-This is a **fictional example** of a project that already has a password reset page, not an executed or verified case. Replace it with the work you want in your own project.
-
-**2. Review the goal.** Read the document Spec gives you and say what needs changing.
-
-In this example, the completion conditions are that the new link opens the existing reset page and login keeps working as before.
-
-**3. Start Seal in a separate message.** Specify the goal folder.
-
-**Claude Code**
-
-```text
-/seal:seal docs/specs/<goal>
-```
-
-**Codex** — Choose Jaekit's `seal:seal` from the `$` list.
-
-```text
-$seal:seal docs/specs/<goal>
-```
-
-Replace `<goal>` with **the actual goal folder name Spec reported**. If its name is `password-link`, the full path is `docs/specs/password-link`.
-
-For more on sending commands, see the [usage guide](guides/USAGE.en.md#sending-commands).
-
-### If the conversation ends
-
-Open **a new conversation in the same project folder** and specify the same goal.
-
-```text
-continue docs/specs/<goal>
-```
-
-Replace `<goal>` with its actual folder name to continue from the saved goal and progress records.
-
 ## What you get
 
-Everything Jaekit writes stays in your project, in one folder per goal. The examples below are **synthetic and shortened**: they show the format, not a record of real work. Section names and markers such as `## Acceptance Criteria`, `## 조건표` and `AC-1` are fixed format tokens (some are in Korean); the prose is written in your language.
+Everything Jaekit writes stays in your project, in one folder per goal. The examples below are **synthetic and shortened**: they show the format, not a record of real work. Section names and markers such as `## Acceptance Criteria`, `## 조건표` and `AC-1` are fixed format tokens; some are in Korean, and [Korean section names](#korean-section-names) translates them. The prose is written in your language.
+
+![Fictional goal folder docs/specs/password-link/: Spec writes SPEC.md; Seal writes PLAN.md, REVIEW.md and PROGRESS.md; ha writes runs.jsonl. Raw command output stays in .git/ha/ on your computer and is not tracked by Git.](assets/readme/goal-folder.en.png)
+
+<details>
+<summary>The same folder as text</summary>
 
 ```text
 docs/specs/password-link/
@@ -279,7 +306,11 @@ docs/specs/password-link/
 .git/ha/           raw check output, not tracked by Git (read it with ha log)
 ```
 
+</details>
+
 ### The completion report
+
+![Fictional completion report for password-link: complete, with completion record seq 5. AC-1 change failed before the change (seq 2) and passed after it (seq 3). AC-2 maintain passed (seq 4). Assurance local; check author executor.](assets/readme/report-card.en.png)
 
 When the required conditions are met, Seal runs `ha done` and pastes its output unchanged into `PROGRESS.md` under `## 완료 보고`, followed by its own notes. On GitHub it looks like this:
 
@@ -339,8 +370,10 @@ How to read it:
 
 - **status** is computed by `ha` from the run record, Git and the goal documents; it is not the agent's own claim. A completion record seq means `ha done` recorded it.
 - **records** are line numbers (seq) in `runs.jsonl`. For AC-1, seq 2 is the check run on the starting commit, failing as declared, and seq 3 is the same check passing on the result.
-- **assurance: local** and **check author: executor** mean the agent wrote and ran the checks on your computer. This is not independent third-party verification, so review the changed checks and the actual result too.
 - The raw output of a run stays in `.git/ha/`. `ha log docs/specs/password-link 3` prints it in Terminal.
+
+> [!IMPORTANT]
+> **assurance: local** and **check author: executor** mean the agent wrote and ran the checks on your computer. This is not independent third-party verification, so review the changed checks and the actual result too.
 
 If the work stops before completion, the report shows `ha status` instead, with an `### Unmet` list of what is missing:
 
@@ -418,6 +451,22 @@ None
 
 </details>
 
+### Korean section names
+
+Some fixed section names and table columns stay in Korean in every language, because `ha` and the skills read them by these exact names. The prose under them is written in your language.
+
+| File | Korean token | Meaning |
+| --- | --- | --- |
+| `SPEC.md` | `## 사용 시나리오` | Usage scenarios, each linked to criteria |
+| `SPEC.md` | `흐름` · `경계` · `유지` | Scenario kinds: flow, boundary, keep as is |
+| `PLAN.md` | `## 조건표` | Condition table: `ID`, `종류` (kind), `검증 명령` (check command), `검사 경로` (check paths), `Task` |
+| `PLAN.md` | `## 결과 계약` | Result contract: the declaration file of each `change` condition |
+| `PLAN.md` | `## 범위` · `## 예산` | Scope (paths Seal may change, tests, behavior to keep) · budget (runs and elapsed time) |
+| `PLAN.md` | `## 읽을 자료` · `## 시간 제한` | Reading list · per-check time limits |
+| `PROGRESS.md` | `## 현재` · `## Task 상태` | Current state · task status |
+| `PROGRESS.md` | `## 타임라인` · `## 계획 변경` · `## 막힘` · `## 개선 메모` | Timeline · plan changes · blocks · improvement notes |
+| `PROGRESS.md` | `## 완료 보고` · `## 완료 뒤 발견` | Completion report · findings after completion |
+
 More on these files: [Reading the completion report](guides/USAGE.en.md#reading-the-completion-report) · [Saved files](guides/USAGE.en.md#saved-files) · [Format examples](examples/README.md) (in Korean)
 
 ## Before you start
@@ -453,7 +502,7 @@ Installing, updating, or uninstalling does not delete these records. Git trackin
 
 - [Install, update, and uninstall](guides/INSTALL.en.md) · [Releases and compatibility](guides/INSTALL.en.md#release-and-development-combinations)
 - [Usage, changing a goal, and resuming](guides/USAGE.en.md) · [Troubleshooting](guides/USAGE.en.md#troubleshooting)
-- [Detailed operations](guides/OPERATIONS.md) · [Command and record formats](contracts/run-record.md) (both in Korean)
+- [Detailed operations](guides/OPERATIONS.en.md) · [Command and record formats](contracts/run-record.md) (in Korean)
 - [WSL2 preparation guide](guides/WSL.en.md) · [Windows native candidate guide](guides/WINDOWS.en.md)
 - [About the images and how to edit them](assets/readme/SOURCES.en.md)
 - [What Ubuntu, macOS and Windows CI checks](guides/CI.en.md)
