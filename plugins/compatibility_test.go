@@ -51,6 +51,15 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 		})
 	}
 	compatibilityContains(t, "Core development version", read(t, "../cmd/ha/main.go"), `var version = "0.1.5-dev"`)
+	// These package a checkout build, which prints the development version;
+	// install.ps1 refuses a manifest version the executable does not print.
+	for _, path := range []string{"../tools/windows/docs_check.py", "../tools/windows/README.md"} {
+		content := read(t, path)
+		compatibilityContains(t, path, content, "0.1.5-dev")
+		if strings.Contains(content, "0.1.4-dev") {
+			t.Errorf("[requirement] %s packages a checkout build as 0.1.4-dev", path)
+		}
+	}
 	// Codex's marketplace format has no component version field.
 	var codex map[string]any
 	readJSON(t, "../.agents/plugins/marketplace.json", &codex)
@@ -87,6 +96,27 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 	}
 	compatibilityContains(t, "Korean budget guidance", read(t, "../guides/USAGE.md"), "시간 상한 변경은 지원하지 않습니다", "횟수 총상한", "명시적 재개", "원래 한도")
 	compatibilityContains(t, "English budget guidance", read(t, "../guides/USAGE.en.md"), "Changing the elapsed-time limit is unsupported", "total run limit", "explicit reopen", "original limits")
+	// A release bump must not move a claim about what earlier releases lack
+	// onto the release that now ships it.
+	// Nor may it leave the previous release's Seal named as the current one,
+	// or new goals described as starting under /3.
+	for _, dir := range []string{"../guides", "../contracts", "../examples"} {
+		paths, err := filepath.Glob(filepath.Join(dir, "*.md"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, path := range paths {
+			content := read(t, path)
+			for _, stale := range []string{"v0.1.5 이하", "v0.1.5 and earlier", "v0.1.5 파일에 포함됐다고 가정하지", "included in the v0.1.5 files",
+				"현재 배포판의 Seal 0.1.12", "current release includes this format in Seal 0.1.12", "새 목표가 쓰는 `/3`"} {
+				if strings.Contains(content, stale) {
+					t.Errorf("[requirement] %s keeps stale current-release wording: %q", path, stale)
+				}
+			}
+		}
+	}
+	compatibilityContains(t, "Korean WSL guide", read(t, "../guides/WSL.md"), "v0.1.5 파일의 공개 자료", "v0.1.4 이하 배포 파일에는 없습니다")
+	compatibilityContains(t, "English WSL guide", read(t, "../guides/WSL.en.md"), "public data of the v0.1.5 files", "Release files of v0.1.4 and earlier do not have it")
 }
 
 func TestCompatibilityAC12_SpecAndVerificationBoundaries(t *testing.T) {

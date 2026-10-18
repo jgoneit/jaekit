@@ -83,4 +83,4 @@ The [operations guide](OPERATIONS.md) (Korean) describes the detailed reasons fo
 
 ## Verification reporting format
 
-The reporting format introduced in Seal 0.1.10 separates expected-result grounds, observation boundaries, methods and substitutes, and unobserved scope in the existing review and report. Condition groups may share an explanation; a plan is not an observation. The current release includes this format in Seal 0.1.12; existing goal formats stay unchanged. See the [synthetic reporting example](../examples/verification-reporting.md); it is not an actual execution record.
+The reporting format introduced in Seal 0.1.10 separates expected-result grounds, observation boundaries, methods and substitutes, and unobserved scope in the existing review and report. Condition groups may share an explanation; a plan is not an observation. The current release v0.1.5 includes this format in Seal 0.1.16; existing goal formats stay unchanged. See the [synthetic reporting example](../examples/verification-reporting.md); it is not an actual execution record.

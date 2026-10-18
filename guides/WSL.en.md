@@ -4,7 +4,7 @@
 
 This route installs Jaekit inside **Ubuntu 24.04 LTS amd64(x64) on WSL2**. **Installation, execution, and agent Skill use in actual WSL2 have not been checked yet.** This document describes preparation of the route, not completed WSL2 support validation.
 
-The current public release is `v0.1.5`. The linked installation commands download that release's Linux files. Do not assume this guide or development tools are included in the v0.1.5 files. Checking a candidate package, publishing a release, and installing files from its public URL are separate steps.
+The current public release is `v0.1.5`. The linked installation commands download that release's Linux files. This guide and the [environment check tool](#optional-environment-check-for-candidate-packages) are in the public data of the v0.1.5 files; files of v0.1.4 and earlier do not have them. Checking a candidate package, publishing a release, and installing files from its public URL are separate steps.
 
 ## Working environment
 
@@ -65,7 +65,7 @@ Use the direct-install data path in [Get the reference check](INSTALL.en.md#get-
 
 ## Optional environment check for candidate packages
 
-The [environment check tool](../tools/wsl/check-environment.sh) is in the public data of the v0.1.5 release files (`~/.local/share/jaekit/0.1.5/tools/wsl/check-environment.sh`). Release files of v0.1.5 and earlier do not have it. It is not required to install the release. Use it only when the public data, reviewed source or a candidate package includes `tools/wsl/check-environment.sh`. Replace both placeholders with the actual public data directory and project path. The final `codex` is the Linux host command you will use; replace it with `claude` or omit it.
+The [environment check tool](../tools/wsl/check-environment.sh) is in the public data of the v0.1.5 release files (`~/.local/share/jaekit/0.1.5/tools/wsl/check-environment.sh`). Release files of v0.1.4 and earlier do not have it. It is not required to install the release. Use it only when the public data, reviewed source or a candidate package includes `tools/wsl/check-environment.sh`. Replace both placeholders with the actual public data directory and project path. The final `codex` is the Linux host command you will use; replace it with `claude` or omit it.
 
 ```bash
 bash "<candidate-public-data>/tools/wsl/check-environment.sh" "<project-path>" codex
