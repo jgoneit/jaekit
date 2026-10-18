@@ -25,8 +25,9 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 	if marketplace.Metadata.Version != "0.1.5" {
 		t.Errorf("[requirement] current released marketplace identity changed: %s", marketplace.Metadata.Version)
 	}
-	// Seal 0.1.16 starts goals under run-rules/4 and ships in release v0.1.5.
-	for name, want := range map[string]string{"spec": "0.1.12", "seal": "0.1.16"} {
+	// Seal 0.1.17 links the run-rules/4 reopen limit to its contract; the
+	// released marketplace identity above stays v0.1.5.
+	for name, want := range map[string]string{"spec": "0.1.12", "seal": "0.1.17"} {
 		t.Run(name, func(t *testing.T) {
 			_, version := frontMatter(t, filepath.Join(name, "skills", name, "SKILL.md"))
 			if version != want {
@@ -127,6 +128,44 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 	}
 	compatibilityContains(t, "Korean WSL guide", read(t, "../guides/WSL.md"), "v0.1.5 파일의 공개 자료", "v0.1.4 이하 배포 파일에는 없습니다")
 	compatibilityContains(t, "English WSL guide", read(t, "../guides/WSL.en.md"), "public data of the v0.1.5 files", "Release files of v0.1.4 and earlier do not have it")
+}
+
+// The Seal reference points to run-record.md §4.7 for the run limit a /4
+// reopen carries, instead of restating it: the restatement lost the
+// contract's "later decreases are reflected" qualifier.
+func TestCompatibilitySealReferenceLinksRunRules4Reopen(t *testing.T) {
+	const path = "seal/skills/seal/references/ha.md"
+	compatibilityContains(t, path, mdSection(t, path, "## run-rules/4"), "contracts/run-record.md#47-run-rules4")
+	reference := read(t, path)
+	for _, restated := range []string{"new window starts from", "last limit the user set", "`/4` reopens with"} {
+		if strings.Contains(reference, restated) {
+			t.Errorf("[requirement] %s restates the /4 reopen limit: %q", path, restated)
+		}
+	}
+}
+
+// Each section that gives the /3 reopen limit also points to run-record.md
+// §4.7 for /4, so "/4 keeps every /3 rule" does not lead to the /3 limit.
+func TestCompatibilitySealRun3ReopenLinksRunRules4(t *testing.T) {
+	for _, s := range []struct{ path, heading string }{
+		{"seal/skills/seal/SKILL.md", "## Budget"},
+		{"seal/skills/seal/references/bundle.md", "### `## 예산`"},
+		{"seal/skills/seal/references/ha.md", "## Budget changes"},
+	} {
+		compatibilityContains(t, s.path, mdSection(t, s.path, s.heading), "contracts/run-record.md#47-run-rules4")
+	}
+}
+
+// The status JSON contract says which run limit a /4 window shows.
+func TestCompatibilityRunRecordRunsLimitNamesRunRules4(t *testing.T) {
+	const path = "../contracts/run-record.md"
+	for _, line := range strings.Split(mdSection(t, path, "#### 예산 (`budget`)"), "\n") {
+		if strings.HasPrefix(line, "| `runs_limit` |") {
+			compatibilityContains(t, path+" runs_limit row", line, "`/4`", "§4.7")
+			return
+		}
+	}
+	t.Fatalf("%s has no runs_limit row in the budget table", path)
 }
 
 func TestCompatibilityAC12_SpecAndVerificationBoundaries(t *testing.T) {
