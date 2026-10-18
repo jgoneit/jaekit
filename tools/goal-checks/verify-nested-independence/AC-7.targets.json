@@ -1,0 +1,113 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "verify-entrypoint",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/workflow-checks",
+        "-p",
+        "test_verify*.py"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "verify-entrypoint.assertion-2",
+          "verify-entrypoint.assertion-3",
+          "verify-entrypoint.assertion-4",
+          "verify-entrypoint.assertion-5",
+          "verify-entrypoint.assertion-6",
+          "verify-entrypoint.assertion-7",
+          "verify-entrypoint.assertion-8"
+        ],
+        "execution": "verify-entrypoint.execution",
+        "selection": "verify-entrypoint.selection",
+        "attribution": "verify-entrypoint.attribution"
+      }
+    },
+    {
+      "target": "ci-jobs",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/workflow-checks",
+        "-p",
+        "test_repository.py"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "ci-jobs.assertion-2",
+          "ci-jobs.assertion-3",
+          "ci-jobs.assertion-4",
+          "ci-jobs.assertion-5",
+          "ci-jobs.assertion-6",
+          "ci-jobs.assertion-7",
+          "ci-jobs.assertion-8"
+        ],
+        "execution": "ci-jobs.execution",
+        "selection": "ci-jobs.selection",
+        "attribution": "ci-jobs.attribution"
+      }
+    },
+    {
+      "target": "main-policy",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/workflow-checks",
+        "-p",
+        "test_main_policy.py"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "main-policy.assertion-2",
+          "main-policy.assertion-3",
+          "main-policy.assertion-4",
+          "main-policy.assertion-5",
+          "main-policy.assertion-6",
+          "main-policy.assertion-7",
+          "main-policy.assertion-8"
+        ],
+        "execution": "main-policy.execution",
+        "selection": "main-policy.selection",
+        "attribution": "main-policy.attribution"
+      }
+    }
+  ]
+}
