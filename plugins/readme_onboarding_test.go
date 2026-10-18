@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -160,7 +161,32 @@ func onboardInstallOK(t *testing.T, l onboardLang) {
 	}
 	requireIn(t, l.install, doc, l.installDoc2...)
 	requireIn(t, l.install, doc, "("+l.otherInstall+")")
-	forbidAll(t, l.readme, "remove jaekit", "uname -s", "go install ./cmd/ha")
+	forbidAll(t, l.readme, "uname -s", "go install ./cmd/ha")
+}
+
+// The README's update steps are the install guide's own commands. Every block
+// in the README update section appears unchanged in the guide's update or
+// version-check section, and the README gives the whole update: ha, the
+// actual executable, and both hosts' plugins.
+func TestOnboardReadmeUpdateMatchesInstall(t *testing.T) {
+	for _, c := range []struct{ readme, update, install, guideUpdate, guideCheck string }{
+		{"../README.md", "### 업데이트", "../guides/INSTALL.md", "## 업데이트", "### 버전 확인"},
+		{"../README.en.md", "### Update", "../guides/INSTALL.en.md", "## Update", "### Check the version"},
+	} {
+		readme := onboardBlocks(mdSection(t, c.readme, c.update), "bash")
+		guide := append(onboardBlocks(mdSection(t, c.install, c.guideUpdate), "bash"),
+			onboardBlocks(mdSection(t, c.install, c.guideCheck), "bash")...)
+		for _, want := range []string{"brew update\n", "brew upgrade jgoneit/tap/jaekit\n", onboardCheck, onboardMoveCC, onboardMoveCX} {
+			if !slices.Contains(readme, want) {
+				t.Errorf("%s %s lacks the block %q", c.readme, c.update, want)
+			}
+		}
+		for _, block := range readme {
+			if !slices.Contains(guide, block) {
+				t.Errorf("%s %s block differs from %s: %q", c.readme, c.update, c.install, block)
+			}
+		}
+	}
 }
 
 func TestOnboardFirstScreen(t *testing.T) { TestReadmeVisualGuideAC1(t) }
