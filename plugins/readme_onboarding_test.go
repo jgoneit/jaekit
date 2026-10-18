@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -204,8 +205,11 @@ func onboardGuideBlock(t *testing.T, path, heading, prefix string) string {
 // Every command the README shows is the install guide's own command for the
 // same step and host. The README install and update sections list, in order,
 // exactly the guide's blocks for each step, and each host's block follows
-// that host's label. Commands appear only in bash fences, so none escapes the
-// comparison in another fence language.
+// that host's label. Every bash block anywhere in the README is one of the
+// guide's blocks. Within the README, a code fence is only a column-0 ```bash
+// or ```text opening and its ``` closing, so no command escapes the
+// comparison in a bare, tilde, indented or other-language fence. Inline code
+// and prose are outside this check.
 func TestOnboardReadmeCommandsMatchInstall(t *testing.T) {
 	for _, c := range []struct{ readme, install, update, guide, guideInstall, guideHa, guideCheck, guideUpdate string }{
 		{"../README.md", "### 설치", "### 업데이트", "../guides/INSTALL.md", "## 기본 설치", "### ha 설치", "### 버전 확인", "## 업데이트"},
@@ -242,10 +246,31 @@ func TestOnboardReadmeCommandsMatchInstall(t *testing.T) {
 				}
 			}
 		}
-		for _, line := range strings.Split(read(t, c.readme), "\n") {
-			if strings.HasPrefix(line, "```") && line != "```" && line != "```bash" && line != "```text" {
-				t.Errorf("%s uses the fence %q; commands belong in bash fences", c.readme, line)
+		guideAll := onboardBlocks(read(t, c.guide), "bash")
+		for _, block := range onboardBlocks(read(t, c.readme), "bash") {
+			if !slices.Contains(guideAll, block) {
+				t.Errorf("%s block is not one of %s's commands: %q", c.readme, c.guide, block)
 			}
+		}
+		open := false
+		for n, line := range strings.Split(read(t, c.readme), "\n") {
+			trimmed := strings.TrimLeft(line, " \t")
+			if !strings.HasPrefix(trimmed, "```") && !strings.HasPrefix(trimmed, "~~~") {
+				continue
+			}
+			switch {
+			case trimmed != line || strings.HasPrefix(trimmed, "~~~"):
+				t.Errorf("%s:%d uses the fence %q; fences start at column 0 with backticks", c.readme, n+1, line)
+			case !open && (line == "```bash" || line == "```text"):
+				open = true
+			case open && line == "```":
+				open = false
+			default:
+				t.Errorf("%s:%d uses the fence %q; only ```bash and ```text open a block", c.readme, n+1, line)
+			}
+		}
+		if open {
+			t.Errorf("%s leaves a code fence open", c.readme)
 		}
 	}
 }
