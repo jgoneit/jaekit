@@ -22,19 +22,24 @@ python3 assets/readme/source/build_brand.py
 
 ## 개념도
 
-대표 이미지와 사용 흐름은 Jaekit의 역할과 사용 순서를 설명하는 **개념도**입니다. 실제 화면, 실행 결과나 완료·검사 증명이 아닙니다. README의 비밀번호 찾기 요청도 사용법을 위한 가상 예시입니다.
+대표 이미지, 사용 흐름, 사용 과정 데모, 폴더 구조, 완료 보고 카드는 Jaekit의 역할과 사용 순서를 설명하는 **개념도**입니다. 실제 화면, 실행 결과나 완료·검사 증명이 아닙니다. 데모와 카드의 `password-link`, 조건, 기록 번호도 가상 값입니다. README의 비밀번호 찾기 요청도 사용법을 위한 가상 예시입니다.
 
 | 이미지 | 한국어 | English |
 | --- | --- | --- |
 | 대표 이미지 | [hero.ko.png](hero.ko.png) | [hero.en.png](hero.en.png) |
 | 사용 흐름 | [usage-flow.ko.png](usage-flow.ko.png) | [usage-flow.en.png](usage-flow.en.png) |
 | 확대용 사용 흐름 | [usage-flow.ko.svg](usage-flow.ko.svg) | [usage-flow.en.svg](usage-flow.en.svg) |
+| 사용 과정 데모 (두 README 공통) | — | [demo.en.gif](demo.en.gif) |
+| 폴더 구조 | [goal-folder.ko.png](goal-folder.ko.png) | [goal-folder.en.png](goal-folder.en.png) |
+| 완료 보고 카드 | [report-card.ko.png](report-card.ko.png) | [report-card.en.png](report-card.en.png) |
 
 README는 미리보기 호환성을 위해 PNG를 사용합니다. 그림의 뜻은 README 대체 텍스트와 본문으로도 읽을 수 있습니다.
 
 ## 개념도 출처와 수정
 
 두 대표 이미지는 제공된 README 키트에서 가져왔습니다. 원본 제작 메모에는 OpenAI 이미지 생성으로 한국어판을 만들고 영어판으로 번역했다고 기록되어 있습니다. [이미지 프롬프트](source/IMAGE-PROMPTS.md)에 문구와 구성 지시를 보관합니다. PNG에는 편집 가능한 글자 레이어가 없으므로, 수정 후에는 두 언어의 문구와 가독성을 함께 확인합니다.
+
+사용 과정 데모, 폴더 구조, 완료 보고 카드는 저장소 관리자가 완성된 PNG·GIF로 제공했습니다. 편집 가능한 원본은 저장소에 없으므로, 바꿀 때는 두 언어 파일을 함께 교체하고 README 대체 텍스트와 본문이 그림과 맞는지 확인합니다.
 
 사용 흐름은 SVG로 작성했습니다. [사용 흐름 원본 안내](source/USAGE-FLOW.md)에 편집 가능한 텍스트 SVG, 생성 스크립트, 재생성 방법을 정리했습니다. 완성 SVG는 글자가 윤곽선으로 변환되어 폰트 설치가 필요하지 않습니다. 재생성 도구인 Python 3·fonttools와 Node.js·sharp는 **이미지를 수정할 때만** 필요하며, Jaekit 사용이나 기본 저장소 검사에는 필요하지 않습니다. 사용 폰트는 Noto Sans CJK KR이며 [SIL OFL 1.1 라이선스](source/FONT-LICENSE.txt)를 함께 보관합니다. 폰트 파일은 포함하지 않습니다.
 

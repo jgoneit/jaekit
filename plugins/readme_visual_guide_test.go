@@ -14,20 +14,25 @@ import (
 
 type visualLang struct {
 	readme, install, usage, flow, start, firstTask, before, more string
-	source, hero, diagram, vector                                string
+	records, source, hero, diagram, vector, folder, report       string
 	intro                                                        []string
 }
 
 var visualLanguages = []visualLang{
 	{readme: "../README.ko.md", install: "../guides/INSTALL.md", usage: "../guides/USAGE.md",
 		flow: "## 사용 흐름", start: "## 시작하기", firstTask: "### 첫 작업 맡기기", before: "## 쓰기 전에 알아두면 좋은 점", more: "## 더 알아보기",
-		source: "assets/readme/SOURCES.md", hero: "assets/readme/hero.ko.png", diagram: "assets/readme/usage-flow.ko.png", vector: "assets/readme/usage-flow.ko.svg",
+		records: "## 남는 문서와 기록", source: "assets/readme/SOURCES.md", hero: "assets/readme/hero.ko.png", diagram: "assets/readme/usage-flow.ko.png", vector: "assets/readme/usage-flow.ko.svg",
+		folder: "assets/readme/goal-folder.ko.png", report: "assets/readme/report-card.ko.png",
 		intro: []string{"Claude Code", "Codex", "작업", "목표", "Spec", "Seal"}},
 	{readme: "../README.md", install: "../guides/INSTALL.en.md", usage: "../guides/USAGE.en.md",
 		flow: "## How it works", start: "## Get started", firstTask: "### Your first task", before: "## Before you start", more: "## More",
-		source: "assets/readme/SOURCES.en.md", hero: "assets/readme/hero.en.png", diagram: "assets/readme/usage-flow.en.png", vector: "assets/readme/usage-flow.en.svg",
+		records: "## What you get", source: "assets/readme/SOURCES.en.md", hero: "assets/readme/hero.en.png", diagram: "assets/readme/usage-flow.en.png", vector: "assets/readme/usage-flow.en.svg",
+		folder: "assets/readme/goal-folder.en.png", report: "assets/readme/report-card.en.png",
 		intro: []string{"Claude Code", "Codex", "work", "goal", "Spec", "Seal"}},
 }
+
+// Both READMEs show the English walkthrough; there is no Korean recording.
+const visualDemo = "assets/readme/demo.en.gif"
 
 // visualEnglish reports the English README, which is README.md; the install
 // guide names keep their language suffix.
@@ -250,6 +255,20 @@ func TestReadmeVisualGuideAC5(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// The record images sit beside the text they illustrate: the walkthrough in
+// the flow section, the folder map and the report card with the records. The
+// notes list them, and the prose around them says they are fictional.
+func TestReadmeVisualGuideRecordImages(t *testing.T) {
+	for _, l := range visualLanguages {
+		visualImage(t, l.readme+" walkthrough", visualSection(t, l.readme, l.flow), visualDemo)
+		records := visualSection(t, l.readme, l.records)
+		visualImage(t, l.readme+" goal folder", records, l.folder)
+		visualImage(t, l.readme+" completion report", records, l.report)
+		visualRequire(t, l.source+" record images", visualRead(t, "../"+l.source),
+			filepath.Base(l.folder), filepath.Base(l.report), filepath.Base(visualDemo))
 	}
 }
 

@@ -31,6 +31,10 @@ The current release is **v0.1.6**, an early version being refined through real w
 
 ## How it works
 
+![Fictional walkthrough of password-link: ask Spec with /spec:spec, review the goal, start Seal in a separate message, run the checks (AC-1 fails before the change and passes after it, AC-2 still passes), then read the completion report from ha done.](assets/readme/demo.en.gif)
+
+An illustrated sequence, not a recording of a real run. The diagram below shows each step and who acts.
+
 ```mermaid
 flowchart TD
     ask(["You describe the work"])
@@ -286,6 +290,11 @@ Updating does not delete goal documents or run records. To clean up earlier vers
 
 Everything Jaekit writes stays in your project, in one folder per goal. The examples below are **synthetic and shortened**: they show the format, not a record of real work. Section names and markers such as `## Acceptance Criteria`, `## 조건표` and `AC-1` are fixed format tokens; some are in Korean, and [Korean section names](#korean-section-names) translates them. The prose is written in your language.
 
+![Fictional goal folder docs/specs/password-link/: Spec writes SPEC.md; Seal writes PLAN.md, REVIEW.md and PROGRESS.md; ha writes runs.jsonl. Raw command output stays in .git/ha/ on your computer and is not tracked by Git.](assets/readme/goal-folder.en.png)
+
+<details>
+<summary>The same folder as text</summary>
+
 ```text
 docs/specs/password-link/
 ├── SPEC.md        goal, scenarios, completion conditions          ← Spec
@@ -297,7 +306,11 @@ docs/specs/password-link/
 .git/ha/           raw check output, not tracked by Git (read it with ha log)
 ```
 
+</details>
+
 ### The completion report
+
+![Fictional completion report for password-link: complete, with completion record seq 5. AC-1 change failed before the change (seq 2) and passed after it (seq 3). AC-2 maintain passed (seq 4). Assurance local; check author executor.](assets/readme/report-card.en.png)
 
 When the required conditions are met, Seal runs `ha done` and pastes its output unchanged into `PROGRESS.md` under `## 완료 보고`, followed by its own notes. On GitHub it looks like this:
 

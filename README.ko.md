@@ -31,6 +31,10 @@ Jaekit은 **Codex·Claude Code에 맡긴 작업을 목표부터 완료 기록까
 
 ## 사용 흐름
 
+![password-link 가상 사용 과정: /spec:spec으로 Spec에 요청하고, 목표를 확인하고, 별도 메시지로 Seal을 시작하고, 검사를 실행하고(AC-1은 바꾸기 전 실패·바꾼 뒤 통과, AC-2는 계속 통과), ha done의 완료 보고를 읽습니다.](assets/readme/demo.en.gif)
+
+영어 화면으로 만든 가상 장면이며 실제 실행을 녹화한 것이 아닙니다. 아래 다이어그램은 단계마다 누가 무엇을 하는지 보여 줍니다.
+
 ```mermaid
 flowchart TD
     ask(["원하는 작업을 말합니다"])
@@ -286,6 +290,11 @@ codex plugin add seal@jaekit
 
 Jaekit이 쓰는 내용은 모두 프로젝트 안, 목표마다 하나인 폴더에 남습니다. 아래 예시는 **줄인 가상 예시**로 형식을 보여 줄 뿐, 실제 작업 기록이 아닙니다. `## Acceptance Criteria`, `## 조건표`, `AC-1` 같은 제목과 표지는 형식 토큰이라 그대로 두고, 설명 문장은 사용자의 언어로 씁니다.
 
+![가상 목표 폴더 docs/specs/password-link/: Spec이 SPEC.md를, Seal이 PLAN.md·REVIEW.md·PROGRESS.md를, ha가 runs.jsonl을 씁니다. 명령 출력 원문은 내 컴퓨터의 .git/ha/에만 남고 Git이 추적하지 않습니다.](assets/readme/goal-folder.ko.png)
+
+<details>
+<summary>같은 폴더를 글로 보기</summary>
+
 ```text
 docs/specs/password-link/
 ├── SPEC.md        목표, 사용 시나리오, 완료 조건              ← Spec
@@ -297,7 +306,11 @@ docs/specs/password-link/
 .git/ha/           검사 출력 원문. Git이 추적하지 않으며 ha log로 봅니다
 ```
 
+</details>
+
 ### 완료 보고
+
+![password-link의 가상 완료 보고: complete, 완료 기록 seq 5. AC-1 change는 바꾸기 전 실패(seq 2), 바꾼 뒤 통과(seq 3). AC-2 maintain 통과(seq 4). assurance local, check author executor.](assets/readme/report-card.ko.png)
 
 필수 완료 조건이 충족되면 Seal이 `ha done`을 실행하고, 그 출력을 고치지 않고 `PROGRESS.md`의 `## 완료 보고`에 붙인 뒤 자기 설명을 덧붙입니다. `ha` 출력의 설명 문장은 언어와 관계없이 영어입니다. GitHub에서는 이렇게 보입니다.
 
