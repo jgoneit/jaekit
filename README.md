@@ -3,73 +3,123 @@
 </h1>
 
 <p align="center">
-  <a href="https://github.com/jgoneit/jaekit/releases"><img src="https://img.shields.io/github/v/release/jgoneit/jaekit?display_name=tag&amp;label=release&amp;color=4F6CF7" alt="최신 릴리스" /></a>
-  <a href="guides/INSTALL.md"><img src="https://img.shields.io/badge/macOS%20%C2%B7%20Linux-arm64%20%C2%B7%20amd64-596579" alt="macOS·Linux, arm64·amd64" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-168975" alt="MIT 라이선스" /></a>
+  <a href="https://github.com/jgoneit/jaekit/releases"><img src="https://img.shields.io/github/v/release/jgoneit/jaekit?display_name=tag&amp;label=release&amp;color=4F6CF7" alt="Latest release" /></a>
+  <a href="guides/INSTALL.en.md"><img src="https://img.shields.io/badge/macOS%20%C2%B7%20Linux-arm64%20%C2%B7%20amd64-596579" alt="macOS and Linux, arm64 and amd64" /></a>
+  <a href="guides/INSTALL.en.md#basic-install"><img src="https://img.shields.io/badge/agents-Claude%20Code%20%C2%B7%20Codex-8A63D2" alt="Claude Code and Codex" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-168975" alt="MIT license" /></a>
 </p>
 
-<p align="center"><strong>한국어</strong> · <a href="README.en.md">English</a><br /><a href="#설치">설치</a> · <a href="#업데이트">업데이트</a> · <a href="#첫-작업-맡기기">첫 작업</a> · <a href="guides/USAGE.md">사용 안내</a></p>
+<p align="center"><strong>English</strong> · <a href="README.ko.md">한국어</a><br /><a href="#install">Install</a> · <a href="#update">Update</a> · <a href="#your-first-task">First task</a> · <a href="#what-you-get">What you get</a> · <a href="guides/USAGE.en.md">Usage guide</a></p>
 
-Jaekit은 **Codex·Claude Code에 맡긴 작업을 목표부터 완료 기록까지 이어 주는 도구**입니다.
+Jaekit **carries work you delegate to Codex or Claude Code from a goal to a completion record**.
 
-- **Spec**은 원하는 일을 목표 문서와 완료 조건으로 정리합니다.
-- **Seal**은 에이전트가 그 목표대로 구현·검사·수정하게 하고, 검사 기록으로 완료를 판단합니다.
+- **Spec** turns what you want into a goal document with completion conditions.
+- **Seal** has the agent implement, check, and fix the work toward that goal, and judges completion from check records.
 
-현재 배포판은 **v0.1.6**입니다. 실제 작업에 써 보며 다듬는 초기 개발 단계입니다.
+The current release is **v0.1.6**, an early version being refined through real work.
 
 <details>
-<summary>Jaekit 소개 이미지 보기</summary>
+<summary>View the Jaekit introduction illustration</summary>
 
-![Jaekit — AI 코딩 작업, 목표부터 완료 근거까지. Codex·Claude Code와 함께 사용합니다.](assets/readme/hero.ko.png)
+![Jaekit — AI coding work, from goals to completion evidence. Use it with Codex or Claude Code.](assets/readme/hero.en.png)
 
 </details>
 
-## 이럴 때 좋습니다
+## Why use it
 
-- **"다 했습니다"를 기록으로 확인하고 싶을 때**
-  필수 완료 조건이 검사 기록이나 필요한 사용자 확인으로 충족돼야 완료가 남습니다. 무엇을 바꿨고 어떻게 검사했는지는 완료 보고에서 봅니다.
-- **대화가 끊겨도 이어 가고 싶을 때**
-  목표·계획·진행 기록이 프로젝트 폴더에 남습니다. 새 대화에서 같은 목표를 지정하면 저장된 지점부터 이어 갑니다.
-- **단계마다 승인하지 않고 맡기고 싶을 때**
-  에이전트가 계획·구현·검사를 이어서 진행합니다. 결과를 바꾸는 결정이나 직접 확인이 필요할 때 묻습니다.
-- **구현 전에 요청부터 정리하고 싶을 때**
-  Spec만 따로 쓸 수 있습니다. 목표와 완료 조건을 문서로 남겨 두고, 준비됐을 때 Seal을 시작합니다.
+- **You want "done" backed by records**
+  Completion is recorded only when the required completion conditions are met by recorded checks or necessary user confirmations. The completion report shows what changed and how it was checked.
+- **You want to pick up where a conversation ended**
+  Goals, plans, and progress records stay in the project folder. In a new conversation, specify the same goal to continue from the saved point.
+- **You do not want to approve every step**
+  The agent plans, implements, and checks on its own. It asks when a decision affects the outcome or a check needs your confirmation.
+- **You want to define the request before implementing it**
+  Spec works on its own. Keep the goal and completion conditions as a document and start Seal when you are ready.
 
-## 사용 흐름
+## How it works
 
-![1. Spec에 요청하고 목표와 완료 조건을 확인합니다. 2. 별도 메시지로 목표 폴더를 지정해 Seal을 시작하면 에이전트가 구현·검사·수정을 진행합니다. 3. 변경 결과와 검사 기록을 확인합니다. 새 대화에서는 같은 프로젝트의 같은 목표를 지정해 재개합니다.](assets/readme/usage-flow.ko.png)
+```mermaid
+flowchart TD
+    ask(["You describe the work"])
+    spec["<b>Spec</b> writes the goal<br/>SPEC.md: goal and completion conditions"]
+    review{"You review the goal"}
+    start["In a separate message,<br/>you start Seal<br/>/seal:seal docs/specs/#lt;goal#gt;"]
+    subgraph seal ["Seal: the agent works on its own"]
+        direction TB
+        plan["Plan<br/>PLAN.md and REVIEW.md"]
+        build["Implement"]
+        check["Check through ha<br/>every run is recorded in runs.jsonl"]
+        plan --> build --> check
+        check -->|"a check fails"| build
+    end
+    decide{{"You answer a decision<br/>only you can make"}}
+    done["ha done<br/>completion record"]
+    report(["You review the report<br/>in PROGRESS.md: what changed<br/>and how it was checked"])
+    resume(["The conversation ended?<br/>Open a new one<br/>in the same project"])
 
-1. Spec은 목표 문서를 작성한 뒤 **멈춥니다**. 내용을 읽고 고칠 점을 말합니다.
-2. 확인이 끝나면 **별도 메시지로 Seal을 시작**합니다. 에이전트가 구현·검사·수정을 진행합니다.
-3. 필수 완료 조건이 충족되면 완료 기록과 보고가 남습니다. **무엇을 바꿨고 어떻게 검사했는지** 실제 결과와 함께 확인하세요.
+    ask -->|"/spec:spec"| spec --> review
+    review -->|"ask for changes"| spec
+    review -->|"looks right"| start --> plan
+    check -.->|"needs you"| decide -.-> build
+    check -->|"required conditions met"| done --> report
+    resume -.->|"continue docs/specs/#lt;goal#gt;"| plan
 
-## 시작하기
+    classDef you fill:#EEF1FE,stroke:#4F6CF7,color:#1B2559
+    classDef specStep fill:#E7F5F1,stroke:#168975,color:#0B3B32
+    classDef sealStep fill:#FFF3E3,stroke:#C9761F,color:#4A2A06
+    classDef record fill:#F1F3F5,stroke:#596579,color:#1F2328
+    class ask,review,start,decide,report,resume you
+    class spec specStep
+    class plan,build,check sealStep
+    class done record
+    style seal fill:none,stroke:#C9761F,stroke-dasharray:5 4
+```
 
-### 준비물
+1. Spec writes the goal document and **stops**. Read it and say what needs changing.
+2. When it looks right, **start Seal in a separate message**. The agent implements, checks, and fixes the work.
+3. When the required completion conditions are met, Seal saves a completion record and report. Review **what changed and how it was checked**, along with the actual result.
 
-- **Git**과 **Git으로 관리하는 작업 프로젝트 폴더.** Jaekit 저장소를 clone할 필요는 없습니다.
-- **Claude Code** 또는 **[Codex CLI](https://learn.chatgpt.com/docs/codex/cli)**
-- macOS·Linux에서는 **[Homebrew](https://brew.sh)**(프로그램 설치 도구)를 권장합니다. 없으면 Release 파일로 설치합니다.
+<details>
+<summary>View the same flow as an illustration</summary>
 
-### 설치
+![1. Ask Spec and review the goal and completion conditions. 2. In a separate message, specify the goal folder and start Seal; the agent implements, checks, and fixes. 3. Review the changes and check records. To resume in a new conversation, specify the same goal in the same project.](assets/readme/usage-flow.en.png)
 
-먼저 내 환경에서 무엇을 쓸 수 있는지 확인합니다.
+</details>
 
-| 환경 | Spec | Seal | 설치 방법 |
+## Get started
+
+### What you need
+
+- **Git** and **a project folder managed with Git.** You do not need to clone the Jaekit repository.
+- **Claude Code** or **[Codex CLI](https://learn.chatgpt.com/docs/codex/cli)**
+- On macOS and Linux, **[Homebrew](https://brew.sh)** (a program installer) is recommended. Without it, install from a Release file.
+
+### Install
+
+First check what you can use in your environment.
+
+| Environment | Spec | Seal | How to install |
 | --- | --- | --- | --- |
-| macOS (Apple Silicon·Intel) | 사용 | 사용 | 아래 Homebrew 명령 |
-| Linux (arm64·amd64) | 사용 | 사용 | Homebrew가 있으면 아래 명령, 없으면 [Release 파일로 설치](guides/INSTALL.md#release-파일로-설치) |
-| Windows의 WSL2 (Ubuntu 24.04 x64) | 준비됨·실사용 미확인 | 준비됨·실사용 미확인 | [WSL2 준비 안내](guides/WSL.md)를 따라 Release 파일로 설치 |
-| Windows (네이티브) | 미확인 | 사용 불가 | 아직 공개 설치 파일 없음 |
+| macOS (Apple Silicon, Intel) | Yes | Yes | The Homebrew command below |
+| Linux (arm64, amd64) | Yes | Yes | The command below with Homebrew; otherwise [Install from a Release file](guides/INSTALL.en.md#install-from-a-release-file) |
+| WSL2 on Windows (Ubuntu 24.04 x64) | Prepared, not yet checked in use | Prepared, not yet checked in use | Follow the [WSL2 preparation guide](guides/WSL.en.md) and install from a Release file |
+| Windows (native) | Not checked | Not available | No public installation files yet |
 
-**Windows 사용자**
+Then check your agent.
 
-- 현재 공개 릴리스에서 네이티브 Windows는 기록 도구 `ha`가 지원되지 않아 Seal을 쓸 수 없습니다. 이 제한은 네이티브 실행에 관한 것입니다.
-- Spec은 `ha`가 필요 없지만, Windows에서의 설치와 동작은 아직 확인하지 않았습니다.
-- WSL2의 Ubuntu 24.04 LTS x64에서는 Linux용 Release 파일로 설치합니다. Homebrew는 필요하지 않습니다. 실제 WSL2 설치와 에이전트 사용은 아직 확인하지 않았습니다. → [WSL2 준비 안내](guides/WSL.md)
-- 네이티브 Windows(Windows 11 x64, PowerShell 5.1·7)는 개발 중인 후보만 있고, 실제 실행은 확인 전입니다. → [Windows 네이티브 후보 안내](guides/WINDOWS.md)
+| Agent | Spec | Seal | Call |
+| --- | --- | --- | --- |
+| Claude Code | Yes | Yes | `/spec:spec`, `/seal:seal` |
+| Codex (CLI, desktop app) | Yes | Yes | `$spec:spec`, `$seal:seal` |
 
-**1. 터미널에서 기록 도구 `ha`를 설치합니다.** 블록은 하나씩 실행하고, 끝날 때까지 기다립니다.
+**Windows users**
+
+- In the current public release, the record tool `ha` does not support Windows natively, so Seal cannot run there. This limitation refers to native execution.
+- Spec does not need `ha`, but its installation and operation on Windows have not been checked yet.
+- In WSL2 with Ubuntu 24.04 LTS x64, install from the Linux Release file; Homebrew is not needed. Installation and agent use in actual WSL2 have not been checked yet. → [WSL2 preparation guide](guides/WSL.en.md)
+- Native Windows (Windows 11 x64, PowerShell 5.1 and 7) has only a candidate under development; actual execution has not been checked. → [Windows native candidate guide](guides/WINDOWS.en.md)
+
+**1. In Terminal, install the record tool `ha`.** Run one block at a time and wait for it to finish.
 
 ```bash
 brew install jgoneit/tap/jaekit
@@ -80,13 +130,13 @@ ha --version
 which -a ha
 ```
 
-`ha 0.1.6`이 나오면 됩니다. `which -a ha`의 첫 줄이 실제로 실행되는 파일입니다. 명령을 찾지 못하거나 버전이 다르면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
+It should print `ha 0.1.6`. The first line of `which -a ha` is the file that actually runs. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
 
-Homebrew 없이 설치하려면 이 단계 대신 [Release 파일로 설치](guides/INSTALL.md#release-파일로-설치)의 블록을 붙여 넣습니다. OS와 CPU에 맞는 파일을 받아 checksum을 확인한 뒤 `~/.local/bin/ha`에 둡니다. 다른 설치 방법과 자세한 설명은 [설치 안내](guides/INSTALL.md)에 있습니다.
+To install without Homebrew, paste the block under [Install from a Release file](guides/INSTALL.en.md#install-from-a-release-file) instead of this step. It downloads the file for your OS and CPU, checks its checksum, and puts it at `~/.local/bin/ha`. Other methods and details are in the [install guide](guides/INSTALL.en.md).
 
-**2. 같은 터미널에서 에이전트 플러그인을 설치합니다.** 쓰는 쪽 블록만 실행합니다.
+**2. In the same Terminal, install the plugins for your agent.** Run only the block for the agent you use.
 
-이미 설치했다면 아래 [업데이트](#업데이트)를 따릅니다. 저장소 checkout 경로로 등록해 쓰던 경우에는 [로컬 경로 등록에서 옮기기](guides/INSTALL.md#로컬-경로-등록에서-옮기기)를 먼저 봅니다.
+If you already installed Jaekit, follow [Update](#update) below. If you registered a repository checkout path, first see [Move from a local path registration](guides/INSTALL.en.md#move-from-a-local-path-registration).
 
 **Claude Code**
 
@@ -97,7 +147,7 @@ claude plugin install seal@jaekit
 claude plugin list
 ```
 
-마지막 목록에 `spec@jaekit`, `seal@jaekit`가 enabled로 보이면 됩니다. 설치 후 **Claude Code를 새로 엽니다.** `#v0.1.6`은 사용할 배포판을 고정합니다. 자세한 내용은 [Claude Code 설치](guides/INSTALL.md#claude-code)를 봅니다.
+The final list should show `spec@jaekit` and `seal@jaekit` as enabled. **Reopen Claude Code after installation.** `#v0.1.6` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
 
 **Codex**
 
@@ -107,13 +157,13 @@ codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-설치 후 **Codex를 새로 엽니다.** `@v0.1.6`은 사용할 배포판을 고정합니다.
+**Reopen Codex after installation.** `@v0.1.6` pins the release to use.
 
-### 업데이트
+### Update
 
-새 배포판이 나오면 `ha`와 두 플러그인을 **함께** 올립니다. 버전이 섞이면 Seal이 기록하기 전에 멈출 수 있습니다.
+When a new release comes out, update `ha` and both plugins **together**. With mixed versions, Seal may stop before recording.
 
-**1. `ha`를 올립니다.** Homebrew로 설치했다면 아래 두 블록을 차례로 실행합니다.
+**1. Update `ha`.** If you installed it with Homebrew, run these two blocks in order.
 
 ```bash
 brew update
@@ -123,20 +173,20 @@ brew update
 brew upgrade jgoneit/tap/jaekit
 ```
 
-Release 파일로 설치했다면 [Release 파일로 설치](guides/INSTALL.md#release-파일로-설치)의 블록을 다시 붙여 넣습니다.
+If you installed from a Release file, paste the block under [Install from a Release file](guides/INSTALL.en.md#install-from-a-release-file) again.
 
-**2. 실제로 실행되는 `ha`를 확인합니다.**
+**2. Check which `ha` actually runs.**
 
 ```bash
 ha --version
 which -a ha
 ```
 
-새 버전이 나오지 않으면 `which -a ha`의 첫 줄을 봅니다. 그 파일이 실제로 실행됩니다.
+If the new version does not appear, look at the first line of `which -a ha`. That is the file that actually runs.
 
-Homebrew와 Release 파일로 둘 다 설치했다면, 쓰지 않는 쪽을 지우거나 같은 버전으로 올립니다. 한쪽만 올리면 앞선 쪽의 옛 버전이 계속 실행될 수 있습니다.
+If you installed both with Homebrew and from a Release file, remove the one you do not use or update it to the same version. Updating only one can leave the older one earlier on PATH still running.
 
-**3. 플러그인을 새 배포판으로 다시 등록합니다.** marketplace를 지우면 그 안의 spec·seal도 함께 지워지므로 다시 설치합니다.
+**3. Register the plugins again for the new release.** Removing the marketplace also removes its spec and seal, so install them again.
 
 **Claude Code**
 
@@ -156,37 +206,37 @@ codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 ```
 
-**4. Claude Code·Codex를 새로 엽니다.** 새 Spec·Seal은 새로 연 세션부터 쓰입니다.
+**4. Reopen Claude Code or Codex.** The new Spec and Seal load in newly opened sessions.
 
-업데이트는 목표 문서와 실행 기록을 지우지 않습니다. 이전 버전 자료 정리와 제거는 [업데이트](guides/INSTALL.md#업데이트)·[제거](guides/INSTALL.md#제거)를 봅니다.
+Updating does not delete goal documents or run records. To clean up earlier versions' data or uninstall, see [Update](guides/INSTALL.en.md#update) and [Uninstall](guides/INSTALL.en.md#uninstall).
 
-### 첫 작업 맡기기
+### Your first task
 
-작업할 프로젝트 폴더에서 Claude Code 또는 Codex(CLI·데스크톱 앱)를 엽니다.
+Open Claude Code, Codex CLI, or the Codex desktop app in your project folder.
 
-**이제부터는 터미널이 아니라 에이전트 대화에 입력합니다.**
+**From here on, type in the agent conversation, not Terminal.**
 
-**1. Spec에 요청합니다.** 사용하는 에이전트에 맞는 예시로 원하는 작업을 적습니다.
+**1. Ask Spec.** Use the example for your agent and describe the work you want.
 
 **Claude Code**
 
 ```text
-/spec:spec 로그인 화면에 "비밀번호 찾기" 링크를 추가해줘
+/spec:spec Add a "Forgot password" link to the login screen
 ```
 
-**Codex** — `$`를 입력하고 목록에서 Jaekit의 `spec:spec`을 고릅니다.
+**Codex** — Type `$` and choose Jaekit's `spec:spec` from the list.
 
 ```text
-$spec:spec 로그인 화면에 "비밀번호 찾기" 링크를 추가해줘
+$spec:spec Add a "Forgot password" link to the login screen
 ```
 
-위 요청은 재설정 페이지가 이미 있는 프로젝트를 가정한 **가상 예시**이며, 실행하거나 검증을 마친 사례가 아닙니다. 실제 프로젝트에서 원하는 작업으로 바꿔 보내세요.
+This is a **fictional example** of a project that already has a password reset page, not an executed or verified case. Replace it with the work you want in your own project.
 
-**2. 목표를 확인합니다.** Spec이 알려 준 문서를 읽고 고칠 내용을 말합니다.
+**2. Review the goal.** Read the document Spec gives you and say what needs changing.
 
-이 예시라면 “새 링크가 기존 재설정 페이지로 연결되는지”, “기존 로그인이 그대로 동작하는지”가 완료 조건입니다.
+In this example, the completion conditions are that the new link opens the existing reset page and login keeps working as before.
 
-**3. 별도 메시지로 Seal을 시작합니다.** 목표 폴더를 지정합니다.
+**3. Start Seal in a separate message.** Specify the goal folder.
 
 **Claude Code**
 
@@ -194,64 +244,220 @@ $spec:spec 로그인 화면에 "비밀번호 찾기" 링크를 추가해줘
 /seal:seal docs/specs/<goal>
 ```
 
-**Codex** — `$` 목록에서 Jaekit의 `seal:seal`을 고릅니다.
+**Codex** — Choose Jaekit's `seal:seal` from the `$` list.
 
 ```text
 $seal:seal docs/specs/<goal>
 ```
 
-`<goal>`은 **Spec이 알려 준 실제 목표 폴더 이름으로 바꾸는 자리**입니다. 이름이 `password-link`라면 전체 경로는 `docs/specs/password-link`입니다.
+Replace `<goal>` with **the actual goal folder name Spec reported**. If its name is `password-link`, the full path is `docs/specs/password-link`.
 
-자세한 호출 방법은 [사용 안내](guides/USAGE.md#명령-보내기)를 참고하세요.
+For more on sending commands, see the [usage guide](guides/USAGE.en.md#sending-commands).
 
-### 대화가 끊겼다면
+### If the conversation ends
 
-**같은 프로젝트 폴더에서 새 대화**를 열고, 이전에 작업한 목표를 지정합니다.
+Open **a new conversation in the same project folder** and specify the same goal.
 
 ```text
-docs/specs/<goal> 이어서 해줘
+continue docs/specs/<goal>
 ```
 
-`<goal>`을 실제 폴더 이름으로 바꾸면 저장된 목표와 진행 기록에서 이어 갑니다.
+Replace `<goal>` with its actual folder name to continue from the saved goal and progress records.
 
-## 쓰기 전에 알아두면 좋은 점
+## What you get
+
+Everything Jaekit writes stays in your project, in one folder per goal. The examples below are **synthetic and shortened**: they show the format, not a record of real work. Section names and markers such as `## Acceptance Criteria`, `## 조건표` and `AC-1` are fixed format tokens (some are in Korean); the prose is written in your language.
+
+```text
+docs/specs/password-link/
+├── SPEC.md        goal, scenarios, completion conditions          ← Spec
+├── PLAN.md        how each condition is checked, scope, budget    ← Seal
+├── REVIEW.md      review of the plan before work starts           ← Seal
+├── PROGRESS.md    current state, timeline, completion report      ← Seal
+└── runs.jsonl     append-only run record                          ← ha only
+
+.git/ha/           raw check output, not tracked by Git (read it with ha log)
+```
+
+### The completion report
+
+When the required conditions are met, Seal runs `ha done` and pastes its output unchanged into `PROGRESS.md` under `## 완료 보고`, followed by its own notes. On GitHub it looks like this:
+
+> **ha status: docs/specs/password-link**
+>
+> - status: **complete** (exit 0)
+> - completion record: seq 5
+> - assurance: local (an agent with the same user permissions can change checks and records)
+> - check author: executor
+> - rules: run-rules/4; skill: seal 0.1.17 (claimed); ha: 0.1.6
+>
+> | ID | kind | required | satisfied | reason | records | attempts |
+> | --- | --- | --- | --- | --- | --- | --- |
+> | AC-1 | change | yes | yes | — | 2, 3 | checks 1 (fail 0, error 0), baselines 1 (unexpected pass 0, error 0), stale 0 |
+> | AC-2 | maintain | yes | yes | — | 4 | checks 1 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+>
+> - Completion coverage: completion record seq 5 at commit aa4bd917b591, which is the head to push.
+> - Changed files (agent's claim): src/login.html for AC-1.
+> - Remaining limits: assurance local; the agent wrote the checks; no manual conditions.
 
 <details>
-<summary><strong>완료 보고에서는 무엇을 확인하나요?</strong></summary>
+<summary>View the same report as Markdown in <code>PROGRESS.md</code></summary>
 
-필수 완료 조건은 검사 기록 또는 필요한 사용자 확인으로 충족돼야 합니다.
+```markdown
+## 완료 보고
 
-자동 검사는 에이전트가 작성하므로, 완료가 결과 전체의 무결함이나 독립된 제3자의 검증을 보장하지는 않습니다. 보고의 가정·남은 한계와 실제 결과를 함께 확인합니다.
+## ha status: docs/specs/password-link
 
-기본 작업 결과는 로컬 변경과 commit(변경 이력 저장)까지입니다. GitHub에 올리거나 PR을 만들고 배포하는 일은 직접 하거나 일반 에이전트에 별도로 요청합니다. [완료 보고 읽기](guides/USAGE.md#완료-보고-읽기)
+- status: **complete** (exit 0)
+- completion record: seq 5
+- assurance: local (an agent with the same user permissions can change checks and records)
+- check author: executor
+- record head: seq 5 (315888484b42)
+- rules: run-rules/4; skill: seal 0.1.17 (claimed); ha: 0.1.6
+- code: aa4bd917b591, tree clean: yes; goal digest: f1f24cc156b0
+- attempts: 3 total; types: 2 check, 1 baseline; outcomes: 0 environment errors, 0 unknown; inputs: 3 current, 0 stale; valid positive evidence: 3 (overlapping axes)
+
+### Criteria
+
+| ID | kind | required | satisfied | reason | records | attempts |
+| --- | --- | --- | --- | --- | --- | --- |
+| AC-1 | change | yes | yes | — | 2, 3 | checks 1 (fail 0, error 0), baselines 1 (unexpected pass 0, error 0), stale 0 |
+| AC-2 | maintain | yes | yes | — | 4 | checks 1 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+
+### Reasons
+
+None.
+
+- Completion coverage: completion record seq 5 at commit aa4bd917b591, which is the head to push.
+- Changed files (agent's claim): src/login.html for AC-1.
+- Remaining limits: assurance local; the agent wrote the checks; no manual conditions.
+```
+
+</details>
+
+How to read it:
+
+- **status** is computed by `ha` from the run record, Git and the goal documents; it is not the agent's own claim. A completion record seq means `ha done` recorded it.
+- **records** are line numbers (seq) in `runs.jsonl`. For AC-1, seq 2 is the check run on the starting commit, failing as declared, and seq 3 is the same check passing on the result.
+- **assurance: local** and **check author: executor** mean the agent wrote and ran the checks on your computer. This is not independent third-party verification, so review the changed checks and the actual result too.
+- The raw output of a run stays in `.git/ha/`. `ha log docs/specs/password-link 3` prints it in Terminal.
+
+If the work stops before completion, the report shows `ha status` instead, with an `### Unmet` list of what is missing:
+
+```text
+- status: **incomplete** (exit 1)
+
+### Unmet
+
+- AC-2 `criterion_failed` (executor): seq 4, output `ha log docs/specs/password-link 4`
+```
+
+### The other files
+
+<details>
+<summary><strong>SPEC.md</strong>: what you want, as conditions that can be checked</summary>
+
+```markdown
+# Forgot password link
+
+Status: Ready
+Criteria-Format: nested/1
+
+## Goal
+
+Add a "Forgot password?" link to the login screen that opens the existing reset page.
+
+## 사용 시나리오
+
+A user who forgot their password selects the link and reaches the reset page (AC-1).
+Signing in keeps working as before (AC-2).
+
+## Acceptance Criteria
+- **AC-1** The login screen shows a "Forgot password?" link to `/reset-password`.
+- **AC-2** The existing login form keeps working.
+
+## Open Decisions
+
+None
+```
+
+`Status: Ready` means no outcome-changing decision is left. Spec stops here; nothing is implemented until you start Seal.
 
 </details>
 
 <details>
-<summary><strong>목표만 정리해도 되나요?</strong></summary>
+<summary><strong>PLAN.md</strong>: how Seal checks each condition</summary>
 
-네. Spec은 Seal·`ha` 없이 사용할 수 있습니다. 목표를 정리해 두고 구현할 준비가 됐을 때 Seal을 시작하세요.
+```markdown
+## 조건표
+| ID | 종류 | 검증 명령 | 검사 경로 | Task |
+| --- | --- | --- | --- | --- |
+| AC-1 | change | `python3 checks/login_link.py` | checks/login_link.py, checks/login-link.json | T001 |
+| AC-2 | maintain | `python3 -m unittest tests.test_login` | — | T001 |
+
+## 결과 계약
+| ID | 선언 경로 |
+| --- | --- |
+| AC-1 | checks/login-link.json |
+```
+
+- `change` is new behavior. Seal also runs its check on the starting commit, where it must fail the way the declaration says, and then on the result, where it must pass.
+- `maintain` is behavior that must keep working. `manual` is a condition only you can confirm.
+- The plan also lists the paths Seal may change, its tasks and a run budget. `REVIEW.md` records the review of this plan before work starts.
 
 </details>
 
 <details>
-<summary><strong>어떤 기록이 남나요?</strong></summary>
+<summary><strong>runs.jsonl</strong>: the run record behind the report</summary>
 
-프로젝트에 목표 문서, 작업 계획, 진행·완료 보고와 실행 기록이 남습니다. 진행 보고는 목표 폴더의 `PROGRESS.md`에서 볼 수 있습니다.
+Every `ha` command that records something appends one JSON line: `start`, `check`, `baseline`, `note` (your quoted confirmations and answers), `budget_change` and `done`. Each line carries the hash of the line before it (`prev`), so an edited or removed line breaks the chain; `ha` then reports `record_integrity` instead of counting the record. A shortened `done` line:
 
-설치·업데이트·제거는 이 기록을 지우지 않습니다. Git 추적은 프로젝트 정책을 따르며, 공개 전에는 내용을 확인합니다. [저장되는 파일](guides/USAGE.md#저장되는-파일)
+```text
+{"schema":"run/v1","seq":5,"prev":"a22dbbfe…","kind":"done","status":"complete","commit":"aa4bd917…","tree_clean":true,"criteria":[{"id":"AC-1","kind":"change","satisfied":true,"records":[2,3]},{"id":"AC-2","kind":"maintain","satisfied":true,"records":[4]}]}
+```
 
 </details>
 
-## 더 알아보기
+More on these files: [Reading the completion report](guides/USAGE.en.md#reading-the-completion-report) · [Saved files](guides/USAGE.en.md#saved-files) · [Format examples](examples/README.md) (in Korean)
 
-- [설치·업데이트·제거](guides/INSTALL.md) · [배포판과 호환 범위](guides/INSTALL.md#배포판과-개발-조합)
-- [사용 안내·목표 수정·재개](guides/USAGE.md) · [문제 해결](guides/USAGE.md#문제-해결)
-- [자세한 운영 규칙](guides/OPERATIONS.md) · [명령·기록 형식](contracts/run-record.md)
-- [WSL2 준비 안내](guides/WSL.md) · [Windows 네이티브 후보 안내](guides/WINDOWS.md)
-- [이미지 설명과 수정 방법](assets/readme/SOURCES.md)
-- [Ubuntu·macOS·Windows CI의 검사 범위](guides/CI.md)
+## Before you start
 
-사용 경험이나 막힌 점은 [사용 보고·설치·버그 issue](https://github.com/jgoneit/jaekit/issues/new/choose)로 남겨 주세요. issue는 공개되므로 회사 코드, 내부 이름, 비밀 값과 로그 원문은 제외해 주세요.
+<details>
+<summary><strong>What should I look for in the completion report?</strong></summary>
 
-[MIT 라이선스](LICENSE)
+Required completion conditions need recorded checks or necessary user confirmations.
+
+The agent writes the automated checks, so completion is not a guarantee that the entire result is flawless or independently verified by a third party. Review the report's assumptions and remaining limitations alongside the actual result.
+
+The default result ends at local changes and commits (saved entries in the change history). Publish to GitHub, create pull requests, and deploy yourself, or ask a general-purpose agent separately. [Reading the completion report](guides/USAGE.en.md#reading-the-completion-report)
+
+</details>
+
+<details>
+<summary><strong>Can I just define a goal?</strong></summary>
+
+Yes. Spec works without Seal or `ha`. Define the goal now and start Seal when you are ready to implement it.
+
+</details>
+
+<details>
+<summary><strong>What records are saved?</strong></summary>
+
+The project keeps goal documents, work plans, progress and completion reports, and run records. Read the progress report in `PROGRESS.md` in the goal folder. See [What you get](#what-you-get) for examples.
+
+Installing, updating, or uninstalling does not delete these records. Git tracking follows project policy; review the contents before publishing. [Saved files](guides/USAGE.en.md#saved-files)
+
+</details>
+
+## More
+
+- [Install, update, and uninstall](guides/INSTALL.en.md) · [Releases and compatibility](guides/INSTALL.en.md#release-and-development-combinations)
+- [Usage, changing a goal, and resuming](guides/USAGE.en.md) · [Troubleshooting](guides/USAGE.en.md#troubleshooting)
+- [Detailed operations](guides/OPERATIONS.md) · [Command and record formats](contracts/run-record.md) (both in Korean)
+- [WSL2 preparation guide](guides/WSL.en.md) · [Windows native candidate guide](guides/WINDOWS.en.md)
+- [About the images and how to edit them](assets/readme/SOURCES.en.md)
+- [What Ubuntu, macOS and Windows CI checks](guides/CI.en.md)
+
+Share your experience or where you got stuck in a [usage report or install/bug issue](https://github.com/jgoneit/jaekit/issues/new/choose). Issues are public: leave out company code, internal names, secrets, and raw logs.
+
+[MIT license](LICENSE)

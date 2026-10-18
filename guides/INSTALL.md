@@ -2,7 +2,7 @@
 
 **한국어** · [English](INSTALL.en.md)
 
-현재 배포판 `v0.1.6`의 설치·업데이트·제거 안내입니다. macOS·Linux의 arm64·amd64를 지원합니다. 아래 명령은 **터미널에서** 실행합니다. 설치 뒤 에이전트에게 보낼 말은 [첫 사용 안내](../README.md#첫-작업-맡기기)에 있습니다.
+현재 배포판 `v0.1.6`의 설치·업데이트·제거 안내입니다. macOS·Linux의 arm64·amd64를 지원합니다. 아래 명령은 **터미널에서** 실행합니다. 설치 뒤 에이전트에게 보낼 말은 [첫 사용 안내](../README.ko.md#첫-작업-맡기기)에 있습니다.
 
 - 처음 설치할 때: [기본 설치](#기본-설치)
 - brew를 쓰지 않을 때: [Release 파일로 설치](#release-파일로-설치)
@@ -67,7 +67,7 @@ codex plugin add seal@jaekit
 
 `@v0.1.6`은 marketplace(플러그인 목록)를 해당 태그에 고정합니다. main이 바뀌어도 배포판의 spec 0.1.12·seal 0.1.17을 받습니다.
 
-Codex를 새로 열고 대화에 `$`를 입력해 Jaekit의 `spec:spec` 또는 `seal:seal`을 고릅니다. 호출 이름은 `$spec:spec`과 `$seal:seal`입니다. [첫 작업 맡기기](../README.md#첫-작업-맡기기)를 따라 해 봅니다. 다른 플러그인과 혼동되면 [문제 해결](USAGE.md#문제-해결)을 봅니다.
+Codex를 새로 열고 대화에 `$`를 입력해 Jaekit의 `spec:spec` 또는 `seal:seal`을 고릅니다. 호출 이름은 `$spec:spec`과 `$seal:seal`입니다. [첫 작업 맡기기](../README.ko.md#첫-작업-맡기기)를 따라 해 봅니다. 다른 플러그인과 혼동되면 [문제 해결](USAGE.md#문제-해결)을 봅니다.
 
 ### Claude Code
 

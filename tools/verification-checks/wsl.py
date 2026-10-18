@@ -21,7 +21,7 @@ def observe(criterion):
         ok = all(token in ko and token in en for token in
                  ('Ubuntu 24.04', 'WSL2', 'x86_64', '/mnt/c', 'Git', 'Homebrew', 'WSL1'))
         ok = ok and 'Linux home directory' in en and 'same distribution' in en
-        for name, guide in [('README.md', 'guides/WSL.md'), ('README.en.md', 'guides/WSL.en.md'),
+        for name, guide in [('README.ko.md', 'guides/WSL.md'), ('README.md', 'guides/WSL.en.md'),
                             ('guides/INSTALL.md', 'WSL.md'), ('guides/INSTALL.en.md', 'WSL.en.md')]:
             ok = ok and guide in Path(name).read_text(encoding='utf-8')
     elif criterion == 'AC-7':

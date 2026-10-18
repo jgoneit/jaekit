@@ -19,17 +19,21 @@ type visualLang struct {
 }
 
 var visualLanguages = []visualLang{
-	{readme: "../README.md", install: "../guides/INSTALL.md", usage: "../guides/USAGE.md",
+	{readme: "../README.ko.md", install: "../guides/INSTALL.md", usage: "../guides/USAGE.md",
 		flow: "## 사용 흐름", start: "## 시작하기", firstTask: "### 첫 작업 맡기기", before: "## 쓰기 전에 알아두면 좋은 점", more: "## 더 알아보기",
 		source: "assets/readme/SOURCES.md", hero: "assets/readme/hero.ko.png", diagram: "assets/readme/usage-flow.ko.png", vector: "assets/readme/usage-flow.ko.svg",
 		intro: []string{"Claude Code", "Codex", "작업", "목표", "Spec", "Seal"}},
-	{readme: "../README.en.md", install: "../guides/INSTALL.en.md", usage: "../guides/USAGE.en.md",
+	{readme: "../README.md", install: "../guides/INSTALL.en.md", usage: "../guides/USAGE.en.md",
 		flow: "## How it works", start: "## Get started", firstTask: "### Your first task", before: "## Before you start", more: "## More",
 		source: "assets/readme/SOURCES.en.md", hero: "assets/readme/hero.en.png", diagram: "assets/readme/usage-flow.en.png", vector: "assets/readme/usage-flow.en.svg",
 		intro: []string{"Claude Code", "Codex", "work", "goal", "Spec", "Seal"}},
 }
 
 const visualBrand = "assets/readme/brand/logo.svg"
+
+// visualEnglish reports the English README, which is README.md; the install
+// guide names keep their language suffix.
+func visualEnglish(l visualLang) bool { return strings.HasSuffix(l.install, ".en.md") }
 
 func visualRead(t *testing.T, path string) string {
 	t.Helper()
@@ -192,7 +196,7 @@ func TestReadmeVisualGuideAC2(t *testing.T) {
 		}
 		intro, _, _ := strings.Cut(text, "\n## ")
 		anchor := "#설치"
-		if strings.Contains(l.readme, ".en.md") {
+		if visualEnglish(l) {
 			anchor = "#install"
 		}
 		visualRequire(t, l.readme+" shortcut", intro, anchor)
@@ -208,7 +212,7 @@ func TestReadmeVisualGuideAC3(t *testing.T) {
 		flow = visualProse(flow)
 		readme := visualProse(visualRead(t, l.readme))
 		intro, _, _ := strings.Cut(readme, "\n## ")
-		if strings.Contains(l.readme, ".en.md") {
+		if visualEnglish(l) {
 			visualRequire(t, "English flow fallback", flow, "Spec", "goal", "stop", "separate", "Seal", "agent", "check", "result")
 			visualRequire(t, "English implementation role", intro+flow, "implement")
 			visualRequirePattern(t, "English resume project", readme, `(?i)same project`)
@@ -228,7 +232,7 @@ func TestReadmeVisualGuideAC4(t *testing.T) {
 	for _, l := range visualLanguages {
 		example := visualSection(t, l.readme, l.firstTask)
 		visualRequire(t, l.readme+" first task", example, "$spec:spec ", "$seal:seal docs/specs/<goal>", "docs/specs/password-link")
-		if strings.Contains(l.readme, ".en.md") {
+		if visualEnglish(l) {
 			visualRequire(t, l.readme+" fictional request", example, "password", "fictional", "goal", "separate", "conversation")
 			visualRequirePattern(t, "English example disclaimer", example, `(?i)not (an? )?(executed|verified|real) (or verified )?(case|result)`)
 			visualRequirePattern(t, "English placeholder", example, `(?i)replace.*<goal>|<goal>.*replace`)
@@ -246,7 +250,7 @@ func TestReadmeVisualGuideAC5(t *testing.T) {
 		visualRequire(t, l.source+" maintained originals", source, filepath.Base(l.hero), filepath.Base(l.diagram), filepath.Base(l.vector), "source/")
 		visualRequire(t, l.source+" brand sources", source, "brand/logo.png", "brand/wordmark.png", "brand/symbol.png", "brand/logo.svg", "source/build_brand.py")
 		visualCheckLinks(t, "../"+l.source)
-		if strings.Contains(l.readme, ".en.md") {
+		if visualEnglish(l) {
 			visualRequire(t, l.source, source, "conceptual", "fictional")
 			visualRequirePattern(t, "English image provenance", source, `(?i)not.{0,80}(executed|execution|result|proof)`)
 		} else {
@@ -275,12 +279,12 @@ func TestReadmeVisualGuideAC7(t *testing.T) {
 		// must still state its limits rather than relying only on a guide link.
 		prose := visualProse(text)
 		usageHeading, usageAnchor := "## 완료 보고 읽기", "완료-보고-읽기"
-		if strings.Contains(l.readme, ".en.md") {
+		if visualEnglish(l) {
 			usageHeading, usageAnchor = "## Reading the completion report", "reading-the-completion-report"
 		}
 		visualRequire(t, l.readme+" completion link", text, "("+strings.TrimPrefix(l.usage, "../")+"#"+usageAnchor+")")
 		usage := visualSection(t, l.usage, usageHeading)
-		if strings.Contains(l.readme, ".en.md") {
+		if visualEnglish(l) {
 			visualRequire(t, l.readme+" development status", text, "early version")
 			visualRequirePattern(t, "English required completion", prose, `(?i)required (completion )?conditions.{0,120}(recorded checks|check records)`)
 			visualRequirePattern(t, "English manual confirmation", prose, `(?i)(necessary|required|needed) user confirmations?`)
@@ -339,7 +343,7 @@ func TestReadmeVisualGuideAC8(t *testing.T) {
 			}
 			installHeading, versionHeading := "### ha 설치", "### 버전 확인"
 			installAnchor, versionAnchor := "ha-설치", "버전-확인"
-			if strings.Contains(l.readme, ".en.md") {
+			if visualEnglish(l) {
 				installHeading, versionHeading = "### Install ha", "### Check the version"
 				installAnchor, versionAnchor = "install-ha", "check-the-version"
 			}
@@ -350,7 +354,7 @@ func TestReadmeVisualGuideAC8(t *testing.T) {
 
 		before := visualBeforeInstall(t, l)
 		visualRequire(t, l.readme+" before install", before, "Homebrew", "git", "Windows", "Seal", "Spec")
-		if strings.Contains(l.readme, ".en.md") {
+		if visualEnglish(l) {
 			visualRequirePattern(t, l.readme+" Windows support", before, `(?i)does not support (it|Windows)|Windows.{0,80}(not supported|unsupported)`)
 			visualRequirePattern(t, l.readme+" Windows verification", before, `(?i)(has|have) not been checked`)
 		} else {
@@ -363,7 +367,7 @@ func TestReadmeVisualGuideAC9(t *testing.T) {
 	for _, l := range visualLanguages {
 		readme := visualRead(t, l.readme)
 		anchor := "설치"
-		if strings.Contains(l.readme, ".en.md") {
+		if visualEnglish(l) {
 			anchor = "install"
 		}
 		if !visualAnchors(readme)[anchor] {
@@ -380,7 +384,7 @@ func TestReadmeVisualGuideAC9(t *testing.T) {
 		}
 		guide := visualGuidance(t, l)
 		visualRequire(t, l.readme+" troubleshooting", guide, "ha: command not found", "which -a ha", "/spec:spec", "/seal:seal", "claude plugin uninstall <plugin>", "codex plugin remove <plugin>", "@Spec", "$spec", "Cannot add marketplace")
-		if strings.Contains(l.readme, ".en.md") {
+		if visualEnglish(l) {
 			visualRequire(t, "English recovery", guide, "permission", "budget", "continue docs/specs/<goal>", "decide")
 		} else {
 			visualRequire(t, "Korean recovery", guide, "권한", "예산", "docs/specs/<goal> 이어서 해줘", "정할 것")
@@ -452,9 +456,9 @@ func visualAnchors(text string) map[string]bool {
 func TestReadmeVisualGuideAC10(t *testing.T) {
 	for _, l := range visualLanguages {
 		intro, _, _ := strings.Cut(visualRead(t, l.readme), "\n## ")
-		other := "README.en.md"
-		if strings.Contains(l.readme, ".en.md") {
-			other = "README.md"
+		other := "README.md"
+		if visualEnglish(l) {
+			other = "README.ko.md"
 		}
 		visualRequire(t, l.readme+" language switch", intro, other)
 		visualRequire(t, l.readme+" translated flow", visualSection(t, l.readme, l.flow), l.diagram)

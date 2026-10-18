@@ -70,15 +70,15 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 }
 
 func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
-	for _, path := range []string{"../README.md", "../README.en.md", "../guides/INSTALL.md", "../guides/INSTALL.en.md", "../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md"} {
+	for _, path := range []string{"../README.md", "../README.ko.md", "../guides/INSTALL.md", "../guides/INSTALL.en.md", "../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md"} {
 		t.Run(path, func(t *testing.T) {
 			content := read(t, path)
-			if path == "../README.md" || path == "../README.en.md" {
+			if path == "../README.md" || path == "../README.ko.md" {
 				// The short README links the version matrix instead of repeating
 				// component identities and rule details in its introduction.
-				guide, heading, anchor := "../guides/INSTALL.md", "## 배포판과 개발 조합", "배포판과-개발-조합"
-				if path == "../README.en.md" {
-					guide, heading, anchor = "../guides/INSTALL.en.md", "## Release and development combinations", "release-and-development-combinations"
+				guide, heading, anchor := "../guides/INSTALL.en.md", "## Release and development combinations", "release-and-development-combinations"
+				if path == "../README.ko.md" {
+					guide, heading, anchor = "../guides/INSTALL.md", "## 배포판과 개발 조합", "배포판과-개발-조합"
 				}
 				compatibilityContains(t, path, content, "v0.1.6", "ha 0.1.6", "("+strings.TrimPrefix(guide, "../")+"#"+anchor+")")
 				content += "\n" + visualSection(t, guide, heading)

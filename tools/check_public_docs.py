@@ -12,7 +12,7 @@ import unicodedata
 from urllib.parse import unquote, urlsplit
 
 PUBLIC_DIRS = ("guides", "contracts", "plugins", "evals", "examples", "assets")
-PUBLIC_FILES = ("README.md", "README.en.md", "AGENTS.md", "CLAUDE.md")
+PUBLIC_FILES = ("README.md", "README.ko.md", "README.en.md", "AGENTS.md", "CLAUDE.md")
 
 
 def prose(source: str) -> str:

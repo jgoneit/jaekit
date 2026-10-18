@@ -20,12 +20,12 @@ type onboardLang struct {
 }
 
 var onboardKo = onboardLang{
-	readme: "../README.md", install: "../guides/INSTALL.md", usage: "../guides/USAGE.md", otherInstall: "INSTALL.en.md",
+	readme: "../README.ko.md", install: "../guides/INSTALL.md", usage: "../guides/USAGE.md", otherInstall: "INSTALL.en.md",
 	installDocSecs: []string{"## Release 파일로 설치", "## 로컬 경로 등록에서 옮기기", "## 소스에서 빌드 (개발)"},
 	installDoc2:    []string{"`ha 0.1.6-dev`", "아래 명령은 고치지 않고 그대로 붙여 넣습니다.", "`go env GOBIN`", "`$(go env GOPATH)/bin`"},
 }
 var onboardEn = onboardLang{
-	readme: "../README.en.md", install: "../guides/INSTALL.en.md", usage: "../guides/USAGE.en.md", otherInstall: "INSTALL.md",
+	readme: "../README.md", install: "../guides/INSTALL.en.md", usage: "../guides/USAGE.en.md", otherInstall: "INSTALL.md",
 	installDocSecs: []string{"## Install from a Release file", "## Move from a local path registration", "## Build from source (development)"},
 	installDoc2:    []string{"`ha 0.1.6-dev`", "Paste the commands below as they are.", "`go env GOBIN`", "`$(go env GOPATH)/bin`"},
 }
@@ -206,14 +206,15 @@ func onboardGuideBlock(t *testing.T, path, heading, prefix string) string {
 // same step and host. The README install and update sections list, in order,
 // exactly the guide's blocks for each step, and each host's block follows
 // that host's label. Every bash block anywhere in the README is one of the
-// guide's blocks. Within the README, a code fence is only a column-0 ```bash
-// or ```text opening and its ``` closing, so no command escapes the
-// comparison in a bare, tilde, indented or other-language fence. Inline code
-// and prose are outside this check.
+// guide's blocks. Within the README, a code fence is only a column-0 ```bash,
+// ```text, ```markdown or ```mermaid opening and its ``` closing, so no
+// command escapes the comparison in a bare, tilde, indented or other-language
+// fence. The markdown and mermaid fences hold document examples and the flow
+// diagram, never commands. Inline code and prose are outside this check.
 func TestOnboardReadmeCommandsMatchInstall(t *testing.T) {
 	for _, c := range []struct{ readme, install, update, guide, guideInstall, guideHa, guideCheck, guideUpdate string }{
-		{"../README.md", "### 설치", "### 업데이트", "../guides/INSTALL.md", "## 기본 설치", "### ha 설치", "### 버전 확인", "## 업데이트"},
-		{"../README.en.md", "### Install", "### Update", "../guides/INSTALL.en.md", "## Basic install", "### Install ha", "### Check the version", "## Update"},
+		{"../README.ko.md", "### 설치", "### 업데이트", "../guides/INSTALL.md", "## 기본 설치", "### ha 설치", "### 버전 확인", "## 업데이트"},
+		{"../README.md", "### Install", "### Update", "../guides/INSTALL.en.md", "## Basic install", "### Install ha", "### Check the version", "## Update"},
 	} {
 		check := onboardGuideBlock(t, c.guide, c.guideCheck, "ha --version")
 		want := map[string][][2]string{
@@ -261,12 +262,12 @@ func TestOnboardReadmeCommandsMatchInstall(t *testing.T) {
 			switch {
 			case trimmed != line || strings.HasPrefix(trimmed, "~~~"):
 				t.Errorf("%s:%d uses the fence %q; fences start at column 0 with backticks", c.readme, n+1, line)
-			case !open && (line == "```bash" || line == "```text"):
+			case !open && (line == "```bash" || line == "```text" || line == "```markdown" || line == "```mermaid"):
 				open = true
 			case open && line == "```":
 				open = false
 			default:
-				t.Errorf("%s:%d uses the fence %q; only ```bash and ```text open a block", c.readme, n+1, line)
+				t.Errorf("%s:%d uses the fence %q; only ```bash, ```text, ```markdown and ```mermaid open a block", c.readme, n+1, line)
 			}
 		}
 		if open {
@@ -296,7 +297,7 @@ func TestOnboardOperationsSetup(t *testing.T) {
 
 func onboardFiles(t *testing.T) []string {
 	t.Helper()
-	files := []string{"../README.md", "../README.en.md", "../guides/INSTALL.md", "../guides/INSTALL.en.md", "../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md"}
+	files := []string{"../README.md", "../README.ko.md", "../README.en.md", "../guides/INSTALL.md", "../guides/INSTALL.en.md", "../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md"}
 	forms, _ := filepath.Glob("../.github/ISSUE_TEMPLATE/*.yml")
 	if len(forms) == 0 {
 		t.Error("no issue templates")
@@ -364,7 +365,7 @@ func TestOnboardPlaceholders(t *testing.T) {
 // the names follow the glossary, and its retired
 // names do not appear.
 func TestOnboardNames(t *testing.T) {
-	for _, path := range []string{"../README.md", "../README.en.md"} {
+	for _, path := range []string{"../README.md", "../README.ko.md"} {
 		requireAll(t, path, "Jaekit", "Spec", "Seal", "`ha`")
 	}
 }
@@ -372,7 +373,7 @@ func TestOnboardNames(t *testing.T) {
 // the README still links the design set and the
 // license.
 func TestPublicContractLinks(t *testing.T) {
-	for _, path := range []string{"../README.md", "../README.en.md"} {
+	for _, path := range []string{"../README.md", "../README.ko.md"} {
 		requireAll(t, path, "(contracts/run-record.md)", "(LICENSE)")
 	}
 }
@@ -382,6 +383,7 @@ func onboardNormLinks(links []string) []string {
 	for _, l := range links {
 		file, _, _ := strings.Cut(l, "#")
 		file = strings.Replace(file, ".en.md", ".md", 1)
+		file = strings.Replace(file, ".ko.md", ".md", 1)
 		for _, ext := range []string{".svg", ".png"} {
 			file = strings.Replace(file, ".en"+ext, ext, 1)
 			file = strings.Replace(file, ".ko"+ext, ext, 1)
@@ -417,7 +419,7 @@ var onboardPlaceholder = regexp.MustCompile(`<[^>]+>`)
 
 // guides/INSTALL.en.md carries the
 // same guides as guides/INSTALL.md in English, with the same commands apart from
-// the messages the Release-file command prints, and README.en.md links it.
+// the messages the Release-file command prints, and README.md links it.
 func TestOnboardEnglishInstall(t *testing.T) {
 	onboardSameShape(t, "../guides/INSTALL.md", "../guides/INSTALL.en.md", func(s string) string {
 		var keep []string
@@ -428,7 +430,7 @@ func TestOnboardEnglishInstall(t *testing.T) {
 		}
 		return strings.Join(keep, "\n")
 	})
-	requireAll(t, "../README.en.md", "(guides/INSTALL.en.md)")
+	requireAll(t, "../README.md", "(guides/INSTALL.en.md)")
 	requireAll(t, "../guides/INSTALL.en.md", "is not supported", "(INSTALL.md)")
 	forbidAll(t, "../guides/INSTALL.en.md", "지원하지 않는", "설치했습니다")
 }
