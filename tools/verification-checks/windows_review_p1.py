@@ -35,7 +35,7 @@ PREFLIGHT_CASES.update(action + "-tampered-" + name for action in
                        ("install", "remove", "acceptance-first", "acceptance-update") for name in PREFLIGHT_FILES)
 PREFLIGHT_CASES.update("missing-file-" + name for name in (*PREFLIGHT_FILES, "checksums"))
 PREFLIGHT_CASES.update("missing-entry-" + name for name in PREFLIGHT_FILES)
-PUBLIC = ["LICENSE", "README.md", "README.en.md", "tools/check-result-reference.py",
+PUBLIC = ["LICENSE", "README.md", "README.ko.md", "tools/check-result-reference.py",
           "guides/WINDOWS.md", "guides/WINDOWS.en.md", "contracts/run-record.md", "assets/logo.svg"]
 PUBLIC += ["examples/check-result/" + name for name in
            ("README.md", "declaration.json", "reference.json", "input.txt")]

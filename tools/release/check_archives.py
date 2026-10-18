@@ -34,7 +34,7 @@ import zipfile
 
 TARGETS = ("linux_amd64", "linux_arm64", "darwin_amd64", "darwin_arm64")
 REQUIRED = {
-    "ha", "LICENSE", "README.md", "README.en.md",
+    "ha", "LICENSE", "README.md", "README.ko.md",
     "guides/INSTALL.md", "guides/INSTALL.en.md", "guides/USAGE.md",
     "guides/USAGE.en.md", "guides/OPERATIONS.md",
     "contracts/README.md", "contracts/bundle.md", "contracts/goal-docs.md",
@@ -58,7 +58,7 @@ REQUIRED = {
     "examples/check-result/README.md", "examples/check-result/declaration.json",
     "examples/check-result/reference.json", "examples/check-result/input.txt",
 }
-ROOT_FILES = {"ha", "LICENSE", "README.md", "README.en.md"}
+ROOT_FILES = {"ha", "LICENSE", "README.md", "README.ko.md"}
 ROOT_DIRECTORIES = {"guides", "contracts", "assets", "tools", "examples"}
 EXAMPLE_FILES = {name for name in REQUIRED if name.startswith("examples/")}
 # Local metadata and generated caches never belong in a release archive.
