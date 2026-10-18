@@ -29,6 +29,32 @@ These instructions apply to the entire repository.
 - Keep product checks independent of private documents and earlier repository history.
 - Skill bodies are written in English. Keep format tokens and identifiers unchanged when translating guides.
 
+## Checks and review
+
+These rules apply to goals carried in this repository and to their pull requests. They do not change the Seal product guidance.
+
+- **Observation boundary.** For each check a goal adds or changes, record its observation boundary and the failure kinds it does not cover in the goal bundle's existing `REVIEW.md` items, before the plan round reviews the check. A boundary record is grounds for classifying a finding only when it was recorded before that finding.
+- **Boundaries cannot narrow requirements.** Inputs that a SPEC criterion, a contract, a protected regression path or a selected assurance requires cannot be placed outside a check's boundary. A counterexample on such an input is fixed, or it blocks completion. Narrowing a boundary below the SPEC criterion is a scope change that the user decides.
+- **Input failures.** For each producer, state before the plan round which result (violation, error or inconclusive) follows from a missing target file, corrupt input, a tool that cannot start, and termination by a signal. A case that the check result contract does not declare as a violation is never counted as one.
+- **Open-ended inputs.** When a criterion's input is open-ended, such as sentences or paths in documents, the goal documents name the representative forms to check.
+- **New checks.** New checks observe fixed tokens, commands, links or version matches instead of scanning an open category of sentences or paths.
+- **CI observers.** A new CI observer reuses the native CI admission in `tools/verification-checks/cross_platform_ci.py` for run and attempt identity, source commit and tree, and report reading, as `tools/history-checks/ci_observer.py` does. Only its goal-specific judgment is written separately.
+- **Protected paths.** A check bound to a protected path in `contracts/regressions.json` changes only in a separate goal that changes that path.
+
+### Review findings
+
+- Findings from remote pull request reviews follow the same triage as local review rounds. Each one ends as fix, reject, defer or duplicate, and its record says whether it is linked to a criterion, rule or contract and whether this change introduced it.
+- Defer only edge cases that are outside the recorded boundary and linked to nothing. List deferred findings in the pull request description and in the completion report.
+- Classify a finding against the boundary records and protected paths as of the reviewed commit. A path widened later in the same pull request does not reclassify findings already received.
+- When more than three remote review rounds have led to criterion-linked fixes, stop. State the recurring findings and the criterion they trace to, ask the user which of two readings of that criterion is intended, and wait for the answer.
+
+### For reviewers
+
+- State whether each finding links to a criterion, rule or contract, and whether this change introduced it.
+- A counterexample on an input that a SPEC criterion, a contract or a protected regression path requires is a defect. Mark an edge case that lies outside the stated check boundary and links to nothing as low severity, separately.
+- A check that counts an input failure (a missing file, corrupt input, a tool that cannot start, a signal) as a violation is a defect, unless the check declares that case as a violation where the check result contract allows it, such as `missing: violation`.
+- Read the check boundaries stated in the pull request description as grounds for your judgment. A boundary added after a finding does not cover that finding.
+
 ## Validation
 
 From the repository root, run this before pushing or publishing:
@@ -43,7 +69,7 @@ This runs the common checks also used by the Ubuntu and documentation CI jobs: G
 
 The `docs` group does not add a Go or zsh prerequisite. Docker is only needed for the separately selected Linux container check, not ordinary validation or product use. The Ubuntu Go CI job prepares zsh before invoking the same verification entrypoint.
 
-Main requires the `Seal Core`, `Public documentation` and `Release candidate` checks. `Seal Core` succeeds only when `Core / Ubuntu`, `Core / macOS`, and `Core / Windows` from the same workflow run all succeed; `Release candidate` succeeds only when `Build release files` and `Windows release archive` from the same Release workflow run both succeed. Failure, missing results, skipping, cancellation, and pending work do not satisfy these gates. See [the CI guide](guides/CI.en.md) for each job's observed scope and source identity. These rules do not make files private after they have been pushed to a public branch; run the public checks locally before publishing.
+Main requires the `Seal Core`, `Public documentation` and `Release candidate` checks. `Seal Core` succeeds only when `Core / Ubuntu`, `Core / macOS`, `Core / Windows PowerShell 5.1`, and `Core / Windows PowerShell 7` from the same workflow run all succeed; `Release candidate` succeeds only when `Build release files` and `Windows release archive` from the same Release workflow run both succeed. Failure, missing results, skipping, cancellation, and pending work do not satisfy these gates. See [the CI guide](guides/CI.en.md) for each job's observed scope and source identity. These rules do not make files private after they have been pushed to a public branch; run the public checks locally before publishing.
 
 A document check establishes consistency, not runtime or host installation success.
 

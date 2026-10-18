@@ -13,6 +13,7 @@ SOURCE = "a" * 40
 HEAD = "b" * 40
 BASE = "c" * 40
 TREE = "d" * 40
+FIVE, SEVEN = "Core / Windows PowerShell 5.1", "Core / Windows PowerShell 7"
 
 
 def report(windows=False, shell="7.5"):
@@ -72,11 +73,17 @@ class CurrentRunAdmission(unittest.TestCase):
         self.after_log = None
         self.local_head, self.local_tree, self.dirty = HEAD, TREE, ""
         self.pr = {"head": {"sha": HEAD}, "base": {"sha": BASE}, "state": "open"}
-        self.jobs = [{"id": i, "name": name, "status": "completed", "conclusion": "success",
-                      "steps": [{"status": "completed", "conclusion": "success"}]} for i, name in enumerate(sorted(observer.REQUIRED))]
         self.commit = {"parents": [{"sha": HEAD}, {"sha": BASE}], "tree": {"sha": TREE}}
-        self.reports = {name: [report(True, "5.1"), report(True, "7.5")] if os == "Windows" else [report()]
-                        for name, os in observer.JOBS.items()}
+        self.layout({FIVE: ["5.1"], SEVEN: ["7.5"]})
+
+    def layout(self, windows):
+        """Jobs and reports of one run whose Windows jobs report the given shell versions."""
+        self.os = dict(observer.UNIX_JOBS, **dict.fromkeys(windows, "Windows"))
+        self.jobs = [{"id": i, "name": name, "status": "completed", "conclusion": "success",
+                      "steps": [{"status": "completed", "conclusion": "success"}]}
+                     for i, name in enumerate(sorted(set(self.os) | observer.AGGREGATES))]
+        self.reports = {name: [report()] for name in observer.UNIX_JOBS}
+        self.reports.update({name: [report(True, shell) for shell in shells] for name, shells in windows.items()})
         self.reports["Core / macOS"][0]["environment"]["goos"] = "darwin"
 
     def api(self, path):
@@ -113,7 +120,7 @@ class CurrentRunAdmission(unittest.TestCase):
             mutate()
         job = next(j for j in self.jobs if j["id"] == job_id)
         context = {"source_sha": SOURCE, "head_sha": HEAD, "base_sha": BASE, "event": "pull_request",
-                   "runner_os": observer.JOBS[job["name"]], "os": "synthetic", "arch": "synthetic", "shell": "synthetic"}
+                   "runner_os": self.os[job["name"]], "os": "synthetic", "arch": "synthetic", "shell": "synthetic"}
         return "JAEKIT_CI_CONTEXT " + json.dumps(context) + "\n" + "\n".join(
             "JAEKIT_CI_REPORT " + json.dumps(r) for r in self.reports[job["name"]])
 
@@ -131,7 +138,7 @@ class CurrentRunAdmission(unittest.TestCase):
         self.assertEqual(sorted(calls), [("Linux", SOURCE), ("Windows", SOURCE), ("Windows", SOURCE), ("macOS", SOURCE)])
 
     def test_reports_larger_than_scanner_limit_are_not_truncated(self):
-        row = self.reports["Core / Windows"][0]
+        row = self.reports[FIVE][0]
         row["padding"] = "x" * 100000
         self.assertEqual(self.observe(), ("synthetic/repository", HEAD))
 
@@ -181,9 +188,31 @@ class CurrentRunAdmission(unittest.TestCase):
             with self.subTest(commit=commit), self.assertRaises(observer.Violation):
                 self.observe()
 
-    def test_two_reports_from_same_powershell_do_not_cover_both_shells(self):
-        self.reports["Core / Windows"] = [report(True, "7.4"), report(True, "7.5")]
+    def test_each_shell_job_needs_exactly_one_report_of_its_own_shell(self):
+        cases = {"wrong shell": {FIVE: ["7.4"], SEVEN: ["7.5"]},
+                 "missing report": {FIVE: [], SEVEN: ["7.5"]},
+                 "duplicate report": {FIVE: ["5.1", "5.1"], SEVEN: ["7.5"]},
+                 "both shells in one job": {FIVE: ["5.1", "7.5"], SEVEN: ["7.5"]}}
+        for case, windows in cases.items():
+            self.layout(windows)
+            with self.subTest(case=case), self.assertRaises(observer.Violation):
+                self.observe()
+        self.layout({FIVE: ["5.1"], SEVEN: ["7.5"]})
+        self.reports[SEVEN][0]["source_commit"] = "e" * 40
         with self.assertRaises(observer.Violation):
+            self.observe()
+
+    def test_recorded_one_job_runs_keep_their_judgment(self):
+        self.layout({"Core / Windows": ["5.1", "7.5"]})
+        self.assertEqual(self.observe(), ("synthetic/repository", HEAD))
+        for windows in ({"Core / Windows": ["7.4", "7.5"]}, {"Core / Windows": ["5.1"]}):
+            self.layout(windows)
+            with self.subTest(windows=windows), self.assertRaises(observer.Violation):
+                self.observe()
+
+    def test_a_run_mixing_both_layouts_is_rejected(self):
+        self.layout({"Core / Windows": ["5.1", "7.5"], FIVE: ["5.1"], SEVEN: ["7.5"]})
+        with self.assertRaisesRegex(observer.Violation, "required jobs missing or ambiguous"):
             self.observe()
 
 

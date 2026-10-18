@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/windows-ci-parallel-shells/AC-7.targets.json",
+    "tools/goal-checks/windows-ci-parallel-shells/observe_ci.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "ci-docs",
+      "violation": "ci-docs-name-one-windows-job"
+    },
+    {
+      "id": "ci-docs.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-docs.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-docs.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-docs.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-docs.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-docs.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-docs.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-docs.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-docs.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "ci-docs.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "public-docs",
+      "violation": "public-docs-problem"
+    },
+    {
+      "id": "public-docs.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "public-docs.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "public-docs.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "public-docs.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "public-docs.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "public-docs.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "public-docs.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "public-docs.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "public-docs.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "public-docs.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

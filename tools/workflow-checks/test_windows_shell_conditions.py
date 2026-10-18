@@ -1,7 +1,11 @@
-"""Check the actual Windows step condition under success/failure/cancel states.
+"""Check that each Windows shell runs the complete native suite in its own job.
 
-Only the small conjunction used by this workflow is accepted. This is a local
-condition evaluation, not a claim that an intentionally failing CI ran.
+Each shell job prepares its own checkout, Go, Python and source description and
+then runs the native developer entrypoint once. A shell job neither waits on
+the other (through needs, a job condition or a shared concurrency group) nor
+conditions its native step, so one shell's failure, skip or cancellation cannot
+hide the other shell's result. This reads the workflow
+text; it is not a claim that an intentionally failing CI ran.
 """
 from pathlib import Path
 import re
@@ -12,6 +16,9 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 PREPARATION = ("Check out repository", "Set up Go", "Set up Python", "Describe tested source and runner")
+# Job key, job name, shell and output directory of each Windows shell job.
+SHELL_JOBS = (("windows_ps51", "Core / Windows PowerShell 5.1", "powershell", "ps51", "PowerShell 5.1"),
+              ("windows_ps7", "Core / Windows PowerShell 7", "pwsh", "ps7", "PowerShell 7"))
 
 
 def require(condition, message):
@@ -19,11 +26,15 @@ def require(condition, message):
         raise AssertionError(message)
 
 
-def windows_steps(workflow):
-    match = re.search(r"(?ms)^  windows:\n(.*?)(?=^  [a-z][a-z_]*:|\Z)", workflow)
-    require(match, "Windows job missing")
+def job_steps(workflow, key, name):
+    match = re.search(r"(?ms)^  " + re.escape(key) + r":\n(.*?)(?=^  [a-z][a-z0-9_]*:|\Z)", workflow)
+    require(match, "Windows job missing: " + key)
     body = match.group(1)
-    require("name: Core / Windows" in body, "Windows job identity changed")
+    require(re.search(r"(?m)^    name: " + re.escape(name) + "$", body), "Windows job identity changed: " + key)
+    require(re.search(r"(?m)^    runs-on: windows-", body), key + " does not run on Windows")
+    require(not re.search(r"(?m)^    (?:needs|if|concurrency):", body), key + " must not wait on another job")
+    require("continue-on-error" not in body, "shell failure must remain a failure")
+    require(not re.search(r"(?m)^        if:", body), key + ": a step condition could skip or hide the native suite")
     steps = {}
     for match in re.finditer(r"(?ms)^      - name: ([^\n]+)\n(.*?)(?=^      - name:|\Z)", body):
         name, source = match.groups()
@@ -32,68 +43,46 @@ def windows_steps(workflow):
     return steps
 
 
-def evaluate(expression, outcomes, cancelled):
-    fields = expression.split("&&")
-    values = []
-    for field in fields:
-        field = field.strip()
-        if field == "!cancelled()":
-            values.append(not cancelled)
-            continue
-        match = re.fullmatch(r"steps\.([a-z_]+)\.outcome == 'success'", field)
-        require(match and match[1] in outcomes, "unsupported or unknown condition: " + field)
-        values.append(outcomes[match[1]] == "success")
-    require("!cancelled()" in [field.strip() for field in fields], "default success gate would hide PS7")
-    return all(values)
-
-
 def check_policy(workflow):
-    steps = windows_steps(workflow)
-    ids = []
-    for name in PREPARATION:
-        require(name in steps, "preparation step missing: " + name)
-        match = re.search(r"(?m)^        id: ([a-z_]+)$", steps[name])
-        require(match, "preparation outcome is not addressable: " + name)
-        ids.append(match[1])
-    require(len(set(ids)) == len(ids), "ambiguous preparation IDs")
-    first = steps["Verify native developer checks on PowerShell 5.1"]
-    second = steps["Verify native developer checks on PowerShell 7"]
-    require("shell: powershell" in first and "shell: pwsh" in second, "wrong shell binding")
-    require("jaekit-windows-ps51" in first and "jaekit-windows-ps7" in second, "shell output separation missing")
-    for source, directory in ((first, "ps51"), (second, "ps7")):
+    require(len(re.findall(r"(?m)^    runs-on: windows-", workflow)) == len(SHELL_JOBS),
+            "each shell needs exactly one Windows job")
+    for key, name, shell, directory, title in SHELL_JOBS:
+        steps = job_steps(workflow, key, name)
+        native = "Verify native developer checks on " + title
+        require(list(steps) == [*PREPARATION, native], key + ": steps must be the preparation, then one native suite")
+        describe = steps["Describe tested source and runner"]
+        require(re.search(r"(?m)^        shell: " + shell + "$", describe) and
+                re.search(r"(?m)^        run: python tools/ci/describe_run\.py --shell " + shell + "$", describe),
+                "wrong shell binding: " + key)
+        require(re.search(r"(?m)^        shell: " + shell + "$", steps[native]), "wrong shell binding: " + key)
         command = './tools/windows/native_checks.ps1 -OutputDirectory "$env:RUNNER_TEMP/jaekit-windows-' + directory + '"'
-        require(re.search(r"(?m)^        run: " + re.escape(command) + r"$", source),
+        require(re.search(r"(?m)^        run: " + re.escape(command) + r"$", steps[native]),
                 "both shells must invoke the complete native suite, including history")
-    require("continue-on-error" not in first + second, "shell failure must remain a failure")
-    require(not re.search(r"(?m)^        if:", first), "PS5.1 must run after successful preparation")
-    match = re.search(r"(?m)^        if: \$\{\{ (.+) \}\}$", second)
-    require(match, "independent PS7 condition missing")
-    expression = match[1]
-    outcomes = {name: "success" for name in ids}
-    require(evaluate(expression, outcomes, False), "prepared independent PS7 must run")
-    require(not evaluate(expression, outcomes, True), "cancelled workflow must not start PS7")
-    for name in ids:
-        for failed in ("failure", "skipped", "cancelled", ""):
-            require(not evaluate(expression, dict(outcomes, **{name: failed}), False), "PS7 ignores failed preparation: " + name)
-    # There is intentionally no reference to a previous check's outcome. With
-    # the explicit status function, GitHub's implicit success() is replaced.
-    require(set(re.findall(r"steps\.([a-z_]+)\.outcome", expression)) == set(ids), "PS7 depends on a non-preparation step")
 
 
 class WindowsShellConditions(unittest.TestCase):
     def test_current_workflow(self):
         check_policy((ROOT / ".github/workflows/ci.yml").read_text())
 
-    def test_each_guard_is_required(self):
+    def test_a_shell_job_cannot_wait_on_hide_or_share_the_other(self):
         source = (ROOT / ".github/workflows/ci.yml").read_text()
-        for guard in re.findall(r" && steps\.[a-z_]+\.outcome == 'success'", source):
-            with self.subTest(guard=guard), self.assertRaises(AssertionError):
-                check_policy(source.replace(guard, "", 1))
-
-    def test_default_success_does_not_collect_second_result(self):
-        source = (ROOT / ".github/workflows/ci.yml").read_text()
-        with self.assertRaises(AssertionError):
-            check_policy(source.replace("!cancelled()", "success()"))
+        seven = "    name: Core / Windows PowerShell 7\n"
+        native = "      - name: Verify native developer checks on PowerShell 7\n"
+        mutations = {
+            "waits on the other job": source.replace(seven, seven + "    needs: [windows_ps51]\n", 1),
+            "job condition": source.replace(seven, seven + "    if: ${{ always() }}\n", 1),
+            "shared concurrency group": source.replace(seven, seven + "    concurrency: jaekit-windows-native\n", 1),
+            "step condition": source.replace(native, native + "        if: ${{ !cancelled() }}\n", 1),
+            "continue-on-error": source.replace(native, native + "        continue-on-error: true\n", 1),
+            "other shell": source.replace('pwsh\n        run: ./tools/windows/', 'powershell\n        run: ./tools/windows/', 1),
+            "shared output": source.replace("jaekit-windows-ps7", "jaekit-windows-ps51", 1),
+            "one job": re.sub(r"(?ms)^  windows_ps7:\n.*?(?=^  core:)", "", source, count=1),
+        }
+        for case, mutated in mutations.items():
+            with self.subTest(case=case):
+                self.assertNotEqual(mutated, source)
+                with self.assertRaises(AssertionError):
+                    check_policy(mutated)
 
     def test_either_shell_cannot_replace_native_history_with_a_build_or_subset(self):
         source = (ROOT / ".github/workflows/ci.yml").read_text()
@@ -103,14 +92,15 @@ class WindowsShellConditions(unittest.TestCase):
                 with self.subTest(shell=shell, replacement=replacement), self.assertRaises(AssertionError):
                     check_policy(source.replace(command, replacement))
 
-    def test_optimized_python_still_rejects_a_missing_preparation_guard(self):
+    def test_optimized_python_still_rejects_a_waiting_shell_job(self):
         source = (ROOT / ".github/workflows/ci.yml").read_text()
-        source = source.replace(" && steps.checkout.outcome == 'success'", "", 1)
+        seven = "    name: Core / Windows PowerShell 7\n"
+        source = source.replace(seven, seven + "    needs: [windows_ps51]\n", 1)
         result = subprocess.run(
             [sys.executable, "-O", "-c", "import sys; from test_windows_shell_conditions import check_policy; check_policy(sys.stdin.read())"],
             input=source, text=True, capture_output=True, cwd=Path(__file__).parent, timeout=15)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("PS7 ignores failed preparation: checkout", result.stderr)
+        self.assertIn("windows_ps7 must not wait on another job", result.stderr)
 
 
 if __name__ == "__main__":

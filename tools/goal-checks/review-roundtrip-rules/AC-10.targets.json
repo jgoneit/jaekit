@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "reviewer-criteria",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_review_rules.py",
+      "test": "ReviewFindings.test_reviewers_have_their_own_criteria",
+      "result_targets": {
+        "additional_violations": [
+          "reviewer-criteria.assertion-2",
+          "reviewer-criteria.assertion-3",
+          "reviewer-criteria.assertion-4",
+          "reviewer-criteria.assertion-5",
+          "reviewer-criteria.assertion-6",
+          "reviewer-criteria.assertion-7",
+          "reviewer-criteria.assertion-8"
+        ],
+        "execution": "reviewer-criteria.execution",
+        "selection": "reviewer-criteria.selection",
+        "attribution": "reviewer-criteria.attribution"
+      }
+    }
+  ]
+}

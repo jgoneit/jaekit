@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "judgments-in-copies",
+      "runner": "unittest",
+      "file": "tools/goal-checks/verify-nested-independence/observe_copies.py",
+      "test": "Judgments.test_judgments_run_and_pass_in_both_copies",
+      "result_targets": {
+        "additional_violations": [
+          "judgments-in-copies.assertion-2",
+          "judgments-in-copies.assertion-3",
+          "judgments-in-copies.assertion-4",
+          "judgments-in-copies.assertion-5",
+          "judgments-in-copies.assertion-6",
+          "judgments-in-copies.assertion-7",
+          "judgments-in-copies.assertion-8"
+        ],
+        "execution": "judgments-in-copies.execution",
+        "selection": "judgments-in-copies.selection",
+        "attribution": "judgments-in-copies.attribution"
+      }
+    },
+    {
+      "target": "dependencies-fail-group",
+      "runner": "unittest",
+      "file": "tools/goal-checks/verify-nested-independence/observe_copies.py",
+      "test": "Judgments.test_private_input_or_history_dependency_fails_the_go_group",
+      "result_targets": {
+        "additional_violations": [
+          "dependencies-fail-group.assertion-2",
+          "dependencies-fail-group.assertion-3",
+          "dependencies-fail-group.assertion-4",
+          "dependencies-fail-group.assertion-5",
+          "dependencies-fail-group.assertion-6",
+          "dependencies-fail-group.assertion-7",
+          "dependencies-fail-group.assertion-8"
+        ],
+        "execution": "dependencies-fail-group.execution",
+        "selection": "dependencies-fail-group.selection",
+        "attribution": "dependencies-fail-group.attribution"
+      }
+    }
+  ]
+}
