@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Require the three native jobs from this workflow run to finish successfully.
+"""Require every native job from this workflow run to finish successfully.
 
 Input is GitHub's needs context, passed as data in JAEKIT_CI_NEEDS. This gate
 does not query an older run or replace missing native execution with a check
@@ -10,7 +10,8 @@ import os
 import sys
 
 
-REQUIRED_JOBS = ("go", "macos", "windows")
+# Each Windows shell runs in its own job, so both are required.
+REQUIRED_JOBS = ("go", "macos", "windows_ps51", "windows_ps7")
 
 
 def unique_object(pairs):
@@ -28,7 +29,7 @@ def require_success(raw):
     except (TypeError, ValueError) as error:
         raise ValueError("native job results are missing or invalid") from error
     if not isinstance(jobs, dict) or set(jobs) != set(REQUIRED_JOBS):
-        raise ValueError("native job results must contain exactly go, macos and windows")
+        raise ValueError("native job results must contain exactly " + ", ".join(REQUIRED_JOBS))
     failed = [name for name in REQUIRED_JOBS
               if not isinstance(jobs[name], dict) or jobs[name].get("result") != "success"]
     if failed:
@@ -41,7 +42,7 @@ def main():
     except ValueError as error:
         print("FAIL: Seal Core: " + str(error), file=sys.stderr)
         return 1
-    print("PASS: Seal Core: Ubuntu, macOS and Windows native jobs succeeded in this run.")
+    print("PASS: Seal Core: Ubuntu, macOS, Windows PowerShell 5.1 and 7 native jobs succeeded in this run.")
     return 0
 
 

@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "boundary-limit",
+      "runner": "unittest",
+      "file": "tools/workflow-checks/test_review_rules.py",
+      "test": "CheckBoundaries.test_boundaries_cannot_exclude_required_inputs",
+      "result_targets": {
+        "additional_violations": [
+          "boundary-limit.assertion-2",
+          "boundary-limit.assertion-3",
+          "boundary-limit.assertion-4",
+          "boundary-limit.assertion-5",
+          "boundary-limit.assertion-6",
+          "boundary-limit.assertion-7",
+          "boundary-limit.assertion-8"
+        ],
+        "execution": "boundary-limit.execution",
+        "selection": "boundary-limit.selection",
+        "attribution": "boundary-limit.attribution"
+      }
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/verify-nested-independence/AC-6.targets.json",
+    "tools/goal-checks/verify-nested-independence/observe_copies.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "route-observation",
+      "violation": "route-observation-not-recorded"
+    },
+    {
+      "id": "route-observation.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "route-observation.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "route-observation.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "route-observation.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "route-observation.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "route-observation.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "route-observation.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "route-observation.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "route-observation.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "route-observation.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "regression-map",
+      "violation": "existing-check-failed"
+    },
+    {
+      "id": "regression-map.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "regression-map.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "regression-map.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "regression-map.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "regression-map.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "regression-map.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "regression-map.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "regression-map.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "regression-map.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "regression-map.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

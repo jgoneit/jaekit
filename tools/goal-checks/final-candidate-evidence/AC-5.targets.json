@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "unrequested-review",
+      "runner": "unittest",
+      "file": "tools/goal-checks/final-candidate-evidence/observe_guidance.py",
+      "test": "UnrequestedReview.test_guidance_keeps_unrequested_comments_as_discoveries",
+      "result_targets": {
+        "additional_violations": [
+          "unrequested-review.assertion-2",
+          "unrequested-review.assertion-3",
+          "unrequested-review.assertion-4",
+          "unrequested-review.assertion-5",
+          "unrequested-review.assertion-6",
+          "unrequested-review.assertion-7",
+          "unrequested-review.assertion-8"
+        ],
+        "execution": "unrequested-review.execution",
+        "selection": "unrequested-review.selection",
+        "attribution": "unrequested-review.attribution"
+      }
+    }
+  ]
+}

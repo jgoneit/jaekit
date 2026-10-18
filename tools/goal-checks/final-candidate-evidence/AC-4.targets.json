@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "completion-coverage",
+      "runner": "unittest",
+      "file": "tools/goal-checks/final-candidate-evidence/observe_guidance.py",
+      "test": "CompletionCoverage.test_report_format_states_the_covered_commit",
+      "result_targets": {
+        "additional_violations": [
+          "completion-coverage.assertion-2",
+          "completion-coverage.assertion-3",
+          "completion-coverage.assertion-4",
+          "completion-coverage.assertion-5",
+          "completion-coverage.assertion-6",
+          "completion-coverage.assertion-7",
+          "completion-coverage.assertion-8"
+        ],
+        "execution": "completion-coverage.execution",
+        "selection": "completion-coverage.selection",
+        "attribution": "completion-coverage.attribution"
+      }
+    }
+  ]
+}
