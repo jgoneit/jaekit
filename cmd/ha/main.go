@@ -378,6 +378,18 @@ type target struct {
 	argv      []string
 	checks    []string      // baseline overlay paths
 	limit     time.Duration // the applied time limit; zero means checkTimeout
+	// execArgv is the argv ha runs when it differs from the recorded argv (an
+	// adapter's output location); stdout receives a copy of standard output.
+	execArgv []string
+	stdout   io.Writer
+}
+
+// runArgv is the argv ha executes; records keep argv.
+func (t target) runArgv() []string {
+	if t.execArgv != nil {
+		return t.execArgv
+	}
+	return t.argv
 }
 
 func (t target) label() string {
@@ -529,12 +541,22 @@ func (c *cli) check(in []string) int {
 			digest = row.CommandDigestFor(start.Rules)
 			if status.Structured(start.Rules) && t.kind == bundle.KindChange {
 				declaration, binding = row.Evidence, row.EvidenceDigest
-				invocation, err = evidence.Prepare(w.logDir)
-				if err != nil {
-					return c.fail(exitInternal, "before execution: prepare result report: %v", err)
+				if declaration != nil && declaration.Adapter != "" {
+					invocation, err = evidence.PrepareAdapter(w.logDir, declaration)
+					if err != nil {
+						return c.fail(exitInternal, "before execution: prepare runner output location: %v", err)
+					}
+					defer invocation.Close()
+					extraEnv = invocation.AdapterEnv()
+					t.execArgv, t.stdout = invocation.CommandArgv(t.argv), invocation.Stdout()
+				} else {
+					invocation, err = evidence.Prepare(w.logDir)
+					if err != nil {
+						return c.fail(exitInternal, "before execution: prepare result report: %v", err)
+					}
+					defer invocation.Close()
+					extraEnv = invocation.Env(binding)
 				}
-				defer invocation.Close()
-				extraEnv = invocation.Env(binding)
 			}
 		}
 		tmp, err := os.CreateTemp(w.logDir, ".pending-*.log")
@@ -551,7 +573,7 @@ func (c *cli) check(in []string) int {
 		if baseline {
 			res, overlay, err = c.runBaseline(w, start.BaseCommit, head, t, tmp.Name(), extraEnv...)
 		} else {
-			res, err = c.executeCheck(w.repo.Root, t.argv, limit, tmp.Name(), extraEnv)
+			res, err = c.executeCheckOutput(w.repo.Root, t.runArgv(), limit, tmp.Name(), extraEnv, t.stdout)
 		}
 		if baseline && !res.Attempted {
 			os.Remove(tmp.Name())
@@ -664,6 +686,9 @@ func (c *cli) check(in []string) int {
 		fmt.Fprintf(c.out, "%s %s %s (seq %d)\n", t.label(), kind, result, l.Seq)
 		if proof != nil {
 			fmt.Fprintf(c.out, "classification: %s\n", proof.Reason)
+			for _, notice := range invocation.Notices() {
+				fmt.Fprintf(c.out, "notice: %s %s\n", t.label(), notice)
+			}
 		}
 		if result != run.Pass && result != "fail_as_expected" {
 			allGood = false
@@ -774,7 +799,7 @@ func (c *cli) runBaseline(w *workspace, base, head string, t target, logPath str
 	if limit == 0 {
 		limit = checkTimeout
 	}
-	res, err := c.executeCheck(tree, t.argv, limit, logPath, extraEnv)
+	res, err := c.executeCheckOutput(tree, t.runArgv(), limit, logPath, extraEnv, t.stdout)
 	return res, overlay, err
 }
 

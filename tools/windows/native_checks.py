@@ -28,7 +28,11 @@ NATIVE = {
                      "TestNativeJobLayout", "TestNativeRunTiming", "TestNativeRunTiming/exit",
                      "TestNativeRunTiming/timeout", "TestNativeRunTiming/start_failure"],
     "internal/record": ["TestNativeConcurrentProcessesPreserveRecords", "TestNativeLockIsReleasedWhenOwnerExits"],
-    "internal/evidence": ["TestNativeCleanCRLFStillRequiresCommittedBytes", "TestNativeWindowsEvidencePaths"],
+    "internal/evidence": ["TestNativeCleanCRLFStillRequiresCommittedBytes", "TestNativeWindowsEvidencePaths",
+                          "TestNativeAdapterClassification",
+                          *("TestNativeAdapterClassification/" + case + "/" + ending for case in
+                            ("go-typed-fail", "go-typed-unmarked", "go-typed-pass", "J1", "J2", "J3", "J5", "J10")
+                            for ending in ("lf", "crlf"))],
     "internal/history": ["TestNativeHistoryStorageLifecycle", "TestNativeHistoryStorageLocks",
                          "TestNativeHistoryStorageIntegrity", "TestNativeHistoryStoragePathSafety",
                          "TestNativeStorageBoundsHistoryLines", "TestNativeShowRejectsMalformedIdentifiers",

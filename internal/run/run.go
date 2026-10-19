@@ -80,11 +80,27 @@ func ExecWithEnv(dir string, argv []string, timeout time.Duration, logPath strin
 	return execWithStarter(dir, argv, timeout, logPath, extraEnv, startProcess)
 }
 
+// ExecWithStdout is ExecWithEnv that also copies the process's standard output
+// to stdout. The log still receives standard output and standard error as
+// before. stdout must accept every write; a nil stdout is ExecWithEnv.
+func ExecWithStdout(dir string, argv []string, timeout time.Duration, logPath string, extraEnv []string, stdout io.Writer) (Result, error) {
+	return execWithOutput(dir, argv, timeout, logPath, extraEnv, startProcess, stdout)
+}
+
+// stdoutDrain bounds how long Wait keeps reading a copied standard output
+// after the process exited, for example while a detached descendant still
+// holds it. A copy cut short this way is a wait failure, never evidence.
+const stdoutDrain = 5 * time.Second
+
 // collectCPU reads a finished process's CPU time. Tests replace it to make the
 // collection fail; the run's result, output and limit values do not depend on it.
 var collectCPU = processCPU
 
 func execWithStarter(dir string, argv []string, timeout time.Duration, logPath string, extraEnv []string, starter processStarter) (Result, error) {
+	return execWithOutput(dir, argv, timeout, logPath, extraEnv, starter, nil)
+}
+
+func execWithOutput(dir string, argv []string, timeout time.Duration, logPath string, extraEnv []string, starter processStarter, stdout io.Writer) (Result, error) {
 	log, err := os.OpenFile(logPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {
 		return Result{}, err
@@ -97,6 +113,10 @@ func execWithStarter(dir string, argv []string, timeout time.Duration, logPath s
 	cmd.Env = append(os.Environ(), extraEnv...)
 	cmd.Stdout = log
 	cmd.Stderr = log
+	if stdout != nil {
+		cmd.Stdout = io.MultiWriter(log, stdout)
+		cmd.WaitDelay = stdoutDrain
+	}
 	res.Attempted = true
 	group, startErr := starter(cmd)
 	if startErr != nil {
