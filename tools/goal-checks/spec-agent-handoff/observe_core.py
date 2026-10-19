@@ -26,9 +26,11 @@ sys.path.insert(0, str(ROOT / "tools"))
 from result_observations import RequirementViolation  # noqa: E402
 
 GOAL = "docs/specs/g"
+OTHER = "docs/specs/other"
 TIERS = ("light", "standard", "strict")
 TEMPLATES = ("small-change.md", "backend-feature.md", "cross-module-feature.md", "product.md")
 OK = "ok: no lint problems"
+TIER_LABEL = "assurance tier: "
 BODY = """## 목표
 
 `src/keep.txt` keeps its content.
@@ -198,8 +200,8 @@ class Built(unittest.TestCase):
 def lint_tier(result):
     """The tier `ha lint` printed after its success line, or None."""
     lines = result.stdout.splitlines()
-    if result.returncode == 0 and lines[:1] == [OK] and len(lines) == 2 and lines[1].startswith("assurance: "):
-        return lines[1][len("assurance: "):]
+    if result.returncode == 0 and lines[:1] == [OK] and len(lines) == 2 and lines[1].startswith(TIER_LABEL):
+        return lines[1][len(TIER_LABEL):]
     return None
 
 
@@ -234,17 +236,22 @@ class AC11(Built):
             raise RequirementViolation("assurance-not-read", result.stdout)
 
     def test_independent_of_directory_time_and_environment(self):
-        root = self.repo({GOAL: spec(["Status: Ready", "Assurance: standard"])})
-        outputs = set()
-        for cwd, goal in ((root, GOAL), (root / "src", "../" + GOAL), (root / "tests", str(root / GOAL))):
-            for extra in ({"TZ": "UTC"}, {"TZ": "Asia/Seoul", "LANG": "ko_KR.UTF-8"}, {"HA_UNRELATED": "1"}):
-                result = self.lint(root, goal=goal, cwd=cwd, env=isolated_env(self.home, **extra))
-                outputs.add((result.returncode, result.stdout))
-        if len(outputs) != 1:
-            raise RequirementViolation("assurance-not-read", repr(outputs))
-        code, stdout = outputs.pop()
-        if lint_tier(subprocess.CompletedProcess([], code, stdout, "")) != "standard":
-            raise RequirementViolation("assurance-not-read", stdout)
+        valid = self.repo({GOAL: spec(["Status: Ready", "Assurance: standard"])}, name="valid")
+        invalid = self.repo({GOAL: spec(["Status: Ready", "Assurance: Standard", "Assurance: strict"])}, name="invalid")
+        for root in (valid, invalid):
+            outputs = set()
+            for cwd, goal in ((root, GOAL), (root / "src", "../" + GOAL), (root / "tests", str(root / GOAL))):
+                for extra in ({"TZ": "UTC"}, {"TZ": "Asia/Seoul", "LC_ALL": "ko_KR.UTF-8", "LANG": "ko_KR.UTF-8"},
+                              {"LC_ALL": "en_US.UTF-8", "HA_UNRELATED": "1"}):
+                    result = self.lint(root, goal=goal, cwd=cwd, env=isolated_env(self.home, **extra))
+                    outputs.add((result.returncode, result.stdout))
+            if len(outputs) != 1:
+                raise RequirementViolation("assurance-not-read", repr(outputs))
+            code, stdout = outputs.pop()
+            if root == valid and lint_tier(subprocess.CompletedProcess([], code, stdout, "")) != "standard":
+                raise RequirementViolation("assurance-not-read", stdout)
+            if root == invalid and (code != 1 or "assurance_format" not in stdout):
+                raise RequirementViolation("assurance-not-read", stdout)
 
 
 class AC12(Built):
@@ -290,6 +297,16 @@ class AC12(Built):
         if result.returncode != 65 or (root / GOAL / "runs.jsonl").exists():
             raise Unavailable(f"start ended {result.returncode}: {result.stdout}{result.stderr}")
 
+    def test_lint_scenarios(self):
+        readme = read("testdata/scenarios/README.md")
+        if "| `assurance-invalid` |" not in readme or "| `assurance-line` |" not in readme:
+            raise RequirementViolation("scenario-missing", "testdata/scenarios/README.md lists no assurance scenarios")
+        for name, tokens in {"assurance-invalid": ("assurance_format", "assurance_format_duplicate", "ha start"),
+                             "assurance-line": ("Assurance: strict", "ha lint", "ha done")}.items():
+            steps = read(f"testdata/scenarios/{name}/steps")
+            if not all(token in steps for token in tokens):
+                raise RequirementViolation("scenario-missing", f"{name} lacks {tokens}")
+
     def test_codes_documented(self):
         for rel in ("contracts/goal-docs.md", "contracts/bundle.md"):
             text = read(rel)
@@ -307,17 +324,17 @@ class AC13(Built):
 
     def test_capabilities_declare_the_tiers(self):
         report = self.capabilities()
-        if report.get("formats", {}).get("assurance") != list(TIERS):
+        if report.get("formats", {}).get("assurance_tier") != list(TIERS):
             raise RequirementViolation("assurance-capability-missing", json.dumps(report.get("formats")))
 
     def test_contract_describes_the_entry(self):
         text = read("contracts/core-capabilities.md")
-        if "`formats.assurance`" not in text or "요구에 더하지 않는다" not in text:
+        if "`formats.assurance_tier`" not in text or "요구에 더하지 않는다" not in text:
             raise RequirementViolation("assurance-capability-undocumented", "contracts/core-capabilities.md")
 
     def test_seal_requirements_do_not_add_it(self):
         report = self.capabilities()
-        report.get("formats", {}).pop("assurance", None)
+        report.get("formats", {}).pop("assurance_tier", None)
         fake = self.base / "fake-ha"
         fake.write_text("#!/bin/sh\ncat <<'JSON'\n" + json.dumps(report) + "\nJSON\n", encoding="utf-8")
         fake.chmod(0o755)
@@ -328,9 +345,16 @@ class AC13(Built):
                                         cwd=self.base, env=self.env, capture_output=True, text=True, timeout=120)
             except (OSError, subprocess.TimeoutExpired) as error:
                 raise Unavailable(f"check_core.py: {error}") from None
-            if result.returncode == 2:
+            try:
+                verdict = json.loads(result.stdout)
+            except ValueError:
+                raise Unavailable(f"check_core.py exited {result.returncode} without a report: {result.stderr}") from None
+            # Only a refusal that names the tier support as missing observes the
+            # requirement; a failed query or another refusal is the fixture's error.
+            if (result.returncode == 2 and verdict.get("reason") == "missing_support"
+                    and any("assurance" in item for item in verdict.get("missing", []))):
                 raise RequirementViolation("seal-requirement-added", result.stdout)
-            if result.returncode != 0:
+            if result.returncode != 0 or verdict.get("compatible") is not True:
                 raise Unavailable(f"check_core.py exited {result.returncode}: {result.stdout}{result.stderr}")
 
 
@@ -381,9 +405,9 @@ def goal_names(*goals):
 
 
 def normalized(value, names):
-    """Replace identities that differ only because the goal path or bytes differ."""
+    """Replace identities that differ only because the goal path, bytes or wall clock differ."""
     if isinstance(value, dict):
-        return {k: ("<v>" if k in ("sha256", "spec_digest", "commit", "elapsed_seconds", "at") else normalized(v, names))
+        return {k: ("<v>" if k in ("sha256", "spec_digest", "commit", "elapsed_seconds", "span_seconds", "at") else normalized(v, names))
                 for k, v in value.items()}
     if isinstance(value, list):
         return [normalized(v, names) for v in value]
@@ -398,6 +422,7 @@ def normalized_text(text, names):
     for name in names:
         text = text.replace(name, "<goal>")
     text = re.sub(r"\b[0-9a-f]{12,64}\b", "<hex>", text)
+    text = re.sub(r"window span \d+ seconds", "window span N seconds", text)
     return re.sub(r"\d+/(\d+) seconds", r"N/\1 seconds", text)
 
 
@@ -416,9 +441,9 @@ class Preserved(Built):
 
     def test_tier_changes_no_judgment(self):
         plain, tiered = "docs/specs/a", "docs/specs/b"
+        texts = {plain: spec(["Status: Ready"]), tiered: spec(["Status: Ready", "Assurance: strict"])}
         for rules in ((), ("--rules", "run-rules/4")):
-            root = self.repo({plain: spec(["Status: Ready"]), tiered: spec(["Status: Ready", "Assurance: strict"])},
-                             name="rules4" if rules else "rules3")
+            root = self.repo(texts, name="rules4" if rules else "rules3")
             outputs = {}
             for goal in (plain, tiered):
                 self.ha_run(root, "start", goal, "--request", "synthetic", *rules, expect=(0,))
@@ -429,6 +454,10 @@ class Preserved(Built):
                                  normalized_text(self.ha_run(root, "status", goal, expect=(0,)).stdout, names),
                                  normalized(self.status_json(root, goal, "done"), names),
                                  normalized_text(self.ha_run(root, "done", goal, expect=(0,)).stdout, names)]
+            # The digest stays the contract's digest of the whole SPEC.md, line included.
+            for goal in (plain, tiered):
+                if self.status_json(root, goal).get("spec_digest") != goal_digest({f"{goal}/SPEC.md": texts[goal]}):
+                    raise RequirementViolation("tier-changes-judgment", f"{goal}: the goal digest does not cover SPEC.md as written")
             if outputs[plain] != outputs[tiered]:
                 raise RequirementViolation("tier-changes-judgment", json.dumps(outputs, ensure_ascii=False)[:4000])
 
@@ -460,7 +489,8 @@ class AC22(Built):
                 raise RequirementViolation("amendment-in-goal-set", f"{step}: {report.get('spec_digest')} {reasons}")
 
     def code_state(self, rules):
-        root = self.repo({GOAL: spec(["Status: Ready"])}, name=rules.replace("/", "-"))
+        # A sibling goal's amendment must not reach this goal's code state either.
+        root = self.repo({GOAL: spec(["Status: Ready"]), OTHER: spec(["Status: Ready"])}, name=rules.replace("/", "-"))
         extra = ("--rules", rules) if rules == "run-rules/4" else ()
         self.ha_run(root, "start", GOAL, "--request", "synthetic", *extra, expect=(0,))
         if rules in ("run-rules/1", "run-rules/2"):
@@ -480,22 +510,28 @@ class AC22(Built):
                     [(c.get("id"), c.get("satisfied"), c.get("reason")) for c in report.get("criteria", [])])
 
         before = view()
-        path = root / GOAL / self.AMENDMENT
-        path.parent.mkdir(parents=True)
-        path.write_text(self.amendment_text(), encoding="utf-8")
+        paths = [root / GOAL / self.AMENDMENT, root / OTHER / self.AMENDMENT]
+        for path in paths:
+            path.parent.mkdir(parents=True)
+            path.write_text(self.amendment_text(), encoding="utf-8")
         if view() != before:
             raise RequirementViolation("amendment-in-code-state", f"untracked: {view()} != {before}")
         checked = self.ha_run(root, "check", GOAL, "AC-2")
+        if checked.returncode == 65 and self.AMENDMENT in checked.stdout + checked.stderr:
+            raise RequirementViolation("amendment-in-code-state", "check refused for the amendment: " + checked.stdout + checked.stderr)
         if checked.returncode != 0:
-            raise RequirementViolation("amendment-in-code-state", "check refused or failed: " + checked.stdout + checked.stderr)
+            raise Unavailable(f"ha check exited {checked.returncode}: {checked.stdout}{checked.stderr}")
         before = view()
         self.commit(root, "amendment")
         if view() != before:
             raise RequirementViolation("amendment-in-code-state", f"committed: {view()} != {before}")
-        path.unlink()
+        for path in paths:
+            path.unlink()
+        if view() != before:
+            raise RequirementViolation("amendment-in-code-state", f"deleted, not committed: {view()} != {before}")
         self.commit(root, "drop amendment")
         if view() != before:
-            raise RequirementViolation("amendment-in-code-state", f"deleted: {view()} != {before}")
+            raise RequirementViolation("amendment-in-code-state", f"deletion committed: {view()} != {before}")
 
     def test_code_state_rules_1(self):
         self.code_state("run-rules/1")
@@ -508,6 +544,15 @@ class AC22(Built):
 
     def test_code_state_rules_4(self):
         self.code_state("run-rules/4")
+
+    def test_amendment_scenarios(self):
+        readme = read("testdata/scenarios/README.md")
+        for name in ("amendment-excluded", "amendment-excluded-v4"):
+            if f"| `{name}` |" not in readme:
+                raise RequirementViolation("scenario-missing", f"testdata/scenarios/README.md does not list {name}")
+            steps = read(f"testdata/scenarios/{name}/steps")
+            if "amendments/" not in steps or "expect-no-reason worktree_dirty" not in steps:
+                raise RequirementViolation("scenario-missing", f"{name} does not exercise an amendment")
 
     def test_location_documented(self):
         goal_docs, run_record = read("contracts/goal-docs.md"), read("contracts/run-record.md")

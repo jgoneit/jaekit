@@ -120,6 +120,26 @@
         "selection": "amendment-location.selection",
         "attribution": "amendment-location.attribution"
       }
+    },
+    {
+      "target": "amendment-scenarios",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC22.test_amendment_scenarios",
+      "result_targets": {
+        "additional_violations": [
+          "amendment-scenarios.assertion-2",
+          "amendment-scenarios.assertion-3",
+          "amendment-scenarios.assertion-4",
+          "amendment-scenarios.assertion-5",
+          "amendment-scenarios.assertion-6",
+          "amendment-scenarios.assertion-7",
+          "amendment-scenarios.assertion-8"
+        ],
+        "execution": "amendment-scenarios.execution",
+        "selection": "amendment-scenarios.selection",
+        "attribution": "amendment-scenarios.attribution"
+      }
     }
   ]
 }

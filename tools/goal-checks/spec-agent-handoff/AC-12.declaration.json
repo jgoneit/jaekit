@@ -316,6 +316,50 @@
     {
       "id": "codes-documented.attribution",
       "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios",
+      "violation": "scenario-missing"
+    },
+    {
+      "id": "lint-scenarios.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

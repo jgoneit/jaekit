@@ -272,6 +272,50 @@
     {
       "id": "amendment-location.attribution",
       "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios",
+      "violation": "scenario-missing"
+    },
+    {
+      "id": "amendment-scenarios.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.attribution",
+      "violation": "no-additional-violation"
     }
   ]
 }

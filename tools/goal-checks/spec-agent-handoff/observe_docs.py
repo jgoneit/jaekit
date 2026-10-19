@@ -17,6 +17,7 @@ coherent, that a host selects the skill, or that an agent follows it.
 import hashlib
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 import unittest
@@ -44,6 +45,13 @@ SEAL_DESCRIPTION = (
     "\"/seal:seal docs/specs/x\" in Claude Code, \"docs/specs/x 구현해줘\", or \"docs/specs/x 이어서 해줘\"."
 )
 MAIN_VERSIONS = {"spec": (0, 1, 12), "seal": (0, 1, 17)}
+MAIN_REFS = ("refs/heads/main", "refs/remotes/origin/main")
+HANDOFF_CASES = ("same-request-handoff", "draft-then-ready", "target-then-draft", "long-session-release")
+# Spec plugin files never name Seal, its commands, bundle files, run states,
+# a review tool, or a finding class (plugins/plugins_test.go keeps the first four).
+SPEC_FORBIDDEN = (r"(?i)\bseal\b", r"\bha (lint|start|check|note|status|done|log)\b",
+                  r"PLAN\.md|REVIEW\.md|PROGRESS\.md|runs\.jsonl", r"\b(needs_user|budget_exhausted|incomplete)\b",
+                  r"\bSpar\b", r"clean-review", r"requirement-question")
 
 
 class Unavailable(Exception):
@@ -126,9 +134,10 @@ class Doc(unittest.TestCase):
 class AC1(Doc):
     def test_agent_invocable_on_both_hosts(self):
         keys, _ = front_matter(SPEC + "SKILL.md")
-        yaml = read(SPEC + "agents/openai.yaml")
-        if "disable-model-invocation" in keys or "allow_implicit_invocation: false" in yaml:
-            raise RequirementViolation("spec-explicit-only", "Spec still blocks agent invocation")
+        # Any spelling of the Codex policy value that YAML reads as false blocks it.
+        policy = re.findall(r"^\s*allow_implicit_invocation\s*:\s*['\"]?([^'\"\s#]*)", read(SPEC + "agents/openai.yaml"), re.M)
+        if "disable-model-invocation" in keys or any(v.lower() in ("false", "no", "off", "n") for v in policy):
+            raise RequirementViolation("spec-explicit-only", f"Spec still blocks agent invocation: {keys} {policy}")
 
     def test_description_limits_agent_calls(self):
         keys, _ = front_matter(SPEC + "SKILL.md")
@@ -294,7 +303,8 @@ class AC10(Doc):
                   "may skip independent review", "the final candidate and later fixes",
                   "a plan review before implementation", "contract of the execution tool",
                   "without the line follow the current rules", "changes the goal digest",
-                  "`Proposed-By: agent`", "Execution tools do not interpret it")
+                  "`Proposed-By: agent`", "Execution tools do not interpret it",
+                  "unrelated to any label an execution tool reports", "whoever wrote them")
 
 
 class AC20(Doc):
@@ -333,11 +343,14 @@ class AC20(Doc):
                   "`Status: Ready`", "`Assurance:`", "`light`", "`standard`", "`strict`", "another tier")
 
     def test_existing_cases_expect_the_question(self):
-        for name in ("same-request-handoff", "draft-then-ready", "target-then-draft"):
+        # Cases that expected the hand-off notice: the notice stays only on a
+        # report that still has a content decision open (marked 결정이 남은).
+        for name in HANDOFF_CASES:
             text = read(f"evals/spec-cases/{name}.md")
             self.need("eval-cases-stale", name, text, "구현 여부 질문")
-        self.refuse("eval-cases-stale", "same-request-handoff", read("evals/spec-cases/same-request-handoff.md"),
-                    "구현은 새 요청으로 시작한다고 알린 뒤 멈춘다")
+            stale = [line for line in text.splitlines() if "새 요청으로 시작한다고 알" in line and "결정이 남은" not in line]
+            if stale:
+                raise RequirementViolation("eval-cases-stale", f"{name} still expects the notice after documents with no open decision: {stale}")
 
     def test_new_cases_listed(self):
         readme = read("evals/spec-cases/README.md")
@@ -362,10 +375,43 @@ class AC20(Doc):
             self.refuse("eval-case-not-synthetic", name, text, "docs/specs/spec-agent-handoff", "](../../docs/", "side-session-notes")
 
 
+def main_versions():
+    """Skill versions on the main refs this clone has, with the start commit's as a floor.
+
+    AC-21 is about the main branch, so this check reads only the refs named in
+    MAIN_REFS. A ref that does not exist is skipped; when none can be read, or
+    Git cannot run, the result is an error, never a violation.
+    """
+    found = dict(MAIN_VERSIONS)
+    readable = 0
+    for ref in MAIN_REFS:
+        try:
+            exists = subprocess.run(["git", "rev-parse", "--verify", "--quiet", ref + "^{commit}"], cwd=ROOT,
+                                    capture_output=True, text=True, timeout=60)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise Unavailable(f"git: {error}") from None
+        if exists.returncode:
+            continue
+        for name in found:
+            try:
+                shown = subprocess.run(["git", "show", f"{ref}:plugins/{name}/skills/{name}/SKILL.md"], cwd=ROOT,
+                                       capture_output=True, text=True, timeout=60)
+            except (OSError, subprocess.TimeoutExpired) as error:
+                raise Unavailable(f"git: {error}") from None
+            match = re.search(r'^  version: "([0-9]+\.[0-9]+\.[0-9]+)"$', shown.stdout, re.M)
+            if shown.returncode or not match:
+                raise Unavailable(f"cannot read the {name} version on {ref}: {shown.stderr}")
+            found[name] = max(found[name], version_tuple(match.group(1)))
+        readable += 1
+    if not readable:
+        raise Unavailable("no main ref can be read: " + ", ".join(MAIN_REFS))
+    return found
+
+
 class AC21(Doc):
     def test_versions_raised_and_agree(self):
         market = read_json(".claude-plugin/marketplace.json")
-        for name, floor in MAIN_VERSIONS.items():
+        for name, floor in main_versions().items():
             _, version = front_matter(f"plugins/{name}/skills/{name}/SKILL.md")
             if version_tuple(version) <= floor:
                 raise RequirementViolation("version-not-raised", f"{name} {version} is not above {floor}")
@@ -415,7 +461,10 @@ class AC18(Doc):
         for path in sorted((ROOT / "plugins/spec").rglob("*")):
             if path.is_file():
                 rel = path.relative_to(ROOT).as_posix()
-                self.refuse("product-boundary-changed", rel, read(rel), "Spar", "clean-review", "requirement-question")
+                text = read(rel)
+                found = [m.group(0) for pattern in SPEC_FORBIDDEN for m in [re.search(pattern, text)] if m]
+                if found:
+                    raise RequirementViolation("product-boundary-changed", f"{rel} mentions {found}")
 
 
 if __name__ == "__main__":

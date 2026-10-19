@@ -140,6 +140,26 @@
         "selection": "codes-documented.selection",
         "attribution": "codes-documented.attribution"
       }
+    },
+    {
+      "target": "lint-scenarios",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC12.test_lint_scenarios",
+      "result_targets": {
+        "additional_violations": [
+          "lint-scenarios.assertion-2",
+          "lint-scenarios.assertion-3",
+          "lint-scenarios.assertion-4",
+          "lint-scenarios.assertion-5",
+          "lint-scenarios.assertion-6",
+          "lint-scenarios.assertion-7",
+          "lint-scenarios.assertion-8"
+        ],
+        "execution": "lint-scenarios.execution",
+        "selection": "lint-scenarios.selection",
+        "attribution": "lint-scenarios.attribution"
+      }
     }
   ]
 }
