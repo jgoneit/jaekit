@@ -173,8 +173,8 @@ func TestReleaseGuideMarketplaceSourcesLocal(t *testing.T) {
 		} `json:"plugins"`
 	}
 	readJSON(t, "../.agents/plugins/marketplace.json", &codex)
-	if len(claude.Plugins) != 2 || len(codex.Plugins) != 2 {
-		t.Fatalf("want 2 plugins in each marketplace, got %d and %d", len(claude.Plugins), len(codex.Plugins))
+	if len(claude.Plugins) != 3 || len(codex.Plugins) != 3 {
+		t.Fatalf("want 3 plugins (spec, seal, spar) in each marketplace, got %d and %d", len(claude.Plugins), len(codex.Plugins))
 	}
 	for _, p := range claude.Plugins {
 		if p.Source != "./plugins/"+p.Name {

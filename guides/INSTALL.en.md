@@ -84,11 +84,29 @@ claude plugin list
 
 Reopen Claude Code and use `/spec:spec <request>` in the conversation to define the goal, then `/seal:seal docs/specs/<goal>` in a separate message to start implementation. Plugin skills use `/plugin-name:skill-name`. The [usage guide](USAGE.en.md#sending-commands) explains how to review the goal and continue a task.
 
+### Spar (optional)
+
+Spar runs independent review rounds with several reviewer CLIs; see the [Spar guide](SPAR.en.md). From the release after v0.1.6, installing with Homebrew or from a Release file installs `ha` and `spar` together, with the same version. The v0.1.6 release files, formula and marketplace tag do not contain Spar yet.
+
+```bash
+spar --version
+which -a spar
+```
+
+`spar --version` prints the same version as `ha --version`. With a marketplace pinned to a release that contains Spar, add the plugin in Codex or Claude Code:
+
+```bash
+codex plugin add spar@jaekit
+claude plugin install spar@jaekit
+```
+
+Reopen the host and use `$spar:spar` in Codex or `/spar:spar` in Claude Code when a plan or a change needs an independent review.
+
 ## Install from a Release file
 
 Instead of brew, you can install from the file `ha_0.1.6_<os>_<arch>.tar.gz` in the [v0.1.6 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1.6). `<os>` is `darwin` (macOS) or `linux`, and `<arch>` is `arm64` (Apple Silicon and others) or `amd64` (Intel and others).
 
-Paste the commands below as they are. They pick the file for your OS and CPU, verify its checksum, and put it at `~/.local/bin/ha`. On an unsupported OS or CPU they stop without downloading or installing anything.
+Paste the commands below as they are. They pick the file for your OS and CPU, verify its checksum, and put it at `~/.local/bin/ha`. When the file contains `spar` (releases after v0.1.6), they put it at `~/.local/bin/spar` too. On an unsupported OS or CPU they stop without downloading or installing anything.
 
 ```bash
 (
@@ -149,12 +167,26 @@ Paste the commands below as they are. They pick the file for your OS and CPU, ve
       exit 1
     fi
   fi
+  if [ -f "$name/spar" ] && { [ -e "$bin/spar" ] || [ -L "$bin/spar" ]; }; then
+    if [ ! -f "$bin/spar" ] || [ -L "$bin/spar" ]; then
+      echo "Existing spar path is not an ordinary file; nothing was replaced: $bin/spar" >&2
+      exit 1
+    fi
+  fi
   binary_tmp="$(mktemp "$bin/.ha.XXXXXX")"
   cp "$name/ha" "$binary_tmp"
   chmod 755 "$binary_tmp"
   mv -f "$binary_tmp" "$bin/ha"
   binary_tmp=
   echo "Installed: $HOME/.local/bin/ha ($name)"
+  if [ -f "$name/spar" ]; then
+    binary_tmp="$(mktemp "$bin/.spar.XXXXXX")"
+    cp "$name/spar" "$binary_tmp"
+    chmod 755 "$binary_tmp"
+    mv -f "$binary_tmp" "$bin/spar"
+    binary_tmp=
+    echo "Installed: $HOME/.local/bin/spar ($name)"
+  fi
 )
 ```
 

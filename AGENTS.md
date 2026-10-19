@@ -6,6 +6,7 @@ These instructions apply to the entire repository.
 
 - Spec (`plugins/spec`) turns an explicit request into goal documents. It does not depend on Seal, execution bundles, or run states.
 - Seal (`plugins/seal` and the `ha` binary) carries a goal to recorded completion. Seal reads goal documents and never writes them.
+- Spar (`plugins/spar` and the `spar` binary) runs independent review rounds on pinned commits and records their findings and gate. Seal Core never imports Spar: `ha` and its packages never start reviewers or call a model.
 - Native agents own planning, ordering, and implementation. Skills define artifacts and completion rules.
 - Seal Core is deterministic. It never calls a model, and status computation never reads the current time.
 

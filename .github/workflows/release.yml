@@ -92,6 +92,10 @@ jobs:
             GOOS="${os}" GOARCH="${arch}" CGO_ENABLED=0 go build -trimpath \
               -ldflags "-s -w -X main.version=${version}" \
               -o "${build}/${name}/ha" ./cmd/ha
+            # The review runner ships next to the Core with the same version.
+            GOOS="${os}" GOARCH="${arch}" CGO_ENABLED=0 go build -trimpath \
+              -ldflags "-s -w -X main.version=${version}" \
+              -o "${build}/${name}/spar" ./cmd/spar
             cp LICENSE README.md README.ko.md "${build}/${name}/"
             cp -R guides contracts assets "${build}/${name}/"
             mkdir -p "${build}/${name}/tools/wsl" "${build}/${name}/examples/check-result"
@@ -119,7 +123,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           python3 tools/release/check_archives.py \
-            --version "${VERSION}" --dist "${RUNNER_TEMP}/dist" --run-native --require-windows
+            --version "${VERSION}" --dist "${RUNNER_TEMP}/dist" --run-native --require-windows --require-spar
 
       - name: Record the built Windows archive
         id: windows
@@ -265,7 +269,7 @@ jobs:
               exit 1
             fi
           fi
-          python3 tools/release/check_archives.py --version "${TAG#v}" --dist "${RUNNER_TEMP}/dist"
+          python3 tools/release/check_archives.py --version "${TAG#v}" --dist "${RUNNER_TEMP}/dist" --require-spar
 
       - name: Publish release
         env:
@@ -288,5 +292,5 @@ jobs:
             --notes-file "tools/release/notes/${TAG}.md"
           gh release view "${TAG}" --json assets --jq '.assets[].name' > "${RUNNER_TEMP}/published-assets.txt"
           python3 tools/release/check_archives.py \
-            --version "${TAG#v}" --dist "${RUNNER_TEMP}/dist" \
+            --version "${TAG#v}" --dist "${RUNNER_TEMP}/dist" --require-spar \
             --published-assets "${RUNNER_TEMP}/published-assets.txt"

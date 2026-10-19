@@ -1,0 +1,99 @@
+# Spar guide
+
+[한국어](SPAR.md) · **English**
+
+Spar sends one review packet, pinned to two commits, to several reviewers at once and keeps what they found and what was done about it. The `spar` binary runs the rounds; the `spar` plugin tells your agent when to run them and how findings may be closed. Spar is optional: you do not need it for your first task with Spec and Seal.
+
+`spar` ships next to `ha` in the release files and the Homebrew formula from the release after v0.1.6; the v0.1.6 release files and formula do not contain it. See the [install guide](INSTALL.en.md).
+
+## What leaves your computer
+
+Each reviewer receives the whole packet: the criteria documents, the rule documents, the documents under review, and the diff between the two commits. A reviewer CLI can also read the tracked files of both commits in its workspace copy and send what it opens to its provider.
+
+| Reviewer | Provider that receives the packet |
+| --- | --- |
+| `claude` | Anthropic, through the Claude Code CLI |
+| `codex` | OpenAI, through the Codex CLI |
+| `agy` | Google, through the Antigravity CLI |
+| `command` | Whatever service the command you configure uses |
+| `native` | The provider of the agent you are already using |
+
+Commit messages, Git history and ignored files are not in the packet. If the criteria or the code must not go to a provider, configure only the `native` reviewer or none of the others.
+
+## Configure reviewers
+
+Reviewers come only from your user configuration. Spar reads the first file it finds among `$SPAR_CONFIG`, `$XDG_CONFIG_HOME/jaekit/spar.toml` and `~/.config/jaekit/spar.toml`. Without one, it reads the `reviewers` list of an existing clean-review `config.json`, and without that it uses `claude`, `codex` and `agy`. An empty list (`reviewers = []`) means the `native` reviewer only.
+
+```toml
+timeout_seconds = 1800
+
+[[reviewers]]
+preset = "claude"
+
+[[reviewers]]
+preset = "codex"
+
+[[reviewers]]
+name = "agy"
+preset = "agy"
+model = "gemini-4-argon-high"
+fallback_model = "gemini-3.8-flash-high"
+```
+
+- `claude`, `codex` and `agy` start their CLI with read-only, offline protections that spar checks; they are recorded as `verified` and count as required reviewers.
+- `fallback_model` runs once, in the same round and on the same packet, only when the designated model is refused for quota or rate limits. `fallback_model = ""` turns the preset's default fallback off.
+- `native` is a clean-context subagent of your agent. Spar writes its prompt and workspace into the round folder and records the reply the agent brings back. It is recorded as `host` and counts as required.
+
+### A command reviewer
+
+Any other reviewer can run as a command. It runs without a shell, receives the packet file, its workspace copy and the result schema through placeholders, and prints one JSON object that follows the schema. This example is synthetic: `example-reviewer` stands for a program you provide.
+
+```toml
+[[reviewers]]
+name = "example-reviewer"
+preset = "command"
+argv = ["/opt/example/bin/example-reviewer", "--prompt", "{prompt}", "--workspace", "{workspace}", "--schema", "{schema}"]
+timeout_seconds = 600
+```
+
+- `{prompt}` is the path of the round's `packet.md`, `{workspace}` the reviewer's copy of the two commits (`head/` and `base/`), `{schema}` the JSON schema of the result.
+- Spar cannot check what a command does, so it is recorded as `unverified` and never counts as a required reviewer. Its findings are classified and closed by the same rules.
+
+`spar config` prints the reviewers a round will start, where the list came from and its digest. `spar run --reviewers codex,agy` changes the list for one run, and the round record says so.
+
+### Project settings
+
+A repository's `.jaekit/spar.toml` can set only round caps, attack angles, rule documents and check paths:
+
+```toml
+rules = ["AGENTS.md"]
+check_paths = ["tools/checks/**"]
+
+[caps]
+code = 2
+```
+
+It cannot choose reviewers, commands, executables or models; spar names the key and stops. The full format is in the [configuration contract](../contracts/spar-config.md).
+
+## Run a review
+
+Ask your agent, for example `$spar:spar` in Codex or `/spar:spar` in Claude Code. The skill runs these stages:
+
+| Stage | When |
+| --- | --- |
+| `plan` | once, after the plan and its checks are written |
+| `plan-delta` | at most once, when the plan round changed the plan |
+| `candidate` | on the commit that should meet every criterion |
+| `fixes` | after fixing findings; its base is the previous code round's head |
+
+One series allows one plan round, one plan-delta round and three code rounds. A round past its cap is refused before any reviewer starts; only your words, recorded with `spar extend`, allow more. Rerunning reviewers that did not finish the same packet, for example after a quota refusal, does not count.
+
+Each round writes a new, Git-ignored folder with `round.json`, `packet.md`, `findings.json`, `ledger.jsonl` and `summary.md`. Spar refuses a folder that Git would track, because the packet can contain private documents. The format is in the [round contract](../contracts/review-round.md).
+
+## Findings and the gate
+
+Spar classifies every finding as `defect`, `requirement-question`, `hardening` or `note`. A requirement question closes only with your words; an edge case in check code that claims no false pass, inverted result or named rule violation is deferred as `hardening`. A reviewer that did not finish is shown with its cause and is never counted as finding nothing.
+
+`spar gate` reads the rounds and the head you are about to complete and writes a `review-gate/v1` file: `complete` (exit 0), `degraded` (3) when a required reviewer did not finish, or `blocked` (4) for open findings, caps exceeded or an unreviewed head. It also records how many lines review fixes added to check code and elsewhere. See the [gate contract](../contracts/review-gate.md).
+
+The gate is a review record, not evidence of completion. Seal's completion still comes only from `ha done`.
