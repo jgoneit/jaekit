@@ -70,26 +70,36 @@ func diff(repo, base, head string) ([]byte, error) {
 	return git(repo, "diff", "--no-color", "--no-ext-diff", "--no-textconv", "-M", base, head, "--")
 }
 
-// numstat returns the lines each path gained between two commits.
+// numstat returns the lines each path gained between two commits. Renames
+// are detected as in diff, so a renamed file counts only the lines it
+// gained, under its new path.
 func numstat(repo, base, head string) (map[string]int, error) {
-	out, err := git(repo, "diff", "--numstat", "-z", "--no-renames", base, head, "--")
+	out, err := git(repo, "diff", "--numstat", "-z", "-M", base, head, "--")
 	if err != nil {
 		return nil, err
 	}
 	added := map[string]int{}
-	for _, rec := range strings.Split(string(out), "\x00") {
-		if rec == "" {
-			continue
-		}
-		fields := strings.SplitN(rec, "\t", 3)
+	// -z writes "added<TAB>deleted<TAB>path<NUL>", or for a rename
+	// "added<TAB>deleted<TAB><NUL>from<NUL>to<NUL>".
+	records := strings.Split(string(out), "\x00")
+	for i := 0; i < len(records); i++ {
+		fields := strings.SplitN(records[i], "\t", 3)
 		if len(fields) != 3 {
 			continue
+		}
+		path := fields[2]
+		if path == "" {
+			if i+2 >= len(records) {
+				break
+			}
+			path = records[i+2]
+			i += 2
 		}
 		n, err := strconv.Atoi(fields[0])
 		if err != nil {
 			n = 0 // "-" for binary files
 		}
-		added[fields[2]] += n
+		added[path] += n
 	}
 	return added, nil
 }

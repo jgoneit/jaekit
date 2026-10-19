@@ -246,8 +246,8 @@ func TestGateRequiredReviewersMissingRecordsAndGrowth(t *testing.T) {
 	c := f.round("03-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 3,
 		RequiredReviewers: []string{"x"}, Config: both,
 		Reviewers: map[string]*ReviewerState{"x": reviewer("codex", true, StatusCompleted)}}, nil, nil)
-	if g := f.gate(head, a, c); g.State != StateComplete {
-		t.Fatalf("a rerun did not complete the packet: %s %v", g.State, g.Reasons)
+	if g := f.gate(head, a, c); g.State != StateComplete || g.Rounds[0].CompletedRequired != 2 {
+		t.Fatalf("a rerun did not complete the packet: %s %v %+v", g.State, g.Reasons, g.Rounds[0])
 	}
 	// --reviewers ran only one of the configured required reviewers.
 	d := f.round("04-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 4, PacketSHA256: "q",
@@ -335,6 +335,36 @@ func TestRunHoldsTheSeriesUntilItsRoundEnds(t *testing.T) {
 	}
 	if code, err := Run(opts); code != ExitRefused || err == nil || !strings.Contains(err.Error(), "already exists") {
 		t.Fatalf("an existing round folder: %d %v", code, err)
+	}
+}
+
+// A renamed file counts only the lines it gained, under its new path.
+func TestNumstatFollowsRenames(t *testing.T) {
+	f := newFixture(t)
+	gitRun(t, f.repo, "mv", "checks/c.txt", "checks/moved.txt")
+	writeFile(t, filepath.Join(f.repo, "checks", "moved.txt"), "one\ntwo\nthree\nfour\nfive\n")
+	gitRun(t, f.repo, "add", "-A")
+	gitRun(t, f.repo, "commit", "-qm", "move")
+	head := gitRun(t, f.repo, "rev-parse", "HEAD")
+	added, err := numstat(f.repo, f.revs[2], head)
+	if err != nil || len(added) != 1 || added["checks/moved.txt"] != 1 {
+		t.Fatalf("rename: %v %v", added, err)
+	}
+}
+
+// An extension is refused when its --repo is not a repository, and its
+// series path is checked against the repository it lies in.
+func TestExtendChecksItsRecordPath(t *testing.T) {
+	f := newFixture(t)
+	plain := t.TempDir()
+	if err := Extend(filepath.Join(f.repo, "reviews", "s"), "code", 1, "yes", plain); err == nil {
+		t.Fatal("an extension with a --repo that is not a repository was recorded")
+	}
+	if err := Extend(filepath.Join(f.repo, "checks", "s"), "code", 1, "yes", f.repo); err == nil {
+		t.Fatal("an extension into a tracked folder was recorded")
+	}
+	if err := Extend(filepath.Join(f.repo, "reviews", "s"), "code", 1, "yes", f.repo); err != nil {
+		t.Fatalf("an extension into an ignored folder: %v", err)
 	}
 }
 

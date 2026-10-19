@@ -124,6 +124,9 @@ func TestValidateResult(t *testing.T) {
 			m["findings"] = []any{rawFinding("F1", map[string]any{"proposed_class": "bug"})}
 		},
 		"duplicate id": func(m map[string]any) { m["findings"] = []any{rawFinding("F1", nil), rawFinding("F1", nil)} },
+		"bad angle": func(m map[string]any) {
+			m["findings"] = []any{rawFinding("F1", map[string]any{"angle": "bogus"})}
+		},
 	} {
 		m := map[string]any{}
 		for k, v := range good {

@@ -64,11 +64,11 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
 | `expect_head` | 기대 head의 커밋 ID |
 | `last_reviewed_head` | 마지막으로 검토된 head |
 | `previous_gate_digest` | 같은 `--out` 경로에 있던 이전 gate 파일 바이트의 sha256, 없으면 `null` |
-| `rounds[]` | 라운드의 `criteria_digest`, 패킷 digest(`packet_digest`), 설정 digest(`config_digest`), 요청한 리뷰어 이름과 필수로 인정된 리뷰어 수(`required_reviewers`), 그중 완료한 수 |
+| `rounds[]` | 라운드의 `criteria_digest`, 패킷 digest(`packet_digest`), 설정 digest(`config_digest`), 요청한 리뷰어 이름과 필수로 인정된 리뷰어 수(`required_reviewers`), 그중 완료한 수(`completed_required`, 같은 단계·base·head·패킷의 재실행에서 완료한 것 포함) |
 | `open` | 열린 `defect`와 `requirement-question` 수 |
 | `open_findings` | 열린 지적의 라운드와 ID |
 | `auto_deferred` | 마지막 처리가 자동 보류인 `hardening` 수 |
-| `growth.added_lines` | 목록의 fixes 라운드마다 `git diff --numstat <base> <head>`의 더한 줄을 그 라운드 설정의 검사 경로(`check`)와 그 밖(`other`)으로 나눈 합. 같은 base·head는 한 번만 센다 |
+| `growth.added_lines` | 목록의 fixes 라운드마다 `git diff --numstat -M <base> <head>`의 더한 줄(이름을 바꾼 파일은 새 경로에서 더한 줄만)을 그 라운드 설정의 검사 경로(`check`)와 그 밖(`other`)으로 나눈 합. 같은 base·head는 한 번만 센다 |
 | `growth.over_hardening` | `check`가 `other`보다 크면 `true` |
 | `growth.rounds[]` | fixes 라운드별 `check`·`other` |
 

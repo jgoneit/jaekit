@@ -57,7 +57,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 }
 ```
 
-- `reviewed_head`는 패킷 head의 앞 7자 이상이어야 한다. `verdict`는 `no_blocking_findings`, `blocking_findings`, `could_not_review`.
+- `reviewed_head`는 패킷 head의 앞 7자 이상이어야 한다. `verdict`는 `no_blocking_findings`, `blocking_findings`, `could_not_review`. 지적의 `angle`을 포함한 열거형 값은 schema의 값 중 하나여야 한다. 제공자가 schema를 강제하지 않는 `native`·`command` 리뷰어의 결과에도 같은 검사를 한다.
 - 요청한 각도는 모두 `angles_checked`나 `angles_unchecked`에 있어야 한다. 둘 다 없거나 하나라도 빠지면 `invalid_output`이다.
 - 지적의 열거값: `proposed_class` `defect|requirement-question|hardening|note`, `link_kind` `criterion|rule|contract|none`, `introduced_by_change`·`regression` `yes|no|unknown`, `check_impact` `false_pass|meaning_inverted|contract_violation|none`, `confidence` `high|medium|low`. `id`는 리뷰어 안에서 겹치지 않는다.
 - `could_not_review`는 완료가 아니라 `failed`로 기록한다.
@@ -141,7 +141,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 - 단계 묶음은 `plan`, `plan_delta`, `code`(candidate와 fixes)다. series에서 `counted`가 `true`인 같은 묶음의 라운드 수가 상한과 연장의 합 이상이면 새 실행을 거부한다.
 - 같은 단계·base·head·패킷 digest의 앞선 실행이 있고, 이번 실행의 리뷰어가 모두 그 실행들에서 완료하지 못한 리뷰어이면 상한에 세지 않는다(`counted: false`, `rerun_of`). 라운드는 series마다 하나씩 실행되므로 `finished_at`이 없는 앞선 라운드는 도중에 멈춘 것이고, 그 리뷰어는 완료하지 못한 것이다. 그 밖의 실행은 모두 센다.
 - fixes 라운드의 base는 같은 series에서 단계·base·head가 다른 마지막 code 라운드의 head여야 한다. 아니면 거부한다.
-- 연장은 `spar extend <series> --stage plan|plan-delta|code --by N --user-quote "…"`로 series의 `extensions.jsonl`에 `{"stage", "by", "user_quote", "recorded_at"}`을 더한다. 사용자의 말이 없으면 거부한다.
+- 연장은 `spar extend <series> --stage plan|plan-delta|code --by N --user-quote "…"`로 series의 `extensions.jsonl`에 `{"stage", "by", "user_quote", "recorded_at"}`을 더한다. 사용자의 말이 없으면 거부한다. series 경로는 `--out`과 같은 기록 경로 규칙을 따르고(검토하는 저장소를 찾지 못해도 그 경로가 속한 저장소로 확인한다), `--repo`가 Git 저장소가 아니면 거부한다.
 
 ## 9. native 리뷰어
 

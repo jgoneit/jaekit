@@ -179,6 +179,7 @@ func Gate(o GateOptions) (int, error) {
 			case st != nil && st.Status == StatusCompleted && st.Required && st.Preset == ref.Preset:
 				gr.CompletedRequired++
 			case completedIn[credit(r, ref.Name, ref.Preset)]:
+				gr.CompletedRequired++ // completed by a rerun of the same packet
 			case st == nil || st.Preset != ref.Preset:
 				degraded = append(degraded, fmt.Sprintf("%s: required reviewer %s (%s) did not run in this round", lr.path, ref.Name, ref.Preset))
 			default:

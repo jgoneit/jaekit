@@ -144,10 +144,16 @@ func Extend(series, stage string, by int, quote string, repoHint string) error {
 	if start == "" {
 		start = "."
 	}
-	if repo, err := repoRoot(start); err == nil {
-		if err := localRecordPath(realish(repo), path); err != nil {
-			return refused("%v", err)
-		}
+	// Without a reviewed repository the path is still checked against the
+	// repository it lies in, if any.
+	repo := ""
+	if root, err := repoRoot(start); err == nil {
+		repo = realish(root)
+	} else if repoHint != "" {
+		return refused("--repo %s is not a Git repository: %v", repoHint, err)
+	}
+	if err := localRecordPath(repo, path); err != nil {
+		return refused("%v", err)
 	}
 	if err := os.MkdirAll(path, 0o755); err != nil {
 		return err

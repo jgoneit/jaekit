@@ -980,7 +980,7 @@ func validateResult(result any, head string, angles []string) []string {
 			problems = append(problems, fmt.Sprintf("finding id %s is used twice", id))
 		}
 		ids[id] = true
-		for key, allowed := range map[string][]string{"proposed_class": Classes, "link_kind": linkKinds,
+		for key, allowed := range map[string][]string{"proposed_class": Classes, "angle": Angles, "link_kind": linkKinds,
 			"introduced_by_change": yesNo, "regression": yesNo, "check_impact": checkImpact, "confidence": confidences} {
 			if v, ok := f[key].(string); ok && !contains(allowed, v) {
 				problems = append(problems, fmt.Sprintf("finding %s has %s %q", id, key, v))
