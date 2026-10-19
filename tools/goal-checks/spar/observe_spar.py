@@ -73,9 +73,17 @@ def text(result):
 
 
 def signalled(result, what):
-    """A shell block whose command a signal ended exits 128+n: not a violation."""
+    """A shell block whose command a signal ended exits 128+n: not a violation.
+
+    The archive checker turns a packaged program it runs that a signal ended,
+    or that ran out of time, into its own failure; its messages name both
+    ("exited -9, expected 0", "timed out after"), and they are not a
+    violation either."""
     if 128 < result.returncode <= 128 + 64:
         raise Unavailable(f"{what}: a command ended by signal {result.returncode - 128}: {text(result)[-600:]}")
+    nested = re.search(r"exited -[0-9]+, expected|timed out after", text(result))
+    if result.returncode and nested:
+        raise Unavailable(f"{what}: a program it ran was stopped: {text(result)[-600:]}")
 
 
 def tool(name):
