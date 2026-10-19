@@ -2,7 +2,7 @@
 name: seal
 description: Carry a goal in docs/specs/<goal>/ to recorded completion — plan, implement, verify through the ha binary, and resume in a new session. Use when the user calls this skill with a goal or asks to implement, finish, or continue a goal document, for example "$seal:seal docs/specs/x" in Codex, "/seal:seal docs/specs/x" in Claude Code, "docs/specs/x 구현해줘", or "docs/specs/x 이어서 해줘".
 metadata:
-  version: "0.1.17"
+  version: "0.1.18"
 ---
 
 # Seal
@@ -46,7 +46,7 @@ Follow the project's Git tracking and local retention policy for goal documents 
 - A `change` condition needs a baseline record: `ha check <goal> --baseline AC-n` observes the intended requirement violation on the base commit. New goals use `run-rules/4`, which keeps every `run-rules/3` rule: declare the targets and producer through the structured result contract in [references/ha.md](references/ha.md). A nonzero exit alone is insufficient. Existing `/1` and `/2` goals retain their result semantics; ordinary maintain, manual and task checks retain their roles.
 - A result counts only when `ha check` recorded it on a clean, committed tree that still matches HEAD outside the bundle documents. Commit your changes. Test runs outside `ha` are useful while working but never count.
 - An `error` result may be rerun once on the same code. Under `/3`, inconclusive results share that error limit. A `fail` stays in the record; fix the code or the check and verify again. Do not hide earlier failures behind a producer's final internal retry result.
-- Choose the checks, runner and verification method for the goal. A structured result contract does not require an official adapter or the reference producer. Python 3 is not a prerequisite for Seal; when it is already available, the optional [compatibility helper](scripts/check_core.py) can check the same contract deterministically.
+- Choose the checks, runner and verification method for the goal. A structured result contract does not require an official adapter or the reference producer. When the actual executable's capabilities list `runner-adapters/v1`, a change condition may instead link an existing test through a runner adapter ([references/ha.md](references/ha.md#structured-change-results)); the adapter is optional. Python 3 is not a prerequisite for Seal; when it is already available, the optional [compatibility helper](scripts/check_core.py) can check the same contract deterministically.
 
 ## Check inputs
 

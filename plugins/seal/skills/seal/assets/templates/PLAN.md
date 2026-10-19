@@ -15,7 +15,7 @@ Use narrow checks while exploring and record the expensive full verification onc
 | --- | --- |
 | AC-1 | <repository-relative declaration JSON> |
 
-For `/3` change conditions, declare the required target IDs, intended violation IDs and producer inputs using `check-declaration/v1`. Include this JSON and every `producer_paths` entry in `검사 경로`; commit these regular files before checking. The command must write the invocation-bound `check-result/v1` report. Choose a producer that observes this goal's actual behavior; a command's exit code alone does not establish the result. See the skill's `references/ha.md` and `references/bundle.md`. Omit this section for existing `/1` or `/2` goals; maintain, manual and task checks keep their roles.
+For `/3` change conditions, declare the required target IDs, intended violation IDs and producer inputs using `check-declaration/v1`. Include this JSON and every `producer_paths` entry in `검사 경로`; commit these regular files before checking. The command must write the invocation-bound `check-result/v1` report. Choose a producer that observes this goal's actual behavior; a command's exit code alone does not establish the result. See the skill's `references/ha.md` and `references/bundle.md`. Where the Core supports runner adapters, a `check-adapter/v1` declaration may instead link each target to an existing test (see `references/ha.md`). Omit this section for existing `/1` or `/2` goals; maintain, manual and task checks keep their roles.
 
 ## 범위
 - 바꿀 수 있는 경로: `<glob>`, `<glob>` (SPEC: <section>)
