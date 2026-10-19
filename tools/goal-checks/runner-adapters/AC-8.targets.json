@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "lint",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_contract.py",
+      "test": "Lint.test_adapter_declaration_problems",
+      "result_targets": {
+        "additional_violations": [
+          "lint.assertion-2",
+          "lint.assertion-3",
+          "lint.assertion-4",
+          "lint.assertion-5",
+          "lint.assertion-6",
+          "lint.assertion-7",
+          "lint.assertion-8"
+        ],
+        "execution": "lint.execution",
+        "selection": "lint.selection",
+        "attribution": "lint.attribution"
+      }
+    }
+  ]
+}

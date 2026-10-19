@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "markers",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_forms.py",
+      "test": "Markers.test_go_and_junit_marker_rules",
+      "result_targets": {
+        "additional_violations": [
+          "markers.assertion-2",
+          "markers.assertion-3",
+          "markers.assertion-4",
+          "markers.assertion-5",
+          "markers.assertion-6",
+          "markers.assertion-7",
+          "markers.assertion-8"
+        ],
+        "execution": "markers.execution",
+        "selection": "markers.selection",
+        "attribution": "markers.attribution"
+      }
+    }
+  ]
+}

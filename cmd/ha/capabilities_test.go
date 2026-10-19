@@ -45,12 +45,12 @@ func TestCompatibilityAC7_GoallessReadOnlyQuery(t *testing.T) {
 		"formats": map[string]any{
 			"finding":          []any{"run-finding/v1"},
 			"decision_history": []any{"decision-history/v1"},
-			"criteria":         []any{"legacy", "nested/1"}, "check_declaration": []any{"check-declaration/v1"},
+			"criteria":         []any{"legacy", "nested/1"}, "check_declaration": []any{"check-declaration/v1", "check-adapter/v1"},
 			"check_result": []any{"check-result/v1"}, "check_evidence": []any{"check-evidence/v1"},
 			"timing": []any{"timing/v1"}, "assurance_tier": []any{"light", "standard", "strict"},
 		},
 		"features": []any{"estimate/v1", "dirty-preflight/v1", "baseline-safe-copy/v1", "structured-change-results/v1", "budget-change/v1", "post-completion-findings/v1", "decision-history/v1", "run-timing/v1",
-			"test-authority/v1", "reported-wait/v1", "preapproved-runs/v1", "error-recovery/v1", "command-time-limits/v1"},
+			"test-authority/v1", "reported-wait/v1", "preapproved-runs/v1", "error-recovery/v1", "command-time-limits/v1", "runner-adapters/v1"},
 	}
 	for key, want := range wanted {
 		if !reflect.DeepEqual(report[key], want) {

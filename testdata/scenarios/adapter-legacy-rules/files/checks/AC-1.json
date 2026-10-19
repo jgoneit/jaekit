@@ -1,0 +1,1 @@
+{"schema": "check-adapter/v1", "adapter": "junit-xml", "targets": [{"id": "greeting", "violation": "greeting-missing", "test": {"classname": "tests.greeting", "name": "says hello"}}]}

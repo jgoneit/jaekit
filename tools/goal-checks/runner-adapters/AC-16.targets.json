@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "seal",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_contract.py",
+      "test": "SealGuidance.test_listed_guidance_and_nothing_else",
+      "result_targets": {
+        "additional_violations": [
+          "seal.assertion-2",
+          "seal.assertion-3",
+          "seal.assertion-4",
+          "seal.assertion-5",
+          "seal.assertion-6",
+          "seal.assertion-7",
+          "seal.assertion-8"
+        ],
+        "execution": "seal.execution",
+        "selection": "seal.selection",
+        "attribution": "seal.attribution"
+      }
+    }
+  ]
+}

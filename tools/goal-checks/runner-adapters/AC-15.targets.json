@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "documents",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_contract.py",
+      "test": "Documents.test_contracts_and_guides",
+      "result_targets": {
+        "additional_violations": [
+          "documents.assertion-2",
+          "documents.assertion-3",
+          "documents.assertion-4",
+          "documents.assertion-5",
+          "documents.assertion-6",
+          "documents.assertion-7",
+          "documents.assertion-8"
+        ],
+        "execution": "documents.execution",
+        "selection": "documents.selection",
+        "attribution": "documents.attribution"
+      }
+    }
+  ]
+}

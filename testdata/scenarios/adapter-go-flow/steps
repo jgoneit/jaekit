@@ -1,0 +1,26 @@
+# go-test-json: ha reads the standard output events; standard error is not
+# read but stays in the log with the events.
+replace $GOAL/PLAN.md "`sh tests/greeting.sh` | tests/greeting.sh |" "`sh tests/gotest.sh` | tests/gotest.sh, checks/AC-1.json |"
+append $GOAL/PLAN.md "\n## 결과 계약\n| ID | 선언 경로 |\n| --- | --- |\n| AC-1 | checks/AC-1.json |\n"
+commit "link the greeting test"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/4
+expect-exit 0
+ha check $GOAL --baseline AC-1
+expect-exit 0
+expect-record 2 result fail_as_expected
+expect-output "classification: declared_violation"
+write src/greeting.txt "hello\n"
+progress T001 done
+commit "say hello"
+ha check $GOAL
+expect-exit 0
+expect-record 3 result pass
+expect-output "classification: targets_passed"
+ha log $GOAL 3
+expect-output "go: downloading example.com/x"
+expect-output "\"Action\":\"pass\""
+expect-status complete
+ha done $GOAL
+expect-exit 0
+expect-completion-record present
+expect-absent "the greeting is hi"

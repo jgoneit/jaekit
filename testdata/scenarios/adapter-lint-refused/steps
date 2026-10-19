@@ -1,0 +1,12 @@
+# An adapter declaration with a lint problem refuses the start; nothing is
+# recorded. A declared violation cannot use the reserved jaekit: prefix.
+replace $GOAL/PLAN.md "`sh tests/greeting.sh` | tests/greeting.sh |" "`sh tests/greeting.sh` | tests/greeting.sh, checks/AC-1.json |"
+append $GOAL/PLAN.md "\n## 결과 계약\n| ID | 선언 경로 |\n| --- | --- |\n| AC-1 | checks/AC-1.json |\n"
+commit "link the greeting test"
+ha lint $GOAL
+expect-exit 1
+expect-output "evidence_invalid"
+expect-output "reserved"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/4
+expect-exit 65
+expect-records 0

@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "location",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_flow.py",
+      "test": "OutputLocation.test_fresh_private_location",
+      "result_targets": {
+        "additional_violations": [
+          "location.assertion-2",
+          "location.assertion-3",
+          "location.assertion-4",
+          "location.assertion-5",
+          "location.assertion-6",
+          "location.assertion-7",
+          "location.assertion-8"
+        ],
+        "execution": "location.execution",
+        "selection": "location.selection",
+        "attribution": "location.attribution"
+      }
+    }
+  ]
+}

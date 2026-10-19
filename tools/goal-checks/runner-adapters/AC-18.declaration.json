@@ -1,0 +1,60 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/runner-adapters/AC-18.targets.json",
+    "tools/goal-checks/runner-adapters/adapters_common.py",
+    "tools/goal-checks/runner-adapters/observe_contract.py",
+    "tools/goal-checks/runner-adapters/observe_forms.py",
+    "tools/goal-checks/runner-adapters/runner.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "go-version",
+      "violation": "go-1-27-not-required"
+    },
+    {
+      "id": "go-version.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-version.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-version.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-version.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-version.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-version.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-version.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-version.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-version.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-version.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

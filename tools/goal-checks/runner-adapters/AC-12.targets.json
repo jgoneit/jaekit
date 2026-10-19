@@ -1,0 +1,65 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "crlf",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_forms.py",
+      "test": "Platform.test_crlf_classifies_as_lf",
+      "result_targets": {
+        "additional_violations": [
+          "crlf.assertion-2",
+          "crlf.assertion-3",
+          "crlf.assertion-4",
+          "crlf.assertion-5",
+          "crlf.assertion-6",
+          "crlf.assertion-7",
+          "crlf.assertion-8"
+        ],
+        "execution": "crlf.execution",
+        "selection": "crlf.selection",
+        "attribution": "crlf.attribution"
+      }
+    },
+    {
+      "target": "linux",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_forms.py",
+      "test": "Platform.test_linux_build_classifies_the_same_bytes",
+      "result_targets": {
+        "additional_violations": [
+          "linux.assertion-2",
+          "linux.assertion-3",
+          "linux.assertion-4",
+          "linux.assertion-5",
+          "linux.assertion-6",
+          "linux.assertion-7",
+          "linux.assertion-8"
+        ],
+        "execution": "linux.execution",
+        "selection": "linux.selection",
+        "attribution": "linux.attribution"
+      }
+    },
+    {
+      "target": "windows",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_forms.py",
+      "test": "Platform.test_windows_ci_classifies_the_same_bytes",
+      "result_targets": {
+        "additional_violations": [
+          "windows.assertion-2",
+          "windows.assertion-3",
+          "windows.assertion-4",
+          "windows.assertion-5",
+          "windows.assertion-6",
+          "windows.assertion-7",
+          "windows.assertion-8"
+        ],
+        "execution": "windows.execution",
+        "selection": "windows.selection",
+        "attribution": "windows.attribution"
+      }
+    }
+  ]
+}

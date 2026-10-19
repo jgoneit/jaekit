@@ -66,6 +66,7 @@ ha capabilities --format json
 | `preapproved-runs/v1` | `run-rules/4`의 사전 승인 상한과 그 안의 이유만 있는 증액(§6) |
 | `error-recovery/v1` | `run-rules/4`의 `recover`·`allow-recovery`와 회복 횟수 표시(§6) |
 | `command-time-limits/v1` | `run-rules/4`의 PLAN `## 시간 제한`, 명령 digest의 적용 제한, 실행 전 안내(§6) |
+| `runner-adapters/v1` | `/3`·`/4` change 조건의 `check-adapter/v1` 선언으로 `go test -json` 표준 출력과 JUnit XML을 직접 분류하는 선택적 확장(§7) |
 
 시간 보기를 지원하는 Core는 `formats.timing`에 `timing/v1`, `features`에 `run-timing/v1`을 제공한다([실행 기록](run-record.md) §1.2, §2.2). 측정값은 판정·예산에 쓰이지 않으므로 이 확장은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 추가되지 않는다. 지원이 없는 Core에서도 일반 실행은 그대로이고, 시간 보기만 쓸 수 없다.
 
@@ -131,3 +132,9 @@ Seal 0.1.13에 포함된 선택형 도구는 `--operation history --goal <기존
 `run-rules/4`를 지원하는 Core는 `supported_rules`에 `run-rules/4`, `features`에 `test-authority/v1`, `reported-wait/v1`, `preapproved-runs/v1`, `error-recovery/v1`, `command-time-limits/v1`을 함께 제공한다. `default_rules`는 `run-rules/3` 그대로다. 그래서 기본 규칙을 확인하는 이전 Seal과 배포·설치 식별은 바뀌지 않는다. 새 규칙은 `ha start --rules run-rules/4`로만 고른다. 다섯 기능의 의미는 [실행 기록](run-record.md) §4.7이다.
 
 Seal 0.1.16부터 확인 도구는 새 시작에서 이 규칙과 다섯 기능을 모두 요구하고 시작 규칙으로 `run-rules/4`를 낸다. 하나라도 없으면 기록 전에 거부한다. 저장 규칙이 `/4`인 목표의 재개·검사·횟수 상한 변경도 다섯 기능을 요구한다. `/1`·`/2`·`/3` 목표의 요구는 그대로다. `/4`를 지원하지 않는 Core는 그 목표를 66으로 거부하고 기록하지 않는다.
+
+## 7. 러너 어댑터
+
+러너 어댑터를 지원하는 Core는 `formats.check_declaration`의 끝에 `check-adapter/v1`, `features`의 끝에 `runner-adapters/v1`을 더해 제공한다. 두 항목의 의미는 [change 검사 결과](check-result.md#5-러너-어댑터) §5다. 기존 항목과 그 순서, `default_rules`는 그대로다.
+
+어댑터는 선택이므로 이 확장은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 추가되지 않는다. Seal과 호환 확인 도구의 요구도 그대로다. 실행자는 실제 실행 파일의 지원 정보에 두 항목이 모두 있을 때만 어댑터 선언을 쓴다. 지원이 없는 Core는 어댑터 선언을 알 수 없는 선언으로 보고 lint 문제(`evidence_invalid`)로 시작과 검사를 거부하며 기록하지 않는다. 그때는 참조 생산자나 전용 생산자를 쓴다.

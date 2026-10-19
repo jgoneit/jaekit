@@ -35,7 +35,7 @@ Behavior that must be preserved belongs in the goal documents as a required crit
 
 For `run-rules/3` change conditions, map `ID | 선언 경로` in a Markdown table. The repository-relative JSON declaration identifies required targets, expected violations and the producer. Include the declaration and every producer/configuration file in `검사 경로` so the baseline receives them. See [ha.md](ha.md) for the report contract and actual reference producer. Generic runner nonzero exits alone are insufficient. Existing `/1` and `/2` goals and ordinary maintain, manual and task checks keep their roles.
 
-The declaration and every `producer_paths` input must be tracked regular files whose bytes match HEAD. Commit them before checking; do not put the product behavior being changed among the overlaid check files. An undeclared `/3` command can still run and record `unknown`, but cannot establish change completion. The template is a starting point: replace its placeholders with a producer that actually observes the criterion. No particular runner or adapter is required.
+The declaration and every `producer_paths` input must be tracked regular files whose bytes match HEAD. Commit them before checking; do not put the product behavior being changed among the overlaid check files. An undeclared `/3` command can still run and record `unknown`, but cannot establish change completion. The template is a starting point: replace its placeholders with a producer that actually observes the criterion. No particular runner or adapter is required. Where the Core supports it, the declaration may instead choose a runner adapter (`check-adapter/v1`) that links each target to an existing test, without producer files ([ha.md](ha.md#structured-change-results)).
 
 ### `## 범위`
 

@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "go-version",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_contract.py",
+      "test": "GoVersion.test_go_1_27",
+      "result_targets": {
+        "additional_violations": [
+          "go-version.assertion-2",
+          "go-version.assertion-3",
+          "go-version.assertion-4",
+          "go-version.assertion-5",
+          "go-version.assertion-6",
+          "go-version.assertion-7",
+          "go-version.assertion-8"
+        ],
+        "execution": "go-version.execution",
+        "selection": "go-version.selection",
+        "attribution": "go-version.attribution"
+      }
+    }
+  ]
+}

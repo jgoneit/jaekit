@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "untyped",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_forms.py",
+      "test": "UntypedToolchain.test_untyped_output",
+      "result_targets": {
+        "additional_violations": [
+          "untyped.assertion-2",
+          "untyped.assertion-3",
+          "untyped.assertion-4",
+          "untyped.assertion-5",
+          "untyped.assertion-6",
+          "untyped.assertion-7",
+          "untyped.assertion-8"
+        ],
+        "execution": "untyped.execution",
+        "selection": "untyped.selection",
+        "attribution": "untyped.attribution"
+      }
+    }
+  ]
+}

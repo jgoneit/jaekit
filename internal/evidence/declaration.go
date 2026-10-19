@@ -29,6 +29,8 @@ const (
 type Target struct {
 	ID        string `json:"id"`
 	Violation string `json:"violation"`
+	// Test is the linked test of a check-adapter/v1 target; nil for producers.
+	Test *TestName `json:"-"`
 }
 
 type Declaration struct {
@@ -37,6 +39,9 @@ type Declaration struct {
 	ProducerVersion string   `json:"producer_version"`
 	ProducerPaths   []string `json:"producer_paths"`
 	Targets         []Target `json:"targets"`
+	// Adapter names the runner adapter of a check-adapter/v1 declaration.
+	// Producer declarations leave it empty.
+	Adapter string `json:"-"`
 }
 
 var identifier = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}$`)
@@ -106,6 +111,9 @@ func Load(root, p string) (*Declaration, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
+	if adapterSchema(data) {
+		return loadAdapter(p, data)
+	}
 	var d Declaration
 	if err := strictJSON(data, &d); err != nil {
 		return nil, "", errors.New("invalid evidence declaration JSON")
@@ -137,7 +145,10 @@ func Load(root, p string) (*Declaration, string, error) {
 }
 
 func (d *Declaration) Validate() error {
-	if d == nil || d.Schema != DeclarationSchema || !identifier.MatchString(d.Producer) || !identifier.MatchString(d.ProducerVersion) {
+	if d != nil && d.Schema == AdapterSchema {
+		return d.validateAdapter()
+	}
+	if d == nil || d.Schema != DeclarationSchema || d.Adapter != "" || !identifier.MatchString(d.Producer) || !identifier.MatchString(d.ProducerVersion) {
 		return errors.New("unsupported evidence declaration or producer")
 	}
 	if len(d.ProducerPaths) == 0 || len(d.ProducerPaths) > 128 || len(d.Targets) == 0 || len(d.Targets) > 1024 {
@@ -151,7 +162,7 @@ func (d *Declaration) Validate() error {
 		paths[p] = true
 	}
 	for _, t := range d.Targets {
-		if !identifier.MatchString(t.ID) || !identifier.MatchString(t.Violation) || targets[t.ID] {
+		if !identifier.MatchString(t.ID) || !identifier.MatchString(t.Violation) || targets[t.ID] || t.Test != nil {
 			return errors.New("invalid or duplicate evidence target")
 		}
 		targets[t.ID] = true
