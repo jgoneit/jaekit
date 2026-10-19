@@ -340,7 +340,28 @@ func localRecordPath(repo, path string) error {
 		if filepath.Clean(path) == filepath.Clean(repo) {
 			return fmt.Errorf("%s is the repository itself; review records go to a Git-ignored folder", path)
 		}
-		return nil
+		// Outside the reviewed repository the path may still be in another
+		// one, whose rules apply the same way.
+		existing := path
+		for {
+			if info, err := os.Stat(existing); err == nil && info.IsDir() {
+				break
+			}
+			parent := filepath.Dir(existing)
+			if parent == existing {
+				return nil
+			}
+			existing = parent
+		}
+		other, err := repoRoot(existing)
+		if err != nil {
+			return nil // not in a Git repository
+		}
+		other = realish(other)
+		if rel = insideRepo(other, path); rel == "" {
+			return nil
+		}
+		repo = other
 	}
 	if first := strings.SplitN(filepath.ToSlash(rel), "/", 2)[0]; first == ".git" {
 		return fmt.Errorf("%s is inside .git", path)

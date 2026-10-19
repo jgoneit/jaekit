@@ -1,6 +1,8 @@
 package spar
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -35,7 +37,9 @@ func TestClassification(t *testing.T) {
 		{map[string]any{"link_kind": "criterion", "link": "AC-99"}, "note", false},
 		{map[string]any{"link_kind": "criterion", "link": "AC-10"}, "defect", true},
 		{map[string]any{"link_kind": "criterion", "link": "AC-2, AC-3"}, "note", false},
-		{map[string]any{"proposed_class": "requirement-question", "location": check}, "requirement-question", false},
+		{map[string]any{"proposed_class": "requirement-question", "location": check}, "hardening", false},
+		{map[string]any{"proposed_class": "requirement-question"}, "requirement-question", false},
+		{map[string]any{"link_kind": "rule", "link": "AGENTS.md:0"}, "note", false},
 		{map[string]any{"proposed_class": "note"}, "note", false},
 		{map[string]any{"link_kind": "rule", "link": "AGENTS.md"}, "defect", true},
 	}
@@ -79,6 +83,13 @@ func TestUnsafeCommand(t *testing.T) {
 		"echo $(id)":                           false,
 		"sed -i s/a/b/ head/x":                 false,
 		"grep x head/a 2>/dev/null; touch pwn": false,
+		"sort -o scratch.txt head/a":           false,
+		"sort --output=x head/a":               false,
+		"tree -o out.txt head":                 false,
+		"find head -fprint out":                false,
+		"uniq head/a out.txt":                  false,
+		"uniq -c head/a":                       true,
+		"grep -o foo head/a":                   true,
 	} {
 		if got := unsafeCommand(line) == ""; got != safe {
 			t.Errorf("%q: safe=%v (%s)", line, got, unsafeCommand(line))
@@ -127,5 +138,26 @@ func TestValidateResult(t *testing.T) {
 		if p := validateResult(m, head, angles); len(p) == 0 {
 			t.Errorf("%s: accepted", name)
 		}
+	}
+}
+
+// A packet over the argument limit reaches agy as a file in its workspace.
+func TestAgyLargePacketGoesThroughTheWorkspace(t *testing.T) {
+	ws := t.TempDir()
+	p := runPaths{workspace: ws, dir: t.TempDir(), schema: "schema.json"}
+	r := Reviewer{Preset: "agy", TimeoutSeconds: 60}
+	small := agySpec(r, "m", "agy", p, []byte("small packet"))
+	if small.transport != "argument" || small.argv[2] != "small packet" {
+		t.Fatalf("small packet: %s %q", small.transport, small.argv[2])
+	}
+	large := []byte(strings.Repeat("x", argumentLimit()+1))
+	spec := agySpec(r, "m", "agy", p, large)
+	data, err := os.ReadFile(filepath.Join(ws, packetFile))
+	if spec.transport != "file" || err != nil || string(data) != string(large) || len(spec.argv[2]) > 1024 {
+		t.Fatalf("large packet: %s %v %d", spec.transport, err, len(spec.argv[2]))
+	}
+	entries, _ := manifest(ws)
+	if _, ok := entries[packetFile]; !ok {
+		t.Fatal("the packet file is not in the workspace manifest")
 	}
 }

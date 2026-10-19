@@ -66,8 +66,10 @@ func dispositionProblem(f Finding, findings []Finding, o TriageOptions, repo, he
 		if target == nil {
 			return fmt.Sprintf("--of %s is not a finding of this round", o.Of), ""
 		}
-		if f.Class == "requirement-question" && target.Class != "requirement-question" {
-			return "a requirement question can only duplicate another requirement question", ""
+		// A defect or requirement question closes only through a finding
+		// of its own class, and only once that finding is closed (gate).
+		if (f.Class == "defect" || f.Class == "requirement-question") && target.Class != f.Class {
+			return fmt.Sprintf("a %s can only duplicate another %s; %s is %s", f.Class, f.Class, target.ID, target.Class), ""
 		}
 	case "answer":
 		if f.Class != "requirement-question" {

@@ -43,7 +43,7 @@ spar run --stage candidate --base <base commit> --head <candidate commit> \
 - `agy` runs its designated model first and its fallback model once, in the same round and on the same packet, only when the designated model is refused for quota or rate limits. Tell the user when the fallback ran and when the quota resets.
 - A `command` reviewer is an extra view: it is `unverified` and never counts as required.
 - The `native` reviewer is a clean-context subagent of your host. `spar run` writes `native/prompt.md` and a workspace in the round folder (a native reviewer with another name gets a folder of that name). Start a subagent with no other context, only read access to that workspace and the instruction to read that prompt and reply with the JSON object it asks for. Then record the reply: `spar record <round> native --result <file>` or `--transcript <subagent transcript>`; transcript warnings stay in the record.
-- A reviewer that ends `unavailable`, `timed_out`, `invalid_output` or `failed` is shown with its cause. It is never a round without findings. Rerun only that reviewer with `--reviewers <name>` when the cause is gone.
+- A reviewer that ends `unavailable`, `timed_out`, `invalid_output` or `failed` is shown with its cause. It is never a round without findings. Rerun only that reviewer with `--reviewers <name>` when the cause is gone; a `--reviewers` list never removes the configured required reviewers from the gate.
 
 ## Classes and dispositions
 
@@ -59,7 +59,7 @@ Close findings with `spar triage <round> <finding> <disposition>`:
 - `fix`: needs `--commit`, `--failed-before` and `--passed-after`, the fix commit and where the observation failed before it and passes after it.
 - `reject`: needs `--evidence` that disproves the finding at the reviewed head.
 - `defer`: needs `--to`; deferring a `defect` also needs `--user-quote`.
-- `duplicate`: needs `--of` another finding of the same round.
+- `duplicate`: needs `--of` another finding of the same round; a `defect` or `requirement-question` points only at one of its own class and stays open until that finding is closed.
 - `answer`: closes a `requirement-question` with the user's words.
 - Every disposition that closes a `requirement-question` needs `--user-quote`, and fixing an automatically deferred `hardening` item in this change needs `--user-quote` too. Never put words in the user's mouth.
 

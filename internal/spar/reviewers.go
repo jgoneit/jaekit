@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -47,7 +48,25 @@ var readOnlyPrograms = map[string]bool{"find": true, "ls": true, "grep": true, "
 	"cut": true, "stat": true, "file": true, "diff": true, "cmp": true, "tree": true, "pwd": true,
 	"basename": true, "dirname": true, "realpath": true, "tr": true, "du": true}
 
-var unsafeArgPrefixes = []string{"-exec", "-execdir", "-ok", "-okdir", "-delete", "--pre", "--compress-program"}
+var unsafeArgPrefixes = []string{"-exec", "-execdir", "-ok", "-okdir", "-delete", "--pre", "--compress-program",
+	"-fprint", "-fls"}
+
+// Options with which an otherwise read-only program writes a file.
+var writingOptions = map[string][]string{"sort": {"-o", "--output"}, "tree": {"-o"}}
+
+// packetFile is where a reviewer finds the packet when it is too large for
+// one command-line argument.
+const packetFile = "PACKET.md"
+
+// argumentLimit keeps one argument under the operating system's limit:
+// Linux refuses a single argument over 128 KiB, macOS limits all arguments
+// and the environment together to 1 MiB.
+func argumentLimit() int {
+	if runtime.GOOS == "linux" {
+		return 120 << 10
+	}
+	return 768 << 10
+}
 
 var sedPrint = regexp.MustCompile(`^(?:\d+|\$|/(?:[^/\\\n]|\\.)*/)(?:,(?:\d+|\$|/(?:[^/\\\n]|\\.)*/))?p$`)
 
@@ -66,6 +85,7 @@ type reviewSpec struct {
 	argv       []string
 	display    []string
 	stdin      []byte
+	transport  string // how the packet reaches the reviewer
 	model      string
 	effort     string
 	checkEvent func(map[string]any) string
@@ -149,7 +169,7 @@ func claudeSpec(r Reviewer, model, binary string, p runPaths, packet []byte) rev
 		"--permission-mode", "dontAsk", "--no-session-persistence", "--disable-slash-commands",
 		"--output-format", "stream-json", "--verbose", "--json-schema", schema)
 	display := replaceArg(argv, schema, "<schema.json>")
-	return reviewSpec{argv: argv, display: display, stdin: packet, model: model, effort: r.Effort,
+	return reviewSpec{argv: argv, display: display, stdin: packet, transport: "stdin", model: model, effort: r.Effort,
 		checkEvent: func(e map[string]any) string {
 			if e["type"] == "system" && e["subtype"] == "init" {
 				var extra []string
@@ -220,7 +240,7 @@ func codexSpec(r Reviewer, model, binary string, p runPaths, packet []byte) revi
 	}
 	argv = append(argv, "-s", "read-only", "--ephemeral", "--skip-git-repo-check", "-C", p.workspace, "--json",
 		"--output-schema", p.schema, "-o", last, "-")
-	return reviewSpec{argv: argv, display: argv, stdin: packet, model: model, effort: r.Effort,
+	return reviewSpec{argv: argv, display: argv, stdin: packet, transport: "stdin", model: model, effort: r.Effort,
 		checkEvent: func(e map[string]any) string {
 			if item := object(e["item"]); item != nil && !codexAllowed[str(item["type"])] {
 				return "used a disallowed tool: " + str(item["type"])
@@ -254,11 +274,19 @@ func codexSpec(r Reviewer, model, binary string, p runPaths, packet []byte) revi
 }
 
 func agySpec(r Reviewer, model, binary string, p runPaths, packet []byte) reviewSpec {
-	prompt := string(packet)
+	// agy takes its prompt as an argument. A packet over the argument limit
+	// goes into the workspace unchanged, and the prompt points at it.
+	prompt, transport := string(packet), "argument"
+	if len(packet) > argumentLimit() {
+		if err := os.WriteFile(filepath.Join(p.workspace, packetFile), packet, 0o644); err == nil {
+			prompt, transport = "The review packet is the file "+packetFile+" in the current folder, next to head/ and base/. "+
+				"Read all of it and follow it exactly; it is the whole task.", "file"
+		}
+	}
 	argv := []string{binary, "-p", prompt, "--model", model, "--sandbox", "--disable-slash-commands",
 		"--output-format", "stream-json", "--json-schema", p.schema,
 		"--print-timeout", fmt.Sprintf("%ds", r.TimeoutSeconds), "--log-file", filepath.Join(p.dir, "agy-runtime.log")}
-	return reviewSpec{argv: argv, display: replaceArg(argv, prompt, "<packet.md>"), model: model,
+	return reviewSpec{argv: argv, display: replaceArg(argv, string(packet), "<packet.md>"), transport: transport, model: model,
 		checkEvent: func(e map[string]any) string {
 			step := object(e["step_update"])
 			if step == nil || step["step_type"] != "tool" {
@@ -321,7 +349,7 @@ func commandSpec(r Reviewer, binary string, p runPaths) reviewSpec {
 		argv[i] = replace.Replace(a)
 	}
 	argv[0] = binary
-	return reviewSpec{argv: argv, display: argv,
+	return reviewSpec{argv: argv, display: argv, transport: "file",
 		checkEvent: func(map[string]any) string { return "" },
 		parse: func(stdout []byte) (any, string, string) {
 			if out, ok := lastJSONObject(stdout); ok {
@@ -505,12 +533,24 @@ func unsafeCommand(line string) string {
 		} else if !readOnlyPrograms[program] {
 			return fmt.Sprintf("program %q", program)
 		}
+		var operands []string
 		for _, t := range seg[1:] {
 			for _, p := range unsafeArgPrefixes {
 				if strings.HasPrefix(t, p) {
 					return fmt.Sprintf("argument %q", t)
 				}
 			}
+			for _, o := range writingOptions[program] {
+				if t == o || strings.HasPrefix(t, o+"=") || (len(o) == 2 && strings.HasPrefix(t, o)) {
+					return fmt.Sprintf("argument %q writes a file", t)
+				}
+			}
+			if !strings.HasPrefix(t, "-") {
+				operands = append(operands, t)
+			}
+		}
+		if program == "uniq" && len(operands) > 1 {
+			return "uniq with an output file"
 		}
 	}
 	return ""
@@ -614,19 +654,20 @@ func toolVersion(binary string) string {
 
 // Attempt is one run of a reviewer with one model.
 type Attempt struct {
-	Model          string   `json:"model"`
-	Status         string   `json:"status"`
-	Reason         string   `json:"reason,omitempty"`
-	Resets         string   `json:"resets,omitempty"`
-	ObservedModel  string   `json:"observed_model,omitempty"`
-	ExitCode       *int     `json:"exit_code,omitempty"`
-	ElapsedSeconds float64  `json:"elapsed_seconds"`
-	Argv           []string `json:"argv,omitempty"`
-	CLIVersion     string   `json:"cli_version,omitempty"`
-	StartedAt      string   `json:"started_at"`
-	FinishedAt     string   `json:"finished_at"`
-	quota          bool
-	result         any
+	Model           string   `json:"model"`
+	PacketTransport string   `json:"packet_transport,omitempty"`
+	Status          string   `json:"status"`
+	Reason          string   `json:"reason,omitempty"`
+	Resets          string   `json:"resets,omitempty"`
+	ObservedModel   string   `json:"observed_model,omitempty"`
+	ExitCode        *int     `json:"exit_code,omitempty"`
+	ElapsedSeconds  float64  `json:"elapsed_seconds"`
+	Argv            []string `json:"argv,omitempty"`
+	CLIVersion      string   `json:"cli_version,omitempty"`
+	StartedAt       string   `json:"started_at"`
+	FinishedAt      string   `json:"finished_at"`
+	quota           bool
+	result          any
 }
 
 func now() string {
@@ -649,7 +690,7 @@ func runAttempt(r Reviewer, model string, p runPaths, packet []byte, angles []st
 		return finish(StatusFailed, err.Error())
 	}
 	spec := specFor(r, model, binary, p, packet)
-	a.Argv = spec.display
+	a.Argv, a.PacketTransport = spec.display, spec.transport
 	if r.Preset != "command" {
 		a.CLIVersion = toolVersion(binary)
 	}
@@ -812,9 +853,13 @@ func scanEvents(path string, offset int64, check func(map[string]any) string) (s
 	}
 }
 
-// manifest identifies every path under the reviewed folders of a workspace.
+// manifest identifies every path under the reviewed folders of a workspace
+// and the packet file when there is one.
 func manifest(root string) (map[string]string, error) {
 	entries := map[string]string{}
+	if data, err := os.ReadFile(filepath.Join(root, packetFile)); err == nil {
+		entries[packetFile] = "F:" + newDocument("", "", data).SHA256
+	}
 	for _, side := range []string{"head", "base"} {
 		top := filepath.Join(root, side)
 		if _, err := os.Lstat(top); os.IsNotExist(err) {

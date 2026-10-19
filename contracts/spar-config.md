@@ -78,8 +78,8 @@ code = 3
 
 - `caps`: 한 series에서 단계별로 셀 수 있는 라운드 수. 기본은 `plan` 1, `plan_delta` 1, `code` 3(candidate와 fixes 합계). 0 이상의 정수.
 - `angles`: 패킷이 묻는 공격 각도. 기본은 다섯 개 `requirement-counterexample`, `side-effects`, `design`, `premises`, `check-validity`이고, 이 가운데 일부로 줄일 수 있다. 순서는 위 순서로 정규화한다.
-- `rules`: 매 라운드 패킷에 넣을 규칙 문서. 저장소 상대 경로.
-- `check_paths`: 검사 코드로 보는 경로의 glob. `**`는 여러 폴더, `*`·`?`·`[...]`는 한 이름 안에서 맞춘다. 분류와 gate의 `growth`가 쓴다.
+- `rules`: 매 라운드 패킷에 넣을 규칙 문서. 저장소 안의 상대 경로이고, `..`로 나가거나 심볼릭 링크로 저장소 밖을 가리키면 거부한다.
+- `check_paths`: 검사 코드로 보는 경로의 glob. `**`는 여러 폴더, `*`·`?`·`[...]`는 한 이름 안에서 맞춘다. 저장소 밖을 가리킬 수 없다. 분류와 gate의 `growth`가 쓴다.
 
 `reviewers`, `preset`, `command`, `argv`, `binary`, `model`, `fallback_model`, `effort`는 어느 깊이에 있어도 그 키 이름과 위치를 대는 오류로 거부한다. clone한 저장소가 사용자 컴퓨터에서 명령을 실행하거나 사용자 계정의 비용을 바꾸지 못하게 하기 위해서다.
 
@@ -101,6 +101,7 @@ code = 3
 | --- | --- |
 | `source` | `kind`(`SPAR_CONFIG`, `XDG_CONFIG_HOME`, `HOME`, `clean-review`, `default`), `path`, `skipped`, `note` |
 | `override` | `--reviewers`를 썼으면 그 이름들, 아니면 `null` |
+| `configured_required` | `--reviewers`와 관계없이 설정이 필수로 정한 리뷰어의 `name`·`preset`. gate가 필수 리뷰어로 본다 |
 | `files` | 읽은 설정 파일의 경로와 sha256 |
 | `reviewers` | 적용된 리뷰어(`name`, `preset`, `isolation`, `required`, `model`, `fallback_model`, `effort`, `binary`, `argv`, `timeout_seconds`) |
 | `angles`, `caps`, `check_paths`, `rules` | 적용된 값 |

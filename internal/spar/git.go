@@ -215,14 +215,9 @@ func writeEntry(dest string, e treeEntry, data []byte) error {
 	}
 	switch e.mode {
 	case "120000":
-		target := string(data)
-		// A link that stays inside the tree is kept; one that points
-		// elsewhere would let a reviewer read outside the workspace.
-		inside := filepath.Join(filepath.Dir(rel), filepath.FromSlash(target))
-		if !filepath.IsAbs(target) && filepath.IsLocal(inside) {
-			return os.Symlink(target, path)
-		}
-		return os.WriteFile(path, []byte("symbolic link to "+target+"\n"), 0o644)
+		// A symbolic link becomes a file holding its target, the blob
+		// itself: links, alone or chained, could lead outside the workspace.
+		return os.WriteFile(path, data, 0o644)
 	case "100755":
 		return os.WriteFile(path, data, 0o755)
 	default:

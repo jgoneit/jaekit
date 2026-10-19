@@ -73,18 +73,27 @@ type FileDigest struct {
 	SHA256 string `json:"sha256"`
 }
 
+// RequiredRef names a reviewer the configuration makes required.
+type RequiredRef struct {
+	Name   string `json:"name"`
+	Preset string `json:"preset"`
+}
+
 // Config is the applied configuration: reviewers from the user's file and
 // limits from the project's file.
 type Config struct {
-	Source     Source       `json:"source"`
-	Override   *Override    `json:"override"`
-	Files      []FileDigest `json:"files"`
-	Reviewers  []Reviewer   `json:"reviewers"`
-	Angles     []string     `json:"angles"`
-	Caps       Caps         `json:"caps"`
-	CheckPaths []string     `json:"check_paths"`
-	Rules      []string     `json:"rules"`
-	Digest     string       `json:"digest"`
+	Source    Source       `json:"source"`
+	Override  *Override    `json:"override"`
+	Files     []FileDigest `json:"files"`
+	Reviewers []Reviewer   `json:"reviewers"`
+	// ConfiguredRequired are the required reviewers of the configuration
+	// itself: a --reviewers list never removes them from a gate.
+	ConfiguredRequired []RequiredRef `json:"configured_required"`
+	Angles             []string      `json:"angles"`
+	Caps               Caps          `json:"caps"`
+	CheckPaths         []string      `json:"check_paths"`
+	Rules              []string      `json:"rules"`
+	Digest             string        `json:"digest"`
 }
 
 // presets are the reviewer kinds and their defaults.
@@ -165,6 +174,12 @@ func LoadConfig(repo string, getenv func(string) string, override []string) (*Co
 	configured, err := c.loadReviewers(getenv)
 	if err != nil {
 		return nil, err
+	}
+	c.ConfiguredRequired = []RequiredRef{}
+	for _, r := range configured {
+		if r.Required {
+			c.ConfiguredRequired = append(c.ConfiguredRequired, RequiredRef{r.Name, r.Preset})
+		}
 	}
 	if override != nil {
 		c.Override = &Override{Kind: "--reviewers", Names: append([]string{}, override...)}
@@ -575,10 +590,10 @@ func (c *Config) loadProject(repo string) error {
 		}
 		c.Angles = ordered
 	}
-	for _, item := range [][]string{file.Rules, file.CheckPaths} {
+	for key, item := range map[string][]string{"rules": file.Rules, "check_paths": file.CheckPaths} {
 		for _, v := range item {
-			if strings.TrimSpace(v) == "" || filepath.IsAbs(v) {
-				return &ConfigError{Path: path, Msg: fmt.Sprintf("paths must be repository-relative and non-empty: %q", v)}
+			if strings.TrimSpace(v) == "" || strings.HasPrefix(v, "/") || !filepath.IsLocal(filepath.FromSlash(v)) {
+				return &ConfigError{Path: path, Line: lines[key], Msg: fmt.Sprintf("%s must hold paths inside the repository: %q", key, v)}
 			}
 		}
 	}

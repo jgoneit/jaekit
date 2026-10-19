@@ -111,3 +111,38 @@ func TestNativeRoundRecordTriageAndGate(t *testing.T) {
 		t.Fatalf("a tracked record folder was accepted: %v", err)
 	}
 }
+
+// A defect closes through a duplicate only once the finding it duplicates
+// is closed, and two duplicates of each other stay open.
+func TestDuplicateChains(t *testing.T) {
+	final := map[string]LedgerEntry{
+		"a": {Finding: "a", Disposition: "duplicate", Of: "b"},
+		"b": {Finding: "b", Disposition: "duplicate", Of: "a"},
+		"c": {Finding: "c", Disposition: "duplicate", Of: "d"},
+		"e": {Finding: "e", Disposition: "duplicate", Of: "f"},
+		"f": {Finding: "f", Disposition: "reject", Evidence: "x"},
+	}
+	for id, want := range map[string]bool{"a": false, "b": false, "c": false, "e": true} {
+		if _, done := resolveDuplicate(final, id); done != want {
+			t.Errorf("%s: closed=%v", id, done)
+		}
+	}
+	findings := []Finding{{ID: "x", Class: "defect"}, {ID: "y", Class: "note"}, {ID: "z", Class: "defect"}}
+	if p, _ := dispositionProblem(findings[0], findings, TriageOptions{Disposition: "duplicate", Of: "y"}, "", ""); p == "" {
+		t.Error("a defect closed as a duplicate of a note")
+	}
+	if p, _ := dispositionProblem(findings[0], findings, TriageOptions{Disposition: "duplicate", Of: "z"}, "", ""); p != "" {
+		t.Errorf("a defect duplicating a defect was refused: %s", p)
+	}
+}
+
+// --reviewers cannot shrink the required reviewers a gate expects.
+func TestRequiredOfKeepsConfiguredReviewers(t *testing.T) {
+	r := &RoundRecord{RequiredReviewers: []string{"codex"},
+		Reviewers: map[string]*ReviewerState{"codex": {Preset: "codex", Required: true}},
+		Config:    &Config{ConfiguredRequired: []RequiredRef{{"claude", "claude"}, {"codex", "codex"}}}}
+	got := requiredOf(r)
+	if len(got) != 2 || got[0].Name != "codex" || got[1].Name != "claude" {
+		t.Fatalf("%+v", got)
+	}
+}

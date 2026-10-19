@@ -290,7 +290,13 @@ func Run(o RunOptions) (int, error) {
 	}
 	rulePaths := append([]string{}, o.Rules...)
 	for _, r := range cfg.Rules {
-		rulePaths = append(rulePaths, filepath.Join(repo, filepath.FromSlash(r)))
+		// A project names rule files inside its repository only; a link
+		// out of it is refused like a path that leaves it.
+		path := filepath.Join(repo, filepath.FromSlash(r))
+		if insideRepo(repo, realish(path)) == "" {
+			return ExitRefused, refused("the project configuration's rules entry %q leaves the repository", r)
+		}
+		rulePaths = append(rulePaths, path)
 	}
 	rules, err := readDocuments(repo, rulePaths, "rule document")
 	if err != nil {
@@ -313,6 +319,23 @@ func Run(o RunOptions) (int, error) {
 		return ExitInternal, err
 	}
 	series := filepath.Dir(out)
+	// One run at a time per series admits a round and writes its record, so
+	// two runs cannot both take the last round under a cap.
+	if err := os.MkdirAll(series, 0o755); err != nil {
+		return ExitInternal, err
+	}
+	unlock, err := lockFile(filepath.Join(series, ".spar-lock"))
+	if err != nil {
+		return ExitInternal, err
+	}
+	locked := true
+	release := func() {
+		if locked {
+			locked = false
+			unlock()
+		}
+	}
+	defer release()
 	siblings, err := seriesRounds(series)
 	if err != nil {
 		return ExitRefused, refused("series %s: %v", series, err)
@@ -355,7 +378,7 @@ func Run(o RunOptions) (int, error) {
 	if rerunOf != nil {
 		r.RerunOf = rerunOf
 	}
-	return runRound(o, r, out, []byte(packet))
+	return runRound(o, r, out, []byte(packet), release)
 }
 
 func nonNil(docs []Document) []Document {
@@ -365,7 +388,7 @@ func nonNil(docs []Document) []Document {
 	return docs
 }
 
-func runRound(o RunOptions, r *RoundRecord, out string, packet []byte) (int, error) {
+func runRound(o RunOptions, r *RoundRecord, out string, packet []byte, admitted func()) (int, error) {
 	if err := os.MkdirAll(out, 0o755); err != nil {
 		return ExitInternal, err
 	}
@@ -391,6 +414,7 @@ func runRound(o RunOptions, r *RoundRecord, out string, packet []byte) (int, err
 	if err := writeJSON(filepath.Join(out, "round.json"), r); err != nil {
 		return ExitInternal, err
 	}
+	admitted() // the round now counts in its series
 	tmp, err := os.MkdirTemp("", "spar-workspace-")
 	if err != nil {
 		return ExitInternal, err

@@ -20,15 +20,15 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
 `blocked` 사유:
 
 - 상한 초과: 라운드의 series마다, 디스크에 있는 라운드와 주어진 라운드 가운데 `counted`인 것을 단계 묶음별로 세어 마지막 라운드 설정의 상한과 `extensions.jsonl` 연장의 합을 넘음
-- 처리되지 않은 지적: 원장에 처리가 없는 `defect`·`requirement-question`
+- 처리되지 않은 지적: 원장에 처리가 없는 `defect`·`requirement-question`. `duplicate`는 가리킨 지적을 따라가 닫는 처리에 닿을 때만 닫히고, 열린 지적에 닿거나 서로를 가리키면 열려 있다
 - `fix`로 처리한 지적의 수정 커밋이 기대 head에 포함되지 않음
 - 코드 라운드 사슬 끊김: 목록의 fixes 라운드 base가 바로 앞 code 라운드의 head가 아니거나, 앞에 code 라운드가 없음
 - 기대 head 미검토: 마지막 code 라운드(없으면 마지막 라운드)의 head가 기대 head가 아님
-- dry run 라운드, 읽을 수 없는 라운드, 저장소에 없는 커밋
+- dry run 라운드, 읽을 수 없는 라운드, `findings.json`이나 `ledger.jsonl`이 없는 라운드, 저장소에 없는 커밋
 
 `degraded` 사유:
 
-- 필수 리뷰어가 완료하지 않음. 같은 단계·base·head·패킷의 다른 라운드(재실행)에서 완료했으면 완료로 본다.
+- 필수 리뷰어가 완료하지 않음. 필수 리뷰어는 라운드가 필수로 실행한 리뷰어와 그 설정이 필수로 정한 리뷰어(`config.configured_required`)다. `--reviewers`로 뺀 설정의 필수 리뷰어도 포함된다. 같은 단계·base·head·패킷의 다른 라운드(재실행)에서 같은 이름·preset의 필수 리뷰어로 완료했으면 완료로 본다.
 - 필수 리뷰어가 없는 라운드(예: `command` 리뷰어만 있는 라운드)
 
 `complete`는 사유가 하나도 없을 때뿐이다.
@@ -68,7 +68,7 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
 | `open` | 열린 `defect`와 `requirement-question` 수 |
 | `open_findings` | 열린 지적의 라운드와 ID |
 | `auto_deferred` | 마지막 처리가 자동 보류인 `hardening` 수 |
-| `growth.added_lines` | 목록의 fixes 라운드마다 `git diff --numstat <base> <head>`의 더한 줄을 그 라운드 설정의 검사 경로(`check`)와 그 밖(`other`)으로 나눈 합 |
+| `growth.added_lines` | 목록의 fixes 라운드마다 `git diff --numstat <base> <head>`의 더한 줄을 그 라운드 설정의 검사 경로(`check`)와 그 밖(`other`)으로 나눈 합. 같은 base·head는 한 번만 센다 |
 | `growth.over_hardening` | `check`가 `other`보다 크면 `true` |
 | `growth.rounds[]` | fixes 라운드별 `check`·`other` |
 

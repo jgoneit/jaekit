@@ -14,7 +14,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 | --- | --- |
 | `--stage` | `plan`, `plan-delta`, `candidate`, `fixes` |
 | `--base`, `--head` | 비교할 두 커밋. `--head` 기본값은 `HEAD` |
-| `--out` | 새 라운드 폴더. 이미 있으면 거부한다. 저장소 안이면 Git이 무시하는 경로여야 하고 그 아래에 추적 파일이 없어야 한다 |
+| `--out` | 새 라운드 폴더. 이미 있으면 거부한다. 검토하는 저장소나 다른 Git 저장소 안이면 그 저장소가 무시하는 경로여야 하고 그 아래에 추적 파일이 없어야 한다 |
 | `--criteria` | 기준 문서. 하나 이상 필수 |
 | `--rules` | 규칙·계약 문서. 프로젝트 설정의 `rules`가 더해진다 |
 | `--subject` | plan 단계에서 검토할 문서 |
@@ -24,7 +24,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 | `--repo`, `--label` | 저장소 위치, 기록에 남길 이름 |
 | `--dry-run` | 패킷과 작업공간만 만들고 리뷰어를 띄우지 않는다. 상한에 세지 않고 gate는 받지 않는다 |
 
-라운드 폴더의 부모 폴더가 한 검토의 series다. 같은 series의 다른 `review-round/v1` 라운드에서 상한, 이전 head와 이전 지적을 읽는다. 다른 형식의 기록 폴더는 읽지도 바꾸지도 않는다.
+라운드 폴더의 부모 폴더가 한 검토의 series다. 같은 series의 다른 `review-round/v1` 라운드에서 상한, 이전 head와 이전 지적을 읽는다. 다른 형식의 기록 폴더는 읽지도 바꾸지도 않는다. series의 `.spar-lock`을 잠가 한 번에 한 실행만 상한을 판단하고 라운드 기록을 쓴다.
 
 종료 코드: 0 라운드 기록을 썼고 완료했거나 대기 중인 리뷰어가 있음, 1 라운드 기록을 썼지만 완료하거나 대기 중인 리뷰어가 없음, 64 사용법 오류, 65 거부(설정 오류, 추적되는 기록 폴더, 상한 초과, 사슬 끊김, 읽을 수 없는 입력), 70 내부 오류. 거부는 리뷰어를 띄우기 전에 일어나고 라운드 폴더를 만들지 않는다.
 
@@ -32,9 +32,9 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 - `packet.md`는 모든 리뷰어가 받는 한 텍스트다. 단계 설명, 두 커밋 ID와 tree ID, 공격 각도와 보고 방법, 기준 문서·규칙 문서·검토 대상 문서의 전문, 질문, 같은 series의 앞선 라운드 지적, 두 커밋 사이의 diff가 들어간다. 커밋 메시지, Git 이력, 무시된 파일, 리뷰어 목록은 들어가지 않는다. `packet_sha256`은 이 파일의 sha256이다.
 - 앞선 라운드 지적은 plan-delta에서는 plan·plan-delta 라운드, fixes에서는 candidate·fixes 라운드의 것이다. 단계·base·head가 같은 라운드는 넣지 않아서 같은 입력의 재실행은 같은 패킷을 받는다.
-- 리뷰어마다 임시 작업공간 사본을 만든다. `head/`와 `base/`에는 두 커밋의 추적 파일이 blob 그대로 들어가고 `.git`은 없다. 작업공간 밖을 가리키는 symlink는 대상 경로를 적은 일반 파일로 바뀐다.
+- 리뷰어마다 임시 작업공간 사본을 만든다. `head/`와 `base/`에는 두 커밋의 추적 파일이 blob 그대로 들어가고 `.git`은 없다. symlink는 만들지 않고 그 blob(대상 경로)을 담은 일반 파일로 둔다.
 - `schema.json`은 리뷰어 결과의 JSON schema다.
-- `claude`는 표준 입력, `codex`는 표준 입력, `agy`는 `-p` 인자로 패킷을 받는다. `command`는 `{prompt}` 자리에 `packet.md` 경로를 받는다. 패킷은 각 리뷰어의 제공자에게 전송된다.
+- `claude`는 표준 입력, `codex`는 표준 입력, `agy`는 `-p` 인자로 패킷을 받는다. 패킷이 인자 하나의 한도(Linux 120 KiB, 그 밖 768 KiB)를 넘으면 `agy`는 같은 바이트의 `PACKET.md`를 작업공간 최상위에 받고 `-p`는 그 파일을 읽으라는 짧은 지시다. 시도 기록의 `packet_transport`(`stdin`, `argument`, `file`)가 이를 남기고, `PACKET.md`가 바뀌면 `workspace_modified`다. `command`는 `{prompt}` 자리에 `packet.md` 경로를 받는다. 패킷은 각 리뷰어의 제공자에게 전송된다.
 
 ## 3. 리뷰어 결과
 
@@ -105,15 +105,15 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 연결 확인:
 
 - `criterion`: 연결에 나오는 모든 `AC-n`이 기준 문서에 있어야 한다.
-- `rule`: 라운드의 규칙 문서를 이름·경로로 대야 하고, 줄 번호를 대면 그 문서에 그 줄이 있어야 한다.
+- `rule`: 라운드의 규칙 문서를 이름·경로로 대야 하고, 줄 번호를 대면 그 문서에 그 줄이 있어야 한다(1부터).
 - `contract`: 규칙 문서이거나 head 커밋의 파일이어야 하고 줄 번호 조건은 같다.
 
 분류 규칙(위에서 처음 맞는 것):
 
-1. `proposed_class`가 `requirement-question`이면 `requirement-question`
-2. 위치가 검사 경로이고 `check_impact`가 `false_pass`나 `meaning_inverted`이면 `defect`
-3. 위치가 검사 경로이고 `contract_violation`이며 연결이 확인되면 `defect`
-4. 위치가 검사 경로이면 `hardening`
+1. 위치가 검사 경로이고 `check_impact`가 `false_pass`나 `meaning_inverted`이면 `defect`
+2. 위치가 검사 경로이고 `contract_violation`이며 연결이 확인되면 `defect`
+3. 위치가 검사 경로이면 제안 분류와 관계없이 `hardening`
+4. `proposed_class`가 `requirement-question`이면 `requirement-question`
 5. `introduced_by_change`와 `regression`이 모두 `yes`이면 `defect`
 6. `proposed_class`가 `defect`이고 연결이 확인되지 않으면 `note`
 7. 그 밖에는 `proposed_class`
@@ -129,7 +129,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 | `fix` | `--commit`(라운드 head 뒤의 커밋), `--failed-before`, `--passed-after` |
 | `reject` | `--evidence`(`requirement-question`은 대신 `--user-quote`) |
 | `defer` | `--to`. `defect`는 `--user-quote`도 |
-| `duplicate` | `--of` 같은 라운드의 다른 지적. `requirement-question`은 다른 `requirement-question`만 |
+| `duplicate` | `--of` 같은 라운드의 다른 지적. `defect`와 `requirement-question`은 같은 분류의 지적만 가리키고, 가리킨 지적이 닫혀야 닫힌다(gate) |
 | `answer` | `requirement-question`에만 |
 
 `requirement-question`을 닫는 `fix`·`reject`·`defer`·`answer`와, 자동 보류된 `hardening`의 `fix`는 사용자의 말을 인용한 `--user-quote`가 필요하다. `note`는 처리하지 않아도 된다.

@@ -127,6 +127,10 @@ func Gate(o GateOptions) (int, error) {
 			blocked = append(blocked, err.Error())
 			continue
 		}
+		if missing := missingRecords(dir, r); missing != "" {
+			blocked = append(blocked, fmt.Sprintf("%s: %s is missing", p, missing))
+			continue
+		}
 		findings, err := loadFindings(dir)
 		if err != nil {
 			blocked = append(blocked, err.Error())
@@ -139,16 +143,21 @@ func Gate(o GateOptions) (int, error) {
 		}
 		rounds = append(rounds, loadedRound{p, r, findings, ledger})
 	}
-	// Required reviewers: each must complete the packet in some round of the
-	// same stage, base, head and packet (a rerun completes the original).
+	// Required reviewers: the round's own and those its configuration makes
+	// required, even when --reviewers left them out. Each must complete the
+	// packet in some round of the same stage, base, head and packet (a rerun
+	// completes the original), as a required reviewer of the same preset.
 	completedIn := map[string]bool{}
 	identity := func(r *RoundRecord) string {
 		return r.Stage + "\x00" + r.Base + "\x00" + r.Head + "\x00" + r.PacketSHA256
 	}
+	credit := func(r *RoundRecord, name, preset string) string {
+		return identity(r) + "\x00" + name + "\x00" + preset
+	}
 	for _, lr := range rounds {
 		for name, st := range lr.round.Reviewers {
-			if st.Status == StatusCompleted {
-				completedIn[identity(lr.round)+"\x00"+name] = true
+			if st.Status == StatusCompleted && st.Required {
+				completedIn[credit(lr.round, name, st.Preset)] = true
 			}
 		}
 	}
@@ -158,22 +167,25 @@ func Gate(o GateOptions) (int, error) {
 		r := lr.round
 		gr := GateRound{Path: lr.path, Stage: r.Stage, Sequence: r.Sequence, Base: r.Base, Head: r.Head,
 			CriteriaDigest: r.CriteriaDigest, PacketDigest: r.PacketSHA256, RequestedReviewers: nonNilStrings(r.RequestedReviewers),
-			RequiredReviewers: len(r.RequiredReviewers), DryRun: r.DryRun, Counted: r.Counted}
+			DryRun: r.DryRun, Counted: r.Counted}
 		if r.Config != nil {
 			gr.ConfigDigest = r.Config.Digest
 		}
-		for _, name := range r.RequiredReviewers {
-			if st := r.Reviewers[name]; st != nil && st.Status == StatusCompleted {
+		required := requiredOf(r)
+		gr.RequiredReviewers = len(required)
+		for _, ref := range required {
+			st := r.Reviewers[ref.Name]
+			switch {
+			case st != nil && st.Status == StatusCompleted && st.Required && st.Preset == ref.Preset:
 				gr.CompletedRequired++
-			} else if !completedIn[identity(r)+"\x00"+name] {
-				status := "missing"
-				if st != nil {
-					status = st.Status
-				}
-				degraded = append(degraded, fmt.Sprintf("%s: required reviewer %s is %s", lr.path, name, status))
+			case completedIn[credit(r, ref.Name, ref.Preset)]:
+			case st == nil:
+				degraded = append(degraded, fmt.Sprintf("%s: required reviewer %s did not run in this round", lr.path, ref.Name))
+			default:
+				degraded = append(degraded, fmt.Sprintf("%s: required reviewer %s is %s", lr.path, ref.Name, st.Status))
 			}
 		}
-		if len(r.RequiredReviewers) == 0 {
+		if len(required) == 0 {
 			degraded = append(degraded, fmt.Sprintf("%s: the round has no required reviewer", lr.path))
 		}
 		if r.DryRun {
@@ -220,6 +232,9 @@ func Gate(o GateOptions) (int, error) {
 			if f.Class != "defect" && f.Class != "requirement-question" {
 				continue
 			}
+			if done && e.Disposition == "duplicate" {
+				e, done = resolveDuplicate(final, f.ID)
+			}
 			if !done {
 				g.Open[f.Class]++
 				g.OpenFindings = append(g.OpenFindings, lr.path+" "+f.ID)
@@ -233,11 +248,14 @@ func Gate(o GateOptions) (int, error) {
 	if n := g.Open["defect"] + g.Open["requirement-question"]; n > 0 {
 		blocked = append(blocked, fmt.Sprintf("%d open defect or requirement-question finding(s)", n))
 	}
+	measured := map[string]bool{}
 	for _, lr := range rounds {
 		r := lr.round
-		if r.Stage != "fixes" || r.DryRun {
+		// A rerun of the same fixes reviews the same commits: count them once.
+		if r.Stage != "fixes" || r.DryRun || measured[r.Base+".."+r.Head] {
 			continue
 		}
+		measured[r.Base+".."+r.Head] = true
 		added, err := numstat(repo, r.Base, r.Head)
 		if err != nil {
 			blocked = append(blocked, fmt.Sprintf("%s: added lines cannot be read: %v", lr.path, err))
@@ -278,6 +296,60 @@ func Gate(o GateOptions) (int, error) {
 		return ExitInternal, err
 	}
 	return code, nil
+}
+
+// requiredOf lists a round's required reviewers: those it ran as required
+// and those its configuration requires.
+func requiredOf(r *RoundRecord) []RequiredRef {
+	var out []RequiredRef
+	seen := map[string]bool{}
+	add := func(ref RequiredRef) {
+		if !seen[ref.Name] {
+			seen[ref.Name] = true
+			out = append(out, ref)
+		}
+	}
+	for _, name := range r.RequiredReviewers {
+		if st := r.Reviewers[name]; st != nil {
+			add(RequiredRef{name, st.Preset})
+		}
+	}
+	if r.Config != nil {
+		for _, ref := range r.Config.ConfiguredRequired {
+			add(ref)
+		}
+	}
+	return out
+}
+
+// missingRecords names a record file spar always writes that a round lacks.
+func missingRecords(dir string, r *RoundRecord) string {
+	if r.DryRun {
+		return ""
+	}
+	for _, name := range []string{"findings.json", "ledger.jsonl"} {
+		if _, err := os.Stat(filepath.Join(dir, name)); err != nil {
+			return name
+		}
+	}
+	return ""
+}
+
+// resolveDuplicate follows duplicate dispositions to the finding that
+// carries the decision. A chain that ends open or loops stays open.
+func resolveDuplicate(final map[string]LedgerEntry, id string) (LedgerEntry, bool) {
+	seen := map[string]bool{}
+	for {
+		e, done := final[id]
+		if !done || seen[id] {
+			return LedgerEntry{}, false
+		}
+		if e.Disposition != "duplicate" {
+			return e, true
+		}
+		seen[id] = true
+		id = e.Of
+	}
 }
 
 func nonNilStrings(list []string) []string {

@@ -145,7 +145,9 @@ func (c classifier) verifyLink(kind, link string) bool {
 		line := 0
 		if m := linkLine.FindStringSubmatch(ref); m != nil {
 			ref = m[1]
-			line, _ = strconv.Atoi(m[2])
+			if line, _ = strconv.Atoi(m[2]); line < 1 {
+				return false // a line that is given must exist
+			}
 		}
 		ref = strings.TrimPrefix(strings.TrimPrefix(ref, "head/"), "./")
 		for _, d := range c.targets.Rules {
@@ -165,8 +167,9 @@ func (c classifier) verifyLink(kind, link string) bool {
 
 // classify applies the class rules: a check-path finding is a defect only
 // when it claims a false pass, an inverted meaning or a linked contract
-// violation, and a hardening item otherwise; a regression the change made
-// is a defect; an unlinked defect proposal is a note.
+// violation, and a hardening item otherwise, whatever was proposed; a
+// regression the change made is a defect; an unlinked defect proposal is a
+// note.
 func (c classifier) classify(reviewer string, raw map[string]any) Finding {
 	f := Finding{
 		Reviewer: reviewer, ReviewerID: str(raw["id"]), ProposedClass: str(raw["proposed_class"]),
@@ -186,14 +189,14 @@ func (c classifier) classify(reviewer string, raw map[string]any) Finding {
 		f.LinkKind, f.Link = "none", ""
 	}
 	switch {
-	case f.ProposedClass == "requirement-question":
-		f.Class, f.ClassReason = "requirement-question", "proposed requirement question"
 	case f.InCheckPaths && (f.CheckImpact == "false_pass" || f.CheckImpact == "meaning_inverted"):
 		f.Class, f.ClassReason = "defect", "check path finding with "+f.CheckImpact
 	case f.InCheckPaths && f.CheckImpact == "contract_violation" && linked:
 		f.Class, f.ClassReason = "defect", "check path finding with a linked contract violation"
 	case f.InCheckPaths:
 		f.Class, f.ClassReason = "hardening", "check path finding without a false pass, inverted meaning or linked contract violation"
+	case f.ProposedClass == "requirement-question":
+		f.Class, f.ClassReason = "requirement-question", "proposed requirement question"
 	case f.IntroducedByChange == "yes" && f.Regression == "yes":
 		f.Class, f.ClassReason = "defect", "regression introduced by the change"
 	case f.ProposedClass == "defect" && !linked:
