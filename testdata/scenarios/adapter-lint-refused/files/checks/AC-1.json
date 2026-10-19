@@ -1,0 +1,1 @@
+{"schema": "check-adapter/v1", "adapter": "go-test-json", "targets": [{"id": "greeting", "violation": "jaekit:unmarked-failure", "test": {"package": "example.com/greet", "name": "TestGreets"}}]}
