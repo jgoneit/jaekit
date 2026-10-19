@@ -498,12 +498,15 @@ class Preserved(Built):
             names = goal_names(plain, tiered)
             for goal in (plain, tiered):
                 violation = "tier-changes-judgment" if goal == tiered else "no-line-goal-changed"
+                # Each output is checked against the records as they were right
+                # after it: a `done` may append a record.
                 status = self.status_json(root, goal)
                 status_text = self.ha_run(root, "status", goal, expect=(0,)).stdout
                 self.check_timing(root, goal, bool(rules), status, status_text, violation)
                 done = self.status_json(root, goal, "done")
+                self.check_timing(root, goal, bool(rules), done, "", violation)
                 done_text = self.ha_run(root, "done", goal, expect=(0,)).stdout
-                self.check_timing(root, goal, bool(rules), done, done_text, violation)
+                self.check_timing(root, goal, bool(rules), {}, done_text, violation)
                 outputs[goal] = [normalized(status, names), normalized_text(status_text, names),
                                  normalized(done, names), normalized_text(done_text, names)]
             # The digest stays the contract's digest of the whole SPEC.md, line included.
