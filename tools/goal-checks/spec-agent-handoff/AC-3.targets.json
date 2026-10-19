@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "skill-user-control",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC3.test_skill_keeps_answers_with_the_user",
+      "result_targets": {
+        "additional_violations": [
+          "skill-user-control.assertion-2",
+          "skill-user-control.assertion-3",
+          "skill-user-control.assertion-4",
+          "skill-user-control.assertion-5",
+          "skill-user-control.assertion-6",
+          "skill-user-control.assertion-7",
+          "skill-user-control.assertion-8"
+        ],
+        "execution": "skill-user-control.execution",
+        "selection": "skill-user-control.selection",
+        "attribution": "skill-user-control.attribution"
+      }
+    },
+    {
+      "target": "contract-user-control",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC3.test_contract_keeps_answers_with_the_user",
+      "result_targets": {
+        "additional_violations": [
+          "contract-user-control.assertion-2",
+          "contract-user-control.assertion-3",
+          "contract-user-control.assertion-4",
+          "contract-user-control.assertion-5",
+          "contract-user-control.assertion-6",
+          "contract-user-control.assertion-7",
+          "contract-user-control.assertion-8"
+        ],
+        "execution": "contract-user-control.execution",
+        "selection": "contract-user-control.selection",
+        "attribution": "contract-user-control.attribution"
+      }
+    }
+  ]
+}

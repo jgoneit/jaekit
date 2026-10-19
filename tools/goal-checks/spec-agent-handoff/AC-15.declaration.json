@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spec-agent-handoff/AC-15.targets.json",
+    "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "direct-flow",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow-tests",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow-tests.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow-tests.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow-tests.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow-tests.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow-tests.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow-tests.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow-tests.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow-tests.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow-tests.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "direct-flow-tests.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

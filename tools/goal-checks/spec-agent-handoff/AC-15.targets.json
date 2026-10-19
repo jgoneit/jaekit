@@ -1,0 +1,60 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "direct-flow",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC15",
+      "result_targets": {
+        "additional_violations": [
+          "direct-flow.assertion-2",
+          "direct-flow.assertion-3",
+          "direct-flow.assertion-4",
+          "direct-flow.assertion-5",
+          "direct-flow.assertion-6",
+          "direct-flow.assertion-7",
+          "direct-flow.assertion-8"
+        ],
+        "execution": "direct-flow.execution",
+        "selection": "direct-flow.selection",
+        "attribution": "direct-flow.attribution"
+      }
+    },
+    {
+      "target": "direct-flow-tests",
+      "runner": "command",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-mod=readonly",
+        "-run",
+        "^(TestSpecAsksTargetBeforeWriting|TestSpecWritesWithoutSaveAgreement|TestSpecRevisesSameDocuments)$",
+        "./plugins"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "direct-flow-tests.assertion-2",
+          "direct-flow-tests.assertion-3",
+          "direct-flow-tests.assertion-4",
+          "direct-flow-tests.assertion-5",
+          "direct-flow-tests.assertion-6",
+          "direct-flow-tests.assertion-7",
+          "direct-flow-tests.assertion-8"
+        ],
+        "execution": "direct-flow-tests.execution",
+        "selection": "direct-flow-tests.selection",
+        "attribution": "direct-flow-tests.attribution"
+      }
+    }
+  ]
+}

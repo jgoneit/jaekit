@@ -1,0 +1,145 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "products",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC20.test_products_entry",
+      "result_targets": {
+        "additional_violations": [
+          "products.assertion-2",
+          "products.assertion-3",
+          "products.assertion-4",
+          "products.assertion-5",
+          "products.assertion-6",
+          "products.assertion-7",
+          "products.assertion-8"
+        ],
+        "execution": "products.execution",
+        "selection": "products.selection",
+        "attribution": "products.attribution"
+      }
+    },
+    {
+      "target": "plugin-descriptions",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC20.test_plugin_descriptions",
+      "result_targets": {
+        "additional_violations": [
+          "plugin-descriptions.assertion-2",
+          "plugin-descriptions.assertion-3",
+          "plugin-descriptions.assertion-4",
+          "plugin-descriptions.assertion-5",
+          "plugin-descriptions.assertion-6",
+          "plugin-descriptions.assertion-7",
+          "plugin-descriptions.assertion-8"
+        ],
+        "execution": "plugin-descriptions.execution",
+        "selection": "plugin-descriptions.selection",
+        "attribution": "plugin-descriptions.attribution"
+      }
+    },
+    {
+      "target": "usage-ko",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC20.test_usage_ko",
+      "result_targets": {
+        "additional_violations": [
+          "usage-ko.assertion-2",
+          "usage-ko.assertion-3",
+          "usage-ko.assertion-4",
+          "usage-ko.assertion-5",
+          "usage-ko.assertion-6",
+          "usage-ko.assertion-7",
+          "usage-ko.assertion-8"
+        ],
+        "execution": "usage-ko.execution",
+        "selection": "usage-ko.selection",
+        "attribution": "usage-ko.attribution"
+      }
+    },
+    {
+      "target": "usage-en",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC20.test_usage_en",
+      "result_targets": {
+        "additional_violations": [
+          "usage-en.assertion-2",
+          "usage-en.assertion-3",
+          "usage-en.assertion-4",
+          "usage-en.assertion-5",
+          "usage-en.assertion-6",
+          "usage-en.assertion-7",
+          "usage-en.assertion-8"
+        ],
+        "execution": "usage-en.execution",
+        "selection": "usage-en.selection",
+        "attribution": "usage-en.attribution"
+      }
+    },
+    {
+      "target": "existing-cases",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC20.test_existing_cases_expect_the_question",
+      "result_targets": {
+        "additional_violations": [
+          "existing-cases.assertion-2",
+          "existing-cases.assertion-3",
+          "existing-cases.assertion-4",
+          "existing-cases.assertion-5",
+          "existing-cases.assertion-6",
+          "existing-cases.assertion-7",
+          "existing-cases.assertion-8"
+        ],
+        "execution": "existing-cases.execution",
+        "selection": "existing-cases.selection",
+        "attribution": "existing-cases.attribution"
+      }
+    },
+    {
+      "target": "new-cases",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC20.test_new_cases_listed",
+      "result_targets": {
+        "additional_violations": [
+          "new-cases.assertion-2",
+          "new-cases.assertion-3",
+          "new-cases.assertion-4",
+          "new-cases.assertion-5",
+          "new-cases.assertion-6",
+          "new-cases.assertion-7",
+          "new-cases.assertion-8"
+        ],
+        "execution": "new-cases.execution",
+        "selection": "new-cases.selection",
+        "attribution": "new-cases.attribution"
+      }
+    },
+    {
+      "target": "synthetic-cases",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC20.test_cases_stay_synthetic",
+      "result_targets": {
+        "additional_violations": [
+          "synthetic-cases.assertion-2",
+          "synthetic-cases.assertion-3",
+          "synthetic-cases.assertion-4",
+          "synthetic-cases.assertion-5",
+          "synthetic-cases.assertion-6",
+          "synthetic-cases.assertion-7",
+          "synthetic-cases.assertion-8"
+        ],
+        "execution": "synthetic-cases.execution",
+        "selection": "synthetic-cases.selection",
+        "attribution": "synthetic-cases.attribution"
+      }
+    }
+  ]
+}

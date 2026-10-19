@@ -1,0 +1,40 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "protected-checks",
+      "runner": "command",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-mod=readonly",
+        "-run",
+        "^(TestSpecBoundaryContractExamples|TestVerificationReportingContracts|TestVerificationDesignContracts|TestVerificationFindingDocumentContracts)$",
+        "./plugins"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "protected-checks.assertion-2",
+          "protected-checks.assertion-3",
+          "protected-checks.assertion-4",
+          "protected-checks.assertion-5",
+          "protected-checks.assertion-6",
+          "protected-checks.assertion-7",
+          "protected-checks.assertion-8"
+        ],
+        "execution": "protected-checks.execution",
+        "selection": "protected-checks.selection",
+        "attribution": "protected-checks.attribution"
+      }
+    }
+  ]
+}

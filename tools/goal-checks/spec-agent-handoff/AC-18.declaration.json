@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spec-agent-handoff/AC-18.targets.json",
+    "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "product-boundaries",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "product-boundaries.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "product-boundaries.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "product-boundaries.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "product-boundaries.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "product-boundaries.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "product-boundaries.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "product-boundaries.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "product-boundaries.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "product-boundaries.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "product-boundaries.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-knows-nothing",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-knows-nothing.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-knows-nothing.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-knows-nothing.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-knows-nothing.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-knows-nothing.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-knows-nothing.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-knows-nothing.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-knows-nothing.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-knows-nothing.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-knows-nothing.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "valid-tiers",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC11.test_valid_tiers_are_read",
+      "result_targets": {
+        "additional_violations": [
+          "valid-tiers.assertion-2",
+          "valid-tiers.assertion-3",
+          "valid-tiers.assertion-4",
+          "valid-tiers.assertion-5",
+          "valid-tiers.assertion-6",
+          "valid-tiers.assertion-7",
+          "valid-tiers.assertion-8"
+        ],
+        "execution": "valid-tiers.execution",
+        "selection": "valid-tiers.selection",
+        "attribution": "valid-tiers.attribution"
+      }
+    },
+    {
+      "target": "whitespace-crlf",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC11.test_trailing_space_and_crlf",
+      "result_targets": {
+        "additional_violations": [
+          "whitespace-crlf.assertion-2",
+          "whitespace-crlf.assertion-3",
+          "whitespace-crlf.assertion-4",
+          "whitespace-crlf.assertion-5",
+          "whitespace-crlf.assertion-6",
+          "whitespace-crlf.assertion-7",
+          "whitespace-crlf.assertion-8"
+        ],
+        "execution": "whitespace-crlf.execution",
+        "selection": "whitespace-crlf.selection",
+        "attribution": "whitespace-crlf.attribution"
+      }
+    },
+    {
+      "target": "absent-line",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC11.test_absent_line_reads_no_tier",
+      "result_targets": {
+        "additional_violations": [
+          "absent-line.assertion-2",
+          "absent-line.assertion-3",
+          "absent-line.assertion-4",
+          "absent-line.assertion-5",
+          "absent-line.assertion-6",
+          "absent-line.assertion-7",
+          "absent-line.assertion-8"
+        ],
+        "execution": "absent-line.execution",
+        "selection": "absent-line.selection",
+        "attribution": "absent-line.attribution"
+      }
+    },
+    {
+      "target": "fenced-lines",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC11.test_fenced_lines_are_not_read",
+      "result_targets": {
+        "additional_violations": [
+          "fenced-lines.assertion-2",
+          "fenced-lines.assertion-3",
+          "fenced-lines.assertion-4",
+          "fenced-lines.assertion-5",
+          "fenced-lines.assertion-6",
+          "fenced-lines.assertion-7",
+          "fenced-lines.assertion-8"
+        ],
+        "execution": "fenced-lines.execution",
+        "selection": "fenced-lines.selection",
+        "attribution": "fenced-lines.attribution"
+      }
+    },
+    {
+      "target": "deterministic",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC11.test_independent_of_directory_time_and_environment",
+      "result_targets": {
+        "additional_violations": [
+          "deterministic.assertion-2",
+          "deterministic.assertion-3",
+          "deterministic.assertion-4",
+          "deterministic.assertion-5",
+          "deterministic.assertion-6",
+          "deterministic.assertion-7",
+          "deterministic.assertion-8"
+        ],
+        "execution": "deterministic.execution",
+        "selection": "deterministic.selection",
+        "attribution": "deterministic.attribution"
+      }
+    }
+  ]
+}

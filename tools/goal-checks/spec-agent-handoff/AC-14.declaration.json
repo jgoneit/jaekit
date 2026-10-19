@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spec-agent-handoff/AC-14.targets.json",
+    "tools/goal-checks/spec-agent-handoff/observe_core.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "template-headers",
+      "violation": "header-not-read"
+    },
+    {
+      "id": "template-headers.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-headers.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-headers.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-headers.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-headers.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-headers.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-headers.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-headers.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-headers.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-headers.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "example-headers",
+      "violation": "header-not-read"
+    },
+    {
+      "id": "example-headers.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "example-headers.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "example-headers.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "example-headers.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "example-headers.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "example-headers.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "example-headers.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "example-headers.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "example-headers.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "example-headers.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

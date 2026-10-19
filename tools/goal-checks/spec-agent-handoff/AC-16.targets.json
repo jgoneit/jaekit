@@ -1,0 +1,60 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "separate-start",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC16",
+      "result_targets": {
+        "additional_violations": [
+          "separate-start.assertion-2",
+          "separate-start.assertion-3",
+          "separate-start.assertion-4",
+          "separate-start.assertion-5",
+          "separate-start.assertion-6",
+          "separate-start.assertion-7",
+          "separate-start.assertion-8"
+        ],
+        "execution": "separate-start.execution",
+        "selection": "separate-start.selection",
+        "attribution": "separate-start.attribution"
+      }
+    },
+    {
+      "target": "separate-start-tests",
+      "runner": "command",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-mod=readonly",
+        "-run",
+        "^(TestSealStartCommandGuide|TestSealKeepsGoalDocsReadOnly)$",
+        "./plugins"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "separate-start-tests.assertion-2",
+          "separate-start-tests.assertion-3",
+          "separate-start-tests.assertion-4",
+          "separate-start-tests.assertion-5",
+          "separate-start-tests.assertion-6",
+          "separate-start-tests.assertion-7",
+          "separate-start-tests.assertion-8"
+        ],
+        "execution": "separate-start-tests.execution",
+        "selection": "separate-start-tests.selection",
+        "attribution": "separate-start-tests.attribution"
+      }
+    }
+  ]
+}

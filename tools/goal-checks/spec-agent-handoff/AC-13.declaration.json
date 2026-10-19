@@ -1,0 +1,145 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spec-agent-handoff/AC-13.targets.json",
+    "tools/goal-checks/spec-agent-handoff/observe_core.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "capability",
+      "violation": "assurance-capability-missing"
+    },
+    {
+      "id": "capability.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability-contract",
+      "violation": "assurance-capability-undocumented"
+    },
+    {
+      "id": "capability-contract.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability-contract.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability-contract.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability-contract.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability-contract.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability-contract.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability-contract.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability-contract.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability-contract.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "capability-contract.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-requirements",
+      "violation": "seal-requirement-added"
+    },
+    {
+      "id": "seal-requirements.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-requirements.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-requirements.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-requirements.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-requirements.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-requirements.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-requirements.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-requirements.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-requirements.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-requirements.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

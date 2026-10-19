@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spec-agent-handoff/AC-16.targets.json",
+    "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "separate-start",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start-tests",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start-tests.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start-tests.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start-tests.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start-tests.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start-tests.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start-tests.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start-tests.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start-tests.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start-tests.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "separate-start-tests.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

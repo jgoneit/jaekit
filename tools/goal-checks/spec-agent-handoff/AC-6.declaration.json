@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spec-agent-handoff/AC-6.targets.json",
+    "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "tier-proposal",
+      "violation": "tier-proposal-missing"
+    },
+    {
+      "id": "tier-proposal.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tier-proposal.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tier-proposal.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tier-proposal.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tier-proposal.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tier-proposal.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tier-proposal.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tier-proposal.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tier-proposal.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "tier-proposal.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-tier",
+      "violation": "template-tier-missing"
+    },
+    {
+      "id": "template-tier.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-tier.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-tier.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-tier.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-tier.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-tier.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-tier.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-tier.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-tier.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "template-tier.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

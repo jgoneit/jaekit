@@ -1,0 +1,96 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "preserved",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "Preserved",
+      "result_targets": {
+        "additional_violations": [
+          "preserved.assertion-2",
+          "preserved.assertion-3",
+          "preserved.assertion-4",
+          "preserved.assertion-5",
+          "preserved.assertion-6",
+          "preserved.assertion-7",
+          "preserved.assertion-8"
+        ],
+        "execution": "preserved.execution",
+        "selection": "preserved.selection",
+        "attribution": "preserved.attribution"
+      }
+    },
+    {
+      "target": "scenarios",
+      "runner": "command",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-mod=readonly",
+        "-run",
+        "^TestScenarios$",
+        "./cmd/ha"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "scenarios.assertion-2",
+          "scenarios.assertion-3",
+          "scenarios.assertion-4",
+          "scenarios.assertion-5",
+          "scenarios.assertion-6",
+          "scenarios.assertion-7",
+          "scenarios.assertion-8"
+        ],
+        "execution": "scenarios.execution",
+        "selection": "scenarios.selection",
+        "attribution": "scenarios.attribution"
+      }
+    },
+    {
+      "target": "goal-units",
+      "runner": "command",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-mod=readonly",
+        "./internal/goaldocs",
+        "./internal/bundle",
+        "./internal/status",
+        "./internal/record"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": []
+      },
+      "result_targets": {
+        "additional_violations": [
+          "goal-units.assertion-2",
+          "goal-units.assertion-3",
+          "goal-units.assertion-4",
+          "goal-units.assertion-5",
+          "goal-units.assertion-6",
+          "goal-units.assertion-7",
+          "goal-units.assertion-8"
+        ],
+        "execution": "goal-units.execution",
+        "selection": "goal-units.selection",
+        "attribution": "goal-units.attribution"
+      }
+    }
+  ]
+}
