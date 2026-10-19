@@ -88,9 +88,10 @@ The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evi
 | `timing-view` | run-record.md §1.2, §2.2 | `ha timing` shows each run's limit, limit interval and CPU; damaged values show as invalid while status stays `complete`; nothing is written |
 | `worktree-log` | run-record.md §1 | `ha log` and `--tail` work in a linked worktree |
 | `legacy-output-path` | run-record.md §2.2 | an older absolute `output_path` stays as written; `complete` after it |
-| `adapter-go-flow` | check-result.md §5 | a `go-test-json` condition: baseline `declared_violation` from standard output events, `targets_passed` after the change, completion; standard error stays in `ha log` only |
-| `adapter-junit-flow` | check-result.md §5 | a `junit-xml` condition: the runner writes where `{HA_JUNIT_XML}` points, the record keeps the placeholder, completion; the failure message is absent from records and output |
+| `adapter-go-flow` | check-result.md §5 | a `go-test-json` condition: baseline `declared_violation` from standard output events whose marker is followed by `:` and with an `attr` event, `targets_passed` after the change, completion; standard error stays in `ha log` only |
+| `adapter-junit-flow` | check-result.md §5 | a `junit-xml` condition: the runner writes where `{HA_JUNIT_XML}` points and its marker is followed by `.`, the record keeps the placeholder, completion; the failure message is absent from records and output |
 | `adapter-lint-refused` | check-result.md §5 | an adapter declaration whose violation uses the reserved `jaekit:` prefix is `evidence_invalid`; start refused, nothing recorded |
+| `adapter-lint-suffix` | check-result.md §5 | an adapter declaration whose violation ends with `:` can never match a marker and is `evidence_invalid`; start refused, nothing recorded |
 | `adapter-legacy-rules` | check-result.md §5 | under `run-rules/2` a result contract naming an adapter declaration keeps exit-code results without evidence; the placeholder stays as written |
 
 EVALUATION §3 rows whose P1 expectation is "탐지 기대 없음" other than the command change (weak checks, special-casing, unrelated changes inside scope, tests that change sources) have no scenario: P1 does not claim to detect them.
