@@ -72,6 +72,12 @@ def text(result):
     return (result.stdout + result.stderr).decode(errors="replace")
 
 
+def signalled(result, what):
+    """A shell block whose command a signal ended exits 128+n: not a violation."""
+    if 128 < result.returncode <= 128 + 64:
+        raise Unavailable(f"{what}: a command ended by signal {result.returncode - 128}: {text(result)[-600:]}")
+
+
 def tool(name):
     path = shutil.which(name)
     if not path:
@@ -80,6 +86,9 @@ def tool(name):
 
 
 _BUILT = {}
+# Set only in the platform child mode (see platform_suite): an inherited
+# SPAR_OBSERVE_BINARY never replaces the checked tree's spar otherwise.
+PLATFORM_CHILD = False
 
 
 def build(package, name, env_extra=None, ldflags=None):
@@ -106,7 +115,7 @@ def spar_binary(case, violation):
 
     A platform run (see Platforms) supplies a binary built for its target in
     SPAR_OBSERVE_BINARY instead; it never builds inside the target."""
-    given = os.environ.get("SPAR_OBSERVE_BINARY")
+    given = os.environ.get("SPAR_OBSERVE_BINARY") if PLATFORM_CHILD else None
     if given:
         if not Path(given).is_file():
             raise Unavailable(f"SPAR_OBSERVE_BINARY names no file: {given}")
@@ -476,8 +485,7 @@ class Round(unittest.TestCase):
         calls = w.invocations()
         require(self, len(calls) == 1, v, f"invocations: {len(calls)}")
         listing = calls[0]["listing"]
-        require(self, not any(p == ".git" or p.startswith(".git/") or "/.git" in p for p in listing), v,
-                "workspace contains Git metadata")
+        require(self, not any(".git" in p.split("/") for p in listing), v, "workspace contains Git metadata")
         require(self, not any(p.endswith("secret.local") for p in listing), v, "workspace contains an ignored file")
         base_files = set(w.g("ls-tree", "-r", "--name-only", w.base).splitlines())
         head_files = set(w.g("ls-tree", "-r", "--name-only", w.head).splitlines())
@@ -822,7 +830,7 @@ class Command(unittest.TestCase):
         calls = {c["name"]: c for c in w.invocations()}
         call = calls.get("example-reviewer")
         require(self, call is not None, v, "the command reviewer did not run")
-        packet = (w.repo / "reviews/demo/01-candidate/packet.md").read_bytes()
+        packet = w.output("reviews/demo/01-candidate", "packet.md").encode()
         require(self, call["argv"][-1] == literal and not (Path(call["cwd"]) / "pwned").exists()
                 and not (w.repo / "pwned").exists(), v, f"arguments went through a shell: {call['argv']}")
         require(self, call["prompt_sha256"] == sha(packet), v, "the {prompt} file is not the packet")
@@ -1178,12 +1186,16 @@ class Caps(unittest.TestCase):
                         f"{out}: a plan run past the cap ran")
         w.control({"codex": {"quota": "429 Too Many Requests"}, "claude": {}}, head=heads[0])
         plan_run("01-plan", None, True)
-        w.control({"codex": {}, "claude": {}}, head=heads[0])
-        plan_run("02-plan-codex", "codex", True)
-        plan_run("03-plan-claude", "claude", False)
-        plan_run("04-plan-all", None, False)
+        # codex has not completed, but an edited plan is another packet.
         subject.write_text("plan v2\n")
-        plan_run("05-plan-edited", "codex", False)
+        plan_run("02-plan-edited-unfinished", "codex", False)
+        subject.write_text("plan v1\n")
+        w.control({"codex": {}, "claude": {}}, head=heads[0])
+        plan_run("03-plan-codex", "codex", True)
+        plan_run("04-plan-claude", "claude", False)
+        plan_run("05-plan-all", None, False)
+        subject.write_text("plan v2\n")
+        plan_run("06-plan-edited", "codex", False)
 
 
 class Gate(unittest.TestCase):
@@ -1559,6 +1571,7 @@ def run_install(case, block, with_spar, violation):
         env = dict(os.environ, INSTALL_TEST_ROOT=str(install_root),
                    PATH=str(commands) + os.pathsep + os.environ.get("PATH", ""))
         result = run([tool("bash"), "-c", block], root, env, timeout=120)
+        signalled(result, "release install")
         require(case, result.returncode == 0, violation,
                 f"release install failed (archive with spar: {with_spar}): {text(result)[-600:]}")
         bin_dir = install_root / ".local/bin"
@@ -1590,9 +1603,13 @@ LINUX_IMAGE = "python:3.14"
 
 def platform_suite(out):
     """Child mode: run the runtime observations against SPAR_OBSERVE_BINARY and write their outcome."""
+    global PLATFORM_CHILD
+    PLATFORM_CHILD = True
     module = sys.modules[__name__]
     loader = unittest.TestLoader()
     suite = unittest.TestSuite(loader.loadTestsFromTestCase(getattr(module, name)) for name in RUNTIME_CLASSES)
+    # AC-17's runtime part: spar leaves clean-review files and records alone.
+    suite.addTest(Preserved("test_spar_leaves_clean_review_and_records_alone"))
     result = unittest.TextTestRunner(stream=sys.stderr, verbosity=2).run(suite)
     Path(out).write_text(json.dumps({
         "tests": result.testsRun, "skipped": len(result.skipped),
@@ -1645,9 +1662,9 @@ class Platforms(unittest.TestCase):
         if goos == "darwin":
             if os.uname().sysname != "Darwin":
                 raise Unavailable(f"{target} needs a macOS host")
-            probe = run([work / "spar", "--version"], work)
-            if probe.returncode:
-                raise Unavailable(f"spar for {target} does not start here: {text(probe)[-300:]}")
+            # run() turns an executable this host cannot start (no Rosetta)
+            # into Unavailable; how spar then behaves is the suite's to judge.
+            run([work / "spar", "--version"], work)
             argv = [sys.executable, observer, "--platform-suite", work / "outcome.json"]
             env = {key: value for key, value in os.environ.items() if not key.startswith("HA_")}
             env["SPAR_OBSERVE_BINARY"] = str(work / "spar")
@@ -1667,9 +1684,14 @@ class Platforms(unittest.TestCase):
         except (OSError, ValueError):
             raise Unavailable(f"{target}: the runtime observations did not report: {text(result)[-1500:]}") from None
         if outcome["failures"]:
+            # One subtest keeps the violation while a later execution error
+            # still ends the test; the child's own tag is quoted without its
+            # brackets so this message carries exactly one tag.
             case, detail = outcome["failures"][0]
             found = re.search(r"\[violation:[^\]]+\][^\n]*", detail)
-            self.fail(f"[violation:{v}] {target}: {case}: {found.group(0) if found else detail[-300:]}")
+            quoted = re.sub(r"\[violation:([^\]]+)\]", r"(\1)", found.group(0) if found else detail[-300:])
+            with self.subTest(target=target):
+                self.fail(f"[violation:{v}] {target}: {case} ({len(outcome['failures'])} failed): {quoted}")
         if outcome["errors"] or not outcome["tests"]:
             raise Unavailable(f"{target}: runtime observations could not run: {outcome['errors'][:1]}")
 
@@ -1741,6 +1763,7 @@ class Release(unittest.TestCase):
             raise Unavailable(f"release build step failed: {text(result)[-2000:]}")
         dist = temp / "dist"
         result = run([tool("bash"), "-c", "set -euo pipefail\n" + verify_script], ROOT, env, timeout=900)
+        signalled(result, "release verification")
         require(self, result.returncode == 0, v, f"release verification failed: {text(result)[-1200:]}")
         expected_names = {f"ha_{version}_{t.replace('/', '_')}.tar.gz" for t in TARGETS} | \
             {f"ha_{version}_windows_amd64.zip", "checksums.txt"}
@@ -1800,6 +1823,7 @@ class Release(unittest.TestCase):
             sums.append((sha((dist / name).read_bytes()) if name == source.name else digest) + "  " + name)
         (dist / "checksums.txt").write_text("\n".join(sums) + "\n")
         result = run([tool("bash"), "-c", "set -euo pipefail\n" + verify_script], ROOT, env, timeout=900)
+        signalled(result, "release verification")
         require(self, result.returncode != 0 and "spar" in text(result), v,
                 f"the release check accepted an archive without spar: {text(result)[-400:]}")
 
