@@ -51,6 +51,10 @@ type LinkTargets struct {
 var criterionID = regexp.MustCompile(`(?:^|[^A-Za-z0-9])(AC-[0-9]+)(?:[^0-9]|$)`)
 var linkLine = regexp.MustCompile(`^(.+?):([0-9]+)(?:[-–][0-9]+)?$`)
 
+// locationLine is the start of a finding location: a path, then :<line> or
+// :<line>-<line>, then the end or a space.
+var locationLine = regexp.MustCompile(`^(.+?):[0-9]+(?:[-–][0-9]+)?(?:\s|$)`)
+
 func lineCount(data []byte) int {
 	if len(data) == 0 {
 		return 0
@@ -104,15 +108,14 @@ func uniq(list []string) []string {
 // locationPath turns "head/app/main.py:12" into "app/main.py".
 func locationPath(location string) string {
 	// The supported form is head/<path>:<line>, and a path may hold spaces.
-	// A location with text after it falls back to its first word.
+	// The path ends at the first :<line> that the end or a space follows,
+	// so text after the location, even text with another line, is left
+	// out. A location without a line falls back to its first word.
 	loc := strings.TrimSpace(location)
-	if m := linkLine.FindStringSubmatch(loc); m != nil {
+	if m := locationLine.FindStringSubmatch(loc); m != nil {
 		loc = m[1]
 	} else if fields := strings.Fields(loc); len(fields) > 0 {
 		loc = fields[0]
-		if m := linkLine.FindStringSubmatch(loc); m != nil {
-			loc = m[1]
-		}
 	}
 	for _, side := range []string{"head/", "base/", "./"} {
 		loc = strings.TrimPrefix(loc, side)

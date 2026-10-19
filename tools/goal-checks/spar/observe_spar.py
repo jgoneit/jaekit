@@ -1545,6 +1545,11 @@ def install_block(case, rel, heading, violation):
     return blocks[0].replace("$HOME", "$INSTALL_TEST_ROOT")
 
 
+# Programs the Release install block runs, besides the uname and curl the
+# observation supplies and the checksum program it checks separately.
+INSTALL_PROGRAMS = ("mktemp", "rm", "grep", "tar", "mkdir", "cp", "find", "diff", "mv", "chmod")
+
+
 def run_install(case, block, with_spar, violation):
     match = re.search(r'name="ha_([0-9.]+)_\$\{os\}_\$\{arch\}"', block)
     require(case, match, violation, "install block does not name its archive")
@@ -1578,8 +1583,16 @@ def run_install(case, block, with_spar, violation):
         install_root.mkdir()
         env = dict(os.environ, INSTALL_TEST_ROOT=str(install_root),
                    PATH=str(commands) + os.pathsep + os.environ.get("PATH", ""))
+        # The block's programs must be able to start: a missing one, or a
+        # command bash cannot start (exit 126 or 127), is an execution error.
+        for program in INSTALL_PROGRAMS:
+            tool(program)
+        if not (shutil.which("sha256sum") or shutil.which("shasum")):
+            raise Unavailable("neither sha256sum nor shasum is on PATH")
         result = run([tool("bash"), "-c", block], root, env, timeout=120)
         signalled(result, "release install")
+        if result.returncode in (126, 127):
+            raise Unavailable(f"release install: a command could not start: {text(result)[-600:]}")
         require(case, result.returncode == 0, violation,
                 f"release install failed (archive with spar: {with_spar}): {text(result)[-600:]}")
         bin_dir = install_root / ".local/bin"

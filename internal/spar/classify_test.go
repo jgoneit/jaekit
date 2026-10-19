@@ -55,6 +55,24 @@ func TestClassification(t *testing.T) {
 		"check_impact": "false_pass"})); f.Class != "defect" || !f.InCheckPaths {
 		t.Errorf("a check path with a space: %s %v", f.Class, f.InCheckPaths)
 	}
+	// Text after a location, even text that ends in another line, leaves
+	// the location's own path.
+	for _, tc := range []struct {
+		glob, location string
+		values         map[string]any
+		class          string
+		inChecks       bool
+	}{
+		{"checks/test.py", "head/checks/test.py:2 see head/app.py:10", map[string]any{"check_impact": "false_pass"}, "defect", true},
+		{"**/*_test.go", "head/app/main.go:10 and head/app/main_test.go:20",
+			map[string]any{"introduced_by_change": "yes", "regression": "yes"}, "defect", false},
+	} {
+		tc.values["location"] = tc.location
+		k := classifier{checkPaths: []string{tc.glob}, targets: c.targets}
+		if f := k.classify("codex", 1, rawFinding("F1", tc.values)); f.Class != tc.class || f.InCheckPaths != tc.inChecks {
+			t.Errorf("%s: %s in check paths %v (path %s)", tc.location, f.Class, f.InCheckPaths, f.Path)
+		}
+	}
 	// Spar numbers findings in report order and keeps the reviewer's own ID.
 	if f := c.classify("a", 2, rawFinding("b-F1", nil)); f.ID != "a-F2" || f.ReviewerID != "b-F1" {
 		t.Errorf("finding ID: %s from %s", f.ID, f.ReviewerID)

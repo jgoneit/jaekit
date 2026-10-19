@@ -19,7 +19,7 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
 
 `blocked` 사유:
 
-- 상한 초과: 라운드의 series마다, 디스크에 있는 라운드와 주어진 라운드 가운데 `counted`인 것을 단계 묶음별로 세어 마지막 라운드 설정의 상한과 `extensions.jsonl` 연장의 합을 넘음
+- 상한 초과: 라운드의 series마다, 디스크에 있는 라운드와 주어진 라운드 가운데 `counted`인 것을 단계 묶음별로 세어 그 series에서 `sequence`가 가장 큰 라운드 설정의 상한과 `extensions.jsonl` 연장의 합을 넘음. 주어진 라운드가 그보다 앞선 라운드여도 같다
 - 처리되지 않은 지적: 원장에 처리가 없는 `defect`·`requirement-question`. `duplicate`는 가리킨 지적을 따라가 닫는 처리에 닿을 때만 닫히고, 열린 지적에 닿거나 서로를 가리키면 열려 있다
 - `fix`로 처리한 지적의 수정 커밋이 기대 head에 포함되지 않음. 분류와 관계없이(`hardening`·`note` 포함) 모든 `fix`를 확인한다
 - 코드 라운드 사슬 끊김: 목록의 fixes 라운드 base가 바로 앞 code 라운드의 head가 아니거나, 앞에 code 라운드가 없음. 바로 앞 code 라운드와 단계·base·head·패킷 digest가 모두 같은 라운드(같은 패킷의 재실행)만 이 확인에서 빠진다. 패킷이 다르면 base·head가 같아도 새 fixes 라운드다

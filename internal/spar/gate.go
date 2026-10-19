@@ -392,8 +392,13 @@ func capProblems(rounds []loadedRound) []string {
 			problems = append(problems, fmt.Sprintf("series %s: %v", s, err))
 			continue
 		}
+		// Siblings come in sequence order, so the cap is the one the
+		// series' last round applied, whichever rounds were given.
 		for _, sib := range siblings {
 			add(sib.dir, sib.round)
+			if sib.round.Config != nil {
+				caps[s] = sib.round.Config.Caps
+			}
 		}
 		exts, err := loadExtensions(s)
 		if err != nil {

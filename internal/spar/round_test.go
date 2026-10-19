@@ -384,6 +384,29 @@ func TestGateFixCommitsAndChain(t *testing.T) {
 	}
 }
 
+// The gate applies the cap of the series' last round, also when an earlier
+// round is the one gated.
+func TestGateCapFromLastRound(t *testing.T) {
+	for _, tc := range []struct {
+		first, last int64
+		over        bool
+	}{{3, 1, true}, {1, 3, false}} {
+		f := newFixture(t)
+		base, head, later := f.revs[0], f.revs[1], f.revs[2]
+		done := map[string]*ReviewerState{"host": reviewer("native", true, StatusCompleted)}
+		a := f.round("01-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 1, Counted: true,
+			RequiredReviewers: []string{"host"}, Reviewers: done,
+			Config: &Config{Caps: Caps{1, 1, tc.first}, ConfiguredRequired: []RequiredRef{}}}, nil, nil)
+		f.round("02-fixes", &RoundRecord{Stage: "fixes", Base: head, Head: later, Sequence: 2, Counted: true,
+			RequiredReviewers: []string{"host"}, Reviewers: done,
+			Config: &Config{Caps: Caps{1, 1, tc.last}, ConfiguredRequired: []RequiredRef{}}}, nil, nil)
+		g := f.gate(head, a)
+		if over := strings.Contains(strings.Join(g.Reasons, " "), "the cap"); over != tc.over {
+			t.Errorf("code cap %d then %d: over the cap %v, want %v: %v", tc.first, tc.last, over, tc.over, g.Reasons)
+		}
+	}
+}
+
 // A renamed file counts only the lines it gained, under its new path.
 func TestNumstatFollowsRenames(t *testing.T) {
 	f := newFixture(t)

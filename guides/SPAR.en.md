@@ -18,7 +18,7 @@ Each reviewer receives the whole packet: the criteria documents, the rule docume
 | `command` | Whatever service the command you configure uses |
 | `native` | The provider of the agent you are already using |
 
-Commit messages, Git history and ignored files are not in the packet. If the criteria or the code must not go to a provider, configure only the `native` reviewer or none of the others.
+Commit messages, Git history and ignored files are not in the packet. If the criteria or the code must not go to any provider other than the one your agent already uses, configure only the `native` reviewer. If they must not leave your computer at all, do not run Spar: every reviewer, `native` included, sends the packet to a provider.
 
 ## Configure reviewers
 
