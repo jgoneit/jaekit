@@ -2,6 +2,7 @@ package spar
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -227,6 +228,10 @@ func Record(o RecordOptions) (int, error) {
 	attempt.Status, attempt.Reason = st.Status, st.Reason
 	st.Attempts = append(st.Attempts, attempt)
 	if err := saveRound(dir, r, added, false); err != nil {
+		var exit *ExitError
+		if errors.As(err, &exit) {
+			return exit.Code, err
+		}
 		return ExitInternal, err
 	}
 	if st.Status != StatusCompleted {

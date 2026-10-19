@@ -335,6 +335,7 @@ func insideRepo(repo, path string) string {
 
 // localRecordPath refuses a record path that Git would track.
 func localRecordPath(repo, path string) error {
+	path = realish(path)
 	rel := insideRepo(repo, path)
 	if rel == "" {
 		if filepath.Clean(path) == filepath.Clean(repo) {
@@ -355,7 +356,12 @@ func localRecordPath(repo, path string) error {
 		}
 		other, err := repoRoot(existing)
 		if err != nil {
-			return nil // not in a Git repository
+			if strings.Contains(err.Error(), "not a git repository") {
+				return nil
+			}
+			// Git refused to say (ownership, a broken repository): the
+			// records do not go where they cannot be checked.
+			return fmt.Errorf("%s cannot be checked against its Git repository: %v", path, err)
 		}
 		other = realish(other)
 		if rel = insideRepo(other, path); rel == "" {

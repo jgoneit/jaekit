@@ -146,3 +146,173 @@ func TestRequiredOfKeepsConfiguredReviewers(t *testing.T) {
 		t.Fatalf("%+v", got)
 	}
 }
+
+type fixture struct {
+	t    *testing.T
+	dir  string
+	repo string
+	revs []string
+}
+
+// newFixture makes a repository with three commits and an ignored reviews/.
+func newFixture(t *testing.T) *fixture {
+	t.Helper()
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is not installed")
+	}
+	f := &fixture{t: t, dir: t.TempDir()}
+	f.repo = realish(filepath.Join(f.dir, "repo"))
+	os.MkdirAll(f.repo, 0o755)
+	gitRun(t, f.repo, "init", "-q")
+	writeFile(t, filepath.Join(f.repo, ".gitignore"), "/reviews/\n")
+	for i, body := range []string{"one\n", "one\ntwo\n", "one\ntwo\nthree\nfour\n"} {
+		writeFile(t, filepath.Join(f.repo, "checks", "c.txt"), body)
+		writeFile(t, filepath.Join(f.repo, "app.txt"), strings.Repeat("x\n", i+1))
+		gitRun(t, f.repo, "add", "-A")
+		gitRun(t, f.repo, "commit", "-qm", "c")
+		f.revs = append(f.revs, gitRun(t, f.repo, "rev-parse", "HEAD"))
+	}
+	return f
+}
+
+func (f *fixture) round(name string, r *RoundRecord, findings []Finding, ledger []LedgerEntry) string {
+	f.t.Helper()
+	dir := filepath.Join(f.repo, "reviews", "s", name)
+	os.MkdirAll(dir, 0o755)
+	r.Schema, r.Series = RoundSchema, filepath.Dir(dir)
+	if r.Config == nil {
+		r.Config = &Config{Caps: Caps{1, 1, 3}, ConfiguredRequired: []RequiredRef{}}
+	}
+	if r.PacketSHA256 == "" {
+		r.PacketSHA256 = "p"
+	}
+	if findings == nil {
+		findings = []Finding{}
+	}
+	if err := writeJSON(filepath.Join(dir, "round.json"), r); err != nil {
+		f.t.Fatal(err)
+	}
+	if err := writeJSON(filepath.Join(dir, "findings.json"), findings); err != nil {
+		f.t.Fatal(err)
+	}
+	os.WriteFile(filepath.Join(dir, "ledger.jsonl"), nil, 0o644)
+	for _, e := range ledger {
+		appendJSONLine(filepath.Join(dir, "ledger.jsonl"), e)
+	}
+	return dir
+}
+
+func (f *fixture) gate(expect string, rounds ...string) GateRecord {
+	f.t.Helper()
+	out := filepath.Join(f.repo, "reviews", "s", "gate.json")
+	if _, err := Gate(GateOptions{Rounds: rounds, ExpectHead: expect, Out: out, Repo: f.repo}); err != nil {
+		f.t.Fatal(err)
+	}
+	var g GateRecord
+	data, _ := os.ReadFile(out)
+	if err := json.Unmarshal(data, &g); err != nil {
+		f.t.Fatal(err)
+	}
+	return g
+}
+
+func reviewer(preset string, required bool, status string) *ReviewerState {
+	return &ReviewerState{Preset: preset, Required: required, Status: status}
+}
+
+func TestGateRequiredReviewersMissingRecordsAndGrowth(t *testing.T) {
+	f := newFixture(t)
+	base, head := f.revs[0], f.revs[1]
+	both := &Config{Caps: Caps{1, 1, 3}, ConfiguredRequired: []RequiredRef{{"x", "codex"}, {"host", "native"}}}
+	a := f.round("01-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 1, Counted: true,
+		RequiredReviewers: []string{"x", "host"}, Config: both, Reviewers: map[string]*ReviewerState{
+			"x": reviewer("codex", true, StatusUnavailable), "host": reviewer("native", true, StatusCompleted)}}, nil, nil)
+	// The same name as an unverified command does not complete the codex reviewer.
+	b := f.round("02-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 2,
+		Config:    &Config{Caps: Caps{1, 1, 3}, ConfiguredRequired: []RequiredRef{{"host", "native"}}},
+		Reviewers: map[string]*ReviewerState{"x": reviewer("command", false, StatusCompleted)}}, nil, nil)
+	if g := f.gate(head, a, b); g.State != StateDegraded {
+		t.Fatalf("a command reviewer credited a required codex reviewer: %s %v", g.State, g.Reasons)
+	}
+	// A rerun of the same reviewer and preset completes the packet.
+	c := f.round("03-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 3,
+		RequiredReviewers: []string{"x"}, Config: both,
+		Reviewers: map[string]*ReviewerState{"x": reviewer("codex", true, StatusCompleted)}}, nil, nil)
+	if g := f.gate(head, a, c); g.State != StateComplete {
+		t.Fatalf("a rerun did not complete the packet: %s %v", g.State, g.Reasons)
+	}
+	// --reviewers ran only one of the configured required reviewers.
+	d := f.round("04-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 4, PacketSHA256: "q",
+		RequiredReviewers: []string{"host"}, Config: both,
+		Reviewers: map[string]*ReviewerState{"host": reviewer("native", true, StatusCompleted)}}, nil, nil)
+	if g := f.gate(head, d); g.State != StateDegraded || g.Rounds[0].RequiredReviewers != 2 {
+		t.Fatalf("a reduced run looked complete: %s %+v", g.State, g.Rounds)
+	}
+	// A round without its findings file blocks the gate.
+	os.Remove(filepath.Join(c, "findings.json"))
+	if g := f.gate(head, a, c); g.State != StateBlocked {
+		t.Fatalf("a round without findings.json: %s", g.State)
+	}
+	// Two fixes rounds of the same commits count their added lines once.
+	one := &Config{Caps: Caps{1, 1, 3}, CheckPaths: []string{"checks/**"}, ConfiguredRequired: []RequiredRef{{"host", "native"}}}
+	done := map[string]*ReviewerState{"host": reviewer("native", true, StatusCompleted)}
+	e := f.round("05-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 5, PacketSHA256: "r",
+		RequiredReviewers: []string{"host"}, Config: one, Reviewers: done}, nil, nil)
+	g1 := f.round("06-fixes", &RoundRecord{Stage: "fixes", Base: head, Head: f.revs[2], Sequence: 6, PacketSHA256: "s",
+		RequiredReviewers: []string{"host"}, Config: one, Reviewers: done}, nil, nil)
+	g2 := f.round("07-fixes", &RoundRecord{Stage: "fixes", Base: head, Head: f.revs[2], Sequence: 7, PacketSHA256: "s",
+		RequiredReviewers: []string{"host"}, Config: one, Reviewers: done}, nil, nil)
+	g := f.gate(f.revs[2], e, g1, g2)
+	if g.Growth.AddedLines["check"] != 2 || g.Growth.AddedLines["other"] != 1 || !g.Growth.OverHardening {
+		t.Fatalf("growth: %+v", g.Growth)
+	}
+	// Recording into a round whose findings file is gone is refused.
+	r, _ := loadRound(c)
+	if err := saveRound(c, r, nil, false); err == nil {
+		t.Fatal("a round without findings.json was rewritten")
+	}
+}
+
+func TestAdmitCreditsOnlyFinishedRounds(t *testing.T) {
+	cfg := &Config{Caps: Caps{1, 1, 1}}
+	running := &RoundRecord{Stage: "candidate", Base: "b", Head: "h", PacketSHA256: "p", Counted: true,
+		Reviewers: map[string]*ReviewerState{"x": reviewer("codex", true, "running")}}
+	next := &RoundRecord{Stage: "candidate", Base: "b", Head: "h", PacketSHA256: "p", Config: cfg, RequestedReviewers: []string{"x"}}
+	if _, _, err := admit([]sibling{{"01", running}}, nil, next); err == nil {
+		t.Fatal("a running round let the same packet run again uncounted past the cap")
+	}
+	running.FinishedAt = "t"
+	running.Reviewers["x"].Status = StatusUnavailable
+	if counted, rerun, err := admit([]sibling{{"01", running}}, nil, next); err != nil || counted || len(rerun) != 1 {
+		t.Fatalf("a rerun of an unfinished reviewer: %v %v %v", counted, rerun, err)
+	}
+}
+
+func TestExportWritesLinksAsFilesAndRecordsFollowTheirRepository(t *testing.T) {
+	f := newFixture(t)
+	os.Symlink("../../etc/passwd", filepath.Join(f.repo, "leak"))
+	gitRun(t, f.repo, "add", "-A")
+	gitRun(t, f.repo, "commit", "-qm", "link")
+	ws := filepath.Join(f.dir, "ws")
+	if err := exportTree(f.repo, "HEAD", ws); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Lstat(filepath.Join(ws, "leak"))
+	data, _ := os.ReadFile(filepath.Join(ws, "leak"))
+	if err != nil || !info.Mode().IsRegular() || string(data) != "../../etc/passwd" {
+		t.Fatalf("link exported as %v %q %v", info, data, err)
+	}
+	other := filepath.Join(f.dir, "other")
+	os.MkdirAll(filepath.Join(other, "tracked"), 0o755)
+	gitRun(t, other, "init", "-q")
+	writeFile(t, filepath.Join(other, ".gitignore"), "/ignored/\n")
+	if err := localRecordPath(f.repo, filepath.Join(other, "tracked", "01")); err == nil {
+		t.Fatal("a folder another repository would track was accepted")
+	}
+	if err := localRecordPath(f.repo, filepath.Join(other, "ignored", "01")); err != nil {
+		t.Fatalf("an ignored folder of another repository: %v", err)
+	}
+	if err := localRecordPath(f.repo, filepath.Join(f.dir, "plain", "01")); err != nil {
+		t.Fatalf("a folder outside any repository: %v", err)
+	}
+}

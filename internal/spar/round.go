@@ -128,9 +128,11 @@ func priorLines(siblings []sibling, current *RoundRecord) ([]string, []string, e
 // returns whether the run counts against the cap and which rounds it reruns.
 func admit(siblings []sibling, exts []Extension, r *RoundRecord) (bool, []string, error) {
 	group := stageGroup(r.Stage)
+	// Only finished rounds tell which reviewers did not complete a packet;
+	// a round still running is not a reason to start its reviewers again.
 	var same []sibling
 	for _, s := range siblings {
-		if !s.round.DryRun && sameIdentity(s.round, r) && s.round.PacketSHA256 == r.PacketSHA256 {
+		if !s.round.DryRun && sameIdentity(s.round, r) && s.round.PacketSHA256 == r.PacketSHA256 && s.round.FinishedAt != "" {
 			same = append(same, s)
 		}
 	}
@@ -336,6 +338,9 @@ func Run(o RunOptions) (int, error) {
 		}
 	}
 	defer release()
+	if _, err := os.Lstat(out); err == nil {
+		return ExitRefused, refused("%s already exists; each round writes a new folder", o.Out)
+	}
 	siblings, err := seriesRounds(series)
 	if err != nil {
 		return ExitRefused, refused("series %s: %v", series, err)
@@ -389,7 +394,10 @@ func nonNil(docs []Document) []Document {
 }
 
 func runRound(o RunOptions, r *RoundRecord, out string, packet []byte, admitted func()) (int, error) {
-	if err := os.MkdirAll(out, 0o755); err != nil {
+	if err := os.Mkdir(out, 0o755); err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return ExitRefused, refused("%s already exists; each round writes a new folder", o.Out)
+		}
 		return ExitInternal, err
 	}
 	r.StartedAt = now()
@@ -549,6 +557,15 @@ func applyResult(c classifier, st *ReviewerState, name string, result map[string
 // saveRound adds findings and their automatic deferrals to a round and
 // rewrites its record and summary.
 func saveRound(out string, r *RoundRecord, added []Finding, fresh bool) error {
+	if !fresh {
+		// Adding to a round needs its records: rewriting a lost findings
+		// file would drop the findings it held.
+		for _, name := range []string{"findings.json", "ledger.jsonl"} {
+			if _, err := os.Stat(filepath.Join(out, name)); err != nil {
+				return refused("%s/%s is missing; the round record is incomplete", out, name)
+			}
+		}
+	}
 	findings, err := loadFindings(out)
 	if err != nil {
 		return err

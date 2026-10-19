@@ -90,6 +90,11 @@ func TestUnsafeCommand(t *testing.T) {
 		"uniq head/a out.txt":                  false,
 		"uniq -c head/a":                       true,
 		"grep -o foo head/a":                   true,
+		"sort -ro scratch head/a":              false,
+		"sort -uo scratch head/a":              false,
+		"sort --out=scratch head/a":            false,
+		"sort --compress-prog=sh head/a":       false,
+		"sort -rn head/a":                      true,
 	} {
 		if got := unsafeCommand(line) == ""; got != safe {
 			t.Errorf("%q: safe=%v (%s)", line, got, unsafeCommand(line))

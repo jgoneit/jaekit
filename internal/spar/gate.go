@@ -179,8 +179,8 @@ func Gate(o GateOptions) (int, error) {
 			case st != nil && st.Status == StatusCompleted && st.Required && st.Preset == ref.Preset:
 				gr.CompletedRequired++
 			case completedIn[credit(r, ref.Name, ref.Preset)]:
-			case st == nil:
-				degraded = append(degraded, fmt.Sprintf("%s: required reviewer %s did not run in this round", lr.path, ref.Name))
+			case st == nil || st.Preset != ref.Preset:
+				degraded = append(degraded, fmt.Sprintf("%s: required reviewer %s (%s) did not run in this round", lr.path, ref.Name, ref.Preset))
 			default:
 				degraded = append(degraded, fmt.Sprintf("%s: required reviewer %s is %s", lr.path, ref.Name, st.Status))
 			}
@@ -302,10 +302,10 @@ func Gate(o GateOptions) (int, error) {
 // and those its configuration requires.
 func requiredOf(r *RoundRecord) []RequiredRef {
 	var out []RequiredRef
-	seen := map[string]bool{}
+	seen := map[RequiredRef]bool{}
 	add := func(ref RequiredRef) {
-		if !seen[ref.Name] {
-			seen[ref.Name] = true
+		if !seen[ref] {
+			seen[ref] = true
 			out = append(out, ref)
 		}
 	}

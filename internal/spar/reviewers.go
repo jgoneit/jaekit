@@ -51,8 +51,19 @@ var readOnlyPrograms = map[string]bool{"find": true, "ls": true, "grep": true, "
 var unsafeArgPrefixes = []string{"-exec", "-execdir", "-ok", "-okdir", "-delete", "--pre", "--compress-program",
 	"-fprint", "-fls"}
 
-// Options with which an otherwise read-only program writes a file.
-var writingOptions = map[string][]string{"sort": {"-o", "--output"}, "tree": {"-o"}}
+// writesFile reports an option with which sort or tree writes a file: -o
+// alone or inside a cluster of short options (-ro), and any long option
+// that getopt would expand to one that writes or runs something.
+func writesFile(program, arg string) bool {
+	switch program {
+	case "sort", "tree":
+		if strings.HasPrefix(arg, "--") {
+			return strings.HasPrefix(arg, "--o") || (program == "sort" && strings.HasPrefix(arg, "--co"))
+		}
+		return strings.HasPrefix(arg, "-") && strings.ContainsRune(arg[1:], 'o')
+	}
+	return false
+}
 
 // packetFile is where a reviewer finds the packet when it is too large for
 // one command-line argument.
@@ -540,10 +551,8 @@ func unsafeCommand(line string) string {
 					return fmt.Sprintf("argument %q", t)
 				}
 			}
-			for _, o := range writingOptions[program] {
-				if t == o || strings.HasPrefix(t, o+"=") || (len(o) == 2 && strings.HasPrefix(t, o)) {
-					return fmt.Sprintf("argument %q writes a file", t)
-				}
+			if writesFile(program, t) {
+				return fmt.Sprintf("argument %q writes a file", t)
 			}
 			if !strings.HasPrefix(t, "-") {
 				operands = append(operands, t)

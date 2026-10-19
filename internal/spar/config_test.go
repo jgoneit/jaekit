@@ -162,6 +162,12 @@ func TestProjectConfigLimits(t *testing.T) {
 	if _, err := LoadConfig(repo, vars, nil); err == nil || !strings.Contains(err.Error(), ":2") {
 		t.Fatalf("a table defined twice: %v", err)
 	}
+	for _, body := range []string{"rules = [\"../outside.md\"]\n", "check_paths = [\"/abs/**\"]\n", "rules = [\"a/../../b\"]\n"} {
+		writeFile(t, filepath.Join(repo, ".jaekit", "spar.toml"), body)
+		if _, err := LoadConfig(repo, vars, nil); err == nil || !strings.Contains(err.Error(), "inside the repository") {
+			t.Errorf("%q: %v", body, err)
+		}
+	}
 	writeFile(t, filepath.Join(repo, ".jaekit", "spar.toml"), "angles = [\"design\"]\nunknown_key = 1\n")
 	if _, err := LoadConfig(repo, vars, nil); err == nil || !strings.Contains(err.Error(), "unknown_key") ||
 		!strings.Contains(err.Error(), ":2:") {
