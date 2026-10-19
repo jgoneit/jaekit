@@ -1,7 +1,7 @@
 {
   "name": "spec",
-  "version": "0.1.12",
-  "description": "Turn an explicitly requested idea or change into goal documents with stable completion criteria that any coding agent can implement.",
+  "version": "0.1.13",
+  "description": "Turn an idea or change into goal documents with stable completion criteria that any coding agent can implement. The user or the host agent can call it; Ready and the start of implementation come only from the user's words. With nothing left to decide it asks whether to implement now, and the user's yes starts it; a separate implementation request still works.",
   "author": {
     "name": "Jaegon Seo",
     "url": "https://github.com/jgoneit"
@@ -14,7 +14,7 @@
   "interface": {
     "displayName": "Spec",
     "shortDescription": "Write goal documents with stable completion criteria",
-    "longDescription": "Spec turns an explicitly requested idea or change into goal documents: SPEC.md with AC-n criteria, user scenarios tied to those criteria, and open decisions. It asks only questions that change the outcome, writes the documents directly, and never changes code itself. After writing and reporting it stops; implementation starts with a new request. In Codex, select spec:spec from the $ menu to explicitly load this skill; an @Spec plugin mention alone does not guarantee that these rules are selected.",
+    "longDescription": "Spec turns an idea or change into goal documents: SPEC.md with AC-n criteria, an Assurance tier, user scenarios tied to those criteria, and open decisions. The user calls it directly, or the host agent calls it when the user asks to work through Jaekit or goal documents, or when a review finding needs an amendment. It asks only questions that change the outcome, writes the documents directly, and never changes code itself. After writing and reporting it stops. While a decision is open, implementation starts with a new request; with nothing left to decide it asks whether to implement now, and the user's yes to that question is the implementation request. Ready and the start of implementation come only from the user's words, and a separate implementation request still works. In Codex, select spec:spec from the $ menu to explicitly load this skill; an @Spec plugin mention alone does not guarantee that these rules are selected.",
     "developerName": "Jaegon Seo",
     "category": "Developer Tools",
     "capabilities": ["Interactive", "Read", "Write"],

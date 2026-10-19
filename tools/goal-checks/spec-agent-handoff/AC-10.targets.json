@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "contract-header-lines",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC10.test_contract_defines_header_lines",
+      "result_targets": {
+        "additional_violations": [
+          "contract-header-lines.assertion-2",
+          "contract-header-lines.assertion-3",
+          "contract-header-lines.assertion-4",
+          "contract-header-lines.assertion-5",
+          "contract-header-lines.assertion-6",
+          "contract-header-lines.assertion-7",
+          "contract-header-lines.assertion-8"
+        ],
+        "execution": "contract-header-lines.execution",
+        "selection": "contract-header-lines.selection",
+        "attribution": "contract-header-lines.attribution"
+      }
+    },
+    {
+      "target": "reference-header-lines",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC10.test_spec_reference_defines_header_lines",
+      "result_targets": {
+        "additional_violations": [
+          "reference-header-lines.assertion-2",
+          "reference-header-lines.assertion-3",
+          "reference-header-lines.assertion-4",
+          "reference-header-lines.assertion-5",
+          "reference-header-lines.assertion-6",
+          "reference-header-lines.assertion-7",
+          "reference-header-lines.assertion-8"
+        ],
+        "execution": "reference-header-lines.execution",
+        "selection": "reference-header-lines.selection",
+        "attribution": "reference-header-lines.attribution"
+      }
+    }
+  ]
+}

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 
+	"github.com/jgoneit/jaekit/internal/goaldocs"
 	"github.com/jgoneit/jaekit/internal/status"
 )
 
@@ -37,6 +38,7 @@ func (c *cli) capabilities(in []string) int {
 			"check_result":      {"check-result/v1"},
 			"check_evidence":    {"check-evidence/v1"},
 			"timing":            {"timing/v1"},
+			"assurance_tier":    append([]string(nil), goaldocs.AssuranceTiers...),
 		},
 		Features: []string{"estimate/v1", "dirty-preflight/v1", "baseline-safe-copy/v1", "structured-change-results/v1", "budget-change/v1", "post-completion-findings/v1", "decision-history/v1", "run-timing/v1",
 			"test-authority/v1", "reported-wait/v1", "preapproved-runs/v1", "error-recovery/v1", "command-time-limits/v1", "runner-adapters/v1"},

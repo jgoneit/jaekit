@@ -10,6 +10,7 @@
 docs/specs/<goal>/
   SPEC.md        목표 문서 진입점: 조건 ID, (선택) 작업 분해 제안 (Spec이 작성, 사용자 소유)
   <보조 문서>.md SPEC.md가 링크한 목표 문서 (Spec, 사용자 소유)
+  amendments/    수정안 문서 (Spec이 작성, 사용자가 정하기 전까지 목표 밖, goal-docs.md §6.6)
   PLAN.md        조건표, 범위, task 목록, 예산
   REVIEW.md      실행 전 검토
   tasks/T001.md  task별 상세 (작은 목표는 PLAN.md 안에 합쳐도 된다)
@@ -26,7 +27,7 @@ docs/specs/<goal>/
 | `PROGRESS.md` | 실행자 | 언제든 |
 | `runs.jsonl` | `ha`만 | 덧붙이기만 한다. |
 
-goal 디렉토리 안의 다른 파일(검증 스크립트, fixture 등)은 묶음 문서가 아니라 **코드**로 다룬다. 신선도와 범위 확인에 그대로 들어간다([run-record.md](run-record.md) §2). 검증에 영향을 주는 파일을 goal 디렉토리에 두어도, 바뀌면 이전 결과가 stale이 된다. 같은 부모 아래 다른 목표의 실행 묶음 파일이 코드 상태에 들어가는지는 규칙 버전에 따른다([run-record.md](run-record.md) §4.6).
+goal 디렉토리 안의 다른 파일(검증 스크립트, fixture 등)은 묶음 문서가 아니라 **코드**로 다룬다. 신선도와 범위 확인에 그대로 들어간다([run-record.md](run-record.md) §2). 검증에 영향을 주는 파일을 goal 디렉토리에 두어도, 바뀌면 이전 결과가 stale이 된다. 같은 부모 아래 다른 목표의 실행 묶음 파일이 코드 상태에 들어가는지는 규칙 버전에 따른다([run-record.md](run-record.md) §4.6). 예외로 `amendments/`의 수정안 문서는 목표 문서도 코드도 아니다. SPEC.md가 링크해도 목표 문서 집합에 들지 않고, 이 목표의 것과 같은 부모 아래 다른 목표의 것 모두 규칙 버전에 관계없이 코드 상태에서 빠진다([goal-docs.md](goal-docs.md) §6.6, [run-record.md](run-record.md) §2).
 
 모든 파일은 일반 Markdown이다. `ha lint`가 읽어야 하는 부분만 아래의 표 형식을 지킨다. 그 밖의 서술은 자유다.
 
@@ -304,7 +305,7 @@ Seal 0.1.13 이상으로 시작한 목표는 선택 기능인 [판단 이력](de
 
 ## 8. `ha lint` 오류 코드
 
-`ha lint`는 오류마다 코드, 파일과 줄, 설명을 한 줄로 출력한다. 오류가 하나라도 있으면 `ha start`와 `ha check`를 거절하고, `ha status`는 `lint_error`를 낸다.
+`ha lint`는 오류마다 코드, 파일과 줄, 설명을 한 줄로 출력한다. 오류가 없으면 `ok: no lint problems` 한 줄을 출력하고, 목표 문서에 올바른 `Assurance:` 줄([goal-docs.md](goal-docs.md) §2.5)이 있으면 그 다음 줄에 `assurance tier: <등급>`을 더한다. 오류가 하나라도 있으면 `ha start`와 `ha check`를 거절하고, `ha status`는 `lint_error`를 낸다.
 
 목표 문서([goal-docs.md](goal-docs.md))
 
@@ -316,6 +317,8 @@ Seal 0.1.13 이상으로 시작한 목표는 선택 기능인 [판단 이력](de
 | `criterion_duplicate_id` | 같은 `AC-n`이 두 번 나온다 |
 | `criteria_format` | 목표 문서의 목록 형식 값이나 선택 표시 위치가 올바르지 않다 |
 | `criteria_format_duplicate` | 목표 문서에 목록 형식 선택 표시가 두 번 이상 나온다 |
+| `assurance_format` | `Assurance:` 줄의 값이 `light`, `standard`, `strict`가 아니거나, 들여썼거나, 첫 2단계 절 뒤에 있다 |
+| `assurance_format_duplicate` | `Assurance:` 줄이 두 번 이상 나온다 |
 | `criterion_indentation` | 새 목록 형식의 들여쓰기가 애매하거나 지원되지 않는다 |
 | `goal_doc_link_missing` | SPEC.md나 보조 문서가 링크한 goal 디렉토리 안 문서가 없다 |
 | `proposal_invalid_id` | 작업 분해 제안의 ID가 `W1` 형식이 아니다 |

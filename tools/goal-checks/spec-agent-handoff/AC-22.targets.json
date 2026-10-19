@@ -1,0 +1,145 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "linked-amendment",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC22.test_linked_amendment_stays_outside_the_goal",
+      "result_targets": {
+        "additional_violations": [
+          "linked-amendment.assertion-2",
+          "linked-amendment.assertion-3",
+          "linked-amendment.assertion-4",
+          "linked-amendment.assertion-5",
+          "linked-amendment.assertion-6",
+          "linked-amendment.assertion-7",
+          "linked-amendment.assertion-8"
+        ],
+        "execution": "linked-amendment.execution",
+        "selection": "linked-amendment.selection",
+        "attribution": "linked-amendment.attribution"
+      }
+    },
+    {
+      "target": "code-state-rules-1",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC22.test_code_state_rules_1",
+      "result_targets": {
+        "additional_violations": [
+          "code-state-rules-1.assertion-2",
+          "code-state-rules-1.assertion-3",
+          "code-state-rules-1.assertion-4",
+          "code-state-rules-1.assertion-5",
+          "code-state-rules-1.assertion-6",
+          "code-state-rules-1.assertion-7",
+          "code-state-rules-1.assertion-8"
+        ],
+        "execution": "code-state-rules-1.execution",
+        "selection": "code-state-rules-1.selection",
+        "attribution": "code-state-rules-1.attribution"
+      }
+    },
+    {
+      "target": "code-state-rules-2",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC22.test_code_state_rules_2",
+      "result_targets": {
+        "additional_violations": [
+          "code-state-rules-2.assertion-2",
+          "code-state-rules-2.assertion-3",
+          "code-state-rules-2.assertion-4",
+          "code-state-rules-2.assertion-5",
+          "code-state-rules-2.assertion-6",
+          "code-state-rules-2.assertion-7",
+          "code-state-rules-2.assertion-8"
+        ],
+        "execution": "code-state-rules-2.execution",
+        "selection": "code-state-rules-2.selection",
+        "attribution": "code-state-rules-2.attribution"
+      }
+    },
+    {
+      "target": "code-state-rules-3",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC22.test_code_state_rules_3",
+      "result_targets": {
+        "additional_violations": [
+          "code-state-rules-3.assertion-2",
+          "code-state-rules-3.assertion-3",
+          "code-state-rules-3.assertion-4",
+          "code-state-rules-3.assertion-5",
+          "code-state-rules-3.assertion-6",
+          "code-state-rules-3.assertion-7",
+          "code-state-rules-3.assertion-8"
+        ],
+        "execution": "code-state-rules-3.execution",
+        "selection": "code-state-rules-3.selection",
+        "attribution": "code-state-rules-3.attribution"
+      }
+    },
+    {
+      "target": "code-state-rules-4",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC22.test_code_state_rules_4",
+      "result_targets": {
+        "additional_violations": [
+          "code-state-rules-4.assertion-2",
+          "code-state-rules-4.assertion-3",
+          "code-state-rules-4.assertion-4",
+          "code-state-rules-4.assertion-5",
+          "code-state-rules-4.assertion-6",
+          "code-state-rules-4.assertion-7",
+          "code-state-rules-4.assertion-8"
+        ],
+        "execution": "code-state-rules-4.execution",
+        "selection": "code-state-rules-4.selection",
+        "attribution": "code-state-rules-4.attribution"
+      }
+    },
+    {
+      "target": "amendment-location",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC22.test_location_documented",
+      "result_targets": {
+        "additional_violations": [
+          "amendment-location.assertion-2",
+          "amendment-location.assertion-3",
+          "amendment-location.assertion-4",
+          "amendment-location.assertion-5",
+          "amendment-location.assertion-6",
+          "amendment-location.assertion-7",
+          "amendment-location.assertion-8"
+        ],
+        "execution": "amendment-location.execution",
+        "selection": "amendment-location.selection",
+        "attribution": "amendment-location.attribution"
+      }
+    },
+    {
+      "target": "amendment-scenarios",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC22.test_amendment_scenarios",
+      "result_targets": {
+        "additional_violations": [
+          "amendment-scenarios.assertion-2",
+          "amendment-scenarios.assertion-3",
+          "amendment-scenarios.assertion-4",
+          "amendment-scenarios.assertion-5",
+          "amendment-scenarios.assertion-6",
+          "amendment-scenarios.assertion-7",
+          "amendment-scenarios.assertion-8"
+        ],
+        "execution": "amendment-scenarios.execution",
+        "selection": "amendment-scenarios.selection",
+        "attribution": "amendment-scenarios.attribution"
+      }
+    }
+  ]
+}

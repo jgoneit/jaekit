@@ -1,0 +1,14 @@
+# goal-docs.md §2.5: a valid Assurance line passes lint, which prints the tier after its success line; the tier changes no judgment or status output.
+replace $GOAL/SPEC.md "Status: Ready" "Status: Ready\nAssurance: strict"
+ha lint $GOAL
+expect-exit 0
+expect-output "ok: no lint problems\nassurance tier: strict\n"
+include implement
+expect-status complete
+expect-reasons none
+ha status $GOAL
+expect-no-output "assurance tier"
+expect-output "- assurance: local"
+ha done $GOAL
+expect-exit 0
+expect-no-output "assurance tier"

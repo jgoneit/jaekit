@@ -74,6 +74,10 @@ The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evi
 | `not-started` | run-record.md §4.2 | `incomplete`, `not_started`; checks refused |
 | `start-budget-minimum` | run-record.md §1.1 | estimate and start report shortfall without a record; an equal cap is accepted |
 | `nested-criteria` | goal-docs.md | explicit nested format passes lint and the full verification/completion path |
+| `assurance-line` | goal-docs.md §2.5 | a valid `Assurance:` line passes lint, which prints `assurance tier: <tier>`; status, done and judgment stay unchanged |
+| `assurance-invalid` | goal-docs.md §2.5, bundle.md §8 | values outside the three, indentation, a duplicate and a line after the first section are `assurance_format`/`assurance_format_duplicate` with file and line; `ha start` refuses with 65 and records nothing |
+| `amendment-excluded` | goal-docs.md §6.6, run-record.md §2 | under `/2`, this goal's and a sibling goal's `amendments/` keep the tree clean, results fresh and changes in scope, written, committed or deleted |
+| `amendment-excluded-v4` | run-record.md §2 | the same under `run-rules/4`: checks run on a clean tree and stay fresh |
 | `start-refused` | run-record.md §1 | second start refused |
 | `start-lint-refused` | run-record.md §1 | start refused on lint problems and without a request |
 | `rules-unsupported` | INV-21 | exit 66 |

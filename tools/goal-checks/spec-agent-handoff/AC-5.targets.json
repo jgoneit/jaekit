@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "implement-question",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC5.test_implement_now_question",
+      "result_targets": {
+        "additional_violations": [
+          "implement-question.assertion-2",
+          "implement-question.assertion-3",
+          "implement-question.assertion-4",
+          "implement-question.assertion-5",
+          "implement-question.assertion-6",
+          "implement-question.assertion-7",
+          "implement-question.assertion-8"
+        ],
+        "execution": "implement-question.execution",
+        "selection": "implement-question.selection",
+        "attribution": "implement-question.attribution"
+      }
+    }
+  ]
+}

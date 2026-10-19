@@ -1,7 +1,7 @@
 {
   "name": "spec",
-  "version": "0.1.12",
-  "description": "Turn an explicitly requested idea or change into goal documents with stable completion criteria that any coding agent can implement.",
+  "version": "0.1.13",
+  "description": "Turn an idea or change into goal documents with stable completion criteria that any coding agent can implement. The user or the host agent can call it; Ready and the start of implementation come only from the user's words. With nothing left to decide it asks whether to implement now, and the user's yes starts it; a separate implementation request still works.",
   "author": {
     "name": "Jaegon Seo",
     "url": "https://github.com/jgoneit"

@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "acceptance-edit",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC4.test_acceptance_turns_the_same_document_ready",
+      "result_targets": {
+        "additional_violations": [
+          "acceptance-edit.assertion-2",
+          "acceptance-edit.assertion-3",
+          "acceptance-edit.assertion-4",
+          "acceptance-edit.assertion-5",
+          "acceptance-edit.assertion-6",
+          "acceptance-edit.assertion-7",
+          "acceptance-edit.assertion-8"
+        ],
+        "execution": "acceptance-edit.execution",
+        "selection": "acceptance-edit.selection",
+        "attribution": "acceptance-edit.attribution"
+      }
+    }
+  ]
+}

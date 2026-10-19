@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "versions",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC21.test_versions_raised_and_agree",
+      "result_targets": {
+        "additional_violations": [
+          "versions.assertion-2",
+          "versions.assertion-3",
+          "versions.assertion-4",
+          "versions.assertion-5",
+          "versions.assertion-6",
+          "versions.assertion-7",
+          "versions.assertion-8"
+        ],
+        "execution": "versions.execution",
+        "selection": "versions.selection",
+        "attribution": "versions.attribution"
+      }
+    }
+  ]
+}

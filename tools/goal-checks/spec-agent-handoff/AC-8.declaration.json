@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spec-agent-handoff/AC-8.targets.json",
+    "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "seal-authority",
+      "violation": "seal-authority-boundary-missing"
+    },
+    {
+      "id": "seal-authority.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-authority.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-authority.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-authority.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-authority.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-authority.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-authority.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-authority.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-authority.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-authority.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-outside-authority",
+      "violation": "seal-outside-authority-changed"
+    },
+    {
+      "id": "seal-outside-authority.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-outside-authority.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-outside-authority.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-outside-authority.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-outside-authority.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-outside-authority.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-outside-authority.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-outside-authority.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-outside-authority.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "seal-outside-authority.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

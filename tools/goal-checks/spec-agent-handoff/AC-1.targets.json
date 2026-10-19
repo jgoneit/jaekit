@@ -1,0 +1,65 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "agent-invocable",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC1.test_agent_invocable_on_both_hosts",
+      "result_targets": {
+        "additional_violations": [
+          "agent-invocable.assertion-2",
+          "agent-invocable.assertion-3",
+          "agent-invocable.assertion-4",
+          "agent-invocable.assertion-5",
+          "agent-invocable.assertion-6",
+          "agent-invocable.assertion-7",
+          "agent-invocable.assertion-8"
+        ],
+        "execution": "agent-invocable.execution",
+        "selection": "agent-invocable.selection",
+        "attribution": "agent-invocable.attribution"
+      }
+    },
+    {
+      "target": "invocation-description",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC1.test_description_limits_agent_calls",
+      "result_targets": {
+        "additional_violations": [
+          "invocation-description.assertion-2",
+          "invocation-description.assertion-3",
+          "invocation-description.assertion-4",
+          "invocation-description.assertion-5",
+          "invocation-description.assertion-6",
+          "invocation-description.assertion-7",
+          "invocation-description.assertion-8"
+        ],
+        "execution": "invocation-description.execution",
+        "selection": "invocation-description.selection",
+        "attribution": "invocation-description.attribution"
+      }
+    },
+    {
+      "target": "direct-calls",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC1.test_direct_calls_remain",
+      "result_targets": {
+        "additional_violations": [
+          "direct-calls.assertion-2",
+          "direct-calls.assertion-3",
+          "direct-calls.assertion-4",
+          "direct-calls.assertion-5",
+          "direct-calls.assertion-6",
+          "direct-calls.assertion-7",
+          "direct-calls.assertion-8"
+        ],
+        "execution": "direct-calls.execution",
+        "selection": "direct-calls.selection",
+        "attribution": "direct-calls.attribution"
+      }
+    }
+  ]
+}

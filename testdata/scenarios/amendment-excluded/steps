@@ -1,0 +1,20 @@
+# goal-docs.md §6.6, run-record.md §2 under run-rules/2: amendment documents of this goal and of a sibling goal stay out of the goal document set and the code state, whether written, committed or deleted.
+include implement
+write $GOAL/amendments/wording.md "# 수정안\n\n## 계기\n\n검토 지적 F1\n"
+write docs/specs/other/amendments/scope.md "# 수정안\n"
+expect-no-reason worktree_dirty
+expect-no-reason spec_changed
+expect-status complete
+ha check $GOAL AC-2
+expect-exit 0
+expect-record 5 tree_clean true
+commit "amendments"
+expect-no-reason out_of_scope
+expect-satisfied AC-1
+expect-satisfied AC-2
+rm $GOAL/amendments/wording.md
+expect-no-reason worktree_dirty
+commit "reject the amendment"
+expect-status complete
+ha done $GOAL
+expect-exit 0

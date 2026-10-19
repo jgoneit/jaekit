@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "tier-proposal",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC6.test_skill_proposes_a_tier",
+      "result_targets": {
+        "additional_violations": [
+          "tier-proposal.assertion-2",
+          "tier-proposal.assertion-3",
+          "tier-proposal.assertion-4",
+          "tier-proposal.assertion-5",
+          "tier-proposal.assertion-6",
+          "tier-proposal.assertion-7",
+          "tier-proposal.assertion-8"
+        ],
+        "execution": "tier-proposal.execution",
+        "selection": "tier-proposal.selection",
+        "attribution": "tier-proposal.attribution"
+      }
+    },
+    {
+      "target": "template-tier",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC6.test_templates_carry_a_tier",
+      "result_targets": {
+        "additional_violations": [
+          "template-tier.assertion-2",
+          "template-tier.assertion-3",
+          "template-tier.assertion-4",
+          "template-tier.assertion-5",
+          "template-tier.assertion-6",
+          "template-tier.assertion-7",
+          "template-tier.assertion-8"
+        ],
+        "execution": "template-tier.execution",
+        "selection": "template-tier.selection",
+        "attribution": "template-tier.attribution"
+      }
+    }
+  ]
+}

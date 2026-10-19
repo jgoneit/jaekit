@@ -25,9 +25,12 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 	if marketplace.Metadata.Version != "0.1.6" {
 		t.Errorf("[requirement] current released marketplace identity changed: %s", marketplace.Metadata.Version)
 	}
-	// Seal 0.1.18 is the source version that adds runner adapter guidance;
-	// the released marketplace identity above stays v0.1.6.
-	for name, want := range map[string]string{"spec": "0.1.12", "seal": "0.1.18"} {
+	// Release v0.1.6 shipped Spec 0.1.12 and Seal 0.1.17. Spec 0.1.13 adds
+	// agent invocation, the Assurance line and the implement-now question;
+	// Seal 0.1.18 takes the user's yes to that question as a request, and
+	// Seal 0.1.19 adds runner adapter guidance. The released marketplace
+	// identity above stays v0.1.6.
+	for name, want := range map[string]string{"spec": "0.1.13", "seal": "0.1.19"} {
 		t.Run(name, func(t *testing.T) {
 			_, version := frontMatter(t, filepath.Join(name, "skills", name, "SKILL.md"))
 			if version != want {
@@ -174,8 +177,11 @@ func TestCompatibilityAC12_SpecAndVerificationBoundaries(t *testing.T) {
 	specPath := "spec/skills/spec/SKILL.md"
 	spec := read(t, specPath)
 	keys, _ := frontMatter(t, specPath)
-	if keys["disable-model-invocation"] != "true" {
-		t.Error("[requirement] Spec lost its explicit-invocation boundary")
+	// Agents may invoke Spec, but only for Jaekit or goal-document work and
+	// amendments, never for an ordinary implementation request.
+	if _, blocked := keys["disable-model-invocation"]; blocked || !strings.Contains(keys["description"],
+		"Not for ordinary implementation requests or bug reports that do not mention goal documents.") {
+		t.Error("[requirement] Spec lost its invocation boundary")
 	}
 	compatibilityContains(t, specPath, spec,
 		"without installing Core, querying its capabilities, or running verification",

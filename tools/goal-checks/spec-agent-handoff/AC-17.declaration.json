@@ -1,0 +1,145 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spec-agent-handoff/AC-17.targets.json",
+    "tools/goal-checks/spec-agent-handoff/observe_core.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "preserved",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "preserved.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "scenarios",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "scenarios.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "scenarios.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "scenarios.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "scenarios.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "scenarios.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "scenarios.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "scenarios.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "scenarios.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "scenarios.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "scenarios.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-units",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-units.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-units.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-units.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-units.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-units.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-units.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-units.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-units.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-units.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-units.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}
