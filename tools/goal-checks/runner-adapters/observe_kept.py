@@ -3,14 +3,16 @@
 The existing Go suites of the evidence, status, bundle, run and CLI packages
 (including the protected result regressions, the producer semantics and every
 behavioral scenario) and the producer semantic regressions run as they are.
-The scenarios `adapter-legacy-rules-v1` and `adapter-legacy-rules-v2` must run
-and pass, and each must be a goal of that rule (the scenario's own
-`rewrite-record 1 rules` step) whose result contract names a check-adapter/v1
-declaration: such a goal keeps its exit-code results. A synthetic run-rules/4 goal built with the checked `ha` shows that
+A run-rules/1 and a run-rules/2 goal whose result contract names
+check-adapter/v1 declarations keep their exit-code results, and the
+placeholder stays literal: each starts with the checked `ha` and gets its
+rule by rewriting the start record and the record chain, as the behavioral
+scenarios do (`rewrite-record`). A synthetic run-rules/4 goal built with the checked `ha` shows that
 maintain, EX-n and task commands keep their exit-code judgment next to an
 adapter condition, and that `ha log` keeps both output streams of an adapter
 condition. Missing Go or Python is an execution error.
 """
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -19,11 +21,29 @@ import unittest
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from adapters_common import (GOAL, ROOT, Condition, Repo, Unavailable, build, clean_env, go_declaration, go_test_results,
-                             require, run, runner_command, runner_file, summary, temporary, unittest_failures)
+from adapters_common import (GOAL, PLACEHOLDER, Condition, Repo, Unavailable, build, clean_env, go_declaration,
+                             go_test_results, junit_declaration, require, runner_command, runner_file, summary, temporary,
+                             unittest_failures)
 
 PACKAGES = ["./internal/evidence", "./internal/status", "./internal/bundle", "./internal/run", "./internal/record", "./cmd/ha"]
-SCENARIOS = {"adapter-legacy-rules-v1": "run-rules/1", "adapter-legacy-rules-v2": "run-rules/2"}
+LEGACY_RULES = ("run-rules/1", "run-rules/2")
+
+
+def legacy(repo, rules):
+    """Rewrite the start record's rule and re-chain later records (contracts/run-record.md, `prev`)."""
+    path = repo.root / GOAL / "runs.jsonl"
+    lines = path.read_bytes().split(b"\n")
+    if lines[-1] != b"":
+        raise Unavailable("runs.jsonl does not end with a newline")
+    lines = lines[:-1]
+    first = re.sub(rb'"rules":"[^"]*"', b'"rules":"' + rules.encode() + b'"', lines[0], count=1)
+    if first == lines[0]:
+        raise Unavailable("the start record has no rules field")
+    lines[0] = first
+    for i in range(1, len(lines)):
+        previous = hashlib.sha256(lines[i - 1]).hexdigest().encode()
+        lines[i] = re.sub(rb'"prev":"[0-9a-f]*"', b'"prev":"' + previous + b'"', lines[i], count=1)
+    path.write_bytes(b"\n".join(lines) + b"\n")
 
 
 def go_env():
@@ -43,25 +63,40 @@ class Kept(unittest.TestCase):
 
     def test_legacy_rules_keep_exit_codes(self):
         problems = []
-        for scenario, rules in SCENARIOS.items():
-            directory = ROOT / "testdata/scenarios" / scenario
-            steps = directory / "steps"
-            if not steps.is_file():
-                problems.append(f"scenario {scenario} does not exist")
-                continue
-            text = steps.read_text(encoding="utf-8", errors="replace")
-            if f'rewrite-record 1 rules "\\"{rules}\\""' not in text:
-                problems.append(f"scenario {scenario} is not a {rules} goal")
-            files = [path for path in directory.rglob("*") if path.is_file()]
-            if not any(re.search(r'"schema"\s*:\s*"check-adapter/v1"', path.read_text(encoding="utf-8", errors="replace"))
-                       for path in files):
-                problems.append(f"scenario {scenario} has no check-adapter/v1 declaration")
+        for rules in LEGACY_RULES:
+            with temporary("jaekit-adapter-legacy-") as directory:
+                log = Path(directory) / "observed.jsonl"
+                conditions = [
+                    Condition("AC-1", runner_command("go-typed-fail"), ["tests/runner.py"],
+                              go_declaration([("t", "greeting-missing", "example.com/demo/forms", "TestMarked")])),
+                    Condition("AC-2", runner_command("junit-probe", PLACEHOLDER), ["tests/runner.py"],
+                              junit_declaration([("t", "greeting-missing", "tests.test_greet", "test_greets")])),
+                ]
+                repo = Repo(directory, build(Path(directory) / "ha"), conditions, files={"tests/runner.py": runner_file()},
+                            rules="run-rules/3")
+                repo.env["JAEKIT_OBSERVE_LOG"] = str(log)
+                code, out = repo.start()
+                require(self, code == 0, "existing-behavior-changed", f"ha start refused: {out[-1500:]}")
+                legacy(repo, rules)
+                _, status = repo.status()
+                if status.get("rules") != rules:
+                    raise Unavailable(f"the rewritten start record reads as {status.get('rules')}, not {rules}")
+                repo.check("AC-1", "AC-2", baseline=True)
+                repo.check("AC-1", "AC-2")
+                want = {("AC-1", "baseline"): ("fail_as_expected", 1), ("AC-1", "check"): ("fail", 1),
+                        ("AC-2", "baseline"): ("unexpected_pass", 0), ("AC-2", "check"): ("pass", 0)}
+                for (cid, kind), (result, exit_code) in want.items():
+                    record = repo.last(cid, kind)
+                    got = None if record is None else (record.get("result"), record.get("exit"), record.get("evidence"))
+                    if got != (result, exit_code, None):
+                        problems.append(f"{rules} {cid} {kind}: got {got}, want {(result, exit_code, None)}")
+                try:
+                    seen = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()]
+                except (OSError, ValueError) as error:
+                    raise Unavailable(f"probe log: {error}") from None
+                if len(seen) != 2 or any(item["argv"][1:] != [PLACEHOLDER] or item["env"] is not None for item in seen):
+                    problems.append(f"{rules} junit-xml runs got a location: {[(i['argv'], i['env']) for i in seen]}")
         require(self, not problems, "existing-behavior-changed", "; ".join(problems))
-        pattern = "^TestScenarios$/^(" + "|".join(SCENARIOS) + ")$"
-        failed, passed = go_test_results(["./cmd/ha"], ["-count=1", "-run", pattern], go_env(), timeout=1800)
-        names = [f"github.com/jgoneit/jaekit/cmd/ha TestScenarios/{scenario}" for scenario in SCENARIOS]
-        require(self, not failed and all(name in passed for name in names), "existing-behavior-changed",
-                f"the legacy scenarios did not run and pass: failed {failed}, passed {passed[:4]}")
 
     def test_ordinary_checks_and_log(self):
         problems = []

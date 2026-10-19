@@ -93,14 +93,14 @@ def build(out, overlay=None, goos=None, goarch=None):
 def go_test_results(packages, flags=(), env=None, timeout=3600, go="go"):
     """(failed, passed) test names of `go test -json`, each as "package test".
 
-    A build failure, a run ended by a signal, output that is not test events,
-    or a nonzero exit without any failed test or package cannot establish a
-    result and raises Unavailable; only tests or packages that ran and failed
-    are returned as failures.
+    Only tests that ran to a failure are returned as failures. A build
+    failure, a run ended by a signal, output that is not test events, a test
+    that started without an end (the test binary crashed, was killed or hit
+    Go's own timeout), a package that failed without a failed test, or a
+    nonzero exit without any failed test cannot establish a result and raises
+    Unavailable.
     """
     result = run([go, "test", "-json", *flags, *packages], ROOT, env, timeout=timeout)
-    if result.returncode < 0:
-        raise Unavailable(f"go test ended by signal {-result.returncode}")
     events = []
     for line in result.stdout.decode(errors="replace").splitlines():
         try:
@@ -111,8 +111,16 @@ def go_test_results(packages, flags=(), env=None, timeout=3600, go="go"):
     if built:
         raise Unavailable(f"packages did not build: {built[:3]}")
     name = lambda e: f"{e.get('Package')} {e.get('Test', '')}".strip()
-    failed = sorted({name(e) for e in events if e.get("Action") == "fail"})
+    started = {name(e) for e in events if e.get("Action") == "run" and e.get("Test")}
+    ended = {name(e) for e in events if e.get("Action") in ("pass", "fail", "skip") and e.get("Test")}
+    if started - ended:
+        raise Unavailable(f"tests started without an end: {sorted(started - ended)[:3]}")
+    failed = sorted({name(e) for e in events if e.get("Action") == "fail" and e.get("Test")})
     passed = sorted({name(e) for e in events if e.get("Action") == "pass" and e.get("Test")})
+    failed_packages = {e.get("Package") for e in events if e.get("Action") == "fail" and not e.get("Test")}
+    silent = sorted(p for p in failed_packages if not any(f.startswith(f"{p} ") for f in failed))
+    if silent:
+        raise Unavailable(f"packages failed without a failed test: {silent[:3]}")
     if not passed and not failed:
         raise Unavailable(f"go test ran no test (exit {result.returncode}): {result.stderr.decode(errors='replace')[-500:]}")
     if result.returncode and not failed:

@@ -25,9 +25,9 @@ import unittest
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from adapters_common import (GOAL, PLACEHOLDER, ROOT, UNMARKED, Condition, Repo, Unavailable, build, go_declaration,
-                             go_typed, junit_declaration, node_runner, require, run, runner_command, runner_file,
-                             summary, temporary)
+from adapters_common import (GOAL, PLACEHOLDER, ROOT, UNMARKED, Condition, Repo, Unavailable, build, clean_env,
+                             go_declaration, go_test_results, go_typed, junit_declaration, node_runner, require, run,
+                             runner_command, runner_file, summary, temporary)
 
 PKG = "example.com/demo/forms"
 MARK_ID = "greeting-missing"
@@ -415,8 +415,12 @@ JUNIT_TESTS = {"J5": ("greet greets with hello", "greets with hello")}
 WINDOWS_NATIVE = {"internal/evidence": "TestNativeAdapterClassification"}
 # The cases that test reads (PLAN 구현 결정, Windows 관측): each LF form of CRLF_PAIRS with the runner's bytes, the
 # standard declaration and the current-check classification the SPEC gives. The test classifies each output as
-# written and with CRLF line endings, so a passing Windows run shows these results on Windows.
+# written and with CRLF line endings in subtests <case>/lf and <case>/crlf, reading the file named by
+# PLATFORM_VARIABLE when it is set. Run here with these cases it must pass, and with every expected result changed
+# every subtest must fail; so a passing Windows run shows these results on Windows.
 PLATFORM_FIXTURE = "internal/evidence/testdata/adapter-platform.json"
+PLATFORM_VARIABLE = "JAEKIT_ADAPTER_PLATFORM_FIXTURE"
+PLATFORM_TEST = "TestNativeAdapterClassification"
 PLATFORM_DECLARED = ("fail", "assertion_failed", [["t", 1, "violation", MARK_ID, ""]])
 PLATFORM_UNMARKED = ("fail", "unexpected_assertion", [["t", 1, "violation", UNMARKED, ""]])
 PLATFORM_PASSED = ("pass", "targets_passed", [["t", 1, "pass", "", ""]])
@@ -583,6 +587,25 @@ class Platform(unittest.TestCase):
             wrong = sorted(key for key, value in want.items() if item.get(key) != value)
             if wrong:
                 problems.append(f"{PLATFORM_FIXTURE} case {case} differs in {wrong}")
+        require(self, not problems, "classification-platform-dependent", "; ".join(problems))
+        go_typed()
+        env = clean_env()
+        env["GOFLAGS"] = "-mod=readonly"
+        prefix = f"github.com/jgoneit/jaekit/internal/evidence {PLATFORM_TEST}/"
+        subtests = {f"{prefix}{case}/{form}" for case in PLATFORM_EXPECTED for form in ("lf", "crlf")}
+        selection = ["-count=1", "-run", f"^{PLATFORM_TEST}$"]
+        failed, passed = go_test_results(["./internal/evidence"], selection, env, timeout=900)
+        if failed or not subtests <= set(passed):
+            problems.append(f"{PLATFORM_TEST} with the fixture: failed {failed[:4]}, missing {sorted(subtests - set(passed))[:4]}")
+        with temporary("jaekit-adapter-mutated-") as directory:
+            mutated = Path(directory) / "adapter-platform.json"
+            changed = [dict(item, result="unknown", reason="output_missing", targets=[]) for item in fixture["cases"]]
+            mutated.write_text(json.dumps({"cases": changed}), encoding="utf-8")
+            env[PLATFORM_VARIABLE] = str(mutated)
+            failed, _ = go_test_results(["./internal/evidence"], selection, env, timeout=900)
+        if not subtests <= set(failed):
+            problems.append(f"{PLATFORM_TEST} does not compare every case and line ending with the fixture: "
+                            f"{sorted(subtests - set(failed))[:4]} passed with changed expectations")
         require(self, not problems, "classification-platform-dependent", "; ".join(problems))
         ci_run_passes()
 

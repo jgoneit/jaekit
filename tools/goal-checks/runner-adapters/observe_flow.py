@@ -11,8 +11,9 @@ AC-10's semantics-version cases lay one file over the checked tree with
 `go build -overlay`: internal/evidence/adapter_version.go, which holds
 `adapterSemantics` (PLAN 구현 결정). When the checked tree has no such file or
 identifier, the observation is an error, not a violation.
-In AC-1 and AC-2 the user adds the linked test after `ha start`, so the
-baseline gets it only through the condition's check paths.
+In AC-1 and AC-2 the user adds the linked test and corrects the declaration's
+violation after `ha start` (start needs a declaration that lints), so the
+baseline gets both only through the condition's check paths at HEAD.
 """
 import json
 import os
@@ -74,6 +75,17 @@ WANT_BASELINE = ("fail_as_expected", "declared_violation", [("greeting", 1, "vio
 WANT_CURRENT = ("pass", "targets_passed", [("greeting", 1, "pass", "", "")])
 
 
+def draft(condition):
+    """The condition with the declaration as first written; the flow corrects its violation after start."""
+    declaration = json.loads(json.dumps(condition.declaration))
+    declaration["targets"][0]["violation"] = "greeting-draft"
+    return Condition(condition.id, condition.command, condition.checks, declaration, condition.kind)
+
+
+def corrected(condition):
+    return {f"checks/{condition.id}.json": json.dumps(condition.declaration, indent=1, ensure_ascii=False) + "\n"}
+
+
 def mark_done(repo):
     repo.write(f"{GOAL}/PROGRESS.md", "# PROGRESS — demo\n\n## Task 상태\n| Task | 상태 | 메모 |\n"
                                       "| --- | --- | --- |\n| T001 | done | |\n")
@@ -86,7 +98,7 @@ def flow(case, repo, added, implement, violation, problems):
     require(case, code == 0, violation, f"ha start refused a goal whose change condition uses an adapter: {out[-1500:]}")
     for path, text in added.items():
         repo.write(path, text)
-    repo.commit("add the linked test")
+    repo.commit("add the linked test and correct the declaration")
     repo.check("AC-1", baseline=True)
     got = summary(repo.last("AC-1", "baseline"))
     if got != WANT_BASELINE:
@@ -118,11 +130,12 @@ class GoFlow(unittest.TestCase):
         go_typed()
         problems = []
         with temporary("jaekit-adapter-go-flow-") as directory:
-            repo = Repo(directory, build(Path(directory) / "ha"), [GO_CONDITION, KEEP], files=GO_FLOW)
+            repo = Repo(directory, build(Path(directory) / "ha"), [draft(GO_CONDITION), KEEP], files=GO_FLOW)
             declaration = json.loads((repo.root / "checks/AC-1.json").read_text(encoding="utf-8"))
             if {"producer", "producer_version", "producer_paths"} & set(declaration):
                 problems.append("the declaration names a producer")
-            flow(self, repo, GO_ADDED, lambda: repo.write("greet/greet.go", HELLO_DONE), "go-adapter-flow-missing", problems)
+            flow(self, repo, {**GO_ADDED, **corrected(GO_CONDITION)}, lambda: repo.write("greet/greet.go", HELLO_DONE),
+                 "go-adapter-flow-missing", problems)
         require(self, not problems, "go-adapter-flow-missing", "; ".join(problems))
 
 
@@ -133,11 +146,11 @@ class JUnitFlow(unittest.TestCase):
         node_runner()
         problems = []
         with temporary("jaekit-adapter-junit-flow-") as directory:
-            repo = Repo(directory, build(Path(directory) / "ha"), [NODE_CONDITION, Condition("AC-2", ["sh", "tests/keep.sh"],
-                                                                                            kind="maintain")],
+            repo = Repo(directory, build(Path(directory) / "ha"), [draft(NODE_CONDITION), Condition("AC-2", ["sh", "tests/keep.sh"],
+                                                                                                   kind="maintain")],
                         files=NODE_FLOW)
-            flow(self, repo, NODE_ADDED, lambda: repo.write("src/greet.mjs", NODE_DONE), "junit-adapter-flow-missing",
-                 problems)
+            flow(self, repo, {**NODE_ADDED, **corrected(NODE_CONDITION)}, lambda: repo.write("src/greet.mjs", NODE_DONE),
+                 "junit-adapter-flow-missing", problems)
             record = repo.last("AC-1", "check")
             if record and not (record.get("evidence") or {}).get("report_digest"):
                 problems.append("the check did not read a runner file (no report digest)")
