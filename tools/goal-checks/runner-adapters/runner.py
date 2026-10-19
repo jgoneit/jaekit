@@ -109,6 +109,8 @@ JUNIT = {
     "junit-latin1": ('<?xml version="1.0" encoding="ISO-8859-1"?>\n<testsuites><testsuite>' + case() + "</testsuite></testsuites>\n", 0),
     "junit-rerun": (suite([case(inner='<rerunFailure message="flaky">x</rerunFailure>')]), 0),
     "junit-flaky": (suite([case(inner='<flakyFailure message="flaky">x</flakyFailure>')]), 0),
+    "junit-rerun-error": (suite([case(inner='<rerunError message="flaky">x</rerunError>')]), 0),
+    "junit-flaky-error": (suite([case(inner='<flakyError message="flaky">x</flakyError>')]), 0),
     "junit-unknown-child": (suite([case(inner="<surprise/>")]), 0),
     "junit-skip-and-failure": (suite([case(inner='<skipped/><failure message="' + MARK + '">x</failure>')]), 1),
     "junit-error-exit0": (suite([case(inner='<error message="boom">x</error>')]), 0),
@@ -207,6 +209,14 @@ def main(argv):
         return 0
     if name == "junit-probe":
         return probe(argv)
+    if name == "junit-greet":
+        # Marked failure while greet/greet.go in the run's tree still says "hi", a pass once it says "hello".
+        with open(os.path.join("greet", "greet.go"), encoding="utf-8") as source:
+            greeting = "hello" if '"hello"' in source.read() else "hi"
+        text, code = (JUNIT["J1"][0], 0) if greeting == "hello" else (JUNIT["junit-marked-exit0"][0], 1)
+        with open(junit_path(argv), "w", encoding="utf-8") as out:
+            out.write(text)
+        return code
     if name == "junit-slow-pass":
         time.sleep(2)
         with open(junit_path(argv), "w", encoding="utf-8") as out:

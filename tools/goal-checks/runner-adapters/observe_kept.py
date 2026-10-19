@@ -3,15 +3,17 @@
 The existing Go suites of the evidence, status, bundle, run and CLI packages
 (including the protected result regressions, the producer semantics and every
 behavioral scenario) and the producer semantic regressions run as they are.
-The scenario `adapter-legacy-rules` must run and pass: a run-rules/2 goal
-whose result contract names an adapter declaration keeps its exit-code
-results. A synthetic run-rules/4 goal built with the checked `ha` shows that
+The scenarios `adapter-legacy-rules-v1` and `adapter-legacy-rules-v2` must run
+and pass, and each must be a goal of that rule (the scenario's own
+`rewrite-record 1 rules` step) whose result contract names a check-adapter/v1
+declaration: such a goal keeps its exit-code results. A synthetic run-rules/4 goal built with the checked `ha` shows that
 maintain, EX-n and task commands keep their exit-code judgment next to an
 adapter condition, and that `ha log` keeps both output streams of an adapter
 condition. Missing Go or Python is an execution error.
 """
 import json
 from pathlib import Path
+import re
 import sys
 import unittest
 
@@ -21,7 +23,7 @@ from adapters_common import (GOAL, ROOT, Condition, Repo, Unavailable, build, cl
                              require, run, runner_command, runner_file, summary, temporary, unittest_failures)
 
 PACKAGES = ["./internal/evidence", "./internal/status", "./internal/bundle", "./internal/run", "./internal/record", "./cmd/ha"]
-SCENARIO = "adapter-legacy-rules"
+SCENARIOS = {"adapter-legacy-rules-v1": "run-rules/1", "adapter-legacy-rules-v2": "run-rules/2"}
 
 
 def go_env():
@@ -40,16 +42,26 @@ class Kept(unittest.TestCase):
         require(self, failures == 0, "existing-behavior-changed", f"{failures} producer semantic regressions fail")
 
     def test_legacy_rules_keep_exit_codes(self):
-        name = f"github.com/jgoneit/jaekit/cmd/ha TestScenarios/{SCENARIO}"
-        try:
-            failed, passed = go_test_results(["./cmd/ha"], ["-count=1", "-run", f"^TestScenarios$/^{SCENARIO}$"], go_env(),
-                                             timeout=1800)
-        except Unavailable as error:
-            if "ran no test" not in str(error):
-                raise
-            failed, passed = [], []
-        require(self, not failed and name in passed, "existing-behavior-changed",
-                f"scenario {SCENARIO} did not run and pass: failed {failed}, passed {passed[:3]}")
+        problems = []
+        for scenario, rules in SCENARIOS.items():
+            directory = ROOT / "testdata/scenarios" / scenario
+            steps = directory / "steps"
+            if not steps.is_file():
+                problems.append(f"scenario {scenario} does not exist")
+                continue
+            text = steps.read_text(encoding="utf-8", errors="replace")
+            if f'rewrite-record 1 rules "\\"{rules}\\""' not in text:
+                problems.append(f"scenario {scenario} is not a {rules} goal")
+            files = [path for path in directory.rglob("*") if path.is_file()]
+            if not any(re.search(r'"schema"\s*:\s*"check-adapter/v1"', path.read_text(encoding="utf-8", errors="replace"))
+                       for path in files):
+                problems.append(f"scenario {scenario} has no check-adapter/v1 declaration")
+        require(self, not problems, "existing-behavior-changed", "; ".join(problems))
+        pattern = "^TestScenarios$/^(" + "|".join(SCENARIOS) + ")$"
+        failed, passed = go_test_results(["./cmd/ha"], ["-count=1", "-run", pattern], go_env(), timeout=1800)
+        names = [f"github.com/jgoneit/jaekit/cmd/ha TestScenarios/{scenario}" for scenario in SCENARIOS]
+        require(self, not failed and all(name in passed for name in names), "existing-behavior-changed",
+                f"the legacy scenarios did not run and pass: failed {failed}, passed {passed[:4]}")
 
     def test_ordinary_checks_and_log(self):
         problems = []
@@ -86,7 +98,7 @@ class Kept(unittest.TestCase):
                 problems.append(f"the adapter condition beside them: {summary(adapter)}")
             elif adapter.get("seq") is not None:
                 code, out, err = repo.ha("log", GOAL, str(adapter["seq"]))
-                if code != 0 or '"Action":"pass"' not in out or "go: downloading example.com/x" not in out:
+                if code != 0 or not re.search(r'"Action":\s*"pass"', out) or "go: downloading example.com/x" not in out:
                     problems.append(f"ha log does not show both output streams of the adapter condition: exit {code}")
         require(self, not problems, "existing-behavior-changed", "; ".join(problems))
 

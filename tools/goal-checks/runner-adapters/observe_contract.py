@@ -86,6 +86,8 @@ BAD_DECLARATIONS = {
     "Go target with a JUnit name": {"schema": SCHEMA, "adapter": "go-test-json", "targets": [go_target({"classname": "tests.a", "name": "test_a"})]},
     "JUnit target with a Go name": {"schema": SCHEMA, "adapter": "junit-xml", "targets": [go_target({"package": "example.com/demo", "name": "TestX"})]},
     "Go name that is not a test": {"schema": SCHEMA, "adapter": "go-test-json", "targets": [go_target({"package": "example.com/demo", "name": "helperX"})]},
+    "reserved jaekit: violation": {"schema": SCHEMA, "adapter": "go-test-json", "targets": [
+        go_target({"package": "example.com/demo", "name": "TestX"}, violation=UNMARKED)]},
 }
 VALID = go_declaration([("t", MARK_ID, "example.com/demo/forms", "TestMarked")])
 
@@ -246,7 +248,7 @@ DOCUMENT_TOKENS = {
                                   "observation_invalid"],
     "contracts/core-capabilities.md": [SCHEMA, FEATURE],
     "contracts/bundle.md": [SCHEMA],
-    "contracts/run-record.md": [SCHEMA],
+    "contracts/run-record.md": [SCHEMA, "판정 의미 버전"],
 }
 GUIDE_SECTIONS = {"guides/OPERATIONS.md": "## 수정 전 실패가 뜻하는 것",
                   "guides/OPERATIONS.en.md": "## What a failure before the change means"}
@@ -417,7 +419,8 @@ class SealGuidance(unittest.TestCase):
 # --- AC-17 -------------------------------------------------------------------
 
 ROUTE_SOURCE = "internal/evidence/adapter.go"
-EXISTING_I2 = ("structured-classification", "stored-result-judgment", "reference-producer-to-cli")
+EXISTING_I2 = ("structured-classification", "stored-result-judgment", "reference-producer-to-cli",
+               "seal-evidence-and-assurance-contract")
 
 
 def registry_before():
@@ -485,12 +488,14 @@ class Registry(unittest.TestCase):
             shim = shim_dir / "go"
             shim.write_text(f"#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{log}'\nexec '{real_go}' \"$@\"\n", encoding="utf-8")
             shim.chmod(0o755)
-            env = clean_env()
-            env["PATH"] = str(shim_dir) + os.pathsep + env.get("PATH", "")
-            env["GOFLAGS"] = "-mod=readonly"
+            plain = clean_env()
+            plain["GOFLAGS"] = "-mod=readonly"
+            # Only the adapter route's tests find the logging go first on PATH, so the log holds their nested runs.
+            shimmed = dict(plain, PATH=str(shim_dir) + os.pathsep + plain.get("PATH", ""))
             failures = []
             for rid in (route.get("id"), *EXISTING_I2):
                 checks = new[rid]["checks"]
+                env = shimmed if rid == route.get("id") else plain
                 for package, pattern in go_selection(checks):
                     failed, passed = go_test_results([package], ["-count=1", "-run", pattern], env, timeout=1800, go=real_go)
                     ran = {name.split(" ", 1)[1].split("/")[0] for name in passed}

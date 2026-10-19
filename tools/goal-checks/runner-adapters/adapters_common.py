@@ -47,11 +47,15 @@ def require(case, condition, violation, message):
 
 
 def run(argv, cwd, env=None, timeout=600, stdin=None):
+    """Run a tool; a tool that cannot start, times out or ends by a signal is unavailable, never a violation."""
     try:
-        return subprocess.run([str(a) for a in argv], cwd=cwd, env=env, capture_output=True, timeout=timeout,
-                              stdin=subprocess.DEVNULL if stdin is None else stdin)
+        result = subprocess.run([str(a) for a in argv], cwd=cwd, env=env, capture_output=True, timeout=timeout,
+                                stdin=subprocess.DEVNULL if stdin is None else stdin)
     except (OSError, subprocess.TimeoutExpired) as error:
         raise Unavailable(f"{argv[0]}: {error}") from None
+    if result.returncode < 0:
+        raise Unavailable(f"{argv[0]} ended by signal {-result.returncode}")
+    return result
 
 
 def clean_env():

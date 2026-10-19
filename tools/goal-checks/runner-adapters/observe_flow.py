@@ -7,10 +7,12 @@ runner with its junit reporter writing to the location `ha` names. The
 observers read `ha` output, `ha status --format json` and the synthetic
 runs.jsonl. AC-9 uses tools/goal-checks/runner-adapters/runner.py, which
 reports what it saw at the output location to a file outside the repository.
-AC-10's semantics-version case lays one file over the checked tree with
+AC-10's semantics-version cases lay one file over the checked tree with
 `go build -overlay`: internal/evidence/adapter_version.go, which holds
-`adapterSemantics` (PLAN 구현 결정); without that identifier the build fails
-and the observation is an error.
+`adapterSemantics` (PLAN 구현 결정). When the checked tree has no such file or
+identifier, the observation is an error, not a violation.
+In AC-1 and AC-2 the user adds the linked test after `ha start`, so the
+baseline gets it only through the condition's check paths.
 """
 import json
 import os
@@ -22,9 +24,9 @@ import unittest
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from adapters_common import (GOAL, PLACEHOLDER, Condition, Repo, Unavailable, build, digest_tree, go_declaration,
-                             go_typed, junit_declaration, node_runner, require, runner_command, runner_file, summary,
-                             temporary)
+from adapters_common import (GOAL, PLACEHOLDER, ROOT, Condition, Repo, Unavailable, build, digest_tree,
+                             go_declaration, go_typed, junit_declaration, node_runner, require, run, runner_command,
+                             runner_file, summary, temporary)
 
 MARK_ID = "greeting-missing"
 GO_MOD = "module example.com/demo\n\ngo 1.27\n"
@@ -50,8 +52,8 @@ func TestGreetsWithHello(t *testing.T) {
 	}
 }
 """
-GO_FLOW = {"go.mod": GO_MOD, "greet/greet.go": HELLO_BASE, "cmd/greet/main.go": CLI,
-           "cmd/greet/greet_test.go": CLI_TEST, "tests/keep.sh": "test -f go.mod\n"}
+GO_FLOW = {"go.mod": GO_MOD, "greet/greet.go": HELLO_BASE, "cmd/greet/main.go": CLI, "tests/keep.sh": "test -f go.mod\n"}
+GO_ADDED = {"cmd/greet/greet_test.go": CLI_TEST}
 GO_CONDITION = Condition("AC-1", ["go", "test", "-json", "-count=1", "./cmd/greet/"], ["cmd/greet/greet_test.go"],
                          go_declaration([("greeting", MARK_ID, "example.com/demo/cmd/greet", "TestGreetsWithHello")]))
 KEEP = Condition("AC-2", ["sh", "tests/keep.sh"], kind="maintain")
@@ -64,7 +66,8 @@ import { greet } from '../src/greet.mjs';
 test('greets with hello', () => { assert.equal(greet(), 'hello', 'jaekit:violation=greeting-missing wrong greeting'); });
 """
 NODE_COMMAND = ["node", "--test", "--test-reporter=junit", f"--test-reporter-destination={PLACEHOLDER}", "test/greet.test.mjs"]
-NODE_FLOW = {"src/greet.mjs": NODE_BASE, "test/greet.test.mjs": NODE_TEST, "tests/keep.sh": "test -f src/greet.mjs\n"}
+NODE_FLOW = {"src/greet.mjs": NODE_BASE, "tests/keep.sh": "test -f src/greet.mjs\n"}
+NODE_ADDED = {"test/greet.test.mjs": NODE_TEST}
 NODE_CONDITION = Condition("AC-1", NODE_COMMAND, ["test/greet.test.mjs"],
                            junit_declaration([("greeting", MARK_ID, "test", "greets with hello")]))
 WANT_BASELINE = ("fail_as_expected", "declared_violation", [("greeting", 1, "violation", MARK_ID, "")])
@@ -76,10 +79,14 @@ def mark_done(repo):
                                       "| --- | --- | --- |\n| T001 | done | |\n")
 
 
-def flow(case, repo, implement, violation, problems):
-    """Baseline, implementation, check, status and done of AC-1 with the AC-2 maintain condition."""
+def flow(case, repo, added, implement, violation, problems):
+    """The linked test added after start, then baseline, implementation, check, status and done of AC-1 with the
+    AC-2 maintain condition."""
     code, out = repo.start()
     require(case, code == 0, violation, f"ha start refused a goal whose change condition uses an adapter: {out[-1500:]}")
+    for path, text in added.items():
+        repo.write(path, text)
+    repo.commit("add the linked test")
     repo.check("AC-1", baseline=True)
     got = summary(repo.last("AC-1", "baseline"))
     if got != WANT_BASELINE:
@@ -115,7 +122,7 @@ class GoFlow(unittest.TestCase):
             declaration = json.loads((repo.root / "checks/AC-1.json").read_text(encoding="utf-8"))
             if {"producer", "producer_version", "producer_paths"} & set(declaration):
                 problems.append("the declaration names a producer")
-            flow(self, repo, lambda: repo.write("greet/greet.go", HELLO_DONE), "go-adapter-flow-missing", problems)
+            flow(self, repo, GO_ADDED, lambda: repo.write("greet/greet.go", HELLO_DONE), "go-adapter-flow-missing", problems)
         require(self, not problems, "go-adapter-flow-missing", "; ".join(problems))
 
 
@@ -129,7 +136,8 @@ class JUnitFlow(unittest.TestCase):
             repo = Repo(directory, build(Path(directory) / "ha"), [NODE_CONDITION, Condition("AC-2", ["sh", "tests/keep.sh"],
                                                                                             kind="maintain")],
                         files=NODE_FLOW)
-            flow(self, repo, lambda: repo.write("src/greet.mjs", NODE_DONE), "junit-adapter-flow-missing", problems)
+            flow(self, repo, NODE_ADDED, lambda: repo.write("src/greet.mjs", NODE_DONE), "junit-adapter-flow-missing",
+                 problems)
             record = repo.last("AC-1", "check")
             if record and not (record.get("evidence") or {}).get("report_digest"):
                 problems.append("the check did not read a runner file (no report digest)")
@@ -239,6 +247,8 @@ class OutputLocation(unittest.TestCase):
                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE) for cid in ("AC-4", "AC-5")]
                 for proc in procs:
                     proc.communicate(timeout=600)
+                    if proc.returncode < 0:
+                        raise Unavailable(f"a concurrent ha check ended by signal {-proc.returncode}")
             repo.check("AC-6")
             after = digest_tree(repo.root, skip=(".git", "docs"))
             if before != after:
@@ -298,11 +308,15 @@ class OutputLocation(unittest.TestCase):
 
 
 SEMANTICS_FILE = "internal/evidence/adapter_version.go"
-SEMANTICS_CHANGED = """package evidence
+SEMANTICS_DECLARED = 'var adapterSemantics = map[string]string{"go-test-json": "1", "junit-xml": "1"}'
 
-// Laid over by the runner-adapters observer: a changed classification meaning.
-var adapterSemantics = map[string]string{"go-test-json": "2", "junit-xml": "1"}
-"""
+
+def semantics_changed(adapter):
+    """The version file with one adapter's classification meaning changed."""
+    versions = {"go-test-json": "1", "junit-xml": "1", adapter: "2"}
+    return ("package evidence\n\n// Laid over by the runner-adapters observer: a changed classification meaning.\n"
+            f'var adapterSemantics = map[string]string{{"go-test-json": "{versions["go-test-json"]}", '
+            f'"junit-xml": "{versions["junit-xml"]}"}}\n')
 SECRET = "JAEKIT-SECRET-RUNNER-MESSAGE"
 
 
@@ -318,19 +332,24 @@ class EvidenceIdentity(unittest.TestCase):
                                  go_declaration([("t", MARK_ID, "example.com/demo/forms", "TestMarked")])),
                        Condition("AC-4", runner_command("junit-secret", PLACEHOLDER), ["tests/runner.py"],
                                  junit_declaration([("t", MARK_ID, "tests.test_greet", "test_greets")]))]
-            repo = Repo(directory, ha, [GO_CONDITION, KEEP, *secrets], files={**GO_FLOW, "tests/runner.py": runner_file()})
+            junit = Condition("AC-5", runner_command("junit-greet", PLACEHOLDER), ["tests/runner.py"],
+                              junit_declaration([("t", MARK_ID, "tests.test_greet", "test_greets")]))
+            repo = Repo(directory, ha, [GO_CONDITION, KEEP, *secrets, junit],
+                        files={**GO_FLOW, **GO_ADDED, "tests/runner.py": runner_file()})
             outputs = []
             code, out = repo.start()
             require(self, code == 0, "adapter-evidence-identity-missing", f"ha start refused: {out[-1500:]}")
-            outputs.append(repo.check("AC-1", "AC-3", "AC-4", baseline=True)[1])
+            outputs.append(repo.check("AC-1", "AC-3", "AC-4", "AC-5", baseline=True)[1])
             repo.write("greet/greet.go", HELLO_DONE)
             repo.commit("implement")
-            outputs.append(repo.check("AC-1", "AC-2", "AC-3", "AC-4")[1])
+            outputs.append(repo.check("AC-1", "AC-2", "AC-3", "AC-4", "AC-5")[1])
             mark_done(repo)
             _, before = repo.status()
-            satisfied = lambda status: next((c for c in status.get("criteria", []) if c.get("id") == "AC-1"), {}).get("satisfied")
-            if not satisfied(before):
-                problems.append(f"AC-1 is not satisfied before any change: {before.get('reasons')}")
+            satisfied = lambda status, cid="AC-1": next((c for c in status.get("criteria", []) if c.get("id") == cid),
+                                                        {}).get("satisfied")
+            for cid in ("AC-1", "AC-5"):
+                if not satisfied(before, cid):
+                    problems.append(f"{cid} is not satisfied before any change: {before.get('reasons')}")
             # A changed declaration (violation, then linked test) leaves the earlier runs stale.
             for label, change in (("violation", lambda d: d["targets"][0].update(violation="greeting-gone")),
                                   ("linked test", lambda d: d["targets"][0]["test"].update(name="TestGreetsAgain"))):
@@ -345,19 +364,30 @@ class EvidenceIdentity(unittest.TestCase):
                 _, status = other.status()
                 if satisfied(status):
                     problems.append(f"after changing the declared {label}, the earlier runs still satisfy AC-1")
-            # A changed adapter meaning version leaves the same runs stale.
-            changed = build(Path(directory) / "semantics" / "ha", overlay={SEMANTICS_FILE: SEMANTICS_CHANGED})
+            # A changed adapter meaning version leaves the same runs of that adapter stale.
+            try:
+                version_file = (ROOT / SEMANTICS_FILE).read_text(encoding="utf-8")
+            except OSError as error:
+                raise Unavailable(f"{SEMANTICS_FILE}: {error}") from None
+            if SEMANTICS_DECLARED not in version_file:
+                raise Unavailable(f"{SEMANTICS_FILE} does not declare {SEMANTICS_DECLARED}")
             code, out, err = repo.ha("status", GOAL, "--format", "json")
-            other_code, other_out, other_err = run_with(changed, repo)
             try:
                 now = json.loads(out)
-                with_change = json.loads(other_out)
             except ValueError:
-                raise Unavailable(f"status JSON: {(out + err + other_out + other_err)[-800:]}") from None
-            if not satisfied(now):
-                problems.append("the unchanged executable no longer satisfies AC-1")
-            if satisfied(with_change):
-                problems.append("an executable with another go-test-json meaning version still uses the earlier runs")
+                raise Unavailable(f"status JSON: {(out + err)[-800:]}") from None
+            for cid in ("AC-1", "AC-5"):
+                if not satisfied(now, cid):
+                    problems.append(f"the unchanged executable no longer satisfies {cid}")
+            for adapter, cid in (("go-test-json", "AC-1"), ("junit-xml", "AC-5")):
+                changed = build(Path(directory) / adapter / "ha", overlay={SEMANTICS_FILE: semantics_changed(adapter)})
+                other_code, other_out, other_err = run_with(changed, repo)
+                try:
+                    with_change = json.loads(other_out)
+                except ValueError:
+                    raise Unavailable(f"status JSON: {(other_out + other_err)[-800:]}") from None
+                if satisfied(with_change, cid):
+                    problems.append(f"an executable with another {adapter} meaning version still uses the earlier runs of {cid}")
             # Removing the raw logs keeps the judgment.
             for log in (repo.root / ".git" / "ha" / "runs").rglob("*.log"):
                 log.unlink()
@@ -379,8 +409,7 @@ class EvidenceIdentity(unittest.TestCase):
 
 
 def run_with(executable, repo):
-    result = subprocess.run([str(executable), "status", GOAL, "--format", "json"], cwd=repo.root, env=repo.env,
-                            capture_output=True, timeout=600)
+    result = run([executable, "status", GOAL, "--format", "json"], repo.root, repo.env, timeout=600)
     return result.returncode, result.stdout.decode(errors="replace"), result.stderr.decode(errors="replace")
 
 

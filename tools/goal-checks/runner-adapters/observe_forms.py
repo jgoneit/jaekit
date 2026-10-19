@@ -269,6 +269,8 @@ class InputFailures(unittest.TestCase):
             junit_row("J9 duplicate testcase", "J9", unknown("attempt_history_missing")),
             junit_row("rerunFailure element", "junit-rerun", unknown("attempt_history_missing")),
             junit_row("flakyFailure element", "junit-flaky", unknown("attempt_history_missing")),
+            junit_row("rerunError element", "junit-rerun-error", unknown("attempt_history_missing")),
+            junit_row("flakyError element", "junit-flaky-error", unknown("attempt_history_missing")),
             junit_row("error element with exit 0", "junit-error-exit0",
                       unknown("report_exit_conflict", [obs("error", reason="execution_error")])),
             junit_row("all passing with exit 1", "junit-pass-exit1", unknown("report_exit_conflict", [obs()])),
@@ -411,6 +413,16 @@ CRLF_PAIRS = [("go-typed-fail", "go-crlf-fail"), ("go-typed-unmarked", "go-crlf-
 JUNIT_TESTS = {"J5": ("greet greets with hello", "greets with hello")}
 # The Windows native check of the adapter bytes (cmd: go test ./internal/evidence -run ...).
 WINDOWS_NATIVE = {"internal/evidence": "TestNativeAdapterClassification"}
+# The cases that test reads (PLAN 구현 결정, Windows 관측): each LF form of CRLF_PAIRS with the runner's bytes, the
+# standard declaration and the current-check classification the SPEC gives. The test classifies each output as
+# written and with CRLF line endings, so a passing Windows run shows these results on Windows.
+PLATFORM_FIXTURE = "internal/evidence/testdata/adapter-platform.json"
+PLATFORM_DECLARED = ("fail", "assertion_failed", [["t", 1, "violation", MARK_ID, ""]])
+PLATFORM_UNMARKED = ("fail", "unexpected_assertion", [["t", 1, "violation", UNMARKED, ""]])
+PLATFORM_PASSED = ("pass", "targets_passed", [["t", 1, "pass", "", ""]])
+PLATFORM_EXPECTED = {"go-typed-fail": PLATFORM_DECLARED, "go-typed-unmarked": PLATFORM_UNMARKED,
+                     "go-typed-pass": PLATFORM_PASSED, "J1": PLATFORM_PASSED, "J2": PLATFORM_DECLARED,
+                     "J3": PLATFORM_UNMARKED, "J5": PLATFORM_DECLARED, "J10": PLATFORM_UNMARKED}
 EMIT = 'if [ "$1" = go ]; then cat "$2"; else cp "$2" "$4"; fi\nexit "$3"\n'
 
 
@@ -544,6 +556,34 @@ class Platform(unittest.TestCase):
         missing = [f"{p} {t}" for p, t in WINDOWS_NATIVE.items() if t not in required.get(p, [])]
         require(self, not missing, "classification-platform-dependent",
                 f"Windows native CI does not require {', '.join(missing)}")
+        problems = []
+        name = PLATFORM_FIXTURE.rsplit("/", 1)[1]
+        sources = [path for path in (ROOT / "internal/evidence").glob("*_test.go")
+                   if "func TestNativeAdapterClassification(" in path.read_text(encoding="utf-8", errors="replace")]
+        if not sources or not any(name in path.read_text(encoding="utf-8", errors="replace") for path in sources):
+            problems.append(f"TestNativeAdapterClassification does not read {name}")
+        try:
+            fixture = json.loads((ROOT / PLATFORM_FIXTURE).read_text(encoding="utf-8"))
+            cases = {item["case"]: item for item in fixture["cases"]}
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            raise Unavailable(f"{PLATFORM_FIXTURE}: {error!r}") from None
+        with temporary("jaekit-adapter-windows-") as directory:
+            outputs = fixture_outputs(directory, list(PLATFORM_EXPECTED))
+        for case, (result, reason, targets) in PLATFORM_EXPECTED.items():
+            item = cases.get(case)
+            if not isinstance(item, dict):
+                problems.append(f"{PLATFORM_FIXTURE} has no case {case}")
+                continue
+            adapter, data, code = outputs[case]
+            classname, test = JUNIT_TESTS.get(case, ("tests.test_greet", "test_greets"))
+            want = {"adapter": "go-test-json" if adapter == "go" else "junit-xml", "exit": code,
+                    "output": data.decode("utf-8"), "violation": MARK_ID,
+                    "test": {"package": PKG, "name": "TestMarked"} if adapter == "go" else {"classname": classname, "name": test},
+                    "result": result, "reason": reason, "targets": targets}
+            wrong = sorted(key for key, value in want.items() if item.get(key) != value)
+            if wrong:
+                problems.append(f"{PLATFORM_FIXTURE} case {case} differs in {wrong}")
+        require(self, not problems, "classification-platform-dependent", "; ".join(problems))
         ci_run_passes()
 
 
