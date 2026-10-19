@@ -150,8 +150,8 @@ func Digest(s string) string {
 }
 
 // DocPaths returns the bundle documents of a goal: the goal document set plus
-// PLAN.md, REVIEW.md, PROGRESS.md, tasks/, and runs.jsonl. They are excluded
-// from the code state.
+// PLAN.md, REVIEW.md, PROGRESS.md, tasks/, runs.jsonl, and amendments/. They
+// are excluded from the code state.
 func DocPaths(g *goaldocs.Goal) []string {
 	out := append([]string(nil), g.Docs...)
 	if len(out) == 0 {
@@ -160,6 +160,7 @@ func DocPaths(g *goaldocs.Goal) []string {
 	for _, n := range goaldocs.BundleNames {
 		out = append(out, g.Dir+"/"+n)
 	}
+	out = append(out, g.Dir+"/"+goaldocs.AmendmentDir)
 	sort.Strings(out)
 	return out
 }
@@ -169,6 +170,38 @@ func DocPaths(g *goaldocs.Goal) []string {
 // tree, with its PLAN.md, REVIEW.md, PROGRESS.md, runs.jsonl, and tasks/.
 // Other files there, the goal documents and checks/ among them, are code.
 func OtherGoalBundles(root string, g *goaldocs.Goal) ([]string, error) {
+	dirs, err := otherGoalDirs(root, g)
+	if err != nil {
+		return nil, err
+	}
+	var out []string
+	for _, dir := range dirs {
+		for _, n := range goaldocs.BundleNames {
+			out = append(out, dir+"/"+n)
+		}
+	}
+	sort.Strings(out)
+	return out, nil
+}
+
+// OtherGoalAmendments returns the amendments/ directories of the other goals
+// next to g. Unlike their bundle files, they stay out of g's code state under
+// every rule version and whatever the plan declares (run-record.md §2).
+func OtherGoalAmendments(root string, g *goaldocs.Goal) ([]string, error) {
+	dirs, err := otherGoalDirs(root, g)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(dirs))
+	for _, dir := range dirs {
+		out = append(out, dir+"/"+goaldocs.AmendmentDir)
+	}
+	return out, nil
+}
+
+// otherGoalDirs lists every other directory under g's parent that holds a
+// SPEC.md in the working tree, in name order.
+func otherGoalDirs(root string, g *goaldocs.Goal) ([]string, error) {
 	parent := path.Dir(g.Dir)
 	entries, err := os.ReadDir(filepath.Join(root, filepath.FromSlash(parent)))
 	if err != nil {
@@ -184,11 +217,8 @@ func OtherGoalBundles(root string, g *goaldocs.Goal) ([]string, error) {
 		if err != nil || !info.Mode().IsRegular() {
 			continue
 		}
-		for _, n := range goaldocs.BundleNames {
-			out = append(out, dir+"/"+n)
-		}
+		out = append(out, dir)
 	}
-	sort.Strings(out)
 	return out, nil
 }
 

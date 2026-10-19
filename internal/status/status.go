@@ -44,11 +44,17 @@ func Supported(rules string) bool {
 func Structured(rules string) bool { return rules == RulesV3 || rules == RulesV4 }
 
 // Excludes returns the paths left out of the code state of goal g under
-// rules: the goal's own documents and bundle, and under run-rules/2 also the
-// bundle files of the other goals next to it, unless the plan declares that
-// this goal's checks read them.
+// rules: the goal's own documents and bundle, the amendment documents of the
+// other goals next to it under every rule version, and under run-rules/2 also
+// the bundle files of those goals, unless the plan declares that this goal's
+// checks read them.
 func Excludes(root string, g *goaldocs.Goal, b *bundle.Bundle, rules string) ([]string, error) {
-	out := bundle.DocPaths(g)
+	amendments, err := bundle.OtherGoalAmendments(root, g)
+	if err != nil {
+		return nil, err
+	}
+	out := append(bundle.DocPaths(g), amendments...)
+	sort.Strings(out)
 	if (rules != RulesV2 && !Structured(rules)) || b.Scope.OtherBundlesInput {
 		return out, nil
 	}

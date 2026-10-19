@@ -1,0 +1,18 @@
+# run-record.md §2 under run-rules/4: amendment documents stay out of the code state; checks run on a clean tree and stay fresh.
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/4
+expect-exit 0
+ha check $GOAL AC-2
+expect-exit 0
+write $GOAL/amendments/wording.md "# 수정안\n"
+write docs/specs/other/amendments/scope.md "# 수정안\n"
+expect-no-reason worktree_dirty
+expect-satisfied AC-2
+ha check $GOAL AC-2
+expect-exit 0
+expect-record 3 tree_clean true
+commit "amendments"
+expect-no-reason out_of_scope
+expect-satisfied AC-2
+rm docs/specs/other/amendments/scope.md
+expect-no-reason worktree_dirty
+expect-satisfied AC-2
