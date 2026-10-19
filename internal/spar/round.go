@@ -124,6 +124,12 @@ func priorLines(siblings []sibling, current *RoundRecord) ([]string, []string, e
 	return lines, dirs, nil
 }
 
+// isRerun reports whether two rounds review the same packet: same stage,
+// base, head and packet digest.
+func isRerun(a, b *RoundRecord) bool {
+	return sameIdentity(a, b) && a.PacketSHA256 == b.PacketSHA256
+}
+
 // admit applies the stage caps, the rerun rule and the fixes chain. It
 // returns whether the run counts against the cap and which rounds it reruns.
 func admit(siblings []sibling, exts []Extension, r *RoundRecord) (bool, []string, error) {
@@ -171,7 +177,9 @@ func admit(siblings []sibling, exts []Extension, r *RoundRecord) (bool, []string
 	if r.Stage == "fixes" {
 		var previous *RoundRecord
 		for _, s := range siblings {
-			if s.round.DryRun || stageGroup(s.round.Stage) != "code" || sameIdentity(s.round, r) {
+			// Only a rerun of the same packet shares its base with the
+			// round it repeats; any other code round extends the chain.
+			if s.round.DryRun || stageGroup(s.round.Stage) != "code" || isRerun(s.round, r) {
 				continue
 			}
 			previous = s.round
@@ -558,8 +566,8 @@ func applyResult(c classifier, st *ReviewerState, name string, result map[string
 		st.AnglesUnchecked = append(st.AnglesUnchecked, AngleNote{Angle: str(object(item)["angle"]), Reason: str(object(item)["reason"])})
 	}
 	var out []Finding
-	for _, item := range anyList(result["findings"]) {
-		out = append(out, c.classify(name, object(item)))
+	for i, item := range anyList(result["findings"]) {
+		out = append(out, c.classify(name, i+1, object(item)))
 	}
 	n := len(out)
 	st.Findings = &n

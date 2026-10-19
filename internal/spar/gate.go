@@ -204,7 +204,7 @@ func Gate(o GateOptions) (int, error) {
 				switch {
 				case lastCode == nil:
 					blocked = append(blocked, fmt.Sprintf("%s: a fixes round needs an earlier code round in the gate list", lr.path))
-				case !sameIdentity(lastCode, r) && lastCode.Head != r.Base:
+				case !isRerun(lastCode, r) && lastCode.Head != r.Base:
 					blocked = append(blocked, fmt.Sprintf("%s: the fixes chain is broken: base %s is not the previous head %s",
 						lr.path, shortID(r.Base), shortID(lastCode.Head)))
 				}
@@ -230,19 +230,19 @@ func Gate(o GateOptions) (int, error) {
 			if done && e.Auto && e.Disposition == "defer" {
 				g.AutoDeferred++
 			}
-			if f.Class != "defect" && f.Class != "requirement-question" {
-				continue
-			}
 			if done && e.Disposition == "duplicate" {
 				e, done = resolveDuplicate(final, f.ID)
+			}
+			// A fix must be in the expected head whatever the finding's class.
+			if done && e.Disposition == "fix" && expect != "" && e.Commit != expect && !isAncestor(repo, e.Commit, expect) {
+				blocked = append(blocked, fmt.Sprintf("%s %s: the fix commit %s is not in the expected head", lr.path, f.ID, shortID(e.Commit)))
+			}
+			if f.Class != "defect" && f.Class != "requirement-question" {
+				continue
 			}
 			if !done {
 				g.Open[f.Class]++
 				g.OpenFindings = append(g.OpenFindings, lr.path+" "+f.ID)
-				continue
-			}
-			if e.Disposition == "fix" && expect != "" && e.Commit != expect && !isAncestor(repo, e.Commit, expect) {
-				blocked = append(blocked, fmt.Sprintf("%s %s: the fix commit %s is not in the expected head", lr.path, f.ID, shortID(e.Commit)))
 			}
 		}
 	}

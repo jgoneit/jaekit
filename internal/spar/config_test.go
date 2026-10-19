@@ -103,6 +103,15 @@ func TestCleanReviewFallbackDefaultsAndOverride(t *testing.T) {
 	if _, err := LoadConfig(repo, env(vars), []string{"gemini"}); err == nil {
 		t.Fatal("an unknown reviewer in --reviewers was accepted")
 	}
+	// The same --reviewers run under configurations that require different
+	// reviewers is not the same applied configuration.
+	writeFile(t, filepath.Join(dir, "xdg", "clean-review", "config.json"), `{"reviewers": ["native"]}`)
+	one, _ := LoadConfig(repo, env(vars), []string{"native"})
+	writeFile(t, filepath.Join(dir, "xdg", "clean-review", "config.json"), `{"reviewers": ["native", "codex"]}`)
+	two, _ := LoadConfig(repo, env(vars), []string{"native"})
+	if one == nil || two == nil || one.Digest == two.Digest {
+		t.Fatal("the digest ignores the configured required reviewers")
+	}
 }
 
 func TestConfigErrorsNameFileLineAndKey(t *testing.T) {

@@ -916,11 +916,6 @@ func changedPaths(before, after map[string]string) []string {
 	return changed
 }
 
-// findingID is a reviewer's own finding ID. The round's ID is
-// "<reviewer>-<ID>", and since this ID has no "-", the two parts are
-// always told apart.
-var findingID = regexp.MustCompile(`^F[0-9]+$`)
-
 // validateResult checks a reviewer's result against the schema and the
 // round: its head, every requested angle, and each finding's fields.
 func validateResult(result any, head string, angles []string) []string {
@@ -970,7 +965,12 @@ func validateResult(result any, head string, angles []string) []string {
 			if _, ok := entry[second].(string); !ok {
 				problems = append(problems, fmt.Sprintf("%s[%d] lacks %s", key, i, second))
 			}
+			keys := make([]string, 0, len(entry))
 			for k := range entry {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+			for _, k := range keys {
 				if k != "angle" && k != second {
 					problems = append(problems, fmt.Sprintf("%s[%d] has unknown key %q", key, i, k))
 				}
@@ -987,7 +987,6 @@ func validateResult(result any, head string, angles []string) []string {
 	if !ok {
 		return append(problems, "findings is not a list")
 	}
-	ids := map[string]bool{}
 	for i, item := range findings {
 		f := object(item)
 		if f == nil {
@@ -1000,21 +999,16 @@ func validateResult(result any, head string, angles []string) []string {
 				problems = append(problems, fmt.Sprintf("finding %d lacks %s", i, key))
 			}
 		}
-		id := str(f["id"])
-		if !findingID.MatchString(id) {
-			problems = append(problems, fmt.Sprintf("finding %d has id %q", i, id))
-		} else if ids[id] {
-			problems = append(problems, fmt.Sprintf("finding id %s is used twice", id))
-		}
-		ids[id] = true
+		// The reviewer's own id is any string: spar numbers the findings
+		// itself and keeps that id only as reviewer_id.
 		for key, allowed := range map[string][]string{"proposed_class": Classes, "angle": Angles, "link_kind": linkKinds,
 			"introduced_by_change": yesNo, "regression": yesNo, "check_impact": checkImpact, "confidence": confidences} {
 			if v, ok := f[key].(string); ok && !contains(allowed, v) {
-				problems = append(problems, fmt.Sprintf("finding %s has %s %q", id, key, v))
+				problems = append(problems, fmt.Sprintf("finding %d has %s %q", i, key, v))
 			}
 		}
 		if strings.TrimSpace(str(f["failure_scenario"])) == "" {
-			problems = append(problems, fmt.Sprintf("finding %s has no failure scenario", id))
+			problems = append(problems, fmt.Sprintf("finding %d has no failure scenario", i))
 		}
 	}
 	sort.Strings(problems)
