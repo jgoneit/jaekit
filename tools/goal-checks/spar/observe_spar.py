@@ -1546,8 +1546,9 @@ def install_block(case, rel, heading, violation):
 
 
 # Programs the Release install block runs, besides the uname and curl the
-# observation supplies and the checksum program it checks separately.
-INSTALL_PROGRAMS = ("mktemp", "rm", "grep", "tar", "mkdir", "cp", "find", "diff", "mv", "chmod")
+# observation supplies and the checksum program it checks separately. GNU
+# tar starts gzip itself for -z.
+INSTALL_PROGRAMS = ("mktemp", "rm", "grep", "tar", "gzip", "mkdir", "cp", "find", "diff", "mv", "chmod")
 
 
 def run_install(case, block, with_spar, violation):
