@@ -1,0 +1,165 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "value-errors",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC12.test_values_outside_the_three",
+      "result_targets": {
+        "additional_violations": [
+          "value-errors.assertion-2",
+          "value-errors.assertion-3",
+          "value-errors.assertion-4",
+          "value-errors.assertion-5",
+          "value-errors.assertion-6",
+          "value-errors.assertion-7",
+          "value-errors.assertion-8"
+        ],
+        "execution": "value-errors.execution",
+        "selection": "value-errors.selection",
+        "attribution": "value-errors.attribution"
+      }
+    },
+    {
+      "target": "indent-errors",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC12.test_indented_before_the_first_section",
+      "result_targets": {
+        "additional_violations": [
+          "indent-errors.assertion-2",
+          "indent-errors.assertion-3",
+          "indent-errors.assertion-4",
+          "indent-errors.assertion-5",
+          "indent-errors.assertion-6",
+          "indent-errors.assertion-7",
+          "indent-errors.assertion-8"
+        ],
+        "execution": "indent-errors.execution",
+        "selection": "indent-errors.selection",
+        "attribution": "indent-errors.attribution"
+      }
+    },
+    {
+      "target": "duplicate-error",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC12.test_duplicate_line",
+      "result_targets": {
+        "additional_violations": [
+          "duplicate-error.assertion-2",
+          "duplicate-error.assertion-3",
+          "duplicate-error.assertion-4",
+          "duplicate-error.assertion-5",
+          "duplicate-error.assertion-6",
+          "duplicate-error.assertion-7",
+          "duplicate-error.assertion-8"
+        ],
+        "execution": "duplicate-error.execution",
+        "selection": "duplicate-error.selection",
+        "attribution": "duplicate-error.attribution"
+      }
+    },
+    {
+      "target": "position-error",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC12.test_line_after_the_first_section",
+      "result_targets": {
+        "additional_violations": [
+          "position-error.assertion-2",
+          "position-error.assertion-3",
+          "position-error.assertion-4",
+          "position-error.assertion-5",
+          "position-error.assertion-6",
+          "position-error.assertion-7",
+          "position-error.assertion-8"
+        ],
+        "execution": "position-error.execution",
+        "selection": "position-error.selection",
+        "attribution": "position-error.attribution"
+      }
+    },
+    {
+      "target": "both-header-errors",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC12.test_criteria_format_error_reported_too",
+      "result_targets": {
+        "additional_violations": [
+          "both-header-errors.assertion-2",
+          "both-header-errors.assertion-3",
+          "both-header-errors.assertion-4",
+          "both-header-errors.assertion-5",
+          "both-header-errors.assertion-6",
+          "both-header-errors.assertion-7",
+          "both-header-errors.assertion-8"
+        ],
+        "execution": "both-header-errors.execution",
+        "selection": "both-header-errors.selection",
+        "attribution": "both-header-errors.attribution"
+      }
+    },
+    {
+      "target": "start-refused",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC12.test_start_refuses",
+      "result_targets": {
+        "additional_violations": [
+          "start-refused.assertion-2",
+          "start-refused.assertion-3",
+          "start-refused.assertion-4",
+          "start-refused.assertion-5",
+          "start-refused.assertion-6",
+          "start-refused.assertion-7",
+          "start-refused.assertion-8"
+        ],
+        "execution": "start-refused.execution",
+        "selection": "start-refused.selection",
+        "attribution": "start-refused.attribution"
+      }
+    },
+    {
+      "target": "codes-documented",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC12.test_codes_documented",
+      "result_targets": {
+        "additional_violations": [
+          "codes-documented.assertion-2",
+          "codes-documented.assertion-3",
+          "codes-documented.assertion-4",
+          "codes-documented.assertion-5",
+          "codes-documented.assertion-6",
+          "codes-documented.assertion-7",
+          "codes-documented.assertion-8"
+        ],
+        "execution": "codes-documented.execution",
+        "selection": "codes-documented.selection",
+        "attribution": "codes-documented.attribution"
+      }
+    },
+    {
+      "target": "lint-scenarios",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC12.test_lint_scenarios",
+      "result_targets": {
+        "additional_violations": [
+          "lint-scenarios.assertion-2",
+          "lint-scenarios.assertion-3",
+          "lint-scenarios.assertion-4",
+          "lint-scenarios.assertion-5",
+          "lint-scenarios.assertion-6",
+          "lint-scenarios.assertion-7",
+          "lint-scenarios.assertion-8"
+        ],
+        "execution": "lint-scenarios.execution",
+        "selection": "lint-scenarios.selection",
+        "attribution": "lint-scenarios.attribution"
+      }
+    }
+  ]
+}

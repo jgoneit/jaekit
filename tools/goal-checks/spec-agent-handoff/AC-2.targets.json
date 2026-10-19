@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "invocation-kinds",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC2.test_direct_and_agent_invocation_defined",
+      "result_targets": {
+        "additional_violations": [
+          "invocation-kinds.assertion-2",
+          "invocation-kinds.assertion-3",
+          "invocation-kinds.assertion-4",
+          "invocation-kinds.assertion-5",
+          "invocation-kinds.assertion-6",
+          "invocation-kinds.assertion-7",
+          "invocation-kinds.assertion-8"
+        ],
+        "execution": "invocation-kinds.execution",
+        "selection": "invocation-kinds.selection",
+        "attribution": "invocation-kinds.attribution"
+      }
+    },
+    {
+      "target": "agent-proposal",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC2.test_agent_proposal_written_at_once",
+      "result_targets": {
+        "additional_violations": [
+          "agent-proposal.assertion-2",
+          "agent-proposal.assertion-3",
+          "agent-proposal.assertion-4",
+          "agent-proposal.assertion-5",
+          "agent-proposal.assertion-6",
+          "agent-proposal.assertion-7",
+          "agent-proposal.assertion-8"
+        ],
+        "execution": "agent-proposal.execution",
+        "selection": "agent-proposal.selection",
+        "attribution": "agent-proposal.attribution"
+      }
+    }
+  ]
+}

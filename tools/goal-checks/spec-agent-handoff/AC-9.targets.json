@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "skill-amendment",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC9.test_skill_writes_amendments",
+      "result_targets": {
+        "additional_violations": [
+          "skill-amendment.assertion-2",
+          "skill-amendment.assertion-3",
+          "skill-amendment.assertion-4",
+          "skill-amendment.assertion-5",
+          "skill-amendment.assertion-6",
+          "skill-amendment.assertion-7",
+          "skill-amendment.assertion-8"
+        ],
+        "execution": "skill-amendment.execution",
+        "selection": "skill-amendment.selection",
+        "attribution": "skill-amendment.attribution"
+      }
+    },
+    {
+      "target": "contract-amendment",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC9.test_contract_defines_amendments",
+      "result_targets": {
+        "additional_violations": [
+          "contract-amendment.assertion-2",
+          "contract-amendment.assertion-3",
+          "contract-amendment.assertion-4",
+          "contract-amendment.assertion-5",
+          "contract-amendment.assertion-6",
+          "contract-amendment.assertion-7",
+          "contract-amendment.assertion-8"
+        ],
+        "execution": "contract-amendment.execution",
+        "selection": "contract-amendment.selection",
+        "attribution": "contract-amendment.attribution"
+      }
+    }
+  ]
+}

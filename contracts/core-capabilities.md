@@ -46,9 +46,10 @@ ha capabilities --format json
 | `formats.criteria` | `legacy`는 선택자 없는 기존 문서, `nested/1`은 명시적으로 선택한 새 목록 형식 |
 | `formats.check_declaration`, `check_result`, `check_evidence` | 지원하는 선언·생산자 보고·저장 요약의 schema 목록 |
 | `formats.timing` | 시간 보기(`ha timing --format json`)의 schema 목록. 선택적이며 없을 수 있다 |
+| `formats.assurance_tier` | 목표 문서의 `Assurance:` 줄에서 읽고 검증하는 값 목록(`light`, `standard`, `strict`). 선택적이며 없을 수 있다 |
 | `features` | 아래 기능 식별자 목록 |
 
-선택적이라고 적은 `formats.timing`을 뺀 위 필드는 모두 필수다. 목록은 중복 없는 문자열 배열이며 각 문자열은 비어 있지 않다. 빈 형식·기능 목록은 해당 지원이 없다는 뜻이다. 중복 JSON 키, 잘못된 타입, 필수 정보 누락, 손상·뒤에 붙은 JSON은 해석 불가다. 같은 schema의 추가 필드·새 목록 항목은 허용하되 소비자가 아는 필수 지원을 대신하지 않는다.
+선택적이라고 적은 `formats.timing`과 `formats.assurance_tier`를 뺀 위 필드는 모두 필수다. 목록은 중복 없는 문자열 배열이며 각 문자열은 비어 있지 않다. 빈 형식·기능 목록은 해당 지원이 없다는 뜻이다. 중복 JSON 키, 잘못된 타입, 필수 정보 누락, 손상·뒤에 붙은 JSON은 해석 불가다. 같은 schema의 추가 필드·새 목록 항목은 허용하되 소비자가 아는 필수 지원을 대신하지 않는다.
 
 | 기능 | 약속 |
 | --- | --- |
@@ -67,6 +68,8 @@ ha capabilities --format json
 | `command-time-limits/v1` | `run-rules/4`의 PLAN `## 시간 제한`, 명령 digest의 적용 제한, 실행 전 안내(§6) |
 
 시간 보기를 지원하는 Core는 `formats.timing`에 `timing/v1`, `features`에 `run-timing/v1`을 제공한다([실행 기록](run-record.md) §1.2, §2.2). 측정값은 판정·예산에 쓰이지 않으므로 이 확장은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 추가되지 않는다. 지원이 없는 Core에서도 일반 실행은 그대로이고, 시간 보기만 쓸 수 없다.
+
+목표 문서의 `Assurance:` 줄([목표 문서](goal-docs.md) §2.5)을 읽고 검증하는 Core는 `formats.assurance_tier`에 `light`, `standard`, `strict`를 제공한다. v0.1.6 배포판(위 예시)에는 이 항목이 없다. 등급은 구현 담당이 받을 검토의 범위를 정할 뿐이며, 판정, `ha status`와 `ha done`의 출력, 예산은 등급 때문에 바뀌지 않는다. 줄은 SPEC.md의 일부이므로 목표 digest에 들어가고, 올바른 줄이 있으면 `ha lint` 성공 출력에 `assurance tier: <등급>` 줄이 더해지며, 형식이 틀린 줄은 다른 lint 오류처럼 `ha start`와 `ha check`를 막는다([목표 문서](goal-docs.md) §2.5, [실행 묶음](bundle.md) §8). 그래서 이 항목은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 더하지 않는다. 항목이 없는 Core는 줄을 검증하지 않을 뿐이고 일반 실행은 그대로다. 이 항목의 이름은 `ha status`의 `assurance` 필드(근거 표시, 항상 `local`)와 섞이지 않도록 따로 정했다.
 
 기능의 상세 의미는 [실행 기록](run-record.md), [결과 계약](check-result.md), [목표 문서](goal-docs.md)에 따른다. 지원 정보는 독립 인증이나 코드 무결성 증명이 아니다.
 

@@ -1,0 +1,85 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "direct-flow",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC15",
+      "result_targets": {
+        "additional_violations": [
+          "direct-flow.assertion-2",
+          "direct-flow.assertion-3",
+          "direct-flow.assertion-4",
+          "direct-flow.assertion-5",
+          "direct-flow.assertion-6",
+          "direct-flow.assertion-7",
+          "direct-flow.assertion-8"
+        ],
+        "execution": "direct-flow.execution",
+        "selection": "direct-flow.selection",
+        "attribution": "direct-flow.attribution"
+      }
+    },
+    {
+      "target": "asks-target-test",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestSpecAsksTargetBeforeWriting",
+      "result_targets": {
+        "additional_violations": [
+          "asks-target-test.assertion-2",
+          "asks-target-test.assertion-3",
+          "asks-target-test.assertion-4",
+          "asks-target-test.assertion-5",
+          "asks-target-test.assertion-6",
+          "asks-target-test.assertion-7",
+          "asks-target-test.assertion-8"
+        ],
+        "execution": "asks-target-test.execution",
+        "selection": "asks-target-test.selection",
+        "attribution": "asks-target-test.attribution"
+      }
+    },
+    {
+      "target": "writes-without-agreement-test",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestSpecWritesWithoutSaveAgreement",
+      "result_targets": {
+        "additional_violations": [
+          "writes-without-agreement-test.assertion-2",
+          "writes-without-agreement-test.assertion-3",
+          "writes-without-agreement-test.assertion-4",
+          "writes-without-agreement-test.assertion-5",
+          "writes-without-agreement-test.assertion-6",
+          "writes-without-agreement-test.assertion-7",
+          "writes-without-agreement-test.assertion-8"
+        ],
+        "execution": "writes-without-agreement-test.execution",
+        "selection": "writes-without-agreement-test.selection",
+        "attribution": "writes-without-agreement-test.attribution"
+      }
+    },
+    {
+      "target": "revises-same-documents-test",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestSpecRevisesSameDocuments",
+      "result_targets": {
+        "additional_violations": [
+          "revises-same-documents-test.assertion-2",
+          "revises-same-documents-test.assertion-3",
+          "revises-same-documents-test.assertion-4",
+          "revises-same-documents-test.assertion-5",
+          "revises-same-documents-test.assertion-6",
+          "revises-same-documents-test.assertion-7",
+          "revises-same-documents-test.assertion-8"
+        ],
+        "execution": "revises-same-documents-test.execution",
+        "selection": "revises-same-documents-test.selection",
+        "attribution": "revises-same-documents-test.attribution"
+      }
+    }
+  ]
+}

@@ -180,7 +180,7 @@ func TestLintReportsDistinctCodes(t *testing.T) {
 
 func TestDocPathsCoverBundleFiles(t *testing.T) {
 	g := &goaldocs.Goal{Dir: "g", Docs: []string{"g/SPEC.md", "g/aux.md"}}
-	want := []string{"g/PLAN.md", "g/PROGRESS.md", "g/REVIEW.md", "g/SPEC.md", "g/aux.md", "g/runs.jsonl", "g/tasks"}
+	want := []string{"g/PLAN.md", "g/PROGRESS.md", "g/REVIEW.md", "g/SPEC.md", "g/amendments", "g/aux.md", "g/runs.jsonl", "g/tasks"}
 	if got := DocPaths(g); !reflect.DeepEqual(got, want) {
 		t.Fatalf("DocPaths = %#v", got)
 	}

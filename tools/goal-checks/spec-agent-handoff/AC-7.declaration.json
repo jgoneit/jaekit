@@ -1,0 +1,57 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spec-agent-handoff/AC-7.targets.json",
+    "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "implement-boundary",
+      "violation": "implement-boundary-missing"
+    },
+    {
+      "id": "implement-boundary.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "implement-boundary.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "implement-boundary.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "implement-boundary.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "implement-boundary.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "implement-boundary.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "implement-boundary.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "implement-boundary.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "implement-boundary.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "implement-boundary.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "template-headers",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC14.test_template_headers",
+      "result_targets": {
+        "additional_violations": [
+          "template-headers.assertion-2",
+          "template-headers.assertion-3",
+          "template-headers.assertion-4",
+          "template-headers.assertion-5",
+          "template-headers.assertion-6",
+          "template-headers.assertion-7",
+          "template-headers.assertion-8"
+        ],
+        "execution": "template-headers.execution",
+        "selection": "template-headers.selection",
+        "attribution": "template-headers.attribution"
+      }
+    },
+    {
+      "target": "example-headers",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC14.test_contract_example_headers",
+      "result_targets": {
+        "additional_violations": [
+          "example-headers.assertion-2",
+          "example-headers.assertion-3",
+          "example-headers.assertion-4",
+          "example-headers.assertion-5",
+          "example-headers.assertion-6",
+          "example-headers.assertion-7",
+          "example-headers.assertion-8"
+        ],
+        "execution": "example-headers.execution",
+        "selection": "example-headers.selection",
+        "attribution": "example-headers.attribution"
+      }
+    }
+  ]
+}

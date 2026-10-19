@@ -1,0 +1,321 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spec-agent-handoff/AC-22.targets.json",
+    "tools/goal-checks/spec-agent-handoff/observe_core.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "linked-amendment",
+      "violation": "amendment-in-goal-set"
+    },
+    {
+      "id": "linked-amendment.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linked-amendment.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linked-amendment.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linked-amendment.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linked-amendment.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linked-amendment.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linked-amendment.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linked-amendment.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linked-amendment.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linked-amendment.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-1",
+      "violation": "amendment-in-code-state"
+    },
+    {
+      "id": "code-state-rules-1.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-1.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-1.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-1.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-1.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-1.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-1.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-1.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-1.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-1.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-2",
+      "violation": "amendment-in-code-state"
+    },
+    {
+      "id": "code-state-rules-2.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-2.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-2.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-2.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-2.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-2.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-2.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-2.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-2.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-2.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-3",
+      "violation": "amendment-in-code-state"
+    },
+    {
+      "id": "code-state-rules-3.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-3.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-3.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-3.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-3.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-3.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-3.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-3.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-3.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-3.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-4",
+      "violation": "amendment-in-code-state"
+    },
+    {
+      "id": "code-state-rules-4.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-4.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-4.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-4.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-4.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-4.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-4.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-4.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-4.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "code-state-rules-4.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-location",
+      "violation": "amendment-location-undocumented"
+    },
+    {
+      "id": "amendment-location.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-location.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-location.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-location.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-location.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-location.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-location.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-location.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-location.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-location.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios",
+      "violation": "scenario-missing"
+    },
+    {
+      "id": "amendment-scenarios.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "amendment-scenarios.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

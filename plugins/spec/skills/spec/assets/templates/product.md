@@ -2,6 +2,7 @@
 
 Status: Draft
 Criteria-Format: nested/1
+Assurance: standard
 
 ## Problem
 
