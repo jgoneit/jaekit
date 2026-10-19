@@ -92,6 +92,8 @@ The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evi
 | `adapter-junit-flow` | check-result.md §5 | a `junit-xml` condition: the runner writes where `{HA_JUNIT_XML}` points and its marker is followed by `.`, the record keeps the placeholder, completion; the failure message is absent from records and output |
 | `adapter-lint-refused` | check-result.md §5 | an adapter declaration whose violation uses the reserved `jaekit:` prefix is `evidence_invalid`; start refused, nothing recorded |
 | `adapter-lint-suffix` | check-result.md §5 | an adapter declaration whose violation ends with `:` can never match a marker and is `evidence_invalid`; start refused, nothing recorded |
+| `adapter-junit-namespaced` | check-result.md §5 | a namespaced element in the linked testcase is not a JUnit failure: baseline `unknown` with `observation_invalid` |
+| `adapter-go-stdout-held` | check-result.md §5 | a descendant holds the copied standard output past the drain bound after a nonzero exit: baseline `error` with `process_wait`, never the marked failure |
 | `adapter-legacy-rules` | check-result.md §5 | under `run-rules/2` a result contract naming an adapter declaration keeps exit-code results without evidence; the placeholder stays as written |
 
 EVALUATION §3 rows whose P1 expectation is "탐지 기대 없음" other than the command change (weak checks, special-casing, unrelated changes inside scope, tests that change sources) have no scenario: P1 does not claim to detect them.

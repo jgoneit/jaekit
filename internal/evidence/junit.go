@@ -20,19 +20,16 @@ type junitCase struct {
 var junitRetries = map[string]bool{"rerunFailure": true, "rerunError": true, "flakyFailure": true, "flakyError": true}
 var junitIgnored = map[string]bool{"system-out": true, "system-err": true, "properties": true}
 
-// junitClassname reports whether a testcase's classname attribute matches a
-// declared classname. An empty declared classname matches a testcase without
-// the attribute; otherwise the values must be equal.
-func junitClassname(declared string, attr *string) bool {
-	if attr == nil {
-		return declared == ""
-	}
-	return *attr == declared
-}
+// junitKey is the index key of a testcase: its classname, empty when the
+// attribute is missing, and its name. A declared empty classname so matches a
+// testcase without the attribute and one with classname="".
+type junitKey struct{ classname, name string }
 
 // junitObservations reads one JUnit XML document. The document must be UTF-8
 // with a single testsuites or testsuite root and no DTD; testcases may sit at
-// any depth. Only linked testcases are judged.
+// any depth. Only linked testcases are judged. An element with a namespace is
+// not a JUnit element: it is never a testcase, and inside a linked testcase it
+// is a child the adapter does not support.
 func junitObservations(d *Declaration, data []byte) ([]Observation, string) {
 	data = bytes.TrimPrefix(data, []byte("\xef\xbb\xbf"))
 	if !utf8.Valid(data) {
@@ -42,6 +39,10 @@ func junitObservations(d *Declaration, data []byte) ([]Observation, string) {
 	dec.Strict = true
 	occurrences := make([]int, len(d.Targets))
 	cases := make([]*junitCase, len(d.Targets))
+	linked := make(map[junitKey]int, len(d.Targets))
+	for n, target := range d.Targets {
+		linked[junitKey{target.Test.Classname, target.Test.Name}] = n
+	}
 	type frame struct {
 		name    string
 		target  int // the linked target of a testcase frame, or -1
@@ -80,6 +81,9 @@ func junitObservations(d *Declaration, data []byte) ([]Observation, string) {
 				seen[attr.Name] = true
 			}
 			name := t.Name.Local
+			if t.Name.Space != "" {
+				name = ""
+			}
 			if len(stack) == 0 {
 				if rootDone || t.Name.Space != "" || (name != "testsuites" && name != "testsuite") {
 					return nil, "output_corrupt"
@@ -114,29 +118,24 @@ func junitObservations(d *Declaration, data []byte) ([]Observation, string) {
 					tc.invalid = true
 				}
 			} else if name == "testcase" {
-				var classname *string
-				var testName string
+				var key junitKey
 				for _, attr := range t.Attr {
 					if attr.Name.Space != "" {
 						continue
 					}
 					switch attr.Name.Local {
 					case "classname":
-						value := attr.Value
-						classname = &value
+						key.classname = attr.Value
 					case "name":
-						testName = attr.Value
+						key.name = attr.Value
 					}
 				}
-				for n, target := range d.Targets {
-					if target.Test.Name == testName && junitClassname(target.Test.Classname, classname) {
-						occurrences[n]++
-						if cases[n] == nil {
-							cases[n] = &junitCase{}
-						}
-						f.target = n
-						break
+				if n, ok := linked[key]; ok {
+					occurrences[n]++
+					if cases[n] == nil {
+						cases[n] = &junitCase{}
 					}
+					f.target = n
 				}
 			}
 			stack = append(stack, f)

@@ -4,6 +4,7 @@ package run
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -54,5 +55,46 @@ func TestExecWithStdoutKeepsLogWriteFailure(t *testing.T) {
 		[]string{"HA_NATIVE_HELPER=1", "HA_NATIVE_MODE=arguments", "HA_NATIVE_EXIT=1"}, starter, &copied)
 	if err == nil || !res.Attempted || res.Outcome != Fail || res.Digest != "" {
 		t.Fatalf("a failed log write produced output evidence: %+v %v", res, err)
+	}
+}
+
+// TestExecWithStdoutCutShortAfterNonzeroExit: a descendant that keeps the
+// copied standard output open past the drain bound makes the run a wait
+// failure, even though the process itself exited nonzero, so the copied
+// prefix is never classified.
+func TestExecWithStdoutCutShortAfterNonzeroExit(t *testing.T) {
+	saved := stdoutDrain
+	stdoutDrain = 300 * time.Millisecond
+	defer func() { stdoutDrain = saved }()
+	dir := t.TempDir()
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var copied bytes.Buffer
+	res, err := ExecWithStdout(dir, []string{executable, "-test.run=^TestStdoutLingerHelper$"}, 10*time.Second,
+		filepath.Join(dir, "output.log"), []string{"HA_STDOUT_HELPER=parent"}, &copied)
+	if err != nil || res.Outcome != Error || res.Reason != "process_wait" || res.Exit != nil {
+		t.Fatalf("a cut-short standard output was kept as an ordinary exit: %+v %v (copied %q)", res, err, copied.String())
+	}
+}
+
+// TestStdoutLingerHelper is the child of the test above: it starts a
+// descendant that holds standard output for two seconds, prints a line and
+// exits 1. It does nothing in an ordinary test run.
+func TestStdoutLingerHelper(t *testing.T) {
+	switch os.Getenv("HA_STDOUT_HELPER") {
+	case "parent":
+		child := exec.Command(os.Args[0], "-test.run=^TestStdoutLingerHelper$")
+		child.Env = append(os.Environ(), "HA_STDOUT_HELPER=linger")
+		child.Stdout = os.Stdout
+		if err := child.Start(); err != nil {
+			os.Exit(90)
+		}
+		fmt.Println("jaekit:violation=greeting-missing before the end")
+		os.Exit(1)
+	case "linger":
+		time.Sleep(2 * time.Second)
+		os.Exit(0)
 	}
 }

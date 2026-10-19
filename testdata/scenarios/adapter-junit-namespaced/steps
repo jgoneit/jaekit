@@ -1,0 +1,11 @@
+# junit-xml: an element with a namespace inside the linked testcase is an
+# output form the adapter does not support, never the declared violation.
+replace $GOAL/PLAN.md "`sh tests/greeting.sh` | tests/greeting.sh |" "`sh tests/junit.sh {HA_JUNIT_XML}` | tests/junit.sh, checks/AC-1.json |"
+append $GOAL/PLAN.md "\n## 결과 계약\n| ID | 선언 경로 |\n| --- | --- |\n| AC-1 | checks/AC-1.json |\n"
+commit "link the greeting test"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/4
+expect-exit 0
+ha check $GOAL --baseline AC-1
+expect-record 2 result unknown
+expect-output "classification: observation_invalid"
+expect-absent "the greeting is hi"

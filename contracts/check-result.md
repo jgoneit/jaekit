@@ -162,7 +162,7 @@ v0.1.3부터 직접 설치와 Homebrew는 이 생산자와 [합성 예시](../ex
 | AC-2 | change | `node --test --test-reporter=junit --test-reporter-destination={HA_JUNIT_XML} test/greet.test.mjs` | test/greet.test.mjs, checks/AC-2.json | T001 |
 ```
 
-`go-test-json` 조건은 명령의 표준 출력을 따로 받아 읽는다. 로그에는 지금처럼 표준 출력과 표준 오류가 함께 남고 `ha log`가 보인다. 표준 오류(모듈 내려받기 안내, vet 경고, 빌드 오류 원문)는 판정에 쓰지 않는다.
+`go-test-json` 조건은 명령의 표준 출력을 따로 받아 끝까지 읽는다. 명령이 끝난 뒤에도 하위 프로세스가 표준 출력을 열어 두면 5초까지만 더 읽고, 그때까지 끝나지 않으면 잘린 출력을 판정하지 않는다(아래 표의 `process_wait`). 로그에는 지금처럼 표준 출력과 표준 오류가 함께 남고 `ha log`가 보인다. 표준 오류(모듈 내려받기 안내, vet 경고, 빌드 오류 원문)는 판정에 쓰지 않는다.
 
 ### 표식
 
@@ -186,7 +186,7 @@ v0.1.3부터 직접 설치와 Homebrew는 이 생산자와 [합성 예시](../ex
 
 ### 입력 실패의 결과
 
-다음 표가 완전한 목록이다. 목록 밖의 출력 형태(연결한 시험의 패키지 사건에 어댑터가 모르는 Go 동작(Go 1.27 `go test -json`이 쓰는 `start`·`run`·`pause`·`cont`·`pass`·`fail`·`skip`·`output`·`bench`·`build-output`·`build-fail`·`attr`·`artifacts` 밖)이나 `OutputType` 값(`error`, `error-continue`, `frame` 밖)이 나오거나 `Output`이 없는 `output` 사건이 나옴, 연결한 testcase의 지원하지 않는 자식 요소나 `skipped`와 `failure`·`error`의 조합, `failure` 안의 요소)는 `observation_invalid`다. 어느 경우도 통과, 기대 실패, 선언한 위반이 아니다.
+다음 표가 완전한 목록이다. 목록 밖의 출력 형태(연결한 시험의 패키지 사건에 어댑터가 모르는 Go 동작(Go 1.27 `go test -json`이 쓰는 `start`·`run`·`pause`·`cont`·`pass`·`fail`·`skip`·`output`·`bench`·`build-output`·`build-fail`·`attr`·`artifacts` 밖)이나 `OutputType` 값(`error`, `error-continue`, `frame` 밖)이 나오거나 `Output`이 없는 `output` 사건이 나옴, 연결한 testcase의 지원하지 않는 자식 요소(네임스페이스가 붙은 요소 포함)나 `skipped`와 `failure`·`error`의 조합, `failure` 안의 요소)는 `observation_invalid`다. 어느 경우도 통과, 기대 실패, 선언한 위반이 아니다.
 
 | 경우 | 결과(현재·baseline 같음) | 사유 |
 | --- | --- | --- |
@@ -194,6 +194,7 @@ v0.1.3부터 직접 설치와 Homebrew는 이 생산자와 [합성 예시](../ex
 | `ha`의 시간 제한에 걸림 | `error` | `process_timeout` |
 | 신호로 종료됨 | `error` | `process_signal` |
 | 명령 출력 저장 실패 | `error` | `process_output` |
+| `go-test-json` 명령이 끝난 뒤 하위 프로세스가 표준 출력을 5초 넘게 열어 둠. 종료 코드와 그때까지 읽은 출력은 판정에 쓰지 않는다 | `error` | `process_wait` |
 | 연결한 Go 시험의 패키지가 빌드되지 않음 | `error` | `environment_reported`, 대상 `compile_error` |
 | 연결한 Go 시험이 시작했지만 끝 기록(통과·실패·skip)이 없음(시험 바이너리의 비정상 종료, Go 자체의 시험 시간 초과) | `error` | `environment_reported`, 대상 `execution_error` |
 | 연결한 testcase에 `error` 요소가 있음. `failure`가 함께 있어도 같다 | `error` | `environment_reported`, 대상 `execution_error` |
@@ -210,7 +211,7 @@ v0.1.3부터 직접 설치와 Homebrew는 이 생산자와 [합성 예시](../ex
 ### 지원하는 출력
 
 - `go test -json`이 실패 메시지 줄에 출력 종류(`OutputType`)를 붙이는 것은 Go 1.27부터다. 연결한 시험의 패키지 사건에 `OutputType`이 하나도 없으면(Go 1.26 이전 도구 체인) 그 패키지에서 실패한 연결 시험은 표식 없는 실패이고, `ha check`가 결과 줄 뒤에 그 패키지를 말하는 `notice: <조건> go-test-json: …` 한 줄(`OutputType`을 언급)을 낸다.
-- JUnit XML은 UTF-8(BOM 허용)이고 루트 요소 하나(`testsuites` 또는 `testsuite`)를 가지며 testcase는 어느 깊이에 있어도 된다. 실제 출력으로 한 번 확인한 형태는 Node.js 26.11.0 내장 러너(`node --test --test-reporter=junit`), pytest 9.1.1(`--junitxml=…`), Vitest 5.0.5(`--reporter=junit --outputFile=…`), Jest 30.5.2와 jest-junit 17.0.0(`JEST_JUNIT_OUTPUT_FILE`)이다. 그 출력에서 통과, 표식 있는 실패, 표식 없는 실패, skip, pytest fixture 오류(`error`)가 대표 형태 표대로 판정됐다. 기본 설정에서 pytest는 `classname`에 모듈 경로(`tests.test_greet`)를, Vitest는 `classname`에 파일 경로와 `name`에 `describe > test`를, jest-junit은 `classname`과 `name` 둘 다에 `describe test`를 쓴다. pytest와 Vitest의 실패는 `message` 속성의 첫 줄로, jest-junit의 실패는 `message` 속성이 없어 본문 첫 줄(`Error: …`)로 읽는다. 저장소의 검사는 이 러너를 설치하지 않고 같은 모양의 합성 문서로 확인한다. 다른 버전과 사용자 설정의 출력은 확인하지 않았다.
+- JUnit XML은 UTF-8(BOM 허용)이고 루트 요소 하나(`testsuites` 또는 `testsuite`)를 가지며 testcase는 어느 깊이에 있어도 된다. 네임스페이스가 붙은 요소(`ext:failure`, `ext:testcase` 등)는 JUnit 요소가 아니다. testcase로 맞지 않고, 연결한 testcase 안에서는 지원하지 않는 자식이다. 실제 출력으로 한 번 확인한 형태는 Node.js 26.11.0 내장 러너(`node --test --test-reporter=junit`), pytest 9.1.1(`--junitxml=…`), Vitest 5.0.5(`--reporter=junit --outputFile=…`), Jest 30.5.2와 jest-junit 17.0.0(`JEST_JUNIT_OUTPUT_FILE`)이다. 그 출력에서 통과, 표식 있는 실패, 표식 없는 실패, skip, pytest fixture 오류(`error`)가 대표 형태 표대로 판정됐다. 기본 설정에서 pytest는 `classname`에 모듈 경로(`tests.test_greet`)를, Vitest는 `classname`에 파일 경로와 `name`에 `describe > test`를, jest-junit은 `classname`과 `name` 둘 다에 `describe test`를 쓴다. pytest와 Vitest의 실패는 `message` 속성의 첫 줄로, jest-junit의 실패는 `message` 속성이 없어 본문 첫 줄(`Error: …`)로 읽는다. 저장소의 검사는 이 러너를 설치하지 않고 같은 모양의 합성 문서로 확인한다. 다른 버전과 사용자 설정의 출력은 확인하지 않았다.
 
 ### 대표 형태
 

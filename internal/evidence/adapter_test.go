@@ -2,12 +2,14 @@ package evidence
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jgoneit/jaekit/internal/run"
 )
@@ -318,6 +320,10 @@ func TestJUnitObservations(t *testing.T) {
 		{"empty file", []byte{}, nil, "output_corrupt"},
 		{"undefined entity", one(`<failure message="&m;"/>`), nil, "output_corrupt"},
 		{"byte order mark", append([]byte("\xef\xbb\xbf"), one("")...), obs("pass", "", ""), ""},
+		{"namespaced failure in a linked testcase", one(`<ext:failure xmlns:ext="urn:x" message="` + mark + `"/>`), nil, "observation_invalid"},
+		{"namespaced failure without a declaration", one(`<ext:failure message="` + mark + `"/>`), nil, "observation_invalid"},
+		{"namespaced testcase", junitDocument(`<ext:testcase xmlns:ext="urn:x" classname="tests.test_greet" name="test_greets"><failure message="` + mark + `"/></ext:testcase>`), nil, "target_missing"},
+		{"namespaced content of system-out", one(`<system-out><ext:note xmlns:ext="urn:x">x</ext:note></system-out>`), obs("pass", "", ""), ""},
 		{"testsuite root and deep testcase", []byte(`<testsuite><x><testcase classname="tests.test_greet" name="test_greets"/></x></testsuite>`), obs("pass", "", ""), ""},
 	}
 	for _, c := range cases {
@@ -438,3 +444,38 @@ func TestAdapterClassifyAndStored(t *testing.T) {
 }
 
 func intPtr(v int) *int { return &v }
+
+// TestJUnitTargetMatchingCost: matching a testcase to its target does not
+// grow with the number of targets, so a report at the size limit with the
+// most targets costs about what it costs with one target.
+func TestJUnitTargetMatchingCost(t *testing.T) {
+	declaration := func(targets int) *Declaration {
+		d := &Declaration{Schema: AdapterSchema, Adapter: AdapterJUnitXML}
+		for i := 0; i < targets; i++ {
+			d.Targets = append(d.Targets, Target{ID: fmt.Sprintf("t%d", i), Violation: "v", Test: &TestName{Name: fmt.Sprintf("n%07d", i)}})
+		}
+		return d
+	}
+	var b strings.Builder
+	b.WriteString("<testsuites><testsuite>")
+	for i := 0; b.Len() < 4<<20; i++ {
+		fmt.Fprintf(&b, `<testcase name="n%07d"/>`, 1000000+i)
+	}
+	b.WriteString("</testsuite></testsuites>")
+	doc := []byte(b.String())
+	fastest := func(d *Declaration) time.Duration {
+		best := time.Duration(1<<63 - 1)
+		for range 3 {
+			start := time.Now()
+			if _, early := junitObservations(d, doc); early != "target_missing" {
+				t.Fatalf("unexpected result %q", early)
+			}
+			best = min(best, time.Since(start))
+		}
+		return best
+	}
+	one, many := fastest(declaration(1)), fastest(declaration(1024))
+	if many > 3*one {
+		t.Fatalf("1024 targets took %s, one target %s: matching grows with the number of targets", many, one)
+	}
+}

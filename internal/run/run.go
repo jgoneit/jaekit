@@ -87,10 +87,11 @@ func ExecWithStdout(dir string, argv []string, timeout time.Duration, logPath st
 	return execWithOutput(dir, argv, timeout, logPath, extraEnv, startProcess, stdout)
 }
 
-// stdoutDrain bounds how long Wait keeps reading a copied standard output
-// after the process exited, for example while a detached descendant still
-// holds it. A copy cut short this way is a wait failure, never evidence.
-const stdoutDrain = 5 * time.Second
+// stdoutDrain bounds how long ha keeps reading a copied standard output after
+// the process exited, for example while a detached descendant still holds it.
+// A copy cut short this way is a wait failure, never evidence, whatever the
+// exit status. Tests shorten it.
+var stdoutDrain = 5 * time.Second
 
 // collectCPU reads a finished process's CPU time. Tests replace it to make the
 // collection fail; the run's result, output and limit values do not depend on it.
@@ -113,16 +114,35 @@ func execWithOutput(dir string, argv []string, timeout time.Duration, logPath st
 	cmd.Env = append(os.Environ(), extraEnv...)
 	cmd.Stdout = log
 	cmd.Stderr = log
-	// A copied standard output goes through ha, so a failed log write is
-	// kept here: Wait reports a nonzero exit before a copy error.
+	// A copied standard output comes through a pipe that ha reads itself:
+	// os/exec would report a nonzero exit before a copy that its WaitDelay cut
+	// short, or before a failed log write.
 	var copied *recordingWriter
+	var pipe, pipeEnd *os.File
 	if stdout != nil {
+		if pipe, pipeEnd, err = os.Pipe(); err != nil {
+			log.Close()
+			return Result{}, err
+		}
 		copied = &recordingWriter{w: log}
-		cmd.Stdout = io.MultiWriter(copied, stdout)
-		cmd.WaitDelay = stdoutDrain
+		cmd.Stdout = pipeEnd
 	}
 	res.Attempted = true
 	group, startErr := starter(cmd)
+	var copyDone chan error
+	if pipe != nil {
+		pipeEnd.Close()
+		if startErr != nil {
+			pipe.Close()
+		} else {
+			copyDone = make(chan error, 1)
+			go func() {
+				_, err := io.Copy(io.MultiWriter(copied, stdout), pipe)
+				pipe.Close() // a writer still running gets a broken pipe
+				copyDone <- err
+			}()
+		}
+	}
 	if startErr != nil {
 		fmt.Fprintf(log, "ha: could not start %q: %v\n", argv[0], startErr)
 		res.Outcome, res.Reason = Error, "process_start"
@@ -158,6 +178,20 @@ func execWithOutput(dir string, argv []string, timeout time.Duration, logPath st
 		}
 		controlErr = errors.Join(controlErr, group.finish())
 		res.CPU = collectCPU(cmd, group)
+		truncated := false
+		if copyDone != nil {
+			var copyErr error
+			select {
+			case copyErr = <-copyDone:
+			case <-time.After(stdoutDrain):
+				truncated = true
+				pipe.Close()
+				<-copyDone
+			}
+			if copyErr != nil && copied.err == nil && finalizationErr == nil {
+				finalizationErr = fmt.Errorf("standard output could not be read: %w", copyErr)
+			}
+		}
 		switch {
 		case controlErr != nil:
 			fmt.Fprintf(log, "\nha: process control failed: %v\n", controlErr)
@@ -166,6 +200,9 @@ func execWithOutput(dir string, argv []string, timeout time.Duration, logPath st
 		case timedOut:
 			fmt.Fprintf(log, "\nha: timed out after %s\n", timeout)
 			res.Outcome, res.Reason = Error, "process_timeout"
+		case truncated:
+			fmt.Fprintf(log, "\nha: standard output stayed open %s after the process exited\n", stdoutDrain)
+			res.Outcome, res.Reason = Error, "process_wait"
 		case waitErr == nil:
 			code := 0
 			res.Exit, res.Outcome = &code, Pass
