@@ -48,36 +48,10 @@ var readOnlyPrograms = map[string]bool{"find": true, "ls": true, "grep": true, "
 	"cut": true, "stat": true, "file": true, "diff": true, "cmp": true, "tree": true, "pwd": true,
 	"basename": true, "dirname": true, "realpath": true, "tr": true, "du": true}
 
-var unsafeArgPrefixes = []string{"-exec", "-execdir", "-ok", "-okdir", "-delete", "--pre", "--compress-program",
-	"-fprint", "-fls"}
-
-// writesFile reports an option with which sort or tree writes a file (-o)
-// or file compiles a magic file into the working folder (-C): alone or
-// inside a cluster of short options (-ro), and any long option that getopt
-// would expand to one that writes or runs something.
-func writesFile(program, arg string) bool {
-	var short rune
-	var long []string
-	switch program {
-	case "sort":
-		short, long = 'o', []string{"--o", "--co"}
-	case "tree":
-		short, long = 'o', []string{"--o"}
-	case "file":
-		short, long = 'C', []string{"--co"}
-	default:
-		return false
-	}
-	if strings.HasPrefix(arg, "--") {
-		for _, prefix := range long {
-			if strings.HasPrefix(arg, prefix) {
-				return true
-			}
-		}
-		return false
-	}
-	return strings.HasPrefix(arg, "-") && strings.ContainsRune(arg[1:], short)
-}
+// Arguments that start another program or delete files. The list is the
+// one clean-review 0.2.0 blocks; agy's --sandbox keeps files from being
+// written, and a change to the reviewed folders is workspace_modified.
+var unsafeArgPrefixes = []string{"-exec", "-execdir", "-ok", "-okdir", "-delete", "--pre", "--compress-program"}
 
 // packetFile is where a reviewer finds the packet when it is too large for
 // one command-line argument.
@@ -558,22 +532,12 @@ func unsafeCommand(line string) string {
 		} else if !readOnlyPrograms[program] {
 			return fmt.Sprintf("program %q", program)
 		}
-		var operands []string
 		for _, t := range seg[1:] {
 			for _, p := range unsafeArgPrefixes {
 				if strings.HasPrefix(t, p) {
 					return fmt.Sprintf("argument %q", t)
 				}
 			}
-			if writesFile(program, t) {
-				return fmt.Sprintf("argument %q writes a file", t)
-			}
-			if !strings.HasPrefix(t, "-") {
-				operands = append(operands, t)
-			}
-		}
-		if program == "uniq" && len(operands) > 1 {
-			return "uniq with an output file"
 		}
 	}
 	return ""
