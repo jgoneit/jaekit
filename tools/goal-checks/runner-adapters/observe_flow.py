@@ -193,6 +193,16 @@ class MissingEntryPoint(unittest.TestCase):
         require(self, not problems, "missing-entry-point-accepted", "; ".join(problems))
 
 
+def in_working_tree(path, root, cwd):
+    """Whether path lies in the repository's working tree or the run's (baseline) tree, outside Git metadata."""
+    target = Path(path).resolve()
+    for tree in {Path(root).resolve(), Path(cwd).resolve()}:
+        if target.is_relative_to(tree) and not target.is_relative_to(tree / ".git"):
+            # A baseline tree lives under <git dir>/ha/worktrees; the run's own tree still counts.
+            return True
+    return False
+
+
 class OutputLocation(unittest.TestCase):
     """AC-9: each file-writing run gets a fresh private location; the working tree and command stay as they are."""
 
@@ -252,18 +262,22 @@ class OutputLocation(unittest.TestCase):
                     problems.append(f"{where}: the placeholder became {item['argv'][1]!r}, the variable {item['env']!r}")
                 if item["existed"] or item["parent_entries"] != []:
                     problems.append(f"{where}: the location was not new and empty ({item['existed']}, {item['parent_entries']})")
-                inside = [root for root in (str(repo.root), item["cwd"]) if path and Path(path).resolve().is_relative_to(Path(root).resolve())]
-                if inside:
-                    problems.append(f"{where}: the location is inside the working tree {inside}")
+                if path and in_working_tree(path, repo.root, item["cwd"]):
+                    problems.append(f"{where}: the location {path} is inside the working tree")
             if len(set(paths)) != len(paths):
                 problems.append(f"locations repeat across runs: {paths}")
             if maintain_runs[0]["argv"][1:] != [PLACEHOLDER] or maintain_runs[0]["env"] is not None:
                 problems.append(f"a condition without an adapter got {maintain_runs[0]['argv']}, variable {maintain_runs[0]['env']!r}")
-            for cid in ("AC-3",):
-                for kind in ("baseline", "check"):
+            # The files the runner wrote at the named location are the ones ha classified.
+            for cid in ("AC-1", "AC-2"):
+                for kind, want in (("baseline", ("unexpected_pass", "baseline_passed")), ("check", ("pass", "targets_passed"))):
                     got = summary(repo.last(cid, kind))
-                    if got != ("unknown", "output_missing", []):
-                        problems.append(f"{cid} {kind} with only earlier and same-named files: got {got}")
+                    if got is None or got[:2] != want:
+                        problems.append(f"{cid} {kind}: the file written at the location was not classified: got {got}")
+            for kind in ("baseline", "check"):
+                got = summary(repo.last("AC-3", kind))
+                if got != ("unknown", "output_missing", []):
+                    problems.append(f"AC-3 {kind} with only earlier and same-named files: got {got}")
             for kind, wants in (("check", {"AC-4": "pass", "AC-5": "fail"}),
                                 ("baseline", {"AC-4": "unexpected_pass", "AC-5": "fail_as_expected"})):
                 for cid, want in wants.items():

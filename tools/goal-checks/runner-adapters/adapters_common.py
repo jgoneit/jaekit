@@ -86,6 +86,50 @@ def build(out, overlay=None, goos=None, goarch=None):
     return out
 
 
+def go_test_results(packages, flags=(), env=None, timeout=3600, go="go"):
+    """(failed, passed) test names of `go test -json`, each as "package test".
+
+    A build failure, a run ended by a signal, output that is not test events,
+    or a nonzero exit without any failed test or package cannot establish a
+    result and raises Unavailable; only tests or packages that ran and failed
+    are returned as failures.
+    """
+    result = run([go, "test", "-json", *flags, *packages], ROOT, env, timeout=timeout)
+    if result.returncode < 0:
+        raise Unavailable(f"go test ended by signal {-result.returncode}")
+    events = []
+    for line in result.stdout.decode(errors="replace").splitlines():
+        try:
+            events.append(json.loads(line))
+        except ValueError:
+            raise Unavailable(f"go test -json printed a line that is not an event: {line[:200]!r}") from None
+    built = [e.get("FailedBuild") for e in events if e.get("Action") == "fail" and e.get("FailedBuild")]
+    if built:
+        raise Unavailable(f"packages did not build: {built[:3]}")
+    name = lambda e: f"{e.get('Package')} {e.get('Test', '')}".strip()
+    failed = sorted({name(e) for e in events if e.get("Action") == "fail"})
+    passed = sorted({name(e) for e in events if e.get("Action") == "pass" and e.get("Test")})
+    if not passed and not failed:
+        raise Unavailable(f"go test ran no test (exit {result.returncode}): {result.stderr.decode(errors='replace')[-500:]}")
+    if result.returncode and not failed:
+        raise Unavailable(f"go test exit {result.returncode} without a failed test: {result.stderr.decode(errors='replace')[-500:]}")
+    return failed, passed
+
+
+def unittest_failures(directory, pattern, env=None, timeout=1800):
+    """Failed test count of a unittest discovery; errors and other outcomes raise Unavailable."""
+    result = run([sys.executable, "-m", "unittest", "discover", "-s", directory, "-p", pattern], ROOT, env, timeout=timeout)
+    tail = result.stderr.decode(errors="replace").strip().splitlines()[-1:] or [""]
+    if result.returncode < 0:
+        raise Unavailable(f"unittest ended by signal {-result.returncode}")
+    if result.returncode == 0 and tail[0].startswith("OK"):
+        return 0
+    match = re.fullmatch(r"FAILED \((?:failures=(\d+))?(?:, )?(?:errors=(\d+))?(?:, )?.*\)", tail[0])
+    if not match or match.group(2) or not match.group(1):
+        raise Unavailable(f"unittest {pattern} did not end with assertion failures only: {tail[0]!r}")
+    return int(match.group(1))
+
+
 def go_typed():
     """Raise Unavailable unless the selected Go marks failure output (Go 1.27 or later)."""
     result = run(["go", "env", "GOVERSION"], ROOT, clean_env(), timeout=120)

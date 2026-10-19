@@ -27,7 +27,8 @@ import unittest
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from adapters_common import (FEATURE, GOAL, PLACEHOLDER, ROOT, SCHEMA, UNMARKED, VARIABLE, Condition, Repo, Unavailable,
-                             build, clean_env, go_declaration, go_typed, junit_declaration, require, run, temporary)
+                             build, clean_env, go_declaration, go_test_results, go_typed, junit_declaration, require, run,
+                             temporary)
 from observe_forms import ci_run_passes, windows_native_tests
 
 HERE = Path(__file__).resolve().parent
@@ -491,9 +492,11 @@ class Registry(unittest.TestCase):
             for rid in (route.get("id"), *EXISTING_I2):
                 checks = new[rid]["checks"]
                 for package, pattern in go_selection(checks):
-                    result = run([real_go, "test", "-count=1", "-run", pattern, package], ROOT, env, timeout=1800)
-                    if result.returncode:
-                        failures.append(f"{rid} {package}: {result.stdout.decode(errors='replace')[-600:]}")
+                    failed, passed = go_test_results([package], ["-count=1", "-run", pattern], env, timeout=1800, go=real_go)
+                    ran = {name.split(" ", 1)[1].split("/")[0] for name in passed}
+                    wanted = set(pattern[2:-2].split("|"))
+                    if failed or not wanted <= ran:
+                        failures.append(f"{rid} {package}: failed {failed[:5]}, not run {sorted(wanted - ran)}")
             try:
                 calls = log.read_text(encoding="utf-8").splitlines() if log.exists() else []
             except OSError as error:
@@ -539,9 +542,8 @@ class GoVersion(unittest.TestCase):
         env = clean_env()
         env["GOFLAGS"] = "-mod=readonly"
         env.pop("GOPROXY", None)
-        result = run(["go", "test", "-count=1", "./..."], ROOT, env, timeout=3600)
-        require(self, result.returncode == 0, "go-1-27-not-required",
-                f"existing Go tests fail with {version}: {result.stdout.decode(errors='replace')[-1500:]}")
+        failed, _ = go_test_results(["./..."], ["-count=1"], env, timeout=3600)
+        require(self, not failed, "go-1-27-not-required", f"existing Go tests fail with {version}: {failed[:10]}")
         required = windows_native_tests()
         missing = [f"{p} {t}" for p, t in WINDOWS_PATH_TEST.items() if t not in required.get(p, [])]
         require(self, not missing, "go-1-27-not-required", f"Windows native CI does not require {missing}")

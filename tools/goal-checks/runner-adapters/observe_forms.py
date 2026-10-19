@@ -212,7 +212,7 @@ class Markers(unittest.TestCase):
             declared(junit_row, "JUnit every failure marked", "junit-two-marked"),
             junit_row("JUnit one of two failures marked", "junit-one-of-two", UNMARKED_FAIL),
             junit_row("JUnit empty message attribute, marker in body", "junit-empty-message", UNMARKED_FAIL),
-            declared(junit_row, "JUnit body after leading blank space", "junit-blank-body"),
+            junit_row("JUnit body whose first line is blank", "junit-blank-body", UNMARKED_FAIL),
             junit_row("JUnit identifier over 128 characters", "junit-long-id", UNMARKED_FAIL),
         ]
         differences, _, _, _ = table(self, rows, "marker-rules-unmet")
@@ -269,7 +269,8 @@ class InputFailures(unittest.TestCase):
             junit_row("J9 duplicate testcase", "J9", unknown("attempt_history_missing")),
             junit_row("rerunFailure element", "junit-rerun", unknown("attempt_history_missing")),
             junit_row("flakyFailure element", "junit-flaky", unknown("attempt_history_missing")),
-            junit_row("error element with exit 0", "junit-error-exit0", unknown("report_exit_conflict")),
+            junit_row("error element with exit 0", "junit-error-exit0",
+                      unknown("report_exit_conflict", [obs("error", reason="execution_error")])),
             junit_row("all passing with exit 1", "junit-pass-exit1", unknown("report_exit_conflict", [obs()])),
             junit_row("marked failure with exit 0", "junit-marked-exit0", unknown("report_exit_conflict", [obs("violation", MARK_ID)])),
             runner_go_row("Go marked failure with exit 0", "go-marked-exit0", unknown("report_exit_conflict", [obs("violation", MARK_ID)])),

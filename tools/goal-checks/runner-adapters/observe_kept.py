@@ -17,8 +17,8 @@ import unittest
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from adapters_common import (GOAL, ROOT, Condition, Repo, Unavailable, build, clean_env, go_declaration, require, run,
-                             runner_command, runner_file, summary, temporary)
+from adapters_common import (GOAL, ROOT, Condition, Repo, Unavailable, build, clean_env, go_declaration, go_test_results,
+                             require, run, runner_command, runner_file, summary, temporary, unittest_failures)
 
 PACKAGES = ["./internal/evidence", "./internal/status", "./internal/bundle", "./internal/run", "./internal/record", "./cmd/ha"]
 SCENARIO = "adapter-legacy-rules"
@@ -34,26 +34,22 @@ def go_env():
 class Kept(unittest.TestCase):
 
     def test_existing_suites_pass(self):
-        result = run(["go", "test", "-count=1", *PACKAGES], ROOT, go_env(), timeout=3000)
-        require(self, result.returncode == 0, "existing-behavior-changed",
-                f"existing Go suites fail: {result.stdout.decode(errors='replace')[-1500:]}")
-        result = run([sys.executable, "-m", "unittest", "discover", "-s", "tools/producer-checks", "-p", "test_semantics.py"],
-                     ROOT, go_env(), timeout=1800)
-        require(self, result.returncode == 0, "existing-behavior-changed",
-                f"producer semantic regressions fail: {result.stderr.decode(errors='replace')[-1500:]}")
+        failed, _ = go_test_results(PACKAGES, ["-count=1"], go_env(), timeout=3000)
+        require(self, not failed, "existing-behavior-changed", f"existing Go tests fail: {failed[:10]}")
+        failures = unittest_failures("tools/producer-checks", "test_semantics.py", go_env())
+        require(self, failures == 0, "existing-behavior-changed", f"{failures} producer semantic regressions fail")
 
     def test_legacy_rules_keep_exit_codes(self):
-        result = run(["go", "test", "-json", "-count=1", "-run", f"^TestScenarios$/^{SCENARIO}$", "./cmd/ha"], ROOT, go_env(),
-                     timeout=1800)
-        events = []
-        for line in result.stdout.decode(errors="replace").splitlines():
-            try:
-                events.append(json.loads(line))
-            except ValueError:
-                continue
-        passed = [e for e in events if e.get("Test") == f"TestScenarios/{SCENARIO}" and e.get("Action") == "pass"]
-        require(self, result.returncode == 0 and passed, "existing-behavior-changed",
-                f"scenario {SCENARIO} did not run and pass (exit {result.returncode})")
+        name = f"github.com/jgoneit/jaekit/cmd/ha TestScenarios/{SCENARIO}"
+        try:
+            failed, passed = go_test_results(["./cmd/ha"], ["-count=1", "-run", f"^TestScenarios$/^{SCENARIO}$"], go_env(),
+                                             timeout=1800)
+        except Unavailable as error:
+            if "ran no test" not in str(error):
+                raise
+            failed, passed = [], []
+        require(self, not failed and name in passed, "existing-behavior-changed",
+                f"scenario {SCENARIO} did not run and pass: failed {failed}, passed {passed[:3]}")
 
     def test_ordinary_checks_and_log(self):
         problems = []
