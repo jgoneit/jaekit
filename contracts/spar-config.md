@@ -9,7 +9,7 @@
 1. 환경 변수 `SPAR_CONFIG`가 가리킨 파일
 2. `$XDG_CONFIG_HOME/jaekit/spar.toml`
 3. `~/.config/jaekit/spar.toml`
-4. 위 셋이 모두 없으면 clean-review의 `config.json`(`$CLEAN_REVIEW_CONFIG`, 없으면 `$XDG_CONFIG_HOME/clean-review/config.json`, 그것도 없으면 `~/.config/clean-review/config.json`)의 `reviewers` 목록. 각 이름은 같은 이름의 preset이다(`claude`, `codex`, `agy`, `native`).
+4. 위 셋이 모두 없으면 clean-review가 읽는 `config.json` 하나의 `reviewers` 목록. 그 파일은 clean-review와 같은 방식으로 정한다: 환경 변수 `CLEAN_REVIEW_CONFIG`가 있으면 그 파일, 없으면 `$XDG_CONFIG_HOME/clean-review/config.json`, `XDG_CONFIG_HOME`도 없으면 `~/.config/clean-review/config.json`. 정한 파일이 없으면 다른 경로를 찾지 않고 다음 출처로 넘어간다. 각 이름은 같은 이름의 preset이다(`claude`, `codex`, `agy`, `native`).
 5. 그것도 없으면 `claude`, `codex`, `agy`
 
 - 가리킨 파일이 없으면 다음 출처로 넘어가고, 건너뛴 경로를 `source.skipped`에 남긴다. 있는 파일이 잘못되었으면 넘어가지 않고 오류로 끝난다.

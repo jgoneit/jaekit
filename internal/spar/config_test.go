@@ -74,6 +74,18 @@ func TestCleanReviewFallbackDefaultsAndOverride(t *testing.T) {
 	if err != nil || names(c) != "codex,agy" || c.Source.Kind != "clean-review" {
 		t.Fatalf("clean-review: %v %s", err, names(c))
 	}
+	// Like clean-review, only one config.json is chosen: with XDG_CONFIG_HOME set, a file under
+	// ~/.config is not read, and a CLEAN_REVIEW_CONFIG that names no file does not fall through.
+	writeFile(t, filepath.Join(dir, "home", ".config", "clean-review", "config.json"), `{"reviewers": ["claude"]}`)
+	for _, extra := range []map[string]string{{}, {"CLEAN_REVIEW_CONFIG": filepath.Join(dir, "missing.json")}} {
+		only := map[string]string{"HOME": vars["HOME"], "XDG_CONFIG_HOME": filepath.Join(dir, "other")}
+		for k, v := range extra {
+			only[k] = v
+		}
+		if c, err := LoadConfig(repo, env(only), nil); err != nil || c.Source.Kind != "default" || len(c.Source.Skipped) == 0 {
+			t.Fatalf("clean-review path %v: %v %+v", extra, err, c)
+		}
+	}
 	writeFile(t, filepath.Join(dir, "xdg", "clean-review", "config.json"), `{"reviewers": []}`)
 	if c, _ = LoadConfig(repo, env(vars), nil); names(c) != "native" || c.Reviewers[0].Isolation != IsolationHost {
 		t.Fatalf("empty clean-review list: %s", names(c))
