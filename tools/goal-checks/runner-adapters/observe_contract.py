@@ -325,7 +325,8 @@ SEAL_TOKENS = {
 # Digests of the parts the goal leaves as they are (SPEC 범위 목록 1–5 only change the parts above).
 KEPT_DIGESTS = {
     "SKILL.md|front matter without the version": "ad6b9465964f5726",
-    "SKILL.md|## Authority": "452109bd4e2e7767",
+    # #112 (spec-agent-handoff, merged from main) rewrote Authority; this goal leaves it as main has it.
+    "SKILL.md|## Authority": "7139c905bfed5a31",
     "SKILL.md|## The execution bundle": "673429596758904c",
     "SKILL.md|## Seal Core|": "a39c7e53fdebf56e",
     "SKILL.md|## Seal Core|- If `ha` is missing, record nothing and stop. F": "7cbc92bd3d7e1a93",
