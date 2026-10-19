@@ -415,9 +415,11 @@ JUNIT_TESTS = {"J5": ("greet greets with hello", "greets with hello")}
 WINDOWS_NATIVE = {"internal/evidence": "TestNativeAdapterClassification"}
 # The cases that test reads (PLAN 구현 결정, Windows 관측): each LF form of CRLF_PAIRS with the runner's bytes, the
 # standard declaration and the current-check classification the SPEC gives. The test classifies each output as
-# written and with CRLF line endings in subtests <case>/lf and <case>/crlf, reading the file named by
-# PLATFORM_VARIABLE when it is set. Run here with these cases it must pass, and with every expected result changed
-# every subtest must fail; so a passing Windows run shows these results on Windows.
+# in `output` and with CRLF line endings in `crlf_output`, in subtests <case>/lf and <case>/crlf, reading the file
+# named by PLATFORM_VARIABLE when it is set. Run here with these cases it must pass; with only the result, only the
+# reason or only the targets changed every subtest must fail; with only `output` or only `crlf_output` replaced by
+# corrupt bytes exactly the subtests of that form must fail. So a passing Windows run shows these results on Windows
+# for both line endings.
 PLATFORM_FIXTURE = "internal/evidence/testdata/adapter-platform.json"
 PLATFORM_VARIABLE = "JAEKIT_ADAPTER_PLATFORM_FIXTURE"
 PLATFORM_TEST = "TestNativeAdapterClassification"
@@ -581,7 +583,8 @@ class Platform(unittest.TestCase):
             adapter, data, code = outputs[case]
             classname, test = JUNIT_TESTS.get(case, ("tests.test_greet", "test_greets"))
             want = {"adapter": "go-test-json" if adapter == "go" else "junit-xml", "exit": code,
-                    "output": data.decode("utf-8"), "violation": MARK_ID,
+                    "output": data.decode("utf-8"), "crlf_output": data.decode("utf-8").replace("\n", "\r\n"),
+                    "violation": MARK_ID,
                     "test": {"package": PKG, "name": "TestMarked"} if adapter == "go" else {"classname": classname, "name": test},
                     "result": result, "reason": reason, "targets": targets}
             wrong = sorted(key for key, value in want.items() if item.get(key) != value)
@@ -591,21 +594,32 @@ class Platform(unittest.TestCase):
         go_typed()
         env = clean_env()
         env["GOFLAGS"] = "-mod=readonly"
+        env.pop(PLATFORM_VARIABLE, None)
         prefix = f"github.com/jgoneit/jaekit/internal/evidence {PLATFORM_TEST}/"
-        subtests = {f"{prefix}{case}/{form}" for case in PLATFORM_EXPECTED for form in ("lf", "crlf")}
+        forms = {form: {f"{prefix}{case}/{form}" for case in PLATFORM_EXPECTED} for form in ("lf", "crlf")}
+        subtests = forms["lf"] | forms["crlf"]
         selection = ["-count=1", "-run", f"^{PLATFORM_TEST}$"]
         failed, passed = go_test_results(["./internal/evidence"], selection, env, timeout=900)
         if failed or not subtests <= set(passed):
             problems.append(f"{PLATFORM_TEST} with the fixture: failed {failed[:4]}, missing {sorted(subtests - set(passed))[:4]}")
+        # Each change must fail exactly these subtests; valid reason codes keep every case running.
+        other = {"fail": "pass", "pass": "fail"}
+        mutations = {
+            "result": (lambda item: dict(item, result=other.get(item["result"], "fail")), subtests),
+            "reason": (lambda item: dict(item, reason="report_exit_conflict"), subtests),
+            "targets": (lambda item: dict(item, targets=[]), subtests),
+            "output": (lambda item: dict(item, output="not runner output\n"), forms["lf"]),
+            "crlf_output": (lambda item: dict(item, crlf_output="not runner output\r\n"), forms["crlf"]),
+        }
         with temporary("jaekit-adapter-mutated-") as directory:
-            mutated = Path(directory) / "adapter-platform.json"
-            changed = [dict(item, result="unknown", reason="output_missing", targets=[]) for item in fixture["cases"]]
-            mutated.write_text(json.dumps({"cases": changed}), encoding="utf-8")
-            env[PLATFORM_VARIABLE] = str(mutated)
-            failed, _ = go_test_results(["./internal/evidence"], selection, env, timeout=900)
-        if not subtests <= set(failed):
-            problems.append(f"{PLATFORM_TEST} does not compare every case and line ending with the fixture: "
-                            f"{sorted(subtests - set(failed))[:4]} passed with changed expectations")
+            for name, (change, want) in mutations.items():
+                mutated = Path(directory) / f"{name}.json"
+                mutated.write_text(json.dumps({"cases": [change(item) for item in fixture["cases"]]}), encoding="utf-8")
+                failed, passed = go_test_results(["./internal/evidence"], selection, dict(env, **{PLATFORM_VARIABLE: str(mutated)}),
+                                                 timeout=900)
+                if set(failed) & subtests != want or not (subtests - want) <= set(passed):
+                    problems.append(f"{PLATFORM_TEST} with only {name} changed: {sorted(want - set(failed))[:3]} did not fail, "
+                                    f"{sorted((set(failed) & subtests) - want)[:3]} failed besides")
         require(self, not problems, "classification-platform-dependent", "; ".join(problems))
         ci_run_passes()
 

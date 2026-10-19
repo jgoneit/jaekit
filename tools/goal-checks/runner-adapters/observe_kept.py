@@ -87,6 +87,8 @@ class Kept(unittest.TestCase):
                         ("AC-2", "baseline"): ("unexpected_pass", 0), ("AC-2", "check"): ("pass", 0)}
                 for (cid, kind), (result, exit_code) in want.items():
                     record = repo.last(cid, kind)
+                    if record is not None and isinstance(record.get("exit"), int) and record["exit"] not in (0, 1):
+                        raise Unavailable(f"{rules} {cid} {kind}: the synthetic runner ended with {record['exit']} (killed?)")
                     got = None if record is None else (record.get("result"), record.get("exit"), record.get("evidence"))
                     if got != (result, exit_code, None):
                         problems.append(f"{rules} {cid} {kind}: got {got}, want {(result, exit_code, None)}")
