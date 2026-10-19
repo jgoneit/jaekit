@@ -10,6 +10,7 @@ Unavailable: an execution error, never a violation. Only an observed property
 of the built executable or of a named product file is a violation, raised as
 `RequirementViolation` with one identifier per test.
 """
+from datetime import datetime
 import hashlib
 import json
 import os
@@ -95,6 +96,19 @@ def read(rel):
         return (ROOT / rel).read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as error:
         raise Unavailable(f"cannot read {rel}: {error}") from None
+
+
+def scenario_text(name):
+    """A scenario's step lines without comments, plus the files it overlays."""
+    steps = [line for line in read(f"testdata/scenarios/{name}/steps").splitlines()
+             if line.strip() and not line.lstrip().startswith("#")]
+    files = ROOT / "testdata" / "scenarios" / name / "files"
+    overlay = []
+    if files.is_dir():
+        for path in sorted(files.rglob("*")):
+            if path.is_file():
+                overlay.append(read(str(path.relative_to(ROOT))))
+    return "\n".join(steps), "\n".join(overlay)
 
 
 def spec(header_lines, body=BODY):
@@ -301,11 +315,13 @@ class AC12(Built):
         readme = read("testdata/scenarios/README.md")
         if "| `assurance-invalid` |" not in readme or "| `assurance-line` |" not in readme:
             raise RequirementViolation("scenario-missing", "testdata/scenarios/README.md lists no assurance scenarios")
-        for name, tokens in {"assurance-invalid": ("assurance_format", "assurance_format_duplicate", "ha start"),
-                             "assurance-line": ("Assurance: strict", "ha lint", "ha done")}.items():
-            steps = read(f"testdata/scenarios/{name}/steps")
-            if not all(token in steps for token in tokens):
-                raise RequirementViolation("scenario-missing", f"{name} lacks {tokens}")
+        # Commands and expectations must be steps, not comments; the line
+        # itself may come from a step or from the files/ overlay.
+        for name, commands, line in (("assurance-invalid", ("expect-output", "assurance_format", "assurance_format_duplicate", "ha start"), "Assurance: "),
+                                     ("assurance-line", ("ha lint", "ha done", "assurance tier: strict"), "Assurance: strict")):
+            steps, overlay = scenario_text(name)
+            if not all(token in steps for token in commands) or line not in steps + overlay:
+                raise RequirementViolation("scenario-missing", f"{name} lacks {commands} or {line!r}")
 
     def test_codes_documented(self):
         for rel in ("contracts/goal-docs.md", "contracts/bundle.md"):
@@ -339,9 +355,17 @@ class AC13(Built):
         fake.write_text("#!/bin/sh\ncat <<'JSON'\n" + json.dumps(report) + "\nJSON\n", encoding="utf-8")
         fake.chmod(0o755)
         helper = ROOT / "plugins/seal/skills/seal/scripts/check_core.py"
-        for executable in (fake, self.ha):
+        # New start, and resume and check of a started tiered goal under /3 and /4.
+        queries = [("start",)]
+        for rules in ((), ("--rules", "run-rules/4")):
+            root = self.repo({GOAL: spec(["Status: Ready", "Criteria-Format: nested/1", "Assurance: strict"])},
+                             name="seal-" + ("rules4" if rules else "rules3"))
+            self.ha_run(root, "start", GOAL, "--request", "synthetic", *rules, expect=(0,))
+            for operation in ("resume", "check"):
+                queries.append((operation, "--goal", str(root / GOAL)))
+        for executable, (operation, *goal) in [(e, q) for e in (fake, self.ha) for q in queries]:
             try:
-                result = subprocess.run([sys.executable, str(helper), "--ha", str(executable), "--operation", "start"],
+                result = subprocess.run([sys.executable, str(helper), "--ha", str(executable), "--operation", operation, *goal],
                                         cwd=self.base, env=self.env, capture_output=True, text=True, timeout=120)
             except (OSError, subprocess.TimeoutExpired) as error:
                 raise Unavailable(f"check_core.py: {error}") from None
@@ -404,8 +428,21 @@ def goal_names(*goals):
     return [form for goal in goals for form in (goal, goal.replace("/", "%2F"))]
 
 
+def window_seconds(root, goal):
+    """Seconds from a goal's start record to its last record, read from runs.jsonl."""
+    try:
+        lines = [json.loads(line) for line in (root / goal / "runs.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+        first, last = (datetime.fromisoformat(lines[i]["at"].replace("Z", "+00:00")) for i in (0, -1))
+    except (OSError, UnicodeDecodeError, ValueError, KeyError, IndexError, TypeError) as error:
+        raise Unavailable(f"{goal}/runs.jsonl: {error}") from None
+    return int((last - first).total_seconds())
+
+
 def normalized(value, names):
-    """Replace identities that differ only because the goal path, bytes or wall clock differ."""
+    """Replace identities that differ only because the goal path, bytes or wall clock differ.
+
+    Callers check the wall-clock values against the records first (check_timing).
+    """
     if isinstance(value, dict):
         return {k: ("<v>" if k in ("sha256", "spec_digest", "commit", "elapsed_seconds", "span_seconds", "at") else normalized(v, names))
                 for k, v in value.items()}
@@ -439,6 +476,16 @@ class Preserved(Built):
         if self.status_json(root).get("spec_digest") != goal_digest({f"{GOAL}/SPEC.md": text}):
             raise RequirementViolation("no-line-goal-changed", "the goal digest no longer follows contracts/goal-docs.md §1")
 
+    def check_timing(self, root, goal, rules4, report, text, violation):
+        """Elapsed and span seconds follow the goal's own record times (status reads no clock)."""
+        seconds = window_seconds(root, goal)
+        budget = report.get("budget") or {}
+        values = [budget.get("elapsed_seconds")] + ([budget.get("span_seconds")] if rules4 else [])
+        values += [int(v) for v in re.findall(r"(\d+)/\d+ seconds", text)]
+        values += [int(v) for v in re.findall(r"window span (\d+) seconds", text)]
+        if any(v is not None and v != seconds for v in values):
+            raise RequirementViolation(violation, f"{goal}: timing {values} does not follow the records ({seconds} s)")
+
     def test_tier_changes_no_judgment(self):
         plain, tiered = "docs/specs/a", "docs/specs/b"
         texts = {plain: spec(["Status: Ready"]), tiered: spec(["Status: Ready", "Assurance: strict"])}
@@ -448,12 +495,17 @@ class Preserved(Built):
             for goal in (plain, tiered):
                 self.ha_run(root, "start", goal, "--request", "synthetic", *rules, expect=(0,))
                 self.ha_run(root, "check", goal, expect=(0,))
+            names = goal_names(plain, tiered)
             for goal in (plain, tiered):
-                names = goal_names(plain, tiered)
-                outputs[goal] = [normalized(self.status_json(root, goal), names),
-                                 normalized_text(self.ha_run(root, "status", goal, expect=(0,)).stdout, names),
-                                 normalized(self.status_json(root, goal, "done"), names),
-                                 normalized_text(self.ha_run(root, "done", goal, expect=(0,)).stdout, names)]
+                violation = "tier-changes-judgment" if goal == tiered else "no-line-goal-changed"
+                status = self.status_json(root, goal)
+                status_text = self.ha_run(root, "status", goal, expect=(0,)).stdout
+                self.check_timing(root, goal, bool(rules), status, status_text, violation)
+                done = self.status_json(root, goal, "done")
+                done_text = self.ha_run(root, "done", goal, expect=(0,)).stdout
+                self.check_timing(root, goal, bool(rules), done, done_text, violation)
+                outputs[goal] = [normalized(status, names), normalized_text(status_text, names),
+                                 normalized(done, names), normalized_text(done_text, names)]
             # The digest stays the contract's digest of the whole SPEC.md, line included.
             for goal in (plain, tiered):
                 if self.status_json(root, goal).get("spec_digest") != goal_digest({f"{goal}/SPEC.md": texts[goal]}):
@@ -550,8 +602,9 @@ class AC22(Built):
         for name in ("amendment-excluded", "amendment-excluded-v4"):
             if f"| `{name}` |" not in readme:
                 raise RequirementViolation("scenario-missing", f"testdata/scenarios/README.md does not list {name}")
-            steps = read(f"testdata/scenarios/{name}/steps")
-            if "amendments/" not in steps or "expect-no-reason worktree_dirty" not in steps:
+            steps, _ = scenario_text(name)
+            if ("amendments/" not in steps or "expect-no-reason worktree_dirty" not in steps
+                    or "ha check" not in steps):
                 raise RequirementViolation("scenario-missing", f"{name} does not exercise an amendment")
 
     def test_location_documented(self):

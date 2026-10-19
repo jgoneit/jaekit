@@ -16,6 +16,7 @@ coherent, that a host selects the skill, or that an agent follows it.
 """
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -351,6 +352,14 @@ class AC20(Doc):
             stale = [line for line in text.splitlines() if "새 요청으로 시작한다고 알" in line and "결정이 남은" not in line]
             if stale:
                 raise RequirementViolation("eval-cases-stale", f"{name} still expects the notice after documents with no open decision: {stale}")
+        # The case-list table describes the same expectations.
+        rows = [line for line in read("evals/spec-cases/README.md").splitlines()
+                if any(line.startswith(f"| [{name}]({name}.md) |") for name in HANDOFF_CASES)]
+        if len(rows) != len(HANDOFF_CASES):
+            raise RequirementViolation("eval-cases-stale", f"evals/spec-cases/README.md lists {len(rows)} of the hand-off cases")
+        stale = [line for line in rows if "새 요청으로 시작한다고 알" in line and "결정이 남은" not in line]
+        if stale:
+            raise RequirementViolation("eval-cases-stale", f"evals/spec-cases/README.md still describes the notice alone: {stale}")
 
     def test_new_cases_listed(self):
         readme = read("evals/spec-cases/README.md")
@@ -375,34 +384,44 @@ class AC20(Doc):
             self.refuse("eval-case-not-synthetic", name, text, "docs/specs/spec-agent-handoff", "](../../docs/", "side-session-notes")
 
 
+def git(*args):
+    """Run git on this checkout only; inherited repository variables are dropped."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    try:
+        return subprocess.run(["git", *args], cwd=ROOT, env=env, capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise Unavailable(f"git: {error}") from None
+
+
 def main_versions():
     """Skill versions on the main refs this clone has, with the start commit's as a floor.
 
     AC-21 is about the main branch, so this check reads only the refs named in
-    MAIN_REFS. A ref that does not exist is skipped; when none can be read, or
-    Git cannot run, the result is an error, never a violation.
+    MAIN_REFS. A ref that does not exist is skipped, and so is one that already
+    contains the checked commit (it is not the main this change merges into).
+    Any other Git failure or a signal is an error, and so is reading no ref at
+    all; none of them is a violation.
     """
     found = dict(MAIN_VERSIONS)
     readable = 0
     for ref in MAIN_REFS:
-        try:
-            exists = subprocess.run(["git", "rev-parse", "--verify", "--quiet", ref + "^{commit}"], cwd=ROOT,
-                                    capture_output=True, text=True, timeout=60)
-        except (OSError, subprocess.TimeoutExpired) as error:
-            raise Unavailable(f"git: {error}") from None
-        if exists.returncode:
+        exists = git("rev-parse", "--verify", "--quiet", ref + "^{commit}")
+        if exists.returncode == 1:
             continue
+        if exists.returncode:
+            raise Unavailable(f"git rev-parse {ref} ended {exists.returncode}: {exists.stderr}")
+        readable += 1
+        contains = git("merge-base", "--is-ancestor", "HEAD", ref)
+        if contains.returncode == 0:
+            continue
+        if contains.returncode != 1:
+            raise Unavailable(f"git merge-base HEAD {ref} ended {contains.returncode}: {contains.stderr}")
         for name in found:
-            try:
-                shown = subprocess.run(["git", "show", f"{ref}:plugins/{name}/skills/{name}/SKILL.md"], cwd=ROOT,
-                                       capture_output=True, text=True, timeout=60)
-            except (OSError, subprocess.TimeoutExpired) as error:
-                raise Unavailable(f"git: {error}") from None
+            shown = git("show", f"{ref}:plugins/{name}/skills/{name}/SKILL.md")
             match = re.search(r'^  version: "([0-9]+\.[0-9]+\.[0-9]+)"$', shown.stdout, re.M)
             if shown.returncode or not match:
                 raise Unavailable(f"cannot read the {name} version on {ref}: {shown.stderr}")
             found[name] = max(found[name], version_tuple(match.group(1)))
-        readable += 1
     if not readable:
         raise Unavailable("no main ref can be read: " + ", ".join(MAIN_REFS))
     return found
@@ -462,7 +481,8 @@ class AC18(Doc):
             if path.is_file():
                 rel = path.relative_to(ROOT).as_posix()
                 text = read(rel)
-                found = [m.group(0) for pattern in SPEC_FORBIDDEN for m in [re.search(pattern, text)] if m]
+                # Go's \b is ASCII-only, so a mention followed by Hangul still matches.
+                found = [m.group(0) for pattern in SPEC_FORBIDDEN for m in [re.search(pattern, text, re.ASCII)] if m]
                 if found:
                     raise RequirementViolation("product-boundary-changed", f"{rel} mentions {found}")
 
