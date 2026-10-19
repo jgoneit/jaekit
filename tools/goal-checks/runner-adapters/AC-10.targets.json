@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "identity",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_flow.py",
+      "test": "EvidenceIdentity.test_identity_and_storage",
+      "result_targets": {
+        "additional_violations": [
+          "identity.assertion-2",
+          "identity.assertion-3",
+          "identity.assertion-4",
+          "identity.assertion-5",
+          "identity.assertion-6",
+          "identity.assertion-7",
+          "identity.assertion-8"
+        ],
+        "execution": "identity.execution",
+        "selection": "identity.selection",
+        "attribution": "identity.attribution"
+      }
+    }
+  ]
+}

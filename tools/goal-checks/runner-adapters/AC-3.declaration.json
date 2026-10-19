@@ -1,0 +1,59 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/runner-adapters/AC-3.targets.json",
+    "tools/goal-checks/runner-adapters/adapters_common.py",
+    "tools/goal-checks/runner-adapters/observe_forms.py",
+    "tools/goal-checks/runner-adapters/runner.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "markers",
+      "violation": "marker-rules-unmet"
+    },
+    {
+      "id": "markers.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "markers.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "markers.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "markers.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "markers.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "markers.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "markers.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "markers.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "markers.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "markers.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

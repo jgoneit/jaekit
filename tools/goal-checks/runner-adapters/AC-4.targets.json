@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "input-failures",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_forms.py",
+      "test": "InputFailures.test_input_failure_table",
+      "result_targets": {
+        "additional_violations": [
+          "input-failures.assertion-2",
+          "input-failures.assertion-3",
+          "input-failures.assertion-4",
+          "input-failures.assertion-5",
+          "input-failures.assertion-6",
+          "input-failures.assertion-7",
+          "input-failures.assertion-8"
+        ],
+        "execution": "input-failures.execution",
+        "selection": "input-failures.selection",
+        "attribution": "input-failures.attribution"
+      }
+    }
+  ]
+}

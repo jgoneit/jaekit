@@ -1,0 +1,147 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/runner-adapters/AC-12.targets.json",
+    "tools/goal-checks/runner-adapters/adapters_common.py",
+    "tools/goal-checks/runner-adapters/observe_forms.py",
+    "tools/goal-checks/runner-adapters/runner.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "crlf",
+      "violation": "classification-platform-dependent"
+    },
+    {
+      "id": "crlf.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "crlf.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "crlf.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "crlf.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "crlf.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "crlf.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "crlf.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "crlf.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "crlf.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "crlf.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux",
+      "violation": "classification-platform-dependent"
+    },
+    {
+      "id": "linux.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows",
+      "violation": "classification-platform-dependent"
+    },
+    {
+      "id": "windows.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

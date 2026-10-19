@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "unlinked",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_forms.py",
+      "test": "Unlinked.test_unlinked_failures",
+      "result_targets": {
+        "additional_violations": [
+          "unlinked.assertion-2",
+          "unlinked.assertion-3",
+          "unlinked.assertion-4",
+          "unlinked.assertion-5",
+          "unlinked.assertion-6",
+          "unlinked.assertion-7",
+          "unlinked.assertion-8"
+        ],
+        "execution": "unlinked.execution",
+        "selection": "unlinked.selection",
+        "attribution": "unlinked.attribution"
+      }
+    }
+  ]
+}

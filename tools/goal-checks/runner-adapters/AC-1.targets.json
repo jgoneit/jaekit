@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "go-flow",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_flow.py",
+      "test": "GoFlow.test_go_test_json_condition_completes",
+      "result_targets": {
+        "additional_violations": [
+          "go-flow.assertion-2",
+          "go-flow.assertion-3",
+          "go-flow.assertion-4",
+          "go-flow.assertion-5",
+          "go-flow.assertion-6",
+          "go-flow.assertion-7",
+          "go-flow.assertion-8"
+        ],
+        "execution": "go-flow.execution",
+        "selection": "go-flow.selection",
+        "attribution": "go-flow.attribution"
+      }
+    }
+  ]
+}

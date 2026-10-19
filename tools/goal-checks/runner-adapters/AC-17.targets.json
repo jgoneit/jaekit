@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "registry",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_contract.py",
+      "test": "Registry.test_adapter_route",
+      "result_targets": {
+        "additional_violations": [
+          "registry.assertion-2",
+          "registry.assertion-3",
+          "registry.assertion-4",
+          "registry.assertion-5",
+          "registry.assertion-6",
+          "registry.assertion-7",
+          "registry.assertion-8"
+        ],
+        "execution": "registry.execution",
+        "selection": "registry.selection",
+        "attribution": "registry.attribution"
+      }
+    }
+  ]
+}
