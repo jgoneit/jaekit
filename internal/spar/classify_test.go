@@ -127,6 +127,17 @@ func TestValidateResult(t *testing.T) {
 		"bad angle": func(m map[string]any) {
 			m["findings"] = []any{rawFinding("F1", map[string]any{"angle": "bogus"})}
 		},
+		"bad checked angle": func(m map[string]any) {
+			m["angles_checked"] = []any{map[string]any{"angle": "design", "result": "ok"},
+				map[string]any{"angle": "performance", "result": "ok"}}
+		},
+		"checked without result": func(m map[string]any) {
+			m["angles_checked"] = []any{map[string]any{"angle": "design"}}
+		},
+		"unchecked with extra key": func(m map[string]any) {
+			m["angles_unchecked"] = []any{map[string]any{"angle": "premises", "reason": "time", "note": "x"}}
+		},
+		"id with a hyphen": func(m map[string]any) { m["findings"] = []any{rawFinding("b-F1", nil)} },
 	} {
 		m := map[string]any{}
 		for k, v := range good {

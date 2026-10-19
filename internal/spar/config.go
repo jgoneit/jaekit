@@ -115,6 +115,24 @@ var forbiddenProjectKeys = map[string]bool{
 	"model": true, "fallback_model": true, "effort": true,
 }
 
+// roundFiles are the names spar writes in a round folder next to the
+// reviewers' folders.
+var roundFiles = []string{"round.json", "packet.md", "schema.json", "findings.json", "ledger.jsonl", "summary.md",
+	dryRunWorkspace}
+
+const dryRunWorkspace = "workspace"
+
+// reservedName reports a reviewer name that would be a round file's
+// folder, ignoring case for case-insensitive file systems.
+func reservedName(name string) bool {
+	for _, f := range roundFiles {
+		if strings.EqualFold(name, f) {
+			return true
+		}
+	}
+	return false
+}
+
 var reviewerName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`)
 
 // ConfigError is a configuration problem with its file and location.
@@ -330,6 +348,9 @@ func parseCleanReview(path string, data []byte) ([]string, bool, error) {
 		}
 		return nil, false, &ConfigError{Path: path, Line: line, Msg: "not a JSON object: " + err.Error()}
 	}
+	if doc == nil {
+		return nil, false, &ConfigError{Path: path, Line: 1, Msg: "not a JSON object: null"}
+	}
 	raw, ok := doc["reviewers"]
 	if !ok {
 		return nil, false, nil
@@ -440,6 +461,9 @@ func parseUserFile(path string, data []byte) ([]Reviewer, bool, error) {
 		}
 		if !reviewerName.MatchString(r.Name) {
 			return nil, true, fail("name", "name %q must be letters, digits, '.', '_' or '-'", r.Name)
+		}
+		if reservedName(r.Name) {
+			return nil, true, fail("name", "name %q is a file of the round folder", r.Name)
 		}
 		if j, dup := seen[r.Name]; dup {
 			return nil, true, fail("name", "duplicate reviewer name %q (also reviewers[%d])", r.Name, j)

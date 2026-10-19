@@ -86,6 +86,10 @@ func TestCleanReviewFallbackDefaultsAndOverride(t *testing.T) {
 			t.Fatalf("clean-review path %v: %v %+v", extra, err, c)
 		}
 	}
+	writeFile(t, filepath.Join(dir, "xdg", "clean-review", "config.json"), "null")
+	if _, err := LoadConfig(repo, env(vars), nil); err == nil {
+		t.Fatal("a clean-review config.json holding null started the default reviewers")
+	}
 	writeFile(t, filepath.Join(dir, "xdg", "clean-review", "config.json"), `{"reviewers": []}`)
 	if c, _ = LoadConfig(repo, env(vars), nil); names(c) != "native" || c.Reviewers[0].Isolation != IsolationHost {
 		t.Fatalf("empty clean-review list: %s", names(c))
@@ -118,6 +122,7 @@ func TestConfigErrorsNameFileLineAndKey(t *testing.T) {
 		{"# comment\ntimeout = 3\n", 2, "timeout"},
 		{"[[reviewers]]\npreset = \"native\"\nmodel = \"x\"\n", 3, "model"},
 		{"timeout_seconds = 0\n", 1, "timeout_seconds"},
+		{"[[reviewers]]\nname = \"Packet.md\"\npreset = \"codex\"\n", 2, "Packet.md"},
 	}
 	for _, tc := range cases {
 		path := writeFile(t, filepath.Join(dir, "spar.toml"), tc.body)

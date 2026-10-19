@@ -140,20 +140,30 @@ func admit(siblings []sibling, exts []Extension, r *RoundRecord) (bool, []string
 	rerun := false
 	var rerunOf []string
 	if len(same) > 0 {
+		// A reviewer is its name and preset, as in the gate: the same name
+		// under another preset is another reviewer.
+		reviewer := func(name, preset string) string { return name + "\x00" + preset }
 		completed, unfinished := map[string]bool{}, map[string]bool{}
 		for _, s := range same {
 			rerunOf = append(rerunOf, filepath.Base(s.dir))
 			for name, st := range s.round.Reviewers {
 				if st.Status == StatusCompleted {
-					completed[name] = true
+					completed[reviewer(name, st.Preset)] = true
 				} else {
-					unfinished[name] = true
+					unfinished[reviewer(name, st.Preset)] = true
 				}
+			}
+		}
+		presetOf := map[string]string{}
+		if r.Config != nil {
+			for _, rv := range r.Config.Reviewers {
+				presetOf[rv.Name] = rv.Preset
 			}
 		}
 		rerun = len(r.RequestedReviewers) > 0
 		for _, name := range r.RequestedReviewers {
-			if completed[name] || !unfinished[name] {
+			key := reviewer(name, presetOf[name])
+			if completed[key] || !unfinished[key] {
 				rerun = false
 			}
 		}
@@ -328,7 +338,7 @@ func Run(o RunOptions) (int, error) {
 	if err := os.MkdirAll(series, 0o755); err != nil {
 		return ExitInternal, err
 	}
-	unlock, err := lockFile(filepath.Join(series, ".spar-lock"), func() {
+	unlock, err := lockFile(series, func() {
 		if o.Log != nil {
 			fmt.Fprintf(o.Log, "spar: waiting for another round of %s to finish\n", series)
 		}
@@ -434,6 +444,10 @@ func runRound(o RunOptions, r *RoundRecord, out string, packet []byte) (int, err
 		return ExitInternal, err
 	}
 	if r.DryRun {
+		// The dry run leaves the workspace a reviewer would get.
+		if err := copyTree(template, filepath.Join(out, dryRunWorkspace)); err != nil {
+			return ExitInternal, err
+		}
 		r.FinishedAt = now()
 		if err := finishRound(out, r, nil); err != nil {
 			return ExitInternal, err

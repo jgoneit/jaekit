@@ -102,6 +102,9 @@ func TestNativeRoundRecordTriageAndGate(t *testing.T) {
 	if code, err := Run(opts); err != nil || code != ExitOK {
 		t.Fatalf("dry run: %d %v", code, err)
 	}
+	if data, err := os.ReadFile(filepath.Join(dry, "workspace", "head", "app.txt")); err != nil || string(data) != "two\n" {
+		t.Fatalf("the dry run left no workspace: %q %v", data, err)
+	}
 	if code, err := Record(RecordOptions{Round: dry, Reviewer: "host", Result: replyFile}); err == nil || code != ExitRefused {
 		t.Fatalf("a dry run was recorded: %d %v", code, err)
 	}
@@ -284,7 +287,7 @@ func TestGateRequiredReviewersMissingRecordsAndGrowth(t *testing.T) {
 // Rounds of a series run one at a time, so an earlier round without
 // finished_at was stopped: its unfinished reviewers may run again uncounted.
 func TestAdmitCreditsStoppedRounds(t *testing.T) {
-	cfg := &Config{Caps: Caps{1, 1, 1}}
+	cfg := &Config{Caps: Caps{1, 1, 1}, Reviewers: []Reviewer{{Name: "x", Preset: "codex"}, {Name: "y", Preset: "claude"}}}
 	stopped := &RoundRecord{Stage: "candidate", Base: "b", Head: "h", PacketSHA256: "p", Counted: true,
 		Reviewers: map[string]*ReviewerState{"x": reviewer("codex", true, "running"), "y": reviewer("claude", true, StatusCompleted)}}
 	next := &RoundRecord{Stage: "candidate", Base: "b", Head: "h", PacketSHA256: "p", Config: cfg, RequestedReviewers: []string{"x"}}
@@ -294,6 +297,12 @@ func TestAdmitCreditsStoppedRounds(t *testing.T) {
 	next.RequestedReviewers = []string{"x", "y"}
 	if _, _, err := admit([]sibling{{"01", stopped}}, nil, next); err == nil {
 		t.Fatal("a reviewer that completed the packet ran again uncounted past the cap")
+	}
+	// The same name under another preset is another reviewer.
+	next.RequestedReviewers = []string{"x"}
+	next.Config = &Config{Caps: Caps{1, 1, 1}, Reviewers: []Reviewer{{Name: "x", Preset: "claude"}}}
+	if _, _, err := admit([]sibling{{"01", stopped}}, nil, next); err == nil {
+		t.Fatal("a reviewer of another preset ran uncounted as the unfinished one")
 	}
 }
 
@@ -322,7 +331,7 @@ func TestRunHoldsTheSeriesUntilItsRoundEnds(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 	waited := false
-	unlock, err := lockFile(filepath.Join(filepath.Dir(out), ".spar-lock"), func() { waited = true })
+	unlock, err := lockFile(filepath.Dir(out), func() { waited = true })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -332,6 +341,9 @@ func TestRunHoldsTheSeriesUntilItsRoundEnds(t *testing.T) {
 	}
 	if r, err := loadRound(out); !waited || err != nil || r.FinishedAt == "" {
 		t.Fatalf("the series was free while its round ran: waited=%v %v", waited, err)
+	}
+	if entries, _ := os.ReadDir(filepath.Dir(out)); len(entries) != 1 {
+		t.Fatalf("the series holds more than its round: %v", entries)
 	}
 	if code, err := Run(opts); code != ExitRefused || err == nil || !strings.Contains(err.Error(), "already exists") {
 		t.Fatalf("an existing round folder: %d %v", code, err)

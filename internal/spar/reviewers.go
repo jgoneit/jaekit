@@ -916,6 +916,11 @@ func changedPaths(before, after map[string]string) []string {
 	return changed
 }
 
+// findingID is a reviewer's own finding ID. The round's ID is
+// "<reviewer>-<ID>", and since this ID has no "-", the two parts are
+// always told apart.
+var findingID = regexp.MustCompile(`^F[0-9]+$`)
+
 // validateResult checks a reviewer's result against the schema and the
 // round: its head, every requested angle, and each finding's fields.
 func validateResult(result any, head string, angles []string) []string {
@@ -945,10 +950,32 @@ func validateResult(result any, head string, angles []string) []string {
 			}
 			continue
 		}
-		for _, item := range list {
-			if a := str(object(item)["angle"]); a != "" {
-				seen[a] = true
+		// Each entry is {"angle", "result"} when checked and {"angle",
+		// "reason"} when not, as the schema says.
+		second := "result"
+		if key == "angles_unchecked" {
+			second = "reason"
+		}
+		for i, item := range list {
+			entry := object(item)
+			if entry == nil {
+				problems = append(problems, fmt.Sprintf("%s[%d] is not an object", key, i))
+				continue
 			}
+			a := str(entry["angle"])
+			if !contains(Angles, a) {
+				problems = append(problems, fmt.Sprintf("%s[%d] has angle %q", key, i, a))
+				continue
+			}
+			if _, ok := entry[second].(string); !ok {
+				problems = append(problems, fmt.Sprintf("%s[%d] lacks %s", key, i, second))
+			}
+			for k := range entry {
+				if k != "angle" && k != second {
+					problems = append(problems, fmt.Sprintf("%s[%d] has unknown key %q", key, i, k))
+				}
+			}
+			seen[a] = true
 		}
 	}
 	for _, a := range angles {
@@ -974,7 +1001,7 @@ func validateResult(result any, head string, angles []string) []string {
 			}
 		}
 		id := str(f["id"])
-		if !reviewerName.MatchString(id) {
+		if !findingID.MatchString(id) {
 			problems = append(problems, fmt.Sprintf("finding %d has id %q", i, id))
 		} else if ids[id] {
 			problems = append(problems, fmt.Sprintf("finding id %s is used twice", id))

@@ -22,9 +22,9 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 | `--check-path` | 이번 실행의 검사 경로 glob |
 | `--reviewers` | 이번 실행의 리뷰어 이름 목록 |
 | `--repo`, `--label` | 저장소 위치, 기록에 남길 이름 |
-| `--dry-run` | 패킷과 작업공간만 만들고 리뷰어를 띄우지 않는다. 상한에 세지 않고 gate는 받지 않는다 |
+| `--dry-run` | 패킷과 작업공간만 만들고 리뷰어를 띄우지 않는다. 작업공간은 라운드 폴더의 `workspace/`에 남는다. 상한에 세지 않고 gate는 받지 않는다 |
 
-라운드 폴더의 부모 폴더가 한 검토의 series다. 같은 series의 다른 `review-round/v1` 라운드에서 상한, 이전 head와 이전 지적을 읽는다. 다른 형식의 기록 폴더는 읽지도 바꾸지도 않는다. series의 `.spar-lock`을 잠가 series마다 한 번에 한 라운드만, 상한 판단부터 라운드 기록을 마칠 때까지 실행한다. 다른 실행이 잠금을 쥐고 있으면 표준 오류에 알리고 그 라운드가 끝날 때까지 기다린다.
+라운드 폴더의 부모 폴더가 한 검토의 series다. 같은 series의 다른 `review-round/v1` 라운드에서 상한, 이전 head와 이전 지적을 읽는다. 다른 형식의 기록 폴더는 읽지도 바꾸지도 않는다. series 폴더 자체를 잠가(잠금 파일을 만들지 않는다) series마다 한 번에 한 라운드만, 상한 판단부터 라운드 기록을 마칠 때까지 실행한다. 다른 실행이 잠금을 쥐고 있으면 표준 오류에 알리고 그 라운드가 끝날 때까지 기다린다.
 
 종료 코드: 0 라운드 기록을 썼고 완료했거나 대기 중인 리뷰어가 있음, 1 라운드 기록을 썼지만 완료하거나 대기 중인 리뷰어가 없음, 64 사용법 오류, 65 거부(설정 오류, 추적되는 기록 폴더, 상한 초과, 사슬 끊김, 읽을 수 없는 입력), 70 내부 오류. 거부는 리뷰어를 띄우기 전에 일어나고 라운드 폴더를 만들지 않는다.
 
@@ -58,8 +58,8 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 ```
 
 - `reviewed_head`는 패킷 head의 앞 7자 이상이어야 한다. `verdict`는 `no_blocking_findings`, `blocking_findings`, `could_not_review`. 지적의 `angle`을 포함한 열거형 값은 schema의 값 중 하나여야 한다. 제공자가 schema를 강제하지 않는 `native`·`command` 리뷰어의 결과에도 같은 검사를 한다.
-- 요청한 각도는 모두 `angles_checked`나 `angles_unchecked`에 있어야 한다. 둘 다 없거나 하나라도 빠지면 `invalid_output`이다.
-- 지적의 열거값: `proposed_class` `defect|requirement-question|hardening|note`, `link_kind` `criterion|rule|contract|none`, `introduced_by_change`·`regression` `yes|no|unknown`, `check_impact` `false_pass|meaning_inverted|contract_violation|none`, `confidence` `high|medium|low`. `id`는 리뷰어 안에서 겹치지 않는다.
+- 요청한 각도는 모두 `angles_checked`나 `angles_unchecked`에 있어야 한다. 둘 다 없거나 하나라도 빠지면 `invalid_output`이다. 각도 항목은 `angles_checked`면 `angle`과 `result`, `angles_unchecked`면 `angle`과 `reason`만 가진다.
+- 지적의 열거값: `proposed_class` `defect|requirement-question|hardening|note`, `link_kind` `criterion|rule|contract|none`, `introduced_by_change`·`regression` `yes|no|unknown`, `check_impact` `false_pass|meaning_inverted|contract_violation|none`, `confidence` `high|medium|low`. `id`는 `F<숫자>`이고 리뷰어 안에서 겹치지 않는다. 라운드의 지적 ID는 `<리뷰어>-<id>`이며, `id`에 `-`가 없어서 두 부분이 늘 구별된다.
 - `could_not_review`는 완료가 아니라 `failed`로 기록한다.
 
 ## 4. 리뷰어 상태
@@ -92,6 +92,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 | `ledger.jsonl` | 처리 원장. 한 줄에 한 처리, 덧붙이기만 한다 |
 | `summary.md` | 사람이 읽는 요약 |
 | `<리뷰어>/` | 그 리뷰어의 표준 출력·오류와 결과. 대체 모델은 `<리뷰어>/fallback/` |
+| `workspace/` | dry run에서만: 리뷰어가 받을 작업공간(`head/`, `base/`) |
 | `<native 리뷰어>/` | `prompt.md`, 작업공간, 기록된 결과. 기본 이름이면 `native/` |
 
 `round.json`의 주요 필드: `schema`(`review-round/v1`), `spar_version`, `stage`, `label`, `series`, `sequence`, `repo`, `base`, `head`, `base_tree`, `head_tree`, `diff_sha256`, `criteria`·`rules`·`subjects`(`name`, `source`, `sha256`), `criteria_digest`(기준 문서 이름과 sha256의 sha256), `questions`, `prior`, `packet_sha256`, `config`([설정 계약](spar-config.md)의 적용 기록), `links`(연결 확인에 쓴 `AC-n`과 규칙 문서 줄 수), `requested_reviewers`, `required_reviewers`, `dry_run`, `counted`, `rerun_of`, `started_at`, `finished_at`, `reviewers`.
@@ -139,7 +140,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 ## 8. 상한·재실행·사슬
 
 - 단계 묶음은 `plan`, `plan_delta`, `code`(candidate와 fixes)다. series에서 `counted`가 `true`인 같은 묶음의 라운드 수가 상한과 연장의 합 이상이면 새 실행을 거부한다.
-- 같은 단계·base·head·패킷 digest의 앞선 실행이 있고, 이번 실행의 리뷰어가 모두 그 실행들에서 완료하지 못한 리뷰어이면 상한에 세지 않는다(`counted: false`, `rerun_of`). 라운드는 series마다 하나씩 실행되므로 `finished_at`이 없는 앞선 라운드는 도중에 멈춘 것이고, 그 리뷰어는 완료하지 못한 것이다. 그 밖의 실행은 모두 센다.
+- 같은 단계·base·head·패킷 digest의 앞선 실행이 있고, 이번 실행의 리뷰어가 모두 그 실행들에서 완료하지 못한 리뷰어(이름과 preset이 같은 리뷰어)이면 상한에 세지 않는다(`counted: false`, `rerun_of`). 라운드는 series마다 하나씩 실행되므로 `finished_at`이 없는 앞선 라운드는 도중에 멈춘 것이고, 그 리뷰어는 완료하지 못한 것이다. 그 밖의 실행은 모두 센다.
 - fixes 라운드의 base는 같은 series에서 단계·base·head가 다른 마지막 code 라운드의 head여야 한다. 아니면 거부한다.
 - 연장은 `spar extend <series> --stage plan|plan-delta|code --by N --user-quote "…"`로 series의 `extensions.jsonl`에 `{"stage", "by", "user_quote", "recorded_at"}`을 더한다. 사용자의 말이 없으면 거부한다. series 경로는 `--out`과 같은 기록 경로 규칙을 따르고(검토하는 저장소를 찾지 못해도 그 경로가 속한 저장소로 확인한다), `--repo`가 Git 저장소가 아니면 거부한다.
 

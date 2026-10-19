@@ -14,11 +14,12 @@ func ownGroup(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 }
 
-// lockFile holds an exclusive lock on a file until the returned function
-// runs; the system releases it if the process ends first. When another
-// process holds it, waiting runs once before lockFile waits for it.
+// lockFile holds an exclusive lock on an existing file or folder until the
+// returned function runs; the system releases it if the process ends
+// first. It creates nothing. When another process holds it, waiting runs
+// once before lockFile waits for it.
 func lockFile(path string, waiting func()) (func(), error) {
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o644)
+	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}

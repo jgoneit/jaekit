@@ -12,7 +12,7 @@
 4. 위 셋이 모두 없으면 clean-review가 읽는 `config.json` 하나의 `reviewers` 목록. 그 파일은 clean-review와 같은 방식으로 정한다: 환경 변수 `CLEAN_REVIEW_CONFIG`가 있으면 그 파일, 없으면 `$XDG_CONFIG_HOME/clean-review/config.json`, `XDG_CONFIG_HOME`도 없으면 `~/.config/clean-review/config.json`. 정한 파일이 없으면 다른 경로를 찾지 않고 다음 출처로 넘어간다. 각 이름은 같은 이름의 preset이다(`claude`, `codex`, `agy`, `native`).
 5. 그것도 없으면 `claude`, `codex`, `agy`
 
-- 가리킨 파일이 없으면 다음 출처로 넘어가고, 건너뛴 경로를 `source.skipped`에 남긴다. 있는 파일이 잘못되었으면 넘어가지 않고 오류로 끝난다.
+- 가리킨 파일이 없으면 다음 출처로 넘어가고, 건너뛴 경로를 `source.skipped`에 남긴다. 있는 파일이 잘못되었으면 넘어가지 않고 오류로 끝난다. clean-review `config.json`은 JSON 객체여야 한다(`null`도 잘못된 파일이다).
 - 출처 파일에 `reviewers` 키가 없으면 기본 목록, 빈 목록이면 `native` 하나다.
 - `spar run`과 `spar config`의 `--reviewers a,b`는 설정보다 앞선다. 설정에 있는 이름은 그 설정을, 없는 이름은 같은 이름의 preset을 쓴다. 빈 값(`--reviewers ""`)은 `native` 하나다. 적용 기록의 `override`에 `{"kind": "--reviewers", "names": [...]}`로 남는다.
 
@@ -40,7 +40,7 @@ timeout_seconds = 600
 
 | 키 | 뜻 |
 | --- | --- |
-| `name` | 영문자·숫자로 시작하고 영문자·숫자·`.`·`_`·`-`로 된 64자 이하. 한 파일에서 겹치면 오류 |
+| `name` | 영문자·숫자로 시작하고 영문자·숫자·`.`·`_`·`-`로 된 64자 이하. 한 파일에서 겹치면 오류. 라운드 폴더의 이름(`round.json`, `packet.md`, `schema.json`, `findings.json`, `ledger.jsonl`, `summary.md`, `workspace`)은 대소문자와 관계없이 쓸 수 없다 |
 | `preset` | `claude`, `codex`, `agy`, `native`, `command` 중 하나. 필수 |
 | `argv` | `command`에만 쓰고 `command`에는 필수. 셸 없이 그대로 실행하는 인자 배열이며 `{prompt}`·`{workspace}`·`{schema}`를 패킷 파일·작업공간·결과 schema 경로로 바꾼다 |
 | `binary` | `claude`·`codex`·`agy`의 실행 파일. 없으면 PATH에서 preset 이름을 찾는다 |
