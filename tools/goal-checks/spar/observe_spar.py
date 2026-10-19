@@ -1744,7 +1744,9 @@ class Release(unittest.TestCase):
             raise Unavailable("release workflow steps were not found")
         require(self, "./cmd/spar" in build_script, v, "the release build does not build spar")
         version = "9.8.7"
-        temp = Path(tempfile.mkdtemp(prefix="jaekit-spar-release-"))
+        # Resolved: the Windows packaging step refuses a path through a
+        # symbolic link, such as macOS's /var.
+        temp = Path(tempfile.mkdtemp(prefix="jaekit-spar-release-")).resolve()
         self.addCleanup(shutil.rmtree, temp, True)
         shims = temp / "shims"
         shims.mkdir()
