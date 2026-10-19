@@ -4,7 +4,7 @@ These instructions apply to the entire repository.
 
 ## Products
 
-- Spec (`plugins/spec`) turns an explicit request into goal documents. It does not depend on Seal, execution bundles, or run states.
+- Spec (`plugins/spec`) turns a request into goal documents. The user or the host agent can call it; `Ready` and the start of implementation come only from the user's words. With no open decision it asks the implement-now question, and the user's yes to it is the implementation request; a separate implementation request still works. It does not depend on Seal, execution bundles, or run states.
 - Seal (`plugins/seal` and the `ha` binary) carries a goal to recorded completion. Seal reads goal documents and never writes them.
 - Spar (`plugins/spar` and the `spar` binary) runs independent review rounds on pinned commits and records their findings and gate. Seal Core never imports Spar: `ha` and its packages never start reviewers or call a model.
 - Native agents own planning, ordering, and implementation. Skills define artifacts and completion rules.

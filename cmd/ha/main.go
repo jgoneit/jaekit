@@ -269,6 +269,11 @@ func (c *cli) lint(in []string) int {
 		return exitProblems
 	}
 	fmt.Fprintln(c.out, "ok: no lint problems")
+	// The tier is reported only here, under its own name; status and done
+	// output stay as they were (goal-docs.md §2.5).
+	if w.goal.Assurance != "" {
+		fmt.Fprintf(c.out, "assurance tier: %s\n", w.goal.Assurance)
+	}
 	return exitOK
 }
 

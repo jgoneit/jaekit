@@ -1,0 +1,365 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spec-agent-handoff/AC-12.targets.json",
+    "tools/goal-checks/spec-agent-handoff/observe_core.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "value-errors",
+      "violation": "assurance-error-unreported"
+    },
+    {
+      "id": "value-errors.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "value-errors.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "value-errors.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "value-errors.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "value-errors.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "value-errors.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "value-errors.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "value-errors.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "value-errors.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "value-errors.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "indent-errors",
+      "violation": "assurance-error-unreported"
+    },
+    {
+      "id": "indent-errors.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "indent-errors.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "indent-errors.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "indent-errors.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "indent-errors.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "indent-errors.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "indent-errors.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "indent-errors.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "indent-errors.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "indent-errors.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "duplicate-error",
+      "violation": "assurance-error-unreported"
+    },
+    {
+      "id": "duplicate-error.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "duplicate-error.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "duplicate-error.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "duplicate-error.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "duplicate-error.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "duplicate-error.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "duplicate-error.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "duplicate-error.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "duplicate-error.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "duplicate-error.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "position-error",
+      "violation": "assurance-error-unreported"
+    },
+    {
+      "id": "position-error.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "position-error.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "position-error.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "position-error.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "position-error.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "position-error.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "position-error.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "position-error.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "position-error.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "position-error.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "both-header-errors",
+      "violation": "assurance-error-unreported"
+    },
+    {
+      "id": "both-header-errors.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "both-header-errors.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "both-header-errors.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "both-header-errors.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "both-header-errors.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "both-header-errors.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "both-header-errors.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "both-header-errors.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "both-header-errors.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "both-header-errors.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "start-refused",
+      "violation": "assurance-error-unreported"
+    },
+    {
+      "id": "start-refused.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "start-refused.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "start-refused.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "start-refused.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "start-refused.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "start-refused.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "start-refused.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "start-refused.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "start-refused.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "start-refused.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codes-documented",
+      "violation": "assurance-codes-undocumented"
+    },
+    {
+      "id": "codes-documented.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codes-documented.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codes-documented.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codes-documented.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codes-documented.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codes-documented.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codes-documented.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codes-documented.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codes-documented.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "codes-documented.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios",
+      "violation": "scenario-missing"
+    },
+    {
+      "id": "lint-scenarios.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "lint-scenarios.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

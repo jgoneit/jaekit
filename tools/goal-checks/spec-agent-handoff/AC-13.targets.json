@@ -1,0 +1,65 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "capability",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC13.test_capabilities_declare_the_tiers",
+      "result_targets": {
+        "additional_violations": [
+          "capability.assertion-2",
+          "capability.assertion-3",
+          "capability.assertion-4",
+          "capability.assertion-5",
+          "capability.assertion-6",
+          "capability.assertion-7",
+          "capability.assertion-8"
+        ],
+        "execution": "capability.execution",
+        "selection": "capability.selection",
+        "attribution": "capability.attribution"
+      }
+    },
+    {
+      "target": "capability-contract",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC13.test_contract_describes_the_entry",
+      "result_targets": {
+        "additional_violations": [
+          "capability-contract.assertion-2",
+          "capability-contract.assertion-3",
+          "capability-contract.assertion-4",
+          "capability-contract.assertion-5",
+          "capability-contract.assertion-6",
+          "capability-contract.assertion-7",
+          "capability-contract.assertion-8"
+        ],
+        "execution": "capability-contract.execution",
+        "selection": "capability-contract.selection",
+        "attribution": "capability-contract.attribution"
+      }
+    },
+    {
+      "target": "seal-requirements",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_core.py",
+      "test": "AC13.test_seal_requirements_do_not_add_it",
+      "result_targets": {
+        "additional_violations": [
+          "seal-requirements.assertion-2",
+          "seal-requirements.assertion-3",
+          "seal-requirements.assertion-4",
+          "seal-requirements.assertion-5",
+          "seal-requirements.assertion-6",
+          "seal-requirements.assertion-7",
+          "seal-requirements.assertion-8"
+        ],
+        "execution": "seal-requirements.execution",
+        "selection": "seal-requirements.selection",
+        "attribution": "seal-requirements.attribution"
+      }
+    }
+  ]
+}

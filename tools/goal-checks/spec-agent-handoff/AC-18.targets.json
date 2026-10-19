@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "product-boundaries",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC18",
+      "result_targets": {
+        "additional_violations": [
+          "product-boundaries.assertion-2",
+          "product-boundaries.assertion-3",
+          "product-boundaries.assertion-4",
+          "product-boundaries.assertion-5",
+          "product-boundaries.assertion-6",
+          "product-boundaries.assertion-7",
+          "product-boundaries.assertion-8"
+        ],
+        "execution": "product-boundaries.execution",
+        "selection": "product-boundaries.selection",
+        "attribution": "product-boundaries.attribution"
+      }
+    },
+    {
+      "target": "spec-knows-nothing",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestSpecPluginKnowsNothingOfSeal",
+      "result_targets": {
+        "additional_violations": [
+          "spec-knows-nothing.assertion-2",
+          "spec-knows-nothing.assertion-3",
+          "spec-knows-nothing.assertion-4",
+          "spec-knows-nothing.assertion-5",
+          "spec-knows-nothing.assertion-6",
+          "spec-knows-nothing.assertion-7",
+          "spec-knows-nothing.assertion-8"
+        ],
+        "execution": "spec-knows-nothing.execution",
+        "selection": "spec-knows-nothing.selection",
+        "attribution": "spec-knows-nothing.attribution"
+      }
+    }
+  ]
+}

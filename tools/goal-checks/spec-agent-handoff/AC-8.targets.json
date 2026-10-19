@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "seal-authority",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC8.test_authority_names_the_same_boundary",
+      "result_targets": {
+        "additional_violations": [
+          "seal-authority.assertion-2",
+          "seal-authority.assertion-3",
+          "seal-authority.assertion-4",
+          "seal-authority.assertion-5",
+          "seal-authority.assertion-6",
+          "seal-authority.assertion-7",
+          "seal-authority.assertion-8"
+        ],
+        "execution": "seal-authority.execution",
+        "selection": "seal-authority.selection",
+        "attribution": "seal-authority.attribution"
+      }
+    },
+    {
+      "target": "seal-outside-authority",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC8.test_only_authority_and_version_change",
+      "result_targets": {
+        "additional_violations": [
+          "seal-outside-authority.assertion-2",
+          "seal-outside-authority.assertion-3",
+          "seal-outside-authority.assertion-4",
+          "seal-outside-authority.assertion-5",
+          "seal-outside-authority.assertion-6",
+          "seal-outside-authority.assertion-7",
+          "seal-outside-authority.assertion-8"
+        ],
+        "execution": "seal-outside-authority.execution",
+        "selection": "seal-outside-authority.selection",
+        "attribution": "seal-outside-authority.attribution"
+      }
+    }
+  ]
+}

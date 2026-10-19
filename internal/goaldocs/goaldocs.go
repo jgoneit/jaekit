@@ -25,6 +25,15 @@ import (
 // is never translated.
 const OptionalMarker = "(선택)"
 
+// AssuranceTiers are the values of the optional `Assurance:` header line
+// (goal-docs.md §2.5). The tier is for the implementer; Core reads and
+// validates it and changes no judgment or output because of it.
+var AssuranceTiers = []string{"light", "standard", "strict"}
+
+// AmendmentDir holds a goal's amendment documents (goal-docs.md §6.6). They
+// never belong to the goal document set, even if SPEC.md links them.
+const AmendmentDir = "amendments"
+
 // Criterion is one completion condition from `## Acceptance Criteria`.
 type Criterion struct {
 	ID       string
@@ -48,6 +57,7 @@ type Proposal struct {
 type Goal struct {
 	Dir       string // repository-relative, slash-separated
 	Status    string
+	Assurance string // tier of a valid `Assurance:` line, "" when absent or invalid
 	Criteria  []Criterion
 	Proposals []Proposal
 	Docs      []string // repository-relative paths of the goal document set, sorted
@@ -77,6 +87,10 @@ func isBundleFile(goalDir, p string) bool {
 		}
 	}
 	return false
+}
+
+func isAmendment(goalDir, p string) bool {
+	return strings.HasPrefix(p, goalDir+"/"+AmendmentDir+"/")
 }
 
 var (
@@ -116,6 +130,7 @@ func Load(root, dir string) (*Goal, error) {
 		}
 	}
 	g.readCriteria(doc, specPath, string(src))
+	g.readAssurance(string(src), specPath)
 	g.readProposals(doc, specPath)
 	if err := g.collectDocs(root, specPath, string(src)); err != nil {
 		return nil, err
@@ -203,6 +218,53 @@ func (g *Goal) criteriaItems(source string, lines []markdown.Line, file string) 
 		g.problem("criterion_indentation", file, p.Line, "%s", p.Detail)
 	}
 	return items, true
+}
+
+// readAssurance reads the optional `Assurance:` line with the same line scan
+// and placement rules as `Criteria-Format:`. Problems keep the line out of
+// Goal.Assurance; a goal without the line reads exactly as before.
+func (g *Goal) readAssurance(source, file string) {
+	const key = "Assurance:"
+	tier, seen, valid, inSection := "", false, true, false
+	for _, line := range criteriaFormatLines(source) {
+		if strings.HasPrefix(line.Text, "## ") {
+			inSection = true
+		}
+		if !inSection && line.Text != strings.TrimLeft(line.Text, " \t") && strings.HasPrefix(strings.TrimLeft(line.Text, " \t"), key) {
+			g.problem("assurance_format", file, line.No, "the %s line before the first level-two section must not be indented", key)
+			valid = false
+			continue
+		}
+		if !strings.HasPrefix(line.Text, key) {
+			continue
+		}
+		if seen {
+			g.problem("assurance_format_duplicate", file, line.No, "SPEC.md must contain at most one %s line", key)
+			valid = false
+		}
+		seen = true
+		value := strings.TrimSpace(strings.TrimPrefix(line.Text, key))
+		if inSection || !isAssuranceTier(value) {
+			g.problem("assurance_format", file, line.No, "use `Assurance: light`, `Assurance: standard` or `Assurance: strict` before the first level-two section, or omit the line")
+			valid = false
+			continue
+		}
+		if tier == "" {
+			tier = value
+		}
+	}
+	if valid {
+		g.Assurance = tier
+	}
+}
+
+func isAssuranceTier(value string) bool {
+	for _, t := range AssuranceTiers {
+		if value == t {
+			return true
+		}
+	}
+	return false
 }
 
 // criteriaFormatLines scans metadata independently of the legacy Markdown
@@ -301,7 +363,7 @@ func (g *Goal) collectDocs(root, specPath, specSrc string) error {
 		queue = queue[1:]
 		for _, target := range markdown.Parse(docs[cur]).RelativeLinks() {
 			p := path.Clean(path.Join(path.Dir(cur), target))
-			if !strings.HasSuffix(p, ".md") || !strings.HasPrefix(p, g.Dir+"/") || isBundleFile(g.Dir, p) {
+			if !strings.HasSuffix(p, ".md") || !strings.HasPrefix(p, g.Dir+"/") || isBundleFile(g.Dir, p) || isAmendment(g.Dir, p) {
 				continue
 			}
 			if _, done := docs[p]; done {

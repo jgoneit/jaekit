@@ -1,0 +1,188 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spec-agent-handoff/AC-19.targets.json",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "spec-boundary-contract",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-boundary-contract.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-boundary-contract.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-boundary-contract.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-boundary-contract.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-boundary-contract.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-boundary-contract.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-boundary-contract.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-boundary-contract.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-boundary-contract.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spec-boundary-contract.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-reporting",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-reporting.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-reporting.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-reporting.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-reporting.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-reporting.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-reporting.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-reporting.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-reporting.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-reporting.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-reporting.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-design",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-design.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-design.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-design.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-design.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-design.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-design.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-design.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-design.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-design.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-design.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-finding-docs",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-finding-docs.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-finding-docs.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-finding-docs.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-finding-docs.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-finding-docs.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-finding-docs.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-finding-docs.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-finding-docs.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-finding-docs.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "verification-finding-docs.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

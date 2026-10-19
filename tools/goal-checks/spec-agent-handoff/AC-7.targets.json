@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "implement-boundary",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+      "test": "AC7.test_contract_defines_the_implementation_request",
+      "result_targets": {
+        "additional_violations": [
+          "implement-boundary.assertion-2",
+          "implement-boundary.assertion-3",
+          "implement-boundary.assertion-4",
+          "implement-boundary.assertion-5",
+          "implement-boundary.assertion-6",
+          "implement-boundary.assertion-7",
+          "implement-boundary.assertion-8"
+        ],
+        "execution": "implement-boundary.execution",
+        "selection": "implement-boundary.selection",
+        "attribution": "implement-boundary.attribution"
+      }
+    }
+  ]
+}

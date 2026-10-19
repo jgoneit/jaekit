@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spec-agent-handoff/AC-2.targets.json",
+    "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "invocation-kinds",
+      "violation": "invocation-kind-undefined"
+    },
+    {
+      "id": "invocation-kinds.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "invocation-kinds.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "invocation-kinds.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "invocation-kinds.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "invocation-kinds.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "invocation-kinds.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "invocation-kinds.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "invocation-kinds.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "invocation-kinds.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "invocation-kinds.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agent-proposal",
+      "violation": "agent-proposal-missing"
+    },
+    {
+      "id": "agent-proposal.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agent-proposal.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agent-proposal.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agent-proposal.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agent-proposal.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agent-proposal.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agent-proposal.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agent-proposal.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agent-proposal.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agent-proposal.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

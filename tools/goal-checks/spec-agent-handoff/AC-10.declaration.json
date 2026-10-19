@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spec-agent-handoff/AC-10.targets.json",
+    "tools/goal-checks/spec-agent-handoff/observe_docs.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "contract-header-lines",
+      "violation": "header-lines-undefined"
+    },
+    {
+      "id": "contract-header-lines.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contract-header-lines.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contract-header-lines.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contract-header-lines.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contract-header-lines.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contract-header-lines.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contract-header-lines.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contract-header-lines.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contract-header-lines.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contract-header-lines.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-header-lines",
+      "violation": "header-lines-undefined"
+    },
+    {
+      "id": "reference-header-lines.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-header-lines.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-header-lines.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-header-lines.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-header-lines.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-header-lines.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-header-lines.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-header-lines.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-header-lines.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "reference-header-lines.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

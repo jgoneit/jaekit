@@ -1,0 +1,25 @@
+# goal-docs.md §2.5, bundle.md §8: an invalid Assurance line is a lint problem with its file and line, and ha start refuses the goal.
+replace $GOAL/SPEC.md "Status: Ready" "Status: Ready\nAssurance: Strict"
+ha lint $GOAL
+expect-exit 1
+expect-output "assurance_format"
+expect-output "docs/specs/greet/SPEC.md:4"
+expect-no-output "assurance tier"
+ha start $GOAL --request "구현해줘"
+expect-exit 65
+expect-output assurance_format
+expect-records 0
+replace $GOAL/SPEC.md "Assurance: Strict" "Assurance: light\nAssurance: light"
+ha lint $GOAL
+expect-exit 1
+expect-output "assurance_format_duplicate"
+expect-output "docs/specs/greet/SPEC.md:5"
+replace $GOAL/SPEC.md "Assurance: light\nAssurance: light" "  Assurance: light"
+ha lint $GOAL
+expect-exit 1
+expect-output "assurance_format"
+replace $GOAL/SPEC.md "  Assurance: light" ""
+replace $GOAL/SPEC.md "## Open Decisions" "Assurance: strict\n\n## Open Decisions"
+ha lint $GOAL
+expect-exit 1
+expect-output "assurance_format"
