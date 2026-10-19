@@ -1756,8 +1756,10 @@ class Release(unittest.TestCase):
                 "    if n == '--': continue\n"
                 "    print(hashlib.sha256(open(n,'rb').read()).hexdigest() + '  ' + n)\n")
             (shims / "sha256sum").chmod(0o755)
+        # COPYFILE_DISABLE keeps macOS tar from adding AppleDouble (._) entries
+        # that the workflow's Linux tar never writes; other tars ignore it.
         env = dict(os.environ, VERSION=version, RUNNER_TEMP=str(temp), GOFLAGS="-mod=readonly", GOTOOLCHAIN="local",
-                   PATH=str(shims) + os.pathsep + os.environ.get("PATH", ""))
+                   COPYFILE_DISABLE="1", PATH=str(shims) + os.pathsep + os.environ.get("PATH", ""))
         env.pop("GOOS", None)
         env.pop("GOARCH", None)
         result = run([tool("bash"), "-c", "set -euo pipefail\n" + build_script], ROOT, env, timeout=1500)
