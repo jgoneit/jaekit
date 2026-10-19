@@ -82,18 +82,24 @@ func TestSpecRevisesSameDocuments(t *testing.T) {
 	)
 }
 
-// after writing or editing, Spec says implementation
-// starts with a new request and stops, even when the invoking request or a
-// reply asks for implementation; nothing outside the goal documents changes.
+// after writing or editing, Spec stops: with a content
+// decision open it says implementation starts with a new request, even when
+// the invoking request or a reply asks for implementation; otherwise it asks
+// the implement-now question and stops. Nothing outside the goal documents
+// changes.
 func TestSpecStopsAfterWriting(t *testing.T) {
 	requireAll(t, "spec/skills/spec/SKILL.md",
-		"After writing or editing, report that implementation starts with a new request, then stop.",
+		"When a decision about the content is still open, do not ask it: report that implementation starts with a new request, then stop.",
 		"This holds even when the request that invoked this skill, or a reply that answers your questions or asks for changes, also asks for implementation.",
+		"end the report with one separate question: whether to implement the goal now. This is the implement-now question.",
+		"After asking, stop. Do not implement, run checks, or call an execution tool",
 		"Nothing outside the goal documents changes",
 		"This skill never edits code or runs checks.",
 	)
 	forbidAll(t, "spec/skills/spec/SKILL.md", "After saving, report", "the reply that agrees to save")
-	requireAll(t, "spec/.codex-plugin/plugin.json", "After writing and reporting it stops; implementation starts with a new request.")
+	requireAll(t, "spec/.codex-plugin/plugin.json",
+		"After writing and reporting it stops. While a decision is open, implementation starts with a new request;",
+		"with nothing left to decide it asks whether to implement now")
 }
 
 // Draft means an outcome-changing decision is open,
@@ -117,8 +123,10 @@ func TestSpecStatusGrantsNothing(t *testing.T) {
 // only from a message sent once the documents are written.
 func TestSealIgnoresDocumentRequests(t *testing.T) {
 	requireAll(t, "seal/skills/seal/SKILL.md",
-		"A message that asks for goal documents to be written or changed, such as an explicit call to a goal-document skill or an answer to its questions, is not such a request either, even when it also asks for implementation",
+		"A message that asks for goal documents to be written or changed, such as a call to a goal-document skill, whether the user or an agent made it, or an answer to its questions about their content, is not such a request either, even when it also asks for implementation",
 		"Work starts only from a later message, sent once the goal documents are written.",
+		"The user's affirmative answer to it, sent directly in reply, is a request to implement or continue the goal the question names.",
+		"An answer that also asks for a change, an answer about another goal, and an answer given after the goal documents changed since the question are not such a request",
 	)
 	forbidAll(t, "seal/skills/seal/SKILL.md", "agrees to save", "save its draft", "after the goal documents are saved")
 }
@@ -177,13 +185,14 @@ func TestGoalDocsContractWritesDirectly(t *testing.T) {
 }
 
 // the README-linked usage guide and operations guide describe
-// direct save, the report, the stop, change requests, and the separate
-// implementation request.
+// direct save, the report, the stop, change requests, the implement-now
+// question, and the separate implementation request.
 func TestGuidesDescribeDirectSave(t *testing.T) {
 	requireAll(t, "../README.ko.md", "(guides/USAGE.md)")
 	requireAll(t, "../guides/USAGE.md",
 		"`docs/specs/<goal>/SPEC.md`", "바로 저장", "결정·출처", "보고한 뒤 멈춥니다",
-		"같은 문서를 고칩니다", "구현은 별도의 시작 요청",
+		"같은 문서를 고칩니다", "그 자체로 구현을 시작하지 않습니다",
+		"구현할지 따로 묻고", "\"응\"이라고 답하면 구현이 시작됩니다", "구현 시작 명령도 계속 쓸 수 있습니다",
 		"$seal:seal docs/specs/<goal>",
 	)
 	forbidAll(t, "../README.ko.md", "초안 전문을 보여 준 뒤 동의하면")

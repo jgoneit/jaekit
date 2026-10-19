@@ -6,11 +6,12 @@ Goal documents are plain Markdown. People and any coding agent can read and writ
 
 ```text
 docs/specs/<goal>/
-  SPEC.md          entry point (required)
-  <aux>.md         auxiliary documents that SPEC.md links with a relative path (optional)
+  SPEC.md                  entry point (required)
+  <aux>.md                 auxiliary documents that SPEC.md links with a relative path (optional)
+  amendments/<name>.md     amendment documents (optional); never part of the goal document set
 ```
 
-The goal document set is SPEC.md plus every Markdown file inside the goal directory reachable by links from it. Links inside code blocks do not count. Changing any document in the set changes the goal; that is the user's decision.
+The goal document set is SPEC.md plus every Markdown file inside the goal directory reachable by links from it. Links inside code blocks do not count. Amendment documents under `amendments/` stay outside the set even when linked. Changing any document in the set changes the goal; that is the user's decision.
 
 ## SPEC.md
 
@@ -18,6 +19,8 @@ The goal document set is SPEC.md plus every Markdown file inside the goal direct
 | --- | --- |
 | `Status:` line | `Draft` while an outcome-changing decision is open, `Ready` when none is. A description, not an authorization |
 | `Criteria-Format:` line | New documents select `nested/1`. Existing documents without the line retain their original list interpretation |
+| `Assurance:` line | `light`, `standard`, or `strict`: the independent review the implementer must get. Spec proposes it and the user confirms it. Existing documents without the line follow the current rules |
+| `Proposed-By:` line | `Proposed-By: agent`, only in a new goal written in an agent invocation |
 | Goal | What changes and why |
 | Scope and non-goals | What changes and what must not. A goal that changes existing code states today's behavior with the file path that shows it, and separates what changes from what stays the same |
 | `## 사용 시나리오` | For goals that change behavior: flows, boundary cases, and behavior to keep, tied to criteria |
@@ -61,6 +64,59 @@ With `nested/1`:
 - Ambiguous indentation between the top-level and body columns, indented content without a parent, a first list indented four or more spaces, and tabs in indentation or after the marker are errors. Do not silently drop or automatically reindent them.
 
 Keep an existing document's selection or lack of selection unless the user explicitly chooses a format change. Unmarked documents keep their previous list, continuation, blank-line and tab behavior. Changing the selection changes the document's meaning and content; prior confirmations and verification evidence cannot silently stand for the newly interpreted text. Do not automatically convert existing documents or rewrite their historical records.
+
+## Header lines
+
+New documents put the `Status:`, `Criteria-Format: nested/1`, and `Assurance:` lines, unindented, before the first level-two section. A new goal written in an agent invocation adds `Proposed-By: agent`.
+
+```markdown
+# Shorter login error message
+
+Status: Draft
+Criteria-Format: nested/1
+Assurance: light
+Proposed-By: agent
+```
+
+`Assurance:` takes `light`, `standard`, or `strict`; that is the complete list.
+
+| Tier | Independent review the implementer must get |
+| --- | --- |
+| `light` | The implementer may skip independent review, and records why when it does |
+| `standard` | A review of the final candidate and later fixes |
+| `strict` | `standard` plus a plan review before implementation |
+
+How a tier applies to execution rules and completion, and details such as review round limits, are set by the contract of the execution tool. Documents without the line follow the current rules. The line is part of SPEC.md, so changing the tier changes the goal digest and counts as a change to the goal. The tier is unrelated to any label an execution tool reports about where its evidence came from.
+
+The line follows the placement and error rules of `Criteria-Format:`: one unindented line before the first level-two section. An indented line there, an unindented line after that section, a value outside the three or in another case (`Light`), an empty value, and a second line are errors. Fenced examples are not read, with the same closing-fence rule. Trailing spaces and CRLF line endings do not change the value. Never add the line to an existing document unless the user decides to, and never change an existing tier without the user's words.
+
+`Proposed-By: agent` says that an agent invocation wrote the new document. It stays after the user accepts the proposal and is not an approval; the acceptance is a decision whose source is the user's words. Execution tools do not interpret it, and goal documents are accepted whoever wrote them. A direct invocation never adds the line.
+
+## Amendment documents
+
+The user's answers, change requests, and acceptance about documents Spec has just reported edit those documents directly. Any other change an agent invocation makes to an existing goal, such as a requirement change a review finding calls for, is written as an amendment document at `docs/specs/<goal>/amendments/<name>.md`, which SPEC.md does not link. SPEC.md and the documents it links stay unchanged until the user decides.
+
+```markdown
+# Amendment: <short name>
+
+## 계기
+<the finding or question that prompted it, with its identifier>
+
+## 바꿀 곳
+<section name and criterion IDs>
+
+## 바뀌기 전
+<the current sentences, exactly>
+
+## 바뀐 뒤
+<the sentences after the change>
+```
+
+Each amendment is its own document, decided one at a time. Accepted: apply it to the goal documents with the user's words as its source, keep every criterion ID, and delete the amendment. Rejected: delete only the amendment; the goal documents stay byte for byte as they were. When the before sentences no longer match the goal documents, do not apply it; tell the user.
+
+## The implement-now question
+
+After writing or editing, when no outcome-changing decision is open, or the only one left is accepting an agent's proposal or an amendment, the report ends with one separate question: whether to implement the goal now. It names the goal path and its `Assurance:` tier, or that it has none, and says when yes also accepts a proposal or an amendment. Only the user's affirmative answer given directly to that question, about the documents it named, is a request to implement them, for example "yes", "go ahead", or "implement it". It is not one when it also asks for a change ("yes, but drop AC-2"), when it answers a content question, when it is the request that invoked Spec, when it came earlier in the conversation, when it is about another goal, or when the goal documents changed after the question; the acceptance or amendment that answer itself has Spec record does not count as such a change. These examples are representative, not complete.
 
 ## User scenarios
 

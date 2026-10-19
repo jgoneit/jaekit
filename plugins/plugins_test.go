@@ -144,14 +144,24 @@ func TestSpecPluginKnowsNothingOfSeal(t *testing.T) {
 	})
 }
 
-// Spec: explicit invocation only, on both hosts.
-func TestSpecIsExplicitOnly(t *testing.T) {
+// Spec: agents may invoke it on both hosts, and its description limits them
+// to Jaekit or goal-document work and amendments.
+func TestSpecInvocationBoundary(t *testing.T) {
 	keys, _ := frontMatter(t, "spec/skills/spec/SKILL.md")
-	if keys["disable-model-invocation"] != "true" {
-		t.Error("Spec SKILL.md must set disable-model-invocation: true")
+	if _, ok := keys["disable-model-invocation"]; ok {
+		t.Error("Spec SKILL.md must not set disable-model-invocation")
 	}
-	if !strings.Contains(read(t, "spec/skills/spec/agents/openai.yaml"), "allow_implicit_invocation: false") {
-		t.Error("Spec openai.yaml must disallow implicit invocation")
+	if !strings.Contains(read(t, "spec/skills/spec/agents/openai.yaml"), "allow_implicit_invocation: true") {
+		t.Error("Spec openai.yaml must allow implicit invocation")
+	}
+	for _, want := range []string{
+		"A host agent calls it only when the user asks to work through Jaekit, Spec, or goal documents",
+		"needs an amendment",
+		"Not for ordinary implementation requests or bug reports that do not mention goal documents.",
+	} {
+		if !strings.Contains(keys["description"], want) {
+			t.Errorf("Spec description lacks %q", want)
+		}
 	}
 }
 
