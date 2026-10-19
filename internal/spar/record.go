@@ -50,40 +50,40 @@ type ReviewerState struct {
 	Warnings        []string    `json:"warnings"`
 	Agent           string      `json:"agent,omitempty"`
 	RecordedFrom    string      `json:"recorded_from,omitempty"`
+	WorkspaceDigest string      `json:"workspace_digest,omitempty"`
 }
 
 // RoundRecord is round.json.
 type RoundRecord struct {
-	Schema                string                    `json:"schema"`
-	SparVersion           string                    `json:"spar_version"`
-	Stage                 string                    `json:"stage"`
-	Label                 string                    `json:"label,omitempty"`
-	Series                string                    `json:"series"`
-	Sequence              int                       `json:"sequence"`
-	Repo                  string                    `json:"repo"`
-	Base                  string                    `json:"base"`
-	Head                  string                    `json:"head"`
-	BaseTree              string                    `json:"base_tree"`
-	HeadTree              string                    `json:"head_tree"`
-	DiffSHA256            string                    `json:"diff_sha256"`
-	Criteria              []Document                `json:"criteria"`
-	CriteriaDigest        string                    `json:"criteria_digest"`
-	Rules                 []Document                `json:"rules"`
-	Subjects              []Document                `json:"subjects"`
-	Questions             []string                  `json:"questions"`
-	Prior                 []string                  `json:"prior"`
-	PacketSHA256          string                    `json:"packet_sha256"`
-	Config                *Config                   `json:"config"`
-	Links                 LinkTargets               `json:"links"`
-	RequestedReviewers    []string                  `json:"requested_reviewers"`
-	RequiredReviewers     []string                  `json:"required_reviewers"`
-	DryRun                bool                      `json:"dry_run"`
-	Counted               bool                      `json:"counted"`
-	RerunOf               []string                  `json:"rerun_of"`
-	StartedAt             string                    `json:"started_at"`
-	FinishedAt            string                    `json:"finished_at,omitempty"`
-	NativeWorkspaceDigest string                    `json:"native_workspace_digest,omitempty"`
-	Reviewers             map[string]*ReviewerState `json:"reviewers"`
+	Schema             string                    `json:"schema"`
+	SparVersion        string                    `json:"spar_version"`
+	Stage              string                    `json:"stage"`
+	Label              string                    `json:"label,omitempty"`
+	Series             string                    `json:"series"`
+	Sequence           int                       `json:"sequence"`
+	Repo               string                    `json:"repo"`
+	Base               string                    `json:"base"`
+	Head               string                    `json:"head"`
+	BaseTree           string                    `json:"base_tree"`
+	HeadTree           string                    `json:"head_tree"`
+	DiffSHA256         string                    `json:"diff_sha256"`
+	Criteria           []Document                `json:"criteria"`
+	CriteriaDigest     string                    `json:"criteria_digest"`
+	Rules              []Document                `json:"rules"`
+	Subjects           []Document                `json:"subjects"`
+	Questions          []string                  `json:"questions"`
+	Prior              []string                  `json:"prior"`
+	PacketSHA256       string                    `json:"packet_sha256"`
+	Config             *Config                   `json:"config"`
+	Links              LinkTargets               `json:"links"`
+	RequestedReviewers []string                  `json:"requested_reviewers"`
+	RequiredReviewers  []string                  `json:"required_reviewers"`
+	DryRun             bool                      `json:"dry_run"`
+	Counted            bool                      `json:"counted"`
+	RerunOf            []string                  `json:"rerun_of"`
+	StartedAt          string                    `json:"started_at"`
+	FinishedAt         string                    `json:"finished_at,omitempty"`
+	Reviewers          map[string]*ReviewerState `json:"reviewers"`
 }
 
 // LedgerEntry is one line of ledger.jsonl.

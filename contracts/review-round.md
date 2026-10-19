@@ -92,11 +92,11 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 | `ledger.jsonl` | 처리 원장. 한 줄에 한 처리, 덧붙이기만 한다 |
 | `summary.md` | 사람이 읽는 요약 |
 | `<리뷰어>/` | 그 리뷰어의 표준 출력·오류와 결과. 대체 모델은 `<리뷰어>/fallback/` |
-| `native/` | `prompt.md`, 작업공간, 기록된 결과 |
+| `<native 리뷰어>/` | `prompt.md`, 작업공간, 기록된 결과. 기본 이름이면 `native/` |
 
 `round.json`의 주요 필드: `schema`(`review-round/v1`), `spar_version`, `stage`, `label`, `series`, `sequence`, `repo`, `base`, `head`, `base_tree`, `head_tree`, `diff_sha256`, `criteria`·`rules`·`subjects`(`name`, `source`, `sha256`), `criteria_digest`(기준 문서 이름과 sha256의 sha256), `questions`, `prior`, `packet_sha256`, `config`([설정 계약](spar-config.md)의 적용 기록), `links`(연결 확인에 쓴 `AC-n`과 규칙 문서 줄 수), `requested_reviewers`, `required_reviewers`, `dry_run`, `counted`, `rerun_of`, `started_at`, `finished_at`, `reviewers`.
 
-`reviewers.<이름>`: `name`, `preset`, `isolation`(`verified`, `host`, `unverified`), `required`, `status`, `reason`, `requested_model`, `observed_model`, `fallback_model`, `fallback_used`, `effort`, `elapsed_seconds`, `timeout_seconds`, `resets`, `attempts`, `findings`(완료한 경우의 지적 수, 아니면 `null`), `verdict`, `angles_checked`, `angles_unchecked`, `limits`, `warnings`, `agent`, `recorded_from`.
+`reviewers.<이름>`: `name`, `preset`, `isolation`(`verified`, `host`, `unverified`), `required`, `status`, `reason`, `requested_model`, `observed_model`, `fallback_model`, `fallback_used`, `effort`, `elapsed_seconds`, `timeout_seconds`, `resets`, `attempts`, `findings`(완료한 경우의 지적 수, 아니면 `null`), `verdict`, `angles_checked`, `angles_unchecked`, `limits`, `warnings`, `agent`, `recorded_from`, `workspace_digest`(native 작업공간을 준비할 때의 digest).
 
 ## 6. 분류
 
@@ -145,4 +145,4 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 ## 9. native 리뷰어
 
-`native`는 `pending`으로 시작하고 `native/prompt.md`(지시와 패킷 전문)와 `native/workspace/`를 남긴다. 호스트의 clean-context 하위 에이전트가 답하면 `spar record <라운드> native --result <파일|->`나 `--transcript <전사 기록>`으로 기록한다. 기록할 때 작업공간이 준비 때와 같은지, 결과가 schema·head·각도 요구를 만족하는지 확인한다. 전사 기록에서 `Read`·`Grep`·`Glob` 밖의 도구 사용, 호스트가 제공한 그 밖의 도구, 호스트가 더한 맥락(Git 상태, 지시 파일, hook 맥락)과 프롬프트를 읽지 않은 것은 `warnings`에 남는다. 맥락의 내용은 기록하지 않고 종류만 남긴다. 격리 등급은 `host`이고 필수 리뷰어에 든다.
+`native` preset 리뷰어는 `pending`으로 시작하고 자기 이름의 폴더에 `prompt.md`(지시와 패킷 전문)와 `workspace/`를 남긴다(기본 이름이면 `native/prompt.md`). 호스트의 clean-context 하위 에이전트가 답하면 `spar record <라운드> <이름> --result <파일|->`나 `--transcript <전사 기록>`으로 기록한다. dry run 라운드와 이미 완료한 리뷰어는 기록하지 않는다. 기록할 때 작업공간이 준비 때와 같은지, 결과가 schema·head·각도 요구를 만족하는지 확인한다. 전사 기록에서 `Read`·`Grep`·`Glob` 밖의 도구 사용, 호스트가 제공한 그 밖의 도구, 호스트가 더한 맥락(Git 상태, 지시 파일, hook 맥락)과 프롬프트를 읽지 않은 것은 `warnings`에 남는다. 맥락의 내용은 기록하지 않고 종류만 남긴다. 격리 등급은 `host`이고 필수 리뷰어에 든다.

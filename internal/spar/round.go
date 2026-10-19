@@ -22,7 +22,6 @@ const (
 	ExitUsage     = 64
 	ExitRefused   = 65
 	ExitInternal  = 70
-	nativeName    = "native"
 	nativePreset  = "native"
 	commandPreset = "command"
 )
@@ -571,14 +570,14 @@ You are a clean-context reviewer started by the host agent. Review the packet be
 
 - The review workspace is %s. Its head/ and base/ folders hold the tracked files of the two commits. Read only files in that workspace. Do not change, create or delete any file, run no commands, and do not use the network.
 - Reply with one JSON object and nothing else. It follows the result schema in %s.
-- The host records your reply with ` + "`spar record %s native --result <file>`" + ` or from your transcript.
+- The host records your reply with ` + "`spar record %s %s --result <file>`" + ` or from your transcript.
 
 `
 
-// prepareNative writes the native reviewer's prompt and workspace for the
-// host's clean-context subagent.
+// prepareNative writes a native reviewer's prompt and workspace, in the
+// folder named after it, for the host's clean-context subagent.
 func prepareNative(out, template string, packet []byte, r *RoundRecord, st *ReviewerState) error {
-	dir := filepath.Join(out, "native")
+	dir := filepath.Join(out, st.Name)
 	ws := filepath.Join(dir, "workspace")
 	if err := copyTree(template, ws); err != nil {
 		return err
@@ -587,8 +586,8 @@ func prepareNative(out, template string, packet []byte, r *RoundRecord, st *Revi
 	if err != nil {
 		return err
 	}
-	r.NativeWorkspaceDigest = manifestDigest(entries)
-	prompt := fmt.Sprintf(nativeInstructions, ws, filepath.Join(out, "schema.json"), out) + string(packet)
+	st.WorkspaceDigest = manifestDigest(entries)
+	prompt := fmt.Sprintf(nativeInstructions, ws, filepath.Join(out, "schema.json"), out, st.Name) + string(packet)
 	if err := os.WriteFile(filepath.Join(dir, "prompt.md"), []byte(prompt), 0o644); err != nil {
 		return err
 	}

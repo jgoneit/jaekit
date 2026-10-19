@@ -40,13 +40,13 @@ type transcriptInfo struct {
 // readTranscript reads a host subagent transcript: its last reply, the
 // model, the tools it used and offered, and what the host added to its
 // context (names only, never the text).
-func readTranscript(path, roundDir string) (transcriptInfo, error) {
+func readTranscript(path, nativeDir string) (transcriptInfo, error) {
 	info := transcriptInfo{used: map[string]int{}}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return info, err
 	}
-	prompt := filepath.Join(roundDir, "native", "prompt.md")
+	prompt := filepath.Join(nativeDir, "prompt.md")
 	for _, e := range jsonLines(data) {
 		switch e["type"] {
 		case "attachment":
@@ -104,7 +104,7 @@ func readTranscript(path, roundDir string) (transcriptInfo, error) {
 	return info, nil
 }
 
-func transcriptWarnings(info transcriptInfo) []string {
+func transcriptWarnings(info transcriptInfo, name string) []string {
 	var warnings []string
 	var extra []string
 	for _, name := range sortedKeys(info.used) {
@@ -141,16 +141,13 @@ func transcriptWarnings(info transcriptInfo) []string {
 		}
 	}
 	if !info.readPrompt {
-		warnings = append(warnings, "the transcript does not show the subagent reading native/prompt.md")
+		warnings = append(warnings, "the transcript does not show the subagent reading "+name+"/prompt.md")
 	}
 	return warnings
 }
 
 // Record stores the host subagent's reply for a round's native reviewer.
 func Record(o RecordOptions) (int, error) {
-	if o.Reviewer != nativeName {
-		return ExitUsage, usageError("only the native reviewer is recorded; got %q", o.Reviewer)
-	}
 	if (o.Result == "") == (o.Transcript == "") {
 		return ExitUsage, usageError("give exactly one of --result and --transcript")
 	}
@@ -159,22 +156,27 @@ func Record(o RecordOptions) (int, error) {
 	if err != nil {
 		return ExitRefused, refused("%v", err)
 	}
-	st := r.Reviewers[nativeName]
-	if st == nil {
-		return ExitRefused, refused("%s has no native reviewer", o.Round)
+	st := r.Reviewers[o.Reviewer]
+	switch {
+	case st == nil:
+		return ExitRefused, refused("%s has no reviewer named %q", o.Round, o.Reviewer)
+	case st.Preset != nativePreset:
+		return ExitRefused, refused("%s is a %s reviewer; only native reviewers are recorded from the host", o.Reviewer, st.Preset)
+	case r.DryRun:
+		return ExitRefused, refused("%s is a dry run; no reviewer is recorded in it", o.Round)
+	case st.Status == StatusCompleted:
+		return ExitRefused, refused("%s of %s is already recorded", o.Reviewer, o.Round)
 	}
-	if st.Status == StatusCompleted {
-		return ExitRefused, refused("the native reviewer of %s is already recorded", o.Round)
-	}
+	nativeDir := filepath.Join(dir, o.Reviewer)
 	var reply string
 	var warnings []string
 	model := o.Model
 	if o.Transcript != "" {
-		info, err := readTranscript(o.Transcript, dir)
+		info, err := readTranscript(o.Transcript, nativeDir)
 		if err != nil {
 			return ExitRefused, refused("transcript %s: %v", o.Transcript, err)
 		}
-		reply, warnings = info.reply, transcriptWarnings(info)
+		reply, warnings = info.reply, transcriptWarnings(info, o.Reviewer)
 		if model == "" {
 			model = info.model
 		}
@@ -200,12 +202,12 @@ func Record(o RecordOptions) (int, error) {
 	st.Warnings = append([]string{}, warnings...)
 	st.Reason = ""
 	attempt := Attempt{Model: model, StartedAt: r.StartedAt, FinishedAt: now()}
-	ws := filepath.Join(dir, "native", "workspace")
+	ws := filepath.Join(nativeDir, "workspace")
 	entries, err := manifest(ws)
 	var added []Finding
 	result, ok := lastJSONObject([]byte(reply))
 	switch {
-	case err != nil || manifestDigest(entries) != r.NativeWorkspaceDigest:
+	case err != nil || st.WorkspaceDigest == "" || manifestDigest(entries) != st.WorkspaceDigest:
 		st.Status, st.Reason = StatusWorkspaceModified, "the native workspace changed after it was prepared"
 	case !ok:
 		st.Status, st.Reason = StatusInvalidOutput, "the reply holds no JSON object"
@@ -217,10 +219,10 @@ func Record(o RecordOptions) (int, error) {
 		} else {
 			st.Status = StatusCompleted
 			c := classifier{repo: r.Repo, head: r.Head, checkPaths: r.Config.CheckPaths, targets: r.Links}
-			added = applyResult(c, st, nativeName, result)
+			added = applyResult(c, st, o.Reviewer, result)
 		}
 		data, _ := json.MarshalIndent(result, "", "  ")
-		os.WriteFile(filepath.Join(dir, "native", "result.json"), append(data, '\n'), 0o644)
+		os.WriteFile(filepath.Join(nativeDir, "result.json"), append(data, '\n'), 0o644)
 	}
 	attempt.Status, attempt.Reason = st.Status, st.Reason
 	st.Attempts = append(st.Attempts, attempt)
