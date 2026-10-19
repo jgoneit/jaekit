@@ -309,7 +309,7 @@ class Documents(unittest.TestCase):
 # --- AC-16 -------------------------------------------------------------------
 
 SEAL = "plugins/seal/skills/seal"
-SEAL_VERSION = "0.1.18"
+SEAL_VERSION = "0.1.19"
 CHECKS_BULLET = "- Choose the checks, runner and verification method"
 HA_SECTION = "## Structured change results"
 BUNDLE_SECTION = "### `## 결과 계약`"
