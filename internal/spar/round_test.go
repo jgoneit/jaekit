@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func gitRun(t *testing.T, dir string, args ...string) string {
@@ -145,6 +146,13 @@ func TestRequiredOfKeepsConfiguredReviewers(t *testing.T) {
 	if len(got) != 2 || got[0].Name != "codex" || got[1].Name != "claude" {
 		t.Fatalf("%+v", got)
 	}
+	// A reviewer that ran under a configured name with another preset does not stand for it.
+	other := &RoundRecord{RequiredReviewers: []string{"x"},
+		Reviewers: map[string]*ReviewerState{"x": {Preset: "native", Required: true}},
+		Config:    &Config{ConfiguredRequired: []RequiredRef{{"x", "codex"}}}}
+	if got := requiredOf(other); len(got) != 2 {
+		t.Fatalf("a configured reviewer of another preset was dropped: %+v", got)
+	}
 }
 
 type fixture struct {
@@ -273,18 +281,60 @@ func TestGateRequiredReviewersMissingRecordsAndGrowth(t *testing.T) {
 	}
 }
 
-func TestAdmitCreditsOnlyFinishedRounds(t *testing.T) {
+// Rounds of a series run one at a time, so an earlier round without
+// finished_at was stopped: its unfinished reviewers may run again uncounted.
+func TestAdmitCreditsStoppedRounds(t *testing.T) {
 	cfg := &Config{Caps: Caps{1, 1, 1}}
-	running := &RoundRecord{Stage: "candidate", Base: "b", Head: "h", PacketSHA256: "p", Counted: true,
-		Reviewers: map[string]*ReviewerState{"x": reviewer("codex", true, "running")}}
+	stopped := &RoundRecord{Stage: "candidate", Base: "b", Head: "h", PacketSHA256: "p", Counted: true,
+		Reviewers: map[string]*ReviewerState{"x": reviewer("codex", true, "running"), "y": reviewer("claude", true, StatusCompleted)}}
 	next := &RoundRecord{Stage: "candidate", Base: "b", Head: "h", PacketSHA256: "p", Config: cfg, RequestedReviewers: []string{"x"}}
-	if _, _, err := admit([]sibling{{"01", running}}, nil, next); err == nil {
-		t.Fatal("a running round let the same packet run again uncounted past the cap")
+	if counted, rerun, err := admit([]sibling{{"01", stopped}}, nil, next); err != nil || counted || len(rerun) != 1 {
+		t.Fatalf("a rerun after a stopped round: %v %v %v", counted, rerun, err)
 	}
-	running.FinishedAt = "t"
-	running.Reviewers["x"].Status = StatusUnavailable
-	if counted, rerun, err := admit([]sibling{{"01", running}}, nil, next); err != nil || counted || len(rerun) != 1 {
-		t.Fatalf("a rerun of an unfinished reviewer: %v %v %v", counted, rerun, err)
+	next.RequestedReviewers = []string{"x", "y"}
+	if _, _, err := admit([]sibling{{"01", stopped}}, nil, next); err == nil {
+		t.Fatal("a reviewer that completed the packet ran again uncounted past the cap")
+	}
+}
+
+// A run holds its series until its round is finished, and a folder that
+// already exists is refused.
+func TestRunHoldsTheSeriesUntilItsRoundEnds(t *testing.T) {
+	f := newFixture(t)
+	criteria := writeFile(t, filepath.Join(f.dir, "SPEC.md"), "- **AC-1** two\n")
+	config := writeFile(t, filepath.Join(f.dir, "spar.toml"),
+		"[[reviewers]]\nname = \"slow\"\npreset = \"command\"\nargv = [\"/bin/sleep\", \"1\"]\n")
+	out := filepath.Join(f.repo, "reviews", "s", "01-candidate")
+	opts := RunOptions{Repo: f.repo, Stage: "candidate", Base: f.revs[0], Head: f.revs[1], Out: out,
+		Criteria: []string{criteria}, Version: "test", Getenv: env(map[string]string{"SPAR_CONFIG": config, "HOME": f.dir})}
+	done := make(chan error, 1)
+	go func() {
+		_, err := Run(opts)
+		done <- err
+	}()
+	for i := 0; ; i++ {
+		if _, err := os.Stat(filepath.Join(out, "round.json")); err == nil {
+			break
+		}
+		if i == 500 {
+			t.Fatal("the round did not start")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	waited := false
+	unlock, err := lockFile(filepath.Join(filepath.Dir(out), ".spar-lock"), func() { waited = true })
+	if err != nil {
+		t.Fatal(err)
+	}
+	unlock()
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	if r, err := loadRound(out); !waited || err != nil || r.FinishedAt == "" {
+		t.Fatalf("the series was free while its round ran: waited=%v %v", waited, err)
+	}
+	if code, err := Run(opts); code != ExitRefused || err == nil || !strings.Contains(err.Error(), "already exists") {
+		t.Fatalf("an existing round folder: %d %v", code, err)
 	}
 }
 
@@ -314,5 +364,16 @@ func TestExportWritesLinksAsFilesAndRecordsFollowTheirRepository(t *testing.T) {
 	}
 	if err := localRecordPath(f.repo, filepath.Join(f.dir, "plain", "01")); err != nil {
 		t.Fatalf("a folder outside any repository: %v", err)
+	}
+	// Under a .git that Git cannot read, nobody can say what is tracked:
+	// a linked worktree whose Git data is gone, or an empty .git folder.
+	gone := filepath.Join(f.dir, "gone")
+	writeFile(t, filepath.Join(gone, ".git"), "gitdir: "+filepath.Join(f.dir, "missing")+"\n")
+	empty := filepath.Join(f.dir, "empty")
+	os.MkdirAll(filepath.Join(empty, ".git"), 0o755)
+	for _, broken := range []string{gone, empty} {
+		if err := localRecordPath(f.repo, filepath.Join(broken, "reviews", "01")); err == nil {
+			t.Errorf("a folder under the unreadable Git folder of %s was accepted", filepath.Base(broken))
+		}
 	}
 }

@@ -14,7 +14,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 | --- | --- |
 | `--stage` | `plan`, `plan-delta`, `candidate`, `fixes` |
 | `--base`, `--head` | 비교할 두 커밋. `--head` 기본값은 `HEAD` |
-| `--out` | 새 라운드 폴더. 이미 있으면 거부한다(series를 잠근 뒤 다시 확인한다). 검토하는 저장소나 다른 Git 저장소 안이면 그 저장소가 무시하는 경로여야 하고 그 아래에 추적 파일이 없어야 한다. Git이 그 경로를 판단하지 못하면(소유권 거부 등) 거부한다 |
+| `--out` | 새 라운드 폴더. 이미 있으면 거부한다(series를 잠근 뒤 다시 확인한다). 검토하는 저장소나 다른 Git 저장소 안이면 그 저장소가 무시하는 경로여야 하고 그 아래에 추적 파일이 없어야 한다. 경로 위에 `.git`이 있는데 Git이 그 경로를 판단하지 못하면(소유권 거부, Git 데이터가 없는 연결 worktree, 빈 `.git` 폴더 등) 거부한다 |
 | `--criteria` | 기준 문서. 하나 이상 필수 |
 | `--rules` | 규칙·계약 문서. 프로젝트 설정의 `rules`가 더해진다 |
 | `--subject` | plan 단계에서 검토할 문서 |
@@ -24,7 +24,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 | `--repo`, `--label` | 저장소 위치, 기록에 남길 이름 |
 | `--dry-run` | 패킷과 작업공간만 만들고 리뷰어를 띄우지 않는다. 상한에 세지 않고 gate는 받지 않는다 |
 
-라운드 폴더의 부모 폴더가 한 검토의 series다. 같은 series의 다른 `review-round/v1` 라운드에서 상한, 이전 head와 이전 지적을 읽는다. 다른 형식의 기록 폴더는 읽지도 바꾸지도 않는다. series의 `.spar-lock`을 잠가 한 번에 한 실행만 상한을 판단하고 라운드 기록을 쓴다.
+라운드 폴더의 부모 폴더가 한 검토의 series다. 같은 series의 다른 `review-round/v1` 라운드에서 상한, 이전 head와 이전 지적을 읽는다. 다른 형식의 기록 폴더는 읽지도 바꾸지도 않는다. series의 `.spar-lock`을 잠가 series마다 한 번에 한 라운드만, 상한 판단부터 라운드 기록을 마칠 때까지 실행한다. 다른 실행이 잠금을 쥐고 있으면 표준 오류에 알리고 그 라운드가 끝날 때까지 기다린다.
 
 종료 코드: 0 라운드 기록을 썼고 완료했거나 대기 중인 리뷰어가 있음, 1 라운드 기록을 썼지만 완료하거나 대기 중인 리뷰어가 없음, 64 사용법 오류, 65 거부(설정 오류, 추적되는 기록 폴더, 상한 초과, 사슬 끊김, 읽을 수 없는 입력), 70 내부 오류. 거부는 리뷰어를 띄우기 전에 일어나고 라운드 폴더를 만들지 않는다.
 
@@ -78,7 +78,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 완료하지 않은 리뷰어의 `findings`는 `null`이고 요약에 상태와 원인이 나온다. 0건으로 바뀌지 않는다.
 
-`verified` preset의 보호: `claude`는 `-p --safe-mode --restricted --strict-mcp-config --tools Read,Grep,Glob --permission-mode dontAsk --no-session-persistence --disable-slash-commands`로 실행하고 다른 도구나 MCP 서버가 보이면 멈춘다. `codex`는 `exec --ignore-user-config --ignore-rules -s read-only --ephemeral --skip-git-repo-check -c web_search="disabled"`와 `apps`, `browser_use`, `browser_use_external`, `computer_use`, `in_app_browser`, `image_generation`, `memories`, `multi_agent`, `plugins`, `hooks`의 `--disable`로 실행하고 허용 밖의 항목 종류가 보이면 멈춘다. `agy`는 `--sandbox --disable-slash-commands`로 실행하고 파일 읽기·목록·검색 도구와 읽기 전용 명령만 허용한다. 읽기 전용 프로그램이라도 파일을 쓰는 인자(`sort`·`tree`의 `-o`와 그것이 든 짧은 옵션 묶음, `--o…`, `sort --co…`, `find -fprint…`·`-fls`, 출력 파일을 받은 `uniq`)는 위반이다. 이 보호는 clean-review 0.2.0과 같다.
+`verified` preset의 보호: `claude`는 `-p --safe-mode --restricted --strict-mcp-config --tools Read,Grep,Glob --permission-mode dontAsk --no-session-persistence --disable-slash-commands`로 실행하고 다른 도구나 MCP 서버가 보이면 멈춘다. `codex`는 `exec --ignore-user-config --ignore-rules -s read-only --ephemeral --skip-git-repo-check -c web_search="disabled"`와 `apps`, `browser_use`, `browser_use_external`, `computer_use`, `in_app_browser`, `image_generation`, `memories`, `multi_agent`, `plugins`, `hooks`의 `--disable`로 실행하고 허용 밖의 항목 종류가 보이면 멈춘다. `agy`는 `--sandbox --disable-slash-commands`로 실행하고 파일 읽기·목록·검색 도구와 읽기 전용 명령만 허용한다. 읽기 전용 프로그램이라도 파일을 쓰는 인자(`sort`·`tree`의 `-o`와 그것이 든 짧은 옵션 묶음, `--o…`, `sort --co…`, `find -fprint…`·`-fls`, 출력 파일을 받은 `uniq`, 작업 폴더에 magic 파일을 만드는 `file`의 `-C`와 그것이 든 짧은 옵션 묶음, `--co…`)는 위반이다. 이 보호는 clean-review 0.2.0과 같다.
 
 대체 모델: 지정 모델이 사용량·요청 한도로 거절되고 `fallback_model`이 있으면 같은 패킷과 새 작업공간 사본으로 한 번 더 실행한다. 인증 거절이나 다른 실패에는 쓰지 않는다. `attempts`에 시도마다 모델·상태·원인·재설정 문구가 남고 `fallback_used`가 `true`가 된다.
 
@@ -139,7 +139,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 ## 8. 상한·재실행·사슬
 
 - 단계 묶음은 `plan`, `plan_delta`, `code`(candidate와 fixes)다. series에서 `counted`가 `true`인 같은 묶음의 라운드 수가 상한과 연장의 합 이상이면 새 실행을 거부한다.
-- 같은 단계·base·head·패킷 digest의 끝난(`finished_at`이 있는) 앞선 실행이 있고, 이번 실행의 리뷰어가 모두 그 실행들에서 완료하지 못한 리뷰어이면 상한에 세지 않는다(`counted: false`, `rerun_of`). 아직 실행 중인 라운드는 근거가 되지 않는다. 그 밖의 실행은 모두 센다.
+- 같은 단계·base·head·패킷 digest의 앞선 실행이 있고, 이번 실행의 리뷰어가 모두 그 실행들에서 완료하지 못한 리뷰어이면 상한에 세지 않는다(`counted: false`, `rerun_of`). 라운드는 series마다 하나씩 실행되므로 `finished_at`이 없는 앞선 라운드는 도중에 멈춘 것이고, 그 리뷰어는 완료하지 못한 것이다. 그 밖의 실행은 모두 센다.
 - fixes 라운드의 base는 같은 series에서 단계·base·head가 다른 마지막 code 라운드의 head여야 한다. 아니면 거부한다.
 - 연장은 `spar extend <series> --stage plan|plan-delta|code --by N --user-quote "…"`로 series의 `extensions.jsonl`에 `{"stage", "by", "user_quote", "recorded_at"}`을 더한다. 사용자의 말이 없으면 거부한다.
 

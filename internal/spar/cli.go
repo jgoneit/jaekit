@@ -101,7 +101,7 @@ func Main(version string, args []string, stdin io.Reader, stdout, stderr io.Writ
 		fmt.Fprint(stderr, usageText)
 		return ExitUsage
 	}
-	code, err := dispatch(version, args, stdin, stdout, getenv)
+	code, err := dispatch(version, args, stdin, stdout, stderr, getenv)
 	if err != nil {
 		var exit *ExitError
 		var cfg *ConfigError
@@ -121,7 +121,7 @@ func Main(version string, args []string, stdin io.Reader, stdout, stderr io.Writ
 	return code
 }
 
-func dispatch(version string, args []string, stdin io.Reader, stdout io.Writer, getenv func(string) string) (int, error) {
+func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.Writer, getenv func(string) string) (int, error) {
 	cmd, rest := args[0], args[1:]
 	switch cmd {
 	case "--version", "version":
@@ -151,7 +151,7 @@ func dispatch(version string, args []string, stdin io.Reader, stdout io.Writer, 
 		code, err := Run(RunOptions{Repo: p.one("repo"), Stage: p.one("stage"), Base: p.one("base"), Head: p.one("head"),
 			Out: p.one("out"), Criteria: p.values["criteria"], Rules: p.values["rules"], Subjects: p.values["subject"],
 			Questions: p.values["question"], CheckPaths: p.values["check-path"], Reviewers: reviewerOverride(p),
-			Label: p.one("label"), DryRun: p.flags["dry-run"], Version: version, Getenv: getenv})
+			Label: p.one("label"), DryRun: p.flags["dry-run"], Version: version, Getenv: getenv, Log: stderr})
 		if err == nil {
 			fmt.Fprintf(stdout, "spar: round written to %s\n", p.one("out"))
 		}

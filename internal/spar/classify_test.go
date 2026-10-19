@@ -95,6 +95,10 @@ func TestUnsafeCommand(t *testing.T) {
 		"sort --out=scratch head/a":            false,
 		"sort --compress-prog=sh head/a":       false,
 		"sort -rn head/a":                      true,
+		"file -C -m head/a":                    false,
+		"file -bC -m head/a":                   false,
+		"file --compile -m head/a":             false,
+		"file -b head/a":                       true,
 	} {
 		if got := unsafeCommand(line) == ""; got != safe {
 			t.Errorf("%q: safe=%v (%s)", line, got, unsafeCommand(line))

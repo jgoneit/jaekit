@@ -128,11 +128,12 @@ func priorLines(siblings []sibling, current *RoundRecord) ([]string, []string, e
 // returns whether the run counts against the cap and which rounds it reruns.
 func admit(siblings []sibling, exts []Extension, r *RoundRecord) (bool, []string, error) {
 	group := stageGroup(r.Stage)
-	// Only finished rounds tell which reviewers did not complete a packet;
-	// a round still running is not a reason to start its reviewers again.
+	// Rounds of a series run one at a time under its lock, so every earlier
+	// round here has ended; one without finished_at was stopped, and its
+	// reviewers did not complete the packet.
 	var same []sibling
 	for _, s := range siblings {
-		if !s.round.DryRun && sameIdentity(s.round, r) && s.round.PacketSHA256 == r.PacketSHA256 && s.round.FinishedAt != "" {
+		if !s.round.DryRun && sameIdentity(s.round, r) && s.round.PacketSHA256 == r.PacketSHA256 {
 			same = append(same, s)
 		}
 	}
@@ -321,23 +322,21 @@ func Run(o RunOptions) (int, error) {
 		return ExitInternal, err
 	}
 	series := filepath.Dir(out)
-	// One run at a time per series admits a round and writes its record, so
-	// two runs cannot both take the last round under a cap.
+	// One round at a time per series, from admission until its record is
+	// finished: two runs cannot both take the last round under a cap, and a
+	// round found unfinished here was stopped before it finished.
 	if err := os.MkdirAll(series, 0o755); err != nil {
 		return ExitInternal, err
 	}
-	unlock, err := lockFile(filepath.Join(series, ".spar-lock"))
+	unlock, err := lockFile(filepath.Join(series, ".spar-lock"), func() {
+		if o.Log != nil {
+			fmt.Fprintf(o.Log, "spar: waiting for another round of %s to finish\n", series)
+		}
+	})
 	if err != nil {
 		return ExitInternal, err
 	}
-	locked := true
-	release := func() {
-		if locked {
-			locked = false
-			unlock()
-		}
-	}
-	defer release()
+	defer unlock()
 	if _, err := os.Lstat(out); err == nil {
 		return ExitRefused, refused("%s already exists; each round writes a new folder", o.Out)
 	}
@@ -383,7 +382,7 @@ func Run(o RunOptions) (int, error) {
 	if rerunOf != nil {
 		r.RerunOf = rerunOf
 	}
-	return runRound(o, r, out, []byte(packet), release)
+	return runRound(o, r, out, []byte(packet))
 }
 
 func nonNil(docs []Document) []Document {
@@ -393,7 +392,7 @@ func nonNil(docs []Document) []Document {
 	return docs
 }
 
-func runRound(o RunOptions, r *RoundRecord, out string, packet []byte, admitted func()) (int, error) {
+func runRound(o RunOptions, r *RoundRecord, out string, packet []byte) (int, error) {
 	if err := os.Mkdir(out, 0o755); err != nil {
 		if errors.Is(err, os.ErrExist) {
 			return ExitRefused, refused("%s already exists; each round writes a new folder", o.Out)
@@ -422,7 +421,6 @@ func runRound(o RunOptions, r *RoundRecord, out string, packet []byte, admitted 
 	if err := writeJSON(filepath.Join(out, "round.json"), r); err != nil {
 		return ExitInternal, err
 	}
-	admitted() // the round now counts in its series
 	tmp, err := os.MkdirTemp("", "spar-workspace-")
 	if err != nil {
 		return ExitInternal, err

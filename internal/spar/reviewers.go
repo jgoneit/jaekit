@@ -51,18 +51,32 @@ var readOnlyPrograms = map[string]bool{"find": true, "ls": true, "grep": true, "
 var unsafeArgPrefixes = []string{"-exec", "-execdir", "-ok", "-okdir", "-delete", "--pre", "--compress-program",
 	"-fprint", "-fls"}
 
-// writesFile reports an option with which sort or tree writes a file: -o
-// alone or inside a cluster of short options (-ro), and any long option
-// that getopt would expand to one that writes or runs something.
+// writesFile reports an option with which sort or tree writes a file (-o)
+// or file compiles a magic file into the working folder (-C): alone or
+// inside a cluster of short options (-ro), and any long option that getopt
+// would expand to one that writes or runs something.
 func writesFile(program, arg string) bool {
+	var short rune
+	var long []string
 	switch program {
-	case "sort", "tree":
-		if strings.HasPrefix(arg, "--") {
-			return strings.HasPrefix(arg, "--o") || (program == "sort" && strings.HasPrefix(arg, "--co"))
-		}
-		return strings.HasPrefix(arg, "-") && strings.ContainsRune(arg[1:], 'o')
+	case "sort":
+		short, long = 'o', []string{"--o", "--co"}
+	case "tree":
+		short, long = 'o', []string{"--o"}
+	case "file":
+		short, long = 'C', []string{"--co"}
+	default:
+		return false
 	}
-	return false
+	if strings.HasPrefix(arg, "--") {
+		for _, prefix := range long {
+			if strings.HasPrefix(arg, prefix) {
+				return true
+			}
+		}
+		return false
+	}
+	return strings.HasPrefix(arg, "-") && strings.ContainsRune(arg[1:], short)
 }
 
 // packetFile is where a reviewer finds the packet when it is too large for

@@ -333,6 +333,21 @@ func insideRepo(repo, path string) string {
 	return rel
 }
 
+// underGitFolder reports whether dir or a folder above it holds a .git
+// entry: a repository's folder, or the file of a linked worktree.
+func underGitFolder(dir string) bool {
+	for {
+		if _, err := os.Lstat(filepath.Join(dir, ".git")); err == nil {
+			return true
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return false
+		}
+		dir = parent
+	}
+}
+
 // localRecordPath refuses a record path that Git would track.
 func localRecordPath(repo, path string) error {
 	path = realish(path)
@@ -356,11 +371,12 @@ func localRecordPath(repo, path string) error {
 		}
 		other, err := repoRoot(existing)
 		if err != nil {
-			if strings.Contains(err.Error(), "not a git repository") {
+			if !underGitFolder(existing) {
 				return nil
 			}
-			// Git refused to say (ownership, a broken repository): the
-			// records do not go where they cannot be checked.
+			// A .git above the path but Git refused to say (ownership, a
+			// broken or missing linked worktree): the records do not go
+			// where they cannot be checked.
 			return fmt.Errorf("%s cannot be checked against its Git repository: %v", path, err)
 		}
 		other = realish(other)
