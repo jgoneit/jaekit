@@ -69,7 +69,7 @@ ha capabilities --format json
 
 시간 보기를 지원하는 Core는 `formats.timing`에 `timing/v1`, `features`에 `run-timing/v1`을 제공한다([실행 기록](run-record.md) §1.2, §2.2). 측정값은 판정·예산에 쓰이지 않으므로 이 확장은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 추가되지 않는다. 지원이 없는 Core에서도 일반 실행은 그대로이고, 시간 보기만 쓸 수 없다.
 
-목표 문서의 `Assurance:` 줄([목표 문서](goal-docs.md) §2.5)을 읽고 검증하는 Core는 `formats.assurance_tier`에 `light`, `standard`, `strict`를 제공한다. v0.1.6 배포판(위 예시)에는 이 항목이 없다. 이 줄은 구현 담당의 검토 정도를 정할 뿐 Core의 판정·출력·예산을 바꾸지 않으므로, 이 항목은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 더하지 않는다. 항목이 없는 Core는 줄을 검증하지 않을 뿐이고 일반 실행은 그대로다. 이 항목의 이름은 `ha status`의 `assurance` 필드(근거 표시, 항상 `local`)와 섞이지 않도록 따로 정했다.
+목표 문서의 `Assurance:` 줄([목표 문서](goal-docs.md) §2.5)을 읽고 검증하는 Core는 `formats.assurance_tier`에 `light`, `standard`, `strict`를 제공한다. v0.1.6 배포판(위 예시)에는 이 항목이 없다. 이 줄은 구현 담당의 검토 정도를 정할 뿐 Core의 판정, `ha status`와 `ha done`의 출력, 예산을 바꾸지 않으므로(Core가 더하는 출력은 `ha lint` 성공 때의 `assurance tier: <등급>` 줄 하나다, [실행 묶음](bundle.md) §8), 이 항목은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 더하지 않는다. 항목이 없는 Core는 줄을 검증하지 않을 뿐이고 일반 실행은 그대로다. 이 항목의 이름은 `ha status`의 `assurance` 필드(근거 표시, 항상 `local`)와 섞이지 않도록 따로 정했다.
 
 기능의 상세 의미는 [실행 기록](run-record.md), [결과 계약](check-result.md), [목표 문서](goal-docs.md)에 따른다. 지원 정보는 독립 인증이나 코드 무결성 증명이 아니다.
 
