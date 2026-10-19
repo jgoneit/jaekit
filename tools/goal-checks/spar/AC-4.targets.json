@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "errors",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Config.test_config_errors_name_file_and_location",
+      "result_targets": {
+        "additional_violations": [
+          "errors.assertion-2",
+          "errors.assertion-3",
+          "errors.assertion-4",
+          "errors.assertion-5",
+          "errors.assertion-6",
+          "errors.assertion-7",
+          "errors.assertion-8"
+        ],
+        "execution": "errors.execution",
+        "selection": "errors.selection",
+        "attribution": "errors.attribution"
+      }
+    },
+    {
+      "target": "toml-1-0",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Config.test_full_toml_syntax_is_accepted",
+      "result_targets": {
+        "additional_violations": [
+          "toml-1-0.assertion-2",
+          "toml-1-0.assertion-3",
+          "toml-1-0.assertion-4",
+          "toml-1-0.assertion-5",
+          "toml-1-0.assertion-6",
+          "toml-1-0.assertion-7",
+          "toml-1-0.assertion-8"
+        ],
+        "execution": "toml-1-0.execution",
+        "selection": "toml-1-0.selection",
+        "attribution": "toml-1-0.attribution"
+      }
+    }
+  ]
+}

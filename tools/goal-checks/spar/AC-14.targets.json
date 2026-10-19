@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "gate",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Gate.test_gate_states_and_fields",
+      "result_targets": {
+        "additional_violations": [
+          "gate.assertion-2",
+          "gate.assertion-3",
+          "gate.assertion-4",
+          "gate.assertion-5",
+          "gate.assertion-6",
+          "gate.assertion-7",
+          "gate.assertion-8"
+        ],
+        "execution": "gate.execution",
+        "selection": "gate.selection",
+        "attribution": "gate.attribution"
+      }
+    }
+  ]
+}

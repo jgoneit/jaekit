@@ -1,0 +1,57 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spar/AC-10.targets.json",
+    "tools/goal-checks/spar/observe_spar.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "angles",
+      "violation": "angles-not-required"
+    },
+    {
+      "id": "angles.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "angles.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "angles.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "angles.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "angles.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "angles.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "angles.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "angles.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "angles.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "angles.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

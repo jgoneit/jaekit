@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "caps",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Caps.test_stage_caps_and_fixes_chain",
+      "result_targets": {
+        "additional_violations": [
+          "caps.assertion-2",
+          "caps.assertion-3",
+          "caps.assertion-4",
+          "caps.assertion-5",
+          "caps.assertion-6",
+          "caps.assertion-7",
+          "caps.assertion-8"
+        ],
+        "execution": "caps.execution",
+        "selection": "caps.selection",
+        "attribution": "caps.attribution"
+      }
+    }
+  ]
+}

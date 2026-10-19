@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "round",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Round.test_candidate_round_runs_every_reviewer_on_one_packet",
+      "result_targets": {
+        "additional_violations": [
+          "round.assertion-2",
+          "round.assertion-3",
+          "round.assertion-4",
+          "round.assertion-5",
+          "round.assertion-6",
+          "round.assertion-7",
+          "round.assertion-8"
+        ],
+        "execution": "round.execution",
+        "selection": "round.selection",
+        "attribution": "round.attribution"
+      }
+    },
+    {
+      "target": "workspace",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Round.test_workspace_has_only_tracked_files_and_no_history",
+      "result_targets": {
+        "additional_violations": [
+          "workspace.assertion-2",
+          "workspace.assertion-3",
+          "workspace.assertion-4",
+          "workspace.assertion-5",
+          "workspace.assertion-6",
+          "workspace.assertion-7",
+          "workspace.assertion-8"
+        ],
+        "execution": "workspace.execution",
+        "selection": "workspace.selection",
+        "attribution": "workspace.attribution"
+      }
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spar/AC-15.targets.json",
+    "tools/goal-checks/spar/observe_spar.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "growth",
+      "violation": "growth-not-recorded"
+    },
+    {
+      "id": "growth.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "growth.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "growth.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "growth.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "growth.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "growth.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "growth.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "growth.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "growth.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "growth.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

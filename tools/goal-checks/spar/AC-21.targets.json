@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "build",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Build.test_spar_builds_for_four_targets_in_common_verification",
+      "result_targets": {
+        "additional_violations": [
+          "build.assertion-2",
+          "build.assertion-3",
+          "build.assertion-4",
+          "build.assertion-5",
+          "build.assertion-6",
+          "build.assertion-7",
+          "build.assertion-8"
+        ],
+        "execution": "build.execution",
+        "selection": "build.selection",
+        "attribution": "build.attribution"
+      }
+    }
+  ]
+}

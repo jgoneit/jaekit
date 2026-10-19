@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "command",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Command.test_command_reviewer_runs_without_shell_and_is_never_required",
+      "result_targets": {
+        "additional_violations": [
+          "command.assertion-2",
+          "command.assertion-3",
+          "command.assertion-4",
+          "command.assertion-5",
+          "command.assertion-6",
+          "command.assertion-7",
+          "command.assertion-8"
+        ],
+        "execution": "command.execution",
+        "selection": "command.selection",
+        "attribution": "command.attribution"
+      }
+    }
+  ]
+}
