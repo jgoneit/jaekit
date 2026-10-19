@@ -361,7 +361,7 @@ claude plugin install seal@jaekit
 
 ## 소스에서 빌드 (개발)
 
-저장소 checkout에서 빌드한 `ha`는 개발 버전(`ha 0.1.6-dev`)을 표시합니다. Go 1.26 이상과 git이 필요합니다. checkout의 루트에서 실행합니다.
+저장소 checkout에서 빌드한 `ha`는 개발 버전(`ha 0.1.6-dev`)을 표시합니다. Go 1.27 이상과 git이 필요합니다. checkout의 루트에서 실행합니다.
 
 ```bash
 go install ./cmd/ha
