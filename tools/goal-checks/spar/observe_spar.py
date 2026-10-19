@@ -59,10 +59,13 @@ def require(case, condition, violation, message):
 
 def run(argv, cwd=None, env=None, timeout=300, input_bytes=None):
     try:
-        return subprocess.run([str(a) for a in argv], cwd=cwd, env=env, capture_output=True, timeout=timeout,
-                              input=input_bytes, stdin=None if input_bytes is not None else subprocess.DEVNULL)
+        result = subprocess.run([str(a) for a in argv], cwd=cwd, env=env, capture_output=True, timeout=timeout,
+                                input=input_bytes, stdin=None if input_bytes is not None else subprocess.DEVNULL)
     except (OSError, subprocess.TimeoutExpired) as error:
         raise Unavailable(f"{argv[0]}: {error}") from None
+    if result.returncode < 0:
+        raise Unavailable(f"{argv[0]} ended by signal {-result.returncode}")
+    return result
 
 
 def text(result):
@@ -99,13 +102,33 @@ def build(package, name, env_extra=None, ldflags=None):
 
 
 def spar_binary(case, violation):
-    """The checked tree's `spar`, or the declared violation when it has none."""
+    """The checked tree's `spar`, or the declared violation when it has none.
+
+    A platform run (see Platforms) supplies a binary built for its target in
+    SPAR_OBSERVE_BINARY instead; it never builds inside the target."""
+    given = os.environ.get("SPAR_OBSERVE_BINARY")
+    if given:
+        if not Path(given).is_file():
+            raise Unavailable(f"SPAR_OBSERVE_BINARY names no file: {given}")
+        return Path(given)
     require(case, SPAR_MAIN.is_file(), violation, "the checked tree has no spar executable (cmd/spar)")
     return build("./cmd/spar", "spar")
 
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def read_output(case, path, violation, what):
+    """Text that spar must have written; its absence is the condition's violation."""
+    path = Path(path)
+    require(case, path.is_file(), violation, f"{what} is missing: {path}")
+    return path.read_text(encoding="utf-8")
+
+
+def path_named(message, path):
+    """Whether a message names the file, as given or with symlinks resolved (macOS /var)."""
+    return str(path) in message or os.path.realpath(path) in message
 
 
 def load_json(case, path, violation, what):
@@ -154,11 +177,13 @@ spec.update(control.get("reviewers", {}).get(name, {}))
 spec.update(spec.get("models", {}).get(model or "", {}))
 cwd = os.getcwd()
 listing = sorted(str(p.relative_to(cwd)) for p in Path(cwd).rglob("*"))
+hashes = {str(p.relative_to(cwd)): hashlib.sha256(p.read_bytes()).hexdigest()
+          for p in Path(cwd).rglob("*") if p.is_file() and str(p.relative_to(cwd)).startswith(("head/", "base/"))}
 start = time.time()
 time.sleep(float(spec.get("sleep", 0)))
 end = time.time()
 entry = {"name": name, "argv": args, "cwd": cwd, "model": model, "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
-         "start": start, "end": end, "listing": listing, "pid": os.getpid()}
+         "start": start, "end": end, "listing": listing, "hashes": hashes, "pid": os.getpid()}
 if name not in ("claude", "codex", "agy"):
     entry["workspace"] = option("--workspace")
     entry["schema"] = option("--schema")
@@ -372,11 +397,17 @@ class World:
             self.case.fail(f"[violation:{self.violation}] ledger.jsonl is not JSON lines: {error}")
 
     def gate(self, rounds, out="reviews/gate.json", expect=None):
+        """Run the gate; it writes the gate file in every state."""
+        before = (self.repo / out).read_bytes() if (self.repo / out).exists() else None
         result = self.spar_run("gate", *rounds, "--expect-head", expect or self.head, "--out", out)
-        data = None
-        if (self.repo / out).exists():
-            data = load_json(self.case, self.repo / out, self.violation, "gate file")
+        require(self.case, (self.repo / out).is_file() and (self.repo / out).read_bytes() != before, self.violation,
+                f"spar gate exited {result.returncode} without writing {out}: {text(result)[-400:]}")
+        data = load_json(self.case, self.repo / out, self.violation, "gate file")
+        require(self.case, isinstance(data, dict), self.violation, "gate file is not an object")
         return result, data
+
+    def output(self, out, name):
+        return read_output(self.case, self.repo / out / name, self.violation, name)
 
 
 def reviewers_toml(*entries):
@@ -413,9 +444,8 @@ class Round(unittest.TestCase):
         names = sorted(c["name"] for c in calls)
         require(self, names == ["agy", "claude", "codex", "example-reviewer"], v, f"reviewers started: {names}")
         require(self, meta.get("schema") == "review-round/v1", v, f"round schema: {meta.get('schema')}")
-        packet = (w.repo / "reviews/demo/01-candidate/packet.md").read_bytes() \
-            if (w.repo / "reviews/demo/01-candidate/packet.md").exists() else b""
-        require(self, packet and meta.get("packet_sha256") == sha(packet), v, "packet digest does not match packet.md")
+        packet = w.output("reviews/demo/01-candidate", "packet.md").encode()
+        require(self, meta.get("packet_sha256") == sha(packet), v, "packet digest does not match packet.md")
         require(self, {c["prompt_sha256"] for c in calls} == {sha(packet)}, v,
                 "reviewers did not all receive the same packet")
         require(self, len({c["cwd"] for c in calls}) == 4, v, "reviewers shared a workspace copy")
@@ -433,8 +463,7 @@ class Round(unittest.TestCase):
         found = w.findings("reviews/demo/01-candidate")
         require(self, len(found) == 4 and all(f.get("class") in CLASSES for f in found), v,
                 f"findings not classified: {found}")
-        summary = w.repo / "reviews/demo/01-candidate/summary.md"
-        body = summary.read_text() if summary.exists() else ""
+        body = w.output("reviews/demo/01-candidate", "summary.md")
         require(self, all(n in body for n in ("claude", "codex", "agy", "example")), v,
                 "summary.md does not show every reviewer")
 
@@ -460,7 +489,13 @@ class Round(unittest.TestCase):
         extra = {p for p in extra if not any(f.startswith(p.split("/", 1)[1] + "/")
                                              for f in head_files | base_files)}
         require(self, not extra, v, f"workspace has untracked files: {sorted(extra)[:5]}")
-        packet = (w.repo / "reviews/demo/01-candidate/packet.md").read_text()
+        hashes = calls[0].get("hashes") or {}
+        for side, commit, files in (("head", w.head, head_files), ("base", w.base, base_files)):
+            for name in files:
+                content = run([w.git, "show", f"{commit}:{name}"], w.repo).stdout
+                require(self, hashes.get(f"{side}/{name}") == sha(content), v,
+                        f"{side}/{name} in the workspace is not the file of commit {commit[:12]}")
+        packet = w.output("reviews/demo/01-candidate", "packet.md")
         require(self, COMMIT_TOKEN not in packet and IGNORED_TOKEN not in packet, v,
                 "packet contains a commit message or an ignored file")
         require(self, "**AC-1**" in packet and "Rule one" in packet, v, "packet lacks the criteria or rules")
@@ -481,9 +516,9 @@ class Angles(unittest.TestCase):
         require(self, (states.get("claude") or {}).get("status") == "completed", v, f"claude: {states.get('claude')}")
         require(self, sorted((states.get("claude") or {}).get("angles_checked") or []) == sorted(ANGLES), v,
                 "checked angles are not recorded")
-        packet = (w.repo / "reviews/demo/01-candidate/packet.md").read_text()
+        packet = w.output("reviews/demo/01-candidate", "packet.md")
         require(self, all(a in packet for a in ANGLES), v, "packet does not ask for every angle")
-        summary = (w.repo / "reviews/demo/01-candidate/summary.md").read_text()
+        summary = w.output("reviews/demo/01-candidate", "summary.md")
         require(self, all(a in summary for a in ANGLES), v, "zero-finding summary does not show checked angles")
         # A result that leaves out one requested angle from both lists is incomplete.
         partial = {"reviewed_head": w.head, "verdict": "no_blocking_findings",
@@ -501,7 +536,7 @@ class Angles(unittest.TestCase):
         w.control({"claude": {}, "codex": {}}, angles=["requirement-counterexample", "check-validity"])
         w.round("reviews/other/01-candidate")
         meta = w.round_json("reviews/other/01-candidate")
-        packet = (w.repo / "reviews/other/01-candidate/packet.md").read_text()
+        packet = w.output("reviews/other/01-candidate", "packet.md")
         require(self, ((meta.get("reviewers") or {}).get("claude") or {}).get("status") == "completed", v,
                 "a result covering the reduced angles was refused")
         require(self, "premises" not in (meta.get("config") or {}).get("angles", ["premises"]), v,
@@ -630,25 +665,29 @@ class Config(unittest.TestCase):
         v = "config-error-unreported"
         w = World(self, v)
         w.control({"codex": {}, "claude": {}})
+        # The location is the line of the offending key or of its [[reviewers]] header.
         cases = [
-            ('[[reviewers]]\nname = "codex"\npreset = "codex\n', 3, "syntax"),
-            ('[[reviewers]]\nname = "codex"\npreset = "codex"\nmodle = "x"\n', 4, "modle"),
+            ('[[reviewers]]\nname = "codex"\npreset = "codex\n', {3}, "syntax"),
+            ('[[reviewers]]\nname = "codex"\npreset = "codex"\nmodle = "x"\n', {4}, "modle"),
             ('[[reviewers]]\nname = "codex"\npreset = "codex"\n\n[[reviewers]]\nname = "codex"\npreset = "claude"\n',
-             5, "codex"),
-            ('[[reviewers]]\nname = "g"\npreset = "gemini"\n', 1, "gemini"),
-            ('[[reviewers]]\nname = "c"\npreset = "command"\n', 1, "argv"),
-            ('# comment\ntimeout = 3\n', 2, "timeout"),
+             {5, 6}, "codex"),
+            ('[[reviewers]]\nname = "g"\npreset = "gemini"\n', {1, 3}, "gemini"),
+            ('[[reviewers]]\nname = "c"\npreset = "command"\n', {1, 3}, "argv"),
+            ('# comment\ntimeout = 3\n', {2}, "timeout"),
         ]
-        for body, line, token in cases:
+
+        def names_line(message, lines):
+            return any(re.search(rf"(?:line {n}\b|:{n}(?::\d+)?:)", message) for n in lines)
+        for body, lines, token in cases:
             path = w.user_config(body)
             w.reset_log()
             out = "reviews/err/01-candidate"
             result = w.round(out, ok=None)
             message = text(result)
             require(self, result.returncode != 0, v, f"config error accepted ({token}): {body!r}")
-            require(self, str(path) in message, v, f"error does not name the file ({token}): {message[-300:]}")
-            require(self, re.search(rf"(?:line {line}\b|:{line}(?::\d+)?:)", message), v,
-                    f"error does not name line {line} ({token}): {message[-300:]}")
+            require(self, path_named(message, path), v, f"error does not name the file ({token}): {message[-300:]}")
+            require(self, names_line(message, lines), v,
+                    f"error does not name line {sorted(lines)} ({token}): {message[-300:]}")
             require(self, token.lower() in message.lower(), v, f"error does not name {token}: {message[-300:]}")
             require(self, not w.invocations() and not (w.repo / out / "round.json").exists(), v,
                     f"reviewers ran despite a config error ({token})")
@@ -656,8 +695,8 @@ class Config(unittest.TestCase):
         w.user_config(reviewers_toml({"name": "codex", "preset": "codex"}))
         result = w.round("reviews/err/02-candidate", ok=None)
         message = text(result)
-        require(self, result.returncode != 0 and str(project) in message and "unknown_key" in message
-                and re.search(r"(?:line 2\b|:2(?::\d+)?:)", message), v,
+        require(self, result.returncode != 0 and path_named(message, project) and "unknown_key" in message
+                and names_line(message, {2}), v,
                 f"project config error is not reported with file and line: {message[-300:]}")
 
     def test_full_toml_syntax_is_accepted(self):
@@ -801,7 +840,7 @@ class Command(unittest.TestCase):
             full = f"example-{fid}"
             w.spar_run("triage", "reviews/demo/01-candidate", full, "reject", "--evidence", "synthetic disproof")
         result, gate = w.gate(["reviews/demo/01-candidate"])
-        require(self, gate is not None and gate.get("state") == "complete" and result.returncode == 0, v,
+        require(self, gate.get("state") == "complete" and result.returncode == 0, v,
                 f"gate with a completed required reviewer: {gate and gate.get('state')} {text(result)[-300:]}")
         rounds = gate.get("rounds") or [{}]
         require(self, rounds[0].get("required_reviewers") == 1, v, f"required count: {rounds[0]}")
@@ -811,14 +850,14 @@ class Command(unittest.TestCase):
         w.control({"codex": {}, "example-reviewer": {"crash": "synthetic crash"}})
         w.round("reviews/two/01-candidate")
         result, gate = w.gate(["reviews/two/01-candidate"], out="reviews/two/gate.json")
-        require(self, gate is not None and gate.get("state") == "complete", v,
+        require(self, gate.get("state") == "complete", v,
                 f"a failed command reviewer changed the gate: {gate and gate.get('state')}")
         w.user_config(reviewers_toml({"name": "example", "preset": "command", "argv": argv}))
         w.reset_log()
         w.control({"example-reviewer": {}})
         w.round("reviews/three/01-candidate")
         result, gate = w.gate(["reviews/three/01-candidate"], out="reviews/three/gate.json")
-        require(self, gate is not None and gate.get("state") != "complete" and result.returncode != 0, v,
+        require(self, gate.get("state") != "complete" and result.returncode != 0, v,
                 f"a round with only command reviewers completed the gate: {gate and gate.get('state')}")
 
 
@@ -855,15 +894,16 @@ class Native(unittest.TestCase):
         require(self, result.returncode == 0, v, f"a pending native round exited {result.returncode}")
         round_dir = w.repo / "reviews/demo/01-candidate"
         prompt = round_dir / "native/prompt.md"
-        packet = (round_dir / "packet.md").read_text() if (round_dir / "packet.md").exists() else ""
-        require(self, prompt.is_file() and packet and packet.strip() in prompt.read_text(), v,
+        packet = w.output("reviews/demo/01-candidate", "packet.md")
+        prompt_text = w.output("reviews/demo/01-candidate", "native/prompt.md")
+        require(self, packet.strip() in prompt_text, v,
                 "native prompt does not carry the packet")
         require(self, (round_dir / "native/workspace/head/app/main.py").is_file(), v, "native workspace is missing")
         state = (w.round_json("reviews/demo/01-candidate").get("reviewers") or {}).get("native") or {}
         require(self, state.get("status") == "pending" and state.get("isolation") == "host"
                 and state.get("required") is True, v, f"native pending state: {state}")
         result, gate = w.gate(["reviews/demo/01-candidate"])
-        require(self, gate is not None and gate.get("state") == "degraded", v,
+        require(self, gate.get("state") == "degraded", v,
                 f"a pending native reviewer did not degrade the gate: {gate and gate.get('state')}")
         reply = {"reviewed_head": w.head, "verdict": "no_blocking_findings",
                  "angles_checked": [{"angle": a, "result": "ok"} for a in ANGLES], "angles_unchecked": [],
@@ -877,7 +917,7 @@ class Native(unittest.TestCase):
         require(self, state.get("status") == "completed" and state.get("isolation") == "host", v,
                 f"native result was not recorded: {state}")
         result, gate = w.gate(["reviews/demo/01-candidate"], out="reviews/demo/gate2.json")
-        require(self, gate is not None and gate.get("state") == "complete", v,
+        require(self, gate.get("state") == "complete", v,
                 f"a completed native reviewer is not required-complete: {gate and gate.get('state')}")
         # A transcript that shows another tool and added context is recorded with warnings.
         w.round("reviews/demo/02-candidate-again")
@@ -912,7 +952,7 @@ class Fallback(unittest.TestCase):
                 and state.get("requested_model") == "primary-m" and len(attempts) == 2, v, f"agy record: {state}")
         require(self, attempts[0].get("model") == "primary-m" and attempts[0].get("status") == "unavailable"
                 and "2h13m" in json.dumps(attempts[0]), v, f"refusal and reset are not recorded: {attempts[0]}")
-        summary = (w.repo / "reviews/demo/01-candidate/summary.md").read_text()
+        summary = w.output("reviews/demo/01-candidate", "summary.md")
         require(self, all(t in summary for t in ("primary-m", "fallback-m", "2h13m")), v,
                 "summary does not show the designated model, reset and fallback")
         for case, control, expected in (
@@ -927,7 +967,8 @@ class Fallback(unittest.TestCase):
             state = (w.round_json(out).get("reviewers") or {}).get("agy") or {}
             require(self, [c["model"] for c in w.invocations()] == expected and state.get("status") == "unavailable",
                     v, f"{case}: {[c['model'] for c in w.invocations()]} {state.get('status')}")
-        w.user_config(reviewers_toml({"name": "agy", "preset": "agy", "model": "primary-m"}))
+        # An empty fallback_model turns a preset's default fallback off.
+        w.user_config(reviewers_toml({"name": "agy", "preset": "agy", "model": "primary-m", "fallback_model": ""}))
         w.reset_log()
         w.control({"agy": {"models": {"primary-m": {"quota": quota}}}})
         w.round("reviews/nofallback/01-candidate")
@@ -960,13 +1001,13 @@ class Failures(unittest.TestCase):
             require(self, state.get("findings") is None, v, f"{name}: recorded findings {state.get('findings')}")
         require(self, str(missing) in states["agy"]["reason"] or "not found" in states["agy"]["reason"], v,
                 "the missing CLI is not quoted")
-        summary = (w.repo / "reviews/demo/01-candidate/summary.md").read_text()
+        summary = w.output("reviews/demo/01-candidate", "summary.md")
         for name, status in expected.items():
             line = next((l for l in summary.splitlines() if l.startswith(f"- {name}:")), "")
             require(self, status in line and "0 findings" not in line and "no findings" not in line.lower(), v,
                     f"summary line for {name}: {line!r}")
         result, gate = w.gate(["reviews/demo/01-candidate"])
-        require(self, gate is not None and gate.get("state") == "degraded", v,
+        require(self, gate.get("state") == "degraded", v,
                 f"gate after unfinished reviewers: {gate and gate.get('state')}")
 
 
@@ -987,6 +1028,10 @@ CLASS_CASES = {
     "F8": ({"proposed_class": "requirement-question"}, "requirement-question"),
     "F9": ({"proposed_class": "note"}, "note"),
     "F10": ({"location": "head/checks/test_app.py:2", "check_impact": "meaning_inverted"}, "defect"),
+    # A rule document that exists, at a line it does not have, is not a rule location.
+    "F11": ({"location": "head/checks/test_app.py:2", "check_impact": "contract_violation",
+             "link_kind": "rule", "link": "AGENTS.md:999"}, "hardening"),
+    "F12": ({"link_kind": "rule", "link": "AGENTS.md:999"}, "note"),
 }
 
 
@@ -1004,6 +1049,8 @@ class Classes(unittest.TestCase):
             require(self, got == expected, v, f"{fid}: class {got}, expected {expected}")
         require(self, found["F6"].get("link_kind") == "none", v, "an unverifiable AC link was kept")
         require(self, found["F4"].get("link_kind") == "none", v, "an unverifiable contract link was kept")
+        require(self, found["F12"].get("link_kind") == "none", v, "a rule link to a missing line was kept")
+        require(self, found["F3"].get("link_kind") == "rule", v, "a real rule location was dropped")
         require(self, found["F7"].get("link_kind") == "criterion" and found["F7"].get("link") == "AC-2", v,
                 "a real AC link was dropped")
         ledger = w.ledger("reviews/demo/01-candidate")
@@ -1040,6 +1087,9 @@ class Ledger(unittest.TestCase):
             ("codex-F2", "reject"),
             ("codex-F3", "answer"),
             ("codex-F3", "reject", "--evidence", "it is fine"),
+            ("codex-F3", "defer", "--to", "follow-ups"),
+            ("codex-F3", "fix", "--commit", fix, "--failed-before", "a", "--passed-after", "b"),
+            ("codex-F3", "duplicate", "--of", "codex-F1"),
             ("codex-F4", "fix", "--commit", fix, "--failed-before", "a", "--passed-after", "b"),
             ("codex-F5", "duplicate", "--of", "codex-F9"),
             ("codex-F5", "duplicate", "--of", "codex-F5"),
@@ -1107,6 +1157,33 @@ class Caps(unittest.TestCase):
         result = w.spar_run("extend", s, "--stage", "code", "--by", "1", "--user-quote", QUOTE)
         require(self, result.returncode == 0, v, f"extend refused: {text(result)[-300:]}")
         attempt("11-fixes", "fixes", heads[4], heads[5], True)
+        # The same packet may run again only for reviewers that did not complete
+        # it; a plan document edited in place (no new commit) is a new packet.
+        subject = w.repo / "docs/specs/demo/PLAN.md"
+        subject.write_text("plan v1\n")
+        w.user_config(reviewers_toml({"name": "codex", "preset": "codex"}, {"name": "claude", "preset": "claude"}))
+
+        def plan_run(out, reviewers, allowed):
+            w.reset_log()
+            extra = ["--subject", str(subject)] + (["--reviewers", reviewers] if reviewers else [])
+            result = w.round(f"reviews/rerun/{out}", stage="plan", base=w.base, head=heads[0], ok=None,
+                             extra=tuple(extra))
+            ran = bool(w.invocations())
+            if allowed:
+                require(self, result.returncode == 0 and ran, v, f"{out}: an allowed rerun was refused: "
+                        f"{text(result)[-300:]}")
+            else:
+                require(self, result.returncode != 0 and not ran
+                        and not (w.repo / "reviews/rerun" / out / "round.json").exists(), v,
+                        f"{out}: a plan run past the cap ran")
+        w.control({"codex": {"quota": "429 Too Many Requests"}, "claude": {}}, head=heads[0])
+        plan_run("01-plan", None, True)
+        w.control({"codex": {}, "claude": {}}, head=heads[0])
+        plan_run("02-plan-codex", "codex", True)
+        plan_run("03-plan-claude", "claude", False)
+        plan_run("04-plan-all", None, False)
+        subject.write_text("plan v2\n")
+        plan_run("05-plan-edited", "codex", False)
 
 
 class Gate(unittest.TestCase):
@@ -1125,7 +1202,7 @@ class Gate(unittest.TestCase):
             finding("F2", location="head/checks/test_app.py:2"),
             finding("F3", proposed_class="requirement-question")]}, "claude": {}})
         result, gate = w.gate(["reviews/demo/01-candidate"])
-        require(self, gate is not None and gate.get("schema") == "review-gate/v1", v, f"gate file: {gate}")
+        require(self, gate.get("schema") == "review-gate/v1", v, f"gate file: {gate}")
         require(self, gate.get("state") == "blocked" and result.returncode == 4, v,
                 f"open findings: {gate.get('state')} exit {result.returncode}")
         require(self, (gate.get("open") or {}).get("defect") == 1 and (gate.get("open") or {}).get(
@@ -1171,6 +1248,38 @@ class Gate(unittest.TestCase):
                               expect=other)
         require(self, gate.get("state") == "blocked" and result.returncode == 4, v,
                 f"broken chain: {gate.get('state')}")
+        # The criteria digest is present and follows the criteria documents.
+        for m in metas:
+            require(self, re.fullmatch(r"[0-9a-f]{64}", str(m.get("criteria_digest") or "")), v,
+                    f"round record lacks a criteria digest: {m.get('criteria_digest')!r}")
+            require(self, [e.get("sha256") for e in m.get("criteria") or []] == [sha(w.criteria.read_bytes())], v,
+                    f"criteria entries do not name the criteria document: {m.get('criteria')}")
+        w.criteria.write_text(w.criteria.read_text() + "- **AC-3** a later criterion.\n")
+        self.three_round(w, "reviews/crit/01-candidate", {"codex": {}, "claude": {}})
+        changed = w.round_json("reviews/crit/01-candidate").get("criteria_digest")
+        require(self, changed and changed != metas[0].get("criteria_digest"), v,
+                "the criteria digest does not change with the criteria")
+        # More code rounds than the cap allows are blocked once the extension is gone.
+        heads = [w.base]
+        for i in range(4):
+            heads.append(w.fix_commit(content=f"def greet(name):\n    return 'over {i}'\n"))
+        rounds = []
+        for i, stage in enumerate(("candidate", "fixes", "fixes", "fixes")):
+            if i == 3:
+                w.spar_run("extend", "reviews/over", "--stage", "code", "--by", "1", "--user-quote", QUOTE)
+            out = f"reviews/over/0{i + 1}-{stage}"
+            self.three_round(w, out, {"codex": {}, "claude": {}}, base=heads[0] if i == 0 else heads[i],
+                             head=heads[i + 1], stage=stage)
+            rounds.append(out)
+        result, gate = w.gate(rounds, out="reviews/over/gate.json", expect=heads[4])
+        require(self, gate.get("state") == "complete", v, f"four code rounds with an extension: {gate.get('state')} "
+                f"{gate.get('reasons')}")
+        extensions = w.repo / "reviews/over/extensions.jsonl"
+        require(self, extensions.is_file(), v, "the extension record is missing")
+        extensions.unlink()
+        result, gate = w.gate(rounds, out="reviews/over/gate.json", expect=heads[4])
+        require(self, gate.get("state") == "blocked" and result.returncode == 4, v,
+                f"code rounds past the cap: {gate.get('state')} exit {result.returncode}")
 
     def test_gate_records_review_fix_growth(self):
         v = "growth-not-recorded"
@@ -1474,14 +1583,36 @@ def platform_of(header):
     return "?"
 
 
-class Build(unittest.TestCase):
-    def test_spar_builds_for_four_targets_in_common_verification(self):
+RUNTIME_CLASSES = ("Round", "Angles", "Records", "Config", "Presets", "Command", "Native", "Fallback",
+                   "Failures", "Classes", "Ledger", "Caps", "Gate")
+LINUX_IMAGE = "python:3.14"
+
+
+def platform_suite(out):
+    """Child mode: run the runtime observations against SPAR_OBSERVE_BINARY and write their outcome."""
+    module = sys.modules[__name__]
+    loader = unittest.TestLoader()
+    suite = unittest.TestSuite(loader.loadTestsFromTestCase(getattr(module, name)) for name in RUNTIME_CLASSES)
+    result = unittest.TextTestRunner(stream=sys.stderr, verbosity=2).run(suite)
+    Path(out).write_text(json.dumps({
+        "tests": result.testsRun, "skipped": len(result.skipped),
+        "failures": [[case.id(), detail[-1500:]] for case, detail in result.failures],
+        "errors": [[case.id(), detail[-1500:]] for case, detail in result.errors]}))
+    return 0
+
+
+class Platforms(unittest.TestCase):
+    """AC-21: spar builds for the four targets and behaves the same on each.
+
+    Each target runs the runtime observations (RUNTIME_CLASSES) against the
+    binary built for it: darwin/arm64 natively, darwin/amd64 through Rosetta,
+    linux/arm64 and linux/amd64 in the local python:3.14 image (never pulled
+    here). A target that cannot execute on this host is an execution error.
+    """
+
+    def test_common_verification_builds_spar_for_four_targets(self):
         v = "spar-build-missing"
         require(self, SPAR_MAIN.is_file(), v, "the checked tree has no spar executable (cmd/spar)")
-        for target in TARGETS:
-            goos, goarch = target.split("/")
-            binary = build("./cmd/spar", f"spar-{goos}-{goarch}", {"GOOS": goos, "GOARCH": goarch})
-            require(self, platform_of(binary.read_bytes()[:64]) == target, v, f"spar for {target} has another format")
         spec = importlib.util.spec_from_file_location("spar_verify_view", ROOT / "tools/verify.py")
         module = importlib.util.module_from_spec(spec)
         try:
@@ -1497,6 +1628,62 @@ class Build(unittest.TestCase):
             matching = [c for _, c, env in commands if c[:2] == ["go", "build"] and env.get("GOOS") == goos
                         and env.get("GOARCH") == goarch and "./cmd/spar" in c]
             require(self, matching, v, f"common verification does not build spar for {target}")
+
+    def behaves(self, target):
+        v = "spar-platform-behavior"
+        require(self, SPAR_MAIN.is_file(), v, "the checked tree has no spar executable (cmd/spar)")
+        goos, goarch = target.split("/")
+        binary = build("./cmd/spar", f"spar-{goos}-{goarch}", {"GOOS": goos, "GOARCH": goarch})
+        require(self, platform_of(binary.read_bytes()[:64]) == target, v, f"spar for {target} has another format")
+        work = Path(tempfile.mkdtemp(prefix="jaekit-spar-platform-"))
+        self.addCleanup(shutil.rmtree, work, True)
+        observer = work / "tools/goal-checks/spar/observe_spar.py"
+        observer.parent.mkdir(parents=True)
+        shutil.copyfile(Path(__file__), observer)
+        shutil.copyfile(binary, work / "spar")
+        (work / "spar").chmod(0o755)
+        if goos == "darwin":
+            if os.uname().sysname != "Darwin":
+                raise Unavailable(f"{target} needs a macOS host")
+            probe = run([work / "spar", "--version"], work)
+            if probe.returncode:
+                raise Unavailable(f"spar for {target} does not start here: {text(probe)[-300:]}")
+            argv = [sys.executable, observer, "--platform-suite", work / "outcome.json"]
+            env = {key: value for key, value in os.environ.items() if not key.startswith("HA_")}
+            env["SPAR_OBSERVE_BINARY"] = str(work / "spar")
+        else:
+            docker = tool("docker")
+            probe = run([docker, "run", "--rm", "--pull", "never", "--platform", target, LINUX_IMAGE,
+                         "python3", "--version"], work, timeout=300)
+            if probe.returncode:
+                raise Unavailable(f"{LINUX_IMAGE} for {target} is not available here: {text(probe)[-300:]}")
+            argv = [docker, "run", "--rm", "--pull", "never", "--platform", target, "-v", f"{work}:/work",
+                    "-e", "SPAR_OBSERVE_BINARY=/work/spar", LINUX_IMAGE, "python3",
+                    "/work/tools/goal-checks/spar/observe_spar.py", "--platform-suite", "/work/outcome.json"]
+            env = None
+        result = run(argv, work, env, timeout=840)
+        try:
+            outcome = json.loads((work / "outcome.json").read_text())
+        except (OSError, ValueError):
+            raise Unavailable(f"{target}: the runtime observations did not report: {text(result)[-1500:]}") from None
+        if outcome["failures"]:
+            case, detail = outcome["failures"][0]
+            found = re.search(r"\[violation:[^\]]+\][^\n]*", detail)
+            self.fail(f"[violation:{v}] {target}: {case}: {found.group(0) if found else detail[-300:]}")
+        if outcome["errors"] or not outcome["tests"]:
+            raise Unavailable(f"{target}: runtime observations could not run: {outcome['errors'][:1]}")
+
+    def test_darwin_arm64(self):
+        self.behaves("darwin/arm64")
+
+    def test_darwin_amd64(self):
+        self.behaves("darwin/amd64")
+
+    def test_linux_arm64(self):
+        self.behaves("linux/arm64")
+
+    def test_linux_amd64(self):
+        self.behaves("linux/amd64")
 
 
 def step_script(workflow, name):
@@ -1618,4 +1805,6 @@ class Release(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) == 3 and sys.argv[1] == "--platform-suite":
+        raise SystemExit(platform_suite(sys.argv[2]))
     unittest.main()

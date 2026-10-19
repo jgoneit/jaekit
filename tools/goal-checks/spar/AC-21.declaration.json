@@ -10,47 +10,223 @@
   ],
   "targets": [
     {
-      "id": "build",
+      "id": "common-build",
       "violation": "spar-build-missing"
     },
     {
-      "id": "build.assertion-2",
+      "id": "common-build.assertion-2",
       "violation": "no-additional-violation"
     },
     {
-      "id": "build.assertion-3",
+      "id": "common-build.assertion-3",
       "violation": "no-additional-violation"
     },
     {
-      "id": "build.assertion-4",
+      "id": "common-build.assertion-4",
       "violation": "no-additional-violation"
     },
     {
-      "id": "build.assertion-5",
+      "id": "common-build.assertion-5",
       "violation": "no-additional-violation"
     },
     {
-      "id": "build.assertion-6",
+      "id": "common-build.assertion-6",
       "violation": "no-additional-violation"
     },
     {
-      "id": "build.assertion-7",
+      "id": "common-build.assertion-7",
       "violation": "no-additional-violation"
     },
     {
-      "id": "build.assertion-8",
+      "id": "common-build.assertion-8",
       "violation": "no-additional-violation"
     },
     {
-      "id": "build.execution",
+      "id": "common-build.execution",
       "violation": "no-additional-violation"
     },
     {
-      "id": "build.selection",
+      "id": "common-build.selection",
       "violation": "no-additional-violation"
     },
     {
-      "id": "build.attribution",
+      "id": "common-build.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-arm64",
+      "violation": "spar-platform-behavior"
+    },
+    {
+      "id": "darwin-arm64.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-arm64.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-arm64.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-arm64.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-arm64.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-arm64.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-arm64.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-arm64.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-arm64.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-arm64.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-amd64",
+      "violation": "spar-platform-behavior"
+    },
+    {
+      "id": "darwin-amd64.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-amd64.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-amd64.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-amd64.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-amd64.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-amd64.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-amd64.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-amd64.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-amd64.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "darwin-amd64.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-arm64",
+      "violation": "spar-platform-behavior"
+    },
+    {
+      "id": "linux-arm64.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-arm64.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-arm64.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-arm64.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-arm64.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-arm64.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-arm64.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-arm64.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-arm64.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-arm64.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-amd64",
+      "violation": "spar-platform-behavior"
+    },
+    {
+      "id": "linux-amd64.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-amd64.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-amd64.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-amd64.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-amd64.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-amd64.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-amd64.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-amd64.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-amd64.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "linux-amd64.attribution",
       "violation": "no-additional-violation"
     }
   ]

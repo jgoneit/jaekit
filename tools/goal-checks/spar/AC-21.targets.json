@@ -2,23 +2,103 @@
   "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
-      "target": "build",
+      "target": "common-build",
       "runner": "unittest",
       "file": "tools/goal-checks/spar/observe_spar.py",
-      "test": "Build.test_spar_builds_for_four_targets_in_common_verification",
+      "test": "Platforms.test_common_verification_builds_spar_for_four_targets",
       "result_targets": {
         "additional_violations": [
-          "build.assertion-2",
-          "build.assertion-3",
-          "build.assertion-4",
-          "build.assertion-5",
-          "build.assertion-6",
-          "build.assertion-7",
-          "build.assertion-8"
+          "common-build.assertion-2",
+          "common-build.assertion-3",
+          "common-build.assertion-4",
+          "common-build.assertion-5",
+          "common-build.assertion-6",
+          "common-build.assertion-7",
+          "common-build.assertion-8"
         ],
-        "execution": "build.execution",
-        "selection": "build.selection",
-        "attribution": "build.attribution"
+        "execution": "common-build.execution",
+        "selection": "common-build.selection",
+        "attribution": "common-build.attribution"
+      }
+    },
+    {
+      "target": "darwin-arm64",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Platforms.test_darwin_arm64",
+      "result_targets": {
+        "additional_violations": [
+          "darwin-arm64.assertion-2",
+          "darwin-arm64.assertion-3",
+          "darwin-arm64.assertion-4",
+          "darwin-arm64.assertion-5",
+          "darwin-arm64.assertion-6",
+          "darwin-arm64.assertion-7",
+          "darwin-arm64.assertion-8"
+        ],
+        "execution": "darwin-arm64.execution",
+        "selection": "darwin-arm64.selection",
+        "attribution": "darwin-arm64.attribution"
+      }
+    },
+    {
+      "target": "darwin-amd64",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Platforms.test_darwin_amd64",
+      "result_targets": {
+        "additional_violations": [
+          "darwin-amd64.assertion-2",
+          "darwin-amd64.assertion-3",
+          "darwin-amd64.assertion-4",
+          "darwin-amd64.assertion-5",
+          "darwin-amd64.assertion-6",
+          "darwin-amd64.assertion-7",
+          "darwin-amd64.assertion-8"
+        ],
+        "execution": "darwin-amd64.execution",
+        "selection": "darwin-amd64.selection",
+        "attribution": "darwin-amd64.attribution"
+      }
+    },
+    {
+      "target": "linux-arm64",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Platforms.test_linux_arm64",
+      "result_targets": {
+        "additional_violations": [
+          "linux-arm64.assertion-2",
+          "linux-arm64.assertion-3",
+          "linux-arm64.assertion-4",
+          "linux-arm64.assertion-5",
+          "linux-arm64.assertion-6",
+          "linux-arm64.assertion-7",
+          "linux-arm64.assertion-8"
+        ],
+        "execution": "linux-arm64.execution",
+        "selection": "linux-arm64.selection",
+        "attribution": "linux-arm64.attribution"
+      }
+    },
+    {
+      "target": "linux-amd64",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Platforms.test_linux_amd64",
+      "result_targets": {
+        "additional_violations": [
+          "linux-amd64.assertion-2",
+          "linux-amd64.assertion-3",
+          "linux-amd64.assertion-4",
+          "linux-amd64.assertion-5",
+          "linux-amd64.assertion-6",
+          "linux-amd64.assertion-7",
+          "linux-amd64.assertion-8"
+        ],
+        "execution": "linux-amd64.execution",
+        "selection": "linux-amd64.selection",
+        "attribution": "linux-amd64.attribution"
       }
     }
   ]

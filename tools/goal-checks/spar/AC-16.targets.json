@@ -28,6 +28,16 @@
         "python3",
         "tools/verify.py"
       ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": [
+          130
+        ]
+      },
       "result_targets": {
         "additional_violations": [
           "full-verification.assertion-2",
