@@ -22,9 +22,12 @@ type platformCase struct {
 	Violation string            `json:"violation"`
 	Test      map[string]string `json:"test"`
 	Output    string            `json:"output"`
-	Result    string            `json:"result"`
-	Reason    string            `json:"reason"`
-	Targets   [][]any           `json:"targets"`
+	// CRLFOutput is Output with CRLF line endings, kept in the fixture so a
+	// changed copy shows that the crlf subtests classify it.
+	CRLFOutput string  `json:"crlf_output"`
+	Result     string  `json:"result"`
+	Reason     string  `json:"reason"`
+	Targets    [][]any `json:"targets"`
 }
 
 func (c platformCase) declaration() *Declaration {
@@ -46,9 +49,9 @@ func (c platformCase) observations() []Observation {
 }
 
 // TestNativeAdapterClassification classifies fixed runner outputs that a
-// child process writes, as written and with CRLF line endings: a go-test-json
-// output on standard output and a junit-xml file at the location ha names.
-// JAEKIT_ADAPTER_PLATFORM_FIXTURE replaces the fixture file.
+// child process writes, with LF (output) and CRLF (crlf_output) line endings:
+// a go-test-json output on standard output and a junit-xml file at the
+// location ha names. JAEKIT_ADAPTER_PLATFORM_FIXTURE replaces the fixture file.
 func TestNativeAdapterClassification(t *testing.T) {
 	path := filepath.Join("testdata", "adapter-platform.json")
 	if other := os.Getenv("JAEKIT_ADAPTER_PLATFORM_FIXTURE"); other != "" {
@@ -73,7 +76,7 @@ func TestNativeAdapterClassification(t *testing.T) {
 			t.Run(c.Case+"/"+form, func(t *testing.T) {
 				output := c.Output
 				if form == "crlf" {
-					output = strings.ReplaceAll(output, "\n", "\r\n")
+					output = c.CRLFOutput
 				}
 				dir := t.TempDir()
 				source := filepath.Join(dir, "output")
