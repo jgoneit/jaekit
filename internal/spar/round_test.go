@@ -350,6 +350,63 @@ func TestRunHoldsTheSeriesUntilItsRoundEnds(t *testing.T) {
 	}
 }
 
+// Every fixed finding's commit must be in the expected head, and only a
+// rerun of the same packet is exempt from the fixes chain.
+func TestGateFixCommitsAndChain(t *testing.T) {
+	f := newFixture(t)
+	base, head, later := f.revs[0], f.revs[1], f.revs[2]
+	done := map[string]*ReviewerState{"host": reviewer("native", true, StatusCompleted)}
+	cfg := &Config{Caps: Caps{1, 1, 3}, ConfiguredRequired: []RequiredRef{{"host", "native"}}}
+	a := f.round("01-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 1, Counted: true,
+		RequiredReviewers: []string{"host"}, Config: cfg, Reviewers: done},
+		[]Finding{{ID: "host-F1", Class: "hardening"}},
+		[]LedgerEntry{{Finding: "host-F1", Disposition: "fix", Commit: later}})
+	if g := f.gate(head, a); g.State != StateBlocked {
+		t.Errorf("a hardening fix outside the expected head: %s %v", g.State, g.Reasons)
+	}
+	b := f.round("02-fixes", &RoundRecord{Stage: "fixes", Base: head, Head: later, Sequence: 2, Counted: true, PacketSHA256: "p",
+		RequiredReviewers: []string{"host"}, Config: cfg, Reviewers: done}, nil, nil)
+	c := f.round("03-fixes", &RoundRecord{Stage: "fixes", Base: head, Head: later, Sequence: 3, Counted: true, PacketSHA256: "q",
+		RequiredReviewers: []string{"host"}, Config: cfg, Reviewers: done}, nil, nil)
+	if g := f.gate(later, a, b, c); !strings.Contains(strings.Join(g.Reasons, " "), "chain") {
+		t.Errorf("a fixes round with another packet on the same commits kept the chain: %s %v", g.State, g.Reasons)
+	}
+	rerun := f.round("04-fixes", &RoundRecord{Stage: "fixes", Base: head, Head: later, Sequence: 4, PacketSHA256: "p",
+		RequiredReviewers: []string{"host"}, Config: cfg, Reviewers: done}, nil, nil)
+	if g := f.gate(later, a, b, rerun); strings.Contains(strings.Join(g.Reasons, " "), "chain") {
+		t.Errorf("a rerun of the same packet broke the chain: %v", g.Reasons)
+	}
+	next := &RoundRecord{Stage: "fixes", Base: head, Head: later, PacketSHA256: "q", Config: cfg, RequestedReviewers: []string{"host"}}
+	cand, _ := loadRound(a)
+	fix, _ := loadRound(b)
+	if _, _, err := admit([]sibling{{a, cand}, {b, fix}}, nil, next); err == nil || !strings.Contains(err.Error(), "chain") {
+		t.Errorf("admission let another packet on the same commits skip the chain: %v", err)
+	}
+}
+
+// The gate applies the cap of the series' last round, also when an earlier
+// round is the one gated.
+func TestGateCapFromLastRound(t *testing.T) {
+	for _, tc := range []struct {
+		first, last int64
+		over        bool
+	}{{3, 1, true}, {1, 3, false}} {
+		f := newFixture(t)
+		base, head, later := f.revs[0], f.revs[1], f.revs[2]
+		done := map[string]*ReviewerState{"host": reviewer("native", true, StatusCompleted)}
+		a := f.round("01-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 1, Counted: true,
+			RequiredReviewers: []string{"host"}, Reviewers: done,
+			Config: &Config{Caps: Caps{1, 1, tc.first}, ConfiguredRequired: []RequiredRef{}}}, nil, nil)
+		f.round("02-fixes", &RoundRecord{Stage: "fixes", Base: head, Head: later, Sequence: 2, Counted: true,
+			RequiredReviewers: []string{"host"}, Reviewers: done,
+			Config: &Config{Caps: Caps{1, 1, tc.last}, ConfiguredRequired: []RequiredRef{}}}, nil, nil)
+		g := f.gate(head, a)
+		if over := strings.Contains(strings.Join(g.Reasons, " "), "the cap"); over != tc.over {
+			t.Errorf("code cap %d then %d: over the cap %v, want %v: %v", tc.first, tc.last, over, tc.over, g.Reasons)
+		}
+	}
+}
+
 // A renamed file counts only the lines it gained, under its new path.
 func TestNumstatFollowsRenames(t *testing.T) {
 	f := newFixture(t)

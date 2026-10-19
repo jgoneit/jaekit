@@ -105,6 +105,17 @@ code = 3
 | `files` | 읽은 설정 파일의 경로와 sha256 |
 | `reviewers` | 적용된 리뷰어(`name`, `preset`, `isolation`, `required`, `model`, `fallback_model`, `effort`, `binary`, `argv`, `timeout_seconds`) |
 | `angles`, `caps`, `check_paths`, `rules` | 적용된 값 |
-| `digest` | 리뷰어·각도·상한·검사 경로·규칙의 정규 JSON sha256. 출처가 달라도 적용한 값이 같으면 같다 |
+| `digest` | 리뷰어·`configured_required`·각도·상한·검사 경로·규칙의 정규 JSON sha256. 출처가 달라도 적용한 값이 같으면 같다. `--reviewers`가 같아도 설정이 필수로 정한 리뷰어가 다르면 digest가 다르다 |
 
 `spar run --check-path GLOB`은 그 실행의 `check_paths`에 더하며 digest에 반영된다.
+
+## 5. 지원하는 형식
+
+이 버전은 위에 적은 형식만 보장한다. 다음 형식은 이 버전의 보장 밖이다. 거부한다고도, 특정 값으로 읽는다고도 약속하지 않으므로 쓰지 않는다. 입력 검증을 강화하는 후속 목표에서 다룬다.
+
+- `SPAR_CONFIG`가 일반 파일이 아닌 것(폴더, FIFO 등)을 가리키는 경우. 지원하는 것은 일반 파일이거나 없는 경로다.
+- `reviewers` 키가 없는 사용자 설정의 최상위 `timeout_seconds`. 기본 리뷰어에 적용된다고 보장하지 않는다. 시간 제한을 바꾸려면 `[[reviewers]]`를 함께 쓴다.
+- 대소문자만 다른 리뷰어 이름(`Host`와 `host` 등). 대소문자를 구별하지 않는 파일 시스템에서는 같은 리뷰어 폴더를 쓴다.
+- 라운드 폴더 이름 뒤에 `.tmp`를 붙인 리뷰어 이름(`round.json.tmp` 등). 기록을 저장할 때의 임시 파일과 부딪칠 수 있다.
+- clean-review `config.json`의 `reviewers`가 문자열 배열이 아닌 경우(`null`, 문자열이 아닌 항목 등). 지원하는 것은 키가 없거나 문자열 배열인 것이다.
+- `check_paths`·`--check-path`의 문법이 잘못된 glob(닫히지 않은 `[` 등). 설정 오류로 거부한다고도, 어떤 경로에 맞는다고도 보장하지 않는다.

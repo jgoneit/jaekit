@@ -44,10 +44,38 @@ func TestClassification(t *testing.T) {
 		{map[string]any{"link_kind": "rule", "link": "AGENTS.md"}, "defect", true},
 	}
 	for i, tc := range cases {
-		f := c.classify("codex", rawFinding("F1", tc.values))
+		f := c.classify("codex", 1, rawFinding("F1", tc.values))
 		if f.Class != tc.class || (f.LinkKind != "none") != tc.linked || f.ID != "codex-F1" {
 			t.Errorf("case %d %v: class %s link %s/%s", i, tc.values, f.Class, f.LinkKind, f.Link)
 		}
+	}
+	// A check file whose path holds a space is still a check path.
+	py := classifier{checkPaths: []string{"checks/*.py"}, targets: c.targets}
+	if f := py.classify("codex", 1, rawFinding("F1", map[string]any{"location": "head/checks/my test.py:2",
+		"check_impact": "false_pass"})); f.Class != "defect" || !f.InCheckPaths {
+		t.Errorf("a check path with a space: %s %v", f.Class, f.InCheckPaths)
+	}
+	// Text after a location, even text that ends in another line, leaves
+	// the location's own path.
+	for _, tc := range []struct {
+		glob, location string
+		values         map[string]any
+		class          string
+		inChecks       bool
+	}{
+		{"checks/test.py", "head/checks/test.py:2 see head/app.py:10", map[string]any{"check_impact": "false_pass"}, "defect", true},
+		{"**/*_test.go", "head/app/main.go:10 and head/app/main_test.go:20",
+			map[string]any{"introduced_by_change": "yes", "regression": "yes"}, "defect", false},
+	} {
+		tc.values["location"] = tc.location
+		k := classifier{checkPaths: []string{tc.glob}, targets: c.targets}
+		if f := k.classify("codex", 1, rawFinding("F1", tc.values)); f.Class != tc.class || f.InCheckPaths != tc.inChecks {
+			t.Errorf("%s: %s in check paths %v (path %s)", tc.location, f.Class, f.InCheckPaths, f.Path)
+		}
+	}
+	// Spar numbers findings in report order and keeps the reviewer's own ID.
+	if f := c.classify("a", 2, rawFinding("b-F1", nil)); f.ID != "a-F2" || f.ReviewerID != "b-F1" {
+		t.Errorf("finding ID: %s from %s", f.ID, f.ReviewerID)
 	}
 }
 
@@ -116,6 +144,15 @@ func TestValidateResult(t *testing.T) {
 	if p := validateResult(good, head, angles); len(p) != 0 {
 		t.Fatalf("good result refused: %v", p)
 	}
+	// A reviewer's own IDs may take any form, even repeat: spar numbers the findings.
+	other := map[string]any{}
+	for k, v := range good {
+		other[k] = v
+	}
+	other["findings"] = []any{rawFinding("1", nil), rawFinding("b-F1", nil), rawFinding("b-F1", nil), rawFinding("", nil)}
+	if p := validateResult(other, head, angles); len(p) != 0 {
+		t.Fatalf("reviewer IDs other than F<n> refused: %v", p)
+	}
 	for name, change := range map[string]func(map[string]any){
 		"no angles":   func(m map[string]any) { delete(m, "angles_checked"); delete(m, "angles_unchecked") },
 		"missing one": func(m map[string]any) { m["angles_unchecked"] = []any{} },
@@ -123,7 +160,6 @@ func TestValidateResult(t *testing.T) {
 		"bad class": func(m map[string]any) {
 			m["findings"] = []any{rawFinding("F1", map[string]any{"proposed_class": "bug"})}
 		},
-		"duplicate id": func(m map[string]any) { m["findings"] = []any{rawFinding("F1", nil), rawFinding("F1", nil)} },
 		"bad angle": func(m map[string]any) {
 			m["findings"] = []any{rawFinding("F1", map[string]any{"angle": "bogus"})}
 		},
@@ -137,7 +173,6 @@ func TestValidateResult(t *testing.T) {
 		"unchecked with extra key": func(m map[string]any) {
 			m["angles_unchecked"] = []any{map[string]any{"angle": "premises", "reason": "time", "note": "x"}}
 		},
-		"id with a hyphen": func(m map[string]any) { m["findings"] = []any{rawFinding("b-F1", nil)} },
 	} {
 		m := map[string]any{}
 		for k, v := range good {

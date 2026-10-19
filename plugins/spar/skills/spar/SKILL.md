@@ -13,7 +13,7 @@ Spar makes reviewers attack a plan or a change from outside your context. The `s
 
 - Check the executable: `spar --version`. If `spar` is missing, say so and stop; do not install tools on your own.
 - `spar config --repo .` prints the reviewers a round will start, where that list came from, the stage caps, the angles and the check paths. Reviewers come only from the user's configuration (`$SPAR_CONFIG`, `$XDG_CONFIG_HOME/jaekit/spar.toml`, `~/.config/jaekit/spar.toml`, then the clean-review `reviewers` list, then `claude`, `codex`, `agy`). A repository's `.jaekit/spar.toml` sets only caps, angles, rules and check paths.
-- The packet goes to each reviewer's provider. When the criteria or the code must not leave the computer, use only the `native` reviewer and tell the user why.
+- The packet goes to each reviewer's provider; the `native` reviewer's provider is the one your own agent already uses. When the criteria or the code must not go to any other provider, use only the `native` reviewer and tell the user why. When they must not leave the computer at all, do not run a round: every reviewer, `native` included, sends the packet to a provider. Say so and stop.
 - Records go to a new, Git-ignored folder per round. Rounds of one review share a parent folder, the series: `docs/reviews/<goal>/01-plan`, `docs/reviews/<goal>/02-candidate`, and so on.
 
 ## When to run each stage

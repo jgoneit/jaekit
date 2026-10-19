@@ -656,12 +656,13 @@ func contains(list []string, v string) bool {
 // digest identifies the applied settings, not where they came from.
 func (c *Config) digest() string {
 	applied := struct {
-		Reviewers  []Reviewer `json:"reviewers"`
-		Angles     []string   `json:"angles"`
-		Caps       Caps       `json:"caps"`
-		CheckPaths []string   `json:"check_paths"`
-		Rules      []string   `json:"rules"`
-	}{c.Reviewers, c.Angles, c.Caps, c.CheckPaths, c.Rules}
+		Reviewers          []Reviewer    `json:"reviewers"`
+		ConfiguredRequired []RequiredRef `json:"configured_required"`
+		Angles             []string      `json:"angles"`
+		Caps               Caps          `json:"caps"`
+		CheckPaths         []string      `json:"check_paths"`
+		Rules              []string      `json:"rules"`
+	}{c.Reviewers, c.ConfiguredRequired, c.Angles, c.Caps, c.CheckPaths, c.Rules}
 	data, _ := json.Marshal(applied)
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:])

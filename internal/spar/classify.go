@@ -2,6 +2,7 @@ package spar
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -49,6 +50,10 @@ type LinkTargets struct {
 
 var criterionID = regexp.MustCompile(`(?:^|[^A-Za-z0-9])(AC-[0-9]+)(?:[^0-9]|$)`)
 var linkLine = regexp.MustCompile(`^(.+?):([0-9]+)(?:[-–][0-9]+)?$`)
+
+// locationLine is the start of a finding location: a path, then :<line> or
+// :<line>-<line>, then the end or a space.
+var locationLine = regexp.MustCompile(`^(.+?):[0-9]+(?:[-–][0-9]+)?(?:\s|$)`)
 
 func lineCount(data []byte) int {
 	if len(data) == 0 {
@@ -102,12 +107,15 @@ func uniq(list []string) []string {
 
 // locationPath turns "head/app/main.py:12" into "app/main.py".
 func locationPath(location string) string {
+	// The supported form is head/<path>:<line>, and a path may hold spaces.
+	// The path ends at the first :<line> that the end or a space follows,
+	// so text after the location, even text with another line, is left
+	// out. A location without a line falls back to its first word.
 	loc := strings.TrimSpace(location)
-	if fields := strings.Fields(loc); len(fields) > 0 {
-		loc = fields[0]
-	}
-	if m := linkLine.FindStringSubmatch(loc); m != nil {
+	if m := locationLine.FindStringSubmatch(loc); m != nil {
 		loc = m[1]
+	} else if fields := strings.Fields(loc); len(fields) > 0 {
+		loc = fields[0]
 	}
 	for _, side := range []string{"head/", "base/", "./"} {
 		loc = strings.TrimPrefix(loc, side)
@@ -170,7 +178,7 @@ func (c classifier) verifyLink(kind, link string) bool {
 // violation, and a hardening item otherwise, whatever was proposed; a
 // regression the change made is a defect; an unlinked defect proposal is a
 // note.
-func (c classifier) classify(reviewer string, raw map[string]any) Finding {
+func (c classifier) classify(reviewer string, n int, raw map[string]any) Finding {
 	f := Finding{
 		Reviewer: reviewer, ReviewerID: str(raw["id"]), ProposedClass: str(raw["proposed_class"]),
 		Angle: str(raw["angle"]), Location: str(raw["location"]), Claim: str(raw["claim"]),
@@ -179,7 +187,9 @@ func (c classifier) classify(reviewer string, raw map[string]any) Finding {
 		IntroducedByChange: str(raw["introduced_by_change"]), Regression: str(raw["regression"]),
 		CheckImpact: str(raw["check_impact"]), Confidence: str(raw["confidence"]),
 	}
-	f.ID = reviewer + "-" + f.ReviewerID
+	// Spar numbers a reviewer's findings in report order, so the round ID
+	// never depends on the reviewer's own ID, which stays in reviewer_id.
+	f.ID = fmt.Sprintf("%s-F%d", reviewer, n)
 	f.Path = locationPath(f.Location)
 	f.InCheckPaths = f.Path != "" && matchAny(c.checkPaths, f.Path)
 	linked := f.ClaimedLinkKind != "none" && c.verifyLink(f.ClaimedLinkKind, f.ClaimedLink)
