@@ -1,0 +1,17 @@
+# A run-rules/2 goal whose result contract names an adapter declaration keeps
+# exit-code results: no evidence, and the placeholder stays as written.
+replace $GOAL/PLAN.md "`sh tests/greeting.sh` | tests/greeting.sh |" "`sh tests/junit.sh {HA_JUNIT_XML}` | tests/junit.sh, checks/AC-1.json |"
+append $GOAL/PLAN.md "\n## 결과 계약\n| ID | 선언 경로 |\n| --- | --- |\n| AC-1 | checks/AC-1.json |\n"
+commit "link the greeting test"
+include start
+ha check $GOAL --baseline AC-1
+expect-exit 0
+expect-record 2 result fail_as_expected
+expect-record 2 exit 3
+expect-record 2 evidence ""
+expect-no-output "classification:"
+ha check $GOAL AC-1
+expect-exit 1
+expect-record 3 result fail
+expect-record 3 exit 3
+expect-record 3 evidence ""

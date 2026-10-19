@@ -46,6 +46,10 @@ type Invocation struct {
 	ID   string
 	Path string
 	dir  string
+	// adapter is set for a runner adapter run (PrepareAdapter).
+	adapter string
+	stdout  *capture
+	notices []string
 }
 
 // Prepare reserves a private, previously unused location and unpredictable ID.
@@ -82,8 +86,11 @@ func (i *Invocation) Classify(d *Declaration, binding string, process run.Result
 	if process.Signal != "" {
 		return set("error", "process_signal")
 	}
-	if d == nil || d.Validate() != nil || !digestPattern.MatchString(binding) {
+	if d == nil || d.Validate() != nil || !digestPattern.MatchString(binding) || d.Adapter != i.adapter {
 		return set("unknown", "unsupported_declaration")
+	}
+	if d.Adapter != "" {
+		return i.classifyAdapter(s, d, process, baseline)
 	}
 	info, err := os.Lstat(i.Path)
 	if err != nil {
@@ -119,6 +126,39 @@ func (i *Invocation) Classify(d *Declaration, binding string, process run.Result
 		return set("unknown", reason)
 	}
 	s.Targets = append([]Observation(nil), report.Observations...)
+	sort.Slice(s.Targets, func(i, j int) bool {
+		if s.Targets[i].Target == s.Targets[j].Target {
+			return s.Targets[i].Attempt < s.Targets[j].Attempt
+		}
+		return s.Targets[i].Target < s.Targets[j].Target
+	})
+	s.Result, s.Reason = classifyObservations(d, s.Targets, process.Exit, baseline)
+	return s
+}
+
+// classifyAdapter reads the runner output into observations and classifies
+// them by the same rules as a producer report.
+func (i *Invocation) classifyAdapter(s Summary, d *Declaration, process run.Result, baseline bool) Summary {
+	set := func(result, reason string) Summary { s.Result, s.Reason = result, reason; return s }
+	data, reason := i.adapterOutput()
+	if reason != "" {
+		return set("unknown", reason)
+	}
+	s.ReportDigest = digest(data)
+	var observations []Observation
+	switch d.Adapter {
+	case AdapterGoTestJSON:
+		observations, reason, i.notices = goObservations(d, data)
+	case AdapterJUnitXML:
+		observations, reason = junitObservations(d, data)
+	}
+	if reason != "" {
+		return set("unknown", reason)
+	}
+	if reason := validateObservations(d, observations); reason != "" {
+		return set("unknown", reason)
+	}
+	s.Targets = append([]Observation(nil), observations...)
 	sort.Slice(s.Targets, func(i, j int) bool {
 		if s.Targets[i].Target == s.Targets[j].Target {
 			return s.Targets[i].Attempt < s.Targets[j].Attempt
@@ -247,6 +287,26 @@ var earlyReasons = map[string]string{
 	"observation_invalid": "unknown", "target_missing": "unknown",
 }
 
+// adapterEarlyReasons are the reasons without observations an adapter run can
+// record: process failures, the output reasons and the per-target ones.
+var adapterEarlyReasons = map[string]string{
+	"process_start": "error", "process_timeout": "error", "process_wait": "error", "process_error": "error", "process_signal": "error", "process_output": "error",
+	"unsupported_declaration": "unknown", "output_missing": "unknown", "output_corrupt": "unknown", "output_too_large": "unknown",
+	"attempt_history_missing": "unknown", "observation_invalid": "unknown", "target_missing": "unknown", "targets_invalid": "unknown",
+}
+
+// adapterObservation limits stored adapter observations to the values the
+// adapters produce.
+func adapterObservation(o Observation) bool {
+	switch o.Status {
+	case "error":
+		return o.Reason == "compile_error" || o.Reason == "execution_error"
+	case "skip":
+		return o.Reason == "skipped"
+	}
+	return true
+}
+
 // HasAdverse preserves assertions even when another observation makes the
 // overall result error or unknown. Callers must first validate the stored
 // summary against its current declaration with ValidateStored.
@@ -288,7 +348,11 @@ func ValidateStored(s *Summary, d *Declaration, binding string, baseline bool, r
 	if s.ReportDigest != "" && !digestPattern.MatchString(s.ReportDigest) {
 		return invalid
 	}
-	if expected, ok := earlyReasons[s.Reason]; ok {
+	early := earlyReasons
+	if d != nil && d.Adapter != "" {
+		early = adapterEarlyReasons
+	}
+	if expected, ok := early[s.Reason]; ok {
 		if result != expected || len(s.Targets) != 0 {
 			return invalid
 		}
@@ -296,6 +360,13 @@ func ValidateStored(s *Summary, d *Declaration, binding string, baseline bool, r
 	}
 	if d == nil || d.Validate() != nil || !digestPattern.MatchString(binding) || !digestPattern.MatchString(s.ReportDigest) || validateObservations(d, s.Targets) != "" {
 		return invalid
+	}
+	if d.Adapter != "" {
+		for _, o := range s.Targets {
+			if !adapterObservation(o) {
+				return invalid
+			}
+		}
 	}
 	wantResult, wantReason := classifyObservations(d, s.Targets, exit, baseline)
 	if result != wantResult || s.Reason != wantReason {

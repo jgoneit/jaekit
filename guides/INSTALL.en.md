@@ -393,7 +393,7 @@ If an `ha` you built earlier with `go install` is still around, clean it up as [
 
 ## Build from source (development)
 
-An `ha` built from a repository checkout shows a development version (`ha 0.1.6-dev`). You need Go 1.26 or later and git. Run this from the root of the checkout.
+An `ha` built from a repository checkout shows a development version (`ha 0.1.6-dev`). You need Go 1.27 or later and git. Run this from the root of the checkout.
 
 ```bash
 go install ./cmd/ha

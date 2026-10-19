@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "entry-points",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_flow.py",
+      "test": "MissingEntryPoint.test_missing_entry_points",
+      "result_targets": {
+        "additional_violations": [
+          "entry-points.assertion-2",
+          "entry-points.assertion-3",
+          "entry-points.assertion-4",
+          "entry-points.assertion-5",
+          "entry-points.assertion-6",
+          "entry-points.assertion-7",
+          "entry-points.assertion-8"
+        ],
+        "execution": "entry-points.execution",
+        "selection": "entry-points.selection",
+        "attribution": "entry-points.attribution"
+      }
+    }
+  ]
+}

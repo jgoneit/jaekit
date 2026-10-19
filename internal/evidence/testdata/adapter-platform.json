@@ -1,0 +1,188 @@
+{
+ "cases": [
+  {
+   "case": "go-typed-fail",
+   "adapter": "go-test-json",
+   "exit": 1,
+   "violation": "greeting-missing",
+   "test": {
+    "package": "example.com/demo/forms",
+    "name": "TestMarked"
+   },
+   "output": "{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"start\", \"Package\": \"example.com/demo/forms\"}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"run\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\"}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Output\": \"=== RUN   TestMarked\\n\", \"OutputType\": \"frame\"}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Output\": \"    demo_test.go:9: jaekit:violation=greeting-missing broke\\n\", \"OutputType\": \"error\"}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Output\": \"--- FAIL: TestMarked (0.00s)\\n\", \"OutputType\": \"frame\"}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"fail\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Elapsed\": 0}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Output\": \"FAIL\\n\", \"OutputType\": \"frame\"}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"fail\", \"Package\": \"example.com/demo/forms\", \"Elapsed\": 0.01}\n",
+   "crlf_output": "{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"start\", \"Package\": \"example.com/demo/forms\"}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"run\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\"}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Output\": \"=== RUN   TestMarked\\n\", \"OutputType\": \"frame\"}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Output\": \"    demo_test.go:9: jaekit:violation=greeting-missing broke\\n\", \"OutputType\": \"error\"}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Output\": \"--- FAIL: TestMarked (0.00s)\\n\", \"OutputType\": \"frame\"}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"fail\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Elapsed\": 0}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Output\": \"FAIL\\n\", \"OutputType\": \"frame\"}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"fail\", \"Package\": \"example.com/demo/forms\", \"Elapsed\": 0.01}\r\n",
+   "result": "fail",
+   "reason": "assertion_failed",
+   "targets": [
+    [
+     "t",
+     1,
+     "violation",
+     "greeting-missing",
+     ""
+    ]
+   ]
+  },
+  {
+   "case": "go-typed-unmarked",
+   "adapter": "go-test-json",
+   "exit": 1,
+   "violation": "greeting-missing",
+   "test": {
+    "package": "example.com/demo/forms",
+    "name": "TestMarked"
+   },
+   "output": "{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"start\", \"Package\": \"example.com/demo/forms\"}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"run\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\"}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Output\": \"=== RUN   TestMarked\\n\", \"OutputType\": \"frame\"}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Output\": \"    demo_test.go:9: plain failure\\n\", \"OutputType\": \"error\"}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Output\": \"--- FAIL: TestMarked (0.00s)\\n\", \"OutputType\": \"frame\"}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"fail\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Elapsed\": 0}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Output\": \"FAIL\\n\", \"OutputType\": \"frame\"}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"fail\", \"Package\": \"example.com/demo/forms\", \"Elapsed\": 0.01}\n",
+   "crlf_output": "{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"start\", \"Package\": \"example.com/demo/forms\"}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"run\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\"}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Output\": \"=== RUN   TestMarked\\n\", \"OutputType\": \"frame\"}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Output\": \"    demo_test.go:9: plain failure\\n\", \"OutputType\": \"error\"}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Output\": \"--- FAIL: TestMarked (0.00s)\\n\", \"OutputType\": \"frame\"}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"fail\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Elapsed\": 0}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Output\": \"FAIL\\n\", \"OutputType\": \"frame\"}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"fail\", \"Package\": \"example.com/demo/forms\", \"Elapsed\": 0.01}\r\n",
+   "result": "fail",
+   "reason": "unexpected_assertion",
+   "targets": [
+    [
+     "t",
+     1,
+     "violation",
+     "jaekit:unmarked-failure",
+     ""
+    ]
+   ]
+  },
+  {
+   "case": "go-typed-pass",
+   "adapter": "go-test-json",
+   "exit": 0,
+   "violation": "greeting-missing",
+   "test": {
+    "package": "example.com/demo/forms",
+    "name": "TestMarked"
+   },
+   "output": "{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"start\", \"Package\": \"example.com/demo/forms\"}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"run\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\"}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Output\": \"=== RUN   TestMarked\\n\", \"OutputType\": \"frame\"}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Output\": \"--- PASS: TestMarked (0.00s)\\n\", \"OutputType\": \"frame\"}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"pass\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Elapsed\": 0}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Output\": \"PASS\\n\", \"OutputType\": \"frame\"}\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"pass\", \"Package\": \"example.com/demo/forms\", \"Elapsed\": 0.01}\n",
+   "crlf_output": "{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"start\", \"Package\": \"example.com/demo/forms\"}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"run\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\"}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Output\": \"=== RUN   TestMarked\\n\", \"OutputType\": \"frame\"}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Output\": \"--- PASS: TestMarked (0.00s)\\n\", \"OutputType\": \"frame\"}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"pass\", \"Package\": \"example.com/demo/forms\", \"Test\": \"TestMarked\", \"Elapsed\": 0}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"output\", \"Package\": \"example.com/demo/forms\", \"Output\": \"PASS\\n\", \"OutputType\": \"frame\"}\r\n{\"Time\": \"2026-01-01T00:00:00Z\", \"Action\": \"pass\", \"Package\": \"example.com/demo/forms\", \"Elapsed\": 0.01}\r\n",
+   "result": "pass",
+   "reason": "targets_passed",
+   "targets": [
+    [
+     "t",
+     1,
+     "pass",
+     "",
+     ""
+    ]
+   ]
+  },
+  {
+   "case": "J1",
+   "adapter": "junit-xml",
+   "exit": 0,
+   "violation": "greeting-missing",
+   "test": {
+    "classname": "tests.test_greet",
+    "name": "test_greets"
+   },
+   "output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<testsuites name=\"demo\">\n<testsuite name=\"demo\" tests=\"1\">\n  <testcase classname=\"tests.test_greet\" name=\"test_greets\" time=\"0.01\"/>\n</testsuite>\n</testsuites>\n",
+   "crlf_output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<testsuites name=\"demo\">\r\n<testsuite name=\"demo\" tests=\"1\">\r\n  <testcase classname=\"tests.test_greet\" name=\"test_greets\" time=\"0.01\"/>\r\n</testsuite>\r\n</testsuites>\r\n",
+   "result": "pass",
+   "reason": "targets_passed",
+   "targets": [
+    [
+     "t",
+     1,
+     "pass",
+     "",
+     ""
+    ]
+   ]
+  },
+  {
+   "case": "J2",
+   "adapter": "junit-xml",
+   "exit": 1,
+   "violation": "greeting-missing",
+   "test": {
+    "classname": "tests.test_greet",
+    "name": "test_greets"
+   },
+   "output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<testsuite name=\"pytest\" tests=\"1\">  <testcase classname=\"tests.test_greet\" name=\"test_greets\" time=\"0.01\"><failure message=\"AssertionError: jaekit:violation=greeting-missing wrong&#10;assert &apos;hi&apos; == &apos;hello&apos;\">def test_greets():\n&gt;       assert greet() == &quot;hello&quot;, &quot;jaekit:violation=greeting-missing wrong&quot;\nE       AssertionError: jaekit:violation=greeting-missing wrong\n\ntests/test_greet.py:4: AssertionError</failure></testcase>\n</testsuite>\n",
+   "crlf_output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<testsuite name=\"pytest\" tests=\"1\">  <testcase classname=\"tests.test_greet\" name=\"test_greets\" time=\"0.01\"><failure message=\"AssertionError: jaekit:violation=greeting-missing wrong&#10;assert &apos;hi&apos; == &apos;hello&apos;\">def test_greets():\r\n&gt;       assert greet() == &quot;hello&quot;, &quot;jaekit:violation=greeting-missing wrong&quot;\r\nE       AssertionError: jaekit:violation=greeting-missing wrong\r\n\r\ntests/test_greet.py:4: AssertionError</failure></testcase>\r\n</testsuite>\r\n",
+   "result": "fail",
+   "reason": "assertion_failed",
+   "targets": [
+    [
+     "t",
+     1,
+     "violation",
+     "greeting-missing",
+     ""
+    ]
+   ]
+  },
+  {
+   "case": "J3",
+   "adapter": "junit-xml",
+   "exit": 1,
+   "violation": "greeting-missing",
+   "test": {
+    "classname": "tests.test_greet",
+    "name": "test_greets"
+   },
+   "output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<testsuite name=\"pytest\" tests=\"1\">  <testcase classname=\"tests.test_greet\" name=\"test_greets\" time=\"0.01\"><failure message=\"AssertionError: assert &apos;hi&apos; == &apos;hello&apos;&#10;  &#10;  - hello&#10;  + hi\">def test_greets():\n    note = &quot;jaekit:violation=greeting-missing&quot;\n&gt;       assert greet() == &quot;hello&quot;\nE       assert &apos;hi&apos; == &apos;hello&apos;</failure></testcase>\n</testsuite>\n",
+   "crlf_output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<testsuite name=\"pytest\" tests=\"1\">  <testcase classname=\"tests.test_greet\" name=\"test_greets\" time=\"0.01\"><failure message=\"AssertionError: assert &apos;hi&apos; == &apos;hello&apos;&#10;  &#10;  - hello&#10;  + hi\">def test_greets():\r\n    note = &quot;jaekit:violation=greeting-missing&quot;\r\n&gt;       assert greet() == &quot;hello&quot;\r\nE       assert &apos;hi&apos; == &apos;hello&apos;</failure></testcase>\r\n</testsuite>\r\n",
+   "result": "fail",
+   "reason": "unexpected_assertion",
+   "targets": [
+    [
+     "t",
+     1,
+     "violation",
+     "jaekit:unmarked-failure",
+     ""
+    ]
+   ]
+  },
+  {
+   "case": "J5",
+   "adapter": "junit-xml",
+   "exit": 1,
+   "violation": "greeting-missing",
+   "test": {
+    "classname": "greet greets with hello",
+    "name": "greet greets with hello"
+   },
+   "output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<testsuites name=\"demo\">\n<testsuite name=\"demo\" tests=\"1\">\n  <testcase classname=\"greet greets with hello\" name=\"greet greets with hello\" time=\"0.01\"><failure><![CDATA[Error: jaekit:violation=greeting-missing\n    at Object.<anonymous> (tests/greet.test.js:4:9)]]></failure></testcase>\n</testsuite>\n</testsuites>\n",
+   "crlf_output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<testsuites name=\"demo\">\r\n<testsuite name=\"demo\" tests=\"1\">\r\n  <testcase classname=\"greet greets with hello\" name=\"greet greets with hello\" time=\"0.01\"><failure><![CDATA[Error: jaekit:violation=greeting-missing\r\n    at Object.<anonymous> (tests/greet.test.js:4:9)]]></failure></testcase>\r\n</testsuite>\r\n</testsuites>\r\n",
+   "result": "fail",
+   "reason": "assertion_failed",
+   "targets": [
+    [
+     "t",
+     1,
+     "violation",
+     "greeting-missing",
+     ""
+    ]
+   ]
+  },
+  {
+   "case": "J10",
+   "adapter": "junit-xml",
+   "exit": 1,
+   "violation": "greeting-missing",
+   "test": {
+    "classname": "tests.test_greet",
+    "name": "test_greets"
+   },
+   "output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<testsuites name=\"demo\">\n<testsuite name=\"demo\" tests=\"1\">\n  <testcase classname=\"tests.test_greet\" name=\"test_greets\" time=\"0.01\"><failure message=\"assert 1 == 2\">x</failure><system-out>jaekit:violation=greeting-missing</system-out></testcase>\n</testsuite>\n</testsuites>\n",
+   "crlf_output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<testsuites name=\"demo\">\r\n<testsuite name=\"demo\" tests=\"1\">\r\n  <testcase classname=\"tests.test_greet\" name=\"test_greets\" time=\"0.01\"><failure message=\"assert 1 == 2\">x</failure><system-out>jaekit:violation=greeting-missing</system-out></testcase>\r\n</testsuite>\r\n</testsuites>\r\n",
+   "result": "fail",
+   "reason": "unexpected_assertion",
+   "targets": [
+    [
+     "t",
+     1,
+     "violation",
+     "jaekit:unmarked-failure",
+     ""
+    ]
+   ]
+  }
+ ]
+}

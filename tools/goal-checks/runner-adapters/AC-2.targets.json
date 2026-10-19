@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "junit-flow",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_flow.py",
+      "test": "JUnitFlow.test_junit_condition_completes",
+      "result_targets": {
+        "additional_violations": [
+          "junit-flow.assertion-2",
+          "junit-flow.assertion-3",
+          "junit-flow.assertion-4",
+          "junit-flow.assertion-5",
+          "junit-flow.assertion-6",
+          "junit-flow.assertion-7",
+          "junit-flow.assertion-8"
+        ],
+        "execution": "junit-flow.execution",
+        "selection": "junit-flow.selection",
+        "attribution": "junit-flow.attribution"
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "attempts",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_forms.py",
+      "test": "AttemptsAndNames.test_attempts_and_names",
+      "result_targets": {
+        "additional_violations": [
+          "attempts.assertion-2",
+          "attempts.assertion-3",
+          "attempts.assertion-4",
+          "attempts.assertion-5",
+          "attempts.assertion-6",
+          "attempts.assertion-7",
+          "attempts.assertion-8"
+        ],
+        "execution": "attempts.execution",
+        "selection": "attempts.selection",
+        "attribution": "attempts.attribution"
+      }
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/runner-adapters/AC-1.targets.json",
+    "tools/goal-checks/runner-adapters/adapters_common.py",
+    "tools/goal-checks/runner-adapters/observe_flow.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "go-flow",
+      "violation": "go-adapter-flow-missing"
+    },
+    {
+      "id": "go-flow.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-flow.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-flow.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-flow.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-flow.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-flow.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-flow.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-flow.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-flow.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "go-flow.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

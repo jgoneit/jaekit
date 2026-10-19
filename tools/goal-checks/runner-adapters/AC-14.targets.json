@@ -1,0 +1,65 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "suites",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_kept.py",
+      "test": "Kept.test_existing_suites_pass",
+      "result_targets": {
+        "additional_violations": [
+          "suites.assertion-2",
+          "suites.assertion-3",
+          "suites.assertion-4",
+          "suites.assertion-5",
+          "suites.assertion-6",
+          "suites.assertion-7",
+          "suites.assertion-8"
+        ],
+        "execution": "suites.execution",
+        "selection": "suites.selection",
+        "attribution": "suites.attribution"
+      }
+    },
+    {
+      "target": "legacy",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_kept.py",
+      "test": "Kept.test_legacy_rules_keep_exit_codes",
+      "result_targets": {
+        "additional_violations": [
+          "legacy.assertion-2",
+          "legacy.assertion-3",
+          "legacy.assertion-4",
+          "legacy.assertion-5",
+          "legacy.assertion-6",
+          "legacy.assertion-7",
+          "legacy.assertion-8"
+        ],
+        "execution": "legacy.execution",
+        "selection": "legacy.selection",
+        "attribution": "legacy.attribution"
+      }
+    },
+    {
+      "target": "ordinary",
+      "runner": "unittest",
+      "file": "tools/goal-checks/runner-adapters/observe_kept.py",
+      "test": "Kept.test_ordinary_checks_and_log",
+      "result_targets": {
+        "additional_violations": [
+          "ordinary.assertion-2",
+          "ordinary.assertion-3",
+          "ordinary.assertion-4",
+          "ordinary.assertion-5",
+          "ordinary.assertion-6",
+          "ordinary.assertion-7",
+          "ordinary.assertion-8"
+        ],
+        "execution": "ordinary.execution",
+        "selection": "ordinary.selection",
+        "attribution": "ordinary.attribution"
+      }
+    }
+  ]
+}

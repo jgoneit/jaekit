@@ -1,0 +1,13 @@
+# An adapter declaration whose violation ends with a colon is a lint problem:
+# a marker's identifier never ends with one. The start is refused and nothing
+# is recorded.
+replace $GOAL/PLAN.md "`sh tests/greeting.sh` | tests/greeting.sh |" "`sh tests/greeting.sh` | tests/greeting.sh, checks/AC-1.json |"
+append $GOAL/PLAN.md "\n## 결과 계약\n| ID | 선언 경로 |\n| --- | --- |\n| AC-1 | checks/AC-1.json |\n"
+commit "link the greeting test"
+ha lint $GOAL
+expect-exit 1
+expect-output "evidence_invalid"
+expect-output "ending with : or ."
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/4
+expect-exit 65
+expect-records 0

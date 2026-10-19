@@ -80,11 +80,28 @@ func ExecWithEnv(dir string, argv []string, timeout time.Duration, logPath strin
 	return execWithStarter(dir, argv, timeout, logPath, extraEnv, startProcess)
 }
 
+// ExecWithStdout is ExecWithEnv that also copies the process's standard output
+// to stdout. The log still receives standard output and standard error as
+// before. stdout must accept every write; a nil stdout is ExecWithEnv.
+func ExecWithStdout(dir string, argv []string, timeout time.Duration, logPath string, extraEnv []string, stdout io.Writer) (Result, error) {
+	return execWithOutput(dir, argv, timeout, logPath, extraEnv, startProcess, stdout)
+}
+
+// stdoutDrain bounds how long ha keeps reading a copied standard output after
+// the process exited, for example while a detached descendant still holds it.
+// A copy cut short this way is a wait failure, never evidence, whatever the
+// exit status. Tests shorten it.
+var stdoutDrain = 5 * time.Second
+
 // collectCPU reads a finished process's CPU time. Tests replace it to make the
 // collection fail; the run's result, output and limit values do not depend on it.
 var collectCPU = processCPU
 
 func execWithStarter(dir string, argv []string, timeout time.Duration, logPath string, extraEnv []string, starter processStarter) (Result, error) {
+	return execWithOutput(dir, argv, timeout, logPath, extraEnv, starter, nil)
+}
+
+func execWithOutput(dir string, argv []string, timeout time.Duration, logPath string, extraEnv []string, starter processStarter, stdout io.Writer) (Result, error) {
 	log, err := os.OpenFile(logPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {
 		return Result{}, err
@@ -97,8 +114,35 @@ func execWithStarter(dir string, argv []string, timeout time.Duration, logPath s
 	cmd.Env = append(os.Environ(), extraEnv...)
 	cmd.Stdout = log
 	cmd.Stderr = log
+	// A copied standard output comes through a pipe that ha reads itself:
+	// os/exec would report a nonzero exit before a copy that its WaitDelay cut
+	// short, or before a failed log write.
+	var copied *recordingWriter
+	var pipe, pipeEnd *os.File
+	if stdout != nil {
+		if pipe, pipeEnd, err = os.Pipe(); err != nil {
+			log.Close()
+			return Result{}, err
+		}
+		copied = &recordingWriter{w: log}
+		cmd.Stdout = pipeEnd
+	}
 	res.Attempted = true
 	group, startErr := starter(cmd)
+	var copyDone chan error
+	if pipe != nil {
+		pipeEnd.Close()
+		if startErr != nil {
+			pipe.Close()
+		} else {
+			copyDone = make(chan error, 1)
+			go func() {
+				_, err := io.Copy(io.MultiWriter(copied, stdout), pipe)
+				pipe.Close() // a writer still running gets a broken pipe
+				copyDone <- err
+			}()
+		}
+	}
 	if startErr != nil {
 		fmt.Fprintf(log, "ha: could not start %q: %v\n", argv[0], startErr)
 		res.Outcome, res.Reason = Error, "process_start"
@@ -132,8 +176,33 @@ func execWithStarter(dir string, argv []string, timeout time.Duration, logPath s
 				controlErr = errors.Join(controlErr, errors.New("process did not exit after termination"))
 			}
 		}
+		// The copied standard output is drained before the process group is
+		// finished: finishing ends descendants (on Windows, the whole job), and
+		// a stream they still hold would otherwise end early as if complete.
+		truncated := false
+		if copyDone != nil {
+			var copyErr error
+			select {
+			case copyErr = <-copyDone:
+			case <-time.After(stdoutDrain):
+				truncated = true
+				pipe.Close()
+				<-copyDone
+			}
+			if copyErr != nil && copied.err == nil && finalizationErr == nil {
+				finalizationErr = fmt.Errorf("standard output could not be read: %w", copyErr)
+			}
+		}
 		controlErr = errors.Join(controlErr, group.finish())
 		res.CPU = collectCPU(cmd, group)
+		// A process ended by a signal keeps that reason even when its
+		// standard output was also cut short.
+		var exited *exec.ExitError
+		signaled := false
+		if errors.As(waitErr, &exited) {
+			_, signal := processSignal(exited)
+			signaled = signal != ""
+		}
 		switch {
 		case controlErr != nil:
 			fmt.Fprintf(log, "\nha: process control failed: %v\n", controlErr)
@@ -142,6 +211,9 @@ func execWithStarter(dir string, argv []string, timeout time.Duration, logPath s
 		case timedOut:
 			fmt.Fprintf(log, "\nha: timed out after %s\n", timeout)
 			res.Outcome, res.Reason = Error, "process_timeout"
+		case truncated && !signaled:
+			fmt.Fprintf(log, "\nha: standard output stayed open %s after the process exited\n", stdoutDrain)
+			res.Outcome, res.Reason = Error, "process_wait"
 		case waitErr == nil:
 			code := 0
 			res.Exit, res.Outcome = &code, Pass
@@ -160,6 +232,9 @@ func execWithStarter(dir string, argv []string, timeout time.Duration, logPath s
 		}
 	}
 	res.Duration = time.Since(start)
+	if copied != nil && copied.err != nil && finalizationErr == nil {
+		finalizationErr = fmt.Errorf("standard output could not be stored: %w", copied.err)
+	}
 	if err := log.Close(); err != nil {
 		return res, err
 	}
@@ -168,6 +243,20 @@ func execWithStarter(dir string, argv []string, timeout time.Duration, logPath s
 	}
 	res.Digest, err = fileDigest(logPath)
 	return res, err
+}
+
+// recordingWriter keeps the first write error of the log copy.
+type recordingWriter struct {
+	w   io.Writer
+	err error
+}
+
+func (r *recordingWriter) Write(p []byte) (int, error) {
+	n, err := r.w.Write(p)
+	if err != nil && r.err == nil {
+		r.err = err
+	}
+	return n, err
 }
 
 func fileDigest(path string) (string, error) {

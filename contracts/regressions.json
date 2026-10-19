@@ -1276,6 +1276,74 @@
         }
       ],
       "follow_up": []
+    },
+    {
+      "id": "runner-adapter-classification",
+      "invariant": "I2",
+      "status": "protected",
+      "sources": [
+        "internal/evidence/adapter.go",
+        "internal/evidence/gotest.go",
+        "internal/evidence/junit.go",
+        "cmd/ha/main.go"
+      ],
+      "property": "A check-adapter/v1 target is the declared violation only when its linked test failed with the same jaekit:violation= marker on every failure message's first line; unmarked failures, output problems, unknown output forms and missing attempt history are never the intended baseline assertion or a pass.",
+      "examples": [
+        "marker only in a log line or system-out",
+        "test binary exited during the linked test",
+        "JUnit file missing or truncated",
+        "rerun element in a linked testcase"
+      ],
+      "families": [
+        "go test -json events of one or more attempts",
+        "JUnit XML testcases at any depth",
+        "output missing, corrupt or over its limit",
+        "adapter meaning version in the binding"
+      ],
+      "boundary": "go test -json is observed by running a real nested Go 1.27 go test -json through ha (TestAdapterGoTestJSONFlow) and by fixed event streams; JUnit XML is observed from files a separate shell or test-binary process writes at the location ha names and from fixed documents shaped like the output of pytest 9.1.1, Vitest 5.0.5, jest-junit 17.0.0 and Node's reporter, whose real output was checked once outside the repository. No real pytest, Vitest or Jest process runs here.",
+      "checks": [
+        {
+          "file": "internal/evidence/adapter_test.go",
+          "selector": "TestAdapterDeclarationLint",
+          "group": "go"
+        },
+        {
+          "file": "internal/evidence/adapter_test.go",
+          "selector": "TestMarkerReading",
+          "group": "go"
+        },
+        {
+          "file": "internal/evidence/adapter_test.go",
+          "selector": "TestGoTestJSONObservations",
+          "group": "go"
+        },
+        {
+          "file": "internal/evidence/adapter_test.go",
+          "selector": "TestJUnitObservations",
+          "group": "go"
+        },
+        {
+          "file": "internal/evidence/adapter_test.go",
+          "selector": "TestAdapterClassifyAndStored",
+          "group": "go"
+        },
+        {
+          "file": "internal/evidence/adapter_native_test.go",
+          "selector": "TestNativeAdapterClassification",
+          "group": "go"
+        },
+        {
+          "file": "cmd/ha/adapter_test.go",
+          "selector": "TestAdapterGoTestJSONFlow",
+          "group": "go"
+        },
+        {
+          "file": "cmd/ha/adapter_test.go",
+          "selector": "TestAdapterJUnitFlow",
+          "group": "go"
+        }
+      ],
+      "follow_up": []
     }
   ]
 }
