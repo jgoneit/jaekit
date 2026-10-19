@@ -101,6 +101,28 @@ def go_test_results(packages, flags=(), env=None, timeout=3600, go="go"):
     Unavailable.
     """
     result = run([go, "test", "-json", *flags, *packages], ROOT, env, timeout=timeout)
+    return go_event_results(result)
+
+
+def go_binary_results(package, pattern, env, timeout=1800, go="go"):
+    """go_test_results for one package whose test binary runs directly under env.
+
+    `go test` puts $GOROOT/bin first on the test's PATH; a test binary that
+    test2json starts keeps env's PATH, so a go the test runs is the one env
+    names. A failed build raises Unavailable.
+    """
+    with temporary("jaekit-adapter-testbin-") as directory:
+        binary = Path(directory) / "package.test"
+        built = run([go, "test", "-c", "-o", binary, package], ROOT, env, timeout=timeout)
+        if built.returncode or not binary.exists():
+            raise Unavailable(f"go test -c {package}: {built.stderr.decode(errors='replace')[-800:]}")
+        name = "github.com/jgoneit/jaekit/" + package.removeprefix("./")
+        result = run([go, "tool", "test2json", "-p", name, binary, "-test.v=test2json", "-test.count=1", "-test.run", pattern],
+                     ROOT / package.removeprefix("./"), env, timeout=timeout)
+        return go_event_results(result)
+
+
+def go_event_results(result):
     events = []
     for line in result.stdout.decode(errors="replace").splitlines():
         try:

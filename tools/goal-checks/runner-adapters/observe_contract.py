@@ -27,8 +27,8 @@ import unittest
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from adapters_common import (FEATURE, GOAL, PLACEHOLDER, ROOT, SCHEMA, UNMARKED, VARIABLE, Condition, Repo, Unavailable,
-                             build, clean_env, go_declaration, go_test_results, go_typed, junit_declaration, require, run,
-                             temporary)
+                             build, clean_env, go_binary_results, go_declaration, go_test_results, go_typed,
+                             junit_declaration, require, run, temporary)
 from observe_forms import ci_run_passes, windows_native_tests
 
 HERE = Path(__file__).resolve().parent
@@ -490,14 +490,18 @@ class Registry(unittest.TestCase):
             shim.chmod(0o755)
             plain = clean_env()
             plain["GOFLAGS"] = "-mod=readonly"
-            # Only the adapter route's tests find the logging go first on PATH, so the log holds their nested runs.
+            # Only the adapter route's test binaries find the logging go first on PATH (they run without
+            # `go test`, which would put $GOROOT/bin first), so the log holds their nested runs.
             shimmed = dict(plain, PATH=str(shim_dir) + os.pathsep + plain.get("PATH", ""))
             failures = []
             for rid in (route.get("id"), *EXISTING_I2):
                 checks = new[rid]["checks"]
                 env = shimmed if rid == route.get("id") else plain
                 for package, pattern in go_selection(checks):
-                    failed, passed = go_test_results([package], ["-count=1", "-run", pattern], env, timeout=1800, go=real_go)
+                    if env is shimmed:
+                        failed, passed = go_binary_results(package, pattern, env, timeout=1800, go=real_go)
+                    else:
+                        failed, passed = go_test_results([package], ["-count=1", "-run", pattern], env, timeout=1800, go=real_go)
                     ran = {name.split(" ", 1)[1].split("/")[0] for name in passed}
                     wanted = set(pattern[2:-2].split("|"))
                     if failed or not wanted <= ran:
