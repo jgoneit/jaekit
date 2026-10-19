@@ -150,7 +150,7 @@ v0.1.3부터 직접 설치와 Homebrew는 이 생산자와 [합성 예시](../ex
 | `go-test-json` | `go test -json …` 그대로. `ha`가 표준 출력을 읽는다 | `package`(import 경로)와 `name`(`go test -json`이 보고하는 전체 시험 이름, 하위 시험은 `TestX/case`) |
 | `junit-xml` | JUnit XML을 쓰는 러너 명령. 출력 위치는 아래 표기로 받는다 | `classname`(빈 값 허용)과 `name` |
 
-대상은 1~1024개이고 `id`·`violation`은 §1의 식별자다. `ha lint`는 다음을 `evidence_invalid`로 보인다: 모르는 어댑터, `test`가 없는 대상, 어댑터와 맞지 않는 이름 필드, 빈 이름, 제어 문자(C0·DEL·C1)를 담은 이름, 1024바이트를 넘는 이름, 공백을 담은 Go 패키지 경로, Go 시험 이름 형식(첫 마디가 `Test`·`Fuzz`·`Example`로 시작하고 접두 뒤 첫 글자가 소문자가 아닌 Go 식별자이며 빈 마디·공백이 없음)에 맞지 않는 이름, 같은 시험을 연결한 두 대상, `jaekit:`로 시작하는 `violation`(예약). 알 수 없는 필드·중복 키·뒤에 붙은 데이터·1 MiB 초과는 §2처럼 거부한다.
+대상은 1~1024개이고 `id`·`violation`은 §1의 식별자다. `ha lint`는 다음을 `evidence_invalid`로 보인다: 모르는 어댑터, `test`가 없는 대상, 어댑터와 맞지 않는 이름 필드, 빈 이름, 제어 문자(C0·DEL·C1)를 담은 이름, 1024바이트를 넘는 이름, 공백을 담은 Go 패키지 경로, Go 시험 이름 형식(첫 `/` 앞이 `Test`·`Fuzz`·`Example`로 시작하고 접두 뒤 첫 글자가 소문자가 아닌 Go 식별자이고, 이름 어디에도 공백이 없음. 하위 시험 이름은 `/`를 담을 수 있어 `TestX/a//b`처럼 빈 마디가 있어도 된다)에 맞지 않는 이름, 같은 시험을 연결한 두 대상, `jaekit:`로 시작하는 `violation`(예약), `:`나 `.`로 끝나는 `violation`(표식에서 읽힐 수 없음). 생산자 선언(`check-declaration/v1`)의 `violation`은 지금처럼 `:`·`.`로 끝나도 된다. 알 수 없는 필드·중복 키·뒤에 붙은 데이터·1 MiB 초과는 §2처럼 거부한다.
 
 근거의 정체성에는 선언 바이트와 어댑터의 판정 의미 버전이 함께 들어간다. 어댑터가 같은 출력을 다르게 판정하게 되면 그 버전이 오르고, 그 어댑터의 이전 근거는 다시 쓰이지 않는다([실행 기록](run-record.md)).
 
@@ -166,7 +166,7 @@ v0.1.3부터 직접 설치와 Homebrew는 이 생산자와 [합성 예시](../ex
 
 ### 표식
 
-표식은 고정 문자열 `jaekit:violation=` 바로 뒤에 §1 식별자 규칙을 따르는 가장 긴 문자열이다. 대소문자를 구분하고, 128자를 넘거나 비어 있으면 표식이 아니다. 표식은 실패 메시지의 첫 줄에서만 읽으며 첫 줄 안의 위치는 묻지 않는다.
+표식은 고정 문자열 `jaekit:violation=`와 그 뒤의 식별자다. 식별자는 바로 뒤에 이어진 식별자 문자(`A-Z a-z 0-9 _ . : / -`)의 가장 긴 연속에서 끝에 붙은 `:`·`.`를 모두 뗀 것이다. 그래서 `jaekit:violation=greeting-missing: got "hi"`와 `jaekit:violation=greeting-missing.`의 식별자는 `greeting-missing`이고, 가운데의 `:`·`.`(`a.b:c`)는 그대로 남는다. 대소문자를 구분하고, 뗀 뒤의 식별자가 비어 있거나 128자를 넘거나 영숫자로 시작하지 않으면 표식이 아니다. 표식은 실패 메시지의 첫 줄에서만 읽으며 첫 줄 안의 위치는 묻지 않는다.
 
 - Go: 연결한 시험 자신의 출력 중 `OutputType`이 `error`인 줄 하나가 `Error`·`Fatal` 계열 호출 하나의 첫 줄이다. `error-continue` 줄, 종류 없는 줄(`t.Log`, 직접 쓴 표준 출력), `frame` 줄은 실패 메시지의 첫 줄이 아니다.
 - JUnit: 연결한 testcase의 각 `failure` 요소에서 `message` 속성이 있으면(빈 값이어도) 그 첫 줄, 없으면 요소 본문의 글자 그대로의 첫 줄이다. `system-out`·`system-err`와 본문의 둘째 줄 이후(traceback, stack trace, 소스 발췌)는 읽지 않는다.
@@ -179,14 +179,14 @@ v0.1.3부터 직접 설치와 Homebrew는 이 생산자와 [합성 예시](../ex
 
 - 대상 하나는 시험 하나에 연결한다. 이름은 정확히 일치시키며 정규식·접두 일치는 쓰지 않는다.
 - Go는 패키지 import 경로와 전체 시험 이름으로 찾는다. 하위 시험에 연결하면 그 하위 시험을 관측하고, 상위 시험에 연결하면 상위 시험 자신의 실패 메시지만 본다. 하위 시험의 실패만으로 실패한 상위 시험은 실패 메시지가 없으므로 표식 없는 실패다. 한 명령에서 연결한 시험이 여러 번 실행되면(`-count`) 각 실행이 순서대로 시도 1, 2, …가 된다.
-- JUnit은 testcase의 `classname`과 `name`을 정확히 일치시킨다. 선언의 `classname`이 빈 값이면 `classname` 속성이 없거나 빈 testcase와 맞는다. `file` 속성은 쓰지 않는다. JUnit XML은 시도 이력을 갖지 않으므로, 연결한 testcase가 둘 이상이거나 재시도 요소(`rerunFailure`, `rerunError`, `flakyFailure`, `flakyError`)가 있으면 판정 불가다.
+- JUnit은 testcase의 `classname`과 `name`을 정확히 일치시킨다. 선언의 `classname`이 빈 값이면 `classname` 속성이 없는 testcase와 `classname=""`인 testcase가 모두 맞고, 다른 `classname`을 가진 testcase는 맞지 않는다. 같은 `name`의 두 testcase가 이렇게 함께 맞으면 같은 testcase의 중복이다. `file` 속성은 쓰지 않는다. JUnit XML은 시도 이력을 갖지 않으므로, 연결한 testcase가 둘 이상이거나 재시도 요소(`rerunFailure`, `rerunError`, `flakyFailure`, `flakyError`)가 있으면 판정 불가다.
 - 연결하지 않은 시험의 결과는 대상 관측이 아니다. 현재 검사에서 연결한 시험이 모두 통과했는데 명령이 실패하면 `report_exit_conflict`다. baseline에서는 연결하지 않은 시험의 실패가 대상 판정을 바꾸지 않는다.
 
 관측은 §3의 규칙 그대로 분류하고 `check-evidence/v1` 요약으로 저장한다. `report_digest`는 읽은 러너 출력의 digest다. 러너의 실패 메시지·시험 출력·XML 내용은 기록과 사유 코드에 넣지 않는다.
 
 ### 입력 실패의 결과
 
-다음 표가 완전한 목록이다. 목록 밖의 출력 형태(어댑터가 모르는 Go 동작이 연결한 시험이나 그 패키지에 나옴, 연결한 testcase의 지원하지 않는 자식 요소나 `skipped`와 `failure`·`error`의 조합, `failure` 안의 요소)는 `observation_invalid`다. 어느 경우도 통과, 기대 실패, 선언한 위반이 아니다.
+다음 표가 완전한 목록이다. 목록 밖의 출력 형태(연결한 시험의 패키지 사건에 어댑터가 모르는 Go 동작(Go 1.27 `go test -json`이 쓰는 `start`·`run`·`pause`·`cont`·`pass`·`fail`·`skip`·`output`·`bench`·`build-output`·`build-fail`·`attr`·`artifacts` 밖)이나 `OutputType` 값(`error`, `error-continue`, `frame` 밖)이 나오거나 `Output`이 없는 `output` 사건이 나옴, 연결한 testcase의 지원하지 않는 자식 요소나 `skipped`와 `failure`·`error`의 조합, `failure` 안의 요소)는 `observation_invalid`다. 어느 경우도 통과, 기대 실패, 선언한 위반이 아니다.
 
 | 경우 | 결과(현재·baseline 같음) | 사유 |
 | --- | --- | --- |
@@ -210,7 +210,7 @@ v0.1.3부터 직접 설치와 Homebrew는 이 생산자와 [합성 예시](../ex
 ### 지원하는 출력
 
 - `go test -json`이 실패 메시지 줄에 출력 종류(`OutputType`)를 붙이는 것은 Go 1.27부터다. 연결한 시험의 패키지 사건에 `OutputType`이 하나도 없으면(Go 1.26 이전 도구 체인) 그 패키지에서 실패한 연결 시험은 표식 없는 실패이고, `ha check`가 결과 줄 뒤에 그 패키지를 말하는 `notice: <조건> go-test-json: …` 한 줄(`OutputType`을 언급)을 낸다.
-- JUnit XML은 UTF-8(BOM 허용)이고 루트 요소 하나(`testsuites` 또는 `testsuite`)를 가지며 testcase는 어느 깊이에 있어도 된다. 실제 출력으로 확인한 형태는 Node.js 26.11.0 내장 러너(`node --test --test-reporter=junit`)다. pytest, Vitest의 junit reporter, Jest와 jest-junit은 이 구현에서 실제 출력으로 확인하지 않았고, 그 모양을 본뜬 합성 문서로만 확인했다.
+- JUnit XML은 UTF-8(BOM 허용)이고 루트 요소 하나(`testsuites` 또는 `testsuite`)를 가지며 testcase는 어느 깊이에 있어도 된다. 실제 출력으로 한 번 확인한 형태는 Node.js 26.11.0 내장 러너(`node --test --test-reporter=junit`), pytest 9.1.1(`--junitxml=…`), Vitest 5.0.5(`--reporter=junit --outputFile=…`), Jest 30.5.2와 jest-junit 17.0.0(`JEST_JUNIT_OUTPUT_FILE`)이다. 그 출력에서 통과, 표식 있는 실패, 표식 없는 실패, skip, pytest fixture 오류(`error`)가 대표 형태 표대로 판정됐다. 기본 설정에서 pytest는 `classname`에 모듈 경로(`tests.test_greet`)를, Vitest는 `classname`에 파일 경로와 `name`에 `describe > test`를, jest-junit은 `classname`과 `name` 둘 다에 `describe test`를 쓴다. pytest와 Vitest의 실패는 `message` 속성의 첫 줄로, jest-junit의 실패는 `message` 속성이 없어 본문 첫 줄(`Error: …`)로 읽는다. 저장소의 검사는 이 러너를 설치하지 않고 같은 모양의 합성 문서로 확인한다. 다른 버전과 사용자 설정의 출력은 확인하지 않았다.
 
 ### 대표 형태
 
@@ -233,10 +233,11 @@ v0.1.3부터 직접 설치와 Homebrew는 이 생산자와 [합성 예시](../ex
 | G13 | go | 표준 출력에 JSON이 아닌 줄이나 잘린 JSON | `unknown`, `output_corrupt` |
 | G14 | go | 표준 출력에 아무것도 없고 표준 오류에만 글이 있음 | `unknown`, `output_missing` |
 | G15 | go | 출력 종류를 표시하지 않는 도구 체인에서 표식과 함께 실패 | `unexpected_assertion`, `notice:` 한 줄 |
+| G16 | go | `t.Fatalf("jaekit:violation=<선언 id>: got %q", …)`처럼 표식 바로 뒤에 `:`가 붙거나, 메시지가 `jaekit:violation=<선언 id>.`로 끝남 | 선언한 위반 |
 | J1 | junit | 자식 없는 testcase | 대상 통과 |
 | J2 | junit | pytest `assert …, "jaekit:violation=<선언 id>"` 실패 | 선언한 위반 |
 | J3 | junit | 메시지 없는 pytest assert 실패. traceback 본문에 표식이 든 다른 소스 줄이 보임 | `unexpected_assertion` |
-| J4 | junit | Vitest `expect(값, "jaekit:violation=<선언 id>")` 실패 | 선언한 위반 |
+| J4 | junit | Vitest `expect(값, "jaekit:violation=<선언 id>")` 실패. 메시지 첫 줄은 `jaekit:violation=<선언 id>: expected …` | 선언한 위반 |
 | J5 | junit | `message` 속성 없이 본문 첫 줄이 `Error: jaekit:violation=<선언 id>`인 failure | 선언한 위반 |
 | J6 | junit | fixture 준비 오류가 `error` 요소로 나옴 | `error`, `execution_error` |
 | J7 | junit | `skipped` 요소 | `unknown`, `target_skipped` |
@@ -245,3 +246,5 @@ v0.1.3부터 직접 설치와 Homebrew는 이 생산자와 [합성 예시](../ex
 | J10 | junit | `system-out`에만 표식이 있는 failure | `unexpected_assertion` |
 | J11 | junit | 알린 위치에 파일이 없음, 파일이 잘림, DTD 선언이 있음 | `unknown` (`output_missing`, `output_corrupt`) |
 | J12 | 둘 다 | 같은 출력의 줄 끝이 CRLF | LF와 같은 결과 |
+| J13 | junit | 선언의 `classname`이 빈 값이고, testcase가 `classname=""`이거나 `classname`이 없음 | 그 testcase의 결과 |
+| J14 | junit | 선언의 `classname`이 빈 값이고, 같은 `name`의 testcase가 `classname` 없는 것과 `classname=""`인 것 둘 | `unknown`, `attempt_history_missing` |

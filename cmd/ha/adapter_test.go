@@ -95,6 +95,13 @@ func TestAdapterGoTestJSONFlow(t *testing.T) {
 	if criterionReport(t, f, "AC-1")["satisfied"] != true {
 		t.Fatal("AC-1 is not satisfied after a passing adapter check")
 	}
+	if code, out := f.ha("check", scenarioGoal, "AC-2"); code != 0 {
+		t.Fatal(out)
+	}
+	f.put(scenarioGoal+"/PROGRESS.md", "## Task 상태\n| Task | 상태 | 메모 |\n| --- | --- | --- |\n| T001 | done | synthetic |\n")
+	if code, out := f.ha("done", scenarioGoal, "--format", "json"); code != 0 || f.report()["completion_record"] == nil {
+		t.Fatalf("done after a real go test -json check: exit %d: %s", code, out)
+	}
 }
 
 // TestAdapterJUnitFlow runs a separate runner that writes JUnit XML where ha

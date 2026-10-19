@@ -136,6 +136,9 @@ func (d *Declaration) validateAdapter() error {
 		if strings.HasPrefix(t.Violation, reservedPrefix) {
 			return fmt.Errorf("adapter target %q: violations starting with %q are reserved", t.ID, reservedPrefix)
 		}
+		if strings.HasSuffix(t.Violation, ":") || strings.HasSuffix(t.Violation, ".") {
+			return fmt.Errorf("adapter target %q: a violation ending with : or . can never be read from a marker", t.ID)
+		}
 		if t.Test == nil {
 			return fmt.Errorf("adapter target %q has no test", t.ID)
 		}
@@ -174,7 +177,7 @@ func (n *TestName) validate(adapter string) error {
 			return errors.New("invalid Go package path")
 		}
 		if !goTestName(n.Name) {
-			return errors.New("not a Go test name (Test, Fuzz or Example followed by a non-lowercase letter, subtests after /)")
+			return errors.New("not a Go test name (Test, Fuzz or Example followed by a non-lowercase letter, subtests after /, no spaces)")
 		}
 	case AdapterJUnitXML:
 		if n.Package != "" {
@@ -194,16 +197,17 @@ func hasControl(s string) bool {
 }
 
 // goTestName accepts the names go test -json reports: a top-level test,
-// fuzz test or example function, then subtest names after slashes. Go
-// replaces spaces in subtest names, so a reported name never has one.
+// fuzz test or example function, then subtest names after a slash. A subtest
+// name may itself hold slashes, even adjacent ones. Go replaces spaces in
+// subtest names, so a reported name never has one.
 func goTestName(name string) bool {
-	parts := strings.Split(name, "/")
-	for _, part := range parts {
-		if part == "" || strings.IndexFunc(part, unicode.IsSpace) >= 0 {
-			return false
-		}
+	if strings.IndexFunc(name, unicode.IsSpace) >= 0 {
+		return false
 	}
-	first := parts[0]
+	first, _, _ := strings.Cut(name, "/")
+	if first == "" {
+		return false
+	}
 	for i, r := range first {
 		if !(unicode.IsLetter(r) || r == '_' || (i > 0 && unicode.IsDigit(r))) {
 			return false
@@ -218,10 +222,11 @@ func goTestName(name string) bool {
 	return false
 }
 
-// lineMarkers returns the identifier of every marker on one line. A marker is
-// the longest run of identifier characters right after markerPrefix; a run
-// that is empty, longer than 128 characters or does not start with an ASCII
-// letter or digit is not a marker.
+// lineMarkers returns the identifier of every marker on one line. A marker's
+// identifier is the longest run of identifier characters right after
+// markerPrefix, without the colons and periods that end the run (as in
+// "jaekit:violation=id: got x"). An identifier that is empty, longer than 128
+// characters or does not start with an ASCII letter or digit is not a marker.
 func lineMarkers(line string) []string {
 	var ids []string
 	for rest := line; ; {
@@ -234,8 +239,9 @@ func lineMarkers(line string) []string {
 		for n < len(rest) && markerByte(rest[n]) {
 			n++
 		}
-		if n >= 1 && n <= 128 && alnum(rest[0]) {
-			ids = append(ids, rest[:n])
+		id := strings.TrimRight(rest[:n], ":.")
+		if len(id) >= 1 && len(id) <= 128 && alnum(id[0]) {
+			ids = append(ids, id)
 		}
 		rest = rest[n:]
 	}

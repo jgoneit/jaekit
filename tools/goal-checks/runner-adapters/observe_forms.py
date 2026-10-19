@@ -47,6 +47,8 @@ var flips int
 func TestPassLog(t *testing.T)               { t.Log(mark + " logged") }
 func TestMarkedFatal(t *testing.T)           { t.Fatalf("%s broke", mark) }
 func TestErrorfMarked(t *testing.T)          { t.Errorf("%s via Errorf", mark) }
+func TestMarkedColon(t *testing.T)           { t.Fatalf("%s: got %q", mark, "hi") }
+func TestMarkedPeriod(t *testing.T)          { t.Fatal(mark + ".") }
 func TestLogThenUnmarked(t *testing.T)       { t.Log(mark); t.Fatal("plain failure") }
 func TestTwoErrorsOneMarked(t *testing.T)    { t.Error(mark + " one"); t.Error("two") }
 func TestMultilineSecondMarked(t *testing.T) { t.Error("first line\\n" + mark + " second") }
@@ -187,6 +189,8 @@ class Markers(unittest.TestCase):
             passes(go_row, "G1 log marker on a passing test", "TestPassLog", "^TestPassLog"),
             declared(go_row, "G2 t.Fatalf marker", "TestMarkedFatal", "^TestMarkedFatal"),
             declared(go_row, "G2 t.Errorf marker", "TestErrorfMarked", "^TestErrorfMarked"),
+            declared(go_row, "G16 colon right after the marker", "TestMarkedColon", "^TestMarkedColon"),
+            declared(go_row, "G16 message ending with a period", "TestMarkedPeriod", "^TestMarkedPeriod"),
             go_row("G3 logged marker then unmarked Fatal", "TestLogThenUnmarked", "^TestLogThenUnmarked", UNMARKED_FAIL),
             go_row("G4 one of two errors marked", "TestTwoErrorsOneMarked", "^TestTwoErrorsOneMarked", UNMARKED_FAIL),
             go_row("G5 marker on a continuation line", "TestMultilineSecondMarked", "^TestMultilineSecondMarked", UNMARKED_FAIL),
@@ -205,7 +209,7 @@ class Markers(unittest.TestCase):
             declared(junit_row, "J2 pytest assert message", "J2"),
             junit_row("J3 pytest traceback source line", "J3", UNMARKED_FAIL),
             declared(junit_row, "J4 Vitest expect message", "J4", classname="tests/greet.test.ts", test="greets with hello"),
-            declared(junit_row, "J5 body first line", "J5", classname="greet greets with hello", test="greets with hello"),
+            declared(junit_row, "J5 body first line", "J5", classname="greet greets with hello", test="greet greets with hello"),
             junit_row("J10 marker only in system-out", "J10", UNMARKED_FAIL),
             junit_row("JUnit another identifier", "junit-other-id", ("fail", "unexpected_assertion", [obs("violation", "other-id")])),
             junit_row("JUnit mixed identifiers", "junit-mixed-ids", UNMARKED_FAIL),
@@ -377,6 +381,11 @@ class AttemptsAndNames(unittest.TestCase):
             declared(junit_row, "same name flipped, linked classname fails", "junit-same-name-flipped", classname="tests.test_a"),
             junit_row("duplicate testcase", "J9", unknown("attempt_history_missing")),
             junit_row("rerun element", "junit-rerun", unknown("attempt_history_missing")),
+            passes(junit_row, "J13 empty classname, testcase without one", "junit-no-classname-pass", classname=""),
+            passes(junit_row, "J13 empty classname, testcase with an empty one", "junit-empty-classname-pass", classname=""),
+            junit_row("J13 classname differs", "junit-no-classname-pass", unknown("target_missing"), classname="tests.test_greet"),
+            junit_row("J14 absent and empty classname, same name", "junit-absent-and-empty-classname",
+                      unknown("attempt_history_missing"), classname=""),
         ]
         # The flip test needs -count=2 only; drop the -count=1 the row helper adds.
         for row in rows[:2]:
@@ -410,7 +419,7 @@ class UntypedToolchain(unittest.TestCase):
 # Output pairs whose LF and CRLF bytes must classify the same (J12).
 CRLF_PAIRS = [("go-typed-fail", "go-crlf-fail"), ("go-typed-unmarked", "go-crlf-unmarked"), ("go-typed-pass", "go-crlf-pass"),
               ("J1", "J1-crlf"), ("J2", "J2-crlf"), ("J3", "J3-crlf"), ("J5", "J5-crlf"), ("J10", "J10-crlf")]
-JUNIT_TESTS = {"J5": ("greet greets with hello", "greets with hello")}
+JUNIT_TESTS = {"J5": ("greet greets with hello", "greet greets with hello")}
 # The Windows native check of the adapter bytes (cmd: go test ./internal/evidence -run ...).
 WINDOWS_NATIVE = {"internal/evidence": "TestNativeAdapterClassification"}
 # The cases that test reads (PLAN 구현 결정, Windows 관측): each LF form of CRLF_PAIRS with the runner's bytes, the

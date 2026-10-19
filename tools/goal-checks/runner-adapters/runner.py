@@ -79,15 +79,15 @@ JUNIT = {
     "J2": (suite([case(inner='<failure message="AssertionError: ' + MARK + ' wrong&#10;assert &apos;hi&apos; == &apos;hello&apos;">'
                        + PYTEST_TRACE + "</failure>")], "testsuite"), 1),
     # J3: a message-less pytest assert; the traceback body shows another source line with the marker.
-    "J3": (suite([case(inner='<failure message="assert &apos;hi&apos; == &apos;hello&apos;">def test_greets():\n'
+    "J3": (suite([case(inner='<failure message="AssertionError: assert &apos;hi&apos; == &apos;hello&apos;&#10;  &#10;  - hello&#10;  + hi">def test_greets():\n'
                        '    note = &quot;' + MARK + '&quot;\n&gt;       assert greet() == &quot;hello&quot;\nE       assert &apos;hi&apos; == &apos;hello&apos;'
                        "</failure>")], "testsuite"), 1),
     # J4: Vitest `expect(value, "<marker>")`.
     "J4": (suite([case("greets with hello", "tests/greet.test.ts",
                        '<failure message="' + MARK + ': expected &apos;hi&apos; to be &apos;hello&apos; // Object.is equality" type="AssertionError">'
-                       "AssertionError: " + MARK + ": expected 'hi' to be 'hello'\n ❯ tests/greet.test.ts:5:30</failure>")]), 1),
+                       "\nAssertionError: " + MARK + ": expected 'hi' to be 'hello'\n ❯ tests/greet.test.ts:5:30\n</failure>")]), 1),
     # J5: no message attribute; the body's first line is `Error: <marker>` (jest-junit shape).
-    "J5": (suite([case("greets with hello", "greet greets with hello",
+    "J5": (suite([case("greet greets with hello", "greet greets with hello",
                        "<failure><![CDATA[Error: " + MARK + "\n    at Object.<anonymous> (tests/greet.test.js:4:9)]]></failure>")]), 1),
     # J6: a fixture setup error is an error element.
     "J6": (suite([case(inner='<error message="failed on setup with &quot;fixture missing&quot;">E   fixture missing</error>')]), 1),
@@ -120,6 +120,8 @@ JUNIT = {
     "junit-other-names": (suite([case("test_other")]), 1),
     "junit-no-classname-pass": (suite([case(classname=None)]), 0),
     "junit-empty-classname-pass": (suite([case(classname="")]), 0),
+    # J14: the same name without a classname and with an empty one.
+    "junit-absent-and-empty-classname": (suite([case(classname=None), case(classname="")]), 0),
     "junit-other-id": (suite([case(inner='<failure message="jaekit:violation=other-id wrong">x</failure>')]), 1),
     "junit-mixed-ids": (suite([case(inner='<failure message="' + MARK + '">x</failure><failure message="jaekit:violation=other-id">y</failure>')]), 1),
     "junit-two-marked": (suite([case(inner='<failure message="' + MARK + ' a">x</failure><failure message="' + MARK + ' b">y</failure>')]), 1),

@@ -1300,7 +1300,7 @@
         "output missing, corrupt or over its limit",
         "adapter meaning version in the binding"
       ],
-      "boundary": "go test -json is observed by running a real nested Go 1.27 go test -json through ha (TestAdapterGoTestJSONFlow) and by fixed event streams; JUnit XML is observed from files a separate shell or test-binary process writes at the location ha names and from fixed documents shaped like pytest, Vitest, jest-junit and Node's reporter. No real pytest, Vitest or Jest process runs here.",
+      "boundary": "go test -json is observed by running a real nested Go 1.27 go test -json through ha (TestAdapterGoTestJSONFlow) and by fixed event streams; JUnit XML is observed from files a separate shell or test-binary process writes at the location ha names and from fixed documents shaped like the output of pytest 9.1.1, Vitest 5.0.5, jest-junit 17.0.0 and Node's reporter, whose real output was checked once outside the repository. No real pytest, Vitest or Jest process runs here.",
       "checks": [
         {
           "file": "internal/evidence/adapter_test.go",

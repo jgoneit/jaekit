@@ -113,8 +113,12 @@ func execWithOutput(dir string, argv []string, timeout time.Duration, logPath st
 	cmd.Env = append(os.Environ(), extraEnv...)
 	cmd.Stdout = log
 	cmd.Stderr = log
+	// A copied standard output goes through ha, so a failed log write is
+	// kept here: Wait reports a nonzero exit before a copy error.
+	var copied *recordingWriter
 	if stdout != nil {
-		cmd.Stdout = io.MultiWriter(log, stdout)
+		copied = &recordingWriter{w: log}
+		cmd.Stdout = io.MultiWriter(copied, stdout)
 		cmd.WaitDelay = stdoutDrain
 	}
 	res.Attempted = true
@@ -180,6 +184,9 @@ func execWithOutput(dir string, argv []string, timeout time.Duration, logPath st
 		}
 	}
 	res.Duration = time.Since(start)
+	if copied != nil && copied.err != nil && finalizationErr == nil {
+		finalizationErr = fmt.Errorf("standard output could not be stored: %w", copied.err)
+	}
 	if err := log.Close(); err != nil {
 		return res, err
 	}
@@ -188,6 +195,20 @@ func execWithOutput(dir string, argv []string, timeout time.Duration, logPath st
 	}
 	res.Digest, err = fileDigest(logPath)
 	return res, err
+}
+
+// recordingWriter keeps the first write error of the log copy.
+type recordingWriter struct {
+	w   io.Writer
+	err error
+}
+
+func (r *recordingWriter) Write(p []byte) (int, error) {
+	n, err := r.w.Write(p)
+	if err != nil && r.err == nil {
+		r.err = err
+	}
+	return n, err
 }
 
 func fileDigest(path string) (string, error) {

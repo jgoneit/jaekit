@@ -88,8 +88,20 @@ BAD_DECLARATIONS = {
     "Go name that is not a test": {"schema": SCHEMA, "adapter": "go-test-json", "targets": [go_target({"package": "example.com/demo", "name": "helperX"})]},
     "reserved jaekit: violation": {"schema": SCHEMA, "adapter": "go-test-json", "targets": [
         go_target({"package": "example.com/demo", "name": "TestX"}, violation=UNMARKED)]},
+    "violation ending with a colon": {"schema": SCHEMA, "adapter": "go-test-json", "targets": [
+        go_target({"package": "example.com/demo", "name": "TestX"}, violation=MARK_ID + ":")]},
+    "violation ending with a period": {"schema": SCHEMA, "adapter": "junit-xml", "targets": [
+        go_target({"classname": "tests.a", "name": "test_a"}, violation=MARK_ID + ".")]},
 }
 VALID = go_declaration([("t", MARK_ID, "example.com/demo/forms", "TestMarked")])
+# Declarations that must lint clean: a Go subtest name with empty parts, and a producer
+# declaration whose violation ends with a colon, which check-declaration/v1 keeps accepting.
+VALID_OTHERS = {
+    "Go subtest name with empty parts": go_declaration([("t", MARK_ID, "example.com/demo/forms", "TestMarked/a//b")]),
+    "check-declaration/v1 violation ending with a colon": {
+        "schema": "check-declaration/v1", "producer": "x", "producer_version": "1", "producer_paths": ["tests/x.py"],
+        "targets": [{"id": "t", "violation": MARK_ID + ":"}]},
+}
 
 
 class Lint(unittest.TestCase):
@@ -103,6 +115,10 @@ class Lint(unittest.TestCase):
             conditions = [Condition("AC-1", ["python3", "tests/x.py"], ["tests/x.py"], VALID)]
             conditions += [Condition(f"AC-{i}", ["python3", "tests/x.py"], ["tests/x.py"], BAD_DECLARATIONS[n])
                            for i, n in enumerate(names, 2)]
+            others = list(VALID_OTHERS)
+            first_other = len(names) + 2
+            conditions += [Condition(f"AC-{i}", ["python3", "tests/x.py"], ["tests/x.py"], VALID_OTHERS[n])
+                           for i, n in enumerate(others, first_other)]
             repo = Repo(directory, ha, conditions, files={"tests/x.py": "print('x')\n"})
             code, out, err = repo.ha("lint", GOAL)
             lines = (out + err).splitlines()
@@ -112,6 +128,10 @@ class Lint(unittest.TestCase):
             for i, name in enumerate(names, 2):
                 if not any(line.startswith("evidence_invalid") and f"AC-{i}:" in line for line in lines):
                     problems.append(f"{name} (AC-{i}) is not shown as evidence_invalid")
+            for i, name in enumerate(others, first_other):
+                shown = [line for line in lines if f"AC-{i}:" in line or re.search(rf"\bAC-{i}\b ", line)]
+                if shown:
+                    problems.append(f"{name} (AC-{i}) has lint problems: {shown}")
             code, out = repo.start()
             if code != 65 or repo.records():
                 problems.append(f"ha start with those problems: exit {code}, records {len(repo.records())}")
@@ -242,14 +262,20 @@ CONTRACT_LINK = "check-result.md#5-러너-어댑터"
 DOCUMENT_TOKENS = {
     "contracts/check-result.md": [CONTRACT_HEADING, SCHEMA, "go-test-json", "junit-xml", "jaekit:violation=", UNMARKED,
                                   PLACEHOLDER, VARIABLE, "output_missing", "output_corrupt", "output_too_large", "64 MiB",
-                                  "16 MiB", "Go 1.27", "OutputType", FEATURE, "G1", "G15", "J1", "J12", "비교값",
+                                  "16 MiB", "Go 1.27", "OutputType", FEATURE, "G1", "G16", "J1", "J14", "비교값",
                                   "--test-reporter=junit", "pytest", "Vitest", "jest-junit", "compile_error", "execution_error",
                                   "target_missing", "target_skipped", "attempt_history_missing", "report_exit_conflict",
-                                  "observation_invalid"],
+                                  "observation_invalid",
+                                  # The runner versions whose real output was checked once (SPEC 결정과 이유).
+                                  "pytest 9.1.1", "Vitest 5.0.5", "Jest 30.5.2", "jest-junit 17.0.0"],
     "contracts/core-capabilities.md": [SCHEMA, FEATURE],
     "contracts/bundle.md": [SCHEMA],
     "contracts/run-record.md": [SCHEMA, "판정 의미 버전"],
 }
+# Fixed file and directory names a runner installation or dependency declaration adds.
+RUNNER_FILES = {"package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock", "pnpm-lock.yaml",
+                "requirements.txt", "Pipfile", "Pipfile.lock", "poetry.lock", "pyproject.toml", "setup.py", "setup.cfg"}
+RUNNER_DIRECTORIES = {"node_modules", ".venv", "venv", "site-packages"}
 GUIDE_SECTIONS = {"guides/OPERATIONS.md": "## 수정 전 실패가 뜻하는 것",
                   "guides/OPERATIONS.en.md": "## What a failure before the change means"}
 
@@ -270,6 +296,13 @@ class Documents(unittest.TestCase):
                 problems.append(f"{path} has no section {heading!r}")
             elif CONTRACT_LINK not in body or SCHEMA not in body:
                 problems.append(f"{path} {heading!r} does not point to {CONTRACT_LINK} with {SCHEMA}")
+        result = run(["git", "ls-files", "-z"], ROOT, timeout=120)
+        if result.returncode != 0:
+            raise Unavailable(f"git ls-files: {result.stderr.decode(errors='replace')}")
+        for name in result.stdout.decode("utf-8", errors="replace").split("\0"):
+            parts = name.split("/")
+            if parts[-1] in RUNNER_FILES or RUNNER_DIRECTORIES.intersection(parts[:-1]):
+                problems.append(f"tracked runner installation or dependency declaration {name}")
         require(self, not problems, "adapter-contract-missing", "; ".join(problems))
 
 

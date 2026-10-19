@@ -124,8 +124,8 @@
     "classname": "tests.test_greet",
     "name": "test_greets"
    },
-   "output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<testsuite name=\"pytest\" tests=\"1\">  <testcase classname=\"tests.test_greet\" name=\"test_greets\" time=\"0.01\"><failure message=\"assert &apos;hi&apos; == &apos;hello&apos;\">def test_greets():\n    note = &quot;jaekit:violation=greeting-missing&quot;\n&gt;       assert greet() == &quot;hello&quot;\nE       assert &apos;hi&apos; == &apos;hello&apos;</failure></testcase>\n</testsuite>\n",
-   "crlf_output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<testsuite name=\"pytest\" tests=\"1\">  <testcase classname=\"tests.test_greet\" name=\"test_greets\" time=\"0.01\"><failure message=\"assert &apos;hi&apos; == &apos;hello&apos;\">def test_greets():\r\n    note = &quot;jaekit:violation=greeting-missing&quot;\r\n&gt;       assert greet() == &quot;hello&quot;\r\nE       assert &apos;hi&apos; == &apos;hello&apos;</failure></testcase>\r\n</testsuite>\r\n",
+   "output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<testsuite name=\"pytest\" tests=\"1\">  <testcase classname=\"tests.test_greet\" name=\"test_greets\" time=\"0.01\"><failure message=\"AssertionError: assert &apos;hi&apos; == &apos;hello&apos;&#10;  &#10;  - hello&#10;  + hi\">def test_greets():\n    note = &quot;jaekit:violation=greeting-missing&quot;\n&gt;       assert greet() == &quot;hello&quot;\nE       assert &apos;hi&apos; == &apos;hello&apos;</failure></testcase>\n</testsuite>\n",
+   "crlf_output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<testsuite name=\"pytest\" tests=\"1\">  <testcase classname=\"tests.test_greet\" name=\"test_greets\" time=\"0.01\"><failure message=\"AssertionError: assert &apos;hi&apos; == &apos;hello&apos;&#10;  &#10;  - hello&#10;  + hi\">def test_greets():\r\n    note = &quot;jaekit:violation=greeting-missing&quot;\r\n&gt;       assert greet() == &quot;hello&quot;\r\nE       assert &apos;hi&apos; == &apos;hello&apos;</failure></testcase>\r\n</testsuite>\r\n",
    "result": "fail",
    "reason": "unexpected_assertion",
    "targets": [
@@ -145,10 +145,10 @@
    "violation": "greeting-missing",
    "test": {
     "classname": "greet greets with hello",
-    "name": "greets with hello"
+    "name": "greet greets with hello"
    },
-   "output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<testsuites name=\"demo\">\n<testsuite name=\"demo\" tests=\"1\">\n  <testcase classname=\"greet greets with hello\" name=\"greets with hello\" time=\"0.01\"><failure><![CDATA[Error: jaekit:violation=greeting-missing\n    at Object.<anonymous> (tests/greet.test.js:4:9)]]></failure></testcase>\n</testsuite>\n</testsuites>\n",
-   "crlf_output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<testsuites name=\"demo\">\r\n<testsuite name=\"demo\" tests=\"1\">\r\n  <testcase classname=\"greet greets with hello\" name=\"greets with hello\" time=\"0.01\"><failure><![CDATA[Error: jaekit:violation=greeting-missing\r\n    at Object.<anonymous> (tests/greet.test.js:4:9)]]></failure></testcase>\r\n</testsuite>\r\n</testsuites>\r\n",
+   "output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<testsuites name=\"demo\">\n<testsuite name=\"demo\" tests=\"1\">\n  <testcase classname=\"greet greets with hello\" name=\"greet greets with hello\" time=\"0.01\"><failure><![CDATA[Error: jaekit:violation=greeting-missing\n    at Object.<anonymous> (tests/greet.test.js:4:9)]]></failure></testcase>\n</testsuite>\n</testsuites>\n",
+   "crlf_output": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<testsuites name=\"demo\">\r\n<testsuite name=\"demo\" tests=\"1\">\r\n  <testcase classname=\"greet greets with hello\" name=\"greet greets with hello\" time=\"0.01\"><failure><![CDATA[Error: jaekit:violation=greeting-missing\r\n    at Object.<anonymous> (tests/greet.test.js:4:9)]]></failure></testcase>\r\n</testsuite>\r\n</testsuites>\r\n",
    "result": "fail",
    "reason": "assertion_failed",
    "targets": [

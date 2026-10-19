@@ -65,11 +65,12 @@ func TestAdapterDeclarationLint(t *testing.T) {
 		"Go name in JUnit":         `{"schema": "check-adapter/v1", "adapter": "junit-xml", "targets": [{"id": "t", "violation": "v", "test": ` + goTest + `}]}`,
 		"not a Go test":            target(`{"package": "example.com/demo", "name": "helper"}`),
 		"lowercase after Test":     target(`{"package": "example.com/demo", "name": "Testx"}`),
-		"empty subtest":            target(`{"package": "example.com/demo", "name": "TestX//y"}`),
 		"space in subtest":         target(`{"package": "example.com/demo", "name": "TestX/a b"}`),
 		"space in package":         target(`{"package": "example.com/a b", "name": "TestX"}`),
 		"long name":                target(`{"package": "example.com/demo", "name": "TestX` + strings.Repeat("a", 1024) + `"}`),
 		"reserved violation":       `{"schema": "check-adapter/v1", "adapter": "go-test-json", "targets": [{"id": "t", "violation": "jaekit:unmarked-failure", "test": ` + goTest + `}]}`,
+		"violation ending colon":   `{"schema": "check-adapter/v1", "adapter": "go-test-json", "targets": [{"id": "t", "violation": "greeting-missing:", "test": ` + goTest + `}]}`,
+		"violation ending period":  `{"schema": "check-adapter/v1", "adapter": "junit-xml", "targets": [{"id": "t", "violation": "greeting.missing.", "test": {"classname": "a", "name": "b"}}]}`,
 		"one test, two targets":    `{"schema": "check-adapter/v1", "adapter": "go-test-json", "targets": [{"id": "a", "violation": "v", "test": ` + goTest + `}, {"id": "b", "violation": "w", "test": ` + goTest + `}]}`,
 		"producer field":           `{"schema": "check-adapter/v1", "adapter": "go-test-json", "producer": "x", "targets": [{"id": "t", "violation": "v", "test": ` + goTest + `}]}`,
 		"unknown test field":       target(`{"package": "example.com/demo", "name": "TestX", "file": "x"}`),
@@ -88,11 +89,18 @@ func TestAdapterDeclarationLint(t *testing.T) {
 		"junit.json":     `{"schema": "check-adapter/v1", "adapter": "junit-xml", "targets": [{"id": "t", "violation": "v", "test": {"classname": "", "name": "greets with hello"}}]}`,
 		"unicode.json":   target(`{"package": "example.com/demo", "name": "TestÜber/한글"}`),
 		"two-junit.json": `{"schema": "check-adapter/v1", "adapter": "junit-xml", "targets": [{"id": "a", "violation": "v", "test": {"classname": "x", "name": "n"}}, {"id": "b", "violation": "v", "test": {"classname": "y", "name": "n"}}]}`,
+		"subtests.json":  target(`{"package": "example.com/demo", "name": "TestX/a//b/"}`),
+		"inner.json":     `{"schema": "check-adapter/v1", "adapter": "go-test-json", "targets": [{"id": "t", "violation": "greeting.missing:v2", "test": ` + goTest + `}]}`,
 	}
 	for name, content := range good {
 		files[name] = content
 	}
+	// A producer declaration keeps its identifier rule: a violation may end with a colon.
+	files["producer.json"] = `{"schema": "check-declaration/v1", "producer": "p", "producer_version": "1", "producer_paths": ["p.py"], "targets": [{"id": "t", "violation": "greeting-missing:"}]}`
 	root := committedRepo(t, files)
+	if d, _, err := Load(root, "producer.json"); err != nil || d.Adapter != "" {
+		t.Errorf("producer declaration with a violation ending in a colon: %v", err)
+	}
 	for name := range bad {
 		if _, _, err := Load(root, strings.ReplaceAll(name, " ", "-")+".json"); err == nil {
 			t.Errorf("%s: accepted", name)
@@ -125,6 +133,13 @@ func TestMarkerReading(t *testing.T) {
 	}{
 		{[]string{"x jaekit:violation=greeting-missing broke"}, "greeting-missing"},
 		{[]string{"jaekit:violation=a.b/c:d-e_f"}, "a.b/c:d-e_f"},
+		{[]string{"jaekit:violation=greeting-missing: got \"hi\""}, "greeting-missing"},
+		{[]string{"jaekit:violation=greeting-missing."}, "greeting-missing"},
+		{[]string{"jaekit:violation=greeting-missing.:: x"}, "greeting-missing"},
+		{[]string{"jaekit:violation=a.:b."}, "a.:b"},
+		{[]string{"jaekit:violation=:."}, UnmarkedViolation},
+		{[]string{"jaekit:violation=" + long[:128] + ":"}, long[:128]},
+		{[]string{"jaekit:violation=a: x", "jaekit:violation=a. y"}, "a"},
 		{[]string{"jaekit:violation=" + long}, UnmarkedViolation},
 		{[]string{"jaekit:violation=" + long[:128]}, long[:128]},
 		{[]string{"jaekit:violation=_x"}, UnmarkedViolation},
@@ -200,6 +215,12 @@ func TestGoTestJSONObservations(t *testing.T) {
 		{"G2 marked error", ran("TestMarked", [][2]string{{mark, "error"}}, "fail").bytes(), []Observation{obs("violation", "greeting-missing", "", 1)}, "", 0},
 		{"G3 logged marker, unmarked error", ran("TestMarked", [][2]string{{mark, ""}, {"plain\n", "error"}}, "fail").bytes(), []Observation{obs("violation", UnmarkedViolation, "", 1)}, "", 0},
 		{"G5 marker on a continuation line", ran("TestMarked", [][2]string{{"first\n", "error"}, {mark, "error-continue"}}, "fail").bytes(), []Observation{obs("violation", UnmarkedViolation, "", 1)}, "", 0},
+		{"G16 identifier then a colon", ran("TestMarked", [][2]string{{"    x_test.go:3: jaekit:violation=greeting-missing: got \"hi\"\n", "error"}}, "fail").bytes(), []Observation{obs("violation", "greeting-missing", "", 1)}, "", 0},
+		{"G16 identifier then a period", ran("TestMarked", [][2]string{{"    x_test.go:3: jaekit:violation=greeting-missing.\n", "error"}}, "fail").bytes(), []Observation{obs("violation", "greeting-missing", "", 1)}, "", 0},
+		{"error output without its text", ran("TestMarked", [][2]string{{mark, "error"}, {"", "error"}}, "fail").bytes(), nil, "observation_invalid", 0},
+		{"unknown output type", ran("TestMarked", [][2]string{{mark, "error"}, {"x\n", "error-summary"}}, "fail").bytes(), nil, "observation_invalid", 0},
+		{"attr and artifacts events of Go 1.27", ran("TestMarked", nil, "").event("attr", "TestMarked", "", "", "Key", "k", "Value", "v").event("artifacts", "TestMarked", "", "", "Path", "/tmp/a").event("pass", "TestMarked", "", "").bytes(), []Observation{obs("pass", "", "", 1)}, "", 0},
+		{"unknown output type on another test", ran("TestMarked", [][2]string{{mark, "error"}}, "fail").event("output", "TestOther", "x\n", "trace").bytes(), nil, "observation_invalid", 0},
 		{"G6 failure without messages", ran("TestMarked", [][2]string{{"panic: jaekit:violation=greeting-missing\n", ""}}, "fail").bytes(), []Observation{obs("violation", UnmarkedViolation, "", 1)}, "", 0},
 		{"G10 no end record", ran("TestMarked", [][2]string{{mark, "error"}}, "").event("fail", "", "", "").bytes(), []Observation{obs("error", "", "execution_error", 1)}, "", 0},
 		{"no end and no package end", ran("TestMarked", nil, "").bytes(), []Observation{obs("error", "", "execution_error", 1)}, "", 0},
@@ -317,6 +338,8 @@ func TestJUnitObservations(t *testing.T) {
 		`<testcase classname="x" name="greets"/>`:      "target_missing",
 		`<testcase classname="" name="greets again"/>`: "target_missing",
 		`<testcase classname="tests" name="Greets"/>`:  "target_missing",
+		// J14: without the attribute and with an empty one, both are the declared test.
+		`<testcase name="greets"/><testcase classname="" name="greets"/>`: "attempt_history_missing",
 	} {
 		if _, early := junitObservations(blank, junitDocument(doc)); early != want {
 			t.Errorf("%s: %q, want %q", doc, early, want)

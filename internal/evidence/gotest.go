@@ -19,9 +19,16 @@ type goEvent struct {
 	FailedBuild string  `json:"FailedBuild"`
 }
 
+// goOutputTypes are the output types go test -json writes; any other value on
+// a linked package is an output form the adapter does not know.
+var goOutputTypes = map[string]bool{"": true, "error": true, "error-continue": true, "frame": true}
+
+// goActions are the actions go test -json of Go 1.27 writes. attr (t.Attr) and
+// artifacts (t.ArtifactDir) do not change a test's outcome.
 var goActions = map[string]bool{
 	"start": true, "run": true, "pause": true, "cont": true, "pass": true, "bench": true,
 	"fail": true, "output": true, "skip": true, "build-output": true, "build-fail": true,
+	"attr": true, "artifacts": true,
 }
 
 type goAttempt struct {
@@ -74,7 +81,7 @@ func goObservations(d *Declaration, data []byte) ([]Observation, string, []strin
 		if e.OutputType != "" {
 			pkg.typed = true
 		}
-		if !goActions[e.Action] {
+		if !goActions[e.Action] || !goOutputTypes[e.OutputType] || (e.Action == "output" && e.Output == nil) {
 			pkg.invalid = true
 			continue
 		}
@@ -98,7 +105,7 @@ func goObservations(d *Declaration, data []byte) ([]Observation, string, []strin
 			open[n] = &goAttempt{}
 			attempts[n] = append(attempts[n], open[n])
 		case "output":
-			if open[n] != nil && e.OutputType == "error" && e.Output != nil {
+			if open[n] != nil && e.OutputType == "error" {
 				open[n].errors = append(open[n].errors, firstLine(*e.Output))
 			}
 		case "pass", "fail", "skip":
