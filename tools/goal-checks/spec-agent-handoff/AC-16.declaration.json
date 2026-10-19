@@ -54,47 +54,91 @@
       "violation": "no-additional-violation"
     },
     {
-      "id": "separate-start-tests",
+      "id": "start-command-guide-test",
       "violation": "no-additional-violation"
     },
     {
-      "id": "separate-start-tests.assertion-2",
+      "id": "start-command-guide-test.assertion-2",
       "violation": "no-additional-violation"
     },
     {
-      "id": "separate-start-tests.assertion-3",
+      "id": "start-command-guide-test.assertion-3",
       "violation": "no-additional-violation"
     },
     {
-      "id": "separate-start-tests.assertion-4",
+      "id": "start-command-guide-test.assertion-4",
       "violation": "no-additional-violation"
     },
     {
-      "id": "separate-start-tests.assertion-5",
+      "id": "start-command-guide-test.assertion-5",
       "violation": "no-additional-violation"
     },
     {
-      "id": "separate-start-tests.assertion-6",
+      "id": "start-command-guide-test.assertion-6",
       "violation": "no-additional-violation"
     },
     {
-      "id": "separate-start-tests.assertion-7",
+      "id": "start-command-guide-test.assertion-7",
       "violation": "no-additional-violation"
     },
     {
-      "id": "separate-start-tests.assertion-8",
+      "id": "start-command-guide-test.assertion-8",
       "violation": "no-additional-violation"
     },
     {
-      "id": "separate-start-tests.execution",
+      "id": "start-command-guide-test.execution",
       "violation": "no-additional-violation"
     },
     {
-      "id": "separate-start-tests.selection",
+      "id": "start-command-guide-test.selection",
       "violation": "no-additional-violation"
     },
     {
-      "id": "separate-start-tests.attribution",
+      "id": "start-command-guide-test.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-docs-read-only-test",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-docs-read-only-test.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-docs-read-only-test.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-docs-read-only-test.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-docs-read-only-test.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-docs-read-only-test.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-docs-read-only-test.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-docs-read-only-test.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-docs-read-only-test.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-docs-read-only-test.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "goal-docs-read-only-test.attribution",
       "violation": "no-additional-violation"
     }
   ]

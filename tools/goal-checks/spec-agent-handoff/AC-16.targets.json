@@ -22,38 +22,43 @@
       }
     },
     {
-      "target": "separate-start-tests",
-      "runner": "command",
-      "argv": [
-        "go",
-        "test",
-        "-count=1",
-        "-mod=readonly",
-        "-run",
-        "^(TestSealStartCommandGuide|TestSealKeepsGoalDocsReadOnly)$",
-        "./plugins"
-      ],
-      "exit_contract": {
-        "schema": "jaekit-command-exits/v1",
-        "pass": [
-          0
-        ],
-        "violations": {},
-        "unverified": []
-      },
+      "target": "start-command-guide-test",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestSealStartCommandGuide",
       "result_targets": {
         "additional_violations": [
-          "separate-start-tests.assertion-2",
-          "separate-start-tests.assertion-3",
-          "separate-start-tests.assertion-4",
-          "separate-start-tests.assertion-5",
-          "separate-start-tests.assertion-6",
-          "separate-start-tests.assertion-7",
-          "separate-start-tests.assertion-8"
+          "start-command-guide-test.assertion-2",
+          "start-command-guide-test.assertion-3",
+          "start-command-guide-test.assertion-4",
+          "start-command-guide-test.assertion-5",
+          "start-command-guide-test.assertion-6",
+          "start-command-guide-test.assertion-7",
+          "start-command-guide-test.assertion-8"
         ],
-        "execution": "separate-start-tests.execution",
-        "selection": "separate-start-tests.selection",
-        "attribution": "separate-start-tests.attribution"
+        "execution": "start-command-guide-test.execution",
+        "selection": "start-command-guide-test.selection",
+        "attribution": "start-command-guide-test.attribution"
+      }
+    },
+    {
+      "target": "goal-docs-read-only-test",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestSealKeepsGoalDocsReadOnly",
+      "result_targets": {
+        "additional_violations": [
+          "goal-docs-read-only-test.assertion-2",
+          "goal-docs-read-only-test.assertion-3",
+          "goal-docs-read-only-test.assertion-4",
+          "goal-docs-read-only-test.assertion-5",
+          "goal-docs-read-only-test.assertion-6",
+          "goal-docs-read-only-test.assertion-7",
+          "goal-docs-read-only-test.assertion-8"
+        ],
+        "execution": "goal-docs-read-only-test.execution",
+        "selection": "goal-docs-read-only-test.selection",
+        "attribution": "goal-docs-read-only-test.attribution"
       }
     }
   ]

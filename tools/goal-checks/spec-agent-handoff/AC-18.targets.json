@@ -23,24 +23,9 @@
     },
     {
       "target": "spec-knows-nothing",
-      "runner": "command",
-      "argv": [
-        "go",
-        "test",
-        "-count=1",
-        "-mod=readonly",
-        "-run",
-        "^TestSpecPluginKnowsNothingOfSeal$",
-        "./plugins"
-      ],
-      "exit_contract": {
-        "schema": "jaekit-command-exits/v1",
-        "pass": [
-          0
-        ],
-        "violations": {},
-        "unverified": []
-      },
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestSpecPluginKnowsNothingOfSeal",
       "result_targets": {
         "additional_violations": [
           "spec-knows-nothing.assertion-2",

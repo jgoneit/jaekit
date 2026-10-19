@@ -2,38 +2,83 @@
   "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
-      "target": "protected-checks",
-      "runner": "command",
-      "argv": [
-        "go",
-        "test",
-        "-count=1",
-        "-mod=readonly",
-        "-run",
-        "^(TestSpecBoundaryContractExamples|TestVerificationReportingContracts|TestVerificationDesignContracts|TestVerificationFindingDocumentContracts)$",
-        "./plugins"
-      ],
-      "exit_contract": {
-        "schema": "jaekit-command-exits/v1",
-        "pass": [
-          0
-        ],
-        "violations": {},
-        "unverified": []
-      },
+      "target": "spec-boundary-contract",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestSpecBoundaryContractExamples",
       "result_targets": {
         "additional_violations": [
-          "protected-checks.assertion-2",
-          "protected-checks.assertion-3",
-          "protected-checks.assertion-4",
-          "protected-checks.assertion-5",
-          "protected-checks.assertion-6",
-          "protected-checks.assertion-7",
-          "protected-checks.assertion-8"
+          "spec-boundary-contract.assertion-2",
+          "spec-boundary-contract.assertion-3",
+          "spec-boundary-contract.assertion-4",
+          "spec-boundary-contract.assertion-5",
+          "spec-boundary-contract.assertion-6",
+          "spec-boundary-contract.assertion-7",
+          "spec-boundary-contract.assertion-8"
         ],
-        "execution": "protected-checks.execution",
-        "selection": "protected-checks.selection",
-        "attribution": "protected-checks.attribution"
+        "execution": "spec-boundary-contract.execution",
+        "selection": "spec-boundary-contract.selection",
+        "attribution": "spec-boundary-contract.attribution"
+      }
+    },
+    {
+      "target": "verification-reporting",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestVerificationReportingContracts",
+      "result_targets": {
+        "additional_violations": [
+          "verification-reporting.assertion-2",
+          "verification-reporting.assertion-3",
+          "verification-reporting.assertion-4",
+          "verification-reporting.assertion-5",
+          "verification-reporting.assertion-6",
+          "verification-reporting.assertion-7",
+          "verification-reporting.assertion-8"
+        ],
+        "execution": "verification-reporting.execution",
+        "selection": "verification-reporting.selection",
+        "attribution": "verification-reporting.attribution"
+      }
+    },
+    {
+      "target": "verification-design",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestVerificationDesignContracts",
+      "result_targets": {
+        "additional_violations": [
+          "verification-design.assertion-2",
+          "verification-design.assertion-3",
+          "verification-design.assertion-4",
+          "verification-design.assertion-5",
+          "verification-design.assertion-6",
+          "verification-design.assertion-7",
+          "verification-design.assertion-8"
+        ],
+        "execution": "verification-design.execution",
+        "selection": "verification-design.selection",
+        "attribution": "verification-design.attribution"
+      }
+    },
+    {
+      "target": "verification-finding-docs",
+      "runner": "go",
+      "package": "./plugins",
+      "test": "TestVerificationFindingDocumentContracts",
+      "result_targets": {
+        "additional_violations": [
+          "verification-finding-docs.assertion-2",
+          "verification-finding-docs.assertion-3",
+          "verification-finding-docs.assertion-4",
+          "verification-finding-docs.assertion-5",
+          "verification-finding-docs.assertion-6",
+          "verification-finding-docs.assertion-7",
+          "verification-finding-docs.assertion-8"
+        ],
+        "execution": "verification-finding-docs.execution",
+        "selection": "verification-finding-docs.selection",
+        "attribution": "verification-finding-docs.attribution"
       }
     }
   ]

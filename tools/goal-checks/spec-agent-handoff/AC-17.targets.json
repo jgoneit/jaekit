@@ -23,24 +23,9 @@
     },
     {
       "target": "scenarios",
-      "runner": "command",
-      "argv": [
-        "go",
-        "test",
-        "-count=1",
-        "-mod=readonly",
-        "-run",
-        "^TestScenarios$",
-        "./cmd/ha"
-      ],
-      "exit_contract": {
-        "schema": "jaekit-command-exits/v1",
-        "pass": [
-          0
-        ],
-        "violations": {},
-        "unverified": []
-      },
+      "runner": "go",
+      "package": "./cmd/ha",
+      "test": "TestScenarios",
       "result_targets": {
         "additional_violations": [
           "scenarios.assertion-2",
