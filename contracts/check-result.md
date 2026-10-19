@@ -162,7 +162,7 @@ v0.1.3부터 직접 설치와 Homebrew는 이 생산자와 [합성 예시](../ex
 | AC-2 | change | `node --test --test-reporter=junit --test-reporter-destination={HA_JUNIT_XML} test/greet.test.mjs` | test/greet.test.mjs, checks/AC-2.json | T001 |
 ```
 
-`go-test-json` 조건은 명령의 표준 출력을 따로 받아 끝까지 읽는다. 명령이 끝난 뒤에도 하위 프로세스가 표준 출력을 열어 두면 5초까지만 더 읽고, 그때까지 끝나지 않으면 잘린 출력을 판정하지 않는다(아래 표의 `process_wait`). 로그에는 지금처럼 표준 출력과 표준 오류가 함께 남고 `ha log`가 보인다. 표준 오류(모듈 내려받기 안내, vet 경고, 빌드 오류 원문)는 판정에 쓰지 않는다.
+`go-test-json` 조건은 명령의 표준 출력을 따로 받아 끝까지 읽는다. 명령이 끝난 뒤에도 하위 프로세스가 표준 출력을 열어 두면 5초까지만 더 읽고, 그때까지 끝나지 않으면 잘린 출력을 판정하지 않는다(아래 표의 `process_wait`). 이 읽기는 `ha`가 남은 하위 프로세스를 정리하기 전에 하므로 운영체제와 관계없이 같다. 로그에는 지금처럼 표준 출력과 표준 오류가 함께 남고 `ha log`가 보인다. 표준 오류(모듈 내려받기 안내, vet 경고, 빌드 오류 원문)는 판정에 쓰지 않는다.
 
 ### 표식
 
@@ -194,7 +194,7 @@ v0.1.3부터 직접 설치와 Homebrew는 이 생산자와 [합성 예시](../ex
 | `ha`의 시간 제한에 걸림 | `error` | `process_timeout` |
 | 신호로 종료됨 | `error` | `process_signal` |
 | 명령 출력 저장 실패 | `error` | `process_output` |
-| `go-test-json` 명령이 끝난 뒤 하위 프로세스가 표준 출력을 5초 넘게 열어 둠. 종료 코드와 그때까지 읽은 출력은 판정에 쓰지 않는다 | `error` | `process_wait` |
+| `go-test-json` 명령이 끝난 뒤 하위 프로세스가 표준 출력을 5초 넘게 열어 둠. 종료 코드와 그때까지 읽은 출력은 판정에 쓰지 않는다. 명령이 신호로 끝났으면 위의 신호 행이 앞선다 | `error` | `process_wait` |
 | 연결한 Go 시험의 패키지가 빌드되지 않음 | `error` | `environment_reported`, 대상 `compile_error` |
 | 연결한 Go 시험이 시작했지만 끝 기록(통과·실패·skip)이 없음(시험 바이너리의 비정상 종료, Go 자체의 시험 시간 초과) | `error` | `environment_reported`, 대상 `execution_error` |
 | 연결한 testcase에 `error` 요소가 있음. `failure`가 함께 있어도 같다 | `error` | `environment_reported`, 대상 `execution_error` |

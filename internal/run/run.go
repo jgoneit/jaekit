@@ -176,8 +176,9 @@ func execWithOutput(dir string, argv []string, timeout time.Duration, logPath st
 				controlErr = errors.Join(controlErr, errors.New("process did not exit after termination"))
 			}
 		}
-		controlErr = errors.Join(controlErr, group.finish())
-		res.CPU = collectCPU(cmd, group)
+		// The copied standard output is drained before the process group is
+		// finished: finishing ends descendants (on Windows, the whole job), and
+		// a stream they still hold would otherwise end early as if complete.
 		truncated := false
 		if copyDone != nil {
 			var copyErr error
@@ -192,6 +193,16 @@ func execWithOutput(dir string, argv []string, timeout time.Duration, logPath st
 				finalizationErr = fmt.Errorf("standard output could not be read: %w", copyErr)
 			}
 		}
+		controlErr = errors.Join(controlErr, group.finish())
+		res.CPU = collectCPU(cmd, group)
+		// A process ended by a signal keeps that reason even when its
+		// standard output was also cut short.
+		var exited *exec.ExitError
+		signaled := false
+		if errors.As(waitErr, &exited) {
+			_, signal := processSignal(exited)
+			signaled = signal != ""
+		}
 		switch {
 		case controlErr != nil:
 			fmt.Fprintf(log, "\nha: process control failed: %v\n", controlErr)
@@ -200,7 +211,7 @@ func execWithOutput(dir string, argv []string, timeout time.Duration, logPath st
 		case timedOut:
 			fmt.Fprintf(log, "\nha: timed out after %s\n", timeout)
 			res.Outcome, res.Reason = Error, "process_timeout"
-		case truncated:
+		case truncated && !signaled:
 			fmt.Fprintf(log, "\nha: standard output stayed open %s after the process exited\n", stdoutDrain)
 			res.Outcome, res.Reason = Error, "process_wait"
 		case waitErr == nil:
