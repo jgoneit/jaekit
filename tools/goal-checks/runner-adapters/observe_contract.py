@@ -283,7 +283,8 @@ BUNDLE_SECTION = "### `## 결과 계약`"
 TEMPLATE_SECTION = "## 결과 계약"
 SEAL_TOKENS = {
     "checks bullet": [FEATURE, "adapter", "A structured result contract does not require an official adapter or the reference producer."],
-    "ha.md structured results": [SCHEMA, "go-test-json", "junit-xml", "jaekit:violation=", "first line", "CLI", "HTTP",
+    # "opening line": the Seal references never use ordering words such as "first" (plugins_test.go).
+    "ha.md structured results": [SCHEMA, "go-test-json", "junit-xml", "jaekit:violation=", "opening line", "CLI", "HTTP",
                                  "public API", "dedicated producer", FEATURE, PLACEHOLDER, "optional"],
     "bundle.md result contract": [SCHEMA],
     "PLAN.md result contract": [SCHEMA],
