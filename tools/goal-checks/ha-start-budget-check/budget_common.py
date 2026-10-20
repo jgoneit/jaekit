@@ -113,8 +113,9 @@ def temporary(prefix):
     return tempfile.TemporaryDirectory(prefix=prefix)
 
 
-# Tools the repository's Go tests run directly (git, sh and python3 fixtures).
-GO_TEST_TOOLS = ("go", "git", "sh", "python3")
+# Tools the repository's Go tests run directly (git, sh and python3 fixtures), each with
+# an argument that does nothing but show the tool starts and exits 0.
+GO_TEST_TOOLS = (("go", "version"), ("git", "--version"), ("sh", "-c", ":"), ("python3", "-c", "pass"))
 
 
 def go_env(directory):
@@ -123,16 +124,27 @@ def go_env(directory):
     Git and ha settings are dropped, and XDG_CONFIG_HOME names an empty folder
     under directory, so no test reads the caller's pre-approved run limit from
     $XDG_CONFIG_HOME or ~/.config. HOME stays, so Go keeps its build cache.
+    Each tool in GO_TEST_TOOLS is started once first; a missing tool, one that
+    cannot start or one that fails its no-op is Unavailable, never a violation.
     """
     folder = Path(directory) / "empty-config"
     folder.mkdir(exist_ok=True)
     env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "HA_"))}
     env.update(GOTOOLCHAIN="local", GOFLAGS="-mod=readonly", XDG_CONFIG_HOME=str(folder))
-    # The repository's Go tests start these tools themselves and fail when one is missing;
-    # that is an input failure, so it is found here, before any test runs.
-    missing = [tool for tool in GO_TEST_TOOLS if shutil.which(tool, path=env.get("PATH")) is None]
-    if missing:
-        raise Unavailable(f"the Go tests need {', '.join(missing)} on PATH")
+    # The repository's Go tests start these tools themselves and fail when one is missing or
+    # cannot start; that is an input failure, so each is started once here, before any test.
+    for tool, *args in GO_TEST_TOOLS:
+        found = shutil.which(tool, path=env.get("PATH"))
+        if found is None:
+            raise Unavailable(f"the Go tests need {tool} on PATH")
+        try:
+            result = subprocess.run([found, *args], env=env, capture_output=True, timeout=120,
+                                    stdin=subprocess.DEVNULL)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise Unavailable(f"{tool} on PATH ({found}) cannot start: {error}") from None
+        if result.returncode:
+            raise Unavailable(f"{tool} on PATH ({found}) exited {result.returncode} when started with "
+                              f"{' '.join(args)}: {result.stderr.decode(errors='replace')[-300:]}")
     return env
 
 
