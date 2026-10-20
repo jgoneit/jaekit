@@ -57,8 +57,9 @@ NATIVE = {
                            for case in ("events.jsonl", "lock", "last", "last.tmp"))],
     "cmd/ha": ["TestNativeRecordedTiming", "TestNativeStartBudgetAndSkill",
                *("TestNativeStartBudgetAndSkill/" + case for case in
-                 ("xdg_folder", "home_folder", "missing_default", "corrupt_refused", "auto_start", "auto_refused",
-                  "skill_missing_support", "skill_supported")),
+                 ("ancestors", "folder_identity", "home_before_userprofile", "xdg_folder", "home_folder",
+                  "missing_default", "corrupt_refused", "auto_start", "auto_refused", "skill_missing_support",
+                  "skill_supported")),
                "TestNativeCoreGitLifecycle", "TestNativeCoreGitLifecycle/linked=false",
                "TestNativeCoreGitLifecycle/linked=true", "TestNativeBaselineRejectsJunction",
                "TestNativeHistoryGitLifecycle", "TestNativeHistoryFileEvidence",

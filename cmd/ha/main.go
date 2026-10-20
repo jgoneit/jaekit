@@ -351,11 +351,13 @@ func (c *cli) start(in []string) int {
 	}
 	skill := record.Skill{Name: a.vals["skill-name"], Version: a.vals["skill-version"]}
 	if p := a.vals["skill"]; p != "" {
-		if skill, err = readSkill(p); err != nil {
-			return c.fail(exitRefused, "%v", err)
-		}
+		// The declaration is checked first, so an unreadable declaration is
+		// reported as such rather than by the skill folder's digest.
 		if code := c.checkSkillRequirements(p, a.bools["check-skill"]); code >= 0 {
 			return code
+		}
+		if skill, err = readSkill(p); err != nil {
+			return c.fail(exitRefused, "%v", err)
 		}
 	}
 	e := &record.Start{

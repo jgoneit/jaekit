@@ -176,11 +176,12 @@ mkdir -p ~/.config/jaekit
 printf '{"preapproved_runs": 120}\n' > ~/.config/jaekit/ha.json
 ```
 
-In Windows PowerShell:
+The home is the `HOME` environment variable when it is set, otherwise `USERPROFILE` on Windows. In Windows PowerShell, pick the folder in the same order:
 
 ```powershell
-New-Item -ItemType Directory -Force "$HOME\.config\jaekit" | Out-Null
-Set-Content -Path "$HOME\.config\jaekit\ha.json" -Value '{"preapproved_runs": 120}'
+$folder = if ($env:XDG_CONFIG_HOME) { "$env:XDG_CONFIG_HOME\jaekit" } elseif ($env:HOME) { "$env:HOME\.config\jaekit" } else { "$env:USERPROFILE\.config\jaekit" }
+New-Item -ItemType Directory -Force $folder | Out-Null
+Set-Content -Path "$folder\ha.json" -Value '{"preapproved_runs": 120}'
 ```
 
 `ha estimate docs/specs/example` shows the same computed limit before the start, and whether your approval is needed. When the computed limit is above your limit, `ha start` records nothing and stops:

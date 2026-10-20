@@ -76,15 +76,21 @@ func (r *Repo) CommonDir() (string, error) {
 
 // Worktrees returns the top-level folder of every working tree of this
 // repository, the main checkout first, as `git worktree list` reports them.
-// A path containing a line feed is not supported.
+// The list is read NUL-delimited (`-z`, Git 2.36 and later), so a path with
+// a line feed is read whole; a Git that refuses `-z` is read line by line,
+// where such a path is not supported.
 func (r *Repo) Worktrees() ([]string, error) {
-	out, err := r.run("worktree", "list", "--porcelain")
+	sep := "\x00"
+	out, err := r.run("worktree", "list", "--porcelain", "-z")
 	if err != nil {
-		return nil, err
+		sep = "\n"
+		if out, err = r.run("worktree", "list", "--porcelain"); err != nil {
+			return nil, err
+		}
 	}
 	var trees []string
-	for _, line := range strings.Split(string(out), "\n") {
-		if path, ok := strings.CutPrefix(line, "worktree "); ok {
+	for _, field := range strings.Split(string(out), sep) {
+		if path, ok := strings.CutPrefix(field, "worktree "); ok {
 			trees = append(trees, filepath.Clean(path))
 		}
 	}

@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"unicode"
 )
 
 const startBudgetGoal = "docs/specs/budget-example"
@@ -114,6 +115,18 @@ func writeSkill(t *testing.T, declaration string) string {
 // checks and the Unix native CI cover: the configuration folder rule, the
 // automatic limit and its refusal, and a skill's Core requirements.
 func TestNativeStartBudgetAndSkill(t *testing.T) {
+	t.Run("ancestors", checkPreapprovalAncestors)
+	t.Run("folder_identity", checkFolderIdentity)
+	t.Run("home_before_userprofile", func(t *testing.T) {
+		_, _, home := startBudgetFixture(t, 34, "자동")
+		t.Setenv("XDG_CONFIG_HOME", "")
+		t.Setenv("USERPROFILE", t.TempDir()) // used only when HOME is empty
+		want := writeLimit(t, filepath.Join(home, ".config"), `{"preapproved_runs": 120}`)
+		code, auto, text := startBudgetEstimate(t)
+		if code != 0 || auto["source_path"] != want {
+			t.Fatalf("HOME did not take precedence: exit %d, %v: %s", code, auto, text)
+		}
+	})
 	t.Run("xdg_folder", func(t *testing.T) {
 		_, xdg, home := startBudgetFixture(t, 34, "자동")
 		writeLimit(t, filepath.Join(home, ".config"), `{"preapproved_runs": 500}`)
@@ -250,7 +263,8 @@ func TestReadPreapprovalForms(t *testing.T) {
 	for _, content := range []string{"", "{}", "null", "[120]", `{"preapproved_runs": null}`, `{"preapproved_runs": "120"}`,
 		`{"preapproved_runs": 0}`, `{"preapproved_runs": -1}`, `{"preapproved_runs": 1.5}`, `{"preapproved_runs": 1e2}`,
 		`{"preapproved_runs": 01}`, `{"preapproved_runs": 2147483648}`, `{"preapproved_runs": 120} {}`,
-		`{"preapproved_runs": 120, "preapproved_runs": 130}`, `{"preapproved_runs": 120, "x": 1}`, "{\"preapproved_runs\": 120, \"\xff\": 1}"} {
+		`{"preapproved_runs": 120, "preapproved_runs": 130}`, `{"preapproved_runs": 120, "x": 1}`,
+		`{"Preapproved_Runs": 120}`, `{"preapproved_runs": 60, "PREAPPROVED_RUNS": 500}`, "{\"preapproved_runs\": 120, \"\xff\": 1}"} {
 		xdg := t.TempDir()
 		path := writeLimit(t, xdg, content)
 		_, err := readPreapproval(func(k string) string { return map[string]string{"XDG_CONFIG_HOME": xdg}[k] }, []string{repo})
@@ -260,7 +274,8 @@ func TestReadPreapprovalForms(t *testing.T) {
 	}
 }
 
-func TestReadPreapprovalAncestors(t *testing.T) {
+// checkPreapprovalAncestors runs inside the native test, on every OS.
+func checkPreapprovalAncestors(t *testing.T) {
 	repo := t.TempDir()
 	read := func(xdg string) (preapproval, error) {
 		return readPreapproval(func(k string) string { return map[string]string{"XDG_CONFIG_HOME": xdg}[k] }, []string{repo})
@@ -325,15 +340,26 @@ func TestReadCoreRequirementsForms(t *testing.T) {
 			t.Errorf("%q: want a refusal", bad)
 		}
 	}
-	req = &coreRequirements{Rules: []string{"run-rules/9"}, Formats: map[string][]string{"nope": {"x/v1"}, "criteria": {"legacy", "nested/9"}},
+	req = &coreRequirements{Rules: []string{"run-rules/9"}, Formats: map[string][]string{"nope": {"x/v1"}, "criteria": {"legacy", "nested/9"}, "empty": {}},
 		Features: []string{"estimate/v1", "later/v2"}}
 	got := strings.Join(req.missing(supportedCapabilities()), "; ")
-	if got != "rules run-rules/9; formats.criteria nested/9; formats.nope x/v1; features later/v2" {
+	if got != "rules run-rules/9; formats.criteria nested/9; formats.empty; formats.nope x/v1; features later/v2" {
 		t.Fatalf("missing = %s", got)
+	}
+	// Field names are matched exactly; a key that differs only in case is unknown.
+	for _, bad := range []string{`{"schema": "core-requirements/v1", "features": ["later/v2"], "FEATURES": []}`,
+		`{"Schema": "core-requirements/v1"}`} {
+		dir := t.TempDir()
+		estimateTestWrite(t, dir, "SKILL.md", "---\nname: x\n---\n")
+		estimateTestWrite(t, dir, "core-requirements.json", bad)
+		if _, _, err := readCoreRequirements(filepath.Join(dir, "SKILL.md")); err == nil || !strings.Contains(err.Error(), "matched exactly") {
+			t.Errorf("%q: want an exact-key refusal, got %v", bad, err)
+		}
 	}
 }
 
-func TestWithinComparesFoldersByIdentity(t *testing.T) {
+// checkFolderIdentity runs inside the native test, on every OS.
+func checkFolderIdentity(t *testing.T) {
 	root, other := t.TempDir(), t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, "a"), 0o755); err != nil {
 		t.Fatal(err)
@@ -350,4 +376,32 @@ func TestWithinComparesFoldersByIdentity(t *testing.T) {
 	if tree, ok := within([]string{other, root}, filepath.Join(other, "x")); !ok || tree != other {
 		t.Errorf("second tree: %s, %v", tree, ok)
 	}
+	// The same folder spelled in other letter case is the same folder where
+	// the file system ignores case (macOS, Windows) and another folder where
+	// it does not (Linux).
+	swapped := filepath.Join(filepath.Dir(root), swapCase(filepath.Base(root)), "a", "ha.json")
+	a, errA := os.Stat(root)
+	b, errB := os.Stat(filepath.Dir(filepath.Dir(swapped)))
+	same := errA == nil && errB == nil && os.SameFile(a, b)
+	if _, got := within([]string{root}, swapped); got != same {
+		t.Errorf("within(%s) = %v; the file system says same folder: %v", swapped, got, same)
+	}
+	// A tree named through a symbolic link is the folder it points to.
+	link := filepath.Join(t.TempDir(), "link")
+	if err := os.Symlink(root, link); err == nil {
+		if _, got := within([]string{link}, filepath.Join(root, "a", "ha.json")); !got {
+			t.Errorf("tree named by a link: not within")
+		}
+	} else if runtime.GOOS != "windows" {
+		t.Fatal(err)
+	}
+}
+
+func swapCase(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsUpper(r) {
+			return unicode.ToLower(r)
+		}
+		return unicode.ToUpper(r)
+	}, s)
 }

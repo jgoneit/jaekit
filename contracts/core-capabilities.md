@@ -159,12 +159,12 @@ skill은 SKILL.md와 같은 폴더의 `core-requirements.json`에 자신에게 �
 | --- | --- |
 | `schema` | 필수. 정확히 `core-requirements/v1` |
 | `rules` | 선택. 각 값이 `supported_rules`에 있어야 한다 |
-| `formats` | 선택. 키마다 그 키가 `formats`에 있고 각 값이 그 목록에 있어야 한다 |
+| `formats` | 선택. 키마다 그 키가 `formats`에 있고(목록이 비어 있어도) 각 값이 그 목록에 있어야 한다 |
 | `features` | 선택. 각 값이 `features`에 있어야 한다 |
 
 - 목록은 비어 있지 않은 문자열의 배열이고 한 목록 안에서 값이 겹치지 않는다. `formats`는 그런 목록을 값으로 갖는 객체다. 빈 목록이나 없는 필드는 그 종류의 요구가 없다는 뜻이다.
-- UTF-8 JSON 객체 하나이며 64 KiB 이하다. 맨 앞 BOM 하나는 허용한다. 다른 schema 값, 모르는 필드, 중복 키, 뒤에 붙은 데이터, `null`, 잘못된 타입은 형식 위반이다. 대상이 없는 symlink나 폴더처럼 읽을 수 없는 항목도 거부한다.
-- 빠진 항목이 있으면 항목마다 `ha: missing Core support: <rules|formats.<키>|features> <값> (ha <버전>)`을 보이고, 형식 위반이면 그 이유를 보이며, 둘 다 기록 없이 65로 끝난다. 모르는 값을 무시하고 시작하지 않는다.
+- UTF-8 JSON 객체 하나이며 64 KiB 이하다. 맨 앞 BOM 하나는 허용한다. 필드 이름은 정확한 철자여야 하며 대소문자만 다른 이름도 모르는 필드다. 다른 schema 값, 모르는 필드, 중복 키, 뒤에 붙은 데이터, `null`, 잘못된 타입은 형식 위반이다. 대상이 없는 symlink나 폴더처럼 읽을 수 없는 항목도 거부한다.
+- 빠진 항목이 있으면 항목마다 `ha: missing Core support: <rules|formats.<키>|features> <값> (ha <버전>)`을 보이고(`formats`의 키 자체가 없고 그 목록이 비어 있으면 값 없이 `formats.<키>`), 형식 위반이면 그 이유를 보이며, 둘 다 기록 없이 65로 끝난다. 모르는 값을 무시하고 시작하지 않는다.
 - 선언 파일이 없는 skill과 `--skill` 없는 시작은 이 확인을 하지 않는다. 그래서 선언하지 않은 Seal 0.1.17~0.1.19는 지금처럼 시작하며, 그 Seal들의 §2 확인과 [check_core.py](https://github.com/jgoneit/jaekit/blob/v0.1.6/plugins/seal/skills/seal/scripts/check_core.py)는 추가된 항목을 허용하므로 같은 결론을 낸다.
 - `--check-skill`은 선언을 필수로 한다. 이 기능 전의 Core(배포판 v0.1.6 등)는 이 플래그를 모르는 플래그로 64에 끝내고 기록하지 않으므로, 확인이 반드시 일어나야 하는 시작은 `ha start <goal> --skill <SKILL.md> --check-skill` 형식을 쓴다.
 - 선언은 Core 지원의 요구일 뿐이다. 사용자 구현 권한, 입력 lint, 완료 판정을 대신하지 않는다.

@@ -9,6 +9,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"syscall"
 	"unicode/utf8"
 )
@@ -96,14 +98,16 @@ func missingEntry(err error) bool {
 
 // strictJSON decodes one UTF-8 JSON value into dst. A single leading UTF-8
 // byte order mark is allowed. Duplicate keys at any depth, unknown fields and
-// trailing data are refused, so no meaning comes from a decoder's last-key or
-// ignore-unknown policy.
+// trailing data are refused, and the keys of a struct target's object must
+// spell its field names exactly, so no meaning comes from a decoder's
+// last-key, ignore-unknown or letter-case policy.
 func strictJSON(data []byte, dst any) error {
 	data = bytes.TrimPrefix(data, utf8BOM)
 	if !utf8.Valid(data) {
 		return errors.New("not valid UTF-8")
 	}
 	d := json.NewDecoder(bytes.NewReader(data))
+	var top []string // the keys of a top-level object
 	var value func(int) error
 	value = func(depth int) error {
 		if depth > 32 {
@@ -130,6 +134,9 @@ func strictJSON(data []byte, dst any) error {
 					return fmt.Errorf("duplicate JSON key %q", name)
 				}
 				seen[name] = true
+				if depth == 0 {
+					top = append(top, name)
+				}
 				if err := value(depth + 1); err != nil {
 					return err
 				}
@@ -152,10 +159,43 @@ func strictJSON(data []byte, dst any) error {
 	if _, err := d.Token(); err != io.EOF {
 		return errors.New("data after the JSON value")
 	}
+	if names := jsonFieldNames(dst); names != nil {
+		for _, key := range top {
+			if !names[key] {
+				return fmt.Errorf("unknown JSON key %q (keys are matched exactly)", key)
+			}
+		}
+	}
 	d = json.NewDecoder(bytes.NewReader(data))
 	d.DisallowUnknownFields()
 	if err := d.Decode(dst); err != nil {
 		return err
 	}
 	return nil
+}
+
+// jsonFieldNames is the set of JSON names of dst's fields when dst points to
+// a struct, and nil otherwise. encoding/json matches object keys to these
+// names without regard to letter case; strictJSON matches them exactly.
+func jsonFieldNames(dst any) map[string]bool {
+	t := reflect.TypeOf(dst)
+	for t != nil && t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	if t == nil || t.Kind() != reflect.Struct {
+		return nil
+	}
+	names := map[string]bool{}
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		name, _, _ := strings.Cut(f.Tag.Get("json"), ",")
+		if name == "-" || !f.IsExported() {
+			continue
+		}
+		if name == "" {
+			name = f.Name
+		}
+		names[name] = true
+	}
+	return names
 }

@@ -176,11 +176,12 @@ mkdir -p ~/.config/jaekit
 printf '{"preapproved_runs": 120}\n' > ~/.config/jaekit/ha.json
 ```
 
-Windows PowerShell에서는 다음처럼 씁니다.
+홈은 환경 변수 `HOME`이 있으면 그 값이고, 없으면 Windows에서는 `USERPROFILE`입니다. Windows PowerShell에서는 같은 순서로 폴더를 골라 씁니다.
 
 ```powershell
-New-Item -ItemType Directory -Force "$HOME\.config\jaekit" | Out-Null
-Set-Content -Path "$HOME\.config\jaekit\ha.json" -Value '{"preapproved_runs": 120}'
+$folder = if ($env:XDG_CONFIG_HOME) { "$env:XDG_CONFIG_HOME\jaekit" } elseif ($env:HOME) { "$env:HOME\.config\jaekit" } else { "$env:USERPROFILE\.config\jaekit" }
+New-Item -ItemType Directory -Force $folder | Out-Null
+Set-Content -Path "$folder\ha.json" -Value '{"preapproved_runs": 120}'
 ```
 
 `ha estimate docs/specs/example`이 시작 전에 같은 산정 값과 승인이 필요한지를 보입니다. 산정 값이 상한을 넘으면 `ha start`는 기록을 남기지 않고 다음처럼 멈춥니다.

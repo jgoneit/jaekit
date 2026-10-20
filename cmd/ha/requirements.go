@@ -109,6 +109,11 @@ func (r *coreRequirements) missing(have capabilityReport) []string {
 	sort.Strings(keys)
 	for _, key := range keys {
 		supported, known := have.Formats[key]
+		if !known && len(r.Formats[key]) == 0 {
+			// A format key this executable does not have is missing support
+			// even when its list is empty.
+			out = append(out, "formats."+key)
+		}
 		for _, value := range r.Formats[key] {
 			if !known || !slices.Contains(supported, value) {
 				out = append(out, "formats."+key+" "+value)
