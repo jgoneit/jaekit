@@ -375,6 +375,15 @@ func TestReadCoreRequirementsForms(t *testing.T) {
 	if got != "rules run-rules/9; formats.criteria nested/9; formats.empty; formats.nope x/v1; features later/v2" {
 		t.Fatalf("missing = %s", got)
 	}
+	// Several bad format entries give the same reason on every run: the first key in sorted order.
+	for i := 0; i < 20; i++ {
+		dir := t.TempDir()
+		estimateTestWrite(t, dir, "SKILL.md", "---\nname: x\n---\n")
+		estimateTestWrite(t, dir, "core-requirements.json", `{"schema": "core-requirements/v1", "formats": {"b": "x", "a": null, "c": 1}}`)
+		if _, _, err := readCoreRequirements(filepath.Join(dir, "SKILL.md")); err == nil || !strings.Contains(err.Error(), "formats.a ") {
+			t.Fatalf("run %d: want the reason for formats.a, got %v", i, err)
+		}
+	}
 	// Field names are matched exactly; a key that differs only in case is unknown.
 	for _, bad := range []string{`{"schema": "core-requirements/v1", "features": ["later/v2"], "FEATURES": []}`,
 		`{"Schema": "core-requirements/v1"}`} {

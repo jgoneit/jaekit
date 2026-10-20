@@ -172,8 +172,9 @@ PLAN의 `## 예산`에 횟수를 숫자 대신 `- 검증 실행: 자동`으로 �
 산정한 상한이 미리 승인한 상한 이하이면 묻지 않고 시작합니다. 미리 승인한 상한은 사용자 설정 폴더의 `ha.json`에 한 번 적어 둡니다. 폴더는 `~/.config/jaekit/`이고, `XDG_CONFIG_HOME`이 설정되어 있으면 `$XDG_CONFIG_HOME/jaekit/`입니다. 파일이 없으면 상한은 50회입니다. 저장소 안의 파일은 이 상한을 정하지 못합니다. 이를 확인하려고 파일이 있으면 `git worktree list -z`로 작업 트리를 읽으므로 Git 2.36 이상이 필요합니다.
 
 ```bash
-mkdir -p ~/.config/jaekit
-printf '{"preapproved_runs": 120}\n' > ~/.config/jaekit/ha.json
+folder="${XDG_CONFIG_HOME:-$HOME/.config}/jaekit"
+mkdir -p "$folder"
+printf '{"preapproved_runs": 120}\n' > "$folder/ha.json"
 ```
 
 홈은 환경 변수 `HOME`이 있으면 그 값이고, 없으면 Windows에서는 `USERPROFILE`입니다. Windows PowerShell에서는 같은 순서로 폴더를 골라 씁니다.

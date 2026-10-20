@@ -59,11 +59,17 @@ func readCoreRequirements(skillMD string) (*coreRequirements, string, error) {
 			return nil, path, errors.New("formats must be an object of string lists")
 		}
 		req.Formats = map[string][]string{}
-		for key, value := range formats {
+		// Keys in sorted order, so the reason for a bad declaration is the same on every run.
+		keys := make([]string, 0, len(formats))
+		for key := range formats {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
 			if key == "" {
 				return nil, path, errors.New("formats has an empty key")
 			}
-			if req.Formats[key], err = requirementList("formats."+key, value); err != nil {
+			if req.Formats[key], err = requirementList("formats."+key, formats[key]); err != nil {
 				return nil, path, err
 			}
 		}

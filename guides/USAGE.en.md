@@ -172,8 +172,9 @@ If the plan's `## 예산` gives the run count as `- 검증 실행: 자동` (auto
 When the computed limit is at or below the limit you approved in advance, the goal starts without a question. Write that pre-approved limit once in `ha.json` in your user configuration folder: `~/.config/jaekit/`, or `$XDG_CONFIG_HOME/jaekit/` when `XDG_CONFIG_HOME` is set. Without the file, the limit is 50 runs. No file inside a repository can set this limit. To check that, ha lists the working trees with `git worktree list -z` when the file exists, which needs Git 2.36 or later.
 
 ```bash
-mkdir -p ~/.config/jaekit
-printf '{"preapproved_runs": 120}\n' > ~/.config/jaekit/ha.json
+folder="${XDG_CONFIG_HOME:-$HOME/.config}/jaekit"
+mkdir -p "$folder"
+printf '{"preapproved_runs": 120}\n' > "$folder/ha.json"
 ```
 
 The home is the `HOME` environment variable when it is set, otherwise `USERPROFILE` on Windows. In Windows PowerShell, pick the folder in the same order:
