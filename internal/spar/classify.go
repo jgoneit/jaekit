@@ -66,27 +66,35 @@ type reference struct {
 	hasLine bool
 }
 
+// A location names a file of a workspace copy, head/ or base/. A rule or
+// contract link names a repository path, which head/ may precede; a link's
+// base/ is a repository folder.
+var (
+	locationPrefixes = []string{"head/", "base/", "./"}
+	linkPrefixes     = []string{"head/", "./"}
+)
+
 // parseReference reads a location or link. With a line, the path ends at the
 // first :<line> that the end or a space follows, so text after it, even
 // another location, is left out. Without a line, the path is the first word,
-// and whole keeps the whole text.
-func parseReference(text string) reference {
+// and whole keeps the whole text. One of the prefixes is removed, once.
+func parseReference(text string, prefixes []string) reference {
 	text = strings.TrimSpace(text)
 	if m := referenceLine.FindStringSubmatch(text); m != nil {
 		line, _ := strconv.Atoi(m[2])
-		return reference{path: workspacePath(m[1]), line: line, hasLine: true}
+		return reference{path: trimOnePrefix(m[1], prefixes), line: line, hasLine: true}
 	}
-	r := reference{whole: workspacePath(text)}
+	r := reference{whole: trimOnePrefix(text, prefixes)}
 	if fields := strings.Fields(text); len(fields) > 0 {
-		r.path = workspacePath(fields[0])
+		r.path = trimOnePrefix(fields[0], prefixes)
 	}
 	return r
 }
 
-// workspacePath removes one workspace prefix, once, so a repository folder
-// named head or base keeps its name.
-func workspacePath(path string) string {
-	for _, prefix := range []string{"head/", "base/", "./"} {
+// trimOnePrefix removes the first prefix that path starts with, and only
+// that one, so a repository folder named head or base keeps its name.
+func trimOnePrefix(path string, prefixes []string) string {
+	for _, prefix := range prefixes {
 		if strings.HasPrefix(path, prefix) {
 			return strings.TrimPrefix(path, prefix)
 		}
@@ -162,7 +170,7 @@ func uniq(list []string) []string {
 
 // locationPath turns "head/app/main.py:12" into "app/main.py".
 func locationPath(location string) string {
-	return parseReference(location).path
+	return parseReference(location, locationPrefixes).path
 }
 
 type classifier struct {
@@ -190,7 +198,7 @@ func (c classifier) verifyLink(kind, link string) bool {
 	case "rule", "contract":
 		// Without a line, the whole link names the document, or else its
 		// first word does.
-		r := parseReference(link)
+		r := parseReference(link, linkPrefixes)
 		if r.hasLine && r.line < 1 {
 			return false // a line that is given must exist
 		}

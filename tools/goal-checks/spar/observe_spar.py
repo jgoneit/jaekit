@@ -106,7 +106,8 @@ def tool(name):
     if not path:
         raise Unavailable(f"{name} is not on PATH")
     if path not in _STARTED:
-        run([path, "--version"], timeout=20)
+        # GOTOOLCHAIN=local keeps go from fetching a toolchain for the probe.
+        run([path, "--version"], env=dict(os.environ, GOTOOLCHAIN="local"), timeout=20)
         _STARTED.add(path)
     return path
 
@@ -1787,6 +1788,14 @@ class Release(unittest.TestCase):
         # symbolic link, such as macOS's /var.
         temp = Path(tempfile.mkdtemp(prefix="jaekit-spar-release-")).resolve()
         self.addCleanup(shutil.rmtree, temp, True)
+        # The archive check runs the packaged programs from the temporary
+        # folder; a folder that cannot run programs (a noexec mount) is an
+        # execution error, never a violation.
+        probe = temp / "exec-probe"
+        probe.write_text("#!/bin/sh\nexit 0\n")
+        probe.chmod(0o755)
+        if run([probe], temp).returncode:
+            raise Unavailable(f"the temporary folder {temp} cannot run programs")
         shims = temp / "shims"
         shims.mkdir()
         if not shutil.which("sha256sum"):

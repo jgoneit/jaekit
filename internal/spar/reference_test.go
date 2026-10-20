@@ -22,6 +22,8 @@ func TestReferenceRule(t *testing.T) {
 		{"head/checks/my test.py:2-4 and head/app.py:9", "checks/my test.py", "", 2, true},
 		{"head/base/checks/test.py:2", "base/checks/test.py", "", 2, true},
 		{"head/head/x.py:1", "head/x.py", "", 1, true},
+		{"base/base/x.py:1", "base/x.py", "", 1, true},
+		{"head/base/head/x.py:5", "base/head/x.py", "", 5, true},
 		{"base/app/old.py:3", "app/old.py", "", 3, true},
 		{"./app/main.py:4", "app/main.py", "", 4, true},
 		{"AGENTS.md:0", "AGENTS.md", "", 0, true},
@@ -32,12 +34,22 @@ func TestReferenceRule(t *testing.T) {
 		{"head/app/main.go", "app/main.go", "app/main.go", 0, false},
 		{"  head/app/main.go:7  ", "app/main.go", "", 7, true},
 	} {
-		r := parseReference(tc.text)
+		r := parseReference(tc.text, locationPrefixes)
 		if r.path != tc.path || r.whole != tc.whole || r.line != tc.line || r.hasLine != tc.hasLine {
 			t.Errorf("%q: got %+v", tc.text, r)
 		}
 		if got := locationPath(tc.text); got != tc.path {
 			t.Errorf("locationPath(%q) = %q, want %q", tc.text, got, tc.path)
+		}
+	}
+	// A link names a repository path: only head/ or ./ is removed, so a
+	// repository folder named base or head keeps its name.
+	for text, path := range map[string]string{
+		"base/api.md:3": "base/api.md", "head/base/api.md:3": "base/api.md", "head/head/x.md:2": "head/x.md",
+		"./AGENTS.md:1": "AGENTS.md", "head/AGENTS.md": "AGENTS.md", "base/rules/review.md": "base/rules/review.md",
+	} {
+		if got := parseReference(text, linkPrefixes).path; got != path {
+			t.Errorf("link %q: path %q, want %q", text, got, path)
 		}
 	}
 	for _, tc := range []struct{ text, ids string }{
@@ -60,7 +72,8 @@ func TestReferenceRule(t *testing.T) {
 // a location and the verification of rule links.
 func TestReferenceConsumers(t *testing.T) {
 	rules := []Document{newDocument("rules/API rules.md", "/r/rules/API rules.md", []byte("a\nb\nc\n")),
-		newDocument("AGENTS.md", "/r/AGENTS.md", []byte("a\nb\n"))}
+		newDocument("AGENTS.md", "/r/AGENTS.md", []byte("a\nb\n")),
+		newDocument("base/rules/review.md", "/r/base/rules/review.md", []byte("a\nb\nc\n"))}
 	c := classifier{checkPaths: []string{"base/checks/**"}, targets: LinkTargets{Rules: ruleTargets("/r", rules)}}
 	if f := c.classify("codex", 1, rawFinding("F1", map[string]any{"location": "head/base/checks/test.py:2",
 		"check_impact": "false_pass"})); f.Class != "defect" || !f.InCheckPaths || f.Path != "base/checks/test.py" {
@@ -69,6 +82,7 @@ func TestReferenceConsumers(t *testing.T) {
 	for link, want := range map[string]bool{
 		"rules/API rules.md:3": true, "rules/API rules.md:4": false, "rules/API rules.md": true,
 		"head/AGENTS.md:2": true, "AGENTS.md:0": false, "AGENTS.md L2": true, "missing.md": false,
+		"base/rules/review.md:3": true, "head/base/rules/review.md:3": true,
 	} {
 		if got := c.verifyLink("rule", link); got != want {
 			t.Errorf("rule link %q: %v, want %v", link, got, want)
