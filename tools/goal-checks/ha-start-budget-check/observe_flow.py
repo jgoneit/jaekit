@@ -23,9 +23,11 @@ from budget_common import (CHECK_FLAG, DECLARATION_SCHEMA, GOAL, ROOT, Repo, Una
                            go_env, run, temporary)
 
 NATIVE_TEST = "TestNativeStartBudgetAndSkill"
-# One subtest per form the test covers on every platform (PLAN 구현 결정 R3, R4, R7).
-SUBTESTS = ("xdg_folder", "home_folder", "missing_default", "corrupt_refused", "auto_start", "auto_refused",
-            "skill_missing_support", "skill_supported")
+# One subtest per form the test covers on every platform (PLAN 구현 결정 R3, R4, R7): the
+# location rule (ancestors, folder identity, HOME before USERPROFILE), refusals and the skill check.
+SUBTESTS = ("ancestors", "folder_identity", "home_before_userprofile", "xdg_folder", "home_folder",
+            "missing_default", "corrupt_refused", "auto_start", "auto_refused", "skill_missing_support",
+            "skill_supported")
 NAMES = [NATIVE_TEST] + [f"{NATIVE_TEST}/{s}" for s in SUBTESTS]
 
 

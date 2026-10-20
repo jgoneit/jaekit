@@ -39,9 +39,11 @@ FEATURES = ("auto-budget/v1", "core-requirements/v1")
 FORMAT_KEY = "core_requirements"
 
 
-# Exit codes ha's contract gives: 0 to 4 (status and done states, 1 for problems),
-# 64 usage, 65 refusal, 66 unsupported rules. 70 is an internal error.
-CONTRACT_EXITS = frozenset({0, 1, 2, 3, 4, 64, 65, 66})
+# Exit codes ha's contract gives (run-record.md §1 and §4.3): every command 0, 1
+# (problems), 64 usage, 65 refusal and 66 unsupported rules; status and done also
+# 2 to 4 for their states. 70 is an internal error, and Go exits 2 on a panic.
+CONTRACT_EXITS = frozenset({0, 1, 64, 65, 66})
+STATE_EXITS = frozenset({2, 3, 4})
 # One lint problem line of `ha lint` and of a refused `ha estimate`.
 LINT_LINE = re.compile(r"^[a-z][a-z0-9_]*\t[^\t\n]+\t", re.MULTILINE)
 
@@ -254,15 +256,15 @@ class Repo:
     def ha(self, *args, env=None, timeout=300, cwd=None):
         """(exit, stdout, stderr) of one `ha` command.
 
-        Only the exit codes ha's contract gives (run-record.md §1 and §4.3)
-        are observations. Any other code, such as 70 for an internal error or
+        Only the exit codes ha's contract gives that command (run-record.md
+        §1 and §4.3) are observations. Any other code, such as 70 for an internal error or
         a Windows termination status, and a nonzero exit that prints nothing
         are Unavailable: they carry no evidence about the requirement.
         """
         result = run([self.ha_path, *args], cwd or self.root, env or self.env, timeout=timeout)
         code = result.returncode
         out, err = result.stdout.decode(errors="replace"), result.stderr.decode(errors="replace")
-        if code not in CONTRACT_EXITS:
+        if code not in CONTRACT_EXITS and not (args[0] in ("status", "done") and code in STATE_EXITS):
             raise Unavailable(f"ha {args[0]} exited {code}, which ha's contract does not give: {(out + err)[-500:]}")
         if code and not (out + err).strip():
             raise Unavailable(f"ha {args[0]} exited {code} without any output")
