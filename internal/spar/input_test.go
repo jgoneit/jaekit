@@ -3,7 +3,9 @@ package spar
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -235,5 +237,62 @@ func TestInputGlobs(t *testing.T) {
 		if validGlob(p) == nil {
 			t.Errorf("validGlob(%q) accepted a pattern outside the table", p)
 		}
+	}
+}
+
+// Line numbers of any size compare as numbers, so a reversed range is never
+// read as a location or a link however many digits its lines have.
+func TestInputHugeLines(t *testing.T) {
+	c := classifier{repo: "/r", head: memoryCommit(map[string]string{"checks/t.py": "a\n"}), base: memoryCommit(nil),
+		checkPaths: []string{"checks/**"},
+		targets:    LinkTargets{Rules: ruleTargets("/r", []Document{newDocument("AGENTS.md", "/r/AGENTS.md", []byte("a\nb\n"))})}}
+	for location, unreadable := range map[string]bool{
+		"head/checks/t.py:100000000000000000000-99999999999999999999": true,
+		"head/checks/t.py:1-100000000000000000000":                    false,
+		"head/checks/t.py:0000":                                       true,
+	} {
+		f := c.classify("codex", 1, rawFinding("F1", map[string]any{"location": location}))
+		if f.LocationUnreadable != unreadable {
+			t.Errorf("%q: unreadable %v, want %v (%s)", location, f.LocationUnreadable, unreadable, f.ClassReason)
+		}
+	}
+	for _, link := range []string{"AGENTS.md:99999999999999999999-1", "AGENTS.md:1-99999999999999999999"} {
+		if c.verifyLink("rule", link) {
+			t.Errorf("rule link %q was confirmed", link)
+		}
+	}
+}
+
+// A triage of a round whose ledger is gone is refused and writes no new
+// ledger (G32).
+func TestTriageRefusesAMissingLedger(t *testing.T) {
+	f := newFixture(t)
+	dir := f.round("01-candidate", &RoundRecord{Stage: "candidate", Base: f.revs[0], Head: f.revs[1], Sequence: 1},
+		[]Finding{{ID: "x-F1", Class: "defect"}}, nil)
+	os.Remove(filepath.Join(dir, "ledger.jsonl"))
+	if err := Triage(TriageOptions{Round: dir, Finding: "x-F1", Disposition: "reject", Evidence: "e"}); err == nil {
+		t.Fatal("a triage without the round's ledger was recorded")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "ledger.jsonl")); err == nil {
+		t.Fatal("a refused triage wrote a new ledger")
+	}
+}
+
+// spar extend from a series outside every repository, without --repo, is
+// checked only against the repositories that hold the path: none (G28).
+func TestExtendOutsideEveryRepository(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is not installed")
+	}
+	series := t.TempDir()
+	if underGitFolder(series) {
+		t.Skip("the temporary folder is inside a Git repository")
+	}
+	t.Chdir(series)
+	if err := Extend(".", "code", 1, "yes", "", nil); err != nil {
+		t.Fatalf("an extension outside every repository: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(series, "extensions.jsonl")); err != nil {
+		t.Fatalf("no extension was recorded: %v", err)
 	}
 }

@@ -94,7 +94,7 @@ spar는 리뷰어의 표준 오류와 출력의 오류 메시지에서 아래 �
 | 종류 | 문구 | 기록 |
 | --- | --- | --- |
 | 사용량·요청 한도 | `RESOURCE_EXHAUSTED`, `code 429`, `status 429`(`code`·`status`와 `429` 사이에 기호 넷까지), `429 Too Many Requests`, `too many requests`, `rate limit`, `rate_limit`, `rate-limit`, `ratelimit`, `quota reached`, `quota exceeded`, `quota exhausted`, `insufficient_quota`, `hit your limit`, `hit your usage limit`, `usage limit reached` | `unavailable`, 이유 `quota or rate limit: …`. `fallback_model`이 있으면 대체 모델로 한 번 더 |
-| 인증 | `UNAUTHENTICATED`, `code 401`, `status 401`, `401 Unauthorized`, `not logged in`, `authentication required`, `authentication failed`, `login again`, `log in again`, `sign in again`, `codex login`, `agy login`, `claude login`, `run /login`, `oauth token expired`, `oauth token has expired`, `invalid api key`, `incorrect api key` | `unavailable`, 이유 `authentication: …`. 대체 모델을 쓰지 않는다 |
+| 인증 | `UNAUTHENTICATED`, `code 401`, `status 401`(`code`·`status`와 `401` 사이에 기호 넷까지), `401 Unauthorized`, `not logged in`, `authentication required`, `authentication failed`, `login again`, `log in again`, `sign in again`, `codex login`, `agy login`, `claude login`, `run /login`, `oauth token expired`, `oauth token has expired`, `invalid api key`, `incorrect api key` | `unavailable`, 이유 `authentication: …`. 대체 모델을 쓰지 않는다 |
 | 재설정 | `reset`·`resets` 뒤에 `in`·`at`이 오거나 오지 않는 것(`resets in`, `reset at` 등), `try again in`, `try again at`. 그 뒤 공백과 숫자가 든 낱말부터 마침표나 줄 끝까지 | 시도와 리뷰어의 `resets` |
 
 ## 6. 대표 형식

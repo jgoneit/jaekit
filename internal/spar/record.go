@@ -356,12 +356,17 @@ func underGitFolder(dir string) bool {
 // it, and a .git above the path that Git cannot judge refuses it.
 func localRecordPath(repo, path string) error {
 	path = realish(path)
-	if filepath.Clean(path) == filepath.Clean(realish(repo)) {
-		return fmt.Errorf("%s is the repository itself; review records go to a Git-ignored folder", path)
-	}
-	if rel := insideRepo(realish(repo), path); rel != "" {
-		if first := strings.SplitN(filepath.ToSlash(rel), "/", 2)[0]; first == ".git" {
-			return fmt.Errorf("%s is inside .git", path)
+	// repo is empty when no reviewed repository was found (spar extend
+	// outside one): the path is then checked only against the
+	// repositories that hold it.
+	if repo != "" {
+		if filepath.Clean(path) == filepath.Clean(realish(repo)) {
+			return fmt.Errorf("%s is the repository itself; review records go to a Git-ignored folder", path)
+		}
+		if rel := insideRepo(realish(repo), path); rel != "" {
+			if first := strings.SplitN(filepath.ToSlash(rel), "/", 2)[0]; first == ".git" {
+				return fmt.Errorf("%s is inside .git", path)
+			}
 		}
 	}
 	dir := path

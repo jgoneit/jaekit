@@ -69,6 +69,9 @@ type reference struct {
 	line    int
 	end     int // the last line of a range, or line
 	hasLine bool
+	// reversed: a range whose last line comes before its first, compared
+	// as numbers of any size (line and end saturate at math.MaxInt).
+	reversed bool
 }
 
 // A location names a file of a workspace copy, head/ or base/. A rule or
@@ -97,6 +100,15 @@ func digitsAt(text string, i int) int {
 		j++
 	}
 	return j
+}
+
+// lessDigits compares two runs of ASCII digits as numbers of any size.
+func lessDigits(a, b string) bool {
+	a, b = strings.TrimLeft(a, "0"), strings.TrimLeft(b, "0")
+	if len(a) != len(b) {
+		return len(a) < len(b)
+	}
+	return a < b
 }
 
 func lineNumber(digits string) int {
@@ -131,7 +143,8 @@ func parseReference(text string, prefixes []string) reference {
 			k := j + len(dash)
 			if m := digitsAt(text, k); m > k && endsAt(text, m) {
 				prefix, path := trimOnePrefix(text[:i], prefixes)
-				return reference{prefix: prefix, path: path, line: line, end: lineNumber(text[k:m]), hasLine: true}
+				return reference{prefix: prefix, path: path, line: line, end: lineNumber(text[k:m]), hasLine: true,
+					reversed: lessDigits(text[k:m], text[i+1:j])}
 			}
 		}
 		if endsAt(text, j) {
@@ -388,7 +401,7 @@ func (c classifier) readLocation(location string) (string, string) {
 	if r.hasLine && r.line < 1 {
 		return "", "line 0 does not exist"
 	}
-	if r.hasLine && r.end < r.line {
+	if r.hasLine && r.reversed {
 		return "", "the range ends before it starts"
 	}
 	copies := []*commitFiles{c.head, c.base}
@@ -436,7 +449,7 @@ func (c classifier) verifyLink(kind, link string) bool {
 		return true
 	case "rule", "contract":
 		r := parseReference(link, linkPrefixes)
-		if r.hasLine && (r.line < 1 || r.end < r.line) {
+		if r.hasLine && (r.line < 1 || r.reversed) {
 			return false // a line that is given must exist, and a range must run forward
 		}
 		// Without a line, the whole link names the document, or else its

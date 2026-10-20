@@ -114,6 +114,14 @@ func Triage(o TriageOptions) error {
 	if f == nil {
 		return refused("%s is not a finding of %s", o.Finding, o.Round)
 	}
+	// A round whose ledger is gone or unreadable is refused, not given a new
+	// one (G32): its earlier dispositions would be lost.
+	if _, err := os.Stat(filepath.Join(dir, "ledger.jsonl")); err != nil {
+		return refused("%s/ledger.jsonl cannot be read: %v", o.Round, err)
+	}
+	if _, err := loadLedger(dir); err != nil {
+		return refused("%v", err)
+	}
 	problem, commit := dispositionProblem(*f, findings, o, r.Repo, r.Head)
 	if problem != "" {
 		return refused("%s %s (%s): %s", o.Finding, o.Disposition, f.Class, problem)
