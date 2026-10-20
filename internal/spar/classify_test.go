@@ -66,6 +66,8 @@ func TestClassification(t *testing.T) {
 		{"checks/test.py", "head/checks/test.py:2 see head/app.py:10", map[string]any{"check_impact": "false_pass"}, "defect", true},
 		{"**/*_test.go", "head/app/main.go:10 and head/app/main_test.go:20",
 			map[string]any{"introduced_by_change": "yes", "regression": "yes"}, "defect", false},
+		{"checks/*.py", "head/checks/my test.py:2-4 and head/app.py:9", map[string]any{"check_impact": "false_pass"}, "defect", true},
+		{"checks/*.py", "head/checks/my test.py:2–4", map[string]any{"check_impact": "false_pass"}, "defect", true},
 	} {
 		tc.values["location"] = tc.location
 		k := classifier{checkPaths: []string{tc.glob}, targets: c.targets}

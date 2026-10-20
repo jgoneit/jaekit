@@ -86,6 +86,12 @@ def signalled(result, what):
         raise Unavailable(f"{what}: a program it ran was stopped: {text(result)[-600:]}")
 
 
+def not_started(result, what):
+    """bash exits 126 or 127 when a command in a block cannot start: never a violation."""
+    if result.returncode in (126, 127):
+        raise Unavailable(f"{what}: a command could not start: {text(result)[-600:]}")
+
+
 def tool(name):
     path = shutil.which(name)
     if not path:
@@ -1592,8 +1598,7 @@ def run_install(case, block, with_spar, violation):
             raise Unavailable("neither sha256sum nor shasum is on PATH")
         result = run([tool("bash"), "-c", block], root, env, timeout=120)
         signalled(result, "release install")
-        if result.returncode in (126, 127):
-            raise Unavailable(f"release install: a command could not start: {text(result)[-600:]}")
+        not_started(result, "release install")
         require(case, result.returncode == 0, violation,
                 f"release install failed (archive with spar: {with_spar}): {text(result)[-600:]}")
         bin_dir = install_root / ".local/bin"
@@ -1788,8 +1793,12 @@ class Release(unittest.TestCase):
         if result.returncode:
             raise Unavailable(f"release build step failed: {text(result)[-2000:]}")
         dist = temp / "dist"
+        # The verification step runs python3; a missing one, or a command bash
+        # cannot start, is an execution error, never a violation.
+        tool("python3")
         result = run([tool("bash"), "-c", "set -euo pipefail\n" + verify_script], ROOT, env, timeout=900)
         signalled(result, "release verification")
+        not_started(result, "release verification")
         require(self, result.returncode == 0, v, f"release verification failed: {text(result)[-1200:]}")
         expected_names = {f"ha_{version}_{t.replace('/', '_')}.tar.gz" for t in TARGETS} | \
             {f"ha_{version}_windows_amd64.zip", "checksums.txt"}
@@ -1850,6 +1859,7 @@ class Release(unittest.TestCase):
         (dist / "checksums.txt").write_text("\n".join(sums) + "\n")
         result = run([tool("bash"), "-c", "set -euo pipefail\n" + verify_script], ROOT, env, timeout=900)
         signalled(result, "release verification")
+        not_started(result, "release verification")
         require(self, result.returncode != 0 and "spar" in text(result), v,
                 f"the release check accepted an archive without spar: {text(result)[-400:]}")
 
