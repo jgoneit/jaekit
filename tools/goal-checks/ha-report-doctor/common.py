@@ -323,6 +323,21 @@ class Repo:
     def report(self, *args, cwd=None):
         return self.ha_run("report", GOAL, *args, cwd=cwd)
 
+    def shallow_clone(self, root):
+        """A depth-1 clone of this repository, which has HEAD but not the base, with the
+        goal's untracked bundle documents copied in."""
+        root = Path(root)
+        result = run(["git", "clone", "-q", "--depth", "1", self.root.as_uri(), str(root)], self.root.parent,
+                     self.env(), timeout=120)
+        if result.returncode:
+            raise Unavailable(f"git clone: {result.stderr.decode(errors='replace')}")
+        shutil.copytree(self.root / GOAL, root / GOAL, dirs_exist_ok=True)
+        clone = Repo.__new__(Repo)
+        clone.__dict__.update(self.__dict__, root=root)
+        for key, value in (("gc.auto", "0"), ("maintenance.auto", "false"), ("core.autocrlf", "false")):
+            clone.git("config", key, value)
+        return clone
+
     def doctor(self, cwd=None, timeout=600, env=None):
         return self.ha_run("doctor", GOAL, cwd=cwd, timeout=timeout, env=env)
 
@@ -426,7 +441,8 @@ def required_ids(repo):
 def expect_summary(repo, status, lang, changed, fresh_baselines, confirmations=None, blocked=None):
     """The five summary lines for lang.
 
-    changed is ("counts", files, commits), ("not_started",) or ("cannot_compare", base, head).
+    changed is ("counts", files, commits) or ("not_started",); see expect_uncompared for a
+    base that Git cannot compare with HEAD.
     fresh_baselines is (B, N); confirmations maps manual IDs to confirmation seqs;
     blocked is (seq, cause) of the last block note.
     """
@@ -436,10 +452,6 @@ def expect_summary(repo, status, lang, changed, fresh_baselines, confirmations=N
     start = next((l for l in repo.lines() if l.get("kind") == "start"), None)
     if changed[0] == "not_started":
         lines.append("바뀐 것: 시작 전이라 base commit이 없음" if ko else "Changed: not started; there is no base commit yet")
-    elif changed[0] == "cannot_compare":
-        _, base, head = changed
-        lines.append(f"바뀐 것: Git이 base {short(base)}와 HEAD {short(head)}를 비교할 수 없음" if ko else
-                     f"Changed: Git cannot compare base {short(base)} with HEAD {short(head)}")
     else:
         _, files, commits = changed
         base = short(start["base_commit"])
@@ -530,6 +542,22 @@ def targets(reason):
         _, _, tasks = reason.get("detail", "").partition(": ")
         return [t for t in tasks.split(", ") if t]
     return reason.get("paths") or []
+
+
+def expect_uncompared(base, head, lang):
+    """The five summary lines when Git cannot compare base with HEAD (the user's decision on the
+    impl review, codex-F2): the other lines were not computed and the base must be fetched."""
+    b, h, goal = short(base), short(head), display_goal()
+    if lang == "ko":
+        why = f"Git이 base {b}와 HEAD {h}를 비교할 수 없음"
+        return [f"바뀐 것: {why}", f"확인한 것: 계산하지 못함; {why}", f"직접 볼 것: 계산하지 못함; {why}",
+                "남은 한계: 보증 수준 local; 검사 작성자: 실행자; 나머지 한계는 계산하지 못함",
+                f"다음 행동: base {b}가 든 이력을 받고(예: 얕은 clone에서는 `git fetch --unshallow`) `ha report {goal}` 다시 실행"]
+    why = f"Git cannot compare base {b} with HEAD {h}"
+    return [f"Changed: {why}", f"Checked: not computed; {why}", f"To review: not computed; {why}",
+            "Remaining limits: assurance local; check author: executor; the other limits were not computed",
+            f"Next step: fetch the history that contains base {b} (for example `git fetch --unshallow` in a shallow clone), "
+            f"then run `ha report {goal}` again"]
 
 
 def reason_list(reasons):

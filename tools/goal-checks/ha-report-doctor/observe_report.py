@@ -13,7 +13,8 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import (GOAL, HEADINGS, LABELS, SECRET, Condition, Repo, Temporary, Unavailable, build,  # noqa: E402
-                    expect_details, expect_summary, require, sections, snapshot_diff, summary_lines)
+                    expect_details, expect_summary, expect_uncompared, require, sections, snapshot_diff,
+                    summary_lines)
 
 FULL = (Condition("AC-1", "change"), Condition("AC-2", "maintain"), Condition("AC-3", "manual"),
         Condition("AC-4", "maintain", optional=True))
@@ -132,7 +133,25 @@ class Report(Built):
             raise Unavailable("the middle commit is not a loose object")
         loose.unlink()
         start = next(l for l in compare.lines() if l["kind"] == "start")
-        expect(compare, ("cannot_compare", start["base_commit"], compare.head()), (0, 1), note="cannot compare")
+
+        def uncompared(repo, base, note):
+            for lang, args in LANGS:
+                code, out, err = repo.report(*args)
+                want = expect_uncompared(base, repo.head(), lang)
+                require(self, code == 70 and out.split("\n") == want + [""], v,
+                        f"{note} {lang}: exited {code}: {out!r} want {want}")
+
+        uncompared(compare, start["base_commit"], "a missing commit between base and HEAD")
+        deep = self.repo("deep")
+        deep.start()
+        deep.implement()
+        deep.write("src/later.txt", "later\n")
+        deep.commit("later")
+        shallow = deep.shallow_clone(self.dir / "shallow")
+        base = next(l for l in shallow.lines() if l["kind"] == "start")["base_commit"]
+        if shallow.ha_run("status", GOAL)[0] != 70:
+            raise Unavailable("ha status computes the shallow clone without its base")
+        uncompared(shallow, base, "a shallow clone without the base")
 
         tracked = self.repo("tracked", track_bundle=True)
         tracked.start()

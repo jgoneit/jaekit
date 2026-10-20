@@ -23,6 +23,7 @@ from common import ROOT, Repo, Temporary, Unavailable, build, require, run, text
 
 SCRIPTS = {"tests/env/plain.sh": "echo ok\n"}
 NATIVE_TESTS = ["TestNativeReportOutput", "TestNativeReportOutput/en", "TestNativeReportOutput/ko",
+                "TestNativeReportOutput/uncompared",
                 "TestNativeDoctorProbes", "TestNativeDoctorProbes/available", "TestNativeDoctorProbes/missing",
                 "TestNativeDoctorProbes/exit", "TestNativeDoctorProbes/timeout", "TestNativeDoctorProbes/tail"]
 
