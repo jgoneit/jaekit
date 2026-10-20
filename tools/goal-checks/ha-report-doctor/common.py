@@ -501,10 +501,8 @@ def expect_summary(repo, status, lang, changed, fresh_baselines, confirmations=N
         if status["lint"]:
             line += f" (먼저 lint 문제 해결: `ha lint {goal}`)" if ko else f" after fixing the lint problems (`ha lint {goal}`)"
     elif state == "incomplete":
-        first = next(r for r in status["reasons"] if r["class"] == "executor")
-        target = (first["criterion"] + " ") if first.get("criterion") else ""
-        line = (f"다음 행동: {target}`{first['code']}` 해결 (executor)" if ko else
-                f"Next step: resolve {target}`{first['code']}` (executor)")
+        first = reason_list([next(r for r in status["reasons"] if r["class"] == "executor")])
+        line = f"다음 행동: {first} 해결 (executor)" if ko else f"Next step: resolve {first} (executor)"
     elif state == "needs_user":
         line = ("다음 행동: 사용자에게 물을 것: " if ko else "Next step: ask the user about ") + reason_list(user)
     elif state == "complete" and status.get("completion_record") is None:
@@ -525,8 +523,25 @@ def expect_summary(repo, status, lang, changed, fresh_baselines, confirmations=N
     return lines
 
 
+def targets(reason):
+    """What a goal-level reason is about: the open tasks that `ha status` lists
+    in task_open's detail, otherwise its paths."""
+    if reason["code"] == "task_open":
+        _, _, tasks = reason.get("detail", "").partition(": ")
+        return [t for t in tasks.split(", ") if t]
+    return reason.get("paths") or []
+
+
 def reason_list(reasons):
-    return ", ".join((f"{r['criterion']} `{r['code']}`" if r.get("criterion") else f"`{r['code']}`") for r in reasons)
+    parts = []
+    for r in reasons:
+        if r.get("criterion"):
+            parts.append(f"{r['criterion']} `{r['code']}`")
+        elif targets(r):
+            parts.append(f"`{r['code']}` ({', '.join(targets(r))})")
+        else:
+            parts.append(f"`{r['code']}`")
+    return ", ".join(parts)
 
 
 def sections(out):

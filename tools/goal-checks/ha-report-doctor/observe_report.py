@@ -101,6 +101,12 @@ class Report(Built):
         expect(repo, ("counts", 2, 2), (1, 1), {"AC-3": confirm}, note="out of scope only")
         repo.note("confirm", "scope:other/outside.txt", "--quote", "그 파일은 괜찮아")
         expect(repo, ("counts", 2, 2), (1, 1), {"AC-3": confirm}, note="complete without a record")
+        progress = repo.read(f"{GOAL}/PROGRESS.md")
+        repo.write(f"{GOAL}/PROGRESS.md", progress.replace("| T001 | done |", "| T001 | todo |"))
+        if [r["code"] for r in repo.status()["reasons"]] != ["task_open"]:
+            raise Unavailable("the open-task fixture did not leave task_open alone")
+        expect(repo, ("counts", 2, 2), (1, 1), {"AC-3": confirm}, note="an open task")
+        repo.write(f"{GOAL}/PROGRESS.md", progress)
         repo.done()
         expect(repo, ("counts", 2, 2), (1, 1), {"AC-3": confirm}, note="complete with a record")
         repo.flag("AC-2")
