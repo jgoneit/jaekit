@@ -16,7 +16,9 @@ Results:
 - A tool that cannot start (go, git, sh, python3), a build that fails, a
   fixture step that does not end as the fixture expects, a tool ended by a
   signal and undecodable output raise Unavailable: an execution error, never
-  a violation.
+  a violation. One exception: `ha doctor`'s own output is the observed
+  property, so observe_doctor.py decodes it with replacement and a tail cut
+  inside a character is that case's violation.
 
 Expected lines are built from PLAN `## 불변식과 판정 규칙` and `### 구현 결정`
 with values read from `ha status --format json` of the same inputs and from

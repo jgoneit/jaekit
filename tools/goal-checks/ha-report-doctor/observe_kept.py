@@ -5,9 +5,13 @@ capabilities-before.json and usage-before.txt (the output of `ha` built
 before this goal) and regressions-before.json (the registry before this
 goal). Nothing reads another commit. A test failure in the existing suites,
 a capability or usage line that changed or disappeared, a registry that
-differs, or a protected check that fails is a violation; a build failure,
-undecodable output, an unreadable expected file or a tool that cannot start
-is unavailable.
+differs, or a protected check that check.py reports as a violation is a
+violation; a build failure, undecodable output, an unreadable expected file
+or a tool that cannot start is unavailable. check.py reports a failing
+protected test as an error, which this observer cannot tell from an input
+failure, so that case is unavailable too. Both conditions are maintain
+conditions: Core records any nonzero exit as `fail` (REVIEW's input-failure
+table), and the raw log tells the two apart.
 """
 import json
 import os
