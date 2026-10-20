@@ -142,3 +142,12 @@ func TestJSONMatchesContract(t *testing.T) {
 		}
 	}
 }
+
+func TestReasonTargets(t *testing.T) {
+	if got := (Reason{Code: "task_open", tasks: []string{"T002"}}).Targets(); len(got) != 1 || got[0] != "T002" {
+		t.Fatalf("task_open targets %v", got)
+	}
+	if got := (Reason{Code: "out_of_scope", Paths: []string{"a.txt"}}).Targets(); len(got) != 1 || got[0] != "a.txt" {
+		t.Fatalf("out_of_scope targets %v", got)
+	}
+}

@@ -276,6 +276,18 @@ type Reason struct {
 	Criterion string   `json:"criterion,omitempty"`
 	Paths     []string `json:"paths,omitempty"`
 	Detail    string   `json:"detail,omitempty"`
+	// tasks names the open tasks of task_open, which status/v1 carries only
+	// in Detail; the human output reads it through Targets.
+	tasks []string
+}
+
+// Targets are what a goal-level reason is about: the open task IDs of
+// task_open, otherwise its paths.
+func (r Reason) Targets() []string {
+	if r.tasks != nil {
+		return r.tasks
+	}
+	return r.Paths
 }
 
 // Changes lists what a person should look at.
@@ -977,6 +989,7 @@ func (e *evaluator) goalReasons(rep *Report) ([]Reason, error) {
 	}
 	if len(open) > 0 {
 		add("task_open", "required tasks not done or dropped in PROGRESS.md: "+strings.Join(open, ", "), nil)
+		rs[len(rs)-1].tasks = open
 	}
 	var lastBlock *record.Line
 	for i := range e.in.Lines {

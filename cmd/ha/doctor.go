@@ -110,6 +110,9 @@ func (c *cli) probe(root string, p bundle.Probe) (reason string, tail []string, 
 	if res.Reason == "process_wait" {
 		return "", nil, errors.New("process control or wait failed")
 	}
+	if res.Reason == "process_start" && errors.Is(res.StartError, run.ErrProcessControl) {
+		return "", nil, res.StartError
+	}
 	if reason = doctorReason(res); reason == "" {
 		return "", nil, nil
 	}

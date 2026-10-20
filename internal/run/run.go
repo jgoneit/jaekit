@@ -79,6 +79,21 @@ type processStarter func(*exec.Cmd) (processController, error)
 // bounded cleanup failure cannot establish an immutable output digest.
 var errUnfinalizedProcess = errors.New("process output finalization is unconfirmed")
 
+// ErrProcessControl marks a start failure of ha's own process control, such
+// as a Windows Job Object that could not be created or configured: no command
+// started, and the failure says nothing about the command. ha check records it
+// as process_start like any start failure; ha doctor reports it as its own
+// error rather than as the tool's result.
+var ErrProcessControl = errors.New("process control could not be set up")
+
+// controlError keeps the underlying message unchanged, so the log line that
+// ha check writes for a start failure stays the same.
+type controlError struct{ err error }
+
+func (e controlError) Error() string        { return e.err.Error() }
+func (e controlError) Unwrap() error        { return e.err }
+func (e controlError) Is(target error) bool { return target == ErrProcessControl }
+
 func ExecWithEnv(dir string, argv []string, timeout time.Duration, logPath string, extraEnv []string) (Result, error) {
 	return execWithStarter(dir, argv, timeout, logPath, extraEnv, startProcess)
 }

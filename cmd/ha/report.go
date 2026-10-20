@@ -209,7 +209,7 @@ func (v *reportView) render() string {
 	var b strings.Builder
 	summary := [5]string{v.changed(), v.checked(), v.toReview(), v.limits(), v.next()}
 	for i, line := range summary {
-		fmt.Fprintf(&b, "%s: %s\n", v.words.labels[i], line)
+		fmt.Fprintf(&b, "%s: %s\n", v.words.labels[i], oneLine.Replace(line))
 	}
 	sections := [4][]string{{v.stamp()}, v.table(), {v.coverage()}, v.unmet()}
 	for i, body := range sections {
@@ -299,17 +299,26 @@ func (v *reportView) checked() string {
 	return fmt.Sprintf(v.words.checked, satisfied, required, byCheck, byUser, fresh, change)
 }
 
+// reasonList names each reason with its target: the condition ID, or for a
+// goal-level reason the tasks or paths it is about (PLAN R4, R6).
 func reasonList(reasons []status.Reason) string {
 	var parts []string
 	for _, r := range reasons {
-		if r.Criterion != "" {
+		switch targets := r.Targets(); {
+		case r.Criterion != "":
 			parts = append(parts, fmt.Sprintf("%s `%s`", r.Criterion, r.Code))
-		} else {
+		case len(targets) > 0:
+			parts = append(parts, fmt.Sprintf("`%s` (%s)", r.Code, strings.Join(targets, ", ")))
+		default:
 			parts = append(parts, fmt.Sprintf("`%s`", r.Code))
 		}
 	}
 	return strings.Join(parts, ", ")
 }
+
+// oneLine keeps a summary line on one line: a line break inside a goal path
+// or another value is written as the two characters \n or \r.
+var oneLine = strings.NewReplacer("\r", `\r`, "\n", `\n`)
 
 func (v *reportView) userReasons() []status.Reason {
 	var out []status.Reason
