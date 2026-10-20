@@ -44,6 +44,9 @@ FORMAT_KEY = "core_requirements"
 # 2 to 4 for their states. 70 is an internal error, and Go exits 2 on a panic.
 CONTRACT_EXITS = frozenset({0, 1, 64, 65, 66})
 STATE_EXITS = frozenset({2, 3, 4})
+# How the Go runtime starts the report of a crash: an unrecovered panic or a fatal
+# error such as a stack overflow or a concurrent map write.
+GO_CRASH = re.compile(r"^(?:panic: |fatal error: )", re.MULTILINE)
 # One lint problem line of `ha lint` and of a refused `ha estimate`.
 LINT_LINE = re.compile(r"^[a-z][a-z0-9_]*\t[^\t\n]+\t", re.MULTILINE)
 
@@ -259,9 +262,9 @@ class Repo:
         Only the exit codes ha's contract gives that command (run-record.md
         §1 and §4.3) are observations. Any other code, such as 70 for an
         internal error or a Windows termination status, a nonzero exit that
-        prints nothing, and a Go panic (`panic: ` and a goroutine trace on
-        stderr, exit 2) are Unavailable: they carry no evidence about the
-        requirement.
+        prints nothing, and a Go runtime crash (a line starting `panic: ` or
+        `fatal error: ` and a goroutine trace on stderr, exit 2) are
+        Unavailable: they carry no evidence about the requirement.
         """
         result = run([self.ha_path, *args], cwd or self.root, env or self.env, timeout=timeout)
         code = result.returncode
@@ -270,8 +273,8 @@ class Repo:
             raise Unavailable(f"ha {args[0]} exited {code}, which ha's contract does not give: {(out + err)[-500:]}")
         if code and not (out + err).strip():
             raise Unavailable(f"ha {args[0]} exited {code} without any output")
-        if code and err.startswith("panic: ") and "\ngoroutine " in err:
-            raise Unavailable(f"ha {args[0]} crashed (Go panic, exit {code}): {err[:500]}")
+        if code and GO_CRASH.search(err) and "goroutine " in err:
+            raise Unavailable(f"ha {args[0]} crashed (Go runtime, exit {code}): {err[:500]}")
         return code, out, err
 
     def start(self, *extra, env=None):
