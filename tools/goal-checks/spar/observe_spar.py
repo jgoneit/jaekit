@@ -86,10 +86,29 @@ def signalled(result, what):
         raise Unavailable(f"{what}: a program it ran was stopped: {text(result)[-600:]}")
 
 
+def not_started(result, what):
+    """bash exits 126 or 127 when a command in a block cannot start: never a violation."""
+    if result.returncode in (126, 127):
+        raise Unavailable(f"{what}: a command could not start: {text(result)[-600:]}")
+
+
+_STARTED = set()
+
+
 def tool(name):
+    """The path of a program the observation runs or a block it runs needs.
+    A program that is not on PATH, or that cannot start, is an execution
+    error, never a violation. Each program runs once with --version: any exit
+    status means it started (BSD tools refuse the option), and run() turns
+    one that cannot start, such as one with a broken interpreter line, into
+    Unavailable."""
     path = shutil.which(name)
     if not path:
         raise Unavailable(f"{name} is not on PATH")
+    if path not in _STARTED:
+        # GOTOOLCHAIN=local keeps go from fetching a toolchain for the probe.
+        run([path, "--version"], env=dict(os.environ, GOTOOLCHAIN="local"), timeout=20)
+        _STARTED.add(path)
     return path
 
 
@@ -1588,12 +1607,11 @@ def run_install(case, block, with_spar, violation):
         # command bash cannot start (exit 126 or 127), is an execution error.
         for program in INSTALL_PROGRAMS:
             tool(program)
-        if not (shutil.which("sha256sum") or shutil.which("shasum")):
-            raise Unavailable("neither sha256sum nor shasum is on PATH")
+        # The block uses sha256sum when there is one, and shasum otherwise.
+        tool("sha256sum" if shutil.which("sha256sum") or not shutil.which("shasum") else "shasum")
         result = run([tool("bash"), "-c", block], root, env, timeout=120)
         signalled(result, "release install")
-        if result.returncode in (126, 127):
-            raise Unavailable(f"release install: a command could not start: {text(result)[-600:]}")
+        not_started(result, "release install")
         require(case, result.returncode == 0, violation,
                 f"release install failed (archive with spar: {with_spar}): {text(result)[-600:]}")
         bin_dir = install_root / ".local/bin"
@@ -1770,6 +1788,14 @@ class Release(unittest.TestCase):
         # symbolic link, such as macOS's /var.
         temp = Path(tempfile.mkdtemp(prefix="jaekit-spar-release-")).resolve()
         self.addCleanup(shutil.rmtree, temp, True)
+        # The archive check runs the packaged programs from the temporary
+        # folder; a folder that cannot run programs (a noexec mount) is an
+        # execution error, never a violation.
+        probe = temp / "exec-probe"
+        probe.write_text("#!/bin/sh\nexit 0\n")
+        probe.chmod(0o755)
+        if run([probe], temp).returncode:
+            raise Unavailable(f"the temporary folder {temp} cannot run programs")
         shims = temp / "shims"
         shims.mkdir()
         if not shutil.which("sha256sum"):
@@ -1784,12 +1810,19 @@ class Release(unittest.TestCase):
                    COPYFILE_DISABLE="1", PATH=str(shims) + os.pathsep + os.environ.get("PATH", ""))
         env.pop("GOOS", None)
         env.pop("GOARCH", None)
+        # As in every block: the programs the build step runs must start.
+        for program in ("mkdir", "go", "cp", "tar", "python3"):
+            tool(program)
         result = run([tool("bash"), "-c", "set -euo pipefail\n" + build_script], ROOT, env, timeout=1500)
         if result.returncode:
             raise Unavailable(f"release build step failed: {text(result)[-2000:]}")
         dist = temp / "dist"
+        # The verification step runs python3; a missing one, or a command bash
+        # cannot start, is an execution error, never a violation.
+        tool("python3")
         result = run([tool("bash"), "-c", "set -euo pipefail\n" + verify_script], ROOT, env, timeout=900)
         signalled(result, "release verification")
+        not_started(result, "release verification")
         require(self, result.returncode == 0, v, f"release verification failed: {text(result)[-1200:]}")
         expected_names = {f"ha_{version}_{t.replace('/', '_')}.tar.gz" for t in TARGETS} | \
             {f"ha_{version}_windows_amd64.zip", "checksums.txt"}
@@ -1850,6 +1883,7 @@ class Release(unittest.TestCase):
         (dist / "checksums.txt").write_text("\n".join(sums) + "\n")
         result = run([tool("bash"), "-c", "set -euo pipefail\n" + verify_script], ROOT, env, timeout=900)
         signalled(result, "release verification")
+        not_started(result, "release verification")
         require(self, result.returncode != 0 and "spar" in text(result), v,
                 f"the release check accepted an archive without spar: {text(result)[-400:]}")
 

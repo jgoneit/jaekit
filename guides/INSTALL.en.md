@@ -125,7 +125,8 @@ Paste the commands below as they are. They pick the file for your OS and CPU, ve
   url="https://github.com/jgoneit/jaekit/releases/download/v0.1.6"
   tmp="$(mktemp -d)"
   binary_tmp=
-  trap 'rm -rf "$tmp"; if [ -n "$binary_tmp" ]; then rm -f "$binary_tmp"; fi' EXIT
+  spar_tmp=
+  trap 'rm -rf "$tmp"; if [ -n "$binary_tmp" ]; then rm -f "$binary_tmp"; fi; if [ -n "$spar_tmp" ]; then rm -f "$spar_tmp"; fi' EXIT
   cd "$tmp"
   curl -fsSLO "$url/$name.tar.gz"
   curl -fsSLO "$url/checksums.txt"
@@ -176,19 +177,23 @@ Paste the commands below as they are. They pick the file for your OS and CPU, ve
   binary_tmp="$(mktemp "$bin/.ha.XXXXXX")"
   cp "$name/ha" "$binary_tmp"
   chmod 755 "$binary_tmp"
+  if [ -f "$name/spar" ]; then
+    spar_tmp="$(mktemp "$bin/.spar.XXXXXX")"
+    cp "$name/spar" "$spar_tmp"
+    chmod 755 "$spar_tmp"
+  fi
   mv -f "$binary_tmp" "$bin/ha"
   binary_tmp=
   echo "Installed: $HOME/.local/bin/ha ($name)"
-  if [ -f "$name/spar" ]; then
-    binary_tmp="$(mktemp "$bin/.spar.XXXXXX")"
-    cp "$name/spar" "$binary_tmp"
-    chmod 755 "$binary_tmp"
-    mv -f "$binary_tmp" "$bin/spar"
-    binary_tmp=
+  if [ -n "$spar_tmp" ]; then
+    mv -f "$spar_tmp" "$bin/spar"
+    spar_tmp=
     echo "Installed: $HOME/.local/bin/spar ($name)"
   fi
 )
 ```
+
+When the file contains `spar`, the commands prepare both executables next to their destinations before replacing either, so a failed download, copy or permission change leaves both as they were. The two replacements are still separate steps: if the commands stop between them (for example after a crash or a power loss), `ha` can be new while `spar` is old. Run the same commands again to bring them together.
 
 If `~/.local/bin` is not on your PATH, add `export PATH="$HOME/.local/bin:$PATH"` to your shell config (such as `~/.zshrc`). If macOS blocks a file you downloaded with a browser, clear it with `xattr -d com.apple.quarantine ~/.local/bin/ha`. Then [check the version](#check-the-version) and install the plugins for [Codex](#codex) or [Claude Code](#claude-code).
 

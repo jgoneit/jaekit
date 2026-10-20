@@ -48,12 +48,75 @@ type LinkTargets struct {
 	Rules       []LinkDocument `json:"rules"`
 }
 
-var criterionID = regexp.MustCompile(`(?:^|[^A-Za-z0-9])(AC-[0-9]+)(?:[^0-9]|$)`)
-var linkLine = regexp.MustCompile(`^(.+?):([0-9]+)(?:[-–][0-9]+)?$`)
+var criterionID = regexp.MustCompile(`AC-[0-9]+`)
 
-// locationLine is the start of a finding location: a path, then :<line> or
-// :<line>-<line>, then the end or a space.
-var locationLine = regexp.MustCompile(`^(.+?):[0-9]+(?:[-–][0-9]+)?(?:\s|$)`)
+// One rule reads every place a finding names: its location and its rule or
+// contract link go through parseReference, and criterion IDs, in criteria
+// documents and in links, through criterionIDs.
+
+// referenceLine is the start of a reference: a path, which may hold spaces,
+// then :<line> or :<line>-<line>, then the end or a space.
+var referenceLine = regexp.MustCompile(`^(.+?):([0-9]+)(?:[-–][0-9]+)?(?:\s|$)`)
+
+// reference is what a location or link names, without its workspace prefix.
+type reference struct {
+	path    string // the path before the line; without a line, the first word
+	whole   string // without a line, the whole text, for a path with spaces
+	line    int
+	hasLine bool
+}
+
+// A location names a file of a workspace copy, head/ or base/. A rule or
+// contract link names a repository path, which head/ may precede; a link's
+// base/ is a repository folder.
+var (
+	locationPrefixes = []string{"head/", "base/", "./"}
+	linkPrefixes     = []string{"head/", "./"}
+)
+
+// parseReference reads a location or link. With a line, the path ends at the
+// first :<line> that the end or a space follows, so text after it, even
+// another location, is left out. Without a line, the path is the first word,
+// and whole keeps the whole text. One of the prefixes is removed, once.
+func parseReference(text string, prefixes []string) reference {
+	text = strings.TrimSpace(text)
+	if m := referenceLine.FindStringSubmatch(text); m != nil {
+		line, _ := strconv.Atoi(m[2])
+		return reference{path: trimOnePrefix(m[1], prefixes), line: line, hasLine: true}
+	}
+	r := reference{whole: trimOnePrefix(text, prefixes)}
+	if fields := strings.Fields(text); len(fields) > 0 {
+		r.path = trimOnePrefix(fields[0], prefixes)
+	}
+	return r
+}
+
+// trimOnePrefix removes the first prefix that path starts with, and only
+// that one, so a repository folder named head or base keeps its name.
+func trimOnePrefix(path string, prefixes []string) string {
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(path, prefix) {
+			return strings.TrimPrefix(path, prefix)
+		}
+	}
+	return path
+}
+
+// criterionIDs finds the AC-n IDs in a text. An ID must not follow a letter
+// or digit, and the check does not consume the character before it, so IDs
+// written next to each other, as in "AC-1,AC-2", are all found.
+func criterionIDs(text string) []string {
+	var ids []string
+	for _, at := range criterionID.FindAllStringIndex(text, -1) {
+		if at[0] > 0 {
+			if b := text[at[0]-1]; b < 0x80 && (b >= '0' && b <= '9' || b >= 'A' && b <= 'Z' || b >= 'a' && b <= 'z') {
+				continue
+			}
+		}
+		ids = append(ids, text[at[0]:at[1]])
+	}
+	return ids
+}
 
 func lineCount(data []byte) int {
 	if len(data) == 0 {
@@ -69,8 +132,8 @@ func lineCount(data []byte) int {
 func criteriaIDs(docs []Document) []string {
 	seen := map[string]bool{}
 	for _, d := range docs {
-		for _, m := range criterionID.FindAllStringSubmatch(d.text, -1) {
-			seen[m[1]] = true
+		for _, id := range criterionIDs(d.text) {
+			seen[id] = true
 		}
 	}
 	ids := make([]string, 0, len(seen))
@@ -107,20 +170,7 @@ func uniq(list []string) []string {
 
 // locationPath turns "head/app/main.py:12" into "app/main.py".
 func locationPath(location string) string {
-	// The supported form is head/<path>:<line>, and a path may hold spaces.
-	// The path ends at the first :<line> that the end or a space follows,
-	// so text after the location, even text with another line, is left
-	// out. A location without a line falls back to its first word.
-	loc := strings.TrimSpace(location)
-	if m := locationLine.FindStringSubmatch(loc); m != nil {
-		loc = m[1]
-	} else if fields := strings.Fields(loc); len(fields) > 0 {
-		loc = fields[0]
-	}
-	for _, side := range []string{"head/", "base/", "./"} {
-		loc = strings.TrimPrefix(loc, side)
-	}
-	return loc
+	return parseReference(location, locationPrefixes).path
 }
 
 type classifier struct {
@@ -135,7 +185,7 @@ func (c classifier) verifyLink(kind, link string) bool {
 	link = strings.TrimSpace(link)
 	switch kind {
 	case "criterion":
-		ids := regexp.MustCompile(`AC-[0-9]+`).FindAllString(link, -1)
+		ids := criterionIDs(link)
 		if len(ids) == 0 {
 			return false
 		}
@@ -146,31 +196,40 @@ func (c classifier) verifyLink(kind, link string) bool {
 		}
 		return true
 	case "rule", "contract":
-		ref := link
-		if fields := strings.Fields(ref); len(fields) > 0 {
-			ref = fields[0]
+		// Without a line, the whole link names the document, or else its
+		// first word does.
+		r := parseReference(link, linkPrefixes)
+		if r.hasLine && r.line < 1 {
+			return false // a line that is given must exist
 		}
-		line := 0
-		if m := linkLine.FindStringSubmatch(ref); m != nil {
-			ref = m[1]
-			if line, _ = strconv.Atoi(m[2]); line < 1 {
-				return false // a line that is given must exist
-			}
+		refs := []string{r.path}
+		if !r.hasLine && r.whole != r.path {
+			refs = []string{r.whole, r.path}
 		}
-		ref = strings.TrimPrefix(strings.TrimPrefix(ref, "head/"), "./")
-		for _, d := range c.targets.Rules {
-			if contains(d.Names, ref) {
-				return line == 0 || line <= d.Lines
-			}
-		}
-		if kind == "contract" && ref != "" && c.repo != "" {
-			if data, ok := fileAt(c.repo, c.head, ref); ok {
-				return line == 0 || line <= lineCount(data)
+		for _, ref := range refs {
+			if ok, found := c.linkTarget(kind, ref, r.line); found {
+				return ok
 			}
 		}
 		return false
 	}
 	return false
+}
+
+// linkTarget looks up the document a rule or contract link names, and
+// whether a given line exists in it.
+func (c classifier) linkTarget(kind, ref string, line int) (ok, found bool) {
+	for _, d := range c.targets.Rules {
+		if contains(d.Names, ref) {
+			return line == 0 || line <= d.Lines, true
+		}
+	}
+	if kind == "contract" && ref != "" && c.repo != "" {
+		if data, exists := fileAt(c.repo, c.head, ref); exists {
+			return line == 0 || line <= lineCount(data), true
+		}
+	}
+	return false, false
 }
 
 // classify applies the class rules: a check-path finding is a defect only

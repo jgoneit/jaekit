@@ -204,6 +204,8 @@ func admit(siblings []sibling, exts []Extension, r *RoundRecord) (bool, []string
 			counted++
 		}
 	}
+	// The cap is the one the series' latest round applies, as in the gate:
+	// the round being admitted comes after every sibling.
 	allowed := capFor(r.Config.Caps, group) + extensionsFor(exts, group)
 	if counted >= allowed {
 		return false, nil, refused("the %s cap is reached in %s: %d of %d rounds ran; only reviewers that did not complete the same packet may run again, "+

@@ -407,6 +407,27 @@ func TestGateCapFromLastRound(t *testing.T) {
 	}
 }
 
+// Admission applies the cap of the latest round, the one being admitted,
+// whatever cap the earlier rounds applied.
+func TestAdmitCapFromLatestRound(t *testing.T) {
+	for _, tc := range []struct {
+		earlier, latest int64
+		refused         bool
+	}{{3, 1, true}, {1, 3, false}} {
+		f := newFixture(t)
+		base, head, later := f.revs[0], f.revs[1], f.revs[2]
+		cfg := &Config{Caps: Caps{1, 1, tc.earlier}, ConfiguredRequired: []RequiredRef{}}
+		a := f.round("01-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 1, Counted: true, Config: cfg}, nil, nil)
+		cand, _ := loadRound(a)
+		next := &RoundRecord{Stage: "fixes", Base: head, Head: later, Sequence: 2, PacketSHA256: "q", RequestedReviewers: []string{"host"},
+			Config: &Config{Caps: Caps{1, 1, tc.latest}, ConfiguredRequired: []RequiredRef{}}}
+		_, _, err := admit([]sibling{{a, cand}}, nil, next)
+		if refused := err != nil && strings.Contains(err.Error(), "cap"); refused != tc.refused {
+			t.Errorf("code cap %d then %d: refused %v, want %v: %v", tc.earlier, tc.latest, refused, tc.refused, err)
+		}
+	}
+}
+
 // A renamed file counts only the lines it gained, under its new path.
 func TestNumstatFollowsRenames(t *testing.T) {
 	f := newFixture(t)

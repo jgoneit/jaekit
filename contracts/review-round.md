@@ -60,7 +60,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 - `reviewed_head`는 패킷 head의 앞 7자 이상이어야 한다. `verdict`는 `no_blocking_findings`, `blocking_findings`, `could_not_review`. 지적의 `angle`을 포함한 열거형 값은 schema의 값 중 하나여야 한다. 제공자가 schema를 강제하지 않는 `native`·`command` 리뷰어의 결과에도 이 절의 검사(최상위 필수 키, `reviewed_head`, `verdict`, 각도 항목, 지적의 필수 문자열 필드와 열거형 값)를 한다. 그 밖의 schema 조건은 [지원하는 형식](#10-지원하는-형식)을 따른다.
 - 요청한 각도는 모두 `angles_checked`나 `angles_unchecked`에 있어야 한다. 둘 다 없거나 하나라도 빠지면 `invalid_output`이다. 각도 항목은 `angles_checked`면 `angle`과 `result`, `angles_unchecked`면 `angle`과 `reason`만 가진다.
 - 지적의 열거값: `proposed_class` `defect|requirement-question|hardening|note`, `link_kind` `criterion|rule|contract|none`, `introduced_by_change`·`regression` `yes|no|unknown`, `check_impact` `false_pass|meaning_inverted|contract_violation|none`, `confidence` `high|medium|low`. 패킷은 `id`를 보고 순서대로 `F1`, `F2`, …로 붙이라고 하지만 `id`는 schema대로 문자열이면 된다. 라운드의 지적 ID는 spar가 리뷰어 결과의 보고 순서대로 매기는 `<리뷰어>-F<n>`(1부터)이고, 리뷰어가 붙인 `id`는 `reviewer_id`로 남는다. 그래서 리뷰어 이름이나 `id`에 `-`가 있거나 `id`가 겹쳐도 라운드 ID는 겹치지 않는다.
-- `location`은 `head/<경로>:<줄>`(또는 `:<줄>-<줄>`)이다. 경로에 공백이 있어도 된다. 분류는 처음으로 `:<줄>` 뒤에 공백이나 끝이 오는 곳 앞까지를 경로로 읽으므로, 위치 뒤에 공백과 다른 글(다른 위치 포함)이 붙어도 경로는 그대로다. `:<줄>`이 없으면 첫 단어를 경로로 읽는다.
+- `location`은 `head/<경로>:<줄>`(또는 `:<줄>-<줄>`)이다. 위치와 `rule`·`contract` 연결은 한 규칙으로 읽는다: 경로에 공백이 있어도 되고, 처음으로 `:<줄>` 뒤에 공백이나 끝이 오는 곳 앞까지가 경로이므로 뒤에 공백과 다른 글(다른 위치 포함)이 붙어도 경로는 그대로다. `:<줄>`이 없으면 위치는 첫 단어를 경로로 읽는다. 위치는 작업공간 사본의 파일이라 접두 `head/`, `base/`, `./` 가운데 하나만 한 번 떼고, 연결은 저장소 경로라 `head/`, `./` 가운데 하나만 한 번 뗀다(연결의 `base/`는 저장소 폴더다). 그래서 저장소의 `head`·`base` 폴더 이름은 남는다.
 - `could_not_review`는 완료가 아니라 `failed`로 기록한다.
 
 ## 4. 리뷰어 상태
@@ -79,7 +79,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 완료하지 않은 리뷰어의 `findings`는 `null`이고 요약에 상태와 원인이 나온다. 0건으로 바뀌지 않는다.
 
-`verified` preset의 보호: `claude`는 `-p --safe-mode --restricted --strict-mcp-config --tools Read,Grep,Glob --permission-mode dontAsk --no-session-persistence --disable-slash-commands`로 실행하고 다른 도구나 MCP 서버가 보이면 멈춘다. `codex`는 `exec --ignore-user-config --ignore-rules -s read-only --ephemeral --skip-git-repo-check -c web_search="disabled"`와 `apps`, `browser_use`, `browser_use_external`, `computer_use`, `in_app_browser`, `image_generation`, `memories`, `multi_agent`, `plugins`, `hooks`의 `--disable`로 실행하고 허용 밖의 항목 종류가 보이면 멈춘다. `agy`는 `--sandbox --disable-slash-commands`로 실행하고 파일 읽기·목록·검색 도구와 셸 명령 중 읽기 전용 프로그램(`find`, `ls`, `grep`, `rg`, `cat`, `head`, `tail`, `wc`, `sort`, `uniq`, `cut`, `stat`, `file`, `diff`, `tree` 등)과 출력만 하는 `sed -n`만 허용한다. 리디렉션·명령 치환·`|` 밖의 셸 연산자, 그리고 `-exec`·`-execdir`·`-ok`·`-okdir`·`-delete`·`--pre`·`--compress-program`으로 시작하는 인자는 위반이다. 이 보호는 clean-review 0.2.0과 같다. 그 밖에 허용 프로그램이 파일을 쓰는 옵션(예: `sort -o`)은 따로 막지 않는다. 파일 쓰기는 `agy`의 `--sandbox`에 맡기고, `head/`·`base/`·`PACKET.md`가 바뀌면 `workspace_modified`다.
+`verified` preset의 보호: `claude`는 `-p --safe-mode --restricted --strict-mcp-config --tools Read,Grep,Glob --permission-mode dontAsk --no-session-persistence --disable-slash-commands`로 실행하고 다른 도구나 MCP 서버가 보이면 멈춘다. `codex`는 `exec --ignore-user-config --ignore-rules -s read-only --ephemeral --skip-git-repo-check -c web_search="disabled"`와 `apps`, `browser_use`, `browser_use_external`, `computer_use`, `in_app_browser`, `image_generation`, `memories`, `multi_agent`, `plugins`, `hooks`의 `--disable`로 실행하고 허용 밖의 항목 종류가 보이면 멈춘다. `agy`는 `--sandbox --disable-slash-commands`로 실행하고 파일 읽기·목록·검색 도구와 셸 명령 중 읽기 전용 프로그램(`find`, `ls`, `grep`, `rg`, `cat`, `head`, `tail`, `wc`, `sort`, `uniq`, `cut`, `stat`, `file`, `diff`, `tree` 등)과 출력만 하는 `sed -n`만 허용한다. 리디렉션·명령 치환·`|` 밖의 셸 연산자, 그리고 `-exec`·`-execdir`·`-ok`·`-okdir`·`-delete`·`--pre`·`--compress-program`으로 시작하는 인자는 위반이다. 이 보호는 clean-review 0.2.1과 같다(0.2.0의 파일 읽기 도구에 agy 1.4.3이 쓰는 `read_file`을 더한 것). 그 밖에 허용 프로그램이 파일을 쓰는 옵션(예: `sort -o`)은 따로 막지 않는다. 파일 쓰기는 `agy`의 `--sandbox`에 맡기고, `head/`·`base/`·`PACKET.md`가 바뀌면 `workspace_modified`다.
 
 대체 모델: 지정 모델이 사용량·요청 한도로 거절되고 `fallback_model`이 있으면 같은 패킷과 새 작업공간 사본으로 한 번 더 실행한다. 인증 거절이나 다른 실패에는 쓰지 않는다. `attempts`에 시도마다 모델·상태·원인·재설정 문구가 남고 `fallback_used`가 `true`가 된다.
 
@@ -106,9 +106,9 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 연결 확인:
 
-- `criterion`: 연결에 나오는 모든 `AC-n`이 기준 문서에 있어야 한다.
-- `rule`: 라운드의 규칙 문서를 이름·경로로 대야 하고, 줄 번호를 대면 그 문서에 그 줄이 있어야 한다(1부터).
-- `contract`: 규칙 문서이거나 head 커밋의 파일이어야 하고 줄 번호 조건은 같다.
+- `criterion`: 연결에 나오는 모든 `AC-n`이 기준 문서에 있어야 한다. 기준 문서와 연결에서 `AC-n`은 영문자·숫자 바로 뒤가 아니면 ID로 읽고, `AC-1,AC-2`처럼 붙어 있어도 각각 읽는다.
+- `rule`: 라운드의 규칙 문서를 이름·경로로 대야 하고, 줄 번호를 대면 그 문서에 그 줄이 있어야 한다(1부터). 연결은 위치와 같은 규칙으로 읽는다(3절). `:<줄>`이 없으면 연결 전체를 문서 이름으로 맞추고, 맞지 않으면 첫 단어로 맞춘다.
+- `contract`: 규칙 문서이거나 head 커밋의 파일이어야 하고, 읽는 방식과 줄 번호 조건은 같다.
 
 분류 규칙(위에서 처음 맞는 것):
 
