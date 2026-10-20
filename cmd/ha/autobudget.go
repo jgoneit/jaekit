@@ -81,8 +81,9 @@ var positiveInteger = regexp.MustCompile(`^[1-9][0-9]*$`)
 // readPreapproval reads the pre-approved run limit from the user
 // configuration file. Only `ha start` and `ha estimate` call it, and only for
 // an automatic PLAN budget. A file inside any working tree of the goal's
-// repository (trees) cannot set the limit.
-func readPreapproval(getenv func(string) string, trees []string) (preapproval, error) {
+// repository cannot set the limit; trees lists them and is called only when
+// the file exists.
+func readPreapproval(getenv func(string) string, trees func() ([]string, error)) (preapproval, error) {
 	path, err := userConfigFile(getenv)
 	if err != nil {
 		return preapproval{}, err
@@ -94,9 +95,13 @@ func readPreapproval(getenv func(string) string, trees []string) (preapproval, e
 	if err != nil {
 		return preapproval{}, &preapprovalError{path, err.Error()}
 	}
+	roots, err := trees()
+	if err != nil {
+		return preapproval{}, &preapprovalError{path, "cannot list the repository's working trees: " + err.Error()}
+	}
 	if real, err := filepath.EvalSymlinks(path); err != nil {
 		return preapproval{}, &preapprovalError{path, err.Error()}
-	} else if tree, ok := within(trees, real); ok {
+	} else if tree, ok := within(roots, real); ok {
 		return preapproval{}, &preapprovalError{path, "the file is inside the repository's working tree " + tree +
 			"; the limit comes only from the user configuration folder"}
 	}
@@ -154,11 +159,7 @@ func (a autoBudget) record() *record.AutoBudget {
 
 // computeAutoBudget is the one computation `ha start` and `ha estimate` share.
 func computeAutoBudget(w *workspace) (autoBudget, error) {
-	trees, err := w.repo.Worktrees()
-	if err != nil {
-		return autoBudget{}, err
-	}
-	cap, err := readPreapproval(os.Getenv, trees)
+	cap, err := readPreapproval(os.Getenv, w.repo.Worktrees)
 	if err != nil {
 		return autoBudget{}, err
 	}

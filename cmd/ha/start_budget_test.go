@@ -225,6 +225,25 @@ func TestNativeStartBudgetAndSkill(t *testing.T) {
 		if code, text := estimateTestCLI("start", startBudgetGoal, "--request", "synthetic", "--skill", plain, "--check-skill"); code != 65 || startBudgetRecords(t, root) != nil {
 			t.Fatalf("--check-skill without a declaration: exit %d: %s", code, text)
 		}
+		// A declaration that cannot be read is reported as the declaration,
+		// not by the skill folder's digest.
+		dangling := writeSkill(t, "")
+		declaration := filepath.Join(filepath.Dir(dangling), coreRequirementsFile)
+		if err := os.Symlink(filepath.Join(filepath.Dir(dangling), "moved.json"), declaration); err == nil {
+			code, text := estimateTestCLI("start", startBudgetGoal, "--request", "synthetic", "--skill", dangling)
+			if code != 65 || !strings.Contains(text, "skill requirements "+declaration+": ") || !strings.Contains(text, "; nothing recorded") || startBudgetRecords(t, root) != nil {
+				t.Fatalf("dangling declaration: exit %d: %s", code, text)
+			}
+		} else if runtime.GOOS != "windows" {
+			t.Fatal(err)
+		}
+		// Without a declaration, a skill path that cannot be read keeps its own error.
+		file := filepath.Join(t.TempDir(), "notes")
+		estimateTestWrite(t, filepath.Dir(file), "notes", "")
+		code, text = estimateTestCLI("start", startBudgetGoal, "--request", "synthetic", "--skill", filepath.Join(file, "SKILL.md"))
+		if code != 65 || strings.Contains(text, coreRequirementsFile) || startBudgetRecords(t, root) != nil {
+			t.Fatalf("skill below a file: exit %d: %s", code, text)
+		}
 	})
 	t.Run("skill_supported", func(t *testing.T) {
 		root, _, _ := startBudgetFixture(t, 1, "60")
@@ -255,7 +274,7 @@ func TestReadPreapprovalForms(t *testing.T) {
 	} {
 		xdg := t.TempDir()
 		writeLimit(t, xdg, content)
-		got, err := readPreapproval(func(k string) string { return map[string]string{"XDG_CONFIG_HOME": xdg}[k] }, []string{repo})
+		got, err := readPreapproval(func(k string) string { return map[string]string{"XDG_CONFIG_HOME": xdg}[k] }, func() ([]string, error) { return []string{repo}, nil })
 		if err != nil || got.Runs != want || got.Source != "user_config" {
 			t.Errorf("%q: %+v, %v", content, got, err)
 		}
@@ -267,7 +286,7 @@ func TestReadPreapprovalForms(t *testing.T) {
 		`{"Preapproved_Runs": 120}`, `{"preapproved_runs": 60, "PREAPPROVED_RUNS": 500}`, "{\"preapproved_runs\": 120, \"\xff\": 1}"} {
 		xdg := t.TempDir()
 		path := writeLimit(t, xdg, content)
-		_, err := readPreapproval(func(k string) string { return map[string]string{"XDG_CONFIG_HOME": xdg}[k] }, []string{repo})
+		_, err := readPreapproval(func(k string) string { return map[string]string{"XDG_CONFIG_HOME": xdg}[k] }, func() ([]string, error) { return []string{repo}, nil })
 		if err == nil || !strings.Contains(err.Error(), path) {
 			t.Errorf("%q: want a refusal naming %s, got %v", content, path, err)
 		}
@@ -278,7 +297,7 @@ func TestReadPreapprovalForms(t *testing.T) {
 func checkPreapprovalAncestors(t *testing.T) {
 	repo := t.TempDir()
 	read := func(xdg string) (preapproval, error) {
-		return readPreapproval(func(k string) string { return map[string]string{"XDG_CONFIG_HOME": xdg}[k] }, []string{repo})
+		return readPreapproval(func(k string) string { return map[string]string{"XDG_CONFIG_HOME": xdg}[k] }, func() ([]string, error) { return []string{repo}, nil })
 	}
 	// Nothing at the path and folders above it: the default.
 	if got, err := read(filepath.Join(t.TempDir(), "not", "made")); err != nil || got.Source != "default" || got.Runs != autoFloor {
@@ -360,7 +379,9 @@ func TestReadCoreRequirementsForms(t *testing.T) {
 
 // checkFolderIdentity runs inside the native test, on every OS.
 func checkFolderIdentity(t *testing.T) {
-	root, other := t.TempDir(), t.TempDir()
+	// The tree's own name has letters, so swapping their case gives another
+	// spelling (t.TempDir names its folders with digits only).
+	root, other := filepath.Join(t.TempDir(), "Repo"), t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, "a"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -380,6 +401,9 @@ func checkFolderIdentity(t *testing.T) {
 	// the file system ignores case (macOS, Windows) and another folder where
 	// it does not (Linux).
 	swapped := filepath.Join(filepath.Dir(root), swapCase(filepath.Base(root)), "a", "ha.json")
+	if strings.HasPrefix(swapped, root+string(filepath.Separator)) {
+		t.Fatalf("the swapped spelling %s is the same string as the tree", swapped)
+	}
 	a, errA := os.Stat(root)
 	b, errB := os.Stat(filepath.Dir(filepath.Dir(swapped)))
 	same := errA == nil && errB == nil && os.SameFile(a, b)
@@ -404,4 +428,17 @@ func swapCase(s string) string {
 		}
 		return unicode.ToUpper(r)
 	}, s)
+}
+
+func TestReadPreapprovalListsTreesOnlyForAFile(t *testing.T) {
+	xdg := t.TempDir()
+	env := func(k string) string { return map[string]string{"XDG_CONFIG_HOME": xdg}[k] }
+	failing := func() ([]string, error) { return nil, fmt.Errorf("git worktree list --porcelain -z: refused") }
+	if got, err := readPreapproval(env, failing); err != nil || got.Source != "default" {
+		t.Fatalf("absent file: %+v, %v", got, err)
+	}
+	path := writeLimit(t, xdg, `{"preapproved_runs": 120}`)
+	if _, err := readPreapproval(env, failing); err == nil || !strings.Contains(err.Error(), path) || !strings.Contains(err.Error(), "cannot list the repository's working trees") {
+		t.Fatalf("file with an unreadable tree list: %v", err)
+	}
 }
