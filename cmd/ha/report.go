@@ -185,7 +185,16 @@ func (c *cli) report(in []string) int {
 	}
 	v := &reportView{w: w, rep: rep, lines: lines, words: words, goal: status.DisplayGoal(w.arg, w.goal.Dir)}
 	if start := startLine(lines); start != nil {
-		head, cmpErr := v.compare(start)
+		// The status computation's own read of the range counts too: its
+		// failure is not read again, so a second read cannot hide it.
+		var head string
+		var cmpErr error
+		var rangeErr *status.RangeError
+		if errors.As(err, &rangeErr) {
+			head, cmpErr = rangeErr.Head, rangeErr
+		} else {
+			head, cmpErr = v.compare(start)
+		}
 		if cmpErr != nil {
 			if _, err := io.WriteString(c.out, v.uncompared(start.BaseCommit, head)); err != nil {
 				return c.fail(exitInternal, "write report: %v", err)

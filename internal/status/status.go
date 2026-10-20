@@ -236,6 +236,18 @@ func (rep *Report) Confirmation(subject string) (int, bool) {
 	return seq, ok
 }
 
+// RangeError is a failure to read the changes between the start's base commit
+// and HEAD. Its message is the Git error unchanged, so ha status prints what it
+// printed before; ha report shows its uncompared summary for it
+// (run-record.md §1.3).
+type RangeError struct {
+	Base, Head string
+	Err        error
+}
+
+func (e *RangeError) Error() string { return e.Err.Error() }
+func (e *RangeError) Unwrap() error { return e.Err }
+
 // Head identifies the last record line.
 type Head struct {
 	Seq    int    `json:"seq"`
@@ -952,7 +964,7 @@ func (e *evaluator) goalReasons(rep *Report) ([]Reason, error) {
 	if e.start != nil {
 		changes, err := e.in.Repo.Changes(e.start.BaseCommit, e.head, e.excl)
 		if err != nil {
-			return nil, err
+			return nil, &RangeError{Base: e.start.BaseCommit, Head: e.head, Err: err}
 		}
 		var outside, tests []string
 		for _, ch := range changes {
