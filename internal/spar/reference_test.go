@@ -5,53 +5,64 @@ import (
 	"testing"
 )
 
-// The reference rule reads every supported form that contracts/review-round.md
-// lists for locations, rule and contract links, and criterion IDs.
+// The reference rule implements the reading table of contracts/review-round.md
+// section 6: every accepted form of a location, a rule or contract link and a
+// criterion ID, with the prefixes each field removes.
 func TestReferenceRule(t *testing.T) {
 	for _, tc := range []struct {
-		text, path, whole string
-		line              int
-		hasLine           bool
+		field, text, path, whole string
+		line                     int
+		hasLine                  bool
 	}{
-		{"head/app/main.py:12", "app/main.py", "", 12, true},
-		{"head/checks/my test.py:2", "checks/my test.py", "", 2, true},
-		{"head/app/main.py:12-14", "app/main.py", "", 12, true},
-		{"head/app/main.py:12–14", "app/main.py", "", 12, true},
-		{"head/app/main.go:10 and head/app/main_test.go:20", "app/main.go", "", 10, true},
-		{"head/checks/test.py:2 see head/app.py:10", "checks/test.py", "", 2, true},
-		{"head/checks/my test.py:2-4 and head/app.py:9", "checks/my test.py", "", 2, true},
-		{"head/base/checks/test.py:2", "base/checks/test.py", "", 2, true},
-		{"head/head/x.py:1", "head/x.py", "", 1, true},
-		{"base/base/x.py:1", "base/x.py", "", 1, true},
-		{"head/base/head/x.py:5", "base/head/x.py", "", 5, true},
-		{"base/app/old.py:3", "app/old.py", "", 3, true},
-		{"./app/main.py:4", "app/main.py", "", 4, true},
-		{"AGENTS.md:0", "AGENTS.md", "", 0, true},
-		{"rules/API rules.md:2", "rules/API rules.md", "", 2, true},
-		{"rules/API rules.md:2 (the second rule)", "rules/API rules.md", "", 2, true},
-		{"rules/API rules.md", "rules/API", "rules/API rules.md", 0, false},
-		{"AGENTS.md", "AGENTS.md", "AGENTS.md", 0, false},
-		{"head/app/main.go", "app/main.go", "app/main.go", 0, false},
-		{"  head/app/main.go:7  ", "app/main.go", "", 7, true},
+		// location: <prefix><path>:<line>, one of head/, base/, ./ removed once
+		{"location", "head/app/main.py:12", "app/main.py", "", 12, true},
+		{"location", "head/app/main.py:12-14", "app/main.py", "", 12, true},
+		{"location", "head/app/main.py:12–14", "app/main.py", "", 12, true},
+		{"location", "head/checks/my test.py:2", "checks/my test.py", "", 2, true},
+		{"location", "head/checks/test.py:2 see head/app.py:10", "checks/test.py", "", 2, true},
+		{"location", "head/app/main.go:10 and head/app/main_test.go:20", "app/main.go", "", 10, true},
+		{"location", "head/checks/my test.py:2-4 and head/app.py:9", "checks/my test.py", "", 2, true},
+		{"location", "base/app/old.py:3", "app/old.py", "", 3, true},
+		{"location", "./app/main.py:4", "app/main.py", "", 4, true},
+		{"location", "head/base/checks/test.py:2", "base/checks/test.py", "", 2, true},
+		{"location", "head/head/x.py:1", "head/x.py", "", 1, true},
+		{"location", "base/base/x.py:1", "base/x.py", "", 1, true},
+		{"location", "head/base/head/x.py:5", "base/head/x.py", "", 5, true},
+		{"location", "head/app/main.go", "app/main.go", "app/main.go", 0, false},
+		{"location", "head/app/main.go and more", "app/main.go", "app/main.go and more", 0, false},
+		{"location", "  head/app/main.go:7  ", "app/main.go", "", 7, true},
+		// rule and contract links: the same form, only head/ or ./ removed once
+		{"link", "AGENTS.md:12", "AGENTS.md", "", 12, true},
+		{"link", "AGENTS.md:12-14", "AGENTS.md", "", 12, true},
+		{"link", "head/AGENTS.md:2", "AGENTS.md", "", 2, true},
+		{"link", "./AGENTS.md:1", "AGENTS.md", "", 1, true},
+		{"link", "AGENTS.md:0", "AGENTS.md", "", 0, true},
+		{"link", "rules/API rules.md:2", "rules/API rules.md", "", 2, true},
+		{"link", "rules/API rules.md:2 (the second rule)", "rules/API rules.md", "", 2, true},
+		{"link", "AGENTS.md:3 and contracts/x.md:4", "AGENTS.md", "", 3, true},
+		{"link", "base/api.md:3", "base/api.md", "", 3, true},
+		{"link", "head/base/api.md:3", "base/api.md", "", 3, true},
+		{"link", "head/head/x.md:2", "head/x.md", "", 2, true},
+		{"link", "AGENTS.md", "AGENTS.md", "AGENTS.md", 0, false},
+		{"link", "rules/API rules.md", "rules/API", "rules/API rules.md", 0, false},
+		{"link", "base/rules/review.md", "base/rules/review.md", "base/rules/review.md", 0, false},
+		{"link", "AGENTS.md L54", "AGENTS.md", "AGENTS.md L54", 0, false},
 	} {
-		r := parseReference(tc.text, locationPrefixes)
+		prefixes := locationPrefixes
+		if tc.field == "link" {
+			prefixes = linkPrefixes
+		}
+		r := parseReference(tc.text, prefixes)
 		if r.path != tc.path || r.whole != tc.whole || r.line != tc.line || r.hasLine != tc.hasLine {
-			t.Errorf("%q: got %+v", tc.text, r)
+			t.Errorf("%s %q: got %+v", tc.field, tc.text, r)
 		}
-		if got := locationPath(tc.text); got != tc.path {
-			t.Errorf("locationPath(%q) = %q, want %q", tc.text, got, tc.path)
-		}
-	}
-	// A link names a repository path: only head/ or ./ is removed, so a
-	// repository folder named base or head keeps its name.
-	for text, path := range map[string]string{
-		"base/api.md:3": "base/api.md", "head/base/api.md:3": "base/api.md", "head/head/x.md:2": "head/x.md",
-		"./AGENTS.md:1": "AGENTS.md", "head/AGENTS.md": "AGENTS.md", "base/rules/review.md": "base/rules/review.md",
-	} {
-		if got := parseReference(text, linkPrefixes).path; got != path {
-			t.Errorf("link %q: path %q, want %q", text, got, path)
+		if tc.field == "location" {
+			if got := locationPath(tc.text); got != tc.path {
+				t.Errorf("locationPath(%q) = %q, want %q", tc.text, got, tc.path)
+			}
 		}
 	}
+	// criterion links and criteria documents: AC-<n> not right after a letter or digit
 	for _, tc := range []struct{ text, ids string }{
 		{"AC-1", "AC-1"},
 		{"AC-1,AC-2: both commands refuse empty names", "AC-1,AC-2"},
