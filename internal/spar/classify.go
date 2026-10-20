@@ -50,9 +50,49 @@ type LinkTargets struct {
 
 var criterionID = regexp.MustCompile(`AC-[0-9]+`)
 
-// locationLine is the start of a finding location or a rule link: a path,
+// One rule reads every place a finding names: its location and its rule or
+// contract link go through parseReference, and criterion IDs, in criteria
+// documents and in links, through criterionIDs.
+
+// referenceLine is the start of a reference: a path, which may hold spaces,
 // then :<line> or :<line>-<line>, then the end or a space.
-var locationLine = regexp.MustCompile(`^(.+?):([0-9]+)(?:[-–][0-9]+)?(?:\s|$)`)
+var referenceLine = regexp.MustCompile(`^(.+?):([0-9]+)(?:[-–][0-9]+)?(?:\s|$)`)
+
+// reference is what a location or link names, without its workspace prefix.
+type reference struct {
+	path    string // the path before the line; without a line, the first word
+	whole   string // without a line, the whole text, for a path with spaces
+	line    int
+	hasLine bool
+}
+
+// parseReference reads a location or link. With a line, the path ends at the
+// first :<line> that the end or a space follows, so text after it, even
+// another location, is left out. Without a line, the path is the first word,
+// and whole keeps the whole text.
+func parseReference(text string) reference {
+	text = strings.TrimSpace(text)
+	if m := referenceLine.FindStringSubmatch(text); m != nil {
+		line, _ := strconv.Atoi(m[2])
+		return reference{path: workspacePath(m[1]), line: line, hasLine: true}
+	}
+	r := reference{whole: workspacePath(text)}
+	if fields := strings.Fields(text); len(fields) > 0 {
+		r.path = workspacePath(fields[0])
+	}
+	return r
+}
+
+// workspacePath removes one workspace prefix, once, so a repository folder
+// named head or base keeps its name.
+func workspacePath(path string) string {
+	for _, prefix := range []string{"head/", "base/", "./"} {
+		if strings.HasPrefix(path, prefix) {
+			return strings.TrimPrefix(path, prefix)
+		}
+	}
+	return path
+}
 
 // criterionIDs finds the AC-n IDs in a text. An ID must not follow a letter
 // or digit, and the check does not consume the character before it, so IDs
@@ -122,20 +162,7 @@ func uniq(list []string) []string {
 
 // locationPath turns "head/app/main.py:12" into "app/main.py".
 func locationPath(location string) string {
-	// The supported form is head/<path>:<line>, and a path may hold spaces.
-	// The path ends at the first :<line> that the end or a space follows,
-	// so text after the location, even text with another line, is left
-	// out. A location without a line falls back to its first word.
-	loc := strings.TrimSpace(location)
-	if m := locationLine.FindStringSubmatch(loc); m != nil {
-		loc = m[1]
-	} else if fields := strings.Fields(loc); len(fields) > 0 {
-		loc = fields[0]
-	}
-	for _, side := range []string{"head/", "base/", "./"} {
-		loc = strings.TrimPrefix(loc, side)
-	}
-	return loc
+	return parseReference(location).path
 }
 
 type classifier struct {
@@ -161,23 +188,18 @@ func (c classifier) verifyLink(kind, link string) bool {
 		}
 		return true
 	case "rule", "contract":
-		// A link has a location's form: the path, which may hold spaces,
-		// ends at the first :<line> that the end or a space follows.
 		// Without a line, the whole link names the document, or else its
 		// first word does.
-		refs := []string{link}
-		line := 0
-		if m := locationLine.FindStringSubmatch(link); m != nil {
-			refs = []string{m[1]}
-			if line, _ = strconv.Atoi(m[2]); line < 1 {
-				return false // a line that is given must exist
-			}
-		} else if fields := strings.Fields(link); len(fields) > 1 {
-			refs = append(refs, fields[0])
+		r := parseReference(link)
+		if r.hasLine && r.line < 1 {
+			return false // a line that is given must exist
+		}
+		refs := []string{r.path}
+		if !r.hasLine && r.whole != r.path {
+			refs = []string{r.whole, r.path}
 		}
 		for _, ref := range refs {
-			ref = strings.TrimPrefix(strings.TrimPrefix(ref, "head/"), "./")
-			if ok, found := c.linkTarget(kind, ref, line); found {
+			if ok, found := c.linkTarget(kind, ref, r.line); found {
 				return ok
 			}
 		}
