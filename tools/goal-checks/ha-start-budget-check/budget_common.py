@@ -39,6 +39,9 @@ FEATURES = ("auto-budget/v1", "core-requirements/v1")
 FORMAT_KEY = "core_requirements"
 
 
+# Exit codes ha's contract gives: 0 to 4 (status and done states, 1 for problems),
+# 64 usage, 65 refusal, 66 unsupported rules. 70 is an internal error.
+CONTRACT_EXITS = frozenset({0, 1, 2, 3, 4, 64, 65, 66})
 # One lint problem line of `ha lint` and of a refused `ha estimate`.
 LINT_LINE = re.compile(r"^[a-z][a-z0-9_]*\t[^\t\n]+\t", re.MULTILINE)
 
@@ -249,8 +252,21 @@ class Repo:
     # --- ha -----------------------------------------------------------------
 
     def ha(self, *args, env=None, timeout=300, cwd=None):
+        """(exit, stdout, stderr) of one `ha` command.
+
+        Only the exit codes ha's contract gives (run-record.md §1 and §4.3)
+        are observations. Any other code, such as 70 for an internal error or
+        a Windows termination status, and a nonzero exit that prints nothing
+        are Unavailable: they carry no evidence about the requirement.
+        """
         result = run([self.ha_path, *args], cwd or self.root, env or self.env, timeout=timeout)
-        return result.returncode, result.stdout.decode(errors="replace"), result.stderr.decode(errors="replace")
+        code = result.returncode
+        out, err = result.stdout.decode(errors="replace"), result.stderr.decode(errors="replace")
+        if code not in CONTRACT_EXITS:
+            raise Unavailable(f"ha {args[0]} exited {code}, which ha's contract does not give: {(out + err)[-500:]}")
+        if code and not (out + err).strip():
+            raise Unavailable(f"ha {args[0]} exited {code} without any output")
+        return code, out, err
 
     def start(self, *extra, env=None):
         """(exit, stdout, stderr) of the goal's run-rules/4 start."""
@@ -265,8 +281,9 @@ class Repo:
         automatic PLAN. A JSON object or those lint lines are the observation;
         at exit 0 or 1 anything else, including empty output, cannot be read
         and is Unavailable. Output that starts as JSON but does not parse is
-        Unavailable at any exit. At other exits, such as a configuration
-        refusal, the text is the observation and the report is None.
+        Unavailable at any exit. At the other contract exits, such as a
+        configuration refusal, the text is the observation and the report is
+        None; Repo.ha already refuses other exits and silent failures.
         """
         code, out, err = self.ha("estimate", GOAL, "--format", "json", env=env)
         try:
