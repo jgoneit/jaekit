@@ -1462,7 +1462,7 @@ CONSUMERS = {
     "G19": ["spar config", "spar run", "round.json", "timeout_seconds"],
     "G20": ["spar config", "spar run", "--reviewers", "-F<n>", "spar record", "spar gate"],
     "G21": ["spar config", "spar run"], "G22": ["spar config", "spar run", "caps", "packet.md"],
-    "G23": ["spar config", "spar run", "G26"], "G24": ["in_check_paths", "growth", "packet.md"],
+    "G23": ["spar config", "spar run", "G26"], "G24": ["spar config", "spar run", "in_check_paths", "growth", "packet.md"],
     "G25": ["spar config", "spar run"], "G26": ["packet.md", "criteria_digest", "G7", "G8"],
     "G27": ["spar run", "spar triage", "spar gate"], "G28": ["spar run", "spar extend", "spar gate"],
     "G29": ["spar gate"], "G30": ["spar triage", "spar gate"], "G31": ["spar run", "spar extend"],
