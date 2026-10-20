@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "records",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Records.test_tracked_record_folder_is_refused",
+      "result_targets": {
+        "additional_violations": [
+          "records.assertion-2",
+          "records.assertion-3",
+          "records.assertion-4",
+          "records.assertion-5",
+          "records.assertion-6",
+          "records.assertion-7",
+          "records.assertion-8"
+        ],
+        "execution": "records.execution",
+        "selection": "records.selection",
+        "attribution": "records.attribution"
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "plugin",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Plugin.test_spar_plugin_is_listed_and_skill_carries_rules",
+      "result_targets": {
+        "additional_violations": [
+          "plugin.assertion-2",
+          "plugin.assertion-3",
+          "plugin.assertion-4",
+          "plugin.assertion-5",
+          "plugin.assertion-6",
+          "plugin.assertion-7",
+          "plugin.assertion-8"
+        ],
+        "execution": "plugin.execution",
+        "selection": "plugin.selection",
+        "attribution": "plugin.attribution"
+      }
+    }
+  ]
+}

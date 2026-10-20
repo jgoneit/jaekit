@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spar/AC-5.targets.json",
+    "tools/goal-checks/spar/observe_spar.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "protections",
+      "violation": "preset-isolation-missing"
+    },
+    {
+      "id": "protections.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "protections.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "protections.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "protections.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "protections.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "protections.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "protections.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "protections.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "protections.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "protections.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "discarded",
+      "violation": "violation-result-used"
+    },
+    {
+      "id": "discarded.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "discarded.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "discarded.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "discarded.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "discarded.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "discarded.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "discarded.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "discarded.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "discarded.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "discarded.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

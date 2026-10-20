@@ -5,6 +5,9 @@
     },
     {
       "path": "plugins/seal/skills"
+    },
+    {
+      "path": "plugins/spar/skills"
     }
   ]
 }

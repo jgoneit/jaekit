@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "unfinished",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Failures.test_unfinished_reviewers_are_never_zero_findings",
+      "result_targets": {
+        "additional_violations": [
+          "unfinished.assertion-2",
+          "unfinished.assertion-3",
+          "unfinished.assertion-4",
+          "unfinished.assertion-5",
+          "unfinished.assertion-6",
+          "unfinished.assertion-7",
+          "unfinished.assertion-8"
+        ],
+        "execution": "unfinished.execution",
+        "selection": "unfinished.selection",
+        "attribution": "unfinished.attribution"
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "project-limits",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Config.test_project_config_cannot_define_reviewers",
+      "result_targets": {
+        "additional_violations": [
+          "project-limits.assertion-2",
+          "project-limits.assertion-3",
+          "project-limits.assertion-4",
+          "project-limits.assertion-5",
+          "project-limits.assertion-6",
+          "project-limits.assertion-7",
+          "project-limits.assertion-8"
+        ],
+        "execution": "project-limits.execution",
+        "selection": "project-limits.selection",
+        "attribution": "project-limits.attribution"
+      }
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spar/AC-7.targets.json",
+    "tools/goal-checks/spar/observe_spar.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "native",
+      "violation": "native-not-recorded"
+    },
+    {
+      "id": "native.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "native.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

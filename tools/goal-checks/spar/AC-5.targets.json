@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "protections",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Presets.test_presets_run_read_only_and_verified",
+      "result_targets": {
+        "additional_violations": [
+          "protections.assertion-2",
+          "protections.assertion-3",
+          "protections.assertion-4",
+          "protections.assertion-5",
+          "protections.assertion-6",
+          "protections.assertion-7",
+          "protections.assertion-8"
+        ],
+        "execution": "protections.execution",
+        "selection": "protections.selection",
+        "attribution": "protections.attribution"
+      }
+    },
+    {
+      "target": "discarded",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Presets.test_tool_use_and_workspace_change_discard_results",
+      "result_targets": {
+        "additional_violations": [
+          "discarded.assertion-2",
+          "discarded.assertion-3",
+          "discarded.assertion-4",
+          "discarded.assertion-5",
+          "discarded.assertion-6",
+          "discarded.assertion-7",
+          "discarded.assertion-8"
+        ],
+        "execution": "discarded.execution",
+        "selection": "discarded.selection",
+        "attribution": "discarded.attribution"
+      }
+    }
+  ]
+}

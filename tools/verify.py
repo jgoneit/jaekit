@@ -188,8 +188,9 @@ def verify_go(env: dict[str, str]):
         output = Path(temporary)
         for target in TARGETS:
             goos, goarch = target.split("/")
+            # One command builds ha and spar for the target into one folder.
             run(f"Build {target}",
-                ["go", "build", "-mod=readonly", "-o", str(output / f"ha-{goos}-{goarch}"), "./cmd/ha"],
+                ["go", "build", "-mod=readonly", "-o", str(output / f"{goos}-{goarch}") + "/", "./cmd/ha", "./cmd/spar"],
                 dict(env, GOOS=goos, GOARCH=goarch, CGO_ENABLED="0"))
         windows_env = dict(env, GOOS="windows", GOARCH="amd64", CGO_ENABLED="0")
         run("Build Windows candidate (compile only)",

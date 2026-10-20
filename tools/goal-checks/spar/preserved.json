@@ -1,0 +1,25 @@
+{
+  "files": {
+    "plugins/spec/.claude-plugin/plugin.json": "2925e46b6ed505158138a337fbfa538a6ee080efd446569cbf2f0e06c8231cde",
+    "plugins/spec/.codex-plugin/plugin.json": "1d6dafa7b9340a7135bd7c9a3fe366574b37c2c329f4eafdac9ceef6d7080d7e",
+    "plugins/spec/plugin.json": "806aa6cde0496b60471f6a6f2928ba9b920f064f54e90140a868aacf01ae1952",
+    "plugins/spec/skills/spec/SKILL.md": "d604a4686276d28147e98d6754055131510ec44639e236767671f18d3533bd1e",
+    "plugins/spec/skills/spec/agents/openai.yaml": "1c104189ae6bf91117694ec3d58b548fdd6b4cac072c48fadf709764f21db6f8",
+    "plugins/spec/skills/spec/assets/templates/backend-feature.md": "7b760b014fba55d5079f14c00160fb2354ae8647e6fa67912bcc5d91d8b1eeff",
+    "plugins/spec/skills/spec/assets/templates/cross-module-feature.md": "9e5457af670e7988b60440b922d9dc4d65b1e3281181c3850db4e75174f910c0",
+    "plugins/spec/skills/spec/assets/templates/product.md": "ba5c4a7353375bf9457a383f6707a9a7430eee75168e2fd7ddbb07a8dd6d0b63",
+    "plugins/spec/skills/spec/assets/templates/small-change.md": "17f4c55374c504c6c4f8227f9efda5cd383f25ad1ff08e0af12b87076ee94feb",
+    "plugins/spec/skills/spec/references/goal-docs.md": "4b8c1051eb4a53b6d3ce6a78eb6e2e3600e6c66c4f2a3c272a73a5fe73064e7b",
+    "plugins/seal/.claude-plugin/plugin.json": "3350349b191fa40e829034140d8d4568f360b313faeaeb4a50ebf7292410e5cf",
+    "plugins/seal/.codex-plugin/plugin.json": "5941adce00f100c6545568b9aba37e1d87cc3cc928863a9b846df8811d5fa4ac",
+    "plugins/seal/plugin.json": "87835c3309eed1492599a52089d975a0a7da5d7bf16b19aead24ca674b66d234",
+    "plugins/seal/skills/seal/SKILL.md": "58d525256f755acc839a3eff5e718220700203bd3ceee6f3aa39699864814b09",
+    "plugins/seal/skills/seal/assets/templates/PLAN.md": "d5b250274e64e9b244d275000b328837de20e2f70f02897d82e684d4b7540409",
+    "plugins/seal/skills/seal/assets/templates/PROGRESS.md": "7e19e168c7e8725a876cd119d7405b8d345940e57f048fc092b8af3e7eb66e03",
+    "plugins/seal/skills/seal/assets/templates/REVIEW.md": "2a242c4afcaaf7f0ede14ef98c64c103007aa9761fa689d23cbcc64190a87ad7",
+    "plugins/seal/skills/seal/assets/templates/tasks/T001.md": "de08789d1dae81a4177e7a81a4d5025ee438d8730cc2041038552077f88a98e9",
+    "plugins/seal/skills/seal/references/bundle.md": "9f51927f0a5f4fc4ffe59eea0af5e38a895f0cba8763d285de386f986c427c1d",
+    "plugins/seal/skills/seal/references/ha.md": "ef4589bdc0e8da8b3f5990f66570f729470e2a1eee50299fad6c6634de024491",
+    "plugins/seal/skills/seal/scripts/check_core.py": "da0e6a64b55a3c2e2fcd3a5daebd167c7b8aa8197a907d2e54210c705b9d6b37"
+  }
+}

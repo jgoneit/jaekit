@@ -506,6 +506,7 @@ Installing, updating, or uninstalling does not delete these records. Git trackin
 - [WSL2 preparation guide](guides/WSL.en.md) · [Windows native candidate guide](guides/WINDOWS.en.md)
 - [About the images and how to edit them](assets/readme/SOURCES.en.md)
 - [What Ubuntu, macOS and Windows CI checks](guides/CI.en.md)
+- [Optional independent review rounds with Spar](guides/SPAR.en.md)
 
 Share your experience or where you got stuck in a [usage report or install/bug issue](https://github.com/jgoneit/jaekit/issues/new/choose). Issues are public: leave out company code, internal names, secrets, and raw logs.
 

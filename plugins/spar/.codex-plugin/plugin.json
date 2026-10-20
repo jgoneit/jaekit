@@ -1,0 +1,32 @@
+{
+  "name": "spar",
+  "version": "0.1.0",
+  "description": "Run independent review rounds on pinned commits with several reviewer CLIs, classify their findings, and record a review gate the agent can stop on.",
+  "author": {
+    "name": "Jaegon Seo",
+    "url": "https://github.com/jgoneit"
+  },
+  "homepage": "https://github.com/jgoneit/jaekit",
+  "repository": "https://github.com/jgoneit/jaekit",
+  "license": "MIT",
+  "keywords": [
+    "review",
+    "independent-review",
+    "review-gate",
+    "coding-agent"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Spar",
+    "shortDescription": "Independent review rounds with a recorded gate",
+    "longDescription": "Spar lets a coding agent send the same review packet, pinned to two commits, to every configured reviewer in parallel: Claude Code, Codex and Antigravity CLIs with read-only protections, an arbitrary command, or a clean-context subagent of the host. It classifies findings, limits how they may be closed, caps the number of rounds per stage and writes a review gate file through the spar binary. Start it with $spar:spar when a plan or a change needs an independent review.",
+    "developerName": "Jaegon Seo",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/jgoneit/jaekit"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spar/AC-3.targets.json",
+    "tools/goal-checks/spar/observe_spar.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "project-limits",
+      "violation": "project-config-overreach"
+    },
+    {
+      "id": "project-limits.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "project-limits.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "project-limits.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "project-limits.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "project-limits.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "project-limits.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "project-limits.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "project-limits.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "project-limits.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "project-limits.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

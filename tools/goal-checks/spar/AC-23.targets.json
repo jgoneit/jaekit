@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "install",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Docs.test_install_guides_and_readme_link",
+      "result_targets": {
+        "additional_violations": [
+          "install.assertion-2",
+          "install.assertion-3",
+          "install.assertion-4",
+          "install.assertion-5",
+          "install.assertion-6",
+          "install.assertion-7",
+          "install.assertion-8"
+        ],
+        "execution": "install.execution",
+        "selection": "install.selection",
+        "attribution": "install.attribution"
+      }
+    }
+  ]
+}
