@@ -4,6 +4,8 @@ Run: python3 -m unittest discover -s tools/goal-checks/ha-start-budget-check -p 
 """
 import os
 from pathlib import Path
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -14,8 +16,30 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import budget_common
 
 
+def host_tools_that_do_not_start():
+    """The host's Go test tools that are missing or fail their no-op, found without go_env."""
+    failing = []
+    for tool, *args in budget_common.GO_TEST_TOOLS:
+        found = shutil.which(tool)
+        try:
+            started = found is not None and subprocess.run(
+                [found, *args], capture_output=True, stdin=subprocess.DEVNULL, timeout=60).returncode == 0
+        except (OSError, subprocess.TimeoutExpired):
+            started = False
+        if not started:
+            failing.append(tool)
+    return failing
+
+
 class GoEnv(unittest.TestCase):
     """go_env starts each tool the Go tests run once, before any observation."""
+
+    def setUp(self):
+        # Each test replaces at most one tool, so the host's other tools must start for
+        # go_env to reach the replaced one.
+        failing = host_tools_that_do_not_start()
+        if failing:
+            self.skipTest(f"the host's {', '.join(failing)} does not start")
 
     def test_a_tool_on_path_that_cannot_start_is_unobservable(self):
         if os.name == "nt":

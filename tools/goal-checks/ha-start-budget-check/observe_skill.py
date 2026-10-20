@@ -144,45 +144,35 @@ CHECK_CORE_SHA256 = "da0e6a64b55a3c2e2fcd3a5daebd167c7b8aa8197a907d2e54210c705b9
 
 
 class Kept(unittest.TestCase):
-    """AC-12: skills without a declaration and starts without --skill behave as before; capabilities only add."""
+    """AC-12: skills without a declaration and starts without --skill behave as before; capabilities only add.
 
-    def test_undeclared_and_capabilities(self):
-        problems, unobserved = [], []
+    Each part is its own test on its own synthetic goal, so a part that cannot be
+    observed ends as an error of that test alone and never hides or decides another.
+    """
+
+    def test_undeclared_skill(self):
         with temporary("jaekit-skill-kept-") as directory:
             ha = build(Path(directory) / "bin" / "ha")
             repo = Repo(Path(directory) / "goal", ha, changes=1, runs="60")
-            # A part that cannot be observed never discards what the other parts observed: the
-            # violations found are reported first, and only a test with none ends as unobservable.
-            for part in (self.undeclared_kept, self.bare_kept, self.capabilities_kept, self.helpers_kept):
-                try:
-                    part(ha, repo, directory, problems)
-                except Unavailable as error:
-                    unobserved.append(str(error))
-        require(self, not problems, "undeclared-skill-changed", "; ".join(problems))
-        if unobserved:
-            raise Unavailable("; ".join(unobserved))
+            code, out, err = repo.start("--skill", str(repo.skill("plain")))
+            stored = started_skill(repo)
+            require(self, code == 0 and stored.get("name") == "plain" and stored.get("version") == "1.2.3"
+                    and re.fullmatch(r"[0-9a-f]{64}", stored.get("digest", "")) is not None,
+                    "undeclared-skill-changed", f"undeclared skill: exit {code}, skill {stored}: {(out + err)[-300:]}")
 
-    @staticmethod
-    def undeclared_kept(ha, repo, directory, problems):
-        plain = repo.skill("plain")
-        code, out, err = repo.start("--skill", str(plain))
-        records = repo.records()
-        stored = (records[0].get("skill") if records else None) or {}
-        if code != 0 or stored.get("name") != "plain" or stored.get("version") != "1.2.3" \
-                or not re.fullmatch(r"[0-9a-f]{64}", stored.get("digest", "")):
-            problems.append(f"undeclared skill: exit {code}, skill {stored}: {(out + err)[-300:]}")
+    def test_start_without_skill(self):
+        with temporary("jaekit-skill-bare-") as directory:
+            ha = build(Path(directory) / "bin" / "ha")
+            repo = Repo(Path(directory) / "goal", ha, changes=1, runs="60")
+            code, out, err = repo.start()
+            records = repo.records()
+            require(self, code == 0 and (records[0].get("skill") if records else None) == {"name": "", "version": "", "digest": ""},
+                    "bare-start-changed", f"start without --skill: exit {code}: {(out + err)[-300:]}")
 
-    @staticmethod
-    def bare_kept(ha, repo, directory, problems):
-        other = Repo(Path(directory) / "bare", ha, changes=1, runs="60")
-        code, out, err = other.start()
-        records = other.records()
-        if code != 0 or (records[0].get("skill") if records else None) != {"name": "", "version": "", "digest": ""}:
-            problems.append(f"start without --skill: exit {code}: {(out + err)[-300:]}")
-
-    @staticmethod
-    def capabilities_kept(ha, repo, directory, problems):
-        caps = capabilities(ha, directory)
+    def test_capabilities_only_add(self):
+        problems = []
+        with temporary("jaekit-skill-caps-") as directory:
+            caps = capabilities(build(Path(directory) / "bin" / "ha"), directory)
         for key in ("schema", "supported_rules", "default_rules"):
             if caps.get(key) != KEPT[key]:
                 problems.append(f"{key}: {caps.get(key)}")
@@ -192,9 +182,9 @@ class Kept(unittest.TestCase):
         features = caps.get("features") or []
         if features[:len(KEPT["features"])] != KEPT["features"]:
             problems.append(f"features no longer start with the earlier list: {features}")
+        require(self, not problems, "capabilities-changed", "; ".join(problems))
 
-    @staticmethod
-    def helpers_kept(ha, repo, directory, problems):
+    def test_seal_helper(self):
         try:
             digest = hashlib.sha256((ROOT / CHECK_CORE).read_bytes()).hexdigest()
         except OSError as error:
@@ -203,19 +193,38 @@ class Kept(unittest.TestCase):
             # The in-tree helper stands in for the installed Seal 0.1.17-0.1.19 ones; another
             # file cannot observe how they treat this ha.
             raise Unavailable(f"{CHECK_CORE} is not the Seal 0.1.17-0.1.19 helper (sha256 {digest})")
-        for operation in ("start", "resume", "check", "budget"):
-            args = [sys.executable, ROOT / CHECK_CORE, "--ha", ha, "--operation", operation]
-            if operation != "start":
-                args += ["--goal", GOAL]
-            result = run(args, repo.root, repo.env, timeout=120)
-            try:
-                report = json.loads(result.stdout)
-            except ValueError:
-                raise Unavailable(f"check_core.py {operation}: {result.stderr.decode(errors='replace')}") from None
-            if not report.get("compatible") and report.get("reason") in HELPER_INPUT_FAILURES:
-                raise Unavailable(f"check_core.py {operation} could not query this ha: {report}")
-            if result.returncode != 0 or not report.get("compatible"):
-                problems.append(f"Seal's {operation} check: {report}")
+        with temporary("jaekit-skill-helper-") as directory:
+            ha = build(Path(directory) / "bin" / "ha")
+            repo = Repo(Path(directory) / "goal", ha, changes=1, runs="60")
+            # The helper's resume, check and budget operations read the records this start
+            # writes. A start that cannot be observed raises Unavailable here, before the
+            # helper runs; one that ends without its record is this test's observed result.
+            code, out, err = repo.start("--skill", str(repo.skill("plain")))
+            require(self, code == 0 and started_skill(repo).get("name") == "plain", "seal-helper-refuses",
+                    f"the start the helper reads: exit {code}: {(out + err)[-300:]}")
+            # Each operation is a subtest: one the helper cannot query is an error of that
+            # operation and keeps the others' verdicts.
+            for operation in ("start", "resume", "check", "budget"):
+                with self.subTest(operation=operation):
+                    args = [sys.executable, ROOT / CHECK_CORE, "--ha", ha, "--operation", operation]
+                    if operation != "start":
+                        args += ["--goal", GOAL]
+                    result = run(args, repo.root, repo.env, timeout=120)
+                    try:
+                        report = json.loads(result.stdout)
+                    except ValueError:
+                        report = None
+                    if not isinstance(report, dict):
+                        raise Unavailable(f"check_core.py {operation}: {result.stderr.decode(errors='replace')}")
+                    if not report.get("compatible") and report.get("reason") in HELPER_INPUT_FAILURES:
+                        raise Unavailable(f"check_core.py {operation} could not query this ha: {report}")
+                    require(self, result.returncode == 0 and bool(report.get("compatible")), "seal-helper-refuses",
+                            f"Seal's {operation} check: {report}")
+
+
+def started_skill(repo):
+    records = repo.records()
+    return (records[0].get("skill") if records else None) or {}
 
 
 if __name__ == "__main__":

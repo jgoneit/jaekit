@@ -2,23 +2,83 @@
   "schema": "jaekit-goal-targets/v2",
   "checks": [
     {
-      "target": "skill-kept",
+      "target": "skill-kept-undeclared",
       "runner": "unittest",
       "file": "tools/goal-checks/ha-start-budget-check/observe_skill.py",
-      "test": "Kept.test_undeclared_and_capabilities",
+      "test": "Kept.test_undeclared_skill",
       "result_targets": {
         "additional_violations": [
-          "skill-kept.assertion-2",
-          "skill-kept.assertion-3",
-          "skill-kept.assertion-4",
-          "skill-kept.assertion-5",
-          "skill-kept.assertion-6",
-          "skill-kept.assertion-7",
-          "skill-kept.assertion-8"
+          "skill-kept-undeclared.assertion-2",
+          "skill-kept-undeclared.assertion-3",
+          "skill-kept-undeclared.assertion-4",
+          "skill-kept-undeclared.assertion-5",
+          "skill-kept-undeclared.assertion-6",
+          "skill-kept-undeclared.assertion-7",
+          "skill-kept-undeclared.assertion-8"
         ],
-        "execution": "skill-kept.execution",
-        "selection": "skill-kept.selection",
-        "attribution": "skill-kept.attribution"
+        "execution": "skill-kept-undeclared.execution",
+        "selection": "skill-kept-undeclared.selection",
+        "attribution": "skill-kept-undeclared.attribution"
+      }
+    },
+    {
+      "target": "skill-kept-bare",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-start-budget-check/observe_skill.py",
+      "test": "Kept.test_start_without_skill",
+      "result_targets": {
+        "additional_violations": [
+          "skill-kept-bare.assertion-2",
+          "skill-kept-bare.assertion-3",
+          "skill-kept-bare.assertion-4",
+          "skill-kept-bare.assertion-5",
+          "skill-kept-bare.assertion-6",
+          "skill-kept-bare.assertion-7",
+          "skill-kept-bare.assertion-8"
+        ],
+        "execution": "skill-kept-bare.execution",
+        "selection": "skill-kept-bare.selection",
+        "attribution": "skill-kept-bare.attribution"
+      }
+    },
+    {
+      "target": "skill-kept-capabilities",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-start-budget-check/observe_skill.py",
+      "test": "Kept.test_capabilities_only_add",
+      "result_targets": {
+        "additional_violations": [
+          "skill-kept-capabilities.assertion-2",
+          "skill-kept-capabilities.assertion-3",
+          "skill-kept-capabilities.assertion-4",
+          "skill-kept-capabilities.assertion-5",
+          "skill-kept-capabilities.assertion-6",
+          "skill-kept-capabilities.assertion-7",
+          "skill-kept-capabilities.assertion-8"
+        ],
+        "execution": "skill-kept-capabilities.execution",
+        "selection": "skill-kept-capabilities.selection",
+        "attribution": "skill-kept-capabilities.attribution"
+      }
+    },
+    {
+      "target": "skill-kept-helper",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-start-budget-check/observe_skill.py",
+      "test": "Kept.test_seal_helper",
+      "result_targets": {
+        "additional_violations": [
+          "skill-kept-helper.assertion-2",
+          "skill-kept-helper.assertion-3",
+          "skill-kept-helper.assertion-4",
+          "skill-kept-helper.assertion-5",
+          "skill-kept-helper.assertion-6",
+          "skill-kept-helper.assertion-7",
+          "skill-kept-helper.assertion-8"
+        ],
+        "execution": "skill-kept-helper.execution",
+        "selection": "skill-kept-helper.selection",
+        "attribution": "skill-kept-helper.attribution"
       }
     }
   ]
