@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -156,6 +157,21 @@ func (r *Repo) Changes(a, b string, excludes []string) ([]Change, error) {
 		changes = append(changes, Change{Status: fields[i][:1], Path: fields[i+1]})
 	}
 	return changes, nil
+}
+
+// CommitsChanging counts the commits reachable from b and not from a, merges
+// left out, that change a path outside excludes.
+func (r *Repo) CommitsChanging(a, b string, excludes []string) (int, error) {
+	args := append([]string{"rev-list", "--count", "--no-merges", "--full-history", a + ".." + b, "--"}, Pathspec(excludes)...)
+	out, err := r.run(args...)
+	if err != nil {
+		return 0, err
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(string(out)))
+	if err != nil {
+		return 0, fmt.Errorf("unexpected git rev-list output: %q", out)
+	}
+	return n, nil
 }
 
 // Blob returns the blob id of path at rev, or Deleted when it does not exist.

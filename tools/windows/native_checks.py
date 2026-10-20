@@ -77,7 +77,10 @@ NATIVE = {
                  ("parent-pass-check", "parent-violation-check", "parent-pass-baseline", "parent-violation-baseline")),
                *("TestNativeProcessTimeoutScenarios/" + case for case in ("timeout-check", "timeout-baseline")),
                *("TestNativeProcessUnconfirmedShutdownScenarios/" + case for case in
-                 ("rules-3-check", "rules-3-baseline", "rules-2-check", "rules-2-baseline", "rules-1-check", "rules-1-baseline"))],
+                 ("rules-3-check", "rules-3-baseline", "rules-2-check", "rules-2-baseline", "rules-1-check", "rules-1-baseline")),
+               "TestNativeReportOutput", "TestNativeReportOutput/en", "TestNativeReportOutput/ko",
+               "TestNativeDoctorProbes",
+               *("TestNativeDoctorProbes/" + case for case in ("available", "missing", "exit", "timeout", "tail"))],
 }
 REQUIRED = sorted(MODULE + package + "/" + test for package, tests in NATIVE.items() for test in tests)
 PACKAGE_CHECKS = ["candidate-manifest-sha256", "candidate-native-version-capabilities",

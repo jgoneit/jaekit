@@ -78,6 +78,27 @@ func (d *Doc) Section(level int, title string) ([]Line, bool) {
 	return nil, false
 }
 
+// Headings returns the line numbers of every heading of the given level whose
+// text equals title exactly, outside fenced code blocks.
+func (d *Doc) Headings(level int, title string) []int {
+	var out []int
+	for _, l := range d.lines {
+		if lv, t, ok := heading(l.Text); ok && lv == level && t == title {
+			out = append(out, l.No)
+		}
+	}
+	return out
+}
+
+// ItemMarker reports where a top-level list item marker ends in text, the
+// way Items reads it, or -1 when text is not an item.
+func ItemMarker(text string) int {
+	if loc := itemMarker.FindStringIndex(text); loc != nil {
+		return loc[1]
+	}
+	return -1
+}
+
 // Table is a pipe table.
 type Table struct {
 	Line   int

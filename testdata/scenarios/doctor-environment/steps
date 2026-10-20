@@ -1,0 +1,23 @@
+# run-record.md §1.4, bundle.md §2.6: ha doctor checks the tools of `## 실행 환경` before and after start, refuses a malformed section before running anything, and writes nothing.
+write tests/env.sh "echo env ok\n"
+append docs/specs/greet/PLAN.md "\n## 실행 환경\n- 셸: `sh tests/env.sh`\n- 없는 도구: `no-such-tool-ha-doctor-7c1e`\n"
+commit "list the tools"
+ha doctor $GOAL
+expect-exit 1
+expect-output "셸: 사용 가능\n없는 도구: 사용 불가 (실행 파일 없음)\n"
+expect-no-output "env ok"
+expect-records 0
+ha lint $GOAL
+expect-exit 0
+include start
+ha doctor $GOAL
+expect-exit 1
+expect-output "셸: 사용 가능\n없는 도구: 사용 불가 (실행 파일 없음)\n"
+expect-records 1
+expect-untouched
+append docs/specs/greet/PLAN.md "- 파이프: `sh tests/env.sh | cat`\n"
+ha doctor $GOAL
+expect-exit 65
+expect-output "shell_syntax"
+expect-no-output "사용 가능"
+expect-records 1

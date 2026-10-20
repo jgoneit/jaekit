@@ -178,10 +178,12 @@ type Report struct {
 	TestChanges    []TestChange      `json:"test_changes,omitempty"`
 	Recoveries     []Recovery        `json:"recoveries,omitempty"`
 	commandDigests map[string]string // for the done line
-	// judged and doneState feed the human output only; status/v1 is
-	// unchanged.
-	judged    map[string]JudgedRecord
-	doneState *DoneState
+	// judged, doneState, freshBaselines and confirmations feed the human
+	// output only; status/v1 is unchanged.
+	judged         map[string]JudgedRecord
+	doneState      *DoneState
+	freshBaselines map[string]bool
+	confirmations  map[string]int
 	// plain renders without the unmet summary and done details: the
 	// output of `ha done`, which stays as it was.
 	plain bool
@@ -223,6 +225,16 @@ func (rep *Report) Judged(id string) (JudgedRecord, bool) {
 // Done returns the done records of a goal without a valid completion
 // record, or nil when there is a valid one or no done record at all.
 func (rep *Report) Done() *DoneState { return rep.doneState }
+
+// FreshBaseline reports whether a condition has a fresh baseline that
+// observed the intended violation (fail_as_expected).
+func (rep *Report) FreshBaseline(id string) bool { return rep.freshBaselines[id] }
+
+// Confirmation returns the seq of the latest valid confirmation of subject.
+func (rep *Report) Confirmation(subject string) (int, bool) {
+	seq, ok := rep.confirmations[subject]
+	return seq, ok
+}
 
 // Head identifies the last record line.
 type Head struct {
@@ -387,6 +399,7 @@ func Compute(in Input) (*Report, error) {
 		Changes: Changes{CommandChanged: []CommandChange{}, KindChanged: []KindChange{}, Optional: []string{},
 			InvalidConfirmations: []InvalidConfirmation{}, HaVersionChanged: []VersionChange{}},
 		commandDigests: map[string]string{}, judged: map[string]JudgedRecord{},
+		freshBaselines: map[string]bool{}, confirmations: map[string]int{},
 	}
 	if e.start != nil && e.start.Skill != nil {
 		rep.Skill = e.start.Skill
@@ -642,6 +655,11 @@ func (e *evaluator) criteria(rep *Report) error {
 		if e.rules == RulesV4 && kind != "" && kind != bundle.KindManual {
 			e.reportRecoveries(rep, c.id, kind, C, B)
 		}
+		for _, l := range B {
+			if l.Result == "fail_as_expected" {
+				rep.freshBaselines[c.id] = true
+			}
+		}
 		ev.Reason = e.judge(c.id, kind, C, B)
 		ev.Satisfied = ev.Reason == ""
 		if l := e.judgedLine(c.id, kind, ev.Reason, C, B); l != nil {
@@ -843,6 +861,7 @@ func (e *evaluator) readConfirms(rep *Report) error {
 		}
 		if valid {
 			e.confirms[l.Subject] = true
+			rep.confirmations[l.Subject] = l.Seq
 		} else {
 			invalid = append(invalid, pending{l.Seq, l.Subject, why})
 		}

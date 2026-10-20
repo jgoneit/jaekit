@@ -119,6 +119,16 @@ Seal 0.1.14부터 쓰거나 바꾸는 검사에 적용한다. 목표를 어느 S
 - 최대를 넘는 값, 형식이 맞지 않는 값, 없는 대상, 같은 대상의 두 번째 선언은 `time_limit_invalid` lint 문제라 `ha start`·`ha check`가 실행 전에 거부한다.
 - 선언하지 않은 명령은 900초다. baseline은 그 조건의 제한으로 실행한다. 적용 제한은 명령 digest에 들어가므로, 제한을 바꾸면 이전 결과는 신선하지 않다([run-record.md](run-record.md) §4.7).
 
+### 2.6 실행 환경 (`## 실행 환경`)
+
+선택 절이다. 검사가 쓰는 도구를 시작 전에 확인하려고 PLAN에 `## 실행 환경` 절을 두고, 한 줄에 도구 하나씩 `` - <이름>: `<점검 명령>` `` 형식으로 쓴다. 예: `` - 브라우저: `node scripts/probe-browser.mjs` ``.
+
+- 절의 범위는 다른 PLAN 절과 같다: 제목 줄부터 fenced code block 밖의 다음 1·2단계 제목 전까지. 빈 줄은 건너뛰고 나머지 줄은 모두 이 형식의 목록 항목이어야 한다.
+- 이름은 첫 `:` 앞의 글자에서 앞뒤 공백을 뗀 것이다. 비어 있거나 백틱을 담을 수 없고, 같은 이름은 한 번만 쓴다.
+- 점검 명령은 조건표의 검증 명령과 같은 규칙을 따른다: 코드 스팬 하나, 셸 문법 없음, 공백이 있는 낱말은 따옴표.
+- 이 절은 `ha doctor`만 읽는다. `ha doctor`는 점검마다 60초 고정 제한으로 실행하고 도구마다 `사용 가능` 또는 `사용 불가`와 이유를 보이며, 기록·실행 횟수·실행 묶음에 아무것도 남기지 않는다([run-record.md](run-record.md) §1.4).
+- 형식이 아닌 줄(`environment_item_invalid`), 셸 문법(`shell_syntax`), 빈 명령(`command_empty`), 낱말로 나눌 수 없는 명령(`command_parse`), 겹치는 이름(`environment_name_duplicate`), 둘째 `## 실행 환경` 절(`environment_section_duplicate`)은 `ha doctor`만 파일과 줄로 알리고 어떤 점검도 실행하지 않는다. lint 오류가 아니다: 절이 있든 없든, 어떤 내용이든 `ha lint`·`ha start`·`ha check`·`ha status`의 결과는 같다.
+
 ## 3. `tasks/T00n.md`
 
 | 절 | 내용 |

@@ -165,6 +165,38 @@ Starting with Seal 0.1.16, Seal starts new goals with `ha start --rules run-rule
 - When a check passed its error limit because of something Seal can fix in how it runs, such as a missing tool, Seal records `recover`. Each condition and input allows two; `allow-recovery` lets you allow more. Earlier failures stay in the record.
 - A long check gets its own limit, up to two hours, in the plan's `## 시간 제한` section. When an earlier run reached or neared its limit, a notice appears before the run.
 
+## Reports and tool checks
+
+`ha report <goal>` summarizes a goal's state in five lines. It prints English by default and Korean with `--lang ko`. It only reads the same computation as `ha status` and never changes the record.
+
+| Label | What it tells you |
+| --- | --- |
+| `Changed` | Files and commits changed outside the bundle documents since the start |
+| `Checked` | Required conditions satisfied (by check records and by user confirmation), and change conditions whose failure before the change was observed |
+| `To review` | Items for a person: decisions for the user, conditions confirmed by a quote, test changes exempted by the executor's reason alone, changed verification commands |
+| `Remaining limits` | Assurance `local`, the check author, optional conditions not satisfied, an exceeded budget, and whether no completion record covers HEAD |
+| `Next step` | The one thing to do in the current state |
+
+After the summary come a stamp to copy into `## 현재` in `PROGRESS.md` (the record head's seq and hash, the recorded time and the status), the evidence per condition, the completion coverage, and where the output of unmet conditions is (`ha log <goal> <seq>`). A synthetic example:
+
+```text
+Changed: 2 files and 2 commits outside the bundle documents since base 3c1f0a9e7b25
+Checked: 2 of 2 required conditions satisfied (2 by check records, 0 by user confirmation); 1 of 1 change conditions have a fresh baseline
+To review: none
+Remaining limits: assurance local; check author: executor
+Next step: none; completion record seq 5 holds and nothing is left to do
+```
+
+To check the tools your checks need beforehand, add a `## 실행 환경` section to PLAN with one tool per line in the form `` - <이름>: `<점검 명령>` `` (a tool name, a colon, and its check command in one code span).
+
+```markdown
+## 실행 환경
+- 브라우저: `node scripts/probe-browser.mjs`
+- 셸: `sh tests/env/plain.sh`
+```
+
+`ha doctor <goal>` runs these check commands in order with a 60-second limit each and prints `사용 가능` (available) or `사용 불가 (<reason>)` (unavailable) for each tool. For an unavailable tool, the end of its output follows. It works before the start too, and leaves nothing in the record or the run count. A malformed line is reported with its file and line, and then no check runs. Judgments never read this section.
+
 ## Troubleshooting
 
 | Symptom | What to do |

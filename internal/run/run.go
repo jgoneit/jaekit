@@ -27,8 +27,11 @@ type Result struct {
 	Exit      *int   // nil when the command did not start or timed out
 	Reason    string // fixed code for process errors; never command output
 	Signal    string // signal number, even though legacy Outcome remains Fail
-	Duration  time.Duration
-	Digest    string // hex sha256 of the log file
+	// StartError is the error that kept the process from starting; nil when
+	// it started. ha check does not read it.
+	StartError error
+	Duration   time.Duration
+	Digest     string // hex sha256 of the log file
 
 	// Limit is the time limit applied to the process. LimitElapsed runs from
 	// the limit timer's start, after a successful process start, until the
@@ -145,7 +148,7 @@ func execWithOutput(dir string, argv []string, timeout time.Duration, logPath st
 	}
 	if startErr != nil {
 		fmt.Fprintf(log, "ha: could not start %q: %v\n", argv[0], startErr)
-		res.Outcome, res.Reason = Error, "process_start"
+		res.Outcome, res.Reason, res.StartError = Error, "process_start", startErr
 		if errors.Is(startErr, errUnfinalizedProcess) {
 			finalizationErr = startErr
 		}

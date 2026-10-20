@@ -14,6 +14,10 @@ When ready, select `seal:seal` from the `$` list in a Codex conversation and sen
 
 The user decides whether to change the goal and scope. Seal never modifies goal documents. If you revised the goal with Spec, make a separate request such as `docs/specs/<goal> 이어서 해줘` (continue `docs/specs/<goal>`). For detailed document formats, see the [goal documents contract](../contracts/goal-docs.md) and [execution bundle contract](../contracts/bundle.md) (Korean).
 
+## Checking tools beforehand
+
+If your checks use a browser or another external tool, confirm the tool is there before the checks actually run. List the tools in the PLAN section `## 실행 환경` in the form `` - <이름>: `<점검 명령>` `` and run `ha doctor <goal>`. Each tool gets `사용 가능` (available) or `사용 불가` (unavailable), and the reason for an unavailable tool is one of `실행 파일 없음` (no executable), `실행 권한 없음` (no permission to run), `시간 초과` (timed out), `0이 아닌 종료` (nonzero exit) and `신호로 종료` (ended by a signal). Each check gets at most 60 seconds and counts toward neither the record nor the budget. `ha doctor` installs nothing. Install an unavailable tool or fix its path before the checks.
+
 ## What to check before running
 
 Seal resolves the absolute path of the Core executable it will actually use, and reads `capabilities --format json` from that executable. A fresh start requires both that the default rule is understood and that all required capabilities are present. Existing goals are checked against their saved rules and the requested action.
@@ -75,6 +79,8 @@ The completion report (`## 완료 보고`) appears in `PROGRESS.md` in the goal 
 4. **What assumptions and limitations exist.** Review whether agent-chosen assumptions match your intent, and whether remaining limitations affect the result.
 
 The evidence of completion is the completion record left by `ha done`. In Terminal, run `ha status <goal>` to check the status based on the current goal and records. Replace `<goal>` with the actual goal folder path, such as `docs/specs/login-link`.
+
+`ha report <goal>` summarizes the same records in five lines: `Changed`, `Checked`, `To review`, `Remaining limits` and `Next step`. It is the same computation as `ha status` and does not change the record. The stamp below the summary shows which record head `## 현재` in `PROGRESS.md` should be checked against.
 
 The assurance level `local` means evidence obtained on that computer. Checks are authored by the executing agent, which can modify files and records with the same user permissions. It does not mean that the whole result is defect-free or guaranteed by an independent third party.
 
