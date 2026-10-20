@@ -39,7 +39,8 @@ var codexAllowed = map[string]bool{"agent_message": true, "reasoning": true, "co
 var claudeTools = []string{"Read", "Grep", "Glob"}
 var claudeAllowed = map[string]bool{"Read": true, "Grep": true, "Glob": true, "StructuredOutput": true}
 
-var agyAllowed = map[string]bool{"view_file": true, "list_dir": true, "grep_search": true, "find_by_name": true,
+// agy 1.4.3 reads files with read_file, as clean-review 0.2.1 allows.
+var agyAllowed = map[string]bool{"view_file": true, "read_file": true, "list_dir": true, "grep_search": true, "find_by_name": true,
 	"finish": true, "wait": true, "wait_5_seconds": true, "command_status": true}
 
 // Programs agy's shell may run: they read files and start nothing else.
