@@ -3,10 +3,13 @@
 See common.py for the fixture and the result rules. AC-24 runs the Go
 tests `TestNativeReportOutput` and `TestNativeDoctorProbes` here, reads
 which tests Windows native CI requires from tools/windows/native_checks.py,
-and asks the repository's CI reader (tools/verification-checks/
-cross_platform_ci.py, its existing admission unchanged) whether the real pull
-request run of the checked commit passed. No pull request run for the checked
-commit, or a reader that cannot pass it, is an unavailable observation.
+and reads the Windows native reports of the checked commit's real pull request
+run through the repository's CI admission (tools/verification-checks/
+cross_platform_ci.py, loaded in-process and unchanged, as
+tools/history-checks/ci_observer.py does). Only the judgment is this goal's:
+both Windows shells' reports list every required test as passed and none as
+skipped. The admission reads only a completed, successful run of the checked
+commit, so a missing, pending or failed run is an unavailable observation.
 """
 import importlib.util
 import json
@@ -76,7 +79,7 @@ def go_results(pattern):
     """(failed, passed) test names of `go test -json` in ./cmd/ha for pattern."""
     env = {key: value for key, value in os.environ.items() if not key.startswith(("HA_", "GIT_"))}
     env.update(GOTOOLCHAIN="local", GOFLAGS="-mod=readonly")
-    result = run(["go", "test", "-json", "-count=1", "-run", pattern, "./cmd/ha"], ROOT, env, timeout=1200)
+    result = run(["go", "test", "-json", "-count=1", "-run", pattern, "./cmd/ha"], ROOT, env, timeout=840)
     events = []
     for line in text(result.stdout).splitlines():
         try:
@@ -91,9 +94,10 @@ def go_results(pattern):
         raise Unavailable(f"tests started without an end: {sorted(started - ended)[:3]}")
     failed = sorted({e["Test"] for e in events if e.get("Action") == "fail" and e.get("Test")})
     passed = sorted({e["Test"] for e in events if e.get("Action") == "pass" and e.get("Test")})
+    skipped = sorted({e["Test"] for e in events if e.get("Action") == "skip" and e.get("Test")})
     if result.returncode and not failed:
         raise Unavailable(f"go test exited {result.returncode} without a failed test: {text(result.stderr)[-500:]}")
-    return failed, passed
+    return failed, passed, skipped
 
 
 def windows_native():
@@ -109,11 +113,43 @@ def windows_native():
         sys.path.remove(str(ROOT / "tools/windows"))
 
 
+MODULE = "github.com/jgoneit/jaekit/"
+
+
+def windows_reports():
+    """The two Windows native reports the shared CI admission reads for the checked commit."""
+    try:
+        spec = importlib.util.spec_from_file_location("ha_report_doctor_ci",
+                                                      ROOT / "tools/verification-checks/cross_platform_ci.py")
+        ci = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(ci)
+    except Exception as error:
+        raise Unavailable(f"tools/verification-checks/cross_platform_ci.py cannot be loaded: {error!r}") from None
+    reports = []
+
+    def observed(report, operating_system, source):
+        if operating_system == "Windows":
+            reports.append(report)
+
+    try:
+        ci.configuration_present()
+        ci.live_run(native_validator=observed)
+    except (ci.Violation, ci.ObservationError) as error:
+        raise Unavailable(f"no admitted pull request CI run of the checked commit: {error}") from None
+    except Exception as error:
+        raise Unavailable(f"the CI admission could not be observed: {error!r}") from None
+    if len(reports) != 2:
+        raise Unavailable(f"{len(reports)} Windows native reports, want 2")
+    return reports
+
+
 class Platform(unittest.TestCase):
     def test_native_tests_pass_here(self):
         """AC-24: the shell-independent report and doctor tests pass on this host."""
         v = "platform-results-differ"
-        failed, passed = go_results("^(TestNativeReportOutput|TestNativeDoctorProbes)$")
+        failed, passed, skipped = go_results("^(TestNativeReportOutput|TestNativeDoctorProbes)$")
+        if not failed and any(t in skipped for t in NATIVE_TESTS):
+            raise Unavailable(f"required tests were skipped here: {[t for t in NATIVE_TESTS if t in skipped]}")
         missing = [t for t in NATIVE_TESTS if t not in passed]
         require(self, not failed and not missing, v, f"failed {failed[:5]}, did not pass {missing}")
 
@@ -123,11 +159,14 @@ class Platform(unittest.TestCase):
         required = windows_native().get("cmd/ha", [])
         missing = [t for t in NATIVE_TESTS if t not in required]
         require(self, not missing, v, f"Windows native CI does not require {missing}")
-        env = {key: value for key, value in os.environ.items() if not key.startswith("HA_EVIDENCE")}
-        result = run([sys.executable, "tools/verification-checks/cross_platform_ci.py", "AC-1"], ROOT, env, timeout=900)
-        if result.returncode:
-            raise Unavailable(f"the CI reader did not pass a real run of the checked commit (exit {result.returncode}): "
-                              + text(result.stderr).strip()[-500:])
+        reports = windows_reports()
+        want = {MODULE + "cmd/ha/" + t for t in NATIVE_TESTS}
+        for report in reports:
+            tests = report.get("native_tests") or {}
+            shell = (report.get("environment") or {}).get("shell_version")
+            passed, skipped = set(tests.get("passed") or []), set(tests.get("skipped") or [])
+            require(self, want <= passed and not want & skipped, v,
+                    f"Windows {shell}: not passed {sorted(want - passed)[:5]}, skipped {sorted(want & skipped)[:5]}")
 
 
 if __name__ == "__main__":

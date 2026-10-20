@@ -146,6 +146,26 @@ class Report(Built):
             raise Unavailable(f"git merge: {result.stderr.decode(errors='replace')}")
         expect(tracked, ("counts", 2, 2), (0, 1), note="bundle-only and merge commits")
 
+        review = self.repo("review", conditions=(Condition("AC-1", "change"), Condition("AC-2", "maintain"),
+                                                  Condition("AC-3", "maintain")), tests_glob="tests/**")
+        review.start(extra=("--test-authority", "the request allows changing this goal's tests"))
+        review.check("AC-1", baseline=True, expect=0)
+        review.implement()
+        for i in ("AC-2", "AC-3"):
+            review.write(f"tests/{i}.sh", review.read(f"tests/{i}.sh") + "# reviewed\n")
+        review.commit("touch the maintain tests")
+        review.note("test-change", "tests:tests/AC-2.sh", "--criteria", "AC-2", "--how", "it still compares src/AC-2.txt with ok")
+        review.note("test-change", "tests:tests/AC-3.sh", "--criteria", "AC-3", "--how", "it compares less", "--weakened")
+        review.check("AC-2", "AC-3", expect=0)
+        review.write_goal(plan=review.plan().replace("`sh tests/AC-3.sh`", "`sh ./tests/AC-3.sh`"))
+        status = review.status()
+        kinds = {(t["path"], bool(t.get("exempt")), bool((t.get("rationale") or {}).get("weakened")))
+                 for t in status.get("test_changes") or []}
+        if (kinds != {("tests/AC-2.sh", True, False), ("tests/AC-3.sh", False, True)}
+                or [c["criterion"] for c in status["changes"]["command_changed"]] != ["AC-3"]):
+            raise Unavailable(f"the test-change fixture is not as intended: {kinds} {status['changes']['command_changed']}")
+        expect(review, ("counts", 3, 2), (1, 1), note="test changes and a changed command")
+
     def test_details_after_summary(self):
         """AC-2: stamp, evidence per condition, completion coverage and unmet output, in order."""
         v = "report-details-wrong"
@@ -177,9 +197,13 @@ class Report(Built):
         repo.rewrite(blank_output)
         expect(repo, "a failed check without stored output")
         repo.flag("AC-2", present=False)
-        repo.check("AC-2", expect=0)
+        repo.write("src/fixed.txt", "fixed\n")
+        repo.commit("fix after the failure")
+        repo.check("AC-1", "AC-2", expect=0)
         repo.note("confirm", "AC-3", "--quote", "화면을 봤고 맞아")
         repo.done()
+        if repo.status().get("completion_record") is None:
+            raise Unavailable("the fixture did not record a completion")
         expect(repo, "a valid completion record")
         repo.write("src/after.txt", "after\n")
         repo.commit("after completion")
@@ -220,8 +244,6 @@ class Report(Built):
             require(self, before == after, v, f"{note}: files changed: {snapshot_diff(before, after)}")
             return outputs
 
-        code, out, err = repo.ha_run("report", GOAL, cwd=repo.root)
-        require(self, code == 0, v, f"ha report exited {code}: {(out + err)[-500:]}")
         observe("not started")
         repo.start()
         repo.check("AC-1", baseline=True, expect=0)
@@ -230,9 +252,13 @@ class Report(Built):
         repo.check("AC-1", "AC-2", expect=1)
         observe("failed check")
         repo.flag("AC-2", present=False)
-        repo.check("AC-2", expect=0)
+        repo.write("src/fixed.txt", "fixed\n")
+        repo.commit("fix after the failure")
+        repo.check("AC-1", "AC-2", expect=0)
         repo.note("confirm", "AC-3", "--quote", "화면을 봤고 맞아")
         repo.done()
+        if repo.status().get("completion_record") is None:
+            raise Unavailable("the fixture did not record a completion")
         observe("complete")
 
     def test_rules_and_integrity(self):

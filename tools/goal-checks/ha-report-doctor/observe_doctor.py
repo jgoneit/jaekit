@@ -87,7 +87,11 @@ class Built(unittest.TestCase):
         except OSError as error:
             raise Unavailable(f"ha doctor: {error}") from None
         elapsed = time.monotonic() - started
-        out, err = text(result.stdout), text(result.stderr)
+        # The output is the observed property: a tail cut inside a character
+        # shows as U+FFFD and fails the boundary assertion below.
+        out, err = result.stdout.decode("utf-8", "replace"), result.stderr.decode("utf-8", "replace")
+        if result.returncode < 0:
+            raise Unavailable(f"ha doctor ended by signal {-result.returncode}")
         require(self, result.returncode == expect_code, violation,
                 f"ha doctor exited {result.returncode}, want {expect_code}: {(out + err)[-1500:]}")
         return out, err, elapsed

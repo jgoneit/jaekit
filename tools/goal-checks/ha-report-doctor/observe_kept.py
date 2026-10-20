@@ -64,7 +64,7 @@ class Kept(unittest.TestCase):
         v = "existing-behavior-changed"
         env = {k: val for k, val in os.environ.items() if not k.startswith(("HA_", "GIT_"))}
         env.update(GOTOOLCHAIN="local", GOFLAGS="-mod=readonly")
-        result = run(["go", "test", "-json", "-count=1", "./cmd/ha", "./internal/..."], ROOT, env, timeout=2400)
+        result = run(["go", "test", "-json", "-count=1", "./cmd/ha", "./internal/..."], ROOT, env, timeout=840)
         events = []
         for line in text(result.stdout).splitlines():
             try:
@@ -133,7 +133,7 @@ class Kept(unittest.TestCase):
         """AC-29: every check a protected route selects passes in this tree."""
         v = "protected-route-changed"
         env = {k: val for k, val in os.environ.items() if not k.startswith(("HA_", "GIT_"))}
-        result = run([sys.executable, "tools/regression-checks/check.py", "--criterion", "2"], ROOT, env, timeout=2400)
+        result = run([sys.executable, "tools/regression-checks/check.py", "--criterion", "2"], ROOT, env, timeout=840)
         last = (text(result.stdout).strip().splitlines() or [""])[-1]
         if last == "regression contract 2 pass" and result.returncode == 0:
             return

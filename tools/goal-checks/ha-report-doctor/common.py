@@ -95,7 +95,7 @@ def build(out, goos=None, goarch=None):
     env.update(GOTOOLCHAIN="local", GOFLAGS="-mod=readonly", CGO_ENABLED="0")
     if goos:
         env.update(GOOS=goos, GOARCH=goarch)
-    result = run(["go", "build", "-o", out, "./cmd/ha"], ROOT, env, timeout=900)
+    result = run(["go", "build", "-o", out, "./cmd/ha"], ROOT, env, timeout=600)
     if result.returncode:
         raise Unavailable(f"go build: {result.stderr.decode(errors='replace')[-2000:]}")
     return out
@@ -528,15 +528,19 @@ def reason_list(reasons):
 
 
 def sections(out):
-    """The report's detail sections keyed by heading, in order."""
-    found, current = [], None
-    for line in out.split("\n")[5:]:
+    """The report's detail sections keyed by heading, in order. Any non-blank line
+    between the summary and the first heading is kept under the heading None, so
+    it never matches an expected section list."""
+    lines = out.split("\n")[5:]
+    first = next((i for i, l in enumerate(lines) if l.startswith("### ")), len(lines))
+    lead = [l for l in lines[:first] if l.strip()]
+    found = []
+    for line in lines[first:]:
         if line.startswith("### "):
-            current = [line, []]
-            found.append(current)
-        elif current is not None:
-            current[1].append(line)
-    return [(heading, [l for l in body if l.strip()]) for heading, body in found]
+            found.append([line, []])
+        else:
+            found[-1][1].append(line)
+    return ([(None, lead)] if lead else []) + [(heading, [l for l in body if l.strip()]) for heading, body in found]
 
 
 def expect_stamp(repo, status, lang):
