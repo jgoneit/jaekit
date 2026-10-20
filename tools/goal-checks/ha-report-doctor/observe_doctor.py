@@ -19,18 +19,21 @@ from common import (AVAILABLE, GOAL, UNAVAILABLE, Condition, Repo, Temporary, Un
                     snapshot_diff, text)
 
 TOKEN = "DOCTOR-OUTPUT-TOKEN-91b3"
+# The scripts print TOKEN but never contain it, so a stored copy of the output
+# is the only file in the repository that could.
+SPLIT = TOKEN.replace("-TOKEN-", '-""TOKEN-')
 SCRIPTS = {
     "tests/env/ok.sh": 'test "$#" -eq 2 && test "$1" = "a b" && test "$2" = "c d" || exit 9\necho VISIBLE-OK-OUTPUT\n',
     "tests/env/plain.sh": "echo VISIBLE-OK-OUTPUT\n",
     "tests/env/noexec.sh": "echo never\n",
-    "tests/env/exit3.sh": f'echo "failing {TOKEN}"\nexit 3\n',
+    "tests/env/exit3.sh": f'echo "failing {SPLIT}"\nexit 3\n',
     "tests/env/killed.sh": "kill -KILL $$\n",
     "tests/env/root.sh": "test -f tests/env/root-marker\n",
     "tests/env/root-marker": "here\n",
     "tests/env/slow.sh": "sleep 50\n",
     "tests/env/hang.sh": "sleep 1000\n",
     "tests/env/parent.sh": '( while :; do echo beat >> "$1"; sleep 0.2; done ) &\nsleep 1000\n',
-    "tests/env/many.sh": f'i=1\nwhile [ $i -le 100 ]; do echo "line $i"; i=$((i+1)); done\necho "last {TOKEN}"\nexit 1\n',
+    "tests/env/many.sh": f'i=1\nwhile [ $i -le 100 ]; do echo "line $i"; i=$((i+1)); done\necho "last {SPLIT}"\nexit 1\n',
     "tests/env/wide.sh": 'i=1\nwhile [ $i -le 20 ]; do printf "%s\\n" "$(printf "가%.0s" $(seq 1 100))"; i=$((i+1)); done\necho END-OF-WIDE\nexit 1\n',
     "tests/env/crlf.sh": "printf 'first\\r\\nsecond\\r\\n'\nexit 1\n",
     "tests/env/mark.sh": "echo made > marker-made\n",
@@ -265,7 +268,9 @@ class Input(Built):
                         data = json.loads(out)
                     except ValueError:
                         raise Unavailable("ha status printed invalid JSON") from None
+                    # Record line hashes and elapsed seconds follow the record times.
                     data.pop("record_head", None)
+                    (data.get("findings") or {}).pop("record_head", None)
                     for key in ("elapsed_seconds", "span_seconds", "reported_wait_seconds"):
                         (data.get("budget") or {}).pop(key, None)
                     out = json.dumps(data, sort_keys=True)
