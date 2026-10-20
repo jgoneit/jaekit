@@ -16,9 +16,7 @@ coherent, that a host selects the skill, or that an agent follows it.
 """
 import hashlib
 import json
-import os
 import re
-import subprocess
 import sys
 from pathlib import Path
 import unittest
@@ -38,6 +36,10 @@ SPEC_DESCRIPTIONS = (
 TEMPLATES = ("small-change.md", "backend-feature.md", "cross-module-feature.md", "product.md")
 # Seal SKILL.md with the Authority section body and the version replaced by
 # placeholders, as it is on the main commit this goal starts from (028c320).
+# The digest holds only for this goal's own commits (028c320 to 950cfea). A
+# later goal may change Seal SKILL.md outside the Authority section, as
+# runner-adapters did for Seal 0.1.19 (merge c4a4564); on such a tree this test
+# reports seal-outside-authority-changed although this goal did not change it.
 SEAL_OUTSIDE_AUTHORITY = "c45ddd829684c900649e50efe45f57a9c5d0f6782d3f2c65cc4cb108b7ecc6bf"
 SEAL_DESCRIPTION = (
     "Carry a goal in docs/specs/<goal>/ to recorded completion — plan, implement, verify through the ha "
@@ -45,8 +47,10 @@ SEAL_DESCRIPTION = (
     "implement, finish, or continue a goal document, for example \"$seal:seal docs/specs/x\" in Codex, "
     "\"/seal:seal docs/specs/x\" in Claude Code, \"docs/specs/x 구현해줘\", or \"docs/specs/x 이어서 해줘\"."
 )
+# Skill versions on the main this goal merged into: 028c320, the start commit
+# and the first parent of the merge 3ed4b60. AC-21 asks for versions above
+# that main, so the check compares with these values and reads no ref or history.
 MAIN_VERSIONS = {"spec": (0, 1, 12), "seal": (0, 1, 17)}
-MAIN_REFS = ("refs/heads/main", "refs/remotes/origin/main")
 HANDOFF_CASES = ("same-request-handoff", "draft-then-ready", "target-then-draft", "long-session-release")
 # Spec plugin files never name Seal, its commands, bundle files, run states,
 # a review tool, or a finding class (plugins/plugins_test.go keeps the first four).
@@ -384,53 +388,10 @@ class AC20(Doc):
             self.refuse("eval-case-not-synthetic", name, text, "docs/specs/spec-agent-handoff", "](../../docs/", "side-session-notes")
 
 
-def git(*args):
-    """Run git on this checkout only; inherited repository variables are dropped."""
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-    try:
-        return subprocess.run(["git", *args], cwd=ROOT, env=env, capture_output=True, text=True, timeout=60)
-    except (OSError, subprocess.TimeoutExpired) as error:
-        raise Unavailable(f"git: {error}") from None
-
-
-def main_versions():
-    """Skill versions on the main refs this clone has, with the start commit's as a floor.
-
-    AC-21 is about the main branch, so this check reads only the refs named in
-    MAIN_REFS. A ref that does not exist is skipped, and so is one that already
-    contains the checked commit (it is not the main this change merges into).
-    Any other Git failure or a signal is an error, and so is reading no ref at
-    all; none of them is a violation.
-    """
-    found = dict(MAIN_VERSIONS)
-    readable = 0
-    for ref in MAIN_REFS:
-        exists = git("rev-parse", "--verify", "--quiet", ref + "^{commit}")
-        if exists.returncode == 1:
-            continue
-        if exists.returncode:
-            raise Unavailable(f"git rev-parse {ref} ended {exists.returncode}: {exists.stderr}")
-        readable += 1
-        contains = git("merge-base", "--is-ancestor", "HEAD", ref)
-        if contains.returncode == 0:
-            continue
-        if contains.returncode != 1:
-            raise Unavailable(f"git merge-base HEAD {ref} ended {contains.returncode}: {contains.stderr}")
-        for name in found:
-            shown = git("show", f"{ref}:plugins/{name}/skills/{name}/SKILL.md")
-            match = re.search(r'^  version: "([0-9]+\.[0-9]+\.[0-9]+)"$', shown.stdout, re.M)
-            if shown.returncode or not match:
-                raise Unavailable(f"cannot read the {name} version on {ref}: {shown.stderr}")
-            found[name] = max(found[name], version_tuple(match.group(1)))
-    if not readable:
-        raise Unavailable("no main ref can be read: " + ", ".join(MAIN_REFS))
-    return found
-
-
 class AC21(Doc):
     def test_versions_raised_and_agree(self):
         market = read_json(".claude-plugin/marketplace.json")
-        for name, floor in main_versions().items():
+        for name, floor in MAIN_VERSIONS.items():
             _, version = front_matter(f"plugins/{name}/skills/{name}/SKILL.md")
             if version_tuple(version) <= floor:
                 raise RequirementViolation("version-not-raised", f"{name} {version} is not above {floor}")
