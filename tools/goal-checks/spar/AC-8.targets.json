@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "fallback",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Fallback.test_fallback_model_runs_once_on_quota_refusal",
+      "result_targets": {
+        "additional_violations": [
+          "fallback.assertion-2",
+          "fallback.assertion-3",
+          "fallback.assertion-4",
+          "fallback.assertion-5",
+          "fallback.assertion-6",
+          "fallback.assertion-7",
+          "fallback.assertion-8"
+        ],
+        "execution": "fallback.execution",
+        "selection": "fallback.selection",
+        "attribution": "fallback.attribution"
+      }
+    }
+  ]
+}

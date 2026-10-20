@@ -1,0 +1,4 @@
+{
+  "name": "spar",
+  "description": "Run independent review rounds on pinned commits with several reviewer CLIs, classify their findings, and record a review gate the agent can stop on."
+}

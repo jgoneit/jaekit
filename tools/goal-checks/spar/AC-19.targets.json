@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "contracts",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Docs.test_contracts_products_and_usage_guides",
+      "result_targets": {
+        "additional_violations": [
+          "contracts.assertion-2",
+          "contracts.assertion-3",
+          "contracts.assertion-4",
+          "contracts.assertion-5",
+          "contracts.assertion-6",
+          "contracts.assertion-7",
+          "contracts.assertion-8"
+        ],
+        "execution": "contracts.execution",
+        "selection": "contracts.selection",
+        "attribution": "contracts.attribution"
+      }
+    }
+  ]
+}

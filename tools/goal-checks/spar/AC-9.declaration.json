@@ -1,0 +1,57 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spar/AC-9.targets.json",
+    "tools/goal-checks/spar/observe_spar.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "unfinished",
+      "violation": "failure-hidden"
+    },
+    {
+      "id": "unfinished.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unfinished.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unfinished.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unfinished.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unfinished.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unfinished.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unfinished.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unfinished.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unfinished.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unfinished.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

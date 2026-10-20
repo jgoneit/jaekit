@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "angles",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Angles.test_angles_are_required_and_shown",
+      "result_targets": {
+        "additional_violations": [
+          "angles.assertion-2",
+          "angles.assertion-3",
+          "angles.assertion-4",
+          "angles.assertion-5",
+          "angles.assertion-6",
+          "angles.assertion-7",
+          "angles.assertion-8"
+        ],
+        "execution": "angles.execution",
+        "selection": "angles.selection",
+        "attribution": "angles.attribution"
+      }
+    }
+  ]
+}

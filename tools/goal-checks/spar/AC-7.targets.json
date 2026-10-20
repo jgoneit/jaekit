@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "native",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Native.test_native_prepares_and_records_host_reviewer",
+      "result_targets": {
+        "additional_violations": [
+          "native.assertion-2",
+          "native.assertion-3",
+          "native.assertion-4",
+          "native.assertion-5",
+          "native.assertion-6",
+          "native.assertion-7",
+          "native.assertion-8"
+        ],
+        "execution": "native.execution",
+        "selection": "native.selection",
+        "attribution": "native.attribution"
+      }
+    }
+  ]
+}

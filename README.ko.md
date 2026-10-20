@@ -490,6 +490,7 @@ Criteria-Format: nested/1
 - [WSL2 준비 안내](guides/WSL.md) · [Windows 네이티브 후보 안내](guides/WINDOWS.md)
 - [이미지 설명과 수정 방법](assets/readme/SOURCES.md)
 - [Ubuntu·macOS·Windows CI의 검사 범위](guides/CI.md)
+- [Spar로 하는 선택적 독립 검토](guides/SPAR.md)
 
 사용 경험이나 막힌 점은 [사용 보고·설치·버그 issue](https://github.com/jgoneit/jaekit/issues/new/choose)로 남겨 주세요. issue는 공개되므로 회사 코드, 내부 이름, 비밀 값과 로그 원문은 제외해 주세요.
 

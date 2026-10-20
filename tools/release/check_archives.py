@@ -4,6 +4,9 @@
 The four macOS/Linux archives are always required. The Windows archive is
 optional unless --require-windows: a release left without a Windows 11
 acceptance link publishes the four archives and their checksums only.
+`spar` may sit next to `ha` in the four archives; --require-spar requires it,
+for its platform and, with --run-native, for `spar --version` to match the
+release.
 
 No download, installation, upload, tag changes, or writes to the source tree.
 Native smoke files live in a temporary directory and use only packaged inputs.
@@ -59,6 +62,8 @@ REQUIRED = {
     "examples/check-result/reference.json", "examples/check-result/input.txt",
 }
 ROOT_FILES = {"ha", "LICENSE", "README.md", "README.ko.md"}
+# The review runner next to the Core; required only with --require-spar.
+OPTIONAL_ROOT_FILES = {"spar"}
 ROOT_DIRECTORIES = {"guides", "contracts", "assets", "tools", "examples"}
 EXAMPLE_FILES = {name for name in REQUIRED if name.startswith("examples/")}
 # Local metadata and generated caches never belong in a release archive.
@@ -182,7 +187,7 @@ def archive_files(members, prefix: str):
             continue
         relative = PurePosixPath(*path.parts[1:])
         top = relative.parts[0]
-        require(top in ROOT_DIRECTORIES or (len(relative.parts) == 1 and top in ROOT_FILES),
+        require(top in ROOT_DIRECTORIES or (len(relative.parts) == 1 and top in ROOT_FILES | OPTIONAL_ROOT_FILES),
                 "archive contains a file outside the release allowlist")
         require(not LOCAL_PARTS.intersection(relative.parts) and relative.suffix not in CACHE_SUFFIXES,
                 "archive contains local metadata or generated cache")
@@ -197,19 +202,21 @@ def archive_files(members, prefix: str):
             files[str(relative)] = (member, body)
     require(REQUIRED <= files.keys(), "archive is missing required files: " + ", ".join(sorted(REQUIRED - files.keys())))
     require(files["ha"][0].mode & 0o111 != 0, "archive Core is not executable")
+    if "spar" in files:
+        require(files["spar"][0].mode & 0o111 != 0, "archive spar is not executable")
     return files
 
 
-def check_platform(binary: bytes, target: str):
+def check_platform(binary: bytes, target: str, what: str = "Core"):
     header = binary[:64]
-    require(len(header) >= 20, "packaged Core has no supported executable header")
+    require(len(header) >= 20, f"packaged {what} has no supported executable header")
     system, arch = target.split("_")
     if system == "linux":
         require(header[:6] == b"\x7fELF\x02\x01" and struct.unpack_from("<H", header, 18)[0] == {"amd64": 62, "arm64": 183}[arch],
-                "packaged Core platform differs from archive name: " + target)
+                f"packaged {what} platform differs from archive name: " + target)
     else:
         require(header[:4] == b"\xcf\xfa\xed\xfe" and struct.unpack_from("<I", header, 4)[0] == {"amd64": 0x1000007, "arm64": 0x100000C}[arch],
-                "packaged Core platform differs from archive name: " + target)
+                f"packaged {what} platform differs from archive name: " + target)
 
 
 def windows_manifest(data: bytes):
@@ -293,7 +300,8 @@ def windows_files(path: Path, checksum: str, version: str):
     return files
 
 
-def check(dist: Path, version: str, published_assets: Path | None = None, require_windows: bool = False):
+def check(dist: Path, version: str, published_assets: Path | None = None, require_windows: bool = False,
+          require_spar: bool = False):
     names = release_names(version)
     windows = windows_name(version)
     require(dist.is_dir(), "release output directory does not exist")
@@ -309,7 +317,11 @@ def check(dist: Path, version: str, published_assets: Path | None = None, requir
     for name in sorted(names):
         members = read_archive(dist / name, checksums[name])
         files = archive_files(members, name.removesuffix(".tar.gz"))
-        check_platform(files["ha"][1], name.removeprefix("ha_" + version + "_").removesuffix(".tar.gz"))
+        target = name.removeprefix("ha_" + version + "_").removesuffix(".tar.gz")
+        check_platform(files["ha"][1], target)
+        require("spar" in files or not require_spar, "archive is missing spar next to ha: " + name)
+        if "spar" in files:
+            check_platform(files["spar"][1], target, "spar")
     if windows in archives:
         windows_files(dist / windows, checksums[windows], version)
     if published_assets is not None:
@@ -326,7 +338,7 @@ def invoke(argv, cwd: Path, env=None, expected=0):
     return result.stdout
 
 
-def native_smoke(dist: Path, version: str):
+def native_smoke(dist: Path, version: str, require_spar: bool = False):
     systems = {"Linux": "linux", "Darwin": "darwin"}
     architectures = {"x86_64": "amd64", "amd64": "amd64", "arm64": "arm64", "aarch64": "arm64"}
     system, arch = systems.get(platform.system()), architectures.get(platform.machine().lower())
@@ -348,6 +360,10 @@ def native_smoke(dist: Path, version: str):
         binary = str(package / "ha")
         require(invoke([binary, "--version"], root).strip() == "ha " + version,
                 "packaged Core version does not match the release")
+        if require_spar:
+            require("spar" in files, "native archive is missing spar")
+            require(invoke([str(package / "spar"), "--version"], root).strip() == "spar " + version,
+                    "packaged spar version does not match the release")
         capabilities = json.loads(invoke([binary, "capabilities", "--format", "json"], root))
         require(isinstance(capabilities, dict), "packaged Core capabilities are not an object")
         require(capabilities.get("schema") == "ha-capabilities/v1" and capabilities.get("ha_version") == version
@@ -412,14 +428,17 @@ def main():
     parser.add_argument("--run-native", action="store_true")
     parser.add_argument("--published-assets", type=Path)
     parser.add_argument("--require-windows", action="store_true")
+    parser.add_argument("--require-spar", action="store_true", help="require spar next to ha in the four archives")
     args = parser.parse_args()
     try:
-        archives = check(args.dist, args.version, args.published_assets, args.require_windows)
-        target = native_smoke(args.dist, args.version) if args.run_native else None
+        archives = check(args.dist, args.version, args.published_assets, args.require_windows, args.require_spar)
+        target = native_smoke(args.dist, args.version, args.require_spar) if args.run_native else None
     except (OSError, ValueError, KeyError, TypeError, subprocess.TimeoutExpired) as error:
         print("FAIL: " + str(error), file=sys.stderr)
         return 1
     suffix = f"; native {target} Core and reference violation/pass" if target else ""
+    if args.require_spar:
+        suffix = "; spar next to ha" + suffix
     windows = "and the Windows archive " if windows_name(args.version) in archives else ""
     print("PASS: four release archives " + windows + "with checksums and required public files" + suffix)
     return 0

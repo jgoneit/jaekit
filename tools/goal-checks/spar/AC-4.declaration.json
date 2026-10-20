@@ -1,0 +1,101 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spar/AC-4.targets.json",
+    "tools/goal-checks/spar/observe_spar.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "errors",
+      "violation": "config-error-unreported"
+    },
+    {
+      "id": "errors.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "errors.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "errors.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "errors.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "errors.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "errors.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "errors.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "errors.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "errors.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "errors.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "toml-1-0",
+      "violation": "toml-syntax-refused"
+    },
+    {
+      "id": "toml-1-0.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "toml-1-0.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "toml-1-0.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "toml-1-0.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "toml-1-0.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "toml-1-0.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "toml-1-0.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "toml-1-0.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "toml-1-0.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "toml-1-0.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

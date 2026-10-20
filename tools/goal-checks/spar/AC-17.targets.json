@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "plugins",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Preserved.test_spec_seal_and_clean_review_unchanged",
+      "result_targets": {
+        "additional_violations": [
+          "plugins.assertion-2",
+          "plugins.assertion-3",
+          "plugins.assertion-4",
+          "plugins.assertion-5",
+          "plugins.assertion-6",
+          "plugins.assertion-7",
+          "plugins.assertion-8"
+        ],
+        "execution": "plugins.execution",
+        "selection": "plugins.selection",
+        "attribution": "plugins.attribution"
+      }
+    },
+    {
+      "target": "clean-review",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Preserved.test_spar_leaves_clean_review_and_records_alone",
+      "result_targets": {
+        "additional_violations": [
+          "clean-review.assertion-2",
+          "clean-review.assertion-3",
+          "clean-review.assertion-4",
+          "clean-review.assertion-5",
+          "clean-review.assertion-6",
+          "clean-review.assertion-7",
+          "clean-review.assertion-8"
+        ],
+        "execution": "clean-review.execution",
+        "selection": "clean-review.selection",
+        "attribution": "clean-review.attribution"
+      }
+    }
+  ]
+}

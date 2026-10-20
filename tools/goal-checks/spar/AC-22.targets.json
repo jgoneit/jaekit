@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "release",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Release.test_release_archives_carry_spar_next_to_ha",
+      "result_targets": {
+        "additional_violations": [
+          "release.assertion-2",
+          "release.assertion-3",
+          "release.assertion-4",
+          "release.assertion-5",
+          "release.assertion-6",
+          "release.assertion-7",
+          "release.assertion-8"
+        ],
+        "execution": "release.execution",
+        "selection": "release.selection",
+        "attribution": "release.attribution"
+      }
+    }
+  ]
+}

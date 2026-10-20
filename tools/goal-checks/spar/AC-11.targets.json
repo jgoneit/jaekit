@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "classes",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Classes.test_findings_are_classified_by_rule",
+      "result_targets": {
+        "additional_violations": [
+          "classes.assertion-2",
+          "classes.assertion-3",
+          "classes.assertion-4",
+          "classes.assertion-5",
+          "classes.assertion-6",
+          "classes.assertion-7",
+          "classes.assertion-8"
+        ],
+        "execution": "classes.execution",
+        "selection": "classes.selection",
+        "attribution": "classes.attribution"
+      }
+    }
+  ]
+}

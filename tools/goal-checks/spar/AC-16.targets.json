@@ -1,0 +1,57 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "core-boundary",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Boundary.test_ha_has_no_reviewer_code",
+      "result_targets": {
+        "additional_violations": [
+          "core-boundary.assertion-2",
+          "core-boundary.assertion-3",
+          "core-boundary.assertion-4",
+          "core-boundary.assertion-5",
+          "core-boundary.assertion-6",
+          "core-boundary.assertion-7",
+          "core-boundary.assertion-8"
+        ],
+        "execution": "core-boundary.execution",
+        "selection": "core-boundary.selection",
+        "attribution": "core-boundary.attribution"
+      }
+    },
+    {
+      "target": "full-verification",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/verify.py"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": [
+          130
+        ]
+      },
+      "result_targets": {
+        "additional_violations": [
+          "full-verification.assertion-2",
+          "full-verification.assertion-3",
+          "full-verification.assertion-4",
+          "full-verification.assertion-5",
+          "full-verification.assertion-6",
+          "full-verification.assertion-7",
+          "full-verification.assertion-8"
+        ],
+        "execution": "full-verification.execution",
+        "selection": "full-verification.selection",
+        "attribution": "full-verification.attribution"
+      }
+    }
+  ]
+}

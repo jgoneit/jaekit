@@ -1,0 +1,102 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spar/AC-17.targets.json",
+    "tools/goal-checks/spar/observe_spar.py",
+    "tools/result_observations.py",
+    "tools/goal-checks/spar/preserved.json"
+  ],
+  "targets": [
+    {
+      "id": "plugins",
+      "violation": "products-changed"
+    },
+    {
+      "id": "plugins.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugins.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugins.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugins.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugins.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugins.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugins.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugins.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugins.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "plugins.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "clean-review",
+      "violation": "products-changed"
+    },
+    {
+      "id": "clean-review.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "clean-review.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "clean-review.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "clean-review.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "clean-review.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "clean-review.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "clean-review.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "clean-review.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "clean-review.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "clean-review.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

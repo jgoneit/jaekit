@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "growth",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Gate.test_gate_records_review_fix_growth",
+      "result_targets": {
+        "additional_violations": [
+          "growth.assertion-2",
+          "growth.assertion-3",
+          "growth.assertion-4",
+          "growth.assertion-5",
+          "growth.assertion-6",
+          "growth.assertion-7",
+          "growth.assertion-8"
+        ],
+        "execution": "growth.execution",
+        "selection": "growth.selection",
+        "attribution": "growth.attribution"
+      }
+    }
+  ]
+}

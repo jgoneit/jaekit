@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "dispositions",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Ledger.test_dispositions_follow_class_rules",
+      "result_targets": {
+        "additional_violations": [
+          "dispositions.assertion-2",
+          "dispositions.assertion-3",
+          "dispositions.assertion-4",
+          "dispositions.assertion-5",
+          "dispositions.assertion-6",
+          "dispositions.assertion-7",
+          "dispositions.assertion-8"
+        ],
+        "execution": "dispositions.execution",
+        "selection": "dispositions.selection",
+        "attribution": "dispositions.attribution"
+      }
+    }
+  ]
+}
