@@ -170,6 +170,42 @@ Source: completion record seq {seq}
 			}
 		})
 	}
+	// A depth-1 clone has HEAD but not the base: Git cannot compare them, so
+	// the summary says so in five lines and ha report exits 70.
+	t.Run("uncompared", func(t *testing.T) {
+		clone := &preflightFixture{t: t, dir: filepath.Join(t.TempDir(), "얕은 clone")}
+		source := filepath.ToSlash(f.dir)
+		if !strings.HasPrefix(source, "/") {
+			source = "/" + source
+		}
+		f.git("clone", "-q", "--depth", "1", "file://"+source, clone.dir)
+		clone.put(scenarioGoal+"/runs.jsonl", string(records))
+		t.Chdir(clone.dir)
+		head := clone.git("rev-parse", "HEAD")[:12]
+		want := map[string]string{
+			"en": "Changed: Git cannot compare base {base} with HEAD {head}\n" +
+				"Checked: not computed; Git cannot compare base {base} with HEAD {head}\n" +
+				"To review: not computed; Git cannot compare base {base} with HEAD {head}\n" +
+				"Remaining limits: assurance local; check author: executor; the other limits were not computed\n" +
+				"Next step: fetch the history that contains base {base} (for example `git fetch --unshallow` in a shallow clone), then run `ha report docs/specs/greet` again\n",
+			"ko": "바뀐 것: Git이 base {base}와 HEAD {head}를 비교할 수 없음\n" +
+				"확인한 것: 계산하지 못함; Git이 base {base}와 HEAD {head}를 비교할 수 없음\n" +
+				"직접 볼 것: 계산하지 못함; Git이 base {base}와 HEAD {head}를 비교할 수 없음\n" +
+				"남은 한계: 보증 수준 local; 검사 작성자: 실행자; 나머지 한계는 계산하지 못함\n" +
+				"다음 행동: base {base}가 든 이력을 받고(예: 얕은 clone에서는 `git fetch --unshallow`) `ha report docs/specs/greet` 다시 실행\n",
+		}
+		fill := strings.NewReplacer("{base}", base, "{head}", head)
+		for _, lang := range []string{"en", "ko"} {
+			var out, stderr bytes.Buffer
+			code := runMain([]string{"report", scenarioGoal, "--lang", lang}, &out, &stderr)
+			if code != exitInternal || out.String() != fill.Replace(want[lang]) {
+				t.Fatalf("%s: exit %d\n%s\nwant\n%s\nstderr %s", lang, code, out.String(), fill.Replace(want[lang]), stderr.String())
+			}
+		}
+		if code, _ := clone.ha("status", scenarioGoal); code != exitInternal {
+			t.Fatalf("ha status exited %d; it fails here as before", code)
+		}
+	})
 }
 
 // TestNativeDoctorHelper is a probe compiled only into the Go test

@@ -38,7 +38,7 @@
 - `ha estimate`: 필수 최소량을 PLAN 상한이 수용하면 0, 부족하거나 lint 오류가 있으면 1
 - `ha status`, `ha done`: §4.3
 - `ha timing`: 성공 0. 끊긴 기록은 65(거절)이며 아무것도 보여 주지 않는다. 보기를 출력에 쓰지 못하면 70이다
-- `ha report`: 보고를 출력하면 상태와 무관하게 0. 사용법 오류(`--lang`이 `ko`·`en`이 아님 포함) 64, 목표 디렉터리 없음 65, 지원하지 않는 규칙 66, 내부 오류·출력 실패 70. 끊긴 기록은 거절하지 않고 `record_integrity`가 있는 계산 결과를 보인다
+- `ha report`: 보고를 출력하면 상태와 무관하게 0. 사용법 오류(`--lang`이 `ko`·`en`이 아님 포함) 64, 목표 디렉터리 없음 65, 지원하지 않는 규칙 66, Git이 base와 HEAD를 비교할 수 없음(다섯 줄 요약은 출력함, §1.3)·내부 오류·출력 실패 70. 끊긴 기록은 거절하지 않고 `record_integrity`가 있는 계산 결과를 보인다
 - `ha doctor`: 모든 도구가 `사용 가능`이거나 절·항목이 없으면 0, 하나라도 `사용 불가`면 1, 절의 입력 오류와 PLAN.md 없음 65(아무 점검도 실행하지 않음), 사용법 오류 64, 프로세스를 제어·확인하지 못하면 70. 기록을 판정에 쓰지 않으므로 시작 전, 지원하지 않는 규칙, 끊긴 기록의 목표에도 같다
 - `ha budget`: 성공 0, 잘못된 인수 64, 값·창·개정·완료 상태 등의 거부 65(`/3` 목표의 `--preapprove` 포함), 구규칙 또는 미지원 규칙 66, 내부 오류·쓰기 적용 불확실성 70
 - 모든 명령: 64 사용법 오류, 65 거절(시작 전, 이미 시작함, lint 오류, 끊긴 기록, 확인 조건 불충족, dirty 검증, 시작 예산 부족), 66 지원하지 않는 규칙 버전, 70 내부 오류
@@ -103,13 +103,23 @@ JSON 출력은 `schema: estimate/v1`이며 다음을 제공한다.
 
 | 표지 | 내용 |
 | --- | --- |
-| `Changed` / `바뀐 것` | 시작 기록의 base commit부터 HEAD까지 실행 묶음 문서 밖에서 바뀐 파일 수(`ha status`의 `out_of_scope`와 같은 목록의 길이)와 그 경로를 바꾼 병합 아닌 commit 수. 시작 전이면 base가 없다는 사실, Git이 비교하지 못하면 그 사실 |
+| `Changed` / `바뀐 것` | 시작 기록의 base commit부터 HEAD까지 실행 묶음 문서 밖에서 바뀐 파일 수(`ha status`의 `out_of_scope`와 같은 목록의 길이)와 그 경로를 바꾼 병합 아닌 commit 수. 시작 전이면 base가 없다는 사실, Git이 비교하지 못하면 그 사실(아래) |
 | `Checked` / `확인한 것` | 필수 조건 수와 그중 충족한 수(검사 기록으로 충족한 `change`·`maintain` 수와 사용자 확인으로 충족한 `manual` 수), 조건표의 모든 `change` 조건 수와 그중 신선한 `fail_as_expected` baseline이 있는 수 |
 | `To review` / `직접 볼 것` | 이 순서의 전체 집합: 분류가 `user`인 남은 이유와 그 대상, 인용 확인으로 충족한 `manual` 조건과 그 확인 seq, 실행자 근거로 면제된 시험 변경(§4.7), `--weakened` 표시가 있는 시험 변경, 시작 뒤 바뀐 검증 명령(`changes.command_changed`), 해결되지 않은 완료 뒤 발견 수. 없으면 `none` / `없음` |
 | `Remaining limits` / `남은 한계` | 늘 보증 수준 `local`과 검사 작성자 실행자. 충족되지 않은 선택 조건, 예산 초과(실행·경과의 사용량과 상한), 지금 HEAD를 덮는 완료 기록이 없다는 사실을 해당할 때 더한다 |
 | `Next step` / `다음 행동` | 상태마다 하나: 시작 전이면 `ha start <goal>`(lint 문제가 있으면 `ha lint <goal>` 먼저), 그 밖의 `incomplete`는 분류가 `executor`인 첫 이유와 그 대상, `needs_user`는 분류가 `user`인 이유 전부와 그 대상, 완료 기록이 없는 `complete`는 `ha done <goal>`, 유효한 완료 기록이 있으면 그 seq와 남은 할 일이 없다는 사실, `blocked`는 마지막 `block`의 seq와 원인, `budget_exhausted`는 사용자의 예산 결정과 사용량·상한 |
 
 이유의 대상은 조건 이유면 조건 ID(`` AC-2 `criterion_failed` ``), 목표 수준 이유면 그 이유가 가리키는 task나 경로(`` `task_open` (T002) ``, `` `out_of_scope` (lib/other.txt) ``)다. 요약의 값에 줄바꿈이 있으면 `\n`으로 써서 각 줄을 한 줄로 지킨다.
+
+**Git이 base와 HEAD를 비교할 수 없을 때.** base commit이 없는 얕은 clone처럼 Git이 그 범위를 읽지 못하면 `ha status`는 지금처럼 계산하지 못하고 70으로 끝난다. `ha report`는 다섯 줄만 보이고 70으로 끝난다: `Changed`는 비교할 수 없다는 사실, `Checked`와 `To review`는 계산하지 못했다는 사실, `Remaining limits`는 `local`과 검사 작성자 뒤에 나머지 한계를 계산하지 못했다는 사실, `Next step`은 base가 든 이력을 받는 방법(예: `git fetch --unshallow`)과 다시 실행할 명령이다. 상세는 보이지 않는다. 범위의 파일 수와 commit 수를 읽는 일 하나라도 실패하면 이 경우다.
+
+```text
+Changed: Git cannot compare base 3c1f0a9e7b25 with HEAD 9a8b7c6d5e4f
+Checked: not computed; Git cannot compare base 3c1f0a9e7b25 with HEAD 9a8b7c6d5e4f
+To review: not computed; Git cannot compare base 3c1f0a9e7b25 with HEAD 9a8b7c6d5e4f
+Remaining limits: assurance local; check author: executor; the other limits were not computed
+Next step: fetch the history that contains base 3c1f0a9e7b25 (for example `git fetch --unshallow` in a shallow clone), then run `ha report docs/specs/example` again
+```
 
 **근거 출처.** 유효한 완료 기록이 있으면 그 `done` 줄에 저장된 조건(§2.5)을, 없으면 지금 계산한 조건을 쓴다. 충족 수, 인용 확인 `manual`, 충족되지 않은 선택 조건, 조건별 근거 표가 이 출처 하나를 읽는다. 필수 여부는 목표 문서에서 읽는다.
 

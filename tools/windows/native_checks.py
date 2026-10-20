@@ -79,6 +79,7 @@ NATIVE = {
                *("TestNativeProcessUnconfirmedShutdownScenarios/" + case for case in
                  ("rules-3-check", "rules-3-baseline", "rules-2-check", "rules-2-baseline", "rules-1-check", "rules-1-baseline")),
                "TestNativeReportOutput", "TestNativeReportOutput/en", "TestNativeReportOutput/ko",
+               "TestNativeReportOutput/uncompared",
                "TestNativeDoctorProbes",
                *("TestNativeDoctorProbes/" + case for case in ("available", "missing", "exit", "timeout", "tail"))],
 }

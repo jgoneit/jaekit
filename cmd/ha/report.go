@@ -27,6 +27,9 @@ type reportWords struct {
 
 	changed, notStarted, cannotCompare string
 	checked                            string
+	// When Git cannot compare the base with HEAD, the summary says so and
+	// nothing else is computed (the user's decision on the impl review).
+	notComputed, limitsNotComputed, fetchBase string
 
 	none, userDecisions, confirmed       string
 	exempt, weakened, commands, findings string
@@ -51,86 +54,92 @@ type reportWords struct {
 
 var reportLanguages = map[string]reportWords{
 	"en": {
-		labels:           [5]string{"Changed", "Checked", "To review", "Remaining limits", "Next step"},
-		headings:         [4]string{"### Stamp for `## 현재`", "### Evidence per condition", "### Completion coverage", "### Output of unmet conditions"},
-		changed:          "%d files and %d commits outside the bundle documents since base %s",
-		notStarted:       "not started; there is no base commit yet",
-		cannotCompare:    "Git cannot compare base %s with HEAD %s",
-		checked:          "%d of %d required conditions satisfied (%d by check records, %d by user confirmation); %d of %d change conditions have a fresh baseline",
-		none:             "none",
-		userDecisions:    "user decisions: ",
-		confirmed:        "manual conditions satisfied by a quoted confirmation: ",
-		exempt:           "test changes exempt by the executor's reason: ",
-		weakened:         "test changes marked as weakening: ",
-		commands:         "verification commands changed since start: ",
-		findings:         "unresolved post-completion findings: %d",
-		limits:           "assurance local; check author: executor",
-		optional:         "; optional conditions not satisfied: ",
-		budget:           "; budget exceeded: %d/%d runs, %d/%d seconds",
-		notCovered:       "; HEAD is not covered by a completion record",
-		start:            "run `ha start %s`",
-		startLint:        " after fixing the lint problems (`ha lint %s`)",
-		resolve:          "resolve %s (executor)",
-		ask:              "ask the user about ",
-		done:             "run `ha done %s` to record completion",
-		finished:         "none; completion record seq %d holds and nothing is left to do",
-		blocked:          "blocked since seq %d (cause: %s); the cause must be resolved before work continues",
-		budgetDecision:   "the user must decide the budget; used %d/%d runs and %d/%d seconds",
-		stamp:            "- record head: seq %d (%s), recorded at %s; status: %s",
-		stampNone:        "- record head: none; status: %s",
-		stampUnreadable:  "- record head: seq %d (%s), recorded at an unreadable time; status: %s",
-		stampCompletion:  "; completion record: seq %d",
-		source:           "Source: current state",
-		sourceCompletion: "Source: completion record seq %d",
-		table:            "| ID | kind | required | satisfied | records |",
-		yes:              "yes",
-		no:               "no",
-		covered:          "- completion record seq %d, commit %s; HEAD %s is covered",
-		notCoveredHead:   "- latest completion record seq %d, commit %s; HEAD %s is not covered%s; the difference since that commit is not part of the completion",
-		noCompletion:     "- completion record: none",
-		unmetNone:        "- none",
-		unmet:            status.EnglishUnmetWords,
+		labels:            [5]string{"Changed", "Checked", "To review", "Remaining limits", "Next step"},
+		headings:          [4]string{"### Stamp for `## 현재`", "### Evidence per condition", "### Completion coverage", "### Output of unmet conditions"},
+		changed:           "%d files and %d commits outside the bundle documents since base %s",
+		notStarted:        "not started; there is no base commit yet",
+		cannotCompare:     "Git cannot compare base %s with HEAD %s",
+		notComputed:       "not computed; Git cannot compare base %s with HEAD %s",
+		limitsNotComputed: "assurance local; check author: executor; the other limits were not computed",
+		fetchBase:         "fetch the history that contains base %s (for example `git fetch --unshallow` in a shallow clone), then run `ha report %s` again",
+		checked:           "%d of %d required conditions satisfied (%d by check records, %d by user confirmation); %d of %d change conditions have a fresh baseline",
+		none:              "none",
+		userDecisions:     "user decisions: ",
+		confirmed:         "manual conditions satisfied by a quoted confirmation: ",
+		exempt:            "test changes exempt by the executor's reason: ",
+		weakened:          "test changes marked as weakening: ",
+		commands:          "verification commands changed since start: ",
+		findings:          "unresolved post-completion findings: %d",
+		limits:            "assurance local; check author: executor",
+		optional:          "; optional conditions not satisfied: ",
+		budget:            "; budget exceeded: %d/%d runs, %d/%d seconds",
+		notCovered:        "; HEAD is not covered by a completion record",
+		start:             "run `ha start %s`",
+		startLint:         " after fixing the lint problems (`ha lint %s`)",
+		resolve:           "resolve %s (executor)",
+		ask:               "ask the user about ",
+		done:              "run `ha done %s` to record completion",
+		finished:          "none; completion record seq %d holds and nothing is left to do",
+		blocked:           "blocked since seq %d (cause: %s); the cause must be resolved before work continues",
+		budgetDecision:    "the user must decide the budget; used %d/%d runs and %d/%d seconds",
+		stamp:             "- record head: seq %d (%s), recorded at %s; status: %s",
+		stampNone:         "- record head: none; status: %s",
+		stampUnreadable:   "- record head: seq %d (%s), recorded at an unreadable time; status: %s",
+		stampCompletion:   "; completion record: seq %d",
+		source:            "Source: current state",
+		sourceCompletion:  "Source: completion record seq %d",
+		table:             "| ID | kind | required | satisfied | records |",
+		yes:               "yes",
+		no:                "no",
+		covered:           "- completion record seq %d, commit %s; HEAD %s is covered",
+		notCoveredHead:    "- latest completion record seq %d, commit %s; HEAD %s is not covered%s; the difference since that commit is not part of the completion",
+		noCompletion:      "- completion record: none",
+		unmetNone:         "- none",
+		unmet:             status.EnglishUnmetWords,
 	},
 	"ko": {
-		labels:           [5]string{"바뀐 것", "확인한 것", "직접 볼 것", "남은 한계", "다음 행동"},
-		headings:         [4]string{"### `## 현재` 도장", "### 조건별 근거", "### 완료 범위", "### 미충족 조건의 원문 위치"},
-		changed:          "base %[3]s 이후 실행 묶음 문서 밖에서 파일 %[1]d개, commit %[2]d개",
-		notStarted:       "시작 전이라 base commit이 없음",
-		cannotCompare:    "Git이 base %s와 HEAD %s를 비교할 수 없음",
-		checked:          "필수 조건 %[2]d개 중 %[1]d개 충족(검사 기록 %[3]d개, 사용자 확인 %[4]d개); change 조건 %[6]d개 중 %[5]d개에 신선한 baseline",
-		none:             "없음",
-		userDecisions:    "사용자 결정: ",
-		confirmed:        "인용 확인으로 충족한 manual 조건: ",
-		exempt:           "실행자 근거로 면제된 시험 변경: ",
-		weakened:         "약화 표시가 있는 시험 변경: ",
-		commands:         "시작 뒤 바뀐 검증 명령: ",
-		findings:         "해결되지 않은 완료 뒤 발견: %d개",
-		limits:           "보증 수준 local; 검사 작성자: 실행자",
-		optional:         "; 충족되지 않은 선택 조건: ",
-		budget:           "; 예산 초과: 실행 %d/%d회, 경과 %d/%d초",
-		notCovered:       "; 지금 HEAD를 덮는 완료 기록이 없음",
-		start:            "`ha start %s` 실행",
-		startLint:        " (먼저 lint 문제 해결: `ha lint %s`)",
-		resolve:          "%s 해결 (executor)",
-		ask:              "사용자에게 물을 것: ",
-		done:             "`ha done %s`으로 완료 기록",
-		finished:         "없음; 완료 기록 seq %d이 유효하고 남은 할 일이 없음",
-		blocked:          "seq %d부터 막힘 (cause: %s); 원인을 해소해야 진행할 수 있음",
-		budgetDecision:   "사용자의 예산 결정이 필요함; 실행 %d/%d회, 경과 %d/%d초 사용",
-		stamp:            "- 기록 head: seq %d (%s), 기록 시각 %s; 상태: %s",
-		stampNone:        "- 기록 head: none; 상태: %s",
-		stampUnreadable:  "- 기록 head: seq %d (%s), 기록 시각 읽을 수 없음; 상태: %s",
-		stampCompletion:  "; 완료 기록: seq %d",
-		source:           "근거 출처: 지금 상태",
-		sourceCompletion: "근거 출처: 완료 기록 seq %d",
-		table:            "| ID | 종류 | 필수 | 충족 | 근거 기록 |",
-		yes:              "예",
-		no:               "아니오",
-		covered:          "- 완료 기록 seq %d, commit %s; 지금 HEAD %s를 덮음",
-		notCoveredHead:   "- 가장 최근 완료 기록 seq %d, commit %s; 지금 HEAD %s를 덮지 않음%s; 그 commit 뒤의 차이는 완료에 들지 않음",
-		noCompletion:     "- 완료 기록: none",
-		unmetNone:        "- 없음",
-		unmet:            status.UnmetWords{Output: "원문", NoFreshRecord: "신선한 기록 없음"},
+		labels:            [5]string{"바뀐 것", "확인한 것", "직접 볼 것", "남은 한계", "다음 행동"},
+		headings:          [4]string{"### `## 현재` 도장", "### 조건별 근거", "### 완료 범위", "### 미충족 조건의 원문 위치"},
+		changed:           "base %[3]s 이후 실행 묶음 문서 밖에서 파일 %[1]d개, commit %[2]d개",
+		notStarted:        "시작 전이라 base commit이 없음",
+		cannotCompare:     "Git이 base %s와 HEAD %s를 비교할 수 없음",
+		notComputed:       "계산하지 못함; Git이 base %s와 HEAD %s를 비교할 수 없음",
+		limitsNotComputed: "보증 수준 local; 검사 작성자: 실행자; 나머지 한계는 계산하지 못함",
+		fetchBase:         "base %s가 든 이력을 받고(예: 얕은 clone에서는 `git fetch --unshallow`) `ha report %s` 다시 실행",
+		checked:           "필수 조건 %[2]d개 중 %[1]d개 충족(검사 기록 %[3]d개, 사용자 확인 %[4]d개); change 조건 %[6]d개 중 %[5]d개에 신선한 baseline",
+		none:              "없음",
+		userDecisions:     "사용자 결정: ",
+		confirmed:         "인용 확인으로 충족한 manual 조건: ",
+		exempt:            "실행자 근거로 면제된 시험 변경: ",
+		weakened:          "약화 표시가 있는 시험 변경: ",
+		commands:          "시작 뒤 바뀐 검증 명령: ",
+		findings:          "해결되지 않은 완료 뒤 발견: %d개",
+		limits:            "보증 수준 local; 검사 작성자: 실행자",
+		optional:          "; 충족되지 않은 선택 조건: ",
+		budget:            "; 예산 초과: 실행 %d/%d회, 경과 %d/%d초",
+		notCovered:        "; 지금 HEAD를 덮는 완료 기록이 없음",
+		start:             "`ha start %s` 실행",
+		startLint:         " (먼저 lint 문제 해결: `ha lint %s`)",
+		resolve:           "%s 해결 (executor)",
+		ask:               "사용자에게 물을 것: ",
+		done:              "`ha done %s`으로 완료 기록",
+		finished:          "없음; 완료 기록 seq %d이 유효하고 남은 할 일이 없음",
+		blocked:           "seq %d부터 막힘 (cause: %s); 원인을 해소해야 진행할 수 있음",
+		budgetDecision:    "사용자의 예산 결정이 필요함; 실행 %d/%d회, 경과 %d/%d초 사용",
+		stamp:             "- 기록 head: seq %d (%s), 기록 시각 %s; 상태: %s",
+		stampNone:         "- 기록 head: none; 상태: %s",
+		stampUnreadable:   "- 기록 head: seq %d (%s), 기록 시각 읽을 수 없음; 상태: %s",
+		stampCompletion:   "; 완료 기록: seq %d",
+		source:            "근거 출처: 지금 상태",
+		sourceCompletion:  "근거 출처: 완료 기록 seq %d",
+		table:             "| ID | 종류 | 필수 | 충족 | 근거 기록 |",
+		yes:               "예",
+		no:                "아니오",
+		covered:           "- 완료 기록 seq %d, commit %s; 지금 HEAD %s를 덮음",
+		notCoveredHead:    "- 가장 최근 완료 기록 seq %d, commit %s; 지금 HEAD %s를 덮지 않음%s; 그 commit 뒤의 차이는 완료에 들지 않음",
+		noCompletion:      "- 완료 기록: none",
+		unmetNone:         "- 없음",
+		unmet:             status.UnmetWords{Output: "원문", NoFreshRecord: "신선한 기록 없음"},
 		stale: [][2]string{
 			{"record chain broken", "기록 연결이 끊김"},
 			{"stored records are invalid", "저장된 기록이 무효함"},
@@ -174,14 +183,60 @@ func (c *cli) report(in []string) int {
 	if errors.As(err, &ur) {
 		return c.fail(exitRules, "%v", err)
 	}
+	v := &reportView{w: w, rep: rep, lines: lines, words: words, goal: status.DisplayGoal(w.arg, w.goal.Dir)}
+	if start := startLine(lines); start != nil {
+		head, cmpErr := v.compare(start)
+		if cmpErr != nil {
+			if _, err := io.WriteString(c.out, v.uncompared(start.BaseCommit, head)); err != nil {
+				return c.fail(exitInternal, "write report: %v", err)
+			}
+			return c.fail(exitInternal, "Git cannot compare base %s with HEAD %s: %v", short12(start.BaseCommit), short12(head), cmpErr)
+		}
+	}
 	if err != nil {
 		return c.fail(exitInternal, "%v", err)
 	}
-	out := (&reportView{w: w, rep: rep, lines: lines, words: words}).render()
-	if _, err := io.WriteString(c.out, out); err != nil {
+	if _, err := io.WriteString(c.out, v.render()); err != nil {
 		return c.fail(exitInternal, "write report: %v", err)
 	}
 	return exitOK
+}
+
+// compare reads what `Changed` reports: the files that ha status compares
+// between the base and HEAD, and the commits that change them. Every reading
+// of that range goes through here, so when Git cannot compare the two, the
+// whole summary says so (uncompared) instead of a partial report.
+func (v *reportView) compare(start *record.Line) (head string, err error) {
+	if head, err = v.w.repo.Head(); err != nil {
+		return "", err
+	}
+	excl, err := v.w.excludes(start.Rules)
+	if err != nil {
+		return head, err
+	}
+	files, err := v.w.repo.Changes(start.BaseCommit, head, excl)
+	if err != nil {
+		return head, err
+	}
+	if v.commits, err = v.w.repo.CommitsChanging(start.BaseCommit, head, excl); err != nil {
+		return head, err
+	}
+	v.files, v.compared = len(files), true
+	return head, nil
+}
+
+// uncompared is the five-line summary when Git cannot compare base with HEAD:
+// the other lines were not computed, and the next step is to fetch the base.
+func (v *reportView) uncompared(base, head string) string {
+	b, h := short12(base), short12(head)
+	notComputed := fmt.Sprintf(v.words.notComputed, b, h)
+	summary := [5]string{fmt.Sprintf(v.words.cannotCompare, b, h), notComputed, notComputed,
+		v.words.limitsNotComputed, fmt.Sprintf(v.words.fetchBase, b, v.goal)}
+	var out strings.Builder
+	for i, line := range summary {
+		fmt.Fprintf(&out, "%s: %s\n", v.words.labels[i], oneLine.Replace(line))
+	}
+	return out.String()
 }
 
 type reportView struct {
@@ -195,6 +250,9 @@ type reportView struct {
 	// part of the report that names satisfied conditions reads it.
 	source    []evidenceRow
 	sourceSeq int
+	// files and commits are what compare read; compared is false before start.
+	files, commits int
+	compared       bool
 }
 
 type evidenceRow struct {
@@ -204,7 +262,6 @@ type evidenceRow struct {
 }
 
 func (v *reportView) render() string {
-	v.goal = status.DisplayGoal(v.w.arg, v.w.goal.Dir)
 	v.evidence()
 	var b strings.Builder
 	summary := [5]string{v.changed(), v.checked(), v.toReview(), v.limits(), v.next()}
@@ -249,27 +306,15 @@ func short12(s string) string {
 	return s
 }
 
-// changed counts the files and the non-merge commits since the base that
-// change a path outside the bundle documents, with ha status's exclusions.
+// changed reports compare's counts: the files and the non-merge commits since
+// the base that change a path outside the bundle documents, with ha status's
+// exclusions.
 func (v *reportView) changed() string {
 	start := startLine(v.lines)
-	if start == nil {
+	if start == nil || !v.compared {
 		return v.words.notStarted
 	}
-	cannot := fmt.Sprintf(v.words.cannotCompare, short12(start.BaseCommit), short12(v.rep.Commit))
-	excl, err := v.w.excludes(v.rep.Rules)
-	if err != nil {
-		return cannot
-	}
-	files, err := v.w.repo.Changes(start.BaseCommit, v.rep.Commit, excl)
-	if err != nil {
-		return cannot
-	}
-	commits, err := v.w.repo.CommitsChanging(start.BaseCommit, v.rep.Commit, excl)
-	if err != nil {
-		return cannot
-	}
-	return fmt.Sprintf(v.words.changed, len(files), commits, short12(start.BaseCommit))
+	return fmt.Sprintf(v.words.changed, v.files, v.commits, short12(start.BaseCommit))
 }
 
 func (v *reportView) checked() string {
