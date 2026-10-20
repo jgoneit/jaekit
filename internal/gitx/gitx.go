@@ -74,6 +74,26 @@ func (r *Repo) CommonDir() (string, error) {
 	return filepath.Clean(dir), nil
 }
 
+// Worktrees returns the top-level folder of every working tree of this
+// repository, the main checkout first, as `git worktree list` reports them.
+// A path containing a line feed is not supported.
+func (r *Repo) Worktrees() ([]string, error) {
+	out, err := r.run("worktree", "list", "--porcelain")
+	if err != nil {
+		return nil, err
+	}
+	var trees []string
+	for _, line := range strings.Split(string(out), "\n") {
+		if path, ok := strings.CutPrefix(line, "worktree "); ok {
+			trees = append(trees, filepath.Clean(path))
+		}
+	}
+	if len(trees) == 0 {
+		return nil, fmt.Errorf("git worktree list reported no working tree")
+	}
+	return trees, nil
+}
+
 // ResolveCommit reports the full id of a commit named by a hexadecimal id
 // when this local repository has it. It never fetches; a shallow or partial
 // clone reports false for commits it does not hold.

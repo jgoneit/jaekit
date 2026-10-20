@@ -1,6 +1,6 @@
 # Seal Core scenarios
 
-Each directory is one scenario. `cmd/ha/scenario_test.go` builds a git repository from `_base/` plus the scenario's `files/`, commits it as the base, and runs `steps` line by line. Shared step sequences are in `_steps/`. `finding-input <path> <json>` writes a finding request in which `$COMPLETION` names the latest completion record. `pad-record <seq> <bytes>` pads a stored line with JSON whitespace to the requested byte length, excluding the line feed, and updates subsequent hashes. Verification commands are small shell scripts run as argv (`sh tests/x.sh`), never as shell strings.
+Each directory is one scenario. `cmd/ha/scenario_test.go` builds a git repository from `_base/` plus the scenario's `files/`, commits it as the base, and runs `steps` line by line. Shared step sequences are in `_steps/`. `finding-input <path> <json>` writes a finding request in which `$COMPLETION` names the latest completion record. `user-config <json>` writes the pre-approved run limit file under the scenario's own `XDG_CONFIG_HOME`, and `user-config-remove` deletes it. `pad-record <seq> <bytes>` pads a stored line with JSON whitespace to the requested byte length, excluding the line feed, and updates subsequent hashes. Verification commands are small shell scripts run as argv (`sh tests/x.sh`), never as shell strings.
 
 The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evidence-paths/README.md) instead supplies the shell-independent `TestNativeEvidencePathScenarios` and Windows-only `TestNativeWindowsEvidencePathScenarios`. They invoke a built `ha` process and a real producer to check unsafe declaration/producer paths, exit status, and preservation of existing evidence. Both entrypoints are required by Windows native CI; the ordinary `steps` runner does not interpret their JSON inputs.
 
@@ -73,6 +73,10 @@ The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evi
 | `blocked` | bundle.md §5 | `blocked` until unblock |
 | `not-started` | run-record.md §4.2 | `incomplete`, `not_started`; checks refused |
 | `start-budget-minimum` | run-record.md §1.1 | estimate and start report shortfall without a record; an equal cap is accepted |
+| `auto-budget-start` | run-record.md §1.1 automatic budgets | `검증 실행: 자동` passes lint; estimate and start compute max(50, ⌈minimum × 1.5⌉) under the pre-approved limit in `<XDG_CONFIG_HOME>/jaekit/ha.json`; the start record keeps the limit and its basis |
+| `auto-budget-refused` | run-record.md §1.1 automatic budgets | above the pre-approved limit estimate says approval is needed and start exits 65 with nothing recorded; without a file the default 50 starts |
+| `auto-budget-config-invalid` | run-record.md §1.1 automatic budgets | an unusable limit file refuses estimate and start with 65 instead of the default; a numeric budget never reads it; `경과 시간: 자동` stays `budget_missing` |
+| `skill-requirements` | core-capabilities.md §8 | a skill's `core-requirements.json` naming unsupported support or malformed refuses the start with 65; `--check-skill` needs a declaration and `--skill`; a fitting declaration starts |
 | `nested-criteria` | goal-docs.md | explicit nested format passes lint and the full verification/completion path |
 | `assurance-line` | goal-docs.md §2.5 | a valid `Assurance:` line passes lint, which prints `assurance tier: <tier>`; status, done and judgment stay unchanged |
 | `assurance-invalid` | goal-docs.md §2.5, bundle.md §8 | values outside the three, indentation, a duplicate and a line after the first section are `assurance_format`/`assurance_format_duplicate` with file and line; `ha start` refuses with 65 and records nothing |

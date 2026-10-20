@@ -1,0 +1,1 @@
+{"schema": "core-requirements/v1", "rules": ["run-rules/4"], "formats": {"criteria": ["nested/1"]}, "features": ["auto-budget/v1", "core-requirements/v1"]}

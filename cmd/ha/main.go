@@ -44,7 +44,7 @@ Usage:
   ha capabilities [--format json]
   ha lint   <goal>
   ha estimate <goal> [AC-n | EX-n | T001 ...] [--baseline] [--format md|json]
-  ha start  <goal> --request <quote> [--skill <path to SKILL.md>]
+  ha start  <goal> --request <quote> [--skill <path to SKILL.md> [--check-skill]]
                    [--rules run-rules/4] [--test-authority <agent interpretation>]
                    [--host-name <name>] [--host-version <version>] [--model <model>]
   ha check  <goal> [AC-n | EX-n | T001 ...] [--baseline]
@@ -278,7 +278,7 @@ func (c *cli) lint(in []string) int {
 }
 
 func (c *cli) start(in []string) int {
-	a, err := parseArgs(in, []string{"request", "skill", "skill-name", "skill-version", "host-name", "host-version", "model", "rules", "test-authority"}, nil)
+	a, err := parseArgs(in, []string{"request", "skill", "skill-name", "skill-version", "host-name", "host-version", "model", "rules", "test-authority"}, []string{"check-skill"})
 	if err != nil {
 		return c.fail(exitUsage, "%v", err)
 	}
@@ -306,6 +306,9 @@ func (c *cli) start(in []string) int {
 	if hasAuthority && (goalRules != status.RulesV4 || interpretation == "") {
 		return c.fail(exitUsage, "--test-authority needs --rules %s and the executor's reading of the request", status.RulesV4)
 	}
+	if a.bools["check-skill"] && a.vals["skill"] == "" {
+		return c.fail(exitUsage, "--check-skill needs --skill <path to SKILL.md>")
+	}
 	lines, bad, err := w.read()
 	if err != nil {
 		return c.fail(exitInternal, "%v", err)
@@ -320,8 +323,19 @@ func (c *cli) start(in []string) int {
 		return c.fail(exitRefused, "fix the lint problems above before ha start")
 	}
 	minimum := minimumRequiredRuns(w)
-	if w.bundle.Budget.Runs < minimum {
-		return c.fail(exitRefused, "minimum %d runs exceeds plan limit %d (shortfall %d); decide a sufficient budget before starting", minimum, w.bundle.Budget.Runs, minimum-w.bundle.Budget.Runs)
+	bud := w.bundle.Budget
+	var auto *autoBudget
+	if bud.Auto {
+		computed, err := computeAutoBudget(w)
+		if err != nil {
+			return c.fail(exitRefused, "%v", err)
+		}
+		if computed.approvalNeeded() {
+			return c.fail(exitRefused, "%s", computed.refusal())
+		}
+		auto, bud.Runs = &computed, computed.Computed
+	} else if bud.Runs < minimum {
+		return c.fail(exitRefused, "minimum %d runs exceeds plan limit %d (shortfall %d); decide a sufficient budget before starting", minimum, bud.Runs, minimum-bud.Runs)
 	}
 	head, err := w.repo.Head()
 	if err != nil {
@@ -340,8 +354,10 @@ func (c *cli) start(in []string) int {
 		if skill, err = readSkill(p); err != nil {
 			return c.fail(exitRefused, "%v", err)
 		}
+		if code := c.checkSkillRequirements(p, a.bools["check-skill"]); code >= 0 {
+			return code
+		}
 	}
-	bud := w.bundle.Budget
 	e := &record.Start{
 		Header:     record.Header{Kind: "start", HaVersion: version},
 		Goal:       w.goal.Dir,
@@ -353,6 +369,9 @@ func (c *cli) start(in []string) int {
 		Skill:      skill,
 		Rules:      goalRules,
 		Budget:     record.Budget{Runs: bud.Runs, ElapsedSeconds: bud.ElapsedSeconds, Cost: bud.Cost},
+	}
+	if auto != nil {
+		e.Budget.Auto = auto.record()
 	}
 	if goalRules == status.RulesV4 {
 		// The authority range and the test classification stay as started.
@@ -367,7 +386,12 @@ func (c *cli) start(in []string) int {
 		return c.fail(exitInternal, "%v", err)
 	}
 	fmt.Fprintf(c.out, "started: seq %d, base %s, rules %s, budget %d runs / %ds\n", l.Seq, head[:12], goalRules, bud.Runs, bud.ElapsedSeconds)
-	fmt.Fprintf(c.out, "minimum required: %d runs; plan limit: %d (retries and optional runs are additional)\n", minimum, bud.Runs)
+	if auto != nil {
+		fmt.Fprintf(c.out, "minimum required: %d runs; auto limit: %d (minimum × 1.5, at least %d); pre-approved limit: %d from %s\n",
+			minimum, bud.Runs, autoFloor, auto.Cap.Runs, auto.Cap.shown())
+	} else {
+		fmt.Fprintf(c.out, "minimum required: %d runs; plan limit: %d (retries and optional runs are additional)\n", minimum, bud.Runs)
+	}
 	if !clean {
 		fmt.Fprintln(c.err, "ha: warning: the working tree has uncommitted changes outside the bundle documents; results count only on a clean, committed tree")
 	}
