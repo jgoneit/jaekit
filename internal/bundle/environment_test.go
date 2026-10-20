@@ -10,7 +10,6 @@ func TestEnvironmentSection(t *testing.T) {
 	plan := "# PLAN\n\n## 조건표\n- 셸: `sh ignored.sh`\n\n## 실행 환경\n\n" +
 		"- 셸: `sh tests/env/plain.sh`\n" +
 		"* 인자: `sh tests/env/ok.sh 'a b' \"c d\"`\n" +
-		"```\n## 실행 환경\n- 펜스 안: `not a probe`\n```\n" +
 		"\n## 예산\n- 검증 실행: 50\n"
 	probes, found, problems := Environment(plan, "PLAN.md")
 	if !found || len(problems) != 0 {
@@ -22,6 +21,28 @@ func TestEnvironmentSection(t *testing.T) {
 	}
 	if !reflect.DeepEqual(probes, want) {
 		t.Fatalf("probes %+v want %+v", probes, want)
+	}
+}
+
+// A fenced code block inside the section is not an item, wherever it sits
+// and whatever it holds; markdown.Parse drops its lines, so Environment must
+// report it rather than lose it (contracts/bundle.md §2.6).
+func TestEnvironmentFencedBlock(t *testing.T) {
+	cases := []struct {
+		name, body string
+		line       int
+	}{
+		{"middle", "- 셸: `sh a.sh`\n```\n## 실행 환경\n- 펜스 안: `sh b.sh`\n```\n- 다른: `sh c.sh`\n\n## 예산\n", 5},
+		{"last", "- 셸: `sh a.sh`\n\n~~~text\n- 펜스 안: `sh b.sh`\n~~~\n## 예산\n", 6},
+		{"only", "```\n- 펜스 안: `sh b.sh`\n```\n", 4},
+		{"unclosed", "- 셸: `sh a.sh`\n```\n- 펜스 안: `sh b.sh`\n\n## 예산\n", 5},
+	}
+	for _, tc := range cases {
+		plan := "# PLAN\n\n## 실행 환경\n" + tc.body
+		probes, found, problems := Environment(plan, "PLAN.md")
+		if !found || probes != nil || len(problems) != 1 || problems[0].Code != "environment_item_invalid" || problems[0].Line != tc.line {
+			t.Errorf("%s: probes %v, problems %+v; want one environment_item_invalid on line %d", tc.name, probes, problems, tc.line)
+		}
 	}
 }
 

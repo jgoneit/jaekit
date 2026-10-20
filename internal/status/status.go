@@ -227,7 +227,8 @@ func (rep *Report) Judged(id string) (JudgedRecord, bool) {
 func (rep *Report) Done() *DoneState { return rep.doneState }
 
 // FreshBaseline reports whether a condition has a fresh baseline that
-// observed the intended violation (fail_as_expected).
+// observed the intended violation (fail_as_expected) and that the judgment
+// accepts as evidence.
 func (rep *Report) FreshBaseline(id string) bool { return rep.freshBaselines[id] }
 
 // Confirmation returns the seq of the latest valid confirmation of subject.
@@ -680,7 +681,7 @@ func (e *evaluator) criteria(rep *Report) error {
 			e.reportRecoveries(rep, c.id, kind, C, B)
 		}
 		for _, l := range B {
-			if l.Result == "fail_as_expected" {
+			if l.Result == "fail_as_expected" && validResult(l, e.rules) && e.validEvidence(c.id, kind, l) {
 				rep.freshBaselines[c.id] = true
 			}
 		}
@@ -777,6 +778,17 @@ func count(ls []*record.Line, result string) int {
 
 // judge returns the first matching reason from run-record.md §4.1, or "" when
 // the criterion is satisfied.
+// validEvidence reports whether a structured change condition's stored
+// summary on l passes validation; other conditions carry no summary. The
+// judgment and the fresh-baseline count read it together.
+func (e *evaluator) validEvidence(id, kind string, l *record.Line) bool {
+	if !Structured(e.rules) || kind != bundle.KindChange {
+		return true
+	}
+	r := e.in.Bundle.Row(id)
+	return r != nil && evidence.ValidateStored(l.Evidence, r.Evidence, r.EvidenceDigest, l.Kind == "baseline", l.Result, l.Exit) == nil
+}
+
 func (e *evaluator) judge(id, kind string, C, B []*record.Line) string {
 	switch kind {
 	case bundle.KindManual:
@@ -792,11 +804,8 @@ func (e *evaluator) judge(id, kind string, C, B []*record.Line) string {
 		if !validResult(l, e.rules) {
 			return "record_invalid"
 		}
-		if Structured(e.rules) && kind == bundle.KindChange {
-			r := e.in.Bundle.Row(id)
-			if r == nil || evidence.ValidateStored(l.Evidence, r.Evidence, r.EvidenceDigest, l.Kind == "baseline", l.Result, l.Exit) != nil {
-				return "evidence_invalid"
-			}
+		if !e.validEvidence(id, kind, l) {
+			return "evidence_invalid"
 		}
 	}
 	last := func(ls []*record.Line) string {

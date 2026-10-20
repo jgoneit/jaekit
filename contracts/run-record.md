@@ -104,7 +104,7 @@ JSON 출력은 `schema: estimate/v1`이며 다음을 제공한다.
 | 표지 | 내용 |
 | --- | --- |
 | `Changed` / `바뀐 것` | 시작 기록의 base commit부터 HEAD까지 실행 묶음 문서 밖에서 바뀐 파일 수(`ha status`의 `out_of_scope`와 같은 목록의 길이)와 그 경로를 바꾼 병합 아닌 commit 수. 시작 전이면 base가 없다는 사실, Git이 비교하지 못하면 그 사실(아래) |
-| `Checked` / `확인한 것` | 필수 조건 수와 그중 충족한 수(검사 기록으로 충족한 `change`·`maintain` 수와 사용자 확인으로 충족한 `manual` 수), 조건표의 모든 `change` 조건 수와 그중 신선한 `fail_as_expected` baseline이 있는 수 |
+| `Checked` / `확인한 것` | 필수 조건 수와 그중 충족한 수(검사 기록으로 충족한 `change`·`maintain` 수와 사용자 확인으로 충족한 `manual` 수), 조건표의 모든 `change` 조건 수와 그중 신선한 `fail_as_expected` baseline이 있는 수. 그 baseline은 상태 계산이 근거로 받는 것이어야 한다(결과와 종료 코드가 맞고, 구조화된 결과의 `change` 조건이면 저장된 근거 요약이 검증을 통과한다) |
 | `To review` / `직접 볼 것` | 이 순서의 전체 집합: 분류가 `user`인 남은 이유와 그 대상, 인용 확인으로 충족한 `manual` 조건과 그 확인 seq, 실행자 근거로 면제된 시험 변경(§4.7), `--weakened` 표시가 있는 시험 변경, 시작 뒤 바뀐 검증 명령(`changes.command_changed`), 해결되지 않은 완료 뒤 발견 수. 없으면 `none` / `없음` |
 | `Remaining limits` / `남은 한계` | 늘 보증 수준 `local`과 검사 작성자 실행자. 충족되지 않은 선택 조건, 예산 초과(실행·경과의 사용량과 상한), 지금 HEAD를 덮는 완료 기록이 없다는 사실을 해당할 때 더한다 |
 | `Next step` / `다음 행동` | 상태마다 하나: 시작 전이면 `ha start <goal>`(lint 문제가 있으면 `ha lint <goal>` 먼저), 그 밖의 `incomplete`는 분류가 `executor`인 첫 이유와 그 대상, `needs_user`는 분류가 `user`인 이유 전부와 그 대상, 완료 기록이 없는 `complete`는 `ha done <goal>`, 유효한 완료 기록이 있으면 그 seq와 남은 할 일이 없다는 사실, `blocked`는 마지막 `block`의 seq와 원인, `budget_exhausted`는 사용자의 예산 결정과 사용량·상한 |

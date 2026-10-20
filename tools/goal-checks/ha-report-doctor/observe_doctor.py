@@ -223,6 +223,8 @@ class Input(Built):
         "- 표식: `sh tests/env/plain.sh`",
         "이 절은 도구를 적는다.",
         "  이어지는 줄",
+        # A fenced block is not an item; its first line is the one reported.
+        "~~~text\n- 펜스 안: `sh tests/env/mark.sh`\n~~~",
     )
 
     def test_input_errors(self):
@@ -236,7 +238,7 @@ class Input(Built):
                 extra = section("- 표식: `sh tests/env/mark.sh`", bad)
             repo = self.repo(f"input-{index}", extra)
             plan = repo.read(f"{GOAL}/PLAN.md").split("\n")
-            target = (bad if kind is None else "## 실행 환경")
+            target = (bad.split("\n")[0] if kind is None else "## 실행 환경")
             numbers = [n for n, l in enumerate(plan, 1) if l == target]
             line = numbers[-1]
             code, out, err = repo.doctor()
