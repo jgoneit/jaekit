@@ -35,6 +35,10 @@ The agent can compare the minimum verification run count in PLAN with the limit 
 
 `--baseline` shows the runs for the baseline (comparison) selection, and `--format json` gives machine-readable output.
 
+If PLAN gives `- 검증 실행: 자동` (automatic), `start` sets the limit to `max(50, ⌈required minimum × 1.5⌉)`. When that value is at or below `preapproved_runs` in `ha.json` in the user configuration folder (`~/.config/jaekit/`, or `$XDG_CONFIG_HOME/jaekit/` when `XDG_CONFIG_HOME` is set), the goal starts without a question. Without the file, that limit is 50. Above it, `start` stops with `exceeds the pre-approved limit`, records nothing, and waits for the user's approval. A file that cannot be used stops with a `pre-approved run limit` error instead of falling back to 50. The format and examples are in the [usage guide](USAGE.en.md#automatic-budget).
+
+When the skill folder that Seal names with `--skill` has a `core-requirements.json`, `start` compares the Core support that skill needs with the actual executable and refuses without a record when any support is missing. With `--check-skill`, the declaration is required, and an `ha` from before this feature does not accept that start ([Core capabilities contract](../contracts/core-capabilities.md) §8).
+
 If the limit is less than the required minimum, `start` refuses before recording. In this case, split the goal within the existing allowed scope, or decide on an adequate budget before starting. The estimate does not include retries or preparation time. Querying an in-progress goal only explains the current PLAN; it does not increase an already recorded limit or remaining budget.
 
 If verification is refused before running due to `uncommitted changes`, check the printed paths:

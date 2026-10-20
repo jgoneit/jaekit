@@ -22,6 +22,10 @@ Seal은 실제 사용할 Core의 절대 경로를 정하고 그 실행 파일의
 
 에이전트는 `ha estimate docs/specs/<goal>`로 PLAN의 최소 검증량과 상한을 비교할 수 있습니다. 예를 들어 필수 change가 34개면 수정 전·후 각 한 번씩 최소 68회가 필요합니다. manual은 검사 실행 수에 포함되지 않습니다. 기본 비교 검증에 포함되는 선택 조건과 명시적으로 선택한 AC·EX·task 명령의 추가량도 따로 표시합니다. `--baseline`은 비교 검증 선택량을, `--format json`은 기계가 읽는 출력을 제공합니다.
 
+PLAN에 `- 검증 실행: 자동`을 쓰면 `start`가 `max(50, ⌈필수 최소량 × 1.5⌉)`로 상한을 정합니다. 그 값이 사용자 설정 폴더(`~/.config/jaekit/`, `XDG_CONFIG_HOME`이 있으면 `$XDG_CONFIG_HOME/jaekit/`)의 `ha.json`에 적은 `preapproved_runs` 이하이면 묻지 않고 시작합니다. 파일이 없으면 그 상한은 50입니다. 넘으면 `start`가 `exceeds the pre-approved limit`로 기록 없이 멈추고 사용자의 승인을 기다립니다. 파일을 쓸 수 없으면 `pre-approved run limit` 오류로 멈추며 50으로 대신하지 않습니다. 형식과 예시는 [사용 안내](USAGE.md#자동-예산)에 있습니다.
+
+Seal이 `--skill`로 가리킨 skill 폴더에 `core-requirements.json`이 있으면 `start`가 그 skill에 필요한 Core 지원을 실제 실행 파일과 대조하고, 빠진 지원이 있으면 기록 없이 거부합니다. `--check-skill`을 함께 주면 그 선언이 필수이고, 이 기능 전의 `ha`는 그 시작을 받지 않습니다([Core 지원 정보 계약](../contracts/core-capabilities.md) §8).
+
 상한이 필수 최소량보다 작으면 `start`는 기록을 남기기 전에 거부합니다. 기존 허용 범위에서 목표를 나누거나 시작 전에 충분한 예산을 결정합니다. 추정치에는 재시도와 준비 시간이 들어 있지 않습니다. 진행 중 목표에서 조회하면 현재 PLAN을 설명할 뿐이며 이미 기록된 상한이나 잔여량을 늘리지 않습니다.
 
 검증 전에 `uncommitted changes`로 거부되면 출력된 경로를 확인합니다. tracked는 Git이 이미 관리하는 파일의 변경이므로 작업 의도에 따라 commit하거나 되돌립니다. untracked dependency symlink는 링크 자체의 경로를 보고 보관·제외 여부를 판단합니다. 예를 들어 `apps/web/node_modules`가 표시되면 그 경로의 ignore 규칙을 검토합니다. 안내만으로 모든 `node_modules`를 제외하거나 파일을 자동 정리하지는 않습니다.
