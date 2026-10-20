@@ -1,0 +1,20 @@
+# ha start --skill checks a skill's core-requirements.json; --check-skill makes it required.
+ha start $GOAL --request "implement" --rules run-rules/4 --skill skills/needs/SKILL.md
+expect-exit 65
+expect-output "missing Core support: features no-such-feature/v1 (ha "
+expect-no-output "missing Core support: features estimate/v1"
+expect-records 0
+ha start $GOAL --request "implement" --rules run-rules/4 --skill skills/broken/SKILL.md
+expect-exit 65
+expect-output "skill requirements skills/broken/core-requirements.json: features lists \"estimate/v1\" twice"
+expect-records 0
+ha start $GOAL --request "implement" --rules run-rules/4 --skill skills/plain/SKILL.md --check-skill
+expect-exit 65
+expect-output "--check-skill needs the skill's core-requirements.json declaration"
+expect-records 0
+ha start $GOAL --request "implement" --rules run-rules/4 --check-skill
+expect-exit 64
+expect-records 0
+ha start $GOAL --request "implement" --rules run-rules/4 --skill skills/fits/SKILL.md --check-skill
+expect-exit 0
+expect-records 1

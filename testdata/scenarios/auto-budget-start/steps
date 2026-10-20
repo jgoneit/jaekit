@@ -1,0 +1,24 @@
+# An automatic run limit is max(50, ⌈minimum × 1.5⌉) and starts under the user's pre-approved limit.
+replace $GOAL/PLAN.md "검증 실행: 50" "검증 실행: 자동"
+commit "automatic budget"
+user-config "{\"preapproved_runs\": 60}"
+ha lint $GOAL
+expect-exit 0
+ha estimate $GOAL --format json
+expect-exit 0
+expect-output "\"plan_runs_limit\": 50"
+expect-output "\"computed_runs\": 50"
+expect-output "\"preapproved_runs\": 60"
+expect-output "\"source\": \"user_config\""
+expect-output "\"approval_needed\": false"
+ha estimate $GOAL
+expect-exit 0
+expect-output "auto budget: 50 runs (minimum 3 × 1.5, at least 50); pre-approved limit: 60 from "
+expect-output "user approval needed: no"
+ha start $GOAL --request "implement" --rules run-rules/4
+expect-exit 0
+expect-output "budget 50 runs / 14400s"
+expect-output "minimum required: 3 runs; auto limit: 50 (minimum × 1.5, at least 50); pre-approved limit: 60 from "
+expect-records 1
+expect-record 1 budget "{\"runs\":50,\"elapsed_seconds\":14400,\"cost\":\"미관측\",\"auto\":{\"minimum_runs\":3,\"computed_runs\":50,\"preapproved_runs\":60,\"source\":\"user_config\"}}"
+expect-budget-window 1

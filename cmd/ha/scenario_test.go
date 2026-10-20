@@ -39,6 +39,7 @@ type scenario struct {
 	dir      string // the working tree steps run in
 	path     string // PATH with the test runner
 	bare     string // PATH without it
+	config   string // XDG_CONFIG_HOME, so automatic budgets never read the user's own file
 	lastOut  string
 	lastCode int
 	allOut   strings.Builder
@@ -112,6 +113,8 @@ func runScenario(t *testing.T, name string) {
 	if err := os.WriteFile(runner, []byte("#!/bin/sh\nexec sh \"$@\"\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	s.config = t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", s.config)
 	s.bare = os.Getenv("PATH")
 	s.path = bin + string(os.PathListSeparator) + s.bare
 	t.Setenv("PATH", s.path)
@@ -348,6 +351,20 @@ func (s *scenario) do(st step) {
 		p := s.file(a[1])
 		os.MkdirAll(filepath.Dir(p), 0o755)
 		if err := os.WriteFile(p, []byte(strings.ReplaceAll(a[2], "$COMPLETION", ref)), 0o644); err != nil {
+			s.fatalf(st, "%v", err)
+		}
+	case "user-config":
+		// Writes the pre-approved run limit file, <XDG_CONFIG_HOME>/jaekit/ha.json.
+		need(2)
+		p := filepath.Join(s.config, "jaekit", "ha.json")
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			s.fatalf(st, "%v", err)
+		}
+		if err := os.WriteFile(p, []byte(a[1]), 0o644); err != nil {
+			s.fatalf(st, "%v", err)
+		}
+	case "user-config-remove":
+		if err := os.RemoveAll(filepath.Join(s.config, "jaekit")); err != nil {
 			s.fatalf(st, "%v", err)
 		}
 	case "replace":

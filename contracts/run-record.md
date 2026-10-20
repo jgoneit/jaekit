@@ -14,8 +14,8 @@
 | 명령 | 하는 일 | 기록 |
 | --- | --- | --- |
 | `ha lint <goal>` | 목표 문서 형식(조건 ID, `Assurance:` 줄), 실행 묶음 구조, 모든 조건 ID의 조건표 대응, 조건↔task 양방향 대응, 순환, 참조 파일 존재, 검증 방법 누락을 확인한다. 오류 코드는 [bundle.md](bundle.md) §8에 있다. | 없음 |
-| `ha estimate <goal> [AC-n \| EX-n \| T001 ...] [--baseline] [--format md\|json]` | 현재 PLAN의 필수 최소 실행량, 상한·부족량, 기본 선택과 지정한 대상의 실행량을 읽기 전용으로 계산한다(§1.1). | 없음 |
-| `ha start <goal> --request <인용> [--skill <SKILL.md>] [--rules run-rules/4] [--test-authority <해석>] [--host-name …] [--host-version …] [--model …]` | 시작을 기록한다. `--rules`가 없으면 기본 규칙 `run-rules/3`이다(§4.6). `--test-authority`는 `run-rules/4`에서만 받는다(§4.7). 이미 있으면 거절한다. 새 시작이 필요하면 사용자가 묶음을 새로 만든다. lint 오류나 필수 최소 실행량보다 작은 PLAN 상한이 있어도 기록 생성 전에 거절한다. dirty 시작은 기존처럼 경고하며 허용한다. `--skill`을 주면 `ha`가 그 머리말에서 이름과 버전을 읽고 Skill 디렉토리의 digest를 계산한다(§2.1). | `start` |
+| `ha estimate <goal> [AC-n \| EX-n \| T001 ...] [--baseline] [--format md\|json]` | 현재 PLAN의 필수 최소 실행량, 상한·부족량, 기본 선택과 지정한 대상의 실행량을 읽기 전용으로 계산한다(§1.1). PLAN의 횟수 상한이 자동이면 산정 값·사전 승인 상한·승인 필요 여부도 보인다(§1.3). | 없음 |
+| `ha start <goal> --request <인용> [--skill <SKILL.md> [--check-skill]] [--rules run-rules/4] [--test-authority <해석>] [--host-name …] [--host-version …] [--model …]` | 시작을 기록한다. `--rules`가 없으면 기본 규칙 `run-rules/3`이다(§4.6). `--test-authority`는 `run-rules/4`에서만 받는다(§4.7). 이미 있으면 거절한다. 새 시작이 필요하면 사용자가 묶음을 새로 만든다. lint 오류나 필수 최소 실행량보다 작은 PLAN 상한이 있어도 기록 생성 전에 거절한다. dirty 시작은 기존처럼 경고하며 허용한다. `--skill`을 주면 `ha`가 그 머리말에서 이름과 버전을 읽고 Skill 디렉토리의 digest를 계산한다(§2.1). PLAN의 횟수 상한이 자동이면 상한을 산정하고, 사전 승인 상한을 넘거나 그 설정을 쓸 수 없으면 기록 생성 전에 거절한다(§1.3). skill의 Core 요구 선언이 이 실행 파일이 지원하지 않는 것을 요구하거나 손상됐으면 기록 생성 전에 거절한다(§1.4). | `start` |
 | `ha check <goal> [AC-n \| T00n ...]` | 지정한 조건이나 task의 검증 명령을 실행한다. 대상이 없으면 모든 required 조건을 실행한다(통합 검증). | `check` |
 | `ha check <goal> --baseline [AC-n ...]` | `change` 조건의 검사 경로만 base commit 임시 worktree에 덧씌워 실행한다. | `baseline` |
 | `ha budget <goal> --runs N --from P --window W --revision R [--quote <인용> --context <문맥>] [--reason <이유>] [--interpretation <해석>]` | `/3`·`/4` 현재 창의 총 실행 횟수 상한을 바꾼다. 양의 정수 인수가 모두 필요하며, 증액은 인용·문맥, 감액은 이유가 필요하다(§5.2). `/4`는 사전 승인 상한 안의 증액을 이유만으로 받는다(§4.7). | `budget_change` |
@@ -33,11 +33,11 @@
 **종료 코드**
 - `ha check`: 모든 결과가 기대대로면(`pass`, baseline은 `fail_as_expected`) 0, 아니면 1
 - `ha lint`: 오류가 없으면 0, 있으면 1
-- `ha estimate`: 필수 최소량을 PLAN 상한이 수용하면 0, 부족하거나 lint 오류가 있으면 1
+- `ha estimate`: 필수 최소량을 PLAN 상한이 수용하면 0, 부족하거나 lint 오류가 있으면 1. 자동 예산이면 산정 값이 사전 승인 상한 이하일 때 0, 사용자 승인이 필요하면 1, 사전 승인 상한 설정을 쓸 수 없으면 65(§1.3)
 - `ha status`, `ha done`: §4.3
 - `ha timing`: 성공 0. 끊긴 기록은 65(거절)이며 아무것도 보여 주지 않는다. 보기를 출력에 쓰지 못하면 70이다
 - `ha budget`: 성공 0, 잘못된 인수 64, 값·창·개정·완료 상태 등의 거부 65(`/3` 목표의 `--preapprove` 포함), 구규칙 또는 미지원 규칙 66, 내부 오류·쓰기 적용 불확실성 70
-- 모든 명령: 64 사용법 오류, 65 거절(시작 전, 이미 시작함, lint 오류, 끊긴 기록, 확인 조건 불충족, dirty 검증, 시작 예산 부족), 66 지원하지 않는 규칙 버전, 70 내부 오류
+- 모든 명령: 64 사용법 오류, 65 거절(시작 전, 이미 시작함, lint 오류, 끊긴 기록, 확인 조건 불충족, dirty 검증, 시작 예산 부족, 자동 예산의 사용자 승인 필요, 사전 승인 상한 설정 오류, skill의 Core 요구 미지원·선언 손상), 66 지원하지 않는 규칙 버전, 70 내부 오류
 
 출력 원문은 git 디렉토리의 `ha/runs/<goal-key>/<seq>.log`에만 둔다. `<goal-key>`는 저장소 기준 goal 경로를 URL 경로 이스케이프한 것이다(예: `docs%2Fspecs%2Fempty-input`). 목표가 여럿이면 seq가 겹치기 때문이다. 실행 기록과 `ha status`·`ha done`의 출력에는 결과, 이유, digest, 로컬 경로와 명시적으로 기록한 사용자 확인·예산 변경 정보를 넣는다. 출력 원문은 넣지 않는다. 출력에 비밀이 섞일 수 있고, 상태 출력은 완료 보고에 보존되기 때문이다. 목표 문서와 기록의 Git 추적 여부는 프로젝트 정책에 따른다. 원문은 `ha log`로만 본다.
 
@@ -53,7 +53,7 @@
 
 기본 `check`는 필수 change/maintain, 기본 `--baseline`은 조건표의 모든 change(선택 AC와 EX 포함)를 선택한다. `estimate`는 이 기본 실행량과 필수 하한을 넘는 추가량을 함께 표시한다. 명시한 대상은 실제 `check`와 같은 순서로 선택한다. 선택 AC·EX는 추가량, task의 각 명령은 각각 한 회이며, 중복 대상도 실제 실행과 같이 반복 계산한다. `--baseline`의 명시 대상은 change 조건만 허용한다. manual만 있는 기본 선택은 추정치 0이며 실제 `check`의 no-target 오류는 바뀌지 않는다.
 
-상한은 **현재 PLAN의 전체 상한**이다. 진행 중 목표의 남은 예산이 아니다. 새로운 `start`는 상한이 필수 하한보다 작으면 최소량·상한·부족량을 출력하고 기록을 만들기 전에 exit 65로 거부한다. 같은 값이면 시작할 수 있다. 선택 검사나 재시도 여유 때문에 자동 증액하지 않는다. 기존 목표의 상한과 재개 창은 §5.2 그대로이며 진행 중 검사에 예산 제한을 새로 적용하지 않는다.
+상한은 **현재 PLAN의 전체 상한**이다(PLAN의 횟수 상한이 자동이면 §1.3의 산정 값). 진행 중 목표의 남은 예산이 아니다. 새로운 `start`는 상한이 필수 하한보다 작으면 최소량·상한·부족량을 출력하고 기록을 만들기 전에 exit 65로 거부한다. 같은 값이면 시작할 수 있다. 선택 검사나 재시도 여유 때문에 자동 증액하지 않는다. 기존 목표의 상한과 재개 창은 §5.2 그대로이며 진행 중 검사에 예산 제한을 새로 적용하지 않는다.
 
 JSON 출력은 `schema: estimate/v1`이며 다음을 제공한다.
 
@@ -88,6 +88,45 @@ JSON 출력은 `schema: estimate/v1`이며 다음을 제공한다.
 - `cpu`는 기록의 `{ "status", "user_ms", "system_ms", "scope", "source" }`를 키마다 따로 읽어 보인다. 기록에 있는 키는 그대로 나오고, 그 값이 손상됐으면 그 키만 `null`이며 `unavailable`의 `cpu.<키>`가 `invalid`다. 같은 CPU의 다른 키는 그대로 보인다. `status`가 `measured`면 다섯 키가 모두 나오고, 기록에 없는 키도 `null`과 `invalid`다. `unavailable`·`failed`는 기록에 있는 키만 나오며, 그 상태에 시간이 있으면 그 시간은 `null`과 `invalid`다. `status`가 세 값이 아니면 `null`과 `invalid`다. `scope`·`source`는 §2.2의 고정 코드만 보이고, 그 밖의 값은 `null`과 `invalid`다. 그래서 기록에 들어간 임의 문자열이 보기로 나오지 않는다. `cpu`가 객체가 아니면 `cpu`가 `null`이고 `unavailable`의 `cpu`가 `invalid`다.
 
 사람이 읽는 형식은 같은 값을 표 하나로 보이고, 실행 시간의 합과 그 합이 목표 경과 시간이나 예산이 아니라는 문장을 덧붙인다. CPU 칸은 상태가 무엇이든 JSON이 보이는 키를 같은 값이나 같은 이용 불가 표시로 보인다.
+
+### 1.3 자동 예산
+
+PLAN `## 예산`의 `검증 실행` 값이 정확히 `자동`이면(`- 검증 실행: 자동`) 횟수 상한을 `ha start`가 정한다. 숫자가 든 `검증 실행` 항목이 하나라도 있으면 지금처럼 그 숫자(여럿이면 마지막 것)를 쓰고, `자동`은 숫자가 든 항목이 하나도 없을 때만 적용된다. 그래서 이 기능 전의 `ha`가 숫자로 읽은 PLAN은 모두 같은 숫자로 읽는다. `경과 시간`에는 자동이 없고 지금처럼 필수다. `ha lint`는 자동 표시를 문제로 보지 않고 사용자 설정을 읽지 않는다.
+
+**산정.** 상한은 `max(50, ⌈최소량 × 1.5⌉)`이다. 최소량은 §1.1의 필수 최소량(`필수 change × 2 + 필수 maintain`)이다. 예: 필수 change 34개, maintain 0개면 최소량 68, 상한 102. 필수 조건이 모두 manual이면 50.
+
+**사전 승인 상한.** 사용자가 미리 승인한 상한은 사용자 설정 폴더의 `ha.json`에서 읽는다. 폴더는 `XDG_CONFIG_HOME`이 비어 있지 않으면 `$XDG_CONFIG_HOME/jaekit/`, 아니면 `~/.config/jaekit/`다. 홈은 `HOME`이 비어 있지 않으면 그 값, 아니면 운영체제의 홈(Windows는 `USERPROFILE`)이다. macOS·Linux·Windows에서 같은 규칙이며 다른 후보로 넘어가지 않는다. Spar 설정(`spar.toml`)과 같은 `jaekit` 폴더다. 파일은 JSON 객체 하나이고, 멤버는 정확히 `preapproved_runs` 하나, 값은 부호·소수점·지수 없는 정수 1~2147483647이다. 맨 앞의 UTF-8 BOM 하나는 허용한다.
+
+```json
+{"preapproved_runs": 120}
+```
+
+- 파일이 없으면(그 경로에 항목이 없고, 이미 있는 가장 가까운 상위 항목이 폴더) 상한은 50이고 출처는 `default`다. 설정하지 않은 사용자는 50으로 덮이는 목표에서 질문을 받지 않는다.
+- 그 밖에는 거부한다: 대상이 없는 symlink(그 경로나 상위 폴더), 일반 파일이 아닌 항목, 64 KiB를 넘는 파일, 읽기 실패, 폴더가 아닌 상위 항목, 절대 경로가 아닌 `XDG_CONFIG_HOME`이나 홈, 정할 수 없는 홈, JSON이 아니거나 잘못된 UTF-8, 중복 키·모르는 키(대소문자만 다른 `preapproved_runs`도)·키 없음·뒤에 붙은 데이터, 정수 리터럴이 아니거나 범위 밖인 값.
+- 파일의 실제 경로(symlink 해소)가 목표 저장소의 어느 작업 트리(`git worktree list --porcelain -z`의 최상위들) 안이면 거부한다. 폴더는 이름이 아니라 동일성으로 비교한다. 저장소 안의 파일은 이 상한을 정하지 못한다. 파일이 있는데 그 목록을 읽지 못하면(`-z`가 없는 Git 2.36 전 등) 거부한다. 파일이 없으면 목록을 읽지 않는다.
+- 이 파일은 `ha start`와 `ha estimate`가 PLAN이 자동일 때만 읽는다. 숫자 PLAN과 다른 명령은 읽지 않으므로, 손상된 설정이 숫자 예산 목표를 막지 않는다.
+
+설정을 쓸 수 없으면 두 명령은 `ha: pre-approved run limit: <경로>: <이유>`를 보이고 기록 없이 65로 끝난다. 기본값으로 대신하지 않는다.
+
+**시작.** 산정 값이 사전 승인 상한 이하이면 시작한다. 시작 기록의 `budget.runs`가 산정 값이고 정보 객체 `auto`가 산정 근거를 남긴다(§2.1). 출력 둘째 줄은 `minimum required: <n> runs; auto limit: <m> (minimum × 1.5, at least 50); pre-approved limit: <c> from <설정 파일 경로 또는 default>`다. 산정 값이 상한보다 크면 기록 없이 65로 끝나며 표준 오류에 최소량, 산정 값, 상한과 출처, 사용자의 승인이 필요하다는 것을 보인다. 합성 예:
+
+```text
+ha: auto budget 102 runs (minimum 68 × 1.5, at least 50) exceeds the pre-approved limit 50 from default; the user's approval is needed: write the approved number in PLAN `검증 실행`, or have the user raise preapproved_runs in <설정 폴더>/jaekit/ha.json
+```
+
+사용자가 승인하면 그 숫자를 PLAN `검증 실행`에 쓰거나(숫자 상한은 사전 승인 상한과 비교하지 않는다), 사용자가 설정의 `preapproved_runs`를 올린다. 이 사전 승인 상한은 `/4`의 `ha budget --preapprove`(§4.7)와 별개로 시작 상한만 정한다. 시작 뒤 증액·재개 규칙(§4.7, §5.2)과 상태 계산은 숫자로 시작한 목표와 같다.
+
+**추정.** `ha estimate`는 같은 산정을 기록 없이 한다. 자동 예산이면 JSON에 `auto` 객체(`computed_runs`, `preapproved_runs`, `source`, 설정 파일이 있을 때만 `source_path`, `approval_needed`)를 더하고 `plan_runs_limit`은 산정 값이다. Markdown 형식은 `- auto budget: <m> runs (minimum <n> × 1.5, at least 50); pre-approved limit: <c> from <출처>; user approval needed: yes|no` 줄을 더한다. 숫자 PLAN의 출력은 그대로다.
+
+### 1.4 skill의 Core 요구 확인
+
+`ha start --skill <SKILL.md>`는 그 파일과 같은 폴더의 `core-requirements.json`을 읽는다. 형식은 [Core 지원 정보 계약](core-capabilities.md) §8의 `core-requirements/v1`이다.
+
+- 그 경로에 항목이 없으면 선언이 없는 skill이고 시작은 지금과 같다.
+- 선언한 규칙·형식·기능 가운데 이 실행 파일의 지원 정보(`ha capabilities`와 같은 값)에 없는 것이 있으면, 빠진 항목마다 `ha: missing Core support: <rules|formats.<키>|features> <값> (ha <버전>)`을 보이고(`formats`의 키 자체가 없고 그 목록이 비어 있으면 값 없이 `formats.<키>`) 기록 없이 65로 끝난다.
+- 선언을 읽을 수 없거나 형식에 맞지 않으면 `ha: skill requirements <경로>: <이유>; nothing recorded`를 보이고 65로 끝난다. 모르는 값을 무시하고 시작하지 않는다.
+- `--check-skill`을 주면 선언이 필수다. 선언이 없으면 65, `--skill` 없이 주면 사용법 오류 64다. 이 기능 전의 `ha`는 이 플래그를 모르는 플래그로 64에 끝내고 기록하지 않는다. 그래서 확인이 반드시 일어나야 하는 시작은 이 형식을 쓴다.
+- 확인은 작업 트리 확인 뒤, 기록 전에 한다. 선언 경로에 항목이 있으면 Skill 디렉토리 digest를 계산하기 전에 확인하므로, 쓸 수 없는 선언(대상 없는 symlink, 폴더, FIFO 등)은 위 이유로 거부한다. 선언이 없는 skill은 지금처럼 먼저 읽고 그 오류도 지금과 같다. 시작 기록의 `skill`(`name`, `version`, `digest`)은 그대로이고 digest에 선언 파일도 들어간다.
 
 ## 2. 줄 형식
 
@@ -127,7 +166,7 @@ JSON 출력은 `schema: estimate/v1`이며 다음을 제공한다.
 | `host` | `{ "name", "version", "model" }`. 주장이다. |
 | `skill` | `{ "name", "version", "digest" }`. 에이전트가 읽은 Seal Skill과 템플릿 패키지. `--skill`이면 `ha`가 머리말의 `name`과 `metadata.version`을 읽고, Skill 디렉토리의 파일 전체를 목표 digest와 같은 방식으로 digest한다. 어느 파일을 가리킬지는 에이전트가 정하므로 여전히 주장이다. |
 | `rules` | 상태 계산 규칙 버전(예: `"run-rules/1"`). `ha`가 넣는다. 이 목표의 상태는 끝까지 이 버전으로 계산한다(§4). |
-| `budget` | PLAN의 예산 `{ "runs", "elapsed_seconds", "cost" }`. 최초 한도다. `/1`·`/2`는 이 값을 계속 쓰고, `/3`의 횟수 상한은 유효한 변경 기록을 반영한다(§5.2). |
+| `budget` | PLAN의 예산 `{ "runs", "elapsed_seconds", "cost" }`. 최초 한도다. `/1`·`/2`는 이 값을 계속 쓰고, `/3`의 횟수 상한은 유효한 변경 기록을 반영한다(§5.2). 자동 예산(§1.3)이면 `runs`가 산정 값이고 정보 객체 `"auto": { "minimum_runs", "computed_runs", "preapproved_runs", "source" }`가 더해진다. `source`는 `default` 또는 `user_config`이며 사용자 경로는 넣지 않는다. 상태 계산은 `auto`를 읽지 않는다. |
 
 `/4` 시작 줄에는 `scope`(`allowed`, `tests`: 시작 때 PLAN `## 범위`의 경로 사본)가 있고, `--test-authority`를 주면 `test_authority`(`interpretation`)도 있다(§4.7).
 
