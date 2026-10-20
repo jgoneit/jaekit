@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "docs",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-start-budget-check/observe_docs.py",
+      "test": "Docs.test_contracts_and_guides",
+      "result_targets": {
+        "additional_violations": [
+          "docs.assertion-2",
+          "docs.assertion-3",
+          "docs.assertion-4",
+          "docs.assertion-5",
+          "docs.assertion-6",
+          "docs.assertion-7",
+          "docs.assertion-8"
+        ],
+        "execution": "docs.execution",
+        "selection": "docs.selection",
+        "attribution": "docs.attribution"
+      }
+    }
+  ]
+}

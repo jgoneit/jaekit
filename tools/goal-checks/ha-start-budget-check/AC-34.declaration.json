@@ -1,0 +1,58 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/ha-start-budget-check/AC-34.targets.json",
+    "tools/goal-checks/ha-start-budget-check/budget_common.py",
+    "tools/goal-checks/ha-start-budget-check/observe_flow.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "platform",
+      "violation": "platform-check-missing"
+    },
+    {
+      "id": "platform.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "platform.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "platform.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "platform.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "platform.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "platform.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "platform.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "platform.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "platform.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "platform.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

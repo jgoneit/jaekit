@@ -1,0 +1,828 @@
+{
+ "steps": [
+  {
+   "command": "lint",
+   "exit": 0,
+   "stdout": {
+    "text": "ok: no lint problems\n"
+   },
+   "stderr": {
+    "text": ""
+   }
+  },
+  {
+   "command": "estimate",
+   "exit": 0,
+   "stdout": {
+    "text": "## ha estimate: docs/specs/demo\n\n- required minimum: N runs (N change × N + N maintain; manual: N)\n- PLAN run limit: N; shortfall: N; headroom above minimum: N\n- default commands: check N + baseline N runs; additional to minimum: N\n- selected check: N runs; additional: N (optional N, task N, repeated required N)\n  - AC-N\n  - AC-N\n\nFresh required lower bound only; excludes retries, preparation and manual time. Not a total-time estimate or completion guarantee. PLAN limit is not an existing run's remaining budget; existing records and budget windows are unchanged.\n"
+   },
+   "stderr": {
+    "text": ""
+   }
+  },
+  {
+   "command": "estimate json",
+   "exit": 0,
+   "stdout": {
+    "json": {
+     "schema": "estimate/vN",
+     "goal": "docs/specs/demo",
+     "budget_source": "PLAN.md",
+     "required_change": "N",
+     "required_maintain": "N",
+     "minimum_runs": "N",
+     "plan_runs_limit": "N",
+     "shortfall": "N",
+     "headroom": "N",
+     "default_check_runs": "N",
+     "default_baseline_runs": "N",
+     "default_additional_runs": "N",
+     "selected": {
+      "mode": "check",
+      "targets": [
+       "AC-N",
+       "AC-N"
+      ],
+      "runs": "N",
+      "additional_runs": "N",
+      "optional_runs": "N",
+      "task_runs": "N",
+      "repeated_required_runs": "N"
+     },
+     "limitation": "Fresh required lower bound only; excludes retries, preparation and manual time. Not a total-time estimate or completion guarantee. PLAN limit is not an existing run's remaining budget; existing records and budget windows are unchanged."
+    }
+   },
+   "stderr": {
+    "text": ""
+   }
+  },
+  {
+   "command": "start",
+   "exit": 0,
+   "stdout": {
+    "text": "started: seq N, base <HEX>, rules run-rules/N, budget N runs / Ns\nminimum required: N runs; plan limit: N (retries and optional runs are additional)\n"
+   },
+   "stderr": {
+    "text": ""
+   }
+  },
+  {
+   "command": "baseline",
+   "exit": 1,
+   "stdout": {
+    "text": "time-limit notice: AC-N risk unknown\nAC-N baseline unknown (seq N)\nclassification: unsupported_declaration\noutput for AC-N: ha log docs/specs/demo N\n"
+   },
+   "stderr": {
+    "text": ""
+   }
+  },
+  {
+   "command": "check",
+   "exit": 1,
+   "stdout": {
+    "text": "AC-N check unknown (seq N)\nclassification: unsupported_declaration\ntime-limit notice: AC-N risk unknown\nAC-N check pass (seq N)\noutput for AC-N: ha log docs/specs/demo N\n"
+   },
+   "stderr": {
+    "text": ""
+   }
+  },
+  {
+   "command": "status",
+   "exit": 1,
+   "stdout": {
+    "text": "## ha status: docs/specs/demo\n\n- status: **incomplete** (exit N)\n- completion record: none\n- assurance: local (an agent with the same user permissions can change checks and records)\n- check author: executor\n- record head: seq N (<HEX>)\n- rules: run-rules/N; skill: plain N.N.N (claimed); ha: N.N.N-dev\n- code: <HEX>, tree clean: yes; goal digest: <HEX>\n- attempts: N total; types: N check, N baseline; outcomes: N environment errors, N unknown; inputs: N current, N stale; valid positive evidence: N (overlapping axes)\n\n### Unmet\n\n- AC-N `criterion_error` (executor): seq N, output `ha log docs/specs/demo N`\n- AC-N `manual_unconfirmed` (user)\n- `task_open` (executor)\n\n### Criteria\n\n| ID | kind | required | satisfied | reason | records | attempts |\n| --- | --- | --- | --- | --- | --- | --- |\n| AC-N | change | yes | no | criterion_error | — | checks N (fail N, error N), baselines N (unexpected pass N, error N), stale N; unknown check N, baseline N; baseline fail N |\n| AC-N | maintain | yes | yes | — | N | checks N (fail N, error N), baselines N (unexpected pass N, error N), stale N |\n| AC-N | manual | yes | no | manual_unconfirmed | — | checks N (fail N, error N), baselines N (unexpected pass N, error N), stale N |\n\n### Reasons\n\n- `criterion_error` (executor) AC-N\n- `manual_unconfirmed` (user) AC-N\n- `task_open` (executor): required tasks not done or dropped in PROGRESS.md: TN\n\n### Budget\n\n- window from seq N: N/N runs, N/N seconds\n- budget revision: N; remaining: N runs; excess: N runs; run cap reached: no\n- elapsed leaves out N seconds of waits the executor reported (window span N seconds)\n\n### Local output\n\nView with `ha log docs/specs/demo <seq>`; output is never copied into the record.\n\n- seq N AC-N unknown (unsupported_declaration): .git/ha/runs/docs%NFspecs%NFdemo/N.log\n- seq N AC-N unknown (unsupported_declaration): .git/ha/runs/docs%NFspecs%NFdemo/N.log\n"
+   },
+   "stderr": {
+    "text": ""
+   }
+  },
+  {
+   "command": "status json",
+   "exit": 1,
+   "stdout": {
+    "json": {
+     "schema": "status/vN",
+     "goal": "docs/specs/demo",
+     "status": "incomplete",
+     "exit_code": "N",
+     "assurance": "local",
+     "check_author": "executor",
+     "rules": "run-rules/N",
+     "ha_version": "N.N.N-dev",
+     "skill": {
+      "name": "plain",
+      "version": "N.N.N",
+      "digest": "<HEX>"
+     },
+     "record_head": {
+      "seq": "N",
+      "sha256": "<HEX>"
+     },
+     "completion_record": null,
+     "complete_without_record": false,
+     "commit": "<HEX>",
+     "tree_clean": true,
+     "spec_digest": "<HEX>",
+     "criteria": [
+      {
+       "id": "AC-N",
+       "kind": "change",
+       "required": true,
+       "satisfied": false,
+       "reason": "criterion_error",
+       "records": [],
+       "attempts": {
+        "checks": "N",
+        "fails": "N",
+        "errors": "N",
+        "baselines": "N",
+        "unexpected_passes": "N",
+        "baseline_errors": "N",
+        "stale": "N",
+        "fail_commits": [],
+        "unknowns": "N",
+        "baseline_unknowns": "N",
+        "baseline_fails": "N"
+       }
+      },
+      {
+       "id": "AC-N",
+       "kind": "maintain",
+       "required": true,
+       "satisfied": true,
+       "reason": "",
+       "records": [
+        "N"
+       ],
+       "attempts": {
+        "checks": "N",
+        "fails": "N",
+        "errors": "N",
+        "baselines": "N",
+        "unexpected_passes": "N",
+        "baseline_errors": "N",
+        "stale": "N",
+        "fail_commits": [],
+        "unknowns": "N",
+        "baseline_unknowns": "N",
+        "baseline_fails": "N"
+       }
+      },
+      {
+       "id": "AC-N",
+       "kind": "manual",
+       "required": true,
+       "satisfied": false,
+       "reason": "manual_unconfirmed",
+       "records": [],
+       "attempts": {
+        "checks": "N",
+        "fails": "N",
+        "errors": "N",
+        "baselines": "N",
+        "unexpected_passes": "N",
+        "baseline_errors": "N",
+        "stale": "N",
+        "fail_commits": [],
+        "unknowns": "N",
+        "baseline_unknowns": "N",
+        "baseline_fails": "N"
+       }
+      }
+     ],
+     "reasons": [
+      {
+       "code": "criterion_error",
+       "class": "executor",
+       "criterion": "AC-N"
+      },
+      {
+       "code": "manual_unconfirmed",
+       "class": "user",
+       "criterion": "AC-N"
+      },
+      {
+       "code": "task_open",
+       "class": "executor",
+       "detail": "required tasks not done or dropped in PROGRESS.md: TN"
+      }
+     ],
+     "lint": null,
+     "changes": {
+      "command_changed": [],
+      "kind_changed": [],
+      "optional": [],
+      "invalid_confirmations": [],
+      "ha_version_changed": []
+     },
+     "budget": {
+      "window_start": "N",
+      "runs": "N",
+      "runs_limit": "N",
+      "elapsed_seconds": "N",
+      "elapsed_limit_seconds": "N",
+      "exceeded": false,
+      "revision": "N",
+      "remaining_runs": "N",
+      "excess_runs": "N",
+      "reached": false,
+      "history": [],
+      "reported_wait_seconds": "N",
+      "span_seconds": "N",
+      "wait_basis": "executor_reported"
+     },
+     "findings": {
+      "schema": "findings/vN",
+      "goal": "docs/specs/demo",
+      "record_head": {
+       "seq": "N",
+       "sha256": "<HEX>"
+      },
+      "candidate": "N",
+      "confirmed": "N",
+      "confirmed_existing": "N",
+      "unresolved": "N",
+      "findings": []
+     },
+     "usage": {
+      "total": "N",
+      "checks": "N",
+      "baselines": "N",
+      "environment_errors": "N",
+      "unknowns": "N",
+      "current_inputs": "N",
+      "stale_inputs": "N",
+      "valid_evidence": "N"
+     },
+     "logs": [
+      {
+       "seq": "N",
+       "target": "AC-N",
+       "result": "unknown",
+       "path": ".git/ha/runs/docs%NFspecs%NFdemo/N.log",
+       "reason": "unsupported_declaration"
+      },
+      {
+       "seq": "N",
+       "target": "AC-N",
+       "result": "unknown",
+       "path": ".git/ha/runs/docs%NFspecs%NFdemo/N.log",
+       "reason": "unsupported_declaration"
+      }
+     ]
+    }
+   },
+   "stderr": {
+    "text": ""
+   }
+  },
+  {
+   "command": "budget",
+   "exit": 0,
+   "stdout": {
+    "text": "budget changed: N -> N total runs, window N (seq N); usage and time limit preserved\n"
+   },
+   "stderr": {
+    "text": ""
+   }
+  },
+  {
+   "command": "note input",
+   "exit": 0,
+   "stdout": {
+    "text": "noted: input (seq N)\n"
+   },
+   "stderr": {
+    "text": ""
+   }
+  },
+  {
+   "command": "note confirm",
+   "exit": 0,
+   "stdout": {
+    "text": "noted: confirm AC-N (seq N)\n"
+   },
+   "stderr": {
+    "text": ""
+   }
+  },
+  {
+   "command": "log",
+   "exit": 0,
+   "stdout": {
+    "text": ""
+   },
+   "stderr": {
+    "text": ""
+   }
+  },
+  {
+   "command": "timing exit only",
+   "exit": 0,
+   "stdout": null,
+   "stderr": null
+  },
+  {
+   "command": "finding",
+   "exit": 0,
+   "stdout": {
+    "json": {
+     "schema": "findings/vN",
+     "goal": "docs/specs/demo",
+     "record_head": {
+      "seq": "N",
+      "sha256": "<HEX>"
+     },
+     "candidate": "N",
+     "confirmed": "N",
+     "confirmed_existing": "N",
+     "unresolved": "N",
+     "findings": []
+    }
+   },
+   "stderr": {
+    "text": ""
+   }
+  },
+  {
+   "command": "history",
+   "exit": 0,
+   "stdout": {
+    "text": "## ha history: docs/specs/demo — current\n\n- history: absent — no local decision history is stored for this start record in this repository; absence does not show that no event was ever recorded\n- run head: seq N (<HEX>) · run chain: valid · start: seq N (<HEX>)\n- now: code <HEX>, clean · goal digest <HEX>\n- filters: targets none · keywords none · since none\n\n### Items (N of N)\n\n- none\n\n- later changes: --since cN.<HEX>.N.N.<HEX>\n"
+   },
+   "stderr": {
+    "text": ""
+   }
+  },
+  {
+   "command": "done",
+   "exit": 1,
+   "stdout": {
+    "text": "## ha status: docs/specs/demo\n\n- status: **incomplete** (exit N)\n- completion record: none\n- assurance: local (an agent with the same user permissions can change checks and records)\n- check author: executor\n- record head: seq N (<HEX>)\n- rules: run-rules/N; skill: plain N.N.N (claimed); ha: N.N.N-dev\n- code: <HEX>, tree clean: yes; goal digest: <HEX>\n- attempts: N total; types: N check, N baseline; outcomes: N environment errors, N unknown; inputs: N current, N stale; valid positive evidence: N (overlapping axes)\n\n### Criteria\n\n| ID | kind | required | satisfied | reason | records | attempts |\n| --- | --- | --- | --- | --- | --- | --- |\n| AC-N | change | yes | no | criterion_error | — | checks N (fail N, error N), baselines N (unexpected pass N, error N), stale N; unknown check N, baseline N; baseline fail N |\n| AC-N | maintain | yes | yes | — | N | checks N (fail N, error N), baselines N (unexpected pass N, error N), stale N |\n| AC-N | manual | yes | yes | — | — | checks N (fail N, error N), baselines N (unexpected pass N, error N), stale N |\n\n### Reasons\n\n- `criterion_error` (executor) AC-N\n- `task_open` (executor): required tasks not done or dropped in PROGRESS.md: TN\n\n### Budget\n\n- window from seq N: N/N runs, N/N seconds\n- budget revision: N; remaining: N runs; excess: N runs; run cap reached: no\n- elapsed leaves out N seconds of waits the executor reported (window span N seconds)\n- budget change seq N, window N: N → N runs (user attribution is a claim)\n\n### Local output\n\nView with `ha log docs/specs/demo <seq>`; output is never copied into the record.\n\n- seq N AC-N unknown (unsupported_declaration): .git/ha/runs/docs%NFspecs%NFdemo/N.log\n- seq N AC-N unknown (unsupported_declaration): .git/ha/runs/docs%NFspecs%NFdemo/N.log\n"
+   },
+   "stderr": {
+    "text": ""
+   }
+  },
+  {
+   "command": "status after done",
+   "exit": 1,
+   "stdout": {
+    "json": {
+     "schema": "status/vN",
+     "goal": "docs/specs/demo",
+     "status": "incomplete",
+     "exit_code": "N",
+     "assurance": "local",
+     "check_author": "executor",
+     "rules": "run-rules/N",
+     "ha_version": "N.N.N-dev",
+     "skill": {
+      "name": "plain",
+      "version": "N.N.N",
+      "digest": "<HEX>"
+     },
+     "record_head": {
+      "seq": "N",
+      "sha256": "<HEX>"
+     },
+     "completion_record": null,
+     "complete_without_record": false,
+     "commit": "<HEX>",
+     "tree_clean": true,
+     "spec_digest": "<HEX>",
+     "criteria": [
+      {
+       "id": "AC-N",
+       "kind": "change",
+       "required": true,
+       "satisfied": false,
+       "reason": "criterion_error",
+       "records": [],
+       "attempts": {
+        "checks": "N",
+        "fails": "N",
+        "errors": "N",
+        "baselines": "N",
+        "unexpected_passes": "N",
+        "baseline_errors": "N",
+        "stale": "N",
+        "fail_commits": [],
+        "unknowns": "N",
+        "baseline_unknowns": "N",
+        "baseline_fails": "N"
+       }
+      },
+      {
+       "id": "AC-N",
+       "kind": "maintain",
+       "required": true,
+       "satisfied": true,
+       "reason": "",
+       "records": [
+        "N"
+       ],
+       "attempts": {
+        "checks": "N",
+        "fails": "N",
+        "errors": "N",
+        "baselines": "N",
+        "unexpected_passes": "N",
+        "baseline_errors": "N",
+        "stale": "N",
+        "fail_commits": [],
+        "unknowns": "N",
+        "baseline_unknowns": "N",
+        "baseline_fails": "N"
+       }
+      },
+      {
+       "id": "AC-N",
+       "kind": "manual",
+       "required": true,
+       "satisfied": true,
+       "reason": "",
+       "records": [],
+       "attempts": {
+        "checks": "N",
+        "fails": "N",
+        "errors": "N",
+        "baselines": "N",
+        "unexpected_passes": "N",
+        "baseline_errors": "N",
+        "stale": "N",
+        "fail_commits": [],
+        "unknowns": "N",
+        "baseline_unknowns": "N",
+        "baseline_fails": "N"
+       }
+      }
+     ],
+     "reasons": [
+      {
+       "code": "criterion_error",
+       "class": "executor",
+       "criterion": "AC-N"
+      },
+      {
+       "code": "task_open",
+       "class": "executor",
+       "detail": "required tasks not done or dropped in PROGRESS.md: TN"
+      }
+     ],
+     "lint": null,
+     "changes": {
+      "command_changed": [],
+      "kind_changed": [],
+      "optional": [],
+      "invalid_confirmations": [],
+      "ha_version_changed": []
+     },
+     "budget": {
+      "window_start": "N",
+      "runs": "N",
+      "runs_limit": "N",
+      "elapsed_seconds": "N",
+      "elapsed_limit_seconds": "N",
+      "exceeded": false,
+      "revision": "N",
+      "remaining_runs": "N",
+      "excess_runs": "N",
+      "reached": false,
+      "history": [
+       {
+        "seq": "N",
+        "at": "<TIME>",
+        "change": {
+         "goal": "docs/specs/demo",
+         "window_start": "N",
+         "revision": "N",
+         "previous_runs": "N",
+         "runs": "N",
+         "quote": "상한을 N회로 올려줘",
+         "context": "합성 목표의 현재 창 총상한 N회를 N회로",
+         "interpretation": "",
+         "reason": ""
+        }
+       }
+      ],
+      "reported_wait_seconds": "N",
+      "span_seconds": "N",
+      "wait_basis": "executor_reported"
+     },
+     "findings": {
+      "schema": "findings/vN",
+      "goal": "docs/specs/demo",
+      "record_head": {
+       "seq": "N",
+       "sha256": "<HEX>"
+      },
+      "candidate": "N",
+      "confirmed": "N",
+      "confirmed_existing": "N",
+      "unresolved": "N",
+      "findings": []
+     },
+     "usage": {
+      "total": "N",
+      "checks": "N",
+      "baselines": "N",
+      "environment_errors": "N",
+      "unknowns": "N",
+      "current_inputs": "N",
+      "stale_inputs": "N",
+      "valid_evidence": "N"
+     },
+     "logs": [
+      {
+       "seq": "N",
+       "target": "AC-N",
+       "result": "unknown",
+       "path": ".git/ha/runs/docs%NFspecs%NFdemo/N.log",
+       "reason": "unsupported_declaration"
+      },
+      {
+       "seq": "N",
+       "target": "AC-N",
+       "result": "unknown",
+       "path": ".git/ha/runs/docs%NFspecs%NFdemo/N.log",
+       "reason": "unsupported_declaration"
+      }
+     ]
+    }
+   },
+   "stderr": {
+    "text": ""
+   }
+  }
+ ],
+ "records": [
+  {
+   "schema": "run/vN",
+   "seq": "N",
+   "prev": null,
+   "kind": "start",
+   "at": "<TIME>",
+   "ha_version": "N.N.N-dev",
+   "goal": "docs/specs/demo",
+   "base_commit": "<HEX>",
+   "tree_clean": true,
+   "spec_digest": "<HEX>",
+   "request": {
+    "source": "conversation",
+    "quote": "숫자 예산 목표를 구현해줘"
+   },
+   "host": {
+    "name": "",
+    "version": "",
+    "model": ""
+   },
+   "skill": {
+    "name": "plain",
+    "version": "N.N.N",
+    "digest": "<HEX>"
+   },
+   "rules": "run-rules/N",
+   "budget": {
+    "runs": "N",
+    "elapsed_seconds": "N",
+    "cost": "미관측"
+   },
+   "scope": {
+    "allowed": [
+     "**"
+    ],
+    "tests": [
+     "tests/**",
+     "**/*_test.*",
+     "**/test_*.*",
+     "**/*.test.*",
+     "**/*.spec.*"
+    ]
+   }
+  },
+  {
+   "schema": "run/vN",
+   "seq": "N",
+   "prev": "<HEX>",
+   "kind": "baseline",
+   "at": "<TIME>",
+   "ha_version": "N.N.N-dev",
+   "target": {
+    "criterion": "AC-N"
+   },
+   "criterion_kind": "change",
+   "argv": [
+    "sh",
+    "tests/x.sh"
+   ],
+   "command_digest": "<HEX>",
+   "commit": "<HEX>",
+   "tree_clean": true,
+   "spec_digest": "<HEX>",
+   "base_commit": "<HEX>",
+   "overlay": [
+    {
+     "path": "tests/x.sh",
+     "digest": "<HEX>"
+    }
+   ],
+   "exit": "N",
+   "result": "unknown",
+   "duration_ms": "N",
+   "output_digest": "<HEX>",
+   "output_path": ".git/ha/runs/docs%NFspecs%NFdemo/N.log",
+   "evidence": {
+    "schema": "check-evidence/vN",
+    "result": "unknown",
+    "reason": "unsupported_declaration",
+    "declaration_digest": "",
+    "invocation": "<HEX>"
+   },
+   "timing": {
+    "limit_ms": "N",
+    "limit_elapsed_ms": "N",
+    "limit_reached": false,
+    "cpu": {
+     "status": "measured",
+     "user_ms": "N",
+     "system_ms": "N",
+     "scope": "process-and-waited-descendants",
+     "source": "waitN-rusage"
+    }
+   },
+   "started_at": "<TIME>"
+  },
+  {
+   "schema": "run/vN",
+   "seq": "N",
+   "prev": "<HEX>",
+   "kind": "check",
+   "at": "<TIME>",
+   "ha_version": "N.N.N-dev",
+   "target": {
+    "criterion": "AC-N"
+   },
+   "criterion_kind": "change",
+   "argv": [
+    "sh",
+    "tests/x.sh"
+   ],
+   "command_digest": "<HEX>",
+   "commit": "<HEX>",
+   "tree_clean": true,
+   "spec_digest": "<HEX>",
+   "exit": "N",
+   "result": "unknown",
+   "duration_ms": "N",
+   "output_digest": "<HEX>",
+   "output_path": ".git/ha/runs/docs%NFspecs%NFdemo/N.log",
+   "evidence": {
+    "schema": "check-evidence/vN",
+    "result": "unknown",
+    "reason": "unsupported_declaration",
+    "declaration_digest": "",
+    "invocation": "<HEX>"
+   },
+   "timing": {
+    "limit_ms": "N",
+    "limit_elapsed_ms": "N",
+    "limit_reached": false,
+    "cpu": {
+     "status": "measured",
+     "user_ms": "N",
+     "system_ms": "N",
+     "scope": "process-and-waited-descendants",
+     "source": "waitN-rusage"
+    }
+   },
+   "started_at": "<TIME>"
+  },
+  {
+   "schema": "run/vN",
+   "seq": "N",
+   "prev": "<HEX>",
+   "kind": "check",
+   "at": "<TIME>",
+   "ha_version": "N.N.N-dev",
+   "target": {
+    "criterion": "AC-N"
+   },
+   "criterion_kind": "maintain",
+   "argv": [
+    "sh",
+    "tests/x.sh"
+   ],
+   "command_digest": "<HEX>",
+   "commit": "<HEX>",
+   "tree_clean": true,
+   "spec_digest": "<HEX>",
+   "exit": "N",
+   "result": "pass",
+   "duration_ms": "N",
+   "output_digest": "<HEX>",
+   "output_path": ".git/ha/runs/docs%NFspecs%NFdemo/N.log",
+   "timing": {
+    "limit_ms": "N",
+    "limit_elapsed_ms": "N",
+    "limit_reached": false,
+    "cpu": {
+     "status": "measured",
+     "user_ms": "N",
+     "system_ms": "N",
+     "scope": "process-and-waited-descendants",
+     "source": "waitN-rusage"
+    }
+   },
+   "started_at": "<TIME>"
+  },
+  {
+   "schema": "run/vN",
+   "seq": "N",
+   "prev": "<HEX>",
+   "kind": "budget_change",
+   "at": "<TIME>",
+   "ha_version": "N.N.N-dev",
+   "budget_change": {
+    "goal": "docs/specs/demo",
+    "window_start": "N",
+    "revision": "N",
+    "previous_runs": "N",
+    "runs": "N",
+    "quote": "상한을 N회로 올려줘",
+    "context": "합성 목표의 현재 창 총상한 N회를 N회로",
+    "interpretation": "",
+    "reason": ""
+   }
+  },
+  {
+   "schema": "run/vN",
+   "seq": "N",
+   "prev": "<HEX>",
+   "kind": "note",
+   "at": "<TIME>",
+   "ha_version": "N.N.N-dev",
+   "note": "input",
+   "quote": "계속해줘"
+  },
+  {
+   "schema": "run/vN",
+   "seq": "N",
+   "prev": "<HEX>",
+   "kind": "note",
+   "at": "<TIME>",
+   "ha_version": "N.N.N-dev",
+   "note": "confirm",
+   "subject": "AC-N",
+   "bound": {
+    "criterion_sha256": "<HEX>",
+    "spec_digest": "<HEX>"
+   },
+   "quote": "AC-N을 확인했어"
+  },
+  {
+   "schema": "run/vN",
+   "seq": "N",
+   "prev": "<HEX>",
+   "kind": "done",
+   "at": "<TIME>",
+   "ha_version": "N.N.N-dev",
+   "status": "incomplete",
+   "reasons": [
+    "AC-N:criterion_error",
+    "task_open"
+   ],
+   "commit": "<HEX>",
+   "tree_clean": true,
+   "spec_digest": "<HEX>",
+   "record_head": "<HEX>",
+   "criteria": [
+    {
+     "id": "AC-N",
+     "kind": "change",
+     "satisfied": false,
+     "records": []
+    },
+    {
+     "id": "AC-N",
+     "kind": "maintain",
+     "satisfied": true,
+     "records": [
+      "N"
+     ]
+    },
+    {
+     "id": "AC-N",
+     "kind": "manual",
+     "satisfied": true,
+     "records": []
+    }
+   ],
+   "command_digests": {
+    "AC-1": "<HEX>",
+    "AC-2": "<HEX>",
+    "AC-3": "<HEX>"
+   }
+  }
+ ]
+}

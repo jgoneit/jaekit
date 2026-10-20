@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "skill-kept",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-start-budget-check/observe_skill.py",
+      "test": "Kept.test_undeclared_and_capabilities",
+      "result_targets": {
+        "additional_violations": [
+          "skill-kept.assertion-2",
+          "skill-kept.assertion-3",
+          "skill-kept.assertion-4",
+          "skill-kept.assertion-5",
+          "skill-kept.assertion-6",
+          "skill-kept.assertion-7",
+          "skill-kept.assertion-8"
+        ],
+        "execution": "skill-kept.execution",
+        "selection": "skill-kept.selection",
+        "attribution": "skill-kept.attribution"
+      }
+    }
+  ]
+}

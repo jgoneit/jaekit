@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "outputs-kept",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-start-budget-check/observe_kept.py",
+      "test": "Kept.test_outputs_and_suites",
+      "result_targets": {
+        "additional_violations": [
+          "outputs-kept.assertion-2",
+          "outputs-kept.assertion-3",
+          "outputs-kept.assertion-4",
+          "outputs-kept.assertion-5",
+          "outputs-kept.assertion-6",
+          "outputs-kept.assertion-7",
+          "outputs-kept.assertion-8"
+        ],
+        "execution": "outputs-kept.execution",
+        "selection": "outputs-kept.selection",
+        "attribution": "outputs-kept.attribution"
+      }
+    }
+  ]
+}
