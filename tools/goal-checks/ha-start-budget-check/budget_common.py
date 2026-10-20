@@ -47,6 +47,9 @@ STATE_EXITS = frozenset({2, 3, 4})
 # How the Go runtime starts the report of a crash: an unrecovered panic or a fatal
 # error such as a stack overflow or a concurrent map write.
 GO_CRASH = re.compile(r"^(?:panic: |fatal error: )", re.MULTILINE)
+# The header of each goroutine in the trace that follows, e.g. "goroutine 1 [running]:"
+# or, in a fatal error, "goroutine 1 gp=0x1 m=0 mp=0x2 [running]:".
+GO_TRACE = re.compile(r"^goroutine \d+ (?:[^\n\[]* )?\[[^\]\n]+\]:$", re.MULTILINE)
 # One lint problem line of `ha lint` and of a refused `ha estimate`.
 LINT_LINE = re.compile(r"^[a-z][a-z0-9_]*\t[^\t\n]+\t", re.MULTILINE)
 
@@ -263,7 +266,8 @@ class Repo:
         §1 and §4.3) are observations. Any other code, such as 70 for an
         internal error or a Windows termination status, a nonzero exit that
         prints nothing, and a Go runtime crash (a line starting `panic: ` or
-        `fatal error: ` and a goroutine trace on stderr, exit 2) are
+        `fatal error: ` and a `goroutine N [state]:` trace header on stderr,
+        exit 2) are
         Unavailable: they carry no evidence about the requirement.
         """
         result = run([self.ha_path, *args], cwd or self.root, env or self.env, timeout=timeout)
@@ -273,7 +277,7 @@ class Repo:
             raise Unavailable(f"ha {args[0]} exited {code}, which ha's contract does not give: {(out + err)[-500:]}")
         if code and not (out + err).strip():
             raise Unavailable(f"ha {args[0]} exited {code} without any output")
-        if code and GO_CRASH.search(err) and "goroutine " in err:
+        if code and GO_CRASH.search(err) and GO_TRACE.search(err):
             raise Unavailable(f"ha {args[0]} crashed (Go runtime, exit {code}): {err[:500]}")
         return code, out, err
 
