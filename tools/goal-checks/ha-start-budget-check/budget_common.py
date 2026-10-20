@@ -16,6 +16,7 @@ Unavailable, an execution error.
 """
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -36,6 +37,10 @@ DECLARATION_SCHEMA = "core-requirements/v1"
 CHECK_FLAG = "--check-skill"
 FEATURES = ("auto-budget/v1", "core-requirements/v1")
 FORMAT_KEY = "core_requirements"
+
+
+# One lint problem line of `ha lint` and of a refused `ha estimate`.
+LINT_LINE = re.compile(r"^[a-z][a-z0-9_]*\t[^\t\n]+\t", re.MULTILINE)
 
 
 class Unavailable(Exception):
@@ -251,16 +256,17 @@ class Repo:
         """(exit, stdout, stderr) of the goal's run-rules/4 start."""
         return self.ha("start", GOAL, "--request", REQUEST, "--rules", "run-rules/4", *extra, env=env)
 
-    def estimate(self, env=None, json_exits=(0, 1)):
+    def estimate(self, env=None):
         """(exit, parsed JSON or None, stdout+stderr) of `ha estimate --format json`.
 
-        At an exit in json_exits the contract prints a JSON object; anything
-        else there cannot be read and is Unavailable. Output that starts as
-        JSON but does not parse is Unavailable at any exit. Elsewhere, such as
-        a lint refusal or a configuration error, the text is the observation
-        and the report is None. The first call of an observation, which also
-        runs against the earlier `ha`, passes json_exits=(0,): that `ha`
-        refuses an automatic PLAN with lint text at exit 1.
+        The contract prints a JSON object at exit 0 and at exit 1 for a
+        shortfall or a needed approval; exit 1 may instead list lint problems
+        (`<code>\t<path>\t<message>` lines), as the earlier `ha` does for an
+        automatic PLAN. A JSON object or those lint lines are the observation;
+        at exit 0 or 1 anything else, including empty output, cannot be read
+        and is Unavailable. Output that starts as JSON but does not parse is
+        Unavailable at any exit. At other exits, such as a configuration
+        refusal, the text is the observation and the report is None.
         """
         code, out, err = self.ha("estimate", GOAL, "--format", "json", env=env)
         try:
@@ -269,8 +275,10 @@ class Repo:
             report = None
             if out.lstrip().startswith(("{", "[")):
                 raise Unavailable(f"ha estimate exit {code}: output that starts as JSON does not parse: {out[-500:]}") from None
-        if code in json_exits and not isinstance(report, dict):
-            raise Unavailable(f"ha estimate exited {code} without a JSON object: {(out + err)[-500:]}")
+        if not isinstance(report, dict):
+            report = None
+            if code == 0 or (code == 1 and not LINT_LINE.search(out)):
+                raise Unavailable(f"ha estimate exited {code} with neither a JSON object nor lint problems: {(out + err)[-500:]}")
         return code, report, out + err
 
     def estimate_md(self, env=None):

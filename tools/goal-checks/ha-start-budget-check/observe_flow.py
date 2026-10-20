@@ -106,7 +106,7 @@ class Flow(unittest.TestCase):
             ha = build(Path(directory) / "bin" / "ha")
             repo = Repo(Path(directory) / "goal", ha, changes=34)
             repo.write_config(json.dumps({"preapproved_runs": 120}))
-            code, report, text = repo.estimate(json_exits=(0,))
+            code, report, text = repo.estimate()
             auto = (report or {}).get("auto") or {}
             require(self, code == 0 and auto.get("computed_runs") == 102 and auto.get("approval_needed") is False,
                     "auto-flow-missing", f"estimate with a limit of 120: exit {code}, auto {auto}: {text[-600:]}")
