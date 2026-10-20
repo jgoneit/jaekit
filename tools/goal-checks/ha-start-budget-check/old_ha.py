@@ -10,7 +10,8 @@ started from. For each one this script makes a synthetic goal repository with
 a valid numeric budget and a skill folder with a Core requirements
 declaration, runs `ha start <goal> --request … --skill <SKILL.md>
 --check-skill` (the contract's form) and requires a nonzero exit and no
-runs.jsonl.
+runs.jsonl. As a control, the same goal and skill must start without
+`--check-skill`, so the refusal comes from the form and not from the goal.
 
 Exit 0: every executable refused without a record. Exit 1: one started or
 wrote a record. Exit 2: an executable is missing, does not run, prints another
@@ -35,6 +36,12 @@ def observe(path, version):
         code, out, err = repo.start("--skill", str(skill), CHECK_FLAG)
         written = repo.records_path().exists()
         print(f"ha {version}: exit {code}, runs.jsonl {'written' if written else 'absent'}: {err.strip()[-200:]}")
+        # Control: the same goal and skill start without the flag, so the refusal comes from the form.
+        control = Repo(Path(directory) / "control", path, changes=1, runs="60")
+        same = control.skill("declared", {"schema": DECLARATION_SCHEMA, "features": ["estimate/v1"]})
+        started, _, control_err = control.start("--skill", str(same))
+        if started != 0 or not control.records_path().exists():
+            raise Unavailable(f"ha {version} did not start the control goal (exit {started}): {control_err.strip()[-200:]}")
         return code != 0 and not written
 
 

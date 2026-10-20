@@ -9,6 +9,7 @@ Seal 0.1.17 to 0.1.19 ship (its digest is written below).
 """
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -81,6 +82,17 @@ class SkillCheck(unittest.TestCase):
             if code != 65 or repo.records_path().exists():
                 problems.append(f"a folder named {DECLARATION}: exit {code}: {err[-300:]}")
             repo.reset_records()
+            if os.name != "nt":
+                dangling = repo.skill("declaration-dangling")
+                (dangling.parent / DECLARATION).symlink_to(dangling.parent / "moved-away.json")
+                code, out, err = repo.start("--skill", str(dangling))
+                if code != 65 or repo.records_path().exists():
+                    problems.append(f"a {DECLARATION} symlink to nothing: exit {code}: {err[-300:]}")
+                repo.reset_records()
+            # The capability list names this goal's additions, which skills may declare.
+            if (caps.get("formats") or {}).get(FORMAT_KEY) != [DECLARATION_SCHEMA] or \
+                    caps.get("features", [])[-len(FEATURES):] != list(FEATURES):
+                problems.append(f"capabilities lack formats.{FORMAT_KEY} or end without {FEATURES}: {caps}")
             # --check-skill makes the declaration required; without --skill it is a usage error.
             plain = repo.skill("plain")
             code, out, err = repo.start("--skill", str(plain), CHECK_FLAG)

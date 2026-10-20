@@ -133,6 +133,15 @@ def bad_forms(repo):
         folder.write_text("", encoding="utf-8")
         return folder / CONFIG_FILE
 
+    def dangling():
+        path = repo.config_path()
+        path.parent.mkdir(parents=True)
+        try:
+            path.symlink_to(repo.base / "moved-away.json")
+        except OSError:
+            raise Unavailable("cannot create a symbolic link here") from None
+        return path
+
     forms = [("not-json", text("preapproved_runs = 120\n")),
              ("duplicate-key", text('{"preapproved_runs": 120, "preapproved_runs": 130}')),
              ("unknown-key", text('{"preapproved_runs": 120, "note": "x"}')),
@@ -150,6 +159,8 @@ def bad_forms(repo):
              ("invalid-utf8", text(b'{"preapproved_runs": 120, "\xff": 1}')),
              ("directory", directory),
              ("not-a-directory", not_a_directory)]
+    if os.name != "nt":
+        forms.append(("dangling-symlink", dangling))
     if os.name != "nt" and hasattr(os, "geteuid") and os.geteuid() != 0:
         def unreadable():
             path = repo.write_config(config(120))
@@ -259,14 +270,32 @@ class CapSource(unittest.TestCase):
                 code, auto, text = estimate_auto()
                 if code != 65 or "repository" not in text:
                     problems.append(f"symlink into the repository: estimate exit {code}: {text[-300:]}")
+                repo.clear_config()
+            # The same folder named with other letter case, where the file system ignores case.
+            upper = inside.parent / inside.name.upper()
+            if upper.exists():
+                code, auto, text = estimate_auto(dict(repo.env, XDG_CONFIG_HOME=str(upper)))
+                if code != 65 or "repository" not in text:
+                    problems.append(f"repository folder named in other case: estimate exit {code}: {text[-300:]}")
+            # A file in another working tree of the same repository (the goal runs in a linked worktree).
+            other = repo.base / "linked"
+            repo.git("worktree", "add", "-q", str(other))
+            env = dict(repo.env, XDG_CONFIG_HOME=str(inside))
+            code, out, err = repo.ha("estimate", GOAL, "--format", "json", env=env, cwd=other)
+            if code != 65 or "repository" not in out + err:
+                problems.append(f"configuration in the main checkout, goal in a linked worktree: estimate exit {code}: {(out + err)[-300:]}")
         require(self, not problems, "cap-source-missing", "; ".join(problems))
 
 
-SELECTED_GO = ("^(TestScenarios/(start-budget-minimum|budget-runs|budget-v3-change|budget-only-complete|"
-               "rules-v4-preapprove|rules-v4-preapprove-quoted|rules-v4-reopen-decrease|reopen-after-done)|"
-               "TestEstimateAC8|TestStartBudgetAC9|TestEstimateAC10|TestBaselineBudgetAC8_TotalLimit|"
-               "TestBaselineBudgetAC9_TimeUnchanged|TestBaselineBudgetAC10_ConsentAndValidation|"
-               "TestBaselineBudgetAC13_ReopenAndCompletion|TestBaselineBudgetAC14_Legacy)$")
+# Existing budget tests of ./cmd/ha, by name. Scenarios are subtests of TestScenarios.
+SELECTED_SCENARIOS = ("start-budget-minimum", "budget-runs", "budget-v3-change", "budget-only-complete",
+                      "rules-v4-preapprove", "rules-v4-preapprove-quoted", "rules-v4-reopen-decrease", "reopen-after-done")
+SELECTED_TESTS = ("TestEstimateAC8", "TestStartBudgetAC9", "TestEstimateAC10", "TestBaselineBudgetAC8_TotalLimit",
+                  "TestBaselineBudgetAC9_TimeUnchanged", "TestBaselineBudgetAC10_ConsentAndValidation",
+                  "TestBaselineBudgetAC13_ReopenAndCompletion", "TestBaselineBudgetAC14_Legacy")
+SELECTED_RUNS = (("^TestScenarios$/^(" + "|".join(SELECTED_SCENARIOS) + ")$",
+                  ["TestScenarios/" + name for name in SELECTED_SCENARIOS]),
+                 ("^(" + "|".join(SELECTED_TESTS) + ")$", list(SELECTED_TESTS)))
 
 
 class NumericKept(unittest.TestCase):
@@ -288,6 +317,13 @@ class NumericKept(unittest.TestCase):
                 code, out, err = repo.ha("estimate", GOAL, "--format", "json")
                 if code != 0 or '"auto"' in out or '"plan_runs_limit": 60' not in out:
                     problems.append(f"numeric estimate with a {name} configuration: exit {code}: {(out + err)[-300:]}")
+            # A numeric item keeps today's meaning even when an automatic item follows it.
+            repo = Repo(Path(directory) / "both", ha, changes=10, runs="60\n- 검증 실행: " + AUTO)
+            repo.write_config(config(10))
+            code, out, err = repo.start()
+            records = repo.records()
+            if code != 0 or (records[0].get("budget") if records else None) != {"runs": 60, "elapsed_seconds": 36000, "cost": "미관측"}:
+                problems.append(f"numeric 60 followed by {AUTO}: exit {code}: {(out + err)[-300:]}")
             # Below the minimum the start is refused as before.
             repo = Repo(Path(directory) / "short", ha, changes=34, runs="60")
             repo.write_config(config(1000))
@@ -315,16 +351,19 @@ class NumericKept(unittest.TestCase):
                 _, report = repo.status()
                 if (report.get("budget") or {}).get("runs_limit") != 80:
                     problems.append(f"after a PLAN edit runs_limit is {(report.get('budget') or {}).get('runs_limit')}")
-        env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "HA_"))}
+        env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "HA_")) and k != "XDG_CONFIG_HOME"}
         env.update(GOTOOLCHAIN="local", GOFLAGS="-mod=readonly")
-        result = run(["go", "test", "-count=1", "-run", SELECTED_GO, "./cmd/ha"], ROOT, env, timeout=1500)
-        output = (result.stdout + result.stderr).decode(errors="replace")
-        if "no tests to run" in output or "[no test files]" in output:
-            raise Unavailable(f"the selected budget tests did not run: {output[-500:]}")
-        if result.returncode:
-            if "--- FAIL" not in output:
+        for pattern, names in SELECTED_RUNS:
+            result = run(["go", "test", "-count=1", "-v", "-run", pattern, "./cmd/ha"], ROOT, env, timeout=1500)
+            output = (result.stdout + result.stderr).decode(errors="replace")
+            passed = {line.split("--- PASS: ", 1)[1].split(" ", 1)[0] for line in output.splitlines() if "--- PASS: " in line}
+            failed = {line.split("--- FAIL: ", 1)[1].split(" ", 1)[0] for line in output.splitlines() if "--- FAIL: " in line}
+            if result.returncode and not failed:
                 raise Unavailable(f"go test exit {result.returncode} without a failed test: {output[-1500:]}")
-            problems.append("existing budget tests failed: " + output[-1500:])
+            if failed:
+                problems.append(f"existing budget tests failed: {sorted(failed)}")
+            elif not set(names) <= passed:
+                raise Unavailable(f"the selected budget tests did not run: {sorted(set(names) - passed)}")
         require(self, not problems, "numeric-budget-changed", "; ".join(problems))
 
 

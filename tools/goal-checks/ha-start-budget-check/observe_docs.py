@@ -4,8 +4,9 @@ The test reads the named files of the checked tree and looks for fixed tokens
 in each: the names and messages this goal's contract gives (PLAN 구현 결정
 R1-R9). A token must be in the named file, and for contracts/bundle.md inside
 its §2.4 section. contracts/core-capabilities.md must no longer say that the
-Core adds no start refusal. The guides' examples use the synthetic goal path
-docs/specs/example. Wording beyond the tokens is left to review.
+Core adds no start refusal. The usage guides' examples use the synthetic goal
+path docs/specs/example, and no guide shows a home folder path (`/Users/`,
+`/home/`, `C:\\Users\\`). Wording beyond the tokens is left to review.
 """
 from pathlib import Path
 import sys
@@ -31,6 +32,9 @@ TOKENS = {
 BUNDLE_SECTION = "### 2.4 예산 (`## 예산`)"
 BUNDLE_TOKENS = [MARKER, "ha.json"]
 REMOVED = {"contracts/core-capabilities.md": "Core 자체에 새 시작 강제 차단을 추가하는 계약도 아니다"}
+GUIDES = ("guides/USAGE.md", "guides/USAGE.en.md", "guides/OPERATIONS.md", "guides/OPERATIONS.en.md")
+# Fixed markers of a real home folder on the three platforms.
+LOCAL_PATHS = ("/Users/", "/home/", "C:\\Users\\")
 
 
 def text(path):
@@ -68,6 +72,11 @@ class Docs(unittest.TestCase):
             absent = [t for t in BUNDLE_TOKENS if t not in bundle]
             if absent:
                 problems.append(f"contracts/bundle.md §2.4 lacks {absent}")
+        for path in GUIDES:
+            body = text(path)
+            local = [marker for marker in LOCAL_PATHS if marker in body]
+            if local:
+                problems.append(f"{path} shows a local user path {local}; examples are synthetic")
         for path, sentence in REMOVED.items():
             if sentence in text(path):
                 problems.append(f"{path} still says {sentence!r}")

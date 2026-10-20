@@ -228,8 +228,8 @@ class Repo:
 
     # --- ha -----------------------------------------------------------------
 
-    def ha(self, *args, env=None, timeout=300):
-        result = run([self.ha_path, *args], self.root, env or self.env, timeout=timeout)
+    def ha(self, *args, env=None, timeout=300, cwd=None):
+        result = run([self.ha_path, *args], cwd or self.root, env or self.env, timeout=timeout)
         return result.returncode, result.stdout.decode(errors="replace"), result.stderr.decode(errors="replace")
 
     def start(self, *extra, env=None):
@@ -237,12 +237,19 @@ class Repo:
         return self.ha("start", GOAL, "--request", REQUEST, "--rules", "run-rules/4", *extra, env=env)
 
     def estimate(self, env=None):
-        """(exit, parsed JSON or None, stdout+stderr) of `ha estimate --format json`."""
+        """(exit, parsed JSON or None, stdout+stderr) of `ha estimate --format json`.
+
+        A refusal (nonzero exit) may print lint problems or a reason instead of
+        JSON; that is an observation and the report is None. A zero exit
+        without a JSON object cannot be read and is Unavailable.
+        """
         code, out, err = self.ha("estimate", GOAL, "--format", "json", env=env)
         try:
             report = json.loads(out)
         except ValueError:
             report = None
+        if code == 0 and not isinstance(report, dict):
+            raise Unavailable(f"ha estimate exited 0 without a JSON object: {(out + err)[-500:]}")
         return code, report, out + err
 
     def estimate_md(self, env=None):

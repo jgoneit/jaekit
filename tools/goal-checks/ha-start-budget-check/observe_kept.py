@@ -2,18 +2,24 @@
 
 AC-23 runs one fixed flow on a synthetic goal with a numeric budget and a
 skill without a declaration, using `ha` built from the checked tree, and
-compares each command's exit code and normalized output, and the shape of
-every runs.jsonl line, with kept-outputs.json. That file holds the same flow's
+compares each command's exit code and normalized output, and every
+runs.jsonl line, with kept-outputs.json. That file holds the same flow's
 result from `ha` built at the commit this goal started from; it was written
 once by `python3 observe_kept.py --write-kept <ha>` before the implementation
-and is the content this condition must keep. Normalization replaces times,
-hexadecimal identifiers, numbers and temporary paths, so the comparison is
-about wording, fields, order and exit codes. AC-23 also runs the existing Go
-tests of ./cmd/ha and ./internal/..., which include the behavior scenarios.
+and is the content this condition must keep. Normalization replaces only what
+differs between two runs of the same build: times, hexadecimal identifiers
+(commits, digests), temporary paths, measured durations (`duration_ms`,
+`timing`) and elapsed seconds (`elapsed_seconds`, `span_seconds`, and the
+same numbers in the Markdown budget lines). Every other number, including
+seqs, limits, counts, exit codes and versions, is compared as it is. AC-23
+also runs the existing Go tests of ./cmd/ha and ./internal/..., which include
+the behavior scenarios.
 
-AC-33 compares contracts/regressions.json with the copy kept next to this
-file, runs tools/regression_map.py against that copy, and runs every check of
-every protected route. No history is read.
+AC-33 compares every route and invariant of contracts/regressions.json
+before this goal (the copy kept next to this file) with the current registry,
+runs tools/regression_map.py against that copy, and runs every check of every
+protected route. Routes may be added; none may change or disappear. No
+history is read.
 """
 import json
 import os
@@ -29,26 +35,33 @@ from budget_common import GOAL, HERE, ROOT, Repo, Unavailable, build, require, r
 KEPT = HERE / "kept-outputs.json"
 HEX = re.compile(r"\b[0-9a-f]{7,64}\b")
 TIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})")
-NUMBER = re.compile(r"\d+")
+# Elapsed seconds in the Markdown budget lines: "N/14400 seconds" and "window span N seconds".
+ELAPSED = re.compile(r"\b\d+(?=/\d+ seconds)|(?<=window span )\d+(?= seconds)")
+# JSON values measured by the clock: replaced whole, wherever they appear. A
+# status budget's elapsed_seconds is measured too; a start record's budget
+# elapsed_seconds is the limit and is compared.
+MEASURED = {"duration_ms", "timing", "span_seconds"}
+
+
+def measured(key, siblings):
+    return key in MEASURED or (key == "elapsed_seconds" and "elapsed_limit_seconds" in siblings)
 
 
 def normalize(text, temp):
     text = text.replace(str(temp), "<TMP>")
     text = TIME.sub("<TIME>", text)
     text = HEX.sub("<HEX>", text)
-    return NUMBER.sub("N", text)
+    return ELAPSED.sub("<SECONDS>", text)
 
 
 def shape(value, temp):
     if isinstance(value, dict):
-        return {k: shape(v, temp) for k, v in value.items()}
+        return {k: "<MEASURED>" if measured(k, value) else shape(v, temp) for k, v in value.items()}
     if isinstance(value, list):
         return [shape(v, temp) for v in value]
-    if isinstance(value, bool) or value is None:
-        return value
-    if isinstance(value, (int, float)):
-        return "N"
-    return normalize(str(value), temp)
+    if isinstance(value, str):
+        return normalize(value, temp)
+    return value
 
 
 def output(text, temp):
@@ -125,7 +138,7 @@ def first_difference(got, want, where="$"):
 
 
 def go_env():
-    env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "HA_"))}
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "HA_")) and k != "XDG_CONFIG_HOME"}
     env.update(GOTOOLCHAIN="local", GOFLAGS="-mod=readonly")
     return env
 
@@ -188,10 +201,10 @@ class Registry(unittest.TestCase):
         except ValueError:
             raise Unavailable(f"regression_map.py: {result.stderr.decode(errors='replace')[-800:]}") from None
         comparison = report.get("comparison", {})
-        if result.returncode or any(comparison.get(k) for k in ("lost_protection", "changed_invariants", "added_routes")):
+        if result.returncode or any(comparison.get(k) for k in ("lost_protection", "changed_invariants", "affected_routes")):
             problems.append(f"registry comparison: exit {result.returncode}, {comparison}")
-        if sorted(report.get("protected", [])) != sorted(old):
-            problems.append(f"protected routes: {sorted(report.get('protected', []))}")
+        if not set(old) <= set(report.get("protected", [])):
+            problems.append(f"routes no longer protected: {sorted(set(old) - set(report.get('protected', [])))}")
         require(self, not problems, "protected-route-changed", "; ".join(problems))
         go_runs, python_runs = {}, {}
         for route in registry["routes"]:
