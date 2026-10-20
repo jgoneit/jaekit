@@ -81,6 +81,33 @@ func TestClassification(t *testing.T) {
 	}
 }
 
+// Criterion IDs written next to each other are all found, and a rule
+// document whose path holds a space can be linked with or without a line.
+func TestLinksToAdjacentIDsAndSpacedPaths(t *testing.T) {
+	criteria := []Document{newDocument("SPEC.md", "/r/SPEC.md", []byte("- AC-1,AC-2: both commands refuse empty names\n- XAC-3 is not an ID\n"))}
+	if got := strings.Join(criteriaIDs(criteria), ","); got != "AC-1,AC-2" {
+		t.Errorf("criterion IDs: %s", got)
+	}
+	rules := []Document{newDocument("rules/API rules.md", "/r/rules/API rules.md", []byte("a\nb\nc\n"))}
+	c := classifier{checkPaths: []string{"checks/**"}, targets: LinkTargets{CriteriaIDs: criteriaIDs(criteria),
+		Rules: ruleTargets("/r", rules)}}
+	check := "head/checks/test_app.py:2"
+	for _, tc := range []struct {
+		values map[string]any
+		class  string
+	}{
+		{map[string]any{"link_kind": "criterion", "link": "AC-2"}, "defect"},
+		{map[string]any{"location": check, "check_impact": "contract_violation", "link_kind": "rule", "link": "rules/API rules.md:2"}, "defect"},
+		{map[string]any{"location": check, "check_impact": "contract_violation", "link_kind": "rule", "link": "rules/API rules.md:2 (the second rule)"}, "defect"},
+		{map[string]any{"location": check, "check_impact": "contract_violation", "link_kind": "rule", "link": "rules/API rules.md"}, "defect"},
+		{map[string]any{"location": check, "check_impact": "contract_violation", "link_kind": "rule", "link": "rules/API rules.md:4"}, "hardening"},
+	} {
+		if f := c.classify("codex", 1, rawFinding("F1", tc.values)); f.Class != tc.class {
+			t.Errorf("%v: %s (%s)", tc.values, f.Class, f.ClassReason)
+		}
+	}
+}
+
 func TestGlob(t *testing.T) {
 	for _, tc := range []struct {
 		pattern, name string

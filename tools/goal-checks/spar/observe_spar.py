@@ -99,6 +99,16 @@ def tool(name):
     return path
 
 
+def startable(name):
+    """A program a block needs must also start. It runs once with --version;
+    any exit status means it started (BSD tools refuse the option), and run()
+    turns a program that cannot start, such as one with a broken interpreter
+    line, into Unavailable."""
+    path = tool(name)
+    run([path, "--version"], timeout=20)
+    return path
+
+
 _BUILT = {}
 # Set only in the platform child mode (see platform_suite): an inherited
 # SPAR_OBSERVE_BINARY never replaces the checked tree's spar otherwise.
@@ -1593,8 +1603,13 @@ def run_install(case, block, with_spar, violation):
         # The block's programs must be able to start: a missing one, or a
         # command bash cannot start (exit 126 or 127), is an execution error.
         for program in INSTALL_PROGRAMS:
-            tool(program)
-        if not (shutil.which("sha256sum") or shutil.which("shasum")):
+            startable(program)
+        # The block uses sha256sum when there is one, and shasum otherwise.
+        if shutil.which("sha256sum"):
+            startable("sha256sum")
+        elif shutil.which("shasum"):
+            startable("shasum")
+        else:
             raise Unavailable("neither sha256sum nor shasum is on PATH")
         result = run([tool("bash"), "-c", block], root, env, timeout=120)
         signalled(result, "release install")
@@ -1795,7 +1810,7 @@ class Release(unittest.TestCase):
         dist = temp / "dist"
         # The verification step runs python3; a missing one, or a command bash
         # cannot start, is an execution error, never a violation.
-        tool("python3")
+        startable("python3")
         result = run([tool("bash"), "-c", "set -euo pipefail\n" + verify_script], ROOT, env, timeout=900)
         signalled(result, "release verification")
         not_started(result, "release verification")

@@ -48,12 +48,27 @@ type LinkTargets struct {
 	Rules       []LinkDocument `json:"rules"`
 }
 
-var criterionID = regexp.MustCompile(`(?:^|[^A-Za-z0-9])(AC-[0-9]+)(?:[^0-9]|$)`)
-var linkLine = regexp.MustCompile(`^(.+?):([0-9]+)(?:[-–][0-9]+)?$`)
+var criterionID = regexp.MustCompile(`AC-[0-9]+`)
 
-// locationLine is the start of a finding location: a path, then :<line> or
-// :<line>-<line>, then the end or a space.
-var locationLine = regexp.MustCompile(`^(.+?):[0-9]+(?:[-–][0-9]+)?(?:\s|$)`)
+// locationLine is the start of a finding location or a rule link: a path,
+// then :<line> or :<line>-<line>, then the end or a space.
+var locationLine = regexp.MustCompile(`^(.+?):([0-9]+)(?:[-–][0-9]+)?(?:\s|$)`)
+
+// criterionIDs finds the AC-n IDs in a text. An ID must not follow a letter
+// or digit, and the check does not consume the character before it, so IDs
+// written next to each other, as in "AC-1,AC-2", are all found.
+func criterionIDs(text string) []string {
+	var ids []string
+	for _, at := range criterionID.FindAllStringIndex(text, -1) {
+		if at[0] > 0 {
+			if b := text[at[0]-1]; b < 0x80 && (b >= '0' && b <= '9' || b >= 'A' && b <= 'Z' || b >= 'a' && b <= 'z') {
+				continue
+			}
+		}
+		ids = append(ids, text[at[0]:at[1]])
+	}
+	return ids
+}
 
 func lineCount(data []byte) int {
 	if len(data) == 0 {
@@ -69,8 +84,8 @@ func lineCount(data []byte) int {
 func criteriaIDs(docs []Document) []string {
 	seen := map[string]bool{}
 	for _, d := range docs {
-		for _, m := range criterionID.FindAllStringSubmatch(d.text, -1) {
-			seen[m[1]] = true
+		for _, id := range criterionIDs(d.text) {
+			seen[id] = true
 		}
 	}
 	ids := make([]string, 0, len(seen))
@@ -135,7 +150,7 @@ func (c classifier) verifyLink(kind, link string) bool {
 	link = strings.TrimSpace(link)
 	switch kind {
 	case "criterion":
-		ids := regexp.MustCompile(`AC-[0-9]+`).FindAllString(link, -1)
+		ids := criterionIDs(link)
 		if len(ids) == 0 {
 			return false
 		}
@@ -146,31 +161,45 @@ func (c classifier) verifyLink(kind, link string) bool {
 		}
 		return true
 	case "rule", "contract":
-		ref := link
-		if fields := strings.Fields(ref); len(fields) > 0 {
-			ref = fields[0]
-		}
+		// A link has a location's form: the path, which may hold spaces,
+		// ends at the first :<line> that the end or a space follows.
+		// Without a line, the whole link names the document, or else its
+		// first word does.
+		refs := []string{link}
 		line := 0
-		if m := linkLine.FindStringSubmatch(ref); m != nil {
-			ref = m[1]
+		if m := locationLine.FindStringSubmatch(link); m != nil {
+			refs = []string{m[1]}
 			if line, _ = strconv.Atoi(m[2]); line < 1 {
 				return false // a line that is given must exist
 			}
+		} else if fields := strings.Fields(link); len(fields) > 1 {
+			refs = append(refs, fields[0])
 		}
-		ref = strings.TrimPrefix(strings.TrimPrefix(ref, "head/"), "./")
-		for _, d := range c.targets.Rules {
-			if contains(d.Names, ref) {
-				return line == 0 || line <= d.Lines
-			}
-		}
-		if kind == "contract" && ref != "" && c.repo != "" {
-			if data, ok := fileAt(c.repo, c.head, ref); ok {
-				return line == 0 || line <= lineCount(data)
+		for _, ref := range refs {
+			ref = strings.TrimPrefix(strings.TrimPrefix(ref, "head/"), "./")
+			if ok, found := c.linkTarget(kind, ref, line); found {
+				return ok
 			}
 		}
 		return false
 	}
 	return false
+}
+
+// linkTarget looks up the document a rule or contract link names, and
+// whether a given line exists in it.
+func (c classifier) linkTarget(kind, ref string, line int) (ok, found bool) {
+	for _, d := range c.targets.Rules {
+		if contains(d.Names, ref) {
+			return line == 0 || line <= d.Lines, true
+		}
+	}
+	if kind == "contract" && ref != "" && c.repo != "" {
+		if data, exists := fileAt(c.repo, c.head, ref); exists {
+			return line == 0 || line <= lineCount(data), true
+		}
+	}
+	return false, false
 }
 
 // classify applies the class rules: a check-path finding is a defect only
