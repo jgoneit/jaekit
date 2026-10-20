@@ -217,7 +217,31 @@
         },
         "readable": "hardening",
         "unreadable": "note"
+      },
+      {
+        "values": {
+          "proposed_class": "note",
+          "check_impact": "contract_violation",
+          "link_kind": "rule",
+          "link": "rules.md:1"
+        },
+        "readable": "defect",
+        "unreadable": "defect"
+      },
+      {
+        "values": {
+          "proposed_class": "note",
+          "check_impact": "contract_violation",
+          "link_kind": "rule",
+          "link": "rules.md:9"
+        },
+        "readable": "hardening",
+        "unreadable": "note"
       }
+    ],
+    "rule_document": [
+      "rules.md",
+      2
     ]
   },
   "links": {
@@ -433,6 +457,40 @@
             "kind": "rule",
             "link": "review.md:1",
             "confirmed": true,
+            "kept": true
+          }
+        ]
+      },
+      {
+        "outside_rules": [
+          [
+            "review.md",
+            10
+          ]
+        ],
+        "head": [
+          [
+            "review.md",
+            2
+          ]
+        ],
+        "cases": [
+          {
+            "kind": "contract",
+            "link": "review.md:5",
+            "confirmed": true,
+            "kept": true
+          },
+          {
+            "kind": "contract",
+            "link": "review.md:2",
+            "confirmed": true,
+            "kept": true
+          },
+          {
+            "kind": "contract",
+            "link": "review.md:11",
+            "confirmed": false,
             "kept": true
           }
         ]

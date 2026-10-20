@@ -577,6 +577,9 @@ class Locations(unittest.TestCase):
         v = "unreadable-location-misclassified"
         w, table = location_world(self, v, [{"name": "codex", "preset": "codex"}])
         classes = forms()["unreadable_classes"]
+        rule_doc = w.tmp / "rules" / classes["rule_document"][0]
+        rule_doc.parent.mkdir(parents=True, exist_ok=True)
+        rule_doc.write_text(lines_of(classes["rule_document"][1]))
         findings, expected = [], {}
         for i, c in enumerate(classes["cases"]):
             for kind, location in (("unreadable", classes["location"]), ("readable", classes["readable_location"])):
@@ -585,7 +588,7 @@ class Locations(unittest.TestCase):
                 expected[fid] = (kind, c[kind], c["values"])
         w.control({"codex": {"findings": findings}})
         out = "reviews/cls/01-candidate"
-        w.round(out)
+        w.round(out, extra=("--rules", rule_doc))
         require(self, w.reviewer_state(out, "codex").get("status") == "completed", v,
                 "unreadable locations changed the reviewer's status")
         found = by_reviewer_id(w.findings(out))
@@ -631,10 +634,12 @@ def link_world(case, violation, group, reviewers=None):
     """One G8 group: its rule documents, head files, links, gitlinks and
     base-only files, and the documents passed with --rules."""
     w = World(case, violation)
-    base_files = ["app/main.go", "checks/t.py"]
+    # The findings' locations (head/app/main.go:1, head/checks/t.py:1) name
+    # files of both copies, so every finding here has a readable location.
+    for rel in ("app/main.go", "checks/t.py"):
+        w.write(rel, lines_of(3))
     for rel, n in group.get("base_only", []):
         w.write(rel, lines_of(n))
-        base_files.append(rel)
     w.base = w.commit("base")
     for rel, _ in group.get("base_only", []):
         w.remove(rel)
@@ -694,6 +699,9 @@ class Links(unittest.TestCase):
         v = "link-misverified"
         for group in forms()["links"]["groups"]:
             run_link_group(self, group, v)
+            # The result does not depend on the order of --rules.
+            if len(group.get("rules", [])) > 1:
+                run_link_group(self, dict(group, rules=list(reversed(group["rules"]))), v)
         # R6-1: a range past the end of a two-line document is not a link, so
         # a check-path contract violation is deferred hardening and a
         # defect proposal elsewhere is a note.
@@ -1066,8 +1074,10 @@ class Sources(unittest.TestCase):
         missing = w.tmp / "missing.toml"
         broken = w.tmp / "broken.toml"
         os.symlink(w.tmp / "nowhere.toml", broken)
+        loop = w.tmp / "loop.toml"
+        os.symlink(loop, loop)
         w.user_config(reviewers_toml({"name": "codex", "preset": "codex"}))
-        for path in (missing, broken):
+        for path in (missing, broken, loop):
             view = config_view(self, w, v, env=w.env(SPAR_CONFIG=path))
             skipped = (view.get("source") or {}).get("skipped") or []
             require(self, str(path) in skipped and names(view) == ["codex"], v,
@@ -1344,6 +1354,8 @@ def waits(case, proc, err, violation, label):
         if proc.poll() is not None:
             break
         time.sleep(0.1)
+    if proc.poll() is not None and proc.returncode < 0:
+        raise Unavailable(f"{label} ended by signal {-proc.returncode}")
     require(case, proc.poll() is None and "waiting" in err.read_text(errors="replace"), violation,
             f"{label} did not wait for the series lock (exit {proc.poll()}): {err.read_text(errors='replace')[-300:]}")
 
@@ -1379,10 +1391,27 @@ class Locks(unittest.TestCase):
         try:
             for (proc, err), (name, _) in zip(procs, replies):
                 waits(self, proc, err, v, f"spar record {name}")
-            gate = w.spar_run("gate", out, "--expect-head", w.head, "--out", "reviews/lock/gate.json", timeout=30)
-            require(self, gate.returncode in (0, 3, 4), v, f"spar gate under the lock: {text(gate)[-300:]}")
+            gate, gate_err = start(w, ["gate", out, "--expect-head", w.head, "--out", "reviews/lock/gate.json"], "gate")
+            try:
+                gate.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                pass
         finally:
             release_lock(fd)
+        if gate.poll() is None:
+            # Still running under the lock: it finishing soon after the lock
+            # is released shows that it waited for it.
+            try:
+                gate.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                gate.kill()
+                gate.wait()
+                raise Unavailable("spar gate did not end, with or without the series lock") from None
+            require(self, False, v, "spar gate waited for the series lock")
+        if gate.returncode < 0:
+            raise Unavailable(f"spar gate ended by signal {-gate.returncode}")
+        require(self, gate.returncode in (0, 3, 4) and "waiting" not in gate_err.read_text(errors="replace"), v,
+                f"spar gate under the lock: exit {gate.returncode}: {gate_err.read_text(errors='replace')[-300:]}")
         for (proc, err), (name, _) in zip(procs, replies):
             finish(self, proc, err, v, f"spar record {name}")
         states = {name: w.reviewer_state(out, name).get("status") for name, _ in replies}
@@ -1422,18 +1451,19 @@ class Locks(unittest.TestCase):
 CONSUMERS = {
     "G1": ["spar run", "spar record"], "G2": ["spar run", "spar record"], "G3": ["spar run", "spar record"],
     "G4": ["spar run", "spar record", "summary.md"], "G5": ["spar run", "spar record"], "G6": ["spar run", "spar record"],
-    "G7": ["findings.json", "in_check_paths", "ledger.jsonl", "summary.md", "auto_deferred", "packet.md",
+    "G7": ["findings.json", "in_check_paths", "class", "ledger.jsonl", "summary.md", "auto_deferred", "packet.md",
            "spar run", "spar record"],
-    "G8": ["findings.json", "packet.md", "spar run", "spar record"],
-    "G9": ["links.criteria_ids", "findings.json", "packet.md"],
-    "G10": ["spar run"], "G11": ["agy"], "G12": ["round.json", "summary.md"], "G13": ["attempts", "summary.md"],
+    "G8": ["findings.json", "class", "packet.md", "spar run", "spar record"],
+    "G9": ["links.criteria_ids", "findings.json", "class", "packet.md"],
+    "G10": ["spar run"], "G11": ["agy"], "G12": ["round.json", "summary.md"],
+    "G13": ["fallback_model", "attempts", "summary.md"],
     "G14": ["spar run"], "G15": ["spar record --transcript", "warnings"],
     "G16": ["spar config", "spar run"], "G17": ["spar config", "spar run"], "G18": ["spar config", "spar run"],
-    "G19": ["spar config", "spar run", "round.json"],
-    "G20": ["spar config", "spar run", "--reviewers", "spar record", "spar gate"],
-    "G21": ["spar config", "spar run"], "G22": ["spar config", "spar run", "packet.md"],
-    "G23": ["spar config", "spar run"], "G24": ["in_check_paths", "growth", "packet.md"],
-    "G25": ["spar config", "spar run"], "G26": ["packet.md", "criteria_digest"],
+    "G19": ["spar config", "spar run", "round.json", "timeout_seconds"],
+    "G20": ["spar config", "spar run", "--reviewers", "-F<n>", "spar record", "spar gate"],
+    "G21": ["spar config", "spar run"], "G22": ["spar config", "spar run", "caps", "packet.md"],
+    "G23": ["spar config", "spar run", "G26"], "G24": ["in_check_paths", "growth", "packet.md"],
+    "G25": ["spar config", "spar run"], "G26": ["packet.md", "criteria_digest", "G7", "G8"],
     "G27": ["spar run", "spar triage", "spar gate"], "G28": ["spar run", "spar extend", "spar gate"],
     "G29": ["spar gate"], "G30": ["spar triage", "spar gate"], "G31": ["spar run", "spar extend"],
     "G32": ["spar run", "spar record", "spar triage", "spar extend", "spar gate"],
@@ -1512,6 +1542,33 @@ class Consumers(unittest.TestCase):
                 reviewer, fid = e.get("finding").rsplit("-", 1)
                 auto.setdefault(reviewer, set()).add(fid)
         require(self, auto.get("codex") == auto.get("native"), v, "run and record defer different findings")
+        # The classification of unreadable locations is the same in run and
+        # record, neither defers it, and the summary does not show an
+        # unreadable hardening finding as waiting for a disposition.
+        classes = forms()["unreadable_classes"]
+        w3, _ = location_world(self, v, [{"name": "codex", "preset": "codex"}, {"name": "native", "preset": "native"}])
+        rule_doc = w3.tmp / "rules" / classes["rule_document"][0]
+        rule_doc.parent.mkdir(parents=True, exist_ok=True)
+        rule_doc.write_text(lines_of(classes["rule_document"][1]))
+        unreadable = [finding(f"F{i + 1}", location=classes["location"], **c["values"]) for i, c in enumerate(classes["cases"])]
+        w3.control({"codex": {"findings": unreadable}})
+        out3 = "reviews/agree/02-classes"
+        w3.round(out3, extra=("--rules", rule_doc))
+        result = w3.record(out3, "native", w3.native_reply(unreadable))
+        require(self, result.returncode == 0, v, f"spar record exited {result.returncode}: {text(result)[-400:]}")
+        by = {}
+        for f in w3.findings(out3):
+            by.setdefault(f.get("reviewer"), {})[f.get("reviewer_id")] = tuple(f.get(k) for k in keys)
+        require(self, by.get("codex") and by.get("codex") == by.get("native"), v,
+                "spar run and spar record classify unreadable locations differently")
+        entries = [e.get("finding") for e in w3.ledger(out3)]
+        require(self, not entries, v, f"unreadable locations have ledger entries: {entries}")
+        summary = w3.summary(out3)
+        for f in w3.findings(out3):
+            if f.get("class") == "hardening":
+                cells = [c.strip() for c in (summary_row(summary, f.get("id")) or "").strip("|").split("|")]
+                require(self, len(cells) > 3 and "open" not in cells[3], v,
+                        f"summary.md shows an unreadable hardening finding as open: {cells[:4]}")
         # Criterion IDs: the IDs of the criteria document are exactly the ones a link can name.
         crit = forms()["criteria"]
         w2, out2, _ = criteria_round(self, v, [{"link": i, "confirmed": True} for i in crit["ids"]]
@@ -1606,8 +1663,13 @@ class Products(unittest.TestCase):
         for rel, digest in sorted(digests.items()):
             path = ROOT / rel
             require(self, path.is_file() and sha(path.read_bytes()) == digest, v, f"{rel} changed")
-        listed = {str(p.relative_to(ROOT)) for d in ("plugins/spec", "plugins/seal", "plugins/spar", "tools/release")
-                  for p in (ROOT / d).rglob("*") if p.is_file() and "__pycache__" not in p.parts}
+        # Tracked files only: an ignored local file (.DS_Store) is not a product file.
+        try:
+            tracked = subprocess.run(["git", "-C", str(ROOT), "ls-files", "-z", "--", "plugins/spec", "plugins/seal",
+                                      "plugins/spar", "tools/release"], capture_output=True, check=True).stdout
+        except (OSError, subprocess.CalledProcessError) as error:
+            raise Unavailable(f"git ls-files: {error}") from None
+        listed = {rel for rel in tracked.decode("utf-8", "surrogateescape").split("\0") if rel}
         kept = {rel for rel in digests if rel.startswith(("plugins/spec/", "plugins/seal/", "plugins/spar/", "tools/release/"))}
         require(self, listed == kept, v, f"files added or removed: {sorted(listed ^ kept)[:5]}")
 
