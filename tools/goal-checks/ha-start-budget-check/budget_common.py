@@ -265,9 +265,9 @@ class Repo:
         Only the exit codes ha's contract gives that command (run-record.md
         §1 and §4.3) are observations. Any other code, such as 70 for an
         internal error or a Windows termination status, a nonzero exit that
-        prints nothing, and a Go runtime crash (a line starting `panic: ` or
-        `fatal error: ` and a `goroutine N [state]:` trace header on stderr,
-        exit 2) are
+        prints nothing, and a Go runtime crash (the runtime always exits 2,
+        with a line starting `panic: ` or `fatal error: ` and a
+        `goroutine N [state]:` trace header on stderr) are
         Unavailable: they carry no evidence about the requirement.
         """
         result = run([self.ha_path, *args], cwd or self.root, env or self.env, timeout=timeout)
@@ -277,7 +277,7 @@ class Repo:
             raise Unavailable(f"ha {args[0]} exited {code}, which ha's contract does not give: {(out + err)[-500:]}")
         if code and not (out + err).strip():
             raise Unavailable(f"ha {args[0]} exited {code} without any output")
-        if code and GO_CRASH.search(err) and GO_TRACE.search(err):
+        if code == 2 and GO_CRASH.search(err) and GO_TRACE.search(err):
             raise Unavailable(f"ha {args[0]} crashed (Go runtime, exit {code}): {err[:500]}")
         return code, out, err
 
