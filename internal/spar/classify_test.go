@@ -234,3 +234,20 @@ func TestAgyLargePacketGoesThroughTheWorkspace(t *testing.T) {
 		t.Fatal("the packet file is not in the workspace manifest")
 	}
 }
+
+// agy 1.4.3 reads files with read_file; tools that write stay disallowed.
+func TestAgyReadTools(t *testing.T) {
+	dir := t.TempDir()
+	spec := agySpec(Reviewer{Name: "agy", TimeoutSeconds: 60}, "m", "agy",
+		runPaths{workspace: dir, dir: dir, schema: dir + "/schema.json"}, []byte("packet"))
+	tool := func(name string) map[string]any {
+		return map[string]any{"step_update": map[string]any{"step_type": "tool", "tool_name": name,
+			"tool_info": map[string]any{"parameters": map[string]any{"Path": "head/app.py"}}}}
+	}
+	for name, allowed := range map[string]bool{"read_file": true, "view_file": true, "list_dir": true,
+		"write_to_file": false, "replace_file_content": false} {
+		if got := spec.checkEvent(tool(name)) == ""; got != allowed {
+			t.Errorf("agy tool %s: allowed %v, want %v", name, got, allowed)
+		}
+	}
+}
