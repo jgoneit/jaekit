@@ -257,9 +257,11 @@ class Repo:
         """(exit, stdout, stderr) of one `ha` command.
 
         Only the exit codes ha's contract gives that command (run-record.md
-        §1 and §4.3) are observations. Any other code, such as 70 for an internal error or
-        a Windows termination status, and a nonzero exit that prints nothing
-        are Unavailable: they carry no evidence about the requirement.
+        §1 and §4.3) are observations. Any other code, such as 70 for an
+        internal error or a Windows termination status, a nonzero exit that
+        prints nothing, and a Go panic (`panic: ` and a goroutine trace on
+        stderr, exit 2) are Unavailable: they carry no evidence about the
+        requirement.
         """
         result = run([self.ha_path, *args], cwd or self.root, env or self.env, timeout=timeout)
         code = result.returncode
@@ -268,6 +270,8 @@ class Repo:
             raise Unavailable(f"ha {args[0]} exited {code}, which ha's contract does not give: {(out + err)[-500:]}")
         if code and not (out + err).strip():
             raise Unavailable(f"ha {args[0]} exited {code} without any output")
+        if code and err.startswith("panic: ") and "\ngoroutine " in err:
+            raise Unavailable(f"ha {args[0]} crashed (Go panic, exit {code}): {err[:500]}")
         return code, out, err
 
     def start(self, *extra, env=None):
