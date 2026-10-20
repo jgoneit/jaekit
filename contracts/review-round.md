@@ -60,7 +60,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 - `reviewed_head`는 패킷 head의 앞 7자 이상이어야 한다. `verdict`는 `no_blocking_findings`, `blocking_findings`, `could_not_review`. 지적의 `angle`을 포함한 열거형 값은 schema의 값 중 하나여야 한다. 제공자가 schema를 강제하지 않는 `native`·`command` 리뷰어의 결과에도 이 절의 검사(최상위 필수 키, `reviewed_head`, `verdict`, 각도 항목, 지적의 필수 문자열 필드와 열거형 값)를 한다. 그 밖의 schema 조건은 [지원하는 형식](#10-지원하는-형식)을 따른다.
 - 요청한 각도는 모두 `angles_checked`나 `angles_unchecked`에 있어야 한다. 둘 다 없거나 하나라도 빠지면 `invalid_output`이다. 각도 항목은 `angles_checked`면 `angle`과 `result`, `angles_unchecked`면 `angle`과 `reason`만 가진다.
 - 지적의 열거값: `proposed_class` `defect|requirement-question|hardening|note`, `link_kind` `criterion|rule|contract|none`, `introduced_by_change`·`regression` `yes|no|unknown`, `check_impact` `false_pass|meaning_inverted|contract_violation|none`, `confidence` `high|medium|low`. 패킷은 `id`를 보고 순서대로 `F1`, `F2`, …로 붙이라고 하지만 `id`는 schema대로 문자열이면 된다. 라운드의 지적 ID는 spar가 리뷰어 결과의 보고 순서대로 매기는 `<리뷰어>-F<n>`(1부터)이고, 리뷰어가 붙인 `id`는 `reviewer_id`로 남는다. 그래서 리뷰어 이름이나 `id`에 `-`가 있거나 `id`가 겹쳐도 라운드 ID는 겹치지 않는다.
-- `location`은 `head/<경로>:<줄>`(또는 `:<줄>-<줄>`)이다. 위치와 `rule`·`contract` 연결은 한 규칙으로 읽는다: 경로에 공백이 있어도 되고, 처음으로 `:<줄>` 뒤에 공백이나 끝이 오는 곳 앞까지가 경로이므로 뒤에 공백과 다른 글(다른 위치 포함)이 붙어도 경로는 그대로다. `:<줄>`이 없으면 위치는 첫 단어를 경로로 읽는다. 위치는 작업공간 사본의 파일이라 접두 `head/`, `base/`, `./` 가운데 하나만 한 번 떼고, 연결은 저장소 경로라 `head/`, `./` 가운데 하나만 한 번 뗀다(연결의 `base/`는 저장소 폴더다). 그래서 저장소의 `head`·`base` 폴더 이름은 남는다.
+- `location`은 `head/<경로>:<줄>`(또는 `:<줄>-<줄>`)이다. spar가 위치를 읽는 방식은 [6절의 읽기 표](#위치연결기준-id-읽기)를 따른다.
 - `could_not_review`는 완료가 아니라 `failed`로 기록한다.
 
 ## 4. 리뷰어 상태
@@ -104,11 +104,21 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 `findings.json`의 항목은 리뷰어 결과의 필드에 `id`(`<리뷰어>-F<n>`, 보고 순서), `reviewer`, `reviewer_id`(리뷰어가 붙인 `id`), `class`, `class_reason`, `path`, `in_check_paths`, `claimed_link_kind`, `claimed_link`을 더한다. `link_kind`와 `link`는 확인된 연결만 남고, 확인되지 않으면 `none`과 빈 문자열이다.
 
+### 위치·연결·기준 ID 읽기
+
+위치, `rule`·`contract` 연결, 기준 ID는 아래 표 하나로 읽는다. 받는 형식은 이 표의 것이 전부이고, 그 밖의 형식은 [10절](#10-지원하는-형식)을 따른다.
+
+| 필드 | 받는 형식 | 경로·ID | 떼는 접두 |
+| --- | --- | --- | --- |
+| `location` | `<접두><경로>:<줄>`, `:<줄>-<줄>`(`-` 또는 `–`). 경로에 공백이 있어도 되고, 뒤에 공백과 다른 글(다른 위치 포함)이 붙어도 된다. `:<줄>`이 없는 위치 | 처음으로 `:<줄>` 뒤에 공백이나 끝이 오는 곳 앞까지가 경로. `:<줄>`이 없으면 첫 단어 | `head/`, `base/`, `./` 가운데 앞에 있는 하나만 한 번(작업공간 사본의 파일이다). `head/base/x`는 `base/x` |
+| `rule`·`contract` 연결 | 위치와 같은 형식. `:<줄>`이 없는 연결 | 위치와 같다. `:<줄>`이 없으면 연결 전체를 문서 이름으로 맞추고, 맞지 않으면 첫 단어로 맞춘다 | `head/`, `./` 가운데 앞에 있는 하나만 한 번. `base/`는 떼지 않는다(연결은 검토하는 head의 문서를 가리키고, `base/`는 저장소 폴더다) |
+| `criterion` 연결과 기준 문서 | `AC-<숫자>`. 쉼표 등으로 붙은 여러 ID(`AC-1,AC-2`) | 영문자·숫자 바로 뒤가 아닌 `AC-<숫자>`를 각각 ID로 읽는다 | 없음 |
+
 연결 확인:
 
-- `criterion`: 연결에 나오는 모든 `AC-n`이 기준 문서에 있어야 한다. 기준 문서와 연결에서 `AC-n`은 영문자·숫자 바로 뒤가 아니면 ID로 읽고, `AC-1,AC-2`처럼 붙어 있어도 각각 읽는다.
-- `rule`: 라운드의 규칙 문서를 이름·경로로 대야 하고, 줄 번호를 대면 그 문서에 그 줄이 있어야 한다(1부터). 연결은 위치와 같은 규칙으로 읽는다(3절). `:<줄>`이 없으면 연결 전체를 문서 이름으로 맞추고, 맞지 않으면 첫 단어로 맞춘다.
-- `contract`: 규칙 문서이거나 head 커밋의 파일이어야 하고, 읽는 방식과 줄 번호 조건은 같다.
+- `criterion`: 연결에 나오는 모든 `AC-n`이 기준 문서에 있어야 한다.
+- `rule`: 라운드의 규칙 문서를 이름·경로로 대야 하고, 줄 번호를 대면 그 문서에 그 줄이 있어야 한다(1부터, `:0`은 없는 줄).
+- `contract`: 규칙 문서이거나 head 커밋의 파일이어야 하고, 줄 번호 조건은 같다.
 
 분류 규칙(위에서 처음 맞는 것):
 
