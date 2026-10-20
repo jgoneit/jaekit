@@ -60,7 +60,7 @@
    "command": "start",
    "exit": 0,
    "stdout": {
-    "text": "started: seq 1, base <HEX>, rules run-rules/4, budget 20 runs / 36000s\nminimum required: 3 runs; plan limit: 20 (retries and optional runs are additional)\n"
+    "text": "started: seq 1, base daa1a862e0fd, rules run-rules/4, budget 20 runs / 36000s\nminimum required: 3 runs; plan limit: 20 (retries and optional runs are additional)\n"
    },
    "stderr": {
     "text": ""
@@ -90,7 +90,7 @@
    "command": "status",
    "exit": 1,
    "stdout": {
-    "text": "## ha status: docs/specs/demo\n\n- status: **incomplete** (exit 1)\n- completion record: none\n- assurance: local (an agent with the same user permissions can change checks and records)\n- check author: executor\n- record head: seq 4 (<HEX>)\n- rules: run-rules/4; skill: plain 1.2.3 (claimed); ha: 0.1.6-dev\n- code: <HEX>, tree clean: yes; goal digest: <HEX>\n- attempts: 3 total; types: 2 check, 1 baseline; outcomes: 0 environment errors, 2 unknown; inputs: 3 current, 0 stale; valid positive evidence: 1 (overlapping axes)\n\n### Unmet\n\n- AC-1 `criterion_error` (executor): seq 3, output `ha log docs/specs/demo 3`\n- AC-3 `manual_unconfirmed` (user)\n- `task_open` (executor)\n\n### Criteria\n\n| ID | kind | required | satisfied | reason | records | attempts |\n| --- | --- | --- | --- | --- | --- | --- |\n| AC-1 | change | yes | no | criterion_error | — | checks 1 (fail 0, error 0), baselines 1 (unexpected pass 0, error 0), stale 0; unknown check 1, baseline 1; baseline fail 0 |\n| AC-2 | maintain | yes | yes | — | 4 | checks 1 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |\n| AC-3 | manual | yes | no | manual_unconfirmed | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |\n\n### Reasons\n\n- `criterion_error` (executor) AC-1\n- `manual_unconfirmed` (user) AC-3\n- `task_open` (executor): required tasks not done or dropped in PROGRESS.md: T001\n\n### Budget\n\n- window from seq 1: 3/20 runs, <SECONDS>/36000 seconds\n- budget revision: 1; remaining: 17 runs; excess: 0 runs; run cap reached: no\n- elapsed leaves out 0 seconds of waits the executor reported (window span <SECONDS> seconds)\n\n### Local output\n\nView with `ha log docs/specs/demo <seq>`; output is never copied into the record.\n\n- seq 2 AC-1 unknown (unsupported_declaration): .git/ha/runs/docs%2Fspecs%2Fdemo/2.log\n- seq 3 AC-1 unknown (unsupported_declaration): .git/ha/runs/docs%2Fspecs%2Fdemo/3.log\n"
+    "text": "## ha status: docs/specs/demo\n\n- status: **incomplete** (exit 1)\n- completion record: none\n- assurance: local (an agent with the same user permissions can change checks and records)\n- check author: executor\n- record head: seq 4 (<RECORD-4:12>)\n- rules: run-rules/4; skill: plain 1.2.3 (claimed); ha: 0.1.6-dev\n- code: daa1a862e0fd, tree clean: yes; goal digest: 805b86780905\n- attempts: 3 total; types: 2 check, 1 baseline; outcomes: 0 environment errors, 2 unknown; inputs: 3 current, 0 stale; valid positive evidence: 1 (overlapping axes)\n\n### Unmet\n\n- AC-1 `criterion_error` (executor): seq 3, output `ha log docs/specs/demo 3`\n- AC-3 `manual_unconfirmed` (user)\n- `task_open` (executor)\n\n### Criteria\n\n| ID | kind | required | satisfied | reason | records | attempts |\n| --- | --- | --- | --- | --- | --- | --- |\n| AC-1 | change | yes | no | criterion_error | — | checks 1 (fail 0, error 0), baselines 1 (unexpected pass 0, error 0), stale 0; unknown check 1, baseline 1; baseline fail 0 |\n| AC-2 | maintain | yes | yes | — | 4 | checks 1 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |\n| AC-3 | manual | yes | no | manual_unconfirmed | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |\n\n### Reasons\n\n- `criterion_error` (executor) AC-1\n- `manual_unconfirmed` (user) AC-3\n- `task_open` (executor): required tasks not done or dropped in PROGRESS.md: T001\n\n### Budget\n\n- window from seq 1: 3/20 runs, <SECONDS>/36000 seconds\n- budget revision: 1; remaining: 17 runs; excess: 0 runs; run cap reached: no\n- elapsed leaves out 0 seconds of waits the executor reported (window span <SECONDS> seconds)\n\n### Local output\n\nView with `ha log docs/specs/demo <seq>`; output is never copied into the record.\n\n- seq 2 AC-1 unknown (unsupported_declaration): .git/ha/runs/docs%2Fspecs%2Fdemo/2.log\n- seq 3 AC-1 unknown (unsupported_declaration): .git/ha/runs/docs%2Fspecs%2Fdemo/3.log\n"
    },
    "stderr": {
     "text": ""
@@ -112,17 +112,17 @@
      "skill": {
       "name": "plain",
       "version": "1.2.3",
-      "digest": "<HEX>"
+      "digest": "d723cddef7fc91d5412814d42c763b9fd9f3261dc6fc2e533dd7dd0b6cdc511c"
      },
      "record_head": {
       "seq": 4,
-      "sha256": "<HEX>"
+      "sha256": "<RECORD-4>"
      },
      "completion_record": null,
      "complete_without_record": false,
-     "commit": "<HEX>",
+     "commit": "daa1a862e0fd100cafd9a054902eb762588a3018",
      "tree_clean": true,
-     "spec_digest": "<HEX>",
+     "spec_digest": "805b8678090546aa667781f34fade244f19d58007489016f145b949678b39869",
      "criteria": [
       {
        "id": "AC-1",
@@ -236,7 +236,7 @@
       "goal": "docs/specs/demo",
       "record_head": {
        "seq": 4,
-       "sha256": "<HEX>"
+       "sha256": "<RECORD-4>"
       },
       "candidate": 0,
       "confirmed": 0,
@@ -317,10 +317,84 @@
    }
   },
   {
-   "command": "timing exit only",
+   "command": "timing",
    "exit": 0,
-   "stdout": null,
-   "stderr": null
+   "stdout": {
+    "json": {
+     "schema": "timing/v1",
+     "goal": "docs/specs/demo",
+     "runs": [
+      {
+       "seq": 2,
+       "target": {
+        "criterion": "AC-1"
+       },
+       "kind": "baseline",
+       "result": "unknown",
+       "duration_ms": "<MEASURED>",
+       "limit_ms": 900000,
+       "limit_elapsed_ms": "<MEASURED>",
+       "limit_use_permille": "<MEASURED>",
+       "limit_reached": false,
+       "cpu": {
+        "status": "measured",
+        "user_ms": "<MEASURED>",
+        "system_ms": "<MEASURED>",
+        "scope": "process-and-waited-descendants",
+        "source": "wait4-rusage"
+       },
+       "unavailable": {}
+      },
+      {
+       "seq": 3,
+       "target": {
+        "criterion": "AC-1"
+       },
+       "kind": "check",
+       "result": "unknown",
+       "duration_ms": "<MEASURED>",
+       "limit_ms": 900000,
+       "limit_elapsed_ms": "<MEASURED>",
+       "limit_use_permille": "<MEASURED>",
+       "limit_reached": false,
+       "cpu": {
+        "status": "measured",
+        "user_ms": "<MEASURED>",
+        "system_ms": "<MEASURED>",
+        "scope": "process-and-waited-descendants",
+        "source": "wait4-rusage"
+       },
+       "unavailable": {}
+      },
+      {
+       "seq": 4,
+       "target": {
+        "criterion": "AC-2"
+       },
+       "kind": "check",
+       "result": "pass",
+       "duration_ms": "<MEASURED>",
+       "limit_ms": 900000,
+       "limit_elapsed_ms": "<MEASURED>",
+       "limit_use_permille": "<MEASURED>",
+       "limit_reached": false,
+       "cpu": {
+        "status": "measured",
+        "user_ms": "<MEASURED>",
+        "system_ms": "<MEASURED>",
+        "scope": "process-and-waited-descendants",
+        "source": "wait4-rusage"
+       },
+       "unavailable": {}
+      }
+     ],
+     "total_duration_ms": "<MEASURED>",
+     "total_meaning": "sum of the listed runs' duration_ms; runs can overlap, and this is not the goal's elapsed time or budget"
+    }
+   },
+   "stderr": {
+    "text": ""
+   }
   },
   {
    "command": "finding",
@@ -331,7 +405,7 @@
      "goal": "docs/specs/demo",
      "record_head": {
       "seq": 7,
-      "sha256": "<HEX>"
+      "sha256": "<RECORD-7>"
      },
      "candidate": 0,
      "confirmed": 0,
@@ -348,7 +422,7 @@
    "command": "history",
    "exit": 0,
    "stdout": {
-    "text": "## ha history: docs/specs/demo — current\n\n- history: absent — no local decision history is stored for this start record in this repository; absence does not show that no event was ever recorded\n- run head: seq 7 (<HEX>) · run chain: valid · start: seq 1 (<HEX>)\n- now: code <HEX>, clean · goal digest <HEX>\n- filters: targets none · keywords none · since none\n\n### Items (0 of 0)\n\n- none\n\n- later changes: --since c1.<HEX>.0.7.<HEX>\n"
+    "text": "## ha history: docs/specs/demo — current\n\n- history: absent — no local decision history is stored for this start record in this repository; absence does not show that no event was ever recorded\n- run head: seq 7 (<RECORD-7:12>) · run chain: valid · start: seq 1 (<RECORD-1:12>)\n- now: code daa1a862e0fd, clean · goal digest 805b86780905\n- filters: targets none · keywords none · since none\n\n### Items (0 of 0)\n\n- none\n\n- later changes: --since c1.<RECORD-1:16>.0.7.<RECORD-7:16>\n"
    },
    "stderr": {
     "text": ""
@@ -358,7 +432,7 @@
    "command": "done",
    "exit": 1,
    "stdout": {
-    "text": "## ha status: docs/specs/demo\n\n- status: **incomplete** (exit 1)\n- completion record: none\n- assurance: local (an agent with the same user permissions can change checks and records)\n- check author: executor\n- record head: seq 8 (<HEX>)\n- rules: run-rules/4; skill: plain 1.2.3 (claimed); ha: 0.1.6-dev\n- code: <HEX>, tree clean: yes; goal digest: <HEX>\n- attempts: 3 total; types: 2 check, 1 baseline; outcomes: 0 environment errors, 2 unknown; inputs: 3 current, 0 stale; valid positive evidence: 1 (overlapping axes)\n\n### Criteria\n\n| ID | kind | required | satisfied | reason | records | attempts |\n| --- | --- | --- | --- | --- | --- | --- |\n| AC-1 | change | yes | no | criterion_error | — | checks 1 (fail 0, error 0), baselines 1 (unexpected pass 0, error 0), stale 0; unknown check 1, baseline 1; baseline fail 0 |\n| AC-2 | maintain | yes | yes | — | 4 | checks 1 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |\n| AC-3 | manual | yes | yes | — | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |\n\n### Reasons\n\n- `criterion_error` (executor) AC-1\n- `task_open` (executor): required tasks not done or dropped in PROGRESS.md: T001\n\n### Budget\n\n- window from seq 1: 3/30 runs, <SECONDS>/36000 seconds\n- budget revision: 5; remaining: 27 runs; excess: 0 runs; run cap reached: no\n- elapsed leaves out 0 seconds of waits the executor reported (window span <SECONDS> seconds)\n- budget change seq 5, window 1: 20 → 30 runs (user attribution is a claim)\n\n### Local output\n\nView with `ha log docs/specs/demo <seq>`; output is never copied into the record.\n\n- seq 2 AC-1 unknown (unsupported_declaration): .git/ha/runs/docs%2Fspecs%2Fdemo/2.log\n- seq 3 AC-1 unknown (unsupported_declaration): .git/ha/runs/docs%2Fspecs%2Fdemo/3.log\n"
+    "text": "## ha status: docs/specs/demo\n\n- status: **incomplete** (exit 1)\n- completion record: none\n- assurance: local (an agent with the same user permissions can change checks and records)\n- check author: executor\n- record head: seq 8 (<RECORD-8:12>)\n- rules: run-rules/4; skill: plain 1.2.3 (claimed); ha: 0.1.6-dev\n- code: daa1a862e0fd, tree clean: yes; goal digest: 805b86780905\n- attempts: 3 total; types: 2 check, 1 baseline; outcomes: 0 environment errors, 2 unknown; inputs: 3 current, 0 stale; valid positive evidence: 1 (overlapping axes)\n\n### Criteria\n\n| ID | kind | required | satisfied | reason | records | attempts |\n| --- | --- | --- | --- | --- | --- | --- |\n| AC-1 | change | yes | no | criterion_error | — | checks 1 (fail 0, error 0), baselines 1 (unexpected pass 0, error 0), stale 0; unknown check 1, baseline 1; baseline fail 0 |\n| AC-2 | maintain | yes | yes | — | 4 | checks 1 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |\n| AC-3 | manual | yes | yes | — | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |\n\n### Reasons\n\n- `criterion_error` (executor) AC-1\n- `task_open` (executor): required tasks not done or dropped in PROGRESS.md: T001\n\n### Budget\n\n- window from seq 1: 3/30 runs, <SECONDS>/36000 seconds\n- budget revision: 5; remaining: 27 runs; excess: 0 runs; run cap reached: no\n- elapsed leaves out 0 seconds of waits the executor reported (window span <SECONDS> seconds)\n- budget change seq 5, window 1: 20 → 30 runs (user attribution is a claim)\n\n### Local output\n\nView with `ha log docs/specs/demo <seq>`; output is never copied into the record.\n\n- seq 2 AC-1 unknown (unsupported_declaration): .git/ha/runs/docs%2Fspecs%2Fdemo/2.log\n- seq 3 AC-1 unknown (unsupported_declaration): .git/ha/runs/docs%2Fspecs%2Fdemo/3.log\n"
    },
    "stderr": {
     "text": ""
@@ -380,17 +454,17 @@
      "skill": {
       "name": "plain",
       "version": "1.2.3",
-      "digest": "<HEX>"
+      "digest": "d723cddef7fc91d5412814d42c763b9fd9f3261dc6fc2e533dd7dd0b6cdc511c"
      },
      "record_head": {
       "seq": 8,
-      "sha256": "<HEX>"
+      "sha256": "<RECORD-8>"
      },
      "completion_record": null,
      "complete_without_record": false,
-     "commit": "<HEX>",
+     "commit": "daa1a862e0fd100cafd9a054902eb762588a3018",
      "tree_clean": true,
-     "spec_digest": "<HEX>",
+     "spec_digest": "805b8678090546aa667781f34fade244f19d58007489016f145b949678b39869",
      "criteria": [
       {
        "id": "AC-1",
@@ -515,7 +589,7 @@
       "goal": "docs/specs/demo",
       "record_head": {
        "seq": 8,
-       "sha256": "<HEX>"
+       "sha256": "<RECORD-8>"
       },
       "candidate": 0,
       "confirmed": 0,
@@ -565,9 +639,9 @@
    "at": "<TIME>",
    "ha_version": "0.1.6-dev",
    "goal": "docs/specs/demo",
-   "base_commit": "<HEX>",
+   "base_commit": "daa1a862e0fd100cafd9a054902eb762588a3018",
    "tree_clean": true,
-   "spec_digest": "<HEX>",
+   "spec_digest": "805b8678090546aa667781f34fade244f19d58007489016f145b949678b39869",
    "request": {
     "source": "conversation",
     "quote": "숫자 예산 목표를 구현해줘"
@@ -580,7 +654,7 @@
    "skill": {
     "name": "plain",
     "version": "1.2.3",
-    "digest": "<HEX>"
+    "digest": "d723cddef7fc91d5412814d42c763b9fd9f3261dc6fc2e533dd7dd0b6cdc511c"
    },
    "rules": "run-rules/4",
    "budget": {
@@ -604,7 +678,7 @@
   {
    "schema": "run/v1",
    "seq": 2,
-   "prev": "<HEX>",
+   "prev": "<RECORD-1>",
    "kind": "baseline",
    "at": "<TIME>",
    "ha_version": "0.1.6-dev",
@@ -616,36 +690,47 @@
     "sh",
     "tests/x.sh"
    ],
-   "command_digest": "<HEX>",
-   "commit": "<HEX>",
+   "command_digest": "e443992719492d1a31d4606564f209a90286369eb35140094a51682736f41099",
+   "commit": "daa1a862e0fd100cafd9a054902eb762588a3018",
    "tree_clean": true,
-   "spec_digest": "<HEX>",
-   "base_commit": "<HEX>",
+   "spec_digest": "805b8678090546aa667781f34fade244f19d58007489016f145b949678b39869",
+   "base_commit": "daa1a862e0fd100cafd9a054902eb762588a3018",
    "overlay": [
     {
      "path": "tests/x.sh",
-     "digest": "<HEX>"
+     "digest": "28d3b9e880a77975493dc7e359144c0295a4f694cfe0af4f928c22307bc5c320"
     }
    ],
    "exit": 0,
    "result": "unknown",
    "duration_ms": "<MEASURED>",
-   "output_digest": "<HEX>",
+   "output_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
    "output_path": ".git/ha/runs/docs%2Fspecs%2Fdemo/2.log",
    "evidence": {
     "schema": "check-evidence/v1",
     "result": "unknown",
     "reason": "unsupported_declaration",
     "declaration_digest": "",
-    "invocation": "<HEX>"
+    "invocation": "<FRESH>"
    },
-   "timing": "<MEASURED>",
+   "timing": {
+    "limit_ms": 900000,
+    "limit_elapsed_ms": "<MEASURED>",
+    "limit_reached": false,
+    "cpu": {
+     "status": "measured",
+     "user_ms": "<MEASURED>",
+     "system_ms": "<MEASURED>",
+     "scope": "process-and-waited-descendants",
+     "source": "wait4-rusage"
+    }
+   },
    "started_at": "<TIME>"
   },
   {
    "schema": "run/v1",
    "seq": 3,
-   "prev": "<HEX>",
+   "prev": "<RECORD-2>",
    "kind": "check",
    "at": "<TIME>",
    "ha_version": "0.1.6-dev",
@@ -657,29 +742,40 @@
     "sh",
     "tests/x.sh"
    ],
-   "command_digest": "<HEX>",
-   "commit": "<HEX>",
+   "command_digest": "e443992719492d1a31d4606564f209a90286369eb35140094a51682736f41099",
+   "commit": "daa1a862e0fd100cafd9a054902eb762588a3018",
    "tree_clean": true,
-   "spec_digest": "<HEX>",
+   "spec_digest": "805b8678090546aa667781f34fade244f19d58007489016f145b949678b39869",
    "exit": 0,
    "result": "unknown",
    "duration_ms": "<MEASURED>",
-   "output_digest": "<HEX>",
+   "output_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
    "output_path": ".git/ha/runs/docs%2Fspecs%2Fdemo/3.log",
    "evidence": {
     "schema": "check-evidence/v1",
     "result": "unknown",
     "reason": "unsupported_declaration",
     "declaration_digest": "",
-    "invocation": "<HEX>"
+    "invocation": "<FRESH>"
    },
-   "timing": "<MEASURED>",
+   "timing": {
+    "limit_ms": 900000,
+    "limit_elapsed_ms": "<MEASURED>",
+    "limit_reached": false,
+    "cpu": {
+     "status": "measured",
+     "user_ms": "<MEASURED>",
+     "system_ms": "<MEASURED>",
+     "scope": "process-and-waited-descendants",
+     "source": "wait4-rusage"
+    }
+   },
    "started_at": "<TIME>"
   },
   {
    "schema": "run/v1",
    "seq": 4,
-   "prev": "<HEX>",
+   "prev": "<RECORD-3>",
    "kind": "check",
    "at": "<TIME>",
    "ha_version": "0.1.6-dev",
@@ -691,22 +787,33 @@
     "sh",
     "tests/x.sh"
    ],
-   "command_digest": "<HEX>",
-   "commit": "<HEX>",
+   "command_digest": "e443992719492d1a31d4606564f209a90286369eb35140094a51682736f41099",
+   "commit": "daa1a862e0fd100cafd9a054902eb762588a3018",
    "tree_clean": true,
-   "spec_digest": "<HEX>",
+   "spec_digest": "805b8678090546aa667781f34fade244f19d58007489016f145b949678b39869",
    "exit": 0,
    "result": "pass",
    "duration_ms": "<MEASURED>",
-   "output_digest": "<HEX>",
+   "output_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
    "output_path": ".git/ha/runs/docs%2Fspecs%2Fdemo/4.log",
-   "timing": "<MEASURED>",
+   "timing": {
+    "limit_ms": 900000,
+    "limit_elapsed_ms": "<MEASURED>",
+    "limit_reached": false,
+    "cpu": {
+     "status": "measured",
+     "user_ms": "<MEASURED>",
+     "system_ms": "<MEASURED>",
+     "scope": "process-and-waited-descendants",
+     "source": "wait4-rusage"
+    }
+   },
    "started_at": "<TIME>"
   },
   {
    "schema": "run/v1",
    "seq": 5,
-   "prev": "<HEX>",
+   "prev": "<RECORD-4>",
    "kind": "budget_change",
    "at": "<TIME>",
    "ha_version": "0.1.6-dev",
@@ -725,7 +832,7 @@
   {
    "schema": "run/v1",
    "seq": 6,
-   "prev": "<HEX>",
+   "prev": "<RECORD-5>",
    "kind": "note",
    "at": "<TIME>",
    "ha_version": "0.1.6-dev",
@@ -735,22 +842,22 @@
   {
    "schema": "run/v1",
    "seq": 7,
-   "prev": "<HEX>",
+   "prev": "<RECORD-6>",
    "kind": "note",
    "at": "<TIME>",
    "ha_version": "0.1.6-dev",
    "note": "confirm",
    "subject": "AC-3",
    "bound": {
-    "criterion_sha256": "<HEX>",
-    "spec_digest": "<HEX>"
+    "criterion_sha256": "9f070156157f9c29a359378c59b0dbe5c6cd709bd2acf1d6ea79253a498dfa0b",
+    "spec_digest": "805b8678090546aa667781f34fade244f19d58007489016f145b949678b39869"
    },
    "quote": "AC-3을 확인했어"
   },
   {
    "schema": "run/v1",
    "seq": 8,
-   "prev": "<HEX>",
+   "prev": "<RECORD-7>",
    "kind": "done",
    "at": "<TIME>",
    "ha_version": "0.1.6-dev",
@@ -759,10 +866,10 @@
     "AC-1:criterion_error",
     "task_open"
    ],
-   "commit": "<HEX>",
+   "commit": "daa1a862e0fd100cafd9a054902eb762588a3018",
    "tree_clean": true,
-   "spec_digest": "<HEX>",
-   "record_head": "<HEX>",
+   "spec_digest": "805b8678090546aa667781f34fade244f19d58007489016f145b949678b39869",
+   "record_head": "<RECORD-7>",
    "criteria": [
     {
      "id": "AC-1",
@@ -786,9 +893,9 @@
     }
    ],
    "command_digests": {
-    "AC-1": "<HEX>",
-    "AC-2": "<HEX>",
-    "AC-3": "<HEX>"
+    "AC-1": "e443992719492d1a31d4606564f209a90286369eb35140094a51682736f41099",
+    "AC-2": "e443992719492d1a31d4606564f209a90286369eb35140094a51682736f41099",
+    "AC-3": "a403f2b35d5011a6abb2b34832464b894c25387ce572c1d2bb0613354c166422"
    }
   }
  ]

@@ -97,6 +97,20 @@ def temporary(prefix):
     return tempfile.TemporaryDirectory(prefix=prefix)
 
 
+def go_env(directory):
+    """The environment for `go test` and the repository's own checks.
+
+    Git and ha settings are dropped, and XDG_CONFIG_HOME names an empty folder
+    under directory, so no test reads the caller's pre-approved run limit from
+    $XDG_CONFIG_HOME or ~/.config. HOME stays, so Go keeps its build cache.
+    """
+    folder = Path(directory) / "empty-config"
+    folder.mkdir(exist_ok=True)
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "HA_"))}
+    env.update(GOTOOLCHAIN="local", GOFLAGS="-mod=readonly", XDG_CONFIG_HOME=str(folder))
+    return env
+
+
 def criteria_spec(ids):
     lines = [f"- **{i}** The synthetic condition {i} holds." for i in ids]
     return ("# Demo\n\nStatus: Ready\n\n## 목표\n\nA synthetic goal for the budget observations.\n\n"
@@ -111,7 +125,7 @@ class Repo:
     `manuals` manual rows. Commands are never run by the budget observations.
     """
 
-    def __init__(self, directory, ha, changes=0, maintains=0, manuals=0, runs=AUTO, elapsed="10시간"):
+    def __init__(self, directory, ha, changes=0, maintains=0, manuals=0, runs=AUTO, elapsed="10시간", git_env=None):
         self.base = Path(directory)
         self.root = self.base / "repo"
         self.root.mkdir(parents=True)
@@ -127,6 +141,7 @@ class Repo:
                         XDG_CONFIG_HOME=str(self.xdg), HOME=str(self.home))
         if os.name == "nt":
             self.env["USERPROFILE"] = str(self.home)
+        self.env.update(git_env or {})
         (self.base / "gitconfig").write_text("", encoding="utf-8")
         self.kinds = (["change"] * changes) + (["maintain"] * maintains) + (["manual"] * manuals)
         if not self.kinds:
@@ -236,20 +251,26 @@ class Repo:
         """(exit, stdout, stderr) of the goal's run-rules/4 start."""
         return self.ha("start", GOAL, "--request", REQUEST, "--rules", "run-rules/4", *extra, env=env)
 
-    def estimate(self, env=None):
+    def estimate(self, env=None, json_exits=(0, 1)):
         """(exit, parsed JSON or None, stdout+stderr) of `ha estimate --format json`.
 
-        A refusal (nonzero exit) may print lint problems or a reason instead of
-        JSON; that is an observation and the report is None. A zero exit
-        without a JSON object cannot be read and is Unavailable.
+        At an exit in json_exits the contract prints a JSON object; anything
+        else there cannot be read and is Unavailable. Output that starts as
+        JSON but does not parse is Unavailable at any exit. Elsewhere, such as
+        a lint refusal or a configuration error, the text is the observation
+        and the report is None. The first call of an observation, which also
+        runs against the earlier `ha`, passes json_exits=(0,): that `ha`
+        refuses an automatic PLAN with lint text at exit 1.
         """
         code, out, err = self.ha("estimate", GOAL, "--format", "json", env=env)
         try:
             report = json.loads(out)
         except ValueError:
             report = None
-        if code == 0 and not isinstance(report, dict):
-            raise Unavailable(f"ha estimate exited 0 without a JSON object: {(out + err)[-500:]}")
+            if out.lstrip().startswith(("{", "[")):
+                raise Unavailable(f"ha estimate exit {code}: output that starts as JSON does not parse: {out[-500:]}") from None
+        if code in json_exits and not isinstance(report, dict):
+            raise Unavailable(f"ha estimate exited {code} without a JSON object: {(out + err)[-500:]}")
         return code, report, out + err
 
     def estimate_md(self, env=None):

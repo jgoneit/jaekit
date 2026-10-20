@@ -13,7 +13,6 @@ criterion in a synthetic repository with temporary user folders.
 """
 import importlib.util
 import json
-import os
 from pathlib import Path
 import sys
 import unittest
@@ -21,7 +20,7 @@ import unittest
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from budget_common import (CHECK_FLAG, DECLARATION_SCHEMA, GOAL, ROOT, Repo, Unavailable, build, capabilities, require,
-                           run, temporary)
+                           go_env, run, temporary)
 
 NATIVE_TEST = "TestNativeStartBudgetAndSkill"
 # One subtest per form the test covers on every platform (PLAN 구현 결정 R3, R4, R7).
@@ -65,9 +64,9 @@ class Platform(unittest.TestCase):
         missing = [name for name in NAMES if name not in listed]
         require(self, not missing, "platform-check-missing",
                 f"Windows native checks do not require {', '.join(missing)}")
-        env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "HA_"))}
-        env.update(GOTOOLCHAIN="local", GOFLAGS="-mod=readonly")
-        result = run(["go", "test", "-count=1", "-v", "-run", f"^{NATIVE_TEST}$", "./cmd/ha"], ROOT, env, timeout=900)
+        with temporary("jaekit-native-go-") as directory:
+            result = run(["go", "test", "-count=1", "-v", "-run", f"^{NATIVE_TEST}$", "./cmd/ha"], ROOT,
+                         go_env(directory), timeout=900)
         text = (result.stdout + result.stderr).decode(errors="replace")
         problems = []
         if result.returncode:
@@ -107,7 +106,7 @@ class Flow(unittest.TestCase):
             ha = build(Path(directory) / "bin" / "ha")
             repo = Repo(Path(directory) / "goal", ha, changes=34)
             repo.write_config(json.dumps({"preapproved_runs": 120}))
-            code, report, text = repo.estimate()
+            code, report, text = repo.estimate(json_exits=(0,))
             auto = (report or {}).get("auto") or {}
             require(self, code == 0 and auto.get("computed_runs") == 102 and auto.get("approval_needed") is False,
                     "auto-flow-missing", f"estimate with a limit of 120: exit {code}, auto {auto}: {text[-600:]}")

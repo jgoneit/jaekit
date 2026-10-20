@@ -16,7 +16,7 @@ import unittest
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from budget_common import (AUTO, CONFIG_DIR, CONFIG_FILE, CONFIG_KEY, GOAL, ROOT, Repo, Unavailable, auto_value, build,
-                           require, run, temporary)
+                           go_env, require, run, temporary)
 
 
 def config(value):
@@ -159,14 +159,27 @@ def bad_forms(repo):
              ("invalid-utf8", text(b'{"preapproved_runs": 120, "\xff": 1}')),
              ("directory", directory),
              ("not-a-directory", not_a_directory)]
+    def dangling_folder():
+        folder = repo.xdg / CONFIG_DIR
+        try:
+            folder.symlink_to(repo.base / "moved-dotfiles", target_is_directory=True)
+        except OSError:
+            raise Unavailable("cannot create a symbolic link here") from None
+        return folder / CONFIG_FILE
+
     if os.name != "nt":
-        forms.append(("dangling-symlink", dangling))
+        forms += [("dangling-symlink", dangling), ("dangling-folder-symlink", dangling_folder)]
     if os.name != "nt" and hasattr(os, "geteuid") and os.geteuid() != 0:
         def unreadable():
             path = repo.write_config(config(120))
             path.chmod(0)
             return path
-        forms.append(("unreadable", unreadable))
+
+        def unsearchable_folder():
+            path = repo.write_config(config(120))
+            path.parent.chmod(0)
+            return path
+        forms += [("unreadable", unreadable), ("unsearchable-folder", unsearchable_folder)]
     return forms
 
 
@@ -235,10 +248,12 @@ class CapSource(unittest.TestCase):
                 if code != 65 or str(shown) not in err or repo.records_path().exists():
                     problems.append(f"{name}: start exit {code}, records {repo.records_path().exists()}: {err[-300:]}")
                     repo.reset_records()
-                try:
-                    shown.chmod(0o644)
-                except OSError:
-                    pass
+                for path, mode in ((shown.parent, 0o755), (shown, 0o644)):
+                    try:
+                        if not path.is_symlink():
+                            path.chmod(mode)
+                    except OSError:
+                        pass
             repo.clear_config()
             # A relative XDG_CONFIG_HOME is refused.
             env = dict(repo.env, XDG_CONFIG_HOME="relative/config")
@@ -271,12 +286,14 @@ class CapSource(unittest.TestCase):
                 if code != 65 or "repository" not in text:
                     problems.append(f"symlink into the repository: estimate exit {code}: {text[-300:]}")
                 repo.clear_config()
-            # The same folder named with other letter case, where the file system ignores case.
-            upper = inside.parent / inside.name.upper()
-            if upper.exists():
-                code, auto, text = estimate_auto(dict(repo.env, XDG_CONFIG_HOME=str(upper)))
-                if code != 65 or "repository" not in text:
-                    problems.append(f"repository folder named in other case: estimate exit {code}: {text[-300:]}")
+            # The same folders named with other letter case, where the file system ignores case: the
+            # configuration folder, and the repository's own folder above it.
+            for label, spelled in (("configuration folder", inside.parent / inside.name.upper()),
+                                   ("repository folder", repo.root.parent / repo.root.name.upper() / inside.name)):
+                if spelled.exists():
+                    code, auto, text = estimate_auto(dict(repo.env, XDG_CONFIG_HOME=str(spelled)))
+                    if code != 65 or "repository" not in text:
+                        problems.append(f"{label} named in other case: estimate exit {code}: {text[-300:]}")
             # A file in another working tree of the same repository (the goal runs in a linked worktree).
             other = repo.base / "linked"
             repo.git("worktree", "add", "-q", str(other))
@@ -317,13 +334,14 @@ class NumericKept(unittest.TestCase):
                 code, out, err = repo.ha("estimate", GOAL, "--format", "json")
                 if code != 0 or '"auto"' in out or '"plan_runs_limit": 60' not in out:
                     problems.append(f"numeric estimate with a {name} configuration: exit {code}: {(out + err)[-300:]}")
-            # A numeric item keeps today's meaning even when an automatic item follows it.
-            repo = Repo(Path(directory) / "both", ha, changes=10, runs="60\n- 검증 실행: " + AUTO)
-            repo.write_config(config(10))
-            code, out, err = repo.start()
-            records = repo.records()
-            if code != 0 or (records[0].get("budget") if records else None) != {"runs": 60, "elapsed_seconds": 36000, "cost": "미관측"}:
-                problems.append(f"numeric 60 followed by {AUTO}: exit {code}: {(out + err)[-300:]}")
+            # A numeric item keeps today's meaning when an automatic item comes before or after it.
+            for name, runs in (("numeric-first", "60\n- 검증 실행: " + AUTO), ("auto-first", AUTO + "\n- 검증 실행: 60")):
+                repo = Repo(Path(directory) / name, ha, changes=10, runs=runs)
+                repo.write_config(config(10))
+                code, out, err = repo.start()
+                records = repo.records()
+                if code != 0 or (records[0].get("budget") if records else None) != {"runs": 60, "elapsed_seconds": 36000, "cost": "미관측"}:
+                    problems.append(f"numeric 60 and {AUTO} ({name}): exit {code}: {(out + err)[-300:]}")
             # Below the minimum the start is refused as before.
             repo = Repo(Path(directory) / "short", ha, changes=34, runs="60")
             repo.write_config(config(1000))
@@ -351,8 +369,11 @@ class NumericKept(unittest.TestCase):
                 _, report = repo.status()
                 if (report.get("budget") or {}).get("runs_limit") != 80:
                     problems.append(f"after a PLAN edit runs_limit is {(report.get('budget') or {}).get('runs_limit')}")
-        env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "HA_")) and k != "XDG_CONFIG_HOME"}
-        env.update(GOTOOLCHAIN="local", GOFLAGS="-mod=readonly")
+        with temporary("jaekit-numeric-go-") as directory:
+            self.selected(go_env(directory), problems)
+        require(self, not problems, "numeric-budget-changed", "; ".join(problems))
+
+    def selected(self, env, problems):
         for pattern, names in SELECTED_RUNS:
             result = run(["go", "test", "-count=1", "-v", "-run", pattern, "./cmd/ha"], ROOT, env, timeout=1500)
             output = (result.stdout + result.stderr).decode(errors="replace")
@@ -364,7 +385,6 @@ class NumericKept(unittest.TestCase):
                 problems.append(f"existing budget tests failed: {sorted(failed)}")
             elif not set(names) <= passed:
                 raise Unavailable(f"the selected budget tests did not run: {sorted(set(names) - passed)}")
-        require(self, not problems, "numeric-budget-changed", "; ".join(problems))
 
 
 if __name__ == "__main__":
