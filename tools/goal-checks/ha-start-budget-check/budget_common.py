@@ -113,6 +113,10 @@ def temporary(prefix):
     return tempfile.TemporaryDirectory(prefix=prefix)
 
 
+# Tools the repository's Go tests run directly (git, sh and python3 fixtures).
+GO_TEST_TOOLS = ("go", "git", "sh", "python3")
+
+
 def go_env(directory):
     """The environment for `go test` and the repository's own checks.
 
@@ -124,6 +128,11 @@ def go_env(directory):
     folder.mkdir(exist_ok=True)
     env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "HA_"))}
     env.update(GOTOOLCHAIN="local", GOFLAGS="-mod=readonly", XDG_CONFIG_HOME=str(folder))
+    # The repository's Go tests start these tools themselves and fail when one is missing;
+    # that is an input failure, so it is found here, before any test runs.
+    missing = [tool for tool in GO_TEST_TOOLS if shutil.which(tool, path=env.get("PATH")) is None]
+    if missing:
+        raise Unavailable(f"the Go tests need {', '.join(missing)} on PATH")
     return env
 
 

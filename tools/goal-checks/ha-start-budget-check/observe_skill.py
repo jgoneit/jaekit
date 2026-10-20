@@ -42,6 +42,13 @@ MALFORMED = [
 ]
 
 
+# check_core.py reasons that say the helper could not query the executable at all
+# (missing, too slow, failed to run, replaced while read, unreadable goal) rather than
+# how this ha answered. They are input failures, never violations.
+HELPER_INPUT_FAILURES = frozenset({"core_missing", "query_timeout", "query_failed", "binary_changed",
+                                   "goal_unreadable"})
+
+
 class SkillCheck(unittest.TestCase):
     """AC-11: a declared requirement this ha lacks, or an unusable declaration, refuses the start without a record."""
 
@@ -171,7 +178,9 @@ class Kept(unittest.TestCase):
             except OSError as error:
                 raise Unavailable(f"{CHECK_CORE}: {error}") from None
             if digest != CHECK_CORE_SHA256:
-                problems.append(f"{CHECK_CORE} is not the Seal 0.1.17-0.1.19 helper: {digest}")
+                # The in-tree helper stands in for the installed Seal 0.1.17-0.1.19 ones; another
+                # file cannot observe how they treat this ha.
+                raise Unavailable(f"{CHECK_CORE} is not the Seal 0.1.17-0.1.19 helper (sha256 {digest})")
             for operation in ("start", "resume", "check", "budget"):
                 args = [sys.executable, ROOT / CHECK_CORE, "--ha", ha, "--operation", operation]
                 if operation != "start":
@@ -181,6 +190,8 @@ class Kept(unittest.TestCase):
                     report = json.loads(result.stdout)
                 except ValueError:
                     raise Unavailable(f"check_core.py {operation}: {result.stderr.decode(errors='replace')}") from None
+                if not report.get("compatible") and report.get("reason") in HELPER_INPUT_FAILURES:
+                    raise Unavailable(f"check_core.py {operation} could not query this ha: {report}")
                 if result.returncode != 0 or not report.get("compatible"):
                     problems.append(f"Seal's {operation} check: {report}")
         require(self, not problems, "undeclared-skill-changed", "; ".join(problems))
