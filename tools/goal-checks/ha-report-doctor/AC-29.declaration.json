@@ -1,0 +1,105 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/ha-report-doctor/AC-29.targets.json",
+    "tools/goal-checks/ha-report-doctor/capabilities-before.json",
+    "tools/goal-checks/ha-report-doctor/common.py",
+    "tools/goal-checks/ha-report-doctor/observe_kept.py",
+    "tools/goal-checks/ha-report-doctor/regressions-before.json",
+    "tools/goal-checks/ha-report-doctor/usage-before.txt",
+    "tools/goal-checks/produce.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "routes",
+      "violation": "protected-route-changed"
+    },
+    {
+      "id": "routes.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "routes.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "routes.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "routes.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "routes.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "routes.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "routes.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "routes.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "routes.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "routes.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checks",
+      "violation": "protected-route-changed"
+    },
+    {
+      "id": "checks.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checks.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checks.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checks.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checks.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checks.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checks.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checks.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checks.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "checks.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

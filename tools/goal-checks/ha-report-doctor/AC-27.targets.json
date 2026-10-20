@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "contracts",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-report-doctor/observe_docs.py",
+      "test": "Docs.test_contracts",
+      "result_targets": {
+        "additional_violations": [
+          "contracts.assertion-2",
+          "contracts.assertion-3",
+          "contracts.assertion-4",
+          "contracts.assertion-5",
+          "contracts.assertion-6",
+          "contracts.assertion-7",
+          "contracts.assertion-8"
+        ],
+        "execution": "contracts.execution",
+        "selection": "contracts.selection",
+        "attribution": "contracts.attribution"
+      }
+    },
+    {
+      "target": "guides",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-report-doctor/observe_docs.py",
+      "test": "Docs.test_guides",
+      "result_targets": {
+        "additional_violations": [
+          "guides.assertion-2",
+          "guides.assertion-3",
+          "guides.assertion-4",
+          "guides.assertion-5",
+          "guides.assertion-6",
+          "guides.assertion-7",
+          "guides.assertion-8"
+        ],
+        "execution": "guides.execution",
+        "selection": "guides.selection",
+        "attribution": "guides.attribution"
+      }
+    }
+  ]
+}

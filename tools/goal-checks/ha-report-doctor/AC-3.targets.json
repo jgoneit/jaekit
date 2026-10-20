@@ -1,0 +1,65 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "readonly",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-report-doctor/observe_report.py",
+      "test": "Report.test_read_only_and_deterministic",
+      "result_targets": {
+        "additional_violations": [
+          "readonly.assertion-2",
+          "readonly.assertion-3",
+          "readonly.assertion-4",
+          "readonly.assertion-5",
+          "readonly.assertion-6",
+          "readonly.assertion-7",
+          "readonly.assertion-8"
+        ],
+        "execution": "readonly.execution",
+        "selection": "readonly.selection",
+        "attribution": "readonly.attribution"
+      }
+    },
+    {
+      "target": "rules",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-report-doctor/observe_report.py",
+      "test": "Report.test_rules_and_integrity",
+      "result_targets": {
+        "additional_violations": [
+          "rules.assertion-2",
+          "rules.assertion-3",
+          "rules.assertion-4",
+          "rules.assertion-5",
+          "rules.assertion-6",
+          "rules.assertion-7",
+          "rules.assertion-8"
+        ],
+        "execution": "rules.execution",
+        "selection": "rules.selection",
+        "attribution": "rules.attribution"
+      }
+    },
+    {
+      "target": "findings",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-report-doctor/observe_report.py",
+      "test": "Report.test_findings_listed",
+      "result_targets": {
+        "additional_violations": [
+          "findings.assertion-2",
+          "findings.assertion-3",
+          "findings.assertion-4",
+          "findings.assertion-5",
+          "findings.assertion-6",
+          "findings.assertion-7",
+          "findings.assertion-8"
+        ],
+        "execution": "findings.execution",
+        "selection": "findings.selection",
+        "attribution": "findings.attribution"
+      }
+    }
+  ]
+}

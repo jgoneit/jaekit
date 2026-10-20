@@ -1,0 +1,102 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/ha-report-doctor/AC-4.targets.json",
+    "tools/goal-checks/ha-report-doctor/common.py",
+    "tools/goal-checks/ha-report-doctor/observe_doctor.py",
+    "tools/goal-checks/produce.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "results",
+      "violation": "doctor-results-wrong"
+    },
+    {
+      "id": "results.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "limit",
+      "violation": "doctor-limit-wrong"
+    },
+    {
+      "id": "limit.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "limit.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "limit.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "limit.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "limit.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "limit.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "limit.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "limit.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "limit.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "limit.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "details",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-report-doctor/observe_report.py",
+      "test": "Report.test_details_after_summary",
+      "result_targets": {
+        "additional_violations": [
+          "details.assertion-2",
+          "details.assertion-3",
+          "details.assertion-4",
+          "details.assertion-5",
+          "details.assertion-6",
+          "details.assertion-7",
+          "details.assertion-8"
+        ],
+        "execution": "details.execution",
+        "selection": "details.selection",
+        "attribution": "details.attribution"
+      }
+    }
+  ]
+}
