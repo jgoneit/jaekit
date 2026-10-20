@@ -106,3 +106,30 @@ func TestWorktreesReadsPathsWithLineFeeds(t *testing.T) {
 		t.Fatalf("worktrees = %q", trees)
 	}
 }
+
+func TestWorktreesRefusesAGitWithoutNULLists(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the stand-in git is a shell script")
+	}
+	real, err := exec.LookPath("git")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	git(t, dir, "init", "-q", "-b", "main")
+	git(t, dir, "commit", "-q", "--allow-empty", "-m", "base")
+	r, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A Git before 2.36 rejects `worktree list -z` as a usage error.
+	bin := t.TempDir()
+	script := "#!/bin/sh\nfor a in \"$@\"; do [ \"$a\" = -z ] && { echo 'error: unknown switch `z'\"'\" >&2; exit 129; }; done\nexec '" + real + "' \"$@\"\n"
+	if err := os.WriteFile(filepath.Join(bin, "git"), []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	if trees, err := r.Worktrees(); err == nil {
+		t.Fatalf("worktrees without -z = %q; want an error, never a line reading", trees)
+	}
+}

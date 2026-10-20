@@ -126,7 +126,7 @@ ha: auto budget 102 runs (minimum 68 × 1.5, at least 50) exceeds the pre-approv
 - 선언한 규칙·형식·기능 가운데 이 실행 파일의 지원 정보(`ha capabilities`와 같은 값)에 없는 것이 있으면, 빠진 항목마다 `ha: missing Core support: <rules|formats.<키>|features> <값> (ha <버전>)`을 보이고(`formats`의 키 자체가 없고 그 목록이 비어 있으면 값 없이 `formats.<키>`) 기록 없이 65로 끝난다.
 - 선언을 읽을 수 없거나 형식에 맞지 않으면 `ha: skill requirements <경로>: <이유>; nothing recorded`를 보이고 65로 끝난다. 모르는 값을 무시하고 시작하지 않는다.
 - `--check-skill`을 주면 선언이 필수다. 선언이 없으면 65, `--skill` 없이 주면 사용법 오류 64다. 이 기능 전의 `ha`는 이 플래그를 모르는 플래그로 64에 끝내고 기록하지 않는다. 그래서 확인이 반드시 일어나야 하는 시작은 이 형식을 쓴다.
-- 확인은 작업 트리 확인 뒤, 기록 전에 한다. 선언 파일이 있는데 읽을 수 없어 Skill 디렉토리 digest도 실패하면 digest 오류가 아니라 위 이유로 거부한다. 선언이 없는 skill의 오류는 지금과 같다. 시작 기록의 `skill`(`name`, `version`, `digest`)은 그대로이고 digest에 선언 파일도 들어간다.
+- 확인은 작업 트리 확인 뒤, 기록 전에 한다. 선언 경로에 항목이 있으면 Skill 디렉토리 digest를 계산하기 전에 확인하므로, 쓸 수 없는 선언(대상 없는 symlink, 폴더, FIFO 등)은 위 이유로 거부한다. 선언이 없는 skill은 지금처럼 먼저 읽고 그 오류도 지금과 같다. 시작 기록의 `skill`(`name`, `version`, `digest`)은 그대로이고 digest에 선언 파일도 들어간다.
 
 ## 2. 줄 형식
 

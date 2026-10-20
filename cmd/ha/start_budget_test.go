@@ -237,6 +237,16 @@ func TestNativeStartBudgetAndSkill(t *testing.T) {
 		} else if runtime.GOOS != "windows" {
 			t.Fatal(err)
 		}
+		// A declaration that is a FIFO is refused, never opened by the folder digest.
+		fifo := writeSkill(t, "")
+		if err := makeEvidenceFIFO(filepath.Join(filepath.Dir(fifo), coreRequirementsFile)); err == nil {
+			code, text := estimateTestCLI("start", startBudgetGoal, "--request", "synthetic", "--skill", fifo)
+			if code != 65 || !strings.Contains(text, "skill requirements ") || startBudgetRecords(t, root) != nil {
+				t.Fatalf("FIFO declaration: exit %d: %s", code, text)
+			}
+		} else if runtime.GOOS != "windows" {
+			t.Fatal(err)
+		}
 		// Without a declaration, a skill path that cannot be read keeps its own error.
 		file := filepath.Join(t.TempDir(), "notes")
 		estimateTestWrite(t, filepath.Dir(file), "notes", "")

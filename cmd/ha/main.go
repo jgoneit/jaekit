@@ -351,18 +351,24 @@ func (c *cli) start(in []string) int {
 	}
 	skill := record.Skill{Name: a.vals["skill-name"], Version: a.vals["skill-version"]}
 	if p := a.vals["skill"]; p != "" {
-		if skill, err = readSkill(p); err != nil {
-			// An unreadable declaration also breaks the folder digest; report
-			// it as the declaration. Without one, the skill's error stands.
-			if _, lerr := os.Lstat(filepath.Join(filepath.Dir(p), coreRequirementsFile)); lerr == nil {
-				if code := c.checkSkillRequirements(p, a.bools["check-skill"]); code >= 0 {
-					return code
-				}
+		// A skill with a declaration has it checked before the folder digest
+		// reads every file, so an unusable declaration (a broken link, a
+		// folder, a FIFO) is refused as the declaration. A skill without one
+		// is read first, as before, and keeps its own errors.
+		_, lerr := os.Lstat(filepath.Join(filepath.Dir(p), coreRequirementsFile))
+		declared := lerr == nil
+		if declared {
+			if code := c.checkSkillRequirements(p, a.bools["check-skill"]); code >= 0 {
+				return code
 			}
+		}
+		if skill, err = readSkill(p); err != nil {
 			return c.fail(exitRefused, "%v", err)
 		}
-		if code := c.checkSkillRequirements(p, a.bools["check-skill"]); code >= 0 {
-			return code
+		if !declared {
+			if code := c.checkSkillRequirements(p, a.bools["check-skill"]); code >= 0 {
+				return code
+			}
 		}
 	}
 	e := &record.Start{
