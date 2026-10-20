@@ -5,9 +5,10 @@ import (
 	"testing"
 )
 
-// The reference rule implements the reading table of contracts/review-round.md
-// section 6: every accepted form of a location, a rule or contract link and a
-// criterion ID, with the prefixes each field removes.
+// The reference rule implements the grammar of contracts/spar-input.md
+// (rows G7, G8 and G9): every accepted form of a location, a rule or
+// contract link and a criterion ID, with the prefixes each field removes.
+// What a location names is checked against the copies in input_test.go.
 func TestReferenceRule(t *testing.T) {
 	for _, tc := range []struct {
 		field, text, path, whole string
@@ -56,11 +57,6 @@ func TestReferenceRule(t *testing.T) {
 		if r.path != tc.path || r.whole != tc.whole || r.line != tc.line || r.hasLine != tc.hasLine {
 			t.Errorf("%s %q: got %+v", tc.field, tc.text, r)
 		}
-		if tc.field == "location" {
-			if got := locationPath(tc.text); got != tc.path {
-				t.Errorf("locationPath(%q) = %q, want %q", tc.text, got, tc.path)
-			}
-		}
 	}
 	// criterion links and criteria documents: AC-<n> not right after a letter or digit
 	for _, tc := range []struct{ text, ids string }{
@@ -85,7 +81,8 @@ func TestReferenceConsumers(t *testing.T) {
 	rules := []Document{newDocument("rules/API rules.md", "/r/rules/API rules.md", []byte("a\nb\nc\n")),
 		newDocument("AGENTS.md", "/r/AGENTS.md", []byte("a\nb\n")),
 		newDocument("base/rules/review.md", "/r/base/rules/review.md", []byte("a\nb\nc\n"))}
-	c := classifier{checkPaths: []string{"base/checks/**"}, targets: LinkTargets{Rules: ruleTargets("/r", rules)}}
+	c := classifier{repo: "/r", checkPaths: []string{"base/checks/**"}, targets: LinkTargets{Rules: ruleTargets("/r", rules)},
+		head: memoryCommit(map[string]string{"base/checks/test.py": "a\nb\n"}), base: memoryCommit(nil)}
 	if f := c.classify("codex", 1, rawFinding("F1", map[string]any{"location": "head/base/checks/test.py:2",
 		"check_impact": "false_pass"})); f.Class != "defect" || !f.InCheckPaths || f.Path != "base/checks/test.py" {
 		t.Errorf("a repository folder named base: %s %v %s", f.Class, f.InCheckPaths, f.Path)

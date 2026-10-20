@@ -165,7 +165,7 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 			return ExitUsage, usageError("spar record needs ROUND and the reviewer name")
 		}
 		return Record(RecordOptions{Round: p.positional[0], Reviewer: p.positional[1], Result: p.one("result"),
-			Transcript: p.one("transcript"), Model: p.one("model"), Agent: p.one("agent"), Stdin: stdin})
+			Transcript: p.one("transcript"), Model: p.one("model"), Agent: p.one("agent"), Stdin: stdin, Log: stderr})
 	case "triage":
 		p, err := parseArgs(rest, []string{"commit", "failed-before", "passed-after", "evidence", "of", "to",
 			"user-quote", "note"}, nil)
@@ -177,7 +177,8 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 		}
 		return ExitOK, Triage(TriageOptions{Round: p.positional[0], Finding: p.positional[1], Disposition: p.positional[2],
 			Commit: p.one("commit"), FailedBefore: p.one("failed-before"), PassedAfter: p.one("passed-after"),
-			Evidence: p.one("evidence"), Of: p.one("of"), To: p.one("to"), UserQuote: p.one("user-quote"), Note: p.one("note")})
+			Evidence: p.one("evidence"), Of: p.one("of"), To: p.one("to"), UserQuote: p.one("user-quote"), Note: p.one("note"),
+			Log: stderr})
 	case "extend":
 		p, err := parseArgs(rest, []string{"stage", "by", "user-quote", "repo"}, nil)
 		if err != nil {
@@ -190,7 +191,7 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 		if err != nil {
 			return ExitUsage, usageError("--by must be a number")
 		}
-		return ExitOK, Extend(p.positional[0], p.one("stage"), by, p.one("user-quote"), p.one("repo"))
+		return ExitOK, Extend(p.positional[0], p.one("stage"), by, p.one("user-quote"), p.one("repo"), stderr)
 	case "gate":
 		p, err := parseArgs(rest, []string{"expect-head", "out", "repo"}, nil)
 		if err != nil {

@@ -275,6 +275,13 @@ func Run(o RunOptions) (int, error) {
 	if o.Head == "" {
 		o.Head = "HEAD"
 	}
+	// A check path given for this run follows the table's glob rule (G24):
+	// a wrong one is refused before anything is read or written.
+	for _, p := range o.CheckPaths {
+		if err := validGlob(p); err != nil {
+			return ExitRefused, refused("--check-path %q: %v", p, err)
+		}
+	}
 	start := o.Repo
 	if start == "" {
 		start = "."
@@ -313,13 +320,9 @@ func Run(o RunOptions) (int, error) {
 	}
 	rulePaths := append([]string{}, o.Rules...)
 	for _, r := range cfg.Rules {
-		// A project names rule files inside its repository only; a link
-		// out of it is refused like a path that leaves it.
-		path := filepath.Join(repo, filepath.FromSlash(r))
-		if insideRepo(repo, realish(path)) == "" {
-			return ExitRefused, refused("the project configuration's rules entry %q leaves the repository", r)
-		}
-		rulePaths = append(rulePaths, path)
+		// The configuration checked each entry (G23): it stays in the
+		// repository and can be read.
+		rulePaths = append(rulePaths, filepath.Join(repo, filepath.FromSlash(r)))
 	}
 	rules, err := readDocuments(repo, rulePaths, "rule document")
 	if err != nil {
@@ -348,11 +351,7 @@ func Run(o RunOptions) (int, error) {
 	if err := os.MkdirAll(series, 0o755); err != nil {
 		return ExitInternal, err
 	}
-	unlock, err := lockFile(series, func() {
-		if o.Log != nil {
-			fmt.Fprintf(o.Log, "spar: waiting for another round of %s to finish\n", series)
-		}
-	})
+	unlock, err := lockSeries(series, o.Log)
 	if err != nil {
 		return ExitInternal, err
 	}
@@ -542,7 +541,10 @@ func runReviewer(rv Reviewer, st *ReviewerState, tmp string, i int, out string, 
 // finishRound classifies the completed reviewers' findings and writes the
 // findings, the automatic deferrals, the record and the summary.
 func finishRound(out string, r *RoundRecord, results map[string]any) error {
-	c := classifier{repo: r.Repo, head: r.Head, checkPaths: r.Config.CheckPaths, targets: r.Links}
+	c, err := newClassifier(r)
+	if err != nil {
+		return err
+	}
 	var findings []Finding
 	for _, rv := range r.Config.Reviewers {
 		result := object(results[rv.Name])
@@ -609,7 +611,9 @@ func saveRound(out string, r *RoundRecord, added []Finding, fresh bool) error {
 		}
 	}
 	for _, f := range added {
-		if f.Class == "hardening" {
+		// Only a readable location is a check-path judgment: an unreadable
+		// one is never deferred automatically (G7).
+		if f.Class == "hardening" && !f.LocationUnreadable {
 			entry := LedgerEntry{Finding: f.ID, Disposition: "defer", Auto: true,
 				Reason: "hardening: " + f.ClassReason, To: "deferred hardening", RecordedAt: now()}
 			if err := appendJSONLine(ledgerPath, entry); err != nil {

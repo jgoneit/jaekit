@@ -2,6 +2,7 @@ package spar
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,6 +24,7 @@ type TriageOptions struct {
 	To           string
 	UserQuote    string
 	Note         string
+	Log          io.Writer
 }
 
 // dispositionProblem says why a disposition does not fit a finding's class.
@@ -90,6 +92,11 @@ func dispositionProblem(f Finding, findings []Finding, o TriageOptions, repo, he
 // Triage appends one disposition to a round's ledger.
 func Triage(o TriageOptions) error {
 	dir := realish(o.Round)
+	unlock, err := lockSeries(filepath.Dir(dir), o.Log)
+	if err != nil {
+		return refused("%s cannot be locked: %v", o.Round, err)
+	}
+	defer unlock()
 	r, err := loadRound(dir)
 	if err != nil {
 		return refused("%v", err)
@@ -125,7 +132,7 @@ func Triage(o TriageOptions) error {
 }
 
 // Extend records the user's words allowing more rounds in a series.
-func Extend(series, stage string, by int, quote string, repoHint string) error {
+func Extend(series, stage string, by int, quote string, repoHint string, log io.Writer) error {
 	group := ""
 	switch stage {
 	case "plan", "plan-delta", "code":
@@ -158,5 +165,10 @@ func Extend(series, stage string, by int, quote string, repoHint string) error {
 	if err := os.MkdirAll(path, 0o755); err != nil {
 		return err
 	}
+	unlock, err := lockSeries(path, log)
+	if err != nil {
+		return refused("%s cannot be locked: %v", series, err)
+	}
+	defer unlock()
 	return appendJSONLine(filepath.Join(path, "extensions.jsonl"), Extension{Stage: group, By: by, UserQuote: quote, RecordedAt: now()})
 }

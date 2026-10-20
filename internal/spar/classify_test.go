@@ -17,11 +17,18 @@ func rawFinding(id string, values map[string]any) map[string]any {
 	return f
 }
 
+// readableHead holds the files the findings below point at, so their
+// locations are readable (contracts/spar-input.md, G7).
+func readableHead() *commitFiles {
+	return memoryCommit(map[string]string{"app/main.py": "", "app/main.go": "", "checks/test_app.py": "",
+		"checks/my test.py": "", "checks/test.py": ""})
+}
+
 func TestClassification(t *testing.T) {
 	criteria := []Document{newDocument("SPEC.md", "/r/SPEC.md", []byte("- **AC-1** one\n- **AC-2** two\n- **AC-10** ten\n"))}
 	rules := []Document{newDocument("AGENTS.md", "/r/AGENTS.md", []byte("a\nb\nc\n"))}
 	c := classifier{checkPaths: []string{"checks/**"}, targets: LinkTargets{CriteriaIDs: criteriaIDs(criteria),
-		Rules: ruleTargets("/r", rules)}}
+		Rules: ruleTargets("/r", rules)}, head: readableHead()}
 	check := "head/checks/test_app.py:2"
 	cases := []struct {
 		values map[string]any
@@ -50,7 +57,7 @@ func TestClassification(t *testing.T) {
 		}
 	}
 	// A check file whose path holds a space is still a check path.
-	py := classifier{checkPaths: []string{"checks/*.py"}, targets: c.targets}
+	py := classifier{checkPaths: []string{"checks/*.py"}, targets: c.targets, head: c.head}
 	if f := py.classify("codex", 1, rawFinding("F1", map[string]any{"location": "head/checks/my test.py:2",
 		"check_impact": "false_pass"})); f.Class != "defect" || !f.InCheckPaths {
 		t.Errorf("a check path with a space: %s %v", f.Class, f.InCheckPaths)
@@ -70,7 +77,7 @@ func TestClassification(t *testing.T) {
 		{"checks/*.py", "head/checks/my test.py:2–4", map[string]any{"check_impact": "false_pass"}, "defect", true},
 	} {
 		tc.values["location"] = tc.location
-		k := classifier{checkPaths: []string{tc.glob}, targets: c.targets}
+		k := classifier{checkPaths: []string{tc.glob}, targets: c.targets, head: c.head}
 		if f := k.classify("codex", 1, rawFinding("F1", tc.values)); f.Class != tc.class || f.InCheckPaths != tc.inChecks {
 			t.Errorf("%s: %s in check paths %v (path %s)", tc.location, f.Class, f.InCheckPaths, f.Path)
 		}
@@ -90,7 +97,7 @@ func TestLinksToAdjacentIDsAndSpacedPaths(t *testing.T) {
 	}
 	rules := []Document{newDocument("rules/API rules.md", "/r/rules/API rules.md", []byte("a\nb\nc\n"))}
 	c := classifier{checkPaths: []string{"checks/**"}, targets: LinkTargets{CriteriaIDs: criteriaIDs(criteria),
-		Rules: ruleTargets("/r", rules)}}
+		Rules: ruleTargets("/r", rules)}, head: readableHead()}
 	check := "head/checks/test_app.py:2"
 	for _, tc := range []struct {
 		values map[string]any

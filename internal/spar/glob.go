@@ -1,9 +1,33 @@
 package spar
 
 import (
+	"errors"
 	"path"
 	"strings"
 )
+
+// validGlob checks a check-path pattern against the input table (G24): a
+// repository-relative path whose segments are `**` or path.Match patterns.
+func validGlob(pattern string) error {
+	switch {
+	case strings.TrimSpace(pattern) == "":
+		return errors.New("a check path is empty")
+	case strings.HasPrefix(pattern, "/"):
+		return errors.New("a check path must be a relative path inside the repository")
+	}
+	for _, segment := range strings.Split(strings.Trim(pattern, "/"), "/") {
+		if segment == ".." {
+			return errors.New("a check path must stay inside the repository: it may not hold a .. segment")
+		}
+		if segment == "**" {
+			continue
+		}
+		if _, err := path.Match(segment, ""); err != nil {
+			return errors.New("a check path segment is not a valid pattern: " + segment)
+		}
+	}
+	return nil
+}
 
 // matchGlob matches a repository path (slash separated) against a pattern
 // where `**` is any number of folders, `*` and `?` stay inside one name and

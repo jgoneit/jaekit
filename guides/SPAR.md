@@ -88,7 +88,7 @@ code = 2
 
 한 series는 plan 1회, plan delta 1회, 코드 라운드 3회까지입니다. 상한을 넘는 라운드는 리뷰어를 띄우기 전에 거부되고, `spar extend`로 기록한 사용자의 말이 있어야 더 돌릴 수 있습니다. 사용량 거절 등으로 같은 패킷을 끝내지 못한 리뷰어만 다시 돌리는 실행은 세지 않습니다.
 
-라운드마다 Git이 무시하는 새 폴더에 `round.json`, `packet.md`, `findings.json`, `ledger.jsonl`, `summary.md`가 생깁니다. 패킷에 비공개 문서가 들어갈 수 있으므로 Git이 추적할 폴더는 거부합니다. 형식은 [라운드 계약](../contracts/review-round.md)에 있습니다.
+라운드마다 Git이 무시하는 새 폴더에 `round.json`, `packet.md`, `findings.json`, `ledger.jsonl`, `summary.md`가 생깁니다. 패킷에 비공개 문서가 들어갈 수 있으므로 Git이 추적할 폴더는 거부합니다. 형식은 [라운드 계약](../contracts/review-round.md)에 있습니다. 리뷰어 결과의 위치·연결, 설정 값, 명령 인자처럼 spar가 받는 입력의 형식과 형식 밖 입력의 결과는 [입력 형식 계약](../contracts/spar-input.md)의 표 하나에 있습니다. 위치가 어떤 파일도 가리키지 않는 지적은 버리지 않고 읽을 수 없는 위치로 표시하며, 자동 보류하지 않습니다.
 
 ## 지적과 gate
 

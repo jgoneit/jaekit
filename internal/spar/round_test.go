@@ -245,6 +245,9 @@ func TestGateRequiredReviewersMissingRecordsAndGrowth(t *testing.T) {
 	if g := f.gate(head, a, b); g.State != StateDegraded {
 		t.Fatalf("a command reviewer credited a required codex reviewer: %s %v", g.State, g.Reasons)
 	}
+	// A gate lists every round of its series (G29): only the rounds the
+	// next gates list stay in this one, and the later cases use their own.
+	os.RemoveAll(b)
 	// A rerun of the same reviewer and preset completes the packet.
 	c := f.round("03-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 3,
 		RequiredReviewers: []string{"x"}, Config: both,
@@ -253,7 +256,7 @@ func TestGateRequiredReviewersMissingRecordsAndGrowth(t *testing.T) {
 		t.Fatalf("a rerun did not complete the packet: %s %v %+v", g.State, g.Reasons, g.Rounds[0])
 	}
 	// --reviewers ran only one of the configured required reviewers.
-	d := f.round("04-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 4, PacketSHA256: "q",
+	d := f.round("d/04-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 4, PacketSHA256: "q",
 		RequiredReviewers: []string{"host"}, Config: both,
 		Reviewers: map[string]*ReviewerState{"host": reviewer("native", true, StatusCompleted)}}, nil, nil)
 	if g := f.gate(head, d); g.State != StateDegraded || g.Rounds[0].RequiredReviewers != 2 {
@@ -267,11 +270,11 @@ func TestGateRequiredReviewersMissingRecordsAndGrowth(t *testing.T) {
 	// Two fixes rounds of the same commits count their added lines once.
 	one := &Config{Caps: Caps{1, 1, 3}, CheckPaths: []string{"checks/**"}, ConfiguredRequired: []RequiredRef{{"host", "native"}}}
 	done := map[string]*ReviewerState{"host": reviewer("native", true, StatusCompleted)}
-	e := f.round("05-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 5, PacketSHA256: "r",
+	e := f.round("g/05-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 5, PacketSHA256: "r",
 		RequiredReviewers: []string{"host"}, Config: one, Reviewers: done}, nil, nil)
-	g1 := f.round("06-fixes", &RoundRecord{Stage: "fixes", Base: head, Head: f.revs[2], Sequence: 6, PacketSHA256: "s",
+	g1 := f.round("g/06-fixes", &RoundRecord{Stage: "fixes", Base: head, Head: f.revs[2], Sequence: 6, PacketSHA256: "s",
 		RequiredReviewers: []string{"host"}, Config: one, Reviewers: done}, nil, nil)
-	g2 := f.round("07-fixes", &RoundRecord{Stage: "fixes", Base: head, Head: f.revs[2], Sequence: 7, PacketSHA256: "s",
+	g2 := f.round("g/07-fixes", &RoundRecord{Stage: "fixes", Base: head, Head: f.revs[2], Sequence: 7, PacketSHA256: "s",
 		RequiredReviewers: []string{"host"}, Config: one, Reviewers: done}, nil, nil)
 	g := f.gate(f.revs[2], e, g1, g2)
 	if g.Growth.AddedLines["check"] != 2 || g.Growth.AddedLines["other"] != 1 || !g.Growth.OverHardening {
@@ -281,6 +284,51 @@ func TestGateRequiredReviewersMissingRecordsAndGrowth(t *testing.T) {
 	r, _ := loadRound(c)
 	if err := saveRound(c, r, nil, false); err == nil {
 		t.Fatal("a round without findings.json was rewritten")
+	}
+}
+
+// A gate needs every round of its series that is not a dry run, so an
+// earlier round with an open finding cannot be left out (G29), and it never
+// writes over one of its inputs (G28).
+func TestGateListsTheWholeSeries(t *testing.T) {
+	f := newFixture(t)
+	base, head := f.revs[0], f.revs[1]
+	done := map[string]*ReviewerState{"host": reviewer("native", true, StatusCompleted)}
+	plan := f.round("01-plan", &RoundRecord{Stage: "plan", Base: base, Head: head, Sequence: 1, Counted: true,
+		RequiredReviewers: []string{"host"}, Reviewers: done},
+		[]Finding{{ID: "host-F1", Class: "defect"}}, nil)
+	code := f.round("02-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 2, Counted: true,
+		RequiredReviewers: []string{"host"}, Reviewers: done}, nil, nil)
+	f.round("03-dry", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 3, DryRun: true}, nil, nil)
+	// A round that stopped before recording findings is left out like a dry
+	// run. One without finished_at that did record findings (01-plan here,
+	// with an open defect) and a finished one whose findings file is gone
+	// (05-finished) must still be listed.
+	stopped := f.round("04-stopped", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 4, Counted: true}, nil, nil)
+	os.Remove(filepath.Join(stopped, "findings.json"))
+	finished := f.round("05-finished", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 5, Counted: true,
+		FinishedAt: "2026-01-01T00:00:00Z"}, nil, nil)
+	os.Remove(filepath.Join(finished, "findings.json"))
+	g := f.gate(head, code)
+	reasons := strings.Join(g.Reasons, "\n")
+	if g.State != StateBlocked || !strings.Contains(reasons, "round 01-plan of the series is not in the gate list") ||
+		!strings.Contains(reasons, "round 05-finished of the series is not in the gate list") ||
+		strings.Contains(reasons, "03-dry") || strings.Contains(reasons, "04-stopped") {
+		t.Fatalf("a series round left out: %s %v", g.State, g.Reasons)
+	}
+	if g := f.gate(head, plan, code, finished); strings.Contains(strings.Join(g.Reasons, " "), "not in the gate list") {
+		t.Fatalf("every round given: %v", g.Reasons)
+	}
+	notes := writeFile(t, filepath.Join(f.repo, "reviews", "s", "notes.txt"), "not a gate\n")
+	for _, out := range []string{filepath.Join(code, "gate.json"), filepath.Join(code, "round.json"),
+		filepath.Join(f.repo, "reviews", "s", "extensions.jsonl"), notes} {
+		before, _ := os.ReadFile(out)
+		if code, err := Gate(GateOptions{Rounds: []string{plan, code, finished}, ExpectHead: head, Out: out, Repo: f.repo}); code != ExitRefused || err == nil {
+			t.Errorf("gate --out %s: %d %v", out, code, err)
+		}
+		if after, _ := os.ReadFile(out); string(after) != string(before) {
+			t.Errorf("a refused gate --out changed %s", out)
+		}
 	}
 }
 
@@ -447,13 +495,13 @@ func TestNumstatFollowsRenames(t *testing.T) {
 func TestExtendChecksItsRecordPath(t *testing.T) {
 	f := newFixture(t)
 	plain := t.TempDir()
-	if err := Extend(filepath.Join(f.repo, "reviews", "s"), "code", 1, "yes", plain); err == nil {
+	if err := Extend(filepath.Join(f.repo, "reviews", "s"), "code", 1, "yes", plain, nil); err == nil {
 		t.Fatal("an extension with a --repo that is not a repository was recorded")
 	}
-	if err := Extend(filepath.Join(f.repo, "checks", "s"), "code", 1, "yes", f.repo); err == nil {
+	if err := Extend(filepath.Join(f.repo, "checks", "s"), "code", 1, "yes", f.repo, nil); err == nil {
 		t.Fatal("an extension into a tracked folder was recorded")
 	}
-	if err := Extend(filepath.Join(f.repo, "reviews", "s"), "code", 1, "yes", f.repo); err != nil {
+	if err := Extend(filepath.Join(f.repo, "reviews", "s"), "code", 1, "yes", f.repo, nil); err != nil {
 		t.Fatalf("an extension into an ignored folder: %v", err)
 	}
 }

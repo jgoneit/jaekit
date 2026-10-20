@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -348,30 +349,36 @@ func underGitFolder(dir string) bool {
 	}
 }
 
-// localRecordPath refuses a record path that Git would track.
+// localRecordPath refuses a record path that Git would track (G28). Every
+// repository that holds the path counts, from the innermost one out: the
+// reviewed repository, another one around the path, and a repository nested
+// in an ignored folder. Each must ignore the path and track nothing under
+// it, and a .git above the path that Git cannot judge refuses it.
 func localRecordPath(repo, path string) error {
 	path = realish(path)
-	rel := insideRepo(repo, path)
-	if rel == "" {
-		if filepath.Clean(path) == filepath.Clean(repo) {
-			return fmt.Errorf("%s is the repository itself; review records go to a Git-ignored folder", path)
+	if filepath.Clean(path) == filepath.Clean(realish(repo)) {
+		return fmt.Errorf("%s is the repository itself; review records go to a Git-ignored folder", path)
+	}
+	if rel := insideRepo(realish(repo), path); rel != "" {
+		if first := strings.SplitN(filepath.ToSlash(rel), "/", 2)[0]; first == ".git" {
+			return fmt.Errorf("%s is inside .git", path)
 		}
-		// Outside the reviewed repository the path may still be in another
-		// one, whose rules apply the same way.
-		existing := path
-		for {
-			if info, err := os.Stat(existing); err == nil && info.IsDir() {
-				break
-			}
-			parent := filepath.Dir(existing)
-			if parent == existing {
-				return nil
-			}
-			existing = parent
+	}
+	dir := path
+	for {
+		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			break
 		}
-		other, err := repoRoot(existing)
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return nil
+		}
+		dir = parent
+	}
+	for {
+		root, err := repoRoot(dir)
 		if err != nil {
-			if !underGitFolder(existing) {
+			if !underGitFolder(dir) {
 				return nil
 			}
 			// A .git above the path but Git refused to say (ownership, a
@@ -379,21 +386,36 @@ func localRecordPath(repo, path string) error {
 			// where they cannot be checked.
 			return fmt.Errorf("%s cannot be checked against its Git repository: %v", path, err)
 		}
-		other = realish(other)
-		if rel = insideRepo(other, path); rel == "" {
+		root = realish(root)
+		rel := insideRepo(root, path)
+		if rel == "" {
+			return fmt.Errorf("%s is the top of the Git repository %s; review records go to a Git-ignored folder", path, root)
+		}
+		if first := strings.SplitN(filepath.ToSlash(rel), "/", 2)[0]; first == ".git" {
+			return fmt.Errorf("%s is inside .git of %s", path, root)
+		}
+		ignored, err := ignoredPath(root, rel)
+		if err != nil {
+			return err
+		}
+		if !ignored {
+			return fmt.Errorf("%s is not ignored by the Git repository %s, or that repository tracks files under it; review records can hold private documents, so they go to a Git-ignored folder", rel, root)
+		}
+		parent := filepath.Dir(root)
+		if parent == root {
 			return nil
 		}
-		repo = other
+		dir = parent
 	}
-	if first := strings.SplitN(filepath.ToSlash(rel), "/", 2)[0]; first == ".git" {
-		return fmt.Errorf("%s is inside .git", path)
-	}
-	ignored, err := ignoredPath(repo, rel)
-	if err != nil {
-		return err
-	}
-	if !ignored {
-		return fmt.Errorf("%s is not ignored by Git; review records can hold private documents, so they go to a Git-ignored folder", rel)
-	}
-	return nil
+}
+
+// lockSeries holds a series folder's lock, the one every write to the
+// series takes (G33). When another write holds it, it says so on log and
+// waits.
+func lockSeries(series string, log io.Writer) (func(), error) {
+	return lockFile(series, func() {
+		if log != nil {
+			fmt.Fprintf(log, "spar: waiting for another write of %s to finish\n", series)
+		}
+	})
 }
