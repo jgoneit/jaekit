@@ -1305,6 +1305,14 @@ class GateList(unittest.TestCase):
         w.control({})
         w.round("reviews/s/02-candidate")
         w.round("reviews/s/00-dry", extra=("--dry-run",))
+        # A round that stopped before recording any finding (round.json
+        # without finished_at, no findings.json) is left out like a dry run.
+        stopped = w.repo / "reviews/s/03-stopped"
+        stopped.mkdir()
+        record = dict(w.round_json("reviews/s/02-candidate") or {})
+        record.pop("finished_at", None)
+        record["sequence"] = 3
+        (stopped / "round.json").write_text(json.dumps(record))
         result, gate = w.gate(["reviews/s/02-candidate"], "reviews/s/gate.json")
         missing = [r for r in gate.get("reasons") or [] if UNLISTED in r]
         require(self, gate.get("state") == "blocked" and result.returncode == 4 and len(missing) == 1
@@ -1317,6 +1325,8 @@ class GateList(unittest.TestCase):
         require(self, triage.returncode == 0, v, f"triage: {text(triage)[-300:]}")
         result, gate = w.gate(["reviews/s/01-plan", "reviews/s/02-candidate"], "reviews/s/gate3.json")
         require(self, gate.get("state") == "complete", v, f"every round given and closed: {gate.get('state')} {gate.get('reasons')}")
+        result, gate = w.gate(["reviews/s/01-plan", "reviews/s/02-candidate", "reviews/s/03-stopped"], "reviews/s/gate4.json")
+        require(self, gate.get("state") == "blocked", v, f"a stopped round given in the list: {gate.get('state')} {gate.get('reasons')}")
 
 
 # ---------------------------------------------------------------------------
