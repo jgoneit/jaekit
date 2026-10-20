@@ -16,7 +16,8 @@ type Line struct {
 
 // Doc is a parsed Markdown document.
 type Doc struct {
-	lines []Line // lines outside fenced code blocks; fenced lines are dropped
+	lines  []Line // lines outside fenced code blocks; fenced lines are dropped
+	fences []int  // line numbers of the lines that open fenced code blocks
 }
 
 // Parse splits src into lines and drops fenced code blocks.
@@ -35,6 +36,7 @@ func Parse(src string) *Doc {
 		}
 		if strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
 			fence = trimmed[:3]
+			d.fences = append(d.fences, i+1)
 			continue
 		}
 		d.lines = append(d.lines, Line{No: i + 1, Text: text})
@@ -44,6 +46,10 @@ func Parse(src string) *Doc {
 
 // Lines returns all lines outside fenced code blocks.
 func (d *Doc) Lines() []Line { return d.lines }
+
+// Fences returns the line numbers of the lines that open fenced code blocks,
+// in order.
+func (d *Doc) Fences() []int { return d.fences }
 
 func heading(text string) (level int, title string, ok bool) {
 	t := strings.TrimRight(text, " \t")

@@ -30,18 +30,26 @@ func TestEnvironmentSection(t *testing.T) {
 func TestEnvironmentFencedBlock(t *testing.T) {
 	cases := []struct {
 		name, body string
-		line       int
+		lines      []int
 	}{
-		{"middle", "- 셸: `sh a.sh`\n```\n## 실행 환경\n- 펜스 안: `sh b.sh`\n```\n- 다른: `sh c.sh`\n\n## 예산\n", 5},
-		{"last", "- 셸: `sh a.sh`\n\n~~~text\n- 펜스 안: `sh b.sh`\n~~~\n## 예산\n", 6},
-		{"only", "```\n- 펜스 안: `sh b.sh`\n```\n", 4},
-		{"unclosed", "- 셸: `sh a.sh`\n```\n- 펜스 안: `sh b.sh`\n\n## 예산\n", 5},
+		{"middle", "- 셸: `sh a.sh`\n```\n## 실행 환경\n- 펜스 안: `sh b.sh`\n```\n- 다른: `sh c.sh`\n\n## 예산\n", []int{5}},
+		{"last", "- 셸: `sh a.sh`\n\n~~~text\n- 펜스 안: `sh b.sh`\n~~~\n## 예산\n", []int{6}},
+		{"only", "```\n- 펜스 안: `sh b.sh`\n```\n", []int{4}},
+		{"unclosed", "- 셸: `sh a.sh`\n```\n- 펜스 안: `sh b.sh`\n\n## 예산\n", []int{5}},
+		{"adjacent", "```\n- a: `sh a.sh`\n```\n~~~\n- b: `sh b.sh`\n~~~\n```\n```\n\n## 예산\n```\n- 밖: `sh c.sh`\n```\n", []int{4, 7, 10}},
 	}
 	for _, tc := range cases {
 		plan := "# PLAN\n\n## 실행 환경\n" + tc.body
 		probes, found, problems := Environment(plan, "PLAN.md")
-		if !found || probes != nil || len(problems) != 1 || problems[0].Code != "environment_item_invalid" || problems[0].Line != tc.line {
-			t.Errorf("%s: probes %v, problems %+v; want one environment_item_invalid on line %d", tc.name, probes, problems, tc.line)
+		var lines []int
+		for _, p := range problems {
+			if p.Code != "environment_item_invalid" {
+				t.Errorf("%s: unexpected problem %+v", tc.name, p)
+			}
+			lines = append(lines, p.Line)
+		}
+		if !found || probes != nil || !reflect.DeepEqual(lines, tc.lines) {
+			t.Errorf("%s: probes %v, problems %+v; want environment_item_invalid on lines %v", tc.name, probes, problems, tc.lines)
 		}
 	}
 }

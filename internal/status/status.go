@@ -723,14 +723,8 @@ func (e *evaluator) judgedLine(id, kind, reason string, C, B []*record.Line) *re
 		return nil
 	case "record_invalid", "evidence_invalid":
 		for _, l := range append(append([]*record.Line{}, C...), B...) {
-			if !validResult(l, e.rules) {
+			if !validResult(l, e.rules) || !e.validEvidence(id, kind, l) {
 				return l
-			}
-			if e.rules == RulesV3 && kind == bundle.KindChange {
-				r := e.in.Bundle.Row(id)
-				if r == nil || evidence.ValidateStored(l.Evidence, r.Evidence, r.EvidenceDigest, l.Kind == "baseline", l.Result, l.Exit) != nil {
-					return l
-				}
 			}
 		}
 		return nil
@@ -776,11 +770,10 @@ func count(ls []*record.Line, result string) int {
 	return n
 }
 
-// judge returns the first matching reason from run-record.md §4.1, or "" when
-// the criterion is satisfied.
 // validEvidence reports whether a structured change condition's stored
-// summary on l passes validation; other conditions carry no summary. The
-// judgment and the fresh-baseline count read it together.
+// summary on l passes validation; other conditions carry no summary. Every
+// reader of stored evidence uses it: the judgment, the record it names, the
+// fresh-baseline count, usage and logs.
 func (e *evaluator) validEvidence(id, kind string, l *record.Line) bool {
 	if !Structured(e.rules) || kind != bundle.KindChange {
 		return true
@@ -789,6 +782,8 @@ func (e *evaluator) validEvidence(id, kind string, l *record.Line) bool {
 	return r != nil && evidence.ValidateStored(l.Evidence, r.Evidence, r.EvidenceDigest, l.Kind == "baseline", l.Result, l.Exit) == nil
 }
 
+// judge returns the first matching reason from run-record.md §4.1, or "" when
+// the criterion is satisfied.
 func (e *evaluator) judge(id, kind string, C, B []*record.Line) string {
 	switch kind {
 	case bundle.KindManual:
@@ -819,7 +814,7 @@ func (e *evaluator) judge(id, kind string, C, B []*record.Line) string {
 	if Structured(e.rules) && kind == bundle.KindChange {
 		// An environment error or skipped observation can determine the
 		// overall result without erasing an assertion in the same report.
-		// All summaries above have already passed ValidateStored.
+		// All summaries above have already passed validEvidence.
 		r := e.in.Bundle.Row(id)
 		for _, l := range C {
 			if l.Result != "fail" && evidence.HasAdverse(l.Evidence, r.Evidence, false) {
@@ -1239,8 +1234,7 @@ func (e *evaluator) logs(rep *Report) {
 		if !validResult(&l, e.rules) {
 			log.Result, log.Reason = "invalid", "record_invalid"
 		} else if Structured(e.rules) && l.CriterionKind == bundle.KindChange && l.Target != nil {
-			row := e.in.Bundle.Row(l.Target.Criterion)
-			if row != nil && evidence.ValidateStored(l.Evidence, row.Evidence, row.EvidenceDigest, l.Kind == "baseline", l.Result, l.Exit) == nil {
+			if e.validEvidence(l.Target.Criterion, l.CriterionKind, &l) {
 				log.Reason = l.Evidence.Reason
 			} else {
 				log.Reason = "evidence_invalid"

@@ -38,7 +38,7 @@ func Environment(src, file string) (probes []Probe, found bool, problems []diag.
 		problems = append(problems, diag.Problem{Code: code, File: file, Line: line, Detail: fmt.Sprintf(format, a...)})
 	}
 	lines, _ := doc.Section(2, EnvironmentSection)
-	for _, no := range fencedLines(src, doc, headings[0], lines) {
+	for _, no := range fencedLines(doc, headings[0], lines) {
 		add("environment_item_invalid", no, "`## %s` holds only items `- <이름>: `<점검 명령>``; a fenced code block is not an item", EnvironmentSection)
 	}
 	seen := map[string]int{}
@@ -87,29 +87,24 @@ func Environment(src, file string) (probes []Probe, found bool, problems []diag.
 }
 
 // fencedLines returns the opening line of each fenced code block between the
-// section heading and the section's end. markdown.Parse drops fenced lines, so
-// they are the source lines in that span that the section does not hold. The
-// section ends before the next line Parse kept after its last line (the next
-// level 1 or 2 heading), or at the end of src.
-func fencedLines(src string, doc *markdown.Doc, heading int, lines []markdown.Line) []int {
+// section heading and the section's end. The section ends at the next line
+// Parse kept after its last line (the next level 1 or 2 heading), or at the
+// end of the document.
+func fencedLines(doc *markdown.Doc, heading int, lines []markdown.Line) []int {
 	last := heading
 	if len(lines) > 0 {
 		last = lines[len(lines)-1].No
 	}
-	end := len(strings.Split(strings.ReplaceAll(src, "\r\n", "\n"), "\n"))
+	next := 0
 	for _, l := range doc.Lines() {
 		if l.No > last {
-			end = l.No - 1
+			next = l.No
 			break
 		}
 	}
-	kept := map[int]bool{}
-	for _, l := range lines {
-		kept[l.No] = true
-	}
 	var opening []int
-	for no := heading + 1; no <= end; no++ {
-		if !kept[no] && (no == heading+1 || kept[no-1]) {
+	for _, no := range doc.Fences() {
+		if no > heading && (next == 0 || no < next) {
 			opening = append(opening, no)
 		}
 	}
