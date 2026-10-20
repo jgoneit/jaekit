@@ -1,0 +1,305 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "spar-round",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Round",
+      "result_targets": {
+        "additional_violations": [
+          "spar-round.assertion-2",
+          "spar-round.assertion-3",
+          "spar-round.assertion-4",
+          "spar-round.assertion-5",
+          "spar-round.assertion-6",
+          "spar-round.assertion-7",
+          "spar-round.assertion-8"
+        ],
+        "execution": "spar-round.execution",
+        "selection": "spar-round.selection",
+        "attribution": "spar-round.attribution"
+      }
+    },
+    {
+      "target": "spar-angles",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Angles",
+      "result_targets": {
+        "additional_violations": [
+          "spar-angles.assertion-2",
+          "spar-angles.assertion-3",
+          "spar-angles.assertion-4",
+          "spar-angles.assertion-5",
+          "spar-angles.assertion-6",
+          "spar-angles.assertion-7",
+          "spar-angles.assertion-8"
+        ],
+        "execution": "spar-angles.execution",
+        "selection": "spar-angles.selection",
+        "attribution": "spar-angles.attribution"
+      }
+    },
+    {
+      "target": "spar-records",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Records",
+      "result_targets": {
+        "additional_violations": [
+          "spar-records.assertion-2",
+          "spar-records.assertion-3",
+          "spar-records.assertion-4",
+          "spar-records.assertion-5",
+          "spar-records.assertion-6",
+          "spar-records.assertion-7",
+          "spar-records.assertion-8"
+        ],
+        "execution": "spar-records.execution",
+        "selection": "spar-records.selection",
+        "attribution": "spar-records.attribution"
+      }
+    },
+    {
+      "target": "spar-config",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Config",
+      "result_targets": {
+        "additional_violations": [
+          "spar-config.assertion-2",
+          "spar-config.assertion-3",
+          "spar-config.assertion-4",
+          "spar-config.assertion-5",
+          "spar-config.assertion-6",
+          "spar-config.assertion-7",
+          "spar-config.assertion-8"
+        ],
+        "execution": "spar-config.execution",
+        "selection": "spar-config.selection",
+        "attribution": "spar-config.attribution"
+      }
+    },
+    {
+      "target": "spar-presets",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Presets",
+      "result_targets": {
+        "additional_violations": [
+          "spar-presets.assertion-2",
+          "spar-presets.assertion-3",
+          "spar-presets.assertion-4",
+          "spar-presets.assertion-5",
+          "spar-presets.assertion-6",
+          "spar-presets.assertion-7",
+          "spar-presets.assertion-8"
+        ],
+        "execution": "spar-presets.execution",
+        "selection": "spar-presets.selection",
+        "attribution": "spar-presets.attribution"
+      }
+    },
+    {
+      "target": "spar-command",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Command",
+      "result_targets": {
+        "additional_violations": [
+          "spar-command.assertion-2",
+          "spar-command.assertion-3",
+          "spar-command.assertion-4",
+          "spar-command.assertion-5",
+          "spar-command.assertion-6",
+          "spar-command.assertion-7",
+          "spar-command.assertion-8"
+        ],
+        "execution": "spar-command.execution",
+        "selection": "spar-command.selection",
+        "attribution": "spar-command.attribution"
+      }
+    },
+    {
+      "target": "spar-native",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Native",
+      "result_targets": {
+        "additional_violations": [
+          "spar-native.assertion-2",
+          "spar-native.assertion-3",
+          "spar-native.assertion-4",
+          "spar-native.assertion-5",
+          "spar-native.assertion-6",
+          "spar-native.assertion-7",
+          "spar-native.assertion-8"
+        ],
+        "execution": "spar-native.execution",
+        "selection": "spar-native.selection",
+        "attribution": "spar-native.attribution"
+      }
+    },
+    {
+      "target": "spar-fallback",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Fallback",
+      "result_targets": {
+        "additional_violations": [
+          "spar-fallback.assertion-2",
+          "spar-fallback.assertion-3",
+          "spar-fallback.assertion-4",
+          "spar-fallback.assertion-5",
+          "spar-fallback.assertion-6",
+          "spar-fallback.assertion-7",
+          "spar-fallback.assertion-8"
+        ],
+        "execution": "spar-fallback.execution",
+        "selection": "spar-fallback.selection",
+        "attribution": "spar-fallback.attribution"
+      }
+    },
+    {
+      "target": "spar-failures",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Failures",
+      "result_targets": {
+        "additional_violations": [
+          "spar-failures.assertion-2",
+          "spar-failures.assertion-3",
+          "spar-failures.assertion-4",
+          "spar-failures.assertion-5",
+          "spar-failures.assertion-6",
+          "spar-failures.assertion-7",
+          "spar-failures.assertion-8"
+        ],
+        "execution": "spar-failures.execution",
+        "selection": "spar-failures.selection",
+        "attribution": "spar-failures.attribution"
+      }
+    },
+    {
+      "target": "spar-classes",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Classes",
+      "result_targets": {
+        "additional_violations": [
+          "spar-classes.assertion-2",
+          "spar-classes.assertion-3",
+          "spar-classes.assertion-4",
+          "spar-classes.assertion-5",
+          "spar-classes.assertion-6",
+          "spar-classes.assertion-7",
+          "spar-classes.assertion-8"
+        ],
+        "execution": "spar-classes.execution",
+        "selection": "spar-classes.selection",
+        "attribution": "spar-classes.attribution"
+      }
+    },
+    {
+      "target": "spar-ledger",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Ledger",
+      "result_targets": {
+        "additional_violations": [
+          "spar-ledger.assertion-2",
+          "spar-ledger.assertion-3",
+          "spar-ledger.assertion-4",
+          "spar-ledger.assertion-5",
+          "spar-ledger.assertion-6",
+          "spar-ledger.assertion-7",
+          "spar-ledger.assertion-8"
+        ],
+        "execution": "spar-ledger.execution",
+        "selection": "spar-ledger.selection",
+        "attribution": "spar-ledger.attribution"
+      }
+    },
+    {
+      "target": "spar-caps",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Caps",
+      "result_targets": {
+        "additional_violations": [
+          "spar-caps.assertion-2",
+          "spar-caps.assertion-3",
+          "spar-caps.assertion-4",
+          "spar-caps.assertion-5",
+          "spar-caps.assertion-6",
+          "spar-caps.assertion-7",
+          "spar-caps.assertion-8"
+        ],
+        "execution": "spar-caps.execution",
+        "selection": "spar-caps.selection",
+        "attribution": "spar-caps.attribution"
+      }
+    },
+    {
+      "target": "spar-gate",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Gate",
+      "result_targets": {
+        "additional_violations": [
+          "spar-gate.assertion-2",
+          "spar-gate.assertion-3",
+          "spar-gate.assertion-4",
+          "spar-gate.assertion-5",
+          "spar-gate.assertion-6",
+          "spar-gate.assertion-7",
+          "spar-gate.assertion-8"
+        ],
+        "execution": "spar-gate.execution",
+        "selection": "spar-gate.selection",
+        "attribution": "spar-gate.attribution"
+      }
+    },
+    {
+      "target": "agy-read-tools",
+      "runner": "go",
+      "package": "./internal/spar",
+      "test": "TestAgyReadTools",
+      "result_targets": {
+        "additional_violations": [
+          "agy-read-tools.assertion-2",
+          "agy-read-tools.assertion-3",
+          "agy-read-tools.assertion-4",
+          "agy-read-tools.assertion-5",
+          "agy-read-tools.assertion-6",
+          "agy-read-tools.assertion-7",
+          "agy-read-tools.assertion-8"
+        ],
+        "execution": "agy-read-tools.execution",
+        "selection": "agy-read-tools.selection",
+        "attribution": "agy-read-tools.attribution"
+      }
+    },
+    {
+      "target": "kept-forms",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Kept.test_kept_forms",
+      "result_targets": {
+        "additional_violations": [
+          "kept-forms.assertion-2",
+          "kept-forms.assertion-3",
+          "kept-forms.assertion-4",
+          "kept-forms.assertion-5",
+          "kept-forms.assertion-6",
+          "kept-forms.assertion-7",
+          "kept-forms.assertion-8"
+        ],
+        "execution": "kept-forms.execution",
+        "selection": "kept-forms.selection",
+        "attribution": "kept-forms.attribution"
+      }
+    }
+  ]
+}

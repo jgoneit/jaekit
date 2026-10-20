@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "clean-review",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "CleanReview.test_reviewer_list_shape",
+      "result_targets": {
+        "additional_violations": [
+          "clean-review.assertion-2",
+          "clean-review.assertion-3",
+          "clean-review.assertion-4",
+          "clean-review.assertion-5",
+          "clean-review.assertion-6",
+          "clean-review.assertion-7",
+          "clean-review.assertion-8"
+        ],
+        "execution": "clean-review.execution",
+        "selection": "clean-review.selection",
+        "attribution": "clean-review.attribution"
+      }
+    }
+  ]
+}

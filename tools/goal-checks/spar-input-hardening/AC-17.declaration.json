@@ -1,0 +1,278 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "internal/spar/testdata/input-forms.json",
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spar-input-hardening/AC-17.targets.json",
+    "tools/goal-checks/spar-input-hardening/observe_input.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "consumer-column",
+      "violation": "consumer-unlisted"
+    },
+    {
+      "id": "consumer-column.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumer-column.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumer-column.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumer-column.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumer-column.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumer-column.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumer-column.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumer-column.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumer-column.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumer-column.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "packet-forms",
+      "violation": "packet-form-outside"
+    },
+    {
+      "id": "packet-forms.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "packet-forms.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "packet-forms.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "packet-forms.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "packet-forms.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "packet-forms.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "packet-forms.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "packet-forms.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "packet-forms.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "packet-forms.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumers-agree",
+      "violation": "consumers-disagree"
+    },
+    {
+      "id": "consumers-agree.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumers-agree.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumers-agree.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumers-agree.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumers-agree.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumers-agree.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumers-agree.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumers-agree.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumers-agree.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "consumers-agree.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers",
+      "violation": "glob-consumers-differ"
+    },
+    {
+      "id": "glob-consumers.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results",
+      "violation": "result-shape-accepted"
+    },
+    {
+      "id": "results.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "results.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "names",
+      "violation": "reviewer-name-misjudged"
+    },
+    {
+      "id": "names.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "names.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "names.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "names.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "names.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "names.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "names.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "names.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "names.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "names.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

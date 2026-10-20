@@ -1,0 +1,146 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "internal/spar/testdata/input-forms.json",
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spar-input-hardening/AC-2.targets.json",
+    "tools/goal-checks/spar-input-hardening/observe_input.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "locations-run",
+      "violation": "location-misread"
+    },
+    {
+      "id": "locations-run.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-run.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-run.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-run.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-run.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-run.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-run.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-run.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-run.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-run.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-record",
+      "violation": "location-misread"
+    },
+    {
+      "id": "locations-record.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-record.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-record.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-record.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-record.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-record.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-record.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-record.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-record.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "locations-record.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unreadable-classes",
+      "violation": "unreadable-location-misclassified"
+    },
+    {
+      "id": "unreadable-classes.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unreadable-classes.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unreadable-classes.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unreadable-classes.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unreadable-classes.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unreadable-classes.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unreadable-classes.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unreadable-classes.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unreadable-classes.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "unreadable-classes.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

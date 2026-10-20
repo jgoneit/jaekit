@@ -1,0 +1,125 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "consumer-column",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Consumers.test_consumer_column",
+      "result_targets": {
+        "additional_violations": [
+          "consumer-column.assertion-2",
+          "consumer-column.assertion-3",
+          "consumer-column.assertion-4",
+          "consumer-column.assertion-5",
+          "consumer-column.assertion-6",
+          "consumer-column.assertion-7",
+          "consumer-column.assertion-8"
+        ],
+        "execution": "consumer-column.execution",
+        "selection": "consumer-column.selection",
+        "attribution": "consumer-column.attribution"
+      }
+    },
+    {
+      "target": "packet-forms",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Consumers.test_packet_report_forms",
+      "result_targets": {
+        "additional_violations": [
+          "packet-forms.assertion-2",
+          "packet-forms.assertion-3",
+          "packet-forms.assertion-4",
+          "packet-forms.assertion-5",
+          "packet-forms.assertion-6",
+          "packet-forms.assertion-7",
+          "packet-forms.assertion-8"
+        ],
+        "execution": "packet-forms.execution",
+        "selection": "packet-forms.selection",
+        "attribution": "packet-forms.attribution"
+      }
+    },
+    {
+      "target": "consumers-agree",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Consumers.test_consumers_agree",
+      "result_targets": {
+        "additional_violations": [
+          "consumers-agree.assertion-2",
+          "consumers-agree.assertion-3",
+          "consumers-agree.assertion-4",
+          "consumers-agree.assertion-5",
+          "consumers-agree.assertion-6",
+          "consumers-agree.assertion-7",
+          "consumers-agree.assertion-8"
+        ],
+        "execution": "consumers-agree.execution",
+        "selection": "consumers-agree.selection",
+        "attribution": "consumers-agree.attribution"
+      }
+    },
+    {
+      "target": "glob-consumers",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Globs.test_glob_consumers",
+      "result_targets": {
+        "additional_violations": [
+          "glob-consumers.assertion-2",
+          "glob-consumers.assertion-3",
+          "glob-consumers.assertion-4",
+          "glob-consumers.assertion-5",
+          "glob-consumers.assertion-6",
+          "glob-consumers.assertion-7",
+          "glob-consumers.assertion-8"
+        ],
+        "execution": "glob-consumers.execution",
+        "selection": "glob-consumers.selection",
+        "attribution": "glob-consumers.attribution"
+      }
+    },
+    {
+      "target": "results",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Results.test_result_keys_and_limits",
+      "result_targets": {
+        "additional_violations": [
+          "results.assertion-2",
+          "results.assertion-3",
+          "results.assertion-4",
+          "results.assertion-5",
+          "results.assertion-6",
+          "results.assertion-7",
+          "results.assertion-8"
+        ],
+        "execution": "results.execution",
+        "selection": "results.selection",
+        "attribution": "results.attribution"
+      }
+    },
+    {
+      "target": "names",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Names.test_reviewer_names",
+      "result_targets": {
+        "additional_violations": [
+          "names.assertion-2",
+          "names.assertion-3",
+          "names.assertion-4",
+          "names.assertion-5",
+          "names.assertion-6",
+          "names.assertion-7",
+          "names.assertion-8"
+        ],
+        "execution": "names.execution",
+        "selection": "names.selection",
+        "attribution": "names.attribution"
+      }
+    }
+  ]
+}

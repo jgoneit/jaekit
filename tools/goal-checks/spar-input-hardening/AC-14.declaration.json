@@ -1,0 +1,58 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "internal/spar/testdata/input-forms.json",
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spar-input-hardening/AC-14.targets.json",
+    "tools/goal-checks/spar-input-hardening/observe_input.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "record-paths",
+      "violation": "record-path-accepted"
+    },
+    {
+      "id": "record-paths.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "record-paths.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "record-paths.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "record-paths.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "record-paths.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "record-paths.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "record-paths.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "record-paths.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "record-paths.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "record-paths.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}
