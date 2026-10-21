@@ -125,7 +125,8 @@ brew 대신 [v0.1.6 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1
   url="https://github.com/jgoneit/jaekit/releases/download/v0.1.6"
   tmp="$(mktemp -d)"
   binary_tmp=
-  trap 'rm -rf "$tmp"; if [ -n "$binary_tmp" ]; then rm -f "$binary_tmp"; fi' EXIT
+  spar_tmp=
+  trap 'rm -rf "$tmp"; if [ -n "$binary_tmp" ]; then rm -f "$binary_tmp"; fi; if [ -n "$spar_tmp" ]; then rm -f "$spar_tmp"; fi' EXIT
   cd "$tmp"
   curl -fsSLO "$url/$name.tar.gz"
   curl -fsSLO "$url/checksums.txt"
@@ -176,19 +177,23 @@ brew 대신 [v0.1.6 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1
   binary_tmp="$(mktemp "$bin/.ha.XXXXXX")"
   cp "$name/ha" "$binary_tmp"
   chmod 755 "$binary_tmp"
+  if [ -f "$name/spar" ]; then
+    spar_tmp="$(mktemp "$bin/.spar.XXXXXX")"
+    cp "$name/spar" "$spar_tmp"
+    chmod 755 "$spar_tmp"
+  fi
   mv -f "$binary_tmp" "$bin/ha"
   binary_tmp=
   echo "설치했습니다: $HOME/.local/bin/ha ($name)"
-  if [ -f "$name/spar" ]; then
-    binary_tmp="$(mktemp "$bin/.spar.XXXXXX")"
-    cp "$name/spar" "$binary_tmp"
-    chmod 755 "$binary_tmp"
-    mv -f "$binary_tmp" "$bin/spar"
-    binary_tmp=
+  if [ -n "$spar_tmp" ]; then
+    mv -f "$spar_tmp" "$bin/spar"
+    spar_tmp=
     echo "설치했습니다: $HOME/.local/bin/spar ($name)"
   fi
 )
 ```
+
+파일에 `spar`가 있으면 두 실행 파일을 모두 설치 위치 옆에 준비한 뒤에 바꾸므로, 받기·복사·권한 설정이 실패하면 둘 다 그대로 남습니다. 다만 두 파일을 바꾸는 것은 따로 일어나서, 그 사이에 명령이 멈추면(강제 종료, 전원 차단 등) `ha`만 새 버전일 수 있습니다. 같은 명령을 다시 실행하면 둘이 맞춰집니다.
 
 `~/.local/bin`이 PATH에 없으면 셸 설정(`~/.zshrc` 등)에 `export PATH="$HOME/.local/bin:$PATH"`를 더합니다. 브라우저로 직접 받은 파일을 macOS가 막으면 `xattr -d com.apple.quarantine ~/.local/bin/ha`로 풉니다. 그다음 [버전 확인](#버전-확인)과 [Codex](#codex) 또는 [Claude Code](#claude-code) 설치로 갑니다.
 

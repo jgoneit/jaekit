@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "table-sources",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "TableSources.test_sources_recorded",
+      "result_targets": {
+        "additional_violations": [
+          "table-sources.assertion-2",
+          "table-sources.assertion-3",
+          "table-sources.assertion-4",
+          "table-sources.assertion-5",
+          "table-sources.assertion-6",
+          "table-sources.assertion-7",
+          "table-sources.assertion-8"
+        ],
+        "execution": "table-sources.execution",
+        "selection": "table-sources.selection",
+        "attribution": "table-sources.attribution"
+      }
+    }
+  ]
+}

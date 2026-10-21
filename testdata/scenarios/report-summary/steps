@@ -1,0 +1,35 @@
+# run-record.md §1.3: the person's view of a completed goal in both languages, then of a completion HEAD no longer covers; nothing is written.
+include implement
+ha done $GOAL
+expect-exit 0
+ha report $GOAL
+expect-exit 0
+expect-output "Changed: 2 files and 2 commits outside the bundle documents since base "
+expect-output "\nChecked: 2 of 2 required conditions satisfied (2 by check records, 0 by user confirmation); 1 of 1 change conditions have a fresh baseline\nTo review: none\nRemaining limits: assurance local; check author: executor\nNext step: none; completion record seq 5 holds and nothing is left to do\n\n### Stamp for `## 현재`\n\n- record head: seq 5 ("
+expect-output "; status: complete; completion record: seq 5\n"
+expect-output "Source: completion record seq 5\n| ID | kind | required | satisfied | records |\n| --- | --- | --- | --- | --- |\n| AC-1 | change | yes | yes | 2, 3 |\n| AC-2 | maintain | yes | yes | 4 |\n"
+expect-output "### Output of unmet conditions\n\n- none\n"
+ha report $GOAL --lang ko
+expect-exit 0
+expect-output "바뀐 것: base "
+expect-output "다음 행동: 없음; 완료 기록 seq 5이 유효하고 남은 할 일이 없음\n\n### `## 현재` 도장\n"
+expect-output "| AC-1 | change | 예 | 예 | 2, 3 |"
+ha report $GOAL --lang fr
+expect-exit 64
+write src/extra.txt "x\n"
+commit "more code"
+ha report $GOAL
+expect-exit 0
+expect-output "Changed: 3 files and 3 commits outside the bundle documents since base "
+expect-output "Remaining limits: assurance local; check author: executor; HEAD is not covered by a completion record\n"
+expect-output "is not covered: code outside the bundle documents changed since that commit; the difference since that commit is not part of the completion\n"
+expect-output "Source: current state\n"
+expect-output "Next step: resolve AC-1 `criterion_missing` (executor)\n"
+expect-output "- AC-1 `criterion_missing` (executor): no fresh record\n- AC-2 `criterion_missing` (executor): no fresh record\n"
+expect-no-output "; completion record: seq"
+ha report $GOAL --lang ko
+expect-exit 0
+expect-output "를 덮지 않음: 그 commit 뒤 실행 묶음 문서 밖의 코드가 바뀜; 그 commit 뒤의 차이는 완료에 들지 않음\n"
+expect-deterministic
+expect-untouched
+expect-records 5

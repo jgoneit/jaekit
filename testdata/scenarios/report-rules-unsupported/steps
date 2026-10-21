@@ -1,0 +1,6 @@
+# run-record.md §1.3: a goal started under unknown rules is not reported.
+include start
+rewrite-record 1 rules "\"run-rules/99\""
+ha report $GOAL
+expect-exit 66
+expect-records 1

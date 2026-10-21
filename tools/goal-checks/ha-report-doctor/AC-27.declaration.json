@@ -1,0 +1,102 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/ha-report-doctor/AC-27.targets.json",
+    "tools/goal-checks/ha-report-doctor/common.py",
+    "tools/goal-checks/ha-report-doctor/observe_docs.py",
+    "tools/goal-checks/produce.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "contracts",
+      "violation": "contract-tokens-missing"
+    },
+    {
+      "id": "contracts.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contracts.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contracts.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contracts.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contracts.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contracts.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contracts.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contracts.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contracts.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "contracts.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guides",
+      "violation": "guide-tokens-missing"
+    },
+    {
+      "id": "guides.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guides.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guides.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guides.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guides.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guides.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guides.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guides.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guides.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "guides.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

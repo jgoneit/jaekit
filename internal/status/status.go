@@ -178,10 +178,12 @@ type Report struct {
 	TestChanges    []TestChange      `json:"test_changes,omitempty"`
 	Recoveries     []Recovery        `json:"recoveries,omitempty"`
 	commandDigests map[string]string // for the done line
-	// judged and doneState feed the human output only; status/v1 is
-	// unchanged.
-	judged    map[string]JudgedRecord
-	doneState *DoneState
+	// judged, doneState, freshBaselines and confirmations feed the human
+	// output only; status/v1 is unchanged.
+	judged         map[string]JudgedRecord
+	doneState      *DoneState
+	freshBaselines map[string]bool
+	confirmations  map[string]int
 	// plain renders without the unmet summary and done details: the
 	// output of `ha done`, which stays as it was.
 	plain bool
@@ -224,6 +226,29 @@ func (rep *Report) Judged(id string) (JudgedRecord, bool) {
 // record, or nil when there is a valid one or no done record at all.
 func (rep *Report) Done() *DoneState { return rep.doneState }
 
+// FreshBaseline reports whether a condition has a fresh baseline that
+// observed the intended violation (fail_as_expected) and that the judgment
+// accepts as evidence.
+func (rep *Report) FreshBaseline(id string) bool { return rep.freshBaselines[id] }
+
+// Confirmation returns the seq of the latest valid confirmation of subject.
+func (rep *Report) Confirmation(subject string) (int, bool) {
+	seq, ok := rep.confirmations[subject]
+	return seq, ok
+}
+
+// RangeError is a failure to read the changes between the start's base commit
+// and HEAD. Its message is the Git error unchanged, so ha status prints what it
+// printed before; ha report shows its uncompared summary for it
+// (run-record.md §1.3).
+type RangeError struct {
+	Base, Head string
+	Err        error
+}
+
+func (e *RangeError) Error() string { return e.Err.Error() }
+func (e *RangeError) Unwrap() error { return e.Err }
+
 // Head identifies the last record line.
 type Head struct {
 	Seq    int    `json:"seq"`
@@ -264,6 +289,18 @@ type Reason struct {
 	Criterion string   `json:"criterion,omitempty"`
 	Paths     []string `json:"paths,omitempty"`
 	Detail    string   `json:"detail,omitempty"`
+	// tasks names the open tasks of task_open, which status/v1 carries only
+	// in Detail; the human output reads it through Targets.
+	tasks []string
+}
+
+// Targets are what a goal-level reason is about: the open task IDs of
+// task_open, otherwise its paths.
+func (r Reason) Targets() []string {
+	if r.tasks != nil {
+		return r.tasks
+	}
+	return r.Paths
 }
 
 // Changes lists what a person should look at.
@@ -387,6 +424,7 @@ func Compute(in Input) (*Report, error) {
 		Changes: Changes{CommandChanged: []CommandChange{}, KindChanged: []KindChange{}, Optional: []string{},
 			InvalidConfirmations: []InvalidConfirmation{}, HaVersionChanged: []VersionChange{}},
 		commandDigests: map[string]string{}, judged: map[string]JudgedRecord{},
+		freshBaselines: map[string]bool{}, confirmations: map[string]int{},
 	}
 	if e.start != nil && e.start.Skill != nil {
 		rep.Skill = e.start.Skill
@@ -642,6 +680,11 @@ func (e *evaluator) criteria(rep *Report) error {
 		if e.rules == RulesV4 && kind != "" && kind != bundle.KindManual {
 			e.reportRecoveries(rep, c.id, kind, C, B)
 		}
+		for _, l := range B {
+			if l.Result == "fail_as_expected" && validResult(l, e.rules) && e.validEvidence(c.id, kind, l) {
+				rep.freshBaselines[c.id] = true
+			}
+		}
 		ev.Reason = e.judge(c.id, kind, C, B)
 		ev.Satisfied = ev.Reason == ""
 		if l := e.judgedLine(c.id, kind, ev.Reason, C, B); l != nil {
@@ -680,14 +723,8 @@ func (e *evaluator) judgedLine(id, kind, reason string, C, B []*record.Line) *re
 		return nil
 	case "record_invalid", "evidence_invalid":
 		for _, l := range append(append([]*record.Line{}, C...), B...) {
-			if !validResult(l, e.rules) {
+			if !validResult(l, e.rules) || !e.validEvidence(id, kind, l) {
 				return l
-			}
-			if e.rules == RulesV3 && kind == bundle.KindChange {
-				r := e.in.Bundle.Row(id)
-				if r == nil || evidence.ValidateStored(l.Evidence, r.Evidence, r.EvidenceDigest, l.Kind == "baseline", l.Result, l.Exit) != nil {
-					return l
-				}
 			}
 		}
 		return nil
@@ -733,6 +770,18 @@ func count(ls []*record.Line, result string) int {
 	return n
 }
 
+// validEvidence reports whether a structured change condition's stored
+// summary on l passes validation; other conditions carry no summary. Every
+// reader of stored evidence uses it: the judgment, the record it names, the
+// fresh-baseline count, usage and logs.
+func (e *evaluator) validEvidence(id, kind string, l *record.Line) bool {
+	if !Structured(e.rules) || kind != bundle.KindChange {
+		return true
+	}
+	r := e.in.Bundle.Row(id)
+	return r != nil && evidence.ValidateStored(l.Evidence, r.Evidence, r.EvidenceDigest, l.Kind == "baseline", l.Result, l.Exit) == nil
+}
+
 // judge returns the first matching reason from run-record.md §4.1, or "" when
 // the criterion is satisfied.
 func (e *evaluator) judge(id, kind string, C, B []*record.Line) string {
@@ -750,11 +799,8 @@ func (e *evaluator) judge(id, kind string, C, B []*record.Line) string {
 		if !validResult(l, e.rules) {
 			return "record_invalid"
 		}
-		if Structured(e.rules) && kind == bundle.KindChange {
-			r := e.in.Bundle.Row(id)
-			if r == nil || evidence.ValidateStored(l.Evidence, r.Evidence, r.EvidenceDigest, l.Kind == "baseline", l.Result, l.Exit) != nil {
-				return "evidence_invalid"
-			}
+		if !e.validEvidence(id, kind, l) {
+			return "evidence_invalid"
 		}
 	}
 	last := func(ls []*record.Line) string {
@@ -768,7 +814,7 @@ func (e *evaluator) judge(id, kind string, C, B []*record.Line) string {
 	if Structured(e.rules) && kind == bundle.KindChange {
 		// An environment error or skipped observation can determine the
 		// overall result without erasing an assertion in the same report.
-		// All summaries above have already passed ValidateStored.
+		// All summaries above have already passed validEvidence.
 		r := e.in.Bundle.Row(id)
 		for _, l := range C {
 			if l.Result != "fail" && evidence.HasAdverse(l.Evidence, r.Evidence, false) {
@@ -843,6 +889,7 @@ func (e *evaluator) readConfirms(rep *Report) error {
 		}
 		if valid {
 			e.confirms[l.Subject] = true
+			rep.confirmations[l.Subject] = l.Seq
 		} else {
 			invalid = append(invalid, pending{l.Seq, l.Subject, why})
 		}
@@ -921,7 +968,7 @@ func (e *evaluator) goalReasons(rep *Report) ([]Reason, error) {
 	if e.start != nil {
 		changes, err := e.in.Repo.Changes(e.start.BaseCommit, e.head, e.excl)
 		if err != nil {
-			return nil, err
+			return nil, &RangeError{Base: e.start.BaseCommit, Head: e.head, Err: err}
 		}
 		var outside, tests []string
 		for _, ch := range changes {
@@ -958,6 +1005,7 @@ func (e *evaluator) goalReasons(rep *Report) ([]Reason, error) {
 	}
 	if len(open) > 0 {
 		add("task_open", "required tasks not done or dropped in PROGRESS.md: "+strings.Join(open, ", "), nil)
+		rs[len(rs)-1].tasks = open
 	}
 	var lastBlock *record.Line
 	for i := range e.in.Lines {
@@ -1186,8 +1234,7 @@ func (e *evaluator) logs(rep *Report) {
 		if !validResult(&l, e.rules) {
 			log.Result, log.Reason = "invalid", "record_invalid"
 		} else if Structured(e.rules) && l.CriterionKind == bundle.KindChange && l.Target != nil {
-			row := e.in.Bundle.Row(l.Target.Criterion)
-			if row != nil && evidence.ValidateStored(l.Evidence, row.Evidence, row.EvidenceDigest, l.Kind == "baseline", l.Result, l.Exit) == nil {
+			if e.validEvidence(l.Target.Criterion, l.CriterionKind, &l) {
 				log.Reason = l.Evidence.Reason
 			} else {
 				log.Reason = "evidence_invalid"

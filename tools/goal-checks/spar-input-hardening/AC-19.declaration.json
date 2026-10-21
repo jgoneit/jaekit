@@ -1,0 +1,675 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "internal/spar/testdata/input-forms.json",
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spar-input-hardening/AC-19.targets.json",
+    "tools/goal-checks/spar-input-hardening/observe_input.py",
+    "tools/goal-checks/spar/observe_spar.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "spar-round",
+      "violation": "kept-behavior-changed"
+    },
+    {
+      "id": "spar-round.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-round.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-round.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-round.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-round.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-round.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-round.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-round.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-round.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-round.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-angles",
+      "violation": "kept-behavior-changed"
+    },
+    {
+      "id": "spar-angles.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-angles.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-angles.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-angles.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-angles.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-angles.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-angles.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-angles.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-angles.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-angles.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-records",
+      "violation": "kept-behavior-changed"
+    },
+    {
+      "id": "spar-records.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-records.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-records.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-records.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-records.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-records.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-records.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-records.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-records.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-records.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-config",
+      "violation": "kept-behavior-changed"
+    },
+    {
+      "id": "spar-config.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-config.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-config.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-config.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-config.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-config.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-config.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-config.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-config.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-config.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-presets",
+      "violation": "kept-behavior-changed"
+    },
+    {
+      "id": "spar-presets.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-presets.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-presets.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-presets.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-presets.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-presets.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-presets.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-presets.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-presets.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-presets.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-command",
+      "violation": "kept-behavior-changed"
+    },
+    {
+      "id": "spar-command.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-command.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-command.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-command.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-command.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-command.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-command.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-command.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-command.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-command.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-native",
+      "violation": "kept-behavior-changed"
+    },
+    {
+      "id": "spar-native.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-native.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-native.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-native.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-native.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-native.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-native.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-native.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-native.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-native.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-fallback",
+      "violation": "kept-behavior-changed"
+    },
+    {
+      "id": "spar-fallback.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-fallback.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-fallback.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-fallback.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-fallback.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-fallback.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-fallback.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-fallback.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-fallback.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-fallback.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-failures",
+      "violation": "kept-behavior-changed"
+    },
+    {
+      "id": "spar-failures.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-failures.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-failures.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-failures.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-failures.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-failures.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-failures.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-failures.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-failures.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-failures.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-classes",
+      "violation": "kept-behavior-changed"
+    },
+    {
+      "id": "spar-classes.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-classes.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-classes.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-classes.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-classes.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-classes.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-classes.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-classes.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-classes.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-classes.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-ledger",
+      "violation": "kept-behavior-changed"
+    },
+    {
+      "id": "spar-ledger.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-ledger.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-ledger.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-ledger.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-ledger.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-ledger.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-ledger.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-ledger.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-ledger.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-ledger.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-caps",
+      "violation": "kept-behavior-changed"
+    },
+    {
+      "id": "spar-caps.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-caps.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-caps.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-caps.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-caps.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-caps.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-caps.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-caps.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-caps.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-caps.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-gate",
+      "violation": "kept-behavior-changed"
+    },
+    {
+      "id": "spar-gate.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-gate.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-gate.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-gate.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-gate.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-gate.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-gate.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-gate.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-gate.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "spar-gate.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agy-read-tools",
+      "violation": "kept-behavior-changed"
+    },
+    {
+      "id": "agy-read-tools.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agy-read-tools.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agy-read-tools.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agy-read-tools.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agy-read-tools.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agy-read-tools.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agy-read-tools.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agy-read-tools.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agy-read-tools.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "agy-read-tools.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-forms",
+      "violation": "kept-form-changed"
+    },
+    {
+      "id": "kept-forms.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-forms.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-forms.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-forms.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-forms.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-forms.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-forms.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-forms.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-forms.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "kept-forms.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

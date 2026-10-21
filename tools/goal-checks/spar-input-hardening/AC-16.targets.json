@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "locks",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Locks.test_series_writes_wait",
+      "result_targets": {
+        "additional_violations": [
+          "locks.assertion-2",
+          "locks.assertion-3",
+          "locks.assertion-4",
+          "locks.assertion-5",
+          "locks.assertion-6",
+          "locks.assertion-7",
+          "locks.assertion-8"
+        ],
+        "execution": "locks.execution",
+        "selection": "locks.selection",
+        "attribution": "locks.attribution"
+      }
+    }
+  ]
+}

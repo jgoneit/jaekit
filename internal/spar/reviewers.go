@@ -619,25 +619,34 @@ func resolveBinary(r Reviewer) (path, status, reason string) {
 	return found, "", ""
 }
 
-func toolVersion(binary string) string {
+// toolVersion asks the reviewer's executable for its version within the
+// attempt's time limit (G19): it reports false when the limit ran out first.
+func toolVersion(binary string, deadline time.Time) (string, bool) {
 	cmd := exec.Command(binary, "--version")
 	cmd.Stdin = nil
 	var out bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &out
 	ownGroup(cmd)
 	if cmd.Start() != nil {
-		return ""
+		return "", true
 	}
 	done := make(chan struct{})
 	go func() { cmd.Wait(); close(done) }()
+	limit := time.Until(deadline)
+	if limit > 30*time.Second {
+		limit = 30 * time.Second
+	}
 	select {
 	case <-done:
-	case <-time.After(30 * time.Second):
+	case <-time.After(limit):
 		signalGroup(cmd, true)
 		<-done
+		if !time.Now().Before(deadline) {
+			return "", false
+		}
 	}
 	first, _, _ := strings.Cut(strings.TrimSpace(out.String()), "\n")
-	return short(first, 200)
+	return short(first, 200), true
 }
 
 // Attempt is one run of a reviewer with one model.
@@ -666,6 +675,9 @@ func now() string {
 // forbidden event or at its time limit, and judges what it left.
 func runAttempt(r Reviewer, model string, p runPaths, packet []byte, angles []string, head string) Attempt {
 	a := Attempt{Model: model, StartedAt: now()}
+	// The time limit covers the whole attempt, the version check included.
+	limit := time.Duration(r.TimeoutSeconds) * time.Second
+	deadlineAt := time.Now().Add(limit)
 	finish := func(status, reason string) Attempt {
 		a.Status, a.Reason, a.FinishedAt = status, reason, now()
 		return a
@@ -680,7 +692,12 @@ func runAttempt(r Reviewer, model string, p runPaths, packet []byte, angles []st
 	spec := specFor(r, model, binary, p, packet)
 	a.Argv, a.PacketTransport = spec.display, spec.transport
 	if r.Preset != "command" {
-		a.CLIVersion = toolVersion(binary)
+		version, inTime := toolVersion(binary, deadlineAt)
+		if !inTime {
+			a.ElapsedSeconds = float64(limit.Milliseconds()) / 1000
+			return finish(StatusTimedOut, fmt.Sprintf("the version check of %s did not finish within %d seconds", binary, r.TimeoutSeconds))
+		}
+		a.CLIVersion = version
 	}
 	before, err := manifest(p.workspace)
 	if err != nil {
@@ -724,7 +741,7 @@ func runAttempt(r Reviewer, model string, p runPaths, packet []byte, angles []st
 	var violation string
 	timedOut := false
 	offset := int64(0)
-	deadline := time.After(time.Duration(r.TimeoutSeconds) * time.Second)
+	deadline := time.After(time.Until(deadlineAt))
 	ticker := time.NewTicker(200 * time.Millisecond)
 loop:
 	for {
@@ -919,15 +936,42 @@ func changedPaths(before, after map[string]string) []string {
 
 // validateResult checks a reviewer's result against the schema and the
 // round: its head, every requested angle, and each finding's fields.
+// findingKeys are the keys of a finding in a reviewer's result.
+var findingKeys = []string{"id", "proposed_class", "angle", "location", "claim", "failure_scenario", "evidence",
+	"link_kind", "link", "introduced_by_change", "regression", "check_impact", "confidence"}
+
+// unknownKeys lists, sorted, the keys of m outside known.
+func unknownKeys(m map[string]any, known []string) []string {
+	var out []string
+	for k := range m {
+		if !contains(known, k) {
+			out = append(out, k)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
 func validateResult(result any, head string, angles []string) []string {
 	m := object(result)
 	if m == nil {
 		return []string{"result is not a JSON object"}
 	}
 	var problems []string
-	for _, key := range []string{"reviewed_head", "verdict", "angles_checked", "angles_unchecked", "findings", "limits"} {
+	resultKeys := []string{"reviewed_head", "verdict", "angles_checked", "angles_unchecked", "findings", "limits"}
+	for _, key := range resultKeys {
 		if _, ok := m[key]; !ok {
 			problems = append(problems, "missing "+key)
+		}
+	}
+	// The keys are exactly the schema's (G1).
+	for _, key := range unknownKeys(m, resultKeys) {
+		problems = append(problems, fmt.Sprintf("unknown key %q", key))
+	}
+	// limits is a string, possibly empty (G6).
+	if v, present := m["limits"]; present {
+		if _, ok := v.(string); !ok {
+			problems = append(problems, "limits is not a string")
 		}
 	}
 	reviewed := str(m["reviewed_head"])
@@ -994,11 +1038,14 @@ func validateResult(result any, head string, angles []string) []string {
 			problems = append(problems, fmt.Sprintf("finding %d is not an object", i))
 			continue
 		}
-		for _, key := range []string{"id", "proposed_class", "angle", "location", "claim", "failure_scenario", "evidence",
-			"link_kind", "link", "introduced_by_change", "regression", "check_impact", "confidence"} {
+		for _, key := range findingKeys {
 			if _, ok := f[key].(string); !ok {
 				problems = append(problems, fmt.Sprintf("finding %d lacks %s", i, key))
 			}
+		}
+		// The keys are exactly the schema's (G5).
+		for _, key := range unknownKeys(f, findingKeys) {
+			problems = append(problems, fmt.Sprintf("finding %d has unknown key %q", i, key))
 		}
 		// The reviewer's own id is any string: spar numbers the findings
 		// itself and keeps that id only as reviewer_id.

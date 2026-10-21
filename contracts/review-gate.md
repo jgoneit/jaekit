@@ -9,7 +9,8 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
   --expect-head 3333333 --out docs/reviews/example/gate.json
 ```
 
-- 라운드는 주어진 순서로 읽는다. `--out`은 저장소 안이면 Git이 무시하는 경로여야 한다.
+- 라운드는 주어진 순서로 읽는다(G29). 주어진 라운드의 series에 있는 dry run이 아닌 라운드는 모두 목록에 있어야 한다. 지적을 기록하기 전에 멈춘 라운드(`finished_at`과 `findings.json`이 모두 없음)는 dry run처럼 빠진다.
+- `--out`은 [입력 형식](spar-input.md)의 기록 경로 규칙(G28)을 따른다. 그 밖에 주어진 라운드 폴더 안이나 series의 `extensions.jsonl`이면 거부하고, 이미 있는 파일은 `review-gate/v1` 파일일 때만 덮는다. 거부하면 아무것도 쓰지 않는다.
 - 인자가 맞으면 상태와 관계없이 파일을 쓴다. 읽을 수 없는 라운드, 해석할 수 없는 기대 head도 `blocked` 사유로 기록한다.
 - 종료 코드: `complete` 0, `degraded` 3, `blocked` 4, 사용법 오류 64, 기록 경로 거부 65, 내부 오류 70.
 
@@ -25,6 +26,7 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
 - 코드 라운드 사슬 끊김: 목록의 fixes 라운드 base가 바로 앞 code 라운드의 head가 아니거나, 앞에 code 라운드가 없음. 바로 앞 code 라운드와 단계·base·head·패킷 digest가 모두 같은 라운드(같은 패킷의 재실행)만 이 확인에서 빠진다. 패킷이 다르면 base·head가 같아도 새 fixes 라운드다
 - 기대 head 미검토: 마지막 code 라운드(없으면 마지막 라운드)의 head가 기대 head가 아님
 - dry run 라운드, 읽을 수 없는 라운드, `findings.json`이나 `ledger.jsonl`이 없는 라운드, 저장소에 없는 커밋
+- 목록에 없는 같은 series의 라운드(G29): `<series>: round <이름> of the series is not in the gate list`. 앞선 라운드를 빼고 gate를 만들어 열린 지적을 지나치지 않게 한다
 
 `degraded` 사유:
 
@@ -67,7 +69,7 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
 | `rounds[]` | 라운드의 `criteria_digest`, 패킷 digest(`packet_digest`), 설정 digest(`config_digest`), 요청한 리뷰어 이름과 필수로 인정된 리뷰어 수(`required_reviewers`), 그중 완료한 수(`completed_required`, 같은 단계·base·head·패킷의 재실행에서 완료한 것 포함) |
 | `open` | 열린 `defect`와 `requirement-question` 수 |
 | `open_findings` | 열린 지적의 라운드와 ID |
-| `auto_deferred` | 마지막 처리가 자동 보류인 `hardening` 수 |
+| `auto_deferred` | 마지막 처리가 자동 보류인 `hardening` 수. 위치를 읽을 수 없는 `hardening`은 원장 항목이 없어 세지 않는다 |
 | `growth.added_lines` | 목록의 fixes 라운드마다 `git diff --numstat -M <base> <head>`의 더한 줄(이름을 바꾼 파일은 새 경로에서 더한 줄만)을 그 라운드 설정의 검사 경로(`check`)와 그 밖(`other`)으로 나눈 합. 같은 base·head는 한 번만 센다 |
 | `growth.over_hardening` | `check`가 `other`보다 크면 `true` |
 | `growth.rounds[]` | fixes 라운드별 `check`·`other` |

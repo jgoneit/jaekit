@@ -1,0 +1,65 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "traces",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-report-doctor/observe_doctor.py",
+      "test": "Traces.test_leaves_nothing",
+      "result_targets": {
+        "additional_violations": [
+          "traces.assertion-2",
+          "traces.assertion-3",
+          "traces.assertion-4",
+          "traces.assertion-5",
+          "traces.assertion-6",
+          "traces.assertion-7",
+          "traces.assertion-8"
+        ],
+        "execution": "traces.execution",
+        "selection": "traces.selection",
+        "attribution": "traces.attribution"
+      }
+    },
+    {
+      "target": "timeout",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-report-doctor/observe_doctor.py",
+      "test": "Traces.test_timeout_stops_descendants",
+      "result_targets": {
+        "additional_violations": [
+          "timeout.assertion-2",
+          "timeout.assertion-3",
+          "timeout.assertion-4",
+          "timeout.assertion-5",
+          "timeout.assertion-6",
+          "timeout.assertion-7",
+          "timeout.assertion-8"
+        ],
+        "execution": "timeout.execution",
+        "selection": "timeout.selection",
+        "attribution": "timeout.attribution"
+      }
+    },
+    {
+      "target": "tail",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-report-doctor/observe_doctor.py",
+      "test": "Traces.test_failure_tail",
+      "result_targets": {
+        "additional_violations": [
+          "tail.assertion-2",
+          "tail.assertion-3",
+          "tail.assertion-4",
+          "tail.assertion-5",
+          "tail.assertion-6",
+          "tail.assertion-7",
+          "tail.assertion-8"
+        ],
+        "execution": "tail.execution",
+        "selection": "tail.selection",
+        "attribution": "tail.attribution"
+      }
+    }
+  ]
+}

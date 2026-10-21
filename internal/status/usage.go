@@ -118,11 +118,7 @@ func (e *evaluator) collectUsage(rep *Report) error {
 			continue
 		}
 		if Structured(e.rules) && l.CriterionKind == bundle.KindChange {
-			if l.Target == nil {
-				continue
-			}
-			r := e.in.Bundle.Row(l.Target.Criterion)
-			if r == nil || evidence.ValidateStored(l.Evidence, r.Evidence, r.EvidenceDigest, l.Kind == "baseline", l.Result, l.Exit) != nil {
+			if l.Target == nil || !e.validEvidence(l.Target.Criterion, l.CriterionKind, l) {
 				continue
 			}
 		}

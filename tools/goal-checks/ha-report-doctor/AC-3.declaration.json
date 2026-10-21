@@ -1,0 +1,146 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/ha-report-doctor/AC-3.targets.json",
+    "tools/goal-checks/ha-report-doctor/common.py",
+    "tools/goal-checks/ha-report-doctor/observe_report.py",
+    "tools/goal-checks/produce.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "readonly",
+      "violation": "report-not-read-only"
+    },
+    {
+      "id": "readonly.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readonly.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readonly.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readonly.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readonly.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readonly.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readonly.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readonly.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readonly.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "readonly.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "rules",
+      "violation": "report-rules-wrong"
+    },
+    {
+      "id": "rules.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "rules.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "rules.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "rules.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "rules.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "rules.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "rules.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "rules.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "rules.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "rules.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "findings",
+      "violation": "report-findings-hidden"
+    },
+    {
+      "id": "findings.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "findings.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "findings.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "findings.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "findings.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "findings.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "findings.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "findings.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "findings.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "findings.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

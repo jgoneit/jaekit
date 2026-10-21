@@ -200,3 +200,87 @@ func TestProjectConfigLimits(t *testing.T) {
 		t.Fatalf("unknown project key: %v", err)
 	}
 }
+
+// The configuration rows of the input table (contracts/spar-input.md,
+// G16 to G25): what each source, list, name, rule and glob accepts.
+func TestConfigInputRows(t *testing.T) {
+	dir := t.TempDir()
+	repo := filepath.Join(dir, "repo")
+	os.MkdirAll(repo, 0o755)
+	empty := filepath.Join(dir, "empty")
+	os.MkdirAll(empty, 0o755)
+	vars := map[string]string{"HOME": empty, "XDG_CONFIG_HOME": empty}
+	load := func(spar string) (*Config, error) {
+		v := map[string]string{"HOME": empty, "XDG_CONFIG_HOME": empty, "SPAR_CONFIG": spar}
+		return LoadConfig(repo, env(v), nil)
+	}
+	// G16: a folder is an error, a broken link or a link loop is skipped.
+	if _, err := load(empty); err == nil || !strings.Contains(err.Error(), empty) {
+		t.Errorf("a folder as SPAR_CONFIG: %v", err)
+	}
+	loop := filepath.Join(dir, "loop.toml")
+	os.Symlink(loop, loop)
+	if c, err := load(loop); err != nil || !contains(c.Source.Skipped, loop) {
+		t.Errorf("a symbolic link loop: %v %+v", err, c)
+	}
+	// G18: the clean-review list holds names only.
+	for _, body := range []string{`{"reviewers": null}`, `{"reviewers": [null]}`, `{"reviewers": "codex"}`, `{"reviewers": [1]}`} {
+		clean := writeFile(t, filepath.Join(dir, "clean.json"), body)
+		v := map[string]string{"HOME": empty, "XDG_CONFIG_HOME": empty, "CLEAN_REVIEW_CONFIG": clean}
+		if _, err := LoadConfig(repo, env(v), nil); err == nil {
+			t.Errorf("clean-review %s was accepted", body)
+		}
+	}
+	clean := writeFile(t, filepath.Join(dir, "clean.json"), `{"reviewers": [" codex ", ""]}`)
+	if c, err := LoadConfig(repo, env(map[string]string{"HOME": empty, "XDG_CONFIG_HOME": empty, "CLEAN_REVIEW_CONFIG": clean}), nil); err != nil || names(c) != "codex" {
+		t.Errorf("clean-review names with spaces and an empty one: %v %+v", err, c)
+	}
+	// G19: the top-level time limit is the default of every reviewer the file decides.
+	only := writeFile(t, filepath.Join(dir, "timeout.toml"), "timeout_seconds = 60\n")
+	c, err := load(only)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range c.Reviewers {
+		if r.TimeoutSeconds != 60 {
+			t.Errorf("%s: timeout %d, want 60", r.Name, r.TimeoutSeconds)
+		}
+	}
+	listed := writeFile(t, filepath.Join(dir, "listed.toml"), "timeout_seconds = 45\n[[reviewers]]\npreset = \"claude\"\n")
+	if c, err := LoadConfig(repo, env(map[string]string{"HOME": empty, "XDG_CONFIG_HOME": empty, "SPAR_CONFIG": listed}), []string{"codex"}); err != nil ||
+		len(c.Reviewers) != 1 || c.Reviewers[0].TimeoutSeconds != 45 {
+		t.Errorf("--reviewers codex with a top-level timeout: %v %+v", err, c)
+	}
+	// G20: names are compared ignoring case, and round file names and their
+	// .tmp names are reserved.
+	for _, pair := range [][2]string{{"Host", "host"}, {"codex", "CODEX"}} {
+		body := "[[reviewers]]\nname = \"" + pair[0] + "\"\npreset = \"native\"\n[[reviewers]]\nname = \"" + pair[1] + "\"\npreset = \"native\"\n"
+		if _, err := load(writeFile(t, filepath.Join(dir, "dup.toml"), body)); err == nil {
+			t.Errorf("names %v were both accepted", pair)
+		}
+	}
+	for _, name := range []string{"round.json.tmp", "Summary.md", "WORKSPACE"} {
+		body := "[[reviewers]]\nname = \"" + name + "\"\npreset = \"native\"\n"
+		if _, err := load(writeFile(t, filepath.Join(dir, "reserved.toml"), body)); err == nil {
+			t.Errorf("the reserved name %q was accepted", name)
+		}
+	}
+	// G25: empty items are skipped, and a list of none is native.
+	for flag, want := range map[string]string{"": "native", ",": "native", " codex , agy ": "codex,agy"} {
+		if c, err := LoadConfig(repo, env(vars), reviewerOverride(parsed{values: map[string][]string{"reviewers": {flag}}})); err != nil || names(c) != want {
+			t.Errorf("--reviewers %q: %v %s", flag, err, names(c))
+		}
+	}
+	// G23 and G24: rules are readable files inside the repository, and
+	// check paths are valid globs; both errors name the key's line.
+	outside := writeFile(t, filepath.Join(dir, "outside.md"), "rule\n")
+	os.Symlink(outside, filepath.Join(repo, "linked.md"))
+	os.MkdirAll(filepath.Join(repo, "somedir"), 0o755)
+	for _, body := range []string{"rules = [\"linked.md\"]\n", "rules = [\"missing.md\"]\n", "rules = [\"somedir\"]\n",
+		"check_paths = [\"checks/[a\"]\n", "check_paths = [\"a/../b\"]\n"} {
+		writeFile(t, filepath.Join(repo, ".jaekit", "spar.toml"), body)
+		if _, err := LoadConfig(repo, env(vars), nil); err == nil || !strings.Contains(err.Error(), "spar.toml:1") {
+			t.Errorf("%q: %v", body, err)
+		}
+	}
+}

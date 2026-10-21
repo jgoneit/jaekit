@@ -10,11 +10,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+	"syscall"
 
 	toml "github.com/pelletier/go-toml/v2"
 )
@@ -94,6 +96,9 @@ type Config struct {
 	CheckPaths         []string      `json:"check_paths"`
 	Rules              []string      `json:"rules"`
 	Digest             string        `json:"digest"`
+	// defaultTimeout is the time limit of reviewers the source file does
+	// not set one for: its top-level timeout_seconds (G19).
+	defaultTimeout int64
 }
 
 // presets are the reviewer kinds and their defaults.
@@ -123,10 +128,11 @@ var roundFiles = []string{"round.json", "packet.md", "schema.json", "findings.js
 const dryRunWorkspace = "workspace"
 
 // reservedName reports a reviewer name that would be a round file's
-// folder, ignoring case for case-insensitive file systems.
+// folder, or the temporary file spar writes it through, ignoring case for
+// case-insensitive file systems (G20).
 func reservedName(name string) bool {
 	for _, f := range roundFiles {
-		if strings.EqualFold(name, f) {
+		if strings.EqualFold(name, f) || strings.EqualFold(name, f+".tmp") {
 			return true
 		}
 	}
@@ -188,7 +194,7 @@ type projectFile struct {
 // one run (an empty override means the native reviewer).
 func LoadConfig(repo string, getenv func(string) string, override []string) (*Config, error) {
 	c := &Config{Angles: append([]string(nil), Angles...), Caps: Caps{Plan: 1, PlanDelta: 1, Code: 3},
-		CheckPaths: []string{}, Rules: []string{}, Files: []FileDigest{}}
+		CheckPaths: []string{}, Rules: []string{}, Files: []FileDigest{}, defaultTimeout: DefaultTimeout}
 	configured, err := c.loadReviewers(getenv)
 	if err != nil {
 		return nil, err
@@ -202,7 +208,7 @@ func LoadConfig(repo string, getenv func(string) string, override []string) (*Co
 	if override != nil {
 		c.Override = &Override{Kind: "--reviewers", Names: append([]string{}, override...)}
 		if len(override) == 0 {
-			c.Reviewers = []Reviewer{preset("native", "native")}
+			c.Reviewers = []Reviewer{c.preset("native", "native")}
 		} else {
 			byName := map[string]Reviewer{}
 			for _, r := range configured {
@@ -210,14 +216,16 @@ func LoadConfig(repo string, getenv func(string) string, override []string) (*Co
 			}
 			seen := map[string]bool{}
 			for _, name := range override {
-				if seen[name] {
-					return nil, &ConfigError{Path: "--reviewers", Msg: fmt.Sprintf("reviewer %q is listed twice", name)}
+				// Names differing only in case share a folder on a
+				// case-insensitive file system (G20).
+				if seen[strings.ToLower(name)] {
+					return nil, &ConfigError{Path: "--reviewers", Msg: fmt.Sprintf("reviewer %q is listed twice (names are compared ignoring case)", name)}
 				}
-				seen[name] = true
+				seen[strings.ToLower(name)] = true
 				if r, ok := byName[name]; ok {
 					c.Reviewers = append(c.Reviewers, r)
 				} else if _, ok := presets[name]; ok && name != "command" {
-					c.Reviewers = append(c.Reviewers, preset(name, name))
+					c.Reviewers = append(c.Reviewers, c.preset(name, name))
 				} else {
 					return nil, &ConfigError{Path: "--reviewers", Msg: fmt.Sprintf("reviewer %q is neither configured nor a preset (claude, codex, agy, native)", name)}
 				}
@@ -240,14 +248,33 @@ func preset(name, kind string) Reviewer {
 	return r
 }
 
+// preset is a preset reviewer with the time limit of the source file.
+func (c *Config) preset(name, kind string) Reviewer {
+	r := preset(name, kind)
+	r.TimeoutSeconds = c.defaultTimeout
+	return r
+}
+
 func fileDigest(path string, data []byte) FileDigest {
 	sum := sha256.Sum256(data)
 	return FileDigest{Path: path, SHA256: hex.EncodeToString(sum[:])}
 }
 
-func regularFile(path string) bool {
+// sourceFile says whether a configuration source exists (G16). A path that
+// does not exist, a broken symbolic link included, is absent; one that
+// exists must be a regular file, after following symbolic links.
+func sourceFile(path string) (bool, error) {
 	info, err := os.Stat(path)
-	return err == nil && info.Mode().IsRegular()
+	switch {
+	case errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR) || errors.Is(err, syscall.ELOOP):
+		// A symbolic link loop is a broken link too.
+		return false, nil
+	case err != nil:
+		return false, &ConfigError{Path: path, Msg: "the configuration file cannot be read: " + err.Error()}
+	case !info.Mode().IsRegular():
+		return false, &ConfigError{Path: path, Msg: "the configuration path exists but is not a regular file"}
+	}
+	return true, nil
 }
 
 func (c *Config) loadReviewers(getenv func(string) string) ([]Reviewer, error) {
@@ -268,7 +295,11 @@ func (c *Config) loadReviewers(getenv func(string) string) ([]Reviewer, error) {
 	}
 	var skipped []string
 	for _, cand := range candidates {
-		if !regularFile(cand.path) {
+		exists, err := sourceFile(cand.path)
+		if err != nil {
+			return nil, err
+		}
+		if !exists {
 			skipped = append(skipped, cand.path)
 			continue
 		}
@@ -278,17 +309,20 @@ func (c *Config) loadReviewers(getenv func(string) string) ([]Reviewer, error) {
 		}
 		c.Files = append(c.Files, fileDigest(cand.path, data))
 		c.Source = Source{Kind: cand.kind, Path: cand.path, Skipped: skipped}
-		reviewers, present, err := parseUserFile(cand.path, data)
+		reviewers, present, timeout, err := parseUserFile(cand.path, data)
 		if err != nil {
 			return nil, err
 		}
+		// The top-level timeout_seconds is the default of every reviewer
+		// this file decides, the default list and native included (G19).
+		c.defaultTimeout = timeout
 		if !present {
 			c.Source.Note = "no reviewers key: default list"
-			return defaults(DefaultReviewers), nil
+			return c.defaults(DefaultReviewers), nil
 		}
 		if len(reviewers) == 0 {
 			c.Source.Note = "empty list: native"
-			return []Reviewer{preset("native", "native")}, nil
+			return []Reviewer{c.preset("native", "native")}, nil
 		}
 		return reviewers, nil
 	}
@@ -302,7 +336,15 @@ func (c *Config) loadReviewers(getenv func(string) string) ([]Reviewer, error) {
 			clean = filepath.Join(base, "clean-review", "config.json")
 		}
 	}
-	if clean != "" && regularFile(clean) {
+	cleanExists := false
+	if clean != "" {
+		exists, err := sourceFile(clean)
+		if err != nil {
+			return nil, err
+		}
+		cleanExists = exists
+	}
+	if cleanExists {
 		data, err := os.ReadFile(clean)
 		if err != nil {
 			return nil, &ConfigError{Path: clean, Msg: err.Error()}
@@ -315,25 +357,25 @@ func (c *Config) loadReviewers(getenv func(string) string) ([]Reviewer, error) {
 		}
 		if !present {
 			c.Source.Note = "no reviewers key: default list"
-			return defaults(DefaultReviewers), nil
+			return c.defaults(DefaultReviewers), nil
 		}
 		if len(names) == 0 {
 			c.Source.Note = "empty list: native"
-			return []Reviewer{preset("native", "native")}, nil
+			return []Reviewer{c.preset("native", "native")}, nil
 		}
-		return defaults(names), nil
+		return c.defaults(names), nil
 	}
 	if clean != "" {
 		skipped = append(skipped, clean)
 	}
 	c.Source = Source{Kind: "default", Skipped: skipped}
-	return defaults(DefaultReviewers), nil
+	return c.defaults(DefaultReviewers), nil
 }
 
-func defaults(names []string) []Reviewer {
+func (c *Config) defaults(names []string) []Reviewer {
 	out := make([]Reviewer, 0, len(names))
 	for _, n := range names {
-		out = append(out, preset(n, n))
+		out = append(out, c.preset(n, n))
 	}
 	return out
 }
@@ -355,13 +397,19 @@ func parseCleanReview(path string, data []byte) ([]string, bool, error) {
 	if !ok {
 		return nil, false, nil
 	}
-	var names []string
-	if err := json.Unmarshal(raw, &names); err != nil {
+	// As clean-review reads it (G18): a list whose items are all strings;
+	// null, another type or a non-string item is an error.
+	var items []json.RawMessage
+	if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) || json.Unmarshal(raw, &items) != nil {
 		return nil, true, &ConfigError{Path: path, Msg: `"reviewers" must be a list of names`}
 	}
 	seen := map[string]bool{}
 	var out []string
-	for _, n := range names {
+	for i, item := range items {
+		var n string
+		if trimmed := bytes.TrimSpace(item); len(trimmed) == 0 || trimmed[0] != '"' || json.Unmarshal(trimmed, &n) != nil {
+			return nil, true, &ConfigError{Path: path, Msg: fmt.Sprintf(`"reviewers" item %d is not a name: %s`, i, short(string(item), 40))}
+		}
 		n = strings.TrimSpace(n)
 		if n == "" {
 			continue
@@ -416,13 +464,25 @@ func tomlError(path string, data []byte, err error) error {
 	return &ConfigError{Path: path, Line: line, Msg: "TOML syntax error: " + msg}
 }
 
-func parseUserFile(path string, data []byte) ([]Reviewer, bool, error) {
+func parseUserFile(path string, data []byte) ([]Reviewer, bool, int64, error) {
 	var raw map[string]any
 	var file userFile
 	if err := decodeStrict(path, data, &raw, &file); err != nil {
-		return nil, false, err
+		return nil, false, 0, err
 	}
 	lines := keyLines(data)
+	timeout := int64(DefaultTimeout)
+	if file.TimeoutSeconds != nil {
+		if *file.TimeoutSeconds <= 0 {
+			return nil, false, 0, &ConfigError{Path: path, Line: lines["timeout_seconds"], Msg: "timeout_seconds must be positive"}
+		}
+		timeout = *file.TimeoutSeconds
+	}
+	reviewers, present, err := parseReviewers(path, raw, file, lines, timeout)
+	return reviewers, present, timeout, err
+}
+
+func parseReviewers(path string, raw map[string]any, file userFile, lines map[string]int, timeout int64) ([]Reviewer, bool, error) {
 	at := func(key string, i int, field string) int {
 		if field != "" {
 			if l := lines[fmt.Sprintf("%s[%d].%s", key, i, field)]; l > 0 {
@@ -430,13 +490,6 @@ func parseUserFile(path string, data []byte) ([]Reviewer, bool, error) {
 			}
 		}
 		return lines[fmt.Sprintf("%s[%d]", key, i)]
-	}
-	timeout := int64(DefaultTimeout)
-	if file.TimeoutSeconds != nil {
-		if *file.TimeoutSeconds <= 0 {
-			return nil, false, &ConfigError{Path: path, Line: lines["timeout_seconds"], Msg: "timeout_seconds must be positive"}
-		}
-		timeout = *file.TimeoutSeconds
 	}
 	_, present := raw["reviewers"]
 	seen := map[string]int{}
@@ -465,10 +518,12 @@ func parseUserFile(path string, data []byte) ([]Reviewer, bool, error) {
 		if reservedName(r.Name) {
 			return nil, true, fail("name", "name %q is a file of the round folder", r.Name)
 		}
-		if j, dup := seen[r.Name]; dup {
-			return nil, true, fail("name", "duplicate reviewer name %q (also reviewers[%d])", r.Name, j)
+		// Names differing only in case share a folder on a case-insensitive
+		// file system (G20).
+		if j, dup := seen[strings.ToLower(r.Name)]; dup {
+			return nil, true, fail("name", "duplicate reviewer name %q (also reviewers[%d]; names are compared ignoring case)", r.Name, j)
 		}
-		seen[r.Name] = i
+		seen[strings.ToLower(r.Name)] = i
 		if kind == "command" {
 			if len(e.Argv) == 0 {
 				return nil, true, fail("", "preset command needs argv")
@@ -553,8 +608,9 @@ func join(prefix, key string) string {
 
 func (c *Config) loadProject(repo string) error {
 	path := filepath.Join(repo, ".jaekit", "spar.toml")
-	if !regularFile(path) {
-		return nil
+	exists, err := sourceFile(path)
+	if err != nil || !exists {
+		return err
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -614,11 +670,14 @@ func (c *Config) loadProject(repo string) error {
 		}
 		c.Angles = ordered
 	}
-	for key, item := range map[string][]string{"rules": file.Rules, "check_paths": file.CheckPaths} {
-		for _, v := range item {
-			if strings.TrimSpace(v) == "" || strings.HasPrefix(v, "/") || !filepath.IsLocal(filepath.FromSlash(v)) {
-				return &ConfigError{Path: path, Line: lines[key], Msg: fmt.Sprintf("%s must hold paths inside the repository: %q", key, v)}
-			}
+	for _, v := range file.Rules {
+		if msg := ruleFileProblem(repo, v); msg != "" {
+			return &ConfigError{Path: path, Line: lines["rules"], Msg: fmt.Sprintf("rules entry %q: %s", v, msg)}
+		}
+	}
+	for _, v := range file.CheckPaths {
+		if err := validGlob(v); err != nil {
+			return &ConfigError{Path: path, Line: lines["check_paths"], Msg: fmt.Sprintf("check_paths entry %q: %v", v, err)}
 		}
 	}
 	if file.Rules != nil {
@@ -628,6 +687,39 @@ func (c *Config) loadProject(repo string) error {
 		c.CheckPaths = append([]string{}, file.CheckPaths...)
 	}
 	return nil
+}
+
+// ruleFileProblem says why a project rules entry is not a readable file
+// inside the repository (G23), or "" when it is one. A symbolic link counts
+// by the file it leads to.
+func ruleFileProblem(repo, entry string) string {
+	if strings.TrimSpace(entry) == "" || strings.HasPrefix(entry, "/") || filepath.IsAbs(entry) || !filepath.IsLocal(filepath.FromSlash(entry)) {
+		return "not a path inside the repository"
+	}
+	root, err := filepath.EvalSymlinks(repo)
+	if err != nil {
+		return "the repository cannot be resolved: " + err.Error()
+	}
+	target, err := filepath.EvalSymlinks(filepath.Join(repo, filepath.FromSlash(entry)))
+	if err != nil {
+		return "the file cannot be read: " + err.Error()
+	}
+	if rel, err := filepath.Rel(root, target); err != nil || !filepath.IsLocal(rel) {
+		return "a symbolic link leads outside the repository"
+	}
+	info, err := os.Stat(target)
+	if err != nil {
+		return "the file cannot be read: " + err.Error()
+	}
+	if !info.Mode().IsRegular() {
+		return "not a regular file"
+	}
+	f, err := os.Open(target)
+	if err != nil {
+		return "the file cannot be read: " + err.Error()
+	}
+	f.Close()
+	return ""
 }
 
 func lineOfKey(lines map[string]int, key string) int {

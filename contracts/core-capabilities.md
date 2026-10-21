@@ -68,7 +68,9 @@ ha capabilities --format json
 | `error-recovery/v1` | `run-rules/4`의 `recover`·`allow-recovery`와 회복 횟수 표시(§6) |
 | `command-time-limits/v1` | `run-rules/4`의 PLAN `## 시간 제한`, 명령 digest의 적용 제한, 실행 전 안내(§6) |
 | `runner-adapters/v1` | `/3`·`/4` change 조건의 `check-adapter/v1` 선언으로 `go test -json` 표준 출력과 JUnit XML을 직접 분류하는 선택적 확장(§7) |
-| `auto-budget/v1` | PLAN `검증 실행: 자동`의 시작 상한 산정, 사용자 설정의 사전 승인 상한, 그 상한을 넘는 시작의 거부와 `ha estimate`의 표시(§8, [실행 기록](run-record.md) §1.3) |
+| `report/v1` | 기록을 바꾸지 않고 `ha status`와 같은 계산으로 다섯 줄 요약·도장·조건별 근거·완료 범위를 보이는 사람용 보고(`ha report`, [실행 기록](run-record.md) §1.3) |
+| `doctor/v1` | PLAN `## 실행 환경`의 점검 명령을 60초 고정 제한으로 실행하고 아무것도 기록하지 않는 실행 환경 점검(`ha doctor`, [실행 기록](run-record.md) §1.4) |
+| `auto-budget/v1` | PLAN `검증 실행: 자동`의 시작 상한 산정, 사용자 설정의 사전 승인 상한, 그 상한을 넘는 시작의 거부와 `ha estimate`의 표시(§8, [실행 기록](run-record.md) §1.5) |
 | `core-requirements/v1` | `ha start --skill`의 skill Core 요구 선언 확인과 선언을 필수로 하는 `--check-skill`(§8) |
 
 시간 보기를 지원하는 Core는 `formats.timing`에 `timing/v1`, `features`에 `run-timing/v1`을 제공한다([실행 기록](run-record.md) §1.2, §2.2). 측정값은 판정·예산에 쓰이지 않으므로 이 확장은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 추가되지 않는다. 지원이 없는 Core에서도 일반 실행은 그대로이고, 시간 보기만 쓸 수 없다.
@@ -144,7 +146,7 @@ Seal 0.1.16부터 확인 도구는 새 시작에서 이 규칙과 다섯 기능�
 
 ## 8. skill의 Core 요구 선언
 
-skill은 SKILL.md와 같은 폴더의 `core-requirements.json`에 자신에게 필요한 Core 지원을 선언할 수 있다. `ha start --skill <SKILL.md>`가 이 선언을 읽어 실행 파일의 지원 정보(§1의 `ha capabilities`와 같은 값)와 대조한다([실행 기록](run-record.md) §1.4). 지원하는 Core는 `formats.core_requirements`에 `core-requirements/v1`, `features`에 `core-requirements/v1`을 제공한다.
+skill은 SKILL.md와 같은 폴더의 `core-requirements.json`에 자신에게 필요한 Core 지원을 선언할 수 있다. `ha start --skill <SKILL.md>`가 이 선언을 읽어 실행 파일의 지원 정보(§1의 `ha capabilities`와 같은 값)와 대조한다([실행 기록](run-record.md) §1.6). 지원하는 Core는 `formats.core_requirements`에 `core-requirements/v1`, `features`에 `core-requirements/v1`을 제공한다.
 
 ```json
 {
@@ -169,4 +171,4 @@ skill은 SKILL.md와 같은 폴더의 `core-requirements.json`에 자신에게 �
 - `--check-skill`은 선언을 필수로 한다. 이 기능 전의 Core(배포판 v0.1.6 등)는 이 플래그를 모르는 플래그로 64에 끝내고 기록하지 않으므로, 확인이 반드시 일어나야 하는 시작은 `ha start <goal> --skill <SKILL.md> --check-skill` 형식을 쓴다.
 - 선언은 Core 지원의 요구일 뿐이다. 사용자 구현 권한, 입력 lint, 완료 판정을 대신하지 않는다.
 
-`auto-budget/v1`은 PLAN `검증 실행: 자동`의 시작 상한 산정을 제공한다는 뜻이다([실행 기록](run-record.md) §1.3). 두 기능은 선택이므로 §2 표의 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 더하지 않는다. skill이 쓰려면 §8의 선언에 적는다.
+`auto-budget/v1`은 PLAN `검증 실행: 자동`의 시작 상한 산정을 제공한다는 뜻이다([실행 기록](run-record.md) §1.5). 두 기능은 선택이므로 §2 표의 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 더하지 않는다. skill이 쓰려면 §8의 선언에 적는다.

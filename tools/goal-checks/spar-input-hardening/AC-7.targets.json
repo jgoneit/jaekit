@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "sentences",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Sentences.test_current_behavior_in_contract",
+      "result_targets": {
+        "additional_violations": [
+          "sentences.assertion-2",
+          "sentences.assertion-3",
+          "sentences.assertion-4",
+          "sentences.assertion-5",
+          "sentences.assertion-6",
+          "sentences.assertion-7",
+          "sentences.assertion-8"
+        ],
+        "execution": "sentences.execution",
+        "selection": "sentences.selection",
+        "attribution": "sentences.attribution"
+      }
+    }
+  ]
+}

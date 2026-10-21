@@ -1,0 +1,65 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "suites",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-report-doctor/observe_kept.py",
+      "test": "Kept.test_existing_suites_pass",
+      "result_targets": {
+        "additional_violations": [
+          "suites.assertion-2",
+          "suites.assertion-3",
+          "suites.assertion-4",
+          "suites.assertion-5",
+          "suites.assertion-6",
+          "suites.assertion-7",
+          "suites.assertion-8"
+        ],
+        "execution": "suites.execution",
+        "selection": "suites.selection",
+        "attribution": "suites.attribution"
+      }
+    },
+    {
+      "target": "capabilities",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-report-doctor/observe_kept.py",
+      "test": "Kept.test_capabilities_only_add",
+      "result_targets": {
+        "additional_violations": [
+          "capabilities.assertion-2",
+          "capabilities.assertion-3",
+          "capabilities.assertion-4",
+          "capabilities.assertion-5",
+          "capabilities.assertion-6",
+          "capabilities.assertion-7",
+          "capabilities.assertion-8"
+        ],
+        "execution": "capabilities.execution",
+        "selection": "capabilities.selection",
+        "attribution": "capabilities.attribution"
+      }
+    },
+    {
+      "target": "usage",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-report-doctor/observe_kept.py",
+      "test": "Kept.test_usage_only_adds_command_lines",
+      "result_targets": {
+        "additional_violations": [
+          "usage.assertion-2",
+          "usage.assertion-3",
+          "usage.assertion-4",
+          "usage.assertion-5",
+          "usage.assertion-6",
+          "usage.assertion-7",
+          "usage.assertion-8"
+        ],
+        "execution": "usage.execution",
+        "selection": "usage.selection",
+        "attribution": "usage.attribution"
+      }
+    }
+  ]
+}

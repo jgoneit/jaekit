@@ -88,7 +88,7 @@ Ask your agent, for example `$spar:spar` in Codex or `/spar:spar` in Claude Code
 
 One series allows one plan round, one plan-delta round and three code rounds. A round past its cap is refused before any reviewer starts; only your words, recorded with `spar extend`, allow more. Rerunning reviewers that did not finish the same packet, for example after a quota refusal, does not count.
 
-Each round writes a new, Git-ignored folder with `round.json`, `packet.md`, `findings.json`, `ledger.jsonl` and `summary.md`. Spar refuses a folder that Git would track, because the packet can contain private documents. The format is in the [round contract](../contracts/review-round.md).
+Each round writes a new, Git-ignored folder with `round.json`, `packet.md`, `findings.json`, `ledger.jsonl` and `summary.md`. Spar refuses a folder that Git would track, because the packet can contain private documents. The format is in the [round contract](../contracts/review-round.md). The format of every input spar reads, such as finding locations and links, configuration values and command arguments, and what happens to input outside it, is in one table in the [input contract](../contracts/spar-input.md). A finding whose location names no file is kept, marked as an unreadable location and never deferred automatically.
 
 ## Findings and the gate
 

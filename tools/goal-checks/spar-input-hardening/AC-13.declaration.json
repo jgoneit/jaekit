@@ -1,0 +1,102 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "internal/spar/testdata/input-forms.json",
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spar-input-hardening/AC-13.targets.json",
+    "tools/goal-checks/spar-input-hardening/observe_input.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "glob-errors",
+      "violation": "glob-error-accepted"
+    },
+    {
+      "id": "glob-errors.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-errors.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-errors.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-errors.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-errors.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-errors.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-errors.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-errors.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-errors.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-errors.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers",
+      "violation": "glob-consumers-differ"
+    },
+    {
+      "id": "glob-consumers.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "glob-consumers.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "input",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-report-doctor/observe_doctor.py",
+      "test": "Input.test_input_errors",
+      "result_targets": {
+        "additional_violations": [
+          "input.assertion-2",
+          "input.assertion-3",
+          "input.assertion-4",
+          "input.assertion-5",
+          "input.assertion-6",
+          "input.assertion-7",
+          "input.assertion-8"
+        ],
+        "execution": "input.execution",
+        "selection": "input.selection",
+        "attribution": "input.attribution"
+      }
+    },
+    {
+      "target": "unchanged",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-report-doctor/observe_doctor.py",
+      "test": "Input.test_section_ignored_elsewhere",
+      "result_targets": {
+        "additional_violations": [
+          "unchanged.assertion-2",
+          "unchanged.assertion-3",
+          "unchanged.assertion-4",
+          "unchanged.assertion-5",
+          "unchanged.assertion-6",
+          "unchanged.assertion-7",
+          "unchanged.assertion-8"
+        ],
+        "execution": "unchanged.execution",
+        "selection": "unchanged.selection",
+        "attribution": "unchanged.attribution"
+      }
+    }
+  ]
+}

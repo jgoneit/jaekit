@@ -72,6 +72,8 @@ Usage:
   ha done   <goal> [--format md|json]
   ha log    <goal> <seq> [--tail N]
   ha timing <goal> [--format md|json]
+  ha report <goal> [--lang ko|en]
+  ha doctor <goal>
   ha --version
 
 <goal> is a goal directory such as docs/specs/empty-input.
@@ -139,6 +141,10 @@ func runMain(argv []string, stdout, stderr io.Writer) int {
 		return c.log(rest)
 	case "timing":
 		return c.timing(rest)
+	case "report":
+		return c.report(rest)
+	case "doctor":
+		return c.doctor(rest)
 	}
 	return c.fail(exitUsage, "unknown command %q; run ha --help", cmd)
 }

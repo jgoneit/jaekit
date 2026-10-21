@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "flow",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-report-doctor/observe_flow.py",
+      "test": "Flow.test_real_flow",
+      "result_targets": {
+        "additional_violations": [
+          "flow.assertion-2",
+          "flow.assertion-3",
+          "flow.assertion-4",
+          "flow.assertion-5",
+          "flow.assertion-6",
+          "flow.assertion-7",
+          "flow.assertion-8"
+        ],
+        "execution": "flow.execution",
+        "selection": "flow.selection",
+        "attribution": "flow.attribution"
+      }
+    }
+  ]
+}

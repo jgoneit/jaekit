@@ -1,0 +1,102 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/ha-report-doctor/AC-24.targets.json",
+    "tools/goal-checks/ha-report-doctor/common.py",
+    "tools/goal-checks/ha-report-doctor/observe_flow.py",
+    "tools/goal-checks/produce.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "local",
+      "violation": "platform-results-differ"
+    },
+    {
+      "id": "local.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "local.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows",
+      "violation": "platform-results-differ"
+    },
+    {
+      "id": "windows.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "windows.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

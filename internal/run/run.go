@@ -27,8 +27,11 @@ type Result struct {
 	Exit      *int   // nil when the command did not start or timed out
 	Reason    string // fixed code for process errors; never command output
 	Signal    string // signal number, even though legacy Outcome remains Fail
-	Duration  time.Duration
-	Digest    string // hex sha256 of the log file
+	// StartError is the error that kept the process from starting; nil when
+	// it started. ha check does not read it.
+	StartError error
+	Duration   time.Duration
+	Digest     string // hex sha256 of the log file
 
 	// Limit is the time limit applied to the process. LimitElapsed runs from
 	// the limit timer's start, after a successful process start, until the
@@ -75,6 +78,21 @@ type processStarter func(*exec.Cmd) (processController, error)
 // A process may have inherited the log handle before admission failed. A
 // bounded cleanup failure cannot establish an immutable output digest.
 var errUnfinalizedProcess = errors.New("process output finalization is unconfirmed")
+
+// ErrProcessControl marks a start failure of ha's own process control, such
+// as a Windows Job Object that could not be created or configured: no command
+// started, and the failure says nothing about the command. ha check records it
+// as process_start like any start failure; ha doctor reports it as its own
+// error rather than as the tool's result.
+var ErrProcessControl = errors.New("process control could not be set up")
+
+// controlError keeps the underlying message unchanged, so the log line that
+// ha check writes for a start failure stays the same.
+type controlError struct{ err error }
+
+func (e controlError) Error() string        { return e.err.Error() }
+func (e controlError) Unwrap() error        { return e.err }
+func (e controlError) Is(target error) bool { return target == ErrProcessControl }
 
 func ExecWithEnv(dir string, argv []string, timeout time.Duration, logPath string, extraEnv []string) (Result, error) {
 	return execWithStarter(dir, argv, timeout, logPath, extraEnv, startProcess)
@@ -145,7 +163,7 @@ func execWithOutput(dir string, argv []string, timeout time.Duration, logPath st
 	}
 	if startErr != nil {
 		fmt.Fprintf(log, "ha: could not start %q: %v\n", argv[0], startErr)
-		res.Outcome, res.Reason = Error, "process_start"
+		res.Outcome, res.Reason, res.StartError = Error, "process_start", startErr
 		if errors.Is(startErr, errUnfinalizedProcess) {
 			finalizationErr = startErr
 		}

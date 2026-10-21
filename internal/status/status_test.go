@@ -2,6 +2,7 @@ package status
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -140,5 +141,22 @@ func TestJSONMatchesContract(t *testing.T) {
 		if strings.Join(doc, ",") != strings.Join(got, ",") {
 			t.Errorf("%s\n contract: %v\n output:   %v", c.heading, doc, got)
 		}
+	}
+}
+
+func TestReasonTargets(t *testing.T) {
+	if got := (Reason{Code: "task_open", tasks: []string{"T002"}}).Targets(); len(got) != 1 || got[0] != "T002" {
+		t.Fatalf("task_open targets %v", got)
+	}
+	if got := (Reason{Code: "out_of_scope", Paths: []string{"a.txt"}}).Targets(); len(got) != 1 || got[0] != "a.txt" {
+		t.Fatalf("out_of_scope targets %v", got)
+	}
+}
+
+func TestRangeErrorKeepsMessage(t *testing.T) {
+	inner := errors.New("git diff: fatal: bad object 0123")
+	err := error(&RangeError{Base: "0123", Head: "4567", Err: inner})
+	if err.Error() != inner.Error() || !errors.Is(err, inner) {
+		t.Fatalf("range error %v", err)
 	}
 }
