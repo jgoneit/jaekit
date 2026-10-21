@@ -155,6 +155,6 @@ spar waive docs/reviews/example/02-candidate agy --user-quote "agy 없이 진행
 
 - `spar waive <라운드> <리뷰어> --user-quote "…"`는 그 라운드 폴더의 `waivers.jsonl`에 `{"round", "reviewer", "preset", "status", "reason", "user_quote", "recorded_at"}` 한 줄을 더한다. `round`는 라운드 폴더 이름, `preset`은 그 필수 리뷰어의 preset, `status`와 `reason`은 기록할 때 `round.json`에 있는 그 리뷰어의 상태와 원인이다. 라운드가 그 이름과 preset의 리뷰어를 실행하지 않았으면 `status`는 `not_run`이고 `reason`은 없다.
 - 사용자의 말이 없으면 기록하지 않는다.
-- 다음 경우에는 아무것도 쓰지 않고 이유와 함께 65로 끝난다: `--user-quote`가 없거나 앞뒤 공백을 뗀 뒤 비어 있음, 라운드를 읽을 수 없음(G32), dry run 라운드, 그 리뷰어가 그 라운드의 필수 리뷰어([검토 gate](review-gate.md) 2절)가 아님, 그 리뷰어가 그 라운드나 같은 series에서 단계·base·head·패킷이 같은 다른 라운드(재실행)에서 같은 preset의 필수 리뷰어로 완료함, 그 라운드에 그 리뷰어의 결정이 이미 있음, `waivers.jsonl`을 읽을 수 없음, 이 기능 전에 기록한 라운드에 이름이 `waivers.jsonl`(대소문자 무시)인 리뷰어가 있어 그 폴더가 파일 자리를 차지함.
+- 다음 경우에는 아무것도 쓰지 않고 이유와 함께 65로 끝난다: `--user-quote`가 없거나 앞뒤 공백을 뗀 뒤 비어 있음, 라운드를 읽을 수 없음(`round.json`·`findings.json`·`ledger.jsonl`이 없거나 해석되지 않음, G32), dry run 라운드, 그 리뷰어가 그 라운드의 필수 리뷰어([검토 gate](review-gate.md) 2절)가 아님, 그 리뷰어가 그 라운드나 같은 series에서 단계·base·head·패킷이 같은 다른 라운드(재실행)에서 같은 preset의 필수 리뷰어로 완료함, 그 라운드에 그 리뷰어의 결정이 이미 있음, `waivers.jsonl`을 읽을 수 없음, 이 기능 전에 기록한 라운드에 이름이 `waivers.jsonl`(대소문자 무시)인 리뷰어가 있어 그 폴더가 파일 자리를 차지함.
 - 결정이 기록된 리뷰어는 그 라운드의 `degraded` 사유가 되지 않고 gate 파일에 따로 보인다. 완료한 필수 리뷰어가 하나도 없는 라운드는 결정이 있어도 `degraded`다([검토 gate](review-gate.md) 2절).
 - 결정은 그 라운드에만 적용된다. 같은 패킷의 재실행도 다른 라운드이므로, 그 라운드에서도 그 리뷰어가 끝내지 못하면 다시 기록한다.

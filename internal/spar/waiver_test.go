@@ -92,3 +92,30 @@ func TestWaiversFileNameIsReserved(t *testing.T) {
 		t.Errorf("a reviewer named after waivers.jsonl was accepted")
 	}
 }
+
+// A round whose findings or ledger cannot be read, a round that stopped
+// before recording findings included, is refused like an unreadable round.
+func TestWaiveRefusesRoundsWithUnreadableRecords(t *testing.T) {
+	w := newRWWorld(t, true)
+	w.use(rwNative("host"), w.missingAgy())
+	for label, damage := range map[string]func(out string){
+		"no findings.json": func(out string) { os.Remove(filepath.Join(out, "findings.json")) },
+		"no ledger.jsonl":  func(out string) { os.Remove(filepath.Join(out, "ledger.jsonl")) },
+		"corrupt ledger":   func(out string) { w.write(filepath.Join(out, "ledger.jsonl"), "{\n") },
+		"corrupt findings": func(out string) { w.write(filepath.Join(out, "findings.json"), "{") },
+		"a ledger directory": func(out string) {
+			os.Remove(filepath.Join(out, "ledger.jsonl"))
+			os.Mkdir(filepath.Join(out, "ledger.jsonl"), 0o755)
+		},
+	} {
+		out := w.run(filepath.Join(w.newSeries(), "01-candidate"))
+		w.record(out, "host")
+		damage(out)
+		if code, msg := w.spar("waive", out, "agy", "--user-quote", rwQuote); code != ExitRefused || !strings.Contains(msg, "cannot be read as a round") {
+			t.Errorf("%s: waive %d %s", label, code, msg)
+		}
+		if _, err := os.Stat(filepath.Join(out, waiversFile)); err == nil {
+			t.Errorf("%s: the refused waiver wrote %s", label, waiversFile)
+		}
+	}
+}

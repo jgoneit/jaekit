@@ -32,7 +32,7 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
 
 - 필수 리뷰어가 완료하지 않음. 필수 리뷰어는 라운드가 필수로 실행한 리뷰어와 그 설정이 필수로 정한 리뷰어(`config.configured_required`)다. `--reviewers`로 뺀 설정의 필수 리뷰어도 포함된다. 같은 단계·base·head·패킷의 다른 라운드(재실행)에서 같은 이름·preset의 필수 리뷰어로 완료했으면 완료로 본다. 이름이 같아도 preset이 다르면 그 필수 리뷰어는 실행되지 않은 것이다. 그 라운드의 `waivers.jsonl`에 사용자의 결정(`spar waive`, [검토 라운드](review-round.md) 10절)이 있는 리뷰어는 이 사유가 되지 않고 그 라운드의 `waived_reviewers`에 보인다.
 - 필수 리뷰어가 없는 라운드(예: `command` 리뷰어만 있는 라운드)
-- 결정이 적용된 리뷰어가 있는데 완료한 필수 리뷰어가 하나도 없는 라운드: `<라운드>: no required reviewer completed this round`. 결정은 독립 검토가 없는 라운드를 `complete`로 만들지 않는다.
+- 결정이 적용된 리뷰어가 있는데 완료한 필수 리뷰어가 하나도 없는 라운드: `<라운드>: no required reviewer completed this round`. 결정은 독립 검토가 없는 라운드를 `complete`로 만들지 않는다. 완료한 필수 리뷰어는 `completed_required`로 세는 리뷰어이며, 같은 단계·base·head·패킷의 재실행에서 완료한 리뷰어를 포함한다.
 
 결정은 사용자의 말을 인용해서만 기록되고, 그 라운드 폴더의 `waivers.jsonl`에서만 읽어 그 라운드에만 적용한다. 다른 라운드의 결정은 같은 패킷의 재실행이라도 적용하지 않는다. 결정은 이름과 preset이 같은 필수 리뷰어에 적용되고, 결정이 있어도 그 리뷰어가 완료했으면(같은 패킷의 재실행 포함) 완료로 세며 `waived_reviewers`에 넣지 않는다. `waivers.jsonl`이 없는 라운드(이 기능 전에 기록한 라운드 포함)와, 이 기능 전에 이름이 `waivers.jsonl`(대소문자 무시)인 리뷰어를 실행해 그 폴더가 그 자리에 있는 라운드는 결정이 없는 라운드이고, 그 gate의 상태·사유·필드는 결정 기능이 없을 때와 같다.
 

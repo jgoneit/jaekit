@@ -51,6 +51,17 @@ func Waive(o WaiveOptions) error {
 	if r.DryRun {
 		return refused("%s is a dry run; it reviewed nothing", o.Round)
 	}
+	// A round whose findings or ledger cannot be read is refused, as spar
+	// triage refuses it (G32): the gate cannot read that round either.
+	if missing := missingRecords(dir, r); missing != "" {
+		return refused("%s cannot be read as a round: %s is missing", o.Round, missing)
+	}
+	if _, err := loadFindings(dir); err != nil {
+		return refused("%s cannot be read as a round: %v", o.Round, err)
+	}
+	if _, err := loadLedger(dir); err != nil {
+		return refused("%s cannot be read as a round: %v", o.Round, err)
+	}
 	if waiversFileTaken(r) {
 		return refused("%s has a reviewer named %s, whose folder takes the waiver file's place", o.Round, waiversFile)
 	}
