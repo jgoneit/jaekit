@@ -170,7 +170,10 @@ func (w *cpqWorld) ledger(out string) map[string][]LedgerEntry {
 	return by
 }
 
-// gate writes the gate of a round to its series and reads it back.
+// gate writes the gate of a round to its series and reads it back. A gate
+// with any reason other than open findings could not read the round or its
+// repository, for example a damaged record or a git that failed: that is a
+// broken setup, never an observation of how findings are counted.
 func (w *cpqWorld) gate(out string) (int, GateRecord) {
 	w.t.Helper()
 	file := filepath.Join(filepath.Dir(out), "gate.json")
@@ -182,6 +185,14 @@ func (w *cpqWorld) gate(out string) (int, GateRecord) {
 	}
 	if err := json.Unmarshal(data, &g); err != nil {
 		w.t.Fatalf("gate.json: %v", err)
+	}
+	for _, reason := range g.Reasons {
+		if !strings.HasSuffix(reason, " open defect or requirement-question finding(s)") {
+			w.t.Fatalf("the gate did not read the round cleanly (exit %d): %v", code, g.Reasons)
+		}
+	}
+	if code != ExitOK && code != ExitBlocked {
+		w.t.Fatalf("spar gate: exit %d %s", code, msg)
 	}
 	return code, g
 }
@@ -286,8 +297,10 @@ func TestSparQuestionsAC2_QuestionHoldsTheGateUntilAnswered(t *testing.T) {
 		if code, msg := w.spar(unquoted...); code != ExitRefused {
 			cpqViolation(t, id, "%s without the user's words was accepted: %d %s", closing[0], code, msg)
 		}
+		// A refusal here may come from a ledger that cannot be read, so it
+		// is a broken setup; the gate below observes the closing.
 		if code, msg := w.spar(append([]string{"triage", out, "host-F1"}, closing...)...); code != ExitOK {
-			t.Fatalf("jaekit:violation=%s: %v with the user's words was refused: %d %s", id, closing, code, msg)
+			t.Fatalf("%v with the user's words was refused: %d %s", closing, code, msg)
 		}
 		code, g = w.gate(out)
 		if code != ExitOK || g.State != StateComplete || g.Open["requirement-question"] != 0 || len(g.OpenFindings) != 0 {
@@ -575,7 +588,7 @@ func TestSparQuestionsAC8_PacketExplainsTheLink(t *testing.T) {
 	if err != nil {
 		t.Fatalf("packet.md: %v", err)
 	}
-	line := "- Check paths: `checks/**`. A finding at these paths that claims none of `false_pass`, `meaning_inverted` or a linked `contract_violation` is recorded as `hardening` and deferred. A `requirement-question` at these paths stays a question for the user only when it links the criterion, rule or contract it asks about and that link exists; without such a link it is recorded as `hardening` and deferred."
+	line := "- Check paths: `checks/**`. At these paths a finding that claims `false_pass`, `meaning_inverted` or a linked `contract_violation` is recorded as a `defect`, whatever its `proposed_class`. Any other finding at these paths is recorded as `hardening` and deferred, unless it proposes `requirement-question` and links the criterion, rule or contract it asks about, and that link exists: such a question stays open for the user."
 	if !strings.Contains(string(data), "\n"+line+"\n") {
 		cpqViolation(t, id, "packet.md has no line %q", line)
 	}
