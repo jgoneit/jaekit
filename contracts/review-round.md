@@ -24,7 +24,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 | `--repo`, `--label` | 저장소 위치, 기록에 남길 이름 |
 | `--dry-run` | 패킷과 작업공간만 만들고 리뷰어를 띄우지 않는다. 작업공간은 라운드 폴더의 `workspace/`에 남는다. 상한에 세지 않고 gate는 받지 않는다 |
 
-라운드 폴더의 부모 폴더가 한 검토의 series다. 같은 series의 다른 `review-round/v1` 라운드에서 상한, 이전 head와 이전 지적을 읽는다. 다른 형식의 기록 폴더는 읽지도 바꾸지도 않는다. series 폴더 자체를 잠가(잠금 파일을 만들지 않는다) series마다 한 번에 한 쓰기만 한다(G33). `spar run`은 상한 판단부터 라운드 기록을 마칠 때까지, `spar record`·`spar triage`·`spar extend`는 기록을 읽고 쓰는 동안 같은 잠금을 쥔다. 다른 쓰기가 잠금을 쥐고 있으면 표준 오류에 알리고 그것이 끝날 때까지 기다린다. `spar gate`는 잠그지 않는다.
+라운드 폴더의 부모 폴더가 한 검토의 series다. 같은 series의 다른 `review-round/v1` 라운드에서 상한, 이전 head와 이전 지적을 읽는다. 다른 형식의 기록 폴더는 읽지도 바꾸지도 않는다. series 폴더 자체를 잠가(잠금 파일을 만들지 않는다) series마다 한 번에 한 쓰기만 한다(G33). `spar run`은 상한 판단부터 라운드 기록을 마칠 때까지, `spar record`·`spar triage`·`spar extend`·`spar waive`는 기록을 읽고 쓰는 동안 같은 잠금을 쥔다. 다른 쓰기가 잠금을 쥐고 있으면 표준 오류에 알리고 그것이 끝날 때까지 기다린다. `spar gate`는 잠그지 않는다.
 
 종료 코드: 0 라운드 기록을 썼고 완료했거나 대기 중인 리뷰어가 있음, 1 라운드 기록을 썼지만 완료하거나 대기 중인 리뷰어가 없음, 64 사용법 오류, 65 거부(설정 오류, 추적되는 기록 폴더, 상한 초과, 사슬 끊김, 읽을 수 없는 입력), 70 내부 오류. 거부는 리뷰어를 띄우기 전에 일어나고 라운드 폴더를 만들지 않는다.
 
@@ -90,6 +90,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 | `packet.md`, `schema.json` | 패킷과 결과 schema |
 | `findings.json` | 분류된 지적 배열 |
 | `ledger.jsonl` | 처리 원장. 한 줄에 한 처리, 덧붙이기만 한다 |
+| `waivers.jsonl` | 필수 리뷰어를 빼는 사용자 결정(10절). 한 줄에 한 결정, 덧붙이기만 한다. 결정이 없는 라운드에는 없다 |
 | `summary.md` | 사람이 읽는 요약 |
 | `<리뷰어>/` | 그 리뷰어의 표준 출력·오류와 결과. 대체 모델은 `<리뷰어>/fallback/` |
 | `workspace/` | dry run에서만: 리뷰어가 받을 작업공간(`head/`, `base/`) |
@@ -143,3 +144,17 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 ## 9. native 리뷰어
 
 `native` preset 리뷰어는 `pending`으로 시작하고 자기 이름의 폴더에 `prompt.md`(지시와 패킷 전문)와 `workspace/`를 남긴다(기본 이름이면 `native/prompt.md`). 호스트의 clean-context 하위 에이전트가 답하면 `spar record <라운드> <이름> --result <파일|->`나 `--transcript <전사 기록>`으로 기록한다. dry run 라운드와 이미 완료한 리뷰어는 기록하지 않는다. 기록할 때 작업공간이 준비 때와 같은지, 결과가 schema·head·각도 요구를 만족하는지, 라운드의 `findings.json`·`ledger.jsonl`이 있는지 확인한다(없으면 거부). 전사 기록(G15)에서 `Read`·`Grep`·`Glob` 밖의 도구 사용, 호스트가 제공한 그 밖의 도구, 호스트가 더한 맥락(Git 상태, 지시 파일, hook 맥락), 프롬프트를 읽지 않은 것, 그리고 `Read`·`Grep`·`Glob`이 native 작업공간과 `prompt.md` 밖을 읽은 것은 `warnings`에 남는다. 맥락의 내용과 읽은 경로는 기록하지 않고 종류와 도구 이름만 남긴다. 격리 등급은 `host`이고 필수 리뷰어에 든다.
+
+## 10. 필수 리뷰어를 빼는 결정
+
+필수 리뷰어가 라운드를 끝내지 못했고 사용자가 그 리뷰어 없이 진행하라고 했으면, 그 말을 그 라운드에 기록한다.
+
+```bash
+spar waive docs/reviews/example/02-candidate agy --user-quote "agy 없이 진행"
+```
+
+- `spar waive <라운드> <리뷰어> --user-quote "…"`는 그 라운드 폴더의 `waivers.jsonl`에 `{"round", "reviewer", "preset", "status", "reason", "user_quote", "recorded_at"}` 한 줄을 더한다. `round`는 라운드 폴더 이름, `preset`은 그 필수 리뷰어의 preset, `status`와 `reason`은 기록할 때 `round.json`에 있는 그 리뷰어의 상태와 원인이다. 라운드가 그 이름과 preset의 리뷰어를 실행하지 않았으면 `status`는 `not_run`이고 `reason`은 없다.
+- 사용자의 말이 없으면 기록하지 않는다.
+- 다음 경우에는 아무것도 쓰지 않고 이유와 함께 65로 끝난다: `--user-quote`가 없거나 앞뒤 공백을 뗀 뒤 비어 있음, 라운드를 읽을 수 없음(`round.json`·`findings.json`·`ledger.jsonl`이 없거나 해석되지 않음, G32), dry run 라운드, 그 리뷰어가 그 라운드의 필수 리뷰어([검토 gate](review-gate.md) 2절)가 아님, 그 리뷰어가 그 라운드나 같은 series에서 단계·base·head·패킷이 같은 다른 라운드(재실행)에서 같은 preset의 필수 리뷰어로 완료함, 그 라운드에 그 리뷰어의 결정이 이미 있음, `waivers.jsonl`을 읽을 수 없음, 이 기능 전에 기록한 라운드에 이름이 `waivers.jsonl`(대소문자 무시)인 리뷰어가 있어 그 폴더가 파일 자리를 차지함.
+- 결정이 기록된 리뷰어는 그 라운드의 `degraded` 사유가 되지 않고 gate 파일에 따로 보인다. 완료한 필수 리뷰어가 하나도 없는 라운드는 결정이 있어도 `degraded`다([검토 gate](review-gate.md) 2절).
+- 결정은 그 라운드에만 적용된다. 같은 패킷의 재실행도 다른 라운드이므로, 그 라운드에서도 그 리뷰어가 끝내지 못하면 다시 기록한다.

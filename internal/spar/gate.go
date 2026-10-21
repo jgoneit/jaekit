@@ -33,6 +33,20 @@ type GateRound struct {
 	CompletedRequired  int      `json:"completed_required"`
 	DryRun             bool     `json:"dry_run"`
 	Counted            bool     `json:"counted"`
+	// WaivedReviewers are the required reviewers the user's decision in
+	// this round covers; a round without one has no such field.
+	WaivedReviewers []GateWaiver `json:"waived_reviewers,omitempty"`
+}
+
+// GateWaiver is a required reviewer a round went on without, by the user's
+// recorded decision.
+type GateWaiver struct {
+	Name       string `json:"name"`
+	Preset     string `json:"preset"`
+	Status     string `json:"status"`
+	Reason     string `json:"reason,omitempty"`
+	UserQuote  string `json:"user_quote"`
+	RecordedAt string `json:"recorded_at"`
 }
 
 // Growth is what review fix commits added, split by check paths.
@@ -82,6 +96,7 @@ type loadedRound struct {
 	round    *RoundRecord
 	findings []Finding
 	ledger   []LedgerEntry
+	waivers  []Waiver
 }
 
 // Gate decides from round records whether the review of a head is complete,
@@ -159,12 +174,20 @@ func Gate(o GateOptions) (int, error) {
 			blocked = append(blocked, err.Error())
 			continue
 		}
-		rounds = append(rounds, loadedRound{p, r, findings, ledger})
+		var waivers []Waiver
+		if !waiversFileTaken(r) {
+			if waivers, err = loadWaivers(dir); err != nil {
+				blocked = append(blocked, err.Error())
+				continue
+			}
+		}
+		rounds = append(rounds, loadedRound{p, r, findings, ledger, waivers})
 	}
 	// Required reviewers: the round's own and those its configuration makes
 	// required, even when --reviewers left them out. Each must complete the
 	// packet in some round of the same stage, base, head and packet (a rerun
-	// completes the original), as a required reviewer of the same preset.
+	// completes the original), as a required reviewer of the same preset, or
+	// hold the user's waiver in this round itself.
 	completedIn := map[string]bool{}
 	identity := func(r *RoundRecord) string {
 		return r.Stage + "\x00" + r.Base + "\x00" + r.Head + "\x00" + r.PacketSHA256
@@ -198,6 +221,11 @@ func Gate(o GateOptions) (int, error) {
 				gr.CompletedRequired++
 			case completedIn[credit(r, ref.Name, ref.Preset)]:
 				gr.CompletedRequired++ // completed by a rerun of the same packet
+			case waiverFor(lr.waivers, ref) != nil:
+				waiver := waiverFor(lr.waivers, ref)
+				status, reason := waivedStatus(r, ref)
+				gr.WaivedReviewers = append(gr.WaivedReviewers, GateWaiver{Name: ref.Name, Preset: ref.Preset,
+					Status: status, Reason: reason, UserQuote: waiver.UserQuote, RecordedAt: waiver.RecordedAt})
 			case st == nil || st.Preset != ref.Preset:
 				degraded = append(degraded, fmt.Sprintf("%s: required reviewer %s (%s) did not run in this round", lr.path, ref.Name, ref.Preset))
 			default:
@@ -206,6 +234,10 @@ func Gate(o GateOptions) (int, error) {
 		}
 		if len(required) == 0 {
 			degraded = append(degraded, fmt.Sprintf("%s: the round has no required reviewer", lr.path))
+		}
+		// A waiver never makes a round with no independent review complete.
+		if len(gr.WaivedReviewers) > 0 && gr.CompletedRequired == 0 {
+			degraded = append(degraded, fmt.Sprintf("%s: no required reviewer completed this round", lr.path))
 		}
 		if r.DryRun {
 			blocked = append(blocked, fmt.Sprintf("%s: a dry run reviewed nothing", lr.path))

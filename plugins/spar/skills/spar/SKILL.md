@@ -2,7 +2,7 @@
 name: spar
 description: Run independent review rounds on a plan or a change with the spar binary — the same packet to every configured reviewer, classified findings, limited dispositions, stage caps and a review gate file. Use when the user asks for an independent or adversarial review of a plan or an implementation, for example "$spar:spar" in Codex, "/spar:spar" in Claude Code, or "이 변경을 spar로 리뷰해줘".
 metadata:
-  version: "0.1.2"
+  version: "0.1.3"
 ---
 
 # Spar
@@ -45,6 +45,7 @@ spar run --stage candidate --base <base commit> --head <candidate commit> \
 - A `command` reviewer is an extra view: it is `unverified` and never counts as required.
 - The `native` reviewer is a clean-context subagent of your host. `spar run` writes `native/prompt.md` and a workspace in the round folder (a native reviewer with another name gets a folder of that name). Start a subagent with no other context, only read access to that workspace and the instruction to read that prompt and reply with the JSON object it asks for. Then record the reply: `spar record <round> native --result <file>` or `--transcript <subagent transcript>`; transcript warnings stay in the record.
 - A reviewer that ends `unavailable`, `timed_out`, `invalid_output` or `failed` is shown with its cause. It is never a round without findings. Rerun only that reviewer with `--reviewers <name>` when the cause is gone; a `--reviewers` list never removes the configured required reviewers from the gate.
+- When a required reviewer did not complete a round and the user says to go on without it, record their words for that round: `spar waive <round> <reviewer> --user-quote "<their words>"`. Never record a waiver without the user's words. A waiver covers its round only; record one for each round the reviewer did not complete.
 
 ## Classes and dispositions
 
@@ -70,13 +71,14 @@ When findings on the same premise come back for two rounds in a row, stop fixing
 
 `spar gate <round>… --expect-head <commit> --out <series>/gate.json` writes a `review-gate/v1` file in every state and exits 0 for `complete`, 3 for `degraded` and 4 for `blocked`.
 
-- `complete` only when every required reviewer completed every round, the code rounds form a chain up to the expected head, and no `defect` or `requirement-question` is open.
-- `degraded` when a required reviewer did not complete, or a round had no required reviewer. Tell the user which reviewer and why; do not present the review as complete.
+- `complete` only when every required reviewer completed every round or holds the user's waiver for that round, at least one required reviewer completed each round's packet, the code rounds form a chain up to the expected head, and no `defect` or `requirement-question` is open.
+- `degraded` when a required reviewer did not complete a round and holds no waiver for it, a round had no required reviewer, or no required reviewer completed a round's packet. Tell the user which reviewer and why; do not present the review as complete.
+- A waived reviewer is not a `degraded` reason; the gate file lists it under its round's `waived_reviewers` with its status and the user's words. A round where no required reviewer completed stays `degraded` even with waivers. Report the waivers with the gate.
 - `blocked` when a cap is exceeded, a finding is open, the chain is broken or the expected head was not reviewed.
 - `growth` lists the lines review fix commits added, in check paths and elsewhere. `over_hardening` is set when the check side is larger: review the fixes for checks that grew past what the criteria need before adding more.
 
 ## Limits
 
-- Spar's records are review records, not evidence of completion. A `complete` gate means the configured reviewers found nothing open; it does not prove the criteria are met. Completion rules stay with whatever owns them, such as Seal's `ha done`.
+- Spar's records are review records, not evidence of completion. A `complete` gate means the required reviewers the user did not waive found nothing open; it does not prove the criteria are met. Completion rules stay with whatever owns them, such as Seal's `ha done`.
 - Reviewer agreement is not proof, and a reviewer's model or identity is reported by its CLI, not certified.
-- Do not edit round records by hand. Use `spar triage`, `spar record` and `spar extend`.
+- Do not edit round records by hand. Use `spar triage`, `spar record`, `spar extend` and `spar waive`.

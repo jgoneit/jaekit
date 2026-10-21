@@ -123,7 +123,7 @@ var forbiddenProjectKeys = map[string]bool{
 // roundFiles are the names spar writes in a round folder next to the
 // reviewers' folders.
 var roundFiles = []string{"round.json", "packet.md", "schema.json", "findings.json", "ledger.jsonl", "summary.md",
-	dryRunWorkspace}
+	waiversFile, dryRunWorkspace}
 
 const dryRunWorkspace = "workspace"
 

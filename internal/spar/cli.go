@@ -19,6 +19,7 @@ const usageText = `usage:
   spar triage ROUND FINDING fix|reject|defer|duplicate|answer [--commit REV] [--failed-before TEXT]
            [--passed-after TEXT] [--evidence TEXT] [--of FINDING] [--to TEXT] [--user-quote TEXT] [--note TEXT]
   spar extend SERIES --stage plan|plan-delta|code --by N --user-quote TEXT
+  spar waive ROUND REVIEWER --user-quote TEXT
   spar gate ROUND... --expect-head REV --out FILE [--repo DIR]
   spar summary ROUND...
 
@@ -192,6 +193,16 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 			return ExitUsage, usageError("--by must be a number")
 		}
 		return ExitOK, Extend(p.positional[0], p.one("stage"), by, p.one("user-quote"), p.one("repo"), stderr)
+	case "waive":
+		p, err := parseArgs(rest, []string{"user-quote"}, nil)
+		if err != nil {
+			return ExitUsage, err
+		}
+		if len(p.positional) != 2 {
+			return ExitUsage, usageError("spar waive needs ROUND and the reviewer name")
+		}
+		return ExitOK, Waive(WaiveOptions{Round: p.positional[0], Reviewer: p.positional[1], UserQuote: p.one("user-quote"),
+			Log: stderr})
 	case "gate":
 		p, err := parseArgs(rest, []string{"expect-head", "out", "repo"}, nil)
 		if err != nil {
