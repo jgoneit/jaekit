@@ -92,17 +92,46 @@ func (rep *Report) unmet(w func(string, ...any), goal string) {
 			w("- `%s` (%s)\n", r.Code, r.Class)
 			continue
 		}
-		line := fmt.Sprintf("- %s `%s` (%s)", r.Criterion, r.Code, r.Class)
-		switch j, ok := rep.judged[r.Criterion]; {
-		case ok && j.Output != "":
-			line += fmt.Sprintf(": seq %d, output `ha log %s %d`", j.Seq, goal, j.Seq)
-		case ok:
-			line += fmt.Sprintf(": seq %d, no stored output", j.Seq)
-		case r.Code != "manual_unconfirmed":
-			line += ": no fresh record"
-		}
-		w("%s\n", line)
+		w("%s\n", rep.unmetLine(r, goal, EnglishUnmetWords))
 	}
+}
+
+// UnmetWords are the words of an unmet condition line that a language
+// changes; codes, seqs, `ha log` commands and `no stored output` stay.
+type UnmetWords struct {
+	Output, NoFreshRecord string
+}
+
+// EnglishUnmetWords are the words `ha status` uses.
+var EnglishUnmetWords = UnmetWords{Output: "output", NoFreshRecord: "no fresh record"}
+
+func (rep *Report) unmetLine(r Reason, goal string, words UnmetWords) string {
+	line := fmt.Sprintf("- %s `%s` (%s)", r.Criterion, r.Code, r.Class)
+	switch j, ok := rep.judged[r.Criterion]; {
+	case ok && j.Output != "":
+		line += fmt.Sprintf(": seq %d, %s `ha log %s %d`", j.Seq, words.Output, goal, j.Seq)
+	case ok:
+		line += fmt.Sprintf(": seq %d, no stored output", j.Seq)
+	case r.Code != "manual_unconfirmed":
+		line += ": " + words.NoFreshRecord
+	}
+	return line
+}
+
+// UnmetConditionLines are the condition lines of the unmet summary, in the
+// same order and with the same record choice as `ha status`: none once the
+// goal is complete. goal is the goal as DisplayGoal names it.
+func (rep *Report) UnmetConditionLines(goal string, words UnmetWords) []string {
+	if rep.Status == Complete {
+		return nil
+	}
+	var out []string
+	for _, r := range rep.Reasons {
+		if r.Criterion != "" {
+			out = append(out, rep.unmetLine(r, goal, words))
+		}
+	}
+	return out
 }
 
 // DoneMarkdown renders what `ha done` prints. Its completion record output

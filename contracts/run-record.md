@@ -26,6 +26,8 @@
 | `ha done <goal>` | 완료를 주장한다. `ha status`와 같은 계산을 하고 그 결과를 기록한다. 결과가 `complete`면 이 줄이 **완료 기록**이다(§5). exit code는 `ha status`와 같다. | `done` |
 | `ha log <goal> <seq> [--tail N]` | 그 실행의 로컬 출력 원문을 보여 준다. 로컬에서 읽기 위한 것이다. | 없음 |
 | `ha timing <goal> [--format md\|json]` | 기록을 읽기만 해서 실행마다 시간 제한·제한 구간 경과·CPU를 보여 준다(§1.2). 검사를 실행하지 않고, 판정·예산에 쓰지 않는다. | 없음 |
+| `ha report <goal> [--lang ko\|en]` | 사람이 읽는 다섯 줄 요약과 `PROGRESS.md` `## 현재`에 쓸 도장, 조건별 근거, 완료 범위, 미충족 조건의 원문 위치를 보인다(§1.3). `ha status`와 같은 계산을 읽기만 한다. | 없음 |
+| `ha doctor <goal>` | PLAN의 선택 절 `## 실행 환경`에 적은 점검 명령을 실행해 도구마다 `사용 가능`·`사용 불가`를 보인다(§1.4, [bundle.md](bundle.md) §2.6). 판정·예산과 무관하다. | 없음 |
 | `ha history <goal> [add \| current \| list \| show] …` | 선택적 [판단 이력](decision-history.md)을 등록·조회한다. 공통 Git 디렉토리의 별도 이력에 쓰며 상태 계산은 이 이력을 읽지 않는다. | 없음 (`runs.jsonl` 밖) |
 
 `ha`는 검증 명령을 셸 없이 argv로 실행한다. 명령마다 시간 제한(기본 900초)을 둔다. 시간 제한이 되면 Unix에서는 그 명령의 프로세스 그룹, Windows 네이티브 후보에서는 실행 전에 배정한 kill-on-close Job Object를 종료한다. Windows는 일반 하위 프로세스가 끝났는지 확인한 뒤 출력을 확정하며, 프로세스 제어·종료 확인에 실패하면 통과 근거나 최종 출력 digest를 만들지 않는다. 시작 뒤 정리 실패도 제한된 시간 안에 오류로 반환한다. 임의의 외부 서비스나 별도 권한으로 실행한 프로세스를 격리하는 보장은 아니다. `check`, `baseline`, `note`, `start`, `budget_change`는 기록에 덧붙이기 전에 git 디렉토리의 `ha/lock`을 잡는다. Unix는 `flock`, Windows 네이티브 후보는 같은 파일의 배타적 `LockFileEx` 잠금을 사용하며, 프로세스 종료로 OS 잠금이 해제되어도 손상된 기록은 기존 연결 검증에서 거부한다. 그래서 여러 `ha`가 동시에 덧붙여도 연결이 끊기지 않는다.
@@ -36,6 +38,8 @@
 - `ha estimate`: 필수 최소량을 PLAN 상한이 수용하면 0, 부족하거나 lint 오류가 있으면 1
 - `ha status`, `ha done`: §4.3
 - `ha timing`: 성공 0. 끊긴 기록은 65(거절)이며 아무것도 보여 주지 않는다. 보기를 출력에 쓰지 못하면 70이다
+- `ha report`: 보고를 출력하면 상태와 무관하게 0. 사용법 오류(`--lang`이 `ko`·`en`이 아님 포함) 64, 목표 디렉터리 없음 65, 지원하지 않는 규칙 66, Git이 base와 HEAD를 비교할 수 없음(다섯 줄 요약은 출력함, §1.3)·내부 오류·출력 실패 70. 끊긴 기록은 거절하지 않고 `record_integrity`가 있는 계산 결과를 보인다
+- `ha doctor`: 모든 도구가 `사용 가능`이거나 절·항목이 없으면 0, 하나라도 `사용 불가`면 1, 절의 입력 오류와 PLAN.md 없음 65(아무 점검도 실행하지 않음), 사용법 오류 64, 프로세스를 제어·확인하지 못하면 70. 기록을 판정에 쓰지 않으므로 시작 전, 지원하지 않는 규칙, 끊긴 기록의 목표에도 같다
 - `ha budget`: 성공 0, 잘못된 인수 64, 값·창·개정·완료 상태 등의 거부 65(`/3` 목표의 `--preapprove` 포함), 구규칙 또는 미지원 규칙 66, 내부 오류·쓰기 적용 불확실성 70
 - 모든 명령: 64 사용법 오류, 65 거절(시작 전, 이미 시작함, lint 오류, 끊긴 기록, 확인 조건 불충족, dirty 검증, 시작 예산 부족), 66 지원하지 않는 규칙 버전, 70 내부 오류
 
@@ -88,6 +92,85 @@ JSON 출력은 `schema: estimate/v1`이며 다음을 제공한다.
 - `cpu`는 기록의 `{ "status", "user_ms", "system_ms", "scope", "source" }`를 키마다 따로 읽어 보인다. 기록에 있는 키는 그대로 나오고, 그 값이 손상됐으면 그 키만 `null`이며 `unavailable`의 `cpu.<키>`가 `invalid`다. 같은 CPU의 다른 키는 그대로 보인다. `status`가 `measured`면 다섯 키가 모두 나오고, 기록에 없는 키도 `null`과 `invalid`다. `unavailable`·`failed`는 기록에 있는 키만 나오며, 그 상태에 시간이 있으면 그 시간은 `null`과 `invalid`다. `status`가 세 값이 아니면 `null`과 `invalid`다. `scope`·`source`는 §2.2의 고정 코드만 보이고, 그 밖의 값은 `null`과 `invalid`다. 그래서 기록에 들어간 임의 문자열이 보기로 나오지 않는다. `cpu`가 객체가 아니면 `cpu`가 `null`이고 `unavailable`의 `cpu`가 `invalid`다.
 
 사람이 읽는 형식은 같은 값을 표 하나로 보이고, 실행 시간의 합과 그 합이 목표 경과 시간이나 예산이 아니라는 문장을 덧붙인다. CPU 칸은 상태가 무엇이든 JSON이 보이는 키를 같은 값이나 같은 이용 불가 표시로 보인다.
+
+### 1.3 사람용 보고 (`ha report`)
+
+`ha report <goal> [--lang ko|en]`은 한 목표를 사람이 읽는 형태로 보인다. `ha status`와 같은 기록·실행 묶음·목표 문서·Git을 같은 계산(§4)으로 읽고, 그 결과만 쓴다. 조건 충족·상태·이유·완료 기록의 유효성을 따로 판단하지 않으므로 보고는 `ha status`와 다른 상태를 말하지 않는다. 기록에 줄을 더하지 않고 `ha/lock`을 잡지 않으며 `.git/ha`·실행 묶음·작업 트리·index·ref를 바꾸지 않는다. 현재 시각을 읽지 않는다: 같은 기록·묶음·Git·`--lang`이면 출력이 같다. `status/v1`과 다른 명령의 출력은 이 명령 때문에 바뀌지 않는다.
+
+`--lang`은 `ko`·`en`이고 없으면 `en`이다. 언어는 표지·제목·설명 문장만 바꾼다. 이유 코드, 분류(`executor`·`user`), 상태 이름, 조건 ID, 종류, seq·hash·commit, 원인 코드, `ha log`·`ha start`·`ha done`·`ha lint` 명령, `none`, `no stored output`, `local`, `## 현재`는 두 언어에서 같다.
+
+**다섯 줄 요약.** 출력의 첫 다섯 줄이며 순서와 표지가 고정이다. 영어는 `Changed`, `Checked`, `To review`, `Remaining limits`, `Next step`, 한국어는 `바뀐 것`, `확인한 것`, `직접 볼 것`, `남은 한계`, `다음 행동`이고, 표지 뒤는 `: `이다.
+
+| 표지 | 내용 |
+| --- | --- |
+| `Changed` / `바뀐 것` | 시작 기록의 base commit부터 HEAD까지 실행 묶음 문서 밖에서 바뀐 파일 수(`ha status`의 `out_of_scope`와 같은 목록의 길이)와 그 경로를 바꾼 병합 아닌 commit 수. 시작 전이면 base가 없다는 사실, Git이 비교하지 못하면 그 사실(아래) |
+| `Checked` / `확인한 것` | 필수 조건 수와 그중 충족한 수(검사 기록으로 충족한 `change`·`maintain` 수와 사용자 확인으로 충족한 `manual` 수), 조건표의 모든 `change` 조건 수와 그중 신선한 `fail_as_expected` baseline이 있는 수. 그 baseline은 상태 계산이 근거로 받는 것이어야 한다(결과와 종료 코드가 맞고, 구조화된 결과의 `change` 조건이면 저장된 근거 요약이 검증을 통과한다) |
+| `To review` / `직접 볼 것` | 이 순서의 전체 집합: 분류가 `user`인 남은 이유와 그 대상, 인용 확인으로 충족한 `manual` 조건과 그 확인 seq, 실행자 근거로 면제된 시험 변경(§4.7), `--weakened` 표시가 있는 시험 변경, 시작 뒤 바뀐 검증 명령(`changes.command_changed`), 해결되지 않은 완료 뒤 발견 수. 없으면 `none` / `없음` |
+| `Remaining limits` / `남은 한계` | 늘 보증 수준 `local`과 검사 작성자 실행자. 충족되지 않은 선택 조건, 예산 초과(실행·경과의 사용량과 상한), 지금 HEAD를 덮는 완료 기록이 없다는 사실을 해당할 때 더한다 |
+| `Next step` / `다음 행동` | 상태마다 하나: 시작 전이면 `ha start <goal>`(lint 문제가 있으면 `ha lint <goal>` 먼저), 그 밖의 `incomplete`는 분류가 `executor`인 첫 이유와 그 대상, `needs_user`는 분류가 `user`인 이유 전부와 그 대상, 완료 기록이 없는 `complete`는 `ha done <goal>`, 유효한 완료 기록이 있으면 그 seq와 남은 할 일이 없다는 사실, `blocked`는 마지막 `block`의 seq와 원인, `budget_exhausted`는 사용자의 예산 결정과 사용량·상한 |
+
+이유의 대상은 조건 이유면 조건 ID(`` AC-2 `criterion_failed` ``), 목표 수준 이유면 그 이유가 가리키는 task나 경로(`` `task_open` (T002) ``, `` `out_of_scope` (lib/other.txt) ``)다. 요약의 값에 줄바꿈이 있으면 `\n`으로 써서 각 줄을 한 줄로 지킨다.
+
+**Git이 base와 HEAD를 비교할 수 없을 때.** base commit이 없는 얕은 clone처럼 Git이 그 범위를 읽지 못하면 `ha status`는 지금처럼 계산하지 못하고 70으로 끝난다. `ha report`는 다섯 줄만 보이고 70으로 끝난다: `Changed`는 비교할 수 없다는 사실, `Checked`와 `To review`는 계산하지 못했다는 사실, `Remaining limits`는 `local`과 검사 작성자 뒤에 나머지 한계를 계산하지 못했다는 사실, `Next step`은 base가 든 이력을 받는 방법(예: `git fetch --unshallow`)과 다시 실행할 명령이다. 상세는 보이지 않는다. 범위를 읽는 일 하나라도 실패하면 이 경우다: `ha status`와 같은 계산이 바뀐 파일을 읽다 실패한 경우와 `ha report`가 파일 수와 commit 수를 읽다 실패한 경우 모두다. 실패한 읽기는 다시 읽지 않는다.
+
+```text
+Changed: Git cannot compare base 3c1f0a9e7b25 with HEAD 9a8b7c6d5e4f
+Checked: not computed; Git cannot compare base 3c1f0a9e7b25 with HEAD 9a8b7c6d5e4f
+To review: not computed; Git cannot compare base 3c1f0a9e7b25 with HEAD 9a8b7c6d5e4f
+Remaining limits: assurance local; check author: executor; the other limits were not computed
+Next step: fetch the history that contains base 3c1f0a9e7b25 (for example `git fetch --unshallow` in a shallow clone), then run `ha report docs/specs/example` again
+```
+
+**근거 출처.** 유효한 완료 기록이 있으면 그 `done` 줄에 저장된 조건(§2.5)을, 없으면 지금 계산한 조건을 쓴다. 충족 수, 인용 확인 `manual`, 충족되지 않은 선택 조건, 조건별 근거 표가 이 출처 하나를 읽는다. 필수 여부는 목표 문서에서 읽는다.
+
+**상세.** 요약 뒤에 빈 줄로 나눈 네 부분이 이 순서로 온다.
+- `` ### Stamp for `## 현재` `` / `` ### `## 현재` 도장 ``: 기록 head의 seq와 hash 앞 12자, 그 줄에 저장된 시각(`at`) 문자열, 상태, 유효한 완료 기록 seq(있으면). `PROGRESS.md`의 `## 현재`에 확인 시각과 기록 head로 옮겨 적는 값이다. 기록이 없으면 기록 head는 `none`이고, 저장된 시각을 RFC 3339로 읽을 수 없으면 읽을 수 없다고 보인다.
+- `### Evidence per condition` / `### 조건별 근거`: 근거 출처(완료 기록 seq 또는 지금 상태)와 조건마다 ID·종류·필수·충족·근거 기록 seq의 표.
+- `### Completion coverage` / `### 완료 범위`: 유효한 완료 기록의 seq·commit과 HEAD를 덮는다는 사실, 또는 무효가 된 가장 최근 완료 기록의 seq·commit, HEAD를 덮지 않는다는 사실, §4.4와 같은 무효 이유, 그 commit 뒤의 차이가 완료에 들지 않는다는 사실. 완료 기록이 없으면 `none`.
+- `### Output of unmet conditions` / `### 미충족 조건의 원문 위치`: 충족되지 않은 필수 조건마다 `### Unmet`(§4.4)과 같은 기록 선택과 표기(`ha log <goal> <seq>`, 원문이 없으면 `no stored output`). 영어 줄은 `ha status`의 해당 줄과 같다. 없으면 `none` / `없음`.
+
+합성 예시(완료 기록이 유효한 목표):
+
+```text
+Changed: 2 files and 2 commits outside the bundle documents since base 3c1f0a9e7b25
+Checked: 2 of 2 required conditions satisfied (2 by check records, 0 by user confirmation); 1 of 1 change conditions have a fresh baseline
+To review: none
+Remaining limits: assurance local; check author: executor
+Next step: none; completion record seq 5 holds and nothing is left to do
+```
+
+```text
+바뀐 것: base 3c1f0a9e7b25 이후 실행 묶음 문서 밖에서 파일 2개, commit 2개
+확인한 것: 필수 조건 2개 중 2개 충족(검사 기록 2개, 사용자 확인 0개); change 조건 1개 중 1개에 신선한 baseline
+직접 볼 것: 없음
+남은 한계: 보증 수준 local; 검사 작성자: 실행자
+다음 행동: 없음; 완료 기록 seq 5이 유효하고 남은 할 일이 없음
+```
+
+### 1.4 실행 환경 점검 (`ha doctor`)
+
+`ha doctor <goal>`은 PLAN의 선택 절 `## 실행 환경`([bundle.md](bundle.md) §2.6)에 적은 점검 명령을 항목 순서대로 하나씩 실행한다. 저장소 루트에서, 셸 없이 인자 배열로, 표준 입력을 닫고, `ha`의 환경 변수를 물려 실행한다. 점검마다 시간 제한은 60초로 고정이고 PLAN의 `## 시간 제한`과 무관하다. 시간 제한이 되면 `ha check`와 같은 프로세스 제어(Unix는 프로세스 그룹, Windows 후보는 kill-on-close Job Object)로 그 프로세스와 하위 프로세스를 끝낸다.
+
+도구마다 한 줄 `<이름>: 사용 가능` 또는 `<이름>: 사용 불가 (<이유>)`를 보인다. 종료 0이면 `사용 가능`이다. `사용 불가`의 이유는 다음 다섯 가지가 전체 집합이다.
+- `실행 파일 없음`: 권한 거부가 아닌 시작 실패(PATH에 없음, 파일 없음, 실행 형식이 아님)
+- `실행 권한 없음`: 권한 거부로 시작하지 못함
+- `시간 초과`: 60초 제한에 걸림. `시간 초과, 60초`로 보인다
+- `신호로 종료`: 신호로 끝남. `신호로 종료, 신호 <번호>`로 보인다
+- `0이 아닌 종료`: 그 밖의 0 아닌 종료. `0이 아닌 종료, 종료 코드 <코드>`로 보인다
+
+`사용 불가` 줄 아래에 그 점검 출력의 끝부분을 줄마다 공백 네 칸을 붙여 보인다. 끝부분은 마지막 20줄이고, 그 20줄이 2,000바이트를 넘으면 마지막 2,000바이트(UTF-8 글자 경계에서 시작)다. 줄 끝의 `\r`은 뗀다. 시작 실패에는 `ha check`의 출력 파일과 같은 시작 실패 진단 한 줄이 보인다. `사용 가능`인 점검의 출력은 보이지 않는다.
+
+`ha doctor`는 아무것도 남기지 않는다. 점검 출력은 운영체제 임시 디렉터리의 새 파일에 받고 그 점검의 줄을 쓴 뒤 지운다. 기록 줄·실행 횟수·`ha/lock`·`ha/runs`의 출력 파일·실행 묶음 변경이 생기지 않는다. 기록을 판정에 쓰지 않으므로 시작 전에도, 어느 규칙의 목표에도 같다. `ha`가 프로세스를 제어하거나 종료를 확인하지 못하면(Windows 후보에서 Job Object를 만들거나 설정하지 못한 경우 포함) 그 도구를 `사용 불가`로 세지 않고 그때까지의 줄을 남긴 채 70으로 끝난다.
+
+절이 없으면 그렇다는 한 줄, 항목이 없으면 그렇다는 한 줄을 쓰고 0으로 끝난다. 절의 입력 오류는 lint와 같은 `코드<탭>파일:줄<탭>설명` 형식으로 모두 보이고 어떤 점검도 실행하지 않은 채 65로 끝난다. 이 절은 `ha doctor`만 읽는다: 절이 있든 없든, 어떤 내용이든 `ha lint`·`ha start`·`ha check`·`ha status`의 결과는 같다.
+
+합성 예시:
+
+```text
+셸: 사용 가능
+브라우저: 사용 불가 (실행 파일 없음)
+    ha: could not start "synthetic-browser": exec: "synthetic-browser": executable file not found in $PATH
+```
 
 ## 2. 줄 형식
 

@@ -91,6 +91,9 @@ The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evi
 | `output-path-worktree` | run-record.md §2.2 | same `output_path` in a linked worktree; log lists in status and done carry it |
 | `timing-view` | run-record.md §1.2, §2.2 | `ha timing` shows each run's limit, limit interval and CPU; damaged values show as invalid while status stays `complete`; nothing is written |
 | `worktree-log` | run-record.md §1 | `ha log` and `--tail` work in a linked worktree |
+| `report-summary` | run-record.md §1.3 | `ha report` shows the five labelled lines, the stamp, evidence from the completion record and coverage in English and Korean; after a later code commit HEAD is not covered and the evidence is the current state; an unknown `--lang` exits 64; nothing is written |
+| `report-rules-unsupported` | run-record.md §1.3 | exit 66 for an unknown start rule; nothing recorded |
+| `doctor-environment` | run-record.md §1.4, bundle.md §2.6 | `ha doctor` shows `사용 가능` and `사용 불가 (실행 파일 없음)` before and after start without any record, lint ignores the section, and a section with shell syntax exits 65 before any check runs |
 | `legacy-output-path` | run-record.md §2.2 | an older absolute `output_path` stays as written; `complete` after it |
 | `adapter-go-flow` | check-result.md §5 | a `go-test-json` condition: baseline `declared_violation` from standard output events whose marker is followed by `:` and with an `attr` event, `targets_passed` after the change, completion; standard error stays in `ha log` only |
 | `adapter-junit-flow` | check-result.md §5 | a `junit-xml` condition: the runner writes where `{HA_JUNIT_XML}` points and its marker is followed by `.`, the record keeps the placeholder, completion; the failure message is absent from records and output |

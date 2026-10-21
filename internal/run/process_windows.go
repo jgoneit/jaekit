@@ -76,7 +76,7 @@ func winResult(proc *syscall.LazyProc, ok uintptr, err error) error {
 func startProcess(cmd *exec.Cmd) (processController, error) {
 	h, _, err := createJob.Call(0, 0)
 	if h == 0 {
-		return nil, fmt.Errorf("CreateJobObjectW: %w", err)
+		return nil, controlError{fmt.Errorf("CreateJobObjectW: %w", err)}
 	}
 	g := &processGroup{job: syscall.Handle(h)}
 	limits := jobExtendedLimits{}
@@ -84,7 +84,7 @@ func startProcess(cmd *exec.Cmd) (processController, error) {
 	ok, _, setErr := setJob.Call(h, 9, uintptr(unsafe.Pointer(&limits)), unsafe.Sizeof(limits))
 	if err := winResult(setJob, ok, setErr); err != nil {
 		syscall.CloseHandle(g.job)
-		return nil, err
+		return nil, controlError{err}
 	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x00000004} // CREATE_SUSPENDED
 	if err := cmd.Start(); err != nil {
