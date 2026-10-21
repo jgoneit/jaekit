@@ -358,9 +358,9 @@ func TestSparWaiverAC1_RecordsTheUserDecision(t *testing.T) {
 		statuses map[string]string
 	}{
 		{unfinished, map[string]string{"agy": "unavailable", "second": "pending"}},
-		{notRun, map[string]string{"agy": "not_run"}},
+		{notRun, map[string]string{"agy": "not_run", "second": "not_run"}},
 	} {
-		order := []string{"agy", "second"}[:len(c.statuses)]
+		order := []string{"agy", "second"}
 		presets := map[string]string{"agy": "agy", "second": "native"}
 		recorded := true
 		for _, name := range order {
