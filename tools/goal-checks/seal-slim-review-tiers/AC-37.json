@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "StageTable",
+      "violation": "cumulative-round-undocumented",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC37_StageTable"
+      }
+    },
+    {
+      "id": "SparVersions",
+      "violation": "spar-version-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC37_SparVersions"
+      }
+    }
+  ]
+}

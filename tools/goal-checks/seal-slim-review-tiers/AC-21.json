@@ -1,0 +1,38 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "BundleContract",
+      "violation": "bundle-contract-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC21_BundleContract"
+      }
+    },
+    {
+      "id": "RoleCard",
+      "violation": "role-card-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC21_RoleCard"
+      }
+    },
+    {
+      "id": "ReferencesAndTemplates",
+      "violation": "references-templates-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC21_ReferencesAndTemplates"
+      }
+    },
+    {
+      "id": "Guides",
+      "violation": "guides-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC21_Guides"
+      }
+    }
+  ]
+}

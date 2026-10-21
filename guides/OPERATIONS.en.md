@@ -20,6 +20,8 @@ If your checks use a browser or another external tool, confirm the tool is there
 
 ## What to check before running
 
+From Seal 0.1.20, Seal no longer compares Core support by hand. It declares the support it needs in `core-requirements.json` in its skill folder and starts with `ha start --check-skill`; when support is missing, `ha` refuses without a record, and Seal reports the executable and the message and stops. For a goal already started, each command computes its saved rules or refuses them with exit 66. Without a budget it starts with `검증 실행: 자동` and asks once, only when approval is needed. It checks the tools the checks need with `ha doctor` before any baseline and asks about unavailable tools in one question. The rest of this section describes the check of earlier Seal versions (0.1.17 to 0.1.19).
+
 Seal resolves the absolute path of the Core executable it will actually use, and reads `capabilities --format json` from that executable. A fresh start requires both that the default rule is understood and that all required capabilities are present. Existing goals are checked against their saved rules and the requested action.
 
 Seal stops before recording and explains the target and reason if any of the following occurs:
@@ -84,7 +86,7 @@ The completion report (`## 완료 보고`) appears in `PROGRESS.md` in the goal 
 
 The evidence of completion is the completion record left by `ha done`. In Terminal, run `ha status <goal>` to check the status based on the current goal and records. Replace `<goal>` with the actual goal folder path, such as `docs/specs/login-link`.
 
-`ha report <goal>` summarizes the same records in five lines: `Changed`, `Checked`, `To review`, `Remaining limits` and `Next step`. It is the same computation as `ha status` and does not change the record. The stamp below the summary shows which record head `## 현재` in `PROGRESS.md` should be checked against.
+For goals started with Seal 0.1.20 or later, the completion report pastes the `ha report` output unchanged: read the five lines at the top, then the completion record and Seal's judgment below them. `ha report <goal>` summarizes the same records in five lines: `Changed`, `Checked`, `To review`, `Remaining limits` and `Next step`. It is the same computation as `ha status` and does not change the record. The stamp below the summary shows which record head `## 현재` in `PROGRESS.md` should be checked against.
 
 The assurance level `local` means evidence obtained on that computer. Checks are authored by the executing agent, which can modify files and records with the same user permissions. It does not mean that the whole result is defect-free or guaranteed by an independent third party.
 
@@ -139,7 +141,7 @@ Existing goals keep their starting formats, and omitted new items remain unrecor
 
 ## Assurance policy
 
-The assurance policy introduced in Seal 0.1.11 links the required scope of an assurance policy specified by a goal or project to conditions. If required independent reviews or actual boundary evidence are missing, completion is withheld; unrelated work can continue. Optional comparisons record unobserved scope and limitations. The executor decides the model and execution order; Core does not treat reviewers' agreement as sufficient evidence. The [synthetic assurance case](../examples/verification-design.md) (Korean) is an example of linking the contract, not an actual model observation.
+The assurance policy introduced in Seal 0.1.11 links the required scope of an assurance policy specified by a goal or project to conditions. If required independent reviews or actual boundary evidence are missing, completion is withheld; unrelated work can continue. Optional comparisons record unobserved scope and limitations. The executor decides the model and execution order; Core does not treat reviewers' agreement as sufficient evidence. From Seal 0.1.20 the SPEC's `Assurance:` tier sets the independent review stages: `standard` takes the candidate, fixes and cumulative rounds, `strict` adds a plan round before any baseline, and `light` may skip review with a reason. When project instructions ask for more review, Seal follows them. A goal that needs independent review runs `ha done` only once a cumulative round over the whole last head ends with no open finding ([usage guide](USAGE.en.md#seals-pre-start-checks-and-review-order)). The [synthetic assurance case](../examples/verification-design.md) (Korean) is an example of linking the contract, not an actual model observation.
 
 ## Post-completion finding documents
 

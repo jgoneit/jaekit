@@ -6,15 +6,19 @@ import (
 )
 
 // The progress-timeline goal: PROGRESS.md keeps a short `## 현재` stamped with
-// its check time and record head, and an append-only `## 타임라인` of the
-// events that changed a judgment or the next action. The contract, the bundle
-// formats Seal loads, and the template all say so: every rule below is checked
-// against all three, so none of them can drop a rule the others keep.
+// its record head, and an append-only `## 타임라인` of the events that changed
+// a judgment or the next action. The contract, the bundle formats Seal loads,
+// and the template all say so: every rule below is checked against all three,
+// so none of them can drop a rule the others keep. From Seal 0.1.20 the stamp
+// is the one `ha report` prints; goals started with seal 0.1.6 to 0.1.19 keep
+// the stamp with a check time, described in the contract and in the reference
+// Seal reads only for such goals.
 
 const (
 	ptContract  = "../contracts/bundle.md"
 	ptReference = "seal/skills/seal/references/bundle.md"
 	ptTemplate  = "seal/skills/seal/assets/templates/PROGRESS.md"
+	ptEarlier   = "seal/skills/seal/references/earlier-goals.md"
 )
 
 var (
@@ -114,15 +118,18 @@ func ptTokens(part string, tokens ...string) []ptRule {
 	return rules
 }
 
-// `## 현재` is a short summary with its check time
-// (with time zone), the ha verdict and record head (`none` before `ha start`),
-// the work in progress, the open problems, the next work, and how to resume;
-// past events are in the timeline. This form applies to goals started with
-// Seal 0.1.6 or later.
+// `## 현재` is a short summary that opens with the `ha report` stamp: the
+// record head (`none` before `ha start`), that record's time (with time zone)
+// and the completion record seq; below it the work in progress, the open
+// problems, the next work, and how to resume; past events are in the
+// timeline. Nobody types a check time. This form applies to goals started
+// with Seal 0.1.20 or later; goals started with seal 0.1.6 to 0.1.19 keep the
+// earlier form with a check time.
 func TestProgressCurrentStamped(t *testing.T) {
 	ptCheck(t, []ptRule{
 		{ptCurrent, "짧은 최신 요약", "short, current summary"},
-		{ptCurrent, "확인 시각", "check time"},
+		{ptCurrent, "`ha report <goal>`", "`ha report <goal>`"},
+		{ptCurrent, "확인 시각을 손으로 적지 않는다", "never type a check time yourself"},
 		{ptCurrent, "시간대", "time zone"},
 		{ptCurrent, "기록 head", "record head"},
 		{ptCurrent, "seq와 hash", "seq and hash"},
@@ -132,16 +139,22 @@ func TestProgressCurrentStamped(t *testing.T) {
 		{ptCurrent, "남은 문제", "open problems"},
 		{ptCurrent, "다음 작업", "next work"},
 		{ptCurrent, "재개 방법", "how to resume"},
-		{ptCurrent, "고칠 때마다 확인 시각과 기록 head", "restamp the check time and record head whenever it changes"},
+		{ptCurrent, "기록 head가 바뀔 때마다 새 도장으로 고친다", "restamp with a fresh `ha report` stamp whenever the record head changes"},
 		{ptCurrent, "기록 head를 `ha status`와 비교해 낡았는지", "compares the record head with `ha status`"},
 		{ptCurrent, "같은 seq라도 hash가 다르면 다른 기록", "the same seq with another hash is another record"},
-		{ptCurrent, "확인 시각은 참고", "the check time is for reference only"},
+		{ptCurrent, "도장의 시각은 참고", "the stamp's time is for reference only"},
 		{ptCurrent, "지난 경위는 쓰지 않고 `## 타임라인`을 가리킨다", "past events stay out; point to `## 타임라인`"},
 	})
 	requireIn(t, "bundle contract §5 opening", ptOpening(ptContractSec(t)),
-		"seal 0.1.6 이상으로 시작한 목표", "시작할 때의 PROGRESS 형식을 유지한다", "`ha status`의 `skill:` 줄")
+		"seal 0.1.20 이상으로 시작한 목표", "시작할 때의 PROGRESS 형식을 유지한다", "`ha status`의 `skill:` 줄",
+		"seal 0.1.6~0.1.19로 시작한 목표", "확인 시각(시간대 포함)", "고칠 때마다 확인 시각과 기록 head", "확인 시각은 참고")
 	requireIn(t, "Seal bundle formats PROGRESS.md opening", ptOpening(ptReferenceSec(t)),
-		"goals whose start record names seal 0.1.6 or later", "keeps the PROGRESS form it started with", "the `skill:` line of `ha status`")
+		"goals whose start record names seal 0.1.20 or later", "keeps the PROGRESS form it started with", "the `skill:` line of `ha status`",
+		"[earlier-goals.md](earlier-goals.md)")
+	requireIn(t, ptEarlier, read(t, ptEarlier),
+		"start record names seal 0.1.6 or later, up to 0.1.19", "stamped with its check time (with time zone)", "record head, seq and hash",
+		"Restamp the check time and record head whenever it changes", "the same seq with another hash is another record",
+		"the check time is for reference only", "keeps the PROGRESS form it started with")
 }
 
 // the optional `## 타임라인` holds append-only entries
@@ -250,15 +263,18 @@ func TestProgressCurrentAtCompletion(t *testing.T) {
 
 // the Seal Skill has the executor keep `## 현재` and
 // `## 타임라인` this way for goals it starts, resumes by restamping `## 현재`,
-// lists the new contract tokens, and ships as a raised seal version.
+// lists the new contract tokens, and ships as a raised seal version. Goals
+// started with an earlier Seal keep their form; the reference Seal reads for
+// them still restamps a seal 0.1.6 or later goal on resume.
 func TestSealSkillKeepsTimeline(t *testing.T) {
 	const skill = "seal/skills/seal/SKILL.md"
 	text := read(t, skill)
 	requireIn(t, skill, text,
-		"`## 현재`", "stamped with its check time", "record head, seq and hash", "`## 타임라인`", "appended", "never rewritten",
+		"`## 현재`", "carries the stamp `ha report` prints", "record head, seq and hash", "`## 타임라인`", "appended", "never rewritten",
 		"as of that completion record", "restamp `## 현재`", "`재개`",
-		"goals whose start record names seal 0.1.6 or later", "keeps the PROGRESS form it started with",
-		"for a goal started with seal 0.1.6 or later, restamp")
+		"A goal started with an earlier Seal keeps its saved rules, formats and budget", "(references/earlier-goals.md)")
+	requireIn(t, ptEarlier, read(t, ptEarlier),
+		"keeps the PROGRESS form it started with", "for a goal started with seal 0.1.6 or later, restamp")
 	var tokens string
 	for _, l := range strings.Split(text, "\n") {
 		if strings.Contains(l, "Keep contract tokens exactly as written") {

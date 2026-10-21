@@ -1,0 +1,54 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "WordLimit",
+      "violation": "skill-too-long",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC14_WordLimit"
+      }
+    },
+    {
+      "id": "Identity",
+      "violation": "skill-identity-wrong",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC14_Identity"
+      }
+    },
+    {
+      "id": "ManifestVersions",
+      "violation": "seal-version-mismatch",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC14_ManifestVersions"
+      }
+    },
+    {
+      "id": "CheckInputs",
+      "violation": "check-inputs-section-wrong",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC14_CheckInputs"
+      }
+    },
+    {
+      "id": "ReductionInWords",
+      "violation": "reduction-not-in-words",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC14_ReductionInWords"
+      }
+    },
+    {
+      "id": "KeptAreas",
+      "violation": "kept-area-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC14_KeptAreas"
+      }
+    }
+  ]
+}

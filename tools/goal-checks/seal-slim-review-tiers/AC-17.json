@@ -1,0 +1,86 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Stages",
+      "violation": "review-stages-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC17_Stages"
+      }
+    },
+    {
+      "id": "PlanRoundScope",
+      "violation": "plan-round-scope-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC17_PlanRoundScope"
+      }
+    },
+    {
+      "id": "SupportedForms",
+      "violation": "supported-forms-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC17_SupportedForms"
+      }
+    },
+    {
+      "id": "DoneOrder",
+      "violation": "done-order-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC17_DoneOrder"
+      }
+    },
+    {
+      "id": "ReworkOrder",
+      "violation": "rework-order-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC17_ReworkOrder"
+      }
+    },
+    {
+      "id": "Dispositions",
+      "violation": "dispositions-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC17_Dispositions"
+      }
+    },
+    {
+      "id": "RoundCap",
+      "violation": "round-cap-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC17_RoundCap"
+      }
+    },
+    {
+      "id": "WithoutSpar",
+      "violation": "spar-absence-unhandled",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC17_WithoutSpar"
+      }
+    },
+    {
+      "id": "RecordsByReference",
+      "violation": "review-records-copied",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC17_RecordsByReference"
+      }
+    },
+    {
+      "id": "MethodInSpar",
+      "violation": "spar-method-restated",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC17_MethodInSpar"
+      }
+    }
+  ]
+}

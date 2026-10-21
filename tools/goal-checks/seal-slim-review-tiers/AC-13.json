@@ -1,0 +1,46 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "StartFormChecksSkill",
+      "violation": "start-form-unchecked",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC13_StartFormChecksSkill"
+      }
+    },
+    {
+      "id": "RefusalStops",
+      "violation": "start-refusal-unhandled",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC13_RefusalStops"
+      }
+    },
+    {
+      "id": "NoManualCapabilityCheck",
+      "violation": "manual-capability-check",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC13_NoManualCapabilityCheck"
+      }
+    },
+    {
+      "id": "HelperCoversDeclaration",
+      "violation": "helper-start-disagrees",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC13_HelperCoversDeclaration"
+      }
+    },
+    {
+      "id": "ReleasedCoreRefusesStart",
+      "violation": "released-core-starts",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC13_ReleasedCoreRefusesStart"
+      }
+    }
+  ]
+}

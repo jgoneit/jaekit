@@ -1,0 +1,38 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Tiers",
+      "violation": "tier-rules-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC26_Tiers"
+      }
+    },
+    {
+      "id": "StricterWins",
+      "violation": "stricter-rule-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC26_StricterWins"
+      }
+    },
+    {
+      "id": "TierChange",
+      "violation": "tier-change-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC26_TierChange"
+      }
+    },
+    {
+      "id": "TierRecords",
+      "violation": "tier-records-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC26_TierRecords"
+      }
+    }
+  ]
+}

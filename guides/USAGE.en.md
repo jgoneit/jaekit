@@ -227,6 +227,26 @@ ha: auto budget 102 runs (minimum 68 × 1.5, at least 50) exceeds the pre-approv
 
 If you approve that count, write it as a number in the plan or raise `preapproved_runs` in `ha.json`. A malformed or unreadable file stops with `ha: pre-approved run limit: <path>: <reason>`; it is never replaced by 50. The limit applies only to the start; raising the limit and reopening after the start work as before. The exact rules are in the [run record contract](../contracts/run-record.md#15-자동-예산) (Korean).
 
+## Seal's pre-start checks and review order
+
+Seal 0.1.20 declares the Core support it needs in `core-requirements.json` in its skill folder and starts with `ha start --check-skill`. When the executable lacks support such as `ha report`, `ha doctor`, the automatic budget or the assurance tier check, `ha` refuses the start without a record, and Seal reports the executable and the message and stops. It does not install tools or fall back to older rules. The `ha` of release v0.1.6 does not accept this start, so this combination needs an `ha` that includes those commands.
+
+- **One budget question.** When the request names no budget, Seal writes `검증 실행: 자동` in PLAN. Within the pre-approved limit it starts without asking; above it, Seal asks once, showing the computed and pre-approved limits. The number you give goes into PLAN, and the same PLAN never gets the question again. Seal does not write or change `ha.json`.
+- **Environment check before the start.** When checks use a browser, database, container or external service, Seal lists it in the PLAN section `## 실행 환경` and runs `ha doctor` before recording any baseline and, after a resume, before the next check. It gathers unavailable tools into one question and never widens permissions or settings on its own.
+- **Five-line report.** Goals started with 0.1.20 or later use `ha report` in `PROGRESS.md`. `## 현재` opens with the `ha report` stamp, pasted unchanged; Seal does not type the time. In `## 완료 보고`, read the five lines at the top (`Changed`, `Checked`, `To review`, `Remaining limits`, `Next step`), then the completion record and Seal's judgment below them. A Korean request gets `--lang ko`.
+
+The SPEC's `Assurance:` line sets the independent review stages. Spar decides how a review runs; Seal decides when and what happens with the findings.
+
+| Tier | Reviews |
+| --- | --- |
+| `light` | Independent review may be skipped; the reason goes in `REVIEW.md` and the completion report |
+| `standard` | A candidate round on the final candidate, a fixes round after review fixes, and a cumulative round before `ha done` |
+| `strict` | `standard` plus a plan round before any baseline, which covers the product's invariants and decision rules as well as the check plan |
+
+The cumulative round is a candidate round over the whole change, from the goal's base commit to the last head. In a goal under review, Seal runs `ha done` only once that round ends with no open `defect` or `requirement-question`. When project instructions such as `AGENTS.md` ask for more review, Seal follows them and says so in the completion report. A goal without the line keeps the selected assurance policy as before. When you ask for remote review comments to be applied after completion, Seal records `reopen`, fixes, runs one cumulative round, re-records stale checks and runs `ha done` again.
+
+The Seal skill body went from about 4,600 words to at most 2,200 words. The formats of goals started with an earlier Seal moved to a reference read only when continuing such a goal (`references/earlier-goals.md`); the records and documents of those goals do not change.
+
 ## Troubleshooting
 
 | Symptom | What to do |

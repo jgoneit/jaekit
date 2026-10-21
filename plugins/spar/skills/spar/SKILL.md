@@ -2,7 +2,7 @@
 name: spar
 description: Run independent review rounds on a plan or a change with the spar binary — the same packet to every configured reviewer, classified findings, limited dispositions, stage caps and a review gate file. Use when the user asks for an independent or adversarial review of a plan or an implementation, for example "$spar:spar" in Codex, "/spar:spar" in Claude Code, or "이 변경을 spar로 리뷰해줘".
 metadata:
-  version: "0.1.0"
+  version: "0.1.1"
 ---
 
 # Spar
@@ -22,7 +22,7 @@ Spar makes reviewers attack a plan or a change from outside your context. The `s
 | --- | --- | --- |
 | plan | Once, after the plan and its checks are written and before implementation | `spar run --stage plan` with `--subject` for the plan documents |
 | plan delta | At most once, only when the plan round changed the plan or its checks | `spar run` with `--stage plan-delta`, the earlier plan head as base |
-| candidate | Once, on the commit you believe meets every criterion | `spar run` with `--stage candidate`, the goal's base commit as base |
+| candidate | On the commit you believe meets every criterion; when fixes followed, once more as the cumulative round over the goal's base commit to the last head | `spar run` with `--stage candidate`, the goal's base commit as base |
 | fixes | After committing fixes for findings; its base is the head of the previous code round | `spar run` with `--stage fixes` |
 
 For example, a candidate round:
@@ -33,6 +33,7 @@ spar run --stage candidate --base <base commit> --head <candidate commit> \
 ```
 
 - Caps: one plan round, one plan-delta round and three code rounds (candidate and fixes together) per series, unless the project configuration says otherwise. `spar run` refuses a round past its cap before any reviewer starts.
+- The cumulative round reviews the whole change once more, from the goal's base commit to the last head, after fix rounds: a `fixes` round sees only the fixes. Run it as a `candidate` round; it does not take earlier findings and counts toward the code-round cap like the first candidate round. When no fixes followed the first candidate round, that round is the cumulative round. When the cap leaves no room for it, extending the cap follows the rule below.
 - Only the user can allow more rounds. Ask them, then record their words: `spar extend <series> --stage plan|plan-delta|code --by N --user-quote "<their words>"`.
 - A rerun of the same stage, base, head and packet is not counted only when it starts reviewers that did not complete that packet, for example after a quota refusal. Anything else counts.
 - Pass `--rules` for the repository rules (such as `AGENTS.md`) and contracts the change must keep, and `--question` for a question you need answered. Do not pass your own reasoning about the solution; the reviewers start from the criteria.
