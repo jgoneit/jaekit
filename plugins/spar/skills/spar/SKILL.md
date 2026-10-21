@@ -2,7 +2,7 @@
 name: spar
 description: Run independent review rounds on a plan or a change with the spar binary — the same packet to every configured reviewer, classified findings, limited dispositions, stage caps and a review gate file. Use when the user asks for an independent or adversarial review of a plan or an implementation, for example "$spar:spar" in Codex, "/spar:spar" in Claude Code, or "이 변경을 spar로 리뷰해줘".
 metadata:
-  version: "0.1.1"
+  version: "0.1.2"
 ---
 
 # Spar
@@ -51,8 +51,8 @@ spar run --stage candidate --base <base commit> --head <candidate commit> \
 Spar classifies each finding by fixed rules; the reviewer's proposal is only an input.
 
 - `defect`: violates a criterion, rule or contract the finding names and that exists, or is a regression this change made. A finding in a check path is a defect only when it claims a false pass, an inverted result meaning, or a linked contract or rule violation.
-- `requirement-question`: only a change of requirement resolves it. You cannot change a requirement; ask the user.
-- `hardening`: a check-path edge case that nothing requires. It is deferred automatically.
+- `requirement-question`: only a change of requirement resolves it. You cannot change a requirement; ask the user. A finding in a check path stays one only when it proposes `requirement-question` and links the criterion, rule or contract it asks about, and that link exists.
+- `hardening`: a check-path edge case that nothing requires, including a check-path requirement question without a link that exists. It is deferred automatically.
 - `note`: everything else, including a defect proposal whose link does not exist.
 
 Close findings with `spar triage <round> <finding> <disposition>`:

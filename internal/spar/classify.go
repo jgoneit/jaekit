@@ -499,7 +499,8 @@ func (c classifier) linkTarget(kind, ref string) (lines int, found, unique bool)
 
 // classify applies the class rules. A readable location in the check paths
 // is a defect only when it claims a false pass, an inverted meaning or a
-// linked contract violation, and a hardening item otherwise; a regression
+// linked contract violation, a requirement question only when it proposes
+// one with a link that exists, and a hardening item otherwise; a regression
 // the change made is a defect; an unlinked defect proposal is a note. An
 // unreadable location never makes a check-path judgment: rules 3 and 6 do
 // not apply and rules 1 and 2 apply without the check-path condition, so a
@@ -536,6 +537,10 @@ func (c classifier) classify(reviewer string, n int, raw map[string]any) Finding
 		f.Class, f.ClassReason = "defect", "check path finding with "+f.CheckImpact
 	case f.InCheckPaths && f.CheckImpact == "contract_violation" && linked:
 		f.Class, f.ClassReason = "defect", "check path finding with a linked contract violation"
+	case f.InCheckPaths && f.ProposedClass == "requirement-question" && linked:
+		f.Class, f.ClassReason = "requirement-question", "check path requirement question with a link that exists"
+	case f.InCheckPaths && f.ProposedClass == "requirement-question":
+		f.Class, f.ClassReason = "hardening", "check path requirement question without a link that exists"
 	case f.InCheckPaths:
 		f.Class, f.ClassReason = "hardening", "check path finding without a false pass, inverted meaning or linked contract violation"
 	case f.ProposedClass == "requirement-question":
