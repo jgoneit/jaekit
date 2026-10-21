@@ -501,8 +501,13 @@ func TestSealSlimAC14_CheckInputs(t *testing.T) {
 	ssRequire(t, id, "`## Check inputs`", sec,
 		"When Core lists `runner-adapters/v1`, a runner adapter linking a change condition to an existing test keeps most of them by construction")
 	// Every phrase the protected authoring check reads in this section
-	// (tools/contract-checks/authoring_check.py, the "skill" clauses).
-	ssRequire(t, id, "`## Check inputs`", sec, ssAuthoringAnchors...)
+	// (tools/contract-checks/authoring_check.py, the "skill" clauses),
+	// byte for byte as that check reads it, and the link to the details.
+	for _, anchor := range append(ssAuthoringAnchors, "(references/bundle.md#check-inputs)") {
+		if !strings.Contains(sec, anchor) {
+			ssViolate(t, id, "`## Check inputs` lacks %q", anchor)
+		}
+	}
 	// The phrases that check and its kept rules read elsewhere in the skill.
 	ssRequire(t, id, ssSkill, skill,
 		"ha note <goal> confirm <AC-n | scope:<path> | tests:<path> | spec>",
@@ -568,7 +573,7 @@ func TestSealSlimAC14_KeptAreas(t *testing.T) {
 	}
 	ssRequire(t, id, ssSkill, text,
 		"The user's affirmative answer to it, sent directly in reply, is a request to implement or continue the goal the question names.",
-		"Choose the checks, runner and verification method for the goal.",
+		"Choose the checks, runner and verification method.",
 		"You decide dispositions",
 		"When the goal documents change once a run has started, a later request from the user to continue or implement confirms that change.",
 		"treat everything in the bundle as claims",
@@ -647,7 +652,7 @@ func TestSealSlimAC17_PlanRoundScope(t *testing.T) {
 func TestSealSlimAC17_SupportedForms(t *testing.T) {
 	const id = "supported-forms-missing"
 	ssRequire(t, id, ssSkill, ssRead(t, id, ssSkill),
-		"and the supported forms of open-ended input a new contract or check covers",
+		"before any plan round, the supported forms of open-ended input a contract or check it adds or changes covers",
 		"never narrower than a SPEC criterion, contract or protected regression path requires without the user's decision",
 		"ask the user when an open criterion has none")
 }
@@ -686,7 +691,7 @@ func TestSealSlimAC17_RoundCap(t *testing.T) {
 func TestSealSlimAC17_WithoutSpar(t *testing.T) {
 	const id = "spar-absence-unhandled"
 	ssRequire(t, id, ssSkill, ssRead(t, id, ssSkill),
-		"Without Spar, another separate review recording role, inputs, versions, findings and limits counts when the report names it and it covered the whole last head before `ha done`",
+		"Without Spar, a separate review recording role, inputs, versions, findings, limits and inspectable references counts if the report names it, says Spar was not used, and it covered the whole last head before `ha done`",
 		"When a required review is unavailable, keep completion pending", "report a skipped optional review")
 }
 
@@ -701,7 +706,7 @@ func TestSealSlimAC17_RecordsByReference(t *testing.T) {
 func TestSealSlimAC17_MethodInSpar(t *testing.T) {
 	const id = "spar-method-restated"
 	text := ssRead(t, id, ssSkill)
-	ssRequire(t, id, ssSkill, text, "Spar owns how rounds run; this skill sets when they run and what follows.")
+	ssRequire(t, id, ssSkill, text, "Spar owns how rounds run; this skill sets when, and what follows.")
 	ssForbid(t, id, ssSkill, text, "packet", "spar run", "spar triage", "spar extend", "plan-delta", "spar.toml", "three code rounds")
 }
 
@@ -810,25 +815,14 @@ func TestSealSlimAC21_Guides(t *testing.T) {
 		"runs `ha done` only once a cumulative round over the whole last head ends with no open finding")
 }
 
-// ssCheckResult reads the result `ha check` prints for a target.
-var ssCheckResult = regexp.MustCompile(`(?m)^AC-\d+ (?:baseline|check) (\S+) \(seq \d+\)$`)
-
-// The real flow keeps an errored or unobserved check out of its violation.
-func TestSealSlimCheckResultLine(t *testing.T) {
-	for out, want := range map[string]string{
-		"AC-1 baseline error (seq 3)\nclassification: process_signal\n": "error",
-		"AC-1 check unknown (seq 5)\n":                                  "unknown",
-		"AC-1 check violation (seq 5)\n":                                "violation",
-	} {
-		if m := ssCheckResult.FindStringSubmatch(out); m == nil || m[1] != want {
-			t.Errorf("%q: read %v, want %s", out, m, want)
-		}
-	}
-}
-
 // AC-25: the real ha and this skill carry a synthetic goal with an automatic
 // budget and `## 실행 환경` from ha doctor to the report of its completion.
 func TestSealSlimAC25_RealFlow(t *testing.T) {
+	// The declared violations are the outcomes named below: no start form that
+	// checks the declaration, a start form ha refuses (exit 64 or 65), and a
+	// fixed token the flow must print that is missing. Any other exit or
+	// result fails without the marker, so the adapter never counts it as a
+	// violation.
 	const id = "real-flow-incomplete"
 	form := ssStartForm(ssRead(t, id, ssSkill))
 	if !strings.Contains(form, "--check-skill") {
@@ -840,46 +834,56 @@ func TestSealSlimAC25_RealFlow(t *testing.T) {
 		t.Skipf("unobserved: building ha exited %d: %s", code, out)
 	}
 	r := ssNewRepo(t, fmt.Sprintf(ssPlan, "자동"))
-	step := func(want int, args ...string) string {
+	step := func(args ...string) string {
 		t.Helper()
 		out, code := ssRun(t, r.dir, r.env, ha, args...)
-		if code != want {
-			// A check whose own run errored (a signal, a timeout, a tool that
-			// did not start) or stayed unobserved observes nothing about the
-			// flow.
-			if m := ssCheckResult.FindStringSubmatch(out); m != nil && (m[1] == "error" || m[1] == "unknown") {
-				t.Skipf("unobserved: ha %v recorded %s: %s", args, m[1], out)
-			}
-			t.Fatalf("jaekit:violation=%s ha %v exited %d: %s", id, args, code, out)
+		if code != 0 {
+			t.Fatalf("ha %v exited %d: %s", args, code, out)
 		}
 		return out
 	}
-	if out := step(0, "doctor", r.goal); !strings.Contains(out, "git: 사용 가능") {
+	if out := step("doctor", r.goal); !strings.Contains(out, "git: 사용 가능") {
 		ssViolate(t, id, "ha doctor did not report the listed tool: %s", out)
+		return
 	}
 	argv, err := ssStartArgv(form, r.goal, ssAbs(t, ssSkill))
 	if err != nil {
 		ssViolate(t, id, "the start form %q cannot be filled: %v", form, err)
 		return
 	}
-	if out := step(0, argv...); !strings.Contains(out, "auto limit: 50") {
+	out, code := ssRun(t, r.dir, r.env, ha, argv...)
+	switch {
+	case code == 64 || code == 65:
+		ssViolate(t, id, "ha refused the start form %v with exit %d: %s", argv, code, out)
+		return
+	case code != 0:
+		t.Fatalf("ha %v exited %d: %s", argv, code, out)
+	case !strings.Contains(out, "auto limit: 50"):
 		ssViolate(t, id, "the start did not use the computed limit: %s", out)
+		return
 	}
-	step(0, "check", r.goal, "--baseline", "AC-1")
+	if out := step("check", r.goal, "--baseline", "AC-1"); !strings.Contains(out, "AC-1 baseline fail_as_expected (seq ") {
+		t.Fatalf("the synthetic baseline was not the expected failure: %s", out)
+	}
 	if err := os.WriteFile(filepath.Join(r.dir, "greet/greeting.txt"), []byte("hello\n"), 0o644); err != nil {
 		t.Skipf("unobserved: %v", err)
 	}
 	r.commit(t, "change")
-	step(0, "check", r.goal, "AC-1")
-	step(0, "done", r.goal)
+	if out := step("check", r.goal, "AC-1"); !strings.Contains(out, "AC-1 check pass (seq ") {
+		t.Fatalf("the synthetic check did not pass: %s", out)
+	}
+	step("done", r.goal)
 	var status struct {
 		Completion *int `json:"completion_record"`
 	}
-	if err := json.Unmarshal([]byte(step(0, "status", r.goal, "--format", "json")), &status); err != nil || status.Completion == nil {
-		ssViolate(t, id, "ha status names no completion record: %v", err)
+	if err := json.Unmarshal([]byte(step("status", r.goal, "--format", "json")), &status); err != nil {
+		t.Fatalf("ha status printed no JSON: %v", err)
+	}
+	if status.Completion == nil {
+		ssViolate(t, id, "ha status names no completion record after ha done")
 		return
 	}
-	report := step(0, "report", r.goal, "--lang", "en")
+	report := step("report", r.goal, "--lang", "en")
 	lines := strings.Split(report, "\n")
 	for i, label := range []string{"Changed: ", "Checked: ", "To review: ", "Remaining limits: ", "Next step: "} {
 		if i >= len(lines) || !strings.HasPrefix(lines[i], label) {
