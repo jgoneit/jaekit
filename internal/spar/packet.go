@@ -155,7 +155,7 @@ func buildPacket(in packetInput) string {
 		}
 		b.WriteString(". At these paths a finding that claims `false_pass`, `meaning_inverted` or a linked `contract_violation` is recorded as a `defect`, whatever its `proposed_class`. " +
 			"Any other finding at these paths is recorded as `hardening` and deferred, unless it proposes `requirement-question` and links the criterion, rule or contract it asks about, " +
-			"and that link exists: such a question stays open for the user.\n")
+			"and that link exists: such a question stays open for the user. A `contract` link to a file in these paths does not keep a question open.\n")
 	}
 	b.WriteString("\n## Criteria\n\n")
 	for _, d := range in.Criteria {

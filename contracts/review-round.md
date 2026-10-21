@@ -107,13 +107,13 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 1. 위치가 검사 경로이고 `check_impact`가 `false_pass`나 `meaning_inverted`이면 `defect`
 2. 위치가 검사 경로이고 `contract_violation`이며 연결이 확인되면 `defect`
-3. 위치가 검사 경로이면, `proposed_class`가 `requirement-question`이고 연결이 확인될 때 `requirement-question`, 그 밖에는 제안 분류와 관계없이 `hardening`
+3. 위치가 검사 경로이면, `proposed_class`가 `requirement-question`이고 연결이 확인되며 그 연결이 검사 경로의 파일을 가리키는 `contract` 연결이 아닐 때 `requirement-question`, 그 밖에는 제안 분류와 관계없이 `hardening`
 4. `proposed_class`가 `requirement-question`이면 `requirement-question`
 5. `introduced_by_change`와 `regression`이 모두 `yes`이면 `defect`
 6. `proposed_class`가 `defect`이고 연결이 확인되지 않으면 `note`
 7. 그 밖에는 `proposed_class`
 
-위치를 읽은 `hardening`은 라운드를 기록할 때 `{"disposition": "defer", "auto": true}` 원장 항목으로 자동 보류된다. 규칙 3의 `requirement-question`은 자동 보류하지 않으며, 7절대로 사용자의 말을 인용한 처리로만 닫힌다. 그 연결은 질문이 묻는 기준·규칙·계약이어야 하고(리뷰어 패킷이 알린다), spar는 연결한 대상이 있는지만 확인한다. 위치를 읽을 수 없는 지적은 [입력 형식](spar-input.md) 4절대로 분류하고 자동 보류하지 않는다: 규칙 3과 6을 쓰지 않고 1과 2는 검사 경로 조건 없이 쓴다.
+위치를 읽은 `hardening`은 라운드를 기록할 때 `{"disposition": "defer", "auto": true}` 원장 항목으로 자동 보류된다. 규칙 3의 `requirement-question`은 자동 보류하지 않으며, 7절대로 사용자의 말을 인용한 처리로만 닫힌다. 그 연결은 질문이 묻는 기준·규칙·계약이어야 하고(리뷰어 패킷이 알린다), spar는 연결한 대상이 있는지와, `contract` 연결이면 그 대상(G8이 찾은 규칙 문서나 head 파일의 저장소 경로)이 검사 경로 밖인지를 확인한다. 검사 경로의 파일을 가리키는 `contract` 연결은 검사 코드 자신을 가리키므로 규칙 3에서 확인된 연결로 치지 않는다. 규칙 2의 연결 확인에는 이 제한이 없다. 위치를 읽을 수 없는 지적은 [입력 형식](spar-input.md) 4절대로 분류하고 자동 보류하지 않는다: 규칙 3과 6을 쓰지 않고 1과 2는 검사 경로 조건 없이 쓴다.
 
 분류는 지적을 기록할 때 정해진다. gate와 요약은 `findings.json`에 기록된 분류를 읽으므로, 이미 기록한 지적은 규칙이 바뀌어도 다시 분류되지 않는다.
 

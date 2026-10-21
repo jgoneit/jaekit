@@ -241,7 +241,8 @@ func cpqViolation(t *testing.T, id, format string, args ...any) {
 
 // AC-1: a requirement question at a check path whose criterion, rule or
 // contract link exists is recorded as a requirement question and is not
-// deferred automatically, whatever form the location and the link take.
+// deferred automatically, whatever form the location and the link take. A
+// contract link outside the check paths counts, a head file included.
 func TestSparQuestionsAC1_LinkedQuestionStaysOpen(t *testing.T) {
 	const id = "check-path-question-deferred"
 	w := newCPQWorld(t, false)
@@ -256,6 +257,8 @@ func TestSparQuestionsAC1_LinkedQuestionStaysOpen(t *testing.T) {
 		{question(map[string]any{"link_kind": "rule", "link": "AGENTS.md:1-3"}), "requirement-question"},
 		{question(map[string]any{"link_kind": "rule", "link": "AGENTS.md"}), "requirement-question"},
 		{question(map[string]any{"link_kind": "contract", "link": "contracts/x.md:3"}), "requirement-question"},
+		{question(map[string]any{"link_kind": "contract", "link": "head/app/main.py:1"}), "requirement-question"},
+		{question(map[string]any{"link_kind": "contract", "link": "AGENTS.md:2"}), "requirement-question"},
 		{question(map[string]any{"link_kind": "criterion", "link": "AC-2", "location": "head/checks/test_app.py"}), "requirement-question"},
 		{question(map[string]any{"link_kind": "criterion", "link": "AC-1", "location": "checks/test_app.py:2"}), "requirement-question"},
 		{question(map[string]any{"link_kind": "criterion", "link": "AC-1", "location": "head/checks/"}), "requirement-question"},
@@ -317,7 +320,8 @@ func TestSparQuestionsAC2_QuestionHoldsTheGateUntilAnswered(t *testing.T) {
 
 // AC-3 (kept): a requirement question at a check path without a link, or
 // with a link that does not exist, is a hardening item deferred
-// automatically.
+// automatically. A contract link to a file in the check paths names the
+// check code itself and does not count either (the user's decision).
 func TestSparQuestionsAC3_UnlinkedQuestionIsDeferred(t *testing.T) {
 	const id = "unlinked-question-not-deferred"
 	w := newCPQWorld(t, true)
@@ -335,6 +339,8 @@ func TestSparQuestionsAC3_UnlinkedQuestionIsDeferred(t *testing.T) {
 		{question("rule", "contracts/x.md:1"), "hardening"},
 		{question("rule", "AC-1"), "hardening"},
 		{question("contract", "contracts/missing.md:1"), "hardening"},
+		{question("contract", "checks/test_app.py:2"), "hardening"},
+		{question("contract", "head/checks/test_app.py"), "hardening"},
 	}
 	out, found, ledger := w.cpqClasses(cases)
 	for i, c := range cases {
@@ -344,7 +350,7 @@ func TestSparQuestionsAC3_UnlinkedQuestionIsDeferred(t *testing.T) {
 			continue
 		}
 		entries := ledger[f.ID]
-		if f.Class != c.class || f.LinkKind != "none" || len(entries) != 1 || entries[0].Disposition != "defer" || !entries[0].Auto {
+		if f.Class != c.class || len(entries) != 1 || entries[0].Disposition != "defer" || !entries[0].Auto {
 			cpqViolation(t, id, "case %d %v: class %s, link %s, ledger %+v", i+1, c.values, f.Class, f.LinkKind, entries)
 		}
 	}
@@ -368,6 +374,7 @@ func TestSparQuestionsAC4_ClaimedCheckFailureIsADefect(t *testing.T) {
 		{map[string]any{"proposed_class": "note", "check_impact": "false_pass"}, "defect"},
 		{map[string]any{"proposed_class": "hardening", "check_impact": "meaning_inverted"}, "defect"},
 		{map[string]any{"proposed_class": "defect", "check_impact": "contract_violation", "link_kind": "contract", "link": "contracts/x.md:1"}, "defect"},
+		{map[string]any{"proposed_class": "requirement-question", "check_impact": "contract_violation", "link_kind": "contract", "link": "checks/test_app.py:1"}, "defect"},
 	}
 	out, found, ledger := w.cpqClasses(cases)
 	for i, c := range cases {
@@ -436,6 +443,7 @@ func TestSparQuestionsAC6_OtherFindingsKeepTheirClasses(t *testing.T) {
 		{outside(map[string]any{"proposed_class": "note"}), "note"},
 		{outside(map[string]any{"proposed_class": "requirement-question"}), "requirement-question"},
 		{outside(map[string]any{"proposed_class": "requirement-question", "link_kind": "criterion", "link": "AC-1"}), "requirement-question"},
+		{outside(map[string]any{"proposed_class": "requirement-question", "link_kind": "contract", "link": "checks/test_app.py:1"}), "requirement-question"},
 		{unreadable(map[string]any{"proposed_class": "defect"}), "defect"},
 		{unreadable(map[string]any{"proposed_class": "defect", "check_impact": "false_pass"}), "defect"},
 		{unreadable(map[string]any{"proposed_class": "note", "check_impact": "meaning_inverted"}), "defect"},
@@ -443,6 +451,7 @@ func TestSparQuestionsAC6_OtherFindingsKeepTheirClasses(t *testing.T) {
 		{unreadable(map[string]any{"proposed_class": "note", "check_impact": "contract_violation"}), "note"},
 		{unreadable(map[string]any{"proposed_class": "requirement-question"}), "requirement-question"},
 		{unreadable(map[string]any{"proposed_class": "requirement-question", "link_kind": "criterion", "link": "AC-1"}), "requirement-question"},
+		{unreadable(map[string]any{"proposed_class": "requirement-question", "link_kind": "contract", "link": "checks/test_app.py:1"}), "requirement-question"},
 		{unreadable(map[string]any{"proposed_class": "note", "introduced_by_change": "yes", "regression": "yes"}), "defect"},
 		{unreadable(map[string]any{"proposed_class": "hardening"}), "hardening"},
 		{unreadable(map[string]any{"proposed_class": "note"}), "note"},
@@ -540,7 +549,7 @@ func TestSparQuestionsAC8_ContractStatesTheRules(t *testing.T) {
 	want := []string{
 		"1. 위치가 검사 경로이고 `check_impact`가 `false_pass`나 `meaning_inverted`이면 `defect`",
 		"2. 위치가 검사 경로이고 `contract_violation`이며 연결이 확인되면 `defect`",
-		"3. 위치가 검사 경로이면, `proposed_class`가 `requirement-question`이고 연결이 확인될 때 `requirement-question`, 그 밖에는 제안 분류와 관계없이 `hardening`",
+		"3. 위치가 검사 경로이면, `proposed_class`가 `requirement-question`이고 연결이 확인되며 그 연결이 검사 경로의 파일을 가리키는 `contract` 연결이 아닐 때 `requirement-question`, 그 밖에는 제안 분류와 관계없이 `hardening`",
 		"4. `proposed_class`가 `requirement-question`이면 `requirement-question`",
 		"5. `introduced_by_change`와 `regression`이 모두 `yes`이면 `defect`",
 		"6. `proposed_class`가 `defect`이고 연결이 확인되지 않으면 `note`",
@@ -557,6 +566,7 @@ func TestSparQuestionsAC8_ContractStatesTheRules(t *testing.T) {
 	}
 	for _, sentence := range []string{
 		"규칙 3의 `requirement-question`은 자동 보류하지 않으며, 7절대로 사용자의 말을 인용한 처리로만 닫힌다.",
+		"검사 경로의 파일을 가리키는 `contract` 연결은 검사 코드 자신을 가리키므로 규칙 3에서 확인된 연결로 치지 않는다. 규칙 2의 연결 확인에는 이 제한이 없다.",
 		"분류는 지적을 기록할 때 정해진다. gate와 요약은 `findings.json`에 기록된 분류를 읽으므로, 이미 기록한 지적은 규칙이 바뀌어도 다시 분류되지 않는다.",
 	} {
 		if !strings.Contains(text, sentence) {
@@ -570,8 +580,8 @@ func TestSparQuestionsAC8_SkillStatesTheClasses(t *testing.T) {
 	const id = "skill-classes-stale"
 	text := cpqRead(t, "plugins/spar/skills/spar/SKILL.md")
 	for _, line := range []string{
-		"- `requirement-question`: only a change of requirement resolves it. You cannot change a requirement; ask the user. A finding in a check path stays one only when it proposes `requirement-question` and links the criterion, rule or contract it asks about, and that link exists.",
-		"- `hardening`: a check-path edge case that nothing requires, including a check-path requirement question without a link that exists. It is deferred automatically.",
+		"- `requirement-question`: only a change of requirement resolves it. You cannot change a requirement; ask the user. A finding in a check path stays one only when it proposes `requirement-question` and links the criterion, rule or contract it asks about, and that link exists; a `contract` link to a file in the check paths does not count.",
+		"- `hardening`: a check-path edge case that nothing requires, including a check-path requirement question without such a link. It is deferred automatically.",
 	} {
 		if !strings.Contains(text, "\n"+line+"\n") {
 			cpqViolation(t, id, "SKILL.md has no line %q", line)
@@ -593,7 +603,7 @@ func TestSparQuestionsAC8_PacketExplainsTheLink(t *testing.T) {
 	if err != nil {
 		t.Fatalf("packet.md: %v", err)
 	}
-	line := "- Check paths: `checks/**`. At these paths a finding that claims `false_pass`, `meaning_inverted` or a linked `contract_violation` is recorded as a `defect`, whatever its `proposed_class`. Any other finding at these paths is recorded as `hardening` and deferred, unless it proposes `requirement-question` and links the criterion, rule or contract it asks about, and that link exists: such a question stays open for the user."
+	line := "- Check paths: `checks/**`. At these paths a finding that claims `false_pass`, `meaning_inverted` or a linked `contract_violation` is recorded as a `defect`, whatever its `proposed_class`. Any other finding at these paths is recorded as `hardening` and deferred, unless it proposes `requirement-question` and links the criterion, rule or contract it asks about, and that link exists: such a question stays open for the user. A `contract` link to a file in these paths does not keep a question open."
 	if !strings.Contains(string(data), "\n"+line+"\n") {
 		cpqViolation(t, id, "packet.md has no line %q", line)
 	}

@@ -51,8 +51,8 @@ spar run --stage candidate --base <base commit> --head <candidate commit> \
 Spar classifies each finding by fixed rules; the reviewer's proposal is only an input.
 
 - `defect`: violates a criterion, rule or contract the finding names and that exists, or is a regression this change made. A finding in a check path is a defect only when it claims a false pass, an inverted result meaning, or a linked contract or rule violation.
-- `requirement-question`: only a change of requirement resolves it. You cannot change a requirement; ask the user. A finding in a check path stays one only when it proposes `requirement-question` and links the criterion, rule or contract it asks about, and that link exists.
-- `hardening`: a check-path edge case that nothing requires, including a check-path requirement question without a link that exists. It is deferred automatically.
+- `requirement-question`: only a change of requirement resolves it. You cannot change a requirement; ask the user. A finding in a check path stays one only when it proposes `requirement-question` and links the criterion, rule or contract it asks about, and that link exists; a `contract` link to a file in the check paths does not count.
+- `hardening`: a check-path edge case that nothing requires, including a check-path requirement question without such a link. It is deferred automatically.
 - `note`: everything else, including a defect proposal whose link does not exist.
 
 Close findings with `spar triage <round> <finding> <disposition>`:
