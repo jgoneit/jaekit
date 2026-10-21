@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "SkillUsesReport",
+      "violation": "progress-report-unused",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC19_SkillUsesReport"
+      }
+    },
+    {
+      "id": "FormatDefined",
+      "violation": "progress-format-undefined",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC19_FormatDefined"
+      }
+    }
+  ]
+}

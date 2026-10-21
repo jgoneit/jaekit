@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "RealFlow",
+      "violation": "real-flow-incomplete",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC25_RealFlow"
+      }
+    }
+  ]
+}

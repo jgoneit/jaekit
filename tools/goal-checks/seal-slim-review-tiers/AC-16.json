@@ -1,0 +1,30 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "ReferencesWhenToRead",
+      "violation": "reference-reading-unstated",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC16_ReferencesWhenToRead"
+      }
+    },
+    {
+      "id": "NoVersionBranches",
+      "violation": "version-branch-in-skill",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC16_NoVersionBranches"
+      }
+    },
+    {
+      "id": "EarlierGoalsReference",
+      "violation": "earlier-forms-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC16_EarlierGoalsReference"
+      }
+    }
+  ]
+}

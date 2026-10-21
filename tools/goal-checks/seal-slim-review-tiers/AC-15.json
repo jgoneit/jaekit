@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "DutiesAccounted",
+      "violation": "duty-unaccounted",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealSlimAC15_DutiesAccounted"
+      }
+    }
+  ]
+}
