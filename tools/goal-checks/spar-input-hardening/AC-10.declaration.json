@@ -1,0 +1,102 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "internal/spar/testdata/input-forms.json",
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spar-input-hardening/AC-10.targets.json",
+    "tools/goal-checks/spar-input-hardening/observe_input.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "top-timeout",
+      "violation": "timeout-misapplied"
+    },
+    {
+      "id": "top-timeout.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "top-timeout.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "top-timeout.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "top-timeout.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "top-timeout.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "top-timeout.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "top-timeout.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "top-timeout.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "top-timeout.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "top-timeout.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "version-check",
+      "violation": "version-check-outside-limit"
+    },
+    {
+      "id": "version-check.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "version-check.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "version-check.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "version-check.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "version-check.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "version-check.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "version-check.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "version-check.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "version-check.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "version-check.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

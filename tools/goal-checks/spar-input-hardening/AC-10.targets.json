@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "top-timeout",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Timeouts.test_top_level_timeout",
+      "result_targets": {
+        "additional_violations": [
+          "top-timeout.assertion-2",
+          "top-timeout.assertion-3",
+          "top-timeout.assertion-4",
+          "top-timeout.assertion-5",
+          "top-timeout.assertion-6",
+          "top-timeout.assertion-7",
+          "top-timeout.assertion-8"
+        ],
+        "execution": "top-timeout.execution",
+        "selection": "top-timeout.selection",
+        "attribution": "top-timeout.attribution"
+      }
+    },
+    {
+      "target": "version-check",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Timeouts.test_version_check_in_limit",
+      "result_targets": {
+        "additional_violations": [
+          "version-check.assertion-2",
+          "version-check.assertion-3",
+          "version-check.assertion-4",
+          "version-check.assertion-5",
+          "version-check.assertion-6",
+          "version-check.assertion-7",
+          "version-check.assertion-8"
+        ],
+        "execution": "version-check.execution",
+        "selection": "version-check.selection",
+        "attribution": "version-check.attribution"
+      }
+    }
+  ]
+}

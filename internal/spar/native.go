@@ -21,6 +21,7 @@ type RecordOptions struct {
 	Model      string
 	Agent      string
 	Stdin      io.Reader
+	Log        io.Writer
 }
 
 var nativeTools = map[string]bool{"Read": true, "Grep": true, "Glob": true}
@@ -36,18 +37,22 @@ type transcriptInfo struct {
 	offered    []string
 	contexts   []string
 	readPrompt bool
+	// outside holds the tools that read outside the native workspace and
+	// prompt.md (names only).
+	outside map[string]bool
 }
 
 // readTranscript reads a host subagent transcript: its last reply, the
 // model, the tools it used and offered, and what the host added to its
 // context (names only, never the text).
 func readTranscript(path, nativeDir string) (transcriptInfo, error) {
-	info := transcriptInfo{used: map[string]int{}}
+	info := transcriptInfo{used: map[string]int{}, outside: map[string]bool{}}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return info, err
 	}
 	prompt := filepath.Join(nativeDir, "prompt.md")
+	workspace := realish(filepath.Join(nativeDir, "workspace"))
 	for _, e := range jsonLines(data) {
 		switch e["type"] {
 		case "attachment":
@@ -72,9 +77,16 @@ func readTranscript(path, nativeDir string) (transcriptInfo, error) {
 				case "tool_use":
 					name := str(b["name"])
 					info.used[name]++
-					target := str(object(b["input"])["file_path"])
+					input := object(b["input"])
+					target := str(input["file_path"])
 					if target != "" && realish(target) == realish(prompt) {
 						info.readPrompt = true
+					}
+					// G15: what Read, Grep and Glob read, resolved against the
+					// entry's cwd, stays in the workspace or is prompt.md.
+					field := map[string]string{"Read": "file_path", "Grep": "path", "Glob": "path"}[name]
+					if field != "" && !readsInside(str(input[field]), str(e["cwd"]), workspace, prompt) {
+						info.outside[name] = true
 					}
 				case "text":
 					text = append(text, str(b["text"]))
@@ -105,8 +117,29 @@ func readTranscript(path, nativeDir string) (transcriptInfo, error) {
 	return info, nil
 }
 
+// readsInside reports whether a path a tool read, relative to cwd when it
+// is relative and cwd itself when it is empty, lies in the native workspace
+// or is the round's prompt.md. Without a cwd a relative or empty path
+// counts as outside.
+func readsInside(target, cwd, workspace, prompt string) bool {
+	if target == "" {
+		target = cwd
+	}
+	if target == "" || (!filepath.IsAbs(target) && !filepath.IsAbs(cwd)) {
+		return false
+	}
+	if !filepath.IsAbs(target) {
+		target = filepath.Join(cwd, target)
+	}
+	target = realish(filepath.Clean(target))
+	return target == realish(prompt) || insideRepo(workspace, target) != ""
+}
+
 func transcriptWarnings(info transcriptInfo, name string) []string {
 	var warnings []string
+	if len(info.outside) > 0 {
+		warnings = append(warnings, "the subagent read outside the native workspace with "+strings.Join(sortedKeys(info.outside), ", "))
+	}
 	var extra []string
 	for _, name := range sortedKeys(info.used) {
 		if !nativeTools[name] {
@@ -153,6 +186,13 @@ func Record(o RecordOptions) (int, error) {
 		return ExitUsage, usageError("give exactly one of --result and --transcript")
 	}
 	dir := realish(o.Round)
+	// Writes to a series take its lock one at a time (G33), and the round
+	// is read once the lock is held, so another writer's result is kept.
+	unlock, err := lockSeries(filepath.Dir(dir), o.Log)
+	if err != nil {
+		return ExitRefused, refused("%s cannot be locked: %v", o.Round, err)
+	}
+	defer unlock()
 	r, err := loadRound(dir)
 	if err != nil {
 		return ExitRefused, refused("%v", err)
@@ -218,8 +258,11 @@ func Record(o RecordOptions) (int, error) {
 		} else if str(result["verdict"]) == "could_not_review" {
 			st.Status, st.Reason = StatusFailed, "the reviewer reported it could not review: "+short(str(result["limits"]), 300)
 		} else {
+			c, err := newClassifier(r)
+			if err != nil {
+				return ExitRefused, refused("%s: %v", o.Round, err)
+			}
 			st.Status = StatusCompleted
-			c := classifier{repo: r.Repo, head: r.Head, checkPaths: r.Config.CheckPaths, targets: r.Links}
 			added = applyResult(c, st, o.Reviewer, result)
 		}
 		data, _ := json.MarshalIndent(result, "", "  ")

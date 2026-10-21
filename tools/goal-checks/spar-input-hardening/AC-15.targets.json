@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "gate-list",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "GateList.test_series_rounds_listed",
+      "result_targets": {
+        "additional_violations": [
+          "gate-list.assertion-2",
+          "gate-list.assertion-3",
+          "gate-list.assertion-4",
+          "gate-list.assertion-5",
+          "gate-list.assertion-6",
+          "gate-list.assertion-7",
+          "gate-list.assertion-8"
+        ],
+        "execution": "gate-list.execution",
+        "selection": "gate-list.selection",
+        "attribution": "gate-list.attribution"
+      }
+    }
+  ]
+}

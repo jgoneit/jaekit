@@ -3,6 +3,7 @@ package spar
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -102,10 +103,27 @@ func Gate(o GateOptions) (int, error) {
 	if err := localRecordPath(repo, out); err != nil {
 		return ExitRefused, refused("--out %v", err)
 	}
+	// The gate file never replaces an input of the gate (G28).
+	for _, p := range o.Rounds {
+		dir := realish(p)
+		if insideRepo(dir, out) != "" {
+			return ExitRefused, refused("--out %s is inside the given round %s", o.Out, p)
+		}
+		if out == filepath.Join(filepath.Dir(dir), "extensions.jsonl") {
+			return ExitRefused, refused("--out %s is the extensions.jsonl of the series of %s", o.Out, p)
+		}
+	}
 	g := &GateRecord{Schema: GateSchema, SparVersion: o.Version, Reasons: []string{}, Rounds: []GateRound{},
 		Open: map[string]int{"defect": 0, "requirement-question": 0}, OpenFindings: []string{},
 		Growth: Growth{AddedLines: map[string]int{"check": 0, "other": 0}, Rounds: []GrowthRound{}}}
 	if previous, err := os.ReadFile(out); err == nil {
+		// An existing file is replaced only when it is an earlier gate.
+		var probe struct {
+			Schema string `json:"schema"`
+		}
+		if json.Unmarshal(previous, &probe) != nil || probe.Schema != GateSchema {
+			return ExitRefused, refused("--out %s exists and is not a %s file", o.Out, GateSchema)
+		}
 		sum := sha256.Sum256(previous)
 		digest := hex.EncodeToString(sum[:])
 		g.PreviousGateDigest = &digest
@@ -223,6 +241,7 @@ func Gate(o GateOptions) (int, error) {
 			shortID(expect), shortID(g.LastReviewedHead)))
 	}
 	blocked = append(blocked, capProblems(rounds)...)
+	blocked = append(blocked, unlistedRounds(o.Rounds)...)
 	for _, lr := range rounds {
 		final := finalDispositions(lr.ledger)
 		for _, f := range lr.findings {
@@ -358,6 +377,49 @@ func nonNilStrings(list []string) []string {
 		return []string{}
 	}
 	return list
+}
+
+// unlistedRounds names the rounds of a given round's series that the gate
+// list leaves out (G29). Every review-round/v1 round of the series that is
+// not a dry run must be given, so a round with an open finding cannot be
+// left out of the decision. A round that stopped before recording any
+// finding (no finished_at, no findings.json) is left out like a dry run: it
+// holds nothing to decide, and its rerun is another round.
+func unlistedRounds(paths []string) []string {
+	given := map[string]bool{}
+	var series []string
+	seen := map[string]bool{}
+	for _, p := range paths {
+		dir := realish(p)
+		given[dir] = true
+		if s := filepath.Dir(dir); !seen[s] {
+			seen[s] = true
+			series = append(series, s)
+		}
+	}
+	var problems []string
+	for _, s := range series {
+		siblings, err := seriesRounds(s)
+		if err != nil {
+			problems = append(problems, fmt.Sprintf("%s: the rounds of the series cannot be listed: %v", s, err))
+			continue
+		}
+		for _, sib := range siblings {
+			if sib.round.DryRun || stoppedBeforeFindings(sib) || given[realish(sib.dir)] {
+				continue
+			}
+			problems = append(problems, fmt.Sprintf("%s: round %s of the series is not in the gate list", s, filepath.Base(sib.dir)))
+		}
+	}
+	return problems
+}
+
+func stoppedBeforeFindings(sib sibling) bool {
+	if sib.round.FinishedAt != "" {
+		return false
+	}
+	_, err := os.Stat(filepath.Join(sib.dir, "findings.json"))
+	return errors.Is(err, os.ErrNotExist)
 }
 
 // capProblems counts the rounds of each series against its caps and

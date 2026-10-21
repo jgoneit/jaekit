@@ -1,0 +1,65 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "locations-run",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Locations.test_forms_in_run",
+      "result_targets": {
+        "additional_violations": [
+          "locations-run.assertion-2",
+          "locations-run.assertion-3",
+          "locations-run.assertion-4",
+          "locations-run.assertion-5",
+          "locations-run.assertion-6",
+          "locations-run.assertion-7",
+          "locations-run.assertion-8"
+        ],
+        "execution": "locations-run.execution",
+        "selection": "locations-run.selection",
+        "attribution": "locations-run.attribution"
+      }
+    },
+    {
+      "target": "locations-record",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Locations.test_forms_in_record",
+      "result_targets": {
+        "additional_violations": [
+          "locations-record.assertion-2",
+          "locations-record.assertion-3",
+          "locations-record.assertion-4",
+          "locations-record.assertion-5",
+          "locations-record.assertion-6",
+          "locations-record.assertion-7",
+          "locations-record.assertion-8"
+        ],
+        "execution": "locations-record.execution",
+        "selection": "locations-record.selection",
+        "attribution": "locations-record.attribution"
+      }
+    },
+    {
+      "target": "unreadable-classes",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Locations.test_unreadable_classes",
+      "result_targets": {
+        "additional_violations": [
+          "unreadable-classes.assertion-2",
+          "unreadable-classes.assertion-3",
+          "unreadable-classes.assertion-4",
+          "unreadable-classes.assertion-5",
+          "unreadable-classes.assertion-6",
+          "unreadable-classes.assertion-7",
+          "unreadable-classes.assertion-8"
+        ],
+        "execution": "unreadable-classes.execution",
+        "selection": "unreadable-classes.selection",
+        "attribution": "unreadable-classes.attribution"
+      }
+    }
+  ]
+}

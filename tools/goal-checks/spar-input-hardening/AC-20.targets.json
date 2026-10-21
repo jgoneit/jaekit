@@ -1,0 +1,97 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "core-boundary",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Boundary.test_ha_has_no_reviewer_code",
+      "result_targets": {
+        "additional_violations": [
+          "core-boundary.assertion-2",
+          "core-boundary.assertion-3",
+          "core-boundary.assertion-4",
+          "core-boundary.assertion-5",
+          "core-boundary.assertion-6",
+          "core-boundary.assertion-7",
+          "core-boundary.assertion-8"
+        ],
+        "execution": "core-boundary.execution",
+        "selection": "core-boundary.selection",
+        "attribution": "core-boundary.attribution"
+      }
+    },
+    {
+      "target": "records-left-alone",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Preserved.test_spar_leaves_clean_review_and_records_alone",
+      "result_targets": {
+        "additional_violations": [
+          "records-left-alone.assertion-2",
+          "records-left-alone.assertion-3",
+          "records-left-alone.assertion-4",
+          "records-left-alone.assertion-5",
+          "records-left-alone.assertion-6",
+          "records-left-alone.assertion-7",
+          "records-left-alone.assertion-8"
+        ],
+        "execution": "records-left-alone.execution",
+        "selection": "records-left-alone.selection",
+        "attribution": "records-left-alone.attribution"
+      }
+    },
+    {
+      "target": "products",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Products.test_untouched",
+      "result_targets": {
+        "additional_violations": [
+          "products.assertion-2",
+          "products.assertion-3",
+          "products.assertion-4",
+          "products.assertion-5",
+          "products.assertion-6",
+          "products.assertion-7",
+          "products.assertion-8"
+        ],
+        "execution": "products.execution",
+        "selection": "products.selection",
+        "attribution": "products.attribution"
+      }
+    },
+    {
+      "target": "full-verification",
+      "runner": "command",
+      "argv": [
+        "python3",
+        "tools/verify.py"
+      ],
+      "exit_contract": {
+        "schema": "jaekit-command-exits/v1",
+        "pass": [
+          0
+        ],
+        "violations": {},
+        "unverified": [
+          130
+        ]
+      },
+      "result_targets": {
+        "additional_violations": [
+          "full-verification.assertion-2",
+          "full-verification.assertion-3",
+          "full-verification.assertion-4",
+          "full-verification.assertion-5",
+          "full-verification.assertion-6",
+          "full-verification.assertion-7",
+          "full-verification.assertion-8"
+        ],
+        "execution": "full-verification.execution",
+        "selection": "full-verification.selection",
+        "attribution": "full-verification.attribution"
+      }
+    }
+  ]
+}

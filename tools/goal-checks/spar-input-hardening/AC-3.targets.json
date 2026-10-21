@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "links",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Links.test_link_forms",
+      "result_targets": {
+        "additional_violations": [
+          "links.assertion-2",
+          "links.assertion-3",
+          "links.assertion-4",
+          "links.assertion-5",
+          "links.assertion-6",
+          "links.assertion-7",
+          "links.assertion-8"
+        ],
+        "execution": "links.execution",
+        "selection": "links.selection",
+        "attribution": "links.attribution"
+      }
+    }
+  ]
+}
