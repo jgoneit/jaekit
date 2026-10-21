@@ -149,11 +149,13 @@ func buildPacket(in packetInput) string {
 	b.WriteString("- `introduced_by_change` is `yes` only when `base/` does not have the same problem; `regression` is `yes` when behavior that worked at base breaks at head.\n")
 	b.WriteString("- `check_impact` says what a finding in a check means: `false_pass` (the check passes on wrong code), `meaning_inverted` (it reports a pass as a failure or the reverse), `contract_violation` (it breaks a named contract or rule) or `none`.\n")
 	if len(in.CheckPaths) > 0 {
-		b.WriteString("- Check paths: findings at these paths that claim none of `false_pass`, `meaning_inverted` or a linked `contract_violation` are recorded as `hardening` and deferred:")
+		b.WriteString("- Check paths:")
 		for _, p := range in.CheckPaths {
 			fmt.Fprintf(&b, " `%s`", p)
 		}
-		b.WriteString("\n")
+		b.WriteString(". At these paths a finding that claims `false_pass`, `meaning_inverted` or a linked `contract_violation` is recorded as a `defect`, whatever its `proposed_class`. " +
+			"Any other finding at these paths is recorded as `hardening` and deferred, unless it proposes `requirement-question` and links the criterion, rule or contract it asks about, " +
+			"and that link exists: such a question stays open for the user. A `contract` link to a file in these paths does not keep a question open.\n")
 	}
 	b.WriteString("\n## Criteria\n\n")
 	for _, d := range in.Criteria {

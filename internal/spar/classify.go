@@ -497,9 +497,50 @@ func (c classifier) linkTarget(kind, ref string) (lines int, found, unique bool)
 	return 0, false, false
 }
 
+// contractPath is the repository path a verified contract link names, in
+// the order linkTarget looks it up: a rule document by path, then by its
+// unique file name, then a regular file of the head commit. A rule document
+// outside the repository has no repository path, so it gives "": a glob
+// such as ** would match its absolute path, but it is never check code.
+func (c classifier) contractPath(link string) string {
+	r := parseReference(link, linkPrefixes)
+	for _, ref := range r.candidates() {
+		if _, found, unique := c.linkTarget("contract", ref); !found || !unique {
+			continue
+		}
+		for _, d := range c.targets.Rules {
+			if contains(d.Names, ref) {
+				return repositoryName(d)
+			}
+		}
+		var match []LinkDocument
+		for _, d := range c.targets.Rules {
+			if d.FileName != "" && d.FileName == ref {
+				match = append(match, d)
+			}
+		}
+		if len(match) == 1 {
+			return repositoryName(match[0])
+		}
+		return ref
+	}
+	return ""
+}
+
+// repositoryName is a rule document's repository path, which documentNames
+// lists first, or "" for a document outside the repository.
+func repositoryName(d LinkDocument) string {
+	if len(d.Names) == 0 || filepath.IsAbs(filepath.FromSlash(d.Names[0])) {
+		return ""
+	}
+	return d.Names[0]
+}
+
 // classify applies the class rules. A readable location in the check paths
 // is a defect only when it claims a false pass, an inverted meaning or a
-// linked contract violation, and a hardening item otherwise; a regression
+// linked contract violation, a requirement question only when it proposes
+// one with a link that exists and is not a contract link to a file in the
+// check paths, and a hardening item otherwise; a regression
 // the change made is a defect; an unlinked defect proposal is a note. An
 // unreadable location never makes a check-path judgment: rules 3 and 6 do
 // not apply and rules 1 and 2 apply without the check-path condition, so a
@@ -526,6 +567,13 @@ func (c classifier) classify(reviewer string, n int, raw map[string]any) Finding
 	} else {
 		f.LinkKind, f.Link = "none", ""
 	}
+	// A question kept for the user names what it asks about: a contract link
+	// to a file in the check paths names the check code itself (rule 3 only).
+	checkCode := false
+	if linked && f.LinkKind == "contract" {
+		target := c.contractPath(f.Link)
+		checkCode = target != "" && matchAny(c.checkPaths, target)
+	}
 	if f.LocationUnreadable {
 		f.Class, f.ClassReason = classifyUnreadable(f, linked)
 		f.ClassReason = "unreadable location (" + why + "): " + f.ClassReason
@@ -536,6 +584,12 @@ func (c classifier) classify(reviewer string, n int, raw map[string]any) Finding
 		f.Class, f.ClassReason = "defect", "check path finding with "+f.CheckImpact
 	case f.InCheckPaths && f.CheckImpact == "contract_violation" && linked:
 		f.Class, f.ClassReason = "defect", "check path finding with a linked contract violation"
+	case f.InCheckPaths && f.ProposedClass == "requirement-question" && linked && checkCode:
+		f.Class, f.ClassReason = "hardening", "check path requirement question whose contract link names a file in the check paths"
+	case f.InCheckPaths && f.ProposedClass == "requirement-question" && linked:
+		f.Class, f.ClassReason = "requirement-question", "check path requirement question with a link that exists"
+	case f.InCheckPaths && f.ProposedClass == "requirement-question":
+		f.Class, f.ClassReason = "hardening", "check path requirement question without a link that exists"
 	case f.InCheckPaths:
 		f.Class, f.ClassReason = "hardening", "check path finding without a false pass, inverted meaning or linked contract violation"
 	case f.ProposedClass == "requirement-question":
