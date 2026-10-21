@@ -2,6 +2,7 @@ package spar
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,6 +24,7 @@ type TriageOptions struct {
 	To           string
 	UserQuote    string
 	Note         string
+	Log          io.Writer
 }
 
 // dispositionProblem says why a disposition does not fit a finding's class.
@@ -90,6 +92,11 @@ func dispositionProblem(f Finding, findings []Finding, o TriageOptions, repo, he
 // Triage appends one disposition to a round's ledger.
 func Triage(o TriageOptions) error {
 	dir := realish(o.Round)
+	unlock, err := lockSeries(filepath.Dir(dir), o.Log)
+	if err != nil {
+		return refused("%s cannot be locked: %v", o.Round, err)
+	}
+	defer unlock()
 	r, err := loadRound(dir)
 	if err != nil {
 		return refused("%v", err)
@@ -106,6 +113,14 @@ func Triage(o TriageOptions) error {
 	}
 	if f == nil {
 		return refused("%s is not a finding of %s", o.Finding, o.Round)
+	}
+	// A round whose ledger is gone or unreadable is refused, not given a new
+	// one (G32): its earlier dispositions would be lost.
+	if _, err := os.Stat(filepath.Join(dir, "ledger.jsonl")); err != nil {
+		return refused("%s/ledger.jsonl cannot be read: %v", o.Round, err)
+	}
+	if _, err := loadLedger(dir); err != nil {
+		return refused("%v", err)
 	}
 	problem, commit := dispositionProblem(*f, findings, o, r.Repo, r.Head)
 	if problem != "" {
@@ -125,7 +140,7 @@ func Triage(o TriageOptions) error {
 }
 
 // Extend records the user's words allowing more rounds in a series.
-func Extend(series, stage string, by int, quote string, repoHint string) error {
+func Extend(series, stage string, by int, quote string, repoHint string, log io.Writer) error {
 	group := ""
 	switch stage {
 	case "plan", "plan-delta", "code":
@@ -158,5 +173,10 @@ func Extend(series, stage string, by int, quote string, repoHint string) error {
 	if err := os.MkdirAll(path, 0o755); err != nil {
 		return err
 	}
+	unlock, err := lockSeries(path, log)
+	if err != nil {
+		return refused("%s cannot be locked: %v", series, err)
+	}
+	defer unlock()
 	return appendJSONLine(filepath.Join(path, "extensions.jsonl"), Extension{Stage: group, By: by, UserQuote: quote, RecordedAt: now()})
 }

@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "table",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Contract.test_one_input_table",
+      "result_targets": {
+        "additional_violations": [
+          "table.assertion-2",
+          "table.assertion-3",
+          "table.assertion-4",
+          "table.assertion-5",
+          "table.assertion-6",
+          "table.assertion-7",
+          "table.assertion-8"
+        ],
+        "execution": "table.execution",
+        "selection": "table.selection",
+        "attribution": "table.attribution"
+      }
+    }
+  ]
+}

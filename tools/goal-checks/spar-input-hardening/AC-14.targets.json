@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "record-paths",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "RecordPaths.test_one_rule",
+      "result_targets": {
+        "additional_violations": [
+          "record-paths.assertion-2",
+          "record-paths.assertion-3",
+          "record-paths.assertion-4",
+          "record-paths.assertion-5",
+          "record-paths.assertion-6",
+          "record-paths.assertion-7",
+          "record-paths.assertion-8"
+        ],
+        "execution": "record-paths.execution",
+        "selection": "record-paths.selection",
+        "attribution": "record-paths.attribution"
+      }
+    }
+  ]
+}

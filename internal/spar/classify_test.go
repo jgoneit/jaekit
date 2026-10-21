@@ -17,11 +17,18 @@ func rawFinding(id string, values map[string]any) map[string]any {
 	return f
 }
 
+// readableHead holds the files the findings below point at, so their
+// locations are readable (contracts/spar-input.md, G7).
+func readableHead() *commitFiles {
+	return memoryCommit(map[string]string{"app/main.py": "", "app/main.go": "", "checks/test_app.py": "",
+		"checks/my test.py": "", "checks/test.py": ""})
+}
+
 func TestClassification(t *testing.T) {
 	criteria := []Document{newDocument("SPEC.md", "/r/SPEC.md", []byte("- **AC-1** one\n- **AC-2** two\n- **AC-10** ten\n"))}
 	rules := []Document{newDocument("AGENTS.md", "/r/AGENTS.md", []byte("a\nb\nc\n"))}
 	c := classifier{checkPaths: []string{"checks/**"}, targets: LinkTargets{CriteriaIDs: criteriaIDs(criteria),
-		Rules: ruleTargets("/r", rules)}}
+		Rules: ruleTargets("/r", rules)}, head: readableHead()}
 	check := "head/checks/test_app.py:2"
 	cases := []struct {
 		values map[string]any
@@ -50,7 +57,7 @@ func TestClassification(t *testing.T) {
 		}
 	}
 	// A check file whose path holds a space is still a check path.
-	py := classifier{checkPaths: []string{"checks/*.py"}, targets: c.targets}
+	py := classifier{checkPaths: []string{"checks/*.py"}, targets: c.targets, head: c.head}
 	if f := py.classify("codex", 1, rawFinding("F1", map[string]any{"location": "head/checks/my test.py:2",
 		"check_impact": "false_pass"})); f.Class != "defect" || !f.InCheckPaths {
 		t.Errorf("a check path with a space: %s %v", f.Class, f.InCheckPaths)
@@ -66,9 +73,11 @@ func TestClassification(t *testing.T) {
 		{"checks/test.py", "head/checks/test.py:2 see head/app.py:10", map[string]any{"check_impact": "false_pass"}, "defect", true},
 		{"**/*_test.go", "head/app/main.go:10 and head/app/main_test.go:20",
 			map[string]any{"introduced_by_change": "yes", "regression": "yes"}, "defect", false},
+		{"checks/*.py", "head/checks/my test.py:2-4 and head/app.py:9", map[string]any{"check_impact": "false_pass"}, "defect", true},
+		{"checks/*.py", "head/checks/my test.py:2–4", map[string]any{"check_impact": "false_pass"}, "defect", true},
 	} {
 		tc.values["location"] = tc.location
-		k := classifier{checkPaths: []string{tc.glob}, targets: c.targets}
+		k := classifier{checkPaths: []string{tc.glob}, targets: c.targets, head: c.head}
 		if f := k.classify("codex", 1, rawFinding("F1", tc.values)); f.Class != tc.class || f.InCheckPaths != tc.inChecks {
 			t.Errorf("%s: %s in check paths %v (path %s)", tc.location, f.Class, f.InCheckPaths, f.Path)
 		}
@@ -76,6 +85,33 @@ func TestClassification(t *testing.T) {
 	// Spar numbers findings in report order and keeps the reviewer's own ID.
 	if f := c.classify("a", 2, rawFinding("b-F1", nil)); f.ID != "a-F2" || f.ReviewerID != "b-F1" {
 		t.Errorf("finding ID: %s from %s", f.ID, f.ReviewerID)
+	}
+}
+
+// Criterion IDs written next to each other are all found, and a rule
+// document whose path holds a space can be linked with or without a line.
+func TestLinksToAdjacentIDsAndSpacedPaths(t *testing.T) {
+	criteria := []Document{newDocument("SPEC.md", "/r/SPEC.md", []byte("- AC-1,AC-2: both commands refuse empty names\n- XAC-3 is not an ID\n"))}
+	if got := strings.Join(criteriaIDs(criteria), ","); got != "AC-1,AC-2" {
+		t.Errorf("criterion IDs: %s", got)
+	}
+	rules := []Document{newDocument("rules/API rules.md", "/r/rules/API rules.md", []byte("a\nb\nc\n"))}
+	c := classifier{checkPaths: []string{"checks/**"}, targets: LinkTargets{CriteriaIDs: criteriaIDs(criteria),
+		Rules: ruleTargets("/r", rules)}, head: readableHead()}
+	check := "head/checks/test_app.py:2"
+	for _, tc := range []struct {
+		values map[string]any
+		class  string
+	}{
+		{map[string]any{"link_kind": "criterion", "link": "AC-2"}, "defect"},
+		{map[string]any{"location": check, "check_impact": "contract_violation", "link_kind": "rule", "link": "rules/API rules.md:2"}, "defect"},
+		{map[string]any{"location": check, "check_impact": "contract_violation", "link_kind": "rule", "link": "rules/API rules.md:2 (the second rule)"}, "defect"},
+		{map[string]any{"location": check, "check_impact": "contract_violation", "link_kind": "rule", "link": "rules/API rules.md"}, "defect"},
+		{map[string]any{"location": check, "check_impact": "contract_violation", "link_kind": "rule", "link": "rules/API rules.md:4"}, "hardening"},
+	} {
+		if f := c.classify("codex", 1, rawFinding("F1", tc.values)); f.Class != tc.class {
+			t.Errorf("%v: %s (%s)", tc.values, f.Class, f.ClassReason)
+		}
 	}
 }
 

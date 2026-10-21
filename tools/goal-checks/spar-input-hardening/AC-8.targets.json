@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "sources",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Sources.test_non_regular_sources",
+      "result_targets": {
+        "additional_violations": [
+          "sources.assertion-2",
+          "sources.assertion-3",
+          "sources.assertion-4",
+          "sources.assertion-5",
+          "sources.assertion-6",
+          "sources.assertion-7",
+          "sources.assertion-8"
+        ],
+        "execution": "sources.execution",
+        "selection": "sources.selection",
+        "attribution": "sources.attribution"
+      }
+    }
+  ]
+}

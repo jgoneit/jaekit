@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "staged-install",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Install.test_staged_replacement",
+      "result_targets": {
+        "additional_violations": [
+          "staged-install.assertion-2",
+          "staged-install.assertion-3",
+          "staged-install.assertion-4",
+          "staged-install.assertion-5",
+          "staged-install.assertion-6",
+          "staged-install.assertion-7",
+          "staged-install.assertion-8"
+        ],
+        "execution": "staged-install.execution",
+        "selection": "staged-install.selection",
+        "attribution": "staged-install.attribution"
+      }
+    },
+    {
+      "target": "install-guides",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar/observe_spar.py",
+      "test": "Docs.test_install_guides_and_readme_link",
+      "result_targets": {
+        "additional_violations": [
+          "install-guides.assertion-2",
+          "install-guides.assertion-3",
+          "install-guides.assertion-4",
+          "install-guides.assertion-5",
+          "install-guides.assertion-6",
+          "install-guides.assertion-7",
+          "install-guides.assertion-8"
+        ],
+        "execution": "install-guides.execution",
+        "selection": "install-guides.selection",
+        "attribution": "install-guides.attribution"
+      }
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "internal/spar/testdata/input-forms.json",
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/spar-input-hardening/AC-15.targets.json",
+    "tools/goal-checks/spar-input-hardening/observe_input.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "gate-list",
+      "violation": "series-round-unlisted"
+    },
+    {
+      "id": "gate-list.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "gate-list.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "gate-list.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "gate-list.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "gate-list.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "gate-list.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "gate-list.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "gate-list.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "gate-list.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "gate-list.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

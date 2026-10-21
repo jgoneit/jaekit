@@ -1,0 +1,45 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "glob-errors",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Globs.test_glob_errors",
+      "result_targets": {
+        "additional_violations": [
+          "glob-errors.assertion-2",
+          "glob-errors.assertion-3",
+          "glob-errors.assertion-4",
+          "glob-errors.assertion-5",
+          "glob-errors.assertion-6",
+          "glob-errors.assertion-7",
+          "glob-errors.assertion-8"
+        ],
+        "execution": "glob-errors.execution",
+        "selection": "glob-errors.selection",
+        "attribution": "glob-errors.attribution"
+      }
+    },
+    {
+      "target": "glob-consumers",
+      "runner": "unittest",
+      "file": "tools/goal-checks/spar-input-hardening/observe_input.py",
+      "test": "Globs.test_glob_consumers",
+      "result_targets": {
+        "additional_violations": [
+          "glob-consumers.assertion-2",
+          "glob-consumers.assertion-3",
+          "glob-consumers.assertion-4",
+          "glob-consumers.assertion-5",
+          "glob-consumers.assertion-6",
+          "glob-consumers.assertion-7",
+          "glob-consumers.assertion-8"
+        ],
+        "execution": "glob-consumers.execution",
+        "selection": "glob-consumers.selection",
+        "attribution": "glob-consumers.attribution"
+      }
+    }
+  ]
+}

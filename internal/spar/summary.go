@@ -144,10 +144,16 @@ func renderSummary(dir string, r *RoundRecord, findings []Finding, ledger []Ledg
 			if e.Auto {
 				disposition += " (auto)"
 			}
-		} else if f.Class == "note" {
+		} else if f.Class == "note" || f.Class == "hardening" {
+			// Neither waits for a disposition: a hardening finding without
+			// an entry has an unreadable location and was not deferred.
 			disposition = "-"
 		}
-		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s | %s |\n", f.ID, f.Class, cell(link), disposition, cell(f.Location),
+		location := cell(f.Location)
+		if f.LocationUnreadable {
+			location += " (unreadable location)"
+		}
+		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s | %s |\n", f.ID, f.Class, cell(link), disposition, location,
 			cell(short(f.Claim, 200)))
 	}
 	return b.String()

@@ -1,0 +1,698 @@
+{
+  "schema": "spar-input-forms/v1",
+  "about": "Representative forms of the input table (contracts/spar-input.md), with the results every consumer must give. Synthetic paths. A case marked kept gave the same result before the input table.",
+  "locations": {
+    "check_paths": [
+      "checks/**"
+    ],
+    "head": [
+      "app/main.go",
+      "checks/t.py",
+      "checks/my test.py",
+      "base/checks/t.py",
+      "head/x.go"
+    ],
+    "base": [
+      "app/main.go",
+      "checks/t.py",
+      "old.go"
+    ],
+    "subject": "docs/specs/x/PLAN.md",
+    "cases": [
+      {
+        "location": "head/app/main.go:10",
+        "path": "app/main.go",
+        "in_check_paths": false,
+        "kept": true
+      },
+      {
+        "location": "head/checks/t.py:10-20",
+        "path": "checks/t.py",
+        "in_check_paths": true,
+        "kept": true
+      },
+      {
+        "location": "head/checks/t.py:10–20",
+        "path": "checks/t.py",
+        "in_check_paths": true,
+        "kept": true
+      },
+      {
+        "location": "head/checks/my test.py:3",
+        "path": "checks/my test.py",
+        "in_check_paths": true,
+        "kept": true
+      },
+      {
+        "location": "head/checks/t.py:10 and head/app/main.go:20",
+        "path": "checks/t.py",
+        "in_check_paths": true,
+        "kept": true
+      },
+      {
+        "location": "head/checks/t.py:10, head/app/main.go:3",
+        "path": "checks/t.py",
+        "in_check_paths": true,
+        "kept": false
+      },
+      {
+        "location": "head/checks/t.py:10; see also",
+        "path": "checks/t.py",
+        "in_check_paths": true,
+        "kept": false
+      },
+      {
+        "location": "head/checks/my test.py",
+        "path": "checks/my test.py",
+        "in_check_paths": true,
+        "kept": false
+      },
+      {
+        "location": "head/checks/t.py (the loop)",
+        "path": "checks/t.py",
+        "in_check_paths": true,
+        "kept": true
+      },
+      {
+        "location": "head/base/checks/t.py:2",
+        "path": "base/checks/t.py",
+        "in_check_paths": false,
+        "kept": true
+      },
+      {
+        "location": "head/head/x.go:1",
+        "path": "head/x.go",
+        "in_check_paths": false,
+        "kept": true
+      },
+      {
+        "location": "base/old.go:4",
+        "path": "old.go",
+        "in_check_paths": false,
+        "kept": true
+      },
+      {
+        "location": "./app/main.go:3",
+        "path": "app/main.go",
+        "in_check_paths": false,
+        "kept": true
+      },
+      {
+        "location": "app/main.go:3",
+        "path": "app/main.go",
+        "in_check_paths": false,
+        "kept": true
+      },
+      {
+        "location": "head/checks/",
+        "path": "checks",
+        "in_check_paths": true,
+        "kept": false
+      },
+      {
+        "location": "head/",
+        "path": "",
+        "in_check_paths": false,
+        "kept": true
+      },
+      {
+        "location": "PLAN.md:12",
+        "path": "docs/specs/x/PLAN.md",
+        "in_check_paths": false,
+        "kept": false
+      },
+      {
+        "location": "head/docs/specs/x/PLAN.md:12",
+        "path": "docs/specs/x/PLAN.md",
+        "in_check_paths": false,
+        "kept": true
+      },
+      {
+        "location": "head/checks/t.py:10:5",
+        "unreadable": "column number"
+      },
+      {
+        "location": "head/checks/t.py:10.",
+        "unreadable": "period after the line"
+      },
+      {
+        "location": "head/checks/t.py:0",
+        "unreadable": "line 0"
+      },
+      {
+        "location": "head/checks/t.py:20-10",
+        "unreadable": "reversed range"
+      },
+      {
+        "location": "In head/checks/t.py:10",
+        "unreadable": "text before the path"
+      },
+      {
+        "location": "head/checks/missing.py:3",
+        "unreadable": "no such file"
+      },
+      {
+        "location": "",
+        "unreadable": "empty location"
+      }
+    ]
+  },
+  "unreadable_classes": {
+    "location": "head/checks/t.py:10:5",
+    "readable_location": "head/checks/t.py:10",
+    "cases": [
+      {
+        "values": {
+          "proposed_class": "defect",
+          "check_impact": "none"
+        },
+        "readable": "hardening",
+        "unreadable": "defect"
+      },
+      {
+        "values": {
+          "proposed_class": "defect",
+          "check_impact": "false_pass"
+        },
+        "readable": "defect",
+        "unreadable": "defect"
+      },
+      {
+        "values": {
+          "proposed_class": "note",
+          "check_impact": "meaning_inverted"
+        },
+        "readable": "defect",
+        "unreadable": "defect"
+      },
+      {
+        "values": {
+          "proposed_class": "requirement-question",
+          "check_impact": "none"
+        },
+        "readable": "hardening",
+        "unreadable": "requirement-question"
+      },
+      {
+        "values": {
+          "proposed_class": "note",
+          "introduced_by_change": "yes",
+          "regression": "yes"
+        },
+        "readable": "hardening",
+        "unreadable": "defect"
+      },
+      {
+        "values": {
+          "proposed_class": "hardening",
+          "check_impact": "none"
+        },
+        "readable": "hardening",
+        "unreadable": "hardening"
+      },
+      {
+        "values": {
+          "proposed_class": "note",
+          "check_impact": "none"
+        },
+        "readable": "hardening",
+        "unreadable": "note"
+      },
+      {
+        "values": {
+          "proposed_class": "note",
+          "check_impact": "contract_violation",
+          "link_kind": "rule",
+          "link": "rules.md:1"
+        },
+        "readable": "defect",
+        "unreadable": "defect"
+      },
+      {
+        "values": {
+          "proposed_class": "note",
+          "check_impact": "contract_violation",
+          "link_kind": "rule",
+          "link": "rules.md:9"
+        },
+        "readable": "hardening",
+        "unreadable": "note"
+      }
+    ],
+    "rule_document": [
+      "rules.md",
+      2
+    ]
+  },
+  "links": {
+    "groups": [
+      {
+        "rules": [
+          [
+            "AGENTS.md",
+            2
+          ],
+          [
+            "rules/API rules.md",
+            5
+          ],
+          [
+            "base/api.md",
+            3
+          ]
+        ],
+        "head": [
+          [
+            "contracts/x.md",
+            4
+          ]
+        ],
+        "head_symlinks": [
+          [
+            "contracts/link.md",
+            "x.md"
+          ]
+        ],
+        "head_submodules": [
+          "vendor/sub"
+        ],
+        "base_only": [
+          [
+            "contracts/old.md",
+            2
+          ]
+        ],
+        "cases": [
+          {
+            "kind": "rule",
+            "link": "AGENTS.md:2",
+            "confirmed": true,
+            "kept": true
+          },
+          {
+            "kind": "rule",
+            "link": "head/AGENTS.md:1-2",
+            "confirmed": true,
+            "kept": true
+          },
+          {
+            "kind": "rule",
+            "link": "./AGENTS.md:1–2",
+            "confirmed": true,
+            "kept": true
+          },
+          {
+            "kind": "rule",
+            "link": "AGENTS.md:1-9999",
+            "confirmed": false,
+            "kept": false
+          },
+          {
+            "kind": "rule",
+            "link": "AGENTS.md:2-3",
+            "confirmed": false,
+            "kept": false
+          },
+          {
+            "kind": "rule",
+            "link": "AGENTS.md:2-1",
+            "confirmed": false,
+            "kept": false
+          },
+          {
+            "kind": "rule",
+            "link": "AGENTS.md:0",
+            "confirmed": false,
+            "kept": true
+          },
+          {
+            "kind": "rule",
+            "link": "AGENTS.md:3",
+            "confirmed": false,
+            "kept": true
+          },
+          {
+            "kind": "rule",
+            "link": "rules/API rules.md:4",
+            "confirmed": true,
+            "kept": true
+          },
+          {
+            "kind": "rule",
+            "link": "rules/API rules.md",
+            "confirmed": true,
+            "kept": true
+          },
+          {
+            "kind": "rule",
+            "link": "AGENTS.md Checks and review",
+            "confirmed": true,
+            "kept": true
+          },
+          {
+            "kind": "rule",
+            "link": "AGENTS.md:2, AGENTS.md:1",
+            "confirmed": true,
+            "kept": false
+          },
+          {
+            "kind": "contract",
+            "link": "base/api.md:3",
+            "confirmed": true,
+            "kept": true
+          },
+          {
+            "kind": "contract",
+            "link": "contracts/x.md:4",
+            "confirmed": true,
+            "kept": true
+          },
+          {
+            "kind": "contract",
+            "link": "contracts/link.md",
+            "confirmed": false,
+            "kept": false
+          },
+          {
+            "kind": "contract",
+            "link": "contracts",
+            "confirmed": false,
+            "kept": true
+          },
+          {
+            "kind": "contract",
+            "link": "vendor/sub",
+            "confirmed": false,
+            "kept": true
+          },
+          {
+            "kind": "contract",
+            "link": "contracts/old.md:1",
+            "confirmed": false,
+            "kept": true
+          }
+        ]
+      },
+      {
+        "rules": [
+          [
+            "a/AGENTS.md",
+            1
+          ],
+          [
+            "b/AGENTS.md",
+            1
+          ]
+        ],
+        "cases": [
+          {
+            "kind": "rule",
+            "link": "AGENTS.md:1",
+            "confirmed": false,
+            "kept": false
+          },
+          {
+            "kind": "rule",
+            "link": "a/AGENTS.md:1",
+            "confirmed": true,
+            "kept": true
+          }
+        ]
+      },
+      {
+        "rules": [
+          [
+            "AGENTS.md",
+            2
+          ],
+          [
+            "sub/AGENTS.md",
+            1
+          ]
+        ],
+        "cases": [
+          {
+            "kind": "rule",
+            "link": "AGENTS.md:1",
+            "confirmed": true,
+            "kept": true
+          },
+          {
+            "kind": "rule",
+            "link": "AGENTS.md:2",
+            "confirmed": true,
+            "kept": true
+          }
+        ]
+      },
+      {
+        "outside_rules": [
+          [
+            "review.md",
+            1
+          ]
+        ],
+        "cases": [
+          {
+            "kind": "rule",
+            "link": "review.md:1",
+            "confirmed": true,
+            "kept": true
+          }
+        ]
+      },
+      {
+        "outside_rules": [
+          [
+            "review.md",
+            10
+          ]
+        ],
+        "head": [
+          [
+            "review.md",
+            2
+          ]
+        ],
+        "cases": [
+          {
+            "kind": "contract",
+            "link": "review.md:5",
+            "confirmed": true,
+            "kept": true
+          },
+          {
+            "kind": "contract",
+            "link": "review.md:2",
+            "confirmed": true,
+            "kept": true
+          },
+          {
+            "kind": "contract",
+            "link": "review.md:11",
+            "confirmed": false,
+            "kept": true
+          }
+        ]
+      }
+    ]
+  },
+  "criteria": {
+    "text": "# Criteria\n\n- **AC-1** one.\n- **AC-2** two.\n- **AC-12** twelve.\n\nXAC-7 and AC-9a are not IDs.\n",
+    "ids": [
+      "AC-1",
+      "AC-12",
+      "AC-2"
+    ],
+    "cases": [
+      {
+        "link": "AC-1",
+        "confirmed": true,
+        "kept": true
+      },
+      {
+        "link": "AC-1,AC-2",
+        "confirmed": true,
+        "kept": true
+      },
+      {
+        "link": "AC-1, AC-2",
+        "confirmed": true,
+        "kept": true
+      },
+      {
+        "link": "AC-1·AC-12",
+        "confirmed": true,
+        "kept": true
+      },
+      {
+        "link": "AC-2의 조건",
+        "confirmed": true,
+        "kept": true
+      },
+      {
+        "link": "(AC-12)",
+        "confirmed": true,
+        "kept": true
+      },
+      {
+        "link": "AC-3",
+        "confirmed": false,
+        "kept": true
+      },
+      {
+        "link": "AC-1, AC-3",
+        "confirmed": false,
+        "kept": true
+      },
+      {
+        "link": "XAC-1",
+        "confirmed": false,
+        "kept": true
+      },
+      {
+        "link": "AC-1a",
+        "confirmed": false,
+        "kept": false
+      },
+      {
+        "link": "AC-01",
+        "confirmed": false,
+        "kept": true
+      }
+    ]
+  },
+  "globs": {
+    "patterns": [
+      "**/*_test.go",
+      "tools/checks/**",
+      "a**b"
+    ],
+    "paths": {
+      "pkg/x_test.go": true,
+      "x_test.go": true,
+      "tools/checks/y.py": true,
+      "tools/checks/deep/z.py": true,
+      "ab": true,
+      "axyzb": true,
+      "pkg/x.go": false,
+      "a/b": false,
+      "tools/x.py": false
+    },
+    "project_errors": [
+      "checks/[a",
+      "checks/x\\",
+      "",
+      "/abs/**",
+      "../x",
+      "a/../b"
+    ],
+    "flag_errors": [
+      "checks/[a",
+      "/abs/**",
+      "../x"
+    ]
+  },
+  "names": {
+    "config_errors": [
+      [
+        "Host",
+        "host"
+      ],
+      [
+        "codex",
+        "CODEX"
+      ],
+      [
+        "round.json.tmp"
+      ],
+      [
+        "Summary.md"
+      ],
+      [
+        "WORKSPACE"
+      ]
+    ],
+    "accepted": [
+      "host",
+      "my.reviewer_1-x"
+    ],
+    "override_errors": [
+      [
+        "Codex",
+        "codex"
+      ]
+    ],
+    "override_lists": [
+      {
+        "flag": "",
+        "names": [
+          "native"
+        ]
+      },
+      {
+        "flag": ",",
+        "names": [
+          "native"
+        ]
+      },
+      {
+        "flag": " codex , agy ",
+        "names": [
+          "codex",
+          "agy"
+        ]
+      }
+    ]
+  },
+  "clean_review": {
+    "errors": [
+      "{\"reviewers\": null}",
+      "{\"reviewers\": [null]}",
+      "{\"reviewers\": \"codex\"}",
+      "{\"reviewers\": [1]}",
+      "null"
+    ],
+    "lists": [
+      {
+        "json": "{\"reviewers\": [\" codex \", \"\"]}",
+        "names": [
+          "codex"
+        ]
+      }
+    ]
+  },
+  "results": {
+    "invalid": [
+      {
+        "change": "top",
+        "key": "extra",
+        "value": 1
+      },
+      {
+        "change": "finding",
+        "key": "severity",
+        "value": "high"
+      },
+      {
+        "change": "limits",
+        "key": "limits",
+        "value": null
+      },
+      {
+        "change": "limits",
+        "key": "limits",
+        "value": [
+          "x"
+        ]
+      }
+    ],
+    "valid": [
+      {
+        "change": "limits",
+        "key": "limits",
+        "value": ""
+      }
+    ]
+  }
+}
