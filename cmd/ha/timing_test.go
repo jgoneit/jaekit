@@ -237,8 +237,13 @@ func TestCapabilityConsumerChecksTheOptionalTimingFormat(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			response := compatibilityMutate(t, func(v map[string]any) {
+				// A start also needs what Seal declares in core-requirements.json.
+				v["features"] = append(v["features"].([]any), "report/v1", "doctor/v1", "auto-budget/v1", "core-requirements/v1")
+				formats := v["formats"].(map[string]any)
+				formats["core_requirements"] = []string{"core-requirements/v1"}
+				formats["assurance_tier"] = []string{"light", "standard", "strict"}
 				if tc.timing != nil {
-					v["formats"].(map[string]any)["timing"] = tc.timing
+					formats["timing"] = tc.timing
 				}
 			})
 			core := compatibilityFake(t, t.TempDir(), response, 0, false)
