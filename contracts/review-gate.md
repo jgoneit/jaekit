@@ -25,13 +25,16 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
 - `fix`로 처리한 지적의 수정 커밋이 기대 head에 포함되지 않음. 분류와 관계없이(`hardening`·`note` 포함) 모든 `fix`를 확인한다
 - 코드 라운드 사슬 끊김: 목록의 fixes 라운드 base가 바로 앞 code 라운드의 head가 아니거나, 앞에 code 라운드가 없음. 바로 앞 code 라운드와 단계·base·head·패킷 digest가 모두 같은 라운드(같은 패킷의 재실행)만 이 확인에서 빠진다. 패킷이 다르면 base·head가 같아도 새 fixes 라운드다
 - 기대 head 미검토: 마지막 code 라운드(없으면 마지막 라운드)의 head가 기대 head가 아님
-- dry run 라운드, 읽을 수 없는 라운드, `findings.json`이나 `ledger.jsonl`이 없는 라운드, 저장소에 없는 커밋
+- dry run 라운드, 읽을 수 없는 라운드, `findings.json`이나 `ledger.jsonl`이 없는 라운드, `waivers.jsonl`을 읽을 수 없는 라운드, 저장소에 없는 커밋
 - 목록에 없는 같은 series의 라운드(G29): `<series>: round <이름> of the series is not in the gate list`. 앞선 라운드를 빼고 gate를 만들어 열린 지적을 지나치지 않게 한다
 
 `degraded` 사유:
 
-- 필수 리뷰어가 완료하지 않음. 필수 리뷰어는 라운드가 필수로 실행한 리뷰어와 그 설정이 필수로 정한 리뷰어(`config.configured_required`)다. `--reviewers`로 뺀 설정의 필수 리뷰어도 포함된다. 같은 단계·base·head·패킷의 다른 라운드(재실행)에서 같은 이름·preset의 필수 리뷰어로 완료했으면 완료로 본다. 이름이 같아도 preset이 다르면 그 필수 리뷰어는 실행되지 않은 것이다.
+- 필수 리뷰어가 완료하지 않음. 필수 리뷰어는 라운드가 필수로 실행한 리뷰어와 그 설정이 필수로 정한 리뷰어(`config.configured_required`)다. `--reviewers`로 뺀 설정의 필수 리뷰어도 포함된다. 같은 단계·base·head·패킷의 다른 라운드(재실행)에서 같은 이름·preset의 필수 리뷰어로 완료했으면 완료로 본다. 이름이 같아도 preset이 다르면 그 필수 리뷰어는 실행되지 않은 것이다. 그 라운드의 `waivers.jsonl`에 사용자의 결정(`spar waive`, [검토 라운드](review-round.md) 10절)이 있는 리뷰어는 이 사유가 되지 않고 그 라운드의 `waived_reviewers`에 보인다.
 - 필수 리뷰어가 없는 라운드(예: `command` 리뷰어만 있는 라운드)
+- 결정이 적용된 리뷰어가 있는데 완료한 필수 리뷰어가 하나도 없는 라운드: `<라운드>: no required reviewer completed this round`. 결정은 독립 검토가 없는 라운드를 `complete`로 만들지 않는다.
+
+결정은 사용자의 말을 인용해서만 기록되고, 그 라운드 폴더의 `waivers.jsonl`에서만 읽어 그 라운드에만 적용한다. 다른 라운드의 결정은 같은 패킷의 재실행이라도 적용하지 않는다. 결정은 이름과 preset이 같은 필수 리뷰어에 적용되고, 결정이 있어도 그 리뷰어가 완료했으면(같은 패킷의 재실행 포함) 완료로 세며 `waived_reviewers`에 넣지 않는다. `waivers.jsonl`이 없는 라운드(이 기능 전에 기록한 라운드 포함)와, 이 기능 전에 이름이 `waivers.jsonl`(대소문자 무시)인 리뷰어를 실행해 그 폴더가 그 자리에 있는 라운드는 결정이 없는 라운드이고, 그 gate의 상태·사유·필드는 결정 기능이 없을 때와 같다.
 
 `complete`는 사유가 하나도 없을 때뿐이다.
 
@@ -67,6 +70,7 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
 | `last_reviewed_head` | 마지막으로 검토된 head |
 | `previous_gate_digest` | 같은 `--out` 경로에 있던 이전 gate 파일 바이트의 sha256, 없으면 `null` |
 | `rounds[]` | 라운드의 `criteria_digest`, 패킷 digest(`packet_digest`), 설정 digest(`config_digest`), 요청한 리뷰어 이름과 필수로 인정된 리뷰어 수(`required_reviewers`), 그중 완료한 수(`completed_required`, 같은 단계·base·head·패킷의 재실행에서 완료한 것 포함) |
+| `rounds[].waived_reviewers` | 결정이 적용된 필수 리뷰어마다 `name`, `preset`, `status`(`round.json`의 상태, 라운드가 그 이름과 preset의 리뷰어를 실행하지 않았으면 `not_run`), `reason`(`round.json`의 원인, 없으면 빠짐), `user_quote`, `recorded_at`(결정의 기록 시각). `completed_required`에 세지 않는다. 적용된 결정이 없는 라운드에는 이 필드가 없다 |
 | `open` | 열린 `defect`와 `requirement-question` 수 |
 | `open_findings` | 열린 지적의 라운드와 ID |
 | `auto_deferred` | 마지막 처리가 자동 보류인 `hardening` 수. 위치를 읽을 수 없는 `hardening`은 원장 항목이 없어 세지 않는다 |
