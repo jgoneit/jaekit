@@ -27,10 +27,11 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 	}
 	// Release v0.1.6 shipped Spec 0.1.12 and Seal 0.1.17. Spec 0.1.13 adds
 	// agent invocation, the Assurance line and the implement-now question;
-	// Seal 0.1.18 takes the user's yes to that question as a request, and
-	// Seal 0.1.19 adds runner adapter guidance. The released marketplace
-	// identity above stays v0.1.6.
-	for name, want := range map[string]string{"spec": "0.1.13", "seal": "0.1.19"} {
+	// Seal 0.1.18 takes the user's yes to that question as a request,
+	// Seal 0.1.19 adds runner adapter guidance, and Seal 0.1.20 leaves the
+	// capability check, budget, environment and report to ha and adds the
+	// review tiers. The released marketplace identity above stays v0.1.6.
+	for name, want := range map[string]string{"spec": "0.1.13", "seal": "0.1.20"} {
 		t.Run(name, func(t *testing.T) {
 			_, version := frontMatter(t, filepath.Join(name, "skills", name, "SKILL.md"))
 			if version != want {
