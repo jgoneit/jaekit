@@ -1,0 +1,30 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "ContractRules",
+      "violation": "contract-rules-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparQuestionsAC8_ContractStatesTheRules"
+      }
+    },
+    {
+      "id": "SkillClasses",
+      "violation": "skill-classes-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparQuestionsAC8_SkillStatesTheClasses"
+      }
+    },
+    {
+      "id": "PacketGuidance",
+      "violation": "packet-guidance-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparQuestionsAC8_PacketExplainsTheLink"
+      }
+    }
+  ]
+}
