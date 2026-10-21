@@ -1,0 +1,38 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "RoundContract",
+      "violation": "round-contract-waiver-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparWaiverAC9_RoundContractStatesTheWaiver"
+      }
+    },
+    {
+      "id": "GateContract",
+      "violation": "gate-contract-waiver-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparWaiverAC9_GateContractStatesTheEffect"
+      }
+    },
+    {
+      "id": "Skill",
+      "violation": "skill-waiver-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparWaiverAC9_SkillStatesTheWaiver"
+      }
+    },
+    {
+      "id": "Guides",
+      "violation": "guide-waiver-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparWaiverAC9_GuidesStateTheWaiver"
+      }
+    }
+  ]
+}

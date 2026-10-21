@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "RefusalsRecordNothing",
+      "violation": "waiver-not-refused",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparWaiverAC4_RefusalsRecordNothing"
+      }
+    }
+  ]
+}
