@@ -343,43 +343,73 @@ func (w *rwWorld) expectReasons(g rwGate, want ...string) {
 
 // AC-1: the executor records the user's decision for one required reviewer
 // of one round, and the record keeps the round, the reviewer, the user's
-// words and the time. The gate then reads it.
+// words and the time. A second decision in the same round keeps the first,
+// and the gate reads both.
 func TestSparWaiverAC1_RecordsTheUserDecision(t *testing.T) {
 	const id = "waiver-not-recorded"
 	w := newRWWorld(t, false)
-	w.use(rwNative("host"), w.missingAgy())
-	unavailable := w.run(filepath.Join(w.newSeries(), "01-candidate"))
-	w.record(unavailable, "host")
+	w.use(rwNative("host"), w.missingAgy(), rwNative("second"))
+	unfinished := w.run(filepath.Join(w.newSeries(), "01-candidate"))
+	w.record(unfinished, "host")
 	notRun := w.run(filepath.Join(w.newSeries(), "01-candidate"), "--reviewers", "host")
 	w.record(notRun, "host")
-	for _, c := range []struct{ out, status string }{{unavailable, "unavailable"}, {notRun, "not_run"}} {
-		code, msg := w.spar("waive", c.out, "agy", "--user-quote", rwQuote)
-		if code != ExitOK {
-			rwViolation(t, id, "%s agy: spar waive with the user's words exited %d: %s", c.status, code, msg)
+	for _, c := range []struct {
+		out      string
+		statuses map[string]string
+	}{
+		{unfinished, map[string]string{"agy": "unavailable", "second": "pending"}},
+		{notRun, map[string]string{"agy": "not_run"}},
+	} {
+		order := []string{"agy", "second"}[:len(c.statuses)]
+		presets := map[string]string{"agy": "agy", "second": "native"}
+		recorded := true
+		for _, name := range order {
+			code, msg := w.spar("waive", c.out, name, "--user-quote", rwQuote)
+			if code == ExitInternal {
+				t.Fatalf("%s: spar waive %s stopped on an internal error: %s", filepath.Base(filepath.Dir(c.out)), name, msg)
+			}
+			if code != ExitOK {
+				rwViolation(t, id, "%s %s: spar waive with the user's words exited %d: %s", c.statuses[name], name, code, msg)
+				recorded = false
+			}
+		}
+		if !recorded {
 			continue
 		}
 		data, err := os.ReadFile(filepath.Join(c.out, "waivers.jsonl"))
 		lines := strings.Split(strings.TrimSpace(string(data)), "\n")
-		var entry map[string]any
-		if err != nil || len(lines) != 1 || json.Unmarshal([]byte(lines[0]), &entry) != nil {
-			rwViolation(t, id, "%s agy: the round holds no single waiver line: %v %q", c.status, err, data)
+		if err != nil || len(lines) != len(order) {
+			rwViolation(t, id, "%v: the round holds %d waiver lines, want one per decision: %v %q", order, len(lines), err, data)
 			continue
 		}
-		want := map[string]string{"round": filepath.Base(c.out), "reviewer": "agy", "preset": "agy", "status": c.status,
-			"user_quote": rwQuote}
-		for key, value := range want {
-			if entry[key] != value {
-				rwViolation(t, id, "%s agy: %s is %v, want %q", c.status, key, entry[key], value)
+		for i, name := range order {
+			var entry map[string]any
+			if json.Unmarshal([]byte(lines[i]), &entry) != nil {
+				rwViolation(t, id, "%s: waiver line %d is not a JSON object: %q", name, i+1, lines[i])
+				continue
 			}
-		}
-		at, _ := entry["recorded_at"].(string)
-		if _, err := time.Parse(time.RFC3339, at); err != nil {
-			rwViolation(t, id, "%s agy: recorded_at %v is not a time: %v", c.status, entry["recorded_at"], err)
+			want := map[string]string{"round": filepath.Base(c.out), "reviewer": name, "preset": presets[name],
+				"status": c.statuses[name], "user_quote": rwQuote}
+			for key, value := range want {
+				if entry[key] != value {
+					rwViolation(t, id, "%s: %s is %v, want %q", name, key, entry[key], value)
+				}
+			}
+			at, _ := entry["recorded_at"].(string)
+			if _, err := time.Parse(time.RFC3339, at); err != nil {
+				rwViolation(t, id, "%s: recorded_at %v is not a time: %v", name, entry["recorded_at"], err)
+			}
 		}
 		g := w.gate(w.head, []string{c.out})
 		listed, ok := g.waived(0)
-		if g.rec.State != StateComplete || !ok || len(listed) != 1 || listed[0]["name"] != "agy" || listed[0]["user_quote"] != rwQuote {
-			rwViolation(t, id, "%s agy: the gate does not read the recorded waiver: %s %v, waived %v", c.status,
+		names := map[string]bool{}
+		for _, e := range listed {
+			if e["user_quote"] == rwQuote {
+				names[fmt.Sprint(e["name"])] = true
+			}
+		}
+		if g.rec.State != StateComplete || !ok || len(listed) != len(order) || len(names) != len(order) {
+			rwViolation(t, id, "%v: the gate does not read the recorded waivers: %s %v, waived %v", order,
 				g.rec.State, g.rec.Reasons, listed)
 		}
 	}
@@ -504,6 +534,9 @@ func TestSparWaiverAC4_RefusalsRecordNothing(t *testing.T) {
 		before, beforeErr := os.ReadFile(file)
 		code, msg := w.spar(append([]string{"waive", round}, args...)...)
 		after, afterErr := os.ReadFile(file)
+		if code == ExitInternal {
+			t.Fatalf("%s: spar waive stopped on an internal error: %s", label, msg)
+		}
 		if code != ExitRefused || !strings.Contains(msg, because) {
 			rwViolation(t, id, "%s: exit %d, want %d with a reason naming %q: %s", label, code, ExitRefused, because, msg)
 		}
@@ -520,6 +553,11 @@ func TestSparWaiverAC4_RefusalsRecordNothing(t *testing.T) {
 	refuse("a reviewer that completed", "completed", out, "host", "--user-quote", rwQuote)
 	refuse("a command reviewer", "not a required reviewer", out, "extra", "--user-quote", rwQuote)
 	refuse("an unknown reviewer", "not a required reviewer", out, "nobody", "--user-quote", rwQuote)
+	// A rerun of the packet whose reviewers completed it in the round it
+	// repeats: host is a required reviewer of the rerun through the
+	// configuration and completed the packet before.
+	rerunOfOut := w.run(filepath.Join(filepath.Dir(out), "02-rerun"), "--reviewers", "agy")
+	refuse("a reviewer that completed the packet before its rerun", "completed", rerunOfOut, "host", "--user-quote", rwQuote)
 
 	w.use(rwNative("host"), rwNative("second"))
 	series := w.newSeries()
@@ -600,6 +638,112 @@ func TestSparWaiverAC6_WaiverCoversItsRoundOnly(t *testing.T) {
 	}
 }
 
+// The fields a round record holds before this change (contracts/review-
+// round.md, section 5): a round written now holds no other, so the gate
+// reads it as it reads an earlier round.
+var (
+	rwRoundRecordKeys = []string{"base", "base_tree", "config", "counted", "criteria", "criteria_digest", "diff_sha256",
+		"dry_run", "finished_at", "head", "head_tree", "label", "links", "packet_sha256", "prior", "questions",
+		"repo", "requested_reviewers", "required_reviewers", "rerun_of", "reviewers", "rules", "schema", "sequence",
+		"series", "spar_version", "stage", "started_at", "subjects"}
+	rwConfigKeys = []string{"angles", "caps", "check_paths", "configured_required", "digest", "files", "override",
+		"reviewers", "rules", "source"}
+	rwConfigReviewerKeys = []string{"argv", "binary", "effort", "fallback_model", "isolation", "model", "name", "preset",
+		"required", "timeout_seconds"}
+	rwReviewerStateKeys = []string{"agent", "angles_checked", "angles_unchecked", "attempts", "effort",
+		"elapsed_seconds", "fallback_model", "fallback_used", "findings", "isolation", "limits", "name",
+		"observed_model", "preset", "reason", "recorded_from", "requested_model", "required", "resets", "status",
+		"timeout_seconds", "verdict", "warnings", "workspace_digest"}
+)
+
+// rwOutside lists the keys of m that are not among known.
+func rwOutside(m map[string]any, known []string) []string {
+	var out []string
+	for _, k := range rwKeys(m) {
+		if !rwHas(known, k) {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+// rwPreChangeForm reports the fields of a round record that a round
+// recorded before this change cannot hold.
+func rwPreChangeForm(t *testing.T, round string) []string {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join(round, "round.json"))
+	var r map[string]any
+	if err != nil || json.Unmarshal(data, &r) != nil {
+		t.Fatalf("%s/round.json cannot be read: %v", round, err)
+	}
+	extra := rwOutside(r, rwRoundRecordKeys)
+	config, _ := r["config"].(map[string]any)
+	for _, k := range rwOutside(config, rwConfigKeys) {
+		extra = append(extra, "config."+k)
+	}
+	reviewers, _ := config["reviewers"].([]any)
+	for _, item := range reviewers {
+		entry, _ := item.(map[string]any)
+		for _, k := range rwOutside(entry, rwConfigReviewerKeys) {
+			extra = append(extra, "config.reviewers[]."+k)
+		}
+	}
+	states, _ := r["reviewers"].(map[string]any)
+	for name, item := range states {
+		entry, _ := item.(map[string]any)
+		for _, k := range rwOutside(entry, rwReviewerStateKeys) {
+			extra = append(extra, "reviewers."+name+"."+k)
+		}
+	}
+	return extra
+}
+
+// rwRename turns a recorded round's reviewer into one of another name, as
+// a round recorded before this change could hold it: the round record's
+// lists, the reviewer's state and configuration entry, and its folder.
+func rwRename(t *testing.T, round, from, to string) {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join(round, "round.json"))
+	var r map[string]any
+	if err != nil || json.Unmarshal(data, &r) != nil {
+		t.Fatalf("%s/round.json cannot be read: %v", round, err)
+	}
+	rename := func(list any) {
+		items, _ := list.([]any)
+		for i, item := range items {
+			if item == from {
+				items[i] = to
+			}
+			if entry, ok := item.(map[string]any); ok && entry["name"] == from {
+				entry["name"] = to
+			}
+		}
+	}
+	rename(r["requested_reviewers"])
+	rename(r["required_reviewers"])
+	config, _ := r["config"].(map[string]any)
+	rename(config["reviewers"])
+	rename(config["configured_required"])
+	states, _ := r["reviewers"].(map[string]any)
+	state, _ := states[from].(map[string]any)
+	if state == nil {
+		t.Fatalf("%s has no reviewer %s", round, from)
+	}
+	state["name"] = to
+	delete(states, from)
+	states[to] = state
+	out, err := json.MarshalIndent(r, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(round, "round.json"), append(out, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(filepath.Join(round, from), filepath.Join(round, to)); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // The fields of a gate file and of each round in it, as they are without
 // any waiver (contracts/review-gate.md, section 3).
 var (
@@ -663,11 +807,23 @@ func TestSparWaiverAC7_RoundsWithoutWaiversKeepTheirGate(t *testing.T) {
 	w.record(rerun, "second")
 	scenarios = append(scenarios, scenario{"completed in a rerun", []string{first, rerun}, StateComplete, ExitOK, nil})
 
+	// Before this change a reviewer could be named waivers.jsonl; its
+	// folder in an earlier round is the reviewer's, not a waiver file.
+	w.use(rwNative("host"), rwNative("legacy"))
+	out = w.run(filepath.Join(w.newSeries(), "01-candidate"))
+	w.record(out, "host")
+	w.record(out, "legacy")
+	rwRename(t, out, "legacy", "waivers.jsonl")
+	scenarios = append(scenarios, scenario{"a reviewer named waivers.jsonl", []string{out}, StateComplete, ExitOK, nil})
+
 	for _, s := range scenarios {
 		records := map[string][]byte{}
 		for _, round := range s.rounds {
-			if _, err := os.Stat(filepath.Join(round, "waivers.jsonl")); err == nil {
+			if info, err := os.Stat(filepath.Join(round, "waivers.jsonl")); err == nil && !info.IsDir() {
 				t.Fatalf("%s: spar wrote waivers.jsonl without a waiver, so the round is not in the form of an earlier one", s.label)
+			}
+			if extra := rwPreChangeForm(t, round); len(extra) > 0 {
+				t.Errorf("%s: the round record holds fields an earlier round cannot: %v", s.label, extra)
 			}
 			for _, name := range []string{"round.json", "findings.json", "ledger.jsonl"} {
 				data, err := os.ReadFile(filepath.Join(round, name))
@@ -815,6 +971,18 @@ func rwStates(t *testing.T, id, rel string, sentences ...string) {
 	}
 }
 
+// rwDropped reports each statement a document still holds although the
+// waiver makes it false.
+func rwDropped(t *testing.T, id, rel string, statements ...string) {
+	t.Helper()
+	text := rwRead(t, rel)
+	for _, s := range statements {
+		if strings.Contains(text, s) {
+			rwViolation(t, id, "%s still says %q", rel, s)
+		}
+	}
+}
+
 // AC-9: the round contract states how a waiver is recorded, that it needs
 // the user's words and what it does to the gate.
 func TestSparWaiverAC9_RoundContractStatesTheWaiver(t *testing.T) {
@@ -836,18 +1004,35 @@ func TestSparWaiverAC9_GateContractStatesTheEffect(t *testing.T) {
 		"| `rounds[].waived_reviewers` |")
 }
 
-// AC-9: the Spar skill states the same rules.
+// AC-9: the Spar skill states the same rules, and its gate states and
+// limits no longer say otherwise.
 func TestSparWaiverAC9_SkillStatesTheWaiver(t *testing.T) {
-	rwStates(t, "skill-waiver-missing", "plugins/spar/skills/spar/SKILL.md",
+	const id = "skill-waiver-missing"
+	const skill = "plugins/spar/skills/spar/SKILL.md"
+	rwStates(t, id, skill,
 		"\n- When a required reviewer did not complete a round and the user says to go on without it, record their words for that round: `spar waive <round> <reviewer> --user-quote \"<their words>\"`. Never record a waiver without the user's words. A waiver covers its round only; record one for each round the reviewer did not complete.\n",
-		"\n- A waived reviewer is not a `degraded` reason; the gate file lists it under its round's `waived_reviewers` with its status and the user's words. A round where no required reviewer completed stays `degraded` even with waivers. Report the waivers with the gate.\n")
+		"\n- `complete` only when every required reviewer completed every round or holds the user's waiver for that round, at least one required reviewer completed each round's packet, the code rounds form a chain up to the expected head, and no `defect` or `requirement-question` is open.\n",
+		"\n- `degraded` when a required reviewer did not complete a round and holds no waiver for it, a round had no required reviewer, or no required reviewer completed a round's packet. Tell the user which reviewer and why; do not present the review as complete.\n",
+		"\n- A waived reviewer is not a `degraded` reason; the gate file lists it under its round's `waived_reviewers` with its status and the user's words. A round where no required reviewer completed stays `degraded` even with waivers. Report the waivers with the gate.\n",
+		"A `complete` gate means the required reviewers the user did not waive found nothing open;",
+		"\n- Do not edit round records by hand. Use `spar triage`, `spar record`, `spar extend` and `spar waive`.\n")
+	rwDropped(t, id, skill,
+		"\n- `complete` only when every required reviewer completed every round, the code rounds",
+		"\n- `degraded` when a required reviewer did not complete, or a round had no required reviewer.",
+		"A `complete` gate means the configured reviewers found nothing open",
+		"Use `spar triage`, `spar record` and `spar extend`.")
 }
 
-// AC-9: both guides state the same rules.
+// AC-9: both guides state the same rules, and their gate states no longer
+// say otherwise.
 func TestSparWaiverAC9_GuidesStateTheWaiver(t *testing.T) {
 	const id = "guide-waiver-missing"
 	rwStates(t, id, "guides/SPAR.md",
+		"`complete`(종료 0), 필수 리뷰어가 끝내지 못했고 그 라운드에 사용자의 결정이 없으면 `degraded`(3)",
 		"필수 리뷰어가 사용량 한도 같은 이유로 라운드를 끝내지 못했고 사용자가 그 리뷰어 없이 진행하라고 하면, 에이전트가 `spar waive <라운드> <리뷰어> --user-quote \"…\"`로 그 말을 그 라운드에 기록합니다. 사용자의 말 없이는 기록하지 않습니다. 결정이 기록된 리뷰어는 그 라운드의 `degraded` 사유가 되지 않고, gate 파일의 그 라운드 `waived_reviewers`에 상태와 사용자의 말이 함께 보입니다. 결정은 그 라운드에만 적용되고, 완료한 필수 리뷰어가 하나도 없는 라운드는 결정이 있어도 `degraded`입니다.")
+	rwDropped(t, id, "guides/SPAR.md", "필수 리뷰어가 끝내지 못했으면 `degraded`(3)")
 	rwStates(t, id, "guides/SPAR.en.md",
+		"`degraded` (3) when a required reviewer did not finish and you made no decision for that round,",
 		"When a required reviewer did not finish a round, for example because of a usage limit, and you say to go on without it, the agent records your words for that round with `spar waive <round> <reviewer> --user-quote \"…\"`. It never records one without your words. A waived reviewer is not a `degraded` reason for that round, and the gate file shows it under that round's `waived_reviewers` with its status and your words. A waiver covers only its round, and a round where no required reviewer completed stays `degraded` even with waivers.")
+	rwDropped(t, id, "guides/SPAR.en.md", "`degraded` (3) when a required reviewer did not finish, or")
 }
