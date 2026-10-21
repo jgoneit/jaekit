@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "protected-routes",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-start-budget-check/observe_kept.py",
+      "test": "Registry.test_protected_routes",
+      "result_targets": {
+        "additional_violations": [
+          "protected-routes.assertion-2",
+          "protected-routes.assertion-3",
+          "protected-routes.assertion-4",
+          "protected-routes.assertion-5",
+          "protected-routes.assertion-6",
+          "protected-routes.assertion-7",
+          "protected-routes.assertion-8"
+        ],
+        "execution": "protected-routes.execution",
+        "selection": "protected-routes.selection",
+        "attribution": "protected-routes.attribution"
+      }
+    }
+  ]
+}

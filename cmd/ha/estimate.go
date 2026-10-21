@@ -53,11 +53,22 @@ type estimateReport struct {
 	PlanRunsLimit         int               `json:"plan_runs_limit"`
 	Shortfall             int               `json:"shortfall"`
 	Headroom              int               `json:"headroom"`
+	Auto                  *estimateAuto     `json:"auto,omitempty"`
 	DefaultCheckRuns      int               `json:"default_check_runs"`
 	DefaultBaselineRuns   int               `json:"default_baseline_runs"`
 	DefaultAdditionalRuns int               `json:"default_additional_runs"`
 	Selected              estimateSelection `json:"selected"`
 	Limitation            string            `json:"limitation"`
+}
+
+// estimateAuto is the start limit an automatic PLAN budget would get and
+// whether the user must approve it first (run-record.md §1.1).
+type estimateAuto struct {
+	ComputedRuns    int    `json:"computed_runs"`
+	PreapprovedRuns int    `json:"preapproved_runs"`
+	Source          string `json:"source"`
+	SourcePath      string `json:"source_path,omitempty"`
+	ApprovalNeeded  bool   `json:"approval_needed"`
 }
 
 // estimateTargets shares execution's selection rules, including repeated
@@ -139,18 +150,34 @@ func (c *cli) estimate(in []string) int {
 	}
 	changes, maintains := requiredRunCounts(w)
 	minimum := minimumRequiredRuns(w)
+	limit := w.bundle.Budget.Runs
+	var auto *autoBudget
+	if w.bundle.Budget.Auto {
+		computed, err := computeAutoBudget(w)
+		if err != nil {
+			return c.fail(exitRefused, "%v", err)
+		}
+		auto, limit = &computed, computed.Computed
+	}
 	report := estimateReport{
 		Schema: "estimate/v1", Goal: w.goal.Dir, BudgetSource: "PLAN.md",
 		RequiredChange: changes, RequiredMaintain: maintains,
-		MinimumRuns: minimum, PlanRunsLimit: w.bundle.Budget.Runs,
-		Shortfall:        max(0, minimum-w.bundle.Budget.Runs),
-		Headroom:         max(0, w.bundle.Budget.Runs-minimum),
+		MinimumRuns: minimum, PlanRunsLimit: limit,
+		Shortfall:        max(0, minimum-limit),
+		Headroom:         max(0, limit-minimum),
 		DefaultCheckRuns: len(checks), DefaultBaselineRuns: len(baselines),
 		DefaultAdditionalRuns: len(checks) + len(baselines) - minimum,
 		Selected:              selectionEstimate(w, selected, a.bools["baseline"]),
 		Limitation: "Fresh required lower bound only; excludes retries, preparation and manual time. " +
 			"Not a total-time estimate or completion guarantee. PLAN limit is not an existing run's " +
 			"remaining budget; existing records and budget windows are unchanged.",
+	}
+	if auto != nil {
+		report.Auto = &estimateAuto{ComputedRuns: auto.Computed, PreapprovedRuns: auto.Cap.Runs, Source: auto.Cap.Source,
+			ApprovalNeeded: auto.approvalNeeded()}
+		if auto.Cap.Source != "default" {
+			report.Auto.SourcePath = auto.Cap.File
+		}
 	}
 	if format == "json" {
 		encoder := json.NewEncoder(c.out)
@@ -164,6 +191,14 @@ func (c *cli) estimate(in []string) int {
 			report.MinimumRuns, changes, maintains)
 		fmt.Fprintf(c.out, "- PLAN run limit: %d; shortfall: %d; headroom above minimum: %d\n",
 			report.PlanRunsLimit, report.Shortfall, report.Headroom)
+		if auto != nil {
+			approval := "no"
+			if report.Auto.ApprovalNeeded {
+				approval = "yes"
+			}
+			fmt.Fprintf(c.out, "- auto budget: %d runs (%s); pre-approved limit: %d from %s; user approval needed: %s\n",
+				auto.Computed, auto.basis(), auto.Cap.Runs, auto.Cap.shown(), approval)
+		}
 		fmt.Fprintf(c.out, "- default commands: check %d + baseline %d runs; additional to minimum: %d\n",
 			report.DefaultCheckRuns, report.DefaultBaselineRuns, report.DefaultAdditionalRuns)
 		fmt.Fprintf(c.out, "- selected %s: %d runs; additional: %d (optional %d, task %d, repeated required %d)\n",
@@ -174,7 +209,7 @@ func (c *cli) estimate(in []string) int {
 		}
 		fmt.Fprintf(c.out, "\n%s\n", report.Limitation)
 	}
-	if report.Shortfall > 0 {
+	if report.Shortfall > 0 || report.Auto != nil && report.Auto.ApprovalNeeded {
 		return exitProblems
 	}
 	return exitOK

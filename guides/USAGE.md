@@ -199,6 +199,34 @@ base commit이 없는 얕은 clone처럼 Git이 base와 HEAD를 비교할 수 �
 
 `ha doctor <goal>`은 이 점검 명령을 차례로 60초 제한으로 실행하고 도구마다 `사용 가능` 또는 `사용 불가 (<이유>)`를 보입니다. 사용 불가면 그 출력의 끝부분이 아래에 나옵니다. 시작 전에도 쓸 수 있고 기록·실행 횟수에는 아무것도 남지 않습니다. 형식이 틀린 줄은 파일과 줄을 알리고 아무 점검도 실행하지 않습니다. 이 절은 판정에 쓰이지 않습니다.
 
+## 자동 예산
+
+PLAN의 `## 예산`에 횟수를 숫자 대신 `- 검증 실행: 자동`으로 쓰면 `ha start`가 상한을 정합니다. 상한은 `max(50, ⌈필수 최소량 × 1.5⌉)`입니다. 필수 change가 34개인 목표는 최소량 68회, 상한 102회입니다. `경과 시간`은 지금처럼 직접 씁니다. 숫자를 쓴 PLAN은 지금과 같습니다.
+
+산정한 상한이 미리 승인한 상한 이하이면 묻지 않고 시작합니다. 미리 승인한 상한은 사용자 설정 폴더의 `ha.json`에 한 번 적어 둡니다. 폴더는 `~/.config/jaekit/`이고, `XDG_CONFIG_HOME`이 설정되어 있으면 `$XDG_CONFIG_HOME/jaekit/`입니다. 파일이 없으면 상한은 50회입니다. 저장소 안의 파일은 이 상한을 정하지 못합니다. 이를 확인하려고 파일이 있으면 `git worktree list -z`로 작업 트리를 읽으므로 Git 2.36 이상이 필요합니다.
+
+```bash
+folder="${XDG_CONFIG_HOME:-$HOME/.config}/jaekit"
+mkdir -p "$folder"
+printf '{"preapproved_runs": 120}\n' > "$folder/ha.json"
+```
+
+홈은 환경 변수 `HOME`이 있으면 그 값이고, 없으면 Windows에서는 `USERPROFILE`입니다. Windows PowerShell에서는 같은 순서로 폴더를 골라 씁니다.
+
+```powershell
+$folder = if ($env:XDG_CONFIG_HOME) { "$env:XDG_CONFIG_HOME\jaekit" } elseif ($env:HOME) { "$env:HOME\.config\jaekit" } else { "$env:USERPROFILE\.config\jaekit" }
+New-Item -ItemType Directory -Force $folder | Out-Null
+Set-Content -Path "$folder\ha.json" -Value '{"preapproved_runs": 120}'
+```
+
+`ha estimate docs/specs/example`이 시작 전에 같은 산정 값과 승인이 필요한지를 보입니다. 산정 값이 상한을 넘으면 `ha start`는 기록을 남기지 않고 다음처럼 멈춥니다.
+
+```text
+ha: auto budget 102 runs (minimum 68 × 1.5, at least 50) exceeds the pre-approved limit 50 from default; the user's approval is needed: write the approved number in PLAN `검증 실행`, or have the user raise preapproved_runs in ~/.config/jaekit/ha.json
+```
+
+이때 사용자가 그 횟수를 승인하면 PLAN에 숫자로 적거나 `ha.json`의 `preapproved_runs`를 올립니다. 파일 형식이 틀렸거나 읽을 수 없으면 `ha: pre-approved run limit: <경로>: <이유>`로 멈추며 50회로 대신하지 않습니다. 이 상한은 시작할 때만 쓰입니다. 시작 뒤의 증액·재개 규칙은 그대로입니다. 정확한 규칙은 [실행 기록 계약](../contracts/run-record.md#15-자동-예산)에 있습니다.
+
 ## 문제 해결
 
 | 증상 | 할 일 |
@@ -212,6 +240,8 @@ base commit이 없는 얕은 clone처럼 Git이 base와 HEAD를 비교할 수 �
 | 인증 만료·권한 거부·사용량 한도로 멈췄다 | 원인을 해소한 뒤 `docs/specs/<goal> 이어서 해줘`라고 보냅니다. 같은 실패를 반복하지 않습니다 |
 | 검사 전에 미커밋 변경 때문에 거부됐다 | 출력된 경로와 tracked/untracked·symlink 표시를 확인하고 작업 의도에 따라 정리합니다. 실행하지 않은 검사는 횟수에 들어가지 않습니다. [실행 전 안내](OPERATIONS.md#실행-전에-확인할-것)를 참고합니다 |
 | 시작 전에 검증 예산이 부족하다고 나온다 | `ha estimate docs/specs/<goal>`의 최소량·상한·부족량을 확인합니다. 시작 전에 충분한 예산이나 목표 분할을 결정합니다 |
+| 시작이 `exceeds the pre-approved limit`로 멈췄다 | 산정한 횟수를 승인할지 정합니다. 승인하면 그 숫자를 PLAN `검증 실행`에 쓰거나 `ha.json`의 `preapproved_runs`를 올립니다. [자동 예산](#자동-예산)을 봅니다 |
+| `pre-approved run limit` 오류로 멈췄다 | 출력된 `ha.json` 경로와 이유를 보고 파일을 `{"preapproved_runs": <정수>}` 형식으로 고치거나 지웁니다 |
 | 예산을 다 썼다며 멈췄다 | 남은 일을 읽고 계속할지 정합니다. 아래 예산 세부 사항을 참고합니다 |
 | Seal이 Core 호환성 때문에 멈췄다 | 확인한 실행 파일과 부족한 지원을 읽습니다. [업데이트 안내](INSTALL.md#업데이트)에 따라 v0.1.6 조합을 설치한 뒤 실제 선택된 Core의 지원 정보를 다시 확인합니다. 자동 설치나 구규칙 전환으로 우회하지 않습니다 |
 

@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "cap-source",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-start-budget-check/observe_budget.py",
+      "test": "CapSource.test_cap_source",
+      "result_targets": {
+        "additional_violations": [
+          "cap-source.assertion-2",
+          "cap-source.assertion-3",
+          "cap-source.assertion-4",
+          "cap-source.assertion-5",
+          "cap-source.assertion-6",
+          "cap-source.assertion-7",
+          "cap-source.assertion-8"
+        ],
+        "execution": "cap-source.execution",
+        "selection": "cap-source.selection",
+        "attribution": "cap-source.attribution"
+      }
+    }
+  ]
+}

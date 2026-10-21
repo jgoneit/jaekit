@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "auto-refusal",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-start-budget-check/observe_budget.py",
+      "test": "AutoRefusal.test_over_limit",
+      "result_targets": {
+        "additional_violations": [
+          "auto-refusal.assertion-2",
+          "auto-refusal.assertion-3",
+          "auto-refusal.assertion-4",
+          "auto-refusal.assertion-5",
+          "auto-refusal.assertion-6",
+          "auto-refusal.assertion-7",
+          "auto-refusal.assertion-8"
+        ],
+        "execution": "auto-refusal.execution",
+        "selection": "auto-refusal.selection",
+        "attribution": "auto-refusal.attribution"
+      }
+    }
+  ]
+}

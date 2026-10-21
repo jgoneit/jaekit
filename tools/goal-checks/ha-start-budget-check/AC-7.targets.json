@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "auto-start",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-start-budget-check/observe_budget.py",
+      "test": "AutoStart.test_auto_start",
+      "result_targets": {
+        "additional_violations": [
+          "auto-start.assertion-2",
+          "auto-start.assertion-3",
+          "auto-start.assertion-4",
+          "auto-start.assertion-5",
+          "auto-start.assertion-6",
+          "auto-start.assertion-7",
+          "auto-start.assertion-8"
+        ],
+        "execution": "auto-start.execution",
+        "selection": "auto-start.selection",
+        "attribution": "auto-start.attribution"
+      }
+    }
+  ]
+}

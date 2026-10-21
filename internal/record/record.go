@@ -61,9 +61,20 @@ type Skill struct {
 
 // Budget is the plan budget recorded at start.
 type Budget struct {
-	Runs           int    `json:"runs"`
-	ElapsedSeconds int64  `json:"elapsed_seconds"`
-	Cost           string `json:"cost"`
+	Runs           int         `json:"runs"`
+	ElapsedSeconds int64       `json:"elapsed_seconds"`
+	Cost           string      `json:"cost"`
+	Auto           *AutoBudget `json:"auto,omitempty"`
+}
+
+// AutoBudget is how `ha start` computed Runs for a PLAN whose run limit is
+// automatic (run-record.md §2.1). It is information only: status
+// computation reads Runs and never this basis.
+type AutoBudget struct {
+	MinimumRuns     int    `json:"minimum_runs"`
+	ComputedRuns    int    `json:"computed_runs"`
+	PreapprovedRuns int    `json:"preapproved_runs"`
+	Source          string `json:"source"`
 }
 
 // BudgetChangeData replaces the current window's total run cap. Revision is

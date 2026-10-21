@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"testing"
 )
 
@@ -79,5 +80,56 @@ func TestCleanSameChangesAndWorktree(t *testing.T) {
 	}
 	if out := git(t, dir, "status", "--porcelain"); out != "" {
 		t.Fatalf("worktree handling changed the user's tree: %q", out)
+	}
+}
+
+func TestWorktreesReadsPathsWithLineFeeds(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows paths cannot contain a line feed")
+	}
+	dir := t.TempDir()
+	main := filepath.Join(dir, "main")
+	os.MkdirAll(main, 0o755)
+	git(t, main, "init", "-q", "-b", "main")
+	git(t, main, "commit", "-q", "--allow-empty", "-m", "base")
+	linked := filepath.Join(dir, "linked\nworktree")
+	git(t, main, "worktree", "add", "-q", "--detach", linked)
+	r, err := Open(main)
+	if err != nil {
+		t.Fatal(err)
+	}
+	trees, err := r.Worktrees()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(trees) != 2 || filepath.Base(trees[1]) != "linked\nworktree" {
+		t.Fatalf("worktrees = %q", trees)
+	}
+}
+
+func TestWorktreesRefusesAGitWithoutNULLists(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the stand-in git is a shell script")
+	}
+	real, err := exec.LookPath("git")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	git(t, dir, "init", "-q", "-b", "main")
+	git(t, dir, "commit", "-q", "--allow-empty", "-m", "base")
+	r, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A Git before 2.36 rejects `worktree list -z` as a usage error.
+	bin := t.TempDir()
+	script := "#!/bin/sh\nfor a in \"$@\"; do [ \"$a\" = -z ] && { echo 'error: unknown switch `z'\"'\" >&2; exit 129; }; done\nexec '" + real + "' \"$@\"\n"
+	if err := os.WriteFile(filepath.Join(bin, "git"), []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	if trees, err := r.Worktrees(); err == nil {
+		t.Fatalf("worktrees without -z = %q; want an error, never a line reading", trees)
 	}
 }

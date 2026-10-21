@@ -1,0 +1,1 @@
+{"schema": "core-requirements/v1", "rules": ["run-rules/4"], "features": ["estimate/v1", "no-such-feature/v1"]}

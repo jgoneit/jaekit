@@ -1,0 +1,26 @@
+# Above the pre-approved limit the start records nothing; an equal limit, or the default 50, starts.
+replace $GOAL/PLAN.md "검증 실행: 50" "검증 실행: 자동"
+commit "automatic budget"
+user-config "{\"preapproved_runs\": 49}"
+ha estimate $GOAL --format json
+expect-exit 1
+expect-output "\"computed_runs\": 50"
+expect-output "\"approval_needed\": true"
+ha estimate $GOAL
+expect-exit 1
+expect-output "user approval needed: yes"
+ha start $GOAL --request "implement" --rules run-rules/4
+expect-exit 65
+expect-output "auto budget 50 runs (minimum 3 × 1.5, at least 50) exceeds the pre-approved limit 49 from "
+expect-output "the user's approval is needed"
+expect-records 0
+user-config-remove
+ha estimate $GOAL --format json
+expect-exit 0
+expect-output "\"preapproved_runs\": 50"
+expect-output "\"source\": \"default\""
+expect-no-output "source_path"
+ha start $GOAL --request "implement" --rules run-rules/4
+expect-exit 0
+expect-output "pre-approved limit: 50 from default"
+expect-record 1 budget "{\"runs\":50,\"elapsed_seconds\":14400,\"cost\":\"미관측\",\"auto\":{\"minimum_runs\":3,\"computed_runs\":50,\"preapproved_runs\":50,\"source\":\"default\"}}"

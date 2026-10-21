@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "platform",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-start-budget-check/observe_flow.py",
+      "test": "Platform.test_platforms",
+      "result_targets": {
+        "additional_violations": [
+          "platform.assertion-2",
+          "platform.assertion-3",
+          "platform.assertion-4",
+          "platform.assertion-5",
+          "platform.assertion-6",
+          "platform.assertion-7",
+          "platform.assertion-8"
+        ],
+        "execution": "platform.execution",
+        "selection": "platform.selection",
+        "attribution": "platform.attribution"
+      }
+    }
+  ]
+}

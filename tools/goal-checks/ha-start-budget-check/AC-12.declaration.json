@@ -1,0 +1,190 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/ha-start-budget-check/AC-12.targets.json",
+    "tools/goal-checks/ha-start-budget-check/budget_common.py",
+    "tools/goal-checks/ha-start-budget-check/observe_skill.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "skill-kept-undeclared",
+      "violation": "undeclared-skill-changed"
+    },
+    {
+      "id": "skill-kept-undeclared.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-undeclared.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-undeclared.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-undeclared.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-undeclared.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-undeclared.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-undeclared.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-undeclared.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-undeclared.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-undeclared.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-bare",
+      "violation": "bare-start-changed"
+    },
+    {
+      "id": "skill-kept-bare.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-bare.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-bare.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-bare.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-bare.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-bare.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-bare.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-bare.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-bare.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-bare.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-capabilities",
+      "violation": "capabilities-changed"
+    },
+    {
+      "id": "skill-kept-capabilities.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-capabilities.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-capabilities.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-capabilities.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-capabilities.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-capabilities.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-capabilities.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-capabilities.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-capabilities.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-capabilities.attribution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-helper",
+      "violation": "seal-helper-refuses"
+    },
+    {
+      "id": "skill-kept-helper.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-helper.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-helper.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-helper.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-helper.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-helper.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-helper.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-helper.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-helper.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-kept-helper.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

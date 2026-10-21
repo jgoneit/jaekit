@@ -1,0 +1,26 @@
+# An unusable limit file refuses automatic budgets instead of using the default; numeric budgets never read it.
+user-config "{\"preapproved_runs\": \"60\"}"
+ha start $GOAL --request "implement" --rules run-rules/4
+expect-exit 0
+expect-record 1 budget "{\"runs\":50,\"elapsed_seconds\":14400,\"cost\":\"미관측\"}"
+rm $GOAL/runs.jsonl
+replace $GOAL/PLAN.md "검증 실행: 50" "검증 실행: 자동"
+commit "automatic budget"
+ha estimate $GOAL
+expect-exit 65
+expect-output "pre-approved run limit: "
+expect-output "preapproved_runs must be a whole number from 1 to 2147483647"
+ha start $GOAL --request "implement" --rules run-rules/4
+expect-exit 65
+expect-output "pre-approved run limit: "
+expect-records 0
+user-config "{\"preapproved_runs\": 60, \"preapproved_runs\": 70}"
+ha start $GOAL --request "implement" --rules run-rules/4
+expect-exit 65
+expect-output "duplicate JSON key"
+expect-records 0
+replace $GOAL/PLAN.md "- 경과 시간: 4시간" "- 경과 시간: 자동"
+commit "automatic elapsed limit"
+ha lint $GOAL
+expect-exit 1
+expect-output "budget_missing"

@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "skill-check",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-start-budget-check/observe_skill.py",
+      "test": "SkillCheck.test_declared_skill",
+      "result_targets": {
+        "additional_violations": [
+          "skill-check.assertion-2",
+          "skill-check.assertion-3",
+          "skill-check.assertion-4",
+          "skill-check.assertion-5",
+          "skill-check.assertion-6",
+          "skill-check.assertion-7",
+          "skill-check.assertion-8"
+        ],
+        "execution": "skill-check.execution",
+        "selection": "skill-check.selection",
+        "attribution": "skill-check.attribution"
+      }
+    }
+  ]
+}

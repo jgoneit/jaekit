@@ -102,9 +102,15 @@ const (
 	OtherBundlesInput = "검사 입력"
 )
 
-// Budget is `## 예산`.
+// AutoRuns is the `검증 실행` value that asks `ha start` to compute the run
+// limit (run-record.md §1.1).
+const AutoRuns = "자동"
+
+// Budget is `## 예산`. When Auto is set, Runs is zero and `ha start` computes
+// the limit; numeric budgets keep Auto false.
 type Budget struct {
 	Runs           int
+	Auto           bool
 	ElapsedSeconds int64
 	Cost           string
 }
@@ -501,6 +507,9 @@ func (l *loader) readBudget(doc *markdown.Doc, file string) {
 		return
 	}
 	haveRuns, haveTime := false, false
+	// A `검증 실행` item with a number keeps its meaning (the last one wins);
+	// `자동` applies only when no item gives a number.
+	numeric, auto := false, false
 	for _, it := range markdown.Items(lines) {
 		key, value, found := strings.Cut(it.Text, ":")
 		if !found {
@@ -512,7 +521,9 @@ func (l *loader) readBudget(doc *markdown.Doc, file string) {
 			if m := firstInt.FindString(value); m != "" {
 				n, _ := strconv.Atoi(m)
 				l.b.Budget.Runs = n
-				haveRuns = n > 0
+				haveRuns, numeric = n > 0, true
+			} else if value == AutoRuns {
+				auto = true
 			}
 		case "경과 시간":
 			if d, ok := ParseDuration(value); ok && d > 0 {
@@ -522,6 +533,9 @@ func (l *loader) readBudget(doc *markdown.Doc, file string) {
 		case "비용":
 			l.b.Budget.Cost = value
 		}
+	}
+	if auto && !numeric {
+		l.b.Budget.Auto, haveRuns = true, true
 	}
 	if !haveRuns {
 		l.problem("budget_missing", file, 0, "`## 예산` needs `검증 실행: <positive number>`")

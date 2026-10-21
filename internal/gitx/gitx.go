@@ -75,6 +75,28 @@ func (r *Repo) CommonDir() (string, error) {
 	return filepath.Clean(dir), nil
 }
 
+// Worktrees returns the top-level folder of every working tree of this
+// repository, the main checkout first, as `git worktree list` reports them.
+// The list is read NUL-delimited (`-z`, Git 2.36 and later), so a path with
+// a line feed is read whole. A Git that refuses `-z` is an error: a line
+// reading could miss such a tree.
+func (r *Repo) Worktrees() ([]string, error) {
+	out, err := r.run("worktree", "list", "--porcelain", "-z")
+	if err != nil {
+		return nil, fmt.Errorf("git worktree list --porcelain -z (Git 2.36 or later): %w", err)
+	}
+	var trees []string
+	for _, field := range strings.Split(string(out), "\x00") {
+		if path, ok := strings.CutPrefix(field, "worktree "); ok {
+			trees = append(trees, filepath.Clean(path))
+		}
+	}
+	if len(trees) == 0 {
+		return nil, fmt.Errorf("git worktree list reported no working tree")
+	}
+	return trees, nil
+}
+
 // ResolveCommit reports the full id of a commit named by a hexadecimal id
 // when this local repository has it. It never fetches; a shallow or partial
 // clone reports false for commits it does not hold.

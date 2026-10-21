@@ -1,0 +1,58 @@
+{
+  "schema": "check-declaration/v1",
+  "producer": "jaekit-goal-tests",
+  "producer_version": "2",
+  "producer_paths": [
+    "tools/goal-checks/produce.py",
+    "tools/goal-checks/ha-start-budget-check/AC-11.targets.json",
+    "tools/goal-checks/ha-start-budget-check/budget_common.py",
+    "tools/goal-checks/ha-start-budget-check/observe_skill.py",
+    "tools/result_observations.py"
+  ],
+  "targets": [
+    {
+      "id": "skill-check",
+      "violation": "skill-check-missing"
+    },
+    {
+      "id": "skill-check.assertion-2",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-check.assertion-3",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-check.assertion-4",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-check.assertion-5",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-check.assertion-6",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-check.assertion-7",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-check.assertion-8",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-check.execution",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-check.selection",
+      "violation": "no-additional-violation"
+    },
+    {
+      "id": "skill-check.attribution",
+      "violation": "no-additional-violation"
+    }
+  ]
+}

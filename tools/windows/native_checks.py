@@ -55,7 +55,12 @@ NATIVE = {
                          "TestNativeHistoryStoragePathSafety/hard-linked_files_cannot_redirect_reads_or_writes",
                          *("TestNativeHistoryStoragePathSafety/hard-linked_files_cannot_redirect_reads_or_writes/" + case
                            for case in ("events.jsonl", "lock", "last", "last.tmp"))],
-    "cmd/ha": ["TestNativeRecordedTiming", "TestNativeCoreGitLifecycle", "TestNativeCoreGitLifecycle/linked=false",
+    "cmd/ha": ["TestNativeRecordedTiming", "TestNativeStartBudgetAndSkill",
+               *("TestNativeStartBudgetAndSkill/" + case for case in
+                 ("ancestors", "folder_identity", "home_before_userprofile", "xdg_folder", "home_folder",
+                  "missing_default", "corrupt_refused", "auto_start", "auto_refused", "skill_missing_support",
+                  "skill_supported")),
+               "TestNativeCoreGitLifecycle", "TestNativeCoreGitLifecycle/linked=false",
                "TestNativeCoreGitLifecycle/linked=true", "TestNativeBaselineRejectsJunction",
                "TestNativeHistoryGitLifecycle", "TestNativeHistoryFileEvidence",
                "TestNativeHistoryRequestIDPresence",

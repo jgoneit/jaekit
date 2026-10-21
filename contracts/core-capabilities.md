@@ -47,9 +47,10 @@ ha capabilities --format json
 | `formats.check_declaration`, `check_result`, `check_evidence` | 지원하는 선언·생산자 보고·저장 요약의 schema 목록 |
 | `formats.timing` | 시간 보기(`ha timing --format json`)의 schema 목록. 선택적이며 없을 수 있다 |
 | `formats.assurance_tier` | 목표 문서의 `Assurance:` 줄에서 읽고 검증하는 값 목록(`light`, `standard`, `strict`). 선택적이며 없을 수 있다 |
+| `formats.core_requirements` | `ha start --skill`이 읽는 skill의 Core 요구 선언 schema 목록(`core-requirements/v1`, §8). 선택적이며 없을 수 있다 |
 | `features` | 아래 기능 식별자 목록 |
 
-선택적이라고 적은 `formats.timing`과 `formats.assurance_tier`를 뺀 위 필드는 모두 필수다. 목록은 중복 없는 문자열 배열이며 각 문자열은 비어 있지 않다. 빈 형식·기능 목록은 해당 지원이 없다는 뜻이다. 중복 JSON 키, 잘못된 타입, 필수 정보 누락, 손상·뒤에 붙은 JSON은 해석 불가다. 같은 schema의 추가 필드·새 목록 항목은 허용하되 소비자가 아는 필수 지원을 대신하지 않는다.
+선택적이라고 적은 `formats.timing`, `formats.assurance_tier`, `formats.core_requirements`를 뺀 위 필드는 모두 필수다. 목록은 중복 없는 문자열 배열이며 각 문자열은 비어 있지 않다. 빈 형식·기능 목록은 해당 지원이 없다는 뜻이다. 중복 JSON 키, 잘못된 타입, 필수 정보 누락, 손상·뒤에 붙은 JSON은 해석 불가다. 같은 schema의 추가 필드·새 목록 항목은 허용하되 소비자가 아는 필수 지원을 대신하지 않는다.
 
 | 기능 | 약속 |
 | --- | --- |
@@ -69,6 +70,8 @@ ha capabilities --format json
 | `runner-adapters/v1` | `/3`·`/4` change 조건의 `check-adapter/v1` 선언으로 `go test -json` 표준 출력과 JUnit XML을 직접 분류하는 선택적 확장(§7) |
 | `report/v1` | 기록을 바꾸지 않고 `ha status`와 같은 계산으로 다섯 줄 요약·도장·조건별 근거·완료 범위를 보이는 사람용 보고(`ha report`, [실행 기록](run-record.md) §1.3) |
 | `doctor/v1` | PLAN `## 실행 환경`의 점검 명령을 60초 고정 제한으로 실행하고 아무것도 기록하지 않는 실행 환경 점검(`ha doctor`, [실행 기록](run-record.md) §1.4) |
+| `auto-budget/v1` | PLAN `검증 실행: 자동`의 시작 상한 산정, 사용자 설정의 사전 승인 상한, 그 상한을 넘는 시작의 거부와 `ha estimate`의 표시(§8, [실행 기록](run-record.md) §1.5) |
+| `core-requirements/v1` | `ha start --skill`의 skill Core 요구 선언 확인과 선언을 필수로 하는 `--check-skill`(§8) |
 
 시간 보기를 지원하는 Core는 `formats.timing`에 `timing/v1`, `features`에 `run-timing/v1`을 제공한다([실행 기록](run-record.md) §1.2, §2.2). 측정값은 판정·예산에 쓰이지 않으므로 이 확장은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 추가되지 않는다. 지원이 없는 Core에서도 일반 실행은 그대로이고, 시간 보기만 쓸 수 없다.
 
@@ -92,7 +95,7 @@ ha capabilities --format json
 
 조회 미지원·실패, 필수 정보 누락·해석 불가, 필요한 규칙·형식·기능 부족이면 확인한 대상과 이유를 알리고 새 시작·재개 등 상태 변경 전에 멈춘다. 구버전이면 [설치 안내](../guides/INSTALL.md#업데이트)를 안내하되 자동 설치·업데이트하거나 구규칙으로 우회하지 않는다.
 
-호환 확인은 입력 lint, 저장 기록의 무결성, 사용자 구현 권한, 완료 판정을 대신하지 않는다. Core 자체에 새 시작 강제 차단을 추가하는 계약도 아니다. 직접 Core를 사용하는 미선언 `/3` change는 기존처럼 실제 시도를 기록하고 `unknown`으로 분류할 수 있다. 일반 maintain·manual·task 검사는 구조화 change 계약으로 강제 이전하지 않는다.
+호환 확인은 입력 lint, 저장 기록의 무결성, 사용자 구현 권한, 완료 판정을 대신하지 않는다. 이 표의 확인은 Seal이 한다. Core는 skill이 §8의 선언을 두면 `ha start --skill`에서 그 선언을 이 실행 파일의 지원 정보와 대조해 빠진 지원이 있으면 기록 없이 시작을 거부하고, 선언이 없는 skill의 시작은 그대로 받는다. 직접 Core를 사용하는 미선언 `/3` change는 기존처럼 실제 시도를 기록하고 `unknown`으로 분류할 수 있다. 일반 maintain·manual·task 검사는 구조화 change 계약으로 강제 이전하지 않는다.
 
 ## 3. 선택적 결정적 소비 도구
 
@@ -140,3 +143,32 @@ Seal 0.1.16부터 확인 도구는 새 시작에서 이 규칙과 다섯 기능�
 러너 어댑터를 지원하는 Core는 `formats.check_declaration`의 끝에 `check-adapter/v1`, `features`의 끝에 `runner-adapters/v1`을 더해 제공한다. 두 항목의 의미는 [change 검사 결과](check-result.md#5-러너-어댑터) §5다. 기존 항목과 그 순서, `default_rules`는 그대로다.
 
 어댑터는 선택이므로 이 확장은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 추가되지 않는다. Seal과 호환 확인 도구의 요구도 그대로다. 실행자는 실제 실행 파일의 지원 정보에 두 항목이 모두 있을 때만 어댑터 선언을 쓴다. 지원이 없는 Core는 어댑터 선언을 알 수 없는 선언으로 보고 lint 문제(`evidence_invalid`)로 시작과 검사를 거부하며 기록하지 않는다. 그때는 참조 생산자나 전용 생산자를 쓴다.
+
+## 8. skill의 Core 요구 선언
+
+skill은 SKILL.md와 같은 폴더의 `core-requirements.json`에 자신에게 필요한 Core 지원을 선언할 수 있다. `ha start --skill <SKILL.md>`가 이 선언을 읽어 실행 파일의 지원 정보(§1의 `ha capabilities`와 같은 값)와 대조한다([실행 기록](run-record.md) §1.6). 지원하는 Core는 `formats.core_requirements`에 `core-requirements/v1`, `features`에 `core-requirements/v1`을 제공한다.
+
+```json
+{
+  "schema": "core-requirements/v1",
+  "rules": ["run-rules/4"],
+  "formats": {"criteria": ["legacy", "nested/1"], "check_result": ["check-result/v1"]},
+  "features": ["estimate/v1", "test-authority/v1"]
+}
+```
+
+| 필드 | 의미 |
+| --- | --- |
+| `schema` | 필수. 정확히 `core-requirements/v1` |
+| `rules` | 선택. 각 값이 `supported_rules`에 있어야 한다 |
+| `formats` | 선택. 키마다 그 키가 `formats`에 있고(목록이 비어 있어도) 각 값이 그 목록에 있어야 한다 |
+| `features` | 선택. 각 값이 `features`에 있어야 한다 |
+
+- 목록은 비어 있지 않은 문자열의 배열이고 한 목록 안에서 값이 겹치지 않는다. `formats`는 그런 목록을 값으로 갖는 객체다. 빈 목록이나 없는 필드는 그 종류의 요구가 없다는 뜻이다. 단 `formats`의 키는 목록이 비어 있어도 그 키 자체를 요구한다.
+- UTF-8 JSON 객체 하나이며 64 KiB 이하다. 맨 앞 BOM 하나는 허용한다. 필드 이름은 정확한 철자여야 하며 대소문자만 다른 이름도 모르는 필드다. 다른 schema 값, 모르는 필드, 중복 키, 뒤에 붙은 데이터, `null`, 잘못된 타입은 형식 위반이다. 대상이 없는 symlink나 폴더처럼 읽을 수 없는 항목도 거부한다.
+- 빠진 항목이 있으면 항목마다 `ha: missing Core support: <rules|formats.<키>|features> <값> (ha <버전>)`을 보이고(`formats`의 키 자체가 없고 그 목록이 비어 있으면 값 없이 `formats.<키>`), 형식 위반이면 그 이유를 보이며, 둘 다 기록 없이 65로 끝난다. 모르는 값을 무시하고 시작하지 않는다.
+- 선언 파일이 없는 skill과 `--skill` 없는 시작은 이 확인을 하지 않는다. 그래서 선언하지 않은 Seal 0.1.17~0.1.19는 지금처럼 시작하며, 그 Seal들의 §2 확인과 [check_core.py](https://github.com/jgoneit/jaekit/blob/v0.1.6/plugins/seal/skills/seal/scripts/check_core.py)는 추가된 항목을 허용하므로 같은 결론을 낸다.
+- `--check-skill`은 선언을 필수로 한다. 이 기능 전의 Core(배포판 v0.1.6 등)는 이 플래그를 모르는 플래그로 64에 끝내고 기록하지 않으므로, 확인이 반드시 일어나야 하는 시작은 `ha start <goal> --skill <SKILL.md> --check-skill` 형식을 쓴다.
+- 선언은 Core 지원의 요구일 뿐이다. 사용자 구현 권한, 입력 lint, 완료 판정을 대신하지 않는다.
+
+`auto-budget/v1`은 PLAN `검증 실행: 자동`의 시작 상한 산정을 제공한다는 뜻이다([실행 기록](run-record.md) §1.5). 두 기능은 선택이므로 §2 표의 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 더하지 않는다. skill이 쓰려면 §8의 선언에 적는다.

@@ -1,0 +1,25 @@
+{
+  "schema": "jaekit-goal-targets/v2",
+  "checks": [
+    {
+      "target": "numeric-kept",
+      "runner": "unittest",
+      "file": "tools/goal-checks/ha-start-budget-check/observe_budget.py",
+      "test": "NumericKept.test_numeric_kept",
+      "result_targets": {
+        "additional_violations": [
+          "numeric-kept.assertion-2",
+          "numeric-kept.assertion-3",
+          "numeric-kept.assertion-4",
+          "numeric-kept.assertion-5",
+          "numeric-kept.assertion-6",
+          "numeric-kept.assertion-7",
+          "numeric-kept.assertion-8"
+        ],
+        "execution": "numeric-kept.execution",
+        "selection": "numeric-kept.selection",
+        "attribution": "numeric-kept.attribution"
+      }
+    }
+  ]
+}
