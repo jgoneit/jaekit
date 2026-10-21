@@ -5,8 +5,8 @@ The bundle holds the changing plan and progress of one goal. Its single purpose:
 ```text
 docs/specs/<goal>/
   SPEC.md, <aux>.md   goal documents (the user's; read only)
-  PLAN.md             condition table, result declarations, scope, tasks, budget
-  REVIEW.md           review of the plan
+  PLAN.md             condition table, result declarations, scope, tasks, budget, tools
+  REVIEW.md           review of the plan, including the assurance tier and review plan
   tasks/T001.md       per-task detail (optional; small goals keep tasks in PLAN.md)
   PROGRESS.md         current state, task states, timeline, changes, blocks, notes, completion report
   runs.jsonl          run record (ha only)
@@ -53,11 +53,15 @@ The declaration and every `producer_paths` input must be tracked regular files w
 
 ### `## 예산`
 
-- `검증 실행: <n>` — runs of `ha check`, baselines included, per budget window
+- `검증 실행: <n>` — runs of `ha check`, baselines included, per budget window. `검증 실행: 자동` lets `ha start` set the limit to `max(50, ⌈minimum × 1.5⌉)`; Seal writes it when the user gives no budget. When that limit exceeds the user's pre-approved limit, the start stops with no record and shows both limits: ask the user once and write the approved number here. Seal never writes the pre-approved limit setting itself
 - `경과 시간: <duration>` — such as `4시간`, `90분`, `2h30m`, measured between record timestamps
 - `비용: <limit or 미관측>`
 
 PLAN budget values initialize a goal. Editing them does not change an active budget. Under `/3`, a recorded `budget_change` changes only the current window's total run limit and retains usage and elapsed time. Increases require a user quote and context; decreases require a reason. Under `/3`, an explicit `reopen` carries the latest run limit and the original time limit into a new window; [run-record.md §4.7](https://github.com/jgoneit/jaekit/blob/v0.1.6/contracts/run-record.md#47-run-rules4) defines the run limit of a reopened `/4` window. `/1` and `/2` retain their original start limit. See [ha.md](ha.md).
+
+### `## 실행 환경`
+
+Optional. One tool the checks need per line, such as a browser, database, container or external service: `` - <name>: `<probe command>` ``, the command written like a condition command. Only `ha doctor <goal>` reads it: it runs each probe once with a 60-second limit and reports `사용 가능` or `사용 불가` with the reason, recording nothing. Seal runs it before any baseline and, when resuming, before the next check, and asks about every unusable tool in one question. Never widen permissions or settings to make a probe pass.
 
 ### `## 읽을 자료` (when tasks stay inside PLAN.md)
 
@@ -125,7 +129,10 @@ Summaries point to a document and section. They never replace a criterion.
 | 문서 충돌 | Conflicts among SPEC, project documents, and code. Never resolve them by editing the goal documents; ask |
 | 중요한 미결정 | Open decisions in the goal documents and new outcome-changing ones. Close each with the user's quoted answer or an explicit assumption that the report repeats. A reading that keeps a component's declared scope or trust boundary is such an assumption, not a question ([Check inputs](#check-inputs)) |
 | 검증 방법과 환경 | Whether each command runs here; tools, data, network and repository history (a check reads history only for a condition about history, with the range it reads); how a cross-component flow is checked across the boundary |
+| 독립 검토 | The SPEC `Assurance:` tier, or none, the project instructions' floor and the one followed; the planned review stages (plan, candidate, fixes, cumulative round) or the reason a `light` goal skips them; the product invariants and decision rules the change introduces or alters, for the plan round; the supported input forms of each open-ended input a new contract or check covers; references to the round and gate records once rounds run, never the copied findings |
 | 결론 | `ready` or `needs_user` with the reason |
+
+The review section follows the skill's review timing: a plan round, when the tier asks for one, runs before any baseline, and `ha done` waits for a cumulative round over the goal's base commit to the last head. Supported input forms are never narrower than a SPEC criterion, contract or protected regression path requires; narrowing them is the user's decision, and a finding about input outside them is `hardening`. Goals started with an earlier Seal keep the review format they started with ([earlier-goals.md](earlier-goals.md)).
 
 ### Evidence and observation scope
 
@@ -142,11 +149,11 @@ Connect the planned review to observed report. When the condition, check, or env
 
 ## PROGRESS.md
 
-The check time and record head of `## 현재`, `## 타임라인`, and the table time rules apply to goals whose start record names seal 0.1.6 or later (the `skill:` line of `ha status`). A goal started with an earlier Seal keeps the PROGRESS form it started with.
+This form applies to goals whose start record names seal 0.1.20 or later (the `skill:` line of `ha status`). A goal started with an earlier Seal keeps the PROGRESS form it started with; [earlier-goals.md](earlier-goals.md) describes those forms.
 
 | Section | Content |
 | --- | --- |
-| `## 현재` | A short, current summary (about 5 to 8 lines): the check time with its time zone (for example `2026-10-09T00:35:00+09:00`), the `ha status` or `ha done` result at that time with its record head as `ha status` prints it, seq and hash (for example `seq 21 (64b7bf74bd68)`; `none` before `ha start`, as `ha status` prints it; and the completion record seq when there is one), the work in progress, the open problems, the next work, and how to resume. Restamp the check time and record head whenever it changes. Whoever takes the goal up compares the record head with `ha status` to see whether the summary is stale: the same seq with another hash is another record, and the check time is for reference only. Past events stay out; point to `## 타임라인`. When `ha done` records completion, say the summary is as of that completion record and where to find what happens past the bundle's last commit (merge, review replies, checks after the merge), never as work in progress |
+| `## 현재` | A short, current summary (about 5 to 8 lines). It opens with the stamp `ha report <goal>` prints for `## 현재`, pasted unchanged: the record head as `ha status` prints it, seq and hash (`none` before `ha start`), the time stored in that record with its time zone, the state, and the completion record seq when there is one. Never type a check time yourself. Below the stamp come the work in progress, the open problems, the next work, and how to resume. Restamp with a fresh `ha report` stamp whenever the record head changes. Whoever takes the goal up compares the record head with `ha status` to see whether the summary is stale: the same seq with another hash is another record, and the stamp's time is for reference only. Past events stay out; point to `## 타임라인`. When `ha done` records completion, say the summary is as of that completion record and where to find what happens past the bundle's last commit (merge, review replies, checks after the merge), never as work in progress |
 | `## Task 상태` | Table `Task \| 상태 \| 메모`. States: `todo`, `doing`, `done`, `dropped`, `blocked`. `done` is a claim; `dropped` needs a plan change entry |
 | `## 타임라인` | Optional. Events that change a judgment or the next action, appended in time order (below). `ha` does not read it |
 | `## 계획 변경` | Table `시각 \| 변경 \| 이유 \| 영향 \| 다시 검토한 것`, including kind changes. `시각` carries a time zone. One row is one event; when the event also has a timeline entry, the detail lives only in that entry and the row points to it by the entry's time, with a one-line summary |
@@ -186,7 +193,7 @@ Goals started with seal 0.1.13 or later may keep detailed judgments once in the 
 
 ## Assurance policy and counterexamples
 
-For new goals started with Seal 0.1.11 or later, and requested material verification redesigns, REVIEW connects condition groups to risk (false-success impact, boundary, evidence gap), selected policy source, and required or optional guarantees. Explain exclusions instead of classifying by condition count. Preserve older formats and never fabricate retrospective reviews. No universal pre-baseline review order is prescribed.
+For new goals started with Seal 0.1.11 or later, and requested material verification redesigns, REVIEW connects condition groups to risk (false-success impact, boundary, evidence gap), selected policy source, and required or optional guarantees. Explain exclusions instead of classifying by condition count; low-risk exclusions need a reason, and only unresolved outcome-changing guarantees need a user decision. Preserve older formats and never fabricate retrospective reviews. No universal pre-baseline review order is prescribed.
 
 Keep expected-result grounds, observed boundary, and methods/substitutes separate. A comparison identifies the same property, input scope, and environment, the observed results and differences. A reachable real system alone does not require a call for every condition; the claimed property and policy determine necessity. Prefer structured original evidence with identity links over inferred execution text. A fake result or a single real-model success does not establish the entire external contract.
 
@@ -216,14 +223,16 @@ Review or pull request comments received without the user's request are discover
 
 ## Completion report
 
-Written when `ha done` records completion, or when work stops at `needs_user`, `blocked`, or `budget_exhausted`:
+Written once `ha done` records completion, or when work stops at `needs_user`, `blocked`, or `budget_exhausted`. For goals whose start record names seal 0.1.20 or later:
 
-1. The `ha done` output (completion) or `ha status --format md` output (stop), pasted unchanged. It contains results, reasons, digests, and seqs, never command output.
-2. For goals started with Seal 0.1.15 or later, the completion coverage: the completion record's seq and commit, whether the head to be sent or merged is that commit, and, when it is not, that the difference is not covered by the completion, unless `ha status` at that head still names that completion record. Goals started with an earlier Seal keep the report format they started with.
-3. Per-condition evidence (condition, result, record seq) when the output above does not already show it.
-4. Changed files and the conditions each served, marked as the agent's claim.
-5. Remaining limits: assumed decisions, `manual` conditions, assurance `local`, and that the executor wrote the checks.
-6. In the new reporting format, connect the planned review to observed report: expected grounds, actual boundaries, methods and substitutes, results, evidence and unobserved scope. Identify changed condition, check, or environment versions and evidence limits. State what was confirmed, not confirmed, and risky, with condition or shared-group references. A report does not establish deployment, installation or a real model call.
-7. How to continue, when not complete.
+1. The output of `ha report <goal> --lang ko` for a user who writes Korean, `--lang en` otherwise, pasted unchanged: the five-line summary, the stamp, the evidence per condition, the completion coverage (the completion record's seq and commit and whether it covers the head) and where the output of unmet conditions is. It contains results, reasons, digests and seqs, never command output. Never paste `ha status` or `ha done` output.
+2. Below it, only the executor's judgment, each marked as a claim where it is one:
+   - changed files and the conditions each served;
+   - assumed decisions and `manual` conditions;
+   - expected-result grounds, observed boundaries, methods and substitutes, and unobserved scope, connecting the planned review to observed report, with changed condition, check, or environment versions and evidence limits;
+   - the assurance tier and the review stages received or the reason for skipping, where the review records are, and, when the SPEC tier and project instructions differed, what each required and which was followed;
+   - whether the head to be sent or merged is the completion record's commit; when it is not, the difference is not covered by the completion, unless `ha status` at that head still names that completion record;
+   - that the report does not establish deployment, installation or a real model call, that assurance is `local`, and that the executor wrote the checks;
+   - how to continue, when not complete.
 
-Never paste verification output into any bundle file. Summarize the cause and point to `ha log <goal> <seq>`.
+Goals started with an earlier Seal keep the report format they started with ([earlier-goals.md](earlier-goals.md)). Never paste verification output into any bundle file. Summarize the cause and point to `ha log <goal> <seq>`.

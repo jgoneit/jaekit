@@ -30,8 +30,16 @@ EXECUTION_FEATURES = {"dirty-preflight/v1", "baseline-safe-copy/v1"}
 RULES4_FEATURES = {
     "test-authority/v1", "reported-wait/v1", "preapproved-runs/v1", "error-recovery/v1", "command-time-limits/v1",
 }
+# A new start also needs what Seal 0.1.20 declares in ../core-requirements.json,
+# which `ha start --check-skill` enforces: the report, doctor, automatic budget
+# and requirement check features and the assurance tier format.
 START_FEATURES = EXECUTION_FEATURES | RULES4_FEATURES | {
     "estimate/v1", "structured-change-results/v1", "budget-change/v1",
+    "report/v1", "doctor/v1", "auto-budget/v1", "core-requirements/v1",
+}
+START_FORMATS = {
+    "core_requirements": {"core-requirements/v1"},
+    "assurance_tier": {"light", "standard", "strict"},
 }
 # Stored finding line bound (contracts/findings.md): a 1 MiB input at most
 # doubles when re-encoded, plus the record header.
@@ -82,7 +90,7 @@ def validate(value):
         if not strings(formats.get(key)):
             raise Refusal("invalid_capabilities", ["formats:" + key])
 
-    for key in ("finding", "decision_history", "timing"):
+    for key in ("finding", "decision_history", "timing", "core_requirements", "assurance_tier"):
         if key in formats and not strings(formats[key]):
             raise Refusal("invalid_capabilities", ["formats:" + key])
     return value
@@ -182,6 +190,8 @@ def requirements(capabilities, operation: str, goal: str | None):
     required_formats = {"criteria": criteria}
     if rules in STRUCTURED_RULES and operation not in ("finding", "history"):
         required_formats.update({key: {value} for key, value in FORMATS.items()})
+    if operation == "start":
+        required_formats.update(START_FORMATS)
     if finding:
         features = features | {"post-completion-findings/v1"}
         required_formats["finding"] = {"run-finding/v1"}

@@ -29,9 +29,16 @@ For `/3` change conditions, declare the required target IDs, intended violation 
 | T001 | <behavior this task completes> | AC-1, AC-2 | — | — | 예 | — |
 
 ## 예산
-- 검증 실행: 50
+- 검증 실행: 자동
 - 경과 시간: 4시간
 - 비용: 미관측
+
+Write the user's numbers when the user gives a budget. `자동` lets `ha start` set the run limit to `max(50, ⌈minimum × 1.5⌉)`; when that exceeds the user's pre-approved limit, the start stops with no record, and the number the user approves replaces `자동`.
+
+## 실행 환경
+- <tool the checks need, such as a browser or database>: `<probe command>`
+
+<optional; one line per tool; `ha doctor <goal>` runs each probe before any baseline and when resuming, and records nothing. Leave the section out when the checks need nothing beyond the repository>
 
 ## 읽을 자료
 - 필수 맥락: <document section or code location>

@@ -95,6 +95,8 @@ ha capabilities --format json
 
 조회 미지원·실패, 필수 정보 누락·해석 불가, 필요한 규칙·형식·기능 부족이면 확인한 대상과 이유를 알리고 새 시작·재개 등 상태 변경 전에 멈춘다. 구버전이면 [설치 안내](../guides/INSTALL.md#업데이트)를 안내하되 자동 설치·업데이트하거나 구규칙으로 우회하지 않는다.
 
+Seal 0.1.20부터는 이 표를 손으로 대조하지 않는다. 새 시작은 skill 폴더의 `core-requirements.json`(§8)에 필요한 지원을 선언하고 `ha start --check-skill`로 시작하므로, 빠진 지원이 있으면 Core가 기록 없이 거부한다. 그 선언에는 위 새 시작의 요구와 함께 `report/v1`, `doctor/v1`, `auto-budget/v1`, `core-requirements/v1`, `formats.core_requirements`의 `core-requirements/v1`, `formats.assurance_tier`의 `light`·`standard`·`strict`가 들어 있다. 기존 목표는 각 명령이 저장된 규칙을 계산하거나 66으로 거부하며, Seal은 그 거부와 실행 파일을 보고하고 멈춘다. 실행 파일 절대 경로의 재확인은 하지 않는다. 기록의 줄마다 `ha_version`이 남고 `ha status`가 그것을 보인다.
+
 호환 확인은 입력 lint, 저장 기록의 무결성, 사용자 구현 권한, 완료 판정을 대신하지 않는다. 이 표의 확인은 Seal이 한다. Core는 skill이 §8의 선언을 두면 `ha start --skill`에서 그 선언을 이 실행 파일의 지원 정보와 대조해 빠진 지원이 있으면 기록 없이 시작을 거부하고, 선언이 없는 skill의 시작은 그대로 받는다. 직접 Core를 사용하는 미선언 `/3` change는 기존처럼 실제 시도를 기록하고 `unknown`으로 분류할 수 있다. 일반 maintain·manual·task 검사는 구조화 change 계약으로 강제 이전하지 않는다.
 
 ## 3. 선택적 결정적 소비 도구
@@ -105,6 +107,8 @@ Python 3가 이미 있다면 Seal에 포함된 [check_core.py](https://github.co
 python3 <seal-skill>/scripts/check_core.py --ha <실제 Core 경로> --operation start
 python3 <seal-skill>/scripts/check_core.py --ha <실제 Core 경로> --operation resume --goal <기존 목표>
 ```
+
+Seal 0.1.20의 도구는 `start`에서 `core-requirements.json`의 요구를 모두 확인한다. 그래서 같은 실행 파일에 대해 새 시작을 호환이라고 판단하면 `ha start --check-skill`의 요구 확인도 거부하지 않는다. `resume`·`check`·`budget`·`finding`·`history`의 판단은 그대로다.
 
 `--ha`는 기본 `ha`이며 PATH에서 처음 찾은 실행 파일을 사용한다. `--operation`은 `start`(기본), `resume`, `check`, `budget`, `finding`이다. `start`에는 목표를 받지 않고 나머지 요청에는 기존 목표를 받는다. 기존 목표의 첫 `start`, 기록의 schema와 SPEC 형식 선택자를 읽으며 실제 기록 무결성 검증은 Core에 남긴다.
 
@@ -167,7 +171,7 @@ skill은 SKILL.md와 같은 폴더의 `core-requirements.json`에 자신에게 �
 - 목록은 비어 있지 않은 문자열의 배열이고 한 목록 안에서 값이 겹치지 않는다. `formats`는 그런 목록을 값으로 갖는 객체다. 빈 목록이나 없는 필드는 그 종류의 요구가 없다는 뜻이다. 단 `formats`의 키는 목록이 비어 있어도 그 키 자체를 요구한다.
 - UTF-8 JSON 객체 하나이며 64 KiB 이하다. 맨 앞 BOM 하나는 허용한다. 필드 이름은 정확한 철자여야 하며 대소문자만 다른 이름도 모르는 필드다. 다른 schema 값, 모르는 필드, 중복 키, 뒤에 붙은 데이터, `null`, 잘못된 타입은 형식 위반이다. 대상이 없는 symlink나 폴더처럼 읽을 수 없는 항목도 거부한다.
 - 빠진 항목이 있으면 항목마다 `ha: missing Core support: <rules|formats.<키>|features> <값> (ha <버전>)`을 보이고(`formats`의 키 자체가 없고 그 목록이 비어 있으면 값 없이 `formats.<키>`), 형식 위반이면 그 이유를 보이며, 둘 다 기록 없이 65로 끝난다. 모르는 값을 무시하고 시작하지 않는다.
-- 선언 파일이 없는 skill과 `--skill` 없는 시작은 이 확인을 하지 않는다. 그래서 선언하지 않은 Seal 0.1.17~0.1.19는 지금처럼 시작하며, 그 Seal들의 §2 확인과 [check_core.py](https://github.com/jgoneit/jaekit/blob/v0.1.6/plugins/seal/skills/seal/scripts/check_core.py)는 추가된 항목을 허용하므로 같은 결론을 낸다.
+- 선언 파일이 없는 skill과 `--skill` 없는 시작은 이 확인을 하지 않는다. Seal 0.1.20은 선언을 두고 `--check-skill`로 시작한다. 선언하지 않은 Seal 0.1.17~0.1.19는 지금처럼 시작하며, 그 Seal들의 §2 확인과 [check_core.py](https://github.com/jgoneit/jaekit/blob/v0.1.6/plugins/seal/skills/seal/scripts/check_core.py)는 추가된 항목을 허용하므로 같은 결론을 낸다.
 - `--check-skill`은 선언을 필수로 한다. 이 기능 전의 Core(배포판 v0.1.6 등)는 이 플래그를 모르는 플래그로 64에 끝내고 기록하지 않으므로, 확인이 반드시 일어나야 하는 시작은 `ha start <goal> --skill <SKILL.md> --check-skill` 형식을 쓴다.
 - 선언은 Core 지원의 요구일 뿐이다. 사용자 구현 권한, 입력 lint, 완료 판정을 대신하지 않는다.
 

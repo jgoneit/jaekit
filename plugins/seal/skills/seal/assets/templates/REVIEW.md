@@ -22,6 +22,9 @@
 - Failure classes not covered: gaps in the general property, examples and assumptions; check count is not a sufficiency score
 - Map every condition; shared condition groups may reference one explanation without repeated tables>
 
+## 독립 검토
+<the SPEC `Assurance:` tier or none, the project instructions' floor and the one followed; the planned review stages (a plan round before any baseline for `strict`; candidate, fixes and the cumulative round from the base commit to the last head before `ha done`) or the reason a `light` goal skips them; the product invariants and decision rules this change introduces or alters, for the plan round; the supported input forms of each open-ended input a new contract or check covers, never narrower than a criterion, contract or protected regression path requires; references to the round and gate records once rounds run, never copied findings>
+
 ## 결론
 <ready | needs_user: reason>
 
