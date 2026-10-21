@@ -156,9 +156,14 @@ func (w *cpqWorld) findings(out string) map[string]Finding {
 	return by
 }
 
-// ledger reads the ledger entries of each finding by its round ID.
+// ledger reads the ledger entries of each finding by its round ID. Every
+// recorded round has a ledger.jsonl, empty when nothing was deferred, so a
+// missing one is a broken setup, never a ledger without entries.
 func (w *cpqWorld) ledger(out string) map[string][]LedgerEntry {
 	w.t.Helper()
+	if info, err := os.Stat(filepath.Join(out, "ledger.jsonl")); err != nil || !info.Mode().IsRegular() {
+		w.t.Fatalf("ledger.jsonl cannot be read: %v", err)
+	}
 	list, err := loadLedger(out)
 	if err != nil {
 		w.t.Fatalf("ledger.jsonl: %v", err)
