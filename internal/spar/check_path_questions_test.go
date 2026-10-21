@@ -104,14 +104,21 @@ func (w *cpqWorld) spar(args ...string) (int, string) {
 }
 
 // round runs a candidate round in a series of its own, with check paths
-// checks/**, and records the native reviewer's findings.
+// checks/** and the rule document AGENTS.md, and records the native
+// reviewer's findings.
 func (w *cpqWorld) round(findings ...map[string]any) string {
+	w.t.Helper()
+	return w.roundWith([]string{"--rules", filepath.Join(w.repo, "AGENTS.md"), "--check-path", "checks/**"}, findings...)
+}
+
+// roundWith is round with other rule documents and check paths.
+func (w *cpqWorld) roundWith(options []string, findings ...map[string]any) string {
 	w.t.Helper()
 	w.series++
 	out := filepath.Join(w.repo, "reviews", fmt.Sprintf("s%d", w.series), "01-candidate")
-	if code, msg := w.spar("run", "--stage", "candidate", "--base", w.base, "--head", w.head, "--out", out,
-		"--criteria", w.criteria, "--rules", filepath.Join(w.repo, "AGENTS.md"), "--check-path", "checks/**",
-		"--repo", w.repo); code != ExitOK {
+	args := append([]string{"run", "--stage", "candidate", "--base", w.base, "--head", w.head, "--out", out,
+		"--criteria", w.criteria, "--repo", w.repo}, options...)
+	if code, msg := w.spar(args...); code != ExitOK {
 		w.t.Fatalf("spar run: %d %s", code, msg)
 	}
 	var checked []any
@@ -277,6 +284,29 @@ func TestSparQuestionsAC1_LinkedQuestionStaysOpen(t *testing.T) {
 		}
 		if entries := ledger[f.ID]; len(entries) != 0 {
 			cpqViolation(t, id, "case %d %v: the round recorded ledger entries %+v", i+1, c.values, entries)
+		}
+	}
+	// A contract outside the repository is never a file in the check
+	// paths, even when a check path such as ** would match its absolute
+	// path.
+	outside := realish(w.write(filepath.Join(w.dir, "policy", "CONTRACT.md"), "# Policy\n\nOne rule.\n"))
+	links := []string{"CONTRACT.md:2", filepath.ToSlash(outside) + ":2"}
+	var raw []map[string]any
+	for i, link := range links {
+		raw = append(raw, cpqFinding(fmt.Sprintf("F%d", i+1), map[string]any{"proposed_class": "requirement-question",
+			"link_kind": "contract", "link": link}))
+	}
+	out := w.roundWith([]string{"--rules", outside, "--check-path", "**"}, raw...)
+	found, ledger = w.findings(out), w.ledger(out)
+	for i, link := range links {
+		f := found[fmt.Sprintf("F%d", i+1)]
+		if !f.InCheckPaths || f.LinkKind != "contract" {
+			t.Errorf("outside contract %s: the setup does not give a linked check-path finding: in check paths %v, link %s",
+				link, f.InCheckPaths, f.LinkKind)
+			continue
+		}
+		if f.Class != "requirement-question" || len(ledger[f.ID]) != 0 {
+			cpqViolation(t, id, "outside contract %s: class %s (%s), ledger %+v", link, f.Class, f.ClassReason, ledger[f.ID])
 		}
 	}
 }

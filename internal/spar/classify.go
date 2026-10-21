@@ -500,8 +500,8 @@ func (c classifier) linkTarget(kind, ref string) (lines int, found, unique bool)
 // contractPath is the repository path a verified contract link names, in
 // the order linkTarget looks it up: a rule document by path, then by its
 // unique file name, then a regular file of the head commit. A rule document
-// outside the repository keeps its absolute path, which no check path
-// matches.
+// outside the repository has no repository path, so it gives "": a glob
+// such as ** would match its absolute path, but it is never check code.
 func (c classifier) contractPath(link string) string {
 	r := parseReference(link, linkPrefixes)
 	for _, ref := range r.candidates() {
@@ -510,7 +510,7 @@ func (c classifier) contractPath(link string) string {
 		}
 		for _, d := range c.targets.Rules {
 			if contains(d.Names, ref) {
-				return d.Names[0]
+				return repositoryName(d)
 			}
 		}
 		var match []LinkDocument
@@ -520,11 +520,20 @@ func (c classifier) contractPath(link string) string {
 			}
 		}
 		if len(match) == 1 {
-			return match[0].Names[0]
+			return repositoryName(match[0])
 		}
 		return ref
 	}
 	return ""
+}
+
+// repositoryName is a rule document's repository path, which documentNames
+// lists first, or "" for a document outside the repository.
+func repositoryName(d LinkDocument) string {
+	if len(d.Names) == 0 || filepath.IsAbs(filepath.FromSlash(d.Names[0])) {
+		return ""
+	}
+	return d.Names[0]
 }
 
 // classify applies the class rules. A readable location in the check paths
@@ -560,7 +569,11 @@ func (c classifier) classify(reviewer string, n int, raw map[string]any) Finding
 	}
 	// A question kept for the user names what it asks about: a contract link
 	// to a file in the check paths names the check code itself (rule 3 only).
-	checkCode := linked && f.LinkKind == "contract" && matchAny(c.checkPaths, c.contractPath(f.Link))
+	checkCode := false
+	if linked && f.LinkKind == "contract" {
+		target := c.contractPath(f.Link)
+		checkCode = target != "" && matchAny(c.checkPaths, target)
+	}
 	if f.LocationUnreadable {
 		f.Class, f.ClassReason = classifyUnreadable(f, linked)
 		f.ClassReason = "unreadable location (" + why + "): " + f.ClassReason
