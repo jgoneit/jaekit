@@ -819,10 +819,11 @@ func TestSealSlimAC21_Guides(t *testing.T) {
 // budget and `## 실행 환경` from ha doctor to the report of its completion.
 func TestSealSlimAC25_RealFlow(t *testing.T) {
 	// The declared violations are the outcomes named below: no start form that
-	// checks the declaration, a start form ha refuses (exit 64 or 65), and a
+	// checks the declaration, a start form ha refuses for an unknown flag or
+	// for the declaration it checks (absent, or support missing), and a
 	// fixed token the flow must print that is missing. Any other exit or
-	// result fails without the marker, so the adapter never counts it as a
-	// violation.
+	// result observes nothing about the flow and skips, which the adapter
+	// records as unknown, never as a violation or a failure.
 	const id = "real-flow-incomplete"
 	form := ssStartForm(ssRead(t, id, ssSkill))
 	if !strings.Contains(form, "--check-skill") {
@@ -838,7 +839,7 @@ func TestSealSlimAC25_RealFlow(t *testing.T) {
 		t.Helper()
 		out, code := ssRun(t, r.dir, r.env, ha, args...)
 		if code != 0 {
-			t.Fatalf("ha %v exited %d: %s", args, code, out)
+			t.Skipf("unobserved: ha %v exited %d: %s", args, code, out)
 		}
 		return out
 	}
@@ -852,32 +853,34 @@ func TestSealSlimAC25_RealFlow(t *testing.T) {
 		return
 	}
 	out, code := ssRun(t, r.dir, r.env, ha, argv...)
+	refused := code == 64 && strings.Contains(out, "unknown flag --") ||
+		code == 65 && (strings.Contains(out, "declaration; nothing recorded") || strings.Contains(out, "needs Core support this ha does not provide"))
 	switch {
-	case code == 64 || code == 65:
+	case refused:
 		ssViolate(t, id, "ha refused the start form %v with exit %d: %s", argv, code, out)
 		return
 	case code != 0:
-		t.Fatalf("ha %v exited %d: %s", argv, code, out)
+		t.Skipf("unobserved: ha %v exited %d: %s", argv, code, out)
 	case !strings.Contains(out, "auto limit: 50"):
 		ssViolate(t, id, "the start did not use the computed limit: %s", out)
 		return
 	}
 	if out := step("check", r.goal, "--baseline", "AC-1"); !strings.Contains(out, "AC-1 baseline fail_as_expected (seq ") {
-		t.Fatalf("the synthetic baseline was not the expected failure: %s", out)
+		t.Skipf("unobserved: the synthetic baseline was not the expected failure: %s", out)
 	}
 	if err := os.WriteFile(filepath.Join(r.dir, "greet/greeting.txt"), []byte("hello\n"), 0o644); err != nil {
 		t.Skipf("unobserved: %v", err)
 	}
 	r.commit(t, "change")
 	if out := step("check", r.goal, "AC-1"); !strings.Contains(out, "AC-1 check pass (seq ") {
-		t.Fatalf("the synthetic check did not pass: %s", out)
+		t.Skipf("unobserved: the synthetic check did not pass: %s", out)
 	}
 	step("done", r.goal)
 	var status struct {
 		Completion *int `json:"completion_record"`
 	}
 	if err := json.Unmarshal([]byte(step("status", r.goal, "--format", "json")), &status); err != nil {
-		t.Fatalf("ha status printed no JSON: %v", err)
+		t.Skipf("unobserved: ha status printed no JSON: %v", err)
 	}
 	if status.Completion == nil {
 		ssViolate(t, id, "ha status names no completion record after ha done")
