@@ -229,7 +229,7 @@ ha: auto budget 102 runs (minimum 68 × 1.5, at least 50) exceeds the pre-approv
 
 ## Seal의 시작 전 확인과 검토 순서
 
-Seal 0.1.20은 Core에 필요한 지원을 skill 폴더의 `core-requirements.json`에 선언하고 `ha start --check-skill`로 시작합니다. 실행 파일에 `ha report`, `ha doctor`, 자동 예산, 등급 줄 검증 같은 지원이 없으면 `ha`가 기록 없이 시작을 거부하고, Seal은 실행 파일과 메시지를 알리고 멈춥니다. 도구를 설치하거나 이전 규칙으로 돌아가지 않습니다. 배포판 v0.1.6의 `ha`는 이 시작을 받지 않으므로 이 조합에는 ①·②가 반영된 `ha`가 필요합니다.
+Seal 0.1.20은 Core에 필요한 지원을 skill 폴더의 `core-requirements.json`에 선언하고 `ha start --check-skill`로 시작합니다. 실행 파일에 `ha report`, `ha doctor`, 자동 예산, 등급 줄 검증 같은 지원이 없으면 `ha`가 기록 없이 시작을 거부하고, Seal은 실행 파일과 메시지를 알리고 멈춥니다. 도구를 설치하거나 이전 규칙으로 돌아가지 않습니다. 배포판 v0.1.6의 `ha`는 이 시작을 받지 않으므로 이 조합에는 이 명령들이 있는 `ha`가 필요합니다.
 
 - **예산 질문은 한 번.** 요청에 예산이 없으면 Seal이 PLAN에 `검증 실행: 자동`을 씁니다. 산정 값이 미리 승인한 상한 안이면 묻지 않고 시작하고, 넘으면 산정 값과 상한을 보이며 한 번 묻습니다. 답한 숫자가 PLAN에 들어가고, 같은 PLAN에 같은 질문을 다시 하지 않습니다. Seal은 `ha.json`을 쓰거나 고치지 않습니다.
 - **시작 전 환경 점검.** 검사가 브라우저·DB·컨테이너·외부 서비스를 쓰면 Seal이 PLAN의 `## 실행 환경`에 적고, baseline을 기록하기 전과 재개 뒤 첫 검사 전에 `ha doctor`를 돌립니다. 사용 불가인 도구는 한 질문으로 모아 묻고, 권한이나 설정을 스스로 넓히지 않습니다.
@@ -243,7 +243,7 @@ SPEC의 `Assurance:` 줄에 따라 독립 검토 단계가 정해집니다. 검�
 | `standard` | 최종 후보의 candidate 라운드, 검토 수정 뒤 fixes 라운드, `ha done` 전 누적 라운드 |
 | `strict` | `standard`에 더해 baseline 전 plan 라운드. 검사 계획만이 아니라 제품의 불변식과 결정 규칙도 봅니다 |
 
-누적 라운드는 목표의 base commit부터 마지막 head까지 전체를 다시 보는 candidate 라운드입니다. Seal은 이 라운드가 열린 `defect`·`requirement-question` 없이 끝난 뒤에만 `ha done`을 실행합니다. 프로젝트 지침(`AGENTS.md` 등)이 더 많은 검토를 요구하면 그쪽을 따르고 완료 보고에 적습니다. 줄이 없는 목표는 이전처럼 선택된 보증 정책을 따릅니다. 완료 뒤 원격 리뷰를 반영해 달라고 하면 `reopen`, 수정, 누적 라운드, 낡은 검사의 재기록, `ha done` 순으로 진행합니다.
+누적 라운드는 목표의 base commit부터 마지막 head까지 전체를 다시 보는 candidate 라운드입니다. 독립 검토를 받는 목표에서 Seal은 이 라운드가 열린 `defect`·`requirement-question` 없이 끝난 뒤에만 `ha done`을 실행합니다. 프로젝트 지침(`AGENTS.md` 등)이 더 많은 검토를 요구하면 그쪽을 따르고 완료 보고에 적습니다. 줄이 없는 목표는 이전처럼 선택된 보증 정책을 따릅니다. 완료 뒤 원격 리뷰를 반영해 달라고 하면 `reopen`, 수정, 누적 라운드, 낡은 검사의 재기록, `ha done` 순으로 진행합니다.
 
 Seal skill 본문은 약 4,600단어에서 2,200단어 이하로 줄었습니다. 이전 Seal로 시작한 목표의 형식은 그런 목표를 이어 갈 때만 읽는 참고 문서(`references/earlier-goals.md`)로 옮겼고, 그 목표의 기록과 문서는 바꾸지 않습니다.
 

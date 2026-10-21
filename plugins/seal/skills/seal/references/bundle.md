@@ -96,7 +96,7 @@ These are planning rules, not a fixed order; the executor still chooses methods 
 - While exploring, use narrow checks that fit the change. Their results are working information, not evidence.
 - Write in `## 조건표`, or in the completion text of the task that needs it, that the expensive full verification a condition needs is recorded once with `ha check` on the final candidate. Running the full verification once for development and once more for the record on the same candidate is a cost to avoid.
 - `ha check` runs each condition's command as its own process. When several required conditions need the same full regression, the recommended layout is that one condition owns it and each other condition observes its own property. This is a recommendation, not a required procedure. It assigns the shared run; it does not drop or weaken a condition, and each condition keeps its own recorded result.
-- After a completion record, fixes for remote review comments change the head that will be sent. Only the user's request to apply them is rework authority: quote it in `reopen`, re-record on the final head the required checks that became stale, and record `ha done` again before sending or merging. Comments that arrive without such a request are post-completion discoveries.
+- After a completion record, fixes for remote review comments change the head that will be sent. Only the user's request to apply them is rework authority: quote it in `reopen`, take one cumulative round when the goal is under independent review, re-record on the final head the required checks that became stale, and record `ha done` again before sending or merging. Comments that arrive without such a request are post-completion discoveries.
 
 ## tasks/T001.md
 
@@ -132,7 +132,7 @@ Summaries point to a document and section. They never replace a criterion.
 | 독립 검토 | The SPEC `Assurance:` tier, or none, the project instructions' floor and the one followed; the planned review stages (plan, candidate, fixes, cumulative round) or the reason a `light` goal skips them; the product invariants and decision rules the change introduces or alters, for the plan round; the supported input forms of each open-ended input a new contract or check covers; references to the round and gate records once rounds run, never the copied findings |
 | 결론 | `ready` or `needs_user` with the reason |
 
-The review section follows the skill's review timing: a plan round, when the tier asks for one, runs before any baseline, and `ha done` waits for a cumulative round over the goal's base commit to the last head. Supported input forms are never narrower than a SPEC criterion, contract or protected regression path requires; narrowing them is the user's decision, and a finding about input outside them is `hardening`. Goals started with an earlier Seal keep the review format they started with ([earlier-goals.md](earlier-goals.md)).
+The review section follows the skill's review timing: a plan round, when the tier or the selected policy asks for one, runs before any baseline, and in a goal under review `ha done` waits for a cumulative round over the goal's base commit to the last head. Supported input forms are never narrower than a SPEC criterion, contract or protected regression path requires; narrowing them is the user's decision, and a finding about input outside them is `hardening`. Goals started with an earlier Seal keep the review format they started with ([earlier-goals.md](earlier-goals.md)).
 
 ### Evidence and observation scope
 

@@ -635,7 +635,7 @@ func TestSealSlimAC17_Stages(t *testing.T) {
 	const id = "review-stages-missing"
 	ssRequire(t, id, ssSkill, ssRead(t, id, ssSkill),
 		"a `candidate` round once the final candidate's narrow checks pass", "a `fixes` round after review-fix commits",
-		"adds a `plan` round before any baseline",
+		"comes before any baseline",
 		"The cumulative round is a `candidate` round from the goal's base commit to the last head")
 }
 
@@ -644,7 +644,7 @@ func TestSealSlimAC17_PlanRoundScope(t *testing.T) {
 	const id = "plan-round-scope-missing"
 	ssRequire(t, id, ssSkill, ssRead(t, id, ssSkill),
 		"`REVIEW.md` states the product invariants and decision rules the change introduces or alters",
-		"A `plan` round, when the tier or selected policy asks for one, also reviews them, as questions.")
+		"A `plan` round, if `strict` or the selected policy asks, comes before any baseline and also reviews them, as questions.")
 }
 
 // AC-17: supported input forms come before the plan round and never narrow
@@ -661,7 +661,7 @@ func TestSealSlimAC17_SupportedForms(t *testing.T) {
 func TestSealSlimAC17_DoneOrder(t *testing.T) {
 	const id = "done-order-missing"
 	ssRequire(t, id, ssSkill, ssRead(t, id, ssSkill),
-		"run `ha done` only once it ends with no open `defect` or `requirement-question`",
+		"a goal under review runs `ha done` only once it ends with no open `defect` or `requirement-question`",
 		"A `fixes` round never replaces it", "a candidate round with no later fixes is one")
 }
 
@@ -669,7 +669,7 @@ func TestSealSlimAC17_DoneOrder(t *testing.T) {
 func TestSealSlimAC17_ReworkOrder(t *testing.T) {
 	const id = "rework-order-missing"
 	ssRequire(t, id, ssSkill, ssRead(t, id, ssSkill),
-		"take up the goal again only when the user asks for rework, such as applying a post-completion discovery or remote review comments: `reopen` quoting the request, fix, run one cumulative round, re-record stale checks and `ha done` before the head is sent or merged.")
+		"take up the goal again only when the user asks for rework, such as applying a post-completion discovery or remote review comments: `reopen` quoting the request, fix, run one cumulative round if under review, re-record stale checks and `ha done` before the head is sent or merged.")
 }
 
 // AC-17: how each class of finding is disposed of.
@@ -706,7 +706,7 @@ func TestSealSlimAC17_RecordsByReference(t *testing.T) {
 func TestSealSlimAC17_MethodInSpar(t *testing.T) {
 	const id = "spar-method-restated"
 	text := ssRead(t, id, ssSkill)
-	ssRequire(t, id, ssSkill, text, "Spar owns how rounds run; this skill sets when, and what follows.")
+	ssRequire(t, id, ssSkill, text, "Spar owns how rounds run.")
 	ssForbid(t, id, ssSkill, text, "packet", "spar run", "spar triage", "spar extend", "plan-delta", "spar.toml", "three code rounds")
 }
 
@@ -908,7 +908,7 @@ func TestSealSlimAC26_Tiers(t *testing.T) {
 	ssRequire(t, id, ssSkill, ssRead(t, id, ssSkill),
 		"SPEC's `Assurance:` line sets the tier",
 		"`light` may skip independent review, with the reason in `REVIEW.md` and the report.",
-		"`standard` takes a `candidate` round", "`strict` adds a `plan` round before any baseline",
+		"`standard`, or a selected policy needing review, takes a `candidate` round", "`strict` adds a `plan` round",
 		"Without the line, the selected policy applies.")
 }
 
