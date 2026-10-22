@@ -106,6 +106,7 @@ When items remain that the agent cannot decide on its own, it asks along with th
 | `spec_changed` | Was the change to the goal document intentional? | Confirm if the change was intentional. A request to continue or implement sent after editing is also recorded as confirmation. |
 | `error_limit` | What caused repeated check errors on the same code? | Fix the environment, then have the agent rerun. Review the goal first if switching to a condition that requires manual confirmation. |
 | `record_integrity` | Is the run record corrupted? | Check the cause. Do not arbitrarily edit records to pass; if needed, start in a new goal folder. |
+| `review_open_question` | What does the open `requirement-question` in the recorded review gate ask? | Answer it. The agent records your answer, has the review run again and records a new gate ([Review gate](USAGE.en.md#review-gate-run-rules5)). |
 
 ## Blocks and budget
 

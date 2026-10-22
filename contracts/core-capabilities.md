@@ -51,7 +51,7 @@ ha capabilities --format json
 | `formats.review_gate` | `ha note <goal> review --gate <file>`이 읽는 검토 gate 파일 schema 목록(`review-gate/v1`, §9). 선택적이며 없을 수 있다 |
 | `features` | 아래 기능 식별자 목록 |
 
-선택적이라고 적은 `formats.timing`, `formats.assurance_tier`, `formats.core_requirements`를 뺀 위 필드는 모두 필수다. 목록은 중복 없는 문자열 배열이며 각 문자열은 비어 있지 않다. 빈 형식·기능 목록은 해당 지원이 없다는 뜻이다. 중복 JSON 키, 잘못된 타입, 필수 정보 누락, 손상·뒤에 붙은 JSON은 해석 불가다. 같은 schema의 추가 필드·새 목록 항목은 허용하되 소비자가 아는 필수 지원을 대신하지 않는다.
+선택적이라고 적은 `formats.timing`, `formats.assurance_tier`, `formats.core_requirements`, `formats.review_gate`를 뺀 위 필드는 모두 필수다. 목록은 중복 없는 문자열 배열이며 각 문자열은 비어 있지 않다. 빈 형식·기능 목록은 해당 지원이 없다는 뜻이다. 중복 JSON 키, 잘못된 타입, 필수 정보 누락, 손상·뒤에 붙은 JSON은 해석 불가다. 같은 schema의 추가 필드·새 목록 항목은 허용하되 소비자가 아는 필수 지원을 대신하지 않는다.
 
 | 기능 | 약속 |
 | --- | --- |

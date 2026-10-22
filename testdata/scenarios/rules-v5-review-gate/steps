@@ -1,7 +1,8 @@
 # run-record.md §4.8: under run-rules/5 a standard goal stays pending without a
 # review gate; an unusable gate file is refused and changes nothing; a recorded
 # gate that does not cover HEAD and the goal documents keeps it pending with its
-# reasons and keeps no finding text; lowering the tier to light lets it complete.
+# reasons and keeps no finding text, a plan-only gate of another head is both
+# without a code round and stale; lowering the tier to light lets it complete.
 replace $GOAL/SPEC.md "Status: Ready" "Status: Ready\nAssurance: standard"
 replace $GOAL/PLAN.md "| AC-1 | change | `sh tests/greeting.sh` | tests/greeting.sh | T001 |" "| AC-1 | maintain | `sh tests/greeting.sh` | — | T001 |"
 write tests/greeting.sh "grep -qx hello src/greeting.txt\n"
@@ -30,6 +31,11 @@ ha note $GOAL review --gate .git/missing-gate.json
 expect-exit 65
 expect-output "the file does not exist; nothing recorded"
 expect-records 4
+write .git/negative-gate.json "{\"schema\":\"review-gate/v1\",\"spar_version\":\"0.1.6\",\"state\":\"complete\",\"reasons\":[],\"expect_head\":\"2222222222222222222222222222222222222222\",\"last_reviewed_head\":\"2222222222222222222222222222222222222222\",\"previous_gate_digest\":null,\"rounds\":[{\"path\":\"docs/reviews/greet/0-1-candidate\",\"stage\":\"candidate\",\"sequence\":-1,\"base\":\"1111111111111111111111111111111111111111\",\"head\":\"2222222222222222222222222222222222222222\",\"criteria_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"criteria\":[{\"name\":\"docs/specs/greet/SPEC.md\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\"}],\"packet_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"config_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"requested_reviewers\":[\"host\"],\"required_reviewers\":1,\"completed_required\":1,\"dry_run\":false,\"counted\":true}],\"open\":{\"defect\":0,\"requirement-question\":0},\"open_findings\":[],\"auto_deferred\":0,\"growth\":{\"added_lines\":{\"check\":0,\"other\":0},\"over_hardening\":false,\"rounds\":[]},\"written_at\":\"2026-01-01T00:00:00Z\"}\n"
+ha note $GOAL review --gate .git/negative-gate.json
+expect-exit 65
+expect-output "rounds[0].sequence: negative; nothing recorded"
+expect-records 4
 expect-reasons review_missing
 write .git/gate.json "{\"schema\":\"review-gate/v1\",\"spar_version\":\"0.1.6\",\"state\":\"blocked\",\"reasons\":[\"synthetic reason\"],\"expect_head\":\"2222222222222222222222222222222222222222\",\"last_reviewed_head\":\"2222222222222222222222222222222222222222\",\"previous_gate_digest\":null,\"rounds\":[{\"path\":\"docs/reviews/greet/01-candidate\",\"stage\":\"candidate\",\"sequence\":1,\"base\":\"1111111111111111111111111111111111111111\",\"head\":\"2222222222222222222222222222222222222222\",\"criteria_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"criteria\":[{\"name\":\"docs/specs/greet/SPEC.md\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\"}],\"packet_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"config_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"requested_reviewers\":[\"host\"],\"required_reviewers\":1,\"completed_required\":1,\"dry_run\":false,\"counted\":true}],\"open\":{\"defect\":1,\"requirement-question\":0},\"open_findings\":[\"01-candidate host-F1\"],\"auto_deferred\":0,\"growth\":{\"added_lines\":{\"check\":0,\"other\":0},\"over_hardening\":false,\"rounds\":[]},\"written_at\":\"2026-01-01T00:00:00Z\"}\n"
 ha note $GOAL review --gate .git/gate.json
@@ -41,6 +47,10 @@ expect-absent "host-F1"
 ha done $GOAL
 expect-exit 1
 expect-completion-record absent
+write .git/plan-gate.json "{\"schema\":\"review-gate/v1\",\"spar_version\":\"0.1.6\",\"state\":\"complete\",\"reasons\":[],\"expect_head\":\"2222222222222222222222222222222222222222\",\"last_reviewed_head\":\"2222222222222222222222222222222222222222\",\"previous_gate_digest\":null,\"rounds\":[{\"path\":\"docs/reviews/greet/01-plan\",\"stage\":\"plan\",\"sequence\":1,\"base\":\"1111111111111111111111111111111111111111\",\"head\":\"1111111111111111111111111111111111111111\",\"criteria_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"criteria\":[{\"name\":\"docs/specs/greet/SPEC.md\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\"}],\"packet_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"config_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"requested_reviewers\":[\"host\"],\"required_reviewers\":1,\"completed_required\":1,\"dry_run\":false,\"counted\":true}],\"open\":{\"defect\":0,\"requirement-question\":0},\"open_findings\":[],\"auto_deferred\":0,\"growth\":{\"added_lines\":{\"check\":0,\"other\":0},\"over_hardening\":false,\"rounds\":[]},\"written_at\":\"2026-01-01T00:00:00Z\"}\n"
+ha note $GOAL review --gate .git/plan-gate.json
+expect-exit 0
+expect-reasons review_code_missing review_head_stale
 replace $GOAL/SPEC.md "Assurance: standard" "Assurance: light"
 ha note $GOAL confirm spec --quote "검토 없이 끝내게 light로 낮춰줘"
 expect-exit 0

@@ -98,7 +98,7 @@ def validate(value):
         if not strings(formats.get(key)):
             raise Refusal("invalid_capabilities", ["formats:" + key])
 
-    for key in ("finding", "decision_history", "timing"):
+    for key in ("finding", "decision_history", "timing", "review_gate"):
         if key in formats and not strings(formats[key]):
             raise Refusal("invalid_capabilities", ["formats:" + key])
     return value

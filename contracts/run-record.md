@@ -733,7 +733,7 @@ gate의 `reasons`, `open_findings`, 라운드 `path`, `waived_reviewers`(사용�
 
 fixes 사슬과 기대 head의 확인은 gate 상태 `complete`가 맡는다([review-gate.md](review-gate.md) §2). Core는 사슬을 다시 계산하지 않고, 지적의 옳고 그름도 판단하지 않는다.
 
-이 이유가 하나라도 있으면 `ha done`은 완료를 기록하지 않는다. 완료 기록 뒤에 `review` note를 기록하면 `reopen`처럼 그 완료 기록이 무효가 되고 새 gate로 다시 판정한다(§5.1). 유효한 완료 기록이 있는 동안에는 이 이유를 상태 이유에서 뺀다. 그 완료 기록이 판정한 코드 상태와 목표 문서를 고정하므로, 완료 뒤 묶음 문서만 commit해도 완료가 유지된다. 저장된 `review` 요약이 위 형식에 맞지 않으면 `record_invalid`다.
+이 이유가 하나라도 있으면 `ha done`은 완료를 기록하지 않는다. 완료 기록 뒤에 `review` note를 기록하면 `reopen`처럼 그 완료 기록이 무효가 되고 새 gate로 다시 판정한다(§5.1). 유효한 완료 기록이 있는 동안에는 이 이유를 상태 이유에서 뺀다. 그 완료 기록이 판정한 코드 상태와 목표 문서를 고정하므로, 완료 뒤 묶음 문서만 commit해도 완료가 유지된다. 저장된 `review` 요약의 `gate_digest`가 sha256이 아니거나, `schema`·`state`·`stage`가 위 값 밖이거나, 수가 음수이거나, `criteria` 항목에 이름이나 sha256이 없으면 `record_invalid`다. 기록은 `ha`만 쓰며, 그 밖의 손으로 고친 흔적은 기록 사슬(§2)이 맡는다.
 
 검토 없이 끝내려면 사용자가 등급을 `light`로 낮추는 목표 문서 수정을 정한다. 그 뒤 `confirm spec`과 신선한 검사로 gate 없이 완료된다.
 

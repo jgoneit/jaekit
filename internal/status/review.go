@@ -86,8 +86,12 @@ func (e *evaluator) reviewReasons() []Reason {
 	code := lastRound(g, "candidate", "fixes")
 	if code == nil {
 		add("review_code_missing", at+" has no candidate or fixes round")
-	} else if g.LastReviewedHead != e.head || code.Head != e.head {
+	}
+	switch {
+	case code != nil && (g.LastReviewedHead != e.head || code.Head != e.head):
 		add("review_head_stale", fmt.Sprintf("%s reviewed %s (last code round %s); HEAD is %s", at, short(g.LastReviewedHead), short(code.Head), short(e.head)))
+	case code == nil && g.LastReviewedHead != e.head:
+		add("review_head_stale", fmt.Sprintf("%s reviewed %s; HEAD is %s", at, short(g.LastReviewedHead), short(e.head)))
 	}
 	plan := lastRound(g, "plan", "plan-delta")
 	var stale []string

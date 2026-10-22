@@ -26,16 +26,16 @@ This checks source contracts and executable support. Whether installed Codex or 
 | `ha start <goal> --request "<quote>" --skill <SKILL.md> [--check-skill] [--rules run-rules/4 \| run-rules/5] [--test-authority "…"] [--host-name …] [--host-version …] [--model …]` | Records the start once per goal. Refuses lint problems, a second start, a PLAN limit below the required minimum, an automatic limit above the user's pre-approved limit, and, with `--check-skill`, missing Core support the skill declares, before writing a start record. Add `--host-name`, `--host-version` and `--model` when you know them. Without `--rules` the goal uses the default `run-rules/3` |
 | `ha check <goal> [AC-n \| EX-n \| T001 …]` | Runs the conditions' commands at HEAD and records each result. With no targets it runs every required `change` and `maintain` condition |
 | `ha check <goal> --baseline [AC-n …]` | Runs `change` conditions on a temporary worktree of the base commit with their check paths copied from HEAD. Expected result: `fail_as_expected` |
-| `ha budget <goal> --runs N --from P --window W --revision R [--quote "…" --context "…"] [--reason "…"] [--interpretation "…"]` | `/3` and `/4`: changes the current window's total run limit while retaining usage; quote and context for increases, reason for decreases |
-| `ha budget <goal> --preapprove N --window W --revision R --quote "…" --context "…"` | `/4` only: records the user's pre-approved run limit for the window; the limit itself stays |
+| `ha budget <goal> --runs N --from P --window W --revision R [--quote "…" --context "…"] [--reason "…"] [--interpretation "…"]` | `/3`, `/4` and `/5`: changes the current window's total run limit while retaining usage; quote and context for increases, reason for decreases |
+| `ha budget <goal> --preapprove N --window W --revision R --quote "…" --context "…"` | `/4` and `/5` only: records the user's pre-approved run limit for the window; the limit itself stays |
 | `ha note <goal> confirm <AC-n \| scope:<path> \| tests:<path> \| spec> --quote "…"` | Records a quoted user confirmation, bound to the current content. It loses effect if that content changes |
 | `ha note <goal> reopen --quote "…"` | Records a rework request; voids the completion record and opens a new budget window |
 | `ha note <goal> input --quote "…"` | Records any other user instruction or answer |
 | `ha note <goal> block --cause <cause> [--quote "…"]` / `unblock` | Records a stop that cannot be fixed by retrying, and its end |
-| `ha note <goal> test-change tests:<path> --criteria AC-n[,…] --how "…" [--moved-to <path> …] [--weakened]` | `/4` only: the executor's reason for changing an existing test, bound to the files at HEAD |
-| `ha note <goal> wait --reason "…"` / `resume` | `/4` only: the start and end of a wait for the user that the executor reports |
-| `ha note <goal> recover <AC-n> --input check\|baseline --change "…"` | `/4` only: resets an input past its error limit; earlier errors leave the limit, failures stay |
-| `ha note <goal> allow-recovery <AC-n> --input check\|baseline --count N --quote "…"` | `/4` only: the user allows N more recoveries for that input |
+| `ha note <goal> test-change tests:<path> --criteria AC-n[,…] --how "…" [--moved-to <path> …] [--weakened]` | `/4` and `/5` only: the executor's reason for changing an existing test, bound to the files at HEAD |
+| `ha note <goal> wait --reason "…"` / `resume` | `/4` and `/5` only: the start and end of a wait for the user that the executor reports |
+| `ha note <goal> recover <AC-n> --input check\|baseline --change "…"` | `/4` and `/5` only: resets an input past its error limit; earlier errors leave the limit, failures stay |
+| `ha note <goal> allow-recovery <AC-n> --input check\|baseline --count N --quote "…"` | `/4` and `/5` only: the user allows N more recoveries for that input |
 | `ha note <goal> review --gate <file>` | `/5` only: records a `review-gate/v1` file's digest and the summary the review judgment reads. An unusable file exits 65 and records nothing |
 | `ha status <goal> [--format md\|json]` | Prints the computed state |
 | `ha report <goal> [--lang ko\|en]` | Prints the same state for people: a five-line summary, the stamp for `## 현재`, evidence per condition, completion coverage and where unmet output is. Read-only and deterministic; records nothing |

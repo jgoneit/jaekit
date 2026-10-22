@@ -130,7 +130,7 @@ func readRound(raw json.RawMessage, where string) (record.ReviewRound, error) {
 	if !oneOf(r.Stage, Stages) {
 		return r, fmt.Errorf("%s.stage %q is not one of %s", where, r.Stage, strings.Join(Stages, ", "))
 	}
-	if r.Sequence, err = o.integer("sequence"); err != nil {
+	if r.Sequence, err = o.count("sequence"); err != nil {
 		return r, err
 	}
 	if r.Base, err = o.text("base"); err != nil {
@@ -199,8 +199,8 @@ func Valid(d *record.ReviewData) error {
 		if !oneOf(r.Stage, Stages) {
 			return fmt.Errorf("rounds[%d].stage %q is not one of %s", i, r.Stage, strings.Join(Stages, ", "))
 		}
-		if r.RequiredReviewers < 0 || r.CompletedRequired < 0 {
-			return fmt.Errorf("rounds[%d] has a negative reviewer count", i)
+		if r.Sequence < 0 || r.RequiredReviewers < 0 || r.CompletedRequired < 0 {
+			return fmt.Errorf("rounds[%d] has a negative sequence or reviewer count", i)
 		}
 		for j, c := range r.Criteria {
 			if c.Name == "" || !IsSHA256(c.SHA256) {
