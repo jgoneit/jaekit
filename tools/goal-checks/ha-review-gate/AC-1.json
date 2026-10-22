@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "RecordsTheGateSummary",
+      "violation": "gate-summary-not-recorded",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestHaReviewGateAC1_RecordsTheGateSummary"
+      }
+    },
+    {
+      "id": "SparGateNamesRoundCriteria",
+      "violation": "gate-round-criteria-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestHaReviewGateAC1_SparGateNamesRoundCriteria"
+      }
+    }
+  ]
+}

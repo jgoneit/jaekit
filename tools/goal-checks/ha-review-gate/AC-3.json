@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "StrictPlanRound",
+      "violation": "strict-plan-review-not-required",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestHaReviewGateAC3_StrictGoalNeedsACoveringPlanRound"
+      }
+    }
+  ]
+}
