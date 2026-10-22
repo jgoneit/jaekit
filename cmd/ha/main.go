@@ -20,6 +20,7 @@ import (
 	"github.com/jgoneit/jaekit/internal/gitx"
 	"github.com/jgoneit/jaekit/internal/goaldocs"
 	"github.com/jgoneit/jaekit/internal/record"
+	"github.com/jgoneit/jaekit/internal/reviewgate"
 	"github.com/jgoneit/jaekit/internal/run"
 	"github.com/jgoneit/jaekit/internal/status"
 )
@@ -45,27 +46,28 @@ Usage:
   ha lint   <goal>
   ha estimate <goal> [AC-n | EX-n | T001 ...] [--baseline] [--format md|json]
   ha start  <goal> --request <quote> [--skill <path to SKILL.md> [--check-skill]]
-                   [--rules run-rules/4] [--test-authority <agent interpretation>]
+                   [--rules run-rules/4|run-rules/5] [--test-authority <agent interpretation>]
                    [--host-name <name>] [--host-version <version>] [--model <model>]
   ha check  <goal> [AC-n | EX-n | T001 ...] [--baseline]
   ha budget <goal> --runs <total> --from <old-total> --window <seq> --revision <seq>
                     [--quote <user words> --context <request context>]
                     [--reason <reason>] [--interpretation <agent interpretation>]
   ha budget <goal> --preapprove <total> --window <seq> --revision <seq>
-                    --quote <user words> --context <request context>      (run-rules/4)
+                    --quote <user words> --context <request context>      (run-rules/4, /5)
   ha note   <goal> block --cause <auth|permission|quota|environment|spec|other> [--quote <text>]
   ha note   <goal> unblock [--quote <text>]
   ha note   <goal> confirm <AC-n | scope:<path> | tests:<path> | spec> --quote <user words>
   ha note   <goal> reopen --quote <user words>
   ha note   <goal> input --quote <user words>
   ha note   <goal> test-change tests:<path> --criteria <AC-n,...> --how <how it is checked>
-                   [--moved-to <path> ...] [--weakened]                   (run-rules/4)
-  ha note   <goal> wait --reason <decision asked>                         (run-rules/4)
-  ha note   <goal> resume                                                 (run-rules/4)
+                   [--moved-to <path> ...] [--weakened]                   (run-rules/4, /5)
+  ha note   <goal> wait --reason <decision asked>                         (run-rules/4, /5)
+  ha note   <goal> resume                                                 (run-rules/4, /5)
   ha note   <goal> recover <AC-n> --input check|baseline --change <changed condition>
-                                                                          (run-rules/4)
+                                                                          (run-rules/4, /5)
   ha note   <goal> allow-recovery <AC-n> --input check|baseline --count <n> --quote <user words>
-                                                                          (run-rules/4)
+                                                                          (run-rules/4, /5)
+  ha note   <goal> review --gate <review-gate/v1 file>                    (run-rules/5)
   ha finding <goal> [--input <JSON file>] [--format json|md]
   ha history <goal> [add|current|list|show] ...   (see ha history --help)
   ha status <goal> [--format md|json]
@@ -296,11 +298,12 @@ func (c *cli) start(in []string) int {
 	if quote == "" {
 		return c.fail(exitUsage, "--request is required: quote the user's request that authorizes this goal")
 	}
-	// run-rules/4 is chosen, never the default (run-record.md §4.6).
+	// run-rules/4 and run-rules/5 are chosen, never the default
+	// (run-record.md §4.6).
 	goalRules := status.Rules
 	if r, ok := a.vals["rules"]; ok && r != status.Rules {
-		if r != status.RulesV4 {
-			return c.fail(exitUsage, "--rules accepts %s or %s", status.RulesV3, status.RulesV4)
+		if r != status.RulesV4 && r != status.RulesV5 {
+			return c.fail(exitUsage, "--rules accepts %s, %s or %s", status.RulesV3, status.RulesV4, status.RulesV5)
 		}
 		goalRules = r
 		if w.bundle, err = bundle.LoadForRules(w.repo.Root, w.goal, goalRules); err != nil {
@@ -309,8 +312,8 @@ func (c *cli) start(in []string) int {
 	}
 	interpretation, hasAuthority := a.vals["test-authority"]
 	interpretation = strings.TrimSpace(interpretation)
-	if hasAuthority && (goalRules != status.RulesV4 || interpretation == "") {
-		return c.fail(exitUsage, "--test-authority needs --rules %s and the executor's reading of the request", status.RulesV4)
+	if hasAuthority && (!status.Autonomous(goalRules) || interpretation == "") {
+		return c.fail(exitUsage, "--test-authority needs --rules %s or %s and the executor's reading of the request", status.RulesV4, status.RulesV5)
 	}
 	if a.bools["check-skill"] && a.vals["skill"] == "" {
 		return c.fail(exitUsage, "--check-skill needs --skill <path to SKILL.md>")
@@ -392,7 +395,7 @@ func (c *cli) start(in []string) int {
 	if auto != nil {
 		e.Budget.Auto = auto.record()
 	}
-	if goalRules == status.RulesV4 {
+	if status.Autonomous(goalRules) {
 		// The authority range and the test classification stay as started.
 		e.Scope = &record.ScopeCopy{Allowed: append([]string{}, w.bundle.Scope.Allowed...),
 			Tests: append([]string{}, w.bundle.Scope.Tests...)}
@@ -574,7 +577,7 @@ func (c *cli) check(in []string) int {
 		var binding string
 		var extraEnv []string
 		limit := checkTimeout
-		if start.Rules == status.RulesV4 {
+		if status.Autonomous(start.Rules) {
 			limit = w.bundle.Limit(t.label())
 			if notice := timeLimitNotice(lines, t.label()); notice != "" {
 				fmt.Fprintln(c.out, notice)
@@ -582,7 +585,7 @@ func (c *cli) check(in []string) int {
 		}
 		t.limit = limit
 		digest := bundle.Digest(t.command)
-		if start.Rules == status.RulesV4 {
+		if status.Autonomous(start.Rules) {
 			digest = bundle.LimitDigest(digest, limit)
 		}
 		if row := w.bundle.Row(t.criterion); row != nil {
@@ -615,7 +618,7 @@ func (c *cli) check(in []string) int {
 		var res run.Result
 		var overlay []record.Overlay
 		var startedAt string
-		if start.Rules == status.RulesV4 {
+		if status.Autonomous(start.Rules) {
 			startedAt = time.Now().UTC().Format(time.RFC3339)
 		}
 		if baseline {
@@ -749,7 +752,7 @@ func (c *cli) check(in []string) int {
 	return exitProblems
 }
 
-// Notice before a run-rules/4 run (run-record.md §4.7): earlier runs of the same
+// Notice before a run-rules/4 or run-rules/5 run (run-record.md §4.7): earlier runs of the same
 // target that reached their limit or used at least noticePermille of it.
 const (
 	noticePrefix   = "time-limit notice:"
@@ -853,34 +856,40 @@ func (c *cli) runBaseline(w *workspace, base, head string, t target, logPath str
 
 var blockCauses = []string{"auth", "permission", "quota", "environment", "spec", "other"}
 
-// rules4Notes are the note kinds only run-rules/4 goals record (run-record.md
-// §4.7); earlier rules refuse them before writing.
+// rules4Notes are the note kinds only run-rules/4 and run-rules/5 goals
+// record (run-record.md §4.7); earlier rules refuse them before writing.
 var rules4Notes = map[string]bool{"test-change": true, "wait": true, "resume": true, "recover": true, "allow-recovery": true}
 
-// noteFlags are the run-rules/4 options each note kind takes.
+// noteFlags are the run-rules/4 and run-rules/5 options each note kind takes.
 var noteFlags = map[string]map[string]bool{
 	"test-change":    {"criteria": true, "how": true, "moved-to": true, "weakened": true},
 	"wait":           {"reason": true},
 	"recover":        {"input": true, "change": true},
 	"allow-recovery": {"input": true, "count": true},
+	"review":         {"gate": true},
 }
 
 func (c *cli) note(in []string) int {
-	a, err := parseFlags(in, []string{"quote", "cause", "reason", "criteria", "how", "input", "change", "count"}, []string{"moved-to"}, []string{"weakened"})
+	a, err := parseFlags(in, []string{"quote", "cause", "reason", "criteria", "how", "input", "change", "count", "gate"}, []string{"moved-to"}, []string{"weakened"})
 	if err != nil {
 		return c.fail(exitUsage, "%v", err)
 	}
 	if len(a.pos) < 2 {
-		return c.fail(exitUsage, "usage: ha note <goal> <block|unblock|confirm|reopen|input|test-change|wait|resume|recover|allow-recovery> ...")
+		return c.fail(exitUsage, "usage: ha note <goal> <block|unblock|confirm|reopen|input|test-change|wait|resume|recover|allow-recovery|review> ...")
 	}
-	// The run-rules/4 options belong to their note kinds; every other kind
-	// refuses them as an unknown flag, as before they existed.
-	for _, name := range []string{"reason", "criteria", "how", "input", "change", "count", "moved-to", "weakened"} {
+	// The run-rules/4 and run-rules/5 options belong to their note kinds;
+	// every other kind refuses them as an unknown flag, as before they
+	// existed.
+	for _, name := range []string{"reason", "criteria", "how", "input", "change", "count", "moved-to", "weakened", "gate"} {
 		_, val := a.vals[name]
 		_, list := a.lists[name]
 		if (val || list || a.bools[name]) && !noteFlags[a.pos[1]][name] {
 			return c.fail(exitUsage, "unknown flag --%s for %s notes", name, a.pos[1])
 		}
+	}
+	// A review note records a gate file, not the user's words.
+	if _, quoted := a.vals["quote"]; quoted && a.pos[1] == "review" {
+		return c.fail(exitUsage, "unknown flag --quote for review notes")
 	}
 	w, code := c.openOrFail(a, 2)
 	if w == nil {
@@ -895,8 +904,11 @@ func (c *cli) note(in []string) int {
 		return c.fail(exitRules, "%v", &status.UnsupportedRulesError{Rules: goalRules})
 	}
 	kind, quote := a.pos[1], strings.TrimSpace(a.vals["quote"])
-	if rules4Notes[kind] && goalRules != status.RulesV4 {
-		return c.fail(exitRefused, "%s notes need a goal started with %s; this goal keeps %s", kind, status.RulesV4, goalRules)
+	if rules4Notes[kind] && !status.Autonomous(goalRules) {
+		return c.fail(exitRefused, "%s notes need a goal started with %s or %s; this goal keeps %s", kind, status.RulesV4, status.RulesV5, goalRules)
+	}
+	if kind == "review" && !status.Reviewed(goalRules) {
+		return c.fail(exitRefused, "review notes need a goal started with %s; this goal keeps %s", status.RulesV5, goalRules)
 	}
 	e := &record.Note{Header: record.Header{Kind: "note", HaVersion: version}, Note: kind, Quote: quote}
 	var validate func([]record.Line) error
@@ -960,6 +972,16 @@ func (c *cli) note(in []string) int {
 			return c.fail(exitUsage, "wait needs --reason naming the decision the user was asked")
 		}
 	case "resume":
+	case "review":
+		path := a.vals["gate"]
+		if strings.TrimSpace(path) == "" {
+			return c.fail(exitUsage, "review needs --gate <review-gate/v1 file>")
+		}
+		review, err := reviewgate.Read(path)
+		if err != nil {
+			return c.fail(exitRefused, "review gate %s: %v; nothing recorded", path, err)
+		}
+		e.Review = review
 	case "recover", "allow-recovery":
 		if len(a.pos) < 3 {
 			return c.fail(exitUsage, "%s needs a condition ID", kind)

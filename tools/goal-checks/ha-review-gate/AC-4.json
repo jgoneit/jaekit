@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "StaleHead",
+      "violation": "stale-review-head-accepted",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestHaReviewGateAC4_StaleReviewedHeadKeepsCompletionPending"
+      }
+    }
+  ]
+}

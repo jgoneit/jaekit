@@ -344,7 +344,7 @@ func TestSealSlimAC13_StartFormChecksSkill(t *testing.T) {
 		ssViolate(t, id, "%s names no `ha start <goal> … --skill …` command", ssSkill)
 		return
 	}
-	for _, flag := range []string{"--check-skill", "--rules run-rules/4", "--skill <path to this SKILL.md>"} {
+	for _, flag := range []string{"--check-skill", "--rules run-rules/5", "--skill <path to this SKILL.md>"} {
 		if !strings.Contains(form, flag) {
 			ssViolate(t, id, "the start form %q lacks %s", form, flag)
 		}
@@ -687,12 +687,15 @@ func TestSealSlimAC17_RoundCap(t *testing.T) {
 		"At a round cap, ask the user as the Spar skill says; never pass it or skip the cumulative round without the user's words.")
 }
 
-// AC-17: without Spar.
+// AC-17: without Spar. A separate review stands in for Spar only for goals
+// started under run-rules/4 or earlier, whose rule lives in the reference read
+// when continuing them.
 func TestSealSlimAC17_WithoutSpar(t *testing.T) {
 	const id = "spar-absence-unhandled"
 	ssRequire(t, id, ssSkill, ssRead(t, id, ssSkill),
-		"Without Spar, a separate review recording role, inputs, versions, findings, limits and inspectable references counts if the report names it, says Spar was not used, and it covered the whole last head before `ha done`",
 		"When a required review is unavailable, keep completion pending", "report a skipped optional review")
+	ssRequire(t, id, ssEarlierRef, ssRead(t, id, ssEarlierRef),
+		"For goals started under `run-rules/4` or earlier: Without Spar, a separate review recording role, inputs, versions, findings, limits and inspectable references counts if the report names it, says Spar was not used, and it covered the whole last head before `ha done`")
 }
 
 // AC-17: records point to Spar's records instead of copying findings.
@@ -964,8 +967,8 @@ func TestSealSlimAC36_Declaration(t *testing.T) {
 			}
 		}
 	}
-	has(decl.Rules, "run-rules/4")
-	has(decl.Features, "test-authority/v1", "reported-wait/v1", "preapproved-runs/v1", "error-recovery/v1", "command-time-limits/v1",
+	has(decl.Rules, "run-rules/5")
+	has(decl.Features, "review-gate/v1", "test-authority/v1", "reported-wait/v1", "preapproved-runs/v1", "error-recovery/v1", "command-time-limits/v1",
 		"structured-change-results/v1", "report/v1", "doctor/v1", "auto-budget/v1")
 	has(decl.Formats["check_declaration"], "check-declaration/v1")
 	has(decl.Formats["check_result"], "check-result/v1")

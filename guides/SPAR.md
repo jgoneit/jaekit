@@ -98,4 +98,4 @@ Spar는 지적을 `defect`, `requirement-question`, `hardening`, `note` 가운�
 
 필수 리뷰어가 사용량 한도 같은 이유로 라운드를 끝내지 못했고 사용자가 그 리뷰어 없이 진행하라고 하면, 에이전트가 `spar waive <라운드> <리뷰어> --user-quote "…"`로 그 말을 그 라운드에 기록합니다. 사용자의 말 없이는 기록하지 않습니다. 결정이 기록된 리뷰어는 그 라운드의 `degraded` 사유가 되지 않고, gate 파일의 그 라운드 `waived_reviewers`에 상태와 사용자의 말이 함께 보입니다. 결정은 그 라운드에만 적용되고, 완료한 필수 리뷰어가 하나도 없는 라운드는 결정이 있어도 `degraded`입니다.
 
-gate는 검토 기록이지 완료 근거가 아닙니다. Seal의 완료는 여전히 `ha done`에서만 나옵니다.
+gate는 검토 기록이지 완료 근거가 아닙니다. Seal의 완료는 여전히 `ha done`에서만 나옵니다. `run-rules/5`로 시작한 `standard`·`strict` 목표에서는 Seal이 gate 파일을 `ha note <goal> review --gate <file>`로 기록하고, 기록된 gate가 지금 HEAD와 목표 문서를 덮어야 `ha done`이 완료를 기록합니다([검토 gate](USAGE.md#검토-gate-run-rules5)). 그래서 라운드에는 SPEC.md와 그것이 링크한 목표 문서를 모두 `--criteria`로 줍니다.

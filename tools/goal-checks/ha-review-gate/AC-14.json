@@ -1,0 +1,38 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "RunRecord",
+      "violation": "run-record-gate-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestHaReviewGateAC14_RunRecordContractStatesTheGate"
+      }
+    },
+    {
+      "id": "Capabilities",
+      "violation": "capabilities-gate-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestHaReviewGateAC14_CapabilitiesContractStatesTheGate"
+      }
+    },
+    {
+      "id": "Guides",
+      "violation": "guide-gate-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestHaReviewGateAC14_GuidesStateTheGate"
+      }
+    },
+    {
+      "id": "SealWithoutSpar",
+      "violation": "seal-without-spar-sentence-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestHaReviewGateAC14_SealSkillStatesNoGateNoCompletion"
+      }
+    }
+  ]
+}

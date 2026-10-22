@@ -1,6 +1,6 @@
 # Goals started with an earlier Seal
 
-Read this only when you continue a goal whose start record names a Seal earlier than 0.1.20 (the `skill:` line of `ha status`). Such a goal keeps the run rules, PROGRESS form, review format, completion report format and budget it started with. Never convert its records, `PROGRESS.md`, `REVIEW.md` or completion report, and never fill in observations the earlier form did not record. Review rounds and checks you run from now on follow the current skill; only the documents keep their starting form. The `ha` results for the goal do not depend on the Seal version that carries it.
+Read this only when you continue a goal whose start record names a Seal earlier than 0.1.20 (the `skill:` line of `ha status`), or, for its independent review, a goal started under `run-rules/4` or earlier. Such a goal keeps the run rules, PROGRESS form, review format, completion report format and budget it started with. Never convert its records, `PROGRESS.md`, `REVIEW.md` or completion report, and never fill in observations the earlier form did not record. Review rounds and checks you run from now on follow the current skill; only the documents keep their starting form. The `ha` results for the goal do not depend on the Seal version that carries it.
 
 ## Starting and resuming
 
@@ -20,6 +20,10 @@ Their budget is the number their PLAN gave at the start (the earlier default was
 - Goals started with Seal 0.1.11 or later link condition groups to the selected assurance policy, its source and the required or optional guarantees ([bundle.md](bundle.md#assurance-policy-and-counterexamples)). Their `REVIEW.md` has no `## 독립 검토` section; record the tier and review stages you apply from now on under `## 검증 방법과 환경` or the completion report, without rewriting what is there.
 - Checks written or changed from Seal 0.1.14 on follow the check input rules ([bundle.md](bundle.md#check-inputs)) whichever Seal started the goal; existing checks are not rewritten for this reason alone.
 - Reports using Seal 0.1.12 or later may hold post-completion discoveries in the document format ([bundle.md](bundle.md#post-completion-discovery-documents)).
+
+## Goals started under run-rules/4 or earlier
+
+Core does not use a review gate for these goals. For goals started under `run-rules/4` or earlier: Without Spar, a separate review recording role, inputs, versions, findings, limits and inspectable references counts if the report names it, says Spar was not used, and it covered the whole last head before `ha done`.
 
 ## Completion report
 

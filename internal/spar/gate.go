@@ -20,22 +20,32 @@ const (
 
 // GateRound is one round as the gate file lists it.
 type GateRound struct {
-	Path               string   `json:"path"`
-	Stage              string   `json:"stage"`
-	Sequence           int      `json:"sequence"`
-	Base               string   `json:"base"`
-	Head               string   `json:"head"`
-	CriteriaDigest     string   `json:"criteria_digest"`
-	PacketDigest       string   `json:"packet_digest"`
-	ConfigDigest       string   `json:"config_digest"`
-	RequestedReviewers []string `json:"requested_reviewers"`
-	RequiredReviewers  int      `json:"required_reviewers"`
-	CompletedRequired  int      `json:"completed_required"`
-	DryRun             bool     `json:"dry_run"`
-	Counted            bool     `json:"counted"`
+	Path           string `json:"path"`
+	Stage          string `json:"stage"`
+	Sequence       int    `json:"sequence"`
+	Base           string `json:"base"`
+	Head           string `json:"head"`
+	CriteriaDigest string `json:"criteria_digest"`
+	// Criteria are the criteria documents the round received, by name and
+	// content, so a reader can tell which goal documents it reviewed.
+	Criteria           []GateDocument `json:"criteria"`
+	PacketDigest       string         `json:"packet_digest"`
+	ConfigDigest       string         `json:"config_digest"`
+	RequestedReviewers []string       `json:"requested_reviewers"`
+	RequiredReviewers  int            `json:"required_reviewers"`
+	CompletedRequired  int            `json:"completed_required"`
+	DryRun             bool           `json:"dry_run"`
+	Counted            bool           `json:"counted"`
 	// WaivedReviewers are the required reviewers the user's decision in
 	// this round covers; a round without one has no such field.
 	WaivedReviewers []GateWaiver `json:"waived_reviewers,omitempty"`
+}
+
+// GateDocument is a criteria document a round received: its name (G26) and
+// the sha256 of its content, never its source path.
+type GateDocument struct {
+	Name   string `json:"name"`
+	SHA256 string `json:"sha256"`
 }
 
 // GateWaiver is a required reviewer a round went on without, by the user's
@@ -211,6 +221,10 @@ func Gate(o GateOptions) (int, error) {
 			DryRun: r.DryRun, Counted: r.Counted}
 		if r.Config != nil {
 			gr.ConfigDigest = r.Config.Digest
+		}
+		gr.Criteria = []GateDocument{}
+		for _, d := range r.Criteria {
+			gr.Criteria = append(gr.Criteria, GateDocument{Name: d.Name, SHA256: d.SHA256})
 		}
 		required := requiredOf(r)
 		gr.RequiredReviewers = len(required)

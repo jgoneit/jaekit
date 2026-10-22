@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "UnusableGate",
+      "violation": "unusable-gate-recorded",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestHaReviewGateAC8_UnusableGateFileIsRefused"
+      }
+    }
+  ]
+}

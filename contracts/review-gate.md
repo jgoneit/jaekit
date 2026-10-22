@@ -51,7 +51,8 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
   "previous_gate_digest": null,
   "rounds": [{
     "path": "docs/reviews/example/02-candidate", "stage": "candidate", "sequence": 2,
-    "base": "1111111…", "head": "2222222…", "criteria_digest": "…", "packet_digest": "…", "config_digest": "…",
+    "base": "1111111…", "head": "2222222…", "criteria_digest": "…",
+    "criteria": [{"name": "docs/specs/example/SPEC.md", "sha256": "…"}], "packet_digest": "…", "config_digest": "…",
     "requested_reviewers": ["claude", "codex", "agy"], "required_reviewers": 3, "completed_required": 3,
     "dry_run": false, "counted": true
   }],
@@ -70,6 +71,7 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
 | `last_reviewed_head` | 마지막으로 검토된 head |
 | `previous_gate_digest` | 같은 `--out` 경로에 있던 이전 gate 파일 바이트의 sha256, 없으면 `null` |
 | `rounds[]` | 라운드의 `criteria_digest`, 패킷 digest(`packet_digest`), 설정 digest(`config_digest`), 요청한 리뷰어 이름과 필수로 인정된 리뷰어 수(`required_reviewers`), 그중 완료한 수(`completed_required`, 같은 단계·base·head·패킷의 재실행에서 완료한 것 포함) |
+| `rounds[].criteria` | 라운드가 받은 기준 문서마다 `round.json`의 순서대로 `name`(저장소 안이면 저장소 상대 경로, 밖이면 파일 이름; 심볼릭 링크를 푼 이름)과 내용의 `sha256`. 원본 경로는 넣지 않는다. `ha`의 `run-rules/5`가 목표 문서와의 대응을 이것으로 판단한다([run-record.md](run-record.md) §4.8) |
 | `rounds[].waived_reviewers` | 결정이 적용된 필수 리뷰어마다 `name`, `preset`, `status`(`round.json`의 상태, 라운드가 그 이름과 preset의 리뷰어를 실행하지 않았으면 `not_run`), `reason`(`round.json`의 원인, 없으면 빠짐), `user_quote`, `recorded_at`(결정의 기록 시각). `completed_required`에 세지 않는다. 적용된 결정이 없는 라운드에는 이 필드가 없다 |
 | `open` | 열린 `defect`와 `requirement-question` 수 |
 | `open_findings` | 열린 지적의 라운드와 ID |

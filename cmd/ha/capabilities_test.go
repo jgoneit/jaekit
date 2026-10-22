@@ -41,19 +41,19 @@ func TestCompatibilityAC7_GoallessReadOnlyQuery(t *testing.T) {
 		t.Fatalf("[requirement] wrong capability identity/default: %v", report)
 	}
 	wanted := map[string]any{
-		"supported_rules": []any{"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4"},
+		"supported_rules": []any{"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5"},
 		"formats": map[string]any{
 			"finding":          []any{"run-finding/v1"},
 			"decision_history": []any{"decision-history/v1"},
 			"criteria":         []any{"legacy", "nested/1"}, "check_declaration": []any{"check-declaration/v1", "check-adapter/v1"},
 			"check_result": []any{"check-result/v1"}, "check_evidence": []any{"check-evidence/v1"},
 			"timing": []any{"timing/v1"}, "assurance_tier": []any{"light", "standard", "strict"},
-			"core_requirements": []any{"core-requirements/v1"},
+			"core_requirements": []any{"core-requirements/v1"}, "review_gate": []any{"review-gate/v1"},
 		},
 		"features": []any{"estimate/v1", "dirty-preflight/v1", "baseline-safe-copy/v1", "structured-change-results/v1", "budget-change/v1", "post-completion-findings/v1", "decision-history/v1", "run-timing/v1",
 			"test-authority/v1", "reported-wait/v1", "preapproved-runs/v1", "error-recovery/v1", "command-time-limits/v1", "runner-adapters/v1",
 			"report/v1", "doctor/v1",
-			"auto-budget/v1", "core-requirements/v1"},
+			"auto-budget/v1", "core-requirements/v1", "review-gate/v1"},
 	}
 	for key, want := range wanted {
 		if !reflect.DeepEqual(report[key], want) {
@@ -186,7 +186,7 @@ func TestCompatibilityAC8_ConsumerAndActualBinary(t *testing.T) {
 			t.Fatal(err)
 		}
 		hash := sha256.Sum256(data)
-		if report["executable"] != resolved || report["sha256"] != hex.EncodeToString(hash[:]) || report["rules"] != "run-rules/4" {
+		if report["executable"] != resolved || report["sha256"] != hex.EncodeToString(hash[:]) || report["rules"] != "run-rules/5" {
 			t.Fatalf("[requirement] decision does not bind the actual binary: %v", report)
 		}
 		entries, err := os.ReadDir(dir)

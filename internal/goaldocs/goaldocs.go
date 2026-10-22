@@ -61,8 +61,16 @@ type Goal struct {
 	Criteria  []Criterion
 	Proposals []Proposal
 	Docs      []string // repository-relative paths of the goal document set, sorted
-	Digest    string   // goal digest (hex sha256), see Digest
-	Problems  []diag.Problem
+	// DocSHA256 is the hex sha256 of each document's content, by its path in
+	// Docs: what a review round names as a criteria document it received.
+	DocSHA256 map[string]string
+	// DocResolved is each document's name once symbolic links are resolved:
+	// the repository path of the file it resolves to, or that file's base
+	// name when it lies outside the repository. A review round may name a
+	// document either way.
+	DocResolved map[string]string
+	Digest      string // goal digest (hex sha256), see Digest
+	Problems    []diag.Problem
 }
 
 // Criterion returns the criterion with the given ID, or nil.
@@ -382,12 +390,33 @@ func (g *Goal) collectDocs(root, specPath, specSrc string) error {
 			queue = append(queue, p)
 		}
 	}
+	g.DocSHA256, g.DocResolved = map[string]string{}, map[string]string{}
 	for p := range docs {
 		g.Docs = append(g.Docs, p)
+		g.DocSHA256[p] = sha(docs[p])
+		g.DocResolved[p] = resolvedName(root, p)
 	}
 	sort.Strings(g.Docs)
 	g.Digest = Digest(g.Docs, docs)
 	return nil
+}
+
+// resolvedName is the name of the document at the repository path p once
+// symbolic links in the repository root and in p are resolved; p itself when
+// it cannot be resolved.
+func resolvedName(root, p string) string {
+	real, err := filepath.EvalSymlinks(filepath.Join(root, filepath.FromSlash(p)))
+	if err != nil {
+		return p
+	}
+	if r, err := filepath.EvalSymlinks(root); err == nil {
+		root = r
+	}
+	rel, err := filepath.Rel(root, real)
+	if err != nil || !filepath.IsLocal(rel) {
+		return filepath.Base(real)
+	}
+	return filepath.ToSlash(rel)
 }
 
 // Digest is the goal digest: the sha256 of, for each document in path order,

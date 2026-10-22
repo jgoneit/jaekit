@@ -247,6 +247,15 @@ The cumulative round is a candidate round over the whole change, from the goal's
 
 The Seal skill body went from about 4,600 words to at most 2,200 words. The formats of goals started with an earlier Seal moved to a reference read only when continuing such a goal (`references/earlier-goals.md`); the records and documents of those goals do not change.
 
+## Review gate (run-rules/5)
+
+Starting with Seal 0.1.21, Seal starts new goals with `ha start --rules run-rules/5` when the Core supports `run-rules/5` and the review gate. `run-rules/5` keeps all of `run-rules/4`'s autonomy and adds a recorded independent review as a completion condition for goals whose SPEC tier is `standard` or `strict`.
+
+- Once the cumulative round ends with no open finding, Seal makes a gate with `spar gate` from that series' rounds for HEAD, records the gate file with `ha note <goal> review --gate <file>`, and then runs `ha done`. The record keeps the file digest and the summary the judgment needs, never the findings' text.
+- Without a gate the status shows `review_missing`; with a commit after the review, `review_head_stale`; when the goal documents changed after the review or a round did not receive them all, `review_docs_stale`. Completion is not recorded. A `blocked` or `degraded` gate, an open `defect` or `requirement-question`, a gate with no code round, and a `strict` goal with no plan round each have their own reason too. User confirmations and other notes do not stand in for a gate.
+- To finish without review when Spar cannot run, you decide a SPEC change that lowers the tier to `Assurance: light`. After `confirm spec` and fresh checks, the goal completes without a gate.
+- A `light` goal, a goal without the tier line, and goals started under `run-rules/1` to `run-rules/4` are judged without a gate, as before.
+
 ## Troubleshooting
 
 | Symptom | What to do |

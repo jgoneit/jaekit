@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "MissingGate",
+      "violation": "missing-gate-accepted",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestHaReviewGateAC7_MissingGateKeepsCompletionPending"
+      }
+    }
+  ]
+}

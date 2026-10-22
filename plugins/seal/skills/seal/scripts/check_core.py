@@ -16,11 +16,17 @@ import shutil
 import subprocess
 import sys
 
-KNOWN_RULES = {"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4"}
-# Seal starts new goals under run-rules/4, chosen with `ha start --rules`; the
+KNOWN_RULES = {"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5"}
+# Seal starts new goals under run-rules/5, chosen with `ha start --rules`; the
 # Core's default rule stays run-rules/3.
-START_RULES = "run-rules/4"
-STRUCTURED_RULES = {"run-rules/3", "run-rules/4"}
+START_RULES = "run-rules/5"
+STRUCTURED_RULES = {"run-rules/3", "run-rules/4", "run-rules/5"}
+# run-rules/5 keeps run-rules/4 and adds the recorded review gate. A Core that
+# lists the review-gate/v1 feature reads the review-gate/v1 format
+# (contracts/core-capabilities.md §9), so an existing goal needs the feature.
+AUTONOMOUS_RULES = {"run-rules/4", "run-rules/5"}
+REVIEW_GATE_FEATURES = {"review-gate/v1"}
+REVIEW_GATE_FORMATS = {"review_gate": {"review-gate/v1"}}
 FORMATS = {
     "check_declaration": "check-declaration/v1",
     "check_result": "check-result/v1",
@@ -30,16 +36,18 @@ EXECUTION_FEATURES = {"dirty-preflight/v1", "baseline-safe-copy/v1"}
 RULES4_FEATURES = {
     "test-authority/v1", "reported-wait/v1", "preapproved-runs/v1", "error-recovery/v1", "command-time-limits/v1",
 }
-# A new start also needs what Seal 0.1.20 declares in ../core-requirements.json,
-# which `ha start --check-skill` enforces: the report, doctor, automatic budget
-# and requirement check features and the assurance tier format.
-START_FEATURES = EXECUTION_FEATURES | RULES4_FEATURES | {
+# A new start also needs what Seal 0.1.21 declares in ../core-requirements.json,
+# which `ha start --check-skill` enforces: the report, doctor, automatic budget,
+# requirement check and review gate features, the assurance tier format and the
+# review gate format.
+START_FEATURES = EXECUTION_FEATURES | RULES4_FEATURES | REVIEW_GATE_FEATURES | {
     "estimate/v1", "structured-change-results/v1", "budget-change/v1",
     "report/v1", "doctor/v1", "auto-budget/v1", "core-requirements/v1",
 }
 START_FORMATS = {
     "core_requirements": {"core-requirements/v1"},
     "assurance_tier": {"light", "standard", "strict"},
+    **REVIEW_GATE_FORMATS,
 }
 # Stored finding line bound (contracts/findings.md): a 1 MiB input at most
 # doubles when re-encoded, plus the record header.
@@ -90,7 +98,7 @@ def validate(value):
         if not strings(formats.get(key)):
             raise Refusal("invalid_capabilities", ["formats:" + key])
 
-    for key in ("finding", "decision_history", "timing"):
+    for key in ("finding", "decision_history", "timing", "review_gate"):
         if key in formats and not strings(formats[key]):
             raise Refusal("invalid_capabilities", ["formats:" + key])
     return value
@@ -185,8 +193,10 @@ def requirements(capabilities, operation: str, goal: str | None):
             raise Refusal("unsupported_operation", ["budget:" + rules])
         if rules in STRUCTURED_RULES and operation in ("resume", "check"):
             features = features | {"structured-change-results/v1"}
-        if rules == "run-rules/4" and operation in ("resume", "check", "budget"):
+        if rules in AUTONOMOUS_RULES and operation in ("resume", "check", "budget"):
             features = features | RULES4_FEATURES
+        if rules == "run-rules/5" and operation in ("resume", "check", "budget"):
+            features = features | REVIEW_GATE_FEATURES
     required_formats = {"criteria": criteria}
     if rules in STRUCTURED_RULES and operation not in ("finding", "history"):
         required_formats.update({key: {value} for key, value in FORMATS.items()})

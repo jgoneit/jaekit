@@ -1,0 +1,14 @@
+# run-record.md §4.8: a goal started under earlier rules refuses a review note
+# with 65 and records nothing, with or without --gate; --quote is a usage
+# error under every rule.
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/4
+expect-exit 0
+write .git/gate.json "{}\n"
+ha note $GOAL review --gate .git/gate.json
+expect-exit 65
+expect-output "review notes need a goal started with run-rules/5"
+ha note $GOAL review
+expect-exit 65
+ha note $GOAL review --gate .git/gate.json --quote "검토 기록해줘"
+expect-exit 64
+expect-records 1

@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "SealStart",
+      "violation": "seal-start-rules-not-new",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestHaReviewGateAC13_SealStartsUnderTheNewRules"
+      }
+    },
+    {
+      "id": "SealChecker",
+      "violation": "seal-checker-accepts-old-core",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestHaReviewGateAC13_SealCheckerNeedsTheNewRules"
+      }
+    }
+  ]
+}

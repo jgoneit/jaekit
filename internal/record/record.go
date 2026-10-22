@@ -262,6 +262,99 @@ type RecoveryData struct {
 	Clears []int `json:"clears,omitempty"`
 }
 
+// ReviewData is what a run-rules/5 review note keeps of a review-gate/v1
+// file (run-record.md §4.8): the file's digest and the summary the judgment
+// reads. The gate's reasons, finding IDs, user quotes and round paths are not
+// kept. It is the executor's claim.
+type ReviewData struct {
+	GateDigest       string        `json:"gate_digest"`
+	Schema           string        `json:"schema"`
+	SparVersion      string        `json:"spar_version"`
+	State            string        `json:"state"`
+	ExpectHead       string        `json:"expect_head"`
+	LastReviewedHead string        `json:"last_reviewed_head"`
+	Rounds           []ReviewRound `json:"rounds"`
+	Open             ReviewOpen    `json:"open"`
+	// Missing names the fields a stored summary lacks or holds as null.
+	// A summary ha wrote has none, so any is invalid data.
+	Missing []string `json:"-"`
+}
+
+// UnmarshalJSON reads a stored review summary and notes each field it lacks,
+// which would otherwise read as a zero value.
+func (d *ReviewData) UnmarshalJSON(b []byte) error {
+	type plain ReviewData
+	var p plain
+	if err := json.Unmarshal(b, &p); err != nil {
+		return err
+	}
+	var top map[string]json.RawMessage
+	var nested struct {
+		Rounds []map[string]json.RawMessage `json:"rounds"`
+		Open   map[string]json.RawMessage   `json:"open"`
+	}
+	if err := json.Unmarshal(b, &top); err != nil {
+		return err
+	}
+	if err := json.Unmarshal(b, &nested); err != nil {
+		return err
+	}
+	*d = ReviewData(p)
+	d.Missing = absent(top, "", "gate_digest", "schema", "spar_version", "state", "expect_head", "last_reviewed_head", "rounds", "open")
+	for i, r := range nested.Rounds {
+		where := fmt.Sprintf("rounds[%d].", i)
+		d.Missing = append(d.Missing, absent(r, where, "stage", "sequence", "base", "head", "criteria_digest", "criteria",
+			"required_reviewers", "completed_required", "dry_run")...)
+		var docs []map[string]json.RawMessage
+		if json.Unmarshal(r["criteria"], &docs) == nil {
+			for j, c := range docs {
+				d.Missing = append(d.Missing, absent(c, fmt.Sprintf("%scriteria[%d].", where, j), "name", "sha256")...)
+			}
+		}
+	}
+	if nested.Open != nil {
+		d.Missing = append(d.Missing, absent(nested.Open, "open.", "defect", "requirement-question")...)
+	}
+	return nil
+}
+
+// absent lists the keys m lacks or holds as null, prefixed with where.
+func absent(m map[string]json.RawMessage, where string, keys ...string) []string {
+	var out []string
+	for _, k := range keys {
+		if v, ok := m[k]; !ok || bytes.Equal(bytes.TrimSpace(v), []byte("null")) {
+			out = append(out, where+k)
+		}
+	}
+	return out
+}
+
+// ReviewRound is one round of a recorded review gate.
+type ReviewRound struct {
+	Stage             string           `json:"stage"`
+	Sequence          int              `json:"sequence"`
+	Base              string           `json:"base"`
+	Head              string           `json:"head"`
+	CriteriaDigest    string           `json:"criteria_digest"`
+	Criteria          []ReviewDocument `json:"criteria"`
+	RequiredReviewers int              `json:"required_reviewers"`
+	CompletedRequired int              `json:"completed_required"`
+	DryRun            bool             `json:"dry_run"`
+}
+
+// ReviewDocument is a criteria document a round received: its name and the
+// sha256 of its content.
+type ReviewDocument struct {
+	Name   string `json:"name"`
+	SHA256 string `json:"sha256"`
+}
+
+// ReviewOpen counts a gate's open findings that block completion.
+type ReviewOpen struct {
+	Defect              int `json:"defect"`
+	RequirementQuestion int `json:"requirement-question"`
+}
+
 // Note is a `note` line.
 type Note struct {
 	Header
@@ -273,6 +366,7 @@ type Note struct {
 	Reason     string          `json:"reason,omitempty"`
 	TestChange *TestChangeData `json:"test_change,omitempty"`
 	Recovery   *RecoveryData   `json:"recovery,omitempty"`
+	Review     *ReviewData     `json:"review,omitempty"`
 }
 
 // Done is a `done` line.
@@ -307,6 +401,7 @@ type Line struct {
 	Reason        string            `json:"reason"`
 	TestChange    *TestChangeData   `json:"test_change"`
 	Recovery      *RecoveryData     `json:"recovery"`
+	Review        *ReviewData       `json:"review"`
 	BudgetChange  *BudgetChangeData `json:"budget_change"`
 	Finding       *FindingChange    `json:"finding"`
 	Target        *Target           `json:"target"`
