@@ -1,0 +1,30 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "GuideBlocks",
+      "violation": "host-block-without-spar",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease017AC3_GuideHostBlocks"
+      }
+    },
+    {
+      "id": "ReadmeBlocks",
+      "violation": "readme-block-differs",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease017AC3_ReadmeHostBlocks"
+      }
+    },
+    {
+      "id": "BinariesTogether",
+      "violation": "spar-binary-unstated",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease017AC3_BinariesTogether"
+      }
+    }
+  ]
+}
