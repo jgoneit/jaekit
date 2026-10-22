@@ -275,6 +275,58 @@ type ReviewData struct {
 	LastReviewedHead string        `json:"last_reviewed_head"`
 	Rounds           []ReviewRound `json:"rounds"`
 	Open             ReviewOpen    `json:"open"`
+	// Missing names the fields a stored summary lacks or holds as null.
+	// A summary ha wrote has none, so any is invalid data.
+	Missing []string `json:"-"`
+}
+
+// UnmarshalJSON reads a stored review summary and notes each field it lacks,
+// which would otherwise read as a zero value.
+func (d *ReviewData) UnmarshalJSON(b []byte) error {
+	type plain ReviewData
+	var p plain
+	if err := json.Unmarshal(b, &p); err != nil {
+		return err
+	}
+	var top map[string]json.RawMessage
+	var nested struct {
+		Rounds []map[string]json.RawMessage `json:"rounds"`
+		Open   map[string]json.RawMessage   `json:"open"`
+	}
+	if err := json.Unmarshal(b, &top); err != nil {
+		return err
+	}
+	if err := json.Unmarshal(b, &nested); err != nil {
+		return err
+	}
+	*d = ReviewData(p)
+	d.Missing = absent(top, "", "gate_digest", "schema", "spar_version", "state", "expect_head", "last_reviewed_head", "rounds", "open")
+	for i, r := range nested.Rounds {
+		where := fmt.Sprintf("rounds[%d].", i)
+		d.Missing = append(d.Missing, absent(r, where, "stage", "sequence", "base", "head", "criteria_digest", "criteria",
+			"required_reviewers", "completed_required", "dry_run")...)
+		var docs []map[string]json.RawMessage
+		if json.Unmarshal(r["criteria"], &docs) == nil {
+			for j, c := range docs {
+				d.Missing = append(d.Missing, absent(c, fmt.Sprintf("%scriteria[%d].", where, j), "name", "sha256")...)
+			}
+		}
+	}
+	if nested.Open != nil {
+		d.Missing = append(d.Missing, absent(nested.Open, "open.", "defect", "requirement-question")...)
+	}
+	return nil
+}
+
+// absent lists the keys m lacks or holds as null, prefixed with where.
+func absent(m map[string]json.RawMessage, where string, keys ...string) []string {
+	var out []string
+	for _, k := range keys {
+		if v, ok := m[k]; !ok || bytes.Equal(bytes.TrimSpace(v), []byte("null")) {
+			out = append(out, where+k)
+		}
+	}
+	return out
 }
 
 // ReviewRound is one round of a recorded review gate.

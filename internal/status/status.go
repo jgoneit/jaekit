@@ -1122,6 +1122,9 @@ func (e *evaluator) completionRecord(rep *Report) (*int, error) {
 				return nil, nil
 			}
 		}
+		if Reviewed(e.rules) && !judgedLast(lines, i) {
+			return nil, nil
+		}
 		if d.SpecDigest != e.in.Goal.Digest {
 			return nil, nil
 		}
@@ -1138,6 +1141,13 @@ func (e *evaluator) completionRecord(rep *Report) (*int, error) {
 		return &seq, nil
 	}
 	return nil, nil
+}
+
+// judgedLast reports whether the done line at index i judged the record as it
+// stood just before the line: a line appended while ha done computed the
+// status, such as a review note, was never judged (run-record.md §4.8).
+func judgedLast(lines []record.Line, i int) bool {
+	return i > 0 && lines[i].RecordHead == lines[i-1].Hash()
 }
 
 // doneState names the latest done record and, through stale, why the latest
@@ -1205,6 +1215,9 @@ func (e *evaluator) stale(rep *Report) *StaleCompletion {
 					s.Reasons = append(s.Reasons, fmt.Sprintf("review gate recorded at seq %d", l.Seq))
 					break
 				}
+			}
+			if !judgedLast(lines, i) {
+				s.Reasons = append(s.Reasons, "a record was appended while ha done computed it")
 			}
 		}
 		if e.rules == RulesV3 {

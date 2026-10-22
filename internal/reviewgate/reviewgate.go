@@ -186,6 +186,8 @@ func Valid(d *record.ReviewData) error {
 	switch {
 	case d == nil:
 		return errors.New("no review data")
+	case len(d.Missing) > 0:
+		return fmt.Errorf("missing %s", strings.Join(d.Missing, ", "))
 	case !IsSHA256(d.GateDigest):
 		return errors.New("gate_digest is not a sha256 digest")
 	case d.Schema != Schema:
