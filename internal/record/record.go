@@ -262,6 +262,47 @@ type RecoveryData struct {
 	Clears []int `json:"clears,omitempty"`
 }
 
+// ReviewData is what a run-rules/5 review note keeps of a review-gate/v1
+// file (run-record.md §4.8): the file's digest and the summary the judgment
+// reads. The gate's reasons, finding IDs, user quotes and round paths are not
+// kept. It is the executor's claim.
+type ReviewData struct {
+	GateDigest       string        `json:"gate_digest"`
+	Schema           string        `json:"schema"`
+	SparVersion      string        `json:"spar_version"`
+	State            string        `json:"state"`
+	ExpectHead       string        `json:"expect_head"`
+	LastReviewedHead string        `json:"last_reviewed_head"`
+	Rounds           []ReviewRound `json:"rounds"`
+	Open             ReviewOpen    `json:"open"`
+}
+
+// ReviewRound is one round of a recorded review gate.
+type ReviewRound struct {
+	Stage             string           `json:"stage"`
+	Sequence          int              `json:"sequence"`
+	Base              string           `json:"base"`
+	Head              string           `json:"head"`
+	CriteriaDigest    string           `json:"criteria_digest"`
+	Criteria          []ReviewDocument `json:"criteria"`
+	RequiredReviewers int              `json:"required_reviewers"`
+	CompletedRequired int              `json:"completed_required"`
+	DryRun            bool             `json:"dry_run"`
+}
+
+// ReviewDocument is a criteria document a round received: its name and the
+// sha256 of its content.
+type ReviewDocument struct {
+	Name   string `json:"name"`
+	SHA256 string `json:"sha256"`
+}
+
+// ReviewOpen counts a gate's open findings that block completion.
+type ReviewOpen struct {
+	Defect              int `json:"defect"`
+	RequirementQuestion int `json:"requirement-question"`
+}
+
 // Note is a `note` line.
 type Note struct {
 	Header
@@ -273,6 +314,7 @@ type Note struct {
 	Reason     string          `json:"reason,omitempty"`
 	TestChange *TestChangeData `json:"test_change,omitempty"`
 	Recovery   *RecoveryData   `json:"recovery,omitempty"`
+	Review     *ReviewData     `json:"review,omitempty"`
 }
 
 // Done is a `done` line.
@@ -307,6 +349,7 @@ type Line struct {
 	Reason        string            `json:"reason"`
 	TestChange    *TestChangeData   `json:"test_change"`
 	Recovery      *RecoveryData     `json:"recovery"`
+	Review        *ReviewData       `json:"review"`
 	BudgetChange  *BudgetChangeData `json:"budget_change"`
 	Finding       *FindingChange    `json:"finding"`
 	Target        *Target           `json:"target"`

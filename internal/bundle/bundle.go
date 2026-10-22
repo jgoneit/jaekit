@@ -47,7 +47,8 @@ type Row struct {
 	EvidencePath   string
 	Evidence       *evidence.Declaration
 	EvidenceDigest string
-	// Limit is the time limit a run-rules/4 goal applies to the command.
+	// Limit is the time limit a run-rules/4 or run-rules/5 goal applies to the
+	// command.
 	Limit time.Duration
 }
 
@@ -55,14 +56,14 @@ type Row struct {
 func (r Row) CommandDigest() string { return Digest(r.Command) }
 
 // CommandDigestFor binds the structured contract only under its opted-in rule.
-// Old goals keep their exact original command digest. Under run-rules/4 the
-// digest also binds the command's applied time limit.
+// Old goals keep their exact original command digest. Under run-rules/4 and
+// run-rules/5 the digest also binds the command's applied time limit.
 func (r Row) CommandDigestFor(rules string) string {
 	digest := r.CommandDigest()
-	if (rules == "run-rules/3" || rules == "run-rules/4") && r.Kind == KindChange && r.EvidencePath != "" {
+	if structuredRules(rules) && r.Kind == KindChange && r.EvidencePath != "" {
 		digest = Digest(r.Command + "\x00" + r.EvidencePath + "\x00" + r.EvidenceDigest)
 	}
-	if rules == "run-rules/4" {
+	if limitRules(rules) {
 		digest = LimitDigest(digest, r.Limit)
 	}
 	return digest
@@ -261,6 +262,15 @@ func (l *loader) read(rel string) (string, bool, error) {
 	return string(b), true, nil
 }
 
+// structuredRules are the rule versions whose change conditions declare a
+// structured result contract; limitRules also read `## 시간 제한`
+// (run-record.md §4.6). The bundle package does not import the status rules.
+func structuredRules(rules string) bool {
+	return rules == "run-rules/3" || rules == "run-rules/4" || rules == "run-rules/5"
+}
+
+func limitRules(rules string) bool { return rules == "run-rules/4" || rules == "run-rules/5" }
+
 // Load reads the bundle of goal g under root. Format problems are collected
 // in Bundle.Problems; err is only for I/O failures.
 func Load(root string, g *goaldocs.Goal) (*Bundle, error) {
@@ -282,7 +292,7 @@ func LoadForRules(root string, g *goaldocs.Goal, rules string) (*Bundle, error) 
 		l.b.HasPlan = true
 		doc := markdown.Parse(src)
 		l.readRows(doc, planPath)
-		if rules == "run-rules/3" || rules == "run-rules/4" {
+		if structuredRules(rules) {
 			l.readEvidence(doc, planPath)
 		}
 		l.readScope(doc, planPath)
@@ -290,7 +300,7 @@ func LoadForRules(root string, g *goaldocs.Goal, rules string) (*Bundle, error) 
 			return nil, err
 		}
 		l.readBudget(doc, planPath)
-		if rules == "run-rules/4" {
+		if limitRules(rules) {
 			l.readLimits(doc, planPath)
 			for i := range l.b.Rows {
 				l.b.Rows[i].Limit = l.b.Limit(l.b.Rows[i].ID)

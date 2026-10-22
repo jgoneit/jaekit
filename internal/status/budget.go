@@ -80,7 +80,7 @@ func budgetError(format string, args ...any) error {
 
 func validateBudgetChange(state *BudgetState, d *record.BudgetChangeData) error {
 	if !Structured(state.Rules) {
-		return budgetError("budget changes require %s or %s; goal uses %s", RulesV3, RulesV4, state.Rules)
+		return budgetError("budget changes require %s, %s or %s; goal uses %s", RulesV3, RulesV4, RulesV5, state.Rules)
 	}
 	if state.Completed {
 		return budgetError("window %d has a completion record; quote a rework request with reopen first", state.WindowStart)
@@ -93,8 +93,8 @@ func validateBudgetChange(state *BudgetState, d *record.BudgetChangeData) error 
 	}
 	if d.PreapprovedRuns != 0 {
 		switch {
-		case state.Rules != RulesV4:
-			return budgetError("a pre-approved run limit requires %s; goal uses %s", RulesV4, state.Rules)
+		case !Autonomous(state.Rules):
+			return budgetError("a pre-approved run limit requires %s or %s; goal uses %s", RulesV4, RulesV5, state.Rules)
 		case d.Runs != d.PreviousRuns:
 			return budgetError("a pre-approval does not change the run limit")
 		case d.PreapprovedRuns <= state.RunsLimit:
@@ -122,9 +122,10 @@ func validateBudgetChange(state *BudgetState, d *record.BudgetChangeData) error 
 }
 
 // preapprovedRaise is an executor's increase within the user's pre-approved
-// limit for the window, with a reason and without a quote (run-rules/4).
+// limit for the window, with a reason and without a quote (run-rules/4 and
+// run-rules/5).
 func preapprovedRaise(state *BudgetState, d *record.BudgetChangeData) bool {
-	return state.Rules == RulesV4 && state.PreapprovedRuns != nil && d.Runs <= *state.PreapprovedRuns &&
+	return Autonomous(state.Rules) && state.PreapprovedRuns != nil && d.Runs <= *state.PreapprovedRuns &&
 		strings.TrimSpace(d.Quote) == "" && strings.TrimSpace(d.Reason) != ""
 }
 
@@ -188,7 +189,7 @@ func FoldBudget(lines []record.Line) (*BudgetState, error) {
 				if !Structured(state.Rules) {
 					state.RunsLimit = originalRuns
 				}
-				if state.Rules == RulesV4 {
+				if Autonomous(state.Rules) {
 					state.RunsLimit, state.PreapprovedRuns = state.inheritRuns, nil
 				}
 			}
@@ -217,7 +218,7 @@ func FoldBudget(lines []record.Line) (*BudgetState, error) {
 		return nil, budgetError("bad last record time %q", lines[len(lines)-1].At)
 	}
 	state.ElapsedSeconds = int64(end.Sub(start) / time.Second)
-	if state.Rules == RulesV4 {
+	if Autonomous(state.Rules) {
 		state.SpanSeconds = state.ElapsedSeconds
 		state.ReportedWaitSeconds = reportedWait(lines[window:])
 		state.ElapsedSeconds = state.SpanSeconds - state.ReportedWaitSeconds

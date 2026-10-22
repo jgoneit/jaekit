@@ -69,6 +69,8 @@ The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evi
 | `rules-v4-wait-same-second` | run-record.md §4.7 reported waits | a run that starts in the wait note's own second ends the wait |
 | `rules-v4-recovery-input` | run-record.md §4.7 error recovery | a recovery takes out only the error records it named; errors of an input that changed and came back count again |
 | `rules-v4-task-check` | run-record.md §4.7 time limits | a task command recorded under its applied limit is a current input |
+| `rules-v5-review-gate` | run-record.md §4.8 review gate | a `standard` goal under `/5` is `incomplete` with `review_missing`; unusable gate files exit 65 and record nothing; a blocked gate that does not cover HEAD or the goal documents gives its reasons and keeps no finding text; lowering the tier to `light` completes it |
+| `rules-v5-forms-refused` | run-record.md §4.8 | a `/4` goal refuses a review note with 65 and records nothing; `--quote` on a review note is a usage error |
 | `rules-v1-kept` | run-rules-2 AC-10 | historical `run-rules/1` budget semantics remain; a future dirty check is refused |
 | `blocked` | bundle.md §5 | `blocked` until unblock |
 | `not-started` | run-record.md §4.2 | `incomplete`, `not_started`; checks refused |

@@ -28,20 +28,31 @@ const (
 	RulesV2 = "run-rules/2"
 	RulesV3 = "run-rules/3"
 	RulesV4 = "run-rules/4"
+	RulesV5 = "run-rules/5"
 	Rules   = RulesV3
 )
 
 // Supported reports whether this build computes goals started under rules.
-// It is the only rule-support decision; run-rules/4 is chosen with
-// `ha start --rules` and never by default.
+// It is the only rule-support decision; run-rules/4 and run-rules/5 are chosen
+// with `ha start --rules` and never by default.
 func Supported(rules string) bool {
-	return rules == RulesV1 || rules == RulesV2 || rules == RulesV3 || rules == RulesV4
+	return rules == RulesV1 || rules == RulesV2 || rules == RulesV3 || rules == RulesV4 || rules == RulesV5
 }
 
 // Structured reports whether rules keep the run-rules/3 semantics: structured
 // change results, inconclusive results under the error limit, and budget
-// changes. run-rules/4 adds to them and removes none (run-record.md §4.7).
-func Structured(rules string) bool { return rules == RulesV3 || rules == RulesV4 }
+// changes. run-rules/4 and run-rules/5 add to them and remove none
+// (run-record.md §4.7, §4.8).
+func Structured(rules string) bool { return rules == RulesV3 || rules == RulesV4 || rules == RulesV5 }
+
+// Autonomous reports whether rules keep the run-rules/4 additions: test-change
+// authority, reported waits, pre-approved limits, error recovery and command
+// time limits. run-rules/5 keeps them all (run-record.md §4.7, §4.8).
+func Autonomous(rules string) bool { return rules == RulesV4 || rules == RulesV5 }
+
+// Reviewed reports whether rules judge the recorded review gate of a goal
+// whose SPEC asks for independent review (run-record.md §4.8).
+func Reviewed(rules string) bool { return rules == RulesV5 }
 
 // Excludes returns the paths left out of the code state of goal g under
 // rules: the goal's own documents and bundle, the amendment documents of the
@@ -127,6 +138,16 @@ var classOf = map[string]string{
 	"spec_changed":             ClassUser,
 	"blocked":                  ClassBlocked,
 	"budget_exceeded":          ClassBudget,
+	// run-rules/5 review reasons (run-record.md §4.8).
+	"review_missing":       ClassExecutor,
+	"review_blocked":       ClassExecutor,
+	"review_degraded":      ClassExecutor,
+	"review_open_defect":   ClassExecutor,
+	"review_open_question": ClassUser,
+	"review_code_missing":  ClassExecutor,
+	"review_head_stale":    ClassExecutor,
+	"review_docs_stale":    ClassExecutor,
+	"review_plan_missing":  ClassExecutor,
 }
 
 // UnsupportedRulesError means the goal was started under rules this build
@@ -134,7 +155,7 @@ var classOf = map[string]string{
 type UnsupportedRulesError struct{ Rules string }
 
 func (e *UnsupportedRulesError) Error() string {
-	return fmt.Sprintf("goal was started with rules %q; this ha computes only %q, %q, %q and %q", e.Rules, RulesV1, RulesV2, RulesV3, RulesV4)
+	return fmt.Sprintf("goal was started with rules %q; this ha computes only %q, %q, %q, %q and %q", e.Rules, RulesV1, RulesV2, RulesV3, RulesV4, RulesV5)
 }
 
 // Input is everything the computation reads.
@@ -173,7 +194,8 @@ type Report struct {
 	Findings              *FindingsReport `json:"findings"`
 	Usage                 Usage           `json:"usage"`
 	Logs                  []Log           `json:"logs"`
-	// run-rules/4 only (run-record.md §4.7); absent for earlier rules.
+	// run-rules/4 and run-rules/5 only (run-record.md §4.7); absent for
+	// earlier rules.
 	TestAuthority  *TestAuthority    `json:"test_authority,omitempty"`
 	TestChanges    []TestChange      `json:"test_changes,omitempty"`
 	Recoveries     []Recovery        `json:"recoveries,omitempty"`
@@ -403,7 +425,7 @@ func Compute(in Input) (*Report, error) {
 	if !Supported(e.rules) {
 		return nil, &UnsupportedRulesError{Rules: e.rules}
 	}
-	if e.rules == RulesV4 {
+	if Autonomous(e.rules) {
 		e.recoveries = foldRecoveries(in.Lines)
 	}
 	var err error
@@ -437,6 +459,7 @@ func Compute(in Input) (*Report, error) {
 	} else {
 		rep.Findings = findings
 	}
+	e.checkReviews()
 	if err := e.collectUsage(rep); err != nil {
 		return nil, err
 	}
@@ -469,9 +492,11 @@ func Compute(in Input) (*Report, error) {
 	reasons = append(reasons, goalReasons...)
 	if completion != nil {
 		rep.CompletionRecord = completion
+		// A valid completion record fixes the code state and goal documents
+		// the review gate was judged against (run-record.md §4.8).
 		var kept []Reason
 		for _, r := range reasons {
-			if r.Code != "budget_exceeded" {
+			if r.Code != "budget_exceeded" && !isReviewReason(r.Code) {
 				kept = append(kept, r)
 			}
 		}
@@ -677,7 +702,7 @@ func (e *evaluator) criteria(rep *Report) error {
 				}
 			}
 		}
-		if e.rules == RulesV4 && kind != "" && kind != bundle.KindManual {
+		if Autonomous(e.rules) && kind != "" && kind != bundle.KindManual {
 			e.reportRecoveries(rep, c.id, kind, C, B)
 		}
 		for _, l := range B {
@@ -830,7 +855,7 @@ func (e *evaluator) judge(id, kind string, C, B []*record.Line) string {
 	if Structured(e.rules) {
 		cErr += count(C, "unknown")
 		bErr += count(B, "unknown")
-		if e.rules == RulesV4 {
+		if Autonomous(e.rules) {
 			// Errors before an input's last recovery leave its limit; fails stay.
 			cErr, bErr = e.errorsSince(id, "check", C), e.errorsSince(id, "baseline", B)
 		}
@@ -975,11 +1000,11 @@ func (e *evaluator) goalReasons(rep *Report) ([]Reason, error) {
 			if !bundle.MatchAny(b.Scope.Allowed, ch.Path) && !e.confirms["scope:"+ch.Path] {
 				outside = append(outside, ch.Path)
 			}
-			if e.rules != RulesV4 && ch.Status != "A" && bundle.MatchAny(b.Scope.Tests, ch.Path) && !e.confirms["tests:"+ch.Path] {
+			if !Autonomous(e.rules) && ch.Status != "A" && bundle.MatchAny(b.Scope.Tests, ch.Path) && !e.confirms["tests:"+ch.Path] {
 				tests = append(tests, ch.Path)
 			}
 		}
-		if e.rules == RulesV4 {
+		if Autonomous(e.rules) {
 			if tests, err = e.testChanges(rep, changes); err != nil {
 				return nil, err
 			}
@@ -993,6 +1018,7 @@ func (e *evaluator) goalReasons(rep *Report) ([]Reason, error) {
 		if g.Digest != e.start.SpecDigest && !e.confirms["spec"] {
 			add("spec_changed", "goal documents differ from the start record", nil)
 		}
+		rs = append(rs, e.reviewReasons()...)
 	}
 	var open []string
 	for _, t := range b.Tasks {
@@ -1036,7 +1062,7 @@ func (e *evaluator) budget() (*Budget, error) {
 		bud := &Budget{WindowStart: state.WindowStart, Revision: state.Revision, Runs: state.Runs,
 			RunsLimit: state.RunsLimit, ElapsedSeconds: state.ElapsedSeconds,
 			ElapsedLimitSeconds: state.ElapsedLimitSeconds, History: state.History}
-		if e.rules == RulesV4 {
+		if Autonomous(e.rules) {
 			wait, span := state.ReportedWaitSeconds, state.SpanSeconds
 			bud.ReportedWaitSeconds, bud.SpanSeconds, bud.WaitBasis = &wait, &span, "executor_reported"
 			bud.PreapprovedRuns = state.PreapprovedRuns
@@ -1092,7 +1118,7 @@ func (e *evaluator) completionRecord(rep *Report) (*int, error) {
 			continue
 		}
 		for _, l := range lines[i+1:] {
-			if l.Kind == "note" && l.Note == "reopen" {
+			if l.Kind == "note" && (l.Note == "reopen" || (l.Note == "review" && Reviewed(e.rules))) {
 				return nil, nil
 			}
 		}
@@ -1170,6 +1196,15 @@ func (e *evaluator) stale(rep *Report) *StaleCompletion {
 			if l.Kind == "note" && l.Note == "reopen" {
 				s.Reasons = append(s.Reasons, fmt.Sprintf("reopened at seq %d", l.Seq))
 				break
+			}
+		}
+		// Under run-rules/5 a later gate is judged anew (run-record.md §4.8).
+		if Reviewed(e.rules) {
+			for _, l := range lines[i+1:] {
+				if l.Kind == "note" && l.Note == "review" {
+					s.Reasons = append(s.Reasons, fmt.Sprintf("review gate recorded at seq %d", l.Seq))
+					break
+				}
 			}
 		}
 		if e.rules == RulesV3 {
