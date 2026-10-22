@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "NoOptional",
+      "violation": "spar-called-optional",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSparOnboardingAC1_NoGuideCallsSparOptional"
+      }
+    },
+    {
+      "id": "NeedStated",
+      "violation": "spar-need-unstated",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSparOnboardingAC1_GuidesStateWhenSparIsNeeded"
+      }
+    }
+  ]
+}

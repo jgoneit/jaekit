@@ -165,6 +165,9 @@ codex plugin add seal@jaekit
 > [!TIP]
 > 설치 후 **Codex를 새로 엽니다.** `@v0.1.6`은 사용할 배포판을 고정합니다.
 
+> [!NOTE]
+> **`standard`·`strict` 목표와 Spar.** v0.1.6 다음 릴리스부터 `standard`·`strict` 목표에는 Spar 실행 파일과 Spar 플러그인이 필요하고, 리뷰어는 가진 CLI에 맞춰 정합니다. [Spar 설치](guides/INSTALL.md#spar)를 봅니다. 그 릴리스의 Seal은 새 목표를 `run-rules/5`로 시작하고, `run-rules/5`로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다([검토 gate](guides/USAGE.md#검토-gate-run-rules5)).
+
 ### 첫 작업 맡기기
 
 작업할 프로젝트 폴더에서 Claude Code 또는 Codex(CLI·데스크톱 앱)를 엽니다.
@@ -490,7 +493,7 @@ Criteria-Format: nested/1
 - [WSL2 준비 안내](guides/WSL.md) · [Windows 네이티브 후보 안내](guides/WINDOWS.md)
 - [이미지 설명과 수정 방법](assets/readme/SOURCES.md)
 - [Ubuntu·macOS·Windows CI의 검사 범위](guides/CI.md)
-- [Spar로 하는 선택적 독립 검토](guides/SPAR.md)
+- [Spar로 하는 독립 검토](guides/SPAR.md): v0.1.6 다음 릴리스부터 `standard`·`strict` 목표에 필요
 
 사용 경험이나 막힌 점은 [사용 보고·설치·버그 issue](https://github.com/jgoneit/jaekit/issues/new/choose)로 남겨 주세요. issue는 공개되므로 회사 코드, 내부 이름, 비밀 값과 로그 원문은 제외해 주세요.
 

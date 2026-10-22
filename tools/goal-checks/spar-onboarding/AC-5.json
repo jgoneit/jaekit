@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "SealSkill",
+      "violation": "seal-check-path-unstated",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSparOnboardingAC5_SealSkillPassesCheckPaths"
+      }
+    },
+    {
+      "id": "SparExample",
+      "violation": "spar-example-check-path-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSparOnboardingAC5_SparSkillExampleShowsCheckPath"
+      }
+    }
+  ]
+}

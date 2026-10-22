@@ -84,9 +84,11 @@ claude plugin list
 
 Reopen Claude Code and use `/spec:spec <request>` in the conversation to define the goal, then `/seal:seal docs/specs/<goal>` in a separate message to start implementation. Plugin skills use `/plugin-name:skill-name`. The [usage guide](USAGE.en.md#sending-commands) explains how to review the goal and continue a task.
 
-### Spar (optional)
+### Spar
 
-Spar runs independent review rounds with several reviewer CLIs; see the [Spar guide](SPAR.en.md). From the release after v0.1.6, installing with Homebrew or from a Release file installs `ha` and `spar` together, with the same version. The v0.1.6 release files, formula and marketplace tag do not contain Spar yet.
+Spar runs independent review rounds with several reviewer CLIs; see the [Spar guide](SPAR.en.md). From the release after v0.1.6, `standard` and `strict` goals need the Spar executable and the Spar plugin. That release's Seal starts new goals under `run-rules/5`, and a `standard` or `strict` goal started under `run-rules/5` completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](USAGE.en.md#review-gate-run-rules5)).
+
+From the release after v0.1.6, installing with Homebrew or from a Release file installs `ha` and `spar` together, with the same version. The v0.1.6 release files, formula and marketplace tag do not contain Spar yet.
 
 ```bash
 spar --version
@@ -100,7 +102,7 @@ codex plugin add spar@jaekit
 claude plugin install spar@jaekit
 ```
 
-Reopen the host and use `$spar:spar` in Codex or `/spar:spar` in Claude Code when a plan or a change needs an independent review.
+Reopen the host. Before the first round, list only the CLIs you have as reviewers, as [Configure reviewers](SPAR.en.md#configure-reviewers) shows, and check them with `spar config`. Seal runs the review rounds of `standard` and `strict` goals with Spar. When another plan or change needs an independent review, use `$spar:spar` in Codex or `/spar:spar` in Claude Code.
 
 ## Install from a Release file
 

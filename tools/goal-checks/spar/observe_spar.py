@@ -1543,8 +1543,10 @@ class Docs(unittest.TestCase):
             for token in (together, "brew install jgoneit/tap/jaekit", "codex plugin add spar@jaekit",
                           "claude plugin install spar@jaekit", "spar --version", "which -a spar"):
                 require(self, token in body, v, f"{rel} lacks {token}")
-        for rel, more, start, link in (("README.md", "## More", "## Get started", "guides/SPAR.en.md"),
-                                       ("README.ko.md", "## 더 알아보기", "## 시작하기", "guides/SPAR.md")):
+        # The install part says when Spar is needed; the first task itself
+        # still runs without the user calling Spar.
+        for rel, more, start, link in (("README.md", "## More", "### Your first task", "guides/SPAR.en.md"),
+                                       ("README.ko.md", "## 더 알아보기", "### 첫 작업 맡기기", "guides/SPAR.md")):
             body = read_doc(self, rel, v)
             more_text = section(body, more) or ""
             require(self, f"]({link})" in more_text, v, f"{rel} {more} does not link {link}")
