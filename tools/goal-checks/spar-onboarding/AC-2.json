@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "ReadmeInstall",
+      "violation": "readme-spar-install-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSparOnboardingAC2_ReadmeInstallLeadsToSpar"
+      }
+    },
+    {
+      "id": "InstallGuide",
+      "violation": "install-spar-section-optional",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSparOnboardingAC2_InstallGuideSparSection"
+      }
+    }
+  ]
+}
