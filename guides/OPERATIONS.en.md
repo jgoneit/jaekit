@@ -59,7 +59,7 @@ New Spec examples specify `Criteria-Format: nested/1`. This reads description li
 
 ## What a failure before the change means
 
-Starting with Seal 0.1.16, Seal starts new goals under `run-rules/4`. `/4` preserves the `/3` result rules while adding [autonomy](USAGE.en.md#autonomy-run-rules4), including error recovery.
+Starting with Seal 0.1.16, Seal starts new goals under `run-rules/4`, and from 0.1.21 under `run-rules/5`, which keeps all of `/4` and adds the [review gate](USAGE.en.md#review-gate-run-rules5) for `standard` and `strict` goals. `/4` preserves the `/3` result rules while adding [autonomy](USAGE.en.md#autonomy-run-rules4), including error recovery.
 
 A `change` check must link declared targets and requirement violations through structured results. The mere fact that a command failed does not constitute pre-modification evidence. The following are not accepted as expected failures:
 - Missing dependencies

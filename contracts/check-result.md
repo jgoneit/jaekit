@@ -130,7 +130,7 @@ v0.1.3부터 직접 설치와 Homebrew는 이 생산자와 [합성 예시](../ex
 
 ## 5. 러너 어댑터
 
-`run-rules/3`·`run-rules/4`의 change 조건은 생산자 대신 러너 어댑터로 이미 있는 시험 하나에 대상을 연결할 수 있다. `ha capabilities`의 `formats.check_declaration`에 `check-adapter/v1`이, `features`에 `runner-adapters/v1`이 있는 실행 파일만 이를 지원한다. 어댑터는 선택이다. 생산자 선언(§1~§4)의 형식과 의미는 그대로이고, 지원이 없으면 참조 생산자나 전용 생산자를 쓴다. `/1`·`/2` 목표와 maintain·manual·task·`EX-n` 검사는 결과 계약에 어댑터 선언이 있어도 지금처럼 종료 코드로 판정하고 자리표시 낱말을 바꾸지 않는다.
+`run-rules/3`·`run-rules/4`·`run-rules/5`의 change 조건은 생산자 대신 러너 어댑터로 이미 있는 시험 하나에 대상을 연결할 수 있다. `ha capabilities`의 `formats.check_declaration`에 `check-adapter/v1`이, `features`에 `runner-adapters/v1`이 있는 실행 파일만 이를 지원한다. 어댑터는 선택이다. 생산자 선언(§1~§4)의 형식과 의미는 그대로이고, 지원이 없으면 참조 생산자나 전용 생산자를 쓴다. `/1`·`/2` 목표와 maintain·manual·task·`EX-n` 검사는 결과 계약에 어댑터 선언이 있어도 지금처럼 종료 코드로 판정하고 자리표시 낱말을 바꾸지 않는다.
 
 ### 선언
 

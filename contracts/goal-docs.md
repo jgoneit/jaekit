@@ -161,7 +161,7 @@ Assurance: light
 
 값 뒤의 공백과 CRLF 줄바꿈은 결과를 바꾸지 않는다. 오류가 있으면 등급이 없는 것으로 읽지 않고 오류로 남긴다. 한 문서에 `Criteria-Format:` 오류가 함께 있으면 둘 다 알린다. 같은 바이트의 문서는 작업 폴더, 시각, 환경 변수와 관계없이 같은 등급과 같은 오류로 읽힌다.
 
-Core는 줄을 읽고 검증하고 지원을 밝히기만 한다. `ha lint`가 문제 없이 끝나면 `ok: no lint problems` 다음 줄에 `assurance tier: <등급>`으로 읽은 등급을 보이며, 줄이 없는 목표의 출력은 그대로다. 판정, `ha status`와 `ha done`의 출력, 예산은 등급 때문에 바뀌지 않는다([core-capabilities.md](core-capabilities.md)의 `formats.assurance_tier`).
+Core는 줄을 읽고 검증하고 지원을 밝힌다. `ha lint`가 문제 없이 끝나면 `ok: no lint problems` 다음 줄에 `assurance tier: <등급>`으로 읽은 등급을 보이며, 줄이 없는 목표의 출력은 그대로다. `run-rules/4` 이하로 시작한 목표에서는 판정, `ha status`와 `ha done`의 출력, 예산이 등급 때문에 바뀌지 않는다([core-capabilities.md](core-capabilities.md)의 `formats.assurance_tier`). `run-rules/5`로 시작한 목표는 판정할 때의 등급이 `standard`나 `strict`이면 기록된 검토 gate가 지금 HEAD와 목표 문서를 덮어야 완료된다([run-record.md](run-record.md) §4.8). 그래서 이 문서 집합을 고친 뒤에는 그 검토가 낡는다.
 
 기존 목표 문서에는 사용자가 정하지 않는 한 `Assurance:` 줄을 더하지 않는다. 이미 있는 등급은 사용자의 말 없이 바꾸지 않는다. 등급을 고르는 기준은 Spec의 사용 규칙에 있다.
 

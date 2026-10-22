@@ -247,6 +247,15 @@ SPEC의 `Assurance:` 줄에 따라 독립 검토 단계가 정해집니다. 검�
 
 Seal skill 본문은 약 4,600단어에서 2,200단어 이하로 줄었습니다. 이전 Seal로 시작한 목표의 형식은 그런 목표를 이어 갈 때만 읽는 참고 문서(`references/earlier-goals.md`)로 옮겼고, 그 목표의 기록과 문서는 바꾸지 않습니다.
 
+## 검토 gate (run-rules/5)
+
+Seal 0.1.21부터 Core가 `run-rules/5`와 검토 gate 지원을 갖추면 새 목표를 `ha start --rules run-rules/5`로 시작합니다. `run-rules/5`는 `run-rules/4`의 자율 처리를 모두 그대로 두고, SPEC의 등급이 `standard`나 `strict`인 목표에 독립 검토의 기록을 완료 조건으로 더합니다.
+
+- 누적 라운드가 열린 지적 없이 끝나면 Seal이 그 series의 라운드로 `spar gate`를 HEAD에 대해 만들고, `ha note <goal> review --gate <file>`로 gate 파일을 기록한 다음 `ha done`을 실행합니다. 기록에는 파일 digest와 판정에 필요한 요약만 남고 지적 원문은 남지 않습니다.
+- gate가 없으면 `review_missing`, 검토 뒤 commit이 더 있으면 `review_head_stale`, 검토 뒤 목표 문서가 바뀌었거나 라운드가 목표 문서를 모두 받지 않았으면 `review_docs_stale`이 나오고 완료가 기록되지 않습니다. gate가 `blocked`·`degraded`이거나 열린 `defect`·`requirement-question`이 있을 때, code 라운드가 없을 때, `strict`인데 plan 라운드가 없을 때도 각자의 이유가 나옵니다. 사용자 확인이나 다른 note는 gate를 대신하지 않습니다.
+- Spar를 쓸 수 없어 검토 없이 끝내려면, 사용자가 SPEC을 `Assurance: light`로 낮추는 수정을 정합니다. 그 뒤 `confirm spec`과 신선한 검사로 gate 없이 완료됩니다.
+- `light`이거나 등급 줄이 없는 목표, 그리고 `run-rules/1`~`run-rules/4`로 시작한 목표는 지금처럼 gate 없이 판정합니다.
+
 ## 문제 해결
 
 | 증상 | 할 일 |
