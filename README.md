@@ -165,6 +165,9 @@ codex plugin add seal@jaekit
 > [!TIP]
 > **Reopen Codex after installation.** `@v0.1.6` pins the release to use.
 
+> [!NOTE]
+> **Spar for `standard` and `strict` goals.** From the release after v0.1.6, `standard` and `strict` goals need the Spar executable and the Spar plugin, with reviewers set to the CLIs you have: see [Spar](guides/INSTALL.en.md#spar). That release's Seal starts new goals under `run-rules/5`, and a `standard` or `strict` goal started under `run-rules/5` completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](guides/USAGE.en.md#review-gate-run-rules5)).
+
 ### Your first task
 
 Open Claude Code, Codex CLI, or the Codex desktop app in your project folder.
@@ -506,7 +509,7 @@ Installing, updating, or uninstalling does not delete these records. Git trackin
 - [WSL2 preparation guide](guides/WSL.en.md) · [Windows native candidate guide](guides/WINDOWS.en.md)
 - [About the images and how to edit them](assets/readme/SOURCES.en.md)
 - [What Ubuntu, macOS and Windows CI checks](guides/CI.en.md)
-- [Optional independent review rounds with Spar](guides/SPAR.en.md)
+- [Independent review rounds with Spar](guides/SPAR.en.md), needed for `standard` and `strict` goals from the release after v0.1.6
 
 Share your experience or where you got stuck in a [usage report or install/bug issue](https://github.com/jgoneit/jaekit/issues/new/choose). Issues are public: leave out company code, internal names, secrets, and raw logs.
 

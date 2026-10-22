@@ -2,7 +2,9 @@
 
 **한국어** · [English](SPAR.en.md)
 
-Spar는 두 커밋에 고정한 검토 패킷 하나를 여러 리뷰어에게 한꺼번에 보내고, 그들이 찾은 것과 그 처리를 기록합니다. 라운드는 `spar` 실행 파일이 돌리고, `spar` 플러그인은 에이전트에게 언제 라운드를 돌리고 지적을 어떻게 닫는지 알려 줍니다. Spar는 선택 기능이며 Spec과 Seal로 하는 첫 작업에는 필요 없습니다.
+Spar는 두 커밋에 고정한 검토 패킷 하나를 여러 리뷰어에게 한꺼번에 보내고, 그들이 찾은 것과 그 처리를 기록합니다. 라운드는 `spar` 실행 파일이 돌리고, `spar` 플러그인은 에이전트에게 언제 라운드를 돌리고 지적을 어떻게 닫는지 알려 줍니다.
+
+v0.1.6 다음 릴리스의 Seal은 새 목표를 `run-rules/5`로 시작하고, `run-rules/5`로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다([검토 gate](USAGE.md#검토-gate-run-rules5)).
 
 `spar`는 v0.1.6 다음 릴리스부터 릴리스 파일과 Homebrew formula에 `ha`와 함께 들어 있습니다. v0.1.6 릴리스 파일과 formula에는 없습니다. [설치 안내](INSTALL.md)를 보세요.
 
@@ -23,6 +25,21 @@ Spar는 두 커밋에 고정한 검토 패킷 하나를 여러 리뷰어에게 �
 ## 리뷰어 설정
 
 리뷰어는 사용자 설정에서만 옵니다. Spar는 `$SPAR_CONFIG`, `$XDG_CONFIG_HOME/jaekit/spar.toml`, `~/.config/jaekit/spar.toml` 가운데 처음 찾은 파일을 읽습니다. 없으면 이미 있는 clean-review `config.json`의 `reviewers` 목록을, 그것도 없으면 `claude`, `codex`, `agy`를 씁니다. 빈 목록(`reviewers = []`)은 `native` 리뷰어 하나입니다.
+
+이런 사용자 설정이 하나도 없으면 `claude`, `codex`, `agy` 셋이 모두 필수 리뷰어입니다. 필수 리뷰어의 CLI가 없거나 그 리뷰어가 라운드를 끝내지 못하면, 그 라운드에 사용자의 결정(`spar waive`)이 없는 한 gate는 `degraded`이고, 그래서 `standard`·`strict` 목표가 완료되지 않습니다. 첫 라운드 전에 가진 CLI만 리뷰어로 적은 사용자 설정을 `~/.config/jaekit/spar.toml`에 만드세요. 예를 들어 claude CLI만 있으면 그 리뷰어 하나만 적습니다.
+
+```toml
+[[reviewers]]
+preset = "claude"
+```
+
+리뷰어를 하나만 적으면 그 리뷰어가 유일한 필수 리뷰어이고, 그 리뷰어가 끝낸 라운드는 `complete`가 될 수 있습니다. 리뷰어 CLI가 하나도 없으면 빈 목록으로 `native` 리뷰어 하나를 씁니다. 지금 쓰는 에이전트의 clean-context 하위 에이전트가 검토합니다.
+
+```toml
+reviewers = []
+```
+
+세 CLI가 모두 있으면 이렇게 적을 수 있습니다.
 
 ```toml
 timeout_seconds = 1800
@@ -59,7 +76,7 @@ timeout_seconds = 600
 - `{prompt}`는 라운드의 `packet.md` 경로, `{workspace}`는 두 커밋의 사본(`head/`, `base/`), `{schema}`는 결과 JSON schema 경로입니다.
 - 명령이 무엇을 하는지 spar가 확인할 수 없으므로 `unverified`로 기록되고 필수 리뷰어 수에 들지 않습니다. 지적은 같은 규칙으로 분류되고 처리됩니다.
 
-`spar config`는 라운드가 띄울 리뷰어, 목록의 출처와 digest를 출력합니다. `spar run --reviewers codex,agy`는 한 번의 실행에서 목록을 바꾸고, 라운드 기록에 그렇게 남습니다.
+라운드를 돌리기 전에 `spar config`로 띄울 리뷰어를 확인합니다. `spar config`는 라운드가 띄울 리뷰어, 목록의 출처와 digest를 출력합니다. `spar run --reviewers codex,agy`는 한 번의 실행에서 목록을 바꾸고, 라운드 기록에 그렇게 남습니다.
 
 ### 프로젝트 설정
 

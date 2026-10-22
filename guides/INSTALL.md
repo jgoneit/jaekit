@@ -84,9 +84,11 @@ claude plugin list
 
 Claude Code를 새로 열고 대화에서 `/spec:spec <요청>`으로 목표를 정리한 뒤, 별도 메시지의 `/seal:seal docs/specs/<goal>`로 구현을 시작합니다. 플러그인의 스킬은 `/플러그인-이름:스킬-이름`으로 호출합니다. 목표 확인과 이어 가기는 [사용 안내](USAGE.md#명령-보내기)에 있습니다.
 
-### Spar (선택)
+### Spar
 
-Spar는 여러 리뷰어 CLI로 독립 검토 라운드를 돌립니다. [Spar 안내](SPAR.md)를 보세요. v0.1.6 다음 릴리스부터는 Homebrew formula와 Release 파일이 `ha`와 `spar`를 함께 설치하고 두 버전이 같습니다. v0.1.6의 릴리스 파일, formula, marketplace 태그에는 아직 Spar가 없습니다.
+Spar는 여러 리뷰어 CLI로 독립 검토 라운드를 돌립니다. [Spar 안내](SPAR.md)를 보세요. v0.1.6 다음 릴리스부터 `standard`·`strict` 목표에는 Spar 실행 파일과 Spar 플러그인이 필요합니다. 그 릴리스의 Seal은 새 목표를 `run-rules/5`로 시작하고, `run-rules/5`로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다([검토 gate](USAGE.md#검토-gate-run-rules5)).
+
+v0.1.6 다음 릴리스부터는 Homebrew formula와 Release 파일이 `ha`와 `spar`를 함께 설치하고 두 버전이 같습니다. v0.1.6의 릴리스 파일, formula, marketplace 태그에는 아직 Spar가 없습니다.
 
 ```bash
 spar --version
@@ -100,7 +102,7 @@ codex plugin add spar@jaekit
 claude plugin install spar@jaekit
 ```
 
-호스트를 새로 열고, 계획이나 변경에 독립 검토가 필요하면 Codex에서는 `$spar:spar`, Claude Code에서는 `/spar:spar`를 씁니다.
+호스트를 새로 엽니다. 첫 라운드 전에 [리뷰어 설정](SPAR.md#리뷰어-설정)에 따라 가진 CLI만 리뷰어로 적고 `spar config`로 확인합니다. `standard`·`strict` 목표의 검토 라운드는 Seal이 Spar로 돌립니다. 그 밖에 계획이나 변경에 독립 검토가 필요하면 Codex에서는 `$spar:spar`, Claude Code에서는 `/spar:spar`를 씁니다.
 
 ## Release 파일로 설치
 

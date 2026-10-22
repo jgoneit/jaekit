@@ -2,7 +2,9 @@
 
 [한국어](SPAR.md) · **English**
 
-Spar sends one review packet, pinned to two commits, to several reviewers at once and keeps what they found and what was done about it. The `spar` binary runs the rounds; the `spar` plugin tells your agent when to run them and how findings may be closed. Spar is optional: you do not need it for your first task with Spec and Seal.
+Spar sends one review packet, pinned to two commits, to several reviewers at once and keeps what they found and what was done about it. The `spar` binary runs the rounds; the `spar` plugin tells your agent when to run them and how findings may be closed.
+
+From the release after v0.1.6, Seal starts new goals under `run-rules/5`, and a `standard` or `strict` goal started under `run-rules/5` completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](USAGE.en.md#review-gate-run-rules5)).
 
 `spar` ships next to `ha` in the release files and the Homebrew formula from the release after v0.1.6; the v0.1.6 release files and formula do not contain it. See the [install guide](INSTALL.en.md).
 
@@ -23,6 +25,21 @@ Commit messages, Git history and ignored files are not in the packet. If the cri
 ## Configure reviewers
 
 Reviewers come only from your user configuration. Spar reads the first file it finds among `$SPAR_CONFIG`, `$XDG_CONFIG_HOME/jaekit/spar.toml` and `~/.config/jaekit/spar.toml`. Without one, it reads the `reviewers` list of an existing clean-review `config.json`, and without that it uses `claude`, `codex` and `agy`. An empty list (`reviewers = []`) means the `native` reviewer only.
+
+Without any of these user configurations, `claude`, `codex` and `agy` are all required reviewers. When a required reviewer's CLI is missing or the reviewer does not finish a round, the gate is `degraded` unless you waived that reviewer for that round (`spar waive`), so a `standard` or `strict` goal does not complete. Before the first round, write a user configuration in `~/.config/jaekit/spar.toml` that lists only the CLIs you have. For example, with only the claude CLI, list that one reviewer:
+
+```toml
+[[reviewers]]
+preset = "claude"
+```
+
+With one reviewer listed, it is the only required reviewer, and a round it finishes can be `complete`. With no reviewer CLI at all, use the empty list for the `native` reviewer only: a clean-context subagent of the agent you are using reviews.
+
+```toml
+reviewers = []
+```
+
+With all three CLIs, you can list them like this:
 
 ```toml
 timeout_seconds = 1800
@@ -59,7 +76,7 @@ timeout_seconds = 600
 - `{prompt}` is the path of the round's `packet.md`, `{workspace}` the reviewer's copy of the two commits (`head/` and `base/`), `{schema}` the JSON schema of the result.
 - Spar cannot check what a command does, so it is recorded as `unverified` and never counts as a required reviewer. Its findings are classified and closed by the same rules.
 
-`spar config` prints the reviewers a round will start, where the list came from and its digest. `spar run --reviewers codex,agy` changes the list for one run, and the round record says so.
+Before running a round, check with `spar config` which reviewers it will start. `spar config` prints the reviewers a round will start, where the list came from and its digest. `spar run --reviewers codex,agy` changes the list for one run, and the round record says so.
 
 ### Project settings
 
