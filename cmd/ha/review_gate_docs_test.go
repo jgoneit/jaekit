@@ -114,11 +114,32 @@ func TestHaReviewGateAC13_SealStartsUnderTheNewRules(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
+	// The start Seal makes: run-rules/5, its Core requirements checked, and
+	// the run-rules/4 test authority it keeps. Only a refusal of the rule, of
+	// the test authority or of the skill's declared requirements is the
+	// violation; any other failure (an internal error, a lint problem of the
+	// fixture) is a broken setup.
 	f := rgRepo(t, "standard")
 	code, out := f.ha("start", rgGoal, "--request", "implement the synthetic goal", "--skill", filepath.Join(skillDir, "SKILL.md"),
-		"--check-skill", "--rules", "run-rules/5")
-	if code != exitOK {
-		t.Errorf("jaekit:violation=%s ha start with the Seal skill and run-rules/5: exit %d: %s", v, code, strings.TrimSpace(out))
+		"--check-skill", "--rules", "run-rules/5", "--test-authority", "the request allows changing tests inside the scope")
+	switch {
+	case code == exitOK:
+	case code == exitUsage && (strings.Contains(out, "--rules") || strings.Contains(out, "--test-authority")),
+		code == exitRefused && (strings.Contains(out, "missing Core support") || strings.Contains(out, "skill requirements")):
+		t.Fatalf("jaekit:violation=%s ha start with the Seal skill, run-rules/5 and test authority: exit %d: %s", v, code, strings.TrimSpace(out))
+	default:
+		t.Fatalf("setup: ha start exit %d: %s", code, strings.TrimSpace(out))
+	}
+	// The run-rules/4 notes stay available under run-rules/5.
+	for _, note := range [][]string{{"wait", "--reason", "a decision asked of the user"}, {"resume"}} {
+		code, out := f.ha(append([]string{"note", rgGoal}, note...)...)
+		switch {
+		case code == exitOK:
+		case code == exitUsage || code == exitRefused:
+			t.Errorf("jaekit:violation=%s a run-rules/5 goal refuses the run-rules/4 note %v: exit %d: %s", v, note, code, strings.TrimSpace(out))
+		default:
+			t.Fatalf("setup: ha note %v exit %d: %s", note, code, strings.TrimSpace(out))
+		}
 	}
 }
 
@@ -171,6 +192,13 @@ func TestHaReviewGateAC13_SealCheckerNeedsTheNewRules(t *testing.T) {
 		var report map[string]any
 		if json.Unmarshal(data, &report) != nil {
 			t.Fatalf("setup: check_core.py exit %d gave no decision: %s", code, data)
+		}
+		// Only a decision about the capabilities is observed; a fake Core
+		// that cannot start, times out or answers badly is a broken setup.
+		switch report["reason"] {
+		case "compatible", "missing_support", "unsupported_default_rule":
+		default:
+			t.Fatalf("setup: check_core.py exit %d decided %v, not about the capabilities: %s", code, report["reason"], data)
 		}
 		return code, report
 	}
@@ -242,9 +270,24 @@ func TestHaReviewGateAC14_CapabilitiesContractStatesTheGate(t *testing.T) {
 	if missing := rgMissing(text, "| `review-gate/v1` |", "| `formats.review_gate` |"); len(missing) > 0 {
 		t.Errorf("jaekit:violation=%s the capability tables lack %v", v, missing)
 	}
-	for _, path := range []string{"contracts/core-capabilities.md", "contracts/goal-docs.md"} {
-		if missing := rgMissing(rgTreeFile(t, path), "`run-rules/4` 이하로 시작한 목표에서는", "`run-rules/5`"); len(missing) > 0 {
-			t.Errorf("jaekit:violation=%s %s does not limit the unchanged-judgment statement to earlier rules: lacks %v", v, path, missing)
+	// Each statement that the tier leaves the judgment unchanged (one
+	// paragraph or list item per line) names the earlier rules it holds for,
+	// and each file states it so next to run-rules/5.
+	const unchanged, earlier = "등급 때문에 바뀌지 않", "`run-rules/4` 이하로 시작한 목표에서는"
+	for _, path := range []string{"contracts/core-capabilities.md", "contracts/goal-docs.md", "contracts/bundle.md"} {
+		qualified := false
+		for n, line := range strings.Split(rgTreeFile(t, path), "\n") {
+			if !strings.Contains(line, unchanged) {
+				continue
+			}
+			if !strings.Contains(line, earlier) {
+				t.Errorf("jaekit:violation=%s %s:%d says the tier leaves the judgment unchanged without limiting it to goals started under run-rules/4 or earlier", v, path, n+1)
+			} else if strings.Contains(line, "`run-rules/5`") {
+				qualified = true
+			}
+		}
+		if !qualified {
+			t.Errorf("jaekit:violation=%s %s has no statement that limits the unchanged judgment to earlier rules next to run-rules/5", v, path)
 		}
 	}
 }
@@ -264,7 +307,8 @@ func TestHaReviewGateAC14_GuidesStateTheGate(t *testing.T) {
 
 // AC-14: the Seal skill says that without a gate a new-rule standard or
 // strict goal stays pending and that finishing without review is the user's
-// tier change, and no longer accepts a separate review in its place.
+// tier change, and accepts a separate review in its place only for goals
+// started under the earlier rules.
 func TestHaReviewGateAC14_SealSkillStatesNoGateNoCompletion(t *testing.T) {
 	const v = "seal-without-spar-sentence-missing"
 	skill := rgTreeFile(t, "plugins/seal/skills/seal/SKILL.md")
@@ -272,8 +316,13 @@ func TestHaReviewGateAC14_SealSkillStatesNoGateNoCompletion(t *testing.T) {
 	if !strings.Contains(skill, statement) {
 		t.Errorf("jaekit:violation=%s the Seal skill lacks the statement %q", v, statement)
 	}
-	const earlier = "Without Spar, a separate review recording role, inputs, versions, findings, limits and inspectable references counts if the report names it"
-	if strings.Contains(skill, earlier) {
-		t.Errorf("jaekit:violation=%s the Seal skill still accepts a separate review without Spar for every goal", v)
+	// The earlier rule stays only in a sentence scoped to those goals.
+	const separate, scope = "a separate review recording role, inputs, versions, findings, limits and inspectable references counts", "`run-rules/4` or earlier"
+	for _, line := range strings.Split(skill, "\n") {
+		for _, sentence := range strings.Split(line, ". ") {
+			if strings.Contains(sentence, separate) && !strings.Contains(sentence, scope) {
+				t.Errorf("jaekit:violation=%s the Seal skill accepts a separate review without Spar for every goal: %q", v, sentence)
+			}
+		}
 	}
 }

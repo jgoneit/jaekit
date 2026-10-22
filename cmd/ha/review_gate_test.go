@@ -96,8 +96,9 @@ func rgRequireGit(t *testing.T) {
 
 // rgRepo makes a committed repository holding one goal with the given tier
 // ("" for a SPEC without the line) and makes it the working directory. Its
-// goal documents are SPEC.md and the note SPEC.md links.
-func rgRepo(t *testing.T, tier string) *rgFixture {
+// goal documents are SPEC.md and the note SPEC.md links. Each prepare
+// function changes the files before the first commit.
+func rgRepo(t *testing.T, tier string, prepare ...func(*rgFixture)) *rgFixture {
 	t.Helper()
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skipf("git is not available: %v", err)
@@ -118,6 +119,9 @@ func rgRepo(t *testing.T, tier string) *rgFixture {
 	f.put(rgGoal+"/PROGRESS.md", "# PROGRESS — demo\n\n## Task 상태\n| Task | 상태 | 메모 |\n| --- | --- | --- |\n| T001 | done | |\n")
 	f.put("src/value.txt", "ok\n")
 	f.put("tests/value.sh", "grep -qx ok src/value.txt\n")
+	for _, p := range prepare {
+		p(f)
+	}
 	f.git("init", "-q", "-b", "main")
 	f.git("add", "-A")
 	f.git("commit", "-q", "-m", "base")
@@ -129,9 +133,9 @@ func rgRepo(t *testing.T, tier string) *rgFixture {
 // and head) and records a passing AC-1 check at the head. Only a Core without
 // run-rules/5 refusing the start is the observed violation; any other failure
 // is a broken setup.
-func newRGFixture(t *testing.T, violation, tier string) *rgFixture {
+func newRGFixture(t *testing.T, violation, tier string, prepare ...func(*rgFixture)) *rgFixture {
 	t.Helper()
-	f := rgRepo(t, tier)
+	f := rgRepo(t, tier, prepare...)
 	f.start(violation, "--rules", "run-rules/5")
 	f.put("src/work.txt", "one\n")
 	f.work = f.commit("work")
@@ -507,6 +511,9 @@ func TestHaReviewGateAC2_StandardGoalCompletesWithACoveringGate(t *testing.T) {
 	docs := append([]rgDoc{{"AGENTS.md", rgSHA([]byte("rules"))}}, f.docs()...)
 	docs[1], docs[2] = docs[2], docs[1]
 	extra.rounds[0].docs, extra.rounds[0].completed, extra.rounds[0].waived = docs, 2, true
+	planOnly := "a gate with plan rounds and no code round"
+	f.recordGate(v, planOnly, f.covering("plan", "plan-delta"))
+	f.expectPending(v, planOnly, "review_code_missing")
 	for _, form := range []struct {
 		label string
 		gate  rgGate
@@ -520,6 +527,26 @@ func TestHaReviewGateAC2_StandardGoalCompletesWithACoveringGate(t *testing.T) {
 		f.expectComplete(v, form.label)
 	}
 	f.expectDone(v, "the last recorded gate")
+
+	// A linked goal document that is a symbolic link to a file elsewhere in
+	// the repository, named by the path it resolves to, as Spar names it.
+	const target = "docs/notes/value.md"
+	linked := "a gate naming a linked goal document by the path its symbolic link resolves to"
+	s := newRGFixture(t, v, "standard", func(f *rgFixture) {
+		note := filepath.Join(f.dir, rgGoal, "note.md")
+		f.put(target, string(f.read(rgGoal+"/note.md")))
+		if err := os.Remove(note); err != nil {
+			t.Fatalf("setup: %v", err)
+		}
+		if err := os.Symlink("../../notes/value.md", note); err != nil {
+			t.Fatalf("setup: %v", err)
+		}
+	})
+	g := s.covering("candidate")
+	g.rounds[0].docs = []rgDoc{{rgGoal + "/SPEC.md", rgSHA(s.read(rgGoal + "/SPEC.md"))}, {target, rgSHA(s.read(target))}}
+	s.recordGate(v, linked, g)
+	s.expectComplete(v, linked)
+	s.expectDone(v, linked)
 }
 
 // AC-3: a strict goal also needs a plan round, and its latest plan round must
@@ -629,6 +656,13 @@ func TestHaReviewGateAC6_IncompleteGateKeepsCompletionPending(t *testing.T) {
 		f.recordGate(v, form.label, form.gate)
 		f.expectPending(v, form.label, form.want...)
 	}
+	// A gate recorded after a completion record is judged like any other:
+	// a blocked one leaves the goal pending again.
+	f.recordGate(v, "a covering gate", f.chained())
+	f.expectDone(v, "a covering gate")
+	after := "a blocked gate recorded after the completion record"
+	f.recordGate(v, after, gate("blocked", 0, 0))
+	f.expectPending(v, after, "review_blocked")
 }
 
 // AC-7: without a recorded gate a standard or strict goal stays pending, and
