@@ -1,13 +1,14 @@
 {
   "schema": "core-requirements/v1",
-  "rules": ["run-rules/4"],
+  "rules": ["run-rules/5"],
   "formats": {
     "criteria": ["legacy", "nested/1"],
     "check_declaration": ["check-declaration/v1"],
     "check_result": ["check-result/v1"],
     "check_evidence": ["check-evidence/v1"],
     "assurance_tier": ["light", "standard", "strict"],
-    "core_requirements": ["core-requirements/v1"]
+    "core_requirements": ["core-requirements/v1"],
+    "review_gate": ["review-gate/v1"]
   },
   "features": [
     "estimate/v1",
@@ -23,6 +24,7 @@
     "report/v1",
     "doctor/v1",
     "auto-budget/v1",
-    "core-requirements/v1"
+    "core-requirements/v1",
+    "review-gate/v1"
   ]
 }

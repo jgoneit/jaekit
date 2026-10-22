@@ -30,8 +30,9 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 	// Seal 0.1.18 takes the user's yes to that question as a request,
 	// Seal 0.1.19 adds runner adapter guidance, and Seal 0.1.20 leaves the
 	// capability check, budget, environment and report to ha and adds the
-	// review tiers. The released marketplace identity above stays v0.1.6.
-	for name, want := range map[string]string{"spec": "0.1.13", "seal": "0.1.20"} {
+	// review tiers; Seal 0.1.21 starts under run-rules/5 and records the review
+	// gate. The released marketplace identity above stays v0.1.6.
+	for name, want := range map[string]string{"spec": "0.1.13", "seal": "0.1.21"} {
 		t.Run(name, func(t *testing.T) {
 			_, version := frontMatter(t, filepath.Join(name, "skills", name, "SKILL.md"))
 			if version != want {
