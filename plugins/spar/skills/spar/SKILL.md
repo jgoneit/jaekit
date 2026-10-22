@@ -29,8 +29,11 @@ For example, a candidate round:
 
 ```bash
 spar run --stage candidate --base <base commit> --head <candidate commit> \
-  --criteria docs/specs/<goal>/SPEC.md --rules AGENTS.md --out docs/reviews/<goal>/02-candidate
+  --criteria docs/specs/<goal>/SPEC.md --criteria docs/specs/<goal>/<linked goal document>.md \
+  --rules AGENTS.md --check-path <check file> --out docs/reviews/<goal>/02-candidate
 ```
+
+Give every goal document as `--criteria`: SPEC.md and each goal document it links, one flag per file. Give each check file the change adds or changes, such as result declarations, producers and tests, as `--check-path`, so that findings in them follow the check-path rules below.
 
 - Caps: one plan round, one plan-delta round and three code rounds (candidate and fixes together) per series, unless the project configuration says otherwise. `spar run` refuses a round past its cap before any reviewer starts.
 - The cumulative round reviews the whole change once more, from the goal's base commit to the last head, after fix rounds: a `fixes` round sees only the fixes. Run it as a `candidate` round; it does not take earlier findings and counts toward the code-round cap like the first candidate round. When no fixes followed the first candidate round, that round is the cumulative round. When the cap leaves no room for it, extending the cap follows the rule below.
