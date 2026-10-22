@@ -16,7 +16,7 @@ Jaekit **carries work you delegate to Codex or Claude Code from a goal to a comp
 - **Spec** turns what you want into a goal document with completion conditions.
 - **Seal** has the agent implement, check, and fix the work toward that goal, and judges completion from check records.
 
-The current release is **v0.1.6**, an early version being refined through real work.
+The current release is **v0.1.7**, an early version being refined through real work.
 
 ## Why use it
 
@@ -121,7 +121,7 @@ Then check your agent.
 
 #### 1. Install the record tool `ha` in Terminal
 
-Run one block at a time and wait for it to finish.
+Run one block at a time and wait for it to finish. Homebrew installs `ha` and `spar` together.
 
 ```bash
 brew install jgoneit/tap/jaekit
@@ -132,9 +132,9 @@ ha --version
 which -a ha
 ```
 
-It should print `ha 0.1.6`. The first line of `which -a ha` is the file that actually runs. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
+It should print `ha 0.1.7`. The first line of `which -a ha` is the file that actually runs. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
 
-To install without Homebrew, paste the block under [Install from a Release file](guides/INSTALL.en.md#install-from-a-release-file) instead of this step. It downloads the file for your OS and CPU, checks its checksum, and puts it at `~/.local/bin/ha`. Other methods and details are in the [install guide](guides/INSTALL.en.md).
+To install without Homebrew, paste the block under [Install from a Release file](guides/INSTALL.en.md#install-from-a-release-file) instead of this step. It downloads the file for your OS and CPU, checks its checksum, and puts `ha` and `spar` at `~/.local/bin/ha` and `~/.local/bin/spar`. Other methods and details are in the [install guide](guides/INSTALL.en.md).
 
 #### 2. Install the plugins for your agent
 
@@ -145,28 +145,30 @@ If you already installed Jaekit, follow [Update](#update) below. If you register
 **Claude Code**
 
 ```bash
-claude plugin marketplace add jgoneit/jaekit#v0.1.6
+claude plugin marketplace add jgoneit/jaekit#v0.1.7
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
+claude plugin install spar@jaekit
 claude plugin list
 ```
 
 > [!TIP]
-> **Reopen Claude Code after installation.** The final list should show `spec@jaekit` and `seal@jaekit` as enabled. `#v0.1.6` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
+> **Reopen Claude Code after installation.** The final list should show `spec@jaekit`, `seal@jaekit` and `spar@jaekit` as enabled. `#v0.1.7` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
 
 **Codex**
 
 ```bash
-codex plugin marketplace add jgoneit/jaekit@v0.1.6
+codex plugin marketplace add jgoneit/jaekit@v0.1.7
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
+codex plugin add spar@jaekit
 ```
 
 > [!TIP]
-> **Reopen Codex after installation.** `@v0.1.6` pins the release to use.
+> **Reopen Codex after installation.** `@v0.1.7` pins the release to use.
 
 > [!NOTE]
-> **Spar for `standard` and `strict` goals.** From the release after v0.1.6, `standard` and `strict` goals need the Spar executable and the Spar plugin, with reviewers set to the CLIs you have: see [Spar](guides/INSTALL.en.md#spar). That release's Seal starts new goals under `run-rules/5`, and a `standard` or `strict` goal started under `run-rules/5` completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](guides/USAGE.en.md#review-gate-run-rules5)).
+> **Spar for `standard` and `strict` goals.** From v0.1.7, `standard` and `strict` goals need the Spar executable and the Spar plugin, which the commands above install, with reviewers set to the CLIs you have: see [Spar](guides/INSTALL.en.md#spar). The v0.1.7 Seal starts new goals under `run-rules/5`, and a `standard` or `strict` goal started under `run-rules/5` completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](guides/USAGE.en.md#review-gate-run-rules5)).
 
 ### Your first task
 
@@ -234,7 +236,7 @@ Replace `<goal>` with its actual folder name to continue from the saved goal and
 ### Update
 
 > [!WARNING]
-> When a new release comes out, update `ha` and both plugins **together**. With mixed versions, Seal may stop before recording.
+> When a new release comes out, update `ha` and the plugins **together**. With mixed versions, Seal may stop before recording.
 
 #### 1. Update `ha`
 
@@ -263,29 +265,31 @@ If you installed both with Homebrew and from a Release file, remove the one you 
 
 #### 3. Register the plugins again for the new release
 
-Removing the marketplace also removes its spec and seal, so install them again.
+Removing the marketplace also removes its spec, seal and spar, so install them again.
 
 **Claude Code**
 
 ```bash
 claude plugin marketplace remove jaekit
-claude plugin marketplace add jgoneit/jaekit#v0.1.6
+claude plugin marketplace add jgoneit/jaekit#v0.1.7
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
+claude plugin install spar@jaekit
 ```
 
 **Codex**
 
 ```bash
 codex plugin marketplace remove jaekit
-codex plugin marketplace add jgoneit/jaekit@v0.1.6
+codex plugin marketplace add jgoneit/jaekit@v0.1.7
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
+codex plugin add spar@jaekit
 ```
 
 #### 4. Reopen Claude Code or Codex
 
-The new Spec and Seal load in newly opened sessions.
+The new Spec, Seal and Spar load in newly opened sessions.
 
 Updating does not delete goal documents or run records. To clean up earlier versions' data or uninstall, see [Update](guides/INSTALL.en.md#update) and [Uninstall](guides/INSTALL.en.md#uninstall).
 
@@ -509,7 +513,7 @@ Installing, updating, or uninstalling does not delete these records. Git trackin
 - [WSL2 preparation guide](guides/WSL.en.md) · [Windows native candidate guide](guides/WINDOWS.en.md)
 - [About the images and how to edit them](assets/readme/SOURCES.en.md)
 - [What Ubuntu, macOS and Windows CI checks](guides/CI.en.md)
-- [Independent review rounds with Spar](guides/SPAR.en.md), needed for `standard` and `strict` goals from the release after v0.1.6
+- [Independent review rounds with Spar](guides/SPAR.en.md), needed for `standard` and `strict` goals from v0.1.7
 
 Share your experience or where you got stuck in a [usage report or install/bug issue](https://github.com/jgoneit/jaekit/issues/new/choose). Issues are public: leave out company code, internal names, secrets, and raw logs.
 

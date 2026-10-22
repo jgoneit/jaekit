@@ -23,7 +23,7 @@ spec.loader.exec_module(release)
 helper_spec = importlib.util.spec_from_file_location("spar_archive_headers", HERE / "test_archives.py")
 helpers = importlib.util.module_from_spec(helper_spec)
 helper_spec.loader.exec_module(helpers)
-VERSION = "0.1.6"
+VERSION = "0.1.7"
 
 
 class SparArchives(unittest.TestCase):

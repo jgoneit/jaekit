@@ -57,7 +57,7 @@ The declaration and every `producer_paths` input must be tracked regular files w
 - `경과 시간: <duration>` — such as `4시간`, `90분`, `2h30m`, measured between record timestamps
 - `비용: <limit or 미관측>`
 
-PLAN budget values initialize a goal. Editing them does not change an active budget. Under `/3`, a recorded `budget_change` changes only the current window's total run limit and retains usage and elapsed time. Increases require a user quote and context; decreases require a reason. Under `/3`, an explicit `reopen` carries the latest run limit and the original time limit into a new window; [run-record.md §4.7](https://github.com/jgoneit/jaekit/blob/v0.1.6/contracts/run-record.md#47-run-rules4) defines the run limit of a reopened `/4` window. `/1` and `/2` retain their original start limit. See [ha.md](ha.md).
+PLAN budget values initialize a goal. Editing them does not change an active budget. Under `/3`, a recorded `budget_change` changes only the current window's total run limit and retains usage and elapsed time. Increases require a user quote and context; decreases require a reason. Under `/3`, an explicit `reopen` carries the latest run limit and the original time limit into a new window; [run-record.md §4.7](https://github.com/jgoneit/jaekit/blob/v0.1.7/contracts/run-record.md#47-run-rules4) defines the run limit of a reopened `/4` window. `/1` and `/2` retain their original start limit. See [ha.md](ha.md).
 
 ### `## 실행 환경`
 

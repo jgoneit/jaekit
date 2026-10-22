@@ -43,7 +43,7 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
 ```json
 {
   "schema": "review-gate/v1",
-  "spar_version": "0.1.6",
+  "spar_version": "0.1.7",
   "state": "complete",
   "reasons": [],
   "expect_head": "3333333…",

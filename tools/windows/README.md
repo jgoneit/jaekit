@@ -18,7 +18,7 @@ A PE header check establishes file format, not runtime
 correctness. Review public inputs before distributing a candidate.
 
 ```text
-python3 tools/windows/package.py --binary /absolute/build/ha.exe --version 0.1.6-dev --output /absolute/candidates/windows-0.1.6-dev
+python3 tools/windows/package.py --binary /absolute/build/ha.exe --version 0.1.7-dev --output /absolute/candidates/windows-0.1.7-dev
 python3 -m unittest discover -s tools/windows -p 'test_*.py'
 ```
 

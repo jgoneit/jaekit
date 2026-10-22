@@ -164,10 +164,10 @@ var soOptional = []string{
 // goals under run-rules/5, the goals that do not need Spar, and how to finish
 // without review.
 var (
-	soNeedKo = []string{"v0.1.6 다음 릴리스", "`run-rules/5`", "`standard`·`strict` 목표", "기록된 Spar gate가 있어야 완료됩니다",
+	soNeedKo = []string{"v0.1.7부터", "`run-rules/5`", "`standard`·`strict` 목표", "기록된 Spar gate가 있어야 완료됩니다",
 		"`light` 목표", "`Assurance:` 줄이 없는 목표", "`run-rules/4` 이하로 시작한 목표", "Spar가 필요 없습니다",
 		"검토 없이 끝내려면", "`light`로 낮추는 목표 문서 수정"}
-	soNeedEn = []string{"the release after v0.1.6", "`run-rules/5`", "`standard` or `strict` goal", "completes only with a recorded Spar gate",
+	soNeedEn = []string{"From v0.1.7", "`run-rules/5`", "`standard` or `strict` goal", "completes only with a recorded Spar gate",
 		"`light` goals", "goals without an `Assurance:` line", "goals started under `run-rules/4` or earlier", "do not need Spar",
 		"To finish without review", "goal-document change that lowers the tier to `light`"}
 )
@@ -236,8 +236,8 @@ func TestSparOnboardingAC2_ReadmeInstallLeadsToSpar(t *testing.T) {
 		path, heading string
 		tokens        []string
 	}{
-		{soReadme, "### Install", []string{"From the release after v0.1.6", "`standard` and `strict` goals need the Spar executable and the Spar plugin", "](guides/INSTALL.en.md#spar)"}},
-		{soReadmeKo, "### 설치", []string{"v0.1.6 다음 릴리스부터", "`standard`·`strict` 목표에는 Spar 실행 파일과 Spar 플러그인이 필요", "](guides/INSTALL.md#spar)"}},
+		{soReadme, "### Install", []string{"From v0.1.7", "`standard` and `strict` goals need the Spar executable and the Spar plugin", "](guides/INSTALL.en.md#spar)"}},
+		{soReadmeKo, "### 설치", []string{"v0.1.7부터", "`standard`·`strict` 목표에는 Spar 실행 파일과 Spar 플러그인이 필요", "](guides/INSTALL.md#spar)"}},
 	} {
 		lines, ok := soSection(soRead(t, c.path), c.heading)
 		if !ok {
@@ -259,8 +259,8 @@ func TestSparOnboardingAC2_InstallGuideSparSection(t *testing.T) {
 		path   string
 		tokens []string
 	}{
-		{soInstall, []string{"v0.1.6 다음 릴리스부터", "`standard`·`strict` 목표에는 Spar 실행 파일과 Spar 플러그인이 필요"}},
-		{soInstallEn, []string{"From the release after v0.1.6", "`standard` and `strict` goals need the Spar executable and the Spar plugin"}},
+		{soInstall, []string{"v0.1.7부터", "`standard`·`strict` 목표에는 Spar 실행 파일과 Spar 플러그인이 필요"}},
+		{soInstallEn, []string{"From v0.1.7", "`standard` and `strict` goals need the Spar executable and the Spar plugin"}},
 	} {
 		text := soRead(t, c.path)
 		for _, line := range soLines(text) {
@@ -508,21 +508,21 @@ func TestSparOnboardingAC7_KeptGuidance(t *testing.T) {
 	}
 }
 
-// AC-8 (kept): the Seal skill stays within 2,200 words, and the v0.1.6
-// install pins of the guides and the Seal skill stay.
+// AC-8 (kept): the Seal skill stays within 2,200 words, and the install pins
+// of the guides and the Seal skill name the current release, v0.1.7.
 func TestSparOnboardingAC8_SkillSizeAndPins(t *testing.T) {
 	if n := len(strings.Fields(soRead(t, soSealSkill))); n > 2200 {
 		t.Errorf("%s has %d words, more than 2,200", soSealSkill, n)
 	}
 	for _, path := range []string{soReadme, soReadmeKo, soInstall, soInstallEn} {
 		text := soRead(t, path)
-		for _, pin := range []string{"claude plugin marketplace add jgoneit/jaekit#v0.1.6", "codex plugin marketplace add jgoneit/jaekit@v0.1.6"} {
+		for _, pin := range []string{"claude plugin marketplace add jgoneit/jaekit#v0.1.7", "codex plugin marketplace add jgoneit/jaekit@v0.1.7"} {
 			if !strings.Contains(text, pin) {
 				t.Errorf("%s lost the pin %q", path, pin)
 			}
 		}
 	}
-	if pin := "https://github.com/jgoneit/jaekit/blob/v0.1.6/guides/INSTALL.md"; !strings.Contains(soRead(t, soSealSkill), pin) {
+	if pin := "https://github.com/jgoneit/jaekit/blob/v0.1.7/guides/INSTALL.md"; !strings.Contains(soRead(t, soSealSkill), pin) {
 		t.Errorf("%s lost the install route %q", soSealSkill, pin)
 	}
 }

@@ -16,7 +16,7 @@ Jaekit은 **Codex·Claude Code에 맡긴 작업을 목표부터 완료 기록까
 - **Spec**은 원하는 일을 목표 문서와 완료 조건으로 정리합니다.
 - **Seal**은 에이전트가 그 목표대로 구현·검사·수정하게 하고, 검사 기록으로 완료를 판단합니다.
 
-현재 배포판은 **v0.1.6**입니다. 실제 작업에 써 보며 다듬는 초기 개발 단계입니다.
+현재 배포판은 **v0.1.7**입니다. 실제 작업에 써 보며 다듬는 초기 개발 단계입니다.
 
 ## 이럴 때 좋습니다
 
@@ -121,7 +121,7 @@ flowchart TD
 
 #### 1. 터미널에서 기록 도구 `ha` 설치하기
 
-블록은 하나씩 실행하고, 끝날 때까지 기다립니다.
+블록은 하나씩 실행하고, 끝날 때까지 기다립니다. brew는 `ha`와 `spar`를 함께 설치합니다.
 
 ```bash
 brew install jgoneit/tap/jaekit
@@ -132,9 +132,9 @@ ha --version
 which -a ha
 ```
 
-`ha 0.1.6`이 나오면 됩니다. `which -a ha`의 첫 줄이 실제로 실행되는 파일입니다. 명령을 찾지 못하거나 버전이 다르면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
+`ha 0.1.7`이 나오면 됩니다. `which -a ha`의 첫 줄이 실제로 실행되는 파일입니다. 명령을 찾지 못하거나 버전이 다르면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
 
-Homebrew 없이 설치하려면 이 단계 대신 [Release 파일로 설치](guides/INSTALL.md#release-파일로-설치)의 블록을 붙여 넣습니다. OS와 CPU에 맞는 파일을 받아 checksum을 확인한 뒤 `~/.local/bin/ha`에 둡니다. 다른 설치 방법과 자세한 설명은 [설치 안내](guides/INSTALL.md)에 있습니다.
+Homebrew 없이 설치하려면 이 단계 대신 [Release 파일로 설치](guides/INSTALL.md#release-파일로-설치)의 블록을 붙여 넣습니다. OS와 CPU에 맞는 파일을 받아 checksum을 확인한 뒤 `ha`와 `spar`를 `~/.local/bin/ha`와 `~/.local/bin/spar`에 둡니다. 다른 설치 방법과 자세한 설명은 [설치 안내](guides/INSTALL.md)에 있습니다.
 
 #### 2. 에이전트 플러그인 설치하기
 
@@ -145,28 +145,30 @@ Homebrew 없이 설치하려면 이 단계 대신 [Release 파일로 설치](gui
 **Claude Code**
 
 ```bash
-claude plugin marketplace add jgoneit/jaekit#v0.1.6
+claude plugin marketplace add jgoneit/jaekit#v0.1.7
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
+claude plugin install spar@jaekit
 claude plugin list
 ```
 
 > [!TIP]
-> 설치 후 **Claude Code를 새로 엽니다.** 마지막 목록에 `spec@jaekit`, `seal@jaekit`가 enabled로 보이면 됩니다. `#v0.1.6`은 사용할 배포판을 고정합니다. 자세한 내용은 [Claude Code 설치](guides/INSTALL.md#claude-code)를 봅니다.
+> 설치 후 **Claude Code를 새로 엽니다.** 마지막 목록에 `spec@jaekit`, `seal@jaekit`, `spar@jaekit`가 enabled로 보이면 됩니다. `#v0.1.7`은 사용할 배포판을 고정합니다. 자세한 내용은 [Claude Code 설치](guides/INSTALL.md#claude-code)를 봅니다.
 
 **Codex**
 
 ```bash
-codex plugin marketplace add jgoneit/jaekit@v0.1.6
+codex plugin marketplace add jgoneit/jaekit@v0.1.7
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
+codex plugin add spar@jaekit
 ```
 
 > [!TIP]
-> 설치 후 **Codex를 새로 엽니다.** `@v0.1.6`은 사용할 배포판을 고정합니다.
+> 설치 후 **Codex를 새로 엽니다.** `@v0.1.7`은 사용할 배포판을 고정합니다.
 
 > [!NOTE]
-> **`standard`·`strict` 목표와 Spar.** v0.1.6 다음 릴리스부터 `standard`·`strict` 목표에는 Spar 실행 파일과 Spar 플러그인이 필요하고, 리뷰어는 가진 CLI에 맞춰 정합니다. [Spar 설치](guides/INSTALL.md#spar)를 봅니다. 그 릴리스의 Seal은 새 목표를 `run-rules/5`로 시작하고, `run-rules/5`로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다([검토 gate](guides/USAGE.md#검토-gate-run-rules5)).
+> **`standard`·`strict` 목표와 Spar.** v0.1.7부터 `standard`·`strict` 목표에는 Spar 실행 파일과 Spar 플러그인이 필요하고(위 명령이 둘 다 설치합니다), 리뷰어는 가진 CLI에 맞춰 정합니다. [Spar 설치](guides/INSTALL.md#spar)를 봅니다. v0.1.7의 Seal은 새 목표를 `run-rules/5`로 시작하고, `run-rules/5`로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다([검토 gate](guides/USAGE.md#검토-gate-run-rules5)).
 
 ### 첫 작업 맡기기
 
@@ -234,7 +236,7 @@ docs/specs/<goal> 이어서 해줘
 ### 업데이트
 
 > [!WARNING]
-> 새 배포판이 나오면 `ha`와 두 플러그인을 **함께** 올립니다. 버전이 섞이면 Seal이 기록하기 전에 멈출 수 있습니다.
+> 새 배포판이 나오면 `ha`와 플러그인을 **함께** 올립니다. 버전이 섞이면 Seal이 기록하기 전에 멈출 수 있습니다.
 
 #### 1. `ha` 올리기
 
@@ -263,29 +265,31 @@ Homebrew와 Release 파일로 둘 다 설치했다면, 쓰지 않는 쪽을 지�
 
 #### 3. 플러그인을 새 배포판으로 다시 등록하기
 
-marketplace를 지우면 그 안의 spec·seal도 함께 지워지므로 다시 설치합니다.
+marketplace를 지우면 그 안의 spec·seal·spar도 함께 지워지므로 다시 설치합니다.
 
 **Claude Code**
 
 ```bash
 claude plugin marketplace remove jaekit
-claude plugin marketplace add jgoneit/jaekit#v0.1.6
+claude plugin marketplace add jgoneit/jaekit#v0.1.7
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
+claude plugin install spar@jaekit
 ```
 
 **Codex**
 
 ```bash
 codex plugin marketplace remove jaekit
-codex plugin marketplace add jgoneit/jaekit@v0.1.6
+codex plugin marketplace add jgoneit/jaekit@v0.1.7
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
+codex plugin add spar@jaekit
 ```
 
 #### 4. Claude Code·Codex 다시 열기
 
-새 Spec·Seal은 새로 연 세션부터 쓰입니다.
+새 Spec·Seal·Spar는 새로 연 세션부터 쓰입니다.
 
 업데이트는 목표 문서와 실행 기록을 지우지 않습니다. 이전 버전 자료 정리와 제거는 [업데이트](guides/INSTALL.md#업데이트)·[제거](guides/INSTALL.md#제거)를 봅니다.
 
@@ -493,7 +497,7 @@ Criteria-Format: nested/1
 - [WSL2 준비 안내](guides/WSL.md) · [Windows 네이티브 후보 안내](guides/WINDOWS.md)
 - [이미지 설명과 수정 방법](assets/readme/SOURCES.md)
 - [Ubuntu·macOS·Windows CI의 검사 범위](guides/CI.md)
-- [Spar로 하는 독립 검토](guides/SPAR.md): v0.1.6 다음 릴리스부터 `standard`·`strict` 목표에 필요
+- [Spar로 하는 독립 검토](guides/SPAR.md): v0.1.7부터 `standard`·`strict` 목표에 필요
 
 사용 경험이나 막힌 점은 [사용 보고·설치·버그 issue](https://github.com/jgoneit/jaekit/issues/new/choose)로 남겨 주세요. issue는 공개되므로 회사 코드, 내부 이름, 비밀 값과 로그 원문은 제외해 주세요.
 

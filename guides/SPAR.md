@@ -4,9 +4,9 @@
 
 Spar는 두 커밋에 고정한 검토 패킷 하나를 여러 리뷰어에게 한꺼번에 보내고, 그들이 찾은 것과 그 처리를 기록합니다. 라운드는 `spar` 실행 파일이 돌리고, `spar` 플러그인은 에이전트에게 언제 라운드를 돌리고 지적을 어떻게 닫는지 알려 줍니다.
 
-v0.1.6 다음 릴리스의 Seal은 새 목표를 `run-rules/5`로 시작하고, `run-rules/5`로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다([검토 gate](USAGE.md#검토-gate-run-rules5)).
+v0.1.7부터 Seal은 새 목표를 `run-rules/5`로 시작하고, `run-rules/5`로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다([검토 gate](USAGE.md#검토-gate-run-rules5)).
 
-`spar`는 v0.1.6 다음 릴리스부터 릴리스 파일과 Homebrew formula에 `ha`와 함께 들어 있습니다. v0.1.6 릴리스 파일과 formula에는 없습니다. [설치 안내](INSTALL.md)를 보세요.
+`spar`는 v0.1.7부터 릴리스 파일과 Homebrew formula에 `ha`와 함께 들어 있습니다. v0.1.6 이하의 릴리스 파일과 formula에는 없습니다. [설치 안내](INSTALL.md)를 보세요.
 
 ## 컴퓨터 밖으로 나가는 것
 

@@ -4,7 +4,7 @@
 
 This route installs Jaekit inside **Ubuntu 24.04 LTS amd64(x64) on WSL2**. **Installation, execution, and agent Skill use in actual WSL2 have not been checked yet.** This document describes preparation of the route, not completed WSL2 support validation.
 
-The current public release is `v0.1.6`. The linked installation commands download that release's Linux files. This guide and the [environment check tool](#optional-environment-check-for-candidate-packages) are in the public data of the v0.1.6 files; files of v0.1.4 and earlier do not have them. Checking a candidate package, publishing a release, and installing files from its public URL are separate steps.
+The current public release is `v0.1.7`. The linked installation commands download that release's Linux files. This guide and the [environment check tool](#optional-environment-check-for-candidate-packages) are in the public data of the v0.1.7 files; files of v0.1.4 and earlier do not have them. Checking a candidate package, publishing a release, and installing files from its public URL are separate steps.
 
 ## Working environment
 
@@ -40,7 +40,7 @@ Ubuntu must report version `24.04`, and the CPU must report `x86_64`. Keep the p
 
 1. Prepare Linux Git and the agent CLI you will use inside that Ubuntu distribution. The current public installation guide covers Codex CLI and Claude Code. An app or `.exe` installed in Windows does not substitute for a WSL installation. Prepare authentication and execution permissions in the Linux host you will use.
 2. In the same Linux terminal, run the block under [Install from a Release file](INSTALL.en.md#install-from-a-release-file). Besides Git, the guide uses `curl`, `tar`, a checksum tool, and standard Linux utilities. Prepare missing tools first. You do not need a Jaekit source checkout, Go, or Homebrew.
-3. This combination uses `ha_0.1.6_linux_amd64.tar.gz` and `checksums.txt`. The executable goes to `~/.local/bin/ha`, and public data goes to `~/.local/share/jaekit/0.1.6`. Copy needed files into your project instead of modifying the installed public data.
+3. This combination uses `ha_0.1.7_linux_amd64.tar.gz` and `checksums.txt`. The executables go to `~/.local/bin/ha` and `~/.local/bin/spar`, and public data goes to `~/.local/share/jaekit/0.1.7`. Copy needed files into your project instead of modifying the installed public data.
 4. Follow the installation section for either [Codex](INSTALL.en.md#codex) or [Claude Code](INSTALL.en.md#claude-code). Install plugins through the Linux CLI in the same distribution. This guide does not change other hosts' packaging or invocation names.
 
 If `~/.local/bin` is missing from PATH, you can apply the following to the current Linux shell. It affects only this shell and processes started from it.
@@ -59,13 +59,13 @@ ha --version
 ha capabilities --format json
 ```
 
-For a v0.1.6 installation, the version must be `ha 0.1.6`. If several installations exist, PATH selects the first one. If it selects a Windows path, an `.exe`, or an unintended older installation, correct the installation location and PATH in that distribution first. Assess Core capabilities using the [compatibility contract](../contracts/core-capabilities.md); a matching version string is insufficient.
+For a v0.1.7 installation, the version must be `ha 0.1.7`. If several installations exist, PATH selects the first one. If it selects a Windows path, an `.exe`, or an unintended older installation, correct the installation location and PATH in that distribution first. Assess Core capabilities using the [compatibility contract](../contracts/core-capabilities.md); a matching version string is insufficient.
 
 Use the direct-install data path in [Get the reference check](INSTALL.en.md#get-the-reference-check) to copy public examples into your project. Existing files are not overwritten. Python 3 is needed only if you choose this reference producer.
 
 ## Optional environment check for candidate packages
 
-The [environment check tool](../tools/wsl/check-environment.sh) is in the public data of the v0.1.6 release files (`~/.local/share/jaekit/0.1.6/tools/wsl/check-environment.sh`). Release files of v0.1.4 and earlier do not have it. It is not required to install the release. Use it only when the public data, reviewed source or a candidate package includes `tools/wsl/check-environment.sh`. Replace both placeholders with the actual public data directory and project path. The final `codex` is the Linux host command you will use; replace it with `claude` or omit it.
+The [environment check tool](../tools/wsl/check-environment.sh) is in the public data of the v0.1.7 release files (`~/.local/share/jaekit/0.1.7/tools/wsl/check-environment.sh`). Release files of v0.1.4 and earlier do not have it. It is not required to install the release. Use it only when the public data, reviewed source or a candidate package includes `tools/wsl/check-environment.sh`. Replace both placeholders with the actual public data directory and project path. The final `codex` is the Linux host command you will use; replace it with `claude` or omit it.
 
 ```bash
 bash "<candidate-public-data>/tools/wsl/check-environment.sh" "<project-path>" codex
@@ -79,7 +79,7 @@ Path checks do not independently attest execution. You must separately observe w
 
 The [Release workflow](../.github/workflows/release.yml) in GitHub Actions builds candidate files. Run it manually (`workflow_dispatch`) on the branch to check and enter a candidate version (`X.Y.Z`). When the run finishes, download its `release-files` artifact into a new directory. Its `ha_<version>_linux_amd64.tar.gz` and `checksums.txt` are the candidate, and the extracted `ha_<version>_linux_amd64` directory is the public data directory for the command above. A pull request's Release workflow run leaves the same artifact with version `0.0.0`.
 
-The workflow checks out the commit it runs on and builds and checks the files with the same steps as a tag build, so local files and uncommitted changes that are not in that commit cannot enter the candidate. Manual and pull request runs publish nothing, and a candidate version is not a public release version. Do not substitute it into the v0.1.6 installation block above. Building a candidate is not evidence of actual WSL2 execution.
+The workflow checks out the commit it runs on and builds and checks the files with the same steps as a tag build, so local files and uncommitted changes that are not in that commit cannot enter the candidate. Manual and pull request runs publish nothing, and a candidate version is not a public release version. Do not substitute it into the v0.1.7 installation block above. Building a candidate is not evidence of actual WSL2 execution.
 
 ## Use it with an agent
 
@@ -117,4 +117,4 @@ For [removal](INSTALL.en.md#uninstall), run only the direct-install and relevant
 | Package installation and execution in actual WSL2 | Results for the recorded WSL, distribution, CPU, and package combination |
 | Actual Linux host Skill use | The observed flow for that host, model, and Skill version |
 
-The last two stages have no actual WSL2 observations yet. Successful source or candidate-package checks do not establish successful WSL2 or host use. The current public release's observation scope is described in the [v0.1.6 release notes](https://github.com/jgoneit/jaekit/releases/tag/v0.1.6). Completion reports still use assurance `local`, which does not mean independent third-party verification.
+The last two stages have no actual WSL2 observations yet. Successful source or candidate-package checks do not establish successful WSL2 or host use. The current public release's observation scope is described in the [v0.1.7 release notes](https://github.com/jgoneit/jaekit/releases/tag/v0.1.7). Completion reports still use assurance `local`, which does not mean independent third-party verification.
