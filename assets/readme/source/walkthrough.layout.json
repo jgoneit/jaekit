@@ -1,0 +1,1707 @@
+{
+  "canvas": [
+    1280,
+    720
+  ],
+  "font": "Noto Sans CJK KR",
+  "languages": {
+    "frame-01.en": [
+      {
+        "text": "Jaekit",
+        "x": 44,
+        "y": 56,
+        "width": 79.79,
+        "font_size": 26
+      },
+      {
+        "text": "Fictional walkthrough",
+        "x": 1027.9,
+        "y": 56,
+        "width": 184.19,
+        "font_size": 18
+      },
+      {
+        "text": "From request to recorded completion",
+        "x": 44,
+        "y": 112,
+        "width": 665.46,
+        "font_size": 36
+      },
+      {
+        "text": "Ask Spec",
+        "x": 44.0,
+        "y": 172,
+        "width": 69.49,
+        "font_size": 16
+      },
+      {
+        "text": "Review the goal",
+        "x": 216.0,
+        "y": 172,
+        "width": 117.5,
+        "font_size": 16
+      },
+      {
+        "text": "Say yes",
+        "x": 388.0,
+        "y": 172,
+        "width": 55.15,
+        "font_size": 16
+      },
+      {
+        "text": "Check",
+        "x": 560.0,
+        "y": 172,
+        "width": 45.78,
+        "font_size": 16
+      },
+      {
+        "text": "Spar review",
+        "x": 732.0,
+        "y": 172,
+        "width": 87.76,
+        "font_size": 16
+      },
+      {
+        "text": "ha done",
+        "x": 904.0,
+        "y": 172,
+        "width": 60.54,
+        "font_size": 16
+      },
+      {
+        "text": "Report",
+        "x": 1076.0,
+        "y": 172,
+        "width": 50.88,
+        "font_size": 16
+      },
+      {
+        "text": "Agent conversation",
+        "x": 68,
+        "y": 238,
+        "width": 153.17,
+        "font_size": 16
+      },
+      {
+        "text": "USER",
+        "x": 68,
+        "y": 288,
+        "width": 34.7,
+        "font_size": 13
+      },
+      {
+        "text": "/spec:spec Add a “Forgot password” link",
+        "x": 76,
+        "y": 310,
+        "width": 338.44,
+        "font_size": 18
+      },
+      {
+        "text": "to the login screen",
+        "x": 76,
+        "y": 344,
+        "width": 155.09,
+        "font_size": 18
+      },
+      {
+        "text": "Ask Spec",
+        "x": 884,
+        "y": 250,
+        "width": 108.58,
+        "font_size": 25
+      },
+      {
+        "text": "Describe the change you want",
+        "x": 884,
+        "y": 296,
+        "width": 265.68,
+        "font_size": 19
+      },
+      {
+        "text": "in the agent conversation.",
+        "x": 884,
+        "y": 325,
+        "width": 230.45,
+        "font_size": 19
+      },
+      {
+        "text": "Spec writes the goal and",
+        "x": 884,
+        "y": 372,
+        "width": 193.6,
+        "font_size": 17
+      },
+      {
+        "text": "completion conditions.",
+        "x": 884,
+        "y": 399,
+        "width": 184.06,
+        "font_size": 17
+      },
+      {
+        "text": "Illustrative sequence · not a recording of a real run",
+        "x": 44,
+        "y": 660,
+        "width": 377.66,
+        "font_size": 16
+      },
+      {
+        "text": "password-link",
+        "x": 1123.55,
+        "y": 660,
+        "width": 112.45,
+        "font_size": 16
+      }
+    ],
+    "frame-02.en": [
+      {
+        "text": "Jaekit",
+        "x": 44,
+        "y": 56,
+        "width": 79.79,
+        "font_size": 26
+      },
+      {
+        "text": "Fictional walkthrough",
+        "x": 1027.9,
+        "y": 56,
+        "width": 184.19,
+        "font_size": 18
+      },
+      {
+        "text": "From request to recorded completion",
+        "x": 44,
+        "y": 112,
+        "width": 665.46,
+        "font_size": 36
+      },
+      {
+        "text": "Ask Spec",
+        "x": 44.0,
+        "y": 172,
+        "width": 66.11,
+        "font_size": 16
+      },
+      {
+        "text": "Review the goal",
+        "x": 216.0,
+        "y": 172,
+        "width": 124.99,
+        "font_size": 16
+      },
+      {
+        "text": "Say yes",
+        "x": 388.0,
+        "y": 172,
+        "width": 55.15,
+        "font_size": 16
+      },
+      {
+        "text": "Check",
+        "x": 560.0,
+        "y": 172,
+        "width": 45.78,
+        "font_size": 16
+      },
+      {
+        "text": "Spar review",
+        "x": 732.0,
+        "y": 172,
+        "width": 87.76,
+        "font_size": 16
+      },
+      {
+        "text": "ha done",
+        "x": 904.0,
+        "y": 172,
+        "width": 60.54,
+        "font_size": 16
+      },
+      {
+        "text": "Report",
+        "x": 1076.0,
+        "y": 172,
+        "width": 50.88,
+        "font_size": 16
+      },
+      {
+        "text": "Agent conversation",
+        "x": 68,
+        "y": 238,
+        "width": 153.17,
+        "font_size": 16
+      },
+      {
+        "text": "USER",
+        "x": 68,
+        "y": 288,
+        "width": 34.7,
+        "font_size": 13
+      },
+      {
+        "text": "/spec:spec Add a “Forgot password” link",
+        "x": 76,
+        "y": 310,
+        "width": 338.44,
+        "font_size": 18
+      },
+      {
+        "text": "to the login screen",
+        "x": 76,
+        "y": 344,
+        "width": 155.09,
+        "font_size": 18
+      },
+      {
+        "text": "SPEC",
+        "x": 68,
+        "y": 378,
+        "width": 33.31,
+        "font_size": 13
+      },
+      {
+        "text": "wrote docs/specs/password-link/SPEC.md",
+        "x": 68,
+        "y": 400,
+        "width": 357.01,
+        "font_size": 18
+      },
+      {
+        "text": "Status: Ready",
+        "x": 68,
+        "y": 430,
+        "width": 102.13,
+        "font_size": 16
+      },
+      {
+        "text": "Assurance: standard",
+        "x": 68,
+        "y": 458,
+        "width": 151.79,
+        "font_size": 16
+      },
+      {
+        "text": "AC-1 The login screen shows a “Forgot password?”",
+        "x": 68,
+        "y": 486,
+        "width": 375.41,
+        "font_size": 16
+      },
+      {
+        "text": "       link to /reset-password.",
+        "x": 68,
+        "y": 514,
+        "width": 201.81,
+        "font_size": 16
+      },
+      {
+        "text": "AC-2 The existing login form keeps working.",
+        "x": 68,
+        "y": 542,
+        "width": 324.48,
+        "font_size": 16
+      },
+      {
+        "text": "Review the goal",
+        "x": 884,
+        "y": 250,
+        "width": 195.3,
+        "font_size": 25
+      },
+      {
+        "text": "Read the goal and its",
+        "x": 884,
+        "y": 296,
+        "width": 184.98,
+        "font_size": 19
+      },
+      {
+        "text": "completion conditions. Ask",
+        "x": 884,
+        "y": 325,
+        "width": 240.9,
+        "font_size": 19
+      },
+      {
+        "text": "for changes until it looks right.",
+        "x": 884,
+        "y": 354,
+        "width": 268.38,
+        "font_size": 19
+      },
+      {
+        "text": "Assurance: standard means",
+        "x": 884,
+        "y": 401,
+        "width": 218.14,
+        "font_size": 17
+      },
+      {
+        "text": "Spar reviews the change",
+        "x": 884,
+        "y": 428,
+        "width": 192.9,
+        "font_size": 17
+      },
+      {
+        "text": "before it can complete.",
+        "x": 884,
+        "y": 455,
+        "width": 182.94,
+        "font_size": 17
+      },
+      {
+        "text": "Illustrative sequence · not a recording of a real run",
+        "x": 44,
+        "y": 660,
+        "width": 377.66,
+        "font_size": 16
+      },
+      {
+        "text": "password-link",
+        "x": 1123.55,
+        "y": 660,
+        "width": 112.45,
+        "font_size": 16
+      }
+    ],
+    "frame-03.en": [
+      {
+        "text": "Jaekit",
+        "x": 44,
+        "y": 56,
+        "width": 79.79,
+        "font_size": 26
+      },
+      {
+        "text": "Fictional walkthrough",
+        "x": 1027.9,
+        "y": 56,
+        "width": 184.19,
+        "font_size": 18
+      },
+      {
+        "text": "From request to recorded completion",
+        "x": 44,
+        "y": 112,
+        "width": 665.46,
+        "font_size": 36
+      },
+      {
+        "text": "Ask Spec",
+        "x": 44.0,
+        "y": 172,
+        "width": 66.11,
+        "font_size": 16
+      },
+      {
+        "text": "Review the goal",
+        "x": 216.0,
+        "y": 172,
+        "width": 117.5,
+        "font_size": 16
+      },
+      {
+        "text": "Say yes",
+        "x": 388.0,
+        "y": 172,
+        "width": 58.66,
+        "font_size": 16
+      },
+      {
+        "text": "Check",
+        "x": 560.0,
+        "y": 172,
+        "width": 45.78,
+        "font_size": 16
+      },
+      {
+        "text": "Spar review",
+        "x": 732.0,
+        "y": 172,
+        "width": 87.76,
+        "font_size": 16
+      },
+      {
+        "text": "ha done",
+        "x": 904.0,
+        "y": 172,
+        "width": 60.54,
+        "font_size": 16
+      },
+      {
+        "text": "Report",
+        "x": 1076.0,
+        "y": 172,
+        "width": 50.88,
+        "font_size": 16
+      },
+      {
+        "text": "Agent conversation",
+        "x": 68,
+        "y": 238,
+        "width": 153.17,
+        "font_size": 16
+      },
+      {
+        "text": "SPEC",
+        "x": 68,
+        "y": 288,
+        "width": 33.31,
+        "font_size": 13
+      },
+      {
+        "text": "Implement docs/specs/password-link",
+        "x": 68,
+        "y": 310,
+        "width": 316.42,
+        "font_size": 18
+      },
+      {
+        "text": "now? Assurance: standard.",
+        "x": 68,
+        "y": 340,
+        "width": 224.66,
+        "font_size": 18
+      },
+      {
+        "text": "USER",
+        "x": 68,
+        "y": 370,
+        "width": 34.7,
+        "font_size": 13
+      },
+      {
+        "text": "Yes",
+        "x": 76,
+        "y": 392,
+        "width": 27.95,
+        "font_size": 18
+      },
+      {
+        "text": "SEAL",
+        "x": 68,
+        "y": 426,
+        "width": 31.95,
+        "font_size": 13
+      },
+      {
+        "text": "starting docs/specs/password-link",
+        "x": 68,
+        "y": 448,
+        "width": 289.03,
+        "font_size": 18
+      },
+      {
+        "text": "$ ha start docs/specs/password-link --rules run-rules/5 …",
+        "x": 68,
+        "y": 478,
+        "width": 477.9,
+        "font_size": 17
+      },
+      {
+        "text": "started: seq 1, base f46020ce6f77, rules run-rules/5,",
+        "x": 68,
+        "y": 508,
+        "width": 405.59,
+        "font_size": 17
+      },
+      {
+        "text": "budget 50 runs / 14400s",
+        "x": 68,
+        "y": 538,
+        "width": 187.92,
+        "font_size": 17
+      },
+      {
+        "text": "Say yes",
+        "x": 884,
+        "y": 250,
+        "width": 91.65,
+        "font_size": 25
+      },
+      {
+        "text": "Your “Yes” to Spec's question",
+        "x": 884,
+        "y": 296,
+        "width": 259.44,
+        "font_size": 19
+      },
+      {
+        "text": "starts Seal on this goal.",
+        "x": 884,
+        "y": 325,
+        "width": 204.67,
+        "font_size": 19
+      },
+      {
+        "text": "A separate message works too:",
+        "x": 884,
+        "y": 372,
+        "width": 244.31,
+        "font_size": 17
+      },
+      {
+        "text": "/seal:seal docs/specs/password-link",
+        "x": 884,
+        "y": 399,
+        "width": 286.33,
+        "font_size": 17
+      },
+      {
+        "text": "Illustrative sequence · not a recording of a real run",
+        "x": 44,
+        "y": 660,
+        "width": 377.66,
+        "font_size": 16
+      },
+      {
+        "text": "password-link",
+        "x": 1123.55,
+        "y": 660,
+        "width": 112.45,
+        "font_size": 16
+      }
+    ],
+    "frame-04.en": [
+      {
+        "text": "Jaekit",
+        "x": 44,
+        "y": 56,
+        "width": 79.79,
+        "font_size": 26
+      },
+      {
+        "text": "Fictional walkthrough",
+        "x": 1027.9,
+        "y": 56,
+        "width": 184.19,
+        "font_size": 18
+      },
+      {
+        "text": "From request to recorded completion",
+        "x": 44,
+        "y": 112,
+        "width": 665.46,
+        "font_size": 36
+      },
+      {
+        "text": "Ask Spec",
+        "x": 44.0,
+        "y": 172,
+        "width": 66.11,
+        "font_size": 16
+      },
+      {
+        "text": "Review the goal",
+        "x": 216.0,
+        "y": 172,
+        "width": 117.5,
+        "font_size": 16
+      },
+      {
+        "text": "Say yes",
+        "x": 388.0,
+        "y": 172,
+        "width": 55.15,
+        "font_size": 16
+      },
+      {
+        "text": "Check",
+        "x": 560.0,
+        "y": 172,
+        "width": 48.13,
+        "font_size": 16
+      },
+      {
+        "text": "Spar review",
+        "x": 732.0,
+        "y": 172,
+        "width": 87.76,
+        "font_size": 16
+      },
+      {
+        "text": "ha done",
+        "x": 904.0,
+        "y": 172,
+        "width": 60.54,
+        "font_size": 16
+      },
+      {
+        "text": "Report",
+        "x": 1076.0,
+        "y": 172,
+        "width": 50.88,
+        "font_size": 16
+      },
+      {
+        "text": "Commands the agent runs",
+        "x": 68,
+        "y": 238,
+        "width": 207.1,
+        "font_size": 16
+      },
+      {
+        "text": "Before the change, on the starting commit:",
+        "x": 68,
+        "y": 288,
+        "width": 298.89,
+        "font_size": 15
+      },
+      {
+        "text": "$ ha check docs/specs/password-link --baseline AC-1",
+        "x": 68,
+        "y": 316,
+        "width": 438.94,
+        "font_size": 17
+      },
+      {
+        "text": "AC-1 baseline fail_as_expected (seq 2)",
+        "x": 68,
+        "y": 346,
+        "width": 301.34,
+        "font_size": 17
+      },
+      {
+        "text": "classification: declared_violation",
+        "x": 68,
+        "y": 376,
+        "width": 261.46,
+        "font_size": 17
+      },
+      {
+        "text": "Check before the change",
+        "x": 884,
+        "y": 250,
+        "width": 303.7,
+        "font_size": 25
+      },
+      {
+        "text": "AC-1's check fails the way",
+        "x": 884,
+        "y": 296,
+        "width": 225.38,
+        "font_size": 19
+      },
+      {
+        "text": "its declaration says, before",
+        "x": 884,
+        "y": 325,
+        "width": 237.22,
+        "font_size": 19
+      },
+      {
+        "text": "anything is changed.",
+        "x": 884,
+        "y": 354,
+        "width": 182.86,
+        "font_size": 19
+      },
+      {
+        "text": "ha records every run in",
+        "x": 884,
+        "y": 401,
+        "width": 180.68,
+        "font_size": 17
+      },
+      {
+        "text": "runs.jsonl.",
+        "x": 884,
+        "y": 428,
+        "width": 82.82,
+        "font_size": 17
+      },
+      {
+        "text": "Illustrative sequence · not a recording of a real run",
+        "x": 44,
+        "y": 660,
+        "width": 377.66,
+        "font_size": 16
+      },
+      {
+        "text": "password-link",
+        "x": 1123.55,
+        "y": 660,
+        "width": 112.45,
+        "font_size": 16
+      }
+    ],
+    "frame-05.en": [
+      {
+        "text": "Jaekit",
+        "x": 44,
+        "y": 56,
+        "width": 79.79,
+        "font_size": 26
+      },
+      {
+        "text": "Fictional walkthrough",
+        "x": 1027.9,
+        "y": 56,
+        "width": 184.19,
+        "font_size": 18
+      },
+      {
+        "text": "From request to recorded completion",
+        "x": 44,
+        "y": 112,
+        "width": 665.46,
+        "font_size": 36
+      },
+      {
+        "text": "Ask Spec",
+        "x": 44.0,
+        "y": 172,
+        "width": 66.11,
+        "font_size": 16
+      },
+      {
+        "text": "Review the goal",
+        "x": 216.0,
+        "y": 172,
+        "width": 117.5,
+        "font_size": 16
+      },
+      {
+        "text": "Say yes",
+        "x": 388.0,
+        "y": 172,
+        "width": 55.15,
+        "font_size": 16
+      },
+      {
+        "text": "Check",
+        "x": 560.0,
+        "y": 172,
+        "width": 48.13,
+        "font_size": 16
+      },
+      {
+        "text": "Spar review",
+        "x": 732.0,
+        "y": 172,
+        "width": 87.76,
+        "font_size": 16
+      },
+      {
+        "text": "ha done",
+        "x": 904.0,
+        "y": 172,
+        "width": 60.54,
+        "font_size": 16
+      },
+      {
+        "text": "Report",
+        "x": 1076.0,
+        "y": 172,
+        "width": 50.88,
+        "font_size": 16
+      },
+      {
+        "text": "Commands the agent runs",
+        "x": 68,
+        "y": 238,
+        "width": 207.1,
+        "font_size": 16
+      },
+      {
+        "text": "Before the change, on the starting commit:",
+        "x": 68,
+        "y": 288,
+        "width": 298.89,
+        "font_size": 15
+      },
+      {
+        "text": "$ ha check docs/specs/password-link --baseline AC-1",
+        "x": 68,
+        "y": 316,
+        "width": 438.94,
+        "font_size": 17
+      },
+      {
+        "text": "AC-1 baseline fail_as_expected (seq 2)",
+        "x": 68,
+        "y": 346,
+        "width": 301.34,
+        "font_size": 17
+      },
+      {
+        "text": "After the change is committed:",
+        "x": 68,
+        "y": 390,
+        "width": 214.29,
+        "font_size": 15
+      },
+      {
+        "text": "$ ha check docs/specs/password-link AC-1 AC-2",
+        "x": 68,
+        "y": 418,
+        "width": 394.14,
+        "font_size": 17
+      },
+      {
+        "text": "AC-1 check pass (seq 3)",
+        "x": 68,
+        "y": 448,
+        "width": 183.07,
+        "font_size": 17
+      },
+      {
+        "text": "classification: targets_passed",
+        "x": 68,
+        "y": 478,
+        "width": 233.82,
+        "font_size": 17
+      },
+      {
+        "text": "AC-2 check pass (seq 4)",
+        "x": 68,
+        "y": 508,
+        "width": 183.07,
+        "font_size": 17
+      },
+      {
+        "text": "…and after it",
+        "x": 884,
+        "y": 250,
+        "width": 161.4,
+        "font_size": 25
+      },
+      {
+        "text": "After the change, AC-1 passes",
+        "x": 884,
+        "y": 296,
+        "width": 259.56,
+        "font_size": 19
+      },
+      {
+        "text": "and AC-2 still passes.",
+        "x": 884,
+        "y": 325,
+        "width": 184.68,
+        "font_size": 19
+      },
+      {
+        "text": "Only runs ha records count.",
+        "x": 884,
+        "y": 372,
+        "width": 217.91,
+        "font_size": 17
+      },
+      {
+        "text": "Illustrative sequence · not a recording of a real run",
+        "x": 44,
+        "y": 660,
+        "width": 377.66,
+        "font_size": 16
+      },
+      {
+        "text": "password-link",
+        "x": 1123.55,
+        "y": 660,
+        "width": 112.45,
+        "font_size": 16
+      }
+    ],
+    "frame-06.en": [
+      {
+        "text": "Jaekit",
+        "x": 44,
+        "y": 56,
+        "width": 79.79,
+        "font_size": 26
+      },
+      {
+        "text": "Fictional walkthrough",
+        "x": 1027.9,
+        "y": 56,
+        "width": 184.19,
+        "font_size": 18
+      },
+      {
+        "text": "From request to recorded completion",
+        "x": 44,
+        "y": 112,
+        "width": 665.46,
+        "font_size": 36
+      },
+      {
+        "text": "Ask Spec",
+        "x": 44.0,
+        "y": 172,
+        "width": 66.11,
+        "font_size": 16
+      },
+      {
+        "text": "Review the goal",
+        "x": 216.0,
+        "y": 172,
+        "width": 117.5,
+        "font_size": 16
+      },
+      {
+        "text": "Say yes",
+        "x": 388.0,
+        "y": 172,
+        "width": 55.15,
+        "font_size": 16
+      },
+      {
+        "text": "Check",
+        "x": 560.0,
+        "y": 172,
+        "width": 45.78,
+        "font_size": 16
+      },
+      {
+        "text": "Spar review",
+        "x": 732.0,
+        "y": 172,
+        "width": 93.81,
+        "font_size": 16
+      },
+      {
+        "text": "ha done",
+        "x": 904.0,
+        "y": 172,
+        "width": 60.54,
+        "font_size": 16
+      },
+      {
+        "text": "Report",
+        "x": 1076.0,
+        "y": 172,
+        "width": 50.88,
+        "font_size": 16
+      },
+      {
+        "text": "Commands the agent runs",
+        "x": 68,
+        "y": 238,
+        "width": 207.1,
+        "font_size": 16
+      },
+      {
+        "text": "$ spar run --stage candidate --base f46020c \\",
+        "x": 68,
+        "y": 288,
+        "width": 369.15,
+        "font_size": 17
+      },
+      {
+        "text": "    --criteria docs/specs/password-link/SPEC.md \\",
+        "x": 68,
+        "y": 318,
+        "width": 404.72,
+        "font_size": 17
+      },
+      {
+        "text": "    --check-path 'checks/**' \\",
+        "x": 68,
+        "y": 348,
+        "width": 228.8,
+        "font_size": 17
+      },
+      {
+        "text": "    --out docs/reviews/password-link/01-candidate",
+        "x": 68,
+        "y": 378,
+        "width": 414.29,
+        "font_size": 17
+      },
+      {
+        "text": "spar: round written to docs/reviews/password-link/01-candidate",
+        "x": 68,
+        "y": 408,
+        "width": 511.77,
+        "font_size": 17
+      },
+      {
+        "text": "01-candidate/summary.md",
+        "x": 68,
+        "y": 452,
+        "width": 204.22,
+        "font_size": 16
+      },
+      {
+        "text": "- claude: completed, 0 findings (verified isolation, required, …)",
+        "x": 68,
+        "y": 480,
+        "width": 464.0,
+        "font_size": 16
+      },
+      {
+        "text": "- codex: completed, 0 findings (verified isolation, required, …)",
+        "x": 68,
+        "y": 508,
+        "width": 458.4,
+        "font_size": 16
+      },
+      {
+        "text": "Spar review round",
+        "x": 884,
+        "y": 250,
+        "width": 226.85,
+        "font_size": 25
+      },
+      {
+        "text": "Independent reviewers read",
+        "x": 884,
+        "y": 296,
+        "width": 248.88,
+        "font_size": 19
+      },
+      {
+        "text": "the same packet: goal",
+        "x": 884,
+        "y": 325,
+        "width": 193.65,
+        "font_size": 19
+      },
+      {
+        "text": "documents, checks and diff.",
+        "x": 884,
+        "y": 354,
+        "width": 247.85,
+        "font_size": 19
+      },
+      {
+        "text": "A finding is fixed, or comes",
+        "x": 884,
+        "y": 401,
+        "width": 210.09,
+        "font_size": 17
+      },
+      {
+        "text": "to you as a question.",
+        "x": 884,
+        "y": 428,
+        "width": 163.23,
+        "font_size": 17
+      },
+      {
+        "text": "Spar does not certify or deploy.",
+        "x": 884,
+        "y": 455,
+        "width": 247.44,
+        "font_size": 17
+      },
+      {
+        "text": "Illustrative sequence · not a recording of a real run",
+        "x": 44,
+        "y": 660,
+        "width": 377.66,
+        "font_size": 16
+      },
+      {
+        "text": "password-link",
+        "x": 1123.55,
+        "y": 660,
+        "width": 112.45,
+        "font_size": 16
+      }
+    ],
+    "frame-07.en": [
+      {
+        "text": "Jaekit",
+        "x": 44,
+        "y": 56,
+        "width": 79.79,
+        "font_size": 26
+      },
+      {
+        "text": "Fictional walkthrough",
+        "x": 1027.9,
+        "y": 56,
+        "width": 184.19,
+        "font_size": 18
+      },
+      {
+        "text": "From request to recorded completion",
+        "x": 44,
+        "y": 112,
+        "width": 665.46,
+        "font_size": 36
+      },
+      {
+        "text": "Ask Spec",
+        "x": 44.0,
+        "y": 172,
+        "width": 66.11,
+        "font_size": 16
+      },
+      {
+        "text": "Review the goal",
+        "x": 216.0,
+        "y": 172,
+        "width": 117.5,
+        "font_size": 16
+      },
+      {
+        "text": "Say yes",
+        "x": 388.0,
+        "y": 172,
+        "width": 55.15,
+        "font_size": 16
+      },
+      {
+        "text": "Check",
+        "x": 560.0,
+        "y": 172,
+        "width": 45.78,
+        "font_size": 16
+      },
+      {
+        "text": "Spar review",
+        "x": 732.0,
+        "y": 172,
+        "width": 93.81,
+        "font_size": 16
+      },
+      {
+        "text": "ha done",
+        "x": 904.0,
+        "y": 172,
+        "width": 60.54,
+        "font_size": 16
+      },
+      {
+        "text": "Report",
+        "x": 1076.0,
+        "y": 172,
+        "width": 50.88,
+        "font_size": 16
+      },
+      {
+        "text": "Commands the agent runs",
+        "x": 68,
+        "y": 238,
+        "width": 207.1,
+        "font_size": 16
+      },
+      {
+        "text": "$ spar gate docs/reviews/password-link/01-candidate \\",
+        "x": 68,
+        "y": 288,
+        "width": 459.88,
+        "font_size": 17
+      },
+      {
+        "text": "    --expect-head e01fdf1 --out docs/reviews/password-link/gate.json",
+        "x": 68,
+        "y": 318,
+        "width": 570.08,
+        "font_size": 17
+      },
+      {
+        "text": "gate.json: \"state\": \"complete\"",
+        "x": 68,
+        "y": 348,
+        "width": 223.44,
+        "font_size": 16
+      },
+      {
+        "text": "$ ha note docs/specs/password-link review \\",
+        "x": 68,
+        "y": 390,
+        "width": 370.41,
+        "font_size": 17
+      },
+      {
+        "text": "    --gate docs/reviews/password-link/gate.json",
+        "x": 68,
+        "y": 420,
+        "width": 390.4,
+        "font_size": 17
+      },
+      {
+        "text": "noted: review (seq 5)",
+        "x": 68,
+        "y": 450,
+        "width": 164.63,
+        "font_size": 17
+      },
+      {
+        "text": "Record the gate",
+        "x": 884,
+        "y": 250,
+        "width": 194.55,
+        "font_size": 25
+      },
+      {
+        "text": "The gate covers the last",
+        "x": 884,
+        "y": 296,
+        "width": 208.83,
+        "font_size": 19
+      },
+      {
+        "text": "commit. ha done needs it",
+        "x": 884,
+        "y": 325,
+        "width": 224.43,
+        "font_size": 19
+      },
+      {
+        "text": "for standard and strict goals.",
+        "x": 884,
+        "y": 354,
+        "width": 254.12,
+        "font_size": 19
+      },
+      {
+        "text": "Review records stay in a",
+        "x": 884,
+        "y": 401,
+        "width": 189.52,
+        "font_size": 17
+      },
+      {
+        "text": "folder Git ignores.",
+        "x": 884,
+        "y": 428,
+        "width": 141.25,
+        "font_size": 17
+      },
+      {
+        "text": "Illustrative sequence · not a recording of a real run",
+        "x": 44,
+        "y": 660,
+        "width": 377.66,
+        "font_size": 16
+      },
+      {
+        "text": "password-link",
+        "x": 1123.55,
+        "y": 660,
+        "width": 112.45,
+        "font_size": 16
+      }
+    ],
+    "frame-08.en": [
+      {
+        "text": "Jaekit",
+        "x": 44,
+        "y": 56,
+        "width": 79.79,
+        "font_size": 26
+      },
+      {
+        "text": "Fictional walkthrough",
+        "x": 1027.9,
+        "y": 56,
+        "width": 184.19,
+        "font_size": 18
+      },
+      {
+        "text": "From request to recorded completion",
+        "x": 44,
+        "y": 112,
+        "width": 665.46,
+        "font_size": 36
+      },
+      {
+        "text": "Ask Spec",
+        "x": 44.0,
+        "y": 172,
+        "width": 66.11,
+        "font_size": 16
+      },
+      {
+        "text": "Review the goal",
+        "x": 216.0,
+        "y": 172,
+        "width": 117.5,
+        "font_size": 16
+      },
+      {
+        "text": "Say yes",
+        "x": 388.0,
+        "y": 172,
+        "width": 55.15,
+        "font_size": 16
+      },
+      {
+        "text": "Check",
+        "x": 560.0,
+        "y": 172,
+        "width": 45.78,
+        "font_size": 16
+      },
+      {
+        "text": "Spar review",
+        "x": 732.0,
+        "y": 172,
+        "width": 87.76,
+        "font_size": 16
+      },
+      {
+        "text": "ha done",
+        "x": 904.0,
+        "y": 172,
+        "width": 63.2,
+        "font_size": 16
+      },
+      {
+        "text": "Report",
+        "x": 1076.0,
+        "y": 172,
+        "width": 50.88,
+        "font_size": 16
+      },
+      {
+        "text": "Commands the agent runs",
+        "x": 68,
+        "y": 238,
+        "width": 207.1,
+        "font_size": 16
+      },
+      {
+        "text": "$ ha done docs/specs/password-link",
+        "x": 68,
+        "y": 288,
+        "width": 303.11,
+        "font_size": 17
+      },
+      {
+        "text": "## ha status: docs/specs/password-link",
+        "x": 68,
+        "y": 318,
+        "width": 311.12,
+        "font_size": 17
+      },
+      {
+        "text": "- status: **complete** (exit 0)",
+        "x": 68,
+        "y": 348,
+        "width": 231.46,
+        "font_size": 17
+      },
+      {
+        "text": "- completion record: seq 6",
+        "x": 68,
+        "y": 378,
+        "width": 206.58,
+        "font_size": 17
+      },
+      {
+        "text": "- assurance: local (…)",
+        "x": 68,
+        "y": 408,
+        "width": 169.17,
+        "font_size": 17
+      },
+      {
+        "text": "- check author: executor",
+        "x": 68,
+        "y": 438,
+        "width": 191.62,
+        "font_size": 17
+      },
+      {
+        "text": "ha done",
+        "x": 884,
+        "y": 250,
+        "width": 98.75,
+        "font_size": 25
+      },
+      {
+        "text": "Completion is recorded only",
+        "x": 884,
+        "y": 296,
+        "width": 250.27,
+        "font_size": 19
+      },
+      {
+        "text": "when the required conditions",
+        "x": 884,
+        "y": 325,
+        "width": 261.17,
+        "font_size": 19
+      },
+      {
+        "text": "are met and the gate covers",
+        "x": 884,
+        "y": 354,
+        "width": 245.44,
+        "font_size": 19
+      },
+      {
+        "text": "the last commit.",
+        "x": 884,
+        "y": 383,
+        "width": 143.94,
+        "font_size": 19
+      },
+      {
+        "text": "Assurance stays local.",
+        "x": 884,
+        "y": 430,
+        "width": 172.48,
+        "font_size": 17
+      },
+      {
+        "text": "Illustrative sequence · not a recording of a real run",
+        "x": 44,
+        "y": 660,
+        "width": 377.66,
+        "font_size": 16
+      },
+      {
+        "text": "password-link",
+        "x": 1123.55,
+        "y": 660,
+        "width": 112.45,
+        "font_size": 16
+      }
+    ],
+    "frame-09.en": [
+      {
+        "text": "Jaekit",
+        "x": 44,
+        "y": 56,
+        "width": 79.79,
+        "font_size": 26
+      },
+      {
+        "text": "Fictional walkthrough",
+        "x": 1027.9,
+        "y": 56,
+        "width": 184.19,
+        "font_size": 18
+      },
+      {
+        "text": "From request to recorded completion",
+        "x": 44,
+        "y": 112,
+        "width": 665.46,
+        "font_size": 36
+      },
+      {
+        "text": "Ask Spec",
+        "x": 44.0,
+        "y": 172,
+        "width": 66.11,
+        "font_size": 16
+      },
+      {
+        "text": "Review the goal",
+        "x": 216.0,
+        "y": 172,
+        "width": 117.5,
+        "font_size": 16
+      },
+      {
+        "text": "Say yes",
+        "x": 388.0,
+        "y": 172,
+        "width": 55.15,
+        "font_size": 16
+      },
+      {
+        "text": "Check",
+        "x": 560.0,
+        "y": 172,
+        "width": 45.78,
+        "font_size": 16
+      },
+      {
+        "text": "Spar review",
+        "x": 732.0,
+        "y": 172,
+        "width": 87.76,
+        "font_size": 16
+      },
+      {
+        "text": "ha done",
+        "x": 904.0,
+        "y": 172,
+        "width": 60.54,
+        "font_size": 16
+      },
+      {
+        "text": "Report",
+        "x": 1076.0,
+        "y": 172,
+        "width": 54.24,
+        "font_size": 16
+      },
+      {
+        "text": "docs/specs/password-link/PROGRESS.md",
+        "x": 68,
+        "y": 238,
+        "width": 328.59,
+        "font_size": 16
+      },
+      {
+        "text": "## 완료 보고",
+        "x": 68,
+        "y": 288,
+        "width": 83.81,
+        "font_size": 16
+      },
+      {
+        "text": "Changed:",
+        "x": 68,
+        "y": 316,
+        "width": 74.8,
+        "font_size": 16
+      },
+      {
+        "text": "1 files and 1 commits outside the bundle …",
+        "x": 150.8,
+        "y": 316,
+        "width": 320.43,
+        "font_size": 16
+      },
+      {
+        "text": "Checked:",
+        "x": 68,
+        "y": 346,
+        "width": 72.93,
+        "font_size": 16
+      },
+      {
+        "text": "2 of 2 required conditions satisfied (…)",
+        "x": 148.93,
+        "y": 346,
+        "width": 287.18,
+        "font_size": 16
+      },
+      {
+        "text": "To review:",
+        "x": 68,
+        "y": 376,
+        "width": 82.3,
+        "font_size": 16
+      },
+      {
+        "text": "none",
+        "x": 158.3,
+        "y": 376,
+        "width": 38.08,
+        "font_size": 16
+      },
+      {
+        "text": "Remaining limits:",
+        "x": 68,
+        "y": 406,
+        "width": 138.56,
+        "font_size": 16
+      },
+      {
+        "text": "assurance local; check author: executor",
+        "x": 214.56,
+        "y": 406,
+        "width": 294.48,
+        "font_size": 16
+      },
+      {
+        "text": "Next step:",
+        "x": 68,
+        "y": 436,
+        "width": 80.1,
+        "font_size": 16
+      },
+      {
+        "text": "none; completion record seq 6 holds …",
+        "x": 156.1,
+        "y": 436,
+        "width": 291.49,
+        "font_size": 16
+      },
+      {
+        "text": "### Evidence per condition",
+        "x": 68,
+        "y": 480,
+        "width": 201.94,
+        "font_size": 16
+      },
+      {
+        "text": "Source: completion record seq 6",
+        "x": 68,
+        "y": 508,
+        "width": 241.06,
+        "font_size": 16
+      },
+      {
+        "text": "| ID | kind | required | satisfied | records |",
+        "x": 68,
+        "y": 536,
+        "width": 293.81,
+        "font_size": 16
+      },
+      {
+        "text": "| AC-1 | change | yes | yes | 2, 3 |",
+        "x": 68,
+        "y": 564,
+        "width": 225.82,
+        "font_size": 16
+      },
+      {
+        "text": "| AC-2 | maintain | yes | yes | 4 |",
+        "x": 68,
+        "y": 592,
+        "width": 221.57,
+        "font_size": 16
+      },
+      {
+        "text": "Read the report",
+        "x": 884,
+        "y": 250,
+        "width": 193.45,
+        "font_size": 25
+      },
+      {
+        "text": "Seal pastes ha report into",
+        "x": 884,
+        "y": 296,
+        "width": 226.37,
+        "font_size": 19
+      },
+      {
+        "text": "PROGRESS.md, then adds its",
+        "x": 884,
+        "y": 325,
+        "width": 255.13,
+        "font_size": 19
+      },
+      {
+        "text": "own judgment below it.",
+        "x": 884,
+        "y": 354,
+        "width": 209.32,
+        "font_size": 19
+      },
+      {
+        "text": "The agent wrote the checks:",
+        "x": 884,
+        "y": 401,
+        "width": 222.16,
+        "font_size": 17
+      },
+      {
+        "text": "review the result yourself.",
+        "x": 884,
+        "y": 428,
+        "width": 204.22,
+        "font_size": 17
+      },
+      {
+        "text": "Illustrative sequence · not a recording of a real run",
+        "x": 44,
+        "y": 660,
+        "width": 377.66,
+        "font_size": 16
+      },
+      {
+        "text": "password-link",
+        "x": 1123.55,
+        "y": 660,
+        "width": 112.45,
+        "font_size": 16
+      }
+    ]
+  }
+}

@@ -1,0 +1,709 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title description" xml:lang="en">
+<title id="title">Jaekit walkthrough, frame 2: Review the goal</title>
+<desc id="description">Frame 2 of 9, Review the goal: /spec:spec Add a “Forgot password” link to the login screen Spec: wrote docs/specs/password-link/SPEC.md Status: Ready Assurance: standard AC-1 The login screen shows a “Forgot password?”        link to /reset-password. AC-2 The existing login form keeps working. — Review the goal. Read the goal and its completion conditions. Ask for changes until it looks right. Assurance: standard means Spar reviews the change before it can complete. Fictional example; not a recording of a real run.</desc>
+<defs>
+<path id="b0" d="M252 -14C411 -14 481 100 481 239V741H333V251C333 149 299 114 234 114C192 114 152 137 124 191L23 116C72 29 145 -14 252 -14Z"/>
+<path id="b1" d="M216 -14C281 -14 337 17 385 60H390L400 0H520V327C520 489 447 574 305 574C217 574 137 540 72 500L124 402C176 433 226 456 278 456C347 456 371 414 373 359C148 335 51 272 51 153C51 57 116 -14 216 -14ZM265 101C222 101 191 120 191 164C191 215 236 252 373 268V156C338 121 307 101 265 101Z"/>
+<path id="b2" d="M323 -14C392 -14 463 10 518 48L468 138C427 113 388 100 343 100C259 100 199 147 187 238H532C536 252 539 279 539 306C539 462 459 574 305 574C172 574 44 461 44 280C44 95 166 -14 323 -14ZM184 337C196 418 248 460 307 460C380 460 413 412 413 337Z"/>
+<path id="b3" d="M79 0H224V142L302 233L438 0H598L388 329L580 560H419L228 320H224V798H79Z"/>
+<path id="b4" d="M79 0H226V560H79ZM153 651C203 651 238 682 238 731C238 779 203 811 153 811C101 811 68 779 68 731C68 682 101 651 153 651Z"/>
+<path id="b5" d="M284 -14C333 -14 372 -2 403 7L378 114C363 108 341 102 323 102C273 102 246 132 246 196V444H385V560H246V711H125L108 560L21 553V444H100V195C100 71 151 -14 284 -14Z"/>
+<path id="r6" d="M101 0H193V329H473V407H193V655H523V733H101Z"/>
+<path id="r7" d="M92 0H184V543H92ZM138 655C174 655 199 679 199 716C199 751 174 775 138 775C102 775 78 751 78 716C78 679 102 655 138 655Z"/>
+<path id="r8" d="M306 -13C371 -13 433 13 482 55L442 117C408 87 364 63 314 63C214 63 146 146 146 271C146 396 218 480 317 480C359 480 394 461 425 433L471 493C433 527 384 557 313 557C173 557 52 452 52 271C52 91 162 -13 306 -13Z"/>
+<path id="r9" d="M262 -13C296 -13 332 -3 363 7L345 76C327 68 303 61 283 61C220 61 199 99 199 165V469H347V543H199V696H123L113 543L27 538V469H108V168C108 59 147 -13 262 -13Z"/>
+<path id="r10" d="M303 -13C436 -13 554 91 554 271C554 452 436 557 303 557C170 557 52 452 52 271C52 91 170 -13 303 -13ZM303 63C209 63 146 146 146 271C146 396 209 480 303 480C397 480 461 396 461 271C461 146 397 63 303 63Z"/>
+<path id="r11" d="M92 0H184V394C238 449 276 477 332 477C404 477 435 434 435 332V0H526V344C526 482 474 557 360 557C286 557 229 516 178 464H176L167 543H92Z"/>
+<path id="r12" d="M217 -13C284 -13 345 22 397 65H400L408 0H483V334C483 469 428 557 295 557C207 557 131 518 82 486L117 423C160 452 217 481 280 481C369 481 392 414 392 344C161 318 59 259 59 141C59 43 126 -13 217 -13ZM243 61C189 61 147 85 147 147C147 217 209 262 392 283V132C339 85 295 61 243 61Z"/>
+<path id="r13" d="M188 -13C213 -13 228 -9 241 -5L228 65C218 63 214 63 209 63C195 63 184 74 184 102V796H92V108C92 31 120 -13 188 -13Z"/>
+<path id="r14" d="M178 0H284L361 291C375 343 386 394 398 449H403C416 394 426 344 440 293L518 0H629L776 543H688L609 229C597 177 587 128 576 78H571C558 128 546 177 533 229L448 543H359L274 229C261 177 249 128 238 78H233C222 128 212 177 201 229L120 543H27Z"/>
+<path id="r15" d="M92 0H182V143L284 262L443 0H542L337 324L518 543H416L186 257H182V796H92Z"/>
+<path id="r16" d="M92 0H184V394C238 449 276 477 332 477C404 477 435 434 435 332V0H526V344C526 482 474 557 360 557C286 557 230 516 180 466L184 578V796H92Z"/>
+<path id="r17" d="M92 0H184V349C220 441 275 475 320 475C343 475 355 472 373 466L390 545C373 554 356 557 332 557C272 557 216 513 178 444H176L167 543H92Z"/>
+<path id="r18" d="M251 -13C325 -13 379 26 430 85H433L440 0H516V543H425V158C373 94 334 66 278 66C206 66 176 109 176 210V543H84V199C84 60 136 -13 251 -13Z"/>
+<path id="r19" d="M275 -250C443 -250 550 -163 550 -62C550 28 486 67 361 67H254C181 67 159 92 159 126C159 156 174 174 194 191C218 179 248 172 274 172C386 172 473 245 473 361C473 408 455 448 429 473H540V543H351C332 551 305 557 274 557C165 557 71 482 71 363C71 298 106 245 142 217V213C113 193 82 157 82 112C82 69 103 40 131 23V18C80 -13 51 -58 51 -105C51 -198 143 -250 275 -250ZM274 234C212 234 159 284 159 363C159 443 211 490 274 490C339 490 390 443 390 363C390 284 337 234 274 234ZM288 -187C189 -187 131 -150 131 -92C131 -61 147 -28 186 0C210 -6 236 -8 256 -8H350C422 -8 460 -26 460 -77C460 -133 393 -187 288 -187Z"/>
+<path id="b20" d="M91 0H239V300H502V424H239V617H547V741H91Z"/>
+<path id="b21" d="M79 0H226V334C258 415 310 444 353 444C377 444 393 441 413 435L437 562C421 569 403 574 372 574C314 574 254 534 213 461H210L199 560H79Z"/>
+<path id="b22" d="M313 -14C453 -14 582 94 582 280C582 466 453 574 313 574C172 574 44 466 44 280C44 94 172 -14 313 -14ZM313 106C236 106 194 174 194 280C194 385 236 454 313 454C389 454 432 385 432 280C432 174 389 106 313 106Z"/>
+<path id="b23" d="M79 0H226V385C265 428 301 448 333 448C387 448 412 418 412 331V0H558V385C598 428 634 448 666 448C719 448 744 418 744 331V0H890V349C890 490 836 574 717 574C645 574 590 530 538 476C512 538 465 574 385 574C312 574 260 534 213 485H210L199 560H79Z"/>
+<path id="b24" d="M419 -215H566V560H451L438 505H434C389 552 344 574 282 574C162 574 47 462 47 280C47 96 136 -14 276 -14C330 -14 385 14 424 53L419 -37ZM314 107C240 107 198 165 198 282C198 393 251 453 314 453C350 453 385 442 419 411V165C387 123 353 107 314 107Z"/>
+<path id="b25" d="M246 -14C323 -14 376 24 424 81H428L439 0H559V560H412V182C374 132 344 112 299 112C244 112 219 142 219 229V560H73V211C73 70 125 -14 246 -14Z"/>
+<path id="b26" d="M239 -14C384 -14 462 64 462 163C462 266 380 304 306 332C246 354 195 369 195 410C195 442 219 464 270 464C311 464 350 444 390 416L456 505C410 541 347 574 266 574C138 574 57 503 57 403C57 309 136 266 207 239C266 216 324 197 324 155C324 120 299 96 243 96C190 96 143 119 93 157L26 64C82 18 164 -14 239 -14Z"/>
+<path id="b27" d="M317 -14C379 -14 447 7 500 54L442 151C411 125 374 106 333 106C252 106 194 174 194 280C194 385 252 454 338 454C369 454 395 441 423 418L493 511C452 548 399 574 330 574C178 574 44 466 44 280C44 94 163 -14 317 -14Z"/>
+<path id="b28" d="M276 -14C334 -14 390 17 431 58H435L446 0H566V798H419V601L424 513C384 550 345 574 282 574C162 574 47 462 47 280C47 96 136 -14 276 -14ZM314 107C240 107 198 165 198 282C198 393 251 453 314 453C350 453 385 442 419 411V165C387 123 353 107 314 107Z"/>
+<path id="b29" d="M79 -215H226V-44L221 47C263 8 311 -14 360 -14C483 -14 598 97 598 289C598 461 515 574 378 574C317 574 260 542 213 502H210L199 560H79ZM328 107C297 107 262 118 226 149V396C264 434 298 453 336 453C413 453 447 394 447 287C447 165 394 107 328 107Z"/>
+<path id="b30" d="M218 -14C252 -14 276 -8 293 -1L275 108C265 106 261 106 255 106C241 106 226 117 226 151V798H79V157C79 53 115 -14 218 -14Z"/>
+<path id="b31" d="M79 0H226V385C267 426 297 448 342 448C397 448 421 418 421 331V0H568V349C568 490 516 574 395 574C319 574 262 534 213 486H210L199 560H79Z"/>
+<path id="r32" d="M4 0H97L168 224H436L506 0H604L355 733H252ZM191 297 227 410C253 493 277 572 300 658H304C328 573 351 493 378 410L413 297Z"/>
+<path id="r33" d="M234 -13C362 -13 431 60 431 148C431 251 345 283 266 313C205 336 149 356 149 407C149 450 181 486 250 486C298 486 336 465 373 438L417 495C376 529 316 557 249 557C130 557 62 489 62 403C62 310 144 274 220 246C280 224 344 198 344 143C344 96 309 58 237 58C172 58 124 84 76 123L32 62C83 19 157 -13 234 -13Z"/>
+<path id="r34" d="M304 -13C457 -13 553 79 553 195C553 304 487 354 402 391L298 436C241 460 176 487 176 559C176 624 230 665 313 665C381 665 435 639 480 597L528 656C477 709 400 746 313 746C180 746 82 665 82 552C82 445 163 393 231 364L336 318C406 287 459 263 459 187C459 116 402 68 305 68C229 68 155 104 103 159L48 95C111 29 200 -13 304 -13Z"/>
+<path id="r35" d="M92 -229H184V-45L181 50C230 9 282 -13 331 -13C455 -13 567 94 567 280C567 448 491 557 351 557C288 557 227 521 178 480H176L167 543H92ZM316 64C280 64 232 78 184 120V406C236 454 283 480 328 480C432 480 472 400 472 279C472 145 406 64 316 64Z"/>
+<path id="r36" d="M312 -13C385 -13 443 11 490 42L458 103C417 76 375 60 322 60C219 60 148 134 142 250H508C510 264 512 282 512 302C512 457 434 557 295 557C171 557 52 448 52 271C52 92 167 -13 312 -13ZM141 315C152 423 220 484 297 484C382 484 432 425 432 315Z"/>
+<path id="b37" d="M239 397V623H335C430 623 482 596 482 516C482 437 430 397 335 397ZM494 0H659L486 303C571 336 627 405 627 516C627 686 504 741 348 741H91V0H239V280H342Z"/>
+<path id="b38" d="M205 0H375L562 560H421L339 281C324 226 309 168 294 111H289C273 168 259 226 243 281L162 560H14Z"/>
+<path id="b39" d="M172 0H340L397 244C408 296 417 348 427 408H432C443 348 453 297 465 244L524 0H697L835 560H698L638 284C628 229 620 175 610 120H606C593 175 583 229 570 284L500 560H370L302 284C288 230 278 175 267 120H262C253 175 245 229 236 284L174 560H28Z"/>
+<path id="b40" d="M79 0H226V385C267 426 297 448 342 448C397 448 421 418 421 331V0H568V349C568 490 516 574 395 574C319 574 263 534 219 492L226 597V798H79Z"/>
+<path id="b41" d="M276 -243C463 -243 581 -157 581 -44C581 54 507 96 372 96H276C211 96 188 112 188 141C188 165 198 177 212 190C237 181 263 177 284 177C405 177 501 240 501 367C501 402 490 433 476 452H571V560H370C346 568 317 574 284 574C166 574 59 503 59 372C59 306 95 253 134 225V221C100 197 72 158 72 117C72 70 93 41 123 22V17C70 -12 43 -52 43 -99C43 -198 144 -243 276 -243ZM284 268C236 268 197 305 197 372C197 437 235 473 284 473C334 473 373 437 373 372C373 305 334 268 284 268ZM298 -149C217 -149 165 -123 165 -77C165 -53 176 -31 201 -11C222 -16 245 -18 278 -18H347C407 -18 440 -29 440 -69C440 -112 383 -149 298 -149Z"/>
+<path id="r42" d="M101 -234C209 -234 266 -152 304 -46L508 543H419L321 242C307 193 291 138 277 88H272C253 139 235 194 218 242L108 543H13L231 -1L219 -42C196 -109 158 -159 97 -159C82 -159 66 -154 55 -150L37 -223C54 -230 76 -234 101 -234Z"/>
+<path id="r43" d="M377 -13C472 -13 544 25 602 92L551 151C504 99 451 68 381 68C241 68 153 184 153 369C153 552 246 665 384 665C447 665 495 637 534 596L584 656C542 703 472 746 383 746C197 746 58 603 58 366C58 128 194 -13 377 -13Z"/>
+<path id="r44" d="M209 0H316L508 543H418L315 234C299 181 281 126 265 74H260C244 126 227 181 210 234L108 543H13Z"/>
+<path id="r45" d="M277 -13C342 -13 400 22 442 64H445L453 0H528V796H436V587L441 494C393 533 352 557 288 557C164 557 53 447 53 271C53 90 141 -13 277 -13ZM297 64C202 64 147 141 147 272C147 396 217 480 304 480C349 480 391 464 436 423V138C391 88 347 64 297 64Z"/>
+<path id="r46" d="M193 385V658H316C431 658 494 624 494 528C494 432 431 385 316 385ZM503 0H607L421 321C520 345 586 413 586 528C586 680 479 733 330 733H101V0H193V311H325Z"/>
+<path id="b47" d="M-4 0H146L198 190H437L489 0H645L408 741H233ZM230 305 252 386C274 463 295 547 315 628H319C341 549 361 463 384 386L406 305Z"/>
+<path id="b48" d="M376 -14C556 -14 661 88 661 333V741H519V320C519 166 462 114 376 114C289 114 235 166 235 320V741H88V333C88 88 194 -14 376 -14Z"/>
+<path id="b49" d="M312 -14C483 -14 584 89 584 210C584 317 525 375 435 412L338 451C275 477 223 496 223 549C223 598 263 627 328 627C390 627 439 604 486 566L561 658C501 719 415 754 328 754C179 754 72 660 72 540C72 432 148 372 223 342L321 299C387 271 433 254 433 199C433 147 392 114 315 114C250 114 179 147 127 196L42 94C114 24 213 -14 312 -14Z"/>
+<path id="b50" d="M91 0H556V124H239V322H498V446H239V617H545V741H91Z"/>
+<path id="r51" d="M11 -179H78L377 794H311Z"/>
+<path id="r52" d="M139 390C175 390 205 418 205 460C205 501 175 530 139 530C102 530 73 501 73 460C73 418 102 390 139 390ZM139 -13C175 -13 205 15 205 56C205 98 175 126 139 126C102 126 73 98 73 56C73 15 102 -13 139 -13Z"/>
+<path id="r53" d="M134 480C168 480 192 502 192 541C192 577 164 597 134 597L124 596C125 660 153 698 208 735L182 778C105 733 63 669 63 581C63 516 89 480 134 480ZM330 480C364 480 389 502 389 541C389 577 360 597 330 597L321 596C322 660 350 698 404 735L379 778C302 733 260 669 260 581C260 516 286 480 330 480Z"/>
+<path id="r54" d="M96 482C173 527 215 591 215 680C215 744 189 780 145 780C110 780 86 758 86 720C86 683 114 663 145 663L154 664C153 600 125 562 70 525ZM292 482C369 527 411 591 411 680C411 744 385 780 341 780C307 780 282 758 282 720C282 683 310 663 341 663L351 664C350 600 322 562 266 525Z"/>
+<path id="b55" d="M91 0H239V263H338C497 263 624 339 624 508C624 683 498 741 334 741H91ZM239 380V623H323C425 623 479 594 479 508C479 423 430 380 328 380Z"/>
+<path id="b56" d="M392 -14C489 -14 568 24 629 95L550 187C511 144 462 114 398 114C281 114 206 211 206 372C206 531 289 627 401 627C457 627 500 601 538 565L615 659C567 709 493 754 398 754C211 754 54 611 54 367C54 120 206 -14 392 -14Z"/>
+<path id="r57" d="M46 245H302V315H46Z"/>
+<path id="r58" d="M101 0H193V292H314C475 292 584 363 584 518C584 678 474 733 310 733H101ZM193 367V658H298C427 658 492 625 492 518C492 413 431 367 302 367Z"/>
+<path id="r59" d="M101 0H534V79H193V346H471V425H193V655H523V733H101Z"/>
+<path id="r60" d="M139 -13C175 -13 205 15 205 56C205 98 175 126 139 126C102 126 73 98 73 56C73 15 102 -13 139 -13Z"/>
+<path id="r61" d="M92 0H184V394C233 450 279 477 320 477C389 477 421 434 421 332V0H512V394C563 450 607 477 649 477C718 477 750 434 750 332V0H841V344C841 482 788 557 677 557C610 557 554 514 497 453C475 517 431 557 347 557C282 557 226 516 178 464H176L167 543H92Z"/>
+<path id="r62" d="M88 0H490V76H343V733H273C233 710 186 693 121 681V623H252V76H88Z"/>
+<path id="r63" d="M253 0H346V655H568V733H31V655H253Z"/>
+<path id="r64" d="M178 221H259C241 378 421 437 421 584C421 694 347 762 234 762C153 762 89 723 43 670L95 622C130 662 174 686 224 686C296 686 332 638 332 578C332 459 154 395 178 221ZM221 -13C258 -13 288 15 288 56C288 98 258 126 221 126C184 126 156 98 156 56C156 15 184 -13 221 -13Z"/>
+<path id="r65" d="M44 0H505V79H302C265 79 220 75 182 72C354 235 470 384 470 531C470 661 387 746 256 746C163 746 99 704 40 639L93 587C134 636 185 672 245 672C336 672 380 611 380 527C380 401 274 255 44 54Z"/>
+<path id="r66" d="M15 0H111L184 127C203 160 220 193 239 224H244C265 193 285 160 303 127L383 0H483L304 274L469 543H374L307 424C290 393 275 364 259 333H254C236 364 217 393 201 424L128 543H29L194 283Z"/>
+<path id="r67" d="M33 469H107V0H198V469H313V543H198V629C198 699 223 736 275 736C294 736 316 731 336 721L356 792C331 802 299 809 265 809C157 809 107 740 107 630V543L33 538Z"/>
+<path id="r68" d="M331 -13C455 -13 567 94 567 280C567 448 491 557 351 557C290 557 230 523 180 481L184 578V796H92V0H165L173 56H177C224 13 281 -13 331 -13ZM316 64C280 64 231 78 184 120V406C235 454 283 480 328 480C432 480 472 400 472 279C472 145 406 64 316 64Z"/>
+<path id="r69" d="M101 0H193V733H101Z"/>
+<path id="r70" d="M436 -229H528V543H455L446 492H444C396 534 352 557 288 557C164 557 53 447 53 271C53 90 141 -13 277 -13C340 -13 397 20 441 63L436 -36ZM297 64C202 64 147 141 147 272C147 396 217 480 304 480C349 480 391 464 436 423V138C391 88 347 64 297 64Z"/>
+<path id="r71" d="M276 293C312 293 343 323 343 363C343 405 312 434 276 434C240 434 211 405 211 363C211 323 240 293 276 293Z"/>
+<path id="b72" d="M49 233H322V339H49Z"/>
+</defs>
+<rect x="0" y="0" width="1280" height="720" rx="0" fill="#FAFBFD"/>
+<g aria-label="Jaekit" data-text="Jaekit" fill="#122033" transform="translate(44.000 56) scale(0.026000 -0.026000)">
+<use href="#b0" x="0"/>
+<use href="#b1" x="568"/>
+<use href="#b2" x="1159"/>
+<use href="#b3" x="1740"/>
+<use href="#b4" x="2344"/>
+<use href="#b5" x="2648"/>
+</g>
+<rect x="1004" y="28" width="232" height="42" rx="21" fill="#EDF0FF" stroke="#D7DFE9" stroke-width="2"/>
+<g aria-label="Fictional walkthrough" data-text="Fictional walkthrough" fill="#546276" transform="translate(1027.903 56) scale(0.018000 -0.018000)">
+<use href="#r6" x="0"/>
+<use href="#r7" x="552"/>
+<use href="#r8" x="827"/>
+<use href="#r9" x="1337"/>
+<use href="#r7" x="1714"/>
+<use href="#r10" x="1989"/>
+<use href="#r11" x="2595"/>
+<use href="#r12" x="3205"/>
+<use href="#r13" x="3768"/>
+<use href="#r14" x="4276"/>
+<use href="#r12" x="5078"/>
+<use href="#r13" x="5641"/>
+<use href="#r15" x="5925"/>
+<use href="#r9" x="6477"/>
+<use href="#r16" x="6854"/>
+<use href="#r17" x="7461"/>
+<use href="#r10" x="7849"/>
+<use href="#r18" x="8455"/>
+<use href="#r19" x="9062"/>
+<use href="#r16" x="9626"/>
+</g>
+<g aria-label="From request to recorded completion" data-text="From request to recorded completion" fill="#122033" transform="translate(44.000 112) scale(0.036000 -0.036000)">
+<use href="#b20" x="0"/>
+<use href="#b21" x="585"/>
+<use href="#b22" x="1021"/>
+<use href="#b23" x="1647"/>
+<use href="#b21" x="2838"/>
+<use href="#b2" x="3274"/>
+<use href="#b24" x="3855"/>
+<use href="#b25" x="4499"/>
+<use href="#b2" x="5136"/>
+<use href="#b26" x="5717"/>
+<use href="#b5" x="6212"/>
+<use href="#b5" x="6860"/>
+<use href="#b22" x="7281"/>
+<use href="#b21" x="8134"/>
+<use href="#b2" x="8570"/>
+<use href="#b27" x="9151"/>
+<use href="#b22" x="9678"/>
+<use href="#b21" x="10304"/>
+<use href="#b28" x="10740"/>
+<use href="#b2" x="11384"/>
+<use href="#b28" x="11965"/>
+<use href="#b27" x="12836"/>
+<use href="#b22" x="13363"/>
+<use href="#b23" x="13989"/>
+<use href="#b29" x="14953"/>
+<use href="#b30" x="15597"/>
+<use href="#b2" x="15912"/>
+<use href="#b5" x="16493"/>
+<use href="#b4" x="16914"/>
+<use href="#b22" x="17218"/>
+<use href="#b31" x="17844"/>
+</g>
+<rect x="44.0" y="140" width="160.0" height="6" rx="3" fill="#4F6CF7"/>
+<g aria-label="Ask Spec" data-text="Ask Spec" fill="#122033" transform="translate(44.000 172) scale(0.016000 -0.016000)">
+<use href="#r32" x="0"/>
+<use href="#r33" x="608"/>
+<use href="#r15" x="1076"/>
+<use href="#r34" x="1852"/>
+<use href="#r35" x="2448"/>
+<use href="#r36" x="3068"/>
+<use href="#r8" x="3622"/>
+</g>
+<rect x="216.0" y="140" width="160.0" height="6" rx="3" fill="#4F6CF7"/>
+<g aria-label="Review the goal" data-text="Review the goal" fill="#4F6CF7" transform="translate(216.000 172) scale(0.016000 -0.016000)">
+<use href="#b37" x="0"/>
+<use href="#b2" x="682"/>
+<use href="#b38" x="1263"/>
+<use href="#b4" x="1839"/>
+<use href="#b2" x="2143"/>
+<use href="#b39" x="2724"/>
+<use href="#b5" x="3814"/>
+<use href="#b40" x="4235"/>
+<use href="#b2" x="4875"/>
+<use href="#b41" x="5683"/>
+<use href="#b22" x="6280"/>
+<use href="#b1" x="6906"/>
+<use href="#b30" x="7497"/>
+</g>
+<rect x="388.0" y="140" width="160.0" height="6" rx="3" fill="#D7DFE9"/>
+<g aria-label="Say yes" data-text="Say yes" fill="#546276" transform="translate(388.000 172) scale(0.016000 -0.016000)">
+<use href="#r34" x="0"/>
+<use href="#r12" x="596"/>
+<use href="#r42" x="1159"/>
+<use href="#r42" x="1904"/>
+<use href="#r36" x="2425"/>
+<use href="#r33" x="2979"/>
+</g>
+<rect x="560.0" y="140" width="160.0" height="6" rx="3" fill="#D7DFE9"/>
+<g aria-label="Check" data-text="Check" fill="#546276" transform="translate(560.000 172) scale(0.016000 -0.016000)">
+<use href="#r43" x="0"/>
+<use href="#r16" x="638"/>
+<use href="#r36" x="1245"/>
+<use href="#r8" x="1799"/>
+<use href="#r15" x="2309"/>
+</g>
+<rect x="732.0" y="140" width="160.0" height="6" rx="3" fill="#D7DFE9"/>
+<g aria-label="Spar review" data-text="Spar review" fill="#546276" transform="translate(732.000 172) scale(0.016000 -0.016000)">
+<use href="#r34" x="0"/>
+<use href="#r35" x="596"/>
+<use href="#r12" x="1216"/>
+<use href="#r17" x="1779"/>
+<use href="#r17" x="2391"/>
+<use href="#r36" x="2779"/>
+<use href="#r44" x="3333"/>
+<use href="#r7" x="3854"/>
+<use href="#r36" x="4129"/>
+<use href="#r14" x="4683"/>
+</g>
+<rect x="904.0" y="140" width="160.0" height="6" rx="3" fill="#D7DFE9"/>
+<g aria-label="ha done" data-text="ha done" fill="#546276" transform="translate(904.000 172) scale(0.016000 -0.016000)">
+<use href="#r16" x="0"/>
+<use href="#r12" x="607"/>
+<use href="#r45" x="1394"/>
+<use href="#r10" x="2014"/>
+<use href="#r11" x="2620"/>
+<use href="#r36" x="3230"/>
+</g>
+<rect x="1076.0" y="140" width="160.0" height="6" rx="3" fill="#D7DFE9"/>
+<g aria-label="Report" data-text="Report" fill="#546276" transform="translate(1076.000 172) scale(0.016000 -0.016000)">
+<use href="#r46" x="0"/>
+<use href="#r36" x="635"/>
+<use href="#r35" x="1189"/>
+<use href="#r10" x="1809"/>
+<use href="#r17" x="2415"/>
+<use href="#r9" x="2803"/>
+</g>
+<rect x="44" y="204" width="792" height="418" rx="16" fill="#FFFFFF" stroke="#D7DFE9" stroke-width="2"/>
+<g aria-label="Agent conversation" data-text="Agent conversation" fill="#546276" transform="translate(68.000 238) scale(0.016000 -0.016000)">
+<use href="#b47" x="0"/>
+<use href="#b41" x="641"/>
+<use href="#b2" x="1238"/>
+<use href="#b31" x="1819"/>
+<use href="#b5" x="2460"/>
+<use href="#b27" x="3108"/>
+<use href="#b22" x="3635"/>
+<use href="#b31" x="4261"/>
+<use href="#b38" x="4902"/>
+<use href="#b2" x="5478"/>
+<use href="#b21" x="6059"/>
+<use href="#b26" x="6495"/>
+<use href="#b1" x="6990"/>
+<use href="#b5" x="7581"/>
+<use href="#b4" x="8002"/>
+<use href="#b22" x="8306"/>
+<use href="#b31" x="8932"/>
+</g>
+<path d="M68 254H812" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="64" y="287" width="362.436" height="68" rx="8" fill="#EDF0FF"/>
+<rect x="60" y="410" width="395.408" height="141" rx="6" fill="#F0F3F8"/>
+<g aria-label="USER" data-text="USER" fill="#4F6CF7" transform="translate(68.000 288) scale(0.013000 -0.013000)">
+<use href="#b48" x="0"/>
+<use href="#b49" x="748"/>
+<use href="#b50" x="1372"/>
+<use href="#b37" x="1987"/>
+</g>
+<g aria-label="/spec:spec Add a “Forgot password” link" data-text="/spec:spec Add a “Forgot password” link" fill="#2B3FA8" transform="translate(76.000 310) scale(0.018000 -0.018000)">
+<use href="#r51" x="0"/>
+<use href="#r33" x="392"/>
+<use href="#r35" x="860"/>
+<use href="#r36" x="1480"/>
+<use href="#r8" x="2034"/>
+<use href="#r52" x="2544"/>
+<use href="#r33" x="2822"/>
+<use href="#r35" x="3290"/>
+<use href="#r36" x="3910"/>
+<use href="#r8" x="4464"/>
+<use href="#r32" x="5198"/>
+<use href="#r45" x="5806"/>
+<use href="#r45" x="6426"/>
+<use href="#r12" x="7270"/>
+<use href="#r53" x="8057"/>
+<use href="#r6" x="8531"/>
+<use href="#r10" x="9083"/>
+<use href="#r17" x="9689"/>
+<use href="#r19" x="10077"/>
+<use href="#r10" x="10641"/>
+<use href="#r9" x="11247"/>
+<use href="#r35" x="11848"/>
+<use href="#r12" x="12468"/>
+<use href="#r33" x="13031"/>
+<use href="#r33" x="13499"/>
+<use href="#r14" x="13967"/>
+<use href="#r10" x="14769"/>
+<use href="#r17" x="15375"/>
+<use href="#r45" x="15763"/>
+<use href="#r54" x="16383"/>
+<use href="#r13" x="17081"/>
+<use href="#r7" x="17365"/>
+<use href="#r11" x="17640"/>
+<use href="#r15" x="18250"/>
+</g>
+<g aria-label="to the login screen" data-text="to the login screen" fill="#2B3FA8" transform="translate(76.000 344) scale(0.018000 -0.018000)">
+<use href="#r9" x="0"/>
+<use href="#r10" x="377"/>
+<use href="#r9" x="1207"/>
+<use href="#r16" x="1584"/>
+<use href="#r36" x="2191"/>
+<use href="#r13" x="2969"/>
+<use href="#r10" x="3253"/>
+<use href="#r19" x="3859"/>
+<use href="#r7" x="4423"/>
+<use href="#r11" x="4698"/>
+<use href="#r33" x="5532"/>
+<use href="#r8" x="6000"/>
+<use href="#r17" x="6510"/>
+<use href="#r36" x="6898"/>
+<use href="#r36" x="7452"/>
+<use href="#r11" x="8006"/>
+</g>
+<g aria-label="SPEC" data-text="SPEC" fill="#168975" transform="translate(68.000 378) scale(0.013000 -0.013000)">
+<use href="#b49" x="0"/>
+<use href="#b55" x="624"/>
+<use href="#b50" x="1291"/>
+<use href="#b56" x="1906"/>
+</g>
+<g aria-label="wrote docs/specs/password-link/SPEC.md" data-text="wrote docs/specs/password-link/SPEC.md" fill="#122033" transform="translate(68.000 400) scale(0.018000 -0.018000)">
+<use href="#r14" x="0"/>
+<use href="#r17" x="802"/>
+<use href="#r10" x="1190"/>
+<use href="#r9" x="1796"/>
+<use href="#r36" x="2173"/>
+<use href="#r45" x="2951"/>
+<use href="#r10" x="3571"/>
+<use href="#r8" x="4177"/>
+<use href="#r33" x="4687"/>
+<use href="#r51" x="5155"/>
+<use href="#r33" x="5547"/>
+<use href="#r35" x="6015"/>
+<use href="#r36" x="6635"/>
+<use href="#r8" x="7189"/>
+<use href="#r33" x="7699"/>
+<use href="#r51" x="8167"/>
+<use href="#r35" x="8559"/>
+<use href="#r12" x="9179"/>
+<use href="#r33" x="9742"/>
+<use href="#r33" x="10210"/>
+<use href="#r14" x="10678"/>
+<use href="#r10" x="11480"/>
+<use href="#r17" x="12086"/>
+<use href="#r45" x="12474"/>
+<use href="#r57" x="13094"/>
+<use href="#r13" x="13441"/>
+<use href="#r7" x="13725"/>
+<use href="#r11" x="14000"/>
+<use href="#r15" x="14610"/>
+<use href="#r51" x="15162"/>
+<use href="#r34" x="15554"/>
+<use href="#r58" x="16150"/>
+<use href="#r59" x="16783"/>
+<use href="#r43" x="17372"/>
+<use href="#r60" x="18010"/>
+<use href="#r61" x="18288"/>
+<use href="#r45" x="19214"/>
+</g>
+<g aria-label="Status: Ready" data-text="Status: Ready" fill="#546276" transform="translate(68.000 430) scale(0.016000 -0.016000)">
+<use href="#r34" x="0"/>
+<use href="#r9" x="596"/>
+<use href="#r12" x="973"/>
+<use href="#r9" x="1536"/>
+<use href="#r18" x="1913"/>
+<use href="#r33" x="2520"/>
+<use href="#r52" x="2988"/>
+<use href="#r46" x="3490"/>
+<use href="#r36" x="4125"/>
+<use href="#r12" x="4679"/>
+<use href="#r45" x="5242"/>
+<use href="#r42" x="5862"/>
+</g>
+<g aria-label="Assurance: standard" data-text="Assurance: standard" fill="#546276" transform="translate(68.000 458) scale(0.016000 -0.016000)">
+<use href="#r32" x="0"/>
+<use href="#r33" x="608"/>
+<use href="#r33" x="1076"/>
+<use href="#r18" x="1544"/>
+<use href="#r17" x="2151"/>
+<use href="#r12" x="2539"/>
+<use href="#r11" x="3102"/>
+<use href="#r8" x="3712"/>
+<use href="#r36" x="4222"/>
+<use href="#r52" x="4776"/>
+<use href="#r33" x="5278"/>
+<use href="#r9" x="5746"/>
+<use href="#r12" x="6123"/>
+<use href="#r11" x="6686"/>
+<use href="#r45" x="7296"/>
+<use href="#r12" x="7916"/>
+<use href="#r17" x="8479"/>
+<use href="#r45" x="8867"/>
+</g>
+<g aria-label="AC-1 The login screen shows a “Forgot password?”" data-text="AC-1 The login screen shows a “Forgot password?”" fill="#546276" transform="translate(68.000 486) scale(0.016000 -0.016000)">
+<use href="#r32" x="0"/>
+<use href="#r43" x="608"/>
+<use href="#r57" x="1246"/>
+<use href="#r62" x="1593"/>
+<use href="#r63" x="2372"/>
+<use href="#r16" x="2971"/>
+<use href="#r36" x="3578"/>
+<use href="#r13" x="4356"/>
+<use href="#r10" x="4640"/>
+<use href="#r19" x="5246"/>
+<use href="#r7" x="5810"/>
+<use href="#r11" x="6085"/>
+<use href="#r33" x="6919"/>
+<use href="#r8" x="7387"/>
+<use href="#r17" x="7897"/>
+<use href="#r36" x="8285"/>
+<use href="#r36" x="8839"/>
+<use href="#r11" x="9393"/>
+<use href="#r33" x="10227"/>
+<use href="#r16" x="10695"/>
+<use href="#r10" x="11302"/>
+<use href="#r14" x="11908"/>
+<use href="#r33" x="12710"/>
+<use href="#r12" x="13402"/>
+<use href="#r53" x="14189"/>
+<use href="#r6" x="14663"/>
+<use href="#r10" x="15215"/>
+<use href="#r17" x="15821"/>
+<use href="#r19" x="16209"/>
+<use href="#r10" x="16773"/>
+<use href="#r9" x="17379"/>
+<use href="#r35" x="17980"/>
+<use href="#r12" x="18600"/>
+<use href="#r33" x="19163"/>
+<use href="#r33" x="19631"/>
+<use href="#r14" x="20099"/>
+<use href="#r10" x="20901"/>
+<use href="#r17" x="21507"/>
+<use href="#r45" x="21895"/>
+<use href="#r64" x="22515"/>
+<use href="#r54" x="22989"/>
+</g>
+<g aria-label="       link to /reset-password." data-text="       link to /reset-password." fill="#546276" transform="translate(68.000 514) scale(0.016000 -0.016000)">
+<use href="#r13" x="1568"/>
+<use href="#r7" x="1852"/>
+<use href="#r11" x="2127"/>
+<use href="#r15" x="2737"/>
+<use href="#r9" x="3513"/>
+<use href="#r10" x="3890"/>
+<use href="#r51" x="4720"/>
+<use href="#r17" x="5112"/>
+<use href="#r36" x="5500"/>
+<use href="#r33" x="6054"/>
+<use href="#r36" x="6522"/>
+<use href="#r9" x="7076"/>
+<use href="#r57" x="7453"/>
+<use href="#r35" x="7800"/>
+<use href="#r12" x="8420"/>
+<use href="#r33" x="8983"/>
+<use href="#r33" x="9451"/>
+<use href="#r14" x="9919"/>
+<use href="#r10" x="10721"/>
+<use href="#r17" x="11327"/>
+<use href="#r45" x="11715"/>
+<use href="#r60" x="12335"/>
+</g>
+<g aria-label="AC-2 The existing login form keeps working." data-text="AC-2 The existing login form keeps working." fill="#546276" transform="translate(68.000 542) scale(0.016000 -0.016000)">
+<use href="#r32" x="0"/>
+<use href="#r43" x="608"/>
+<use href="#r57" x="1246"/>
+<use href="#r65" x="1593"/>
+<use href="#r63" x="2372"/>
+<use href="#r16" x="2971"/>
+<use href="#r36" x="3578"/>
+<use href="#r36" x="4356"/>
+<use href="#r66" x="4910"/>
+<use href="#r7" x="5408"/>
+<use href="#r33" x="5683"/>
+<use href="#r9" x="6151"/>
+<use href="#r7" x="6528"/>
+<use href="#r11" x="6803"/>
+<use href="#r19" x="7413"/>
+<use href="#r13" x="8201"/>
+<use href="#r10" x="8485"/>
+<use href="#r19" x="9091"/>
+<use href="#r7" x="9655"/>
+<use href="#r11" x="9930"/>
+<use href="#r67" x="10764"/>
+<use href="#r10" x="11089"/>
+<use href="#r17" x="11695"/>
+<use href="#r61" x="12083"/>
+<use href="#r15" x="13233"/>
+<use href="#r36" x="13785"/>
+<use href="#r36" x="14339"/>
+<use href="#r35" x="14893"/>
+<use href="#r33" x="15513"/>
+<use href="#r14" x="16205"/>
+<use href="#r10" x="17007"/>
+<use href="#r17" x="17613"/>
+<use href="#r15" x="18001"/>
+<use href="#r7" x="18553"/>
+<use href="#r11" x="18828"/>
+<use href="#r19" x="19438"/>
+<use href="#r60" x="20002"/>
+</g>
+<rect x="860" y="204" width="376" height="418" rx="16" fill="#EDF0FF" stroke="#D7DFE9" stroke-width="2"/>
+<g aria-label="Review the goal" data-text="Review the goal" fill="#4F6CF7" transform="translate(884.000 250) scale(0.025000 -0.025000)">
+<use href="#b37" x="0"/>
+<use href="#b2" x="682"/>
+<use href="#b38" x="1263"/>
+<use href="#b4" x="1839"/>
+<use href="#b2" x="2143"/>
+<use href="#b39" x="2724"/>
+<use href="#b5" x="3814"/>
+<use href="#b40" x="4235"/>
+<use href="#b2" x="4875"/>
+<use href="#b41" x="5683"/>
+<use href="#b22" x="6280"/>
+<use href="#b1" x="6906"/>
+<use href="#b30" x="7497"/>
+</g>
+<g aria-label="Read the goal and its" data-text="Read the goal and its" fill="#122033" transform="translate(884.000 296) scale(0.019000 -0.019000)">
+<use href="#r46" x="0"/>
+<use href="#r36" x="635"/>
+<use href="#r12" x="1189"/>
+<use href="#r45" x="1752"/>
+<use href="#r9" x="2596"/>
+<use href="#r16" x="2973"/>
+<use href="#r36" x="3580"/>
+<use href="#r19" x="4358"/>
+<use href="#r10" x="4922"/>
+<use href="#r12" x="5528"/>
+<use href="#r13" x="6091"/>
+<use href="#r12" x="6599"/>
+<use href="#r11" x="7162"/>
+<use href="#r45" x="7772"/>
+<use href="#r7" x="8616"/>
+<use href="#r9" x="8891"/>
+<use href="#r33" x="9268"/>
+</g>
+<g aria-label="completion conditions. Ask" data-text="completion conditions. Ask" fill="#122033" transform="translate(884.000 325) scale(0.019000 -0.019000)">
+<use href="#r8" x="0"/>
+<use href="#r10" x="510"/>
+<use href="#r61" x="1116"/>
+<use href="#r35" x="2042"/>
+<use href="#r13" x="2662"/>
+<use href="#r36" x="2946"/>
+<use href="#r9" x="3500"/>
+<use href="#r7" x="3877"/>
+<use href="#r10" x="4152"/>
+<use href="#r11" x="4758"/>
+<use href="#r8" x="5592"/>
+<use href="#r10" x="6102"/>
+<use href="#r11" x="6708"/>
+<use href="#r45" x="7318"/>
+<use href="#r7" x="7938"/>
+<use href="#r9" x="8213"/>
+<use href="#r7" x="8590"/>
+<use href="#r10" x="8865"/>
+<use href="#r11" x="9471"/>
+<use href="#r33" x="10081"/>
+<use href="#r60" x="10549"/>
+<use href="#r32" x="11051"/>
+<use href="#r33" x="11659"/>
+<use href="#r15" x="12127"/>
+</g>
+<g aria-label="for changes until it looks right." data-text="for changes until it looks right." fill="#122033" transform="translate(884.000 354) scale(0.019000 -0.019000)">
+<use href="#r67" x="0"/>
+<use href="#r10" x="325"/>
+<use href="#r17" x="931"/>
+<use href="#r8" x="1543"/>
+<use href="#r16" x="2053"/>
+<use href="#r12" x="2660"/>
+<use href="#r11" x="3223"/>
+<use href="#r19" x="3833"/>
+<use href="#r36" x="4397"/>
+<use href="#r33" x="4951"/>
+<use href="#r18" x="5643"/>
+<use href="#r11" x="6250"/>
+<use href="#r9" x="6860"/>
+<use href="#r7" x="7237"/>
+<use href="#r13" x="7512"/>
+<use href="#r7" x="8020"/>
+<use href="#r9" x="8295"/>
+<use href="#r13" x="8896"/>
+<use href="#r10" x="9180"/>
+<use href="#r10" x="9786"/>
+<use href="#r15" x="10392"/>
+<use href="#r33" x="10944"/>
+<use href="#r17" x="11636"/>
+<use href="#r7" x="12024"/>
+<use href="#r19" x="12299"/>
+<use href="#r16" x="12863"/>
+<use href="#r9" x="13470"/>
+<use href="#r60" x="13847"/>
+</g>
+<g aria-label="Assurance: standard means" data-text="Assurance: standard means" fill="#546276" transform="translate(884.000 401) scale(0.017000 -0.017000)">
+<use href="#r32" x="0"/>
+<use href="#r33" x="608"/>
+<use href="#r33" x="1076"/>
+<use href="#r18" x="1544"/>
+<use href="#r17" x="2151"/>
+<use href="#r12" x="2539"/>
+<use href="#r11" x="3102"/>
+<use href="#r8" x="3712"/>
+<use href="#r36" x="4222"/>
+<use href="#r52" x="4776"/>
+<use href="#r33" x="5278"/>
+<use href="#r9" x="5746"/>
+<use href="#r12" x="6123"/>
+<use href="#r11" x="6686"/>
+<use href="#r45" x="7296"/>
+<use href="#r12" x="7916"/>
+<use href="#r17" x="8479"/>
+<use href="#r45" x="8867"/>
+<use href="#r61" x="9711"/>
+<use href="#r36" x="10637"/>
+<use href="#r12" x="11191"/>
+<use href="#r11" x="11754"/>
+<use href="#r33" x="12364"/>
+</g>
+<g aria-label="Spar reviews the change" data-text="Spar reviews the change" fill="#546276" transform="translate(884.000 428) scale(0.017000 -0.017000)">
+<use href="#r34" x="0"/>
+<use href="#r35" x="596"/>
+<use href="#r12" x="1216"/>
+<use href="#r17" x="1779"/>
+<use href="#r17" x="2391"/>
+<use href="#r36" x="2779"/>
+<use href="#r44" x="3333"/>
+<use href="#r7" x="3854"/>
+<use href="#r36" x="4129"/>
+<use href="#r14" x="4683"/>
+<use href="#r33" x="5485"/>
+<use href="#r9" x="6177"/>
+<use href="#r16" x="6554"/>
+<use href="#r36" x="7161"/>
+<use href="#r8" x="7939"/>
+<use href="#r16" x="8449"/>
+<use href="#r12" x="9056"/>
+<use href="#r11" x="9619"/>
+<use href="#r19" x="10229"/>
+<use href="#r36" x="10793"/>
+</g>
+<g aria-label="before it can complete." data-text="before it can complete." fill="#546276" transform="translate(884.000 455) scale(0.017000 -0.017000)">
+<use href="#r68" x="0"/>
+<use href="#r36" x="618"/>
+<use href="#r67" x="1172"/>
+<use href="#r10" x="1497"/>
+<use href="#r17" x="2103"/>
+<use href="#r36" x="2491"/>
+<use href="#r7" x="3269"/>
+<use href="#r9" x="3544"/>
+<use href="#r8" x="4145"/>
+<use href="#r12" x="4655"/>
+<use href="#r11" x="5218"/>
+<use href="#r8" x="6052"/>
+<use href="#r10" x="6562"/>
+<use href="#r61" x="7168"/>
+<use href="#r35" x="8094"/>
+<use href="#r13" x="8714"/>
+<use href="#r36" x="8998"/>
+<use href="#r9" x="9552"/>
+<use href="#r36" x="9929"/>
+<use href="#r60" x="10483"/>
+</g>
+<g aria-label="Illustrative sequence · not a recording of a real run" data-text="Illustrative sequence · not a recording of a real run" fill="#546276" transform="translate(44.000 660) scale(0.016000 -0.016000)">
+<use href="#r69" x="0"/>
+<use href="#r13" x="293"/>
+<use href="#r13" x="577"/>
+<use href="#r18" x="861"/>
+<use href="#r33" x="1468"/>
+<use href="#r9" x="1936"/>
+<use href="#r17" x="2313"/>
+<use href="#r12" x="2701"/>
+<use href="#r9" x="3264"/>
+<use href="#r7" x="3641"/>
+<use href="#r44" x="3916"/>
+<use href="#r36" x="4437"/>
+<use href="#r33" x="5215"/>
+<use href="#r36" x="5683"/>
+<use href="#r70" x="6237"/>
+<use href="#r18" x="6857"/>
+<use href="#r36" x="7464"/>
+<use href="#r11" x="8018"/>
+<use href="#r8" x="8628"/>
+<use href="#r36" x="9138"/>
+<use href="#r71" x="9916"/>
+<use href="#r11" x="10701"/>
+<use href="#r10" x="11311"/>
+<use href="#r9" x="11917"/>
+<use href="#r12" x="12518"/>
+<use href="#r17" x="13305"/>
+<use href="#r36" x="13693"/>
+<use href="#r8" x="14247"/>
+<use href="#r10" x="14757"/>
+<use href="#r17" x="15363"/>
+<use href="#r45" x="15751"/>
+<use href="#r7" x="16371"/>
+<use href="#r11" x="16646"/>
+<use href="#r19" x="17256"/>
+<use href="#r10" x="18044"/>
+<use href="#r67" x="18650"/>
+<use href="#r12" x="19199"/>
+<use href="#r17" x="19986"/>
+<use href="#r36" x="20374"/>
+<use href="#r12" x="20928"/>
+<use href="#r13" x="21491"/>
+<use href="#r17" x="21999"/>
+<use href="#r18" x="22387"/>
+<use href="#r11" x="22994"/>
+</g>
+<g aria-label="password-link" data-text="password-link" fill="#546276" transform="translate(1123.552 660) scale(0.016000 -0.016000)">
+<use href="#b29" x="0"/>
+<use href="#b1" x="644"/>
+<use href="#b26" x="1235"/>
+<use href="#b26" x="1730"/>
+<use href="#b39" x="2225"/>
+<use href="#b22" x="3088"/>
+<use href="#b21" x="3714"/>
+<use href="#b28" x="4150"/>
+<use href="#b72" x="4794"/>
+<use href="#b30" x="5164"/>
+<use href="#b4" x="5479"/>
+<use href="#b31" x="5783"/>
+<use href="#b3" x="6424"/>
+</g>
+<rect x="44" y="684" width="1192" height="8" rx="4" fill="#D7DFE9"/>
+<rect x="44" y="684" width="264.8888888888889" height="8" rx="4" fill="#4F6CF7"/>
+</svg>

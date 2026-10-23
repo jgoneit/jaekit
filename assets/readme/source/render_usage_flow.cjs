@@ -1,14 +1,7 @@
 #!/usr/bin/env node
-// Render outlined SVGs; no local font installation is needed for this step.
+// Render only the usage flow PNGs; render_readme_images.cjs renders every
+// README image and records what it rendered. No installed fonts are needed.
 // Dependency: npm install sharp
-const path = require('node:path');
-const sharp = require('sharp');
-const root = process.argv[2] || path.resolve(__dirname, '../../..');
+const { renderImages } = require('./render_readme_images.cjs');
 
-(async () => {
-  for (const language of ['ko', 'en']) {
-    const base = path.join(root, 'assets', 'readme', `usage-flow.${language}`);
-    await sharp(`${base}.svg`).png().toFile(`${base}.png`);
-    console.log(`Rendered ${base}.png`);
-  }
-})().catch(error => { console.error(error); process.exitCode = 1; });
+renderImages({ only: ['usage-flow'] }).catch(error => { console.error(error); process.exitCode = 1; });

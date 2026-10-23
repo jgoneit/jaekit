@@ -1,90 +1,135 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="840" viewBox="0 0 1600 840" role="img" aria-labelledby="title description" xml:lang="ko">
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="960" viewBox="0 0 1600 960" role="img" aria-labelledby="title description" xml:lang="ko">
 <title id="title">한 번의 작업, 이렇게 진행됩니다.</title>
-<desc id="description">1. 요청을 Spec으로 정리한 후 목표와 완료 조건을 읽고 확인합니다. 2. 목표 폴더를 지정해 새 메시지로 Seal을 별도로 시작합니다. 에이전트가 구현, 검사, 수정하며 진행 상황을 기록합니다. 3. 변경 결과와 검사 기록을 읽고 목표대로 끝났는지 확인합니다. 새 대화에서는 같은 프로젝트의 같은 목표를 지정해 이어갑니다. 실제 실행 결과가 아닌 개념도입니다.</desc>
-<rect x="0" y="0" width="1600" height="840" rx="0" fill="#FAFBFD"/>
-<text x="64" y="61" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="700" fill="#546276" text-anchor="start">JAEKIT / HOW TO USE</text>
-<text x="1536" y="65" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="32" font-weight="700" fill="#122033" text-anchor="end">Jaekit</text>
-<text x="64" y="135" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="51" font-weight="700" fill="#122033" text-anchor="start">한 번의 작업, 이렇게 진행됩니다.</text>
-<circle cx="87" cy="220" r="23" fill="#4F6CF7"/>
-<text x="87" y="229" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="700" fill="#FFFFFF" text-anchor="middle">01</text>
-<text x="122" y="231" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="31" font-weight="700" fill="#122033" text-anchor="start">요청하고 목표 확인</text>
-<circle cx="595" cy="220" r="23" fill="#168975"/>
-<text x="595" y="229" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="700" fill="#FFFFFF" text-anchor="middle">02</text>
-<text x="630" y="231" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="31" font-weight="700" fill="#122033" text-anchor="start">Seal을 별도로 시작</text>
-<circle cx="1103" cy="220" r="23" fill="#168975"/>
-<text x="1103" y="229" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="700" fill="#FFFFFF" text-anchor="middle">03</text>
-<text x="1138" y="231" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="31" font-weight="700" fill="#122033" text-anchor="start">결과와 기록 확인</text>
-<path d="M546 283L546 658" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="546" cy="426" r="23" fill="#FAFBFD"/>
-<path d="M536 426H556M549 418L557 426L549 434" fill="none" stroke="#546276" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M1054 283L1054 658" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="1054" cy="426" r="23" fill="#FAFBFD"/>
-<path d="M1044 426H1064M1057 418L1065 426L1057 434" fill="none" stroke="#546276" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M103 407C114 313 242 282 371 306C475 326 503 424 451 489C391 564 195 553 133 499C108 477 99 441 103 407Z" fill="#EDF0FF"/>
-<path d="M90 342H184Q202 342 202 360V402Q202 420 184 420H172L184 438L154 420H90Q72 420 72 402V360Q72 342 90 342Z" fill="#FFFFFF" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="137" y="391" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="29" font-weight="700" fill="#122033" text-anchor="middle">요청</text>
-<path d="M211 402C225 411 230 411 248 410M238 401L250 410L240 420" fill="none" stroke="#4F6CF7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M279 298H426L464 336V512Q464 526 450 526H279Q265 526 265 512V312Q265 298 279 298Z" fill="#FFFFFF" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M426 298V336H464" fill="#EDF0FF" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="285" y="352" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="34" font-weight="700" fill="#4F6CF7" text-anchor="start">Spec</text>
-<text x="286" y="391" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="26" font-weight="700" fill="#122033" text-anchor="start">목표</text>
-<path d="M286 411H434" fill="none" stroke="#D7DFE9" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="286" y="451" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="24" font-weight="700" fill="#122033" text-anchor="start">완료 조건</text>
-<rect x="286" y="470" width="20" height="20" rx="4" fill="#FFFFFF" stroke="#4F6CF7" stroke-width="3"/>
-<path d="M320 480H434" fill="none" stroke="#D7DFE9" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M466 486L466 529L478 518L490 538L500 532L488 512L505 508Z" fill="#FFFFFF" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M478 470L480 458" fill="none" stroke="#4F6CF7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M493 479L505 474" fill="none" stroke="#4F6CF7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M603 411C612 340 734 310 855 323C957 333 1011 407 982 486C953 563 809 558 704 539C632 526 594 476 603 411Z" fill="#E6F5F1"/>
-<path d="M615 289H770Q787 289 787 306V347Q787 364 770 364H744L728 382V364H615Q598 364 598 347V306Q598 289 615 289Z" fill="#FFFFFF" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="693" y="336" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="27" font-weight="700" fill="#122033" text-anchor="middle">새 메시지</text>
-<rect x="733" y="354" width="245" height="165" rx="16" fill="#122033"/>
-<circle cx="755" cy="375" r="4.5" fill="#FFFFFF"/>
-<circle cx="771" cy="375" r="4.5" fill="#FFFFFF"/>
-<circle cx="787" cy="375" r="4.5" fill="#FFFFFF"/>
-<text x="755" y="423" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="33" font-weight="700" fill="#FFFFFF" text-anchor="start">Seal</text>
-<path d="M854 438L840 452L854 466M898 438L912 452L898 466M882 432L869 472" fill="none" stroke="#A5E6D5" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M755 491H810" fill="none" stroke="#79D0BA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M824 491H896" fill="none" stroke="#4F6CF7" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M617 438V421Q617 412 626 412H672L688 430H752Q762 430 762 440V509Q762 520 751 520H628Q617 520 617 509Z" fill="#FFFFFF" stroke="#168975" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M617 443H762L746 520H617Z" fill="#E6F5F1" stroke="#168975" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="686" y="486" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="25" font-weight="700" fill="#122033" text-anchor="middle">목표 폴더</text>
-<circle cx="963" cy="520" r="33" fill="#FFFFFF" stroke="#122033" stroke-width="3.5"/>
-<path d="M945 517A19 19 0 0 1 977 507M977 498V509H966M980 523A19 19 0 0 1 948 534M948 543V532H959" fill="none" stroke="#168975" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M1109 418C1118 333 1230 297 1352 318C1474 339 1526 410 1490 485C1451 566 1286 568 1190 528C1133 505 1103 468 1109 418Z" fill="#E6F5F1"/>
-<path d="M1128 300H1259L1293 334V503Q1293 515 1281 515H1128Q1116 515 1116 503V312Q1116 300 1128 300Z" fill="#FFFFFF" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M1259 300V334H1293" fill="#EDF0FF" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="1134" y="352" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="26" font-weight="700" fill="#122033" text-anchor="start">변경 결과</text>
-<rect x="1135" y="375" width="136" height="109" rx="5" fill="#FAFBFD" stroke="#D7DFE9" stroke-width="2"/>
-<path d="M1135 397H1271" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="1147" cy="386" r="2.5" fill="#546276"/>
-<circle cx="1158" cy="386" r="2.5" fill="#546276"/>
-<circle cx="1169" cy="386" r="2.5" fill="#546276"/>
-<rect x="1148" y="411" width="109" height="14" rx="3" fill="#EDF0FF"/>
-<path d="M1149 439H1255" fill="none" stroke="#D7DFE9" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M1149 458H1222" fill="none" stroke="#D7DFE9" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M1317 346H1448L1482 380V526Q1482 538 1470 538H1317Q1305 538 1305 526V358Q1305 346 1317 346Z" fill="#FFFFFF" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M1448 346V380H1482" fill="#E6F5F1" stroke="#122033" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="1320" y="402" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="26" font-weight="700" fill="#122033" text-anchor="start">검사 기록</text>
-<circle cx="1331" cy="432" r="5" fill="#168975"/>
-<path d="M1349 432H1461" fill="none" stroke="#D7DFE9" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="1331" cy="465" r="5" fill="#168975"/>
-<path d="M1349 465H1461" fill="none" stroke="#D7DFE9" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="1331" cy="498" r="5" fill="#168975"/>
-<path d="M1349 498H1436" fill="none" stroke="#D7DFE9" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="1198" cy="502" r="31" fill="#FFFFFF" stroke="#122033" stroke-width="4"/>
-<circle cx="1195" cy="499" r="12" fill="#FFFFFF" stroke="#168975" stroke-width="4"/>
-<path d="M1204 508L1217 521" fill="none" stroke="#168975" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="64" y="600" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="27" font-weight="400" fill="#546276" text-anchor="start">Spec이 목표와 완료 조건을 정리하면,</text>
-<text x="64" y="637" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="27" font-weight="400" fill="#546276" text-anchor="start">내가 읽고 확인합니다.</text>
-<text x="572" y="600" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="27" font-weight="400" fill="#546276" text-anchor="start">새 메시지에 목표 폴더를 지정합니다.</text>
-<text x="572" y="637" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="27" font-weight="400" fill="#546276" text-anchor="start">에이전트가 구현·검사·수정하고</text>
-<text x="572" y="674" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="27" font-weight="400" fill="#546276" text-anchor="start">진행 상황을 기록합니다.</text>
-<text x="1080" y="600" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="27" font-weight="400" fill="#546276" text-anchor="start">내가 변경 결과와 검사 기록을 읽고,</text>
-<text x="1080" y="637" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="27" font-weight="400" fill="#546276" text-anchor="start">목표대로 끝났는지 확인합니다.</text>
-<rect x="64" y="718" width="1472" height="70" rx="14" fill="#F0F3F8"/>
-<path d="M92 748V741Q92 737 96 737H112L118 744H142Q146 744 146 748V766Q146 770 142 770H96Q92 770 92 766Z" fill="#FFFFFF" stroke="#546276" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M92 750H146L141 770H92Z" fill="#EDF0FF" stroke="#546276" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="166" y="763" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="26" font-weight="700" fill="#122033" text-anchor="start">새 대화에서도, 같은 프로젝트의 같은 목표를 지정해 이어갑니다.</text>
-<text x="1536" y="819" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="400" fill="#546276" text-anchor="end">사용 흐름 · 개념도</text>
+<desc id="description">1. Spec에 요청하면 목표와 완료 조건, 검토 등급(Assurance)을 정리하고 지금 구현할지 묻습니다. 내가 읽고 확인합니다. 2. “응”이라고 답하면 Seal이 시작됩니다. 나중에 별도 메시지로 목표 폴더를 지정해 시작해도 됩니다. 3. 에이전트가 계획·구현하고 ha로 검사하며, 모든 실행이 기록됩니다. standard·strict 목표는 완료 전에 Spar의 독립 검토 라운드를 받고 strict는 작업 전 계획 검토도 받습니다. light는 이유를 남기고 검토를 생략할 수 있습니다. 요구를 바꿔야 하는 질문은 내게 옵니다. 4. 필수 조건이 충족되고, standard·strict는 기록된 검토 gate가 마지막 commit을 덮으면 ha done이 완료를 기록합니다. 완료 보고는 PROGRESS.md에 남습니다. 새 대화에서는 같은 프로젝트의 같은 목표를 지정해 이어갑니다. 실제 실행 결과가 아닌 개념도입니다.</desc>
+<rect x="0" y="0" width="1600" height="960" rx="0" fill="#FAFBFD"/>
+<text x="48" y="61" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">JAEKIT / HOW TO USE</text>
+<text x="1552" y="65" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="32" font-weight="700" fill="#122033" text-anchor="end" xml:space="preserve">Jaekit</text>
+<text x="48" y="135" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="51" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">한 번의 작업, 이렇게 진행됩니다.</text>
+<circle cx="71" cy="218" r="23" fill="#4F6CF7"/>
+<text x="71" y="227" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">01</text>
+<text x="106" y="229" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="28" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">요청하고 목표 확인</text>
+<circle cx="447" cy="218" r="23" fill="#4F6CF7"/>
+<text x="447" y="227" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">02</text>
+<text x="482" y="229" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="28" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">“응”으로 Seal 시작</text>
+<circle cx="823" cy="218" r="23" fill="#168975"/>
+<text x="823" y="227" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">03</text>
+<text x="858" y="229" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="28" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">구현하고 ha로 검사</text>
+<circle cx="1199" cy="218" r="23" fill="#168975"/>
+<text x="1199" y="227" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">04</text>
+<text x="1234" y="229" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="28" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">검토 뒤 완료 기록</text>
+<path d="M408 272L408 668" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="408" cy="400" r="19" fill="#FAFBFD"/>
+<path d="M399 400H417M410 393L417 400L410 407" fill="none" stroke="#546276" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M784 272L784 668" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="784" cy="400" r="19" fill="#FAFBFD"/>
+<path d="M775 400H793M786 393L793 400L786 407" fill="none" stroke="#546276" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1160 272L1160 668" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1160" cy="400" r="19" fill="#FAFBFD"/>
+<path d="M1151 400H1169M1162 393L1169 400L1162 407" fill="none" stroke="#546276" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M70 400C78 318 196 286 300 300C392 312 410 410 370 472C326 540 160 536 104 490C80 470 66 440 70 400Z" fill="#EDF0FF"/>
+<path d="M70 314H156Q172 314 172 330V366Q172 382 156 382H146L156 398L130 382H70Q54 382 54 366V330Q54 314 70 314Z" fill="#FFFFFF" stroke="#122033" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="113" y="358" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="26" font-weight="700" fill="#122033" text-anchor="middle" xml:space="preserve">요청</text>
+<path d="M178 360C190 368 196 368 210 367M202 359L212 367L203 376" fill="none" stroke="#4F6CF7" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M226 282H350L384 316V506Q384 518 372 518H226Q214 518 214 506V294Q214 282 226 282Z" fill="#FFFFFF" stroke="#122033" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M350 282V316H384" fill="#EDF0FF" stroke="#122033" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="230" y="330" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="31" font-weight="700" fill="#4F6CF7" text-anchor="start" xml:space="preserve">Spec</text>
+<text x="231" y="366" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="22" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">목표</text>
+<path d="M231 384H360" fill="none" stroke="#D7DFE9" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="231" y="420" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">완료 조건</text>
+<rect x="231" y="436" width="17" height="17" rx="3" fill="#FFFFFF" stroke="#4F6CF7" stroke-width="2.5"/>
+<path d="M260 445H360" fill="none" stroke="#D7DFE9" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="224" y="470" width="152" height="32" rx="8" fill="#EDF0FF"/>
+<text x="300" y="491" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="14" font-weight="700" fill="#2B3FA8" text-anchor="middle" xml:space="preserve">Assurance: standard</text>
+<path d="M446 290H678Q694 290 694 306V340Q694 356 678 356H484L468 372V356H446Q430 356 430 340V306Q430 290 446 290Z" fill="#FFFFFF" stroke="#4F6CF7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="446" y="316" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#4F6CF7" text-anchor="start" xml:space="preserve">Spec</text>
+<text x="446" y="343" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="22" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">지금 구현할까요?</text>
+<path d="M654 378H754Q770 378 770 394V420Q770 436 754 436H672L626 452L650 436H654Q638 436 638 420V394Q638 378 654 378Z" fill="#4F6CF7"/>
+<text x="704" y="417" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="26" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">응</text>
+<rect x="430" y="400" width="180" height="118" rx="14" fill="#122033"/>
+<circle cx="450" cy="419" r="4" fill="#FFFFFF"/>
+<circle cx="464" cy="419" r="4" fill="#FFFFFF"/>
+<circle cx="478" cy="419" r="4" fill="#FFFFFF"/>
+<text x="450" y="466" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="31" font-weight="700" fill="#FFFFFF" text-anchor="start" xml:space="preserve">Seal</text>
+<path d="M450 494H500" fill="none" stroke="#79D0BA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M512 494H584" fill="none" stroke="#4F6CF7" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="620" y="468" width="160" height="50" rx="10" fill="#FFFFFF" stroke="#546276" stroke-width="2" stroke-dasharray="6 5"/>
+<text x="700" y="489" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="14" font-weight="700" fill="#546276" text-anchor="middle" xml:space="preserve">또는 별도 메시지</text>
+<text x="700" y="508" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="14" font-weight="700" fill="#122033" text-anchor="middle" xml:space="preserve">/seal:seal</text>
+<path d="M810 400C818 318 936 288 1040 300C1136 312 1160 400 1130 466C1096 538 930 538 864 498C830 476 806 446 810 400Z" fill="#E6F5F1"/>
+<rect x="822" y="300" width="142" height="40" rx="10" fill="#FFFFFF" stroke="#122033" stroke-width="3"/>
+<text x="893" y="327" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#122033" text-anchor="middle" xml:space="preserve">계획</text>
+<rect x="822" y="352" width="142" height="40" rx="10" fill="#FFFFFF" stroke="#122033" stroke-width="3"/>
+<text x="893" y="379" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#122033" text-anchor="middle" xml:space="preserve">구현</text>
+<rect x="822" y="404" width="142" height="40" rx="10" fill="#FFFFFF" stroke="#168975" stroke-width="3"/>
+<text x="893" y="431" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#0B5A4C" text-anchor="middle" xml:space="preserve">검사</text>
+<path d="M893 340V352M893 392V404" fill="none" stroke="#122033" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M964 424C986 424 986 372 964 372M970 366L962 372L970 378" fill="none" stroke="#168975" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1014 300H1118L1146 328V500Q1146 512 1134 512H1014Q1002 512 1002 500V312Q1002 300 1014 300Z" fill="#FFFFFF" stroke="#122033" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1118 300V328H1146" fill="#E6F5F1" stroke="#122033" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1016" y="342" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="25" font-weight="700" fill="#168975" text-anchor="start" xml:space="preserve">ha</text>
+<text x="1016" y="368" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="15" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">실행 기록</text>
+<circle cx="1024" cy="394" r="5" fill="#168975"/>
+<path d="M1038 394H1130" fill="none" stroke="#D7DFE9" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1024" cy="424" r="5" fill="#168975"/>
+<path d="M1038 424H1130" fill="none" stroke="#D7DFE9" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1024" cy="454" r="5" fill="#168975"/>
+<path d="M1038 454H1130" fill="none" stroke="#D7DFE9" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1024" cy="484" r="5" fill="#168975"/>
+<path d="M1038 484H1100" fill="none" stroke="#D7DFE9" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="822" y="478" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">runs.jsonl</text>
+<path d="M1188 404C1196 320 1308 290 1412 302C1516 316 1538 404 1506 470C1468 540 1306 540 1242 500C1206 478 1184 448 1188 404Z" fill="#E6F5F1"/>
+<path d="M1202 300H1344V372C1344 410 1308 432 1273 444C1238 432 1202 410 1202 372Z" fill="#FFF3E3" stroke="#C9761F" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1273" y="340" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="26" font-weight="700" fill="#7A4408" text-anchor="middle" xml:space="preserve">Spar</text>
+<text x="1273" y="370" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="700" fill="#7A4408" text-anchor="middle" xml:space="preserve">gate</text>
+<circle cx="1246" cy="398" r="8" fill="#C9761F"/>
+<circle cx="1273" cy="404" r="8" fill="#C9761F"/>
+<circle cx="1300" cy="398" r="8" fill="#C9761F"/>
+<rect x="1202" y="462" width="142" height="40" rx="10" fill="#122033"/>
+<text x="1273" y="489" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">ha done</text>
+<path d="M1273 446V462" fill="none" stroke="#122033" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1344 482H1372M1364 474L1372 482L1364 490" fill="none" stroke="#122033" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1390 300H1494L1522 328V500Q1522 512 1510 512H1390Q1378 512 1378 500V312Q1378 300 1390 300Z" fill="#FFFFFF" stroke="#122033" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1494 300V328H1522" fill="#E6F5F1" stroke="#122033" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1392" y="344" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">완료 보고</text>
+<text x="1392" y="368" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="13" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">PROGRESS.md</text>
+<path d="M1394 394H1506" fill="none" stroke="#D7DFE9" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1394 418H1506" fill="none" stroke="#D7DFE9" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1394 442H1472" fill="none" stroke="#D7DFE9" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1394 466H1506" fill="none" stroke="#D7DFE9" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1394 490H1472" fill="none" stroke="#D7DFE9" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="48" y="566" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">Spec이 목표와 완료 조건,</text>
+<text x="48" y="600" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">검토 등급(Assurance)을 쓰고</text>
+<text x="48" y="634" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">지금 구현할지 묻습니다.</text>
+<text x="424" y="566" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">“응”이라고 답하면 시작됩니다.</text>
+<text x="424" y="600" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">나중에 별도 메시지로 목표</text>
+<text x="424" y="634" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">폴더를 지정해도 됩니다.</text>
+<text x="800" y="566" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">에이전트가 계획·구현하고</text>
+<text x="800" y="600" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">ha로 검사합니다. 모든 실행이</text>
+<text x="800" y="634" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">runs.jsonl에 기록됩니다.</text>
+<text x="1176" y="566" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">필수 조건이 충족되면 ha done이</text>
+<text x="1176" y="600" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">완료를 기록하고, 보고는</text>
+<text x="1176" y="634" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">PROGRESS.md에 남습니다.</text>
+<rect x="48" y="694" width="1504" height="156" rx="16" fill="#FFFFFF" stroke="#D7DFE9" stroke-width="2"/>
+<text x="76" y="730" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="22" font-weight="700" fill="#7A4408" text-anchor="start" xml:space="preserve">독립 검토는 Assurance 등급에 따라 다릅니다</text>
+<rect x="76" y="748" width="66.709" height="30" rx="15" fill="#FFF3E3"/>
+<text x="109.3545" y="769" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#7A4408" text-anchor="middle" xml:space="preserve">light</text>
+<text x="76" y="806" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">이유를 남기고</text>
+<text x="76" y="833" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">검토를 생략할 수 있음</text>
+<rect x="446" y="748" width="103.871" height="30" rx="15" fill="#FFF3E3"/>
+<text x="497.9355" y="769" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#7A4408" text-anchor="middle" xml:space="preserve">standard</text>
+<text x="446" y="806" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">완료 전 Spar 검토 라운드,</text>
+<text x="446" y="833" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">gate가 마지막 commit을 덮음</text>
+<rect x="816" y="748" width="72.268" height="30" rx="15" fill="#FFF3E3"/>
+<text x="852.134" y="769" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#7A4408" text-anchor="middle" xml:space="preserve">strict</text>
+<text x="816" y="806" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">standard에 더해</text>
+<text x="816" y="833" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">작업 전 계획 검토</text>
+<rect x="1186" y="748" width="40" height="30" rx="15" fill="#EDF0FF"/>
+<text x="1206.0" y="769" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#2B3FA8" text-anchor="middle" xml:space="preserve">?</text>
+<text x="1186" y="806" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">요구를 바꿔야 하는</text>
+<text x="1186" y="833" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">질문은 내게 옵니다</text>
+<rect x="48" y="866" width="1504" height="56" rx="14" fill="#F0F3F8"/>
+<path d="M76 885V879Q76 875 80 875H94L99 881H120Q124 881 124 885V900Q124 904 120 904H80Q76 904 76 900Z" fill="#FFFFFF" stroke="#546276" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M76 887H124L120 904H76Z" fill="#EDF0FF" stroke="#546276" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="142" y="900" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="23" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">새 대화에서도, 같은 프로젝트의 같은 목표를 지정해 이어갑니다.</text>
+<text x="1552" y="946" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#546276" text-anchor="end" xml:space="preserve">사용 흐름 · 개념도</text>
 </svg>

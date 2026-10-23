@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title description" xml:lang="ko">
+<title id="title">완료 보고</title>
+<desc id="description">password-link의 가상 완료 보고. ha report 출력 모양입니다. 다섯 줄 요약: 바뀐 것, 확인한 것, 직접 볼 것, 남은 한계(보증 수준 local; 검사 작성자: 실행자), 다음 행동. 그 아래 완료 기록 seq 5의 조건별 근거: AC-1 change는 근거 기록 2, 3, AC-2 maintain은 4. 실제 기록이 아닌 가상 예시입니다.</desc>
+<rect x="0" y="0" width="1600" height="900" rx="0" fill="#FAFBFD"/>
+<rect x="48" y="34" width="124.04" height="40" rx="9" fill="#168975"/>
+<text x="110.02000000000001" y="61" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">ha report</text>
+<text x="48" y="136" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="54" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">완료 보고</text>
+<rect x="1437.767" y="40" width="114.233" height="42" rx="10" fill="#FFFFFF" stroke="#546276" stroke-width="2"/>
+<text x="1494.8835" y="68" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="700" fill="#546276" text-anchor="middle" xml:space="preserve">가상 예시</text>
+<rect x="44" y="164" width="1028" height="660" rx="18" fill="#FFFFFF" stroke="#D7DFE9" stroke-width="2"/>
+<text x="76" y="206" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">password-link · PROGRESS.md의 ## 완료 보고 · ha report --lang ko 출력</text>
+<path d="M76 224H1040" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="76" y="262" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="700" fill="#0B5A4C" text-anchor="start" xml:space="preserve">바뀐 것:</text>
+<text x="187.639" y="262" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">base fe4597cf233f 이후 실행 묶음 문서 밖에서</text>
+<text x="187.639" y="293" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">파일 1개, commit 1개</text>
+<text x="76" y="344" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="700" fill="#0B5A4C" text-anchor="start" xml:space="preserve">확인한 것:</text>
+<text x="187.639" y="344" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">필수 조건 2개 중 2개 충족(검사 기록 2개, 사용자 확인 0개);</text>
+<text x="187.639" y="375" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">change 조건 1개 중 1개에 신선한 baseline</text>
+<text x="76" y="426" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="700" fill="#0B5A4C" text-anchor="start" xml:space="preserve">직접 볼 것:</text>
+<text x="187.639" y="426" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">없음</text>
+<text x="76" y="477" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="700" fill="#0B5A4C" text-anchor="start" xml:space="preserve">남은 한계:</text>
+<text x="187.639" y="477" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">보증 수준 local; 검사 작성자: 실행자</text>
+<text x="76" y="528" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="700" fill="#0B5A4C" text-anchor="start" xml:space="preserve">다음 행동:</text>
+<text x="187.639" y="528" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">없음; 완료 기록 seq 5이 유효하고 남은 할 일이 없음</text>
+<path d="M76 563H1040" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="76" y="597" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">### 조건별 근거</text>
+<text x="76" y="631" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">근거 출처: 완료 기록 seq 5</text>
+<rect x="76" y="649" width="964" height="42" rx="8" fill="#F0F3F8"/>
+<text x="92" y="677" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">ID</text>
+<text x="212" y="677" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">종류</text>
+<text x="372" y="677" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">필수</text>
+<text x="532" y="677" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">충족</text>
+<text x="692" y="677" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">근거 기록</text>
+<path d="M76 737H1040" fill="none" stroke="#D7DFE9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="92" y="722" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">AC-1</text>
+<text x="212" y="722" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">change</text>
+<text x="372" y="722" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">예</text>
+<text x="532" y="722" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">예</text>
+<text x="692" y="722" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">2, 3</text>
+<path d="M76 783H1040" fill="none" stroke="#D7DFE9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="92" y="768" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">AC-2</text>
+<text x="212" y="768" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">maintain</text>
+<text x="372" y="768" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">예</text>
+<text x="532" y="768" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">예</text>
+<text x="692" y="768" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">4</text>
+<rect x="1108" y="186" width="448" height="80" rx="12" fill="#EDF0FF" stroke="#D7DFE9" stroke-width="2"/>
+<circle cx="1134" cy="212" r="13" fill="#4F6CF7"/>
+<text x="1134" y="218" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">1</text>
+<text x="1158" y="219" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">시작 commit 이후</text>
+<text x="1158" y="248" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">바뀐 파일과 commit</text>
+<circle cx="1056" cy="255" r="6" fill="#4F6CF7"/>
+<path d="M1062 255C1084 255 1086 212 1108 212" fill="none" stroke="#4F6CF7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="1108" y="280" width="448" height="80" rx="12" fill="#EDF0FF" stroke="#D7DFE9" stroke-width="2"/>
+<circle cx="1134" cy="306" r="13" fill="#4F6CF7"/>
+<text x="1134" y="312" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">2</text>
+<text x="1158" y="313" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">필수 조건은 검사 기록으로 충족,</text>
+<text x="1158" y="342" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">change 조건은 신선한 baseline</text>
+<circle cx="1056" cy="337" r="6" fill="#4F6CF7"/>
+<path d="M1062 337C1084 337 1086 306 1108 306" fill="none" stroke="#4F6CF7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="1108" y="374" width="448" height="51" rx="12" fill="#EDF0FF" stroke="#D7DFE9" stroke-width="2"/>
+<circle cx="1134" cy="400" r="13" fill="#4F6CF7"/>
+<text x="1134" y="406" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">3</text>
+<text x="1158" y="407" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">내가 직접 볼 것</text>
+<circle cx="1056" cy="419" r="6" fill="#4F6CF7"/>
+<path d="M1062 419C1084 419 1086 400 1108 400" fill="none" stroke="#4F6CF7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="1108" y="439" width="448" height="80" rx="12" fill="#EDF0FF" stroke="#D7DFE9" stroke-width="2"/>
+<circle cx="1134" cy="465" r="13" fill="#4F6CF7"/>
+<text x="1134" y="471" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">4</text>
+<text x="1158" y="472" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">보증 수준 local: 에이전트가 내 컴퓨터에서</text>
+<text x="1158" y="501" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">검사를 쓰고 실행했습니다</text>
+<circle cx="1056" cy="470" r="6" fill="#4F6CF7"/>
+<path d="M1062 470C1084 470 1086 465 1108 465" fill="none" stroke="#4F6CF7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="1108" y="533" width="448" height="51" rx="12" fill="#EDF0FF" stroke="#D7DFE9" stroke-width="2"/>
+<circle cx="1134" cy="559" r="13" fill="#4F6CF7"/>
+<text x="1134" y="565" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">5</text>
+<text x="1158" y="566" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">다음에 할 일</text>
+<circle cx="1056" cy="521" r="6" fill="#4F6CF7"/>
+<path d="M1062 521C1084 521 1086 559 1108 559" fill="none" stroke="#4F6CF7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="1108" y="598" width="448" height="80" rx="12" fill="#EDF0FF" stroke="#D7DFE9" stroke-width="2"/>
+<circle cx="1134" cy="624" r="13" fill="#4F6CF7"/>
+<text x="1134" y="630" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">6</text>
+<text x="1158" y="631" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">근거 기록은 runs.jsonl의 seq입니다.</text>
+<text x="1158" y="660" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">AC-1: seq 2에서 선언대로 실패, seq 3에서 통과</text>
+<circle cx="1056" cy="729" r="6" fill="#4F6CF7"/>
+<path d="M1062 729C1084 729 1086 624 1108 624" fill="none" stroke="#4F6CF7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="48" y="870" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">설명용 가상 보고 · password-link</text>
+</svg>

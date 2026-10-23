@@ -7,248 +7,221 @@ https://github.com/notofonts/noto-cjk/tree/main/Sans/OTF/Korean
 License: https://github.com/notofonts/noto-cjk/blob/main/Sans/LICENSE (SIL OFL 1.1).
 Fonts are not included in this package. The publishable SVGs have outlined text
 and require no installed fonts. Editable text versions live in
-assets/readme/source/svg/.
+assets/readme/source/svg/. Render the PNGs with render_readme_images.cjs.
 """
 
 import argparse
-import html
-import json
+import sys
 from pathlib import Path
 
-from fontTools.pens.svgPathPen import SVGPathPen
-from fontTools.ttLib import TTFont
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from readme_svg import ASSETS, C, SOURCE, Canvas, load_fonts, write_layout, write_pair  # noqa: E402
 
-W, H = 1600, 840
-C = {
-    "bg": "#FAFBFD", "ink": "#122033", "muted": "#546276",
-    "line": "#D7DFE9", "blue": "#4F6CF7", "blue_tint": "#EDF0FF",
-    "teal": "#168975", "teal_tint": "#E6F5F1", "white": "#FFFFFF",
-}
+W, H = 1600, 960
+COLUMNS = [48, 424, 800, 1176]
+COLUMN_W = 376
+CAPTION_W = 340
 
 COPY = {
     "ko": {
         "headline": "한 번의 작업, 이렇게 진행됩니다.",
-        "titles": ["요청하고 목표 확인", "Seal을 별도로 시작", "결과와 기록 확인"],
+        "titles": ["요청하고 목표 확인", "“응”으로 Seal 시작", "구현하고 ha로 검사", "검토 뒤 완료 기록"],
         "body": [
-            ["Spec이 목표와 완료 조건을 정리하면,", "내가 읽고 확인합니다."],
-            ["새 메시지에 목표 폴더를 지정합니다.", "에이전트가 구현·검사·수정하고", "진행 상황을 기록합니다."],
-            ["내가 변경 결과와 검사 기록을 읽고,", "목표대로 끝났는지 확인합니다."],
+            ["Spec이 목표와 완료 조건,", "검토 등급(Assurance)을 쓰고", "지금 구현할지 묻습니다."],
+            ["“응”이라고 답하면 시작됩니다.", "나중에 별도 메시지로 목표", "폴더를 지정해도 됩니다."],
+            ["에이전트가 계획·구현하고", "ha로 검사합니다. 모든 실행이", "runs.jsonl에 기록됩니다."],
+            ["필수 조건이 충족되면 ha done이", "완료를 기록하고, 보고는", "PROGRESS.md에 남습니다."],
         ],
-        "request": "요청", "goal": "목표", "criteria": "완료 조건",
-        "message": "새 메시지", "folder": "목표 폴더", "changes": "변경 결과",
-        "records": "검사 기록", "resume": "새 대화에서도, 같은 프로젝트의 같은 목표를 지정해 이어갑니다.",
+        "request": "요청", "goal": "목표", "criteria": "완료 조건", "tier": "Assurance: standard",
+        "ask_now": "지금 구현할까요?", "yes": "응", "or_separate": "또는 별도 메시지",
+        "separate_cmd": "/seal:seal docs/specs/<goal>",
+        "plan": "계획", "build": "구현", "check": "검사", "records": "실행 기록",
+        "report": "완료 보고", "done": "ha done",
+        "review_title": "독립 검토는 Assurance 등급에 따라 다릅니다",
+        "tiers": [
+            ("light", ["이유를 남기고", "검토를 생략할 수 있음"]),
+            ("standard", ["완료 전 Spar 검토 라운드,", "gate가 마지막 commit을 덮음"]),
+            ("strict", ["standard에 더해", "작업 전 계획 검토"]),
+            ("?", ["요구를 바꿔야 하는", "질문은 내게 옵니다"]),
+        ],
+        "resume": "새 대화에서도, 같은 프로젝트의 같은 목표를 지정해 이어갑니다.",
         "concept": "사용 흐름 · 개념도",
-        "description": "1. 요청을 Spec으로 정리한 후 목표와 완료 조건을 읽고 확인합니다. "
-                       "2. 목표 폴더를 지정해 새 메시지로 Seal을 별도로 시작합니다. 에이전트가 구현, 검사, 수정하며 진행 상황을 기록합니다. "
-                       "3. 변경 결과와 검사 기록을 읽고 목표대로 끝났는지 확인합니다. "
+        "description": "1. Spec에 요청하면 목표와 완료 조건, 검토 등급(Assurance)을 정리하고 지금 구현할지 묻습니다. 내가 읽고 확인합니다. "
+                       "2. “응”이라고 답하면 Seal이 시작됩니다. 나중에 별도 메시지로 목표 폴더를 지정해 시작해도 됩니다. "
+                       "3. 에이전트가 계획·구현하고 ha로 검사하며, 모든 실행이 기록됩니다. "
+                       "standard·strict 목표는 완료 전에 Spar의 독립 검토 라운드를 받고 strict는 작업 전 계획 검토도 받습니다. light는 이유를 남기고 검토를 생략할 수 있습니다. "
+                       "요구를 바꿔야 하는 질문은 내게 옵니다. "
+                       "4. 필수 조건이 충족되고, standard·strict는 기록된 검토 gate가 마지막 commit을 덮으면 ha done이 완료를 기록합니다. 완료 보고는 PROGRESS.md에 남습니다. "
                        "새 대화에서는 같은 프로젝트의 같은 목표를 지정해 이어갑니다. 실제 실행 결과가 아닌 개념도입니다.",
     },
     "en": {
-        "headline": "One task, from request to review.",
-        "titles": ["Request & review the goal", "Start Seal separately", "Review changes & records"],
+        "headline": "One task, from request to recorded completion.",
+        "titles": ["Request & review the goal", "Say yes to start Seal", "Build & check through ha", "Review, then record done"],
         "body": [
-            ["Spec drafts the goal and criteria.", "Read them and request changes."],
-            ["New message: specify the goal folder.", "Your agent builds, checks, fixes,", "and records progress."],
-            ["Read the changes and check records.", "Review whether the goal was met."],
+            ["Spec drafts the goal, criteria", "and an Assurance tier, then asks", "whether to implement it now."],
+            ["Answer “Yes” and Seal starts.", "Naming the goal folder in a", "separate message works too."],
+            ["Your agent plans, implements", "and checks through ha, which", "records every run in runs.jsonl."],
+            ["When required conditions are", "met, ha done records completion;", "the report lands in PROGRESS.md."],
         ],
-        "request": "Request", "goal": "Goal", "criteria": "Criteria",
-        "message": "New message", "folder": "Goal folder", "changes": "Changes",
-        "records": "Check records", "resume": "To resume, open the same project and name the same goal in a new conversation.",
+        "request": "Request", "goal": "Goal", "criteria": "Criteria", "tier": "Assurance: standard",
+        "ask_now": "Implement it now?", "yes": "Yes", "or_separate": "or a separate message",
+        "separate_cmd": "/seal:seal docs/specs/<goal>",
+        "plan": "Plan", "build": "Build", "check": "Check", "records": "Run record",
+        "report": "Report", "done": "ha done",
+        "review_title": "Independent review depends on the Assurance tier",
+        "tiers": [
+            ("light", ["may skip review,", "with a reason"]),
+            ("standard", ["Spar review rounds; the gate", "must cover the last commit"]),
+            ("strict", ["standard, plus a plan", "review before work"]),
+            ("?", ["Questions that change the", "requirements come to you"]),
+        ],
+        "resume": "To resume, open the same project and name the same goal in a new conversation.",
         "concept": "Usage flow · Concept illustration",
-        "description": "1. Describe your request to Spec, then review the goal and completion criteria. "
-                       "2. Start Seal separately by specifying the goal folder in a new message. The agent builds, checks, fixes, and records progress. "
-                       "3. Read the changes and check records, and review the result against the goal. "
+        "description": "1. Ask Spec: it drafts the goal, completion criteria and an Assurance tier, then asks whether to implement it now. Review them. "
+                       "2. Answer Yes and Seal starts. Naming the goal folder in a separate message works too. "
+                       "3. The agent plans, implements and checks through ha, which records every run. "
+                       "standard and strict goals get independent Spar review rounds before completion, and strict goals also get a plan review before work. light goals may skip review with a reason. "
+                       "Questions that change the requirements come to you. "
+                       "4. When the required conditions are met and, for standard and strict, a recorded review gate covers the last commit, ha done records completion. The report lands in PROGRESS.md. "
                        "To resume in a new conversation, open the same project and name the same goal. This is a concept illustration, not an actual execution result.",
     },
 }
 
 
-class Diagram:
-    def __init__(self, fonts, language, outline):
-        self.fonts = fonts
-        self.language = language
-        self.outline = outline
-        self.parts = []
-        self.measurements = []
-
-    def add(self, markup):
-        self.parts.append(markup)
-
-    def rect(self, x, y, w, h, fill, stroke=None, sw=4, r=0):
-        self.add(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{r}" '
-                 f'fill="{fill}"' + (f' stroke="{stroke}" stroke-width="{sw}"' if stroke else '') + '/>')
-
-    def path(self, d, fill="none", stroke=None, sw=4):
-        self.add(f'<path d="{d}" fill="{fill}"' +
-                 (f' stroke="{stroke}" stroke-width="{sw}" stroke-linecap="round" stroke-linejoin="round"' if stroke else '') + '/>')
-
-    def circle(self, cx, cy, r, fill, stroke=None, sw=4):
-        self.add(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{fill}"' +
-                 (f' stroke="{stroke}" stroke-width="{sw}"' if stroke else '') + '/>')
-
-    def text(self, x, y, value, size=28, weight="regular", fill=None, anchor="start", max_width=None):
-        fill = fill or C["ink"]
-        font = self.fonts[weight]
-        cmap = font.getBestCmap()
-        upm = font["head"].unitsPerEm
-        for char in value:
-            if ord(char) not in cmap:
-                raise ValueError(f"Missing glyph {char!r} ({ord(char):04x})")
-        advance = sum(font["hmtx"].metrics[cmap[ord(ch)]][0] for ch in value)
-        width = advance * size / upm
-        if max_width is not None and width > max_width + 0.01:
-            raise ValueError(f"Text overflow ({width:.1f}>{max_width}): {value}")
-        actual_x = x - width / 2 if anchor == "middle" else (x - width if anchor == "end" else x)
-        if actual_x < 0 or actual_x + width > W:
-            raise ValueError(f"Text exceeds canvas: {value}")
-        self.measurements.append({"text": value, "x": round(actual_x, 2), "y": y,
-                                  "width": round(width, 2), "font_size": size})
-        escaped = html.escape(value, quote=True)
-        if not self.outline:
-            self.add(f'<text x="{x}" y="{y}" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" '
-                     f'font-size="{size}" font-weight="{700 if weight == "bold" else 400}" '
-                     f'fill="{fill}" text-anchor="{anchor}">{html.escape(value)}</text>')
-            return
-        glyphs = font.getGlyphSet()
-        scale = size / upm
-        self.add(f'<g aria-label="{escaped}" data-text="{escaped}" fill="{fill}" '
-                 f'transform="translate({actual_x:.4f} {y}) scale({scale:.6f} {-scale:.6f})">')
-        cursor = 0
-        for ch in value:
-            name = cmap[ord(ch)]
-            pen = SVGPathPen(glyphs)
-            glyphs[name].draw(pen)
-            commands = pen.getCommands()
-            if commands:
-                self.add(f'<path d="{commands}" transform="translate({cursor} 0)"/>')
-            cursor += font["hmtx"].metrics[name][0]
-        self.add('</g>')
-
-    def line(self, x1, y1, x2, y2, color, width=4):
-        self.path(f'M{x1} {y1}H{x2}' if y1 == y2 else f'M{x1} {y1}L{x2} {y2}', stroke=color, sw=width)
-
-    def finish(self):
-        copy = COPY[self.language]
-        desc = html.escape(copy["description"])
-        return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" '
-                f'role="img" aria-labelledby="title description" xml:lang="{self.language}">\n'
-                f'<title id="title">{html.escape(copy["headline"])}</title>\n'
-                f'<desc id="description">{desc}</desc>\n' + '\n'.join(self.parts) + '\n</svg>\n')
-
-
 def draw(fonts, language, outline):
-    d = Diagram(fonts, language, outline)
     c = COPY[language]
+    ko = language == "ko"
+    d = Canvas(fonts, language, outline, W, H, c["headline"], c["description"])
     d.rect(0, 0, W, H, C["bg"])
-    d.text(64, 61, "JAEKIT / HOW TO USE", 19, "bold", C["muted"], max_width=420)
-    d.text(1536, 65, "Jaekit", 32, "bold", C["ink"], "end")
-    d.text(64, 135, c["headline"], 51 if language == "ko" else 49, "bold", max_width=1472)
+    d.text(48, 61, "JAEKIT / HOW TO USE", 19, "bold", C["muted"], max_width=420)
+    d.text(1552, 65, "Jaekit", 32, "bold", C["ink"], "end")
+    d.text(48, 135, c["headline"], 51 if ko else 49, "bold", max_width=1504)
 
-    # Three stages occupy equal columns. Each heading describes a user action.
-    for index, x in enumerate([64, 572, 1080]):
-        accent = C["blue"] if index == 0 else C["teal"]
-        d.circle(x + 23, 220, 23, accent)
-        d.text(x + 23, 229, f"0{index+1}", 23, "bold", C["white"], "middle")
-        d.text(x + 58, 231, c["titles"][index], 31 if language == "ko" else 27, "bold", max_width=400)
+    # Four stages in equal columns. Each heading names what the user does or sees.
+    for index, x in enumerate(COLUMNS):
+        accent = C["blue"] if index < 2 else C["teal"]
+        d.circle(x + 23, 218, 23, accent)
+        d.text(x + 23, 227, f"0{index + 1}", 23, "bold", C["white"], "middle")
+        d.text(x + 58, 229, c["titles"][index], 28 if ko else 22, "bold", max_width=COLUMN_W - 70)
 
-    # Subtle dividers separate stages without enclosing the content in cards.
-    for x in [546, 1054]:
-        d.line(x, 283, x, 658, C["line"], 2)
-        d.circle(x, 426, 23, C["bg"])
-        d.path(f'M{x-10} 426H{x+10}M{x+3} 418L{x+11} 426L{x+3} 434', stroke=C["muted"], sw=3.2)
+    for x in [408, 784, 1160]:
+        d.line(x, 272, x, 668, C["line"], 2)
+        d.circle(x, 400, 19, C["bg"])
+        d.path(f'M{x - 9} 400H{x + 9}M{x + 2} 393L{x + 9} 400L{x + 2} 407', stroke=C["muted"], sw=3)
 
-    # Stage 1: a request becomes a goal document that the user reviews.
-    d.path('M103 407C114 313 242 282 371 306C475 326 503 424 451 489C391 564 195 553 133 499C108 477 99 441 103 407Z', C["blue_tint"])
-    d.path('M90 342H184Q202 342 202 360V402Q202 420 184 420H172L184 438L154 420H90Q72 420 72 402V360Q72 342 90 342Z', C["white"], C["ink"], 4)
-    d.text(137, 391, c["request"], 29 if language == "ko" else 25, "bold", anchor="middle", max_width=120)
-    d.path('M211 402C225 411 230 411 248 410M238 401L250 410L240 420', stroke=C["blue"], sw=5)
-    d.path('M279 298H426L464 336V512Q464 526 450 526H279Q265 526 265 512V312Q265 298 279 298Z', C["white"], C["ink"], 4)
-    d.path('M426 298V336H464', C["blue_tint"], C["ink"], 4)
-    d.text(285, 352, "Spec", 34, "bold", C["blue"])
-    d.text(286, 391, c["goal"], 26, "bold")
-    d.line(286, 411, 434, 411, C["line"], 7)
-    d.text(286, 451, c["criteria"], 24, "bold")
-    d.rect(286, 470, 20, 20, C["white"], C["blue"], 3, 4)
-    d.line(320, 480, 434, 480, C["line"], 7)
-    # Review cursor is deliberately not a pass or completion badge.
-    d.path('M466 486L466 529L478 518L490 538L500 532L488 512L505 508Z', C["white"], C["ink"], 4)
-    d.line(478, 470, 480, 458, C["blue"], 5)
-    d.line(493, 479, 505, 474, C["blue"], 5)
+    # Stage 1: a request becomes a goal document with an Assurance tier.
+    d.path('M70 400C78 318 196 286 300 300C392 312 410 410 370 472C326 540 160 536 104 490C80 470 66 440 70 400Z', C["blue_tint"])
+    d.path('M70 314H156Q172 314 172 330V366Q172 382 156 382H146L156 398L130 382H70Q54 382 54 366V330Q54 314 70 314Z', C["white"], C["ink"], 3.5)
+    d.text(113, 358, c["request"], 26 if ko else 22, "bold", anchor="middle", max_width=108)
+    d.path('M178 360C190 368 196 368 210 367M202 359L212 367L203 376', stroke=C["blue"], sw=4.5)
+    d.path('M226 282H350L384 316V506Q384 518 372 518H226Q214 518 214 506V294Q214 282 226 282Z', C["white"], C["ink"], 3.5)
+    d.path('M350 282V316H384', C["blue_tint"], C["ink"], 3.5)
+    d.text(230, 330, "Spec", 31, "bold", C["blue"])
+    d.text(231, 366, c["goal"], 22, "bold")
+    d.line(231, 384, 360, 384, C["line"], 6)
+    d.text(231, 420, c["criteria"], 21, "bold")
+    d.rect(231, 436, 17, 17, C["white"], C["blue"], 2.5, 3)
+    d.line(260, 445, 360, 445, C["line"], 6)
+    d.rect(224, 470, 152, 32, C["blue_tint"], r=8)
+    d.text(300, 491, c["tier"], 14, "bold", C["blue_ink"], "middle", max_width=148)
 
-    # Stage 2: a separate user message names the goal. The agent carries out work.
-    d.path('M603 411C612 340 734 310 855 323C957 333 1011 407 982 486C953 563 809 558 704 539C632 526 594 476 603 411Z', C["teal_tint"])
-    d.path('M615 289H770Q787 289 787 306V347Q787 364 770 364H744L728 382V364H615Q598 364 598 347V306Q598 289 615 289Z', C["white"], C["ink"], 4)
-    d.text(693, 336, c["message"], 27 if language == "ko" else 23, "bold", anchor="middle", max_width=176)
-    d.rect(733, 354, 245, 165, C["ink"], r=16)
-    for x in [755, 771, 787]:
-        d.circle(x, 375, 4.5, C["white"])
-    d.text(755, 423, "Seal", 33, "bold", C["white"])
-    d.path('M854 438L840 452L854 466M898 438L912 452L898 466M882 432L869 472', stroke='#A5E6D5', sw=6)
-    d.line(755, 491, 810, 491, '#79D0BA', 7)
-    d.line(824, 491, 896, 491, C["blue"], 7)
-    d.path('M617 438V421Q617 412 626 412H672L688 430H752Q762 430 762 440V509Q762 520 751 520H628Q617 520 617 509Z', C["white"], C["teal"], 4)
-    d.path('M617 443H762L746 520H617Z', C["teal_tint"], C["teal"], 4)
-    d.text(686, 486, c["folder"], 25 if language == "ko" else 22, "bold", anchor="middle", max_width=132)
-    d.circle(963, 520, 33, C["white"], C["ink"], 3.5)
-    d.path('M945 517A19 19 0 0 1 977 507M977 498V509H966M980 523A19 19 0 0 1 948 534M948 543V532H959', stroke=C["teal"], sw=4)
+    # Stage 2: Spec asks once; the user's yes starts Seal. A separate message is the other door.
+    x = COLUMNS[1]
+    d.path(f'M{x + 22} 290H{x + 254}Q{x + 270} 290 {x + 270} 306V340Q{x + 270} 356 {x + 254} 356H{x + 60}L{x + 44} 372V356H{x + 22}Q{x + 6} 356 {x + 6} 340V306Q{x + 6} 290 {x + 22} 290Z',
+           C["white"], C["blue"], 3)
+    d.text(x + 22, 316, "Spec", 17, "bold", C["blue"])
+    d.text(x + 22, 343, c["ask_now"], 22 if ko else 21, "bold", max_width=240)
+    d.path(f'M{x + 230} 378H{x + 330}Q{x + 346} 378 {x + 346} 394V420Q{x + 346} 436 {x + 330} 436H{x + 248}L{x + 202} 452L{x + 226} 436H{x + 230}'
+           f'Q{x + 214} 436 {x + 214} 420V394Q{x + 214} 378 {x + 230} 378Z', C["blue"], None)
+    d.text(x + 280, 417, c["yes"], 26 if ko else 24, "bold", C["white"], "middle", max_width=120)
+    d.rect(x + 6, 400, 180, 118, C["ink"], r=14)
+    for cx in [x + 26, x + 40, x + 54]:
+        d.circle(cx, 419, 4, C["white"])
+    d.text(x + 26, 466, "Seal", 31, "bold", C["white"])
+    d.line(x + 26, 494, x + 76, 494, '#79D0BA', 6)
+    d.line(x + 88, 494, x + 160, 494, C["blue"], 6)
+    d.rect(x + 196, 468, 160, 50, C["white"], C["muted"], 2, 10, dash="6 5")
+    d.text(x + 276, 489, c["or_separate"], 14 if ko else 13, "bold", C["muted"], "middle", max_width=150)
+    d.text(x + 276, 508, "/seal:seal", 14, "bold", C["ink"], "middle", max_width=150)
 
-    # Stage 3: changes and check records are read. No fictional pass results.
-    d.path('M1109 418C1118 333 1230 297 1352 318C1474 339 1526 410 1490 485C1451 566 1286 568 1190 528C1133 505 1103 468 1109 418Z', C["teal_tint"])
-    d.path('M1128 300H1259L1293 334V503Q1293 515 1281 515H1128Q1116 515 1116 503V312Q1116 300 1128 300Z', C["white"], C["ink"], 4)
-    d.path('M1259 300V334H1293', C["blue_tint"], C["ink"], 4)
-    d.text(1134, 352, c["changes"], 26 if language == "ko" else 27, "bold", max_width=145)
-    d.rect(1135, 375, 136, 109, C["bg"], C["line"], 2, 5)
-    d.line(1135, 397, 1271, 397, C["line"], 2)
-    for x in [1147, 1158, 1169]:
-        d.circle(x, 386, 2.5, C["muted"])
-    d.rect(1148, 411, 109, 14, C["blue_tint"], r=3)
-    d.line(1149, 439, 1255, 439, C["line"], 6)
-    d.line(1149, 458, 1222, 458, C["line"], 6)
-    d.path('M1317 346H1448L1482 380V526Q1482 538 1470 538H1317Q1305 538 1305 526V358Q1305 346 1317 346Z', C["white"], C["ink"], 4)
-    d.path('M1448 346V380H1482', C["teal_tint"], C["ink"], 4)
-    d.text(1320, 402, c["records"], 26 if language == "ko" else 21, "bold", max_width=150)
-    for y in [432, 465, 498]:
-        d.circle(1331, y, 5, C["teal"])
-        d.line(1349, y, 1461 if y != 498 else 1436, y, C["line"], 7)
-    d.circle(1198, 502, 31, C["white"], C["ink"], 4)
-    d.circle(1195, 499, 12, C["white"], C["teal"], 4)
-    d.line(1204, 508, 1217, 521, C["teal"], 5)
+    # Stage 3: the agent plans, builds and checks; ha records every run.
+    x = COLUMNS[2]
+    d.path(f'M{x + 10} 400C{x + 18} 318 {x + 136} 288 {x + 240} 300C{x + 336} 312 {x + 360} 400 {x + 330} 466C{x + 296} 538 {x + 130} 538 {x + 64} 498C{x + 30} 476 {x + 6} 446 {x + 10} 400Z', C["teal_tint"])
+    for i, (label, y) in enumerate([(c["plan"], 300), (c["build"], 352), (c["check"], 404)]):
+        d.rect(x + 22, y, 142, 40, C["white"], C["teal"] if i == 2 else C["ink"], 3, 10)
+        d.text(x + 93, y + 27, label, 20 if ko else 19, "bold", C["teal_ink"] if i == 2 else C["ink"], "middle", max_width=130)
+    d.path(f'M{x + 93} 340V352M{x + 93} 392V404', stroke=C["ink"], sw=3)
+    d.path(f'M{x + 164} 424C{x + 186} 424 {x + 186} 372 {x + 164} 372M{x + 170} 366L{x + 162} 372L{x + 170} 378', stroke=C["teal"], sw=3)
+    d.path(f'M{x + 214} 300H{x + 318}L{x + 346} 328V500Q{x + 346} 512 {x + 334} 512H{x + 214}Q{x + 202} 512 {x + 202} 500V312Q{x + 202} 300 {x + 214} 300Z', C["white"], C["ink"], 3.5)
+    d.path(f'M{x + 318} 300V328H{x + 346}', C["teal_tint"], C["ink"], 3.5)
+    d.text(x + 216, 342, "ha", 25, "bold", C["teal"])
+    d.text(x + 216, 368, c["records"], 15 if ko else 14, "bold", C["muted"], max_width=100)
+    for y in [394, 424, 454, 484]:
+        d.circle(x + 224, y, 5, C["teal"])
+        d.line(x + 238, y, x + (330 if y != 484 else 300), y, C["line"], 6)
+    d.text(x + 22, 478, "runs.jsonl", 17, "bold", C["muted"], max_width=150)
 
-    # Captions remain useful when the image is viewed at GitHub README width.
-    for i, x in enumerate([64, 572, 1080]):
+    # Stage 4: Spar review gate, then ha done and the report. No pass badge.
+    x = COLUMNS[3]
+    d.path(f'M{x + 12} 404C{x + 20} 320 {x + 132} 290 {x + 236} 302C{x + 340} 316 {x + 362} 404 {x + 330} 470C{x + 292} 540 {x + 130} 540 {x + 66} 500C{x + 30} 478 {x + 8} 448 {x + 12} 404Z', C["teal_tint"])
+    d.path(f'M{x + 26} 300H{x + 168}V372C{x + 168} 410 {x + 132} 432 {x + 97} 444C{x + 62} 432 {x + 26} 410 {x + 26} 372Z', C["amber_tint"], C["amber"], 3.5)
+    d.text(x + 97, 340, "Spar", 26, "bold", C["amber_ink"], "middle")
+    d.text(x + 97, 370, "gate", 19, "bold", C["amber_ink"], "middle")
+    d.circle(x + 70, 398, 8, C["amber"])
+    d.circle(x + 97, 404, 8, C["amber"])
+    d.circle(x + 124, 398, 8, C["amber"])
+    d.rect(x + 26, 462, 142, 40, C["ink"], r=10)
+    d.text(x + 97, 489, c["done"], 20, "bold", C["white"], "middle")
+    d.path(f'M{x + 97} 446V462', stroke=C["ink"], sw=3)
+    d.path(f'M{x + 168} 482H{x + 196}M{x + 188} 474L{x + 196} 482L{x + 188} 490', stroke=C["ink"], sw=3)
+    d.path(f'M{x + 214} 300H{x + 318}L{x + 346} 328V500Q{x + 346} 512 {x + 334} 512H{x + 214}Q{x + 202} 512 {x + 202} 500V312Q{x + 202} 300 {x + 214} 300Z', C["white"], C["ink"], 3.5)
+    d.path(f'M{x + 318} 300V328H{x + 346}', C["teal_tint"], C["ink"], 3.5)
+    d.text(x + 216, 344, c["report"], 21 if ko else 20, "bold", max_width=104)
+    d.text(x + 216, 368, "PROGRESS.md", 13, "bold", C["muted"], max_width=128)
+    for y in [394, 418, 442, 466, 490]:
+        d.line(x + 218, y, x + (330 if y not in (442, 490) else 296), y, C["line"], 6)
+
+    # Captions stay readable at README width.
+    for i, x in enumerate(COLUMNS):
         for j, line in enumerate(c["body"][i]):
-            d.text(x, 600 + 37 * j, line, 27 if language == "ko" else 25.5,
-                   fill=C["muted"], max_width=456)
+            d.text(x, 566 + 34 * j, line, 23 if ko else 21, fill=C["muted"], max_width=CAPTION_W)
 
-    # The return path is explicit: the user chooses the same project and goal.
-    d.rect(64, 718, 1472, 70, '#F0F3F8', r=14)
-    d.path('M92 748V741Q92 737 96 737H112L118 744H142Q146 744 146 748V766Q146 770 142 770H96Q92 770 92 766Z', C["white"], C["muted"], 2.6)
-    d.path('M92 750H146L141 770H92Z', C["blue_tint"], C["muted"], 2.6)
-    d.text(166, 763, c["resume"], 26 if language == "ko" else 24, "bold", max_width=1340)
-    d.text(1536, 819, c["concept"], 17, fill=C["muted"], anchor="end")
+    # Review depends on the tier; questions about the requirements reach the user.
+    d.rect(48, 694, 1504, 156, C["white"], C["line"], 2, 16)
+    d.text(76, 730, c["review_title"], 22 if ko else 21, "bold", C["amber_ink"], max_width=1000)
+    for i, (name, lines) in enumerate(c["tiers"]):
+        x = 76 + 370 * i
+        question = name == "?"
+        fill, ink = (C["blue_tint"], C["blue_ink"]) if question else (C["amber_tint"], C["amber_ink"])
+        pill = 40 if question else d.width_of(name, 17, "bold") + 28
+        d.rect(x, 748, pill, 30, fill, r=15)
+        d.text(x + pill / 2, 769, name, 17, "bold", ink, "middle")
+        for j, line in enumerate(lines):
+            d.text(x, 806 + 27 * j, line, 19 if ko else 18, fill=C["ink"], max_width=340)
+
+    # The return path is explicit: the user names the same project and goal.
+    d.rect(48, 866, 1504, 56, C["panel"], r=14)
+    d.path('M76 885V879Q76 875 80 875H94L99 881H120Q124 881 124 885V900Q124 904 120 904H80Q76 904 76 900Z', C["white"], C["muted"], 2.4)
+    d.path('M76 887H124L120 904H76Z', C["blue_tint"], C["muted"], 2.4)
+    d.text(142, 900, c["resume"], 23 if ko else 22, "bold", max_width=1390)
+    d.text(1552, 946, c["concept"], 16, fill=C["muted"], anchor="end")
     return d
+
+
+def build(fonts):
+    languages = {}
+    for language in COPY:
+        languages[language] = write_pair(draw, fonts, language,
+                                         ASSETS / f"usage-flow.{language}.svg",
+                                         SOURCE / "svg" / f"usage-flow.{language}.text.svg")
+        print(f"Built usage-flow.{language}.svg: {len(languages[language])} text labels; no missing glyphs or line overflows.")
+    write_layout(SOURCE / "usage-flow.layout.json", (W, H), languages)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--font-dir", type=Path, required=True)
-    parser.add_argument("--output-root", type=Path, default=Path(__file__).resolve().parents[3])
-    args = parser.parse_args()
-    fonts = {weight: TTFont(args.font_dir / f"NotoSansCJKkr-{name}.otf")
-             for weight, name in [("regular", "Regular"), ("bold", "Bold")]}
-    assets = args.output_root / "assets" / "readme"
-    source = assets / "source" / "svg"
-    assets.mkdir(parents=True, exist_ok=True)
-    source.mkdir(parents=True, exist_ok=True)
-    report = {"canvas": [W, H], "font": "Noto Sans CJK KR", "languages": {}}
-    for language in COPY:
-        outlined = draw(fonts, language, True)
-        (assets / f"usage-flow.{language}.svg").write_text(outlined.finish(), encoding="utf-8")
-        editable = draw(fonts, language, False)
-        (source / f"usage-flow.{language}.text.svg").write_text(editable.finish(), encoding="utf-8")
-        report["languages"][language] = outlined.measurements
-        print(f"Built usage-flow.{language}.svg: {len(outlined.measurements)} text labels; no missing glyphs or line overflows.")
-    (assets / "source" / "usage-flow.layout.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    build(load_fonts(parser.parse_args().font_dir))
 
 
 if __name__ == "__main__":

@@ -1,390 +1,852 @@
 {
   "canvas": [
     1600,
-    840
+    960
   ],
   "font": "Noto Sans CJK KR",
   "languages": {
     "ko": [
       {
         "text": "JAEKIT / HOW TO USE",
-        "x": 64,
+        "x": 48,
         "y": 61,
         "width": 201.1,
         "font_size": 19
       },
       {
         "text": "Jaekit",
-        "x": 1437.79,
+        "x": 1453.79,
         "y": 65,
         "width": 98.21,
         "font_size": 32
       },
       {
         "text": "한 번의 작업, 이렇게 진행됩니다.",
-        "x": 64,
+        "x": 48,
         "y": 135,
         "width": 689.42,
         "font_size": 51
       },
       {
         "text": "01",
-        "x": 73.43,
-        "y": 229,
+        "x": 57.43,
+        "y": 227,
         "width": 27.14,
         "font_size": 23
       },
       {
         "text": "요청하고 목표 확인",
-        "x": 122,
-        "y": 231,
-        "width": 242.23,
-        "font_size": 31
+        "x": 106,
+        "y": 229,
+        "width": 218.79,
+        "font_size": 28
       },
       {
         "text": "02",
-        "x": 581.43,
-        "y": 229,
+        "x": 433.43,
+        "y": 227,
         "width": 27.14,
         "font_size": 23
       },
       {
-        "text": "Seal을 별도로 시작",
-        "x": 630,
-        "y": 231,
-        "width": 250.63,
-        "font_size": 31
+        "text": "“응”으로 Seal 시작",
+        "x": 482,
+        "y": 229,
+        "width": 232.76,
+        "font_size": 28
       },
       {
         "text": "03",
-        "x": 1089.43,
-        "y": 229,
+        "x": 809.43,
+        "y": 227,
         "width": 27.14,
         "font_size": 23
       },
       {
-        "text": "결과와 기록 확인",
-        "x": 1138,
-        "y": 231,
-        "width": 213.71,
-        "font_size": 31
+        "text": "구현하고 ha로 검사",
+        "x": 858,
+        "y": 229,
+        "width": 227.5,
+        "font_size": 28
+      },
+      {
+        "text": "04",
+        "x": 1185.43,
+        "y": 227,
+        "width": 27.14,
+        "font_size": 23
+      },
+      {
+        "text": "검토 뒤 완료 기록",
+        "x": 1234,
+        "y": 229,
+        "width": 199.39,
+        "font_size": 28
       },
       {
         "text": "요청",
-        "x": 110.32,
-        "y": 391,
-        "width": 53.36,
-        "font_size": 29
-      },
-      {
-        "text": "Spec",
-        "x": 285,
-        "y": 352,
-        "width": 80.78,
-        "font_size": 34
-      },
-      {
-        "text": "목표",
-        "x": 286,
-        "y": 391,
+        "x": 89.08,
+        "y": 358,
         "width": 47.84,
         "font_size": 26
       },
       {
-        "text": "완료 조건",
-        "x": 286,
-        "y": 451,
-        "width": 93.77,
-        "font_size": 24
+        "text": "Spec",
+        "x": 230,
+        "y": 330,
+        "width": 73.66,
+        "font_size": 31
       },
       {
-        "text": "새 메시지",
-        "x": 640.26,
-        "y": 336,
-        "width": 105.49,
-        "font_size": 27
+        "text": "목표",
+        "x": 231,
+        "y": 366,
+        "width": 40.48,
+        "font_size": 22
+      },
+      {
+        "text": "완료 조건",
+        "x": 231,
+        "y": 420,
+        "width": 82.05,
+        "font_size": 21
+      },
+      {
+        "text": "Assurance: standard",
+        "x": 229.59,
+        "y": 491,
+        "width": 140.83,
+        "font_size": 14
+      },
+      {
+        "text": "Spec",
+        "x": 446,
+        "y": 316,
+        "width": 40.39,
+        "font_size": 17
+      },
+      {
+        "text": "지금 구현할까요?",
+        "x": 446,
+        "y": 343,
+        "width": 157.98,
+        "font_size": 22
+      },
+      {
+        "text": "응",
+        "x": 692.04,
+        "y": 417,
+        "width": 23.92,
+        "font_size": 26
       },
       {
         "text": "Seal",
-        "x": 755,
-        "y": 423,
-        "width": 69.66,
-        "font_size": 33
+        "x": 450,
+        "y": 466,
+        "width": 65.44,
+        "font_size": 31
       },
       {
-        "text": "목표 폴더",
-        "x": 637.16,
-        "y": 486,
-        "width": 97.67,
+        "text": "또는 별도 메시지",
+        "x": 651.74,
+        "y": 489,
+        "width": 96.52,
+        "font_size": 14
+      },
+      {
+        "text": "/seal:seal",
+        "x": 667.27,
+        "y": 508,
+        "width": 65.46,
+        "font_size": 14
+      },
+      {
+        "text": "계획",
+        "x": 874.6,
+        "y": 327,
+        "width": 36.8,
+        "font_size": 20
+      },
+      {
+        "text": "구현",
+        "x": 874.6,
+        "y": 379,
+        "width": 36.8,
+        "font_size": 20
+      },
+      {
+        "text": "검사",
+        "x": 874.6,
+        "y": 431,
+        "width": 36.8,
+        "font_size": 20
+      },
+      {
+        "text": "ha",
+        "x": 1016,
+        "y": 342,
+        "width": 30.77,
         "font_size": 25
       },
       {
-        "text": "변경 결과",
-        "x": 1134,
-        "y": 352,
-        "width": 101.58,
+        "text": "실행 기록",
+        "x": 1016,
+        "y": 368,
+        "width": 58.6,
+        "font_size": 15
+      },
+      {
+        "text": "runs.jsonl",
+        "x": 822,
+        "y": 478,
+        "width": 83.59,
+        "font_size": 17
+      },
+      {
+        "text": "Spar",
+        "x": 1243.16,
+        "y": 340,
+        "width": 59.67,
         "font_size": 26
       },
       {
-        "text": "검사 기록",
-        "x": 1320,
-        "y": 402,
-        "width": 101.58,
-        "font_size": 26
+        "text": "gate",
+        "x": 1252.19,
+        "y": 370,
+        "width": 41.61,
+        "font_size": 19
       },
       {
-        "text": "Spec이 목표와 완료 조건을 정리하면,",
-        "x": 64,
+        "text": "ha done",
+        "x": 1233.5,
+        "y": 489,
+        "width": 79.0,
+        "font_size": 20
+      },
+      {
+        "text": "완료 보고",
+        "x": 1392,
+        "y": 344,
+        "width": 82.05,
+        "font_size": 21
+      },
+      {
+        "text": "PROGRESS.md",
+        "x": 1392,
+        "y": 368,
+        "width": 95.08,
+        "font_size": 13
+      },
+      {
+        "text": "Spec이 목표와 완료 조건,",
+        "x": 48,
+        "y": 566,
+        "width": 243.57,
+        "font_size": 23
+      },
+      {
+        "text": "검토 등급(Assurance)을 쓰고",
+        "x": 48,
         "y": 600,
-        "width": 416.18,
-        "font_size": 27
+        "width": 283.82,
+        "font_size": 23
       },
       {
-        "text": "내가 읽고 확인합니다.",
-        "x": 64,
-        "y": 637,
-        "width": 243.16,
-        "font_size": 27
+        "text": "지금 구현할지 묻습니다.",
+        "x": 48,
+        "y": 634,
+        "width": 228.3,
+        "font_size": 23
       },
       {
-        "text": "새 메시지에 목표 폴더를 지정합니다.",
-        "x": 572,
+        "text": "“응”이라고 답하면 시작됩니다.",
+        "x": 424,
+        "y": 566,
+        "width": 292.42,
+        "font_size": 23
+      },
+      {
+        "text": "나중에 별도 메시지로 목표",
+        "x": 424,
         "y": 600,
-        "width": 404.3,
-        "font_size": 27
+        "width": 248.22,
+        "font_size": 23
       },
       {
-        "text": "에이전트가 구현·검사·수정하고",
-        "x": 572,
-        "y": 637,
-        "width": 359.26,
-        "font_size": 27
+        "text": "폴더를 지정해도 됩니다.",
+        "x": 424,
+        "y": 634,
+        "width": 228.3,
+        "font_size": 23
       },
       {
-        "text": "진행 상황을 기록합니다.",
-        "x": 572,
-        "y": 674,
-        "width": 268.0,
-        "font_size": 27
+        "text": "에이전트가 계획·구현하고",
+        "x": 800,
+        "y": 566,
+        "width": 250.81,
+        "font_size": 23
       },
       {
-        "text": "내가 변경 결과와 검사 기록을 읽고,",
-        "x": 1080,
+        "text": "ha로 검사합니다. 모든 실행이",
+        "x": 800,
         "y": 600,
-        "width": 385.51,
-        "font_size": 27
+        "width": 281.52,
+        "font_size": 23
       },
       {
-        "text": "목표대로 끝났는지 확인합니다.",
-        "x": 1080,
-        "y": 637,
-        "width": 342.52,
-        "font_size": 27
+        "text": "runs.jsonl에 기록됩니다.",
+        "x": 800,
+        "y": 634,
+        "width": 244.17,
+        "font_size": 23
+      },
+      {
+        "text": "필수 조건이 충족되면 ha done이",
+        "x": 1176,
+        "y": 566,
+        "width": 314.09,
+        "font_size": 23
+      },
+      {
+        "text": "완료를 기록하고, 보고는",
+        "x": 1176,
+        "y": 600,
+        "width": 228.3,
+        "font_size": 23
+      },
+      {
+        "text": "PROGRESS.md에 남습니다.",
+        "x": 1176,
+        "y": 634,
+        "width": 276.94,
+        "font_size": 23
+      },
+      {
+        "text": "독립 검토는 Assurance 등급에 따라 다릅니다",
+        "x": 76,
+        "y": 730,
+        "width": 419.3,
+        "font_size": 22
+      },
+      {
+        "text": "light",
+        "x": 90.0,
+        "y": 769,
+        "width": 38.71,
+        "font_size": 17
+      },
+      {
+        "text": "이유를 남기고",
+        "x": 76,
+        "y": 806,
+        "width": 109.14,
+        "font_size": 19
+      },
+      {
+        "text": "검토를 생략할 수 있음",
+        "x": 76,
+        "y": 833,
+        "width": 170.09,
+        "font_size": 19
+      },
+      {
+        "text": "standard",
+        "x": 460.0,
+        "y": 769,
+        "width": 75.87,
+        "font_size": 17
+      },
+      {
+        "text": "완료 전 Spar 검토 라운드,",
+        "x": 446,
+        "y": 806,
+        "width": 203.32,
+        "font_size": 19
+      },
+      {
+        "text": "gate가 마지막 commit을 덮음",
+        "x": 446,
+        "y": 833,
+        "width": 243.01,
+        "font_size": 19
+      },
+      {
+        "text": "strict",
+        "x": 830.0,
+        "y": 769,
+        "width": 44.27,
+        "font_size": 17
+      },
+      {
+        "text": "standard에 더해",
+        "x": 816,
+        "y": 806,
+        "width": 136.67,
+        "font_size": 19
+      },
+      {
+        "text": "작업 전 계획 검토",
+        "x": 816,
+        "y": 833,
+        "width": 135.13,
+        "font_size": 19
+      },
+      {
+        "text": "?",
+        "x": 1201.63,
+        "y": 769,
+        "width": 8.74,
+        "font_size": 17
+      },
+      {
+        "text": "요구를 바꿔야 하는",
+        "x": 1186,
+        "y": 806,
+        "width": 148.35,
+        "font_size": 19
+      },
+      {
+        "text": "질문은 내게 옵니다",
+        "x": 1186,
+        "y": 833,
+        "width": 148.35,
+        "font_size": 19
       },
       {
         "text": "새 대화에서도, 같은 프로젝트의 같은 목표를 지정해 이어갑니다.",
-        "x": 166,
-        "y": 763,
-        "width": 680.13,
-        "font_size": 26
+        "x": 142,
+        "y": 900,
+        "width": 601.66,
+        "font_size": 23
       },
       {
         "text": "사용 흐름 · 개념도",
-        "x": 1405.56,
-        "y": 819,
-        "width": 130.44,
-        "font_size": 17
+        "x": 1429.23,
+        "y": 946,
+        "width": 122.77,
+        "font_size": 16
       }
     ],
     "en": [
       {
         "text": "JAEKIT / HOW TO USE",
-        "x": 64,
+        "x": 48,
         "y": 61,
         "width": 201.1,
         "font_size": 19
       },
       {
         "text": "Jaekit",
-        "x": 1437.79,
+        "x": 1453.79,
         "y": 65,
         "width": 98.21,
         "font_size": 32
       },
       {
-        "text": "One task, from request to review.",
-        "x": 64,
+        "text": "One task, from request to recorded completion.",
+        "x": 48,
         "y": 135,
-        "width": 806.98,
+        "width": 1150.47,
         "font_size": 49
       },
       {
         "text": "01",
-        "x": 73.43,
-        "y": 229,
+        "x": 57.43,
+        "y": 227,
         "width": 27.14,
         "font_size": 23
       },
       {
         "text": "Request & review the goal",
-        "x": 122,
-        "y": 231,
-        "width": 345.63,
-        "font_size": 27
-      },
-      {
-        "text": "02",
-        "x": 581.43,
+        "x": 106,
         "y": 229,
-        "width": 27.14,
-        "font_size": 23
-      },
-      {
-        "text": "Start Seal separately",
-        "x": 630,
-        "y": 231,
-        "width": 277.75,
-        "font_size": 27
-      },
-      {
-        "text": "03",
-        "x": 1089.43,
-        "y": 229,
-        "width": 27.14,
-        "font_size": 23
-      },
-      {
-        "text": "Review changes & records",
-        "x": 1138,
-        "y": 231,
-        "width": 346.27,
-        "font_size": 27
-      },
-      {
-        "text": "Request",
-        "x": 86.49,
-        "y": 391,
-        "width": 101.03,
-        "font_size": 25
-      },
-      {
-        "text": "Spec",
-        "x": 285,
-        "y": 352,
-        "width": 80.78,
-        "font_size": 34
-      },
-      {
-        "text": "Goal",
-        "x": 286,
-        "y": 391,
-        "width": 58.47,
-        "font_size": 26
-      },
-      {
-        "text": "Criteria",
-        "x": 286,
-        "y": 451,
-        "width": 89.5,
-        "font_size": 24
-      },
-      {
-        "text": "New message",
-        "x": 615.67,
-        "y": 336,
-        "width": 154.65,
-        "font_size": 23
-      },
-      {
-        "text": "Seal",
-        "x": 755,
-        "y": 423,
-        "width": 69.66,
-        "font_size": 33
-      },
-      {
-        "text": "Goal folder",
-        "x": 626.05,
-        "y": 486,
-        "width": 119.9,
+        "width": 281.62,
         "font_size": 22
       },
       {
-        "text": "Changes",
-        "x": 1134,
-        "y": 352,
-        "width": 113.43,
-        "font_size": 27
+        "text": "02",
+        "x": 433.43,
+        "y": 227,
+        "width": 27.14,
+        "font_size": 23
       },
       {
-        "text": "Check records",
-        "x": 1320,
-        "y": 402,
-        "width": 146.58,
+        "text": "Say yes to start Seal",
+        "x": 482,
+        "y": 229,
+        "width": 217.12,
+        "font_size": 22
+      },
+      {
+        "text": "03",
+        "x": 809.43,
+        "y": 227,
+        "width": 27.14,
+        "font_size": 23
+      },
+      {
+        "text": "Build & check through ha",
+        "x": 858,
+        "y": 229,
+        "width": 271.39,
+        "font_size": 22
+      },
+      {
+        "text": "04",
+        "x": 1185.43,
+        "y": 227,
+        "width": 27.14,
+        "font_size": 23
+      },
+      {
+        "text": "Review, then record done",
+        "x": 1234,
+        "y": 229,
+        "width": 277.6,
+        "font_size": 22
+      },
+      {
+        "text": "Request",
+        "x": 68.55,
+        "y": 358,
+        "width": 88.9,
+        "font_size": 22
+      },
+      {
+        "text": "Spec",
+        "x": 230,
+        "y": 330,
+        "width": 73.66,
+        "font_size": 31
+      },
+      {
+        "text": "Goal",
+        "x": 231,
+        "y": 366,
+        "width": 49.48,
+        "font_size": 22
+      },
+      {
+        "text": "Criteria",
+        "x": 231,
+        "y": 420,
+        "width": 78.31,
         "font_size": 21
       },
       {
-        "text": "Spec drafts the goal and criteria.",
-        "x": 64,
-        "y": 600,
-        "width": 384.97,
-        "font_size": 25.5
+        "text": "Assurance: standard",
+        "x": 229.59,
+        "y": 491,
+        "width": 140.83,
+        "font_size": 14
       },
       {
-        "text": "Read them and request changes.",
-        "x": 64,
-        "y": 637,
-        "width": 388.8,
-        "font_size": 25.5
+        "text": "Spec",
+        "x": 446,
+        "y": 316,
+        "width": 40.39,
+        "font_size": 17
       },
       {
-        "text": "New message: specify the goal folder.",
-        "x": 572,
-        "y": 600,
-        "width": 445.15,
-        "font_size": 25.5
+        "text": "Implement it now?",
+        "x": 446,
+        "y": 343,
+        "width": 194.54,
+        "font_size": 21
       },
       {
-        "text": "Your agent builds, checks, fixes,",
-        "x": 572,
-        "y": 637,
-        "width": 375.44,
-        "font_size": 25.5
-      },
-      {
-        "text": "and records progress.",
-        "x": 572,
-        "y": 674,
-        "width": 257.78,
-        "font_size": 25.5
-      },
-      {
-        "text": "Read the changes and check records.",
-        "x": 1080,
-        "y": 600,
-        "width": 439.72,
-        "font_size": 25.5
-      },
-      {
-        "text": "Review whether the goal was met.",
-        "x": 1080,
-        "y": 637,
-        "width": 404.76,
-        "font_size": 25.5
-      },
-      {
-        "text": "To resume, open the same project and name the same goal in a new conversation.",
-        "x": 166,
-        "y": 763,
-        "width": 965.28,
+        "text": "Yes",
+        "x": 684.13,
+        "y": 417,
+        "width": 39.74,
         "font_size": 24
       },
       {
-        "text": "Usage flow · Concept illustration",
-        "x": 1274.66,
-        "y": 819,
-        "width": 261.34,
+        "text": "Seal",
+        "x": 450,
+        "y": 466,
+        "width": 65.44,
+        "font_size": 31
+      },
+      {
+        "text": "or a separate message",
+        "x": 628.64,
+        "y": 489,
+        "width": 142.71,
+        "font_size": 13
+      },
+      {
+        "text": "/seal:seal",
+        "x": 667.27,
+        "y": 508,
+        "width": 65.46,
+        "font_size": 14
+      },
+      {
+        "text": "Plan",
+        "x": 871.97,
+        "y": 327,
+        "width": 42.07,
+        "font_size": 19
+      },
+      {
+        "text": "Build",
+        "x": 868.48,
+        "y": 379,
+        "width": 49.04,
+        "font_size": 19
+      },
+      {
+        "text": "Check",
+        "x": 864.42,
+        "y": 431,
+        "width": 57.15,
+        "font_size": 19
+      },
+      {
+        "text": "ha",
+        "x": 1016,
+        "y": 342,
+        "width": 30.77,
+        "font_size": 25
+      },
+      {
+        "text": "Run record",
+        "x": 1016,
+        "y": 368,
+        "width": 76.12,
+        "font_size": 14
+      },
+      {
+        "text": "runs.jsonl",
+        "x": 822,
+        "y": 478,
+        "width": 83.59,
         "font_size": 17
+      },
+      {
+        "text": "Spar",
+        "x": 1243.16,
+        "y": 340,
+        "width": 59.67,
+        "font_size": 26
+      },
+      {
+        "text": "gate",
+        "x": 1252.19,
+        "y": 370,
+        "width": 41.61,
+        "font_size": 19
+      },
+      {
+        "text": "ha done",
+        "x": 1233.5,
+        "y": 489,
+        "width": 79.0,
+        "font_size": 20
+      },
+      {
+        "text": "Report",
+        "x": 1392,
+        "y": 344,
+        "width": 67.8,
+        "font_size": 20
+      },
+      {
+        "text": "PROGRESS.md",
+        "x": 1392,
+        "y": 368,
+        "width": 95.08,
+        "font_size": 13
+      },
+      {
+        "text": "Spec drafts the goal, criteria",
+        "x": 48,
+        "y": 566,
+        "width": 274.68,
+        "font_size": 21
+      },
+      {
+        "text": "and an Assurance tier, then asks",
+        "x": 48,
+        "y": 600,
+        "width": 313.59,
+        "font_size": 21
+      },
+      {
+        "text": "whether to implement it now.",
+        "x": 48,
+        "y": 634,
+        "width": 290.68,
+        "font_size": 21
+      },
+      {
+        "text": "Answer “Yes” and Seal starts.",
+        "x": 424,
+        "y": 566,
+        "width": 284.26,
+        "font_size": 21
+      },
+      {
+        "text": "Naming the goal folder in a",
+        "x": 424,
+        "y": 600,
+        "width": 263.78,
+        "font_size": 21
+      },
+      {
+        "text": "separate message works too.",
+        "x": 424,
+        "y": 634,
+        "width": 284.32,
+        "font_size": 21
+      },
+      {
+        "text": "Your agent plans, implements",
+        "x": 800,
+        "y": 566,
+        "width": 291.67,
+        "font_size": 21
+      },
+      {
+        "text": "and checks through ha, which",
+        "x": 800,
+        "y": 600,
+        "width": 291.8,
+        "font_size": 21
+      },
+      {
+        "text": "records every run in runs.jsonl.",
+        "x": 800,
+        "y": 634,
+        "width": 300.93,
+        "font_size": 21
+      },
+      {
+        "text": "When required conditions are",
+        "x": 1176,
+        "y": 566,
+        "width": 289.57,
+        "font_size": 21
+      },
+      {
+        "text": "met, ha done records completion;",
+        "x": 1176,
+        "y": 600,
+        "width": 331.19,
+        "font_size": 21
+      },
+      {
+        "text": "the report lands in PROGRESS.md.",
+        "x": 1176,
+        "y": 634,
+        "width": 336.29,
+        "font_size": 21
+      },
+      {
+        "text": "Independent review depends on the Assurance tier",
+        "x": 76,
+        "y": 730,
+        "width": 524.52,
+        "font_size": 21
+      },
+      {
+        "text": "light",
+        "x": 90.0,
+        "y": 769,
+        "width": 38.71,
+        "font_size": 17
+      },
+      {
+        "text": "may skip review,",
+        "x": 76,
+        "y": 806,
+        "width": 139.41,
+        "font_size": 18
+      },
+      {
+        "text": "with a reason",
+        "x": 76,
+        "y": 833,
+        "width": 112.7,
+        "font_size": 18
+      },
+      {
+        "text": "standard",
+        "x": 460.0,
+        "y": 769,
+        "width": 75.87,
+        "font_size": 17
+      },
+      {
+        "text": "Spar review rounds; the gate",
+        "x": 446,
+        "y": 806,
+        "width": 239.94,
+        "font_size": 18
+      },
+      {
+        "text": "must cover the last commit",
+        "x": 446,
+        "y": 833,
+        "width": 228.65,
+        "font_size": 18
+      },
+      {
+        "text": "strict",
+        "x": 830.0,
+        "y": 769,
+        "width": 44.27,
+        "font_size": 17
+      },
+      {
+        "text": "standard, plus a plan",
+        "x": 816,
+        "y": 806,
+        "width": 176.0,
+        "font_size": 18
+      },
+      {
+        "text": "review before work",
+        "x": 816,
+        "y": 833,
+        "width": 160.83,
+        "font_size": 18
+      },
+      {
+        "text": "?",
+        "x": 1201.63,
+        "y": 769,
+        "width": 8.74,
+        "font_size": 17
+      },
+      {
+        "text": "Questions that change the",
+        "x": 1186,
+        "y": 806,
+        "width": 220.48,
+        "font_size": 18
+      },
+      {
+        "text": "requirements come to you",
+        "x": 1186,
+        "y": 833,
+        "width": 221.51,
+        "font_size": 18
+      },
+      {
+        "text": "To resume, open the same project and name the same goal in a new conversation.",
+        "x": 142,
+        "y": 900,
+        "width": 884.84,
+        "font_size": 22
+      },
+      {
+        "text": "Usage flow · Concept illustration",
+        "x": 1306.03,
+        "y": 946,
+        "width": 245.97,
+        "font_size": 16
       }
     ]
   }

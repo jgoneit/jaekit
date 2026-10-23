@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title description" xml:lang="en">
+<title id="title">Jaekit walkthrough, frame 6: Spar review</title>
+<desc id="description">Frame 6 of 9, Spar review: $ spar run --stage candidate --base f46020c \     --criteria docs/specs/password-link/SPEC.md \     --check-path &#x27;checks/**&#x27; \     --out docs/reviews/password-link/01-candidate spar: round written to docs/reviews/password-link/01-candidate 01-candidate/summary.md - claude: completed, 0 findings (verified isolation, required, …) - codex: completed, 0 findings (verified isolation, required, …) — Spar review round. Independent reviewers read the same packet: goal documents, checks and diff. A finding is fixed, or comes to you as a question. Spar does not certify or deploy. Fictional example; not a recording of a real run.</desc>
+<rect x="0" y="0" width="1280" height="720" rx="0" fill="#FAFBFD"/>
+<text x="44" y="56" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="26" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">Jaekit</text>
+<rect x="1004" y="28" width="232" height="42" rx="21" fill="#EDF0FF" stroke="#D7DFE9" stroke-width="2"/>
+<text x="1120" y="56" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#546276" text-anchor="middle" xml:space="preserve">Fictional walkthrough</text>
+<text x="44" y="112" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="36" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">From request to recorded completion</text>
+<rect x="44.0" y="140" width="160.0" height="6" rx="3" fill="#4F6CF7"/>
+<text x="44.0" y="172" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">Ask Spec</text>
+<rect x="216.0" y="140" width="160.0" height="6" rx="3" fill="#4F6CF7"/>
+<text x="216.0" y="172" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">Review the goal</text>
+<rect x="388.0" y="140" width="160.0" height="6" rx="3" fill="#4F6CF7"/>
+<text x="388.0" y="172" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">Say yes</text>
+<rect x="560.0" y="140" width="160.0" height="6" rx="3" fill="#4F6CF7"/>
+<text x="560.0" y="172" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">Check</text>
+<rect x="732.0" y="140" width="160.0" height="6" rx="3" fill="#4F6CF7"/>
+<text x="732.0" y="172" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="700" fill="#4F6CF7" text-anchor="start" xml:space="preserve">Spar review</text>
+<rect x="904.0" y="140" width="160.0" height="6" rx="3" fill="#D7DFE9"/>
+<text x="904.0" y="172" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">ha done</text>
+<rect x="1076.0" y="140" width="160.0" height="6" rx="3" fill="#D7DFE9"/>
+<text x="1076.0" y="172" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">Report</text>
+<rect x="44" y="204" width="792" height="418" rx="16" fill="#122033"/>
+<text x="68" y="238" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="700" fill="#9AA8BD" text-anchor="start" xml:space="preserve">Commands the agent runs</text>
+<path d="M68 254H812" fill="none" stroke="#2C3B52" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="68" y="288" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#E8EDF5" text-anchor="start" xml:space="preserve">$ spar run --stage candidate --base f46020c \</text>
+<text x="68" y="318" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#E8EDF5" text-anchor="start" xml:space="preserve">    --criteria docs/specs/password-link/SPEC.md \</text>
+<text x="68" y="348" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#E8EDF5" text-anchor="start" xml:space="preserve">    --check-path &#x27;checks/**&#x27; \</text>
+<text x="68" y="378" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#E8EDF5" text-anchor="start" xml:space="preserve">    --out docs/reviews/password-link/01-candidate</text>
+<text x="68" y="408" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="400" fill="#9AA8BD" text-anchor="start" xml:space="preserve">spar: round written to docs/reviews/password-link/01-candidate</text>
+<text x="68" y="452" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#A9B8FF" text-anchor="start" xml:space="preserve">01-candidate/summary.md</text>
+<text x="68" y="480" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#A9B8FF" text-anchor="start" xml:space="preserve">- claude: completed, 0 findings (verified isolation, required, …)</text>
+<text x="68" y="508" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#A9B8FF" text-anchor="start" xml:space="preserve">- codex: completed, 0 findings (verified isolation, required, …)</text>
+<rect x="860" y="204" width="376" height="418" rx="16" fill="#EDF0FF" stroke="#D7DFE9" stroke-width="2"/>
+<text x="884" y="250" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="25" font-weight="700" fill="#4F6CF7" text-anchor="start" xml:space="preserve">Spar review round</text>
+<text x="884" y="296" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">Independent reviewers read</text>
+<text x="884" y="325" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">the same packet: goal</text>
+<text x="884" y="354" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">documents, checks and diff.</text>
+<text x="884" y="401" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">A finding is fixed, or comes</text>
+<text x="884" y="428" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">to you as a question.</text>
+<text x="884" y="455" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">Spar does not certify or deploy.</text>
+<text x="44" y="660" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">Illustrative sequence · not a recording of a real run</text>
+<text x="1236" y="660" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="700" fill="#546276" text-anchor="end" xml:space="preserve">password-link</text>
+<rect x="44" y="684" width="1192" height="8" rx="4" fill="#D7DFE9"/>
+<rect x="44" y="684" width="794.6666666666666" height="8" rx="4" fill="#4F6CF7"/>
+</svg>

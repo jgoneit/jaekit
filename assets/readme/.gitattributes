@@ -1,0 +1,6 @@
+# Generated README artwork: outlined glyph paths and layout measurements are
+# rebuilt from the scripts in source/, so diffs show them as binary. The
+# editable SVGs in source/svg/ keep their text diffs.
+/*.svg -diff
+/source/walkthrough/*.svg -diff
+/source/*.layout.json -diff

@@ -1,0 +1,531 @@
+{
+  "canvas": [
+    1600,
+    740
+  ],
+  "font": "Noto Sans CJK KR",
+  "languages": {
+    "ko": [
+      {
+        "text": "폴더 구조",
+        "x": 48,
+        "y": 78,
+        "width": 179.72,
+        "font_size": 46
+      },
+      {
+        "text": "Jaekit",
+        "x": 1453.79,
+        "y": 74,
+        "width": 98.21,
+        "font_size": 32
+      },
+      {
+        "text": "docs/specs/password-link/",
+        "x": 184,
+        "y": 186,
+        "width": 449.58,
+        "font_size": 34
+      },
+      {
+        "text": "목표마다 하나",
+        "x": 882.55,
+        "y": 186,
+        "width": 103.45,
+        "font_size": 18
+      },
+      {
+        "text": "Spec이 씀",
+        "x": 92,
+        "y": 324,
+        "width": 119.96,
+        "font_size": 27
+      },
+      {
+        "text": "Spec",
+        "x": 104.0,
+        "y": 361,
+        "width": 40.39,
+        "font_size": 17
+      },
+      {
+        "text": "SPEC.md",
+        "x": 138,
+        "y": 419,
+        "width": 107.88,
+        "font_size": 24
+      },
+      {
+        "text": "목표와 완료 조건",
+        "x": 138,
+        "y": 444,
+        "width": 123.98,
+        "font_size": 18
+      },
+      {
+        "text": "Seal이 씀",
+        "x": 418,
+        "y": 324,
+        "width": 112.81,
+        "font_size": 27
+      },
+      {
+        "text": "Seal",
+        "x": 430.0,
+        "y": 361,
+        "width": 35.89,
+        "font_size": 17
+      },
+      {
+        "text": "PLAN.md",
+        "x": 464,
+        "y": 419,
+        "width": 109.63,
+        "font_size": 24
+      },
+      {
+        "text": "검사 방법·범위·예산",
+        "x": 464,
+        "y": 444,
+        "width": 156.71,
+        "font_size": 18
+      },
+      {
+        "text": "REVIEW.md",
+        "x": 464,
+        "y": 499,
+        "width": 137.02,
+        "font_size": 24
+      },
+      {
+        "text": "검토 계획, Spar 기록 요약",
+        "x": 464,
+        "y": 524,
+        "width": 192.62,
+        "font_size": 18
+      },
+      {
+        "text": "PROGRESS.md",
+        "x": 464,
+        "y": 579,
+        "width": 175.54,
+        "font_size": 24
+      },
+      {
+        "text": "진행 상황과 완료 보고",
+        "x": 464,
+        "y": 604,
+        "width": 161.14,
+        "font_size": 18
+      },
+      {
+        "text": "ha가 씀",
+        "x": 744,
+        "y": 324,
+        "width": 89.05,
+        "font_size": 27
+      },
+      {
+        "text": "ha",
+        "x": 756.0,
+        "y": 361,
+        "width": 20.93,
+        "font_size": 17
+      },
+      {
+        "text": "runs.jsonl",
+        "x": 790,
+        "y": 419,
+        "width": 118.01,
+        "font_size": 24
+      },
+      {
+        "text": "덧붙이기만 하는 실행 기록",
+        "x": 790,
+        "y": 444,
+        "width": 194.26,
+        "font_size": 18
+      },
+      {
+        "text": "Git이 추적하지 않음",
+        "x": 1082,
+        "y": 154,
+        "width": 233.41,
+        "font_size": 28
+      },
+      {
+        "text": "Spar",
+        "x": 1117.49,
+        "y": 225,
+        "width": 39.02,
+        "font_size": 17
+      },
+      {
+        "text": "Spar 검토 기록",
+        "x": 1186,
+        "y": 226,
+        "width": 128.58,
+        "font_size": 20
+      },
+      {
+        "text": "docs/reviews/password-link/",
+        "x": 1186,
+        "y": 290,
+        "width": 314.97,
+        "font_size": 22
+      },
+      {
+        "text": "01-candidate/",
+        "x": 1152,
+        "y": 336,
+        "width": 137.62,
+        "font_size": 20
+      },
+      {
+        "text": "검토 라운드 하나",
+        "x": 1326,
+        "y": 336,
+        "width": 123.98,
+        "font_size": 18
+      },
+      {
+        "text": "gate.json",
+        "x": 1152,
+        "y": 380,
+        "width": 91.66,
+        "font_size": 20
+      },
+      {
+        "text": "검토 gate",
+        "x": 1326,
+        "y": 380,
+        "width": 74.2,
+        "font_size": 18
+      },
+      {
+        "text": "Git이 무시하는 폴더에 둡니다",
+        "x": 1102,
+        "y": 428,
+        "width": 208.13,
+        "font_size": 17
+      },
+      {
+        "text": "ha",
+        "x": 1114.54,
+        "y": 505,
+        "width": 20.93,
+        "font_size": 17
+      },
+      {
+        "text": "검사 출력 원문",
+        "x": 1162,
+        "y": 506,
+        "width": 119.48,
+        "font_size": 20
+      },
+      {
+        "text": ".git/ha/",
+        "x": 1182,
+        "y": 556,
+        "width": 94.95,
+        "font_size": 26
+      },
+      {
+        "text": "ha log로 봅니다",
+        "x": 1182,
+        "y": 582,
+        "width": 114.78,
+        "font_size": 17
+      },
+      {
+        "text": "내 컴퓨터에만 남음",
+        "x": 1150,
+        "y": 636,
+        "width": 156.28,
+        "font_size": 20
+      },
+      {
+        "text": "이해를 돕기 위한 가상 구성 · password-link",
+        "x": 362.03,
+        "y": 712,
+        "width": 353.93,
+        "font_size": 19
+      },
+      {
+        "text": "가상 예시",
+        "x": 1481.67,
+        "y": 712,
+        "width": 70.33,
+        "font_size": 18
+      }
+    ],
+    "en": [
+      {
+        "text": "Goal folder",
+        "x": 48,
+        "y": 78,
+        "width": 250.7,
+        "font_size": 46
+      },
+      {
+        "text": "Jaekit",
+        "x": 1453.79,
+        "y": 74,
+        "width": 98.21,
+        "font_size": 32
+      },
+      {
+        "text": "docs/specs/password-link/",
+        "x": 184,
+        "y": 186,
+        "width": 449.58,
+        "font_size": 34
+      },
+      {
+        "text": "one folder per goal",
+        "x": 818.73,
+        "y": 186,
+        "width": 167.27,
+        "font_size": 18
+      },
+      {
+        "text": "Written by Spec",
+        "x": 92,
+        "y": 324,
+        "width": 186.41,
+        "font_size": 24
+      },
+      {
+        "text": "Spec",
+        "x": 104.0,
+        "y": 361,
+        "width": 40.39,
+        "font_size": 17
+      },
+      {
+        "text": "SPEC.md",
+        "x": 138,
+        "y": 419,
+        "width": 107.88,
+        "font_size": 24
+      },
+      {
+        "text": "goal and completion",
+        "x": 138,
+        "y": 444,
+        "width": 163.64,
+        "font_size": 17
+      },
+      {
+        "text": "conditions",
+        "x": 138,
+        "y": 465,
+        "width": 84.27,
+        "font_size": 17
+      },
+      {
+        "text": "Written by Seal",
+        "x": 418,
+        "y": 324,
+        "width": 180.05,
+        "font_size": 24
+      },
+      {
+        "text": "Seal",
+        "x": 430.0,
+        "y": 361,
+        "width": 35.89,
+        "font_size": 17
+      },
+      {
+        "text": "PLAN.md",
+        "x": 464,
+        "y": 419,
+        "width": 109.63,
+        "font_size": 24
+      },
+      {
+        "text": "checks, scope, budget",
+        "x": 464,
+        "y": 444,
+        "width": 175.15,
+        "font_size": 17
+      },
+      {
+        "text": "REVIEW.md",
+        "x": 464,
+        "y": 499,
+        "width": 137.02,
+        "font_size": 24
+      },
+      {
+        "text": "review plan;",
+        "x": 464,
+        "y": 524,
+        "width": 96.44,
+        "font_size": 17
+      },
+      {
+        "text": "Spar summary",
+        "x": 464,
+        "y": 545,
+        "width": 115.43,
+        "font_size": 17
+      },
+      {
+        "text": "PROGRESS.md",
+        "x": 464,
+        "y": 600,
+        "width": 175.54,
+        "font_size": 24
+      },
+      {
+        "text": "progress and the report",
+        "x": 464,
+        "y": 625,
+        "width": 186.86,
+        "font_size": 17
+      },
+      {
+        "text": "Written by ha",
+        "x": 744,
+        "y": 324,
+        "width": 158.93,
+        "font_size": 24
+      },
+      {
+        "text": "ha",
+        "x": 756.0,
+        "y": 361,
+        "width": 20.93,
+        "font_size": 17
+      },
+      {
+        "text": "runs.jsonl",
+        "x": 790,
+        "y": 419,
+        "width": 118.01,
+        "font_size": 24
+      },
+      {
+        "text": "append-only run record",
+        "x": 790,
+        "y": 444,
+        "width": 188.26,
+        "font_size": 17
+      },
+      {
+        "text": "Not tracked by Git",
+        "x": 1082,
+        "y": 154,
+        "width": 241.41,
+        "font_size": 27
+      },
+      {
+        "text": "Spar",
+        "x": 1117.49,
+        "y": 225,
+        "width": 39.02,
+        "font_size": 17
+      },
+      {
+        "text": "Spar review records",
+        "x": 1186,
+        "y": 226,
+        "width": 196.7,
+        "font_size": 20
+      },
+      {
+        "text": "docs/reviews/password-link/",
+        "x": 1186,
+        "y": 290,
+        "width": 314.97,
+        "font_size": 22
+      },
+      {
+        "text": "01-candidate/",
+        "x": 1152,
+        "y": 336,
+        "width": 137.62,
+        "font_size": 20
+      },
+      {
+        "text": "one review round",
+        "x": 1326,
+        "y": 336,
+        "width": 138.43,
+        "font_size": 17
+      },
+      {
+        "text": "gate.json",
+        "x": 1152,
+        "y": 380,
+        "width": 91.66,
+        "font_size": 20
+      },
+      {
+        "text": "the review gate",
+        "x": 1326,
+        "y": 380,
+        "width": 121.35,
+        "font_size": 17
+      },
+      {
+        "text": "kept in a folder Git ignores",
+        "x": 1102,
+        "y": 428,
+        "width": 221.29,
+        "font_size": 17
+      },
+      {
+        "text": "ha",
+        "x": 1114.54,
+        "y": 505,
+        "width": 20.93,
+        "font_size": 17
+      },
+      {
+        "text": "Raw check output",
+        "x": 1162,
+        "y": 506,
+        "width": 177.1,
+        "font_size": 20
+      },
+      {
+        "text": ".git/ha/",
+        "x": 1182,
+        "y": 556,
+        "width": 94.95,
+        "font_size": 26
+      },
+      {
+        "text": "read it with ha log",
+        "x": 1182,
+        "y": 582,
+        "width": 142.09,
+        "font_size": 17
+      },
+      {
+        "text": "Stays on your computer",
+        "x": 1150,
+        "y": 636,
+        "width": 223.48,
+        "font_size": 19
+      },
+      {
+        "text": "Fictional layout for illustration · password-link",
+        "x": 343.46,
+        "y": 712,
+        "width": 391.09,
+        "font_size": 18
+      },
+      {
+        "text": "Fictional example",
+        "x": 1393.98,
+        "y": 712,
+        "width": 158.02,
+        "font_size": 18
+      }
+    ]
+  }
+}
