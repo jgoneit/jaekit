@@ -16,7 +16,7 @@ Jaekit은 **Codex·Claude Code에 맡긴 작업을 목표부터 완료 기록까
 - **Spec**은 원하는 일을 목표 문서와 완료 조건으로 정리합니다.
 - **Seal**은 에이전트가 그 목표대로 구현·검사·수정하게 하고, 검사 기록으로 완료를 판단합니다.
 
-현재 배포판은 **v0.1.6**입니다. 실제 작업에 써 보며 다듬는 초기 개발 단계입니다.
+현재 배포판은 **v0.1.7**입니다. 실제 작업에 써 보며 다듬는 초기 개발 단계입니다.
 
 ## 이럴 때 좋습니다
 
@@ -121,7 +121,7 @@ flowchart TD
 
 #### 1. 터미널에서 기록 도구 `ha` 설치하기
 
-블록은 하나씩 실행하고, 끝날 때까지 기다립니다.
+블록은 하나씩 실행하고, 끝날 때까지 기다립니다. brew는 `ha`와 `spar`를 함께 설치합니다.
 
 ```bash
 brew install jgoneit/tap/jaekit
@@ -132,9 +132,9 @@ ha --version
 which -a ha
 ```
 
-`ha 0.1.6`이 나오면 됩니다. `which -a ha`의 첫 줄이 실제로 실행되는 파일입니다. 명령을 찾지 못하거나 버전이 다르면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
+`ha 0.1.7`이 나오면 됩니다. `which -a ha`의 첫 줄이 실제로 실행되는 파일입니다. 명령을 찾지 못하거나 버전이 다르면 [버전 확인](guides/INSTALL.md#버전-확인)을 봅니다.
 
-Homebrew 없이 설치하려면 이 단계 대신 [Release 파일로 설치](guides/INSTALL.md#release-파일로-설치)의 블록을 붙여 넣습니다. OS와 CPU에 맞는 파일을 받아 checksum을 확인한 뒤 `~/.local/bin/ha`에 둡니다. 다른 설치 방법과 자세한 설명은 [설치 안내](guides/INSTALL.md)에 있습니다.
+Homebrew 없이 설치하려면 이 단계 대신 [Release 파일로 설치](guides/INSTALL.md#release-파일로-설치)의 블록을 붙여 넣습니다. OS와 CPU에 맞는 파일을 받아 checksum을 확인한 뒤 `ha`와 `spar`를 `~/.local/bin/ha`와 `~/.local/bin/spar`에 둡니다. 다른 설치 방법과 자세한 설명은 [설치 안내](guides/INSTALL.md)에 있습니다.
 
 #### 2. 에이전트 플러그인 설치하기
 
@@ -145,28 +145,30 @@ Homebrew 없이 설치하려면 이 단계 대신 [Release 파일로 설치](gui
 **Claude Code**
 
 ```bash
-claude plugin marketplace add jgoneit/jaekit#v0.1.6
+claude plugin marketplace add jgoneit/jaekit#v0.1.7
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
+claude plugin install spar@jaekit
 claude plugin list
 ```
 
 > [!TIP]
-> 설치 후 **Claude Code를 새로 엽니다.** 마지막 목록에 `spec@jaekit`, `seal@jaekit`가 enabled로 보이면 됩니다. `#v0.1.6`은 사용할 배포판을 고정합니다. 자세한 내용은 [Claude Code 설치](guides/INSTALL.md#claude-code)를 봅니다.
+> 설치 후 **Claude Code를 새로 엽니다.** 마지막 목록에 `spec@jaekit`, `seal@jaekit`, `spar@jaekit`가 enabled로 보이면 됩니다. `#v0.1.7`은 사용할 배포판을 고정합니다. 자세한 내용은 [Claude Code 설치](guides/INSTALL.md#claude-code)를 봅니다.
 
 **Codex**
 
 ```bash
-codex plugin marketplace add jgoneit/jaekit@v0.1.6
+codex plugin marketplace add jgoneit/jaekit@v0.1.7
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
+codex plugin add spar@jaekit
 ```
 
 > [!TIP]
-> 설치 후 **Codex를 새로 엽니다.** `@v0.1.6`은 사용할 배포판을 고정합니다.
+> 설치 후 **Codex를 새로 엽니다.** `@v0.1.7`은 사용할 배포판을 고정합니다.
 
 > [!NOTE]
-> **`standard`·`strict` 목표와 Spar.** v0.1.6 다음 릴리스부터 `standard`·`strict` 목표에는 Spar 실행 파일과 Spar 플러그인이 필요하고, 리뷰어는 가진 CLI에 맞춰 정합니다. [Spar 설치](guides/INSTALL.md#spar)를 봅니다. 그 릴리스의 Seal은 새 목표를 `run-rules/5`로 시작하고, `run-rules/5`로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다([검토 gate](guides/USAGE.md#검토-gate-run-rules5)).
+> **`standard`·`strict` 목표와 Spar.** v0.1.7부터 `standard`·`strict` 목표에는 Spar 실행 파일과 Spar 플러그인이 필요하고(위 명령이 둘 다 설치합니다), 리뷰어는 가진 CLI에 맞춰 정합니다. [Spar 설치](guides/INSTALL.md#spar)를 봅니다. v0.1.7의 Seal은 새 목표를 `run-rules/5`로 시작하고, `run-rules/5`로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다([검토 gate](guides/USAGE.md#검토-gate-run-rules5)).
 
 ### 첫 작업 맡기기
 
@@ -234,7 +236,7 @@ docs/specs/<goal> 이어서 해줘
 ### 업데이트
 
 > [!WARNING]
-> 새 배포판이 나오면 `ha`와 두 플러그인을 **함께** 올립니다. 버전이 섞이면 Seal이 기록하기 전에 멈출 수 있습니다.
+> 새 배포판이 나오면 `ha`와 플러그인을 **함께** 올립니다. 버전이 섞이면 Seal이 기록하기 전에 멈출 수 있습니다.
 
 #### 1. `ha` 올리기
 
@@ -263,29 +265,31 @@ Homebrew와 Release 파일로 둘 다 설치했다면, 쓰지 않는 쪽을 지�
 
 #### 3. 플러그인을 새 배포판으로 다시 등록하기
 
-marketplace를 지우면 그 안의 spec·seal도 함께 지워지므로 다시 설치합니다.
+marketplace를 지우면 그 안의 spec·seal·spar도 함께 지워지므로 다시 설치합니다.
 
 **Claude Code**
 
 ```bash
 claude plugin marketplace remove jaekit
-claude plugin marketplace add jgoneit/jaekit#v0.1.6
+claude plugin marketplace add jgoneit/jaekit#v0.1.7
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
+claude plugin install spar@jaekit
 ```
 
 **Codex**
 
 ```bash
 codex plugin marketplace remove jaekit
-codex plugin marketplace add jgoneit/jaekit@v0.1.6
+codex plugin marketplace add jgoneit/jaekit@v0.1.7
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
+codex plugin add spar@jaekit
 ```
 
 #### 4. Claude Code·Codex 다시 열기
 
-새 Spec·Seal은 새로 연 세션부터 쓰입니다.
+새 Spec·Seal·Spar는 새로 연 세션부터 쓰입니다.
 
 업데이트는 목표 문서와 실행 기록을 지우지 않습니다. 이전 버전 자료 정리와 제거는 [업데이트](guides/INSTALL.md#업데이트)·[제거](guides/INSTALL.md#제거)를 봅니다.
 
@@ -315,77 +319,63 @@ docs/specs/password-link/
 
 ![password-link의 가상 완료 보고: complete, 완료 기록 seq 5. AC-1 change는 바꾸기 전 실패(seq 2), 바꾼 뒤 통과(seq 3). AC-2 maintain 통과(seq 4). assurance local, check author executor.](assets/readme/report-card.ko.png)
 
-필수 완료 조건이 충족되면 Seal이 `ha done`을 실행하고, 그 출력을 고치지 않고 `PROGRESS.md`의 `## 완료 보고`에 붙인 뒤 자기 설명을 덧붙입니다. `ha` 출력의 설명 문장은 언어와 관계없이 영어입니다. GitHub에서는 이렇게 보입니다.
-
-> **ha status: docs/specs/password-link**
->
-> - status: **complete** (exit 0)
-> - completion record: seq 5
-> - assurance: local (an agent with the same user permissions can change checks and records)
-> - check author: executor
-> - rules: run-rules/4; skill: seal 0.1.17 (claimed); ha: 0.1.6
->
-> | ID | kind | required | satisfied | reason | records | attempts |
-> | --- | --- | --- | --- | --- | --- | --- |
-> | AC-1 | change | yes | yes | — | 2, 3 | checks 1 (fail 0, error 0), baselines 1 (unexpected pass 0, error 0), stale 0 |
-> | AC-2 | maintain | yes | yes | — | 4 | checks 1 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
->
-> - 완료 범위: 완료 기록 seq 5의 commit aa4bd917b591이 올릴 head와 같습니다.
-> - 바꾼 파일(에이전트의 주장): src/login.html — AC-1
-> - 남은 한계: 보증 수준 local, 검사는 에이전트가 작성, manual 조건 없음
-
-<details>
-<summary><code>PROGRESS.md</code>의 Markdown 원문 보기</summary>
+`ha done`이 완료를 기록하면 Seal이 `ha report`의 출력을 고치지 않고 `PROGRESS.md`의 `## 완료 보고`에 붙이고, 그 아래에 자기 판단만 덧붙입니다. `ha report`는 기본으로 영어, `--lang ko`로 한국어를 출력하며, Seal은 요청한 언어에 맞춥니다. 그 부분은 이렇게 생겼습니다.
 
 ```markdown
 ## 완료 보고
 
-## ha status: docs/specs/password-link
+바뀐 것: base fe4597cf233f 이후 실행 묶음 문서 밖에서 파일 1개, commit 1개
+확인한 것: 필수 조건 2개 중 2개 충족(검사 기록 2개, 사용자 확인 0개); change 조건 1개 중 1개에 신선한 baseline
+직접 볼 것: 없음
+남은 한계: 보증 수준 local; 검사 작성자: 실행자
+다음 행동: 없음; 완료 기록 seq 5이 유효하고 남은 할 일이 없음
 
-- status: **complete** (exit 0)
-- completion record: seq 5
-- assurance: local (an agent with the same user permissions can change checks and records)
-- check author: executor
-- record head: seq 5 (315888484b42)
-- rules: run-rules/4; skill: seal 0.1.17 (claimed); ha: 0.1.6
-- code: aa4bd917b591, tree clean: yes; goal digest: f1f24cc156b0
-- attempts: 3 total; types: 2 check, 1 baseline; outcomes: 0 environment errors, 0 unknown; inputs: 3 current, 0 stale; valid positive evidence: 3 (overlapping axes)
+### `## 현재` 도장
 
-### Criteria
+- 기록 head: seq 5 (0a94eba41234), 기록 시각 2026-10-23T10:06:33Z; 상태: complete; 완료 기록: seq 5
 
-| ID | kind | required | satisfied | reason | records | attempts |
-| --- | --- | --- | --- | --- | --- | --- |
-| AC-1 | change | yes | yes | — | 2, 3 | checks 1 (fail 0, error 0), baselines 1 (unexpected pass 0, error 0), stale 0 |
-| AC-2 | maintain | yes | yes | — | 4 | checks 1 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+### 조건별 근거
 
-### Reasons
+근거 출처: 완료 기록 seq 5
+| ID | 종류 | 필수 | 충족 | 근거 기록 |
+| --- | --- | --- | --- | --- |
+| AC-1 | change | 예 | 예 | 2, 3 |
+| AC-2 | maintain | 예 | 예 | 4 |
 
-None.
+### 완료 범위
 
-- 완료 범위: 완료 기록 seq 5의 commit aa4bd917b591이 올릴 head와 같습니다.
+- 완료 기록 seq 5, commit e887828a0035; 지금 HEAD e887828a0035를 덮음
+
+### 미충족 조건의 원문 위치
+
+- 없음
+
+Seal의 판단:
+
 - 바꾼 파일(에이전트의 주장): src/login.html — AC-1
-- 남은 한계: 보증 수준 local, 검사는 에이전트가 작성, manual 조건 없음
+- manual 조건과 가정한 결정: 없음
+- 검토: SPEC에 `Assurance:` 줄이 없어 이 목표에는 검토 gate가 필요 없습니다.
+- 올릴 head는 완료 기록의 commit e887828a0035입니다.
+- 이 보고는 배포나 설치를 확인하지 않습니다. 보증 수준은 local이고 검사는 에이전트가 작성했습니다.
 ```
-
-</details>
 
 읽는 법:
 
-- **status**는 `ha`가 실행 기록·Git·목표 문서로 계산한 값이며, 에이전트의 주장이 아닙니다. completion record에 seq가 있으면 `ha done`이 완료를 기록했다는 뜻입니다.
-- **records**는 `runs.jsonl`의 줄 번호(seq)입니다. AC-1의 seq 2는 시작 commit에서 돌린 검사가 선언대로 실패한 기록이고, seq 3은 같은 검사가 결과에서 통과한 기록입니다.
+- 맨 위 다섯 줄은 바뀐 것, 확인한 것, 직접 볼 것, 남은 한계, 다음 행동입니다. `ha report`가 실행 기록·Git·목표 문서로 계산한 값이며, 에이전트의 주장이 아닙니다.
+- **근거 기록**은 `runs.jsonl`의 줄 번호(seq)입니다. AC-1의 seq 2는 시작 commit에서 돌린 검사가 선언대로 실패한 기록이고, seq 3은 같은 검사가 결과에서 통과한 기록입니다. 완료 기록 seq 5는 `ha done`이 완료를 기록했다는 뜻입니다.
 - 실행의 출력 원문은 `.git/ha/`에 남습니다. 터미널에서 `ha log docs/specs/password-link 3`으로 봅니다.
 
 > [!IMPORTANT]
-> **assurance: local**과 **check author: executor**는 에이전트가 내 컴퓨터에서 검사를 작성하고 실행했다는 뜻입니다. 독립된 제3자의 검증이 아니므로 바뀐 검사와 실제 결과도 함께 확인합니다.
+> `남은 한계`의 **보증 수준 local**과 **검사 작성자: 실행자**는 에이전트가 내 컴퓨터에서 검사를 작성하고 실행했다는 뜻입니다. 독립된 제3자의 검증이 아니므로 바뀐 검사와 실제 결과도 함께 확인합니다.
 
-완료 전에 작업이 멈추면 보고에는 대신 `ha status`가 들어가고, 무엇이 부족한지 `### Unmet` 목록으로 보입니다.
+완료 전에 작업이 멈춰도 Seal은 `ha report`를 붙입니다. `다음 행동`이 해결할 것을 말하고, 마지막 부분이 미충족 조건마다 출력 원문의 위치를 보입니다.
 
 ```text
-- status: **incomplete** (exit 1)
+다음 행동: AC-2 `criterion_failed` 해결 (executor)
 
-### Unmet
+### 미충족 조건의 원문 위치
 
-- AC-2 `criterion_failed` (executor): seq 4, output `ha log docs/specs/password-link 4`
+- AC-2 `criterion_failed` (executor): seq 4, 원문 `ha log docs/specs/password-link 4`
 ```
 
 ### 다른 파일
@@ -493,7 +483,7 @@ Criteria-Format: nested/1
 - [WSL2 준비 안내](guides/WSL.md) · [Windows 네이티브 후보 안내](guides/WINDOWS.md)
 - [이미지 설명과 수정 방법](assets/readme/SOURCES.md)
 - [Ubuntu·macOS·Windows CI의 검사 범위](guides/CI.md)
-- [Spar로 하는 독립 검토](guides/SPAR.md): v0.1.6 다음 릴리스부터 `standard`·`strict` 목표에 필요
+- [Spar로 하는 독립 검토](guides/SPAR.md): v0.1.7부터 `standard`·`strict` 목표에 필요
 
 사용 경험이나 막힌 점은 [사용 보고·설치·버그 issue](https://github.com/jgoneit/jaekit/issues/new/choose)로 남겨 주세요. issue는 공개되므로 회사 코드, 내부 이름, 비밀 값과 로그 원문은 제외해 주세요.
 

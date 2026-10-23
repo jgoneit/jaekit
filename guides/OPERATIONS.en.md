@@ -2,7 +2,7 @@
 
 [한국어](OPERATIONS.md) · **English**
 
-This document describes preflight diagnostics, capability checks, `nested/1`, `/3` results, and total run-limit changes in v0.1.6 (ha 0.1.6, spec 0.1.12, seal 0.1.17). Existing goals keep their saved rules and formats. The difference between release distributions and source builds is in [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
+This document describes preflight diagnostics, capability checks, `nested/1`, `/3` results, and total run-limit changes in v0.1.7 (ha 0.1.7, spar 0.1.7, spec 0.1.13, seal 0.1.22, spar plugin 0.1.3). Existing goals keep their saved rules and formats. The difference between release distributions and source builds is in [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
 
 For first-time users, invocation, resuming, and troubleshooting are in the [usage guide](USAGE.en.md). For installation and checking versions, see the [install guide](INSTALL.en.md). This document explains in more detail how to read questions asked during work and the completion report.
 
@@ -138,7 +138,7 @@ Open a new conversation in the same project folder and send `docs/specs/<goal> �
 
 The reporting format introduced in Seal 0.1.10 distinguishes grounds for expected results, actual observation boundaries, test methods, and alternative environments. Condition groups can reference the same grounds. Reviews record planned items; completion and discontinuation reports record actual results, unobserved scope, and remaining risks. Actual execution is not in itself grounds for correctness, and fake results do not turn into real model observations. Time sources and new facts that altered judgments are also distinguished.
 
-Existing goals keep their starting formats, and omitted new items remain unrecorded. Past completions are never overwritten, nor are past observations backfilled. This reporting format is included starting with Seal 0.1.12 and is present in the current release v0.1.6. See the [synthetic reporting example](../examples/verification-reporting.md) (Korean).
+Existing goals keep their starting formats, and omitted new items remain unrecorded. Past completions are never overwritten, nor are past observations backfilled. This reporting format is included starting with Seal 0.1.12 and is present in the current release v0.1.7. See the [synthetic reporting example](../examples/verification-reporting.md) (Korean).
 
 ## Assurance policy
 

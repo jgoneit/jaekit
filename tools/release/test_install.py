@@ -19,9 +19,10 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-NAME = "ha_0.1.6_linux_amd64"
+NAME = "ha_0.1.7_linux_amd64"
 OLD = b"existing executable\n"
 NEW = b"synthetic replacement executable\n"
+NEW_SPAR = b"synthetic spar executable\n"
 GUIDES = (("INSTALL.md", "## Release 파일로 설치"),
           ("INSTALL.en.md", "## Install from a Release file"))
 spec = importlib.util.spec_from_file_location("release_archives", Path(__file__).with_name("check_archives.py"))
@@ -37,6 +38,13 @@ LAST_POINTER_RELEASE = (0, 1, 6)
 DOCUMENTS = (("README.md", "README.en.md", "LICENSE")
              if tuple(int(part) for part in NAME.split("_")[1].split(".")) <= LAST_POINTER_RELEASE
              else tuple(sorted(release.ROOT_FILES - {"ha"})))
+# The first release whose archives carry spar beside ha. Like the pointer
+# release above, it is a fact about published files, so the fixture archive
+# of a later release carries spar and the success case expects both binaries.
+FIRST_SPAR_RELEASE = (0, 1, 7)
+BINARIES = (("ha", "spar")
+            if tuple(int(part) for part in NAME.split("_")[1].split(".")) >= FIRST_SPAR_RELEASE
+            else ("ha",))
 
 
 def install_block(filename, heading):
@@ -62,7 +70,7 @@ if name == "uname":
     sys.exit(0)
 if name == "curl":
     filename = args[-1].rsplit("/", 1)[-1]
-    if filename not in {"ha_0.1.6_linux_amd64.tar.gz", "checksums.txt"}:
+    if filename not in {"ha_0.1.7_linux_amd64.tar.gz", "checksums.txt"}:
         sys.exit(9)
     shutil.copyfile(Path(os.environ["INSTALL_TEST_DIST"]) / filename, filename)
     sys.exit(0)
@@ -97,6 +105,9 @@ class InstallChecks(unittest.TestCase):
             (package / name).write_text("synthetic public document\n")
         (package / "ha").write_bytes(NEW)
         (package / "ha").chmod(0o755)
+        if "spar" in BINARIES:
+            (package / "spar").write_bytes(NEW_SPAR)
+            (package / "spar").chmod(0o755)
         dist = root / "dist"
         dist.mkdir()
         archive = dist / (NAME + ".tar.gz")
@@ -122,7 +133,7 @@ class InstallChecks(unittest.TestCase):
             script.write_text("#!/bin/sh\nexec " + shlex.quote(sys.executable) + " " + shlex.quote(str(wrapper)) + " " + command + ' "$@"\n')
             script.chmod(0o755)
         env["PATH"] = str(commands) + os.pathsep + os.environ.get("PATH", "")
-        return env, binary, install_root / ".local/share/jaekit/0.1.6"
+        return env, binary, install_root / ".local/share/jaekit/0.1.7"
 
     def run_block(self, filename, heading, root, env):
         return subprocess.run(["/bin/bash", "-c", install_block(filename, heading)],
@@ -141,7 +152,11 @@ class InstallChecks(unittest.TestCase):
                     self.assertEqual((share / "tools/fixture.txt").read_text(), "synthetic public file\n")
                     for name in DOCUMENTS:
                         self.assertEqual((share / name).read_text(), "synthetic public document\n")
-                    self.assertEqual(sorted(p.name for p in binary.parent.iterdir()), ["ha"])
+                    self.assertEqual(sorted(p.name for p in binary.parent.iterdir()), list(BINARIES))
+                    if "spar" in BINARIES:
+                        spar = binary.parent / "spar"
+                        self.assertEqual(spar.read_bytes(), NEW_SPAR)
+                        self.assertTrue(spar.stat().st_mode & 0o111)
 
     def test_checksum_data_and_replacement_failures_preserve_binary(self):
         for filename, heading in GUIDES:

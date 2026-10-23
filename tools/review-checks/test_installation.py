@@ -15,9 +15,13 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 GUIDES = {"INSTALL.md": "## 업데이트", "INSTALL.en.md": "## Update"}
-CURRENT = "0.1.6"
-OLDER = ("0.0.9", "0.0.10", "0.1.1", "0.1.3", "0.1.4", "0.1.5")
-NEWER = ("0.1.7", "0.1.10", "0.2.0", "1.0.0")
+CURRENT = "0.1.7"
+OLDER = ("0.0.9", "0.0.10", "0.1.1", "0.1.3", "0.1.4", "0.1.5", "0.1.6")
+NEWER = ("0.1.8", "0.1.10", "0.2.0", "1.0.0")
+# The synthetic marketplace version of the release-claim fixtures. Those
+# fixtures only need to agree with themselves, so a release bump leaves them
+# and the fixtures other checks pass in unchanged.
+CLAIM_FIXTURE_RELEASE = "0.1.6"
 SHELLS = tuple(os.environ.get("JAEKIT_TEST_" + name.upper()) or shutil.which(name) or name
                for name in ("bash", "zsh"))
 
@@ -215,7 +219,7 @@ class AC12(unittest.TestCase):
             (fixture / "plugins/helpers_test.go").write_text(GO_HELPERS)
             (fixture / "go.mod").write_text("module example.invalid/releaseclaims\n\ngo 1.20\n")
             (fixture / ".claude-plugin").mkdir()
-            (fixture / ".claude-plugin/marketplace.json").write_text(json.dumps({"metadata": {"version": CURRENT}}))
+            (fixture / ".claude-plugin/marketplace.json").write_text(json.dumps({"metadata": {"version": CLAIM_FIXTURE_RELEASE}}))
             for path in ("README.md", "README.en.md", "guides/USAGE.md", "examples/README.md"):
                 file = fixture / path
                 file.parent.mkdir(parents=True, exist_ok=True)

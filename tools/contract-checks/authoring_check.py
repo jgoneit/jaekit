@@ -431,8 +431,8 @@ def observe(root, suite, criterion):
                 problems.append(".claude-plugin/marketplace.json is absent or not a JSON object")
                 market = {}
             metadata, entries = market.get("metadata"), market.get("plugins")
-            if not isinstance(metadata, dict) or metadata.get("version") != "0.1.6":
-                problems.append("marketplace release identity is not 0.1.6")
+            if not isinstance(metadata, dict) or metadata.get("version") != "0.1.7":
+                problems.append("marketplace release identity is not 0.1.7")
             if not isinstance(entries, list) or not all(isinstance(entry, dict) for entry in entries):
                 problems.append(".claude-plugin/marketplace.json plugins is not a list of objects")
                 entries = []

@@ -1,0 +1,46 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "ReleaseIdentity",
+      "violation": "release-identity-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease017AC2_ReleaseIdentity"
+      }
+    },
+    {
+      "id": "PinsAndDownloads",
+      "violation": "release-pin-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease017AC2_PinsAndDownloads"
+      }
+    },
+    {
+      "id": "NextReleaseNamed",
+      "violation": "next-release-unnamed",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease017AC2_NextReleaseNamed"
+      }
+    },
+    {
+      "id": "WindowsPlan",
+      "violation": "windows-plan-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease017AC2_WindowsPlanPast017"
+      }
+    },
+    {
+      "id": "PinTests",
+      "violation": "pin-test-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease017AC2_PinTestsExpect017"
+      }
+    }
+  ]
+}

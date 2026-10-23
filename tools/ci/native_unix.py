@@ -142,7 +142,7 @@ def snapshot(root):
 
 
 def public_files(root, env):
-    fixed = ["LICENSE", "README.md", "README.en.md", "tools/check-result-reference.py"]
+    fixed = ["LICENSE", "README.md", "README.ko.md", "tools/check-result-reference.py"]
     fixed += ["examples/check-result/" + name for name in ("README.md", "declaration.json", "reference.json", "input.txt")]
     names = invoke(["git", "ls-files", "-z", "--", *fixed, "guides", "contracts", "assets"], root=root, env=env).stdout.split("\0")
     require(set(fixed) <= set(names), "candidate is missing a required tracked public file")

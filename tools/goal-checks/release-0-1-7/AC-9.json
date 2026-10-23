@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Combination",
+      "violation": "combination-unstated",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease017AC9_CombinationStated"
+      }
+    },
+    {
+      "id": "ShippedNotDeferred",
+      "violation": "shipped-feature-deferred",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease017AC9_ShippedNotDeferred"
+      }
+    }
+  ]
+}

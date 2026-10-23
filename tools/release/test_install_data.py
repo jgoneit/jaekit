@@ -117,12 +117,12 @@ class DirectData(unittest.TestCase):
             with self.subTest(guide=filename):
                 home = self.home()
                 share = home / ".local/share/jaekit"
-                for version in ("0.1.1", "0.1.2", "0.1.3", "0.1.4", "0.1.5", "0.1.6"):
+                for version in ("0.1.1", "0.1.2", "0.1.3", "0.1.4", "0.1.5", "0.1.6", "0.1.7"):
                     self.version_data(share, version)
                 cleanup = [b for b in direct_blocks(filename, "update") if ".local/share/jaekit" in b]
                 self.assertEqual(len(cleanup), 1, f"{filename} update has no single data cleanup block")
                 self.run_bash(bind(cleanup[0], home), home, home)
-                self.assertEqual(sorted(p.name for p in share.iterdir()), ["0.1.6"])
+                self.assertEqual(sorted(p.name for p in share.iterdir()), ["0.1.7"])
                 prose = section(filename, SECTIONS[filename]["update"])
                 self.assertIn("~/.local/share/jaekit", prose)
                 # The current version's reference acquisition still works.
@@ -134,9 +134,9 @@ class DirectData(unittest.TestCase):
                 project.mkdir()
                 self.run_bash(bind(direct[0], home) + copy[0], home, project)
                 self.assertEqual((project / "tools/check-result-reference.py").read_text(),
-                                 "synthetic 0.1.6 tools/check-result-reference.py\n")
+                                 "synthetic 0.1.7 tools/check-result-reference.py\n")
                 self.assertEqual((project / "sample/input.txt").read_text(),
-                                 "synthetic 0.1.6 examples/check-result/input.txt\n")
+                                 "synthetic 0.1.7 examples/check-result/input.txt\n")
 
     def test_update_cleanup_does_not_follow_a_linked_data_root(self):
         for filename in SECTIONS:
@@ -188,7 +188,10 @@ class DirectData(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0, "install reused data containing " + entry)
                 self.assertEqual(binary.read_bytes(), test_install.OLD)
                 self.assertEqual(binary.stat().st_mode, before)
-                self.assertEqual(sorted(p.name for p in binary.parent.iterdir()), ["ha"])
+                # The first install also put spar in place; the refused one leaves it.
+                self.assertEqual(sorted(p.name for p in binary.parent.iterdir()), list(test_install.BINARIES))
+                if "spar" in test_install.BINARIES:
+                    self.assertEqual((binary.parent / "spar").read_bytes(), test_install.NEW_SPAR)
                 self.assertIn(entry, result.stdout + result.stderr)
                 verify()
 

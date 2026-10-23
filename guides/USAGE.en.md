@@ -4,7 +4,7 @@
 
 This guide follows [your first task in the README](../README.md#your-first-task). For installation, updates, and removal, see the [install guide](INSTALL.en.md).
 
-The current release v0.1.6 combines ha 0.1.6, spec 0.1.12, seal 0.1.17 and default rules `/3`. Starting with Seal 0.1.16, Seal starts new goals under `run-rules/4`. Preflight refusal, run estimation, `/3` result classification and budget policy apply to this release. Existing goals keep their saved rules. See [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
+The current release v0.1.7 combines ha 0.1.7, spar 0.1.7, spec 0.1.13, seal 0.1.22 and the spar plugin 0.1.3. The default rules are `/3`; Seal starts new goals under `run-rules/4` from 0.1.16 and under `run-rules/5` from 0.1.21. Preflight refusal, run estimation, `/3` result classification and budget policy apply to this release. Existing goals keep their saved rules. See [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
 
 ## Sending commands
 
@@ -229,7 +229,7 @@ If you approve that count, write it as a number in the plan or raise `preapprove
 
 ## Seal's pre-start checks and review order
 
-Seal 0.1.20 declares the Core support it needs in `core-requirements.json` in its skill folder and starts with `ha start --check-skill`. When the executable lacks support such as `ha report`, `ha doctor`, the automatic budget or the assurance tier check, `ha` refuses the start without a record, and Seal reports the executable and the message and stops. It does not install tools or fall back to older rules. The `ha` of release v0.1.6 does not accept this start, so this combination needs an `ha` that includes those commands.
+Seal 0.1.20 declares the Core support it needs in `core-requirements.json` in its skill folder and starts with `ha start --check-skill`. When the executable lacks support such as `ha report`, `ha doctor`, the automatic budget or the assurance tier check, `ha` refuses the start without a record, and Seal reports the executable and the message and stops. It does not install tools or fall back to older rules. The `ha` of release v0.1.7 has all of this support. The `ha` of v0.1.6 and earlier does not accept this start.
 
 - **One budget question.** When the request names no budget, Seal writes `검증 실행: 자동` in PLAN. Within the pre-approved limit it starts without asking; above it, Seal asks once, showing the computed and pre-approved limits. The number you give goes into PLAN, and the same PLAN never gets the question again. Seal does not write or change `ha.json`.
 - **Environment check before the start.** When checks use a browser, database, container or external service, Seal lists it in the PLAN section `## 실행 환경` and runs `ha doctor` before recording any baseline and, after a resume, before the next check. It gathers unavailable tools into one question and never widens permissions or settings on its own.
@@ -249,7 +249,7 @@ The Seal skill body went from about 4,600 words to at most 2,200 words. The form
 
 ## Review gate (run-rules/5)
 
-From the release after v0.1.6, Seal (0.1.21 or later) starts new goals with `ha start --rules run-rules/5`. `run-rules/5` keeps all of `run-rules/4`'s autonomy and adds a recorded independent review as a completion condition for goals whose SPEC tier is `standard` or `strict`. So a `standard` or `strict` goal started under `run-rules/5` completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` (see the list below).
+From v0.1.7, Seal (0.1.21 or later) starts new goals with `ha start --rules run-rules/5`. `run-rules/5` keeps all of `run-rules/4`'s autonomy and adds a recorded independent review as a completion condition for goals whose SPEC tier is `standard` or `strict`. So a `standard` or `strict` goal started under `run-rules/5` completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` (see the list below).
 
 When the installed `ha` does not know `run-rules/5` or other support Seal requires, Seal stops without a record and does not fall back to older rules. What to do is install an `ha` that has that support.
 
@@ -274,7 +274,7 @@ When the installed `ha` does not know `run-rules/5` or other support Seal requir
 | The start stops with `exceeds the pre-approved limit` | Decide whether to approve the computed count. If you do, write it as the plan's `검증 실행` number or raise `preapproved_runs` in `ha.json`. See [Automatic budget](#automatic-budget) |
 | The start stops with a `pre-approved run limit` error | Read the `ha.json` path and reason it shows, then fix the file to `{"preapproved_runs": <whole number>}` or remove it |
 | The budget ran out | Read what remains and decide whether to continue; see the budget details below |
-| Seal stopped for Core compatibility | Read the executable it checked and the missing support. Follow [Update](INSTALL.en.md#update) to install the v0.1.6 combination, then check the capabilities of the Core actually selected. Do not bypass the check by automatically installing tools or switching rules |
+| Seal stopped for Core compatibility | Read the executable it checked and the missing support. Follow [Update](INSTALL.en.md#update) to install the v0.1.7 combination, then check the capabilities of the Core actually selected. Do not bypass the check by automatically installing tools or switching rules |
 
 <details>
 <summary>Removing older installations</summary>
@@ -309,6 +309,6 @@ The reporting format introduced in Seal 0.1.10 separates these four things in th
 - Methods and substitutes.
 - Unobserved scope.
 
-Condition groups may share an explanation; a plan is not an observation. The current release v0.1.6 includes this format in Seal 0.1.17; existing goal formats stay unchanged.
+Condition groups may share an explanation; a plan is not an observation. The current release v0.1.7 includes this format in Seal 0.1.22; existing goal formats stay unchanged.
 
 See the [synthetic reporting example](../examples/verification-reporting.md); it is not an actual execution record.

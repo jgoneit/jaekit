@@ -2,7 +2,7 @@
 
 [한국어](WINDOWS.md) · **English**
 
-This guide covers two paths targeting **Windows 11 x64 with Windows PowerShell 5.1 and PowerShell 7**: the [public release path](#install-from-a-public-release), which installs from a public release with Windows files, and the local candidate installation path after it. It does not mean the current public release, `v0.1.6`, includes Windows files. Candidate packaging and cross-compilation do not establish Windows installation, execution, or actual agent Skill loading. Read the observations and remaining gaps for the particular candidate.
+This guide covers two paths targeting **Windows 11 x64 with Windows PowerShell 5.1 and PowerShell 7**: the [public release path](#install-from-a-public-release), which installs from a public release with Windows files, and the local candidate installation path after it. It does not mean the current public release, `v0.1.7`, includes Windows files. Candidate packaging and cross-compilation do not establish Windows installation, execution, or actual agent Skill loading. Read the observations and remaining gaps for the particular candidate.
 
 Windows ARM64/x86, earlier Windows versions, network/UNC repositories and using the same checkout from both Windows and WSL are outside this path's support scope. WSL and native Windows support are separate.
 
@@ -22,14 +22,14 @@ The block proceeds only in this order:
 
 **Checksums.** Checksums establish that the downloaded ZIP matches the same release's list. They are not signatures that authenticate the source. Read this guide and the block from a trusted source.
 
-No public release with Windows files exists yet, and the current release, `v0.1.6`, has no Windows files. The block below works once the first release with Windows files is published. Its version value (planned `0.1.7`) is confirmed when that release is prepared. Until then, use the candidate path below.
+No public release with Windows files exists yet, and the current release, `v0.1.7`, has no Windows files. The block below works once the first release with Windows files is published. Its version value (planned `0.1.8`) is confirmed when that release is prepared. Until then, use the candidate path below.
 
 <!-- BEGIN WINDOWS PUBLIC INSTALL -->
 ```powershell
 & {
     $ErrorActionPreference = 'Stop'
     $ProgressPreference = 'SilentlyContinue'
-    $version = '0.1.7'
+    $version = '0.1.8'
     $source = 'https://github.com/jgoneit/jaekit/releases/download/v' + $version
     $name = 'ha_' + $version + '_windows_amd64.zip'
     $shell = (Get-Process -Id $PID).Path
@@ -99,7 +99,7 @@ Close `ha` and running checks, then paste the block below. It checks the downloa
 & {
     $ErrorActionPreference = 'Stop'
     $ProgressPreference = 'SilentlyContinue'
-    $version = '0.1.7'
+    $version = '0.1.8'
     $source = 'https://github.com/jgoneit/jaekit/releases/download/v' + $version
     $name = 'ha_' + $version + '_windows_amd64.zip'
     $shell = (Get-Process -Id $PID).Path
@@ -263,7 +263,7 @@ Keep goal documents and checks in a local Windows Git project. The plugin instal
 
 ## Optional decision history
 
-The current-source Windows x64 local candidate provides [decision history](../contracts/decision-history.md): add, replay, correction, default/current, list and show by event ID or request ID. Verify that the selected executable declares `decision-history/v1` in both `features` and `formats.decision_history`. Public release v0.1.6 has no Windows files and v0.1.4 and earlier do not contain this extension; a version number alone does not establish support.
+The current-source Windows x64 local candidate provides [decision history](../contracts/decision-history.md): add, replay, correction, default/current, list and show by event ID or request ID. Verify that the selected executable declares `decision-history/v1` in both `features` and `formats.decision_history`. Public release v0.1.7 has no Windows files and v0.1.4 and earlier do not contain this extension; a version number alone does not establish support.
 
 Ordinary and linked worktrees on local drives share the Git common directory's history and lock, including paths with spaces and Unicode. Junctions and reparse points in storage paths are refused as `history_unreadable`. File references passing the existing relative-path grammar that Windows interprets as devices, named pipes, alternate data streams or drive-relative paths are not opened: they remain `unreadable` observations without a version, without rejecting an otherwise valid event. Existing data and valid macOS/Linux names are not rewritten or automatically repaired.
 

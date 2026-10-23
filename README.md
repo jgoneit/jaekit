@@ -16,7 +16,7 @@ Jaekit **carries work you delegate to Codex or Claude Code from a goal to a comp
 - **Spec** turns what you want into a goal document with completion conditions.
 - **Seal** has the agent implement, check, and fix the work toward that goal, and judges completion from check records.
 
-The current release is **v0.1.6**, an early version being refined through real work.
+The current release is **v0.1.7**, an early version being refined through real work.
 
 ## Why use it
 
@@ -121,7 +121,7 @@ Then check your agent.
 
 #### 1. Install the record tool `ha` in Terminal
 
-Run one block at a time and wait for it to finish.
+Run one block at a time and wait for it to finish. Homebrew installs `ha` and `spar` together.
 
 ```bash
 brew install jgoneit/tap/jaekit
@@ -132,9 +132,9 @@ ha --version
 which -a ha
 ```
 
-It should print `ha 0.1.6`. The first line of `which -a ha` is the file that actually runs. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
+It should print `ha 0.1.7`. The first line of `which -a ha` is the file that actually runs. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
 
-To install without Homebrew, paste the block under [Install from a Release file](guides/INSTALL.en.md#install-from-a-release-file) instead of this step. It downloads the file for your OS and CPU, checks its checksum, and puts it at `~/.local/bin/ha`. Other methods and details are in the [install guide](guides/INSTALL.en.md).
+To install without Homebrew, paste the block under [Install from a Release file](guides/INSTALL.en.md#install-from-a-release-file) instead of this step. It downloads the file for your OS and CPU, checks its checksum, and puts `ha` and `spar` at `~/.local/bin/ha` and `~/.local/bin/spar`. Other methods and details are in the [install guide](guides/INSTALL.en.md).
 
 #### 2. Install the plugins for your agent
 
@@ -145,28 +145,30 @@ If you already installed Jaekit, follow [Update](#update) below. If you register
 **Claude Code**
 
 ```bash
-claude plugin marketplace add jgoneit/jaekit#v0.1.6
+claude plugin marketplace add jgoneit/jaekit#v0.1.7
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
+claude plugin install spar@jaekit
 claude plugin list
 ```
 
 > [!TIP]
-> **Reopen Claude Code after installation.** The final list should show `spec@jaekit` and `seal@jaekit` as enabled. `#v0.1.6` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
+> **Reopen Claude Code after installation.** The final list should show `spec@jaekit`, `seal@jaekit` and `spar@jaekit` as enabled. `#v0.1.7` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
 
 **Codex**
 
 ```bash
-codex plugin marketplace add jgoneit/jaekit@v0.1.6
+codex plugin marketplace add jgoneit/jaekit@v0.1.7
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
+codex plugin add spar@jaekit
 ```
 
 > [!TIP]
-> **Reopen Codex after installation.** `@v0.1.6` pins the release to use.
+> **Reopen Codex after installation.** `@v0.1.7` pins the release to use.
 
 > [!NOTE]
-> **Spar for `standard` and `strict` goals.** From the release after v0.1.6, `standard` and `strict` goals need the Spar executable and the Spar plugin, with reviewers set to the CLIs you have: see [Spar](guides/INSTALL.en.md#spar). That release's Seal starts new goals under `run-rules/5`, and a `standard` or `strict` goal started under `run-rules/5` completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](guides/USAGE.en.md#review-gate-run-rules5)).
+> **Spar for `standard` and `strict` goals.** From v0.1.7, `standard` and `strict` goals need the Spar executable and the Spar plugin, which the commands above install, with reviewers set to the CLIs you have: see [Spar](guides/INSTALL.en.md#spar). The v0.1.7 Seal starts new goals under `run-rules/5`, and a `standard` or `strict` goal started under `run-rules/5` completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](guides/USAGE.en.md#review-gate-run-rules5)).
 
 ### Your first task
 
@@ -234,7 +236,7 @@ Replace `<goal>` with its actual folder name to continue from the saved goal and
 ### Update
 
 > [!WARNING]
-> When a new release comes out, update `ha` and both plugins **together**. With mixed versions, Seal may stop before recording.
+> When a new release comes out, update `ha` and the plugins **together**. With mixed versions, Seal may stop before recording.
 
 #### 1. Update `ha`
 
@@ -263,29 +265,31 @@ If you installed both with Homebrew and from a Release file, remove the one you 
 
 #### 3. Register the plugins again for the new release
 
-Removing the marketplace also removes its spec and seal, so install them again.
+Removing the marketplace also removes its spec, seal and spar, so install them again.
 
 **Claude Code**
 
 ```bash
 claude plugin marketplace remove jaekit
-claude plugin marketplace add jgoneit/jaekit#v0.1.6
+claude plugin marketplace add jgoneit/jaekit#v0.1.7
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
+claude plugin install spar@jaekit
 ```
 
 **Codex**
 
 ```bash
 codex plugin marketplace remove jaekit
-codex plugin marketplace add jgoneit/jaekit@v0.1.6
+codex plugin marketplace add jgoneit/jaekit@v0.1.7
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
+codex plugin add spar@jaekit
 ```
 
 #### 4. Reopen Claude Code or Codex
 
-The new Spec and Seal load in newly opened sessions.
+The new Spec, Seal and Spar load in newly opened sessions.
 
 Updating does not delete goal documents or run records. To clean up earlier versions' data or uninstall, see [Update](guides/INSTALL.en.md#update) and [Uninstall](guides/INSTALL.en.md#uninstall).
 
@@ -315,75 +319,61 @@ docs/specs/password-link/
 
 ![Fictional completion report for password-link: complete, with completion record seq 5. AC-1 change failed before the change (seq 2) and passed after it (seq 3). AC-2 maintain passed (seq 4). Assurance local; check author executor.](assets/readme/report-card.en.png)
 
-When the required conditions are met, Seal runs `ha done` and pastes its output unchanged into `PROGRESS.md` under `## 완료 보고`, followed by its own notes. On GitHub it looks like this:
-
-> **ha status: docs/specs/password-link**
->
-> - status: **complete** (exit 0)
-> - completion record: seq 5
-> - assurance: local (an agent with the same user permissions can change checks and records)
-> - check author: executor
-> - rules: run-rules/4; skill: seal 0.1.17 (claimed); ha: 0.1.6
->
-> | ID | kind | required | satisfied | reason | records | attempts |
-> | --- | --- | --- | --- | --- | --- | --- |
-> | AC-1 | change | yes | yes | — | 2, 3 | checks 1 (fail 0, error 0), baselines 1 (unexpected pass 0, error 0), stale 0 |
-> | AC-2 | maintain | yes | yes | — | 4 | checks 1 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
->
-> - Completion coverage: completion record seq 5 at commit aa4bd917b591, which is the head to push.
-> - Changed files (agent's claim): src/login.html for AC-1.
-> - Remaining limits: assurance local; the agent wrote the checks; no manual conditions.
-
-<details>
-<summary>View the same report as Markdown in <code>PROGRESS.md</code></summary>
+When `ha done` records completion, Seal pastes the output of `ha report` unchanged into `PROGRESS.md` under `## 완료 보고`, then adds only its own judgment below it. `ha report` prints English by default and Korean with `--lang ko`; Seal uses the language of your request. The section looks like this:
 
 ```markdown
 ## 완료 보고
 
-## ha status: docs/specs/password-link
+Changed: 1 files and 1 commits outside the bundle documents since base fe4597cf233f
+Checked: 2 of 2 required conditions satisfied (2 by check records, 0 by user confirmation); 1 of 1 change conditions have a fresh baseline
+To review: none
+Remaining limits: assurance local; check author: executor
+Next step: none; completion record seq 5 holds and nothing is left to do
 
-- status: **complete** (exit 0)
-- completion record: seq 5
-- assurance: local (an agent with the same user permissions can change checks and records)
-- check author: executor
-- record head: seq 5 (315888484b42)
-- rules: run-rules/4; skill: seal 0.1.17 (claimed); ha: 0.1.6
-- code: aa4bd917b591, tree clean: yes; goal digest: f1f24cc156b0
-- attempts: 3 total; types: 2 check, 1 baseline; outcomes: 0 environment errors, 0 unknown; inputs: 3 current, 0 stale; valid positive evidence: 3 (overlapping axes)
+### Stamp for `## 현재`
 
-### Criteria
+- record head: seq 5 (0a94eba41234), recorded at 2026-10-23T10:06:33Z; status: complete; completion record: seq 5
 
-| ID | kind | required | satisfied | reason | records | attempts |
-| --- | --- | --- | --- | --- | --- | --- |
-| AC-1 | change | yes | yes | — | 2, 3 | checks 1 (fail 0, error 0), baselines 1 (unexpected pass 0, error 0), stale 0 |
-| AC-2 | maintain | yes | yes | — | 4 | checks 1 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+### Evidence per condition
 
-### Reasons
+Source: completion record seq 5
+| ID | kind | required | satisfied | records |
+| --- | --- | --- | --- | --- |
+| AC-1 | change | yes | yes | 2, 3 |
+| AC-2 | maintain | yes | yes | 4 |
 
-None.
+### Completion coverage
 
-- Completion coverage: completion record seq 5 at commit aa4bd917b591, which is the head to push.
+- completion record seq 5, commit e887828a0035; HEAD e887828a0035 is covered
+
+### Output of unmet conditions
+
+- none
+
+Seal's judgment:
+
 - Changed files (agent's claim): src/login.html for AC-1.
-- Remaining limits: assurance local; the agent wrote the checks; no manual conditions.
+- Manual conditions and assumed decisions: none.
+- Review: the SPEC has no `Assurance:` line, so this goal needs no review gate.
+- The head to push is the completion record's commit e887828a0035.
+- This report does not establish deployment or installation. Assurance is local, and the agent wrote the checks.
 ```
-
-</details>
 
 How to read it:
 
-- **status** is computed by `ha` from the run record, Git and the goal documents; it is not the agent's own claim. A completion record seq means `ha done` recorded it.
-- **records** are line numbers (seq) in `runs.jsonl`. For AC-1, seq 2 is the check run on the starting commit, failing as declared, and seq 3 is the same check passing on the result.
+- The five lines at the top say what changed, what was checked, what you should look at yourself, the limits that remain and the next step. `ha report` computes them from the run record, Git and the goal documents; they are not the agent's own claim.
+- **records** are line numbers (seq) in `runs.jsonl`. For AC-1, seq 2 is the check run on the starting commit, failing as declared, and seq 3 is the same check passing on the result. Completion record seq 5 means `ha done` recorded completion.
 - The raw output of a run stays in `.git/ha/`. `ha log docs/specs/password-link 3` prints it in Terminal.
 
 > [!IMPORTANT]
-> **assurance: local** and **check author: executor** mean the agent wrote and ran the checks on your computer. This is not independent third-party verification, so review the changed checks and the actual result too.
+> **assurance local** and **check author: executor** under `Remaining limits` mean the agent wrote and ran the checks on your computer. This is not independent third-party verification, so review the changed checks and the actual result too.
 
-If the work stops before completion, the report shows `ha status` instead, with an `### Unmet` list of what is missing:
+If the work stops before completion, Seal still pastes `ha report`. `Next step` names what to resolve, and the last section shows where each unmet condition's output is:
 
 ```text
-- status: **incomplete** (exit 1)
+Next step: resolve AC-2 `criterion_failed` (executor)
 
-### Unmet
+### Output of unmet conditions
 
 - AC-2 `criterion_failed` (executor): seq 4, output `ha log docs/specs/password-link 4`
 ```
@@ -509,7 +499,7 @@ Installing, updating, or uninstalling does not delete these records. Git trackin
 - [WSL2 preparation guide](guides/WSL.en.md) · [Windows native candidate guide](guides/WINDOWS.en.md)
 - [About the images and how to edit them](assets/readme/SOURCES.en.md)
 - [What Ubuntu, macOS and Windows CI checks](guides/CI.en.md)
-- [Independent review rounds with Spar](guides/SPAR.en.md), needed for `standard` and `strict` goals from the release after v0.1.6
+- [Independent review rounds with Spar](guides/SPAR.en.md), needed for `standard` and `strict` goals from v0.1.7
 
 Share your experience or where you got stuck in a [usage report or install/bug issue](https://github.com/jgoneit/jaekit/issues/new/choose). Issues are public: leave out company code, internal names, secrets, and raw logs.
 
