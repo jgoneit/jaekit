@@ -5,7 +5,8 @@ card are drawn as SVG by the scripts in this folder. They are conceptual
 illustrations: not screenshots, execution transcripts, or claims that any check
 passed. The `password-link` goal, its commits and its record numbers are
 fictional. The walkthrough's commands and output lines use the formats `ha` and
-`spar` v0.1.7 print, shortened where it shows "…".
+`spar` v0.1.7 print, shortened where a line shows "…" or a panel title says
+"shortened", in which case the panel leaves out whole lines or sections.
 
 ## Files
 

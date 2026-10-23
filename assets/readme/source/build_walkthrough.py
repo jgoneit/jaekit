@@ -3,8 +3,9 @@
 
 The walkthrough follows one fictional goal, password-link, from the request to
 the completion report. Commands and output lines use the formats `ha` and
-`spar` v0.1.7 print, shortened where marked with "…"; the goal, commits and
-record numbers are fictional. render_readme_images.cjs turns the outlined
+`spar` v0.1.7 print, shortened where a line shows "…" or a panel title says
+"shortened" (then whole lines or sections are left out); the goal, commits
+and record numbers are fictional. render_readme_images.cjs turns the outlined
 frames into assets/readme/demo.en.gif.
 
 Requires Python 3 and fonttools and the Noto Sans CJK KR font files; see
