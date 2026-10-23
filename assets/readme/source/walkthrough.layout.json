@@ -1528,10 +1528,10 @@
         "font_size": 16
       },
       {
-        "text": "docs/specs/password-link/PROGRESS.md",
+        "text": "docs/specs/password-link/PROGRESS.md · shortened",
         "x": 68,
         "y": 238,
-        "width": 328.59,
+        "width": 426.37,
         "font_size": 16
       },
       {
@@ -1619,17 +1619,17 @@
         "font_size": 16
       },
       {
-        "text": "Source: completion record seq 6",
+        "text": "| ID | kind | required | satisfied | records |",
         "x": 68,
         "y": 508,
-        "width": 241.06,
+        "width": 293.81,
         "font_size": 16
       },
       {
-        "text": "| ID | kind | required | satisfied | records |",
+        "text": "| --- | --- | --- | --- | --- |",
         "x": 68,
         "y": 536,
-        "width": 293.81,
+        "width": 145.04,
         "font_size": 16
       },
       {

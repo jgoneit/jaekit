@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title description" xml:lang="en">
 <title id="title">Jaekit walkthrough, frame 9: Report</title>
-<desc id="description">Frame 9 of 9, Report: ## 완료 보고 Changed: 1 files and 1 commits outside the bundle … Checked: 2 of 2 required conditions satisfied (…) To review: none Remaining limits: assurance local; check author: executor Next step: none; completion record seq 6 holds … ### Evidence per condition Source: completion record seq 6 | ID | kind | required | satisfied | records | | AC-1 | change | yes | yes | 2, 3 | | AC-2 | maintain | yes | yes | 4 | — Read the report. Seal pastes ha report into PROGRESS.md, then adds its own judgment below it. The agent wrote the checks: review the result yourself. Fictional example; not a recording of a real run.</desc>
+<desc id="description">Frame 9 of 9, Report: ## 완료 보고 Changed: 1 files and 1 commits outside the bundle … Checked: 2 of 2 required conditions satisfied (…) To review: none Remaining limits: assurance local; check author: executor Next step: none; completion record seq 6 holds … ### Evidence per condition | ID | kind | required | satisfied | records | | --- | --- | --- | --- | --- | | AC-1 | change | yes | yes | 2, 3 | | AC-2 | maintain | yes | yes | 4 | — Read the report. Seal pastes ha report into PROGRESS.md, then adds its own judgment below it. The agent wrote the checks: review the result yourself. Fictional example; not a recording of a real run.</desc>
 <rect x="0" y="0" width="1280" height="720" rx="0" fill="#FAFBFD"/>
 <text x="44" y="56" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="26" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">Jaekit</text>
 <rect x="1004" y="28" width="232" height="42" rx="21" fill="#EDF0FF" stroke="#D7DFE9" stroke-width="2"/>
@@ -21,7 +21,7 @@
 <rect x="1076.0" y="140" width="160.0" height="6" rx="3" fill="#4F6CF7"/>
 <text x="1076.0" y="172" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="700" fill="#4F6CF7" text-anchor="start" xml:space="preserve">Report</text>
 <rect x="44" y="204" width="792" height="418" rx="16" fill="#FFFFFF" stroke="#D7DFE9" stroke-width="2"/>
-<text x="68" y="238" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">docs/specs/password-link/PROGRESS.md</text>
+<text x="68" y="238" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">docs/specs/password-link/PROGRESS.md · shortened</text>
 <path d="M68 254H812" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 <rect x="60" y="268" width="103.808" height="29" rx="6" fill="#F0F3F8"/>
 <rect x="60" y="460" width="313.808" height="141" rx="6" fill="#F0F3F8"/>
@@ -37,8 +37,8 @@
 <text x="68" y="436" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="700" fill="#0B5A4C" text-anchor="start" xml:space="preserve">Next step:</text>
 <text x="156.096" y="436" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">none; completion record seq 6 holds …</text>
 <text x="68" y="480" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">### Evidence per condition</text>
-<text x="68" y="508" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">Source: completion record seq 6</text>
-<text x="68" y="536" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">| ID | kind | required | satisfied | records |</text>
+<text x="68" y="508" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">| ID | kind | required | satisfied | records |</text>
+<text x="68" y="536" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">| --- | --- | --- | --- | --- |</text>
 <text x="68" y="564" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">| AC-1 | change | yes | yes | 2, 3 |</text>
 <text x="68" y="592" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">| AC-2 | maintain | yes | yes | 4 |</text>
 <rect x="860" y="204" width="376" height="418" rx="16" fill="#EDF0FF" stroke="#D7DFE9" stroke-width="2"/>

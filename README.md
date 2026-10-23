@@ -57,7 +57,7 @@ flowchart TD
         spar -->|"a finding to fix"| build
     end
     decide{{"You answer a question<br/>that changes the requirements"}}
-    done["ha done<br/>completion record"]
+    done["ha done records completion<br/>when the required conditions are met"]
     report(["You review the report<br/>in PROGRESS.md: what changed<br/>and how it was checked"])
     resume(["The conversation ended?<br/>Open a new one<br/>in the same project"])
 

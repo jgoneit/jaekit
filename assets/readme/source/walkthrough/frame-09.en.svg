@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title description" xml:lang="en">
 <title id="title">Jaekit walkthrough, frame 9: Report</title>
-<desc id="description">Frame 9 of 9, Report: ## 완료 보고 Changed: 1 files and 1 commits outside the bundle … Checked: 2 of 2 required conditions satisfied (…) To review: none Remaining limits: assurance local; check author: executor Next step: none; completion record seq 6 holds … ### Evidence per condition Source: completion record seq 6 | ID | kind | required | satisfied | records | | AC-1 | change | yes | yes | 2, 3 | | AC-2 | maintain | yes | yes | 4 | — Read the report. Seal pastes ha report into PROGRESS.md, then adds its own judgment below it. The agent wrote the checks: review the result yourself. Fictional example; not a recording of a real run.</desc>
+<desc id="description">Frame 9 of 9, Report: ## 완료 보고 Changed: 1 files and 1 commits outside the bundle … Checked: 2 of 2 required conditions satisfied (…) To review: none Remaining limits: assurance local; check author: executor Next step: none; completion record seq 6 holds … ### Evidence per condition | ID | kind | required | satisfied | records | | --- | --- | --- | --- | --- | | AC-1 | change | yes | yes | 2, 3 | | AC-2 | maintain | yes | yes | 4 | — Read the report. Seal pastes ha report into PROGRESS.md, then adds its own judgment below it. The agent wrote the checks: review the result yourself. Fictional example; not a recording of a real run.</desc>
 <defs>
 <path id="b0" d="M252 -14C411 -14 481 100 481 239V741H333V251C333 149 299 114 234 114C192 114 152 137 124 191L23 116C72 29 145 -14 252 -14Z"/>
 <path id="b1" d="M216 -14C281 -14 337 17 385 60H390L400 0H520V327C520 489 447 574 305 574C217 574 137 540 72 500L124 402C176 433 226 456 278 456C347 456 371 414 373 359C148 335 51 272 51 153C51 57 116 -14 216 -14ZM265 101C222 101 191 120 191 164C191 215 236 252 373 268V156C338 121 307 101 265 101Z"/>
@@ -54,47 +54,48 @@
 <path id="b49" d="M91 0H556V124H239V322H498V446H239V617H545V741H91Z"/>
 <path id="b50" d="M312 -14C483 -14 584 89 584 210C584 317 525 375 435 412L338 451C275 477 223 496 223 549C223 598 263 627 328 627C390 627 439 604 486 566L561 658C501 719 415 754 328 754C179 754 72 660 72 540C72 432 148 372 223 342L321 299C387 271 433 254 433 199C433 147 392 114 315 114C250 114 179 147 127 196L42 94C114 24 213 -14 312 -14Z"/>
 <path id="b51" d="M163 -14C215 -14 254 28 254 82C254 137 215 178 163 178C110 178 71 137 71 82C71 28 110 -14 163 -14Z"/>
-<path id="r52" d="M101 0H160L188 229H336L309 0H369L396 229H500V292H404L425 458H522V521H432L458 726H398L372 521H223L249 726H190L164 521H62V458H157L136 292H40V229H128ZM195 292 216 458H365L344 292Z"/>
-<path id="r53" d="M323 721C409 721 468 675 468 606C468 538 409 492 323 492C238 492 178 538 178 606C178 675 238 721 323 721ZM59 268C214 268 428 271 617 306L611 367C534 355 450 348 367 343V431C474 445 546 512 546 606C546 713 454 785 323 785C192 785 100 713 100 606C100 511 174 443 284 430V340C199 337 118 336 49 336ZM668 826V134H751V451H883V521H751V826ZM179 193V-57H783V11H262V193Z"/>
-<path id="r54" d="M152 341V273H279V103H50V34H870V103H649V273H789V341H234V486H768V760H150V692H686V553H152ZM360 103V273H568V103Z"/>
-<path id="r55" d="M229 534H689V368H229ZM146 763V300H417V106H50V37H870V106H499V300H771V763H689V602H229V763Z"/>
-<path id="r56" d="M137 736V668H687V647C687 538 687 411 653 238L737 228C770 411 770 535 770 647V736ZM368 441V118H50V49H867V118H450V441Z"/>
-<path id="b57" d="M392 -14C489 -14 568 24 629 95L550 187C511 144 462 114 398 114C281 114 206 211 206 372C206 531 289 627 401 627C457 627 500 601 538 565L615 659C567 709 493 754 398 754C211 754 54 611 54 367C54 120 206 -14 392 -14Z"/>
-<path id="b58" d="M79 0H226V385C267 426 297 448 342 448C397 448 421 418 421 331V0H568V349C568 490 516 574 395 574C319 574 263 534 219 492L226 597V798H79Z"/>
-<path id="b59" d="M276 -243C463 -243 581 -157 581 -44C581 54 507 96 372 96H276C211 96 188 112 188 141C188 165 198 177 212 190C237 181 263 177 284 177C405 177 501 240 501 367C501 402 490 433 476 452H571V560H370C346 568 317 574 284 574C166 574 59 503 59 372C59 306 95 253 134 225V221C100 197 72 158 72 117C72 70 93 41 123 22V17C70 -12 43 -52 43 -99C43 -198 144 -243 276 -243ZM284 268C236 268 197 305 197 372C197 437 235 473 284 473C334 473 373 437 373 372C373 305 334 268 284 268ZM298 -149C217 -149 165 -123 165 -77C165 -53 176 -31 201 -11C222 -16 245 -18 278 -18H347C407 -18 440 -29 440 -69C440 -112 383 -149 298 -149Z"/>
-<path id="b60" d="M163 366C215 366 254 407 254 461C254 516 215 557 163 557C110 557 71 516 71 461C71 407 110 366 163 366ZM163 -14C215 -14 254 28 254 82C254 137 215 178 163 178C110 178 71 137 71 82C71 28 110 -14 163 -14Z"/>
-<path id="r61" d="M88 0H490V76H343V733H273C233 710 186 693 121 681V623H252V76H88Z"/>
-<path id="r62" d="M33 469H107V0H198V469H313V543H198V629C198 699 223 736 275 736C294 736 316 731 336 721L356 792C331 802 299 809 265 809C157 809 107 740 107 630V543L33 538Z"/>
-<path id="r63" d="M92 0H184V394C233 450 279 477 320 477C389 477 421 434 421 332V0H512V394C563 450 607 477 649 477C718 477 750 434 750 332V0H841V344C841 482 788 557 677 557C610 557 554 514 497 453C475 517 431 557 347 557C282 557 226 516 178 464H176L167 543H92Z"/>
-<path id="r64" d="M331 -13C455 -13 567 94 567 280C567 448 491 557 351 557C290 557 230 523 180 481L184 578V796H92V0H165L173 56H177C224 13 281 -13 331 -13ZM316 64C280 64 231 78 184 120V406C235 454 283 480 328 480C432 480 472 400 472 279C472 145 406 64 316 64Z"/>
-<path id="r65" d="M167 446C130 446 101 417 101 380C101 343 130 314 167 314C204 314 233 343 233 380C233 417 204 446 167 446ZM500 446C463 446 434 417 434 380C434 343 463 314 500 314C537 314 566 343 566 380C566 417 537 446 500 446ZM833 446C796 446 767 417 767 380C767 343 796 314 833 314C870 314 899 343 899 380C899 417 870 446 833 446Z"/>
-<path id="r66" d="M44 0H505V79H302C265 79 220 75 182 72C354 235 470 384 470 531C470 661 387 746 256 746C163 746 99 704 40 639L93 587C134 636 185 672 245 672C336 672 380 611 380 527C380 401 274 255 44 54Z"/>
-<path id="r67" d="M436 -229H528V543H455L446 492H444C396 534 352 557 288 557C164 557 53 447 53 271C53 90 141 -13 277 -13C340 -13 397 20 441 63L436 -36ZM297 64C202 64 147 141 147 272C147 396 217 480 304 480C349 480 391 464 436 423V138C391 88 347 64 297 64Z"/>
-<path id="r68" d="M239 -196 295 -171C209 -29 168 141 168 311C168 480 209 649 295 792L239 818C147 668 92 507 92 311C92 114 147 -47 239 -196Z"/>
-<path id="r69" d="M99 -196C191 -47 246 114 246 311C246 507 191 668 99 818L42 792C128 649 171 480 171 311C171 141 128 -29 42 -171Z"/>
-<path id="b70" d="M238 0H386V617H595V741H30V617H238Z"/>
-<path id="b71" d="M205 0H375L562 560H421L339 281C324 226 309 168 294 111H289C273 168 259 226 243 281L162 560H14Z"/>
-<path id="r72" d="M139 390C175 390 205 418 205 460C205 501 175 530 139 530C102 530 73 501 73 460C73 418 102 390 139 390ZM75 -190C165 -152 221 -77 221 19C221 86 192 126 144 126C107 126 75 102 75 62C75 22 106 -2 142 -2L153 -1C152 -61 115 -109 53 -136Z"/>
-<path id="r73" d="M139 390C175 390 205 418 205 460C205 501 175 530 139 530C102 530 73 501 73 460C73 418 102 390 139 390ZM139 -13C175 -13 205 15 205 56C205 98 175 126 139 126C102 126 73 98 73 56C73 15 102 -13 139 -13Z"/>
-<path id="r74" d="M15 0H111L184 127C203 160 220 193 239 224H244C265 193 285 160 303 127L383 0H483L304 274L469 543H374L307 424C290 393 275 364 259 333H254C236 364 217 393 201 424L128 543H29L194 283Z"/>
-<path id="b75" d="M91 0H232V297C232 382 219 475 213 555H218L293 396L506 0H657V741H517V445C517 361 529 263 537 186H532L457 346L242 741H91Z"/>
-<path id="b76" d="M16 0H169L220 103C236 136 251 169 267 200H272C290 169 309 136 326 103L388 0H546L371 275L535 560H383L336 461C323 429 308 397 295 366H291C274 397 257 429 241 461L185 560H27L191 291Z"/>
-<path id="r77" d="M301 -13C415 -13 512 83 512 225C512 379 432 455 308 455C251 455 187 422 142 367C146 594 229 671 331 671C375 671 419 649 447 615L499 671C458 715 403 746 327 746C185 746 56 637 56 350C56 108 161 -13 301 -13ZM144 294C192 362 248 387 293 387C382 387 425 324 425 225C425 125 371 59 301 59C209 59 154 142 144 294Z"/>
-<path id="r78" d="M101 0H534V79H193V346H471V425H193V655H523V733H101Z"/>
-<path id="r79" d="M103 -279H167V838H103Z"/>
-<path id="r80" d="M101 0H193V733H101Z"/>
-<path id="r81" d="M101 0H288C509 0 629 137 629 369C629 603 509 733 284 733H101ZM193 76V658H276C449 658 534 555 534 369C534 184 449 76 276 76Z"/>
-<path id="r82" d="M46 245H302V315H46Z"/>
-<path id="r83" d="M75 -190C165 -152 221 -77 221 19C221 86 192 126 144 126C107 126 75 102 75 62C75 22 106 -2 142 -2L153 -1C152 -61 115 -109 53 -136Z"/>
-<path id="r84" d="M263 -13C394 -13 499 65 499 196C499 297 430 361 344 382V387C422 414 474 474 474 563C474 679 384 746 260 746C176 746 111 709 56 659L105 601C147 643 198 672 257 672C334 672 381 626 381 556C381 477 330 416 178 416V346C348 346 406 288 406 199C406 115 345 63 257 63C174 63 119 103 76 147L29 88C77 35 149 -13 263 -13Z"/>
-<path id="r85" d="M340 0H426V202H524V275H426V733H325L20 262V202H340ZM340 275H115L282 525C303 561 323 598 341 633H345C343 596 340 536 340 500Z"/>
-<path id="r86" d="M101 0H193V292H314C475 292 584 363 584 518C584 678 474 733 310 733H101ZM193 367V658H298C427 658 492 625 492 518C492 413 431 367 302 367Z"/>
-<path id="r87" d="M371 -13C555 -13 684 134 684 369C684 604 555 746 371 746C187 746 58 604 58 369C58 134 187 -13 371 -13ZM371 68C239 68 153 186 153 369C153 552 239 665 371 665C503 665 589 552 589 369C589 186 503 68 371 68Z"/>
-<path id="r88" d="M389 -13C487 -13 568 23 615 72V380H374V303H530V111C501 84 450 68 398 68C241 68 153 184 153 369C153 552 249 665 397 665C470 665 518 634 555 596L605 656C563 700 496 746 394 746C200 746 58 603 58 366C58 128 196 -13 389 -13Z"/>
-<path id="r89" d="M139 -13C175 -13 205 15 205 56C205 98 175 126 139 126C102 126 73 98 73 56C73 15 102 -13 139 -13Z"/>
-<path id="r90" d="M35 -242C143 -242 184 -173 184 -62V543H93V-62C93 -128 80 -169 26 -169C7 -169 -12 -164 -26 -159L-44 -228C-25 -236 3 -242 35 -242ZM138 655C173 655 199 679 199 716C199 751 173 775 138 775C102 775 77 751 77 716C77 679 102 655 138 655Z"/>
-<path id="r91" d="M253 0H346V655H568V733H31V655H253Z"/>
-<path id="r92" d="M276 293C312 293 343 323 343 363C343 405 312 434 276 434C240 434 211 405 211 363C211 323 240 293 276 293Z"/>
+<path id="b52" d="M295 276C346 276 386 318 386 372C386 426 346 468 295 468C242 468 203 426 203 372C203 318 242 276 295 276Z"/>
+<path id="b53" d="M79 0H226V385C267 426 297 448 342 448C397 448 421 418 421 331V0H568V349C568 490 516 574 395 574C319 574 263 534 219 492L226 597V798H79Z"/>
+<path id="r54" d="M101 0H160L188 229H336L309 0H369L396 229H500V292H404L425 458H522V521H432L458 726H398L372 521H223L249 726H190L164 521H62V458H157L136 292H40V229H128ZM195 292 216 458H365L344 292Z"/>
+<path id="r55" d="M323 721C409 721 468 675 468 606C468 538 409 492 323 492C238 492 178 538 178 606C178 675 238 721 323 721ZM59 268C214 268 428 271 617 306L611 367C534 355 450 348 367 343V431C474 445 546 512 546 606C546 713 454 785 323 785C192 785 100 713 100 606C100 511 174 443 284 430V340C199 337 118 336 49 336ZM668 826V134H751V451H883V521H751V826ZM179 193V-57H783V11H262V193Z"/>
+<path id="r56" d="M152 341V273H279V103H50V34H870V103H649V273H789V341H234V486H768V760H150V692H686V553H152ZM360 103V273H568V103Z"/>
+<path id="r57" d="M229 534H689V368H229ZM146 763V300H417V106H50V37H870V106H499V300H771V763H689V602H229V763Z"/>
+<path id="r58" d="M137 736V668H687V647C687 538 687 411 653 238L737 228C770 411 770 535 770 647V736ZM368 441V118H50V49H867V118H450V441Z"/>
+<path id="b59" d="M392 -14C489 -14 568 24 629 95L550 187C511 144 462 114 398 114C281 114 206 211 206 372C206 531 289 627 401 627C457 627 500 601 538 565L615 659C567 709 493 754 398 754C211 754 54 611 54 367C54 120 206 -14 392 -14Z"/>
+<path id="b60" d="M276 -243C463 -243 581 -157 581 -44C581 54 507 96 372 96H276C211 96 188 112 188 141C188 165 198 177 212 190C237 181 263 177 284 177C405 177 501 240 501 367C501 402 490 433 476 452H571V560H370C346 568 317 574 284 574C166 574 59 503 59 372C59 306 95 253 134 225V221C100 197 72 158 72 117C72 70 93 41 123 22V17C70 -12 43 -52 43 -99C43 -198 144 -243 276 -243ZM284 268C236 268 197 305 197 372C197 437 235 473 284 473C334 473 373 437 373 372C373 305 334 268 284 268ZM298 -149C217 -149 165 -123 165 -77C165 -53 176 -31 201 -11C222 -16 245 -18 278 -18H347C407 -18 440 -29 440 -69C440 -112 383 -149 298 -149Z"/>
+<path id="b61" d="M163 366C215 366 254 407 254 461C254 516 215 557 163 557C110 557 71 516 71 461C71 407 110 366 163 366ZM163 -14C215 -14 254 28 254 82C254 137 215 178 163 178C110 178 71 137 71 82C71 28 110 -14 163 -14Z"/>
+<path id="r62" d="M88 0H490V76H343V733H273C233 710 186 693 121 681V623H252V76H88Z"/>
+<path id="r63" d="M33 469H107V0H198V469H313V543H198V629C198 699 223 736 275 736C294 736 316 731 336 721L356 792C331 802 299 809 265 809C157 809 107 740 107 630V543L33 538Z"/>
+<path id="r64" d="M92 0H184V394C233 450 279 477 320 477C389 477 421 434 421 332V0H512V394C563 450 607 477 649 477C718 477 750 434 750 332V0H841V344C841 482 788 557 677 557C610 557 554 514 497 453C475 517 431 557 347 557C282 557 226 516 178 464H176L167 543H92Z"/>
+<path id="r65" d="M331 -13C455 -13 567 94 567 280C567 448 491 557 351 557C290 557 230 523 180 481L184 578V796H92V0H165L173 56H177C224 13 281 -13 331 -13ZM316 64C280 64 231 78 184 120V406C235 454 283 480 328 480C432 480 472 400 472 279C472 145 406 64 316 64Z"/>
+<path id="r66" d="M167 446C130 446 101 417 101 380C101 343 130 314 167 314C204 314 233 343 233 380C233 417 204 446 167 446ZM500 446C463 446 434 417 434 380C434 343 463 314 500 314C537 314 566 343 566 380C566 417 537 446 500 446ZM833 446C796 446 767 417 767 380C767 343 796 314 833 314C870 314 899 343 899 380C899 417 870 446 833 446Z"/>
+<path id="r67" d="M44 0H505V79H302C265 79 220 75 182 72C354 235 470 384 470 531C470 661 387 746 256 746C163 746 99 704 40 639L93 587C134 636 185 672 245 672C336 672 380 611 380 527C380 401 274 255 44 54Z"/>
+<path id="r68" d="M436 -229H528V543H455L446 492H444C396 534 352 557 288 557C164 557 53 447 53 271C53 90 141 -13 277 -13C340 -13 397 20 441 63L436 -36ZM297 64C202 64 147 141 147 272C147 396 217 480 304 480C349 480 391 464 436 423V138C391 88 347 64 297 64Z"/>
+<path id="r69" d="M239 -196 295 -171C209 -29 168 141 168 311C168 480 209 649 295 792L239 818C147 668 92 507 92 311C92 114 147 -47 239 -196Z"/>
+<path id="r70" d="M99 -196C191 -47 246 114 246 311C246 507 191 668 99 818L42 792C128 649 171 480 171 311C171 141 128 -29 42 -171Z"/>
+<path id="b71" d="M238 0H386V617H595V741H30V617H238Z"/>
+<path id="b72" d="M205 0H375L562 560H421L339 281C324 226 309 168 294 111H289C273 168 259 226 243 281L162 560H14Z"/>
+<path id="r73" d="M139 390C175 390 205 418 205 460C205 501 175 530 139 530C102 530 73 501 73 460C73 418 102 390 139 390ZM75 -190C165 -152 221 -77 221 19C221 86 192 126 144 126C107 126 75 102 75 62C75 22 106 -2 142 -2L153 -1C152 -61 115 -109 53 -136Z"/>
+<path id="r74" d="M139 390C175 390 205 418 205 460C205 501 175 530 139 530C102 530 73 501 73 460C73 418 102 390 139 390ZM139 -13C175 -13 205 15 205 56C205 98 175 126 139 126C102 126 73 98 73 56C73 15 102 -13 139 -13Z"/>
+<path id="r75" d="M15 0H111L184 127C203 160 220 193 239 224H244C265 193 285 160 303 127L383 0H483L304 274L469 543H374L307 424C290 393 275 364 259 333H254C236 364 217 393 201 424L128 543H29L194 283Z"/>
+<path id="b76" d="M91 0H232V297C232 382 219 475 213 555H218L293 396L506 0H657V741H517V445C517 361 529 263 537 186H532L457 346L242 741H91Z"/>
+<path id="b77" d="M16 0H169L220 103C236 136 251 169 267 200H272C290 169 309 136 326 103L388 0H546L371 275L535 560H383L336 461C323 429 308 397 295 366H291C274 397 257 429 241 461L185 560H27L191 291Z"/>
+<path id="r78" d="M301 -13C415 -13 512 83 512 225C512 379 432 455 308 455C251 455 187 422 142 367C146 594 229 671 331 671C375 671 419 649 447 615L499 671C458 715 403 746 327 746C185 746 56 637 56 350C56 108 161 -13 301 -13ZM144 294C192 362 248 387 293 387C382 387 425 324 425 225C425 125 371 59 301 59C209 59 154 142 144 294Z"/>
+<path id="r79" d="M101 0H534V79H193V346H471V425H193V655H523V733H101Z"/>
+<path id="r80" d="M103 -279H167V838H103Z"/>
+<path id="r81" d="M101 0H193V733H101Z"/>
+<path id="r82" d="M101 0H288C509 0 629 137 629 369C629 603 509 733 284 733H101ZM193 76V658H276C449 658 534 555 534 369C534 184 449 76 276 76Z"/>
+<path id="r83" d="M46 245H302V315H46Z"/>
+<path id="r84" d="M75 -190C165 -152 221 -77 221 19C221 86 192 126 144 126C107 126 75 102 75 62C75 22 106 -2 142 -2L153 -1C152 -61 115 -109 53 -136Z"/>
+<path id="r85" d="M263 -13C394 -13 499 65 499 196C499 297 430 361 344 382V387C422 414 474 474 474 563C474 679 384 746 260 746C176 746 111 709 56 659L105 601C147 643 198 672 257 672C334 672 381 626 381 556C381 477 330 416 178 416V346C348 346 406 288 406 199C406 115 345 63 257 63C174 63 119 103 76 147L29 88C77 35 149 -13 263 -13Z"/>
+<path id="r86" d="M340 0H426V202H524V275H426V733H325L20 262V202H340ZM340 275H115L282 525C303 561 323 598 341 633H345C343 596 340 536 340 500Z"/>
+<path id="r87" d="M101 0H193V292H314C475 292 584 363 584 518C584 678 474 733 310 733H101ZM193 367V658H298C427 658 492 625 492 518C492 413 431 367 302 367Z"/>
+<path id="r88" d="M371 -13C555 -13 684 134 684 369C684 604 555 746 371 746C187 746 58 604 58 369C58 134 187 -13 371 -13ZM371 68C239 68 153 186 153 369C153 552 239 665 371 665C503 665 589 552 589 369C589 186 503 68 371 68Z"/>
+<path id="r89" d="M389 -13C487 -13 568 23 615 72V380H374V303H530V111C501 84 450 68 398 68C241 68 153 184 153 369C153 552 249 665 397 665C470 665 518 634 555 596L605 656C563 700 496 746 394 746C200 746 58 603 58 366C58 128 196 -13 389 -13Z"/>
+<path id="r90" d="M139 -13C175 -13 205 15 205 56C205 98 175 126 139 126C102 126 73 98 73 56C73 15 102 -13 139 -13Z"/>
+<path id="r91" d="M35 -242C143 -242 184 -173 184 -62V543H93V-62C93 -128 80 -169 26 -169C7 -169 -12 -164 -26 -159L-44 -228C-25 -236 3 -242 35 -242ZM138 655C173 655 199 679 199 716C199 751 173 775 138 775C102 775 77 751 77 716C77 679 102 655 138 655Z"/>
+<path id="r92" d="M253 0H346V655H568V733H31V655H253Z"/>
+<path id="r93" d="M276 293C312 293 343 323 343 363C343 405 312 434 276 434C240 434 211 405 211 363C211 323 240 293 276 293Z"/>
 </defs>
 <rect x="0" y="0" width="1280" height="720" rx="0" fill="#FAFBFD"/>
 <g aria-label="Jaekit" data-text="Jaekit" fill="#122033" transform="translate(44.000 56) scale(0.026000 -0.026000)">
@@ -236,7 +237,7 @@
 <use href="#b5" x="2969"/>
 </g>
 <rect x="44" y="204" width="792" height="418" rx="16" fill="#FFFFFF" stroke="#D7DFE9" stroke-width="2"/>
-<g aria-label="docs/specs/password-link/PROGRESS.md" data-text="docs/specs/password-link/PROGRESS.md" fill="#546276" transform="translate(68.000 238) scale(0.016000 -0.016000)">
+<g aria-label="docs/specs/password-link/PROGRESS.md · shortened" data-text="docs/specs/password-link/PROGRESS.md · shortened" fill="#546276" transform="translate(68.000 238) scale(0.016000 -0.016000)">
 <use href="#b28" x="0"/>
 <use href="#b22" x="644"/>
 <use href="#b27" x="1270"/>
@@ -273,31 +274,41 @@
 <use href="#b51" x="18604"/>
 <use href="#b23" x="18929"/>
 <use href="#b28" x="19893"/>
+<use href="#b52" x="20764"/>
+<use href="#b26" x="21583"/>
+<use href="#b53" x="22078"/>
+<use href="#b22" x="22718"/>
+<use href="#b21" x="23344"/>
+<use href="#b5" x="23780"/>
+<use href="#b2" x="24201"/>
+<use href="#b31" x="24782"/>
+<use href="#b2" x="25423"/>
+<use href="#b28" x="26004"/>
 </g>
 <path d="M68 254H812" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 <rect x="60" y="268" width="103.808" height="29" rx="6" fill="#F0F3F8"/>
 <rect x="60" y="460" width="313.808" height="141" rx="6" fill="#F0F3F8"/>
 <g aria-label="## 완료 보고" data-text="## 완료 보고" fill="#546276" transform="translate(68.000 288) scale(0.016000 -0.016000)">
-<use href="#r52" x="0"/>
-<use href="#r52" x="555"/>
-<use href="#r53" x="1334"/>
-<use href="#r54" x="2254"/>
-<use href="#r55" x="3398"/>
-<use href="#r56" x="4318"/>
+<use href="#r54" x="0"/>
+<use href="#r54" x="555"/>
+<use href="#r55" x="1334"/>
+<use href="#r56" x="2254"/>
+<use href="#r57" x="3398"/>
+<use href="#r58" x="4318"/>
 </g>
 <g aria-label="Changed:" data-text="Changed:" fill="#0B5A4C" transform="translate(68.000 316) scale(0.016000 -0.016000)">
-<use href="#b57" x="0"/>
-<use href="#b58" x="656"/>
+<use href="#b59" x="0"/>
+<use href="#b53" x="656"/>
 <use href="#b1" x="1296"/>
 <use href="#b31" x="1887"/>
-<use href="#b59" x="2528"/>
+<use href="#b60" x="2528"/>
 <use href="#b2" x="3125"/>
 <use href="#b28" x="3706"/>
-<use href="#b60" x="4350"/>
+<use href="#b61" x="4350"/>
 </g>
 <g aria-label="1 files and 1 commits outside the bundle …" data-text="1 files and 1 commits outside the bundle …" fill="#122033" transform="translate(150.800 316) scale(0.016000 -0.016000)">
-<use href="#r61" x="0"/>
-<use href="#r62" x="779"/>
+<use href="#r62" x="0"/>
+<use href="#r63" x="779"/>
 <use href="#r7" x="1104"/>
 <use href="#r13" x="1379"/>
 <use href="#r36" x="1663"/>
@@ -305,11 +316,11 @@
 <use href="#r12" x="2909"/>
 <use href="#r11" x="3472"/>
 <use href="#r41" x="4082"/>
-<use href="#r61" x="4926"/>
+<use href="#r62" x="4926"/>
 <use href="#r8" x="5705"/>
 <use href="#r10" x="6215"/>
-<use href="#r63" x="6821"/>
-<use href="#r63" x="7747"/>
+<use href="#r64" x="6821"/>
+<use href="#r64" x="7747"/>
 <use href="#r7" x="8673"/>
 <use href="#r9" x="8948"/>
 <use href="#r33" x="9325"/>
@@ -323,32 +334,32 @@
 <use href="#r9" x="13748"/>
 <use href="#r16" x="14125"/>
 <use href="#r36" x="14732"/>
-<use href="#r64" x="15510"/>
+<use href="#r65" x="15510"/>
 <use href="#r18" x="16128"/>
 <use href="#r11" x="16735"/>
 <use href="#r41" x="17345"/>
 <use href="#r13" x="17965"/>
 <use href="#r36" x="18249"/>
-<use href="#r65" x="19027"/>
+<use href="#r66" x="19027"/>
 </g>
 <g aria-label="Checked:" data-text="Checked:" fill="#0B5A4C" transform="translate(68.000 346) scale(0.016000 -0.016000)">
-<use href="#b57" x="0"/>
-<use href="#b58" x="656"/>
+<use href="#b59" x="0"/>
+<use href="#b53" x="656"/>
 <use href="#b2" x="1296"/>
 <use href="#b27" x="1877"/>
 <use href="#b3" x="2404"/>
 <use href="#b2" x="3008"/>
 <use href="#b28" x="3589"/>
-<use href="#b60" x="4233"/>
+<use href="#b61" x="4233"/>
 </g>
 <g aria-label="2 of 2 required conditions satisfied (…)" data-text="2 of 2 required conditions satisfied (…)" fill="#122033" transform="translate(148.928 346) scale(0.016000 -0.016000)">
-<use href="#r66" x="0"/>
+<use href="#r67" x="0"/>
 <use href="#r10" x="779"/>
-<use href="#r62" x="1385"/>
-<use href="#r66" x="1934"/>
+<use href="#r63" x="1385"/>
+<use href="#r67" x="1934"/>
 <use href="#r17" x="2713"/>
 <use href="#r36" x="3101"/>
-<use href="#r67" x="3655"/>
+<use href="#r68" x="3655"/>
 <use href="#r18" x="4275"/>
 <use href="#r7" x="4882"/>
 <use href="#r17" x="5157"/>
@@ -369,24 +380,24 @@
 <use href="#r9" x="13155"/>
 <use href="#r7" x="13532"/>
 <use href="#r33" x="13807"/>
-<use href="#r62" x="14275"/>
+<use href="#r63" x="14275"/>
 <use href="#r7" x="14600"/>
 <use href="#r36" x="14875"/>
 <use href="#r41" x="15429"/>
-<use href="#r68" x="16273"/>
-<use href="#r65" x="16611"/>
-<use href="#r69" x="17611"/>
+<use href="#r69" x="16273"/>
+<use href="#r66" x="16611"/>
+<use href="#r70" x="17611"/>
 </g>
 <g aria-label="To review:" data-text="To review:" fill="#0B5A4C" transform="translate(68.000 376) scale(0.016000 -0.016000)">
-<use href="#b70" x="0"/>
+<use href="#b71" x="0"/>
 <use href="#b22" x="625"/>
 <use href="#b21" x="1478"/>
 <use href="#b2" x="1914"/>
-<use href="#b71" x="2495"/>
+<use href="#b72" x="2495"/>
 <use href="#b4" x="3071"/>
 <use href="#b2" x="3375"/>
 <use href="#b44" x="3956"/>
-<use href="#b60" x="4819"/>
+<use href="#b61" x="4819"/>
 </g>
 <g aria-label="none" data-text="none" fill="#122033" transform="translate(158.304 376) scale(0.016000 -0.016000)">
 <use href="#r11" x="0"/>
@@ -403,14 +414,14 @@
 <use href="#b31" x="3122"/>
 <use href="#b4" x="3763"/>
 <use href="#b31" x="4067"/>
-<use href="#b59" x="4708"/>
+<use href="#b60" x="4708"/>
 <use href="#b30" x="5532"/>
 <use href="#b4" x="5847"/>
 <use href="#b23" x="6151"/>
 <use href="#b4" x="7115"/>
 <use href="#b5" x="7419"/>
 <use href="#b26" x="7840"/>
-<use href="#b60" x="8335"/>
+<use href="#b61" x="8335"/>
 </g>
 <g aria-label="assurance local; check author: executor" data-text="assurance local; check author: executor" fill="#122033" transform="translate(214.560 406) scale(0.016000 -0.016000)">
 <use href="#r12" x="0"/>
@@ -427,7 +438,7 @@
 <use href="#r8" x="5845"/>
 <use href="#r12" x="6355"/>
 <use href="#r13" x="6918"/>
-<use href="#r72" x="7202"/>
+<use href="#r73" x="7202"/>
 <use href="#r8" x="7704"/>
 <use href="#r16" x="8214"/>
 <use href="#r36" x="8821"/>
@@ -439,9 +450,9 @@
 <use href="#r16" x="12208"/>
 <use href="#r10" x="12815"/>
 <use href="#r17" x="13421"/>
-<use href="#r73" x="13809"/>
+<use href="#r74" x="13809"/>
 <use href="#r36" x="14311"/>
-<use href="#r74" x="14865"/>
+<use href="#r75" x="14865"/>
 <use href="#r36" x="15363"/>
 <use href="#r8" x="15917"/>
 <use href="#r18" x="16427"/>
@@ -450,25 +461,25 @@
 <use href="#r17" x="18017"/>
 </g>
 <g aria-label="Next step:" data-text="Next step:" fill="#0B5A4C" transform="translate(68.000 436) scale(0.016000 -0.016000)">
-<use href="#b75" x="0"/>
+<use href="#b76" x="0"/>
 <use href="#b2" x="749"/>
-<use href="#b76" x="1330"/>
+<use href="#b77" x="1330"/>
 <use href="#b5" x="1892"/>
 <use href="#b26" x="2540"/>
 <use href="#b5" x="3035"/>
 <use href="#b2" x="3456"/>
 <use href="#b29" x="4037"/>
-<use href="#b60" x="4681"/>
+<use href="#b61" x="4681"/>
 </g>
 <g aria-label="none; completion record seq 6 holds …" data-text="none; completion record seq 6 holds …" fill="#122033" transform="translate(156.096 436) scale(0.016000 -0.016000)">
 <use href="#r11" x="0"/>
 <use href="#r10" x="610"/>
 <use href="#r11" x="1216"/>
 <use href="#r36" x="1826"/>
-<use href="#r72" x="2380"/>
+<use href="#r73" x="2380"/>
 <use href="#r8" x="2882"/>
 <use href="#r10" x="3392"/>
-<use href="#r63" x="3998"/>
+<use href="#r64" x="3998"/>
 <use href="#r35" x="4924"/>
 <use href="#r13" x="5544"/>
 <use href="#r36" x="5828"/>
@@ -484,20 +495,20 @@
 <use href="#r41" x="10920"/>
 <use href="#r33" x="11764"/>
 <use href="#r36" x="12232"/>
-<use href="#r67" x="12786"/>
-<use href="#r77" x="13630"/>
+<use href="#r68" x="12786"/>
+<use href="#r78" x="13630"/>
 <use href="#r16" x="14409"/>
 <use href="#r10" x="15016"/>
 <use href="#r13" x="15622"/>
 <use href="#r41" x="15906"/>
 <use href="#r33" x="16526"/>
-<use href="#r65" x="17218"/>
+<use href="#r66" x="17218"/>
 </g>
 <g aria-label="### Evidence per condition" data-text="### Evidence per condition" fill="#546276" transform="translate(68.000 480) scale(0.016000 -0.016000)">
-<use href="#r52" x="0"/>
-<use href="#r52" x="555"/>
-<use href="#r52" x="1110"/>
-<use href="#r78" x="1889"/>
+<use href="#r54" x="0"/>
+<use href="#r54" x="555"/>
+<use href="#r54" x="1110"/>
+<use href="#r79" x="1889"/>
 <use href="#r38" x="2478"/>
 <use href="#r7" x="2999"/>
 <use href="#r41" x="3274"/>
@@ -518,64 +529,35 @@
 <use href="#r10" x="11405"/>
 <use href="#r11" x="12011"/>
 </g>
-<g aria-label="Source: completion record seq 6" data-text="Source: completion record seq 6" fill="#546276" transform="translate(68.000 508) scale(0.016000 -0.016000)">
-<use href="#r34" x="0"/>
-<use href="#r10" x="596"/>
-<use href="#r18" x="1202"/>
-<use href="#r17" x="1809"/>
-<use href="#r8" x="2197"/>
-<use href="#r36" x="2707"/>
-<use href="#r73" x="3261"/>
-<use href="#r8" x="3763"/>
-<use href="#r10" x="4273"/>
-<use href="#r63" x="4879"/>
-<use href="#r35" x="5805"/>
-<use href="#r13" x="6425"/>
-<use href="#r36" x="6709"/>
-<use href="#r9" x="7263"/>
-<use href="#r7" x="7640"/>
-<use href="#r10" x="7915"/>
-<use href="#r11" x="8521"/>
-<use href="#r17" x="9355"/>
-<use href="#r36" x="9743"/>
-<use href="#r8" x="10297"/>
-<use href="#r10" x="10807"/>
-<use href="#r17" x="11413"/>
-<use href="#r41" x="11801"/>
-<use href="#r33" x="12645"/>
-<use href="#r36" x="13113"/>
-<use href="#r67" x="13667"/>
-<use href="#r77" x="14511"/>
-</g>
-<g aria-label="| ID | kind | required | satisfied | records |" data-text="| ID | kind | required | satisfied | records |" fill="#546276" transform="translate(68.000 536) scale(0.016000 -0.016000)">
-<use href="#r79" x="0"/>
-<use href="#r80" x="494"/>
-<use href="#r81" x="787"/>
-<use href="#r79" x="1699"/>
+<g aria-label="| ID | kind | required | satisfied | records |" data-text="| ID | kind | required | satisfied | records |" fill="#546276" transform="translate(68.000 508) scale(0.016000 -0.016000)">
+<use href="#r80" x="0"/>
+<use href="#r81" x="494"/>
+<use href="#r82" x="787"/>
+<use href="#r80" x="1699"/>
 <use href="#r15" x="2193"/>
 <use href="#r7" x="2745"/>
 <use href="#r11" x="3020"/>
 <use href="#r41" x="3630"/>
-<use href="#r79" x="4474"/>
+<use href="#r80" x="4474"/>
 <use href="#r17" x="4968"/>
 <use href="#r36" x="5356"/>
-<use href="#r67" x="5910"/>
+<use href="#r68" x="5910"/>
 <use href="#r18" x="6530"/>
 <use href="#r7" x="7137"/>
 <use href="#r17" x="7412"/>
 <use href="#r36" x="7800"/>
 <use href="#r41" x="8354"/>
-<use href="#r79" x="9198"/>
+<use href="#r80" x="9198"/>
 <use href="#r33" x="9692"/>
 <use href="#r12" x="10160"/>
 <use href="#r9" x="10723"/>
 <use href="#r7" x="11100"/>
 <use href="#r33" x="11375"/>
-<use href="#r62" x="11843"/>
+<use href="#r63" x="11843"/>
 <use href="#r7" x="12168"/>
 <use href="#r36" x="12443"/>
 <use href="#r41" x="12997"/>
-<use href="#r79" x="13841"/>
+<use href="#r80" x="13841"/>
 <use href="#r17" x="14335"/>
 <use href="#r36" x="14723"/>
 <use href="#r8" x="15277"/>
@@ -583,43 +565,66 @@
 <use href="#r17" x="16393"/>
 <use href="#r41" x="16781"/>
 <use href="#r33" x="17401"/>
-<use href="#r79" x="18093"/>
+<use href="#r80" x="18093"/>
+</g>
+<g aria-label="| --- | --- | --- | --- | --- |" data-text="| --- | --- | --- | --- | --- |" fill="#546276" transform="translate(68.000 536) scale(0.016000 -0.016000)">
+<use href="#r80" x="0"/>
+<use href="#r83" x="494"/>
+<use href="#r83" x="841"/>
+<use href="#r83" x="1188"/>
+<use href="#r80" x="1759"/>
+<use href="#r83" x="2253"/>
+<use href="#r83" x="2600"/>
+<use href="#r83" x="2947"/>
+<use href="#r80" x="3518"/>
+<use href="#r83" x="4012"/>
+<use href="#r83" x="4359"/>
+<use href="#r83" x="4706"/>
+<use href="#r80" x="5277"/>
+<use href="#r83" x="5771"/>
+<use href="#r83" x="6118"/>
+<use href="#r83" x="6465"/>
+<use href="#r80" x="7036"/>
+<use href="#r83" x="7530"/>
+<use href="#r83" x="7877"/>
+<use href="#r83" x="8224"/>
+<use href="#r80" x="8795"/>
 </g>
 <g aria-label="| AC-1 | change | yes | yes | 2, 3 |" data-text="| AC-1 | change | yes | yes | 2, 3 |" fill="#546276" transform="translate(68.000 564) scale(0.016000 -0.016000)">
-<use href="#r79" x="0"/>
+<use href="#r80" x="0"/>
 <use href="#r32" x="494"/>
 <use href="#r40" x="1102"/>
-<use href="#r82" x="1740"/>
-<use href="#r61" x="2087"/>
-<use href="#r79" x="2866"/>
+<use href="#r83" x="1740"/>
+<use href="#r62" x="2087"/>
+<use href="#r80" x="2866"/>
 <use href="#r8" x="3360"/>
 <use href="#r16" x="3870"/>
 <use href="#r12" x="4477"/>
 <use href="#r11" x="5040"/>
 <use href="#r19" x="5650"/>
 <use href="#r36" x="6214"/>
-<use href="#r79" x="6992"/>
+<use href="#r80" x="6992"/>
 <use href="#r39" x="7486"/>
 <use href="#r36" x="8007"/>
 <use href="#r33" x="8561"/>
-<use href="#r79" x="9253"/>
+<use href="#r80" x="9253"/>
 <use href="#r39" x="9747"/>
 <use href="#r36" x="10268"/>
 <use href="#r33" x="10822"/>
-<use href="#r79" x="11514"/>
-<use href="#r66" x="12008"/>
-<use href="#r83" x="12563"/>
-<use href="#r84" x="13065"/>
-<use href="#r79" x="13844"/>
+<use href="#r80" x="11514"/>
+<use href="#r67" x="12008"/>
+<use href="#r84" x="12563"/>
+<use href="#r85" x="13065"/>
+<use href="#r80" x="13844"/>
 </g>
 <g aria-label="| AC-2 | maintain | yes | yes | 4 |" data-text="| AC-2 | maintain | yes | yes | 4 |" fill="#546276" transform="translate(68.000 592) scale(0.016000 -0.016000)">
-<use href="#r79" x="0"/>
+<use href="#r80" x="0"/>
 <use href="#r32" x="494"/>
 <use href="#r40" x="1102"/>
-<use href="#r82" x="1740"/>
-<use href="#r66" x="2087"/>
-<use href="#r79" x="2866"/>
-<use href="#r63" x="3360"/>
+<use href="#r83" x="1740"/>
+<use href="#r67" x="2087"/>
+<use href="#r80" x="2866"/>
+<use href="#r64" x="3360"/>
 <use href="#r12" x="4286"/>
 <use href="#r7" x="4849"/>
 <use href="#r11" x="5124"/>
@@ -627,17 +632,17 @@
 <use href="#r12" x="6111"/>
 <use href="#r7" x="6674"/>
 <use href="#r11" x="6949"/>
-<use href="#r79" x="7783"/>
+<use href="#r80" x="7783"/>
 <use href="#r39" x="8277"/>
 <use href="#r36" x="8798"/>
 <use href="#r33" x="9352"/>
-<use href="#r79" x="10044"/>
+<use href="#r80" x="10044"/>
 <use href="#r39" x="10538"/>
 <use href="#r36" x="11059"/>
 <use href="#r33" x="11613"/>
-<use href="#r79" x="12305"/>
-<use href="#r85" x="12799"/>
-<use href="#r79" x="13578"/>
+<use href="#r80" x="12305"/>
+<use href="#r86" x="12799"/>
+<use href="#r80" x="13578"/>
 </g>
 <rect x="860" y="204" width="376" height="418" rx="16" fill="#EDF0FF" stroke="#D7DFE9" stroke-width="2"/>
 <g aria-label="Read the report" data-text="Read the report" fill="#4F6CF7" transform="translate(884.000 250) scale(0.025000 -0.025000)">
@@ -646,7 +651,7 @@
 <use href="#b1" x="1263"/>
 <use href="#b28" x="1854"/>
 <use href="#b5" x="2725"/>
-<use href="#b58" x="3146"/>
+<use href="#b53" x="3146"/>
 <use href="#b2" x="3786"/>
 <use href="#b21" x="4594"/>
 <use href="#b2" x="5030"/>
@@ -680,18 +685,18 @@
 <use href="#r10" x="11308"/>
 </g>
 <g aria-label="PROGRESS.md, then adds its" data-text="PROGRESS.md, then adds its" fill="#122033" transform="translate(884.000 325) scale(0.019000 -0.019000)">
-<use href="#r86" x="0"/>
+<use href="#r87" x="0"/>
 <use href="#r37" x="633"/>
-<use href="#r87" x="1268"/>
-<use href="#r88" x="2010"/>
+<use href="#r88" x="1268"/>
+<use href="#r89" x="2010"/>
 <use href="#r37" x="2699"/>
-<use href="#r78" x="3334"/>
+<use href="#r79" x="3334"/>
 <use href="#r34" x="3923"/>
 <use href="#r34" x="4519"/>
-<use href="#r89" x="5115"/>
-<use href="#r63" x="5393"/>
+<use href="#r90" x="5115"/>
+<use href="#r64" x="5393"/>
 <use href="#r41" x="6319"/>
-<use href="#r83" x="6939"/>
+<use href="#r84" x="6939"/>
 <use href="#r9" x="7441"/>
 <use href="#r16" x="7818"/>
 <use href="#r36" x="8425"/>
@@ -708,25 +713,25 @@
 <use href="#r10" x="0"/>
 <use href="#r14" x="606"/>
 <use href="#r11" x="1408"/>
-<use href="#r90" x="2242"/>
+<use href="#r91" x="2242"/>
 <use href="#r18" x="2517"/>
 <use href="#r41" x="3124"/>
 <use href="#r19" x="3744"/>
-<use href="#r63" x="4308"/>
+<use href="#r64" x="4308"/>
 <use href="#r36" x="5234"/>
 <use href="#r11" x="5788"/>
 <use href="#r9" x="6398"/>
-<use href="#r64" x="6999"/>
+<use href="#r65" x="6999"/>
 <use href="#r36" x="7617"/>
 <use href="#r13" x="8171"/>
 <use href="#r10" x="8455"/>
 <use href="#r14" x="9061"/>
 <use href="#r7" x="10087"/>
 <use href="#r9" x="10362"/>
-<use href="#r89" x="10739"/>
+<use href="#r90" x="10739"/>
 </g>
 <g aria-label="The agent wrote the checks:" data-text="The agent wrote the checks:" fill="#546276" transform="translate(884.000 401) scale(0.017000 -0.017000)">
-<use href="#r91" x="0"/>
+<use href="#r92" x="0"/>
 <use href="#r16" x="599"/>
 <use href="#r36" x="1206"/>
 <use href="#r12" x="1984"/>
@@ -748,7 +753,7 @@
 <use href="#r8" x="11260"/>
 <use href="#r15" x="11770"/>
 <use href="#r33" x="12322"/>
-<use href="#r73" x="12790"/>
+<use href="#r74" x="12790"/>
 </g>
 <g aria-label="review the result yourself." data-text="review the result yourself." fill="#546276" transform="translate(884.000 428) scale(0.017000 -0.017000)">
 <use href="#r17" x="0"/>
@@ -773,11 +778,11 @@
 <use href="#r33" x="10104"/>
 <use href="#r36" x="10572"/>
 <use href="#r13" x="11126"/>
-<use href="#r62" x="11410"/>
-<use href="#r89" x="11735"/>
+<use href="#r63" x="11410"/>
+<use href="#r90" x="11735"/>
 </g>
 <g aria-label="Illustrative sequence · not a recording of a real run" data-text="Illustrative sequence · not a recording of a real run" fill="#546276" transform="translate(44.000 660) scale(0.016000 -0.016000)">
-<use href="#r80" x="0"/>
+<use href="#r81" x="0"/>
 <use href="#r13" x="293"/>
 <use href="#r13" x="577"/>
 <use href="#r18" x="861"/>
@@ -791,13 +796,13 @@
 <use href="#r36" x="4437"/>
 <use href="#r33" x="5215"/>
 <use href="#r36" x="5683"/>
-<use href="#r67" x="6237"/>
+<use href="#r68" x="6237"/>
 <use href="#r18" x="6857"/>
 <use href="#r36" x="7464"/>
 <use href="#r11" x="8018"/>
 <use href="#r8" x="8628"/>
 <use href="#r36" x="9138"/>
-<use href="#r92" x="9916"/>
+<use href="#r93" x="9916"/>
 <use href="#r11" x="10701"/>
 <use href="#r10" x="11311"/>
 <use href="#r9" x="11917"/>
@@ -812,7 +817,7 @@
 <use href="#r11" x="16646"/>
 <use href="#r19" x="17256"/>
 <use href="#r10" x="18044"/>
-<use href="#r62" x="18650"/>
+<use href="#r63" x="18650"/>
 <use href="#r12" x="19199"/>
 <use href="#r17" x="19986"/>
 <use href="#r36" x="20374"/>

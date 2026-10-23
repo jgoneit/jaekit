@@ -57,7 +57,7 @@ flowchart TD
         spar -->|"고칠 지적"| build
     end
     decide{{"요구를 바꿔야 하는<br/>질문에 내가 답합니다"}}
-    done["ha done<br/>완료 기록"]
+    done["필수 조건이 충족되면<br/>ha done이 완료를 기록"]
     report(["PROGRESS.md의<br/>보고를 확인합니다<br/>무엇을 바꿨고<br/>어떻게 검사했는지"])
     resume(["대화가 끊겼나요?<br/>같은 프로젝트에서<br/>새 대화를 엽니다"])
 
