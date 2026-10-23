@@ -31,55 +31,69 @@ The current release is **v0.1.7**, an early version being refined through real w
 
 ## How it works
 
-![Fictional walkthrough of password-link: ask Spec with /spec:spec, review the goal, start Seal in a separate message, run the checks (AC-1 fails before the change and passes after it, AC-2 still passes), then read the completion report from ha done.](assets/readme/demo.en.gif)
+![Fictional walkthrough of password-link: ask Spec with /spec:spec, review the goal, answer Yes when Spec asks whether to implement it now, run the checks through ha (AC-1 fails before the change and passes after it, AC-2 still passes), record a Spar review round and its gate, let ha done record completion, then read the completion report from ha report.](assets/readme/demo.en.gif)
 
 An illustrated sequence, not a recording of a real run. The diagram below shows each step and who acts.
 
 ```mermaid
 flowchart TD
     ask(["You describe the work"])
-    spec["<b>Spec</b> writes the goal<br/>SPEC.md: goal and completion conditions"]
+    spec["<b>Spec</b> writes the goal<br/>SPEC.md: goal, completion conditions<br/>and an Assurance: tier"]
     review{"You review the goal"}
-    start["In a separate message,<br/>you start Seal<br/>/seal:seal docs/specs/#lt;goal#gt;"]
+    asknow{{"Spec asks once:<br/>implement it now?"}}
+    start["Your #quot;Yes#quot; starts Seal"]
+    separate(["Or later, in a separate message<br/>/seal:seal docs/specs/#lt;goal#gt;"])
     subgraph seal ["Seal: the agent works on its own"]
         direction TB
         plan["Plan<br/>PLAN.md and REVIEW.md"]
+        planreview["strict only: Spar plan review<br/>before work starts"]
         build["Implement"]
         check["Check through ha<br/>every run is recorded in runs.jsonl"]
+        spar["standard and strict:<br/>Spar review rounds<br/>and a recorded review gate"]
         plan --> build --> check
+        plan -.->|"strict"| planreview -.-> build
         check -->|"a check fails"| build
+        check -->|"checks pass"| spar
+        spar -->|"a finding to fix"| build
     end
-    decide{{"You answer a decision<br/>only you can make"}}
+    decide{{"You answer a question<br/>that changes the requirements"}}
     done["ha done<br/>completion record"]
     report(["You review the report<br/>in PROGRESS.md: what changed<br/>and how it was checked"])
     resume(["The conversation ended?<br/>Open a new one<br/>in the same project"])
 
     ask -->|"/spec:spec"| spec --> review
     review -->|"ask for changes"| spec
-    review -->|"looks right"| start --> plan
-    check -.->|"needs you"| decide -.-> build
-    check -->|"required conditions met"| done --> report
+    review -->|"looks right"| asknow
+    asknow -->|"Yes"| start --> plan
+    separate -.-> plan
+    check -.->|"needs you"| decide
+    spar -.->|"requirement question"| decide
+    decide -.-> build
+    spar -->|"the gate covers<br/>the last commit"| done
+    check -.->|"light: may skip review<br/>with a reason"| done
+    done --> report
     resume -.->|"continue docs/specs/#lt;goal#gt;"| plan
 
     classDef you fill:#EEF1FE,stroke:#4F6CF7,color:#1B2559
     classDef specStep fill:#E7F5F1,stroke:#168975,color:#0B3B32
     classDef sealStep fill:#FFF3E3,stroke:#C9761F,color:#4A2A06
     classDef record fill:#F1F3F5,stroke:#596579,color:#1F2328
-    class ask,review,start,decide,report,resume you
-    class spec specStep
-    class plan,build,check sealStep
+    class ask,review,start,separate,decide,report,resume you
+    class spec,asknow specStep
+    class plan,planreview,build,check,spar sealStep
     class done record
     style seal fill:none,stroke:#C9761F,stroke-dasharray:5 4
 ```
 
-1. Spec writes the goal document and **stops**. Read it and say what needs changing.
-2. When it looks right, **start Seal in a separate message**. The agent implements, checks, and fixes the work.
-3. When the required completion conditions are met, Seal saves a completion record and report. Review **what changed and how it was checked**, along with the actual result.
+1. Spec writes the goal document with its completion conditions and an `Assurance:` tier, asks once whether to implement it now, and **stops**. Read it and say what needs changing.
+2. When it looks right, answer **yes** and Seal starts. You can also **start Seal in a separate message** later by naming the goal folder.
+3. The agent plans, implements and checks the work through `ha`, which records every run. `standard` and `strict` goals get independent Spar review rounds before completion, and `strict` goals also get a plan review before work starts; `light` goals may skip review with a reason. Questions that would change the requirements come to you.
+4. `ha done` records completion when the required completion conditions are met; for `standard` and `strict` goals, a recorded review gate must also cover the last commit. Review the report in `PROGRESS.md`: **what changed and how it was checked**, along with the actual result. If the conversation ends, continue the same goal in a new conversation.
 
 <details>
 <summary>View the same flow as an illustration</summary>
 
-![1. Ask Spec and review the goal and completion conditions. 2. In a separate message, specify the goal folder and start Seal; the agent implements, checks, and fixes. 3. Review the changes and check records. To resume in a new conversation, specify the same goal in the same project.](assets/readme/usage-flow.en.png)
+![Concept illustration of the usage flow. 1. Ask Spec: it writes the goal, completion conditions and an Assurance tier, then asks whether to implement it now. 2. Answer Yes and Seal starts; naming the goal folder in a separate message works too. 3. The agent plans, implements and checks through ha, which records every run; standard and strict goals get Spar review rounds and a review gate before completion (strict also a plan review), light goals may skip review with a reason, and questions that change the requirements come to you. 4. ha done records completion when the required conditions are met and, for standard and strict goals, the recorded review gate covers the last commit; the report lands in PROGRESS.md. To resume in a new conversation, specify the same goal in the same project.](assets/readme/usage-flow.en.png)
 
 </details>
 
@@ -297,7 +311,7 @@ Updating does not delete goal documents or run records. To clean up earlier vers
 
 Everything Jaekit writes stays in your project, in one folder per goal. The examples below are **synthetic and shortened**: they show the format, not a record of real work. Section names and markers such as `## Acceptance Criteria`, `## 조건표` and `AC-1` are fixed format tokens; some are in Korean, and [Korean section names](#korean-section-names) translates them. The prose is written in your language.
 
-![Fictional goal folder docs/specs/password-link/: Spec writes SPEC.md; Seal writes PLAN.md, REVIEW.md and PROGRESS.md; ha writes runs.jsonl. Raw command output stays in .git/ha/ on your computer and is not tracked by Git.](assets/readme/goal-folder.en.png)
+![Fictional goal folder docs/specs/password-link/: Spec writes SPEC.md; Seal writes PLAN.md, REVIEW.md (the review plan, summarizing and pointing to the Spar records) and PROGRESS.md; ha writes runs.jsonl. Spar's review rounds and gate stay in docs/reviews/password-link/, a folder Git ignores, and raw check output stays in .git/ha/ on your computer, which Git does not track.](assets/readme/goal-folder.en.png)
 
 <details>
 <summary>The same folder as text</summary>
@@ -306,9 +320,13 @@ Everything Jaekit writes stays in your project, in one folder per goal. The exam
 docs/specs/password-link/
 ├── SPEC.md        goal, scenarios, completion conditions          ← Spec
 ├── PLAN.md        how each condition is checked, scope, budget    ← Seal
-├── REVIEW.md      review of the plan before work starts           ← Seal
+├── REVIEW.md      review plan; summary of the Spar rounds and gate ← Seal
 ├── PROGRESS.md    current state, timeline, completion report      ← Seal
 └── runs.jsonl     append-only run record                          ← ha only
+
+docs/reviews/password-link/   Spar records, in a folder Git ignores
+├── 01-candidate/  one review round: packet, findings, summary     ← Spar
+└── gate.json      the review gate, recorded with ha note          ← Spar
 
 .git/ha/           raw check output, not tracked by Git (read it with ha log)
 ```
@@ -317,7 +335,7 @@ docs/specs/password-link/
 
 ### The completion report
 
-![Fictional completion report for password-link: complete, with completion record seq 5. AC-1 change failed before the change (seq 2) and passed after it (seq 3). AC-2 maintain passed (seq 4). Assurance local; check author executor.](assets/readme/report-card.en.png)
+![Fictional completion report for password-link in the shape of ha report output: the five lines Changed, Checked, To review, Remaining limits and Next step, then the evidence per condition under completion record seq 5 (AC-1 change with records 2, 3; AC-2 maintain with record 4). Assurance local; check author executor.](assets/readme/report-card.en.png)
 
 When `ha done` records completion, Seal pastes the output of `ha report` unchanged into `PROGRESS.md` under `## 완료 보고`, then adds only its own judgment below it. `ha report` prints English by default and Korean with `--lang ko`; Seal uses the language of your request. The section looks like this:
 
