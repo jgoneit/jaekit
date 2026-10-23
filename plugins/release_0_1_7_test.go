@@ -438,3 +438,35 @@ func TestRelease017AC9_ShippedNotDeferred(t *testing.T) {
 	r17Contains(t, v, r17Usage, r17Read(t, r17Usage), "v0.1.7의 `ha`는 이 지원을 모두 갖췄습니다")
 	r17Contains(t, v, r17UsageEn, r17Read(t, r17UsageEn), "The `ha` of release v0.1.7 has all of this support")
 }
+
+// The README's completion report example follows the Seal this release
+// ships: since Seal 0.1.20 the report is `ha report` output pasted once
+// `ha done` records completion, never `ha status` or `ha done` output. It
+// reads fixed labels between the section heading and the next one. No AC
+// target names it, so it runs with the shared Go tests.
+func TestRelease017ReadmeCompletionReport(t *testing.T) {
+	const v = "readme-report-stale"
+	for _, c := range []struct {
+		path, heading, next string
+		labels              []string
+	}{
+		{"../README.md", "### The completion report\n", "\n### The other files\n",
+			[]string{"Changed: ", "Checked: ", "To review: ", "Remaining limits: ", "Next step: ", "### Evidence per condition", "### Output of unmet conditions"}},
+		{"../README.ko.md", "### 완료 보고\n", "\n### 다른 파일\n",
+			[]string{"바뀐 것: ", "확인한 것: ", "직접 볼 것: ", "남은 한계: ", "다음 행동: ", "### 조건별 근거", "### 미충족 조건의 원문 위치"}},
+	} {
+		text := r17Read(t, c.path)
+		start := strings.Index(text, c.heading)
+		end := -1
+		if start >= 0 {
+			end = strings.Index(text[start:], c.next)
+		}
+		if start < 0 || end < 0 {
+			t.Errorf("jaekit:violation=%s %s lacks the section %q followed by %q", v, c.path, strings.TrimSpace(c.heading), strings.TrimSpace(c.next))
+			continue
+		}
+		section := text[start : start+end]
+		r17Contains(t, v, c.path, section, append([]string{"`ha report`"}, c.labels...)...)
+		r17Lacks(t, v, c.path, section, "ha status: docs/specs/", "### Unmet", "skill: seal 0.1.17", "ha: 0.1.6")
+	}
+}
