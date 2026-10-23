@@ -5,39 +5,39 @@
   "frames": [
     {
       "svg": "assets/readme/source/walkthrough/frame-01.en.svg",
-      "delay_ms": 3000
+      "delay_ms": 2000
     },
     {
       "svg": "assets/readme/source/walkthrough/frame-02.en.svg",
-      "delay_ms": 4200
+      "delay_ms": 2700
     },
     {
       "svg": "assets/readme/source/walkthrough/frame-03.en.svg",
-      "delay_ms": 4200
+      "delay_ms": 2700
     },
     {
       "svg": "assets/readme/source/walkthrough/frame-04.en.svg",
-      "delay_ms": 3800
+      "delay_ms": 2500
     },
     {
       "svg": "assets/readme/source/walkthrough/frame-05.en.svg",
-      "delay_ms": 4200
+      "delay_ms": 2700
     },
     {
       "svg": "assets/readme/source/walkthrough/frame-06.en.svg",
-      "delay_ms": 4600
+      "delay_ms": 3000
     },
     {
       "svg": "assets/readme/source/walkthrough/frame-07.en.svg",
-      "delay_ms": 4200
+      "delay_ms": 2700
     },
     {
       "svg": "assets/readme/source/walkthrough/frame-08.en.svg",
-      "delay_ms": 3800
+      "delay_ms": 2500
     },
     {
       "svg": "assets/readme/source/walkthrough/frame-09.en.svg",
-      "delay_ms": 5600
+      "delay_ms": 4500
     }
   ]
 }
