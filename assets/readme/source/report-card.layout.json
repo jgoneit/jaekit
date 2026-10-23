@@ -42,10 +42,10 @@
         "font_size": 21
       },
       {
-        "text": "base fe4597cf233f 이후 실행 묶음 문서 밖에서",
+        "text": "base f46020ce6f77 이후 실행 묶음 문서 밖에서",
         "x": 187.64,
         "y": 262,
-        "width": 391.82,
+        "width": 396.42,
         "font_size": 20
       },
       {
@@ -112,7 +112,7 @@
         "font_size": 21
       },
       {
-        "text": "없음; 완료 기록 seq 5이 유효하고 남은 할 일이 없음",
+        "text": "없음; 완료 기록 seq 6이 유효하고 남은 할 일이 없음",
         "x": 187.64,
         "y": 528,
         "width": 421.02,
@@ -126,7 +126,7 @@
         "font_size": 21
       },
       {
-        "text": "근거 출처: 완료 기록 seq 5",
+        "text": "근거 출처: 완료 기록 seq 6",
         "x": 76,
         "y": 631,
         "width": 197.19,
@@ -401,10 +401,10 @@
         "font_size": 19.5
       },
       {
-        "text": "since base fe4597cf233f",
+        "text": "since base f46020ce6f77",
         "x": 275.86,
         "y": 293,
-        "width": 214.34,
+        "width": 218.83,
         "font_size": 19.5
       },
       {
@@ -464,7 +464,7 @@
         "font_size": 21
       },
       {
-        "text": "none; completion record seq 5 holds and nothing is left to do",
+        "text": "none; completion record seq 6 holds and nothing is left to do",
         "x": 275.86,
         "y": 528,
         "width": 551.3,
@@ -478,7 +478,7 @@
         "font_size": 21
       },
       {
-        "text": "Source: completion record seq 5",
+        "text": "Source: completion record seq 6",
         "x": 76,
         "y": 631,
         "width": 271.19,

@@ -37,17 +37,17 @@
     "assets/readme/report-card.en.png": {
       "height": 900,
       "inputs": {
-        "assets/readme/report-card.en.svg": "5997f724b6f08303aab1f0b985f700d12c9c5900c3ec5547c0160ffafa04a57a"
+        "assets/readme/report-card.en.svg": "987fd7e1ddb8dad73deabc2279c60b1ea131da1eb0e6d51ca925feb0beebb84d"
       },
-      "sha256": "96afe32cd31c19884e93509e5334c1594a76a7a903c41e200de037c90faf0676",
+      "sha256": "d7d84474ed79bd8bc4eaa997261fca596d980346535e9f979b49d24f5b8358ed",
       "width": 1600
     },
     "assets/readme/report-card.ko.png": {
       "height": 900,
       "inputs": {
-        "assets/readme/report-card.ko.svg": "3a505900faf230ce203b128d43141c5eea67ae701cbf4afd36a1eb63252c5d4a"
+        "assets/readme/report-card.ko.svg": "fcab4417c5a66fddb4e65745fadcbe25a6da8afe8ad5afcf0292092c831e8ac8"
       },
-      "sha256": "9d64de4fcaae9e056123b6db0d8d239b6f869eddfd31c3fa4449d9c96ee46cb5",
+      "sha256": "99a33a7541c3340e1349f8b9ae90c8228cbb5837f3e25aed5c81cc6a488fed8e",
       "width": 1600
     },
     "assets/readme/usage-flow.en.png": {

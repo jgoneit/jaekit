@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title description" xml:lang="ko">
 <title id="title">완료 보고</title>
-<desc id="description">password-link의 가상 완료 보고. ha report 출력 모양입니다. 다섯 줄 요약: 바뀐 것, 확인한 것, 직접 볼 것, 남은 한계(보증 수준 local; 검사 작성자: 실행자), 다음 행동. 그 아래 완료 기록 seq 5의 조건별 근거: AC-1 change는 근거 기록 2, 3, AC-2 maintain은 4. 실제 기록이 아닌 가상 예시입니다.</desc>
+<desc id="description">password-link의 가상 완료 보고. ha report 출력 모양입니다. 다섯 줄 요약: 바뀐 것, 확인한 것, 직접 볼 것, 남은 한계(보증 수준 local; 검사 작성자: 실행자), 다음 행동. 그 아래 완료 기록 seq 6의 조건별 근거: AC-1 change는 근거 기록 2, 3, AC-2 maintain은 4. 실제 기록이 아닌 가상 예시입니다.</desc>
 <rect x="0" y="0" width="1600" height="900" rx="0" fill="#FAFBFD"/>
 <rect x="48" y="34" width="124.04" height="40" rx="9" fill="#168975"/>
 <text x="110.02000000000001" y="61" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">ha report</text>
@@ -11,7 +11,7 @@
 <text x="76" y="206" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">password-link · PROGRESS.md의 ## 완료 보고 · ha report --lang ko 출력</text>
 <path d="M76 224H1040" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="76" y="262" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="700" fill="#0B5A4C" text-anchor="start" xml:space="preserve">바뀐 것:</text>
-<text x="187.639" y="262" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">base fe4597cf233f 이후 실행 묶음 문서 밖에서</text>
+<text x="187.639" y="262" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">base f46020ce6f77 이후 실행 묶음 문서 밖에서</text>
 <text x="187.639" y="293" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">파일 1개, commit 1개</text>
 <text x="76" y="344" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="700" fill="#0B5A4C" text-anchor="start" xml:space="preserve">확인한 것:</text>
 <text x="187.639" y="344" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">필수 조건 2개 중 2개 충족(검사 기록 2개, 사용자 확인 0개);</text>
@@ -21,10 +21,10 @@
 <text x="76" y="477" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="700" fill="#0B5A4C" text-anchor="start" xml:space="preserve">남은 한계:</text>
 <text x="187.639" y="477" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">보증 수준 local; 검사 작성자: 실행자</text>
 <text x="76" y="528" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="700" fill="#0B5A4C" text-anchor="start" xml:space="preserve">다음 행동:</text>
-<text x="187.639" y="528" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">없음; 완료 기록 seq 5이 유효하고 남은 할 일이 없음</text>
+<text x="187.639" y="528" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">없음; 완료 기록 seq 6이 유효하고 남은 할 일이 없음</text>
 <path d="M76 563H1040" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="76" y="597" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">### 조건별 근거</text>
-<text x="76" y="631" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">근거 출처: 완료 기록 seq 5</text>
+<text x="76" y="631" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">근거 출처: 완료 기록 seq 6</text>
 <rect x="76" y="649" width="964" height="42" rx="8" fill="#F0F3F8"/>
 <text x="92" y="677" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">ID</text>
 <text x="212" y="677" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">종류</text>

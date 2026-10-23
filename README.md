@@ -335,26 +335,26 @@ docs/reviews/password-link/   Spar records, in a folder Git ignores
 
 ### The completion report
 
-![Fictional completion report for password-link in the shape of ha report output: the five lines Changed, Checked, To review, Remaining limits and Next step, then the evidence per condition under completion record seq 5 (AC-1 change with records 2, 3; AC-2 maintain with record 4). Assurance local; check author executor.](assets/readme/report-card.en.png)
+![Fictional completion report for password-link in the shape of ha report output: the five lines Changed, Checked, To review, Remaining limits and Next step, then the evidence per condition under completion record seq 6 (AC-1 change with records 2, 3; AC-2 maintain with record 4). Assurance local; check author executor.](assets/readme/report-card.en.png)
 
 When `ha done` records completion, Seal pastes the output of `ha report` unchanged into `PROGRESS.md` under `## 완료 보고`, then adds only its own judgment below it. `ha report` prints English by default and Korean with `--lang ko`; Seal uses the language of your request. The section looks like this:
 
 ```markdown
 ## 완료 보고
 
-Changed: 1 files and 1 commits outside the bundle documents since base fe4597cf233f
+Changed: 1 files and 1 commits outside the bundle documents since base f46020ce6f77
 Checked: 2 of 2 required conditions satisfied (2 by check records, 0 by user confirmation); 1 of 1 change conditions have a fresh baseline
 To review: none
 Remaining limits: assurance local; check author: executor
-Next step: none; completion record seq 5 holds and nothing is left to do
+Next step: none; completion record seq 6 holds and nothing is left to do
 
 ### Stamp for `## 현재`
 
-- record head: seq 5 (0a94eba41234), recorded at 2026-10-23T10:06:33Z; status: complete; completion record: seq 5
+- record head: seq 6 (e2fd520c706e), recorded at 2026-10-23T13:38:16Z; status: complete; completion record: seq 6
 
 ### Evidence per condition
 
-Source: completion record seq 5
+Source: completion record seq 6
 | ID | kind | required | satisfied | records |
 | --- | --- | --- | --- | --- |
 | AC-1 | change | yes | yes | 2, 3 |
@@ -362,7 +362,7 @@ Source: completion record seq 5
 
 ### Completion coverage
 
-- completion record seq 5, commit e887828a0035; HEAD e887828a0035 is covered
+- completion record seq 6, commit e01fdf1e9c98; HEAD e01fdf1e9c98 is covered
 
 ### Output of unmet conditions
 
@@ -372,15 +372,15 @@ Seal's judgment:
 
 - Changed files (agent's claim): src/login.html for AC-1.
 - Manual conditions and assumed decisions: none.
-- Review: the SPEC has no `Assurance:` line, so this goal needs no review gate.
-- The head to push is the completion record's commit e887828a0035.
+- Review: tier `standard`. Spar round `01-candidate` (claude, codex) found nothing, and its gate, recorded at seq 5, covers the last commit e01fdf1e9c98. No reviewer was waived. The records are in `docs/reviews/password-link/`.
+- The head to push is the completion record's commit e01fdf1e9c98.
 - This report does not establish deployment or installation. Assurance is local, and the agent wrote the checks.
 ```
 
 How to read it:
 
 - The five lines at the top say what changed, what was checked, what you should look at yourself, the limits that remain and the next step. `ha report` computes them from the run record, Git and the goal documents; they are not the agent's own claim.
-- **records** are line numbers (seq) in `runs.jsonl`. For AC-1, seq 2 is the check run on the starting commit, failing as declared, and seq 3 is the same check passing on the result. Completion record seq 5 means `ha done` recorded completion.
+- **records** are line numbers (seq) in `runs.jsonl`. For AC-1, seq 2 is the check run on the starting commit, failing as declared, and seq 3 is the same check passing on the result. Seq 5 is the `review` note that recorded the Spar gate, and completion record seq 6 means `ha done` recorded completion.
 - The raw output of a run stays in `.git/ha/`. `ha log docs/specs/password-link 3` prints it in Terminal.
 
 > [!IMPORTANT]
@@ -406,6 +406,7 @@ Next step: resolve AC-2 `criterion_failed` (executor)
 
 Status: Ready
 Criteria-Format: nested/1
+Assurance: standard
 
 ## Goal
 
@@ -425,7 +426,7 @@ Signing in keeps working as before (AC-2).
 None
 ```
 
-`Status: Ready` means no outcome-changing decision is left. Spec stops here; nothing is implemented until you start Seal.
+`Status: Ready` means no outcome-changing decision is left. `Assurance: standard` is the review tier: before `ha done`, Seal has the change reviewed in independent Spar rounds. Spec stops here; nothing is implemented until you start Seal.
 
 </details>
 
@@ -447,17 +448,17 @@ None
 
 - `change` is new behavior. Seal also runs its check on the starting commit, where it must fail the way the declaration says, and then on the result, where it must pass.
 - `maintain` is behavior that must keep working. `manual` is a condition only you can confirm.
-- The plan also lists the paths Seal may change, its tasks and a run budget. `REVIEW.md` records the review of this plan before work starts.
+- The plan also lists the paths Seal may change, its tasks and a run budget. `REVIEW.md` holds the review of this plan, the review tier and the planned review stages, and later summarizes the Spar rounds and gate, pointing to their records in `docs/reviews/password-link/`.
 
 </details>
 
 <details>
 <summary><strong>runs.jsonl</strong>: the run record behind the report</summary>
 
-`ha` appends one JSON line for each recorded event: `start`; a `check` or `baseline` line for each target it runs, so `ha check <goal> AC-1 AC-2` adds two lines; `note` (your quoted confirmations and answers); `budget_change`; `done`; and `finding` for findings recorded after completion. Each line carries the hash of the line before it (`prev`), so editing or removing an earlier line breaks the chain and `ha` reports `record_integrity`. The last line has no later line to expose a change. The record head (seq and hash) in the completion report is the last line when `ha done` ran; later lines such as notes or findings can follow it. A shortened `done` line:
+`ha` appends one JSON line for each recorded event: `start`; a `check` or `baseline` line for each target it runs, so `ha check <goal> AC-1 AC-2` adds two lines; `note` (your quoted confirmations and answers, and the `review` note that records a Spar gate); `budget_change`; `done`; and `finding` for findings recorded after completion. Each line carries the hash of the line before it (`prev`), so editing or removing an earlier line breaks the chain and `ha` reports `record_integrity`. The last line has no later line to expose a change. The record head (seq and hash) in the completion report is the last line when `ha done` ran; later lines such as notes or findings can follow it. A shortened `done` line:
 
 ```text
-{"schema":"run/v1","seq":5,"prev":"a22dbbfe…","kind":"done","status":"complete","commit":"aa4bd917…","tree_clean":true,"criteria":[{"id":"AC-1","kind":"change","satisfied":true,"records":[2,3]},{"id":"AC-2","kind":"maintain","satisfied":true,"records":[4]}]}
+{"schema":"run/v1","seq":6,"prev":"578fb93e…","kind":"done","status":"complete","commit":"e01fdf1e…","tree_clean":true,"criteria":[{"id":"AC-1","kind":"change","satisfied":true,"records":[2,3]},{"id":"AC-2","kind":"maintain","satisfied":true,"records":[4]}]}
 ```
 
 </details>

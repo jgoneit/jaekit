@@ -335,26 +335,26 @@ docs/reviews/password-link/   Git이 무시하는 폴더의 Spar 기록
 
 ### 완료 보고
 
-![password-link의 가상 완료 보고, ha report 출력 모양: 다섯 줄 바뀐 것, 확인한 것, 직접 볼 것, 남은 한계, 다음 행동과 완료 기록 seq 5의 조건별 근거(AC-1 change는 근거 기록 2, 3, AC-2 maintain은 4). 보증 수준 local, 검사 작성자 실행자.](assets/readme/report-card.ko.png)
+![password-link의 가상 완료 보고, ha report 출력 모양: 다섯 줄 바뀐 것, 확인한 것, 직접 볼 것, 남은 한계, 다음 행동과 완료 기록 seq 6의 조건별 근거(AC-1 change는 근거 기록 2, 3, AC-2 maintain은 4). 보증 수준 local, 검사 작성자 실행자.](assets/readme/report-card.ko.png)
 
 `ha done`이 완료를 기록하면 Seal이 `ha report`의 출력을 고치지 않고 `PROGRESS.md`의 `## 완료 보고`에 붙이고, 그 아래에 자기 판단만 덧붙입니다. `ha report`는 기본으로 영어, `--lang ko`로 한국어를 출력하며, Seal은 요청한 언어에 맞춥니다. 그 부분은 이렇게 생겼습니다.
 
 ```markdown
 ## 완료 보고
 
-바뀐 것: base fe4597cf233f 이후 실행 묶음 문서 밖에서 파일 1개, commit 1개
+바뀐 것: base f46020ce6f77 이후 실행 묶음 문서 밖에서 파일 1개, commit 1개
 확인한 것: 필수 조건 2개 중 2개 충족(검사 기록 2개, 사용자 확인 0개); change 조건 1개 중 1개에 신선한 baseline
 직접 볼 것: 없음
 남은 한계: 보증 수준 local; 검사 작성자: 실행자
-다음 행동: 없음; 완료 기록 seq 5이 유효하고 남은 할 일이 없음
+다음 행동: 없음; 완료 기록 seq 6이 유효하고 남은 할 일이 없음
 
 ### `## 현재` 도장
 
-- 기록 head: seq 5 (0a94eba41234), 기록 시각 2026-10-23T10:06:33Z; 상태: complete; 완료 기록: seq 5
+- 기록 head: seq 6 (e2fd520c706e), 기록 시각 2026-10-23T13:38:16Z; 상태: complete; 완료 기록: seq 6
 
 ### 조건별 근거
 
-근거 출처: 완료 기록 seq 5
+근거 출처: 완료 기록 seq 6
 | ID | 종류 | 필수 | 충족 | 근거 기록 |
 | --- | --- | --- | --- | --- |
 | AC-1 | change | 예 | 예 | 2, 3 |
@@ -362,7 +362,7 @@ docs/reviews/password-link/   Git이 무시하는 폴더의 Spar 기록
 
 ### 완료 범위
 
-- 완료 기록 seq 5, commit e887828a0035; 지금 HEAD e887828a0035를 덮음
+- 완료 기록 seq 6, commit e01fdf1e9c98; 지금 HEAD e01fdf1e9c98를 덮음
 
 ### 미충족 조건의 원문 위치
 
@@ -372,15 +372,15 @@ Seal의 판단:
 
 - 바꾼 파일(에이전트의 주장): src/login.html — AC-1
 - manual 조건과 가정한 결정: 없음
-- 검토: SPEC에 `Assurance:` 줄이 없어 이 목표에는 검토 gate가 필요 없습니다.
-- 올릴 head는 완료 기록의 commit e887828a0035입니다.
+- 검토: 등급 `standard`. Spar 라운드 `01-candidate`(claude, codex)에서 지적이 없었고, seq 5에 기록한 그 gate가 마지막 commit e01fdf1e9c98을 덮습니다. 뺀 리뷰어(waiver)는 없습니다. 기록은 `docs/reviews/password-link/`에 있습니다.
+- 올릴 head는 완료 기록의 commit e01fdf1e9c98입니다.
 - 이 보고는 배포나 설치를 확인하지 않습니다. 보증 수준은 local이고 검사는 에이전트가 작성했습니다.
 ```
 
 읽는 법:
 
 - 맨 위 다섯 줄은 바뀐 것, 확인한 것, 직접 볼 것, 남은 한계, 다음 행동입니다. `ha report`가 실행 기록·Git·목표 문서로 계산한 값이며, 에이전트의 주장이 아닙니다.
-- **근거 기록**은 `runs.jsonl`의 줄 번호(seq)입니다. AC-1의 seq 2는 시작 commit에서 돌린 검사가 선언대로 실패한 기록이고, seq 3은 같은 검사가 결과에서 통과한 기록입니다. 완료 기록 seq 5는 `ha done`이 완료를 기록했다는 뜻입니다.
+- **근거 기록**은 `runs.jsonl`의 줄 번호(seq)입니다. AC-1의 seq 2는 시작 commit에서 돌린 검사가 선언대로 실패한 기록이고, seq 3은 같은 검사가 결과에서 통과한 기록입니다. seq 5는 Spar gate를 기록한 `review` note이고, 완료 기록 seq 6은 `ha done`이 완료를 기록했다는 뜻입니다.
 - 실행의 출력 원문은 `.git/ha/`에 남습니다. 터미널에서 `ha log docs/specs/password-link 3`으로 봅니다.
 
 > [!IMPORTANT]
@@ -406,6 +406,7 @@ Seal의 판단:
 
 Status: Ready
 Criteria-Format: nested/1
+Assurance: standard
 
 ## 목표
 
@@ -425,7 +426,7 @@ Criteria-Format: nested/1
 없음
 ```
 
-`Status: Ready`는 결과를 바꾸는 결정이 남지 않았다는 뜻입니다. Spec은 여기서 멈추며, Seal을 시작하기 전에는 아무것도 구현하지 않습니다.
+`Status: Ready`는 결과를 바꾸는 결정이 남지 않았다는 뜻입니다. `Assurance: standard`는 검토 등급으로, `ha done` 전에 Seal이 독립된 Spar 라운드로 변경을 검토받습니다. Spec은 여기서 멈추며, Seal을 시작하기 전에는 아무것도 구현하지 않습니다.
 
 </details>
 
@@ -447,17 +448,17 @@ Criteria-Format: nested/1
 
 - `change`는 새 동작입니다. Seal은 같은 검사를 시작 commit에서도 돌려 선언대로 실패하는지 보고, 결과에서는 통과해야 합니다.
 - `maintain`은 계속 동작해야 하는 기존 동작이고, `manual`은 사용자만 확인할 수 있는 조건입니다.
-- 계획에는 Seal이 바꿀 수 있는 경로, task, 실행 예산도 들어갑니다. `REVIEW.md`는 작업 시작 전에 이 계획을 검토한 기록입니다.
+- 계획에는 Seal이 바꿀 수 있는 경로, task, 실행 예산도 들어갑니다. `REVIEW.md`는 이 계획의 검토와 검토 등급·계획한 검토 단계를 담고, 나중에 Spar 라운드와 gate를 요약해 `docs/reviews/password-link/`의 기록을 가리킵니다.
 
 </details>
 
 <details>
 <summary><strong>runs.jsonl</strong>: 보고 뒤에 있는 실행 기록</summary>
 
-`ha`는 기록하는 사건마다 JSON 한 줄을 덧붙입니다. `start`, 실행한 대상마다 한 줄인 `check`·`baseline`(`ha check <goal> AC-1 AC-2`는 두 줄), `note`(인용한 사용자 확인과 답), `budget_change`, `done`, 완료 뒤 기록한 발견의 `finding`이 있습니다. 각 줄은 앞 줄의 해시(`prev`)를 담아서, 앞선 줄을 고치거나 지우면 연결이 끊기고 `ha`가 `record_integrity`로 알립니다. 마지막 줄은 뒤에 이어지는 줄이 없어 바뀌어도 드러나지 않습니다. 완료 보고의 record head(seq와 해시)는 `ha done`을 실행한 때의 마지막 줄이며, 그 뒤에 note나 finding 같은 줄이 더 붙을 수 있습니다. 줄인 `done` 줄 예시입니다.
+`ha`는 기록하는 사건마다 JSON 한 줄을 덧붙입니다. `start`, 실행한 대상마다 한 줄인 `check`·`baseline`(`ha check <goal> AC-1 AC-2`는 두 줄), `note`(인용한 사용자 확인과 답, Spar gate를 기록하는 `review` note), `budget_change`, `done`, 완료 뒤 기록한 발견의 `finding`이 있습니다. 각 줄은 앞 줄의 해시(`prev`)를 담아서, 앞선 줄을 고치거나 지우면 연결이 끊기고 `ha`가 `record_integrity`로 알립니다. 마지막 줄은 뒤에 이어지는 줄이 없어 바뀌어도 드러나지 않습니다. 완료 보고의 record head(seq와 해시)는 `ha done`을 실행한 때의 마지막 줄이며, 그 뒤에 note나 finding 같은 줄이 더 붙을 수 있습니다. 줄인 `done` 줄 예시입니다.
 
 ```text
-{"schema":"run/v1","seq":5,"prev":"a22dbbfe…","kind":"done","status":"complete","commit":"aa4bd917…","tree_clean":true,"criteria":[{"id":"AC-1","kind":"change","satisfied":true,"records":[2,3]},{"id":"AC-2","kind":"maintain","satisfied":true,"records":[4]}]}
+{"schema":"run/v1","seq":6,"prev":"578fb93e…","kind":"done","status":"complete","commit":"e01fdf1e…","tree_clean":true,"criteria":[{"id":"AC-1","kind":"change","satisfied":true,"records":[2,3]},{"id":"AC-2","kind":"maintain","satisfied":true,"records":[4]}]}
 ```
 
 </details>

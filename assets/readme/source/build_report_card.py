@@ -26,15 +26,15 @@ COPY = {
         "title": "완료 보고",
         "where": "password-link · PROGRESS.md의 ## 완료 보고 · ha report --lang ko 출력",
         "summary": [
-            ("바뀐 것:", ["base fe4597cf233f 이후 실행 묶음 문서 밖에서", "파일 1개, commit 1개"]),
+            ("바뀐 것:", ["base f46020ce6f77 이후 실행 묶음 문서 밖에서", "파일 1개, commit 1개"]),
             ("확인한 것:", ["필수 조건 2개 중 2개 충족(검사 기록 2개, 사용자 확인 0개);",
                          "change 조건 1개 중 1개에 신선한 baseline"]),
             ("직접 볼 것:", ["없음"]),
             ("남은 한계:", ["보증 수준 local; 검사 작성자: 실행자"]),
-            ("다음 행동:", ["없음; 완료 기록 seq 5이 유효하고 남은 할 일이 없음"]),
+            ("다음 행동:", ["없음; 완료 기록 seq 6이 유효하고 남은 할 일이 없음"]),
         ],
         "evidence": "### 조건별 근거",
-        "source": "근거 출처: 완료 기록 seq 5",
+        "source": "근거 출처: 완료 기록 seq 6",
         "columns": ["ID", "종류", "필수", "충족", "근거 기록"],
         "rows": [["AC-1", "change", "예", "예", "2, 3"], ["AC-2", "maintain", "예", "예", "4"]],
         "notes": [
@@ -48,21 +48,21 @@ COPY = {
         "footer": "설명용 가상 보고 · password-link",
         "fictional": "가상 예시",
         "description": "password-link의 가상 완료 보고. ha report 출력 모양입니다. 다섯 줄 요약: 바뀐 것, 확인한 것, 직접 볼 것, 남은 한계(보증 수준 local; 검사 작성자: 실행자), 다음 행동. "
-                       "그 아래 완료 기록 seq 5의 조건별 근거: AC-1 change는 근거 기록 2, 3, AC-2 maintain은 4. 실제 기록이 아닌 가상 예시입니다.",
+                       "그 아래 완료 기록 seq 6의 조건별 근거: AC-1 change는 근거 기록 2, 3, AC-2 maintain은 4. 실제 기록이 아닌 가상 예시입니다.",
     },
     "en": {
         "title": "Completion report",
         "where": "password-link · ## 완료 보고 in PROGRESS.md · output of ha report",
         "summary": [
-            ("Changed:", ["1 files and 1 commits outside the bundle documents", "since base fe4597cf233f"]),
+            ("Changed:", ["1 files and 1 commits outside the bundle documents", "since base f46020ce6f77"]),
             ("Checked:", ["2 of 2 required conditions satisfied (2 by check records,",
                           "0 by user confirmation); 1 of 1 change conditions have a fresh baseline"]),
             ("To review:", ["none"]),
             ("Remaining limits:", ["assurance local; check author: executor"]),
-            ("Next step:", ["none; completion record seq 5 holds and nothing is left to do"]),
+            ("Next step:", ["none; completion record seq 6 holds and nothing is left to do"]),
         ],
         "evidence": "### Evidence per condition",
-        "source": "Source: completion record seq 5",
+        "source": "Source: completion record seq 6",
         "columns": ["ID", "kind", "required", "satisfied", "records"],
         "rows": [["AC-1", "change", "yes", "yes", "2, 3"], ["AC-2", "maintain", "yes", "yes", "4"]],
         "notes": [
@@ -77,7 +77,7 @@ COPY = {
         "fictional": "Fictional example",
         "description": "Fictional completion report for password-link, in the shape of ha report output. Five summary lines: Changed, Checked, To review, "
                        "Remaining limits (assurance local; check author: executor) and Next step. "
-                       "Then the evidence per condition under completion record seq 5: AC-1 change with records 2, 3 and AC-2 maintain with record 4. A fictional example, not a real record.",
+                       "Then the evidence per condition under completion record seq 6: AC-1 change with records 2, 3 and AC-2 maintain with record 4. A fictional example, not a real record.",
     },
 }
 
