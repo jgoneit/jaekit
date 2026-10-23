@@ -319,77 +319,63 @@ docs/specs/password-link/
 
 ![password-link의 가상 완료 보고: complete, 완료 기록 seq 5. AC-1 change는 바꾸기 전 실패(seq 2), 바꾼 뒤 통과(seq 3). AC-2 maintain 통과(seq 4). assurance local, check author executor.](assets/readme/report-card.ko.png)
 
-필수 완료 조건이 충족되면 Seal이 `ha done`을 실행하고, 그 출력을 고치지 않고 `PROGRESS.md`의 `## 완료 보고`에 붙인 뒤 자기 설명을 덧붙입니다. `ha` 출력의 설명 문장은 언어와 관계없이 영어입니다. GitHub에서는 이렇게 보입니다.
-
-> **ha status: docs/specs/password-link**
->
-> - status: **complete** (exit 0)
-> - completion record: seq 5
-> - assurance: local (an agent with the same user permissions can change checks and records)
-> - check author: executor
-> - rules: run-rules/4; skill: seal 0.1.17 (claimed); ha: 0.1.6
->
-> | ID | kind | required | satisfied | reason | records | attempts |
-> | --- | --- | --- | --- | --- | --- | --- |
-> | AC-1 | change | yes | yes | — | 2, 3 | checks 1 (fail 0, error 0), baselines 1 (unexpected pass 0, error 0), stale 0 |
-> | AC-2 | maintain | yes | yes | — | 4 | checks 1 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
->
-> - 완료 범위: 완료 기록 seq 5의 commit aa4bd917b591이 올릴 head와 같습니다.
-> - 바꾼 파일(에이전트의 주장): src/login.html — AC-1
-> - 남은 한계: 보증 수준 local, 검사는 에이전트가 작성, manual 조건 없음
-
-<details>
-<summary><code>PROGRESS.md</code>의 Markdown 원문 보기</summary>
+`ha done`이 완료를 기록하면 Seal이 `ha report`의 출력을 고치지 않고 `PROGRESS.md`의 `## 완료 보고`에 붙이고, 그 아래에 자기 판단만 덧붙입니다. `ha report`는 기본으로 영어, `--lang ko`로 한국어를 출력하며, Seal은 요청한 언어에 맞춥니다. 그 부분은 이렇게 생겼습니다.
 
 ```markdown
 ## 완료 보고
 
-## ha status: docs/specs/password-link
+바뀐 것: base fe4597cf233f 이후 실행 묶음 문서 밖에서 파일 1개, commit 1개
+확인한 것: 필수 조건 2개 중 2개 충족(검사 기록 2개, 사용자 확인 0개); change 조건 1개 중 1개에 신선한 baseline
+직접 볼 것: 없음
+남은 한계: 보증 수준 local; 검사 작성자: 실행자
+다음 행동: 없음; 완료 기록 seq 5이 유효하고 남은 할 일이 없음
 
-- status: **complete** (exit 0)
-- completion record: seq 5
-- assurance: local (an agent with the same user permissions can change checks and records)
-- check author: executor
-- record head: seq 5 (315888484b42)
-- rules: run-rules/4; skill: seal 0.1.17 (claimed); ha: 0.1.6
-- code: aa4bd917b591, tree clean: yes; goal digest: f1f24cc156b0
-- attempts: 3 total; types: 2 check, 1 baseline; outcomes: 0 environment errors, 0 unknown; inputs: 3 current, 0 stale; valid positive evidence: 3 (overlapping axes)
+### `## 현재` 도장
 
-### Criteria
+- 기록 head: seq 5 (0a94eba41234), 기록 시각 2026-10-23T10:06:33Z; 상태: complete; 완료 기록: seq 5
 
-| ID | kind | required | satisfied | reason | records | attempts |
-| --- | --- | --- | --- | --- | --- | --- |
-| AC-1 | change | yes | yes | — | 2, 3 | checks 1 (fail 0, error 0), baselines 1 (unexpected pass 0, error 0), stale 0 |
-| AC-2 | maintain | yes | yes | — | 4 | checks 1 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+### 조건별 근거
 
-### Reasons
+근거 출처: 완료 기록 seq 5
+| ID | 종류 | 필수 | 충족 | 근거 기록 |
+| --- | --- | --- | --- | --- |
+| AC-1 | change | 예 | 예 | 2, 3 |
+| AC-2 | maintain | 예 | 예 | 4 |
 
-None.
+### 완료 범위
 
-- 완료 범위: 완료 기록 seq 5의 commit aa4bd917b591이 올릴 head와 같습니다.
+- 완료 기록 seq 5, commit e887828a0035; 지금 HEAD e887828a0035를 덮음
+
+### 미충족 조건의 원문 위치
+
+- 없음
+
+Seal의 판단:
+
 - 바꾼 파일(에이전트의 주장): src/login.html — AC-1
-- 남은 한계: 보증 수준 local, 검사는 에이전트가 작성, manual 조건 없음
+- manual 조건과 가정한 결정: 없음
+- 검토: SPEC에 `Assurance:` 줄이 없어 이 목표에는 검토 gate가 필요 없습니다.
+- 올릴 head는 완료 기록의 commit e887828a0035입니다.
+- 이 보고는 배포나 설치를 확인하지 않습니다. 보증 수준은 local이고 검사는 에이전트가 작성했습니다.
 ```
-
-</details>
 
 읽는 법:
 
-- **status**는 `ha`가 실행 기록·Git·목표 문서로 계산한 값이며, 에이전트의 주장이 아닙니다. completion record에 seq가 있으면 `ha done`이 완료를 기록했다는 뜻입니다.
-- **records**는 `runs.jsonl`의 줄 번호(seq)입니다. AC-1의 seq 2는 시작 commit에서 돌린 검사가 선언대로 실패한 기록이고, seq 3은 같은 검사가 결과에서 통과한 기록입니다.
+- 맨 위 다섯 줄은 바뀐 것, 확인한 것, 직접 볼 것, 남은 한계, 다음 행동입니다. `ha report`가 실행 기록·Git·목표 문서로 계산한 값이며, 에이전트의 주장이 아닙니다.
+- **근거 기록**은 `runs.jsonl`의 줄 번호(seq)입니다. AC-1의 seq 2는 시작 commit에서 돌린 검사가 선언대로 실패한 기록이고, seq 3은 같은 검사가 결과에서 통과한 기록입니다. 완료 기록 seq 5는 `ha done`이 완료를 기록했다는 뜻입니다.
 - 실행의 출력 원문은 `.git/ha/`에 남습니다. 터미널에서 `ha log docs/specs/password-link 3`으로 봅니다.
 
 > [!IMPORTANT]
-> **assurance: local**과 **check author: executor**는 에이전트가 내 컴퓨터에서 검사를 작성하고 실행했다는 뜻입니다. 독립된 제3자의 검증이 아니므로 바뀐 검사와 실제 결과도 함께 확인합니다.
+> `남은 한계`의 **보증 수준 local**과 **검사 작성자: 실행자**는 에이전트가 내 컴퓨터에서 검사를 작성하고 실행했다는 뜻입니다. 독립된 제3자의 검증이 아니므로 바뀐 검사와 실제 결과도 함께 확인합니다.
 
-완료 전에 작업이 멈추면 보고에는 대신 `ha status`가 들어가고, 무엇이 부족한지 `### Unmet` 목록으로 보입니다.
+완료 전에 작업이 멈춰도 Seal은 `ha report`를 붙입니다. `다음 행동`이 해결할 것을 말하고, 마지막 부분이 미충족 조건마다 출력 원문의 위치를 보입니다.
 
 ```text
-- status: **incomplete** (exit 1)
+다음 행동: AC-2 `criterion_failed` 해결 (executor)
 
-### Unmet
+### 미충족 조건의 원문 위치
 
-- AC-2 `criterion_failed` (executor): seq 4, output `ha log docs/specs/password-link 4`
+- AC-2 `criterion_failed` (executor): seq 4, 원문 `ha log docs/specs/password-link 4`
 ```
 
 ### 다른 파일
