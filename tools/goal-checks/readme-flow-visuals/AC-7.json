@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "FictionalLocal",
+      "violation": "illustration-overclaims",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReadmeFlowVisualsAC7_FictionalAndLocal"
+      }
+    }
+  ]
+}
