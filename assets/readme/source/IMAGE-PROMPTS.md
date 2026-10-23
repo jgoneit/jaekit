@@ -1,6 +1,6 @@
 # Image generation prompts
 
-These are the source prompts supplied with the README kit for the retained hero PNGs. The accompanying creation notes identify OpenAI image generation as the tool used. The usage flow is authored separately as SVG; see [USAGE-FLOW.md](USAGE-FLOW.md). These prompts describe conceptual product illustrations, not executed or verified examples. Editing an existing illustration should preserve its layout and update the matching language partner.
+These are the source prompts supplied with the README kit for the retained hero PNGs. The accompanying creation notes identify OpenAI image generation as the tool used. The usage flow, walkthrough, goal folder and report card are authored separately as SVG; see [ARTWORK.md](ARTWORK.md). These prompts describe conceptual product illustrations, not executed or verified examples. Editing an existing illustration should preserve its layout and update the matching language partner.
 
 ## Hero — Korean
 

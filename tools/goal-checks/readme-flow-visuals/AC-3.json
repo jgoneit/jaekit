@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Frames",
+      "violation": "walkthrough-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReadmeFlowVisualsAC3_WalkthroughFrames"
+      }
+    },
+    {
+      "id": "Alt",
+      "violation": "walkthrough-alt-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReadmeFlowVisualsAC3_WalkthroughAlt"
+      }
+    }
+  ]
+}

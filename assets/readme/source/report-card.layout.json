@@ -1,0 +1,720 @@
+{
+  "canvas": [
+    1600,
+    900
+  ],
+  "font": "Noto Sans CJK KR",
+  "languages": {
+    "ko": [
+      {
+        "text": "ha report",
+        "x": 64.0,
+        "y": 61,
+        "width": 92.04,
+        "font_size": 20
+      },
+      {
+        "text": "완료 보고",
+        "x": 48,
+        "y": 136,
+        "width": 210.98,
+        "font_size": 54
+      },
+      {
+        "text": "가상 예시",
+        "x": 1457.77,
+        "y": 68,
+        "width": 74.23,
+        "font_size": 19
+      },
+      {
+        "text": "password-link · PROGRESS.md의 ## 완료 보고 · ha report --lang ko 출력",
+        "x": 76,
+        "y": 206,
+        "width": 555.12,
+        "font_size": 17
+      },
+      {
+        "text": "바뀐 것:",
+        "x": 76,
+        "y": 262,
+        "width": 69.55,
+        "font_size": 21
+      },
+      {
+        "text": "base f46020ce6f77 이후 실행 묶음 문서 밖에서",
+        "x": 187.64,
+        "y": 262,
+        "width": 396.42,
+        "font_size": 20
+      },
+      {
+        "text": "파일 1개, commit 1개",
+        "x": 187.64,
+        "y": 293,
+        "width": 187.2,
+        "font_size": 20
+      },
+      {
+        "text": "확인한 것:",
+        "x": 76,
+        "y": 344,
+        "width": 88.87,
+        "font_size": 21
+      },
+      {
+        "text": "필수 조건 2개 중 2개 충족(검사 기록 2개, 사용자 확인 0개);",
+        "x": 187.64,
+        "y": 344,
+        "width": 481.84,
+        "font_size": 20
+      },
+      {
+        "text": "change 조건 1개 중 1개에 신선한 baseline",
+        "x": 187.64,
+        "y": 375,
+        "width": 361.36,
+        "font_size": 20
+      },
+      {
+        "text": "직접 볼 것:",
+        "x": 76,
+        "y": 426,
+        "width": 93.64,
+        "font_size": 21
+      },
+      {
+        "text": "없음",
+        "x": 187.64,
+        "y": 426,
+        "width": 36.8,
+        "font_size": 20
+      },
+      {
+        "text": "남은 한계:",
+        "x": 76,
+        "y": 477,
+        "width": 88.87,
+        "font_size": 21
+      },
+      {
+        "text": "보증 수준 local; 검사 작성자: 실행자",
+        "x": 187.64,
+        "y": 477,
+        "width": 299.26,
+        "font_size": 20
+      },
+      {
+        "text": "다음 행동:",
+        "x": 76,
+        "y": 528,
+        "width": 88.87,
+        "font_size": 21
+      },
+      {
+        "text": "없음; 완료 기록 seq 6이 유효하고 남은 할 일이 없음",
+        "x": 187.64,
+        "y": 528,
+        "width": 421.02,
+        "font_size": 20
+      },
+      {
+        "text": "### 조건별 근거",
+        "x": 76,
+        "y": 597,
+        "width": 143.3,
+        "font_size": 21
+      },
+      {
+        "text": "근거 출처: 완료 기록 seq 6",
+        "x": 76,
+        "y": 631,
+        "width": 197.19,
+        "font_size": 18
+      },
+      {
+        "text": "ID",
+        "x": 92,
+        "y": 677,
+        "width": 18.79,
+        "font_size": 18
+      },
+      {
+        "text": "종류",
+        "x": 212,
+        "y": 677,
+        "width": 33.12,
+        "font_size": 18
+      },
+      {
+        "text": "필수",
+        "x": 372,
+        "y": 677,
+        "width": 33.12,
+        "font_size": 18
+      },
+      {
+        "text": "충족",
+        "x": 532,
+        "y": 677,
+        "width": 33.12,
+        "font_size": 18
+      },
+      {
+        "text": "근거 기록",
+        "x": 692,
+        "y": 677,
+        "width": 70.33,
+        "font_size": 18
+      },
+      {
+        "text": "AC-1",
+        "x": 92,
+        "y": 722,
+        "width": 45.14,
+        "font_size": 20
+      },
+      {
+        "text": "change",
+        "x": 212,
+        "y": 722,
+        "width": 68.16,
+        "font_size": 20
+      },
+      {
+        "text": "예",
+        "x": 372,
+        "y": 722,
+        "width": 18.4,
+        "font_size": 20
+      },
+      {
+        "text": "예",
+        "x": 532,
+        "y": 722,
+        "width": 18.4,
+        "font_size": 20
+      },
+      {
+        "text": "2, 3",
+        "x": 692,
+        "y": 722,
+        "width": 32.24,
+        "font_size": 20
+      },
+      {
+        "text": "AC-2",
+        "x": 92,
+        "y": 768,
+        "width": 45.14,
+        "font_size": 20
+      },
+      {
+        "text": "maintain",
+        "x": 212,
+        "y": 768,
+        "width": 83.98,
+        "font_size": 20
+      },
+      {
+        "text": "예",
+        "x": 372,
+        "y": 768,
+        "width": 18.4,
+        "font_size": 20
+      },
+      {
+        "text": "예",
+        "x": 532,
+        "y": 768,
+        "width": 18.4,
+        "font_size": 20
+      },
+      {
+        "text": "4",
+        "x": 692,
+        "y": 768,
+        "width": 11.1,
+        "font_size": 20
+      },
+      {
+        "text": "1",
+        "x": 1129.58,
+        "y": 218,
+        "width": 8.85,
+        "font_size": 15
+      },
+      {
+        "text": "시작 commit 이후",
+        "x": 1158,
+        "y": 219,
+        "width": 150.86,
+        "font_size": 19
+      },
+      {
+        "text": "바뀐 파일과 commit",
+        "x": 1158,
+        "y": 248,
+        "width": 164.69,
+        "font_size": 19
+      },
+      {
+        "text": "2",
+        "x": 1129.58,
+        "y": 312,
+        "width": 8.85,
+        "font_size": 15
+      },
+      {
+        "text": "필수 조건은 검사 기록으로 충족,",
+        "x": 1158,
+        "y": 313,
+        "width": 250.67,
+        "font_size": 19
+      },
+      {
+        "text": "change 조건은 신선한 baseline",
+        "x": 1158,
+        "y": 342,
+        "width": 256.99,
+        "font_size": 19
+      },
+      {
+        "text": "3",
+        "x": 1129.58,
+        "y": 406,
+        "width": 8.85,
+        "font_size": 15
+      },
+      {
+        "text": "내가 직접 볼 것",
+        "x": 1158,
+        "y": 407,
+        "width": 117.82,
+        "font_size": 19
+      },
+      {
+        "text": "4",
+        "x": 1129.58,
+        "y": 471,
+        "width": 8.85,
+        "font_size": 15
+      },
+      {
+        "text": "보증 수준 local: 에이전트가 내 컴퓨터에서",
+        "x": 1158,
+        "y": 472,
+        "width": 335.05,
+        "font_size": 19
+      },
+      {
+        "text": "검사를 쓰고 실행했습니다",
+        "x": 1158,
+        "y": 501,
+        "width": 200.79,
+        "font_size": 19
+      },
+      {
+        "text": "5",
+        "x": 1129.58,
+        "y": 565,
+        "width": 8.85,
+        "font_size": 15
+      },
+      {
+        "text": "다음에 할 일",
+        "x": 1158,
+        "y": 566,
+        "width": 96.03,
+        "font_size": 19
+      },
+      {
+        "text": "6",
+        "x": 1129.58,
+        "y": 630,
+        "width": 8.85,
+        "font_size": 15
+      },
+      {
+        "text": "근거 기록은 runs.jsonl의 seq입니다.",
+        "x": 1158,
+        "y": 631,
+        "width": 302.54,
+        "font_size": 19
+      },
+      {
+        "text": "AC-1: seq 2에서 선언대로 실패, seq 3에서 통과",
+        "x": 1158,
+        "y": 660,
+        "width": 374.41,
+        "font_size": 19
+      },
+      {
+        "text": "설명용 가상 보고 · password-link",
+        "x": 48,
+        "y": 870,
+        "width": 246.5,
+        "font_size": 17
+      }
+    ],
+    "en": [
+      {
+        "text": "ha report",
+        "x": 64.0,
+        "y": 61,
+        "width": 92.04,
+        "font_size": 20
+      },
+      {
+        "text": "Completion report",
+        "x": 48,
+        "y": 136,
+        "width": 494.05,
+        "font_size": 54
+      },
+      {
+        "text": "Fictional example",
+        "x": 1365.2,
+        "y": 68,
+        "width": 166.8,
+        "font_size": 19
+      },
+      {
+        "text": "password-link · ## 완료 보고 in PROGRESS.md · output of ha report",
+        "x": 76,
+        "y": 206,
+        "width": 527.53,
+        "font_size": 17
+      },
+      {
+        "text": "Changed:",
+        "x": 76,
+        "y": 262,
+        "width": 98.17,
+        "font_size": 21
+      },
+      {
+        "text": "1 files and 1 commits outside the bundle documents",
+        "x": 275.86,
+        "y": 262,
+        "width": 473.95,
+        "font_size": 19.5
+      },
+      {
+        "text": "since base f46020ce6f77",
+        "x": 275.86,
+        "y": 293,
+        "width": 218.83,
+        "font_size": 19.5
+      },
+      {
+        "text": "Checked:",
+        "x": 76,
+        "y": 344,
+        "width": 95.72,
+        "font_size": 21
+      },
+      {
+        "text": "2 of 2 required conditions satisfied (2 by check records,",
+        "x": 275.86,
+        "y": 344,
+        "width": 497.68,
+        "font_size": 19.5
+      },
+      {
+        "text": "0 by user confirmation); 1 of 1 change conditions have a fresh baseline",
+        "x": 275.86,
+        "y": 375,
+        "width": 635.08,
+        "font_size": 19.5
+      },
+      {
+        "text": "To review:",
+        "x": 76,
+        "y": 426,
+        "width": 108.02,
+        "font_size": 21
+      },
+      {
+        "text": "none",
+        "x": 275.86,
+        "y": 426,
+        "width": 46.41,
+        "font_size": 19.5
+      },
+      {
+        "text": "Remaining limits:",
+        "x": 76,
+        "y": 477,
+        "width": 181.86,
+        "font_size": 21
+      },
+      {
+        "text": "assurance local; check author: executor",
+        "x": 275.86,
+        "y": 477,
+        "width": 358.9,
+        "font_size": 19.5
+      },
+      {
+        "text": "Next step:",
+        "x": 76,
+        "y": 528,
+        "width": 105.13,
+        "font_size": 21
+      },
+      {
+        "text": "none; completion record seq 6 holds and nothing is left to do",
+        "x": 275.86,
+        "y": 528,
+        "width": 551.3,
+        "font_size": 19.5
+      },
+      {
+        "text": "### Evidence per condition",
+        "x": 76,
+        "y": 597,
+        "width": 279.62,
+        "font_size": 21
+      },
+      {
+        "text": "Source: completion record seq 6",
+        "x": 76,
+        "y": 631,
+        "width": 271.19,
+        "font_size": 18
+      },
+      {
+        "text": "ID",
+        "x": 92,
+        "y": 677,
+        "width": 18.79,
+        "font_size": 18
+      },
+      {
+        "text": "kind",
+        "x": 212,
+        "y": 677,
+        "width": 39.47,
+        "font_size": 18
+      },
+      {
+        "text": "required",
+        "x": 372,
+        "y": 677,
+        "width": 76.73,
+        "font_size": 18
+      },
+      {
+        "text": "satisfied",
+        "x": 532,
+        "y": 677,
+        "width": 75.73,
+        "font_size": 18
+      },
+      {
+        "text": "records",
+        "x": 692,
+        "y": 677,
+        "width": 67.41,
+        "font_size": 18
+      },
+      {
+        "text": "AC-1",
+        "x": 92,
+        "y": 722,
+        "width": 45.14,
+        "font_size": 20
+      },
+      {
+        "text": "change",
+        "x": 212,
+        "y": 722,
+        "width": 68.16,
+        "font_size": 20
+      },
+      {
+        "text": "yes",
+        "x": 372,
+        "y": 722,
+        "width": 30.86,
+        "font_size": 20
+      },
+      {
+        "text": "yes",
+        "x": 532,
+        "y": 722,
+        "width": 30.86,
+        "font_size": 20
+      },
+      {
+        "text": "2, 3",
+        "x": 692,
+        "y": 722,
+        "width": 32.24,
+        "font_size": 20
+      },
+      {
+        "text": "AC-2",
+        "x": 92,
+        "y": 768,
+        "width": 45.14,
+        "font_size": 20
+      },
+      {
+        "text": "maintain",
+        "x": 212,
+        "y": 768,
+        "width": 83.98,
+        "font_size": 20
+      },
+      {
+        "text": "yes",
+        "x": 372,
+        "y": 768,
+        "width": 30.86,
+        "font_size": 20
+      },
+      {
+        "text": "yes",
+        "x": 532,
+        "y": 768,
+        "width": 30.86,
+        "font_size": 20
+      },
+      {
+        "text": "4",
+        "x": 692,
+        "y": 768,
+        "width": 11.1,
+        "font_size": 20
+      },
+      {
+        "text": "1",
+        "x": 1129.58,
+        "y": 218,
+        "width": 8.85,
+        "font_size": 15
+      },
+      {
+        "text": "What changed since",
+        "x": 1158,
+        "y": 219,
+        "width": 176.22,
+        "font_size": 18
+      },
+      {
+        "text": "the starting commit",
+        "x": 1158,
+        "y": 248,
+        "width": 166.1,
+        "font_size": 18
+      },
+      {
+        "text": "2",
+        "x": 1129.58,
+        "y": 312,
+        "width": 8.85,
+        "font_size": 15
+      },
+      {
+        "text": "Required conditions met by check",
+        "x": 1158,
+        "y": 313,
+        "width": 300.76,
+        "font_size": 18
+      },
+      {
+        "text": "records; each change condition has",
+        "x": 1158,
+        "y": 342,
+        "width": 296.59,
+        "font_size": 18
+      },
+      {
+        "text": "a fresh baseline",
+        "x": 1158,
+        "y": 371,
+        "width": 131.02,
+        "font_size": 18
+      },
+      {
+        "text": "3",
+        "x": 1129.58,
+        "y": 435,
+        "width": 8.85,
+        "font_size": 15
+      },
+      {
+        "text": "What to look at yourself",
+        "x": 1158,
+        "y": 436,
+        "width": 211.34,
+        "font_size": 18
+      },
+      {
+        "text": "4",
+        "x": 1129.58,
+        "y": 500,
+        "width": 8.85,
+        "font_size": 15
+      },
+      {
+        "text": "Assurance local: the agent wrote and",
+        "x": 1158,
+        "y": 501,
+        "width": 326.77,
+        "font_size": 18
+      },
+      {
+        "text": "ran the checks on your computer",
+        "x": 1158,
+        "y": 530,
+        "width": 276.23,
+        "font_size": 18
+      },
+      {
+        "text": "5",
+        "x": 1129.58,
+        "y": 594,
+        "width": 8.85,
+        "font_size": 15
+      },
+      {
+        "text": "What to do next",
+        "x": 1158,
+        "y": 595,
+        "width": 139.86,
+        "font_size": 18
+      },
+      {
+        "text": "6",
+        "x": 1129.58,
+        "y": 659,
+        "width": 8.85,
+        "font_size": 15
+      },
+      {
+        "text": "Records are seq numbers in runs.jsonl.",
+        "x": 1158,
+        "y": 660,
+        "width": 342.7,
+        "font_size": 18
+      },
+      {
+        "text": "AC-1 failed as declared at 2, passed at 3",
+        "x": 1158,
+        "y": 689,
+        "width": 328.43,
+        "font_size": 18
+      },
+      {
+        "text": "Illustrative report · password-link",
+        "x": 48,
+        "y": 870,
+        "width": 267.92,
+        "font_size": 17
+      }
+    ]
+  }
+}

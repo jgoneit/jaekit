@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Sources",
+      "violation": "artwork-source-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReadmeFlowVisualsAC6_SourcesAndGenerators"
+      }
+    },
+    {
+      "id": "Guides",
+      "violation": "artwork-guide-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReadmeFlowVisualsAC6_GuidesDescribeArtwork"
+      }
+    }
+  ]
+}

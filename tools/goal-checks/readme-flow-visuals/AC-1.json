@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Diagram",
+      "violation": "flow-diagram-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReadmeFlowVisualsAC1_DiagramShowsTheFlow"
+      }
+    },
+    {
+      "id": "Captions",
+      "violation": "flow-captions-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReadmeFlowVisualsAC1_CaptionsShowTheFlow"
+      }
+    }
+  ]
+}

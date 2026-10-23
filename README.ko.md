@@ -31,55 +31,69 @@ Jaekit은 **Codex·Claude Code에 맡긴 작업을 목표부터 완료 기록까
 
 ## 사용 흐름
 
-![password-link 가상 사용 과정: /spec:spec으로 Spec에 요청하고, 목표를 확인하고, 별도 메시지로 Seal을 시작하고, 검사를 실행하고(AC-1은 바꾸기 전 실패·바꾼 뒤 통과, AC-2는 계속 통과), ha done의 완료 보고를 읽습니다.](assets/readme/demo.en.gif)
+![password-link 가상 사용 과정: /spec:spec으로 Spec에 요청하고, 목표를 확인하고, 지금 구현할지 묻는 질문에 Yes(응)로 답하고, ha로 검사를 실행하고(AC-1은 바꾸기 전 실패·바꾼 뒤 통과, AC-2는 계속 통과), Spar 검토 라운드와 gate를 기록하고, ha done이 완료를 기록한 뒤 ha report의 완료 보고를 읽습니다.](assets/readme/demo.en.gif)
 
 영어 화면으로 만든 가상 장면이며 실제 실행을 녹화한 것이 아닙니다. 아래 다이어그램은 단계마다 누가 무엇을 하는지 보여 줍니다.
 
 ```mermaid
 flowchart TD
     ask(["원하는 작업을 말합니다"])
-    spec["<b>Spec</b>이 목표를 씁니다<br/>SPEC.md: 목표와 완료 조건"]
+    spec["<b>Spec</b>이 목표를 씁니다<br/>SPEC.md: 목표, 완료 조건,<br/>Assurance: 등급"]
     review{"목표를 확인합니다"}
-    start["별도 메시지로<br/>Seal을 시작합니다<br/>/seal:seal docs/specs/#lt;goal#gt;"]
+    asknow{{"Spec이 한 번 묻습니다<br/>지금 구현할까요?"}}
+    start["#quot;응#quot;으로<br/>Seal이 시작됩니다"]
+    separate(["나중에 별도 메시지로 시작해도 됩니다<br/>/seal:seal docs/specs/#lt;goal#gt;"])
     subgraph seal ["Seal: 에이전트가 스스로 진행"]
         direction TB
         plan["계획<br/>PLAN.md와 REVIEW.md"]
+        planreview["strict만: 작업 전<br/>Spar 계획 검토"]
         build["구현"]
         check["ha로 검사<br/>모든 실행이<br/>runs.jsonl에 기록됨"]
+        spar["standard·strict:<br/>Spar 검토 라운드와<br/>검토 gate 기록"]
         plan --> build --> check
+        plan -.->|"strict"| planreview -.-> build
         check -->|"검사 실패"| build
+        check -->|"검사 통과"| spar
+        spar -->|"고칠 지적"| build
     end
-    decide{{"내가 정할<br/>결정에 답합니다"}}
-    done["ha done<br/>완료 기록"]
+    decide{{"요구를 바꿔야 하는<br/>질문에 내가 답합니다"}}
+    done["필수 조건이 충족되면<br/>ha done이 완료를 기록"]
     report(["PROGRESS.md의<br/>보고를 확인합니다<br/>무엇을 바꿨고<br/>어떻게 검사했는지"])
     resume(["대화가 끊겼나요?<br/>같은 프로젝트에서<br/>새 대화를 엽니다"])
 
     ask -->|"/spec:spec"| spec --> review
     review -->|"수정 요청"| spec
-    review -->|"확인 완료"| start --> plan
-    check -.->|"내 답이 필요"| decide -.-> build
-    check -->|"필수 완료 조건 충족"| done --> report
+    review -->|"확인 완료"| asknow
+    asknow -->|"응"| start --> plan
+    separate -.-> plan
+    check -.->|"내 답이 필요"| decide
+    spar -.->|"요구 질문"| decide
+    decide -.-> build
+    spar -->|"gate가<br/>마지막 commit을 덮음"| done
+    check -.->|"light: 이유를 남기고<br/>검토 생략 가능"| done
+    done --> report
     resume -.->|"docs/specs/#lt;goal#gt;<br/>이어서 해줘"| plan
 
     classDef you fill:#EEF1FE,stroke:#4F6CF7,color:#1B2559
     classDef specStep fill:#E7F5F1,stroke:#168975,color:#0B3B32
     classDef sealStep fill:#FFF3E3,stroke:#C9761F,color:#4A2A06
     classDef record fill:#F1F3F5,stroke:#596579,color:#1F2328
-    class ask,review,start,decide,report,resume you
-    class spec specStep
-    class plan,build,check sealStep
+    class ask,review,start,separate,decide,report,resume you
+    class spec,asknow specStep
+    class plan,planreview,build,check,spar sealStep
     class done record
     style seal fill:none,stroke:#C9761F,stroke-dasharray:5 4
 ```
 
-1. Spec은 목표 문서를 작성한 뒤 **멈춥니다**. 내용을 읽고 고칠 점을 말합니다.
-2. 확인이 끝나면 **별도 메시지로 Seal을 시작**합니다. 에이전트가 구현·검사·수정을 진행합니다.
-3. 필수 완료 조건이 충족되면 완료 기록과 보고가 남습니다. **무엇을 바꿨고 어떻게 검사했는지** 실제 결과와 함께 확인하세요.
+1. Spec은 목표와 완료 조건, `Assurance:` 등급을 쓴 목표 문서를 만들고, 지금 구현할지 한 번 물은 뒤 **멈춥니다**. 내용을 읽고 고칠 점을 말합니다.
+2. 확인이 끝나 **"응"이라고 답하면 Seal이 시작**됩니다. 나중에 **별도 메시지로 목표 폴더를 지정해 Seal을 시작**해도 됩니다.
+3. 에이전트가 계획하고 구현하며 `ha`로 검사하고, `ha`는 모든 실행을 기록합니다. `standard`·`strict` 목표는 완료 전에 Spar의 독립 검토 라운드를 받고, `strict` 목표는 작업 전에 계획 검토도 받습니다. `light` 목표는 이유를 남기고 검토를 건너뛸 수 있습니다. 요구를 바꿔야 하는 질문은 내게 옵니다.
+4. 필수 완료 조건이 충족되면 `ha done`이 완료를 기록합니다. `standard`·`strict` 목표는 기록된 검토 gate가 마지막 commit도 덮어야 합니다. `PROGRESS.md`의 보고에서 **무엇을 바꿨고 어떻게 검사했는지** 실제 결과와 함께 확인하세요. 대화가 끝나면 새 대화에서 같은 목표를 이어 갑니다.
 
 <details>
 <summary>같은 흐름을 그림으로 보기</summary>
 
-![1. Spec에 요청하고 목표와 완료 조건을 확인합니다. 2. 별도 메시지로 목표 폴더를 지정해 Seal을 시작하면 에이전트가 구현·검사·수정을 진행합니다. 3. 변경 결과와 검사 기록을 확인합니다. 새 대화에서는 같은 프로젝트의 같은 목표를 지정해 재개합니다.](assets/readme/usage-flow.ko.png)
+![사용 흐름 개념도. 1. Spec에 요청하면 목표와 완료 조건, 검토 등급(Assurance)을 정리하고 지금 구현할지 묻습니다. 2. "응"이라고 답하면 Seal이 시작되고, 별도 메시지로 목표 폴더를 지정해 시작해도 됩니다. 3. 에이전트가 계획·구현하고 ha로 검사하며 모든 실행이 기록됩니다. standard·strict 목표는 완료 전에 Spar 검토 라운드와 검토 gate를 거치고(strict는 계획 검토도), light 목표는 이유를 남기고 검토를 생략할 수 있으며, 요구를 바꿔야 하는 질문은 내게 옵니다. 4. 필수 조건이 충족되고 standard·strict 목표는 기록된 검토 gate가 마지막 commit을 덮으면 ha done이 완료를 기록하고, 보고가 PROGRESS.md에 남습니다. 새 대화에서는 같은 프로젝트의 같은 목표를 지정해 재개합니다.](assets/readme/usage-flow.ko.png)
 
 </details>
 
@@ -297,7 +311,7 @@ codex plugin add spar@jaekit
 
 Jaekit이 쓰는 내용은 모두 프로젝트 안, 목표마다 하나인 폴더에 남습니다. 아래 예시는 **줄인 가상 예시**로 형식을 보여 줄 뿐, 실제 작업 기록이 아닙니다. `## Acceptance Criteria`, `## 조건표`, `AC-1` 같은 제목과 표지는 형식 토큰이라 그대로 두고, 설명 문장은 사용자의 언어로 씁니다.
 
-![가상 목표 폴더 docs/specs/password-link/: Spec이 SPEC.md를, Seal이 PLAN.md·REVIEW.md·PROGRESS.md를, ha가 runs.jsonl을 씁니다. 명령 출력 원문은 내 컴퓨터의 .git/ha/에만 남고 Git이 추적하지 않습니다.](assets/readme/goal-folder.ko.png)
+![가상 목표 폴더 docs/specs/password-link/: Spec이 SPEC.md를, Seal이 PLAN.md·REVIEW.md(검토 계획과 Spar 기록의 요약·위치)·PROGRESS.md를, ha가 runs.jsonl을 씁니다. Spar의 검토 라운드와 gate는 Git이 무시하는 docs/reviews/password-link/에, 검사 출력 원문은 내 컴퓨터의 .git/ha/에 남고 Git이 추적하지 않습니다.](assets/readme/goal-folder.ko.png)
 
 <details>
 <summary>같은 폴더를 글로 보기</summary>
@@ -306,9 +320,13 @@ Jaekit이 쓰는 내용은 모두 프로젝트 안, 목표마다 하나인 폴�
 docs/specs/password-link/
 ├── SPEC.md        목표, 사용 시나리오, 완료 조건              ← Spec
 ├── PLAN.md        조건별 검사 방법, 범위, 예산                ← Seal
-├── REVIEW.md      작업 시작 전 계획 검토                      ← Seal
+├── REVIEW.md      검토 계획, Spar 라운드·gate의 요약과 위치   ← Seal
 ├── PROGRESS.md    현재 상태, 타임라인, 완료 보고              ← Seal
 └── runs.jsonl     덧붙이기만 하는 실행 기록                   ← ha만 씀
+
+docs/reviews/password-link/   Git이 무시하는 폴더의 Spar 기록
+├── 01-candidate/  검토 라운드 하나: 패킷, 지적, 요약           ← Spar
+└── gate.json      검토 gate. ha note로 기록합니다              ← Spar
 
 .git/ha/           검사 출력 원문. Git이 추적하지 않으며 ha log로 봅니다
 ```
@@ -317,26 +335,26 @@ docs/specs/password-link/
 
 ### 완료 보고
 
-![password-link의 가상 완료 보고: complete, 완료 기록 seq 5. AC-1 change는 바꾸기 전 실패(seq 2), 바꾼 뒤 통과(seq 3). AC-2 maintain 통과(seq 4). assurance local, check author executor.](assets/readme/report-card.ko.png)
+![password-link의 가상 완료 보고, ha report 출력 모양: 다섯 줄 바뀐 것, 확인한 것, 직접 볼 것, 남은 한계, 다음 행동과 완료 기록 seq 6의 조건별 근거(AC-1 change는 근거 기록 2, 3, AC-2 maintain은 4). 보증 수준 local, 검사 작성자 실행자.](assets/readme/report-card.ko.png)
 
 `ha done`이 완료를 기록하면 Seal이 `ha report`의 출력을 고치지 않고 `PROGRESS.md`의 `## 완료 보고`에 붙이고, 그 아래에 자기 판단만 덧붙입니다. `ha report`는 기본으로 영어, `--lang ko`로 한국어를 출력하며, Seal은 요청한 언어에 맞춥니다. 그 부분은 이렇게 생겼습니다.
 
 ```markdown
 ## 완료 보고
 
-바뀐 것: base fe4597cf233f 이후 실행 묶음 문서 밖에서 파일 1개, commit 1개
+바뀐 것: base f46020ce6f77 이후 실행 묶음 문서 밖에서 파일 1개, commit 1개
 확인한 것: 필수 조건 2개 중 2개 충족(검사 기록 2개, 사용자 확인 0개); change 조건 1개 중 1개에 신선한 baseline
 직접 볼 것: 없음
 남은 한계: 보증 수준 local; 검사 작성자: 실행자
-다음 행동: 없음; 완료 기록 seq 5이 유효하고 남은 할 일이 없음
+다음 행동: 없음; 완료 기록 seq 6이 유효하고 남은 할 일이 없음
 
 ### `## 현재` 도장
 
-- 기록 head: seq 5 (0a94eba41234), 기록 시각 2026-10-23T10:06:33Z; 상태: complete; 완료 기록: seq 5
+- 기록 head: seq 6 (e2fd520c706e), 기록 시각 2026-10-23T13:38:16Z; 상태: complete; 완료 기록: seq 6
 
 ### 조건별 근거
 
-근거 출처: 완료 기록 seq 5
+근거 출처: 완료 기록 seq 6
 | ID | 종류 | 필수 | 충족 | 근거 기록 |
 | --- | --- | --- | --- | --- |
 | AC-1 | change | 예 | 예 | 2, 3 |
@@ -344,7 +362,7 @@ docs/specs/password-link/
 
 ### 완료 범위
 
-- 완료 기록 seq 5, commit e887828a0035; 지금 HEAD e887828a0035를 덮음
+- 완료 기록 seq 6, commit e01fdf1e9c98; 지금 HEAD e01fdf1e9c98를 덮음
 
 ### 미충족 조건의 원문 위치
 
@@ -354,15 +372,15 @@ Seal의 판단:
 
 - 바꾼 파일(에이전트의 주장): src/login.html — AC-1
 - manual 조건과 가정한 결정: 없음
-- 검토: SPEC에 `Assurance:` 줄이 없어 이 목표에는 검토 gate가 필요 없습니다.
-- 올릴 head는 완료 기록의 commit e887828a0035입니다.
+- 검토: 등급 `standard`. Spar 라운드 `01-candidate`(claude, codex)에서 지적이 없었고, seq 5에 기록한 그 gate가 마지막 commit e01fdf1e9c98을 덮습니다. 뺀 리뷰어(waiver)는 없습니다. 기록은 `docs/reviews/password-link/`에 있습니다.
+- 올릴 head는 완료 기록의 commit e01fdf1e9c98입니다.
 - 이 보고는 배포나 설치를 확인하지 않습니다. 보증 수준은 local이고 검사는 에이전트가 작성했습니다.
 ```
 
 읽는 법:
 
 - 맨 위 다섯 줄은 바뀐 것, 확인한 것, 직접 볼 것, 남은 한계, 다음 행동입니다. `ha report`가 실행 기록·Git·목표 문서로 계산한 값이며, 에이전트의 주장이 아닙니다.
-- **근거 기록**은 `runs.jsonl`의 줄 번호(seq)입니다. AC-1의 seq 2는 시작 commit에서 돌린 검사가 선언대로 실패한 기록이고, seq 3은 같은 검사가 결과에서 통과한 기록입니다. 완료 기록 seq 5는 `ha done`이 완료를 기록했다는 뜻입니다.
+- **근거 기록**은 `runs.jsonl`의 줄 번호(seq)입니다. AC-1의 seq 2는 시작 commit에서 돌린 검사가 선언대로 실패한 기록이고, seq 3은 같은 검사가 결과에서 통과한 기록입니다. seq 5는 Spar gate를 기록한 `review` note이고, 완료 기록 seq 6은 `ha done`이 완료를 기록했다는 뜻입니다.
 - 실행의 출력 원문은 `.git/ha/`에 남습니다. 터미널에서 `ha log docs/specs/password-link 3`으로 봅니다.
 
 > [!IMPORTANT]
@@ -388,6 +406,7 @@ Seal의 판단:
 
 Status: Ready
 Criteria-Format: nested/1
+Assurance: standard
 
 ## 목표
 
@@ -407,7 +426,7 @@ Criteria-Format: nested/1
 없음
 ```
 
-`Status: Ready`는 결과를 바꾸는 결정이 남지 않았다는 뜻입니다. Spec은 여기서 멈추며, Seal을 시작하기 전에는 아무것도 구현하지 않습니다.
+`Status: Ready`는 결과를 바꾸는 결정이 남지 않았다는 뜻입니다. `Assurance: standard`는 검토 등급으로, `ha done` 전에 Seal이 독립된 Spar 라운드로 변경을 검토받습니다. Spec은 여기서 멈추며, Seal을 시작하기 전에는 아무것도 구현하지 않습니다.
 
 </details>
 
@@ -429,17 +448,17 @@ Criteria-Format: nested/1
 
 - `change`는 새 동작입니다. Seal은 같은 검사를 시작 commit에서도 돌려 선언대로 실패하는지 보고, 결과에서는 통과해야 합니다.
 - `maintain`은 계속 동작해야 하는 기존 동작이고, `manual`은 사용자만 확인할 수 있는 조건입니다.
-- 계획에는 Seal이 바꿀 수 있는 경로, task, 실행 예산도 들어갑니다. `REVIEW.md`는 작업 시작 전에 이 계획을 검토한 기록입니다.
+- 계획에는 Seal이 바꿀 수 있는 경로, task, 실행 예산도 들어갑니다. `REVIEW.md`는 이 계획의 검토와 검토 등급·계획한 검토 단계를 담고, 나중에 Spar 라운드와 gate를 요약해 `docs/reviews/password-link/`의 기록을 가리킵니다.
 
 </details>
 
 <details>
 <summary><strong>runs.jsonl</strong>: 보고 뒤에 있는 실행 기록</summary>
 
-`ha`는 기록하는 사건마다 JSON 한 줄을 덧붙입니다. `start`, 실행한 대상마다 한 줄인 `check`·`baseline`(`ha check <goal> AC-1 AC-2`는 두 줄), `note`(인용한 사용자 확인과 답), `budget_change`, `done`, 완료 뒤 기록한 발견의 `finding`이 있습니다. 각 줄은 앞 줄의 해시(`prev`)를 담아서, 앞선 줄을 고치거나 지우면 연결이 끊기고 `ha`가 `record_integrity`로 알립니다. 마지막 줄은 뒤에 이어지는 줄이 없어 바뀌어도 드러나지 않습니다. 완료 보고의 record head(seq와 해시)는 `ha done`을 실행한 때의 마지막 줄이며, 그 뒤에 note나 finding 같은 줄이 더 붙을 수 있습니다. 줄인 `done` 줄 예시입니다.
+`ha`는 기록하는 사건마다 JSON 한 줄을 덧붙입니다. `start`, 실행한 대상마다 한 줄인 `check`·`baseline`(`ha check <goal> AC-1 AC-2`는 두 줄), `note`(인용한 사용자 확인과 답, Spar gate를 기록하는 `review` note), `budget_change`, `done`, 완료 뒤 기록한 발견의 `finding`이 있습니다. 각 줄은 앞 줄의 해시(`prev`)를 담아서, 앞선 줄을 고치거나 지우면 연결이 끊기고 `ha`가 `record_integrity`로 알립니다. 마지막 줄은 뒤에 이어지는 줄이 없어 바뀌어도 드러나지 않습니다. 완료 보고의 record head(seq와 해시)는 `ha done`을 실행한 때의 마지막 줄이며, 그 뒤에 note나 finding 같은 줄이 더 붙을 수 있습니다. 줄인 `done` 줄 예시입니다.
 
 ```text
-{"schema":"run/v1","seq":5,"prev":"a22dbbfe…","kind":"done","status":"complete","commit":"aa4bd917…","tree_clean":true,"criteria":[{"id":"AC-1","kind":"change","satisfied":true,"records":[2,3]},{"id":"AC-2","kind":"maintain","satisfied":true,"records":[4]}]}
+{"schema":"run/v1","seq":6,"prev":"578fb93e…","kind":"done","status":"complete","commit":"e01fdf1e…","tree_clean":true,"criteria":[{"id":"AC-1","kind":"change","satisfied":true,"records":[2,3]},{"id":"AC-2","kind":"maintain","satisfied":true,"records":[4]}]}
 ```
 
 </details>

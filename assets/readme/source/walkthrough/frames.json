@@ -1,0 +1,43 @@
+{
+  "output": "assets/readme/demo.en.gif",
+  "width": 1280,
+  "height": 720,
+  "frames": [
+    {
+      "svg": "assets/readme/source/walkthrough/frame-01.en.svg",
+      "delay_ms": 3000
+    },
+    {
+      "svg": "assets/readme/source/walkthrough/frame-02.en.svg",
+      "delay_ms": 4200
+    },
+    {
+      "svg": "assets/readme/source/walkthrough/frame-03.en.svg",
+      "delay_ms": 4200
+    },
+    {
+      "svg": "assets/readme/source/walkthrough/frame-04.en.svg",
+      "delay_ms": 3800
+    },
+    {
+      "svg": "assets/readme/source/walkthrough/frame-05.en.svg",
+      "delay_ms": 4200
+    },
+    {
+      "svg": "assets/readme/source/walkthrough/frame-06.en.svg",
+      "delay_ms": 4600
+    },
+    {
+      "svg": "assets/readme/source/walkthrough/frame-07.en.svg",
+      "delay_ms": 4200
+    },
+    {
+      "svg": "assets/readme/source/walkthrough/frame-08.en.svg",
+      "delay_ms": 3800
+    },
+    {
+      "svg": "assets/readme/source/walkthrough/frame-09.en.svg",
+      "delay_ms": 5600
+    }
+  ]
+}

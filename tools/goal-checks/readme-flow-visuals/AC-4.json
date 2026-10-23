@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "FolderText",
+      "violation": "folder-text-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReadmeFlowVisualsAC4_FolderText"
+      }
+    },
+    {
+      "id": "FolderImage",
+      "violation": "folder-image-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReadmeFlowVisualsAC4_FolderImage"
+      }
+    }
+  ]
+}

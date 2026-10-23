@@ -1,0 +1,74 @@
+{
+  "outputs": {
+    "assets/readme/demo.en.gif": {
+      "frames": 9,
+      "height": 720,
+      "inputs": {
+        "assets/readme/source/walkthrough/frame-01.en.svg": "cc9526487b9584dd7e559648c3458b057e5716c4e081d462fc46101e73c2d3bb",
+        "assets/readme/source/walkthrough/frame-02.en.svg": "fbb37f55565b15135a500d336d1936a451ef340dd1732981b8bc80b138603f35",
+        "assets/readme/source/walkthrough/frame-03.en.svg": "ad36429216bad54460137fa07e7e8113a48f82020c1436ac0104ca1813db6e40",
+        "assets/readme/source/walkthrough/frame-04.en.svg": "c813378972e00acd76d995bdd5559396b46466f75fa0dba97be72c8248324bf1",
+        "assets/readme/source/walkthrough/frame-05.en.svg": "bc1609b2fa291f79499aef49419f8513629c600c1886c45b28c2c898d2e78ee9",
+        "assets/readme/source/walkthrough/frame-06.en.svg": "a49290090809508f0ae2ece36c12753ee3d5c74324dcb9f104ddc1d4ca02e4bc",
+        "assets/readme/source/walkthrough/frame-07.en.svg": "f2fd974585dcb8f0086cad28051ece80d5182124d37280619d551701e46df1d4",
+        "assets/readme/source/walkthrough/frame-08.en.svg": "95811e2a87bc022617312433095eddf4e8f5d96aab25a49141bf5e78128de3ed",
+        "assets/readme/source/walkthrough/frame-09.en.svg": "0f90826a177729db4758da2924dfd155a5043e8a89bf143bed8ec217d829f9a5",
+        "assets/readme/source/walkthrough/frames.json": "3ee5dc6a54850a990357fcdc187c264b31a328687559ca1ca98d27aa68ea46b8"
+      },
+      "sha256": "e60d1ad0f1af45e757c1d8fbb51b0eaa4442946eecf6eaf8072651541276ade8",
+      "width": 1280
+    },
+    "assets/readme/goal-folder.en.png": {
+      "height": 740,
+      "inputs": {
+        "assets/readme/goal-folder.en.svg": "38a0934c28f720c6c4e7ec240ce2291826fd4738978617f6d7d8b50814dec49f"
+      },
+      "sha256": "dfa14dbac0927ee22e7a261c2596b154591791b84b8bbfe38dfd71a1b5084df3",
+      "width": 1600
+    },
+    "assets/readme/goal-folder.ko.png": {
+      "height": 740,
+      "inputs": {
+        "assets/readme/goal-folder.ko.svg": "f7ce601f1a538a64b6d0570513f7bda6b7b1811cf597aa151b1d260f3aca1bef"
+      },
+      "sha256": "4e8c29670dd5dac2d0e09e4ddd3bd6fb063cd5f1f41bac58de838ea14752be99",
+      "width": 1600
+    },
+    "assets/readme/report-card.en.png": {
+      "height": 900,
+      "inputs": {
+        "assets/readme/report-card.en.svg": "987fd7e1ddb8dad73deabc2279c60b1ea131da1eb0e6d51ca925feb0beebb84d"
+      },
+      "sha256": "d7d84474ed79bd8bc4eaa997261fca596d980346535e9f979b49d24f5b8358ed",
+      "width": 1600
+    },
+    "assets/readme/report-card.ko.png": {
+      "height": 900,
+      "inputs": {
+        "assets/readme/report-card.ko.svg": "fcab4417c5a66fddb4e65745fadcbe25a6da8afe8ad5afcf0292092c831e8ac8"
+      },
+      "sha256": "99a33a7541c3340e1349f8b9ae90c8228cbb5837f3e25aed5c81cc6a488fed8e",
+      "width": 1600
+    },
+    "assets/readme/usage-flow.en.png": {
+      "height": 960,
+      "inputs": {
+        "assets/readme/usage-flow.en.svg": "332bd9917588193dd3a735eb430c6b653793f20f9c67c90f3425c53331ff2896"
+      },
+      "sha256": "144132f4ddb8a83ad47b6a76ebb43a4665cbaa31465f916544f5536e8f43ed3c",
+      "width": 1600
+    },
+    "assets/readme/usage-flow.ko.png": {
+      "height": 960,
+      "inputs": {
+        "assets/readme/usage-flow.ko.svg": "c5dbce18102cef9d7b70145d41b34a59275f7dbaecff8d82b3699defd9f96d57"
+      },
+      "sha256": "efb0200692233b53f73553eb542a04808a33f75e7596d7722349894e7dd4e019",
+      "width": 1600
+    }
+  },
+  "renderer": {
+    "libvips": "8.18.7",
+    "sharp": "0.35.5"
+  }
+}
