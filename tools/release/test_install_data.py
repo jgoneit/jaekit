@@ -188,7 +188,10 @@ class DirectData(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0, "install reused data containing " + entry)
                 self.assertEqual(binary.read_bytes(), test_install.OLD)
                 self.assertEqual(binary.stat().st_mode, before)
-                self.assertEqual(sorted(p.name for p in binary.parent.iterdir()), ["ha"])
+                # The first install also put spar in place; the refused one leaves it.
+                self.assertEqual(sorted(p.name for p in binary.parent.iterdir()), list(test_install.BINARIES))
+                if "spar" in test_install.BINARIES:
+                    self.assertEqual((binary.parent / "spar").read_bytes(), test_install.NEW_SPAR)
                 self.assertIn(entry, result.stdout + result.stderr)
                 verify()
 
