@@ -693,16 +693,16 @@ func TestReadmeFlowVisualsAC4_FolderImage(t *testing.T) {
 
 var rfvCard = map[string]struct{ evidence, alt []string }{
 	"ko": {
-		evidence: []string{"### 조건별 근거", "근거 출처: 완료 기록 seq 5", "ID", "종류", "필수", "충족", "근거 기록",
+		evidence: []string{"### 조건별 근거", "근거 출처: 완료 기록 seq 6", "ID", "종류", "필수", "충족", "근거 기록",
 			"AC-1", "change", "예", "예", "2, 3", "AC-2", "maintain", "예", "예", "4"},
 		alt: []string{"password-link의 가상 완료 보고", "ha report 출력 모양", "바뀐 것, 확인한 것, 직접 볼 것, 남은 한계, 다음 행동",
-			"완료 기록 seq 5의 조건별 근거", "보증 수준 local", "검사 작성자 실행자"},
+			"완료 기록 seq 6의 조건별 근거", "보증 수준 local", "검사 작성자 실행자"},
 	},
 	"en": {
-		evidence: []string{"### Evidence per condition", "Source: completion record seq 5", "ID", "kind", "required", "satisfied", "records",
+		evidence: []string{"### Evidence per condition", "Source: completion record seq 6", "ID", "kind", "required", "satisfied", "records",
 			"AC-1", "change", "yes", "yes", "2, 3", "AC-2", "maintain", "yes", "yes", "4"},
 		alt: []string{"Fictional completion report for password-link", "ha report output", "Changed, Checked, To review, Remaining limits and Next step",
-			"evidence per condition under completion record seq 5", "Assurance local", "check author executor"},
+			"evidence per condition under completion record seq 6", "Assurance local", "check author executor"},
 	},
 }
 
@@ -1031,6 +1031,125 @@ func TestReadmeFlowVisualsAC8_KeptParts(t *testing.T) {
 			if got[part] != want {
 				t.Errorf("%s %s changed: sha256 %s, want %s", c.path, part, got[part], want)
 			}
+		}
+	}
+}
+
+// rfvRun is the one fictional standard run that the README examples, the
+// report card and the walkthrough show: base f46020ce6f77, the review gate
+// noted at seq 5, completion recorded at seq 6 on commit e01fdf1e9c98. Each
+// language lists fixed tokens of its records section: the SPEC example, the
+// completion report example in order, the reading notes, the runs.jsonl
+// example and the REVIEW.md description, plus tokens of the earlier gateless
+// run that must be gone.
+var rfvRun = map[string]struct{ report, reading, record, review, old, card []string }{
+	"ko": {
+		report: []string{"바뀐 것: base f46020ce6f77 이후", "다음 행동: 없음; 완료 기록 seq 6이 유효하고 남은 할 일이 없음",
+			"- 기록 head: seq 6 (e2fd520c706e)", "완료 기록: seq 6", "근거 출처: 완료 기록 seq 6",
+			"- 완료 기록 seq 6, commit e01fdf1e9c98; 지금 HEAD e01fdf1e9c98를 덮음", "Seal의 판단:",
+			"등급 `standard`", "seq 5에 기록한 그 gate가 마지막 commit e01fdf1e9c98을 덮습니다", "뺀 리뷰어(waiver)는 없습니다",
+			"올릴 head는 완료 기록의 commit e01fdf1e9c98입니다"},
+		reading: []string{"seq 5는 Spar gate를 기록한 `review` note", "완료 기록 seq 6은 `ha done`이 완료를 기록했다는 뜻"},
+		record:  []string{"`review`", `"seq":6,"prev":"578fb93e…","kind":"done"`, `"commit":"e01fdf1e…"`},
+		review:  []string{"`REVIEW.md`는 이 계획의 검토", "Spar 라운드와 gate를 요약해"},
+		old: []string{"`Assurance:` 줄이 없어", "검토 gate가 필요 없습니다", "fe4597cf233f", "e887828a0035", "0a94eba41234",
+			"완료 기록 seq 5", "a22dbbfe", "aa4bd917", "작업 시작 전에 이 계획을 검토한 기록입니다"},
+		card: []string{"base f46020ce6f77", "완료 기록 seq 6이 유효하고", "근거 출처: 완료 기록 seq 6"},
+	},
+	"en": {
+		report: []string{"Changed: 1 files and 1 commits outside the bundle documents since base f46020ce6f77",
+			"Next step: none; completion record seq 6 holds and nothing is left to do",
+			"- record head: seq 6 (e2fd520c706e)", "completion record: seq 6", "Source: completion record seq 6",
+			"- completion record seq 6, commit e01fdf1e9c98; HEAD e01fdf1e9c98 is covered", "Seal's judgment:",
+			"tier `standard`", "recorded at seq 5, covers the last commit e01fdf1e9c98", "No reviewer was waived",
+			"the completion record's commit e01fdf1e9c98"},
+		reading: []string{"Seq 5 is the `review` note that recorded the Spar gate", "completion record seq 6 means `ha done` recorded completion"},
+		record:  []string{"`review`", `"seq":6,"prev":"578fb93e…","kind":"done"`, `"commit":"e01fdf1e…"`},
+		review:  []string{"`REVIEW.md` holds the review of this plan", "summarizes the Spar rounds and gate"},
+		old: []string{"has no `Assurance:` line", "needs no review gate", "fe4597cf233f", "e887828a0035", "0a94eba41234",
+			"completion record seq 5", "a22dbbfe", "aa4bd917", "records the review of this plan before work starts"},
+		card: []string{"since base f46020ce6f77", "completion record seq 6 holds", "Source: completion record seq 6"},
+	},
+}
+
+// rfvRunFrames are walkthrough tokens of the same run.
+var rfvRunFrames = []string{"base f46020ce6f77", "noted: review (seq 5)", "- completion record: seq 6", "completion record seq 6 holds"}
+
+// rfvDetails returns the <details> block whose summary names file.
+func rfvDetails(text, file string) (string, bool) {
+	i := strings.Index(text, "<summary><strong>"+file+"</strong>")
+	if i < 0 {
+		return "", false
+	}
+	j := strings.Index(text[i:], "</details>")
+	if j < 0 {
+		return "", false
+	}
+	return text[i : i+j], true
+}
+
+// AC-9: the README examples, the report card and the walkthrough show one
+// fictional standard run of password-link, whose review gate was noted
+// before ha done.
+func TestReadmeFlowVisualsAC9_ExamplesShowOneRun(t *testing.T) {
+	const v = "example-run-mismatch"
+	for _, l := range rfvLangs {
+		want := rfvRun[l.code]
+		readme := rfvRead(t, l.readme[3:])
+		records, ok := rfvSection(readme, l.records)
+		if !ok {
+			t.Fatalf("setup: %s lacks %s", l.readme, l.records)
+		}
+		spec, ok := rfvDetails(records, "SPEC.md")
+		if !ok || !strings.Contains(spec, "\nAssurance: standard\n") {
+			t.Errorf("jaekit:violation=%s %s SPEC.md example has no Assurance: standard line", v, l.readme)
+		}
+		report, ok := rfvSection(readme, l.report)
+		if !ok {
+			t.Fatalf("setup: %s lacks %s", l.readme, l.report)
+		}
+		example, ok := rfvBlock(report, "markdown")
+		if !ok {
+			t.Fatalf("setup: %s %s has no example", l.readme, l.report)
+		}
+		if miss := rfvInOrder(example, want.report...); miss != "" {
+			t.Errorf("jaekit:violation=%s %s completion report example lacks %q in order", v, l.readme, miss)
+		}
+		if miss := rfvInOrder(report, want.reading...); miss != "" {
+			t.Errorf("jaekit:violation=%s %s reading notes lack %q", v, l.readme, miss)
+		}
+		record, ok := rfvDetails(records, "runs.jsonl")
+		if !ok {
+			t.Fatalf("setup: %s has no runs.jsonl example", l.readme)
+		}
+		if miss := rfvInOrder(record, want.record...); miss != "" {
+			t.Errorf("jaekit:violation=%s %s runs.jsonl example lacks %q", v, l.readme, miss)
+		}
+		if miss := rfvInOrder(records, want.review...); miss != "" {
+			t.Errorf("jaekit:violation=%s %s REVIEW.md description lacks %q", v, l.readme, miss)
+		}
+		for _, old := range want.old {
+			if strings.Contains(records, old) {
+				t.Errorf("jaekit:violation=%s %s %s still shows %q", v, l.readme, l.records, old)
+			}
+		}
+		_, runs := rfvStill(t, v, "report-card", l.code)
+		joined := strings.Join(runs, "\n")
+		for _, token := range want.card {
+			if !strings.Contains(joined, token) {
+				t.Errorf("jaekit:violation=%s report-card.%s.svg lacks %q", v, l.code, token)
+			}
+		}
+	}
+	_, frames := rfvFrames(t, v)
+	var all []string
+	for _, runs := range frames {
+		all = append(all, runs...)
+	}
+	joined := strings.Join(all, "\n")
+	for _, token := range rfvRunFrames {
+		if !strings.Contains(joined, token) {
+			t.Errorf("jaekit:violation=%s the walkthrough frames lack %q", v, token)
 		}
 	}
 }
