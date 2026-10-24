@@ -32,8 +32,10 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 	// capability check, budget, environment and report to ha and adds the
 	// review tiers; Seal 0.1.21 starts under run-rules/5 and records the review
 	// gate, and Seal 0.1.22 points its install route and release links at
-	// v0.1.7. Release v0.1.7 ships Spec 0.1.13 and Seal 0.1.22.
-	for name, want := range map[string]string{"spec": "0.1.13", "seal": "0.1.22"} {
+	// v0.1.7. Release v0.1.7 ships Spec 0.1.13 and Seal 0.1.22. Seal 0.1.23 is
+	// the source version that asks foreseeable questions before any baseline;
+	// the released marketplace identity above stays v0.1.7.
+	for name, want := range map[string]string{"spec": "0.1.13", "seal": "0.1.23"} {
 		t.Run(name, func(t *testing.T) {
 			_, version := frontMatter(t, filepath.Join(name, "skills", name, "SKILL.md"))
 			if version != want {

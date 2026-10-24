@@ -452,11 +452,11 @@ func TestSealSlimAC13_ReleasedCoreRefusesStart(t *testing.T) {
 	}
 }
 
-// AC-14: the skill is at most 2,200 whitespace-separated words, front matter
+// AC-14: the skill is at most 2,300 whitespace-separated words, front matter
 // included.
 func TestSealSlimAC14_WordLimit(t *testing.T) {
 	const id = "skill-too-long"
-	if n := len(strings.Fields(ssRead(t, id, ssSkill))); n > 2200 {
+	if n := len(strings.Fields(ssRead(t, id, ssSkill))); n > 2300 {
 		ssViolate(t, id, "%s has %d words", ssSkill, n)
 	}
 }

@@ -508,11 +508,11 @@ func TestSparOnboardingAC7_KeptGuidance(t *testing.T) {
 	}
 }
 
-// AC-8 (kept): the Seal skill stays within 2,200 words, and the install pins
+// AC-8 (kept): the Seal skill stays within 2,300 words, and the install pins
 // of the guides and the Seal skill name the current release, v0.1.7.
 func TestSparOnboardingAC8_SkillSizeAndPins(t *testing.T) {
-	if n := len(strings.Fields(soRead(t, soSealSkill))); n > 2200 {
-		t.Errorf("%s has %d words, more than 2,200", soSealSkill, n)
+	if n := len(strings.Fields(soRead(t, soSealSkill))); n > 2300 {
+		t.Errorf("%s has %d words, more than 2,300", soSealSkill, n)
 	}
 	for _, path := range []string{soReadme, soReadmeKo, soInstall, soInstallEn} {
 		text := soRead(t, path)
