@@ -1,6 +1,6 @@
 {
   "name": "spar",
-  "version": "0.1.4",
+  "version": "0.1.3",
   "description": "Run independent review rounds on pinned commits with several reviewer CLIs, classify their findings, and record a review gate the agent can stop on.",
   "author": {
     "name": "Jaegon Seo",
