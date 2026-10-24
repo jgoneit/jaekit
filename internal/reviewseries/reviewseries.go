@@ -66,8 +66,11 @@ type Round struct {
 	Sequence int
 	DryRun   bool
 	// Counted and RerunOf are nil when the record does not have them.
-	Counted    *bool
-	RerunOf    []string
+	Counted *bool
+	RerunOf []string
+	// Base and Head are the reviewed commits, empty when not recorded.
+	Base       string
+	Head       string
 	StartedAt  string
 	FinishedAt string
 	Reviewers  []Reviewer
@@ -128,10 +131,10 @@ type Gate struct {
 	State  string
 	// Growth is nil when the file has no growth record.
 	Growth *Growth
-	// FixesRounds names the fixes rounds that are not dry runs among the
-	// gate's rounds, as "<series folder name>/<round folder name>" from each
-	// round's path; nil when the file lists no readable rounds.
-	FixesRounds []string
+	// Measured names the commit ranges whose added lines the gate measured,
+	// as "<base>..<head>" from each growth.rounds entry, sorted without
+	// repeats; nil when the file has no readable growth.rounds.
+	Measured []string
 }
 
 // Growth is a gate's growth.added_lines: the lines its fixes rounds added
@@ -285,12 +288,21 @@ func parseRound(data []byte, name string) (*Round, error) {
 			return nil, errors.New("rerun_of is not a list of names")
 		}
 	}
-	for key, at := range map[string]*string{"started_at": &r.StartedAt, "finished_at": &r.FinishedAt} {
-		if *at, err = o.optionalText(key); err != nil {
+	if r.Base, err = o.optionalText("base"); err != nil {
+		return nil, err
+	}
+	if r.Head, err = o.optionalText("head"); err != nil {
+		return nil, err
+	}
+	for _, t := range []struct {
+		key string
+		at  *string
+	}{{"started_at", &r.StartedAt}, {"finished_at", &r.FinishedAt}} {
+		if *t.at, err = o.optionalText(t.key); err != nil {
 			return nil, err
 		}
-		if _, perr := time.Parse(time.RFC3339, *at); *at != "" && perr != nil {
-			return nil, fmt.Errorf("%s %q is not an RFC 3339 time", key, *at)
+		if _, perr := time.Parse(time.RFC3339, *t.at); *t.at != "" && perr != nil {
+			return nil, fmt.Errorf("%s %q is not an RFC 3339 time", t.key, *t.at)
 		}
 	}
 	reviewers := map[string]json.RawMessage{}
@@ -496,28 +508,15 @@ func readGate(path, name string, e fs.DirEntry) (*Gate, string) {
 	sum := sha256.Sum256(data)
 	g := &Gate{Name: name, Digest: hex.EncodeToString(sum[:])}
 	g.State, _ = o.optionalText("state")
-	if raw, ok := o.present("rounds"); ok {
-		var rounds []struct {
-			Path   string `json:"path"`
-			Stage  string `json:"stage"`
-			DryRun bool   `json:"dry_run"`
-		}
-		if json.Unmarshal(raw, &rounds) == nil {
-			g.FixesRounds = []string{}
-			for _, r := range rounds {
-				if r.Stage == "fixes" && !r.DryRun {
-					clean := filepath.Clean(filepath.FromSlash(r.Path))
-					g.FixesRounds = append(g.FixesRounds, filepath.Base(filepath.Dir(clean))+"/"+filepath.Base(clean))
-				}
-			}
-			sort.Strings(g.FixesRounds)
-		}
-	}
 	if raw, ok := o.present("growth"); ok {
 		var growth struct {
 			AddedLines map[string]json.RawMessage `json:"added_lines"`
+			Rounds     json.RawMessage            `json:"rounds"`
 		}
-		if json.Unmarshal(raw, &growth) == nil && growth.AddedLines != nil {
+		if json.Unmarshal(raw, &growth) == nil {
+			g.Measured = measuredRanges(growth.Rounds)
+		}
+		if growth.AddedLines != nil {
 			var check, other int64
 			okCheck := json.Unmarshal(growth.AddedLines["check"], &check) == nil && check >= 0
 			okOther := json.Unmarshal(growth.AddedLines["other"], &other) == nil && other >= 0
@@ -610,4 +609,31 @@ func oneOf(s string, list []string) bool {
 		}
 	}
 	return false
+}
+
+// measuredRanges reads growth.rounds as "<base>..<head>" names, sorted
+// without repeats; nil when it is missing or an entry lacks either commit.
+func measuredRanges(raw json.RawMessage) []string {
+	var rounds []struct {
+		Base *string `json:"base"`
+		Head *string `json:"head"`
+	}
+	if len(raw) == 0 || json.Unmarshal(raw, &rounds) != nil || rounds == nil {
+		return nil
+	}
+	names := []string{}
+	for _, r := range rounds {
+		if r.Base == nil || r.Head == nil {
+			return nil
+		}
+		names = append(names, *r.Base+".."+*r.Head)
+	}
+	sort.Strings(names)
+	out := names[:0]
+	for i, n := range names {
+		if i == 0 || n != names[i-1] {
+			out = append(out, n)
+		}
+	}
+	return out
 }

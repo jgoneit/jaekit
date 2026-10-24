@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
+	"slices"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/jgoneit/jaekit/internal/record"
@@ -667,7 +667,7 @@ func costSeriesPart(lines []record.Line, series []*reviewseries.Series, doc *cos
 			}
 			cs.Rounds++
 			if r.Stage == "fixes" && r.HasFindings {
-				fixes = append(fixes, r.Name)
+				fixes = append(fixes, r.Base+".."+r.Head)
 			}
 			st := stages[r.Stage]
 			switch {
@@ -811,10 +811,11 @@ func costRoundOf(series string, r reviewseries.Round, doc *costDoc) costRound {
 }
 
 // costSeriesGrowth is 0 for a series without a fixes round. Otherwise it is
-// the growth of a review-gate/v1 file of the series whose fixes rounds are
-// exactly the series' fixes rounds, since a gate measures the rounds it
-// lists (contracts/review-gate.md §3); among several such files, the one a
-// review note recorded last, else the first by name.
+// the growth of a review-gate/v1 file of the series whose measured commit
+// ranges (growth.rounds) are exactly the ranges of the series' fixes rounds,
+// since a gate adds up only the ranges it measured and counts a range once
+// (contracts/review-gate.md §3); among several such files, the one a review
+// note recorded last, else the first by name. fixes holds "<base>..<head>".
 func costSeriesGrowth(s *reviewseries.Series, fixes []string, recorded map[string]int) costGrowth {
 	gr := costGrowth{Series: s.Path}
 	if len(fixes) == 0 {
@@ -825,20 +826,14 @@ func costSeriesGrowth(s *reviewseries.Series, fixes []string, recorded map[strin
 		gr.Source = growthNoGate
 		return gr
 	}
-	folder := s.Path
-	if abs, err := filepath.Abs(s.Path); err == nil {
-		folder = abs
-	}
-	want := make([]string, len(fixes))
-	for i, name := range fixes {
-		want[i] = filepath.Base(folder) + "/" + name
-	}
+	want := append([]string(nil), fixes...)
 	sort.Strings(want)
+	want = slices.Compact(want)
 	var chosen *reviewseries.Gate
 	best := 0
 	for i := range s.Gates {
 		g := &s.Gates[i]
-		if g.FixesRounds == nil || strings.Join(g.FixesRounds, "\x00") != strings.Join(want, "\x00") {
+		if g.Measured == nil || !slices.Equal(g.Measured, want) {
 			continue
 		}
 		if seq := recorded[g.Digest]; chosen == nil || seq > best {
