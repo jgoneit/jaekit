@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "GuideHostBlocks",
+      "violation": "host-block-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease018AC4_GuideHostBlocks"
+      }
+    },
+    {
+      "id": "ReadmeHostBlocks",
+      "violation": "readme-block-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease018AC4_ReadmeHostBlocks"
+      }
+    }
+  ]
+}

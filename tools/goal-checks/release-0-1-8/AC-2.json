@@ -1,0 +1,38 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "ReleaseIdentity",
+      "violation": "release-identity-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease018AC2_ReleaseIdentity"
+      }
+    },
+    {
+      "id": "PinsAndDownloads",
+      "violation": "release-pin-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease018AC2_PinsAndDownloads"
+      }
+    },
+    {
+      "id": "WindowsPlan",
+      "violation": "windows-plan-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease018AC2_WindowsPlanPast018"
+      }
+    },
+    {
+      "id": "PinTests",
+      "violation": "pin-test-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease018AC2_PinTestsExpect018"
+      }
+    }
+  ]
+}
