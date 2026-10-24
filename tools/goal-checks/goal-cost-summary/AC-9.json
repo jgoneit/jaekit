@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "InputProblems",
+      "violation": "cost-input-problem-wrong",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestGoalCostSummaryAC9_InputProblems"
+      }
+    }
+  ]
+}
