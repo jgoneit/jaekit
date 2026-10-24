@@ -4,18 +4,45 @@ package plugins
 // They use the fixed-phrase helpers of seal_questions_up_front_test.go and
 // run with the package's other tests.
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 const sqContract = "../contracts/bundle.md"
 
 // AC-6: an answer given up front is recorded as the confirmation once the
 // change it allows is committed, because a confirmation binds to the content
-// as it is when recorded; the user is not asked the same thing again.
+// as it is when recorded. That change is not asked about again, but a later
+// change to the confirmed content is new and is asked again; the earlier
+// quote is never re-recorded for it.
 func TestSealQuestionsRegression_EarlyAnswerConfirmedAfterChange(t *testing.T) {
 	const v = "early-answer-confirmation-unstated"
 	sqRequire(t, v, sqBundle, sqQuestions,
 		"A confirmation binds to the content it names as that content is when recorded",
-		"record an answer given up front as that confirmation once the change it allows is committed, quoting the answer, and never ask the user the same thing again")
+		"record an answer given up front as that confirmation once the change it allows is committed, quoting the answer, and do not ask about that change again.",
+		"A later commit that changes the confirmed content is a new change: ask the user again, never re-recording the earlier quote for content they did not answer about.")
+	sqRequire(t, v, sqUsage, "## Seal의 시작 전 확인과 검토 순서",
+		"미리 받은 답은 그 답이 허락한 변경을 commit한 뒤 그 답을 인용해 확인으로 기록하고, 그 변경을 다시 묻지 않습니다.",
+		"확인한 내용이 그 뒤 다시 바뀌면 새 변경이라 다시 묻습니다.")
+	sqRequire(t, v, sqUsageEn, "## Seal's pre-start checks and review order",
+		"Seal records an answer given up front as the confirmation, quoting it, once the change it allows is committed, and does not ask about that change again.",
+		"When the confirmed content changes later, that is a new change and Seal asks again.")
+	for _, path := range []string{sqUsage, sqUsageEn} {
+		sqForbid(t, v, path, "확인을 기록한 뒤에 합니다", "before the confirmation is recorded")
+	}
+}
+
+// sqForbid reports, with the violation marker, each phrase the file still
+// contains.
+func sqForbid(t *testing.T, v, path string, phrases ...string) {
+	t.Helper()
+	text := sqRead(t, path)
+	for _, p := range phrases {
+		if strings.Contains(text, p) {
+			t.Errorf("jaekit:violation=%s %s still says %q", v, path, p)
+		}
+	}
 }
 
 // The bundle contract states the Seal 0.1.23 question and scope rules next
