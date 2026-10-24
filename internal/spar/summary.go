@@ -156,6 +156,20 @@ func renderSummary(dir string, r *RoundRecord, findings []Finding, ledger []Ledg
 		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s | %s |\n", f.ID, f.Class, cell(link), disposition, location,
 			cell(short(f.Claim, 200)))
 	}
+	// The directions follow the table whole: a round without any keeps the
+	// summary it had before smallest_fix existed.
+	heading := false
+	for _, f := range findings {
+		direction := strings.TrimSpace(f.SmallestFix)
+		if direction == "" {
+			continue
+		}
+		if !heading {
+			b.WriteString("\n## Smallest fixes\n\n")
+			heading = true
+		}
+		fmt.Fprintf(&b, "- %s: %s\n", f.ID, strings.ReplaceAll(direction, "\n", "\n  "))
+	}
 	return b.String()
 }
 
