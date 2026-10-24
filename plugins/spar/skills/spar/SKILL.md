@@ -2,7 +2,7 @@
 name: spar
 description: Run independent review rounds on a plan or a change with the spar binary — the same packet to every configured reviewer, classified findings, limited dispositions, stage caps and a review gate file. Use when the user asks for an independent or adversarial review of a plan or an implementation, for example "$spar:spar" in Codex, "/spar:spar" in Claude Code, or "이 변경을 spar로 리뷰해줘".
 metadata:
-  version: "0.1.3"
+  version: "0.1.4"
 ---
 
 # Spar
@@ -59,9 +59,11 @@ Spar classifies each finding by fixed rules; the reviewer's proposal is only an 
 - `hardening`: a check-path edge case that nothing requires, including a check-path requirement question without such a link. It is deferred automatically.
 - `note`: everything else, including a defect proposal whose link does not exist.
 
+A reviewer may give a finding a `smallest_fix`: the smallest change that would make its failure scenario come out right, as a direction in words. It is advice; no class, disposition or gate rule reads it.
+
 Close findings with `spar triage <round> <finding> <disposition>`:
 
-- `fix`: needs `--commit`, `--failed-before` and `--passed-after`, the fix commit and where the observation failed before it and passes after it.
+- `fix`: needs `--commit`, `--failed-before` and `--passed-after`, the fix commit and where the observation failed before it and passes after it. Start the fix within the finding's `smallest_fix` direction when it has one; when the fix goes further, record why with `--note`.
 - `reject`: needs `--evidence` that disproves the finding at the reviewed head.
 - `defer`: needs `--to`; deferring a `defect` also needs `--user-quote`.
 - `duplicate`: needs `--of` another finding of the same round; a `defect` or `requirement-question` points only at one of its own class and stays open until that finding is closed.
