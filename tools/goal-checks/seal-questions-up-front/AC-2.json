@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "UserOnlyConditionsNamed",
+      "violation": "user-confirmation-unannounced",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealQuestionsAC2_UserOnlyConditionsNamed"
+      }
+    }
+  ]
+}
