@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "RoundKeepsDirection",
+      "violation": "smallest-fix-not-kept",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparSmallestFixAC3_RoundKeepsDirection"
+      }
+    }
+  ]
+}

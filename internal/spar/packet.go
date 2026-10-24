@@ -41,12 +41,12 @@ func resultSchema() []byte {
 	finding := map[string]any{
 		"type": "object", "additionalProperties": false,
 		"required": []string{"id", "proposed_class", "angle", "location", "claim", "failure_scenario", "evidence",
-			"link_kind", "link", "introduced_by_change", "regression", "check_impact", "confidence"},
+			"link_kind", "link", "introduced_by_change", "regression", "check_impact", "confidence", "smallest_fix"},
 		"properties": map[string]any{
 			"id": str, "proposed_class": enum(Classes), "angle": enum(Angles), "location": str, "claim": str,
 			"failure_scenario": str, "evidence": str, "link_kind": enum(linkKinds), "link": str,
 			"introduced_by_change": enum(yesNo), "regression": enum(yesNo), "check_impact": enum(checkImpact),
-			"confidence": enum(confidences),
+			"confidence": enum(confidences), "smallest_fix": str,
 		},
 	}
 	angleList := func(second string) map[string]any {
@@ -142,6 +142,8 @@ func buildPacket(in packetInput) string {
 	b.WriteString("\n## How to report\n\n")
 	b.WriteString("- Reply with one JSON object that follows the result schema: `reviewed_head` (the head commit ID above), `verdict`, `angles_checked`, `angles_unchecked`, `findings` and `limits`.\n")
 	b.WriteString("- A finding needs a concrete `failure_scenario`: a specific input or state and the wrong outcome at the head. Without one, write the concern in `limits`.\n")
+	b.WriteString("- `smallest_fix` is the smallest change that would make the `failure_scenario` come out right: a direction in words, never a patch or code. " +
+		"Leave it empty when you cannot name one.\n")
 	b.WriteString("- `location` is `head/<path>:<line>`, `head/<path>:<line>-<line>` or `base/<path>:<line>`, or `head/<path>` for a whole file or folder. The path is a file or folder of that copy, and the line number after it is followed by a space, a comma, a semicolon or the end. A location that names no file or folder is an unreadable location: the finding is kept, but it is never counted as in the check paths and never deferred automatically.\n")
 	b.WriteString("- Give findings the IDs `F1`, `F2`, … in report order.\n")
 	b.WriteString("- `link_kind` is `criterion` with an `AC-n` from the criteria below, `rule` or `contract` with a document and a line (`AGENTS.md:12`) or a range inside the document (`AGENTS.md:12-14`), or `none`. A link that does not exist is recorded as `none`.\n")

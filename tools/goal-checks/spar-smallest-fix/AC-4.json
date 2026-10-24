@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "JudgmentIgnoresDirection",
+      "violation": "smallest-fix-changes-judgment",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparSmallestFixAC4_JudgmentIgnoresDirection"
+      }
+    }
+  ]
+}

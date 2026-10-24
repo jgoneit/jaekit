@@ -940,6 +940,10 @@ func changedPaths(before, after map[string]string) []string {
 var findingKeys = []string{"id", "proposed_class", "angle", "location", "claim", "failure_scenario", "evidence",
 	"link_kind", "link", "introduced_by_change", "regression", "check_impact", "confidence"}
 
+// optionalFindingKeys may be left out of a finding: a result that follows
+// an earlier packet, or a reviewer no schema binds, has no smallest_fix.
+var optionalFindingKeys = []string{"smallest_fix"}
+
 // unknownKeys lists, sorted, the keys of m outside known.
 func unknownKeys(m map[string]any, known []string) []string {
 	var out []string
@@ -1043,9 +1047,16 @@ func validateResult(result any, head string, angles []string) []string {
 				problems = append(problems, fmt.Sprintf("finding %d lacks %s", i, key))
 			}
 		}
-		// The keys are exactly the schema's (G5).
-		for _, key := range unknownKeys(f, findingKeys) {
+		// The keys are exactly the schema's, smallest_fix being optional (G5).
+		for _, key := range unknownKeys(f, append(append([]string{}, findingKeys...), optionalFindingKeys...)) {
 			problems = append(problems, fmt.Sprintf("finding %d has unknown key %q", i, key))
+		}
+		for _, key := range optionalFindingKeys {
+			if v, present := f[key]; present {
+				if _, ok := v.(string); !ok {
+					problems = append(problems, fmt.Sprintf("finding %d has a %s that is not a string", i, key))
+				}
+			}
 		}
 		// The reviewer's own id is any string: spar numbers the findings
 		// itself and keeps that id only as reviewer_id.

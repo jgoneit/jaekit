@@ -37,6 +37,10 @@ type Finding struct {
 	Regression         string `json:"regression"`
 	CheckImpact        string `json:"check_impact"`
 	Confidence         string `json:"confidence"`
+	// SmallestFix is the reviewer's direction for the smallest change that
+	// would make the failure scenario come out right, or "" without one. No
+	// class or disposition rule reads it.
+	SmallestFix string `json:"smallest_fix"`
 }
 
 // LinkDocument is a rule document a link may name: its repository-relative
@@ -552,7 +556,7 @@ func (c classifier) classify(reviewer string, n int, raw map[string]any) Finding
 		FailureScenario: str(raw["failure_scenario"]), Evidence: str(raw["evidence"]),
 		ClaimedLinkKind: str(raw["link_kind"]), ClaimedLink: str(raw["link"]),
 		IntroducedByChange: str(raw["introduced_by_change"]), Regression: str(raw["regression"]),
-		CheckImpact: str(raw["check_impact"]), Confidence: str(raw["confidence"]),
+		CheckImpact: str(raw["check_impact"]), Confidence: str(raw["confidence"]), SmallestFix: str(raw["smallest_fix"]),
 	}
 	// Spar numbers a reviewer's findings in report order, so the round ID
 	// never depends on the reviewer's own ID, which stays in reviewer_id.
