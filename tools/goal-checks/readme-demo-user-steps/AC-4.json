@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Alt",
+      "violation": "demo-alt-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReadmeDemoUserStepsAC4_AltText"
+      }
+    }
+  ]
+}

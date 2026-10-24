@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Timing",
+      "violation": "demo-timing-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReadmeDemoUserStepsAC2_Timing"
+      }
+    }
+  ]
+}
