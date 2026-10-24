@@ -31,7 +31,7 @@ Jaekit은 **Codex·Claude Code에 맡긴 작업을 목표부터 완료 기록까
 
 ## 사용 흐름
 
-![password-link 가상 사용 과정: /spec:spec으로 Spec에 요청하고, 목표를 확인하고, 지금 구현할지 묻는 질문에 Yes(응)로 답하고, ha로 검사를 실행하고(AC-1은 바꾸기 전 실패·바꾼 뒤 통과, AC-2는 계속 통과), Spar 검토 라운드와 gate를 기록하고, ha done이 완료를 기록한 뒤 ha report의 완료 보고를 읽습니다.](assets/readme/demo.en.gif)
+![password-link 가상 사용 과정, 다섯 장면: /spec:spec으로 Spec에 요청하고, Spec이 쓴 목표를 확인하고, 지금 구현할지 묻는 질문에 Yes(응)로 답하거나 나중에 별도 메시지로 /seal:seal docs/specs/password-link를 불러 시작합니다. 그다음 에이전트가 내가 입력하지 않는 명령으로 작업합니다: AC-1은 바꾸기 전 실패·바꾼 뒤 통과, AC-2는 계속 통과, Spar 검토 라운드를 받고 gate를 기록, ha done이 완료를 기록. 마지막으로 완료 보고를 읽습니다.](assets/readme/demo.en.gif)
 
 영어 화면으로 만든 가상 장면이며 실제 실행을 녹화한 것이 아닙니다. 아래 다이어그램은 단계마다 누가 무엇을 하는지 보여 줍니다.
 
