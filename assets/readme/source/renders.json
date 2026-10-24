@@ -1,21 +1,17 @@
 {
   "outputs": {
     "assets/readme/demo.en.gif": {
-      "frames": 9,
+      "frames": 5,
       "height": 720,
       "inputs": {
-        "assets/readme/source/walkthrough/frame-01.en.svg": "cc9526487b9584dd7e559648c3458b057e5716c4e081d462fc46101e73c2d3bb",
-        "assets/readme/source/walkthrough/frame-02.en.svg": "fbb37f55565b15135a500d336d1936a451ef340dd1732981b8bc80b138603f35",
-        "assets/readme/source/walkthrough/frame-03.en.svg": "ad36429216bad54460137fa07e7e8113a48f82020c1436ac0104ca1813db6e40",
-        "assets/readme/source/walkthrough/frame-04.en.svg": "c813378972e00acd76d995bdd5559396b46466f75fa0dba97be72c8248324bf1",
-        "assets/readme/source/walkthrough/frame-05.en.svg": "bc1609b2fa291f79499aef49419f8513629c600c1886c45b28c2c898d2e78ee9",
-        "assets/readme/source/walkthrough/frame-06.en.svg": "a49290090809508f0ae2ece36c12753ee3d5c74324dcb9f104ddc1d4ca02e4bc",
-        "assets/readme/source/walkthrough/frame-07.en.svg": "f2fd974585dcb8f0086cad28051ece80d5182124d37280619d551701e46df1d4",
-        "assets/readme/source/walkthrough/frame-08.en.svg": "95811e2a87bc022617312433095eddf4e8f5d96aab25a49141bf5e78128de3ed",
-        "assets/readme/source/walkthrough/frame-09.en.svg": "0f90826a177729db4758da2924dfd155a5043e8a89bf143bed8ec217d829f9a5",
-        "assets/readme/source/walkthrough/frames.json": "e02e54605b4c6015b639380e510c1d620ffd708381be6942725558b82fe2a4c6"
+        "assets/readme/source/walkthrough/frame-01.en.svg": "b70886e6d8dd2b8bf31eab22290c4ea3df5a5a51135caab96b0263cb55644cb5",
+        "assets/readme/source/walkthrough/frame-02.en.svg": "c909f61deb3acc30832e650a97435eb260cd1dbb056de6aed39c6bca3e464074",
+        "assets/readme/source/walkthrough/frame-03.en.svg": "92fef33952d013ea681765f762d1f364880eed631be0f5d8b6399e3459e49db5",
+        "assets/readme/source/walkthrough/frame-04.en.svg": "a271677453d59de94ab0567b7671e3e7315fa1a1260dc921df9e8c6ff3d7d597",
+        "assets/readme/source/walkthrough/frame-05.en.svg": "15653ac8f7340aaf4f90347a1275e032c0957971bc77c636ce5b3e32a0da38bf",
+        "assets/readme/source/walkthrough/frames.json": "90c8ac15c23f89df6678515e4d7a1459e8e959cb56ac60387a625fc8561956dd"
       },
-      "sha256": "d8cd0e72650554bff71de939c9591e9e951d1e4b2c549c80fb44fe4238ddf166",
+      "sha256": "8c898e100b55404f248021cd0d40b5ff248ac6adb35b26de31382c6e7539a6c7",
       "width": 1280
     },
     "assets/readme/goal-folder.en.png": {

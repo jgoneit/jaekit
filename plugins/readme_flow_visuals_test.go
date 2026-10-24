@@ -535,21 +535,20 @@ func TestReadmeFlowVisualsAC2_UsageFlowImage(t *testing.T) {
 }
 
 // rfvWalkthrough are the walkthrough's fixed text runs across all frames, in
-// order: the request, the goal, the implement-now question and the yes, the
-// start, the baseline failure, the passes after the change, the Spar round,
-// the gate, ha done and the report. Output lines are v0.1.7 formats.
+// order: the request, the goal, the implement-now question and the yes or a
+// separate /seal:seal message, the agent's commands (the baseline failure,
+// the passes after the change, the Spar round, the gate, ha done) and the
+// report. Output lines are v0.1.7 formats. The readme-demo-user-steps goal
+// set this five-scene order.
 var rfvWalkthrough = []string{
 	"/spec:spec Add a “Forgot password” link",
 	"wrote docs/specs/password-link/SPEC.md", "Assurance: standard", "AC-1 The login screen shows",
-	"Implement docs/specs/password-link", "now? Assurance: standard.", "Yes",
-	"$ ha start docs/specs/password-link --rules run-rules/5", "started: seq 1, base f46020ce6f77, rules run-rules/5,",
-	"$ ha check docs/specs/password-link --baseline AC-1", "AC-1 baseline fail_as_expected (seq 2)", "classification: declared_violation",
-	"$ ha check docs/specs/password-link AC-1 AC-2", "AC-1 check pass (seq 3)", "classification: targets_passed", "AC-2 check pass (seq 4)",
-	"$ spar run --stage candidate --base f46020c", "--criteria docs/specs/password-link/SPEC.md", "--out docs/reviews/password-link/01-candidate",
-	"spar: round written to docs/reviews/password-link/01-candidate", "- claude: completed, 0 findings", "- codex: completed, 0 findings",
-	"$ spar gate docs/reviews/password-link/01-candidate", "--expect-head e01fdf1 --out docs/reviews/password-link/gate.json", `"state": "complete"`,
-	"$ ha note docs/specs/password-link review", "--gate docs/reviews/password-link/gate.json", "noted: review (seq 5)",
-	"$ ha done docs/specs/password-link", "## ha status: docs/specs/password-link", "- status: **complete** (exit 0)", "- completion record: seq 6",
+	"Implement docs/specs/password-link", "now? Assurance: standard.", "Yes", "/seal:seal docs/specs/password-link",
+	"$ ha check docs/specs/password-link --baseline AC-1", "AC-1 baseline fail_as_expected (seq 2)",
+	"$ ha check docs/specs/password-link AC-1 AC-2", "AC-1 check pass (seq 3)", "AC-2 check pass (seq 4)",
+	"$ spar run --stage candidate --base f46020c", "$ spar gate docs/reviews/password-link/01-candidate",
+	"$ ha note docs/specs/password-link review", "noted: review (seq 5)",
+	"$ ha done docs/specs/password-link", "- status: **complete** (exit 0)", "- completion record: seq 6",
 	"## 완료 보고", "Changed:", "Checked:", "To review:", "Remaining limits:", "assurance local; check author: executor", "Next step:",
 	"### Evidence per condition", "| AC-1 | change | yes | yes | 2, 3 |", "| AC-2 | maintain | yes | yes | 4 |",
 }
@@ -574,10 +573,10 @@ func TestReadmeFlowVisualsAC3_WalkthroughFrames(t *testing.T) {
 }
 
 var rfvWalkthroughAlt = map[string][]string{
-	"ko": {"password-link 가상 사용 과정", "/spec:spec으로 Spec에 요청", "목표를 확인", "지금 구현할지 묻는 질문에 Yes(응)로 답하고",
-		"ha로 검사", "AC-1은 바꾸기 전 실패·바꾼 뒤 통과", "AC-2는 계속 통과", "Spar 검토 라운드와 gate를 기록", "ha done이 완료를 기록", "ha report의 완료 보고"},
-	"en": {"Fictional walkthrough of password-link", "ask Spec with /spec:spec", "review the goal", "answer Yes when Spec asks whether to implement it now",
-		"through ha", "AC-1 fails before the change and passes after it", "AC-2 still passes", "record a Spar review round and its gate", "ha done record completion", "completion report from ha report"},
+	"ko": {"password-link 가상 사용 과정", "/spec:spec으로 Spec에 요청", "목표를 확인", "지금 구현할지 묻는 질문에 Yes(응)로 답하거나",
+		"/seal:seal docs/specs/password-link", "AC-1은 바꾸기 전 실패·바꾼 뒤 통과", "AC-2는 계속 통과", "Spar 검토 라운드", "gate를 기록", "ha done이 완료를 기록", "완료 보고"},
+	"en": {"Fictional walkthrough of password-link", "ask Spec with /spec:spec", "review the goal", "answering Yes when Spec asks whether to implement it now",
+		"/seal:seal docs/specs/password-link", "AC-1 fails before the change and passes after it", "AC-2 still passes", "Spar review round", "gate is recorded", "ha done records completion", "completion report"},
 }
 
 // AC-3: both READMEs' alt texts tell the walkthrough in the same order.

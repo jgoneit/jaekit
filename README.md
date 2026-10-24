@@ -31,7 +31,7 @@ The current release is **v0.1.7**, an early version being refined through real w
 
 ## How it works
 
-![Fictional walkthrough of password-link: ask Spec with /spec:spec, review the goal, answer Yes when Spec asks whether to implement it now, run the checks through ha (AC-1 fails before the change and passes after it, AC-2 still passes), record a Spar review round and its gate, let ha done record completion, then read the completion report from ha report.](assets/readme/demo.en.gif)
+![Fictional walkthrough of password-link in five scenes: you ask Spec with /spec:spec; you review the goal it wrote; you start by answering Yes when Spec asks whether to implement it now, or later with /seal:seal docs/specs/password-link in a separate message; the agent then works through commands you do not type: AC-1 fails before the change and passes after it, AC-2 still passes, a Spar review round runs and its gate is recorded, and ha done records completion; last, you read the completion report.](assets/readme/demo.en.gif)
 
 An illustrated sequence, not a recording of a real run. The diagram below shows each step and who acts.
 
