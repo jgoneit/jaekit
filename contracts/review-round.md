@@ -51,7 +51,8 @@ spar run --stage candidate --base 1111111 --head 2222222 \
     "location": "head/app/greet.py:3", "claim": "An empty name gives a trailing comma.",
     "failure_scenario": "greet('') returns 'hello, '", "evidence": "head/app/greet.py:3",
     "link_kind": "criterion", "link": "AC-1", "introduced_by_change": "yes", "regression": "no",
-    "check_impact": "none", "confidence": "high"
+    "check_impact": "none", "confidence": "high",
+    "smallest_fix": "Drop the comma only when the name is empty."
   }],
   "limits": "did not run the code"
 }
@@ -59,6 +60,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 - 결과의 형식은 G1(객체와 최상위 키), G2(`reviewed_head`), G3(`verdict`), G4(각도 항목), G5(지적 항목), G6(`limits`)이다. 모든 preset의 결과에 같은 확인을 한다. 제공자가 schema를 강제하지 않는 `native`·`command` 리뷰어도 같다. 어기면 `invalid_output`이고 이유에 문제의 키 이름이 들어간다.
 - 지적의 열거값: `proposed_class` `defect|requirement-question|hardening|note`, `link_kind` `criterion|rule|contract|none`, `introduced_by_change`·`regression` `yes|no|unknown`, `check_impact` `false_pass|meaning_inverted|contract_violation|none`, `confidence` `high|medium|low`. 패킷은 `id`를 보고 순서대로 `F1`, `F2`, …로 붙이라고 하지만 `id`는 schema대로 문자열이면 된다. 라운드의 지적 ID는 spar가 리뷰어 결과의 보고 순서대로 매기는 `<리뷰어>-F<n>`(1부터)이고, 리뷰어가 붙인 `id`는 `reviewer_id`로 남는다. 그래서 리뷰어 이름이나 `id`에 `-`가 있거나 `id`가 겹쳐도 라운드 ID는 겹치지 않는다.
+- `smallest_fix`는 리뷰어가 지적마다 적는 가장 작은 수정 방향이다: 실패 시나리오가 맞게 나오게 하는 가장 작은 변경을 패치나 코드가 아닌 문장으로 적고, 말할 수 없으면 빈 문자열로 둔다. schema는 값을 엄격하게 강제하는 제공자를 위해 이 키를 `required`에 두지만, spar의 확인(G5)은 키가 없는 결과도 받는다. 빈 문자열과 키가 없는 경우는 모두 방향 없음이고, 문자열이 아닌 값은 `invalid_output`이다. 방향은 리뷰어의 제안이어서 분류·처리·gate에 쓰지 않는다(6–8절). spar는 수정이 방향을 지켰는지 판정하지 않는다.
 - spar가 읽는 방식: `location`은 G7, `rule`·`contract` 연결은 G8, `criterion` 연결은 G9. 위치를 읽을 수 없는 지적도 결과에서 버리지 않는다.
 - `could_not_review`는 완료가 아니라 `failed`로 기록한다.
 
@@ -88,10 +90,10 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 | --- | --- |
 | `round.json` | 아래 필드 |
 | `packet.md`, `schema.json` | 패킷과 결과 schema |
-| `findings.json` | 분류된 지적 배열 |
+| `findings.json` | 분류된 지적 배열. 지적마다 리뷰어가 준 `smallest_fix`를 그대로 남기고, 없으면 빈 문자열이다 |
 | `ledger.jsonl` | 처리 원장. 한 줄에 한 처리, 덧붙이기만 한다 |
 | `waivers.jsonl` | 필수 리뷰어를 빼는 사용자 결정(10절). 한 줄에 한 결정, 덧붙이기만 한다. 결정이 없는 라운드에는 없다 |
-| `summary.md` | 사람이 읽는 요약 |
+| `summary.md` | 사람이 읽는 요약. 방향이 있는 지적은 지적 표 뒤 `## Smallest fixes` 절에 `- <지적 ID>: <방향>`으로 보인다(앞뒤 공백을 뗀 `smallest_fix`, 그 안의 줄바꿈 뒤 줄은 두 칸 들여 쓴다). 방향이 있는 지적이 없으면 그 절이 없다 |
 | `<리뷰어>/` | 그 리뷰어의 표준 출력·오류와 결과. 대체 모델은 `<리뷰어>/fallback/` |
 | `workspace/` | dry run에서만: 리뷰어가 받을 작업공간(`head/`, `base/`) |
 | `<native 리뷰어>/` | `prompt.md`, 작업공간, 기록된 결과. 기본 이름이면 `native/` |
@@ -102,7 +104,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 ## 6. 분류
 
-`findings.json`의 항목은 리뷰어 결과의 필드에 `id`(`<리뷰어>-F<n>`, 보고 순서), `reviewer`, `reviewer_id`(리뷰어가 붙인 `id`), `class`, `class_reason`, `path`, `in_check_paths`, `location_unreadable`, `claimed_link_kind`, `claimed_link`을 더한다. `path`와 `in_check_paths`는 위치를 읽은 결과다(G7). `link_kind`와 `link`는 확인된 연결(G8, G9)만 남고, 확인되지 않으면 `none`과 빈 문자열이다. 이 목표 전에 쓴 기록처럼 `location_unreadable`이 없는 지적은 위치를 읽은 지적이다.
+`findings.json`의 항목은 리뷰어 결과의 필드에 `id`(`<리뷰어>-F<n>`, 보고 순서), `reviewer`, `reviewer_id`(리뷰어가 붙인 `id`), `class`, `class_reason`, `path`, `in_check_paths`, `location_unreadable`, `claimed_link_kind`, `claimed_link`을 더한다. `path`와 `in_check_paths`는 위치를 읽은 결과다(G7). `link_kind`와 `link`는 확인된 연결(G8, G9)만 남고, 확인되지 않으면 `none`과 빈 문자열이다. 이 목표 전에 쓴 기록처럼 `location_unreadable`이 없는 지적은 위치를 읽은 지적이다. 리뷰어가 `smallest_fix`를 빼면 빈 문자열로 남고, `smallest_fix`가 없는 예전 기록의 지적은 방향 없음이다. 아래 규칙은 `smallest_fix`를 읽지 않는다.
 
 위치를 읽은 지적의 분류 규칙(위에서 처음 맞는 것):
 
