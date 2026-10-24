@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "TriageGuidance",
+      "violation": "smallest-fix-guidance-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSparSmallestFixAC5_TriageGuidance"
+      }
+    }
+  ]
+}
