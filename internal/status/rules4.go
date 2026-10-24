@@ -296,15 +296,35 @@ func answers(l record.Line) bool {
 // reportedWait returns the excluded wait seconds of a window's lines, which
 // span from its first line to its last.
 func reportedWait(window []record.Line) int64 {
-	if len(window) == 0 {
+	waits, runs, begin, end, ok := waitIntervals(window)
+	if !ok {
 		return 0
+	}
+	all := make([]interval, len(waits))
+	for i, w := range waits {
+		all[i] = w.interval
+	}
+	return clipped(subtract(union(all), union(runs)), begin, end)
+}
+
+// waitInterval is one wait note's own interval in its window.
+type waitInterval struct {
+	interval
+	line *record.Line
+}
+
+// waitIntervals returns each wait note's interval and the run intervals of a
+// window's lines, with the window's first and last time. ok is false when
+// the window has no time span.
+func waitIntervals(window []record.Line) (waits []waitInterval, runs []interval, begin, end int64, ok bool) {
+	if len(window) == 0 {
+		return nil, nil, 0, 0, false
 	}
 	begin, ok1 := unix(window[0].At)
 	end, ok2 := unix(window[len(window)-1].At)
 	if !ok1 || !ok2 || end <= begin {
-		return 0
+		return nil, nil, 0, 0, false
 	}
-	var waits, runs []interval
 	for i, l := range window {
 		if l.Kind == "check" || l.Kind == "baseline" {
 			from, okFrom := unix(l.StartedAt)
@@ -339,12 +359,16 @@ func reportedWait(window []record.Line) int64 {
 			}
 		}
 		if from := at + 1; stop > from {
-			waits = append(waits, interval{from, stop})
+			waits = append(waits, waitInterval{interval{from, stop}, &window[i]})
 		}
 	}
-	excluded := subtract(union(waits), union(runs))
+	return waits, runs, begin, end, true
+}
+
+// clipped returns the seconds of disjoint intervals inside [begin, end).
+func clipped(xs []interval, begin, end int64) int64 {
 	var total int64
-	for _, w := range excluded {
+	for _, w := range xs {
 		from, to := max(w.from, begin), min(w.to, end)
 		if to > from {
 			total += to - from
