@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "OneMessageBeforeBaseline",
+      "violation": "prestart-questions-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealQuestionsAC1_OneMessageBeforeBaseline"
+      }
+    }
+  ]
+}

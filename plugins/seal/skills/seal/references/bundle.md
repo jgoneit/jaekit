@@ -39,7 +39,7 @@ The declaration and every `producer_paths` input must be tracked regular files w
 
 ### `## 범위`
 
-- `바꿀 수 있는 경로:` code-span globs relative to the repository root (`**` matches any depth), with the SPEC section they come from. Changes outside them need the user's confirmation.
+- `바꿀 수 있는 경로:` code-span globs relative to the repository root (`**` matches any depth), with the SPEC section they come from. Changes outside them need the user's confirmation. List from the start every test and check file the plan will add, with its helper files, so adding them needs no scope confirmation; never list a path the goal documents say must not change.
 - `테스트 경로:` code-span globs of test definitions, or `(기본값)` for `tests/**`, `**/*_test.*`, `**/test_*.*`, `**/*.test.*`, `**/*.spec.*`. Editing or deleting a test that existed at base needs the user's confirmation.
 - `유지할 동작:` behavior to keep, from the SPEC's non-goals and current behavior.
 - `다른 목표 실행 묶음:` optional, only when a check reads other goals' bundle files (`PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl`, `tasks/`): ``- 다른 목표 실행 묶음: `검사 입력` (reason)``. Under `run-rules/2` and `run-rules/3` those files leave the code state; the declaration keeps them in, so a change to them makes this goal's results stale. `ha` reads it from the plan as it is when it computes or records, so adding or removing it is a plan change. Any other value is the lint problem `other_bundles_invalid`.
@@ -66,6 +66,21 @@ Optional. One tool the checks need per line, such as a browser, database, contai
 ### `## 읽을 자료` (when tasks stay inside PLAN.md)
 
 Same four groups as a task document.
+
+## Questions for the user
+
+Before any baseline, once PLAN is written and `ha doctor` has run, gather every decision that the goal documents, the plan, the project instructions and the code already show and that the current rules leave to the user's words, and ask them all in one message. Typical decisions, not a complete list:
+
+- a change that project instructions reserve for the user's words, such as a plan that changes a file on a protected path;
+- a change to an existing test that the request does not authorize;
+- a place where the goal documents and the code seem to disagree and the user must choose;
+- unusable tools that `ha doctor` reports, and a computed budget that needs approval.
+
+Any other decision of that kind goes in the same message. Give each question its options, the recommended one leading, and what each answer changes. When a condition can be met only by the user's confirmation, such as a `manual` condition, the same message names it and what you will ask them to confirm at the end. With no such decision or condition, ask nothing and start the work; never ask whether anything else needs asking.
+
+An answer settles only what it says. A change outside the recorded authority or one that weakens a check still needs the user's confirmation, recorded with `ha note <goal> confirm`; asking early never replaces it. A confirmation binds to the content it names as that content is when recorded, so record an answer given up front as that confirmation once the change it allows is committed, quoting the answer, and do not ask about that change again. A later commit that changes the confirmed content is a new change: ask the user again, never re-recording the earlier quote for content they did not answer about. While you wait, record the wait and keep doing independent work ([run-rules/4](ha.md#run-rules4)); the budget is still asked once per PLAN.
+
+Once the work has started, ask each question when it arises, such as a `requirement-question` from review, a round cap or a scope change nobody could foresee; questions pending at the same moment go in one message. Ask for the confirmations completion needs in one message, once the results they confirm exist.
 
 ## Check inputs
 

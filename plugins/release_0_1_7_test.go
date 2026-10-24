@@ -354,7 +354,8 @@ func TestRelease017AC3_BinariesTogether(t *testing.T) {
 
 // AC-9: the guides, contract example, Seal skill, manifests and release
 // notes state the v0.1.7 combination: ha 0.1.7, spar 0.1.7, Spec 0.1.13,
-// Seal 0.1.22 and the Spar plugin 0.1.3.
+// Seal 0.1.22 and the Spar plugin 0.1.3. The Seal skill, its manifests and
+// the marketplace seal entry carry the source version, Seal 0.1.23.
 func TestRelease017AC9_CombinationStated(t *testing.T) {
 	const v = "combination-unstated"
 	for _, c := range []struct {
@@ -386,7 +387,7 @@ func TestRelease017AC9_CombinationStated(t *testing.T) {
 		"../contracts/core-capabilities.md": {`"ha_version": "0.1.7"`, "v0.1.7의 Core `0.1.7`·Seal `0.1.22`"},
 		"../contracts/review-gate.md":       {`"spar_version": "0.1.7"`},
 		r17SealHa:                           {"The commands below describe release v0.1.7: ha 0.1.7, spar 0.1.7 and Seal 0.1.22."},
-		r17SealSkill:                        {"version: \"0.1.22\"\n"},
+		r17SealSkill:                        {"version: \"0.1.23\"\n"},
 	} {
 		r17Contains(t, v, path, r17Read(t, path), tokens...)
 	}
@@ -399,8 +400,8 @@ func TestRelease017AC9_CombinationStated(t *testing.T) {
 			Version string `json:"version"`
 		}
 		r17JSON(t, path, &manifest)
-		if manifest.Version != "0.1.22" {
-			t.Errorf("jaekit:violation=%s %s version is %q, not 0.1.22", v, path, manifest.Version)
+		if manifest.Version != "0.1.23" {
+			t.Errorf("jaekit:violation=%s %s version is %q, not 0.1.23", v, path, manifest.Version)
 		}
 	}
 	var market struct {
@@ -410,7 +411,7 @@ func TestRelease017AC9_CombinationStated(t *testing.T) {
 		} `json:"plugins"`
 	}
 	r17JSON(t, "../.claude-plugin/marketplace.json", &market)
-	want := map[string]string{"spec": "0.1.13", "seal": "0.1.22", "spar": "0.1.3"}
+	want := map[string]string{"spec": "0.1.13", "seal": "0.1.23", "spar": "0.1.3"}
 	for _, p := range market.Plugins {
 		if w, ok := want[p.Name]; ok {
 			if p.Version != w {

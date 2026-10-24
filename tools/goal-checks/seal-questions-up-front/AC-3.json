@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "NewCheckFilesInScope",
+      "violation": "new-check-files-out-of-scope",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealQuestionsAC3_NewCheckFilesInScope"
+      }
+    }
+  ]
+}
