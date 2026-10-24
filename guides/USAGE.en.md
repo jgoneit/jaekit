@@ -258,6 +258,24 @@ When the installed `ha` does not know `run-rules/5` or other support Seal requir
 - To finish without review when Spar cannot run, you decide a SPEC change that lowers the tier to `Assurance: light`. After `confirm spec` and fresh checks, the goal completes without a gate.
 - A `light` goal, a goal without the tier line, and goals started under `run-rules/1` to `run-rules/4` are judged without a gate, as before.
 
+## Reading one goal's cost
+
+`ha cost <goal>` gathers what one goal cost in verification and review on one screen. It only reads records and writes nothing; it never reads the current time and calls no model. It reads Spar review records only from the series folders you name with `--series`. It does not guess where they are, so give `--series` once per series.
+
+```bash
+ha cost docs/specs/<goal> --series docs/reviews/<goal>
+```
+
+- **Kind and size:** the tier, the rules version, the required and optional criteria, the files and commits changed since the base (the same as `Changed` in `ha report`), and a valid completion record.
+- **Verification:** runs and their time, runs per condition, and for each re-recorded run the inputs that differ from the run before it (code, goal documents, verification command, overlaid check files). When no input differs, it shows the earlier run's result. The budget window shows the values `ha status` shows.
+- **Questions and waits:** each reported wait with the decision it asked and its length, Spar's `requirement-question` findings with their answers, cap extensions and reviewer waivers. They are counted by source and listed. Whether one was a scope or authority decision or a needless re-check is for the person reading the list to judge.
+- **Review rounds and findings:** rounds by stage (counted rounds and reruns), reviewer time, findings by class and location with their dispositions, and the lines fixes rounds added (the gate's `growth`). Without `--series`, these parts say they were not given and show no zeros.
+- **Tokens:** no record holds them, so they show as "not recorded".
+
+`--format json` shows the same values as a `cost/v1` document, and `--lang ko` changes only labels and sentences. The format and the source of each value are in [the run record contract](../contracts/run-record.md) §1.7.
+
+**When you compare.** The summary shows numbers only; it never compares the goal with another or says it improved. To compare goals, put goals of the same tier and similar size (criteria, changed files and commits) side by side. A difference between a few goals before and after a process change mixes in what each goal was about and chance, so it is not a causal effect of that change.
+
 ## Troubleshooting
 
 | Symptom | What to do |
