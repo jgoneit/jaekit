@@ -7,6 +7,7 @@ import (
 	"math"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/jgoneit/jaekit/internal/record"
@@ -91,11 +92,13 @@ type costRerecord struct {
 	PreviousResult string   `json:"previous_result"`
 }
 
+// costNotes counts note kinds. The three run-rules/4 kinds are nil for a
+// goal started under earlier rules, which cannot record them.
 type costNotes struct {
-	TestChange    int `json:"test_change"`
-	Recover       int `json:"recover"`
-	AllowRecovery int `json:"allow_recovery"`
-	Reopen        int `json:"reopen"`
+	TestChange    *int `json:"test_change"`
+	Recover       *int `json:"recover"`
+	AllowRecovery *int `json:"allow_recovery"`
+	Reopen        int  `json:"reopen"`
 }
 
 type costSpan struct {
@@ -267,8 +270,8 @@ const (
 	growthNoFixes   = "no_fixes_round"
 	growthGate      = "gate"
 	growthNoGate    = "no_gate_file"
-	growthManyGates = "several_gate_files"
 	growthNotInGate = "gate_without_growth"
+	growthMisses    = "gate_misses_rounds"
 )
 
 type costTokens struct {
@@ -472,6 +475,14 @@ func costTargetName(t *record.Target) string {
 
 func costVerify(lines []record.Line, doc *costDoc) *costVerification {
 	v := &costVerification{Runs: map[string]map[string]int{"check": {}, "baseline": {}}, Targets: []costTarget{}, Rerecords: []costRerecord{}}
+	var testChange, recover, allowRecovery int
+	if start := startLine(lines); status.Autonomous(start.Rules) {
+		v.Notes.TestChange, v.Notes.Recover, v.Notes.AllowRecovery = &testChange, &recover, &allowRecovery
+	} else {
+		for _, key := range []string{"test_change", "recover", "allow_recovery"} {
+			doc.Unavailable["verification.notes."+key] = costNotRecorded
+		}
+	}
 	exec := record.ExecutionLines(lines)
 	targets := map[string]*costTarget{}
 	var order []string
@@ -482,11 +493,11 @@ func costVerify(lines []record.Line, doc *costDoc) *costVerification {
 		case "note":
 			switch l.Note {
 			case "test-change":
-				v.Notes.TestChange++
+				testChange++
 			case "recover":
-				v.Notes.Recover++
+				recover++
 			case "allow-recovery":
-				v.Notes.AllowRecovery++
+				allowRecovery++
 			case "reopen":
 				v.Notes.Reopen++
 			}
@@ -585,11 +596,20 @@ func costOverlay(l *record.Line) string {
 	return string(data)
 }
 
+// costWaits fills the reported waits and the input and confirm notes. A goal
+// started before run-rules/4 cannot report waits, so they are not recorded.
 func costWaits(lines []record.Line, doc *costDoc) {
 	q := &doc.Questions
-	q.Waits = status.WaitSpans(lines)
-	total := status.ReportedWaitSeconds(lines)
-	q.ReportedWaitSeconds = &total
+	if status.Autonomous(startLine(lines).Rules) {
+		q.Waits = status.WaitSpans(lines)
+		total := status.ReportedWaitSeconds(lines)
+		n := len(q.Waits)
+		q.ReportedWaitSeconds, q.BySource.Wait = &total, &n
+	} else {
+		for _, key := range []string{"questions.waits", "questions.reported_wait_seconds", "questions.by_source.wait"} {
+			doc.Unavailable[key] = costNotRecorded
+		}
+	}
 	var input, confirm int
 	for _, l := range record.ExecutionLines(lines) {
 		if l.Kind != "note" {
@@ -602,8 +622,7 @@ func costWaits(lines []record.Line, doc *costDoc) {
 			confirm++
 		}
 	}
-	n := len(q.Waits)
-	q.InputNotes, q.ConfirmNotes, q.BySource.Wait = &input, &confirm, &n
+	q.InputNotes, q.ConfirmNotes = &input, &confirm
 }
 
 // costSeriesPart fills the review rounds, the findings and their
@@ -640,7 +659,7 @@ func costSeriesPart(lines []record.Line, series []*reviewseries.Series, doc *cos
 			}
 			cs.Gates = append(cs.Gates, cg)
 		}
-		fixes := 0
+		var fixes []string
 		for _, r := range s.Rounds {
 			if r.DryRun {
 				cs.DryRuns++
@@ -648,7 +667,7 @@ func costSeriesPart(lines []record.Line, series []*reviewseries.Series, doc *cos
 			}
 			cs.Rounds++
 			if r.Stage == "fixes" && r.HasFindings {
-				fixes++
+				fixes = append(fixes, r.Name)
 			}
 			st := stages[r.Stage]
 			switch {
@@ -792,32 +811,47 @@ func costRoundOf(series string, r reviewseries.Round, doc *costDoc) costRound {
 }
 
 // costSeriesGrowth is 0 for a series without a fixes round. Otherwise it is
-// the growth of the series' review-gate/v1 file: the only one, or among
-// several the one a review note recorded last.
-func costSeriesGrowth(s *reviewseries.Series, fixes int, recorded map[string]int) costGrowth {
+// the growth of a review-gate/v1 file of the series whose fixes rounds are
+// exactly the series' fixes rounds, since a gate measures the rounds it
+// lists (contracts/review-gate.md §3); among several such files, the one a
+// review note recorded last, else the first by name.
+func costSeriesGrowth(s *reviewseries.Series, fixes []string, recorded map[string]int) costGrowth {
 	gr := costGrowth{Series: s.Path}
-	if fixes == 0 {
+	if len(fixes) == 0 {
 		gr.Lines, gr.Source = &costLines{}, growthNoFixes
 		return gr
 	}
-	var chosen *reviewseries.Gate
-	switch len(s.Gates) {
-	case 0:
+	if len(s.Gates) == 0 {
 		gr.Source = growthNoGate
 		return gr
-	case 1:
-		chosen = &s.Gates[0]
-	default:
-		best := 0
-		for i := range s.Gates {
-			if seq, ok := recorded[s.Gates[i].Digest]; ok && seq > best {
-				best, chosen = seq, &s.Gates[i]
-			}
+	}
+	folder := s.Path
+	if abs, err := filepath.Abs(s.Path); err == nil {
+		folder = abs
+	}
+	want := make([]string, len(fixes))
+	for i, name := range fixes {
+		want[i] = filepath.Base(folder) + "/" + name
+	}
+	sort.Strings(want)
+	var chosen *reviewseries.Gate
+	best := 0
+	for i := range s.Gates {
+		g := &s.Gates[i]
+		if g.FixesRounds == nil || strings.Join(g.FixesRounds, "\x00") != strings.Join(want, "\x00") {
+			continue
 		}
-		if chosen == nil {
-			gr.Source = growthManyGates
-			return gr
+		if seq := recorded[g.Digest]; chosen == nil || seq > best {
+			chosen, best = g, seq
 		}
+	}
+	if chosen == nil {
+		gr.Source = growthMisses
+		if len(s.Gates) == 1 {
+			name := s.Gates[0].Name
+			gr.Gate = &name
+		}
+		return gr
 	}
 	name := chosen.Name
 	gr.Gate = &name

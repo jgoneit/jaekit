@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 )
 
 // Schemas this package reads.
@@ -127,6 +128,10 @@ type Gate struct {
 	State  string
 	// Growth is nil when the file has no growth record.
 	Growth *Growth
+	// FixesRounds names the fixes rounds that are not dry runs among the
+	// gate's rounds, as "<series folder name>/<round folder name>" from each
+	// round's path; nil when the file lists no readable rounds.
+	FixesRounds []string
 }
 
 // Growth is a gate's growth.added_lines: the lines its fixes rounds added
@@ -280,11 +285,13 @@ func parseRound(data []byte, name string) (*Round, error) {
 			return nil, errors.New("rerun_of is not a list of names")
 		}
 	}
-	if r.StartedAt, err = o.optionalText("started_at"); err != nil {
-		return nil, err
-	}
-	if r.FinishedAt, err = o.optionalText("finished_at"); err != nil {
-		return nil, err
+	for key, at := range map[string]*string{"started_at": &r.StartedAt, "finished_at": &r.FinishedAt} {
+		if *at, err = o.optionalText(key); err != nil {
+			return nil, err
+		}
+		if _, perr := time.Parse(time.RFC3339, *at); *at != "" && perr != nil {
+			return nil, fmt.Errorf("%s %q is not an RFC 3339 time", key, *at)
+		}
 	}
 	reviewers := map[string]json.RawMessage{}
 	if raw, ok := o.present("reviewers"); ok {
@@ -489,6 +496,23 @@ func readGate(path, name string, e fs.DirEntry) (*Gate, string) {
 	sum := sha256.Sum256(data)
 	g := &Gate{Name: name, Digest: hex.EncodeToString(sum[:])}
 	g.State, _ = o.optionalText("state")
+	if raw, ok := o.present("rounds"); ok {
+		var rounds []struct {
+			Path   string `json:"path"`
+			Stage  string `json:"stage"`
+			DryRun bool   `json:"dry_run"`
+		}
+		if json.Unmarshal(raw, &rounds) == nil {
+			g.FixesRounds = []string{}
+			for _, r := range rounds {
+				if r.Stage == "fixes" && !r.DryRun {
+					clean := filepath.Clean(filepath.FromSlash(r.Path))
+					g.FixesRounds = append(g.FixesRounds, filepath.Base(filepath.Dir(clean))+"/"+filepath.Base(clean))
+				}
+			}
+			sort.Strings(g.FixesRounds)
+		}
+	}
 	if raw, ok := o.present("growth"); ok {
 		var growth struct {
 			AddedLines map[string]json.RawMessage `json:"added_lines"`

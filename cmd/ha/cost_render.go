@@ -13,31 +13,33 @@ import (
 // quotes are the same in both (run-record.md §1.7).
 
 type costWords struct {
-	title                                            string
-	headings                                         [6]string
-	tier, none, rules, notStarted, criteria          string
-	changed, cannotCompare, completion, notComputed  string
-	changedNone, waitsNone, growthLines              string
-	stateNotComputed                                 string
-	noRecord                                         string
-	runs, runTime, perTarget, checks, baselines      string
-	rerecorded, rerecord, changedInputs, sameInputs  string
-	inputs                                           map[string]string
-	notes, span, spanUnknown, budget, budgetNoWaits  string
-	budgetNone                                       string
-	bySource, bySourceNoSeries, waits, wait, inputs2 string
-	questions, undisposed, extensions, extension     string
-	waivers, waiver, listNone                        string
-	notGiven, series, gate, gateRecorded, skipped    string
-	stages, stage, stageUnknown, roundsLabel, round  string
-	roundUnfinished, counted, rerun, countedUnknown  string
-	reviewer, attempts, fallbackUsed, fallbackNot    string
-	notRecorded, reviewerTime, reviewerTotal         string
-	reviewerUnrecorded                               string
-	class, dispositions, growth, growthTotal         string
-	growthSeries, growthNone, growthUnknown          string
-	growthWhy                                        map[string]string
-	tokens                                           string
+	title                                               string
+	headings                                            [6]string
+	tier, none, rules, notStarted, criteria             string
+	changed, cannotCompare, completion, notComputed     string
+	changedNone, waitsNone, growthLines                 string
+	stateNotComputed, waitsNotReported, notStartedShort string
+	growthMissesNamed                                   string
+	noRecord                                            string
+	runs, runTime, perTarget, checks, baselines         string
+	rerecorded, rerecord, changedInputs, sameInputs     string
+	inputs                                              map[string]string
+	notes, span, spanUnknown, budget, budgetNoWaits     string
+	budgetNone                                          string
+	bySource, bySourceNoSeries, waits, wait, inputs2    string
+	questions, undisposed, extensions                   string
+	extension                                           string
+	waivers, waiver, listNone                           string
+	notGiven, series, gate, gateRecorded, skipped       string
+	stages, stage, stageUnknown, roundsLabel, round     string
+	roundUnfinished, counted, rerun, countedUnknown     string
+	reviewer, attempts, fallbackUsed, fallbackNot       string
+	notRecorded, reviewerTime, reviewerTotal            string
+	reviewerUnrecorded                                  string
+	class, dispositions, growth, growthTotal            string
+	growthSeries, growthNone, growthUnknown             string
+	growthWhy                                           map[string]string
+	tokens                                              string
 }
 
 var costLanguages = map[string]costWords{
@@ -53,6 +55,9 @@ var costLanguages = map[string]costWords{
 		cannotCompare:      "- changed: Git cannot compare base %s with HEAD",
 		changedNone:        "- changed: none; the goal has not started",
 		stateNotComputed:   "not computed; Git cannot read the commits the record names",
+		waitsNotReported:   "- waits: not recorded before run-rules/4",
+		notStartedShort:    "not started",
+		growthMissesNamed:  "not recorded: %s does not list every fixes round of the series",
 		waitsNone:          "- waits: none",
 		growthLines:        "check %d, other %d (%s)",
 		completion:         "- completion record: %s",
@@ -68,13 +73,13 @@ var costLanguages = map[string]costWords{
 		changedInputs:      "%s changed",
 		sameInputs:         "no input changed; previous result %s",
 		inputs:             map[string]string{"code": "code", "goal_documents": "goal documents", "command": "command", "overlay": "overlaid check files"},
-		notes:              "- test changes %d; recoveries %d; recovery allowances %d; reopens %d",
+		notes:              "- test changes %s; recoveries %s; recovery allowances %s; reopens %d",
 		span:               "- record: seq %d at %s to seq %d at %s, %d seconds",
 		spanUnknown:        "- record: seq %d at %s to seq %d at %s, seconds not recorded",
 		budget:             "- budget window from seq %d, as ha status shows it: span %d seconds, reported waits %d seconds, elapsed %d of %d seconds; runs %d of %d",
 		budgetNoWaits:      "- budget window from seq %d, as ha status shows it: elapsed %d of %d seconds, waits are not reported before run-rules/4; runs %d of %d",
 		budgetNone:         "- budget window: not computed from the record",
-		bySource:           "- questions by source: waits %d, requirement-questions %d, cap extensions %d, reviewer waivers %d",
+		bySource:           "- questions by source: waits %s, requirement-questions %d, cap extensions %d, reviewer waivers %d",
 		bySourceNoSeries:   "- questions by source: waits %s; requirement-questions, cap extensions and reviewer waivers not given (no --series)",
 		waits:              "- waits, each as ha's budget counts it (%d seconds in all, overlaps counted once):",
 		wait:               "  - seq %d, %d seconds: %s",
@@ -115,8 +120,8 @@ var costLanguages = map[string]costWords{
 		growthSeries:       "  - %s: %s",
 		growthNone:         "0 (no fixes round)",
 		growthUnknown:      "not recorded in all",
-		growthWhy: map[string]string{growthNoGate: "not recorded: the series has no review-gate/v1 file", growthManyGates: "not recorded: the series has several review-gate/v1 files and no review note names one",
-			growthNotInGate: "not recorded: %s has no growth"},
+		growthWhy: map[string]string{growthNoGate: "not recorded: the series has no review-gate/v1 file",
+			growthMisses: "not recorded: no review-gate/v1 file of the series lists every fixes round", growthNotInGate: "not recorded: %s has no growth"},
 		tokens: "- new input, cached input and output tokens: not recorded",
 	},
 	"ko": {
@@ -131,6 +136,9 @@ var costLanguages = map[string]costWords{
 		cannotCompare:      "- 바뀐 것: Git이 base %s와 HEAD를 비교할 수 없음",
 		changedNone:        "- 바뀐 것: 없음; 시작하지 않은 목표",
 		stateNotComputed:   "계산하지 못함; Git이 기록이 가리키는 commit을 읽을 수 없음",
+		waitsNotReported:   "- 대기: run-rules/4 전에는 기록 없음",
+		notStartedShort:    "시작 전",
+		growthMissesNamed:  "기록 없음: %s가 series의 fixes 라운드를 모두 나열하지 않음",
 		waitsNone:          "- 대기: 없음",
 		growthLines:        "검사 경로 %d, 그 밖 %d (%s)",
 		completion:         "- 완료 기록: %s",
@@ -146,14 +154,14 @@ var costLanguages = map[string]costWords{
 		changedInputs:      "%s 바뀜",
 		sameInputs:         "바뀐 입력 없음; 앞 기록의 결과 %s",
 		inputs:             map[string]string{"code": "코드", "goal_documents": "목표 문서", "command": "검증 명령", "overlay": "덧씌운 검사 파일"},
-		notes:              "- 시험 변경 %d개; 오류 회복 %d개; 회복 허용 %d개; 재작업 요청 %d개",
+		notes:              "- 시험 변경 %s; 오류 회복 %s; 회복 허용 %s; 재작업 요청 %d개",
 		span:               "- 기록: seq %d(%s)부터 seq %d(%s)까지 %d초",
 		spanUnknown:        "- 기록: seq %d(%s)부터 seq %d(%s)까지, 초는 기록 없음",
 		budget:             "- 예산 창(seq %d부터, ha status와 같음): 구간 %d초, 신고한 대기 %d초, 경과 %d초/%d초; 실행 %d회/%d회",
 		budgetNoWaits:      "- 예산 창(seq %d부터, ha status와 같음): 경과 %d초/%d초, run-rules/4 전에는 대기를 신고하지 않음; 실행 %d회/%d회",
 		budgetNone:         "- 예산 창: 기록에서 계산하지 못함",
-		bySource:           "- 출처별 질문: 대기 %d개, requirement-question %d개, 상한 연장 %d개, 리뷰어 waiver %d개",
-		bySourceNoSeries:   "- 출처별 질문: 대기 %s개; requirement-question·상한 연장·리뷰어 waiver는 주지 않음(--series 없음)",
+		bySource:           "- 출처별 질문: 대기 %s, requirement-question %d개, 상한 연장 %d개, 리뷰어 waiver %d개",
+		bySourceNoSeries:   "- 출처별 질문: 대기 %s; requirement-question·상한 연장·리뷰어 waiver는 주지 않음(--series 없음)",
 		waits:              "- 대기, 각각 ha의 예산 계산대로(모두 %d초, 겹친 대기는 한 번):",
 		wait:               "  - seq %d, %d초: %s",
 		inputs2:            "- input note %s개; confirm note %s개",
@@ -193,8 +201,8 @@ var costLanguages = map[string]costWords{
 		growthSeries:       "  - %s: %s",
 		growthNone:         "0(fixes 라운드 없음)",
 		growthUnknown:      "모두는 기록 없음",
-		growthWhy: map[string]string{growthNoGate: "기록 없음: series에 review-gate/v1 파일이 없음", growthManyGates: "기록 없음: series에 review-gate/v1 파일이 여럿이고 그것을 기록한 review note가 없음",
-			growthNotInGate: "기록 없음: %s에 growth가 없음"},
+		growthWhy: map[string]string{growthNoGate: "기록 없음: series에 review-gate/v1 파일이 없음",
+			growthMisses: "기록 없음: series의 fixes 라운드를 모두 나열한 review-gate/v1 파일이 없음", growthNotInGate: "기록 없음: %s에 growth가 없음"},
 		tokens: "- 새 입력·캐시 입력·출력 토큰: 기록 없음",
 	},
 }
@@ -263,7 +271,8 @@ func renderCost(d *costDoc, w costWords) string {
 				line(w.rerecord, r.Target, r.Kind, r.Seq, r.PreviousSeq, why)
 			}
 		}
-		line(w.notes, v.Notes.TestChange, v.Notes.Recover, v.Notes.AllowRecovery, v.Notes.Reopen)
+		line(w.notes, costIntText(v.Notes.TestChange, w.notRecorded), costIntText(v.Notes.Recover, w.notRecorded),
+			costIntText(v.Notes.AllowRecovery, w.notRecorded), v.Notes.Reopen)
 		if v.Span.Seconds != nil {
 			line(w.span, v.Span.FirstSeq, v.Span.FirstAt, v.Span.LastSeq, v.Span.LastAt, *v.Span.Seconds)
 		} else {
@@ -281,15 +290,25 @@ func renderCost(d *costDoc, w costWords) string {
 
 	section(2)
 	q := d.Questions
+	waits := w.notRecorded
+	switch {
+	case q.BySource.Wait != nil:
+		waits = strconv.Itoa(*q.BySource.Wait)
+	case q.notStarted:
+		waits = w.notStartedShort
+	}
 	if q.sourcesGiven {
-		line(w.bySource, costInt(q.BySource.Wait), *q.BySource.RequirementQuestion, *q.BySource.Extension, *q.BySource.Waiver)
+		line(w.bySource, waits, *q.BySource.RequirementQuestion, *q.BySource.Extension, *q.BySource.Waiver)
 	} else {
-		line(w.bySourceNoSeries, costIntText(q.BySource.Wait, w.notRecorded))
+		line(w.bySourceNoSeries, waits)
 	}
 	if !q.notStarted {
-		if len(q.Waits) == 0 {
+		switch {
+		case q.Waits == nil:
+			line("%s", w.waitsNotReported)
+		case len(q.Waits) == 0:
 			line("%s", w.waitsNone)
-		} else {
+		default:
 			line(w.waits, *q.ReportedWaitSeconds)
 			for _, wt := range q.Waits {
 				line(w.wait, wt.Seq, wt.Seconds, costOneLine(wt.Reason))
@@ -413,6 +432,8 @@ func renderCost(d *costDoc, w costWords) string {
 				text = fmt.Sprintf(w.growthLines, g.Lines.Check, g.Lines.Other, *g.Gate)
 			case g.Source == growthNotInGate:
 				text = fmt.Sprintf(w.growthWhy[g.Source], *g.Gate)
+			case g.Source == growthMisses && g.Gate != nil:
+				text = fmt.Sprintf(w.growthMissesNamed, *g.Gate)
 			default:
 				text = w.growthWhy[g.Source]
 			}
