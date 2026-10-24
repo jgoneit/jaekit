@@ -145,6 +145,8 @@ func runMain(argv []string, stdout, stderr io.Writer) int {
 		return c.timing(rest)
 	case "report":
 		return c.report(rest)
+	case "cost":
+		return c.cost(rest)
 	case "doctor":
 		return c.doctor(rest)
 	}

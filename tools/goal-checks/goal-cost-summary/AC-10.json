@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "RealSparRecords",
+      "violation": "cost-not-matching-records",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestGoalCostSummaryAC10_RealSparRecords"
+      }
+    }
+  ]
+}

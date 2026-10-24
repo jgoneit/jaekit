@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "ReadOnly",
+      "violation": "cost-not-read-only",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestGoalCostSummaryAC8_ReadOnly"
+      }
+    }
+  ]
+}

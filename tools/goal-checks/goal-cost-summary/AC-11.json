@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "ContractAndGuides",
+      "violation": "cost-docs-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestGoalCostSummaryAC11_ContractAndGuides"
+      }
+    }
+  ]
+}

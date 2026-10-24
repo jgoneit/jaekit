@@ -29,6 +29,7 @@
 | `ha timing <goal> [--format md\|json]` | 기록을 읽기만 해서 실행마다 시간 제한·제한 구간 경과·CPU를 보여 준다(§1.2). 검사를 실행하지 않고, 판정·예산에 쓰지 않는다. | 없음 |
 | `ha report <goal> [--lang ko\|en]` | 사람이 읽는 다섯 줄 요약과 `PROGRESS.md` `## 현재`에 쓸 도장, 조건별 근거, 완료 범위, 미충족 조건의 원문 위치를 보인다(§1.3). `ha status`와 같은 계산을 읽기만 한다. | 없음 |
 | `ha doctor <goal>` | PLAN의 선택 절 `## 실행 환경`에 적은 점검 명령을 실행해 도구마다 `사용 가능`·`사용 불가`를 보인다(§1.4, [bundle.md](bundle.md) §2.6). 판정·예산과 무관하다. | 없음 |
+| `ha cost <goal> [--series <folder>]... [--format md\|json] [--lang ko\|en]` | 목표 하나가 검증과 검토에 들인 비용을 기록에서 모아 보인다(§1.7). 사람이 가리킨 Spar series 폴더만 읽고, 아무것도 쓰지 않는다. | 없음 |
 | `ha history <goal> [add \| current \| list \| show] …` | 선택적 [판단 이력](decision-history.md)을 등록·조회한다. 공통 Git 디렉토리의 별도 이력에 쓰며 상태 계산은 이 이력을 읽지 않는다. | 없음 (`runs.jsonl` 밖) |
 
 `ha`는 검증 명령을 셸 없이 argv로 실행한다. 명령마다 시간 제한(기본 900초)을 둔다. 시간 제한이 되면 Unix에서는 그 명령의 프로세스 그룹, Windows 네이티브 후보에서는 실행 전에 배정한 kill-on-close Job Object를 종료한다. Windows는 일반 하위 프로세스가 끝났는지 확인한 뒤 출력을 확정하며, 프로세스 제어·종료 확인에 실패하면 통과 근거나 최종 출력 digest를 만들지 않는다. 시작 뒤 정리 실패도 제한된 시간 안에 오류로 반환한다. 임의의 외부 서비스나 별도 권한으로 실행한 프로세스를 격리하는 보장은 아니다. `check`, `baseline`, `note`, `start`, `budget_change`는 기록에 덧붙이기 전에 git 디렉토리의 `ha/lock`을 잡는다. Unix는 `flock`, Windows 네이티브 후보는 같은 파일의 배타적 `LockFileEx` 잠금을 사용하며, 프로세스 종료로 OS 잠금이 해제되어도 손상된 기록은 기존 연결 검증에서 거부한다. 그래서 여러 `ha`가 동시에 덧붙여도 연결이 끊기지 않는다.
@@ -41,6 +42,7 @@
 - `ha timing`: 성공 0. 끊긴 기록은 65(거절)이며 아무것도 보여 주지 않는다. 보기를 출력에 쓰지 못하면 70이다
 - `ha report`: 보고를 출력하면 상태와 무관하게 0. 사용법 오류(`--lang`이 `ko`·`en`이 아님 포함) 64, 목표 디렉터리 없음 65, 지원하지 않는 규칙 66, Git이 base와 HEAD를 비교할 수 없음(다섯 줄 요약은 출력함, §1.3)·내부 오류·출력 실패 70. 끊긴 기록은 거절하지 않고 `record_integrity`가 있는 계산 결과를 보인다
 - `ha doctor`: 모든 도구가 `사용 가능`이거나 절·항목이 없으면 0, 하나라도 `사용 불가`면 1, 절의 입력 오류와 PLAN.md 없음 65(아무 점검도 실행하지 않음), 사용법 오류 64, 프로세스를 제어·확인하지 못하면 70. 기록을 판정에 쓰지 않으므로 시작 전, 지원하지 않는 규칙, 끊긴 기록의 목표에도 같다
+- `ha cost`: 요약을 출력하면 0. 사용법 오류(`--format`·`--lang` 값, 같은 폴더를 가리킨 `--series` 둘 포함) 64, 목표 디렉터리 없음·끊긴 기록·쓸 수 없는 series 65(요약을 출력하지 않음, §1.7), 지원하지 않는 규칙 66, 내부 오류·출력 실패 70
 - `ha budget`: 성공 0, 잘못된 인수 64, 값·창·개정·완료 상태 등의 거부 65(`/3` 목표의 `--preapprove` 포함), 구규칙 또는 미지원 규칙 66, 내부 오류·쓰기 적용 불확실성 70
 - 모든 명령: 64 사용법 오류, 65 거절(시작 전, 이미 시작함, lint 오류, 끊긴 기록, 확인 조건 불충족, dirty 검증, 시작 예산 부족, 자동 예산의 사용자 승인 필요, 사전 승인 상한 설정 오류, skill의 Core 요구 미지원·선언 손상, 쓸 수 없는 검토 gate 파일), 66 지원하지 않는 규칙 버전, 70 내부 오류
 
@@ -211,6 +213,47 @@ ha: auto budget 102 runs (minimum 68 × 1.5, at least 50) exceeds the pre-approv
 - 선언을 읽을 수 없거나 형식에 맞지 않으면 `ha: skill requirements <경로>: <이유>; nothing recorded`를 보이고 65로 끝난다. 모르는 값을 무시하고 시작하지 않는다.
 - `--check-skill`을 주면 선언이 필수다. 선언이 없으면 65, `--skill` 없이 주면 사용법 오류 64다. 이 기능 전의 `ha`는 이 플래그를 모르는 플래그로 64에 끝내고 기록하지 않는다. 그래서 확인이 반드시 일어나야 하는 시작은 이 형식을 쓴다.
 - 확인은 작업 트리 확인 뒤, 기록 전에 한다. 선언 경로에 항목이 있으면 Skill 디렉토리 digest를 계산하기 전에 확인하므로, 쓸 수 없는 선언(대상 없는 symlink, 폴더, FIFO 등)은 위 이유로 거부한다. 선언이 없는 skill은 지금처럼 먼저 읽고 그 오류도 지금과 같다. 시작 기록의 `skill`(`name`, `version`, `digest`)은 그대로이고 digest에 선언 파일도 들어간다.
+
+### 1.7 비용 요약 (`ha cost`)
+
+`ha cost <goal> [--series <folder>]... [--format md|json] [--lang ko|en]`은 목표 하나가 검증과 검토에 들인 비용을 보인다. 그 목표의 `runs.jsonl`, 목표 문서, Git, 그리고 사람이 `--series`로 가리킨 Spar series 폴더만 읽는다. series 위치는 짐작하지 않으며 `--series`는 여러 번 줄 수 있다. 기록에 줄을 더하지 않고 `ha/lock`을 잡지 않으며 기록·작업 트리·index·ref·Spar 기록을 바꾸지 않는다. 현재 시각을 읽지 않고 모델을 부르거나 리뷰어를 띄우지 않는다: 같은 기록·Git·series·인자이면 출력이 같다. 요약은 숫자만 보이고, 다른 목표와 비교하거나 개선·효과를 말하는 문장을 쓰지 않는다. 이 명령은 다른 명령의 출력·판정·기록을 바꾸지 않는다.
+
+**읽는 Spar 형식.** `ha`는 Spar 패키지를 가져오지 않고 공개 파일 형식만 읽는다.
+- [`review-round/v1`](review-round.md) §5: 라운드 폴더의 `round.json`(`stage`, `sequence`, `dry_run`, `counted`, `rerun_of`, `started_at`, `finished_at`, `reviewers.<이름>`의 `status`·`elapsed_seconds`·`attempts`·`fallback_used`), `findings.json`(`id`, `class`, `in_check_paths`, `location_unreadable`), `ledger.jsonl`(`finding`, `disposition`, `auto`, `user_quote`), `waivers.jsonl`(`reviewer`, `user_quote`), series의 `extensions.jsonl`(`stage`, `by`, `user_quote`).
+- [`review-gate/v1`](review-gate.md) §3: series 폴더 맨 위의 gate 파일. `state`와 `growth.added_lines`만 읽는다.
+
+series 폴더 안에서는 Spar처럼 읽는다. `round.json`의 `schema`가 `review-round/v1`인 폴더가 라운드이고, `round.json`이 없거나 다른 형식의 JSON인 폴더는 다른 도구의 것이라 건너뛴다. 맨 위 파일은 `extensions.jsonl`과 `schema`가 `review-gate/v1`인 JSON 객체만 읽고 나머지는 건너뛴다. 건너뛴 항목은 이름과 까닭을 요약에 보인다. 라운드는 `sequence` 순, 같으면 폴더 이름 순이다. dry run 라운드는 어떤 수에도 넣지 않고 series마다 그 수만 보인다.
+
+**항목과 출처.**
+
+| 항목 | 값 | 출처 |
+| --- | --- | --- |
+| 종류와 크기 | 지금 SPEC.md의 `Assurance:` 등급(없으면 없음), 시작 기록의 규칙 버전, 필수·선택 조건 수, base 이후 실행 묶음 문서 밖에서 바뀐 파일 수와 commit 수, 유효한 완료 기록 seq | 목표 문서, `start` 줄, `ha report`의 `Changed`와 같은 Git 비교(§1.3), `ha status`와 같은 계산의 완료 기록 |
+| 실행 | `check`·`baseline` 줄 수(종류·결과별), `duration_ms`의 종류별 합과 합계, 대상(조건 ID, task는 `T001#1`)마다 실행 수 | `check`·`baseline` 줄. 실행은 겹칠 수 있어 합은 경과 시간이 아니다(§1.2) |
+| 다시 기록한 실행 | 같은 대상·같은 종류의 앞 줄이 있는 줄마다 그 seq, 앞 줄 seq, 앞 줄과 달라진 입력(`code`: check는 `commit`, baseline은 `base_commit`; `goal_documents`: `spec_digest`; `command`: `command_digest`; `overlay`: baseline의 덧씌운 경로·digest 집합)과 앞 줄의 결과. 달라진 입력이 없으면 빈 목록과 앞 줄의 결과다 | 두 줄의 필드만 비교한다 |
+| note | `test-change`, `recover`, `allow-recovery`, `reopen`, `input`, `confirm` note 수. `/4` 전에 시작한 목표는 앞의 세 종류를 기록할 수 없어 기록 없음이다 | `note` 줄 |
+| 기록 구간 | 첫 줄과 마지막 줄의 seq·`at`과 그 사이의 초 | 발견 줄(`run-finding/v1`)을 뺀 줄 |
+| 예산 창 | `window_start`, `span_seconds`, `reported_wait_seconds`, `elapsed_seconds`, `elapsed_limit_seconds`, `runs`, `runs_limit` | `ha status`의 `budget`과 같은 계산(§4.5, §5.2). `/4` 전에는 구간과 대기가 기록 없음이다 |
+| 대기 | `wait` note마다 seq, 물은 결정(`reason`), 그 대기 하나의 초. 초는 §4.7의 계산(note 다음 초부터 가장 이른 끝까지, 창을 넘지 않고 실행 구간을 뺌)을 그 창에서 그 대기에만 한 값이다. 기록 전체의 신고 대기는 창마다 겹친 대기를 한 번 센 합이다. `/4` 전에 시작한 목표는 대기를 신고할 수 없어 목록·합·출처별 수가 기록 없음이다 | `wait`와 그 끝이 되는 줄 |
+| 질문 | 출처별 수: 대기 신고, Spar `requirement-question` 지적, 상한 연장, 리뷰어 waiver. 그리고 지적마다 마지막 처리와 그 사용자 인용, 연장마다 단계·수·인용, waiver마다 라운드·리뷰어·인용의 목록. 범위·권한 결정과 재확인으로 나누지 않는다 | `wait` note, series의 `findings.json`·`ledger.jsonl`·`extensions.jsonl`·`waivers.jsonl` |
+| 라운드 | 단계(`plan`, `plan-delta`, `candidate`, `fixes`)마다 `counted`가 참인 수, 거짓인 재실행 수, `counted`가 없는 수. 라운드마다 `started_at`과 `finished_at` 사이의 초(`finished_at`이 없으면 끝나지 않음)와 리뷰어마다 상태·`elapsed_seconds`·시도 수·대체 모델 사용 | `round.json` |
+| 리뷰어 시간 | 리뷰어 이름마다 `elapsed_seconds`의 합(밀리초로 반올림해 더함), 라운드 수, 시간이 없는 라운드 수 | `round.json` |
+| 지적 | 분류마다 수와 위치별 수: 검사 경로(`in_check_paths` 참), 그 밖(거짓), 읽을 수 없는 위치(`location_unreadable` 참), 위치 기록 없음(`in_check_paths` 없음) | `findings.json` |
+| 처리 | 분류마다 지적의 마지막 원장 항목: `fix`, `reject`, `defer`(자동 보류 `auto: true`는 따로), `duplicate`, `answer`, 처리 없음 | `ledger.jsonl` |
+| 수정이 더한 줄 | series마다: fixes 라운드(dry run이 아니고 `findings.json`이 있는 것)가 없으면 `check`·`other` 0. 있으면 그 series의 gate 파일 가운데 잰 범위(`growth.rounds[]`의 `base`..`head`)의 집합이 series의 fixes 라운드 범위(`round.json`의 `base`..`head`)의 집합과 꼭 같은 파일의 `growth.added_lines`다. gate는 자기가 잰 범위만 더하고 같은 범위는 한 번만 세기 때문이다. gate가 라운드 경로를 어떤 형태로 적었는지는 보지 않는다. 그런 파일이 여럿이면 `review` note가 가장 나중에 기록한 digest의 파일, 기록된 것이 없으면 이름 순으로 첫 파일이다. gate 파일이 없거나(`no_gate_file`), 그런 파일이 없거나(`gate_misses_rounds`, gate 뒤에 돈 fixes 라운드, gate가 재지 못한 범위 등), 고른 파일에 `growth`가 없으면(`gate_without_growth`) 기록 없음이다. 모든 series에 값이 있을 때만 합계를 보인다 | gate 파일, `review` note의 `gate_digest` |
+| gate 파일 | series마다 이름, digest, `state`, 그 digest를 가진 마지막 `review` note의 seq | gate 파일, `review` note |
+| 토큰 | 새 입력·캐시 입력·출력 토큰은 늘 기록 없음이다. 0으로 보이지 않는다 | 어느 기록에도 없다. 기록하는 일은 [이슈 #174](https://github.com/jgoneit/jaekit/issues/174) |
+
+**출력.** 기본은 Markdown이다. 제목(`# Cost summary: <goal>`, 한국어는 `# 비용 요약: <goal>`) 뒤에 여섯 절(종류와 크기, 검증, 질문과 대기, 검토 라운드, 지적과 수정, 토큰)이 이 순서로 온다. `--lang`은 `ko`·`en`이고 없으면 `en`이며, 표지와 문장만 바꾼다. 조건 ID, seq, 결과, 단계, 분류, 처리, 리뷰어 이름과 상태, 파일 이름, 인용은 두 언어에서 같다. 인용과 `reason` 안의 줄바꿈은 `\n`으로 쓴다. `--format json`은 같은 값을 `cost/v1` 문서 하나로 보인다. 최상위 키는 `schema`, `goal`, `kind`, `verification`, `questions`, `review`, `findings`, `tokens`, `unavailable`이고, 값이 없는 곳은 `null`이며 `unavailable`이 그 위치(점으로 이은 키)와 까닭을 보인다: `not_started`(시작 기록 없음), `not_given`(`--series` 없음), `not_recorded`(기록에 그 값이 없음), `cannot_compare`(Git이 base와 HEAD를 비교하지 못함), `not_computed`(그 값을 계산할 수 없음), `none`(등급 줄이나 유효한 완료 기록이 없음). `unavailable`은 목록 밖의 위치만 이름 붙인다. 목록 항목 안의 `null`은 그 항목의 기록에 값이 없다는 뜻이다: 라운드의 `counted`·`rerun_of`·`started_at`·`finished_at`과 리뷰어의 `elapsed_seconds`·`attempts`·`fallback_used`는 그 필드가 `round.json`에 없음, 라운드의 `seconds`는 끝나지 않았거나 시각이 없음, `growth[].lines`는 그 항목의 `source`가 까닭, gate의 `recorded_seq`는 그 digest를 기록한 `review` note가 없음, 요구 질문의 `disposition`·`user_quote`는 처리나 인용이 없음이다. JSON은 `--lang`에 따라 바뀌지 않는다. 0과 기록 없음은 구별한다.
+
+**입력 문제.**
+- 시작 기록이 없는 목표: 목표 문서에서 읽는 등급과 조건 수만 보이고, 실행 기록이 없다고 말한다(`verification`은 `not_started`). 0으로 보이지 않는다.
+- `--series`가 없으면 검토 라운드와 지적 절은 주지 않았다고만 말하고, 질문의 Spar 출처는 `not_given`이다.
+- 없는 series 경로, 폴더가 아닌 경로, 읽을 수 없는 폴더: 그 경로를 밝힌 오류로 65에 끝나고 요약을 출력하지 않는다.
+- `review-round/v1` 라운드가 깨졌으면(JSON이 아닌 `round.json`, 열 수 없는 `round.json`, 형식에 맞지 않는 필드, RFC 3339 시각이 아닌 `started_at`·`finished_at`, 해석되지 않는 `findings.json`, 해석되지 않는 `ledger.jsonl`·`waivers.jsonl`·`extensions.jsonl` 줄, dry run이 아니고 끝난 라운드의 `findings.json` 없음, `findings.json`이 있는데 `ledger.jsonl` 없음): 그 파일을 밝힌 오류로 65에 끝나고 요약을 출력하지 않는다. 일부만 센 요약을 보이지 않는다. `findings.json`과 `finished_at`이 모두 없는 라운드는 지적을 기록하기 전에 멈춘 라운드라 지적이 없다. 이름이 `waivers.jsonl`인 폴더는 waiver가 없는 것이다(review-gate.md §2).
+- 끊긴 `runs.jsonl`: 그 파일을 밝힌 오류로 65에 끝나고 요약을 출력하지 않는다.
+- 예전 `ha`·`spar`가 남겨 필드가 없는 기록: 그 값만 기록 없음으로 보이고(예: `counted`, `elapsed_seconds`, `attempts`, `fallback_used`, `in_check_paths`, `/4` 전의 대기) 나머지는 센다. `location_unreadable`이 없는 지적은 위치를 읽은 지적이다(review-round.md §6).
+- 얕은 clone처럼 Git이 base와 HEAD를 비교할 수 없거나 기록이 가리키는 commit을 읽을 수 없을 때: 바뀐 파일·commit 수는 비교할 수 없다고 보이고(`cannot_compare`), 완료 기록은 계산하지 못했다고 보이며, 기록에서 읽는 값은 그대로 보인다. 종료 코드는 0이다.
 
 ## 2. 줄 형식
 
