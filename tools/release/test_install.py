@@ -19,7 +19,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-NAME = "ha_0.1.7_linux_amd64"
+NAME = "ha_0.1.8_linux_amd64"
 OLD = b"existing executable\n"
 NEW = b"synthetic replacement executable\n"
 NEW_SPAR = b"synthetic spar executable\n"
@@ -70,7 +70,7 @@ if name == "uname":
     sys.exit(0)
 if name == "curl":
     filename = args[-1].rsplit("/", 1)[-1]
-    if filename not in {"ha_0.1.7_linux_amd64.tar.gz", "checksums.txt"}:
+    if filename not in {"ha_0.1.8_linux_amd64.tar.gz", "checksums.txt"}:
         sys.exit(9)
     shutil.copyfile(Path(os.environ["INSTALL_TEST_DIST"]) / filename, filename)
     sys.exit(0)
@@ -95,7 +95,7 @@ sys.exit(subprocess.run([os.environ["INSTALL_TEST_REAL_" + name.upper()], *args]
 
 
 class InstallChecks(unittest.TestCase):
-    def fixture(self, root):
+    def fixture(self, root, with_spar=True):
         package = root / NAME
         package.mkdir()
         for folder in ("tools", "examples", "guides", "contracts", "assets"):
@@ -105,7 +105,7 @@ class InstallChecks(unittest.TestCase):
             (package / name).write_text("synthetic public document\n")
         (package / "ha").write_bytes(NEW)
         (package / "ha").chmod(0o755)
-        if "spar" in BINARIES:
+        if "spar" in BINARIES and with_spar:
             (package / "spar").write_bytes(NEW_SPAR)
             (package / "spar").chmod(0o755)
         dist = root / "dist"
@@ -133,7 +133,7 @@ class InstallChecks(unittest.TestCase):
             script.write_text("#!/bin/sh\nexec " + shlex.quote(sys.executable) + " " + shlex.quote(str(wrapper)) + " " + command + ' "$@"\n')
             script.chmod(0o755)
         env["PATH"] = str(commands) + os.pathsep + os.environ.get("PATH", "")
-        return env, binary, install_root / ".local/share/jaekit/0.1.7"
+        return env, binary, install_root / ".local/share/jaekit/0.1.8"
 
     def run_block(self, filename, heading, root, env):
         return subprocess.run(["/bin/bash", "-c", install_block(filename, heading)],
@@ -160,10 +160,13 @@ class InstallChecks(unittest.TestCase):
 
     def test_checksum_data_and_replacement_failures_preserve_binary(self):
         for filename, heading in GUIDES:
-            for failure in ("checksum", "share-conflict", "copy", "chmod", "rename"):
+            # An archive of a release that carries spar but lacks it stops
+            # the block before anything is replaced (#164).
+            failures = ("checksum", "share-conflict", "copy", "chmod", "rename") + (("missing-spar",) if "spar" in BINARIES else ())
+            for failure in failures:
                 with self.subTest(guide=filename, failure=failure), tempfile.TemporaryDirectory(prefix="jaekit-install-test-") as directory:
                     root = Path(directory)
-                    env, binary, share = self.fixture(root)
+                    env, binary, share = self.fixture(root, with_spar=failure != "missing-spar")
                     before_mode = binary.stat().st_mode
                     if failure == "checksum":
                         (Path(env["INSTALL_TEST_DIST"]) / "checksums.txt").write_text("0" * 64 + "  " + NAME + ".tar.gz\n")
@@ -180,6 +183,9 @@ class InstallChecks(unittest.TestCase):
                     if failure == "share-conflict":
                         self.assertEqual(sorted(p.name for p in share.iterdir()), ["preserve.txt"])
                         self.assertEqual((share / "preserve.txt").read_text(), "user data\n")
+                    if failure == "missing-spar":
+                        self.assertIn("spar", result.stderr)
+                        self.assertFalse(share.parent.exists(), "missing spar must stop before public data is stored")
 
     def test_destination_directory_and_symlinks_are_preserved(self):
         for filename, heading in GUIDES:

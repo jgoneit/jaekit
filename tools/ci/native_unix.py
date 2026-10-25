@@ -101,8 +101,9 @@ def guide_blocks(document, headings):
     url = "https://github.com/jgoneit/jaekit/releases/download/v" + version
     require(install[0].count(url) == 1, "guide release URL is missing or ambiguous")
     cleanup = [b for b in blocks(headings[1]) if ".local/share/jaekit" in b]
-    remove = [b for b in blocks(headings[2]) if ".local/bin/ha" in b or ".local/share/jaekit" in b]
-    require(len(cleanup) == 1 and len(remove) == 2, "direct update/removal blocks changed")
+    remove = [b for b in blocks(headings[2])
+              if ".local/bin/ha" in b or ".local/bin/spar" in b or ".local/share/jaekit" in b]
+    require(len(cleanup) == 1 and len(remove) == 3, "direct update/removal blocks changed")
     return {"install": install[0], "cleanup": cleanup[0], "remove": remove,
             "version": version, "url": url}
 
@@ -156,14 +157,18 @@ def public_files(root, env):
     return files
 
 
-def make_archive(binary, public, storage_version, target):
+def make_archive(binary, public, storage_version, target, spar=None):
+    """Build a release-shaped archive; spar is left out only when not given."""
     name = f"ha_{storage_version}_{target}.tar.gz"
     prefix = name.removesuffix(".tar.gz")
+    executables = {"ha": binary.read_bytes()}
+    if spar is not None:
+        executables["spar"] = spar.read_bytes()
     stream = io.BytesIO()
     with tarfile.open(fileobj=stream, mode="w:gz") as archive:
-        for relative, body in sorted(dict(public, ha=binary.read_bytes()).items()):
+        for relative, body in sorted(dict(public, **executables).items()):
             info = tarfile.TarInfo(prefix + "/" + relative)
-            info.size, info.mode = len(body), 0o755 if relative == "ha" else 0o644
+            info.size, info.mode = len(body), 0o755 if relative in executables else 0o644
             archive.addfile(info, io.BytesIO(body))
     data = stream.getvalue()
     return name, data, (digest(data) + "  " + name + "\n").encode()
@@ -207,6 +212,12 @@ def identity(binary, env, expected_version, root):
     return {"version": expected_version, "binary_sha256": digest(binary.read_bytes()), "capabilities": caps}
 
 
+def spar_identity(binary, env, expected_version, root):
+    version = invoke([binary, "--version"], root=root, env=env).stdout.strip()
+    require(version == "spar " + expected_version, "source spar candidate version does not match its build")
+    return digest(binary.read_bytes())
+
+
 def installed_identity(install_root, expected, env):
     selected_env = dict(env, PATH=str(install_root / ".local/bin") + os.pathsep + env.get("PATH", ""))
     selected = shutil.which("ha", path=selected_env["PATH"])
@@ -215,6 +226,12 @@ def installed_identity(install_root, expected, env):
             "PATH did not select the isolated installed candidate")
     actual = identity(Path(selected), selected_env, expected["version"], install_root)
     require(actual == {key: expected[key] for key in actual}, "installed binary/capabilities differ from source candidate")
+    selected_spar = shutil.which("spar", path=selected_env["PATH"])
+    spar = install_root / ".local/bin/spar"
+    require(selected_spar is not None and Path(selected_spar) == spar and not spar.is_symlink(),
+            "PATH did not select the isolated installed spar candidate")
+    require(spar_identity(spar, selected_env, expected["version"], install_root) == expected["spar_sha256"],
+            "installed spar differs from source candidate")
     data_root = install_root / ".local/share/jaekit" / expected["storage_version"]
     data = {}
     for path in data_root.rglob("*"):
@@ -263,6 +280,13 @@ def lifecycle(directory, filename, blocks, candidates, base_url, bash, env, repo
     installed_identity(install_root, prior, env)
     item["checks"].append("checksum_rejection_preserves")
 
+    failed = shell(install_script(blocks, base_url + "/missing-spar"), success=False)
+    require(failed.returncode != 0 and "spar" in failed.stderr,
+            "an archive without spar was not explicitly rejected")
+    require(snapshot(install_root) == before, "missing spar rejection changed the prior installation")
+    installed_identity(install_root, prior, env)
+    item["checks"].append("missing_spar_rejection_preserves")
+
     share = install_root / ".local/share/jaekit"
     current_data = share / blocks["version"]
     current_data.mkdir()
@@ -289,7 +313,8 @@ def lifecycle(directory, filename, blocks, candidates, base_url, bash, env, repo
     item.update(installed_version=current["version"], binary_sha256=current["binary_sha256"])
     for block in blocks["remove"]:
         shell(bind_destination(block))
-    require(not (install_root / ".local/bin/ha").exists() and not share.exists(), "uninstall left the candidate installed")
+    require(not (install_root / ".local/bin/ha").exists() and not (install_root / ".local/bin/spar").exists()
+            and not share.exists(), "uninstall left the candidate installed")
     after = snapshot(install_root)
     require(all(after.get(name) == value for name, value in original.items()), "uninstall changed unrelated project/user data")
     item["checks"].append("uninstall_preserves")
@@ -341,13 +366,15 @@ def observe(report, root=ROOT):
         routes = {}
         for label, version, storage in (("predecessor", "0.0.0-ci-predecessor", "0.0.0"),
                                         ("current", source_version[0], storage_version)):
-            binary = directory / ("ha-" + label)
-            command = ["go", "build", "-mod=readonly", "-trimpath", "-o", binary]
-            if label == "predecessor":
-                command += ["-ldflags=-X main.version=" + version]
-            invoke([*command, "./cmd/ha"], root=root, env=env)
+            binary, spar = directory / ("ha-" + label), directory / ("spar-" + label)
+            for output, package in ((binary, "./cmd/ha"), (spar, "./cmd/spar")):
+                command = ["go", "build", "-mod=readonly", "-trimpath", "-o", output]
+                if label == "predecessor":
+                    command += ["-ldflags=-X main.version=" + version]
+                invoke([*command, package], root=root, env=env)
             metadata = identity(binary, env, version, directory)
-            name, archive, checksums = make_archive(binary, public, storage, target_os + "_" + target_arch)
+            metadata["spar_sha256"] = spar_identity(spar, env, version, directory)
+            name, archive, checksums = make_archive(binary, public, storage, target_os + "_" + target_arch, spar=spar)
             metadata.update(storage_version=storage, archive_sha256=digest(archive), public_data_sha256=public_digest(public))
             report["candidates"][label] = metadata
             routes["/" + label + "/" + name] = archive
@@ -355,7 +382,13 @@ def observe(report, root=ROOT):
             if label == "current":
                 routes["/invalid/" + name] = archive
                 routes["/invalid/checksums.txt"] = ("0" * 64 + "  " + name + "\n").encode()
-        require(report["candidates"]["predecessor"]["binary_sha256"] != report["candidates"]["current"]["binary_sha256"],
+                # A release-shaped archive without spar, with a valid checksum:
+                # the guide's block must stop before replacing anything.
+                name, archive, checksums = make_archive(binary, public, storage, target_os + "_" + target_arch)
+                routes["/missing-spar/" + name] = archive
+                routes["/missing-spar/checksums.txt"] = checksums
+        require(report["candidates"]["predecessor"]["binary_sha256"] != report["candidates"]["current"]["binary_sha256"]
+                and report["candidates"]["predecessor"]["spar_sha256"] != report["candidates"]["current"]["spar_sha256"],
                 "update candidate is identical to predecessor")
         with local_transport(routes) as base_url:
             for name, blocks in guide_inputs.items():

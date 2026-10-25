@@ -332,16 +332,17 @@ func TestReadmeDemoUserStepsAC5_SourcesAndCharacter(t *testing.T) {
 // rduKept are digests of README sections that must not change: the flow
 // section with the walkthrough's alt text masked, the get-started section
 // and the records section. The expected values are the content at main
-// 6e9a74d, written here.
+// 6e9a74d, written here; the get-started sections are those of the v0.1.8
+// release, whose install pins and version check differ from 6e9a74d.
 var rduKept = map[string]map[string]string{
 	"README.md": {
 		"flow":        "f702e3c692b176755df07f6d4b29afa006e1c0f1caf3d4f15e4f9c7a6f0c23e5",
-		"get-started": "3cc0f404b5da1307823bac0d636dd178ffbcc5137caa15e60f32d419e09ded5d",
+		"get-started": "c5eb0c4c3e37360aadeba9364b97b275910a672b7feb921cda093042ffe5971e",
 		"records":     "6f3a565c666e3a8439e2b886d826d32d55adee0d397f9c1f84fd1936adb449e5",
 	},
 	"README.ko.md": {
 		"flow":        "a5f3239c5889c2b796f7d6315a667501a58abe21bfcfd90bf90f06c1355afcfc",
-		"get-started": "e31ca50b31ede7ceafc0a32b0d57e2e776ffb7cf458d05482bb8ef283b36463d",
+		"get-started": "4f7cf39825c6457691f7eae92743b6cfd8ac8111e0db121c5ea3d43819258fed",
 		"records":     "69b5b63c849ccf90466414eb5b3efa889fa6377a63141e5cf63ac3323f55da9a",
 	},
 }

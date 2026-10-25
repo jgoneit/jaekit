@@ -1,10 +1,12 @@
 package plugins
 
 // Checks of the release-0-1-7 goal: every place that names the current
-// release names v0.1.7, the install and update commands of both hosts install
+// release names it, the install and update commands of both hosts install
 // the spec, seal and spar plugins from that tag, both install routes say they
 // put ha and spar in place together, and the guides, contract examples, Seal
-// skill and release notes describe the v0.1.7 combination.
+// skill and release notes describe the current combination. The release-0-1-8
+// goal moved the current-release values to v0.1.8; the names and the v0.1.7
+// release notes they read stay.
 //
 // Each test observes fixed tokens, lines, links and code blocks of the
 // current tree, never an open category of sentences, and opens every failure
@@ -128,11 +130,11 @@ const (
 )
 
 // The plugin commands every install and update route of the guides and the
-// READMEs gives, pinned to the v0.1.7 tag.
+// READMEs gives, pinned to the current release's tag.
 const (
-	r17CodexInstall = "codex plugin marketplace add jgoneit/jaekit@v0.1.7\n" +
+	r17CodexInstall = "codex plugin marketplace add jgoneit/jaekit@v0.1.8\n" +
 		"codex plugin add spec@jaekit\ncodex plugin add seal@jaekit\ncodex plugin add spar@jaekit\n"
-	r17ClaudeAdd = "claude plugin marketplace add jgoneit/jaekit#v0.1.7\n" +
+	r17ClaudeAdd = "claude plugin marketplace add jgoneit/jaekit#v0.1.8\n" +
 		"claude plugin install spec@jaekit\nclaude plugin install seal@jaekit\nclaude plugin install spar@jaekit\n"
 	r17ClaudeInstall = r17ClaudeAdd + "claude plugin list\n"
 	r17CodexUpdate   = "codex plugin marketplace remove jaekit\n" + r17CodexInstall
@@ -175,7 +177,7 @@ func r17HasBlock(t *testing.T, v, path, heading, want string) {
 	t.Errorf("jaekit:violation=%s %s section %q has no bash block equal to %q", v, path, heading, want)
 }
 
-// AC-2: the release identity is v0.1.7: the marketplace's product metadata,
+// AC-2: the release identity is the current release: the marketplace's product metadata,
 // the development identity of both executables and the issue templates'
 // version placeholder.
 func TestRelease017AC2_ReleaseIdentity(t *testing.T) {
@@ -186,37 +188,37 @@ func TestRelease017AC2_ReleaseIdentity(t *testing.T) {
 		} `json:"metadata"`
 	}
 	r17JSON(t, "../.claude-plugin/marketplace.json", &market)
-	if market.Metadata.Version != "0.1.7" {
-		t.Errorf("jaekit:violation=%s marketplace metadata version is %q, not 0.1.7", v, market.Metadata.Version)
+	if market.Metadata.Version != "0.1.8" {
+		t.Errorf("jaekit:violation=%s marketplace metadata version is %q, not 0.1.8", v, market.Metadata.Version)
 	}
 	for _, path := range []string{"../cmd/ha/main.go", "../cmd/spar/main.go"} {
-		r17Contains(t, v, path, r17Read(t, path), `var version = "0.1.7-dev"`)
+		r17Contains(t, v, path, r17Read(t, path), `var version = "0.1.8-dev"`)
 	}
 	for _, path := range []string{"../.github/ISSUE_TEMPLATE/install-bug.yml", "../.github/ISSUE_TEMPLATE/usage-report.yml"} {
-		r17Contains(t, v, path, r17Read(t, path), "placeholder: ha 0.1.7\n")
+		r17Contains(t, v, path, r17Read(t, path), "placeholder: ha 0.1.8\n")
 	}
 }
 
 // AC-2: current-release mentions, host pins, download links and the Seal
-// skill's install route name v0.1.7, and no v0.1.6 pin is left there.
+// skill's install route name the current release, and no v0.1.6 pin is left there.
 func TestRelease017AC2_PinsAndDownloads(t *testing.T) {
 	const v = "release-pin-stale"
-	r17Contains(t, v, r17Readme, r17Read(t, r17Readme), "The current release is **v0.1.7**")
-	r17Contains(t, v, r17ReadmeKo, r17Read(t, r17ReadmeKo), "현재 배포판은 **v0.1.7**입니다")
+	r17Contains(t, v, r17Readme, r17Read(t, r17Readme), "The current release is **v0.1.8**")
+	r17Contains(t, v, r17ReadmeKo, r17Read(t, r17ReadmeKo), "현재 배포판은 **v0.1.8**입니다")
 	for _, path := range []string{r17Readme, r17ReadmeKo, r17Install, r17InstallEn} {
 		text := r17Read(t, path)
-		r17Contains(t, v, path, text, "jgoneit/jaekit#v0.1.7", "jgoneit/jaekit@v0.1.7")
+		r17Contains(t, v, path, text, "jgoneit/jaekit#v0.1.8", "jgoneit/jaekit@v0.1.8")
 		r17Lacks(t, v, path, text, "jaekit#v0.1.6", "jaekit@v0.1.6")
 	}
 	for _, path := range []string{r17Install, r17InstallEn} {
 		text := r17Read(t, path)
 		r17Contains(t, v, path, text,
-			"https://github.com/jgoneit/jaekit/releases/tag/v0.1.7",
-			`url="https://github.com/jgoneit/jaekit/releases/download/v0.1.7"`,
-			`name="ha_0.1.7_${os}_${arch}"`,
-			`share="$HOME/.local/share/jaekit/0.1.7"`,
-			`package_root="$HOME/.local/share/jaekit/0.1.7"`,
-			"current=0.1.7\n")
+			"https://github.com/jgoneit/jaekit/releases/tag/v0.1.8",
+			`url="https://github.com/jgoneit/jaekit/releases/download/v0.1.8"`,
+			`name="ha_0.1.8_${os}_${arch}"`,
+			`share="$HOME/.local/share/jaekit/0.1.8"`,
+			`package_root="$HOME/.local/share/jaekit/0.1.8"`,
+			"current=0.1.8\n")
 		r17Lacks(t, v, path, text, "releases/download/v0.1.6", "ha_0.1.6_", "jaekit/0.1.6\"", "current=0.1.6")
 	}
 	// Links to the current release's files; the historical check_core.py
@@ -225,10 +227,10 @@ func TestRelease017AC2_PinsAndDownloads(t *testing.T) {
 		r17Lacks(t, v, path, r17Read(t, path), "jaekit/blob/v0.1.6/")
 	}
 	for _, path := range []string{r17SealSkill, r17SealHa} {
-		r17Contains(t, v, path, r17Read(t, path), "https://github.com/jgoneit/jaekit/blob/v0.1.7/guides/INSTALL.md")
+		r17Contains(t, v, path, r17Read(t, path), "https://github.com/jgoneit/jaekit/blob/v0.1.8/guides/INSTALL.md")
 	}
 	r17Contains(t, v, "contracts/core-capabilities.md", r17Read(t, "../contracts/core-capabilities.md"),
-		"Seal에 포함된 [check_core.py](https://github.com/jgoneit/jaekit/blob/v0.1.7/plugins/seal/skills/seal/scripts/check_core.py)")
+		"Seal에 포함된 [check_core.py](https://github.com/jgoneit/jaekit/blob/v0.1.8/plugins/seal/skills/seal/scripts/check_core.py)")
 }
 
 // AC-2: the sentences that said "the release after v0.1.6" name v0.1.7.
@@ -257,49 +259,49 @@ func TestRelease017AC2_NextReleaseNamed(t *testing.T) {
 	}
 }
 
-// AC-2: the Windows guides say v0.1.7 has no Windows files, and the first
-// release with Windows files and its block versions move past 0.1.7.
+// AC-2: the Windows guides say the current release has no Windows files, and
+// the first release with Windows files and its block versions move past it.
 func TestRelease017AC2_WindowsPlanPast017(t *testing.T) {
 	const v = "windows-plan-stale"
 	for _, c := range []struct {
 		path   string
 		tokens []string
 	}{
-		{r17Windows, []string{"현재 공개 배포판 `v0.1.7`에 Windows 파일이 있다는 뜻이 아닙니다",
-			"현재 배포판 `v0.1.7`에도 Windows 파일이 없습니다", "예정 `0.1.8`", "공개 배포판 v0.1.7에는 Windows 파일이 없고"}},
-		{r17WindowsEn, []string{"It does not mean the current public release, `v0.1.7`, includes Windows files",
-			"the current release, `v0.1.7`, has no Windows files", "planned `0.1.8`", "Public release v0.1.7 has no Windows files"}},
+		{r17Windows, []string{"현재 공개 배포판 `v0.1.8`에 Windows 파일이 있다는 뜻이 아닙니다",
+			"현재 배포판 `v0.1.8`에도 Windows 파일이 없습니다", "예정 `0.1.9`", "공개 배포판 v0.1.8에는 Windows 파일이 없고"}},
+		{r17WindowsEn, []string{"It does not mean the current public release, `v0.1.8`, includes Windows files",
+			"the current release, `v0.1.8`, has no Windows files", "planned `0.1.9`", "Public release v0.1.8 has no Windows files"}},
 	} {
 		text := r17Read(t, c.path)
 		r17Contains(t, v, c.path, text, c.tokens...)
-		if n := strings.Count(text, "$version = '0.1.8'"); n != 2 {
-			t.Errorf("jaekit:violation=%s %s sets $version = '0.1.8' in %d blocks, not 2", v, c.path, n)
+		if n := strings.Count(text, "$version = '0.1.9'"); n != 2 {
+			t.Errorf("jaekit:violation=%s %s sets $version = '0.1.9' in %d blocks, not 2", v, c.path, n)
 		}
-		r17Lacks(t, v, c.path, text, "$version = '0.1.7'", "예정 `0.1.7`", "planned `0.1.7`")
+		r17Lacks(t, v, c.path, text, "$version = '0.1.8'", "예정 `0.1.8`", "planned `0.1.8`")
 	}
 }
 
-// AC-2: the tests that pin the current release expect v0.1.7.
+// AC-2: the tests that pin the current release expect it.
 func TestRelease017AC2_PinTestsExpect017(t *testing.T) {
 	const v = "pin-test-stale"
 	for path, tokens := range map[string][]string{
-		"compatibility_test.go":                       {`marketplace.Metadata.Version != "0.1.7"`},
-		"release_0_1_1_test.go":                       {`= "v0.1.7"`, `rel011Version = "0.1.7"`},
-		"readme_onboarding_test.go":                   {"claude plugin marketplace add jgoneit/jaekit#v0.1.7"},
-		"release_guide_test.go":                       {"https://github.com/jgoneit/jaekit/releases/tag/v0.1.7"},
-		"../tools/release/test_archives.py":           {`VERSION = "0.1.7"`},
-		"../tools/release/test_spar_archives.py":      {`VERSION = "0.1.7"`},
-		"../tools/release/test_install.py":            {`NAME = "ha_0.1.7_linux_amd64"`},
-		"../tools/release/test_install_cleanup.py":    {`CURRENT = "0.1.7"`},
-		"../tools/review-checks/test_installation.py": {`CURRENT = "0.1.7"`},
-		"../tools/contract-checks/authoring_check.py": {`metadata.get("version") != "0.1.7"`},
+		"compatibility_test.go":                       {`marketplace.Metadata.Version != "0.1.8"`},
+		"release_0_1_1_test.go":                       {`= "v0.1.8"`, `rel011Version = "0.1.8"`},
+		"readme_onboarding_test.go":                   {"claude plugin marketplace add jgoneit/jaekit#v0.1.8"},
+		"release_guide_test.go":                       {"https://github.com/jgoneit/jaekit/releases/tag/v0.1.8"},
+		"../tools/release/test_archives.py":           {`VERSION = "0.1.8"`},
+		"../tools/release/test_spar_archives.py":      {`VERSION = "0.1.8"`},
+		"../tools/release/test_install.py":            {`NAME = "ha_0.1.8_linux_amd64"`},
+		"../tools/release/test_install_cleanup.py":    {`CURRENT = "0.1.8"`},
+		"../tools/review-checks/test_installation.py": {`CURRENT = "0.1.8"`},
+		"../tools/contract-checks/authoring_check.py": {`metadata.get("version") != "0.1.8"`},
 	} {
 		r17Contains(t, v, path, r17Read(t, path), tokens...)
 	}
 }
 
 // AC-3: the install, update and migration commands of both hosts install
-// spec, seal and spar from the v0.1.7 marketplace.
+// spec, seal and spar from the current release's marketplace.
 func TestRelease017AC3_GuideHostBlocks(t *testing.T) {
 	const v = "host-block-without-spar"
 	for _, g := range []struct{ path, codex, claude, update, move string }{
@@ -352,17 +354,17 @@ func TestRelease017AC3_BinariesTogether(t *testing.T) {
 	}
 }
 
-// AC-9: the guides, contract example, Seal skill, manifests and release
-// notes state the v0.1.7 combination: ha 0.1.7, spar 0.1.7, Spec 0.1.13,
-// Seal 0.1.22 and the Spar plugin 0.1.3. The Seal skill, its manifests and
-// the marketplace seal entry carry the source version, Seal 0.1.23.
+// AC-9: the guides, contract example, Seal skill and manifests state the
+// current combination: ha 0.1.8, spar 0.1.8, Spec 0.1.13, Seal 0.1.23 and the
+// Spar plugin 0.1.4. The v0.1.7 release notes still state their own
+// combination: ha 0.1.7, spar 0.1.7, Spec 0.1.13, Seal 0.1.22, Spar 0.1.3.
 func TestRelease017AC9_CombinationStated(t *testing.T) {
 	const v = "combination-unstated"
 	for _, c := range []struct {
 		path, row, previous string
 	}{
-		{r17Install, "| 현재 배포판 `v0.1.7` | `ha 0.1.7`, `spar 0.1.7` | 0.1.13 | 0.1.22 | 0.1.3 |", "| 이전 배포판 `v0.1.6` | `ha 0.1.6` | 0.1.12 | 0.1.17 | — |"},
-		{r17InstallEn, "| Current release `v0.1.7` | `ha 0.1.7`, `spar 0.1.7` | 0.1.13 | 0.1.22 | 0.1.3 |", "| Previous release `v0.1.6` | `ha 0.1.6` | 0.1.12 | 0.1.17 | — |"},
+		{r17Install, "| 현재 배포판 `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |", "| 이전 배포판 `v0.1.6` | `ha 0.1.6` | 0.1.12 | 0.1.17 | — |"},
+		{r17InstallEn, "| Current release `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |", "| Previous release `v0.1.6` | `ha 0.1.6` | 0.1.12 | 0.1.17 | — |"},
 	} {
 		text := r17Read(t, c.path)
 		found := map[string]bool{}
@@ -380,13 +382,13 @@ func TestRelease017AC9_CombinationStated(t *testing.T) {
 		}
 	}
 	for path, tokens := range map[string][]string{
-		r17Usage:                            {"현재 배포판 v0.1.7은 ha 0.1.7·spar 0.1.7·spec 0.1.13·seal 0.1.22·spar 플러그인 0.1.3 조합입니다"},
-		r17UsageEn:                          {"The current release v0.1.7 combines ha 0.1.7, spar 0.1.7, spec 0.1.13, seal 0.1.22 and the spar plugin 0.1.3"},
-		r17Ops:                              {"v0.1.7(ha 0.1.7·spar 0.1.7·spec 0.1.13·seal 0.1.22·spar 플러그인 0.1.3)"},
-		r17OpsEn:                            {"v0.1.7 (ha 0.1.7, spar 0.1.7, spec 0.1.13, seal 0.1.22, spar plugin 0.1.3)"},
-		"../contracts/core-capabilities.md": {`"ha_version": "0.1.7"`, "v0.1.7의 Core `0.1.7`·Seal `0.1.22`"},
-		"../contracts/review-gate.md":       {`"spar_version": "0.1.7"`},
-		r17SealHa:                           {"The commands below describe release v0.1.7: ha 0.1.7, spar 0.1.7 and Seal 0.1.22."},
+		r17Usage:                            {"현재 배포판 v0.1.8은 ha 0.1.8·spar 0.1.8·spec 0.1.13·seal 0.1.23·spar 플러그인 0.1.4 조합입니다"},
+		r17UsageEn:                          {"The current release v0.1.8 combines ha 0.1.8, spar 0.1.8, spec 0.1.13, seal 0.1.23 and the spar plugin 0.1.4"},
+		r17Ops:                              {"v0.1.8(ha 0.1.8·spar 0.1.8·spec 0.1.13·seal 0.1.23·spar 플러그인 0.1.4)"},
+		r17OpsEn:                            {"v0.1.8 (ha 0.1.8, spar 0.1.8, spec 0.1.13, seal 0.1.23, spar plugin 0.1.4)"},
+		"../contracts/core-capabilities.md": {`"ha_version": "0.1.8"`, "v0.1.8의 Core `0.1.8`·Seal `0.1.23`"},
+		"../contracts/review-gate.md":       {`"spar_version": "0.1.8"`},
+		r17SealHa:                           {"The commands below describe release v0.1.8: ha 0.1.8, spar 0.1.8 and Seal 0.1.23."},
 		r17SealSkill:                        {"version: \"0.1.23\"\n"},
 	} {
 		r17Contains(t, v, path, r17Read(t, path), tokens...)
@@ -411,7 +413,7 @@ func TestRelease017AC9_CombinationStated(t *testing.T) {
 		} `json:"plugins"`
 	}
 	r17JSON(t, "../.claude-plugin/marketplace.json", &market)
-	want := map[string]string{"spec": "0.1.13", "seal": "0.1.23", "spar": "0.1.3"}
+	want := map[string]string{"spec": "0.1.13", "seal": "0.1.23", "spar": "0.1.4"}
 	for _, p := range market.Plugins {
 		if w, ok := want[p.Name]; ok {
 			if p.Version != w {

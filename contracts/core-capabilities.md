@@ -1,6 +1,6 @@
 # 계약: Core 지원 정보와 Seal 호환 확인
 
-이 계약은 v0.1.7의 Core `0.1.7`·Seal `0.1.22`에 적용한다. 지원 정보 조회는 v0.1.3에서 도입했으며 이전 배포판 `v0.1.2`에는 이 명령이 없다. 업데이트 뒤에도 실제 실행 파일의 지원 정보를 확인하며 버전 숫자만으로 호환성을 판단하지 않는다. Spec은 Core 설치나 이 조회 없이 문서를 작성한다.
+이 계약은 v0.1.8의 Core `0.1.8`·Seal `0.1.23`에 적용한다. 지원 정보 조회는 v0.1.3에서 도입했으며 이전 배포판 `v0.1.2`에는 이 명령이 없다. 업데이트 뒤에도 실제 실행 파일의 지원 정보를 확인하며 버전 숫자만으로 호환성을 판단하지 않는다. Spec은 Core 설치나 이 조회 없이 문서를 작성한다.
 
 ## 1. 목표 없는 조회
 
@@ -15,7 +15,7 @@ ha capabilities --format json
 ```json
 {
   "schema": "ha-capabilities/v1",
-  "ha_version": "0.1.7",
+  "ha_version": "0.1.8",
   "supported_rules": ["run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5"],
   "default_rules": "run-rules/3",
   "formats": {
@@ -82,7 +82,7 @@ ha capabilities --format json
 
 시간 보기를 지원하는 Core는 `formats.timing`에 `timing/v1`, `features`에 `run-timing/v1`을 제공한다([실행 기록](run-record.md) §1.2, §2.2). 측정값은 판정·예산에 쓰이지 않으므로 이 확장은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 추가되지 않는다. 지원이 없는 Core에서도 일반 실행은 그대로이고, 시간 보기만 쓸 수 없다.
 
-목표 문서의 `Assurance:` 줄([목표 문서](goal-docs.md) §2.5)을 읽고 검증하는 Core는 `formats.assurance_tier`에 `light`, `standard`, `strict`를 제공한다. v0.1.7 배포판(위 예시)에는 이 항목이 있고 v0.1.6 이하 배포판에는 없다. 등급은 구현 담당이 받을 검토의 범위를 정한다. `run-rules/4` 이하로 시작한 목표에서는 판정, `ha status`와 `ha done`의 출력, 예산이 등급 때문에 바뀌지 않고, `run-rules/5`로 시작한 `standard`·`strict` 목표는 기록된 검토 gate가 완료 조건이 된다(§9). 줄은 SPEC.md의 일부이므로 목표 digest에 들어가고, 올바른 줄이 있으면 `ha lint` 성공 출력에 `assurance tier: <등급>` 줄이 더해지며, 형식이 틀린 줄은 다른 lint 오류처럼 `ha start`와 `ha check`를 막는다([목표 문서](goal-docs.md) §2.5, [실행 묶음](bundle.md) §8). 그래서 이 항목은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 더하지 않는다. 항목이 없는 Core는 줄을 검증하지 않을 뿐이고 일반 실행은 그대로다. 이 항목의 이름은 `ha status`의 `assurance` 필드(근거 표시, 항상 `local`)와 섞이지 않도록 따로 정했다.
+목표 문서의 `Assurance:` 줄([목표 문서](goal-docs.md) §2.5)을 읽고 검증하는 Core는 `formats.assurance_tier`에 `light`, `standard`, `strict`를 제공한다. v0.1.7 이후 배포판(위 예시는 v0.1.8)에는 이 항목이 있고 v0.1.6 이하 배포판에는 없다. 등급은 구현 담당이 받을 검토의 범위를 정한다. `run-rules/4` 이하로 시작한 목표에서는 판정, `ha status`와 `ha done`의 출력, 예산이 등급 때문에 바뀌지 않고, `run-rules/5`로 시작한 `standard`·`strict` 목표는 기록된 검토 gate가 완료 조건이 된다(§9). 줄은 SPEC.md의 일부이므로 목표 digest에 들어가고, 올바른 줄이 있으면 `ha lint` 성공 출력에 `assurance tier: <등급>` 줄이 더해지며, 형식이 틀린 줄은 다른 lint 오류처럼 `ha start`와 `ha check`를 막는다([목표 문서](goal-docs.md) §2.5, [실행 묶음](bundle.md) §8). 그래서 이 항목은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 더하지 않는다. 항목이 없는 Core는 줄을 검증하지 않을 뿐이고 일반 실행은 그대로다. 이 항목의 이름은 `ha status`의 `assurance` 필드(근거 표시, 항상 `local`)와 섞이지 않도록 따로 정했다.
 
 기능의 상세 의미는 [실행 기록](run-record.md), [결과 계약](check-result.md), [목표 문서](goal-docs.md)에 따른다. 지원 정보는 독립 인증이나 코드 무결성 증명이 아니다.
 
@@ -108,7 +108,7 @@ Seal 0.1.20부터는 이 표를 손으로 대조하지 않는다. 새 시작은 
 
 ## 3. 선택적 결정적 소비 도구
 
-Python 3가 이미 있다면 Seal에 포함된 [check_core.py](https://github.com/jgoneit/jaekit/blob/v0.1.7/plugins/seal/skills/seal/scripts/check_core.py)로 같은 계약을 확인할 수 있다. 도구가 없거나 Python을 쓰지 않는 경우에도 위 계약을 직접 소비할 수 있다.
+Python 3가 이미 있다면 Seal에 포함된 [check_core.py](https://github.com/jgoneit/jaekit/blob/v0.1.8/plugins/seal/skills/seal/scripts/check_core.py)로 같은 계약을 확인할 수 있다. 도구가 없거나 Python을 쓰지 않는 경우에도 위 계약을 직접 소비할 수 있다.
 
 ```text
 python3 <seal-skill>/scripts/check_core.py --ha <실제 Core 경로> --operation start
@@ -131,7 +131,7 @@ stdout은 `seal-core-compatibility/v1` JSON이다. `compatible`, `reason`, `requ
 
 ## 4. 선택적 완료 뒤 발견 확장
 
-Core 0.1.4부터 [완료 뒤 발견](findings.md)을 포함하며 `formats.finding`에 `run-finding/v1`, `features`에 `post-completion-findings/v1`을 제공한다. 위 v0.1.7 배포 예시에도 두 항목이 있다. v0.1.3 Core에는 이 확장이 없으므로 실제 지원 정보를 확인하며, 버전 숫자만으로 기능을 추정하지 않는다. 기존 시작·검사·예산 작업의 요구는 유지한다. 발견 입력과 조회에는 실제 실행 파일의 두 추가 지원, 저장된 규칙과 현재 조건 형식의 지원을 확인한다. 발견 작업만을 위해 실행 기능이나 `/3` 선언 지원을 요구하지 않는다.
+Core 0.1.4부터 [완료 뒤 발견](findings.md)을 포함하며 `formats.finding`에 `run-finding/v1`, `features`에 `post-completion-findings/v1`을 제공한다. 위 v0.1.8 배포 예시에도 두 항목이 있다. v0.1.3 Core에는 이 확장이 없으므로 실제 지원 정보를 확인하며, 버전 숫자만으로 기능을 추정하지 않는다. 기존 시작·검사·예산 작업의 요구는 유지한다. 발견 입력과 조회에는 실제 실행 파일의 두 추가 지원, 저장된 규칙과 현재 조건 형식의 지원을 확인한다. 발견 작업만을 위해 실행 기능이나 `/3` 선언 지원을 요구하지 않는다.
 
 Seal 0.1.12에 포함된 선택형 도구는 `--operation finding --goal <기존 목표>`를 지원한다. 기존 목표에 `run-finding/v1` 줄이 있으면 resume·check·budget도 두 추가 지원을 요구한다. 도구는 알려진 줄 schema의 존재를 읽으며 해시·이력의 무결성은 Core가 검증한다. 알 수 없는 schema는 거부한다. 이전 설치의 도구에 새 인수가 있다고 가정하지 않으며, 실제 capability를 직접 확인하는 방법도 유효하다. 지원을 확인하지 못하면 새 발견 기록을 쓰지 않는다.
 

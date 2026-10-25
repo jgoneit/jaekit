@@ -4,7 +4,7 @@
 
 This guide follows [your first task in the README](../README.md#your-first-task). For installation, updates, and removal, see the [install guide](INSTALL.en.md).
 
-The current release v0.1.7 combines ha 0.1.7, spar 0.1.7, spec 0.1.13, seal 0.1.22 and the spar plugin 0.1.3. The default rules are `/3`; Seal starts new goals under `run-rules/4` from 0.1.16 and under `run-rules/5` from 0.1.21. Preflight refusal, run estimation, `/3` result classification and budget policy apply to this release. Existing goals keep their saved rules. See [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
+The current release v0.1.8 combines ha 0.1.8, spar 0.1.8, spec 0.1.13, seal 0.1.23 and the spar plugin 0.1.4. The default rules are `/3`; Seal starts new goals under `run-rules/4` from 0.1.16 and under `run-rules/5` from 0.1.21. Preflight refusal, run estimation, `/3` result classification and budget policy apply to this release. Existing goals keep their saved rules. See [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
 
 ## Sending commands
 
@@ -294,7 +294,7 @@ ha cost docs/specs/<goal> --series docs/reviews/<goal>
 | The start stops with `exceeds the pre-approved limit` | Decide whether to approve the computed count. If you do, write it as the plan's `검증 실행` number or raise `preapproved_runs` in `ha.json`. See [Automatic budget](#automatic-budget) |
 | The start stops with a `pre-approved run limit` error | Read the `ha.json` path and reason it shows, then fix the file to `{"preapproved_runs": <whole number>}` or remove it |
 | The budget ran out | Read what remains and decide whether to continue; see the budget details below |
-| Seal stopped for Core compatibility | Read the executable it checked and the missing support. Follow [Update](INSTALL.en.md#update) to install the v0.1.7 combination, then check the capabilities of the Core actually selected. Do not bypass the check by automatically installing tools or switching rules |
+| Seal stopped for Core compatibility | Read the executable it checked and the missing support. Follow [Update](INSTALL.en.md#update) to install the v0.1.8 combination, then check the capabilities of the Core actually selected. Do not bypass the check by automatically installing tools or switching rules |
 
 <details>
 <summary>Removing older installations</summary>
@@ -329,6 +329,6 @@ The reporting format introduced in Seal 0.1.10 separates these four things in th
 - Methods and substitutes.
 - Unobserved scope.
 
-Condition groups may share an explanation; a plan is not an observation. The current release v0.1.7 includes this format in Seal 0.1.22; existing goal formats stay unchanged.
+Condition groups may share an explanation; a plan is not an observation. The current release v0.1.8 includes this format in Seal 0.1.23; existing goal formats stay unchanged.
 
 See the [synthetic reporting example](../examples/verification-reporting.md); it is not an actual execution record.

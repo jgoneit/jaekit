@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "MissingSpar",
+      "violation": "spar-optional-install",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease018AC5_MissingSparStops"
+      }
+    },
+    {
+      "id": "NativeArchives",
+      "violation": "native-archive-without-spar",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease018AC5_NativeArchivesCarrySpar"
+      }
+    }
+  ]
+}

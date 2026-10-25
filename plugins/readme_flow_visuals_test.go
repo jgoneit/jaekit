@@ -973,17 +973,18 @@ func TestReadmeFlowVisualsAC7_FictionalAndLocal(t *testing.T) {
 // rfvKept are digests of README parts that must not change: the first task
 // section, the install and update command blocks, the hero block and the
 // list of link destinations. The expected values are the content at main
-// 73f524d, written here.
+// 73f524d, written here; the commands are those of the v0.1.8 release,
+// whose install pins and version check differ from 73f524d.
 var rfvKept = map[string]map[string]string{
 	"README.md": {
 		"first-task": "24055a92a2510e8dcb22e81ac02a4c694adef4acee07cc4919cf2d31fb161631",
-		"commands":   "8e05f57ab0872dfe7dfb43a132cca2a873fd3bb3498fda5683cd379e6da5b04c",
+		"commands":   "59f12488dd2183b2309aebdec44be212f4cf2383e234b5c3fbcead13a15dd150",
 		"hero":       "e2786373776467d77948970760fa85cc010d488ea902310cc820856304fc51bc",
 		"links":      "32c136acdb0264b9716ca96e7c2026d03d0f56001adb013fc5350b2986456366",
 	},
 	"README.ko.md": {
 		"first-task": "1075426f9f37f438482ded9e2b239ed7d05275742d54404d21e8be6de163b83e",
-		"commands":   "8e05f57ab0872dfe7dfb43a132cca2a873fd3bb3498fda5683cd379e6da5b04c",
+		"commands":   "59f12488dd2183b2309aebdec44be212f4cf2383e234b5c3fbcead13a15dd150",
 		"hero":       "b3c24b6ab3fc3fd3b9270086d61fe18135de39990a12d0159d4131f1d6e1ecbf",
 		"links":      "b293a886f54444a2b2f5018adbafca468c5c64ffca34d860e04e20d842823cd8",
 	},

@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "UpdateCheck",
+      "violation": "update-check-without-spar",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRelease018AC3_UpdateCheckShowsSpar"
+      }
+    }
+  ]
+}
