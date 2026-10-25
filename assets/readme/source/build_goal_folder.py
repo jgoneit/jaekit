@@ -4,8 +4,8 @@ editable SVGs.
 
 It shows who writes what for one fictional goal, password-link: Spec writes
 SPEC.md, Seal writes PLAN.md, REVIEW.md and PROGRESS.md, ha writes runs.jsonl,
-Spar keeps its rounds and gate in a folder Git ignores, and raw check output
-stays in .git/ha/. Render the PNGs with render_readme_images.cjs.
+Spar keeps its rounds and gate in a folder the project's Git is set up to
+ignore, and raw check output stays in .git/ha/. Render the PNGs with render_readme_images.cjs.
 
 Requires Python 3 and fonttools and the Noto Sans CJK KR font files; see
 readme_svg.py.
@@ -33,7 +33,7 @@ COPY = {
         "local": "Git이 추적하지 않음",
         "spar_head": "Spar 검토 기록",
         "spar_rows": [("01-candidate/", "검토 라운드 하나"), ("gate.json", "검토 gate")],
-        "spar_note": "Git이 무시하는 폴더에 둡니다",
+        "spar_note": ["프로젝트의 Git이 무시하게 설정한 폴더에 둡니다", "설정: .gitignore에 docs/reviews/ 추가"],
         "ha_head": "검사 출력 원문",
         "ha_note": "ha log로 봅니다",
         "machine": "내 컴퓨터에만 남음",
@@ -41,7 +41,7 @@ COPY = {
         "fictional": "가상 예시",
         "description": "가상 목표 폴더 docs/specs/password-link/: Spec이 SPEC.md를, Seal이 PLAN.md·REVIEW.md·PROGRESS.md를, ha가 runs.jsonl을 씁니다. "
                        "REVIEW.md는 검토 계획과 Spar 기록의 요약·위치를 담습니다. "
-                       "Spar의 검토 라운드(01-candidate/)와 gate(gate.json)는 Git이 무시하는 docs/reviews/password-link/에, "
+                       "Spar의 검토 라운드(01-candidate/)와 gate(gate.json)는 프로젝트의 Git이 무시하게 설정한 docs/reviews/password-link/에(.gitignore에 docs/reviews/ 추가), "
                        "검사 출력 원문은 .git/ha/에 남고 Git이 추적하지 않습니다. 실제 기록이 아닌 가상 예시입니다.",
     },
     "en": {
@@ -56,7 +56,7 @@ COPY = {
         "local": "Not tracked by Git",
         "spar_head": "Spar review records",
         "spar_rows": [("01-candidate/", "one review round"), ("gate.json", "the review gate")],
-        "spar_note": "kept in a folder Git ignores",
+        "spar_note": ["in a folder your project's Git is set up to ignore", "set up: add docs/reviews/ to .gitignore"],
         "ha_head": "Raw check output",
         "ha_note": "read it with ha log",
         "machine": "Stays on your computer",
@@ -64,7 +64,7 @@ COPY = {
         "fictional": "Fictional example",
         "description": "Fictional goal folder docs/specs/password-link/: Spec writes SPEC.md; Seal writes PLAN.md, REVIEW.md and PROGRESS.md; ha writes runs.jsonl. "
                        "REVIEW.md holds the review plan and summarizes and points to the Spar records. "
-                       "Spar's review rounds (01-candidate/) and gate (gate.json) stay in docs/reviews/password-link/, a folder Git ignores, "
+                       "Spar's review rounds (01-candidate/) and gate (gate.json) stay in docs/reviews/password-link/, a folder the project's Git is set up to ignore (add docs/reviews/ to .gitignore), "
                        "and raw check output stays in .git/ha/, which Git does not track. A fictional example, not a real record.",
     },
 }
@@ -123,7 +123,7 @@ def draw(fonts, language, outline):
     d.text(1082, 154, c["local"], 28 if ko else 27, "bold", max_width=450)
     d.path('M1088 168H1530', stroke=C["line"], sw=2)
 
-    d.rect(1082, 186, 450, 262, C["amber_tint"], r=14)
+    d.rect(1082, 186, 450, 272, C["amber_tint"], r=14)
     d.rect(1102, 204, 70, 30, C["amber"], r=7)
     d.text(1137, 225, "Spar", 17, "bold", C["white"], "middle")
     d.text(1186, 226, c["spar_head"], 20, "bold", C["amber_ink"], max_width=330)
@@ -134,20 +134,22 @@ def draw(fonts, language, outline):
         d.path(f'M1124 {y - 26}V{y - 6}H1142', stroke=C["amber"], sw=2.4)
         d.text(1152, y, name, 20, "bold", max_width=170)
         d.text(1326, y, note, 18 if ko else 17, fill=C["muted"], max_width=196)
-    d.text(1102, 428, c["spar_note"], 17, "bold", C["amber_ink"], max_width=410)
+    # The folder is ignored only once the project sets it up; the note says how.
+    for j, line in enumerate(c["spar_note"]):
+        d.text(1102, 418 + 24 * j, line, 17, "bold", C["amber_ink"], max_width=410)
 
-    d.rect(1082, 466, 450, 128, C["panel"], r=14)
-    d.rect(1102, 484, 46, 30, C["ink"], r=7)
-    d.text(1125, 505, "ha", 17, "bold", C["white"], "middle")
-    d.text(1162, 506, c["ha_head"], 20, "bold", max_width=350)
-    d.rect(1102, 528, 64, 48, C["ink"], r=8)
-    d.path('M1114 542L1124 552L1114 562M1130 564H1150', stroke=C["white"], sw=3)
-    d.text(1182, 556, ".git/ha/", 26, "bold", max_width=150)
-    d.text(1182, 582, c["ha_note"], 17, fill=C["muted"], max_width=330)
+    d.rect(1082, 474, 450, 128, C["panel"], r=14)
+    d.rect(1102, 492, 46, 30, C["ink"], r=7)
+    d.text(1125, 513, "ha", 17, "bold", C["white"], "middle")
+    d.text(1162, 514, c["ha_head"], 20, "bold", max_width=350)
+    d.rect(1102, 536, 64, 48, C["ink"], r=8)
+    d.path('M1114 550L1124 560L1114 570M1130 572H1150', stroke=C["white"], sw=3)
+    d.text(1182, 564, ".git/ha/", 26, "bold", max_width=150)
+    d.text(1182, 590, c["ha_note"], 17, fill=C["muted"], max_width=330)
 
-    d.rect(1092, 612, 40, 28, C["white"], C["muted"], 2.2, 4)
-    d.path('M1086 644H1138', stroke=C["muted"], sw=2.4)
-    d.text(1150, 636, c["machine"], 20 if ko else 19, "bold", C["muted"], max_width=380)
+    d.rect(1092, 616, 40, 28, C["white"], C["muted"], 2.2, 4)
+    d.path('M1086 648H1138', stroke=C["muted"], sw=2.4)
+    d.text(1150, 640, c["machine"], 20 if ko else 19, "bold", C["muted"], max_width=380)
 
     d.text(539, 712, c["caption"], 19 if ko else 18, fill=C["muted"], anchor="middle", max_width=900)
     d.text(1552, 712, c["fictional"], 18, "bold", C["muted"], "end")

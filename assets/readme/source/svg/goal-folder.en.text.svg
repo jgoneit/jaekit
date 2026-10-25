@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="740" viewBox="0 0 1600 740" role="img" aria-labelledby="title description" xml:lang="en">
 <title id="title">Goal folder</title>
-<desc id="description">Fictional goal folder docs/specs/password-link/: Spec writes SPEC.md; Seal writes PLAN.md, REVIEW.md and PROGRESS.md; ha writes runs.jsonl. REVIEW.md holds the review plan and summarizes and points to the Spar records. Spar&#x27;s review rounds (01-candidate/) and gate (gate.json) stay in docs/reviews/password-link/, a folder Git ignores, and raw check output stays in .git/ha/, which Git does not track. A fictional example, not a real record.</desc>
+<desc id="description">Fictional goal folder docs/specs/password-link/: Spec writes SPEC.md; Seal writes PLAN.md, REVIEW.md and PROGRESS.md; ha writes runs.jsonl. REVIEW.md holds the review plan and summarizes and points to the Spar records. Spar&#x27;s review rounds (01-candidate/) and gate (gate.json) stay in docs/reviews/password-link/, a folder the project&#x27;s Git is set up to ignore (add docs/reviews/ to .gitignore), and raw check output stays in .git/ha/, which Git does not track. A fictional example, not a real record.</desc>
 <rect x="0" y="0" width="1600" height="740" rx="0" fill="#FAFBFD"/>
 <text x="48" y="78" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="46" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">Goal folder</text>
 <text x="1552" y="74" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="32" font-weight="700" fill="#122033" text-anchor="end" xml:space="preserve">Jaekit</text>
@@ -50,7 +50,7 @@
 <rect x="1058" y="110" width="498" height="560" rx="18" fill="#FFFFFF" stroke="#D7DFE9" stroke-width="2"/>
 <text x="1082" y="154" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="27" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">Not tracked by Git</text>
 <path d="M1088 168H1530" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-<rect x="1082" y="186" width="450" height="262" rx="14" fill="#FFF3E3"/>
+<rect x="1082" y="186" width="450" height="272" rx="14" fill="#FFF3E3"/>
 <rect x="1102" y="204" width="70" height="30" rx="7" fill="#C9761F"/>
 <text x="1137" y="225" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">Spar</text>
 <text x="1186" y="226" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#7A4408" text-anchor="start" xml:space="preserve">Spar review records</text>
@@ -62,18 +62,19 @@
 <path d="M1124 354V374H1142" fill="none" stroke="#C9761F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="1152" y="380" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">gate.json</text>
 <text x="1326" y="380" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">the review gate</text>
-<text x="1102" y="428" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#7A4408" text-anchor="start" xml:space="preserve">kept in a folder Git ignores</text>
-<rect x="1082" y="466" width="450" height="128" rx="14" fill="#F0F3F8"/>
-<rect x="1102" y="484" width="46" height="30" rx="7" fill="#122033"/>
-<text x="1125" y="505" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">ha</text>
-<text x="1162" y="506" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">Raw check output</text>
-<rect x="1102" y="528" width="64" height="48" rx="8" fill="#122033"/>
-<path d="M1114 542L1124 552L1114 562M1130 564H1150" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="1182" y="556" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="26" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">.git/ha/</text>
-<text x="1182" y="582" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">read it with ha log</text>
-<rect x="1092" y="612" width="40" height="28" rx="4" fill="#FFFFFF" stroke="#546276" stroke-width="2.2"/>
-<path d="M1086 644H1138" fill="none" stroke="#546276" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="1150" y="636" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">Stays on your computer</text>
+<text x="1102" y="418" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#7A4408" text-anchor="start" xml:space="preserve">in a folder your project&#x27;s Git is set up to ignore</text>
+<text x="1102" y="442" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#7A4408" text-anchor="start" xml:space="preserve">set up: add docs/reviews/ to .gitignore</text>
+<rect x="1082" y="474" width="450" height="128" rx="14" fill="#F0F3F8"/>
+<rect x="1102" y="492" width="46" height="30" rx="7" fill="#122033"/>
+<text x="1125" y="513" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">ha</text>
+<text x="1162" y="514" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">Raw check output</text>
+<rect x="1102" y="536" width="64" height="48" rx="8" fill="#122033"/>
+<path d="M1114 550L1124 560L1114 570M1130 572H1150" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1182" y="564" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="26" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">.git/ha/</text>
+<text x="1182" y="590" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">read it with ha log</text>
+<rect x="1092" y="616" width="40" height="28" rx="4" fill="#FFFFFF" stroke="#546276" stroke-width="2.2"/>
+<path d="M1086 648H1138" fill="none" stroke="#546276" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1150" y="640" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">Stays on your computer</text>
 <text x="539" y="712" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#546276" text-anchor="middle" xml:space="preserve">Fictional layout for illustration · password-link</text>
 <text x="1552" y="712" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="700" fill="#546276" text-anchor="end" xml:space="preserve">Fictional example</text>
 </svg>

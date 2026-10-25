@@ -92,6 +92,20 @@ code = 2
 
 It cannot choose reviewers, commands, executables or models; spar names the key and stops. The full format is in the [configuration contract](../contracts/spar-config.md).
 
+## Set up a project
+
+Spar writes review records only to a folder Git ignores, because a packet can contain private documents. In a project that has never run Spar, Git does not ignore that folder yet, so the first round stops with exit 65 before any reviewer starts and writes nothing. Before a project's first `standard` or `strict` goal, add one line to the project's `.gitignore`:
+
+```text
+docs/reviews/
+```
+
+`docs/reviews/<goal>/` is where the Spar skill puts a goal's rounds and gate. `light` goals and goals that do not use Spar do not need this step.
+
+- **Another folder.** Records can go to any folder Git ignores. Add that folder to `.gitignore` instead, and tell your agent to put the rounds there.
+- **Only on your computer.** To leave `.gitignore` unchanged, add the same line to `.git/info/exclude`. Git does not commit that file, so another clone or computer needs the line again.
+- Spar also refuses a folder under which Git tracks files. Ignoring a folder does not untrack files already committed there.
+
 ## Run a review
 
 Ask your agent, for example `$spar:spar` in Codex or `/spar:spar` in Claude Code. The skill runs these stages:
@@ -105,7 +119,7 @@ Ask your agent, for example `$spar:spar` in Codex or `/spar:spar` in Claude Code
 
 One series allows one plan round, one plan-delta round and three code rounds. A round past its cap is refused before any reviewer starts; only your words, recorded with `spar extend`, allow more. Rerunning reviewers that did not finish the same packet, for example after a quota refusal, does not count.
 
-Each round writes a new, Git-ignored folder with `round.json`, `packet.md`, `findings.json`, `ledger.jsonl` and `summary.md`. Spar refuses a folder that Git would track, because the packet can contain private documents. The format is in the [round contract](../contracts/review-round.md). The format of every input spar reads, such as finding locations and links, configuration values and command arguments, and what happens to input outside it, is in one table in the [input contract](../contracts/spar-input.md). A finding whose location names no file is kept, marked as an unreadable location and never deferred automatically.
+Each round writes a new, Git-ignored folder with `round.json`, `packet.md`, `findings.json`, `ledger.jsonl` and `summary.md`. Spar refuses a folder that Git would track, because the packet can contain private documents ([Set up a project](#set-up-a-project)). The format is in the [round contract](../contracts/review-round.md). The format of every input spar reads, such as finding locations and links, configuration values and command arguments, and what happens to input outside it, is in one table in the [input contract](../contracts/spar-input.md). A finding whose location names no file is kept, marked as an unreadable location and never deferred automatically.
 
 ## Findings and the gate
 

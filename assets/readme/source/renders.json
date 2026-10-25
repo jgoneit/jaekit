@@ -17,17 +17,17 @@
     "assets/readme/goal-folder.en.png": {
       "height": 740,
       "inputs": {
-        "assets/readme/goal-folder.en.svg": "38a0934c28f720c6c4e7ec240ce2291826fd4738978617f6d7d8b50814dec49f"
+        "assets/readme/goal-folder.en.svg": "5b221ac64cfefd12b697d154cb9a115f5788abb0b3166408213ddd541f80c9bd"
       },
-      "sha256": "dfa14dbac0927ee22e7a261c2596b154591791b84b8bbfe38dfd71a1b5084df3",
+      "sha256": "7722259a2797f94afe1711465914f6e5376f09ecff2e127d3a2d6c53c80c7fd2",
       "width": 1600
     },
     "assets/readme/goal-folder.ko.png": {
       "height": 740,
       "inputs": {
-        "assets/readme/goal-folder.ko.svg": "f7ce601f1a538a64b6d0570513f7bda6b7b1811cf597aa151b1d260f3aca1bef"
+        "assets/readme/goal-folder.ko.svg": "5b80a88348b3b13df01803958c626906511984fe6347147ae34942ef8f2212d6"
       },
-      "sha256": "4e8c29670dd5dac2d0e09e4ddd3bd6fb063cd5f1f41bac58de838ea14752be99",
+      "sha256": "f4a533e3ee0a5a464f259c1e341894603c319d926e797d22f75c82bdcb4e76b3",
       "width": 1600
     },
     "assets/readme/report-card.en.png": {
@@ -49,17 +49,17 @@
     "assets/readme/usage-flow.en.png": {
       "height": 960,
       "inputs": {
-        "assets/readme/usage-flow.en.svg": "332bd9917588193dd3a735eb430c6b653793f20f9c67c90f3425c53331ff2896"
+        "assets/readme/usage-flow.en.svg": "75b6dd9b5b4cabff32faba778c3e5500a6820a40c7eb11e69352aadd67c14d9e"
       },
-      "sha256": "144132f4ddb8a83ad47b6a76ebb43a4665cbaa31465f916544f5536e8f43ed3c",
+      "sha256": "ced76e08371ec0c2091dfe64760a9fceda0b7831d7e642a971049852d5c37c34",
       "width": 1600
     },
     "assets/readme/usage-flow.ko.png": {
       "height": 960,
       "inputs": {
-        "assets/readme/usage-flow.ko.svg": "c5dbce18102cef9d7b70145d41b34a59275f7dbaecff8d82b3699defd9f96d57"
+        "assets/readme/usage-flow.ko.svg": "dc9e8c80b7dd9b872822b4d7ce357e7d2690ac4f5b8685b98a51e82bee9ac6c6"
       },
-      "sha256": "efb0200692233b53f73553eb542a04808a33f75e7596d7722349894e7dd4e019",
+      "sha256": "d49abfa593d307049783c1673b62f45153581af5e525068d54ac815b3d545ff4",
       "width": 1600
     }
   },

@@ -56,7 +56,7 @@ flowchart TD
         check -->|"검사 통과"| spar
         spar -->|"고칠 지적"| build
     end
-    decide{{"요구를 바꿔야 하는<br/>질문에 내가 답합니다"}}
+    decide{{"나만 정할 수 있는 결정을<br/>묻는 질문에 답합니다<br/>작업 전: 미리 알 수 있는 결정을 한 번에<br/>작업 중: 요구 질문 같은<br/>새 질문만<br/>끝: 필요한 확인을 한 번에"}}
     done["필수 조건이 충족되면<br/>ha done이 완료를 기록"]
     report(["PROGRESS.md의<br/>보고를 확인합니다<br/>무엇을 바꿨고<br/>어떻게 검사했는지"])
     resume(["대화가 끊겼나요?<br/>같은 프로젝트에서<br/>새 대화를 엽니다"])
@@ -87,13 +87,13 @@ flowchart TD
 
 1. Spec은 목표와 완료 조건, `Assurance:` 등급을 쓴 목표 문서를 만들고, 지금 구현할지 한 번 물은 뒤 **멈춥니다**. 내용을 읽고 고칠 점을 말합니다.
 2. 확인이 끝나 **"응"이라고 답하면 Seal이 시작**됩니다. 나중에 **별도 메시지로 목표 폴더를 지정해 Seal을 시작**해도 됩니다.
-3. 에이전트가 계획하고 구현하며 `ha`로 검사하고, `ha`는 모든 실행을 기록합니다. `standard`·`strict` 목표는 완료 전에 Spar의 독립 검토 라운드를 받고, `strict` 목표는 작업 전에 계획 검토도 받습니다. `light` 목표는 이유를 남기고 검토를 건너뛸 수 있습니다. 요구를 바꿔야 하는 질문은 내게 옵니다.
+3. 에이전트가 계획하고 구현하며 `ha`로 검사하고, `ha`는 모든 실행을 기록합니다. `standard`·`strict` 목표는 완료 전에 Spar의 독립 검토 라운드를 받고, `strict` 목표는 작업 전에 계획 검토도 받습니다. `light` 목표는 이유를 남기고 검토를 건너뛸 수 있습니다. Seal은 나만 정할 수 있는 결정만 묻습니다. 작업 전에는 미리 알 수 있는 결정을 한 메시지로, 작업 중에는 요구를 바꿔야 하는 질문 같은 새 질문만, 끝에는 완료에 필요한 확인을 한 메시지로 묻습니다.
 4. 필수 완료 조건이 충족되면 `ha done`이 완료를 기록합니다. `standard`·`strict` 목표는 기록된 검토 gate가 마지막 commit도 덮어야 합니다. `PROGRESS.md`의 보고에서 **무엇을 바꿨고 어떻게 검사했는지** 실제 결과와 함께 확인하세요. 대화가 끝나면 새 대화에서 같은 목표를 이어 갑니다.
 
 <details>
 <summary>같은 흐름을 그림으로 보기</summary>
 
-![사용 흐름 개념도. 1. Spec에 요청하면 목표와 완료 조건, 검토 등급(Assurance)을 정리하고 지금 구현할지 묻습니다. 2. "응"이라고 답하면 Seal이 시작되고, 별도 메시지로 목표 폴더를 지정해 시작해도 됩니다. 3. 에이전트가 계획·구현하고 ha로 검사하며 모든 실행이 기록됩니다. standard·strict 목표는 완료 전에 Spar 검토 라운드와 검토 gate를 거치고(strict는 계획 검토도), light 목표는 이유를 남기고 검토를 생략할 수 있으며, 요구를 바꿔야 하는 질문은 내게 옵니다. 4. 필수 조건이 충족되고 standard·strict 목표는 기록된 검토 gate가 마지막 commit을 덮으면 ha done이 완료를 기록하고, 보고가 PROGRESS.md에 남습니다. 새 대화에서는 같은 프로젝트의 같은 목표를 지정해 재개합니다.](assets/readme/usage-flow.ko.png)
+![사용 흐름 개념도. 1. Spec에 요청하면 목표와 완료 조건, 검토 등급(Assurance)을 정리하고 지금 구현할지 묻습니다. 2. "응"이라고 답하면 Seal이 시작되고, 별도 메시지로 목표 폴더를 지정해 시작해도 됩니다. 3. 에이전트가 계획·구현하고 ha로 검사하며 모든 실행이 기록됩니다. standard·strict 목표는 완료 전에 Spar 검토 라운드와 검토 gate를 거치고(strict는 계획 검토도), light 목표는 이유를 남기고 검토를 생략할 수 있으며, Seal은 나만 정할 수 있는 결정만 묻습니다: 작업 전에는 미리 알 수 있는 결정을 한 메시지로, 작업 중에는 요구 질문 같은 새 질문만, 끝에는 필요한 확인을 한 메시지로. 4. 필수 조건이 충족되고 standard·strict 목표는 기록된 검토 gate가 마지막 commit을 덮으면 ha done이 완료를 기록하고, 보고가 PROGRESS.md에 남습니다. 새 대화에서는 같은 프로젝트의 같은 목표를 지정해 재개합니다.](assets/readme/usage-flow.ko.png)
 
 </details>
 
@@ -186,6 +186,16 @@ codex plugin add spar@jaekit
 > [!NOTE]
 > **`standard`·`strict` 목표와 Spar.** v0.1.7부터 `standard`·`strict` 목표에는 Spar 실행 파일과 Spar 플러그인이 필요하고(위 명령이 둘 다 설치합니다), 리뷰어는 가진 CLI에 맞춰 정합니다. [Spar 설치](guides/INSTALL.md#spar)를 봅니다. v0.1.7의 Seal은 새 목표를 `run-rules/5`로 시작하고, `run-rules/5`로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다([검토 gate](guides/USAGE.md#검토-gate-run-rules5)).
 
+### 첫 `standard` 목표 전에
+
+프로젝트에 첫 `standard`·`strict` 목표를 맡기기 전에 프로젝트의 `.gitignore`에 `docs/reviews/`를 더합니다. Spar는 Git이 무시하는 폴더에만 검토 기록을 쓰는데, Spar를 처음 쓰는 프로젝트의 Git은 아직 그 폴더를 무시하지 않아서 첫 검토 라운드가 멈춥니다. `light` 목표와 Spar를 쓰지 않는 목표에는 필요 없습니다.
+
+```text
+docs/reviews/
+```
+
+다른 폴더나 `.git/info/exclude`를 쓰려면 Spar 안내의 [프로젝트 준비](guides/SPAR.md#프로젝트-준비)를 봅니다.
+
 ### 첫 작업 맡기기
 
 작업할 프로젝트 폴더에서 Claude Code 또는 Codex(CLI·데스크톱 앱)를 엽니다.
@@ -218,9 +228,11 @@ Spec이 알려 준 문서를 읽고 고칠 내용을 말합니다.
 
 이 예시라면 “새 링크가 기존 재설정 페이지로 연결되는지”, “기존 로그인이 그대로 동작하는지”가 완료 조건입니다.
 
-#### 3. 별도 메시지로 Seal 시작하기
+#### 3. "응"으로 Seal 시작하기
 
-목표 폴더를 지정합니다.
+열린 결정이 없으면 Spec은 보고 끝에 지금 구현할지 묻습니다. 목표가 맞으면 **"응"이라고 답합니다**. 그러면 그 목표로 Seal이 시작됩니다.
+
+나중에 시작하려면 별도 메시지로 목표 폴더를 지정합니다.
 
 **Claude Code**
 
@@ -315,7 +327,9 @@ codex plugin add spar@jaekit
 
 Jaekit이 쓰는 내용은 모두 프로젝트 안, 목표마다 하나인 폴더에 남습니다. 아래 예시는 **줄인 가상 예시**로 형식을 보여 줄 뿐, 실제 작업 기록이 아닙니다. `## Acceptance Criteria`, `## 조건표`, `AC-1` 같은 제목과 표지는 형식 토큰이라 그대로 두고, 설명 문장은 사용자의 언어로 씁니다.
 
-![가상 목표 폴더 docs/specs/password-link/: Spec이 SPEC.md를, Seal이 PLAN.md·REVIEW.md(검토 계획과 Spar 기록의 요약·위치)·PROGRESS.md를, ha가 runs.jsonl을 씁니다. Spar의 검토 라운드와 gate는 Git이 무시하는 docs/reviews/password-link/에, 검사 출력 원문은 내 컴퓨터의 .git/ha/에 남고 Git이 추적하지 않습니다.](assets/readme/goal-folder.ko.png)
+![가상 목표 폴더 docs/specs/password-link/: Spec이 SPEC.md를, Seal이 PLAN.md·REVIEW.md(검토 계획과 Spar 기록의 요약·위치)·PROGRESS.md를, ha가 runs.jsonl을 씁니다. Spar의 검토 라운드와 gate는 프로젝트의 Git이 무시하게 설정한 docs/reviews/password-link/에(첫 standard 목표 전에 참고), 검사 출력 원문은 내 컴퓨터의 .git/ha/에 남고 Git이 추적하지 않습니다.](assets/readme/goal-folder.ko.png)
+
+Spar는 프로젝트의 Git이 `docs/reviews/`를 무시하게 설정한 뒤에만 그곳에 씁니다. [첫 `standard` 목표 전에](#첫-standard-목표-전에)를 봅니다.
 
 <details>
 <summary>같은 폴더를 글로 보기</summary>
@@ -328,7 +342,7 @@ docs/specs/password-link/
 ├── PROGRESS.md    현재 상태, 타임라인, 완료 보고              ← Seal
 └── runs.jsonl     덧붙이기만 하는 실행 기록                   ← ha만 씀
 
-docs/reviews/password-link/   Git이 무시하는 폴더의 Spar 기록
+docs/reviews/password-link/   프로젝트의 Git이 무시하게 설정한 폴더의 Spar 기록
 ├── 01-candidate/  검토 라운드 하나: 패킷, 지적, 요약           ← Spar
 └── gate.json      검토 gate. ha note로 기록합니다              ← Spar
 
@@ -399,6 +413,8 @@ Seal의 판단:
 
 - AC-2 `criterion_failed` (executor): seq 4, 원문 `ha log docs/specs/password-link 4`
 ```
+
+목표 하나가 검사와 검토 라운드에 쓴 비용은 터미널에서 `ha cost docs/specs/<goal> --series docs/reviews/<goal>`로 봅니다. 기록을 읽기만 합니다. [목표 하나의 비용 보기](guides/USAGE.md#목표-하나의-비용-보기)를 봅니다.
 
 ### 다른 파일
 

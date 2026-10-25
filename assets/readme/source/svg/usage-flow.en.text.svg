@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="960" viewBox="0 0 1600 960" role="img" aria-labelledby="title description" xml:lang="en">
 <title id="title">One task, from request to recorded completion.</title>
-<desc id="description">1. Ask Spec: it drafts the goal, completion criteria and an Assurance tier, then asks whether to implement it now. Review them. 2. Answer Yes and Seal starts. Naming the goal folder in a separate message works too. 3. The agent plans, implements and checks through ha, which records every run. standard and strict goals get independent Spar review rounds before completion, and strict goals also get a plan review before work. light goals may skip review with a reason. Questions that change the requirements come to you. 4. When the required conditions are met and, for standard and strict, a recorded review gate covers the last commit, ha done records completion. The report lands in PROGRESS.md. To resume in a new conversation, open the same project and name the same goal. This is a concept illustration, not an actual execution result.</desc>
+<desc id="description">1. Ask Spec: it drafts the goal, completion criteria and an Assurance tier, then asks whether to implement it now. Review them. 2. Answer Yes and Seal starts. Naming the goal folder in a separate message works too. 3. The agent plans, implements and checks through ha, which records every run. standard and strict goals get independent Spar review rounds before completion, and strict goals also get a plan review before work. light goals may skip review with a reason. Seal asks you about decisions only you can make: before work, the foreseeable ones in one message; during work, only new ones, such as a requirement question; at the end, the confirmations in one message. 4. When the required conditions are met and, for standard and strict, a recorded review gate covers the last commit, ha done records completion. The report lands in PROGRESS.md. To resume in a new conversation, open the same project and name the same goal. This is a concept illustration, not an actual execution result.</desc>
 <rect x="0" y="0" width="1600" height="960" rx="0" fill="#FAFBFD"/>
 <text x="48" y="61" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">JAEKIT / HOW TO USE</text>
 <text x="1552" y="65" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="32" font-weight="700" fill="#122033" text-anchor="end" xml:space="preserve">Jaekit</text>
@@ -109,27 +109,30 @@
 <text x="1176" y="566" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">When required conditions are</text>
 <text x="1176" y="600" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">met, ha done records completion;</text>
 <text x="1176" y="634" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">the report lands in PROGRESS.md.</text>
-<rect x="48" y="694" width="1504" height="156" rx="16" fill="#FFFFFF" stroke="#D7DFE9" stroke-width="2"/>
-<text x="76" y="730" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="700" fill="#7A4408" text-anchor="start" xml:space="preserve">Independent review depends on the Assurance tier</text>
-<rect x="76" y="748" width="66.709" height="30" rx="15" fill="#FFF3E3"/>
-<text x="109.3545" y="769" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#7A4408" text-anchor="middle" xml:space="preserve">light</text>
-<text x="76" y="806" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">may skip review,</text>
-<text x="76" y="833" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">with a reason</text>
-<rect x="446" y="748" width="103.871" height="30" rx="15" fill="#FFF3E3"/>
-<text x="497.9355" y="769" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#7A4408" text-anchor="middle" xml:space="preserve">standard</text>
-<text x="446" y="806" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">Spar review rounds; the gate</text>
-<text x="446" y="833" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">must cover the last commit</text>
-<rect x="816" y="748" width="72.268" height="30" rx="15" fill="#FFF3E3"/>
-<text x="852.134" y="769" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#7A4408" text-anchor="middle" xml:space="preserve">strict</text>
-<text x="816" y="806" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">standard, plus a plan</text>
-<text x="816" y="833" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">review before work</text>
-<rect x="1186" y="748" width="40" height="30" rx="15" fill="#EDF0FF"/>
-<text x="1206.0" y="769" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#2B3FA8" text-anchor="middle" xml:space="preserve">?</text>
-<text x="1186" y="806" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">Questions that change the</text>
-<text x="1186" y="833" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">requirements come to you</text>
-<rect x="48" y="866" width="1504" height="56" rx="14" fill="#F0F3F8"/>
-<path d="M76 885V879Q76 875 80 875H94L99 881H120Q124 881 124 885V900Q124 904 120 904H80Q76 904 76 900Z" fill="#FFFFFF" stroke="#546276" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M76 887H124L120 904H76Z" fill="#EDF0FF" stroke="#546276" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="142" y="900" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="22" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">To resume, open the same project and name the same goal in a new conversation.</text>
+<rect x="48" y="680" width="1504" height="176" rx="16" fill="#FFFFFF" stroke="#D7DFE9" stroke-width="2"/>
+<text x="76" y="716" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="21" font-weight="700" fill="#7A4408" text-anchor="start" xml:space="preserve">Independent review depends on the Assurance tier</text>
+<rect x="76" y="736" width="66.709" height="30" rx="15" fill="#FFF3E3"/>
+<text x="109.3545" y="757" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#7A4408" text-anchor="middle" xml:space="preserve">light</text>
+<text x="76" y="796" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">may skip review,</text>
+<text x="76" y="824" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">with a reason</text>
+<rect x="348" y="736" width="103.871" height="30" rx="15" fill="#FFF3E3"/>
+<text x="399.9355" y="757" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#7A4408" text-anchor="middle" xml:space="preserve">standard</text>
+<text x="348" y="796" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">Spar review rounds; the gate</text>
+<text x="348" y="824" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">must cover the last commit</text>
+<rect x="620" y="736" width="72.268" height="30" rx="15" fill="#FFF3E3"/>
+<text x="656.134" y="757" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#7A4408" text-anchor="middle" xml:space="preserve">strict</text>
+<text x="620" y="796" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">standard, plus a plan</text>
+<text x="620" y="824" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">review before work</text>
+<rect x="898" y="694" width="638" height="148" rx="14" fill="#EDF0FF"/>
+<rect x="918" y="710" width="40" height="30" rx="15" fill="#FFFFFF"/>
+<text x="938" y="731" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#2B3FA8" text-anchor="middle" xml:space="preserve">?</text>
+<text x="972" y="732" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="700" fill="#2B3FA8" text-anchor="start" xml:space="preserve">Seal asks you about decisions only you can make</text>
+<text x="918" y="772" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">Before work: the foreseeable ones, in one message</text>
+<text x="918" y="800" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">During work: only new ones, such as a requirement question</text>
+<text x="918" y="828" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#122033" text-anchor="start" xml:space="preserve">At the end: the confirmations, in one message</text>
+<rect x="48" y="868" width="1504" height="56" rx="14" fill="#F0F3F8"/>
+<path d="M76 887V881Q76 877 80 877H94L99 883H120Q124 883 124 887V902Q124 906 120 906H80Q76 906 76 902Z" fill="#FFFFFF" stroke="#546276" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M76 889H124L120 906H76Z" fill="#EDF0FF" stroke="#546276" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="142" y="902" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="22" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">To resume, open the same project and name the same goal in a new conversation.</text>
 <text x="1552" y="946" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="16" font-weight="400" fill="#546276" text-anchor="end" xml:space="preserve">Usage flow · Concept illustration</text>
 </svg>

@@ -333,17 +333,19 @@ func TestReadmeDemoUserStepsAC5_SourcesAndCharacter(t *testing.T) {
 // section with the walkthrough's alt text masked, the get-started section
 // and the records section. The expected values are the content at main
 // 6e9a74d, written here; the get-started sections are those of the v0.1.8
-// release, whose install pins and version check differ from 6e9a74d.
+// release, whose install pins and version check differ from 6e9a74d. All
+// three are now those of the readme-first-run goal, which edited parts of
+// each; its own check compares the rest of them with 81a7d47.
 var rduKept = map[string]map[string]string{
 	"README.md": {
-		"flow":        "f702e3c692b176755df07f6d4b29afa006e1c0f1caf3d4f15e4f9c7a6f0c23e5",
-		"get-started": "c5eb0c4c3e37360aadeba9364b97b275910a672b7feb921cda093042ffe5971e",
-		"records":     "6f3a565c666e3a8439e2b886d826d32d55adee0d397f9c1f84fd1936adb449e5",
+		"flow":        "e99f3da9160881f8a46a6912c19f8a1359a573d4da556496f0d3575958aaca08",
+		"get-started": "8942bfb730cb2f02041d1b1f8c24278335974615994b8b4c8bbe83c00862e794",
+		"records":     "65516132bd1d5a6a0003ee59f8da301973979f567ae9fbdc9fde05d99ef08f6a",
 	},
 	"README.ko.md": {
-		"flow":        "a5f3239c5889c2b796f7d6315a667501a58abe21bfcfd90bf90f06c1355afcfc",
-		"get-started": "4f7cf39825c6457691f7eae92743b6cfd8ac8111e0db121c5ea3d43819258fed",
-		"records":     "69b5b63c849ccf90466414eb5b3efa889fa6377a63141e5cf63ac3323f55da9a",
+		"flow":        "3304c8bba30106da2de475268e84c4f9d6b68b9358e7c89196c77ae335c12932",
+		"get-started": "9651222c93b37105dde06f741d1b30c56389dd75e3373794cb9b188c3689d76e",
+		"records":     "0cc3554421fb8b14450b24742f3e32b8482846cb56615cae51821eda13ba79fb",
 	},
 }
 

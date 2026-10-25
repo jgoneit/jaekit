@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="960" viewBox="0 0 1600 960" role="img" aria-labelledby="title description" xml:lang="en">
 <title id="title">One task, from request to recorded completion.</title>
-<desc id="description">1. Ask Spec: it drafts the goal, completion criteria and an Assurance tier, then asks whether to implement it now. Review them. 2. Answer Yes and Seal starts. Naming the goal folder in a separate message works too. 3. The agent plans, implements and checks through ha, which records every run. standard and strict goals get independent Spar review rounds before completion, and strict goals also get a plan review before work. light goals may skip review with a reason. Questions that change the requirements come to you. 4. When the required conditions are met and, for standard and strict, a recorded review gate covers the last commit, ha done records completion. The report lands in PROGRESS.md. To resume in a new conversation, open the same project and name the same goal. This is a concept illustration, not an actual execution result.</desc>
+<desc id="description">1. Ask Spec: it drafts the goal, completion criteria and an Assurance tier, then asks whether to implement it now. Review them. 2. Answer Yes and Seal starts. Naming the goal folder in a separate message works too. 3. The agent plans, implements and checks through ha, which records every run. standard and strict goals get independent Spar review rounds before completion, and strict goals also get a plan review before work. light goals may skip review with a reason. Seal asks you about decisions only you can make: before work, the foreseeable ones in one message; during work, only new ones, such as a requirement question; at the end, the confirmations in one message. 4. When the required conditions are met and, for standard and strict, a recorded review gate covers the last commit, ha done records completion. The report lands in PROGRESS.md. To resume in a new conversation, open the same project and name the same goal. This is a concept illustration, not an actual execution result.</desc>
 <defs>
 <path id="b0" d="M252 -14C411 -14 481 100 481 239V741H333V251C333 149 299 114 234 114C192 114 152 137 124 191L23 116C72 29 145 -14 252 -14Z"/>
 <path id="b1" d="M-4 0H146L198 190H437L489 0H645L408 741H233ZM230 305 252 386C274 463 295 547 315 628H319C341 549 361 463 384 386L406 305Z"/>
@@ -92,10 +92,13 @@
 <path id="r87" d="M389 -13C487 -13 568 23 615 72V380H374V303H530V111C501 84 450 68 398 68C241 68 153 184 153 369C153 552 249 665 397 665C470 665 518 634 555 596L605 656C563 700 496 746 394 746C200 746 58 603 58 366C58 128 196 -13 389 -13Z"/>
 <path id="r88" d="M101 0H534V79H193V346H471V425H193V655H523V733H101Z"/>
 <path id="r89" d="M331 -13C455 -13 567 94 567 280C567 448 491 557 351 557C290 557 230 523 180 481L184 578V796H92V0H165L173 56H177C224 13 281 -13 331 -13ZM316 64C280 64 231 78 184 120V406C235 454 283 480 328 480C432 480 472 400 472 279C472 145 406 64 316 64Z"/>
-<path id="r90" d="M371 64C239 64 153 182 153 369C153 552 239 665 371 665C503 665 589 552 589 369C589 182 503 64 371 64ZM595 -184C639 -184 678 -177 700 -167L682 -96C663 -102 638 -107 605 -107C526 -107 458 -74 425 -9C580 18 684 158 684 369C684 604 555 746 371 746C187 746 58 604 58 369C58 154 166 12 326 -10C367 -110 460 -184 595 -184Z"/>
-<path id="r91" d="M361 -13C510 -13 624 67 624 302V733H535V300C535 124 458 68 361 68C265 68 190 124 190 300V733H98V302C98 67 211 -13 361 -13Z"/>
-<path id="r92" d="M276 293C312 293 343 323 343 363C343 405 312 434 276 434C240 434 211 405 211 363C211 323 240 293 276 293Z"/>
-<path id="r93" d="M377 -13C472 -13 544 25 602 92L551 151C504 99 451 68 381 68C241 68 153 184 153 369C153 552 246 665 384 665C447 665 495 637 534 596L584 656C542 703 472 746 383 746C197 746 58 603 58 366C58 128 194 -13 377 -13Z"/>
+<path id="b90" d="M360 -14C483 -14 598 97 598 290C598 461 515 574 377 574C322 574 266 547 221 507L226 597V798H79V0H194L206 59H211C256 12 310 -14 360 -14ZM328 107C297 107 260 118 226 149V396C264 434 298 453 336 453C413 453 447 394 447 287C447 165 394 107 328 107Z"/>
+<path id="r91" d="M101 0H334C498 0 612 71 612 215C612 315 550 373 463 390V395C532 417 570 481 570 554C570 683 466 733 318 733H101ZM193 422V660H306C421 660 479 628 479 542C479 467 428 422 302 422ZM193 74V350H321C450 350 521 309 521 218C521 119 447 74 321 74Z"/>
+<path id="r92" d="M139 390C175 390 205 418 205 460C205 501 175 530 139 530C102 530 73 501 73 460C73 418 102 390 139 390ZM139 -13C175 -13 205 15 205 56C205 98 175 126 139 126C102 126 73 98 73 56C73 15 102 -13 139 -13Z"/>
+<path id="r93" d="M101 0H288C509 0 629 137 629 369C629 603 509 733 284 733H101ZM193 76V658H276C449 658 534 555 534 369C534 184 449 76 276 76Z"/>
+<path id="r94" d="M361 -13C510 -13 624 67 624 302V733H535V300C535 124 458 68 361 68C265 68 190 124 190 300V733H98V302C98 67 211 -13 361 -13Z"/>
+<path id="r95" d="M276 293C312 293 343 323 343 363C343 405 312 434 276 434C240 434 211 405 211 363C211 323 240 293 276 293Z"/>
+<path id="r96" d="M377 -13C472 -13 544 25 602 92L551 151C504 99 451 68 381 68C241 68 153 184 153 369C153 552 246 665 384 665C447 665 495 637 534 596L584 656C542 703 472 746 383 746C197 746 58 603 58 366C58 128 194 -13 377 -13Z"/>
 </defs>
 <rect x="0" y="0" width="1600" height="960" rx="0" fill="#FAFBFD"/>
 <g aria-label="JAEKIT / HOW TO USE" data-text="JAEKIT / HOW TO USE" fill="#546276" transform="translate(48.000 61) scale(0.019000 -0.019000)">
@@ -865,8 +868,8 @@
 <use href="#r55" x="15116"/>
 <use href="#r73" x="15736"/>
 </g>
-<rect x="48" y="694" width="1504" height="156" rx="16" fill="#FFFFFF" stroke="#D7DFE9" stroke-width="2"/>
-<g aria-label="Independent review depends on the Assurance tier" data-text="Independent review depends on the Assurance tier" fill="#7A4408" transform="translate(76.000 730) scale(0.021000 -0.021000)">
+<rect x="48" y="680" width="1504" height="176" rx="16" fill="#FFFFFF" stroke="#D7DFE9" stroke-width="2"/>
+<g aria-label="Independent review depends on the Assurance tier" data-text="Independent review depends on the Assurance tier" fill="#7A4408" transform="translate(76.000 716) scale(0.021000 -0.021000)">
 <use href="#b4" x="0"/>
 <use href="#b17" x="330"/>
 <use href="#b27" x="971"/>
@@ -910,15 +913,15 @@
 <use href="#b13" x="23960"/>
 <use href="#b21" x="24541"/>
 </g>
-<rect x="76" y="748" width="66.709" height="30" rx="15" fill="#FFF3E3"/>
-<g aria-label="light" data-text="light" fill="#7A4408" transform="translate(90.000 769) scale(0.017000 -0.017000)">
+<rect x="76" y="736" width="66.709" height="30" rx="15" fill="#FFF3E3"/>
+<g aria-label="light" data-text="light" fill="#7A4408" transform="translate(90.000 757) scale(0.017000 -0.017000)">
 <use href="#b29" x="0"/>
 <use href="#b15" x="315"/>
 <use href="#b38" x="619"/>
 <use href="#b37" x="1216"/>
 <use href="#b16" x="1856"/>
 </g>
-<g aria-label="may skip review," data-text="may skip review," fill="#122033" transform="translate(76.000 806) scale(0.018000 -0.018000)">
+<g aria-label="may skip review," data-text="may skip review," fill="#122033" transform="translate(76.000 796) scale(0.018000 -0.018000)">
 <use href="#r72" x="0"/>
 <use href="#r57" x="926"/>
 <use href="#r79" x="1489"/>
@@ -934,7 +937,7 @@
 <use href="#r71" x="6665"/>
 <use href="#r65" x="7467"/>
 </g>
-<g aria-label="with a reason" data-text="with a reason" fill="#122033" transform="translate(76.000 833) scale(0.018000 -0.018000)">
+<g aria-label="with a reason" data-text="with a reason" fill="#122033" transform="translate(76.000 824) scale(0.018000 -0.018000)">
 <use href="#r71" x="0"/>
 <use href="#r66" x="802"/>
 <use href="#r59" x="1077"/>
@@ -947,8 +950,8 @@
 <use href="#r63" x="5045"/>
 <use href="#r67" x="5651"/>
 </g>
-<rect x="446" y="748" width="103.871" height="30" rx="15" fill="#FFF3E3"/>
-<g aria-label="standard" data-text="standard" fill="#7A4408" transform="translate(460.000 769) scale(0.017000 -0.017000)">
+<rect x="348" y="736" width="103.871" height="30" rx="15" fill="#FFF3E3"/>
+<g aria-label="standard" data-text="standard" fill="#7A4408" transform="translate(362.000 757) scale(0.017000 -0.017000)">
 <use href="#b18" x="0"/>
 <use href="#b16" x="495"/>
 <use href="#b12" x="916"/>
@@ -958,7 +961,7 @@
 <use href="#b21" x="3383"/>
 <use href="#b27" x="3819"/>
 </g>
-<g aria-label="Spar review rounds; the gate" data-text="Spar review rounds; the gate" fill="#122033" transform="translate(446.000 806) scale(0.018000 -0.018000)">
+<g aria-label="Spar review rounds; the gate" data-text="Spar review rounds; the gate" fill="#122033" transform="translate(348.000 796) scale(0.018000 -0.018000)">
 <use href="#r51" x="0"/>
 <use href="#r52" x="596"/>
 <use href="#r57" x="1216"/>
@@ -984,7 +987,7 @@
 <use href="#r59" x="12399"/>
 <use href="#r53" x="12776"/>
 </g>
-<g aria-label="must cover the last commit" data-text="must cover the last commit" fill="#122033" transform="translate(446.000 833) scale(0.018000 -0.018000)">
+<g aria-label="must cover the last commit" data-text="must cover the last commit" fill="#122033" transform="translate(348.000 824) scale(0.018000 -0.018000)">
 <use href="#r72" x="0"/>
 <use href="#r69" x="926"/>
 <use href="#r60" x="1533"/>
@@ -1008,8 +1011,8 @@
 <use href="#r66" x="12051"/>
 <use href="#r59" x="12326"/>
 </g>
-<rect x="816" y="748" width="72.268" height="30" rx="15" fill="#FFF3E3"/>
-<g aria-label="strict" data-text="strict" fill="#7A4408" transform="translate(830.000 769) scale(0.017000 -0.017000)">
+<rect x="620" y="736" width="72.268" height="30" rx="15" fill="#FFF3E3"/>
+<g aria-label="strict" data-text="strict" fill="#7A4408" transform="translate(634.000 757) scale(0.017000 -0.017000)">
 <use href="#b18" x="0"/>
 <use href="#b16" x="495"/>
 <use href="#b21" x="916"/>
@@ -1017,7 +1020,7 @@
 <use href="#b26" x="1656"/>
 <use href="#b16" x="2183"/>
 </g>
-<g aria-label="standard, plus a plan" data-text="standard, plus a plan" fill="#122033" transform="translate(816.000 806) scale(0.018000 -0.018000)">
+<g aria-label="standard, plus a plan" data-text="standard, plus a plan" fill="#122033" transform="translate(620.000 796) scale(0.018000 -0.018000)">
 <use href="#r60" x="0"/>
 <use href="#r59" x="468"/>
 <use href="#r57" x="845"/>
@@ -1037,7 +1040,7 @@
 <use href="#r57" x="8605"/>
 <use href="#r67" x="9168"/>
 </g>
-<g aria-label="review before work" data-text="review before work" fill="#122033" transform="translate(816.000 833) scale(0.018000 -0.018000)">
+<g aria-label="review before work" data-text="review before work" fill="#122033" transform="translate(620.000 824) scale(0.018000 -0.018000)">
 <use href="#r56" x="0"/>
 <use href="#r53" x="388"/>
 <use href="#r78" x="942"/>
@@ -1055,61 +1058,191 @@
 <use href="#r56" x="7995"/>
 <use href="#r70" x="8383"/>
 </g>
-<rect x="1186" y="748" width="40" height="30" rx="15" fill="#EDF0FF"/>
-<g aria-label="?" data-text="?" fill="#2B3FA8" transform="translate(1201.631 769) scale(0.017000 -0.017000)">
+<rect x="898" y="694" width="638" height="148" rx="14" fill="#EDF0FF"/>
+<rect x="918" y="710" width="40" height="30" rx="15" fill="#FFFFFF"/>
+<g aria-label="?" data-text="?" fill="#2B3FA8" transform="translate(933.631 731) scale(0.017000 -0.017000)">
 <use href="#b47" x="0"/>
 </g>
-<g aria-label="Questions that change the" data-text="Questions that change the" fill="#122033" transform="translate(1186.000 806) scale(0.018000 -0.018000)">
-<use href="#r90" x="0"/>
-<use href="#r69" x="742"/>
-<use href="#r53" x="1349"/>
-<use href="#r60" x="1903"/>
-<use href="#r59" x="2371"/>
-<use href="#r66" x="2748"/>
-<use href="#r63" x="3023"/>
-<use href="#r67" x="3629"/>
-<use href="#r60" x="4239"/>
-<use href="#r59" x="4931"/>
-<use href="#r61" x="5308"/>
-<use href="#r57" x="5915"/>
-<use href="#r59" x="6478"/>
-<use href="#r54" x="7079"/>
-<use href="#r61" x="7589"/>
-<use href="#r57" x="8196"/>
-<use href="#r67" x="8759"/>
-<use href="#r62" x="9369"/>
-<use href="#r53" x="9933"/>
-<use href="#r59" x="10711"/>
-<use href="#r61" x="11088"/>
-<use href="#r53" x="11695"/>
+<g aria-label="Seal asks you about decisions only you can make" data-text="Seal asks you about decisions only you can make" fill="#2B3FA8" transform="translate(972.000 732) scale(0.019000 -0.019000)">
+<use href="#b11" x="0"/>
+<use href="#b13" x="624"/>
+<use href="#b12" x="1205"/>
+<use href="#b29" x="1796"/>
+<use href="#b12" x="2338"/>
+<use href="#b18" x="2929"/>
+<use href="#b14" x="3424"/>
+<use href="#b18" x="4028"/>
+<use href="#b40" x="4750"/>
+<use href="#b22" x="5324"/>
+<use href="#b25" x="5950"/>
+<use href="#b12" x="6814"/>
+<use href="#b90" x="7405"/>
+<use href="#b22" x="8049"/>
+<use href="#b25" x="8675"/>
+<use href="#b16" x="9312"/>
+<use href="#b27" x="9960"/>
+<use href="#b13" x="10604"/>
+<use href="#b26" x="11185"/>
+<use href="#b15" x="11712"/>
+<use href="#b18" x="12016"/>
+<use href="#b15" x="12511"/>
+<use href="#b22" x="12815"/>
+<use href="#b17" x="13441"/>
+<use href="#b18" x="14082"/>
+<use href="#b22" x="14804"/>
+<use href="#b17" x="15430"/>
+<use href="#b29" x="16071"/>
+<use href="#b40" x="16386"/>
+<use href="#b40" x="17187"/>
+<use href="#b22" x="17761"/>
+<use href="#b25" x="18387"/>
+<use href="#b26" x="19251"/>
+<use href="#b12" x="19778"/>
+<use href="#b17" x="20369"/>
+<use href="#b23" x="21237"/>
+<use href="#b12" x="22201"/>
+<use href="#b14" x="22792"/>
+<use href="#b13" x="23396"/>
 </g>
-<g aria-label="requirements come to you" data-text="requirements come to you" fill="#122033" transform="translate(1186.000 833) scale(0.018000 -0.018000)">
-<use href="#r56" x="0"/>
-<use href="#r53" x="388"/>
-<use href="#r82" x="942"/>
-<use href="#r69" x="1562"/>
-<use href="#r66" x="2169"/>
-<use href="#r56" x="2444"/>
-<use href="#r53" x="2832"/>
-<use href="#r72" x="3386"/>
-<use href="#r53" x="4312"/>
-<use href="#r67" x="4866"/>
-<use href="#r59" x="5476"/>
-<use href="#r60" x="5853"/>
-<use href="#r54" x="6545"/>
-<use href="#r63" x="7055"/>
-<use href="#r72" x="7661"/>
-<use href="#r53" x="8587"/>
-<use href="#r59" x="9365"/>
-<use href="#r63" x="9742"/>
-<use href="#r79" x="10572"/>
-<use href="#r63" x="11093"/>
-<use href="#r69" x="11699"/>
+<g aria-label="Before work: the foreseeable ones, in one message" data-text="Before work: the foreseeable ones, in one message" fill="#122033" transform="translate(918.000 772) scale(0.018000 -0.018000)">
+<use href="#r91" x="0"/>
+<use href="#r53" x="657"/>
+<use href="#r58" x="1211"/>
+<use href="#r63" x="1536"/>
+<use href="#r56" x="2142"/>
+<use href="#r53" x="2530"/>
+<use href="#r71" x="3308"/>
+<use href="#r63" x="4110"/>
+<use href="#r56" x="4716"/>
+<use href="#r70" x="5104"/>
+<use href="#r92" x="5656"/>
+<use href="#r59" x="6158"/>
+<use href="#r61" x="6535"/>
+<use href="#r53" x="7142"/>
+<use href="#r58" x="7920"/>
+<use href="#r63" x="8245"/>
+<use href="#r56" x="8851"/>
+<use href="#r53" x="9239"/>
+<use href="#r60" x="9793"/>
+<use href="#r53" x="10261"/>
+<use href="#r53" x="10815"/>
+<use href="#r57" x="11369"/>
+<use href="#r89" x="11932"/>
+<use href="#r64" x="12550"/>
+<use href="#r53" x="12834"/>
+<use href="#r63" x="13612"/>
+<use href="#r67" x="14218"/>
+<use href="#r53" x="14828"/>
+<use href="#r60" x="15382"/>
+<use href="#r65" x="15850"/>
+<use href="#r66" x="16352"/>
+<use href="#r67" x="16627"/>
+<use href="#r63" x="17461"/>
+<use href="#r67" x="18067"/>
+<use href="#r53" x="18677"/>
+<use href="#r72" x="19455"/>
+<use href="#r53" x="20381"/>
+<use href="#r60" x="20935"/>
+<use href="#r60" x="21403"/>
+<use href="#r57" x="21871"/>
+<use href="#r62" x="22434"/>
+<use href="#r53" x="22998"/>
 </g>
-<rect x="48" y="866" width="1504" height="56" rx="14" fill="#F0F3F8"/>
-<path d="M76 885V879Q76 875 80 875H94L99 881H120Q124 881 124 885V900Q124 904 120 904H80Q76 904 76 900Z" fill="#FFFFFF" stroke="#546276" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M76 887H124L120 904H76Z" fill="#EDF0FF" stroke="#546276" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-<g aria-label="To resume, open the same project and name the same goal in a new conversation." data-text="To resume, open the same project and name the same goal in a new conversation." fill="#122033" transform="translate(142.000 900) scale(0.022000 -0.022000)">
+<g aria-label="During work: only new ones, such as a requirement question" data-text="During work: only new ones, such as a requirement question" fill="#122033" transform="translate(918.000 800) scale(0.018000 -0.018000)">
+<use href="#r93" x="0"/>
+<use href="#r69" x="688"/>
+<use href="#r56" x="1295"/>
+<use href="#r66" x="1683"/>
+<use href="#r67" x="1958"/>
+<use href="#r62" x="2568"/>
+<use href="#r71" x="3356"/>
+<use href="#r63" x="4158"/>
+<use href="#r56" x="4764"/>
+<use href="#r70" x="5152"/>
+<use href="#r92" x="5704"/>
+<use href="#r63" x="6206"/>
+<use href="#r67" x="6812"/>
+<use href="#r64" x="7422"/>
+<use href="#r79" x="7706"/>
+<use href="#r67" x="8451"/>
+<use href="#r53" x="9061"/>
+<use href="#r71" x="9615"/>
+<use href="#r63" x="10641"/>
+<use href="#r67" x="11247"/>
+<use href="#r53" x="11857"/>
+<use href="#r60" x="12411"/>
+<use href="#r65" x="12879"/>
+<use href="#r60" x="13381"/>
+<use href="#r69" x="13849"/>
+<use href="#r54" x="14456"/>
+<use href="#r61" x="14966"/>
+<use href="#r57" x="15797"/>
+<use href="#r60" x="16360"/>
+<use href="#r57" x="17052"/>
+<use href="#r56" x="17839"/>
+<use href="#r53" x="18227"/>
+<use href="#r82" x="18781"/>
+<use href="#r69" x="19401"/>
+<use href="#r66" x="20008"/>
+<use href="#r56" x="20283"/>
+<use href="#r53" x="20671"/>
+<use href="#r72" x="21225"/>
+<use href="#r53" x="22151"/>
+<use href="#r67" x="22705"/>
+<use href="#r59" x="23315"/>
+<use href="#r82" x="23916"/>
+<use href="#r69" x="24536"/>
+<use href="#r53" x="25143"/>
+<use href="#r60" x="25697"/>
+<use href="#r59" x="26165"/>
+<use href="#r66" x="26542"/>
+<use href="#r63" x="26817"/>
+<use href="#r67" x="27423"/>
+</g>
+<g aria-label="At the end: the confirmations, in one message" data-text="At the end: the confirmations, in one message" fill="#122033" transform="translate(918.000 828) scale(0.018000 -0.018000)">
+<use href="#r68" x="0"/>
+<use href="#r59" x="608"/>
+<use href="#r59" x="1209"/>
+<use href="#r61" x="1586"/>
+<use href="#r53" x="2193"/>
+<use href="#r53" x="2971"/>
+<use href="#r67" x="3525"/>
+<use href="#r55" x="4135"/>
+<use href="#r92" x="4755"/>
+<use href="#r59" x="5257"/>
+<use href="#r61" x="5634"/>
+<use href="#r53" x="6241"/>
+<use href="#r54" x="7019"/>
+<use href="#r63" x="7529"/>
+<use href="#r67" x="8135"/>
+<use href="#r58" x="8745"/>
+<use href="#r66" x="9070"/>
+<use href="#r56" x="9345"/>
+<use href="#r72" x="9733"/>
+<use href="#r57" x="10659"/>
+<use href="#r59" x="11222"/>
+<use href="#r66" x="11599"/>
+<use href="#r63" x="11874"/>
+<use href="#r67" x="12480"/>
+<use href="#r60" x="13090"/>
+<use href="#r65" x="13558"/>
+<use href="#r66" x="14060"/>
+<use href="#r67" x="14335"/>
+<use href="#r63" x="15169"/>
+<use href="#r67" x="15775"/>
+<use href="#r53" x="16385"/>
+<use href="#r72" x="17163"/>
+<use href="#r53" x="18089"/>
+<use href="#r60" x="18643"/>
+<use href="#r60" x="19111"/>
+<use href="#r57" x="19579"/>
+<use href="#r62" x="20142"/>
+<use href="#r53" x="20706"/>
+</g>
+<rect x="48" y="868" width="1504" height="56" rx="14" fill="#F0F3F8"/>
+<path d="M76 887V881Q76 877 80 877H94L99 883H120Q124 883 124 887V902Q124 906 120 906H80Q76 906 76 902Z" fill="#FFFFFF" stroke="#546276" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M76 889H124L120 906H76Z" fill="#EDF0FF" stroke="#546276" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<g aria-label="To resume, open the same project and name the same goal in a new conversation." data-text="To resume, open the same project and name the same goal in a new conversation." fill="#122033" transform="translate(142.000 902) scale(0.022000 -0.022000)">
 <use href="#b5" x="0"/>
 <use href="#b22" x="625"/>
 <use href="#b21" x="1478"/>
@@ -1176,7 +1309,7 @@
 <use href="#b30" x="39895"/>
 </g>
 <g aria-label="Usage flow · Concept illustration" data-text="Usage flow · Concept illustration" fill="#546276" transform="translate(1306.032 946) scale(0.016000 -0.016000)">
-<use href="#r91" x="0"/>
+<use href="#r94" x="0"/>
 <use href="#r60" x="721"/>
 <use href="#r57" x="1189"/>
 <use href="#r62" x="1752"/>
@@ -1185,8 +1318,8 @@
 <use href="#r64" x="3419"/>
 <use href="#r63" x="3703"/>
 <use href="#r71" x="4309"/>
-<use href="#r92" x="5335"/>
-<use href="#r93" x="6120"/>
+<use href="#r95" x="5335"/>
+<use href="#r96" x="6120"/>
 <use href="#r63" x="6758"/>
 <use href="#r67" x="7364"/>
 <use href="#r54" x="7974"/>

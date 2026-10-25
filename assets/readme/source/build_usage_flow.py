@@ -42,15 +42,16 @@ COPY = {
             ("light", ["이유를 남기고", "검토를 생략할 수 있음"]),
             ("standard", ["완료 전 Spar 검토 라운드,", "gate가 마지막 commit을 덮음"]),
             ("strict", ["standard에 더해", "작업 전 계획 검토"]),
-            ("?", ["요구를 바꿔야 하는", "질문은 내게 옵니다"]),
         ],
+        "ask_head": "Seal은 나만 정할 수 있는 결정만 묻습니다",
+        "ask_rows": ["작업 전: 미리 알 수 있는 결정을 한 메시지로", "작업 중: 요구 질문 같은 새 질문만", "끝: 필요한 확인을 한 메시지로"],
         "resume": "새 대화에서도, 같은 프로젝트의 같은 목표를 지정해 이어갑니다.",
         "concept": "사용 흐름 · 개념도",
         "description": "1. Spec에 요청하면 목표와 완료 조건, 검토 등급(Assurance)을 정리하고 지금 구현할지 묻습니다. 내가 읽고 확인합니다. "
                        "2. “응”이라고 답하면 Seal이 시작됩니다. 나중에 별도 메시지로 목표 폴더를 지정해 시작해도 됩니다. "
                        "3. 에이전트가 계획·구현하고 ha로 검사하며, 모든 실행이 기록됩니다. "
                        "standard·strict 목표는 완료 전에 Spar의 독립 검토 라운드를 받고 strict는 작업 전 계획 검토도 받습니다. light는 이유를 남기고 검토를 생략할 수 있습니다. "
-                       "요구를 바꿔야 하는 질문은 내게 옵니다. "
+                       "Seal은 나만 정할 수 있는 결정만 묻습니다. 작업 전에는 미리 알 수 있는 결정을 한 메시지로, 작업 중에는 요구 질문 같은 새 질문만, 끝에는 필요한 확인을 한 메시지로 묻습니다. "
                        "4. 필수 조건이 충족되고, standard·strict는 기록된 검토 gate가 마지막 commit을 덮으면 ha done이 완료를 기록합니다. 완료 보고는 PROGRESS.md에 남습니다. "
                        "새 대화에서는 같은 프로젝트의 같은 목표를 지정해 이어갑니다. 실제 실행 결과가 아닌 개념도입니다.",
     },
@@ -73,15 +74,16 @@ COPY = {
             ("light", ["may skip review,", "with a reason"]),
             ("standard", ["Spar review rounds; the gate", "must cover the last commit"]),
             ("strict", ["standard, plus a plan", "review before work"]),
-            ("?", ["Questions that change the", "requirements come to you"]),
         ],
+        "ask_head": "Seal asks you about decisions only you can make",
+        "ask_rows": ["Before work: the foreseeable ones, in one message", "During work: only new ones, such as a requirement question", "At the end: the confirmations, in one message"],
         "resume": "To resume, open the same project and name the same goal in a new conversation.",
         "concept": "Usage flow · Concept illustration",
         "description": "1. Ask Spec: it drafts the goal, completion criteria and an Assurance tier, then asks whether to implement it now. Review them. "
                        "2. Answer Yes and Seal starts. Naming the goal folder in a separate message works too. "
                        "3. The agent plans, implements and checks through ha, which records every run. "
                        "standard and strict goals get independent Spar review rounds before completion, and strict goals also get a plan review before work. light goals may skip review with a reason. "
-                       "Questions that change the requirements come to you. "
+                       "Seal asks you about decisions only you can make: before work, the foreseeable ones in one message; during work, only new ones, such as a requirement question; at the end, the confirmations in one message. "
                        "4. When the required conditions are met and, for standard and strict, a recorded review gate covers the last commit, ha done records completion. The report lands in PROGRESS.md. "
                        "To resume in a new conversation, open the same project and name the same goal. This is a concept illustration, not an actual execution result.",
     },
@@ -186,24 +188,29 @@ def draw(fonts, language, outline):
         for j, line in enumerate(c["body"][i]):
             d.text(x, 566 + 34 * j, line, 23 if ko else 21, fill=C["muted"], max_width=CAPTION_W)
 
-    # Review depends on the tier; questions about the requirements reach the user.
-    d.rect(48, 694, 1504, 156, C["white"], C["line"], 2, 16)
-    d.text(76, 730, c["review_title"], 22 if ko else 21, "bold", C["amber_ink"], max_width=1000)
+    # Review depends on the tier. Beside it, when Seal asks the user: only
+    # decisions the user alone can make, at three moments.
+    d.rect(48, 680, 1504, 176, C["white"], C["line"], 2, 16)
+    d.text(76, 716, c["review_title"], 22 if ko else 21, "bold", C["amber_ink"], max_width=800)
     for i, (name, lines) in enumerate(c["tiers"]):
-        x = 76 + 370 * i
-        question = name == "?"
-        fill, ink = (C["blue_tint"], C["blue_ink"]) if question else (C["amber_tint"], C["amber_ink"])
-        pill = 40 if question else d.width_of(name, 17, "bold") + 28
-        d.rect(x, 748, pill, 30, fill, r=15)
-        d.text(x + pill / 2, 769, name, 17, "bold", ink, "middle")
+        x = 76 + 272 * i
+        pill = d.width_of(name, 17, "bold") + 28
+        d.rect(x, 736, pill, 30, C["amber_tint"], r=15)
+        d.text(x + pill / 2, 757, name, 17, "bold", C["amber_ink"], "middle")
         for j, line in enumerate(lines):
-            d.text(x, 806 + 27 * j, line, 19 if ko else 18, fill=C["ink"], max_width=340)
+            d.text(x, 796 + 28 * j, line, 19 if ko else 18, fill=C["ink"], max_width=252)
+    d.rect(898, 694, 638, 148, C["blue_tint"], r=14)
+    d.rect(918, 710, 40, 30, C["white"], r=15)
+    d.text(938, 731, "?", 17, "bold", C["blue_ink"], "middle")
+    d.text(972, 732, c["ask_head"], 20 if ko else 19, "bold", C["blue_ink"], max_width=548)
+    for j, line in enumerate(c["ask_rows"]):
+        d.text(918, 772 + 28 * j, line, 19 if ko else 18, fill=C["ink"], max_width=600)
 
     # The return path is explicit: the user names the same project and goal.
-    d.rect(48, 866, 1504, 56, C["panel"], r=14)
-    d.path('M76 885V879Q76 875 80 875H94L99 881H120Q124 881 124 885V900Q124 904 120 904H80Q76 904 76 900Z', C["white"], C["muted"], 2.4)
-    d.path('M76 887H124L120 904H76Z', C["blue_tint"], C["muted"], 2.4)
-    d.text(142, 900, c["resume"], 23 if ko else 22, "bold", max_width=1390)
+    d.rect(48, 868, 1504, 56, C["panel"], r=14)
+    d.path('M76 887V881Q76 877 80 877H94L99 883H120Q124 883 124 887V902Q124 906 120 906H80Q76 906 76 902Z', C["white"], C["muted"], 2.4)
+    d.path('M76 889H124L120 906H76Z', C["blue_tint"], C["muted"], 2.4)
+    d.text(142, 902, c["resume"], 23 if ko else 22, "bold", max_width=1390)
     d.text(1552, 946, c["concept"], 16, fill=C["muted"], anchor="end")
     return d
 
