@@ -846,11 +846,11 @@ var rfvGuides = []struct {
 var rfvMeaning = map[string][]string{
 	"assets/readme/SOURCES.md": {"`Assurance:` 등급", "지금 구현할지 한 번 물은 뒤 멈춥니다", "\"응\"으로 Seal이 시작", "**별도 메시지로 Seal을 시작**",
 		"`ha`가 모든 검사 실행을 기록", "`standard`·`strict` 목표는 완료 전에 Spar의 독립 검토 라운드", "`strict`는 작업 전 계획 검토", "`light`는 이유를 남기고 검토를 건너뛸 수 있습니다",
-		"요구를 바꿔야 하는 질문은 사용자에게", "기록된 검토 gate가 마지막 commit을 덮어야", "`PROGRESS.md`", "Git이 무시하는 폴더(예: `docs/reviews/<goal>/`)", "`.git/ha/`",
+		"Seal은 사용자만 정할 수 있는 결정만 묻습니다", "기록된 검토 gate가 마지막 commit을 덮어야", "`PROGRESS.md`", "프로젝트의 Git이 무시하게 설정한 폴더(예: `.gitignore`에 더한 `docs/reviews/<goal>/`)", "`.git/ha/`",
 		"같은 프로젝트의 같은 목표", "`ha report` 출력 모양", "보증 수준은 `local`", "인증된 검증이나 자동 배포처럼 그리지 않습니다"},
 	"assets/readme/SOURCES.en.md": {"`Assurance:` tier", "asks once whether to implement it now, then stops", "The user's yes starts Seal", "**starting Seal in a separate message**",
 		"`ha` records every check run", "`standard` and `strict` goals get independent Spar review rounds before completion", "`strict` goals also get a plan review", "`light` goals may skip review with a reason",
-		"Questions that would change the requirements go to the user", "a recorded review gate must cover the last commit", "`PROGRESS.md`", "a folder Git ignores (for example `docs/reviews/<goal>/`)", "`.git/ha/`",
+		"Seal asks the user only about decisions only the user can make", "a recorded review gate must cover the last commit", "`PROGRESS.md`", "a folder the project's Git is set up to ignore (for example `docs/reviews/<goal>/`, added to `.gitignore`)", "`.git/ha/`",
 		"same goal in a new conversation in the same project", "shape of `ha report` output", "assurance stays `local`", "certified verification or automatic deployment"},
 }
 
