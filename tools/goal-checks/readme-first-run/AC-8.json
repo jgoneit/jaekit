@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "FolderSetUp",
+      "violation": "folder-ignore-unstated",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReadmeFirstRunAC8_FolderSetUp"
+      }
+    }
+  ]
+}

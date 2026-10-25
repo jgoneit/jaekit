@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "YesFirst",
+      "violation": "first-task-yes-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReadmeFirstRunAC3_YesFirst"
+      }
+    }
+  ]
+}

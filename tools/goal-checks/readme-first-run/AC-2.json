@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "SparSetup",
+      "violation": "spar-setup-unstated",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReadmeFirstRunAC2_SparSetup"
+      }
+    }
+  ]
+}

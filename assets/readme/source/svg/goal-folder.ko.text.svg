@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="740" viewBox="0 0 1600 740" role="img" aria-labelledby="title description" xml:lang="ko">
 <title id="title">폴더 구조</title>
-<desc id="description">가상 목표 폴더 docs/specs/password-link/: Spec이 SPEC.md를, Seal이 PLAN.md·REVIEW.md·PROGRESS.md를, ha가 runs.jsonl을 씁니다. REVIEW.md는 검토 계획과 Spar 기록의 요약·위치를 담습니다. Spar의 검토 라운드(01-candidate/)와 gate(gate.json)는 Git이 무시하는 docs/reviews/password-link/에, 검사 출력 원문은 .git/ha/에 남고 Git이 추적하지 않습니다. 실제 기록이 아닌 가상 예시입니다.</desc>
+<desc id="description">가상 목표 폴더 docs/specs/password-link/: Spec이 SPEC.md를, Seal이 PLAN.md·REVIEW.md·PROGRESS.md를, ha가 runs.jsonl을 씁니다. REVIEW.md는 검토 계획과 Spar 기록의 요약·위치를 담습니다. Spar의 검토 라운드(01-candidate/)와 gate(gate.json)는 프로젝트의 Git이 무시하게 설정한 docs/reviews/password-link/에(.gitignore에 docs/reviews/ 추가), 검사 출력 원문은 .git/ha/에 남고 Git이 추적하지 않습니다. 실제 기록이 아닌 가상 예시입니다.</desc>
 <rect x="0" y="0" width="1600" height="740" rx="0" fill="#FAFBFD"/>
 <text x="48" y="78" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="46" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">폴더 구조</text>
 <text x="1552" y="74" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="32" font-weight="700" fill="#122033" text-anchor="end" xml:space="preserve">Jaekit</text>
@@ -48,7 +48,7 @@
 <rect x="1058" y="110" width="498" height="560" rx="18" fill="#FFFFFF" stroke="#D7DFE9" stroke-width="2"/>
 <text x="1082" y="154" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="28" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">Git이 추적하지 않음</text>
 <path d="M1088 168H1530" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-<rect x="1082" y="186" width="450" height="262" rx="14" fill="#FFF3E3"/>
+<rect x="1082" y="186" width="450" height="272" rx="14" fill="#FFF3E3"/>
 <rect x="1102" y="204" width="70" height="30" rx="7" fill="#C9761F"/>
 <text x="1137" y="225" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">Spar</text>
 <text x="1186" y="226" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#7A4408" text-anchor="start" xml:space="preserve">Spar 검토 기록</text>
@@ -60,18 +60,19 @@
 <path d="M1124 354V374H1142" fill="none" stroke="#C9761F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="1152" y="380" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">gate.json</text>
 <text x="1326" y="380" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">검토 gate</text>
-<text x="1102" y="428" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#7A4408" text-anchor="start" xml:space="preserve">Git이 무시하는 폴더에 둡니다</text>
-<rect x="1082" y="466" width="450" height="128" rx="14" fill="#F0F3F8"/>
-<rect x="1102" y="484" width="46" height="30" rx="7" fill="#122033"/>
-<text x="1125" y="505" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">ha</text>
-<text x="1162" y="506" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">검사 출력 원문</text>
-<rect x="1102" y="528" width="64" height="48" rx="8" fill="#122033"/>
-<path d="M1114 542L1124 552L1114 562M1130 564H1150" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="1182" y="556" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="26" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">.git/ha/</text>
-<text x="1182" y="582" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">ha log로 봅니다</text>
-<rect x="1092" y="612" width="40" height="28" rx="4" fill="#FFFFFF" stroke="#546276" stroke-width="2.2"/>
-<path d="M1086 644H1138" fill="none" stroke="#546276" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="1150" y="636" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">내 컴퓨터에만 남음</text>
+<text x="1102" y="418" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#7A4408" text-anchor="start" xml:space="preserve">프로젝트의 Git이 무시하게 설정한 폴더에 둡니다</text>
+<text x="1102" y="442" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#7A4408" text-anchor="start" xml:space="preserve">설정: .gitignore에 docs/reviews/ 추가</text>
+<rect x="1082" y="474" width="450" height="128" rx="14" fill="#F0F3F8"/>
+<rect x="1102" y="492" width="46" height="30" rx="7" fill="#122033"/>
+<text x="1125" y="513" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="#FFFFFF" text-anchor="middle" xml:space="preserve">ha</text>
+<text x="1162" y="514" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">검사 출력 원문</text>
+<rect x="1102" y="536" width="64" height="48" rx="8" fill="#122033"/>
+<path d="M1114 550L1124 560L1114 570M1130 572H1150" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1182" y="564" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="26" font-weight="700" fill="#122033" text-anchor="start" xml:space="preserve">.git/ha/</text>
+<text x="1182" y="590" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="17" font-weight="400" fill="#546276" text-anchor="start" xml:space="preserve">ha log로 봅니다</text>
+<rect x="1092" y="616" width="40" height="28" rx="4" fill="#FFFFFF" stroke="#546276" stroke-width="2.2"/>
+<path d="M1086 648H1138" fill="none" stroke="#546276" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1150" y="640" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="20" font-weight="700" fill="#546276" text-anchor="start" xml:space="preserve">내 컴퓨터에만 남음</text>
 <text x="539" y="712" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="19" font-weight="400" fill="#546276" text-anchor="middle" xml:space="preserve">이해를 돕기 위한 가상 구성 · password-link</text>
 <text x="1552" y="712" font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif" font-size="18" font-weight="700" fill="#546276" text-anchor="end" xml:space="preserve">가상 예시</text>
 </svg>

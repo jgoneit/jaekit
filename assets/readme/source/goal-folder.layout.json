@@ -203,44 +203,51 @@
         "font_size": 18
       },
       {
-        "text": "Git이 무시하는 폴더에 둡니다",
+        "text": "프로젝트의 Git이 무시하게 설정한 폴더에 둡니다",
         "x": 1102,
-        "y": 428,
-        "width": 208.13,
+        "y": 418,
+        "width": 340.97,
+        "font_size": 17
+      },
+      {
+        "text": "설정: .gitignore에 docs/reviews/ 추가",
+        "x": 1102,
+        "y": 442,
+        "width": 294.78,
         "font_size": 17
       },
       {
         "text": "ha",
         "x": 1114.54,
-        "y": 505,
+        "y": 513,
         "width": 20.93,
         "font_size": 17
       },
       {
         "text": "검사 출력 원문",
         "x": 1162,
-        "y": 506,
+        "y": 514,
         "width": 119.48,
         "font_size": 20
       },
       {
         "text": ".git/ha/",
         "x": 1182,
-        "y": 556,
+        "y": 564,
         "width": 94.95,
         "font_size": 26
       },
       {
         "text": "ha log로 봅니다",
         "x": 1182,
-        "y": 582,
+        "y": 590,
         "width": 114.78,
         "font_size": 17
       },
       {
         "text": "내 컴퓨터에만 남음",
         "x": 1150,
-        "y": 636,
+        "y": 640,
         "width": 156.28,
         "font_size": 20
       },
@@ -471,44 +478,51 @@
         "font_size": 17
       },
       {
-        "text": "kept in a folder Git ignores",
+        "text": "in a folder your project's Git is set up to ignore",
         "x": 1102,
-        "y": 428,
-        "width": 221.29,
+        "y": 418,
+        "width": 385.31,
+        "font_size": 17
+      },
+      {
+        "text": "set up: add docs/reviews/ to .gitignore",
+        "x": 1102,
+        "y": 442,
+        "width": 321.27,
         "font_size": 17
       },
       {
         "text": "ha",
         "x": 1114.54,
-        "y": 505,
+        "y": 513,
         "width": 20.93,
         "font_size": 17
       },
       {
         "text": "Raw check output",
         "x": 1162,
-        "y": 506,
+        "y": 514,
         "width": 177.1,
         "font_size": 20
       },
       {
         "text": ".git/ha/",
         "x": 1182,
-        "y": 556,
+        "y": 564,
         "width": 94.95,
         "font_size": 26
       },
       {
         "text": "read it with ha log",
         "x": 1182,
-        "y": 582,
+        "y": 590,
         "width": 142.09,
         "font_size": 17
       },
       {
         "text": "Stays on your computer",
         "x": 1150,
-        "y": 636,
+        "y": 640,
         "width": 223.48,
         "font_size": 19
       },

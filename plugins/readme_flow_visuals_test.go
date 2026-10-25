@@ -363,7 +363,7 @@ var rfvMermaidLines = map[string][]string{
 		`        plan -.->|"strict"| planreview -.-> build`,
 		`        check -->|"검사 통과"| spar`,
 		`        spar -->|"고칠 지적"| build`,
-		`    decide{{"요구를 바꿔야 하는<br/>질문에 내가 답합니다"}}`,
+		`    decide{{"나만 정할 수 있는 결정을<br/>묻는 질문에 답합니다<br/>작업 전: 미리 알 수 있는 결정을 한 번에<br/>작업 중: 요구 질문 같은<br/>새 질문만<br/>끝: 필요한 확인을 한 번에"}}`,
 		`    review -->|"확인 완료"| asknow`,
 		`    asknow -->|"응"| start --> plan`,
 		`    separate -.-> plan`,
@@ -384,7 +384,7 @@ var rfvMermaidLines = map[string][]string{
 		`        plan -.->|"strict"| planreview -.-> build`,
 		`        check -->|"checks pass"| spar`,
 		`        spar -->|"a finding to fix"| build`,
-		`    decide{{"You answer a question<br/>that changes the requirements"}}`,
+		`    decide{{"You answer questions about<br/>decisions only you can make<br/>before work: the foreseeable ones, at once<br/>during work: only new ones,<br/>such as a requirement question<br/>at the end: the confirmations, at once"}}`,
 		`    review -->|"looks right"| asknow`,
 		`    asknow -->|"Yes"| start --> plan`,
 		`    separate -.-> plan`,
@@ -428,13 +428,13 @@ var rfvCaptions = map[string][][]string{
 	"ko": {
 		{"`Assurance:` 등급", "지금 구현할지 한 번 물은 뒤 **멈춥니다**"},
 		{"**\"응\"이라고 답하면 Seal이 시작**", "**별도 메시지로 목표 폴더를 지정해 Seal을 시작**해도 됩니다"},
-		{"`ha`로 검사", "모든 실행을 기록", "완료 전에 Spar의 독립 검토 라운드", "작업 전에 계획 검토", "`light` 목표는 이유를 남기고 검토를 건너뛸 수 있습니다", "요구를 바꿔야 하는 질문은 내게 옵니다"},
+		{"`ha`로 검사", "모든 실행을 기록", "완료 전에 Spar의 독립 검토 라운드", "작업 전에 계획 검토", "`light` 목표는 이유를 남기고 검토를 건너뛸 수 있습니다", "Seal은 나만 정할 수 있는 결정만 묻습니다"},
 		{"필수 완료 조건이 충족되면 `ha done`이 완료를 기록", "기록된 검토 gate가 마지막 commit도 덮어야", "`PROGRESS.md`", "새 대화에서 같은 목표"},
 	},
 	"en": {
 		{"`Assurance:` tier", "asks once whether to implement it now", "**stops**"},
 		{"answer **yes** and Seal starts", "**start Seal in a separate message**"},
-		{"through `ha`, which records every run", "independent Spar review rounds before completion", "plan review before work starts", "`light` goals may skip review with a reason", "Questions that would change the requirements come to you"},
+		{"through `ha`, which records every run", "independent Spar review rounds before completion", "plan review before work starts", "`light` goals may skip review with a reason", "Seal asks you about decisions only you can make"},
 		{"`ha done` records completion when the required completion conditions are met", "a recorded review gate must also cover the last commit", "`PROGRESS.md`", "same goal in a new conversation"},
 	},
 }
@@ -484,27 +484,27 @@ var rfvUsage = map[string]struct{ runs, desc, old, alt []string }{
 		runs: []string{"요청하고 목표 확인", "“응”으로 Seal 시작", "구현하고 ha로 검사", "검토 뒤 완료 기록",
 			"Assurance: standard", "지금 구현할까요?", "응", "또는 별도 메시지", "/seal:seal", "ha", "Spar", "gate", "ha done", "PROGRESS.md",
 			"독립 검토는 Assurance 등급에 따라 다릅니다", "light", "이유를 남기고", "standard", "완료 전 Spar 검토 라운드,", "gate가 마지막 commit을 덮음",
-			"strict", "작업 전 계획 검토", "?", "질문은 내게 옵니다", "같은 프로젝트의 같은 목표", "사용 흐름 · 개념도"},
+			"strict", "작업 전 계획 검토", "?", "Seal은 나만 정할 수 있는 결정만 묻습니다", "같은 프로젝트의 같은 목표", "사용 흐름 · 개념도"},
 		desc: []string{"1.", "지금 구현할지 묻습니다", "2.", "“응”이라고 답하면 Seal이 시작됩니다", "별도 메시지로", "3.", "ha로 검사",
 			"standard·strict 목표는 완료 전에 Spar의 독립 검토 라운드", "strict는 작업 전 계획 검토도", "light는 이유를 남기고 검토를 생략할 수 있습니다",
-			"요구를 바꿔야 하는 질문은 내게 옵니다", "4.", "기록된 검토 gate가 마지막 commit을 덮으면 ha done이 완료를 기록", "PROGRESS.md", "개념도"},
+			"Seal은 나만 정할 수 있는 결정만 묻습니다", "4.", "기록된 검토 gate가 마지막 commit을 덮으면 ha done이 완료를 기록", "PROGRESS.md", "개념도"},
 		old: []string{"Seal을 별도로 시작", "새 메시지에 목표 폴더를 지정합니다."},
 		alt: []string{"사용 흐름 개념도", "지금 구현할지 묻습니다", "\"응\"이라고 답하면 Seal이 시작", "별도 메시지로 목표 폴더를 지정해 시작해도 됩니다",
 			"ha로 검사", "Spar 검토 라운드와 검토 gate", "strict는 계획 검토도", "light 목표는 이유를 남기고 검토를 생략할 수 있으며",
-			"요구를 바꿔야 하는 질문은 내게 옵니다", "기록된 검토 gate가 마지막 commit을 덮으면 ha done이 완료를 기록", "PROGRESS.md", "같은 목표를 지정해 재개"},
+			"Seal은 나만 정할 수 있는 결정만 묻습니다", "기록된 검토 gate가 마지막 commit을 덮으면 ha done이 완료를 기록", "PROGRESS.md", "같은 목표를 지정해 재개"},
 	},
 	"en": {
 		runs: []string{"Request & review the goal", "Say yes to start Seal", "Build & check through ha", "Review, then record done",
 			"Assurance: standard", "Implement it now?", "Yes", "or a separate message", "/seal:seal", "ha", "Spar", "gate", "ha done", "PROGRESS.md",
 			"Independent review depends on the Assurance tier", "light", "may skip review,", "standard", "Spar review rounds; the gate", "must cover the last commit",
-			"strict", "review before work", "?", "requirements come to you", "same goal in a new conversation", "Usage flow · Concept illustration"},
+			"strict", "review before work", "?", "Seal asks you about decisions only you can make", "same goal in a new conversation", "Usage flow · Concept illustration"},
 		desc: []string{"1.", "asks whether to implement it now", "2.", "Answer Yes and Seal starts", "separate message", "3.", "checks through ha",
 			"standard and strict goals get independent Spar review rounds", "strict goals also get a plan review before work", "light goals may skip review with a reason",
-			"Questions that change the requirements come to you", "4.", "a recorded review gate covers the last commit, ha done records completion", "PROGRESS.md", "concept illustration"},
+			"Seal asks you about decisions only you can make", "4.", "a recorded review gate covers the last commit, ha done records completion", "PROGRESS.md", "concept illustration"},
 		old: []string{"Start Seal separately", "New message: specify the goal folder."},
 		alt: []string{"Concept illustration", "asks whether to implement it now", "Answer Yes and Seal starts", "separate message works too",
 			"checks through ha", "Spar review rounds and a review gate", "strict also a plan review", "light goals may skip review with a reason",
-			"questions that change the requirements come to you", "ha done records completion", "review gate covers the last commit", "PROGRESS.md", "same goal in the same project"},
+			"Seal asks you about decisions only you can make", "ha done records completion", "review gate covers the last commit", "PROGRESS.md", "same goal in the same project"},
 	},
 }
 
@@ -600,14 +600,14 @@ var rfvFolderLines = map[string][][]string{
 	"ko": {
 		{"docs/specs/password-link/"},
 		{"SPEC.md", "← Spec"}, {"PLAN.md", "← Seal"}, {"REVIEW.md", "Spar", "요약", "← Seal"}, {"PROGRESS.md", "← Seal"}, {"runs.jsonl", "← ha"},
-		{"docs/reviews/password-link/", "Git이 무시하는 폴더", "Spar"},
+		{"docs/reviews/password-link/", "프로젝트의 Git이 무시하게 설정한 폴더", "Spar"},
 		{"01-candidate/", "검토 라운드", "← Spar"}, {"gate.json", "검토 gate", "← Spar"},
 		{".git/ha/", "Git이 추적하지 않"},
 	},
 	"en": {
 		{"docs/specs/password-link/"},
 		{"SPEC.md", "← Spec"}, {"PLAN.md", "← Seal"}, {"REVIEW.md", "Spar", "summary", "← Seal"}, {"PROGRESS.md", "← Seal"}, {"runs.jsonl", "← ha"},
-		{"docs/reviews/password-link/", "Git ignores", "Spar"},
+		{"docs/reviews/password-link/", "your project's Git is set up to ignore", "Spar"},
 		{"01-candidate/", "review round", "← Spar"}, {"gate.json", "review gate", "← Spar"},
 		{".git/ha/", "not tracked by Git"},
 	},
@@ -657,17 +657,17 @@ func TestReadmeFlowVisualsAC4_FolderText(t *testing.T) {
 var rfvFolder = map[string]struct{ runs, alt []string }{
 	"ko": {
 		runs: []string{"폴더 구조", "docs/specs/password-link/", "Spec이 씀", "SPEC.md", "Seal이 씀", "PLAN.md", "REVIEW.md", "Spar 기록 요약", "PROGRESS.md",
-			"ha가 씀", "runs.jsonl", "Git이 추적하지 않음", "Spar", "docs/reviews/password-link/", "01-candidate/", "gate.json", "Git이 무시하는 폴더",
+			"ha가 씀", "runs.jsonl", "Git이 추적하지 않음", "Spar", "docs/reviews/password-link/", "01-candidate/", "gate.json", "프로젝트의 Git이 무시하게 설정한 폴더",
 			"ha", ".git/ha/", "가상 구성", "가상 예시"},
 		alt: []string{"가상 목표 폴더 docs/specs/password-link/", "Spec이 SPEC.md", "Seal이 PLAN.md·REVIEW.md(검토 계획과 Spar 기록의 요약·위치)·PROGRESS.md",
-			"ha가 runs.jsonl", "Spar의 검토 라운드와 gate는 Git이 무시하는 docs/reviews/password-link/", ".git/ha/", "Git이 추적하지 않습니다"},
+			"ha가 runs.jsonl", "Spar의 검토 라운드와 gate는 프로젝트의 Git이 무시하게 설정한 docs/reviews/password-link/", ".git/ha/", "Git이 추적하지 않습니다"},
 	},
 	"en": {
 		runs: []string{"Goal folder", "docs/specs/password-link/", "Written by Spec", "SPEC.md", "Written by Seal", "PLAN.md", "REVIEW.md", "Spar summary", "PROGRESS.md",
-			"Written by ha", "runs.jsonl", "Not tracked by Git", "Spar", "docs/reviews/password-link/", "01-candidate/", "gate.json", "folder Git ignores",
+			"Written by ha", "runs.jsonl", "Not tracked by Git", "Spar", "docs/reviews/password-link/", "01-candidate/", "gate.json", "your project's Git is set up to ignore",
 			"ha", ".git/ha/", "Fictional layout", "Fictional example"},
 		alt: []string{"Fictional goal folder docs/specs/password-link/", "Spec writes SPEC.md", "Seal writes PLAN.md, REVIEW.md (the review plan, summarizing and pointing to the Spar records) and PROGRESS.md",
-			"ha writes runs.jsonl", "Spar's review rounds and gate stay in docs/reviews/password-link/, a folder Git ignores", ".git/ha/", "which Git does not track"},
+			"ha writes runs.jsonl", "Spar's review rounds and gate stay in docs/reviews/password-link/, a folder your project's Git is set up to ignore", ".git/ha/", "which Git does not track"},
 	},
 }
 
@@ -846,11 +846,11 @@ var rfvGuides = []struct {
 var rfvMeaning = map[string][]string{
 	"assets/readme/SOURCES.md": {"`Assurance:` 등급", "지금 구현할지 한 번 물은 뒤 멈춥니다", "\"응\"으로 Seal이 시작", "**별도 메시지로 Seal을 시작**",
 		"`ha`가 모든 검사 실행을 기록", "`standard`·`strict` 목표는 완료 전에 Spar의 독립 검토 라운드", "`strict`는 작업 전 계획 검토", "`light`는 이유를 남기고 검토를 건너뛸 수 있습니다",
-		"요구를 바꿔야 하는 질문은 사용자에게", "기록된 검토 gate가 마지막 commit을 덮어야", "`PROGRESS.md`", "Git이 무시하는 폴더(예: `docs/reviews/<goal>/`)", "`.git/ha/`",
+		"Seal은 사용자만 정할 수 있는 결정만 묻습니다", "기록된 검토 gate가 마지막 commit을 덮어야", "`PROGRESS.md`", "프로젝트의 Git이 무시하게 설정한 폴더(예: `.gitignore`에 더한 `docs/reviews/<goal>/`)", "`.git/ha/`",
 		"같은 프로젝트의 같은 목표", "`ha report` 출력 모양", "보증 수준은 `local`", "인증된 검증이나 자동 배포처럼 그리지 않습니다"},
 	"assets/readme/SOURCES.en.md": {"`Assurance:` tier", "asks once whether to implement it now, then stops", "The user's yes starts Seal", "**starting Seal in a separate message**",
 		"`ha` records every check run", "`standard` and `strict` goals get independent Spar review rounds before completion", "`strict` goals also get a plan review", "`light` goals may skip review with a reason",
-		"Questions that would change the requirements go to the user", "a recorded review gate must cover the last commit", "`PROGRESS.md`", "a folder Git ignores (for example `docs/reviews/<goal>/`)", "`.git/ha/`",
+		"Seal asks the user only about decisions only the user can make", "a recorded review gate must cover the last commit", "`PROGRESS.md`", "a folder the project's Git is set up to ignore (for example `docs/reviews/<goal>/`, added to `.gitignore`)", "`.git/ha/`",
 		"same goal in a new conversation in the same project", "shape of `ha report` output", "assurance stays `local`", "certified verification or automatic deployment"},
 }
 
@@ -974,19 +974,22 @@ func TestReadmeFlowVisualsAC7_FictionalAndLocal(t *testing.T) {
 // section, the install and update command blocks, the hero block and the
 // list of link destinations. The expected values are the content at main
 // 73f524d, written here; the commands are those of the v0.1.8 release,
-// whose install pins and version check differ from 73f524d.
+// whose install pins and version check differ from 73f524d. The first task
+// and the links are those of the readme-first-run goal, which made step 3
+// start with the yes to Spec and added three links; its own check compares
+// the other links with 81a7d47.
 var rfvKept = map[string]map[string]string{
 	"README.md": {
-		"first-task": "24055a92a2510e8dcb22e81ac02a4c694adef4acee07cc4919cf2d31fb161631",
+		"first-task": "23c9f73d21f3c79f922ed6a7ec957d0d8886ba9fa844399afa0de21cca1b7a1e",
 		"commands":   "59f12488dd2183b2309aebdec44be212f4cf2383e234b5c3fbcead13a15dd150",
 		"hero":       "e2786373776467d77948970760fa85cc010d488ea902310cc820856304fc51bc",
-		"links":      "32c136acdb0264b9716ca96e7c2026d03d0f56001adb013fc5350b2986456366",
+		"links":      "12ebeee6c69c8a94e8a5e86593bdbb4b67fa3302df4c60d44da590d2a0ef27af",
 	},
 	"README.ko.md": {
-		"first-task": "1075426f9f37f438482ded9e2b239ed7d05275742d54404d21e8be6de163b83e",
+		"first-task": "1be7184fffabb6e5aebfeb8b7a7d0e9b41d168ad40bfe4fe52f0e394f0435c48",
 		"commands":   "59f12488dd2183b2309aebdec44be212f4cf2383e234b5c3fbcead13a15dd150",
 		"hero":       "b3c24b6ab3fc3fd3b9270086d61fe18135de39990a12d0159d4131f1d6e1ecbf",
-		"links":      "b293a886f54444a2b2f5018adbafca468c5c64ffca34d860e04e20d842823cd8",
+		"links":      "847247c9f996b183313aee14246ed2d5345367a4901ef9be2d287b70beedfa45",
 	},
 }
 

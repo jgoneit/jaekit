@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "WhenSealAsks",
+      "violation": "seal-questions-stale",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReadmeFirstRunAC4_WhenSealAsks"
+      }
+    }
+  ]
+}

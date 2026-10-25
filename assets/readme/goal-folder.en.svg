@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="740" viewBox="0 0 1600 740" role="img" aria-labelledby="title description" xml:lang="en">
 <title id="title">Goal folder</title>
-<desc id="description">Fictional goal folder docs/specs/password-link/: Spec writes SPEC.md; Seal writes PLAN.md, REVIEW.md and PROGRESS.md; ha writes runs.jsonl. REVIEW.md holds the review plan and summarizes and points to the Spar records. Spar&#x27;s review rounds (01-candidate/) and gate (gate.json) stay in docs/reviews/password-link/, a folder Git ignores, and raw check output stays in .git/ha/, which Git does not track. A fictional example, not a real record.</desc>
+<desc id="description">Fictional goal folder docs/specs/password-link/: Spec writes SPEC.md; Seal writes PLAN.md, REVIEW.md and PROGRESS.md; ha writes runs.jsonl. REVIEW.md holds the review plan and summarizes and points to the Spar records. Spar&#x27;s review rounds (01-candidate/) and gate (gate.json) stay in docs/reviews/password-link/, a folder the project&#x27;s Git is set up to ignore (add docs/reviews/ to .gitignore), and raw check output stays in .git/ha/, which Git does not track. A fictional example, not a real record.</desc>
 <defs>
 <path id="b0" d="M409 -14C511 -14 599 25 650 75V409H386V288H517V142C497 124 460 114 425 114C279 114 206 211 206 372C206 531 290 627 414 627C480 627 522 600 559 565L638 659C590 708 516 754 409 754C212 754 54 611 54 367C54 120 208 -14 409 -14Z"/>
 <path id="b1" d="M313 -14C453 -14 582 94 582 280C582 466 453 574 313 574C172 574 44 466 44 280C44 94 172 -14 313 -14ZM313 106C236 106 194 174 194 280C194 385 236 454 313 454C389 454 432 385 432 280C432 174 389 106 313 106Z"/>
@@ -69,11 +69,13 @@
 <path id="b64" d="M205 0H375L562 560H421L339 281C324 226 309 168 294 111H289C273 168 259 226 243 281L162 560H14Z"/>
 <path id="b65" d="M295 -14C446 -14 546 118 546 374C546 628 446 754 295 754C144 754 44 629 44 374C44 118 144 -14 295 -14ZM295 101C231 101 183 165 183 374C183 580 231 641 295 641C359 641 406 580 406 374C406 165 359 101 295 101Z"/>
 <path id="b66" d="M82 0H527V120H388V741H279C232 711 182 692 107 679V587H242V120H82Z"/>
-<path id="r67" d="M101 0H193V329H473V407H193V655H523V733H101Z"/>
-<path id="r68" d="M33 469H107V0H198V469H313V543H198V629C198 699 223 736 275 736C294 736 316 731 336 721L356 792C331 802 299 809 265 809C157 809 107 740 107 630V543L33 538Z"/>
-<path id="r69" d="M276 293C312 293 343 323 343 363C343 405 312 434 276 434C240 434 211 405 211 363C211 323 240 293 276 293Z"/>
-<path id="b70" d="M91 0H239V300H502V424H239V617H547V741H91Z"/>
-<path id="b71" d="M16 0H169L220 103C236 136 251 169 267 200H272C290 169 309 136 326 103L388 0H546L371 275L535 560H383L336 461C323 429 308 397 295 366H291C274 397 257 429 241 461L185 560H27L191 291Z"/>
+<path id="b67" d="M121 425H203L232 641L237 779H87L92 641Z"/>
+<path id="b68" d="M163 366C215 366 254 407 254 461C254 516 215 557 163 557C110 557 71 516 71 461C71 407 110 366 163 366ZM163 -14C215 -14 254 28 254 82C254 137 215 178 163 178C110 178 71 137 71 82C71 28 110 -14 163 -14Z"/>
+<path id="r69" d="M101 0H193V329H473V407H193V655H523V733H101Z"/>
+<path id="r70" d="M33 469H107V0H198V469H313V543H198V629C198 699 223 736 275 736C294 736 316 731 336 721L356 792C331 802 299 809 265 809C157 809 107 740 107 630V543L33 538Z"/>
+<path id="r71" d="M276 293C312 293 343 323 343 363C343 405 312 434 276 434C240 434 211 405 211 363C211 323 240 293 276 293Z"/>
+<path id="b72" d="M91 0H239V300H502V424H239V617H547V741H91Z"/>
+<path id="b73" d="M16 0H169L220 103C236 136 251 169 267 200H272C290 169 309 136 326 103L388 0H546L371 275L535 560H383L336 461C323 429 308 397 295 366H291C274 397 257 429 241 461L185 560H27L191 291Z"/>
 </defs>
 <rect x="0" y="0" width="1600" height="740" rx="0" fill="#FAFBFD"/>
 <g aria-label="Goal folder" data-text="Goal folder" fill="#122033" transform="translate(48.000 78) scale(0.046000 -0.046000)">
@@ -418,7 +420,7 @@
 <use href="#b11" x="8520"/>
 </g>
 <path d="M1088 168H1530" fill="none" stroke="#D7DFE9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-<rect x="1082" y="186" width="450" height="262" rx="14" fill="#FFF3E3"/>
+<rect x="1082" y="186" width="450" height="272" rx="14" fill="#FFF3E3"/>
 <rect x="1102" y="204" width="70" height="30" rx="7" fill="#C9761F"/>
 <g aria-label="Spar" data-text="Spar" fill="#FFFFFF" transform="translate(1117.493 225) scale(0.017000 -0.017000)">
 <use href="#b23" x="0"/>
@@ -534,38 +536,91 @@
 <use href="#r39" x="6207"/>
 <use href="#r38" x="6584"/>
 </g>
-<g aria-label="kept in a folder Git ignores" data-text="kept in a folder Git ignores" fill="#7A4408" transform="translate(1102.000 428) scale(0.017000 -0.017000)">
-<use href="#b9" x="0"/>
-<use href="#b6" x="604"/>
-<use href="#b15" x="1185"/>
-<use href="#b11" x="1829"/>
-<use href="#b10" x="2477"/>
-<use href="#b18" x="2781"/>
-<use href="#b2" x="3649"/>
-<use href="#b4" x="4467"/>
-<use href="#b1" x="4839"/>
-<use href="#b3" x="5465"/>
-<use href="#b5" x="5780"/>
-<use href="#b6" x="6424"/>
-<use href="#b7" x="7005"/>
-<use href="#b0" x="7668"/>
-<use href="#b10" x="8385"/>
-<use href="#b11" x="8689"/>
-<use href="#b10" x="9337"/>
-<use href="#b19" x="9641"/>
-<use href="#b18" x="10238"/>
-<use href="#b1" x="10879"/>
-<use href="#b7" x="11505"/>
-<use href="#b6" x="11941"/>
-<use href="#b13" x="12522"/>
+<g aria-label="in a folder your project&#x27;s Git is set up to ignore" data-text="in a folder your project&#x27;s Git is set up to ignore" fill="#7A4408" transform="translate(1102.000 418) scale(0.017000 -0.017000)">
+<use href="#b10" x="0"/>
+<use href="#b18" x="304"/>
+<use href="#b2" x="1172"/>
+<use href="#b4" x="1990"/>
+<use href="#b1" x="2362"/>
+<use href="#b3" x="2988"/>
+<use href="#b5" x="3303"/>
+<use href="#b6" x="3947"/>
+<use href="#b7" x="4528"/>
+<use href="#b22" x="5191"/>
+<use href="#b1" x="5765"/>
+<use href="#b61" x="6391"/>
+<use href="#b7" x="7028"/>
+<use href="#b15" x="7691"/>
+<use href="#b7" x="8335"/>
+<use href="#b1" x="8771"/>
+<use href="#b62" x="9397"/>
+<use href="#b6" x="9703"/>
+<use href="#b12" x="10284"/>
+<use href="#b11" x="10811"/>
+<use href="#b67" x="11232"/>
+<use href="#b13" x="11557"/>
+<use href="#b0" x="12279"/>
+<use href="#b10" x="12996"/>
+<use href="#b11" x="13300"/>
+<use href="#b10" x="13948"/>
+<use href="#b13" x="14252"/>
+<use href="#b13" x="14974"/>
+<use href="#b6" x="15469"/>
+<use href="#b11" x="16050"/>
+<use href="#b61" x="16698"/>
+<use href="#b15" x="17335"/>
+<use href="#b11" x="18206"/>
+<use href="#b1" x="18627"/>
+<use href="#b10" x="19480"/>
+<use href="#b19" x="19784"/>
+<use href="#b18" x="20381"/>
+<use href="#b1" x="21022"/>
+<use href="#b7" x="21648"/>
+<use href="#b6" x="22084"/>
 </g>
-<rect x="1082" y="466" width="450" height="128" rx="14" fill="#F0F3F8"/>
-<rect x="1102" y="484" width="46" height="30" rx="7" fill="#122033"/>
-<g aria-label="ha" data-text="ha" fill="#FFFFFF" transform="translate(1114.536 505) scale(0.017000 -0.017000)">
+<g aria-label="set up: add docs/reviews/ to .gitignore" data-text="set up: add docs/reviews/ to .gitignore" fill="#7A4408" transform="translate(1102.000 442) scale(0.017000 -0.017000)">
+<use href="#b13" x="0"/>
+<use href="#b6" x="495"/>
+<use href="#b11" x="1076"/>
+<use href="#b61" x="1724"/>
+<use href="#b15" x="2361"/>
+<use href="#b68" x="3005"/>
+<use href="#b2" x="3557"/>
+<use href="#b5" x="4148"/>
+<use href="#b5" x="4792"/>
+<use href="#b5" x="5663"/>
+<use href="#b1" x="6307"/>
+<use href="#b12" x="6933"/>
+<use href="#b13" x="7460"/>
+<use href="#b14" x="7955"/>
+<use href="#b7" x="8342"/>
+<use href="#b6" x="8778"/>
+<use href="#b64" x="9359"/>
+<use href="#b10" x="9935"/>
+<use href="#b6" x="10239"/>
+<use href="#b16" x="10820"/>
+<use href="#b13" x="11683"/>
+<use href="#b14" x="12178"/>
+<use href="#b11" x="12792"/>
+<use href="#b1" x="13213"/>
+<use href="#b27" x="14066"/>
+<use href="#b19" x="14391"/>
+<use href="#b10" x="14988"/>
+<use href="#b11" x="15292"/>
+<use href="#b10" x="15713"/>
+<use href="#b19" x="16017"/>
+<use href="#b18" x="16614"/>
+<use href="#b1" x="17255"/>
+<use href="#b7" x="17881"/>
+<use href="#b6" x="18317"/>
+</g>
+<rect x="1082" y="474" width="450" height="128" rx="14" fill="#F0F3F8"/>
+<rect x="1102" y="492" width="46" height="30" rx="7" fill="#122033"/>
+<g aria-label="ha" data-text="ha" fill="#FFFFFF" transform="translate(1114.536 513) scale(0.017000 -0.017000)">
 <use href="#b60" x="0"/>
 <use href="#b2" x="640"/>
 </g>
-<g aria-label="Raw check output" data-text="Raw check output" fill="#122033" transform="translate(1162.000 506) scale(0.020000 -0.020000)">
+<g aria-label="Raw check output" data-text="Raw check output" fill="#122033" transform="translate(1162.000 514) scale(0.020000 -0.020000)">
 <use href="#b50" x="0"/>
 <use href="#b2" x="682"/>
 <use href="#b16" x="1273"/>
@@ -581,9 +636,9 @@
 <use href="#b61" x="7797"/>
 <use href="#b11" x="8434"/>
 </g>
-<rect x="1102" y="528" width="64" height="48" rx="8" fill="#122033"/>
-<path d="M1114 542L1124 552L1114 562M1130 564H1150" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<g aria-label=".git/ha/" data-text=".git/ha/" fill="#122033" transform="translate(1182.000 556) scale(0.026000 -0.026000)">
+<rect x="1102" y="536" width="64" height="48" rx="8" fill="#122033"/>
+<path d="M1114 550L1124 560L1114 570M1130 572H1150" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<g aria-label=".git/ha/" data-text=".git/ha/" fill="#122033" transform="translate(1182.000 564) scale(0.026000 -0.026000)">
 <use href="#b27" x="0"/>
 <use href="#b19" x="325"/>
 <use href="#b10" x="922"/>
@@ -593,7 +648,7 @@
 <use href="#b2" x="2674"/>
 <use href="#b14" x="3265"/>
 </g>
-<g aria-label="read it with ha log" data-text="read it with ha log" fill="#546276" transform="translate(1182.000 582) scale(0.017000 -0.017000)">
+<g aria-label="read it with ha log" data-text="read it with ha log" fill="#546276" transform="translate(1182.000 590) scale(0.017000 -0.017000)">
 <use href="#r53" x="0"/>
 <use href="#r38" x="388"/>
 <use href="#r31" x="942"/>
@@ -610,9 +665,9 @@
 <use href="#r30" x="7188"/>
 <use href="#r29" x="7794"/>
 </g>
-<rect x="1092" y="612" width="40" height="28" rx="4" fill="#FFFFFF" stroke="#546276" stroke-width="2.2"/>
-<path d="M1086 644H1138" fill="none" stroke="#546276" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-<g aria-label="Stays on your computer" data-text="Stays on your computer" fill="#546276" transform="translate(1150.000 636) scale(0.019000 -0.019000)">
+<rect x="1092" y="616" width="40" height="28" rx="4" fill="#FFFFFF" stroke="#546276" stroke-width="2.2"/>
+<path d="M1086 648H1138" fill="none" stroke="#546276" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<g aria-label="Stays on your computer" data-text="Stays on your computer" fill="#546276" transform="translate(1150.000 640) scale(0.019000 -0.019000)">
 <use href="#b23" x="0"/>
 <use href="#b11" x="624"/>
 <use href="#b2" x="1045"/>
@@ -634,7 +689,7 @@
 <use href="#b7" x="11326"/>
 </g>
 <g aria-label="Fictional layout for illustration · password-link" data-text="Fictional layout for illustration · password-link" fill="#546276" transform="translate(343.457 712) scale(0.018000 -0.018000)">
-<use href="#r67" x="0"/>
+<use href="#r69" x="0"/>
 <use href="#r40" x="552"/>
 <use href="#r35" x="827"/>
 <use href="#r39" x="1337"/>
@@ -649,7 +704,7 @@
 <use href="#r30" x="5644"/>
 <use href="#r49" x="6250"/>
 <use href="#r39" x="6857"/>
-<use href="#r68" x="7458"/>
+<use href="#r70" x="7458"/>
 <use href="#r30" x="7783"/>
 <use href="#r53" x="8389"/>
 <use href="#r40" x="9001"/>
@@ -664,7 +719,7 @@
 <use href="#r40" x="12624"/>
 <use href="#r30" x="12899"/>
 <use href="#r33" x="13505"/>
-<use href="#r69" x="14339"/>
+<use href="#r71" x="14339"/>
 <use href="#r37" x="15124"/>
 <use href="#r31" x="15744"/>
 <use href="#r41" x="16307"/>
@@ -680,7 +735,7 @@
 <use href="#r46" x="21175"/>
 </g>
 <g aria-label="Fictional example" data-text="Fictional example" fill="#546276" transform="translate(1393.978 712) scale(0.018000 -0.018000)">
-<use href="#b70" x="0"/>
+<use href="#b72" x="0"/>
 <use href="#b10" x="585"/>
 <use href="#b12" x="889"/>
 <use href="#b11" x="1416"/>
@@ -690,7 +745,7 @@
 <use href="#b2" x="3408"/>
 <use href="#b3" x="3999"/>
 <use href="#b6" x="4541"/>
-<use href="#b71" x="5122"/>
+<use href="#b73" x="5122"/>
 <use href="#b2" x="5684"/>
 <use href="#b28" x="6275"/>
 <use href="#b15" x="7239"/>

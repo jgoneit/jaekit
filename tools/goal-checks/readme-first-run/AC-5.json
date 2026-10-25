@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "CostPointer",
+      "violation": "cost-pointer-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReadmeFirstRunAC5_CostPointer"
+      }
+    }
+  ]
+}

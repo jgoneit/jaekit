@@ -324,98 +324,112 @@
       {
         "text": "독립 검토는 Assurance 등급에 따라 다릅니다",
         "x": 76,
-        "y": 730,
+        "y": 716,
         "width": 419.3,
         "font_size": 22
       },
       {
         "text": "light",
         "x": 90.0,
-        "y": 769,
+        "y": 757,
         "width": 38.71,
         "font_size": 17
       },
       {
         "text": "이유를 남기고",
         "x": 76,
-        "y": 806,
+        "y": 796,
         "width": 109.14,
         "font_size": 19
       },
       {
         "text": "검토를 생략할 수 있음",
         "x": 76,
-        "y": 833,
+        "y": 824,
         "width": 170.09,
         "font_size": 19
       },
       {
         "text": "standard",
-        "x": 460.0,
-        "y": 769,
+        "x": 362.0,
+        "y": 757,
         "width": 75.87,
         "font_size": 17
       },
       {
         "text": "완료 전 Spar 검토 라운드,",
-        "x": 446,
-        "y": 806,
+        "x": 348,
+        "y": 796,
         "width": 203.32,
         "font_size": 19
       },
       {
         "text": "gate가 마지막 commit을 덮음",
-        "x": 446,
-        "y": 833,
+        "x": 348,
+        "y": 824,
         "width": 243.01,
         "font_size": 19
       },
       {
         "text": "strict",
-        "x": 830.0,
-        "y": 769,
+        "x": 634.0,
+        "y": 757,
         "width": 44.27,
         "font_size": 17
       },
       {
         "text": "standard에 더해",
-        "x": 816,
-        "y": 806,
+        "x": 620,
+        "y": 796,
         "width": 136.67,
         "font_size": 19
       },
       {
         "text": "작업 전 계획 검토",
-        "x": 816,
-        "y": 833,
+        "x": 620,
+        "y": 824,
         "width": 135.13,
         "font_size": 19
       },
       {
         "text": "?",
-        "x": 1201.63,
-        "y": 769,
+        "x": 933.63,
+        "y": 731,
         "width": 8.74,
         "font_size": 17
       },
       {
-        "text": "요구를 바꿔야 하는",
-        "x": 1186,
-        "y": 806,
-        "width": 148.35,
+        "text": "Seal은 나만 정할 수 있는 결정만 묻습니다",
+        "x": 972,
+        "y": 732,
+        "width": 345.46,
+        "font_size": 20
+      },
+      {
+        "text": "작업 전: 미리 알 수 있는 결정을 한 메시지로",
+        "x": 918,
+        "y": 772,
+        "width": 336.49,
         "font_size": 19
       },
       {
-        "text": "질문은 내게 옵니다",
-        "x": 1186,
-        "y": 833,
-        "width": 148.35,
+        "text": "작업 중: 요구 질문 같은 새 질문만",
+        "x": 918,
+        "y": 800,
+        "width": 258.06,
+        "font_size": 19
+      },
+      {
+        "text": "끝: 필요한 확인을 한 메시지로",
+        "x": 918,
+        "y": 828,
+        "width": 232.07,
         "font_size": 19
       },
       {
         "text": "새 대화에서도, 같은 프로젝트의 같은 목표를 지정해 이어갑니다.",
         "x": 142,
-        "y": 900,
+        "y": 902,
         "width": 601.66,
         "font_size": 23
       },
@@ -746,98 +760,112 @@
       {
         "text": "Independent review depends on the Assurance tier",
         "x": 76,
-        "y": 730,
+        "y": 716,
         "width": 524.52,
         "font_size": 21
       },
       {
         "text": "light",
         "x": 90.0,
-        "y": 769,
+        "y": 757,
         "width": 38.71,
         "font_size": 17
       },
       {
         "text": "may skip review,",
         "x": 76,
-        "y": 806,
+        "y": 796,
         "width": 139.41,
         "font_size": 18
       },
       {
         "text": "with a reason",
         "x": 76,
-        "y": 833,
+        "y": 824,
         "width": 112.7,
         "font_size": 18
       },
       {
         "text": "standard",
-        "x": 460.0,
-        "y": 769,
+        "x": 362.0,
+        "y": 757,
         "width": 75.87,
         "font_size": 17
       },
       {
         "text": "Spar review rounds; the gate",
-        "x": 446,
-        "y": 806,
+        "x": 348,
+        "y": 796,
         "width": 239.94,
         "font_size": 18
       },
       {
         "text": "must cover the last commit",
-        "x": 446,
-        "y": 833,
+        "x": 348,
+        "y": 824,
         "width": 228.65,
         "font_size": 18
       },
       {
         "text": "strict",
-        "x": 830.0,
-        "y": 769,
+        "x": 634.0,
+        "y": 757,
         "width": 44.27,
         "font_size": 17
       },
       {
         "text": "standard, plus a plan",
-        "x": 816,
-        "y": 806,
+        "x": 620,
+        "y": 796,
         "width": 176.0,
         "font_size": 18
       },
       {
         "text": "review before work",
-        "x": 816,
-        "y": 833,
+        "x": 620,
+        "y": 824,
         "width": 160.83,
         "font_size": 18
       },
       {
         "text": "?",
-        "x": 1201.63,
-        "y": 769,
+        "x": 933.63,
+        "y": 731,
         "width": 8.74,
         "font_size": 17
       },
       {
-        "text": "Questions that change the",
-        "x": 1186,
-        "y": 806,
-        "width": 220.48,
+        "text": "Seal asks you about decisions only you can make",
+        "x": 972,
+        "y": 732,
+        "width": 455.56,
+        "font_size": 19
+      },
+      {
+        "text": "Before work: the foreseeable ones, in one message",
+        "x": 918,
+        "y": 772,
+        "width": 423.94,
         "font_size": 18
       },
       {
-        "text": "requirements come to you",
-        "x": 1186,
-        "y": 833,
-        "width": 221.51,
+        "text": "During work: only new ones, such as a requirement question",
+        "x": 918,
+        "y": 800,
+        "width": 504.59,
+        "font_size": 18
+      },
+      {
+        "text": "At the end: the confirmations, in one message",
+        "x": 918,
+        "y": 828,
+        "width": 382.68,
         "font_size": 18
       },
       {
         "text": "To resume, open the same project and name the same goal in a new conversation.",
         "x": 142,
-        "y": 900,
+        "y": 902,
         "width": 884.84,
         "font_size": 22
       },

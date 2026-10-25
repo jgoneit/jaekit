@@ -349,6 +349,10 @@ func underGitFolder(dir string) bool {
 	}
 }
 
+// setupGuide is the Spar guide's section on making a project ignore its
+// records folder; the refusal of a folder Git does not ignore points to it.
+const setupGuide = "https://github.com/jgoneit/jaekit/blob/main/guides/SPAR.en.md#set-up-a-project"
+
 // localRecordPath refuses a record path that Git would track (G28). Every
 // repository that holds the path counts, from the innermost one out: the
 // reviewed repository, another one around the path, and a repository nested
@@ -404,7 +408,7 @@ func localRecordPath(repo, path string) error {
 			return err
 		}
 		if !ignored {
-			return fmt.Errorf("%s is not ignored by the Git repository %s, or that repository tracks files under it; review records can hold private documents, so they go to a Git-ignored folder", rel, root)
+			return fmt.Errorf("%s is not ignored by the Git repository %s, or that repository tracks files under it; review records can hold private documents, so they go to a Git-ignored folder (to set one up, see %s)", rel, root, setupGuide)
 		}
 		parent := filepath.Dir(root)
 		if parent == root {

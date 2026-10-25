@@ -14,10 +14,13 @@ an execution transcript, or a claim that any checks passed. The four stages are:
 
 A band below the stages shows independent review by tier: `light` may skip it
 with a reason; `standard` gets Spar review rounds and a gate that must cover the
-last commit; `strict` also gets a plan review before work; and questions that
-would change the requirements come to the user. Resuming requires opening the
-same project and explicitly specifying the same goal in a new conversation. The
-illustration does not promise automatic resume.
+last commit; `strict` also gets a plan review before work. A panel beside the
+tiers shows that Seal asks the user only about decisions only the user can make:
+the foreseeable ones in one message before work, only new questions during work,
+such as one that would change the requirements, and the confirmations in one
+message at the end. Resuming requires opening the same project and explicitly
+specifying the same goal in a new conversation. The illustration does not
+promise automatic resume.
 
 ## Files
 

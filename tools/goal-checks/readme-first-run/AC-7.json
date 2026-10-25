@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "RefusalPointsToSetup",
+      "violation": "refusal-without-setup",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestReadmeFirstRunAC7_RefusalPointsToSetup"
+      }
+    }
+  ]
+}

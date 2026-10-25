@@ -56,7 +56,7 @@ flowchart TD
         check -->|"checks pass"| spar
         spar -->|"a finding to fix"| build
     end
-    decide{{"You answer a question<br/>that changes the requirements"}}
+    decide{{"You answer questions about<br/>decisions only you can make<br/>before work: the foreseeable ones, at once<br/>during work: only new ones,<br/>such as a requirement question<br/>at the end: the confirmations, at once"}}
     done["ha done records completion<br/>when the required conditions are met"]
     report(["You review the report<br/>in PROGRESS.md: what changed<br/>and how it was checked"])
     resume(["The conversation ended?<br/>Open a new one<br/>in the same project"])
@@ -87,13 +87,13 @@ flowchart TD
 
 1. Spec writes the goal document with its completion conditions and an `Assurance:` tier, asks once whether to implement it now, and **stops**. Read it and say what needs changing.
 2. When it looks right, answer **yes** and Seal starts. You can also **start Seal in a separate message** later by naming the goal folder.
-3. The agent plans, implements and checks the work through `ha`, which records every run. `standard` and `strict` goals get independent Spar review rounds before completion, and `strict` goals also get a plan review before work starts; `light` goals may skip review with a reason. Questions that would change the requirements come to you.
+3. The agent plans, implements and checks the work through `ha`, which records every run. `standard` and `strict` goals get independent Spar review rounds before completion, and `strict` goals also get a plan review before work starts; `light` goals may skip review with a reason. Seal asks you about decisions only you can make: before work, the ones it can foresee, in one message; during work, only new questions, such as one that would change the requirements; at the end, the confirmations completion needs, in one message.
 4. `ha done` records completion when the required completion conditions are met; for `standard` and `strict` goals, a recorded review gate must also cover the last commit. Review the report in `PROGRESS.md`: **what changed and how it was checked**, along with the actual result. If the conversation ends, continue the same goal in a new conversation.
 
 <details>
 <summary>View the same flow as an illustration</summary>
 
-![Concept illustration of the usage flow. 1. Ask Spec: it writes the goal, completion conditions and an Assurance tier, then asks whether to implement it now. 2. Answer Yes and Seal starts; naming the goal folder in a separate message works too. 3. The agent plans, implements and checks through ha, which records every run; standard and strict goals get Spar review rounds and a review gate before completion (strict also a plan review), light goals may skip review with a reason, and questions that change the requirements come to you. 4. ha done records completion when the required conditions are met and, for standard and strict goals, the recorded review gate covers the last commit; the report lands in PROGRESS.md. To resume in a new conversation, specify the same goal in the same project.](assets/readme/usage-flow.en.png)
+![Concept illustration of the usage flow. 1. Ask Spec: it writes the goal, completion conditions and an Assurance tier, then asks whether to implement it now. 2. Answer Yes and Seal starts; naming the goal folder in a separate message works too. 3. The agent plans, implements and checks through ha, which records every run; standard and strict goals get Spar review rounds and a review gate before completion (strict also a plan review), light goals may skip review with a reason, and Seal asks you about decisions only you can make: the foreseeable ones in one message before work, only new ones such as a requirement question during work, and the confirmations in one message at the end. 4. ha done records completion when the required conditions are met and, for standard and strict goals, the recorded review gate covers the last commit; the report lands in PROGRESS.md. To resume in a new conversation, specify the same goal in the same project.](assets/readme/usage-flow.en.png)
 
 </details>
 
@@ -186,6 +186,16 @@ codex plugin add spar@jaekit
 > [!NOTE]
 > **Spar for `standard` and `strict` goals.** From v0.1.7, `standard` and `strict` goals need the Spar executable and the Spar plugin, which the commands above install, with reviewers set to the CLIs you have: see [Spar](guides/INSTALL.en.md#spar). The v0.1.7 Seal starts new goals under `run-rules/5`, and a `standard` or `strict` goal started under `run-rules/5` completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](guides/USAGE.en.md#review-gate-run-rules5)).
 
+### Before your first `standard` goal
+
+Add `docs/reviews/` to your project's `.gitignore` before its first `standard` or `strict` goal. Spar writes review records only to a folder Git ignores, and in a project that has never run Spar, Git does not ignore that folder yet, so the first review round would stop. `light` goals and goals that do not use Spar do not need this step.
+
+```text
+docs/reviews/
+```
+
+To use another folder or `.git/info/exclude` instead, see [Set up a project](guides/SPAR.en.md#set-up-a-project) in the Spar guide.
+
 ### Your first task
 
 Open Claude Code, Codex CLI, or the Codex desktop app in your project folder.
@@ -218,9 +228,11 @@ Read the document Spec gives you and say what needs changing.
 
 In this example, the completion conditions are that the new link opens the existing reset page and login keeps working as before.
 
-#### 3. Start Seal in a separate message
+#### 3. Answer yes to start Seal
 
-Specify the goal folder.
+When no decision is left open, Spec ends its report by asking whether to implement the goal now. When the goal looks right, answer **yes**: Seal starts on that goal.
+
+To start later instead, specify the goal folder in a separate message.
 
 **Claude Code**
 
@@ -315,7 +327,9 @@ Updating does not delete goal documents or run records. To clean up earlier vers
 
 Everything Jaekit writes stays in your project, in one folder per goal. The examples below are **synthetic and shortened**: they show the format, not a record of real work. Section names and markers such as `## Acceptance Criteria`, `## 조건표` and `AC-1` are fixed format tokens; some are in Korean, and [Korean section names](#korean-section-names) translates them. The prose is written in your language.
 
-![Fictional goal folder docs/specs/password-link/: Spec writes SPEC.md; Seal writes PLAN.md, REVIEW.md (the review plan, summarizing and pointing to the Spar records) and PROGRESS.md; ha writes runs.jsonl. Spar's review rounds and gate stay in docs/reviews/password-link/, a folder Git ignores, and raw check output stays in .git/ha/ on your computer, which Git does not track.](assets/readme/goal-folder.en.png)
+![Fictional goal folder docs/specs/password-link/: Spec writes SPEC.md; Seal writes PLAN.md, REVIEW.md (the review plan, summarizing and pointing to the Spar records) and PROGRESS.md; ha writes runs.jsonl. Spar's review rounds and gate stay in docs/reviews/password-link/, a folder your project's Git is set up to ignore (see Before your first standard goal), and raw check output stays in .git/ha/ on your computer, which Git does not track.](assets/readme/goal-folder.en.png)
+
+Spar writes to `docs/reviews/` only once your project's Git ignores it: see [Before your first `standard` goal](#before-your-first-standard-goal).
 
 <details>
 <summary>The same folder as text</summary>
@@ -328,7 +342,7 @@ docs/specs/password-link/
 ├── PROGRESS.md    current state, timeline, completion report      ← Seal
 └── runs.jsonl     append-only run record                          ← ha only
 
-docs/reviews/password-link/   Spar records, in a folder Git ignores
+docs/reviews/password-link/   Spar records, in a folder your project's Git is set up to ignore
 ├── 01-candidate/  one review round: packet, findings, summary     ← Spar
 └── gate.json      the review gate, recorded with ha note          ← Spar
 
@@ -399,6 +413,8 @@ Next step: resolve AC-2 `criterion_failed` (executor)
 
 - AC-2 `criterion_failed` (executor): seq 4, output `ha log docs/specs/password-link 4`
 ```
+
+To see what one goal cost in checks and review rounds, run `ha cost docs/specs/<goal> --series docs/reviews/<goal>` in Terminal. It only reads the records. See [Reading one goal's cost](guides/USAGE.en.md#reading-one-goals-cost).
 
 ### The other files
 

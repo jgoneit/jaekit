@@ -46,9 +46,9 @@ The final SVGs use outlined text and need no installed fonts. Python 3 with font
 
 - Spec defines the goal, completion conditions and an `Assurance:` tier, asks once whether to implement it now, then stops. The user's yes starts Seal; **starting Seal in a separate message** is shown as the other way in.
 - The Codex or Claude Code agent performs planning, implementation, checks and fixes, and `ha` records every check run.
-- `standard` and `strict` goals get independent Spar review rounds before completion, and `strict` goals also get a plan review before work. `light` goals may skip review with a reason. Questions that would change the requirements go to the user.
+- `standard` and `strict` goals get independent Spar review rounds before completion, and `strict` goals also get a plan review before work. `light` goals may skip review with a reason. Seal asks the user only about decisions only the user can make: the foreseeable ones in one message before work, only new questions during work, such as one that would change the requirements, and the confirmations in one message at the end.
 - `ha done` records completion when the required completion conditions are met; for `standard` and `strict`, a recorded review gate must cover the last commit. The completion report stays in `PROGRESS.md`.
-- Spar's rounds and gate stay in a folder Git ignores (for example `docs/reviews/<goal>/`); raw check output stays in `.git/ha/`.
+- Spar's rounds and gate stay in a folder the project's Git is set up to ignore (for example `docs/reviews/<goal>/`, added to `.gitignore`); raw check output stays in `.git/ha/`.
 - Resuming requires naming the same goal in a new conversation in the same project.
 - The completion report has the shape of `ha report` output (five summary lines and evidence per condition), and assurance stays `local`. Do not illustrate unrun checks as passed, or show Spar review as certified verification or automatic deployment.
 - Update both languages' images and alt text together.
