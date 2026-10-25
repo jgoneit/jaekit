@@ -26,7 +26,7 @@ import (
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
-var version = "0.1.7-dev"
+var version = "0.1.8-dev"
 
 const checkTimeout = 900 * time.Second
 

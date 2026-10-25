@@ -509,20 +509,20 @@ func TestSparOnboardingAC7_KeptGuidance(t *testing.T) {
 }
 
 // AC-8 (kept): the Seal skill stays within 2,300 words, and the install pins
-// of the guides and the Seal skill name the current release, v0.1.7.
+// of the guides and the Seal skill name the current release, v0.1.8.
 func TestSparOnboardingAC8_SkillSizeAndPins(t *testing.T) {
 	if n := len(strings.Fields(soRead(t, soSealSkill))); n > 2300 {
 		t.Errorf("%s has %d words, more than 2,300", soSealSkill, n)
 	}
 	for _, path := range []string{soReadme, soReadmeKo, soInstall, soInstallEn} {
 		text := soRead(t, path)
-		for _, pin := range []string{"claude plugin marketplace add jgoneit/jaekit#v0.1.7", "codex plugin marketplace add jgoneit/jaekit@v0.1.7"} {
+		for _, pin := range []string{"claude plugin marketplace add jgoneit/jaekit#v0.1.8", "codex plugin marketplace add jgoneit/jaekit@v0.1.8"} {
 			if !strings.Contains(text, pin) {
 				t.Errorf("%s lost the pin %q", path, pin)
 			}
 		}
 	}
-	if pin := "https://github.com/jgoneit/jaekit/blob/v0.1.7/guides/INSTALL.md"; !strings.Contains(soRead(t, soSealSkill), pin) {
+	if pin := "https://github.com/jgoneit/jaekit/blob/v0.1.8/guides/INSTALL.md"; !strings.Contains(soRead(t, soSealSkill), pin) {
 		t.Errorf("%s lost the install route %q", soSealSkill, pin)
 	}
 }

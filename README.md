@@ -16,7 +16,7 @@ Jaekit **carries work you delegate to Codex or Claude Code from a goal to a comp
 - **Spec** turns what you want into a goal document with completion conditions.
 - **Seal** has the agent implement, check, and fix the work toward that goal, and judges completion from check records.
 
-The current release is **v0.1.7**, an early version being refined through real work.
+The current release is **v0.1.8**, an early version being refined through real work.
 
 ## Why use it
 
@@ -144,9 +144,11 @@ brew install jgoneit/tap/jaekit
 ```bash
 ha --version
 which -a ha
+spar --version
+which -a spar
 ```
 
-It should print `ha 0.1.7`. The first line of `which -a ha` is the file that actually runs. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
+It should print `ha 0.1.8`. The first line of `which -a ha` is the file that actually runs. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
 
 To install without Homebrew, paste the block under [Install from a Release file](guides/INSTALL.en.md#install-from-a-release-file) instead of this step. It downloads the file for your OS and CPU, checks its checksum, and puts `ha` and `spar` at `~/.local/bin/ha` and `~/.local/bin/spar`. Other methods and details are in the [install guide](guides/INSTALL.en.md).
 
@@ -159,7 +161,7 @@ If you already installed Jaekit, follow [Update](#update) below. If you register
 **Claude Code**
 
 ```bash
-claude plugin marketplace add jgoneit/jaekit#v0.1.7
+claude plugin marketplace add jgoneit/jaekit#v0.1.8
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 claude plugin install spar@jaekit
@@ -167,19 +169,19 @@ claude plugin list
 ```
 
 > [!TIP]
-> **Reopen Claude Code after installation.** The final list should show `spec@jaekit`, `seal@jaekit` and `spar@jaekit` as enabled. `#v0.1.7` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
+> **Reopen Claude Code after installation.** The final list should show `spec@jaekit`, `seal@jaekit` and `spar@jaekit` as enabled. `#v0.1.8` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
 
 **Codex**
 
 ```bash
-codex plugin marketplace add jgoneit/jaekit@v0.1.7
+codex plugin marketplace add jgoneit/jaekit@v0.1.8
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 codex plugin add spar@jaekit
 ```
 
 > [!TIP]
-> **Reopen Codex after installation.** `@v0.1.7` pins the release to use.
+> **Reopen Codex after installation.** `@v0.1.8` pins the release to use.
 
 > [!NOTE]
 > **Spar for `standard` and `strict` goals.** From v0.1.7, `standard` and `strict` goals need the Spar executable and the Spar plugin, which the commands above install, with reviewers set to the CLIs you have: see [Spar](guides/INSTALL.en.md#spar). The v0.1.7 Seal starts new goals under `run-rules/5`, and a `standard` or `strict` goal started under `run-rules/5` completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](guides/USAGE.en.md#review-gate-run-rules5)).
@@ -271,6 +273,8 @@ If you installed from a Release file, paste the block under [Install from a Rele
 ```bash
 ha --version
 which -a ha
+spar --version
+which -a spar
 ```
 
 If the new version does not appear, look at the first line of `which -a ha`. That is the file that actually runs.
@@ -285,7 +289,7 @@ Removing the marketplace also removes its spec, seal and spar, so install them a
 
 ```bash
 claude plugin marketplace remove jaekit
-claude plugin marketplace add jgoneit/jaekit#v0.1.7
+claude plugin marketplace add jgoneit/jaekit#v0.1.8
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 claude plugin install spar@jaekit
@@ -295,7 +299,7 @@ claude plugin install spar@jaekit
 
 ```bash
 codex plugin marketplace remove jaekit
-codex plugin marketplace add jgoneit/jaekit@v0.1.7
+codex plugin marketplace add jgoneit/jaekit@v0.1.8
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 codex plugin add spar@jaekit

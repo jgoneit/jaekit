@@ -10,7 +10,7 @@ import (
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
-var version = "0.1.7-dev"
+var version = "0.1.8-dev"
 
 func main() {
 	os.Exit(spar.Main(version, os.Args[1:], os.Stdin, os.Stdout, os.Stderr, os.Getenv))

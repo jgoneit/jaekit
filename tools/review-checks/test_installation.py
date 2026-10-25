@@ -15,9 +15,9 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 GUIDES = {"INSTALL.md": "## 업데이트", "INSTALL.en.md": "## Update"}
-CURRENT = "0.1.7"
-OLDER = ("0.0.9", "0.0.10", "0.1.1", "0.1.3", "0.1.4", "0.1.5", "0.1.6")
-NEWER = ("0.1.8", "0.1.10", "0.2.0", "1.0.0")
+CURRENT = "0.1.8"
+OLDER = ("0.0.9", "0.0.10", "0.1.1", "0.1.3", "0.1.4", "0.1.5", "0.1.6", "0.1.7")
+NEWER = ("0.1.9", "0.1.10", "0.2.0", "1.0.0")
 # The synthetic marketplace version of the release-claim fixtures. Those
 # fixtures only need to agree with themselves, so a release bump leaves them
 # and the fixtures other checks pass in unchanged.

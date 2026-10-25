@@ -32,14 +32,14 @@ def observe():
         binary = output / "ha.exe"
         run("go", "build", "-mod=readonly", "-o", binary, "./cmd/ha",
             env=dict(os.environ, GOOS="windows", GOARCH="amd64", CGO_ENABLED="0"))
-        run(sys.executable, "tools/windows/package.py", "--binary", binary, "--version", "0.1.7-dev", "--output", output / "candidate")
+        run(sys.executable, "tools/windows/package.py", "--binary", binary, "--version", "0.1.8-dev", "--output", output / "candidate")
         candidate = output / "candidate"
         for line in (candidate / "checksums.txt").read_text().splitlines():
             digest, name = line.split("  ", 1)
             assert hashlib.sha256((candidate / name).read_bytes()).hexdigest() == digest
-        with zipfile.ZipFile(candidate / "ha_0.1.7-dev_windows_amd64.zip") as archive:
+        with zipfile.ZipFile(candidate / "ha_0.1.8-dev_windows_amd64.zip") as archive:
             manifest = json.loads(archive.read("package.json"))
-            assert (manifest["os"], manifest["arch"], manifest["version"]) == ("windows", "amd64", "0.1.7-dev")
+            assert (manifest["os"], manifest["arch"], manifest["version"]) == ("windows", "amd64", "0.1.8-dev")
             inventory = {row["path"] for row in manifest["files"]}
             assert set(required).issubset(inventory | {"tools/windows/package.py"})
             assert set(archive.namelist()) == inventory | {"package.json"}
