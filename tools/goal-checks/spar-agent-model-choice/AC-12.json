@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "AllowedLists",
+      "violation": "allowed-list-not-applied",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparAgentModelAC12_AllowedLists"
+      }
+    }
+  ]
+}

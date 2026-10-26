@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "RecordShowsSources",
+      "violation": "model-source-not-recorded",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparAgentModelAC5_RecordShowsSources"
+      }
+    }
+  ]
+}

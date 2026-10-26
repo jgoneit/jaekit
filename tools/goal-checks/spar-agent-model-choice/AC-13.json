@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "AgentEffort",
+      "violation": "agent-effort-not-applied",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparAgentModelAC13_AgentEffort"
+      }
+    }
+  ]
+}
