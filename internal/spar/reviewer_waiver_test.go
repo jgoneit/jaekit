@@ -639,19 +639,22 @@ func TestSparWaiverAC6_WaiverCoversItsRoundOnly(t *testing.T) {
 }
 
 // The fields a round record holds before this change (contracts/review-
-// round.md, section 5): a round written now holds no other, so the gate
-// reads it as it reads an earlier round.
+// round.md, section 5), and the model and effort sources and the agent's
+// choices that spar-agent-model-choice adds, which the gate does not read
+// (contracts/spar-config.md, section 4): a round written now holds no
+// other, so the gate reads it as it reads an earlier round.
 var (
 	rwRoundRecordKeys = []string{"base", "base_tree", "config", "counted", "criteria", "criteria_digest", "diff_sha256",
 		"dry_run", "finished_at", "head", "head_tree", "label", "links", "packet_sha256", "prior", "questions",
 		"repo", "requested_reviewers", "required_reviewers", "rerun_of", "reviewers", "rules", "schema", "sequence",
 		"series", "spar_version", "stage", "started_at", "subjects"}
-	rwConfigKeys = []string{"angles", "caps", "check_paths", "configured_required", "digest", "files", "override",
+	rwConfigKeys = []string{"angles", "caps", "check_paths", "choices", "configured_required", "digest", "files", "override",
 		"reviewers", "rules", "source"}
-	rwConfigReviewerKeys = []string{"argv", "binary", "effort", "fallback_model", "isolation", "model", "name", "preset",
+	rwConfigReviewerKeys = []string{"allowed_efforts", "allowed_models", "argv", "binary", "default_effort", "default_model",
+		"effort", "effort_source", "fallback_model", "isolation", "model", "model_source", "name", "preset",
 		"required", "timeout_seconds"}
-	rwReviewerStateKeys = []string{"agent", "angles_checked", "angles_unchecked", "attempts", "effort",
-		"elapsed_seconds", "fallback_model", "fallback_used", "findings", "isolation", "limits", "name",
+	rwReviewerStateKeys = []string{"agent", "angles_checked", "angles_unchecked", "attempts", "effort", "effort_source",
+		"elapsed_seconds", "fallback_model", "fallback_used", "findings", "isolation", "limits", "model_source", "name",
 		"observed_model", "preset", "reason", "recorded_from", "requested_model", "required", "resets", "status",
 		"timeout_seconds", "verdict", "warnings", "workspace_digest"}
 )

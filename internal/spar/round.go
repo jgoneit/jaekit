@@ -57,6 +57,7 @@ type RunOptions struct {
 	Questions  []string
 	CheckPaths []string
 	Reviewers  []string // nil: the configured list
+	Choices    []Choice // the agent's --model and --effort values
 	Label      string
 	DryRun     bool
 	Version    string
@@ -291,7 +292,7 @@ func Run(o RunOptions) (int, error) {
 		return ExitRefused, refused("%s is not in a Git repository: %v", start, err)
 	}
 	repo = realish(repo)
-	cfg, err := LoadConfig(repo, o.Getenv, o.Reviewers)
+	cfg, err := LoadConfigWith(repo, o.Getenv, o.Reviewers, o.Choices)
 	if err != nil {
 		return ExitRefused, err
 	}
@@ -429,7 +430,8 @@ func runRound(o RunOptions, r *RoundRecord, out string, packet []byte) (int, err
 	}
 	for _, rv := range r.Config.Reviewers {
 		st := &ReviewerState{Name: rv.Name, Preset: rv.Preset, Isolation: rv.Isolation, Required: rv.Required,
-			Status: "running", RequestedModel: strPtr(rv.Model), FallbackModel: rv.FallbackModel, Effort: rv.Effort,
+			Status: "running", RequestedModel: strPtr(rv.Model), ModelSource: rv.ModelSource, FallbackModel: rv.FallbackModel,
+			Effort: rv.Effort, EffortSource: rv.EffortSource,
 			TimeoutSeconds: rv.TimeoutSeconds, Attempts: []Attempt{}, AnglesChecked: []string{},
 			AnglesUnchecked: []AngleNote{}, Warnings: []string{}}
 		if r.DryRun {
@@ -665,6 +667,12 @@ func prepareNative(out, template string, packet []byte, r *RoundRecord, st *Revi
 
 // Config prints the configuration a run would apply.
 func ShowConfig(repo string, getenv func(string) string, override []string, w io.Writer) error {
+	return ShowConfigWith(repo, getenv, override, nil, w)
+}
+
+// ShowConfigWith prints the configuration a run with the agent's values
+// would apply.
+func ShowConfigWith(repo string, getenv func(string) string, override []string, choices []Choice, w io.Writer) error {
 	if repo == "" {
 		repo = "."
 	}
@@ -672,7 +680,7 @@ func ShowConfig(repo string, getenv func(string) string, override []string, w io
 	if err != nil {
 		root = repo
 	}
-	cfg, err := LoadConfig(realish(root), getenv, override)
+	cfg, err := LoadConfigWith(realish(root), getenv, override, choices)
 	if err != nil {
 		return err
 	}

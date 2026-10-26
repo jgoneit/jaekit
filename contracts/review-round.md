@@ -21,6 +21,8 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 | `--question` | 이번 라운드에 묻는 질문 |
 | `--check-path` | 이번 실행의 검사 경로 glob(G24). 잘못된 glob은 리뷰어를 띄우기 전에 거부한다 |
 | `--reviewers` | 이번 실행의 리뷰어 이름 목록(G25) |
+| `--model` | `이름=모델`. 사용자 설정에 `model`이 적히지 않은 `claude`·`codex`·`agy` 리뷰어의 이번 실행 모델(G25, [설정 계약](spar-config.md) 1절 "모델과 강도를 정하는 순서"). 여러 번 줄 수 있다 |
+| `--effort` | `이름=강도`. 사용자 설정에 `effort`가 적히지 않은 `claude`·`codex` 리뷰어의 이번 실행 강도(G25). 여러 번 줄 수 있다 |
 | `--repo`, `--label` | 저장소 위치, 기록에 남길 이름 |
 | `--dry-run` | 패킷과 작업공간만 만들고 리뷰어를 띄우지 않는다. 작업공간은 라운드 폴더의 `workspace/`에 남는다. 상한에 세지 않고 gate는 받지 않는다 |
 
@@ -82,7 +84,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 `verified` preset의 보호(G10, G11): `claude`는 `-p --safe-mode --restricted --strict-mcp-config --tools Read,Grep,Glob --permission-mode dontAsk --no-session-persistence --disable-slash-commands`로 실행하고 다른 도구나 MCP 서버가 보이면 멈춘다. `codex`는 `exec --ignore-user-config --ignore-rules -s read-only --ephemeral --skip-git-repo-check -c web_search="disabled"`와 `apps`, `browser_use`, `browser_use_external`, `computer_use`, `in_app_browser`, `image_generation`, `memories`, `multi_agent`, `plugins`, `hooks`의 `--disable`로 실행하고 허용 밖의 항목 종류가 보이면 멈춘다. `agy`는 `--sandbox --disable-slash-commands`로 실행하고 파일 읽기·목록·검색 도구와 셸 명령 중 읽기 전용 프로그램(`find`, `ls`, `grep`, `rg`, `cat`, `head`, `tail`, `wc`, `sort`, `uniq`, `cut`, `stat`, `file`, `diff`, `tree` 등)과 출력만 하는 `sed -n`만 허용한다. `2>/dev/null`과 `2>&1`은 지운 뒤 보고, 그 밖의 리디렉션·명령 치환·`|` 밖의 셸 연산자, 그리고 `-exec`·`-execdir`·`-ok`·`-okdir`·`-delete`·`--pre`·`--compress-program`으로 시작하는 인자는 위반이다. 이 보호는 clean-review 0.2.1과 같다(0.2.0의 파일 읽기 도구에 agy 1.4.3이 쓰는 `read_file`을 더한 것). 그 밖에 허용 프로그램이 파일을 쓰는 옵션(예: `sort -o`)은 따로 막지 않는다. 파일 쓰기는 `agy`의 `--sandbox`에 맡기고, `head/`·`base/`·`PACKET.md`가 바뀌면 `workspace_modified`다.
 
-대체 모델: 지정 모델이 사용량·요청 한도로 거절되고(거절 문구: G13, [입력 형식](spar-input.md) 5절) `fallback_model`이 있으면 같은 패킷과 새 작업공간 사본으로 한 번 더 실행한다. 인증 거절이나 다른 실패에는 쓰지 않는다. `attempts`에 시도마다 모델·상태·원인·재설정 문구가 남고 `fallback_used`가 `true`가 된다.
+대체 모델: 지정 모델이 사용량·요청 한도로 거절되고(거절 문구: G13, [입력 형식](spar-input.md) 5절) `fallback_model`이 있으면 같은 패킷과 새 작업공간 사본으로 한 번 더 실행한다. 인증 거절이나 다른 실패에는 쓰지 않는다. 에이전트가 `--model`로 고른 모델의 대체 모델은 사용자가 적은 `fallback_model`뿐이다([설정 계약](spar-config.md) 1절). 대체 실행은 지정 모델의 실행과 같은 강도를 쓴다. `attempts`에 시도마다 모델·상태·원인·재설정 문구가 남고 `fallback_used`가 `true`가 된다.
 
 ## 5. 라운드 폴더
 
@@ -100,7 +102,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 `round.json`의 주요 필드: `schema`(`review-round/v1`), `spar_version`, `stage`, `label`, `series`, `sequence`, `repo`, `base`, `head`, `base_tree`, `head_tree`, `diff_sha256`, `criteria`·`rules`·`subjects`(`name`, `source`, `sha256`), `criteria_digest`(기준 문서 이름과 sha256의 sha256), `questions`, `prior`, `packet_sha256`, `config`([설정 계약](spar-config.md)의 적용 기록), `links`(연결 확인에 쓴 `criteria_ids`와 규칙 문서의 `rules[]`: `names`, `file_name`, `lines`), `requested_reviewers`, `required_reviewers`, `dry_run`, `counted`, `rerun_of`, `started_at`, `finished_at`, `reviewers`.
 
-`reviewers.<이름>`: `name`, `preset`, `isolation`(`verified`, `host`, `unverified`), `required`, `status`, `reason`, `requested_model`, `observed_model`, `fallback_model`, `fallback_used`, `effort`, `elapsed_seconds`, `timeout_seconds`(G19), `resets`, `attempts`, `findings`(완료한 경우의 지적 수, 아니면 `null`), `verdict`, `angles_checked`, `angles_unchecked`, `limits`, `warnings`, `agent`, `recorded_from`, `workspace_digest`(native 작업공간을 준비할 때의 digest).
+`reviewers.<이름>`: `name`, `preset`, `isolation`(`verified`, `host`, `unverified`), `required`, `status`, `reason`, `requested_model`, `model_source`(`claude`·`codex`·`agy`만: `user`, `agent`, `preset`), `observed_model`, `fallback_model`, `fallback_used`, `effort`, `effort_source`(`claude`·`codex`만, 같은 세 값), `elapsed_seconds`, `timeout_seconds`(G19), `resets`, `attempts`, `findings`(완료한 경우의 지적 수, 아니면 `null`), `verdict`, `angles_checked`, `angles_unchecked`, `limits`, `warnings`, `agent`, `recorded_from`, `workspace_digest`(native 작업공간을 준비할 때의 digest).
 
 ## 6. 분류
 

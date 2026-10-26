@@ -30,7 +30,19 @@ func reviewerLine(st *ReviewerState) string {
 	}
 	var facts []string
 	if m := deref(st.RequestedModel); m != "" {
+		if st.ModelSource != "" {
+			m += " [" + st.ModelSource + "]"
+		}
 		facts = append(facts, "model "+m)
+	}
+	// A record from before sources were kept shows no effort, as it did;
+	// an effort the user wrote empty is none.
+	if st.EffortSource != "" {
+		effort := st.Effort
+		if effort == "" {
+			effort = "none"
+		}
+		facts = append(facts, "effort "+effort+" ["+st.EffortSource+"]")
 	}
 	if m := deref(st.ObservedModel); m != "" && m != deref(st.RequestedModel) {
 		facts = append(facts, "observed "+m)
