@@ -30,6 +30,7 @@ import (
 	"regexp"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -230,6 +231,55 @@ func git(t *testing.T, dir string, args ...string) string {
 	return string(out)
 }
 
+// committed reads files as the checked commit has them, which is what the
+// builder reads: a checkout's line endings or uncommitted edits do not count.
+// A name the commit does not have is left out.
+func committed(t *testing.T, names []string) map[string][]byte {
+	t.Helper()
+	var in bytes.Buffer
+	for _, name := range names {
+		in.WriteString("HEAD:" + name + "\n")
+	}
+	cmd := exec.Command("git", "-C", repoRoot(t), "cat-file", "--batch")
+	cmd.Stdin = &in
+	out, err := cmd.Output()
+	if err != nil {
+		t.Skipf("git cat-file --batch: %v", err)
+	}
+	files := map[string][]byte{}
+	for _, name := range names {
+		nl := bytes.IndexByte(out, '\n')
+		if nl < 0 {
+			t.Skipf("git cat-file --batch: no answer for %s", name)
+		}
+		header := strings.Fields(string(out[:nl]))
+		out = out[nl+1:]
+		if len(header) == 2 && header[1] == "missing" {
+			continue
+		}
+		size := -1
+		if len(header) == 3 {
+			size, _ = strconv.Atoi(header[2])
+		}
+		if size < 0 || len(out) < size+1 {
+			t.Skipf("git cat-file --batch: unreadable answer for %s: %q", name, header)
+		}
+		files[name] = out[:size]
+		out = out[size+1:]
+	}
+	return files
+}
+
+// headFile is one file of the checked commit.
+func headFile(t *testing.T, name string) string {
+	t.Helper()
+	data, ok := committed(t, []string{name})[name]
+	if !ok {
+		t.Skipf("%s is not in the checked commit", name)
+	}
+	return string(data)
+}
+
 // doc is one Markdown file that becomes a page.
 type doc struct {
 	Path, Lang, URL string
@@ -239,8 +289,20 @@ type doc struct {
 // in the checked commit, with the page each one becomes.
 func documents(t *testing.T) []doc {
 	t.Helper()
+	docs := docsAt(t, repoRoot(t))
+	if len(docs) == 0 {
+		t.Skip("no tracked documents under guides/ or contracts/")
+	}
+	return docs
+}
+
+// docsAt lists the documents of the commit checked out at dir. A page's
+// address is its file name in lowercase (a README is its folder's page),
+// with a '_' before a name made only of dots.
+func docsAt(t *testing.T, dir string) []doc {
+	t.Helper()
 	var docs []doc
-	for _, name := range strings.Split(git(t, repoRoot(t), "ls-tree", "-r", "--name-only", "-z", "HEAD", "--", "guides", "contracts"), "\x00") {
+	for _, name := range strings.Split(git(t, dir, "ls-tree", "-r", "--name-only", "-z", "HEAD", "--", "guides", "contracts"), "\x00") {
 		section, file, ok := strings.Cut(name, "/")
 		if !ok || strings.Contains(file, "/") || !strings.HasSuffix(file, ".md") {
 			continue
@@ -251,14 +313,20 @@ func documents(t *testing.T) []doc {
 		}
 		url := lang + "/" + section + "/"
 		if stem != "README" {
-			url += strings.ToLower(stem) + "/"
+			url += pageName(stem) + "/"
 		}
 		docs = append(docs, doc{Path: name, Lang: lang, URL: url})
 	}
-	if len(docs) == 0 {
-		t.Skip("no tracked documents under guides/ or contracts/")
-	}
 	return docs
+}
+
+// pageName is the address part a document name becomes.
+func pageName(stem string) string {
+	name := strings.ToLower(stem)
+	if strings.Trim(name, ".") == "" {
+		return "_" + name
+	}
+	return name
 }
 
 var articleRE = regexp.MustCompile(`(?s)<div class="markdown">(.*)</div>\s*<div class="doc-foot">`)
@@ -310,16 +378,21 @@ func publicDocs(t *testing.T, docs []doc) map[string]docFacts {
 	for _, d := range docs {
 		paths = append(paths, d.Path)
 	}
+	texts := map[string]string{}
+	for name, data := range committed(t, paths) {
+		texts[name] = string(data)
+	}
+	input, _ := json.Marshal(texts)
 	script := `import json, sys
 sys.path.insert(0, "tools")
 import check_public_docs as c
 out = {}
-for name in sys.argv[1:]:
-    text = open(name, encoding="utf-8").read()
+for name, text in json.load(sys.stdin).items():
     out[name] = {"anchors": sorted(c.anchors(text)), "links": c.links(text)}
 print(json.dumps(out))`
-	cmd := exec.Command(python(t), append([]string{"-c", script}, paths...)...)
+	cmd := exec.Command(python(t), "-c", script)
 	cmd.Dir = repoRoot(t)
+	cmd.Stdin = bytes.NewReader(input)
 	raw, err := cmd.Output()
 	if err != nil {
 		t.Skipf("tools/check_public_docs.py could not be read: %v", err)
@@ -335,16 +408,39 @@ print(json.dumps(out))`
 // reads, copied from the checked tree, then applies edit to it.
 func synthetic(t *testing.T, edit func(dir string)) string {
 	t.Helper()
-	src := repoRoot(t)
 	dir := t.TempDir()
-	for _, name := range []string{
-		"guides/INSTALL.md", "guides/INSTALL.en.md", "guides/USAGE.md", "guides/USAGE.en.md",
-		"contracts/README.md", ".claude-plugin/marketplace.json",
-		"assets/readme/brand/symbol.png", "assets/readme/brand/symbol.svg",
-	} {
-		data, err := os.ReadFile(filepath.Join(src, filepath.FromSlash(name)))
-		if err != nil {
-			t.Skipf("cannot copy %s: %v", name, err)
+	inputs := map[string]bool{
+		"guides/INSTALL.md": true, "guides/INSTALL.en.md": true, "guides/USAGE.md": true, "guides/USAGE.en.md": true,
+		"contracts/README.md": true, ".claude-plugin/marketplace.json": true,
+		"assets/readme/brand/symbol.png": true, "assets/readme/brand/symbol.svg": true,
+	}
+	var names, real []string
+	for _, name := range strings.Split(git(t, repoRoot(t), "ls-tree", "-r", "-z", "--name-only", "HEAD"), "\x00") {
+		if name == "" {
+			continue
+		}
+		names = append(names, name)
+		// The builder's inputs, and files links can name a heading in, keep
+		// their committed bytes; other files only need to exist for links.
+		switch strings.ToLower(filepath.Ext(name)) {
+		case ".md", ".html", ".svg":
+			real = append(real, name)
+		default:
+			if inputs[name] {
+				real = append(real, name)
+			}
+		}
+	}
+	files := committed(t, real)
+	for name := range inputs {
+		if _, ok := files[name]; !ok {
+			t.Skipf("cannot copy %s: not in the checked commit", name)
+		}
+	}
+	for _, name := range names {
+		data, ok := files[name]
+		if !ok {
+			data = []byte("stand-in\n")
 		}
 		target := filepath.Join(dir, filepath.FromSlash(name))
 		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
@@ -353,36 +449,6 @@ func synthetic(t *testing.T, edit func(dir string)) string {
 		if err := os.WriteFile(target, data, 0o644); err != nil {
 			t.Skip(err)
 		}
-	}
-	// Every tracked document is copied so that links between them resolve.
-	for _, d := range documents(t) {
-		target := filepath.Join(dir, filepath.FromSlash(d.Path))
-		if _, err := os.Stat(target); err == nil {
-			continue
-		}
-		data, _ := os.ReadFile(filepath.Join(src, filepath.FromSlash(d.Path)))
-		_ = os.MkdirAll(filepath.Dir(target), 0o755)
-		_ = os.WriteFile(target, data, 0o644)
-	}
-	for _, name := range strings.Split(git(t, src, "ls-files", "-z"), "\x00") {
-		if name == "" {
-			continue
-		}
-		target := filepath.Join(dir, filepath.FromSlash(name))
-		if _, err := os.Stat(target); err == nil {
-			continue
-		}
-		// Files links can name a heading in keep their text; other files
-		// only need to exist for links to resolve.
-		data := []byte("stand-in\n")
-		switch strings.ToLower(filepath.Ext(name)) {
-		case ".md", ".html", ".svg":
-			if real, err := os.ReadFile(filepath.Join(src, filepath.FromSlash(name))); err == nil {
-				data = real
-			}
-		}
-		_ = os.MkdirAll(filepath.Dir(target), 0o755)
-		_ = os.WriteFile(target, data, 0o644)
 	}
 	if edit != nil {
 		edit(dir)
@@ -719,13 +785,14 @@ func browseWith(t *testing.T, dir string, opts browser, script string, flags ...
 	return nil
 }
 
-// githubHTML is GitHub's own rendering of a Markdown source (POST /markdown,
-// GitHub Flavored Markdown, with this repository as context), kept in the
-// cache by the source's digest. ok is false when it cannot be had.
+// githubHTML is GitHub's own rendering of a Markdown source as GitHub shows
+// a file (POST /markdown in markdown mode; gfm mode renders a comment, with
+// line breaks and mentions), kept in the cache by the source's digest. ok is
+// false when it cannot be had.
 func githubHTML(t *testing.T, source string) (string, bool) {
 	t.Helper()
 	sum := sha256.Sum256([]byte(source))
-	path := filepath.Join(cacheDir(t), "github-markdown", hex.EncodeToString(sum[:])+".html")
+	path := filepath.Join(cacheDir(t), "github-file", hex.EncodeToString(sum[:])+".html")
 	if data, err := os.ReadFile(path); err == nil {
 		return string(data), true
 	}
@@ -733,7 +800,7 @@ func githubHTML(t *testing.T, source string) (string, bool) {
 	if err != nil {
 		return "", false
 	}
-	body, _ := json.Marshal(map[string]string{"text": source, "mode": "gfm", "context": ownerRepo})
+	body, _ := json.Marshal(map[string]string{"text": source, "mode": "markdown", "context": ownerRepo})
 	cmd := exec.Command(gh, "api", "-X", "POST", "markdown", "--input", "-")
 	cmd.Stdin = bytes.NewReader(body)
 	out, err := cmd.Output()

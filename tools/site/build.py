@@ -235,10 +235,196 @@ def load_markdown(vendor: dict, cache: Path):
         sys.path.insert(0, str(cache_path(entry, cache)))
     try:
         from markdown_it import MarkdownIt
+        from markdown_it.token import Token
     except Exception as error:  # the verified wheel does not run on this Python
         raise ToolProblem(f"the pinned Markdown parser cannot be loaded: {type(error).__name__}: {error}") from None
-    # As on GitHub: tables, and strikethrough with one or two tildes.
-    return MarkdownIt("commonmark", {"html": True, "strikethrough_single_tilde": True}).enable(["table", "strikethrough"])
+    # As on GitHub: tables, strikethrough with one or two tildes, and bare
+    # web and e-mail addresses as links.
+    md = MarkdownIt("commonmark", {"html": True, "strikethrough_single_tilde": True}).enable(["table", "strikethrough"])
+    md.core.ruler.before("text_join", "github_autolinks", lambda state: github_autolinks(state, Token))
+    return md
+
+
+# GitHub's autolinks (the GFM autolink extension): www. and http(s)://
+# addresses and e-mail addresses in text, ended as GitHub ends them. GitHub
+# finds and shows them as written: an entity such as &amp; stays as typed.
+
+ASCII_PUNCT = set("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~")
+AUTOLINK_AFTER = {None, "softbreak", "hardbreak", "em_open", "em_close", "strong_open", "strong_close", "s_open", "s_close"}
+
+
+def host_char(c: str) -> bool:
+    return not c.isspace() and c not in ASCII_PUNCT and unicodedata.category(c)[0] != "P"
+
+
+def ascii_alnum(c: str) -> bool:
+    return c.isascii() and c.isalnum()
+
+
+def domain_length(text: str, start: int, short: bool) -> int:
+    size = len(text) - start
+    if size < 1:
+        return 0
+    i, periods, under_last, under = 1, 0, 0, 0
+    while i < size - 1:
+        if text[start + i] == "\\" and i < size - 2:
+            i += 1
+        c = text[start + i]
+        if c == "_":
+            under += 1
+        elif c == ".":
+            under_last, under, periods = under, 0, periods + 1
+        elif not host_char(c) and c != "-":
+            break
+        i += 1
+    if (under_last or under) and periods <= 10:
+        return 0  # an underscore in the last two parts of a host name
+    return i if short or periods else 0
+
+
+def autolink_end(text: str, start: int, end: int) -> int:
+    """Leave out trailing punctuation, an unmatched ')' and an entity-like '&name;'."""
+    if "<" in text[start:end]:
+        end = text.index("<", start, end)
+    opening, closing = text.count("(", start, end), text.count(")", start, end)
+    while end > start:
+        c = text[end - 1]
+        if c == ")":
+            if closing <= opening:
+                break
+            closing -= 1
+            end -= 1
+        elif c in "?!.,:*_~'\"":
+            end -= 1
+        elif c == ";":
+            j = end - 2
+            while j > start and text[j].isascii() and text[j].isalpha():
+                j -= 1
+            end = j if j < end - 2 and text[j] == "&" else end - 1
+        else:
+            break
+    return end
+
+
+def path_end(text: str, end: int) -> int:
+    while end < len(text) and not text[end].isspace() and text[end] != "<":
+        end += 1
+    return end
+
+
+def autolinks(text: str, open_start: bool) -> list[tuple[int, int, str]]:
+    """(start, end, address) of each autolink GitHub finds in the text."""
+    found, i, last = [], 0, 0
+    while i < len(text):
+        c, link = text[i], None
+        before = text[i - 1] if i else None
+        if c == "w" and text.startswith("www.", i) and (open_start if before is None else before.isspace() or before in "*_~("):
+            length = domain_length(text, i, False)
+            if length:
+                end = autolink_end(text, i, path_end(text, i + length))
+                if end > i:
+                    link = (i, end, "http://")
+        elif c == ":" and text.startswith("//", i + 1):
+            start = i
+            while start > last and text[start - 1].isascii() and text[start - 1].isalpha():
+                start -= 1
+            if text[start:i + 3].lower() in ("http://", "https://") and i + 3 < len(text) and ascii_alnum(text[i + 3]):
+                length = domain_length(text, i + 3, True)
+                if length:
+                    end = autolink_end(text, start, path_end(text, i + 3 + length))
+                    if end > start:
+                        link = (start, end, "")
+        elif c == "@":
+            start = i
+            while start > last and (ascii_alnum(text[start - 1]) or text[start - 1] in ".+-_"):
+                start -= 1
+            if start < i:
+                end, ats, dots = i, 0, 0
+                while end < len(text):
+                    d = text[end]
+                    if d == "@":
+                        ats += 1
+                    elif d == "." and end < len(text) - 1 and ascii_alnum(text[end + 1]):
+                        dots += 1
+                    elif not ascii_alnum(d) and d not in "-_":
+                        break
+                    end += 1
+                if end - i >= 2 and ats == 1 and dots and (text[end - 1].isascii() and text[end - 1].isalpha() or text[end - 1] == "."):
+                    end = autolink_end(text, i, end)
+                    if end > i:
+                        link = (start, end, "mailto:")
+        if link:
+            found.append(link)
+            i = last = link[1]
+        else:
+            i += 1
+    return found
+
+
+def github_autolinks(state, Token) -> None:
+    md = state.md
+    for block in state.tokens:
+        if block.type != "inline" or not block.children:
+            continue
+        children, out, depth, i = block.children, [], 0, 0
+        while i < len(children):
+            child = children[i]
+            if child.type not in ("text", "text_special") or depth:
+                # Not inside a Markdown link; GitHub does link inside raw HTML.
+                if child.type == "link_open":
+                    depth += 1
+                elif child.type == "link_close":
+                    depth -= 1
+                out.append(child)
+                i += 1
+                continue
+            # A run of text as written: entities and escapes keep their markup.
+            run = []
+            while i < len(children) and children[i].type in ("text", "text_special"):
+                run.append(children[i])
+                i += 1
+            pieces, written = [], ""
+            for token in run:
+                start = len(written)
+                written += token.markup if token.type == "text_special" else token.content
+                pieces.append((start, len(written), token))
+            before = out[-1].type if out else None
+            links = autolinks(written, before in AUTOLINK_AFTER)
+
+            def shown(a: int, b: int) -> str:
+                text = []
+                for start, end, token in pieces:
+                    if end <= a or start >= b:
+                        continue
+                    text.append(token.content if token.type == "text_special" else token.content[max(a, start) - start:min(b, end) - start])
+                return "".join(text)
+
+            def text_token(content: str) -> None:
+                if content:
+                    token = Token("text", "", 0)
+                    token.content = content
+                    out.append(token)
+
+            if not links:
+                out.extend(run)
+                continue
+            at = 0
+            for start, end, scheme in links:
+                href = md.normalizeLink(scheme + written[start:end])
+                if not md.validateLink(href):
+                    continue
+                text_token(shown(at, start))
+                opening = Token("link_open", "a", 1)
+                opening.attrs = {"href": href}
+                opening.markup, opening.info = "linkify", "auto"
+                out.append(opening)
+                text_token(written[start:end])
+                closing = Token("link_close", "a", -1)
+                closing.markup, closing.info = "linkify", "auto"
+                out.append(closing)
+                at = end
+            text_token(shown(at, len(written)))
+        block.children = out
 
 
 def load_public_docs():
@@ -315,7 +501,11 @@ class Doc:
 
     @property
     def slug(self) -> str:
-        return "" if self.stem == "README" else self.stem.lower()
+        if self.stem == "README":
+            return ""
+        slug = self.stem.lower()
+        # A name of dots alone would be the folder itself or the one above.
+        return "_" + slug if not slug.strip(".") else slug
 
     @property
     def dir(self) -> str:
@@ -374,22 +564,28 @@ def plain(inline) -> str:
 
 HTML_ID = re.compile(r"\b(?:id|name)=[\"']([^\"']+)[\"']")
 HTML_LINK = re.compile(r"\b(href|src)(\s*=\s*)([\"'])([^\"']+)\3")
+HTML_COMMENT = re.compile(r"(<!--.*?-->)", re.S)
 
 
-def prepare(doc: Doc, md, public_docs) -> list[str]:
-    """Parse once, give every heading its GitHub anchor and collect titles.
-    Returns problems: the page's ids must be the anchors check_public_docs
-    computes for the file, which the repository's links are checked against."""
+def html_ids(text: str) -> list[str]:
+    """The ids an HTML fragment gives the page; comments give none."""
+    return HTML_ID.findall(HTML_COMMENT.sub("", text))
+
+
+def prepare(doc: Doc, md) -> None:
+    """Parse once, give every heading GitHub's anchor and collect titles.
+    Every heading GitHub shows gets one, by the rule tools/check_public_docs.py
+    computes with anchors(), including the forms anchors() does not read."""
     doc.tokens = md.parse(doc.source)
     counts: dict[str, int] = {}
     tokens = doc.tokens
     for index, token in enumerate(tokens):
         if token.type in ("html_block", "html_inline"):
-            doc.ids.update(HTML_ID.findall(token.content))
+            doc.ids.update(html_ids(token.content))
         if token.type == "inline":
             for child in token.children or []:
                 if child.type == "html_inline":
-                    doc.ids.update(HTML_ID.findall(child.content))
+                    doc.ids.update(html_ids(child.content))
         if token.type != "heading_open":
             continue
         inline = tokens[index + 1]
@@ -405,13 +601,6 @@ def prepare(doc: Doc, md, public_docs) -> list[str]:
             doc.title = text
     if not doc.title:
         doc.title = doc.stem  # no '#' title: the file's name
-    expected = public_docs.anchors(doc.source)
-    problems = []
-    if doc.ids != expected:
-        missing, extra = sorted(expected - doc.ids), sorted(doc.ids - expected)
-        problems.append(f"{doc.path}: heading ids differ from tools/check_public_docs.py anchors()"
-                        f" (not on the page: {', '.join(missing) or 'none'}; only on the page: {', '.join(extra) or 'none'})")
-    return problems
 
 
 class Links:
@@ -481,8 +670,12 @@ class Links:
         return href
 
     def rewrite_html(self, doc: Doc, text: str) -> str:
-        return HTML_LINK.sub(lambda m: m.group(1) + m.group(2) + m.group(3) +
-                             html.escape(self.rewrite(doc, html.unescape(m.group(4))), quote=True) + m.group(3), text)
+        # Comments are not shown, and tools/check_public_docs.py reads no links in them.
+        parts = HTML_COMMENT.split(text)
+        return "".join(part if index % 2 else HTML_LINK.sub(
+            lambda m: m.group(1) + m.group(2) + m.group(3) +
+            html.escape(self.rewrite(doc, html.unescape(m.group(4))), quote=True) + m.group(3), part)
+            for index, part in enumerate(parts))
 
 
 def relative(start: str, target: str) -> str:
@@ -953,16 +1146,14 @@ def build_site(root: Path, out: Path, base: str, cache: Path) -> None:
     commit = source_commit(tree)
     md = load_markdown(vendor, cache)
     install_rules(md)
-    problems: list[str] = []
     for doc in docs:
-        problems += prepare(doc, md, public_docs)
+        prepare(doc, md)
     links = Links(docs, tree, public_docs)
     for doc in docs:
         links.check(doc)
         render(doc, md, links)
-    problems += links.problems
-    if problems:
-        raise InputProblem("\n".join(dict.fromkeys(problems)))
+    if links.problems:
+        raise InputProblem("\n".join(dict.fromkeys(links.problems)))
     assets, notice = vendor_assets(vendor, cache)
     build = Build(commit, version, install, docs, {d.path: d for d in docs}, groups_for(docs))
 

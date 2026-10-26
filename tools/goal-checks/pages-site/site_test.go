@@ -137,7 +137,7 @@ func links(fragment string) []link {
 func installLine(t *testing.T, name string) string {
 	t.Helper()
 	inFence := false
-	for _, line := range strings.Split(readFile(t, filepath.Join(repoRoot(t), name)), "\n") {
+	for _, line := range strings.Split(headFile(t, name), "\n") {
 		if regexp.MustCompile("^\\s*(```|~~~)").MatchString(line) {
 			inFence = !inFence
 			continue
@@ -157,7 +157,7 @@ func releaseVersion(t *testing.T) string {
 			Version string `json:"version"`
 		} `json:"metadata"`
 	}
-	if err := json.Unmarshal([]byte(readFile(t, filepath.Join(repoRoot(t), ".claude-plugin", "marketplace.json"))), &data); err != nil {
+	if err := json.Unmarshal([]byte(headFile(t, ".claude-plugin/marketplace.json")), &data); err != nil {
 		t.Skipf("marketplace.json: %v", err)
 	}
 	return data.Metadata.Version
@@ -201,7 +201,7 @@ func TestPagesSiteAC1_Published(t *testing.T) {
 	for _, d := range documents(t) {
 		text := page(t, dir, d.URL+"index.html", v)
 		source, ok := pageSource(text)
-		if !ok || source != readFile(t, filepath.Join(repoRoot(t), filepath.FromSlash(d.Path))) {
+		if !ok || source != headFile(t, d.Path) {
 			fail(t, v, "%s does not carry the bytes of %s", d.URL, d.Path)
 		}
 	}
@@ -266,7 +266,7 @@ func TestPagesSiteAC2_DocumentSet(t *testing.T) {
 		if got := langAttr(text); got != d.Lang {
 			fail(t, v, "%s has lang %q, want %q", d.URL, got, d.Lang)
 		}
-		want := h1(readFile(t, filepath.Join(repoRoot(t), filepath.FromSlash(d.Path))))
+		want := h1(headFile(t, d.Path))
 		if want == "" { // no '#' title: the file's name
 			want = strings.TrimSuffix(strings.TrimSuffix(path.Base(d.Path), ".md"), ".en")
 		}
@@ -313,12 +313,13 @@ func TestPagesSiteAC2_DocumentSet(t *testing.T) {
 	// Markdown directly under the two folders never do. A file without a '#'
 	// title is named by its file, and a symbolic link shows its target.
 	const secret = "PAGES-SITE-PRIVATE-7d1e"
-	// Names with characters that end or split an address: # ? and a space.
-	odd := []string{"FAQ#tips", "Two words?"}
+	// Names with characters that end or split an address (# ? and a space),
+	// and names of dots alone, which would be the folder or the one above.
+	odd := []string{"FAQ#tips", "Two words?", ".", ".."}
 	syn := synthetic(t, func(root string) {
 		write(t, filepath.Join(root, "guides", "NEWGUIDE.md"), "# New guide\n\nA new guide.\n")
 		for _, name := range odd {
-			write(t, filepath.Join(root, "guides", name+".md"), "# "+name+"\n\nA guide.\n")
+			write(t, filepath.Join(root, "guides", name+".md"), "# Guide "+name+"\n\nA guide.\n")
 		}
 		write(t, filepath.Join(root, "guides", "NOTITLE.md"), "A guide without a title.\n")
 		write(t, filepath.Join(root, "guides", "sub", "NESTED.md"), "# Nested "+secret+"\n")
@@ -339,21 +340,7 @@ func TestPagesSiteAC2_DocumentSet(t *testing.T) {
 	if res.err != nil || res.code != 0 {
 		fail(t, v, "a tree with a new guide does not build: %v %s", res.err, res.stderr)
 	}
-	var synDocs []doc
-	for _, name := range strings.Split(git(t, syn, "ls-tree", "-r", "--name-only", "-z", "HEAD", "--", "guides", "contracts"), "\x00") {
-		section, file, ok := strings.Cut(name, "/")
-		if ok && !strings.Contains(file, "/") && strings.HasSuffix(file, ".md") {
-			lang, stem := "ko", strings.TrimSuffix(file, ".md")
-			if strings.HasSuffix(file, ".en.md") {
-				lang, stem = "en", strings.TrimSuffix(file, ".en.md")
-			}
-			url := lang + "/" + section + "/"
-			if stem != "README" {
-				url += strings.ToLower(stem) + "/"
-			}
-			synDocs = append(synDocs, doc{Path: name, Lang: lang, URL: url})
-		}
-	}
+	synDocs := docsAt(t, syn)
 	pageSet(t, res.out, synDocs, v)
 	page(t, res.out, "ko/guides/newguide/index.html", v)
 	if got := title(page(t, res.out, "ko/guides/notitle/index.html", v)); !strings.HasPrefix(got, "NOTITLE") {
@@ -369,8 +356,11 @@ func TestPagesSiteAC2_DocumentSet(t *testing.T) {
 	if !strings.Contains(page(t, res.out, "ko/guides/usage/index.html", v), `href="../newguide/"`) {
 		fail(t, v, "the new guide is missing from the navigation of the other pages")
 	}
+	if strings.HasPrefix(title(page(t, res.out, "ko/index.html", v)), ".") {
+		fail(t, v, "a document named by dots replaced the Korean home page")
+	}
 	for _, name := range odd {
-		want := "ko/guides/" + strings.ToLower(name) + "/"
+		want := "ko/guides/" + pageName(name) + "/"
 		found := false
 		for _, l := range links(start) {
 			if target, _ := resolve("en/docs/", l.href); target == want {
@@ -465,14 +455,14 @@ func TestPagesSiteAC3_Rendering(t *testing.T) {
 	for _, d := range docs {
 		rel := d.URL + "index.html"
 		body := article(t, page(t, dir, rel, v), rel, v)
-		source := readFile(t, filepath.Join(repoRoot(t), filepath.FromSlash(d.Path)))
+		source := headFile(t, d.Path)
+		// Every anchor check_public_docs computes from a heading is an id on
+		// the page; the id="…" and name="…" text it also reads is not a heading.
 		got := ids(body)
-		want := map[string]bool{}
 		for _, a := range facts[d.Path].Anchors {
-			want[a] = true
-		}
-		if strings.Join(keys(got), "\n") != strings.Join(keys(want), "\n") {
-			fail(t, v, "%s heading ids %v differ from check_public_docs anchors %v", d.URL, keys(got), keys(want))
+			if !got[a] && !regexp.MustCompile(`\b(?:id|name)=["']`+regexp.QuoteMeta(a)+`["']`).MatchString(source) {
+				fail(t, v, "%s has no id %q, the anchor check_public_docs computes for a heading of %s", d.URL, a, d.Path)
+			}
 		}
 		blocks, prose := fences(source)
 		shown := map[string]bool{}
@@ -516,18 +506,13 @@ func TestPagesSiteAC3_Rendering(t *testing.T) {
 	if !strings.Contains(page(t, dir, "en/guides/usage/index.html", v), "continue docs/specs/&lt;goal&gt;") {
 		fail(t, v, "the <goal> placeholder in a code block is not shown as text")
 	}
-	// A heading the repository's anchor rule does not see stops the build, so
-	// every page keeps exactly the ids GitHub links are checked against.
-	setext := synthetic(t, func(root string) {
-		write(t, filepath.Join(root, "guides", "SETEXT.md"), "# Setext\n\nUnderlined\n----------\n\nText.\n")
-	})
-	setextOut := filepath.Join(t.TempDir(), "out")
-	res := runBuild(t, setext, setextOut)
-	if res.err != nil || res.code != 1 || !strings.Contains(res.stderr, "guides/SETEXT.md") || !strings.Contains(res.stderr, "anchors()") {
-		fail(t, v, "a heading check_public_docs does not see did not stop the build naming the file (exit %d): %s", res.code, res.stderr)
-	}
-	if exists(t, setextOut) {
-		fail(t, v, "a failed build still wrote %s", setextOut)
+	// Forms the documents do not have yet build, and are compared with GitHub
+	// below like the documents: every heading form GitHub shows, id="…" text
+	// in code and comments, bare addresses, inline formatting.
+	forms := synthetic(t, func(root string) { write(t, filepath.Join(root, "guides", "FORMS.md"), formsDocument) })
+	res := runBuild(t, forms, filepath.Join(t.TempDir(), "out"))
+	if res.err != nil || res.code != 0 {
+		fail(t, v, "a guide with further Markdown forms does not build (exit %d): %v %s", res.code, res.err, res.stderr)
 	}
 	// Collapsed <details>, and the diagram drawn readably in both themes: the
 	// page opens in the dark theme and is switched to the light one.
@@ -579,44 +564,95 @@ report({details: d.length, closed: closed, opened: opened, dark: dark, light: li
 			}
 		}
 	}
-	// As GitHub shows it: each page's block structure (headings, paragraphs,
-	// nested lists, tables and their cells, line breaks, code, <details>) and
-	// its text equal GitHub's own rendering of the same file. Diagrams are
-	// observed above; the code blocks' copy buttons and heading # marks are
-	// the site's own.
+	// As GitHub shows the file: each page's structure (headings, paragraphs,
+	// nested lists, tables and their cells, line breaks, code, <details>, and
+	// inline bold, emphasis, strikethrough, code and links with their web
+	// addresses), its text and its heading ids in order equal GitHub's own
+	// rendering of the same file. Diagrams are observed above; the code
+	// blocks' copy buttons and heading # marks are the site's own.
+	type rendered struct{ dir, path, url, source string }
+	all := []rendered{{res.out, "guides/FORMS.md", "ko/guides/forms/", formsDocument}}
 	for _, d := range docs {
-		source := readFile(t, filepath.Join(repoRoot(t), filepath.FromSlash(d.Path)))
-		gh, ok := githubHTML(t, source)
+		all = append(all, rendered{dir, d.Path, d.URL, headFile(t, d.Path)})
+	}
+	for _, r := range all {
+		gh, ok := githubHTML(t, r.source)
 		if !ok {
 			t.Skip("GitHub's Markdown rendering (gh api -X POST markdown) is unavailable")
 		}
-		body := article(t, page(t, dir, d.URL+"index.html", v), d.URL, v)
+		body := article(t, page(t, r.dir, r.url+"index.html", v), r.url, v)
+		var ghIDs, siteIDs []string
+		for _, m := range ghHeadingIDRE.FindAllStringSubmatch(gh, -1) {
+			ghIDs = append(ghIDs, unescape(m[1]))
+		}
+		for _, m := range siteHeadingIDRE.FindAllStringSubmatch(body, -1) {
+			siteIDs = append(siteIDs, unescape(html.UnescapeString(m[1])))
+		}
+		if strings.Join(siteIDs, " ") != strings.Join(ghIDs, " ") {
+			fail(t, v, "%s: heading ids %q differ from GitHub's %q for %s", r.url, siteIDs, ghIDs, r.path)
+		}
 		gs, gt := shape(ghMermaidRE.ReplaceAllString(ghAnchorRE.ReplaceAllString(gh, ""), "<pre>MERMAID</pre>"))
 		ss, st := shape(siteMermaidRE.ReplaceAllString(siteOnlyRE.ReplaceAllString(body, ""), "<pre>MERMAID</pre>"))
 		if ss != gs {
-			fail(t, v, "%s: the block structure differs from GitHub's rendering of %s: %s", d.URL, d.Path, firstDiff(ss, gs))
+			fail(t, v, "%s: the structure differs from GitHub's rendering of %s: %s", r.url, r.path, firstDiff(ss, gs))
 		}
 		if st != gt {
-			fail(t, v, "%s: the text differs from GitHub's rendering of %s: %s", d.URL, d.Path, firstDiff(st, gt))
+			fail(t, v, "%s: the text differs from GitHub's rendering of %s: %s", r.url, r.path, firstDiff(st, gt))
 		}
 	}
 }
 
+// formsDocument holds Markdown forms the documents do not have yet, each as
+// GitHub shows it in a file: setext, quoted and indented headings, repeated
+// titles, id="…" text in code and in a comment (with a link), bare web and
+// e-mail addresses and the text around them that GitHub leaves alone,
+// inline formatting, a table with a line break and indented code.
+const formsDocument = "# Forms\n\nSetext heading\n--------------\n\n> ### Quoted heading\n\n   ### Spaced heading\n\n## Forms\n\n" +
+	"Bare links: https://github.com/jgoneit/jaekit/releases, www.example.com/path. See (https://example.com/a_(b)) and https://example.com/x?y=1&amp; and http://localhost:8000/ and https://a.b/?x=1&amp;y=2 z.\n" +
+	"Email: someone@example.com, path/a@b.co and a.b-c+d@ex-ample.com. Not links: example.com, ftp://example.org/file, xwww.a.b, www.a_b.c, `https://in.code/`, [text https://x.y](https://z.w), https://a.b/foo).\n" +
+	"Mention @jgoneit, issue #197, commit 4404bf4a1b2c3d4e5f60718293a4b5c6d7e8f901.\n\n" +
+	"Inline: **strong**, *em*, _em2_, ~~strike~~, ~one~, `code`, <kbd>Ctrl</kbd>, a&nbsp;b, **https://a.b**, line  \nbreak.\n\n" +
+	"The script sets `name=\"ha_0.1.8\"` before downloading.\n\n" +
+	"<!-- id=\"draft\" <a href=\"missing.md\">x</a> -->\n\n" +
+	"1. one\n   - nested **bold**\n2. two\n\n" +
+	"| a | b |\n| --- | --- |\n| `x` | one<br/>two |\n\n" +
+	"    indented code\n"
+
 var (
-	skeletonRE    = regexp.MustCompile(`(?i)</?(h[1-6]|p|ul|ol|li|table|tr|th|td|pre|blockquote|details|summary|br|hr|img)\b`)
-	blockTagRE    = regexp.MustCompile(`(?i)</?(?:h[1-6]|p|ul|ol|li|table|thead|tbody|tr|th|td|pre|blockquote|details|summary|br|hr|img|div|section|markdown-accessiblity-table)\b[^>]*>`)
-	siteOnlyRE    = regexp.MustCompile(`(?s)<div class="codeblock-head">.*?</div>|<a class="anchor"[^>]*>#</a>`)
-	siteMermaidRE = regexp.MustCompile(`(?s)<pre class="mermaid"[^>]*>.*?</pre>`)
-	ghMermaidRE   = regexp.MustCompile(`(?s)<section class="js-render-needs-enrichment.*?</section>`)
-	ghAnchorRE    = regexp.MustCompile(`(?s)<a [^>]*class="anchor"[^>]*>.*?</a>`)
+	skeletonRE      = regexp.MustCompile(`(?i)</?(h[1-6]|p|ul|ol|li|table|tr|th|td|pre|blockquote|details|summary|br|hr|img|strong|em|del|s|code|kbd|a)\b[^>]*>`)
+	blockTagRE      = regexp.MustCompile(`(?i)</?(?:h[1-6]|p|ul|ol|li|table|thead|tbody|tr|th|td|pre|blockquote|details|summary|br|hr|img|div|section|markdown-accessiblity-table)\b[^>]*>`)
+	webHrefRE       = regexp.MustCompile(`\bhref="((?:https?|mailto):[^"]*)"`)
+	codeInPreRE     = regexp.MustCompile(`(?s)<pre\b[^>]*>(.*?)</pre>`)
+	commentRE       = regexp.MustCompile(`(?s)<!--.*?-->`)
+	ghHeadingIDRE   = regexp.MustCompile(`<a id="user-content-([^"]*)" class="anchor"`)
+	siteHeadingIDRE = regexp.MustCompile(`<h[1-6] id="([^"]*)"`)
+	siteOnlyRE      = regexp.MustCompile(`(?s)<div class="codeblock-head">.*?</div>|<a class="anchor"[^>]*>#</a>`)
+	siteMermaidRE   = regexp.MustCompile(`(?s)<pre class="mermaid"[^>]*>.*?</pre>`)
+	ghMermaidRE     = regexp.MustCompile(`(?s)<div class="highlight highlight-source-mermaid[^"]*"><pre>.*?</pre></div>`)
+	ghAnchorRE      = regexp.MustCompile(`(?s)<a [^>]*class="anchor"[^>]*>.*?</a>`)
 )
 
-// shape is what a reader sees of rendered Markdown: its block structure and
-// its text, with spacing collapsed.
+// shape is what a reader sees of rendered Markdown: its structure, with the
+// web addresses of links, and its text, with spacing collapsed. Comments are
+// not shown; code blocks are their text (GitHub colors code with spans).
 func shape(fragment string) (string, string) {
+	fragment = commentRE.ReplaceAllString(fragment, "")
+	fragment = codeInPreRE.ReplaceAllStringFunc(fragment, func(pre string) string {
+		return "<pre>" + tagRE.ReplaceAllString(codeInPreRE.FindStringSubmatch(pre)[1], "") + "</pre>"
+	})
 	var skeleton []string
-	for _, m := range skeletonRE.FindAllString(fragment, -1) {
-		skeleton = append(skeleton, strings.ToLower(m))
+	for _, m := range skeletonRE.FindAllStringSubmatch(fragment, -1) {
+		tag := strings.ToLower(m[1])
+		if tag == "s" {
+			tag = "del" // GitHub writes strikethrough as <del>
+		}
+		if strings.HasPrefix(m[0], "</") {
+			tag = "/" + tag
+		} else if h := webHrefRE.FindStringSubmatch(m[0]); tag == "a" && h != nil && !strings.HasPrefix(h[1], repoURL+"/") {
+			// The site sends repository files to GitHub; GitHub keeps them relative.
+			tag += " " + html.UnescapeString(h[1])
+		}
+		skeleton = append(skeleton, tag)
 	}
 	text := tagRE.ReplaceAllString(blockTagRE.ReplaceAllString(fragment, " "), "")
 	return strings.Join(skeleton, " "), strings.Join(strings.Fields(html.UnescapeString(text)), " ")
@@ -691,7 +727,7 @@ func TestPagesSiteAC4_Links(t *testing.T) {
 		for _, l := range links(body) {
 			hrefs[unescape(l.href)] = true
 		}
-		source := readFile(t, filepath.Join(repoRoot(t), filepath.FromSlash(d.Path)))
+		source := headFile(t, d.Path)
 		unused := unusedDefinitions(source)
 		// Every link of the source appears with its site target; a reference
 		// definition no link uses shows nothing, on GitHub as on the site.
@@ -1062,7 +1098,7 @@ report({narrow: narrow, boxes: boxes, kb: kb, spy: spy, opened: opened, firstHre
 	if !strings.HasPrefix(href, "en/guides/spar/#") || waive["landed"] != "/"+href || waive["inSection"] != true {
 		fail(t, v, "searching 'waive' does not reach the Spar guide's section that holds it: %v", waive)
 	}
-	if got["copied"] != readFile(t, filepath.Join(repoRoot(t), "guides", "USAGE.en.md")) {
+	if got["copied"] != headFile(t, "guides/USAGE.en.md") {
 		fail(t, v, "Copy page does not copy guides/USAGE.en.md as it is")
 	}
 }
