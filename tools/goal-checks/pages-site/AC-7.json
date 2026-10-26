@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Home",
+      "violation": "home-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/goal-checks/pages-site",
+        "name": "TestPagesSiteAC7_Home"
+      }
+    }
+  ]
+}

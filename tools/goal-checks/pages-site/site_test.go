@@ -1,0 +1,1923 @@
+//go:build pagessite
+
+package pagessite
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"html"
+	"io/fs"
+	"net/url"
+	"os"
+	"os/exec"
+	"path"
+	"path/filepath"
+	"regexp"
+	"sort"
+	"strings"
+	"testing"
+	"time"
+)
+
+// ------------------------------------------------------------- shared readers
+
+func h1(source string) string {
+	inFence := false
+	for _, line := range strings.Split(source, "\n") {
+		if regexp.MustCompile("^\\s{0,3}(```|~~~)").MatchString(line) {
+			inFence = !inFence
+			continue
+		}
+		if !inFence && strings.HasPrefix(line, "# ") {
+			text := strings.TrimSpace(strings.TrimPrefix(line, "# "))
+			return strings.NewReplacer("`", "", "*", "").Replace(text)
+		}
+	}
+	return ""
+}
+
+var titleRE = regexp.MustCompile(`<title>([^<]*)</title>`)
+
+func title(pageHTML string) string {
+	m := titleRE.FindStringSubmatch(pageHTML)
+	if m == nil {
+		return ""
+	}
+	return html.UnescapeString(m[1])
+}
+
+func langAttr(pageHTML string) string {
+	m := regexp.MustCompile(`<html lang="([a-z]+)"`).FindStringSubmatch(pageHTML)
+	if m == nil {
+		return ""
+	}
+	return m[1]
+}
+
+// relURL is the relative link from one directory page to another.
+func relURL(from, to string) string {
+	if from == to {
+		return "./"
+	}
+	a := strings.Split(strings.TrimSuffix(from, "/"), "/")
+	b := strings.Split(strings.TrimSuffix(to, "/"), "/")
+	if from == "" {
+		a = nil
+	}
+	common := 0
+	for common < len(a) && common < len(b) && a[common] == b[common] {
+		common++
+	}
+	out := strings.Repeat("../", len(a)-common) + strings.Join(b[common:], "/")
+	if !strings.HasSuffix(out, "/") {
+		out += "/"
+	}
+	return out
+}
+
+// resolve turns a link on a built page into a site path, or "" when it
+// leaves the site.
+func resolve(pageURL, href string) (string, string) {
+	u, err := url.Parse(href)
+	if err != nil || u.Scheme != "" || u.Host != "" {
+		return "", ""
+	}
+	target := pageURL
+	if u.Path != "" {
+		target = path.Clean(path.Join(pageURL, u.Path))
+		if strings.HasSuffix(u.Path, "/") || u.Path == "." || u.Path == "./" {
+			target += "/"
+		}
+		if target == "./" || target == "/" {
+			target = ""
+		}
+	}
+	return target, u.Fragment
+}
+
+// siteFile is the built file a site path opens.
+func siteFile(sitePath string) string {
+	if sitePath == "" || strings.HasSuffix(sitePath, "/") {
+		return sitePath + "index.html"
+	}
+	return sitePath
+}
+
+func fileFor(dir, sitePath string) string {
+	return filepath.Join(dir, filepath.FromSlash(siteFile(sitePath)))
+}
+
+var idRE = regexp.MustCompile(`\sid="([^"]+)"`)
+
+func ids(fragment string) map[string]bool {
+	out := map[string]bool{}
+	for _, m := range idRE.FindAllStringSubmatch(fragment, -1) {
+		out[html.UnescapeString(m[1])] = true
+	}
+	return out
+}
+
+var hrefRE = regexp.MustCompile(`<a ([^>]*?)href="([^"]*)"`)
+
+type link struct {
+	href   string
+	anchor bool
+}
+
+func links(fragment string) []link {
+	var out []link
+	for _, m := range hrefRE.FindAllStringSubmatch(fragment, -1) {
+		out = append(out, link{href: html.UnescapeString(m[2]), anchor: strings.Contains(m[1], `class="anchor"`)})
+	}
+	return out
+}
+
+func installLine(t *testing.T, name string) string {
+	t.Helper()
+	inFence := false
+	for _, line := range strings.Split(headFile(t, name), "\n") {
+		if regexp.MustCompile("^\\s*(```|~~~)").MatchString(line) {
+			inFence = !inFence
+			continue
+		}
+		if inFence && regexp.MustCompile(`^brew install \S+$`).MatchString(strings.TrimSpace(line)) {
+			return strings.TrimSpace(line)
+		}
+	}
+	t.Skipf("%s has no brew install line", name)
+	return ""
+}
+
+func releaseVersion(t *testing.T) string {
+	t.Helper()
+	var data struct {
+		Metadata struct {
+			Version string `json:"version"`
+		} `json:"metadata"`
+	}
+	if err := json.Unmarshal([]byte(headFile(t, ".claude-plugin/marketplace.json")), &data); err != nil {
+		t.Skipf("marketplace.json: %v", err)
+	}
+	return data.Metadata.Version
+}
+
+func walk(t *testing.T, dir string) map[string][]byte {
+	t.Helper()
+	files := map[string][]byte{}
+	err := filepath.WalkDir(dir, func(p string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		data, err := os.ReadFile(p)
+		rel, _ := filepath.Rel(dir, p)
+		files[filepath.ToSlash(rel)] = data
+		return err
+	})
+	if err != nil {
+		t.Skipf("cannot read %s: %v", dir, err)
+	}
+	return files
+}
+
+// representative pages for the browser observations
+var widePages = []string{"ko/", "en/", "ko/docs/", "en/docs/", "en/guides/usage/", "ko/guides/install/",
+	"ko/contracts/run-record/", "ko/contracts/", "en/guides/spar/"}
+
+// ------------------------------------------------------------- AC-1
+
+func TestPagesSiteAC1_Published(t *testing.T) {
+	const v = "site-not-published"
+	dir := site(t, v)
+	head := strings.TrimSpace(git(t, repoRoot(t), "rev-parse", "HEAD"))
+	for name, data := range walk(t, dir) {
+		if strings.HasSuffix(name, ".html") {
+			if got := meta(string(data), "jaekit-commit"); got != head {
+				fail(t, v, "%s names commit %q, not the built commit %s", name, got, head)
+			}
+		}
+	}
+	for _, d := range documents(t) {
+		text := page(t, dir, d.URL+"index.html", v)
+		source, ok := pageSource(text)
+		if !ok || source != headFile(t, d.Path) {
+			fail(t, v, "%s does not carry the bytes of %s", d.URL, d.Path)
+		}
+	}
+	// A change to a guide alone reaches its page through the same builder.
+	const marker = "Pages-site check sentence 7f3c."
+	syn := synthetic(t, func(root string) {
+		p := filepath.Join(root, "guides", "USAGE.md")
+		data, _ := os.ReadFile(p)
+		write(t, p, string(data)+"\n"+marker+"\n")
+	})
+	res := runBuild(t, syn, filepath.Join(t.TempDir(), "out"))
+	if res.err != nil || res.code != 0 {
+		fail(t, v, "a guide-only change does not build: %v %s", res.err, res.stderr)
+	}
+	if !strings.Contains(article(t, page(t, res.out, "ko/guides/usage/index.html", v), "ko/guides/usage/", v), marker) {
+		fail(t, v, "a guide-only change does not appear in its page's text")
+	}
+	// The published site is the build of main's latest commit.
+	status, live := get(t, liveSite+"ko/guides/usage/")
+	if status != 200 {
+		fail(t, v, "%sko/guides/usage/ answers HTTP %d", liveSite, status)
+	}
+	main := mainHead(t)
+	if got := meta(live, "jaekit-commit"); got != main {
+		fail(t, v, "the published page names commit %q, but main is %s", got, main)
+	}
+	source, ok := pageSource(live)
+	rawStatus, raw := get(t, "https://raw.githubusercontent.com/"+ownerRepo+"/"+main+"/guides/USAGE.md")
+	if rawStatus != 200 {
+		t.Skipf("raw guides/USAGE.md at %s: HTTP %d", main, rawStatus)
+	}
+	if !ok || source != raw {
+		fail(t, v, "the published usage page does not carry guides/USAGE.md of %s", main)
+	}
+	// What visitors read is that file rendered: the published text equals the
+	// checked builder's rendering of the same file.
+	shown := synthetic(t, func(root string) { write(t, filepath.Join(root, "guides", "USAGE.md"), raw) })
+	local := runBuild(t, shown, filepath.Join(t.TempDir(), "out"))
+	if local.err != nil || local.code != 0 {
+		t.Skipf("guides/USAGE.md of %s does not build with the checked builder: %v %s", main, local.err, local.stderr)
+	}
+	want := visibleText(article(t, page(t, local.out, "ko/guides/usage/index.html", v), "ko/guides/usage/", v))
+	if got := visibleText(article(t, live, "the published ko/guides/usage/", v)); got != want {
+		fail(t, v, "the published usage page does not show the text of guides/USAGE.md of %s", main)
+	}
+}
+
+// visibleText is a fragment's text as a reader sees it, with spacing collapsed.
+func visibleText(fragment string) string {
+	return strings.Join(strings.Fields(html.UnescapeString(tagRE.ReplaceAllString(fragment, " "))), " ")
+}
+
+// ------------------------------------------------------------- AC-2
+
+func TestPagesSiteAC2_DocumentSet(t *testing.T) {
+	const v = "doc-pages-incomplete"
+	dir := site(t, v)
+	docs := documents(t)
+	byKey := map[string]map[string]doc{}
+	for _, d := range docs {
+		text := page(t, dir, d.URL+"index.html", v)
+		if got := langAttr(text); got != d.Lang {
+			fail(t, v, "%s has lang %q, want %q", d.URL, got, d.Lang)
+		}
+		want := h1(headFile(t, d.Path))
+		if want == "" { // no '#' title: the file's name
+			want = strings.TrimSuffix(strings.TrimSuffix(path.Base(d.Path), ".md"), ".en")
+		}
+		if !strings.HasPrefix(title(text), want) {
+			fail(t, v, "%s is titled %q, not by its first heading %q", d.URL, title(text), want)
+		}
+		key := strings.TrimSuffix(strings.TrimSuffix(d.Path, ".md"), ".en")
+		if byKey[key] == nil {
+			byKey[key] = map[string]doc{}
+		}
+		byKey[key][d.Lang] = d
+	}
+	for _, rel := range []string{"ko/guides/usage/index.html", "en/guides/usage/index.html", "ko/contracts/run-record/index.html"} {
+		page(t, dir, rel, v)
+	}
+	// Each language's start page and navigation list every document; one
+	// that exists only in the other language is marked and opens there.
+	for _, lang := range []string{"ko", "en"} {
+		only := map[string]string{"ko": "영어만", "en": "Korean only"}[lang]
+		for _, rel := range []string{lang + "/docs/", lang + "/guides/usage/"} {
+			text := page(t, dir, rel+"index.html", v)
+			for key, langs := range byKey {
+				d, same := langs[lang]
+				if !same {
+					for _, other := range langs {
+						d = other
+					}
+				}
+				re := regexp.MustCompile(`<a href="` + regexp.QuoteMeta(relURL(rel, d.URL)) + `"[^>]*>(.*?)</a>`)
+				m := re.FindStringSubmatch(text)
+				if m == nil {
+					fail(t, v, "%s does not list %s (%s)", rel, key, d.URL)
+				}
+				if !same && !strings.Contains(m[1], only) {
+					fail(t, v, "%s lists %s without the %q mark", rel, key, only)
+				}
+			}
+		}
+	}
+	// The documents are exactly these pages: no other page is built.
+	pageSet(t, dir, docs, v)
+	// A new file appears without site changes; files outside the commit
+	// (untracked, ignored, only staged), docs/ and files that are not
+	// Markdown directly under the two folders never do. A file without a '#'
+	// title is named by its file, and a symbolic link shows its target.
+	const secret = "PAGES-SITE-PRIVATE-7d1e"
+	// Names with characters that end or split an address (# ? and a space),
+	// and names of dots alone, which would be the folder or the one above.
+	odd := []string{"FAQ#tips", "Two words?", ".", ".."}
+	syn := synthetic(t, func(root string) {
+		write(t, filepath.Join(root, "guides", "NEWGUIDE.md"), "# New guide\n\nA new guide.\n")
+		for _, name := range odd {
+			write(t, filepath.Join(root, "guides", name+".md"), "# Guide "+name+"\n\nA guide.\n")
+		}
+		write(t, filepath.Join(root, "guides", "NOTITLE.md"), "A guide without a title.\n")
+		write(t, filepath.Join(root, "guides", "sub", "NESTED.md"), "# Nested "+secret+"\n")
+		write(t, filepath.Join(root, "guides", "notes.txt"), "# Notes "+secret+"\n")
+		if err := os.Symlink("NEWGUIDE.md", filepath.Join(root, "guides", "LINKED.md")); err != nil {
+			t.Skip(err)
+		}
+		write(t, filepath.Join(root, ".gitignore"), "/docs/\n/guides/IGNORED.md\n")
+	})
+	write(t, filepath.Join(syn, "guides", "DRAFT.md"), "# Draft "+secret+"\n")
+	write(t, filepath.Join(syn, "guides", "IGNORED.md"), "# Ignored "+secret+"\n")
+	write(t, filepath.Join(syn, "guides", "STAGED.md"), "# Staged "+secret+"\n")
+	if out, err := exec.Command("git", "-C", syn, "add", "guides/STAGED.md").CombinedOutput(); err != nil {
+		t.Skipf("git add: %v %s", err, out)
+	}
+	write(t, filepath.Join(syn, "docs", "specs", "private", "SPEC.md"), "# Goal "+secret+"\n")
+	res := runBuild(t, syn, filepath.Join(t.TempDir(), "out"))
+	if res.err != nil || res.code != 0 {
+		fail(t, v, "a tree with a new guide does not build: %v %s", res.err, res.stderr)
+	}
+	synDocs := docsAt(t, syn)
+	pageSet(t, res.out, synDocs, v)
+	page(t, res.out, "ko/guides/newguide/index.html", v)
+	if got := title(page(t, res.out, "ko/guides/notitle/index.html", v)); !strings.HasPrefix(got, "NOTITLE") {
+		fail(t, v, "a guide without a '#' title is titled %q, not by its file name", got)
+	}
+	if source, _ := pageSource(page(t, res.out, "ko/guides/linked/index.html", v)); source != "# New guide\n\nA new guide.\n" {
+		fail(t, v, "a symbolically linked guide does not show its target's text")
+	}
+	start := page(t, res.out, "en/docs/index.html", v)
+	if !strings.Contains(start, `href="../../ko/guides/newguide/"`) {
+		fail(t, v, "the new guide is missing from the English docs start page")
+	}
+	if !strings.Contains(page(t, res.out, "ko/guides/usage/index.html", v), `href="../newguide/"`) {
+		fail(t, v, "the new guide is missing from the navigation of the other pages")
+	}
+	if strings.HasPrefix(title(page(t, res.out, "ko/index.html", v)), ".") {
+		fail(t, v, "a document named by dots replaced the Korean home page")
+	}
+	for _, name := range odd {
+		want := "ko/guides/" + pageName(name) + "/"
+		found := false
+		for _, l := range links(start) {
+			if target, _ := resolve("en/docs/", l.href); target == want {
+				found = true
+			}
+		}
+		if !exists(t, fileFor(res.out, want)) || !found {
+			fail(t, v, "guides/%s.md has no page the docs start page links to", name)
+		}
+	}
+	for name, data := range walk(t, res.out) {
+		if bytes.Contains(data, []byte(secret)) {
+			fail(t, v, "%s carries a file outside the commit, under docs/ or not a document", name)
+		}
+	}
+	// The not-found page links both homes under the published base.
+	notFound := page(t, dir, "404.html", v)
+	for _, want := range []string{`href="/jaekit/ko/"`, `href="/jaekit/en/"`, `href="/jaekit/assets/site.css"`} {
+		if !strings.Contains(notFound, want) {
+			fail(t, v, "404.html lacks %s", want)
+		}
+	}
+	noDocs := synthetic(t, nil)
+	res = runBuild(t, noDocs, filepath.Join(t.TempDir(), "out"))
+	if res.err != nil || res.code != 0 {
+		fail(t, v, "a tree without docs/ does not build: %v %s", res.err, res.stderr)
+	}
+}
+
+// pageSet fails unless the built document pages are exactly those of docs.
+func pageSet(t *testing.T, dir string, docs []doc, v string) {
+	t.Helper()
+	want := map[string]bool{}
+	for _, d := range docs {
+		want[d.URL] = true
+	}
+	pageRE := regexp.MustCompile(`^(ko|en)/(guides|contracts)/(?:([^/]+)/)?index\.html$`)
+	for name := range walk(t, dir) {
+		if pageRE.MatchString(name) && !want[strings.TrimSuffix(name, "index.html")] {
+			fail(t, v, "%s is a page of no document directly under guides/ or contracts/", name)
+		}
+	}
+}
+
+// ------------------------------------------------------------- AC-3
+
+var tableDelimRE = regexp.MustCompile(`^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$|^\s*\|\s*:?-{3,}:?\s*\|\s*$`)
+
+type fenced struct {
+	lang, body string
+}
+
+// fences splits a Markdown source into its fenced code blocks, with the
+// opening fence's indentation removed from each line as CommonMark does, and
+// the remaining lines.
+func fences(source string) ([]fenced, []string) {
+	var blocks []fenced
+	var prose []string
+	open, lang, indent := "", "", 0
+	var body []string
+	fenceRE := regexp.MustCompile("^( *)(`{3,}|~{3,})\\s*([^`\\s]*)")
+	for _, line := range strings.Split(source, "\n") {
+		trimmed := strings.TrimLeft(line, " ")
+		if open == "" {
+			if m := fenceRE.FindStringSubmatch(line); m != nil {
+				open, lang, indent, body = m[2], m[3], len(m[1]), nil
+				continue
+			}
+			prose = append(prose, line)
+			continue
+		}
+		if strings.HasPrefix(trimmed, open[:1]) && len(trimmed) >= len(open) &&
+			strings.Trim(trimmed, open[:1]+" \t") == "" && len(strings.TrimRight(trimmed, " \t")) >= len(open) {
+			blocks = append(blocks, fenced{lang, strings.Join(body, "\n")})
+			open = ""
+			continue
+		}
+		cut := 0
+		for cut < indent && cut < len(line) && line[cut] == ' ' {
+			cut++
+		}
+		body = append(body, line[cut:])
+	}
+	return blocks, prose
+}
+
+func TestPagesSiteAC3_Rendering(t *testing.T) {
+	const v = "rendering-differs"
+	dir := site(t, v)
+	docs := documents(t)
+	facts := publicDocs(t, docs)
+	for _, d := range docs {
+		rel := d.URL + "index.html"
+		body := article(t, page(t, dir, rel, v), rel, v)
+		source := headFile(t, d.Path)
+		// Every anchor check_public_docs computes from a heading is an id on
+		// the page; the id="…" and name="…" text it also reads is not a heading.
+		got := ids(body)
+		for _, a := range facts[d.Path].Anchors {
+			if !got[a] && !regexp.MustCompile(`\b(?:id|name)=["']`+regexp.QuoteMeta(a)+`["']`).MatchString(source) {
+				fail(t, v, "%s has no id %q, the anchor check_public_docs computes for a heading of %s", d.URL, a, d.Path)
+			}
+		}
+		blocks, prose := fences(source)
+		shown := map[string]bool{}
+		for _, m := range preRE.FindAllStringSubmatch(body, -1) {
+			text := html.UnescapeString(tagRE.ReplaceAllString(m[2], ""))
+			shown[strings.TrimSuffix(text, "\n")] = true
+			if strings.Contains(m[1], `class="mermaid"`) {
+				shown["mermaid:"+strings.TrimSuffix(text, "\n")] = true
+			}
+		}
+		for _, b := range blocks {
+			key := strings.TrimSuffix(b.body, "\n")
+			if b.lang == "mermaid" {
+				key = "mermaid:" + key
+			}
+			if !shown[key] {
+				fail(t, v, "%s drops or changes a %q code block starting %q", d.URL, b.lang, firstLine(b.body))
+			}
+		}
+		tables, details := 0, 0
+		for _, line := range prose {
+			if tableDelimRE.MatchString(line) && strings.Contains(line, "|") {
+				tables++
+			}
+			details += strings.Count(line, "<details>")
+		}
+		if got := strings.Count(body, "<table>"); got != tables {
+			fail(t, v, "%s shows %d tables, its source has %d", d.URL, got, tables)
+		}
+		if got := strings.Count(body, "<details>"); got != details {
+			fail(t, v, "%s shows %d <details>, its source has %d", d.URL, got, details)
+		}
+	}
+	for _, rel := range []string{"ko/guides/usage/index.html", "en/guides/usage/index.html"} {
+		text := page(t, dir, rel, v)
+		if !strings.Contains(text, `assets/mermaid.min.js"`) || !strings.Contains(text, `<pre class="mermaid"`) {
+			fail(t, v, "%s does not load the mermaid renderer", rel)
+		}
+	}
+	page(t, dir, "assets/mermaid.min.js", v)
+	if !strings.Contains(page(t, dir, "en/guides/usage/index.html", v), "continue docs/specs/&lt;goal&gt;") {
+		fail(t, v, "the <goal> placeholder in a code block is not shown as text")
+	}
+	// Forms the documents do not have yet build, and are compared with GitHub
+	// below like the documents: every heading form GitHub shows, id="…" text
+	// in code and comments, bare addresses, inline formatting.
+	forms := synthetic(t, func(root string) { write(t, filepath.Join(root, "guides", "FORMS.md"), formsDocument) })
+	res := runBuild(t, forms, filepath.Join(t.TempDir(), "out"))
+	if res.err != nil || res.code != 0 {
+		fail(t, v, "a guide with further Markdown forms does not build (exit %d): %v %s", res.code, res.err, res.stderr)
+	}
+	// Collapsed <details>, and the diagram drawn readably in both themes: the
+	// page opens in the dark theme and is switched to the light one.
+	for _, rel := range []string{"/en/guides/usage/", "/ko/guides/usage/"} {
+		got := browse(t, dir, `
+function rgba(s) { var m = String(s).match(/rgba?\(([^)]+)\)/); if (!m) return null; var p = m[1].split(/[\s,\/]+/).filter(Boolean).map(Number); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; }
+function lum(c) { var a = c.slice(0, 3).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2]; }
+function contrast(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+function diagram(w) {
+  function backdrop(el) { for (var e = el; e && e.nodeType === 1; e = e.parentElement || e.parentNode) { var c = rgba(w.getComputedStyle(e).backgroundColor); if (c && c[3] > 0.5) return c; } return [255, 255, 255, 1]; }
+  var svg = w.document.querySelector("pre.mermaid svg");
+  if (!svg) return {svg: false};
+  var bg = backdrop(svg.parentElement), out = {svg: true, theme: w.jaekit.theme(), height: svg.getBoundingClientRect().height, text: 99, lines: 99, count: 0};
+  Array.prototype.forEach.call(svg.querySelectorAll(".flowchart-link"), function (e) { out.lines = Math.min(out.lines, contrast(rgba(w.getComputedStyle(e).stroke), bg)); });
+  Array.prototype.forEach.call(svg.querySelectorAll(".node"), function (n) {
+    var l = n.querySelector(".nodeLabel"), s = n.querySelector("rect, polygon, path");
+    if (l && s) { out.count++; out.text = Math.min(out.text, contrast(rgba(w.getComputedStyle(l).color), rgba(w.getComputedStyle(s).fill))); }
+  });
+  Array.prototype.forEach.call(svg.querySelectorAll(".edgeLabel span, .edgeLabel p"), function (e) {
+    if (e.textContent.trim()) { out.count++; out.text = Math.min(out.text, contrast(rgba(w.getComputedStyle(e).color), backdrop(e))); }
+  });
+  return out;
+}
+localStorage.setItem("jaekit-theme", "dark");
+var w = await load(`+fmt.Sprintf("%q", rel)+`, 1280, 900);
+await wait(4000);
+var d = w.document.querySelectorAll(".markdown details");
+var closed = Array.prototype.every.call(d, function (x) { return !x.open; });
+var s = d.length ? d[0].querySelector("summary") : null;
+if (s) s.click();
+var opened = d.length ? d[0].open : false;
+var dark = diagram(w);
+w.document.getElementById("theme-btn").click();
+await wait(2500);
+var light = diagram(w);
+localStorage.clear();
+report({details: d.length, closed: closed, opened: opened, dark: dark, light: light});`)
+		if got["details"].(float64) == 0 || got["closed"] != true || got["opened"] != true {
+			fail(t, v, "%s: <details> blocks are not collapsed and expandable: %v", rel, got)
+		}
+		for _, theme := range []string{"dark", "light"} {
+			d, _ := got[theme].(map[string]any)
+			if d["svg"] != true || d["theme"] != theme || d["height"].(float64) < 50 || d["count"].(float64) < 2 {
+				fail(t, v, "%s: the flowchart is not drawn as a diagram in the %s theme: %v", rel, theme, d)
+			}
+			// WCAG AA: 4.5:1 for the labels, 3:1 for the lines.
+			if d["text"].(float64) < 4.5 || d["lines"].(float64) < 3 {
+				fail(t, v, "%s: the flowchart is not readable in the %s theme (text %.2f:1, lines %.2f:1)", rel, theme, d["text"], d["lines"])
+			}
+		}
+	}
+	// As GitHub shows the file: each page's structure (headings, paragraphs,
+	// nested lists, tables and their cells, line breaks, code, <details>, and
+	// inline bold, emphasis, strikethrough, code and links with their web
+	// addresses), its text and its heading ids in order equal GitHub's own
+	// rendering of the same file. Diagrams are observed above; the code
+	// blocks' copy buttons and heading # marks are the site's own.
+	type rendered struct{ dir, path, url, source string }
+	all := []rendered{{res.out, "guides/FORMS.md", "ko/guides/forms/", formsDocument}}
+	for _, d := range docs {
+		all = append(all, rendered{dir, d.Path, d.URL, headFile(t, d.Path)})
+	}
+	for _, r := range all {
+		gh, ok := githubHTML(t, r.source)
+		if !ok {
+			t.Skip("GitHub's Markdown rendering (gh api -X POST markdown) is unavailable")
+		}
+		body := article(t, page(t, r.dir, r.url+"index.html", v), r.url, v)
+		var ghIDs, siteIDs []string
+		for _, m := range ghHeadingIDRE.FindAllStringSubmatch(gh, -1) {
+			ghIDs = append(ghIDs, unescape(m[1]))
+		}
+		for _, m := range siteHeadingIDRE.FindAllStringSubmatch(body, -1) {
+			siteIDs = append(siteIDs, unescape(html.UnescapeString(m[1])))
+		}
+		if strings.Join(siteIDs, " ") != strings.Join(ghIDs, " ") {
+			fail(t, v, "%s: heading ids %q differ from GitHub's %q for %s", r.url, siteIDs, ghIDs, r.path)
+		}
+		gs, gt := shape(ghMermaidRE.ReplaceAllString(ghAnchorRE.ReplaceAllString(gh, ""), "<pre>MERMAID</pre>"))
+		ss, st := shape(siteMermaidRE.ReplaceAllString(siteOnlyRE.ReplaceAllString(body, ""), "<pre>MERMAID</pre>"))
+		if ss != gs {
+			fail(t, v, "%s: the structure differs from GitHub's rendering of %s: %s", r.url, r.path, firstDiff(ss, gs))
+		}
+		if st != gt {
+			fail(t, v, "%s: the text differs from GitHub's rendering of %s: %s", r.url, r.path, firstDiff(st, gt))
+		}
+	}
+}
+
+// formsDocument holds Markdown forms the documents do not have yet, each as
+// GitHub shows it in a file: setext, quoted and indented headings, repeated
+// titles, id="…" text in code and in a comment (with a link), bare web and
+// e-mail addresses and the text around them that GitHub leaves alone,
+// inline formatting, a table with a line break and indented code.
+const formsDocument = "# Forms\n\nSetext heading\n--------------\n\n> ### Quoted heading\n\n   ### Spaced heading\n\n## Forms\n\n" +
+	"Bare links: https://github.com/jgoneit/jaekit/releases, www.example.com/path. See (https://example.com/a_(b)) and https://example.com/x?y=1&amp; and http://localhost:8000/ and https://a.b/?x=1&amp;y=2 z.\n" +
+	"Email: someone@example.com, path/a@b.co and a.b-c+d@ex-ample.com. Not links: example.com, ftp://example.org/file, xwww.a.b, www.a_b.c, `https://in.code/`, [text https://x.y](https://z.w), https://a.b/foo).\n" +
+	"Mention @jgoneit, issue #197, commit 4404bf4a1b2c3d4e5f60718293a4b5c6d7e8f901.\n\n" +
+	"Inline: **strong**, *em*, _em2_, ~~strike~~, ~one~, `code`, <kbd>Ctrl</kbd>, a&nbsp;b, **https://a.b**, line  \nbreak.\n\n" +
+	"The script sets `name=\"ha_0.1.8\"` before downloading.\n\n" +
+	"<!-- id=\"draft\" <a href=\"missing.md\">x</a> -->\n\n" +
+	"1. one\n   - nested **bold**\n2. two\n\n" +
+	"| a | b |\n| --- | --- |\n| `x` | one<br/>two |\n\n" +
+	"    indented code\n"
+
+var (
+	skeletonRE      = regexp.MustCompile(`(?i)</?(h[1-6]|p|ul|ol|li|table|tr|th|td|pre|blockquote|details|summary|br|hr|img|strong|em|del|s|code|kbd|a)\b[^>]*>`)
+	blockTagRE      = regexp.MustCompile(`(?i)</?(?:h[1-6]|p|ul|ol|li|table|thead|tbody|tr|th|td|pre|blockquote|details|summary|br|hr|img|div|section|markdown-accessiblity-table)\b[^>]*>`)
+	webHrefRE       = regexp.MustCompile(`\bhref="((?:https?|mailto):[^"]*)"`)
+	codeInPreRE     = regexp.MustCompile(`(?s)<pre\b[^>]*>(.*?)</pre>`)
+	commentRE       = regexp.MustCompile(`(?s)<!--.*?-->`)
+	ghHeadingIDRE   = regexp.MustCompile(`<a id="user-content-([^"]*)" class="anchor"`)
+	siteHeadingIDRE = regexp.MustCompile(`<h[1-6] id="([^"]*)"`)
+	siteOnlyRE      = regexp.MustCompile(`(?s)<div class="codeblock-head">.*?</div>|<a class="anchor"[^>]*>#</a>`)
+	siteMermaidRE   = regexp.MustCompile(`(?s)<pre class="mermaid"[^>]*>.*?</pre>`)
+	ghMermaidRE     = regexp.MustCompile(`(?s)<div class="highlight highlight-source-mermaid[^"]*"><pre>.*?</pre></div>`)
+	ghAnchorRE      = regexp.MustCompile(`(?s)<a [^>]*class="anchor"[^>]*>.*?</a>`)
+)
+
+// shape is what a reader sees of rendered Markdown: its structure, with the
+// web addresses of links, and its text, with spacing collapsed. Comments are
+// not shown; code blocks are their text (GitHub colors code with spans).
+func shape(fragment string) (string, string) {
+	fragment = commentRE.ReplaceAllString(fragment, "")
+	fragment = codeInPreRE.ReplaceAllStringFunc(fragment, func(pre string) string {
+		return "<pre>" + tagRE.ReplaceAllString(codeInPreRE.FindStringSubmatch(pre)[1], "") + "</pre>"
+	})
+	var skeleton []string
+	for _, m := range skeletonRE.FindAllStringSubmatch(fragment, -1) {
+		tag := strings.ToLower(m[1])
+		if tag == "s" {
+			tag = "del" // GitHub writes strikethrough as <del>
+		}
+		if strings.HasPrefix(m[0], "</") {
+			tag = "/" + tag
+		} else if h := webHrefRE.FindStringSubmatch(m[0]); tag == "a" && h != nil && !strings.HasPrefix(h[1], repoURL+"/") {
+			// The site sends repository files to GitHub; GitHub keeps them relative.
+			tag += " " + html.UnescapeString(h[1])
+		}
+		skeleton = append(skeleton, tag)
+	}
+	text := tagRE.ReplaceAllString(blockTagRE.ReplaceAllString(fragment, " "), "")
+	return strings.Join(skeleton, " "), strings.Join(strings.Fields(html.UnescapeString(text)), " ")
+}
+
+func firstDiff(site, github string) string {
+	i := 0
+	for i < len(site) && i < len(github) && site[i] == github[i] {
+		i++
+	}
+	clip := func(s string) string {
+		lo, hi := max(0, i-40), min(len(s), i+40)
+		return s[lo:hi]
+	}
+	return fmt.Sprintf("site %q, GitHub %q", clip(site), clip(github))
+}
+
+// unescape reads a link the way a browser follows it: the renderer
+// percent-encodes characters such as Hangul in anchors.
+func unescape(href string) string {
+	if out, err := url.PathUnescape(href); err == nil {
+		return out
+	}
+	return href
+}
+
+var (
+	preRE = regexp.MustCompile(`(?s)<pre([^>]*)>(.*?)</pre>`)
+	tagRE = regexp.MustCompile(`<[^>]+>`)
+)
+
+// sameColor compares a hex color with a computed value, which registered
+// custom properties report as rgb().
+func sameColor(got any, hex string) bool {
+	text, _ := got.(string)
+	var r, g, b int
+	fmt.Sscanf(strings.TrimPrefix(hex, "#"), "%02x%02x%02x", &r, &g, &b)
+	return strings.EqualFold(strings.TrimSpace(text), hex) || strings.ReplaceAll(text, " ", "") == fmt.Sprintf("rgb(%d,%d,%d)", r, g, b)
+}
+
+func firstLine(s string) string {
+	line, _, _ := strings.Cut(s, "\n")
+	return line
+}
+
+// ------------------------------------------------------------- AC-4
+
+func TestPagesSiteAC4_Links(t *testing.T) {
+	const v = "links-broken"
+	dir := site(t, v)
+	docs := documents(t)
+	facts := publicDocs(t, docs)
+	pages := map[string]doc{}
+	for _, d := range docs {
+		pages[d.Path] = d
+	}
+	tracked := map[string]bool{}
+	dirs := map[string]bool{}
+	for _, name := range strings.Split(git(t, repoRoot(t), "ls-files", "-z"), "\x00") {
+		if name == "" {
+			continue
+		}
+		tracked[name] = true
+		for p := path.Dir(name); p != "." && p != "/"; p = path.Dir(p) {
+			dirs[p] = true
+		}
+	}
+	for _, d := range docs {
+		rel := d.URL + "index.html"
+		body := article(t, page(t, dir, rel, v), rel, v)
+		hrefs := map[string]bool{}
+		for _, l := range links(body) {
+			hrefs[unescape(l.href)] = true
+		}
+		source := headFile(t, d.Path)
+		unused := unusedDefinitions(source)
+		// Every link of the source appears with its site target; a reference
+		// definition no link uses shows nothing, on GitHub as on the site.
+		for _, href := range facts[d.Path].Links {
+			if unused[href] {
+				continue
+			}
+			u, err := url.Parse(href)
+			if err != nil {
+				fail(t, v, "%s: unreadable link %q", d.Path, href)
+			}
+			want := href
+			if u.Scheme == "" && u.Host == "" && u.Path != "" {
+				target := path.Clean(path.Join(path.Dir(d.Path), u.Path))
+				suffix := ""
+				if _, frag, ok := strings.Cut(href, "#"); ok && frag != "" {
+					suffix = "#" + frag
+				}
+				switch {
+				case pages[target].URL != "":
+					want = relURL(d.URL, pages[target].URL) + suffix
+				case target == ".":
+					want = repoURL + "/tree/main" + suffix
+				case tracked[target]:
+					want = repoURL + "/blob/main/" + (&url.URL{Path: target}).EscapedPath() + suffix
+				case dirs[target]:
+					want = repoURL + "/tree/main/" + (&url.URL{Path: target}).EscapedPath() + suffix
+				default:
+					fail(t, v, "%s links %q, which is not in the repository", d.Path, href)
+				}
+			}
+			if !hrefs[unescape(want)] && !strings.Contains(body, `src="`+html.EscapeString(want)) {
+				fail(t, v, "%s: link %q is not shown as %q", d.URL, href, want)
+			}
+		}
+		// Every relative link on the page opens a built page and heading.
+		for _, l := range links(body) {
+			if strings.HasPrefix(l.href, "https://") || strings.HasPrefix(l.href, "http://") || strings.HasPrefix(l.href, "mailto:") {
+				if strings.HasPrefix(l.href, repoURL+"/blob/main/") || strings.HasPrefix(l.href, repoURL+"/tree/main/") {
+					p := strings.SplitN(strings.TrimPrefix(strings.TrimPrefix(l.href, repoURL+"/blob/main/"), repoURL+"/tree/main/"), "#", 2)[0]
+					p, _ = url.PathUnescape(p)
+					if !tracked[p] && !dirs[p] {
+						fail(t, v, "%s links GitHub path %q, which is not tracked", d.URL, p)
+					}
+				}
+				continue
+			}
+			target, fragment := resolve(d.URL, l.href)
+			if !exists(t, fileFor(dir, target)) {
+				fail(t, v, "%s links %q, which opens no built page", d.URL, l.href)
+			}
+			text := page(t, dir, siteFile(target), v)
+			if fragment != "" {
+				frag, _ := url.PathUnescape(fragment)
+				if !ids(string(text))[frag] {
+					fail(t, v, "%s links %q, whose heading is not on %s", d.URL, l.href, target)
+				}
+			}
+		}
+	}
+	for rel, want := range map[string]string{
+		"en/guides/spar/index.html":    `href="../usage/#review-gate-run-rules5"`,
+		"en/guides/install/index.html": `href="#install-from-a-release-file"`,
+	} {
+		if !strings.Contains(page(t, dir, rel, v), want) {
+			fail(t, v, "%s lacks %s", rel, want)
+		}
+	}
+	// A link to the repository root, which check_public_docs accepts, opens
+	// the repository on GitHub.
+	rootLink := synthetic(t, func(root string) {
+		p := filepath.Join(root, "guides", "USAGE.md")
+		data, _ := os.ReadFile(p)
+		write(t, p, string(data)+"\n[the repository](../) and [again](..)\n")
+	})
+	res := runBuild(t, rootLink, filepath.Join(t.TempDir(), "out"))
+	if res.err != nil || res.code != 0 {
+		fail(t, v, "a link to the repository root stops the build: %v %s", res.err, res.stderr)
+	}
+	body := article(t, page(t, res.out, "ko/guides/usage/index.html", v), "ko/guides/usage/", v)
+	if strings.Count(body, `href="`+repoURL+`/tree/main"`) != 2 {
+		fail(t, v, "a link to the repository root does not open %s/tree/main", repoURL)
+	}
+	// A link the repository cannot resolve stops the build, naming file and link.
+	for _, bad := range []string{"[gone](MISSING-PAGE.md)", "[nowhere](INSTALL.md#no-such-heading-42)", "[readme](../README.md#no-such-heading-42)"} {
+		syn := synthetic(t, func(root string) {
+			p := filepath.Join(root, "guides", "USAGE.md")
+			data, _ := os.ReadFile(p)
+			write(t, p, string(data)+"\n"+bad+"\n")
+		})
+		out := filepath.Join(t.TempDir(), "out")
+		res := runBuild(t, syn, out)
+		target := strings.TrimSuffix(strings.SplitN(bad, "(", 2)[1], ")")
+		if res.err != nil || res.code != 1 || !strings.Contains(res.stderr, "guides/USAGE.md") || !strings.Contains(res.stderr, target) {
+			fail(t, v, "a broken link %s did not stop the build naming the file and link (exit %d): %s", bad, res.code, res.stderr)
+		}
+		if _, err := os.Stat(out); err == nil {
+			fail(t, v, "a failed build still wrote %s", out)
+		}
+	}
+}
+
+var definitionRE = regexp.MustCompile(`(?m)^ {0,3}\[([^\]]+)\]:[ \t]*<?([^\s>]+)>?`)
+
+// unusedDefinitions lists the targets that appear only in reference
+// definitions whose label no link uses.
+func unusedDefinitions(source string) map[string]bool {
+	unused := map[string]bool{}
+	for _, m := range definitionRE.FindAllStringSubmatch(source, -1) {
+		uses := 0
+		for _, at := range regexp.MustCompile(`(?i)\[`+regexp.QuoteMeta(m[1])+`\]`).FindAllStringIndex(source, -1) {
+			if at[1] < len(source) && source[at[1]] == ':' {
+				continue // the definition itself
+			}
+			uses++
+		}
+		if uses == 0 && !strings.Contains(source, "]("+m[2]) {
+			unused[m[2]] = true
+		}
+	}
+	return unused
+}
+
+// ------------------------------------------------------------- AC-5
+
+func TestPagesSiteAC5_DocsView(t *testing.T) {
+	const v = "docs-view-missing"
+	dir := site(t, v)
+	for _, d := range documents(t) {
+		rel := d.URL + "index.html"
+		text := page(t, dir, rel, v)
+		body := article(t, text, rel, v)
+		for _, part := range []string{`<nav class="side"`, `<article class="article"`, `<aside class="toc"`, `id="copy-page"`,
+			`href="` + repoURL + "/blob/main/" + d.Path + `"`} {
+			if !strings.Contains(text, part) {
+				fail(t, v, "%s lacks %s", d.URL, part)
+			}
+		}
+		toc := regexp.MustCompile(`(?s)<ul id="toc-list">(.*?)</ul>`).FindStringSubmatch(text)
+		if toc == nil {
+			fail(t, v, "%s has no table of contents", d.URL)
+		}
+		for _, m := range regexp.MustCompile(`<h([23]) id="([^"]+)"`).FindAllStringSubmatch(body, -1) {
+			if !strings.Contains(toc[1], `href="#`+m[2]+`"`) {
+				fail(t, v, "%s lists no %s in its table of contents", d.URL, m[2])
+			}
+		}
+	}
+	for _, lang := range []string{"ko", "en"} {
+		var entries [][]string
+		if err := json.Unmarshal([]byte(page(t, dir, lang+"/search.json", v)), &entries); err != nil {
+			fail(t, v, "%s/search.json is not readable: %v", lang, err)
+		}
+		urls := map[string]bool{}
+		for _, e := range entries {
+			urls[e[2]] = true
+		}
+		nav := page(t, dir, lang+"/docs/index.html", v)
+		listed := regexp.MustCompile(`<a href="([^"#]+)" hreflang`).FindAllStringSubmatch(nav, -1)
+		if len(listed) == 0 {
+			fail(t, v, "%s/docs/ lists no documents", lang)
+		}
+		for _, m := range listed {
+			target, _ := resolve(lang+"/docs/", m[1])
+			if !urls[target] {
+				fail(t, v, "%s search does not find %s", lang, target)
+			}
+			body := article(t, page(t, dir, target+"index.html", v), target, v)
+			for _, h := range regexp.MustCompile(`<h[2-6] id="([^"]+)"`).FindAllStringSubmatch(body, -1) {
+				if !urls[target+"#"+h[1]] {
+					fail(t, v, "%s search does not find heading %s of %s", lang, h[1], target)
+				}
+			}
+		}
+	}
+	// Copy page gives the file as committed, line endings included, and
+	// search finds every subheading level.
+	const crlf = "# Line endings\r\n\r\nWindows line endings.\r\n\r\n##### Zebra recovery\r\n\r\nA fifth-level part.\r\n"
+	syn := synthetic(t, func(root string) { write(t, filepath.Join(root, "guides", "CRLF.md"), crlf) })
+	res := runBuild(t, syn, filepath.Join(t.TempDir(), "out"))
+	if res.err != nil || res.code != 0 {
+		fail(t, v, "a guide with CRLF line endings does not build: %v %s", res.err, res.stderr)
+	}
+	if source, _ := pageSource(page(t, res.out, "ko/guides/crlf/index.html", v)); source != crlf {
+		fail(t, v, "Copy page does not give guides/CRLF.md with its line endings as committed")
+	}
+	var synEntries [][]string
+	if err := json.Unmarshal([]byte(page(t, res.out, "ko/search.json", v)), &synEntries); err != nil {
+		fail(t, v, "ko/search.json is not readable: %v", err)
+	}
+	zebra := false
+	for _, e := range synEntries {
+		zebra = zebra || (e[0] == "Zebra recovery" && e[2] == "ko/guides/crlf/#zebra-recovery")
+	}
+	if !zebra {
+		fail(t, v, "search does not find a fifth-level heading")
+	}
+	var script strings.Builder
+	script.WriteString("var narrow = {}, boxes = {tables: 0, code: 0, clipped: []};\n")
+	// At 375px the page does not scroll sideways; a table or code block wider
+	// than the screen scrolls in its own box.
+	for _, p := range widePages {
+		fmt.Fprintf(&script, `var w = await load(%q, 375, 812); await wait(600); narrow[%q] = [w.document.documentElement.scrollWidth, w.document.documentElement.clientWidth];
+Array.prototype.forEach.call(w.document.querySelectorAll(".markdown table, .markdown pre:not(.mermaid)"), function (e) {
+  var box = e;
+  while (box && !/^(auto|scroll)$/.test(w.getComputedStyle(box).overflowX)) box = box.parentElement;
+  if (!box || box.scrollWidth <= box.clientWidth + 1) return;
+  if (e.tagName === "TABLE") boxes.tables++; else boxes.code++;
+  if (box.getBoundingClientRect().right > w.innerWidth + 1) boxes.clipped.push(%q + " " + e.tagName);
+});
+Array.prototype.forEach.call(w.document.querySelectorAll(".markdown table, .markdown pre:not(.mermaid)"), function (e) {
+  var box = e, scrolls = false;
+  for (; box && !box.classList.contains("markdown"); box = box.parentElement) if (/^(auto|scroll)$/.test(w.getComputedStyle(box).overflowX)) scrolls = true;
+  if (!scrolls && e.scrollWidth > e.clientWidth + 1) boxes.clipped.push(%q + " " + e.tagName + " cut off");
+});
+`, "/"+p, p, p, p)
+	}
+	script.WriteString(`
+var kb = {};
+// The navigation at 375px, by keyboard alone: Tab reaches the menu button,
+// Enter opens the navigation with focus in it, Escape closes it and returns
+// focus, Tab moves along its links and Enter follows one.
+var w = await load("/en/guides/usage/", 375, 812);
+await wait(300);
+w.focus();
+var menu = w.document.getElementById("menu-btn"), side = w.document.getElementById("side");
+kb.menuShown = !!menu && w.getComputedStyle(menu).display !== "none";
+for (var i = 0; i < 40 && w.document.activeElement !== menu; i++) await press("Tab");
+kb.menuByTab = w.document.activeElement === menu;
+await press("Enter"); await wait(400);
+kb.navOpen = w.document.documentElement.classList.contains("nav-open") && side.getBoundingClientRect().left >= -1 && w.getComputedStyle(side).visibility === "visible";
+kb.focusInNav = side.contains(w.document.activeElement);
+await press("Escape"); await wait(400);
+kb.navClosed = !w.document.documentElement.classList.contains("nav-open") && w.document.activeElement === menu;
+await press("Enter"); await wait(400);
+await press("Tab");
+var next = w.document.activeElement, nextPath = next.pathname;
+kb.nextInNav = side.contains(next) && next.tagName === "A" && nextPath !== "/en/guides/usage/";
+var nav = navigated(); await press("Enter");
+var w2 = await Promise.race([nav, wait(5000).then(function () { return null; })]);
+kb.navFollowed = !!w2 && w2.location.pathname === nextPath;
+// At full width: Tab reaches the navigation, Shift+Tab the "On this page" list,
+// and Enter on its link goes to that heading, which the list then marks.
+var w = await load("/en/guides/usage/", 1280, 900);
+await wait(300);
+w.focus();
+function inside(sel) { var a = w.document.activeElement; return !!(a && a.closest && a.closest(sel)); }
+for (var i = 0; i < 40 && !inside("#side"); i++) await press("Tab");
+kb.sideByTab = inside("#side");
+var w = await load("/en/guides/usage/", 1280, 900);
+await wait(300);
+w.focus();
+for (var i = 0; i < 40 && !inside(".toc"); i++) await press("Tab", 8);
+kb.tocByTab = inside(".toc");
+if (kb.tocByTab) {
+  var hash = w.document.activeElement.getAttribute("href");
+  await press("Enter"); await wait(400);
+  var h = w.document.getElementById(decodeURIComponent(hash.slice(1)));
+  var on = w.document.querySelector("#toc-list a.on");
+  kb.tocFollowed = w.location.hash === hash && !!h && h.getBoundingClientRect().top >= 0 && h.getBoundingClientRect().top < 300;
+  kb.tocMarked = !!on && on.getAttribute("href") === hash;
+}
+// The "On this page" list marks the section being read, scrolling down and up.
+var w = await load("/en/guides/usage/", 1280, 900);
+await wait(300);
+var heads = Array.prototype.map.call(w.document.querySelectorAll("#toc-list a"), function (a) { return w.document.getElementById(decodeURIComponent(a.getAttribute("href").slice(1))); });
+function top(h) { return h.getBoundingClientRect().top + w.scrollY; }
+function marked() { var on = w.document.querySelectorAll("#toc-list a.on"); return on.length === 1 ? on[0].getAttribute("href") : String(on.length); }
+var spy = {};
+for (var i = 0; i + 2 < heads.length; i++) {
+  if (top(heads[i + 1]) - top(heads[i]) > 600 && top(heads[i + 2]) - top(heads[i + 1]) > 600) {
+    w.scrollTo(0, top(heads[i + 1]) - 5); await wait(300);
+    spy.down = [marked(), "#" + heads[i + 1].id];
+    w.scrollTo(0, top(heads[i]) - 5); await wait(300);
+    spy.up = [marked(), "#" + heads[i].id];
+    break;
+  }
+}
+// Search by keyboard: /, ⌘K and Ctrl+K open it, Escape closes it, typed text
+// filters, the arrow keys move the choice and Enter goes to it.
+var w = await load("/en/guides/usage/", 1280, 900);
+await wait(300);
+w.focus();
+var veil = w.document.getElementById("palette"), input = w.document.getElementById("palette-input");
+var opened = {};
+await press("/"); opened.slash = !veil.hidden && w.document.activeElement === input;
+await press("Escape"); opened.escape = veil.hidden;
+await press("k", 4); opened.meta = !veil.hidden && w.document.activeElement === input;
+await press("Escape");
+await press("k", 2); opened.ctrl = !veil.hidden && w.document.activeElement === input;
+await typeText("review");
+await wait(1500);
+var options = w.document.querySelectorAll("#palette-list button");
+await press("ArrowDown");
+opened.arrowDown = options.length > 1 && options[1].getAttribute("aria-selected") === "true";
+await press("ArrowUp");
+opened.arrowUp = options.length > 1 && options[0].getAttribute("aria-selected") === "true";
+await press("Escape");
+await press("/");
+await typeText("set up a project");
+await wait(300);
+var options = w.document.querySelectorAll("#palette-list button");
+var firstHref = options.length ? options[0].getAttribute("data-href") : null;
+var nav = navigated(); await press("Enter");
+var w2 = await Promise.race([nav, wait(5000).then(function () { return null; })]);
+var landed = w2 ? w2.location.pathname + w2.location.hash : null;
+// A word only the text of a section holds: "waive" in the Spar guide.
+var w = await load("/en/guides/usage/", 1280, 900);
+await wait(300);
+w.focus();
+await press("k", 4);
+await typeText("waive");
+await wait(1500);
+var options = Array.prototype.slice.call(w.document.querySelectorAll("#palette-list button"));
+var pick = options.findIndex(function (b) { return b.getAttribute("data-href").indexOf("en/guides/spar/#") === 0; });
+for (var i = 0; i < pick; i++) await press("ArrowDown");
+var waive = {href: pick >= 0 ? options[pick].getAttribute("data-href") : null};
+var nav = navigated(); await press("Enter");
+var w2 = await Promise.race([nav, wait(5000).then(function () { return null; })]);
+waive.landed = w2 ? w2.location.pathname + w2.location.hash : null;
+if (w2 && w2.location.hash) {
+  var h = w2.document.getElementById(decodeURIComponent(w2.location.hash.slice(1))), text = "";
+  for (var n = h ? h.nextElementSibling : null; n && !/^H[234]$/.test(n.tagName); n = n.nextElementSibling) text += " " + n.textContent;
+  waive.inSection = /waive/i.test(text);
+}
+var w = await load("/en/guides/usage/", 1280, 900);
+await wait(300);
+var copied = null;
+Object.defineProperty(w.navigator, "clipboard", {configurable: true, value: {writeText: function (t) { copied = t; return Promise.resolve(); }}});
+w.document.getElementById("copy-page").click();
+await wait(200);
+report({narrow: narrow, boxes: boxes, kb: kb, spy: spy, opened: opened, firstHref: firstHref, landed: landed, waive: waive, copied: copied});`)
+	got := browse(t, dir, script.String())
+	for p, pair := range got["narrow"].(map[string]any) {
+		dims := pair.([]any)
+		if dims[0].(float64) > dims[1].(float64) {
+			fail(t, v, "%s scrolls sideways at 375px (%v > %v)", p, dims[0], dims[1])
+		}
+	}
+	boxes, _ := got["boxes"].(map[string]any)
+	if boxes["tables"].(float64) < 1 || boxes["code"].(float64) < 1 || len(boxes["clipped"].([]any)) != 0 {
+		fail(t, v, "at 375px wide tables and code do not scroll in their own boxes: %v", boxes)
+	}
+	kb, _ := got["kb"].(map[string]any)
+	for _, step := range []string{"menuShown", "menuByTab", "navOpen", "focusInNav", "navClosed", "nextInNav", "navFollowed",
+		"sideByTab", "tocByTab", "tocFollowed", "tocMarked"} {
+		if kb[step] != true {
+			fail(t, v, "the navigation and \"On this page\" list are not usable by keyboard alone: %s fails (%v)", step, kb)
+		}
+	}
+	spy, _ := got["spy"].(map[string]any)
+	for _, way := range []string{"down", "up"} {
+		pair, _ := spy[way].([]any)
+		if len(pair) != 2 || pair[0] != pair[1] {
+			fail(t, v, "scrolling %s, \"On this page\" does not mark the section being read: %v", way, spy)
+		}
+	}
+	for name, ok := range got["opened"].(map[string]any) {
+		if ok != true {
+			fail(t, v, "the search palette does not respond to %s: %v", name, got["opened"])
+		}
+	}
+	if got["firstHref"] != "en/guides/spar/#set-up-a-project" || got["landed"] != "/en/guides/spar/#set-up-a-project" {
+		fail(t, v, "searching 'set up a project' and pressing Enter went to %v (first result %v)", got["landed"], got["firstHref"])
+	}
+	waive, _ := got["waive"].(map[string]any)
+	href, _ := waive["href"].(string)
+	if !strings.HasPrefix(href, "en/guides/spar/#") || waive["landed"] != "/"+href || waive["inSection"] != true {
+		fail(t, v, "searching 'waive' does not reach the Spar guide's section that holds it: %v", waive)
+	}
+	if got["copied"] != headFile(t, "guides/USAGE.en.md") {
+		fail(t, v, "Copy page does not copy guides/USAGE.en.md as it is")
+	}
+}
+
+// ------------------------------------------------------------- AC-6
+
+func TestPagesSiteAC6_LanguageAndTheme(t *testing.T) {
+	const v = "lang-theme-missing"
+	dir := site(t, v)
+	docs := documents(t)
+	have := map[string]bool{}
+	for _, d := range docs {
+		have[d.URL] = true
+	}
+	switchRE := regexp.MustCompile(`<a class="ghost-btn lang" href="([^"]+)" hreflang="([a-z]+)" data-set-lang="([a-z]+)"`)
+	check := func(rel, want string) {
+		text := page(t, dir, rel+"index.html", v)
+		m := switchRE.FindStringSubmatch(text)
+		if m == nil {
+			fail(t, v, "%s has no language switch", rel)
+		}
+		target, _ := resolve(rel, m[1])
+		if target != want {
+			fail(t, v, "%s switches language to %q, want %q", rel, target, want)
+		}
+	}
+	for _, d := range docs {
+		other := map[string]string{"ko": "en", "en": "ko"}[d.Lang]
+		counterpart := other + strings.TrimPrefix(d.URL, d.Lang)
+		if have[counterpart] {
+			check(d.URL, counterpart)
+		} else {
+			check(d.URL, other+"/docs/")
+		}
+	}
+	check("ko/", "en/")
+	check("en/", "ko/")
+	check("ko/docs/", "en/docs/")
+	check("en/docs/", "ko/docs/")
+	for _, rel := range []string{"ko/", "en/", "ko/docs/", "en/docs/"} {
+		if got := langAttr(page(t, dir, rel+"index.html", v)); got != rel[:2] {
+			fail(t, v, "%s has lang %q", rel, got)
+		}
+	}
+	css := page(t, dir, "assets/site.css", v)
+	if !strings.Contains(css, "@media (prefers-color-scheme: light)") || !strings.Contains(css, `:root[data-theme="light"]`) {
+		fail(t, v, "the theme does not follow the system setting")
+	}
+	got := browse(t, dir, `
+var out = {};
+localStorage.clear();
+var w = await load("/", 800, 600); await wait(800); out.none = frame.contentWindow.location.pathname;
+localStorage.setItem("jaekit-lang", "ko");
+await load("/", 800, 600); await wait(800); out.ko = frame.contentWindow.location.pathname;
+localStorage.setItem("jaekit-lang", "en");
+await load("/", 800, 600); await wait(800); out.en = frame.contentWindow.location.pathname;
+localStorage.clear();
+var w = await load("/en/guides/usage/", 1280, 800); await wait(300);
+var nav = navigated();
+w.document.querySelector("a.lang").click();
+var w2 = await nav;
+out.switched = w2.location.pathname;
+out.stored = localStorage.getItem("jaekit-lang");
+localStorage.setItem("jaekit-theme", "light");
+var w = await load("/ko/", 1280, 800); await wait(300);
+out.theme = w.document.documentElement.getAttribute("data-theme");
+out.bg = w.getComputedStyle(w.document.documentElement).getPropertyValue("--bg").trim();
+out.term = w.getComputedStyle(w.document.getElementById("term")).getPropertyValue("--t-bg").trim();
+w.document.getElementById("theme-btn").click(); await wait(100);
+out.toggled = w.document.documentElement.getAttribute("data-theme");
+out.storedTheme = localStorage.getItem("jaekit-theme");
+var w = await load("/ko/", 1280, 800); await wait(300);
+out.remembered = w.document.documentElement.getAttribute("data-theme");
+report(out);`)
+	want := map[string]string{"none": "/en/", "ko": "/ko/", "en": "/en/", "switched": "/ko/guides/usage/", "stored": "ko",
+		"theme": "light", "bg": "#FAFAFA", "toggled": "dark", "storedTheme": "dark", "remembered": "dark"}
+	for k, w := range want {
+		if got[k] != w {
+			fail(t, v, "%s: got %v, want %q (%v)", k, got[k], w, got)
+		}
+	}
+	if !sameColor(got["term"], "#131110") {
+		fail(t, v, "the terminal is not dark in the light theme: --t-bg %v", got["term"])
+	}
+	korean := browse(t, dir, `localStorage.clear(); await load("/", 800, 600); await wait(800); report({path: frame.contentWindow.location.pathname});`, "--accept-lang=ko-KR")
+	if korean["path"] != "/ko/" {
+		fail(t, v, "a Korean browser without a stored choice opens %v", korean["path"])
+	}
+	root := page(t, dir, "index.html", v)
+	for _, want := range []string{`href="ko/"`, `href="en/"`} {
+		if !strings.Contains(root, want) {
+			fail(t, v, "the root page lacks the %s fallback link", want)
+		}
+	}
+	// With storage blocked (reading it throws, as when a browser blocks site
+	// data) the root page stays and shows both language links.
+	blocked := browseWith(t, dir, browser{inject: `Object.defineProperty(window, "localStorage", {configurable: true, get: function () { throw new DOMException("blocked", "SecurityError"); }});`}, `
+await load("/", 800, 600); await wait(1200);
+var d = frame.contentWindow.document, shown = 0;
+Array.prototype.forEach.call(d.querySelectorAll('a[href="ko/"], a[href="en/"]'), function (a) {
+  var r = a.getBoundingClientRect();
+  if (r.width > 0 && r.height > 0 && frame.contentWindow.getComputedStyle(a).visibility === "visible") shown++;
+});
+var blockedHere = false;
+try { frame.contentWindow.localStorage; } catch (e) { blockedHere = true; }
+report({path: frame.contentWindow.location.pathname, shown: shown, blocked: blockedHere});`)
+	if blocked["blocked"] != true {
+		t.Skip("the browser did not block storage for the observation")
+	}
+	if blocked["path"] != "/" || blocked["shown"].(float64) < 2 {
+		fail(t, v, "with storage unavailable the root page does not show both language links: %v", blocked)
+	}
+	// With scripts off the root page shows both language links too.
+	off := browse(t, dir, `
+var w = await loadNoScript("/", 800, 600); await wait(800);
+var shown = 0;
+Array.prototype.forEach.call(w.document.querySelectorAll('a[href="ko/"], a[href="en/"]'), function (a) {
+  var r = a.getBoundingClientRect();
+  if (r.width > 0 && r.height > 0 && w.getComputedStyle(a).visibility === "visible") shown++;
+});
+report({path: w.location.pathname, shown: shown, ran: !!w.jaekit});`)
+	if off["ran"] == true {
+		t.Skip("scripts ran in the sandboxed frame")
+	}
+	if off["path"] != "/" || off["shown"].(float64) < 2 {
+		fail(t, v, "with scripts off the root page does not show both language links: %v", off)
+	}
+	// With no theme chosen, the page follows the system's color scheme.
+	for scheme, bg := range map[string]string{"dark": "#0A0A0B", "light": "#FAFAFA"} {
+		got := browseWith(t, dir, browser{scheme: scheme}, `localStorage.clear();
+var w = await load("/ko/guides/usage/", 1280, 800); await wait(300);
+report({bg: w.getComputedStyle(w.document.documentElement).getPropertyValue("--bg").trim(), chosen: w.document.documentElement.getAttribute("data-theme")});`)
+		if !sameColor(got["bg"], bg) || got["chosen"] != nil {
+			fail(t, v, "with a %s system scheme and no chosen theme the page is %v", scheme, got)
+		}
+	}
+}
+
+// ------------------------------------------------------------- AC-7
+
+func TestPagesSiteAC7_Home(t *testing.T) {
+	const v = "home-missing"
+	dir := site(t, v)
+	css := page(t, dir, "assets/site.css", v)
+	for _, token := range []string{"--bg: #0A0A0B", "--fg: #EDEDEF", "--accent: #8094FF", "--bg: #FAFAFA", "--fg: #0B0B0D", "--accent: #3A52E0"} {
+		if !strings.Contains(css, token) {
+			fail(t, v, "site.css lacks the prototype token %q", token)
+		}
+	}
+	symbol, err := os.ReadFile(filepath.Join(repoRoot(t), "assets", "readme", "brand", "symbol.png"))
+	if err != nil {
+		t.Skip(err)
+	}
+	if !bytes.Equal([]byte(page(t, dir, "assets/symbol.png", v)), symbol) {
+		fail(t, v, "assets/symbol.png is not assets/readme/brand/symbol.png")
+	}
+	shape := map[string][]int{}
+	for _, lang := range []string{"ko", "en"} {
+		rel := lang + "/"
+		text := page(t, dir, rel+"index.html", v)
+		install := installLine(t, map[string]string{"ko": "guides/INSTALL.md", "en": "guides/INSTALL.en.md"}[lang])
+		for _, want := range []string{
+			`<span class="p">$ </span>` + install + `</code>`, `data-copy="` + install + `"`,
+			`id="get-started" href="../` + lang + `/guides/install/"`,
+			`<canvas id="matrix" data-symbol="../assets/symbol.png"`,
+			`id="how"`, `id="try"`, `id="records"`, `id="principles"`, `id="start"`,
+			`<a href="` + repoURL + `">github</a>`, `<a href="` + repoURL + `/releases">releases</a>`,
+		} {
+			if !strings.Contains(text, want) {
+				fail(t, v, "%s lacks %s", rel, want)
+			}
+		}
+		shape[lang] = []int{strings.Count(text, `class="step"`), strings.Count(text, "<h3>"), strings.Count(text, "<li><code>"), strings.Count(text, "<section")}
+	}
+	if fmt.Sprint(shape["ko"]) != fmt.Sprint(shape["en"]) {
+		fail(t, v, "the Korean and English homes differ in structure: %v", shape)
+	}
+	// The title is two lines, and every file, command and term the homes name
+	// in code is named the same way in the commit's README or usage guide.
+	var sources strings.Builder
+	for _, name := range []string{"README.md", "README.en.md", "README.ko.md", "guides/USAGE.md", "guides/USAGE.en.md"} {
+		data, err := os.ReadFile(filepath.Join(repoRoot(t), filepath.FromSlash(name)))
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			t.Skipf("cannot read %s: %v", name, err)
+		}
+		sources.Write(data)
+	}
+	for _, lang := range []string{"ko", "en"} {
+		text := page(t, dir, lang+"/index.html", v)
+		h := regexp.MustCompile(`(?s)<h1>(.*?)</h1>`).FindStringSubmatch(text)
+		if h == nil || strings.Count(h[1], "<br>") != 1 {
+			fail(t, v, "the %s home title is not two lines", lang)
+		}
+		for _, m := range regexp.MustCompile(`<code>([^<]+)</code>`).FindAllStringSubmatch(text, -1) {
+			if token := html.UnescapeString(m[1]); !strings.Contains(sources.String(), token) {
+				fail(t, v, "the %s home names %q, which the README and usage guide do not", lang, token)
+			}
+		}
+	}
+	js := page(t, dir, "assets/home.js", v)
+	for _, want := range []string{"prefers-reduced-motion", "pointermove", `"click"`} {
+		if !strings.Contains(js, want) {
+			fail(t, v, "home.js lacks %s", want)
+		}
+	}
+	frames := `
+async function frames(w) {
+  var c = w.document.getElementById("matrix"), x = c.getContext("2d");
+  function snap() { var d = x.getImageData(0, 0, c.width, c.height).data, ink = 0, h = 0; for (var i = 3; i < d.length; i += 4) { if (d[i]) ink++; h = (h * 31 + d[i] + d[i - 1]) | 0; } return [ink, h]; }
+  function corner() { var d = x.getImageData(0, 0, Math.round(c.width / 4), Math.round(c.height / 4)).data, h = 0; for (var i = 0; i < d.length; i++) h = (h * 31 + d[i]) | 0; return h; }
+  var a = snap(); await wait(700); var b = snap();
+  var r = c.getBoundingClientRect();
+  c.dispatchEvent(new w.PointerEvent("pointermove", {clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, pointerType: "mouse", bubbles: true}));
+  await wait(200); var p = snap();
+  // The corner holds no part of the symbol, so only a ripple changes it.
+  var c1 = corner(); await wait(300); var c2 = corner();
+  c.dispatchEvent(new w.MouseEvent("click", {clientX: r.left + 12, clientY: r.top + 12, bubbles: true}));
+  await wait(150); var c3 = corner();
+  return {ink: a[0], still: a[1] === b[1] && b[1] === p[1], cornerStill: c1 === c2, ripple: c2 !== c3};
+}
+var w = await load("/ko/", 1280, 900); await wait(1500);
+report(await frames(w));`
+	moving := browse(t, dir, frames)
+	if moving["ink"].(float64) < 1000 || moving["still"] == true {
+		fail(t, v, "the symbol matrix is not drawn and moving: %v", moving)
+	}
+	if moving["cornerStill"] != true || moving["ripple"] != true {
+		fail(t, v, "a click on the symbol matrix does not spread a ripple: %v", moving)
+	}
+	still := browse(t, dir, frames, "--force-prefers-reduced-motion")
+	if still["ink"].(float64) < 1000 || still["still"] != true || still["ripple"] == true {
+		fail(t, v, "the symbol matrix is not a still frame with reduced motion: %v", still)
+	}
+}
+
+// ------------------------------------------------------------- AC-8
+
+func TestPagesSiteAC8_Terminal(t *testing.T) {
+	const v = "terminal-missing"
+	dir := site(t, v)
+	css := page(t, dir, "assets/site.css", v)
+	for _, token := range []string{`.term[data-agent="claude"] { --t-accent: #C98D6E; --t-bg: #131110;`, `.term[data-agent="codex"] { --t-accent: #A09BC4; --t-bg: #09090A;`} {
+		if !strings.Contains(css, token) {
+			fail(t, v, "site.css lacks %q", token)
+		}
+	}
+	for lang, caption := range map[string]string{"ko": "가상 예시", "en": "Fictional"} {
+		text := page(t, dir, lang+"/index.html", v)
+		if !regexp.MustCompile(`<p class="term-caption"[^>]*>` + caption).MatchString(text) {
+			fail(t, v, "the %s terminal is not labelled %q", lang, caption)
+		}
+	}
+	session := `
+var w = await load("/%s/", 1280, 900); await wait(500);
+var d = w.document, out = d.getElementById("term-out");
+function lines(kind) { return d.querySelectorAll("#term-out .ln" + (kind ? "." + kind : "")).length; }
+var r = {boot1: d.querySelector("#term-out .boot b").textContent, agent1: d.getElementById("term").getAttribute("data-agent"),
+         accent1: w.getComputedStyle(d.getElementById("term")).getPropertyValue("--t-accent").trim(),
+         bg1: w.getComputedStyle(d.getElementById("term")).backgroundColor};
+var next = d.querySelector("#term-next button");
+r.next1 = next ? next.textContent : null;
+next.click();
+r.immediate = lines("");
+await wait(4000);
+r.after = lines("");
+r.you = d.querySelector("#term-out .ln.you span:last-child").textContent;
+d.querySelector('[data-set-agent="codex"]').click();
+await wait(800);
+r.agent2 = d.getElementById("term").getAttribute("data-agent");
+r.boot2 = d.querySelector("#term-out .boot b").textContent;
+r.youAfterSwitch = lines("you");
+r.next2 = d.querySelector("#term-next button").textContent;
+await wait(800);
+r.accent2 = w.getComputedStyle(d.getElementById("term")).getPropertyValue("--t-accent").trim();
+r.bg2 = w.getComputedStyle(d.getElementById("term")).backgroundColor;
+r.caption = d.querySelector(".term-caption").textContent;
+report(r);`
+	for _, lang := range []string{"ko", "en"} {
+		got := browse(t, dir, fmt.Sprintf(session, lang))
+		if !strings.HasPrefix(got["boot1"].(string), "claude code") || got["agent1"] != "claude" || !strings.HasPrefix(got["next1"].(string), "/spec:spec") || !strings.HasPrefix(got["you"].(string), "/spec:spec") {
+			fail(t, v, "%s: the Claude Code session does not start with /spec:spec: %v", lang, got)
+		}
+		if got["agent2"] != "codex" || !strings.HasPrefix(got["boot2"].(string), "codex") || got["youAfterSwitch"].(float64) != 0 || !strings.HasPrefix(got["next2"].(string), "$spec:spec") {
+			fail(t, v, "%s: choosing Codex does not restart the session with $spec:spec: %v", lang, got)
+		}
+		if !sameColor(got["accent1"], "#C98D6E") || !sameColor(got["accent2"], "#A09BC4") ||
+			!sameColor(got["bg1"], "#131110") || !sameColor(got["bg2"], "#09090A") {
+			fail(t, v, "%s: the terminal colors do not follow the agent: %v", lang, got)
+		}
+		if got["immediate"].(float64) >= got["after"].(float64) {
+			fail(t, v, "%s: the session shows a step at once without reduced motion: %v", lang, got)
+		}
+	}
+	reduced := browse(t, dir, fmt.Sprintf(session, "ko"), "--force-prefers-reduced-motion")
+	if reduced["immediate"].(float64) != reduced["after"].(float64) {
+		fail(t, v, "with reduced motion a step still types out line by line: %v", reduced)
+	}
+	// The whole session, for each agent and language: the four steps of the
+	// password-link example; a check shown passing was run in the session
+	// first, completion follows ha done, and nothing reads as certification
+	// or deployment.
+	whole := `
+var w = await load("/%s/", 1280, 900); await wait(500);
+var d = w.document, labels = [];
+d.querySelector('[data-set-agent="%s"]').click(); await wait(300);
+for (var i = 0; i < 8; i++) {
+  var b = d.querySelector("#term-next button.next-input");
+  if (!b) break;
+  labels.push(d.querySelector("#term-next span").textContent);
+  b.click(); await wait(400);
+}
+report({labels: labels, lines: Array.prototype.map.call(d.querySelectorAll("#term-out .ln"), function (l) { return [l.className, l.textContent]; }),
+        end: d.getElementById("term-next").textContent});`
+	acRE := regexp.MustCompile(`AC-\d+`)
+	for _, lang := range []string{"ko", "en"} {
+		for _, agent := range []string{"claude", "codex"} {
+			got := browse(t, dir, fmt.Sprintf(whole, lang, agent), "--force-prefers-reduced-motion")
+			labels, _ := got["labels"].([]any)
+			if len(labels) != 4 || !strings.HasSuffix(labels[3].(string), "4/4") || !strings.Contains(got["end"].(string), map[string]string{"ko": "끝", "en": "end"}[lang]) {
+				fail(t, v, "%s/%s: the session is not four steps to its end: %v", lang, agent, got)
+			}
+			ran, done, named := map[string]bool{}, false, false
+			for _, item := range got["lines"].([]any) {
+				pair := item.([]any)
+				kind, text := pair[0].(string), pair[1].(string)
+				lower := strings.ToLower(text)
+				named = named || strings.Contains(text, "password-link")
+				if strings.Contains(kind, "cmd") && strings.Contains(text, "ha check") && !strings.Contains(text, "--baseline") {
+					for _, id := range acRE.FindAllString(text, -1) {
+						ran[id] = true
+					}
+				}
+				if strings.Contains(kind, "cmd") && strings.Contains(text, "ha done") {
+					done = true
+				}
+				if strings.Contains(lower, "check pass") {
+					for _, id := range acRE.FindAllString(text, -1) {
+						if !ran[id] {
+							fail(t, v, "%s/%s: the session shows %s passing before running its check: %q", lang, agent, id, text)
+						}
+					}
+				}
+				if strings.Contains(lower, "status: complete") && !done {
+					fail(t, v, "%s/%s: the session shows completion before ha done", lang, agent)
+				}
+				for _, word := range []string{"certif", "deploy", "publish", "인증", "배포", "게시"} {
+					if strings.Contains(lower, word) {
+						fail(t, v, "%s/%s: the session says %q: %q", lang, agent, word, text)
+					}
+				}
+			}
+			if !named {
+				fail(t, v, "%s/%s: the session is not the password-link example", lang, agent)
+			}
+		}
+	}
+}
+
+// ------------------------------------------------------------- AC-9
+
+func TestPagesSiteAC9_Version(t *testing.T) {
+	const v = "version-not-from-release"
+	dir := site(t, v)
+	version := releaseVersion(t)
+	if version == "" {
+		t.Skip("marketplace.json names no version")
+	}
+	release := repoURL + "/releases/tag/v" + version
+	anchorRE := regexp.MustCompile(`(?s)<a\b[^>]*\bhref="([^"]*)"[^>]*>(.*?)</a>`)
+	shownRE := regexp.MustCompile(`(^|[^\w.])v` + regexp.QuoteMeta(version) + `($|[^\w.])`)
+	// linked counts the links to the release that show the version, and says
+	// whether the fragment shows the version anywhere else.
+	linked := func(fragment string) (int, bool) {
+		n := 0
+		rest := anchorRE.ReplaceAllStringFunc(fragment, func(a string) string {
+			m := anchorRE.FindStringSubmatch(a)
+			if html.UnescapeString(m[1]) == release && shownRE.MatchString(tagRE.ReplaceAllString(m[2], " ")) {
+				n++
+				return ""
+			}
+			return a
+		})
+		return n, !shownRE.MatchString(tagRE.ReplaceAllString(rest, " "))
+	}
+	footerRE := regexp.MustCompile(`(?s)<footer class="foot">.*?</footer>`)
+	codeRE := regexp.MustCompile(`(?s)<script\b.*?</script>|<meta\b[^>]*>`)
+	for name, data := range walk(t, dir) {
+		if !strings.HasSuffix(name, ".html") || name == "404.html" {
+			continue
+		}
+		text := string(data)
+		if got := meta(text, "jaekit-version"); got != version {
+			fail(t, v, "%s names version %q, not %q from marketplace.json", name, got, version)
+		}
+		if name == "index.html" { // the language chooser shows no version
+			continue
+		}
+		footer := footerRE.FindString(text)
+		if n, only := linked(footer); n != 1 || !only {
+			fail(t, v, "%s's footer does not show v%s linked to %s", name, version, release)
+		}
+	}
+	for _, lang := range []string{"ko", "en"} {
+		text := codeRE.ReplaceAllString(page(t, dir, lang+"/index.html", v), "")
+		if !strings.Contains(text, `id="version-pill" href="`+release+`"><b>v`+version+`</b>`) {
+			fail(t, v, "%s/ does not show v%s linked to its release", lang, version)
+		}
+		if n, only := linked(text); n != 2 || !only {
+			fail(t, v, "%s/ shows the version without its release link (%d linked)", lang, n)
+		}
+	}
+	cases := map[string]func(root string){
+		"missing": func(root string) { os.Remove(filepath.Join(root, ".claude-plugin", "marketplace.json")) },
+		"invalid": func(root string) { write(t, filepath.Join(root, ".claude-plugin", "marketplace.json"), "{not json") },
+		"empty": func(root string) {
+			write(t, filepath.Join(root, ".claude-plugin", "marketplace.json"), `{"metadata": {"version": ""}}`)
+		},
+		"absent": func(root string) {
+			write(t, filepath.Join(root, ".claude-plugin", "marketplace.json"), `{"metadata": {}}`)
+		},
+	}
+	names := make([]string, 0, len(cases))
+	for name := range cases {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		syn := synthetic(t, cases[name])
+		out := filepath.Join(t.TempDir(), "out")
+		res := runBuild(t, syn, out)
+		if res.err != nil || res.code != 1 || !strings.Contains(res.stderr, "marketplace.json") {
+			fail(t, v, "a %s release version did not stop the build naming marketplace.json (exit %d): %s", name, res.code, res.stderr)
+		}
+		if _, err := os.Stat(out); err == nil {
+			fail(t, v, "a %s release version still wrote a site", name)
+		}
+	}
+}
+
+// ------------------------------------------------------------- AC-10
+
+func TestPagesSiteAC10_NoExternalRequests(t *testing.T) {
+	const v = "external-requests"
+	dir := site(t, v)
+	loadTag := regexp.MustCompile(`(?i)<(script|link|img|iframe|source|video|audio|embed|object)\b[^>]*\b(src|href|data)\s*=\s*["']?\s*(https?:)?//`)
+	cssURL := regexp.MustCompile(`(?i)(url\(\s*["']?\s*(https?:)?//|@import)`)
+	for name, data := range walk(t, dir) {
+		text := string(data)
+		switch {
+		case strings.HasSuffix(name, ".html"):
+			if m := loadTag.FindString(text); m != "" {
+				fail(t, v, "%s loads %q from outside the site", name, m)
+			}
+		case strings.HasSuffix(name, ".css"):
+			if m := cssURL.FindString(text); m != "" {
+				fail(t, v, "%s loads %q from outside the site", name, m)
+			}
+		}
+	}
+	licenses := page(t, dir, "assets/licenses.txt", v)
+	for _, want := range []string{"Geist 5.3.0", "Geist Mono 5.3.0", "Noto Sans KR 5.3.1", "mermaid 11.17.2", "SIL Open Font License", "MIT License"} {
+		if !strings.Contains(licenses, want) {
+			fail(t, v, "assets/licenses.txt lacks %q", want)
+		}
+	}
+	if !strings.Contains(page(t, dir, "ko/index.html", v), `href="../assets/licenses.txt"`) {
+		fail(t, v, "the home page does not link the license notice")
+	}
+	var script strings.Builder
+	script.WriteString("var foreign = [], keys = {};\n")
+	for _, p := range append([]string{""}, widePages...) {
+		fmt.Fprintf(&script, `var w = await load(%q, 1280, 900); await wait(2500);
+w.performance.getEntriesByType("resource").forEach(function (e) { if (new URL(e.name).origin !== location.origin) foreign.push(e.name); });
+`, "/"+p)
+	}
+	script.WriteString(`
+var w = await load("/en/guides/usage/", 1280, 900); await wait(300);
+w.document.getElementById("theme-btn").click();
+w.document.getElementById("search-btn").click(); await wait(800);
+var nav = navigated(); w.document.querySelector("a.lang").click(); await nav;
+for (var i = 0; i < localStorage.length; i++) keys[localStorage.key(i)] = true;
+report({foreign: foreign, cookie: document.cookie + frame.contentWindow.document.cookie, keys: Object.keys(keys).sort()});`)
+	got := browse(t, dir, script.String())
+	if f := got["foreign"].([]any); len(f) != 0 {
+		fail(t, v, "pages requested files outside the site: %v", f)
+	}
+	if got["cookie"] != "" {
+		fail(t, v, "the site set cookies: %v", got["cookie"])
+	}
+	for _, k := range got["keys"].([]any) {
+		if k != "jaekit-lang" && k != "jaekit-theme" {
+			fail(t, v, "the site stored %v in the browser", k)
+		}
+	}
+}
+
+// ------------------------------------------------------------- AC-11
+
+func workflowJobs(text string) map[string]string {
+	jobs := map[string]string{}
+	_, after, ok := strings.Cut(text, "\njobs:\n")
+	if !ok {
+		return jobs
+	}
+	name, body := "", []string{}
+	for _, line := range strings.Split(after, "\n") {
+		if m := regexp.MustCompile(`^  ([A-Za-z0-9_-]+):\s*$`).FindStringSubmatch(line); m != nil {
+			if name != "" {
+				jobs[name] = strings.Join(body, "\n")
+			}
+			name, body = m[1], nil
+			continue
+		}
+		if line != "" && !strings.HasPrefix(line, " ") {
+			break
+		}
+		body = append(body, line)
+	}
+	if name != "" {
+		jobs[name] = strings.Join(body, "\n")
+	}
+	return jobs
+}
+
+func TestPagesSiteAC11_Workflow(t *testing.T) {
+	const v = "workflow-missing"
+	root := repoRoot(t)
+	data, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "pages.yml"))
+	if errors.Is(err, fs.ErrNotExist) {
+		fail(t, v, "there is no .github/workflows/pages.yml")
+	} else if err != nil {
+		t.Skipf("cannot read .github/workflows/pages.yml: %v", err)
+	}
+	text := string(data)
+	_, on, _ := strings.Cut(text, "\non:\n")
+	on, _, _ = strings.Cut(on, "\n\n")
+	for _, want := range []string{"\n  pull_request:", "\n  push:\n    branches: [main]", "\n  workflow_dispatch:"} {
+		if !strings.Contains("\n"+on, want) {
+			fail(t, v, "pages.yml does not run on %q", strings.TrimSpace(want))
+		}
+	}
+	if !regexp.MustCompile(`(?m)^permissions:\n  contents: read\n\n`).MatchString(text) {
+		fail(t, v, "pages.yml's default token permission is not contents: read only")
+	}
+	uses := regexp.MustCompile(`(?m)^\s+(?:- )?uses: (\S+)(.*)$`).FindAllStringSubmatch(text, -1)
+	if len(uses) == 0 {
+		fail(t, v, "pages.yml uses no actions")
+	}
+	for _, u := range uses {
+		if !regexp.MustCompile(`^[\w.-]+/[\w.-]+@[0-9a-f]{40}$`).MatchString(u[1]) || !regexp.MustCompile(`^ # v\d`).MatchString(u[2]) {
+			fail(t, v, "pages.yml uses %s%s, not pinned to a commit with a version comment", u[1], u[2])
+		}
+	}
+	jobs := workflowJobs(text)
+	build, deploy := jobs["build"], jobs["deploy"]
+	if build == "" || deploy == "" {
+		fail(t, v, "pages.yml lacks the build or deploy job: %v", keys(map[string]bool{"build": build != "", "deploy": deploy != ""}))
+	}
+	for name, body := range jobs {
+		m := regexp.MustCompile(`(?m)^    name: (.+)$`).FindStringSubmatch(body)
+		if m == nil {
+			fail(t, v, "job %s has no name", name)
+		}
+		for _, required := range requiredChecks {
+			if strings.TrimSpace(m[1]) == required {
+				fail(t, v, "job %s is named like the required check %q", name, required)
+			}
+		}
+	}
+	// Token rights, as fixed text: the workflow default is contents: read,
+	// the deploy job alone adds the Pages rights, and no other permissions
+	// key exists anywhere in the file.
+	if strings.Count(text, "permissions:") != 2 || !strings.Contains(deploy, "\n    permissions:\n      pages: write\n      id-token: write\n    environment:") {
+		fail(t, v, "pages.yml sets token permissions other than contents: read by default and pages and id-token write for the deploy job alone")
+	}
+	if !strings.Contains(build, "tools/site/build.py") {
+		fail(t, v, "the build job does not build the site")
+	}
+	main := "github.event_name != 'pull_request' && github.ref == 'refs/heads/main'"
+	if !strings.Contains(build, "uses: actions/upload-pages-artifact@") || !strings.Contains(build, "if: "+main) {
+		fail(t, v, "the build job uploads a Pages artifact outside main pushes and manual runs on main")
+	}
+	for _, want := range []string{"needs: build", "if: " + main, "pages: write", "id-token: write", "uses: actions/deploy-pages@", "name: github-pages"} {
+		if !strings.Contains(deploy, want) {
+			fail(t, v, "the deploy job lacks %q", want)
+		}
+	}
+	if !strings.Contains(text, "group: pages-${{ github.ref }}") || !strings.Contains(text, "cancel-in-progress: ${{ github.event_name == 'pull_request' }}") {
+		fail(t, v, "pages.yml does not run main deployments one at a time")
+	}
+	// Runs of main need not start in push order, and a newer run replaces a
+	// pending one, so the build of a main run checks out main's head when it
+	// starts rather than the commit that started it: the last run publishes
+	// the latest commit.
+	checkout := ""
+	for _, step := range strings.Split(build, "\n      - ") {
+		if strings.Contains(step, "uses: actions/checkout@") {
+			checkout = step
+		}
+	}
+	if !strings.Contains(checkout, "\n          ref: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && 'refs/heads/main' || '' }}\n") {
+		fail(t, v, "the build job of a main run does not build main's head when the run starts")
+	}
+	readme := readFile(t, filepath.Join(root, "tools", "site", "README.md"))
+	for _, want := range []string{"python3 tools/site/build.py", "macOS", "Linux", "Python 3.10"} {
+		if !strings.Contains(readme, want) {
+			fail(t, v, "tools/site/README.md does not say %q", want)
+		}
+	}
+	// The same commit builds the same files, also in time zones 26 hours
+	// apart, so no local date or time is written into them.
+	a := walk(t, site(t, v))
+	for _, tz := range []string{"Etc/GMT-14", "Etc/GMT+12"} {
+		again := runBuildEnv(t, root, filepath.Join(t.TempDir(), "again"), []string{"TZ=" + tz}, "--base", "/jaekit/")
+		if again.err != nil || again.code != 0 {
+			fail(t, v, "a second build failed: %v %s", again.err, again.stderr)
+		}
+		b := walk(t, again.out)
+		if len(a) != len(b) {
+			fail(t, v, "two builds of one commit differ in file count: %d and %d", len(a), len(b))
+		}
+		for name, data := range a {
+			if !bytes.Equal(data, b[name]) {
+				fail(t, v, "two builds of one commit (TZ=%s) differ in %s", tz, name)
+			}
+		}
+	}
+	// Nor today's UTC date, unless a source the site is built from holds it.
+	today := time.Now().UTC().Format("2006-01-02")
+	grep := exec.Command("git", "-C", root, "grep", "-q", "-F", today, "--", "guides", "contracts", "tools/site", ".claude-plugin")
+	switch err := grep.Run(); {
+	case err == nil:
+	case grep.ProcessState != nil && grep.ProcessState.ExitCode() == 1:
+		for name, data := range a {
+			if bytes.Contains(data, []byte(today)) {
+				fail(t, v, "%s carries the build date %s", name, today)
+			}
+		}
+	default:
+		t.Skipf("git grep: %v", err)
+	}
+}
+
+// ------------------------------------------------------------- AC-12
+
+func TestPagesSiteAC12_Cutover(t *testing.T) {
+	const v = "cutover-incomplete"
+	gh, err := exec.LookPath("gh")
+	if err != nil {
+		t.Skip("gh is not available to read the Pages settings")
+	}
+	out, err := exec.Command(gh, "api", "repos/"+ownerRepo+"/pages").Output()
+	if err != nil {
+		t.Skipf("gh api pages: %v", err)
+	}
+	var pages struct {
+		BuildType string `json:"build_type"`
+		HTTPS     bool   `json:"https_enforced"`
+		URL       string `json:"html_url"`
+	}
+	if err := json.Unmarshal(out, &pages); err != nil {
+		t.Skipf("gh api pages: %v", err)
+	}
+	if pages.BuildType != "workflow" {
+		fail(t, v, "Pages builds from %q, not GitHub Actions", pages.BuildType)
+	}
+	if !pages.HTTPS || pages.URL != liveSite {
+		fail(t, v, "Pages is %s with HTTPS enforced %v", pages.URL, pages.HTTPS)
+	}
+	var env struct {
+		Policy *struct {
+			Protected bool `json:"protected_branches"`
+			Custom    bool `json:"custom_branch_policies"`
+		} `json:"deployment_branch_policy"`
+	}
+	if status := getJSON(t, "https://api.github.com/repos/"+ownerRepo+"/environments/github-pages", &env); status != 200 {
+		t.Skipf("environment github-pages: HTTP %d", status)
+	}
+	if env.Policy == nil || env.Policy.Protected || !env.Policy.Custom {
+		fail(t, v, "github-pages does not restrict deployments to its chosen branches: %+v", env.Policy)
+	}
+	var policies struct {
+		Policies []struct {
+			Name string `json:"name"`
+			Type string `json:"type"`
+		} `json:"branch_policies"`
+	}
+	if status := getJSON(t, "https://api.github.com/repos/"+ownerRepo+"/environments/github-pages/deployment-branch-policies", &policies); status != 200 {
+		t.Skipf("environment policies: HTTP %d", status)
+	}
+	if len(policies.Policies) != 1 || policies.Policies[0].Name != "main" || policies.Policies[0].Type != "branch" {
+		fail(t, v, "github-pages deploys from %v, not main alone", policies.Policies)
+	}
+	status, live := get(t, liveSite+"ko/")
+	if status != 200 || meta(live, "jaekit-commit") != mainHead(t) {
+		fail(t, v, "%sko/ (HTTP %d) is not the build of main's latest commit", liveSite, status)
+	}
+	refs, err := exec.Command("git", "ls-remote", repoURL, "refs/heads/gh-pages").Output()
+	if err != nil {
+		t.Skipf("git ls-remote: %v", err)
+	}
+	if strings.TrimSpace(string(refs)) != "" {
+		fail(t, v, "the gh-pages branch still exists")
+	}
+}
+
+// ------------------------------------------------------------- AC-13
+
+// TestPagesSiteAC13_Kept is a maintain check: any problem, including an
+// unreachable service, fails it.
+func TestPagesSiteAC13_Kept(t *testing.T) {
+	root := repoRoot(t)
+	var branch struct {
+		Protection struct {
+			Checks struct {
+				Contexts []string `json:"contexts"`
+			} `json:"required_status_checks"`
+		} `json:"protection"`
+	}
+	mustJSON(t, "https://api.github.com/repos/"+ownerRepo+"/branches/main", &branch)
+	got := append([]string(nil), branch.Protection.Checks.Contexts...)
+	sort.Strings(got)
+	want := append([]string(nil), requiredChecks...)
+	sort.Strings(want)
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Fatalf("main requires %v, want exactly %v", got, want)
+	}
+	var rules []struct {
+		Type       string `json:"type"`
+		Parameters struct {
+			Checks []struct {
+				Context string `json:"context"`
+			} `json:"required_status_checks"`
+		} `json:"parameters"`
+	}
+	mustJSON(t, "https://api.github.com/repos/"+ownerRepo+"/rules/branches/main", &rules)
+	for _, rule := range rules {
+		for _, c := range rule.Parameters.Checks {
+			if !strings.Contains("|"+strings.Join(requiredChecks, "|")+"|", "|"+c.Context+"|") {
+				t.Fatalf("a ruleset requires %q on main", c.Context)
+			}
+		}
+	}
+	builder := exec.Command("python3", "tools/site/build.py")
+	builder.Dir = root
+	if out, err := builder.CombinedOutput(); err != nil {
+		t.Fatalf("the default local build failed: %v\n%s", err, out)
+	}
+	status := exec.Command("git", "status", "--porcelain", "--untracked-files=all")
+	status.Dir = root
+	out, err := status.Output()
+	if err != nil {
+		t.Fatalf("git status: %v", err)
+	}
+	if len(bytes.TrimSpace(out)) != 0 {
+		t.Fatalf("a local build left files Git does not ignore:\n%s", out)
+	}
+	verify := exec.Command("python3", "tools/verify.py")
+	verify.Dir = root
+	if out, err := verify.CombinedOutput(); err != nil {
+		t.Fatalf("python3 tools/verify.py failed: %v\n%s", err, tail(out))
+	}
+}
+
+func mustJSON(t *testing.T, url string, into any) {
+	t.Helper()
+	resp, err := client.Get(url)
+	if err != nil {
+		t.Fatalf("%s: %v", url, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("%s: HTTP %d", url, resp.StatusCode)
+	}
+	if err := json.NewDecoder(resp.Body).Decode(into); err != nil {
+		t.Fatalf("%s: %v", url, err)
+	}
+}
+
+func tail(out []byte) string {
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	if len(lines) > 40 {
+		lines = lines[len(lines)-40:]
+	}
+	return strings.Join(lines, "\n")
+}
+
+// ------------------------------------------------------------- AC-14
+
+func section(text, heading string) string {
+	_, after, ok := strings.Cut(text, "\n"+heading+"\n")
+	if !ok {
+		return ""
+	}
+	body, _, _ := strings.Cut(after, "\n## ")
+	return body
+}
+
+func TestPagesSiteAC14_CIGuide(t *testing.T) {
+	const v = "ci-guide-missing"
+	root := repoRoot(t)
+	guides := map[string]struct {
+		heading string
+		tokens  []string
+	}{
+		"guides/CI.md": {"## 사이트 workflow", []string{"](../.github/workflows/pages.yml)", "pull request", "`main` push", "수동 실행",
+			"`main`에서만 게시", "필수 체크가 아니", "병합을 막지 않", "이전에 게시된 사이트가 그대로"}},
+		"guides/CI.en.md": {"## Site workflow", []string{"](../.github/workflows/pages.yml)", "pull request", "push to `main`", "manual run",
+			"publishes only from `main`", "not required checks", "does not block a merge", "previously published site stays"}},
+	}
+	for name, want := range guides {
+		body := section(readFile(t, filepath.Join(root, filepath.FromSlash(name))), want.heading)
+		if body == "" {
+			fail(t, v, "%s has no %q section", name, want.heading)
+		}
+		for _, token := range want.tokens {
+			if !strings.Contains(body, token) {
+				fail(t, v, "%s %q does not say %q", name, want.heading, token)
+			}
+		}
+	}
+}

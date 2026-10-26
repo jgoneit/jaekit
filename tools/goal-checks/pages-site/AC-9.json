@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Version",
+      "violation": "version-not-from-release",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/goal-checks/pages-site",
+        "name": "TestPagesSiteAC9_Version"
+      }
+    }
+  ]
+}
