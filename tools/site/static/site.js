@@ -74,8 +74,16 @@
   /* ---------- Docs navigation ---------- */
   var menuBtn = $("menu-btn"), side = $("side");
   function setNav(open) {
+    var was = root.classList.contains("nav-open");
     root.classList.toggle("nav-open", open);
     if (menuBtn) menuBtn.setAttribute("aria-expanded", String(open));
+    // Keyboard users land in the opened navigation and return to its button.
+    if (open && !was && side) {
+      var first = side.querySelector('a[aria-current="page"]') || side.querySelector("a");
+      if (first) first.focus();
+    } else if (!open && was && menuBtn && side && side.contains(document.activeElement)) {
+      menuBtn.focus();
+    }
   }
   if (menuBtn) menuBtn.addEventListener("click", function () { setNav(!root.classList.contains("nav-open")); });
   if (side) side.addEventListener("click", function (e) { if (e.target.closest("a")) setNav(false); });
@@ -83,20 +91,28 @@
     if (root.classList.contains("nav-open") && side && !side.contains(e.target) && !(menuBtn && menuBtn.contains(e.target))) setNav(false);
   });
 
-  /* ---------- Table of contents: mark the section being read ---------- */
+  /* ---------- Table of contents: mark the section being read ----------
+     The current section is the last listed heading at or above the reading
+     line, in whichever direction the page scrolls; at the end of the page it
+     is the last heading in view. */
   var tocLinks = Array.prototype.slice.call(document.querySelectorAll("#toc-list a"));
-  if (tocLinks.length && "IntersectionObserver" in window) {
-    var byId = {};
-    tocLinks.forEach(function (a) { byId[decodeURIComponent(a.getAttribute("href").slice(1))] = a; });
-    var spy = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
-        tocLinks.forEach(function (a) { a.classList.remove("on"); });
-        var link = byId[entry.target.id];
-        if (link) link.classList.add("on");
-      });
-    }, { rootMargin: "-12% 0px -75% 0px" });
-    Object.keys(byId).forEach(function (id) { var h = document.getElementById(id); if (h) spy.observe(h); });
+  var tocHeads = tocLinks.map(function (a) { return document.getElementById(decodeURIComponent(a.getAttribute("href").slice(1))); });
+  var spyQueued = false;
+  function spy() {
+    spyQueued = false;
+    var line = window.innerHeight * 0.25, end = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+    var current = -1;
+    tocHeads.forEach(function (h, i) {
+      if (!h) return;
+      var top = h.getBoundingClientRect().top;
+      if (top <= line || (end && top < window.innerHeight)) current = i;
+    });
+    tocLinks.forEach(function (a, i) { a.classList.toggle("on", i === current); });
+  }
+  if (tocLinks.length) {
+    window.addEventListener("scroll", function () { if (!spyQueued) { spyQueued = true; requestAnimationFrame(spy); } }, { passive: true });
+    window.addEventListener("resize", spy);
+    spy();
   }
 
   /* ---------- Search palette ---------- */
@@ -196,7 +212,10 @@
   function draw() {
     if (!diagrams.length || !window.mermaid) return;
     diagrams.forEach(function (pre) { pre.removeAttribute("data-processed"); pre.textContent = pre.getAttribute("data-source"); });
-    window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: currentTheme() === "dark" ? "dark" : "default", fontFamily: "inherit" });
+    var dark = currentTheme() === "dark";
+    // The dark theme's grey edge-label box is too light for its text; use a darker one.
+    window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: dark ? "dark" : "default",
+                                themeVariables: dark ? { edgeLabelBackground: "#2A2A2E" } : {}, fontFamily: "inherit" });
     window.mermaid.run({ nodes: diagrams }).catch(function () {});
   }
   if (diagrams.length) {

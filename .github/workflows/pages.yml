@@ -12,8 +12,9 @@ on:
 permissions:
   contents: read
 
-# Main runs queue in push order, so the last published site is the latest
-# commit's; a newer pull request run replaces an older one.
+# Runs of main queue one at a time and are never cancelled; a newer pull
+# request run replaces an older one. Queued runs need not start in push order,
+# so Site deploy publishes only while its commit is still main's head.
 concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -64,6 +65,24 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Check that the commit is still main's head
+        id: latest
+        env:
+          COMMIT: ${{ github.sha }}
+          REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          head="$(git ls-remote "$REPOSITORY" refs/heads/main | cut -f1)"
+          if [ -z "$head" ]; then
+            echo "cannot read the head of main" >&2
+            exit 1
+          fi
+          if [ "$head" = "$COMMIT" ]; then
+            echo "latest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "latest=false" >> "$GITHUB_OUTPUT"
+            echo "main is now at $head; the run for that commit publishes it"
+          fi
       - name: Publish to GitHub Pages
+        if: steps.latest.outputs.latest == 'true'
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

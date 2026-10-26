@@ -9,7 +9,9 @@ fonts and the mermaid renderer) are downloaded once into --cache and verified
 by their recorded digests before use.
 
 Exit 0: built. 1: an input problem, named on stderr; nothing is written.
-2: usage. 3: a pinned download could not be fetched or verified.
+2: usage. 3: a pinned download could not be fetched or verified. 4: a tool
+the build needs cannot run (Python older than 3.10, Git, the pinned parser)
+or the build stopped unexpectedly; nothing is written either.
 """
 from __future__ import annotations
 
@@ -18,6 +20,7 @@ import base64
 from dataclasses import dataclass, field
 import hashlib
 import html
+import http.client
 import io
 import json
 import os
@@ -29,6 +32,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import traceback
 import unicodedata
 from html.parser import HTMLParser
 from urllib.parse import quote, unquote, urlsplit
@@ -77,13 +81,19 @@ class DownloadProblem(Exception):
     """A pinned file could not be fetched or verified (exit 3)."""
 
 
+class ToolProblem(Exception):
+    """A tool the build needs cannot run (exit 4)."""
+
+
 # ---------------------------------------------------------------- git inputs
 
 def git(root: Path, *args: str) -> str:
     try:
         result = subprocess.run(["git", "-C", str(root), *args], capture_output=True, timeout=120)
-    except OSError as error:
-        raise InputProblem(f"git cannot start: {error}") from None
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ToolProblem(f"git cannot run: {error}") from None
+    if result.returncode < 0:
+        raise ToolProblem(f"git {' '.join(args)} ended by signal {-result.returncode}")
     if result.returncode:
         detail = result.stderr.decode("utf-8", "replace").strip()
         raise InputProblem(f"git {' '.join(args)} failed in {root}: {detail}")
@@ -122,6 +132,10 @@ def release_version(root: Path) -> str:
     return version.strip()
 
 
+def release_url(version: str) -> str:
+    return f"{REPO_URL}/releases/tag/v{version}"
+
+
 def install_command(root: Path, name: str) -> str:
     in_fence = False
     for line in read_text(root, name).splitlines():
@@ -150,7 +164,7 @@ def fetch(entry: dict, cache: Path) -> bytes:
     try:
         with urllib.request.urlopen(url, timeout=120) as response:
             data = response.read()
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, http.client.HTTPException) as error:
         raise DownloadProblem(f"cannot download {entry['name']} {entry['version']} from {url}: {error}") from None
     if not verified(entry, data):
         raise DownloadProblem(f"{entry['name']} {entry['version']}: downloaded bytes do not match the pinned digest")
@@ -179,8 +193,8 @@ def load_markdown(vendor: dict, cache: Path):
         sys.path.insert(0, str(cache_path(entry, cache)))
     try:
         from markdown_it import MarkdownIt
-    except ImportError as error:
-        raise DownloadProblem(f"the pinned Markdown parser cannot be loaded: {error}") from None
+    except Exception as error:  # the verified wheel does not run on this Python
+        raise ToolProblem(f"the pinned Markdown parser cannot be loaded: {type(error).__name__}: {error}") from None
     return MarkdownIt("commonmark", {"html": True}).enable(["table", "strikethrough"])
 
 
@@ -361,7 +375,9 @@ class Links:
             return relative(doc.url, page.url) + suffix
         if target in self.files:
             return f"{REPO_URL}/blob/main/{quote(target)}{suffix}"
-        if target in self.dirs and target != ".":
+        if target == ".":
+            return f"{REPO_URL}/tree/main{suffix}"
+        if target in self.dirs:
             return f"{REPO_URL}/tree/main/{quote(target)}{suffix}"
         self.problems.append(f"{doc.path}: link target is missing: {href}")
         return href
@@ -543,7 +559,7 @@ def footer(lang: str, root: str, build: Build) -> str:
       <a href="{REPO_URL}/blob/main/LICENSE">MIT</a>
       <a href="{root}assets/licenses.txt">{t['licenses']}</a>
     </nav>
-    <p class="built">{t['built']} <code title="{esc(build.commit)}">{esc(short)}</code> · v{esc(build.version)}</p>
+    <p class="built">{t['built']} <code title="{esc(build.commit)}">{esc(short)}</code> · <a href="{esc(release_url(build.version))}">v{esc(build.version)}</a></p>
   </div>
 </footer>
 """
@@ -693,7 +709,7 @@ def home_page(build: Build, lang: str) -> str:
     body = "".join(parser.out)
     values = {"root": root, "lang": lang, "version": build.version, "install": build.install[lang],
               "install_page": f"{root}{lang}/guides/install/", "docs": f"{root}{lang}/docs/",
-              "releases": f"{REPO_URL}/releases", "release": f"{REPO_URL}/releases/tag/v{build.version}",
+              "releases": f"{REPO_URL}/releases", "release": release_url(build.version),
               "repo": REPO_URL}
     for key, value in values.items():
         body = body.replace("{{" + key + "}}", esc(value))
@@ -720,7 +736,7 @@ def root_page(build: Build) -> str:
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/site.css">
 {THEME_BOOT}
-<script>(function(){{var l=null;try{{l=localStorage.getItem("jaekit-lang")}}catch(e){{}}
+<script>(function(){{var l;try{{l=localStorage.getItem("jaekit-lang")}}catch(e){{return}}
 if(l!=="ko"&&l!=="en"){{var n=(navigator.languages&&navigator.languages[0])||navigator.language||"";l=/^ko\\b/i.test(n)?"ko":"en"}}
 location.replace(l+"/"+location.hash)}})();</script>
 </head>
@@ -846,6 +862,8 @@ def build_site(root: Path, out: Path, base: str, cache: Path) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=".site-", dir=out.parent))
     try:
+        # mkdtemp makes a private folder; Pages needs the site readable by others.
+        staging.chmod(0o755)
         for name in sorted(pages):
             target = staging / name
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -865,6 +883,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base", default="/", help="URL path the site is served under, used by 404.html")
     parser.add_argument("--cache", type=Path, default=SITE / ".cache", help="download cache")
     args = parser.parse_args(argv)
+    if sys.version_info < (3, 10):
+        print(f"site: Python 3.10 or later is needed; this is Python {sys.version.split()[0]}", file=sys.stderr)
+        return 4
     base = "/" + args.base.strip("/") + "/" if args.base.strip("/") else "/"
     try:
         build_site(args.root.resolve(), args.out.resolve(), base, args.cache.resolve())
@@ -874,6 +895,14 @@ def main(argv: list[str] | None = None) -> int:
     except DownloadProblem as error:
         print(f"site: {error}", file=sys.stderr)
         return 3
+    except ToolProblem as error:
+        print(f"site: {error}", file=sys.stderr)
+        return 4
+    except Exception:
+        # Not an input problem the build can name: report it as a tool failure.
+        traceback.print_exc()
+        print("site: the build stopped unexpectedly", file=sys.stderr)
+        return 4
     print(f"site: built {args.out}")
     return 0
 

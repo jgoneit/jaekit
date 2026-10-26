@@ -6,9 +6,10 @@
 // and GitHub's public settings for the repository.
 //
 // A failure that observes the declared property starts with
-// "jaekit:violation=<id>". A missing tool, an unreachable network or a pinned
-// download that cannot be fetched skips the test instead: that is an
-// unobserved result, never a violation or a pass.
+// "jaekit:violation=<id>". A missing tool, an unreachable network, a pinned
+// download that cannot be fetched or a builder that stops for any reason other
+// than a named input problem skips the test instead: that is an unobserved
+// result, never a violation or a pass.
 package pagessite
 
 import (
@@ -90,7 +91,7 @@ func cacheDir(t *testing.T) string {
 type buildResult struct {
 	out    string
 	stderr string
-	code   int
+	code   int    // 0 built, 1 a named input problem
 	err    error  // no site can exist: the builder is missing
 	skip   string // the build could not be observed
 }
@@ -121,8 +122,15 @@ func buildRaw(checked, root, out, cache string, extra ...string) buildResult {
 	default:
 		result.skip = fmt.Sprintf("the site builder could not run: %v", err)
 	}
-	if result.code == 3 {
+	// Only exit 1 with the builder's own "site: " message is an input problem
+	// of the tree. A failed download (3), a tool that cannot run (4), a usage
+	// error (2) or Python stopping on its own says nothing about the tree.
+	switch {
+	case result.skip != "", result.code == 0:
+	case result.code == 3:
 		result.skip = "a pinned download is unavailable: " + strings.TrimSpace(result.stderr)
+	case result.code != 1 || !strings.HasPrefix(result.stderr, "site: "):
+		result.skip = fmt.Sprintf("the site builder could not run (exit %d): %s", result.code, strings.TrimSpace(result.stderr))
 	}
 	return result
 }
@@ -456,12 +464,39 @@ function key(win, target, k, opts) {
   target.dispatchEvent(e);
 }
 function report(value) { document.getElementById("out").textContent = JSON.stringify(value); }
+// press and typeText send real keyboard input through Chrome to the focused
+// frame; the test process dispatches each queued input and acknowledges it.
+window.__input = []; window.__acked = 0;
+var inputSeq = 0;
+function send(cmd) {
+  cmd.id = ++inputSeq; window.__input.push(cmd);
+  return new Promise(function (r) { (function poll() { if (window.__acked >= cmd.id) setTimeout(r, 40); else setTimeout(poll, 10); })(); });
+}
+function press(k, mods) { return send({key: k, mods: mods || 0}); }
+function typeText(s) { return send({text: s}); }
 `
+
+// keyDefs are the keys press() may send: DOM code, virtual key code and the
+// text the key types.
+var keyDefs = map[string]struct {
+	code string
+	vk   int
+	text string
+}{
+	"Tab": {"Tab", 9, ""}, "Enter": {"Enter", 13, "\r"}, "Escape": {"Escape", 27, ""},
+	"ArrowDown": {"ArrowDown", 40, ""}, "ArrowUp": {"ArrowUp", 38, ""}, "/": {"Slash", 191, "/"}, "k": {"KeyK", 75, "k"},
+}
 
 // browse serves the built site, runs script in a harness page with headless
 // Chrome, driven over its DevTools pipe so the page runs in real time, and
 // returns what the script reported.
 func browse(t *testing.T, dir, script string, flags ...string) map[string]any {
+	t.Helper()
+	return browseWith(t, dir, "", script, flags...)
+}
+
+// browseWith also runs inject in every frame before the frame's own scripts.
+func browseWith(t *testing.T, dir, inject, script string, flags ...string) map[string]any {
 	t.Helper()
 	bin := chrome(t)
 	harness := "<!doctype html><meta charset=utf-8><body><pre id=\"out\">pending</pre><script>" + harnessPrelude +
@@ -556,15 +591,56 @@ func browse(t *testing.T, dir, script string, flags ...string) map[string]any {
 			}
 		}
 	}
-	target := call("", "Target.createTarget", map[string]any{"url": server.URL + "/__harness.html"})
+	target := call("", "Target.createTarget", map[string]any{"url": "about:blank"})
 	session := call("", "Target.attachToTarget", map[string]any{"targetId": target["targetId"], "flatten": true})["sessionId"].(string)
+	// Headless pages lose focus to nothing; keep them focused for keyboard input.
+	call(session, "Emulation.setFocusEmulationEnabled", map[string]any{"enabled": true})
+	if inject != "" {
+		call(session, "Page.enable", map[string]any{})
+		call(session, "Page.addScriptToEvaluateOnNewDocument", map[string]any{"source": inject})
+	}
+	call(session, "Page.navigate", map[string]any{"url": server.URL + "/__harness.html"})
+	type queued struct {
+		ID   int    `json:"id"`
+		Key  string `json:"key"`
+		Mods int    `json:"mods"`
+		Text string `json:"text"`
+	}
 	limit := time.Now().Add(150 * time.Second)
 	for time.Now().Before(limit) {
-		time.Sleep(250 * time.Millisecond)
-		res := call(session, "Runtime.evaluate", map[string]any{
-			"expression": "document.getElementById('out') ? document.getElementById('out').textContent : 'pending'", "returnByValue": true})
+		time.Sleep(50 * time.Millisecond)
+		res := call(session, "Runtime.evaluate", map[string]any{"returnByValue": true, "expression": `JSON.stringify({
+			out: document.getElementById('out') ? document.getElementById('out').textContent : 'pending',
+			input: window.__input ? window.__input.splice(0) : []})`})
 		inner, _ := res["result"].(map[string]any)
-		text, _ := inner["value"].(string)
+		raw, _ := inner["value"].(string)
+		var state struct {
+			Out   string   `json:"out"`
+			Input []queued `json:"input"`
+		}
+		if err := json.Unmarshal([]byte(raw), &state); err != nil {
+			t.Skipf("the harness state is unreadable: %q", raw)
+		}
+		for _, in := range state.Input {
+			if in.Text != "" {
+				call(session, "Input.insertText", map[string]any{"text": in.Text})
+			} else {
+				def, ok := keyDefs[in.Key]
+				if !ok {
+					t.Skipf("the harness asked for an unknown key %q", in.Key)
+				}
+				down := map[string]any{"type": "rawKeyDown", "key": in.Key, "code": def.code, "modifiers": in.Mods,
+					"windowsVirtualKeyCode": def.vk, "nativeVirtualKeyCode": def.vk}
+				if def.text != "" && in.Mods&(2|4) == 0 { // no Ctrl or Meta: the key types its text
+					down["type"], down["text"], down["unmodifiedText"] = "keyDown", def.text, def.text
+				}
+				call(session, "Input.dispatchKeyEvent", down)
+				call(session, "Input.dispatchKeyEvent", map[string]any{"type": "keyUp", "key": in.Key, "code": def.code,
+					"modifiers": in.Mods, "windowsVirtualKeyCode": def.vk, "nativeVirtualKeyCode": def.vk})
+			}
+			call(session, "Runtime.evaluate", map[string]any{"expression": fmt.Sprintf("window.__acked = %d", in.ID)})
+		}
+		text := state.Out
 		if text == "pending" || text == "" {
 			continue
 		}

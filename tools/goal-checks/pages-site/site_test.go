@@ -204,8 +204,8 @@ func TestPagesSiteAC1_Published(t *testing.T) {
 	if res.err != nil || res.code != 0 {
 		fail(t, v, "a guide-only change does not build: %v %s", res.err, res.stderr)
 	}
-	if !strings.Contains(page(t, res.out, "ko/guides/usage/index.html", v), marker) {
-		fail(t, v, "a guide-only change does not appear on its page")
+	if !strings.Contains(article(t, page(t, res.out, "ko/guides/usage/index.html", v), "ko/guides/usage/", v), marker) {
+		fail(t, v, "a guide-only change does not appear in its page's text")
 	}
 	// The published site is the build of main's latest commit.
 	status, live := get(t, liveSite+"ko/guides/usage/")
@@ -224,6 +224,22 @@ func TestPagesSiteAC1_Published(t *testing.T) {
 	if !ok || source != raw {
 		fail(t, v, "the published usage page does not carry guides/USAGE.md of %s", main)
 	}
+	// What visitors read is that file rendered: the published text equals the
+	// checked builder's rendering of the same file.
+	shown := synthetic(t, func(root string) { write(t, filepath.Join(root, "guides", "USAGE.md"), raw) })
+	local := runBuild(t, shown, filepath.Join(t.TempDir(), "out"))
+	if local.err != nil || local.code != 0 {
+		t.Skipf("guides/USAGE.md of %s does not build with the checked builder: %v %s", main, local.err, local.stderr)
+	}
+	want := visibleText(article(t, page(t, local.out, "ko/guides/usage/index.html", v), "ko/guides/usage/", v))
+	if got := visibleText(article(t, live, "the published ko/guides/usage/", v)); got != want {
+		fail(t, v, "the published usage page does not show the text of guides/USAGE.md of %s", main)
+	}
+}
+
+// visibleText is a fragment's text as a reader sees it, with spacing collapsed.
+func visibleText(fragment string) string {
+	return strings.Join(strings.Fields(html.UnescapeString(tagRE.ReplaceAllString(fragment, " "))), " ")
 }
 
 // ------------------------------------------------------------- AC-2
@@ -412,23 +428,55 @@ func TestPagesSiteAC3_Rendering(t *testing.T) {
 	if !strings.Contains(page(t, dir, "en/guides/usage/index.html", v), "continue docs/specs/&lt;goal&gt;") {
 		fail(t, v, "the <goal> placeholder in a code block is not shown as text")
 	}
-	// Collapsed <details> and a drawn diagram, observed in a browser.
-	got := browse(t, dir, `
-var w = await load("/en/guides/usage/", 1280, 900);
+	// Collapsed <details>, and the diagram drawn readably in both themes: the
+	// page opens in the dark theme and is switched to the light one.
+	for _, rel := range []string{"/en/guides/usage/", "/ko/guides/usage/"} {
+		got := browse(t, dir, `
+function rgba(s) { var m = String(s).match(/rgba?\(([^)]+)\)/); if (!m) return null; var p = m[1].split(/[\s,\/]+/).filter(Boolean).map(Number); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; }
+function lum(c) { var a = c.slice(0, 3).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2]; }
+function contrast(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+function diagram(w) {
+  function backdrop(el) { for (var e = el; e && e.nodeType === 1; e = e.parentElement || e.parentNode) { var c = rgba(w.getComputedStyle(e).backgroundColor); if (c && c[3] > 0.5) return c; } return [255, 255, 255, 1]; }
+  var svg = w.document.querySelector("pre.mermaid svg");
+  if (!svg) return {svg: false};
+  var bg = backdrop(svg.parentElement), out = {svg: true, theme: w.jaekit.theme(), height: svg.getBoundingClientRect().height, text: 99, lines: 99, count: 0};
+  Array.prototype.forEach.call(svg.querySelectorAll(".flowchart-link"), function (e) { out.lines = Math.min(out.lines, contrast(rgba(w.getComputedStyle(e).stroke), bg)); });
+  Array.prototype.forEach.call(svg.querySelectorAll(".node"), function (n) {
+    var l = n.querySelector(".nodeLabel"), s = n.querySelector("rect, polygon, path");
+    if (l && s) { out.count++; out.text = Math.min(out.text, contrast(rgba(w.getComputedStyle(l).color), rgba(w.getComputedStyle(s).fill))); }
+  });
+  Array.prototype.forEach.call(svg.querySelectorAll(".edgeLabel span, .edgeLabel p"), function (e) {
+    if (e.textContent.trim()) { out.count++; out.text = Math.min(out.text, contrast(rgba(w.getComputedStyle(e).color), backdrop(e))); }
+  });
+  return out;
+}
+localStorage.setItem("jaekit-theme", "dark");
+var w = await load(`+fmt.Sprintf("%q", rel)+`, 1280, 900);
 await wait(4000);
 var d = w.document.querySelectorAll(".markdown details");
 var closed = Array.prototype.every.call(d, function (x) { return !x.open; });
 var s = d.length ? d[0].querySelector("summary") : null;
 if (s) s.click();
 var opened = d.length ? d[0].open : false;
-var svg = w.document.querySelector("pre.mermaid svg");
-var dark = w.document.querySelector("pre.mermaid svg") ? w.document.querySelector("pre.mermaid svg").getBoundingClientRect().height : 0;
-report({details: d.length, closed: closed, opened: opened, svg: !!svg, height: dark});`)
-	if got["details"].(float64) == 0 || got["closed"] != true || got["opened"] != true {
-		fail(t, v, "<details> blocks are not collapsed and expandable: %v", got)
-	}
-	if got["svg"] != true || got["height"].(float64) < 50 {
-		fail(t, v, "the usage flowchart is not drawn as a diagram: %v", got)
+var dark = diagram(w);
+w.document.getElementById("theme-btn").click();
+await wait(2500);
+var light = diagram(w);
+localStorage.clear();
+report({details: d.length, closed: closed, opened: opened, dark: dark, light: light});`)
+		if got["details"].(float64) == 0 || got["closed"] != true || got["opened"] != true {
+			fail(t, v, "%s: <details> blocks are not collapsed and expandable: %v", rel, got)
+		}
+		for _, theme := range []string{"dark", "light"} {
+			d, _ := got[theme].(map[string]any)
+			if d["svg"] != true || d["theme"] != theme || d["height"].(float64) < 50 || d["count"].(float64) < 2 {
+				fail(t, v, "%s: the flowchart is not drawn as a diagram in the %s theme: %v", rel, theme, d)
+			}
+			// WCAG AA: 4.5:1 for the labels, 3:1 for the lines.
+			if d["text"].(float64) < 4.5 || d["lines"].(float64) < 3 {
+				fail(t, v, "%s: the flowchart is not readable in the %s theme (text %.2f:1, lines %.2f:1)", rel, theme, d["text"], d["lines"])
+			}
+		}
 	}
 }
 
@@ -505,6 +553,8 @@ func TestPagesSiteAC4_Links(t *testing.T) {
 				switch {
 				case pages[target].URL != "":
 					want = relURL(d.URL, pages[target].URL) + suffix
+				case target == ".":
+					want = repoURL + "/tree/main" + suffix
 				case tracked[target]:
 					want = repoURL + "/blob/main/" + (&url.URL{Path: target}).EscapedPath() + suffix
 				case dirs[target]:
@@ -549,6 +599,21 @@ func TestPagesSiteAC4_Links(t *testing.T) {
 		if !strings.Contains(page(t, dir, rel, v), want) {
 			fail(t, v, "%s lacks %s", rel, want)
 		}
+	}
+	// A link to the repository root, which check_public_docs accepts, opens
+	// the repository on GitHub.
+	rootLink := synthetic(t, func(root string) {
+		p := filepath.Join(root, "guides", "USAGE.md")
+		data, _ := os.ReadFile(p)
+		write(t, p, string(data)+"\n[the repository](../) and [again](..)\n")
+	})
+	res := runBuild(t, rootLink, filepath.Join(t.TempDir(), "out"))
+	if res.err != nil || res.code != 0 {
+		fail(t, v, "a link to the repository root stops the build: %v %s", res.err, res.stderr)
+	}
+	body := article(t, page(t, res.out, "ko/guides/usage/index.html", v), "ko/guides/usage/", v)
+	if strings.Count(body, `href="`+repoURL+`/tree/main"`) != 2 {
+		fail(t, v, "a link to the repository root does not open %s/tree/main", repoURL)
 	}
 	// A link the repository cannot resolve stops the build, naming file and link.
 	for _, bad := range []string{"[gone](MISSING-PAGE.md)", "[nowhere](INSTALL.md#no-such-heading-42)"} {
@@ -627,30 +692,92 @@ func TestPagesSiteAC5_DocsView(t *testing.T) {
 		fmt.Fprintf(&script, "var w = await load(%q, 375, 812); await wait(600); narrow[%q] = [w.document.documentElement.scrollWidth, w.document.documentElement.clientWidth];\n", "/"+p, p)
 	}
 	script.WriteString(`
+var kb = {};
+// The navigation at 375px, by keyboard alone: Tab reaches the menu button,
+// Enter opens the navigation with focus in it, Escape closes it and returns
+// focus, Tab moves along its links and Enter follows one.
 var w = await load("/en/guides/usage/", 375, 812);
 await wait(300);
-var menu = w.document.getElementById("menu-btn");
-var menuShown = menu && w.getComputedStyle(menu).display !== "none";
-if (menu) menu.click();
-await wait(400);
-var side = w.document.getElementById("side");
-var sideOpen = w.document.documentElement.classList.contains("nav-open") && side.getBoundingClientRect().left >= -1 && w.getComputedStyle(side).visibility === "visible";
+w.focus();
+var menu = w.document.getElementById("menu-btn"), side = w.document.getElementById("side");
+kb.menuShown = !!menu && w.getComputedStyle(menu).display !== "none";
+for (var i = 0; i < 40 && w.document.activeElement !== menu; i++) await press("Tab");
+kb.menuByTab = w.document.activeElement === menu;
+await press("Enter"); await wait(400);
+kb.navOpen = w.document.documentElement.classList.contains("nav-open") && side.getBoundingClientRect().left >= -1 && w.getComputedStyle(side).visibility === "visible";
+kb.focusInNav = side.contains(w.document.activeElement);
+await press("Escape"); await wait(400);
+kb.navClosed = !w.document.documentElement.classList.contains("nav-open") && w.document.activeElement === menu;
+await press("Enter"); await wait(400);
+await press("Tab");
+var next = w.document.activeElement, nextPath = next.pathname;
+kb.nextInNav = side.contains(next) && next.tagName === "A" && nextPath !== "/en/guides/usage/";
+var nav = navigated(); await press("Enter");
+var w2 = await Promise.race([nav, wait(5000).then(function () { return null; })]);
+kb.navFollowed = !!w2 && w2.location.pathname === nextPath;
+// At full width: Tab reaches the navigation, Shift+Tab the "On this page" list,
+// and Enter on its link goes to that heading, which the list then marks.
 var w = await load("/en/guides/usage/", 1280, 900);
 await wait(300);
-var veil = w.document.getElementById("palette");
+w.focus();
+function inside(sel) { var a = w.document.activeElement; return !!(a && a.closest && a.closest(sel)); }
+for (var i = 0; i < 40 && !inside("#side"); i++) await press("Tab");
+kb.sideByTab = inside("#side");
+var w = await load("/en/guides/usage/", 1280, 900);
+await wait(300);
+w.focus();
+for (var i = 0; i < 40 && !inside(".toc"); i++) await press("Tab", 8);
+kb.tocByTab = inside(".toc");
+if (kb.tocByTab) {
+  var hash = w.document.activeElement.getAttribute("href");
+  await press("Enter"); await wait(400);
+  var h = w.document.getElementById(decodeURIComponent(hash.slice(1)));
+  var on = w.document.querySelector("#toc-list a.on");
+  kb.tocFollowed = w.location.hash === hash && !!h && h.getBoundingClientRect().top >= 0 && h.getBoundingClientRect().top < 300;
+  kb.tocMarked = !!on && on.getAttribute("href") === hash;
+}
+// The "On this page" list marks the section being read, scrolling down and up.
+var w = await load("/en/guides/usage/", 1280, 900);
+await wait(300);
+var heads = Array.prototype.map.call(w.document.querySelectorAll("#toc-list a"), function (a) { return w.document.getElementById(decodeURIComponent(a.getAttribute("href").slice(1))); });
+function top(h) { return h.getBoundingClientRect().top + w.scrollY; }
+function marked() { var on = w.document.querySelectorAll("#toc-list a.on"); return on.length === 1 ? on[0].getAttribute("href") : String(on.length); }
+var spy = {};
+for (var i = 0; i + 2 < heads.length; i++) {
+  if (top(heads[i + 1]) - top(heads[i]) > 600 && top(heads[i + 2]) - top(heads[i + 1]) > 600) {
+    w.scrollTo(0, top(heads[i + 1]) - 5); await wait(300);
+    spy.down = [marked(), "#" + heads[i + 1].id];
+    w.scrollTo(0, top(heads[i]) - 5); await wait(300);
+    spy.up = [marked(), "#" + heads[i].id];
+    break;
+  }
+}
+// Search by keyboard: /, ⌘K and Ctrl+K open it, Escape closes it, typed text
+// filters, the arrow keys move the choice and Enter goes to it.
+var w = await load("/en/guides/usage/", 1280, 900);
+await wait(300);
+w.focus();
+var veil = w.document.getElementById("palette"), input = w.document.getElementById("palette-input");
 var opened = {};
-key(w, w.document.body, "/"); await wait(50); opened.slash = !veil.hidden && w.document.activeElement === w.document.getElementById("palette-input");
-key(w, w.document.activeElement, "Escape"); await wait(50); opened.escape = veil.hidden;
-key(w, w.document.body, "k", {metaKey: true}); await wait(50); opened.meta = !veil.hidden;
-key(w, w.document.activeElement, "Escape"); await wait(50);
-key(w, w.document.body, "k", {ctrlKey: true}); await wait(50); opened.ctrl = !veil.hidden;
-var input = w.document.getElementById("palette-input");
-input.value = "set up a project"; input.dispatchEvent(new w.Event("input", {bubbles: true}));
+await press("/"); opened.slash = !veil.hidden && w.document.activeElement === input;
+await press("Escape"); opened.escape = veil.hidden;
+await press("k", 4); opened.meta = !veil.hidden && w.document.activeElement === input;
+await press("Escape");
+await press("k", 2); opened.ctrl = !veil.hidden && w.document.activeElement === input;
+await typeText("review");
 await wait(1500);
-var first = w.document.querySelector("#palette-list button");
-var firstHref = first ? first.getAttribute("data-href") : null;
-var nav = navigated();
-key(w, input, "Enter");
+var options = w.document.querySelectorAll("#palette-list button");
+await press("ArrowDown");
+opened.arrowDown = options.length > 1 && options[1].getAttribute("aria-selected") === "true";
+await press("ArrowUp");
+opened.arrowUp = options.length > 1 && options[0].getAttribute("aria-selected") === "true";
+await press("Escape");
+await press("/");
+await typeText("set up a project");
+await wait(300);
+var options = w.document.querySelectorAll("#palette-list button");
+var firstHref = options.length ? options[0].getAttribute("data-href") : null;
+var nav = navigated(); await press("Enter");
 var w2 = await Promise.race([nav, wait(5000).then(function () { return null; })]);
 var landed = w2 ? w2.location.pathname + w2.location.hash : null;
 var w = await load("/en/guides/usage/", 1280, 900);
@@ -659,7 +786,7 @@ var copied = null;
 Object.defineProperty(w.navigator, "clipboard", {configurable: true, value: {writeText: function (t) { copied = t; return Promise.resolve(); }}});
 w.document.getElementById("copy-page").click();
 await wait(200);
-report({narrow: narrow, menuShown: menuShown, sideOpen: sideOpen, opened: opened, firstHref: firstHref, landed: landed, copied: copied});`)
+report({narrow: narrow, kb: kb, spy: spy, opened: opened, firstHref: firstHref, landed: landed, copied: copied});`)
 	got := browse(t, dir, script.String())
 	for p, pair := range got["narrow"].(map[string]any) {
 		dims := pair.([]any)
@@ -667,8 +794,19 @@ report({narrow: narrow, menuShown: menuShown, sideOpen: sideOpen, opened: opened
 			fail(t, v, "%s scrolls sideways at 375px (%v > %v)", p, dims[0], dims[1])
 		}
 	}
-	if got["menuShown"] != true || got["sideOpen"] != true {
-		fail(t, v, "the navigation does not open from its button at 375px: %v", got)
+	kb, _ := got["kb"].(map[string]any)
+	for _, step := range []string{"menuShown", "menuByTab", "navOpen", "focusInNav", "navClosed", "nextInNav", "navFollowed",
+		"sideByTab", "tocByTab", "tocFollowed", "tocMarked"} {
+		if kb[step] != true {
+			fail(t, v, "the navigation and \"On this page\" list are not usable by keyboard alone: %s fails (%v)", step, kb)
+		}
+	}
+	spy, _ := got["spy"].(map[string]any)
+	for _, way := range []string{"down", "up"} {
+		pair, _ := spy[way].([]any)
+		if len(pair) != 2 || pair[0] != pair[1] {
+			fail(t, v, "scrolling %s, \"On this page\" does not mark the section being read: %v", way, spy)
+		}
 	}
 	for name, ok := range got["opened"].(map[string]any) {
 		if ok != true {
@@ -773,6 +911,24 @@ report(out);`)
 			fail(t, v, "the root page lacks the %s fallback link", want)
 		}
 	}
+	// With storage blocked (reading it throws, as when a browser blocks site
+	// data) the root page stays and shows both language links.
+	blocked := browseWith(t, dir, `Object.defineProperty(window, "localStorage", {configurable: true, get: function () { throw new DOMException("blocked", "SecurityError"); }});`, `
+await load("/", 800, 600); await wait(1200);
+var d = frame.contentWindow.document, shown = 0;
+Array.prototype.forEach.call(d.querySelectorAll('a[href="ko/"], a[href="en/"]'), function (a) {
+  var r = a.getBoundingClientRect();
+  if (r.width > 0 && r.height > 0 && frame.contentWindow.getComputedStyle(a).visibility === "visible") shown++;
+});
+var blockedHere = false;
+try { frame.contentWindow.localStorage; } catch (e) { blockedHere = true; }
+report({path: frame.contentWindow.location.pathname, shown: shown, blocked: blockedHere});`)
+	if blocked["blocked"] != true {
+		t.Skip("the browser did not block storage for the observation")
+	}
+	if blocked["path"] != "/" || blocked["shown"].(float64) < 2 {
+		fail(t, v, "with storage unavailable the root page does not show both language links: %v", blocked)
+	}
 }
 
 // ------------------------------------------------------------- AC-7
@@ -824,11 +980,16 @@ func TestPagesSiteAC7_Home(t *testing.T) {
 async function frames(w) {
   var c = w.document.getElementById("matrix"), x = c.getContext("2d");
   function snap() { var d = x.getImageData(0, 0, c.width, c.height).data, ink = 0, h = 0; for (var i = 3; i < d.length; i += 4) { if (d[i]) ink++; h = (h * 31 + d[i] + d[i - 1]) | 0; } return [ink, h]; }
+  function corner() { var d = x.getImageData(0, 0, Math.round(c.width / 4), Math.round(c.height / 4)).data, h = 0; for (var i = 0; i < d.length; i++) h = (h * 31 + d[i]) | 0; return h; }
   var a = snap(); await wait(700); var b = snap();
   var r = c.getBoundingClientRect();
   c.dispatchEvent(new w.PointerEvent("pointermove", {clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, pointerType: "mouse", bubbles: true}));
   await wait(200); var p = snap();
-  return {ink: a[0], still: a[1] === b[1] && b[1] === p[1]};
+  // The corner holds no part of the symbol, so only a ripple changes it.
+  var c1 = corner(); await wait(300); var c2 = corner();
+  c.dispatchEvent(new w.MouseEvent("click", {clientX: r.left + 12, clientY: r.top + 12, bubbles: true}));
+  await wait(150); var c3 = corner();
+  return {ink: a[0], still: a[1] === b[1] && b[1] === p[1], cornerStill: c1 === c2, ripple: c2 !== c3};
 }
 var w = await load("/ko/", 1280, 900); await wait(1500);
 report(await frames(w));`
@@ -836,8 +997,11 @@ report(await frames(w));`
 	if moving["ink"].(float64) < 1000 || moving["still"] == true {
 		fail(t, v, "the symbol matrix is not drawn and moving: %v", moving)
 	}
+	if moving["cornerStill"] != true || moving["ripple"] != true {
+		fail(t, v, "a click on the symbol matrix does not spread a ripple: %v", moving)
+	}
 	still := browse(t, dir, frames, "--force-prefers-reduced-motion")
-	if still["ink"].(float64) < 1000 || still["still"] != true {
+	if still["ink"].(float64) < 1000 || still["still"] != true || still["ripple"] == true {
 		fail(t, v, "the symbol matrix is not a still frame with reduced motion: %v", still)
 	}
 }
@@ -912,22 +1076,48 @@ func TestPagesSiteAC9_Version(t *testing.T) {
 	if version == "" {
 		t.Skip("marketplace.json names no version")
 	}
+	release := repoURL + "/releases/tag/v" + version
+	anchorRE := regexp.MustCompile(`(?s)<a\b[^>]*\bhref="([^"]*)"[^>]*>(.*?)</a>`)
+	shownRE := regexp.MustCompile(`(^|[^\w.])v` + regexp.QuoteMeta(version) + `($|[^\w.])`)
+	// linked counts the links to the release that show the version, and says
+	// whether the fragment shows the version anywhere else.
+	linked := func(fragment string) (int, bool) {
+		n := 0
+		rest := anchorRE.ReplaceAllStringFunc(fragment, func(a string) string {
+			m := anchorRE.FindStringSubmatch(a)
+			if html.UnescapeString(m[1]) == release && shownRE.MatchString(tagRE.ReplaceAllString(m[2], " ")) {
+				n++
+				return ""
+			}
+			return a
+		})
+		return n, !shownRE.MatchString(tagRE.ReplaceAllString(rest, " "))
+	}
+	footerRE := regexp.MustCompile(`(?s)<footer class="foot">.*?</footer>`)
+	codeRE := regexp.MustCompile(`(?s)<script\b.*?</script>|<meta\b[^>]*>`)
 	for name, data := range walk(t, dir) {
 		if !strings.HasSuffix(name, ".html") || name == "404.html" {
 			continue
 		}
-		if got := meta(string(data), "jaekit-version"); got != version {
+		text := string(data)
+		if got := meta(text, "jaekit-version"); got != version {
 			fail(t, v, "%s names version %q, not %q from marketplace.json", name, got, version)
+		}
+		if name == "index.html" { // the language chooser shows no version
+			continue
+		}
+		footer := footerRE.FindString(text)
+		if n, only := linked(footer); n != 1 || !only {
+			fail(t, v, "%s's footer does not show v%s linked to %s", name, version, release)
 		}
 	}
 	for _, lang := range []string{"ko", "en"} {
-		text := page(t, dir, lang+"/index.html", v)
-		want := `id="version-pill" href="` + repoURL + `/releases/tag/v` + version + `"><b>v` + version + `</b>`
-		if !strings.Contains(text, want) {
+		text := codeRE.ReplaceAllString(page(t, dir, lang+"/index.html", v), "")
+		if !strings.Contains(text, `id="version-pill" href="`+release+`"><b>v`+version+`</b>`) {
 			fail(t, v, "%s/ does not show v%s linked to its release", lang, version)
 		}
-		if !strings.Contains(text, "· v"+version+"</p>") {
-			fail(t, v, "%s/ footer does not show v%s", lang, version)
+		if n, only := linked(text); n != 2 || !only {
+			fail(t, v, "%s/ shows the version without its release link (%d linked)", lang, n)
 		}
 	}
 	cases := map[string]func(root string){
@@ -1043,6 +1233,30 @@ func workflowJobs(text string) map[string]string {
 	return jobs
 }
 
+// jobPermissions reads a job's permissions block: its "scope: level" lines, or
+// the value written on the permissions line itself.
+func jobPermissions(body string) ([]string, string) {
+	var lines []string
+	in := false
+	for _, line := range strings.Split(body, "\n") {
+		if m := regexp.MustCompile(`^    permissions:\s*(.*)$`).FindStringSubmatch(line); m != nil {
+			if strings.TrimSpace(m[1]) != "" {
+				return nil, strings.TrimSpace(m[1])
+			}
+			in = true
+			continue
+		}
+		if in {
+			if m := regexp.MustCompile(`^      ([\w-]+:\s*\S+)\s*$`).FindStringSubmatch(line); m != nil {
+				lines = append(lines, strings.Join(strings.Fields(m[1]), " "))
+				continue
+			}
+			in = false
+		}
+	}
+	return lines, ""
+}
+
 func TestPagesSiteAC11_Workflow(t *testing.T) {
 	const v = "workflow-missing"
 	root := repoRoot(t)
@@ -1086,8 +1300,25 @@ func TestPagesSiteAC11_Workflow(t *testing.T) {
 			}
 		}
 	}
-	if strings.Contains(build, "pages: write") || strings.Contains(build, "id-token: write") || !strings.Contains(build, "tools/site/build.py") {
-		fail(t, v, "the build job does not build the site with read-only access")
+	// Token rights: the workflow default is contents: read, a job may only
+	// narrow it, and only the deploy job holds the Pages rights.
+	for name, body := range jobs {
+		lines, inline := jobPermissions(body)
+		got := strings.Join(lines, ", ")
+		switch {
+		case inline != "":
+			fail(t, v, "job %s sets permissions: %s", name, inline)
+		case name == "deploy":
+			sort.Strings(lines)
+			if got := strings.Join(lines, ", "); got != "id-token: write, pages: write" {
+				fail(t, v, "the deploy job has permissions %q, want pages: write and id-token: write", got)
+			}
+		case got != "" && got != "contents: read":
+			fail(t, v, "job %s has permissions %q, more than contents: read", name, got)
+		}
+	}
+	if !strings.Contains(build, "tools/site/build.py") {
+		fail(t, v, "the build job does not build the site")
 	}
 	main := "github.event_name != 'pull_request' && github.ref == 'refs/heads/main'"
 	if !strings.Contains(build, "uses: actions/upload-pages-artifact@") || !strings.Contains(build, "if: "+main) {
@@ -1099,10 +1330,29 @@ func TestPagesSiteAC11_Workflow(t *testing.T) {
 		}
 	}
 	if !strings.Contains(text, "group: pages-${{ github.ref }}") || !strings.Contains(text, "cancel-in-progress: ${{ github.event_name == 'pull_request' }}") {
-		fail(t, v, "pages.yml does not queue main deployments in order")
+		fail(t, v, "pages.yml does not run main deployments one at a time")
+	}
+	// Queued runs need not start in push order: the deploy step runs only while
+	// the run's commit is still main's head, read just before publishing.
+	steps := strings.Split(deploy, "\n      - ")
+	guard, publish := -1, -1
+	for i, step := range steps {
+		if strings.Contains(step, "id: latest") && strings.Contains(step, "git ls-remote") && strings.Contains(step, "refs/heads/main") &&
+			strings.Contains(step, "${{ github.sha }}") && strings.Contains(step, `latest=true`) {
+			guard = i
+		}
+		if strings.Contains(step, "uses: actions/deploy-pages@") {
+			publish = i
+			if !strings.Contains(step, "if: steps.latest.outputs.latest == 'true'") {
+				fail(t, v, "the deploy step publishes without checking that its commit is main's head")
+			}
+		}
+	}
+	if guard < 0 || publish < 0 || guard > publish {
+		fail(t, v, "the deploy job does not read main's head before publishing")
 	}
 	readme := readFile(t, filepath.Join(root, "tools", "site", "README.md"))
-	for _, want := range []string{"python3 tools/site/build.py", "macOS", "Linux", "Python 3"} {
+	for _, want := range []string{"python3 tools/site/build.py", "macOS", "Linux", "Python 3.10"} {
 		if !strings.Contains(readme, want) {
 			fail(t, v, "tools/site/README.md does not say %q", want)
 		}
