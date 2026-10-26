@@ -777,14 +777,42 @@ def not_found(build: Build, base: str) -> str:
 """
 
 
+TAG = re.compile(r"<[^>]+>")
+
+
+def section_texts(doc: Doc) -> dict[str, str]:
+    """The text under each searched heading (levels 2 to 4), code included,
+    keyed by its anchor; "" holds the text before the first one."""
+    parts: dict[str, list[str]] = {"": []}
+    current, in_heading = "", False
+    for token in doc.tokens:
+        if token.type == "heading_open":
+            in_heading = True
+            if int(token.tag[1]) in (2, 3, 4):
+                current = token.attrGet("id")
+                parts[current] = []
+        elif token.type == "heading_close":
+            in_heading = False
+        elif token.type == "inline" and not in_heading:
+            parts[current].append(plain(token))
+        elif token.type in ("fence", "code_block"):
+            parts[current].append(token.content)
+        elif token.type == "html_block":
+            parts[current].append(html.unescape(TAG.sub(" ", token.content)))
+    return {key: " ".join(" ".join(chunks).split()) for key, chunks in parts.items()}
+
+
 def search_index(build: Build, lang: str) -> str:
+    """Entries of [title, label, url, text]: each document and each of its
+    level 2 to 4 headings, with the text of that part of the page."""
     entries = []
     for section in SECTIONS:
         for doc, _ in build.groups[(lang, section)]:
-            entries.append([doc.title, TEXT[lang][section], doc.url])
+            texts = section_texts(doc)
+            entries.append([doc.title, TEXT[lang][section], doc.url, texts[""]])
             for level, anchor, text in doc.headings:
                 if level in (2, 3, 4):
-                    entries.append([text, doc.title, f"{doc.url}#{anchor}"])
+                    entries.append([text, doc.title, f"{doc.url}#{anchor}", texts.get(anchor, "")])
     return json.dumps(entries, ensure_ascii=False, separators=(",", ":")) + "\n"
 
 

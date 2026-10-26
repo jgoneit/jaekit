@@ -124,18 +124,23 @@
     fetch(veil.getAttribute("data-index")).then(function (r) {
       if (!r.ok) throw new Error(String(r.status));
       return r.json();
-    }).then(function (data) { entries = data; loading = false; render(); },
-            function () { entries = []; loading = false; render(); });
+    }).then(function (data) {
+      entries = data.map(function (e) {
+        return { title: e[0], label: e[1], url: e[2], t: e[0].toLowerCase(), hay: (e[0] + " " + e[1]).toLowerCase(), body: (e[3] || "").toLowerCase() };
+      });
+      loading = false; render();
+    }, function () { entries = []; loading = false; render(); });
   }
   function matches(q) {
     if (!entries) return [];
-    if (!q) return entries.filter(function (e) { return e[2].indexOf("#") < 0; });
+    if (!q) return entries.filter(function (e) { return e.url.indexOf("#") < 0; });
     var lower = q.toLowerCase(), words = lower.split(/\s+/).filter(Boolean), out = [];
     entries.forEach(function (e) {
-      var title = e[0].toLowerCase(), hay = title + " " + e[1].toLowerCase();
-      if (words.every(function (w) { return hay.indexOf(w) > -1; })) {
-        // An exact title first, then titles that start with or contain the query.
-        var rank = title === lower ? 0 : title.indexOf(lower) === 0 ? 1 : title.indexOf(lower) > -1 ? 2 : 3;
+      var named = words.every(function (w) { return e.hay.indexOf(w) > -1; });
+      if (named || words.every(function (w) { return e.hay.indexOf(w) > -1 || e.body.indexOf(w) > -1; })) {
+        // An exact title first, then titles that start with or contain the
+        // query, other title matches, and last the parts whose text matches.
+        var rank = e.t === lower ? 0 : e.t.indexOf(lower) === 0 ? 1 : e.t.indexOf(lower) > -1 ? 2 : named ? 3 : 4;
         out.push([rank, out.length, e]);
       }
     });
@@ -157,9 +162,9 @@
       var li = document.createElement("li"), b = document.createElement("button");
       b.type = "button"; b.setAttribute("role", "option"); b.className = i === cur ? "on" : "";
       b.setAttribute("aria-selected", String(i === cur));
-      b.setAttribute("data-href", e[2]);
-      var t = document.createElement("span"); t.textContent = e[0];
-      var s = document.createElement("small"); s.textContent = e[1];
+      b.setAttribute("data-href", e.url);
+      var t = document.createElement("span"); t.textContent = e.title;
+      var s = document.createElement("small"); s.textContent = e.label;
       b.appendChild(t); b.appendChild(s);
       b.addEventListener("click", function () { go(e); });
       b.addEventListener("mousemove", function () { if (cur !== i) { cur = i; paint(); } });
@@ -174,7 +179,7 @@
   }
   function go(e) {
     close();
-    location.href = veil.getAttribute("data-root") + e[2];
+    location.href = veil.getAttribute("data-root") + e.url;
   }
   function open() {
     if (!veil) return;

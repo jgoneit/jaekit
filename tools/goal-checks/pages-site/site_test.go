@@ -780,13 +780,32 @@ var firstHref = options.length ? options[0].getAttribute("data-href") : null;
 var nav = navigated(); await press("Enter");
 var w2 = await Promise.race([nav, wait(5000).then(function () { return null; })]);
 var landed = w2 ? w2.location.pathname + w2.location.hash : null;
+// A word only the text of a section holds: "waive" in the Spar guide.
+var w = await load("/en/guides/usage/", 1280, 900);
+await wait(300);
+w.focus();
+await press("k", 4);
+await typeText("waive");
+await wait(1500);
+var options = Array.prototype.slice.call(w.document.querySelectorAll("#palette-list button"));
+var pick = options.findIndex(function (b) { return b.getAttribute("data-href").indexOf("en/guides/spar/#") === 0; });
+for (var i = 0; i < pick; i++) await press("ArrowDown");
+var waive = {href: pick >= 0 ? options[pick].getAttribute("data-href") : null};
+var nav = navigated(); await press("Enter");
+var w2 = await Promise.race([nav, wait(5000).then(function () { return null; })]);
+waive.landed = w2 ? w2.location.pathname + w2.location.hash : null;
+if (w2 && w2.location.hash) {
+  var h = w2.document.getElementById(decodeURIComponent(w2.location.hash.slice(1))), text = "";
+  for (var n = h ? h.nextElementSibling : null; n && !/^H[234]$/.test(n.tagName); n = n.nextElementSibling) text += " " + n.textContent;
+  waive.inSection = /waive/i.test(text);
+}
 var w = await load("/en/guides/usage/", 1280, 900);
 await wait(300);
 var copied = null;
 Object.defineProperty(w.navigator, "clipboard", {configurable: true, value: {writeText: function (t) { copied = t; return Promise.resolve(); }}});
 w.document.getElementById("copy-page").click();
 await wait(200);
-report({narrow: narrow, kb: kb, spy: spy, opened: opened, firstHref: firstHref, landed: landed, copied: copied});`)
+report({narrow: narrow, kb: kb, spy: spy, opened: opened, firstHref: firstHref, landed: landed, waive: waive, copied: copied});`)
 	got := browse(t, dir, script.String())
 	for p, pair := range got["narrow"].(map[string]any) {
 		dims := pair.([]any)
@@ -815,6 +834,11 @@ report({narrow: narrow, kb: kb, spy: spy, opened: opened, firstHref: firstHref, 
 	}
 	if got["firstHref"] != "en/guides/spar/#set-up-a-project" || got["landed"] != "/en/guides/spar/#set-up-a-project" {
 		fail(t, v, "searching 'set up a project' and pressing Enter went to %v (first result %v)", got["landed"], got["firstHref"])
+	}
+	waive, _ := got["waive"].(map[string]any)
+	href, _ := waive["href"].(string)
+	if !strings.HasPrefix(href, "en/guides/spar/#") || waive["landed"] != "/"+href || waive["inSection"] != true {
+		fail(t, v, "searching 'waive' does not reach the Spar guide's section that holds it: %v", waive)
 	}
 	if got["copied"] != readFile(t, filepath.Join(repoRoot(t), "guides", "USAGE.en.md")) {
 		fail(t, v, "Copy page does not copy guides/USAGE.en.md as it is")
