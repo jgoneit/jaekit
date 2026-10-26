@@ -78,13 +78,19 @@ func TestSparAgentModelAC11_ContractsGuidesSkill(t *testing.T) {
 	amdExpect(t, v, "the --effort row of contracts/review-round.md", amdLine(round, "| `--effort` |"), "`--effort`")
 	amdExpect(t, v, "the reviewers field line of contracts/review-round.md", amdLine(round, "`reviewers.<이름>`:"),
 		"`model_source`", "`effort_source`")
+	amdExpect(t, v, "the fallback paragraph of contracts/review-round.md", amdLine(round, "대체 모델:"),
+		"사용자가 적은 `fallback_model`뿐")
 	input := amdRead(t, "../contracts/spar-input.md")
-	amdExpect(t, v, "the G34 row of contracts/spar-input.md", amdLine(input, "| G34 |"), "`--model`", "`--effort`", "`-`로 시작")
+	amdExpect(t, v, "the G25 row of contracts/spar-input.md", amdLine(input, "| G25 |"),
+		"`--model`", "`--effort`", "`allowed_models`", "`-`로 시작")
 	amdExpect(t, v, "guides/SPAR.md 리뷰어 설정", amdSection(amdRead(t, "../guides/SPAR.md"), "## 리뷰어 설정"),
-		"`--model 이름=모델`", "`allowed_models`", "에이전트가 고릅니다")
+		"`--model 이름=모델`", "`--effort 이름=강도`", "`allowed_models`", "에이전트가 고릅니다",
+		"사용자가 적은 `fallback_model`만", "거부합니다", "(`user`, `agent`, `preset`)")
 	amdExpect(t, v, "guides/SPAR.en.md Configure reviewers", amdSection(amdRead(t, "../guides/SPAR.en.md"), "## Configure reviewers"),
-		"`--model NAME=MODEL`", "`allowed_models`", "the agent chooses")
+		"`--model NAME=MODEL`", "`--effort NAME=EFFORT`", "`allowed_models`", "the agent chooses",
+		"falls back only to the `fallback_model` you wrote", "spar refuses", "(`user`, `agent`, `preset`)")
 	amdExpect(t, v, "the Spar skill", amdRead(t, "spar/skills/spar/SKILL.md"),
-		"`--model NAME=MODEL`", "`--effort NAME=EFFORT`", "`allowed_models`", "Check `spar config` before you choose",
+		"`--model NAME=MODEL`", "`--effort NAME=EFFORT`", "`allowed_models`", "`model_source`", "Check `spar config` before you choose",
+		"falls back only to the `fallback_model` the user wrote", "spar refuses",
 		"say which model and effort you chose for each reviewer")
 }

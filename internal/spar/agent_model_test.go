@@ -106,11 +106,15 @@ func (w *amWorld) use(body string) string {
 }
 
 // spar runs the spar command line and returns its exit code, standard
-// output and standard error.
+// output and standard error. An internal error (70) observes nothing and
+// is a broken setup.
 func (w *amWorld) spar(args ...string) (int, string, string) {
 	w.t.Helper()
 	var out, errs bytes.Buffer
 	code := Main("test", args, strings.NewReader(""), &out, &errs, func(key string) string { return w.env[key] })
+	if code == ExitInternal {
+		w.t.Fatalf("setup: spar %v exits %d: %s", args, code, errs.String())
+	}
 	return code, out.String(), errs.String()
 }
 
@@ -188,6 +192,11 @@ func (w *amWorld) fake(file, preset string) string {
 	path := w.write(filepath.Join(w.bin, file), script)
 	if err := os.Chmod(path, 0o755); err != nil {
 		w.t.Fatalf("setup: %v", err)
+	}
+	// A fake that cannot start (no /bin/sh, a noexec folder) would make
+	// spar record a failed reviewer: that observes nothing.
+	if out, err := exec.Command(path, "--version").CombinedOutput(); err != nil {
+		w.t.Fatalf("setup: the fake %s cannot run: %v %s", path, err, out)
 	}
 	return path
 }
@@ -289,12 +298,13 @@ func amEffortArg(preset string, args []string) string {
 	return amAfter(args, "--effort")
 }
 
-// record reads a round's round.json, or nil when there is none.
+// record reads a round's round.json; a round that spar reported written
+// but cannot be read is a broken setup.
 func (w *amWorld) record(round string) map[string]any {
 	w.t.Helper()
 	data, err := os.ReadFile(filepath.Join(round, "round.json"))
 	if err != nil {
-		return nil
+		w.t.Fatalf("setup: %v", err)
 	}
 	var r map[string]any
 	if err := json.Unmarshal(data, &r); err != nil {
@@ -337,33 +347,50 @@ func amExists(path string) bool {
 	return err == nil
 }
 
+// summary reads a round's summary.md.
+func (w *amWorld) summary(round string) string {
+	w.t.Helper()
+	data, err := os.ReadFile(filepath.Join(round, "summary.md"))
+	if err != nil {
+		w.t.Fatalf("setup: %v", err)
+	}
+	return string(data)
+}
+
 // AC-1: a reviewer whose model the user's configuration writes runs on that
-// model, and the record names the user's configuration as its source.
+// model, and the record names the user's configuration as its source; a
+// written model equal to the preset's is written all the same.
 func TestSparAgentModelAC1_WrittenModelRuns(t *testing.T) {
 	const v = "written-model-not-applied"
 	w := newAMWorld(t, false)
-	written := map[string]string{"claude": "user-claude", "codex": "user-codex", "agy": "user-agy"}
-	w.use(w.entry("claude", "claude", `model = "user-claude"`) + w.entry("codex", "codex", `model = "user-codex"`) +
-		w.entry("agy", "agy", `model = "user-agy"`))
+	written := []struct{ name, preset, model string }{
+		{"claude", "claude", "user-claude"}, {"codex", "codex", "user-codex"}, {"agy", "agy", "user-agy"},
+		{"claude-preset", "claude", "opus"},
+	}
+	var config string
+	for _, x := range written {
+		config += w.entry(x.name, x.preset, fmt.Sprintf("model = %q", x.model))
+	}
+	w.use(config)
 	out := w.round("ac1")
 	if code, errs := w.run(out); code != ExitOK {
 		t.Fatalf("jaekit:violation=%s the round with written models exits %d: %s", v, code, errs)
 	}
 	rec := w.record(out)
-	for _, name := range []string{"claude", "codex", "agy"} {
-		calls := w.calls(name)
-		if len(calls) != 1 || amModelArg(name, calls[0]) != written[name] {
-			t.Errorf("jaekit:violation=%s %s was not started once with its written model %q: %v", v, name, written[name], calls)
+	for _, x := range written {
+		calls := w.calls(x.name)
+		if len(calls) != 1 || amModelArg(x.preset, calls[0]) != x.model {
+			t.Errorf("jaekit:violation=%s %s was not started once with its written model %q: %v", v, x.name, x.model, calls)
 		}
-		st := amState(rec, name)
-		if amStr(st, "requested_model") != written[name] || amStr(st, "model_source") != "user" {
-			t.Errorf("jaekit:violation=%s %s records requested_model %q, model_source %q; want %q from user", v, name,
-				amStr(st, "requested_model"), amStr(st, "model_source"), written[name])
+		st := amState(rec, x.name)
+		if amStr(st, "requested_model") != x.model || amStr(st, "model_source") != "user" {
+			t.Errorf("jaekit:violation=%s %s records requested_model %q, model_source %q; want %q from user", v, x.name,
+				amStr(st, "requested_model"), amStr(st, "model_source"), x.model)
 		}
-		applied := amApplied(amConfig(rec), name)
-		if amStr(applied, "model") != written[name] || amStr(applied, "model_source") != "user" {
-			t.Errorf("jaekit:violation=%s config.reviewers %s has model %q, model_source %q; want %q from user", v, name,
-				amStr(applied, "model"), amStr(applied, "model_source"), written[name])
+		applied := amApplied(amConfig(rec), x.name)
+		if amStr(applied, "model") != x.model || amStr(applied, "model_source") != "user" {
+			t.Errorf("jaekit:violation=%s config.reviewers %s has model %q, model_source %q; want %q from user", v, x.name,
+				amStr(applied, "model"), amStr(applied, "model_source"), x.model)
 		}
 	}
 }
@@ -432,24 +459,33 @@ func TestSparAgentModelAC2_AgentChoiceReachesCLI(t *testing.T) {
 	}
 }
 
-// AC-3: a value the agent may not pass is refused before any reviewer
-// starts and before the round folder exists, naming the reviewer and the
-// value; any other value reaches the CLI unchanged as one argument.
-func TestSparAgentModelAC3_RefusedChoices(t *testing.T) {
-	const v = "refused-choice-not-reported"
+// amRefusal is a value the agent may not pass, with the reviewer and the
+// value its refusal names.
+type amRefusal struct {
+	label, name, value string
+	args               []string
+}
+
+// amRefusalWorld is a world whose configuration holds every reviewer the
+// refusals of AC-3 need, and those refusals: the complete list of what the
+// agent may not pass (REVIEW, representative forms 1 and 2).
+func amRefusalWorld(t *testing.T) (*amWorld, []amRefusal) {
 	w := newAMWorld(t, false)
-	w.use(w.entry("claude", "claude", `model = "user-claude"`, `effort = "low"`) +
+	w.use(w.entry("claude", "claude", `model = "user-claude"`, `effort = "low"`) + w.entry("claude2", "claude") +
+		w.entry("claude3", "claude", `model = "opus"`, `effort = "high"`) +
 		w.entry("codex", "codex", `allowed_models = ["codex-a", "codex-b"]`, `allowed_efforts = ["low"]`) +
-		w.entry("agy", "agy") + amNative("host") + amCommand(w, "cmd"))
-	refusals := []struct {
-		label, name, value string
-		args               []string
-	}{
+		w.entry("codex2", "codex", `effort = ""`) + w.entry("agy", "agy") + amNative("host") + amCommand(w, "cmd"))
+	refusals := []amRefusal{
 		{"a written model", "claude", "other", []string{"--model", "claude=other"}},
 		{"a written effort", "claude", "high", []string{"--effort", "claude=high"}},
+		{"a written model equal to the preset's", "claude3", "opus", []string{"--model", "claude3=opus"}},
+		{"another model for a written preset model", "claude3", "sonnet", []string{"--model", "claude3=sonnet"}},
+		{"a written effort equal to the preset's", "claude3", "high", []string{"--effort", "claude3=high"}},
+		{"a written empty effort", "codex2", "high", []string{"--effort", "codex2=high"}},
 		{"a native model", "host", "x", []string{"--model", "host=x"}},
 		{"a native effort", "host", "x", []string{"--effort", "host=x"}},
 		{"a command model", "cmd", "x", []string{"--model", "cmd=x"}},
+		{"a command effort", "cmd", "x", []string{"--effort", "cmd=x"}},
 		{"an agy effort", "agy", "high", []string{"--effort", "agy=high"}},
 		{"a name that is no reviewer", "nobody", "x", []string{"--model", "nobody=x"}},
 		{"a reviewer left out of the run", "agy", "x", []string{"--reviewers", "codex", "--model", "agy=x"}},
@@ -458,16 +494,35 @@ func TestSparAgentModelAC3_RefusedChoices(t *testing.T) {
 		{"a model outside the allowed list", "codex", "codex-c", []string{"--model", "codex=codex-c"}},
 		{"a model differing from the list in case", "codex", "CODEX-A", []string{"--model", "codex=CODEX-A"}},
 		{"an effort outside the allowed list", "codex", "high", []string{"--effort", "codex=high"}},
-		{"an empty model", "agy", "", []string{"--model", "agy="}},
-		{"a model starting with -", "agy", "-x", []string{"--model", "agy=-x"}},
-		{"a model with a space", "agy", "a b", []string{"--model", "agy=a b"}},
-		{"a model with a tab", "agy", "a\tb", []string{"--model", "agy=a\tb"}},
-		{"a model with a newline", "agy", "a\nb", []string{"--model", "agy=a\nb"}},
-		{"a model with an ideographic space", "agy", "a　b", []string{"--model", "agy=a　b"}},
-		{"a model with a control character", "agy", "a\x01b", []string{"--model", "agy=a\x01b"}},
-		{"a model with DEL", "agy", "a\x7fb", []string{"--model", "agy=a\x7fb"}},
-		{"an effort starting with -", "codex", "-x", []string{"--effort", "codex=-x"}},
 	}
+	for _, f := range []struct{ label, value string }{
+		{"empty", ""}, {"starting with -", "-x"}, {"with a space", "a b"}, {"with a tab", "a\tb"},
+		{"with a newline", "a\nb"}, {"with an ideographic space", "a\u3000b"}, {"with a control character", "a\x01b"},
+		{"with DEL", "a\x7fb"},
+	} {
+		refusals = append(refusals,
+			amRefusal{"a model " + f.label, "agy", f.value, []string{"--model", "agy=" + f.value}},
+			amRefusal{"an effort " + f.label, "claude2", f.value, []string{"--effort", "claude2=" + f.value}})
+	}
+	return w, refusals
+}
+
+// amNoCalls reports the fake CLIs that were started.
+func (w *amWorld) amNoCalls(label, v string) {
+	w.t.Helper()
+	for _, name := range []string{"claude", "claude2", "claude3", "codex", "codex2", "agy"} {
+		if calls := w.calls(name); len(calls) > 0 {
+			w.t.Errorf("jaekit:violation=%s %s: reviewer %s started although the value was refused", v, label, name)
+		}
+	}
+}
+
+// AC-3: a value the agent may not pass is refused before any reviewer
+// starts and before the round folder exists, naming the reviewer and the
+// value; any other value reaches the CLI unchanged as one argument.
+func TestSparAgentModelAC3_RefusedChoices(t *testing.T) {
+	const v = "refused-choice-not-reported"
+	w, refusals := amRefusalWorld(t)
 	for _, r := range refusals {
 		w.clearCalls()
 		out := w.round("ac3")
@@ -478,11 +533,7 @@ func TestSparAgentModelAC3_RefusedChoices(t *testing.T) {
 		if !strings.Contains(errs, strconv.Quote(r.name)) || !strings.Contains(errs, strconv.Quote(r.value)) {
 			t.Errorf("jaekit:violation=%s %s: the message does not name reviewer %q and value %q: %s", v, r.label, r.name, r.value, errs)
 		}
-		for _, name := range []string{"claude", "codex", "agy"} {
-			if calls := w.calls(name); len(calls) > 0 {
-				t.Errorf("jaekit:violation=%s %s: reviewer %s started although the value was refused", v, r.label, name)
-			}
-		}
+		w.amNoCalls(r.label, v)
 	}
 	// Other values reach the CLI as they are, one argument each.
 	w.use(w.entry("claude", "claude") + w.entry("codex", "codex", `allowed_efforts = ["low"]`) + w.entry("agy", "agy"))
@@ -515,11 +566,14 @@ func TestSparAgentModelAC4_UnknownModelFails(t *testing.T) {
 	w.use(w.entry("codex", "codex"))
 	first := w.round("ac4")
 	code, errs := w.run(first, "--model", "codex=unknown-model")
+	if code != ExitNoResult {
+		t.Fatalf("jaekit:violation=%s the round with an unknown model exits %d, want 1 (no reviewer completed): %s", v, code, errs)
+	}
 	rec := w.record(first)
 	st := amState(rec, "codex")
-	if code != ExitNoResult || rec == nil || amStr(st, "status") == StatusCompleted || amStr(st, "requested_model") != "unknown-model" {
-		t.Fatalf("jaekit:violation=%s the round with an unknown model exits %d, codex %q with requested_model %q: %s", v, code,
-			amStr(st, "status"), amStr(st, "requested_model"), errs)
+	if amStr(st, "status") == StatusCompleted || amStr(st, "requested_model") != "unknown-model" {
+		t.Fatalf("jaekit:violation=%s the round with an unknown model records codex %q with requested_model %q", v,
+			amStr(st, "status"), amStr(st, "requested_model"))
 	}
 	gate := filepath.Join(w.dir, "gate-ac4.json")
 	if code, _, errs := w.spar("gate", first, "--expect-head", w.head, "--out", gate, "--repo", w.repo); code != ExitDegraded {
@@ -527,11 +581,14 @@ func TestSparAgentModelAC4_UnknownModelFails(t *testing.T) {
 	}
 	again := filepath.Join(filepath.Dir(first), "02-candidate")
 	code, errs = w.run(again, "--model", "codex=codex-good")
+	if code != ExitOK {
+		t.Fatalf("jaekit:violation=%s the rerun with another model exits %d: %s", v, code, errs)
+	}
 	rec = w.record(again)
 	st = amState(rec, "codex")
-	if code != ExitOK || amStr(st, "status") != StatusCompleted || amStr(st, "requested_model") != "codex-good" {
-		t.Fatalf("jaekit:violation=%s the rerun with another model exits %d, codex %q with requested_model %q: %s", v, code,
-			amStr(st, "status"), amStr(st, "requested_model"), errs)
+	if amStr(st, "status") != StatusCompleted || amStr(st, "requested_model") != "codex-good" {
+		t.Fatalf("jaekit:violation=%s the rerun with another model records codex %q with requested_model %q", v,
+			amStr(st, "status"), amStr(st, "requested_model"))
 	}
 	if counted, _ := rec["counted"].(bool); counted || rec["rerun_of"] == nil {
 		t.Errorf("jaekit:violation=%s the rerun with another model is counted (%v) or names no earlier run (%v)", v, rec["counted"], rec["rerun_of"])
@@ -557,7 +614,8 @@ func amSourceFacts(summary, name string) string {
 func TestSparAgentModelAC5_RecordShowsSources(t *testing.T) {
 	const v = "model-source-not-recorded"
 	w := newAMWorld(t, false)
-	w.use(w.entry("claude", "claude", `model = "user-claude"`) + w.entry("codex", "codex", `effort = "low"`) + w.entry("agy", "agy"))
+	w.use(w.entry("claude", "claude", `model = "user-claude"`) + w.entry("codex", "codex", `effort = "low"`) + w.entry("agy", "agy") +
+		w.entry("codex2", "codex", `effort = ""`))
 	out := w.round("ac5")
 	code, errs := w.run(out, "--model", "codex=agent-codex", "--effort", "claude=medium")
 	if code != ExitOK {
@@ -568,9 +626,9 @@ func TestSparAgentModelAC5_RecordShowsSources(t *testing.T) {
 		"claude": {"user-claude", "user", "medium", "agent"},
 		"codex":  {"agent-codex", "agent", "low", "user"},
 		"agy":    {"gemini-4-argon-high", "preset", "", ""},
+		"codex2": {"gpt-6-astra", "preset", "", "user"},
 	}
-	data, _ := os.ReadFile(filepath.Join(out, "summary.md"))
-	summary := string(data)
+	summary := w.summary(out)
 	for name, x := range want {
 		for _, place := range []struct {
 			where string
@@ -586,8 +644,10 @@ func TestSparAgentModelAC5_RecordShowsSources(t *testing.T) {
 		if !strings.Contains(line, fmt.Sprintf("model %s [%s]", x[0], x[1])) {
 			t.Errorf("jaekit:violation=%s the summary line of %s does not show model %s [%s]: %q", v, name, x[0], x[1], line)
 		}
-		if x[2] != "" && !strings.Contains(line, fmt.Sprintf("effort %s [%s]", x[2], x[3])) {
-			t.Errorf("jaekit:violation=%s the summary line of %s does not show effort %s [%s]: %q", v, name, x[2], x[3], line)
+		// An effort the user wrote empty is no effort, from the user.
+		effort := map[bool]string{true: x[2], false: "none"}[x[2] != ""]
+		if x[3] != "" && !strings.Contains(line, fmt.Sprintf("effort %s [%s]", effort, x[3])) {
+			t.Errorf("jaekit:violation=%s the summary line of %s does not show effort %s [%s]: %q", v, name, effort, x[3], line)
 		}
 	}
 	var choices []map[string]string
@@ -664,13 +724,20 @@ func TestSparAgentModelAC6_ConfigShowsChoice(t *testing.T) {
 		b, _ := json.Marshal(rec)
 		t.Errorf("jaekit:violation=%s spar config and the run record differ:\n%s\n%s", v, a, b)
 	}
-	for _, r := range []struct{ name, value, arg string }{
-		{"claude", "x", "claude=x"}, {"nobody", "x", "nobody=x"}, {"agy", "-x", "agy=-x"}, {"codex", "codex-c", "codex=codex-c"},
-	} {
-		code, _, errs := w.spar("config", "--repo", w.repo, "--model", r.arg)
+	// spar config refuses every value spar run refuses, with the same
+	// message.
+	rw, refusals := amRefusalWorld(t)
+	for _, r := range refusals {
+		out := rw.round("ac6-refused")
+		_, runErrs := rw.run(out, r.args...)
+		code, _, errs := rw.spar(append([]string{"config", "--repo", rw.repo}, r.args...)...)
+		first := func(s string) string { line, _, _ := strings.Cut(s, "\n"); return line }
 		if code != ExitRefused || !strings.Contains(errs, strconv.Quote(r.name)) || !strings.Contains(errs, strconv.Quote(r.value)) {
-			t.Errorf("jaekit:violation=%s spar config --model %s exits %d without naming %q and %q: %s", v, r.arg, code, r.name, r.value, errs)
+			t.Errorf("jaekit:violation=%s %s: spar config exits %d without naming %q and %q: %s", v, r.label, code, r.name, r.value, errs)
+		} else if first(errs) != first(runErrs) {
+			t.Errorf("jaekit:violation=%s %s: spar config and spar run refuse for different reasons:\n%s\n%s", v, r.label, first(errs), first(runErrs))
 		}
+		rw.amNoCalls(r.label, v)
 	}
 }
 
@@ -929,15 +996,21 @@ func TestSparAgentModelAC10_OldRoundsRead(t *testing.T) {
 	}
 	oldRound := filepath.Join(oldSeries, "01-candidate")
 	amOldForm(t, oldRound)
-	steps := [][]string{
-		{"record", "<round>", "host", "--result", replyFile},
-		{"triage", "<round>", "host-F1", "reject"},
-		{"triage", "<round>", "host-F1", "reject", "--evidence", "synthetic evidence"},
-		{"waive", "<round>", "host", "--user-quote", "go on"},
-		{"waive", "<round>", "codex", "--user-quote", "go on without codex"},
-		{"summary", "<round>"},
+	// Each step's exit code follows the round contract: a reject without
+	// evidence and a waiver for a reviewer that completed are refused.
+	steps := []struct {
+		args []string
+		want int
+	}{
+		{[]string{"record", "<round>", "host", "--result", replyFile}, ExitOK},
+		{[]string{"triage", "<round>", "host-F1", "reject"}, ExitRefused},
+		{[]string{"triage", "<round>", "host-F1", "reject", "--evidence", "synthetic evidence"}, ExitOK},
+		{[]string{"waive", "<round>", "host", "--user-quote", "go on"}, ExitRefused},
+		{[]string{"waive", "<round>", "codex", "--user-quote", "go on without codex"}, ExitOK},
+		{[]string{"summary", "<round>"}, ExitOK},
 	}
-	for _, step := range steps {
+	for _, x := range steps {
+		step := x.args
 		var codes [2]int
 		var outs [2]string
 		for i, r := range []string{round, oldRound} {
@@ -946,8 +1019,8 @@ func TestSparAgentModelAC10_OldRoundsRead(t *testing.T) {
 			code, out, _ := w.spar(args...)
 			codes[i], outs[i] = code, strings.ReplaceAll(out, r, "<round>")
 		}
-		if codes[0] != codes[1] {
-			t.Errorf("AC-10: spar %s exits %d on the round written now and %d on the earlier form", step[0], codes[0], codes[1])
+		if codes[0] != x.want || codes[1] != x.want {
+			t.Errorf("AC-10: spar %v exits %d on the round written now and %d on the earlier form, want %d", step, codes[0], codes[1], x.want)
 		}
 		if step[0] == "summary" && amStripSources(outs[0]) != outs[1] {
 			t.Errorf("AC-10: the earlier form's summary is not the summary without sources:\n%s\n---\n%s", outs[1], outs[0])
@@ -967,8 +1040,8 @@ func TestSparAgentModelAC10_OldRoundsRead(t *testing.T) {
 		}
 		gates[i] = strings.ReplaceAll(fmt.Sprintf("%d %v %v %v %v", code, g["state"], g["reasons"], g["open"], g["waived_reviewers"]), r, "<round>")
 	}
-	if gates[0] != gates[1] {
-		t.Errorf("AC-10: the gate differs between the round written now and the earlier form:\n%s\n%s", gates[0], gates[1])
+	if gates[0] != gates[1] || !strings.HasPrefix(gates[1], "0 complete [] map[defect:0 ") || strings.Contains(gates[1], "question:1") {
+		t.Errorf("AC-10: the gate of the round written now and of the earlier form, want both complete with nothing open:\n%s\n%s", gates[0], gates[1])
 	}
 }
 
