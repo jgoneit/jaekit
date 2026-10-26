@@ -7,16 +7,22 @@ Usage: real_round.py ROUND_FOLDER
        real_round.py --source-digest
 
 Exit 0 when the property holds, 1 when it does not, 2 when it cannot be
-observed: the input cannot be read (missing round.json or source files,
-JSON that does not parse, another record format, a field of the wrong
-type, bad arguments), a chosen reviewer's CLI process never started (its
-first attempt records no exit_code, which spar records for every process
-it started, or no argv), or no chosen reviewer completed. A property that
-fails for a reviewer whose CLI started is a violation even when another
-reviewer's CLI did not start. Whether the executable is the real CLI is
-not observed, whether spar found it on PATH or in a binary key: a pass
-prints each executable path and cli_version. The round is the one the
-condition names; besides it only the spar sources of this tree are read.
+observed: the input cannot be read (missing round.json, source files or a
+completed claude or agy reviewer's stdout.jsonl, JSON that does not parse,
+another record format, a field of the wrong type or a chosen reviewer with
+no state, bad arguments), the agent chose no model for one of claude,
+codex and agy or chose one for a reviewer of another preset, a chosen
+reviewer's CLI process never started (its first attempt records no
+exit_code, which spar records for every process it started, or no argv),
+or no chosen reviewer completed. A property that fails for a reviewer
+whose CLI started is a violation even when another reviewer's CLI did not
+start. A completed reviewer's observed_model must be the model its CLI
+named in the output the round kept: claude in its init event, agy in an
+event's init object, codex never; none named means none recorded. Whether
+the executable is the real CLI is not observed, whether spar found it on
+PATH or in a binary key: a pass prints each executable path and
+cli_version. The round is the one the condition names; besides it only the
+spar sources of this tree are read.
 
 --source-digest prints the digest a spar built for the round must carry in
 its version (main.version=<version>+src.<digest>): the first twelve hex
@@ -31,8 +37,6 @@ from pathlib import Path
 
 PRESETS = ("claude", "codex", "agy")
 MODEL_FLAG = {"claude": "--model", "codex": "-m", "agy": "--model"}
-# CLIs that name the model they ran on in their output.
-REPORTS_MODEL = ("claude", "agy")
 ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -75,6 +79,36 @@ def text(obj, key, where):
     return typed(obj.get(key), str, f"{where}.{key}", optional=True)
 
 
+def named_model(round_dir, name, preset):
+    """Return the model the reviewer's CLI named in its output, "" for none.
+    The output is the last attempt's: spar rewrites stdout.jsonl for each."""
+    if preset == "codex":
+        return ""
+    path = round_dir / name / "stdout.jsonl"
+    try:
+        data = path.read_bytes()
+    except OSError as error:
+        raise InputError(f"{path}: {error}") from error
+    model = ""
+    for line in data.split(b"\n"):
+        line = line.strip()
+        if not line.startswith(b"{"):
+            continue
+        try:
+            event = json.loads(line.decode("utf-8", errors="replace"))
+        except ValueError:
+            continue
+        if preset == "claude" and event.get("type") == "system" and event.get("subtype") == "init":
+            model = event.get("model")
+        elif preset == "agy" and isinstance(event.get("init"), dict):
+            model = event["init"].get("model")
+        else:
+            continue
+        if not isinstance(model, str):
+            model = ""
+    return model
+
+
 def after(argv, flag):
     for i in range(len(argv) - 1):
         if argv[i] == flag:
@@ -112,10 +146,10 @@ def check(round_dir):
         if key != "model":
             continue
         chosen += 1
-        state = typed(states.get(name), dict, f"reviewers.{name}", optional=True)
-        preset = text(state, "preset", f"reviewers.{name}")
+        state = typed(states.get(name), dict, f"reviewers.{name}")
+        preset = typed(state.get("preset"), str, f"reviewers.{name}.preset")
         if preset not in PRESETS:
-            problems.append(f"{name}: the chosen reviewer is not a claude, codex or agy reviewer of the round")
+            unobserved.append(f"{name}: the agent chose a model for a {preset!r} reviewer, not a claude, codex or agy one")
             continue
         presets.add(preset)
         requested = text(state, "requested_model", f"reviewers.{name}")
@@ -149,12 +183,13 @@ def check(round_dir):
         if text(state, "status", f"reviewers.{name}") != "completed":
             continue
         observed = text(state, "observed_model", f"reviewers.{name}")
-        if preset in REPORTS_MODEL and not observed:
-            problems.append(f"{name}: {preset} completed but the record has no observed_model")
+        named = named_model(round_dir, name, preset)
+        if observed != named:
+            problems.append(f"{name}: the record has observed_model {observed!r}, the CLI named {named!r}")
         ran.append(f"{name}: {argv[0]} ({cli_version}) ran {value!r}, observed {observed!r}")
     missing = [p for p in PRESETS if p not in presets]
     if missing:
-        problems.append(f"the agent chose no model for {', '.join(missing)}")
+        unobserved.append(f"the agent chose no model for {', '.join(missing)}")
     if chosen and not ran:
         unobserved.append("no reviewer whose model the agent chose completed")
     return problems, unobserved, ran

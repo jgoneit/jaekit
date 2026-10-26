@@ -97,5 +97,6 @@ func TestSparAgentModelAC11_ContractsGuidesSkill(t *testing.T) {
 		"`--model NAME=MODEL`", "`--effort NAME=EFFORT`", "`allowed_models`", "`model_source`", "Check `spar config` before you choose",
 		"falls back only to the `fallback_model` the user wrote", "spar refuses",
 		"an effort for `agy`", "a name that is not a reviewer of the run", "a second model or effort for the same reviewer", "is not valid UTF-8",
+		"`reviewers.<name>.model_source` and `effort_source`", "`model <model> [<source>]`", "`effort <effort> [<source>]`",
 		"say which model and effort you chose for each reviewer")
 }
