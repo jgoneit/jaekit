@@ -18,6 +18,7 @@ import (
 	"strings"
 	"syscall"
 	"unicode"
+	"unicode/utf8"
 
 	toml "github.com/pelletier/go-toml/v2"
 )
@@ -316,11 +317,15 @@ func (c *Config) setSources() {
 }
 
 // choiceProblem says why the agent may not pass a value (G25): an empty
-// value, one a CLI could read as an option, or one with a space or control
+// value, one that is not valid UTF-8 and so cannot be recorded as it is,
+// one a CLI could read as an option, or one with a space or control
 // character. "" means the value passes to the CLI as it is.
 func choiceProblem(v string) string {
 	if v == "" {
 		return "the value is empty"
+	}
+	if !utf8.ValidString(v) {
+		return "the value is not valid UTF-8, so the record could not keep it as it is"
 	}
 	if strings.HasPrefix(v, "-") {
 		return "the value starts with '-', which a CLI could read as an option"

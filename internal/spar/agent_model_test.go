@@ -498,7 +498,7 @@ func amRefusalWorld(t *testing.T) (*amWorld, []amRefusal) {
 	for _, f := range []struct{ label, value string }{
 		{"empty", ""}, {"starting with -", "-x"}, {"with a space", "a b"}, {"with a tab", "a\tb"},
 		{"with a newline", "a\nb"}, {"with an ideographic space", "a\u3000b"}, {"with a control character", "a\x01b"},
-		{"with DEL", "a\x7fb"},
+		{"with DEL", "a\x7fb"}, {"with a byte that is not UTF-8", "a\xffb"}, {"with an encoded surrogate", "a\xed\xa0\x80b"},
 	} {
 		refusals = append(refusals,
 			amRefusal{"a model " + f.label, "agy", f.value, []string{"--model", "agy=" + f.value}},
@@ -1200,6 +1200,7 @@ func TestSparAgentModelAC12_AllowedLists(t *testing.T) {
 		{"an entry starting with -", "agy", `allowed_models = ["-x"]`, "allowed_models"},
 		{"an entry with a space", "codex", `allowed_models = ["a b"]`, "allowed_models"},
 		{"an entry with a control character", "claude", `allowed_efforts = ["a\u0001b"]`, "allowed_efforts"},
+		{"an entry that is not UTF-8", "codex", "allowed_models = [\"a\xffb\"]", "allowed_models"},
 		{"a model and a model list", "claude", "model = \"m\"\nallowed_models = [\"m\"]", "allowed_models"},
 		{"an effort and an effort list", "codex", "effort = \"low\"\nallowed_efforts = [\"low\"]", "allowed_efforts"},
 		{"a model list on native", "native", `allowed_models = ["m"]`, "allowed_models"},
