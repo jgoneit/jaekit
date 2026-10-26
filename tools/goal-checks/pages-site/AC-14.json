@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "CIGuide",
+      "violation": "ci-guide-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/goal-checks/pages-site",
+        "name": "TestPagesSiteAC14_CIGuide"
+      }
+    }
+  ]
+}
