@@ -66,6 +66,16 @@ Ubuntu 실행은 WSL2 실행이 아닙니다. CI는 WSL2 설치, 설치된 에�
 
 이 workflow의 `Release candidate` job은 `main`의 필수 검사입니다. `Build release files`와 `Windows release archive` 뒤에 둘 중 하나가 실패해도 실행되며, 같은 실행에서 둘 다 성공해야만 성공합니다. 건너뛰거나 취소되거나 실패한 job은 이 검사를 충족하지 않고, workflow에 path filter가 없어 모든 PR이 이 결과를 보고합니다. Server에서의 확인은 Windows 11 설치 성공이 아니며, 실제 설치·재설치·제거는 [Windows 11 확인 절차](../tools/windows/README.md)에서 확인합니다.
 
+## 사이트 workflow
+
+[사이트 workflow](../.github/workflows/pages.yml)는 `guides/`, `contracts/`와 `.claude-plugin/marketplace.json`의 릴리스 버전으로 [문서 사이트](https://jgoneit.github.io/jaekit/)를 만듭니다. pull request, `main` push, 수동 실행에서 돌고, `main`에서만 게시합니다. pull request 실행은 사이트를 만들고 시험하기만 합니다.
+
+- `Site build`: 사이트를 만듭니다. 링크 대상이나 릴리스 버전을 읽을 수 없으면 실패합니다.
+- `Site test`: 만든 사이트의 문서 집합, 링크, 화면 동작을 시험합니다. 게시를 막지는 않습니다.
+- `Site deploy`: `main`에서 `Site build`가 성공했을 때만 GitHub Pages에 게시합니다.
+
+세 job은 필수 체크가 아니라서 실패해도 병합을 막지 않습니다. 빌드나 게시가 실패하면 이전에 게시된 사이트가 그대로 남습니다. 사이트를 로컬에서 만드는 방법은 [사이트 소스 안내](../tools/site/README.md)에 있습니다.
+
 ## 로컬 검사
 
 푸시·공개 전에 최종 후보와 같은 검증 입력에서 저장소의 공통 검증 진입점이 한 번 통과해야 합니다. 그 한 번이 커밋 전·푸시 전 요구를 함께 충족하며, 커밋 전후 어느 쪽에서 실행해도 됩니다. 같은 입력에 대해 전체 검증을 두 번 실행할 필요는 없습니다.

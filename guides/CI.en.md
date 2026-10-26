@@ -66,6 +66,16 @@ The [release workflow](../.github/workflows/release.yml) runs the same build and
 
 Its `Release candidate` job is one of `main`'s required checks: it runs after `Build release files` and `Windows release archive`, even when one of them fails, and succeeds only when both succeed in the same run. A skipped, cancelled or failed job does not satisfy it, and the workflow has no path filter, so every pull request reports it. A Server result is not a Windows 11 installation success; actual installation, reinstallation and removal are checked by the [Windows 11 check procedure](../tools/windows/README.md).
 
+## Site workflow
+
+The [site workflow](../.github/workflows/pages.yml) builds the [documentation site](https://jgoneit.github.io/jaekit/) from `guides/`, `contracts/` and the release version in `.claude-plugin/marketplace.json`. It runs on every pull request, push to `main` and manual run, and publishes only from `main`; a pull request run builds and tests the site without publishing it.
+
+- `Site build` builds the site. It fails when a link target or the release version cannot be read.
+- `Site test` tests the built site's documents, links and page behavior. It does not hold back publishing.
+- `Site deploy` publishes to GitHub Pages only after `Site build` succeeds on `main`.
+
+These jobs are not required checks, so a failure does not block a merge. When a build or deployment fails, the previously published site stays. The [site source guide](../tools/site/README.md) explains how to build the site locally.
+
 ## Local checks
 
 Before pushing or publishing, the repository's common verification entrypoint must pass once on the same verification input as the final candidate. That one pass satisfies both the commit and the push requirement, whether it runs before or after the commit; do not run the full verification twice for the same input:
