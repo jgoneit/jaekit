@@ -42,6 +42,8 @@ GUIDE_ORDER = ("INSTALL", "USAGE", "SPAR", "OPERATIONS", "CI", "WINDOWS", "WSL")
 LANGS = ("ko", "en")
 REQUIRED_CHECKS = ("Seal Core", "Public documentation", "Release candidate")
 INSTALL_LINE = re.compile(r"^brew install \S+$")
+# An output folder holding this file is an earlier build that may be replaced.
+MARKER = ".jaekit-site"
 VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link",
         "meta", "source", "track", "wbr"}
 
@@ -152,10 +154,13 @@ def fetch(entry: dict, cache: Path) -> bytes:
         raise DownloadProblem(f"cannot download {entry['name']} {entry['version']} from {url}: {error}") from None
     if not verified(entry, data):
         raise DownloadProblem(f"{entry['name']} {entry['version']}: downloaded bytes do not match the pinned digest")
-    cache.mkdir(parents=True, exist_ok=True)
-    partial = target.with_suffix(target.suffix + ".part")
-    partial.write_bytes(data)
-    partial.replace(target)
+    try:
+        cache.mkdir(parents=True, exist_ok=True)
+        partial = target.with_suffix(target.suffix + ".part")
+        partial.write_bytes(data)
+        partial.replace(target)
+    except OSError as error:
+        raise DownloadProblem(f"cannot write the download cache {cache}: {error}") from None
     return data
 
 
@@ -835,6 +840,9 @@ def build_site(root: Path, out: Path, base: str, cache: Path) -> None:
         pages[f"assets/{name}"] = data
     pages["assets/licenses.txt"] = notice.encode("utf-8")
 
+    if out.exists() and not (out / MARKER).is_file() and (not out.is_dir() or any(out.iterdir())):
+        raise InputProblem(f"{out} exists and is not an earlier site build; choose an empty or new --out")
+    pages[MARKER] = b"Built by tools/site/build.py; the next build replaces this folder.\n"
     out.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=".site-", dir=out.parent))
     try:

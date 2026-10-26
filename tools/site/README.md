@@ -16,7 +16,7 @@ The site is written to `tools/site/_site/`, which Git ignores. To look at it, se
 python3 -m http.server 8000 --directory tools/site/_site
 ```
 
-Options: `--out DIR` writes elsewhere (the folder is replaced), `--base /jaekit/` sets the path the not-found page uses for its links, and `--cache DIR` moves the download cache.
+Options: `--out DIR` writes elsewhere, `--base /jaekit/` sets the path the not-found page uses for its links, and `--cache DIR` moves the download cache. The output folder is replaced only when it is new, empty or an earlier build, which leaves a `.jaekit-site` file in it; any other folder stops the build.
 
 The first build downloads the pinned third-party files listed in [vendor.json](vendor.json) into `tools/site/.cache/`, also ignored, and checks each one against its recorded digest: the Markdown parser (markdown-it-py and mdurl, used only while building), the Geist, Geist Mono and Noto Sans KR fonts, and the mermaid renderer. The published site serves these files itself; a page makes no request outside the site. Their license notices are published as `assets/licenses.txt`.
 
@@ -24,10 +24,10 @@ Exit codes: 0 built; 1 an input cannot be used, such as a link to a missing file
 
 ## Checks
 
-The site's checks are Go tests in `tools/goal-checks/pages-site/`, behind the `pagessite` build tag, so the repository's default validation does not run them. They build the site, read it, and drive headless Chrome for the page behavior:
+The site's checks are Go tests in `tools/goal-checks/pages-site/`, behind the `pagessite` build tag, so the repository's default validation does not run them. They build the site, read it, and drive headless Chrome for the page behavior. The tests the site workflow runs are:
 
 ```bash
-go test -tags pagessite -count=1 ./tools/goal-checks/pages-site
+go test -tags pagessite -count=1 -run "TestPagesSiteAC(2|3|4|5|6|7|8|9|10|11)_" ./tools/goal-checks/pages-site
 ```
 
-Without Chrome, network access or `gh`, the tests that need them are skipped.
+The other tests read the published site and GitHub's settings, and one runs the whole repository validation. Without Chrome, network access or `gh`, the tests that need them are skipped.
