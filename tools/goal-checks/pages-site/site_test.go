@@ -1257,28 +1257,58 @@ func workflowJobs(text string) map[string]string {
 	return jobs
 }
 
-// jobPermissions reads a job's permissions block: its "scope: level" lines, or
-// the value written on the permissions line itself.
-func jobPermissions(body string) ([]string, string) {
-	var lines []string
-	in := false
-	for _, line := range strings.Split(body, "\n") {
-		if m := regexp.MustCompile(`^    permissions:\s*(.*)$`).FindStringSubmatch(line); m != nil {
-			if strings.TrimSpace(m[1]) != "" {
-				return nil, strings.TrimSpace(m[1])
-			}
-			in = true
+var (
+	scopeRE   = regexp.MustCompile(`^\s*([a-z][a-z-]*)\s*:\s*(read|write|none)\s*$`)
+	commentRE = regexp.MustCompile(`(^|\s)#.*$`)
+)
+
+// jobPermissions reads a job's permissions as "scope: level" entries, from a
+// block or a {…} mapping, with comments and blank lines ignored. set says a
+// permissions key exists; bad holds anything else written there, such as
+// read-all, which the caller treats as a violation.
+func jobPermissions(body string) (entries []string, set bool, bad string) {
+	lines := strings.Split(body, "\n")
+	for i, line := range lines {
+		value, ok := strings.CutPrefix(commentRE.ReplaceAllString(line, ""), "    permissions:")
+		if !ok {
 			continue
 		}
-		if in {
-			if m := regexp.MustCompile(`^      ([\w-]+:\s*\S+)\s*$`).FindStringSubmatch(line); m != nil {
-				lines = append(lines, strings.Join(strings.Fields(m[1]), " "))
+		value = strings.TrimSpace(value)
+		if value != "" {
+			inner, isMap := strings.CutPrefix(value, "{")
+			inner, closed := strings.CutSuffix(inner, "}")
+			if !isMap || !closed {
+				return nil, true, value
+			}
+			for _, part := range strings.Split(inner, ",") {
+				if strings.TrimSpace(part) == "" {
+					continue
+				}
+				m := scopeRE.FindStringSubmatch(part)
+				if m == nil {
+					return nil, true, value
+				}
+				entries = append(entries, m[1]+": "+m[2])
+			}
+			return entries, true, ""
+		}
+		for _, next := range lines[i+1:] {
+			text := commentRE.ReplaceAllString(next, "")
+			if strings.TrimSpace(text) == "" {
 				continue
 			}
-			in = false
+			if len(text)-len(strings.TrimLeft(text, " ")) <= 4 {
+				break
+			}
+			m := scopeRE.FindStringSubmatch(text)
+			if m == nil {
+				return nil, true, strings.TrimSpace(next)
+			}
+			entries = append(entries, m[1]+": "+m[2])
 		}
+		return entries, true, ""
 	}
-	return lines, ""
+	return nil, false, ""
 }
 
 func TestPagesSiteAC11_Workflow(t *testing.T) {
@@ -1327,18 +1357,18 @@ func TestPagesSiteAC11_Workflow(t *testing.T) {
 	// Token rights: the workflow default is contents: read, a job may only
 	// narrow it, and only the deploy job holds the Pages rights.
 	for name, body := range jobs {
-		lines, inline := jobPermissions(body)
-		got := strings.Join(lines, ", ")
+		entries, set, bad := jobPermissions(body)
+		sort.Strings(entries)
+		got := strings.Join(entries, ", ")
 		switch {
-		case inline != "":
-			fail(t, v, "job %s sets permissions: %s", name, inline)
+		case bad != "":
+			fail(t, v, "job %s sets permissions %q, not scope: level entries", name, bad)
 		case name == "deploy":
-			sort.Strings(lines)
-			if got := strings.Join(lines, ", "); got != "id-token: write, pages: write" {
+			if got != "id-token: write, pages: write" {
 				fail(t, v, "the deploy job has permissions %q, want pages: write and id-token: write", got)
 			}
-		case got != "" && got != "contents: read":
-			fail(t, v, "job %s has permissions %q, more than contents: read", name, got)
+		case set && got != "contents: read":
+			fail(t, v, "job %s has permissions %q, not contents: read", name, got)
 		}
 	}
 	if !strings.Contains(build, "tools/site/build.py") {
@@ -1356,24 +1386,18 @@ func TestPagesSiteAC11_Workflow(t *testing.T) {
 	if !strings.Contains(text, "group: pages-${{ github.ref }}") || !strings.Contains(text, "cancel-in-progress: ${{ github.event_name == 'pull_request' }}") {
 		fail(t, v, "pages.yml does not run main deployments one at a time")
 	}
-	// Queued runs need not start in push order: the deploy step runs only while
-	// the run's commit is still main's head, read just before publishing.
-	steps := strings.Split(deploy, "\n      - ")
-	guard, publish := -1, -1
-	for i, step := range steps {
-		if strings.Contains(step, "id: latest") && strings.Contains(step, "git ls-remote") && strings.Contains(step, "refs/heads/main") &&
-			strings.Contains(step, "${{ github.sha }}") && strings.Contains(step, `latest=true`) {
-			guard = i
-		}
-		if strings.Contains(step, "uses: actions/deploy-pages@") {
-			publish = i
-			if !strings.Contains(step, "if: steps.latest.outputs.latest == 'true'") {
-				fail(t, v, "the deploy step publishes without checking that its commit is main's head")
-			}
+	// Runs of main need not start in push order, and a newer run replaces a
+	// pending one, so the build of a main run checks out main's head when it
+	// starts rather than the commit that started it: the last run publishes
+	// the latest commit.
+	checkout := ""
+	for _, step := range strings.Split(build, "\n      - ") {
+		if strings.Contains(step, "uses: actions/checkout@") {
+			checkout = step
 		}
 	}
-	if guard < 0 || publish < 0 || guard > publish {
-		fail(t, v, "the deploy job does not read main's head before publishing")
+	if !strings.Contains(checkout, "\n          ref: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && 'refs/heads/main' || '' }}\n") {
+		fail(t, v, "the build job of a main run does not build main's head when the run starts")
 	}
 	readme := readFile(t, filepath.Join(root, "tools", "site", "README.md"))
 	for _, want := range []string{"python3 tools/site/build.py", "macOS", "Linux", "Python 3.10"} {

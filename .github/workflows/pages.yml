@@ -12,9 +12,11 @@ on:
 permissions:
   contents: read
 
-# Runs of main queue one at a time and are never cancelled; a newer pull
-# request run replaces an older one. Queued runs need not start in push order,
-# so Site deploy publishes only while its commit is still main's head.
+# Runs of main queue one at a time: the running one always finishes, and a newer
+# run replaces a pending one. Runs need not start in push order, so a run on
+# main builds the head of main when it starts, not the commit that started it;
+# the last run then publishes the latest commit. A newer pull request run
+# cancels an older one.
 concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -24,9 +26,10 @@ jobs:
     name: Site build
     runs-on: ubuntu-24.04
     steps:
-      - name: Check out the commit
+      - name: Check out the commit (on main, main's head)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && 'refs/heads/main' || '' }}
           persist-credentials: false
       - name: Build the site
         run: python3 tools/site/build.py --out "$RUNNER_TEMP/site" --base /jaekit/ --cache "$RUNNER_TEMP/site-cache"
@@ -65,24 +68,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Check that the commit is still main's head
-        id: latest
-        env:
-          COMMIT: ${{ github.sha }}
-          REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
-        run: |
-          head="$(git ls-remote "$REPOSITORY" refs/heads/main | cut -f1)"
-          if [ -z "$head" ]; then
-            echo "cannot read the head of main" >&2
-            exit 1
-          fi
-          if [ "$head" = "$COMMIT" ]; then
-            echo "latest=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "latest=false" >> "$GITHUB_OUTPUT"
-            echo "main is now at $head; the run for that commit publishes it"
-          fi
       - name: Publish to GitHub Pages
-        if: steps.latest.outputs.latest == 'true'
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

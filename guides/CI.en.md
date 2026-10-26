@@ -70,9 +70,9 @@ Its `Release candidate` job is one of `main`'s required checks: it runs after `B
 
 The [site workflow](../.github/workflows/pages.yml) builds the [documentation site](https://jgoneit.github.io/jaekit/) from `guides/`, `contracts/` and the release version in `.claude-plugin/marketplace.json`. It runs on every pull request, push to `main` and manual run, and publishes only from `main`; a pull request run builds and tests the site without publishing it.
 
-- `Site build` builds the site. It fails when a link target or the release version cannot be read.
+- `Site build` builds the site. It fails when a link target or the release version cannot be read. On `main` it builds the head of `main` when the run starts, not the commit that started the run, so the last run publishes the latest commit.
 - `Site test` tests the built site's documents, links and page behavior. It does not hold back publishing.
-- `Site deploy` publishes to GitHub Pages only after `Site build` succeeds on `main`, and only while that commit is still the head of `main`; a newer commit's run publishes the newer site.
+- `Site deploy` publishes to GitHub Pages only after `Site build` succeeds on `main`.
 
 These jobs are not required checks, so a failure does not block a merge. When a build or deployment fails, the previously published site stays. The [site source guide](../tools/site/README.md) explains how to build the site locally.
 
