@@ -54,6 +54,8 @@ jobs:
       - name: Test the built site
         env:
           PAGES_SITE_CACHE: ${{ runner.temp }}/site-cache
+          # Read-only token for gh api markdown, GitHub's rendering the pages are compared with.
+          GH_TOKEN: ${{ github.token }}
         run: go test -tags pagessite -count=1 -run "TestPagesSiteAC(2|3|4|5|6|7|8|9|10|11)_" ./tools/goal-checks/pages-site
 
   deploy:

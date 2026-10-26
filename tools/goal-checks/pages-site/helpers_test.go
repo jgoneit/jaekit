@@ -14,6 +14,8 @@ package pagessite
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -194,13 +196,28 @@ func site(t *testing.T, violation string) string {
 	return siteDir
 }
 
+// page reads a built file: a file that is not there is the caller's
+// violation; any other read error leaves the property unobserved.
 func page(t *testing.T, dir, rel string, violation string) string {
 	t.Helper()
 	data, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(rel)))
-	if err != nil {
-		fail(t, violation, "%s is not in the built site: %v", rel, err)
+	if errors.Is(err, fs.ErrNotExist) {
+		fail(t, violation, "%s is not in the built site", rel)
+	} else if err != nil {
+		t.Skipf("cannot read %s: %v", rel, err)
 	}
 	return string(data)
+}
+
+// exists says whether a built path is there; a read error other than
+// absence leaves the property unobserved.
+func exists(t *testing.T, path string) bool {
+	t.Helper()
+	_, err := os.Stat(path)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		t.Skipf("cannot inspect %s: %v", path, err)
+	}
+	return err == nil
 }
 
 func git(t *testing.T, dir string, args ...string) string {
@@ -218,12 +235,12 @@ type doc struct {
 	Path, Lang, URL string
 }
 
-// documents lists the tracked Markdown files directly under guides/ and
-// contracts/ of the checked tree, with the page each one becomes.
+// documents lists the Markdown files directly under guides/ and contracts/
+// in the checked commit, with the page each one becomes.
 func documents(t *testing.T) []doc {
 	t.Helper()
 	var docs []doc
-	for _, name := range strings.Split(git(t, repoRoot(t), "ls-files", "-z", "--", "guides", "contracts"), "\x00") {
+	for _, name := range strings.Split(git(t, repoRoot(t), "ls-tree", "-r", "--name-only", "-z", "HEAD", "--", "guides", "contracts"), "\x00") {
 		section, file, ok := strings.Cut(name, "/")
 		if !ok || strings.Contains(file, "/") || !strings.HasSuffix(file, ".md") {
 			continue
@@ -355,9 +372,17 @@ func synthetic(t *testing.T, edit func(dir string)) string {
 		if _, err := os.Stat(target); err == nil {
 			continue
 		}
-		// Other files only need to exist for links to resolve.
+		// Files links can name a heading in keep their text; other files
+		// only need to exist for links to resolve.
+		data := []byte("stand-in\n")
+		switch strings.ToLower(filepath.Ext(name)) {
+		case ".md", ".html", ".svg":
+			if real, err := os.ReadFile(filepath.Join(src, filepath.FromSlash(name))); err == nil {
+				data = real
+			}
+		}
 		_ = os.MkdirAll(filepath.Dir(target), 0o755)
-		_ = os.WriteFile(target, []byte("stand-in\n"), 0o644)
+		_ = os.WriteFile(target, data, 0o644)
 	}
 	if edit != nil {
 		edit(dir)
@@ -474,6 +499,19 @@ function load(path, width, height) {
     document.body.appendChild(frame);
   });
 }
+// loadNoScript opens a page in a frame where scripts cannot run.
+function loadNoScript(path, width, height) {
+  return new Promise(function (resolve) {
+    if (frame) frame.remove();
+    frame = document.createElement("iframe");
+    frame.setAttribute("sandbox", "allow-same-origin");
+    frame.width = String(width || 1280); frame.height = String(height || 900);
+    frame.style.cssText = "position:fixed;top:0;left:0;border:0";
+    frame.onload = function () { resolve(frame.contentWindow); };
+    frame.src = path;
+    document.body.appendChild(frame);
+  });
+}
 function navigated() { return new Promise(function (r) { frame.onload = function () { r(frame.contentWindow); }; }); }
 function key(win, target, k, opts) {
   var e = new win.KeyboardEvent("keydown", Object.assign({ key: k, bubbles: true, cancelable: true }, opts || {}));
@@ -508,11 +546,16 @@ var keyDefs = map[string]struct {
 // returns what the script reported.
 func browse(t *testing.T, dir, script string, flags ...string) map[string]any {
 	t.Helper()
-	return browseWith(t, dir, "", script, flags...)
+	return browseWith(t, dir, browser{}, script, flags...)
 }
 
-// browseWith also runs inject in every frame before the frame's own scripts.
-func browseWith(t *testing.T, dir, inject, script string, flags ...string) map[string]any {
+// browser sets up a page: inject runs in every frame before the frame's own
+// scripts, and scheme ("light" or "dark") is the system color scheme.
+type browser struct {
+	inject, scheme string
+}
+
+func browseWith(t *testing.T, dir string, opts browser, script string, flags ...string) map[string]any {
 	t.Helper()
 	bin := chrome(t)
 	harness := "<!doctype html><meta charset=utf-8><body><pre id=\"out\">pending</pre><script>" + harnessPrelude +
@@ -611,9 +654,12 @@ func browseWith(t *testing.T, dir, inject, script string, flags ...string) map[s
 	session := call("", "Target.attachToTarget", map[string]any{"targetId": target["targetId"], "flatten": true})["sessionId"].(string)
 	// Headless pages lose focus to nothing; keep them focused for keyboard input.
 	call(session, "Emulation.setFocusEmulationEnabled", map[string]any{"enabled": true})
-	if inject != "" {
+	if opts.inject != "" {
 		call(session, "Page.enable", map[string]any{})
-		call(session, "Page.addScriptToEvaluateOnNewDocument", map[string]any{"source": inject})
+		call(session, "Page.addScriptToEvaluateOnNewDocument", map[string]any{"source": opts.inject})
+	}
+	if opts.scheme != "" {
+		call(session, "Emulation.setEmulatedMedia", map[string]any{"features": []map[string]any{{"name": "prefers-color-scheme", "value": opts.scheme}}})
 	}
 	call(session, "Page.navigate", map[string]any{"url": server.URL + "/__harness.html"})
 	type queued struct {
@@ -671,6 +717,33 @@ func browseWith(t *testing.T, dir, inject, script string, flags ...string) map[s
 	}
 	t.Skip("the harness did not finish within 150 seconds")
 	return nil
+}
+
+// githubHTML is GitHub's own rendering of a Markdown source (POST /markdown,
+// GitHub Flavored Markdown, with this repository as context), kept in the
+// cache by the source's digest. ok is false when it cannot be had.
+func githubHTML(t *testing.T, source string) (string, bool) {
+	t.Helper()
+	sum := sha256.Sum256([]byte(source))
+	path := filepath.Join(cacheDir(t), "github-markdown", hex.EncodeToString(sum[:])+".html")
+	if data, err := os.ReadFile(path); err == nil {
+		return string(data), true
+	}
+	gh, err := exec.LookPath("gh")
+	if err != nil {
+		return "", false
+	}
+	body, _ := json.Marshal(map[string]string{"text": source, "mode": "gfm", "context": ownerRepo})
+	cmd := exec.Command(gh, "api", "-X", "POST", "markdown", "--input", "-")
+	cmd.Stdin = bytes.NewReader(body)
+	out, err := cmd.Output()
+	if err != nil || len(out) == 0 {
+		return "", false
+	}
+	if os.MkdirAll(filepath.Dir(path), 0o755) == nil {
+		_ = os.WriteFile(path, out, 0o644)
+	}
+	return string(out), true
 }
 
 func keys(m map[string]bool) []string {

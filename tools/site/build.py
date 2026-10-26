@@ -3,13 +3,15 @@
 
     python3 tools/site/build.py [--root DIR] [--out DIR] [--base PATH] [--cache DIR]
 
-The documents are rendered from the tracked Markdown files of --root; nothing
-is copied into this directory. Pinned third-party files (the Markdown parser,
+The documents are rendered from the files of the commit checked out in --root
+(its HEAD), read from Git as committed: files that are only staged, changed or
+untracked are not used. Nothing is copied into this directory. Pinned third-party files (the Markdown parser,
 fonts and the mermaid renderer) are downloaded once into --cache and verified
 by their recorded digests before use.
 
-Exit 0: built. 1: an input problem, named on stderr; nothing is written.
-2: usage. 3: a pinned download could not be fetched or verified. 4: a tool
+Exit 0: built. 1: a problem in the commit's documents or metadata, named on
+stderr; nothing is written. 2: usage, including an --out folder that is not an
+earlier build. 3: a pinned download could not be fetched or verified. 4: a tool
 the build needs cannot run (Python older than 3.10, Git, the pinned parser)
 or the build stopped unexpectedly; nothing is written either.
 """
@@ -85,9 +87,17 @@ class ToolProblem(Exception):
     """A tool the build needs cannot run (exit 4)."""
 
 
+class UsageProblem(Exception):
+    """The command line cannot be followed (exit 2)."""
+
+
 # ---------------------------------------------------------------- git inputs
 
 def git(root: Path, *args: str) -> str:
+    return git_bytes(root, *args).decode("utf-8", "surrogateescape")
+
+
+def git_bytes(root: Path, *args: str) -> bytes:
     try:
         result = subprocess.run(["git", "-C", str(root), *args], capture_output=True, timeout=120)
     except (OSError, subprocess.TimeoutExpired) as error:
@@ -98,33 +108,64 @@ def git(root: Path, *args: str) -> str:
         # Not a problem of the documents: Git cannot read this repository.
         detail = result.stderr.decode("utf-8", "replace").strip()
         raise ToolProblem(f"git {' '.join(args)} failed in {root}: {detail}")
-    return result.stdout.decode("utf-8", "surrogateescape")
+    return result.stdout
 
 
-def tracked(root: Path) -> list[str]:
-    return [name for name in git(root, "ls-files", "-z").split("\0") if name]
+class Tree:
+    """The files of the commit the site is built from, as Git stores them."""
+
+    def __init__(self, root: Path):
+        self.root = root
+        self.commit = git(root, "rev-parse", "HEAD").strip()
+        self.entries: dict[str, tuple[str, str]] = {}
+        for item in git_bytes(root, "ls-tree", "-r", "-z", "--full-tree", self.commit).split(b"\0"):
+            meta, _, path = item.partition(b"\t")
+            fields = meta.decode().split()
+            if len(fields) == 3 and fields[1] == "blob":
+                self.entries[path.decode("utf-8", "surrogateescape")] = (fields[0], fields[2])
+        self.names = sorted(self.entries)
+        self.dirs = {""}
+        for name in self.names:
+            while name:
+                name = posixpath.dirname(name)
+                self.dirs.add(name)
+        self.blobs: dict[str, bytes] = {}
+
+    def data(self, name: str, via: tuple[str, ...] = ()) -> bytes:
+        if name not in self.entries:
+            raise InputProblem(f"{name}: file is missing")
+        mode, sha = self.entries[name]
+        if sha not in self.blobs:
+            self.blobs[sha] = git_bytes(self.root, "cat-file", "blob", sha)
+        if mode != "120000":
+            return self.blobs[sha]
+        # A symbolic link is followed to the file it names in the same commit.
+        target = posixpath.normpath(posixpath.join(posixpath.dirname(name), self.blobs[sha].decode("utf-8", "replace")))
+        if target not in self.entries or target in via:
+            raise InputProblem(f"{name}: a symbolic link to {target}, which is not a file of the commit")
+        return self.data(target, via + (name,))
+
+    def text(self, name: str) -> str:
+        try:
+            return self.data(name).decode("utf-8")  # line endings stay as committed
+        except UnicodeError as error:
+            raise InputProblem(f"{name}: not UTF-8 text: {error}") from None
 
 
-def source_commit(root: Path) -> str:
-    commit = git(root, "rev-parse", "HEAD").strip()
-    dirty = git(root, "status", "--porcelain", "--untracked-files=no", "--",
-                *SECTIONS, ".claude-plugin/marketplace.json", "assets/readme/brand", "tools/site")
-    return commit + ("-dirty" if dirty.strip() else "")
-
-
-def read_text(root: Path, name: str) -> str:
+def source_commit(tree: Tree) -> str:
+    """The commit, marked -dirty when the site source used here differs from it."""
     try:
-        return (root / name).read_text(encoding="utf-8")
-    except FileNotFoundError:
-        raise InputProblem(f"{name}: file is missing") from None
-    except (OSError, UnicodeError) as error:
-        raise InputProblem(f"{name}: cannot be read: {error}") from None
+        own = SITE.relative_to(tree.root).as_posix()
+    except ValueError:
+        return tree.commit
+    dirty = git(tree.root, "status", "--porcelain", "--untracked-files=no", "--", own)
+    return tree.commit + ("-dirty" if dirty.strip() else "")
 
 
-def release_version(root: Path) -> str:
+def release_version(tree: Tree) -> str:
     name = ".claude-plugin/marketplace.json"
     try:
-        data = json.loads(read_text(root, name))
+        data = json.loads(tree.text(name))
     except json.JSONDecodeError as error:
         raise InputProblem(f"{name}: not valid JSON: {error}") from None
     version = data.get("metadata", {}).get("version") if isinstance(data, dict) and isinstance(data.get("metadata"), dict) else None
@@ -137,9 +178,9 @@ def release_url(version: str) -> str:
     return f"{REPO_URL}/releases/tag/v{version}"
 
 
-def install_command(root: Path, name: str) -> str:
+def install_command(tree: Tree, name: str) -> str:
     in_fence = False
-    for line in read_text(root, name).splitlines():
+    for line in tree.text(name).splitlines():
         if re.match(r"^\s*(```|~~~)", line):
             in_fence = not in_fence
             continue
@@ -196,7 +237,21 @@ def load_markdown(vendor: dict, cache: Path):
         from markdown_it import MarkdownIt
     except Exception as error:  # the verified wheel does not run on this Python
         raise ToolProblem(f"the pinned Markdown parser cannot be loaded: {type(error).__name__}: {error}") from None
-    return MarkdownIt("commonmark", {"html": True}).enable(["table", "strikethrough"])
+    # As on GitHub: tables, and strikethrough with one or two tildes.
+    return MarkdownIt("commonmark", {"html": True, "strikethrough_single_tilde": True}).enable(["table", "strikethrough"])
+
+
+def load_public_docs():
+    """tools/check_public_docs.py beside this builder: its links() and
+    anchors() are the rule the repository's documents are checked by."""
+    sys.path.insert(0, str(SITE.parent))
+    try:
+        import check_public_docs
+    except Exception as error:
+        raise ToolProblem(f"tools/check_public_docs.py cannot be loaded: {type(error).__name__}: {error}") from None
+    finally:
+        sys.path.pop(0)
+    return check_public_docs
 
 
 def member(archive: bytes, name: str) -> bytes:
@@ -277,23 +332,23 @@ class Doc:
         return self.section, self.stem
 
 
-def discover(root: Path, names: list[str]) -> list[Doc]:
+def discover(tree: Tree) -> list[Doc]:
     docs = []
-    for name in names:
+    for name in tree.names:
         section, _, file = name.partition("/")
         if section not in SECTIONS or "/" in file or not file.endswith(".md"):
             continue
         lang, stem = ("en", file[:-6]) if file.endswith(".en.md") else ("ko", file[:-3])
         if not stem:
             raise InputProblem(f"{name}: no document name before the extension")
-        docs.append(Doc(name, section, stem, lang, read_text(root, name)))
+        docs.append(Doc(name, section, stem, lang, tree.text(name)))
     seen: dict[str, str] = {}
     for doc in docs:
         if doc.dir in seen:
             raise InputProblem(f"{doc.path} and {seen[doc.dir]} would both be {doc.dir}")
         seen[doc.dir] = doc.path
     if not docs:
-        raise InputProblem("no tracked Markdown files under guides/ or contracts/")
+        raise InputProblem("no Markdown files under guides/ or contracts/ in the commit")
     return docs
 
 
@@ -321,8 +376,10 @@ HTML_ID = re.compile(r"\b(?:id|name)=[\"']([^\"']+)[\"']")
 HTML_LINK = re.compile(r"\b(href|src)(\s*=\s*)([\"'])([^\"']+)\3")
 
 
-def prepare(doc: Doc, md) -> None:
-    """Parse once, give every heading its GitHub anchor and collect titles."""
+def prepare(doc: Doc, md, public_docs) -> list[str]:
+    """Parse once, give every heading its GitHub anchor and collect titles.
+    Returns problems: the page's ids must be the anchors check_public_docs
+    computes for the file, which the repository's links are checked against."""
     doc.tokens = md.parse(doc.source)
     counts: dict[str, int] = {}
     tokens = doc.tokens
@@ -347,19 +404,53 @@ def prepare(doc: Doc, md) -> None:
         if level == 1 and not doc.title:
             doc.title = text
     if not doc.title:
-        raise InputProblem(f"{doc.path}: no '#' title")
+        doc.title = doc.stem  # no '#' title: the file's name
+    expected = public_docs.anchors(doc.source)
+    problems = []
+    if doc.ids != expected:
+        missing, extra = sorted(expected - doc.ids), sorted(doc.ids - expected)
+        problems.append(f"{doc.path}: heading ids differ from tools/check_public_docs.py anchors()"
+                        f" (not on the page: {', '.join(missing) or 'none'}; only on the page: {', '.join(extra) or 'none'})")
+    return problems
 
 
 class Links:
-    def __init__(self, docs: list[Doc], names: list[str]):
+    def __init__(self, docs: list[Doc], tree: Tree, public_docs):
         self.pages = {doc.path: doc for doc in docs}
-        self.files = set(names)
-        self.dirs = {posixpath.dirname(name) for name in names}
-        for name in list(self.dirs):
-            while name:
-                name = posixpath.dirname(name)
-                self.dirs.add(name)
+        self.tree = tree
+        self.files = set(tree.names)
+        self.dirs = tree.dirs
+        self.public_docs = public_docs
+        self.anchors: dict[str, set[str]] = {}
         self.problems: list[str] = []
+
+    def check(self, doc: Doc) -> None:
+        """Every relative link tools/check_public_docs.py reads in the file,
+        checked by its rules against the commit: the target exists, stays in
+        the repository, and a fragment names an anchor of a Markdown, HTML or
+        SVG file. Reference definitions are links too, used or not."""
+        for target in self.public_docs.links(doc.source):
+            url = urlsplit(target)
+            if url.scheme or url.netloc:
+                continue
+            fragment = unquote(url.fragment)
+            dest = posixpath.normpath(posixpath.join(posixpath.dirname(doc.path), unquote(url.path))) if url.path else doc.path
+            if dest == ".." or dest.startswith("../"):
+                self.problems.append(f"{doc.path}: link leaves the repository: {target}")
+            elif dest in self.files:
+                if not fragment:
+                    continue
+                if posixpath.splitext(dest)[1].lower() not in (".md", ".html", ".svg"):
+                    self.problems.append(f"{doc.path}: link fragment into a file without headings: {target}")
+                elif fragment not in self.anchors_of(dest):
+                    self.problems.append(f"{doc.path}: link to a missing heading: {target}")
+            elif dest != "." and dest not in self.dirs:
+                self.problems.append(f"{doc.path}: link target is missing: {target}")
+
+    def anchors_of(self, name: str) -> set[str]:
+        if name not in self.anchors:
+            self.anchors[name] = self.public_docs.anchors(self.tree.text(name))
+        return self.anchors[name]
 
     def rewrite(self, doc: Doc, href: str) -> str:
         parts = urlsplit(href)
@@ -788,14 +879,14 @@ TAG = re.compile(r"<[^>]+>")
 
 
 def section_texts(doc: Doc) -> dict[str, str]:
-    """The text under each searched heading (levels 2 to 4), code included,
-    keyed by its anchor; "" holds the text before the first one."""
+    """The text under each subheading (levels 2 to 6), code included, keyed
+    by its anchor; "" holds the text before the first one."""
     parts: dict[str, list[str]] = {"": []}
     current, in_heading = "", False
     for token in doc.tokens:
         if token.type == "heading_open":
             in_heading = True
-            if int(token.tag[1]) in (2, 3, 4):
+            if int(token.tag[1]) >= 2:
                 current = token.attrGet("id")
                 parts[current] = []
         elif token.type == "heading_close":
@@ -811,14 +902,14 @@ def section_texts(doc: Doc) -> dict[str, str]:
 
 def search_index(build: Build, lang: str) -> str:
     """Entries of [title, label, url, text]: each document and each of its
-    level 2 to 4 headings, with the text of that part of the page."""
+    subheadings (levels 2 to 6), with the text of that part of the page."""
     entries = []
     for section in SECTIONS:
         for doc, _ in build.groups[(lang, section)]:
             texts = section_texts(doc)
             entries.append([doc.title, TEXT[lang][section], doc.url, texts[""]])
             for level, anchor, text in doc.headings:
-                if level in (2, 3, 4):
+                if level >= 2:
                     entries.append([text, doc.title, f"{doc.url}#{anchor}", texts.get(anchor, "")])
     return json.dumps(entries, ensure_ascii=False, separators=(",", ":")) + "\n"
 
@@ -850,24 +941,28 @@ def groups_for(docs: list[Doc]) -> dict:
 # ---------------------------------------------------------------- build
 
 def build_site(root: Path, out: Path, base: str, cache: Path) -> None:
+    if out.exists() and not (out / MARKER).is_file() and (not out.is_dir() or any(out.iterdir())):
+        raise UsageProblem(f"{out} exists and is not an earlier site build; choose an empty or new --out")
     vendor = json.loads((SITE / "vendor.json").read_text(encoding="utf-8"))
-    names = tracked(root)
-    version = release_version(root)
-    install = {"ko": install_command(root, "guides/INSTALL.md"), "en": install_command(root, "guides/INSTALL.en.md")}
-    docs = discover(root, names)
-    for brand in ("assets/readme/brand/symbol.png", "assets/readme/brand/symbol.svg"):
-        if brand not in names:
-            raise InputProblem(f"{brand}: file is missing")
-    commit = source_commit(root)
+    public_docs = load_public_docs()
+    tree = Tree(root)
+    version = release_version(tree)
+    install = {"ko": install_command(tree, "guides/INSTALL.md"), "en": install_command(tree, "guides/INSTALL.en.md")}
+    docs = discover(tree)
+    brand = {name: tree.data(f"assets/readme/brand/{name}") for name in ("symbol.png", "symbol.svg")}
+    commit = source_commit(tree)
     md = load_markdown(vendor, cache)
     install_rules(md)
+    problems: list[str] = []
     for doc in docs:
-        prepare(doc, md)
-    links = Links(docs, names)
+        problems += prepare(doc, md, public_docs)
+    links = Links(docs, tree, public_docs)
     for doc in docs:
+        links.check(doc)
         render(doc, md, links)
-    if links.problems:
-        raise InputProblem("\n".join(links.problems))
+    problems += links.problems
+    if problems:
+        raise InputProblem("\n".join(dict.fromkeys(problems)))
     assets, notice = vendor_assets(vendor, cache)
     build = Build(commit, version, install, docs, {d.path: d for d in docs}, groups_for(docs))
 
@@ -885,14 +980,12 @@ def build_site(root: Path, out: Path, base: str, cache: Path) -> None:
         put(f"{doc.dir}index.html", doc_page(build, doc, doc.lang))
     for name in ("site.css", "site.js", "home.js"):
         pages[f"assets/{name}"] = (SITE / "static" / name).read_bytes()
-    pages["assets/symbol.png"] = (root / "assets/readme/brand/symbol.png").read_bytes()
-    pages["assets/symbol.svg"] = (root / "assets/readme/brand/symbol.svg").read_bytes()
+    pages["assets/symbol.png"] = brand["symbol.png"]
+    pages["assets/symbol.svg"] = brand["symbol.svg"]
     for name, data in assets.items():
         pages[f"assets/{name}"] = data
     pages["assets/licenses.txt"] = notice.encode("utf-8")
 
-    if out.exists() and not (out / MARKER).is_file() and (not out.is_dir() or any(out.iterdir())):
-        raise InputProblem(f"{out} exists and is not an earlier site build; choose an empty or new --out")
     pages[MARKER] = b"Built by tools/site/build.py; the next build replaces this folder.\n"
     out.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=".site-", dir=out.parent))
@@ -927,6 +1020,9 @@ def main(argv: list[str] | None = None) -> int:
     except InputProblem as error:
         print(f"site: {error}", file=sys.stderr)
         return 1
+    except UsageProblem as error:
+        print(f"site: {error}", file=sys.stderr)
+        return 2
     except DownloadProblem as error:
         print(f"site: {error}", file=sys.stderr)
         return 3
