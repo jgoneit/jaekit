@@ -86,11 +86,11 @@ func TestSparAgentModelAC11_ContractsGuidesSkill(t *testing.T) {
 	amdExpect(t, v, "guides/SPAR.md 리뷰어 설정", amdSection(amdRead(t, "../guides/SPAR.md"), "## 리뷰어 설정"),
 		"`--model 이름=모델`", "`--effort 이름=강도`", "`allowed_models`", "에이전트가 고릅니다",
 		"사용자가 적은 `fallback_model`만", "거부합니다", "(`user`, `agent`, `preset`)",
-		"`agy`의 강도", "이번 실행의 리뷰어가 아닌 이름", "두 번 넘긴 모델이나 강도", "올바른 UTF-8이 아니거나")
+		"적힌 값과 같아도", "`agy`의 강도", "이번 실행의 리뷰어가 아닌 이름", "두 번 넘긴 모델이나 강도", "올바른 UTF-8이 아니거나")
 	amdExpect(t, v, "guides/SPAR.en.md Configure reviewers", amdSection(amdRead(t, "../guides/SPAR.en.md"), "## Configure reviewers"),
 		"`--model NAME=MODEL`", "`--effort NAME=EFFORT`", "`allowed_models`", "the agent chooses",
 		"falls back only to the `fallback_model` you wrote", "spar refuses", "(`user`, `agent`, `preset`)",
-		"an effort for `agy`", "a name that is not a reviewer of the run", "a second model or effort for the same reviewer", "is not valid UTF-8")
+		"even one equal to the written value", "an effort for `agy`", "a name that is not a reviewer of the run", "a second model or effort for the same reviewer", "is not valid UTF-8")
 	amdExpect(t, v, "the Spar skill", amdRead(t, "spar/skills/spar/SKILL.md"),
 		"`--model NAME=MODEL`", "`--effort NAME=EFFORT`", "`allowed_models`", "`model_source`", "Check `spar config` before you choose",
 		"falls back only to the `fallback_model` the user wrote", "spar refuses",

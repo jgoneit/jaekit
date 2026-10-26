@@ -71,6 +71,10 @@ def source_digest():
     return digest.hexdigest()[:12]
 
 
+def text(obj, key, where):
+    return typed(obj.get(key), str, f"{where}.{key}", optional=True)
+
+
 def after(argv, flag):
     for i in range(len(argv) - 1):
         if argv[i] == flag:
@@ -109,36 +113,41 @@ def check(round_dir):
             continue
         chosen += 1
         state = typed(states.get(name), dict, f"reviewers.{name}", optional=True)
-        preset = state.get("preset")
+        preset = text(state, "preset", f"reviewers.{name}")
         if preset not in PRESETS:
             problems.append(f"{name}: the chosen reviewer is not a claude, codex or agy reviewer of the round")
             continue
         presets.add(preset)
-        if state.get("requested_model") != value or state.get("model_source") != "agent":
-            problems.append(f"{name}: requested_model {state.get('requested_model')!r} from "
-                            f"{state.get('model_source')!r}, the agent chose {value!r}")
+        requested = text(state, "requested_model", f"reviewers.{name}")
+        source = text(state, "model_source", f"reviewers.{name}")
+        if requested != value or source != "agent":
+            problems.append(f"{name}: requested_model {requested!r} from {source!r}, the agent chose {value!r}")
         entry = applied.get(name, {})
-        if entry.get("model") != value or entry.get("model_source") != "agent":
-            problems.append(f"{name}: config.reviewers has model {entry.get('model')!r} from {entry.get('model_source')!r}")
-        if entry.get("binary"):
-            problems.append(f"{name}: the CLI is {entry['binary']!r}, not the {preset} found on PATH")
+        where = f"config.reviewers[{name}]"
+        model, source, binary = (text(entry, key, where) for key in ("model", "model_source", "binary"))
+        if model != value or source != "agent":
+            problems.append(f"{name}: config.reviewers has model {model!r} from {source!r}")
+        if binary:
+            problems.append(f"{name}: the CLI is {binary!r}, not the {preset} found on PATH")
         attempts = typed(state.get("attempts"), list, f"reviewers.{name}.attempts", optional=True)
         if not attempts:
             unobserved.append(f"{name}: the round records no attempt")
             continue
         first = typed(attempts[0], dict, f"reviewers.{name}.attempts[0]")
-        argv = typed(first.get("argv"), list, f"reviewers.{name}.attempts[0].argv", optional=True)
-        cli_version = typed(first.get("cli_version"), str, f"reviewers.{name}.attempts[0].cli_version", optional=True)
-        reason = typed(first.get("reason"), str, f"reviewers.{name}.attempts[0].reason", optional=True)
+        where = f"reviewers.{name}.attempts[0]"
+        argv = typed(first.get("argv"), list, f"{where}.argv", optional=True)
+        for j, arg in enumerate(argv):
+            typed(arg, str, f"{where}.argv[{j}]")
+        cli_version, reason, ran_model = (text(first, key, where) for key in ("cli_version", "reason", "model"))
         if not argv or not cli_version or reason.startswith(START_FAILED):
             unobserved.append(f"{name}: the CLI did not start (argv {bool(argv)}, version {cli_version!r}, reason {reason!r})")
             continue
-        if first.get("model") != value or after(argv, MODEL_FLAG[preset]) != value:
-            problems.append(f"{name}: the first attempt ran model {first.get('model')!r} with "
+        if ran_model != value or after(argv, MODEL_FLAG[preset]) != value:
+            problems.append(f"{name}: the first attempt ran model {ran_model!r} with "
                             f"{MODEL_FLAG[preset]} {after(argv, MODEL_FLAG[preset])!r}, the agent chose {value!r}")
-        if state.get("status") != "completed":
+        if text(state, "status", f"reviewers.{name}") != "completed":
             continue
-        observed = state.get("observed_model")
+        observed = text(state, "observed_model", f"reviewers.{name}")
         if preset in REPORTS_MODEL and not observed:
             problems.append(f"{name}: {preset} completed but the record has no observed_model")
         ran.append(f"{name}: {argv[0]} ({cli_version}) ran {value!r}, observed {observed!r}")
