@@ -78,6 +78,8 @@ func TestSparAgentModelAC11_ContractsGuidesSkill(t *testing.T) {
 	amdExpect(t, v, "the --effort row of contracts/review-round.md", amdLine(round, "| `--effort` |"), "`--effort`")
 	amdExpect(t, v, "the reviewers field line of contracts/review-round.md", amdLine(round, "`reviewers.<이름>`:"),
 		"`model_source`", "`effort_source`")
+	amdExpect(t, v, "the summary.md row of contracts/review-round.md", amdLine(round, "| `summary.md` |"),
+		"`model <모델> [<출처>]`", "`effort <강도> [<출처>]`")
 	amdExpect(t, v, "the fallback paragraph of contracts/review-round.md", amdLine(round, "대체 모델:"),
 		"사용자가 적은 `fallback_model`뿐")
 	input := amdRead(t, "../contracts/spar-input.md")

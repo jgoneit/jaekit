@@ -9,12 +9,14 @@ Usage: real_round.py ROUND_FOLDER
 Exit 0 when the property holds, 1 when it does not, 2 when it cannot be
 observed: the input cannot be read (missing round.json or source files,
 JSON that does not parse, another record format, a field of the wrong
-type, bad arguments), a chosen reviewer's CLI never started (no argv or
-cli_version recorded, or spar's "could not start" reason), or no chosen
-reviewer completed. A property that fails for a reviewer whose CLI started
-is a violation even when another reviewer's CLI did not start. The round is
-the one the condition names; besides it only the spar sources of this tree
-are read.
+type, bad arguments), a chosen reviewer's CLI process never started (its
+first attempt records no exit_code, which spar records for every process
+it started, or no argv), or no chosen reviewer completed. A property that
+fails for a reviewer whose CLI started is a violation even when another
+reviewer's CLI did not start. Whether the executable is the real CLI is
+not observed, whether spar found it on PATH or in a binary key: a pass
+prints each executable path and cli_version. The round is the one the
+condition names; besides it only the spar sources of this tree are read.
 
 --source-digest prints the digest a spar built for the round must carry in
 its version (main.version=<version>+src.<digest>): the first twelve hex
@@ -31,8 +33,6 @@ PRESETS = ("claude", "codex", "agy")
 MODEL_FLAG = {"claude": "--model", "codex": "-m", "agy": "--model"}
 # CLIs that name the model they ran on in their output.
 REPORTS_MODEL = ("claude", "agy")
-# The reason spar gives when the executable it resolved fails to start.
-START_FAILED = "could not start "
 ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -124,11 +124,9 @@ def check(round_dir):
             problems.append(f"{name}: requested_model {requested!r} from {source!r}, the agent chose {value!r}")
         entry = applied.get(name, {})
         where = f"config.reviewers[{name}]"
-        model, source, binary = (text(entry, key, where) for key in ("model", "model_source", "binary"))
+        model, source = (text(entry, key, where) for key in ("model", "model_source"))
         if model != value or source != "agent":
             problems.append(f"{name}: config.reviewers has model {model!r} from {source!r}")
-        if binary:
-            problems.append(f"{name}: the CLI is {binary!r}, not the {preset} found on PATH")
         attempts = typed(state.get("attempts"), list, f"reviewers.{name}.attempts", optional=True)
         if not attempts:
             unobserved.append(f"{name}: the round records no attempt")
@@ -139,8 +137,11 @@ def check(round_dir):
         for j, arg in enumerate(argv):
             typed(arg, str, f"{where}.argv[{j}]")
         cli_version, reason, ran_model = (text(first, key, where) for key in ("cli_version", "reason", "model"))
-        if not argv or not cli_version or reason.startswith(START_FAILED):
-            unobserved.append(f"{name}: the CLI did not start (argv {bool(argv)}, version {cli_version!r}, reason {reason!r})")
+        exit_code = first.get("exit_code")
+        if exit_code is not None and (not isinstance(exit_code, int) or isinstance(exit_code, bool)):
+            raise InputError(f"round.json {where}.exit_code is not an int")
+        if exit_code is None or not argv:
+            unobserved.append(f"{name}: the CLI process did not start (exit_code {exit_code!r}, argv {bool(argv)}, reason {reason!r})")
             continue
         if ran_model != value or after(argv, MODEL_FLAG[preset]) != value:
             problems.append(f"{name}: the first attempt ran model {ran_model!r} with "
