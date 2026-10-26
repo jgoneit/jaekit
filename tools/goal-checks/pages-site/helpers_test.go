@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -99,9 +100,16 @@ type buildResult struct {
 // buildRaw runs the builder of the tree at checked against root. It never
 // stops the test, so it can run inside sync.Once.
 func buildRaw(checked, root, out, cache string, extra ...string) buildResult {
+	return buildRawEnv(checked, root, out, cache, nil, extra...)
+}
+
+// buildRawEnv is buildRaw with extra environment variables for the builder.
+func buildRawEnv(checked, root, out, cache string, env []string, extra ...string) buildResult {
 	builder := filepath.Join(checked, "tools", "site", "build.py")
-	if _, err := os.Stat(builder); err != nil {
+	if _, err := os.Stat(builder); errors.Is(err, fs.ErrNotExist) {
 		return buildResult{err: fmt.Errorf("the site builder tools/site/build.py does not exist")}
+	} else if err != nil {
+		return buildResult{skip: fmt.Sprintf("cannot inspect tools/site/build.py: %v", err)}
 	}
 	py, err := exec.LookPath("python3")
 	if err != nil {
@@ -109,6 +117,9 @@ func buildRaw(checked, root, out, cache string, extra ...string) buildResult {
 	}
 	args := append([]string{builder, "--root", root, "--out", out, "--cache", cache}, extra...)
 	cmd := exec.Command(py, args...)
+	if env != nil {
+		cmd.Env = append(os.Environ(), env...)
+	}
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	cmd.Stdout = io.Discard
@@ -139,7 +150,12 @@ func buildRaw(checked, root, out, cache string, extra ...string) buildResult {
 // returned to the caller, which names its own violation.
 func runBuild(t *testing.T, root, out string, extra ...string) buildResult {
 	t.Helper()
-	result := buildRaw(repoRoot(t), root, out, cacheDir(t), extra...)
+	return runBuildEnv(t, root, out, nil, extra...)
+}
+
+func runBuildEnv(t *testing.T, root, out string, env []string, extra ...string) buildResult {
+	t.Helper()
+	result := buildRawEnv(repoRoot(t), root, out, cacheDir(t), env, extra...)
 	if result.skip != "" {
 		t.Skip(result.skip)
 	}

@@ -95,8 +95,9 @@ def git(root: Path, *args: str) -> str:
     if result.returncode < 0:
         raise ToolProblem(f"git {' '.join(args)} ended by signal {-result.returncode}")
     if result.returncode:
+        # Not a problem of the documents: Git cannot read this repository.
         detail = result.stderr.decode("utf-8", "replace").strip()
-        raise InputProblem(f"git {' '.join(args)} failed in {root}: {detail}")
+        raise ToolProblem(f"git {' '.join(args)} failed in {root}: {detail}")
     return result.stdout.decode("utf-8", "surrogateescape")
 
 
@@ -262,8 +263,14 @@ class Doc:
         return "" if self.stem == "README" else self.stem.lower()
 
     @property
-    def url(self) -> str:
+    def dir(self) -> str:
+        """Where the page is written."""
         return f"{self.lang}/{self.section}/" + (f"{self.slug}/" if self.slug else "")
+
+    @property
+    def url(self) -> str:
+        """The page's address, with characters such as # or ? in the name encoded."""
+        return f"{self.lang}/{self.section}/" + (f"{quote(self.slug, safe='')}/" if self.slug else "")
 
     @property
     def key(self) -> tuple[str, str]:
@@ -282,9 +289,9 @@ def discover(root: Path, names: list[str]) -> list[Doc]:
         docs.append(Doc(name, section, stem, lang, read_text(root, name)))
     seen: dict[str, str] = {}
     for doc in docs:
-        if doc.url in seen:
-            raise InputProblem(f"{doc.path} and {seen[doc.url]} would both be {doc.url}")
-        seen[doc.url] = doc.path
+        if doc.dir in seen:
+            raise InputProblem(f"{doc.path} and {seen[doc.dir]} would both be {doc.dir}")
+        seen[doc.dir] = doc.path
     if not docs:
         raise InputProblem("no tracked Markdown files under guides/ or contracts/")
     return docs
@@ -875,7 +882,7 @@ def build_site(root: Path, out: Path, base: str, cache: Path) -> None:
         put(f"{lang}/docs/index.html", docs_index(build, lang))
         put(f"{lang}/search.json", search_index(build, lang))
     for doc in docs:
-        put(f"{doc.url}index.html", doc_page(build, doc, doc.lang))
+        put(f"{doc.dir}index.html", doc_page(build, doc, doc.lang))
     for name in ("site.css", "site.js", "home.js"):
         pages[f"assets/{name}"] = (SITE / "static" / name).read_bytes()
     pages["assets/symbol.png"] = (root / "assets/readme/brand/symbol.png").read_bytes()

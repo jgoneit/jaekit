@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 )
 
 // ------------------------------------------------------------- shared readers
@@ -183,11 +184,15 @@ func TestPagesSiteAC1_Published(t *testing.T) {
 	const v = "site-not-published"
 	dir := site(t, v)
 	head := strings.TrimSpace(git(t, repoRoot(t), "rev-parse", "HEAD"))
+	for name, data := range walk(t, dir) {
+		if strings.HasSuffix(name, ".html") {
+			if got := meta(string(data), "jaekit-commit"); got != head {
+				fail(t, v, "%s names commit %q, not the built commit %s", name, got, head)
+			}
+		}
+	}
 	for _, d := range documents(t) {
 		text := page(t, dir, d.URL+"index.html", v)
-		if got := meta(text, "jaekit-commit"); got != head {
-			fail(t, v, "%s names commit %q, not the built commit %s", d.URL, got, head)
-		}
 		source, ok := pageSource(text)
 		if !ok || source != readFile(t, filepath.Join(repoRoot(t), filepath.FromSlash(d.Path))) {
 			fail(t, v, "%s does not carry the bytes of %s", d.URL, d.Path)
@@ -293,8 +298,13 @@ func TestPagesSiteAC2_DocumentSet(t *testing.T) {
 	}
 	// A new file appears without site changes; untracked, ignored and docs/ files never do.
 	const secret = "PAGES-SITE-PRIVATE-7d1e"
+	// Names with characters that end or split an address: # ? and a space.
+	odd := []string{"FAQ#tips", "Two words?"}
 	syn := synthetic(t, func(root string) {
 		write(t, filepath.Join(root, "guides", "NEWGUIDE.md"), "# New guide\n\nA new guide.\n")
+		for _, name := range odd {
+			write(t, filepath.Join(root, "guides", name+".md"), "# "+name+"\n\nA guide.\n")
+		}
 		write(t, filepath.Join(root, ".gitignore"), "/docs/\n/guides/IGNORED.md\n")
 	})
 	write(t, filepath.Join(syn, "guides", "DRAFT.md"), "# Draft "+secret+"\n")
@@ -305,8 +315,21 @@ func TestPagesSiteAC2_DocumentSet(t *testing.T) {
 		fail(t, v, "a tree with a new guide does not build: %v %s", res.err, res.stderr)
 	}
 	page(t, res.out, "ko/guides/newguide/index.html", v)
-	if !strings.Contains(page(t, res.out, "en/docs/index.html", v), `href="../../ko/guides/newguide/"`) {
+	start := page(t, res.out, "en/docs/index.html", v)
+	if !strings.Contains(start, `href="../../ko/guides/newguide/"`) {
 		fail(t, v, "the new guide is missing from the English docs start page")
+	}
+	for _, name := range odd {
+		want := "ko/guides/" + strings.ToLower(name) + "/"
+		found := false
+		for _, l := range links(start) {
+			if target, _ := resolve("en/docs/", l.href); target == want {
+				found = true
+			}
+		}
+		if _, err := os.Stat(fileFor(res.out, want)); err != nil || !found {
+			fail(t, v, "guides/%s.md has no page the docs start page links to (%v)", name, err)
+		}
 	}
 	for name, data := range walk(t, res.out) {
 		if bytes.Contains(data, []byte(secret)) {
@@ -537,8 +560,14 @@ func TestPagesSiteAC4_Links(t *testing.T) {
 		for _, l := range links(body) {
 			hrefs[unescape(l.href)] = true
 		}
-		// Every link of the source appears with its site target.
+		source := readFile(t, filepath.Join(repoRoot(t), filepath.FromSlash(d.Path)))
+		unused := unusedDefinitions(source)
+		// Every link of the source appears with its site target; a reference
+		// definition no link uses shows nothing, on GitHub as on the site.
 		for _, href := range facts[d.Path].Links {
+			if unused[href] {
+				continue
+			}
 			u, err := url.Parse(href)
 			if err != nil {
 				fail(t, v, "%s: unreadable link %q", d.Path, href)
@@ -632,6 +661,27 @@ func TestPagesSiteAC4_Links(t *testing.T) {
 			fail(t, v, "a failed build still wrote %s", out)
 		}
 	}
+}
+
+var definitionRE = regexp.MustCompile(`(?m)^ {0,3}\[([^\]]+)\]:[ \t]*<?([^\s>]+)>?`)
+
+// unusedDefinitions lists the targets that appear only in reference
+// definitions whose label no link uses.
+func unusedDefinitions(source string) map[string]bool {
+	unused := map[string]bool{}
+	for _, m := range definitionRE.FindAllStringSubmatch(source, -1) {
+		uses := 0
+		for _, at := range regexp.MustCompile(`(?i)\[`+regexp.QuoteMeta(m[1])+`\]`).FindAllStringIndex(source, -1) {
+			if at[1] < len(source) && source[at[1]] == ':' {
+				continue // the definition itself
+			}
+			uses++
+		}
+		if uses == 0 && !strings.Contains(source, "]("+m[2]) {
+			unused[m[2]] = true
+		}
+	}
+	return unused
 }
 
 // ------------------------------------------------------------- AC-5
@@ -1036,7 +1086,7 @@ func TestPagesSiteAC8_Terminal(t *testing.T) {
 	const v = "terminal-missing"
 	dir := site(t, v)
 	css := page(t, dir, "assets/site.css", v)
-	for _, token := range []string{`.term[data-agent="claude"] { --t-accent: #C98D6E`, `.term[data-agent="codex"] { --t-accent: #A09BC4`} {
+	for _, token := range []string{`.term[data-agent="claude"] { --t-accent: #C98D6E; --t-bg: #131110;`, `.term[data-agent="codex"] { --t-accent: #A09BC4; --t-bg: #09090A;`} {
 		if !strings.Contains(css, token) {
 			fail(t, v, "site.css lacks %q", token)
 		}
@@ -1052,7 +1102,8 @@ var w = await load("/%s/", 1280, 900); await wait(500);
 var d = w.document, out = d.getElementById("term-out");
 function lines(kind) { return d.querySelectorAll("#term-out .ln" + (kind ? "." + kind : "")).length; }
 var r = {boot1: d.querySelector("#term-out .boot b").textContent, agent1: d.getElementById("term").getAttribute("data-agent"),
-         accent1: w.getComputedStyle(d.getElementById("term")).getPropertyValue("--t-accent").trim()};
+         accent1: w.getComputedStyle(d.getElementById("term")).getPropertyValue("--t-accent").trim(),
+         bg1: w.getComputedStyle(d.getElementById("term")).backgroundColor};
 var next = d.querySelector("#term-next button");
 r.next1 = next ? next.textContent : null;
 next.click();
@@ -1068,6 +1119,7 @@ r.youAfterSwitch = lines("you");
 r.next2 = d.querySelector("#term-next button").textContent;
 await wait(800);
 r.accent2 = w.getComputedStyle(d.getElementById("term")).getPropertyValue("--t-accent").trim();
+r.bg2 = w.getComputedStyle(d.getElementById("term")).backgroundColor;
 r.caption = d.querySelector(".term-caption").textContent;
 report(r);`
 	for _, lang := range []string{"ko", "en"} {
@@ -1078,7 +1130,8 @@ report(r);`
 		if got["agent2"] != "codex" || !strings.HasPrefix(got["boot2"].(string), "codex") || got["youAfterSwitch"].(float64) != 0 || !strings.HasPrefix(got["next2"].(string), "$spec:spec") {
 			fail(t, v, "%s: choosing Codex does not restart the session with $spec:spec: %v", lang, got)
 		}
-		if !sameColor(got["accent1"], "#C98D6E") || !sameColor(got["accent2"], "#A09BC4") {
+		if !sameColor(got["accent1"], "#C98D6E") || !sameColor(got["accent2"], "#A09BC4") ||
+			!sameColor(got["bg1"], "#131110") || !sameColor(got["bg2"], "#09090A") {
 			fail(t, v, "%s: the terminal colors do not follow the agent: %v", lang, got)
 		}
 		if got["immediate"].(float64) >= got["after"].(float64) {
@@ -1405,19 +1458,37 @@ func TestPagesSiteAC11_Workflow(t *testing.T) {
 			fail(t, v, "tools/site/README.md does not say %q", want)
 		}
 	}
-	first := site(t, v)
-	second := runBuild(t, root, filepath.Join(t.TempDir(), "again"), "--base", "/jaekit/")
-	if second.err != nil || second.code != 0 {
-		fail(t, v, "a second build failed: %v %s", second.err, second.stderr)
-	}
-	a, b := walk(t, first), walk(t, second.out)
-	if len(a) != len(b) {
-		fail(t, v, "two builds of one commit differ in file count: %d and %d", len(a), len(b))
-	}
-	for name, data := range a {
-		if !bytes.Equal(data, b[name]) {
-			fail(t, v, "two builds of one commit differ in %s", name)
+	// The same commit builds the same files, also in time zones 26 hours
+	// apart, so no local date or time is written into them.
+	a := walk(t, site(t, v))
+	for _, tz := range []string{"Etc/GMT-14", "Etc/GMT+12"} {
+		again := runBuildEnv(t, root, filepath.Join(t.TempDir(), "again"), []string{"TZ=" + tz}, "--base", "/jaekit/")
+		if again.err != nil || again.code != 0 {
+			fail(t, v, "a second build failed: %v %s", again.err, again.stderr)
 		}
+		b := walk(t, again.out)
+		if len(a) != len(b) {
+			fail(t, v, "two builds of one commit differ in file count: %d and %d", len(a), len(b))
+		}
+		for name, data := range a {
+			if !bytes.Equal(data, b[name]) {
+				fail(t, v, "two builds of one commit (TZ=%s) differ in %s", tz, name)
+			}
+		}
+	}
+	// Nor today's UTC date, unless a source the site is built from holds it.
+	today := time.Now().UTC().Format("2006-01-02")
+	grep := exec.Command("git", "-C", root, "grep", "-q", "-F", today, "--", "guides", "contracts", "tools/site", ".claude-plugin")
+	switch err := grep.Run(); {
+	case err == nil:
+	case grep.ProcessState != nil && grep.ProcessState.ExitCode() == 1:
+		for name, data := range a {
+			if bytes.Contains(data, []byte(today)) {
+				fail(t, v, "%s carries the build date %s", name, today)
+			}
+		}
+	default:
+		t.Skipf("git grep: %v", err)
 	}
 }
 
@@ -1446,6 +1517,18 @@ func TestPagesSiteAC12_Cutover(t *testing.T) {
 	}
 	if !pages.HTTPS || pages.URL != liveSite {
 		fail(t, v, "Pages is %s with HTTPS enforced %v", pages.URL, pages.HTTPS)
+	}
+	var env struct {
+		Policy *struct {
+			Protected bool `json:"protected_branches"`
+			Custom    bool `json:"custom_branch_policies"`
+		} `json:"deployment_branch_policy"`
+	}
+	if status := getJSON(t, "https://api.github.com/repos/"+ownerRepo+"/environments/github-pages", &env); status != 200 {
+		t.Skipf("environment github-pages: HTTP %d", status)
+	}
+	if env.Policy == nil || env.Policy.Protected || !env.Policy.Custom {
+		fail(t, v, "github-pages does not restrict deployments to its chosen branches: %+v", env.Policy)
 	}
 	var policies struct {
 		Policies []struct {
