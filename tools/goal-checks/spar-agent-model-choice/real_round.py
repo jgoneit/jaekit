@@ -6,10 +6,15 @@ sources in this tree.
 Usage: real_round.py ROUND_FOLDER
        real_round.py --source-digest
 
-Exit 0 when the property holds, 1 when it does not, 2 when the input cannot
-be read (missing round.json or source files, JSON that does not parse,
-another record format, bad arguments). The round is the one the condition
-names; besides it only the spar sources of this tree are read.
+Exit 0 when the property holds, 1 when it does not, 2 when it cannot be
+observed: the input cannot be read (missing round.json or source files,
+JSON that does not parse, another record format, a field of the wrong
+type, bad arguments), a chosen reviewer's CLI never started (no argv or
+cli_version recorded, or spar's "could not start" reason), or no chosen
+reviewer completed. A property that fails for a reviewer whose CLI started
+is a violation even when another reviewer's CLI did not start. The round is
+the one the condition names; besides it only the spar sources of this tree
+are read.
 
 --source-digest prints the digest a spar built for the round must carry in
 its version (main.version=<version>+src.<digest>): the first twelve hex
@@ -26,8 +31,8 @@ PRESETS = ("claude", "codex", "agy")
 MODEL_FLAG = {"claude": "--model", "codex": "-m", "agy": "--model"}
 # CLIs that name the model they ran on in their output.
 REPORTS_MODEL = ("claude", "agy")
-# Reasons of a reviewer whose CLI never started.
-NOT_STARTED = ("not found", "could not start", "is not an executable file")
+# The reason spar gives when the executable it resolved fails to start.
+START_FAILED = "could not start "
 ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -42,6 +47,14 @@ def read_json(path):
         raise InputError(f"{path}: {error}") from error
     except ValueError as error:
         raise InputError(f"{path}: not JSON: {error}") from error
+
+
+def typed(value, kind, where, optional=False):
+    if value is None and optional:
+        return kind()
+    if not isinstance(value, kind):
+        raise InputError(f"round.json {where} is not a {kind.__name__}")
+    return value
 
 
 def source_digest():
@@ -66,59 +79,75 @@ def after(argv, flag):
 
 
 def check(round_dir):
-    problems = []
+    """Return the violations, the reasons the round cannot be observed and
+    the facts of each reviewer that ran on the agent's model."""
+    problems, unobserved, ran = [], [], []
     record = read_json(round_dir / "round.json")
     if not isinstance(record, dict) or record.get("schema") != "review-round/v1":
         raise InputError(f"{round_dir / 'round.json'}: not a review-round/v1 record")
     want = "+src." + source_digest()
-    version = record.get("spar_version")
-    if not isinstance(version, str) or not version.endswith(want):
+    version = typed(record.get("spar_version"), str, "spar_version")
+    if not version.endswith(want):
         problems.append(f"the round was written by spar {version!r}, not by a spar built from this tree's sources ({want})")
-    config = record.get("config") if isinstance(record.get("config"), dict) else {}
-    choices = config.get("choices")
-    if not isinstance(choices, list):
-        return problems + ["round.json config.choices is not a list"], 0
-    applied = {r.get("name"): r for r in config.get("reviewers") or [] if isinstance(r, dict)}
-    states = record.get("reviewers") if isinstance(record.get("reviewers"), dict) else {}
-    chosen = [c for c in choices if isinstance(c, dict) and c.get("key") == "model"]
+    config = typed(record.get("config"), dict, "config")
+    if config.get("choices") is None:
+        return problems + ["round.json config has no choices"], unobserved, ran
+    choices = typed(config["choices"], list, "config.choices")
+    applied = {}
+    for i, entry in enumerate(typed(config.get("reviewers"), list, "config.reviewers")):
+        entry = typed(entry, dict, f"config.reviewers[{i}]")
+        applied[typed(entry.get("name"), str, f"config.reviewers[{i}].name")] = entry
+    states = typed(record.get("reviewers"), dict, "reviewers")
     presets = set()
-    completed = 0
-    for choice in chosen:
-        name, value = choice.get("reviewer"), choice.get("value")
-        state = states.get(name)
-        if not isinstance(state, dict) or state.get("preset") not in PRESETS:
+    chosen = 0
+    for i, choice in enumerate(choices):
+        choice = typed(choice, dict, f"config.choices[{i}]")
+        name = typed(choice.get("reviewer"), str, f"config.choices[{i}].reviewer")
+        key = typed(choice.get("key"), str, f"config.choices[{i}].key")
+        value = typed(choice.get("value"), str, f"config.choices[{i}].value")
+        if key != "model":
+            continue
+        chosen += 1
+        state = typed(states.get(name), dict, f"reviewers.{name}", optional=True)
+        preset = state.get("preset")
+        if preset not in PRESETS:
             problems.append(f"{name}: the chosen reviewer is not a claude, codex or agy reviewer of the round")
             continue
-        preset = state["preset"]
         presets.add(preset)
         if state.get("requested_model") != value or state.get("model_source") != "agent":
             problems.append(f"{name}: requested_model {state.get('requested_model')!r} from "
                             f"{state.get('model_source')!r}, the agent chose {value!r}")
-        entry = applied.get(name) or {}
+        entry = applied.get(name, {})
         if entry.get("model") != value or entry.get("model_source") != "agent":
             problems.append(f"{name}: config.reviewers has model {entry.get('model')!r} from {entry.get('model_source')!r}")
         if entry.get("binary"):
             problems.append(f"{name}: the CLI is {entry['binary']!r}, not the {preset} found on PATH")
-        attempts = state.get("attempts") if isinstance(state.get("attempts"), list) else []
-        first = attempts[0] if attempts and isinstance(attempts[0], dict) else {}
-        argv = first.get("argv") if isinstance(first.get("argv"), list) else []
+        attempts = typed(state.get("attempts"), list, f"reviewers.{name}.attempts", optional=True)
+        if not attempts:
+            unobserved.append(f"{name}: the round records no attempt")
+            continue
+        first = typed(attempts[0], dict, f"reviewers.{name}.attempts[0]")
+        argv = typed(first.get("argv"), list, f"reviewers.{name}.attempts[0].argv", optional=True)
+        cli_version = typed(first.get("cli_version"), str, f"reviewers.{name}.attempts[0].cli_version", optional=True)
+        reason = typed(first.get("reason"), str, f"reviewers.{name}.attempts[0].reason", optional=True)
+        if not argv or not cli_version or reason.startswith(START_FAILED):
+            unobserved.append(f"{name}: the CLI did not start (argv {bool(argv)}, version {cli_version!r}, reason {reason!r})")
+            continue
         if first.get("model") != value or after(argv, MODEL_FLAG[preset]) != value:
             problems.append(f"{name}: the first attempt ran model {first.get('model')!r} with "
                             f"{MODEL_FLAG[preset]} {after(argv, MODEL_FLAG[preset])!r}, the agent chose {value!r}")
-        reason = str(first.get("reason") or "")
-        if not first.get("cli_version") or any(r in reason for r in NOT_STARTED):
-            problems.append(f"{name}: the CLI did not start: version {first.get('cli_version')!r}, {reason!r}")
         if state.get("status") != "completed":
             continue
-        completed += 1
-        if preset in REPORTS_MODEL and not state.get("observed_model"):
+        observed = state.get("observed_model")
+        if preset in REPORTS_MODEL and not observed:
             problems.append(f"{name}: {preset} completed but the record has no observed_model")
+        ran.append(f"{name}: {argv[0]} ({cli_version}) ran {value!r}, observed {observed!r}")
     missing = [p for p in PRESETS if p not in presets]
     if missing:
         problems.append(f"the agent chose no model for {', '.join(missing)}")
-    if chosen and completed == 0:
-        problems.append("no reviewer whose model the agent chose completed")
-    return problems, completed
+    if chosen and not ran:
+        unobserved.append("no reviewer whose model the agent chose completed")
+    return problems, unobserved, ran
 
 
 def main(argv):
@@ -133,7 +162,7 @@ def main(argv):
         print("real_round: error: usage: real_round.py ROUND_FOLDER | --source-digest", file=sys.stderr)
         return 2
     try:
-        problems, completed = check(Path(argv[1]))
+        problems, unobserved, ran = check(Path(argv[1]))
     except InputError as error:
         print(f"real_round: error: {error}", file=sys.stderr)
         return 2
@@ -141,7 +170,13 @@ def main(argv):
         print(f"real_round: {problem}")
     if problems:
         return 1
-    print(f"real_round: {completed} reviewers ran on the agent's model")
+    for reason in unobserved:
+        print(f"real_round: error: {reason}", file=sys.stderr)
+    if unobserved:
+        return 2
+    for fact in ran:
+        print(f"real_round: {fact}")
+    print(f"real_round: {len(ran)} reviewers ran on the agent's model")
     return 0
 
 

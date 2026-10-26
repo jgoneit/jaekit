@@ -63,7 +63,7 @@ fallback_model = "gemini-3.8-flash-high"
 
 ### 모델과 강도
 
-`claude`·`codex`·`agy`의 모델과 `claude`·`codex`의 강도는 사용자 설정에 적은 값이 먼저입니다. 위 예시처럼 `model`을 적으면 그 모델로 고정됩니다. 적지 않은 리뷰어의 모델과 강도는 라운드를 돌리는 에이전트가 고릅니다. 에이전트는 `spar run`에 `--model 이름=모델`과 `--effort 이름=강도`를 넘기고, 넘기지 않으면 preset 값(모델 `opus`·`gpt-6-astra`·`gemini-4-argon-high`, 강도 `high`)으로 돕니다. 사용자 설정에 적힌 값을 에이전트가 바꾸려 하면 spar는 리뷰어를 띄우지 않고 거부합니다.
+`claude`·`codex`·`agy`의 모델과 `claude`·`codex`의 강도는 사용자 설정에 적은 값이 먼저입니다. 위 예시처럼 `model`을 적으면 그 모델로 고정됩니다. 적지 않은 리뷰어의 모델과 강도는 라운드를 돌리는 에이전트가 고릅니다. 에이전트는 `spar run`에 `--model 이름=모델`과 `--effort 이름=강도`를 넘기고, 넘기지 않으면 preset 값(모델 `opus`·`gpt-6-astra`·`gemini-4-argon-high`, 강도 `high`)으로 돕니다. 다음 값은 spar가 리뷰어를 하나도 띄우지 않고 거부합니다: 사용자 설정에 적힌 모델이나 강도를 바꾸는 값, `native`·`command` 리뷰어의 모델과 강도, `agy`의 강도, 이번 실행의 리뷰어가 아닌 이름, 같은 리뷰어에 두 번 넘긴 모델이나 강도, 허용 목록 밖의 값, 비었거나 `-`로 시작하거나 공백 문자나 제어 문자를 품은 값.
 
 에이전트가 고를 수 있는 값을 묶으려면 `allowed_models`와 `allowed_efforts`를 적습니다.
 
