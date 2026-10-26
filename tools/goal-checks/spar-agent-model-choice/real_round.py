@@ -8,19 +8,21 @@ Usage: real_round.py ROUND_FOLDER
 
 Exit 0 when the property holds, 1 when it does not, 2 when it cannot be
 observed: the input cannot be read (missing round.json, source files or a
-completed claude or agy reviewer's stdout.jsonl, JSON that does not parse,
-another record format, a field of the wrong type or a chosen reviewer with
-no state, bad arguments), the agent chose no model for one of claude,
-codex and agy or chose one for a reviewer of another preset, a chosen
-reviewer's CLI process never started (its first attempt records no
-exit_code, which spar records for every process it started, or no argv),
-or no chosen reviewer completed. A property that fails for a reviewer
-whose CLI started is a violation even when another reviewer's CLI did not
-start. A completed reviewer's observed_model must be the model its CLI
-named in the output the round kept: claude in its init event, agy in an
-event's init object, codex never; none named means none recorded. Whether
-the executable is the real CLI is not observed, whether spar found it on
-PATH or in a binary key: a pass prints each executable path and
+completed claude or agy reviewer's last-attempt output, JSON that does not
+parse, including an output line that starts with "{", another record
+format, a field of the wrong type or a chosen reviewer with no state, bad
+arguments), the agent chose no model for one of claude, codex and agy or
+chose one for a reviewer of another preset, a chosen reviewer's CLI
+process never started (its first attempt records no exit_code, which spar
+records for every process it started, or no argv), or no chosen reviewer
+completed. A property that fails for a reviewer whose CLI started is a
+violation even when another reviewer's CLI did not start. A completed
+reviewer's observed_model must be the model its CLI named in the output
+the round kept for its last attempt (stdout.jsonl, or
+fallback/stdout.jsonl after a fallback): claude in its init event, agy in
+an event's init object, codex never; none named means none recorded.
+Whether the executable is the real CLI is not observed, whether spar found
+it on PATH or in a binary key: a pass prints each executable path and
 cli_version. The round is the one the condition names; besides it only the
 spar sources of this tree are read.
 
@@ -79,25 +81,26 @@ def text(obj, key, where):
     return typed(obj.get(key), str, f"{where}.{key}", optional=True)
 
 
-def named_model(round_dir, name, preset):
-    """Return the model the reviewer's CLI named in its output, "" for none.
-    The output is the last attempt's: spar rewrites stdout.jsonl for each."""
+def named_model(round_dir, name, preset, last):
+    """Return the model the reviewer's CLI named in the output of its last
+    attempt, "" for none. spar keeps the first attempt's output in
+    <reviewer>/stdout.jsonl and the fallback's in <reviewer>/fallback/."""
     if preset == "codex":
         return ""
-    path = round_dir / name / "stdout.jsonl"
+    path = round_dir / name / ("fallback" if last > 0 else "") / "stdout.jsonl"
     try:
         data = path.read_bytes()
     except OSError as error:
         raise InputError(f"{path}: {error}") from error
     model = ""
-    for line in data.split(b"\n"):
+    for number, line in enumerate(data.split(b"\n"), 1):
         line = line.strip()
         if not line.startswith(b"{"):
             continue
         try:
             event = json.loads(line.decode("utf-8", errors="replace"))
-        except ValueError:
-            continue
+        except ValueError as error:
+            raise InputError(f"{path}:{number}: an event line is not JSON: {error}") from error
         if preset == "claude" and event.get("type") == "system" and event.get("subtype") == "init":
             model = event.get("model")
         elif preset == "agy" and isinstance(event.get("init"), dict):
@@ -183,7 +186,7 @@ def check(round_dir):
         if text(state, "status", f"reviewers.{name}") != "completed":
             continue
         observed = text(state, "observed_model", f"reviewers.{name}")
-        named = named_model(round_dir, name, preset)
+        named = named_model(round_dir, name, preset, len(attempts) - 1)
         if observed != named:
             problems.append(f"{name}: the record has observed_model {observed!r}, the CLI named {named!r}")
         ran.append(f"{name}: {argv[0]} ({cli_version}) ran {value!r}, observed {observed!r}")
