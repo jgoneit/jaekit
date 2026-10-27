@@ -2,7 +2,7 @@
 
 [한국어](INSTALL.md) · **English**
 
-Jaekit consists of two terminal programs, `ha` and `spar`, and three agent plugins, Spec, Seal and Spar. The programs install with brew or a Release file and the plugins with the plugin commands of Codex or Claude Code; both are needed. This guide covers installation, updates, and removal for the current release, `v0.1.8`. Supported platforms are macOS and Linux on arm64 and amd64. Run the commands below **in Terminal**. After installing, see [your first task](../README.md#your-first-task) for what to send to the agent.
+Read this to install Jaekit for the first time, update it to a new version, or remove it. Jaekit consists of two terminal programs, `ha` and `spar`, and three agent plugins, Spec, Seal and Spar. The programs install with brew or a Release file and the plugins with the plugin commands of Codex or Claude Code; both are needed. This guide is for the current release, `v0.1.8`. Supported platforms are macOS and Linux on arm64 and amd64. Run the commands below **in Terminal**. After installing, see [your first task](../README.md#your-first-task) for what to send to the agent.
 
 - First installation: [Basic install](#basic-install)
 - Without brew: [Install from a Release file](#install-from-a-release-file)
@@ -12,7 +12,7 @@ Jaekit consists of two terminal programs, `ha` and `spar`, and three agent plugi
 - What each release contains and covers: [Release and development combinations](#release-and-development-combinations)
 - Stopping using it: [Uninstall](#uninstall)
 - Moving from a registration that points at a repository checkout: [Move from a local path registration](#move-from-a-local-path-registration)
-- Working on jaekit itself: [Build from source (development)](#build-from-source-development)
+- Working on Jaekit itself: [Building from source and registering for development](DEVELOPMENT.en.md)
 
 ## Basic install
 
@@ -419,36 +419,3 @@ claude plugin install spar@jaekit
 ```
 
 If an `ha` you built earlier with `go install` is still around, clean it up as [Check the version](#check-the-version) describes.
-
-## Build from source (development)
-
-An `ha` built from a repository checkout shows a development version (`ha 0.1.8-dev`). You need Go 1.27 or later and git. Run this from the root of the checkout.
-
-```bash
-go install ./cmd/ha
-ha --version
-```
-
-The `ha` file goes to the folder `go env GOBIN` prints, or to `$(go env GOPATH)/bin` when that is empty. `ha --version` prints `ha 0.1.8-dev`. Seal separately checks the actual support information from `ha capabilities --format json`. A Python compatibility helper is optional; Python 3 installation is not a prerequisite for Seal.
-
-To use the plugins while you change the checkout, register the checkout path as the marketplace. That registration uses the plugin files in the checkout as they are. Replace `<path to jaekit>` with the path of your checkout.
-
-Codex:
-
-```bash
-codex plugin marketplace add <path to jaekit>
-codex plugin add spec@jaekit
-codex plugin add seal@jaekit
-codex plugin add spar@jaekit
-```
-
-Claude Code:
-
-```bash
-claude plugin marketplace add <path to jaekit>
-claude plugin install spec@jaekit
-claude plugin install seal@jaekit
-claude plugin install spar@jaekit
-```
-
-Commands and the record format are in [contracts/run-record.md](../contracts/run-record.md).

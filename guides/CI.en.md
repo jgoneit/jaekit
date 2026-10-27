@@ -2,7 +2,7 @@
 
 [한국어](CI.md) · **English**
 
-The [CI workflow](../.github/workflows/ci.yml) runs on pull requests and pushes to `main`. It keeps common checks on Ubuntu and runs selected native checks on Ubuntu, macOS and Windows Server. Read the results for the specific commit and run; this guide describes the checks, not a permanent claim that every environment has passed.
+Read this when you send a change to the Jaekit repository or interpret its CI results. You do not need it to use Jaekit. The [CI workflow](../.github/workflows/ci.yml) runs on pull requests and pushes to `main`. It keeps common checks on Ubuntu and runs selected native checks on Ubuntu, macOS and Windows Server. Read the results for the specific commit and run; this guide describes the checks, not a permanent claim that every environment has passed.
 
 ## Required results
 

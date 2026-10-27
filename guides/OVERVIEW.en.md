@@ -2,7 +2,7 @@
 
 [한국어](OVERVIEW.md) · **English**
 
-This page explains, from start to finish, what problem Jaekit tries to solve and why it is shaped the way it is. Installation and commands are in the [README](../README.md#get-started) and the [usage guide](USAGE.en.md).
+Read this first when you are new to Jaekit. It explains, from start to finish, what problem Jaekit tries to solve, how one goal goes through, and what a completion record means and does not mean. Then install with the [install guide](INSTALL.en.md) and follow [your first task](../README.md#your-first-task) in the README.
 
 ## When your agent says "done"
 
@@ -25,6 +25,21 @@ Jaekit picks the space between. It holds on to three things and leaves the rest 
 2. **The agent does the work.** Planning, order and tools are the agent's choice. You do not approve each step; it asks only when a decision would change the outcome.
 3. **Completion is judged from records.** A goal is recorded as complete only when each completion condition has a record of its check. For new behavior, the check must fail before the change and pass after it, because a check that passes from the start checks nothing.
 
+## How one goal goes through
+
+Follow a **fictional example** of adding a "Forgot password" link to a login screen. It is not an executed or verified case. Spec, Seal, `ha` and Spar below are the names of the parts that make up Jaekit. They are not tools you run one by one in a terminal. You call `/spec:spec` or answer yes in the conversation, and your agent uses the right part at each step. The next section sums up what each does.
+
+1. **You ask.** In the agent conversation, send `/spec:spec add a "Forgot password" link to the login screen` (`$spec:spec` in Codex).
+2. **Spec writes the goal.** It writes the goal and completion conditions to `docs/specs/password-link/SPEC.md`, for example `AC-1` "the login screen shows a link to the reset page" and `AC-2` "the existing login still works". It also proposes a review tier, asks once whether to implement it now, and stops.
+3. **You review it and answer yes.** If a condition is missing, ask for a fix; if it is right, answer yes. Seal starts then.
+4. **Seal plans.** It writes in `PLAN.md` how each condition is checked. `AC-1` is new behavior; `AC-2` is behavior that must keep working.
+5. **`ha` checks and records.** The agent first runs the `AC-1` check on the code before the change and records its failure. Then it implements and runs it again to record a pass. `AC-2` gets a passing record. Every run is appended to `runs.jsonl`, one line each.
+6. **Spar reviews independently.** This goal's tier is `standard`, so reviewers in another context review the change before completion. The agent fixes the findings that need it, and the finished review is recorded as a gate.
+7. **`ha done` records completion.** When every required condition is met by records, a completion record is written and the report is added to `PROGRESS.md`.
+8. **You read the report.** Read its five lines, what changed, what was checked, what to look at, remaining limits and the next action, with the evidence per condition, and look at the actual result too.
+
+If the conversation ends midway, open a new conversation in the same project and send `continue docs/specs/password-link`. The agent there reads the goal folder and the status `ha` computes, and continues the remaining work.
+
 ## Who does what
 
 | Who | What they do |
@@ -37,21 +52,6 @@ Jaekit picks the space between. It holds on to three things and leaves the rest 
 | Spar | Sends the same material to reviewers outside the working agent's conversation (by default the claude, codex and agy CLIs) for an independent review, and records their findings and how each was handled |
 
 The agent runs `ha` and Spar. What you type in a terminal is only the install and update commands; the work is delegated through the agent conversation.
-
-## How one goal goes through
-
-Follow a **fictional example** of adding a "Forgot password" link to a login screen. It is not an executed or verified case.
-
-1. **You ask.** In the agent conversation, send `/spec:spec add a "Forgot password" link to the login screen` (`$spec:spec` in Codex).
-2. **Spec writes the goal.** It writes the goal and completion conditions to `docs/specs/password-link/SPEC.md`, for example `AC-1` "the login screen shows a link to the reset page" and `AC-2` "the existing login still works". It also proposes a review tier, asks once whether to implement it now, and stops.
-3. **You review it and answer yes.** If a condition is missing, ask for a fix; if it is right, answer yes. Seal starts then.
-4. **Seal plans.** It writes in `PLAN.md` how each condition is checked. `AC-1` is new behavior; `AC-2` is behavior that must keep working.
-5. **`ha` checks and records.** The agent first runs the `AC-1` check on the code before the change and records its failure. Then it implements and runs it again to record a pass. `AC-2` gets a passing record. Every run is appended to `runs.jsonl`, one line each.
-6. **Spar reviews independently.** This goal's tier is `standard`, so reviewers in another context review the change before completion. The agent fixes the findings that need it, and the finished review is recorded as a gate.
-7. **`ha done` records completion.** When every required condition is met by records, a completion record is written and the report is added to `PROGRESS.md`.
-8. **You read the report.** Read its five lines, what changed, what was checked, what to look at, remaining limits and the next action, with the evidence per condition, and look at the actual result too.
-
-If the conversation ends midway, open a new conversation in the same project and send `continue docs/specs/password-link`. The agent there reads the goal folder and the status `ha` computes, and continues the remaining work.
 
 ## What you get
 

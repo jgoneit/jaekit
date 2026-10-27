@@ -2,7 +2,7 @@
 
 **한국어** · [English](CI.en.md)
 
-[CI 워크플로](../.github/workflows/ci.yml)는 PR과 `main` push에서 실행됩니다. 공통 검사는 Ubuntu에 두고, Ubuntu·macOS·Windows Server에서 필요한 네이티브 검사를 실행합니다. 특정 커밋과 실행의 결과를 확인하세요. 이 문서는 검사 구성을 설명하며 모든 환경이 항상 통과했다는 보고가 아닙니다.
+Jaekit 저장소에 변경을 올리거나 그 CI 결과를 해석할 때 읽는 문서입니다. Jaekit을 쓰는 데는 필요 없습니다. [CI 워크플로](../.github/workflows/ci.yml)는 PR과 `main` push에서 실행됩니다. 공통 검사는 Ubuntu에 두고, Ubuntu·macOS·Windows Server에서 필요한 네이티브 검사를 실행합니다. 특정 커밋과 실행의 결과를 확인하세요. 이 문서는 검사 구성을 설명하며 모든 환경이 항상 통과했다는 보고가 아닙니다.
 
 ## 필수 결과
 

@@ -13,8 +13,8 @@
 
 Jaekit lets you **check from records whether work you delegate to Claude Code or Codex is really done**. You settle what finished means as a goal before the work starts, and completion is judged from the check records left for each condition.
 
-- **Spec** turns what you want into a goal document with completion conditions.
-- **Seal** has the agent implement, check, and fix the work toward that goal, and judges completion from check records.
+- Say what you want, and **Spec** writes down the goal and its completion conditions first.
+- Review it and answer yes, and your agent follows **Seal** to plan, build and check toward that goal, then leaves a completion report based on the check records.
 
 The current release is **v0.1.8**, an early version being refined through real work.
 
@@ -536,14 +536,26 @@ Installing, updating, or uninstalling does not delete these records. Git trackin
 
 ## More
 
+**Get started**
+
 - [Understanding Jaekit](guides/OVERVIEW.en.md): why it is shaped this way, how one goal goes through, what completion means
 - [Install, update, and uninstall](guides/INSTALL.en.md) · [Releases and compatibility](guides/INSTALL.en.md#release-and-development-combinations)
+- [WSL2 preparation guide](guides/WSL.en.md): to use Jaekit on Windows
+
+**Use**
+
 - [Usage, changing a goal, and resuming](guides/USAGE.en.md) · [Troubleshooting](guides/USAGE.en.md#troubleshooting)
-- [Detailed operations](guides/OPERATIONS.en.md) · [Command and record formats](contracts/run-record.md) (in Korean)
-- [WSL2 preparation guide](guides/WSL.en.md) · [Windows native candidate guide](guides/WINDOWS.en.md)
-- [About the images and how to edit them](assets/readme/SOURCES.en.md)
-- [What Ubuntu, macOS and Windows CI checks](guides/CI.en.md)
+- [Reading work status and the completion report](guides/OPERATIONS.en.md): why work stopped and what a report rests on
 - [Independent review rounds with Spar](guides/SPAR.en.md), needed for `standard` and `strict` goals from v0.1.7
+
+**File and record formats and rules** (you do not need them to hand work to your agent; in Korean)
+
+- [Formats and rules overview](contracts/README.md) · [Command and record formats](contracts/run-record.md)
+
+**Developing Jaekit**
+
+- [Building from source and registering for development](guides/DEVELOPMENT.en.md) · [What Ubuntu, macOS and Windows CI checks](guides/CI.en.md)
+- [Windows native candidate guide](guides/WINDOWS.en.md) · [About the images and how to edit them](assets/readme/SOURCES.en.md)
 
 Share your experience or where you got stuck in a [usage report or install/bug issue](https://github.com/jgoneit/jaekit/issues/new/choose). Issues are public: leave out company code, internal names, secrets, and raw logs.
 

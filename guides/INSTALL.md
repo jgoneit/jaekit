@@ -2,7 +2,7 @@
 
 **한국어** · [English](INSTALL.en.md)
 
-Jaekit은 터미널 프로그램 `ha`·`spar`와 에이전트 플러그인 Spec·Seal·Spar로 이루어집니다. 프로그램은 brew나 Release 파일로, 플러그인은 Codex나 Claude Code의 플러그인 명령으로 설치하며, 둘 다 있어야 동작합니다. 이 문서는 현재 배포판 `v0.1.8`의 설치·업데이트·제거 안내입니다. macOS·Linux의 arm64·amd64를 지원합니다. 아래 명령은 **터미널에서** 실행합니다. 설치 뒤 에이전트에게 보낼 말은 [첫 사용 안내](../README.ko.md#첫-작업-맡기기)에 있습니다.
+Jaekit을 처음 설치하거나, 새 버전으로 업데이트하거나, 제거할 때 읽습니다. Jaekit은 터미널 프로그램 `ha`·`spar`와 에이전트 플러그인 Spec·Seal·Spar로 이루어집니다. 프로그램은 brew나 Release 파일로, 플러그인은 Codex나 Claude Code의 플러그인 명령으로 설치하며, 둘 다 있어야 동작합니다. 이 문서는 현재 배포판 `v0.1.8` 기준입니다. macOS·Linux의 arm64·amd64를 지원합니다. 아래 명령은 **터미널에서** 실행합니다. 설치 뒤 에이전트에게 보낼 말은 [첫 사용 안내](../README.ko.md#첫-작업-맡기기)에 있습니다.
 
 - 처음 설치할 때: [기본 설치](#기본-설치)
 - brew를 쓰지 않을 때: [Release 파일로 설치](#release-파일로-설치)
@@ -12,7 +12,7 @@ Jaekit은 터미널 프로그램 `ha`·`spar`와 에이전트 플러그인 Spec�
 - 배포판마다 들어 있는 구성 요소와 적용 범위: [배포판과 개발 조합](#배포판과-개발-조합)
 - 그만 쓸 때: [제거](#제거)
 - 저장소 checkout 경로로 등록해 쓰던 것을 옮길 때: [로컬 경로 등록에서 옮기기](#로컬-경로-등록에서-옮기기)
-- jaekit 자체를 고칠 때: [소스에서 빌드 (개발)](#소스에서-빌드-개발)
+- Jaekit 자체를 고칠 때: [소스 빌드와 개발 등록](DEVELOPMENT.md)
 
 ## 기본 설치
 
@@ -419,36 +419,3 @@ claude plugin install spar@jaekit
 ```
 
 예전에 `go install`로 만든 `ha`가 남아 있으면 [버전 확인](#버전-확인)대로 정리합니다.
-
-## 소스에서 빌드 (개발)
-
-저장소 checkout에서 빌드한 `ha`는 개발 버전(`ha 0.1.8-dev`)을 표시합니다. Go 1.27 이상과 git이 필요합니다. checkout의 루트에서 실행합니다.
-
-```bash
-go install ./cmd/ha
-ha --version
-```
-
-`ha` 파일은 `go env GOBIN`이 가리키는 폴더에 생기고, 그 값이 비어 있으면 `$(go env GOPATH)/bin`에 생깁니다. `ha --version`은 `ha 0.1.8-dev`를 출력합니다. Seal은 별도로 `ha capabilities --format json`의 실제 지원 정보를 확인합니다. 선택적인 Python 호환 검사 도우미도 있지만 Python 3 설치가 Seal의 필수 조건은 아닙니다.
-
-checkout을 고치며 plugin을 쓰려면 checkout 경로를 marketplace로 등록합니다. 이 등록은 checkout의 plugin 파일을 그대로 씁니다. `<jaekit 경로>`는 checkout의 경로로 바꿉니다.
-
-Codex:
-
-```bash
-codex plugin marketplace add <jaekit 경로>
-codex plugin add spec@jaekit
-codex plugin add seal@jaekit
-codex plugin add spar@jaekit
-```
-
-Claude Code:
-
-```bash
-claude plugin marketplace add <jaekit 경로>
-claude plugin install spec@jaekit
-claude plugin install seal@jaekit
-claude plugin install spar@jaekit
-```
-
-명령과 기록 형식은 [contracts/run-record.md](../contracts/run-record.md)에 있습니다.

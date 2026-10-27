@@ -2,7 +2,7 @@
 
 [한국어](USAGE.md) · **English**
 
-This guide follows [your first task in the README](../README.md#your-first-task). Its first six sections follow one goal from start to finish: sending commands, changing or continuing a goal, what Seal asks and the review order, reading the completion report, the files left behind, and troubleshooting. The sections after them are for when you want the details of reports, the review gate, cost and budgets.
+Look here to change a goal, continue one after a conversation ends, answer what Seal asks, or read a completion report. New here? Read [Understanding Jaekit](OVERVIEW.en.md) and [your first task in the README](../README.md#your-first-task) first. The first six sections follow one goal from start to finish: sending commands, changing or continuing a goal, what Seal asks and the review order, reading the completion report, the files left behind, and troubleshooting. The sections after them are for when you want the details of reports, the review gate, cost and budgets.
 
 Why Jaekit works this way is in [Understanding Jaekit](OVERVIEW.en.md); installation, updates, and removal are in the [install guide](INSTALL.en.md).
 

@@ -1,8 +1,8 @@
-# Spar guide
+# Spar independent review guide
 
 [한국어](SPAR.md) · **English**
 
-Spar is the independent review tool that looks, outside the working agent's conversation, for problems that agent missed. Reviewers cannot change the requirements; what they find is sorted into `defect`, `requirement-question`, `hardening` and `note`, and how each was handled is recorded. A finished review is kept as a gate file that `ha` uses to judge completion. When you need it is below and in [Review tiers](OVERVIEW.en.md#review-tiers) in Understanding Jaekit.
+Read this before your first `standard` or `strict` goal, or when you change reviewers or read review records. Spar is the independent review tool that has reviewers outside the working agent's conversation look for problems that agent missed. Reviewers cannot change the requirements; what they find is sorted into `defect`, `requirement-question`, `hardening` and `note`, and how each was handled is recorded. A finished review is kept as a gate file that `ha` uses to judge completion. When you need it is below and in [Review tiers](OVERVIEW.en.md#review-tiers) in Understanding Jaekit.
 
 In detail, Spar sends one review packet, pinned to two commits, to several reviewers at once and keeps what they found and what was done about it. The `spar` binary runs the rounds; the `spar` plugin tells your agent when to run them and how findings may be closed.
 

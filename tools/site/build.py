@@ -43,8 +43,56 @@ import urllib.request
 SITE = Path(__file__).resolve().parent
 REPO_URL = "https://github.com/jgoneit/jaekit"
 SECTIONS = ("guides", "contracts")
-# Guides appear in this order; any other guide follows in file-name order.
-GUIDE_ORDER = ("OVERVIEW", "INSTALL", "USAGE", "SPAR", "OPERATIONS", "CI", "WINDOWS", "WSL")
+# The docs page and the navigation group documents by what their reader is
+# doing, not by folder. A group names its documents by path without ".md";
+# a document no group names joins its folder's group in GROUP_OF_FOLDER, in
+# file-name order. A folded group is closed in the navigation unless the
+# page being read is in it.
+GROUPS = (
+    ("start", False, ("guides/OVERVIEW", "guides/INSTALL", "guides/WSL")),
+    ("use", False, ("guides/USAGE", "guides/OPERATIONS", "guides/SPAR")),
+    ("formats", True, ("contracts/README", "contracts/goal-docs", "contracts/bundle", "contracts/run-record",
+                       "contracts/check-result", "contracts/role-card", "contracts/review-round",
+                       "contracts/review-gate", "contracts/spar-config", "contracts/spar-input",
+                       "contracts/core-capabilities", "contracts/decision-history", "contracts/findings")),
+    ("develop", True, ("guides/DEVELOPMENT", "guides/CI", "contracts/regressions",
+                       "contracts/repository-producers", "guides/WINDOWS")),
+)
+GROUP_OF_FOLDER = {"guides": "use", "contracts": "formats"}
+# The contracts keep their own titles and first paragraphs, which an earlier
+# goal's preservation check pins; the lists show these instead.
+LISTED = {
+    "contracts/README": {"ko": ("형식과 규칙 개요", "이 묶음의 문서와 각 문서가 다루는 것."),
+                         "en": ("Formats and rules overview", "The documents in this group and what each covers.")},
+    "contracts/goal-docs": {"ko": ("목표 문서 형식 (SPEC.md)", "Spec이 쓰고 Seal이 읽는 SPEC.md의 절과 완료 조건(AC-n)의 형식."),
+                            "en": ("Goal document format (SPEC.md)", "The sections of SPEC.md and its completion conditions (AC-n), written by Spec and read by Seal.")},
+    "contracts/bundle": {"ko": ("실행 묶음 형식 (PLAN·REVIEW·PROGRESS)", "Seal이 쓰는 PLAN.md·REVIEW.md·PROGRESS.md의 구성과 완료 보고의 형식."),
+                         "en": ("Execution bundle format (PLAN, REVIEW, PROGRESS)", "What PLAN.md, REVIEW.md and PROGRESS.md hold, and the completion report, written by Seal.")},
+    "contracts/run-record": {"ko": ("실행 기록 형식과 완료 판정 (runs.jsonl)", "runs.jsonl의 줄 형식, ha 명령, 기록으로 상태와 완료를 계산하는 규칙."),
+                             "en": ("Run record format and completion (runs.jsonl)", "The lines of runs.jsonl, the ha commands, and how status and completion are computed from the record.")},
+    "contracts/check-result": {"ko": ("검사 선언과 결과 형식", "change 조건의 검사가 무엇을 확인하는지 선언하고 위반과 통과를 알리는 형식."),
+                               "en": ("Check declarations and results", "How a check for a change condition declares what it checks and reports a violation or a pass.")},
+    "contracts/role-card": {"ko": ("실행자의 권한과 완료 선언 규칙", "Seal을 따르는 에이전트가 할 수 있는 일과 완료를 선언하는 규칙."),
+                            "en": ("The executor's authority and completion rules", "What an agent following Seal may do, and when it may declare completion.")},
+    "contracts/review-round": {"ko": ("검토 라운드 기록 형식", "spar run이 남기는 라운드 기록, 지적의 분류와 처리."),
+                               "en": ("Review round record format", "The round record spar run leaves, and how findings are classified and handled.")},
+    "contracts/review-gate": {"ko": ("검토 gate 형식", "spar gate가 검토가 끝났는지 판단해 쓰는 gate 파일."),
+                              "en": ("Review gate format", "The gate file spar gate writes when it judges whether review is finished.")},
+    "contracts/spar-config": {"ko": ("Spar 설정 형식 (spar.toml)", "리뷰어와 검토 설정을 정하는 spar.toml."),
+                              "en": ("Spar configuration format (spar.toml)", "The spar.toml files that choose reviewers and review settings.")},
+    "contracts/spar-input": {"ko": ("Spar 입력 형식", "spar가 받는 입력의 형식과, 형식 밖 입력의 결과."),
+                             "en": ("Spar input formats", "The inputs spar accepts, and what happens to input outside them.")},
+    "contracts/core-capabilities": {"ko": ("ha 지원 기능과 호환 확인", "설치된 ha가 지원하는 기능을 ha capabilities로 확인하는 방법."),
+                                    "en": ("ha capabilities and compatibility", "How ha capabilities shows what the installed ha supports.")},
+    "contracts/decision-history": {"ko": ("판단 이력 형식 (선택 기능)", "ha history로 남기는 관측·원인·결정 같은 판단 이력의 형식."),
+                                   "en": ("Decision history format (optional)", "The decision history recorded with ha history: observations, causes, decisions and more.")},
+    "contracts/findings": {"ko": ("완료 뒤 발견 기록 형식", "완료 뒤에 발견한 문제를 원래 완료와 따로 남기는 기록."),
+                           "en": ("Post-completion findings format", "How a problem found after completion is recorded apart from that completion.")},
+    "contracts/regressions": {"ko": ("공통 규칙과 회귀 검사 연결", "Jaekit의 공통 규칙과 그것을 지키는 회귀 검사의 연결."),
+                              "en": ("Common invariants and regression checks", "Jaekit's common invariants and the regression checks that guard them.")},
+    "contracts/repository-producers": {"ko": ("저장소 검사 도구의 관측 범위", "Jaekit 저장소의 검사 도구가 무엇을 관측하는지."),
+                                       "en": ("What the repository's check tools observe", "What the check tools of the Jaekit repository observe.")},
+}
 LANGS = ("ko", "en")
 REQUIRED_CHECKS = ("Seal Core", "Public documentation", "Release candidate")
 INSTALL_LINE = re.compile(r"^brew install \S+$")
@@ -55,21 +103,37 @@ VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link",
 
 TEXT = {
     "ko": {
-        "guides": "안내", "contracts": "계약", "docs": "문서", "home": "홈",
+        "docs": "문서", "home": "홈",
         "releases": "릴리스", "search": "문서 검색", "on_page": "이 페이지",
         "copy_page": "페이지 복사", "view_source": "원본 보기", "only": "한국어만",
         "other_only": "영어만", "menu": "목차 열기", "theme": "밝은 테마와 어두운 테마 바꾸기",
         "lang": "Switch to English", "built": "만든 커밋", "licenses": "라이선스",
-        "docs_title": "문서", "docs_lead": "설치, 사용, 검토, 운영 안내와 형식 계약입니다. 모두 저장소의 Markdown 파일에서 그대로 만들어집니다.",
+        "docs_title": "문서", "docs_lead": "처음이라면 '시작하기'의 문서를 순서대로 읽으세요. 이미 쓰고 있다면 '사용하기'에서 필요한 안내를 고릅니다. 파일 형식과 정확한 동작 규칙, Jaekit 개발 자료는 뒤에 따로 모았습니다. 모든 페이지는 저장소의 Markdown 파일에서 그대로 만들어집니다.",
+        "group_start": "시작하기", "group_use": "사용하기", "group_formats": "파일·기록 형식과 동작 규칙", "group_develop": "Jaekit 개발",
+        "intro_start": "Jaekit이 어떤 문제를 푸는지 이해하고, 설치한 뒤 첫 목표를 맡깁니다.",
+        "intro_use": "목표를 고치거나 이어 가고, 멈춘 작업과 완료 보고를 읽고, 독립 검토를 준비할 때 찾아봅니다.",
+        "intro_formats": "Jaekit이 읽고 쓰는 목표 문서, 작업 파일, 검사·검토 기록의 형식과, 그 기록으로 상태와 완료를 판단하는 규칙을 정확히 적은 문서입니다. 에이전트에게 일을 맡겨 쓰는 데는 읽지 않아도 됩니다. 기록을 읽는 도구를 만들거나 어떤 동작의 정확한 조건을 확인할 때 찾아봅니다. 저장소의 <code>contracts/</code> 폴더에 있으며, 문서 제목의 '계약'은 프로그램과 도구가 지키는 이 형식과 규칙을 뜻합니다.",
+        "intro_develop": "Jaekit 자체를 빌드하고 고치고 검증할 때 읽습니다. Jaekit을 쓰는 데는 필요 없습니다.",
+        "note_formats": "형식과 규칙 문서입니다. 에이전트에게 일을 맡겨 쓰는 데는 읽지 않아도 되고, 기록을 다루는 도구를 만들거나 정확한 동작을 확인할 때 봅니다. 처음이라면 <a href=\"{overview}\">Jaekit 이해하기</a>부터 읽으세요.",
+        "note_develop": "Jaekit 개발 문서입니다. Jaekit을 쓰는 데는 필요 없습니다. 처음이라면 <a href=\"{overview}\">Jaekit 이해하기</a>부터 읽으세요.",
+        "show": "문서 {n}개 보기",
         "move": "이동", "open": "열기", "placeholder": "무엇을 찾나요?", "empty": "일치하는 항목이 없습니다",
     },
     "en": {
-        "guides": "Guides", "contracts": "Contracts", "docs": "Docs", "home": "Home",
+        "docs": "Docs", "home": "Home",
         "releases": "Releases", "search": "Search docs", "on_page": "On this page",
         "copy_page": "Copy page", "view_source": "View source", "only": "English only",
         "other_only": "Korean only", "menu": "Open navigation", "theme": "Switch light or dark theme",
         "lang": "한국어로 보기", "built": "Built from", "licenses": "Licenses",
-        "docs_title": "Documentation", "docs_lead": "Guides for installing, using, reviewing and operating Jaekit, and the format contracts. Every page is built as is from the repository's Markdown files.",
+        "docs_title": "Documentation", "docs_lead": "New here? Read the documents under Get started in order. Already using Jaekit? Pick what you need under Use. File formats, exact rules and material for developing Jaekit come last. Every page is built as is from the repository's Markdown files.",
+        "group_start": "Get started", "group_use": "Use", "group_formats": "File and record formats and rules", "group_develop": "Developing Jaekit",
+        "intro_start": "Learn what problem Jaekit solves, install it, and hand over your first goal.",
+        "intro_use": "Look here to change or continue a goal, read a stopped task or a completion report, or set up independent review.",
+        "intro_formats": "These documents state exactly the formats of the goal documents, working files and check and review records Jaekit reads and writes, and the rules that compute status and completion from those records. You do not need them to hand work to your agent. Read them when you build a tool that reads the records or need the exact condition for a behavior. They live in the repository's <code>contracts/</code> folder; \"contract\" in their titles means these formats and rules the programs and tools keep. They are written in Korean.",
+        "intro_develop": "Read these to build, change and verify Jaekit itself. You do not need them to use Jaekit.",
+        "note_formats": "This is a formats and rules document. You do not need it to hand work to your agent; read it when you build a tool that handles the records or need the exact behavior. New here? Start with <a href=\"{overview}\">Understanding Jaekit</a>.",
+        "note_develop": "This document is for developing Jaekit. You do not need it to use Jaekit. New here? Start with <a href=\"{overview}\">Understanding Jaekit</a>.",
+        "show": "Show {n} documents",
         "move": "move", "open": "open", "placeholder": "What are you looking for?", "empty": "Nothing matches",
     },
 }
@@ -870,13 +934,21 @@ def sidebar(lang: str, url: str, build: Build, current: Doc | None) -> str:
     here = ' aria-current="page"' if current is None else ""
     parts = ['<nav class="side" id="side" aria-label="Documentation">',
              f'<a class="side-home" href="{relative(url, f"{lang}/docs/")}"{here}>{t["docs_title"]}</a>']
-    for section in SECTIONS:
-        parts.append(f"<h5>{t[section]}</h5><ul>")
-        for doc, foreign in build.groups[(lang, section)]:
+    for group, folded, _ in GROUPS:
+        rows = build.groups[(lang, group)]
+        if not rows:
+            continue
+        label = t["group_" + group]
+        if folded:
+            here = current is not None and any(doc.path == current.path for doc, _ in rows)
+            parts.append(f'<details class="side-group"{" open" if here else ""}><summary>{label}</summary><ul>')
+        else:
+            parts.append(f"<h5>{label}</h5><ul>")
+        for doc, foreign in rows:
             mark = f' <span class="only">{t["other_only"]}</span>' if foreign else ""
             on = ' class="on" aria-current="page"' if current is not None and doc.path == current.path else ""
-            parts.append(f'<li><a href="{relative(url, doc.url)}"{on} hreflang="{doc.lang}">{esc(doc.title)}{mark}</a></li>')
-        parts.append("</ul>")
+            parts.append(f'<li><a href="{relative(url, doc.url)}"{on} hreflang="{doc.lang}">{esc(listed(doc, lang)[0])}{mark}</a></li>')
+        parts.append("</ul></details>" if folded else "</ul>")
     parts.append("</nav>")
     return "\n".join(parts)
 
@@ -900,8 +972,13 @@ def doc_page(build: Build, doc: Doc, lang: str) -> str:
     toc = [h for h in doc.headings if h[0] in (2, 3)]
     toc_items = "".join(f'<li class="l{level}"><a href="#{anchor}">{esc(text)}</a></li>' for level, anchor, text in toc)
     source = json.dumps(doc.source, ensure_ascii=False).replace("<", "\\u003c")
-    section_label = t[doc.section]
+    group = group_of(doc)
+    section_label = t["group_" + group]
     only = f'<span class="only">{t["only"]}</span>' if pair is None else ""
+    note = ""
+    if "note_" + group in t:
+        overview = relative(doc.url, f"{lang}/guides/overview/")
+        note = '<p class="doc-note">' + t["note_" + group].replace("{overview}", overview) + "</p>\n"
     return (head(lang, f"{doc.title} · Jaekit", doc.summary or doc.title, root, build) +
             f'<body class="page-doc">\n' + nav(lang, root, switch, "docs", True) +
             f'<div class="docs">\n{sidebar(lang, doc.url, build, doc)}\n'
@@ -909,6 +986,7 @@ def doc_page(build: Build, doc: Doc, lang: str) -> str:
             f'<div class="page-bar"><span class="eyebrow">{section_label}{only}</span>'
             f'<span class="page-actions"><button type="button" class="btn" id="copy-page">{t["copy_page"]}</button>'
             f'<a class="btn" href="{REPO_URL}/blob/main/{quote(doc.path)}">{t["view_source"]}</a></span></div>\n'
+            + note
             + (f'<details class="toc-mobile"><summary>{t["on_page"]}</summary><ul>{toc_items}</ul></details>\n' if toc else "")
             + f'<div class="markdown">\n{doc.body}</div>\n'
             f'<div class="doc-foot"><span><code>{esc(doc.path)}</code></span><span>{t["built"]} <code>{esc(build.commit[:12])}</code></span></div>\n'
@@ -923,20 +1001,28 @@ def docs_index(build: Build, lang: str) -> str:
     url = f"{lang}/docs/"
     root = up(url)
     other = "en" if lang == "ko" else "ko"
-    sections = []
-    for section in SECTIONS:
+    sections, shown = [], []
+    for group, folded, _ in GROUPS:
+        rows = build.groups[(lang, group)]
+        if not rows:
+            continue
         items = []
-        for doc, foreign in build.groups[(lang, section)]:
+        for doc, foreign in rows:
             mark = f' <span class="only">{t["other_only"]}</span>' if foreign else ""
-            items.append(f'<a href="{relative(url, doc.url)}" hreflang="{doc.lang}"><b>{esc(doc.title)}{mark}</b>'
-                         f'<span>{esc(doc.summary)}</span><code>{esc(doc.path)}</code></a>')
-        sections.append(f'<h2 id="{section}">{t[section]}</h2>\n<div class="guides">{"".join(items)}</div>')
+            title, summary = listed(doc, lang)
+            items.append(f'<a href="{relative(url, doc.url)}" hreflang="{doc.lang}"><b>{esc(title)}{mark}</b>'
+                         f'<span>{esc(summary)}</span><code>{esc(doc.path)}</code></a>')
+        grid = f'<div class="guides">{"".join(items)}</div>'
+        if folded:
+            grid = f'<details class="group-docs"><summary>{t["show"].format(n=len(rows))}</summary>{grid}</details>'
+        shown.append(group)
+        sections.append(f'<h2 id="{group}">{t["group_" + group]}</h2>\n<p class="group-intro">{t["intro_" + group]}</p>\n{grid}')
     return (head(lang, f"{t['docs_title']} · Jaekit", t["docs_lead"], root, build) +
             '<body class="page-doc">\n' + nav(lang, root, f"{root}{other}/docs/", "docs", True) +
             f'<div class="docs">\n{sidebar(lang, url, build, None)}\n<article class="article" id="article">\n'
             f'<h1>{t["docs_title"]}</h1>\n<p class="lead">{t["docs_lead"]}</p>\n' + "\n".join(sections) +
             f'\n</article>\n<aside class="toc" aria-label="{esc(t["on_page"])}"><h5>{t["on_page"]}</h5><ul id="toc-list">'
-            + "".join(f'<li class="l2"><a href="#{s}">{t[s]}</a></li>' for s in SECTIONS) +
+            + "".join(f'<li class="l2"><a href="#{g}">{t["group_" + g]}</a></li>' for g in shown) +
             '</ul></aside>\n</div>\n' + footer(lang, root, build) + palette(lang, root) +
             scripts(root, False, False) + "</body>\n</html>\n")
 
@@ -1098,37 +1184,54 @@ def search_index(build: Build, lang: str) -> str:
     """Entries of [title, label, url, text]: each document and each of its
     subheadings (levels 2 to 6), with the text of that part of the page."""
     entries = []
-    for section in SECTIONS:
-        for doc, _ in build.groups[(lang, section)]:
+    for group, _, _ in GROUPS:
+        for doc, _ in build.groups[(lang, group)]:
             texts = section_texts(doc)
-            entries.append([doc.title, TEXT[lang][section], doc.url, texts[""]])
+            title = listed(doc, lang)[0]
+            lead = texts[""] if title == doc.title else f"{doc.title} {texts['']}"
+            entries.append([title, TEXT[lang]["group_" + group], doc.url, lead])
             for level, anchor, text in doc.headings:
                 if level >= 2:
                     entries.append([text, doc.title, f"{doc.url}#{anchor}", texts.get(anchor, "")])
     return json.dumps(entries, ensure_ascii=False, separators=(",", ":")) + "\n"
 
 
+def group_of(doc: Doc) -> str:
+    name = f"{doc.section}/{doc.stem}"
+    for group, _, names in GROUPS:
+        if name in names:
+            return group
+    return GROUP_OF_FOLDER[doc.section]
+
+
+def listed(doc: Doc, lang: str) -> tuple[str, str]:
+    """The title and one-line summary a list shows for a document."""
+    return LISTED.get(f"{doc.section}/{doc.stem}", {}).get(lang, (doc.title, doc.summary))
+
+
 def groups_for(docs: list[Doc]) -> dict:
     """Each language lists every document; one missing in that language
     links to the language it exists in."""
-    def order(doc: Doc):
-        if doc.section == "guides":
-            rank = GUIDE_ORDER.index(doc.stem) if doc.stem in GUIDE_ORDER else len(GUIDE_ORDER)
-        else:
-            rank = 0 if doc.stem == "README" else 1
-        return rank, doc.stem
+    first = {}
+    for doc in docs:
+        first.setdefault(doc.key, doc)
+
+    def order(key: tuple[str, str]):
+        names = next(names for g, _, names in GROUPS if g == group_of(first[key]))
+        name = f"{key[0]}/{key[1]}"
+        return (names.index(name), "") if name in names else (len(names), key[1])
 
     result = {}
-    keys = sorted({doc.key for doc in docs}, key=lambda key: order(next(d for d in docs if d.key == key)))
+    keys = sorted(first, key=order)
     for lang in LANGS:
-        for section in SECTIONS:
+        for group, _, _ in GROUPS:
             row = []
             for key in keys:
-                if key[0] != section:
+                if group_of(first[key]) != group:
                     continue
                 same = [d for d in docs if d.key == key and d.lang == lang]
-                row.append((same[0], False) if same else (next(d for d in docs if d.key == key), True))
-            result[(lang, section)] = row
+                row.append((same[0], False) if same else (first[key], True))
+            result[(lang, group)] = row
     return result
 
 

@@ -13,8 +13,8 @@
 
 Jaekit은 Claude Code·Codex에 맡긴 작업이 **정말 끝났는지 기록으로 확인할 수 있게** 해 주는 도구입니다. 무엇을 하면 끝인지 작업 전에 목표로 정해 두고, 완료는 조건마다 남은 검사 기록으로 판단합니다.
 
-- **Spec**은 원하는 일을 목표 문서와 완료 조건으로 정리합니다.
-- **Seal**은 에이전트가 그 목표대로 구현·검사·수정하게 하고, 검사 기록으로 완료를 판단합니다.
+- 원하는 일을 말하면 **Spec**이 목표와 완료 조건을 문서로 먼저 정리합니다.
+- 확인하고 "응"이라고 답하면 쓰던 에이전트가 **Seal**을 따라 계획·구현·검사를 이어 가고, 검사 기록을 근거로 완료 보고를 남깁니다.
 
 현재 배포판은 **v0.1.8**입니다. 실제 작업에 써 보며 다듬는 초기 개발 단계입니다.
 
@@ -520,14 +520,26 @@ Assurance: standard
 
 ## 더 알아보기
 
+**시작하기**
+
 - [Jaekit 이해하기](guides/OVERVIEW.md): 왜 이런 모양인지, 목표 하나가 어떻게 지나가는지, 완료가 뜻하는 것
 - [설치·업데이트·제거](guides/INSTALL.md) · [배포판과 호환 범위](guides/INSTALL.md#배포판과-개발-조합)
+- [WSL2 준비 안내](guides/WSL.md): Windows에서 쓰려면
+
+**사용하기**
+
 - [사용 안내·목표 수정·재개](guides/USAGE.md) · [문제 해결](guides/USAGE.md#문제-해결)
-- [자세한 운영 규칙](guides/OPERATIONS.md) · [명령·기록 형식](contracts/run-record.md)
-- [WSL2 준비 안내](guides/WSL.md) · [Windows 네이티브 후보 안내](guides/WINDOWS.md)
-- [이미지 설명과 수정 방법](assets/readme/SOURCES.md)
-- [Ubuntu·macOS·Windows CI의 검사 범위](guides/CI.md)
+- [작업 상태와 완료 보고 읽기](guides/OPERATIONS.md): 멈춘 이유와 보고의 근거
 - [Spar로 하는 독립 검토](guides/SPAR.md): v0.1.7부터 `standard`·`strict` 목표에 필요
+
+**파일·기록 형식과 동작 규칙** (에이전트에게 일을 맡겨 쓰는 데는 읽지 않아도 됩니다)
+
+- [형식과 규칙 개요](contracts/README.md) · [명령·기록 형식](contracts/run-record.md)
+
+**Jaekit 개발**
+
+- [소스 빌드와 개발 등록](guides/DEVELOPMENT.md) · [Ubuntu·macOS·Windows CI의 검사 범위](guides/CI.md)
+- [Windows 네이티브 후보 안내](guides/WINDOWS.md) · [이미지 설명과 수정 방법](assets/readme/SOURCES.md)
 
 사용 경험이나 막힌 점은 [사용 보고·설치·버그 issue](https://github.com/jgoneit/jaekit/issues/new/choose)로 남겨 주세요. issue는 공개되므로 회사 코드, 내부 이름, 비밀 값과 로그 원문은 제외해 주세요.
 
