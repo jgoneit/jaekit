@@ -13,12 +13,13 @@ including an output line that starts with "{", another record format, a
 field of the wrong type, no config.choices, a chosen reviewer with no
 state, preset or config.reviewers entry, more than a first and a fallback
 attempt, a completed reviewer whose last attempt never started, bad
-arguments), the agent chose no model for one of claude, codex and agy or
-chose one for a reviewer of another preset, a chosen reviewer's CLI
-process never started (its first attempt records no exit_code, which spar
-records for every process it started, or no argv), or no chosen reviewer
-completed. A property that fails for a reviewer whose CLI started is a
-violation even when another reviewer's CLI did not start. The
+arguments), a spar_version without this tree's source digest (the round
+observes another build), the agent chose no model for one of claude, codex
+and agy or chose one for a reviewer of another preset, a chosen reviewer's
+CLI process never started (its first attempt records no exit_code, which
+spar records for every process it started, or no argv), or no chosen
+reviewer completed. A property that fails for a reviewer whose CLI started
+is a violation even when another reviewer's CLI did not start. The
 observed_model of each attempt, and the reviewer's for its last attempt,
 completed or not, must be the model its CLI named in the output the round
 kept for that attempt (stdout.jsonl for the first, fallback/stdout.jsonl
@@ -142,7 +143,8 @@ def check(round_dir):
     want = "+src." + source_digest()
     version = typed(record.get("spar_version"), str, "spar_version")
     if not version.endswith(want):
-        problems.append(f"the round was written by spar {version!r}, not by a spar built from this tree's sources ({want})")
+        return problems, [f"the round was written by spar {version!r}, not by a spar built from this tree's "
+                          f"sources ({want}); build one as --source-digest says and run the round again"], ran
     config = typed(record.get("config"), dict, "config")
     choices = typed(config.get("choices"), list, "config.choices")
     applied = {}
