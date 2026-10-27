@@ -1,6 +1,7 @@
 /* Jaekit site. One centered column framed by faint rules: the home page is a
    short pitch around an ASCII rendering of the symbol, and the docs are a
-   three-column reading view. Monochrome with one blue accent. */
+   three-column reading view. Monochrome with one blue accent; in the docs,
+   code is colored by kind and bold text is marked like a highlighter. */
 :root {
   --bg: #0A0A0B;
   --bg-2: #111113;
@@ -17,6 +18,10 @@
   --bar: color-mix(in srgb, var(--bg) 82%, transparent);
   --shadow: 0 40px 80px -40px rgba(0, 0, 0, .9);
   --grid: rgba(255, 255, 255, .045);
+  --mark: rgba(250, 204, 21, .22);
+  --code-fg: #C3CBFF;
+  --syn-com: #7A7A85; --syn-str: #8FD6A4; --syn-num: #F2B27A; --syn-kw: #E79AD6; --syn-key: #8094FF;
+  --syn-cmd: #F5D37A; --syn-flag: #7CCBE6; --syn-var: #F2A07A; --syn-ph: #C3A6FF;
 
   --sans: "Geist Variable", "Noto Sans KR Variable", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
   --mono: "Geist Mono Variable", "Noto Sans KR Variable", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -30,6 +35,9 @@
     --bar: color-mix(in srgb, var(--bg) 84%, transparent);
     --shadow: 0 40px 80px -48px rgba(10, 10, 20, .35);
     --grid: rgba(0, 0, 0, .05);
+    --mark: rgba(253, 224, 71, .55); --code-fg: #2B3FB8;
+    --syn-com: #70707A; --syn-str: #1E7A45; --syn-num: #B4570B; --syn-kw: #A8327C; --syn-key: #3A52E0;
+    --syn-cmd: #8A5800; --syn-flag: #0B7490; --syn-var: #B4570B; --syn-ph: #7A3FD1;
     color-scheme: light;
   }
 }
@@ -40,6 +48,9 @@
   --bar: color-mix(in srgb, var(--bg) 84%, transparent);
   --shadow: 0 40px 80px -48px rgba(10, 10, 20, .35);
   --grid: rgba(0, 0, 0, .05);
+  --mark: rgba(253, 224, 71, .55); --code-fg: #2B3FB8;
+  --syn-com: #70707A; --syn-str: #1E7A45; --syn-num: #B4570B; --syn-kw: #A8327C; --syn-key: #3A52E0;
+  --syn-cmd: #8A5800; --syn-flag: #0B7490; --syn-var: #B4570B; --syn-ph: #7A3FD1;
   color-scheme: light;
 }
 
@@ -361,10 +372,11 @@ td code, th code { font-size: .8125rem; color: var(--fg); }
 .markdown li > ul, .markdown li > ol { margin-top: 6px; }
 .markdown a { color: var(--fg); text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; }
 .markdown a:hover { text-decoration-color: var(--accent); }
-.markdown strong { color: var(--fg); font-weight: 600; }
+.markdown strong { color: var(--fg); font-weight: 600; padding: 0 .1em; background: linear-gradient(transparent 55%, var(--mark) 55%);
+  -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .markdown blockquote { margin: 16px 0 0; padding: 2px 0 2px 16px; border-left: 2px solid var(--line-2); color: var(--fg-2); }
 .markdown hr { border: 0; border-top: 1px solid var(--line); margin: 40px 0; }
-.markdown :not(pre) > code { font-size: .85em; color: var(--fg); background: var(--bg-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; overflow-wrap: anywhere; word-break: normal; }
+.markdown :not(pre) > code { font-size: .85em; color: var(--code-fg); background: var(--bg-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; overflow-wrap: anywhere; word-break: normal; }
 .markdown .table-scroll { margin-top: 16px; }
 .markdown td, .markdown th { padding-right: 16px; }
 .markdown td:last-child, .markdown th:last-child { padding-right: 0; }
@@ -377,6 +389,16 @@ td code, th code { font-size: .8125rem; color: var(--fg); }
 .codeblock-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 6px 4px 12px; border-bottom: 1px solid var(--line); min-height: 36px; }
 .code-lang { font: 500 .6875rem/1 var(--mono); color: var(--fg-3); letter-spacing: .04em; }
 .codeblock .copy { height: 26px; }
+.tok-com { color: var(--syn-com); font-style: italic; }
+.tok-str { color: var(--syn-str); }
+.tok-num, .tok-punc { color: var(--syn-num); }
+.tok-kw { color: var(--syn-kw); }
+.tok-key { color: var(--syn-key); }
+.tok-head { color: var(--syn-key); font-weight: 600; }
+.tok-cmd { color: var(--syn-cmd); font-weight: 500; }
+.tok-flag { color: var(--syn-flag); }
+.tok-var { color: var(--syn-var); }
+.tok-ph { color: var(--syn-ph); font-style: italic; }
 .codeblock pre { margin: 0; padding: 14px 16px; overflow-x: auto; font-size: .8125rem; line-height: 1.7; color: var(--fg); }
 .markdown pre.mermaid { margin: 16px 0 0; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2); overflow-x: auto; color: var(--fg-3); font-size: .75rem; text-align: center; }
 .markdown pre.mermaid svg { max-width: 100%; height: auto; }
