@@ -6,14 +6,15 @@
       <div class="hero-copy">
         <a class="pill" id="version-pill" href="{{release}}"><b>v{{version}}</b><span lang="ko">초기 개발 단계 · 릴리스 노트</span><span lang="en">Early version · release notes</span> →</a>
         <h1>
-          <span lang="ko">AI 코딩 작업,<br><span class="dim">목표부터 완료 기록까지.</span></span>
-          <span lang="en">AI coding work,<br><span class="dim">from goal to completion record.</span></span>
+          <span lang="ko">맡긴 작업이 정말 끝났는지,<br><span class="dim">기록으로 확인합니다.</span></span>
+          <span lang="en">Is the work really done?<br><span class="dim">Check the record.</span></span>
         </h1>
-        <p class="sub" lang="ko">Claude Code·Codex에 맡긴 작업을 Spec이 목표 문서로 정리하고, Seal이 검사 기록으로 완료를 판단합니다.</p>
-        <p class="sub" lang="en">Spec turns what you want into a goal document. Seal has your agent build and check it, and judges completion from check records.</p>
+        <p class="sub" lang="ko">Claude Code·Codex는 조건 일부를 빠뜨리거나 일찍 멈추고도 "다 했습니다"라고 하곤 합니다. Jaekit은 무엇을 하면 끝인지 작업 전에 목표로 정해 두고, 조건마다 남은 검사 기록으로 완료를 판단합니다.</p>
+        <p class="sub" lang="en">Claude Code and Codex sometimes skip a condition or stop early and still say "done". Jaekit writes down what finished means before the work starts, and judges completion from a check record for each condition.</p>
         <div class="cmd"><pre><code><span class="p">$ </span>{{install}}</code></pre><button type="button" class="copy" data-copy="{{install}}">copy</button></div>
         <div class="actions">
           <a class="btn primary" id="get-started" href="{{install_page}}"><span lang="ko">시작하기</span><span lang="en">Get started</span> →</a>
+          <a class="btn" href="{{overview}}"><span lang="ko">Jaekit 이해하기</span><span lang="en">Understand Jaekit</span></a>
           <a class="btn" href="#try"><span lang="ko">직접 해보기</span><span lang="en">Try it</span></a>
         </div>
         <p class="meta">Claude Code · Codex &nbsp;/&nbsp; macOS · Linux &nbsp;/&nbsp; MIT</p>
@@ -31,14 +32,43 @@
     </div>
   </section>
 
+  <section class="block" id="why">
+    <div class="wrap">
+      <div class="block-head">
+        <span class="mono-label"><span lang="ko">왜 필요한가</span><span lang="en">Why</span></span>
+        <h2 lang="ko">에이전트를 절차에 가두지도, 말만 믿지도 않습니다.</h2>
+        <h2 lang="en">Don't cage the agent. Don't just take its word.</h2>
+        <p lang="ko">에이전트를 단계마다 승인과 절차로 묶으면, 모델이 좋아질수록 그 절차가 한계가 됩니다. 보고만 믿으면 "테스트를 통과했습니다"가 목표를 이뤘다는 뜻인지 알 수 없습니다. Jaekit은 세 가지만 붙잡고 나머지는 에이전트에게 맡깁니다.</p>
+        <p lang="en">Bind the agent to approvals and procedures at every step, and the procedure becomes its limit as models improve. Just trust its report, and you cannot tell whether "the tests pass" means the goal is met. Jaekit holds on to three things and leaves the rest to the agent.</p>
+      </div>
+      <div class="holds">
+        <div>
+          <h3><span lang="ko">목표는 내가 정합니다</span><span lang="en">You set the goal</span></h3>
+          <p lang="ko">무엇을 하면 끝인지 작업 전에 문서로 정합니다. 구현하는 동안 에이전트는 그 문서를 고치지 않습니다.</p>
+          <p lang="en">What finished means is written down before the work starts. While implementing, the agent does not edit that document.</p>
+        </div>
+        <div>
+          <h3><span lang="ko">일은 에이전트가 합니다</span><span lang="en">Your agent does the work</span></h3>
+          <p lang="ko">계획, 순서, 도구는 에이전트가 정합니다. 단계마다 승인하지 않고, 결과를 바꾸는 결정이 필요할 때만 묻습니다.</p>
+          <p lang="en">Planning, order and tools are the agent's choice. You do not approve each step; it asks only when a decision would change the outcome.</p>
+        </div>
+        <div>
+          <h3><span lang="ko">완료는 기록으로 판단합니다</span><span lang="en">Records decide completion</span></h3>
+          <p lang="ko">조건마다 검사를 돌린 기록이 있어야 완료가 남습니다. 새 동작의 검사는 바꾸기 전에 실패하고 바꾼 뒤에 통과해야 합니다.</p>
+          <p lang="en">Completion is recorded only when each condition has a record of its check. A check for new behavior must fail before the change and pass after it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="block" id="how">
     <div class="wrap">
       <div class="block-head">
         <span class="mono-label"><span lang="ko">작동 방식</span><span lang="en">How it works</span></span>
-        <h2 lang="ko">세 번 말하면, 나머지는 기록이 합니다.</h2>
-        <h2 lang="en">You speak three times. The records do the rest.</h2>
-        <p lang="ko">요청하고, 목표를 확인하고, 보고를 읽습니다. 그 사이의 계획·구현·검사는 쓰던 에이전트가 진행합니다.</p>
-        <p lang="en">Ask, review the goal, read the report. Your agent does the planning, building and checking in between.</p>
+        <h2 lang="ko">내가 하는 일은 세 가지입니다.</h2>
+        <h2 lang="en">You do three things.</h2>
+        <p lang="ko">원하는 일을 말하고, 목표 문서를 확인해 "응"이라고 답하고, 완료 보고를 읽습니다. 그 사이의 계획·구현·검사는 쓰던 에이전트가 진행하고, 에이전트가 돌린 검사는 <code>ha</code>가 모두 기록합니다.</p>
+        <p lang="en">Say what you want, review the goal document and answer yes, and read the completion report. Your agent plans, builds and checks in between, and <code>ha</code> records every check it runs.</p>
       </div>
     </div>
     <div class="wrap">
@@ -52,17 +82,17 @@
         </div>
         <div class="step">
           <div class="idx"><span>02</span><em>Seal</em></div>
-          <h3><span lang="ko">"응"이라고 답합니다</span><span lang="en">Answer yes</span></h3>
-          <p lang="ko">Seal이 계획·구현·검사를 이어 갑니다. 모든 검사 실행은 <code>ha</code>가 기록하고, <code>standard</code>·<code>strict</code> 목표는 Spar 독립 검토를 받습니다.</p>
-          <p lang="en">Seal plans, builds and checks. <code>ha</code> records every check run, and <code>standard</code> and <code>strict</code> goals get independent Spar review.</p>
-          <code class="line">ha check docs/specs/password-link</code>
+          <h3><span lang="ko">확인하고 "응"이라고 답합니다</span><span lang="en">Review it and answer yes</span></h3>
+          <p lang="ko">빠진 조건이 없으면 "응"이라고 답합니다. 그때부터 Seal이 에이전트에게 계획·구현·검사를 끝까지 맡깁니다. 새 동작의 검사는 바꾸기 전에 실패하고 바꾼 뒤에 통과해야 하며, <code>standard</code>·<code>strict</code> 목표는 Spar 독립 검토도 받습니다.</p>
+          <p lang="en">If no condition is missing, answer yes. Seal then has your agent plan, build and check to the end. A check for new behavior must fail before the change and pass after it, and <code>standard</code> and <code>strict</code> goals also get independent Spar review.</p>
+          <code class="line"><span lang="ko">에이전트가 실행 → ha check · spar · ha done</span><span lang="en">your agent runs → ha check · spar · ha done</span></code>
         </div>
         <div class="step">
           <div class="idx"><span>03</span><em>ha</em></div>
-          <h3><span lang="ko">기록을 읽습니다</span><span lang="en">Read the record</span></h3>
-          <p lang="ko">필수 조건이 충족되면 <code>ha done</code>이 완료를 기록합니다. 무엇이 바뀌었고 어떻게 확인했는지는 <code>PROGRESS.md</code>에 남습니다.</p>
-          <p lang="en">When the required conditions are met, <code>ha done</code> records completion. What changed and how it was checked stays in <code>PROGRESS.md</code>.</p>
-          <code class="line">ha done → completion record</code>
+          <h3><span lang="ko">완료 보고를 읽습니다</span><span lang="en">Read the report</span></h3>
+          <p lang="ko">필수 조건이 모두 기록으로 충족돼야 <code>ha done</code>이 완료를 기록합니다. 바뀐 것, 확인한 것, 직접 볼 것, 남은 한계, 다음 행동을 담은 보고가 <code>PROGRESS.md</code>에 남습니다.</p>
+          <p lang="en"><code>ha done</code> records completion only when the records meet every required condition. The report in <code>PROGRESS.md</code> lists what changed, what was checked, what to review, remaining limits and the next step.</p>
+          <code class="line">PROGRESS.md ← <span lang="ko">완료 보고</span><span lang="en">completion report</span></code>
         </div>
       </div>
     </div>
@@ -187,8 +217,8 @@
         <a class="btn primary" href="{{install_page}}"><span lang="ko">설치 안내</span><span lang="en">Read the install guide</span> →</a>
         <a class="btn" href="{{docs}}"><span lang="ko">모든 문서</span><span lang="en">All docs</span></a>
       </div>
-      <p class="support" lang="ko">macOS·Linux 사용 · WSL2 준비됨(실사용 미확인) · 네이티브 Windows에서는 Seal 사용 불가</p>
-      <p class="support" lang="en">macOS and Linux supported · WSL2 prepared, not yet checked · Seal not available on native Windows</p>
+      <p class="support" lang="ko"><span class="dot dot-ok" aria-hidden="true"></span>macOS·Linux 사용 · <span class="dot dot-warn" aria-hidden="true"></span>WSL2 준비됨(실사용 미확인) · <span class="dot dot-bad" aria-hidden="true"></span>네이티브 Windows에서는 Seal 사용 불가</p>
+      <p class="support" lang="en"><span class="dot dot-ok" aria-hidden="true"></span>macOS and Linux supported · <span class="dot dot-warn" aria-hidden="true"></span>WSL2 prepared, not yet checked · <span class="dot dot-bad" aria-hidden="true"></span>Seal not available on native Windows</p>
       <p class="support" lang="ko">이 페이지의 <code>password-link</code> 예시와 기록 번호는 모두 가상입니다.</p>
       <p class="support" lang="en">The <code>password-link</code> example and record numbers on this page are fictional.</p>
     </div>

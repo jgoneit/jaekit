@@ -2,7 +2,7 @@
 
 [한국어](WSL.md) · **English**
 
-This route installs Jaekit inside **Ubuntu 24.04 LTS amd64(x64) on WSL2**. **Installation, execution, and agent Skill use in actual WSL2 have not been checked yet.** This document describes preparation of the route, not completed WSL2 support validation.
+Read this to use Jaekit on Windows. This route installs Jaekit inside **Ubuntu 24.04 LTS amd64(x64) on WSL2**. **Installation, execution, and agent Skill use in actual WSL2 have not been checked yet.** This document describes preparation of the route, not completed WSL2 support validation.
 
 The current public release is `v0.1.8`. The linked installation commands download that release's Linux files. This guide and the [environment check tool](#optional-environment-check-for-candidate-packages) are in the public data of the v0.1.8 files; files of v0.1.4 and earlier do not have them. Checking a candidate package, publishing a release, and installing files from its public URL are separate steps.
 

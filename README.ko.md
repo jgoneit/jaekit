@@ -9,31 +9,35 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-168975" alt="MIT 라이선스" /></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <strong>한국어</strong><br /><a href="#설치">설치</a> · <a href="#첫-작업-맡기기">첫 작업</a> · <a href="#업데이트">업데이트</a> · <a href="#남는-문서와-기록">남는 기록</a> · <a href="guides/USAGE.md">사용 안내</a></p>
+<p align="center"><a href="README.md">English</a> · <strong>한국어</strong><br /><a href="#설치">설치</a> · <a href="#첫-작업-맡기기">첫 작업</a> · <a href="#업데이트">업데이트</a> · <a href="#남는-문서와-기록">남는 기록</a> · <a href="guides/USAGE.md">사용 안내</a> · <a href="https://jgoneit.github.io/jaekit/">문서 사이트</a></p>
 
-Jaekit은 **Codex·Claude Code에 맡긴 작업을 목표부터 완료 기록까지 이어 주는 도구**입니다.
+Jaekit은 Claude Code·Codex에 맡긴 작업이 **정말 끝났는지 기록으로 확인할 수 있게** 해 주는 도구입니다. 무엇을 하면 끝인지 작업 전에 목표로 정해 두고, 완료는 조건마다 남은 검사 기록으로 판단합니다.
 
-- **Spec**은 원하는 일을 목표 문서와 완료 조건으로 정리합니다.
-- **Seal**은 에이전트가 그 목표대로 구현·검사·수정하게 하고, 검사 기록으로 완료를 판단합니다.
+- 원하는 일을 말하면 **Spec**이 목표와 완료 조건을 문서로 먼저 정리합니다.
+- 확인하고 "응"이라고 답하면 쓰던 에이전트가 **Seal**을 따라 계획·구현·검사를 이어 가고, 검사 기록을 근거로 완료 보고를 남깁니다.
 
 현재 배포판은 **v0.1.8**입니다. 실제 작업에 써 보며 다듬는 초기 개발 단계입니다.
 
-## 이럴 때 좋습니다
+## 왜 필요한가
 
-- **"다 했습니다"를 기록으로 확인하고 싶을 때**<br>
-  필수 완료 조건이 검사 기록이나 필요한 사용자 확인으로 충족돼야 완료가 남습니다. 무엇을 바꿨고 어떻게 검사했는지는 완료 보고에서 봅니다.
-- **대화가 끊겨도 이어 가고 싶을 때**<br>
-  목표·계획·진행 기록이 프로젝트 폴더에 남습니다. 새 대화에서 같은 목표를 지정하면 저장된 지점부터 이어 갑니다.
-- **단계마다 승인하지 않고 맡기고 싶을 때**<br>
-  에이전트가 계획·구현·검사를 이어서 진행합니다. 결과를 바꾸는 결정이나 직접 확인이 필요할 때 묻습니다.
-- **구현 전에 요청부터 정리하고 싶을 때**<br>
-  Spec만 따로 쓸 수 있습니다. 목표와 완료 조건을 문서로 남겨 두고, 준비됐을 때 Seal을 시작합니다.
+에이전트가 "다 했습니다"라고 해도 확인할 일이 남습니다. 요청한 조건이 빠지지 않았는지, 어려운 조건을 쉽게 바꿔 읽지 않았는지, 기존 동작은 그대로인지, 무엇을 실제로 검사했는지입니다. 대화가 끊기면 무엇을 약속했고 어디까지 했는지 다시 설명해야 합니다.
+
+Jaekit은 세 가지만 붙잡고 나머지는 쓰던 에이전트에게 맡깁니다.
+
+- **목표는 내가 정합니다.**<br>
+  무엇을 하면 끝인지 작업 전에 문서로 정하고, 구현하는 동안 에이전트는 그 문서를 고치지 않습니다. Spec만 따로 써서 목표만 정리해 둘 수도 있습니다.
+- **일은 에이전트가 합니다.**<br>
+  계획·구현·검사를 이어서 진행하고, 결과를 바꾸는 결정이나 직접 확인이 필요할 때만 묻습니다. 단계마다 승인하지 않습니다.
+- **완료는 기록으로 판단합니다.**<br>
+  필수 완료 조건이 검사 기록이나 필요한 사용자 확인으로 충족돼야 완료가 남습니다. 목표와 진행 기록이 프로젝트 폴더에 남아서, 대화가 끊겨도 새 대화에서 같은 목표를 이어 갑니다.
+
+왜 이런 모양인지, 목표 하나가 어떻게 지나가는지는 [Jaekit 이해하기](guides/OVERVIEW.md)에서 처음부터 설명합니다.
 
 ## 사용 흐름
 
 ![password-link 가상 사용 과정, 다섯 장면: /spec:spec으로 Spec에 요청하고, Spec이 쓴 목표를 확인하고, 지금 구현할지 묻는 질문에 Yes(응)로 답하거나 나중에 별도 메시지로 /seal:seal docs/specs/password-link를 불러 시작합니다. 그다음 에이전트가 내가 입력하지 않는 명령으로 작업합니다: AC-1은 바꾸기 전 실패·바꾼 뒤 통과, AC-2는 계속 통과, Spar 검토 라운드를 받고 gate를 기록, ha done이 완료를 기록. 마지막으로 완료 보고를 읽습니다.](assets/readme/demo.en.gif)
 
-영어 화면으로 만든 가상 장면이며 실제 실행을 녹화한 것이 아닙니다. 아래 다이어그램은 단계마다 누가 무엇을 하는지 보여 줍니다.
+내가 하는 일은 셋입니다. 원하는 일을 말하고, Spec이 쓴 목표를 확인해 "응"이라고 답하고, 끝에 보고를 읽습니다. 그 사이의 계획·구현·검사는 에이전트가 하고, 검사 실행은 `ha`가 모두 기록합니다. 영어 화면으로 만든 가상 장면이며 실제 실행을 녹화한 것이 아닙니다. 아래 다이어그램은 같은 흐름을 갈림길까지 자세히 보여 줍니다. 검토 등급(`Assurance:`)에 따라 달라지는 부분은 [Jaekit 이해하기의 검토 등급](guides/OVERVIEW.md#검토-등급)에 정리돼 있습니다.
 
 ```mermaid
 flowchart TD
@@ -475,7 +479,13 @@ Assurance: standard
 <details>
 <summary><strong>runs.jsonl</strong>: 보고 뒤에 있는 실행 기록</summary>
 
-`ha`는 기록하는 사건마다 JSON 한 줄을 덧붙입니다. `start`, 실행한 대상마다 한 줄인 `check`·`baseline`(`ha check <goal> AC-1 AC-2`는 두 줄), `note`(인용한 사용자 확인과 답, Spar gate를 기록하는 `review` note), `budget_change`, `done`, 완료 뒤 기록한 발견의 `finding`이 있습니다. 각 줄은 앞 줄의 해시(`prev`)를 담아서, 앞선 줄을 고치거나 지우면 연결이 끊기고 `ha`가 `record_integrity`로 알립니다. 마지막 줄은 뒤에 이어지는 줄이 없어 바뀌어도 드러나지 않습니다. 완료 보고의 record head(seq와 해시)는 `ha done`을 실행한 때의 마지막 줄이며, 그 뒤에 note나 finding 같은 줄이 더 붙을 수 있습니다. 줄인 `done` 줄 예시입니다.
+`ha`는 기록하는 사건마다 JSON 한 줄을 덧붙입니다. `start`, 실행한 대상마다 한 줄인 `check`·`baseline`(`ha check <goal> AC-1 AC-2`는 두 줄), `note`(인용한 사용자 확인과 답, Spar gate를 기록하는 `review` note), `budget_change`, `done`, 완료 뒤 기록한 발견의 `finding`이 있습니다.
+
+- 각 줄은 앞 줄의 해시(`prev`)를 담아서, 앞선 줄을 고치거나 지우면 연결이 끊기고 `ha`가 `record_integrity`로 알립니다.
+- 마지막 줄은 뒤에 이어지는 줄이 없어 바뀌어도 드러나지 않습니다.
+- 완료 보고의 record head(seq와 해시)는 `ha done`을 실행한 때의 마지막 줄이며, 그 뒤에 note나 finding 같은 줄이 더 붙을 수 있습니다.
+
+줄인 `done` 줄 예시입니다.
 
 ```text
 {"schema":"run/v1","seq":6,"prev":"578fb93e…","kind":"done","status":"complete","commit":"e01fdf1e…","tree_clean":true,"criteria":[{"id":"AC-1","kind":"change","satisfied":true,"records":[2,3]},{"id":"AC-2","kind":"maintain","satisfied":true,"records":[4]}]}
@@ -516,13 +526,28 @@ Assurance: standard
 
 ## 더 알아보기
 
+모든 안내는 [문서 사이트](https://jgoneit.github.io/jaekit/)에서 읽는 순서대로 묶어 볼 수 있습니다.
+
+**시작하기**
+
+- [Jaekit 이해하기](guides/OVERVIEW.md): 왜 이런 모양인지, 목표 하나가 어떻게 지나가는지, 완료가 뜻하는 것
 - [설치·업데이트·제거](guides/INSTALL.md) · [배포판과 호환 범위](guides/INSTALL.md#배포판과-개발-조합)
+- [WSL2 준비 안내](guides/WSL.md): Windows에서 쓰려면
+
+**사용하기**
+
 - [사용 안내·목표 수정·재개](guides/USAGE.md) · [문제 해결](guides/USAGE.md#문제-해결)
-- [자세한 운영 규칙](guides/OPERATIONS.md) · [명령·기록 형식](contracts/run-record.md)
-- [WSL2 준비 안내](guides/WSL.md) · [Windows 네이티브 후보 안내](guides/WINDOWS.md)
-- [이미지 설명과 수정 방법](assets/readme/SOURCES.md)
-- [Ubuntu·macOS·Windows CI의 검사 범위](guides/CI.md)
+- [작업 상태와 완료 보고 읽기](guides/OPERATIONS.md): 멈춘 이유와 보고의 근거
 - [Spar로 하는 독립 검토](guides/SPAR.md): v0.1.7부터 `standard`·`strict` 목표에 필요
+
+**파일·기록 형식과 동작 규칙** (에이전트에게 일을 맡겨 쓰는 데는 읽지 않아도 됩니다)
+
+- [형식과 규칙 개요](contracts/README.md) · [명령·기록 형식](contracts/run-record.md)
+
+**Jaekit 개발**
+
+- [소스 빌드와 개발 등록](guides/DEVELOPMENT.md) · [Ubuntu·macOS·Windows CI의 검사 범위](guides/CI.md)
+- [Windows 네이티브 후보 안내](guides/WINDOWS.md) · [이미지 설명과 수정 방법](assets/readme/SOURCES.md)
 
 사용 경험이나 막힌 점은 [사용 보고·설치·버그 issue](https://github.com/jgoneit/jaekit/issues/new/choose)로 남겨 주세요. issue는 공개되므로 회사 코드, 내부 이름, 비밀 값과 로그 원문은 제외해 주세요.
 

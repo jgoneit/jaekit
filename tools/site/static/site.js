@@ -212,6 +212,120 @@
     else if (e.key === "Escape") { close(); setNav(false); }
   });
 
+  /* ---------- Code colors: spans around the same text, so copy is unchanged ---------- */
+  // Each rule is [class, sticky pattern, test]; the first that matches at a
+  // position wins. A test is given the whole text and the match's position.
+  function wordStart(text, i) { return i === 0 || /[\s(|;&]/.test(text[i - 1]); }
+  function lineStart(text, i) {
+    var j = i - 1;
+    while (j >= 0 && (text[j] === " " || text[j] === "\t")) j--;
+    return j < 0 || text[j] === "\n";
+  }
+  var SHELL = [
+    ["com", /#[^\n]*/y, wordStart],
+    ["str", /"(?:\\.|[^"\\\n])*"|'[^'\n]*'/y],
+    ["var", /\$\{[^}\n]*\}|\$env:[A-Za-z_]\w*|\$[A-Za-z_]\w*/y],
+    ["ph", /<[^<>\n]+>/y, wordStart],
+    ["flag", /--?[A-Za-z][\w-]*/y, wordStart],
+    ["word", /[^\s"'$<>|;&()]+/y]
+  ];
+  var RULES = {
+    bash: SHELL, sh: SHELL, shell: SHELL, powershell: SHELL,
+    json: [
+      ["key", /"(?:\\.|[^"\\\n])*"(?=\s*:)/y],
+      ["str", /"(?:\\.|[^"\\\n])*"/y],
+      ["num", /-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/y],
+      ["kw", /\b(?:true|false|null)\b/y]
+    ],
+    toml: [
+      ["com", /#[^\n]*/y],
+      ["head", /\[\[?[^\]\n]+\]\]?/y, lineStart],
+      ["key", /[A-Za-z0-9_.-]+(?=[ \t]*=)/y, lineStart],
+      ["str", /"""[\s\S]*?"""|"(?:\\.|[^"\\\n])*"|'[^'\n]*'/y],
+      ["kw", /\b(?:true|false)\b/y],
+      ["num", /[+-]?\d[\d_]*(?:\.\d+)?/y]
+    ],
+    markdown: [
+      ["head", /#{1,6} [^\n]*/y, lineStart],
+      ["punc", /(?:[-*+]|\d+\.) (?=\S)/y, lineStart],
+      ["str", /`[^`\n]+`/y],
+      ["kw", /\*\*[^*\n]+\*\*/y]
+    ]
+  };
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function paintCode(code, rules) {
+    var text = code.textContent, out = "", plain = "", i = 0, command = true;
+    function flush() { if (plain) { out += esc(plain); plain = ""; } }
+    while (i < text.length) {
+      var hit = null;
+      for (var r = 0; r < rules.length && !hit; r++) {
+        var re = rules[r][1]; re.lastIndex = i;
+        var m = re.exec(text);
+        if (m && m[0] && (!rules[r][2] || rules[r][2](text, i))) hit = [rules[r][0], m[0]];
+      }
+      if (!hit) {
+        var ch = text[i];
+        // A shell command starts a line, unless the line before ends in a
+        // continuation, and follows a pipe, a separator or an opening paren.
+        if (ch === "\n" ? text[i - 1] !== "\\" : "|;&(".indexOf(ch) >= 0) command = true;
+        plain += ch; i++; continue;
+      }
+      var cls = hit[0];
+      if (cls === "word") {
+        // NAME=value before a command keeps the command position.
+        if (command && /^[A-Za-z_]\w*=/.test(hit[1])) cls = "var";
+        else { cls = command ? "cmd" : ""; command = false; }
+      } else if (cls === "com" || cls === "str" || cls === "flag" || cls === "ph") {
+        command = false;
+      }
+      if (cls) { flush(); out += '<span class="tok-' + cls + '">' + esc(hit[1]) + "</span>"; }
+      else plain += hit[1];
+      i += hit[1].length;
+    }
+    flush();
+    code.innerHTML = out;
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.markdown pre > code[class^="language-"]'), function (code) {
+    var rules = RULES[code.className.slice("language-".length)];
+    if (rules) paintCode(code, rules);
+  });
+  // A command or name short enough for a phone's line stays on one line.
+  Array.prototype.forEach.call(document.querySelectorAll(".markdown :not(pre) > code"), function (code) {
+    if (code.textContent.length <= 36) code.classList.add("whole");
+  });
+
+  /* ---------- Small marks beside states, so they read at a glance ---------- */
+  function mark(kind) {
+    var d = document.createElement("span");
+    d.className = "dot dot-" + kind;
+    d.setAttribute("aria-hidden", "true");
+    return d;
+  }
+  var STATES = { complete: "ok", pass: "ok", verified: "ok", degraded: "warn", needs_user: "warn", unverified: "warn",
+                 blocked: "bad", fail: "bad", budget_exhausted: "bad" };
+  Array.prototype.forEach.call(document.querySelectorAll(".markdown :not(pre) > code"), function (code) {
+    var kind = STATES[code.textContent];
+    if (kind) code.insertBefore(mark(kind), code.firstChild);
+  });
+  // Releases: the current one, earlier ones and a source build. Review
+  // tiers: one to three filled dots for light, standard and strict.
+  var TIERS = { light: 1, standard: 2, strict: 3 };
+  Array.prototype.forEach.call(document.querySelectorAll(".markdown tbody td:first-child, .markdown li > strong:first-child"), function (cell) {
+    var text = cell.textContent.trim(), kind = null;
+    if (/^(현재 배포판|Current release)/.test(text)) kind = "ok";
+    else if (/^(이전 배포판|Previous release)/.test(text)) kind = "old";
+    else if (/^(소스 빌드|Source build)$/.test(text)) kind = "dev";
+    if (kind) { cell.insertBefore(mark(kind), cell.firstChild); return; }
+    if (TIERS[text]) {
+      var tier = document.createElement("span");
+      tier.className = "tier";
+      tier.setAttribute("data-level", TIERS[text]);
+      tier.setAttribute("aria-hidden", "true");
+      tier.innerHTML = "<i></i><i></i><i></i>";
+      cell.insertBefore(tier, cell.firstChild);
+    }
+  });
+
   /* ---------- Mermaid diagrams, drawn in the page's theme ---------- */
   var diagrams = Array.prototype.slice.call(document.querySelectorAll("pre.mermaid"));
   function draw() {
