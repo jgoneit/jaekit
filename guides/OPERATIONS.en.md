@@ -20,7 +20,22 @@ If your checks use a browser or another external tool, confirm the tool is there
 
 ## What to check before running
 
-From Seal 0.1.20, Seal no longer compares Core support by hand. It declares the support it needs in `core-requirements.json` in its skill folder and starts with `ha start --check-skill`; when support is missing, `ha` refuses without a record, and Seal reports the executable and the message and stops. Seal 0.1.21 also requires `run-rules/5` and the review gate support. When the installed `ha` does not know `run-rules/5` or other support Seal requires, Seal stops without a record and does not fall back to older rules. What to do is install an `ha` that has that support. For a goal already started, each command computes its saved rules or refuses them with exit 66. Without a budget it starts with `검증 실행: 자동` and asks once, only when approval is needed. It checks the tools the checks need with `ha doctor` before any baseline and asks about unavailable tools in one question. The rest of this section describes the check of earlier Seal versions (0.1.17 to 0.1.19).
+Before recording anything, Seal looks at three things: whether the installed `ha` has the support it needs, whether the budget is enough, and whether the working tree has uncommitted changes. If any of them is off, it stops and says why.
+
+### Core support
+
+From Seal 0.1.20, Seal no longer compares Core support by hand. It declares the support it needs in `core-requirements.json` in its skill folder and starts with `ha start --check-skill`; when support is missing, `ha` refuses without a record, and Seal reports the executable and the message and stops.
+
+- Seal 0.1.21 also requires `run-rules/5` and the review gate support.
+- When the installed `ha` does not know `run-rules/5` or other support Seal requires, Seal stops without a record and does not fall back to older rules. What to do is install an `ha` that has that support.
+- For a goal already started, each command computes its saved rules or refuses them with exit 66.
+
+When the skill folder that Seal names with `--skill` has a `core-requirements.json`, `start` compares the Core support that skill needs with the actual executable and refuses without a record when any support is missing. With `--check-skill`, the declaration is required, and an `ha` from before this feature does not accept that start ([Core capabilities contract](../contracts/core-capabilities.md) §8).
+
+<details>
+<summary>The support check of earlier Seal versions (0.1.17 to 0.1.19)</summary>
+
+The rest of this section describes the check of earlier Seal versions (0.1.17 to 0.1.19).
 
 Seal resolves the absolute path of the Core executable it will actually use, and reads `capabilities --format json` from that executable. A fresh start requires both that the default rule is understood and that all required capabilities are present. Existing goals are checked against their saved rules and the requested action.
 
@@ -35,17 +50,30 @@ This capability check is never bypassed through automatic installation, privileg
 
 The Python compatibility helper is optional. Even without Python, you can directly verify the contract against the actual capability information. Spec does not need Core or this query to write documents. Whether an installed Codex or Claude model actually follows instructions is subject to separate host evaluation; capability output alone does not guarantee it.
 
+</details>
+
+### Budget and tools
+
+- Without a budget it starts with `검증 실행: 자동` and asks once, only when approval is needed.
+- It checks the tools the checks need with `ha doctor` before any baseline and asks about unavailable tools in one question.
+
 The agent can compare the minimum verification run count in PLAN with the limit using `ha estimate docs/specs/<goal>`. For example, 34 required `change` conditions need at least 68 runs: one before and one after the change for each. `manual` conditions are not included in the check execution count. The estimate also separately displays:
 - Optional conditions included in default comparative verification.
 - Additional run counts for explicitly selected `AC`, `EX`, or task commands.
 
 `--baseline` shows the runs for the baseline (comparison) selection, and `--format json` gives machine-readable output.
 
-If PLAN gives `- 검증 실행: 자동` (automatic), `start` sets the limit to `max(50, ⌈required minimum × 1.5⌉)`. When that value is at or below `preapproved_runs` in `ha.json` in the user configuration folder (`~/.config/jaekit/`, or `$XDG_CONFIG_HOME/jaekit/` when `XDG_CONFIG_HOME` is set), the goal starts without a question. Without the file, that limit is 50. Above it, `start` stops with `exceeds the pre-approved limit`, records nothing, and waits for the user's approval. A file that cannot be used stops with a `pre-approved run limit` error instead of falling back to 50. The format and examples are in the [usage guide](USAGE.en.md#automatic-budget).
+If PLAN gives `- 검증 실행: 자동` (automatic), `start` sets the limit to `max(50, ⌈required minimum × 1.5⌉)`.
 
-When the skill folder that Seal names with `--skill` has a `core-requirements.json`, `start` compares the Core support that skill needs with the actual executable and refuses without a record when any support is missing. With `--check-skill`, the declaration is required, and an `ha` from before this feature does not accept that start ([Core capabilities contract](../contracts/core-capabilities.md) §8).
+- When that value is at or below `preapproved_runs` in `ha.json` in the user configuration folder (`~/.config/jaekit/`, or `$XDG_CONFIG_HOME/jaekit/` when `XDG_CONFIG_HOME` is set), the goal starts without a question. Without the file, that limit is 50.
+- Above it, `start` stops with `exceeds the pre-approved limit`, records nothing, and waits for the user's approval.
+- A file that cannot be used stops with a `pre-approved run limit` error instead of falling back to 50.
+
+The format and examples are in the [usage guide](USAGE.en.md#automatic-budget).
 
 If the limit is less than the required minimum, `start` refuses before recording. In this case, split the goal within the existing allowed scope, or decide on an adequate budget before starting. The estimate does not include retries or preparation time. Querying an in-progress goal only explains the current PLAN; it does not increase an already recorded limit or remaining budget.
+
+### Uncommitted changes
 
 If verification is refused before running due to `uncommitted changes`, check the printed paths:
 - `tracked`: Changes to files already tracked by Git. Commit or revert them according to your work intent.
@@ -55,13 +83,17 @@ Guidance alone will not ignore all `node_modules` or clean up files automaticall
 
 Refused checks do not count toward the execution count. If execution stopped while running multiple checks, previously executed results and usage remain, and the output indicates how many were executed. The paths and types also appear under `worktree_dirty` in `ha status`. A Git query failure is never treated as a clean state. Resolve the problem, then rerun verification.
 
-New Spec examples specify `Criteria-Format: nested/1`. This reads description lists under an `AC` as the body of that same condition. Existing goals without this marker keep their previous interpretation. Adding this marker to an existing goal changes the goal document. Therefore, previous verifications and manual confirmations cannot be reused for the new interpretation. For indentation examples, refer to the [goal documents contract](../contracts/goal-docs.md).
+### Criteria format in goal documents
+
+New Spec examples specify `Criteria-Format: nested/1`. This reads description lists under an `AC` as the body of that same condition. Existing goals without this marker keep their previous interpretation.
+
+Adding this marker to an existing goal changes the goal document. Therefore, previous verifications and manual confirmations cannot be reused for the new interpretation. For indentation examples, refer to the [goal documents contract](../contracts/goal-docs.md).
 
 ## What a failure before the change means
 
-Starting with Seal 0.1.16, Seal starts new goals under `run-rules/4`, and from 0.1.21 under `run-rules/5`, which keeps all of `/4` and adds the [review gate](USAGE.en.md#review-gate-run-rules5) for `standard` and `strict` goals. `/4` preserves the `/3` result rules while adding [autonomy](USAGE.en.md#autonomy-run-rules4), including error recovery.
+A check for a `change` condition must show the **intended violation** before the change. The mere fact that a command failed does not constitute pre-modification evidence.
 
-A `change` check must link declared targets and requirement violations through structured results. The mere fact that a command failed does not constitute pre-modification evidence. The following are not accepted as expected failures:
+A `change` check must link declared targets and requirement violations through structured results. The following are not accepted as expected failures:
 - Missing dependencies
 - Errors in import, test collection, or browser startup
 - Unexecuted or skipped checks (`skip`)
@@ -69,11 +101,32 @@ A `change` check must link declared targets and requirement violations through s
 
 Results where an actually executed check directly observes the absence of functionality can be distinguished.
 
-All declared targets must run. Before the change, there must be the intended violation, without errors or other assertion failures. Current checks require that all of the same targets pass. See the [check result contract and reference check](../contracts/check-result.md) (Korean) for how to link them. The reference check is a small example that actually reads files; it does not automatically install specific test runners or support all runners.
+All declared targets must run. Before the change, there must be the intended violation, without errors or other assertion failures. Current checks require that all of the same targets pass.
 
-To use a test you already have, a Core whose `ha capabilities` lists `check-adapter/v1` can link a `change` condition to that one test through a [runner adapter](../contracts/check-result.md#5-러너-어댑터) (Korean). `ha` reads the output of `go test -json …`, or the JUnit XML a runner writes at the `{HA_JUNIT_XML}` location, without a producer program. Put the marker `jaekit:violation=<violation id>` on the first line of the assertion's failure message for when the property breaks. For a hypothetical greeting CLI test, write `t.Fatalf("jaekit:violation=greeting-missing the CLI says %q", got)`. A failure without the marker, or with the marker only in a log or standard output, is not accepted as the intended violation. Adapters are optional; without support, use the reference check or a dedicated producer.
+See the [check result contract and reference check](../contracts/check-result.md) (Korean) for how to link them. The reference check is a small example that actually reads files; it does not automatically install specific test runners or support all runners.
 
-`error` and inconclusive verdicts are included in limited error retries. Actually attempted failures, errors, stale results, and usage remain. A later pass alone does not erase an unfavorable result produced on the same input. Look at the reason in the status and the corresponding `ha log` to decide what must change among the check, the product, or the environment. Existing goals started under `/1` or `/2` keep their previous classifications and are not automatically migrated.
+### Linking a test you already have
+
+To use a test you already have, a Core whose `ha capabilities` lists `check-adapter/v1` can link a `change` condition to that one test through a [runner adapter](../contracts/check-result.md#5-러너-어댑터) (Korean). `ha` reads the output of `go test -json …`, or the JUnit XML a runner writes at the `{HA_JUNIT_XML}` location, without a producer program.
+
+Put the marker `jaekit:violation=<violation id>` on the first line of the assertion's failure message for when the property breaks. For a hypothetical greeting CLI test, write `t.Fatalf("jaekit:violation=greeting-missing the CLI says %q", got)`.
+
+A failure without the marker, or with the marker only in a log or standard output, is not accepted as the intended violation. Adapters are optional; without support, use the reference check or a dedicated producer.
+
+### Errors and retries
+
+`error` and inconclusive verdicts are included in limited error retries. Actually attempted failures, errors, stale results, and usage remain. A later pass alone does not erase an unfavorable result produced on the same input.
+
+Look at the reason in the status and the corresponding `ha log` to decide what must change among the check, the product, or the environment.
+
+<details>
+<summary>Differences between rule versions (run-rules)</summary>
+
+Starting with Seal 0.1.16, Seal starts new goals under `run-rules/4`, and from 0.1.21 under `run-rules/5`, which keeps all of `/4` and adds the [review gate](USAGE.en.md#review-gate-run-rules5) for `standard` and `strict` goals. `/4` preserves the `/3` result rules while adding [autonomy](USAGE.en.md#autonomy-run-rules4), including error recovery.
+
+Existing goals started under `/1` or `/2` keep their previous classifications and are not automatically migrated.
+
+</details>
 
 ## Reading the completion report
 
@@ -142,7 +195,23 @@ Existing goals keep their starting formats, and omitted new items remain unrecor
 
 ## Assurance policy
 
-The assurance policy introduced in Seal 0.1.11 links the required scope of an assurance policy specified by a goal or project to conditions. If required independent reviews or actual boundary evidence are missing, completion is withheld; unrelated work can continue. Optional comparisons record unobserved scope and limitations. The executor decides the model and execution order; Core does not treat reviewers' agreement as sufficient evidence. From Seal 0.1.20 the SPEC's `Assurance:` tier sets the independent review stages: `standard` takes the candidate, fixes and cumulative rounds, `strict` adds a plan round before any baseline, and `light` may skip review with a reason. When project instructions ask for more review, Seal follows them. A goal that needs independent review runs `ha done` only once a cumulative round over the whole last head ends with no open finding ([usage guide](USAGE.en.md#seals-pre-start-checks-and-review-order)). The [synthetic assurance case](../examples/verification-design.md) (Korean) is an example of linking the contract, not an actual model observation.
+If required independent reviews or actual boundary evidence are missing, completion is withheld; unrelated work can continue.
+
+From Seal 0.1.20 the SPEC's `Assurance:` tier sets the independent review stages:
+
+- `standard` takes the candidate, fixes and cumulative rounds, `strict` adds a plan round before any baseline, and `light` may skip review with a reason.
+- When project instructions ask for more review, Seal follows them.
+
+A goal that needs independent review runs `ha done` only once a cumulative round over the whole last head ends with no open finding ([usage guide](USAGE.en.md#seals-pre-start-checks-and-review-order)).
+
+<details>
+<summary>The scope of the assurance policy and a synthetic case</summary>
+
+The assurance policy introduced in Seal 0.1.11 links the required scope of an assurance policy specified by a goal or project to conditions. Optional comparisons record unobserved scope and limitations. The executor decides the model and execution order; Core does not treat reviewers' agreement as sufficient evidence.
+
+The [synthetic assurance case](../examples/verification-design.md) (Korean) is an example of linking the contract, not an actual model observation.
+
+</details>
 
 ## Post-completion finding documents
 

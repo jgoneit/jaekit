@@ -56,11 +56,29 @@ continue docs/specs/<goal>
 
 Seal asks the decisions it can foresee once, before it starts, and during work only the questions that come up new. Below is when it asks what, and in what order independent review comes for each review tier.
 
-- **One budget question.** When the request names no budget, Seal writes `검증 실행: 자동` in PLAN. Within the pre-approved limit it starts without asking; above it, Seal asks once, showing the computed and pre-approved limits. The number you give goes into PLAN, and the same PLAN never gets the question again. Seal does not write or change `ha.json`.
+### What Seal asks before the start
+
+- **One budget question.** When the request names no budget, Seal writes `검증 실행: 자동` in PLAN. Within the pre-approved limit it starts without asking; above it, Seal asks once, showing the computed and pre-approved limits.
+  - The number you give goes into PLAN, and the same PLAN never gets the question again.
+  - Seal does not write or change `ha.json`.
 - **Environment check before the start.** When checks use a browser, database, container or external service, Seal lists it in the PLAN section `## 실행 환경` and runs `ha doctor` before recording any baseline and, after a resume, before the next check. It gathers unavailable tools into one question and never widens permissions or settings on its own.
-- **Questions before the start, in one message.** From Seal 0.1.23, before recording any baseline, Seal gathers the decisions it can foresee from the goal documents, the plan, the project instructions and the code that need your words, and asks them in one message. Examples are a plan that changes a file on a protected path, a change to an existing test that the request does not authorize, a place where the goal documents and the code seem to disagree, unusable tools and a budget that needs approval. Each question gives its options, the recommended one leading, and what the answer changes. When a condition can be met only by your confirmation, the same message names it and what you will be asked to confirm at the end. When there is nothing to ask, Seal asks nothing and starts the work. Test and check files the plan will add are in `바꿀 수 있는 경로` from the start, so adding them raises no scope question later.
-- **Later questions when they arise.** A question no one could foresee, such as a `requirement-question` from review or a round cap, is asked when it arises; questions pending at the same moment go in one message. The confirmations needed at the end are also asked together in one message, once the results exist. Having asked early does not by itself confirm a change outside Seal's authority or one that weakens a check. Seal records an answer given up front as the confirmation, quoting it, once the change it allows is committed, and does not ask about that change again. When the confirmed content changes later, that is a new change and Seal asks again.
-- **Five-line report.** Goals started with 0.1.20 or later use `ha report` in `PROGRESS.md`. `## 현재` opens with the `ha report` stamp, pasted unchanged; Seal does not type the time. In `## 완료 보고`, read the five lines at the top (`Changed`, `Checked`, `To review`, `Remaining limits`, `Next step`), then the completion record and Seal's judgment below them. A Korean request gets `--lang ko`.
+- **Questions before the start, in one message.** From Seal 0.1.23, before recording any baseline, Seal gathers the decisions it can foresee from the goal documents, the plan, the project instructions and the code that need your words, and asks them in one message. When there is nothing to ask, Seal asks nothing and starts the work.
+  - Examples are a plan that changes a file on a protected path, a change to an existing test that the request does not authorize, a place where the goal documents and the code seem to disagree, unusable tools and a budget that needs approval.
+  - Each question gives its options, the recommended one leading, and what the answer changes.
+  - When a condition can be met only by your confirmation, the same message names it and what you will be asked to confirm at the end.
+  - Test and check files the plan will add are in `바꿀 수 있는 경로` from the start, so adding them raises no scope question later.
+
+### Questions during work, and reports
+
+- **Later questions when they arise.** A question no one could foresee, such as a `requirement-question` from review or a round cap, is asked when it arises; questions pending at the same moment go in one message. The confirmations needed at the end are also asked together in one message, once the results exist.
+  - Having asked early does not by itself confirm a change outside Seal's authority or one that weakens a check.
+  - Seal records an answer given up front as the confirmation, quoting it, once the change it allows is committed, and does not ask about that change again.
+  - When the confirmed content changes later, that is a new change and Seal asks again.
+- **Five-line report.** Goals started with 0.1.20 or later use `ha report` in `PROGRESS.md`. `## 현재` opens with the `ha report` stamp, pasted unchanged; Seal does not type the time.
+  - In `## 완료 보고`, read the five lines at the top (`Changed`, `Checked`, `To review`, `Remaining limits`, `Next step`), then the completion record and Seal's judgment below them.
+  - A Korean request gets `--lang ko`.
+
+### Review order by tier
 
 The SPEC's `Assurance:` line sets the independent review stages. Spar decides how a review runs; Seal decides when and what happens with the findings.
 
@@ -70,10 +88,19 @@ The SPEC's `Assurance:` line sets the independent review stages. Spar decides ho
 | `standard` | A candidate round on the final candidate, a fixes round after review fixes, and a cumulative round before `ha done` |
 | `strict` | `standard` plus a plan round before any baseline, which covers the product's invariants and decision rules as well as the check plan |
 
-The cumulative round is a candidate round over the whole change, from the goal's base commit to the last head. In a goal under review, Seal runs `ha done` only once that round ends with no open `defect` or `requirement-question`. When project instructions such as `AGENTS.md` ask for more review, Seal follows them and says so in the completion report. A goal without the line keeps the selected assurance policy as before. When you ask for remote review comments to be applied after completion, Seal records `reopen`, fixes, runs one cumulative round, re-records stale checks and runs `ha done` again.
+The cumulative round is a candidate round over the whole change, from the goal's base commit to the last head. In a goal under review, Seal runs `ha done` only once that round ends with no open `defect` or `requirement-question`.
 
+- When project instructions such as `AGENTS.md` ask for more review, Seal follows them and says so in the completion report.
+- A goal without the line keeps the selected assurance policy as before.
+- When you ask for remote review comments to be applied after completion, Seal records `reopen`, fixes, runs one cumulative round, re-records stale checks and runs `ha done` again.
+
+<details>
+<summary>The Core support check from Seal 0.1.20</summary>
 
 Seal 0.1.20 declares the Core support it needs in `core-requirements.json` in its skill folder and starts with `ha start --check-skill`. When the executable lacks support such as `ha report`, `ha doctor`, the automatic budget or the assurance tier check, `ha` refuses the start without a record, and Seal reports the executable and the message and stops. It does not install tools or fall back to older rules. The `ha` of release v0.1.7 has all of this support. The `ha` of v0.1.6 and earlier does not accept this start.
+
+</details>
+
 ## Reading the completion report
 
 Start with what changed and what was verified. The report appears in the conversation and in `PROGRESS.md` in the goal folder.

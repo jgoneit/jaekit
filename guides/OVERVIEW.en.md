@@ -15,7 +15,12 @@ When you hand work to Claude Code or Codex, this often happens:
 
 When the conversation ends, you have to explain again what was promised and how far it was checked.
 
-There are two common fixes. One is to bind the agent to a procedure: plan formats, approval at every step, hooks that block actions. The better the model gets, the more the procedure becomes its ceiling, and it is hard to prove that a tool blocks everything an agent can do. The other is to trust the agent's report. But an agent can edit its own checks and write easier criteria. "The tests pass" is not the same as "the goal is met".
+There are two common fixes.
+
+- **Bind it to a procedure.** One is to bind the agent to a procedure: plan formats, approval at every step, hooks that block actions. The better the model gets, the more the procedure becomes its ceiling, and it is hard to prove that a tool blocks everything an agent can do.
+- **Trust its report.** The other is to trust the agent's report. But an agent can edit its own checks and write easier criteria.
+
+"The tests pass" is not the same as "the goal is met".
 
 ## Jaekit's idea: delegate the work, judge the end by records
 
@@ -27,7 +32,9 @@ Jaekit picks the space between. It holds on to three things and leaves the rest 
 
 ## How one goal goes through
 
-Follow a **fictional example** of adding a "Forgot password" link to a login screen. It is not an executed or verified case. Spec, Seal, `ha` and Spar below are the names of the parts that make up Jaekit. They are not tools you run one by one in a terminal. You call `/spec:spec` or answer yes in the conversation, and your agent uses the right part at each step. The next section sums up what each does.
+Follow a **fictional example** of adding a "Forgot password" link to a login screen. It is not an executed or verified case.
+
+Spec, Seal, `ha` and Spar below are the names of the parts that make up Jaekit. They are not tools you run one by one in a terminal. You call `/spec:spec` or answer yes in the conversation, and your agent uses the right part at each step. The next section sums up what each does.
 
 1. **You ask.** In the agent conversation, send `/spec:spec add a "Forgot password" link to the login screen` (`$spec:spec` in Codex).
 2. **Spec writes the goal.** It writes the goal and completion conditions to `docs/specs/password-link/SPEC.md`, for example `AC-1` "the login screen shows a link to the reset page" and `AC-2` "the existing login still works". It also proposes a review tier, asks once whether to implement it now, and stops.

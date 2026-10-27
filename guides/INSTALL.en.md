@@ -191,16 +191,33 @@ If `~/.local/bin` is not on your PATH, add `export PATH="$HOME/.local/bin:$PATH"
 
 ## Release and development combinations
 
-| Combination | Core | Spec | Seal | Spar | Scope |
-| --- | --- | --- | --- | --- | --- |
-| Current release `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 | Everything in v0.1.7, plus `ha cost` (one goal's verification and review cost summary), Seal asking the decisions it can foresee in one message before the first baseline, the smallest fix direction on Spar findings, and a direct installation that stops when `spar` is missing |
-| Previous release `v0.1.7` | `ha 0.1.7`, `spar 0.1.7` | 0.1.13 | 0.1.22 | 0.1.3 | Default rules `/3`; Seal starts new goals under `/5` (a `standard` or `strict` goal completes only with a recorded Spar gate), Spar review rounds and gate, runner adapters, `ha report`, `ha doctor` and the automatic budget, Core support check at start (`--check-skill`), Spec that the agent can call |
-| Previous release `v0.1.6` | `ha 0.1.6` | 0.1.12 | 0.1.17 | — | Default rules `/3`; Seal starts new goals under `/4` (proceeding within recorded authority), decision history and run timing, check-authoring guidance, final-candidate evidence, post-completion findings, evidence and assurance-policy reporting; no Spar or `/5` |
-| Previous release `v0.1.5` | `ha 0.1.5` | 0.1.12 | 0.1.16 | — | Same Core behavior as v0.1.6; Seal before the run limit of a reopened `/4` window was linked to its contract |
-| Previous release `v0.1.4` | `ha 0.1.4` | 0.1.12 | 0.1.12 | — | Default rules `/3`, post-completion findings, evidence and assurance-policy reporting; no `/4`, decision history or run timing |
-| Previous release `v0.1.3` | `ha 0.1.3` | 0.1.11 | 0.1.9 | — | Default rules `/3`, capabilities, run estimation and total-limit changes; no post-completion findings extension |
-| Previous release `v0.1.2` | `ha 0.1.2` | 0.1.10 | 0.1.8 | — | Default rules `/2`; does not meet the new Seal's support requirements |
-| Source build | `ha 0.1.8-dev`, `spar 0.1.8-dev` | Checkout version | Checkout version | Checkout version | Development identity; not evidence of installing a release artifact |
+| Combination | Core | Spec | Seal | Spar |
+| --- | --- | --- | --- | --- |
+| Current release `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |
+| Previous release `v0.1.7` | `ha 0.1.7`, `spar 0.1.7` | 0.1.13 | 0.1.22 | 0.1.3 |
+| Previous release `v0.1.6` | `ha 0.1.6` | 0.1.12 | 0.1.17 | — |
+| Previous release `v0.1.5` | `ha 0.1.5` | 0.1.12 | 0.1.16 | — |
+| Previous release `v0.1.4` | `ha 0.1.4` | 0.1.12 | 0.1.12 | — |
+| Previous release `v0.1.3` | `ha 0.1.3` | 0.1.11 | 0.1.9 | — |
+| Previous release `v0.1.2` | `ha 0.1.2` | 0.1.10 | 0.1.8 | — |
+| Source build | `ha 0.1.8-dev`, `spar 0.1.8-dev` | Checkout version | Checkout version | Checkout version |
+
+What each release includes:
+
+- **Current release `v0.1.8`**: Everything in v0.1.7, plus `ha cost` (one goal's verification and review cost summary), Seal asking the decisions it can foresee in one message before the first baseline, the smallest fix direction on Spar findings, and a direct installation that stops when `spar` is missing
+- **Source build**: Development identity; not evidence of installing a release artifact
+
+<details>
+<summary>What earlier releases include</summary>
+
+- **Previous release `v0.1.7`**: Default rules `/3`; Seal starts new goals under `/5` (a `standard` or `strict` goal completes only with a recorded Spar gate), Spar review rounds and gate, runner adapters, `ha report`, `ha doctor` and the automatic budget, Core support check at start (`--check-skill`), Spec that the agent can call
+- **Previous release `v0.1.6`**: Default rules `/3`; Seal starts new goals under `/4` (proceeding within recorded authority), decision history and run timing, check-authoring guidance, final-candidate evidence, post-completion findings, evidence and assurance-policy reporting; no Spar or `/5`
+- **Previous release `v0.1.5`**: Same Core behavior as v0.1.6; Seal before the run limit of a reopened `/4` window was linked to its contract
+- **Previous release `v0.1.4`**: Default rules `/3`, post-completion findings, evidence and assurance-policy reporting; no `/4`, decision history or run timing
+- **Previous release `v0.1.3`**: Default rules `/3`, capabilities, run estimation and total-limit changes; no post-completion findings extension
+- **Previous release `v0.1.2`**: Default rules `/2`; does not meet the new Seal's support requirements
+
+</details>
 
 The tag-pinned installation commands below install v0.1.8. Seal checks the actual Core executable's capabilities and stops before recording if support is missing or cannot be established. Matching version numbers or switching to older rules does not establish compatibility. See the [Core capabilities contract](../contracts/core-capabilities.md) for the required support.
 
@@ -271,7 +288,12 @@ which -a spar
 <details>
 <summary>Optional, Release file installs only: remove earlier versions' data</summary>
 
-After a Release file installation, the earlier versions' public data stays in `~/.local/share/jaekit/<version>`. Once the check above prints `ha 0.1.8`, the command below removes only the folders of versions older than the installed `0.1.8`. The current version's folder `~/.local/share/jaekit/0.1.8` and the files used by [Get the reference check](#get-the-reference-check), folders of newer versions, and entries whose names are not a three-number version like `0.1.2` stay. Names are checked in full without splitting at newlines or spaces; ordinary files and symlinks with version-like names stay too. Versions are compared as numbers, so `0.1.10` is newer than `0.1.8`. If `~/.local/share/jaekit` is a symlink, nothing is removed. Enumeration, version comparison, or deletion errors make the command fail; older folders already removed successfully are not restored. The data folder first appeared in v0.1.3.
+After a Release file installation, the earlier versions' public data stays in `~/.local/share/jaekit/<version>`. Once the check above prints `ha 0.1.8`, the command below removes only the folders of versions older than the installed `0.1.8`. The data folder first appeared in v0.1.3.
+- The current version's folder `~/.local/share/jaekit/0.1.8` and the files used by [Get the reference check](#get-the-reference-check), folders of newer versions, and entries whose names are not a three-number version like `0.1.2` stay.
+- Names are checked in full without splitting at newlines or spaces; ordinary files and symlinks with version-like names stay too.
+- Versions are compared as numbers, so `0.1.10` is newer than `0.1.8`.
+- If `~/.local/share/jaekit` is a symlink, nothing is removed.
+- Enumeration, version comparison, or deletion errors make the command fail; older folders already removed successfully are not restored.
 
 ```bash
 (

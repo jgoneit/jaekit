@@ -21,7 +21,7 @@ var rfrKept = map[string]map[string]string{
 	"README.md": {
 		"flow":        "f3d640a39d99aac5e948b357935fe9d791a12f5111a0c5151ec092c120855fec",
 		"get-started": "d513e0f5306006ef33f58712f6d0e6b53a26c19c89a631a0c3064523d486eef7",
-		"records":     "4f67be23e24f434254c19622abe84aa7899e3a3fa6f774702d1d0c3e1ebee052",
+		"records":     "c9cb21d06688a18ed91f6af673393cfe81ef80212b851529ed796a40085b9abb",
 		"hero":        "e2786373776467d77948970760fa85cc010d488ea902310cc820856304fc51bc",
 		"commands":    "59f12488dd2183b2309aebdec44be212f4cf2383e234b5c3fbcead13a15dd150",
 		"links":       "230cdd06ae13d86269ac5c8aa9c4f6140058ffdf1d4abd42b54227d9b69f2cc9",
@@ -29,7 +29,7 @@ var rfrKept = map[string]map[string]string{
 	"README.ko.md": {
 		"flow":        "8a6501de29184c80a8af663fc7787de356e492ae5e09ccc502bf26cc8ace4fd1",
 		"get-started": "cd21b3ebda85af36c614dc10ea2d53c35558de92288e057394d0226387230fa0",
-		"records":     "a1f3d014538735b2f9e538cf1cf4df39d2207b652295d417960f86188ca8a3dd",
+		"records":     "6e4a611a894b01cfc1f0d54513c7dd9d6475004be759f2363fe5ee4d63acc2ff",
 		"hero":        "b3c24b6ab3fc3fd3b9270086d61fe18135de39990a12d0159d4131f1d6e1ecbf",
 		"commands":    "59f12488dd2183b2309aebdec44be212f4cf2383e234b5c3fbcead13a15dd150",
 		"links":       "030ca6ade819d8427a62e35242be9c1b98204af988248a928b5d6618ed4d44ca",

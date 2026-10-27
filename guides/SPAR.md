@@ -121,16 +121,36 @@ docs/reviews/
 
 한 series는 plan 1회, plan delta 1회, 코드 라운드 3회까지입니다. 상한을 넘는 라운드는 리뷰어를 띄우기 전에 거부되고, `spar extend`로 기록한 사용자의 말이 있어야 더 돌릴 수 있습니다. 사용량 거절 등으로 같은 패킷을 끝내지 못한 리뷰어만 다시 돌리는 실행은 세지 않습니다.
 
-라운드마다 Git이 무시하는 새 폴더에 `round.json`, `packet.md`, `findings.json`, `ledger.jsonl`, `summary.md`가 생깁니다. 패킷에 비공개 문서가 들어갈 수 있으므로 Git이 추적할 폴더는 거부합니다([프로젝트 준비](#프로젝트-준비)). 형식은 [라운드 계약](../contracts/review-round.md)에 있습니다. 리뷰어 결과의 위치·연결, 설정 값, 명령 인자처럼 spar가 받는 입력의 형식과 형식 밖 입력의 결과는 [입력 형식 계약](../contracts/spar-input.md)의 표 하나에 있습니다. 위치가 어떤 파일도 가리키지 않는 지적은 버리지 않고 읽을 수 없는 위치로 표시하며, 자동 보류하지 않습니다.
+라운드마다 Git이 무시하는 새 폴더에 `round.json`, `packet.md`, `findings.json`, `ledger.jsonl`, `summary.md`가 생깁니다. 패킷에 비공개 문서가 들어갈 수 있으므로 Git이 추적할 폴더는 거부합니다([프로젝트 준비](#프로젝트-준비)).
+
+<details>
+<summary>라운드·입력 형식과 위치를 읽을 수 없는 지적</summary>
+
+형식은 [라운드 계약](../contracts/review-round.md)에 있습니다. 리뷰어 결과의 위치·연결, 설정 값, 명령 인자처럼 spar가 받는 입력의 형식과 형식 밖 입력의 결과는 [입력 형식 계약](../contracts/spar-input.md)의 표 하나에 있습니다.
+
+위치가 어떤 파일도 가리키지 않는 지적은 버리지 않고 읽을 수 없는 위치로 표시하며, 자동 보류하지 않습니다.
+
+</details>
 
 ## 지적과 gate
 
+gate는 검토 기록이지 완료 근거가 아닙니다. Seal의 완료는 여전히 `ha done`에서만 나옵니다. `run-rules/5`로 시작한 `standard`·`strict` 목표에서는 Seal이 gate 파일을 `ha note <goal> review --gate <file>`로 기록하고, 기록된 gate가 지금 HEAD와 목표 문서를 덮어야 `ha done`이 완료를 기록합니다([검토 gate](USAGE.md#검토-gate-run-rules5)). 그래서 라운드에는 SPEC.md와 그것이 링크한 목표 문서를 모두 `--criteria`로 줍니다.
+
+### 지적의 분류
+
 Spar는 지적을 `defect`, `requirement-question`, `hardening`, `note` 가운데 하나로 분류합니다. 요구 질문은 사용자의 말로만 닫히고, 검사 코드에서 거짓 통과·결과 의미 뒤바뀜·이름을 댄 규칙 위반을 주장하지 않는 엣지 케이스는 `hardening`으로 보류됩니다. 끝내지 못한 리뷰어는 원인과 함께 보이고 지적 0건으로 세지 않습니다.
 
-리뷰어는 지적마다 `smallest_fix`에 가장 작은 수정 방향을 적습니다. 실패 시나리오가 맞게 나오게 하는 가장 작은 변경을 패치가 아닌 문장으로 적고, 말할 수 없으면 비워 둘 수 있습니다. 방향은 `findings.json`에 남고 `summary.md`의 `## Smallest fixes`에 보입니다. 방향은 제안이라 분류·처리·gate에 쓰지 않습니다. 에이전트는 수정을 그 방향 안에서 시작하고, 더 크게 고치면 그 까닭을 `spar triage … --note`로 남깁니다.
+### 가장 작은 수정 방향
+
+리뷰어는 지적마다 `smallest_fix`에 가장 작은 수정 방향을 적습니다. 실패 시나리오가 맞게 나오게 하는 가장 작은 변경을 패치가 아닌 문장으로 적고, 말할 수 없으면 비워 둘 수 있습니다.
+
+방향은 `findings.json`에 남고 `summary.md`의 `## Smallest fixes`에 보입니다. 방향은 제안이라 분류·처리·gate에 쓰지 않습니다. 에이전트는 수정을 그 방향 안에서 시작하고, 더 크게 고치면 그 까닭을 `spar triage … --note`로 남깁니다.
+
+### gate의 상태
 
 `spar gate`는 라운드들과 완료하려는 head를 읽고 `review-gate/v1` 파일을 씁니다. `complete`(종료 0), 필수 리뷰어가 끝내지 못했고 그 라운드에 사용자의 결정이 없으면 `degraded`(3), 열린 지적·상한 초과·검토되지 않은 head가 있으면 `blocked`(4)입니다. 검토 수정이 검사 코드와 그 밖에 더한 줄 수도 남깁니다. [gate 계약](../contracts/review-gate.md)을 보세요.
 
+### 리뷰어 없이 진행하기
+
 필수 리뷰어가 사용량 한도 같은 이유로 라운드를 끝내지 못했고 사용자가 그 리뷰어 없이 진행하라고 하면, 에이전트가 `spar waive <라운드> <리뷰어> --user-quote "…"`로 그 말을 그 라운드에 기록합니다. 사용자의 말 없이는 기록하지 않습니다. 결정이 기록된 리뷰어는 그 라운드의 `degraded` 사유가 되지 않고, gate 파일의 그 라운드 `waived_reviewers`에 상태와 사용자의 말이 함께 보입니다. 결정은 그 라운드에만 적용되고, 완료한 필수 리뷰어가 하나도 없는 라운드는 결정이 있어도 `degraded`입니다.
 
-gate는 검토 기록이지 완료 근거가 아닙니다. Seal의 완료는 여전히 `ha done`에서만 나옵니다. `run-rules/5`로 시작한 `standard`·`strict` 목표에서는 Seal이 gate 파일을 `ha note <goal> review --gate <file>`로 기록하고, 기록된 gate가 지금 HEAD와 목표 문서를 덮어야 `ha done`이 완료를 기록합니다([검토 gate](USAGE.md#검토-gate-run-rules5)). 그래서 라운드에는 SPEC.md와 그것이 링크한 목표 문서를 모두 `--criteria`로 줍니다.

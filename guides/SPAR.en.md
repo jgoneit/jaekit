@@ -121,16 +121,36 @@ Ask your agent, for example `$spar:spar` in Codex or `/spar:spar` in Claude Code
 
 One series allows one plan round, one plan-delta round and three code rounds. A round past its cap is refused before any reviewer starts; only your words, recorded with `spar extend`, allow more. Rerunning reviewers that did not finish the same packet, for example after a quota refusal, does not count.
 
-Each round writes a new, Git-ignored folder with `round.json`, `packet.md`, `findings.json`, `ledger.jsonl` and `summary.md`. Spar refuses a folder that Git would track, because the packet can contain private documents ([Set up a project](#set-up-a-project)). The format is in the [round contract](../contracts/review-round.md). The format of every input spar reads, such as finding locations and links, configuration values and command arguments, and what happens to input outside it, is in one table in the [input contract](../contracts/spar-input.md). A finding whose location names no file is kept, marked as an unreadable location and never deferred automatically.
+Each round writes a new, Git-ignored folder with `round.json`, `packet.md`, `findings.json`, `ledger.jsonl` and `summary.md`. Spar refuses a folder that Git would track, because the packet can contain private documents ([Set up a project](#set-up-a-project)).
+
+<details>
+<summary>Round and input formats, and findings without a readable location</summary>
+
+The format is in the [round contract](../contracts/review-round.md). The format of every input spar reads, such as finding locations and links, configuration values and command arguments, and what happens to input outside it, is in one table in the [input contract](../contracts/spar-input.md).
+
+A finding whose location names no file is kept, marked as an unreadable location and never deferred automatically.
+
+</details>
 
 ## Findings and the gate
 
+The gate is a review record, not evidence of completion. Seal's completion still comes only from `ha done`. For a `standard` or `strict` goal started under `run-rules/5`, Seal records the gate file with `ha note <goal> review --gate <file>`, and `ha done` records completion only when the recorded gate covers the current HEAD and goal documents ([Review gate](USAGE.en.md#review-gate-run-rules5)). So the rounds get SPEC.md and every goal document it links as `--criteria`.
+
+### How findings are classified
+
 Spar classifies every finding as `defect`, `requirement-question`, `hardening` or `note`. A requirement question closes only with your words; an edge case in check code that claims no false pass, inverted result or named rule violation is deferred as `hardening`. A reviewer that did not finish is shown with its cause and is never counted as finding nothing.
 
-Reviewers give each finding a `smallest_fix`: the smallest change that would make its failure scenario come out right, stated as a direction rather than a patch. A reviewer may leave it empty. The direction stays in `findings.json` and appears under `## Smallest fixes` in `summary.md`. It is advice and is not used for classes, dispositions or the gate. The agent starts a fix within that direction and records why with `spar triage … --note` when the fix goes further.
+### The smallest fix
+
+Reviewers give each finding a `smallest_fix`: the smallest change that would make its failure scenario come out right, stated as a direction rather than a patch. A reviewer may leave it empty.
+
+The direction stays in `findings.json` and appears under `## Smallest fixes` in `summary.md`. It is advice and is not used for classes, dispositions or the gate. The agent starts a fix within that direction and records why with `spar triage … --note` when the fix goes further.
+
+### Gate states
 
 `spar gate` reads the rounds and the head you are about to complete and writes a `review-gate/v1` file: `complete` (exit 0), `degraded` (3) when a required reviewer did not finish and you made no decision for that round, or `blocked` (4) for open findings, caps exceeded or an unreviewed head. It also records how many lines review fixes added to check code and elsewhere. See the [gate contract](../contracts/review-gate.md).
 
+### Going on without a reviewer
+
 When a required reviewer did not finish a round, for example because of a usage limit, and you say to go on without it, the agent records your words for that round with `spar waive <round> <reviewer> --user-quote "…"`. It never records one without your words. A waived reviewer is not a `degraded` reason for that round, and the gate file shows it under that round's `waived_reviewers` with its status and your words. A waiver covers only its round, and a round where no required reviewer completed stays `degraded` even with waivers.
 
-The gate is a review record, not evidence of completion. Seal's completion still comes only from `ha done`. For a `standard` or `strict` goal started under `run-rules/5`, Seal records the gate file with `ha note <goal> review --gate <file>`, and `ha done` records completion only when the recorded gate covers the current HEAD and goal documents ([Review gate](USAGE.en.md#review-gate-run-rules5)). So the rounds get SPEC.md and every goal document it links as `--criteria`.
