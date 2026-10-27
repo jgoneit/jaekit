@@ -181,6 +181,8 @@ func (w *amWorld) fake(file, preset string) string {
 	}
 	script := "#!/bin/sh\n" +
 		fmt.Sprintf("if [ \"$1\" = --version ]; then echo \"%s 0.0.0 (synthetic)\"; exit 0; fi\n", preset) +
+		"if [ \"$1\" = --preflight ]; then ls " + amQuote(calls) + " >/dev/null && echo 1 | wc -l >/dev/null && " +
+		"echo 1 | tr -d ' ' >/dev/null && cat " + answer + " >/dev/null; exit $?; fi\n" +
 		"n=$(ls " + amQuote(calls) + " | wc -l | tr -d ' ')\n" +
 		"printf '%s\\0' \"$@\" > " + amQuote(calls) + "/$n\n" +
 		"model=\nprev=\nfor a in \"$@\"; do case \"$prev\" in --model|-m) model=$a;; esac; prev=$a; done\n" +
@@ -193,10 +195,14 @@ func (w *amWorld) fake(file, preset string) string {
 	if err := os.Chmod(path, 0o755); err != nil {
 		w.t.Fatalf("setup: %v", err)
 	}
-	// A fake that cannot start (no /bin/sh, a noexec folder) would make
-	// spar record a failed reviewer: that observes nothing.
-	if out, err := exec.Command(path, "--version").CombinedOutput(); err != nil {
-		w.t.Fatalf("setup: the fake %s cannot run: %v %s", path, err, out)
+	// A fake that cannot start (no /bin/sh, a noexec folder) or cannot run
+	// the commands its answer needs (ls, wc, tr, cat) would make spar
+	// record a failed reviewer: that observes nothing. --preflight runs
+	// those commands without recording a call.
+	for _, arg := range []string{"--version", "--preflight"} {
+		if out, err := exec.Command(path, arg).CombinedOutput(); err != nil {
+			w.t.Fatalf("setup: the fake %s cannot run (%s): %v %s", path, arg, err, out)
+		}
 	}
 	return path
 }

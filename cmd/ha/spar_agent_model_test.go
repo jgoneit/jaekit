@@ -16,6 +16,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -147,5 +148,35 @@ func TestSparAgentModelAC10_HaCostReadsBothForms(t *testing.T) {
 		if withSources[key] == nil || !reflect.DeepEqual(withSources[key], without[key]) {
 			t.Errorf("AC-10: ha cost %s differs between the series with model sources and without them:\n%v\n%v", key, withSources[key], without[key])
 		}
+	}
+	// The fixture's own outcomes, so a change that alters both forms alike
+	// is still seen: one counted candidate round whose two reviewers each
+	// completed in one attempt without a fallback, and two defects, the
+	// host's rejected and codex's without a disposition.
+	var got []string
+	review, _ := without["review"].(map[string]any)
+	rounds, _ := review["rounds"].([]any)
+	for _, r := range rounds {
+		r, _ := r.(map[string]any)
+		got = append(got, fmt.Sprintf("round %v %v counted=%v", r["round"], r["stage"], r["counted"]))
+		reviewers, _ := r["reviewers"].([]any)
+		for _, v := range reviewers {
+			v, _ := v.(map[string]any)
+			got = append(got, fmt.Sprintf("reviewer %v %v attempts=%v fallback=%v", v["name"], v["status"], v["attempts"], v["fallback_used"]))
+		}
+	}
+	findings, _ := without["findings"].(map[string]any)
+	classes, _ := findings["classes"].([]any)
+	for _, c := range classes {
+		if c, _ := c.(map[string]any); c["class"] == "defect" {
+			d, _ := c["dispositions"].(map[string]any)
+			got = append(got, fmt.Sprintf("defect total=%v reject=%v none=%v", c["total"], d["reject"], d["none"]))
+		}
+	}
+	want := []string{"round 01-candidate candidate counted=true",
+		"reviewer codex completed attempts=1 fallback=false", "reviewer host completed attempts=1 fallback=false",
+		"defect total=2 reject=1 none=1"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("AC-10: ha cost on the series in the earlier form does not give the fixture's outcomes:\n got  %q\n want %q", got, want)
 	}
 }

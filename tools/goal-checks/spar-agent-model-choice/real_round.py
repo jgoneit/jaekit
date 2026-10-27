@@ -99,8 +99,6 @@ def named_model(round_dir, name, preset, last):
     <reviewer>/stdout.jsonl and the fallback's in <reviewer>/fallback/."""
     if preset == "codex":
         return ""
-    if last > 1:
-        raise InputError(f"round.json reviewers.{name} has more than a first and a fallback attempt")
     path = round_dir / name / ("fallback" if last > 0 else "") / "stdout.jsonl"
     try:
         data = path.read_bytes()
@@ -181,6 +179,8 @@ def check(round_dir):
         if not attempts:
             unobserved.append(f"{name}: the round records no attempt")
             continue
+        if len(attempts) > 2:
+            raise InputError(f"round.json reviewers.{name} has more than a first and a fallback attempt")
         first = typed(attempts[0], dict, f"reviewers.{name}.attempts[0]")
         where = f"reviewers.{name}.attempts[0]"
         argv = typed(first.get("argv"), list, f"{where}.argv", optional=True)
