@@ -1,5 +1,7 @@
 # Common regression connections
 
+[한국어](regressions.ko.md) · **English**
+
 [regressions.json](regressions.json) is the finite registry for five current Jaekit invariants. Each route names its product consumers, public contract, general property, original example, related input families, supported boundary, selected regression, and public follow-up when unresolved. It is reviewed source, not an inference from private goal records. Changes that introduce another consumer of I1–I5 must add that route and its protection or explicit gap.
 
 | ID | Property | Consumers |

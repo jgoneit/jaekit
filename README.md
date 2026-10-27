@@ -556,9 +556,9 @@ Every guide is also on the [documentation site](https://jgoneit.github.io/jaekit
 - [Reading work status and the completion report](guides/OPERATIONS.en.md): why work stopped and what a report rests on
 - [Independent review rounds with Spar](guides/SPAR.en.md), needed for `standard` and `strict` goals from v0.1.7
 
-**File and record formats and rules** (you do not need them to hand work to your agent; in Korean)
+**File and record formats and rules** (you do not need them to hand work to your agent)
 
-- [Formats and rules overview](contracts/README.md) · [Command and record formats](contracts/run-record.md)
+- [Formats and rules overview](contracts/README.en.md) · [Command and record formats](contracts/run-record.en.md)
 
 **Developing Jaekit**
 

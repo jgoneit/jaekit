@@ -1,0 +1,162 @@
+# Contract: Spar input formats
+
+[한국어](spar-input.md) · **English**
+
+> This is a translation of the [Korean original](spar-input.md). Where the two differ, the Korean original decides.
+
+One table below defines the input fields that `spar` accepts from reviewer results, reviewer runs, configuration files, command arguments and records it reads back. For each field, the table states the accepted format and its normalization, the result for input outside the format, and where the rule is used (consumers). Input outside the accepted format ends with the result given in the table; it is never read as another value or silently accepted. All consumers of a row use the same rule. [Review round](review-round.en.md), [Review gate](review-gate.en.md) and [Spar configuration](spar-config.en.md) point to the rows of this table for the format of each field. The paths and names in the examples below are synthetic.
+
+## 1. Result names
+
+| Result | Meaning |
+| --- | --- |
+| `invalid_output` | That reviewer's result is not used ([Review round](review-round.en.md) section 4). The reason contains the name of the key at fault |
+| Unreadable location | The reviewer result is used as is, and only that finding is handled as in section 4 |
+| Configuration error | Exit code 65 and a `<파일>:<줄>` message. No reviewer starts and no round folder is created |
+| Refused | Exit code 65. Nothing is written |
+| Usage error | Exit code 64 |
+| Unconfirmed link | `link_kind` is `none` and `link` is the empty string; the values the reviewer gave remain in `claimed_link_kind` and `claimed_link` |
+
+## 2. Input format table
+
+| Row | Field (supplied by) | Accepted format and normalization | Result outside the format | Consumers |
+| --- | --- | --- | --- | --- |
+| G1 | Result object (reviewer) | One JSON object. The keys are exactly `reviewed_head`, `verdict`, `angles_checked`, `angles_unchecked`, `findings`, `limits` | Not an object, a missing key, an unknown key: `invalid_output` (the key name in the reason) | Result check for every preset (`spar run`), `spar record --result` and `--transcript` (`spar record`) |
+| G2 | `reviewed_head` (reviewer) | A string of 7 or more characters that is literally equal to the beginning of the packet's head commit ID | `invalid_output` | Same as G1 (`spar run`, `spar record`) |
+| G3 | `verdict` (reviewer) | `no_blocking_findings`, `blocking_findings`, `could_not_review`. `could_not_review` is recorded as `failed` | `invalid_output` | Same as G1 (`spar run`, `spar record`) |
+| G4 | Angle items (reviewer) | Items of `angles_checked` are `{angle, result}` and items of `angles_unchecked` are `{angle, reason}`; values are strings, and `angle` is one of the five angles. Each requested angle must appear at least once in either list. The same angle appearing several times, or in both lists, is accepted and recorded as received | Not a list, an item that is not an object, a missing or unknown key, an unknown angle, a missing requested angle: `invalid_output` | Same as G1 (`spar run`, `spar record`), angles in the summary (`summary.md`) |
+| G5 | Finding items (reviewer) | The keys are exactly `id`, `proposed_class`, `angle`, `location`, `claim`, `failure_scenario`, `evidence`, `link_kind`, `link`, `introduced_by_change`, `regression`, `check_impact`, `confidence`, all strings, and the optional key `smallest_fix` (a string, the empty string included) may be added to them. `smallest_fix` is accepted when the key is absent, and the empty string and an absent key both mean no direction. Enumerated values are those of [Review round](review-round.en.md) section 3. `failure_scenario` is not whitespace only. `id`, `claim`, `evidence` and `smallest_fix` are any string (`id` remains only as `reviewer_id`; spar numbers the round's finding IDs `<리뷰어>-F<n>`) | Not an object, a missing key (except `smallest_fix`), an unknown key, a value that is not a string (`smallest_fix` included), a value outside the enumeration, an empty `failure_scenario`: `invalid_output` | Same as G1 (`spar run`, `spar record`), `smallest_fix` in `findings.json`, `## Smallest fixes` in the summary (`summary.md`) |
+| G6 | `limits` (reviewer) | A string (the empty string included) | Not a string: `invalid_output` | Same as G1 (`spar run`, `spar record`) |
+| G7 | Finding `location` (reviewer) | The grammar of section 3. Only the one prefix at the front among `head/`, `base/` and `./` is removed, once. Target: a file or folder of the head copy for the prefixes `head/` and `./`, of the base copy for `base/`, and of the head copy and then the base copy with no prefix (a path with tracked files under it; a trailing `/` is removed; a prefix alone means the repository root). With no prefix, `head/` or `./`, a location that is not in the copy can also point to the name of a round document (G26). Without a line, the target is the whole location if that is a target, otherwise its first word. `path` is the target's repository path (for a round document, its G26 name); the repository root is the empty path and is not a check path. Lines are only recorded: they are not used for classification and are not compared with the file's line count | Outside the grammar, or no target (line 0 and end line < start line included): unreadable location. For that finding only, `path` is empty, `in_check_paths` is `false`, `location_unreadable` is `true`, and `class_reason` starts with `unreadable location`. Classification follows section 4, and the finding is not deferred automatically | Classification (`path`, `in_check_paths`, `class`), automatic deferral when the round is recorded (`ledger.jsonl`), `findings.json`, the summary (the `(unreadable location)` mark in `summary.md`), the gate's `auto_deferred`, the sentence on how to report in the packet (`packet.md`). `spar run` and `spar record` use the same rule |
+| G8 | `link` of a `rule` or `contract` link (reviewer) | The grammar of section 3. Only the one prefix at the front among `head/` and `./` is removed, once (`base/` stays as a repository folder name). Without a line, the target is the whole link if that is a target document, otherwise its first word. Target: for `rule`, a rule document of the round; for `contract`, a rule document or a regular file of the head commit (mode `100644` or `100755`). Rule documents come first: a document whose repository-relative path or real absolute path matches, otherwise a document whose file name matches (only when one rule document has that name). For `contract`, a regular file of the head commit is looked up next by repository path. When lines are given, 1 ≤ start line ≤ end line ≤ the document's line count (the line count is the number of newlines, plus one when the last line does not end with a newline). `links.rules[]` in `round.json` keeps each rule document's `names`, `file_name` and `lines` | Outside the grammar, no target, either end of the range not in the document, end line < start line, line 0, rule documents with the same file name (when there is no head file either), a symbolic link, submodule or folder: unconfirmed link | Link confirmation in classification (classification rules 2, 3 and 6, `class`), `findings.json`, the sentence on how to report in the packet (`packet.md`). `spar run` and `spar record` use the same rule |
+| G9 | Criterion IDs: `criterion` links and criteria documents (reviewer, caller) | `AC-<숫자>`, with no ASCII letter or digit immediately before or immediately after it. Several in one text are each read (`AC-1,AC-2`). The IDs of the criteria documents are all IDs found by the same rule in the documents' full text. Comparison is literal (`AC-01` and `AC-1` differ) | The link has no ID, or any of its IDs is not in the criteria documents: unconfirmed link | The criteria document ID set (`links.criteria_ids` in `round.json`), `criterion` link confirmation in classification (`class`), `findings.json`, the sentence on how to report in the packet (`packet.md`) |
+| G10 | Tools used and item kinds (reviewer run) | The per-preset lists in [Review round](review-round.en.md) section 4. For agy, the list includes `read_file` | `tool_violation`; the result is not used | Monitoring of claude, codex and agy runs (`spar run`) |
+| G11 | agy shell commands (reviewer run) | The read-only programs of [Review round](review-round.en.md) section 4 and `sed -n`; the only operator is `\|`. `2>/dev/null` and `2>&1` are removed before checking (the same as clean-review 0.2.1) | Any other program, operator, redirection or command substitution, a forbidden argument prefix: `tool_violation` | Monitoring of `agy` runs (`spar run`) |
+| G12 | Actual model `observed_model` (reviewer run) | The model name that the reviewer output states. When the output does not state one, it is unknown: `null` in `round.json`, and the field is absent from the attempt records (`attempts`) | Not applicable (`null` means unknown) | `round.json`, the summary (`summary.md`) |
+| G13 | Usage and authentication refusals (reviewer run) | The refusal phrases (usage or rate limits, authentication) and reset phrases of section 5. Section 5 lists every phrase spar recognizes | Any other message is not a refusal: no fallback model is used, and the run is recorded by its exit status | The fallback model (`fallback_model`) decision, `attempts`, the summary (`summary.md`) |
+| G14 | Finding the executable: `binary`, the preset name, `argv[0]` of `command` (configuration) | A value containing `/` is that path. A name without `/` is an executable file on PATH | A path containing `/` that does not exist: `unavailable`. One that exists but is not a regular file or has no execute permission: `failed`. No executable file on PATH (even when only files without execute permission exist): `unavailable` | Preparing the reviewer run (`spar run`) |
+| G15 | native transcript (host) | A Claude Code transcript JSONL. Warnings: a tool outside the allowed ones, tools or context the host added, `prompt.md` not read, and `file_path` of `Read` or `path` of `Grep` or `Glob` pointing outside the native workspace and `prompt.md` (`the subagent read outside the native workspace with <도구>`). A relative path or no path is resolved against that entry's `cwd`. A warning keeps only its kind and the tool name, never a path or content | An unreadable transcript: refused. A relative path or no path in an entry without `cwd`: warned as outside the workspace | `spar record --transcript`, `warnings` in `round.json` |
+| G16 | Configuration source files: `SPAR_CONFIG`, `$XDG_CONFIG_HOME/jaekit/spar.toml`, `~/.config/jaekit/spar.toml`, clean-review `config.json`, project `.jaekit/spar.toml` (user, repository) | A missing path (a broken symbolic link and a symbolic link loop included) is treated as absent, and the next source is used (a user source remains in `source.skipped`; the project configuration gets the defaults). An existing path must be a regular file; for a symbolic link, the target it resolves to is checked. An empty environment variable is absent. The project configuration is read from the working tree, not from a commit, and the path and sha256 of each file read remain in `config.files` of the applied configuration record. The configuration `digest` covers only the applied values | Exists but is not a regular file (a folder, a FIFO and so on), or `stat` fails for another reason: configuration error | `spar config`, `spar run` |
+| G17 | TOML syntax and keys (user, repository) | All of TOML 1.0.0 (`go-toml/v2` v2.2.4). The keys are those of [Spar configuration](spar-config.en.md). A forbidden key in the project configuration is an error at any depth | Syntax error, unknown key, forbidden key: configuration error | `spar config`, `spar run` |
+| G18 | clean-review `config.json` (user) | A JSON object. Without `reviewers`, the default list. With it, an array of strings; each string is trimmed of leading and trailing whitespace, and empty strings are skipped (the same as clean-review). Each remaining name is one of `claude`, `codex`, `agy`, `native`, with no duplicates. When all are empty, `native` alone | Not an object (`null` included), `reviewers` not an array (`null` included), an item that is not a string, an unknown or duplicate name: configuration error | `spar config`, `spar run` |
+| G19 | `timeout_seconds`, top-level and per reviewer (user) | A positive integer. The per-reviewer value takes precedence. The top-level value is the default for every reviewer that file determines: also when the default list applies because `reviewers` is absent, when `native` applies because the list is empty, and when `--reviewers` picks a preset name that is not in the configuration. For each attempt, the time limit covers the whole run, including the version check of the reviewer's executable (the version check itself takes no more than 30 seconds) | 0, a negative number, not an integer: configuration error | Reviewer runs (`spar run`), `spar config`, `timeout_seconds` in `round.json` |
+| G20 | Reviewer names: `name`, names in `--reviewers`, names in `spar record` and `spar waive` (user, caller) | `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`. When omitted, the preset name. No duplicates within one list, ignoring case. The names of the files and folders spar writes in a round folder (`round.json`, `packet.md`, `schema.json`, `findings.json`, `ledger.jsonl`, `summary.md`, `waivers.jsonl`, `workspace`), and those names with `.tmp` appended, cannot be used, ignoring case. Other comparisons (matching required reviewers, `spar record`, `spar waive`) are literal | Outside the syntax, a duplicate that differs only in case, a reserved name: configuration error (the same for `--reviewers`). An unknown name in `spar record`, a name in `spar waive` that is not a required reviewer of that round: refused | User configuration (`spar config`, `spar run`), `--reviewers`, the layout of the round folder, finding IDs `<이름>-F<n>`, required-reviewer matching in `spar gate`, `spar record`, `spar waive` |
+| G21 | `preset`, `argv`, `binary`, `model`, `fallback_model`, `effort` (user) | `preset` is one of `claude`, `codex`, `agy`, `native`, `command`, and is required. `argv` is only for `command`: an array with no empty argument, in which `{prompt}`, `{workspace}` and `{schema}` are replaced anywhere inside an argument and any other `{…}` is left as is. `binary`, `model`, `fallback_model` and `effort` are only for `claude`, `codex` and `agy` (`agy` has no `effort`). An empty `binary` means the preset name is looked up. An empty `fallback_model` or `effort` turns it off (`effort` is not passed to the CLI) | A key given to a preset that does not use it, `command` without `argv`, an empty `model`, an empty `argv` argument: configuration error | `spar config`, reviewer runs (`spar run`) |
+| G22 | Project `caps`, `angles` (repository) | `caps`: `plan`, `plan_delta`, `code`, integers of 0 or more. `angles`: a subset of the five angles without duplicates, at least one, with the order normalized to the fixed order | A negative number, an unknown or duplicate angle, an empty list: configuration error | Caps (`caps`), angles in the packet (`packet.md`), the angle check, `spar config`, `spar run` |
+| G23 | Project `rules` (repository) | A relative path inside the repository. For a symbolic link, the target it resolves to must be inside the repository. The path must be a readable regular file | An empty value, an absolute path, leaving through `..`, leaving the repository through a symbolic link, a missing file, a folder, an unreadable file: configuration error in both `spar config` and `spar run` (naming the `rules` line and the item) | `spar config`, `spar run`, rule document names (G26) |
+| G24 | Check path globs: `check_paths`, `--check-path` (repository, caller) | Segments split by `/`. A segment that is entirely `**` matches zero or more folders; any other segment matches within one name by Go `path.Match` syntax (`*`, `?`, `[…]`, `\` escape) (a `**` inside a segment is two `*`). A trailing `/` is ignored. Repository-relative paths only. `--check-path` is added to that run's check paths and is reflected in `config.check_paths` of `round.json` and in the configuration `digest` | An empty value, an absolute path, a `..` segment, a segment that `path.Match` treats as a syntax error (an unclosed `[`, a trailing `\`): a configuration error for the project configuration (the `check_paths` line), refused for `--check-path`. Both before any reviewer starts | Configuration check (`spar config`, `spar run`), `in_check_paths` in classification, the split of the gate's `growth`, the check path list in the packet (`packet.md`) |
+| G25 | `--reviewers` list (caller) | Comma-separated names. Leading and trailing whitespace is trimmed and empty items are skipped (the same as clean-review). When all are empty (`""`, `","`), `native` alone. A name in the configuration uses that configuration; a name not in it uses the preset of the same name (except `command`) | G20's syntax and duplicates, a name that is neither in the configuration nor a preset: configuration error | `spar config`, `spar run` |
+| G26 | Document arguments: `--criteria`, `--rules`, `--subject` (caller) | A readable file. It may be outside the repository. Document name: the repository-relative path inside the repository, the file name outside it. The names used in links and locations are this name, the real absolute path and the file name (G8's rule for shared file names) | Unreadable: refused | The packet (`packet.md`), the criteria document digest (`criteria_digest`), link targets (G8), location targets (G7) |
+| G27 | Revisions: `--base`, `--head`, `--expect-head`, `triage --commit` (caller) | A revision that Git resolves to a commit. Never read as an option | Refused by `spar run` and `spar triage`; a `blocked` reason in `spar gate` | `spar run`, `spar triage`, `spar gate` |
+| G28 | Record paths: `run --out`, the series of `extend`, `gate --out` (caller) | One rule: when the path is inside any Git repository (the repository under review, another repository containing the path, a nested repository inside an ignored folder, all alike), the innermost repository containing the path and the outer repositories must all ignore it, and no tracked file may be under it. When there is a `.git` above it, Git must not fail to decide. `run --out` is a folder that does not exist yet. `gate --out` must not be inside a given round folder, must not be the series' `extensions.jsonl`, and when it already exists must be a `review-gate/v1` file (the sha256 of its bytes is `previous_gate_digest`) | Refused. Nothing is written | `spar run`, `spar extend`, `spar gate` |
+| G29 | Gate round list (caller) | One or more round folders, read in the given order. Every `review-round/v1` round that is not a dry run in the series of a given round must be in the list. A round that stopped before recording findings (with neither `finished_at` nor `findings.json`) is left out like a dry run (when given in the list, it is `blocked` like a dry run) | An unreadable round, a round of the same series missing from the list: a `blocked` reason (`<series>: round <이름> of the series is not in the gate list`) | `spar gate` |
+| G30 | Finding IDs and disposition options: the finding of `triage`, `--of`, `--evidence`, `--to`, `--user-quote`, `--failed-before`, `--passed-after`, and `--user-quote` of `waive` (caller) | A finding ID is literally equal to an `id` in that round's `findings.json`. A text option that is empty after leading and trailing whitespace is removed counts as not given | An unknown finding, a violation of the disposition rules, `waive` without the user's words: refused | `spar triage`, `duplicate` tracing in `spar gate`, `spar waive` |
+| G31 | `--stage`, `extend --stage`, `extend --by` (caller) | A stage name of the contract. `--by` is an integer of 1 or more | Usage error | `spar run`, `spar extend` |
+| G32 | Records read back: `round.json`, `findings.json`, `ledger.jsonl`, the round's `waivers.jsonl`, the series' `extensions.jsonl` (written by spar) | The `review-round/v1` format written by the same spar. A finding without `location_unreadable`, as in records written before this goal, is a finding whose location was read, and a finding without `smallest_fix` has no direction. Only `spar waive` and `spar gate` read `waivers.jsonl`. A round without it is a round with no decision; when it exists, every line must have `reviewer`, `preset` and a `user_quote` that is not empty after leading and trailing whitespace is removed | Unreadable (missing file, not JSON, a different schema): `spar run`, `spar extend`, `spar triage`, `spar record` and `spar waive` refuse on the records each of them reads; `spar gate` gives a `blocked` reason. When `waivers.jsonl` is not JSON or has a line missing an item above, `spar waive` refuses and `spar gate` gives a `blocked` reason | Reading the series in `spar run`, `spar record`, `spar triage`, `spar extend`, `spar waive`, `spar gate` |
+| G33 | Concurrent runs (caller) | One write at a time per series: `spar run` (from the cap decision to recording), `spar record`, `spar triage`, `spar extend` and `spar waive` hold the same series lock, and when another write holds it, they write `spar: waiting for another write of <series> to finish` to standard error and wait. After taking the lock, they read the records again. `spar gate` does not lock | Not applicable (it waits). When `spar gate` reads a round that is being written and cannot interpret it, the `blocked` reason of G32 | `spar run`, `spar record`, `spar triage`, `spar extend`, `spar waive` |
+
+## 3. Location and link grammar
+
+G7 and G8 use the same grammar. Only the removed prefixes and the targets differ.
+
+```text
+참조   = 앞뒤 공백을 뗀 글
+       = 접두? 경로 (":" 줄 (대시 줄)?)? (끝 나머지)?
+접두   = G7: "head/" | "base/" | "./"      G8: "head/" | "./"     (앞에 있는 하나만, 한 번)
+줄     = ASCII 숫자 하나 이상
+대시   = "-" | "–"
+끝     = 공백 | "," | ";"                    (줄 뒤에만. 줄 뒤의 그 밖의 문자는 문법 밖)
+나머지 = 아무 글
+```
+
+- Whitespace is Unicode whitespace.
+- In a reference with a line, the path runs up to the first place where `:줄` or `:줄대시줄` is followed by an end or by the end of the text. The path may contain whitespace, and another location in the rest leaves the path as it is.
+- When there is no such place, the reference has no line. If the whole reference is a target, it is the path; otherwise the first word is the path.
+- The prefix is removed from the front of the path only once. `head/base/x` is `base/x` in G7, and `head/head/x` is `head/x`.
+- Lines are checked after the path is settled. A line of 0, or a range whose end line is less than its start line, is an unreadable location in G7 and an unconfirmed link in G8. How the path is read does not depend on the line values.
+- The files and folders of a copy are the blob entries of that commit's tree (regular and executable files and symbolic links) and the folders above them. A submodule (gitlink) is not in the copies, so it is neither a location target nor a `contract` link target.
+- Order of location targets: with no prefix, the head copy, the base copy, then the round documents; with `head/` or `./`, the head copy, then the round documents; with `base/`, only the base copy is looked at. A round document matches by its G26 name and its real absolute path, and by its file name only when one round document has that file name.
+
+## 4. Classifying an unreadable location
+
+When a location is outside the G7 grammar or has no target, that finding's location cannot be read. The reviewer result is not discarded. That reviewer's status is set by the other checks (the location never makes it `invalid_output`), and only that finding is handled as follows.
+
+- `path` is empty, `in_check_paths` is `false`, `location_unreadable` is `true`, and `(unreadable location)` is added to the location column of the summary. `class_reason` starts with `unreadable location (<이유>)`.
+- Of the seven classification rules in [Review round](review-round.en.md) section 6, classification does not use 3 (`requirement-question` and `hardening` in check paths) and 6 (`note` for a proposed `defect` whose link is not confirmed), and uses 1 and 2 without the check-path condition. The first match from the top:
+  1. `defect` if `check_impact` is `false_pass` or `meaning_inverted`
+  2. `defect` if `check_impact` is `contract_violation` and the link is confirmed
+  3. `requirement-question` if `proposed_class` is `requirement-question`
+  4. `defect` if `introduced_by_change` and `regression` are both `yes`
+  5. Otherwise `proposed_class`. A proposed `defect` whose link is not confirmed is also `defect`
+- No automatic deferral ledger entry is written. When the reviewer proposed `hardening`, the finding remains `hardening` with no disposition. It does not block the gate and is not counted in `auto_deferred`, and its disposition column in the summary is `-`.
+- Direction of failure: a misread location can leave more `defect` findings for a person to handle, but it never hides a `defect` as `hardening` or `note`. A finding that would have been `defect` however its location was read (inside or outside the check paths) is `defect`.
+
+## 5. Refusal phrases
+
+spar looks for the phrases below, ignoring case, in the reviewer's standard error and in the error messages of its output. A message outside this list is not a refusal (G13).
+
+| Kind | Phrases | Record |
+| --- | --- | --- |
+| Usage or rate limit | `RESOURCE_EXHAUSTED`, `code 429`, `status 429` (up to four symbols between `code` or `status` and `429`), `429 Too Many Requests`, `too many requests`, `rate limit`, `rate_limit`, `rate-limit`, `ratelimit`, `quota reached`, `quota exceeded`, `quota exhausted`, `insufficient_quota`, `hit your limit`, `hit your usage limit`, `usage limit reached` | `unavailable`, reason `quota or rate limit: …`. With a `fallback_model`, one more run with the fallback model |
+| Authentication | `UNAUTHENTICATED`, `code 401`, `status 401` (up to four symbols between `code` or `status` and `401`), `401 Unauthorized`, `not logged in`, `authentication required`, `authentication failed`, `login again`, `log in again`, `sign in again`, `codex login`, `agy login`, `claude login`, `run /login`, `oauth token expired`, `oauth token has expired`, `invalid api key`, `incorrect api key` | `unavailable`, reason `authentication: …`. No fallback model is used |
+| Reset | `reset` or `resets`, followed by `in` or `at` or by neither (`resets in`, `reset at` and so on), `try again in`, `try again at`. After it, whitespace, then from a word containing a digit up to a period or the end of the line | `resets` of the attempt and of the reviewer |
+
+## 6. Representative forms
+
+The table and grammar above define the accepted formats completely. Below are representative examples that show their properties, and all consumers of each row give the same result. Go tests and checks read the same examples from `internal/spar/testdata/input-forms.json`.
+
+### G7 locations (check path `checks/**`)
+
+| Location | Result |
+| --- | --- |
+| `head/app/main.go:10` | `app/main.go`, not a check path |
+| `head/checks/t.py:10-20`, `head/checks/t.py:10–20` | `checks/t.py`, check path |
+| `head/checks/my test.py:3` | `checks/my test.py` (path with a space) |
+| `head/checks/t.py:10 and head/app/main.go:20` | `checks/t.py` (the later location is the rest) |
+| `head/checks/t.py:10, head/app/main.go:3`, `head/checks/t.py:10; see also` | `checks/t.py` |
+| `head/checks/my test.py` (no line; that file is in head) | `checks/my test.py` |
+| `head/checks/t.py (the loop)` (no line) | The whole is not a target; first word `checks/t.py` |
+| `head/base/checks/t.py:2` (the repository's `base` folder) | `base/checks/t.py`, not a check path |
+| `head/head/x.go:1` (the repository's `head` folder) | `head/x.go` |
+| `base/old.go:4` (only in base) | `old.go` |
+| `./app/main.go:3`, `app/main.go:3` | `app/main.go` |
+| `head/checks/` (folder) | `checks`, check path |
+| `head/` | Repository root, empty path, not a check path |
+| `PLAN.md:12`, `head/docs/specs/x/PLAN.md:12` (document under review `docs/specs/x/PLAN.md`) | `docs/specs/x/PLAN.md` |
+| `head/checks/t.py:10:5` (column number) | The path `checks/t.py:10` is not a target: unreadable location |
+| `head/checks/t.py:10.` (period after the line) | Outside the grammar: unreadable location |
+| `head/checks/t.py:0` | Line 0: unreadable location |
+| `head/checks/t.py:20-10` | End line < start line: unreadable location |
+| `In head/checks/t.py:10` (text in front) | The path `In head/checks/t.py` is not a target: unreadable location |
+| `head/checks/missing.py:3` | No target: unreadable location |
+| `""` (empty location) | No target: unreadable location |
+
+### Classifying an unreadable location (location `head/checks/t.py:10:5`)
+
+| Values the reviewer gave | If the location had been read as `checks/t.py` | When it cannot be read |
+| --- | --- | --- |
+| `proposed_class: defect`, `check_impact: none` | `hardening`, deferred automatically | `defect` |
+| `proposed_class: defect`, `check_impact: false_pass` | `defect` | `defect` |
+| `proposed_class: note`, `check_impact: meaning_inverted` | `defect` | `defect` |
+| `proposed_class: note`, `check_impact: contract_violation`, a confirmed `rule` link | `defect` | `defect` |
+| `proposed_class: note`, `check_impact: contract_violation`, an unconfirmed link | `hardening`, deferred automatically | `note` |
+| `proposed_class: requirement-question`, `check_impact: none` | `hardening`, deferred automatically | `requirement-question` |
+| `proposed_class: note`, `introduced_by_change: yes`, `regression: yes` | `hardening`, deferred automatically | `defect` |
+| `proposed_class: hardening`, `check_impact: none` | `hardening`, deferred automatically | `hardening`, no disposition (not deferred automatically) |
+| `proposed_class: note`, `check_impact: none` | `hardening`, deferred automatically | `note` |
+
+### G8 links (rule documents: a two-line `AGENTS.md`, a five-line `rules/API rules.md`, `base/api.md` under the repository root; head file `contracts/x.md`)
+
+| Link | Result |
+| --- | --- |
+| `rule` `AGENTS.md:2`, `head/AGENTS.md:1-2`, `./AGENTS.md:1–2` | Confirmed |
+| `rule` `AGENTS.md:1-9999`, `AGENTS.md:2-3` | An end of the range is not in the document: not confirmed |
+| `rule` `AGENTS.md:2-1`, `AGENTS.md:0`, `AGENTS.md:3` | Not confirmed |
+| `rule` `rules/API rules.md:4`, `rules/API rules.md` | Confirmed (path with a space, whole name without a line) |
+| `rule` `AGENTS.md Checks and review` | First word `AGENTS.md`: confirmed |
+| `rule` `AGENTS.md:2, AGENTS.md:1` | Confirmed (comma end) |
+| `contract` `base/api.md:3` | Rule document in the repository's `base/` folder: confirmed |
+| `contract` `contracts/x.md:4` | Regular file of the head commit: confirmed |
+| `contract` symbolic link, folder, submodule, file only in base | Not confirmed |
+| `rule` `AGENTS.md:1` (rule documents `a/AGENTS.md`, `b/AGENTS.md`) | Shared file name: not confirmed |
+| `contract` `review.md:5` (a ten-line rule document `review.md` outside the repository, a two-line `review.md` in head) | Rule document first: confirmed |

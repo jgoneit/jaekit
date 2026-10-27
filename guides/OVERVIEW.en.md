@@ -108,4 +108,4 @@ Jaekit is not a tool that cages the agent. It shows what was actually checked an
 - To change a goal, continue one, or read a report: [Usage guide](USAGE.en.md)
 - To set up independent review: [Spar guide](SPAR.en.md)
 - To read why work stopped and what a report rests on: [Reading work status and the completion report](OPERATIONS.en.md)
-- For the exact formats of files and records: [contracts](../contracts/README.md)
+- For the exact formats of files and records: [contracts](../contracts/README.en.md)

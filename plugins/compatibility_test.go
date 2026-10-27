@@ -101,8 +101,8 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 			}
 		})
 	}
-	for _, path := range []string{"../guides/INSTALL.md", "../guides/INSTALL.en.md"} {
-		compatibilityContains(t, path, read(t, path), "jaekit@v0.1.8", "jaekit#v0.1.8", "ha_0.1.8_${os}_${arch}", "contracts/core-capabilities.md", "ha 0.1.8-dev", "v0.1.2")
+	for path, capabilities := range map[string]string{"../guides/INSTALL.md": "contracts/core-capabilities.md", "../guides/INSTALL.en.md": "contracts/core-capabilities.en.md"} {
+		compatibilityContains(t, path, read(t, path), "jaekit@v0.1.8", "jaekit#v0.1.8", "ha_0.1.8_${os}_${arch}", capabilities, "ha 0.1.8-dev", "v0.1.2")
 	}
 	compatibilityContains(t, "Korean budget guidance", read(t, "../guides/USAGE.md"), "시간 상한 변경은 지원하지 않습니다", "횟수 총상한", "명시적 재개", "원래 한도")
 	compatibilityContains(t, "English budget guidance", read(t, "../guides/USAGE.en.md"), "Changing the elapsed-time limit is unsupported", "total run limit", "explicit reopen", "original limits")
