@@ -9,7 +9,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-168975" alt="MIT license" /></a>
 </p>
 
-<p align="center"><strong>English</strong> · <a href="README.ko.md">한국어</a><br /><a href="#install">Install</a> · <a href="#your-first-task">First task</a> · <a href="#update">Update</a> · <a href="#what-you-get">What you get</a> · <a href="guides/USAGE.en.md">Usage guide</a></p>
+<p align="center"><strong>English</strong> · <a href="README.ko.md">한국어</a><br /><a href="#install">Install</a> · <a href="#your-first-task">First task</a> · <a href="#update">Update</a> · <a href="#what-you-get">What you get</a> · <a href="guides/USAGE.en.md">Usage guide</a> · <a href="https://jgoneit.github.io/jaekit/">Docs site</a></p>
 
 Jaekit lets you **check from records whether work you delegate to Claude Code or Codex is really done**. You settle what finished means as a goal before the work starts, and completion is judged from the check records left for each condition.
 
@@ -541,6 +541,8 @@ Installing, updating, or uninstalling does not delete these records. Git trackin
 </details>
 
 ## More
+
+Every guide is also on the [documentation site](https://jgoneit.github.io/jaekit/), grouped in reading order.
 
 **Get started**
 

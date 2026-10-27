@@ -9,7 +9,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-168975" alt="MIT 라이선스" /></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <strong>한국어</strong><br /><a href="#설치">설치</a> · <a href="#첫-작업-맡기기">첫 작업</a> · <a href="#업데이트">업데이트</a> · <a href="#남는-문서와-기록">남는 기록</a> · <a href="guides/USAGE.md">사용 안내</a></p>
+<p align="center"><a href="README.md">English</a> · <strong>한국어</strong><br /><a href="#설치">설치</a> · <a href="#첫-작업-맡기기">첫 작업</a> · <a href="#업데이트">업데이트</a> · <a href="#남는-문서와-기록">남는 기록</a> · <a href="guides/USAGE.md">사용 안내</a> · <a href="https://jgoneit.github.io/jaekit/">문서 사이트</a></p>
 
 Jaekit은 Claude Code·Codex에 맡긴 작업이 **정말 끝났는지 기록으로 확인할 수 있게** 해 주는 도구입니다. 무엇을 하면 끝인지 작업 전에 목표로 정해 두고, 완료는 조건마다 남은 검사 기록으로 판단합니다.
 
@@ -525,6 +525,8 @@ Assurance: standard
 </details>
 
 ## 더 알아보기
+
+모든 안내는 [문서 사이트](https://jgoneit.github.io/jaekit/)에서 읽는 순서대로 묶어 볼 수 있습니다.
 
 **시작하기**
 
