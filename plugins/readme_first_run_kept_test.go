@@ -19,20 +19,20 @@ import (
 // hero, command blocks and link list without the added links.
 var rfrKept = map[string]map[string]string{
 	"README.md": {
-		"flow":        "ac24f89f1a2a066ba90a112e5f686b244db877959e8ae495e819c5f62ae1b75b",
+		"flow":        "f3d640a39d99aac5e948b357935fe9d791a12f5111a0c5151ec092c120855fec",
 		"get-started": "d513e0f5306006ef33f58712f6d0e6b53a26c19c89a631a0c3064523d486eef7",
 		"records":     "4f67be23e24f434254c19622abe84aa7899e3a3fa6f774702d1d0c3e1ebee052",
 		"hero":        "e2786373776467d77948970760fa85cc010d488ea902310cc820856304fc51bc",
 		"commands":    "59f12488dd2183b2309aebdec44be212f4cf2383e234b5c3fbcead13a15dd150",
-		"links":       "32c136acdb0264b9716ca96e7c2026d03d0f56001adb013fc5350b2986456366",
+		"links":       "5303c73c9c08ff6a7347807ea1a71f78dfc52ac20de13479611321e41f027a26",
 	},
 	"README.ko.md": {
-		"flow":        "e4ce9db0255e4ad84b7027e8906ea7c1b2a56191e2f4f528c351f87b2ccf61e0",
+		"flow":        "8a6501de29184c80a8af663fc7787de356e492ae5e09ccc502bf26cc8ace4fd1",
 		"get-started": "cd21b3ebda85af36c614dc10ea2d53c35558de92288e057394d0226387230fa0",
 		"records":     "a1f3d014538735b2f9e538cf1cf4df39d2207b652295d417960f86188ca8a3dd",
 		"hero":        "b3c24b6ab3fc3fd3b9270086d61fe18135de39990a12d0159d4131f1d6e1ecbf",
 		"commands":    "59f12488dd2183b2309aebdec44be212f4cf2383e234b5c3fbcead13a15dd150",
-		"links":       "b293a886f54444a2b2f5018adbafca468c5c64ffca34d860e04e20d842823cd8",
+		"links":       "95bd5389eb32068fcf926f8e1731ad083becf46355370dc91ea757345b45b0f7",
 	},
 }
 

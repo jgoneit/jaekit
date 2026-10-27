@@ -44,7 +44,7 @@ SITE = Path(__file__).resolve().parent
 REPO_URL = "https://github.com/jgoneit/jaekit"
 SECTIONS = ("guides", "contracts")
 # Guides appear in this order; any other guide follows in file-name order.
-GUIDE_ORDER = ("INSTALL", "USAGE", "SPAR", "OPERATIONS", "CI", "WINDOWS", "WSL")
+GUIDE_ORDER = ("OVERVIEW", "INSTALL", "USAGE", "SPAR", "OPERATIONS", "CI", "WINDOWS", "WSL")
 LANGS = ("ko", "en")
 REQUIRED_CHECKS = ("Seal Core", "Public documentation", "Release candidate")
 INSTALL_LINE = re.compile(r"^brew install \S+$")
@@ -999,16 +999,17 @@ def home_page(build: Build, lang: str) -> str:
     parser.close()
     body = "".join(parser.out)
     values = {"root": root, "lang": lang, "version": build.version, "install": build.install[lang],
-              "install_page": f"{root}{lang}/guides/install/", "docs": f"{root}{lang}/docs/",
+              "install_page": f"{root}{lang}/guides/install/", "overview": f"{root}{lang}/guides/overview/",
+              "docs": f"{root}{lang}/docs/",
               "releases": f"{REPO_URL}/releases", "release": release_url(build.version),
               "repo": REPO_URL}
     for key, value in values.items():
         body = body.replace("{{" + key + "}}", esc(value))
     if "{{" in body:
         raise InputProblem(f"tools/site/home.html: unknown placeholder near {body[body.index('{{'):][:40]!r}")
-    description = ("Spec이 목표 문서를 쓰고, Seal이 검사 기록으로 완료를 판단합니다." if lang == "ko" else
-                   "Spec writes the goal document; Seal judges completion from check records.")
-    title = "Jaekit — AI 코딩 작업, 목표부터 완료 기록까지" if lang == "ko" else "Jaekit — AI coding work, from goal to completion record"
+    description = ("무엇을 하면 끝인지 작업 전에 목표로 정해 두고, 조건마다 남은 검사 기록으로 완료를 판단합니다." if lang == "ko" else
+                   "Write down what finished means before the work starts, and judge completion from a check record for each condition.")
+    title = "Jaekit — 맡긴 작업이 정말 끝났는지, 기록으로 확인합니다" if lang == "ko" else "Jaekit — Is the work really done? Check the record"
     return (head(lang, title, description, root, build) + '<body class="page-home">\n' +
             nav(lang, root, f"{root}{other}/", "home", False) + body + footer(lang, root, build) +
             palette(lang, root) + scripts(root, False, True) + "</body>\n</html>\n")

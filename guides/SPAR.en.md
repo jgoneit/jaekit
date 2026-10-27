@@ -2,7 +2,9 @@
 
 [한국어](SPAR.md) · **English**
 
-Spar sends one review packet, pinned to two commits, to several reviewers at once and keeps what they found and what was done about it. The `spar` binary runs the rounds; the `spar` plugin tells your agent when to run them and how findings may be closed.
+Spar is the independent review tool that looks, outside the working agent's conversation, for problems that agent missed. Reviewers cannot change the requirements; what they find is sorted into `defect`, `requirement-question`, `hardening` and `note`, and how each was handled is recorded. A finished review is kept as a gate file that `ha` uses to judge completion. When you need it is below and in [Review tiers](OVERVIEW.en.md#review-tiers) in Understanding Jaekit.
+
+In detail, Spar sends one review packet, pinned to two commits, to several reviewers at once and keeps what they found and what was done about it. The `spar` binary runs the rounds; the `spar` plugin tells your agent when to run them and how findings may be closed.
 
 From v0.1.7, Seal starts new goals under `run-rules/5`, and a `standard` or `strict` goal started under `run-rules/5` completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](USAGE.en.md#review-gate-run-rules5)).
 

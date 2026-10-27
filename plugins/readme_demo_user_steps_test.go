@@ -338,12 +338,12 @@ func TestReadmeDemoUserStepsAC5_SourcesAndCharacter(t *testing.T) {
 // each; its own check compares the rest of them with 81a7d47.
 var rduKept = map[string]map[string]string{
 	"README.md": {
-		"flow":        "e99f3da9160881f8a46a6912c19f8a1359a573d4da556496f0d3575958aaca08",
+		"flow":        "4babcbfb187c912fe900fcf833cb7b70c57fd9ca6af54d06fef77e9b9c6d1d20",
 		"get-started": "8942bfb730cb2f02041d1b1f8c24278335974615994b8b4c8bbe83c00862e794",
 		"records":     "65516132bd1d5a6a0003ee59f8da301973979f567ae9fbdc9fde05d99ef08f6a",
 	},
 	"README.ko.md": {
-		"flow":        "3304c8bba30106da2de475268e84c4f9d6b68b9358e7c89196c77ae335c12932",
+		"flow":        "439d9d536839b77b96e5ea79f5af63decd3e95e47c4c9286933e2b2ed8627b5f",
 		"get-started": "9651222c93b37105dde06f741d1b30c56389dd75e3373794cb9b188c3689d76e",
 		"records":     "0cc3554421fb8b14450b24742f3e32b8482846cb56615cae51821eda13ba79fb",
 	},

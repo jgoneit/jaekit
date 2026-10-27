@@ -11,7 +11,7 @@
 
 <p align="center"><strong>English</strong> · <a href="README.ko.md">한국어</a><br /><a href="#install">Install</a> · <a href="#your-first-task">First task</a> · <a href="#update">Update</a> · <a href="#what-you-get">What you get</a> · <a href="guides/USAGE.en.md">Usage guide</a></p>
 
-Jaekit **carries work you delegate to Codex or Claude Code from a goal to a completion record**.
+Jaekit lets you **check from records whether work you delegate to Claude Code or Codex is really done**. You settle what finished means as a goal before the work starts, and completion is judged from the check records left for each condition.
 
 - **Spec** turns what you want into a goal document with completion conditions.
 - **Seal** has the agent implement, check, and fix the work toward that goal, and judges completion from check records.
@@ -20,20 +20,24 @@ The current release is **v0.1.8**, an early version being refined through real w
 
 ## Why use it
 
-- **You want "done" backed by records**<br>
-  Completion is recorded only when the required completion conditions are met by recorded checks or necessary user confirmations. The completion report shows what changed and how it was checked.
-- **You want to pick up where a conversation ended**<br>
-  Goals, plans, and progress records stay in the project folder. In a new conversation, specify the same goal to continue from the saved point.
-- **You do not want to approve every step**<br>
-  The agent plans, implements, and checks on its own. It asks when a decision affects the outcome or a check needs your confirmation.
-- **You want to define the request before implementing it**<br>
-  Spec works on its own. Keep the goal and completion conditions as a document and start Seal when you are ready.
+When an agent says "done", there is still checking left: whether a requested condition was skipped, whether a hard condition was read as an easier one, whether existing behavior still works, and what was actually checked. When a conversation ends, you explain again what was promised and how far it got.
+
+Jaekit holds on to three things and leaves the rest to the agent you already use.
+
+- **You set the goal.**<br>
+  What finished means is written down before the work starts, and the agent does not edit that document while implementing. You can also use Spec alone, just to write the goal down.
+- **The agent does the work.**<br>
+  It plans, implements, and checks on its own, and asks only when a decision affects the outcome or a check needs your confirmation. You do not approve every step.
+- **Completion is judged from records.**<br>
+  Completion is recorded only when the required completion conditions are met by recorded checks or necessary user confirmations. The goal and progress records stay in the project folder, so you can continue the same goal in a new conversation.
+
+[Understanding Jaekit](guides/OVERVIEW.en.md) explains from the start why it is shaped this way and how one goal goes through.
 
 ## How it works
 
 ![Fictional walkthrough of password-link in five scenes: you ask Spec with /spec:spec; you review the goal it wrote; you start by answering Yes when Spec asks whether to implement it now, or later with /seal:seal docs/specs/password-link in a separate message; the agent then works through commands you do not type: AC-1 fails before the change and passes after it, AC-2 still passes, a Spar review round runs and its gate is recorded, and ha done records completion; last, you read the completion report.](assets/readme/demo.en.gif)
 
-An illustrated sequence, not a recording of a real run. The diagram below shows each step and who acts.
+You do three things: say what you want, review the goal Spec wrote and answer yes, and read the report at the end. The agent plans, implements, and checks in between, and `ha` records every check it runs. An illustrated sequence, not a recording of a real run. The diagram below shows the same flow in detail, branches included. What changes with the review tier (`Assurance:`) is summed up in [Review tiers](guides/OVERVIEW.en.md#review-tiers) in Understanding Jaekit.
 
 ```mermaid
 flowchart TD
@@ -532,6 +536,7 @@ Installing, updating, or uninstalling does not delete these records. Git trackin
 
 ## More
 
+- [Understanding Jaekit](guides/OVERVIEW.en.md): why it is shaped this way, how one goal goes through, what completion means
 - [Install, update, and uninstall](guides/INSTALL.en.md) · [Releases and compatibility](guides/INSTALL.en.md#release-and-development-combinations)
 - [Usage, changing a goal, and resuming](guides/USAGE.en.md) · [Troubleshooting](guides/USAGE.en.md#troubleshooting)
 - [Detailed operations](guides/OPERATIONS.en.md) · [Command and record formats](contracts/run-record.md) (in Korean)
