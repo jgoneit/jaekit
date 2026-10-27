@@ -983,13 +983,13 @@ var rfvKept = map[string]map[string]string{
 		"first-task": "23c9f73d21f3c79f922ed6a7ec957d0d8886ba9fa844399afa0de21cca1b7a1e",
 		"commands":   "59f12488dd2183b2309aebdec44be212f4cf2383e234b5c3fbcead13a15dd150",
 		"hero":       "e2786373776467d77948970760fa85cc010d488ea902310cc820856304fc51bc",
-		"links":      "12ebeee6c69c8a94e8a5e86593bdbb4b67fa3302df4c60d44da590d2a0ef27af",
+		"links":      "afec7d092f4fbea44e276ad554d9ce42ea8ee996e283fad814a2816387c96941",
 	},
 	"README.ko.md": {
 		"first-task": "1be7184fffabb6e5aebfeb8b7a7d0e9b41d168ad40bfe4fe52f0e394f0435c48",
 		"commands":   "59f12488dd2183b2309aebdec44be212f4cf2383e234b5c3fbcead13a15dd150",
 		"hero":       "b3c24b6ab3fc3fd3b9270086d61fe18135de39990a12d0159d4131f1d6e1ecbf",
-		"links":      "847247c9f996b183313aee14246ed2d5345367a4901ef9be2d287b70beedfa45",
+		"links":      "54f4b0f9fa3fb5643f2fd818aebc8e58cbaa96bfba0e8453a8f69a56e7550531",
 	},
 }
 

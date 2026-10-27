@@ -2,33 +2,17 @@
 
 [한국어](INSTALL.md) · **English**
 
-Installation, updates, and removal for the current release, `v0.1.8`. Supported platforms are macOS and Linux on arm64 and amd64. Run the commands below **in Terminal**. After installing, see [your first task](../README.md#your-first-task) for what to send to the agent.
+Read this to install Jaekit for the first time, update it to a new version, or remove it. Jaekit consists of two terminal programs, `ha` and `spar`, and three agent plugins, Spec, Seal and Spar. The programs install with brew or a Release file and the plugins with the plugin commands of Codex or Claude Code; both are needed. This guide is for the current release, `v0.1.8`. Supported platforms are macOS and Linux on arm64 and amd64. Run the commands below **in Terminal**. After installing, see [your first task](../README.md#your-first-task) for what to send to the agent.
 
 - First installation: [Basic install](#basic-install)
 - Without brew: [Install from a Release file](#install-from-a-release-file)
 - For Linux tools on Windows: [WSL2 preparation guide — actual use unverified](WSL.en.md)
 - To use the reference producer and example: [Get the reference check](#get-the-reference-check)
 - Moving to a new version: [Update](#update)
+- What each release contains and covers: [Release and development combinations](#release-and-development-combinations)
 - Stopping using it: [Uninstall](#uninstall)
 - Moving from a registration that points at a repository checkout: [Move from a local path registration](#move-from-a-local-path-registration)
-- Working on jaekit itself: [Build from source (development)](#build-from-source-development)
-
-## Release and development combinations
-
-| Combination | Core | Spec | Seal | Spar | Scope |
-| --- | --- | --- | --- | --- | --- |
-| Current release `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 | Everything in v0.1.7, plus `ha cost` (one goal's verification and review cost summary), Seal asking the decisions it can foresee in one message before the first baseline, the smallest fix direction on Spar findings, and a direct installation that stops when `spar` is missing |
-| Previous release `v0.1.7` | `ha 0.1.7`, `spar 0.1.7` | 0.1.13 | 0.1.22 | 0.1.3 | Default rules `/3`; Seal starts new goals under `/5` (a `standard` or `strict` goal completes only with a recorded Spar gate), Spar review rounds and gate, runner adapters, `ha report`, `ha doctor` and the automatic budget, Core support check at start (`--check-skill`), Spec that the agent can call |
-| Previous release `v0.1.6` | `ha 0.1.6` | 0.1.12 | 0.1.17 | — | Default rules `/3`; Seal starts new goals under `/4` (proceeding within recorded authority), decision history and run timing, check-authoring guidance, final-candidate evidence, post-completion findings, evidence and assurance-policy reporting; no Spar or `/5` |
-| Previous release `v0.1.5` | `ha 0.1.5` | 0.1.12 | 0.1.16 | — | Same Core behavior as v0.1.6; Seal before the run limit of a reopened `/4` window was linked to its contract |
-| Previous release `v0.1.4` | `ha 0.1.4` | 0.1.12 | 0.1.12 | — | Default rules `/3`, post-completion findings, evidence and assurance-policy reporting; no `/4`, decision history or run timing |
-| Previous release `v0.1.3` | `ha 0.1.3` | 0.1.11 | 0.1.9 | — | Default rules `/3`, capabilities, run estimation and total-limit changes; no post-completion findings extension |
-| Previous release `v0.1.2` | `ha 0.1.2` | 0.1.10 | 0.1.8 | — | Default rules `/2`; does not meet the new Seal's support requirements |
-| Source build | `ha 0.1.8-dev`, `spar 0.1.8-dev` | Checkout version | Checkout version | Checkout version | Development identity; not evidence of installing a release artifact |
-
-The tag-pinned installation commands below install v0.1.8. Seal checks the actual Core executable's capabilities and stops before recording if support is missing or cannot be established. Matching version numbers or switching to older rules does not establish compatibility. See the [Core capabilities contract](../contracts/core-capabilities.md) for the required support.
-
-Spec writes documents without installing Core or querying capabilities. New Spec 0.1.13 documents use `nested/1`, so implementation needs a Core that supports that format. Updates do not change existing goal formats, `/1`, `/2` or `/3` records, usage or time limits. See the [v0.1.8 release notes](https://github.com/jgoneit/jaekit/releases/tag/v0.1.8) for the scope of actual host checks.
+- Working on Jaekit itself: [Building from source and registering for development](DEVELOPMENT.en.md)
 
 ## Basic install
 
@@ -205,6 +189,40 @@ The commands prepare both executables next to their destinations before replacin
 
 If `~/.local/bin` is not on your PATH, add `export PATH="$HOME/.local/bin:$PATH"` to your shell config (such as `~/.zshrc`). If macOS blocks a file you downloaded with a browser, clear it with `xattr -d com.apple.quarantine ~/.local/bin/ha`. Then [check the version](#check-the-version) and install the plugins for [Codex](#codex) or [Claude Code](#claude-code).
 
+## Release and development combinations
+
+| Combination | Core | Spec | Seal | Spar |
+| --- | --- | --- | --- | --- |
+| Current release `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |
+| Previous release `v0.1.7` | `ha 0.1.7`, `spar 0.1.7` | 0.1.13 | 0.1.22 | 0.1.3 |
+| Previous release `v0.1.6` | `ha 0.1.6` | 0.1.12 | 0.1.17 | — |
+| Previous release `v0.1.5` | `ha 0.1.5` | 0.1.12 | 0.1.16 | — |
+| Previous release `v0.1.4` | `ha 0.1.4` | 0.1.12 | 0.1.12 | — |
+| Previous release `v0.1.3` | `ha 0.1.3` | 0.1.11 | 0.1.9 | — |
+| Previous release `v0.1.2` | `ha 0.1.2` | 0.1.10 | 0.1.8 | — |
+| Source build | `ha 0.1.8-dev`, `spar 0.1.8-dev` | Checkout version | Checkout version | Checkout version |
+
+What each release includes:
+
+- **Current release `v0.1.8`**: Everything in v0.1.7, plus `ha cost` (one goal's verification and review cost summary), Seal asking the decisions it can foresee in one message before the first baseline, the smallest fix direction on Spar findings, and a direct installation that stops when `spar` is missing
+- **Source build**: Development identity; not evidence of installing a release artifact
+
+<details>
+<summary>What earlier releases include</summary>
+
+- **Previous release `v0.1.7`**: Default rules `/3`; Seal starts new goals under `/5` (a `standard` or `strict` goal completes only with a recorded Spar gate), Spar review rounds and gate, runner adapters, `ha report`, `ha doctor` and the automatic budget, Core support check at start (`--check-skill`), Spec that the agent can call
+- **Previous release `v0.1.6`**: Default rules `/3`; Seal starts new goals under `/4` (proceeding within recorded authority), decision history and run timing, check-authoring guidance, final-candidate evidence, post-completion findings, evidence and assurance-policy reporting; no Spar or `/5`
+- **Previous release `v0.1.5`**: Same Core behavior as v0.1.6; Seal before the run limit of a reopened `/4` window was linked to its contract
+- **Previous release `v0.1.4`**: Default rules `/3`, post-completion findings, evidence and assurance-policy reporting; no `/4`, decision history or run timing
+- **Previous release `v0.1.3`**: Default rules `/3`, capabilities, run estimation and total-limit changes; no post-completion findings extension
+- **Previous release `v0.1.2`**: Default rules `/2`; does not meet the new Seal's support requirements
+
+</details>
+
+The tag-pinned installation commands below install v0.1.8. Seal checks the actual Core executable's capabilities and stops before recording if support is missing or cannot be established. Matching version numbers or switching to older rules does not establish compatibility. See the [Core capabilities contract](../contracts/core-capabilities.md) for the required support.
+
+Spec writes documents without installing Core or querying capabilities. New Spec 0.1.13 documents use `nested/1`, so implementation needs a Core that supports that format. Updates do not change existing goal formats, `/1`, `/2` or `/3` records, usage or time limits. See the [v0.1.8 release notes](https://github.com/jgoneit/jaekit/releases/tag/v0.1.8) for the scope of actual host checks.
+
 ## Get the reference check
 
 The v0.1.8 archive includes `tools/check-result-reference.py` and `examples/check-result/`. Copy them into your project without a development checkout or Go installation. This producer uses only the Python 3 standard library. Python is needed only when choosing this check, not for Spec or Seal in general. The implementing agent chooses other runners; automatic pytest, Vitest and Playwright adapters are not included.
@@ -270,7 +288,12 @@ which -a spar
 <details>
 <summary>Optional, Release file installs only: remove earlier versions' data</summary>
 
-After a Release file installation, the earlier versions' public data stays in `~/.local/share/jaekit/<version>`. Once the check above prints `ha 0.1.8`, the command below removes only the folders of versions older than the installed `0.1.8`. The current version's folder `~/.local/share/jaekit/0.1.8` and the files used by [Get the reference check](#get-the-reference-check), folders of newer versions, and entries whose names are not a three-number version like `0.1.2` stay. Names are checked in full without splitting at newlines or spaces; ordinary files and symlinks with version-like names stay too. Versions are compared as numbers, so `0.1.10` is newer than `0.1.8`. If `~/.local/share/jaekit` is a symlink, nothing is removed. Enumeration, version comparison, or deletion errors make the command fail; older folders already removed successfully are not restored. The data folder first appeared in v0.1.3.
+After a Release file installation, the earlier versions' public data stays in `~/.local/share/jaekit/<version>`. Once the check above prints `ha 0.1.8`, the command below removes only the folders of versions older than the installed `0.1.8`. The data folder first appeared in v0.1.3.
+- The current version's folder `~/.local/share/jaekit/0.1.8` and the files used by [Get the reference check](#get-the-reference-check), folders of newer versions, and entries whose names are not a three-number version like `0.1.2` stay.
+- Names are checked in full without splitting at newlines or spaces; ordinary files and symlinks with version-like names stay too.
+- Versions are compared as numbers, so `0.1.10` is newer than `0.1.8`.
+- If `~/.local/share/jaekit` is a symlink, nothing is removed.
+- Enumeration, version comparison, or deletion errors make the command fail; older folders already removed successfully are not restored.
 
 ```bash
 (
@@ -418,36 +441,3 @@ claude plugin install spar@jaekit
 ```
 
 If an `ha` you built earlier with `go install` is still around, clean it up as [Check the version](#check-the-version) describes.
-
-## Build from source (development)
-
-An `ha` built from a repository checkout shows a development version (`ha 0.1.8-dev`). You need Go 1.27 or later and git. Run this from the root of the checkout.
-
-```bash
-go install ./cmd/ha
-ha --version
-```
-
-The `ha` file goes to the folder `go env GOBIN` prints, or to `$(go env GOPATH)/bin` when that is empty. `ha --version` prints `ha 0.1.8-dev`. Seal separately checks the actual support information from `ha capabilities --format json`. A Python compatibility helper is optional; Python 3 installation is not a prerequisite for Seal.
-
-To use the plugins while you change the checkout, register the checkout path as the marketplace. That registration uses the plugin files in the checkout as they are. Replace `<path to jaekit>` with the path of your checkout.
-
-Codex:
-
-```bash
-codex plugin marketplace add <path to jaekit>
-codex plugin add spec@jaekit
-codex plugin add seal@jaekit
-codex plugin add spar@jaekit
-```
-
-Claude Code:
-
-```bash
-claude plugin marketplace add <path to jaekit>
-claude plugin install spec@jaekit
-claude plugin install seal@jaekit
-claude plugin install spar@jaekit
-```
-
-Commands and the record format are in [contracts/run-record.md](../contracts/run-record.md).

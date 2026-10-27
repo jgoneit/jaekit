@@ -17,17 +17,21 @@ type onboardLang struct {
 	readme, install, usage      string
 	otherInstall                string
 	installDocSecs, installDoc2 []string
+	// The checkout build is for developing Jaekit, so it has its own guide.
+	dev, devSec string
 }
 
 var onboardKo = onboardLang{
 	readme: "../README.ko.md", install: "../guides/INSTALL.md", usage: "../guides/USAGE.md", otherInstall: "INSTALL.en.md",
-	installDocSecs: []string{"## Release 파일로 설치", "## 로컬 경로 등록에서 옮기기", "## 소스에서 빌드 (개발)"},
+	installDocSecs: []string{"## Release 파일로 설치", "## 로컬 경로 등록에서 옮기기"},
 	installDoc2:    []string{"`ha 0.1.8-dev`", "아래 명령은 고치지 않고 그대로 붙여 넣습니다.", "`go env GOBIN`", "`$(go env GOPATH)/bin`"},
+	dev:            "../guides/DEVELOPMENT.md", devSec: "## 소스에서 빌드 (개발)",
 }
 var onboardEn = onboardLang{
 	readme: "../README.md", install: "../guides/INSTALL.en.md", usage: "../guides/USAGE.en.md", otherInstall: "INSTALL.md",
-	installDocSecs: []string{"## Install from a Release file", "## Move from a local path registration", "## Build from source (development)"},
+	installDocSecs: []string{"## Install from a Release file", "## Move from a local path registration"},
 	installDoc2:    []string{"`ha 0.1.8-dev`", "Paste the commands below as they are.", "`go env GOBIN`", "`$(go env GOPATH)/bin`"},
+	dev:            "../guides/DEVELOPMENT.en.md", devSec: "## Build from source (development)",
 }
 
 // Blocks that both languages give the same way.
@@ -153,12 +157,14 @@ func onboardInstallOK(t *testing.T, l onboardLang) {
 	t.Helper()
 	requireAll(t, l.readme, "("+strings.TrimPrefix(l.install, "../")+")")
 	doc := read(t, l.install)
-	for _, b := range []string{onboardBrew, onboardCheck, onboardClaude, onboardCodex, onboardMoveCC, onboardMoveCX, onboardDev} {
+	for _, b := range []string{onboardBrew, onboardCheck, onboardClaude, onboardCodex, onboardMoveCC, onboardMoveCX} {
 		onboardHasBlock(t, l.install, doc, b)
 	}
 	for _, h := range l.installDocSecs {
 		mdSection(t, l.install, h)
 	}
+	onboardHasBlock(t, l.dev, mdSection(t, l.dev, l.devSec), onboardDev)
+	requireAll(t, l.readme, "("+strings.TrimPrefix(l.dev, "../")+")")
 	requireIn(t, l.install, doc, l.installDoc2...)
 	requireIn(t, l.install, doc, "("+l.otherInstall+")")
 	forbidAll(t, l.readme, "uname -s", "go install ./cmd/ha")
