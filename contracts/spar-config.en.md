@@ -48,9 +48,10 @@ timeout_seconds = 600
 | `preset` | One of `claude`, `codex`, `agy`, `native`, `command`. Required (G21) |
 | `argv` | Only for `command`, and required for `command`. An argument array run as is without a shell, in which `{prompt}`, `{workspace}` and `{schema}` are replaced with the paths of the packet file, the workspace and the result schema |
 | `binary` | The executable of `claude`, `codex` or `agy`. Without it, the preset name is looked up on PATH |
-| `model` | The model to request |
+| `model` | The model to request. When written, the agent cannot choose it |
 | `fallback_model` | The model used once in the same round when the designated model is refused for usage or rate limits. An empty string means no fallback model |
-| `effort` | The reasoning effort of `claude` or `codex` |
+| `effort` | The reasoning effort of `claude` or `codex`. When written, the agent cannot choose it |
+| `allowed_models`, `allowed_efforts` | The lists of models and efforts the agent may choose ("How the model and effort are decided" below) |
 | `timeout_seconds` | A positive integer (G19). The per-reviewer value takes precedence over the top-level value, and the top-level value is the default for every reviewer that file determines. The executable's version check also runs within this time |
 
 Preset defaults:
@@ -64,6 +65,36 @@ Preset defaults:
 | `command` | `unverified` | No | None | None | None |
 
 Giving `binary`, `model`, `fallback_model` or `effort` to a preset that does not use it is an error (`agy` does not use `effort`). The rule for finding the executable: G14.
+
+### How the model and effort are decided
+
+The model of a `claude`, `codex` or `agy` reviewer and the effort of a `claude` or `codex` reviewer are decided in this order (G25).
+
+1. When the reviewer's entry in the user configuration file writes `model` (for the effort, `effort`), that value. A value equal to the preset default, or `effort = ""`, also counts as written.
+2. When it is not written, the value of `--model 이름=모델` (for the effort, `--effort 이름=강도`) that the agent gave `spar run` or `spar config` for this run. These four are all the reviewers for which it is not written: a file entry without that key, a name from the clean-review source, a name from the default list, and a name outside the configuration given with `--reviewers`.
+3. When neither is there, the preset value.
+
+The only fallback model for a reviewer whose model the agent chose is the `fallback_model` the user wrote; when none is written, there is no fallback model. The preset's fallback model is paired with the preset model and is not attached. The conditions for the fallback run (a limit refusal, a model different from the designated one) and its running with the same effort are unchanged. A reviewer the agent did not choose for runs with the written and preset values, as before this change.
+
+The arguments can be given more than once and are split at the first `=`. Without `=`, or with an empty name, it is a usage error (64). The following are refused (65): no reviewer starts, no round folder is created, and the message shows the reviewer name and the value quoted with `%q`. This list is complete.
+
+- A model for a reviewer whose user configuration writes `model`, an effort for one that writes `effort`
+- A model or effort for a `native` or `command` reviewer, an effort for an `agy` reviewer
+- A name that is not a reviewer of this run (names are matched literally)
+- The same key twice for the same reviewer
+- A value outside the allowed list for a reviewer that has one
+- A value that is empty, is not valid UTF-8 (the record cannot hold it as received), starts with `-`, or holds a whitespace character (`unicode.IsSpace`) or a control character (`unicode.IsControl`)
+
+Any other value is passed to the CLI unchanged as one argument. spar does not check whether the model name or effort value exists; when the CLI does not accept it, that reviewer is recorded as failed.
+
+An entry in the user configuration file can have allowed lists: `allowed_models` (`claude`, `codex`, `agy`) and `allowed_efforts` (`claude`, `codex`). With a list, the agent's value must equal one item of the list, case included. A list limits only the agent's choice; when the agent does not choose, the preset value applies regardless of the list. The following are configuration errors that name the key's line: an empty list, an item that is not a string, an item that breaks the value format above, `model` and `allowed_models` (or `effort` and `allowed_efforts`) in the same entry, and a list for a preset that does not use that key.
+
+```toml
+[[reviewers]]
+preset = "codex"
+allowed_models = ["example-model-pro", "example-model-mini"]
+allowed_efforts = ["low", "medium", "high"]
+```
 
 ## 2. Project configuration
 
@@ -87,7 +118,7 @@ The project configuration is read from the file in the working tree (G16).
 - `rules`: the rule documents to put in the packet of every round (G23). Each must be a file readable inside the repository; otherwise both `spar config` and `spar run` end with a configuration error.
 - `check_paths`: globs of the paths treated as check code (G24). An invalid glob is a configuration error. Classification, the gate's `growth` and the packet use them.
 
-`reviewers`, `preset`, `command`, `argv`, `binary`, `model`, `fallback_model` and `effort` are refused at any depth with an error that names the key and its location. This keeps a cloned repository from running commands on the user's computer or changing the costs on the user's account.
+`reviewers`, `preset`, `command`, `argv`, `binary`, `model`, `fallback_model`, `effort`, `allowed_models` and `allowed_efforts` are refused at any depth with an error that names the key and its location. This keeps a cloned repository from running commands on the user's computer or changing the costs on the user's account.
 
 ## 3. Errors
 
@@ -103,16 +134,17 @@ A configuration error starts no reviewer, creates no round folder and ends with 
 
 ## 4. Applied configuration record
 
-`spar config [--repo DIR] [--reviewers a,b]` prints the configuration that will apply as JSON, and `config` in the round record `round.json` has the same value.
+`spar config [--repo DIR] [--reviewers a,b] [--model 이름=모델]... [--effort 이름=강도]...` prints the configuration that will apply as JSON, and `config` in the round record `round.json` given the same arguments has the same value. `spar config` refuses the values `spar run` refuses, for the same reasons.
 
 | Field | Meaning |
 | --- | --- |
 | `source` | `kind` (`SPAR_CONFIG`, `XDG_CONFIG_HOME`, `HOME`, `clean-review`, `default`), `path`, `skipped`, `note` |
 | `override` | The names when `--reviewers` was used, otherwise `null` |
+| `choices` | The values the agent gave for this run, as received: per item `reviewer`, `key` (`model`, `effort`), `value`. Models first, and for each key in the order given. When there are none, the empty list `[]`. Rounds written before this field existed do not have it, and rewriting such a round does not add it |
 | `configured_required` | `name` and `preset` of the reviewers that the configuration makes required, regardless of `--reviewers`. The gate treats them as required reviewers |
 | `files` | The path and sha256 of each configuration file read |
-| `reviewers` | The applied reviewers (`name`, `preset`, `isolation`, `required`, `model`, `fallback_model`, `effort`, `binary`, `argv`, `timeout_seconds`) |
+| `reviewers` | The applied reviewers (`name`, `preset`, `isolation`, `required`, `model`, `fallback_model`, `effort`, `binary`, `argv`, `timeout_seconds`). `claude`, `codex` and `agy` have `model_source` (`user`: the user configuration, `agent`: the agent's `--model`, `preset`: the preset value), and `claude` and `codex` have `effort_source` (the same three values). When the agent may choose (it is not written), they have `default_model` and `default_effort`, used when the agent does not choose; when written, `allowed_models` and `allowed_efforts`. `native` and `command` do not have these fields |
 | `angles`, `caps`, `check_paths`, `rules` | The applied values |
-| `digest` | The sha256 of the canonical JSON of the reviewers, `configured_required`, angles, caps, check paths and rules. It is the same when the applied values are the same, even from different sources. Even with the same `--reviewers`, the digest differs when the reviewers that the configuration makes required differ |
+| `digest` | The sha256 of the canonical JSON of the reviewers, `configured_required`, angles, caps, check paths and rules. It is the same when the applied values are the same, even from different sources: the reviewers' `model_source`, `effort_source`, `default_model` and `default_effort` and `choices` are left out, and the values the agent chose enter as the applied `model` and `effort`. Even with the same `--reviewers`, the digest differs when the reviewers that the configuration makes required differ |
 
 `spar run --check-path GLOB` adds to that run's `check_paths` and is reflected in the digest. The format is the same as `check_paths` (G24), and an invalid glob is refused before any reviewer starts.

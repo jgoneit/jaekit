@@ -63,6 +63,23 @@ fallback_model = "gemini-3.8-flash-high"
 - `fallback_model` runs once, in the same round and on the same packet, only when the designated model is refused for quota or rate limits. `fallback_model = ""` turns the preset's default fallback off.
 - `native` is a clean-context subagent of your agent. Spar writes its prompt and workspace into the round folder and records the reply the agent brings back. It is recorded as `host` and counts as required.
 
+### Models and effort
+
+A reviewer's model (`claude`, `codex`, `agy`) and effort (`claude`, `codex`) come first from your user configuration: writing `model`, as the example above does, fixes it. For a reviewer whose model or effort is not written, the agent chooses: the agent running the round passes `--model NAME=MODEL` and `--effort NAME=EFFORT` to `spar run`, and without them the preset's values run (models `opus`, `gpt-6-astra`, `gemini-4-argon-high`, effort `high`). Before any reviewer starts, spar refuses a model or effort for a reviewer whose configuration writes it, even one equal to the written value, a model or effort for a `native` or `command` reviewer, an effort for `agy`, a name that is not a reviewer of the run, a second model or effort for the same reviewer, a value outside the allowed list, and a value that is empty, is not valid UTF-8, starts with `-` or holds a space or control character.
+
+To limit what the agent may choose, write `allowed_models` and `allowed_efforts`:
+
+```toml
+[[reviewers]]
+preset = "codex"
+allowed_models = ["gpt-6-astra", "example-model-mini"]
+allowed_efforts = ["medium", "high"]
+```
+
+- With a list, the agent can choose only its entries. When the agent chooses nothing, the preset's values run, whatever the list holds.
+- A model the agent chose falls back only to the `fallback_model` you wrote; without one it runs with no fallback.
+- `spar config --model codex=gpt-6-astra` shows the model a run with that choice applies and where it comes from. The round record and summary keep each reviewer's model and effort with their source (`user`, `agent`, `preset`).
+
 ### A command reviewer
 
 Any other reviewer can run as a command. It runs without a shell, receives the packet file, its workspace copy and the result schema through placeholders, and prints one JSON object that follows the schema. This example is synthetic: `example-reviewer` stands for a program you provide.
@@ -92,7 +109,7 @@ check_paths = ["tools/checks/**"]
 code = 2
 ```
 
-It cannot choose reviewers, commands, executables or models; spar names the key and stops. The full format is in the [configuration contract](../contracts/spar-config.en.md).
+It cannot choose reviewers, commands, executables, models, efforts or allowed lists; spar names the key and stops. The full format is in the [configuration contract](../contracts/spar-config.en.md).
 
 ## Set up a project
 

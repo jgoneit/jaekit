@@ -17,6 +17,8 @@ import (
 	"sort"
 	"strings"
 	"syscall"
+	"unicode"
+	"unicode/utf8"
 
 	toml "github.com/pelletier/go-toml/v2"
 )
@@ -36,16 +38,43 @@ var Angles = []string{"requirement-counterexample", "side-effects", "design", "p
 
 // Reviewer is one reviewer as a round applies it.
 type Reviewer struct {
-	Name           string   `json:"name"`
-	Preset         string   `json:"preset"`
-	Isolation      string   `json:"isolation"`
-	Required       bool     `json:"required"`
-	Argv           []string `json:"argv,omitempty"`
-	Binary         string   `json:"binary,omitempty"`
-	Model          string   `json:"model,omitempty"`
+	Name      string   `json:"name"`
+	Preset    string   `json:"preset"`
+	Isolation string   `json:"isolation"`
+	Required  bool     `json:"required"`
+	Argv      []string `json:"argv,omitempty"`
+	Binary    string   `json:"binary,omitempty"`
+	Model     string   `json:"model,omitempty"`
+	// ModelSource says where Model came from: the user's file, the agent's
+	// --model for this run or the preset (claude, codex and agy only).
+	ModelSource string `json:"model_source,omitempty"`
+	// DefaultModel is the model used when the agent chooses none; it is
+	// set only when the agent may choose.
+	DefaultModel   string   `json:"default_model,omitempty"`
+	AllowedModels  []string `json:"allowed_models,omitempty"`
 	FallbackModel  string   `json:"fallback_model,omitempty"`
 	Effort         string   `json:"effort,omitempty"`
+	EffortSource   string   `json:"effort_source,omitempty"`
+	DefaultEffort  string   `json:"default_effort,omitempty"`
+	AllowedEfforts []string `json:"allowed_efforts,omitempty"`
 	TimeoutSeconds int64    `json:"timeout_seconds"`
+	// The keys the user's file writes for this reviewer.
+	modelWritten, effortWritten, fallbackWritten bool
+}
+
+// Where a reviewer's model or effort came from.
+const (
+	SourceUser   = "user"
+	SourceAgent  = "agent"
+	SourcePreset = "preset"
+)
+
+// Choice is a value the agent passed for one run: --model NAME=MODEL or
+// --effort NAME=EFFORT.
+type Choice struct {
+	Reviewer string `json:"reviewer"`
+	Key      string `json:"key"`
+	Value    string `json:"value"`
 }
 
 // Caps are the stage limits: plan rounds, plan-delta rounds and code rounds.
@@ -84,8 +113,11 @@ type RequiredRef struct {
 // Config is the applied configuration: reviewers from the user's file and
 // limits from the project's file.
 type Config struct {
-	Source    Source       `json:"source"`
-	Override  *Override    `json:"override"`
+	Source   Source    `json:"source"`
+	Override *Override `json:"override"`
+	// Choices are the agent's values for this run, an empty list for none.
+	// A record written before they existed has none and keeps none.
+	Choices   *[]Choice    `json:"choices,omitempty"`
 	Files     []FileDigest `json:"files"`
 	Reviewers []Reviewer   `json:"reviewers"`
 	// ConfiguredRequired are the required reviewers of the configuration
@@ -117,8 +149,14 @@ var DefaultReviewers = []string{"claude", "codex", "agy"}
 // computer and what it costs.
 var forbiddenProjectKeys = map[string]bool{
 	"reviewers": true, "preset": true, "command": true, "argv": true, "binary": true,
-	"model": true, "fallback_model": true, "effort": true,
+	"model": true, "fallback_model": true, "effort": true, "allowed_models": true, "allowed_efforts": true,
 }
+
+// modelPresets take a model, effortPresets an effort.
+var (
+	modelPresets  = map[string]bool{"claude": true, "codex": true, "agy": true}
+	effortPresets = map[string]bool{"claude": true, "codex": true}
+)
 
 // roundFiles are the names spar writes in a round folder next to the
 // reviewers' folders.
@@ -161,14 +199,18 @@ func (e *ConfigError) Error() string {
 }
 
 type reviewerEntry struct {
-	Name           *string  `toml:"name"`
-	Preset         *string  `toml:"preset"`
-	Argv           []string `toml:"argv"`
-	Binary         *string  `toml:"binary"`
-	Model          *string  `toml:"model"`
-	FallbackModel  *string  `toml:"fallback_model"`
-	Effort         *string  `toml:"effort"`
-	TimeoutSeconds *int64   `toml:"timeout_seconds"`
+	Name          *string  `toml:"name"`
+	Preset        *string  `toml:"preset"`
+	Argv          []string `toml:"argv"`
+	Binary        *string  `toml:"binary"`
+	Model         *string  `toml:"model"`
+	FallbackModel *string  `toml:"fallback_model"`
+	Effort        *string  `toml:"effort"`
+	// The allowed lists are read as any value so that a wrong item is
+	// reported with its key's line (G21).
+	AllowedModels  any    `toml:"allowed_models"`
+	AllowedEfforts any    `toml:"allowed_efforts"`
+	TimeoutSeconds *int64 `toml:"timeout_seconds"`
 }
 
 type userFile struct {
@@ -193,6 +235,13 @@ type projectFile struct {
 // the environment; override, when not nil, replaces the reviewer list for
 // one run (an empty override means the native reviewer).
 func LoadConfig(repo string, getenv func(string) string, override []string) (*Config, error) {
+	return LoadConfigWith(repo, getenv, override, nil)
+}
+
+// LoadConfigWith is LoadConfig with the agent's values for one run (G25): a
+// reviewer whose model or effort the user's file does not write takes the
+// agent's value, else the preset's.
+func LoadConfigWith(repo string, getenv func(string) string, override []string, choices []Choice) (*Config, error) {
 	c := &Config{Angles: append([]string(nil), Angles...), Caps: Caps{Plan: 1, PlanDelta: 1, Code: 3},
 		CheckPaths: []string{}, Rules: []string{}, Files: []FileDigest{}, defaultTimeout: DefaultTimeout}
 	configured, err := c.loadReviewers(getenv)
@@ -237,8 +286,124 @@ func LoadConfig(repo string, getenv func(string) string, override []string) (*Co
 	if err := c.loadProject(repo); err != nil {
 		return nil, err
 	}
+	c.setSources()
+	if err := c.applyChoices(choices); err != nil {
+		return nil, err
+	}
 	c.Digest = c.digest()
 	return c, nil
+}
+
+// setSources names where each reviewer's model and effort came from before
+// the agent's values: the user's file or the preset.
+func (c *Config) setSources() {
+	for i := range c.Reviewers {
+		r := &c.Reviewers[i]
+		if modelPresets[r.Preset] {
+			if r.modelWritten {
+				r.ModelSource = SourceUser
+			} else {
+				r.ModelSource, r.DefaultModel = SourcePreset, r.Model
+			}
+		}
+		if effortPresets[r.Preset] {
+			if r.effortWritten {
+				r.EffortSource = SourceUser
+			} else {
+				r.EffortSource, r.DefaultEffort = SourcePreset, r.Effort
+			}
+		}
+	}
+}
+
+// choiceProblem says why the agent may not pass a value (G25): an empty
+// value, one that is not valid UTF-8 and so cannot be recorded as it is,
+// one a CLI could read as an option, or one with a space or control
+// character. "" means the value passes to the CLI as it is.
+func choiceProblem(v string) string {
+	if v == "" {
+		return "the value is empty"
+	}
+	if !utf8.ValidString(v) {
+		return "the value is not valid UTF-8, so the record could not keep it as it is"
+	}
+	if strings.HasPrefix(v, "-") {
+		return "the value starts with '-', which a CLI could read as an option"
+	}
+	for _, r := range v {
+		switch {
+		case unicode.IsSpace(r):
+			return "the value contains a space character"
+		case unicode.IsControl(r):
+			return "the value contains a control character"
+		}
+	}
+	return ""
+}
+
+// applyChoices applies the agent's values for this run (G25). A value for
+// a reviewer whose key the user's file writes, a reviewer without that key,
+// a name outside this run, a second value for the same key, a value outside
+// the reviewer's allowed list or a value of the wrong form is refused. A
+// chosen model falls back only to the fallback_model the user wrote.
+func (c *Config) applyChoices(choices []Choice) error {
+	applied := []Choice{}
+	seen := map[string]bool{}
+	for _, ch := range choices {
+		fail := func(format string, args ...any) error {
+			return &ConfigError{Path: "--" + ch.Key, Msg: fmt.Sprintf("%q=%q: ", ch.Reviewer, ch.Value) + fmt.Sprintf(format, args...)}
+		}
+		i := -1
+		for j := range c.Reviewers {
+			if c.Reviewers[j].Name == ch.Reviewer {
+				i = j
+			}
+		}
+		if i < 0 {
+			names := make([]string, 0, len(c.Reviewers))
+			for _, r := range c.Reviewers {
+				names = append(names, r.Name)
+			}
+			return fail("%q is not a reviewer of this run (%s)", ch.Reviewer, strings.Join(names, ", "))
+		}
+		r := &c.Reviewers[i]
+		model := ch.Key == "model"
+		switch {
+		case model && !modelPresets[r.Preset]:
+			return fail("reviewer %q (preset %s) has no model to choose", r.Name, r.Preset)
+		case !model && !effortPresets[r.Preset]:
+			return fail("reviewer %q (preset %s) takes no effort", r.Name, r.Preset)
+		case seen[ch.Key+"\x00"+r.Name]:
+			return fail("reviewer %q already has a %s from this run", r.Name, ch.Key)
+		case model && r.modelWritten:
+			return fail("reviewer %q has the model %q in the user's configuration (%s), so the agent cannot choose it", r.Name, r.Model, c.Source.Path)
+		case !model && r.effortWritten:
+			return fail("reviewer %q has the effort %q in the user's configuration (%s), so the agent cannot choose it", r.Name, r.Effort, c.Source.Path)
+		}
+		seen[ch.Key+"\x00"+r.Name] = true
+		if why := choiceProblem(ch.Value); why != "" {
+			return fail("%s", why)
+		}
+		allowed, key := r.AllowedEfforts, "allowed_efforts"
+		if model {
+			allowed, key = r.AllowedModels, "allowed_models"
+		}
+		if len(allowed) > 0 && !contains(allowed, ch.Value) {
+			return fail("%q is not in %s of reviewer %q (%s)", ch.Value, key, r.Name, strings.Join(allowed, ", "))
+		}
+		if model {
+			r.Model, r.ModelSource = ch.Value, SourceAgent
+			if !r.fallbackWritten {
+				// The preset's fallback pairs with the preset's model.
+				r.FallbackModel = ""
+			}
+		} else {
+			r.Effort, r.EffortSource = ch.Value, SourceAgent
+		}
+		applied = append(applied, ch)
+	}
+	c.Choices = &applied
+	return nil
 }
 
 func preset(name, kind string) Reviewer {
@@ -561,6 +726,44 @@ func parseReviewers(path string, raw map[string]any, file userFile, lines map[st
 		if e.Effort != nil {
 			r.Effort = *e.Effort
 		}
+		r.modelWritten, r.effortWritten, r.fallbackWritten = e.Model != nil, e.Effort != nil, e.FallbackModel != nil
+		// An allowed list limits the agent's choices of a key the file
+		// leaves open (G21, G25).
+		for _, l := range []struct {
+			key, fixed string
+			value      any
+			usable     bool
+			written    bool
+			target     *[]string
+		}{
+			{"allowed_models", "model", e.AllowedModels, modelPresets[kind], e.Model != nil, &r.AllowedModels},
+			{"allowed_efforts", "effort", e.AllowedEfforts, effortPresets[kind], e.Effort != nil, &r.AllowedEfforts},
+		} {
+			if l.value == nil {
+				continue
+			}
+			items, isList := l.value.([]any)
+			switch {
+			case !l.usable:
+				return nil, true, fail(l.key, "%s is not used by preset %s", l.key, kind)
+			case l.written:
+				return nil, true, fail(l.key, "%s and %s are both set: a written %s leaves the agent nothing to choose", l.fixed, l.key, l.fixed)
+			case !isList:
+				return nil, true, fail(l.key, "%s must be a list of strings", l.key)
+			case len(items) == 0:
+				return nil, true, fail(l.key, "%s is empty: write %s to fix the value instead", l.key, l.fixed)
+			}
+			for n, item := range items {
+				s, ok := item.(string)
+				if !ok {
+					return nil, true, fail(l.key, "%s[%d] is not a string", l.key, n)
+				}
+				if why := choiceProblem(s); why != "" {
+					return nil, true, fail(l.key, "%s[%d] %q: %s", l.key, n, s, why)
+				}
+				*l.target = append(*l.target, s)
+			}
+		}
 		if e.TimeoutSeconds != nil {
 			if *e.TimeoutSeconds <= 0 {
 				return nil, true, fail("timeout_seconds", "timeout_seconds must be positive")
@@ -745,8 +948,14 @@ func contains(list []string, v string) bool {
 	return false
 }
 
-// digest identifies the applied settings, not where they came from.
+// digest identifies the applied settings, not where they came from: the
+// sources and defaults of models and efforts are left out.
 func (c *Config) digest() string {
+	reviewers := make([]Reviewer, len(c.Reviewers))
+	for i, r := range c.Reviewers {
+		r.ModelSource, r.DefaultModel, r.EffortSource, r.DefaultEffort = "", "", "", ""
+		reviewers[i] = r
+	}
 	applied := struct {
 		Reviewers          []Reviewer    `json:"reviewers"`
 		ConfiguredRequired []RequiredRef `json:"configured_required"`
@@ -754,7 +963,7 @@ func (c *Config) digest() string {
 		Caps               Caps          `json:"caps"`
 		CheckPaths         []string      `json:"check_paths"`
 		Rules              []string      `json:"rules"`
-	}{c.Reviewers, c.ConfiguredRequired, c.Angles, c.Caps, c.CheckPaths, c.Rules}
+	}{reviewers, c.ConfiguredRequired, c.Angles, c.Caps, c.CheckPaths, c.Rules}
 	data, _ := json.Marshal(applied)
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:])

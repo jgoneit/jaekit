@@ -44,9 +44,10 @@ timeout_seconds = 600
 | `preset` | `claude`, `codex`, `agy`, `native`, `command` 중 하나. 필수(G21) |
 | `argv` | `command`에만 쓰고 `command`에는 필수. 셸 없이 그대로 실행하는 인자 배열이며 `{prompt}`·`{workspace}`·`{schema}`를 패킷 파일·작업공간·결과 schema 경로로 바꾼다 |
 | `binary` | `claude`·`codex`·`agy`의 실행 파일. 없으면 PATH에서 preset 이름을 찾는다 |
-| `model` | 요청할 모델 |
+| `model` | 요청할 모델. 적으면 에이전트가 고를 수 없다 |
 | `fallback_model` | 지정 모델이 사용량·요청 한도로 거절될 때 같은 라운드에서 한 번 쓰는 모델. 빈 문자열이면 대체 모델이 없다 |
-| `effort` | `claude`·`codex`의 추론 강도 |
+| `effort` | `claude`·`codex`의 추론 강도. 적으면 에이전트가 고를 수 없다 |
+| `allowed_models`, `allowed_efforts` | 에이전트가 고를 수 있는 모델·강도의 목록(아래 "모델과 강도를 정하는 순서") |
 | `timeout_seconds` | 양의 정수(G19). 리뷰어별 값이 최상위 값보다 앞서고, 최상위 값은 그 파일로 정해지는 모든 리뷰어의 기본값이다. 실행 파일의 버전 확인도 이 시간 안에서 한다 |
 
 preset 기본값:
@@ -60,6 +61,36 @@ preset 기본값:
 | `command` | `unverified` | 아니요 | 없음 | 없음 | 없음 |
 
 `binary`·`model`·`fallback_model`·`effort`를 쓰지 않는 preset에 주면 오류다(`agy`는 `effort`를 쓰지 않는다). 실행 파일을 찾는 규칙: G14.
+
+### 모델과 강도를 정하는 순서
+
+`claude`·`codex`·`agy` 리뷰어의 모델과 `claude`·`codex` 리뷰어의 강도는 이 순서로 정한다(G25).
+
+1. 사용자 설정 파일의 그 리뷰어 항목에 `model`(강도는 `effort`)이 적혀 있으면 그 값. preset 기본값과 같은 값이나 `effort = ""`를 적어도 적힌 것이다.
+2. 적혀 있지 않으면 이번 실행에서 에이전트가 `spar run`이나 `spar config`에 준 `--model 이름=모델`(강도는 `--effort 이름=강도`)의 값. 적히지 않은 리뷰어는 이 넷이 전부다: 파일 항목에 그 키가 없는 것, clean-review 출처의 이름, 기본 목록의 이름, `--reviewers`로 준 설정 밖의 이름.
+3. 둘 다 없으면 preset 값.
+
+에이전트가 모델을 고른 리뷰어의 대체 모델은 사용자가 적은 `fallback_model`뿐이고, 적혀 있지 않으면 대체 모델이 없다. preset의 대체 모델은 preset 모델과 짝이라 붙지 않는다. 대체 실행의 조건(한도 거절, 지정 모델과 다름)과 같은 강도로 도는 것은 그대로다. 에이전트가 고르지 않은 리뷰어는 이 변경 전과 같이 적힌 값과 preset 값으로 돈다.
+
+인자는 여러 번 줄 수 있고 첫 `=`에서 나눈다. `=`가 없거나 이름이 비면 사용법 오류(64)다. 다음은 거부(65)이고, 리뷰어를 하나도 띄우지 않고 라운드 폴더를 만들지 않으며, 메시지에 리뷰어 이름과 값을 `%q`로 감싸 보인다. 이 목록이 전부다.
+
+- 사용자 설정에 `model`이 적힌 리뷰어의 모델, `effort`가 적힌 리뷰어의 강도
+- `native`·`command` 리뷰어의 모델이나 강도, `agy` 리뷰어의 강도
+- 이번 실행의 리뷰어가 아닌 이름(이름은 글자 그대로 맞춘다)
+- 같은 리뷰어에 같은 키를 두 번
+- 허용 목록이 적힌 리뷰어에 그 목록에 없는 값
+- 비었거나, 올바른 UTF-8이 아니거나(기록이 받은 그대로 담을 수 없다), `-`로 시작하거나, 공백 문자(`unicode.IsSpace`)나 제어 문자(`unicode.IsControl`)를 품은 값
+
+이 밖의 값은 바꾸지 않고 인자 하나로 CLI에 넘긴다. spar는 모델 이름이나 강도 값이 실제로 있는지 확인하지 않고, CLI가 받지 않으면 그 리뷰어는 실패로 기록된다.
+
+사용자 설정 파일의 항목은 허용 목록을 가질 수 있다: `allowed_models`(`claude`·`codex`·`agy`)와 `allowed_efforts`(`claude`·`codex`). 목록이 있으면 에이전트의 값은 목록의 한 항목과 대소문자까지 같아야 한다. 목록은 에이전트의 선택만 묶고, 에이전트가 고르지 않으면 목록과 관계없이 preset 값이다. 다음은 그 키의 줄을 대는 설정 오류다: 빈 목록, 문자열이 아닌 항목, 위의 값 형식을 어기는 항목, 같은 항목에 `model`과 `allowed_models`(또는 `effort`와 `allowed_efforts`)를 함께 적은 것, 그 키를 쓰지 않는 preset의 목록.
+
+```toml
+[[reviewers]]
+preset = "codex"
+allowed_models = ["example-model-pro", "example-model-mini"]
+allowed_efforts = ["low", "medium", "high"]
+```
 
 ## 2. 프로젝트 설정
 
@@ -83,7 +114,7 @@ code = 3
 - `rules`: 매 라운드 패킷에 넣을 규칙 문서(G23). 저장소 안에서 읽을 수 있는 파일이어야 하고, 아니면 `spar config`와 `spar run` 모두 설정 오류다.
 - `check_paths`: 검사 코드로 보는 경로의 glob(G24). 잘못된 glob은 설정 오류다. 분류와 gate의 `growth`, 패킷이 쓴다.
 
-`reviewers`, `preset`, `command`, `argv`, `binary`, `model`, `fallback_model`, `effort`는 어느 깊이에 있어도 그 키 이름과 위치를 대는 오류로 거부한다. clone한 저장소가 사용자 컴퓨터에서 명령을 실행하거나 사용자 계정의 비용을 바꾸지 못하게 하기 위해서다.
+`reviewers`, `preset`, `command`, `argv`, `binary`, `model`, `fallback_model`, `effort`, `allowed_models`, `allowed_efforts`는 어느 깊이에 있어도 그 키 이름과 위치를 대는 오류로 거부한다. clone한 저장소가 사용자 컴퓨터에서 명령을 실행하거나 사용자 계정의 비용을 바꾸지 못하게 하기 위해서다.
 
 ## 3. 오류
 
@@ -99,16 +130,17 @@ code = 3
 
 ## 4. 적용 기록
 
-`spar config [--repo DIR] [--reviewers a,b]`는 적용될 설정을 JSON으로 출력하고, 라운드 기록 `round.json`의 `config`도 같은 값이다.
+`spar config [--repo DIR] [--reviewers a,b] [--model 이름=모델]... [--effort 이름=강도]...`는 적용될 설정을 JSON으로 출력하고, 같은 인자를 준 라운드 기록 `round.json`의 `config`도 같은 값이다. `spar config`는 `spar run`이 거부하는 값을 같은 이유로 거부한다.
 
 | 필드 | 뜻 |
 | --- | --- |
 | `source` | `kind`(`SPAR_CONFIG`, `XDG_CONFIG_HOME`, `HOME`, `clean-review`, `default`), `path`, `skipped`, `note` |
 | `override` | `--reviewers`를 썼으면 그 이름들, 아니면 `null` |
+| `choices` | 에이전트가 이번 실행에 준 값을 받은 그대로: 항목마다 `reviewer`, `key`(`model`·`effort`), `value`. 모델이 먼저, 키마다 준 순서. 없으면 빈 목록 `[]`. 이 필드가 생기기 전에 쓴 라운드에는 없고, 그 라운드를 다시 써도 생기지 않는다 |
 | `configured_required` | `--reviewers`와 관계없이 설정이 필수로 정한 리뷰어의 `name`·`preset`. gate가 필수 리뷰어로 본다 |
 | `files` | 읽은 설정 파일의 경로와 sha256 |
-| `reviewers` | 적용된 리뷰어(`name`, `preset`, `isolation`, `required`, `model`, `fallback_model`, `effort`, `binary`, `argv`, `timeout_seconds`) |
+| `reviewers` | 적용된 리뷰어(`name`, `preset`, `isolation`, `required`, `model`, `fallback_model`, `effort`, `binary`, `argv`, `timeout_seconds`). `claude`·`codex`·`agy`는 `model_source`(`user`: 사용자 설정, `agent`: 에이전트의 `--model`, `preset`: preset 값)를, `claude`·`codex`는 `effort_source`(같은 세 값)를 가진다. 에이전트가 고를 수 있으면(적히지 않았으면) 고르지 않을 때 쓰일 `default_model`·`default_effort`를, 적었으면 `allowed_models`·`allowed_efforts`를 가진다. `native`·`command`에는 이 필드들이 없다 |
 | `angles`, `caps`, `check_paths`, `rules` | 적용된 값 |
-| `digest` | 리뷰어·`configured_required`·각도·상한·검사 경로·규칙의 정규 JSON sha256. 출처가 달라도 적용한 값이 같으면 같다. `--reviewers`가 같아도 설정이 필수로 정한 리뷰어가 다르면 digest가 다르다 |
+| `digest` | 리뷰어·`configured_required`·각도·상한·검사 경로·규칙의 정규 JSON sha256. 출처가 달라도 적용한 값이 같으면 같다: 리뷰어의 `model_source`·`effort_source`·`default_model`·`default_effort`와 `choices`는 넣지 않고, 에이전트가 고른 값은 적용한 `model`·`effort`로 들어간다. `--reviewers`가 같아도 설정이 필수로 정한 리뷰어가 다르면 digest가 다르다 |
 
 `spar run --check-path GLOB`은 그 실행의 `check_paths`에 더하며 digest에 반영된다. 형식은 `check_paths`와 같고(G24), 잘못된 glob은 리뷰어를 띄우기 전에 거부한다.

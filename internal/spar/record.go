@@ -35,10 +35,12 @@ type ReviewerState struct {
 	Status          string      `json:"status"`
 	Reason          string      `json:"reason,omitempty"`
 	RequestedModel  *string     `json:"requested_model"`
+	ModelSource     string      `json:"model_source,omitempty"`
 	ObservedModel   *string     `json:"observed_model"`
 	FallbackModel   string      `json:"fallback_model,omitempty"`
 	FallbackUsed    bool        `json:"fallback_used"`
 	Effort          string      `json:"effort,omitempty"`
+	EffortSource    string      `json:"effort_source,omitempty"`
 	ElapsedSeconds  float64     `json:"elapsed_seconds"`
 	TimeoutSeconds  int64       `json:"timeout_seconds,omitempty"`
 	Resets          string      `json:"resets,omitempty"`

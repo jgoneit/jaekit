@@ -11,10 +11,11 @@ import (
 
 const usageText = `usage:
   spar --version
-  spar config [--repo DIR] [--reviewers NAME,...]
+  spar config [--repo DIR] [--reviewers NAME,...] [--model NAME=MODEL]... [--effort NAME=EFFORT]...
   spar run --stage plan|plan-delta|candidate|fixes --base REV [--head REV] --out DIR
            --criteria FILE... [--rules FILE]... [--subject FILE]... [--question TEXT]...
-           [--check-path GLOB]... [--reviewers NAME,...] [--repo DIR] [--label TEXT] [--dry-run]
+           [--check-path GLOB]... [--reviewers NAME,...] [--model NAME=MODEL]... [--effort NAME=EFFORT]...
+           [--repo DIR] [--label TEXT] [--dry-run]
   spar record ROUND native (--result FILE|- | --transcript FILE) [--model M] [--agent TEXT]
   spar triage ROUND FINDING fix|reject|defer|duplicate|answer [--commit REV] [--failed-before TEXT]
            [--passed-after TEXT] [--evidence TEXT] [--of FINDING] [--to TEXT] [--user-quote TEXT] [--note TEXT]
@@ -96,6 +97,23 @@ func reviewerOverride(p parsed) []string {
 	return names
 }
 
+// agentChoices reads --model NAME=MODEL and --effort NAME=EFFORT (G25):
+// the first "=" splits, and a value without one or without a name is a
+// usage error. Models come first, each key in the order given.
+func agentChoices(p parsed) ([]Choice, error) {
+	var out []Choice
+	for _, key := range []string{"model", "effort"} {
+		for _, v := range p.values[key] {
+			name, value, ok := strings.Cut(v, "=")
+			if !ok || name == "" {
+				return nil, usageError("--%s needs NAME=%s, got %q", key, strings.ToUpper(key), v)
+			}
+			out = append(out, Choice{Reviewer: name, Key: key, Value: value})
+		}
+	}
+	return out, nil
+}
+
 // Main runs the spar command line and returns its exit code.
 func Main(version string, args []string, stdin io.Reader, stdout, stderr io.Writer, getenv func(string) string) int {
 	if len(args) == 0 {
@@ -132,27 +150,35 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 		fmt.Fprint(stdout, usageText)
 		return ExitOK, nil
 	case "config":
-		p, err := parseArgs(rest, []string{"repo", "reviewers"}, nil)
+		p, err := parseArgs(rest, []string{"repo", "reviewers", "model", "effort"}, nil)
 		if err != nil {
 			return ExitUsage, err
 		}
 		if len(p.positional) > 0 {
 			return ExitUsage, usageError("spar config takes no positional arguments")
 		}
-		return ExitOK, ShowConfig(p.one("repo"), getenv, reviewerOverride(p), stdout)
+		choices, err := agentChoices(p)
+		if err != nil {
+			return ExitUsage, err
+		}
+		return ExitOK, ShowConfigWith(p.one("repo"), getenv, reviewerOverride(p), choices, stdout)
 	case "run":
 		p, err := parseArgs(rest, []string{"stage", "base", "head", "out", "criteria", "rules", "subject", "question",
-			"check-path", "reviewers", "repo", "label"}, []string{"dry-run"})
+			"check-path", "reviewers", "model", "effort", "repo", "label"}, []string{"dry-run"})
 		if err != nil {
 			return ExitUsage, err
 		}
 		if len(p.positional) > 0 {
 			return ExitUsage, usageError("spar run takes no positional arguments: %s", strings.Join(p.positional, " "))
 		}
+		choices, err := agentChoices(p)
+		if err != nil {
+			return ExitUsage, err
+		}
 		code, err := Run(RunOptions{Repo: p.one("repo"), Stage: p.one("stage"), Base: p.one("base"), Head: p.one("head"),
 			Out: p.one("out"), Criteria: p.values["criteria"], Rules: p.values["rules"], Subjects: p.values["subject"],
 			Questions: p.values["question"], CheckPaths: p.values["check-path"], Reviewers: reviewerOverride(p),
-			Label: p.one("label"), DryRun: p.flags["dry-run"], Version: version, Getenv: getenv, Log: stderr})
+			Choices: choices, Label: p.one("label"), DryRun: p.flags["dry-run"], Version: version, Getenv: getenv, Log: stderr})
 		if err == nil {
 			fmt.Fprintf(stdout, "spar: round written to %s\n", p.one("out"))
 		}

@@ -63,6 +63,23 @@ fallback_model = "gemini-3.8-flash-high"
 - `fallback_model`은 지정 모델이 사용량·요청 한도로 거절될 때만, 같은 라운드에서 같은 패킷으로 한 번 실행합니다. `fallback_model = ""`는 preset의 기본 대체 모델을 끕니다.
 - `native`는 지금 쓰는 에이전트의 clean-context 하위 에이전트입니다. Spar가 라운드 폴더에 프롬프트와 작업공간을 쓰고, 에이전트가 가져온 답을 기록합니다. `host`로 기록되고 필수 리뷰어에 듭니다.
 
+### 모델과 강도
+
+`claude`·`codex`·`agy`의 모델과 `claude`·`codex`의 강도는 사용자 설정에 적은 값이 먼저입니다. 위 예시처럼 `model`을 적으면 그 모델로 고정됩니다. 적지 않은 리뷰어의 모델과 강도는 라운드를 돌리는 에이전트가 고릅니다. 에이전트는 `spar run`에 `--model 이름=모델`과 `--effort 이름=강도`를 넘기고, 넘기지 않으면 preset 값(모델 `opus`·`gpt-6-astra`·`gemini-4-argon-high`, 강도 `high`)으로 돕니다. 다음 값은 spar가 리뷰어를 하나도 띄우지 않고 거부합니다: 사용자 설정에 모델이나 강도가 적힌 리뷰어의 그 값(적힌 값과 같아도), `native`·`command` 리뷰어의 모델과 강도, `agy`의 강도, 이번 실행의 리뷰어가 아닌 이름, 같은 리뷰어에 두 번 넘긴 모델이나 강도, 허용 목록 밖의 값, 비었거나 올바른 UTF-8이 아니거나 `-`로 시작하거나 공백 문자나 제어 문자를 품은 값.
+
+에이전트가 고를 수 있는 값을 묶으려면 `allowed_models`와 `allowed_efforts`를 적습니다.
+
+```toml
+[[reviewers]]
+preset = "codex"
+allowed_models = ["gpt-6-astra", "example-model-mini"]
+allowed_efforts = ["medium", "high"]
+```
+
+- 목록이 있으면 에이전트는 그 안의 값만 고를 수 있습니다. 에이전트가 고르지 않으면 목록과 관계없이 preset 값입니다.
+- 에이전트가 고른 모델에는 사용자가 적은 `fallback_model`만 대체 모델로 붙습니다. 적지 않았으면 대체 모델 없이 돕니다.
+- `spar config --model codex=gpt-6-astra`처럼 같은 값을 주면 적용될 모델과 출처를 미리 봅니다. 라운드 기록과 요약은 리뷰어마다 모델·강도와 그 출처(`user`, `agent`, `preset`)를 남깁니다.
+
 ### command 리뷰어
 
 그 밖의 리뷰어는 명령으로 붙일 수 있습니다. 셸 없이 실행되고, 자리표시자로 패킷 파일·작업공간 사본·결과 schema를 받으며, schema를 따르는 JSON 객체 하나를 출력합니다. 아래는 합성 예시이고 `example-reviewer`는 직접 준비한 프로그램을 뜻합니다.
@@ -92,7 +109,7 @@ check_paths = ["tools/checks/**"]
 code = 2
 ```
 
-리뷰어·명령·실행 파일·모델은 정할 수 없고, 정하면 spar가 그 키를 알리며 멈춥니다. 전체 형식은 [설정 계약](../contracts/spar-config.md)에 있습니다.
+리뷰어·명령·실행 파일·모델·강도·허용 목록은 정할 수 없고, 정하면 spar가 그 키를 알리며 멈춥니다. 전체 형식은 [설정 계약](../contracts/spar-config.md)에 있습니다.
 
 ## 프로젝트 준비
 
