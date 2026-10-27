@@ -289,6 +289,42 @@
     var rules = RULES[code.className.slice("language-".length)];
     if (rules) paintCode(code, rules);
   });
+  // A command or name short enough for a phone's line stays on one line.
+  Array.prototype.forEach.call(document.querySelectorAll(".markdown :not(pre) > code"), function (code) {
+    if (code.textContent.length <= 36) code.classList.add("whole");
+  });
+
+  /* ---------- Small marks beside states, so they read at a glance ---------- */
+  function mark(kind) {
+    var d = document.createElement("span");
+    d.className = "dot dot-" + kind;
+    d.setAttribute("aria-hidden", "true");
+    return d;
+  }
+  var STATES = { complete: "ok", pass: "ok", verified: "ok", degraded: "warn", needs_user: "warn", unverified: "warn",
+                 blocked: "bad", fail: "bad", budget_exhausted: "bad" };
+  Array.prototype.forEach.call(document.querySelectorAll(".markdown :not(pre) > code"), function (code) {
+    var kind = STATES[code.textContent];
+    if (kind) code.insertBefore(mark(kind), code.firstChild);
+  });
+  // Releases: the current one, earlier ones and a source build. Review
+  // tiers: one to three filled dots for light, standard and strict.
+  var TIERS = { light: 1, standard: 2, strict: 3 };
+  Array.prototype.forEach.call(document.querySelectorAll(".markdown tbody td:first-child, .markdown li > strong:first-child"), function (cell) {
+    var text = cell.textContent.trim(), kind = null;
+    if (/^(현재 배포판|Current release)/.test(text)) kind = "ok";
+    else if (/^(이전 배포판|Previous release)/.test(text)) kind = "old";
+    else if (/^(소스 빌드|Source build)$/.test(text)) kind = "dev";
+    if (kind) { cell.insertBefore(mark(kind), cell.firstChild); return; }
+    if (TIERS[text]) {
+      var tier = document.createElement("span");
+      tier.className = "tier";
+      tier.setAttribute("data-level", TIERS[text]);
+      tier.setAttribute("aria-hidden", "true");
+      tier.innerHTML = "<i></i><i></i><i></i>";
+      cell.insertBefore(tier, cell.firstChild);
+    }
+  });
 
   /* ---------- Mermaid diagrams, drawn in the page's theme ---------- */
   var diagrams = Array.prototype.slice.call(document.querySelectorAll("pre.mermaid"));

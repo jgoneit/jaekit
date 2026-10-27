@@ -19,6 +19,7 @@
   --shadow: 0 40px 80px -40px rgba(0, 0, 0, .9);
   --grid: rgba(255, 255, 255, .045);
   --mark: rgba(250, 204, 21, .22);
+  --warn: #E8B04A;
   --code-fg: #C3CBFF;
   --syn-com: #7A7A85; --syn-str: #8FD6A4; --syn-num: #F2B27A; --syn-kw: #E79AD6; --syn-key: #8094FF;
   --syn-cmd: #F5D37A; --syn-flag: #7CCBE6; --syn-var: #F2A07A; --syn-ph: #C3A6FF;
@@ -35,7 +36,7 @@
     --bar: color-mix(in srgb, var(--bg) 84%, transparent);
     --shadow: 0 40px 80px -48px rgba(10, 10, 20, .35);
     --grid: rgba(0, 0, 0, .05);
-    --mark: rgba(253, 224, 71, .55); --code-fg: #2B3FB8;
+    --mark: rgba(253, 224, 71, .55); --code-fg: #2B3FB8; --warn: #A86A00;
     --syn-com: #70707A; --syn-str: #1E7A45; --syn-num: #B4570B; --syn-kw: #A8327C; --syn-key: #3A52E0;
     --syn-cmd: #8A5800; --syn-flag: #0B7490; --syn-var: #B4570B; --syn-ph: #7A3FD1;
     color-scheme: light;
@@ -48,7 +49,7 @@
   --bar: color-mix(in srgb, var(--bg) 84%, transparent);
   --shadow: 0 40px 80px -48px rgba(10, 10, 20, .35);
   --grid: rgba(0, 0, 0, .05);
-  --mark: rgba(253, 224, 71, .55); --code-fg: #2B3FB8;
+  --mark: rgba(253, 224, 71, .55); --code-fg: #2B3FB8; --warn: #A86A00;
   --syn-com: #70707A; --syn-str: #1E7A45; --syn-num: #B4570B; --syn-kw: #A8327C; --syn-key: #3A52E0;
   --syn-cmd: #8A5800; --syn-flag: #0B7490; --syn-var: #B4570B; --syn-ph: #7A3FD1;
   color-scheme: light;
@@ -376,10 +377,15 @@ td code, th code { font-size: .8125rem; color: var(--fg); }
   -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .markdown blockquote { margin: 16px 0 0; padding: 2px 0 2px 16px; border-left: 2px solid var(--line-2); color: var(--fg-2); }
 .markdown hr { border: 0; border-top: 1px solid var(--line); margin: 40px 0; }
-.markdown :not(pre) > code { font-size: .85em; color: var(--code-fg); background: var(--bg-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; overflow-wrap: anywhere; word-break: normal; }
-.markdown .table-scroll { margin-top: 16px; }
-.markdown td, .markdown th { padding-right: 16px; }
-.markdown td:last-child, .markdown th:last-child { padding-right: 0; }
+.markdown :not(pre) > code { font-size: .85em; color: var(--code-fg); background: var(--bg-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; overflow-wrap: break-word; word-break: normal; }
+/* Short code never splits across lines; site.js marks it. */
+.markdown code.whole { white-space: nowrap; }
+.markdown .table-scroll { margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; }
+.markdown th { background: var(--bg-2); font: 600 .8125rem/1.45 var(--sans); color: var(--fg); letter-spacing: 0; padding: 10px 14px; border-bottom: 1px solid var(--line-2); }
+.markdown td { padding: 11px 14px; line-height: 1.6; }
+.markdown td:first-child { color: var(--fg); font-weight: 500; min-width: 7em; }
+.markdown tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--bg-2) 55%, transparent); }
+.markdown tbody tr:last-child td { border-bottom: 0; }
 .markdown img { max-width: 100%; }
 .markdown details { margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; padding: 0 16px; background: var(--bg-2); }
 .markdown details[open] { padding-bottom: 14px; }
@@ -390,6 +396,17 @@ td code, th code { font-size: .8125rem; color: var(--fg); }
 .code-lang { font: 500 .6875rem/1 var(--mono); color: var(--fg-3); letter-spacing: .04em; }
 .codeblock .copy { height: 26px; }
 .tok-com { color: var(--syn-com); font-style: italic; }
+/* Status marks: green holds, amber needs a look, red stopped or old. */
+.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; vertical-align: .08em; }
+.dot-ok { background: var(--pass); }
+.dot-warn { background: var(--warn); }
+.dot-bad { background: var(--fail); }
+.dot-old { background: var(--fail); width: 5px; height: 5px; opacity: .75; vertical-align: .15em; }
+.dot-dev { background: var(--accent); }
+code .dot { width: 6px; height: 6px; margin-right: 5px; vertical-align: .1em; }
+.tier { display: inline-flex; gap: 3px; margin-right: 8px; vertical-align: .1em; }
+.tier i { width: 6px; height: 6px; border-radius: 50%; background: var(--line-2); }
+.tier[data-level="1"] i:nth-child(1), .tier[data-level="2"] i:nth-child(-n+2), .tier[data-level="3"] i { background: var(--accent); }
 .tok-str { color: var(--syn-str); }
 .tok-num, .tok-punc { color: var(--syn-num); }
 .tok-kw { color: var(--syn-kw); }
