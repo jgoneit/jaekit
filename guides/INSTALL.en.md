@@ -219,7 +219,7 @@ What each release includes:
 
 </details>
 
-The tag-pinned installation commands below install v0.1.8. Seal checks the actual Core executable's capabilities and stops before recording if support is missing or cannot be established. Matching version numbers or switching to older rules does not establish compatibility. See the [Core capabilities contract](../contracts/core-capabilities.md) for the required support.
+The tag-pinned installation commands below install v0.1.8. Seal checks the actual Core executable's capabilities and stops before recording if support is missing or cannot be established. Matching version numbers or switching to older rules does not establish compatibility. See the [Core capabilities contract](../contracts/core-capabilities.en.md) for the required support.
 
 Spec writes documents without installing Core or querying capabilities. New Spec 0.1.13 documents use `nested/1`, so implementation needs a Core that supports that format. Updates do not change existing goal formats, `/1`, `/2` or `/3` records, usage or time limits. See the [v0.1.8 release notes](https://github.com/jgoneit/jaekit/releases/tag/v0.1.8) for the scope of actual host checks.
 
@@ -258,7 +258,7 @@ Then run the following from the project root in the same terminal. It stops if a
 )
 ```
 
-Follow the [synthetic example's PLAN and observation steps](../examples/check-result/README.md) to preserve the initial file as the baseline before starting the goal. The command is `python3 tools/check-result-reference.py checks/declaration.json checks/reference.json`; `ha check` supplies the invocation-specific report path. It distinguishes the initial file's actual requirement violation from a pass after the change; environment errors are not expected failures. Commit the declaration, configuration and producer before checking and include all three in PLAN's check paths. Choose targets and paths that fit your project. See the [result contract](../contracts/check-result.md) for the format.
+Follow the [synthetic example's PLAN and observation steps](../examples/check-result/README.md) to preserve the initial file as the baseline before starting the goal. The command is `python3 tools/check-result-reference.py checks/declaration.json checks/reference.json`; `ha check` supplies the invocation-specific report path. It distinguishes the initial file's actual requirement violation from a pass after the change; environment errors are not expected failures. Commit the declaration, configuration and producer before checking and include all three in PLAN's check paths. Choose targets and paths that fit your project. See the [result contract](../contracts/check-result.en.md) for the format.
 
 ## Update
 
@@ -406,7 +406,7 @@ claude plugin marketplace remove jaekit
 
 Installation, updates and removal preserve your project's documents, records and raw output. Whether Git tracks the goal documents and the files Seal made (`SPEC.md`, `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, and `runs.jsonl` in `docs/specs/<goal>/`) depends on project policy. Both tracked records and ignored private records stay. Raw check output is under `ha/runs/` in that working tree's Git directory, which git does not track. That is usually under `.git/ha/`; in a linked worktree, where `.git` is a file, it is under the directory that `git rev-parse --absolute-git-dir` prints.
 
-The optional [decision history](../contracts/decision-history.md) is under `ha/history/`, per run start record, in the common Git directory that every working tree of the repository shares (`git rev-parse --git-common-dir`). In a normal checkout that is the same `.git/ha/` as the raw check output. Removing a linked worktree leaves this history in place, but the remaining history does not preserve or restore goal documents or raw check output. It does not travel to a new clone or another machine, and deleting the whole Git directory removes it with no automatic recovery.
+The optional [decision history](../contracts/decision-history.en.md) is under `ha/history/`, per run start record, in the common Git directory that every working tree of the repository shares (`git rev-parse --git-common-dir`). In a normal checkout that is the same `.git/ha/` as the raw check output. Removing a linked worktree leaves this history in place, but the remaining history does not preserve or restore goal documents or raw check output. It does not travel to a new clone or another machine, and deleting the whole Git directory removes it with no automatic recovery.
 
 If you also choose to remove goal documents and records, first check whether they need preserving and whether Git tracks them. For a tracked goal, run `git rm -r docs/specs/<goal>` from that repository's root and commit. This command does not remove untracked goals; handle those separately under the project's local retention policy. Do not force ignored documents into Git.
 

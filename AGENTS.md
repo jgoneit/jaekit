@@ -20,6 +20,7 @@ These instructions apply to the entire repository.
 - Put executable checks in tracked paths outside root `docs/` so baseline checks can run from the code commit.
 - Publish only reviewed product files. Do not link public documentation to private goals or historical execution records.
 - Change the contract and implementation together when behavior changes.
+- Every document directly under `guides/` and `contracts/` has a Korean and an English version: `X.md` and `X.en.md`, except `contracts/regressions.md`, which is English beside `contracts/regressions.ko.md`. Change both in the same change. Where a contract's translation differs from its original, the original decides.
 
 ## Implementation
 

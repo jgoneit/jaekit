@@ -24,7 +24,7 @@ var rfrKept = map[string]map[string]string{
 		"records":     "c9cb21d06688a18ed91f6af673393cfe81ef80212b851529ed796a40085b9abb",
 		"hero":        "e2786373776467d77948970760fa85cc010d488ea902310cc820856304fc51bc",
 		"commands":    "59f12488dd2183b2309aebdec44be212f4cf2383e234b5c3fbcead13a15dd150",
-		"links":       "db537f46c09dcfdc1deb29d6aa4442ccf99ca347e5b7091603d80071fef39699",
+		"links":       "8c0b420dbb4e0b8fc9ec8673e23a596987cf0ff540612ad12e776f4dc40f7961",
 	},
 	"README.ko.md": {
 		"flow":        "8a6501de29184c80a8af663fc7787de356e492ae5e09ccc502bf26cc8ace4fd1",

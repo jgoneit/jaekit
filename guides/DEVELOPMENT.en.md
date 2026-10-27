@@ -35,7 +35,7 @@ claude plugin install seal@jaekit
 claude plugin install spar@jaekit
 ```
 
-Commands and the record format are in [contracts/run-record.md](../contracts/run-record.md).
+Commands and the record format are in [contracts/run-record.en.md](../contracts/run-record.en.md).
 
 ## Repository checks
 
@@ -50,4 +50,4 @@ python3 tools/verify.py
 - [Reading CI results](CI.en.md): the checks that run on pull requests and main, and what each environment observes
 - [Native Windows candidate](WINDOWS.en.md): how the native Windows candidate under development is checked
 - [Common regression connections](../contracts/regressions.md): Jaekit's common invariants and the regression checks that guard them
-- [Repository check producers](../contracts/repository-producers.md): what the repository's check tools observe (Korean)
+- [Repository check producers](../contracts/repository-producers.en.md): what the repository's check tools observe

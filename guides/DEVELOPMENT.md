@@ -49,5 +49,5 @@ python3 tools/verify.py
 
 - [CI 결과 읽기](CI.md): PR과 main에서 도는 검사와 환경별 관측 범위
 - [Windows 네이티브 후보 안내](WINDOWS.md): 개발 중인 Windows 네이티브 후보의 검증 경로
-- [공통 규칙과 회귀 검사 연결](../contracts/regressions.md): Jaekit의 공통 규칙과 그것을 지키는 회귀 검사
+- [공통 규칙과 회귀 검사 연결](../contracts/regressions.ko.md): Jaekit의 공통 규칙과 그것을 지키는 회귀 검사
 - [저장소 검사 생산자의 관측 의미](../contracts/repository-producers.md): 저장소 검사 도구가 무엇을 관측하는지

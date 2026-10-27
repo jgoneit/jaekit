@@ -268,12 +268,12 @@ func TestPagesSiteAC2_DocumentSet(t *testing.T) {
 		}
 		want := h1(headFile(t, d.Path))
 		if want == "" { // no '#' title: the file's name
-			want = strings.TrimSuffix(strings.TrimSuffix(path.Base(d.Path), ".md"), ".en")
+			want = docName(path.Base(d.Path))
 		}
 		if !strings.HasPrefix(title(text), want) {
 			fail(t, v, "%s is titled %q, not by its first heading %q", d.URL, title(text), want)
 		}
-		key := strings.TrimSuffix(strings.TrimSuffix(d.Path, ".md"), ".en")
+		key := docName(d.Path)
 		if byKey[key] == nil {
 			byKey[key] = map[string]doc{}
 		}

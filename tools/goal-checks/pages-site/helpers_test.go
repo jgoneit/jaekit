@@ -302,14 +302,26 @@ func documents(t *testing.T) []doc {
 func docsAt(t *testing.T, dir string) []doc {
 	t.Helper()
 	var docs []doc
-	for _, name := range strings.Split(git(t, dir, "ls-tree", "-r", "--name-only", "-z", "HEAD", "--", "guides", "contracts"), "\x00") {
+	names := strings.Split(git(t, dir, "ls-tree", "-r", "--name-only", "-z", "HEAD", "--", "guides", "contracts"), "\x00")
+	tracked := map[string]bool{}
+	for _, name := range names {
+		tracked[name] = true
+	}
+	for _, name := range names {
 		section, file, ok := strings.Cut(name, "/")
 		if !ok || strings.Contains(file, "/") || !strings.HasSuffix(file, ".md") {
 			continue
 		}
+		// X.en.md is English and X.ko.md Korean; X.md is the other language
+		// of its X.ko.md, and Korean otherwise.
 		lang, stem := "ko", strings.TrimSuffix(file, ".md")
-		if strings.HasSuffix(file, ".en.md") {
+		switch {
+		case strings.HasSuffix(file, ".en.md"):
 			lang, stem = "en", strings.TrimSuffix(file, ".en.md")
+		case strings.HasSuffix(file, ".ko.md"):
+			stem = strings.TrimSuffix(file, ".ko.md")
+		case tracked[section+"/"+stem+".ko.md"]:
+			lang = "en"
 		}
 		url := lang + "/" + section + "/"
 		if stem != "README" {
@@ -318,6 +330,13 @@ func docsAt(t *testing.T, dir string) []doc {
 		docs = append(docs, doc{Path: name, Lang: lang, URL: url})
 	}
 	return docs
+}
+
+// docName is a document's path or file name without its language and
+// extension: guides/USAGE.en.md and guides/USAGE.md are guides/USAGE.
+func docName(name string) string {
+	name = strings.TrimSuffix(name, ".md")
+	return strings.TrimSuffix(strings.TrimSuffix(name, ".en"), ".ko")
 }
 
 // pageName is the address part a document name becomes.
