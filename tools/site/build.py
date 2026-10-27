@@ -112,7 +112,7 @@ TEXT = {
         "group_start": "시작하기", "group_use": "사용하기", "group_formats": "파일·기록 형식과 동작 규칙", "group_develop": "Jaekit 개발",
         "intro_start": "Jaekit이 어떤 문제를 푸는지 이해하고, 설치한 뒤 첫 목표를 맡깁니다.",
         "intro_use": "목표를 고치거나 이어 가고, 멈춘 작업과 완료 보고를 읽고, 독립 검토를 준비할 때 찾아봅니다.",
-        "intro_formats": "Jaekit이 읽고 쓰는 목표 문서, 작업 파일, 검사·검토 기록의 형식과, 그 기록으로 상태와 완료를 판단하는 규칙을 정확히 적은 문서입니다. 에이전트에게 일을 맡겨 쓰는 데는 읽지 않아도 됩니다. 기록을 읽는 도구를 만들거나 어떤 동작의 정확한 조건을 확인할 때 찾아봅니다. 저장소의 <code>contracts/</code> 폴더에 있으며, 문서 제목의 '계약'은 프로그램과 도구가 지키는 이 형식과 규칙을 뜻합니다.",
+        "intro_formats": "Jaekit이 읽고 쓰는 목표 문서, 작업 파일, 검사·검토 기록의 형식과, 그 기록으로 상태와 완료를 판단하는 규칙을 정확히 적은 문서입니다. 에이전트에게 일을 맡겨 쓰는 데는 읽지 않아도 됩니다. 기록을 읽는 도구를 만들거나 어떤 동작의 정확한 조건을 확인할 때 찾아봅니다. 저장소의 <code>contracts/</code> 폴더에 있으며, 문서 제목의 '계약'은 프로그램과 도구가 지키는 이 형식과 규칙을 뜻합니다. 한국어가 원문이고 영어 번역이 함께 있으며, 둘이 다르면 원문을 따릅니다.",
         "intro_develop": "Jaekit 자체를 빌드하고 고치고 검증할 때 읽습니다. Jaekit을 쓰는 데는 필요 없습니다.",
         "note_formats": "형식과 규칙 문서입니다. 에이전트에게 일을 맡겨 쓰는 데는 읽지 않아도 되고, 기록을 다루는 도구를 만들거나 정확한 동작을 확인할 때 봅니다. 처음이라면 <a href=\"{overview}\">Jaekit 이해하기</a>부터 읽으세요.",
         "note_develop": "Jaekit 개발 문서입니다. Jaekit을 쓰는 데는 필요 없습니다. 처음이라면 <a href=\"{overview}\">Jaekit 이해하기</a>부터 읽으세요.",
@@ -129,7 +129,7 @@ TEXT = {
         "group_start": "Get started", "group_use": "Use", "group_formats": "File and record formats and rules", "group_develop": "Developing Jaekit",
         "intro_start": "Learn what problem Jaekit solves, install it, and hand over your first goal.",
         "intro_use": "Look here to change or continue a goal, read a stopped task or a completion report, or set up independent review.",
-        "intro_formats": "These documents state exactly the formats of the goal documents, working files and check and review records Jaekit reads and writes, and the rules that compute status and completion from those records. You do not need them to hand work to your agent. Read them when you build a tool that reads the records or need the exact condition for a behavior. They live in the repository's <code>contracts/</code> folder; \"contract\" in their titles means these formats and rules the programs and tools keep. They are written in Korean.",
+        "intro_formats": "These documents state exactly the formats of the goal documents, working files and check and review records Jaekit reads and writes, and the rules that compute status and completion from those records. You do not need them to hand work to your agent. Read them when you build a tool that reads the records or need the exact condition for a behavior. They live in the repository's <code>contracts/</code> folder; \"contract\" in their titles means these formats and rules the programs and tools keep. Korean is the original and an English translation sits beside it; where the two differ, the original decides.",
         "intro_develop": "Read these to build, change and verify Jaekit itself. You do not need them to use Jaekit.",
         "note_formats": "This is a formats and rules document. You do not need it to hand work to your agent; read it when you build a tool that handles the records or need the exact behavior. New here? Start with <a href=\"{overview}\">Understanding Jaekit</a>.",
         "note_develop": "This document is for developing Jaekit. You do not need it to use Jaekit. New here? Start with <a href=\"{overview}\">Understanding Jaekit</a>.",
@@ -586,13 +586,25 @@ class Doc:
         return self.section, self.stem
 
 
+def doc_language(file: str, names: set[str], section: str) -> tuple[str, str]:
+    """A document's language and name: X.en.md is English and X.ko.md Korean;
+    X.md is the other language of its X.ko.md or X.en.md, Korean when it has
+    neither (README.md and README.ko.md name their languages the same way)."""
+    for suffix, lang in ((".en.md", "en"), (".ko.md", "ko")):
+        if file.endswith(suffix):
+            return lang, file[:-len(suffix)]
+    stem = file[:-3]
+    return ("en" if f"{section}/{stem}.ko.md" in names else "ko"), stem
+
+
 def discover(tree: Tree) -> list[Doc]:
     docs = []
+    names = set(tree.names)
     for name in tree.names:
         section, _, file = name.partition("/")
         if section not in SECTIONS or "/" in file or not file.endswith(".md"):
             continue
-        lang, stem = ("en", file[:-6]) if file.endswith(".en.md") else ("ko", file[:-3])
+        lang, stem = doc_language(file, names, section)
         if not stem:
             raise InputProblem(f"{name}: no document name before the extension")
         docs.append(Doc(name, section, stem, lang, tree.text(name)))

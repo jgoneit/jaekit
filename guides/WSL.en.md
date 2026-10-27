@@ -59,7 +59,7 @@ ha --version
 ha capabilities --format json
 ```
 
-For a v0.1.8 installation, the version must be `ha 0.1.8`. If several installations exist, PATH selects the first one. If it selects a Windows path, an `.exe`, or an unintended older installation, correct the installation location and PATH in that distribution first. Assess Core capabilities using the [compatibility contract](../contracts/core-capabilities.md); a matching version string is insufficient.
+For a v0.1.8 installation, the version must be `ha 0.1.8`. If several installations exist, PATH selects the first one. If it selects a Windows path, an `.exe`, or an unintended older installation, correct the installation location and PATH in that distribution first. Assess Core capabilities using the [compatibility contract](../contracts/core-capabilities.en.md); a matching version string is insufficient.
 
 Use the direct-install data path in [Get the reference check](INSTALL.en.md#get-the-reference-check) to copy public examples into your project. Existing files are not overwritten. Python 3 is needed only if you choose this reference producer.
 

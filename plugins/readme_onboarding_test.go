@@ -377,12 +377,11 @@ func TestOnboardNames(t *testing.T) {
 	}
 }
 
-// the README still links the design set and the
+// the README still links the design set, in its own language, and the
 // license.
 func TestPublicContractLinks(t *testing.T) {
-	for _, path := range []string{"../README.md", "../README.ko.md"} {
-		requireAll(t, path, "(contracts/run-record.md)", "(LICENSE)")
-	}
+	requireAll(t, "../README.md", "(contracts/run-record.en.md)", "(LICENSE)")
+	requireAll(t, "../README.ko.md", "(contracts/run-record.md)", "(LICENSE)")
 }
 
 func onboardNormLinks(links []string) []string {

@@ -378,11 +378,11 @@ func TestReadmeVisualGuideAC9(t *testing.T) {
 		if !visualAnchors(readme)[anchor] {
 			t.Errorf("%s loses #%s", l.readme, anchor)
 		}
-		operations := "../guides/OPERATIONS.md"
+		operations, runRecord := "../guides/OPERATIONS.md", "contracts/run-record.md"
 		if visualEnglish(l) {
-			operations = "../guides/OPERATIONS.en.md"
+			operations, runRecord = "../guides/OPERATIONS.en.md", "contracts/run-record.en.md"
 		}
-		visualRequire(t, l.readme+" destinations", readme, "guides/INSTALL", "("+strings.TrimPrefix(operations, "../")+")", "contracts/run-record.md", "LICENSE", "https://github.com/jgoneit/jaekit/issues/new/choose")
+		visualRequire(t, l.readme+" destinations", readme, "guides/INSTALL", "("+strings.TrimPrefix(operations, "../")+")", runRecord, "LICENSE", "https://github.com/jgoneit/jaekit/issues/new/choose")
 		for _, path := range []string{l.readme, l.install, operations} {
 			visualCheckLinks(t, path)
 		}
