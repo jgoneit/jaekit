@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -588,6 +589,7 @@ func crParity(t *testing.T, v string, doc map[string]any, md string) {
 	for _, r := range list("recurring") {
 		recurring = append(recurring, fmt.Sprintf("- %s %s: %s", r["link_kind"], r["link"], join(r["rounds"])))
 	}
+	unrelated = append(unrelated, fmt.Sprintf("- count: %d", len(list("unrelated"))))
 	for _, f := range list("unrelated") {
 		unrelated = append(unrelated, fmt.Sprintf("- %s %s", f["round"], f["finding"]))
 	}
@@ -632,7 +634,7 @@ func crParity(t *testing.T, v string, doc map[string]any, md string) {
 	crExpect(t, v, "the Markdown open findings", crSection(md, "## Open findings", "- "), none(open))
 	crExpect(t, v, "the Markdown churn", crSection(md, "### Churn", "- "), none(churn))
 	crExpect(t, v, "the Markdown recurring links", crSection(md, "### Recurring links", "- "), none(recurring))
-	crExpect(t, v, "the Markdown unrelated defects", crSection(md, "### Unrelated defects", "- "), none(unrelated))
+	crExpect(t, v, "the Markdown unrelated defects", crSection(md, "### Unrelated defects", "- "), unrelated)
 }
 
 // AC-3: the Markdown report, the default form, holds the values of the JSON
@@ -821,6 +823,41 @@ func TestSparCapReportAC4_DeterministicReadOnly(t *testing.T) {
 		}
 		if code != ExitRefused || out != "" {
 			t.Errorf("jaekit:violation=%s spar cap-report in a partial clone without the blobs exits %d with %q: %s", v, code, out, errs)
+		}
+	})
+
+	// A Git older than 2.44 ignores GIT_NO_LAZY_FETCH, so the report
+	// refuses a partial clone before reading any object and still reports
+	// from a full clone. A wrapper in front of this Git says it is 2.43.
+	t.Run("partial clone with an older Git", func(t *testing.T) {
+		real, err := exec.LookPath("git")
+		if err != nil {
+			t.Fatalf("setup: git is not available: %v", err)
+		}
+		bin := filepath.Join(w.dir, "old-git")
+		w.write(filepath.Join(bin, "git"), "#!/bin/sh\nfor a in \"$@\"; do last=$a; done\n"+
+			"if [ \"$last\" = version ]; then echo 'git version 2.43.0'; exit 0; fi\nexec "+strconv.Quote(real)+" \"$@\"\n")
+		if err := os.Chmod(filepath.Join(bin, "git"), 0o755); err != nil {
+			t.Fatalf("setup: %v", err)
+		}
+		w.git("config", "uploadpack.allowFilter", "true")
+		part := filepath.Join(w.dir, "partial-old")
+		crGit(t, w.dir, "clone", "-q", "--filter=blob:none", "--no-checkout", "file://"+w.repo, part)
+		t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+		if out, err := exec.Command("git", "version").Output(); err != nil || !strings.HasPrefix(string(out), "git version 2.43.0") {
+			t.Fatalf("setup: the wrapper is not the git on PATH: %q %v", out, err)
+		}
+		before := crSnapshot(t, part)
+		code, out, errs := w.spar("cap-report", series, "--repo", part, "--format", "json")
+		if after := crSnapshot(t, part); !reflect.DeepEqual(before, after) {
+			t.Errorf("jaekit:violation=%s spar cap-report with Git 2.43 changed a partial clone", v)
+		}
+		if code != ExitRefused || out != "" || !strings.Contains(errs, "2.43") {
+			t.Errorf("jaekit:violation=%s spar cap-report with Git 2.43 in a partial clone exits %d with %q: %s; want 65 naming Git 2.43",
+				v, code, out, errs)
+		}
+		if code, _, errs := w.spar("cap-report", series, "--repo", w.repo, "--format", "json"); code != ExitOK {
+			t.Errorf("jaekit:violation=%s spar cap-report with Git 2.43 in a full clone exits %d: %s", v, code, errs)
 		}
 	})
 
@@ -1102,7 +1139,8 @@ func TestSparCapReportAC5_InputFailuresRefused(t *testing.T) {
 		t.Fatalf("setup: findings.json of 02-fixes: %v", err)
 	}
 	bodies := []string{"null", `[{"id": "host-F1"}]`, `[{"class": "defect"}]`, `[null]`}
-	for _, change := range []map[string]any{{"introduced_by_change": "maybe"}, {"link_kind": "issue"}} {
+	for _, change := range []map[string]any{{"introduced_by_change": "maybe"}, {"link_kind": "issue"}, {"path": nil}, {"link": nil},
+		{"link": 3}, {"location_unreadable": nil}} {
 		mutated := map[string]any{}
 		for k, val := range findings[0] {
 			mutated[k] = val

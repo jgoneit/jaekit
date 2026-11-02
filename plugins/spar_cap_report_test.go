@@ -99,13 +99,16 @@ func TestSparCapReportAC12_ContractsAndGuides(t *testing.T) {
 		crpExpect(t, v, path+" G31", crpLine(text, "| G31 |"), "`extend --cause`", "`extend --reason`")
 		crpExpect(t, v, path, text, "`cap-report --format`")
 	}
-	for _, c := range []struct{ path, fields, row, cause string }{
-		{"../contracts/run-record.md", "series의 `extensions.jsonl`(`stage`, `by`, `cause`, `reason`, `user_quote`)", "| 질문 |", "원인과 이유"},
-		{"../contracts/run-record.en.md", "the series' `extensions.jsonl` (`stage`, `by`, `cause`, `reason`, `user_quote`)", "| Questions |", "cause and reason"},
+	for _, c := range []struct{ path, fields, row, cause, null string }{
+		{"../contracts/run-record.md", "series의 `extensions.jsonl`(`stage`, `by`, `cause`, `reason`, `user_quote`)", "| 질문 |", "원인과 이유",
+			"상한 연장의 `cause`·`reason`은 예외로, 값이 없으면 `null`을 쓰지 않고 키를 빼"},
+		{"../contracts/run-record.en.md", "the series' `extensions.jsonl` (`stage`, `by`, `cause`, `reason`, `user_quote`)", "| Questions |", "cause and reason",
+			"A cap extension's `cause` and `reason` are the exception: without a value the key is left out instead of `null`"},
 	} {
 		text := crpRead(t, c.path)
 		crpExpect(t, v, c.path, text, c.fields)
 		crpExpect(t, v, c.path+" "+c.row, crpLine(text, c.row), c.cause)
+		crpExpect(t, v, c.path+" null rule", text, c.null)
 	}
 	// The guides explain the report and its limits, the causes and when a
 	// reason is needed, and where ha cost shows the cause.

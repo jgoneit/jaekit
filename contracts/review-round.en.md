@@ -192,7 +192,7 @@ spar cap-report docs/reviews/example --format json --repo .
 | `open` | The `defect` and `requirement-question` findings open by the gate's rule ([review gate](review-gate.en.md)): no disposition, or a `duplicate` chain that ends at an open finding. `{round, finding, class}` |
 | `churn` | For each round after the first counted `candidate` round, `{round, count, findings}`. It counts the `defect` and `requirement-question` findings whose location was read and whose path is a file changed between the head of that first round and the round's head (`git diff --name-only --no-renames`) |
 | `recurring` | A link (`link_kind`, `link`) that appears as a `defect` or `requirement-question` in rounds of two or more different packets (stage, base, head, packet digest): `{link_kind, link, rounds}`. Reruns of one packet are one round, so `rounds` holds, for each packet, only the round that comes first in the list. Sorted by link |
-| `unrelated` | The `defect` findings whose `introduced_by_change` is `no` or `unknown`: `{round, finding}` |
+| `unrelated` | The `defect` findings whose `introduced_by_change` is `no` or `unknown`: `{round, finding}`. Their count is the length of the list |
 | `check_growth` | The same computation as the gate's `growth`: the lines the listed `fixes` rounds added (`git diff --numstat -M`), summed inside (`check`) and outside (`other`) the round's configured check paths. `over_hardening` is true when `check` is larger than `other` |
 | `limits` | The limit sentences of the three finding signals (below) |
 
@@ -211,7 +211,7 @@ The Markdown holds every value of the JSON but `schema` (the format's name), in 
 6. `## Signals`:
    - `### Churn`: `- <round>: <count> (<ID>, …)`, or `- <round>: 0`.
    - `### Recurring links`: `- <link_kind> <link>: <round>, …`
-   - `### Unrelated defects`: `- <round> <finding>`
+   - `### Unrelated defects`: first `- count: <n>`, then `- <round> <finding>`. When it is 0, only the `- count: 0` line.
    - `### Check growth`: `- added lines: check <n>, other <n>; over hardening: yes|no`
 7. `## Limits`: `- churn: …`, `- recurring: …`, `- unrelated: …`
 
@@ -221,8 +221,9 @@ In these cases it names the failed path or commit on standard error, ends with 6
 - The `stage` of a `round.json` is not one of the four stages of the contract.
 - A `round.json` field the report reads is missing, `null`, or not of the JSON type spar writes: `stage`, `base`, `head` and `packet_sha256` (text), `sequence` (an integer), `dry_run` and `counted` (true or false), `config` (an object) with `caps.code` (an integer) and `check_paths` (a list of text; `null` is no list), and `finished_at` (text) when present.
 - A finished round (with `finished_at`) has no `findings.json`, or `findings.json` exists without `ledger.jsonl`.
-- The `findings.json` of a listed round is not a list of findings (`null` included), or a finding has no `id`, a `class` outside the four classes, an `introduced_by_change` other than `yes`, `no` and `unknown`, or a `link_kind` other than `criterion`, `rule`, `contract` and `none` (the fields the signals read).
+- The `findings.json` of a listed round is not a list of findings (`null` included), or a finding has no `id`, a `class` outside the four classes, an `introduced_by_change` other than `yes`, `no` and `unknown`, or a `link_kind` other than `criterion`, `rule`, `contract` and `none` (the fields the signals read). Or a finding's `id`, `class`, `introduced_by_change`, `link_kind`, `link` or `path` is missing, `null` or not text, or its `location_unreadable`, when present, is not true or false.
 - A `ledger.jsonl` line of a listed round cannot be interpreted, names no `finding`, or has a `disposition` outside the five dispositions.
 - An `extensions.jsonl` line cannot be interpreted or is outside the form: a `stage` other than `plan`, `plan-delta` and `code`, `by` below 1, an empty `user_quote`, a `cause` on a line that is not a code line or outside the five values, or a line with a `cause` whose `by` is 2 or more or whose `cause` is `other` and whose `reason` is missing or empty. Code lines without a cause (recorded before this feature) need no reason.
 - `--repo` is not a Git repository, or Git cannot start.
+- The running Git is older than 2.44 (it does not know `GIT_NO_LAZY_FETCH`) and the repository is a partial clone (it has `extensions.partialClone` or a true `remote.<name>.promisor`). The report refuses before reading any object, and the reason names the Git version.
 - The base or head of a listed round is not in the repository (a shallow clone too), or an object the report needs is missing from a partial clone.

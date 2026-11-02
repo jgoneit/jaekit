@@ -137,6 +137,9 @@ func CapReport(o CapReportOptions) (int, error) {
 	if err != nil {
 		return ExitRefused, refused("%s is not in a Git repository: %v", start, err)
 	}
+	if err := checkLazyFetch(repo); err != nil {
+		return ExitRefused, refused("%v", err)
+	}
 	rep := &capReport{Schema: CapReportSchema, Series: o.Series, Rounds: []capRound{}, Skipped: []capSkipped{},
 		Open: []capOpen{}, Churn: []capChurn{}, Recurring: []capRecurring{}, Unrelated: []capFinding{},
 		Limits: capLimits{churnLimit, recurringLimit, unrelatedLimit}}
@@ -189,13 +192,8 @@ func CapReport(o CapReportOptions) (int, error) {
 		if err != nil {
 			return ExitRefused, refused("%v", err)
 		}
-		if findings == nil {
-			// JSON null decodes to no findings; spar writes a list.
-			var list []json.RawMessage
-			data, err := os.ReadFile(filepath.Join(sib.dir, "findings.json"))
-			if err != nil || json.Unmarshal(data, &list) != nil || list == nil {
-				return ExitRefused, refused("%s is not a list of findings", filepath.Join(sib.dir, "findings.json"))
-			}
+		if err := checkFindingFields(filepath.Join(sib.dir, "findings.json")); err != nil {
+			return ExitRefused, refused("%v", err)
 		}
 		if _, err := os.Stat(filepath.Join(sib.dir, "ledger.jsonl")); err != nil {
 			return ExitRefused, refused("%s: ledger.jsonl cannot be read: %v", sib.dir, err)
@@ -414,20 +412,7 @@ func checkRoundFields(path string, data []byte) error {
 		return fmt.Errorf("%s is not a round record: %v", path, err)
 	}
 	field := func(fields map[string]json.RawMessage, name string, into any, nullable bool) error {
-		raw, ok := fields[name]
-		switch {
-		case !ok:
-			return fmt.Errorf("%s: %s is missing", path, name)
-		case string(bytes.TrimSpace(raw)) == "null":
-			if nullable {
-				return nil
-			}
-			return fmt.Errorf("%s: %s is null", path, name)
-		}
-		if err := json.Unmarshal(raw, into); err != nil {
-			return fmt.Errorf("%s: %s is not of its type: %v", path, name, err)
-		}
-		return nil
+		return jsonField(path, fields, name, into, nullable)
 	}
 	var text string
 	var number int64
@@ -463,6 +448,87 @@ func checkRoundFields(path string, data []byte) error {
 	}
 	if err := field(caps, "code", &number, false); err != nil {
 		return fmt.Errorf("%s (config.caps)", err)
+	}
+	return nil
+}
+
+// jsonField decodes one field of a record into its Go type, refusing it
+// when it is missing, null (unless nullable) or of another JSON type.
+func jsonField(path string, fields map[string]json.RawMessage, name string, into any, nullable bool) error {
+	raw, ok := fields[name]
+	switch {
+	case !ok:
+		return fmt.Errorf("%s: %s is missing", path, name)
+	case string(bytes.TrimSpace(raw)) == "null":
+		if nullable {
+			return nil
+		}
+		return fmt.Errorf("%s: %s is null", path, name)
+	}
+	if err := json.Unmarshal(raw, into); err != nil {
+		return fmt.Errorf("%s: %s is not of its type: %v", path, name, err)
+	}
+	return nil
+}
+
+// checkFindingFields refuses a findings.json that is not a list, or whose
+// findings lack a field the signals read or hold it as null or another
+// JSON type: decoding would turn it into an empty value that drops the
+// finding from a signal. location_unreadable is absent in records written
+// before it existed.
+func checkFindingFields(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("%s cannot be read: %v", path, err)
+	}
+	var items []map[string]json.RawMessage
+	if json.Unmarshal(data, &items) != nil || items == nil {
+		return fmt.Errorf("%s is not a list of findings", path)
+	}
+	var text string
+	var flag bool
+	for i, item := range items {
+		at := fmt.Sprintf("%s finding %d", path, i+1)
+		for _, name := range []string{"id", "class", "introduced_by_change", "link_kind", "link", "path"} {
+			if err := jsonField(at, item, name, &text, false); err != nil {
+				return err
+			}
+		}
+		if _, ok := item["location_unreadable"]; ok {
+			if err := jsonField(at, item, "location_unreadable", &flag, false); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// checkLazyFetch refuses a partial clone when the running Git is older
+// than 2.44: such a Git ignores GIT_NO_LAZY_FETCH and could fetch the
+// objects the report reads into the clone.
+func checkLazyFetch(repo string) error {
+	out, err := git(repo, "version")
+	if err != nil {
+		return err
+	}
+	var major, minor int
+	if _, err := fmt.Sscanf(string(out), "git version %d.%d", &major, &minor); err != nil {
+		return fmt.Errorf("the Git version %q cannot be read", strings.TrimSpace(string(out)))
+	}
+	if major > 2 || major == 2 && minor >= 44 {
+		return nil
+	}
+	// git config exits 1 when no key matches, with nothing on standard output.
+	cfg, _ := git(repo, "config", "--get-regexp", `^(extensions\.partialclone|remote\..*\.promisor)$`)
+	for _, l := range strings.Split(strings.TrimSpace(string(cfg)), "\n") {
+		key, value, _ := strings.Cut(l, " ")
+		key = strings.ToLower(key)
+		value = strings.ToLower(strings.TrimSpace(value))
+		if key == "extensions.partialclone" && value != "" ||
+			strings.HasSuffix(key, ".promisor") && slices.Contains([]string{"true", "yes", "on", "1"}, value) {
+			return fmt.Errorf("%s is a partial clone, and Git %d.%d could fetch into it; the report needs Git 2.44 or later there",
+				repo, major, minor)
+		}
 	}
 	return nil
 }
@@ -596,10 +662,10 @@ func renderCapReport(rep *capReport) string {
 	line("")
 	line("### Unrelated defects")
 	line("")
+	line("- count: %d", len(rep.Unrelated))
 	for _, f := range rep.Unrelated {
 		line("- %s %s", f.Round, f.Finding)
 	}
-	none(len(rep.Unrelated))
 	line("")
 	line("### Check growth")
 	line("")

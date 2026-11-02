@@ -188,7 +188,7 @@ spar cap-report docs/reviews/example --format json --repo .
 | `open` | gate와 같은 기준([검토 gate](review-gate.md))으로 열린 `defect`·`requirement-question`: 마지막 처리가 없거나 `duplicate` 사슬이 열린 지적에서 끝난다. `{round, finding, class}` |
 | `churn` | 첫 counted `candidate` 라운드 뒤의 라운드마다 `{round, count, findings}`. 대상은 `defect`·`requirement-question` 가운데 위치를 읽을 수 있고, 경로가 그 첫 라운드의 head와 그 라운드의 head 사이에서 바뀐 파일(`git diff --name-only --no-renames`)인 지적이다 |
 | `recurring` | 같은 연결(`link_kind`, `link`)이 패킷(단계·base·head·패킷 digest)이 다른 라운드 둘 이상에서 `defect`·`requirement-question`으로 나온 것: `{link_kind, link, rounds}`. 같은 패킷의 재실행은 한 라운드라서, `rounds`에는 패킷마다 목록 순으로 처음 나온 라운드만 든다. 연결 순으로 정렬한다 |
-| `unrelated` | `introduced_by_change`가 `no`나 `unknown`인 `defect`: `{round, finding}` |
+| `unrelated` | `introduced_by_change`가 `no`나 `unknown`인 `defect`: `{round, finding}`. 그 수는 목록의 길이다 |
 | `check_growth` | gate `growth`와 같은 계산: 목록에 든 `fixes` 라운드가 더한 줄(`git diff --numstat -M`)을 그 라운드 설정의 검사 경로 안(`check`)과 밖(`other`)으로 나눈 합. `over_hardening`은 `check`가 `other`보다 클 때 참 |
 | `limits` | 세 지적 신호의 경계 문장(아래) |
 
@@ -207,7 +207,7 @@ Markdown은 JSON의 `schema`(형식 이름)를 뺀 모든 값을 담는다. 순�
 6. `## Signals`:
    - `### Churn`: `- <round>: <count> (<ID>, …)`, 0이면 `- <round>: 0`.
    - `### Recurring links`: `- <link_kind> <link>: <round>, …`
-   - `### Unrelated defects`: `- <round> <finding>`
+   - `### Unrelated defects`: 먼저 `- count: <n>`, 이어서 `- <round> <finding>`. 0이면 `- count: 0` 줄만 있다.
    - `### Check growth`: `- added lines: check <n>, other <n>; over hardening: yes|no`
 7. `## Limits`: `- churn: …`, `- recurring: …`, `- unrelated: …`
 
@@ -217,8 +217,9 @@ Markdown은 JSON의 `schema`(형식 이름)를 뺀 모든 값을 담는다. 순�
 - `round.json`의 `stage`가 계약의 네 단계 밖이다.
 - 보고가 읽는 `round.json` 필드가 없거나 `null`이거나 spar가 쓰는 JSON 타입이 아니다: `stage`·`base`·`head`·`packet_sha256`(글), `sequence`(정수), `dry_run`·`counted`(참거짓), `config`(객체)의 `caps.code`(정수)와 `check_paths`(글의 목록, `null`은 목록 없음), 그리고 있을 때의 `finished_at`(글).
 - 끝난 라운드(`finished_at`이 있음)에 `findings.json`이 없거나, `findings.json`이 있는데 `ledger.jsonl`이 없다.
-- 목록 라운드의 `findings.json`이 지적의 목록이 아니거나(`null` 포함), 지적에 `id`가 없거나, `class`가 네 class 밖이거나, 신호가 읽는 `introduced_by_change`가 `yes`·`no`·`unknown` 밖이거나 `link_kind`가 `criterion`·`rule`·`contract`·`none` 밖이다.
+- 목록 라운드의 `findings.json`이 지적의 목록이 아니거나(`null` 포함), 지적에 `id`가 없거나, `class`가 네 class 밖이거나, 신호가 읽는 `introduced_by_change`가 `yes`·`no`·`unknown` 밖이거나 `link_kind`가 `criterion`·`rule`·`contract`·`none` 밖이다. 또는 지적의 `id`·`class`·`introduced_by_change`·`link_kind`·`link`·`path`가 없거나 `null`이거나 글이 아니거나, 있는 `location_unreadable`이 참거짓이 아니다.
 - 목록 라운드의 `ledger.jsonl` 줄이 해석되지 않거나, `finding`이 없거나, `disposition`이 다섯 처리 밖이다.
 - `extensions.jsonl` 줄이 해석되지 않거나 형식 밖이다: `stage`가 `plan`·`plan-delta`·`code` 밖, `by`가 1 미만, `user_quote`가 비었음, `cause`가 code 줄이 아닌 곳에 있거나 다섯 값 밖, `cause`가 있는 줄의 `by`가 2 이상이거나 `cause`가 `other`인데 `reason`이 없거나 비었음. 원인이 없는 code 줄(이 기능 전에 기록한 줄)에는 이유를 요구하지 않는다.
 - `--repo`가 Git 저장소가 아니거나 Git을 시작할 수 없다.
+- 실행하는 Git이 2.44보다 오래되었고(`GIT_NO_LAZY_FETCH`를 모른다) 저장소가 부분 clone이다(`extensions.partialClone`이나 참인 `remote.<이름>.promisor`가 있음). 객체를 읽기 전에 거부하며, 이유에 Git 버전을 밝힌다.
 - 목록 라운드의 base나 head가 저장소에 없다(얕은 clone 포함), 또는 보고에 필요한 객체가 부분 clone에 없다.
