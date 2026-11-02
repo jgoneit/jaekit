@@ -120,6 +120,12 @@ func TestSparCapReportAC12_ContractsAndGuides(t *testing.T) {
 	} {
 		crpExpect(t, v, c.path, crpRead(t, c.path), c.phrases...)
 	}
+	// The Spar skill explains the report, its signals and limits, and where
+	// ha cost shows the cause; the cause and reason rules are AC-11's lines.
+	crpExpect(t, v, "the Spar skill", crpRead(t, "spar/skills/spar/SKILL.md"), "`spar cap-report` shows", "churn", "recurring links",
+		"not introduced by the change", "check growth", "Churn is counted by file", "Recurring links are counted by link",
+		"`introduced_by_change` as reported", "`ha cost` shows each extension's cause and reason", "no cause was recorded",
+		"`--by 2` or more, and `--cause other`, need `--reason`.")
 	// The round contracts state the signal limits as the report gives them.
 	for _, path := range []string{"../contracts/review-round.md", "../contracts/review-round.en.md"} {
 		crpExpect(t, v, path, crpRead(t, path),

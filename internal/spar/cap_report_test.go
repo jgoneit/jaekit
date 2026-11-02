@@ -540,9 +540,11 @@ func crSection(md, heading, prefix string) []string {
 	return out
 }
 
-// crParity compares every row of the Markdown rounds table, its skipped
-// lines and every Markdown list with the JSON report's entries, in order:
-// nothing left out, repeated or added.
+// crParity compares every value of the JSON report but its schema name
+// with the Markdown report: the title, the cap and open lines, every row of
+// the rounds table (sequence and full commit IDs included), its skipped
+// lines, every Markdown list, the check growth line and the limits, in
+// order: nothing left out, repeated or added.
 func crParity(t *testing.T, v string, doc map[string]any, md string) {
 	t.Helper()
 	str := func(x any) string { return fmt.Sprint(x) }
@@ -567,8 +569,8 @@ func crParity(t *testing.T, v string, doc map[string]any, md string) {
 	for _, r := range list("rounds") {
 		classes, _ := r["classes"].(map[string]any)
 		counted := map[bool]string{true: "yes", false: "no"}[r["counted"] == true]
-		rows = append(rows, fmt.Sprintf("| %s | %s | %s | %s | %s | %v | %v | %v | %v |", r["round"], r["stage"], counted,
-			str(r["base"])[:12], str(r["head"])[:12], classes["defect"], classes["requirement-question"], classes["hardening"], classes["note"]))
+		rows = append(rows, fmt.Sprintf("| %s | %s | %v | %s | %s | %s | %v | %v | %v | %v |", r["round"], r["stage"], r["sequence"],
+			counted, r["base"], r["head"], classes["defect"], classes["requirement-question"], classes["hardening"], classes["note"]))
 	}
 	for _, r := range list("skipped") {
 		skipped = append(skipped, fmt.Sprintf("- skipped %s: %s", r["round"], r["reason"]))
@@ -602,6 +604,30 @@ func crParity(t *testing.T, v string, doc map[string]any, md string) {
 		}
 	}
 	crExpect(t, v, "the rows of the Markdown rounds table", tableRows, rows)
+	head := []string{"# Cap report: " + str(doc["series"])}
+	cp, _ := doc["cap"].(map[string]any)
+	if cp["code"] == nil {
+		head = append(head, fmt.Sprintf("- code rounds counted: %v of unknown (cap unknown, extensions %v)", cp["counted"], cp["extensions"]))
+	} else {
+		head = append(head, fmt.Sprintf("- code rounds counted: %v of %v (cap %v, extensions %v)", cp["counted"], cp["allowed"], cp["code"],
+			cp["extensions"]))
+	}
+	byClass := map[string]int{}
+	for _, f := range list("open") {
+		byClass[str(f["class"])]++
+	}
+	head = append(head, fmt.Sprintf("- open: defect %d, requirement-question %d", byClass["defect"], byClass["requirement-question"]))
+	lines := strings.Split(md, "\n")
+	if len(lines) < 4 || !crSame([]string{lines[0], lines[2], lines[3]}, head) {
+		t.Errorf("jaekit:violation=%s the Markdown report opens with %q, want %q", v, lines[:min(4, len(lines))], head)
+	}
+	growth, _ := doc["check_growth"].(map[string]any)
+	over := map[bool]string{true: "yes", false: "no"}[growth["over_hardening"] == true]
+	crExpect(t, v, "the Markdown check growth", crSection(md, "### Check growth", "- "),
+		[]string{fmt.Sprintf("- added lines: check %v, other %v; over hardening: %s", growth["check"], growth["other"], over)})
+	limits, _ := doc["limits"].(map[string]any)
+	crExpect(t, v, "the Markdown limits", crSection(md, "## Limits", "- "),
+		[]string{"- churn: " + str(limits["churn"]), "- recurring: " + str(limits["recurring"]), "- unrelated: " + str(limits["unrelated"])})
 	crExpect(t, v, "the skipped lines of the Markdown report", crSection(md, "## Rounds", "- "), skipped)
 	crExpect(t, v, "the Markdown open findings", crSection(md, "## Open findings", "- "), none(open))
 	crExpect(t, v, "the Markdown churn", crSection(md, "### Churn", "- "), none(churn))
@@ -624,16 +650,16 @@ func TestSparCapReportAC3_TwoFormsNoCause(t *testing.T) {
 	if _, plain, _ := w.report(series); plain != md {
 		t.Errorf("jaekit:violation=%s spar cap-report without --format differs from --format md", v)
 	}
-	b, h1, h2 := w.commit["base"][:12], w.commit["head1"][:12], w.commit["head2"][:12]
+	b, h1, h2 := w.commit["base"], w.commit["head1"], w.commit["head2"]
 	lines := crLines(md)
 	for _, want := range []string{
 		"# Cap report: " + series,
 		"- code rounds counted: 3 of 3 (cap 3, extensions 0)",
 		"- open: defect 6, requirement-question 1",
-		"| Round | Stage | Counted | Base | Head | defect | requirement-question | hardening | note |",
-		"| 01-candidate | candidate | yes | " + b + " | " + h1 + " | 3 | 0 | 1 | 0 |",
-		"| 02-fixes | fixes | yes | " + h1 + " | " + h2 + " | 2 | 0 | 0 | 1 |",
-		"| 03-candidate | candidate | yes | " + b + " | " + h2 + " | 3 | 1 | 0 | 0 |",
+		"| Round | Stage | Sequence | Counted | Base | Head | defect | requirement-question | hardening | note |",
+		"| 01-candidate | candidate | 1 | yes | " + b + " | " + h1 + " | 3 | 0 | 1 | 0 |",
+		"| 02-fixes | fixes | 2 | yes | " + h1 + " | " + h2 + " | 2 | 0 | 0 | 1 |",
+		"| 03-candidate | candidate | 3 | yes | " + b + " | " + h2 + " | 3 | 1 | 0 | 0 |",
 		"- 01-candidate host-F2 (defect)",
 		"- 03-candidate host-F3 (requirement-question)",
 		"- 02-fixes: 1 (host-F1)",
@@ -767,6 +793,36 @@ func TestSparCapReportAC4_DeterministicReadOnly(t *testing.T) {
 	if _, err := os.Stat(marker); err == nil {
 		t.Errorf("jaekit:violation=%s spar cap-report started a reviewer", v)
 	}
+
+	// A partial clone that lacks the blobs the check growth reads: the
+	// report asks Git not to fetch them, so the clone stays as it was and
+	// the report is refused. Git before 2.44 does not know that request,
+	// so the case is not observed there.
+	t.Run("partial clone", func(t *testing.T) {
+		var major, minor int
+		if _, err := fmt.Sscanf(w.git("version"), "git version %d.%d", &major, &minor); err != nil {
+			t.Fatalf("setup: git version: %v", err)
+		}
+		if major < 2 || major == 2 && minor < 44 {
+			t.Skipf("Git %d.%d has no GIT_NO_LAZY_FETCH", major, minor)
+		}
+		w.git("config", "uploadpack.allowFilter", "true")
+		part := filepath.Join(w.dir, "partial")
+		crGit(t, w.dir, "clone", "-q", "--filter=blob:none", "--no-checkout", "file://"+w.repo, part)
+		probe := exec.Command("git", "-C", part, "cat-file", "-e", w.commit["head2"]+":app/greet.py")
+		probe.Env = append(os.Environ(), "GIT_NO_LAZY_FETCH=1")
+		if probe.Run() == nil {
+			t.Fatalf("setup: the partial clone already holds the blobs")
+		}
+		before := crSnapshot(t, part)
+		code, out, errs := w.spar("cap-report", series, "--repo", part, "--format", "json")
+		if after := crSnapshot(t, part); !reflect.DeepEqual(before, after) {
+			t.Errorf("jaekit:violation=%s spar cap-report fetched into a partial clone", v)
+		}
+		if code != ExitRefused || out != "" {
+			t.Errorf("jaekit:violation=%s spar cap-report in a partial clone without the blobs exits %d with %q: %s", v, code, out, errs)
+		}
+	})
 
 	crClockScanWorks(t)
 	reads, ok := crClockReads(t, ".", "CapReport", "dispatch cap-report")
@@ -1076,6 +1132,31 @@ func TestSparCapReportAC5_InputFailuresRefused(t *testing.T) {
 	data, _ := json.Marshal(rec)
 	w.write(filepath.Join(broken, "02-fixes", "round.json"), string(data)+"\n")
 	expectRefused("a round.json with an unknown stage", broken, w.repo, filepath.Join(broken, "02-fixes", "round.json"))
+	// Fields the report reads that are missing, null or of another type
+	// would decode to zero values that look real.
+	for i, c := range []struct {
+		what   string
+		change func(map[string]any)
+	}{
+		{"counted null", func(r map[string]any) { r["counted"] = nil }},
+		{"config null", func(r map[string]any) { r["config"] = nil }},
+		{"sequence as text", func(r map[string]any) { r["sequence"] = "2" }},
+		{"base as a number", func(r map[string]any) { r["base"] = 3 }},
+		{"no dry_run", func(r map[string]any) { delete(r, "dry_run") }},
+		{"finished_at null", func(r map[string]any) { r["finished_at"] = nil }},
+		{"no code cap", func(r map[string]any) { delete(r["config"].(map[string]any)["caps"].(map[string]any), "code") }},
+		{"check paths as text", func(r map[string]any) { r["config"].(map[string]any)["check_paths"] = "app/**" }},
+	} {
+		broken = clone(fmt.Sprintf("type-round-%d", i))
+		var rec map[string]any
+		if err := json.Unmarshal(w.read(filepath.Join(broken, "02-fixes", "round.json")), &rec); err != nil {
+			t.Fatalf("setup: %v", err)
+		}
+		c.change(rec)
+		data, _ := json.Marshal(rec)
+		w.write(filepath.Join(broken, "02-fixes", "round.json"), string(data)+"\n")
+		expectRefused("a round.json with "+c.what, broken, w.repo, filepath.Join(broken, "02-fixes", "round.json"))
+	}
 	broken = clone("lost-ledger")
 	if err := os.Remove(filepath.Join(broken, "02-fixes", "ledger.jsonl")); err != nil {
 		t.Fatalf("setup: %v", err)

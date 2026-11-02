@@ -1,6 +1,7 @@
 package spar
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -207,7 +208,7 @@ func CapReport(o CapReportOptions) (int, error) {
 			return ExitRefused, refused("%v", err)
 		}
 		for _, c := range []string{r.Base, r.Head} {
-			if _, err := resolveCommit(repo, c); err != nil {
+			if _, err := gitWith(repo, noLazyFetch, "rev-parse", "--verify", "--quiet", "--end-of-options", c+"^{commit}"); err != nil {
 				return ExitRefused, refused("%s: commit %s is not in %s", sib.dir, c, repo)
 			}
 		}
@@ -256,7 +257,7 @@ func CapReport(o CapReportOptions) (int, error) {
 		for _, l := range list[anchor+1:] {
 			files, ok := changed[l.round.Head]
 			if !ok {
-				if files, err = changedFiles(repo, from, l.round.Head); err != nil {
+				if files, err = changedFiles(repo, noLazyFetch, from, l.round.Head); err != nil {
 					return ExitRefused, refused("%s: changed files cannot be read: %v", l.name, err)
 				}
 				changed[l.round.Head] = files
@@ -319,7 +320,7 @@ func CapReport(o CapReportOptions) (int, error) {
 			continue
 		}
 		measured[r.Base+".."+r.Head] = true
-		added, err := numstat(repo, r.Base, r.Head)
+		added, err := numstatWith(repo, noLazyFetch, r.Base, r.Head)
 		if err != nil {
 			return ExitRefused, refused("%s: added lines cannot be read: %v", l.name, err)
 		}
@@ -381,6 +382,9 @@ func capSeriesRounds(series string) ([]sibling, error) {
 		if json.Unmarshal(data, &probe) != nil || probe.Schema != RoundSchema {
 			continue // another tool's record, as spar run reads the series
 		}
+		if err := checkRoundFields(path, data); err != nil {
+			return nil, err
+		}
 		r, err := loadRound(dir)
 		if err != nil {
 			return nil, err
@@ -399,6 +403,68 @@ func capSeriesRounds(series string) ([]sibling, error) {
 		return out[i].dir < out[j].dir
 	})
 	return out, nil
+}
+
+// checkRoundFields refuses a round record whose fields the report reads
+// are missing, null or not of the JSON type spar writes: decoding would
+// turn them into zero values that look like real ones.
+func checkRoundFields(path string, data []byte) error {
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal(data, &top); err != nil {
+		return fmt.Errorf("%s is not a round record: %v", path, err)
+	}
+	field := func(fields map[string]json.RawMessage, name string, into any, nullable bool) error {
+		raw, ok := fields[name]
+		switch {
+		case !ok:
+			return fmt.Errorf("%s: %s is missing", path, name)
+		case string(bytes.TrimSpace(raw)) == "null":
+			if nullable {
+				return nil
+			}
+			return fmt.Errorf("%s: %s is null", path, name)
+		}
+		if err := json.Unmarshal(raw, into); err != nil {
+			return fmt.Errorf("%s: %s is not of its type: %v", path, name, err)
+		}
+		return nil
+	}
+	var text string
+	var number int64
+	var flag bool
+	var config, caps map[string]json.RawMessage
+	var list []string
+	for _, name := range []string{"stage", "base", "head", "packet_sha256"} {
+		if err := field(top, name, &text, false); err != nil {
+			return err
+		}
+	}
+	if err := field(top, "sequence", &number, false); err != nil {
+		return err
+	}
+	for _, name := range []string{"dry_run", "counted"} {
+		if err := field(top, name, &flag, false); err != nil {
+			return err
+		}
+	}
+	if _, ok := top["finished_at"]; ok {
+		if err := field(top, "finished_at", &text, false); err != nil {
+			return err
+		}
+	}
+	if err := field(top, "config", &config, false); err != nil {
+		return err
+	}
+	if err := field(config, "check_paths", &list, true); err != nil {
+		return fmt.Errorf("%s (config)", err)
+	}
+	if err := field(config, "caps", &caps, false); err != nil {
+		return fmt.Errorf("%s (config)", err)
+	}
+	if err := field(caps, "code", &number, false); err != nil {
+		return fmt.Errorf("%s (config.caps)", err)
+	}
+	return nil
 }
 
 // checkExtensions refuses an extension line outside the form spar extend
@@ -484,14 +550,14 @@ func renderCapReport(rep *capReport) string {
 	line("")
 	line("## Rounds")
 	line("")
-	line("| Round | Stage | Counted | Base | Head | defect | requirement-question | hardening | note |")
-	line("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+	line("| Round | Stage | Sequence | Counted | Base | Head | defect | requirement-question | hardening | note |")
+	line("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
 	for _, r := range rep.Rounds {
 		counted := "no"
 		if r.Counted {
 			counted = "yes"
 		}
-		line("| %s | %s | %s | %s | %s | %d | %d | %d | %d |", r.Round, r.Stage, counted, shortID(r.Base), shortID(r.Head),
+		line("| %s | %s | %d | %s | %s | %s | %d | %d | %d | %d |", r.Round, r.Stage, r.Sequence, counted, r.Base, r.Head,
 			r.Classes["defect"], r.Classes["requirement-question"], r.Classes["hardening"], r.Classes["note"])
 	}
 	if len(rep.Skipped) > 0 {

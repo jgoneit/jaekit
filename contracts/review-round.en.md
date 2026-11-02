@@ -178,7 +178,7 @@ spar waive docs/reviews/example/02-candidate agy --user-quote "agy 없이 진행
 spar cap-report docs/reviews/example --format json --repo .
 ```
 
-- **What it reads.** Only the series' rounds (`round.json`, `findings.json`, `ledger.jsonl`), `extensions.jsonl`, and the Git repository that holds `--repo` (the current folder without it). It reads no configuration file, does not lock the series (as `spar gate`), and writes nothing. It does not use the current time, so the same records and Git give the same output byte for byte.
+- **What it reads.** Only the series' rounds (`round.json`, `findings.json`, `ledger.jsonl`), `extensions.jsonl`, and the Git repository that holds `--repo` (the current folder without it). It reads no configuration file, does not lock the series (as `spar gate`), and writes nothing. It gives Git `GIT_NO_LAZY_FETCH=1` so that Git does not fetch objects a partial clone lacks (Git follows it from 2.44). It does not use the current time, so the same records and Git give the same output byte for byte.
 - **Formats.** `--format md` (the default) is Markdown for people, and `--format json` is a `spar-cap-report/v1` JSON object. Both hold the same values.
 - **Exit codes.** 0 report, 64 usage error (no series, an unknown option, a format other than `md` or `json`), 65 refusal. A refusal writes nothing to standard output.
 
@@ -202,11 +202,11 @@ The three finding signals (`churn`, `recurring`, `unrelated`) leave out findings
 - `recurring`: "Counted by link: the same problem reported under different links is not grouped." Findings that report the same problem under different links are not grouped.
 - `unrelated`: "Uses each reviewer's introduced_by_change as reported." It uses the reviewer's judgment as given.
 
-The Markdown comes in this order. An empty list is `- none`.
+The Markdown holds every value of the JSON but `schema` (the format's name), in this order. An empty list is `- none`.
 1. `# Cap report: <series>`
 2. `- code rounds counted: <counted> of <allowed> (cap <code>, extensions <n>)`. When the cap is unknown, `of unknown (cap unknown, extensions <n>)`.
 3. `- open: defect <n>, requirement-question <n>`
-4. The `## Rounds` table (columns `Round | Stage | Counted | Base | Head | defect | requirement-question | hardening | note`, commits as their first 12 characters). When rounds were skipped, `- skipped <round>: <reason>`.
+4. The `## Rounds` table (columns `Round | Stage | Sequence | Counted | Base | Head | defect | requirement-question | hardening | note`, commits as their full IDs). When rounds were skipped, `- skipped <round>: <reason>`.
 5. `## Open findings`: `- <round> <finding> (<class>)`
 6. `## Signals`:
    - `### Churn`: `- <round>: <count> (<ID>, …)`, or `- <round>: 0`.
@@ -219,9 +219,10 @@ In these cases it names the failed path or commit on standard error, ends with 6
 - The series does not exist or is not a folder.
 - A `round.json` cannot be opened or is not JSON. A folder without `round.json`, or with JSON of another format (anything but an object whose `schema` is `review-round/v1`, a list included), belongs to another tool and is skipped.
 - The `stage` of a `round.json` is not one of the four stages of the contract.
+- A `round.json` field the report reads is missing, `null`, or not of the JSON type spar writes: `stage`, `base`, `head` and `packet_sha256` (text), `sequence` (an integer), `dry_run` and `counted` (true or false), `config` (an object) with `caps.code` (an integer) and `check_paths` (a list of text; `null` is no list), and `finished_at` (text) when present.
 - A finished round (with `finished_at`) has no `findings.json`, or `findings.json` exists without `ledger.jsonl`.
 - The `findings.json` of a listed round is not a list of findings (`null` included), or a finding has no `id`, a `class` outside the four classes, an `introduced_by_change` other than `yes`, `no` and `unknown`, or a `link_kind` other than `criterion`, `rule`, `contract` and `none` (the fields the signals read).
 - A `ledger.jsonl` line of a listed round cannot be interpreted, names no `finding`, or has a `disposition` outside the five dispositions.
 - An `extensions.jsonl` line cannot be interpreted or is outside the form: a `stage` other than `plan`, `plan-delta` and `code`, `by` below 1, an empty `user_quote`, a `cause` on a line that is not a code line or outside the five values, or a line with a `cause` whose `by` is 2 or more or whose `cause` is `other` and whose `reason` is missing or empty. Code lines without a cause (recorded before this feature) need no reason.
 - `--repo` is not a Git repository, or Git cannot start.
-- The base or head of a listed round is not in the repository (a shallow clone too).
+- The base or head of a listed round is not in the repository (a shallow clone too), or an object the report needs is missing from a partial clone.

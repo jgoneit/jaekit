@@ -174,7 +174,7 @@ spar waive docs/reviews/example/02-candidate agy --user-quote "agy 없이 진행
 spar cap-report docs/reviews/example --format json --repo .
 ```
 
-- **읽는 것.** series의 라운드(`round.json`, `findings.json`, `ledger.jsonl`), `extensions.jsonl`, 그리고 `--repo`(없으면 현재 폴더)를 품은 Git 저장소만 읽는다. 설정 파일을 읽지 않고, series를 잠그지 않으며(`spar gate`와 같다), 아무것도 쓰지 않는다. 현재 시각을 쓰지 않으므로 같은 기록과 Git이면 출력이 바이트까지 같다.
+- **읽는 것.** series의 라운드(`round.json`, `findings.json`, `ledger.jsonl`), `extensions.jsonl`, 그리고 `--repo`(없으면 현재 폴더)를 품은 Git 저장소만 읽는다. 설정 파일을 읽지 않고, series를 잠그지 않으며(`spar gate`와 같다), 아무것도 쓰지 않는다. 부분 clone에 없는 Git 객체를 가져오지 않도록 Git에 `GIT_NO_LAZY_FETCH=1`을 준다(Git 2.44부터 따른다). 현재 시각을 쓰지 않으므로 같은 기록과 Git이면 출력이 바이트까지 같다.
 - **형식.** `--format md`(기본)는 사람이 읽는 Markdown이고, `--format json`은 `spar-cap-report/v1` JSON 객체다. 둘은 같은 값을 담는다.
 - **종료 코드.** 0 보고, 64 사용법 오류(series 없음, 모르는 옵션, `md`·`json` 밖의 형식), 65 거부. 거부하면 표준 출력에 아무것도 쓰지 않는다.
 
@@ -198,11 +198,11 @@ spar cap-report docs/reviews/example --format json --repo .
 - `recurring`: "Counted by link: the same problem reported under different links is not grouped." 같은 문제를 다른 연결로 낸 지적은 묶이지 않는다.
 - `unrelated`: "Uses each reviewer's introduced_by_change as reported." 리뷰어가 낸 판단을 그대로 쓴다.
 
-Markdown은 다음 순서다. 빈 목록은 `- none`이다.
+Markdown은 JSON의 `schema`(형식 이름)를 뺀 모든 값을 담는다. 순서는 다음과 같다. 빈 목록은 `- none`이다.
 1. `# Cap report: <series>`
 2. `- code rounds counted: <counted> of <allowed> (cap <code>, extensions <n>)`. 상한을 모르면 `of unknown (cap unknown, extensions <n>)`.
 3. `- open: defect <n>, requirement-question <n>`
-4. `## Rounds` 표(열 `Round | Stage | Counted | Base | Head | defect | requirement-question | hardening | note`, 커밋은 앞 12자). 건너뛴 라운드가 있으면 `- skipped <round>: <reason>`.
+4. `## Rounds` 표(열 `Round | Stage | Sequence | Counted | Base | Head | defect | requirement-question | hardening | note`, 커밋은 전체 ID). 건너뛴 라운드가 있으면 `- skipped <round>: <reason>`.
 5. `## Open findings`: `- <round> <finding> (<class>)`
 6. `## Signals`:
    - `### Churn`: `- <round>: <count> (<ID>, …)`, 0이면 `- <round>: 0`.
@@ -215,9 +215,10 @@ Markdown은 다음 순서다. 빈 목록은 `- none`이다.
 - series가 없거나 폴더가 아니다.
 - `round.json`을 열 수 없거나 JSON이 아니다. `round.json`이 없거나 다른 형식의 JSON(`schema`가 `review-round/v1`인 객체가 아닌 것, 목록 포함)인 폴더는 다른 도구의 것이라 건너뛴다.
 - `round.json`의 `stage`가 계약의 네 단계 밖이다.
+- 보고가 읽는 `round.json` 필드가 없거나 `null`이거나 spar가 쓰는 JSON 타입이 아니다: `stage`·`base`·`head`·`packet_sha256`(글), `sequence`(정수), `dry_run`·`counted`(참거짓), `config`(객체)의 `caps.code`(정수)와 `check_paths`(글의 목록, `null`은 목록 없음), 그리고 있을 때의 `finished_at`(글).
 - 끝난 라운드(`finished_at`이 있음)에 `findings.json`이 없거나, `findings.json`이 있는데 `ledger.jsonl`이 없다.
 - 목록 라운드의 `findings.json`이 지적의 목록이 아니거나(`null` 포함), 지적에 `id`가 없거나, `class`가 네 class 밖이거나, 신호가 읽는 `introduced_by_change`가 `yes`·`no`·`unknown` 밖이거나 `link_kind`가 `criterion`·`rule`·`contract`·`none` 밖이다.
 - 목록 라운드의 `ledger.jsonl` 줄이 해석되지 않거나, `finding`이 없거나, `disposition`이 다섯 처리 밖이다.
 - `extensions.jsonl` 줄이 해석되지 않거나 형식 밖이다: `stage`가 `plan`·`plan-delta`·`code` 밖, `by`가 1 미만, `user_quote`가 비었음, `cause`가 code 줄이 아닌 곳에 있거나 다섯 값 밖, `cause`가 있는 줄의 `by`가 2 이상이거나 `cause`가 `other`인데 `reason`이 없거나 비었음. 원인이 없는 code 줄(이 기능 전에 기록한 줄)에는 이유를 요구하지 않는다.
 - `--repo`가 Git 저장소가 아니거나 Git을 시작할 수 없다.
-- 목록 라운드의 base나 head가 저장소에 없다(얕은 clone 포함).
+- 목록 라운드의 base나 head가 저장소에 없다(얕은 clone 포함), 또는 보고에 필요한 객체가 부분 clone에 없다.
