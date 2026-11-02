@@ -446,7 +446,7 @@ def summary_row(summary, fid):
 # AC-1: one input table in the public contract
 # ---------------------------------------------------------------------------
 
-ROWS = [f"G{n}" for n in range(1, 34)]
+ROWS = [f"G{n}" for n in range(1, 35)]
 # Format definitions the three contracts held before the table; each now
 # points to the table instead (fixed tokens).
 OLD_FORMATS = {
@@ -485,7 +485,7 @@ class Contract(unittest.TestCase):
         v = "input-table-incomplete"
         body = read_doc(self, CONTRACT, v)
         rows = table_rows(self, body, v)
-        require(self, list(rows) == ROWS, v, f"the table rows are {list(rows)}, not G1..G33 in order")
+        require(self, list(rows) == ROWS, v, f"the table rows are {list(rows)}, not G1..G34 in order")
         for row, cells in rows.items():
             require(self, all(cells), v, f"{row} has an empty cell")
             require(self, re.search(r"\(.+\)", cells[1]), v, f"{row} does not name who gives the field")
@@ -1478,6 +1478,7 @@ CONSUMERS = {
     "G29": ["spar gate"], "G30": ["spar triage", "spar gate"], "G31": ["spar run", "spar extend"],
     "G32": ["spar run", "spar record", "spar triage", "spar extend", "spar gate"],
     "G33": ["spar run", "spar record", "spar triage", "spar extend"],
+    "G34": ["spar cap-report"],
 }
 # The report bullets of the packet name only forms the table accepts.
 REPORT_FORMS = {
