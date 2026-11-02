@@ -1275,7 +1275,7 @@ class RecordPaths(unittest.TestCase):
         result = w.round("reviews/nested/dir/r1", ok=None)
         require(self, result.returncode == 65 and not w.invocations() and not (nested / "dir/r1").exists(), v,
                 f"run --out under a folder the nested repository tracks: exit {result.returncode}")
-        result = w.spar_run("extend", "reviews/nested/dir", "--stage", "code", "--by", "1", "--user-quote", QUOTE)
+        result = w.spar_run("extend", "reviews/nested/dir", "--stage", "code", "--by", "1", "--cause", "churn", "--user-quote", QUOTE)
         require(self, result.returncode == 65 and not (nested / "dir/extensions.jsonl").exists(), v,
                 f"extend on a folder the nested repository tracks: exit {result.returncode}")
         # Paths both repositories ignore are accepted, and a gate file is replaced.
@@ -1445,7 +1445,7 @@ class Locks(unittest.TestCase):
                 and all("reject" in (summary_row(summary, fid) or "") for fid in ids), v,
                 f"two concurrent dispositions: ledger {ledger}, summary rows {[summary_row(summary, fid) for fid in ids]}")
         fd = hold_lock(series)
-        proc, err = start(w, ["extend", "reviews/lock", "--stage", "code", "--by", "1", "--user-quote", QUOTE], "extend")
+        proc, err = start(w, ["extend", "reviews/lock", "--stage", "code", "--by", "1", "--cause", "churn", "--user-quote", QUOTE], "extend")
         try:
             waits(self, proc, err, v, "spar extend")
         finally:
