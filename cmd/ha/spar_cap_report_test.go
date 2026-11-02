@@ -14,6 +14,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -126,8 +127,16 @@ func TestSparCapReportAC9_HaCostShowsCause(t *testing.T) {
 		cmd := exec.Command(spar, append(append([]string{"extend", series, "--stage", "code"}, args...), "--repo", ".")...)
 		cmd.Dir = repo
 		cmd.Env = append(os.Environ(), "HOME="+tools, "XDG_CONFIG_HOME="+filepath.Join(tools, "config"))
-		if out, err := cmd.CombinedOutput(); err != nil {
+		// Only a spar that ran and refused is the observation; one that
+		// could not start or was ended by a signal observed nothing.
+		out, err := cmd.CombinedOutput()
+		var exit *exec.ExitError
+		switch {
+		case err == nil:
+		case errors.As(err, &exit) && exit.ExitCode() > 0:
 			t.Fatalf("jaekit:violation=%s this tree's spar extend %v does not record the cause: %v %s", v, args, err, out)
+		default:
+			t.Fatalf("setup: this tree's spar extend %v did not run to an exit: %v %s", args, err, out)
 		}
 	}
 	q := crhQuestions(t, series)

@@ -107,7 +107,24 @@ func TestSparCapReportAC12_ContractsAndGuides(t *testing.T) {
 		crpExpect(t, v, c.path, text, c.fields)
 		crpExpect(t, v, c.path+" "+c.row, crpLine(text, c.row), c.cause)
 	}
-	for _, path := range []string{"../guides/SPAR.md", "../guides/SPAR.en.md"} {
-		crpExpect(t, v, path, crpRead(t, path), "`spar cap-report`", "`--cause`")
+	// The guides explain the report and its limits, the causes and when a
+	// reason is needed, and where ha cost shows the cause.
+	for _, c := range []struct {
+		path    string
+		phrases []string
+	}{
+		{"../guides/SPAR.md", []string{"`spar cap-report`", "`--cause`", "`churn`, `recurring`, `unrelated`, `hardening`, `other`",
+			"`--by 2` 이상이나 `--cause other`에는 `--reason`", "파일 단위", "연결 단위", "`ha cost`"}},
+		{"../guides/SPAR.en.md", []string{"`spar cap-report`", "`--cause`", "`churn`, `recurring`, `unrelated`, `hardening`, `other`",
+			"`--by 2` or more, and `--cause other`, need `--reason`", "by file", "by link", "`ha cost`"}},
+	} {
+		crpExpect(t, v, c.path, crpRead(t, c.path), c.phrases...)
+	}
+	// The round contracts state the signal limits as the report gives them.
+	for _, path := range []string{"../contracts/review-round.md", "../contracts/review-round.en.md"} {
+		crpExpect(t, v, path, crpRead(t, path),
+			"Counted by file: a finding in a file the fixes changed counts even when it is about another line.",
+			"Counted by link: the same problem reported under different links is not grouped.",
+			"Uses each reviewer's introduced_by_change as reported.")
 	}
 }
