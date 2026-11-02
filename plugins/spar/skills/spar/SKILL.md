@@ -38,7 +38,7 @@ Give every goal document as `--criteria`: SPEC.md and each goal document it link
 
 - Caps: one plan round, one plan-delta round and three code rounds (candidate and fixes together) per series, unless the project configuration says otherwise. `spar run` refuses a round past its cap before any reviewer starts.
 - The cumulative round reviews the whole change once more, from the goal's base commit to the last head, after fix rounds: a `fixes` round sees only the fixes. Run it as a `candidate` round; it does not take earlier findings and counts toward the code-round cap like the first candidate round. When no fixes followed the first candidate round, that round is the cumulative round. When the cap leaves no room for it, extending the cap follows the rule below.
-- Only the user can allow more rounds. Ask them, then record their words: `spar extend <series> --stage plan|plan-delta|code --by N --user-quote "<their words>"`.
+- Only the user can allow more rounds. Ask them, then record their words: `spar extend <series> --stage plan|plan-delta --by N --user-quote "<their words>"`. A code extension also takes `--cause`, as below.
 - Each time the code cap is reached, run `spar cap-report <series>` before you ask. Pick one cause from its signals and show the user the signals with that cause's recommendation:
   - `churn`: fixes made new findings in the files they changed. Recommend to extend by 1 and fix again within each finding's `smallest_fix`.
   - `recurring`: findings on the same link come back. Recommend not to extend; ask which reading of that requirement is meant.

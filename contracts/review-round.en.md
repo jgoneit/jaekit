@@ -191,7 +191,7 @@ spar cap-report docs/reviews/example --format json --repo .
 | `skipped` | The code rounds left out of the list and the signals: `{round, reason}`. `reason` is `dry run` for a dry run and `stopped before recording findings` for a round that stopped before recording findings (as for the gate, neither `finished_at` nor `findings.json`) |
 | `open` | The `defect` and `requirement-question` findings open by the gate's rule ([review gate](review-gate.en.md)): no disposition, or a `duplicate` chain that ends at an open finding. `{round, finding, class}` |
 | `churn` | For each round after the first counted `candidate` round, `{round, count, findings}`. It counts the `defect` and `requirement-question` findings whose location was read and whose path is a file changed between the head of that first round and the round's head (`git diff --name-only --no-renames`) |
-| `recurring` | A link (`link_kind`, `link`) that appears as a `defect` or `requirement-question` in rounds of two or more different packets (stage, base, head, packet digest): `{link_kind, link, rounds}`. Reruns of one packet are one round. Sorted by link |
+| `recurring` | A link (`link_kind`, `link`) that appears as a `defect` or `requirement-question` in rounds of two or more different packets (stage, base, head, packet digest): `{link_kind, link, rounds}`. Reruns of one packet are one round, so `rounds` holds, for each packet, only the round that comes first in the list. Sorted by link |
 | `unrelated` | The `defect` findings whose `introduced_by_change` is `no` or `unknown`: `{round, finding}` |
 | `check_growth` | The same computation as the gate's `growth`: the lines the listed `fixes` rounds added (`git diff --numstat -M`), summed inside (`check`) and outside (`other`) the round's configured check paths. `over_hardening` is true when `check` is larger than `other` |
 | `limits` | The limit sentences of the three finding signals (below) |
@@ -217,11 +217,11 @@ The Markdown comes in this order. An empty list is `- none`.
 
 In these cases it names the failed path or commit on standard error, ends with 65 and gives no report. It never turns a broken input into a report without signals.
 - The series does not exist or is not a folder.
-- A `round.json` cannot be opened or is not JSON. A folder without `round.json`, or with JSON of another format, belongs to another tool and is skipped.
+- A `round.json` cannot be opened or is not JSON. A folder without `round.json`, or with JSON of another format (anything but an object whose `schema` is `review-round/v1`, a list included), belongs to another tool and is skipped.
 - The `stage` of a `round.json` is not one of the four stages of the contract.
 - A finished round (with `finished_at`) has no `findings.json`, or `findings.json` exists without `ledger.jsonl`.
 - The `findings.json` of a listed round is not a list of findings (`null` included), or a finding has no `id`, a `class` outside the four classes, an `introduced_by_change` other than `yes`, `no` and `unknown`, or a `link_kind` other than `criterion`, `rule`, `contract` and `none` (the fields the signals read).
 - A `ledger.jsonl` line of a listed round cannot be interpreted, names no `finding`, or has a `disposition` outside the five dispositions.
-- An `extensions.jsonl` line cannot be interpreted or is outside the form: a `stage` other than `plan`, `plan-delta` and `code`, `by` below 1, an empty `user_quote`, or a `cause` on a line that is not a code line or outside the five values.
+- An `extensions.jsonl` line cannot be interpreted or is outside the form: a `stage` other than `plan`, `plan-delta` and `code`, `by` below 1, an empty `user_quote`, a `cause` on a line that is not a code line or outside the five values, or a line with a `cause` whose `by` is 2 or more or whose `cause` is `other` and whose `reason` is missing or empty. Code lines without a cause (recorded before this feature) need no reason.
 - `--repo` is not a Git repository, or Git cannot start.
 - The base or head of a listed round is not in the repository (a shallow clone too).

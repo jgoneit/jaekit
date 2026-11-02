@@ -287,10 +287,12 @@ func CapReport(o CapReportOptions) (int, error) {
 			if packets[k] == nil {
 				packets[k] = map[string]bool{}
 			}
-			packets[k][packet] = true
-			if n := names[k]; len(n) == 0 || n[len(n)-1] != l.name {
-				names[k] = append(n, l.name)
+			// A rerun of a listed packet adds no round: each packet shows as
+			// its first round.
+			if !packets[k][packet] {
+				names[k] = append(names[k], l.name)
 			}
+			packets[k][packet] = true
 		}
 	}
 	var links []link
@@ -373,11 +375,11 @@ func capSeriesRounds(series string) ([]sibling, error) {
 		var probe struct {
 			Schema string `json:"schema"`
 		}
-		if json.Unmarshal(data, &probe) != nil {
+		if !json.Valid(data) {
 			return nil, fmt.Errorf("%s is not JSON", path)
 		}
-		if probe.Schema != RoundSchema {
-			continue // another tool's record
+		if json.Unmarshal(data, &probe) != nil || probe.Schema != RoundSchema {
+			continue // another tool's record, as spar run reads the series
 		}
 		r, err := loadRound(dir)
 		if err != nil {
@@ -400,9 +402,9 @@ func capSeriesRounds(series string) ([]sibling, error) {
 }
 
 // checkExtensions refuses an extension line outside the form spar extend
-// writes: a known stage, --by of 1 or more, the user's words, and a cause
-// only on a code line and only from Causes. A line without a cause is the
-// form written before causes existed.
+// writes: a known stage, --by of 1 or more, the user's words, a cause only
+// on a code line and only from Causes, and a reason where the cause needs
+// one. A line without a cause is the form written before causes existed.
 func checkExtensions(series string, exts []Extension) error {
 	path := filepath.Join(series, "extensions.jsonl")
 	for i, e := range exts {
@@ -415,6 +417,10 @@ func checkExtensions(series string, exts []Extension) error {
 			return fmt.Errorf("%s: extension %d has no user_quote", path, i+1)
 		case e.Cause != "" && (e.Stage != "code" || !slices.Contains(Causes, e.Cause)):
 			return fmt.Errorf("%s: extension %d has cause %q", path, i+1, e.Cause)
+		case e.Cause != "" && (e.By > 1 || e.Cause == "other") && strings.TrimSpace(e.Reason) == "":
+			// A line with a cause is spar extend's: it records a reason
+			// whenever --by 2 or more or the cause other needs one.
+			return fmt.Errorf("%s: extension %d by %d with cause %s has no reason", path, i+1, e.By, e.Cause)
 		}
 	}
 	return nil

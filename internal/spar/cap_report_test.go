@@ -489,6 +489,28 @@ func TestSparCapReportAC2_SignalsFromRecords(t *testing.T) {
 		names = append(names, m["round"])
 	}
 	crExpect(t, v, "the order of rounds sharing and not sharing a sequence", names, []any{"b-candidate", "a-candidate", "c-fixes"})
+
+	// A link that recurs over two packets, one of them run twice, lists
+	// each packet once, by its first round. Folders whose round.json is
+	// another tool's JSON are not rounds.
+	w.use("host", "aide")
+	twice := filepath.Join(w.repo, "reviews", "ac2-twice")
+	t1 := w.run(twice, "01-candidate", "candidate", "base", "head1")
+	w.record(t1, "host", "head1", crFinding("F1", "defect", "AC-1", "app/greet.py", "yes"))
+	t2 := w.run(twice, "02-candidate", "candidate", "base", "head1", "--reviewers", "aide")
+	w.record(t2, "aide", "head1", crFinding("F1", "defect", "AC-1", "app/greet.py", "yes"))
+	w.use("host")
+	t3 := w.run(twice, "03-fixes", "fixes", "head1", "head2")
+	w.record(t3, "host", "head2", crFinding("F1", "defect", "AC-1", "app/greet.py", "yes"))
+	w.write(filepath.Join(twice, "other-list", "round.json"), "[]\n")
+	w.write(filepath.Join(twice, "other-schema", "round.json"), `{"schema": 1}`+"\n")
+	doc = w.reportJSON(v, twice)
+	crExpect(t, v, "the recurring links over a rerun packet", doc["recurring"], []any{
+		map[string]any{"link_kind": "criterion", "link": "AC-1", "rounds": []any{"01-candidate", "03-fixes"}},
+	})
+	if rounds, _ := doc["rounds"].([]any); len(rounds) != 3 {
+		t.Errorf("jaekit:violation=%s the series with other tools' folders reports %d rounds, want 3", v, len(rounds))
+	}
 }
 
 // crLines is the set of lines of a text.
@@ -747,10 +769,10 @@ func TestSparCapReportAC4_DeterministicReadOnly(t *testing.T) {
 	}
 
 	crClockScanWorks(t)
-	reads, ok := crClockReads(t, ".", "CapReport")
+	reads, ok := crClockReads(t, ".", "CapReport", "dispatch cap-report")
 	switch {
 	case !ok:
-		t.Errorf("jaekit:violation=%s the package has no CapReport function", v)
+		t.Errorf("jaekit:violation=%s the package has no CapReport function or no cap-report branch in dispatch", v)
 	case len(reads) > 0:
 		t.Errorf("jaekit:violation=%s spar cap-report reads the current time: %v", v, reads)
 	}
@@ -809,7 +831,7 @@ func TestSparCapReportAC4_DeterministicReadOnly(t *testing.T) {
 // and package variable whose name a reachable body uses (a method by its
 // name, whatever its receiver), so it may follow more than is called; it does
 // not follow calls into other packages.
-func crClockReads(t *testing.T, dir, root string) ([]string, bool) {
+func crClockReads(t *testing.T, dir string, roots ...string) ([]string, bool) {
 	t.Helper()
 	files, err := filepath.Glob(filepath.Join(dir, "*.go"))
 	if err != nil {
@@ -853,6 +875,23 @@ func crClockReads(t *testing.T, dir, root string) ([]string, bool) {
 				if d.Body != nil {
 					decls[d.Name.Name] = append(decls[d.Name.Name], node{d.Name.Name, d.Body, times, dot, pkgs})
 				}
+				// A command's branch of the CLI's dispatch is a root of its
+				// own, named "dispatch <command>".
+				if d.Name.Name == "dispatch" && d.Recv == nil && d.Body != nil {
+					ast.Inspect(d.Body, func(x ast.Node) bool {
+						c, ok := x.(*ast.CaseClause)
+						if !ok {
+							return true
+						}
+						for _, e := range c.List {
+							if lit, ok := e.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+								key := "dispatch " + strings.Trim(lit.Value, `"`)
+								decls[key] = append(decls[key], node{key, &ast.BlockStmt{List: c.Body}, times, dot, pkgs})
+							}
+						}
+						return true
+					})
+				}
 			case *ast.GenDecl:
 				for _, spec := range d.Specs {
 					if vs, ok := spec.(*ast.ValueSpec); ok {
@@ -866,12 +905,14 @@ func crClockReads(t *testing.T, dir, root string) ([]string, bool) {
 			}
 		}
 	}
-	if len(decls[root]) == 0 {
-		return nil, false
+	for _, root := range roots {
+		if len(decls[root]) == 0 {
+			return nil, false
+		}
 	}
 	var reads []string
 	seen := map[string]bool{}
-	queue := []string{root}
+	queue := append([]string{}, roots...)
 	for len(queue) > 0 {
 		name := queue[0]
 		queue = queue[1:]
@@ -908,14 +949,16 @@ func crClockReads(t *testing.T, dir, root string) ([]string, bool) {
 }
 
 // crClockScanWorks runs the scan on a synthetic package that reads the
-// clock only through an aliased import, a method, a package variable and a
-// dot import; a scan that misses one of them observes nothing.
+// clock only through an aliased import, a method, a package variable, a dot
+// import and a command's dispatch branch; a scan that misses one of them
+// observes nothing.
 func crClockScanWorks(t *testing.T) {
 	t.Helper()
 	dir := t.TempDir()
 	src := map[string]string{
 		"a.go": "package p\n\nimport clock \"time\"\n\nvar started = clock.Now\n\ntype r struct{}\n\n" +
-			"func (r) stamp() any { return clock.Since(clock.Time{}) }\n\nfunc Root() { var x r; x.stamp(); _ = started; dotted() }\n",
+			"func (r) stamp() any { return clock.Since(clock.Time{}) }\n\nfunc Root() { var x r; x.stamp(); _ = started; dotted() }\n\n" +
+			"func dispatch(cmd string) any {\n\tswitch cmd {\n\tcase \"report\":\n\t\treturn clock.Now()\n\tcase \"other\":\n\t\treturn nil\n\t}\n\treturn nil\n}\n",
 		"b.go": "package p\n\nimport . \"time\"\n\nfunc dotted() any { return Until(Time{}) }\n",
 	}
 	for name, body := range src {
@@ -923,8 +966,8 @@ func crClockScanWorks(t *testing.T) {
 			t.Fatalf("setup: %v", err)
 		}
 	}
-	reads, ok := crClockReads(t, dir, "Root")
-	want := []string{"dotted: Until", "stamp: clock.Since", "started: clock.Now"}
+	reads, ok := crClockReads(t, dir, "Root", "dispatch report")
+	want := []string{"dispatch report: clock.Now", "dotted: Until", "stamp: clock.Since", "started: clock.Now"}
 	if !ok || !reflect.DeepEqual(reads, want) {
 		t.Fatalf("setup: the clock scan finds %v in the synthetic package, want %v", reads, want)
 	}
@@ -991,7 +1034,8 @@ func TestSparCapReportAC5_InputFailuresRefused(t *testing.T) {
 	// Valid JSON outside the record form.
 	for i, line := range []string{"null", `{"stage":"code","by":0,"user_quote":"q"}`, `{"stage":"code","by":1}`,
 		`{"stage":"code","by":1,"cause":"Churn","user_quote":"q"}`, `{"stage":"plan","by":1,"cause":"churn","user_quote":"q"}`,
-		`{"stage":"review","by":1,"user_quote":"q"}`} {
+		`{"stage":"review","by":1,"user_quote":"q"}`, `{"stage":"code","by":1,"cause":"other","user_quote":"q"}`,
+		`{"stage":"code","by":2,"cause":"churn","user_quote":"q"}`} {
 		broken = clone(fmt.Sprintf("form-extension-%d", i))
 		w.write(filepath.Join(broken, "extensions.jsonl"), line+"\n")
 		expectRefused("the extension line "+line, broken, w.repo, filepath.Join(broken, "extensions.jsonl"))

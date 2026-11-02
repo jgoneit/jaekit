@@ -187,7 +187,7 @@ spar cap-report docs/reviews/example --format json --repo .
 | `skipped` | 목록과 신호에서 뺀 code 라운드: `{round, reason}`. `reason`은 dry run이면 `dry run`, 지적을 기록하기 전에 멈춘 라운드(gate처럼 `finished_at`도 `findings.json`도 없음)면 `stopped before recording findings` |
 | `open` | gate와 같은 기준([검토 gate](review-gate.md))으로 열린 `defect`·`requirement-question`: 마지막 처리가 없거나 `duplicate` 사슬이 열린 지적에서 끝난다. `{round, finding, class}` |
 | `churn` | 첫 counted `candidate` 라운드 뒤의 라운드마다 `{round, count, findings}`. 대상은 `defect`·`requirement-question` 가운데 위치를 읽을 수 있고, 경로가 그 첫 라운드의 head와 그 라운드의 head 사이에서 바뀐 파일(`git diff --name-only --no-renames`)인 지적이다 |
-| `recurring` | 같은 연결(`link_kind`, `link`)이 패킷(단계·base·head·패킷 digest)이 다른 라운드 둘 이상에서 `defect`·`requirement-question`으로 나온 것: `{link_kind, link, rounds}`. 같은 패킷의 재실행은 한 라운드다. 연결 순으로 정렬한다 |
+| `recurring` | 같은 연결(`link_kind`, `link`)이 패킷(단계·base·head·패킷 digest)이 다른 라운드 둘 이상에서 `defect`·`requirement-question`으로 나온 것: `{link_kind, link, rounds}`. 같은 패킷의 재실행은 한 라운드라서, `rounds`에는 패킷마다 목록 순으로 처음 나온 라운드만 든다. 연결 순으로 정렬한다 |
 | `unrelated` | `introduced_by_change`가 `no`나 `unknown`인 `defect`: `{round, finding}` |
 | `check_growth` | gate `growth`와 같은 계산: 목록에 든 `fixes` 라운드가 더한 줄(`git diff --numstat -M`)을 그 라운드 설정의 검사 경로 안(`check`)과 밖(`other`)으로 나눈 합. `over_hardening`은 `check`가 `other`보다 클 때 참 |
 | `limits` | 세 지적 신호의 경계 문장(아래) |
@@ -213,11 +213,11 @@ Markdown은 다음 순서다. 빈 목록은 `- none`이다.
 
 다음 경우에는 표준 오류에 실패한 경로나 커밋을 밝히고 65로 끝나며 보고를 내지 않는다. 깨진 입력을 신호가 없는 보고로 바꾸지 않는다.
 - series가 없거나 폴더가 아니다.
-- `round.json`을 열 수 없거나 JSON이 아니다. `round.json`이 없거나 다른 형식의 JSON인 폴더는 다른 도구의 것이라 건너뛴다.
+- `round.json`을 열 수 없거나 JSON이 아니다. `round.json`이 없거나 다른 형식의 JSON(`schema`가 `review-round/v1`인 객체가 아닌 것, 목록 포함)인 폴더는 다른 도구의 것이라 건너뛴다.
 - `round.json`의 `stage`가 계약의 네 단계 밖이다.
 - 끝난 라운드(`finished_at`이 있음)에 `findings.json`이 없거나, `findings.json`이 있는데 `ledger.jsonl`이 없다.
 - 목록 라운드의 `findings.json`이 지적의 목록이 아니거나(`null` 포함), 지적에 `id`가 없거나, `class`가 네 class 밖이거나, 신호가 읽는 `introduced_by_change`가 `yes`·`no`·`unknown` 밖이거나 `link_kind`가 `criterion`·`rule`·`contract`·`none` 밖이다.
 - 목록 라운드의 `ledger.jsonl` 줄이 해석되지 않거나, `finding`이 없거나, `disposition`이 다섯 처리 밖이다.
-- `extensions.jsonl` 줄이 해석되지 않거나 형식 밖이다: `stage`가 `plan`·`plan-delta`·`code` 밖, `by`가 1 미만, `user_quote`가 비었음, `cause`가 code 줄이 아닌 곳에 있거나 다섯 값 밖.
+- `extensions.jsonl` 줄이 해석되지 않거나 형식 밖이다: `stage`가 `plan`·`plan-delta`·`code` 밖, `by`가 1 미만, `user_quote`가 비었음, `cause`가 code 줄이 아닌 곳에 있거나 다섯 값 밖, `cause`가 있는 줄의 `by`가 2 이상이거나 `cause`가 `other`인데 `reason`이 없거나 비었음. 원인이 없는 code 줄(이 기능 전에 기록한 줄)에는 이유를 요구하지 않는다.
 - `--repo`가 Git 저장소가 아니거나 Git을 시작할 수 없다.
 - 목록 라운드의 base나 head가 저장소에 없다(얕은 clone 포함).
