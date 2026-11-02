@@ -70,6 +70,22 @@ func diff(repo, base, head string) ([]byte, error) {
 	return git(repo, "diff", "--no-color", "--no-ext-diff", "--no-textconv", "-M", base, head, "--")
 }
 
+// changedFiles lists the paths that differ between two commits. Renames are
+// not detected, so a renamed file is listed under both of its names.
+func changedFiles(repo, base, head string) (map[string]bool, error) {
+	out, err := git(repo, "diff", "--name-only", "-z", "--no-renames", base, head, "--")
+	if err != nil {
+		return nil, err
+	}
+	files := map[string]bool{}
+	for _, path := range strings.Split(string(out), "\x00") {
+		if path != "" {
+			files[path] = true
+		}
+	}
+	return files, nil
+}
+
 // numstat returns the lines each path gained between two commits. Renames
 // are detected as in diff, so a renamed file counts only the lines it
 // gained, under its new path.

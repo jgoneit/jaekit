@@ -147,7 +147,10 @@ Ledger entry: `finding`, `disposition`, `auto`, `reason`, `commit`, `failed_befo
 - The stage groups are `plan`, `plan_delta` and `code` (candidate and fixes). When the number of rounds of the same group in the series whose `counted` is `true` is at least the sum of the cap and the extensions, a new run is refused.
 - When earlier runs with the same stage, base, head and packet digest exist and every reviewer of this run is a reviewer that did not complete in those runs (a reviewer with the same name and preset), the run does not count toward the cap (`counted: false`, `rerun_of`). Rounds run one at a time per series, so an earlier round without `finished_at` stopped partway, and its reviewers did not complete. Every other run counts.
 - The base of a fixes round must be the head of the last code round of the same series. Otherwise the run is refused. Only an earlier round whose stage, base, head and packet digest all match this run (a rerun of the same packet) is skipped. When the packet differs, that round is the last of the chain even if base and head are the same.
-- An extension adds `{"stage", "by", "user_quote", "recorded_at"}` to the series' `extensions.jsonl` with `spar extend <series> --stage plan|plan-delta|code --by N --user-quote "…"`. Without the user's words, it is refused. The series path follows the same record path rule (G28) as `--out` (even when the repository under review cannot be found, it is checked against the repository the path belongs to), and when `--repo` is not a Git repository, it is refused.
+- An extension adds `{"stage", "by", "cause", "reason", "user_quote", "recorded_at"}` to the series' `extensions.jsonl` with `spar extend <series> --stage plan|plan-delta|code --by N [--cause <cause>] [--reason "…"] --user-quote "…"`. `cause` and `reason` are written only when present. Without the user's words, it is refused. The series path follows the same record path rule (G28) as `--out` (even when the repository under review cannot be found, it is checked against the repository the path belongs to), and when `--repo` is not a Git repository, it is refused.
+- A code extension takes the cause the cap ran out with as `--cause`. The value is one of the five `churn`, `recurring`, `unrelated`, `hardening` and `other` (case-sensitive), and these five are all. A missing value or one outside the list is a usage error (64). `--reason` is recorded with leading and trailing whitespace removed, and when that leaves nothing there is no reason. `--by` of 2 or more and `--cause other` need a reason, and without one the extension is refused (65). Plan and plan-delta extensions do not take `--cause` or `--reason` and end with a usage error (64) when given them; their line is `{"stage", "by", "user_quote", "recorded_at"}` as before. No error or refusal writes anything. The executor picks the cause after reading the report of section 11; spar does not pick it.
+- The cap computation, the rerun judgment and the gate do not read `cause` or `reason`. A line without a cause (one recorded before this feature) still counts by `stage` and `by` as now.
+- The code cap refusal adds ``; read why with `spar cap-report <series>` and record a code extension with --cause`` after the text above. The plan and plan-delta cap refusals are unchanged.
 
 ## 9. The native reviewer
 
@@ -166,3 +169,59 @@ spar waive docs/reviews/example/02-candidate agy --user-quote "agy 없이 진행
 - In the following cases it writes nothing and exits with 65 and the reason: `--user-quote` is missing or empty after leading and trailing whitespace is removed; the round cannot be read (`round.json`, `findings.json` or `ledger.jsonl` is missing or cannot be parsed, G32); a dry run round; the reviewer is not a required reviewer of that round ([Review gate](review-gate.en.md) section 2); the reviewer completed as a required reviewer of the same preset in that round or in another round of the same series with the same stage, base, head and packet (a rerun); the round already has a decision for that reviewer; `waivers.jsonl` cannot be read; a round recorded before this feature has a reviewer named `waivers.jsonl` (case-insensitive), whose folder takes the file's place.
 - A reviewer with a recorded decision is not a `degraded` reason for that round and appears separately in the gate file. A round in which no required reviewer completed is `degraded` even with decisions ([Review gate](review-gate.en.md) section 2).
 - A decision applies only to its round. A rerun of the same packet is also a different round, so if the reviewer does not finish in that round either, the decision is recorded again.
+
+## 11. Cap report
+
+`spar cap-report` reads the code round records of a series and Git, and shows how the cap was used and the signals for seeing why the work did not finish within it. It never picks a cause or advises an extension. The executor picks the cause, and the user decides an extension (section 8).
+
+```bash
+spar cap-report docs/reviews/example --format json --repo .
+```
+
+- **What it reads.** Only the series' rounds (`round.json`, `findings.json`, `ledger.jsonl`), `extensions.jsonl`, and the Git repository that holds `--repo` (the current folder without it). It reads no configuration file, does not lock the series (as `spar gate`), and writes nothing. It does not use the current time, so the same records and Git give the same output byte for byte.
+- **Formats.** `--format md` (the default) is Markdown for people, and `--format json` is a `spar-cap-report/v1` JSON object. Both hold the same values.
+- **Exit codes.** 0 report, 64 usage error (no series, an unknown option, a format other than `md` or `json`), 65 refusal. A refusal writes nothing to standard output.
+
+| Key | Value |
+| --- | --- |
+| `schema` | `spar-cap-report/v1` |
+| `series` | The series path as given |
+| `cap` | `code`: the configured code cap of the series' round with the largest `sequence` (whatever its stage), `null` when there is no round. `extensions`: the sum of `by` over the code extension lines (lines without a cause count too). `allowed`: `code + extensions`, `null` when `code` is `null`. `counted`: the number of code rounds whose `counted` is true and that are not dry runs. It is the same as the cap decision of `spar run`, so a round stopped before recording findings counts too |
+| `rounds` | The `candidate` and `fixes` rounds that are not dry runs and did not stop before recording findings, in sequence order (folder name order when equal). Each round has `round` (the folder name), `stage`, `sequence`, `base`, `head` (full SHAs), `counted` and `classes` (the number of findings for each of `defect`, `requirement-question`, `hardening` and `note`). A rerun of the same packet is listed with `counted: false` |
+| `skipped` | The code rounds left out of the list and the signals: `{round, reason}`. `reason` is `dry run` for a dry run and `stopped before recording findings` for a round that stopped before recording findings (as for the gate, neither `finished_at` nor `findings.json`) |
+| `open` | The `defect` and `requirement-question` findings open by the gate's rule ([review gate](review-gate.en.md)): no disposition, or a `duplicate` chain that ends at an open finding. `{round, finding, class}` |
+| `churn` | For each round after the first counted `candidate` round, `{round, count, findings}`. It counts the `defect` and `requirement-question` findings whose location was read and whose path is a file changed between the head of that first round and the round's head (`git diff --name-only --no-renames`) |
+| `recurring` | A link (`link_kind`, `link`) that appears as a `defect` or `requirement-question` in rounds of two or more different packets (stage, base, head, packet digest): `{link_kind, link, rounds}`. Reruns of one packet are one round. Sorted by link |
+| `unrelated` | The `defect` findings whose `introduced_by_change` is `no` or `unknown`: `{round, finding}` |
+| `check_growth` | The same computation as the gate's `growth`: the lines the listed `fixes` rounds added (`git diff --numstat -M`), summed inside (`check`) and outside (`other`) the round's configured check paths. `over_hardening` is true when `check` is larger than `other` |
+| `limits` | The limit sentences of the three finding signals (below) |
+
+The three finding signals (`churn`, `recurring`, `unrelated`) leave out findings whose last disposition is `reject` or `duplicate`. The open findings and the class counts count the records as they are, whatever the dispositions. The limits of the signals come with them in `limits` as fixed sentences.
+
+- `churn`: "Counted by file: a finding in a file the fixes changed counts even when it is about another line." It works by file, so a finding about an unrelated line of a changed file counts too.
+- `recurring`: "Counted by link: the same problem reported under different links is not grouped." Findings that report the same problem under different links are not grouped.
+- `unrelated`: "Uses each reviewer's introduced_by_change as reported." It uses the reviewer's judgment as given.
+
+The Markdown comes in this order. An empty list is `- none`.
+1. `# Cap report: <series>`
+2. `- code rounds counted: <counted> of <allowed> (cap <code>, extensions <n>)`. When the cap is unknown, `of unknown (cap unknown, extensions <n>)`.
+3. `- open: defect <n>, requirement-question <n>`
+4. The `## Rounds` table (columns `Round | Stage | Counted | Base | Head | defect | requirement-question | hardening | note`, commits as their first 12 characters). When rounds were skipped, `- skipped <round>: <reason>`.
+5. `## Open findings`: `- <round> <finding> (<class>)`
+6. `## Signals`:
+   - `### Churn`: `- <round>: <count> (<ID>, …)`, or `- <round>: 0`.
+   - `### Recurring links`: `- <link_kind> <link>: <round>, …`
+   - `### Unrelated defects`: `- <round> <finding>`
+   - `### Check growth`: `- added lines: check <n>, other <n>; over hardening: yes|no`
+7. `## Limits`: `- churn: …`, `- recurring: …`, `- unrelated: …`
+
+In these cases it names the failed path or commit on standard error, ends with 65 and gives no report. It never turns a broken input into a report without signals.
+- The series does not exist or is not a folder.
+- A `round.json` cannot be opened or is not JSON. A folder without `round.json`, or with JSON of another format, belongs to another tool and is skipped.
+- The `stage` of a `round.json` is not one of the four stages of the contract.
+- A finished round (with `finished_at`) has no `findings.json`, or `findings.json` exists without `ledger.jsonl`.
+- The `findings.json` of a listed round is not a list of findings (`null` included), or a finding has no `id` or a `class` outside the four classes.
+- A `ledger.jsonl` line of a listed round cannot be interpreted, names no `finding`, or has a `disposition` outside the five dispositions.
+- An `extensions.jsonl` line cannot be interpreted or is outside the form: a `stage` other than `plan`, `plan-delta` and `code`, `by` below 1, an empty `user_quote`, or a `cause` on a line that is not a code line or outside the five values.
+- `--repo` is not a Git repository, or Git cannot start.
+- The base or head of a listed round is not in the repository (a shallow clone too).

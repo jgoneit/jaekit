@@ -1,0 +1,538 @@
+package spar
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"slices"
+	"sort"
+	"strings"
+)
+
+// CapReportSchema names the JSON form of spar cap-report.
+const CapReportSchema = "spar-cap-report/v1"
+
+// The limits of the three finding signals, which the report states with
+// them.
+const (
+	churnLimit     = "Counted by file: a finding in a file the fixes changed counts even when it is about another line."
+	recurringLimit = "Counted by link: the same problem reported under different links is not grouped."
+	unrelatedLimit = "Uses each reviewer's introduced_by_change as reported."
+)
+
+type CapReportOptions struct {
+	Series string
+	Format string
+	Repo   string
+	Out    io.Writer
+}
+
+type capReport struct {
+	Schema      string         `json:"schema"`
+	Series      string         `json:"series"`
+	Cap         capUse         `json:"cap"`
+	Rounds      []capRound     `json:"rounds"`
+	Skipped     []capSkipped   `json:"skipped"`
+	Open        []capOpen      `json:"open"`
+	Churn       []capChurn     `json:"churn"`
+	Recurring   []capRecurring `json:"recurring"`
+	Unrelated   []capFinding   `json:"unrelated"`
+	CheckGrowth capGrowth      `json:"check_growth"`
+	Limits      capLimits      `json:"limits"`
+}
+
+// capUse is the code cap as spar run applies it. Code and Allowed are null
+// when the series has no round, so no configuration names its cap.
+type capUse struct {
+	Code       *int64 `json:"code"`
+	Extensions int64  `json:"extensions"`
+	Allowed    *int64 `json:"allowed"`
+	Counted    int64  `json:"counted"`
+}
+
+type capRound struct {
+	Round    string         `json:"round"`
+	Stage    string         `json:"stage"`
+	Sequence int            `json:"sequence"`
+	Base     string         `json:"base"`
+	Head     string         `json:"head"`
+	Counted  bool           `json:"counted"`
+	Classes  map[string]int `json:"classes"`
+}
+
+type capSkipped struct {
+	Round  string `json:"round"`
+	Reason string `json:"reason"`
+}
+
+type capOpen struct {
+	Round   string `json:"round"`
+	Finding string `json:"finding"`
+	Class   string `json:"class"`
+}
+
+type capFinding struct {
+	Round   string `json:"round"`
+	Finding string `json:"finding"`
+}
+
+type capChurn struct {
+	Round    string   `json:"round"`
+	Count    int      `json:"count"`
+	Findings []string `json:"findings"`
+}
+
+type capRecurring struct {
+	LinkKind string   `json:"link_kind"`
+	Link     string   `json:"link"`
+	Rounds   []string `json:"rounds"`
+}
+
+type capGrowth struct {
+	Check         int  `json:"check"`
+	Other         int  `json:"other"`
+	OverHardening bool `json:"over_hardening"`
+}
+
+type capLimits struct {
+	Churn     string `json:"churn"`
+	Recurring string `json:"recurring"`
+	Unrelated string `json:"unrelated"`
+}
+
+// CapReport shows, for the code rounds of a series, the cap use, each
+// round, the open findings and the signals of why the rounds ran out. It
+// reads only the series' records and Git, writes nothing and never decides a
+// cause. An input it cannot read is refused with no report.
+func CapReport(o CapReportOptions) (int, error) {
+	info, err := os.Stat(o.Series)
+	switch {
+	case errors.Is(err, os.ErrNotExist):
+		return ExitRefused, refused("series %s does not exist", o.Series)
+	case err != nil:
+		return ExitRefused, refused("series %s cannot be read: %v", o.Series, err)
+	case !info.IsDir():
+		return ExitRefused, refused("series %s is not a folder", o.Series)
+	}
+	rounds, err := capSeriesRounds(o.Series)
+	if err != nil {
+		return ExitRefused, refused("%v", err)
+	}
+	exts, err := loadExtensions(o.Series)
+	if err != nil {
+		return ExitRefused, refused("%v", err)
+	}
+	if err := checkExtensions(o.Series, exts); err != nil {
+		return ExitRefused, refused("%v", err)
+	}
+	start := o.Repo
+	if start == "" {
+		start = "."
+	}
+	repo, err := repoRoot(start)
+	if err != nil {
+		return ExitRefused, refused("%s is not in a Git repository: %v", start, err)
+	}
+	rep := &capReport{Schema: CapReportSchema, Series: o.Series, Rounds: []capRound{}, Skipped: []capSkipped{},
+		Open: []capOpen{}, Churn: []capChurn{}, Recurring: []capRecurring{}, Unrelated: []capFinding{},
+		Limits: capLimits{churnLimit, recurringLimit, unrelatedLimit}}
+
+	// The cap use is spar run's: every counted code round, a stopped one
+	// too, against the cap of the series' last round and the extensions.
+	for _, sib := range rounds {
+		if sib.round.Config != nil {
+			c := sib.round.Config.Caps.Code
+			rep.Cap.Code = &c
+		}
+		if sib.round.Counted && !sib.round.DryRun && stageGroup(sib.round.Stage) == "code" {
+			rep.Cap.Counted++
+		}
+	}
+	rep.Cap.Extensions = extensionsFor(exts, "code")
+	if rep.Cap.Code != nil {
+		allowed := *rep.Cap.Code + rep.Cap.Extensions
+		rep.Cap.Allowed = &allowed
+	}
+
+	type listed struct {
+		name     string
+		round    *RoundRecord
+		findings []Finding
+		final    map[string]LedgerEntry
+	}
+	var list []listed
+	for _, sib := range rounds {
+		r := sib.round
+		name := filepath.Base(sib.dir)
+		if r.Stage != "candidate" && r.Stage != "fixes" {
+			continue
+		}
+		if r.DryRun {
+			rep.Skipped = append(rep.Skipped, capSkipped{name, "dry run"})
+			continue
+		}
+		// A round stopped before recording findings has neither finished_at
+		// nor findings.json, as the gate reads it; a finished round that
+		// lost findings.json is broken, not stopped.
+		if _, err := os.Stat(filepath.Join(sib.dir, "findings.json")); errors.Is(err, os.ErrNotExist) {
+			if r.FinishedAt != "" {
+				return ExitRefused, refused("%s: the round finished but findings.json is missing", sib.dir)
+			}
+			rep.Skipped = append(rep.Skipped, capSkipped{name, "stopped before recording findings"})
+			continue
+		}
+		findings, err := loadFindings(sib.dir)
+		if err != nil {
+			return ExitRefused, refused("%v", err)
+		}
+		if findings == nil {
+			// JSON null decodes to no findings; spar writes a list.
+			var list []json.RawMessage
+			data, err := os.ReadFile(filepath.Join(sib.dir, "findings.json"))
+			if err != nil || json.Unmarshal(data, &list) != nil || list == nil {
+				return ExitRefused, refused("%s is not a list of findings", filepath.Join(sib.dir, "findings.json"))
+			}
+		}
+		if _, err := os.Stat(filepath.Join(sib.dir, "ledger.jsonl")); err != nil {
+			return ExitRefused, refused("%s: ledger.jsonl cannot be read: %v", sib.dir, err)
+		}
+		ledger, err := loadLedger(sib.dir)
+		if err != nil {
+			return ExitRefused, refused("%v", err)
+		}
+		if err := checkRecords(sib.dir, findings, ledger); err != nil {
+			return ExitRefused, refused("%v", err)
+		}
+		for _, c := range []string{r.Base, r.Head} {
+			if _, err := resolveCommit(repo, c); err != nil {
+				return ExitRefused, refused("%s: commit %s is not in %s", sib.dir, c, repo)
+			}
+		}
+		list = append(list, listed{name, r, findings, finalDispositions(ledger)})
+	}
+
+	// excluded is a finding whose last disposition rejects it or makes it a
+	// duplicate: the three finding signals leave it out.
+	excluded := func(final map[string]LedgerEntry, f Finding) bool {
+		e, ok := final[f.ID]
+		return ok && (e.Disposition == "reject" || e.Disposition == "duplicate")
+	}
+	asked := func(f Finding) bool { return f.Class == "defect" || f.Class == "requirement-question" }
+
+	anchor := -1
+	for i, l := range list {
+		classes := map[string]int{"defect": 0, "requirement-question": 0, "hardening": 0, "note": 0}
+		for _, f := range l.findings {
+			classes[f.Class]++
+			// Open as the gate judges it: no disposition, or a duplicate
+			// chain that ends open.
+			e, done := l.final[f.ID]
+			if done && e.Disposition == "duplicate" {
+				_, done = resolveDuplicate(l.final, f.ID)
+			}
+			if asked(f) && !done {
+				rep.Open = append(rep.Open, capOpen{l.name, f.ID, f.Class})
+			}
+			if f.Class == "defect" && !excluded(l.final, f) &&
+				(f.IntroducedByChange == "no" || f.IntroducedByChange == "unknown") {
+				rep.Unrelated = append(rep.Unrelated, capFinding{l.name, f.ID})
+			}
+		}
+		rep.Rounds = append(rep.Rounds, capRound{l.name, l.round.Stage, l.round.Sequence, l.round.Base, l.round.Head,
+			l.round.Counted, classes})
+		if anchor < 0 && l.round.Stage == "candidate" && l.round.Counted {
+			anchor = i
+		}
+	}
+
+	// Churn: after the first counted candidate round, the asked findings in
+	// files that changed from its head to the round's head.
+	if anchor >= 0 {
+		from := list[anchor].round.Head
+		changed := map[string]map[string]bool{}
+		for _, l := range list[anchor+1:] {
+			files, ok := changed[l.round.Head]
+			if !ok {
+				if files, err = changedFiles(repo, from, l.round.Head); err != nil {
+					return ExitRefused, refused("%s: changed files cannot be read: %v", l.name, err)
+				}
+				changed[l.round.Head] = files
+			}
+			c := capChurn{Round: l.name, Findings: []string{}}
+			for _, f := range l.findings {
+				if asked(f) && !excluded(l.final, f) && !f.LocationUnreadable && f.Path != "" && files[f.Path] {
+					c.Findings = append(c.Findings, f.ID)
+				}
+			}
+			c.Count = len(c.Findings)
+			rep.Churn = append(rep.Churn, c)
+		}
+	}
+
+	// Recurring: a link of asked findings in two or more packets; reruns of
+	// one packet are one.
+	type link struct{ kind, name string }
+	packets := map[link]map[string]bool{}
+	names := map[link][]string{}
+	for _, l := range list {
+		packet := l.round.Stage + "\x00" + l.round.Base + "\x00" + l.round.Head + "\x00" + l.round.PacketSHA256
+		for _, f := range l.findings {
+			if !asked(f) || excluded(l.final, f) || f.LinkKind == "none" || f.Link == "" {
+				continue
+			}
+			k := link{f.LinkKind, f.Link}
+			if packets[k] == nil {
+				packets[k] = map[string]bool{}
+			}
+			packets[k][packet] = true
+			if n := names[k]; len(n) == 0 || n[len(n)-1] != l.name {
+				names[k] = append(n, l.name)
+			}
+		}
+	}
+	var links []link
+	for k, p := range packets {
+		if len(p) >= 2 {
+			links = append(links, k)
+		}
+	}
+	sort.Slice(links, func(i, j int) bool {
+		if links[i].kind != links[j].kind {
+			return links[i].kind < links[j].kind
+		}
+		return links[i].name < links[j].name
+	})
+	for _, k := range links {
+		rep.Recurring = append(rep.Recurring, capRecurring{k.kind, k.name, names[k]})
+	}
+
+	// Check growth: the gate's growth over the listed fixes rounds.
+	measured := map[string]bool{}
+	for _, l := range list {
+		r := l.round
+		if r.Stage != "fixes" || measured[r.Base+".."+r.Head] {
+			continue
+		}
+		measured[r.Base+".."+r.Head] = true
+		added, err := numstat(repo, r.Base, r.Head)
+		if err != nil {
+			return ExitRefused, refused("%s: added lines cannot be read: %v", l.name, err)
+		}
+		var checkPaths []string
+		if r.Config != nil {
+			checkPaths = r.Config.CheckPaths
+		}
+		for _, path := range sortedKeys(added) {
+			if matchAny(checkPaths, path) {
+				rep.CheckGrowth.Check += added[path]
+			} else {
+				rep.CheckGrowth.Other += added[path]
+			}
+		}
+	}
+	rep.CheckGrowth.OverHardening = rep.CheckGrowth.Check > rep.CheckGrowth.Other
+
+	if o.Format == "json" {
+		data, err := json.MarshalIndent(rep, "", "  ")
+		if err != nil {
+			return ExitInternal, err
+		}
+		_, err = o.Out.Write(append(data, '\n'))
+		return ExitOK, err
+	}
+	_, err = io.WriteString(o.Out, renderCapReport(rep))
+	return ExitOK, err
+}
+
+// capSeriesRounds reads a series' rounds in sequence order. Unlike the
+// series reading of spar run, a round.json that cannot be opened is
+// refused here: a report without that round would be wrong. A folder
+// without round.json, or with JSON of another tool, is not a round.
+func capSeriesRounds(series string) ([]sibling, error) {
+	entries, err := os.ReadDir(series)
+	if err != nil {
+		return nil, fmt.Errorf("series %s cannot be read: %v", series, err)
+	}
+	var out []sibling
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		dir := filepath.Join(series, e.Name())
+		path := filepath.Join(dir, "round.json")
+		data, err := os.ReadFile(path)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return nil, fmt.Errorf("%s cannot be read: %v", path, err)
+		}
+		var probe struct {
+			Schema string `json:"schema"`
+		}
+		if json.Unmarshal(data, &probe) != nil {
+			return nil, fmt.Errorf("%s is not JSON", path)
+		}
+		if probe.Schema != RoundSchema {
+			continue // another tool's record
+		}
+		r, err := loadRound(dir)
+		if err != nil {
+			return nil, err
+		}
+		switch r.Stage {
+		case "plan", "plan-delta", "candidate", "fixes":
+		default:
+			return nil, fmt.Errorf("%s: stage %q is not a stage of the contract", path, r.Stage)
+		}
+		out = append(out, sibling{dir, r})
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].round.Sequence != out[j].round.Sequence {
+			return out[i].round.Sequence < out[j].round.Sequence
+		}
+		return out[i].dir < out[j].dir
+	})
+	return out, nil
+}
+
+// checkExtensions refuses an extension line outside the form spar extend
+// writes: a known stage, --by of 1 or more, the user's words, and a cause
+// only on a code line and only from Causes. A line without a cause is the
+// form written before causes existed.
+func checkExtensions(series string, exts []Extension) error {
+	path := filepath.Join(series, "extensions.jsonl")
+	for i, e := range exts {
+		switch {
+		case e.Stage != "plan" && e.Stage != "plan-delta" && e.Stage != "code":
+			return fmt.Errorf("%s: extension %d has stage %q", path, i+1, e.Stage)
+		case e.By < 1:
+			return fmt.Errorf("%s: extension %d extends by %d rounds", path, i+1, e.By)
+		case strings.TrimSpace(e.UserQuote) == "":
+			return fmt.Errorf("%s: extension %d has no user_quote", path, i+1)
+		case e.Cause != "" && (e.Stage != "code" || !slices.Contains(Causes, e.Cause)):
+			return fmt.Errorf("%s: extension %d has cause %q", path, i+1, e.Cause)
+		}
+	}
+	return nil
+}
+
+// checkRecords refuses findings and ledger entries outside the form spar
+// writes: every finding has an ID and one of the four classes, and every
+// ledger entry names a finding and one of the five dispositions.
+func checkRecords(dir string, findings []Finding, ledger []LedgerEntry) error {
+	for i, f := range findings {
+		switch f.Class {
+		case "defect", "requirement-question", "hardening", "note":
+		default:
+			return fmt.Errorf("%s: finding %d has class %q", filepath.Join(dir, "findings.json"), i+1, f.Class)
+		}
+		if f.ID == "" {
+			return fmt.Errorf("%s: finding %d has no id", filepath.Join(dir, "findings.json"), i+1)
+		}
+	}
+	for i, e := range ledger {
+		switch e.Disposition {
+		case "fix", "reject", "defer", "duplicate", "answer":
+		default:
+			return fmt.Errorf("%s: entry %d has disposition %q", filepath.Join(dir, "ledger.jsonl"), i+1, e.Disposition)
+		}
+		if e.Finding == "" {
+			return fmt.Errorf("%s: entry %d names no finding", filepath.Join(dir, "ledger.jsonl"), i+1)
+		}
+	}
+	return nil
+}
+
+func renderCapReport(rep *capReport) string {
+	var b strings.Builder
+	line := func(format string, args ...any) { fmt.Fprintf(&b, format+"\n", args...) }
+	none := func(n int) {
+		if n == 0 {
+			line("- none")
+		}
+	}
+	line("# Cap report: %s", rep.Series)
+	line("")
+	if rep.Cap.Code != nil {
+		line("- code rounds counted: %d of %d (cap %d, extensions %d)", rep.Cap.Counted, *rep.Cap.Allowed, *rep.Cap.Code, rep.Cap.Extensions)
+	} else {
+		line("- code rounds counted: %d of unknown (cap unknown, extensions %d)", rep.Cap.Counted, rep.Cap.Extensions)
+	}
+	open := map[string]int{}
+	for _, f := range rep.Open {
+		open[f.Class]++
+	}
+	line("- open: defect %d, requirement-question %d", open["defect"], open["requirement-question"])
+	line("")
+	line("## Rounds")
+	line("")
+	line("| Round | Stage | Counted | Base | Head | defect | requirement-question | hardening | note |")
+	line("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+	for _, r := range rep.Rounds {
+		counted := "no"
+		if r.Counted {
+			counted = "yes"
+		}
+		line("| %s | %s | %s | %s | %s | %d | %d | %d | %d |", r.Round, r.Stage, counted, shortID(r.Base), shortID(r.Head),
+			r.Classes["defect"], r.Classes["requirement-question"], r.Classes["hardening"], r.Classes["note"])
+	}
+	if len(rep.Skipped) > 0 {
+		line("")
+		for _, s := range rep.Skipped {
+			line("- skipped %s: %s", s.Round, s.Reason)
+		}
+	}
+	line("")
+	line("## Open findings")
+	line("")
+	for _, f := range rep.Open {
+		line("- %s %s (%s)", f.Round, f.Finding, f.Class)
+	}
+	none(len(rep.Open))
+	line("")
+	line("## Signals")
+	line("")
+	line("### Churn")
+	line("")
+	for _, c := range rep.Churn {
+		if c.Count == 0 {
+			line("- %s: 0", c.Round)
+			continue
+		}
+		line("- %s: %d (%s)", c.Round, c.Count, strings.Join(c.Findings, ", "))
+	}
+	none(len(rep.Churn))
+	line("")
+	line("### Recurring links")
+	line("")
+	for _, r := range rep.Recurring {
+		line("- %s %s: %s", r.LinkKind, r.Link, strings.Join(r.Rounds, ", "))
+	}
+	none(len(rep.Recurring))
+	line("")
+	line("### Unrelated defects")
+	line("")
+	for _, f := range rep.Unrelated {
+		line("- %s %s", f.Round, f.Finding)
+	}
+	none(len(rep.Unrelated))
+	line("")
+	line("### Check growth")
+	line("")
+	over := "no"
+	if rep.CheckGrowth.OverHardening {
+		over = "yes"
+	}
+	line("- added lines: check %d, other %d; over hardening: %s", rep.CheckGrowth.Check, rep.CheckGrowth.Other, over)
+	line("")
+	line("## Limits")
+	line("")
+	line("- churn: %s", rep.Limits.Churn)
+	line("- recurring: %s", rep.Limits.Recurring)
+	line("- unrelated: %s", rep.Limits.Unrelated)
+	return b.String()
+}

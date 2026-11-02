@@ -138,6 +138,14 @@ docs/reviews/
 
 한 series는 plan 1회, plan delta 1회, 코드 라운드 3회까지입니다. 상한을 넘는 라운드는 리뷰어를 띄우기 전에 거부되고, `spar extend`로 기록한 사용자의 말이 있어야 더 돌릴 수 있습니다. 사용량 거절 등으로 같은 패킷을 끝내지 못한 리뷰어만 다시 돌리는 실행은 세지 않습니다.
 
+코드 라운드 상한을 다 쓰면 `spar run`의 거부 메시지가 그 series의 상한 보고를 안내합니다. `spar cap-report`는 그 series의 기록과 Git만 읽어 상한 사용, 라운드, 열린 지적, 네 신호(수정 연쇄, 반복 기준, 변경 무관, 검사 비대)를 보이고, 아무것도 쓰지 않습니다. 수정 연쇄는 파일 단위, 반복 기준은 연결 단위로 세고, 변경 무관은 리뷰어의 판단을 그대로 씁니다.
+
+```bash
+spar cap-report docs/reviews/example
+```
+
+보고는 원인을 고르지 않습니다. 에이전트가 신호를 보고 원인(`--cause`) 하나를 `churn`, `recurring`, `unrelated`, `hardening`, `other` 가운데서 골라 권고와 함께 묻고, 더 돌리라는 사용자의 말이 있을 때만 `spar extend <series> --stage code --by 1 --cause <원인> --user-quote "…"`로 기록합니다. `--by 2` 이상이나 `--cause other`에는 `--reason`이 필요합니다. 기록한 원인과 이유는 `ha cost`에 `--series`로 그 series를 주면 상한 연장 목록에 보입니다.
+
 라운드마다 Git이 무시하는 새 폴더에 `round.json`, `packet.md`, `findings.json`, `ledger.jsonl`, `summary.md`가 생깁니다. 패킷에 비공개 문서가 들어갈 수 있으므로 Git이 추적할 폴더는 거부합니다([프로젝트 준비](#프로젝트-준비)).
 
 <details>

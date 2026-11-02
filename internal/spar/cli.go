@@ -19,7 +19,8 @@ const usageText = `usage:
   spar record ROUND native (--result FILE|- | --transcript FILE) [--model M] [--agent TEXT]
   spar triage ROUND FINDING fix|reject|defer|duplicate|answer [--commit REV] [--failed-before TEXT]
            [--passed-after TEXT] [--evidence TEXT] [--of FINDING] [--to TEXT] [--user-quote TEXT] [--note TEXT]
-  spar extend SERIES --stage plan|plan-delta|code --by N --user-quote TEXT
+  spar extend SERIES --stage plan|plan-delta|code --by N [--cause CAUSE] [--reason TEXT] --user-quote TEXT
+  spar cap-report SERIES [--format md|json] [--repo DIR]
   spar waive ROUND REVIEWER --user-quote TEXT
   spar gate ROUND... --expect-head REV --out FILE [--repo DIR]
   spar summary ROUND...
@@ -207,7 +208,7 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 			Evidence: p.one("evidence"), Of: p.one("of"), To: p.one("to"), UserQuote: p.one("user-quote"), Note: p.one("note"),
 			Log: stderr})
 	case "extend":
-		p, err := parseArgs(rest, []string{"stage", "by", "user-quote", "repo"}, nil)
+		p, err := parseArgs(rest, []string{"stage", "by", "cause", "reason", "user-quote", "repo"}, nil)
 		if err != nil {
 			return ExitUsage, err
 		}
@@ -218,7 +219,29 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 		if err != nil {
 			return ExitUsage, usageError("--by must be a number")
 		}
-		return ExitOK, Extend(p.positional[0], p.one("stage"), by, p.one("user-quote"), p.one("repo"), stderr)
+		// An empty --cause or --reason is still given: a plan extension
+		// refuses it rather than recording the line as if it were absent.
+		if s := p.one("stage"); (s == "plan" || s == "plan-delta") && (p.has("cause") || p.has("reason")) {
+			return ExitUsage, usageError("--cause and --reason are only for --stage code")
+		}
+		return ExitOK, Extend(p.positional[0], p.one("stage"), by, p.one("cause"), p.one("reason"), p.one("user-quote"),
+			p.one("repo"), stderr)
+	case "cap-report":
+		p, err := parseArgs(rest, []string{"format", "repo"}, nil)
+		if err != nil {
+			return ExitUsage, err
+		}
+		if len(p.positional) != 1 {
+			return ExitUsage, usageError("spar cap-report needs the series folder")
+		}
+		format := p.one("format")
+		if !p.has("format") {
+			format = "md"
+		}
+		if format != "md" && format != "json" {
+			return ExitUsage, usageError("--format must be md or json")
+		}
+		return CapReport(CapReportOptions{Series: p.positional[0], Format: format, Repo: p.one("repo"), Out: stdout})
 	case "waive":
 		p, err := parseArgs(rest, []string{"user-quote"}, nil)
 		if err != nil {

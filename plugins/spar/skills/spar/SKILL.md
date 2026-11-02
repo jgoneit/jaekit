@@ -39,6 +39,13 @@ Give every goal document as `--criteria`: SPEC.md and each goal document it link
 - Caps: one plan round, one plan-delta round and three code rounds (candidate and fixes together) per series, unless the project configuration says otherwise. `spar run` refuses a round past its cap before any reviewer starts.
 - The cumulative round reviews the whole change once more, from the goal's base commit to the last head, after fix rounds: a `fixes` round sees only the fixes. Run it as a `candidate` round; it does not take earlier findings and counts toward the code-round cap like the first candidate round. When no fixes followed the first candidate round, that round is the cumulative round. When the cap leaves no room for it, extending the cap follows the rule below.
 - Only the user can allow more rounds. Ask them, then record their words: `spar extend <series> --stage plan|plan-delta|code --by N --user-quote "<their words>"`.
+- Each time the code cap is reached, run `spar cap-report <series>` before you ask. Pick one cause from its signals and show the user the signals with that cause's recommendation:
+  - `churn`: fixes made new findings in the files they changed. Recommend to extend by 1 and fix again within each finding's `smallest_fix`.
+  - `recurring`: findings on the same link come back. Recommend not to extend; ask which reading of that requirement is meant.
+  - `unrelated`: the findings are not about this change. Recommend not to extend; defer them with the user's words and file them as issues.
+  - `hardening`: the checks grew more than the rest of the change. Recommend not to extend; trim the checks that grew past what the criteria need.
+  - `other`: none of these fits. Say why in `--reason`.
+- Record a code extension only with the user's words and the cause you showed: `spar extend <series> --stage code --by 1 --cause <cause> --user-quote "<their words>"`. Extend by 1 unless the user's words say more; `--by 2` or more, and `--cause other`, need `--reason`.
 - A rerun of the same stage, base, head and packet is not counted only when it starts reviewers that did not complete that packet, for example after a quota refusal. Anything else counts.
 - Pass `--rules` for the repository rules (such as `AGENTS.md`) and contracts the change must keep, and `--question` for a question you need answered. Do not pass your own reasoning about the solution; the reviewers start from the criteria.
 

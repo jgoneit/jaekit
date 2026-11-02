@@ -289,7 +289,7 @@ func TestExtendOutsideEveryRepository(t *testing.T) {
 		t.Skip("the temporary folder is inside a Git repository")
 	}
 	t.Chdir(series)
-	if err := Extend(".", "code", 1, "yes", "", nil); err != nil {
+	if err := Extend(".", "code", 1, "churn", "", "yes", "", nil); err != nil {
 		t.Fatalf("an extension outside every repository: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(series, "extensions.jsonl")); err != nil {
