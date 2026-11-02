@@ -220,7 +220,7 @@ In these cases it names the failed path or commit on standard error, ends with 6
 - A `round.json` cannot be opened or is not JSON. A folder without `round.json`, or with JSON of another format, belongs to another tool and is skipped.
 - The `stage` of a `round.json` is not one of the four stages of the contract.
 - A finished round (with `finished_at`) has no `findings.json`, or `findings.json` exists without `ledger.jsonl`.
-- The `findings.json` of a listed round is not a list of findings (`null` included), or a finding has no `id` or a `class` outside the four classes.
+- The `findings.json` of a listed round is not a list of findings (`null` included), or a finding has no `id`, a `class` outside the four classes, an `introduced_by_change` other than `yes`, `no` and `unknown`, or a `link_kind` other than `criterion`, `rule`, `contract` and `none` (the fields the signals read).
 - A `ledger.jsonl` line of a listed round cannot be interpreted, names no `finding`, or has a `disposition` outside the five dispositions.
 - An `extensions.jsonl` line cannot be interpreted or is outside the form: a `stage` other than `plan`, `plan-delta` and `code`, `by` below 1, an empty `user_quote`, or a `cause` on a line that is not a code line or outside the five values.
 - `--repo` is not a Git repository, or Git cannot start.

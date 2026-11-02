@@ -216,7 +216,7 @@ Markdown은 다음 순서다. 빈 목록은 `- none`이다.
 - `round.json`을 열 수 없거나 JSON이 아니다. `round.json`이 없거나 다른 형식의 JSON인 폴더는 다른 도구의 것이라 건너뛴다.
 - `round.json`의 `stage`가 계약의 네 단계 밖이다.
 - 끝난 라운드(`finished_at`이 있음)에 `findings.json`이 없거나, `findings.json`이 있는데 `ledger.jsonl`이 없다.
-- 목록 라운드의 `findings.json`이 지적의 목록이 아니거나(`null` 포함), 지적에 `id`가 없거나 `class`가 네 class 밖이다.
+- 목록 라운드의 `findings.json`이 지적의 목록이 아니거나(`null` 포함), 지적에 `id`가 없거나, `class`가 네 class 밖이거나, 신호가 읽는 `introduced_by_change`가 `yes`·`no`·`unknown` 밖이거나 `link_kind`가 `criterion`·`rule`·`contract`·`none` 밖이다.
 - 목록 라운드의 `ledger.jsonl` 줄이 해석되지 않거나, `finding`이 없거나, `disposition`이 다섯 처리 밖이다.
 - `extensions.jsonl` 줄이 해석되지 않거나 형식 밖이다: `stage`가 `plan`·`plan-delta`·`code` 밖, `by`가 1 미만, `user_quote`가 비었음, `cause`가 code 줄이 아닌 곳에 있거나 다섯 값 밖.
 - `--repo`가 Git 저장소가 아니거나 Git을 시작할 수 없다.

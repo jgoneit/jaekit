@@ -421,8 +421,9 @@ func checkExtensions(series string, exts []Extension) error {
 }
 
 // checkRecords refuses findings and ledger entries outside the form spar
-// writes: every finding has an ID and one of the four classes, and every
-// ledger entry names a finding and one of the five dispositions.
+// writes: every finding has an ID, one of the four classes and the values
+// spar writes for the fields the signals read, and every ledger entry names
+// a finding and one of the five dispositions.
 func checkRecords(dir string, findings []Finding, ledger []LedgerEntry) error {
 	for i, f := range findings {
 		switch f.Class {
@@ -432,6 +433,13 @@ func checkRecords(dir string, findings []Finding, ledger []LedgerEntry) error {
 		}
 		if f.ID == "" {
 			return fmt.Errorf("%s: finding %d has no id", filepath.Join(dir, "findings.json"), i+1)
+		}
+		// The fields the signals read.
+		switch {
+		case !slices.Contains([]string{"yes", "no", "unknown"}, f.IntroducedByChange):
+			return fmt.Errorf("%s: finding %d has introduced_by_change %q", filepath.Join(dir, "findings.json"), i+1, f.IntroducedByChange)
+		case !slices.Contains([]string{"criterion", "rule", "contract", "none"}, f.LinkKind):
+			return fmt.Errorf("%s: finding %d has link_kind %q", filepath.Join(dir, "findings.json"), i+1, f.LinkKind)
 		}
 	}
 	for i, e := range ledger {

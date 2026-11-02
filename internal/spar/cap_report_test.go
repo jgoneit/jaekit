@@ -460,13 +460,15 @@ func TestSparCapReportAC2_SignalsFromRecords(t *testing.T) {
 	w.run(order, "x-dry", "candidate", "base", "head1", "--dry-run")
 	rb := w.run(order, "b-candidate", "candidate", "base", "head1")
 	w.record(rb, "host", "head1")
-	ra := w.run(order, "a-fixes", "fixes", "head1", "head2")
-	w.record(ra, "host", "head2")
+	// The tied rounds are named against their creation order: c-fixes
+	// first, a-candidate after the deletion.
+	rc := w.run(order, "c-fixes", "fixes", "head1", "head2")
+	w.record(rc, "host", "head2")
 	if err := os.RemoveAll(filepath.Join(order, "x-dry")); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
-	rc := w.run(order, "c-candidate", "candidate", "base", "head2")
-	w.record(rc, "host", "head2")
+	ra := w.run(order, "a-candidate", "candidate", "base", "head2")
+	w.record(ra, "host", "head2")
 	seqs := map[string]int{}
 	for _, r := range []string{rb, ra, rc} {
 		var rec struct {
@@ -477,8 +479,8 @@ func TestSparCapReportAC2_SignalsFromRecords(t *testing.T) {
 		}
 		seqs[filepath.Base(r)] = rec.Sequence
 	}
-	if !reflect.DeepEqual(seqs, map[string]int{"b-candidate": 2, "a-fixes": 3, "c-candidate": 3}) {
-		t.Fatalf("setup: the sequences are %v, want b-candidate 2, a-fixes 3, c-candidate 3", seqs)
+	if !reflect.DeepEqual(seqs, map[string]int{"b-candidate": 2, "c-fixes": 3, "a-candidate": 3}) {
+		t.Fatalf("setup: the sequences are %v, want b-candidate 2, c-fixes 3, a-candidate 3", seqs)
 	}
 	var names []any
 	rounds, _ := w.reportJSON(v, order)["rounds"].([]any)
@@ -486,7 +488,7 @@ func TestSparCapReportAC2_SignalsFromRecords(t *testing.T) {
 		m, _ := r.(map[string]any)
 		names = append(names, m["round"])
 	}
-	crExpect(t, v, "the order of rounds sharing and not sharing a sequence", names, []any{"b-candidate", "a-fixes", "c-candidate"})
+	crExpect(t, v, "the order of rounds sharing and not sharing a sequence", names, []any{"b-candidate", "a-candidate", "c-fixes"})
 }
 
 // crLines is the set of lines of a text.
@@ -514,6 +516,75 @@ func crSection(md, heading, prefix string) []string {
 		}
 	}
 	return out
+}
+
+// crParity compares every row of the Markdown rounds table, its skipped
+// lines and every Markdown list with the JSON report's entries, in order:
+// nothing left out, repeated or added.
+func crParity(t *testing.T, v string, doc map[string]any, md string) {
+	t.Helper()
+	str := func(x any) string { return fmt.Sprint(x) }
+	list := func(key string) []map[string]any {
+		var out []map[string]any
+		items, _ := doc[key].([]any)
+		for _, item := range items {
+			m, _ := item.(map[string]any)
+			out = append(out, m)
+		}
+		return out
+	}
+	join := func(x any) string {
+		var parts []string
+		items, _ := x.([]any)
+		for _, item := range items {
+			parts = append(parts, str(item))
+		}
+		return strings.Join(parts, ", ")
+	}
+	rows, skipped, open, churn, recurring, unrelated := []string{}, []string{}, []string{}, []string{}, []string{}, []string{}
+	for _, r := range list("rounds") {
+		classes, _ := r["classes"].(map[string]any)
+		counted := map[bool]string{true: "yes", false: "no"}[r["counted"] == true]
+		rows = append(rows, fmt.Sprintf("| %s | %s | %s | %s | %s | %v | %v | %v | %v |", r["round"], r["stage"], counted,
+			str(r["base"])[:12], str(r["head"])[:12], classes["defect"], classes["requirement-question"], classes["hardening"], classes["note"]))
+	}
+	for _, r := range list("skipped") {
+		skipped = append(skipped, fmt.Sprintf("- skipped %s: %s", r["round"], r["reason"]))
+	}
+	for _, f := range list("open") {
+		open = append(open, fmt.Sprintf("- %s %s (%s)", f["round"], f["finding"], f["class"]))
+	}
+	for _, c := range list("churn") {
+		if c["count"] == float64(0) {
+			churn = append(churn, fmt.Sprintf("- %s: 0", c["round"]))
+			continue
+		}
+		churn = append(churn, fmt.Sprintf("- %s: %v (%s)", c["round"], c["count"], join(c["findings"])))
+	}
+	for _, r := range list("recurring") {
+		recurring = append(recurring, fmt.Sprintf("- %s %s: %s", r["link_kind"], r["link"], join(r["rounds"])))
+	}
+	for _, f := range list("unrelated") {
+		unrelated = append(unrelated, fmt.Sprintf("- %s %s", f["round"], f["finding"]))
+	}
+	none := func(l []string) []string {
+		if len(l) == 0 {
+			return []string{"- none"}
+		}
+		return l
+	}
+	tableRows := []string{}
+	for _, line := range crSection(md, "## Rounds", "| ") {
+		if !strings.HasPrefix(line, "| Round |") && !strings.HasPrefix(line, "| --- |") {
+			tableRows = append(tableRows, line)
+		}
+	}
+	crExpect(t, v, "the rows of the Markdown rounds table", tableRows, rows)
+	crExpect(t, v, "the skipped lines of the Markdown report", crSection(md, "## Rounds", "- "), skipped)
+	crExpect(t, v, "the Markdown open findings", crSection(md, "## Open findings", "- "), none(open))
+	crExpect(t, v, "the Markdown churn", crSection(md, "### Churn", "- "), none(churn))
+	crExpect(t, v, "the Markdown recurring links", crSection(md, "### Recurring links", "- "), none(recurring))
+	crExpect(t, v, "the Markdown unrelated defects", crSection(md, "### Unrelated defects", "- "), none(unrelated))
 }
 
 // AC-3: the Markdown report, the default form, holds the values of the JSON
@@ -557,55 +628,20 @@ func TestSparCapReportAC3_TwoFormsNoCause(t *testing.T) {
 			t.Errorf("jaekit:violation=%s the Markdown report has no line %q:\n%s", v, want, md)
 		}
 	}
-	// Every list holds exactly the JSON report's entries, in its order.
-	str := func(x any) string { return fmt.Sprint(x) }
-	list := func(key string) []map[string]any {
-		var out []map[string]any
-		items, _ := doc[key].([]any)
-		for _, item := range items {
-			m, _ := item.(map[string]any)
-			out = append(out, m)
-		}
-		return out
+	crParity(t, v, doc, md)
+	// A second series has a dry run and a round without churn.
+	edge := filepath.Join(w.repo, "reviews", "ac3-edge")
+	r1 := w.run(edge, "01-candidate", "candidate", "base", "head1")
+	w.record(r1, "host", "head1", crFinding("F1", "defect", "AC-1", "app/greet.py", "yes"))
+	w.run(edge, "02-candidate", "candidate", "base", "head2", "--dry-run")
+	r3 := w.run(edge, "03-fixes", "fixes", "head1", "head2")
+	w.record(r3, "host", "head2", crFinding("F1", "defect", "AC-2", "app/other.py", "yes"))
+	edgeDoc := w.reportJSON(v, edge)
+	_, edgeMD, _ := w.report(edge)
+	if skipped, _ := edgeDoc["skipped"].([]any); len(skipped) != 1 {
+		t.Fatalf("setup: the edge series has %d skipped rounds, want the dry run", len(skipped))
 	}
-	join := func(x any) string {
-		var parts []string
-		items, _ := x.([]any)
-		for _, item := range items {
-			parts = append(parts, str(item))
-		}
-		return strings.Join(parts, ", ")
-	}
-	sections := []struct {
-		heading, prefix string
-		want            []string
-	}{{"## Rounds", "| 0", nil}, {"## Open findings", "- ", nil}, {"### Churn", "- ", nil}, {"### Recurring links", "- ", nil},
-		{"### Unrelated defects", "- ", nil}}
-	for _, r := range list("rounds") {
-		classes, _ := r["classes"].(map[string]any)
-		counted := map[bool]string{true: "yes", false: "no"}[r["counted"] == true]
-		sections[0].want = append(sections[0].want, fmt.Sprintf("| %s | %s | %s | %s | %s | %v | %v | %v | %v |", r["round"], r["stage"], counted,
-			str(r["base"])[:12], str(r["head"])[:12], classes["defect"], classes["requirement-question"], classes["hardening"], classes["note"]))
-	}
-	for _, f := range list("open") {
-		sections[1].want = append(sections[1].want, fmt.Sprintf("- %s %s (%s)", f["round"], f["finding"], f["class"]))
-	}
-	for _, c := range list("churn") {
-		if c["count"] == float64(0) {
-			sections[2].want = append(sections[2].want, fmt.Sprintf("- %s: 0", c["round"]))
-			continue
-		}
-		sections[2].want = append(sections[2].want, fmt.Sprintf("- %s: %v (%s)", c["round"], c["count"], join(c["findings"])))
-	}
-	for _, r := range list("recurring") {
-		sections[3].want = append(sections[3].want, fmt.Sprintf("- %s %s: %s", r["link_kind"], r["link"], join(r["rounds"])))
-	}
-	for _, f := range list("unrelated") {
-		sections[4].want = append(sections[4].want, fmt.Sprintf("- %s %s", f["round"], f["finding"]))
-	}
-	for _, sec := range sections {
-		crExpect(t, v, "the Markdown section "+sec.heading, crSection(md, sec.heading, sec.prefix), sec.want)
-	}
+	crParity(t, v, edgeDoc, edgeMD)
 	for _, heading := range []string{"## Rounds", "## Open findings", "## Signals", "### Churn", "### Recurring links",
 		"### Unrelated defects", "### Check growth", "## Limits"} {
 		if !lines[heading] {
@@ -710,7 +746,12 @@ func TestSparCapReportAC4_DeterministicReadOnly(t *testing.T) {
 		t.Errorf("jaekit:violation=%s spar cap-report started a reviewer", v)
 	}
 
-	if reads := crClockReads(t, v); len(reads) > 0 {
+	crClockScanWorks(t)
+	reads, ok := crClockReads(t, ".", "CapReport")
+	switch {
+	case !ok:
+		t.Errorf("jaekit:violation=%s the package has no CapReport function", v)
+	case len(reads) > 0:
 		t.Errorf("jaekit:violation=%s spar cap-report reads the current time: %v", v, reads)
 	}
 
@@ -761,19 +802,28 @@ func TestSparCapReportAC4_DeterministicReadOnly(t *testing.T) {
 	}
 }
 
-// crClockReads lists the reads of the current time reachable from
-// CapReport through the package's functions: time.Now, time.Since,
-// time.Until and the package's now. Any identifier naming a package function
-// is followed, so the walk may follow more than is called; calls through
-// interfaces and methods are not followed.
-func crClockReads(t *testing.T, v string) []string {
+// crClockReads lists the reads of the current time reachable from the
+// function root in the Go package in dir (test files left out): time.Now,
+// time.Since and time.Until under any import name, a dot import of time,
+// and the package's own now. The walk follows every package function, method
+// and package variable whose name a reachable body uses (a method by its
+// name, whatever its receiver), so it may follow more than is called; it does
+// not follow calls into other packages.
+func crClockReads(t *testing.T, dir, root string) ([]string, bool) {
 	t.Helper()
-	files, err := filepath.Glob("*.go")
+	files, err := filepath.Glob(filepath.Join(dir, "*.go"))
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
+	type node struct {
+		name  string
+		body  ast.Node
+		times map[string]bool // the names package time has in the node's file
+		dot   bool            // the file dot-imports time
+		pkgs  map[string]bool // every package name the file imports
+	}
+	decls := map[string][]node{}
 	fset := token.NewFileSet()
-	funcs := map[string]*ast.FuncDecl{}
 	for _, name := range files {
 		if strings.HasSuffix(name, "_test.go") {
 			continue
@@ -782,18 +832,46 @@ func crClockReads(t *testing.T, v string) []string {
 		if err != nil {
 			t.Fatalf("setup: %v", err)
 		}
+		times, pkgs, dot := map[string]bool{}, map[string]bool{}, false
+		for _, imp := range f.Imports {
+			path := strings.Trim(imp.Path.Value, `"`)
+			local := path[strings.LastIndex(path, "/")+1:]
+			if imp.Name != nil {
+				local = imp.Name.Name
+			}
+			switch {
+			case local == "." && path == "time":
+				dot = true
+			case path == "time":
+				times[local] = true
+			}
+			pkgs[local] = true
+		}
 		for _, d := range f.Decls {
-			if fd, ok := d.(*ast.FuncDecl); ok && fd.Recv == nil && fd.Body != nil {
-				funcs[fd.Name.Name] = fd
+			switch d := d.(type) {
+			case *ast.FuncDecl:
+				if d.Body != nil {
+					decls[d.Name.Name] = append(decls[d.Name.Name], node{d.Name.Name, d.Body, times, dot, pkgs})
+				}
+			case *ast.GenDecl:
+				for _, spec := range d.Specs {
+					if vs, ok := spec.(*ast.ValueSpec); ok {
+						for _, id := range vs.Names {
+							for _, value := range vs.Values {
+								decls[id.Name] = append(decls[id.Name], node{id.Name, value, times, dot, pkgs})
+							}
+						}
+					}
+				}
 			}
 		}
 	}
-	if funcs["CapReport"] == nil {
-		t.Fatalf("jaekit:violation=%s the package has no CapReport function", v)
+	if len(decls[root]) == 0 {
+		return nil, false
 	}
 	var reads []string
 	seen := map[string]bool{}
-	queue := []string{"CapReport"}
+	queue := []string{root}
 	for len(queue) > 0 {
 		name := queue[0]
 		queue = queue[1:]
@@ -801,24 +879,55 @@ func crClockReads(t *testing.T, v string) []string {
 			continue
 		}
 		seen[name] = true
-		ast.Inspect(funcs[name].Body, func(n ast.Node) bool {
-			switch x := n.(type) {
-			case *ast.SelectorExpr:
-				if id, ok := x.X.(*ast.Ident); ok && id.Name == "time" && (x.Sel.Name == "Now" || x.Sel.Name == "Since" || x.Sel.Name == "Until") {
-					reads = append(reads, name+": time."+x.Sel.Name)
+		for _, n := range decls[name] {
+			ast.Inspect(n.body, func(x ast.Node) bool {
+				switch x := x.(type) {
+				case *ast.SelectorExpr:
+					if id, ok := x.X.(*ast.Ident); ok && n.pkgs[id.Name] {
+						if n.times[id.Name] && (x.Sel.Name == "Now" || x.Sel.Name == "Since" || x.Sel.Name == "Until") {
+							reads = append(reads, n.name+": "+id.Name+"."+x.Sel.Name)
+						}
+						return false // another package's name, not this package's
+					}
+				case *ast.Ident:
+					switch {
+					case x.Name == "now" && len(decls["now"]) > 0:
+						reads = append(reads, n.name+": now")
+					case n.dot && (x.Name == "Now" || x.Name == "Since" || x.Name == "Until"):
+						reads = append(reads, n.name+": "+x.Name)
+					case len(decls[x.Name]) > 0 && !seen[x.Name]:
+						queue = append(queue, x.Name)
+					}
 				}
-			case *ast.Ident:
-				if x.Name == "now" {
-					reads = append(reads, name+": now")
-				} else if funcs[x.Name] != nil && !seen[x.Name] {
-					queue = append(queue, x.Name)
-				}
-			}
-			return true
-		})
+				return true
+			})
+		}
 	}
 	sort.Strings(reads)
-	return reads
+	return reads, true
+}
+
+// crClockScanWorks runs the scan on a synthetic package that reads the
+// clock only through an aliased import, a method, a package variable and a
+// dot import; a scan that misses one of them observes nothing.
+func crClockScanWorks(t *testing.T) {
+	t.Helper()
+	dir := t.TempDir()
+	src := map[string]string{
+		"a.go": "package p\n\nimport clock \"time\"\n\nvar started = clock.Now\n\ntype r struct{}\n\n" +
+			"func (r) stamp() any { return clock.Since(clock.Time{}) }\n\nfunc Root() { var x r; x.stamp(); _ = started; dotted() }\n",
+		"b.go": "package p\n\nimport . \"time\"\n\nfunc dotted() any { return Until(Time{}) }\n",
+	}
+	for name, body := range src {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+			t.Fatalf("setup: %v", err)
+		}
+	}
+	reads, ok := crClockReads(t, dir, "Root")
+	want := []string{"dotted: Until", "stamp: clock.Since", "started: clock.Now"}
+	if !ok || !reflect.DeepEqual(reads, want) {
+		t.Fatalf("setup: the clock scan finds %v in the synthetic package, want %v", reads, want)
+	}
 }
 
 // AC-5: a missing or non-folder series, unreadable records, a commit the
@@ -887,7 +996,24 @@ func TestSparCapReportAC5_InputFailuresRefused(t *testing.T) {
 		w.write(filepath.Join(broken, "extensions.jsonl"), line+"\n")
 		expectRefused("the extension line "+line, broken, w.repo, filepath.Join(broken, "extensions.jsonl"))
 	}
-	for i, body := range []string{"null", `[{"id": "host-F1"}]`, `[{"class": "defect"}]`, `[null]`} {
+	// The signal fields of an otherwise valid finding of 02-fixes.
+	var findings []map[string]any
+	if err := json.Unmarshal(w.read(filepath.Join(series, "02-fixes", "findings.json")), &findings); err != nil || len(findings) == 0 {
+		t.Fatalf("setup: findings.json of 02-fixes: %v", err)
+	}
+	bodies := []string{"null", `[{"id": "host-F1"}]`, `[{"class": "defect"}]`, `[null]`}
+	for _, change := range []map[string]any{{"introduced_by_change": "maybe"}, {"link_kind": "issue"}} {
+		mutated := map[string]any{}
+		for k, val := range findings[0] {
+			mutated[k] = val
+		}
+		for k, val := range change {
+			mutated[k] = val
+		}
+		data, _ := json.Marshal(append([]map[string]any{mutated}, findings[1:]...))
+		bodies = append(bodies, string(data))
+	}
+	for i, body := range bodies {
 		broken = clone(fmt.Sprintf("form-findings-%d", i))
 		w.write(filepath.Join(broken, "02-fixes", "findings.json"), body+"\n")
 		expectRefused("the findings "+body, broken, w.repo, filepath.Join(broken, "02-fixes", "findings.json"))
