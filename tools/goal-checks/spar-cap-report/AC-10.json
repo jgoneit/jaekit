@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "LinesWithoutCauseInSpar",
+      "violation": "extension-compat-broken",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparCapReportAC10_LinesWithoutCauseInSpar"
+      }
+    },
+    {
+      "id": "LinesWithoutCauseInHaCost",
+      "violation": "extension-compat-broken",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestSparCapReportAC10_LinesWithoutCauseInHaCost"
+      }
+    }
+  ]
+}

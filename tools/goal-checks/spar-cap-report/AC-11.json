@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "SkillCapProcedure",
+      "violation": "skill-cap-procedure-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSparCapReportAC11_SkillCapProcedure"
+      }
+    }
+  ]
+}
