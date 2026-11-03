@@ -495,13 +495,13 @@ func TestNumstatFollowsRenames(t *testing.T) {
 func TestExtendChecksItsRecordPath(t *testing.T) {
 	f := newFixture(t)
 	plain := t.TempDir()
-	if err := Extend(filepath.Join(f.repo, "reviews", "s"), "code", 1, "yes", plain, nil); err == nil {
+	if err := Extend(filepath.Join(f.repo, "reviews", "s"), "code", 1, "churn", "", "yes", plain, nil); err == nil {
 		t.Fatal("an extension with a --repo that is not a repository was recorded")
 	}
-	if err := Extend(filepath.Join(f.repo, "checks", "s"), "code", 1, "yes", f.repo, nil); err == nil {
+	if err := Extend(filepath.Join(f.repo, "checks", "s"), "code", 1, "churn", "", "yes", f.repo, nil); err == nil {
 		t.Fatal("an extension into a tracked folder was recorded")
 	}
-	if err := Extend(filepath.Join(f.repo, "reviews", "s"), "code", 1, "yes", f.repo, nil); err != nil {
+	if err := Extend(filepath.Join(f.repo, "reviews", "s"), "code", 1, "churn", "", "yes", f.repo, nil); err != nil {
 		t.Fatalf("an extension into an ignored folder: %v", err)
 	}
 }

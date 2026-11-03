@@ -117,10 +117,14 @@ type Waiver struct {
 	UserQuote string
 }
 
-// Extension is one line of the series' extensions.jsonl.
+// Extension is one line of the series' extensions.jsonl. Cause and Reason
+// are empty when the line has none, as every line written before code
+// extensions took a cause.
 type Extension struct {
 	Stage     string
 	By        int
+	Cause     string
+	Reason    string
 	UserQuote string
 }
 
@@ -449,6 +453,12 @@ func readExtensions(path string) ([]Extension, error) {
 			return err
 		}
 		if e.By, err = o.count("by"); err != nil {
+			return err
+		}
+		if e.Cause, err = o.optionalText("cause"); err != nil {
+			return err
+		}
+		if e.Reason, err = o.optionalText("reason"); err != nil {
 			return err
 		}
 		if e.UserQuote, err = o.text("user_quote"); err != nil {

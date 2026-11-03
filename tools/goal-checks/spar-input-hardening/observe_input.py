@@ -446,7 +446,7 @@ def summary_row(summary, fid):
 # AC-1: one input table in the public contract
 # ---------------------------------------------------------------------------
 
-ROWS = [f"G{n}" for n in range(1, 34)]
+ROWS = [f"G{n}" for n in range(1, 35)]
 # Format definitions the three contracts held before the table; each now
 # points to the table instead (fixed tokens).
 OLD_FORMATS = {
@@ -485,7 +485,7 @@ class Contract(unittest.TestCase):
         v = "input-table-incomplete"
         body = read_doc(self, CONTRACT, v)
         rows = table_rows(self, body, v)
-        require(self, list(rows) == ROWS, v, f"the table rows are {list(rows)}, not G1..G33 in order")
+        require(self, list(rows) == ROWS, v, f"the table rows are {list(rows)}, not G1..G34 in order")
         for row, cells in rows.items():
             require(self, all(cells), v, f"{row} has an empty cell")
             require(self, re.search(r"\(.+\)", cells[1]), v, f"{row} does not name who gives the field")
@@ -1275,7 +1275,7 @@ class RecordPaths(unittest.TestCase):
         result = w.round("reviews/nested/dir/r1", ok=None)
         require(self, result.returncode == 65 and not w.invocations() and not (nested / "dir/r1").exists(), v,
                 f"run --out under a folder the nested repository tracks: exit {result.returncode}")
-        result = w.spar_run("extend", "reviews/nested/dir", "--stage", "code", "--by", "1", "--user-quote", QUOTE)
+        result = w.spar_run("extend", "reviews/nested/dir", "--stage", "code", "--by", "1", "--cause", "churn", "--user-quote", QUOTE)
         require(self, result.returncode == 65 and not (nested / "dir/extensions.jsonl").exists(), v,
                 f"extend on a folder the nested repository tracks: exit {result.returncode}")
         # Paths both repositories ignore are accepted, and a gate file is replaced.
@@ -1445,7 +1445,7 @@ class Locks(unittest.TestCase):
                 and all("reject" in (summary_row(summary, fid) or "") for fid in ids), v,
                 f"two concurrent dispositions: ledger {ledger}, summary rows {[summary_row(summary, fid) for fid in ids]}")
         fd = hold_lock(series)
-        proc, err = start(w, ["extend", "reviews/lock", "--stage", "code", "--by", "1", "--user-quote", QUOTE], "extend")
+        proc, err = start(w, ["extend", "reviews/lock", "--stage", "code", "--by", "1", "--cause", "churn", "--user-quote", QUOTE], "extend")
         try:
             waits(self, proc, err, v, "spar extend")
         finally:
@@ -1478,6 +1478,7 @@ CONSUMERS = {
     "G29": ["spar gate"], "G30": ["spar triage", "spar gate"], "G31": ["spar run", "spar extend"],
     "G32": ["spar run", "spar record", "spar triage", "spar extend", "spar gate"],
     "G33": ["spar run", "spar record", "spar triage", "spar extend"],
+    "G34": ["spar cap-report"],
 }
 # The report bullets of the packet name only forms the table accepts.
 REPORT_FORMS = {

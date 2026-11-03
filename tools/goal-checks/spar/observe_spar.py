@@ -1191,9 +1191,9 @@ class Caps(unittest.TestCase):
         attempt("08-fixes", "fixes", heads[2], heads[3], True)
         attempt("09-fixes", "fixes", heads[3], heads[4], True)
         attempt("10-fixes", "fixes", heads[4], heads[5], False)
-        result = w.spar_run("extend", s, "--stage", "code", "--by", "1")
+        result = w.spar_run("extend", s, "--stage", "code", "--by", "1", "--cause", "churn")
         require(self, result.returncode != 0, v, "an extension without the user's words was accepted")
-        result = w.spar_run("extend", s, "--stage", "code", "--by", "1", "--user-quote", QUOTE)
+        result = w.spar_run("extend", s, "--stage", "code", "--by", "1", "--cause", "churn", "--user-quote", QUOTE)
         require(self, result.returncode == 0, v, f"extend refused: {text(result)[-300:]}")
         attempt("11-fixes", "fixes", heads[4], heads[5], True)
         # The same packet may run again only for reviewers that did not complete
@@ -1309,7 +1309,7 @@ class Gate(unittest.TestCase):
         rounds = []
         for i, stage in enumerate(("candidate", "fixes", "fixes", "fixes")):
             if i == 3:
-                w.spar_run("extend", "reviews/over", "--stage", "code", "--by", "1", "--user-quote", QUOTE)
+                w.spar_run("extend", "reviews/over", "--stage", "code", "--by", "1", "--cause", "churn", "--user-quote", QUOTE)
             out = f"reviews/over/0{i + 1}-{stage}"
             self.three_round(w, out, {"codex": {}, "claude": {}}, base=heads[0] if i == 0 else heads[i],
                              head=heads[i + 1], stage=stage)

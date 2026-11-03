@@ -28,7 +28,7 @@ type costWords struct {
 	budgetNone                                          string
 	bySource, bySourceNoSeries, waits, wait, inputs2    string
 	questions, undisposed, extensions                   string
-	extension                                           string
+	extension, cause, reason, noCause                   string
 	waivers, waiver, listNone                           string
 	notGiven, series, gate, gateRecorded, skipped       string
 	stages, stage, stageUnknown, roundsLabel, round     string
@@ -88,6 +88,9 @@ var costLanguages = map[string]costWords{
 		undisposed:         "no disposition",
 		extensions:         "- cap extensions:",
 		extension:          "  - %s: %s +%d: %s",
+		cause:              "    - cause: %s",
+		reason:             "; reason: %s",
+		noCause:            "    - cause: not recorded",
 		waivers:            "- reviewer waivers:",
 		waiver:             "  - %s %s %s: %s",
 		listNone:           " none",
@@ -169,6 +172,9 @@ var costLanguages = map[string]costWords{
 		undisposed:         "처리 없음",
 		extensions:         "- 상한 연장:",
 		extension:          "  - %s: %s +%d: %s",
+		cause:              "    - 원인: %s",
+		reason:             "; 이유: %s",
+		noCause:            "    - 원인: 기록 없음",
 		waivers:            "- 리뷰어 waiver:",
 		waiver:             "  - %s %s %s: %s",
 		listNone:           " 없음",
@@ -331,6 +337,14 @@ func renderCost(d *costDoc, w costWords) string {
 		costList(line, w.extensions, w.listNone, len(q.Extensions), func(i int) {
 			e := q.Extensions[i]
 			line(w.extension, e.Series, e.Stage, e.By, costOneLine(e.UserQuote))
+			switch {
+			case e.Cause == "":
+				line("%s", w.noCause)
+			case e.Reason == "":
+				line(w.cause, costOneLine(e.Cause))
+			default:
+				line(w.cause+w.reason, costOneLine(e.Cause), costOneLine(e.Reason))
+			}
 		})
 		costList(line, w.waivers, w.listNone, len(q.Waivers), func(i int) {
 			wv := q.Waivers[i]

@@ -209,9 +209,13 @@ func admit(siblings []sibling, exts []Extension, r *RoundRecord) (bool, []string
 	// the round being admitted comes after every sibling.
 	allowed := capFor(r.Config.Caps, group) + extensionsFor(exts, group)
 	if counted >= allowed {
-		return false, nil, refused("the %s cap is reached in %s: %d of %d rounds ran; only reviewers that did not complete the same packet may run again, "+
+		msg := fmt.Sprintf("the %s cap is reached in %s: %d of %d rounds ran; only reviewers that did not complete the same packet may run again, "+
 			"and more rounds need the user's words recorded with `spar extend %s --stage %s --by N --user-quote ...`",
 			strings.ReplaceAll(group, "_", "-"), r.Series, counted, allowed, r.Series, extendStage(group))
+		if group == "code" {
+			msg += fmt.Sprintf("; read why with `spar cap-report %s` and record a code extension with --cause", r.Series)
+		}
+		return false, nil, refused("%s", msg)
 	}
 	return true, nil, nil
 }

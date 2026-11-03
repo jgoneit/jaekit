@@ -138,6 +138,14 @@ Ask your agent, for example `$spar:spar` in Codex or `/spar:spar` in Claude Code
 
 One series allows one plan round, one plan-delta round and three code rounds. A round past its cap is refused before any reviewer starts; only your words, recorded with `spar extend`, allow more. Rerunning reviewers that did not finish the same packet, for example after a quota refusal, does not count.
 
+When the code rounds run out, the `spar run` refusal points to that series' cap report. `spar cap-report` reads only the series' records and Git, shows the cap use, the rounds, the open findings and four signals (churn, recurring links, unrelated defects, check growth), and writes nothing. Churn is counted by file and recurring links by link, and unrelated defects use each reviewer's judgment as given.
+
+```bash
+spar cap-report docs/reviews/example
+```
+
+The report never picks a cause. The agent picks one cause (`--cause`) from the signals among `churn`, `recurring`, `unrelated`, `hardening`, `other`, asks you with its recommendation, and records `spar extend <series> --stage code --by 1 --cause <cause> --user-quote "…"` only when your words allow more rounds. `--by 2` or more, and `--cause other`, need `--reason`. Give the series to `ha cost` with `--series` to see the recorded cause and reason in its list of cap extensions.
+
 Each round writes a new, Git-ignored folder with `round.json`, `packet.md`, `findings.json`, `ledger.jsonl` and `summary.md`. Spar refuses a folder that Git would track, because the packet can contain private documents ([Set up a project](#set-up-a-project)).
 
 <details>
