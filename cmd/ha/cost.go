@@ -148,10 +148,14 @@ type costQuestion struct {
 	UserQuote   *string `json:"user_quote"`
 }
 
+// costExtension leaves out the cause and reason of a line that has none,
+// so such a line keeps the form it had before extensions took a cause.
 type costExtension struct {
 	Series    string `json:"series"`
 	Stage     string `json:"stage"`
 	By        int    `json:"by"`
+	Cause     string `json:"cause,omitempty"`
+	Reason    string `json:"reason,omitempty"`
 	UserQuote string `json:"user_quote"`
 }
 
@@ -745,7 +749,8 @@ func costSeriesPart(lines []record.Line, series []*reviewseries.Series, doc *cos
 			}
 		}
 		for _, e := range s.Extensions {
-			q.Extensions = append(q.Extensions, costExtension{Series: s.Path, Stage: e.Stage, By: e.By, UserQuote: e.UserQuote})
+			q.Extensions = append(q.Extensions, costExtension{Series: s.Path, Stage: e.Stage, By: e.By, Cause: e.Cause,
+				Reason: e.Reason, UserQuote: e.UserQuote})
 		}
 		gr := costSeriesGrowth(s, fixes, recorded)
 		if gr.Lines == nil {

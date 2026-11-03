@@ -15,8 +15,17 @@ import (
 
 // git runs the user's git CLI in a repository and returns its standard output.
 func git(repo string, args ...string) ([]byte, error) {
+	return gitWith(repo, nil, args...)
+}
+
+// noLazyFetch makes Git refuse to fetch an object a partial clone lacks
+// instead of fetching it (Git 2.44 or later), so a reader changes nothing.
+var noLazyFetch = []string{"GIT_NO_LAZY_FETCH=1"}
+
+// gitWith is git with more environment variables.
+func gitWith(repo string, env []string, args ...string) ([]byte, error) {
 	cmd := exec.Command("git", append([]string{"-c", "core.quotepath=off", "-C", repo}, args...)...)
-	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0", "LC_ALL=C")
+	cmd.Env = append(append(os.Environ(), "GIT_TERMINAL_PROMPT=0", "LC_ALL=C"), env...)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()
@@ -70,11 +79,32 @@ func diff(repo, base, head string) ([]byte, error) {
 	return git(repo, "diff", "--no-color", "--no-ext-diff", "--no-textconv", "-M", base, head, "--")
 }
 
+// changedFiles lists the paths that differ between two commits. Renames are
+// not detected, so a renamed file is listed under both of its names.
+func changedFiles(repo string, env []string, base, head string) (map[string]bool, error) {
+	out, err := gitWith(repo, env, "diff", "--name-only", "-z", "--no-renames", base, head, "--")
+	if err != nil {
+		return nil, err
+	}
+	files := map[string]bool{}
+	for _, path := range strings.Split(string(out), "\x00") {
+		if path != "" {
+			files[path] = true
+		}
+	}
+	return files, nil
+}
+
 // numstat returns the lines each path gained between two commits. Renames
 // are detected as in diff, so a renamed file counts only the lines it
 // gained, under its new path.
 func numstat(repo, base, head string) (map[string]int, error) {
-	out, err := git(repo, "diff", "--numstat", "-z", "-M", base, head, "--")
+	return numstatWith(repo, nil, base, head)
+}
+
+// numstatWith is numstat with more environment variables for Git.
+func numstatWith(repo string, env []string, base, head string) (map[string]int, error) {
+	out, err := gitWith(repo, env, "diff", "--numstat", "-z", "-M", base, head, "--")
 	if err != nil {
 		return nil, err
 	}

@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -139,8 +140,10 @@ func Triage(o TriageOptions) error {
 	return os.WriteFile(filepath.Join(dir, "summary.md"), []byte(renderSummary(dir, r, findings, ledger)), 0o644)
 }
 
-// Extend records the user's words allowing more rounds in a series.
-func Extend(series, stage string, by int, quote string, repoHint string, log io.Writer) error {
+// Extend records the user's words allowing more rounds in a series. A code
+// extension also records why the cap ran out: one of Causes, and a reason,
+// which --by 2 or more and the cause other need.
+func Extend(series, stage string, by int, cause, reason, quote string, repoHint string, log io.Writer) error {
 	group := ""
 	switch stage {
 	case "plan", "plan-delta", "code":
@@ -151,8 +154,22 @@ func Extend(series, stage string, by int, quote string, repoHint string, log io.
 	if by < 1 {
 		return usageError("--by must be a positive number of rounds")
 	}
+	reason = strings.TrimSpace(reason)
+	if group != "code" {
+		if cause != "" || reason != "" {
+			return usageError("--cause and --reason are only for --stage code")
+		}
+	} else if !slices.Contains(Causes, cause) {
+		return usageError("--stage code needs --cause %s", strings.Join(Causes, ", "))
+	}
 	if strings.TrimSpace(quote) == "" {
 		return refused("an extension needs --user-quote with the user's words")
+	}
+	switch {
+	case group == "code" && by > 1 && reason == "":
+		return refused("a code extension by %d rounds needs --reason", by)
+	case cause == "other" && reason == "":
+		return refused("--cause other needs --reason")
 	}
 	path := realish(series)
 	start := repoHint
@@ -178,5 +195,6 @@ func Extend(series, stage string, by int, quote string, repoHint string, log io.
 		return refused("%s cannot be locked: %v", series, err)
 	}
 	defer unlock()
-	return appendJSONLine(filepath.Join(path, "extensions.jsonl"), Extension{Stage: group, By: by, UserQuote: quote, RecordedAt: now()})
+	return appendJSONLine(filepath.Join(path, "extensions.jsonl"), Extension{Stage: group, By: by, Cause: cause, Reason: reason,
+		UserQuote: quote, RecordedAt: now()})
 }

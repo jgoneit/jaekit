@@ -143,7 +143,10 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 - 단계 묶음은 `plan`, `plan_delta`, `code`(candidate와 fixes)다. series에서 `counted`가 `true`인 같은 묶음의 라운드 수가 상한과 연장의 합 이상이면 새 실행을 거부한다.
 - 같은 단계·base·head·패킷 digest의 앞선 실행이 있고, 이번 실행의 리뷰어가 모두 그 실행들에서 완료하지 못한 리뷰어(이름과 preset이 같은 리뷰어)이면 상한에 세지 않는다(`counted: false`, `rerun_of`). 라운드는 series마다 하나씩 실행되므로 `finished_at`이 없는 앞선 라운드는 도중에 멈춘 것이고, 그 리뷰어는 완료하지 못한 것이다. 그 밖의 실행은 모두 센다.
 - fixes 라운드의 base는 같은 series의 마지막 code 라운드의 head여야 한다. 아니면 거부한다. 이번 실행과 단계·base·head·패킷 digest가 모두 같은 앞선 라운드(같은 패킷의 재실행)만 건너뛴다. 패킷이 다르면 base·head가 같아도 그 라운드가 사슬의 마지막이다.
-- 연장은 `spar extend <series> --stage plan|plan-delta|code --by N --user-quote "…"`로 series의 `extensions.jsonl`에 `{"stage", "by", "user_quote", "recorded_at"}`을 더한다. 사용자의 말이 없으면 거부한다. series 경로는 `--out`과 같은 기록 경로 규칙(G28)을 따르고(검토하는 저장소를 찾지 못해도 그 경로가 속한 저장소로 확인한다), `--repo`가 Git 저장소가 아니면 거부한다.
+- 연장은 `spar extend <series> --stage plan|plan-delta|code --by N [--cause <원인>] [--reason "…"] --user-quote "…"`로 series의 `extensions.jsonl`에 `{"stage", "by", "cause", "reason", "user_quote", "recorded_at"}`을 더한다. `cause`와 `reason`은 있을 때만 쓴다. 사용자의 말이 없으면 거부한다. series 경로는 `--out`과 같은 기록 경로 규칙(G28)을 따르고(검토하는 저장소를 찾지 못해도 그 경로가 속한 저장소로 확인한다), `--repo`가 Git 저장소가 아니면 거부한다.
+- code 연장은 상한을 다 쓴 원인을 `--cause`로 받는다. 값은 `churn`, `recurring`, `unrelated`, `hardening`, `other` 다섯 가운데 하나이고(대소문자 구분), 이 다섯이 전부다. 없거나 목록 밖이면 사용법 오류(64)다. `--reason`은 앞뒤 공백을 떼고 기록하며, 뗀 뒤 비면 이유가 없는 것이다. `--by`가 2 이상이거나 `--cause other`이면 이유가 필요하고, 없으면 거부(65)한다. plan·plan-delta 연장은 `--cause`·`--reason`을 받지 않아 사용법 오류(64)로 끝나며, 그 줄은 이전처럼 `{"stage", "by", "user_quote", "recorded_at"}`이다. 어느 오류와 거부도 아무것도 쓰지 않는다. 원인은 실행자가 11절의 보고를 보고 고르며, spar는 고르지 않는다.
+- 상한 계산, 재실행 판단, gate는 `cause`·`reason`을 읽지 않는다. 원인이 없는 줄(이 기능 전에 기록한 줄)도 지금처럼 `stage`와 `by`로 센다.
+- code 상한 거부 메시지는 위의 글 뒤에 ``; read why with `spar cap-report <series>` and record a code extension with --cause``를 붙인다. plan·plan-delta 상한 거부 메시지는 그대로다.
 
 ## 9. native 리뷰어
 
@@ -162,3 +165,61 @@ spar waive docs/reviews/example/02-candidate agy --user-quote "agy 없이 진행
 - 다음 경우에는 아무것도 쓰지 않고 이유와 함께 65로 끝난다: `--user-quote`가 없거나 앞뒤 공백을 뗀 뒤 비어 있음, 라운드를 읽을 수 없음(`round.json`·`findings.json`·`ledger.jsonl`이 없거나 해석되지 않음, G32), dry run 라운드, 그 리뷰어가 그 라운드의 필수 리뷰어([검토 gate](review-gate.md) 2절)가 아님, 그 리뷰어가 그 라운드나 같은 series에서 단계·base·head·패킷이 같은 다른 라운드(재실행)에서 같은 preset의 필수 리뷰어로 완료함, 그 라운드에 그 리뷰어의 결정이 이미 있음, `waivers.jsonl`을 읽을 수 없음, 이 기능 전에 기록한 라운드에 이름이 `waivers.jsonl`(대소문자 무시)인 리뷰어가 있어 그 폴더가 파일 자리를 차지함.
 - 결정이 기록된 리뷰어는 그 라운드의 `degraded` 사유가 되지 않고 gate 파일에 따로 보인다. 완료한 필수 리뷰어가 하나도 없는 라운드는 결정이 있어도 `degraded`다([검토 gate](review-gate.md) 2절).
 - 결정은 그 라운드에만 적용된다. 같은 패킷의 재실행도 다른 라운드이므로, 그 라운드에서도 그 리뷰어가 끝내지 못하면 다시 기록한다.
+
+## 11. 상한 보고
+
+`spar cap-report`는 series의 code 라운드 기록과 Git을 읽어, 상한을 쓴 모습과 상한 안에서 끝나지 못한 이유를 볼 신호를 보인다. 원인을 고르거나 연장을 권하지 않는다. 원인은 실행자가 고르고, 연장은 사용자가 정한다(8절).
+
+```bash
+spar cap-report docs/reviews/example --format json --repo .
+```
+
+- **읽는 것.** series의 라운드(`round.json`, `findings.json`, `ledger.jsonl`), `extensions.jsonl`, 그리고 `--repo`(없으면 현재 폴더)를 품은 Git 저장소만 읽는다. 설정 파일을 읽지 않고, series를 잠그지 않으며(`spar gate`와 같다), 아무것도 쓰지 않는다. 부분 clone에 없는 Git 객체를 가져오지 않도록 Git에 `GIT_NO_LAZY_FETCH=1`을 준다(Git 2.44부터 따른다). 현재 시각을 쓰지 않으므로 같은 기록과 Git이면 출력이 바이트까지 같다.
+- **형식.** `--format md`(기본)는 사람이 읽는 Markdown이고, `--format json`은 `spar-cap-report/v1` JSON 객체다. 둘은 같은 값을 담는다.
+- **종료 코드.** 0 보고, 64 사용법 오류(series 없음, 모르는 옵션, `md`·`json` 밖의 형식), 65 거부. 거부하면 표준 출력에 아무것도 쓰지 않는다.
+
+| 키 | 값 |
+| --- | --- |
+| `schema` | `spar-cap-report/v1` |
+| `series` | 준 series 경로 그대로 |
+| `cap` | `code`: series에서 `sequence`가 가장 큰 라운드(단계와 관계없이)의 설정 code 상한, 라운드가 없으면 `null`. `extensions`: code 연장 줄의 `by` 합계(원인이 없는 줄도 센다). `allowed`: `code + extensions`, `code`가 `null`이면 `null`. `counted`: `counted`가 참이고 dry run이 아닌 code 라운드 수. `spar run`의 상한 판단과 같으므로 지적을 기록하기 전에 멈춘 라운드도 센다 |
+| `rounds` | `candidate`·`fixes` 라운드 가운데 dry run이 아니고 지적을 기록하기 전에 멈추지 않은 것, sequence 순(같으면 폴더 이름 순). 라운드마다 `round`(폴더 이름), `stage`, `sequence`, `base`, `head`(전체 SHA), `counted`, `classes`(`defect`·`requirement-question`·`hardening`·`note`별 지적 수). 같은 패킷의 재실행은 `counted: false`로 든다 |
+| `skipped` | 목록과 신호에서 뺀 code 라운드: `{round, reason}`. `reason`은 dry run이면 `dry run`, 지적을 기록하기 전에 멈춘 라운드(gate처럼 `finished_at`도 `findings.json`도 없음)면 `stopped before recording findings` |
+| `open` | gate와 같은 기준([검토 gate](review-gate.md))으로 열린 `defect`·`requirement-question`: 마지막 처리가 없거나 `duplicate` 사슬이 열린 지적에서 끝난다. `{round, finding, class}` |
+| `churn` | 첫 counted `candidate` 라운드 뒤의 라운드마다 `{round, count, findings}`. 대상은 `defect`·`requirement-question` 가운데 위치를 읽을 수 있고, 경로가 그 첫 라운드의 head와 그 라운드의 head 사이에서 바뀐 파일(`git diff --name-only --no-renames`)인 지적이다 |
+| `recurring` | 같은 연결(`link_kind`, `link`)이 패킷(단계·base·head·패킷 digest)이 다른 라운드 둘 이상에서 `defect`·`requirement-question`으로 나온 것: `{link_kind, link, rounds}`. 같은 패킷의 재실행은 한 라운드라서, `rounds`에는 패킷마다 목록 순으로 처음 나온 라운드만 든다. 연결 순으로 정렬한다 |
+| `unrelated` | `introduced_by_change`가 `no`나 `unknown`인 `defect`: `{round, finding}`. 그 수는 목록의 길이다 |
+| `check_growth` | gate `growth`와 같은 계산: 목록에 든 `fixes` 라운드가 더한 줄(`git diff --numstat -M`)을 그 라운드 설정의 검사 경로 안(`check`)과 밖(`other`)으로 나눈 합. `over_hardening`은 `check`가 `other`보다 클 때 참 |
+| `limits` | 세 지적 신호의 경계 문장(아래) |
+
+세 지적 신호(`churn`, `recurring`, `unrelated`)는 마지막 처리가 `reject`나 `duplicate`인 지적을 세지 않는다. 열린 지적과 class 수는 처리와 관계없이 기록을 그대로 센다. 신호의 경계는 `limits`에 고정 문장으로 함께 나온다.
+
+- `churn`: "Counted by file: a finding in a file the fixes changed counts even when it is about another line." 파일 단위이므로, 바뀐 파일의 무관한 줄에 대한 지적도 센다.
+- `recurring`: "Counted by link: the same problem reported under different links is not grouped." 같은 문제를 다른 연결로 낸 지적은 묶이지 않는다.
+- `unrelated`: "Uses each reviewer's introduced_by_change as reported." 리뷰어가 낸 판단을 그대로 쓴다.
+
+Markdown은 JSON의 `schema`(형식 이름)를 뺀 모든 값을 담는다. 순서는 다음과 같다. 빈 목록은 `- none`이다.
+1. `# Cap report: <series>`
+2. `- code rounds counted: <counted> of <allowed> (cap <code>, extensions <n>)`. 상한을 모르면 `of unknown (cap unknown, extensions <n>)`.
+3. `- open: defect <n>, requirement-question <n>`
+4. `## Rounds` 표(열 `Round | Stage | Sequence | Counted | Base | Head | defect | requirement-question | hardening | note`, 커밋은 전체 ID). 건너뛴 라운드가 있으면 `- skipped <round>: <reason>`.
+5. `## Open findings`: `- <round> <finding> (<class>)`
+6. `## Signals`:
+   - `### Churn`: `- <round>: <count> (<ID>, …)`, 0이면 `- <round>: 0`.
+   - `### Recurring links`: `- <link_kind> <link>: <round>, …`
+   - `### Unrelated defects`: 먼저 `- count: <n>`, 이어서 `- <round> <finding>`. 0이면 `- count: 0` 줄만 있다.
+   - `### Check growth`: `- added lines: check <n>, other <n>; over hardening: yes|no`
+7. `## Limits`: `- churn: …`, `- recurring: …`, `- unrelated: …`
+
+다음 경우에는 표준 오류에 실패한 경로나 커밋을 밝히고 65로 끝나며 보고를 내지 않는다. 깨진 입력을 신호가 없는 보고로 바꾸지 않는다.
+- series가 없거나 폴더가 아니다.
+- `round.json`을 열 수 없거나 JSON이 아니다. `round.json`이 없거나 다른 형식의 JSON(`schema`가 `review-round/v1`인 객체가 아닌 것, 목록 포함)인 폴더는 다른 도구의 것이라 건너뛴다.
+- `round.json`의 `stage`가 계약의 네 단계 밖이다.
+- 보고가 읽는 `round.json` 필드가 없거나 `null`이거나 spar가 쓰는 JSON 타입이 아니다: `stage`·`base`·`head`·`packet_sha256`(글), `sequence`(정수), `dry_run`·`counted`(참거짓), `config`(객체)의 `caps.code`(정수)와 `check_paths`(글의 목록, `null`은 목록 없음), 그리고 있을 때의 `finished_at`(글).
+- 끝난 라운드(`finished_at`이 있음)에 `findings.json`이 없거나, `findings.json`이 있는데 `ledger.jsonl`이 없다.
+- 목록 라운드의 `findings.json`이 지적의 목록이 아니거나(`null` 포함), 지적에 `id`가 없거나, `class`가 네 class 밖이거나, 신호가 읽는 `introduced_by_change`가 `yes`·`no`·`unknown` 밖이거나 `link_kind`가 `criterion`·`rule`·`contract`·`none` 밖이다. 또는 지적의 `id`·`class`·`introduced_by_change`·`link_kind`·`link`·`path`가 없거나 `null`이거나 글이 아니거나, 있는 `location_unreadable`이 참거짓이 아니다.
+- 목록 라운드의 `ledger.jsonl` 줄이 해석되지 않거나, `finding`이 없거나, `disposition`이 다섯 처리 밖이다.
+- `extensions.jsonl` 줄이 해석되지 않거나 형식 밖이다: `stage`가 `plan`·`plan-delta`·`code` 밖, `by`가 1 미만, `user_quote`가 비었음, `cause`가 code 줄이 아닌 곳에 있거나 다섯 값 밖, `cause`가 있는 줄의 `by`가 2 이상이거나 `cause`가 `other`인데 `reason`이 없거나 비었음. 원인이 없는 code 줄(이 기능 전에 기록한 줄)에는 이유를 요구하지 않는다.
+- `--repo`가 Git 저장소가 아니거나 Git을 시작할 수 없다.
+- 실행하는 Git이 2.44보다 오래되었고(`GIT_NO_LAZY_FETCH`를 모른다) 저장소가 부분 clone이다(`extensions.partialClone`이나 참인 `remote.<이름>.promisor`가 있음). 객체를 읽기 전에 거부하며, 이유에 Git 버전을 밝힌다.
+- 목록 라운드의 base나 head가 저장소에 없다(얕은 clone 포함), 또는 보고에 필요한 객체가 부분 clone에 없다.

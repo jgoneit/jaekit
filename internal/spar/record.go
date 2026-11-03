@@ -106,13 +106,20 @@ type LedgerEntry struct {
 	RecordedAt   string `json:"recorded_at"`
 }
 
-// Extension is one line of a series' extensions.jsonl.
+// Extension is one line of a series' extensions.jsonl. Only a code
+// extension has a cause, and a reason when one was given; lines written
+// before causes existed have neither, and both are left out of the cap.
 type Extension struct {
 	Stage      string `json:"stage"`
 	By         int    `json:"by"`
+	Cause      string `json:"cause,omitempty"`
+	Reason     string `json:"reason,omitempty"`
 	UserQuote  string `json:"user_quote"`
 	RecordedAt string `json:"recorded_at"`
 }
+
+// Causes are the reasons a code cap ran out that a code extension records.
+var Causes = []string{"churn", "recurring", "unrelated", "hardening", "other"}
 
 func writeJSON(path string, v any) error {
 	data, err := json.MarshalIndent(v, "", "  ")
