@@ -9,8 +9,8 @@
           <span lang="ko">맡긴 작업이 정말 끝났는지,<br><span class="dim">기록으로 확인합니다.</span></span>
           <span lang="en">Is the work really done?<br><span class="dim">Check the record.</span></span>
         </h1>
-        <p class="sub" lang="ko">Claude Code·Codex는 조건 일부를 빠뜨리거나 일찍 멈추고도 "다 했습니다"라고 하곤 합니다. Jaekit은 무엇을 하면 끝인지 작업 전에 목표로 정해 두고, 조건마다 남은 검사 기록으로 완료를 판단합니다.</p>
-        <p class="sub" lang="en">Claude Code and Codex sometimes skip a condition or stop early and still say "done". Jaekit writes down what finished means before the work starts, and judges completion from a check record for each condition.</p>
+        <p class="sub" lang="ko">Jaekit은 Claude Code·Codex에 더해 쓰는 플러그인과 터미널 프로그램입니다. 일을 맡기기 전에 무엇을 하면 끝인지 문서로 정해 두고, 끝났는지는 에이전트의 말이 아니라 검사를 실제로 돌린 기록으로 판단합니다.</p>
+        <p class="sub" lang="en">Jaekit is a set of plugins for Claude Code and Codex, plus two small terminal programs. Before the work starts, it writes down what finished means; at the end, it judges completion from records of checks that actually ran, not from the agent's word.</p>
         <div class="cmd"><pre><code><span class="p">$ </span>{{install}}</code></pre><button type="button" class="copy" data-copy="{{install}}">copy</button></div>
         <div class="actions">
           <a class="btn primary" id="get-started" href="{{install_page}}"><span lang="ko">시작하기</span><span lang="en">Get started</span> →</a>
@@ -27,7 +27,7 @@
       </div>
       <div class="stage-hint">
         <span lang="ko">커서를 가져가 보고, 클릭해 보세요</span><span lang="en">Move your cursor over it, then click</span>
-        <span>spec → seal → record</span>
+        <span lang="ko">목표 정하기 → 맡기기 → 기록으로 확인</span><span lang="en">set the goal → hand it over → check the record</span>
       </div>
     </div>
   </section>
@@ -36,27 +36,83 @@
     <div class="wrap">
       <div class="block-head">
         <span class="mono-label"><span lang="ko">왜 필요한가</span><span lang="en">Why</span></span>
-        <h2 lang="ko">에이전트를 절차에 가두지도, 말만 믿지도 않습니다.</h2>
-        <h2 lang="en">Don't cage the agent. Don't just take its word.</h2>
-        <p lang="ko">에이전트를 단계마다 승인과 절차로 묶으면, 모델이 좋아질수록 그 절차가 한계가 됩니다. 보고만 믿으면 "테스트를 통과했습니다"가 목표를 이뤘다는 뜻인지 알 수 없습니다. Jaekit은 세 가지만 붙잡고 나머지는 에이전트에게 맡깁니다.</p>
-        <p lang="en">Bind the agent to approvals and procedures at every step, and the procedure becomes its limit as models improve. Just trust its report, and you cannot tell whether "the tests pass" means the goal is met. Jaekit holds on to three things and leaves the rest to the agent.</p>
+        <h2 lang="ko">“다 했습니다”만으로는 알 수 없는 것들</h2>
+        <h2 lang="en">What “done” doesn't tell you</h2>
+        <p lang="ko">AI 코딩 에이전트에 일을 맡기면 이런 일이 생기곤 합니다.</p>
+        <p lang="en">Hand work to an AI coding agent and these can happen.</p>
       </div>
       <div class="holds">
         <div>
-          <h3><span lang="ko">목표는 내가 정합니다</span><span lang="en">You set the goal</span></h3>
-          <p lang="ko">무엇을 하면 끝인지 작업 전에 문서로 정합니다. 구현하는 동안 에이전트는 그 문서를 고치지 않습니다.</p>
-          <p lang="en">What finished means is written down before the work starts. While implementing, the agent does not edit that document.</p>
+          <h3><span lang="ko">조건 일부가 빠져 있습니다</span><span lang="en">Some conditions are missing</span></h3>
+          <p lang="ko">열 가지를 부탁했는데 일곱 가지만 하고 끝냅니다. 어려운 조건을 쉬운 조건으로 바꿔 읽기도 합니다.</p>
+          <p lang="en">You asked for ten things and got seven. A hard condition gets read as an easier one.</p>
         </div>
         <div>
-          <h3><span lang="ko">일은 에이전트가 합니다</span><span lang="en">Your agent does the work</span></h3>
-          <p lang="ko">계획, 순서, 도구는 에이전트가 정합니다. 단계마다 승인하지 않고, 결과를 바꾸는 결정이 필요할 때만 묻습니다.</p>
-          <p lang="en">Planning, order and tools are the agent's choice. You do not approve each step; it asks only when a decision would change the outcome.</p>
+          <h3><span lang="ko">무엇을 검사했는지 모릅니다</span><span lang="en">You can't see what was checked</span></h3>
+          <p lang="ko">“테스트를 통과했습니다”라고 하지만, 어느 코드에서 무엇을 돌렸는지는 바뀐 코드를 처음부터 읽어야 압니다.</p>
+          <p lang="en">It says “the tests pass”, but to learn what ran against which code you read the whole change yourself.</p>
         </div>
         <div>
-          <h3><span lang="ko">완료는 기록으로 판단합니다</span><span lang="en">Records decide completion</span></h3>
-          <p lang="ko">조건마다 검사를 돌린 기록이 있어야 완료가 남습니다. 새 동작의 검사는 바꾸기 전에 실패하고 바꾼 뒤에 통과해야 합니다.</p>
-          <p lang="en">Completion is recorded only when each condition has a record of its check. A check for new behavior must fail before the change and pass after it.</p>
+          <h3><span lang="ko">대화가 끊기면 처음부터입니다</span><span lang="en">A new conversation starts from zero</span></h3>
+          <p lang="ko">새 대화에서는 무엇을 약속했고 어디까지 했는지 다시 설명해야 합니다.</p>
+          <p lang="en">In a new conversation you explain again what was promised and how far it got.</p>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="compare">
+    <div class="wrap">
+      <div class="block-head">
+        <span class="mono-label"><span lang="ko">무엇이 달라지나</span><span lang="en">What changes</span></span>
+        <h2 lang="ko">Jaekit이 있으면 기록이 남고, 없으면 말만 남습니다.</h2>
+        <h2 lang="en">With Jaekit you get a record. Without it, just words.</h2>
+        <p lang="ko">같은 일을 대화로만 맡길 때와 Jaekit으로 맡길 때를 나란히 놓았습니다. 어느 쪽이든 일은 같은 에이전트가 합니다.</p>
+        <p lang="en">The same work, handed over in a plain conversation and through Jaekit. Either way, the same agent does the work.</p>
+      </div>
+      <div class="compare-wrap">
+        <table class="compare">
+          <thead>
+            <tr><th scope="col"><span lang="ko">이럴 때</span><span lang="en">When</span></th><th scope="col" class="without"><span lang="ko">대화로만 맡기면</span><span lang="en">Plain conversation</span></th><th scope="col" class="with"><span lang="ko">Jaekit으로 맡기면</span><span lang="en">With Jaekit</span></th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><span lang="ko">일을 시작할 때</span><span lang="en">Starting the work</span></th>
+              <td class="without"><i class="tag"><span lang="ko">대화로만</span><span lang="en">Plain</span></i><span lang="ko">무엇을 하면 끝인지가 대화 곳곳에 흩어집니다.</span><span lang="en">What finished means is scattered across the chat.</span></td>
+              <td class="with"><i class="tag">Jaekit</i><span lang="ko">완료 조건을 먼저 문서로 정하고, 내가 확인한 뒤에 시작합니다.</span><span lang="en">The completion conditions are written down first, and work starts after you confirm them.</span></td>
+            </tr>
+            <tr>
+              <th scope="row"><span lang="ko">검사를 돌리면</span><span lang="en">A check runs</span></th>
+              <td class="without"><i class="tag"><span lang="ko">대화로만</span><span lang="en">Plain</span></i><span lang="ko">“통과했습니다”라는 말만 남습니다.</span><span lang="en">Only the words “it passed” are left.</span></td>
+              <td class="with"><i class="tag">Jaekit</i><span lang="ko">에이전트가 <code>ha</code>로 돌린 검사는 어느 commit에서 어떤 명령을 돌려 어떤 결과가 났는지 한 줄씩 기록됩니다.</span><span lang="en">Each check your agent runs through <code>ha</code> is recorded on one line: the commit, the command and the result.</span></td>
+            </tr>
+            <tr>
+              <th scope="row"><span lang="ko">코드를 또 고치면</span><span lang="en">The code changes again</span></th>
+              <td class="without"><i class="tag"><span lang="ko">대화로만</span><span lang="en">Plain</span></i><span lang="ko">앞의 “통과”가 지금 코드에도 맞는지 알 수 없습니다.</span><span lang="en">You can't tell whether the earlier pass still holds.</span></td>
+              <td class="with"><i class="tag">Jaekit</i><span lang="ko">앞의 통과 기록은 남지만 근거로 세지 않습니다. 지금 코드에서 다시 검사해야 합니다.</span><span lang="en">The earlier pass stays in the record but no longer counts. The check has to run again on the current code.</span></td>
+            </tr>
+            <tr>
+              <th scope="row"><span lang="ko">바꾸기 전에도 통과하는 검사</span><span lang="en">A check that already passes before the change</span></th>
+              <td class="without"><i class="tag"><span lang="ko">대화로만</span><span lang="en">Plain</span></i><span lang="ko">새 동작이 생겼는지 가려내지 못하는 검사도 통과로 보입니다.</span><span lang="en">A check that can't tell whether the new behavior exists still looks like a pass.</span></td>
+              <td class="with"><i class="tag">Jaekit</i><span lang="ko">새 동작의 검사는 바꾸기 전 코드에서 그 동작이 없어 실패한 기록이 있어야 근거가 됩니다.</span><span lang="en">A check for new behavior counts only with a record of it failing on the code before the change, because the behavior was missing.</span></td>
+            </tr>
+            <tr>
+              <th scope="row"><span lang="ko">기존 테스트를 고치면</span><span lang="en">Existing tests are edited</span></th>
+              <td class="without"><i class="tag"><span lang="ko">대화로만</span><span lang="en">Plain</span></i><span lang="ko">테스트를 느슨하게 고쳐도 “통과”로 보입니다.</span><span lang="en">A loosened test still shows “pass”.</span></td>
+              <td class="with"><i class="tag">Jaekit</i><span lang="ko">내 요청이 허락하지 않은 테스트 변경이나 테스트를 약하게 만드는 변경이 있으면, 내가 확인하기 전까지 완료되지 않습니다.</span><span lang="en">A test change the request didn't allow, or one that weakens a test, blocks completion until you confirm it.</span></td>
+            </tr>
+            <tr>
+              <th scope="row"><span lang="ko">대화가 끊기면</span><span lang="en">The conversation ends</span></th>
+              <td class="without"><i class="tag"><span lang="ko">대화로만</span><span lang="en">Plain</span></i><span lang="ko">처음부터 다시 설명합니다.</span><span lang="en">You explain everything again.</span></td>
+              <td class="with"><i class="tag">Jaekit</i><span lang="ko">새 대화에서 목표 폴더를 짚어 “이어서 해줘”라고 하면, 그 폴더와 기록을 읽고 이어 갑니다.</span><span lang="en">In a new conversation, name the goal folder and ask to continue; the agent reads the folder and its record and picks up from there.</span></td>
+            </tr>
+            <tr>
+              <th scope="row"><span lang="ko">“다 됐습니다”</span><span lang="en">“Done”</span></th>
+              <td class="without"><i class="tag"><span lang="ko">대화로만</span><span lang="en">Plain</span></i><span lang="ko">끝났는지가 말로 정해집니다.</span><span lang="en">Whether it is finished is settled by words.</span></td>
+              <td class="with"><i class="tag">Jaekit</i><span lang="ko"><code>ha</code>가 기록과 목표 폴더의 문서, Git을 보고 완료인지 계산해 남깁니다.</span><span lang="en"><code>ha</code> works out completion from the record, the documents in the goal folder and Git, and records it.</span></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </section>
@@ -67,8 +123,8 @@
         <span class="mono-label"><span lang="ko">작동 방식</span><span lang="en">How it works</span></span>
         <h2 lang="ko">내가 하는 일은 세 가지입니다.</h2>
         <h2 lang="en">You do three things.</h2>
-        <p lang="ko">원하는 일을 말하고, 목표 문서를 확인해 "응"이라고 답하고, 완료 보고를 읽습니다. 그 사이의 계획·구현·검사는 쓰던 에이전트가 진행하고, 에이전트가 돌린 검사는 <code>ha</code>가 모두 기록합니다.</p>
-        <p lang="en">Say what you want, review the goal document and answer yes, and read the completion report. Your agent plans, builds and checks in between, and <code>ha</code> records every check it runs.</p>
+        <p lang="ko">말하고, 확인하고, 읽습니다. 그 사이의 계획·구현·검사는 쓰던 에이전트가 합니다. 일은 에이전트 대화로 맡기고, 터미널은 주로 설치와 업데이트에 씁니다.</p>
+        <p lang="en">Ask, confirm, read. Your agent plans, builds and checks in between. You hand over work in the agent conversation; the terminal is mostly for installing and updating.</p>
       </div>
     </div>
     <div class="wrap">
@@ -76,23 +132,46 @@
         <div class="step">
           <div class="idx"><span>01</span><em>Spec</em></div>
           <h3><span lang="ko">원하는 일을 말합니다</span><span lang="en">Describe the work</span></h3>
-          <p lang="ko">Spec이 목표, 사용 시나리오, 완료 조건과 검토 등급을 <code>SPEC.md</code>에 쓰고 멈춥니다.</p>
-          <p lang="en">Spec writes the goal, scenarios, completion conditions and a review tier to <code>SPEC.md</code>, then stops.</p>
+          <p lang="ko">에이전트 대화에 요청을 보내면 Spec이 목표와 완료 조건을 <code>SPEC.md</code>에 정리하고 멈춥니다. 아직 코드는 고치지 않습니다.</p>
+          <p lang="en">Send your request in the agent conversation. Spec writes the goal and its completion conditions to <code>SPEC.md</code> and stops; no code changes yet.</p>
           <code class="line"><span class="for-claude">/</span><span class="for-codex">$</span>spec:spec <span lang="ko">로그인에 "비밀번호 찾기" 추가</span><span lang="en">add a "Forgot password" link</span></code>
         </div>
         <div class="step">
           <div class="idx"><span>02</span><em>Seal</em></div>
-          <h3><span lang="ko">확인하고 "응"이라고 답합니다</span><span lang="en">Review it and answer yes</span></h3>
-          <p lang="ko">빠진 조건이 없으면 "응"이라고 답합니다. 그때부터 Seal이 에이전트에게 계획·구현·검사를 끝까지 맡깁니다. 새 동작의 검사는 바꾸기 전에 실패하고 바꾼 뒤에 통과해야 하며, <code>standard</code>·<code>strict</code> 목표는 Spar 독립 검토도 받습니다.</p>
-          <p lang="en">If no condition is missing, answer yes. Seal then has your agent plan, build and check to the end. A check for new behavior must fail before the change and pass after it, and <code>standard</code> and <code>strict</code> goals also get independent Spar review.</p>
+          <h3><span lang="ko">읽어 보고 “응”이라고 답합니다</span><span lang="en">Read it and answer yes</span></h3>
+          <p lang="ko">빠진 조건이 있으면 고쳐 달라고 합니다. 맞으면, Spec이 지금 구현할지 물을 때 “응”이라고 답합니다. 그때부터 에이전트가 Seal을 따라 계획·구현·검사를 끝까지 하고, 내가 정하거나 직접 확인할 것이 있을 때만 묻습니다.</p>
+          <p lang="en">Ask for changes if a condition is missing. If it is right, reply yes when Spec asks whether to implement now. From then on your agent follows Seal to plan, build and check to the end, and asks only when something is yours to decide or to check.</p>
           <code class="line"><span lang="ko">에이전트가 실행 → ha check · spar · ha done</span><span lang="en">your agent runs → ha check · spar · ha done</span></code>
         </div>
         <div class="step">
           <div class="idx"><span>03</span><em>ha</em></div>
           <h3><span lang="ko">완료 보고를 읽습니다</span><span lang="en">Read the report</span></h3>
-          <p lang="ko">필수 조건이 모두 기록으로 충족돼야 <code>ha done</code>이 완료를 기록합니다. 바뀐 것, 확인한 것, 직접 볼 것, 남은 한계, 다음 행동을 담은 보고가 <code>PROGRESS.md</code>에 남습니다.</p>
-          <p lang="en"><code>ha done</code> records completion only when the records meet every required condition. The report in <code>PROGRESS.md</code> lists what changed, what was checked, what to review, remaining limits and the next step.</p>
+          <p lang="ko">필수 조건이 모두 검사 기록이나 내 확인으로 충족돼야 <code>ha done</code>이 완료를 남깁니다. 무엇이 바뀌었고 무엇을 확인했는지 보고가 <code>PROGRESS.md</code>에 붙습니다.</p>
+          <p lang="en"><code>ha done</code> records completion only when every required condition is met by a check record or your confirmation. A report of what changed and what was checked lands in <code>PROGRESS.md</code>.</p>
           <code class="line">PROGRESS.md ← <span lang="ko">완료 보고</span><span lang="en">completion report</span></code>
+        </div>
+      </div>
+      <p class="parts-label mono-label"><span lang="ko">네 부품 · 누가 무엇을 하나</span><span lang="en">Four parts · who does what</span></p>
+      <div class="parts">
+        <div>
+          <h3><em>Spec</em><span lang="ko">목표를 정리하는 지침</span><span lang="en">Instructions for the goal</span></h3>
+          <p lang="ko">에이전트가 요청을 목표 문서로 옮길 때 따르는 지침입니다. 목표와 완료 조건, 검토 등급을 쓰고 멈춥니다.</p>
+          <p lang="en">What your agent follows to turn a request into a goal document. It writes the goal, the completion conditions and a review tier, then stops.</p>
+        </div>
+        <div>
+          <h3><em>Seal</em><span lang="ko">끝까지 가게 하는 지침</span><span lang="en">Instructions to finish</span></h3>
+          <p lang="ko">확인한 목표대로 에이전트가 계획·구현·검사·수정을 이어 가게 합니다. 목표 문서는 읽기만 합니다.</p>
+          <p lang="en">Keeps your agent planning, building, checking and fixing against the confirmed goal. It only reads the goal document.</p>
+        </div>
+        <div>
+          <h3><em>ha</em><span lang="ko">기록하고 계산하는 프로그램</span><span lang="en">The program that records</span></h3>
+          <p lang="ko">에이전트가 <code>ha check</code>로 돌린 검사를 모두 기록하고, 그 기록과 목표 폴더의 문서, Git으로 완료를 계산합니다. AI 모델을 부르지 않습니다.</p>
+          <p lang="en">Records every check your agent runs through <code>ha check</code>, and works out completion from those records, the documents in the goal folder and Git. It never calls an AI model.</p>
+        </div>
+        <div>
+          <h3><em>Spar</em><span lang="ko">다른 AI에게 받는 검토</span><span lang="en">Review by other AIs</span></h3>
+          <p lang="ko">작업한 에이전트의 대화 밖에 있는 리뷰어에게 같은 자료를 보내 검토를 받고, 지적과 그 처리를 기록합니다.</p>
+          <p lang="en">Sends the same material to reviewers outside the working agent's conversation, and records what they find and how each finding was handled.</p>
         </div>
       </div>
     </div>
@@ -102,10 +181,10 @@
     <div class="wrap">
       <div class="block-head">
         <span class="mono-label"><span lang="ko">직접 해보기</span><span lang="en">Try it</span></span>
-        <h2 lang="ko">에이전트 대화 네 줄로 끝까지.</h2>
+        <h2 lang="ko">에이전트 대화 네 번으로 끝까지.</h2>
         <h2 lang="en">Four messages, start to finish.</h2>
-        <p lang="ko">브라우저 안에서만 재생되는 가상 세션입니다. 다음 입력을 눌러 진행해 보세요.</p>
-        <p lang="en">A fictional session that plays only in your browser. Press the next input to move on.</p>
+        <p lang="ko">브라우저 안에서만 재생되는 가상 세션입니다. 다음 입력을 눌러 가며 세 가지를 보세요. 바꾸기 전에 실패하는 검사(✕), 바꾼 뒤의 통과(✓), 그리고 <code>ha done</code>이 남기는 완료 기록입니다.</p>
+        <p lang="en">A fictional session that plays only in your browser. Press the next input and watch for three things: the check failing before the change (✕), passing after it (✓), and the completion record <code>ha done</code> leaves.</p>
       </div>
       <div class="term-wrap">
         <div class="term" id="term" data-agent="claude">
@@ -124,6 +203,8 @@
         </div>
         <p class="term-caption" id="term-caption" lang="ko">가상 예시 · 실제 에이전트나 저장소에 연결되지 않으며, 기록 번호도 실제 실행 결과가 아닙니다.</p>
         <p class="term-caption" id="term-caption" lang="en">Fictional · not connected to an agent or repository, and the record numbers are not results of a real run.</p>
+        <p class="term-legend" lang="ko"><b>AC-1</b> 완료 조건 1번 · <b>baseline</b> 바꾸기 전에 돌린 검사 · <b>seq</b> 기록 번호 · <b>spar</b> 독립 검토 실행</p>
+        <p class="term-legend" lang="en"><b>AC-1</b> completion condition 1 · <b>baseline</b> the check run before the change · <b>seq</b> record number · <b>spar</b> an independent review run</p>
       </div>
     </div>
   </section>
@@ -132,24 +213,24 @@
     <div class="wrap">
       <div class="block-head">
         <span class="mono-label"><span lang="ko">남는 것</span><span lang="en">What you get</span></span>
-        <h2 lang="ko">"다 했습니다" 대신, 근거가 남습니다.</h2>
-        <h2 lang="en">Not "done". Evidence.</h2>
-        <p lang="ko">목표마다 폴더 하나가 프로젝트 안에 남습니다. 새 대화에서 같은 목표를 부르면 그 지점부터 이어 갑니다.</p>
-        <p lang="en">Each goal keeps one folder in your project. Name the same goal in a new conversation and it picks up from there.</p>
+        <h2 lang="ko">“다 했습니다” 대신, 근거가 남습니다.</h2>
+        <h2 lang="en">Not “done”. Evidence.</h2>
+        <p lang="ko">목표마다 프로젝트 안에 폴더 하나가 생기고, 보통 파일로 남습니다. 대화가 끊겨도 새 대화에서 이 폴더를 읽고 이어 갑니다.</p>
+        <p lang="en">Each goal gets one folder of ordinary files in your project. If the conversation ends, a new one reads this folder and picks up from there.</p>
       </div>
       <div class="records">
         <ul class="files">
-          <li><code>SPEC.md</code><span><span lang="ko">목표와 완료 조건</span><span lang="en">The goal and its conditions</span><small>← Spec</small></span></li>
-          <li><code>PLAN.md</code><span><span lang="ko">조건별 검사 방법과 범위</span><span lang="en">How each condition is checked</span><small>← Seal</small></span></li>
-          <li><code>REVIEW.md</code><span><span lang="ko">검토 계획과 Spar 기록 요약</span><span lang="en">Review plan and Spar summary</span><small>← Seal</small></span></li>
-          <li><code>PROGRESS.md</code><span><span lang="ko">진행 상태와 완료 보고</span><span lang="en">Progress and the completion report</span><small>← Seal</small></span></li>
-          <li><code>runs.jsonl</code><span><span lang="ko">덧붙이기만 하는 실행 기록</span><span lang="en">Append-only run record</span><small>← ha</small></span></li>
+          <li><code>SPEC.md</code><span><span lang="ko">목표와 완료 조건. 내가 확인한 문서</span><span lang="en">The goal and its conditions, as you confirmed them</span><small>← Spec</small></span></li>
+          <li><code>PLAN.md</code><span><span lang="ko">조건마다 무엇으로 검사할지, 어디까지 고칠지</span><span lang="en">How each condition is checked, and what may change</span><small>← Seal</small></span></li>
+          <li><code>REVIEW.md</code><span><span lang="ko">검토 계획과 Spar 검토 요약</span><span lang="en">Review plan and Spar summary</span><small>← Seal</small></span></li>
+          <li><code>PROGRESS.md</code><span><span lang="ko">진행 상황과 완료 보고</span><span lang="en">Progress and the completion report</span><small>← Seal</small></span></li>
+          <li><code>runs.jsonl</code><span><span lang="ko">검사 실행 기록. 덧붙이기만 합니다</span><span lang="en">The run record; only ever appended to</span><small>← ha</small></span></li>
         </ul>
         <div class="doc">
-          <div class="doc-bar"><b>docs/specs/password-link/PROGRESS.md</b><span lang="ko">가상 예시</span><span lang="en">fictional</span></div>
+          <div class="doc-bar"><b>docs/specs/password-link/PROGRESS.md</b><span lang="ko">가상 예시 · 줄인 형식</span><span lang="en">fictional · shortened</span></div>
           <dl lang="ko">
             <dt>바뀐 것</dt><dd>base f46020ce6f77 이후 파일 1개, commit 1개</dd>
-            <dt>확인한 것</dt><dd>필수 조건 2개 중 2개 충족 (검사 기록 2, 사용자 확인 0)</dd>
+            <dt>확인한 것</dt><dd>필수 조건 2개 중 2개 충족 (검사 기록 2개, 사용자 확인 0개)</dd>
             <dt>직접 볼 것</dt><dd>없음</dd>
             <dt>남은 한계</dt><dd>보증 수준 local; 검사 작성자: 실행자</dd>
             <dt>다음 행동</dt><dd>없음; 완료 기록 seq 6이 유효함</dd>
@@ -161,15 +242,14 @@
             <dt>Remaining limits</dt><dd>assurance local; check author: executor</dd>
             <dt>Next step</dt><dd>none; completion record seq 6 holds</dd>
           </dl>
-          <div class="table-scroll">
-            <table>
-              <thead><tr><th>ID</th><th>kind</th><th>required</th><th>satisfied</th><th>records</th></tr></thead>
-              <tbody>
-                <tr><td>AC-1</td><td>change</td><td>yes</td><td>yes</td><td>2, 3</td></tr>
-                <tr><td>AC-2</td><td>maintain</td><td>yes</td><td>yes</td><td>4</td></tr>
-              </tbody>
-            </table>
-          </div>
+          <ul class="gloss">
+            <li lang="ko"><b>읽는 법</b> 이 다섯 줄은 <code>ha</code>가 기록과 목표 문서, Git으로 계산한 값입니다. 에이전트가 고쳐 쓰지 않습니다.</li>
+            <li lang="en"><b>How to read it</b> <code>ha</code> computes these five lines from the record, the goal document and Git; the agent does not rewrite them.</li>
+            <li lang="ko"><b>base</b> 작업을 시작한 commit입니다. <b>seq 6</b>은 완료를 남긴 기록의 번호입니다.</li>
+            <li lang="en"><b>base</b> is the commit the work started from. <b>seq 6</b> is the number of the record that holds the completion.</li>
+            <li lang="ko"><b>local</b> 이 컴퓨터에서 얻은 근거라는 뜻입니다. <b>검사 작성자: 실행자</b>는 검사도 일한 에이전트가 썼다는 뜻입니다.</li>
+            <li lang="en"><b>local</b> means the evidence comes from this computer. <b>check author: executor</b> means the working agent also wrote the checks.</li>
+          </ul>
         </div>
       </div>
     </div>
@@ -184,24 +264,24 @@
       </div>
       <div class="principles">
         <div>
-          <h3><span lang="ko">기록은 프로젝트에 남습니다</span><span lang="en">Records stay in your project</span></h3>
-          <p lang="ko">목표·계획·진행 기록은 <code>docs/specs/&lt;goal&gt;/</code>에 남고, 설치·업데이트·제거가 지우지 않습니다.</p>
-          <p lang="en">Goals, plans and progress live in <code>docs/specs/&lt;goal&gt;/</code>. Installing, updating or uninstalling never deletes them.</p>
+          <h3><span lang="ko">기록은 내 프로젝트에 남습니다</span><span lang="en">Records stay in your project</span></h3>
+          <p lang="ko">목표와 계획, 진행 기록은 <code>docs/specs/&lt;goal&gt;/</code>에 파일로 남습니다. 설치·업데이트·제거가 지우지 않습니다.</p>
+          <p lang="en">Goals, plans and progress are files in <code>docs/specs/&lt;goal&gt;/</code>. Installing, updating or uninstalling never deletes them.</p>
         </div>
         <div>
-          <h3><span lang="ko">ha는 모델을 부르지 않습니다</span><span lang="en">ha never calls a model</span></h3>
-          <p lang="ko">완료 판정은 기록에서만 나옵니다. 같은 기록이면 같은 판정입니다.</p>
-          <p lang="en">Completion is judged from the records alone. The same records give the same status.</p>
+          <h3><span lang="ko">완료 계산에 AI를 쓰지 않습니다</span><span lang="en">No AI decides completion</span></h3>
+          <p lang="ko"><code>ha</code>는 정해진 규칙으로만 계산하는 프로그램입니다. 기록과 목표 폴더의 문서, Git 상태가 같으면 결과도 같습니다.</p>
+          <p lang="en"><code>ha</code> is a program that applies fixed rules. The same record, the same documents in the goal folder and the same Git state give the same result.</p>
         </div>
         <div>
-          <h3><span lang="ko">완료는 제3자 검증이 아닙니다</span><span lang="en">Completion is not third-party verification</span></h3>
-          <p lang="ko">자동 검사는 에이전트가 작성합니다. 보고의 남은 한계와 실제 결과를 함께 봅니다.</p>
-          <p lang="en">Your agent writes the automated checks. Read the report's remaining limits alongside the actual result.</p>
+          <h3><span lang="ko">완료는 “결함 없음”이 아닙니다</span><span lang="en">Complete is not “bug-free”</span></h3>
+          <p lang="ko">정해 둔 조건이 기록으로 충족됐다는 뜻입니다. 검사도 에이전트가 쓰고 근거는 이 컴퓨터의 기록이라, 실제 결과는 사람이 함께 확인합니다.</p>
+          <p lang="en">It means the agreed conditions are met by the records. Your agent writes the checks and the evidence lives on this computer, so a person still looks at the actual result.</p>
         </div>
         <div>
-          <h3><span lang="ko">Spar 검토는 밖으로 나갑니다</span><span lang="en">Spar review leaves your machine</span></h3>
-          <p lang="ko">리뷰어마다 기준 문서와 diff가 든 패킷을 자기 제공자에게 보냅니다. 나가면 안 되는 코드라면 Spar를 돌리지 않습니다.</p>
-          <p lang="en">Each reviewer sends a packet with the criteria and the diff to its provider. If code must not leave your machine, don't run Spar.</p>
+          <h3><span lang="ko">Spar 검토는 코드를 밖으로 보냅니다</span><span lang="en">Spar review leaves your machine</span></h3>
+          <p lang="ko">Spar 검토를 받으면 리뷰어마다 기준·규칙 문서와 변경 내용(diff)을 자기 AI 제공자에게 보내고, 리뷰어가 읽은 프로젝트 파일도 함께 갈 수 있습니다. 밖으로 나가면 안 되는 코드라면 Spar를 돌리지 않습니다.</p>
+          <p lang="en">In a Spar review, each reviewer sends the criteria, the rules and the change (the diff) to its AI provider, and project files the reviewer reads can go too. If code must not leave your machine, don't run Spar.</p>
           <p class="prov">claude → Anthropic · codex → OpenAI · agy → Google</p>
         </div>
       </div>
@@ -215,8 +295,11 @@
       <div class="cmd"><pre><code><span class="p">$ </span>{{install}}</code></pre><button type="button" class="copy" data-copy="{{install}}">copy</button></div>
       <div class="actions">
         <a class="btn primary" href="{{install_page}}"><span lang="ko">설치 안내</span><span lang="en">Read the install guide</span> →</a>
+        <a class="btn" href="{{overview}}"><span lang="ko">Jaekit 이해하기</span><span lang="en">Understand Jaekit</span></a>
         <a class="btn" href="{{docs}}"><span lang="ko">모든 문서</span><span lang="en">All docs</span></a>
       </div>
+      <p class="support" lang="ko">필요한 것: Git으로 관리하는 프로젝트 폴더, Claude Code 또는 Codex(CLI·데스크톱 앱), macOS나 Linux</p>
+      <p class="support" lang="en">You need a project folder managed with Git, Claude Code or Codex (CLI or desktop app), and macOS or Linux.</p>
       <p class="support" lang="ko"><span class="dot dot-ok" aria-hidden="true"></span>macOS·Linux 사용 · <span class="dot dot-warn" aria-hidden="true"></span>WSL2 준비됨(실사용 미확인) · <span class="dot dot-bad" aria-hidden="true"></span>네이티브 Windows에서는 Seal 사용 불가</p>
       <p class="support" lang="en"><span class="dot dot-ok" aria-hidden="true"></span>macOS and Linux supported · <span class="dot dot-warn" aria-hidden="true"></span>WSL2 prepared, not yet checked · <span class="dot dot-bad" aria-hidden="true"></span>Seal not available on native Windows</p>
       <p class="support" lang="ko">이 페이지의 <code>password-link</code> 예시와 기록 번호는 모두 가상입니다.</p>

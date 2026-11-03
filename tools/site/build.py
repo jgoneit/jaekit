@@ -1105,8 +1105,8 @@ def home_page(build: Build, lang: str) -> str:
         body = body.replace("{{" + key + "}}", esc(value))
     if "{{" in body:
         raise InputProblem(f"tools/site/home.html: unknown placeholder near {body[body.index('{{'):][:40]!r}")
-    description = ("무엇을 하면 끝인지 작업 전에 목표로 정해 두고, 조건마다 남은 검사 기록으로 완료를 판단합니다." if lang == "ko" else
-                   "Write down what finished means before the work starts, and judge completion from a check record for each condition.")
+    description = ("Claude Code·Codex에 맡긴 작업이 정말 끝났는지, 에이전트의 말이 아니라 검사를 실제로 돌린 기록으로 확인하게 해 주는 플러그인과 터미널 프로그램입니다." if lang == "ko" else
+                   "Plugins for Claude Code and Codex, plus two small terminal programs, that let you check whether handed-over work is really done from records of checks that actually ran, not from the agent's word.")
     title = "Jaekit — 맡긴 작업이 정말 끝났는지, 기록으로 확인합니다" if lang == "ko" else "Jaekit — Is the work really done? Check the record"
     return (head(lang, title, description, root, build) + '<body class="page-home">\n' +
             nav(lang, root, f"{root}{other}/", "home", False) + body + footer(lang, root, build) +

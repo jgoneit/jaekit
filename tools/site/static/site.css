@@ -200,6 +200,51 @@ main section { scroll-margin-top: 56px; }
 .step h3 { font-size: 1.25rem; letter-spacing: -.02em; }
 .step p { color: var(--fg-2); font-size: .9375rem; }
 .step code.line { display: block; font-size: .75rem; color: var(--fg-3); padding-top: 14px; border-top: 1px dashed var(--line); overflow-wrap: anywhere; }
+.step p code, .parts p code { font-size: .8125rem; color: var(--fg); }
+
+/* Four parts under the steps: one plain line each for Spec, Seal, ha and Spar. */
+.parts-label { padding-top: clamp(32px, 5vw, 48px); padding-bottom: 14px; }
+.parts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line); margin-bottom: clamp(56px, 8vw, 96px); }
+.parts > div { padding: 24px 24px 28px 0; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.parts > div + div { padding-left: 24px; border-left: 1px solid var(--line); }
+.parts h3 { font-size: 1rem; letter-spacing: -.015em; display: grid; gap: 6px; }
+.parts h3 em { font: 500 .75rem/1 var(--mono); font-style: normal; color: var(--accent); }
+.parts p { color: var(--fg-2); font-size: .875rem; }
+@media (max-width: 960px) {
+  .parts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .parts > div:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .parts > div:nth-child(n+3) { border-top: 1px solid var(--line); }
+}
+@media (max-width: 560px) {
+  .parts { grid-template-columns: minmax(0, 1fr); }
+  .parts > div, .parts > div + div { padding: 20px 0 24px; border-left: 0; }
+  .parts > div + div { border-top: 1px solid var(--line); }
+}
+
+/* The same work without and with Jaekit. Wide screens read it as a table;
+   narrow ones stack each situation with a small tag on each side. */
+.compare-wrap { padding-bottom: clamp(56px, 8vw, 96px); }
+.compare { border-top: 1px solid var(--line); }
+.compare th, .compare td { padding: 16px 20px 16px 0; font: 400 .9375rem/1.55 var(--sans); letter-spacing: 0; vertical-align: top; }
+.compare thead th { font: 500 .75rem/1.4 var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--fg-3); padding-block: 14px; }
+.compare tbody th { width: 22%; font-weight: 600; color: var(--fg); }
+.compare .without { width: 34%; color: var(--fg-2); }
+.compare .with { padding-left: 20px; color: var(--fg); border-left: 2px solid var(--accent); }
+.compare thead .with { color: var(--accent); }
+.compare td code { font-size: .875rem; color: var(--fg); }
+.compare .tag { display: none; }
+@media (max-width: 720px) {
+  .compare thead { display: none; }
+  .compare, .compare tbody, .compare tr, .compare th, .compare td { display: block; width: auto; }
+  .compare tbody th, .compare .without, .compare .with { width: auto; }
+  .compare tr { padding: 18px 0 20px; border-bottom: 1px solid var(--line); }
+  .compare th, .compare td { padding: 0; border-bottom: 0; }
+  .compare tbody th { margin-bottom: 10px; }
+  .compare td + td { margin-top: 10px; }
+  .compare .without { padding-left: 14px; border-left: 2px solid var(--line-2); }
+  .compare .with { padding-left: 14px; }
+  .compare .tag { display: block; font: 500 .6875rem/1.4 var(--mono); font-style: normal; color: var(--fg-3); margin-bottom: 2px; }
+}
 
 /* Terminal: its own dark palette in both page themes, tinted by the selected
    agent. Registered properties let the whole palette morph when it changes. */
@@ -258,6 +303,8 @@ main section { scroll-margin-top: 56px; }
 .term-next button { cursor: pointer; text-align: left; max-width: 100%; overflow-wrap: anywhere; background: color-mix(in srgb, var(--t-fg) 5%, transparent); border: 1px solid var(--t-line); border-radius: 6px; padding: 6px 10px; color: var(--t-fg); font: 400 .75rem/1.4 var(--mono); transition: border-color .2s ease; }
 .term-next button:hover { border-color: var(--t-accent); }
 .term-caption { margin-top: 12px; font: 400 .75rem/1.5 var(--mono); color: var(--fg-3); }
+.term-legend { margin-top: 6px; font: 400 .75rem/1.7 var(--mono); color: var(--fg-3); }
+.term-legend b { font-weight: 500; color: var(--fg-2); }
 @media (max-width: 480px) { .term-out { padding: 14px 12px; } .ln { grid-template-columns: 34px minmax(0, 1fr); gap: 8px; } .term-in { padding-left: 12px; } .term-next { padding-left: 12px; } }
 
 .records { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(28px, 5vw, 64px); padding-bottom: clamp(56px, 8vw, 96px); align-items: start; }
@@ -275,6 +322,9 @@ main section { scroll-margin-top: 56px; }
 .doc dt { color: var(--fg-3); }
 .doc dd { margin: 0; color: var(--fg); overflow-wrap: anywhere; }
 .doc .table-scroll { margin: 10px 16px 18px; }
+.gloss { list-style: none; margin: 8px 16px 18px; padding: 14px 0 0; border-top: 1px dashed var(--line); display: grid; gap: 8px; font-size: .8125rem; line-height: 1.6; color: var(--fg-2); }
+.gloss b { font: 500 .75rem/1 var(--mono); color: var(--fg); margin-right: 4px; }
+.gloss code { font-size: .75rem; color: var(--fg); }
 
 .holds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); }
 @media (max-width: 820px) { .holds { grid-template-columns: minmax(0, 1fr); } }
