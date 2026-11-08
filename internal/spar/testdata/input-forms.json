@@ -694,5 +694,132 @@
         "value": ""
       }
     ]
+  },
+  "agy_commands": {
+    "about": "G11: agy shell commands. accepted and kept lines are not violations (kept ones were accepted before the change that joined commands); every violations line is tool_violation, and its reason names the line and problem, the first part that breaks the rule from the left.",
+    "accepted": [
+      "ls -la && ls -la head base",
+      "ls -la && ls -la head/ && ls -la base/",
+      "pwd && ls -la",
+      "diff -u base/a.md head/a.md; diff -u base/b.md head/b.md",
+      "diff -u base/plugins/seal/ head/plugins/seal/ ; diff -u base/plugins/spar/ head/plugins/spar/",
+      "ls -la head/tools/goal-checks 2>&1 || true",
+      "grep -rn x head | head -20 && wc -l head/a.go",
+      "grep -n \"a && b; c\" head/a.go",
+      "grep -c '|' head/a.go || true",
+      "sed -n '1,20p' head/a.go && sed -n '/func/,/^}/p' head/b.go",
+      "ls head;ls base"
+    ],
+    "kept": [
+      "ls -la head",
+      "grep -rn foo head | head -20",
+      "sed -n '1,40p' head/a.go",
+      "find head -name '*.go'",
+      "grep -o foo head/a",
+      "grep -rn greet head 2>/dev/null",
+      "cat head/app/main.go 2>&1"
+    ],
+    "violations": [
+      {
+        "line": "cd head && go test ./...",
+        "problem": "cd"
+      },
+      {
+        "line": "ls; touch x",
+        "problem": "touch"
+      },
+      {
+        "line": "grep x head/a 2>/dev/null; touch pwn",
+        "problem": "touch"
+      },
+      {
+        "line": "git diff --no-index --stat base head",
+        "problem": "git"
+      },
+      {
+        "line": "diff -r -u base head | diffstat",
+        "problem": "diffstat"
+      },
+      {
+        "line": "python3 head/tools/check.py head",
+        "problem": "python3"
+      },
+      {
+        "line": "PYTHONDONTWRITEBYTECODE=1 python3 -c 'print(1)'",
+        "problem": "PYTHONDONTWRITEBYTECODE=1"
+      },
+      {
+        "line": "git --git-dir=/dev/null grep -n x head/ || grep -rn x head/",
+        "problem": "git"
+      },
+      {
+        "line": "(cd head && go test ./...)",
+        "problem": "("
+      },
+      {
+        "line": "(ls)",
+        "problem": "("
+      },
+      {
+        "line": "for f in head/*.json; do cat \"$f\"; done",
+        "problem": "for"
+      },
+      {
+        "line": "ls &",
+        "problem": "&"
+      },
+      {
+        "line": "ls |& cat",
+        "problem": "|&"
+      },
+      {
+        "line": "&& ls",
+        "problem": "&&"
+      },
+      {
+        "line": "ls &&",
+        "problem": "&&"
+      },
+      {
+        "line": "ls ;; ls",
+        "problem": ";;"
+      },
+      {
+        "line": "ls ; ; ls",
+        "problem": ";"
+      },
+      {
+        "line": "cat a > b",
+        "problem": ">"
+      },
+      {
+        "line": "ls 2> x",
+        "problem": ">"
+      },
+      {
+        "line": "echo $(id)",
+        "problem": "$("
+      },
+      {
+        "line": "cat <(ls)",
+        "problem": "<("
+      },
+      {
+        "line": "ls `id`",
+        "problem": "`"
+      },
+      {
+        "line": "ls\nrm -rf head",
+        "problem": "\n"
+      },
+      {
+        "line": "ls head && find head -delete",
+        "problem": "-delete"
+      },
+      {
+        "line": "ls && sort --compress-program=sh head/a",
+        "problem": "--compress-program=sh"
+      }
+    ]
   }
 }
