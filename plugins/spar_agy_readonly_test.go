@@ -85,6 +85,8 @@ func arCheck(t *testing.T, places []arPlace) {
 
 func TestSparAgyReadonlyAC9_Documents(t *testing.T) {
 	ops := []string{"`&&`", "`||`", "`;`", "`true`"}
+	// A table cell writes | as \|.
+	cellOps := []string{"`&&`", "`\\|\\|`", "`;`", "`true`"}
 	roundKo, roundEn := arRead(t, "../contracts/review-round.md"), arRead(t, "../contracts/review-round.en.md")
 	inputKo, inputEn := arRead(t, "../contracts/spar-input.md"), arRead(t, "../contracts/spar-input.en.md")
 	arCheck(t, []arPlace{
@@ -94,17 +96,18 @@ func TestSparAgyReadonlyAC9_Documents(t *testing.T) {
 			[]string{"이 보호는 clean-review 0.2.1과 같다", "`|` 밖의 셸 연산자"}},
 		{"review-round.en.md section 4", arSection(roundEn, "## 4."), append([]string{"command note", "Unlike clean-review 0.2.1"}, ops...),
 			[]string{"This protection is the same as clean-review 0.2.1", "shell operators other than `|`"}},
-		{"the G11 row of spar-input.md", arRow(inputKo, "G11"), append([]string{"2>/dev/null", "2>&1"}, ops...),
+		{"the G11 row of spar-input.md", arRow(inputKo, "G11"), append([]string{"2>/dev/null", "2>&1"}, cellOps...),
 			[]string{"연산자는 `\\|`만", "clean-review 0.2.1과 같다"}},
-		{"the G11 row of spar-input.en.md", arRow(inputEn, "G11"), append([]string{"2>/dev/null", "2>&1"}, ops...),
+		{"the G11 row of spar-input.en.md", arRow(inputEn, "G11"), append([]string{"2>/dev/null", "2>&1"}, cellOps...),
 			[]string{"the only operator is `\\|`", "the same as clean-review 0.2.1"}},
 		{"guides/SPAR.md 리뷰어 설정", arSection(arRead(t, "../guides/SPAR.md"), "## 리뷰어 설정"), []string{"`&&`", "`||`", "`tool_violation`"}, nil},
 		{"guides/SPAR.en.md Configure reviewers", arSection(arRead(t, "../guides/SPAR.en.md"), "## Configure reviewers"), []string{"`&&`", "`||`", "`tool_violation`"}, nil},
 		{"the Spar skill's Reviewers section", arSection(arRead(t, "spar/skills/spar/SKILL.md"), "## Reviewers"), []string{"`&&`", "`||`", "command note"}, nil},
 	})
 
-	// Section 6 lists each G11 form of the fixture the Go checks read; a line
-	// with a newline is stated in prose, since a list item cannot hold it.
+	// Section 6 lists each G11 form of the fixture the Go checks read under
+	// its own label, a violation with its first problem; a line with a
+	// newline is stated in prose, since a list item cannot hold it.
 	data, err := os.ReadFile(filepath.FromSlash("../internal/spar/testdata/input-forms.json"))
 	if err != nil {
 		t.Fatalf("setup: %v", err)
@@ -112,31 +115,63 @@ func TestSparAgyReadonlyAC9_Documents(t *testing.T) {
 	var doc struct {
 		Agy struct {
 			Accepted, Kept []string
-			Violations     []struct{ Line string }
+			Violations     []struct{ Line, Problem string }
 		} `json:"agy_commands"`
 	}
 	if err := json.Unmarshal(data, &doc); err != nil {
 		t.Fatalf("setup: input-forms.json: %v", err)
 	}
-	lines := append(append([]string{}, doc.Agy.Accepted...), doc.Agy.Kept...)
-	for _, v := range doc.Agy.Violations {
-		lines = append(lines, v.Line)
-	}
-	if len(doc.Agy.Accepted) == 0 || len(doc.Agy.Violations) == 0 {
+	if len(doc.Agy.Accepted) == 0 || len(doc.Agy.Kept) == 0 || len(doc.Agy.Violations) == 0 {
 		t.Fatal("setup: input-forms.json has no agy_commands forms")
 	}
-	for _, c := range []struct{ label, text string }{
-		{"spar-input.md section 6 G11", arSection(arSection(inputKo, "## 6."), "### G11")},
-		{"spar-input.en.md section 6 G11", arSection(arSection(inputEn, "## 6."), "### G11")},
+	for _, c := range []struct {
+		label, text                string
+		accepted, kept, violations string
+		problem                    func(line, problem string) string
+	}{
+		{"spar-input.md section 6 G11", arSection(arSection(inputKo, "## 6."), "### G11"),
+			"- 받음(읽기 전용 명령을 이은 줄):", "- 받음(이전부터 받던 줄):", "- 위반(괄호 안은 이유가 보이는 첫 문제):",
+			func(l, p string) string { return arSpan(l) + "(" + arSpan(p) + ")" }},
+		{"spar-input.en.md section 6 G11", arSection(arSection(inputEn, "## 6."), "### G11"),
+			"- Accepted (lines that join read-only commands):", "- Accepted (lines accepted before):",
+			"- Violations (the first problem the reason names in parentheses):",
+			func(l, p string) string { return arSpan(l) + " (" + arSpan(p) + ")" }},
 	} {
 		if c.text == "" {
 			t.Errorf("jaekit:violation=%s %s is missing", arDocsViolation, c.label)
 			continue
 		}
-		for _, line := range lines {
-			if !strings.Contains(line, "\n") && !strings.Contains(c.text, line) {
-				t.Errorf("jaekit:violation=%s %s does not list %q", arDocsViolation, c.label, line)
+		bullets := map[string]string{}
+		for _, line := range strings.Split(c.text, "\n") {
+			for _, head := range []string{c.accepted, c.kept, c.violations} {
+				if strings.HasPrefix(line, head) {
+					bullets[head] = line
+				}
+			}
+		}
+		expect := func(head, item, form string) {
+			if !strings.Contains(bullets[head], item) {
+				t.Errorf("jaekit:violation=%s %s does not list %q under %q", arDocsViolation, c.label, form, head)
+			}
+		}
+		for _, l := range doc.Agy.Accepted {
+			expect(c.accepted, arSpan(l), l)
+		}
+		for _, l := range doc.Agy.Kept {
+			expect(c.kept, arSpan(l), l)
+		}
+		for _, v := range doc.Agy.Violations {
+			if !strings.Contains(v.Line, "\n") {
+				expect(c.violations, c.problem(v.Line, v.Problem), v.Line)
 			}
 		}
 	}
+}
+
+// arSpan is a Markdown code span of s: double backticks when s holds one.
+func arSpan(s string) string {
+	if strings.Contains(s, "`") {
+		return "`` " + s + " ``"
+	}
+	return "`" + s + "`"
 }

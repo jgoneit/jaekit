@@ -696,7 +696,7 @@
     ]
   },
   "agy_commands": {
-    "about": "G11: agy shell commands. accepted and kept lines are not violations (kept ones were accepted before the change that joined commands); every violations line is tool_violation, and its reason names the line and problem, the first part that breaks the rule from the left.",
+    "about": "G11: agy shell commands. accepted and kept lines are not violations (kept ones were accepted before the change that joined commands); every violations line is tool_violation, and its reason names the line and problem, the first problem: a shell construct anywhere in the line, else the first part, read from the left, that breaks the rule.",
     "accepted": [
       "ls -la && ls -la head base",
       "ls -la && ls -la head/ && ls -la base/",
@@ -717,7 +717,10 @@
       "find head -name '*.go'",
       "grep -o foo head/a",
       "grep -rn greet head 2>/dev/null",
-      "cat head/app/main.go 2>&1"
+      "cat head/app/main.go 2>&1",
+      "sed -n -e '1p' -e '/x/,/y/p' head/a",
+      "grep -n '$HOME' head/a",
+      "grep -n \"\\$x\" head/a"
     ],
     "violations": [
       {
@@ -819,6 +822,46 @@
       {
         "line": "ls && sort --compress-program=sh head/a",
         "problem": "--compress-program=sh"
+      },
+      {
+        "line": "find head $'-exec' sh -c id {} +",
+        "problem": "$"
+      },
+      {
+        "line": "find head ${X:--exec} sh -c id {} +",
+        "problem": "$"
+      },
+      {
+        "line": "find head {-exec,} sh -c id {} +",
+        "problem": "{"
+      },
+      {
+        "line": "cat \"$HOME/.netrc\"",
+        "problem": "$"
+      },
+      {
+        "line": "ls head/{a,b}",
+        "problem": "{"
+      },
+      {
+        "line": "sed -n -e '1p' -e 'e python3 -V' head/a",
+        "problem": "e python3 -V"
+      },
+      {
+        "line": "sed -n --expression='e id' head/a",
+        "problem": "e id"
+      },
+      {
+        "line": "sed -n '1p' -f x.sed head/a",
+        "problem": "-f"
+      },
+      {
+        "line": "sed -n -i '1p' head/a",
+        "problem": "-i"
+      },
+      {
+        "line": "sed '1,2p' head/a",
+        "problem": "sed"
       }
     ]
   }

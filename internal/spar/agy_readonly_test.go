@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -86,25 +87,32 @@ func TestSparAgyReadonlyAC1_JoinedReadOnlyCommands(t *testing.T) {
 	}
 }
 
-// AC-2 (kept): every other line stays a violation, and the reason names the
-// line and the first problem in it.
+// AC-2: every other line is a violation, and the reason names the line and
+// its first problem: a shell construct anywhere in the line, else the first
+// part, read from the left, that breaks the rule.
 func TestSparAgyReadonlyAC2_OtherCommandsStayViolations(t *testing.T) {
+	const id = "violation-reason-not-first-problem"
 	forms := arLoadForms(t)
 	spec, _ := arAgySpec(t, []byte("packet"))
 	for _, v := range forms.Violations {
 		if unsafeCommand(v.Line) == "" {
-			t.Errorf("%q is not a violation", v.Line)
+			t.Errorf("jaekit:violation=%s %q is not a violation", id, v.Line)
 			continue
 		}
 		reason := spec.checkEvent(arRunCommand(v.Line))
 		if reason == "" {
-			t.Errorf("agy's event check lets %q run", v.Line)
+			t.Errorf("jaekit:violation=%s agy's event check lets %q run", id, v.Line)
 			continue
 		}
-		if !strings.Contains(reason, v.Line) || !strings.Contains(reason, strconv.Quote(v.Problem)) {
-			t.Errorf("the reason for %q does not name the line and %q: %s", v.Line, v.Problem, reason)
+		// The reason shows the line on one line: spaces and newlines become one space.
+		if !strings.Contains(arOneLine(reason), arOneLine(v.Line)) || !strings.Contains(reason, strconv.Quote(v.Problem)) {
+			t.Errorf("jaekit:violation=%s the reason for %q does not name the line and %q: %s", id, v.Line, v.Problem, reason)
 		}
 	}
+}
+
+func arOneLine(s string) string {
+	return strings.Join(strings.Fields(s), " ")
 }
 
 // AC-3 (kept): the lines accepted before stay accepted: one program, a |
@@ -224,6 +232,12 @@ func TestSparAgyReadonlyAC4_PromptNote(t *testing.T) {
 // run_command step for each line and then a result for head with one
 // finding.
 func arAgyFake(t *testing.T, w *rwWorld, name string, lines ...string) string {
+	return arAgyFakeWait(t, w, name, 0, lines...)
+}
+
+// arAgyFakeWait is arAgyFake that waits for seconds after the last step
+// before it prints the result, as a reviewer still at work would.
+func arAgyFakeWait(t *testing.T, w *rwWorld, name string, seconds int, lines ...string) string {
 	t.Helper()
 	checked := []any{}
 	for _, a := range Angles {
@@ -241,11 +255,28 @@ func arAgyFake(t *testing.T, w *rwWorld, name string, lines ...string) string {
 		}
 		events = append(events, string(data))
 	}
-	file := w.write(filepath.Join(w.dir, "agy-events", name+".jsonl"), strings.Join(events, "\n")+"\n")
-	script := "#!/bin/sh\nif [ \"$1\" = --version ]; then echo 'agy 0.0.0 (synthetic)'; exit 0; fi\ncat " + amQuote(file) + "\n"
+	last := len(events) - 1
+	steps := w.write(filepath.Join(w.dir, "agy-events", name+".jsonl"), strings.Join(events[:last], "\n")+"\n")
+	answer := w.write(filepath.Join(w.dir, "agy-events", name+".result.jsonl"), events[last]+"\n")
+	script := "#!/bin/sh\nif [ \"$1\" = --version ]; then echo 'agy 0.0.0 (synthetic)'; exit 0; fi\n" +
+		"cat " + amQuote(steps) + "\n"
+	if seconds > 0 {
+		script += fmt.Sprintf("sleep %d\n", seconds)
+	}
+	script += "cat " + amQuote(answer) + "\n"
 	path := w.write(filepath.Join(w.dir, "agy-bin", name), script)
 	if err := os.Chmod(path, 0o755); err != nil {
 		t.Fatalf("setup: %v", err)
+	}
+	// A fake that cannot start, or cannot run cat or sleep, would make spar
+	// record a failed reviewer: that observes nothing.
+	if out, err := exec.Command(path, "--version").CombinedOutput(); err != nil {
+		t.Fatalf("setup: the fake agy cannot run: %v %s", err, out)
+	}
+	for _, tool := range []string{"cat", "sleep"} {
+		if _, err := exec.LookPath(tool); err != nil {
+			t.Fatalf("setup: the fake agy needs %s: %v", tool, err)
+		}
 	}
 	return fmt.Sprintf("[[reviewers]]\nname = \"agy\"\npreset = \"agy\"\nbinary = %q\nfallback_model = \"\"\n\n", path)
 }
@@ -258,9 +289,24 @@ func arEvents(lines []string) []any {
 	return out
 }
 
+// arRoundAgy is agy's state in a round. A state other than completed or
+// tool_violation means the fake or the run broke: a setup failure.
+func arRoundAgy(t *testing.T, out string) *ReviewerState {
+	t.Helper()
+	r, err := loadRound(out)
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	st := r.Reviewers["agy"]
+	if st == nil || (st.Status != StatusCompleted && st.Status != StatusToolViolation) {
+		t.Fatalf("setup: agy did not run to a result or a violation: %+v", st)
+	}
+	return st
+}
+
 // AC-5: the monitor of a real spar run judges agy's run_command steps by the
 // new rule: joined read-only commands let agy finish with its findings; any
-// other command stops it as tool_violation.
+// other command stops it at that step as tool_violation.
 func TestSparAgyReadonlyAC5_RealRunMonitor(t *testing.T) {
 	const id = "joined-command-stops-review"
 	w := newRWWorld(t, false)
@@ -268,34 +314,29 @@ func TestSparAgyReadonlyAC5_RealRunMonitor(t *testing.T) {
 		"diff -u base/app/main.py head/app/main.py; diff -u base/AGENTS.md head/AGENTS.md",
 		"ls -la head/app 2>&1 || true"))
 	out := w.run(filepath.Join(w.newSeries(), "01-candidate"))
-	r, err := loadRound(out)
-	if err != nil {
-		t.Fatalf("setup: %v", err)
-	}
-	st := r.Reviewers["agy"]
+	st := arRoundAgy(t, out)
 	switch {
-	case st == nil:
-		t.Fatalf("setup: the round has no agy reviewer")
 	case st.Status != StatusCompleted:
 		t.Errorf("jaekit:violation=%s agy with joined read-only commands ends %s: %s", id, st.Status, st.Reason)
 	case st.Findings == nil || *st.Findings != 1:
 		t.Errorf("jaekit:violation=%s the round does not record agy's finding: %v", id, st.Findings)
-	}
-	if st != nil && st.Status == StatusCompleted {
+	default:
 		data, err := os.ReadFile(filepath.Join(out, "findings.json"))
 		if err != nil || !strings.Contains(string(data), "agy-F1") {
 			t.Errorf("jaekit:violation=%s findings.json does not hold agy-F1: %v", id, err)
 		}
 	}
 
+	// A reviewer that runs tests after joined read-only commands and then
+	// keeps working is stopped at that step, long before it would finish.
 	const test = "cd head && go test ./..."
-	w.use(arAgyFake(t, w, "test", "ls -la && ls -la head base", test))
+	w.use(arAgyFakeWait(t, w, "test", 60, "ls -la && ls -la head base", test))
 	out = w.run(filepath.Join(w.newSeries(), "01-candidate"))
-	if r, err = loadRound(out); err != nil {
-		t.Fatalf("setup: %v", err)
-	}
-	if st := r.Reviewers["agy"]; st == nil || st.Status != StatusToolViolation || !strings.Contains(st.Reason, test) {
-		t.Errorf("jaekit:violation=%s agy that runs tests is not stopped as tool_violation naming the line: %+v", id, st)
+	st = arRoundAgy(t, out)
+	if st.Status != StatusToolViolation || !strings.Contains(st.Reason, test) {
+		t.Errorf("jaekit:violation=%s agy that runs tests is not stopped as tool_violation naming the line: %s %s", id, st.Status, st.Reason)
+	} else if st.ElapsedSeconds >= 30 {
+		t.Errorf("jaekit:violation=%s agy that runs tests was not stopped at that step: it ran %.1fs", id, st.ElapsedSeconds)
 	}
 }
 
