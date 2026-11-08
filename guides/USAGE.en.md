@@ -75,7 +75,7 @@ Seal asks the decisions it can foresee once, before it starts, and during work o
   - Seal records an answer given up front as the confirmation, quoting it, once the change it allows is committed, and does not ask about that change again.
   - When the confirmed content changes later, that is a new change and Seal asks again.
 - **Five-line report.** Goals started with 0.1.20 or later use `ha report` in `PROGRESS.md`. `## 현재` opens with the `ha report` stamp, pasted unchanged; Seal does not type the time.
-  - In `## 완료 보고`, read the five lines at the top (`Changed`, `Checked`, `To review`, `Remaining limits`, `Next step`), then the completion record and Seal's judgment below them.
+  - In `## 완료 보고`, read the five lines at the top (`Changed`, `Checked`, `To review`, `Remaining limits`, `Next step`), then the completion record and Seal's judgment below them. In a finished goal started with 0.1.24 or later, the judgment is in `## 검수 요약`.
   - A Korean request gets `--lang ko`.
 
 ### Review order by tier
@@ -104,6 +104,8 @@ Seal 0.1.20 declares the Core support it needs in `core-requirements.json` in it
 ## Reading the completion report
 
 Start with what changed and what was verified. The report appears in the conversation and in `PROGRESS.md` in the goal folder.
+
+**Review summary.** In goals started with 0.1.24 or later, after completion, `## 검수 요약` right after `## 현재` is where you start reviewing. Its top lines give the completion record, the assurance tier, how many required conditions are satisfied, the review gate result, what the change does and where to start looking; below them come changed behavior and files, scope changes, evidence, who decided, what to inspect, what was not observed, and details, in that order. A heading with nothing to list says `없음`, and after a reopen the section is rewritten as of the new completion record. It is written in the user's language and says what each record is; each item is short, with seq numbers only as an aid; no check output or finding text is copied; a finding is its ID, one line and its ending. Seal's judgment is only there, and `## 완료 보고` holds the `ha report` output and one line pointing to it. For a finished goal, read `## 검수 요약` first. For a goal that stopped, or one started with an earlier Seal, read `## 완료 보고` as before.
 
 - Required completion conditions need recorded checks or necessary user confirmations.
 - Optional conditions do not block completion and are identified separately.

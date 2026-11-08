@@ -75,7 +75,7 @@ Follow a **fictional example** of adding a "Forgot password" link to a login scr
 5. **`ha` checks and records.** The agent first runs the `AC-1` check on the code before the change and records it failing, because the link is not there yet. Then it implements and runs it again to record a pass. `AC-2` gets a passing record. Every run is appended to `runs.jsonl`, one line each.
 6. **Spar reviews independently.** This goal's tier is `standard`, so reviewers in another context review the change before completion. The agent fixes the findings that need it, and the finished review is recorded as a gate.
 7. **`ha done` records completion.** When every required condition is met and the other requirements, such as the review record, are in place, a completion record is written and the report is added to `PROGRESS.md`.
-8. **You read the report.** Read its five lines, what changed, what was checked, what to look at, remaining limits and the next action, with the evidence per condition, and look at the actual result too.
+8. **You read the report.** Read its five lines, what changed, what was checked, what to look at, remaining limits and the next action, with the evidence per condition, and look at the actual result too. In a finished goal started with 0.1.24 or later, the judgment is in `## 검수 요약`.
 
 If the conversation ends midway, open a new conversation in the same project and send `continue docs/specs/password-link`. The agent there reads the goal folder and the status `ha` computes, and continues the remaining work.
 
@@ -88,8 +88,10 @@ Each goal gets one folder in your project. They are all ordinary files.
 | `SPEC.md` | Spec | Goal, scope, completion conditions. It is your document |
 | `PLAN.md` | Seal | How each condition is checked, the paths it may change, the run budget |
 | `REVIEW.md` | Seal | The review plan and a summary of the Spar records |
-| `PROGRESS.md` | Seal | Progress and the completion report |
+| `PROGRESS.md` | Seal | Progress, the review summary and the completion report |
 | `runs.jsonl` | `ha` | The append-only run record |
+
+**Review summary.** In goals started with 0.1.24 or later, after completion, `## 검수 요약` right after `## 현재` is where you start reviewing. Its top lines give the completion record, the assurance tier, how many required conditions are satisfied, the review gate result, what the change does and where to start looking; below them come changed behavior and files, scope changes, evidence, who decided, what to inspect, what was not observed, and details, in that order. A heading with nothing to list says `없음`, and after a reopen the section is rewritten as of the new completion record. It is written in the user's language and says what each record is; each item is short, with seq numbers only as an aid; no check output or finding text is copied; a finding is its ID, one line and its ending. Seal's judgment is only there, and `## 완료 보고` holds the `ha report` output and one line pointing to it. For a finished goal, read `## 검수 요약` first. For a goal that stopped, or one started with an earlier Seal, read `## 완료 보고` as before.
 
 For a newly started goal, the first five lines of the completion report are computed by `ha` from the run record, Git and the goal documents. The agent does not rewrite them. Read the words in the report like this:
 

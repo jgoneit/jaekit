@@ -169,6 +169,7 @@ This form applies to goals whose start record names seal 0.1.20 or later (the `s
 | Section | Content |
 | --- | --- |
 | `## 현재` | A short, current summary (about 5 to 8 lines). It opens with the stamp `ha report <goal>` prints for `## 현재`, pasted unchanged: the record head as `ha status` prints it, seq and hash (`none` before `ha start`), the time stored in that record with its time zone, the state, and the completion record seq when there is one. Never type a check time yourself. Below the stamp come the work in progress, the open problems, the next work, and how to resume. Restamp with a fresh `ha report` stamp whenever the record head changes. Whoever takes the goal up compares the record head with `ha status` to see whether the summary is stale: the same seq with another hash is another record, and the stamp's time is for reference only. Past events stay out; point to `## 타임라인`. When `ha done` records completion, say the summary is as of that completion record and where to find what happens past the bundle's last commit (merge, review replies, checks after the merge), never as work in progress |
+| `## 검수 요약` | For goals started with seal 0.1.24 or later, written once `ha done` records completion: where the user starts reviewing the finished goal ([Review summary](#review-summary)). `ha` does not read it |
 | `## Task 상태` | Table `Task \| 상태 \| 메모`. States: `todo`, `doing`, `done`, `dropped`, `blocked`. `done` is a claim; `dropped` needs a plan change entry |
 | `## 타임라인` | Optional. Events that change a judgment or the next action, appended in time order (below). `ha` does not read it |
 | `## 계획 변경` | Table `시각 \| 변경 \| 이유 \| 영향 \| 다시 검토한 것`, including kind changes. `시각` carries a time zone. One row is one event; when the event also has a timeline entry, the detail lives only in that entry and the row points to it by the entry's time, with a one-line summary |
@@ -205,6 +206,25 @@ Goals started with seal 0.1.13 or later may keep detailed judgments once in the 
 - Refer only to events whose registration succeeded. When the history was not used, is unavailable, failed, or a write's application is unconfirmed, leave the explanation in Markdown in the `## 타임라인` form above. Required handover content never survives as an event ID alone.
 - The history is local data in the Git common directory and does not travel to a new clone or another machine. There, the detailed reasons, evidence and relations are absent; the current state, important decisions with short reasons, and resume method kept in PROGRESS only partly make up for that. That is not a restoration of the history.
 - The executor chooses which events to record, when, which relations to link, and whether to fold a small event into one. Record the same events the timeline rules name. The feature adds no human approval step and no retrospective duty.
+
+## Review summary
+
+`## 검수 요약` applies to goals whose start record names seal 0.1.24 or later (the `skill:` line of `ha status`). A goal started with an earlier Seal keeps the PROGRESS and report form it started with, and existing goals' `PROGRESS.md` is never converted to the new form.
+
+This is where the user starts reviewing a finished goal: what changed, why and on what evidence, and what to inspect by hand. Written once `ha done` records completion, as of that completion record, and rewritten as of each new completion record after a reopen; not written before completion or when work stops at `needs_user`, `blocked` or `budget_exhausted`, where `## 현재` and `## 완료 보고` carry the state. Before that, the heading holds one line saying so. `ha` does not read it.
+
+- Opening lines, with no heading: the completion record's seq and commit, the assurance tier, how many required conditions are satisfied, and the review gate result; one line on what the change does; where to start looking.
+- These headings follow, all of them and in this order; write `없음` under a heading with nothing to list:
+  1. `### 바뀐 동작과 파일`: a table `바뀐 동작 | 조건 | 파일`. Every file changed from the goal's base to the completion commit, goal documents excepted, appears in a row; this goal's check files have rows too.
+  2. `### 범위 밖이나 기존 것을 바꾼 곳`: one item each for files outside the SPEC scope, changes to existing tests, and changes to checks an earlier goal left, each with where the user's words allowing it are, or the reason.
+  3. `### 근거`: for every condition, what the check that satisfied it observed and the commit where it passed, never by seq alone; and a table `라운드 | 지적 | 끝` with one row for every review round, a round with no findings included. Every finding of the round ends in exactly one of `고침`, `반박`, `중복`, `사용자의 답`, `이슈로 보류`, `자동 보류`, `처리 없음`.
+  4. `### 누가 정했나`: decisions in three groups: decided by the user, with where their words are; proposed by the agent and accepted by the user; executor assumptions nobody was asked about. Mark an assumption that reads a SPEC sentence.
+  5. `### 직접 볼 것`: ordered by risk, the highest at the top, one or two lines each: every item the `직접 볼 것` line of `ha report` lists and, whatever that line shows, every deferred finding with its issue; every finding left with no disposition; executor assumptions that read a SPEC sentence; conditions met by checks that observe fixed text only, whose documents a person must read; `manual` conditions; the changes under `### 범위 밖이나 기존 것을 바꾼 곳`.
+  6. `### 보지 않은 것`: Unobserved scope and substitutes, assurance `local`, that the executor wrote the checks, and that the summary is not evidence of deployment, installation or a real model call.
+  7. `### 자세히`: the documents and sections that hold the detail, such as `REVIEW.md`, `## 타임라인` and the review round folders.
+- The judgment items of the [completion report](#completion-report)'s item 2 go here: the changed files and the condition each contributed to under `### 바뀐 동작과 파일`; assumed open decisions under `### 누가 정했나`; `manual` conditions under `### 직접 볼 것`; the expected-result grounds, the actual observation boundary, the test method and the review stages actually taken (or why they were skipped, and, when the SPEC tier and the project instructions differed, the review each required and the one followed) under `### 근거`; the unobserved scope and substitute environments under `### 보지 않은 것`; where the independent review results are under `### 자세히`; and whether the head to be sent or merged is the completion record's commit, with the fact that the completion does not cover a difference unless `ha status` at that head still names that completion record, in the opening lines.
+- Reading rules: write in the user's language; say what a record is, with its seq only as an aid; keep each item short; never copy check output or finding text; a finding is its ID, one line and its ending. The finding text stays in Spar's records.
+- At completion, the executor's judgment sentences live only here, and `## 완료 보고` points here ([Completion report](#completion-report)).
 
 ## Assurance policy and counterexamples
 
@@ -251,3 +271,5 @@ Written once `ha done` records completion, or when work stops at `needs_user`, `
    - how to continue, when not complete.
 
 Goals started with an earlier Seal keep the report format they started with ([earlier-goals.md](earlier-goals.md)). Never paste verification output into any bundle file. Summarize the cause and point to `ha log <goal> <seq>`.
+
+For a goal whose start record names seal 0.1.24 or later, at completion `## 완료 보고` holds item 1 and one line pointing to `## 검수 요약`; item 2 lives only in `## 검수 요약` ([Review summary](#review-summary)). When work stops, both parts stay as above.

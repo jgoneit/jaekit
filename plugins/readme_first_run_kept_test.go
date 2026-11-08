@@ -16,12 +16,14 @@ import (
 
 // rfrKept are the sha256 values at main 81a7d47 of each README's flow,
 // get-started and records sections with the goal's parts masked, and of its
-// hero, command blocks and link list without the added links.
+// hero, command blocks and link list without the added links. The records
+// values are those of the review-summary goal, which added the review summary
+// to each README's PROGRESS.md description.
 var rfrKept = map[string]map[string]string{
 	"README.md": {
 		"flow":        "f3d640a39d99aac5e948b357935fe9d791a12f5111a0c5151ec092c120855fec",
 		"get-started": "d513e0f5306006ef33f58712f6d0e6b53a26c19c89a631a0c3064523d486eef7",
-		"records":     "c9cb21d06688a18ed91f6af673393cfe81ef80212b851529ed796a40085b9abb",
+		"records":     "6089c2cb0fd7ca4296bae3003921e47c6ff44ae9d3236f014c4efe3655c0a61b",
 		"hero":        "e2786373776467d77948970760fa85cc010d488ea902310cc820856304fc51bc",
 		"commands":    "59f12488dd2183b2309aebdec44be212f4cf2383e234b5c3fbcead13a15dd150",
 		"links":       "8c0b420dbb4e0b8fc9ec8673e23a596987cf0ff540612ad12e776f4dc40f7961",
@@ -29,7 +31,7 @@ var rfrKept = map[string]map[string]string{
 	"README.ko.md": {
 		"flow":        "8a6501de29184c80a8af663fc7787de356e492ae5e09ccc502bf26cc8ace4fd1",
 		"get-started": "cd21b3ebda85af36c614dc10ea2d53c35558de92288e057394d0226387230fa0",
-		"records":     "6e4a611a894b01cfc1f0d54513c7dd9d6475004be759f2363fe5ee4d63acc2ff",
+		"records":     "aa6ca8fd22525f9328cac55cef6bda24d53a46f051b8cbad022f343a49f8e8c4",
 		"hero":        "b3c24b6ab3fc3fd3b9270086d61fe18135de39990a12d0159d4131f1d6e1ecbf",
 		"commands":    "59f12488dd2183b2309aebdec44be212f4cf2383e234b5c3fbcead13a15dd150",
 		"links":       "43626dbd7cdb4ca1729da075944ecc91d6d9c68171565aa796424afa1b744ef3",
