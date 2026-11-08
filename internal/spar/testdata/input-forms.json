@@ -891,6 +891,10 @@
       {
         "line": "rg --hyperlink-format=default --hostname-bin=python3 x head",
         "problem": "--hostname-bin=python3"
+      },
+      {
+        "line": "ls $[1+1]",
+        "problem": "$"
       }
     ]
   }
