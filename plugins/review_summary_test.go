@@ -446,7 +446,7 @@ func TestReviewSummaryAC1_PlacementAndTiming(t *testing.T) {
 	})
 	if skill, ok := rsmRead(t, v, rsmSkill); ok {
 		rsmNeed(t, v, rsmSkill, skill,
-			"`## 검수 요약`, right after `## 현재`, holds judgment of each completion record, never of a stop")
+			"At each completion record, judgment goes only to `## 검수 요약` after `## 현재`, never at stops")
 	}
 }
 
@@ -649,7 +649,7 @@ func TestReviewSummaryAC8_CompletionReport(t *testing.T) {
 		"the review each required and the one followed) under `### 근거`",
 		"the unobserved scope and substitute environments under `### 보지 않은 것`",
 		"where the independent review results are under `### 자세히`",
-		"whether the head to be sent or merged is the completion record's commit, with the fact that the completion does not cover a difference, in the opening lines",
+		"whether the head to be sent or merged is the completion record's commit, with the fact that the completion does not cover a difference unless `ha status` at that head still names that completion record, in the opening lines",
 	}, []string{
 		"바뀐 파일과 각 파일이 기여한 조건은 `### 바뀐 동작과 파일`",
 		"가정한 미결정은 `### 누가 정했나`",
@@ -658,7 +658,7 @@ func TestReviewSummaryAC8_CompletionReport(t *testing.T) {
 		"각각이 요구한 검토와 따른 쪽)는 `### 근거`",
 		"미관측 범위와 대체 환경은 `### 보지 않은 것`",
 		"독립 검토 결과의 위치는 `### 자세히`",
-		"보내거나 병합하려는 head가 완료 기록의 commit인지와, 다르면 그 차이를 완료가 덮지 않는다는 사실은 첫 줄들에 쓴다",
+		"보내거나 병합하려는 head가 완료 기록의 commit인지와, 다르면 그 차이를 완료가 덮지 않는다는 사실(그 head에서 `ha status`가 같은 완료 기록을 계속 보이면 덮는다)은 첫 줄들에 쓴다",
 	})
 	if card, ok := rsmRead(t, v, rsmRoleKo); ok {
 		rsmNeed(t, v, rsmRoleKo, card,
