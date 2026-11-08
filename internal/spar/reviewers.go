@@ -43,11 +43,31 @@ var claudeAllowed = map[string]bool{"Read": true, "Grep": true, "Glob": true, "S
 var agyAllowed = map[string]bool{"view_file": true, "read_file": true, "list_dir": true, "grep_search": true, "find_by_name": true,
 	"finish": true, "wait": true, "wait_5_seconds": true, "command_status": true}
 
-// Programs agy's shell may run: they read files and start nothing else.
+// Programs agy's shell may run: they read files and start nothing else;
+// true does nothing.
 var readOnlyPrograms = map[string]bool{"find": true, "ls": true, "grep": true, "egrep": true, "fgrep": true,
 	"rg": true, "cat": true, "head": true, "tail": true, "wc": true, "nl": true, "sort": true, "uniq": true,
 	"cut": true, "stat": true, "file": true, "diff": true, "cmp": true, "tree": true, "pwd": true,
-	"basename": true, "dirname": true, "realpath": true, "tr": true, "du": true}
+	"basename": true, "dirname": true, "realpath": true, "tr": true, "du": true, "true": true}
+
+// commandSeparators are the operators that may stand between two commands
+// each of which is read-only on its own.
+var commandSeparators = map[string]bool{"|": true, "&&": true, "||": true, ";": true}
+
+// agyCommandNote opens agy's prompt, before the packet: which shell commands
+// spar accepts. The packet itself stays the same for every reviewer.
+var agyCommandNote = func() string {
+	names := make([]string, 0, len(readOnlyPrograms))
+	for name := range readOnlyPrograms {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return "Spar checks every shell command you run during this review. Read, list and search files with your file tools " +
+		"(view_file, read_file, list_dir, grep_search, find_by_name) first. A shell command may run only these read-only programs: " +
+		strings.Join(names, ", ") + ", and sed -n with a print script such as sed -n '1,40p'; join commands only with |, &&, || or ;. " +
+		"Running code, tests, builds, git or any other program, or other shell syntax such as cd, subshells, loops, background jobs " +
+		"or redirection (2>/dev/null and 2>&1 aside), stops this review at once and discards your result as tool_violation.\n\n"
+}()
 
 // Arguments that start another program or delete files. The list is the
 // one clean-review 0.2.0 blocks; agy's --sandbox keeps files from being
@@ -274,19 +294,22 @@ func codexSpec(r Reviewer, model, binary string, p runPaths, packet []byte) revi
 }
 
 func agySpec(r Reviewer, model, binary string, p runPaths, packet []byte) reviewSpec {
-	// agy takes its prompt as an argument. A packet over the argument limit
-	// goes into the workspace unchanged, and the prompt points at it.
-	prompt, transport := string(packet), "argument"
-	if len(packet) > argumentLimit() {
+	// agy takes its prompt as an argument: the command note, then the packet.
+	// When the two are over the argument limit, the packet goes into the
+	// workspace unchanged and the prompt is the note and a pointer to it.
+	prompt, transport := agyCommandNote+string(packet), "argument"
+	shown := agyCommandNote + "<packet.md>"
+	if len(prompt) > argumentLimit() {
 		if err := os.WriteFile(filepath.Join(p.workspace, packetFile), packet, 0o644); err == nil {
-			prompt, transport = "The review packet is the file "+packetFile+" in the current folder, next to head/ and base/. "+
+			prompt, transport = agyCommandNote+"The review packet is the file "+packetFile+" in the current folder, next to head/ and base/. "+
 				"Read all of it and follow it exactly; it is the whole task.", "file"
+			shown = prompt
 		}
 	}
 	argv := []string{binary, "-p", prompt, "--model", model, "--sandbox", "--disable-slash-commands",
 		"--output-format", "stream-json", "--json-schema", p.schema,
 		"--print-timeout", fmt.Sprintf("%ds", r.TimeoutSeconds), "--log-file", filepath.Join(p.dir, "agy-runtime.log")}
-	return reviewSpec{argv: argv, display: replaceArg(argv, string(packet), "<packet.md>"), transport: transport, model: model,
+	return reviewSpec{argv: argv, display: replaceArg(argv, prompt, shown), transport: transport, model: model,
 		checkEvent: func(e map[string]any) string {
 			step := object(e["step_update"])
 			if step == nil || step["step_type"] != "tool" {
@@ -425,18 +448,37 @@ func short(text string, limit int) string {
 	return string([]rune(text)[:limit-1]) + "…"
 }
 
+// shellToken is one token of a command line: a word, or a run of the
+// operator characters ();<>|& outside quotes and backslashes. expansion is
+// the first character in a word that the shell would expand into other
+// text: $ outside single quotes, or { outside quotes other than the word {}.
+type shellToken struct {
+	text      string
+	op        bool
+	expansion string
+}
+
 // shellWords splits a command line the way a POSIX shell would for these
-// purposes, keeping operator characters as their own tokens.
-func shellWords(line string) ([]string, error) {
-	var tokens []string
+// purposes. Operator characters that are quoted or escaped belong to a word.
+func shellWords(line string) ([]shellToken, error) {
+	var tokens []shellToken
 	var cur strings.Builder
 	inWord := false
+	expansion := ""
+	expand := func(c string) {
+		if expansion == "" {
+			expansion = c
+		}
+	}
 	flush := func() {
 		if inWord {
-			tokens = append(tokens, cur.String())
+			tokens = append(tokens, shellToken{text: cur.String(), expansion: expansion})
 			cur.Reset()
-			inWord = false
+			inWord, expansion = false, ""
 		}
+	}
+	boundary := func(i int) bool {
+		return i >= len(line) || strings.ContainsRune(" \t();<>|&", rune(line[i]))
 	}
 	runes := []rune(line)
 	for i := 0; i < len(runes); i++ {
@@ -457,6 +499,8 @@ func shellWords(line string) ([]string, error) {
 			for ; j < len(runes) && runes[j] != '"'; j++ {
 				if runes[j] == '\\' && j+1 < len(runes) {
 					j++
+				} else if runes[j] == '$' {
+					expand("$")
 				}
 				cur.WriteRune(runes[j])
 			}
@@ -476,9 +520,16 @@ func shellWords(line string) ([]string, error) {
 			for j < len(runes) && strings.ContainsRune("();<>|&", runes[j]) {
 				j++
 			}
-			tokens = append(tokens, string(runes[i:j]))
+			tokens = append(tokens, shellToken{text: string(runes[i:j]), op: true})
 			i = j - 1
+		case c == '{' && !inWord && i+1 < len(runes) && runes[i+1] == '}' && boundary(len(string(runes[:i+2]))):
+			cur.WriteString("{}")
+			inWord = true
+			i++
 		default:
+			if c == '$' || c == '{' {
+				expand(string(c))
+			}
 			cur.WriteRune(c)
 			inWord = true
 		}
@@ -488,6 +539,9 @@ func shellWords(line string) ([]string, error) {
 }
 
 // unsafeCommand says why a shell line is not a read-only listing or search.
+// A line may join read-only commands with |, &&, || or ; and nothing else.
+// The reason names the first problem: a shell construct anywhere in the
+// line, else the first part, read from the left, that breaks the rule.
 func unsafeCommand(line string) string {
 	text := strings.NewReplacer("2>/dev/null", " ", "2>&1", " ").Replace(line)
 	for _, bad := range []string{"`", "$(", "<(", ">(", "\n"} {
@@ -499,46 +553,96 @@ func unsafeCommand(line string) string {
 	if err != nil {
 		return "unparsable command (" + err.Error() + ")"
 	}
-	var segments [][]string
-	var cur []string
+	var cur []shellToken
 	for _, t := range tokens {
-		if t == "|" {
-			segments = append(segments, cur)
-			cur = nil
-		} else if strings.Trim(t, "();<>|&") == "" {
-			return fmt.Sprintf("shell operator %q", t)
-		} else {
+		switch {
+		case !t.op:
 			cur = append(cur, t)
+			continue
+		case !commandSeparators[t.text]:
+			return fmt.Sprintf("shell operator %q", t.text)
+		case len(cur) == 0:
+			return fmt.Sprintf("shell operator %q with no command before it", t.text)
+		}
+		if why := unsafeSimpleCommand(cur); why != "" {
+			return why
+		}
+		cur = nil
+	}
+	if len(cur) == 0 {
+		if len(tokens) > 0 {
+			return fmt.Sprintf("shell operator %q with no command after it", tokens[len(tokens)-1].text)
+		}
+		return "empty command"
+	}
+	return unsafeSimpleCommand(cur)
+}
+
+// unsafeSimpleCommand says why one command between operators is not a
+// read-only program or a sed that only prints, reading its words from the
+// left.
+func unsafeSimpleCommand(words []shellToken) string {
+	if words[0].expansion != "" {
+		return fmt.Sprintf("shell expansion %q", words[0].expansion)
+	}
+	program := filepath.Base(words[0].text)
+	if program != "sed" && !readOnlyPrograms[program] {
+		return fmt.Sprintf("program %q", program)
+	}
+	for _, w := range words[1:] {
+		if w.expansion != "" {
+			return fmt.Sprintf("shell expansion %q", w.expansion)
+		}
+		for _, p := range unsafeArgPrefixes {
+			if strings.HasPrefix(w.text, p) {
+				return fmt.Sprintf("argument %q", w.text)
+			}
 		}
 	}
-	segments = append(segments, cur)
-	for _, seg := range segments {
-		if len(seg) == 0 {
-			return "empty pipeline segment"
+	if program == "sed" {
+		return unsafeSed(words[1:])
+	}
+	return ""
+}
+
+// unsafeSed accepts sed only when it prints: -n (or --quiet, --silent),
+// optionally -E or -r, and scripts that are all print-only, given with -e,
+// --expression= or as the first operand. Any other option is a violation.
+func unsafeSed(args []shellToken) string {
+	quiet := false
+	var scripts, operands []string
+	for i := 0; i < len(args); i++ {
+		t := args[i].text
+		switch {
+		case t == "-n" || t == "--quiet" || t == "--silent":
+			quiet = true
+		case t == "-E" || t == "-r" || t == "--regexp-extended":
+		case t == "-e":
+			if i+1 >= len(args) {
+				return fmt.Sprintf("argument %q without a script", t)
+			}
+			i++
+			scripts = append(scripts, args[i].text)
+		case strings.HasPrefix(t, "--expression="):
+			scripts = append(scripts, strings.TrimPrefix(t, "--expression="))
+		case strings.HasPrefix(t, "-") && t != "-":
+			return fmt.Sprintf("argument %q", t)
+		default:
+			operands = append(operands, t)
 		}
-		program := filepath.Base(seg[0])
-		if program == "sed" {
-			var scripts []string
-			hasN := false
-			for _, t := range seg[1:] {
-				if t == "-n" {
-					hasN = true
-				} else if !strings.HasPrefix(t, "-") {
-					scripts = append(scripts, t)
-				}
-			}
-			if !hasN || len(scripts) == 0 || !sedPrint.MatchString(scripts[0]) {
-				return "sed other than sed -n 'N,Mp' or '/regex/,/regex/p'"
-			}
-		} else if !readOnlyPrograms[program] {
-			return fmt.Sprintf("program %q", program)
-		}
-		for _, t := range seg[1:] {
-			for _, p := range unsafeArgPrefixes {
-				if strings.HasPrefix(t, p) {
-					return fmt.Sprintf("argument %q", t)
-				}
-			}
+	}
+	if len(scripts) == 0 && len(operands) > 0 {
+		scripts = operands[:1]
+	}
+	if !quiet {
+		return `program "sed" without -n`
+	}
+	if len(scripts) == 0 {
+		return `program "sed" without a script`
+	}
+	for _, script := range scripts {
+		if !sedPrint.MatchString(script) {
+			return fmt.Sprintf("sed script %q that does more than print lines (sed -n 'N,Mp' or '/regex/,/regex/p')", script)
 		}
 	}
 	return ""

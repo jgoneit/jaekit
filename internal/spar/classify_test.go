@@ -227,7 +227,7 @@ func TestAgyLargePacketGoesThroughTheWorkspace(t *testing.T) {
 	p := runPaths{workspace: ws, dir: t.TempDir(), schema: "schema.json"}
 	r := Reviewer{Preset: "agy", TimeoutSeconds: 60}
 	small := agySpec(r, "m", "agy", p, []byte("small packet"))
-	if small.transport != "argument" || small.argv[2] != "small packet" {
+	if small.transport != "argument" || small.argv[2] != agyCommandNote+"small packet" {
 		t.Fatalf("small packet: %s %q", small.transport, small.argv[2])
 	}
 	large := []byte(strings.Repeat("x", argumentLimit()+1))

@@ -60,6 +60,7 @@ fallback_model = "gemini-3.8-flash-high"
 ```
 
 - `claude`·`codex`·`agy`는 spar가 확인하는 읽기 전용·오프라인 보호로 CLI를 띄웁니다. 격리 등급 `verified`로 기록되고 필수 리뷰어에 듭니다.
+- `agy`는 파일 읽기·목록·검색 도구와, 읽기 전용 프로그램(`ls`, `grep`, `cat`, `diff`, `true` 등)과 `sed -n`을 `|`, `&&`, `||`, `;`로 이은 셸 명령만 쓸 수 있습니다. 코드·시험·빌드·Git이나 그 밖의 프로그램을 실행하면 spar가 그 리뷰어를 멈추고 `tool_violation`으로 기록하며 결과를 버립니다. spar는 이 규칙을 agy의 프롬프트 맨 앞에 짧게 적어 줍니다.
 - `fallback_model`은 지정 모델이 사용량·요청 한도로 거절될 때만, 같은 라운드에서 같은 패킷으로 한 번 실행합니다. `fallback_model = ""`는 preset의 기본 대체 모델을 끕니다.
 - `native`는 지금 쓰는 에이전트의 clean-context 하위 에이전트입니다. Spar가 라운드 폴더에 프롬프트와 작업공간을 쓰고, 에이전트가 가져온 답을 기록합니다. `host`로 기록되고 필수 리뷰어에 듭니다.
 

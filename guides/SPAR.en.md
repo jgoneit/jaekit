@@ -60,6 +60,7 @@ fallback_model = "gemini-3.8-flash-high"
 ```
 
 - `claude`, `codex` and `agy` start their CLI with read-only, offline protections that spar checks; they are recorded as `verified` and count as required reviewers.
+- `agy` may use its file read, list and search tools and shell commands that join read-only programs (`ls`, `grep`, `cat`, `diff`, `true` and so on) and `sed -n` with `|`, `&&`, `||` or `;`. If it runs code, tests, builds, git or any other program, spar stops that reviewer, records it as `tool_violation` and drops its result. spar puts this rule in a short note at the start of agy's prompt.
 - `fallback_model` runs once, in the same round and on the same packet, only when the designated model is refused for quota or rate limits. `fallback_model = ""` turns the preset's default fallback off.
 - `native` is a clean-context subagent of your agent. Spar writes its prompt and workspace into the round folder and records the reply the agent brings back. It is recorded as `host` and counts as required.
 
