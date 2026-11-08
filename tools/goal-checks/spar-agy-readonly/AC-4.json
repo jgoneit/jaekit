@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "PromptNote",
+      "violation": "agy-command-note-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparAgyReadonlyAC4_PromptNote"
+      }
+    }
+  ]
+}
