@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // Status values of a reviewer in a round.
@@ -50,6 +51,11 @@ var readOnlyPrograms = map[string]bool{"find": true, "ls": true, "grep": true, "
 	"cut": true, "stat": true, "file": true, "diff": true, "cmp": true, "tree": true, "pwd": true,
 	"basename": true, "dirname": true, "realpath": true, "tr": true, "du": true, "true": true}
 
+// systemProgramDirs are the folders a program named by its path may come
+// from: a path anywhere else, such as head/bin/ls, may be the reviewed
+// commit's own executable.
+var systemProgramDirs = map[string]bool{"/bin": true, "/usr/bin": true, "/usr/local/bin": true, "/opt/homebrew/bin": true}
+
 // commandSeparators are the operators that may stand between two commands
 // each of which is read-only on its own.
 var commandSeparators = map[string]bool{"|": true, "&&": true, "||": true, ";": true}
@@ -69,10 +75,11 @@ var agyCommandNote = func() string {
 		"or redirection (2>/dev/null and 2>&1 aside), stops this review at once and discards your result as tool_violation.\n\n"
 }()
 
-// Arguments that start another program or delete files. The list is the
-// one clean-review 0.2.0 blocks; agy's --sandbox keeps files from being
-// written, and a change to the reviewed folders is workspace_modified.
-var unsafeArgPrefixes = []string{"-exec", "-execdir", "-ok", "-okdir", "-delete", "--pre", "--compress-program"}
+// Arguments that start another program or delete files: the list
+// clean-review 0.2.0 blocks, and ripgrep's --hostname-bin, which runs the
+// program it names. agy's --sandbox keeps files from being written, and a
+// change to the reviewed folders is workspace_modified.
+var unsafeArgPrefixes = []string{"-exec", "-execdir", "-ok", "-okdir", "-delete", "--pre", "--compress-program", "--hostname-bin"}
 
 // packetFile is where a reviewer finds the packet when it is too large for
 // one command-line argument.
@@ -499,7 +506,7 @@ func shellWords(line string) ([]shellToken, error) {
 			for ; j < len(runes) && runes[j] != '"'; j++ {
 				if runes[j] == '\\' && j+1 < len(runes) {
 					j++
-				} else if runes[j] == '$' {
+				} else if runes[j] == '$' && j+1 < len(runes) && startsExpansion(runes[j+1], true) {
 					expand("$")
 				}
 				cur.WriteRune(runes[j])
@@ -527,7 +534,7 @@ func shellWords(line string) ([]shellToken, error) {
 			inWord = true
 			i++
 		default:
-			if c == '$' || c == '{' {
+			if c == '{' || (c == '$' && i+1 < len(runes) && startsExpansion(runes[i+1], false)) {
 				expand(string(c))
 			}
 			cur.WriteRune(c)
@@ -536,6 +543,22 @@ func shellWords(line string) ([]shellToken, error) {
 	}
 	flush()
 	return tokens, nil
+}
+
+// startsExpansion says whether a $ followed by next expands: a name, a
+// digit, a brace, a special parameter or a command substitution, and
+// outside double quotes also $'...' and $"...". A $ before anything else,
+// a closing quote or the end of a word stays a literal $.
+func startsExpansion(next rune, inDoubleQuotes bool) bool {
+	switch {
+	case next == '_' || unicode.IsLetter(next) || unicode.IsDigit(next):
+		return true
+	case strings.ContainsRune("{(?!#@*-$", next):
+		return true
+	case !inDoubleQuotes && (next == '\'' || next == '"'):
+		return true
+	}
+	return false
 }
 
 // unsafeCommand says why a shell line is not a read-only listing or search.
@@ -585,7 +608,11 @@ func unsafeSimpleCommand(words []shellToken) string {
 	if words[0].expansion != "" {
 		return fmt.Sprintf("shell expansion %q", words[0].expansion)
 	}
-	program := filepath.Base(words[0].text)
+	first := words[0].text
+	if strings.Contains(first, "/") && !systemProgramDirs[filepath.Dir(first)] {
+		return fmt.Sprintf("program %q", first)
+	}
+	program := filepath.Base(first)
 	if program != "sed" && !readOnlyPrograms[program] {
 		return fmt.Sprintf("program %q", program)
 	}
@@ -607,13 +634,24 @@ func unsafeSimpleCommand(words []shellToken) string {
 
 // unsafeSed accepts sed only when it prints: -n (or --quiet, --silent),
 // optionally -E or -r, and scripts that are all print-only, given with -e,
-// --expression= or as the first operand. Any other option is a violation.
+// --expression= or as the first operand. Any other option is a violation,
+// and so is an option after an operand: BSD sed stops reading options at
+// the first operand, so its script would be another word than GNU sed's.
+// -- ends the options.
 func unsafeSed(args []shellToken) string {
 	quiet := false
 	var scripts, operands []string
+	endOfOptions := false
 	for i := 0; i < len(args); i++ {
 		t := args[i].text
 		switch {
+		case endOfOptions || t == "-" || !strings.HasPrefix(t, "-"):
+			operands = append(operands, t)
+			continue
+		case len(operands) > 0:
+			return fmt.Sprintf("argument %q after an operand", t)
+		case t == "--":
+			endOfOptions = true
 		case t == "-n" || t == "--quiet" || t == "--silent":
 			quiet = true
 		case t == "-E" || t == "-r" || t == "--regexp-extended":
@@ -625,10 +663,8 @@ func unsafeSed(args []shellToken) string {
 			scripts = append(scripts, args[i].text)
 		case strings.HasPrefix(t, "--expression="):
 			scripts = append(scripts, strings.TrimPrefix(t, "--expression="))
-		case strings.HasPrefix(t, "-") && t != "-":
-			return fmt.Sprintf("argument %q", t)
 		default:
-			operands = append(operands, t)
+			return fmt.Sprintf("argument %q", t)
 		}
 	}
 	if len(scripts) == 0 && len(operands) > 0 {
