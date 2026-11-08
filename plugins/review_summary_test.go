@@ -212,6 +212,44 @@ func rsmSubHeadings(sec string) []string {
 	return out
 }
 
+// rsmBlocks splits a Markdown text into paragraphs and list items: a blank
+// line or a line opening a list item ("- ", "* " or "1. ") starts a new
+// block, and other lines continue the block before them, so line wrapping
+// does not split a sentence.
+func rsmBlocks(text string) []string {
+	var out []string
+	var cur []string
+	flush := func() {
+		if len(cur) > 0 {
+			out = append(out, strings.Join(cur, "\n"))
+			cur = nil
+		}
+	}
+	for _, l := range strings.Split(text, "\n") {
+		trimmed := strings.TrimSpace(l)
+		if trimmed == "" {
+			flush()
+			continue
+		}
+		item := strings.HasPrefix(trimmed, "- ") || strings.HasPrefix(trimmed, "* ")
+		if i := strings.Index(trimmed, ". "); i > 0 {
+			digits := true
+			for _, r := range trimmed[:i] {
+				if r < '0' || r > '9' {
+					digits = false
+				}
+			}
+			item = item || digits
+		}
+		if item {
+			flush()
+		}
+		cur = append(cur, l)
+	}
+	flush()
+	return out
+}
+
 // rsmTopHeadings lists the level-two headings of a document outside fenced
 // code, in order.
 func rsmTopHeadings(text string) []string {
@@ -640,7 +678,8 @@ func TestReviewSummaryAC15_Guides(t *testing.T) {
 		rsmNeed(t, v, "../README.md", text, "current state, review summary, timeline, completion report")
 	}
 	// The reading instructions the guides and READMEs already had now say
-	// where the judgment of a finished 0.1.24 goal is, on the same line.
+	// where the judgment of a finished 0.1.24 goal is, in the same paragraph
+	// or list item.
 	for _, q := range []struct{ path, anchor, token string }{
 		{"../guides/USAGE.md", "을 먼저 읽고, 그 아래에서 완료 기록과 Seal의 판단 문장을 봅니다", rsmQualKo},
 		{"../guides/USAGE.en.md", "then the completion record and Seal's judgment below them", rsmQualEn},
@@ -656,14 +695,14 @@ func TestReviewSummaryAC15_Guides(t *testing.T) {
 			continue
 		}
 		found := false
-		for _, l := range strings.Split(text, "\n") {
-			if strings.Contains(l, q.anchor) {
+		for _, block := range rsmBlocks(text) {
+			if strings.Contains(rsmNorm(block), rsmNorm(q.anchor)) {
 				found = true
-				rsmNeed(t, v, q.path+" (the line with "+q.anchor+")", l, q.token)
+				rsmNeed(t, v, q.path+" (the paragraph or item with "+q.anchor+")", block, q.token)
 			}
 		}
 		if !found {
-			t.Errorf("jaekit:violation=%s %s has no line with %q", v, q.path, q.anchor)
+			t.Errorf("jaekit:violation=%s %s has no paragraph or item with %q", v, q.path, q.anchor)
 		}
 	}
 	// The contracts, the template and the reference say the user starts
@@ -860,5 +899,15 @@ func TestReviewSummaryHelpersSkipFences(t *testing.T) {
 	}
 	if got := rsmSubHeadings(sec); strings.Join(got, "|") != "### real" {
 		t.Errorf("rsmSubHeadings = %q", got)
+	}
+}
+
+// rsmBlocks keeps a wrapped sentence in one block and splits list items.
+func TestReviewSummaryHelpersBlocks(t *testing.T) {
+	text := "intro line\ncontinued here\n\n- item one\n  wrapped\n- item two\n8. step eight\n   wrapped\n"
+	got := rsmBlocks(text)
+	want := []string{"intro line\ncontinued here", "- item one\n  wrapped", "- item two", "8. step eight\n   wrapped"}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Errorf("rsmBlocks = %q, want %q", got, want)
 	}
 }
