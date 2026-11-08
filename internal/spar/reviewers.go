@@ -546,14 +546,15 @@ func shellWords(line string) ([]shellToken, error) {
 }
 
 // startsExpansion says whether a $ followed by next expands: a name, a
-// digit, a brace, a special parameter or a command substitution, and
-// outside double quotes also $'...' and $"...". A $ before anything else,
-// a closing quote or the end of a word stays a literal $.
+// digit, a brace, $[...] arithmetic, a special parameter or a command
+// substitution, and outside double quotes also $'...' and $"...". A $
+// before anything else, a closing quote or the end of a word stays a
+// literal $.
 func startsExpansion(next rune, inDoubleQuotes bool) bool {
 	switch {
 	case next == '_' || unicode.IsLetter(next) || unicode.IsDigit(next):
 		return true
-	case strings.ContainsRune("{(?!#@*-$", next):
+	case strings.ContainsRune("{[(?!#@*-$", next):
 		return true
 	case !inDoubleQuotes && (next == '\'' || next == '"'):
 		return true
