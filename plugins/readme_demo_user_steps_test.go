@@ -342,12 +342,12 @@ var rduKept = map[string]map[string]string{
 	"README.md": {
 		"flow":        "4babcbfb187c912fe900fcf833cb7b70c57fd9ca6af54d06fef77e9b9c6d1d20",
 		"get-started": "8942bfb730cb2f02041d1b1f8c24278335974615994b8b4c8bbe83c00862e794",
-		"records":     "8238f5099b27a0a987418e8887629e5c73717a1dfdc02548275c039776da16be",
+		"records":     "81c3bf53770da36b11315778d2c004edd042c3ab1232e5745204df1b4beeafdf",
 	},
 	"README.ko.md": {
 		"flow":        "439d9d536839b77b96e5ea79f5af63decd3e95e47c4c9286933e2b2ed8627b5f",
 		"get-started": "9651222c93b37105dde06f741d1b30c56389dd75e3373794cb9b188c3689d76e",
-		"records":     "7207dbeff463522429df1f4d5e5b989061d30eee783dd6f777846a7dc06b3147",
+		"records":     "4f0c0bd2849391f663d2b0ad4c0f03cb30ef8f2e063f9f5ef224219ceb0ef14f",
 	},
 }
 

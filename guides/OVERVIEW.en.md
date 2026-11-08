@@ -75,7 +75,7 @@ Follow a **fictional example** of adding a "Forgot password" link to a login scr
 5. **`ha` checks and records.** The agent first runs the `AC-1` check on the code before the change and records it failing, because the link is not there yet. Then it implements and runs it again to record a pass. `AC-2` gets a passing record. Every run is appended to `runs.jsonl`, one line each.
 6. **Spar reviews independently.** This goal's tier is `standard`, so reviewers in another context review the change before completion. The agent fixes the findings that need it, and the finished review is recorded as a gate.
 7. **`ha done` records completion.** When every required condition is met and the other requirements, such as the review record, are in place, a completion record is written and the report is added to `PROGRESS.md`.
-8. **You read the report.** Read its five lines, what changed, what was checked, what to look at, remaining limits and the next action, with the evidence per condition, and look at the actual result too.
+8. **You read the report.** Read its five lines, what changed, what was checked, what to look at, remaining limits and the next action, with the evidence per condition, and look at the actual result too. In a finished goal started with 0.1.24 or later, the judgment is in `## 검수 요약`.
 
 If the conversation ends midway, open a new conversation in the same project and send `continue docs/specs/password-link`. The agent there reads the goal folder and the status `ha` computes, and continues the remaining work.
 

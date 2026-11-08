@@ -75,7 +75,7 @@ Seal asks the decisions it can foresee once, before it starts, and during work o
   - Seal records an answer given up front as the confirmation, quoting it, once the change it allows is committed, and does not ask about that change again.
   - When the confirmed content changes later, that is a new change and Seal asks again.
 - **Five-line report.** Goals started with 0.1.20 or later use `ha report` in `PROGRESS.md`. `## 현재` opens with the `ha report` stamp, pasted unchanged; Seal does not type the time.
-  - In `## 완료 보고`, read the five lines at the top (`Changed`, `Checked`, `To review`, `Remaining limits`, `Next step`), then the completion record and Seal's judgment below them.
+  - In `## 완료 보고`, read the five lines at the top (`Changed`, `Checked`, `To review`, `Remaining limits`, `Next step`), then the completion record and Seal's judgment below them. In a finished goal started with 0.1.24 or later, the judgment is in `## 검수 요약`.
   - A Korean request gets `--lang ko`.
 
 ### Review order by tier

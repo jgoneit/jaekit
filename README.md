@@ -359,7 +359,7 @@ docs/reviews/password-link/   Spar records, in a folder your project's Git is se
 
 ![Fictional completion report for password-link in the shape of ha report output: the five lines Changed, Checked, To review, Remaining limits and Next step, then the evidence per condition under completion record seq 6 (AC-1 change with records 2, 3; AC-2 maintain with record 4). Assurance local; check author executor.](assets/readme/report-card.en.png)
 
-When `ha done` records completion, Seal pastes the output of `ha report` unchanged into `PROGRESS.md` under `## 완료 보고`, then adds only its own judgment below it. `ha report` prints English by default and Korean with `--lang ko`; Seal uses the language of your request. The section looks like this:
+When `ha done` records completion, Seal pastes the output of `ha report` unchanged into `PROGRESS.md` under `## 완료 보고`, then adds only its own judgment below it. In a finished goal started with 0.1.24 or later, the judgment is in `## 검수 요약`. The judgment part of the example below is the form of a goal started with an earlier Seal. `ha report` prints English by default and Korean with `--lang ko`; Seal uses the language of your request. The section looks like this:
 
 ```markdown
 ## 완료 보고

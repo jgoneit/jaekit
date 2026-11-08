@@ -359,7 +359,7 @@ docs/reviews/password-link/   프로젝트의 Git이 무시하게 설정한 폴�
 
 ![password-link의 가상 완료 보고, ha report 출력 모양: 다섯 줄 바뀐 것, 확인한 것, 직접 볼 것, 남은 한계, 다음 행동과 완료 기록 seq 6의 조건별 근거(AC-1 change는 근거 기록 2, 3, AC-2 maintain은 4). 보증 수준 local, 검사 작성자 실행자.](assets/readme/report-card.ko.png)
 
-`ha done`이 완료를 기록하면 Seal이 `ha report`의 출력을 고치지 않고 `PROGRESS.md`의 `## 완료 보고`에 붙이고, 그 아래에 자기 판단만 덧붙입니다. `ha report`는 기본으로 영어, `--lang ko`로 한국어를 출력하며, Seal은 요청한 언어에 맞춥니다. 그 부분은 이렇게 생겼습니다.
+`ha done`이 완료를 기록하면 Seal이 `ha report`의 출력을 고치지 않고 `PROGRESS.md`의 `## 완료 보고`에 붙이고, 그 아래에 자기 판단만 덧붙입니다. 0.1.24 이상으로 시작해 완료한 목표에서는 판단 문장이 `## 검수 요약`에 있습니다. 아래 예시의 판단 부분은 그 전 Seal로 시작한 목표의 형식입니다. `ha report`는 기본으로 영어, `--lang ko`로 한국어를 출력하며, Seal은 요청한 언어에 맞춥니다. 그 부분은 이렇게 생겼습니다.
 
 ```markdown
 ## 완료 보고
