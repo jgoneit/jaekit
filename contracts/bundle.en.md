@@ -310,6 +310,8 @@ The section has the items below, all of them and in this order; write `없음` u
 - `### 보지 않은 것` (what was not observed): Unobserved scope and substitutes, assurance `local`, the fact that the executor wrote the checks, and the fact that the summary is not evidence of deployment, installation or a real model call.
 - `### 자세히` (details): the documents and sections that hold the detail.
 
+The judgment items of the completion report's item 2 (section 6) go here: the changed files and the condition each contributed to under `### 바뀐 동작과 파일`; assumed open decisions under `### 누가 정했나`; `manual` conditions under `### 직접 볼 것`; the expected-result grounds, the actual observation boundary, the test method and the review stages actually taken (or why they were skipped, and, when the SPEC tier and the project instructions differed, the review each required and the one followed) under `### 근거`; the unobserved scope and substitute environments under `### 보지 않은 것`; where the independent review results are under `### 자세히`; and whether the head to be sent or merged is the completion record's commit, with the fact that the completion does not cover a difference, in the opening lines.
+
 Reading rules: write in the user's language; say what a record is, with its seq only as an aid; keep each item short; never copy check output or finding text; a finding is its ID, one line and its ending. The original text of a finding stays in the review records. At completion, the executor's judgment sentences are only in this section, and the completion report points to it (section 6).
 
 ## 6. Completion report
@@ -323,7 +325,7 @@ The completion report of a goal started with seal 0.1.20 or later has these two 
 
 For a goal started with seal 0.1.24 or later, at completion `## 완료 보고` holds item 1 and one line pointing to `## 검수 요약`; item 2 lives only in `## 검수 요약` (5.4). When work stops, both parts stay as above.
 
-A goal started with an earlier Seal keeps the report format it started with, in the order below.
+A goal started with a Seal earlier than 0.1.20 keeps the report format it started with, in the order below.
 
 1. On completion, the output of `ha done`; when stopping, the output of `ha status --format md`. Paste it unchanged and do not rewrite it. This output holds only the result, reasons, digests and record seqs, and no raw verification output.
 2. Completion coverage (goals started with Seal 0.1.15 or later): the completion record's seq and commit, whether the head to be sent or merged is the same as that commit, and, when it differs, the fact that the completion does not cover the difference. When `ha status` at that head keeps showing the same completion record, however, the completion covers it. A goal started with an earlier Seal keeps the report format it started with.

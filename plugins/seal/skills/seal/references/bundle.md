@@ -222,6 +222,7 @@ This is where the user starts reviewing a finished goal: what changed, why and o
   5. `### 직접 볼 것`: ordered by risk, the highest at the top, one or two lines each: every item the `직접 볼 것` line of `ha report` lists and, whatever that line shows, every deferred finding with its issue; every finding left with no disposition; executor assumptions that read a SPEC sentence; conditions met by checks that observe fixed text only, whose documents a person must read; `manual` conditions; the changes under `### 범위 밖이나 기존 것을 바꾼 곳`.
   6. `### 보지 않은 것`: Unobserved scope and substitutes, assurance `local`, that the executor wrote the checks, and that the summary is not evidence of deployment, installation or a real model call.
   7. `### 자세히`: the documents and sections that hold the detail, such as `REVIEW.md`, `## 타임라인` and the review round folders.
+- The judgment items of the [completion report](#completion-report)'s item 2 go here: the changed files and the condition each contributed to under `### 바뀐 동작과 파일`; assumed open decisions under `### 누가 정했나`; `manual` conditions under `### 직접 볼 것`; the expected-result grounds, the actual observation boundary, the test method and the review stages actually taken (or why they were skipped, and, when the SPEC tier and the project instructions differed, the review each required and the one followed) under `### 근거`; the unobserved scope and substitute environments under `### 보지 않은 것`; where the independent review results are under `### 자세히`; and whether the head to be sent or merged is the completion record's commit, with the fact that the completion does not cover a difference, in the opening lines.
 - Reading rules: write in the user's language; say what a record is, with its seq only as an aid; keep each item short; never copy check output or finding text; a finding is its ID, one line and its ending. The finding text stays in Spar's records.
 - At completion, the executor's judgment sentences live only here, and `## 완료 보고` points here ([Completion report](#completion-report)).
 
@@ -269,6 +270,6 @@ Written once `ha done` records completion, or when work stops at `needs_user`, `
    - that the report does not establish deployment, installation or a real model call, that assurance is `local`, and that the executor wrote the checks;
    - how to continue, when not complete.
 
-For a goal whose start record names seal 0.1.24 or later, at completion `## 완료 보고` holds item 1 and one line pointing to `## 검수 요약`; item 2 lives only in `## 검수 요약` ([Review summary](#review-summary)). When work stops, both parts stay as above.
-
 Goals started with an earlier Seal keep the report format they started with ([earlier-goals.md](earlier-goals.md)). Never paste verification output into any bundle file. Summarize the cause and point to `ha log <goal> <seq>`.
+
+For a goal whose start record names seal 0.1.24 or later, at completion `## 완료 보고` holds item 1 and one line pointing to `## 검수 요약`; item 2 lives only in `## 검수 요약` ([Review summary](#review-summary)). When work stops, both parts stay as above.
