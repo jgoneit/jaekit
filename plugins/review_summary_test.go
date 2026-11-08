@@ -13,6 +13,8 @@ import (
 	"errors"
 	"io/fs"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -26,7 +28,6 @@ const (
 	rsmContractEn = "../contracts/bundle.en.md"
 	rsmRoleKo     = "../contracts/role-card.md"
 	rsmRoleEn     = "../contracts/role-card.en.md"
-	rsmScenario   = "../testdata/scenarios/review-summary-progress/steps"
 
 	rsmSummary      = "## 검수 요약"
 	rsmRefSection   = "## Review summary"
@@ -96,20 +97,35 @@ func rsmLevel(line string) int {
 	return n
 }
 
+// rsmFence tracks fenced code: given the open fence marker ("" outside
+// fenced code) and a line, it returns the marker after the line and whether
+// the line is fenced or a fence line. A fence opens with ``` or ~~~ and
+// closes with the same marker.
+func rsmFence(open, line string) (string, bool) {
+	trimmed := strings.TrimSpace(line)
+	for _, m := range []string{"```", "~~~"} {
+		if strings.HasPrefix(trimmed, m) {
+			if open == "" {
+				return m, true
+			}
+			if open == m {
+				return "", true
+			}
+		}
+	}
+	return open, open != ""
+}
+
 // rsmSection returns the section that opens with the line equal to heading,
 // up to the next heading of the same or a higher level outside fenced code.
 func rsmSection(text, heading string) (string, bool) {
 	lines := strings.Split(text, "\n")
 	level := rsmLevel(heading)
 	start := -1
-	fence := false
+	fence := ""
 	for i, l := range lines {
-		trimmed := strings.TrimSpace(l)
-		if strings.HasPrefix(trimmed, "```") {
-			fence = !fence
-			continue
-		}
-		if fence {
+		var fenced bool
+		if fence, fenced = rsmFence(fence, l); fenced {
 			continue
 		}
 		if start < 0 {
@@ -177,13 +193,13 @@ func rsmOrder(t *testing.T, violation, where, text string, tokens ...string) {
 // code, in order.
 func rsmSubHeadings(sec string) []string {
 	var out []string
-	fence := false
+	fence := ""
 	for _, l := range strings.Split(sec, "\n") {
-		if strings.HasPrefix(strings.TrimSpace(l), "```") {
-			fence = !fence
+		var fenced bool
+		if fence, fenced = rsmFence(fence, l); fenced {
 			continue
 		}
-		if !fence && rsmLevel(l) == 3 {
+		if rsmLevel(l) == 3 {
 			out = append(out, strings.TrimRight(l, " \t\r"))
 		}
 	}
@@ -194,13 +210,13 @@ func rsmSubHeadings(sec string) []string {
 // code, in order.
 func rsmTopHeadings(text string) []string {
 	var out []string
-	fence := false
+	fence := ""
 	for _, l := range strings.Split(text, "\n") {
-		if strings.HasPrefix(strings.TrimSpace(l), "```") {
-			fence = !fence
+		var fenced bool
+		if fence, fenced = rsmFence(fence, l); fenced {
 			continue
 		}
-		if !fence && rsmLevel(l) == 2 {
+		if rsmLevel(l) == 2 {
 			out = append(out, strings.TrimRight(l, " \t\r"))
 		}
 	}
@@ -314,7 +330,7 @@ func TestReviewSummaryAC1_PlacementAndTiming(t *testing.T) {
 	})
 	if skill, ok := rsmRead(t, v, rsmSkill); ok {
 		rsmNeed(t, v, rsmSkill, skill,
-			"`## 검수 요약`, right after `## 현재`, holds completion judgment as of each completion record")
+			"`## 검수 요약`, right after `## 현재`, holds judgment of each completion record, never of a stop")
 	}
 }
 
@@ -624,96 +640,124 @@ func TestReviewSummaryAC15_Guides(t *testing.T) {
 	}
 }
 
-// rsmTableHeads lists the table header lines of a section the way the
-// template example check reads them: lines that open a table, outside a
-// placeholder, that are not a separator or a task or condition row.
-func rsmTableHeads(sec string) []string {
-	var out []string
-	for _, l := range strings.Split(sec, "\n") {
-		if strings.HasPrefix(l, "| ") && strings.Contains(l, " | ") && !strings.Contains(l, "<") &&
-			!strings.HasPrefix(l, "| AC-") && !strings.HasPrefix(l, "| T0") && !strings.HasPrefix(l, "| ---") {
-			out = append(out, strings.TrimSpace(l))
-		}
-	}
-	return out
+// rsmRun runs a command in dir with env and returns its combined output.
+// A command that cannot start or exits nonzero returns an error.
+func rsmRun(dir string, env []string, name string, args ...string) (string, error) {
+	cmd := exec.Command(name, args...)
+	cmd.Dir, cmd.Env = dir, env
+	out, err := cmd.CombinedOutput()
+	return string(out), err
 }
 
-// AC-12 (maintain): the scenario that runs ha on a review summary is there
-// and keeps the template's shape. The PROGRESS.md it writes has the
-// template's level-two headings in order, the seven headings under
-// `## 검수 요약` and every table header of the template's sections. It runs
-// `ha lint` and `ha done`, then commits a change to PROGRESS.md alone and
-// asks lint, a complete state and the completion record again. A missing or
-// unreadable file fails this check: the condition needs the scenario.
-func TestScenariosReviewSummaryShape(t *testing.T) {
-	data, err := os.ReadFile(rsmScenario)
-	if err != nil {
-		t.Fatalf("cannot read %s: %v", rsmScenario, err)
-	}
+// AC-12 (maintain): a goal whose PROGRESS.md is this tree's template, with
+// `## 검수 요약` right after `## 현재`, works with this tree's ha as before.
+// The test builds ha and makes a synthetic repository outside the tree whose
+// PROGRESS.md is the template with only the goal name and the task state
+// filled in. ha lint finds no problem before the start; after ha done, a
+// commit that fills the review summary in PROGRESS.md alone leaves ha lint
+// clean and ha status complete with its completion record. Every input
+// failure (go, git or ha that cannot start or exits nonzero, an unreadable
+// template) fails the test: this maintain condition is judged by the exit
+// code, so a skip would read as a pass.
+func TestReviewSummaryAC12_TemplateBundle(t *testing.T) {
 	tmplData, err := os.ReadFile(rsmTemplate)
 	if err != nil {
 		t.Fatalf("cannot read %s: %v", rsmTemplate, err)
 	}
-	tmpl := string(tmplData)
-	const progressPath = "docs/specs/greet/PROGRESS.md"
-	write := "write " + progressPath + " \""
-	var steps []string
-	progress := ""
-	for _, l := range strings.Split(string(data), "\n") {
-		l = strings.TrimSpace(l)
-		if l == "" || strings.HasPrefix(l, "#") {
-			continue
+	skill, err := filepath.Abs(rsmSkill)
+	if err != nil {
+		t.Fatalf("cannot resolve %s: %v", rsmSkill, err)
+	}
+	ha := filepath.Join(t.TempDir(), "ha")
+	if out, err := rsmRun("..", os.Environ(), "go", "build", "-o", ha, "./cmd/ha"); err != nil {
+		t.Fatalf("building ha: %v\n%s", err, out)
+	}
+	dir := t.TempDir()
+	env := append(os.Environ(),
+		"XDG_CONFIG_HOME="+t.TempDir(), "GIT_CONFIG_GLOBAL="+os.DevNull, "GIT_CONFIG_NOSYSTEM=1",
+		"GIT_AUTHOR_NAME=synthetic", "GIT_AUTHOR_EMAIL=synthetic@example.invalid",
+		"GIT_COMMITTER_NAME=synthetic", "GIT_COMMITTER_EMAIL=synthetic@example.invalid")
+	const goal = "docs/specs/demo"
+	progressPath := filepath.Join(dir, goal, "PROGRESS.md")
+	progress := strings.ReplaceAll(string(tmplData), "<goal>", "demo")
+	files := map[string]string{
+		"greet/greeting.txt": "hello\n",
+		goal + "/SPEC.md": "# Demo\n\nStatus: Ready\nCriteria-Format: nested/1\n\n## 목표\n\nGit runs here.\n\n" +
+			"## Acceptance Criteria\n- **AC-1** `git --version` exits 0.\n\n## Open Decisions\n\n없음\n",
+		goal + "/PLAN.md": "# PLAN — demo\n\n## 조건표\n| ID | 종류 | 검증 명령 | 검사 경로 | Task |\n| --- | --- | --- | --- | --- |\n" +
+			"| AC-1 | maintain | `git --version` | — | T001 |\n\n" +
+			"## 범위\n- 바꿀 수 있는 경로: `greet/**` (SPEC: 목표)\n- 테스트 경로: (기본값)\n- 유지할 동작: 없음\n\n" +
+			"## Task\n| ID | 목표 | 근거 | 제안 | 선행 | 필수 | 문서 |\n| --- | --- | --- | --- | --- | --- | --- |\n" +
+			"| T001 | git runs | AC-1 | — | — | 예 | — |\n\n" +
+			"## 예산\n- 검증 실행: 10\n- 경과 시간: 1시간\n- 비용: 미관측\n\n## 실행 환경\n- git: `git --version`\n",
+		goal + "/REVIEW.md":   "# REVIEW — demo\n\n## 결론\nready\n",
+		goal + "/PROGRESS.md": progress,
+	}
+	for name, content := range files {
+		path := filepath.Join(dir, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("synthetic repository: %v", err)
 		}
-		steps = append(steps, l)
-		if progress == "" && strings.HasPrefix(l, write) && strings.HasSuffix(l, "\"") {
-			progress = strings.ReplaceAll(l[len(write):len(l)-1], `\n`, "\n")
-		}
-	}
-	if progress == "" {
-		t.Fatalf("%s writes no %s", rsmScenario, progressPath)
-	}
-	if got, want := rsmTopHeadings(progress), rsmTopHeadings(tmpl); strings.Join(got, "\n") != strings.Join(want, "\n") {
-		t.Errorf("the scenario's PROGRESS.md has the sections %q, not the template's %q", got, want)
-	}
-	if sec, ok := rsmSection(progress, rsmSummary); !ok {
-		t.Errorf("the scenario's PROGRESS.md has no %s", rsmSummary)
-	} else if got := rsmSubHeadings(sec); strings.Join(got, "\n") != strings.Join(rsmHeadings, "\n") {
-		t.Errorf("the scenario's %s has the headings %q, not %q", rsmSummary, got, rsmHeadings)
-	}
-	for _, h := range rsmTopHeadings(tmpl) {
-		tsec, _ := rsmSection(tmpl, h)
-		psec, _ := rsmSection(progress, h)
-		for _, head := range rsmTableHeads(tsec) {
-			if !strings.Contains(psec, head) {
-				t.Errorf("the scenario's %s lacks the template's table header %q", h, head)
-			}
-		}
-	}
-	want := []string{
-		"commit", "ha lint $GOAL", "expect-exit 0", "ha done $GOAL", "expect-exit 0", "expect-completion-record present",
-		"replace " + progressPath, "commit", "ha lint $GOAL", "expect-exit 0",
-		"ha status $GOAL", "expect-status complete", "expect-completion-record present",
-	}
-	at, done := 0, -1
-	for i, st := range steps {
-		if at < len(want) && strings.HasPrefix(st, want[at]) {
-			if want[at] == "ha done $GOAL" {
-				done = i
-			}
-			at++
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatalf("synthetic repository: %v", err)
 		}
 	}
-	if at < len(want) {
-		t.Errorf("%s lacks the step %q after the steps before it", rsmScenario, want[at])
-	}
-	if done >= 0 {
-		for _, st := range steps[done:] {
-			for _, verb := range []string{"write ", "append ", "replace ", "rm "} {
-				if strings.HasPrefix(st, verb) && !strings.HasPrefix(st, verb+progressPath+" ") {
-					t.Errorf("%s changes a file other than %s after ha done: %q", rsmScenario, progressPath, st)
-				}
-			}
+	run := func(name string, args ...string) string {
+		t.Helper()
+		out, err := rsmRun(dir, env, name, args...)
+		if err != nil {
+			t.Fatalf("%s %v: %v\n%s", name, args, err, out)
 		}
+		return out
+	}
+	commit := func(message string) {
+		t.Helper()
+		run("git", "add", "-A")
+		run("git", "-c", "commit.gpgsign=false", "commit", "-qm", message)
+	}
+	writeProgress := func(old, new string) {
+		t.Helper()
+		if !strings.Contains(progress, old) {
+			t.Fatalf("the template-made PROGRESS.md has no %q", old)
+		}
+		progress = strings.Replace(progress, old, new, 1)
+		if err := os.WriteFile(progressPath, []byte(progress), 0o644); err != nil {
+			t.Fatalf("synthetic repository: %v", err)
+		}
+	}
+	run("git", "init", "-q")
+	commit("base")
+	run(ha, "lint", goal)
+	run(ha, "start", goal, "--rules", "run-rules/5", "--request", "demo 구현해줘", "--skill", skill, "--check-skill")
+	writeProgress("| T001 | todo | |", "| T001 | done | |")
+	commit("task done")
+	run(ha, "check", goal)
+	run(ha, "done", goal)
+	summary, ok := rsmSection(progress, rsmSummary)
+	if !ok {
+		t.Fatalf("the template-made PROGRESS.md has no %s", rsmSummary)
+	}
+	filled := []string{rsmSummary, "완료 기록 기준. 필수 조건 1개 중 1개 충족. git이 돈다. 먼저 볼 것: 없음", ""}
+	for _, l := range strings.Split(summary, "\n")[1:] {
+		switch {
+		case strings.HasPrefix(l, "<"):
+			filled = append(filled, "없음")
+		default:
+			filled = append(filled, l)
+		}
+	}
+	writeProgress(summary, strings.Join(filled, "\n"))
+	commit("fill the review summary")
+	run(ha, "lint", goal)
+	var status struct {
+		Status     string `json:"status"`
+		Completion *int   `json:"completion_record"`
+	}
+	if err := json.Unmarshal([]byte(run(ha, "status", goal, "--format", "json")), &status); err != nil {
+		t.Fatalf("ha status printed no JSON: %v", err)
+	}
+	if status.Status != "complete" || status.Completion == nil {
+		t.Errorf("after a commit that fills the review summary alone, ha status is %q with completion record %v, not complete with one", status.Status, status.Completion)
 	}
 }
 
@@ -765,5 +809,21 @@ func TestReviewSummaryAC16_Version(t *testing.T) {
 	}
 	if ha, ok := rsmRead(t, v, rsmHa); ok {
 		rsmNeed(t, v, rsmHa, ha, "Seal 0.1.24 adds the review summary (`## 검수 요약`) in `PROGRESS.md` without a Core change.")
+	}
+}
+
+// The section helpers skip fenced code opened with ``` or ~~~, so a heading
+// inside an example block is not a heading of the document.
+func TestReviewSummaryHelpersSkipFences(t *testing.T) {
+	text := "## A\n~~~markdown\n### fake\n## fake\n~~~\n### real\n```\n### also fake\n~~~\n```\n## B\n"
+	if got := rsmTopHeadings(text); strings.Join(got, "|") != "## A|## B" {
+		t.Errorf("rsmTopHeadings = %q", got)
+	}
+	sec, ok := rsmSection(text, "## A")
+	if !ok {
+		t.Fatalf("no section ## A")
+	}
+	if got := rsmSubHeadings(sec); strings.Join(got, "|") != "### real" {
+		t.Errorf("rsmSubHeadings = %q", got)
 	}
 }
