@@ -105,6 +105,8 @@ Seal 0.1.20 declares the Core support it needs in `core-requirements.json` in it
 
 Start with what changed and what was verified. The report appears in the conversation and in `PROGRESS.md` in the goal folder.
 
+**Review summary.** In goals started with 0.1.24 or later, after completion, `## 검수 요약` right after `## 현재` is where you start reviewing. Its top lines give the completion record, the assurance tier, how many required conditions are satisfied, the review gate result, what the change does and where to start looking; below them come changed behavior and files, scope changes, evidence, who decided, what to inspect, what was not observed, and details, in that order. It is written in the user's language and says what each record is; each item is short, with seq numbers only as an aid; no check output or finding text is copied; a finding is its ID, one line and its ending. Seal's judgment is only there, and `## 완료 보고` holds the `ha report` output and one line pointing to it. For a finished goal, read `## 검수 요약` first. For a goal that stopped, or one started with an earlier Seal, read `## 완료 보고` as before.
+
 - Required completion conditions need recorded checks or necessary user confirmations.
 - Optional conditions do not block completion and are identified separately.
 - The agent writes the automated checks.

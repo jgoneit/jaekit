@@ -343,7 +343,7 @@ docs/specs/password-link/
 ├── SPEC.md        goal, scenarios, completion conditions          ← Spec
 ├── PLAN.md        how each condition is checked, scope, budget    ← Seal
 ├── REVIEW.md      review plan; summary of the Spar rounds and gate ← Seal
-├── PROGRESS.md    current state, timeline, completion report      ← Seal
+├── PROGRESS.md    current state, review summary, timeline, completion report ← Seal
 └── runs.jsonl     append-only run record                          ← ha only
 
 docs/reviews/password-link/   Spar records, in a folder your project's Git is set up to ignore
@@ -419,6 +419,10 @@ Next step: resolve AC-2 `criterion_failed` (executor)
 ```
 
 To see what one goal cost in checks and review rounds, run `ha cost docs/specs/<goal> --series docs/reviews/<goal>` in Terminal. It only reads the records. See [Reading one goal's cost](guides/USAGE.en.md#reading-one-goals-cost).
+
+### The review summary
+
+In goals started with 0.1.24 or later, after completion, `## 검수 요약` right after `## 현재` is where you start reviewing. Its top lines give the completion record, the assurance tier, how many required conditions are satisfied, the review gate result, what the change does and where to start looking; below them come changed behavior and files, scope changes, evidence, who decided, what to inspect, what was not observed, and details, in that order. It is written in the user's language and says what each record is; each item is short, with seq numbers only as an aid; no check output or finding text is copied; a finding is its ID, one line and its ending. Seal's judgment is only there, and `## 완료 보고` holds the `ha report` output and one line pointing to it. For a finished goal, read `## 검수 요약` first. For a goal that stopped, or one started with an earlier Seal, read `## 완료 보고` as before.
 
 ### The other files
 
@@ -505,7 +509,7 @@ Some fixed section names and table columns stay in Korean in every language, bec
 | `PLAN.md` | `## 결과 계약` | Result contract: the declaration file of each `change` condition |
 | `PLAN.md` | `## 범위` · `## 예산` | Scope (paths Seal may change, tests, behavior to keep) · budget (runs and elapsed time) |
 | `PLAN.md` | `## 읽을 자료` · `## 시간 제한` | Reading list · per-check time limits |
-| `PROGRESS.md` | `## 현재` · `## Task 상태` | Current state · task status |
+| `PROGRESS.md` | `## 현재` · `## 검수 요약` · `## Task 상태` | Current state · review summary · task status |
 | `PROGRESS.md` | `## 타임라인` · `## 계획 변경` · `## 막힘` · `## 개선 메모` | Timeline · plan changes · blocks · improvement notes |
 | `PROGRESS.md` | `## 완료 보고` · `## 완료 뒤 발견` | Completion report · findings after completion |
 

@@ -2,7 +2,7 @@
 name: seal
 description: Carry a goal in docs/specs/<goal>/ to recorded completion — plan, implement, verify through the ha binary, and resume in a new session. Use when the user calls this skill with a goal or asks to implement, finish, or continue a goal document, for example "$seal:seal docs/specs/x" in Codex, "/seal:seal docs/specs/x" in Claude Code, "docs/specs/x 구현해줘", or "docs/specs/x 이어서 해줘".
 metadata:
-  version: "0.1.23"
+  version: "0.1.24"
 ---
 
 # Seal
@@ -74,7 +74,7 @@ Spar owns how rounds run.
 ## Completion
 
 - Declare completion only when `ha done <goal>` exits 0 with a completion record, never on `ha status` alone; report it without waiting for the user to check the result.
-- The completion report is `ha report` output, pasted unchanged once `ha done` records completion or work stops, plus only judgment ([format](references/bundle.md#completion-report)): expected-result grounds, observed boundaries, methods and substitutes, and that it does not establish deployment, installation or real model calls; never `ha status` or `ha done` output. Assurance is `local`; the executor wrote the checks.
+- The completion report is `ha report` output, pasted unchanged once `ha done` records completion or work stops, plus only judgment ([format](references/bundle.md#completion-report)): expected-result grounds, observed boundaries, methods and substitutes, and that it does not establish deployment, installation or real model calls; never `ha status` or `ha done` output. Assurance is `local`; the executor wrote the checks. `## 검수 요약`, right after `## 현재`, holds completion judgment as of each completion record ([format](references/bundle.md#review-summary)); `## 완료 보고` points there.
 - `needs_user`: ask the user about each listed item. `blocked` or `budget_exhausted`: stop and write in `PROGRESS.md` how to continue.
 - Once a completion record exists, take up the goal again only when the user asks for rework, such as applying a post-completion discovery or remote review comments: `reopen` quoting the request, fix, run one cumulative round if under review, re-record stale checks and `ha done` before the head is sent or merged.
 - Record the user's words with `ha note <goal> confirm <AC-n | scope:<path> | tests:<path> | spec> --quote "…"`, `reopen` or `input`.
