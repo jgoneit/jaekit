@@ -305,6 +305,78 @@ func rsmSub(t *testing.T, violation, summary, heading string) (string, bool) {
 	return sec, ok
 }
 
+// rsmItemStart is the text of a block after its list marker ("- ", "* " or
+// "1. "), or the block itself when it opens no list item.
+func rsmItemStart(block string) string {
+	tr := strings.TrimSpace(block)
+	if strings.HasPrefix(tr, "- ") || strings.HasPrefix(tr, "* ") {
+		return tr[2:]
+	}
+	if i := strings.Index(tr, ". "); i > 0 {
+		for _, r := range tr[:i] {
+			if r < '0' || r > '9' {
+				return tr
+			}
+		}
+		return tr[i+2:]
+	}
+	return tr
+}
+
+// rsmItemHeadings lists the headings that open the list items of a
+// description section, as code spans such as "`### 근거`", in order.
+func rsmItemHeadings(sec string) []string {
+	var out []string
+	for _, b := range rsmBlocks(sec) {
+		start := rsmItemStart(b)
+		if strings.HasPrefix(start, "`### ") {
+			if end := strings.Index(start[1:], "`"); end > 0 {
+				out = append(out, start[1:end+1])
+			}
+		}
+	}
+	return out
+}
+
+// rsmItem returns the list item of a description section that opens with
+// the heading as a code span.
+func rsmItem(sec, heading string) (string, bool) {
+	for _, b := range rsmBlocks(sec) {
+		if strings.HasPrefix(rsmItemStart(b), "`"+heading+"`") {
+			return b, true
+		}
+	}
+	return "", false
+}
+
+// rsmNeedItem asks the English tokens of the template's subsection under
+// heading and of the list item that opens with heading in the reference
+// and the English contract, and the Korean tokens of that item in the
+// Korean contract, so a rule stated under another heading does not count.
+func rsmNeedItem(t *testing.T, violation, heading string, en, ko []string) {
+	t.Helper()
+	if summary, ok := rsmNeedSection(t, violation, rsmTemplate, rsmSummary); ok {
+		if sub, ok := rsmSub(t, violation, summary, heading); ok {
+			rsmNeed(t, violation, rsmTemplate+" "+heading, sub, en...)
+		}
+	}
+	for _, d := range []struct {
+		path, section string
+		tokens        []string
+	}{{rsmReference, rsmRefSection, en}, {rsmContractEn, rsmEnSection, en}, {rsmContractKo, rsmKoSection, ko}} {
+		sec, ok := rsmNeedSection(t, violation, d.path, d.section)
+		if !ok {
+			continue
+		}
+		item, ok := rsmItem(sec, heading)
+		if !ok {
+			t.Errorf("jaekit:violation=%s %s %s has no item opening with `%s`", violation, d.path, d.section, heading)
+			continue
+		}
+		rsmNeed(t, violation, d.path+" "+d.section+" item "+heading, item, d.tokens...)
+	}
+}
+
 // rsmDoc is one description of the review summary and where it is.
 type rsmDoc struct{ where, sec string }
 
@@ -393,26 +465,21 @@ func TestReviewSummaryAC2_Structure(t *testing.T) {
 		}
 		rsmNeed(t, v, rsmTemplate+" "+rsmSummary+" before "+rsmHeadings[0], opening, rsmOpeningEn...)
 	}
-	plain := make([]string, len(rsmHeadings))
-	for i, h := range rsmHeadings {
-		plain[i] = "`" + h + "`"
-	}
-	for _, d := range rsmDocs(t, v) {
-		if strings.HasPrefix(d.where, rsmTemplate) {
+	for _, d := range []struct {
+		path, section string
+		opening       []string
+	}{{rsmReference, rsmRefSection, rsmOpeningEn}, {rsmContractEn, rsmEnSection, rsmOpeningEn}, {rsmContractKo, rsmKoSection, rsmOpeningKo}} {
+		sec, ok := rsmNeedSection(t, v, d.path, d.section)
+		if !ok {
 			continue
 		}
-		rsmOrder(t, v, d.where, d.sec, append(append([]string{}, rsmOpeningEn...), plain...)...)
+		if got := rsmItemHeadings(sec); strings.Join(got, "\n") != strings.Join(rsmHeadings, "\n") {
+			t.Errorf("jaekit:violation=%s %s %s lists the headings %q, not %q", v, d.path, d.section, got, rsmHeadings)
+		}
+		rsmOrder(t, v, d.path+" "+d.section, sec, append(append([]string{}, d.opening...), "`"+rsmHeadings[0]+"`")...)
 	}
-	if sec, ok := rsmNeedSection(t, v, rsmContractKo, rsmKoSection); ok {
-		rsmOrder(t, v, rsmContractKo+" "+rsmKoSection, sec, append(append([]string{}, rsmOpeningKo...), plain...)...)
-	}
-	rsmNeedAll(t, v, []string{
-		"write `없음` under a heading with nothing to list",
-		"the documents and sections that hold the detail",
-	}, []string{
-		"해당하는 것이 없는 항목에는 `없음`을 쓴다",
-		"세부 기록이 있는 문서와 절",
-	})
+	rsmNeedAll(t, v, []string{"write `없음` under a heading with nothing to list"}, []string{"해당하는 것이 없는 항목에는 `없음`을 쓴다"})
+	rsmNeedItem(t, v, rsmHeadings[6], []string{"the documents and sections that hold the detail"}, []string{"세부 기록이 있는 문서와 절"})
 }
 
 // AC-3: the changed behavior and files table lists every changed file but
@@ -424,17 +491,20 @@ func TestReviewSummaryAC3_ChangedFiles(t *testing.T) {
 			rsmNeed(t, v, rsmTemplate+" "+rsmHeadings[0], sub, "| 바뀐 동작 | 조건 | 파일 |")
 		}
 	}
-	rsmNeedAll(t, v, []string{
+	en := []string{
 		"Every file changed from the goal's base to the completion commit, goal documents excepted, appears in a row",
 		"this goal's check files have rows too",
-	}, []string{
+	}
+	rsmNeedItem(t, v, rsmHeadings[0], en, []string{
 		"`바뀐 동작 | 조건 | 파일`",
 		"목표의 base부터 완료 commit까지 바뀐 파일은 목표 문서를 빼고 모두 어느 행엔가 나온다",
 		"이 목표의 검사 파일도 행으로 둔다",
 	})
-	for _, d := range rsmDocs(t, v) {
-		if !strings.HasPrefix(d.where, rsmTemplate) {
-			rsmNeed(t, v, d.where, d.sec, "`바뀐 동작 | 조건 | 파일`")
+	for _, d := range []struct{ path, section string }{{rsmReference, rsmRefSection}, {rsmContractEn, rsmEnSection}} {
+		if sec, ok := rsmNeedSection(t, v, d.path, d.section); ok {
+			if item, ok := rsmItem(sec, rsmHeadings[0]); ok {
+				rsmNeed(t, v, d.path+" "+d.section+" item "+rsmHeadings[0], item, "`바뀐 동작 | 조건 | 파일`")
+			}
 		}
 	}
 }
@@ -443,10 +513,7 @@ func TestReviewSummaryAC3_ChangedFiles(t *testing.T) {
 // goal's checks are listed with the user's words or the reason.
 func TestReviewSummaryAC4_ScopeChanges(t *testing.T) {
 	const v = "scope-changes-missing"
-	if summary, ok := rsmNeedSection(t, v, rsmTemplate, rsmSummary); ok {
-		rsmSub(t, v, summary, rsmHeadings[1])
-	}
-	rsmNeedAll(t, v, []string{
+	rsmNeedItem(t, v, rsmHeadings[1], []string{
 		"files outside the SPEC scope",
 		"changes to existing tests",
 		"changes to checks an earlier goal left",
@@ -480,10 +547,12 @@ func TestReviewSummaryAC5_Evidence(t *testing.T) {
 		"지적이 없는 라운드도 행을 둔다",
 		"라운드의 지적은 하나도 빠짐없이 끝 하나로 분류된다",
 	}, rsmEndings...)
-	rsmNeedAll(t, v, en, ko)
-	for _, d := range rsmDocs(t, v) {
-		if !strings.HasPrefix(d.where, rsmTemplate) {
-			rsmNeed(t, v, d.where, d.sec, "`라운드 | 지적 | 끝`")
+	rsmNeedItem(t, v, rsmHeadings[2], en, ko)
+	for _, d := range []struct{ path, section string }{{rsmReference, rsmRefSection}, {rsmContractEn, rsmEnSection}} {
+		if sec, ok := rsmNeedSection(t, v, d.path, d.section); ok {
+			if item, ok := rsmItem(sec, rsmHeadings[2]); ok {
+				rsmNeed(t, v, d.path+" "+d.section+" item "+rsmHeadings[2], item, "`라운드 | 지적 | 끝`")
+			}
 		}
 	}
 }
@@ -492,10 +561,7 @@ func TestReviewSummaryAC5_Evidence(t *testing.T) {
 // and undisposed finding whatever ha report shows.
 func TestReviewSummaryAC6_ToInspect(t *testing.T) {
 	const v = "inspect-list-missing"
-	if summary, ok := rsmNeedSection(t, v, rsmTemplate, rsmSummary); ok {
-		rsmSub(t, v, summary, rsmHeadings[4])
-	}
-	rsmNeedAll(t, v, []string{
+	rsmNeedItem(t, v, rsmHeadings[4], []string{
 		"ordered by risk, the highest at the top, one or two lines each",
 		"every item the `직접 볼 것` line of `ha report` lists",
 		"whatever that line shows",
@@ -523,24 +589,23 @@ func TestReviewSummaryAC6_ToInspect(t *testing.T) {
 // observed.
 func TestReviewSummaryAC7_DeciderAndUnobserved(t *testing.T) {
 	const v = "decider-unobserved-missing"
-	if summary, ok := rsmNeedSection(t, v, rsmTemplate, rsmSummary); ok {
-		rsmSub(t, v, summary, rsmHeadings[3])
-		rsmSub(t, v, summary, rsmHeadings[5])
-	}
-	rsmNeedAll(t, v, []string{
+	rsmNeedItem(t, v, rsmHeadings[3], []string{
 		"decided by the user, with where their words are",
 		"proposed by the agent and accepted by the user",
 		"executor assumptions nobody was asked about",
 		"Mark an assumption that reads a SPEC sentence",
-		"Unobserved scope and substitutes",
-		"assurance `local`",
-		"the executor wrote the checks",
-		"not evidence of deployment, installation or a real model call",
 	}, []string{
 		"사용자가 정한 것(사용자의 말이 있는 곳)",
 		"에이전트가 제안하고 사용자가 받아들인 것",
 		"묻지 않고 정한 실행자 가정",
 		"해석한 가정에는 그렇다는 표시를 붙인다",
+	})
+	rsmNeedItem(t, v, rsmHeadings[5], []string{
+		"Unobserved scope and substitutes",
+		"assurance `local`",
+		"the executor wrote the checks",
+		"not evidence of deployment, installation or a real model call",
+	}, []string{
 		"관측하지 않은 범위와 대체 환경",
 		"보증 수준 `local`",
 		"검사를 실행자가 썼다는 사실",
@@ -574,6 +639,27 @@ func TestReviewSummaryAC8_CompletionReport(t *testing.T) {
 	if skill, ok := rsmRead(t, v, rsmSkill); ok {
 		rsmNeed(t, v, rsmSkill, skill, "`## 완료 보고` points there")
 	}
+	// Every judgment item that moves out of the completion report has a
+	// place in the review summary.
+	rsmNeedAll(t, v, []string{
+		"the condition each contributed to under `### 바뀐 동작과 파일`",
+		"assumed open decisions under `### 누가 정했나`",
+		"`manual` conditions under `### 직접 볼 것`",
+		"the expected-result grounds, the actual observation boundary, the test method and the review stages actually taken",
+		"the review each required and the one followed) under `### 근거`",
+		"the unobserved scope and substitute environments under `### 보지 않은 것`",
+		"where the independent review results are under `### 자세히`",
+		"whether the head to be sent or merged is the completion record's commit, with the fact that the completion does not cover a difference, in the opening lines",
+	}, []string{
+		"바뀐 파일과 각 파일이 기여한 조건은 `### 바뀐 동작과 파일`",
+		"가정한 미결정은 `### 누가 정했나`",
+		"`manual` 조건은 `### 직접 볼 것`",
+		"기대 결과의 근거·실제 관측 경계·시험 방법과 실제로 받은 검토 단계",
+		"각각이 요구한 검토와 따른 쪽)는 `### 근거`",
+		"미관측 범위와 대체 환경은 `### 보지 않은 것`",
+		"독립 검토 결과의 위치는 `### 자세히`",
+		"보내거나 병합하려는 head가 완료 기록의 commit인지와, 다르면 그 차이를 완료가 덮지 않는다는 사실은 첫 줄들에 쓴다",
+	})
 	if card, ok := rsmRead(t, v, rsmRoleKo); ok {
 		rsmNeed(t, v, rsmRoleKo, card,
 			"seal 0.1.24 이상으로 시작한 목표는 완료 기록 뒤의 판단 문장을 `## 검수 요약`에 두고, 완료 보고에는 `ha report` 출력과 그 절을 가리키는 한 줄만 둔다")
@@ -644,6 +730,8 @@ func TestReviewSummaryAC15_Guides(t *testing.T) {
 		"바뀐 동작과 파일, 범위 밖이나 기존 것을 바꾼 곳, 근거, 누가 정했나, 직접 볼 것, 보지 않은 것, 자세히",
 		"사용자의 언어로 쓰고",
 		"기록은 무엇인지를 먼저 쓰며",
+		"해당하는 것이 없는 항목에는 `없음`을 쓰고",
+		"목표를 다시 열어 완료를 다시 기록하면 새 완료 기록 기준으로 다시 씁니다",
 		"항목마다 짧게 쓰고 seq는 보조로만 붙입니다",
 		"검증 출력과 지적 원문은 옮기지 않고 지적은 ID, 한 줄 요약, 끝만 적습니다",
 		"Seal의 판단은 이 절에만 있고, `## 완료 보고`에는 `ha report` 출력과 이 절을 가리키는 한 줄이 있습니다",
@@ -656,6 +744,8 @@ func TestReviewSummaryAC15_Guides(t *testing.T) {
 		"changed behavior and files, scope changes, evidence, who decided, what to inspect, what was not observed, and details",
 		"written in the user's language",
 		"says what each record is",
+		"A heading with nothing to list says `없음`",
+		"after a reopen the section is rewritten as of the new completion record",
 		"each item is short, with seq numbers only as an aid",
 		"no check output or finding text is copied; a finding is its ID, one line and its ending",
 		"Seal's judgment is only there, and `## 완료 보고` holds the `ha report` output and one line pointing to it",
@@ -909,5 +999,17 @@ func TestReviewSummaryHelpersBlocks(t *testing.T) {
 	want := []string{"intro line\ncontinued here", "- item one\n  wrapped", "- item two", "8. step eight\n   wrapped"}
 	if strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Errorf("rsmBlocks = %q, want %q", got, want)
+	}
+}
+
+// rsmItemHeadings reads the headings that open list items, numbered or not,
+// and ignores a heading named inside an item.
+func TestReviewSummaryHelpersItems(t *testing.T) {
+	sec := "## X\n\n- `### 가` (a): see `### 나` below\n  1. `### 나`: b\n- plain item\n- `### 다` (c)\n"
+	if got := rsmItemHeadings(sec); strings.Join(got, "|") != "### 가|### 나|### 다" {
+		t.Errorf("rsmItemHeadings = %q", got)
+	}
+	if item, ok := rsmItem(sec, "### 나"); !ok || !strings.Contains(item, ": b") {
+		t.Errorf("rsmItem(### 나) = %q, %v", item, ok)
 	}
 }
