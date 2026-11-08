@@ -66,6 +66,12 @@ var (
 	}
 )
 
+// The qualifier the existing completion-report reading instructions carry.
+const (
+	rsmQualKo = "0.1.24 이상으로 시작해 완료한 목표에서는 판단 문장이 `## 검수 요약`에 있습니다"
+	rsmQualEn = "In a finished goal started with 0.1.24 or later, the judgment is in `## 검수 요약`"
+)
+
 // The endings a review finding can have, all of them.
 var rsmEndings = []string{"`고침`", "`반박`", "`중복`", "`사용자의 답`", "`이슈로 보류`", "`자동 보류`", "`처리 없음`"}
 
@@ -540,8 +546,10 @@ func TestReviewSummaryAC8_CompletionReport(t *testing.T) {
 	}
 }
 
-// AC-10: the reading rules keep the summary short, and the skill lists a
-// finding by its ID, one line and its ending.
+// AC-10: the reading rules keep the summary short. The template, the
+// reference and both contracts state them; the skill links the reference
+// section and keeps its rule against copying findings (the user's answers of
+// seq 9 and seq 30).
 func TestReviewSummaryAC10_ReadingRules(t *testing.T) {
 	const v = "reading-rules-missing"
 	rsmNeedAll(t, v, []string{
@@ -630,6 +638,33 @@ func TestReviewSummaryAC15_Guides(t *testing.T) {
 	}
 	if text, ok := rsmRead(t, v, "../README.md"); ok {
 		rsmNeed(t, v, "../README.md", text, "current state, review summary, timeline, completion report")
+	}
+	// The reading instructions the guides and READMEs already had now say
+	// where the judgment of a finished 0.1.24 goal is, on the same line.
+	for _, q := range []struct{ path, anchor, token string }{
+		{"../guides/USAGE.md", "을 먼저 읽고, 그 아래에서 완료 기록과 Seal의 판단 문장을 봅니다", rsmQualKo},
+		{"../guides/USAGE.en.md", "then the completion record and Seal's judgment below them", rsmQualEn},
+		{"../guides/OPERATIONS.md", "맨 위 다섯 줄을 먼저 읽고 아래에서 완료 기록과 Seal의 판단 문장을 봅니다", rsmQualKo},
+		{"../guides/OPERATIONS.en.md", "read the five lines at the top, then the completion record and Seal's judgment below them", rsmQualEn},
+		{"../guides/OVERVIEW.md", "8. **보고를 읽습니다.**", rsmQualKo},
+		{"../guides/OVERVIEW.en.md", "8. **You read the report.**", rsmQualEn},
+		{"../README.ko.md", "그 아래에 자기 판단만 덧붙입니다", rsmQualKo},
+		{"../README.md", "then adds only its own judgment below it", rsmQualEn},
+	} {
+		text, ok := rsmRead(t, v, q.path)
+		if !ok {
+			continue
+		}
+		found := false
+		for _, l := range strings.Split(text, "\n") {
+			if strings.Contains(l, q.anchor) {
+				found = true
+				rsmNeed(t, v, q.path+" (the line with "+q.anchor+")", l, q.token)
+			}
+		}
+		if !found {
+			t.Errorf("jaekit:violation=%s %s has no line with %q", v, q.path, q.anchor)
+		}
 	}
 	// The contracts, the template and the reference say the user starts
 	// there; the skill states where and when in one sentence and links the
