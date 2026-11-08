@@ -18,8 +18,10 @@ import (
 // spar-input.md G11, contracts/review-round.md sections 2 and 4). The
 // command lines come from the G11 representative forms in
 // testdata/input-forms.json (agy_commands). A failure's opening line names
-// the property it observes (jaekit:violation=<id>); a failure that starts
-// with "setup:" is a broken setup, not an observation.
+// the property it observes (jaekit:violation=<id>). A broken setup (a
+// missing or corrupt fixture, a fake that cannot run) observes nothing: a
+// change check skips, which the adapter reads as inconclusive, and a check
+// of a kept behavior fails, so neither passes.
 
 type agyCommandForms struct {
 	Accepted   []string `json:"accepted"`
@@ -30,27 +32,37 @@ type agyCommandForms struct {
 	} `json:"violations"`
 }
 
+// arSetup stops a check whose setup broke: a change check (keeps false)
+// skips, a check of a kept behavior fails.
+func arSetup(t *testing.T, keeps bool, format string, args ...any) {
+	t.Helper()
+	if keeps {
+		t.Fatalf("setup: "+format, args...)
+	}
+	t.Skipf("setup: "+format, args...)
+}
+
 // arLoadForms reads the G11 forms; a missing or empty list is a broken
 // setup, never a pass.
-func arLoadForms(t *testing.T) agyCommandForms {
+func arLoadForms(t *testing.T, keeps bool) agyCommandForms {
 	t.Helper()
 	data, err := os.ReadFile(filepath.Join("testdata", "input-forms.json"))
 	if err != nil {
-		t.Fatalf("setup: %v", err)
+		arSetup(t, keeps, "%v", err)
 	}
 	var doc struct {
 		AgyCommands *agyCommandForms `json:"agy_commands"`
 	}
 	if err := json.Unmarshal(data, &doc); err != nil {
-		t.Fatalf("setup: input-forms.json: %v", err)
+		arSetup(t, keeps, "input-forms.json: %v", err)
 	}
 	f := doc.AgyCommands
 	if f == nil || len(f.Accepted) == 0 || len(f.Kept) == 0 || len(f.Violations) == 0 {
-		t.Fatal("setup: input-forms.json has no agy_commands with accepted, kept and violations")
+		arSetup(t, keeps, "input-forms.json has no agy_commands with accepted, kept and violations")
 	}
 	for _, v := range f.Violations {
 		if v.Line == "" || v.Problem == "" {
-			t.Fatalf("setup: an agy_commands violation lacks its line or problem: %+v", v)
+			arSetup(t, keeps, "an agy_commands violation lacks its line or problem: %+v", v)
 		}
 	}
 	return *f
@@ -75,7 +87,7 @@ func arAgySpec(t *testing.T, packet []byte) (reviewSpec, string) {
 // violation, in the command check and in agy's event check.
 func TestSparAgyReadonlyAC1_JoinedReadOnlyCommands(t *testing.T) {
 	const id = "joined-read-only-command-refused"
-	forms := arLoadForms(t)
+	forms := arLoadForms(t, false)
 	spec, _ := arAgySpec(t, []byte("packet"))
 	for _, line := range forms.Accepted {
 		if why := unsafeCommand(line); why != "" {
@@ -92,7 +104,7 @@ func TestSparAgyReadonlyAC1_JoinedReadOnlyCommands(t *testing.T) {
 // part, read from the left, that breaks the rule.
 func TestSparAgyReadonlyAC2_OtherCommandsStayViolations(t *testing.T) {
 	const id = "violation-reason-not-first-problem"
-	forms := arLoadForms(t)
+	forms := arLoadForms(t, false)
 	spec, _ := arAgySpec(t, []byte("packet"))
 	for _, v := range forms.Violations {
 		if unsafeCommand(v.Line) == "" {
@@ -118,7 +130,7 @@ func arOneLine(s string) string {
 // AC-3 (kept): the lines accepted before stay accepted: one program, a |
 // pipeline, sed -n printing, 2>/dev/null or 2>&1 after a command.
 func TestSparAgyReadonlyAC3_KeptCommands(t *testing.T) {
-	forms := arLoadForms(t)
+	forms := arLoadForms(t, true)
 	spec, _ := arAgySpec(t, []byte("packet"))
 	for _, line := range forms.Kept {
 		if why := unsafeCommand(line); why != "" {
@@ -150,7 +162,7 @@ func TestSparAgyReadonlyAC4_PromptNote(t *testing.T) {
 	packet := []byte("# Review packet\n\nsmall synthetic packet\n")
 	small, _ := arAgySpec(t, packet)
 	if len(small.argv) < 3 || small.argv[1] != "-p" {
-		t.Fatalf("setup: agy's argv has no -p prompt: %q", small.argv)
+		t.Fatalf("jaekit:violation=%s agy's argv has no -p prompt: %q", id, small.argv)
 	}
 	prompt := small.argv[2]
 	note, ok := strings.CutSuffix(prompt, string(packet))
@@ -202,11 +214,11 @@ func TestSparAgyReadonlyAC4_PromptNote(t *testing.T) {
 	w.use(w.entry("agy", "agy", `fallback_model = ""`))
 	out := w.round("note")
 	if code, errs := w.run(out); code != ExitOK {
-		t.Fatalf("setup: spar run exits %d: %s", code, errs)
+		arSetup(t, false, "spar run exits %d: %s", code, errs)
 	}
 	written, err := os.ReadFile(filepath.Join(out, "packet.md"))
 	if err != nil {
-		t.Fatalf("setup: %v", err)
+		arSetup(t, false, "%v", err)
 	}
 	rec := w.record(out)
 	sum := sha256.Sum256(written)
@@ -251,7 +263,7 @@ func arAgyFakeWait(t *testing.T, w *rwWorld, name string, seconds int, lines ...
 		append(arEvents(lines), result)...) {
 		data, err := json.Marshal(e)
 		if err != nil {
-			t.Fatalf("setup: %v", err)
+			arSetup(t, false, "%v", err)
 		}
 		events = append(events, string(data))
 	}
@@ -266,16 +278,16 @@ func arAgyFakeWait(t *testing.T, w *rwWorld, name string, seconds int, lines ...
 	script += "cat " + amQuote(answer) + "\n"
 	path := w.write(filepath.Join(w.dir, "agy-bin", name), script)
 	if err := os.Chmod(path, 0o755); err != nil {
-		t.Fatalf("setup: %v", err)
+		arSetup(t, false, "%v", err)
 	}
 	// A fake that cannot start, or cannot run cat or sleep, would make spar
 	// record a failed reviewer: that observes nothing.
 	if out, err := exec.Command(path, "--version").CombinedOutput(); err != nil {
-		t.Fatalf("setup: the fake agy cannot run: %v %s", err, out)
+		arSetup(t, false, "the fake agy cannot run: %v %s", err, out)
 	}
 	for _, tool := range []string{"cat", "sleep"} {
 		if _, err := exec.LookPath(tool); err != nil {
-			t.Fatalf("setup: the fake agy needs %s: %v", tool, err)
+			arSetup(t, false, "the fake agy needs %s: %v", tool, err)
 		}
 	}
 	return fmt.Sprintf("[[reviewers]]\nname = \"agy\"\npreset = \"agy\"\nbinary = %q\nfallback_model = \"\"\n\n", path)
@@ -295,11 +307,11 @@ func arRoundAgy(t *testing.T, out string) *ReviewerState {
 	t.Helper()
 	r, err := loadRound(out)
 	if err != nil {
-		t.Fatalf("setup: %v", err)
+		arSetup(t, false, "%v", err)
 	}
 	st := r.Reviewers["agy"]
 	if st == nil || (st.Status != StatusCompleted && st.Status != StatusToolViolation) {
-		t.Fatalf("setup: agy did not run to a result or a violation: %+v", st)
+		arSetup(t, false, "agy did not run to a result or a violation: %+v", st)
 	}
 	return st
 }

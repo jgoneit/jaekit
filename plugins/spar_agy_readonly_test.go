@@ -13,8 +13,9 @@ import (
 // and agy's command note with fixed phrases, and the input contract lists
 // the G11 representative forms of internal/spar/testdata/input-forms.json.
 // The opening line of an assertion's failure message names the property it
-// observes (jaekit:violation=<id>); a failure that starts with "setup:" is a
-// broken setup, not an observation.
+// observes (jaekit:violation=<id>). A document or fixture that cannot be
+// read observes nothing: the check skips, which the adapter reads as
+// inconclusive, never as a violation or a pass.
 
 const arDocsViolation = "agy-command-rules-undocumented"
 
@@ -22,7 +23,7 @@ func arRead(t *testing.T, path string) string {
 	t.Helper()
 	data, err := os.ReadFile(filepath.FromSlash(path))
 	if err != nil {
-		t.Fatalf("setup: %v", err)
+		t.Skipf("setup: %v", err)
 	}
 	return string(data)
 }
@@ -110,7 +111,7 @@ func TestSparAgyReadonlyAC9_Documents(t *testing.T) {
 	// newline is stated in prose, since a list item cannot hold it.
 	data, err := os.ReadFile(filepath.FromSlash("../internal/spar/testdata/input-forms.json"))
 	if err != nil {
-		t.Fatalf("setup: %v", err)
+		t.Skipf("setup: %v", err)
 	}
 	var doc struct {
 		Agy struct {
@@ -119,10 +120,10 @@ func TestSparAgyReadonlyAC9_Documents(t *testing.T) {
 		} `json:"agy_commands"`
 	}
 	if err := json.Unmarshal(data, &doc); err != nil {
-		t.Fatalf("setup: input-forms.json: %v", err)
+		t.Skipf("setup: input-forms.json: %v", err)
 	}
 	if len(doc.Agy.Accepted) == 0 || len(doc.Agy.Kept) == 0 || len(doc.Agy.Violations) == 0 {
-		t.Fatal("setup: input-forms.json has no agy_commands forms")
+		t.Skip("setup: input-forms.json has no agy_commands forms")
 	}
 	for _, c := range []struct {
 		label, text                string

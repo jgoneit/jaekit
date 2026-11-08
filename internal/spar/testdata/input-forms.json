@@ -720,7 +720,12 @@
       "cat head/app/main.go 2>&1",
       "sed -n -e '1p' -e '/x/,/y/p' head/a",
       "grep -n '$HOME' head/a",
-      "grep -n \"\\$x\" head/a"
+      "grep -n \"\\$x\" head/a",
+      "grep -n \"foo$\" head/a.go",
+      "grep -c x$ head/a.go",
+      "sed -n -- '1p' head/a",
+      "/bin/ls -la head",
+      "/usr/bin/grep -rn x head"
     ],
     "violations": [
       {
@@ -862,6 +867,30 @@
       {
         "line": "sed '1,2p' head/a",
         "problem": "sed"
+      },
+      {
+        "line": "head/bin/ls -la",
+        "problem": "head/bin/ls"
+      },
+      {
+        "line": "./ls head",
+        "problem": "./ls"
+      },
+      {
+        "line": "/tmp/x/cat head/a",
+        "problem": "/tmp/x/cat"
+      },
+      {
+        "line": "ls x$y",
+        "problem": "$"
+      },
+      {
+        "line": "sed -n 'w pwn' -e '1p' head/go.mod",
+        "problem": "-e"
+      },
+      {
+        "line": "rg --hyperlink-format=default --hostname-bin=python3 x head",
+        "problem": "--hostname-bin=python3"
       }
     ]
   }
