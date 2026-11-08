@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Structure",
+      "violation": "review-summary-structure-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReviewSummaryAC2_Structure"
+      }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Evidence",
+      "violation": "evidence-rules-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReviewSummaryAC5_Evidence"
+      }
+    }
+  ]
+}
