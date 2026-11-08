@@ -1,0 +1,20 @@
+# review-summary AC-12: a PROGRESS.md in the Seal template's section order, with
+# `## 검수 요약` right after `## 현재`, raises no lint problem, and filling the
+# review summary after completion in a bundle-only commit keeps the completion
+# record covering HEAD.
+include implement
+write docs/specs/greet/PROGRESS.md "# PROGRESS — greet\n\n## 현재\n- 시나리오가 쓴 진행 기록\n\n## 검수 요약\n(완료 기록 뒤에 쓴다)\n\n### 바뀐 동작과 파일\n| 바뀐 동작 | 조건 | 파일 |\n| --- | --- | --- |\n\n### 범위 밖이나 기존 것을 바꾼 곳\n없음\n\n### 근거\n| 라운드 | 지적 | 끝 |\n| --- | --- | --- |\n\n### 누가 정했나\n없음\n\n### 직접 볼 것\n없음\n\n### 보지 않은 것\n없음\n\n### 자세히\n없음\n\n## Task 상태\n| Task | 상태 | 메모 |\n| --- | --- | --- |\n| T001 | done | |\n\n## 타임라인\n\n## 계획 변경\n| 시각 | 변경 | 이유 | 영향 | 다시 검토한 것 |\n| --- | --- | --- | --- | --- |\n\n## 막힘\n| 시각 | 원인 종류 | 내용 | 해소 조건 |\n| --- | --- | --- | --- |\n\n## 개선 메모\n\n## 완료 뒤 발견\n\n## 완료 보고\n판단은 `## 검수 요약`에 있다.\n"
+commit "progress in the template's section order"
+ha lint $GOAL
+expect-exit 0
+ha done $GOAL
+expect-exit 0
+expect-completion-record present
+replace docs/specs/greet/PROGRESS.md "(완료 기록 뒤에 쓴다)" "상태: 완료 기록 기준, 필수 조건 충족. greet가 hello를 쓴다. 먼저 볼 것: 없음"
+replace docs/specs/greet/PROGRESS.md "| --- | --- | --- |\n\n### 범위 밖" "| --- | --- | --- |\n| greet가 hello를 쓴다 | AC-1 | src/greeting.txt |\n\n### 범위 밖"
+commit "fill the review summary after completion"
+ha lint $GOAL
+expect-exit 0
+ha status $GOAL
+expect-status complete
+expect-completion-record present
