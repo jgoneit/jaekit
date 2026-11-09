@@ -602,6 +602,27 @@ func TestSparPacketDecisionsAC4_RecordAndRerun(t *testing.T) {
 		t.Errorf("jaekit:violation=%s one more decision is not another packet: packet %v, counted %v, rerun_of %v",
 			id, rounds[2]["packet_sha256"], rounds[2]["counted"], rounds[2]["rerun_of"])
 	}
+
+	// spar record rewrites round.json when a native reviewer's result comes
+	// in; the decisions stay as they were.
+	w.useConfig("[[reviewers]]\nname = \"native\"\npreset = \"native\"\n")
+	out := filepath.Join(w.repo, "reviews", "native", "01-candidate")
+	code, stderr := w.spar(append(w.round("candidate", w.commits[0], w.commits[1], out), pdArgs(pdTricky)...)...)
+	if !w.accepted(code, stderr, id) {
+		return
+	}
+	var recOut, recErr strings.Builder
+	if code := Main("test", []string{"record", out, "native", "--result", w.answer("native", w.commits[1])},
+		strings.NewReader(""), &recOut, &recErr, func(string) string { return "" }); code != ExitOK {
+		pdSetup(t, false, "spar record exits %d: %s", code, recErr.String())
+	}
+	r := w.rawRound(out)
+	if st, _ := r["reviewers"].(map[string]any)["native"].(map[string]any); st == nil || st["status"] != StatusCompleted {
+		pdSetup(t, false, "spar record did not complete the native reviewer: %v", r["reviewers"])
+	}
+	if got, ok := pdRecorded(r); !ok || !reflect.DeepEqual(got, pdTricky) {
+		t.Errorf("jaekit:violation=%s after spar record, round.json keeps %q, not %q", id, got, pdTricky)
+	}
 }
 
 // AC-5: decisions whose two parts are present, not empty after trimming and
@@ -625,7 +646,7 @@ func TestSparPacketDecisionsAC5_Forms(t *testing.T) {
 		args := append(append(w.round("candidate", w.commits[0], w.commits[1], out), pdArgs([]pdDecision{d})...), "--dry-run")
 		code, stderr := w.spar(args...)
 		if code != ExitOK {
-			if code == ExitUsage || code == ExitRefused {
+			if (code == ExitUsage || code == ExitRefused) && strings.Contains(stderr, "decision") {
 				t.Errorf("jaekit:violation=%s the decision %q / %q is refused (exit %d): %s", id, d.settles, d.quote, code, pdFirstLine(stderr))
 				continue
 			}
@@ -652,17 +673,28 @@ func TestSparPacketDecisionsAC5_Forms(t *testing.T) {
 		{"no quote before the next decision", []string{"--decision", "a", "--decision", "b", "--decision-quote", "c"}},
 		{"a quote with no decision", []string{"--decision-quote", "말"}},
 		{"two quotes", []string{"--decision", "a", "--decision-quote", "b", "--decision-quote", "c"}},
+		{"a decision with no value", []string{"--decision"}},
+		{"a quote with no value", []string{"--decision", "a", "--decision-quote"}},
 	}
 	for i, f := range refusedForms {
 		out := filepath.Join(w.repo, "reviews", fmt.Sprintf("bad%d", i), "01-candidate")
-		code, _ := w.spar(append(w.round("candidate", w.commits[0], w.commits[1], out), f.args...)...)
+		code, stderr := w.spar(append(w.round("candidate", w.commits[0], w.commits[1], out), f.args...)...)
 		_, outErr := os.Lstat(out)
 		_, markErr := os.Lstat(marker)
-		if code != ExitRefused || !os.IsNotExist(outErr) || !os.IsNotExist(markErr) {
-			t.Errorf("jaekit:violation=%s %s: exit %d (not 65), round folder left %v, reviewer started %v",
-				id, f.name, code, !os.IsNotExist(outErr), !os.IsNotExist(markErr))
+		left, started := !os.IsNotExist(outErr), !os.IsNotExist(markErr)
+		switch {
+		case code == ExitRefused && strings.Contains(stderr, "decision") && !left && !started:
+			continue
+		case code == ExitOK || code == ExitNoResult || left || started ||
+			((code == ExitUsage || code == ExitRefused) && strings.Contains(stderr, "decision")):
+			// spar took the form, or judged it by another rule than the
+			// decision row: an observation of this condition.
+			t.Errorf("jaekit:violation=%s %s: exit %d (not 65), round folder left %v, reviewer started %v: %s",
+				id, f.name, code, left, started, pdFirstLine(stderr))
 			os.RemoveAll(out)
 			os.Remove(marker)
+		default:
+			pdSetup(t, false, "%s: spar run exits %d without naming a decision: %s", f.name, code, stderr)
 		}
 	}
 }

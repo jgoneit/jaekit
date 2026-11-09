@@ -240,9 +240,14 @@ func TestSparPacketDecisionsAC10_SparDocuments(t *testing.T) {
 	}
 	places = append(places,
 		spdPlace{"guides/SPAR.md 검토 실행", spdSection(spdRead(t, "../guides/SPAR.md"), "## 검토 실행"),
-			[]string{"`--decision`", "`--decision-quote`", "`" + spdDecisions + "`", "`requirement-question`"}},
+			[]string{"`--decision`", "`--decision-quote`", "`" + spdDecisions + "`", "`round.json`의 `decisions`",
+				"spar는 그 말이 사용자의 말인지 확인하지 않습니다", "결정이 정한 대로 한 것은 지적하지 말고",
+				"결정을 넘는 변경은 평소대로 지적하며", "그 결정이 다루지 않은 기준·규칙·계약이 깨질 때는 그것을 연결한 `requirement-question`으로 보고"}},
 		spdPlace{"guides/SPAR.en.md Run a review", spdSection(spdRead(t, "../guides/SPAR.en.md"), "## Run a review"),
-			[]string{"`--decision`", "`--decision-quote`", "`" + spdDecisions + "`", "`requirement-question`"}})
+			[]string{"`--decision`", "`--decision-quote`", "`" + spdDecisions + "`", "`decisions` in `round.json`",
+				"spar does not check that the words are the user's", "not to report what a decision settles",
+				"to report as usual a change that goes beyond it",
+				"a criterion, rule or contract the decision does not address, to report a `requirement-question` that links it"}})
 	bullet := ""
 	for _, line := range strings.Split(spdRead(t, spdSparSkill), "\n") {
 		if strings.HasPrefix(line, "- ") && strings.Contains(line, "`--decision`") {
@@ -250,7 +255,10 @@ func TestSparPacketDecisionsAC10_SparDocuments(t *testing.T) {
 		}
 	}
 	places = append(places, spdPlace{"the Spar skill's --decision bullet", bullet,
-		[]string{"`--decision-quote`", "`requirement-question`", "with or without Seal"}})
+		[]string{"`--decision-quote`", "with or without Seal", "`" + spdDecisions + "`", "`decisions` in `round.json`",
+			"spar does not check that the words are the user's", "not to report what a decision settles",
+			"to report a change that goes beyond it",
+			"a criterion, rule or contract the decision does not address, to report a `requirement-question` that links it"}})
 	spdCheck(t, id, places)
 }
 
@@ -401,7 +409,8 @@ func (w *spdWorld) spar(args ...string) (int, string) {
 
 // spdWords splits a shell command line into words: a backslash at the end
 // of a line joins it to the next, and single and double quotes group a word.
-func spdWords(line string) []string {
+// A quote that does not close is an error.
+func spdWords(line string) ([]string, error) {
 	line = strings.ReplaceAll(line, "\\\n", " ")
 	var words []string
 	var cur strings.Builder
@@ -426,10 +435,13 @@ func spdWords(line string) []string {
 			started = true
 		}
 	}
+	if in {
+		return nil, fmt.Errorf("the quote %c does not close", quote)
+	}
 	if started {
 		words = append(words, cur.String())
 	}
-	return words
+	return words, nil
 }
 
 // spdForm is the first bash block of the section that runs spar with
@@ -474,18 +486,38 @@ func TestSparPacketDecisionsAC9_ReferenceForm(t *testing.T) {
 		t.Errorf("jaekit:violation=%s the form has a placeholder this check does not fill: %s", id, filled[i:i+end+1])
 		return
 	}
-	words := spdWords(filled)
+	if _, err := spdWords(`spar run --decision "x`); err == nil {
+		w.setupFailed("the word splitter takes a quote that does not close")
+	}
+	words, err := spdWords(filled)
+	if err != nil {
+		t.Errorf("jaekit:violation=%s the form is not a command line: %v", id, err)
+		return
+	}
 	if len(words) < 2 || words[0] != "spar" || words[1] != "run" {
 		t.Errorf("jaekit:violation=%s the form does not start with `spar run`: %q", id, words)
 		return
 	}
+	// Every document the form names is in the world, so that a refusal
+	// observes the form and not a missing file.
+	for i := 0; i+1 < len(words); i++ {
+		if (words[i] == "--criteria" || words[i] == "--rules" || words[i] == "--subject") && !filepath.IsAbs(words[i+1]) {
+			path := filepath.Join(w.repo, filepath.FromSlash(words[i+1]))
+			if _, err := os.Stat(path); err != nil {
+				w.write(path, "# Document\n\n- **AC-1** one\n")
+			}
+		}
+	}
 	t.Chdir(w.repo)
 	code, stderr := w.spar(append(words[1:], "--repo", w.repo)...)
-	if code != spar.ExitOK {
-		if code == spar.ExitUsage || code == spar.ExitRefused {
-			t.Errorf("jaekit:violation=%s spar refuses the reference's form (exit %d): %s", id, code, strings.TrimSpace(stderr))
-			return
-		}
+	switch {
+	case code == spar.ExitOK:
+	case code == spar.ExitUsage || (code == spar.ExitRefused && strings.Contains(stderr, "decision")):
+		// A usage error comes only from the form's arguments; a refusal
+		// that names a decision judges the form's decisions.
+		t.Errorf("jaekit:violation=%s spar refuses the reference's form (exit %d): %s", id, code, strings.TrimSpace(stderr))
+		return
+	default:
 		w.setupFailed("spar run exits %d: %s", code, stderr)
 	}
 	out := ""
