@@ -147,6 +147,17 @@ spar cap-report docs/reviews/example
 
 The report never picks a cause. The agent picks one cause (`--cause`) from the signals among `churn`, `recurring`, `unrelated`, `hardening`, `other`, asks you with its recommendation, and records `spar extend <series> --stage code --by 1 --cause <cause> --user-quote "…"` only when your words allow more rounds. `--by 2` or more, and `--cause other`, need `--reason`. Give the series to `ha cost` with `--series` to see the recorded cause and reason in its list of cap extensions.
 
+Pass what the user decided to every later round as a decision. A user's answer to a `requirement-question` is the typical one, and the same holds when you use Spar without Seal. Give each decision as `--decision` (what it settles) followed right away by `--decision-quote` (the user's words).
+
+```bash
+spar run --stage fixes --base 2222222 --head 3333333 \
+  --criteria docs/specs/example/SPEC.md --rules AGENTS.md \
+  --decision "Empty input in AC-2" --decision-quote "Keep empty input an error" \
+  --out docs/reviews/example/03-fixes
+```
+
+Decisions go into the packet's `## Decisions the user made` section as given and stay in `decisions` in `round.json`. The section tells reviewers not to report what a decision settles, to report as usual a change that goes beyond it, and, when following a decision breaks a criterion, rule or contract the decision does not address, to report a `requirement-question` that links it. spar does not check that the words are the user's. An empty decision, an unpaired option or text that is not valid UTF-8 is refused before any reviewer starts. The same input with the same decisions is the same packet; different decisions make another packet.
+
 Each round writes a new, Git-ignored folder with `round.json`, `packet.md`, `findings.json`, `ledger.jsonl` and `summary.md`. Spar refuses a folder that Git would track, because the packet can contain private documents ([Set up a project](#set-up-a-project)).
 
 <details>

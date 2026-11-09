@@ -19,6 +19,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 | `--rules` | 규칙·계약 문서. 프로젝트 설정의 `rules`(G23)가 더해진다 |
 | `--subject` | plan 단계에서 검토할 문서 |
 | `--question` | 이번 라운드에 묻는 질문 |
+| `--decision`, `--decision-quote` | 사용자의 결정 하나. `--decision`은 결정이 정한 대상, 바로 다음의 `--decision-quote`는 사용자의 말이다. 결정마다 한 쌍을 주고, 여러 번 줄 수 있다. 형식은 G35이고, 형식 밖의 결정은 리뷰어를 띄우기 전에 거부한다. spar는 그 말이 사용자의 말인지 확인하지 않는다 |
 | `--check-path` | 이번 실행의 검사 경로 glob(G24). 잘못된 glob은 리뷰어를 띄우기 전에 거부한다 |
 | `--reviewers` | 이번 실행의 리뷰어 이름 목록(G25) |
 | `--model` | `이름=모델`. 사용자 설정에 `model`이 적히지 않은 `claude`·`codex`·`agy` 리뷰어의 이번 실행 모델(G25, [설정 계약](spar-config.md) 1절 "모델과 강도를 정하는 순서"). 여러 번 줄 수 있다 |
@@ -28,11 +29,16 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 라운드 폴더의 부모 폴더가 한 검토의 series다. 같은 series의 다른 `review-round/v1` 라운드에서 상한, 이전 head와 이전 지적을 읽는다. 다른 형식의 기록 폴더는 읽지도 바꾸지도 않는다. series 폴더 자체를 잠가(잠금 파일을 만들지 않는다) series마다 한 번에 한 쓰기만 한다(G33). `spar run`은 상한 판단부터 라운드 기록을 마칠 때까지, `spar record`·`spar triage`·`spar extend`·`spar waive`는 기록을 읽고 쓰는 동안 같은 잠금을 쥔다. 다른 쓰기가 잠금을 쥐고 있으면 표준 오류에 알리고 그것이 끝날 때까지 기다린다. `spar gate`는 잠그지 않는다.
 
-종료 코드: 0 라운드 기록을 썼고 완료했거나 대기 중인 리뷰어가 있음, 1 라운드 기록을 썼지만 완료하거나 대기 중인 리뷰어가 없음, 64 사용법 오류, 65 거부(설정 오류, 추적되는 기록 폴더, 상한 초과, 사슬 끊김, 읽을 수 없는 입력), 70 내부 오류. 거부는 리뷰어를 띄우기 전에 일어나고 라운드 폴더를 만들지 않는다.
+종료 코드: 0 라운드 기록을 썼고 완료했거나 대기 중인 리뷰어가 있음, 1 라운드 기록을 썼지만 완료하거나 대기 중인 리뷰어가 없음, 64 사용법 오류, 65 거부(설정 오류, 추적되는 기록 폴더, 상한 초과, 사슬 끊김, 읽을 수 없는 입력, 형식 밖의 결정), 70 내부 오류. 거부는 리뷰어를 띄우기 전에 일어나고 라운드 폴더를 만들지 않는다.
 
 ## 2. 패킷과 작업공간
 
-- `packet.md`는 모든 리뷰어가 받는 한 텍스트다. 단계 설명, 두 커밋 ID와 tree ID, 공격 각도와 보고 방법, 기준 문서·규칙 문서·검토 대상 문서의 전문, 질문, 같은 series의 앞선 라운드 지적, 두 커밋 사이의 diff가 들어간다. 커밋 메시지, Git 이력, 무시된 파일, 리뷰어 목록은 들어가지 않는다. `packet_sha256`은 이 파일의 sha256이다.
+- `packet.md`는 모든 리뷰어가 받는 한 텍스트다. 단계 설명, 두 커밋 ID와 tree ID, 공격 각도와 보고 방법, 기준 문서·규칙 문서·검토 대상 문서의 전문, 사용자의 결정, 질문, 같은 series의 앞선 라운드 지적, 두 커밋 사이의 diff가 들어간다. 커밋 메시지, Git 이력, 무시된 파일, 리뷰어 목록은 들어가지 않는다. `packet_sha256`은 이 파일의 sha256이다.
+- 결정을 받은 라운드의 패킷에는 검토 대상 문서 뒤, 질문 앞에 `## Decisions the user made` 절이 하나 있다. 네 단계가 모두 같다. 절은 아래 안내로 시작하고, 결정마다 `### Decision <n>` 아래에 정한 대상과 사용자의 말을 받은 그대로, 받은 순서로 둔다. 두 글은 각자 그 글의 어떤 백틱 줄보다 긴 코드 울타리 안에 있어서, 글 안의 제목과 울타리가 결정 절 밖의 절을 만들거나 끝내지 않는다. 결정을 받지 않은 라운드에는 이 절이 없고, 그 패킷은 이 절이 생기기 전 spar가 같은 입력에서 만든 패킷과 바이트 단위로 같다. 결정은 패킷의 일부라서, 같은 결정의 같은 입력은 같은 패킷이고 결정이 하나라도 다르면 다른 패킷이다(8절). 리뷰어 안내는 다음 네 줄이다. spar는 이 안내를 분류로 강제하지 않는다.
+  - Each decision below was recorded by the caller as the user's words; spar does not check that it is.
+  - Do not report the change for doing what a decision settles.
+  - Report as usual a change that goes beyond what a decision settles.
+  - When following a decision breaks a criterion, rule or contract that the decision does not address, report a `requirement-question` that links that criterion, rule or contract.
 - 앞선 라운드 지적은 plan-delta에서는 plan·plan-delta 라운드, fixes에서는 candidate·fixes 라운드의 것이다. 패킷은 그 지적을 리뷰어 이름이 든 지적 ID(`codex-F1` 등)로 보인다. 단계·base·head가 같은 라운드는 넣지 않아서 같은 입력의 재실행은 같은 패킷을 받는다.
 - 리뷰어마다 임시 작업공간 사본을 만든다. `head/`와 `base/`에는 두 커밋의 추적 파일이 blob 그대로 들어가고 `.git`은 없다. symlink는 만들지 않고 그 blob(대상 경로)을 담은 일반 파일로 둔다.
 - `schema.json`은 리뷰어 결과의 JSON schema다.
@@ -100,7 +106,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 | `workspace/` | dry run에서만: 리뷰어가 받을 작업공간(`head/`, `base/`) |
 | `<native 리뷰어>/` | `prompt.md`, 작업공간, 기록된 결과. 기본 이름이면 `native/` |
 
-`round.json`의 주요 필드: `schema`(`review-round/v1`), `spar_version`, `stage`, `label`, `series`, `sequence`, `repo`, `base`, `head`, `base_tree`, `head_tree`, `diff_sha256`, `criteria`·`rules`·`subjects`(`name`, `source`, `sha256`), `criteria_digest`(기준 문서 이름과 sha256의 sha256), `questions`, `prior`, `packet_sha256`, `config`([설정 계약](spar-config.md)의 적용 기록), `links`(연결 확인에 쓴 `criteria_ids`와 규칙 문서의 `rules[]`: `names`, `file_name`, `lines`), `requested_reviewers`, `required_reviewers`, `dry_run`, `counted`, `rerun_of`, `started_at`, `finished_at`, `reviewers`.
+`round.json`의 주요 필드: `schema`(`review-round/v1`), `spar_version`, `stage`, `label`, `series`, `sequence`, `repo`, `base`, `head`, `base_tree`, `head_tree`, `diff_sha256`, `criteria`·`rules`·`subjects`(`name`, `source`, `sha256`), `criteria_digest`(기준 문서 이름과 sha256의 sha256), `questions`, `decisions`(결정을 받은 라운드에만 있다. 받은 순서의 항목마다 `settles`(정한 대상)와 `user_quote`(사용자의 말)를 받은 그대로 남긴다), `prior`, `packet_sha256`, `config`([설정 계약](spar-config.md)의 적용 기록), `links`(연결 확인에 쓴 `criteria_ids`와 규칙 문서의 `rules[]`: `names`, `file_name`, `lines`), `requested_reviewers`, `required_reviewers`, `dry_run`, `counted`, `rerun_of`, `started_at`, `finished_at`, `reviewers`.
 
 `reviewers.<이름>`: `name`, `preset`, `isolation`(`verified`, `host`, `unverified`), `required`, `status`, `reason`, `requested_model`, `model_source`(`claude`·`codex`·`agy`만: `user`, `agent`, `preset`), `observed_model`, `fallback_model`, `fallback_used`, `effort`, `effort_source`(`claude`·`codex`만, 같은 세 값), `elapsed_seconds`, `timeout_seconds`(G19), `resets`, `attempts`, `findings`(완료한 경우의 지적 수, 아니면 `null`), `verdict`, `angles_checked`, `angles_unchecked`, `limits`, `warnings`, `agent`, `recorded_from`, `workspace_digest`(native 작업공간을 준비할 때의 digest).
 

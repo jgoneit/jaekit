@@ -14,6 +14,7 @@ const usageText = `usage:
   spar config [--repo DIR] [--reviewers NAME,...] [--model NAME=MODEL]... [--effort NAME=EFFORT]...
   spar run --stage plan|plan-delta|candidate|fixes --base REV [--head REV] --out DIR
            --criteria FILE... [--rules FILE]... [--subject FILE]... [--question TEXT]...
+           [--decision TEXT --decision-quote TEXT]...
            [--check-path GLOB]... [--reviewers NAME,...] [--model NAME=MODEL]... [--effort NAME=EFFORT]...
            [--repo DIR] [--label TEXT] [--dry-run]
   spar record ROUND native (--result FILE|- | --transcript FILE) [--model M] [--agent TEXT]
@@ -33,7 +34,14 @@ type parsed struct {
 	positional []string
 	values     map[string][]string
 	flags      map[string]bool
+	// order holds the valued options in the order given, for options that
+	// are read in pairs.
+	order []option
+	// missing names the option given last without its value.
+	missing string
 }
+
+type option struct{ name, value string }
 
 func (p parsed) one(name string) string {
 	if v := p.values[name]; len(v) > 0 {
@@ -70,12 +78,14 @@ func parseArgs(args []string, valued, bare []string) (parsed, error) {
 		case contains(valued, name):
 			if !inline {
 				if i+1 >= len(args) {
+					p.missing = name
 					return p, usageError("--%s needs a value", name)
 				}
 				i++
 				value = args[i]
 			}
 			p.values[name] = append(p.values[name], value)
+			p.order = append(p.order, option{name, value})
 		default:
 			return p, usageError("unknown option --%s", name)
 		}
@@ -96,6 +106,35 @@ func reviewerOverride(p parsed) []string {
 		}
 	}
 	return names
+}
+
+// decisions pairs each --decision with the --decision-quote that follows it
+// before the next --decision (G35). A part without its pair is refused: a
+// round never records a decision without what it settles or without the
+// user's words.
+func decisions(p parsed) ([]Decision, error) {
+	var out []Decision
+	open := false
+	for _, o := range p.order {
+		switch o.name {
+		case "decision":
+			if open {
+				return nil, refused("--decision %q has no --decision-quote before the next --decision", out[len(out)-1].Settles)
+			}
+			out = append(out, Decision{Settles: o.value})
+			open = true
+		case "decision-quote":
+			if !open {
+				return nil, refused("--decision-quote %q has no --decision before it", o.value)
+			}
+			out[len(out)-1].UserQuote = o.value
+			open = false
+		}
+	}
+	if open {
+		return nil, refused("--decision %q has no --decision-quote after it", out[len(out)-1].Settles)
+	}
+	return out, nil
 }
 
 // agentChoices reads --model NAME=MODEL and --effort NAME=EFFORT (G25):
@@ -165,8 +204,13 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 		return ExitOK, ShowConfigWith(p.one("repo"), getenv, reviewerOverride(p), choices, stdout)
 	case "run":
 		p, err := parseArgs(rest, []string{"stage", "base", "head", "out", "criteria", "rules", "subject", "question",
-			"check-path", "reviewers", "model", "effort", "repo", "label"}, []string{"dry-run"})
+			"decision", "decision-quote", "check-path", "reviewers", "model", "effort", "repo", "label"}, []string{"dry-run"})
 		if err != nil {
+			// A decision without what it settles or without the user's
+			// words is out of form (G35), whichever part is missing.
+			if p.missing == "decision" || p.missing == "decision-quote" {
+				return ExitRefused, refused("--%s needs a value: a decision has what it settles and the user's words", p.missing)
+			}
 			return ExitUsage, err
 		}
 		if len(p.positional) > 0 {
@@ -176,9 +220,13 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 		if err != nil {
 			return ExitUsage, err
 		}
+		ds, err := decisions(p)
+		if err != nil {
+			return ExitRefused, err
+		}
 		code, err := Run(RunOptions{Repo: p.one("repo"), Stage: p.one("stage"), Base: p.one("base"), Head: p.one("head"),
 			Out: p.one("out"), Criteria: p.values["criteria"], Rules: p.values["rules"], Subjects: p.values["subject"],
-			Questions: p.values["question"], CheckPaths: p.values["check-path"], Reviewers: reviewerOverride(p),
+			Questions: p.values["question"], Decisions: ds, CheckPaths: p.values["check-path"], Reviewers: reviewerOverride(p),
 			Choices: choices, Label: p.one("label"), DryRun: p.flags["dry-run"], Version: version, Getenv: getenv, Log: stderr})
 		if err == nil {
 			fmt.Fprintf(stdout, "spar: round written to %s\n", p.one("out"))

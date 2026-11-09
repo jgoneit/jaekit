@@ -102,6 +102,7 @@ type packetInput struct {
 	Criteria   []Document
 	Rules      []Document
 	Subjects   []Document
+	Decisions  []Decision
 	Questions  []string
 	Prior      []string
 	Diff       []byte
@@ -119,6 +120,26 @@ func embedDoc(b *strings.Builder, d Document) {
 	f := fence(d.text)
 	fmt.Fprintf(b, "### %s\n\n%s\n%s", d.Name, f, d.text)
 	if !strings.HasSuffix(d.text, "\n") {
+		b.WriteString("\n")
+	}
+	b.WriteString(f + "\n\n")
+}
+
+// decisionGuidance opens the decision section: the decisions are the
+// caller's claim, and reviewers report a change that goes beyond them.
+const decisionGuidance = "- Each decision below was recorded by the caller as the user's words; spar does not check that it is.\n" +
+	"- Do not report the change for doing what a decision settles.\n" +
+	"- Report as usual a change that goes beyond what a decision settles.\n" +
+	"- When following a decision breaks a criterion, rule or contract that the decision does not address, " +
+	"report a `requirement-question` that links that criterion, rule or contract.\n\n"
+
+// embedText writes a label and a text as given inside a fence longer than
+// any run of backticks in it, so that no heading or fence in the text makes
+// or ends a section of the packet.
+func embedText(b *strings.Builder, label, text string) {
+	f := fence(text)
+	fmt.Fprintf(b, "%s\n\n%s\n%s", label, f, text)
+	if !strings.HasSuffix(text, "\n") {
 		b.WriteString("\n")
 	}
 	b.WriteString(f + "\n\n")
@@ -173,6 +194,14 @@ func buildPacket(in packetInput) string {
 		b.WriteString("## Documents under review\n\n")
 		for _, d := range in.Subjects {
 			embedDoc(&b, d)
+		}
+	}
+	if len(in.Decisions) > 0 {
+		b.WriteString("## Decisions the user made\n\n" + decisionGuidance)
+		for i, d := range in.Decisions {
+			fmt.Fprintf(&b, "### Decision %d\n\n", i+1)
+			embedText(&b, "What it settles:", d.Settles)
+			embedText(&b, "The user's words:", d.UserQuote)
 		}
 	}
 	if len(in.Questions) > 0 {

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 // Exit codes shared by the commands.
@@ -55,6 +56,7 @@ type RunOptions struct {
 	Rules      []string
 	Subjects   []string
 	Questions  []string
+	Decisions  []Decision
 	CheckPaths []string
 	Reviewers  []string // nil: the configured list
 	Choices    []Choice // the agent's --model and --effort values
@@ -280,6 +282,18 @@ func Run(o RunOptions) (int, error) {
 	if o.Head == "" {
 		o.Head = "HEAD"
 	}
+	// A decision out of form (G35) is refused before anything is read or
+	// written. Its text is otherwise kept as given.
+	for i, d := range o.Decisions {
+		for _, part := range []struct{ option, text string }{{"--decision", d.Settles}, {"--decision-quote", d.UserQuote}} {
+			switch {
+			case !utf8.ValidString(part.text):
+				return ExitRefused, refused("decision %d: %s %q is not valid UTF-8", i+1, part.option, part.text)
+			case strings.TrimSpace(part.text) == "":
+				return ExitRefused, refused("decision %d: %s is empty", i+1, part.option)
+			}
+		}
+	}
 	// A check path given for this run follows the table's glob rule (G24):
 	// a wrong one is refused before anything is read or written.
 	for _, p := range o.CheckPaths {
@@ -377,7 +391,8 @@ func Run(o RunOptions) (int, error) {
 		Sequence: len(siblings) + 1, Repo: repo, Base: base, Head: head, BaseTree: baseTree, HeadTree: headTree,
 		DiffSHA256: newDocument("", "", changes).SHA256, Criteria: criteria, CriteriaDigest: documentsDigest(criteria),
 		Rules: nonNil(rules), Subjects: nonNil(subjects), Questions: append([]string{}, o.Questions...),
-		Config: cfg, DryRun: o.DryRun, RerunOf: []string{}, Reviewers: map[string]*ReviewerState{},
+		Decisions: append([]Decision(nil), o.Decisions...),
+		Config:    cfg, DryRun: o.DryRun, RerunOf: []string{}, Reviewers: map[string]*ReviewerState{},
 		Links: LinkTargets{CriteriaIDs: criteriaIDs(criteria), Rules: ruleTargets(repo, rules)},
 	}
 	for _, rv := range cfg.Reviewers {
@@ -396,7 +411,7 @@ func Run(o RunOptions) (int, error) {
 	r.Prior = priorDirs
 	packet := buildPacket(packetInput{Stage: o.Stage, Base: base, Head: head, BaseTree: baseTree, HeadTree: headTree,
 		Angles: cfg.Angles, CheckPaths: cfg.CheckPaths, Criteria: criteria, Rules: rules, Subjects: subjects,
-		Questions: o.Questions, Prior: prior, Diff: changes})
+		Decisions: o.Decisions, Questions: o.Questions, Prior: prior, Diff: changes})
 	r.PacketSHA256 = newDocument("", "", []byte(packet)).SHA256
 	counted, rerunOf, err := admit(siblings, exts, r)
 	if err != nil {

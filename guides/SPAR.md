@@ -147,6 +147,17 @@ spar cap-report docs/reviews/example
 
 보고는 원인을 고르지 않습니다. 에이전트가 신호를 보고 원인(`--cause`) 하나를 `churn`, `recurring`, `unrelated`, `hardening`, `other` 가운데서 골라 권고와 함께 묻고, 더 돌리라는 사용자의 말이 있을 때만 `spar extend <series> --stage code --by 1 --cause <원인> --user-quote "…"`로 기록합니다. `--by 2` 이상이나 `--cause other`에는 `--reason`이 필요합니다. 기록한 원인과 이유는 `ha cost`에 `--series`로 그 series를 주면 상한 연장 목록에 보입니다.
 
+사용자가 정한 것은 그 뒤의 모든 라운드에 결정으로 넘깁니다. `requirement-question`에 대한 사용자의 답이 대표적인 결정이고, Seal 없이 Spar만 쓸 때도 같습니다. 결정마다 `--decision`(정한 대상)과 바로 다음의 `--decision-quote`(사용자의 말)를 한 쌍으로 줍니다.
+
+```bash
+spar run --stage fixes --base 2222222 --head 3333333 \
+  --criteria docs/specs/example/SPEC.md --rules AGENTS.md \
+  --decision "AC-2의 빈 입력" --decision-quote "빈 입력은 오류로 둬" \
+  --out docs/reviews/example/03-fixes
+```
+
+결정은 패킷의 `## Decisions the user made` 절에 받은 그대로 들어가고 `round.json`의 `decisions`에 남습니다. 절의 안내는 리뷰어에게 결정이 정한 대로 한 것은 지적하지 말고, 결정을 넘는 변경은 평소대로 지적하며, 결정을 따르면 그 결정이 다루지 않은 기준·규칙·계약이 깨질 때는 그것을 연결한 `requirement-question`으로 보고하라고 말합니다. spar는 그 말이 사용자의 말인지 확인하지 않습니다. 빈 결정, 짝이 없는 옵션, 올바른 UTF-8이 아닌 글은 리뷰어를 띄우기 전에 거부됩니다. 같은 결정으로 같은 입력을 다시 돌리면 같은 패킷이고, 결정이 다르면 다른 패킷입니다.
+
 라운드마다 Git이 무시하는 새 폴더에 `round.json`, `packet.md`, `findings.json`, `ledger.jsonl`, `summary.md`가 생깁니다. 패킷에 비공개 문서가 들어갈 수 있으므로 Git이 추적할 폴더는 거부합니다([프로젝트 준비](#프로젝트-준비)).
 
 <details>

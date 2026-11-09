@@ -706,8 +706,9 @@ func TestRelease018DirectInstallPutsBoth(t *testing.T) {
 // AC-9: the guides, contract examples, skills, manifests and release notes
 // state the v0.1.8 combination: ha 0.1.8, spar 0.1.8, Spec 0.1.13, Seal
 // 0.1.23 and the Spar plugin 0.1.4, with v0.1.7 kept as the previous row. The
-// Seal skill, its manifests and the marketplace carry the source Seal 0.1.24,
-// which adds the review summary after that release.
+// Seal skill, its manifests and the marketplace carry the source Seal 0.1.25
+// (0.1.24 adds the review summary after that release, 0.1.25 the decisions
+// and invariant places passed to review rounds).
 func TestRelease018AC9_CombinationStated(t *testing.T) {
 	const v = "combination-unstated"
 	for _, c := range []struct {
@@ -742,7 +743,7 @@ func TestRelease018AC9_CombinationStated(t *testing.T) {
 		"../contracts/review-gate.md":       {`"spar_version": "0.1.8"`},
 		"../examples/README.md":             {"현재 배포판 v0.1.8의 Seal 0.1.23에도 포함되며"},
 		r18SealHa:                           {"The commands below describe release v0.1.8: ha 0.1.8, spar 0.1.8 and Seal 0.1.23."},
-		r18SealSkill:                        {"version: \"0.1.24\"\n"},
+		r18SealSkill:                        {"version: \"0.1.25\"\n"},
 		r18SparSkill:                        {"version: \"0.1.4\"\n"},
 	} {
 		r18Contains(t, v, path, r18Read(t, path), tokens...)
@@ -753,7 +754,7 @@ func TestRelease018AC9_CombinationStated(t *testing.T) {
 			"이번 변경:", "확인한 범위:", "확인하지 않은 범위:")
 	}
 	for path, want := range map[string]string{
-		"seal/.claude-plugin/plugin.json": "0.1.24", "seal/.codex-plugin/plugin.json": "0.1.24",
+		"seal/.claude-plugin/plugin.json": "0.1.25", "seal/.codex-plugin/plugin.json": "0.1.25",
 		"spar/.claude-plugin/plugin.json": "0.1.4", "spar/.codex-plugin/plugin.json": "0.1.4",
 	} {
 		var manifest struct {
@@ -771,7 +772,7 @@ func TestRelease018AC9_CombinationStated(t *testing.T) {
 		} `json:"plugins"`
 	}
 	r18JSON(t, "../.claude-plugin/marketplace.json", &market)
-	want := map[string]string{"spec": "0.1.13", "seal": "0.1.24", "spar": "0.1.4"}
+	want := map[string]string{"spec": "0.1.13", "seal": "0.1.25", "spar": "0.1.4"}
 	for _, p := range market.Plugins {
 		if w, ok := want[p.Name]; ok {
 			if p.Version != w {
