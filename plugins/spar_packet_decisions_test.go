@@ -239,6 +239,10 @@ func TestSparPacketDecisionsAC10_SparDocuments(t *testing.T) {
 			spdPlace{path + " section 5", spdSection(text, "## 5. "), []string{"`decisions`", "`settles`", "`user_quote`"}})
 	}
 	places = append(places,
+		spdPlace{"guides/SPAR.md 컴퓨터 밖으로 나가는 것", spdSection(spdRead(t, "../guides/SPAR.md"), "## 컴퓨터 밖으로 나가는 것"),
+			[]string{"넘긴 사용자의 결정(사용자의 말 그대로)과 질문"}},
+		spdPlace{"guides/SPAR.en.md What leaves your computer", spdSection(spdRead(t, "../guides/SPAR.en.md"), "## What leaves your computer"),
+			[]string{"the user's decisions you pass (in the user's own words) and your questions"}},
 		spdPlace{"guides/SPAR.md 검토 실행", spdSection(spdRead(t, "../guides/SPAR.md"), "## 검토 실행"),
 			[]string{"`--decision`", "`--decision-quote`", "`" + spdDecisions + "`", "`round.json`의 `decisions`",
 				"spar는 그 말이 사용자의 말인지 확인하지 않습니다", "결정이 정한 대로 한 것은 지적하지 말고",
@@ -407,9 +411,20 @@ func (w *spdWorld) spar(args ...string) (int, string) {
 	return code, stderr.String()
 }
 
+// spdQuoteRule is how the Seal reference says to quote a value, and
+// spdShellQuote applies it. spdQuote2 holds every character a shell would
+// change outside single quotes.
+const (
+	spdQuoteRule = "Put each value in single quotes, writing a single quote in it as `'\\''`, so that the shell passes the recorded words byte for byte."
+	spdQuote2    = "치명적이면 `$HOME`과 \\ 그리고 'x'도 그대로 (Recommended)"
+)
+
+func spdShellQuote(s string) string { return strings.ReplaceAll(s, "'", `'\''`) }
+
 // spdWords splits a shell command line into words: a backslash at the end
-// of a line joins it to the next, and single and double quotes group a word.
-// A quote that does not close is an error.
+// of a line joins it to the next, a backslash outside quotes keeps the next
+// character, and single and double quotes group a word. A quote that does
+// not close is an error.
 func spdWords(line string) ([]string, error) {
 	line = strings.ReplaceAll(line, "\\\n", " ")
 	var words []string
@@ -424,6 +439,10 @@ func spdWords(line string) ([]string, error) {
 			cur.WriteByte(c)
 		case c == '"' || c == '\'':
 			in, quote, started = true, c, true
+		case c == '\\' && i+1 < len(line):
+			i++
+			cur.WriteByte(line[i])
+			started = true
 		case c == ' ' || c == '\t' || c == '\n':
 			if started {
 				words = append(words, cur.String())
@@ -472,10 +491,14 @@ func TestSparPacketDecisionsAC9_ReferenceForm(t *testing.T) {
 	values := []string{
 		"<goal base commit>", w.base, "<head>", w.head, "<goal>", "example", "<NN>", "01",
 		"<what decision 1 settles>", "skill 문장의 범위",
-		"<the user's words for decision 1, as recorded>", "참고 문서에 맡김 (Recommended)",
+		"<the recorded words of decision 1>", "참고 문서에 맡김 (Recommended)",
 		"<what decision 2 settles>", "코드 라운드 상한",
-		"<the user's words for decision 2, as recorded>", "치명적이면 1회 연장 (Recommended)",
+		"<the recorded words of decision 2>", spdShellQuote(spdQuote2),
 		"<path>", "internal/spar/packet.go", "<name used there>", "buildPacket", "<invariant>", "the decision section",
+	}
+	if !strings.Contains(spdSection(spdRead(t, spdBundleRef), "## Questions for the user"), spdQuoteRule) {
+		t.Errorf("jaekit:violation=%s references/bundle.md does not say %q", id, spdQuoteRule)
+		return
 	}
 	filled := strings.NewReplacer(values...).Replace(form)
 	if i := strings.Index(filled, "<"); i >= 0 {
@@ -537,7 +560,7 @@ func TestSparPacketDecisionsAC9_ReferenceForm(t *testing.T) {
 		return
 	}
 	rest := packet[at:]
-	for _, v := range []string{"skill 문장의 범위", "참고 문서에 맡김 (Recommended)", "코드 라운드 상한", "치명적이면 1회 연장 (Recommended)"} {
+	for _, v := range []string{"skill 문장의 범위", "참고 문서에 맡김 (Recommended)", "코드 라운드 상한", spdQuote2} {
 		n := strings.Index(rest, v)
 		if n < 0 {
 			t.Errorf("jaekit:violation=%s the decision section does not hold %q after the parts before it", id, v)

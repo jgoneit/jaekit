@@ -12,7 +12,7 @@ From v0.1.7, Seal starts new goals under `run-rules/5`, and a `standard` or `str
 
 ## What leaves your computer
 
-Each reviewer receives the whole packet: the criteria documents, the rule documents, the documents under review, and the diff between the two commits. A reviewer CLI can also read the tracked files of both commits in its workspace copy and send what it opens to its provider.
+Each reviewer receives the whole packet: the criteria documents, the rule documents, the documents under review, the user's decisions you pass (in the user's own words) and your questions, and the diff between the two commits. A reviewer CLI can also read the tracked files of both commits in its workspace copy and send what it opens to its provider.
 
 | Reviewer | Provider that receives the packet |
 | --- | --- |

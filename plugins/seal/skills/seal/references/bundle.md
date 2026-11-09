@@ -82,14 +82,14 @@ An answer settles only what it says. A change outside the recorded authority or 
 
 Once the work has started, ask each question when it arises, such as a `requirement-question` from review, a round cap or a scope change nobody could foresee; questions pending at the same moment go in one message. Ask for the confirmations completion needs in one message, once the results they confirm exist.
 
-**Decisions for review rounds.** Pass every review round, from the plan round to the cumulative round, the user's decisions recorded before it that the goal documents do not hold: each answer that closed an item of REVIEW.md `## 중요한 미결정`, each `confirm` and `input` note that quotes the user's words, and each answer to a review's `requirement-question`. Give each decision as `--decision` with what it settles, taken from the REVIEW.md item or the confirmation's target, followed by `--decision-quote` with the recorded quote unchanged. Round cap extensions, reviewer waivers and `reopen` are not decisions about the change; never pass them. Pass decisions in every round this Seal runs, whichever Seal started the goal. A cumulative round with two decisions and one place question ([REVIEW.md](#reviewmd)) looks like this:
+**Decisions for review rounds.** Pass every review round, from the plan round to the cumulative round, the user's decisions recorded before it that the goal documents do not hold: each answer that closed an item of REVIEW.md `## 중요한 미결정`, each `confirm` and `input` note that quotes the user's words, and each answer to a review's `requirement-question`. Give each decision as `--decision` with what it settles, taken from the REVIEW.md item or the confirmation's target, followed by `--decision-quote` with the recorded quote unchanged. Round cap extensions, reviewer waivers and `reopen` are not decisions about the change; never pass them. Pass decisions in every round this Seal runs, whichever Seal started the goal. Put each value in single quotes, writing a single quote in it as `'\''`, so that the shell passes the recorded words byte for byte. A cumulative round with two decisions and one place question ([REVIEW.md](#reviewmd)) looks like this:
 
 ```bash
 spar run --stage candidate --base <goal base commit> --head <head> \
   --criteria docs/specs/<goal>/SPEC.md --rules AGENTS.md \
-  --decision "<what decision 1 settles>" --decision-quote "<the user's words for decision 1, as recorded>" \
-  --decision "<what decision 2 settles>" --decision-quote "<the user's words for decision 2, as recorded>" \
-  --question "<path> (<name used there>): does it still keep <invariant> at head?" \
+  --decision '<what decision 1 settles>' --decision-quote '<the recorded words of decision 1>' \
+  --decision '<what decision 2 settles>' --decision-quote '<the recorded words of decision 2>' \
+  --question '<path> (<name used there>): does it still keep <invariant> at head?' \
   --out docs/reviews/<goal>/<NN>-candidate
 ```
 
