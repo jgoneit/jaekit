@@ -72,6 +72,10 @@ The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evi
 | `rules-v5-review-gate` | run-record.md §4.8 review gate | a `standard` goal under `/5` is `incomplete` with `review_missing`; unusable gate files exit 65 and record nothing; a blocked gate that does not cover HEAD or the goal documents gives its reasons and keeps no finding text; lowering the tier to `light` completes it |
 | `rules-v5-review-findings` | run-record.md §1.3, §4.8 review finding lists | a review note keeps the gate's deferred and undisposed findings without finding text; malformed lists exit 65 and record nothing; `ha report` shows the lists, says a hand-broken stored list cannot be read with the reasons unchanged, and says a gate without the lists recorded none |
 | `rules-v5-forms-refused` | run-record.md §4.8 | a `/4` goal refuses a review note with 65 and records nothing; `--quote` on a review note is a usage error |
+| `rules-v6-review-base` | run-record.md §4.9 review base | a `/6` standard goal rejects W..H and B..W followed by W..H candidates with only `review_base_mismatch`; B..H and B..W followed by fixes W..H complete |
+| `rules-v6-late-review-note` | run-record.md §4.9, §5.1 | an optional blocked review note after a light goal's completion preserves its completion seq in status and report without another `done` |
+| `rules-v6-unjudged-done` | run-record.md §4.9, §5.1 | a done line with an unjudged record head does not hide the earlier judged completion or its stale explanation after a code change |
+| `rules-v6-post-completion` | run-record.md §4.9, §5.2 | a note five hours after completion leaves out that gap even when code changes invalidate completion; status and cost expose the separate field, completed-window budget changes stay refused, and reopen starts a new window |
 | `rules-v1-kept` | run-rules-2 AC-10 | historical `run-rules/1` budget semantics remain; a future dirty check is refused |
 | `blocked` | bundle.md §5 | `blocked` until unblock |
 | `not-started` | run-record.md §4.2 | `incomplete`, `not_started`; checks refused |
