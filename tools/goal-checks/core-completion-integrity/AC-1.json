@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "StartAndCapabilities",
+      "violation": "rules-v6-unsupported",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestCoreIntegrityAC1_StartAndCapabilities"
+      }
+    },
+    {
+      "id": "OlderCoreRefuses",
+      "violation": "rules-v6-unsupported",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestCoreIntegrityAC1_OlderCoreRefuses"
+      }
+    }
+  ]
+}
