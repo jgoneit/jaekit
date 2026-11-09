@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "InvariantPlaces",
+      "violation": "invariant-places-undefined",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSparPacketDecisionsAC8_InvariantPlaces"
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Forms",
+      "violation": "decision-form-misjudged",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparPacketDecisionsAC5_Forms"
+      }
+    },
+    {
+      "id": "InputRow",
+      "violation": "decision-form-misjudged",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSparPacketDecisionsAC5_InputRow"
+      }
+    }
+  ]
+}
