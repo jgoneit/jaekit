@@ -408,16 +408,27 @@ func TestReviewFindingsReportAC3_ReportShowsTheLists(t *testing.T) {
 		}
 	}
 
-	// Each of the three alone; the last recorded review note counts.
+	// Each of the three alone, then nothing: the last recorded review note
+	// decides the whole line.
 	none := map[string]string{"en": "none", "ko": "없음"}
 	for i, lists := range []struct {
 		deferred, unhandled []any
 		auto                int
-	}{{deferred: deferred[:1], unhandled: []any{}}, {deferred: []any{}, unhandled: []any{}, auto: 2}, {deferred: []any{}, unhandled: unhandled[1:]}} {
+	}{{deferred: deferred[:1], unhandled: []any{}}, {deferred: []any{}, unhandled: []any{}, auto: 2},
+		{deferred: []any{}, unhandled: unhandled[1:]}, {deferred: []any{}, unhandled: []any{}}} {
 		f.note(withLists(f.chained().gateValue(), lists.deferred, lists.unhandled, lists.auto))
 		for _, lang := range []string{"en", "ko"} {
-			if got := f.toReview(lang); got == none[lang] || !strings.Contains(got, strings.SplitN(rfrItems[lang][i], ": ", 2)[0]+": ") {
-				t.Errorf("jaekit:violation=%s --lang %s: with only list %d the line is %q", id, lang, i+1, got)
+			want := none[lang]
+			switch i {
+			case 0:
+				want = strings.SplitN(rfrItems[lang][0], ", ", 2)[0]
+			case 1:
+				want = rfrItems[lang][1]
+			case 2:
+				want = strings.Replace(rfrItems[lang][2], "demo-rounds/01-candidate codex-F2 [note], ", "", 1)
+			}
+			if got := f.toReview(lang); got != want {
+				t.Errorf("jaekit:violation=%s --lang %s: after note %d the line is %q, want %q", id, lang, i+1, got, want)
 			}
 		}
 	}
@@ -544,7 +555,11 @@ func TestReviewFindingsReportAC6_MalformedLists(t *testing.T) {
 			}
 		}
 	}
-	if code, out := f.ha("done", rgGoal); code != exitOK {
+	code, out := f.ha("done", rgGoal)
+	if code == exitInternal {
+		rfrSetupf(t, "ha done exit %d: %s", code, out)
+	}
+	if code != exitOK {
 		t.Errorf("jaekit:violation=%s with an unreadable stored list ha done exits %d: %s", id, code, out)
 	}
 }

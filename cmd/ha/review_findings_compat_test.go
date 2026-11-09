@@ -11,6 +11,9 @@ package main
 // breaks, fails it.
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -104,11 +107,30 @@ func TestReviewFindingsReportAC8_Release018ReadsTheNote(t *testing.T) {
 			}
 		}
 
-		// ha 0.1.8 appends a line; both versions then read a whole chain.
+		// ha 0.1.8's done decides as it does without the lists.
 		dw, outW := rfrOld(t, old, with, "done", rgGoal)
 		do, _ := rfrOld(t, old, without, "done", rgGoal)
 		if dw != do {
 			t.Errorf("%s: ha 0.1.8 done exits %d with the lists and %d without them: %s", tc.name, dw, do, outW)
+		}
+		// ha 0.1.8 appends one line after the record that holds the lists;
+		// both versions then read a whole chain.
+		before := with.records()
+		if code, out := rfrOld(t, old, with, "note", rgGoal, "wait", "--reason", "synthetic wait after the review note"); code != 0 {
+			t.Fatalf("%s: ha 0.1.8 note wait exits %d: %s", tc.name, code, out)
+		}
+		after := with.records()
+		lines := bytes.Split(bytes.TrimSuffix(before, []byte("\n")), []byte("\n"))
+		added := bytes.Split(bytes.TrimSuffix(bytes.TrimPrefix(after, before), []byte("\n")), []byte("\n"))
+		sum := sha256.Sum256(lines[len(lines)-1])
+		var line struct {
+			Prev *string `json:"prev"`
+		}
+		switch {
+		case !bytes.HasPrefix(after, before) || len(added) != 1:
+			t.Errorf("%s: ha 0.1.8 did not append exactly one line after the record with the lists", tc.name)
+		case json.Unmarshal(added[0], &line) != nil || line.Prev == nil || *line.Prev != hex.EncodeToString(sum[:]):
+			t.Errorf("%s: the line ha 0.1.8 appended does not link to the last line: %s", tc.name, added[0])
 		}
 		for _, who := range []string{"ha 0.1.8", "this ha"} {
 			var reasons []string
@@ -118,8 +140,8 @@ func TestReviewFindingsReportAC8_Release018ReadsTheNote(t *testing.T) {
 				reasons = with.judgment(false).reasons
 			}
 			for _, r := range reasons {
-				if strings.Contains(r, "record_invalid") {
-					t.Errorf("%s: after ha 0.1.8 appended, %s reads the record as invalid: %v", tc.name, who, reasons)
+				if strings.Contains(r, "record_invalid") || strings.Contains(r, "record_integrity") {
+					t.Errorf("%s: after ha 0.1.8 appended, %s reads the record as broken: %v", tc.name, who, reasons)
 				}
 			}
 		}

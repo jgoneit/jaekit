@@ -176,12 +176,15 @@ const rfIssue = "https://github.com/example/demo/issues/9"
 // AC-1: the gate lists every finding whose last disposition is a person's
 // defer, with its round, series, ID, class and target, and every finding with
 // no disposition, with its round, series, ID and class, across the rounds of
-// two series; automatic deferrals stay a count and the other fields keep
-// their values.
+// two series; an earlier disposition a later one replaced does not count;
+// automatic deferrals stay a count; a list with nothing in it is an empty
+// array; and the other fields, the state, the reasons and the exit code keep
+// the values they have without the lists.
 func TestReviewFindingsReportAC1_GateListsDeferredAndUnhandled(t *testing.T) {
 	const id = "gate-findings-unlisted"
 	w := newRFWorld(t)
 	defect := map[string]any{"proposed_class": "defect", "link_kind": "criterion", "link": "AC-1", "location": "head/app/main.py:1"}
+	note := map[string]any{"proposed_class": "note", "location": "head/app/main.py:1"}
 	with := func(base map[string]any, extra map[string]any) map[string]any {
 		m := map[string]any{}
 		for k, v := range base {
@@ -194,35 +197,33 @@ func TestReviewFindingsReportAC1_GateListsDeferredAndUnhandled(t *testing.T) {
 	}
 	a := w.round("s1", "01-candidate",
 		rawFinding("F1", defect),
-		rawFinding("F2", map[string]any{"proposed_class": "note", "location": "head/app/main.py:1"}),
+		rawFinding("F2", note),
 		rawFinding("F3", map[string]any{"proposed_class": "hardening", "location": "head/checks/t.py:1"}),
 		rawFinding("F4", map[string]any{"proposed_class": "hardening", "location": "head/nowhere/at/all.py:1"}),
 		rawFinding("F5", with(defect, map[string]any{"proposed_class": "requirement-question"})),
 		rawFinding("F6", defect),
 		rawFinding("F7", defect),
-		rawFinding("F8", defect))
+		rawFinding("F8", defect),
+		rawFinding("F9", defect),
+		rawFinding("F10", note))
 	classes := w.classes(a)
 	if classes["native-F1"] != "defect" || classes["native-F2"] != "note" || classes["native-F3"] != "hardening" ||
-		classes["native-F5"] != "requirement-question" || classes["native-F7"] != "defect" {
+		classes["native-F5"] != "requirement-question" || classes["native-F7"] != "defect" || classes["native-F9"] != "defect" ||
+		classes["native-F10"] != "note" {
 		rfSetup(t, "the findings were classified otherwise than the setup needs: %v", classes)
 	}
 	w.must("triage", a, "native-F1", "defer", "--to", rfIssue, "--user-quote", "이슈로 남김")
 	w.must("triage", a, "native-F5", "answer", "--user-quote", "AC-1은 그대로 둠")
 	w.must("triage", a, "native-F6", "duplicate", "--of", "native-F1")
 	w.must("triage", a, "native-F8", "reject", "--evidence", "head/app/main.py already does it")
-	b := w.round("s2", "01-candidate", rawFinding("F1", map[string]any{"proposed_class": "note", "location": "head/app/main.py:1"}))
+	// A deferral a rejection replaced, and a deferral a later one moved.
+	w.must("triage", a, "native-F9", "defer", "--to", "https://github.com/example/demo/issues/10", "--user-quote", "이슈로 남김")
+	w.must("triage", a, "native-F9", "reject", "--evidence", "head/app/main.py already does it")
+	w.must("triage", a, "native-F10", "defer", "--to", "https://github.com/example/demo/issues/11")
+	w.must("triage", a, "native-F10", "defer", "--to", "https://github.com/example/demo/issues/12")
+	b := w.round("s2", "01-candidate", rawFinding("F1", note))
 	w.must("triage", b, "native-F1", "defer", "--to", "later\nsecond line")
 
-	file := filepath.Join(w.repo, "reviews", "s1", "gate.json")
-	code, _, msg := w.spar("gate", a, b, "--expect-head", w.head, "--out", file, "--repo", w.repo)
-	data, err := os.ReadFile(file)
-	if err != nil {
-		rfSetup(t, "spar gate wrote no file (exit %d): %s", code, msg)
-	}
-	var gate map[string]any
-	if err := json.Unmarshal(data, &gate); err != nil {
-		rfSetup(t, "gate.json: %v", err)
-	}
 	item := func(series, round, finding, class string, to ...string) any {
 		m := map[string]any{"series": series, "round": round, "id": finding, "class": class}
 		if len(to) > 0 {
@@ -230,20 +231,52 @@ func TestReviewFindingsReportAC1_GateListsDeferredAndUnhandled(t *testing.T) {
 		}
 		return m
 	}
-	wantDeferred := []any{item("s1", "01-candidate", "native-F1", "defect", rfIssue),
-		item("s2", "01-candidate", "native-F1", "note", "later\nsecond line")}
-	wantUnhandled := []any{item("s1", "01-candidate", "native-F2", "note"),
-		item("s1", "01-candidate", "native-F4", classes["native-F4"]), item("s1", "01-candidate", "native-F7", "defect")}
-	if got, ok := gate["deferred_findings"]; !ok || !reflect.DeepEqual(got, wantDeferred) {
-		t.Errorf("jaekit:violation=%s deferred_findings is %v, want %v", id, got, wantDeferred)
+	gates := 0
+	// gate writes the gate of the rounds and returns it with spar's exit code.
+	gate := func(rounds ...string) (map[string]any, int) {
+		t.Helper()
+		gates++
+		file := filepath.Join(w.repo, "reviews", fmt.Sprintf("gate-%d.json", gates))
+		code, _, msg := w.spar(append(append([]string{"gate"}, rounds...), "--expect-head", w.head, "--out", file, "--repo", w.repo)...)
+		data, err := os.ReadFile(file)
+		if err != nil {
+			rfSetup(t, "spar gate wrote no file (exit %d): %s", code, msg)
+		}
+		var g map[string]any
+		if err := json.Unmarshal(data, &g); err != nil {
+			rfSetup(t, "gate.json: %v", err)
+		}
+		return g, code
 	}
-	if got, ok := gate["unhandled_findings"]; !ok || !reflect.DeepEqual(got, wantUnhandled) {
-		t.Errorf("jaekit:violation=%s unhandled_findings is %v, want %v", id, got, wantUnhandled)
+	lists := func(label string, g map[string]any, deferred, unhandled []any) {
+		t.Helper()
+		// An empty list is the array [], never null or a missing key.
+		if got, ok := g["deferred_findings"]; !ok || !reflect.DeepEqual(got, deferred) {
+			t.Errorf("jaekit:violation=%s %s: deferred_findings is %#v, want %#v", id, label, got, deferred)
+		}
+		if got, ok := g["unhandled_findings"]; !ok || !reflect.DeepEqual(got, unhandled) {
+			t.Errorf("jaekit:violation=%s %s: unhandled_findings is %#v, want %#v", id, label, got, unhandled)
+		}
+	}
+	// state reports unless the gate has the state, reasons and exit code it
+	// has without the lists.
+	state := func(label string, g map[string]any, code int, want string, wantCode int, reasons []any) {
+		t.Helper()
+		if g["schema"] != GateSchema || g["state"] != want || code != wantCode || !reflect.DeepEqual(g["reasons"], reasons) {
+			t.Errorf("jaekit:violation=%s %s: schema %v, state %v (exit %d), reasons %v; want %s (exit %d), reasons %v",
+				id, label, g["schema"], g["state"], code, g["reasons"], want, wantCode, reasons)
+		}
 	}
 
-	// The other fields keep their keys and values.
+	g, code := gate(a, b)
+	lists("two series", g, []any{item("s1", "01-candidate", "native-F1", "defect", rfIssue),
+		item("s1", "01-candidate", "native-F10", "note", "https://github.com/example/demo/issues/12"),
+		item("s2", "01-candidate", "native-F1", "note", "later\nsecond line")},
+		[]any{item("s1", "01-candidate", "native-F2", "note"), item("s1", "01-candidate", "native-F4", classes["native-F4"]),
+			item("s1", "01-candidate", "native-F7", "defect")})
+	state("two series", g, code, StateBlocked, ExitBlocked, []any{"1 open defect or requirement-question finding(s)"})
 	var keys []string
-	for k := range gate {
+	for k := range g {
 		if k != "deferred_findings" && k != "unhandled_findings" {
 			keys = append(keys, k)
 		}
@@ -254,14 +287,36 @@ func TestReviewFindingsReportAC1_GateListsDeferredAndUnhandled(t *testing.T) {
 	if !reflect.DeepEqual(keys, wantKeys) {
 		t.Errorf("jaekit:violation=%s the gate's other keys are %v, want %v", id, keys, wantKeys)
 	}
-	open, _ := gate["open"].(map[string]any)
-	findings, _ := gate["open_findings"].([]any)
-	if gate["schema"] != GateSchema || gate["state"] != StateBlocked || gate["auto_deferred"] != float64(1) ||
-		open["defect"] != float64(1) || open["requirement-question"] != float64(0) ||
-		len(findings) != 1 || findings[0] != a+" native-F7" || code != ExitBlocked {
-		t.Errorf("jaekit:violation=%s the gate's other fields changed: schema %v, state %v (exit %d), auto_deferred %v, open %v, open_findings %v",
-			id, gate["schema"], gate["state"], code, gate["auto_deferred"], gate["open"], gate["open_findings"])
+	open, _ := g["open"].(map[string]any)
+	findings, _ := g["open_findings"].([]any)
+	if g["auto_deferred"] != float64(1) || open["defect"] != float64(1) || open["requirement-question"] != float64(0) ||
+		len(findings) != 1 || findings[0] != a+" native-F7" {
+		t.Errorf("jaekit:violation=%s the gate's other fields changed: auto_deferred %v, open %v, open_findings %v",
+			id, g["auto_deferred"], g["open"], g["open_findings"])
 	}
+
+	// Gates whose lists hold nothing, or one list only, stay complete.
+	c := w.round("s3", "01-candidate", rawFinding("F1", defect), rawFinding("F2", note))
+	w.must("triage", c, "native-F1", "defer", "--to", rfIssue, "--user-quote", "이슈로 남김")
+	g, code = gate(c)
+	lists("a deferral and a note", g, []any{item("s3", "01-candidate", "native-F1", "defect", rfIssue)},
+		[]any{item("s3", "01-candidate", "native-F2", "note")})
+	state("a deferral and a note", g, code, StateComplete, ExitOK, []any{})
+	d := w.round("s4", "01-candidate", rawFinding("F1", defect), rawFinding("F2", note))
+	w.must("triage", d, "native-F1", "reject", "--evidence", "head/app/main.py already does it")
+	g, code = gate(d)
+	lists("a note only", g, []any{}, []any{item("s4", "01-candidate", "native-F2", "note")})
+	state("a note only", g, code, StateComplete, ExitOK, []any{})
+	e := w.round("s5", "01-candidate", rawFinding("F1", note))
+	w.must("triage", e, "native-F1", "defer", "--to", rfIssue)
+	g, code = gate(e)
+	lists("a deferral only", g, []any{item("s5", "01-candidate", "native-F1", "note", rfIssue)}, []any{})
+	state("a deferral only", g, code, StateComplete, ExitOK, []any{})
+	f := w.round("s6", "01-candidate", rawFinding("F1", defect))
+	w.must("triage", f, "native-F1", "reject", "--evidence", "head/app/main.py already does it")
+	g, code = gate(f)
+	lists("nothing to list", g, []any{}, []any{})
+	state("nothing to list", g, code, StateComplete, ExitOK, []any{})
 }
 
 // AC-9: the round summary's finding table shows every claim whole, with its
@@ -271,10 +326,11 @@ func TestReviewFindingsReportAC1_GateListsDeferredAndUnhandled(t *testing.T) {
 func TestReviewFindingsReportAC9_SummaryKeepsWholeClaims(t *testing.T) {
 	const id = "summary-claim-cut"
 	w := newRFWorld(t)
-	claim := strings.Repeat("a long claim | with a pipe and  spaces\nacross lines ", 12) + "and its end"
+	// Far past any limit a summary could keep: several thousand characters.
+	claim := strings.Repeat("a long claim | with a pipe and  spaces\nacross lines ", 120) + "and its end"
 	whole := strings.ReplaceAll(strings.Join(strings.Fields(claim), " "), "|", "\\|")
-	if len([]rune(whole)) < 600 {
-		rfSetup(t, "the claim is %d characters, not over 600", len([]rune(whole)))
+	if len([]rune(whole)) < 5000 {
+		rfSetup(t, "the claim is %d characters, not over 5000", len([]rune(whole)))
 	}
 	out := w.round("s1", "01-candidate", rawFinding("F1", map[string]any{"proposed_class": "defect", "link_kind": "criterion",
 		"link": "AC-1", "location": "head/app/main.py:1", "claim": claim}))
