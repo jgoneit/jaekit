@@ -146,7 +146,7 @@ var classOf = map[string]string{
 	"spec_changed":             ClassUser,
 	"blocked":                  ClassBlocked,
 	"budget_exceeded":          ClassBudget,
-	// run-rules/5 review reasons (run-record.md §4.8).
+	// run-rules/5 review reasons (run-record.md §4.8), plus the /6 base check.
 	"review_missing":       ClassExecutor,
 	"review_blocked":       ClassExecutor,
 	"review_degraded":      ClassExecutor,
@@ -154,6 +154,7 @@ var classOf = map[string]string{
 	"review_open_question": ClassUser,
 	"review_code_missing":  ClassExecutor,
 	"review_head_stale":    ClassExecutor,
+	"review_base_mismatch": ClassExecutor,
 	"review_docs_stale":    ClassExecutor,
 	"review_plan_missing":  ClassExecutor,
 }
