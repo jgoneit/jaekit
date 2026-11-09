@@ -63,6 +63,8 @@ Decisions are recorded only by quoting the user's words, are read only from that
   "open": {"defect": 0, "requirement-question": 0},
   "open_findings": [],
   "auto_deferred": 2,
+  "deferred_findings": [{"series": "example", "round": "02-candidate", "id": "codex-F3", "class": "defect", "to": "https://github.com/example/demo/issues/7"}],
+  "unhandled_findings": [{"series": "example", "round": "02-candidate", "id": "claude-F2", "class": "note"}],
   "growth": {"added_lines": {"check": 40, "other": 12}, "over_hardening": true, "rounds": []},
   "written_at": "2026-01-01T00:00:00Z"
 }
@@ -80,8 +82,12 @@ Decisions are recorded only by quoting the user's words, are read only from that
 | `open` | The number of open `defect` and `requirement-question` findings |
 | `open_findings` | The round and ID of each open finding |
 | `auto_deferred` | The number of `hardening` findings whose last disposition is an automatic deferral. A `hardening` whose location cannot be read has no ledger entry and is not counted |
+| `deferred_findings` | For each finding, in every round of the list, whose last disposition is a `defer` a person made (not an automatic deferral): `series` (the series folder name), `round` (the round folder name), `id`, `class` (the class in `findings.json`) and `to` (the ledger's `to` value as it is). Automatic deferrals stay only in the `auto_deferred` count |
+| `unhandled_findings` | For each finding, in every round of the list, that has no disposition in the ledger, whatever its class: `series`, `round`, `id`, `class`. A `note` without a disposition and a `hardening` whose location cannot be read are included |
 | `growth.added_lines` | For each fixes round in the list, the added lines of `git diff --numstat -M <base> <head>` (for renamed files, only the lines added at the new path), split into that round's configured check paths (`check`) and everything else (`other`), and summed. The same base and head are counted once |
 | `growth.over_hardening` | `true` when `check` is larger than `other` |
 | `growth.rounds[]` | `check` and `other` for each fixes round |
+
+Both lists follow the order of the rounds given and, within a round, the order of `findings.json`. The round and series are folder names, not paths, so a round path given as an absolute path does not appear. A finding closed with another disposition (`fix`, `reject`, `duplicate`, `answer`) is in neither list. The lists do not change the state, the reasons, the exit code or any other field. No finding text is included. A file without these two fields was written by a Spar before them. How `ha` records the lists is in [run-record.md](run-record.en.md) §4.8.
 
 `growth` is a record that lets a reader see whether review has inflated fixes toward check code. `over_hardening` does not replace judgment and does not change the state.

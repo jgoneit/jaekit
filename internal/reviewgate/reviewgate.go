@@ -23,10 +23,12 @@ import (
 // Schema is the gate file schema this package reads.
 const Schema = "review-gate/v1"
 
-// States are the gate states, Stages the round stages, of review-gate/v1.
+// States are the gate states, Stages the round stages, Classes the finding
+// classes, of review-gate/v1.
 var (
-	States = []string{"complete", "degraded", "blocked"}
-	Stages = []string{"plan", "plan-delta", "candidate", "fixes"}
+	States  = []string{"complete", "degraded", "blocked"}
+	Stages  = []string{"plan", "plan-delta", "candidate", "fixes"}
+	Classes = []string{"defect", "requirement-question", "hardening", "note"}
 )
 
 // Read reads the gate file at path. Any problem is an error that names it;
@@ -115,7 +117,97 @@ func Parse(data []byte) (*record.ReviewData, error) {
 	if d.Open.RequirementQuestion, err = open.count("requirement-question"); err != nil {
 		return nil, err
 	}
+	// A gate from a Spar before the finding lists has neither list; it is
+	// recorded without them. A gate with either needs both.
+	_, deferred := top.values["deferred_findings"]
+	_, unhandled := top.values["unhandled_findings"]
+	if deferred || unhandled {
+		f, err := readFindings(top, "deferred_findings", "unhandled_findings")
+		if err != nil {
+			return nil, err
+		}
+		if d.Findings, err = json.Marshal(f); err != nil {
+			return nil, err
+		}
+	}
 	return d, nil
+}
+
+// ReadFindings reads the finding lists a review note keeps, by the rules
+// Parse checks them with. A stored value they do not hold is an error: the
+// report says the lists cannot be read, and the judgment never reads them.
+func ReadFindings(raw json.RawMessage) (*record.ReviewFindings, error) {
+	o, err := object(raw, "findings")
+	if err != nil {
+		return nil, err
+	}
+	return readFindings(o, "deferred", "unhandled")
+}
+
+func readFindings(o fields, deferredKey, unhandledKey string) (*record.ReviewFindings, error) {
+	f := &record.ReviewFindings{Deferred: []record.ReviewFinding{}, Unhandled: []record.ReviewFinding{}}
+	for _, part := range []struct {
+		key  string
+		list *[]record.ReviewFinding
+		to   bool
+	}{{deferredKey, &f.Deferred, true}, {unhandledKey, &f.Unhandled, false}} {
+		items, err := o.list(part.key)
+		if err != nil {
+			return nil, err
+		}
+		for i, item := range items {
+			finding, err := readFinding(item, fmt.Sprintf("%s[%d]", o.name(part.key), i), part.to)
+			if err != nil {
+				return nil, err
+			}
+			*part.list = append(*part.list, finding)
+		}
+	}
+	var err error
+	if f.AutoDeferred, err = o.count("auto_deferred"); err != nil {
+		return nil, err
+	}
+	return f, nil
+}
+
+func readFinding(raw json.RawMessage, where string, deferred bool) (record.ReviewFinding, error) {
+	var f record.ReviewFinding
+	o, err := object(raw, where)
+	if err != nil {
+		return f, err
+	}
+	for _, name := range []struct {
+		key   string
+		value *string
+	}{{"series", &f.Series}, {"round", &f.Round}} {
+		if *name.value, err = o.text(name.key); err != nil {
+			return f, err
+		}
+		if v := *name.value; v == "" || v == "." || v == ".." || strings.ContainsAny(v, "/\\\x00") {
+			return f, fmt.Errorf("%s.%s %q is not a folder name", where, name.key, v)
+		}
+	}
+	if f.ID, err = o.text("id"); err != nil {
+		return f, err
+	}
+	if f.ID == "" {
+		return f, fmt.Errorf("%s.id is empty", where)
+	}
+	if f.Class, err = o.text("class"); err != nil {
+		return f, err
+	}
+	if !oneOf(f.Class, Classes) {
+		return f, fmt.Errorf("%s.class %q is not one of %s", where, f.Class, strings.Join(Classes, ", "))
+	}
+	if deferred {
+		if f.To, err = o.text("to"); err != nil {
+			return f, err
+		}
+		if f.To == "" {
+			return f, fmt.Errorf("%s.to is empty", where)
+		}
+	}
+	return f, nil
 }
 
 func readRound(raw json.RawMessage, where string) (record.ReviewRound, error) {

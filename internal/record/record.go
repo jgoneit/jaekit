@@ -264,8 +264,9 @@ type RecoveryData struct {
 
 // ReviewData is what a run-rules/5 review note keeps of a review-gate/v1
 // file (run-record.md §4.8): the file's digest and the summary the judgment
-// reads. The gate's reasons, finding IDs, user quotes and round paths are not
-// kept. It is the executor's claim.
+// reads, and the gate's finding lists for the report. The gate's reasons,
+// finding texts, user quotes and round paths are not kept. It is the
+// executor's claim.
 type ReviewData struct {
 	GateDigest       string        `json:"gate_digest"`
 	Schema           string        `json:"schema"`
@@ -275,9 +276,33 @@ type ReviewData struct {
 	LastReviewedHead string        `json:"last_reviewed_head"`
 	Rounds           []ReviewRound `json:"rounds"`
 	Open             ReviewOpen    `json:"open"`
+	// Findings holds a ReviewFindings as stored, absent for a gate without
+	// the lists. Only the report reads it (reviewgate.ReadFindings), so a
+	// stored value that cannot be read never changes the judgment.
+	Findings json.RawMessage `json:"findings,omitempty"`
 	// Missing names the fields a stored summary lacks or holds as null.
 	// A summary ha wrote has none, so any is invalid data.
 	Missing []string `json:"-"`
+}
+
+// ReviewFindings are a gate's finding lists as a review note keeps them:
+// the findings a person deferred, those without a disposition and the count
+// of automatic deferrals.
+type ReviewFindings struct {
+	Deferred     []ReviewFinding `json:"deferred"`
+	Unhandled    []ReviewFinding `json:"unhandled"`
+	AutoDeferred int             `json:"auto_deferred"`
+}
+
+// ReviewFinding names a finding by the folder names of its series and round,
+// its ID and class; To is a deferral's target and empty for a finding
+// without a disposition.
+type ReviewFinding struct {
+	Series string `json:"series"`
+	Round  string `json:"round"`
+	ID     string `json:"id"`
+	Class  string `json:"class"`
+	To     string `json:"to,omitempty"`
 }
 
 // UnmarshalJSON reads a stored review summary and notes each field it lacks,

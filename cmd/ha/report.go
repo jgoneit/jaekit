@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jgoneit/jaekit/internal/record"
+	"github.com/jgoneit/jaekit/internal/reviewgate"
 	"github.com/jgoneit/jaekit/internal/status"
 )
 
@@ -33,6 +34,8 @@ type reportWords struct {
 
 	none, userDecisions, confirmed       string
 	exempt, weakened, commands, findings string
+	// The review finding lists of the last review note (§1.3).
+	reviewDeferred, reviewAuto, reviewUnhandled, reviewNotRecorded, reviewUnreadable string
 
 	limits, optional, budget, notCovered string
 
@@ -70,6 +73,11 @@ var reportLanguages = map[string]reportWords{
 		weakened:          "test changes marked as weakening: ",
 		commands:          "verification commands changed since start: ",
 		findings:          "unresolved post-completion findings: %d",
+		reviewDeferred:    "review findings deferred: ",
+		reviewAuto:        "auto-deferred hardening findings: %d",
+		reviewUnhandled:   "review findings without a disposition: ",
+		reviewNotRecorded: "the review gate's finding lists were not recorded (review note seq %d)",
+		reviewUnreadable:  "the recorded review finding lists cannot be read (review note seq %d)",
 		limits:            "assurance local; check author: executor",
 		optional:          "; optional conditions not satisfied: ",
 		budget:            "; budget exceeded: %d/%d runs, %d/%d seconds",
@@ -114,6 +122,11 @@ var reportLanguages = map[string]reportWords{
 		weakened:          "약화 표시가 있는 시험 변경: ",
 		commands:          "시작 뒤 바뀐 검증 명령: ",
 		findings:          "해결되지 않은 완료 뒤 발견: %d개",
+		reviewDeferred:    "보류한 검토 지적: ",
+		reviewAuto:        "자동 보류한 hardening 지적: %d개",
+		reviewUnhandled:   "처리 없는 검토 지적: ",
+		reviewNotRecorded: "검토 gate의 지적 목록이 기록되지 않음(review note seq %d)",
+		reviewUnreadable:  "기록된 검토 지적 목록을 읽을 수 없음(review note seq %d)",
 		limits:            "보증 수준 local; 검사 작성자: 실행자",
 		optional:          "; 충족되지 않은 선택 조건: ",
 		budget:            "; 예산 초과: 실행 %d/%d회, 경과 %d/%d초",
@@ -431,10 +444,61 @@ func (v *reportView) toReview() string {
 	if f := v.rep.Findings; f != nil && f.Unresolved > 0 {
 		items = append(items, fmt.Sprintf(v.words.findings, f.Unresolved))
 	}
+	items = append(items, v.reviewFindings()...)
 	if len(items) == 0 {
 		return v.words.none
 	}
 	return strings.Join(items, "; ")
+}
+
+// reviewFindings are the items of the last recorded review note's finding
+// lists: the findings a person deferred, the count of automatic deferrals
+// and the findings without a disposition. A note without the lists, from a
+// gate written before them, and a stored value that cannot be read are
+// named with the note's seq. No review note adds nothing.
+func (v *reportView) reviewFindings() []string {
+	var note *record.Line
+	for i := range v.lines {
+		if l := &v.lines[i]; l.Kind == "note" && l.Note == "review" {
+			note = l
+		}
+	}
+	if note == nil {
+		return nil
+	}
+	if note.Review != nil && note.Review.Findings == nil {
+		return []string{fmt.Sprintf(v.words.reviewNotRecorded, note.Seq)}
+	}
+	var f *record.ReviewFindings
+	err := errors.New("no review data")
+	if note.Review != nil {
+		f, err = reviewgate.ReadFindings(note.Review.Findings)
+	}
+	if err != nil {
+		return []string{fmt.Sprintf(v.words.reviewUnreadable, note.Seq)}
+	}
+	var items []string
+	name := func(r record.ReviewFinding) string {
+		return fmt.Sprintf("%s/%s %s [%s]", r.Series, r.Round, r.ID, r.Class)
+	}
+	if len(f.Deferred) > 0 {
+		var parts []string
+		for _, r := range f.Deferred {
+			parts = append(parts, name(r)+" → "+r.To)
+		}
+		items = append(items, v.words.reviewDeferred+strings.Join(parts, ", "))
+	}
+	if f.AutoDeferred > 0 {
+		items = append(items, fmt.Sprintf(v.words.reviewAuto, f.AutoDeferred))
+	}
+	if len(f.Unhandled) > 0 {
+		var parts []string
+		for _, r := range f.Unhandled {
+			parts = append(parts, name(r))
+		}
+		items = append(items, v.words.reviewUnhandled+strings.Join(parts, ", "))
+	}
+	return items
 }
 
 func (v *reportView) limits() string {

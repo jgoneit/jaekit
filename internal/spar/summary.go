@@ -166,7 +166,7 @@ func renderSummary(dir string, r *RoundRecord, findings []Finding, ledger []Ledg
 			location += " (unreadable location)"
 		}
 		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s | %s |\n", f.ID, f.Class, cell(link), disposition, location,
-			cell(short(f.Claim, 200)))
+			cell(strings.Join(strings.Fields(f.Claim), " ")))
 	}
 	// The directions follow the table whole: a round without any keeps the
 	// summary it had before smallest_fix existed.

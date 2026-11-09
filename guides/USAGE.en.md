@@ -256,7 +256,7 @@ The [operations guide](OPERATIONS.en.md) describes the detailed reasons for user
 | --- | --- |
 | `Changed` | Files and commits changed outside the bundle documents since the start |
 | `Checked` | Required conditions satisfied (by check records and by user confirmation), and change conditions whose failure before the change was observed |
-| `To review` | Items for a person: decisions for the user, conditions confirmed by a quote, test changes exempted by the executor's reason alone, changed verification commands |
+| `To review` | Items for a person: decisions for the user, conditions confirmed by a quote, test changes exempted by the executor's reason alone, changed verification commands, review findings that were deferred or left without a disposition. A review finding shows its round, ID, class and deferral target |
 | `Remaining limits` | Assurance `local`, the check author, optional conditions not satisfied, an exceeded budget, and whether no completion record covers HEAD |
 | `Next step` | The one thing to do in the current state |
 

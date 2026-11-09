@@ -750,8 +750,8 @@ func rwRename(t *testing.T, round, from, to string) {
 // The fields of a gate file and of each round in it, as they are without
 // any waiver (contracts/review-gate.md, section 3).
 var (
-	rwGateKeys = []string{"auto_deferred", "expect_head", "growth", "last_reviewed_head", "open", "open_findings",
-		"previous_gate_digest", "reasons", "rounds", "schema", "spar_version", "state", "written_at"}
+	rwGateKeys = []string{"auto_deferred", "deferred_findings", "expect_head", "growth", "last_reviewed_head", "open", "open_findings",
+		"previous_gate_digest", "reasons", "rounds", "schema", "spar_version", "state", "unhandled_findings", "written_at"}
 	rwRoundKeys = []string{"base", "completed_required", "config_digest", "counted", "criteria", "criteria_digest", "dry_run", "head",
 		"packet_digest", "path", "requested_reviewers", "required_reviewers", "sequence", "stage"}
 )

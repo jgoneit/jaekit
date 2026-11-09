@@ -88,8 +88,32 @@ type GateRecord struct {
 	Open               map[string]int `json:"open"`
 	OpenFindings       []string       `json:"open_findings"`
 	AutoDeferred       int            `json:"auto_deferred"`
-	Growth             Growth         `json:"growth"`
-	WrittenAt          string         `json:"written_at"`
+	// DeferredFindings are the findings whose last disposition is a
+	// person's defer, UnhandledFindings those without any disposition, in
+	// the order of the rounds given and of each round's findings.json.
+	DeferredFindings  []GateDeferred  `json:"deferred_findings"`
+	UnhandledFindings []GateUnhandled `json:"unhandled_findings"`
+	Growth            Growth          `json:"growth"`
+	WrittenAt         string          `json:"written_at"`
+}
+
+// GateDeferred is a finding a person deferred, named by the folder names of
+// its series and round, with its ID, class and the ledger's target.
+type GateDeferred struct {
+	Series string `json:"series"`
+	Round  string `json:"round"`
+	ID     string `json:"id"`
+	Class  string `json:"class"`
+	To     string `json:"to"`
+}
+
+// GateUnhandled is a finding without a disposition, named as GateDeferred
+// names one.
+type GateUnhandled struct {
+	Series string `json:"series"`
+	Round  string `json:"round"`
+	ID     string `json:"id"`
+	Class  string `json:"class"`
 }
 
 // GateOptions are the inputs of `spar gate`.
@@ -140,6 +164,7 @@ func Gate(o GateOptions) (int, error) {
 	}
 	g := &GateRecord{Schema: GateSchema, SparVersion: o.Version, Reasons: []string{}, Rounds: []GateRound{},
 		Open: map[string]int{"defect": 0, "requirement-question": 0}, OpenFindings: []string{},
+		DeferredFindings: []GateDeferred{}, UnhandledFindings: []GateUnhandled{},
 		Growth: Growth{AddedLines: map[string]int{"check": 0, "other": 0}, Rounds: []GrowthRound{}}}
 	if previous, err := os.ReadFile(out); err == nil {
 		// An existing file is replaced only when it is an earlier gate.
@@ -290,10 +315,19 @@ func Gate(o GateOptions) (int, error) {
 	blocked = append(blocked, unlistedRounds(o.Rounds)...)
 	for _, lr := range rounds {
 		final := finalDispositions(lr.ledger)
+		// Folder names, never the path given: it may be absolute.
+		dir := realish(lr.path)
+		series, folder := filepath.Base(filepath.Dir(dir)), filepath.Base(dir)
 		for _, f := range lr.findings {
 			e, done := final[f.ID]
 			if done && e.Auto && e.Disposition == "defer" {
 				g.AutoDeferred++
+			}
+			switch {
+			case !done:
+				g.UnhandledFindings = append(g.UnhandledFindings, GateUnhandled{series, folder, f.ID, f.Class})
+			case e.Disposition == "defer" && !e.Auto:
+				g.DeferredFindings = append(g.DeferredFindings, GateDeferred{series, folder, f.ID, f.Class, e.To})
 			}
 			if done && e.Disposition == "duplicate" {
 				e, done = resolveDuplicate(final, f.ID)
