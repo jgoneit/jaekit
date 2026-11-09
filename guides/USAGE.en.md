@@ -293,6 +293,15 @@ When the installed `ha` does not know `run-rules/5` or other support Seal requir
 - To finish without review when Spar cannot run, you decide a SPEC change that lowers the tier to `Assurance: light`. After `confirm spec` and fresh checks, the goal completes without a gate.
 - A `light` goal, a goal without the tier line, and goals started under `run-rules/1` to `run-rules/4` are judged without a gate, as before.
 
+From Seal 0.1.26, new goals start with `ha start --rules run-rules/6 … --check-skill` instead of the start rule above. This needs a Core that supports `run-rules/6`; ha 0.1.8 does not. Without support, Seal stops without a record and does not fall back to earlier rules. `/6` changes only these four judgments from `/5`.
+
+- The last candidate round (excluding dry runs) for a `standard` or `strict` goal must review from the start record's `base_commit`. A mismatch gives `review_base_mismatch` with the gate seq and both bases and blocks completion. A gate with only fixes rounds gives the same reason. Fixes may follow a candidate from the start base; Spar checks their chain. `reopen` does not move the start base.
+- For a `light` goal or one without a tier line, a `review` note after completion leaves an otherwise valid completion record in place. For `standard` and `strict`, the record is invalidated and the new gate is judged, as before.
+- A completion `done` line whose `record_head` is not the hash of the immediately preceding line is skipped while looking for an earlier completion record. That line itself cannot be completion evidence, and the earlier record must meet every other validity condition. The human-readable completion explanation also skips unjudged lines.
+- Budget elapsed time excludes the interval from a completion `done` to the next check or baseline start or a non-complete `done`. With neither endpoint, it ends at the window's last budget record; notes and findings in between do not end it. `post_completion_seconds` shows the additional excluded seconds that do not overlap reported waits or run intervals; status, report and cost use the same elapsed time. Run counts and limits stay unchanged; code rework after completion opens a new window with `reopen`.
+
+Goals started under `run-rules/1` through `run-rules/5` keep their existing judgments and are not migrated automatically. The exact interval and output definitions are in the [run record contract](../contracts/run-record.en.md#49-run-rules6).
+
 ## Reading one goal's cost
 
 `ha cost <goal>` gathers what one goal cost in verification and review on one screen. It only reads records and writes nothing; it never reads the current time and calls no model. It reads Spar review records only from the series folders you name with `--series`. It does not guess where they are, so give `--series` once per series.

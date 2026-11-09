@@ -293,6 +293,15 @@ v0.1.7부터 Seal(0.1.21 이상)은 새 목표를 `ha start --rules run-rules/5`
 - Spar를 쓸 수 없어 검토 없이 끝내려면, 사용자가 SPEC을 `Assurance: light`로 낮추는 수정을 정합니다. 그 뒤 `confirm spec`과 신선한 검사로 gate 없이 완료됩니다.
 - `light`이거나 등급 줄이 없는 목표, 그리고 `run-rules/1`~`run-rules/4`로 시작한 목표는 지금처럼 gate 없이 판정합니다.
 
+Seal 0.1.26부터는 위 시작 규칙을 대신해 새 목표를 `ha start --rules run-rules/6 … --check-skill`로 시작합니다. `run-rules/6`을 지원하는 Core가 필요하며, ha 0.1.8은 이를 지원하지 않습니다. 지원이 없으면 기록 없이 멈추고 이전 규칙으로 물러나지 않습니다. `/6`은 `/5`의 규칙 가운데 다음 네 판정만 바꿉니다.
+
+- `standard`·`strict` 목표의 마지막 candidate 라운드(dry run 제외)는 시작 기록의 `base_commit`부터 검토해야 합니다. 다르면 `review_base_mismatch`가 gate seq와 두 base를 보이고 완료를 막습니다. fixes 라운드만 있어도 같은 이유가 나옵니다. 시작 base부터의 candidate 뒤에 fixes가 이어져도 되고, 그 사슬은 Spar가 확인합니다. `reopen`도 시작 base를 옮기지 않습니다.
+- `light`이거나 등급 줄이 없는 목표는 완료 뒤 `review` note를 남겨도 다른 조건이 유효하면 완료 기록이 유지됩니다. `standard`·`strict`는 이전처럼 그 기록이 무효가 되어 새 gate로 다시 판정합니다.
+- `record_head`가 바로 앞 줄의 hash가 아닌 완료 `done` 줄은 건너뛰고 앞의 완료 기록을 봅니다. 그 줄 자체는 완료 근거가 되지 않으며, 앞의 기록도 다른 유효성 조건을 만족해야 합니다. 사람용 완료 설명도 판정하지 않은 줄을 건너뜁니다.
+- 완료 `done`부터 다음 검사·baseline의 시작이나 완료가 아닌 `done`까지의 시간을 예산 경과에서 뺍니다. 둘 다 없으면 창의 마지막 예산 기록까지이고, 그 사이의 note와 발견 줄은 구간을 끝내지 않습니다. `post_completion_seconds`가 신고 대기·실행 구간과 겹치지 않는 추가 공제 초를 보이며, 상태·보고·비용은 같은 경과를 씁니다. 실행 횟수와 한도는 그대로이고, 완료 뒤 코드 재작업은 `reopen`으로 새 창을 엽니다.
+
+`run-rules/1`~`run-rules/5`로 시작한 목표는 기존 판정을 유지하며 자동 이전하지 않습니다. 구간과 출력의 정확한 정의는 [실행 기록 계약](../contracts/run-record.md#49-run-rules6)에 있습니다.
+
 ## 목표 하나의 비용 보기
 
 `ha cost <goal>`은 목표 하나가 검증과 검토에 들인 비용을 한 화면에 모읍니다. 기록을 읽기만 하고 아무것도 쓰지 않으며, 현재 시각을 읽지 않고 모델을 부르지 않습니다. Spar 검토 기록은 `--series`로 그 목표의 series 폴더를 가리킬 때만 읽습니다. 위치를 짐작하지 않으므로 series가 여럿이면 `--series`를 여러 번 씁니다.
