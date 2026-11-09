@@ -360,6 +360,31 @@ func TestReviewFindingsReportAC2_NoteKeepsTheLists(t *testing.T) {
 			t.Errorf("jaekit:violation=%s %s: the judgment with the lists is %+v, without them %+v", id, tc.name, a, b)
 		}
 	}
+
+	// A Unix folder name may hold a backslash, as spar gate writes it: the
+	// note keeps the names as they are.
+	f := rfrChange(t, "standard")
+	slashed := map[string]any{"series": `demo\rounds`, "round": `01-candidate\x`, "id": "claude-F1", "class": "note"}
+	path := f.writeGate(withLists(f.chained().gateValue(), []any{}, []any{slashed}, 0))
+	code, out := f.ha("note", rgGoal, "review", "--gate", path)
+	if code == exitInternal {
+		rfrSetupf(t, "ha note review exit %d: %s", code, out)
+	}
+	if code != exitOK {
+		t.Fatalf("jaekit:violation=%s a gate whose folder names hold a backslash is refused: exit %d: %s", id, code, out)
+	}
+	_, line := f.lastLine()
+	var review struct {
+		Findings *struct {
+			Unhandled []map[string]any `json:"unhandled"`
+		} `json:"findings"`
+	}
+	if err := json.Unmarshal(line["review"], &review); err != nil {
+		rfrSetupf(t, "the review note: %v", err)
+	}
+	if review.Findings == nil || len(review.Findings.Unhandled) != 1 || !reflect.DeepEqual(review.Findings.Unhandled[0], slashed) {
+		t.Errorf("jaekit:violation=%s the note does not keep folder names with a backslash: %s", id, line["review"])
+	}
 }
 
 func roundTrip(v any) any {

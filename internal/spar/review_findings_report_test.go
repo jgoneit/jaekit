@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -317,6 +318,13 @@ func TestReviewFindingsReportAC1_GateListsDeferredAndUnhandled(t *testing.T) {
 	g, code = gate(f)
 	lists("nothing to list", g, []any{}, []any{})
 	state("nothing to list", g, code, StateComplete, ExitOK, []any{})
+	// A Unix folder name may hold a backslash; the gate names it as it is.
+	if runtime.GOOS != "windows" {
+		bs := w.round(`s7\x`, `01-candidate\x`, rawFinding("F1", note))
+		g, code = gate(bs)
+		lists("a backslash in the folder names", g, []any{}, []any{item(`s7\x`, `01-candidate\x`, "native-F1", "note")})
+		state("a backslash in the folder names", g, code, StateComplete, ExitOK, []any{})
+	}
 }
 
 // AC-9: the round summary's finding table shows every claim whole, with its

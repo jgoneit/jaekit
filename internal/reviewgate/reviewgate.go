@@ -183,7 +183,9 @@ func readFinding(raw json.RawMessage, where string, deferred bool) (record.Revie
 		if *name.value, err = o.text(name.key); err != nil {
 			return f, err
 		}
-		if v := *name.value; v == "" || v == "." || v == ".." || strings.ContainsAny(v, "/\\\x00") {
+		// A folder name, not a path: Spar writes the base name of a folder,
+		// which on Unix may hold a backslash but never a slash.
+		if v := *name.value; v == "" || v == "." || v == ".." || strings.ContainsAny(v, "/\x00") {
 			return f, fmt.Errorf("%s.%s %q is not a folder name", where, name.key, v)
 		}
 	}
