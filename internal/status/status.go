@@ -1121,13 +1121,20 @@ func (e *evaluator) completionRecord(rep *Report) (*int, error) {
 		}
 	}
 	lines := e.in.Lines
+	tier := e.in.Goal.Assurance
+	reviewInvalidates := Reviewed(e.rules) && (!CompletionIntegrity(e.rules) || tier == "standard" || tier == "strict")
 	for i := len(lines) - 1; i >= 0; i-- {
 		d := lines[i]
 		if d.Kind != "done" || d.Status != Complete {
 			continue
 		}
+		// Under run-rules/6 an unjudged line cannot hide an earlier
+		// completion, but every later note still applies to that record.
+		if CompletionIntegrity(e.rules) && !judgedLast(lines, i) {
+			continue
+		}
 		for _, l := range lines[i+1:] {
-			if l.Kind == "note" && (l.Note == "reopen" || (l.Note == "review" && Reviewed(e.rules))) {
+			if l.Kind == "note" && (l.Note == "reopen" || (l.Note == "review" && reviewInvalidates)) {
 				return nil, nil
 			}
 		}
@@ -1177,9 +1184,14 @@ func (e *evaluator) doneState(rep *Report) *DoneState {
 // returns nil.
 func (e *evaluator) stale(rep *Report) *StaleCompletion {
 	lines := e.in.Lines
+	tier := e.in.Goal.Assurance
+	reviewInvalidates := Reviewed(e.rules) && (!CompletionIntegrity(e.rules) || tier == "standard" || tier == "strict")
 	for i := len(lines) - 1; i >= 0; i-- {
 		d := lines[i]
 		if d.Kind != "done" || d.Status != Complete {
+			continue
+		}
+		if CompletionIntegrity(e.rules) && !judgedLast(lines, i) {
 			continue
 		}
 		s := &StaleCompletion{Seq: d.Seq, Commit: d.Commit, Reasons: []string{}}
@@ -1217,17 +1229,18 @@ func (e *evaluator) stale(rep *Report) *StaleCompletion {
 				break
 			}
 		}
-		// Under run-rules/5 a later gate is judged anew (run-record.md §4.8).
-		if Reviewed(e.rules) {
+		// Under run-rules/6 only tiers that judge gates invalidate a
+		// completion when a later gate is recorded.
+		if reviewInvalidates {
 			for _, l := range lines[i+1:] {
 				if l.Kind == "note" && l.Note == "review" {
 					s.Reasons = append(s.Reasons, fmt.Sprintf("review gate recorded at seq %d", l.Seq))
 					break
 				}
 			}
-			if !judgedLast(lines, i) {
-				s.Reasons = append(s.Reasons, "a record was appended while ha done computed it")
-			}
+		}
+		if Reviewed(e.rules) && !judgedLast(lines, i) {
+			s.Reasons = append(s.Reasons, "a record was appended while ha done computed it")
 		}
 		if e.rules == RulesV3 {
 			for _, c := range rep.Criteria {
