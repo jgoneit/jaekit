@@ -49,7 +49,9 @@ func TestCoreIntegrityAC1_OlderCoreRefuses(t *testing.T) {
 		code := 0
 		var exit *exec.ExitError
 		if errors.As(err, &exit) {
-			code = exit.ExitCode()
+			if code = exit.ExitCode(); code < 0 {
+				t.Fatalf("setup: ha 0.1.8 %v ended by a signal: %v", args, err)
+			}
 		} else if err != nil {
 			t.Fatalf("setup: ha 0.1.8 %v: %v", args, err)
 		}

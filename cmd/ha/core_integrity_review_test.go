@@ -44,6 +44,10 @@ func ciExpectBaseReason(f *rgFixture, violation, label string, gateSeq int, roun
 	}
 }
 
+// The forms of each check run one after another in the linked test: the
+// runner adapter reads only the linked test's own failure messages, so a
+// subtest would hide them (contracts/check-result.md §5).
+
 // AC-2: under run-rules/6 a standard or strict goal completes only when the
 // last candidate round of the last gate (dry runs left out) starts at the
 // start record's base commit; fixes rounds after it stay Spar's chain.
@@ -85,7 +89,7 @@ func TestCoreIntegrityAC2_ReviewStartsAtTheBase(t *testing.T) {
 		}, true, nil},
 	}
 	for _, fm := range forms {
-		t.Run(strings.NewReplacer(" ", "_", ".", "", ":", "", ",", "").Replace(fm.label), func(t *testing.T) {
+		func() {
 			f := ciFixture(t, v, fm.tier)
 			f.recordGate(v, fm.label, ciGate(f, fm.rounds(f)...))
 			seq := ciLastSeq(f)
@@ -101,11 +105,11 @@ func TestCoreIntegrityAC2_ReviewStartsAtTheBase(t *testing.T) {
 				base = fm.roundBase(f)
 			}
 			ciExpectBaseReason(f, v, fm.label, seq, base)
-		})
+		}()
 	}
 
 	// After a reopen the comparison is still with the start record's base.
-	t.Run("reopen", func(t *testing.T) {
+	func() {
 		f := ciFixture(t, v, "standard")
 		f.recordGate(v, "first gate", ciGate(f, ciRound(f, "candidate", f.base, f.head)))
 		ciMustDone(f, "first completion")
@@ -119,7 +123,7 @@ func TestCoreIntegrityAC2_ReviewStartsAtTheBase(t *testing.T) {
 		f.recordGate(v, "candidate from the start base", ciGate(f, ciRound(f, "candidate", f.base, f.head)))
 		f.expectComplete(v, "after reopen, candidate B..H2")
 		f.expectDone(v, "after reopen, candidate B..H2")
-	})
+	}()
 }
 
 // AC-3: under run-rules/6 a review note after a completion record voids it
@@ -131,7 +135,7 @@ func TestCoreIntegrityAC3_LateReviewNoteByTier(t *testing.T) {
 		if tier == "" {
 			label = "no tier line"
 		}
-		t.Run(strings.ReplaceAll(label, " ", "_"), func(t *testing.T) {
+		func() {
 			f := ciFixture(t, v, tier)
 			done := ciMustDone(f, label)
 			f.recordGate(v, label+": late gate", ciGate(f, ciRound(f, "candidate", f.work, f.head)))
@@ -141,10 +145,10 @@ func TestCoreIntegrityAC3_LateReviewNoteByTier(t *testing.T) {
 			if line := ciCompletionLine(f); line != fmt.Sprintf("- completion record: seq %d", done) {
 				t.Errorf("jaekit:violation=%s %s: ha status prints %q; want the completion record seq %d", v, label, line, done)
 			}
-		})
+		}()
 	}
 	for _, tier := range []string{"standard", "strict"} {
-		t.Run(tier, func(t *testing.T) {
+		func() {
 			f := ciFixture(t, v, tier)
 			stages := []string{"candidate"}
 			if tier == "strict" {
@@ -165,7 +169,7 @@ func TestCoreIntegrityAC3_LateReviewNoteByTier(t *testing.T) {
 			if code, after := f.done(); code != 0 || after.completion == nil || ciCompletion(after) == done {
 				t.Errorf("jaekit:violation=%s %s: ha done after a new covering gate exit %d, completion record %v; want a new completion record", v, tier, code, after.completion)
 			}
-		})
+		}()
 	}
 }
 
@@ -182,7 +186,7 @@ func TestCoreIntegrityAC4_UnjudgedDoneLineIsSkipped(t *testing.T) {
 
 	// The example of #151: D1 at H with a covering gate, a commit of bundle
 	// documents only, D2 judged, D3 computed against D1 as well.
-	t.Run("issue_151", func(t *testing.T) {
+	func() {
 		f := ciFixture(t, v, "standard")
 		f.recordGate(v, "covering gate", f.covering("candidate"))
 		ciMustDone(f, "D1")
@@ -198,10 +202,10 @@ func TestCoreIntegrityAC4_UnjudgedDoneLineIsSkipped(t *testing.T) {
 		if line := ciCompletionLine(f); line != fmt.Sprintf("- completion record: seq %d", d2) {
 			t.Errorf("jaekit:violation=%s #151: ha status prints %q; want the completion record D2 (seq %d) only", v, line, d2)
 		}
-	})
+	}()
 
 	// A review note after the judged line still voids it under standard.
-	t.Run("review_note_after_the_judged_line", func(t *testing.T) {
+	func() {
 		f := ciFixture(t, v, "standard")
 		f.recordGate(v, "covering gate", f.covering("candidate"))
 		ciMustDone(f, "D1")
@@ -214,10 +218,10 @@ func TestCoreIntegrityAC4_UnjudgedDoneLineIsSkipped(t *testing.T) {
 		if s := f.status(); s.completion != nil {
 			t.Errorf("jaekit:violation=%s a review note after D2: completion record %v; want none", v, s.completion)
 		}
-	})
+	}()
 
 	// With no valid completion before it, the line changes nothing.
-	t.Run("no_valid_completion_before_it", func(t *testing.T) {
+	func() {
 		f := ciFixture(t, v, "light")
 		ciMustDone(f, "D1")
 		f.put("src/work.txt", "changed after completion\n")
@@ -232,5 +236,5 @@ func TestCoreIntegrityAC4_UnjudgedDoneLineIsSkipped(t *testing.T) {
 			t.Errorf("jaekit:violation=%s no earlier completion: with the unjudged line status %s (exit %d) reasons %v completion %v, %q; without it %s (exit %d) reasons %v completion %v, %q (%d bytes)",
 				v, s.status, s.code, s.reasons, s.completion, line, sWithout.status, sWithout.code, sWithout.reasons, sWithout.completion, lineWithout, len(without))
 		}
-	})
+	}()
 }

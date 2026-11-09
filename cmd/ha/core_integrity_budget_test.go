@@ -3,7 +3,8 @@ package main
 // Checks of the goal core-completion-integrity for the elapsed budget after a
 // completion under run-rules/6 (AC-5, AC-6). The records are made through the
 // command line and then given fixed times (ciTime, ciRelink); helpers are in
-// core_integrity_test.go and review_gate_test.go.
+// core_integrity_test.go and review_gate_test.go. The forms of a check run one
+// after another in the linked test, without subtests.
 
 import (
 	"encoding/json"
@@ -21,7 +22,9 @@ func ciBudgetOf(f *rgFixture) (rgState, map[string]any) {
 	return s, ciBudget(f, s)
 }
 
-// ciExpectSeconds reports each budget field that differs from want.
+// ciExpectSeconds reports each budget field that differs from want, and an
+// elapsed time that is not the span less the reported wait and the time
+// after a completion.
 func ciExpectSeconds(f *rgFixture, violation, label string, b map[string]any, want map[string]int64) {
 	f.t.Helper()
 	for key, w := range want {
@@ -37,62 +40,115 @@ func ciExpectSeconds(f *rgFixture, violation, label string, b map[string]any, wa
 	}
 }
 
-// AC-5: the time from a completion record to the next run leaves the elapsed
-// budget, so a goal that waited for its merge does not run out after syncing
-// with main; status, report and cost use the same elapsed time.
-func TestCoreIntegrityAC5_TimeAfterCompletionLeavesElapsed(t *testing.T) {
-	const v = "post-completion-time-counted"
-	f := rgRepo(t, "standard", ciElapsed("10시간"))
-	ciStart(f, v)
+// ciSync is the record of #124: a goal completes two hours after its start,
+// takes the user's answer and a resume while it waits for its merge, syncs
+// with main fourteen hours after the completion and checks again; with gates
+// it records a new covering gate and completes again. The goal has started;
+// the record gets fixed times. It returns the record up to the check after
+// the sync and the whole record.
+func ciSync(f *rgFixture, violation string, gates bool) (prefix, whole []ciLine) {
+	f.t.Helper()
+	roles := []string{"start"}
 	f.put("src/work.txt", "one\n")
 	f.work = f.commit("work")
 	f.put("src/work.txt", "two\n")
 	f.head = f.commit("fix")
-	f.check()                                                       // seq 2
-	f.recordGate(v, "first gate", f.covering("candidate"))          // seq 3
-	ciMustDone(f, "first completion")                               // seq 4
-	f.put("src/main.txt", "a change merged from main\n")            // the sync
-	f.head = f.commit("merge main")                                 //
-	f.check()                                                       // seq 5
-	f.recordGate(v, "gate after the sync", f.covering("candidate")) // seq 6
-	ciMustDone(f, "completion after the sync")                      // seq 7
-
-	lines := ciLines(f)
-	if len(lines) != 7 {
-		t.Fatalf("setup: the record has %d lines, want 7", len(lines))
+	f.check()
+	roles = append(roles, "check")
+	if gates {
+		f.recordGate(violation, "first gate", f.covering("candidate"))
+		roles = append(roles, "gate")
 	}
-	h := time.Hour
-	ciTime(lines[0], 0)
-	ciTime(lines[1], 111*time.Minute, 110*time.Minute)
-	ciTime(lines[2], 115*time.Minute)
-	ciTime(lines[3], 2*h)
-	ciTime(lines[4], 16*h+time.Minute, 16*h)
-	ciTime(lines[5], 16*h+3*time.Minute)
-	ciTime(lines[6], 16*h+4*time.Minute)
-	full := ciRelink(f, lines, 0)
+	ciMustDone(f, "first completion")
+	ciMust(f, exitOK, "note", rgGoal, "input", "--quote", "머지해줘")
+	ciMust(f, exitOK, "note", rgGoal, "resume")
+	roles = append(roles, "done", "input", "resume")
+	f.put("src/main.txt", "a change merged from main\n")
+	f.head = f.commit("merge main")
+	f.check()
+	roles = append(roles, "check again")
+	cut := len(roles)
+	if gates {
+		f.recordGate(violation, "gate after the sync", f.covering("candidate"))
+		ciMustDone(f, "completion after the sync")
+		roles = append(roles, "gate again", "done again")
+	}
+	lines := ciLines(f)
+	if len(lines) != len(roles) {
+		f.t.Fatalf("setup: the record has %d lines, want %d", len(lines), len(roles))
+	}
+	h, m := time.Hour, time.Minute
+	for i, role := range roles {
+		switch role {
+		case "start":
+			ciTime(lines[i], 0)
+		case "check":
+			ciTime(lines[i], 111*m, 110*m)
+		case "gate":
+			ciTime(lines[i], 115*m)
+		case "done":
+			ciTime(lines[i], 2*h)
+		case "input":
+			ciTime(lines[i], 10*h)
+		case "resume":
+			ciTime(lines[i], 12*h)
+		case "check again":
+			ciTime(lines[i], 16*h+m, 16*h)
+		case "gate again":
+			ciTime(lines[i], 16*h+3*m)
+		case "done again":
+			ciTime(lines[i], 16*h+4*m)
+		}
+	}
+	whole = ciRelink(f, lines, 0)
+	return whole[:cut], whole
+}
+
+// AC-5: the time from a completion record to the next run leaves the elapsed
+// budget, notes inside it do not end it, so a goal that waited for its merge
+// does not run out after syncing with main; status, report and cost use the
+// same elapsed time.
+func TestCoreIntegrityAC5_TimeAfterCompletionLeavesElapsed(t *testing.T) {
+	const v = "post-completion-time-counted"
+	h, m := time.Hour, time.Minute
+	f := rgRepo(t, "standard", ciElapsed("10시간"))
+	ciStart(f, v)
+	prefix, whole := ciSync(f, v, true)
 
 	// After re-recording the check, before the new gate: the goal is
-	// incomplete for its stale gate, not out of budget.
-	ciWrite(f, full[:5])
+	// incomplete for its stale gate, not out of budget. The input and resume
+	// notes after the completion do not end the time after it.
+	ciWrite(f, prefix)
 	s, b := ciBudgetOf(f)
 	if ciReason(s, "budget_exceeded") != nil || s.status == "budget_exhausted" || ciReason(s, "review_head_stale") == nil {
 		t.Errorf("jaekit:violation=%s after the sync: status %s, reasons %v; want incomplete for the stale gate without budget_exceeded", v, s.status, s.reasons)
 	}
-	ciExpectSeconds(f, v, "after the sync", b, map[string]int64{"span_seconds": ciSeconds(16*h + time.Minute),
-		"reported_wait_seconds": 0, "post_completion_seconds": ciSeconds(14 * h), "elapsed_seconds": ciSeconds(2*h + time.Minute)})
+	ciExpectSeconds(f, v, "after the sync", b, map[string]int64{"span_seconds": ciSeconds(16*h + m),
+		"reported_wait_seconds": 0, "post_completion_seconds": ciSeconds(14 * h), "elapsed_seconds": ciSeconds(2*h + m)})
 	if runs, _ := ciInt(b, "runs"); runs != 2 {
 		t.Errorf("jaekit:violation=%s after the sync: budget runs %d; want the 2 checks", v, runs)
 	}
 	md := ciMarkdown(f, "status", rgGoal)
-	budget := md[strings.Index(md, "### Budget"):]
-	if !strings.Contains(budget, strconv.FormatInt(ciSeconds(14*h), 10)) {
-		t.Errorf("jaekit:violation=%s after the sync: the Budget section of ha status does not show the %d seconds after the completion record:\n%s", v, ciSeconds(14*h), budget)
+	post := strconv.FormatInt(ciSeconds(14*h), 10)
+	shown := false
+	if at := strings.Index(md, "### Budget"); at >= 0 {
+		for _, line := range strings.Split(md[at:], "\n") {
+			waits := strings.Contains(line, "waits the executor reported")
+			if waits && strings.Contains(line, post) {
+				t.Errorf("jaekit:violation=%s after the sync: ha status shows the time after the completion as reported waits: %q", v, line)
+			}
+			shown = shown || (!waits && strings.Contains(line, post))
+		}
+	}
+	if !shown {
+		t.Errorf("jaekit:violation=%s after the sync: the Budget section of ha status has no line of its own for the %s seconds after the completion record:\n%s", v, post, md)
 	}
 	for _, lang := range []string{"en", "ko"} {
 		report := ciMarkdown(f, "report", rgGoal, "--lang", lang)
-		if strings.Contains(report, "budget exceeded") || strings.Contains(report, "예산 초과") || strings.Contains(report, "budget_exceeded") ||
-			strings.Contains(report, "must decide the budget") || strings.Contains(report, "예산 결정이 필요함") {
-			t.Errorf("jaekit:violation=%s after the sync: ha report --lang %s still reports the budget as exceeded:\n%s", v, lang, report)
+		for _, word := range []string{"budget exceeded", "예산 초과", "budget_exceeded", "must decide the budget", "예산 결정이 필요함"} {
+			if strings.Contains(report, word) {
+				t.Errorf("jaekit:violation=%s after the sync: ha report --lang %s still says %q:\n%s", v, lang, word, report)
+			}
 		}
 	}
 	var cost map[string]any
@@ -101,18 +157,18 @@ func TestCoreIntegrityAC5_TimeAfterCompletionLeavesElapsed(t *testing.T) {
 	}
 	verification, _ := cost["verification"].(map[string]any)
 	costBudget, _ := verification["budget"].(map[string]any)
-	if got, _ := ciInt(costBudget, "elapsed_seconds"); got != ciSeconds(2*h+time.Minute) {
-		t.Errorf("jaekit:violation=%s after the sync: ha cost's budget window elapsed is %v; want %d as ha status", v, costBudget["elapsed_seconds"], ciSeconds(2*h+time.Minute))
+	if got, _ := ciInt(costBudget, "elapsed_seconds"); got != ciSeconds(2*h+m) {
+		t.Errorf("jaekit:violation=%s after the sync: ha cost's budget window elapsed is %v; want %d as ha status", v, costBudget["elapsed_seconds"], ciSeconds(2*h+m))
 	}
 
 	// The whole record: complete, with the same accounting.
-	ciWrite(f, full)
+	ciWrite(f, whole)
 	s, b = ciBudgetOf(f)
-	if s.status != "complete" || ciCompletion(s) != 7 {
-		t.Errorf("jaekit:violation=%s the whole record: status %s, completion record %v; want complete at seq 7", v, s.status, s.completion)
+	if s.status != "complete" || ciCompletion(s) != len(whole) {
+		t.Errorf("jaekit:violation=%s the whole record: status %s, completion record %v; want complete at seq %d", v, s.status, s.completion, len(whole))
 	}
 	ciExpectSeconds(f, v, "the whole record", b, map[string]int64{"post_completion_seconds": ciSeconds(14 * h),
-		"elapsed_seconds": ciSeconds(2*h + 4*time.Minute)})
+		"elapsed_seconds": ciSeconds(2*h + 4*m)})
 
 	// A window with a completion record still refuses a budget change, and a
 	// reopen still starts a new window.
@@ -123,8 +179,8 @@ func TestCoreIntegrityAC5_TimeAfterCompletionLeavesElapsed(t *testing.T) {
 	}
 	ciMust(f, exitOK, "note", rgGoal, "reopen", "--quote", "머지 전에 하나 더 고쳐줘")
 	_, b = ciBudgetOf(f)
-	if start, _ := ciInt(b, "window_start"); start != 8 {
-		t.Errorf("jaekit:violation=%s after reopen: budget window starts at %d; want the reopen at seq 8", v, start)
+	if start, _ := ciInt(b, "window_start"); start != int64(len(whole)+1) {
+		t.Errorf("jaekit:violation=%s after reopen: budget window starts at %d; want the reopen at seq %d", v, start, len(whole)+1)
 	}
 	if runs, _ := ciInt(b, "runs"); runs != 0 {
 		t.Errorf("jaekit:violation=%s after reopen: budget runs %d; want 0 in the new window", v, runs)
@@ -137,58 +193,55 @@ func TestCoreIntegrityAC5_TimeAfterCompletionLeavesElapsed(t *testing.T) {
 // line that records no completion ends it.
 func TestCoreIntegrityAC6_PostCompletionBoundaries(t *testing.T) {
 	const v = "post-completion-boundary-wrong"
-	h := time.Hour
+	h, m := time.Hour, time.Minute
 
-	t.Run("wait_and_finding", func(t *testing.T) {
+	// A finding half an hour after the completion, a wait from T+1h that the
+	// run at T+3h ends, and the answer at T+6h.
+	func() {
 		f := rgRepo(t, "light")
 		ciStart(f, v)
 		f.check()                   // seq 2
 		ciMustDone(f, "completion") // seq 3
-		lines := ciLines(f)         //
-		ciTime(lines[0], 0)         // start
-		ciTime(lines[1], 51*time.Minute, 50*time.Minute)
-		ciTime(lines[2], h)               // T: the completion
-		ciWrite(f, ciRelink(f, lines, 0)) //
-		done := ciLines(f)[2]
-		ciMust(f, exitOK, "note", rgGoal, "wait", "--reason", "the user decides whether to merge") // seq 4
-		ciFinding(f, done)                                                                         // seq 5
+		lines := ciLines(f)
+		ciTime(lines[0], 0)
+		ciTime(lines[1], 51*m, 50*m)
+		ciTime(lines[2], h) // T: the completion
+		ciWrite(f, ciRelink(f, lines, 0))
+		ciFinding(f, ciLines(f)[2])                                                                // seq 4
+		ciMust(f, exitOK, "note", rgGoal, "wait", "--reason", "the user decides whether to merge") // seq 5
 		f.put("src/main.txt", "a change merged from main\n")
 		f.head = f.commit("merge main")
 		f.check()                                                     // seq 6
 		ciMust(f, exitOK, "note", rgGoal, "input", "--quote", "머지해줘") // seq 7
 		lines = ciLines(f)
-		if len(lines) != 7 || lines[4].kind() != "finding" {
-			t.Fatalf("setup: the record has %d lines and line 5 is %q, want 7 lines with a finding at 5", len(lines), lines[4].kind())
+		if len(lines) != 7 || lines[3].kind() != "finding" {
+			t.Fatalf("setup: the record has %d lines and line 4 is %q, want 7 lines with a finding at 4", len(lines), lines[3].kind())
 		}
-		ciTime(lines[3], 2*h)                  // T+1h: wait
-		ciTime(lines[4], 3*h)                  // T+2h: finding
-		ciTime(lines[5], 4*h+time.Minute, 4*h) // T+3h: the next run
-		ciTime(lines[6], 7*h)                  // T+6h: the answer
+		ciTime(lines[3], h+30*m)     // T+30m: finding
+		ciTime(lines[4], 2*h)        // T+1h: wait
+		ciTime(lines[5], 4*h+m, 4*h) // T+3h: the next run
+		ciTime(lines[6], 7*h)        // T+6h: the answer
 		withFinding := ciRelink(f, lines, 3)
 		ciWrite(f, withFinding)
 		_, b := ciBudgetOf(f)
-		// Elapsed: one hour before T and T+3h..T+6h after the run started.
-		if got, _ := ciInt(b, "elapsed_seconds"); got != ciSeconds(4*h) {
-			t.Errorf("jaekit:violation=%s wait and finding: elapsed %d; want %d (the hour before the completion and the time from the next run on)", v, got, ciSeconds(4*h))
-		}
-		wait, _ := ciInt(b, "reported_wait_seconds")
-		post, _ := ciInt(b, "post_completion_seconds")
-		if wait+post != ciSeconds(3*h) {
-			t.Errorf("jaekit:violation=%s wait and finding: reported wait %d and post-completion %d leave %d seconds; want the overlap once, %d", v, wait, post, wait+post, ciSeconds(3*h))
-		}
-		ciExpectSeconds(f, v, "wait and finding", b, map[string]int64{"span_seconds": ciSeconds(7 * h)})
+		// The wait runs from the second after its note to the run; the time
+		// after the completion is the rest of T..T+3h. Elapsed is the hour
+		// before T and T+3h..T+6h.
+		ciExpectSeconds(f, v, "finding, wait and answer", b, map[string]int64{"span_seconds": ciSeconds(7 * h),
+			"reported_wait_seconds": ciSeconds(2*h) - 1, "post_completion_seconds": ciSeconds(h) + 1, "elapsed_seconds": ciSeconds(4 * h)})
 
-		without := append(append([]ciLine(nil), withFinding[:4]...), withFinding[5:]...)
-		ciWrite(f, ciRelink(f, without, 4))
+		without := append(append([]ciLine(nil), withFinding[:3]...), withFinding[4:]...)
+		ciWrite(f, ciRelink(f, without, 3))
 		_, bWithout := ciBudgetOf(f)
 		for _, key := range []string{"elapsed_seconds", "span_seconds", "reported_wait_seconds", "post_completion_seconds", "runs", "runs_limit", "window_start"} {
 			if !reflect.DeepEqual(b[key], bWithout[key]) {
 				t.Errorf("jaekit:violation=%s the finding line changes budget %s: %v with it, %v without it", v, key, b[key], bWithout[key])
 			}
 		}
-	})
+	}()
 
-	t.Run("done_without_completion", func(t *testing.T) {
+	// A done line that records no completion ends the time after it.
+	func() {
 		f := rgRepo(t, "light")
 		ciStart(f, v)
 		f.check()                   // seq 2
@@ -204,13 +257,13 @@ func TestCoreIntegrityAC6_PostCompletionBoundaries(t *testing.T) {
 			t.Fatalf("setup: the record has %d lines; want a done line that is not a completion at 4", len(lines))
 		}
 		ciTime(lines[0], 0)
-		ciTime(lines[1], 51*time.Minute, 50*time.Minute)
-		ciTime(lines[2], h)                    // T: the completion
-		ciTime(lines[3], 3*h)                  // T+2h: done, not a completion
-		ciTime(lines[4], 6*h+time.Minute, 6*h) // T+5h: the next run
+		ciTime(lines[1], 51*m, 50*m)
+		ciTime(lines[2], h)          // T: the completion
+		ciTime(lines[3], 3*h)        // T+2h: done, not a completion
+		ciTime(lines[4], 6*h+m, 6*h) // T+5h: the next run
 		ciWrite(f, ciRelink(f, lines, 0))
 		_, b := ciBudgetOf(f)
-		ciExpectSeconds(f, v, "done without completion", b, map[string]int64{"span_seconds": ciSeconds(6*h + time.Minute),
-			"post_completion_seconds": ciSeconds(2 * h), "elapsed_seconds": ciSeconds(4*h + time.Minute)})
-	})
+		ciExpectSeconds(f, v, "done without completion", b, map[string]int64{"span_seconds": ciSeconds(6*h + m),
+			"post_completion_seconds": ciSeconds(2 * h), "elapsed_seconds": ciSeconds(4*h + m)})
+	}()
 }
