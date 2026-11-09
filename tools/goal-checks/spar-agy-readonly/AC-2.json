@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "OtherCommandsStayViolations",
+      "violation": "violation-reason-not-first-problem",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparAgyReadonlyAC2_OtherCommandsStayViolations"
+      }
+    }
+  ]
+}

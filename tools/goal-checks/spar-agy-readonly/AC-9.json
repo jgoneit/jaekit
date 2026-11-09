@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Documents",
+      "violation": "agy-command-rules-undocumented",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSparAgyReadonlyAC9_Documents"
+      }
+    }
+  ]
+}
