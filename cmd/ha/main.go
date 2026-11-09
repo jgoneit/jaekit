@@ -46,28 +46,28 @@ Usage:
   ha lint   <goal>
   ha estimate <goal> [AC-n | EX-n | T001 ...] [--baseline] [--format md|json]
   ha start  <goal> --request <quote> [--skill <path to SKILL.md> [--check-skill]]
-                   [--rules run-rules/4|run-rules/5] [--test-authority <agent interpretation>]
+                   [--rules run-rules/4|run-rules/5|run-rules/6] [--test-authority <agent interpretation>]
                    [--host-name <name>] [--host-version <version>] [--model <model>]
   ha check  <goal> [AC-n | EX-n | T001 ...] [--baseline]
   ha budget <goal> --runs <total> --from <old-total> --window <seq> --revision <seq>
                     [--quote <user words> --context <request context>]
                     [--reason <reason>] [--interpretation <agent interpretation>]
   ha budget <goal> --preapprove <total> --window <seq> --revision <seq>
-                    --quote <user words> --context <request context>      (run-rules/4, /5)
+                    --quote <user words> --context <request context>      (run-rules/4, /5, /6)
   ha note   <goal> block --cause <auth|permission|quota|environment|spec|other> [--quote <text>]
   ha note   <goal> unblock [--quote <text>]
   ha note   <goal> confirm <AC-n | scope:<path> | tests:<path> | spec> --quote <user words>
   ha note   <goal> reopen --quote <user words>
   ha note   <goal> input --quote <user words>
   ha note   <goal> test-change tests:<path> --criteria <AC-n,...> --how <how it is checked>
-                   [--moved-to <path> ...] [--weakened]                   (run-rules/4, /5)
-  ha note   <goal> wait --reason <decision asked>                         (run-rules/4, /5)
-  ha note   <goal> resume                                                 (run-rules/4, /5)
+                   [--moved-to <path> ...] [--weakened]                   (run-rules/4, /5, /6)
+  ha note   <goal> wait --reason <decision asked>                         (run-rules/4, /5, /6)
+  ha note   <goal> resume                                                 (run-rules/4, /5, /6)
   ha note   <goal> recover <AC-n> --input check|baseline --change <changed condition>
-                                                                          (run-rules/4, /5)
+                                                                          (run-rules/4, /5, /6)
   ha note   <goal> allow-recovery <AC-n> --input check|baseline --count <n> --quote <user words>
-                                                                          (run-rules/4, /5)
-  ha note   <goal> review --gate <review-gate/v1 file>                    (run-rules/5)
+                                                                          (run-rules/4, /5, /6)
+  ha note   <goal> review --gate <review-gate/v1 file>                    (run-rules/5, /6)
   ha finding <goal> [--input <JSON file>] [--format json|md]
   ha history <goal> [add|current|list|show] ...   (see ha history --help)
   ha status <goal> [--format md|json]
@@ -300,12 +300,12 @@ func (c *cli) start(in []string) int {
 	if quote == "" {
 		return c.fail(exitUsage, "--request is required: quote the user's request that authorizes this goal")
 	}
-	// run-rules/4 and run-rules/5 are chosen, never the default
+	// run-rules/4 through run-rules/6 are chosen, never the default
 	// (run-record.md §4.6).
 	goalRules := status.Rules
 	if r, ok := a.vals["rules"]; ok && r != status.Rules {
-		if r != status.RulesV4 && r != status.RulesV5 {
-			return c.fail(exitUsage, "--rules accepts %s, %s or %s", status.RulesV3, status.RulesV4, status.RulesV5)
+		if r != status.RulesV4 && r != status.RulesV5 && r != status.RulesV6 {
+			return c.fail(exitUsage, "--rules accepts %s, %s, %s or %s", status.RulesV3, status.RulesV4, status.RulesV5, status.RulesV6)
 		}
 		goalRules = r
 		if w.bundle, err = bundle.LoadForRules(w.repo.Root, w.goal, goalRules); err != nil {
@@ -315,7 +315,7 @@ func (c *cli) start(in []string) int {
 	interpretation, hasAuthority := a.vals["test-authority"]
 	interpretation = strings.TrimSpace(interpretation)
 	if hasAuthority && (!status.Autonomous(goalRules) || interpretation == "") {
-		return c.fail(exitUsage, "--test-authority needs --rules %s or %s and the executor's reading of the request", status.RulesV4, status.RulesV5)
+		return c.fail(exitUsage, "--test-authority needs --rules %s, %s or %s and the executor's reading of the request", status.RulesV4, status.RulesV5, status.RulesV6)
 	}
 	if a.bools["check-skill"] && a.vals["skill"] == "" {
 		return c.fail(exitUsage, "--check-skill needs --skill <path to SKILL.md>")
@@ -907,10 +907,10 @@ func (c *cli) note(in []string) int {
 	}
 	kind, quote := a.pos[1], strings.TrimSpace(a.vals["quote"])
 	if rules4Notes[kind] && !status.Autonomous(goalRules) {
-		return c.fail(exitRefused, "%s notes need a goal started with %s or %s; this goal keeps %s", kind, status.RulesV4, status.RulesV5, goalRules)
+		return c.fail(exitRefused, "%s notes need a goal started with %s, %s or %s; this goal keeps %s", kind, status.RulesV4, status.RulesV5, status.RulesV6, goalRules)
 	}
 	if kind == "review" && !status.Reviewed(goalRules) {
-		return c.fail(exitRefused, "review notes need a goal started with %s; this goal keeps %s", status.RulesV5, goalRules)
+		return c.fail(exitRefused, "review notes need a goal started with %s or %s; this goal keeps %s", status.RulesV5, status.RulesV6, goalRules)
 	}
 	e := &record.Note{Header: record.Header{Kind: "note", HaVersion: version}, Note: kind, Quote: quote}
 	var validate func([]record.Line) error
