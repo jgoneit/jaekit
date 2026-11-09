@@ -138,15 +138,20 @@ func decisions(p parsed) ([]Decision, error) {
 }
 
 // missingDecisionValue is the refusal for a decision option given last
-// without its value: the number of the decision it would start or end.
+// without its value. It numbers decisions as decisions does: a --decision
+// starts the next one, and a --decision-quote ends the open one or, when
+// none is open, stands for the next.
 func missingDecisionValue(p parsed) error {
-	n := 0
+	n, open := 0, false
 	for _, o := range p.order {
-		if o.name == "decision" {
-			n++
+		switch o.name {
+		case "decision":
+			n, open = n+1, true
+		case "decision-quote":
+			open = false
 		}
 	}
-	if p.missing == "decision" || n == 0 {
+	if p.missing == "decision" || !open {
 		n++
 	}
 	return refused("decision %d: --%s needs a value: a decision has what it settles and the user's words", n, p.missing)

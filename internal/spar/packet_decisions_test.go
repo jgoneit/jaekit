@@ -686,24 +686,27 @@ func TestSparPacketDecisionsAC5_Forms(t *testing.T) {
 
 	marker := filepath.Join(w.dir, "reviewer-started")
 	w.useConfig(pdCommand("cmd", w.script("touch", "if [ \"$1\" = --version ]; then exit 0; fi\n: > "+amQuote(marker)+"\n")))
-	// n is the decision the refusal names (G35: which decision and which
-	// option).
+	// n and option are the decision and the option the refusal names (G35):
+	// a quote with no open decision stands for the next decision.
+	const settles, quote = "--decision", "--decision-quote"
 	refusedForms := []struct {
-		name string
-		n    int
-		args []string
+		name   string
+		n      int
+		option string
+		args   []string
 	}{
-		{"an empty quote", 1, []string{"--decision", "정한 대상", "--decision-quote", ""}},
-		{"blank settles", 1, []string{"--decision", " \t\n", "--decision-quote", "말"}},
-		{"a blank quote", 2, []string{"--decision", "a", "--decision-quote", "b", "--decision", "정한 대상", "--decision-quote", "  \n"}},
-		{"a quote that is not UTF-8", 1, []string{"--decision", "정한 대상", "--decision-quote", "\xff\xfe"}},
-		{"settles that is not UTF-8", 1, []string{"--decision", "\xc3\x28", "--decision-quote", "말"}},
-		{"no quote", 1, []string{"--decision", "정한 대상"}},
-		{"no quote before the next decision", 1, []string{"--decision", "a", "--decision", "b", "--decision-quote", "c"}},
-		{"a quote with no decision", 1, []string{"--decision-quote", "말"}},
-		{"two quotes", 2, []string{"--decision", "a", "--decision-quote", "b", "--decision-quote", "c"}},
-		{"a decision with no value", 2, []string{"--decision", "a", "--decision-quote", "b", "--decision"}},
-		{"a quote with no value", 1, []string{"--decision", "a", "--decision-quote"}},
+		{"an empty quote", 1, quote, []string{"--decision", "정한 대상", "--decision-quote", ""}},
+		{"blank settles", 1, settles, []string{"--decision", " \t\n", "--decision-quote", "말"}},
+		{"a blank quote", 2, quote, []string{"--decision", "a", "--decision-quote", "b", "--decision", "정한 대상", "--decision-quote", "  \n"}},
+		{"a quote that is not UTF-8", 1, quote, []string{"--decision", "정한 대상", "--decision-quote", "\xff\xfe"}},
+		{"settles that is not UTF-8", 1, settles, []string{"--decision", "\xc3\x28", "--decision-quote", "말"}},
+		{"no quote", 1, settles, []string{"--decision", "정한 대상"}},
+		{"no quote before the next decision", 1, settles, []string{"--decision", "a", "--decision", "b", "--decision-quote", "c"}},
+		{"a quote with no decision", 1, quote, []string{"--decision-quote", "말"}},
+		{"two quotes", 2, quote, []string{"--decision", "a", "--decision-quote", "b", "--decision-quote", "c"}},
+		{"a decision with no value", 2, settles, []string{"--decision", "a", "--decision-quote", "b", "--decision"}},
+		{"a quote with no value", 1, quote, []string{"--decision", "a", "--decision-quote"}},
+		{"an extra quote with no value", 2, quote, []string{"--decision", "a", "--decision-quote", "b", "--decision-quote"}},
 	}
 	for i, f := range refusedForms {
 		out := filepath.Join(w.repo, "reviews", fmt.Sprintf("bad%d", i), "01-candidate")
@@ -712,15 +715,14 @@ func TestSparPacketDecisionsAC5_Forms(t *testing.T) {
 		_, markErr := os.Lstat(marker)
 		left, started := !os.IsNotExist(outErr), !os.IsNotExist(markErr)
 		switch {
-		case code == ExitRefused && strings.Contains(stderr, fmt.Sprintf("decision %d", f.n)) && strings.Contains(stderr, "--decision") &&
-			!left && !started:
+		case code == ExitRefused && strings.Contains(stderr, fmt.Sprintf("decision %d: %s ", f.n, f.option)) && !left && !started:
 			continue
 		case code == ExitOK || code == ExitNoResult || left || started ||
 			((code == ExitUsage || code == ExitRefused) && strings.Contains(stderr, "decision")):
 			// spar took the form, or judged it by another rule than the
 			// decision row: an observation of this condition.
-			t.Errorf("jaekit:violation=%s %s: exit %d (want 65 naming decision %d and its option), round folder left %v, reviewer started %v: %s",
-				id, f.name, code, f.n, left, started, pdFirstLine(stderr))
+			t.Errorf("jaekit:violation=%s %s: exit %d (want 65 naming decision %d: %s), round folder left %v, reviewer started %v: %s",
+				id, f.name, code, f.n, f.option, left, started, pdFirstLine(stderr))
 			os.RemoveAll(out)
 			os.Remove(marker)
 		default:
