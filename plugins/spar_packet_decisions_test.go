@@ -271,7 +271,7 @@ func TestSparPacketDecisionsAC10_SparDocuments(t *testing.T) {
 // Core change.
 func TestSparPacketDecisionsAC15_SealVersion(t *testing.T) {
 	const id = "seal-version-not-raised"
-	const want = "0.1.25"
+	const want = "0.1.26"
 	for _, path := range []string{"seal/.claude-plugin/plugin.json", "seal/.codex-plugin/plugin.json"} {
 		var m struct {
 			Version string `json:"version"`
