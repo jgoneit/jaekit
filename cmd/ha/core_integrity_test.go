@@ -337,6 +337,34 @@ func TestCoreIntegrityAC7_EarlierRulesKeepTheirJudgments(t *testing.T) {
 		t.Errorf("run-rules/5: the #151 record gives status %s with completion record %v; want no completion record", s.status, s.completion)
 	}
 
+	// #148 under run-rules/5: a gate whose only candidate round starts after
+	// the base still completes.
+	late := newRGFixture(t, "earlier-rules-changed", "standard")
+	late.recordGate("earlier-rules-changed", "candidate W..H", ciGate(late, ciRound(late, "candidate", late.work, late.head)))
+	if code, s := late.done(); code != exitOK || s.completion == nil || ciReason(s, ciBaseReason) != nil {
+		t.Errorf("run-rules/5: a gate whose candidate round starts at W gives ha done exit %d, completion %v, reasons %v; want a completion", code, s.completion, s.reasons)
+	}
+
+	// #124 under run-rules/5 (standard, with gates) and run-rules/4 (light):
+	// the time after a completion still counts and the budget runs out.
+	for _, form := range []struct {
+		rules, tier string
+		gates       bool
+	}{{"run-rules/5", "standard", true}, {"run-rules/4", "light", false}} {
+		f := rgRepo(t, form.tier, ciElapsed("10시간"))
+		ciMust(f, exitOK, "start", rgGoal, "--request", ciRequest, "--rules", form.rules)
+		f.base = f.git("rev-parse", "HEAD")
+		prefix, _ := ciSync(f, "earlier-rules-changed", form.gates)
+		ciWrite(f, prefix)
+		s, b := ciBudgetOf(f)
+		elapsed, _ := ciInt(b, "elapsed_seconds")
+		_, hasPost := b["post_completion_seconds"]
+		if elapsed != ciSeconds(16*time.Hour+time.Minute) || hasPost || b["exceeded"] != true {
+			t.Errorf("%s: the #124 record gives elapsed %d, post_completion_seconds present %v, reasons %v; want %d elapsed, no such field and an exceeded budget",
+				form.rules, elapsed, hasPost, s.reasons, ciSeconds(16*time.Hour+time.Minute))
+		}
+	}
+
 	// A run-rules/4 goal still refuses review notes.
 	old := rgRepo(t, "standard")
 	if code, out := old.ha("start", rgGoal, "--request", ciRequest, "--rules", "run-rules/4"); code != exitOK {
