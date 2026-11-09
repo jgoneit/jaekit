@@ -119,22 +119,37 @@ func decisions(p parsed) ([]Decision, error) {
 		switch o.name {
 		case "decision":
 			if open {
-				return nil, refused("--decision %q has no --decision-quote before the next --decision", out[len(out)-1].Settles)
+				return nil, refused("decision %d: --decision %q has no --decision-quote before the next --decision", len(out), out[len(out)-1].Settles)
 			}
 			out = append(out, Decision{Settles: o.value})
 			open = true
 		case "decision-quote":
 			if !open {
-				return nil, refused("--decision-quote %q has no --decision before it", o.value)
+				return nil, refused("decision %d: --decision-quote %q has no --decision before it", len(out)+1, o.value)
 			}
 			out[len(out)-1].UserQuote = o.value
 			open = false
 		}
 	}
 	if open {
-		return nil, refused("--decision %q has no --decision-quote after it", out[len(out)-1].Settles)
+		return nil, refused("decision %d: --decision %q has no --decision-quote after it", len(out), out[len(out)-1].Settles)
 	}
 	return out, nil
+}
+
+// missingDecisionValue is the refusal for a decision option given last
+// without its value: the number of the decision it would start or end.
+func missingDecisionValue(p parsed) error {
+	n := 0
+	for _, o := range p.order {
+		if o.name == "decision" {
+			n++
+		}
+	}
+	if p.missing == "decision" || n == 0 {
+		n++
+	}
+	return refused("decision %d: --%s needs a value: a decision has what it settles and the user's words", n, p.missing)
 }
 
 // agentChoices reads --model NAME=MODEL and --effort NAME=EFFORT (G25):
@@ -209,7 +224,7 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 			// A decision without what it settles or without the user's
 			// words is out of form (G35), whichever part is missing.
 			if p.missing == "decision" || p.missing == "decision-quote" {
-				return ExitRefused, refused("--%s needs a value: a decision has what it settles and the user's words", p.missing)
+				return ExitRefused, missingDecisionValue(p)
 			}
 			return ExitUsage, err
 		}

@@ -575,9 +575,24 @@ func TestSparPacketDecisionsAC4_RecordAndRerun(t *testing.T) {
 	w.useConfig(pdCommand("cmd", w.script("fail", "if [ \"$1\" = --version ]; then exit 0; fi\nexit 3\n")))
 	series := filepath.Join(w.repo, "reviews", "r")
 	more := append(append([]pdDecision{}, pdTricky...), pdDecision{"세 번째", "  앞뒤 공백도 그대로  "})
+	// The same decision with a trailing newline in one part is another
+	// decision, so another packet.
+	newline := append(append([]pdDecision{}, more[:2]...), pdDecision{"세 번째", "  앞뒤 공백도 그대로  \n"})
+	settles := append(append([]pdDecision{}, more[:2]...), pdDecision{"세 번째\n", "  앞뒤 공백도 그대로  "})
 	var rounds []map[string]any
-	for i, ds := range [][]pdDecision{pdTricky, pdTricky, more} {
-		out := filepath.Join(series, fmt.Sprintf("%02d-candidate", i+1))
+	// The rounds that differ only by a trailing newline run in a series of
+	// their own, inside the code cap of three counted rounds.
+	other := filepath.Join(w.repo, "reviews", "n")
+	runs := []struct {
+		out string
+		ds  []pdDecision
+	}{
+		{filepath.Join(series, "01-candidate"), pdTricky}, {filepath.Join(series, "02-candidate"), pdTricky},
+		{filepath.Join(series, "03-candidate"), more}, {filepath.Join(other, "01-candidate"), newline},
+		{filepath.Join(other, "02-candidate"), settles},
+	}
+	for i, run := range runs {
+		out, ds := run.out, run.ds
 		code, stderr := w.spar(append(w.round("candidate", w.commits[0], w.commits[1], out), pdArgs(ds)...)...)
 		if !w.accepted(code, stderr, id) {
 			return
@@ -601,6 +616,17 @@ func TestSparPacketDecisionsAC4_RecordAndRerun(t *testing.T) {
 		!reflect.DeepEqual(rounds[2]["rerun_of"], []any{}) {
 		t.Errorf("jaekit:violation=%s one more decision is not another packet: packet %v, counted %v, rerun_of %v",
 			id, rounds[2]["packet_sha256"], rounds[2]["counted"], rounds[2]["rerun_of"])
+	}
+	seen := map[any]int{}
+	for i, r := range rounds[2:] {
+		if j, ok := seen[r["packet_sha256"]]; ok {
+			t.Errorf("jaekit:violation=%s rounds %d and %d have different decisions but the same packet %v", id, j+3, i+3, r["packet_sha256"])
+		}
+		seen[r["packet_sha256"]] = i
+		if i > 0 && (r["counted"] != true || !reflect.DeepEqual(r["rerun_of"], []any{})) {
+			t.Errorf("jaekit:violation=%s round %d differs only by a trailing newline and is not a counted new packet: counted %v, rerun_of %v",
+				id, i+3, r["counted"], r["rerun_of"])
+		}
 	}
 
 	// spar record rewrites round.json when a native reviewer's result comes
@@ -660,21 +686,24 @@ func TestSparPacketDecisionsAC5_Forms(t *testing.T) {
 
 	marker := filepath.Join(w.dir, "reviewer-started")
 	w.useConfig(pdCommand("cmd", w.script("touch", "if [ \"$1\" = --version ]; then exit 0; fi\n: > "+amQuote(marker)+"\n")))
+	// n is the decision the refusal names (G35: which decision and which
+	// option).
 	refusedForms := []struct {
 		name string
+		n    int
 		args []string
 	}{
-		{"an empty quote", []string{"--decision", "정한 대상", "--decision-quote", ""}},
-		{"blank settles", []string{"--decision", " \t\n", "--decision-quote", "말"}},
-		{"a blank quote", []string{"--decision", "정한 대상", "--decision-quote", "  \n"}},
-		{"a quote that is not UTF-8", []string{"--decision", "정한 대상", "--decision-quote", "\xff\xfe"}},
-		{"settles that is not UTF-8", []string{"--decision", "\xc3\x28", "--decision-quote", "말"}},
-		{"no quote", []string{"--decision", "정한 대상"}},
-		{"no quote before the next decision", []string{"--decision", "a", "--decision", "b", "--decision-quote", "c"}},
-		{"a quote with no decision", []string{"--decision-quote", "말"}},
-		{"two quotes", []string{"--decision", "a", "--decision-quote", "b", "--decision-quote", "c"}},
-		{"a decision with no value", []string{"--decision"}},
-		{"a quote with no value", []string{"--decision", "a", "--decision-quote"}},
+		{"an empty quote", 1, []string{"--decision", "정한 대상", "--decision-quote", ""}},
+		{"blank settles", 1, []string{"--decision", " \t\n", "--decision-quote", "말"}},
+		{"a blank quote", 2, []string{"--decision", "a", "--decision-quote", "b", "--decision", "정한 대상", "--decision-quote", "  \n"}},
+		{"a quote that is not UTF-8", 1, []string{"--decision", "정한 대상", "--decision-quote", "\xff\xfe"}},
+		{"settles that is not UTF-8", 1, []string{"--decision", "\xc3\x28", "--decision-quote", "말"}},
+		{"no quote", 1, []string{"--decision", "정한 대상"}},
+		{"no quote before the next decision", 1, []string{"--decision", "a", "--decision", "b", "--decision-quote", "c"}},
+		{"a quote with no decision", 1, []string{"--decision-quote", "말"}},
+		{"two quotes", 2, []string{"--decision", "a", "--decision-quote", "b", "--decision-quote", "c"}},
+		{"a decision with no value", 2, []string{"--decision", "a", "--decision-quote", "b", "--decision"}},
+		{"a quote with no value", 1, []string{"--decision", "a", "--decision-quote"}},
 	}
 	for i, f := range refusedForms {
 		out := filepath.Join(w.repo, "reviews", fmt.Sprintf("bad%d", i), "01-candidate")
@@ -683,14 +712,15 @@ func TestSparPacketDecisionsAC5_Forms(t *testing.T) {
 		_, markErr := os.Lstat(marker)
 		left, started := !os.IsNotExist(outErr), !os.IsNotExist(markErr)
 		switch {
-		case code == ExitRefused && strings.Contains(stderr, "decision") && !left && !started:
+		case code == ExitRefused && strings.Contains(stderr, fmt.Sprintf("decision %d", f.n)) && strings.Contains(stderr, "--decision") &&
+			!left && !started:
 			continue
 		case code == ExitOK || code == ExitNoResult || left || started ||
 			((code == ExitUsage || code == ExitRefused) && strings.Contains(stderr, "decision")):
 			// spar took the form, or judged it by another rule than the
 			// decision row: an observation of this condition.
-			t.Errorf("jaekit:violation=%s %s: exit %d (not 65), round folder left %v, reviewer started %v: %s",
-				id, f.name, code, left, started, pdFirstLine(stderr))
+			t.Errorf("jaekit:violation=%s %s: exit %d (want 65 naming decision %d and its option), round folder left %v, reviewer started %v: %s",
+				id, f.name, code, f.n, left, started, pdFirstLine(stderr))
 			os.RemoveAll(out)
 			os.Remove(marker)
 		default:

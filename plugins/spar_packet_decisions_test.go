@@ -184,8 +184,8 @@ func TestSparPacketDecisionsAC7_DecisionsToPass(t *testing.T) {
 		{"references/bundle.md Questions for the user", questions, spdPassEn},
 		{"contracts/bundle.md section 4", ko4, spdPassKo},
 		{"contracts/bundle.en.md section 4", en4, spdPassContractEn},
-		{"contracts/role-card.md", roleKo, []string{"라운드에 목표 문서를 모두 기준으로 주고 그 라운드 전에 기록된 사용자의 결정을 함께 주며"}},
-		{"contracts/role-card.en.md", roleEn, []string{"gives the rounds all goal documents as criteria together with the user's decisions recorded before each round"}},
+		{"contracts/role-card.md", roleKo, []string{"라운드에는 목표 문서와 함께 그 라운드 전에 기록된 사용자의 결정을 준다. 목표를 어느 Seal로 시작했든 이 Seal이 돌리는 모든 라운드에 쓴다"}},
+		{"contracts/role-card.en.md", roleEn, []string{"Rounds receive the goal documents together with the user's decisions recorded before each round, in every round this Seal runs, whichever Seal started the goal"}},
 	})
 }
 

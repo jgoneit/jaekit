@@ -135,14 +135,12 @@ const decisionGuidance = "- Each decision below was recorded by the caller as th
 
 // embedText writes a label and a text as given inside a fence longer than
 // any run of backticks in it, so that no heading or fence in the text makes
-// or ends a section of the packet.
+// or ends a section of the packet. The closing fence always follows a
+// newline of its own: a text that ends in a newline shows an empty last
+// line, so two different texts never give the same packet.
 func embedText(b *strings.Builder, label, text string) {
 	f := fence(text)
-	fmt.Fprintf(b, "%s\n\n%s\n%s", label, f, text)
-	if !strings.HasSuffix(text, "\n") {
-		b.WriteString("\n")
-	}
-	b.WriteString(f + "\n\n")
+	fmt.Fprintf(b, "%s\n\n%s\n%s\n%s\n\n", label, f, text, f)
 }
 
 // buildPacket writes the one text every reviewer of a round receives. It
