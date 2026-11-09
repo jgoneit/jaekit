@@ -29,30 +29,38 @@ const (
 	RulesV3 = "run-rules/3"
 	RulesV4 = "run-rules/4"
 	RulesV5 = "run-rules/5"
+	RulesV6 = "run-rules/6"
 	Rules   = RulesV3
 )
 
 // Supported reports whether this build computes goals started under rules.
-// It is the only rule-support decision; run-rules/4 and run-rules/5 are chosen
+// It is the only rule-support decision; run-rules/4 through run-rules/6 are chosen
 // with `ha start --rules` and never by default.
 func Supported(rules string) bool {
-	return rules == RulesV1 || rules == RulesV2 || rules == RulesV3 || rules == RulesV4 || rules == RulesV5
+	return rules == RulesV1 || rules == RulesV2 || rules == RulesV3 || rules == RulesV4 || rules == RulesV5 || rules == RulesV6
 }
 
 // Structured reports whether rules keep the run-rules/3 semantics: structured
 // change results, inconclusive results under the error limit, and budget
-// changes. run-rules/4 and run-rules/5 add to them and remove none
-// (run-record.md §4.7, §4.8).
-func Structured(rules string) bool { return rules == RulesV3 || rules == RulesV4 || rules == RulesV5 }
+// changes. run-rules/4 through run-rules/6 keep them all.
+func Structured(rules string) bool {
+	return rules == RulesV3 || rules == RulesV4 || rules == RulesV5 || rules == RulesV6
+}
 
 // Autonomous reports whether rules keep the run-rules/4 additions: test-change
 // authority, reported waits, pre-approved limits, error recovery and command
-// time limits. run-rules/5 keeps them all (run-record.md §4.7, §4.8).
-func Autonomous(rules string) bool { return rules == RulesV4 || rules == RulesV5 }
+// time limits. run-rules/5 and run-rules/6 keep them all.
+func Autonomous(rules string) bool { return rules == RulesV4 || rules == RulesV5 || rules == RulesV6 }
 
 // Reviewed reports whether rules judge the recorded review gate of a goal
 // whose SPEC asks for independent review (run-record.md §4.8).
-func Reviewed(rules string) bool { return rules == RulesV5 }
+func Reviewed(rules string) bool { return rules == RulesV5 || rules == RulesV6 }
+
+// CompletionIntegrity reports whether rules apply the run-rules/6 judgments:
+// review coverage starts at the goal base, only reviewed tiers invalidate a
+// completion on a later review note, unjudged done lines are skipped, and
+// post-completion intervals are excluded from elapsed budget time.
+func CompletionIntegrity(rules string) bool { return rules == RulesV6 }
 
 // Excludes returns the paths left out of the code state of goal g under
 // rules: the goal's own documents and bundle, the amendment documents of the
@@ -155,7 +163,7 @@ var classOf = map[string]string{
 type UnsupportedRulesError struct{ Rules string }
 
 func (e *UnsupportedRulesError) Error() string {
-	return fmt.Sprintf("goal was started with rules %q; this ha computes only %q, %q, %q, %q and %q", e.Rules, RulesV1, RulesV2, RulesV3, RulesV4, RulesV5)
+	return fmt.Sprintf("goal was started with rules %q; this ha computes only %q, %q, %q, %q, %q and %q", e.Rules, RulesV1, RulesV2, RulesV3, RulesV4, RulesV5, RulesV6)
 }
 
 // Input is everything the computation reads.

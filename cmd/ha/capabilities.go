@@ -24,7 +24,7 @@ func supportedCapabilities() capabilityReport {
 	return capabilityReport{
 		Schema:         "ha-capabilities/v1",
 		HaVersion:      version,
-		SupportedRules: []string{status.RulesV1, status.RulesV2, status.RulesV3, status.RulesV4, status.RulesV5},
+		SupportedRules: []string{status.RulesV1, status.RulesV2, status.RulesV3, status.RulesV4, status.RulesV5, status.RulesV6},
 		DefaultRules:   status.Rules,
 		Formats: map[string][]string{
 			"finding":           {"run-finding/v1"},
