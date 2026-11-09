@@ -9,10 +9,17 @@ package main
 // rule, times and line hashes. Fixed commit dates give both twins the same
 // commit IDs, and the record stays out of the commits.
 //
+// The sequence covers review reasons and gate records and refusals, a done
+// line appended after a line ha done did not judge, test change authority,
+// reported waits, pre-approved limits, error recovery up to the user's
+// allowance, per-command time limits and budget changes. Twins of a light
+// goal and of a goal without an Assurance line complete and are reopened.
+//
 // The steps keep away from the changed judgments: every gate's last
-// candidate round starts at the goal's base commit, the only completion
-// record is the last line, and the done line appended after another line
-// has no completion record before it. Error recovery is outside this check.
+// candidate round starts at the goal's base commit, no review note follows
+// a completion record, a completion record is the last line except for the
+// reopen notes, and the done line appended after another line has no
+// completion record before it.
 //
 // A refused run-rules/6 start and any difference between the twins are the
 // observed violation (jaekit:violation=...). Every other failure, including a
@@ -45,6 +52,12 @@ const (
 	// ctPending is a want for `ha done` on a goal that is not complete: any
 	// nonzero exit.
 	ctPending = -1
+	// ctCheckFailed is ha check's exit when a check did not give the expected
+	// result, an error included.
+	ctCheckFailed = exitProblems
+	// ctMissingProgram is a command that cannot start, so its check records
+	// an error.
+	ctMissingProgram = "ct-no-such-program-for-this-check"
 )
 
 // ctRules are the twins' start rules: the earlier rule and the new one.
@@ -86,16 +99,17 @@ func ctFirst(out string) string {
 	return strings.SplitN(strings.TrimSpace(out), "\n", 2)[0]
 }
 
-// newCTTwins makes the twins: the same committed standard goal in two
-// repositories whose base commits have the same ID.
-func newCTTwins(t *testing.T) *ctTwins {
+// newCTTwins makes the twins: the same committed goal of the tier ("" for a
+// SPEC without the line) in two repositories whose base commits have the
+// same ID.
+func newCTTwins(t *testing.T, tier string) *ctTwins {
 	t.Helper()
 	rgRequireGit(t)
 	t.Setenv("GIT_AUTHOR_DATE", ctDate)
 	t.Setenv("GIT_COMMITTER_DATE", ctDate)
 	tw := &ctTwins{t: t}
 	for i := range tw.pair {
-		tw.pair[i] = rgRepo(t, "standard", func(f *rgFixture) {
+		tw.pair[i] = rgRepo(t, tier, func(f *rgFixture) {
 			f.put(".gitignore", "/"+rgGoal+"/runs.jsonl\n")
 		})
 	}
@@ -332,6 +346,20 @@ func (tw *ctTwins) has(label string, obs [2]ctObs, code string, want bool) {
 	}
 }
 
+// recoveries fails the setup unless the run-rules/5 twin shows AC-1's check
+// input with the used and allowed recoveries.
+func (tw *ctTwins) recoveries(label string, obs [2]ctObs, used, allowed int) {
+	tw.t.Helper()
+	list, _ := obs[0].state.value["recoveries"].([]any)
+	for _, item := range list {
+		r, _ := item.(map[string]any)
+		if r["criterion"] == "AC-1" && r["input"] == "check" && r["used"] == float64(used) && r["allowed"] == float64(allowed) {
+			return
+		}
+	}
+	tw.t.Fatalf("setup: %s: recoveries %v under %s, want AC-1 check with %d used of %d", label, obs[0].state.value["recoveries"], ctRules[0], used, allowed)
+}
+
 // commit commits the same files in both twins.
 func (tw *ctTwins) commit(label string, files ...string) [2]ctObs {
 	tw.t.Helper()
@@ -358,9 +386,9 @@ func (tw *ctTwins) edit(label string, files ...string) [2]ctObs {
 
 // start starts both goals; a run-rules/6 start refused for its rule is the
 // observed violation.
-func (tw *ctTwins) start() {
+func (tw *ctTwins) start(label string) {
 	tw.t.Helper()
-	obs := tw.run("the start", exitOK, func(i int, f *rgFixture) (int, string) {
+	obs := tw.run(label, exitOK, func(i int, f *rgFixture) (int, string) {
 		code, out := f.ha("start", rgGoal, "--request", ctRequest, "--rules", ctRules[i], "--test-authority", ctAuthority)
 		if i == 1 && code == exitUsage && strings.Contains(out, "--rules") {
 			tw.t.Fatalf("jaekit:violation=%s ha refuses to start a goal under %s: exit %d: %s", ctViolation, ctRules[i], code, ctFirst(out))
@@ -374,12 +402,12 @@ func (tw *ctTwins) start() {
 	for i, o := range obs {
 		if got := o.state.value["rules"]; got != ctRules[i] {
 			if i == 0 {
-				tw.t.Fatalf("setup: the start under %s computes under %v", ctRules[i], got)
+				tw.t.Fatalf("setup: %s under %s computes under %v", label, ctRules[i], got)
 			}
-			tw.t.Fatalf("jaekit:violation=%s ha start --rules %s started a goal that computes under %v", ctViolation, ctRules[i], got)
+			tw.t.Fatalf("jaekit:violation=%s %s: ha start --rules %s started a goal that computes under %v", ctViolation, label, ctRules[i], got)
 		}
 	}
-	tw.compare("the start", obs)
+	tw.compare(label, obs)
 }
 
 // gate records the gate build makes of each twin, as spar gate writes it.
@@ -459,8 +487,8 @@ func ctReplaceFirst(t *testing.T, re *regexp.Regexp, line []byte, value string) 
 }
 
 func TestCoreIntegrityAC8_SameAsRulesV5Elsewhere(t *testing.T) {
-	tw := newCTTwins(t)
-	tw.start()
+	tw := newCTTwins(t, "standard")
+	tw.start("the start")
 
 	// Checks, and review reasons without a gate.
 	for _, f := range tw.pair {
@@ -564,6 +592,58 @@ func TestCoreIntegrityAC8_SameAsRulesV5Elsewhere(t *testing.T) {
 	tw.compare("a check under a time limit over the maximum", obs)
 	obs = tw.edit("the valid time limit again", rgGoal+"/PLAN.md", limited)
 	tw.has("the valid time limit again", obs, "lint_error", false)
+
+	// Error recovery. AC-1's command names a program that does not exist,
+	// so each check records an error and no violation; the second fresh
+	// error passes the limit of one rerun. The executor recovers twice, a
+	// third recovery is refused, the user allows one more, and the restored
+	// command passes.
+	broken := strings.Replace(limited, "`sh tests/value.sh`", "`"+ctMissingProgram+"`", 1)
+	if broken == limited {
+		t.Fatalf("setup: the PLAN has no AC-1 command to replace")
+	}
+	tw.edit("AC-1's command replaced by a program that does not exist", rgGoal+"/PLAN.md", broken)
+	check := ctHa("check", rgGoal, "AC-1")
+	recover := ctHa("note", rgGoal, "recover", "AC-1", "--input", "check", "--change", "the command names a program that exists")
+	refused := func(label string, act ctAct) {
+		t.Helper()
+		obs := tw.run(label, exitRefused, act)
+		if obs[0].record != "unchanged" {
+			t.Fatalf("setup: %s: the run record %s under %s", label, obs[0].record, ctRules[0])
+		}
+		tw.compare(label, obs)
+	}
+	errorLimit := func(label string) {
+		t.Helper()
+		obs := tw.step(label+": the first error", ctCheckFailed, check)
+		tw.has(label+": the first error", obs, "AC-1:error_limit", false)
+		obs = tw.step(label+": the second error", ctCheckFailed, check)
+		tw.has(label+": the second error", obs, "AC-1:error_limit", true)
+	}
+	recovered := func(label string, used, allowed int) {
+		t.Helper()
+		obs := tw.step(label, exitOK, recover)
+		tw.has(label, obs, "AC-1:error_limit", false)
+		tw.recoveries(label, obs, used, allowed)
+	}
+	obs = tw.step("an AC-1 check that cannot start", ctCheckFailed, check)
+	tw.has("an AC-1 check that cannot start", obs, "AC-1:error_limit", false)
+	refused("a recovery before the error limit", recover)
+	obs = tw.step("a second AC-1 check that cannot start", ctCheckFailed, check)
+	tw.has("a second AC-1 check that cannot start", obs, "AC-1:error_limit", true)
+	recovered("the first recovery", 1, 2)
+	errorLimit("after the first recovery")
+	recovered("the second recovery", 2, 2)
+	errorLimit("after the second recovery")
+	refused("a third recovery without the user's allowance", recover)
+	obs = tw.step("the user allows one more recovery", exitOK,
+		ctHa("note", rgGoal, "allow-recovery", "AC-1", "--input", "check", "--count", "1", "--quote", ctQuote))
+	tw.has("the user allows one more recovery", obs, "AC-1:error_limit", true)
+	tw.recoveries("the user allows one more recovery", obs, 2, 3)
+	recovered("the allowed recovery", 3, 3)
+	tw.edit("AC-1's command restored", rgGoal+"/PLAN.md", limited)
+	obs = tw.step("AC-1 checked with the restored command", exitOK, check)
+	tw.has("AC-1 checked with the restored command", obs, "AC-1:", false)
 
 	// Gates that leave completion pending, each with its reasons.
 	state := func(s string, defect, question int) func(f *rgFixture) rgGate {
@@ -694,5 +774,31 @@ func TestCoreIntegrityAC8_SameAsRulesV5Elsewhere(t *testing.T) {
 	obs = tw.step("ha done after the late done line", exitOK, ctHa("done", rgGoal))
 	if obs[0].state.completion == nil {
 		t.Fatalf("setup: ha done after the late done line: no completion record under %s", ctRules[0])
+	}
+
+	// A light goal and a goal without an Assurance line complete, and a
+	// reopen note with the user's words voids the completion record under
+	// both rules. No review note follows the completion.
+	for _, tier := range []struct{ tier, name string }{{"light", "a light goal"}, {"", "a goal without an Assurance line"}} {
+		tw := newCTTwins(t, tier.tier)
+		tw.start(tier.name + ": the start")
+		for _, f := range tw.pair {
+			f.put("src/work.txt", "one\n")
+		}
+		tw.commit(tier.name + ": a code commit")
+		tw.step(tier.name+": AC-1 checked", exitOK, ctHa("check", rgGoal, "AC-1"))
+		obs := tw.step(tier.name+": ha done", exitOK, ctHa("done", rgGoal))
+		if obs[0].state.completion == nil {
+			t.Fatalf("setup: %s: ha done: no completion record under %s", tier.name, ctRules[0])
+		}
+		label := tier.name + ": a reopen after the completion record"
+		obs = tw.run(label, exitOK, ctHa("note", rgGoal, "reopen", "--quote", ctQuote))
+		if obs[0].state.completion != nil {
+			t.Fatalf("setup: %s: completion record %v under %s", label, obs[0].state.completion, ctRules[0])
+		}
+		if c := obs[1].state.completion; c != nil {
+			t.Fatalf("jaekit:violation=%s %s: completion record %v stays under %s", ctViolation, label, c, ctRules[1])
+		}
+		tw.compare(label, obs)
 	}
 }
