@@ -15,10 +15,12 @@ import (
 // requirement-question, and its last code round (for strict also its last
 // plan round) received every current goal document. The gate is the
 // executor's claim; the judgment reads only the stored summary.
+// Under run-rules/6 the last candidate round must also start at the goal's
+// original base commit; the gate still owns the fixes chain judgment.
 
 // reviewCodes are the review reasons, in the order they are reported.
 var reviewCodes = []string{"review_missing", "review_blocked", "review_degraded", "review_open_defect",
-	"review_open_question", "review_code_missing", "review_head_stale", "review_docs_stale", "review_plan_missing"}
+	"review_open_question", "review_code_missing", "review_head_stale", "review_base_mismatch", "review_docs_stale", "review_plan_missing"}
 
 func isReviewReason(code string) bool {
 	for _, c := range reviewCodes {
@@ -45,7 +47,7 @@ func (e *evaluator) checkReviews() {
 	}
 }
 
-// reviewReasons judges the last recorded gate of a run-rules/5 goal whose
+// reviewReasons judges the last recorded gate of a run-rules/5 or /6 goal whose
 // current tier asks for review.
 func (e *evaluator) reviewReasons() []Reason {
 	tier := e.in.Goal.Assurance
@@ -92,6 +94,15 @@ func (e *evaluator) reviewReasons() []Reason {
 		add("review_head_stale", fmt.Sprintf("%s reviewed %s (last code round %s); HEAD is %s", at, short(g.LastReviewedHead), short(code.Head), short(e.head)))
 	case code == nil && g.LastReviewedHead != e.head:
 		add("review_head_stale", fmt.Sprintf("%s reviewed %s; HEAD is %s", at, short(g.LastReviewedHead), short(e.head)))
+	}
+	if CompletionIntegrity(e.rules) && code != nil {
+		candidate := lastRound(g, "candidate")
+		switch {
+		case candidate == nil:
+			add("review_base_mismatch", fmt.Sprintf("%s has no candidate round; the goal started at %s", at, short(e.start.BaseCommit)))
+		case candidate.Base != e.start.BaseCommit:
+			add("review_base_mismatch", fmt.Sprintf("%s: its last candidate round %d reviewed from %s; the goal started at %s", at, candidate.Sequence, short(candidate.Base), short(e.start.BaseCommit)))
+		}
 	}
 	plan := lastRound(g, "plan", "plan-delta")
 	var stale []string
