@@ -393,6 +393,8 @@ type Budget struct {
 	SpanSeconds         *int64 `json:"span_seconds,omitempty"`
 	WaitBasis           string `json:"wait_basis,omitempty"`
 	PreapprovedRuns     *int   `json:"preapproved_runs,omitempty"`
+	// run-rules/6 only: time after completion, excluding reported waits and runs.
+	PostCompletionSeconds *int64 `json:"post_completion_seconds,omitempty"`
 }
 
 // Log points to the local output of a failed or errored run.
@@ -1075,6 +1077,10 @@ func (e *evaluator) budget() (*Budget, error) {
 			wait, span := state.ReportedWaitSeconds, state.SpanSeconds
 			bud.ReportedWaitSeconds, bud.SpanSeconds, bud.WaitBasis = &wait, &span, "executor_reported"
 			bud.PreapprovedRuns = state.PreapprovedRuns
+		}
+		if CompletionIntegrity(e.rules) {
+			post := state.PostCompletionSeconds
+			bud.PostCompletionSeconds = &post
 		}
 		finishBudget(bud)
 		return bud, nil
