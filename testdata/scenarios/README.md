@@ -70,6 +70,7 @@ The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evi
 | `rules-v4-recovery-input` | run-record.md §4.7 error recovery | a recovery takes out only the error records it named; errors of an input that changed and came back count again |
 | `rules-v4-task-check` | run-record.md §4.7 time limits | a task command recorded under its applied limit is a current input |
 | `rules-v5-review-gate` | run-record.md §4.8 review gate | a `standard` goal under `/5` is `incomplete` with `review_missing`; unusable gate files exit 65 and record nothing; a blocked gate that does not cover HEAD or the goal documents gives its reasons and keeps no finding text; lowering the tier to `light` completes it |
+| `rules-v5-review-findings` | run-record.md §1.3, §4.8 review finding lists | a review note keeps the gate's deferred and undisposed findings without finding text; malformed lists exit 65 and record nothing; `ha report` shows the lists, says a hand-broken stored list cannot be read with the reasons unchanged, and says a gate without the lists recorded none |
 | `rules-v5-forms-refused` | run-record.md §4.8 | a `/4` goal refuses a review note with 65 and records nothing; `--quote` on a review note is a usage error |
 | `rules-v1-kept` | run-rules-2 AC-10 | historical `run-rules/1` budget semantics remain; a future dirty check is refused |
 | `blocked` | bundle.md §5 | `blocked` until unblock |

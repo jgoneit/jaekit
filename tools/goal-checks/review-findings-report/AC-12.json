@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Documents",
+      "violation": "finding-lists-undocumented",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReviewFindingsReportAC12_Documents"
+      }
+    }
+  ]
+}

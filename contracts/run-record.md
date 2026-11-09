@@ -108,11 +108,21 @@ JSON 출력은 `schema: estimate/v1`이며 다음을 제공한다.
 | --- | --- |
 | `Changed` / `바뀐 것` | 시작 기록의 base commit부터 HEAD까지 실행 묶음 문서 밖에서 바뀐 파일 수(`ha status`의 `out_of_scope`와 같은 목록의 길이)와 그 경로를 바꾼 병합 아닌 commit 수. 시작 전이면 base가 없다는 사실, Git이 비교하지 못하면 그 사실(아래) |
 | `Checked` / `확인한 것` | 필수 조건 수와 그중 충족한 수(검사 기록으로 충족한 `change`·`maintain` 수와 사용자 확인으로 충족한 `manual` 수), 조건표의 모든 `change` 조건 수와 그중 신선한 `fail_as_expected` baseline이 있는 수. 그 baseline은 상태 계산이 근거로 받는 것이어야 한다(결과와 종료 코드가 맞고, 구조화된 결과의 `change` 조건이면 저장된 근거 요약이 검증을 통과한다) |
-| `To review` / `직접 볼 것` | 이 순서의 전체 집합: 분류가 `user`인 남은 이유와 그 대상, 인용 확인으로 충족한 `manual` 조건과 그 확인 seq, 실행자 근거로 면제된 시험 변경(§4.7), `--weakened` 표시가 있는 시험 변경, 시작 뒤 바뀐 검증 명령(`changes.command_changed`), 해결되지 않은 완료 뒤 발견 수. 없으면 `none` / `없음` |
+| `To review` / `직접 볼 것` | 이 순서의 전체 집합: 분류가 `user`인 남은 이유와 그 대상, 인용 확인으로 충족한 `manual` 조건과 그 확인 seq, 실행자 근거로 면제된 시험 변경(§4.7), `--weakened` 표시가 있는 시험 변경, 시작 뒤 바뀐 검증 명령(`changes.command_changed`), 해결되지 않은 완료 뒤 발견 수, 기록된 마지막 `review` note의 검토 지적(아래). 없으면 `none` / `없음` |
 | `Remaining limits` / `남은 한계` | 늘 보증 수준 `local`과 검사 작성자 실행자. 충족되지 않은 선택 조건, 예산 초과(실행·경과의 사용량과 상한), 지금 HEAD를 덮는 완료 기록이 없다는 사실을 해당할 때 더한다 |
 | `Next step` / `다음 행동` | 상태마다 하나: 시작 전이면 `ha start <goal>`(lint 문제가 있으면 `ha lint <goal>` 먼저), 그 밖의 `incomplete`는 분류가 `executor`인 첫 이유와 그 대상, `needs_user`는 분류가 `user`인 이유 전부와 그 대상, 완료 기록이 없는 `complete`는 `ha done <goal>`, 유효한 완료 기록이 있으면 그 seq와 남은 할 일이 없다는 사실, `blocked`는 마지막 `block`의 seq와 원인, `budget_exhausted`는 사용자의 예산 결정과 사용량·상한 |
 
 이유의 대상은 조건 이유면 조건 ID(`` AC-2 `criterion_failed` ``), 목표 수준 이유면 그 이유가 가리키는 task나 경로(`` `task_open` (T002) ``, `` `out_of_scope` (lib/other.txt) ``)다. 요약의 값에 줄바꿈이 있으면 `\n`으로 써서 각 줄을 한 줄로 지킨다.
+
+**검토 지적.** 기록에 `review` note(§4.8)가 있으면 `직접 볼 것`은 위 항목 뒤에 기록된 마지막 `review` note의 지적 목록을 이 순서로 보인다. `<series>`와 `<round>`는 폴더 이름, `<to>`는 기록된 보류 대상 그대로이고, 한 항목 안의 지적은 기록 순서대로 `, `로 잇는다.
+
+- 보류한 지적이 있으면 `review findings deferred: <series>/<round> <id> [<class>] → <to>` / `보류한 검토 지적: <series>/<round> <id> [<class>] → <to>`.
+- 자동 보류 수가 0보다 크면 `auto-deferred hardening findings: <n>` / `자동 보류한 hardening 지적: <n>개`.
+- 처리 없는 지적이 있으면 `review findings without a disposition: <series>/<round> <id> [<class>]` / `처리 없는 검토 지적: <series>/<round> <id> [<class>]`.
+- 그 note에 목록이 없으면, 즉 목록 전의 Spar가 쓴 gate를 기록했으면 위 셋 대신 `the review gate's finding lists were not recorded (review note seq <n>)` / `검토 gate의 지적 목록이 기록되지 않음(review note seq <n>)`.
+- 저장된 목록을 읽을 수 없으면(손으로 고친 기록) 위 셋 대신 `the recorded review finding lists cannot be read (review note seq <n>)` / `기록된 검토 지적 목록을 읽을 수 없음(review note seq <n>)`. 판정은 이 목록을 읽지 않으므로 상태와 이유는 그대로다.
+
+`review` note가 없거나, 두 목록이 비고 자동 보류 수가 0이면 더하는 항목이 없다. 보고는 gate 파일이나 Spar 폴더를 읽지 않는다.
 
 **Git이 base와 HEAD를 비교할 수 없을 때.** base commit이 없는 얕은 clone처럼 Git이 그 범위를 읽지 못하면 `ha status`는 지금처럼 계산하지 못하고 70으로 끝난다. `ha report`는 다섯 줄만 보이고 70으로 끝난다: `Changed`는 비교할 수 없다는 사실, `Checked`와 `To review`는 계산하지 못했다는 사실, `Remaining limits`는 `local`과 검사 작성자 뒤에 나머지 한계를 계산하지 못했다는 사실, `Next step`은 base가 든 이력을 받는 방법(예: `git fetch --unshallow`)과 다시 실행할 명령이다. 상세는 보이지 않는다. 범위를 읽는 일 하나라도 실패하면 이 경우다: `ha status`와 같은 계산이 바뀐 파일을 읽다 실패한 경우와 `ha report`가 파일 수와 commit 수를 읽다 실패한 경우 모두다. 실패한 읽기는 다시 읽지 않는다.
 
@@ -753,10 +763,11 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
 | `expect_head`, `last_reviewed_head` | 기대 head와 마지막으로 검토된 head |
 | `rounds[]` | 파일의 순서대로 `stage`, `sequence`, `base`, `head`, `criteria_digest`, `criteria`(`name`, `sha256`), `required_reviewers`, `completed_required`, `dry_run` |
 | `open` | 열린 `defect`, `requirement-question` 수 |
+| `findings` | gate에 지적 목록이 있을 때만 있다. `deferred`(gate의 `deferred_findings` 항목마다 `series`, `round`, `id`, `class`, `to`), `unhandled`(`unhandled_findings` 항목마다 `series`, `round`, `id`, `class`), `auto_deferred`(gate의 수). 항목의 다른 필드는 남기지 않는다. 판정은 이 필드를 읽지 않고 보고만 읽는다(§1.3) |
 
-gate의 `reasons`, `open_findings`, 라운드 `path`, `waived_reviewers`(사용자 인용 포함), `growth`, `written_at`, `previous_gate_digest`는 남기지 않는다. 지적 원문은 Spar 기록이 정본이다. 기록할 때 HEAD, 작업 트리, 목표 문서와 대조하지 않고, 같은 파일을 다시 기록하면 같은 요약이 한 번 더 남는다.
+gate의 `reasons`, `open_findings`, 라운드 `path`, `waived_reviewers`(사용자 인용 포함), `growth`, `written_at`, `previous_gate_digest`는 남기지 않는다. 라운드와 series는 폴더 이름으로만 남는다. `to`는 원장의 보류 대상 글을 그대로 남기고 그 안의 경로를 고치지 않는다. 기록에 경로를 남기지 않으려면 `spar triage --to`에 이슈 주소 같은 식별자를 준다. 지적 원문은 Spar 기록이 정본이다. 기록할 때 HEAD, 작업 트리, 목표 문서와 대조하지 않고, 같은 파일을 다시 기록하면 같은 요약이 한 번 더 남는다.
 
-파일이 없거나 일반 파일이 아니거나 읽을 수 없음, JSON 객체 하나가 아님(빈 파일, 뒤에 붙은 데이터 포함), `schema`가 `review-gate/v1`이 아님, 위 필드가 없거나 타입이 틀림(`state`가 세 값 밖, `stage`가 `plan`·`plan-delta`·`candidate`·`fixes` 밖, 정수가 아니거나 음수인 수, `criteria` 항목의 빈 `name`이나 64자리 소문자 hex가 아닌 `sha256`)이면 `ha: review gate <file>: <이유>; nothing recorded`를 보이고 65로 끝나며 아무것도 기록하지 않는다. 그 밖의 모르는 필드는 무시한다. `--quote`를 주면 규칙과 무관하게 64이고, `/5` 목표에서 `--gate`가 없거나 비었으면 64다.
+파일이 없거나 일반 파일이 아니거나 읽을 수 없음, JSON 객체 하나가 아님(빈 파일, 뒤에 붙은 데이터 포함), `schema`가 `review-gate/v1`이 아님, 위 필드가 없거나 타입이 틀림(`state`가 세 값 밖, `stage`가 `plan`·`plan-delta`·`candidate`·`fixes` 밖, 정수가 아니거나 음수인 수, `criteria` 항목의 빈 `name`이나 64자리 소문자 hex가 아닌 `sha256`)이면 `ha: review gate <file>: <이유>; nothing recorded`를 보이고 65로 끝나며 아무것도 기록하지 않는다. `deferred_findings`나 `unhandled_findings`가 하나라도 있으면 지적 목록도 같은 거부의 대상이다: 둘 다 목록이어야 하고, 항목마다 객체이며 `series`·`round`가 폴더 이름(비지 않고 `/`·NUL이 없으며 `.`·`..`이 아님. Unix의 폴더 이름처럼 `\`는 들어갈 수 있다), `id`가 빈 문자열이 아니고, `class`가 `defect`·`requirement-question`·`hardening`·`note` 가운데 하나여야 한다. `deferred_findings` 항목은 `to`가 빈 문자열이 아니어야 하고, `auto_deferred`는 음수가 아닌 정수여야 한다. 둘 다 없으면 이 목록 전의 gate로 보아 지금처럼 기록하고 `auto_deferred`를 읽지 않는다. 그 밖의 모르는 필드는 무시한다. `--quote`를 주면 규칙과 무관하게 64이고, `/5` 목표에서 `--gate`가 없거나 비었으면 64다.
 
 **판정.** 판정할 때의 SPEC.md 등급이 `standard`나 `strict`이면, 기록 전체에서 가장 나중의 `review` note(기록된 마지막 gate)로 아래 이유를 계산한다. 등급이 `light`이거나 줄이 없으면 gate가 필요 없고, gate를 기록했어도 이 이유가 나오지 않는다. 등급은 시작 기록이 아니라 지금의 SPEC.md에서 읽는다. 등급을 바꾸면 목표 digest가 바뀌므로 `spec_changed`와 `confirm spec`도 지금처럼 적용된다.
 
@@ -776,7 +787,7 @@ gate의 `reasons`, `open_findings`, 라운드 `path`, `waived_reviewers`(사용�
 
 fixes 사슬과 기대 head의 확인은 gate 상태 `complete`가 맡는다([review-gate.md](review-gate.md) §2). Core는 사슬을 다시 계산하지 않고, 지적의 옳고 그름도 판단하지 않는다.
 
-이 이유가 하나라도 있으면 `ha done`은 완료를 기록하지 않는다. 완료 기록 뒤에 `review` note를 기록하면 `reopen`처럼 그 완료 기록이 무효가 되고 새 gate로 다시 판정한다(§5.1). `ha done`이 상태를 계산하는 동안 다른 `ha`가 줄을 붙였으면 그 `done` 줄의 `record_head`가 바로 앞 줄과 다르고, 그 완료 기록도 무효다. 그 사이에 붙은 `review` note가 판정되지 않은 채 완료 기록 앞에 남지 않게 하려는 것이다. 유효한 완료 기록이 있는 동안에는 이 이유를 상태 이유에서 뺀다. 그 완료 기록이 판정한 코드 상태와 목표 문서를 고정하므로, 완료 뒤 묶음 문서만 commit해도 완료가 유지된다. 저장된 `review` 요약의 `gate_digest`가 sha256이 아니거나, `schema`·`state`·`stage`가 위 값 밖이거나, 수가 음수이거나, `criteria` 항목에 이름이나 sha256이 없거나, 위 표의 필드가 없거나 `null`이면 `record_invalid`다. 기록은 `ha`만 쓰므로 그런 요약은 손으로 고친 기록이다.
+이 이유가 하나라도 있으면 `ha done`은 완료를 기록하지 않는다. 완료 기록 뒤에 `review` note를 기록하면 `reopen`처럼 그 완료 기록이 무효가 되고 새 gate로 다시 판정한다(§5.1). `ha done`이 상태를 계산하는 동안 다른 `ha`가 줄을 붙였으면 그 `done` 줄의 `record_head`가 바로 앞 줄과 다르고, 그 완료 기록도 무효다. 그 사이에 붙은 `review` note가 판정되지 않은 채 완료 기록 앞에 남지 않게 하려는 것이다. 유효한 완료 기록이 있는 동안에는 이 이유를 상태 이유에서 뺀다. 그 완료 기록이 판정한 코드 상태와 목표 문서를 고정하므로, 완료 뒤 묶음 문서만 commit해도 완료가 유지된다. 저장된 `review` 요약의 `gate_digest`가 sha256이 아니거나, `schema`·`state`·`stage`가 위 값 밖이거나, 수가 음수이거나, `criteria` 항목에 이름이나 sha256이 없거나, 위 표의 필드가 없거나 `null`이면 `record_invalid`다. 기록은 `ha`만 쓰므로 그런 요약은 손으로 고친 기록이다. `findings`는 판정이 읽지 않으므로 이 판단에 들어가지 않는다. 저장된 `findings`가 위 형식이 아니면 상태와 이유는 그대로이고, 보고가 그 목록을 읽을 수 없다고 보인다(§1.3).
 
 검토 없이 끝내려면 사용자가 등급을 `light`로 낮추는 목표 문서 수정을 정한다. 그 뒤 `confirm spec`과 신선한 검사로 gate 없이 완료된다.
 

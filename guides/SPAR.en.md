@@ -158,7 +158,7 @@ spar run --stage fixes --base 2222222 --head 3333333 \
 
 Decisions go into the packet's `## Decisions the user made` section as given and stay in `decisions` in `round.json`. The section tells reviewers not to report what a decision settles, to report as usual a change that goes beyond it, and, when following a decision breaks a criterion, rule or contract the decision does not address, to report a `requirement-question` that links it. spar does not check that the words are the user's. An empty decision, an unpaired option or text that is not valid UTF-8 is refused before any reviewer starts. The same input with the same decisions is the same packet; different decisions make another packet.
 
-Each round writes a new, Git-ignored folder with `round.json`, `packet.md`, `findings.json`, `ledger.jsonl` and `summary.md`. Spar refuses a folder that Git would track, because the packet can contain private documents ([Set up a project](#set-up-a-project)).
+Each round writes a new, Git-ignored folder with `round.json`, `packet.md`, `findings.json`, `ledger.jsonl` and `summary.md`. The finding table in `summary.md` shows each claim whole, on one line in the `Claim` column, so that file alone is enough to classify and close the findings. Spar refuses a folder that Git would track, because the packet can contain private documents ([Set up a project](#set-up-a-project)).
 
 <details>
 <summary>Round and input formats, and findings without a readable location</summary>

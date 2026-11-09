@@ -158,7 +158,7 @@ spar run --stage fixes --base 2222222 --head 3333333 \
 
 결정은 패킷의 `## Decisions the user made` 절에 받은 그대로 들어가고 `round.json`의 `decisions`에 남습니다. 절의 안내는 리뷰어에게 결정이 정한 대로 한 것은 지적하지 말고, 결정을 넘는 변경은 평소대로 지적하며, 결정을 따르면 그 결정이 다루지 않은 기준·규칙·계약이 깨질 때는 그것을 연결한 `requirement-question`으로 보고하라고 말합니다. spar는 그 말이 사용자의 말인지 확인하지 않습니다. 빈 결정, 짝이 없는 옵션, 올바른 UTF-8이 아닌 글은 리뷰어를 띄우기 전에 거부됩니다. 같은 결정으로 같은 입력을 다시 돌리면 같은 패킷이고, 결정이 다르면 다른 패킷입니다.
 
-라운드마다 Git이 무시하는 새 폴더에 `round.json`, `packet.md`, `findings.json`, `ledger.jsonl`, `summary.md`가 생깁니다. 패킷에 비공개 문서가 들어갈 수 있으므로 Git이 추적할 폴더는 거부합니다([프로젝트 준비](#프로젝트-준비)).
+라운드마다 Git이 무시하는 새 폴더에 `round.json`, `packet.md`, `findings.json`, `ledger.jsonl`, `summary.md`가 생깁니다. `summary.md`의 지적 표는 주장을 자르지 않고 `Claim` 칸에 한 줄로 보이므로, 그 파일만 읽고도 지적을 분류하고 처리할 수 있습니다. 패킷에 비공개 문서가 들어갈 수 있으므로 Git이 추적할 폴더는 거부합니다([프로젝트 준비](#프로젝트-준비)).
 
 <details>
 <summary>라운드·입력 형식과 위치를 읽을 수 없는 지적</summary>
