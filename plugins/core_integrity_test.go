@@ -4,7 +4,8 @@ package plugins
 // AC-9: Seal starts new goals under run-rules/6, declares that rule in
 // core-requirements.json, refuses a Core without it through its helper,
 // resumes a goal under its saved rule, and raises its version with a line in
-// the version list. AC-12: the contracts, guides and Seal's own documents
+// the version list; the helper also accepts resume, check and budget
+// operations on a run-rules/6 goal. AC-12: the contracts, guides and Seal's own documents
 // describe run-rules/6 in Korean and English.
 //
 // Each test reads every file it needs first. A file that is missing or
@@ -291,7 +292,8 @@ func cpRulesOf(r cpReport) string {
 	return *r.Rules
 }
 
-// AC-9: Seal starts new goals under run-rules/6.
+// AC-9: Seal starts new goals under run-rules/6, and its helper continues
+// both a run-rules/5 goal and the run-rules/6 goal it started.
 func TestCoreIntegrityAC9_SealStartsUnderRulesV6(t *testing.T) {
 	const v = "seal-not-on-rules-v6"
 	const (
@@ -424,6 +426,7 @@ func TestCoreIntegrityAC9_SealStartsUnderRulesV6(t *testing.T) {
 	out, code := cpRun(t, fresh, env, ha, "start", cpGoal, "--rules", cpNewRules, "--request", "implement the synthetic goal",
 		"--skill", filepath.Join(skillCopy, "SKILL.md"), "--check-skill")
 	first, _, _ := strings.Cut(strings.TrimSpace(out), "\n")
+	started := false
 	switch {
 	case code == 64 && strings.Contains(out, "--rules"):
 		t.Errorf("jaekit:violation=%s ha start --rules %s --check-skill with the skill is refused: exit %d: %s", v, cpNewRules, code, first)
@@ -434,6 +437,8 @@ func TestCoreIntegrityAC9_SealStartsUnderRulesV6(t *testing.T) {
 	default:
 		if got := cpStartRules(t, fresh); got != cpNewRules {
 			t.Errorf("jaekit:violation=%s the skill's start recorded rules %q, want %q", v, got, cpNewRules)
+		} else {
+			started = true
 		}
 	}
 
@@ -452,6 +457,18 @@ func TestCoreIntegrityAC9_SealStartsUnderRulesV6(t *testing.T) {
 	if r, code := cpHelperRun(t, earlier, env, "--ha", ha, "--operation", "resume", "--goal", cpGoal); code != 0 || !r.Compatible || cpRulesOf(r) != cpOldRules {
 		t.Errorf("jaekit:violation=%s check_core.py --operation resume of a %s goal: exit %d, compatible %v, rules %s, reason %s, missing %v; want 0 under %s",
 			v, cpOldRules, code, r.Compatible, cpRulesOf(r), r.Reason, r.Missing, cpOldRules)
+	}
+
+	// The helper also accepts the resume, check and budget operations on the
+	// run-rules/6 goal the skill started, under its saved rule. Without that
+	// goal, the refused start above is the observation.
+	if started {
+		for _, op := range []string{"resume", "check", "budget"} {
+			if r, code := cpHelperRun(t, fresh, env, "--ha", ha, "--operation", op, "--goal", cpGoal); code != 0 || !r.Compatible || cpRulesOf(r) != cpNewRules {
+				t.Errorf("jaekit:violation=%s check_core.py --operation %s of a %s goal: exit %d, compatible %v, rules %s, reason %s, missing %v; want 0 under %s",
+					v, op, cpNewRules, code, r.Compatible, cpRulesOf(r), r.Reason, r.Missing, cpNewRules)
+			}
+		}
 	}
 }
 
