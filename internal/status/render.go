@@ -303,6 +303,9 @@ func (rep *Report) Markdown(goalArg string) string {
 		if bd.ReportedWaitSeconds != nil && bd.SpanSeconds != nil {
 			w("- elapsed leaves out %d seconds of waits the executor reported (window span %d seconds)\n", *bd.ReportedWaitSeconds, *bd.SpanSeconds)
 		}
+		if bd.PostCompletionSeconds != nil {
+			w("- elapsed also leaves out %d seconds after completion, excluding reported waits and runs\n", *bd.PostCompletionSeconds)
+		}
 		if bd.PreapprovedRuns != nil {
 			w("- the user pre-approved up to %d runs in this window\n", *bd.PreapprovedRuns)
 		}

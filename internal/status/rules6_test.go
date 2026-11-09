@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jgoneit/jaekit/internal/bundle"
+	"github.com/jgoneit/jaekit/internal/record"
 )
 
 func TestRules6Inheritance(t *testing.T) {
@@ -35,6 +36,83 @@ func TestRules6Inheritance(t *testing.T) {
 	}
 	if message := (&UnsupportedRulesError{Rules: "run-rules/7"}).Error(); !strings.Contains(message, `"run-rules/6"`) {
 		t.Errorf("unsupported-rule diagnostic omits run-rules/6: %s", message)
+	}
+}
+
+func TestRules6PostCompletionWindows(t *testing.T) {
+	line := func(kind string, at int64, value string, started int64) record.Line {
+		l := record.Line{Header: record.Header{Schema: record.Schema, Kind: kind, At: time.Unix(at, 0).UTC().Format(time.RFC3339)}}
+		switch kind {
+		case "done":
+			l.Status = value
+		case "note":
+			l.Note, l.Quote = value, "synthetic user request"
+		case "check", "baseline":
+			l.StartedAt = time.Unix(started, 0).UTC().Format(time.RFC3339)
+		case "finding":
+			l.Schema = record.FindingSchema
+		}
+		return l
+	}
+	for _, tc := range []struct {
+		name                string
+		lines               []record.Line
+		span, post, elapsed int64
+		runs, window        int
+	}{
+		{"notes and repeated completions", []record.Line{
+			line("done", 10, Complete, 0), line("done", 20, Complete, 0),
+			line("note", 30, "input", 0), line("note", 40, "resume", 0),
+			line("note", 50, "review", 0), line("finding", 70, "", 0),
+		}, 50, 40, 10, 0, 1},
+		{"baseline ends interval", []record.Line{
+			line("done", 10, Complete, 0), line("baseline", 50, "", 40), line("note", 60, "input", 0),
+		}, 60, 30, 30, 1, 1},
+		{"two completion intervals", []record.Line{
+			line("done", 10, Complete, 0), line("check", 30, "", 20),
+			line("done", 40, Complete, 0), line("note", 60, "input", 0),
+		}, 60, 30, 30, 1, 1},
+		{"run starts in completion second", []record.Line{
+			line("done", 10, Complete, 0), line("check", 20, "", 10),
+		}, 20, 0, 20, 1, 1},
+		{"run crosses completion", []record.Line{
+			line("done", 10, Complete, 0), line("check", 20, "", 5), line("note", 30, "input", 0),
+		}, 30, 0, 30, 1, 1},
+		{"run starts before intervening done", []record.Line{
+			line("done", 10, Complete, 0), line("done", 30, Incomplete, 0),
+			line("check", 40, "", 20), line("note", 50, "input", 0),
+		}, 50, 10, 40, 1, 1},
+		{"reopen leaves previous interval behind", []record.Line{
+			line("done", 10, Complete, 0), line("note", 40, "reopen", 0), line("note", 60, "input", 0),
+		}, 20, 0, 20, 0, 3},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			lines := append([]record.Line{{Header: record.Header{Schema: record.Schema, Kind: "start", Seq: 1,
+				At: time.Unix(0, 0).UTC().Format(time.RFC3339)}, Rules: RulesV6,
+				Budget: &record.Budget{Runs: 50, ElapsedSeconds: 1000}}}, tc.lines...)
+			for i := range lines {
+				lines[i].Seq = i + 1
+			}
+			bud, err := RecordBudget(lines)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if bud.PostCompletionSeconds == nil || *bud.PostCompletionSeconds != tc.post ||
+				bud.SpanSeconds == nil || *bud.SpanSeconds != tc.span || bud.ElapsedSeconds != tc.elapsed ||
+				bud.Runs != tc.runs || bud.WindowStart != tc.window {
+				t.Fatalf("budget = %+v; want span %d, post %d, elapsed %d, runs %d, window %d", bud, tc.span, tc.post, tc.elapsed, tc.runs, tc.window)
+			}
+			for _, rules := range []string{RulesV1, RulesV2, RulesV3, RulesV4, RulesV5} {
+				lines[0].Rules = rules
+				old, err := RecordBudget(lines)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if old.PostCompletionSeconds != nil || old.ElapsedSeconds != tc.span || old.Runs != tc.runs || old.WindowStart != tc.window {
+					t.Errorf("%s budget changed: %+v", rules, old)
+				}
+			}
+		})
 	}
 }
 

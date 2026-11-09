@@ -57,6 +57,9 @@ type BudgetState struct {
 	ReportedWaitSeconds int64
 	PreapprovedRuns     *int
 	inheritRuns         int
+	// run-rules/6 also excludes time after completion, without counting
+	// reported waits or run intervals a second time.
+	PostCompletionSeconds int64
 }
 
 // BudgetChangeRequest states the budget revision the caller intended to edit.
@@ -223,7 +226,49 @@ func FoldBudget(lines []record.Line) (*BudgetState, error) {
 		state.ReportedWaitSeconds = reportedWait(lines[window:])
 		state.ElapsedSeconds = state.SpanSeconds - state.ReportedWaitSeconds
 	}
+	if CompletionIntegrity(state.Rules) {
+		state.PostCompletionSeconds = postCompletionSeconds(lines[window:])
+		state.ElapsedSeconds -= state.PostCompletionSeconds
+	}
 	return state, nil
+}
+
+// postCompletionSeconds counts time from complete done lines to the next run
+// start or non-complete done, clipped to this execution window. Notes and other
+// complete done lines do not end an interval. Runs and reported waits are kept
+// out of this deduction, so elapsed time counts runs and excludes overlaps once.
+func postCompletionSeconds(window []record.Line) int64 {
+	waits, runs, begin, end, ok := waitIntervals(window)
+	if !ok {
+		return 0
+	}
+	var spans []interval
+	stop := end
+	// Taking the earliest later endpoint also handles runs whose start times
+	// precede intervening records: append order is not process start order.
+	for i := len(window) - 1; i >= 0; i-- {
+		l := window[i]
+		switch l.Kind {
+		case "check", "baseline":
+			if at, ok := unix(l.StartedAt); ok {
+				stop = min(stop, at)
+			}
+		case "done":
+			at, ok := unix(l.At)
+			if !ok {
+				continue
+			}
+			if l.Status != Complete {
+				stop = min(stop, at)
+			} else if stop > at {
+				spans = append(spans, interval{at, stop})
+			}
+		}
+	}
+	for _, w := range waits {
+		runs = append(runs, w.interval)
+	}
+	return clipped(subtract(union(spans), union(runs)), begin, end)
 }
 
 // NewBudgetChange validates intent against a freshly read chain. Use this

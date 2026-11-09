@@ -26,6 +26,7 @@ type costWords struct {
 	inputs                                              map[string]string
 	notes, span, spanUnknown, budget, budgetNoWaits     string
 	budgetNone                                          string
+	postCompletion                                      string
 	bySource, bySourceNoSeries, waits, wait, inputs2    string
 	questions, undisposed, extensions                   string
 	extension, cause, reason, noCause                   string
@@ -79,6 +80,7 @@ var costLanguages = map[string]costWords{
 		budget:             "- budget window from seq %d, as ha status shows it: span %d seconds, reported waits %d seconds, elapsed %d of %d seconds; runs %d of %d",
 		budgetNoWaits:      "- budget window from seq %d, as ha status shows it: elapsed %d of %d seconds, waits are not reported before run-rules/4; runs %d of %d",
 		budgetNone:         "- budget window: not computed from the record",
+		postCompletion:     "- elapsed also leaves out %d seconds after completion, excluding reported waits and runs",
 		bySource:           "- questions by source: waits %s, requirement-questions %d, cap extensions %d, reviewer waivers %d",
 		bySourceNoSeries:   "- questions by source: waits %s; requirement-questions, cap extensions and reviewer waivers not given (no --series)",
 		waits:              "- waits, each as ha's budget counts it (%d seconds in all, overlaps counted once):",
@@ -163,6 +165,7 @@ var costLanguages = map[string]costWords{
 		budget:             "- 예산 창(seq %d부터, ha status와 같음): 구간 %d초, 신고한 대기 %d초, 경과 %d초/%d초; 실행 %d회/%d회",
 		budgetNoWaits:      "- 예산 창(seq %d부터, ha status와 같음): 경과 %d초/%d초, run-rules/4 전에는 대기를 신고하지 않음; 실행 %d회/%d회",
 		budgetNone:         "- 예산 창: 기록에서 계산하지 못함",
+		postCompletion:     "- 경과에서 완료 뒤 %d초를 더 뺌; 신고한 대기와 실행 구간은 제외",
 		bySource:           "- 출처별 질문: 대기 %s, requirement-question %d개, 상한 연장 %d개, 리뷰어 waiver %d개",
 		bySourceNoSeries:   "- 출처별 질문: 대기 %s; requirement-question·상한 연장·리뷰어 waiver는 주지 않음(--series 없음)",
 		waits:              "- 대기, 각각 ha의 예산 계산대로(모두 %d초, 겹친 대기는 한 번):",
@@ -291,6 +294,9 @@ func renderCost(d *costDoc, w costWords) string {
 			line(w.budget, bd.WindowStart, *bd.SpanSeconds, *bd.ReportedWaitSeconds, bd.ElapsedSeconds, bd.ElapsedLimitSeconds, bd.Runs, bd.RunsLimit)
 		default:
 			line(w.budgetNoWaits, bd.WindowStart, bd.ElapsedSeconds, bd.ElapsedLimitSeconds, bd.Runs, bd.RunsLimit)
+		}
+		if bd := v.Budget; bd != nil && bd.PostCompletionSeconds != nil {
+			line(w.postCompletion, *bd.PostCompletionSeconds)
 		}
 	}
 
