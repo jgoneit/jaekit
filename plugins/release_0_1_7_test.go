@@ -357,7 +357,8 @@ func TestRelease017AC3_BinariesTogether(t *testing.T) {
 // AC-9: the guides, contract example, Seal skill and manifests state the
 // current combination: ha 0.1.8, spar 0.1.8, Spec 0.1.13, Seal 0.1.23 and the
 // Spar plugin 0.1.4; the Seal skill and manifests carry the source Seal
-// 0.1.24, which adds the review summary after that release. The v0.1.7
+// 0.1.25 (0.1.24 adds the review summary after that release, 0.1.25 the
+// decisions and invariant places passed to review rounds). The v0.1.7
 // release notes still state their own
 // combination: ha 0.1.7, spar 0.1.7, Spec 0.1.13, Seal 0.1.22, Spar 0.1.3.
 func TestRelease017AC9_CombinationStated(t *testing.T) {
@@ -391,7 +392,7 @@ func TestRelease017AC9_CombinationStated(t *testing.T) {
 		"../contracts/core-capabilities.md": {`"ha_version": "0.1.8"`, "v0.1.8의 Core `0.1.8`·Seal `0.1.23`"},
 		"../contracts/review-gate.md":       {`"spar_version": "0.1.8"`},
 		r17SealHa:                           {"The commands below describe release v0.1.8: ha 0.1.8, spar 0.1.8 and Seal 0.1.23."},
-		r17SealSkill:                        {"version: \"0.1.24\"\n"},
+		r17SealSkill:                        {"version: \"0.1.25\"\n"},
 	} {
 		r17Contains(t, v, path, r17Read(t, path), tokens...)
 	}
@@ -404,8 +405,8 @@ func TestRelease017AC9_CombinationStated(t *testing.T) {
 			Version string `json:"version"`
 		}
 		r17JSON(t, path, &manifest)
-		if manifest.Version != "0.1.24" {
-			t.Errorf("jaekit:violation=%s %s version is %q, not 0.1.24", v, path, manifest.Version)
+		if manifest.Version != "0.1.25" {
+			t.Errorf("jaekit:violation=%s %s version is %q, not 0.1.25", v, path, manifest.Version)
 		}
 	}
 	var market struct {
@@ -415,7 +416,7 @@ func TestRelease017AC9_CombinationStated(t *testing.T) {
 		} `json:"plugins"`
 	}
 	r17JSON(t, "../.claude-plugin/marketplace.json", &market)
-	want := map[string]string{"spec": "0.1.13", "seal": "0.1.24", "spar": "0.1.4"}
+	want := map[string]string{"spec": "0.1.13", "seal": "0.1.25", "spar": "0.1.4"}
 	for _, p := range market.Plugins {
 		if w, ok := want[p.Name]; ok {
 			if p.Version != w {

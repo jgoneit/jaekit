@@ -36,8 +36,9 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 	// asks foreseeable questions before any baseline and points its install
 	// route and release links at v0.1.8; release v0.1.8 ships Spec 0.1.13 and
 	// Seal 0.1.23. Seal 0.1.24 adds the review summary in PROGRESS.md after
-	// that release.
-	for name, want := range map[string]string{"spec": "0.1.13", "seal": "0.1.24"} {
+	// that release, and Seal 0.1.25 passes decisions and invariant places to
+	// review rounds.
+	for name, want := range map[string]string{"spec": "0.1.13", "seal": "0.1.25"} {
 		t.Run(name, func(t *testing.T) {
 			_, version := frontMatter(t, filepath.Join(name, "skills", name, "SKILL.md"))
 			if version != want {

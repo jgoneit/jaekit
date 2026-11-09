@@ -75,6 +75,7 @@ type RoundRecord struct {
 	Rules              []Document                `json:"rules"`
 	Subjects           []Document                `json:"subjects"`
 	Questions          []string                  `json:"questions"`
+	Decisions          []Decision                `json:"decisions,omitempty"`
 	Prior              []string                  `json:"prior"`
 	PacketSHA256       string                    `json:"packet_sha256"`
 	Config             *Config                   `json:"config"`
@@ -87,6 +88,14 @@ type RoundRecord struct {
 	StartedAt          string                    `json:"started_at"`
 	FinishedAt         string                    `json:"finished_at,omitempty"`
 	Reviewers          map[string]*ReviewerState `json:"reviewers"`
+}
+
+// Decision is a decision of the user a round received (G35): what it
+// settles and the user's words, as the caller gave them. spar does not
+// check that the words are the user's.
+type Decision struct {
+	Settles   string `json:"settles"`
+	UserQuote string `json:"user_quote"`
 }
 
 // LedgerEntry is one line of ledger.jsonl.
