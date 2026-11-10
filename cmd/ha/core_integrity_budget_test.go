@@ -240,6 +240,32 @@ func TestCoreIntegrityAC6_PostCompletionBoundaries(t *testing.T) {
 		}
 	}()
 
+	// A run that started before the completion and was recorded after it
+	// does not end the time after the completion; its own run time counts.
+	func() {
+		f := rgRepo(t, "light", ciElapsed("10시간"))
+		ciStart(f, v)
+		f.check()                                                     // seq 2
+		ciMustDone(f, "completion")                                   // seq 3
+		f.check()                                                     // seq 4: started before seq 3
+		ciMust(f, exitOK, "note", rgGoal, "input", "--quote", "머지해줘") // seq 5
+		f.check()                                                     // seq 6
+		lines := ciLines(f)
+		if len(lines) != 6 {
+			t.Fatalf("setup: the record has %d lines, want 6", len(lines))
+		}
+		ciTime(lines[0], 0)
+		ciTime(lines[1], 111*m, 110*m)
+		ciTime(lines[2], 2*h)            // T: the completion
+		ciTime(lines[3], 2*h+5*m, 118*m) // a run from T-2m to T+5m
+		ciTime(lines[4], 10*h)           // the user's answer
+		ciTime(lines[5], 18*h+m, 18*h)   // the first run that started after T
+		ciWrite(f, ciRelink(f, lines, 0))
+		_, b := ciBudgetOf(f)
+		ciExpectSeconds(f, v, "a run that started before the completion", b, map[string]int64{"span_seconds": ciSeconds(18*h + m),
+			"post_completion_seconds": ciSeconds(16*h - 5*m), "elapsed_seconds": ciSeconds(2*h + 6*m)})
+	}()
+
 	// A done line that records no completion ends the time after it.
 	func() {
 		f := rgRepo(t, "light")

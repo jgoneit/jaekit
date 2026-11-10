@@ -6,9 +6,11 @@ package main
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
+	"time"
 )
 
 const ciBaseReason = "review_base_mismatch"
@@ -235,6 +237,57 @@ func TestCoreIntegrityAC4_UnjudgedDoneLineIsSkipped(t *testing.T) {
 		if s.code != sWithout.code || s.status != sWithout.status || !rgSame(s.reasons, sWithout.reasons) || (s.completion == nil) != (sWithout.completion == nil) || line != lineWithout {
 			t.Errorf("jaekit:violation=%s no earlier completion: with the unjudged line status %s (exit %d) reasons %v completion %v, %q; without it %s (exit %d) reasons %v completion %v, %q (%d bytes)",
 				v, s.status, s.code, s.reasons, s.completion, line, sWithout.status, sWithout.code, sWithout.reasons, sWithout.completion, lineWithout, len(without))
+		}
+	}()
+
+	// An unjudged completion line with no valid completion before it does
+	// not start the time after a completion either: the budget is the one of
+	// the record without that line.
+	func() {
+		f := rgRepo(t, "standard", ciElapsed("10시간"))
+		ciStart(f, v)
+		f.put("src/work.txt", "one\n")
+		f.work = f.commit("work")
+		f.put("src/work.txt", "two\n")
+		f.head = f.commit("fix")
+		f.check()                                                 // seq 2
+		f.recordGate(v, "covering gate", f.covering("candidate")) // seq 3
+		before := ciLines(f)
+		ciMustDone(f, "the completion ha done computed")
+		lines := ciLines(f)
+		done := lines[len(lines)-1]
+		ciWrite(f, before)
+		ciMust(f, exitOK, "note", rgGoal, "input", "--quote", "그 사이에 붙은 답") // seq 4, appended while ha done computed
+		lines = ciLines(f)
+		lines = append(lines, ciUnjudged(f, done, lines[len(lines)-1])) // seq 5, the done line naming seq 3
+		ciWrite(f, lines)
+		ciMust(f, exitOK, "note", rgGoal, "input", "--quote", "머지해줘") // seq 6, fourteen hours later
+		lines = ciLines(f)
+		if len(lines) != 6 || lines[4].kind() != "done" {
+			t.Fatalf("setup: the record has %d lines; want an unjudged done line at 5 of 6", len(lines))
+		}
+		h, m := time.Hour, time.Minute
+		ciTime(lines[0], 0)
+		ciTime(lines[1], 111*m, 110*m)
+		ciTime(lines[2], 115*m)
+		ciTime(lines[3], 119*m)
+		ciTime(lines[4], 2*h)
+		ciTime(lines[5], 16*h)
+		with := ciRelink(f, lines, 0)
+		ciWrite(f, with)
+		s, line := f.status(), ciCompletionLine(f)
+		b := ciBudget(f, s)
+		ciWrite(f, ciRelink(f, append(append([]ciLine(nil), with[:4]...), with[5]), 0))
+		sWithout, lineWithout := f.status(), ciCompletionLine(f)
+		bWithout := ciBudget(f, sWithout)
+		if s.code != sWithout.code || s.status != sWithout.status || !rgSame(s.reasons, sWithout.reasons) || (s.completion == nil) != (sWithout.completion == nil) || line != lineWithout {
+			t.Errorf("jaekit:violation=%s an unjudged line without an earlier completion: status %s (exit %d) reasons %v completion %v %q; without it %s (exit %d) reasons %v completion %v %q",
+				v, s.status, s.code, s.reasons, s.completion, line, sWithout.status, sWithout.code, sWithout.reasons, sWithout.completion, lineWithout)
+		}
+		for _, key := range []string{"elapsed_seconds", "span_seconds", "post_completion_seconds", "exceeded"} {
+			if !reflect.DeepEqual(b[key], bWithout[key]) {
+				t.Errorf("jaekit:violation=%s an unjudged line without an earlier completion changes budget %s: %v with it, %v without it", v, key, b[key], bWithout[key])
+			}
 		}
 	}()
 }
