@@ -6,11 +6,11 @@ package main
 // to a completion record under run-rules/7: the automatic limit from the
 // run-rules/7 minimum, a baseline for the marked condition only, three
 // passing checks, a review gate and ha done; a check file fixed after the
-// first candidate round, with its reason recorded, shows in ha report. The
-// helpers are in check_cost_test.go and check_cost_show_test.go.
+// first candidate round, with its reason recorded, shows in ha report with
+// that reason's text. The helpers are in check_cost_test.go and
+// check_cost_show_test.go.
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 )
@@ -74,7 +74,7 @@ func TestCheckCostAC12_SelectiveFlowEndToEnd(t *testing.T) {
 	for _, lang := range []string{"ko", "en"} {
 		review := f.summary(v, "the completed goal", lang, 1)
 		item, ok := ccItem(review, ccFreezeItems[lang][0])
-		want := fmt.Sprintf("%s (seq %d)", ccScript("AC-2"), seq)
+		want := ccWithReason(ccScript("AC-2"), seq, reason)
 		if !ok || !rgSame(ccPaths(item), []string{ccScript("AC-2")}) || !strings.Contains(item, want) {
 			t.Errorf("jaekit:violation=%s ha report --lang %s to-review line %q; want %q", v, lang, review, ccFreezeItems[lang][0]+want)
 		}
