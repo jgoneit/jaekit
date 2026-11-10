@@ -172,11 +172,18 @@ func TestRules6DoneJudgmentAcrossFindings(t *testing.T) {
 		{"one finding", []string{"finding"}, 2, true, false},
 		{"multiple findings", []string{"finding", "finding"}, 2, true, false},
 		{"immediately preceding finding", []string{"finding", "finding"}, 4, true, true},
-		{"earlier finding is not the execution head", []string{"finding", "finding"}, 3, false, false},
+		{"earlier finding is the record head", []string{"finding", "finding"}, 3, true, false},
+		{"record-head finding followed by multiple findings", []string{"finding", "finding", "finding"}, 3, true, false},
+		{"note after record-head finding", []string{"finding", "input"}, 3, false, false},
+		{"note between record-head finding and later finding", []string{"finding", "input", "finding"}, 3, false, false},
+		{"check after record-head finding", []string{"finding", "check", "finding"}, 3, false, false},
+		{"baseline after record-head finding", []string{"finding", "baseline", "finding"}, 3, false, false},
+		{"review after record-head finding", []string{"finding", "review", "finding"}, 3, false, false},
 		{"note", []string{"input"}, 2, false, false},
 		{"note before finding", []string{"input", "finding"}, 2, false, false},
 		{"note after finding", []string{"finding", "input"}, 2, false, false},
 		{"check before finding", []string{"check", "finding"}, 2, false, false},
+		{"baseline before finding", []string{"baseline", "finding"}, 2, false, false},
 		{"review before finding", []string{"review", "finding"}, 2, false, false},
 	} {
 		for _, rules := range []string{RulesV5, RulesV6} {
@@ -190,7 +197,7 @@ func TestRules6DoneJudgmentAcrossFindings(t *testing.T) {
 					switch kind {
 					case "finding":
 						l.Schema = record.FindingSchema
-					case "check":
+					case "check", "baseline":
 						l.StartedAt = time.Unix(10, 0).UTC().Format(time.RFC3339)
 					default:
 						l.Kind, l.Note = "note", kind
@@ -243,8 +250,11 @@ func TestRules6DoneJudgmentAcrossFindings(t *testing.T) {
 					rules == RulesV5 && bud.PostCompletionSeconds != nil {
 					t.Fatalf("budget = %+v; want elapsed %d and post %d", bud, 60-post, post)
 				}
-				if rules == RulesV6 && tc.head == 2 && judged {
-					without := record.ExecutionLines(lines)
+				if rules == RulesV6 && judged {
+					// Remove only findings appended after the recorded head, which
+					// can itself be a finding, and keep every execution timestamp.
+					without := append([]record.Line(nil), lines[:tc.head]...)
+					without = append(without, lines[done:]...)
 					linkRules6BudgetLines(t, without, nil)
 					want, err := RecordBudget(without)
 					if err != nil || !reflect.DeepEqual(bud, want) {
@@ -252,12 +262,41 @@ func TestRules6DoneJudgmentAcrossFindings(t *testing.T) {
 					}
 					e.in.Lines = without
 					completion, err := e.completionRecord(&Report{})
-					if err != nil || completion == nil || *completion != 3 {
-						t.Fatalf("completion without findings = %v, err = %v; want seq 3", completion, err)
+					if err != nil || completion == nil || *completion != tc.head+1 {
+						t.Fatalf("completion without intervening findings = %v, err = %v; want seq %d", completion, err, tc.head+1)
 					}
 				}
 			})
 		}
+	}
+}
+
+func TestRules6DoneJudgmentRequiresEarlierRecordHead(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		i    int
+		head int
+	}{
+		{"first line with null head", 0, -1},
+		{"first line with own head", 0, 0},
+		{"null head after finding", 2, -1},
+		{"own head after finding", 2, 2},
+		{"later head after finding", 2, 3},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			lines := []record.Line{
+				{Header: record.Header{Schema: record.Schema, Kind: "done"}, Raw: []byte("first done")},
+				{Header: record.Header{Schema: record.FindingSchema, Kind: "finding"}, Raw: []byte("finding")},
+				{Header: record.Header{Schema: record.Schema, Kind: "done"}, Raw: []byte("second done")},
+				{Header: record.Header{Schema: record.Schema, Kind: "note"}, Raw: []byte("later note")},
+			}
+			if tc.head >= 0 {
+				lines[tc.i].RecordHead = lines[tc.head].Hash()
+			}
+			if judgedCompletion(lines, tc.i) {
+				t.Fatal("done without an earlier record head is judged")
+			}
+		})
 	}
 }
 
