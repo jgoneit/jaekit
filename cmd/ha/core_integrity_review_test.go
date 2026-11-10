@@ -290,4 +290,91 @@ func TestCoreIntegrityAC4_UnjudgedDoneLineIsSkipped(t *testing.T) {
 			}
 		}
 	}()
+
+	// An unjudged completion line after a done line that recorded no
+	// completion: the human output still names that earlier line as the
+	// latest done, as for the record without the unjudged line.
+	func() {
+		f := ciFixture(t, v, "light") // seq 1 start, seq 2 check
+		f.put("src/work.txt", "three\n")
+		f.head = f.commit("a change after the check")
+		if code, s := f.done(); code == exitOK || s.completion != nil { // seq 3: not a completion
+			t.Fatalf("setup: ha done after a code change exit %d, completion %v; want no completion", code, s.completion)
+		}
+		f.check() // seq 4
+		before := ciLines(f)
+		ciMustDone(f, "the completion ha done computed")
+		done := ciLines(f)[len(before)]
+		ciWrite(f, before)
+		ciMust(f, exitOK, "note", rgGoal, "input", "--quote", "그 사이에 붙은 답") // seq 5, appended while ha done computed
+		sWithout, lineWithout := f.status(), ciCompletionLine(f)
+		lines := ciLines(f)
+		ciWrite(f, append(lines, ciUnjudged(f, done, lines[len(lines)-1]))) // seq 6, the done line naming seq 4
+		s, line := f.status(), ciCompletionLine(f)
+		if s.code != sWithout.code || s.status != sWithout.status || !rgSame(s.reasons, sWithout.reasons) || (s.completion == nil) != (sWithout.completion == nil) || line != lineWithout {
+			t.Errorf("jaekit:violation=%s an unjudged line after a done line with no completion: status %s (exit %d) reasons %v completion %v %q; without it %s (exit %d) reasons %v completion %v %q",
+				v, s.status, s.code, s.reasons, s.completion, line, sWithout.status, sWithout.code, sWithout.reasons, sWithout.completion, lineWithout)
+		}
+	}()
+
+	// An unjudged completion line that is the last line of its window, with
+	// no valid completion before it, neither extends the window nor completes
+	// it: the budget, and whether a budget change is accepted, are those of
+	// the record without that line.
+	func() {
+		f := rgRepo(t, "standard", ciElapsed("10시간"))
+		ciStart(f, v)
+		f.put("src/work.txt", "one\n")
+		f.work = f.commit("work")
+		f.put("src/work.txt", "two\n")
+		f.head = f.commit("fix")
+		f.check()                                                 // seq 2
+		f.recordGate(v, "covering gate", f.covering("candidate")) // seq 3
+		before := ciLines(f)
+		ciMustDone(f, "the completion ha done computed")
+		done := ciLines(f)[len(before)]
+		ciWrite(f, before)
+		ciMust(f, exitOK, "note", rgGoal, "input", "--quote", "그 사이에 붙은 답") // seq 4, appended while ha done computed
+		lines := ciLines(f)
+		lines = append(lines, ciUnjudged(f, done, lines[len(lines)-1])) // seq 5, the last line, ten hours later
+		if len(lines) != 5 || lines[4].kind() != "done" {
+			t.Fatalf("setup: the record has %d lines; want an unjudged done line at 5 of 5", len(lines))
+		}
+		h, m := time.Hour, time.Minute
+		ciTime(lines[0], 0)
+		ciTime(lines[1], 111*m, 110*m)
+		ciTime(lines[2], 115*m)
+		ciTime(lines[3], 2*h)
+		ciTime(lines[4], 12*h)
+		with := ciRelink(f, lines, 0)
+		ciWrite(f, with)
+		s := f.status()
+		b := ciBudget(f, s)
+		window, ok1 := b["window_start"].(float64)
+		revision, ok2 := b["revision"].(float64)
+		limit, ok3 := b["runs_limit"].(float64)
+		if !ok1 || !ok2 || !ok3 {
+			t.Fatalf("setup: the status budget has no window, revision or limit: %v", b)
+		}
+		change := []string{"budget", rgGoal, "--runs", fmt.Sprint(int(limit) + 10), "--from", fmt.Sprint(int(limit)),
+			"--window", fmt.Sprint(int(window)), "--revision", fmt.Sprint(int(revision)),
+			"--quote", "실행 횟수를 늘려줘", "--context", "the user asked for more runs"}
+		code, out := f.ha(change...)
+		ciWrite(f, ciRelink(f, with[:4], 0))
+		sWithout := f.status()
+		bWithout := ciBudget(f, sWithout)
+		codeWithout, outWithout := f.ha(change...)
+		if s.code != sWithout.code || s.status != sWithout.status || !rgSame(s.reasons, sWithout.reasons) || (s.completion == nil) != (sWithout.completion == nil) {
+			t.Errorf("jaekit:violation=%s an unjudged last line without an earlier completion: status %s (exit %d) reasons %v completion %v; without it %s (exit %d) reasons %v completion %v",
+				v, s.status, s.code, s.reasons, s.completion, sWithout.status, sWithout.code, sWithout.reasons, sWithout.completion)
+		}
+		for _, key := range []string{"elapsed_seconds", "span_seconds", "post_completion_seconds", "exceeded"} {
+			if !reflect.DeepEqual(b[key], bWithout[key]) {
+				t.Errorf("jaekit:violation=%s an unjudged last line without an earlier completion changes budget %s: %v with it, %v without it", v, key, b[key], bWithout[key])
+			}
+		}
+		if code != codeWithout {
+			t.Errorf("jaekit:violation=%s a budget change after an unjudged last line: exit %d (%s); without the line exit %d (%s)", v, code, strings.TrimSpace(out), codeWithout, strings.TrimSpace(outWithout))
+		}
+	}()
 }
