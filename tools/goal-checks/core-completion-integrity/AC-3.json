@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "LateReviewNoteByTier",
+      "violation": "late-review-note-voids-unreviewed",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestCoreIntegrityAC3_LateReviewNoteByTier"
+      }
+    }
+  ]
+}

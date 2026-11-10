@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "PostCompletionBoundaries",
+      "violation": "post-completion-boundary-wrong",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestCoreIntegrityAC6_PostCompletionBoundaries"
+      }
+    }
+  ]
+}

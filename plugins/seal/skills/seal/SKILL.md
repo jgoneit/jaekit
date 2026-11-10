@@ -2,7 +2,7 @@
 name: seal
 description: Carry a goal in docs/specs/<goal>/ to recorded completion — plan, implement, verify through the ha binary, and resume in a new session. Use when the user calls this skill with a goal or asks to implement, finish, or continue a goal document, for example "$seal:seal docs/specs/x" in Codex, "/seal:seal docs/specs/x" in Claude Code, "docs/specs/x 구현해줘", or "docs/specs/x 이어서 해줘".
 metadata:
-  version: "0.1.25"
+  version: "0.1.26"
 ---
 
 # Seal
@@ -27,7 +27,7 @@ The bundle in `docs/specs/<goal>/` (templates in `assets/templates/`) lets anoth
 
 ## Starting
 
-- Start with `ha start <goal> --rules run-rules/5 --request "<the user's words>" --skill <path to this SKILL.md> --check-skill`; `ha` refuses with no record on lint problems or Core lacking support declared in `core-requirements.json` beside this file.
+- Start with `ha start <goal> --rules run-rules/6 --request "<the user's words>" --skill <path to this SKILL.md> --check-skill`; `ha` refuses with no record on lint problems or Core lacking support declared in `core-requirements.json` beside this file.
 - If `ha` is missing, refuses the start or does not know a command (exit 64), record nothing and stop; report the executable and message, never installing tools or using an older rule. Installation: `brew install jgoneit/tap/jaekit` or https://github.com/jgoneit/jaekit/blob/v0.1.8/guides/INSTALL.md (Windows is not supported); check PATH with `which -a ha`. Building from a checkout is only for developing Jaekit.
 - Without the user's budget, write `- 검증 실행: 자동` and `- 경과 시간: 4시간`; if the computed limit needs approval, ask once with both limits and write the approved number, never asking again for that PLAN.
 - List the tools checks need in `## 실행 환경` and run `ha doctor <goal>` before any baseline and, when resuming, before the next check; ask about unusable tools in one question, never widening permissions or settings, and keep doing independent work.
@@ -59,14 +59,14 @@ Apply the selected assurance policy, linking required conditions and source, the
 - `light` may skip independent review, with the reason in `REVIEW.md` and the report. `standard`, or a selected policy needing review, takes a `candidate` round once the final candidate's narrow checks pass, a `fixes` round after review-fix commits and the cumulative round; `strict` adds a `plan` round.
 - A tier changed mid-goal applies once the user asks to continue; a stage it adds runs on the current head before completion, and earlier records stay. `REVIEW.md` names the tier, or none, and planned stages; the report, the tier and stages received or why skipped.
 
-Start reviewers from the initial contract, check, and expected-result grounds (they may read implementation and integration code); independence is not a different model or certified identity. Under `run-rules/5`, a `standard` or `strict` goal completes only with a recorded Spar gate; without one, completion stays pending, and finishing without review needs the user's goal-document change that lowers the tier to `light`. When a required review is unavailable, keep completion pending, record cause, affected conditions, missing evidence, and resolution, and continue independent useful work; report a skipped optional review, and an optional unobserved comparison may stay a gap. Never invent reviews.
+Start reviewers from the initial contract, check, and expected-result grounds (they may read implementation and integration code); independence is not a different model or certified identity. From `run-rules/5`, a `standard` or `strict` goal completes only with a recorded Spar gate; without one, completion stays pending, and finishing without review needs the user's goal-document change that lowers the tier to `light`. When a required review is unavailable, keep completion pending, record cause, affected conditions, missing evidence, and resolution, and continue independent useful work; report a skipped optional review, and an optional unobserved comparison may stay a gap. Never invent reviews.
 
 ## Independent review
 
 Spar owns how rounds run.
 
 - `REVIEW.md` states the product invariants and decision rules the change introduces or alters and, before any plan round, the supported forms of open-ended input a contract or check it adds or changes covers, never narrower than a SPEC criterion, contract or protected regression path requires without the user's decision; ask the user when an open criterion has none. A `plan` round, if `strict` or the selected policy asks, comes before any baseline and also reviews them, as questions.
-- The cumulative round is a `candidate` round from the goal's base commit to the last head; a goal under review runs `ha done` only once it ends with no open `defect` or `requirement-question`. A `fixes` round never replaces it; a candidate round with no later fixes is one. Rounds take the goal's added or changed check files (declarations, producers, tests) as `--check-path` and, under `run-rules/5`, all goal documents as criteria; `ha note <goal> review --gate <file>` records their `spar gate` before `ha done`.
+- The cumulative round is a `candidate` round from the goal's base commit to the last head; a goal under review runs `ha done` only once it ends with no open `defect` or `requirement-question`. A `fixes` round never replaces it; a candidate round with no later fixes is one. Rounds take the goal's added or changed check files (declarations, producers, tests) as `--check-path` and, from `run-rules/5`, all goal documents as criteria; `ha note <goal> review --gate <file>` records their `spar gate` before `ha done`.
 - You decide dispositions: fix or rebut a `defect`; ask the user about a `requirement-question`; never fix a deferred `hardening` item without the user's words. A finding outside the supported forms is `hardening`; the contract's statement of the forms rebuts a `defect` label.
 - At a round cap, ask the user as the Spar skill says; never pass it or skip the cumulative round without the user's words.
 - `REVIEW.md` and the report summarize Spar's round and gate records by reference, never copying findings.

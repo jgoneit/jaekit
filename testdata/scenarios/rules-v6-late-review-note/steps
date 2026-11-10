@@ -1,0 +1,32 @@
+# run-rules/6: a light goal keeps its completion after an optional review note,
+# even when that gate is blocked; no second done is needed.
+replace $GOAL/SPEC.md "Status: Ready" "Status: Ready\nAssurance: light"
+replace $GOAL/PLAN.md "| AC-1 | change | `sh tests/greeting.sh` | tests/greeting.sh | T001 |" "| AC-1 | maintain | `sh tests/greeting.sh` | — | T001 |"
+write tests/greeting.sh "grep -qx hello src/greeting.txt\n"
+write src/greeting.txt "hello\n"
+commit "light goal, implemented"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/6
+expect-exit 0
+progress T001 done
+ha check $GOAL
+expect-exit 0
+ha done $GOAL
+expect-exit 0
+expect-records 4
+expect-completion-record present
+write .git/gate.json "{\"schema\":\"review-gate/v1\",\"spar_version\":\"0.1.6\",\"state\":\"blocked\",\"reasons\":[],\"expect_head\":\"2222222222222222222222222222222222222222\",\"last_reviewed_head\":\"2222222222222222222222222222222222222222\",\"previous_gate_digest\":null,\"rounds\":[],\"open\":{\"defect\":1,\"requirement-question\":0},\"open_findings\":[\"01-candidate host-F1\"],\"auto_deferred\":0,\"growth\":{\"added_lines\":{\"check\":0,\"other\":0},\"over_hardening\":false,\"rounds\":[]},\"written_at\":\"2026-01-01T00:00:00Z\"}\n"
+ha note $GOAL review --gate .git/gate.json
+expect-exit 0
+expect-records 5
+expect-record 5 note review
+expect-status complete
+expect-reasons none
+expect-completion-record present
+ha status $GOAL
+expect-exit 0
+expect-output "- completion record: seq 4"
+ha report $GOAL --lang en
+expect-exit 0
+expect-output "Source: completion record seq 4"
+expect-output "- completion record seq 4, commit"
+expect-records 5

@@ -495,15 +495,16 @@ Optional conditions (marked `(선택)` in the goal documents) and `EX-n` added b
 | `record_invalid` | There is an unknown result value or inconsistent stored data | user confirmation |
 | `blocked` | The last `block` has no `unblock` after it | cause resolved |
 | `budget_exceeded` | The number of `check` and `baseline` lines, or the elapsed time, within the budget window (§5.2) exceeds the budget | user decision |
-| `review_missing` | `/5` only: the tier requires review but no gate is recorded (§4.8) | executor fixes |
-| `review_blocked` | `/5` only: the last recorded gate is `blocked` (§4.8) | executor fixes |
-| `review_degraded` | `/5` only: the last recorded gate is `degraded` (§4.8) | executor fixes |
-| `review_open_defect` | `/5` only: that gate has an open `defect` (§4.8) | executor fixes |
-| `review_open_question` | `/5` only: that gate has an open `requirement-question` (§4.8) | user confirmation |
-| `review_code_missing` | `/5` only: that gate has no code round (§4.8) | executor fixes |
-| `review_head_stale` | `/5` only: the head that gate reviewed is not HEAD (§4.8) | executor fixes |
-| `review_docs_stale` | `/5` only: that gate's rounds did not receive the current goal documents (§4.8) | executor fixes |
-| `review_plan_missing` | `/5` only: the goal is `strict` but that gate has no plan round (§4.8) | executor fixes |
+| `review_missing` | `/5` and `/6`: the tier requires review but no gate is recorded (§4.8) | executor fixes |
+| `review_blocked` | `/5` and `/6`: the last recorded gate is `blocked` (§4.8) | executor fixes |
+| `review_degraded` | `/5` and `/6`: the last recorded gate is `degraded` (§4.8) | executor fixes |
+| `review_open_defect` | `/5` and `/6`: that gate has an open `defect` (§4.8) | executor fixes |
+| `review_open_question` | `/5` and `/6`: that gate has an open `requirement-question` (§4.8) | user confirmation |
+| `review_code_missing` | `/5` and `/6`: that gate has no code round (§4.8) | executor fixes |
+| `review_head_stale` | `/5` and `/6`: the head that gate reviewed is not HEAD (§4.8) | executor fixes |
+| `review_base_mismatch` | `/6` only: the base of that gate's last candidate round (excluding dry runs) differs from the goal's start base commit, or the gate has only fixes rounds (§4.9) | executor fixes: run the cumulative candidate round from the goal's start base commit and record its gate |
+| `review_docs_stale` | `/5` and `/6`: that gate's rounds did not receive the current goal documents (§4.8) | executor fixes |
+| `review_plan_missing` | `/5` and `/6`: the goal is `strict` but that gate has no plan round (§4.8) | executor fixes |
 
 ### 4.3 Status
 
@@ -699,22 +700,22 @@ Kind, result and freshness are overlapping axes. The columns are never added tog
 
 ### 4.6 Rules versions
 
-The `rules` of `start` set the computation rules. A new `ha start` records `run-rules/3`. `ha start --rules run-rules/4` records `run-rules/4` (§4.7), and `ha start --rules run-rules/5` records `run-rules/5` (§4.8). The default rule does not change; a new Seal chooses the new rules with this option. A goal started under `/1` or `/2` is computed under that rule even by a new binary, and later runs do not mix in the new result or budget semantics. There is no automatic migration and no rewriting of past records. A new change check gets valid evidence only when it is connected to the structured result contract.
+The `rules` of `start` set the computation rules. A new `ha start` records `run-rules/3`. `ha start --rules run-rules/4` records `run-rules/4` (§4.7), `ha start --rules run-rules/5` records `run-rules/5` (§4.8), and `ha start --rules run-rules/6` records `run-rules/6` (§4.9). The default rule does not change; Seal 0.1.26 chooses `run-rules/6` for new goals with this option. A goal started under `/1` through `/5` is computed under its saved rule even by a new binary, and later runs do not mix in the new result or budget semantics. There is no automatic migration and no rewriting of past records. A new change check gets valid evidence only when it is connected to the structured result contract.
 
 For a rules version that `ha` does not support, it neither computes nor records. `ha status`, `ha done`, `ha check`, `ha note` and `ha budget` exit with 66. If the start rule can be read, rejecting the unsupported rule takes precedence over integrity errors after it. Even under supported rules, unknown results and inconsistent data are not evidence of success. Only the meaning of valid old records is preserved for compatibility.
 
-| | `run-rules/1` | `run-rules/2` | `run-rules/3` | `run-rules/4` | `run-rules/5` |
-| --- | --- | --- | --- | --- | --- |
-| Bundle documents (paths left out of the code state) | The goal's own goal documents and execution bundle, and other goals' `amendments/**` | Also includes other goals' execution bundle files. The PLAN's `다른 목표 실행 묶음` (other goals' execution bundles) declaration stays an input | Same as `/2` | Same as `/2` | Same as `/2` |
-| When the only remaining reason is `budget_exceeded` | `budget_exhausted` | `complete`. `ha done` leaves a completion record | Same as `/2` | Same as `/2` | Same as `/2` |
-| Failure and pass evidence for change | Process exit result | Same as `/1` | Declared targets, required violations, errors and invocation link are confirmed through structured results | Same as `/3` | Same as `/3` |
-| Changing the run limit of the current window | Unsupported | Unsupported | `budget_change`, usage kept | `/3` plus increases within the pre-approved limit that need only a reason | Same as `/4` |
-| Run limit of a resumed window | Initial start limit | Initial start limit | Inherits the latest valid run limit | The start limit or the last limit set by a user quote. Pre-approval is not inherited | Same as `/4` |
-| Changing existing tests | User confirmation | User confirmation | User confirmation | Satisfied without confirmation when there is a rationale within the recorded authority | Same as `/4` |
-| Elapsed time | Whole window | Whole window | Whole window | Minus the waits the executor reported | Same as `/4` |
-| Error limit | E=1 on the same code | Same as `/1` | Inconclusive results count too | `/3` plus recovery notes | Same as `/4` |
-| Per-command time limit | 900 seconds | 900 seconds | 900 seconds | PLAN `## 시간 제한`, or 900 seconds without it | Same as `/4` |
-| Review gate | Not used in judgment | Not used in judgment | Not used in judgment | Not used in judgment | A `standard` or `strict` goal completes only when the last recorded gate covers the current HEAD and goal documents (§4.8) |
+| | `run-rules/1` | `run-rules/2` | `run-rules/3` | `run-rules/4` | `run-rules/5` | `run-rules/6` |
+| --- | --- | --- | --- | --- | --- | --- |
+| Bundle documents (paths left out of the code state) | The goal's own goal documents and execution bundle, and other goals' `amendments/**` | Also includes other goals' execution bundle files. The PLAN's `다른 목표 실행 묶음` (other goals' execution bundles) declaration stays an input | Same as `/2` | Same as `/2` | Same as `/2` | Same as `/2` |
+| When the only remaining reason is `budget_exceeded` | `budget_exhausted` | `complete`. `ha done` leaves a completion record | Same as `/2` | Same as `/2` | Same as `/2` | Same as `/2` |
+| Failure and pass evidence for change | Process exit result | Same as `/1` | Declared targets, required violations, errors and invocation link are confirmed through structured results | Same as `/3` | Same as `/3` | Same as `/3` |
+| Changing the run limit of the current window | Unsupported | Unsupported | `budget_change`, usage kept | `/3` plus increases within the pre-approved limit that need only a reason | Same as `/4` | Same as `/4` |
+| Run limit of a resumed window | Initial start limit | Initial start limit | Inherits the latest valid run limit | The start limit or the last limit set by a user quote. Pre-approval is not inherited | Same as `/4` | Same as `/4` |
+| Changing existing tests | User confirmation | User confirmation | User confirmation | Satisfied without confirmation when there is a rationale within the recorded authority | Same as `/4` | Same as `/4` |
+| Elapsed time | Whole window | Whole window | Whole window | Minus the waits the executor reported | Same as `/4` | `/4` plus exclusion of intervals after completion (§4.9) |
+| Error limit | E=1 on the same code | Same as `/1` | Inconclusive results count too | `/3` plus recovery notes | Same as `/4` | Same as `/4` |
+| Per-command time limit | 900 seconds | 900 seconds | 900 seconds | PLAN `## 시간 제한`, or 900 seconds without it | Same as `/4` | Same as `/4` |
+| Review gate | Not used in judgment | Not used in judgment | Not used in judgment | Not used in judgment | A `standard` or `strict` goal completes only when the last recorded gate covers the current HEAD and goal documents (§4.8) | `/5` plus the last candidate starting at the start base (§4.9) |
 
 **Other goals' execution bundle files.** These are `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl` and `tasks/` directly under another directory that is under the same parent as the goal's own directory and has a `SPEC.md` in the current working tree. That directory's `SPEC.md`, the documents it links, and other files such as `checks/` are code. A directory that is not under the same parent, or that has no `SPEC.md` (for example, a goal-shaped directory under `examples/` or `testdata/`), is also code. The `amendments/` of that other goal directory is not an execution bundle file, but under every rules version it is left out of the code state regardless of the PLAN's `다른 목표 실행 묶음` declaration (§2). This list is used alike in every judgment that uses the bundle documents.
 - Whether the working tree is clean: the §3 premise, the `tree_clean` that `check` and `baseline` leave, and path confirmations (`confirm`)
@@ -795,6 +796,20 @@ If any of these reasons exists, `ha done` does not record completion. Recording 
 
 To finish without review, the user decides a goal document change that lowers the tier to `light`. After that, the goal completes without a gate through `confirm spec` and fresh checks.
 
+### 4.9 run-rules/6
+
+A goal started with `ha start --rules run-rules/6` keeps all the rules of `run-rules/5` and changes only the four judgments below. The default start rule stays `run-rules/3`. Seal 0.1.26 declares `run-rules/6` in `core-requirements.json` and starts new goals with `--rules run-rules/6 --check-skill`. Without the required support, it stops without a record and does not fall back to earlier rules. Goals started under `/1` through `/5` keep their judgments and the meaning of their existing completion records.
+
+**Start of the review range.** For a `standard` or `strict` goal, the last candidate round (excluding dry runs) of the last recorded gate must have the same full commit ID in `base` as the start record's `base_commit`. The comparison still uses the original start base after `reopen`. A mismatch adds the executor reason `review_base_mismatch` after `review_head_stale`, and `ha done` does not record completion. Its detail is `the review gate recorded at seq <n>: its last candidate round <sequence> reviewed from <base, 12 characters>; the goal started at <base, 12 characters>`, naming the gate seq, candidate sequence and base, and start base. With only fixes rounds and no candidate, it gives the same reason and `the review gate recorded at seq <n> has no candidate round; the goal started at <base, 12 characters>`. With no code round at all, it does not add this reason and uses the existing `review_code_missing`. Fixes rounds may follow a candidate from the start base. Spar's gate state still checks the fixes chain; Core does not recalculate it.
+
+**Review notes after completion.** A `review` note after a completion record voids that record only when the tier in SPEC.md at judgment time is `standard` or `strict`. With `light` or no tier line, an otherwise valid completion record stays valid without another `ha done`. Editing the tier changes the SPEC digest, so the existing validity checks still apply. Under `run-rules/5`, a later `review` note voids the completion record regardless of tier.
+
+**Unjudged done lines.** Under `run-rules/6`, a `done` line is judged when its `record_head` is the hash of an earlier line and every line strictly between that line and the `done` line is a finding line (`run-finding/v1`), including when there are no intervening lines. The named line may itself be a finding line. Finding lines enter neither the completion judgment nor the budget inputs. A `done` line at the start of the record, with a `null` `record_head`, or whose `record_head` is not the hash of an earlier line is unjudged. When any line that is not a finding line, such as a note or a run, comes in between, the line is unjudged. Every `done` line is judged on the full record before any lines are removed; a line whose `record_head` names an unjudged line can therefore still be judged. An unjudged `done` line, complete or non-complete, is then treated as absent from status computation: the completion record and its explanation, the latest done line, the budget window and elapsed time, post-completion intervals, and budget-change refusal all use this same view. Status, report, cost and budget changes agree on that view. Chain and record validation, `record_head`, findings and run counts still use the full record. An earlier line still needs every validity condition; later `review` notes apply under the tier rule above. A judged line invalid for another reason stops the search as before. Under `run-rules/5`, when the latest completion `done` line was not judged, the search does not find an earlier valid completion record. This change does not put the computation and recording of `ha done` under one lock.
+
+**Time after completion.** Within a budget window, elapsed time excludes the interval from the `at` of a `done` line whose `status` is `complete` to the earlier of the earliest `started_at` among checks or baselines that started in the same second as that `at` or later and the `at` of a later judged non-complete `done` line. Only a judged completion `done` line (one that is not an unjudged done line above) starts this interval. A run that started before the completion `done` line does not end the interval, even if recorded afterward. With neither endpoint, it ends at the window's last record subject to the run budget. Another `complete` line in between continues the interval; notes (`wait`, `input`, `review` and others) and finding lines do not end it. `reopen` opens a new window. The interval is clipped to the window and excludes run intervals and reported waits, so run time stays elapsed and overlapping waits are subtracted only once. `run-rules/5` has no such additional deduction.
+
+The `budget.post_completion_seconds` in `run-rules/6` status JSON and the budget window's `post_completion_seconds` in `ha cost` JSON are these additional excluded seconds. Thus `elapsed_seconds = span_seconds - reported_wait_seconds - post_completion_seconds`. The human-readable status Budget section also shows `elapsed also leaves out <seconds> seconds after completion, excluding reported waits and runs` on its own line. The `Remaining limits` and budget decision in `ha report`, and the budget window in `ha cost`, use the same elapsed time. Time is calculated only from stored `at` and `started_at`, never the current time. Run counts, budget windows and limits, and refusal to change the budget of a window with a completion record stay unchanged. Work before the first run after completion also falls in this interval, so rework that edits code after completion proceeds in a new window opened by `reopen` quoting the user's request.
+
 ## 5. Completion record and budget
 
 ### 5.1 Completion record
@@ -806,11 +821,12 @@ A completion record d is **valid** while all of the following hold.
 - There is no difference outside the bundle documents between d.commit and HEAD. The bundle documents follow the rules version (§4.6).
 - The SPEC digest and the command digests of the required conditions are the same as in d. For a `/3` change, the structured declarations and producer inputs must also have the same meaning.
 - There is no `reopen` note after d. Under `/5`, there is no `review` note either, and d's `record_head` is the line just before d (§4.8).
+- Under `run-rules/6`, d must be a judged line (its `record_head` is the hash of an earlier line and every line strictly between that line and d is a finding line (`run-finding/v1`), including when there are no intervening lines; the named line may itself be a finding line), and later `review` notes void d only for the current `standard` or `strict` tier. Every `done` line is judged on the full record first; unjudged complete and non-complete lines are then absent from status computation, including the completion record and its explanation, the latest done line, the budget window, elapsed time, post-completion intervals and budget-change refusal. A judged line invalid for another reason stops the search (§4.9).
 - The `prev` links of d and the lines before it are intact. If they are broken, the completion record is not evidence either (`record_integrity`).
 
 With a valid completion record, the status is `complete`, regardless of how much time has passed since. When a completion record becomes invalid (the code or SPEC changed, rework was requested), the record remains as history, and the status is computed again per §4.1–§4.3.
 
-Under `/5`, the computation that records completion also checks the review reasons (§4.8).
+Under `/5`, the computation that records completion also checks the review reasons (§4.8). `run-rules/6` adds the check of where the review range starts (§4.9).
 
 Even when the result of `ha done` is not `complete`, the `done` line remains. It is a record that "completion was claimed but it was not complete".
 
@@ -820,7 +836,7 @@ The budget applies to work in progress. Editing PLAN alone does not change in-pr
 
 - **Window**: from the last `start` or `reopen` to the last saved record. Check usage is attributed by the order in which records were appended. A check that started before a resume and was recorded after it is included in the new window.
 - **Finding records**: `run-finding/v1` lines are excluded from run budget input. The sequence numbers and head of the whole chain stay as they are. Registering, judging or correcting findings alone does not change usage, window, limits or elapsed time. The meaning of existing `run/v1` data is kept.
-- **Elapsed time**: the `at` of the last record subject to the run budget minus the `at` of the window start. It does not grow by querying the current time. When a new record is appended, including a budget change, the time spent waiting is included too.
+- **Elapsed time**: the `at` of the last record subject to the run budget minus the `at` of the window start. It does not grow by querying the current time. When a new record is appended, including a budget change, the time spent waiting is included too, except that `/4` and `/5` subtract reported waits (§4.7), and `run-rules/6` also subtracts `post_completion_seconds` for the intervals after completion (§4.9). Run intervals are not subtracted, and time overlapping reported waits is subtracted only once. Status, report and cost use the same elapsed time.
 - **Reached and exceeded**: when usage equals the limit, the limit is reached; when `사용량 > 상한` (usage > limit), it is exceeded. Remaining runs are never shown below 0, and the excess is shown separately.
 - **No forced limit before running**: the budget does not reserve concurrent run slots, and does not terminate running checks or forcibly block checks from starting. Completion with only the budget exceeded is not authority for further runs.
 

@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "TimeAfterCompletionLeavesElapsed",
+      "violation": "post-completion-time-counted",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestCoreIntegrityAC5_TimeAfterCompletionLeavesElapsed"
+      }
+    }
+  ]
+}

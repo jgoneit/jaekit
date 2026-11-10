@@ -29,30 +29,38 @@ const (
 	RulesV3 = "run-rules/3"
 	RulesV4 = "run-rules/4"
 	RulesV5 = "run-rules/5"
+	RulesV6 = "run-rules/6"
 	Rules   = RulesV3
 )
 
 // Supported reports whether this build computes goals started under rules.
-// It is the only rule-support decision; run-rules/4 and run-rules/5 are chosen
+// It is the only rule-support decision; run-rules/4 through run-rules/6 are chosen
 // with `ha start --rules` and never by default.
 func Supported(rules string) bool {
-	return rules == RulesV1 || rules == RulesV2 || rules == RulesV3 || rules == RulesV4 || rules == RulesV5
+	return rules == RulesV1 || rules == RulesV2 || rules == RulesV3 || rules == RulesV4 || rules == RulesV5 || rules == RulesV6
 }
 
 // Structured reports whether rules keep the run-rules/3 semantics: structured
 // change results, inconclusive results under the error limit, and budget
-// changes. run-rules/4 and run-rules/5 add to them and remove none
-// (run-record.md §4.7, §4.8).
-func Structured(rules string) bool { return rules == RulesV3 || rules == RulesV4 || rules == RulesV5 }
+// changes. run-rules/4 through run-rules/6 keep them all.
+func Structured(rules string) bool {
+	return rules == RulesV3 || rules == RulesV4 || rules == RulesV5 || rules == RulesV6
+}
 
 // Autonomous reports whether rules keep the run-rules/4 additions: test-change
 // authority, reported waits, pre-approved limits, error recovery and command
-// time limits. run-rules/5 keeps them all (run-record.md §4.7, §4.8).
-func Autonomous(rules string) bool { return rules == RulesV4 || rules == RulesV5 }
+// time limits. run-rules/5 and run-rules/6 keep them all.
+func Autonomous(rules string) bool { return rules == RulesV4 || rules == RulesV5 || rules == RulesV6 }
 
 // Reviewed reports whether rules judge the recorded review gate of a goal
 // whose SPEC asks for independent review (run-record.md §4.8).
-func Reviewed(rules string) bool { return rules == RulesV5 }
+func Reviewed(rules string) bool { return rules == RulesV5 || rules == RulesV6 }
+
+// CompletionIntegrity reports whether rules apply the run-rules/6 judgments:
+// review coverage starts at the goal base, only reviewed tiers invalidate a
+// completion on a later review note, unjudged done lines are skipped, and
+// post-completion intervals are excluded from elapsed budget time.
+func CompletionIntegrity(rules string) bool { return rules == RulesV6 }
 
 // Excludes returns the paths left out of the code state of goal g under
 // rules: the goal's own documents and bundle, the amendment documents of the
@@ -138,7 +146,7 @@ var classOf = map[string]string{
 	"spec_changed":             ClassUser,
 	"blocked":                  ClassBlocked,
 	"budget_exceeded":          ClassBudget,
-	// run-rules/5 review reasons (run-record.md §4.8).
+	// run-rules/5 review reasons (run-record.md §4.8), plus the /6 base check.
 	"review_missing":       ClassExecutor,
 	"review_blocked":       ClassExecutor,
 	"review_degraded":      ClassExecutor,
@@ -146,6 +154,7 @@ var classOf = map[string]string{
 	"review_open_question": ClassUser,
 	"review_code_missing":  ClassExecutor,
 	"review_head_stale":    ClassExecutor,
+	"review_base_mismatch": ClassExecutor,
 	"review_docs_stale":    ClassExecutor,
 	"review_plan_missing":  ClassExecutor,
 }
@@ -155,7 +164,7 @@ var classOf = map[string]string{
 type UnsupportedRulesError struct{ Rules string }
 
 func (e *UnsupportedRulesError) Error() string {
-	return fmt.Sprintf("goal was started with rules %q; this ha computes only %q, %q, %q, %q and %q", e.Rules, RulesV1, RulesV2, RulesV3, RulesV4, RulesV5)
+	return fmt.Sprintf("goal was started with rules %q; this ha computes only %q, %q, %q, %q, %q and %q", e.Rules, RulesV1, RulesV2, RulesV3, RulesV4, RulesV5, RulesV6)
 }
 
 // Input is everything the computation reads.
@@ -384,6 +393,8 @@ type Budget struct {
 	SpanSeconds         *int64 `json:"span_seconds,omitempty"`
 	WaitBasis           string `json:"wait_basis,omitempty"`
 	PreapprovedRuns     *int   `json:"preapproved_runs,omitempty"`
+	// run-rules/6 only: time after completion, excluding reported waits and runs.
+	PostCompletionSeconds *int64 `json:"post_completion_seconds,omitempty"`
 }
 
 // Log points to the local output of a failed or errored run.
@@ -407,6 +418,8 @@ type evaluator struct {
 	overlay  map[string]string
 	confirms map[string]bool
 	invalid  []string
+	// recordLines preserves the full record when in.Lines is a computation view.
+	recordLines []record.Line
 	// recoveries holds run-rules/4 recover and allow-recovery notes.
 	recoveries map[string]*recoveryState
 }
@@ -424,9 +437,6 @@ func Compute(in Input) (*Report, error) {
 	}
 	if !Supported(e.rules) {
 		return nil, &UnsupportedRulesError{Rules: e.rules}
-	}
-	if Autonomous(e.rules) {
-		e.recoveries = foldRecoveries(in.Lines)
 	}
 	var err error
 	if e.excl, err = Excludes(in.Repo.Root, g, b, e.rules); err != nil {
@@ -462,6 +472,14 @@ func Compute(in Input) (*Report, error) {
 	e.checkReviews()
 	if err := e.collectUsage(rep); err != nil {
 		return nil, err
+	}
+	// Keep validation, findings, usage and the append head on the full record.
+	// Every subsequent evaluator input uses the same computation view; budget
+	// folding retains the full record so it never re-judges a filtered chain.
+	e.recordLines = in.Lines
+	e.in.Lines = ComputationLines(in.Lines)
+	if Autonomous(e.rules) {
+		e.recoveries = foldRecoveries(e.in.Lines)
 	}
 	if err := e.readConfirms(rep); err != nil {
 		return nil, err
@@ -1055,7 +1073,11 @@ func (e *evaluator) goalReasons(rep *Report) ([]Reason, error) {
 
 func (e *evaluator) budget() (*Budget, error) {
 	if Structured(e.rules) {
-		state, err := FoldBudget(e.in.Lines)
+		lines := e.recordLines
+		if lines == nil {
+			lines = e.in.Lines
+		}
+		state, err := FoldBudget(lines)
 		if err != nil {
 			return nil, err
 		}
@@ -1066,6 +1088,10 @@ func (e *evaluator) budget() (*Budget, error) {
 			wait, span := state.ReportedWaitSeconds, state.SpanSeconds
 			bud.ReportedWaitSeconds, bud.SpanSeconds, bud.WaitBasis = &wait, &span, "executor_reported"
 			bud.PreapprovedRuns = state.PreapprovedRuns
+		}
+		if CompletionIntegrity(e.rules) {
+			post := state.PostCompletionSeconds
+			bud.PostCompletionSeconds = &post
 		}
 		finishBudget(bud)
 		return bud, nil
@@ -1112,17 +1138,19 @@ func (e *evaluator) completionRecord(rep *Report) (*int, error) {
 		}
 	}
 	lines := e.in.Lines
+	tier := e.in.Goal.Assurance
+	reviewInvalidates := Reviewed(e.rules) && (!CompletionIntegrity(e.rules) || tier == "standard" || tier == "strict")
 	for i := len(lines) - 1; i >= 0; i-- {
 		d := lines[i]
 		if d.Kind != "done" || d.Status != Complete {
 			continue
 		}
 		for _, l := range lines[i+1:] {
-			if l.Kind == "note" && (l.Note == "reopen" || (l.Note == "review" && Reviewed(e.rules))) {
+			if l.Kind == "note" && (l.Note == "reopen" || (l.Note == "review" && reviewInvalidates)) {
 				return nil, nil
 			}
 		}
-		if Reviewed(e.rules) && !judgedLast(lines, i) {
+		if Reviewed(e.rules) && !CompletionIntegrity(e.rules) && !judgedLast(lines, i) {
 			return nil, nil
 		}
 		if d.SpecDigest != e.in.Goal.Digest {
@@ -1150,6 +1178,51 @@ func judgedLast(lines []record.Line, i int) bool {
 	return i > 0 && lines[i].RecordHead == lines[i-1].Hash()
 }
 
+// ComputationLines returns the status computation view of a full record.
+// Under run-rules/6 it judges every done line against the original record,
+// then leaves unjudged done lines out, regardless of their status. Earlier
+// rules keep every line. The returned lines retain their original seq and
+// bytes; callers must not pass this filtered view back for another judgment.
+// Chain/record validation, findings, run counts and append heads use the full
+// record, not this view.
+func ComputationLines(lines []record.Line) []record.Line {
+	for _, l := range lines {
+		if l.Kind == "start" {
+			if !CompletionIntegrity(l.Rules) {
+				return lines
+			}
+			out := make([]record.Line, 0, len(lines))
+			for i, line := range lines {
+				if line.Kind != "done" || judgedCompletion(lines, i) {
+					out = append(out, line)
+				}
+			}
+			return out
+		}
+	}
+	return lines
+}
+
+// judgedCompletion is the run-rules/6 judgment on the full record, before
+// filtering findings. A done line is judged when its record_head is the hash
+// of an earlier line and every line strictly between them is a finding. The
+// named line may itself be a finding; a first line or a null head is unjudged.
+// Completion records and post-completion budget intervals share this rule.
+func judgedCompletion(lines []record.Line, i int) bool {
+	if i <= 0 || lines[i].RecordHead == "" {
+		return false
+	}
+	for j := i - 1; j >= 0; j-- {
+		if lines[i].RecordHead == lines[j].Hash() {
+			return true
+		}
+		if lines[j].Schema != record.FindingSchema {
+			return false
+		}
+	}
+	return false
+}
+
 // doneState names the latest done record and, through stale, why the latest
 // completion record no longer holds. A goal without done records gets nil.
 func (e *evaluator) doneState(rep *Report) *DoneState {
@@ -1168,6 +1241,8 @@ func (e *evaluator) doneState(rep *Report) *DoneState {
 // returns nil.
 func (e *evaluator) stale(rep *Report) *StaleCompletion {
 	lines := e.in.Lines
+	tier := e.in.Goal.Assurance
+	reviewInvalidates := Reviewed(e.rules) && (!CompletionIntegrity(e.rules) || tier == "standard" || tier == "strict")
 	for i := len(lines) - 1; i >= 0; i-- {
 		d := lines[i]
 		if d.Kind != "done" || d.Status != Complete {
@@ -1208,17 +1283,18 @@ func (e *evaluator) stale(rep *Report) *StaleCompletion {
 				break
 			}
 		}
-		// Under run-rules/5 a later gate is judged anew (run-record.md §4.8).
-		if Reviewed(e.rules) {
+		// Under run-rules/6 only tiers that judge gates invalidate a
+		// completion when a later gate is recorded.
+		if reviewInvalidates {
 			for _, l := range lines[i+1:] {
 				if l.Kind == "note" && l.Note == "review" {
 					s.Reasons = append(s.Reasons, fmt.Sprintf("review gate recorded at seq %d", l.Seq))
 					break
 				}
 			}
-			if !judgedLast(lines, i) {
-				s.Reasons = append(s.Reasons, "a record was appended while ha done computed it")
-			}
+		}
+		if Reviewed(e.rules) && !CompletionIntegrity(e.rules) && !judgedLast(lines, i) {
+			s.Reasons = append(s.Reasons, "a record was appended while ha done computed it")
 		}
 		if e.rules == RulesV3 {
 			for _, c := range rep.Criteria {

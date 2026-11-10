@@ -57,6 +57,9 @@ type BudgetState struct {
 	ReportedWaitSeconds int64
 	PreapprovedRuns     *int
 	inheritRuns         int
+	// run-rules/6 also excludes time after completion, without counting
+	// reported waits or run intervals a second time.
+	PostCompletionSeconds int64
 }
 
 // BudgetChangeRequest states the budget revision the caller intended to edit.
@@ -80,7 +83,7 @@ func budgetError(format string, args ...any) error {
 
 func validateBudgetChange(state *BudgetState, d *record.BudgetChangeData) error {
 	if !Structured(state.Rules) {
-		return budgetError("budget changes require %s, %s or %s; goal uses %s", RulesV3, RulesV4, RulesV5, state.Rules)
+		return budgetError("budget changes require %s, %s, %s or %s; goal uses %s", RulesV3, RulesV4, RulesV5, RulesV6, state.Rules)
 	}
 	if state.Completed {
 		return budgetError("window %d has a completion record; quote a rework request with reopen first", state.WindowStart)
@@ -94,7 +97,7 @@ func validateBudgetChange(state *BudgetState, d *record.BudgetChangeData) error 
 	if d.PreapprovedRuns != 0 {
 		switch {
 		case !Autonomous(state.Rules):
-			return budgetError("a pre-approved run limit requires %s or %s; goal uses %s", RulesV4, RulesV5, state.Rules)
+			return budgetError("a pre-approved run limit requires %s, %s or %s; goal uses %s", RulesV4, RulesV5, RulesV6, state.Rules)
 		case d.Runs != d.PreviousRuns:
 			return budgetError("a pre-approval does not change the run limit")
 		case d.PreapprovedRuns <= state.RunsLimit:
@@ -136,9 +139,28 @@ func userSet(d *record.BudgetChangeData) bool {
 }
 
 // FoldBudget checks budget event semantics while retaining /1 and /2 window
-// accounting. Callers separately validate the record hash chain.
+// accounting. Pass the full record, not ComputationLines: the fold builds that
+// view after judging done lines on the original chain. Callers separately
+// validate the record hash chain.
 func FoldBudget(lines []record.Line) (*BudgetState, error) {
-	lines = record.ExecutionLines(lines)
+	view := ComputationLines(lines)
+	if len(view) != len(lines) {
+		// Filtering must not hide malformed record data. This check also
+		// remains in the fold to preserve earlier rules' error precedence.
+		for _, l := range lines {
+			if l.Kind != "budget_change" && l.BudgetChange != nil {
+				return nil, budgetError("record seq %d: budget data on a %s record", l.Seq, l.Kind)
+			}
+		}
+		full := record.ExecutionLines(lines)
+		if len(full) > 0 {
+			at := full[len(full)-1].At
+			if _, err := time.Parse(time.RFC3339, at); err != nil {
+				return nil, budgetError("bad last record time %q", at)
+			}
+		}
+	}
+	lines = record.ExecutionLines(view)
 	var state *BudgetState
 	var originalRuns int
 	var from string
@@ -223,7 +245,57 @@ func FoldBudget(lines []record.Line) (*BudgetState, error) {
 		state.ReportedWaitSeconds = reportedWait(lines[window:])
 		state.ElapsedSeconds = state.SpanSeconds - state.ReportedWaitSeconds
 	}
+	if CompletionIntegrity(state.Rules) {
+		state.PostCompletionSeconds = postCompletionSeconds(lines[window:])
+		state.ElapsedSeconds -= state.PostCompletionSeconds
+	}
 	return state, nil
+}
+
+// postCompletionSeconds counts time from judged complete done lines to the next
+// run started at or after that completion, or judged non-complete done, clipped
+// to this execution window from ComputationLines. Notes and other complete
+// done lines do not end an interval.
+// Runs and reported waits are kept out of this deduction, so elapsed time counts
+// runs and excludes overlaps once.
+func postCompletionSeconds(window []record.Line) int64 {
+	waits, runs, begin, end, ok := waitIntervals(window)
+	if !ok {
+		return 0
+	}
+	var spans []interval
+	for i, l := range window {
+		if l.Kind != "done" || l.Status != Complete {
+			continue
+		}
+		at, ok := unix(l.At)
+		if !ok {
+			continue
+		}
+		stop := end
+		for _, next := range window[i+1:] {
+			switch next.Kind {
+			case "check", "baseline":
+				// Append order is not process start order. A run already
+				// underway at completion still counts below, but cannot end
+				// this interval before it begins.
+				if started, ok := unix(next.StartedAt); ok && started >= at {
+					stop = min(stop, started)
+				}
+			case "done":
+				if ended, ok := unix(next.At); ok && next.Status != Complete {
+					stop = min(stop, ended)
+				}
+			}
+		}
+		if stop > at {
+			spans = append(spans, interval{at, stop})
+		}
+	}
+	for _, w := range waits {
+		runs = append(runs, w.interval)
+	}
+	return clipped(subtract(union(spans), union(runs)), begin, end)
 }
 
 // NewBudgetChange validates intent against a freshly read chain. Use this

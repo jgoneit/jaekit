@@ -1,0 +1,52 @@
+# run-rules/6: the last candidate must start at the goal's base B.
+# Gates cover the current head H and both goal documents, so a partial W..H
+# candidate fails only for its base; a B..H candidate or B..W + fixes W..H passes.
+replace $GOAL/SPEC.md "Status: Ready" "Status: Ready\nAssurance: standard"
+replace $GOAL/PLAN.md "| AC-1 | change | `sh tests/greeting.sh` | tests/greeting.sh | T001 |" "| AC-1 | maintain | `sh tests/greeting.sh` | — | T001 |"
+write tests/greeting.sh "set -eu\ngrep -qx hello src/greeting.txt\npython3 tests/gates.py\n"
+write src/greeting.txt "hello\n"
+commit "standard goal at B"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/6
+expect-exit 0
+expect-record 1 rules run-rules/6
+write src/work.txt "first change\n"
+commit "work at W"
+write src/work.txt "second change\n"
+commit "candidate at H"
+progress T001 done
+ha check $GOAL
+expect-exit 0
+expect-satisfied AC-1
+expect-satisfied AC-2
+expect-reasons review_missing
+ha note $GOAL review --gate .git/partial.json
+expect-exit 0
+expect-status incomplete
+expect-reasons review_base_mismatch
+ha status $GOAL
+expect-output "the review gate recorded at seq 4: its last candidate round 1 reviewed from"
+expect-output "the goal started at"
+ha done $GOAL
+expect-exit 1
+expect-completion-record absent
+ha note $GOAL review --gate .git/two-candidates.json
+expect-exit 0
+expect-reasons review_base_mismatch
+ha done $GOAL
+expect-exit 1
+expect-completion-record absent
+ha note $GOAL review --gate .git/cumulative.json
+expect-exit 0
+expect-status complete
+expect-reasons none
+ha done $GOAL
+expect-exit 0
+expect-completion-record present
+ha note $GOAL review --gate .git/fixes.json
+expect-exit 0
+expect-completion-record absent
+expect-status complete
+expect-reasons none
+ha done $GOAL
+expect-exit 0
+expect-completion-record present

@@ -111,13 +111,14 @@ type costSpan struct {
 
 // costBudget is the budget window ha status shows.
 type costBudget struct {
-	WindowStart         int    `json:"window_start"`
-	SpanSeconds         *int64 `json:"span_seconds"`
-	ReportedWaitSeconds *int64 `json:"reported_wait_seconds"`
-	ElapsedSeconds      int64  `json:"elapsed_seconds"`
-	ElapsedLimitSeconds int64  `json:"elapsed_limit_seconds"`
-	Runs                int    `json:"runs"`
-	RunsLimit           int    `json:"runs_limit"`
+	WindowStart           int    `json:"window_start"`
+	SpanSeconds           *int64 `json:"span_seconds"`
+	ReportedWaitSeconds   *int64 `json:"reported_wait_seconds"`
+	PostCompletionSeconds *int64 `json:"post_completion_seconds,omitempty"`
+	ElapsedSeconds        int64  `json:"elapsed_seconds"`
+	ElapsedLimitSeconds   int64  `json:"elapsed_limit_seconds"`
+	Runs                  int    `json:"runs"`
+	RunsLimit             int    `json:"runs_limit"`
 }
 
 type costQuestions struct {
@@ -487,7 +488,7 @@ func costVerify(lines []record.Line, doc *costDoc) *costVerification {
 			doc.Unavailable["verification.notes."+key] = costNotRecorded
 		}
 	}
-	exec := record.ExecutionLines(lines)
+	exec := record.ExecutionLines(status.ComputationLines(lines))
 	targets := map[string]*costTarget{}
 	var order []string
 	last := map[string]*record.Line{}
@@ -555,7 +556,8 @@ func costVerify(lines []record.Line, doc *costDoc) *costVerification {
 		return v
 	}
 	v.Budget = &costBudget{WindowStart: bud.WindowStart, SpanSeconds: bud.SpanSeconds, ReportedWaitSeconds: bud.ReportedWaitSeconds,
-		ElapsedSeconds: bud.ElapsedSeconds, ElapsedLimitSeconds: bud.ElapsedLimitSeconds, Runs: bud.Runs, RunsLimit: bud.RunsLimit}
+		PostCompletionSeconds: bud.PostCompletionSeconds,
+		ElapsedSeconds:        bud.ElapsedSeconds, ElapsedLimitSeconds: bud.ElapsedLimitSeconds, Runs: bud.Runs, RunsLimit: bud.RunsLimit}
 	if bud.SpanSeconds == nil {
 		// Before run-rules/4 no wait is reported: the window span is the
 		// elapsed time.

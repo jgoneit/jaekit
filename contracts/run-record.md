@@ -491,15 +491,16 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
 | `record_invalid` | 알 수 없는 결과값이나 부정합 저장 데이터가 있다 | 사용자 확인 |
 | `blocked` | 마지막 `block` 뒤에 `unblock`이 없다 | 원인 해소 |
 | `budget_exceeded` | 예산 창(§5.2) 안의 `check`·`baseline` 줄 수나 경과 시간이 예산을 넘었다 | 사용자 결정 |
-| `review_missing` | `/5`만: 등급이 검토를 요구하는데 기록된 gate가 없다(§4.8) | 실행자가 고침 |
-| `review_blocked` | `/5`만: 기록된 마지막 gate가 `blocked`(§4.8) | 실행자가 고침 |
-| `review_degraded` | `/5`만: 기록된 마지막 gate가 `degraded`(§4.8) | 실행자가 고침 |
-| `review_open_defect` | `/5`만: 그 gate에 열린 `defect`가 있다(§4.8) | 실행자가 고침 |
-| `review_open_question` | `/5`만: 그 gate에 열린 `requirement-question`이 있다(§4.8) | 사용자 확인 |
-| `review_code_missing` | `/5`만: 그 gate에 code 라운드가 없다(§4.8) | 실행자가 고침 |
-| `review_head_stale` | `/5`만: 그 gate가 검토한 head가 HEAD가 아니다(§4.8) | 실행자가 고침 |
-| `review_docs_stale` | `/5`만: 그 gate의 라운드가 지금의 목표 문서를 받지 않았다(§4.8) | 실행자가 고침 |
-| `review_plan_missing` | `/5`만: `strict`인데 그 gate에 계획 라운드가 없다(§4.8) | 실행자가 고침 |
+| `review_missing` | `/5`·`/6`: 등급이 검토를 요구하는데 기록된 gate가 없다(§4.8) | 실행자가 고침 |
+| `review_blocked` | `/5`·`/6`: 기록된 마지막 gate가 `blocked`(§4.8) | 실행자가 고침 |
+| `review_degraded` | `/5`·`/6`: 기록된 마지막 gate가 `degraded`(§4.8) | 실행자가 고침 |
+| `review_open_defect` | `/5`·`/6`: 그 gate에 열린 `defect`가 있다(§4.8) | 실행자가 고침 |
+| `review_open_question` | `/5`·`/6`: 그 gate에 열린 `requirement-question`이 있다(§4.8) | 사용자 확인 |
+| `review_code_missing` | `/5`·`/6`: 그 gate에 code 라운드가 없다(§4.8) | 실행자가 고침 |
+| `review_head_stale` | `/5`·`/6`: 그 gate가 검토한 head가 HEAD가 아니다(§4.8) | 실행자가 고침 |
+| `review_base_mismatch` | `/6`만: 그 gate의 마지막 candidate 라운드(dry run 제외)의 base가 목표의 시작 base commit과 다르거나 fixes 라운드만 있다(§4.9) | 실행자가 고침: 목표의 시작 base commit부터 누적 candidate 라운드를 돌리고 gate를 기록 |
+| `review_docs_stale` | `/5`·`/6`: 그 gate의 라운드가 지금의 목표 문서를 받지 않았다(§4.8) | 실행자가 고침 |
+| `review_plan_missing` | `/5`·`/6`: `strict`인데 그 gate에 계획 라운드가 없다(§4.8) | 실행자가 고침 |
 
 ### 4.3 상태
 
@@ -695,22 +696,22 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
 
 ### 4.6 규칙 버전
 
-`start`의 `rules`가 계산 규칙을 정한다. 새 `ha start`는 `run-rules/3`를 기록한다. `ha start --rules run-rules/4`는 `run-rules/4`를(§4.7), `ha start --rules run-rules/5`는 `run-rules/5`를(§4.8) 기록한다. 기본 규칙은 바뀌지 않으며, 새 Seal이 이 옵션으로 새 규칙을 고른다. `/1`·`/2`로 시작한 목표는 새 바이너리에서도 해당 규칙으로 계산하고 이후 실행에도 새 결과·예산 의미를 섞지 않는다. 자동 이전이나 과거 기록 재작성은 하지 않는다. 새 change 검사는 구조화 결과 계약에 연동되어야 유효 근거를 얻는다.
+`start`의 `rules`가 계산 규칙을 정한다. 새 `ha start`는 `run-rules/3`를 기록한다. `ha start --rules run-rules/4`는 `run-rules/4`를(§4.7), `ha start --rules run-rules/5`는 `run-rules/5`를(§4.8), `ha start --rules run-rules/6`은 `run-rules/6`을(§4.9) 기록한다. 기본 규칙은 바뀌지 않으며, Seal 0.1.26은 이 옵션으로 새 목표에 `run-rules/6`을 고른다. `/1`~`/5`로 시작한 목표는 새 바이너리에서도 해당 규칙으로 계산하고 이후 실행에도 새 결과·예산 의미를 섞지 않는다. 자동 이전이나 과거 기록 재작성은 하지 않는다. 새 change 검사는 구조화 결과 계약에 연동되어야 유효 근거를 얻는다.
 
 `ha`가 지원하지 않는 규칙 버전에는 계산도 기록도 하지 않는다. `ha status`, `ha done`, `ha check`, `ha note`, `ha budget`이 66으로 끝난다. 시작 규칙을 읽을 수 있으면 그 뒤 무결성 오류보다 미지원 규칙 거부가 우선한다. 지원 규칙에서도 미지 결과·부정합 데이터는 성공 근거가 아니다. 유효한 구기록의 의미만 호환 대상으로 보존한다.
 
-| | `run-rules/1` | `run-rules/2` | `run-rules/3` | `run-rules/4` | `run-rules/5` |
-| --- | --- | --- | --- | --- | --- |
-| 묶음 문서(코드 상태에서 빼는 경로) | 자기 목표의 목표 문서와 실행 묶음, 다른 목표의 `amendments/**` | 다른 목표의 실행 묶음 파일도 포함. PLAN의 `다른 목표 실행 묶음` 선언은 입력으로 유지 | `/2`와 같음 | `/2`와 같음 | `/2`와 같음 |
-| 남은 이유가 `budget_exceeded`뿐일 때 | `budget_exhausted` | `complete`. `ha done`이 완료 기록을 남김 | `/2`와 같음 | `/2`와 같음 | `/2`와 같음 |
-| change의 실패·통과 근거 | 프로세스 종료 결과 | `/1`과 같음 | 선언한 대상·요구 위반·오류·호출 연결을 구조화 결과로 확인 | `/3`과 같음 | `/3`과 같음 |
-| 현재 창의 횟수 상한 변경 | 미지원 | 미지원 | `budget_change`, 사용량 유지 | `/3`에 사전 승인 상한 안의 이유만 있는 증액을 더함 | `/4`와 같음 |
-| 재개 창의 횟수 상한 | 최초 start 상한 | 최초 start 상한 | 최신 유효 횟수 상한 계승 | 시작 상한이나 사용자 인용으로 정한 마지막 상한. 사전 승인은 계승하지 않음 | `/4`와 같음 |
-| 기존 시험 변경 | 사용자 확인 | 사용자 확인 | 사용자 확인 | 기록된 권한 안에서 근거가 있으면 확인 없이 충족 | `/4`와 같음 |
-| 경과 시간 | 창 전체 | 창 전체 | 창 전체 | 실행자가 신고한 대기를 뺌 | `/4`와 같음 |
-| 오류 한도 | 같은 코드에서 E=1 | `/1`과 같음 | 판정 불가도 함께 셈 | `/3`에 회복 note를 더함 | `/4`와 같음 |
-| 명령별 시간 제한 | 900초 | 900초 | 900초 | PLAN `## 시간 제한`, 없으면 900초 | `/4`와 같음 |
-| 검토 gate | 판정에 쓰지 않음 | 판정에 쓰지 않음 | 판정에 쓰지 않음 | 판정에 쓰지 않음 | `standard`·`strict` 목표는 기록된 마지막 gate가 지금 HEAD와 목표 문서를 덮어야 완료(§4.8) |
+| | `run-rules/1` | `run-rules/2` | `run-rules/3` | `run-rules/4` | `run-rules/5` | `run-rules/6` |
+| --- | --- | --- | --- | --- | --- | --- |
+| 묶음 문서(코드 상태에서 빼는 경로) | 자기 목표의 목표 문서와 실행 묶음, 다른 목표의 `amendments/**` | 다른 목표의 실행 묶음 파일도 포함. PLAN의 `다른 목표 실행 묶음` 선언은 입력으로 유지 | `/2`와 같음 | `/2`와 같음 | `/2`와 같음 | `/2`와 같음 |
+| 남은 이유가 `budget_exceeded`뿐일 때 | `budget_exhausted` | `complete`. `ha done`이 완료 기록을 남김 | `/2`와 같음 | `/2`와 같음 | `/2`와 같음 | `/2`와 같음 |
+| change의 실패·통과 근거 | 프로세스 종료 결과 | `/1`과 같음 | 선언한 대상·요구 위반·오류·호출 연결을 구조화 결과로 확인 | `/3`과 같음 | `/3`과 같음 | `/3`과 같음 |
+| 현재 창의 횟수 상한 변경 | 미지원 | 미지원 | `budget_change`, 사용량 유지 | `/3`에 사전 승인 상한 안의 이유만 있는 증액을 더함 | `/4`와 같음 | `/4`와 같음 |
+| 재개 창의 횟수 상한 | 최초 start 상한 | 최초 start 상한 | 최신 유효 횟수 상한 계승 | 시작 상한이나 사용자 인용으로 정한 마지막 상한. 사전 승인은 계승하지 않음 | `/4`와 같음 | `/4`와 같음 |
+| 기존 시험 변경 | 사용자 확인 | 사용자 확인 | 사용자 확인 | 기록된 권한 안에서 근거가 있으면 확인 없이 충족 | `/4`와 같음 | `/4`와 같음 |
+| 경과 시간 | 창 전체 | 창 전체 | 창 전체 | 실행자가 신고한 대기를 뺌 | `/4`와 같음 | `/4`에 완료 뒤 구간 공제를 더함(§4.9) |
+| 오류 한도 | 같은 코드에서 E=1 | `/1`과 같음 | 판정 불가도 함께 셈 | `/3`에 회복 note를 더함 | `/4`와 같음 | `/4`와 같음 |
+| 명령별 시간 제한 | 900초 | 900초 | 900초 | PLAN `## 시간 제한`, 없으면 900초 | `/4`와 같음 | `/4`와 같음 |
+| 검토 gate | 판정에 쓰지 않음 | 판정에 쓰지 않음 | 판정에 쓰지 않음 | 판정에 쓰지 않음 | `standard`·`strict` 목표는 기록된 마지막 gate가 지금 HEAD와 목표 문서를 덮어야 완료(§4.8) | `/5`에 마지막 candidate의 시작 base 확인을 더함(§4.9) |
 
 **다른 목표의 실행 묶음 파일.** 자기 목표 디렉토리와 같은 부모 아래에서, 지금 작업 트리에 `SPEC.md`가 있는 다른 디렉토리 바로 아래의 `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl`, `tasks/`다. 그 디렉토리의 `SPEC.md`와 그것이 링크한 문서, `checks/` 같은 다른 파일은 코드다. 같은 부모 아래가 아니거나 `SPEC.md`가 없는 디렉토리(예: `examples/`, `testdata/` 아래의 목표 모양 디렉토리)도 코드다. 그 다른 목표 디렉토리의 `amendments/`는 실행 묶음 파일이 아니지만, 모든 규칙 버전에서 PLAN의 `다른 목표 실행 묶음` 선언과 관계없이 코드 상태에서 빠진다(§2). 이 목록은 묶음 문서를 쓰는 모든 판단에 같이 쓴다.
 - 작업 트리가 깨끗한지: §3의 전제, `check`·`baseline`이 남기는 `tree_clean`, 경로 확인 `confirm`
@@ -791,6 +792,20 @@ fixes 사슬과 기대 head의 확인은 gate 상태 `complete`가 맡는다([re
 
 검토 없이 끝내려면 사용자가 등급을 `light`로 낮추는 목표 문서 수정을 정한다. 그 뒤 `confirm spec`과 신선한 검사로 gate 없이 완료된다.
 
+### 4.9 run-rules/6
+
+`ha start --rules run-rules/6`으로 시작한 목표는 `run-rules/5`의 규칙을 모두 지키고 아래 네 판정만 바꾼다. 기본 시작 규칙은 그대로 `run-rules/3`이다. Seal 0.1.26은 `core-requirements.json`에 `run-rules/6`을 선언하고 `--rules run-rules/6 --check-skill`로 새 목표를 시작한다. 필요한 지원이 없으면 기록 없이 멈추며 이전 규칙으로 물러나지 않는다. `/1`~`/5`로 시작한 목표의 판정과 이미 남은 완료 기록의 의미는 그대로다.
+
+**검토 범위의 시작.** `standard`·`strict` 목표에서는 기록된 마지막 gate의 마지막 candidate 라운드(dry run 제외)의 `base`가 시작 기록의 `base_commit`과 같은 전체 commit ID여야 한다. `reopen` 뒤에도 비교 대상은 최초 시작 base다. 다르면 실행자 분류의 `review_base_mismatch`가 `review_head_stale` 뒤에 나오고 `ha done`은 완료를 기록하지 않는다. 설명은 `the review gate recorded at seq <n>: its last candidate round <sequence> reviewed from <base 12자>; the goal started at <base 12자>`로 gate seq, candidate 순번과 base, 시작 base를 밝힌다. fixes 라운드만 있고 candidate가 없으면 같은 이유와 `the review gate recorded at seq <n> has no candidate round; the goal started at <base 12자>`를 보인다. code 라운드 자체가 없으면 이 이유는 더하지 않고 기존 `review_code_missing`을 쓴다. 시작 base부터의 candidate 뒤에 fixes 라운드가 이어져도 된다. fixes 사슬은 여전히 Spar의 gate 상태가 확인하며 Core는 다시 계산하지 않는다.
+
+**완료 뒤 review note.** 완료 기록 뒤의 `review` note는 판정할 때 SPEC.md의 등급이 `standard`나 `strict`일 때만 그 완료 기록을 무효로 한다. `light`이거나 등급 줄이 없으면 다른 유효성 조건을 만족하는 완료 기록은 그대로이고, `ha done`을 다시 할 필요가 없다. 등급을 고치면 SPEC digest가 바뀌므로 기존 유효성 확인은 그대로 적용된다. `run-rules/5`는 등급과 관계없이 뒤의 `review` note가 완료 기록을 무효로 한다.
+
+**판정하지 않은 done 줄.** `run-rules/6`에서 `record_head`가 앞선 줄의 hash이고 그 줄과 `done` 줄 사이에 발견 줄(`run-finding/v1`)만 있거나 아무 줄도 없으면, 그 `done` 줄은 판정한 줄이다. `record_head`가 가리키는 줄 자체는 발견 줄이어도 된다. 발견 줄은 완료 판정과 예산 입력에 들어가지 않기 때문이다. 첫 줄인 `done`이나 `record_head`가 `null`이거나 앞선 줄의 hash가 아닌 `done`은 판정하지 않은 줄이다. 그 사이에 note·실행 등 발견 줄이 아닌 줄이 하나라도 있으면 판정하지 않은 줄이다. 모든 `done` 줄은 줄을 제거하기 전의 전체 기록에서 먼저 판정하므로, `record_head`가 판정하지 않은 줄을 가리켜도 판정한 줄이 될 수 있다. 그런 다음 판정하지 않은 `done` 줄은 완료 여부와 관계없이 상태 계산에서 없는 것으로 취급한다. 완료 기록과 그 설명, 최신 done 줄, 예산 창과 경과 시간, 완료 뒤 구간, 예산 변경 거부가 모두 같은 뷰를 쓴다. 상태·보고·비용·예산 변경은 이 뷰에 일치한다. 사슬과 기록 검증, `record_head`, 발견과 실행 횟수는 전체 기록을 그대로 쓴다. 앞의 줄도 모든 유효성 조건을 만족해야 하며, 그 뒤의 `review` note는 위 등급 규칙대로 적용된다. 판정했지만 다른 이유로 무효인 줄에서는 이전처럼 탐색을 멈춘다. `run-rules/5`는 가장 나중의 완료 `done` 줄이 판정하지 않은 줄이면 앞의 유효한 완료 기록을 찾지 않는다. `ha done`의 계산과 기록을 한 잠금으로 묶는 변경은 아니다.
+
+**완료 뒤 시간.** 예산 창 안에서 `status`가 `complete`인 `done` 줄의 `at`부터, 그 `at`과 같은 초나 그 뒤에 처음 시작한 검사·baseline의 `started_at`이나 그 뒤의 판정한 `done` 줄 중 완료가 아닌 줄의 `at` 가운데 이른 시점까지를 경과에서 뺀다. 판정한 완료 `done` 줄(위의 판정하지 않은 done 줄이 아닌 줄)만 이 구간을 시작한다. 완료 `done` 줄 전에 시작한 실행은 그 뒤 기록되더라도 구간을 끝내지 않는다. 둘 다 없으면 창의 마지막 실행 예산 대상 기록에서 끝난다. 그 사이의 다른 `complete` 줄은 구간을 이어 가고, note(`wait`, `input`, `review` 등)와 발견 줄은 끝내지 않는다. `reopen`은 새 창을 연다. 구간은 창 안으로 자르고 실행 구간과 신고 대기를 제외하므로, 실행 시간은 경과에 남고 겹친 대기는 한 번만 빠진다. `run-rules/5`에는 이 추가 공제가 없다.
+
+`run-rules/6`의 상태 JSON `budget.post_completion_seconds`와 `ha cost` JSON의 예산 창 `post_completion_seconds`는 이렇게 추가로 뺀 초다. 따라서 `elapsed_seconds = span_seconds - reported_wait_seconds - post_completion_seconds`다. 사람용 상태의 Budget 절에도 `elapsed also leaves out <초> seconds after completion, excluding reported waits and runs`를 따로 보인다. `ha report`의 `남은 한계`와 예산 결정, `ha cost`의 예산 창도 같은 경과를 쓴다. 시간은 저장된 `at`과 `started_at`으로만 계산하며 현재 시각을 읽지 않는다. 실행 횟수, 예산 창과 한도, 완료 기록이 있는 창의 예산 변경 거부는 그대로다. 완료 뒤 첫 실행 전에 한 작업 시간도 이 구간에 들어가므로, 완료 뒤 코드를 고치는 재작업은 사용자 요청을 인용한 `reopen`으로 새 창에서 진행한다.
+
 ## 5. 완료 기록과 예산
 
 ### 5.1 완료 기록
@@ -802,11 +817,12 @@ fixes 사슬과 기대 head의 확인은 gate 상태 `complete`가 맡는다([re
 - d.commit과 HEAD 사이에 묶음 문서 밖의 차이가 없다. 묶음 문서는 규칙 버전에 따른다(§4.6).
 - SPEC digest와 required 조건의 명령 digest가 d와 같다. `/3` change의 구조화 선언·생산자 입력도 같은 의미여야 한다.
 - d 이후에 `reopen` note가 없다. `/5`에서는 `review` note도 없고, d의 `record_head`가 d 바로 앞 줄이다(§4.8).
+- `run-rules/6`에서는 d가 판정한 줄이어야 하고(`record_head`가 앞선 줄의 hash이고 그 줄과 d 사이에는 발견 줄(`run-finding/v1`)만 있거나 아무 줄도 없으며, 가리키는 줄 자체는 발견 줄이어도 됨), 뒤의 `review` note는 현재 등급이 `standard`·`strict`일 때만 d를 무효로 한다. 모든 `done` 줄은 전체 기록에서 먼저 판정하고, 판정하지 않은 줄은 완료 여부와 관계없이 상태 계산에서 없는 것으로 취급한다. 완료 기록과 그 설명, 최신 done 줄, 예산 창, 경과 시간, 완료 뒤 구간, 예산 변경 거부가 모두 이에 따른다. 판정했지만 다른 이유로 무효인 줄에서는 멈춘다(§4.9).
 - d와 그 앞 줄의 `prev` 연결이 온전하다. 끊겼으면 완료 기록도 근거가 되지 않는다(`record_integrity`).
 
 유효한 완료 기록이 있으면 상태는 `complete`이고, 그 뒤에 시간이 얼마나 지났는지와 무관하다. 완료 기록이 무효가 되면(코드나 SPEC이 바뀜, 재작업 요청) 기록은 이력으로 남고, 상태는 §4.1–§4.3대로 다시 계산한다.
 
-`/5`에서 완료를 기록하는 계산은 검토 이유(§4.8)도 확인한다.
+`/5`에서 완료를 기록하는 계산은 검토 이유(§4.8)도 확인한다. `run-rules/6`은 여기에 검토 범위의 시작 확인을 더한다(§4.9).
 
 `ha done`의 결과가 `complete`가 아니어도 `done` 줄은 남는다. 이것은 "완료를 주장했지만 완료가 아니었다"는 기록이다.
 
@@ -816,7 +832,7 @@ fixes 사슬과 기대 head의 확인은 gate 상태 `complete`가 맡는다([re
 
 - **창**: 마지막 `start` 또는 `reopen`부터 마지막 저장 기록까지다. 검사 사용량은 기록 추가 순서로 귀속한다. 재개 전에 시작해 재개 뒤 기록된 검사도 새 창에 포함된다.
 - **발견 기록**: `run-finding/v1` 줄은 실행 예산 입력에서 제외한다. 전체 체인의 순번·head는 그대로 유지한다. 발견의 등록·판단·정정만으로 사용량·창·한도·경과 시간이 바뀌지 않는다. 기존 `run/v1` 자료의 의미는 유지한다.
-- **경과 시간**: 마지막 실행 예산 대상 기록 `at`에서 창 시작 `at`을 뺀 값이다. 현재 시각 조회로 늘지 않는다. 예산 변경을 포함한 새 기록이 붙으면 기다린 시간도 들어간다.
+- **경과 시간**: 마지막 실행 예산 대상 기록 `at`에서 창 시작 `at`을 뺀 값이다. 현재 시각 조회로 늘지 않는다. 예산 변경을 포함한 새 기록이 붙으면 기다린 시간도 들어가되, `/4`·`/5`는 신고한 대기를 빼고(§4.7), `run-rules/6`은 완료 뒤 구간의 `post_completion_seconds`도 뺀다(§4.9). 실행 구간은 빼지 않고 신고 대기와 겹친 시간은 한 번만 뺀다. 상태·보고·비용은 같은 경과를 쓴다.
 - **도달과 초과**: 사용량이 상한과 같으면 도달이고, `사용량 > 상한`일 때 초과다. 남은 횟수는 0 아래로 표시하지 않으며 초과량은 별도로 표시한다.
 - **실행 전 강제 제한 없음**: 예산은 동시 실행 슬롯을 예약하지 않고, 진행 중 검사를 종료하거나 검사 시작을 강제 차단하지 않는다. 예산 초과만 남은 완료는 추가 실행 권한이 아니다.
 

@@ -4,7 +4,7 @@
 
 > This is a translation of the [Korean original](core-capabilities.md). Where the two differ, the Korean original decides.
 
-This contract applies to Core `0.1.8` and Seal `0.1.23` of v0.1.8. The capability query was introduced in v0.1.3, and the earlier release `v0.1.2` does not have this command. Even after an update, the capabilities of the actual executable are checked, and compatibility is never judged from version numbers alone. Spec writes documents without a Core installation or this query.
+This contract applies to Core `0.1.8` and Seal `0.1.23` of v0.1.8. The capability example below is from that release; §10 adds the requirements of Seal 0.1.26, which uses `run-rules/6`. The capability query was introduced in v0.1.3, and the earlier release `v0.1.2` does not have this command. Even after an update, the capabilities of the actual executable are checked, and compatibility is never judged from version numbers alone. Spec writes documents without a Core installation or this query.
 
 ## 1. Query without a goal
 
@@ -195,3 +195,11 @@ A Core that supports `run-rules/5` provides `run-rules/5` in `supported_rules`, 
 In a `/5` goal, the executor records the `review-gate/v1` file Spar wrote with `ha note <goal> review --gate <file>`, and when the SPEC's `Assurance:` tier is `standard` or `strict`, the goal completes only when the last recorded gate covers the current HEAD and the goal documents. The recorded content, refusals and reasons are in [Run record](run-record.en.md) §4.8. Core reads only the public format of the gate file; it does not run Spar or call reviewers or models.
 
 Seal 0.1.21 declares `run-rules/5`, the `review-gate/v1` feature and `review-gate/v1` of `formats.review_gate` in `core-requirements.json` (§8) and starts with `ha start <goal> --rules run-rules/5 … --check-skill`. The check tool also requires these three for a new start and gives `run-rules/5` as the start rules, and when any of them is missing it refuses before recording. A Core that provides the `review-gate/v1` feature also provides `review-gate/v1` of `formats.review_gate`, so resuming, checking and changing the run limit of goals whose stored rules are `/5` require the five features of §6 and the `review-gate/v1` feature. The requirements of `/1` to `/4` goals stay the same. A Core that does not support `/5` refuses that goal with 66 and does not record.
+
+## 10. run-rules/6
+
+A Core that supports `run-rules/6` adds `run-rules/6` to `supported_rules`. It adds no format or feature identifier and retains the formats and features of `/5` and the five features of §6. `default_rules` stays `run-rules/3`; a direct start selects the rule with `ha start --rules run-rules/6`. This rule changes only four judgments from `/5`: the start of the review range, review notes after completion, unjudged done lines, and time after completion ([Run record](run-record.en.md) §4.9).
+
+Seal 0.1.26 changes `rules` in `core-requirements.json` to `["run-rules/6"]` and keeps Seal 0.1.21's format and feature requirements. It starts new goals with `ha start <goal> --rules run-rules/6 … --check-skill`. The check tool's `--operation start` also requires this declaration, so missing `/6` or any other required support causes refusal without a record and without falling back to earlier rules. The ha 0.1.8 in the v0.1.8 example above does not support `/6`.
+
+Resuming, checking or changing the run limit of an existing goal follows its saved rules. A saved `/6` requires that rule and the format and feature support required under `/5`; the requirements and judgments of `/1` through `/5` goals do not change. A Core without `/6` support neither computes nor records that goal and exits 66. Installation or an update does not migrate existing goals to new rules.
