@@ -74,10 +74,40 @@ func (f *ccFixture) freeze(violation, label string, s rgState) (map[string]any, 
 }
 
 // ccFreezeItems are the report's to-review items for frozen check files: the
-// paths with a reason (each with its "(seq n)") and the paths without one.
+// paths with a reason (each as `<path> (seq n: <reason text>)`) and the paths
+// without one.
 var ccFreezeItems = map[string][2]string{
 	"ko": {"동결 뒤 바뀐 검사 파일(까닭 있음): ", "동결 뒤 까닭 없이 바뀐 검사 파일: "},
 	"en": {"check files changed after the freeze with a reason: ", "check files changed after the freeze without a reason: "},
+}
+
+// ccWithReason is a report item of a frozen check file with its reason.
+func ccWithReason(path string, seq int, reason string) string {
+	return fmt.Sprintf("%s (seq %d: %s)", path, seq, reason)
+}
+
+// ccNotRecorded is what the human status ("en") and each report language say
+// when no review note kept the freeze-time condition table, so check paths
+// removed after the freeze are not observed.
+var ccNotRecorded = map[string]string{
+	"en": "freeze-time condition table was not recorded",
+	"ko": "동결 때의 조건표가 기록되지 않음",
+}
+
+// notRecorded reports whether the human status and both report languages say
+// that the freeze-time condition table was not recorded, against want.
+func (f *ccFixture) notRecorded(violation, label string, want bool) {
+	f.t.Helper()
+	human := f.output(violation, label, "status", rgGoal)
+	if got := strings.Contains(human, ccNotRecorded["en"]); got != want {
+		f.t.Errorf("jaekit:violation=%s %s: ha status says %q: %v; want %v:\n%s", violation, label, ccNotRecorded["en"], got, want, human)
+	}
+	for _, lang := range []string{"ko", "en"} {
+		review := f.summary(violation, label, lang, 1)
+		if got := strings.Contains(review, ccNotRecorded[lang]); got != want {
+			f.t.Errorf("jaekit:violation=%s %s: ha report --lang %s to-review line %q says %q: %v; want %v", violation, label, lang, review, ccNotRecorded[lang], got, want)
+		}
+	}
 }
 
 // ccPaths are the paths of a report list item, each item's first word.
@@ -100,12 +130,17 @@ func (f *ccFixture) noFreeze(violation, label string) {
 	if fz, ok := s.value["check_freeze"]; ok {
 		f.t.Errorf("jaekit:violation=%s %s: the status JSON has check_freeze %v; want none", violation, label, fz)
 	}
-	if line, ok := ccLine(f.output(violation, label, "status", rgGoal), "- check freeze:"); ok {
+	human := f.output(violation, label, "status", rgGoal)
+	if line, ok := ccLine(human, "- check freeze:"); ok {
 		f.t.Errorf("jaekit:violation=%s %s: ha status prints %q; want no freeze line", violation, label, line)
+	}
+	if strings.Contains(human, ccNotRecorded["en"]) {
+		f.t.Errorf("jaekit:violation=%s %s: ha status says %q; want no freeze display", violation, label, ccNotRecorded["en"])
 	}
 	for _, lang := range []string{"ko", "en"} {
 		review := f.summary(violation, label, lang, 1)
-		for _, prefix := range ccFreezeItems[lang] {
+		items := ccFreezeItems[lang]
+		for _, prefix := range append(items[:], ccNotRecorded[lang]) {
 			if strings.Contains(review, prefix) {
 				f.t.Errorf("jaekit:violation=%s %s: ha report --lang %s lists %q; want no freeze item", violation, label, lang, strings.TrimSpace(prefix))
 			}
@@ -186,7 +221,10 @@ func TestCheckCostAC5_StatusAndReportShowMark(t *testing.T) {
 
 // AC-10: a run-rules/7 standard or strict goal shows the check files changed
 // after the freeze round of its last recorded gate, with the reasons that
-// still hold for them, in its status and report; the display never blocks
+// still hold for them, in its status and report. The check paths of the
+// freeze-time condition table come from the earliest review note whose gate
+// ends with the freeze round; without one, removed check paths are not
+// observed and the status and report say so. The display never blocks
 // completion and is absent for other goals.
 func TestCheckCostAC10_FreezeShown(t *testing.T) {
 	const v = "check-freeze-hidden"
@@ -194,9 +232,11 @@ func TestCheckCostAC10_FreezeShown(t *testing.T) {
 		reasonOne = "claude-F1: the producer named the wrong value file"
 		reasonTwo = "codex-F2: AC-2's producer read stale output"
 	)
+	// AC-2's 검사 경로 at the start: its producer, its declaration and two
+	// check inputs.
 	conds := func() []ccCond {
 		extra := ccChange("AC-2", "—")
-		extra.paths = []string{ccScript("AC-2"), ccDecl("AC-2"), "checks/ac-2-extra.txt"}
+		extra.paths = []string{ccScript("AC-2"), ccDecl("AC-2"), "checks/ac-2-extra.txt", "checks/ac-2-early.txt"}
 		return []ccCond{ccChange("AC-1", ccMark), extra, ccMaintain("AC-3")}
 	}
 	short := func(line, head string) bool {
@@ -207,33 +247,51 @@ func TestCheckCostAC10_FreezeShown(t *testing.T) {
 		}
 		return len(token) >= 7 && strings.HasPrefix(head, token)
 	}
+	observed := func(label string, fz map[string]any, want bool) {
+		t.Helper()
+		if got, ok := fz["removed_observed"].(bool); !ok || got != want {
+			t.Errorf("jaekit:violation=%s %s: check_freeze removed_observed %v; want %v", v, label, fz["removed_observed"], want)
+		}
+	}
+	rounds := func(list []rgRound, more ...rgRound) []rgRound { return append(append([]rgRound{}, list...), more...) }
 
 	// A standard goal: the freeze is the first candidate round of the last
-	// recorded gate that is not a dry run.
+	// recorded gate that is not a dry run, and a gate recorded right after
+	// that round keeps the freeze-time table.
 	func() {
 		f := ccRepo(t, ccGoal{tier: "standard", conds: conds(), column: true})
 		f.start(v)
-		// Before the freeze: a check file changed without a reason.
+		// An earlier gate, recorded while the table still had the check
+		// paths of the start; its only candidate round reviewed the base.
+		f.recordGate(v, "an earlier gate", ccGate(f, ccRound(f, "candidate", f.base, f.base, false)))
+		// Before the freeze: a check file changed without a reason, a check
+		// path added to the table after the start and one of the start
+		// removed from it.
 		f.revise(ccScript("AC-2"), "settled before the first candidate round")
+		f.put("checks/ac-2-late.txt", "a check input added after the start\n")
+		f.setPaths("AC-2", ccScript("AC-2"), ccDecl("AC-2"), "checks/ac-2-extra.txt", "checks/ac-2-late.txt")
 		frozen := f.implement()
 		f.must(v, "the current checks at the freeze head", exitOK, "check", rgGoal)
 		f.must(v, "the marked baseline at the freeze head", exitOK, "check", rgGoal, "--baseline")
 
-		// An earlier gate whose candidate round reviewed the base, then the
-		// last gate: a plan round and a dry-run candidate round before the
-		// first counted candidate round.
-		f.recordGate(v, "an earlier gate", ccGate(f, ccRound(f, "candidate", f.base, f.base, false)))
-		f.recordGate(v, "the gate of the freeze head", ccGate(f, ccRound(f, "plan", f.base, f.base, false),
-			ccRound(f, "candidate", f.base, f.base, true), ccRound(f, "candidate", f.base, frozen, false)))
+		// The gate recorded right after the freeze round: a plan round and a
+		// dry-run candidate round before the first counted candidate round.
+		freezeRounds := []rgRound{ccRound(f, "plan", f.base, f.base, false), ccRound(f, "candidate", f.base, f.base, true),
+			ccRound(f, "candidate", f.base, frozen, false)}
+		f.recordGate(v, "the gate recorded right after the freeze round", ccGate(f, freezeRounds...))
 		label := "the freeze head is HEAD"
 		fz, files := f.freeze(v, label, f.state(v, label))
 		if fz["stage"] != "candidate" || fz["head"] != frozen || len(files) > 0 {
 			t.Errorf("jaekit:violation=%s %s: check_freeze stage %v head %v files %v; want candidate at %s with no file", v, label, fz["stage"], fz["head"], files, frozen)
 		}
+		observed(label, fz, true)
+		f.notRecorded(v, label, false)
 
 		// After the freeze: AC-1's producer changed with a reason that
 		// holds; AC-2's producer changed with a reason, then changed again;
-		// a check path added and one removed from the table.
+		// a check path added to the table, and both check inputs of the
+		// freeze-time table removed from it: one the start had, one added
+		// after the start.
 		f.revise(ccScript("AC-1"), "fix after the first candidate round")
 		f.revise(ccScript("AC-2"), "fix after the first candidate round")
 		f.head = f.commit("fix the checks after the review")
@@ -246,9 +304,8 @@ func TestCheckCostAC10_FreezeShown(t *testing.T) {
 		f.head = f.commit("change the checks again")
 		f.must(v, "the current checks at the last head", exitOK, "check", rgGoal)
 		f.must(v, "the marked baseline at the last head", exitOK, "check", rgGoal, "--baseline")
-		f.recordGate(v, "the last gate", ccGate(f, ccRound(f, "plan", f.base, f.base, false), ccRound(f, "candidate", f.base, f.base, true),
-			ccRound(f, "candidate", f.base, frozen, false), ccRound(f, "fixes", frozen, fixes, false), ccRound(f, "fixes", fixes, f.head, false),
-			ccRound(f, "candidate", f.base, f.head, false)))
+		f.recordGate(v, "the last gate", ccGate(f, rounds(freezeRounds, ccRound(f, "fixes", frozen, fixes, false),
+			ccRound(f, "fixes", fixes, f.head, false), ccRound(f, "candidate", f.base, f.head, false))...))
 
 		label = "check files changed after the freeze"
 		s := f.state(v, label)
@@ -258,18 +315,19 @@ func TestCheckCostAC10_FreezeShown(t *testing.T) {
 			ccScript("AC-2"):         {state: "changed", nullReason: true},
 			"checks/ac-2-helper.txt": {state: "added", nullReason: true},
 			"checks/ac-2-extra.txt":  {state: "removed", nullReason: true},
+			"checks/ac-2-late.txt":   {state: "removed", nullReason: true},
 		}
 		if fz["stage"] != "candidate" || fz["head"] != frozen {
 			t.Errorf("jaekit:violation=%s %s: check_freeze stage %v head %v; want candidate at %s", v, label, fz["stage"], fz["head"], frozen)
 		}
-		if len(files) != len(want) {
-			t.Errorf("jaekit:violation=%s %s: check_freeze files %v; want %v", v, label, files, want)
+		if got, ok := files["checks/ac-2-early.txt"]; ok {
+			t.Errorf("jaekit:violation=%s %s: check_freeze lists checks/ac-2-early.txt, which the table lost before the freeze, as %+v", v, label, got)
 		}
-		for path, w := range want {
-			if got, ok := files[path]; !ok || got != w {
-				t.Errorf("jaekit:violation=%s %s: check_freeze file %s is %+v (listed %v); want %+v", v, label, path, got, ok, w)
-			}
+		if !ccSameFrozen(files, want) {
+			t.Errorf("jaekit:violation=%s %s: check_freeze files %+v; want %+v", v, label, files, want)
 		}
+		observed(label, fz, true)
+		f.notRecorded(v, label, false)
 
 		human := f.output(v, label, "status", rgGoal)
 		if line, ok := ccLine(human, "- check freeze: candidate round "); !ok || !short(line, frozen) {
@@ -283,16 +341,16 @@ func TestCheckCostAC10_FreezeShown(t *testing.T) {
 			}
 		}
 
+		withItem := ccWithReason(ccScript("AC-1"), one, reasonOne)
+		wantWithout := []string{"checks/ac-2-extra.txt", "checks/ac-2-helper.txt", "checks/ac-2-late.txt", ccScript("AC-2")}
+		sort.Strings(wantWithout)
 		for _, lang := range []string{"ko", "en"} {
 			review := f.summary(v, label, lang, 1)
 			with, okWith := ccItem(review, ccFreezeItems[lang][0])
 			without, okWithout := ccItem(review, ccFreezeItems[lang][1])
-			if !okWith || !rgSame(ccPaths(with), []string{ccScript("AC-1")}) || !strings.Contains(with, fmt.Sprintf("%s (seq %d)", ccScript("AC-1"), one)) {
-				t.Errorf("jaekit:violation=%s %s: ha report --lang %s to-review line %q; want %q", v, label, lang, review,
-					fmt.Sprintf("%s%s (seq %d)", ccFreezeItems[lang][0], ccScript("AC-1"), one))
+			if !okWith || !rgSame(ccPaths(with), []string{ccScript("AC-1")}) || !strings.Contains(with, withItem) {
+				t.Errorf("jaekit:violation=%s %s: ha report --lang %s to-review line %q; want %q", v, label, lang, review, ccFreezeItems[lang][0]+withItem)
 			}
-			wantWithout := []string{"checks/ac-2-extra.txt", "checks/ac-2-helper.txt", ccScript("AC-2")}
-			sort.Strings(wantWithout)
 			if !okWithout || !rgSame(ccPaths(without), wantWithout) {
 				t.Errorf("jaekit:violation=%s %s: ha report --lang %s to-review line %q; want %q", v, label, lang, review,
 					ccFreezeItems[lang][1]+strings.Join(wantWithout, ", "))
@@ -309,26 +367,55 @@ func TestCheckCostAC10_FreezeShown(t *testing.T) {
 	}()
 
 	// A strict goal: the freeze is the first plan round that is not a dry
-	// run, not a candidate round.
+	// run, not a candidate round. The gate recorded right after it keeps the
+	// freeze-time table, so a check path removed after it is listed.
 	func() {
 		f := ccRepo(t, ccGoal{tier: "strict", conds: conds(), column: true})
 		f.start(v)
 		f.revise(ccScript("AC-2"), "settled before the plan round")
 		planned := f.commit("the checks the plan round reviews")
 		f.head = planned
+		planRounds := []rgRound{ccRound(f, "plan", f.base, f.base, true), ccRound(f, "plan", f.base, planned, false)}
+		f.recordGate(v, "the gate recorded right after the plan round", ccGate(f, planRounds...))
 		f.revise(ccScript("AC-1"), "fix after the plan round")
+		f.setPaths("AC-2", ccScript("AC-2"), ccDecl("AC-2"), "checks/ac-2-early.txt")
 		f.implement()
-		f.recordGate(v, "a strict gate", ccGate(f, ccRound(f, "plan", f.base, f.base, true), ccRound(f, "plan", f.base, planned, false),
-			ccRound(f, "candidate", f.base, f.head, false)))
-		label := "a strict goal with a check file changed after its plan round"
+		f.recordGate(v, "a strict gate", ccGate(f, rounds(planRounds, ccRound(f, "candidate", f.base, f.head, false))...))
+		label := "a strict goal with a check file changed and a check path removed after its plan round"
 		fz, files := f.freeze(v, label, f.state(v, label))
-		if fz["stage"] != "plan" || fz["head"] != planned || len(files) != 1 || files[ccScript("AC-1")] != (ccFrozen{state: "changed", nullReason: true}) {
-			t.Errorf("jaekit:violation=%s %s: check_freeze stage %v head %v files %v; want plan at %s with %s changed and no reason",
-				v, label, fz["stage"], fz["head"], files, planned, ccScript("AC-1"))
+		want := map[string]ccFrozen{ccScript("AC-1"): {state: "changed", nullReason: true}, "checks/ac-2-extra.txt": {state: "removed", nullReason: true}}
+		if fz["stage"] != "plan" || fz["head"] != planned || !ccSameFrozen(files, want) {
+			t.Errorf("jaekit:violation=%s %s: check_freeze stage %v head %v files %+v; want plan at %s with files %+v", v, label, fz["stage"], fz["head"], files, planned, want)
 		}
+		observed(label, fz, true)
 		if line, ok := ccLine(f.output(v, label, "status", rgGoal), "- check freeze: plan round "); !ok || !short(line, planned) {
 			t.Errorf("jaekit:violation=%s %s: ha status freeze line %q; want `- check freeze: plan round <series>/<round> at %s`", v, label, line, planned[:12])
 		}
+	}()
+
+	// No review note right after the freeze round, only a gate recorded after
+	// later rounds: the freeze-time table is not known. The changed check
+	// file is still listed; the check path removed after the freeze is not
+	// observed, and the status and report say that the freeze-time table was
+	// not recorded.
+	func() {
+		f := ccRepo(t, ccGoal{tier: "standard", conds: conds(), column: true})
+		f.start(v)
+		first := f.implement()
+		f.revise(ccScript("AC-1"), "fix after the first candidate round")
+		f.setPaths("AC-2", ccScript("AC-2"), ccDecl("AC-2"), "checks/ac-2-early.txt")
+		f.head = f.commit("fix the checks after the review")
+		f.recordGate(v, "a gate recorded only after the fixes round", ccGate(f, ccRound(f, "candidate", f.base, first, false),
+			ccRound(f, "fixes", first, f.head, false), ccRound(f, "candidate", f.base, f.head, false)))
+		label := "a standard goal without a review note right after its freeze round"
+		fz, files := f.freeze(v, label, f.state(v, label))
+		want := map[string]ccFrozen{ccScript("AC-1"): {state: "changed", nullReason: true}}
+		if fz["stage"] != "candidate" || fz["head"] != first || !ccSameFrozen(files, want) {
+			t.Errorf("jaekit:violation=%s %s: check_freeze stage %v head %v files %+v; want candidate at %s with files %+v and no removed path",
+				v, label, fz["stage"], fz["head"], files, first, want)
+		}
+		observed(label, fz, false)
+		f.notRecorded(v, label, true)
 	}()
 
 	// No display: light, no tier line, no gate, and gates without the
@@ -366,4 +453,17 @@ func TestCheckCostAC10_FreezeShown(t *testing.T) {
 			ccRound(f, "candidate", f.base, f.head, false)))
 		f.noFreeze(v, "a strict goal whose gate has only a dry-run plan round")
 	}()
+}
+
+// ccSameFrozen reports whether two check_freeze file sets are equal.
+func ccSameFrozen(got, want map[string]ccFrozen) bool {
+	if len(got) != len(want) {
+		return false
+	}
+	for path, w := range want {
+		if g, ok := got[path]; !ok || g != w {
+			return false
+		}
+	}
+	return true
 }

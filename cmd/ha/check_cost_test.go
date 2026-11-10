@@ -55,7 +55,17 @@ type ccCond struct {
 	// paths are the 검사 경로 when they are not the condition's producer and
 	// declaration; files other than those two get synthetic content.
 	paths []string
+	// violation is the identifier a change condition's producer reports
+	// while the value is wrong; "" is the declared ccViolation.
+	violation string
+	// runner makes a change condition's command its ccRunner program instead
+	// of `sh <producer>`. The test adds that program after the start, so it
+	// is not a check file and a baseline cannot start it in the base tree.
+	runner bool
 }
+
+// ccViolation is the violation every change condition's declaration names.
+const ccViolation = "value-wrong"
 
 func ccChange(id, mark string) ccCond { return ccCond{id: id, kind: "change", mark: mark} }
 
@@ -86,6 +96,20 @@ func ccDecl(id string) string { return "checks/" + ccStem(id) + ".json" }
 // ccMaintainScript is a maintain condition's command.
 func ccMaintainScript(id string) string { return "tests/" + ccStem(id) + ".sh" }
 
+// ccRunner is the program that runs a change condition's producer when its
+// command is not `sh <producer>`: an executable file outside its 검사 경로.
+func ccRunner(id string) string { return "src/" + ccStem(id) + "-run" }
+
+// ccAddRunner writes the condition's ccRunner program, executable, into the
+// working tree; the caller commits it.
+func (f *ccFixture) ccAddRunner(id string) {
+	f.t.Helper()
+	f.put(ccRunner(id), "#!/bin/sh\nexec sh "+ccScript(id)+"\n")
+	if err := os.Chmod(filepath.Join(f.dir, filepath.FromSlash(ccRunner(id))), 0o755); err != nil {
+		f.t.Fatalf("setup: %v", err)
+	}
+}
+
 func (c ccCond) checkPaths() []string {
 	if c.paths != nil {
 		return c.paths
@@ -93,16 +117,31 @@ func (c ccCond) checkPaths() []string {
 	return []string{ccScript(c.id), ccDecl(c.id)}
 }
 
+// command is the 검증 명령 of a condition.
+func (c ccCond) command() string {
+	switch {
+	case c.kind != "change":
+		return "sh " + ccMaintainScript(c.id)
+	case c.runner:
+		return ccRunner(c.id)
+	}
+	return "sh " + ccScript(c.id)
+}
+
 // ccProducer is a check-result/v1 producer for one change condition: its one
 // target passes when the condition's value file says ok and reports the
-// declared violation otherwise.
-func ccProducer(id string) string {
-	v := ccValue(id)
-	return "# Synthetic check-result/v1 producer of " + id + ": " + v + " says ok.\n" +
+// condition's violation (the declared one unless it names another)
+// otherwise.
+func ccProducer(c ccCond) string {
+	v, violation := ccValue(c.id), c.violation
+	if violation == "" {
+		violation = ccViolation
+	}
+	return "# Synthetic check-result/v1 producer of " + c.id + ": " + v + " says ok.\n" +
 		"if [ -f " + v + " ] && [ \"$(cat " + v + ")\" = ok ]; then\n" +
 		"  obs='{\"target\":\"value\",\"attempt\":1,\"status\":\"pass\"}'; code=0\n" +
 		"else\n" +
-		"  obs='{\"target\":\"value\",\"attempt\":1,\"status\":\"violation\",\"violation\":\"value-wrong\"}'; code=1\n" +
+		"  obs='{\"target\":\"value\",\"attempt\":1,\"status\":\"violation\",\"violation\":\"" + violation + "\"}'; code=1\n" +
 		"fi\n" +
 		"printf '{\"schema\":\"check-result/v1\",\"invocation\":\"%s\",\"declaration_digest\":\"%s\",\"producer\":\"cc-synthetic\"," +
 		"\"producer_version\":\"1\",\"attempts_complete\":true,\"observations\":[%s]}\\n' " +
@@ -112,7 +151,7 @@ func ccProducer(id string) string {
 
 func ccDeclaration(id string) string {
 	return `{"schema":"check-declaration/v1","producer":"cc-synthetic","producer_version":"1","producer_paths":["` + ccScript(id) +
-		`"],"targets":[{"id":"value","violation":"value-wrong"}]}` + "\n"
+		`"],"targets":[{"id":"value","violation":"` + ccViolation + `"}]}` + "\n"
 }
 
 // ccSpec is the goal's SPEC.md. It links note.md, so its goal documents are
@@ -149,12 +188,12 @@ func ccPlan(g ccGoal) string {
 	var ids, changes []string
 	for _, c := range g.conds {
 		ids = append(ids, c.id)
-		command, paths := "sh "+ccMaintainScript(c.id), "—"
+		paths := "—"
 		if c.kind == "change" {
-			command, paths = "sh "+ccScript(c.id), strings.Join(c.checkPaths(), ", ")
+			paths = strings.Join(c.checkPaths(), ", ")
 			changes = append(changes, c.id)
 		}
-		fmt.Fprintf(&b, "| %s | %s | `%s` | %s | T001 |", c.id, c.kind, command, paths)
+		fmt.Fprintf(&b, "| %s | %s | `%s` | %s | T001 |", c.id, c.kind, c.command(), paths)
 		if g.column {
 			fmt.Fprintf(&b, " %s |", c.mark)
 		}
@@ -210,7 +249,7 @@ func ccRepo(t *testing.T, g ccGoal) *ccFixture {
 				value = "ok\n"
 			}
 			r.put(ccValue(c.id), value)
-			r.put(ccScript(c.id), ccProducer(c.id))
+			r.put(ccScript(c.id), ccProducer(c))
 			r.put(ccDecl(c.id), ccDeclaration(c.id))
 			for _, p := range c.checkPaths() {
 				if p != ccScript(c.id) && p != ccDecl(c.id) {
@@ -571,7 +610,8 @@ func TestCheckCostAC1_StartAndCapabilities(t *testing.T) {
 
 // AC-2: under run-rules/7 a required change condition needs a baseline only
 // when the current PLAN marks it; an adverse baseline recorded for an
-// unmarked one still blocks it.
+// unmarked one (unexpected_pass, a failure other than the intended one,
+// errors past the limit) still blocks it.
 func TestCheckCostAC2_SatisfactionFollowsMark(t *testing.T) {
 	const v = "baseline-requirement-wrong"
 	expect := func(label string, s rgState, id string, satisfied bool, reason string) {
@@ -640,6 +680,60 @@ func TestCheckCostAC2_SatisfactionFollowsMark(t *testing.T) {
 		expect(label, s, "AC-4", false, "baseline_unexpected_pass")
 		if s.status == "complete" {
 			t.Errorf("jaekit:violation=%s %s: the goal is complete; want the baseline to block AC-4", v, label)
+		}
+	}()
+
+	// The other two adverse baselines of unmarked conditions. At base AC-2's
+	// producer reports a violation its declaration does not name (a failure
+	// other than the intended one). AC-3's command is its runner program,
+	// which the goal adds after the start: the current checks run it, and a
+	// baseline in the base tree cannot start it, so two baselines record two
+	// errors past the limit of one rerun. Each blocks its condition.
+	func() {
+		unintended := ccChange("AC-2", "—")
+		unintended.violation = "value-other"
+		unstartable := ccChange("AC-3", "")
+		unstartable.runner = true
+		f := ccRepo(t, ccGoal{conds: []ccCond{ccChange("AC-1", ccMark), unintended, unstartable, ccMaintain("AC-4")}, column: true})
+		f.start(v)
+		f.ccAddRunner("AC-3")
+		f.implement()
+		f.must(v, "the current checks", exitOK, "check", rgGoal)
+		f.must(v, "the baseline of the marked AC-1", exitOK, "check", rgGoal, "AC-1", "--baseline")
+		label := "passing current checks of the unmarked AC-2 and AC-3 without a baseline"
+		s := f.state(v, label)
+		expect(label, s, "AC-2", true, "")
+		expect(label, s, "AC-3", true, "")
+		if s.status != "complete" || s.code != exitOK {
+			t.Errorf("jaekit:violation=%s %s: status %s (exit %d), reasons %v; want complete", v, label, s.status, s.code, s.reasons)
+		}
+
+		f.must(v, "the baseline of the unmarked AC-2", exitProblems, "check", rgGoal, "AC-2", "--baseline")
+		label = "a baseline of the unmarked AC-2 with a violation its declaration does not name"
+		s = f.state(v, label)
+		expect(label, s, "AC-2", false, "baseline_failed")
+		expect(label, s, "AC-3", true, "")
+		if s.status == "complete" {
+			t.Errorf("jaekit:violation=%s %s: the goal is complete; want the baseline to block AC-2", v, label)
+		}
+
+		f.must(v, "the first baseline of the unmarked AC-3", exitProblems, "check", rgGoal, "AC-3", "--baseline")
+		f.must(v, "the second baseline of the unmarked AC-3", exitProblems, "check", rgGoal, "AC-3", "--baseline")
+		// The premise of this form: both baselines failed to start.
+		var starts []string
+		for _, l := range ccRuns(ciLines(f.rgFixture), "baseline") {
+			if ccTarget(l) == "AC-3" {
+				starts = append(starts, fmt.Sprint(l.m["result"]))
+			}
+		}
+		if !rgSame(starts, []string{"error", "error"}) {
+			t.Fatalf("setup: the AC-3 baselines recorded %v; the form needs two errors of a command that cannot start", starts)
+		}
+		label = "two baselines of the unmarked AC-3 whose command cannot start"
+		s = f.state(v, label)
+		expect(label, s, "AC-3", false, "error_limit")
+		if s.status == "complete" {
+			t.Errorf("jaekit:violation=%s %s: the goal is complete; want the errors to block AC-3", v, label)
 		}
 	}()
 
