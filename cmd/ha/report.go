@@ -196,7 +196,7 @@ func (c *cli) report(in []string) int {
 	if errors.As(err, &ur) {
 		return c.fail(exitRules, "%v", err)
 	}
-	v := &reportView{w: w, rep: rep, lines: lines, words: words, goal: status.DisplayGoal(w.arg, w.goal.Dir)}
+	v := &reportView{w: w, rep: rep, lines: status.ComputationLines(lines), words: words, goal: status.DisplayGoal(w.arg, w.goal.Dir)}
 	if start := startLine(lines); start != nil {
 		// The status computation's own read of the range counts too: its
 		// failure is not read again, so a second read cannot hide it.

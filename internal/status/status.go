@@ -418,6 +418,8 @@ type evaluator struct {
 	overlay  map[string]string
 	confirms map[string]bool
 	invalid  []string
+	// recordLines preserves the full record when in.Lines is a computation view.
+	recordLines []record.Line
 	// recoveries holds run-rules/4 recover and allow-recovery notes.
 	recoveries map[string]*recoveryState
 }
@@ -435,9 +437,6 @@ func Compute(in Input) (*Report, error) {
 	}
 	if !Supported(e.rules) {
 		return nil, &UnsupportedRulesError{Rules: e.rules}
-	}
-	if Autonomous(e.rules) {
-		e.recoveries = foldRecoveries(in.Lines)
 	}
 	var err error
 	if e.excl, err = Excludes(in.Repo.Root, g, b, e.rules); err != nil {
@@ -473,6 +472,14 @@ func Compute(in Input) (*Report, error) {
 	e.checkReviews()
 	if err := e.collectUsage(rep); err != nil {
 		return nil, err
+	}
+	// Keep validation, findings, usage and the append head on the full record.
+	// Every subsequent evaluator input uses the same computation view; budget
+	// folding retains the full record so it never re-judges a filtered chain.
+	e.recordLines = in.Lines
+	e.in.Lines = ComputationLines(in.Lines)
+	if Autonomous(e.rules) {
+		e.recoveries = foldRecoveries(e.in.Lines)
 	}
 	if err := e.readConfirms(rep); err != nil {
 		return nil, err
@@ -1066,7 +1073,11 @@ func (e *evaluator) goalReasons(rep *Report) ([]Reason, error) {
 
 func (e *evaluator) budget() (*Budget, error) {
 	if Structured(e.rules) {
-		state, err := FoldBudget(e.in.Lines)
+		lines := e.recordLines
+		if lines == nil {
+			lines = e.in.Lines
+		}
+		state, err := FoldBudget(lines)
 		if err != nil {
 			return nil, err
 		}
@@ -1134,11 +1145,6 @@ func (e *evaluator) completionRecord(rep *Report) (*int, error) {
 		if d.Kind != "done" || d.Status != Complete {
 			continue
 		}
-		// Under run-rules/6 an unjudged line cannot hide an earlier
-		// completion, but every later note still applies to that record.
-		if CompletionIntegrity(e.rules) && !judgedCompletion(lines, i) {
-			continue
-		}
 		for _, l := range lines[i+1:] {
 			if l.Kind == "note" && (l.Note == "reopen" || (l.Note == "review" && reviewInvalidates)) {
 				return nil, nil
@@ -1170,6 +1176,31 @@ func (e *evaluator) completionRecord(rep *Report) (*int, error) {
 // status, such as a review note, was never judged (run-record.md §4.8).
 func judgedLast(lines []record.Line, i int) bool {
 	return i > 0 && lines[i].RecordHead == lines[i-1].Hash()
+}
+
+// ComputationLines returns the status computation view of a full record.
+// Under run-rules/6 it judges every done line against the original record,
+// then leaves unjudged done lines out, regardless of their status. Earlier
+// rules keep every line. The returned lines retain their original seq and
+// bytes; callers must not pass this filtered view back for another judgment.
+// Chain/record validation, findings, run counts and append heads use the full
+// record, not this view.
+func ComputationLines(lines []record.Line) []record.Line {
+	for _, l := range lines {
+		if l.Kind == "start" {
+			if !CompletionIntegrity(l.Rules) {
+				return lines
+			}
+			out := make([]record.Line, 0, len(lines))
+			for i, line := range lines {
+				if line.Kind != "done" || judgedCompletion(lines, i) {
+					out = append(out, line)
+				}
+			}
+			return out
+		}
+	}
+	return lines
 }
 
 // judgedCompletion is the run-rules/6 judgment on the full record, before
@@ -1215,9 +1246,6 @@ func (e *evaluator) stale(rep *Report) *StaleCompletion {
 	for i := len(lines) - 1; i >= 0; i-- {
 		d := lines[i]
 		if d.Kind != "done" || d.Status != Complete {
-			continue
-		}
-		if CompletionIntegrity(e.rules) && !judgedCompletion(lines, i) {
 			continue
 		}
 		s := &StaleCompletion{Seq: d.Seq, Commit: d.Commit, Reasons: []string{}}

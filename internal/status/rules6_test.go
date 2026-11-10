@@ -2,12 +2,15 @@ package status
 
 import (
 	"encoding/json"
+	"os"
+	"os/exec"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/jgoneit/jaekit/internal/bundle"
+	"github.com/jgoneit/jaekit/internal/gitx"
 	"github.com/jgoneit/jaekit/internal/goaldocs"
 	"github.com/jgoneit/jaekit/internal/record"
 )
@@ -218,7 +221,7 @@ func TestRules6DoneJudgmentAcrossFindings(t *testing.T) {
 				lines[done+1].At = time.Unix(60, 0).UTC().Format(time.RFC3339)
 				linkRules6BudgetLines(t, lines, map[int]int{done + 1: tc.head})
 				e := &evaluator{rules: rules, clean: true, same: map[string]bool{"code": true}, in: Input{
-					Goal: &goaldocs.Goal{Digest: "spec", Assurance: "strict"}, Lines: lines,
+					Goal: &goaldocs.Goal{Digest: "spec", Assurance: "strict"}, Lines: ComputationLines(lines),
 				}}
 				judged := tc.judged6
 				if rules == RulesV5 {
@@ -260,7 +263,7 @@ func TestRules6DoneJudgmentAcrossFindings(t *testing.T) {
 					if err != nil || !reflect.DeepEqual(bud, want) {
 						t.Fatalf("findings change budget: with %+v; without %+v; err %v", bud, want, err)
 					}
-					e.in.Lines = without
+					e.in.Lines = ComputationLines(without)
 					completion, err := e.completionRecord(&Report{})
 					if err != nil || completion == nil || *completion != tc.head+1 {
 						t.Fatalf("completion without intervening findings = %v, err = %v; want seq %d", completion, err, tc.head+1)
@@ -396,4 +399,232 @@ func TestRules6CommandDigestInheritance(t *testing.T) {
 			}
 		})
 	}
+}
+
+// These fixtures compute real reports against a clean synthetic repository.
+// No goal or execution record is written: the input is the saved-line view.
+func rules6ComputationInput(t *testing.T, rules string) Input {
+	t.Helper()
+	dir := t.TempDir()
+	for _, args := range [][]string{
+		{"init", "-q"},
+		{"-c", "user.name=Synthetic", "-c", "user.email=synthetic@example.invalid", "-c", "commit.gpgsign=false", "commit", "-q", "--allow-empty", "-m", "fixture"},
+	} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL="+os.DevNull)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, out)
+		}
+	}
+	repo, err := gitx.Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	head, err := repo.Head()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return Input{Repo: repo, HaVersion: "fixture", Goal: &goaldocs.Goal{
+		Dir: "example", Status: "Ready", Digest: "spec",
+		Criteria: []goaldocs.Criterion{{ID: "AC-1"}},
+	}, Bundle: &bundle.Bundle{HasPlan: true, Rows: []bundle.Row{{ID: "AC-1", Kind: bundle.KindMaintain, Command: "true"}}},
+		Lines: []record.Line{{Header: record.Header{Schema: record.Schema, Kind: "start", HaVersion: "fixture",
+			At: time.Unix(0, 0).UTC().Format(time.RFC3339)}, Goal: "example", Rules: rules,
+			BaseCommit: head, Budget: &record.Budget{Runs: 50, ElapsedSeconds: 10 * 3600}}}}
+}
+
+func rules6ComputationLine(in Input, kind, value string, hour int64) record.Line {
+	l := record.Line{Header: record.Header{Schema: record.Schema, Kind: kind, HaVersion: in.HaVersion,
+		At: time.Unix(hour*3600, 0).UTC().Format(time.RFC3339)}, Commit: in.Lines[0].BaseCommit, SpecDigest: in.Goal.Digest}
+	if kind == "done" {
+		l.Status = value
+	} else {
+		l.Note = value
+	}
+	return l
+}
+
+func rules6Compute(t *testing.T, in Input) *Report {
+	t.Helper()
+	rep, err := Compute(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	last := in.Lines[len(in.Lines)-1]
+	wantHead := &Head{Seq: last.Seq, SHA256: last.Hash()}
+	if !reflect.DeepEqual(rep.RecordHead, wantHead) || !reflect.DeepEqual(rep.Findings.RecordHead, wantHead) {
+		t.Fatalf("full record head lost: status %+v; findings %+v; want %+v", rep.RecordHead, rep.Findings.RecordHead, wantHead)
+	}
+	if rep.DoneEntry(in.HaVersion).RecordHead != last.Hash() {
+		t.Fatal("next done would name the filtered record head")
+	}
+	return rep
+}
+
+func rules6EqualComputation(t *testing.T, got, want *Report) {
+	t.Helper()
+	// Both output formats intentionally expose full-record append heads.
+	// Compare everything else, including the human-only latest-done detail.
+	copy := *got
+	copy.RecordHead = want.RecordHead
+	findings := *got.Findings
+	findings.RecordHead = want.Findings.RecordHead
+	copy.Findings = &findings
+	if a, b := copy.Markdown(copy.Goal), want.Markdown(want.Goal); a != b {
+		t.Fatalf("unjudged done changes human output:\n%s\nwant:\n%s", a, b)
+	}
+	a, err := copy.JSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := want.JSON()
+	if err != nil || string(a) != string(b) {
+		t.Fatalf("unjudged done changes JSON:\n%s\nwant:\n%s\nerror: %v", a, b, err)
+	}
+}
+
+func TestRules6UnjudgedDoneIsAbsentFromComputation(t *testing.T) {
+	t.Run("latest incomplete done and stale explanation", func(t *testing.T) {
+		in := rules6ComputationInput(t, RulesV6)
+		in.Lines = append(in.Lines, rules6ComputationLine(in, "done", Complete, 1),
+			rules6ComputationLine(in, "done", Incomplete, 2), rules6ComputationLine(in, "done", Complete, 12))
+		in.Lines[1].SpecDigest = "earlier-spec"
+		in.Lines[3].HaVersion = "unjudged-version"
+		linkRules6BudgetLines(t, in.Lines, map[int]int{4: 2})
+		got := rules6Compute(t, in)
+		without := in
+		without.Lines = in.Lines[:3]
+		want := rules6Compute(t, without)
+		rules6EqualComputation(t, got, want)
+		if d := got.Done(); d == nil || d.LatestSeq != 3 || d.LatestStatus != Incomplete || d.Completion == nil || d.Completion.Seq != 2 {
+			t.Fatalf("latest judged incomplete and completion explanation lost: %+v", d)
+		}
+		if !strings.Contains(got.Markdown(got.Goal), "recorded incomplete, not a completion") {
+			t.Fatal("human output hides the earlier incomplete done")
+		}
+	})
+	t.Run("late unjudged completion cannot exhaust or close budget", func(t *testing.T) {
+		in := rules6ComputationInput(t, RulesV6)
+		in.Lines = append(in.Lines, rules6ComputationLine(in, "note", "input", 2), rules6ComputationLine(in, "done", Complete, 12))
+		linkRules6BudgetLines(t, in.Lines, map[int]int{3: 1})
+		got := rules6Compute(t, in)
+		without := in
+		without.Lines = in.Lines[:2]
+		want := rules6Compute(t, without)
+		rules6EqualComputation(t, got, want)
+		if got.Status != Incomplete || got.Budget.ElapsedSeconds != 2*3600 || got.Budget.Exceeded || got.Done() != nil {
+			t.Fatalf("unjudged done changes status or budget: %+v", got)
+		}
+		state, err := FoldBudget(in.Lines)
+		baseline, baseErr := FoldBudget(without.Lines)
+		if err != nil || baseErr != nil || state.Completed || !reflect.DeepEqual(state, baseline) {
+			t.Fatalf("budget fold: got %+v (%v); want %+v (%v)", state, err, baseline, baseErr)
+		}
+		req := BudgetChangeRequest{WindowStart: 1, Revision: 1, PreviousRuns: 50, Runs: 40, Reason: "reduce limit"}
+		change, err := NewBudgetChange(in.Lines, req)
+		baseChange, baseErr := NewBudgetChange(without.Lines, req)
+		if err != nil || baseErr != nil || !reflect.DeepEqual(change, baseChange) {
+			t.Fatalf("budget change: got %+v (%v); want %+v (%v)", change, err, baseChange, baseErr)
+		}
+		stored := append(append([]record.Line(nil), in.Lines...), record.Line{
+			Header: record.Header{Kind: "budget_change", Seq: 4, At: in.Lines[2].At}, BudgetChange: &change.Change})
+		if state, err := FoldBudget(stored); err != nil || state.Completed || state.RunsLimit != 40 {
+			t.Fatalf("accepted budget change cannot be folded: %+v, %v", state, err)
+		}
+	})
+	t.Run("judged completion can name unjudged predecessor", func(t *testing.T) {
+		in := rules6ComputationInput(t, RulesV6)
+		in.Goal.Criteria, in.Bundle.Rows = nil, nil
+		in.Lines = append(in.Lines, rules6ComputationLine(in, "note", "input", 1),
+			rules6ComputationLine(in, "done", Complete, 2), rules6ComputationLine(in, "done", Complete, 3),
+			rules6ComputationLine(in, "note", "input", 8))
+		linkRules6BudgetLines(t, in.Lines, map[int]int{3: 1})
+		got := rules6Compute(t, in)
+		if got.Status != Complete || got.CompletionRecord == nil || *got.CompletionRecord != 4 ||
+			got.Budget.ElapsedSeconds != 3*3600 || *got.Budget.PostCompletionSeconds != 5*3600 {
+			t.Fatalf("later judged done was re-judged on the filtered record: %+v", got)
+		}
+		state, err := FoldBudget(in.Lines)
+		if err != nil || !state.Completed {
+			t.Fatalf("judged completion does not close budget: %+v, %v", state, err)
+		}
+	})
+	t.Run("unjudged done does not extend reported waits", func(t *testing.T) {
+		in := rules6ComputationInput(t, RulesV6)
+		in.Lines = append(in.Lines, rules6ComputationLine(in, "note", "wait", 1),
+			rules6ComputationLine(in, "note", "input", 2), rules6ComputationLine(in, "done", Incomplete, 12))
+		linkRules6BudgetLines(t, in.Lines, map[int]int{4: 2})
+		without := in
+		without.Lines = in.Lines[:3]
+		rules6EqualComputation(t, rules6Compute(t, in), rules6Compute(t, without))
+		if got, want := WaitSpans(in.Lines), WaitSpans(without.Lines); !reflect.DeepEqual(got, want) {
+			t.Fatalf("cost wait spans changed: got %+v; want %+v", got, want)
+		}
+		if got := ReportedWaitSeconds(in.Lines); got != 3599 || got != ReportedWaitSeconds(without.Lines) {
+			t.Fatalf("cost reported waits = %d; want 3599 (the wait starts after its own second)", got)
+		}
+	})
+	t.Run("unjudged non-complete done cannot end interval", func(t *testing.T) {
+		in := rules6ComputationInput(t, RulesV6)
+		in.Goal.Criteria, in.Bundle.Rows = nil, nil
+		in.Lines = append(in.Lines, rules6ComputationLine(in, "done", Complete, 2),
+			rules6ComputationLine(in, "note", "input", 3), rules6ComputationLine(in, "done", Incomplete, 4),
+			rules6ComputationLine(in, "note", "input", 8))
+		linkRules6BudgetLines(t, in.Lines, map[int]int{4: 2})
+		got := rules6Compute(t, in)
+		without := in
+		without.Lines = append(append([]record.Line(nil), in.Lines[:3]...), in.Lines[4:]...)
+		want := rules6Compute(t, without)
+		rules6EqualComputation(t, got, want)
+		if got.Budget.ElapsedSeconds != 2*3600 || *got.Budget.PostCompletionSeconds != 6*3600 {
+			t.Fatalf("unjudged incomplete done ended interval: %+v", got.Budget)
+		}
+	})
+	t.Run("rules5 retains unjudged done behavior", func(t *testing.T) {
+		in := rules6ComputationInput(t, RulesV5)
+		in.Lines = append(in.Lines, rules6ComputationLine(in, "note", "input", 2), rules6ComputationLine(in, "done", Complete, 12))
+		linkRules6BudgetLines(t, in.Lines, map[int]int{3: 1})
+		if !reflect.DeepEqual(ComputationLines(in.Lines), in.Lines) {
+			t.Fatal("rules5 record view changed")
+		}
+		got := rules6Compute(t, in)
+		if got.Status != BudgetExhausted || got.Budget.ElapsedSeconds != 12*3600 || got.Budget.PostCompletionSeconds != nil ||
+			got.Done() == nil || got.Done().LatestSeq != 3 || got.CompletionRecord != nil {
+			t.Fatalf("rules5 behavior changed: %+v", got)
+		}
+		state, err := FoldBudget(in.Lines)
+		if err != nil || !state.Completed {
+			t.Fatalf("rules5 completion fold changed: %+v, %v", state, err)
+		}
+		if _, err := NewBudgetChange(in.Lines, BudgetChangeRequest{WindowStart: 1, Revision: 1, PreviousRuns: 50, Runs: 40, Reason: "reduce limit"}); err == nil {
+			t.Fatal("rules5 accepted budget change after complete done")
+		}
+	})
+	t.Run("unjudged done cannot hide invalid record data", func(t *testing.T) {
+		in := rules6ComputationInput(t, RulesV6)
+		in.Lines = append(in.Lines, rules6ComputationLine(in, "note", "input", 2), rules6ComputationLine(in, "done", Complete, 12))
+		in.Lines[2].BudgetChange = &record.BudgetChangeData{}
+		linkRules6BudgetLines(t, in.Lines, map[int]int{3: 1})
+		got := rules6Compute(t, in)
+		for _, reason := range got.Reasons {
+			if reason.Code == "record_invalid" && strings.Contains(reason.Detail, "budget data on a done record") {
+				return
+			}
+		}
+		t.Fatalf("invalid record data was hidden: %+v", got.Reasons)
+	})
+	t.Run("unjudged done cannot hide malformed last timestamp", func(t *testing.T) {
+		in := rules6ComputationInput(t, RulesV6)
+		in.Lines = append(in.Lines, rules6ComputationLine(in, "note", "input", 2), rules6ComputationLine(in, "done", Complete, 12))
+		in.Lines[2].At = "invalid time"
+		linkRules6BudgetLines(t, in.Lines, map[int]int{3: 1})
+		got := rules6Compute(t, in)
+		for _, reason := range got.Reasons {
+			if reason.Code == "record_invalid" && strings.Contains(reason.Detail, "bad last record time") {
+				return
+			}
+		}
+		t.Fatalf("invalid last timestamp was hidden: %+v", got.Reasons)
+	})
 }

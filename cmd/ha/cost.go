@@ -488,7 +488,7 @@ func costVerify(lines []record.Line, doc *costDoc) *costVerification {
 			doc.Unavailable["verification.notes."+key] = costNotRecorded
 		}
 	}
-	exec := record.ExecutionLines(lines)
+	exec := record.ExecutionLines(status.ComputationLines(lines))
 	targets := map[string]*costTarget{}
 	var order []string
 	last := map[string]*record.Line{}
