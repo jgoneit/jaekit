@@ -141,6 +141,14 @@ func userSet(d *record.BudgetChangeData) bool {
 // FoldBudget checks budget event semantics while retaining /1 and /2 window
 // accounting. Callers separately validate the record hash chain.
 func FoldBudget(lines []record.Line) (*BudgetState, error) {
+	// A done line judges the original chain, including findings. Determine
+	// eligible completions before filtering those lines out of budget time.
+	completions := make(map[int]bool)
+	for i, l := range lines {
+		if l.Kind == "done" && l.Status == Complete && judgedLast(lines, i) {
+			completions[l.Seq] = true
+		}
+	}
 	lines = record.ExecutionLines(lines)
 	var state *BudgetState
 	var originalRuns int
@@ -227,42 +235,49 @@ func FoldBudget(lines []record.Line) (*BudgetState, error) {
 		state.ElapsedSeconds = state.SpanSeconds - state.ReportedWaitSeconds
 	}
 	if CompletionIntegrity(state.Rules) {
-		state.PostCompletionSeconds = postCompletionSeconds(lines[window:])
+		state.PostCompletionSeconds = postCompletionSeconds(lines[window:], completions)
 		state.ElapsedSeconds -= state.PostCompletionSeconds
 	}
 	return state, nil
 }
 
-// postCompletionSeconds counts time from complete done lines to the next run
-// start or non-complete done, clipped to this execution window. Notes and other
-// complete done lines do not end an interval. Runs and reported waits are kept
-// out of this deduction, so elapsed time counts runs and excludes overlaps once.
-func postCompletionSeconds(window []record.Line) int64 {
+// postCompletionSeconds counts time from judged complete done lines to the next
+// run started at or after that completion, or non-complete done, clipped to this
+// execution window. Notes and other complete done lines do not end an interval.
+// Runs and reported waits are kept out of this deduction, so elapsed time counts
+// runs and excludes overlaps once.
+func postCompletionSeconds(window []record.Line, completions map[int]bool) int64 {
 	waits, runs, begin, end, ok := waitIntervals(window)
 	if !ok {
 		return 0
 	}
 	var spans []interval
-	stop := end
-	// Taking the earliest later endpoint also handles runs whose start times
-	// precede intervening records: append order is not process start order.
-	for i := len(window) - 1; i >= 0; i-- {
-		l := window[i]
-		switch l.Kind {
-		case "check", "baseline":
-			if at, ok := unix(l.StartedAt); ok {
-				stop = min(stop, at)
+	for i, l := range window {
+		if !completions[l.Seq] {
+			continue
+		}
+		at, ok := unix(l.At)
+		if !ok {
+			continue
+		}
+		stop := end
+		for _, next := range window[i+1:] {
+			switch next.Kind {
+			case "check", "baseline":
+				// Append order is not process start order. A run already
+				// underway at completion still counts below, but cannot end
+				// this interval before it begins.
+				if started, ok := unix(next.StartedAt); ok && started >= at {
+					stop = min(stop, started)
+				}
+			case "done":
+				if ended, ok := unix(next.At); ok && next.Status != Complete {
+					stop = min(stop, ended)
+				}
 			}
-		case "done":
-			at, ok := unix(l.At)
-			if !ok {
-				continue
-			}
-			if l.Status != Complete {
-				stop = min(stop, at)
-			} else if stop > at {
-				spans = append(spans, interval{at, stop})
-			}
+		}
+		if stop > at {
+			spans = append(spans, interval{at, stop})
 		}
 	}
 	for _, w := range waits {
