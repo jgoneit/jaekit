@@ -1,0 +1,61 @@
+# run-rules/6: waiting after completion is separate from reported waits and runs.
+# Shift only the later note, leaving the completion's judged record head intact.
+# Assert fields and reasons, not seconds measured on the test host's clock.
+replace $GOAL/PLAN.md "| AC-1 | change | `sh tests/greeting.sh` | tests/greeting.sh | T001 |" "| AC-1 | maintain | `sh tests/greeting.sh` | — | T001 |"
+write tests/greeting.sh "grep -qx hello src/greeting.txt\n"
+write src/greeting.txt "hello\n"
+commit "goal implemented"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/6
+expect-exit 0
+progress T001 done
+ha check $GOAL
+expect-exit 0
+ha done $GOAL
+expect-exit 0
+expect-records 4
+ha note $GOAL input --quote "merge the completed synthetic goal"
+expect-exit 0
+expect-records 5
+shift-time 5 5h
+expect-status complete
+expect-completion-record present
+expect-no-reason budget_exceeded
+ha status $GOAL --format json
+expect-exit 0
+expect-output "\"post_completion_seconds\":"
+expect-output "\"reported_wait_seconds\":"
+expect-output "\"span_seconds\":"
+expect-output "\"runs\": 2"
+ha status $GOAL
+expect-exit 0
+expect-output "seconds after completion, excluding reported waits and runs"
+ha cost $GOAL --format json
+expect-exit 0
+expect-output "\"post_completion_seconds\":"
+ha budget $GOAL --runs 60 --from 50 --window 1 --revision 1 --quote "raise the run limit to 60" --context "synthetic budget change"
+expect-exit 65
+expect-records 5
+# A code change voids completion but the five-hour gap is still excluded:
+# stale evidence, rather than the four-hour elapsed cap, keeps the goal pending.
+write src/work.txt "synchronized code\n"
+commit "code synchronized"
+expect-status incomplete
+expect-completion-record absent
+expect-no-reason budget_exceeded
+ha report $GOAL --lang en
+expect-exit 0
+expect-output "status: incomplete"
+expect-output "Source: current state"
+expect-no-output "budget exceeded"
+# Restore the note to wall time before issuing another run.
+shift-time 5 -5h
+ha check $GOAL
+expect-exit 0
+expect-reasons none
+ha done $GOAL
+expect-exit 0
+expect-completion-record present
+ha note $GOAL reopen --quote "rework the synthetic goal"
+expect-exit 0
+expect-budget-window 9
+expect-completion-record absent
