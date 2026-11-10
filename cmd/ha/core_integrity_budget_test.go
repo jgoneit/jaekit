@@ -317,6 +317,62 @@ func TestCoreIntegrityAC6_PostCompletionBoundaries(t *testing.T) {
 		}
 	}()
 
+	// The record already ended with a finding when ha done computed, and a
+	// second finding was appended meanwhile: the done line names the first
+	// finding as its record head, and the record reads as the one without the
+	// second finding line.
+	func() {
+		f := rgRepo(t, "light", ciElapsed("10시간"))
+		ciStart(f, v)
+		f.check()                     // seq 2
+		ciMustDone(f, "a completion") // seq 3: D1
+		f.put("src/main.txt", "a change merged from main\n")
+		f.head = f.commit("merge main")
+		f.check() // seq 4
+		lines := ciLines(f)
+		ciTime(lines[0], 0)
+		ciTime(lines[1], 41*m, 40*m)
+		ciTime(lines[2], h)
+		ciTime(lines[3], 111*m, 110*m)
+		ciWrite(f, ciRelink(f, lines, 0))
+		ciFinding(f, ciLines(f)[2]) // seq 5: F1, a finding about D1 before ha done computes
+		lines = ciLines(f)
+		ciTime(lines[4], 112*m)
+		ciWrite(f, ciRelink(f, lines, 4))
+		before := ciLines(f)
+		ciMustDone(f, "the completion ha done computed") // D2, computed with F1 as its record head
+		d2 := ciLines(f)[len(before)]
+		ciWrite(f, before)
+		ciFindingID(f, before[2], "F-2") // seq 6: F2, appended while D2 was computed
+		lines = ciLines(f)
+		lines = append(lines, ciUnjudged(f, d2, lines[len(lines)-1])) // seq 7: D2 after F2
+		ciWrite(f, lines)
+		ciMust(f, exitOK, "note", rgGoal, "input", "--quote", "머지해줘") // seq 8
+		lines = ciLines(f)
+		if len(lines) != 8 || lines[4].kind() != "finding" || lines[5].kind() != "finding" || lines[6].kind() != "done" {
+			t.Fatalf("setup: the record has %d lines; want findings at 5 and 6 and a done line at 7 of 8", len(lines))
+		}
+		ciTime(lines[5], 115*m)
+		ciTime(lines[6], 2*h)
+		ciTime(lines[7], 16*h)
+		with := ciRelink(f, lines, 5)
+		ciWrite(f, with)
+		s := f.status()
+		b := ciBudget(f, s)
+		ciWrite(f, ciRelink(f, append(append([]ciLine(nil), with[:5]...), with[6:]...), 5))
+		sWithout := f.status()
+		bWithout := ciBudget(f, sWithout)
+		if s.status != sWithout.status || (s.completion == nil) != (sWithout.completion == nil) {
+			t.Errorf("jaekit:violation=%s a second finding appended while ha done computed after a finding: status %s, completion record %v; without it %s, %v",
+				v, s.status, s.completion, sWithout.status, sWithout.completion)
+		}
+		for _, key := range []string{"elapsed_seconds", "span_seconds", "reported_wait_seconds", "post_completion_seconds", "exceeded"} {
+			if !reflect.DeepEqual(b[key], bWithout[key]) {
+				t.Errorf("jaekit:violation=%s a second finding appended while ha done computed after a finding changes budget %s: %v with it, %v without it", v, key, b[key], bWithout[key])
+			}
+		}
+	}()
+
 	// A done line that records no completion ends the time after it.
 	func() {
 		f := rgRepo(t, "light")

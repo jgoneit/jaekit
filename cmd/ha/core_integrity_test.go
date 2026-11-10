@@ -439,6 +439,12 @@ func ciMust(f *rgFixture, want int, args ...string) string {
 // completion record line d.
 func ciFinding(f *rgFixture, d ciLine) {
 	f.t.Helper()
+	ciFindingID(f, d, "F-1")
+}
+
+// ciFindingID is ciFinding with the finding ID id.
+func ciFindingID(f *rgFixture, d ciLine, id string) {
+	f.t.Helper()
 	criteria := []any{}
 	if list, ok := d.m["criteria"].([]any); ok {
 		for _, c := range list {
@@ -449,7 +455,7 @@ func ciFinding(f *rgFixture, d ciLine) {
 			}
 		}
 	}
-	input := map[string]any{"id": "F-1", "request_id": "R-1", "revision": 0,
+	input := map[string]any{"id": id, "request_id": "R-" + strings.TrimPrefix(id, "F-"), "revision": 0,
 		"completion": map[string]any{"seq": d.seq(), "sha256": rgSHA(d.raw)}, "criteria": criteria,
 		"mapping": "unmapped", "status": "candidate", "category": "unknown",
 		"summary": "a synthetic report after completion", "source": "synthetic test", "evidence": []any{}}
