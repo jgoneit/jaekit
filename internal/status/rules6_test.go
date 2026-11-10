@@ -2,11 +2,13 @@ package status
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/jgoneit/jaekit/internal/bundle"
+	"github.com/jgoneit/jaekit/internal/goaldocs"
 	"github.com/jgoneit/jaekit/internal/record"
 )
 
@@ -158,12 +160,113 @@ func linkRules6BudgetLines(t *testing.T, lines []record.Line, heads map[int]int)
 	}
 }
 
+func TestRules6DoneJudgmentAcrossFindings(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		between []string
+		head    int
+		judged6 bool
+		judged5 bool
+	}{
+		{"no intervening lines", nil, 2, true, true},
+		{"one finding", []string{"finding"}, 2, true, false},
+		{"multiple findings", []string{"finding", "finding"}, 2, true, false},
+		{"immediately preceding finding", []string{"finding", "finding"}, 4, true, true},
+		{"earlier finding is not the execution head", []string{"finding", "finding"}, 3, false, false},
+		{"note", []string{"input"}, 2, false, false},
+		{"note before finding", []string{"input", "finding"}, 2, false, false},
+		{"note after finding", []string{"finding", "input"}, 2, false, false},
+		{"check before finding", []string{"check", "finding"}, 2, false, false},
+		{"review before finding", []string{"review", "finding"}, 2, false, false},
+	} {
+		for _, rules := range []string{RulesV5, RulesV6} {
+			t.Run(tc.name+"/"+rules, func(t *testing.T) {
+				lines := []record.Line{
+					{Header: record.Header{Kind: "start"}, Rules: rules, Budget: &record.Budget{Runs: 50, ElapsedSeconds: 50}},
+					{Header: record.Header{Kind: "note"}, Note: "input"},
+				}
+				for _, kind := range tc.between {
+					l := record.Line{Header: record.Header{Kind: kind}}
+					switch kind {
+					case "finding":
+						l.Schema = record.FindingSchema
+					case "check":
+						l.StartedAt = time.Unix(10, 0).UTC().Format(time.RFC3339)
+					default:
+						l.Kind, l.Note = "note", kind
+					}
+					lines = append(lines, l)
+				}
+				done := len(lines)
+				lines = append(lines,
+					record.Line{Header: record.Header{Kind: "done"}, Status: Complete, SpecDigest: "spec", Commit: "code"},
+					record.Line{Header: record.Header{Kind: "note"}, Note: "input"})
+				for i := range lines {
+					if lines[i].Schema == "" {
+						lines[i].Schema = record.Schema
+					}
+					lines[i].At = time.Unix(int64(i)*5, 0).UTC().Format(time.RFC3339)
+				}
+				lines[done].At = time.Unix(30, 0).UTC().Format(time.RFC3339)
+				lines[done+1].At = time.Unix(60, 0).UTC().Format(time.RFC3339)
+				linkRules6BudgetLines(t, lines, map[int]int{done + 1: tc.head})
+				e := &evaluator{rules: rules, clean: true, same: map[string]bool{"code": true}, in: Input{
+					Goal: &goaldocs.Goal{Digest: "spec", Assurance: "strict"}, Lines: lines,
+				}}
+				judged := tc.judged6
+				if rules == RulesV5 {
+					judged = tc.judged5
+				}
+				completion, err := e.completionRecord(&Report{})
+				if err != nil || (completion != nil) != judged || completion != nil && *completion != done+1 {
+					t.Fatalf("completion = %v, err = %v; want judged %t at seq %d", completion, err, judged, done+1)
+				}
+				stale := e.stale(&Report{})
+				if rules == RulesV6 && !judged {
+					if stale != nil {
+						t.Fatalf("unjudged done presented as a stale completion: %+v", stale)
+					}
+				} else if stale == nil || stale.Seq != done+1 ||
+					judged && len(stale.Reasons) != 0 || !judged && !reflect.DeepEqual(stale.Reasons, []string{"a record was appended while ha done computed it"}) {
+					t.Fatalf("stale = %+v; want judged %t at seq %d", stale, judged, done+1)
+				}
+				bud, err := RecordBudget(lines)
+				if err != nil {
+					t.Fatal(err)
+				}
+				post := int64(0)
+				if rules == RulesV6 && judged {
+					post = 30
+				}
+				if bud.ElapsedSeconds != 60-post || bud.Exceeded != (post == 0) ||
+					rules == RulesV6 && (bud.PostCompletionSeconds == nil || *bud.PostCompletionSeconds != post) ||
+					rules == RulesV5 && bud.PostCompletionSeconds != nil {
+					t.Fatalf("budget = %+v; want elapsed %d and post %d", bud, 60-post, post)
+				}
+				if rules == RulesV6 && tc.head == 2 && judged {
+					without := record.ExecutionLines(lines)
+					linkRules6BudgetLines(t, without, nil)
+					want, err := RecordBudget(without)
+					if err != nil || !reflect.DeepEqual(bud, want) {
+						t.Fatalf("findings change budget: with %+v; without %+v; err %v", bud, want, err)
+					}
+					e.in.Lines = without
+					completion, err := e.completionRecord(&Report{})
+					if err != nil || completion == nil || *completion != 3 {
+						t.Fatalf("completion without findings = %v, err = %v; want seq 3", completion, err)
+					}
+				}
+			})
+		}
+	}
+}
+
 func TestRules6PostCompletionRequiresJudgedDone(t *testing.T) {
 	for _, predecessor := range []string{"note", "finding"} {
-		for _, judged := range []bool{false, true} {
-			name := predecessor + "/unjudged"
-			if judged {
-				name = predecessor + "/judged"
+		for _, immediateHead := range []bool{false, true} {
+			name := predecessor + "/earlier head"
+			if immediateHead {
+				name = predecessor + "/immediate head"
 			}
 			t.Run(name, func(t *testing.T) {
 				lines := []record.Line{
@@ -181,7 +284,7 @@ func TestRules6PostCompletionRequiresJudgedDone(t *testing.T) {
 				}
 				lines[3].At = time.Unix(40, 0).UTC().Format(time.RFC3339)
 				heads := map[int]int{3: 1}
-				if judged {
+				if immediateHead {
 					heads = nil
 				}
 				linkRules6BudgetLines(t, lines, heads)
@@ -190,6 +293,9 @@ func TestRules6PostCompletionRequiresJudgedDone(t *testing.T) {
 					t.Fatal(err)
 				}
 				post := int64(0)
+				// A finding appended during done does not make it unjudged;
+				// an intervening execution line still does.
+				judged := immediateHead || predecessor == "finding"
 				if judged {
 					post = 20
 				}

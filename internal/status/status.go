@@ -1136,7 +1136,7 @@ func (e *evaluator) completionRecord(rep *Report) (*int, error) {
 		}
 		// Under run-rules/6 an unjudged line cannot hide an earlier
 		// completion, but every later note still applies to that record.
-		if CompletionIntegrity(e.rules) && !judgedLast(lines, i) {
+		if CompletionIntegrity(e.rules) && !judgedCompletion(lines, i) {
 			continue
 		}
 		for _, l := range lines[i+1:] {
@@ -1144,7 +1144,7 @@ func (e *evaluator) completionRecord(rep *Report) (*int, error) {
 				return nil, nil
 			}
 		}
-		if Reviewed(e.rules) && !judgedLast(lines, i) {
+		if Reviewed(e.rules) && !CompletionIntegrity(e.rules) && !judgedLast(lines, i) {
 			return nil, nil
 		}
 		if d.SpecDigest != e.in.Goal.Digest {
@@ -1172,6 +1172,22 @@ func judgedLast(lines []record.Line, i int) bool {
 	return i > 0 && lines[i].RecordHead == lines[i-1].Hash()
 }
 
+// judgedCompletion is the run-rules/6 judgment on the full record, before
+// filtering findings. A done line may name its immediate predecessor or the
+// nearest earlier execution line when only findings were appended in between.
+// Completion records and post-completion budget intervals share this rule.
+func judgedCompletion(lines []record.Line, i int) bool {
+	if judgedLast(lines, i) {
+		return true
+	}
+	for j := i - 1; j >= 0; j-- {
+		if lines[j].Schema != record.FindingSchema {
+			return lines[i].RecordHead == lines[j].Hash()
+		}
+	}
+	return false
+}
+
 // doneState names the latest done record and, through stale, why the latest
 // completion record no longer holds. A goal without done records gets nil.
 func (e *evaluator) doneState(rep *Report) *DoneState {
@@ -1197,7 +1213,7 @@ func (e *evaluator) stale(rep *Report) *StaleCompletion {
 		if d.Kind != "done" || d.Status != Complete {
 			continue
 		}
-		if CompletionIntegrity(e.rules) && !judgedLast(lines, i) {
+		if CompletionIntegrity(e.rules) && !judgedCompletion(lines, i) {
 			continue
 		}
 		s := &StaleCompletion{Seq: d.Seq, Commit: d.Commit, Reasons: []string{}}
@@ -1245,7 +1261,7 @@ func (e *evaluator) stale(rep *Report) *StaleCompletion {
 				}
 			}
 		}
-		if Reviewed(e.rules) && !judgedLast(lines, i) {
+		if Reviewed(e.rules) && !CompletionIntegrity(e.rules) && !judgedLast(lines, i) {
 			s.Reasons = append(s.Reasons, "a record was appended while ha done computed it")
 		}
 		if e.rules == RulesV3 {
