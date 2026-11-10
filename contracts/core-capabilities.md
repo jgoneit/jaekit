@@ -1,6 +1,6 @@
 # 계약: Core 지원 정보와 Seal 호환 확인
 
-이 계약은 v0.1.8의 Core `0.1.8`·Seal `0.1.23`에 적용한다. 지원 정보 조회는 v0.1.3에서 도입했으며 이전 배포판 `v0.1.2`에는 이 명령이 없다. 업데이트 뒤에도 실제 실행 파일의 지원 정보를 확인하며 버전 숫자만으로 호환성을 판단하지 않는다. Spec은 Core 설치나 이 조회 없이 문서를 작성한다.
+이 계약은 v0.1.8의 Core `0.1.8`·Seal `0.1.23`에 적용한다. 아래 지원 정보 예시는 그 배포판의 것이며, `run-rules/6`을 쓰는 Seal 0.1.26의 요구는 §10에 더한다. 지원 정보 조회는 v0.1.3에서 도입했으며 이전 배포판 `v0.1.2`에는 이 명령이 없다. 업데이트 뒤에도 실제 실행 파일의 지원 정보를 확인하며 버전 숫자만으로 호환성을 판단하지 않는다. Spec은 Core 설치나 이 조회 없이 문서를 작성한다.
 
 ## 1. 목표 없는 조회
 
@@ -191,3 +191,11 @@ skill은 SKILL.md와 같은 폴더의 `core-requirements.json`에 자신에게 �
 `/5` 목표에서 실행자는 Spar가 쓴 `review-gate/v1` 파일을 `ha note <goal> review --gate <file>`로 기록하고, SPEC의 `Assurance:` 등급이 `standard`나 `strict`이면 기록된 마지막 gate가 지금 HEAD와 목표 문서를 덮어야 완료된다. 기록 내용, 거부, 이유는 [실행 기록](run-record.md) §4.8이다. Core는 gate 파일의 공개 형식만 읽고 Spar를 실행하거나 리뷰어·모델을 부르지 않는다.
 
 Seal 0.1.21은 `core-requirements.json`(§8)에 `run-rules/5`, `review-gate/v1` 기능, `formats.review_gate`의 `review-gate/v1`을 선언하고 `ha start <goal> --rules run-rules/5 … --check-skill`로 시작한다. 확인 도구도 새 시작에서 이 셋을 요구하고 시작 규칙으로 `run-rules/5`를 내며, 하나라도 없으면 기록 전에 거부한다. `review-gate/v1` 기능을 제공하는 Core는 `formats.review_gate`의 `review-gate/v1`도 제공하므로, 저장 규칙이 `/5`인 목표의 재개·검사·횟수 상한 변경은 §6의 다섯 기능과 `review-gate/v1` 기능을 요구한다. `/1`~`/4` 목표의 요구는 그대로다. `/5`를 지원하지 않는 Core는 그 목표를 66으로 거부하고 기록하지 않는다.
+
+## 10. run-rules/6
+
+`run-rules/6`을 지원하는 Core는 `supported_rules`에 `run-rules/6`을 더한다. 새 형식이나 기능 식별자는 더하지 않으며, `/5`의 형식·기능과 §6의 다섯 기능을 그대로 지원한다. `default_rules`는 `run-rules/3`이고, 직접 시작할 때는 `ha start --rules run-rules/6`으로 고른다. 이 규칙은 `/5`에서 검토 범위의 시작, 완료 뒤 review note, 판정하지 않은 done 줄, 완료 뒤 시간의 네 판정만 바꾼다([실행 기록](run-record.md) §4.9).
+
+Seal 0.1.26의 `core-requirements.json`은 `rules`를 `["run-rules/6"]`으로 바꾸고 Seal 0.1.21의 형식·기능 요구를 유지한다. 새 목표는 `ha start <goal> --rules run-rules/6 … --check-skill`로 시작한다. 확인 도구의 `--operation start`도 이 선언을 요구하므로, `/6`이나 다른 필수 지원이 없으면 기록 없이 거부하고 이전 규칙으로 물러나지 않는다. 위 v0.1.8의 ha 0.1.8은 `/6`을 지원하지 않는다.
+
+기존 목표의 재개·검사·횟수 상한 변경은 저장된 규칙을 따른다. 저장 규칙이 `/6`이면 그 규칙과 `/5`에서 요구한 형식·기능 지원이 필요하고, `/1`~`/5` 목표의 요구와 판정은 바뀌지 않는다. `/6`을 지원하지 않는 Core는 그 목표를 계산하거나 기록하지 않고 66으로 끝난다. 설치나 업데이트는 기존 목표를 새 규칙으로 이전하지 않는다.

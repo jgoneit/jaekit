@@ -30,6 +30,8 @@ From Seal 0.1.20, Seal no longer compares Core support by hand. It declares the 
 - When the installed `ha` does not know `run-rules/5` or other support Seal requires, Seal stops without a record and does not fall back to older rules. What to do is install an `ha` that has that support.
 - For a goal already started, each command computes its saved rules or refuses them with exit 66.
 
+Seal 0.1.26 requires `run-rules/6` for new goals and starts with `ha start --rules run-rules/6 … --check-skill`. Its format and feature requirements are the same as 0.1.21; only the rule changes. ha 0.1.8 does not support `/6` and refuses this start. Without `/6` or any other required support, Seal stops without a record and does not fall back to earlier rules. An `ha` with that support is needed; goals already started under `/1` through `/5` keep their saved rules.
+
 When the skill folder that Seal names with `--skill` has a `core-requirements.json`, `start` compares the Core support that skill needs with the actual executable and refuses without a record when any support is missing. With `--check-skill`, the declaration is required, and an `ha` from before this feature does not accept that start ([Core capabilities contract](../contracts/core-capabilities.en.md) §8).
 
 <details>
@@ -124,7 +126,14 @@ Look at the reason in the status and the corresponding `ha log` to decide what m
 
 Starting with Seal 0.1.16, Seal starts new goals under `run-rules/4`, and from 0.1.21 under `run-rules/5`, which keeps all of `/4` and adds the [review gate](USAGE.en.md#review-gate-run-rules5) for `standard` and `strict` goals. `/4` preserves the `/3` result rules while adding [autonomy](USAGE.en.md#autonomy-run-rules4), including error recovery.
 
-Existing goals started under `/1` or `/2` keep their previous classifications and are not automatically migrated.
+Seal 0.1.26 starts under `run-rules/6`. `/6` changes only four judgments from `/5`.
+
+- For `standard` and `strict` goals, `review_base_mismatch` blocks completion if the last candidate round (excluding dry runs) did not review from the start's `base_commit`. Spar's gate checks a fixes chain following a candidate from the start base.
+- A `review` note after completion voids the completion record only for the current `standard` or `strict` tier. With `light` or no tier line, an otherwise valid completion record stays valid.
+- A completion `done` line whose `record_head` is not the hash of the immediately preceding line is skipped when choosing the completion record and its explanation, continuing to earlier lines. A judged line invalid for another reason still stops the search.
+- The interval after completion until the next run or a non-complete `done` leaves elapsed time and is shown separately as `post_completion_seconds`. The budget explanation below and [contract §4.9](../contracts/run-record.en.md#49-run-rules6) define its boundaries.
+
+Existing goals started under `/1` through `/5` keep their previous judgments and are not automatically migrated.
 
 </details>
 
@@ -168,7 +177,7 @@ When items remain that the agent cannot decide on its own, it asks along with th
 - **`blocked`**: Stopped due to expired authentication, denied permissions, usage limits, or similar issues. Read the clearing conditions recorded by the agent, resolve the cause, and tell the agent to continue.
 - **`budget_exhausted`**: Exceeded the budget for check run count or elapsed time. Review remaining work and which limit was exceeded, then decide whether to allocate more.
 
-`run-rules/4` follows the `/3` budget rules below while separately setting pre-approved limits, reported waits, and limits for resumed windows. For those differences, see [Autonomy (run-rules/4)](USAGE.en.md#autonomy-run-rules4) and the [run record contract](../contracts/run-record.en.md#47-run-rules4).
+`run-rules/4` and later follow the `/3` budget rules below while separately setting pre-approved limits, reported waits, and limits for resumed windows. For those differences, see [Autonomy (run-rules/4)](USAGE.en.md#autonomy-run-rules4) and the [run record contract](../contracts/run-record.en.md#47-run-rules4). `run-rules/6` also excludes time after completion as described below.
 
 In `/3`, to use more runs only, change the total run limit of the current window:
 - For example, if usage is 48 runs against a limit of 50 runs, changing the limit to 100 gives 48 used and 52 remaining.
@@ -181,9 +190,11 @@ Changes are linked to the status window number, budget revision, and current lim
 
 This change does not open a new window. It does not reset the time limit, elapsed time, failure or error limits, or blocked state. Changing the time limit is unsupported. Editing PLAN alone does not change in-progress limits. A completed window requires explicit rework or resumption; a new `/3` window inherits the latest run limit and the original time limit. Existing `/1` and `/2` goals open a new window with original limits via `reopen` quoting the user's statement, as before.
 
-Budget is measured from the last start or `reopen` to the timestamp of the last saved record. A status check alone does not increase elapsed time, but if a new record is appended—including a budget change—the waiting time is included. Checks executed across resumptions are counted in the window where they are recorded. Actual attempts of checks and baselines, errors and inconclusive verdicts, and valid versus stale results are separate aggregation axes. Baselines are also included in usage.
+The budget window runs from the last start or `reopen` to the timestamp of the last record subject to the run budget. Finding lines are excluded from budget input. A status check alone does not increase elapsed time, but a new record—including a budget change—extends the window. `/4` and `/5` subtract reported waits from the window span; `run-rules/6` also subtracts intervals after completion. Checks executed across resumptions are counted in the window where they are recorded. Actual attempts of checks and baselines, errors and inconclusive verdicts, and valid versus stale results are separate aggregation axes. Baselines are also included in usage.
 
-Reaching the limit means usage equals the limit; exceeding it means usage actually surpassed the limit. A goal with a completion record does not enter `budget_exhausted` as time passes. Under `/2`, `/3` and `/4`, if all required conditions are satisfied and only budget exhaustion remains, completion can be recorded. This is not authority for additional execution; nor is budget a mechanism that automatically blocks check execution or terminates running checks.
+Under `run-rules/6`, an interval after completion starts at the `at` of a `complete` `done` and ends at the earlier of the earliest `started_at` of a subsequently recorded check or baseline and the `at` of a non-complete `done`. With neither endpoint, it ends at the window's last budget record. Another completion `done` continues the interval; notes and finding lines do not end it. Run intervals stay elapsed, and time overlapping reported waits is subtracted only once. The additional excluded seconds are `budget.post_completion_seconds`, with `elapsed_seconds = span_seconds - reported_wait_seconds - post_completion_seconds`. The human-readable status Budget section and the budget window in `ha cost` JSON show these seconds separately; the remaining limits in `ha report` and `ha cost` use the same elapsed time. Work before the first run after completion is also excluded, so code rework proceeds in a new window opened with `reopen` quoting the user's request. Run counts, limits and refusal to change a completed window's budget stay unchanged.
+
+Reaching the limit means usage equals the limit; exceeding it means usage actually surpassed the limit. A goal with a completion record does not enter `budget_exhausted` as time passes. Under `/2` through `/6`, if all required conditions are satisfied and only budget exhaustion remains, completion can be recorded. This is not authority for additional execution; nor is budget a mechanism that automatically blocks check execution or terminates running checks.
 
 ## Continuing in a new conversation
 
