@@ -141,11 +141,11 @@ func userSet(d *record.BudgetChangeData) bool {
 // FoldBudget checks budget event semantics while retaining /1 and /2 window
 // accounting. Callers separately validate the record hash chain.
 func FoldBudget(lines []record.Line) (*BudgetState, error) {
-	// A done line judges the original chain, including findings. Determine
-	// eligible completions before filtering those lines out of budget time.
+	// Determine run-rules/6 completions on the full chain with the same
+	// judgment as completionRecord, before filtering findings out of time.
 	completions := make(map[int]bool)
 	for i, l := range lines {
-		if l.Kind == "done" && l.Status == Complete && judgedLast(lines, i) {
+		if l.Kind == "done" && l.Status == Complete && judgedCompletion(lines, i) {
 			completions[l.Seq] = true
 		}
 	}
