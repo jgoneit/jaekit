@@ -11,7 +11,7 @@ import (
 // uses, so its values are the ones ha status shows.
 
 // RecordBudget computes the budget block of ha status from the record's
-// lines only: it needs no Git, bundle or goal documents.
+// full lines only: it needs no Git, bundle or goal documents.
 func RecordBudget(lines []record.Line) (*Budget, error) {
 	e := &evaluator{in: Input{Lines: lines}, rules: Rules}
 	for i := range lines {
@@ -44,7 +44,7 @@ type WaitSpan struct {
 // WaitSpans returns every wait note of the record in order, with its
 // seconds. A wait note that ends in the second it began counts zero.
 func WaitSpans(lines []record.Line) []WaitSpan {
-	lines = record.ExecutionLines(lines)
+	lines = record.ExecutionLines(ComputationLines(lines))
 	out := []WaitSpan{}
 	from := -1
 	flush := func(to int) {
@@ -78,7 +78,7 @@ func WaitSpans(lines []record.Line) []WaitSpan {
 // ReportedWaitSeconds is the reported wait of every window of the record,
 // each counted once as the budget counts the current window's.
 func ReportedWaitSeconds(lines []record.Line) int64 {
-	lines = record.ExecutionLines(lines)
+	lines = record.ExecutionLines(ComputationLines(lines))
 	var total int64
 	from := -1
 	for i, l := range lines {
