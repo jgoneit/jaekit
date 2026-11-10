@@ -495,15 +495,16 @@ Optional conditions (marked `(선택)` in the goal documents) and `EX-n` added b
 | `record_invalid` | There is an unknown result value or inconsistent stored data | user confirmation |
 | `blocked` | The last `block` has no `unblock` after it | cause resolved |
 | `budget_exceeded` | The number of `check` and `baseline` lines, or the elapsed time, within the budget window (§5.2) exceeds the budget | user decision |
-| `review_missing` | `/5` only: the tier requires review but no gate is recorded (§4.8) | executor fixes |
-| `review_blocked` | `/5` only: the last recorded gate is `blocked` (§4.8) | executor fixes |
-| `review_degraded` | `/5` only: the last recorded gate is `degraded` (§4.8) | executor fixes |
-| `review_open_defect` | `/5` only: that gate has an open `defect` (§4.8) | executor fixes |
-| `review_open_question` | `/5` only: that gate has an open `requirement-question` (§4.8) | user confirmation |
-| `review_code_missing` | `/5` only: that gate has no code round (§4.8) | executor fixes |
-| `review_head_stale` | `/5` only: the head that gate reviewed is not HEAD (§4.8) | executor fixes |
-| `review_docs_stale` | `/5` only: that gate's rounds did not receive the current goal documents (§4.8) | executor fixes |
-| `review_plan_missing` | `/5` only: the goal is `strict` but that gate has no plan round (§4.8) | executor fixes |
+| `review_missing` | `/5` and `/6`: the tier requires review but no gate is recorded (§4.8) | executor fixes |
+| `review_blocked` | `/5` and `/6`: the last recorded gate is `blocked` (§4.8) | executor fixes |
+| `review_degraded` | `/5` and `/6`: the last recorded gate is `degraded` (§4.8) | executor fixes |
+| `review_open_defect` | `/5` and `/6`: that gate has an open `defect` (§4.8) | executor fixes |
+| `review_open_question` | `/5` and `/6`: that gate has an open `requirement-question` (§4.8) | user confirmation |
+| `review_code_missing` | `/5` and `/6`: that gate has no code round (§4.8) | executor fixes |
+| `review_head_stale` | `/5` and `/6`: the head that gate reviewed is not HEAD (§4.8) | executor fixes |
+| `review_base_mismatch` | `/6` only: the base of that gate's last candidate round (excluding dry runs) differs from the goal's start base commit, or the gate has only fixes rounds (§4.9) | executor fixes: run the cumulative candidate round from the goal's start base commit and record its gate |
+| `review_docs_stale` | `/5` and `/6`: that gate's rounds did not receive the current goal documents (§4.8) | executor fixes |
+| `review_plan_missing` | `/5` and `/6`: the goal is `strict` but that gate has no plan round (§4.8) | executor fixes |
 
 ### 4.3 Status
 
@@ -805,7 +806,7 @@ A goal started with `ha start --rules run-rules/6` keeps all the rules of `run-r
 
 **Unjudged done lines.** A `done` line whose `record_head` is not the hash of the immediately preceding line cannot be a completion record. `run-rules/6` skips it and continues looking at earlier completion `done` lines. It also skips that line when choosing the human-readable `latest completion seq … is no longer valid` explanation. An earlier line still needs every validity condition; later `review` notes apply under the tier rule above. A judged line invalid for another reason stops the search as before. Under `run-rules/5`, when the latest completion `done` line was not judged, the search does not find an earlier valid completion record. This change does not put the computation and recording of `ha done` under one lock.
 
-**Time after completion.** Within a budget window, elapsed time excludes the interval from the `at` of a `done` line whose `status` is `complete` to the earlier of the earliest `started_at` of a subsequently recorded check or baseline and the `at` of a non-complete `done` line. With neither endpoint, it ends at the window's last record subject to the run budget. Another `complete` line in between continues the interval; notes (`wait`, `input`, `review` and others) and finding lines do not end it. `reopen` opens a new window. The interval is clipped to the window and excludes run intervals and reported waits, so run time stays elapsed and overlapping waits are subtracted only once. `run-rules/5` has no such additional deduction.
+**Time after completion.** Within a budget window, elapsed time excludes the interval from the `at` of a `done` line whose `status` is `complete` to the earlier of the earliest `started_at` among checks or baselines that started after that line and the `at` of a later non-complete `done` line. Only a completion `done` line that judged the immediately preceding line (`record_head` is that line's hash) starts this interval. A run that started before the completion `done` line does not end the interval, even if recorded afterward. With neither endpoint, it ends at the window's last record subject to the run budget. Another `complete` line in between continues the interval; notes (`wait`, `input`, `review` and others) and finding lines do not end it. `reopen` opens a new window. The interval is clipped to the window and excludes run intervals and reported waits, so run time stays elapsed and overlapping waits are subtracted only once. `run-rules/5` has no such additional deduction.
 
 The `budget.post_completion_seconds` in `run-rules/6` status JSON and the budget window's `post_completion_seconds` in `ha cost` JSON are these additional excluded seconds. Thus `elapsed_seconds = span_seconds - reported_wait_seconds - post_completion_seconds`. The human-readable status Budget section also shows `elapsed also leaves out <seconds> seconds after completion, excluding reported waits and runs` on its own line. The `Remaining limits` and budget decision in `ha report`, and the budget window in `ha cost`, use the same elapsed time. Time is calculated only from stored `at` and `started_at`, never the current time. Run counts, budget windows and limits, and refusal to change the budget of a window with a completion record stay unchanged. Work before the first run after completion also falls in this interval, so rework that edits code after completion proceeds in a new window opened by `reopen` quoting the user's request.
 

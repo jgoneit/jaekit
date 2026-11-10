@@ -491,15 +491,16 @@ C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E
 | `record_invalid` | 알 수 없는 결과값이나 부정합 저장 데이터가 있다 | 사용자 확인 |
 | `blocked` | 마지막 `block` 뒤에 `unblock`이 없다 | 원인 해소 |
 | `budget_exceeded` | 예산 창(§5.2) 안의 `check`·`baseline` 줄 수나 경과 시간이 예산을 넘었다 | 사용자 결정 |
-| `review_missing` | `/5`만: 등급이 검토를 요구하는데 기록된 gate가 없다(§4.8) | 실행자가 고침 |
-| `review_blocked` | `/5`만: 기록된 마지막 gate가 `blocked`(§4.8) | 실행자가 고침 |
-| `review_degraded` | `/5`만: 기록된 마지막 gate가 `degraded`(§4.8) | 실행자가 고침 |
-| `review_open_defect` | `/5`만: 그 gate에 열린 `defect`가 있다(§4.8) | 실행자가 고침 |
-| `review_open_question` | `/5`만: 그 gate에 열린 `requirement-question`이 있다(§4.8) | 사용자 확인 |
-| `review_code_missing` | `/5`만: 그 gate에 code 라운드가 없다(§4.8) | 실행자가 고침 |
-| `review_head_stale` | `/5`만: 그 gate가 검토한 head가 HEAD가 아니다(§4.8) | 실행자가 고침 |
-| `review_docs_stale` | `/5`만: 그 gate의 라운드가 지금의 목표 문서를 받지 않았다(§4.8) | 실행자가 고침 |
-| `review_plan_missing` | `/5`만: `strict`인데 그 gate에 계획 라운드가 없다(§4.8) | 실행자가 고침 |
+| `review_missing` | `/5`·`/6`: 등급이 검토를 요구하는데 기록된 gate가 없다(§4.8) | 실행자가 고침 |
+| `review_blocked` | `/5`·`/6`: 기록된 마지막 gate가 `blocked`(§4.8) | 실행자가 고침 |
+| `review_degraded` | `/5`·`/6`: 기록된 마지막 gate가 `degraded`(§4.8) | 실행자가 고침 |
+| `review_open_defect` | `/5`·`/6`: 그 gate에 열린 `defect`가 있다(§4.8) | 실행자가 고침 |
+| `review_open_question` | `/5`·`/6`: 그 gate에 열린 `requirement-question`이 있다(§4.8) | 사용자 확인 |
+| `review_code_missing` | `/5`·`/6`: 그 gate에 code 라운드가 없다(§4.8) | 실행자가 고침 |
+| `review_head_stale` | `/5`·`/6`: 그 gate가 검토한 head가 HEAD가 아니다(§4.8) | 실행자가 고침 |
+| `review_base_mismatch` | `/6`만: 그 gate의 마지막 candidate 라운드(dry run 제외)의 base가 목표의 시작 base commit과 다르거나 fixes 라운드만 있다(§4.9) | 실행자가 고침: 목표의 시작 base commit부터 누적 candidate 라운드를 돌리고 gate를 기록 |
+| `review_docs_stale` | `/5`·`/6`: 그 gate의 라운드가 지금의 목표 문서를 받지 않았다(§4.8) | 실행자가 고침 |
+| `review_plan_missing` | `/5`·`/6`: `strict`인데 그 gate에 계획 라운드가 없다(§4.8) | 실행자가 고침 |
 
 ### 4.3 상태
 
@@ -801,7 +802,7 @@ fixes 사슬과 기대 head의 확인은 gate 상태 `complete`가 맡는다([re
 
 **판정하지 않은 done 줄.** `record_head`가 바로 앞 줄의 hash가 아닌 `done` 줄은 완료 기록이 되지 않는다. `run-rules/6`은 그 줄을 건너뛰고 앞의 완료 `done` 줄을 계속 본다. 사람용 출력의 `latest completion seq … is no longer valid` 설명을 고를 때도 그 줄을 건너뛴다. 앞의 줄도 모든 유효성 조건을 만족해야 하며, 그 뒤의 `review` note는 위 등급 규칙대로 적용된다. 판정했지만 다른 이유로 무효인 줄에서는 이전처럼 탐색을 멈춘다. `run-rules/5`는 가장 나중의 완료 `done` 줄이 판정하지 않은 줄이면 앞의 유효한 완료 기록을 찾지 않는다. `ha done`의 계산과 기록을 한 잠금으로 묶는 변경은 아니다.
 
-**완료 뒤 시간.** 예산 창 안에서 `status`가 `complete`인 `done` 줄의 `at`부터, 그 뒤 기록된 검사·baseline의 가장 이른 `started_at`이나 완료가 아닌 `done` 줄의 `at` 가운데 이른 시점까지를 경과에서 뺀다. 둘 다 없으면 창의 마지막 실행 예산 대상 기록에서 끝난다. 그 사이의 다른 `complete` 줄은 구간을 이어 가고, note(`wait`, `input`, `review` 등)와 발견 줄은 끝내지 않는다. `reopen`은 새 창을 연다. 구간은 창 안으로 자르고 실행 구간과 신고 대기를 제외하므로, 실행 시간은 경과에 남고 겹친 대기는 한 번만 빠진다. `run-rules/5`에는 이 추가 공제가 없다.
+**완료 뒤 시간.** 예산 창 안에서 `status`가 `complete`인 `done` 줄의 `at`부터, 그 뒤 처음 시작한 검사·baseline의 `started_at`이나 그 뒤의 완료가 아닌 `done` 줄의 `at` 가운데 이른 시점까지를 경과에서 뺀다. 바로 앞 줄을 판정한 완료 `done` 줄(`record_head`가 바로 앞 줄의 hash인 줄)만 이 구간을 시작한다. 완료 `done` 줄 전에 시작한 실행은 그 뒤 기록되더라도 구간을 끝내지 않는다. 둘 다 없으면 창의 마지막 실행 예산 대상 기록에서 끝난다. 그 사이의 다른 `complete` 줄은 구간을 이어 가고, note(`wait`, `input`, `review` 등)와 발견 줄은 끝내지 않는다. `reopen`은 새 창을 연다. 구간은 창 안으로 자르고 실행 구간과 신고 대기를 제외하므로, 실행 시간은 경과에 남고 겹친 대기는 한 번만 빠진다. `run-rules/5`에는 이 추가 공제가 없다.
 
 `run-rules/6`의 상태 JSON `budget.post_completion_seconds`와 `ha cost` JSON의 예산 창 `post_completion_seconds`는 이렇게 추가로 뺀 초다. 따라서 `elapsed_seconds = span_seconds - reported_wait_seconds - post_completion_seconds`다. 사람용 상태의 Budget 절에도 `elapsed also leaves out <초> seconds after completion, excluding reported waits and runs`를 따로 보인다. `ha report`의 `남은 한계`와 예산 결정, `ha cost`의 예산 창도 같은 경과를 쓴다. 시간은 저장된 `at`과 `started_at`으로만 계산하며 현재 시각을 읽지 않는다. 실행 횟수, 예산 창과 한도, 완료 기록이 있는 창의 예산 변경 거부는 그대로다. 완료 뒤 첫 실행 전에 한 작업 시간도 이 구간에 들어가므로, 완료 뒤 코드를 고치는 재작업은 사용자 요청을 인용한 `reopen`으로 새 창에서 진행한다.
 
