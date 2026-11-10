@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "AgentsInputFailureRule",
+      "violation": "agents-input-failure-rule-unchanged",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestCheckCostAC9_AgentsInputFailureRule"
+      }
+    }
+  ]
+}

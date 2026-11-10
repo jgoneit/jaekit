@@ -1,0 +1,30 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "StartAndCapabilities",
+      "violation": "rules-v7-unsupported",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestCheckCostAC1_StartAndCapabilities"
+      }
+    },
+    {
+      "id": "OlderCoreRefuses",
+      "violation": "rules-v7-unsupported",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestCheckCostAC1_OlderCoreRefuses"
+      }
+    },
+    {
+      "id": "SealStartsUnderRulesV7",
+      "violation": "seal-not-on-rules-v7",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestCheckCostAC1_SealStartsUnderRulesV7"
+      }
+    }
+  ]
+}

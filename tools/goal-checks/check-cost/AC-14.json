@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "SameAsRulesV6Elsewhere",
+      "violation": "rules-v7-differs-from-v6",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestCheckCostAC14_SameAsRulesV6Elsewhere"
+      }
+    }
+  ]
+}

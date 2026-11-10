@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "FirstCheckPoint",
+      "violation": "seal-first-check-point-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestCheckCostAC7_FirstCheckPoint"
+      }
+    }
+  ]
+}
