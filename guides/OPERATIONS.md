@@ -121,7 +121,7 @@ Seal 0.1.26은 `run-rules/6`으로 시작합니다. `/6`은 `/5`의 네 판정�
 
 - `standard`·`strict` 목표의 마지막 candidate 라운드(dry run 제외)가 시작 `base_commit`부터 검토하지 않았으면 `review_base_mismatch`로 완료를 막습니다. 시작 base부터의 candidate 뒤 fixes 사슬은 Spar의 gate가 확인합니다.
 - 완료 뒤 `review` note는 현재 등급이 `standard`·`strict`일 때만 완료 기록을 무효로 합니다. `light`이거나 등급 줄이 없으면 다른 조건이 유효한 완료 기록을 유지합니다.
-- `record_head`가 바로 앞 줄의 hash가 아닌 완료 `done` 줄은 완료 기록과 그 설명을 고를 때 건너뛰고 앞의 줄을 계속 봅니다. 바로 앞 줄을 찾을 때 발견 줄은 건너뛰므로, `ha done`이 계산하는 동안 발견 줄만 붙었으면 그 `done` 줄은 판정한 줄입니다. 다른 이유로 무효인 판정한 줄에서는 이전처럼 멈춥니다.
+- `record_head`가 앞선 줄의 hash이고 그 줄과 완료 `done` 줄 사이에 발견 줄(`run-finding/v1`)만 있거나 아무 줄도 없으면, 그 `done` 줄은 판정한 줄입니다. `record_head`가 가리키는 줄 자체는 발견 줄이어도 됩니다. 이 조건을 만족하지 않는 완료 `done` 줄은 완료 기록과 그 설명을 고를 때 건너뛰고 앞의 줄을 계속 봅니다. 다른 이유로 무효인 판정한 줄에서는 이전처럼 멈춥니다.
 - 완료 뒤 다음 실행이나 완료가 아닌 `done`까지의 구간을 경과에서 빼고 `post_completion_seconds`로 따로 보입니다. 아래 예산 설명과 [계약 §4.9](../contracts/run-record.md#49-run-rules6)에 경계가 있습니다.
 
 `/1`~`/5`로 시작한 기존 목표는 종전 판정을 유지하며 자동 이전되지 않습니다.

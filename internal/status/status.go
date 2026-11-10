@@ -1173,17 +1173,20 @@ func judgedLast(lines []record.Line, i int) bool {
 }
 
 // judgedCompletion is the run-rules/6 judgment on the full record, before
-// filtering findings. A done line may name its immediate predecessor or the
-// nearest earlier line that is not a finding, when only findings were appended
-// in between.
+// filtering findings. A done line is judged when its record_head is the hash
+// of an earlier line and every line strictly between them is a finding. The
+// named line may itself be a finding; a first line or a null head is unjudged.
 // Completion records and post-completion budget intervals share this rule.
 func judgedCompletion(lines []record.Line, i int) bool {
-	if judgedLast(lines, i) {
-		return true
+	if i <= 0 || lines[i].RecordHead == "" {
+		return false
 	}
 	for j := i - 1; j >= 0; j-- {
+		if lines[i].RecordHead == lines[j].Hash() {
+			return true
+		}
 		if lines[j].Schema != record.FindingSchema {
-			return lines[i].RecordHead == lines[j].Hash()
+			return false
 		}
 	}
 	return false
