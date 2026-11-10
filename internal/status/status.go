@@ -1174,7 +1174,8 @@ func judgedLast(lines []record.Line, i int) bool {
 
 // judgedCompletion is the run-rules/6 judgment on the full record, before
 // filtering findings. A done line may name its immediate predecessor or the
-// nearest earlier execution line when only findings were appended in between.
+// nearest earlier line that is not a finding, when only findings were appended
+// in between.
 // Completion records and post-completion budget intervals share this rule.
 func judgedCompletion(lines []record.Line, i int) bool {
 	if judgedLast(lines, i) {

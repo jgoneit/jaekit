@@ -800,9 +800,9 @@ fixes 사슬과 기대 head의 확인은 gate 상태 `complete`가 맡는다([re
 
 **완료 뒤 review note.** 완료 기록 뒤의 `review` note는 판정할 때 SPEC.md의 등급이 `standard`나 `strict`일 때만 그 완료 기록을 무효로 한다. `light`이거나 등급 줄이 없으면 다른 유효성 조건을 만족하는 완료 기록은 그대로이고, `ha done`을 다시 할 필요가 없다. 등급을 고치면 SPEC digest가 바뀌므로 기존 유효성 확인은 그대로 적용된다. `run-rules/5`는 등급과 관계없이 뒤의 `review` note가 완료 기록을 무효로 한다.
 
-**판정하지 않은 done 줄.** `record_head`가 바로 앞 줄의 hash가 아닌 `done` 줄은 완료 기록이 되지 않는다. `run-rules/6`은 그 줄을 건너뛰고 앞의 완료 `done` 줄을 계속 본다. 사람용 출력의 `latest completion seq … is no longer valid` 설명을 고를 때도 그 줄을 건너뛴다. 앞의 줄도 모든 유효성 조건을 만족해야 하며, 그 뒤의 `review` note는 위 등급 규칙대로 적용된다. 판정했지만 다른 이유로 무효인 줄에서는 이전처럼 탐색을 멈춘다. `run-rules/5`는 가장 나중의 완료 `done` 줄이 판정하지 않은 줄이면 앞의 유효한 완료 기록을 찾지 않는다. `ha done`의 계산과 기록을 한 잠금으로 묶는 변경은 아니다.
+**판정하지 않은 done 줄.** `record_head`가 바로 앞 줄의 hash인 `done` 줄은 판정한 줄이다. `run-rules/6`은 바로 앞 줄을 찾을 때 발견 줄(`run-finding/v1`)을 건너뛴다. `ha done`이 계산하는 동안 발견 줄만 붙었으면 `record_head`가 발견 줄이 아닌 가장 가까운 앞 줄의 hash이고, 그 `done` 줄도 판정한 줄이다. 발견 줄은 완료 판정과 예산 입력에 들어가지 않기 때문이다. 그 사이에 note·실행 등 발견 줄이 아닌 줄이 하나라도 있으면 판정하지 않은 줄이다. 판정하지 않은 `done` 줄은 완료 기록이 되지 않는다. `run-rules/6`은 그 줄을 건너뛰고 앞의 완료 `done` 줄을 계속 본다. 사람용 출력의 `latest completion seq … is no longer valid` 설명을 고를 때도 그 줄을 건너뛴다. 앞의 줄도 모든 유효성 조건을 만족해야 하며, 그 뒤의 `review` note는 위 등급 규칙대로 적용된다. 판정했지만 다른 이유로 무효인 줄에서는 이전처럼 탐색을 멈춘다. `run-rules/5`는 가장 나중의 완료 `done` 줄이 판정하지 않은 줄이면 앞의 유효한 완료 기록을 찾지 않는다. `ha done`의 계산과 기록을 한 잠금으로 묶는 변경은 아니다.
 
-**완료 뒤 시간.** 예산 창 안에서 `status`가 `complete`인 `done` 줄의 `at`부터, 그 뒤 처음 시작한 검사·baseline의 `started_at`이나 그 뒤의 완료가 아닌 `done` 줄의 `at` 가운데 이른 시점까지를 경과에서 뺀다. 바로 앞 줄을 판정한 완료 `done` 줄(`record_head`가 바로 앞 줄의 hash인 줄)만 이 구간을 시작한다. 완료 `done` 줄 전에 시작한 실행은 그 뒤 기록되더라도 구간을 끝내지 않는다. 둘 다 없으면 창의 마지막 실행 예산 대상 기록에서 끝난다. 그 사이의 다른 `complete` 줄은 구간을 이어 가고, note(`wait`, `input`, `review` 등)와 발견 줄은 끝내지 않는다. `reopen`은 새 창을 연다. 구간은 창 안으로 자르고 실행 구간과 신고 대기를 제외하므로, 실행 시간은 경과에 남고 겹친 대기는 한 번만 빠진다. `run-rules/5`에는 이 추가 공제가 없다.
+**완료 뒤 시간.** 예산 창 안에서 `status`가 `complete`인 `done` 줄의 `at`부터, 그 `at`과 같은 초나 그 뒤에 처음 시작한 검사·baseline의 `started_at`이나 그 뒤의 완료가 아닌 `done` 줄의 `at` 가운데 이른 시점까지를 경과에서 뺀다. 판정한 완료 `done` 줄(위의 판정하지 않은 done 줄이 아닌 줄)만 이 구간을 시작한다. 완료 `done` 줄 전에 시작한 실행은 그 뒤 기록되더라도 구간을 끝내지 않는다. 둘 다 없으면 창의 마지막 실행 예산 대상 기록에서 끝난다. 그 사이의 다른 `complete` 줄은 구간을 이어 가고, note(`wait`, `input`, `review` 등)와 발견 줄은 끝내지 않는다. `reopen`은 새 창을 연다. 구간은 창 안으로 자르고 실행 구간과 신고 대기를 제외하므로, 실행 시간은 경과에 남고 겹친 대기는 한 번만 빠진다. `run-rules/5`에는 이 추가 공제가 없다.
 
 `run-rules/6`의 상태 JSON `budget.post_completion_seconds`와 `ha cost` JSON의 예산 창 `post_completion_seconds`는 이렇게 추가로 뺀 초다. 따라서 `elapsed_seconds = span_seconds - reported_wait_seconds - post_completion_seconds`다. 사람용 상태의 Budget 절에도 `elapsed also leaves out <초> seconds after completion, excluding reported waits and runs`를 따로 보인다. `ha report`의 `남은 한계`와 예산 결정, `ha cost`의 예산 창도 같은 경과를 쓴다. 시간은 저장된 `at`과 `started_at`으로만 계산하며 현재 시각을 읽지 않는다. 실행 횟수, 예산 창과 한도, 완료 기록이 있는 창의 예산 변경 거부는 그대로다. 완료 뒤 첫 실행 전에 한 작업 시간도 이 구간에 들어가므로, 완료 뒤 코드를 고치는 재작업은 사용자 요청을 인용한 `reopen`으로 새 창에서 진행한다.
 
@@ -817,7 +817,7 @@ fixes 사슬과 기대 head의 확인은 gate 상태 `complete`가 맡는다([re
 - d.commit과 HEAD 사이에 묶음 문서 밖의 차이가 없다. 묶음 문서는 규칙 버전에 따른다(§4.6).
 - SPEC digest와 required 조건의 명령 digest가 d와 같다. `/3` change의 구조화 선언·생산자 입력도 같은 의미여야 한다.
 - d 이후에 `reopen` note가 없다. `/5`에서는 `review` note도 없고, d의 `record_head`가 d 바로 앞 줄이다(§4.8).
-- `run-rules/6`에서는 d의 `record_head`가 바로 앞 줄의 hash여야 하고, 뒤의 `review` note는 현재 등급이 `standard`·`strict`일 때만 d를 무효로 한다. 판정하지 않은 완료 `done` 줄은 건너뛰고 앞의 줄을 계속 보되, 판정했지만 다른 이유로 무효인 줄에서는 멈춘다(§4.9).
+- `run-rules/6`에서는 d가 판정한 줄이어야 하고(`record_head`가 바로 앞 줄의 hash이거나, 그 사이에 발견 줄만 있으면 발견 줄이 아닌 가장 가까운 앞 줄의 hash), 뒤의 `review` note는 현재 등급이 `standard`·`strict`일 때만 d를 무효로 한다. 판정하지 않은 완료 `done` 줄은 건너뛰고 앞의 줄을 계속 보되, 판정했지만 다른 이유로 무효인 줄에서는 멈춘다(§4.9).
 - d와 그 앞 줄의 `prev` 연결이 온전하다. 끊겼으면 완료 기록도 근거가 되지 않는다(`record_integrity`).
 
 유효한 완료 기록이 있으면 상태는 `complete`이고, 그 뒤에 시간이 얼마나 지났는지와 무관하다. 완료 기록이 무효가 되면(코드나 SPEC이 바뀜, 재작업 요청) 기록은 이력으로 남고, 상태는 §4.1–§4.3대로 다시 계산한다.

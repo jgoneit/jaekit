@@ -121,7 +121,7 @@ Seal 0.1.26은 `run-rules/6`으로 시작합니다. `/6`은 `/5`의 네 판정�
 
 - `standard`·`strict` 목표의 마지막 candidate 라운드(dry run 제외)가 시작 `base_commit`부터 검토하지 않았으면 `review_base_mismatch`로 완료를 막습니다. 시작 base부터의 candidate 뒤 fixes 사슬은 Spar의 gate가 확인합니다.
 - 완료 뒤 `review` note는 현재 등급이 `standard`·`strict`일 때만 완료 기록을 무효로 합니다. `light`이거나 등급 줄이 없으면 다른 조건이 유효한 완료 기록을 유지합니다.
-- `record_head`가 바로 앞 줄의 hash가 아닌 완료 `done` 줄은 완료 기록과 그 설명을 고를 때 건너뛰고 앞의 줄을 계속 봅니다. 다른 이유로 무효인 판정한 줄에서는 이전처럼 멈춥니다.
+- `record_head`가 바로 앞 줄의 hash가 아닌 완료 `done` 줄은 완료 기록과 그 설명을 고를 때 건너뛰고 앞의 줄을 계속 봅니다. 바로 앞 줄을 찾을 때 발견 줄은 건너뛰므로, `ha done`이 계산하는 동안 발견 줄만 붙었으면 그 `done` 줄은 판정한 줄입니다. 다른 이유로 무효인 판정한 줄에서는 이전처럼 멈춥니다.
 - 완료 뒤 다음 실행이나 완료가 아닌 `done`까지의 구간을 경과에서 빼고 `post_completion_seconds`로 따로 보입니다. 아래 예산 설명과 [계약 §4.9](../contracts/run-record.md#49-run-rules6)에 경계가 있습니다.
 
 `/1`~`/5`로 시작한 기존 목표는 종전 판정을 유지하며 자동 이전되지 않습니다.
@@ -178,7 +178,7 @@ Seal 0.1.20 이상으로 시작한 목표의 완료 보고는 `ha report`의 출
 
 예산 창은 마지막 시작이나 `reopen`부터 마지막 실행 예산 대상 기록 시각까지입니다. 발견 줄은 예산 입력에서 빠집니다. 상태 조회만으로 시간이 늘지는 않지만 예산 변경을 포함한 새 기록이 붙으면 창이 늘어납니다. `/4`·`/5`는 창 길이에서 신고한 대기를 빼고, `run-rules/6`은 완료 뒤 구간도 뺍니다. 재개를 걸쳐 실행한 검사는 기록된 창에 계산됩니다. 검사·baseline의 실제 시도, 오류·판정 불가, 유효·stale는 서로 다른 집계 축입니다. baseline도 사용량에 포함됩니다.
 
-`run-rules/6`의 완료 뒤 구간은 `complete`인 `done`의 `at`부터 그 뒤 기록된 검사·baseline의 가장 이른 `started_at`이나 완료가 아닌 `done`의 `at` 가운데 이른 시점까지입니다. 둘 다 없으면 창의 마지막 예산 기록에서 끝납니다. 다른 완료 `done`은 구간을 이어 가고, note와 발견 줄은 끝내지 않습니다. 실행 구간은 경과에 남고 신고 대기와 겹친 시간은 한 번만 빠집니다. 추가로 뺀 초가 `budget.post_completion_seconds`이며 `elapsed_seconds = span_seconds - reported_wait_seconds - post_completion_seconds`입니다. 사람용 상태의 Budget 절과 `ha cost` JSON의 예산 창에도 이 초를 따로 보이고, `ha report`의 남은 한계와 `ha cost`는 같은 경과를 씁니다. 완료 뒤 첫 실행 전의 작업 시간도 빠지므로, 코드 재작업은 사용자 요청을 인용한 `reopen`으로 새 창에서 진행합니다. 실행 횟수·상한과 완료 창의 예산 변경 거부는 그대로입니다.
+`run-rules/6`의 완료 뒤 구간은 판정한 `complete` `done`의 `at`부터, 그 `at`과 같은 초나 그 뒤에 시작한 검사·baseline의 가장 이른 `started_at`이나 완료가 아닌 `done`의 `at` 가운데 이른 시점까지입니다. 완료 전에 시작해 그 뒤 기록된 실행은 구간을 끝내지 않습니다. 둘 다 없으면 창의 마지막 예산 기록에서 끝납니다. 다른 완료 `done`은 구간을 이어 가고, note와 발견 줄은 끝내지 않습니다. 실행 구간은 경과에 남고 신고 대기와 겹친 시간은 한 번만 빠집니다. 추가로 뺀 초가 `budget.post_completion_seconds`이며 `elapsed_seconds = span_seconds - reported_wait_seconds - post_completion_seconds`입니다. 사람용 상태의 Budget 절과 `ha cost` JSON의 예산 창에도 이 초를 따로 보이고, `ha report`의 남은 한계와 `ha cost`는 같은 경과를 씁니다. 완료 뒤 첫 실행 전의 작업 시간도 빠지므로, 코드 재작업은 사용자 요청을 인용한 `reopen`으로 새 창에서 진행합니다. 실행 횟수·상한과 완료 창의 예산 변경 거부는 그대로입니다.
 
 도달은 사용량과 상한이 같은 경우이고 초과는 실제로 넘은 경우입니다. 완료 기록이 있는 목표는 시간이 지나도 예산 초과 상태가 되지 않습니다. `/2`~`/6`은 필수 조건이 모두 충족되고 예산 초과만 남았으면 완료를 기록할 수 있습니다. 이는 추가 실행 권한이 아니며 예산은 검사 실행을 자동 차단하거나 진행 중 검사를 종료하는 장치도 아닙니다.
 
