@@ -180,7 +180,7 @@ func (f *ccFixture) cwSource(violation, label string, fz map[string]any, from in
 	for _, lang := range []string{"ko", "en"} {
 		review := f.summary(violation, label, lang, 1)
 		if from == 0 {
-			if prefix, _, _ := strings.Cut(cwTableFrom[lang], "%d"); strings.Contains(review, prefix) {
+			if cwNamesSource(review, cwTableFrom[lang]) {
 				f.t.Errorf("jaekit:violation=%s %s: ha report --lang %s to-review line %q names a review note; want none", violation, label, lang, review)
 			}
 			continue
@@ -191,6 +191,27 @@ func (f *ccFixture) cwSource(violation, label string, fz map[string]any, from in
 			if entry, ok := cwEntry(without, path); !ok || !strings.Contains(entry, want) {
 				f.t.Errorf("jaekit:violation=%s %s: ha report --lang %s entry %q of the removed %s; want it to hold %q", violation, label, lang, entry, path, want)
 			}
+		}
+	}
+}
+
+// cwNamesSource reports whether text holds the whole table-source phrase
+// format (with its %d as a run of digits), so another item that also names a
+// review note seq, such as the unrecorded finding lists, does not match.
+func cwNamesSource(text, format string) bool {
+	prefix, suffix, _ := strings.Cut(format, "%d")
+	for rest := text; ; {
+		i := strings.Index(rest, prefix)
+		if i < 0 {
+			return false
+		}
+		rest = rest[i+len(prefix):]
+		j := 0
+		for j < len(rest) && rest[j] >= '0' && rest[j] <= '9' {
+			j++
+		}
+		if j > 0 && strings.HasPrefix(rest[j:], suffix) {
+			return true
 		}
 	}
 }
