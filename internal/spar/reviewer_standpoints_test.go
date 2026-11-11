@@ -35,12 +35,13 @@ var rsAngles = []string{"requirement-counterexample", "side-effects", "design", 
 
 type rsWorld struct {
 	rsT                     *testing.T
+	rsChecks                *rsChecks
 	rsDir, rsRepo, rsConfig string
 	rsCommits, rsTrees      []string
 	rsReplacements          map[string]string
 }
 
-func rsNew(rsT *testing.T) *rsWorld {
+func rsNew(rsT *testing.T, rsC *rsChecks) *rsWorld {
 	rsT.Helper()
 	for _, rsTool := range []string{"git", "/bin/sh", "cat", "mkdir", "wc", "tr", "ls"} {
 		if _, rsErr := exec.LookPath(rsTool); rsErr != nil {
@@ -54,7 +55,7 @@ func rsNew(rsT *testing.T) *rsWorld {
 	if rsErr != nil {
 		rsT.Fatalf("setup: temp directory: %v", rsErr)
 	}
-	rsW := &rsWorld{rsT: rsT, rsDir: rsDir, rsRepo: filepath.Join(rsDir, "repo"), rsReplacements: map[string]string{}}
+	rsW := &rsWorld{rsT: rsT, rsChecks: rsC, rsDir: rsDir, rsRepo: filepath.Join(rsDir, "repo"), rsReplacements: map[string]string{}}
 	rsW.rsWrite(filepath.Join(rsW.rsRepo, ".gitignore"), "/reviews/\n/.jaekit/\n")
 	rsW.rsWrite(filepath.Join(rsW.rsRepo, "AGENTS.md"), "# Rules\n\nKeep reviews honest.\n")
 	rsW.rsWrite(filepath.Join(rsW.rsRepo, "SPEC.md"), "# Synthetic goal\n\n- **AC-1** one\n- **AC-2** two\n")
@@ -132,15 +133,36 @@ func rsInstruction(rsName string, rsHas bool) string {
 	}
 	return "Your standpoint for this round is the one under `### " + rsName + "` in `## Standpoints for this round`. Attack that risk first and hardest, and still check every angle as the packet asks. Report what you checked from it in `standpoint_report`."
 }
-func rsAssert(rsT *testing.T, rsID string, rsOK bool, rsFormat string, rsArgs ...any) {
-	rsT.Helper()
-	if rsOK {
-		return
-	}
-	if rsID == "" {
-		rsT.Errorf(rsFormat, rsArgs...)
-	} else {
-		rsT.Errorf("jaekit:violation="+rsID+" "+rsFormat, rsArgs...)
+
+// Only the declared parent emits property failures. A subtest may still fail
+// for setup; preserve that as an unmarked parent failure even when another
+// subtest has already collected a property problem.
+type rsChecks struct {
+	rsProblems []string
+}
+
+func rsCollect(rsT *testing.T, rsID string) *rsChecks {
+	rsC := &rsChecks{}
+	rsT.Cleanup(func() {
+		if rsT.Failed() {
+			rsT.Errorf("setup: parent or subtest failed before property reporting")
+			return
+		}
+		if len(rsC.rsProblems) == 0 {
+			return
+		}
+		rsPrefix := ""
+		if rsID != "" {
+			rsPrefix = "jaekit:violation=" + rsID + " "
+		}
+		rsT.Errorf("%s%s", rsPrefix, strings.Join(rsC.rsProblems, "\n"))
+	})
+	return rsC
+}
+
+func rsAssert(rsC *rsChecks, rsOK bool, rsFormat string, rsArgs ...any) {
+	if !rsOK {
+		rsC.rsProblems = append(rsC.rsProblems, fmt.Sprintf(rsFormat, rsArgs...))
 	}
 }
 func (rsW *rsWorld) rsCLI(rsArgs ...string) (int, string, string) {
@@ -179,7 +201,7 @@ func (rsW *rsWorld) rsRun(rsID, rsOut, rsStage string, rsBase, rsHead int, rsExt
 		return true
 	}
 	if rsID != "" && (rsCode == 64 || rsCode == 65) && strings.Contains(rsErr, "standpoint") {
-		rsAssert(rsW.rsT, rsID, false, "spar run rejected standpoints (exit %d): %s", rsCode, strings.Split(rsErr, "\n")[0])
+		rsAssert(rsW.rsChecks, false, "spar run rejected standpoints (exit %d): %s", rsCode, strings.Split(rsErr, "\n")[0])
 		return false
 	}
 	rsW.rsT.Fatalf("setup: spar run exit %d: %s", rsCode, rsErr)
@@ -387,7 +409,7 @@ func (rsW *rsWorld) rsPropertyFile(rsID, rsPath string) string {
 	rsW.rsT.Helper()
 	rsData, rsErr := os.ReadFile(rsPath)
 	if os.IsNotExist(rsErr) {
-		rsAssert(rsW.rsT, rsID, false, "required file %s is missing", filepath.Base(rsPath))
+		rsAssert(rsW.rsChecks, false, "required file %s is missing", filepath.Base(rsPath))
 		return ""
 	}
 	if rsErr != nil {
@@ -395,58 +417,168 @@ func (rsW *rsWorld) rsPropertyFile(rsID, rsPath string) string {
 	}
 	return string(rsData)
 }
+
+// Keep the large input identical across hosts, and above both supported
+// argument limits. Its complete bytes are part of the no-standpoint fixture.
+func (rsW *rsWorld) rsLargeCriteria() string {
+	return rsW.rsWrite(filepath.Join(rsW.rsDir, "BIG.md"), strings.Repeat("large synthetic criterion\n", 34000))
+}
+
+func (rsW *rsWorld) rsReceived(rsOut, rsName string) string {
+	switch rsName {
+	case "claude", "codex":
+		return rsW.rsLast(rsName, "stdin")
+	case "agy":
+		return rsArg(rsW.rsLast(rsName, "argv"), "-p")
+	case "native":
+		return rsW.rsRead(filepath.Join(rsOut, rsName, "prompt.md"))
+	default:
+		return rsW.rsLast(rsName, "prompt")
+	}
+}
+
+// With these plain synthetic standpoint texts, the next level-two heading
+// ends exactly the one added section. Preserve every byte outside it.
+func rsWithoutSection(rsC *rsChecks, rsPacket string) string {
+	rsHeader := rsSection + "\n"
+	rsStart := strings.Index(rsPacket, rsHeader)
+	rsAssert(rsC, strings.Count(rsPacket, rsHeader) == 1, "packet must have exactly one standpoint section")
+	if rsStart < 0 {
+		return rsPacket
+	}
+	rsEnd := strings.Index(rsPacket[rsStart+len(rsHeader):], "\n## ")
+	if rsEnd < 0 {
+		rsAssert(rsC, false, "standpoint section has no following shared section")
+		return rsPacket
+	}
+	rsEnd += rsStart + len(rsHeader) + 1
+	return rsPacket[:rsStart] + rsPacket[rsEnd:]
+}
+
 func TestReviewerStandpointsAC1_EveryRouteGetsItsStandpoint(rsT *testing.T) {
 	const rsID = "standpoint-not-delivered"
-	rsW := rsNew(rsT)
-	rsTexts := map[string]string{"claude": "Attack stored record compatibility.", "codex": "Attack the contract refusal boundary."}
-	rsW.rsAll(1, rsTexts)
-	rsOut := rsW.rsOut("delivery", "01-candidate")
-	rsOptions := []string{"--standpoint", "claude=" + rsTexts["claude"], "--standpoint", "codex=" + rsTexts["codex"], "--decision", "Keep the existing classification", "--decision-quote", "Keep it", "--question", "Are AC-1 and the shared rules covered?", "--subject", filepath.Join(rsW.rsRepo, "PLAN.md")}
-	if !rsW.rsRun(rsID, rsOut, "candidate", 0, 1, rsOptions...) {
-		return
+	rsC := rsCollect(rsT, rsID)
+	for _, rsLarge := range []bool{false, true} {
+		rsT.Run(fmt.Sprintf("agy-file-%t", rsLarge), func(rsT *testing.T) {
+			rsW := rsNew(rsT, rsC)
+			// A real earlier round supplies the same nonempty prior findings to
+			// each fixes run, alongside the documents, decision and question.
+			rsW.rsUse(rsNative("native"))
+			rsSeed := rsW.rsOut("delivery", "01-candidate")
+			rsW.rsRun(rsID, rsSeed, "candidate", 0, 1)
+			rsW.rsRecord(rsSeed, "native", rsW.rsAnswer("prior", 1, nil, false, rsFinding("F1", map[string]any{"claim": "Keep this earlier finding in every shared packet"})), "result")
+			rsNamesHere := append(append([]string{}, rsNames...), "whole")
+			rsTexts := map[string]string{
+				"claude":  "Attack stored record compatibility.",
+				"codex":   "Attack the contract refusal boundary.",
+				"agy":     "Attack both packet transport forms.",
+				"command": "Attack command prompt delivery.",
+				"native":  "Attack native prompt delivery.",
+			}
+			rsUse := func(rsAssigned bool) {
+				rsEntries := []string{}
+				for _, rsName := range rsNamesHere {
+					if rsName == "native" {
+						rsEntries = append(rsEntries, rsNative(rsName))
+						continue
+					}
+					rsPreset := rsName
+					if rsName == "whole" {
+						rsPreset = "command"
+					}
+					_, rsHas := rsTexts[rsName]
+					rsEntries = append(rsEntries, rsW.rsFake(rsName, rsPreset, rsW.rsAnswer(rsName, 2, rsReport(true, "checked "+rsName), rsAssigned && rsHas), ""))
+				}
+				rsW.rsUse(rsEntries...)
+			}
+			rsOut := rsW.rsOut("delivery", "02-fixes")
+			rsCommon := []string{"--decision", "Keep the existing classification", "--decision-quote", "Keep it", "--question", "Are AC-1 and the shared rules covered?", "--subject", filepath.Join(rsW.rsRepo, "PLAN.md")}
+			if rsLarge {
+				rsCommon = append(rsCommon, "--criteria", rsW.rsLargeCriteria())
+			}
+			rsUse(false)
+			if !rsW.rsRun(rsID, rsOut, "fixes", 1, 2, rsCommon...) {
+				return
+			}
+			rsPlainPacket := rsW.rsRead(filepath.Join(rsOut, "packet.md"))
+			rsAssert(rsC, strings.Contains(rsPlainPacket, "Keep this earlier finding in every shared packet"), "control packet omitted the seeded prior finding")
+			rsPlainInputs := map[string]string{}
+			for _, rsName := range rsNamesHere {
+				rsPlainInputs[rsName] = rsW.rsReceived(rsOut, rsName)
+			}
+			rsPlainFile := ""
+			if rsLarge {
+				rsPlainFile = rsW.rsLast("agy", "PACKET.md")
+			}
+			rsClear := func() {
+				if rsErr := os.RemoveAll(rsOut); rsErr != nil {
+					rsT.Fatalf("setup: remove temporary round: %v", rsErr)
+				}
+			}
+			rsClear()
+			rsUse(true)
+			rsOptions := append([]string{}, rsCommon...)
+			for _, rsName := range rsNames {
+				rsOptions = append(rsOptions, "--standpoint", rsName+"="+rsTexts[rsName])
+			}
+			// Reuse the exact output path so even native's fixed path-bearing
+			// instructions must match without normalizing any prompt bytes.
+			if !rsW.rsRun(rsID, rsOut, "fixes", 1, 2, append(append([]string{}, rsOptions...), "--dry-run")...) {
+				return
+			}
+			rsDryInputs := map[string]string{}
+			for _, rsName := range rsNamesHere {
+				rsDryInputs[rsName] = rsW.rsPropertyFile(rsID, filepath.Join(rsOut, rsName, "input.md"))
+			}
+			rsDryFile := ""
+			if rsLarge {
+				rsDryFile = rsW.rsRead(filepath.Join(rsOut, "packet.md"))
+			}
+			rsClear()
+			if !rsW.rsRun(rsID, rsOut, "fixes", 1, 2, rsOptions...) {
+				return
+			}
+			rsPacket := rsW.rsRead(filepath.Join(rsOut, "packet.md"))
+			rsAssert(rsC, rsWithoutSection(rsC, rsPacket) == rsPlainPacket, "standpoint packet changed shared documents, decisions, questions, prior findings, diff or instructions")
+			for _, rsName := range rsNamesHere {
+				_, rsHas := rsTexts[rsName]
+				rsPrefix := ""
+				if rsName == "agy" {
+					rsPrefix = agyCommandNote
+				} else if rsName == "native" {
+					rsPrefix = fmt.Sprintf(nativeInstructions, filepath.Join(rsOut, rsName, "workspace"), filepath.Join(rsOut, "schema.json"), rsOut, rsName)
+				}
+				rsInput := rsW.rsReceived(rsOut, rsName)
+				rsInstructionText := rsInstruction(rsName, rsHas) + "\n\n"
+				rsAssert(rsC, strings.HasPrefix(rsInput, rsPrefix+rsInstructionText), "%s input lost its own standpoint instruction or fixed prefix", rsName)
+				rsShared := strings.TrimPrefix(rsInput, rsPrefix+rsInstructionText)
+				if rsName == "agy" && rsLarge {
+					rsAssert(rsC, rsPrefix+rsShared == rsPlainInputs[rsName] && strings.Contains(rsShared, "PACKET.md"), "large agy pointer changed beyond the standpoint instruction")
+					rsFile := rsW.rsLast("agy", "PACKET.md")
+					rsAssert(rsC, rsFile == rsPacket && rsWithoutSection(rsC, rsFile) == rsPlainFile, "large agy PACKET.md changed the independently observed shared content")
+					rsAssert(rsC, rsDryFile == rsFile, "dry-run packet.md differs from agy's normal-run PACKET.md delivery")
+				} else {
+					rsAssert(rsC, rsShared == rsPacket && rsPrefix+rsWithoutSection(rsC, rsShared) == rsPlainInputs[rsName], "%s changed shared content relative to its no-standpoint control", rsName)
+				}
+				if rsHas {
+					_, rsAssignment, rsFound := strings.Cut(rsPacket, "\n### "+rsName+"\n")
+					rsAssignment = strings.SplitN(strings.SplitN(rsAssignment, "\n### ", 2)[0], "\n## ", 2)[0]
+					rsAssert(rsC, rsFound && strings.Contains(rsAssignment, rsTexts[rsName]), "%s shared input omitted its own assigned standpoint text", rsName)
+				}
+				rsAssert(rsC, rsW.rsPropertyFile(rsID, filepath.Join(rsOut, rsName, "input.md")) == rsInput, "%s input.md differs from actual preset delivery", rsName)
+				rsAssert(rsC, rsDryInputs[rsName] == rsInput, "%s dry-run input.md differs byte for byte from normal-run delivery", rsName)
+				if rsName == "command" || rsName == "whole" {
+					rsAssert(rsC, strings.Split(rsW.rsLast(rsName, "argv"), "\x00")[0] == filepath.Join(rsOut, rsName, "input.md"), "%s did not receive its input.md path", rsName)
+				}
+			}
+		})
 	}
-	rsPacket := rsW.rsRead(filepath.Join(rsOut, "packet.md"))
-	for _, rsName := range rsNames {
-		_, rsHas := rsTexts[rsName]
-		rsInput := rsInstruction(rsName, rsHas) + "\n\n" + rsPacket
-		rsAssert(rsT, rsID, rsW.rsPropertyFile(rsID, filepath.Join(rsOut, rsName, "input.md")) == rsInput, "%s input.md differs from its instruction plus the shared packet", rsName)
-		switch rsName {
-		case "claude", "codex":
-			rsAssert(rsT, rsID, rsW.rsLast(rsName, "stdin") == rsInput, "%s stdin changed the shared bytes or instruction", rsName)
-		case "command":
-			rsAssert(rsT, rsID, rsW.rsLast(rsName, "prompt") == rsInput, "command prompt changed shared bytes or instruction")
-			rsAssert(rsT, rsID, strings.Split(rsW.rsLast(rsName, "argv"), "\x00")[0] == filepath.Join(rsOut, rsName, "input.md"), "command did not receive its input.md path")
-		case "agy":
-			rsAssert(rsT, rsID, rsArg(rsW.rsLast(rsName, "argv"), "-p") == agyCommandNote+rsInput, "agy -p changed shared bytes or instruction")
-		case "native":
-			rsAssert(rsT, rsID, rsW.rsRead(filepath.Join(rsOut, rsName, "prompt.md")) == fmt.Sprintf(nativeInstructions, filepath.Join(rsOut, rsName, "workspace"), filepath.Join(rsOut, "schema.json"), rsOut, rsName)+rsInput, "native prompt changed shared bytes or instruction")
-		}
-	}
-	// The shared part includes decisions, questions, subject, rules and diff;
-	// these comparisons are exact, not searches for a few selected phrases.
-	rsDry := rsW.rsOut("dry", "01-candidate")
-	if !rsW.rsRun(rsID, rsDry, "candidate", 0, 1, append(rsOptions, "--dry-run")...) {
-		return
-	}
-	rsDryPacket := rsW.rsRead(filepath.Join(rsDry, "packet.md"))
-	for _, rsName := range rsNames {
-		_, rsHas := rsTexts[rsName]
-		rsAssert(rsT, rsID, rsW.rsPropertyFile(rsID, filepath.Join(rsDry, rsName, "input.md")) == rsInstruction(rsName, rsHas)+"\n\n"+rsDryPacket, "dry run omitted or changed %s input", rsName)
-	}
-	rsBig := rsW.rsWrite(filepath.Join(rsW.rsDir, "BIG.md"), strings.Repeat("large synthetic criterion\n", argumentLimit()/20+100))
-	rsW.rsUse(rsW.rsFake("agy", "agy", rsW.rsAnswer("agy-big", 1, rsReport(true, "large packet checked"), true), ""))
-	rsLarge := rsW.rsOut("large", "01-candidate")
-	if !rsW.rsRun(rsID, rsLarge, "candidate", 0, 1, "--standpoint", "agy=Attack the large packet route.", "--criteria", rsBig) {
-		return
-	}
-	rsPrompt := rsArg(rsW.rsLast("agy", "argv"), "-p")
-	rsAssert(rsT, rsID, strings.HasPrefix(rsPrompt, agyCommandNote) && strings.Contains(rsPrompt, rsInstruction("agy", true)) && strings.Contains(rsPrompt, "PACKET.md") && !strings.Contains(rsPrompt, rsW.rsRead(filepath.Join(rsLarge, "packet.md"))), "large agy -p lost the command note, standpoint instruction, or file pointer")
-	rsAssert(rsT, rsID, rsW.rsLast("agy", "PACKET.md") == rsW.rsRead(filepath.Join(rsLarge, "packet.md")), "large agy PACKET.md is not the exact shared packet")
 }
 
 func TestReviewerStandpointsAC2_RecordShowsStandpoints(rsT *testing.T) {
 	const rsID = "standpoint-not-recorded"
-	rsW := rsNew(rsT)
+	rsC := rsCollect(rsT, rsID)
+	rsW := rsNew(rsT, rsC)
 	rsText := "저장 형식을 읽는 쪽\nsecond line"
 	rsW.rsUse(rsW.rsFake("claude", "claude", rsW.rsAnswer("claude", 1, rsReport(true, "checked record readers\nmore detail"), true), ""), rsW.rsFake("codex", "codex", rsW.rsAnswer("codex", 1, rsReport(false, "could not inspect downstream\nmore detail"), true), ""), rsNative("native"))
 	rsOut := rsW.rsOut("record", "01-candidate")
@@ -455,13 +587,13 @@ func TestReviewerStandpointsAC2_RecordShowsStandpoints(rsT *testing.T) {
 	}
 	rsW.rsRecord(rsOut, "native", rsW.rsAnswer("native", 1, nil, false), "result")
 	rsR := rsW.rsRaw(rsOut)
-	rsAssert(rsT, rsID, reflect.DeepEqual(rsR["standpoints"], []any{map[string]any{"reviewer": "claude", "text": rsText}, map[string]any{"reviewer": "codex", "text": "Attack downstream readers"}}), "top-level standpoints did not preserve assignments and text: %v", rsR["standpoints"])
+	rsAssert(rsC, reflect.DeepEqual(rsR["standpoints"], []any{map[string]any{"reviewer": "claude", "text": rsText}, map[string]any{"reviewer": "codex", "text": "Attack downstream readers"}}), "top-level standpoints did not preserve assignments and text: %v", rsR["standpoints"])
 	for _, rsName := range []string{"claude", "codex", "native"} {
 		rsSt := rsState(rsR, rsName)
 		rsS, rsHasS := rsSt["standpoint"]
 		rsReportValue, rsHasR := rsSt["standpoint_report"]
 		if rsName == "native" {
-			rsAssert(rsT, rsID, rsHasS && rsHasR && rsS == nil && rsReportValue == nil, "unassigned reviewer fields must both be explicit null")
+			rsAssert(rsC, rsHasS && rsHasR && rsS == nil && rsReportValue == nil, "unassigned reviewer fields must both be explicit null")
 			continue
 		}
 		rsWant := rsText
@@ -470,31 +602,32 @@ func TestReviewerStandpointsAC2_RecordShowsStandpoints(rsT *testing.T) {
 			rsWant = "Attack downstream readers"
 			rsWantReport = rsReport(false, "could not inspect downstream\nmore detail")
 		}
-		rsAssert(rsT, rsID, rsS == rsWant && reflect.DeepEqual(rsReportValue, rsWantReport), "%s standpoint or report not recorded: %v", rsName, rsSt)
-		rsAssert(rsT, rsID, strings.Contains(rsW.rsPropertyFile(rsID, filepath.Join(rsOut, rsName, "input.md")), rsWant), "%s input omitted its text", rsName)
+		rsAssert(rsC, rsS == rsWant && reflect.DeepEqual(rsReportValue, rsWantReport), "%s standpoint or report not recorded: %v", rsName, rsSt)
+		rsAssert(rsC, strings.Contains(rsW.rsPropertyFile(rsID, filepath.Join(rsOut, rsName, "input.md")), rsWant), "%s input omitted its text", rsName)
 	}
 	rsSummary := rsW.rsRead(filepath.Join(rsOut, "summary.md"))
 	for _, rsLine := range []string{"- Standpoints: 2 for claude, codex", "  - standpoint: 저장 형식을 읽는 쪽", "  - standpoint report: checked: checked record readers", "  - standpoint report: unchecked: could not inspect downstream"} {
-		rsAssert(rsT, rsID, strings.Contains(rsSummary, rsLine+"\n"), "summary omitted %q", rsLine)
+		rsAssert(rsC, strings.Contains(rsSummary, rsLine+"\n"), "summary omitted %q", rsLine)
 	}
 	// Read an actual old-format round: removing only the additive fields must
 	// not alter the gate, and spar summary still reads the old summary bytes.
 	rsBefore := rsW.rsGate("record-before", 1, rsOut)
 	rsW.rsStrip(rsOut)
 	rsAfter := rsW.rsGate("record-after", 1, rsOut)
-	rsAssert(rsT, rsID, reflect.DeepEqual(rsGateJudgment(rsBefore), rsGateJudgment(rsAfter)), "old-format round changes gate judgment")
+	rsAssert(rsC, reflect.DeepEqual(rsGateJudgment(rsBefore), rsGateJudgment(rsAfter)), "old-format round changes gate judgment")
 	rsOld := rsW.rsOut("old", "01-candidate")
 	rsW.rsUse(rsNative("native"))
 	rsW.rsRun(rsID, rsOld, "candidate", 0, 1)
 	rsW.rsRecord(rsOld, "native", rsW.rsAnswer("old", 1, nil, false), "result")
 	rsW.rsStrip(rsOld)
 	rsOldSummary := rsW.rsMust(0, "summary", rsOld)
-	rsAssert(rsT, rsID, !strings.Contains(strings.ToLower(rsOldSummary), "standpoint") && strings.Contains(rsOldSummary, "native: completed"), "old-format summary was not read as a round without standpoints")
-	rsAssert(rsT, rsID, rsW.rsGate("old", 1, rsOld)["state"] != "blocked", "old-format round was blocked")
+	rsAssert(rsC, !strings.Contains(strings.ToLower(rsOldSummary), "standpoint") && strings.Contains(rsOldSummary, "native: completed"), "old-format summary was not read as a round without standpoints")
+	rsAssert(rsC, rsW.rsGate("old", 1, rsOld)["state"] != "blocked", "old-format round was blocked")
 }
 
 func TestReviewerStandpointsAC3_ReportRequired(rsT *testing.T) {
 	const rsID = "standpoint-report-not-required"
+	rsC := rsCollect(rsT, rsID)
 	rsCases := []struct {
 		rsName    string
 		rsValue   any
@@ -506,7 +639,7 @@ func TestReviewerStandpointsAC3_ReportRequired(rsT *testing.T) {
 	for _, rsCase := range rsCases {
 		for _, rsRoute := range []string{"run", "result", "transcript"} {
 			rsT.Run(rsCase.rsName+"/"+rsRoute, func(rsT *testing.T) {
-				rsW := rsNew(rsT)
+				rsW := rsNew(rsT, rsC)
 				rsAnswer := rsW.rsAnswer("bad", 1, rsCase.rsValue, rsCase.rsInclude)
 				rsEntry := rsNative("assigned")
 				if rsRoute == "run" {
@@ -522,16 +655,16 @@ func TestReviewerStandpointsAC3_ReportRequired(rsT *testing.T) {
 				}
 				rsR := rsW.rsRaw(rsOut)
 				rsSt := rsState(rsR, "assigned")
-				rsAssert(rsT, rsID, rsSt["status"] == "invalid_output" && strings.Contains(rsString(rsSt["reason"]), "standpoint_report"), "%s %s was not invalid_output with a standpoint_report reason: %v", rsCase.rsName, rsRoute, rsSt)
-				rsAssert(rsT, rsID, rsState(rsR, "whole")["status"] == "completed", "unassigned reviewer could not omit the report")
+				rsAssert(rsC, rsSt["status"] == "invalid_output" && strings.Contains(rsString(rsSt["reason"]), "standpoint_report"), "%s %s was not invalid_output with a standpoint_report reason: %v", rsCase.rsName, rsRoute, rsSt)
+				rsAssert(rsC, rsState(rsR, "whole")["status"] == "completed", "unassigned reviewer could not omit the report")
 				rsSchema := rsMap(rsW.rsJSON(rsW.rsRead(filepath.Join(rsOut, "schema.json"))))
 				rsProp := rsMap(rsMap(rsSchema["properties"])["standpoint_report"])
-				rsAssert(rsT, rsID, reflect.DeepEqual(rsProp["type"], []any{"object", "null"}), "schema does not declare object or null for standpoint_report")
+				rsAssert(rsC, reflect.DeepEqual(rsProp["type"], []any{"object", "null"}), "schema does not declare object or null for standpoint_report")
 				rsRequired := false
 				for _, rsKey := range rsList(rsSchema["required"]) {
 					rsRequired = rsRequired || rsKey == "standpoint_report"
 				}
-				rsAssert(rsT, rsID, rsRequired, "schema does not require standpoint_report")
+				rsAssert(rsC, rsRequired, "schema does not require standpoint_report")
 			})
 		}
 	}
@@ -539,30 +672,50 @@ func TestReviewerStandpointsAC3_ReportRequired(rsT *testing.T) {
 	// reviewer (the missing-key case above is a separate observation).
 	for _, rsChecked := range []bool{true, false} {
 		rsT.Run(fmt.Sprintf("valid-%t", rsChecked), func(rsT *testing.T) {
-			rsW := rsNew(rsT)
-			rsW.rsUse(rsNative("assigned"), rsW.rsFake("whole", "command", rsW.rsAnswer("whole", 1, nil, true), ""))
+			rsW := rsNew(rsT, rsC)
+			rsW.rsUse(rsNative("assigned"), rsW.rsFake("whole", "command", rsW.rsAnswer("whole", 1, nil, true), ""), rsW.rsFake("claude", "claude", rsW.rsAnswer("claude", 1, rsReport(rsChecked, "specific schema observation"), true), ""))
 			rsOut := rsW.rsOut("valid", "01-candidate")
-			if !rsW.rsRun(rsID, rsOut, "candidate", 0, 1, "--standpoint", "assigned=Attack record acceptance") {
+			if !rsW.rsRun(rsID, rsOut, "candidate", 0, 1, "--standpoint", "assigned=Attack record acceptance", "--standpoint", "claude=Attack delivered schema") {
 				return
+			}
+			rsDelivered := rsArg(rsW.rsLast("claude", "argv"), "--json-schema")
+			rsAssert(rsC, rsDelivered == rsW.rsRead(filepath.Join(rsOut, "schema.json")), "claude --json-schema differs from the round's schema.json")
+			rsAssert(rsC, rsDelivered != "", "claude did not receive --json-schema")
+			if rsDelivered != "" {
+				rsSchema := rsMap(rsW.rsJSON(rsDelivered))
+				rsProp := rsMap(rsMap(rsSchema["properties"])["standpoint_report"])
+				rsAssert(rsC, reflect.DeepEqual(rsProp["type"], []any{"object", "null"}), "delivered claude schema does not allow an object or null standpoint_report")
+				rsProps := rsMap(rsProp["properties"])
+				rsAssert(rsC, rsMap(rsProps["checked"])["type"] == "boolean" && rsMap(rsProps["detail"])["type"] == "string", "delivered claude schema does not permit the A5 checked/detail report")
+				for _, rsRequired := range []struct {
+					rsSchema map[string]any
+					rsKey    string
+				}{{rsSchema, "standpoint_report"}, {rsProp, "checked"}, {rsProp, "detail"}} {
+					rsFound := false
+					for _, rsKey := range rsList(rsRequired.rsSchema["required"]) {
+						rsFound = rsFound || rsKey == rsRequired.rsKey
+					}
+					rsAssert(rsC, rsFound, "delivered claude schema does not require %s", rsRequired.rsKey)
+				}
 			}
 			rsW.rsRecord(rsOut, "assigned", rsW.rsAnswer("assigned", 1, rsReport(rsChecked, "specific observation"), true), "result")
 			rsR := rsW.rsRaw(rsOut)
-			rsAssert(rsT, rsID, rsState(rsR, "assigned")["status"] == "completed" && rsState(rsR, "whole")["status"] == "completed", "valid report or unassigned null was rejected")
+			rsAssert(rsC, rsState(rsR, "assigned")["status"] == "completed" && rsState(rsR, "whole")["status"] == "completed" && rsState(rsR, "claude")["status"] == "completed", "valid report or unassigned null was rejected")
 		})
 	}
 }
 
 func TestReviewerStandpointsAC4_Refusals(rsT *testing.T) {
 	const rsID = "standpoint-input-not-refused"
+	rsC := rsCollect(rsT, rsID)
 	rsCases := []struct {
 		rsName    string
 		rsArgs    []string
 		rsCode    int
 		rsMention string
 	}{
-		{"unknown", []string{"--standpoint", "unknown=attack"}, 65, "unknown"},
+		{"unknown", []string{"--reviewers", "other", "--standpoint", "unknown=attack"}, 65, "unknown"},
 		{"case-sensitive", []string{"--standpoint", "Cmd=attack"}, 65, "Cmd"},
-		{"excluded", []string{"--reviewers", "other", "--standpoint", "cmd=attack"}, 65, "cmd"},
 		{"duplicate", []string{"--standpoint", "cmd=first", "--standpoint", "cmd=second"}, 65, "cmd"},
 		{"blank", []string{"--standpoint", "cmd= \n\t"}, 65, "cmd"},
 		{"invalid-utf8", []string{"--standpoint", "cmd=bad\xfftext"}, 65, "cmd"},
@@ -571,35 +724,55 @@ func TestReviewerStandpointsAC4_Refusals(rsT *testing.T) {
 	}
 	for _, rsCase := range rsCases {
 		rsT.Run(rsCase.rsName, func(rsT *testing.T) {
-			rsW := rsNew(rsT)
+			rsW := rsNew(rsT, rsC)
 			rsW.rsUse(rsW.rsFake("cmd", "command", rsW.rsAnswer("cmd", 1, nil, false), ""), rsW.rsFake("other", "command", rsW.rsAnswer("other", 1, nil, false), ""))
 			rsOut := rsW.rsOut("refusal", "01-candidate")
 			rsCode, _, rsErr := rsW.rsCLI(rsW.rsArgs(rsOut, "candidate", 0, 1, rsCase.rsArgs...)...)
-			rsAssert(rsT, rsID, rsCode == rsCase.rsCode, "%s exits %d, want %d: %s", rsCase.rsName, rsCode, rsCase.rsCode, strings.Split(rsErr, "\n")[0])
+			rsAssert(rsC, rsCode == rsCase.rsCode, "%s exits %d, want %d: %s", rsCase.rsName, rsCode, rsCase.rsCode, strings.Split(rsErr, "\n")[0])
 			if rsCode == rsCase.rsCode && rsCase.rsMention != "" {
-				rsAssert(rsT, rsID, strings.Contains(rsErr, rsCase.rsMention), "refusal omitted the offending name or value: %s", rsErr)
+				rsAssert(rsC, strings.Contains(rsErr, rsCase.rsMention), "refusal omitted the offending name or value: %s", rsErr)
 			}
-			rsAssert(rsT, rsID, len(rsW.rsCalls("cmd")) == 0 && len(rsW.rsCalls("other")) == 0, "a refused input started a reviewer")
+			rsAssert(rsC, len(rsW.rsCalls("cmd")) == 0 && len(rsW.rsCalls("other")) == 0, "a refused input started a reviewer")
 			_, rsStat := os.Stat(rsOut)
 			if rsStat != nil && !os.IsNotExist(rsStat) {
 				rsT.Fatalf("setup: stat: %v", rsStat)
 			}
-			rsAssert(rsT, rsID, os.IsNotExist(rsStat), "refused input created a round folder")
+			rsAssert(rsC, os.IsNotExist(rsStat), "refused input created a round folder")
 			if rsCase.rsCode == 64 {
 				_, rsStat = os.Stat(filepath.Dir(rsOut))
-				rsAssert(rsT, rsID, os.IsNotExist(rsStat), "usage error wrote a series")
+				rsAssert(rsC, os.IsNotExist(rsStat), "usage error wrote a series")
 			}
 		})
 	}
+	// The accepted name set is the union of configured and selected names:
+	// selecting only other must retain cmd's standpoint without running cmd.
+	rsT.Run("configured-unselected", func(rsT *testing.T) {
+		rsW := rsNew(rsT, rsC)
+		rsW.rsUse(rsW.rsFake("cmd", "command", rsW.rsAnswer("cmd", 1, rsReport(true, "checked"), true), ""), rsW.rsFake("other", "command", rsW.rsAnswer("other", 1, nil, false), ""))
+		rsOut := rsW.rsOut("configured-unselected", "01-candidate")
+		rsText := "Retain the configured reviewer's risk during a partial run."
+		if !rsW.rsRun(rsID, rsOut, "candidate", 0, 1, "--reviewers", "other", "--standpoint", "cmd="+rsText) {
+			return
+		}
+		rsAssert(rsC, len(rsW.rsCalls("cmd")) == 0 && len(rsW.rsCalls("other")) == 1, "configured but unselected reviewer ran, or selected reviewer did not run exactly once")
+		rsR := rsW.rsRaw(rsOut)
+		rsAssert(rsC, rsState(rsR, "other")["status"] == "completed" && reflect.DeepEqual(rsR["requested_reviewers"], []any{"other"}), "standpoint for an unselected configured reviewer changed the selected reviewers or prevented completion")
+		rsPacket := rsW.rsRead(filepath.Join(rsOut, "packet.md"))
+		_, rsSectionBody, rsFound := strings.Cut(rsPacket, "\n"+rsSection+"\n")
+		rsSectionBody = strings.SplitN(rsSectionBody, "\n## ", 2)[0]
+		_, rsAssignment, rsAssigned := strings.Cut(rsSectionBody, "\n### cmd\n")
+		rsAssignment = strings.SplitN(rsAssignment, "\n### ", 2)[0]
+		rsAssert(rsC, rsFound && rsAssigned && strings.Contains(rsAssignment, rsText), "packet's standpoint section omitted the configured but unselected reviewer's assignment")
+	})
 	for rsI, rsText := range []string{"first line\nsecond line", "  inner   spaces = retained  "} {
 		rsT.Run(fmt.Sprintf("accepted-%d", rsI), func(rsT *testing.T) {
-			rsW := rsNew(rsT)
+			rsW := rsNew(rsT, rsC)
 			rsW.rsUse(rsW.rsFake("cmd", "command", rsW.rsAnswer("cmd", 1, rsReport(true, "checked"), true), ""))
 			rsOut := rsW.rsOut("accepted", "01-candidate")
 			if !rsW.rsRun(rsID, rsOut, "candidate", 0, 1, "--standpoint", "cmd="+rsText) {
 				return
 			}
-			rsAssert(rsT, rsID, rsState(rsW.rsRaw(rsOut), "cmd")["status"] == "completed" && strings.Contains(rsW.rsLast("cmd", "prompt"), rsText), "text outside the refusal list was not accepted verbatim")
+			rsAssert(rsC, rsState(rsW.rsRaw(rsOut), "cmd")["status"] == "completed" && strings.Contains(rsW.rsLast("cmd", "prompt"), rsText), "text outside the refusal list was not accepted verbatim")
 		})
 	}
 }
@@ -636,10 +809,11 @@ func rsHeadings(rsText string) []string {
 }
 func TestReviewerStandpointsAC5_TextVerbatim(rsT *testing.T) {
 	const rsID = "standpoint-text-not-verbatim"
+	rsC := rsCollect(rsT, rsID)
 	rsTexts := []string{"line one\nline two\n", "```go\n## forged\n```\n````\nend", "# a heading\n## another heading", "저장 형식의 이전 소비자를 확인하라", "  한글\n```go\n## forged\n```\n````\n# heading\ninner  spaces = 그대로\n"}
 	for rsI, rsText := range rsTexts {
 		rsT.Run(strconv.Itoa(rsI), func(rsT *testing.T) {
-			rsW := rsNew(rsT)
+			rsW := rsNew(rsT, rsC)
 			rsW.rsUse(rsW.rsFake("cmd", "command", rsW.rsAnswer("cmd", 1, rsReport(true, "checked"), true), ""))
 			rsCommon := []string{"--decision", "keep shared review", "--decision-quote", "yes", "--question", "Is the boundary covered?"}
 			rsPlain := rsW.rsOut("plain", "01-candidate")
@@ -648,7 +822,7 @@ func TestReviewerStandpointsAC5_TextVerbatim(rsT *testing.T) {
 			if !rsW.rsRun(rsID, rsOut, "candidate", 0, 1, append(rsCommon, "--standpoint", "cmd="+rsText)...) {
 				return
 			}
-			rsAssert(rsT, rsID, strings.Contains(rsW.rsLast("cmd", "prompt"), rsText), "reviewer input did not retain the standpoint bytes")
+			rsAssert(rsC, strings.Contains(rsW.rsLast("cmd", "prompt"), rsText), "reviewer input did not retain the standpoint bytes")
 			rsBefore := rsHeadings(rsW.rsRead(filepath.Join(rsPlain, "packet.md")))
 			rsWant := []string{}
 			for _, rsHeading := range rsBefore {
@@ -658,15 +832,45 @@ func TestReviewerStandpointsAC5_TextVerbatim(rsT *testing.T) {
 				rsWant = append(rsWant, rsHeading)
 			}
 			rsPacket := rsW.rsRead(filepath.Join(rsOut, "packet.md"))
-			rsAssert(rsT, rsID, reflect.DeepEqual(rsHeadings(rsPacket), rsWant), "standpoint text changed section headings or their order: %q", rsHeadings(rsPacket))
-			rsAssert(rsT, rsID, strings.Contains(rsPacket, "Each standpoint below belongs to one reviewer. The reviewer it names attacks that risk first; every reviewer still checks every angle."), "standpoint section omitted its shared instruction")
+			rsAssert(rsC, reflect.DeepEqual(rsHeadings(rsPacket), rsWant), "standpoint text changed section headings or their order: %q", rsHeadings(rsPacket))
+			rsAssert(rsC, strings.Contains(rsPacket, "Each standpoint below belongs to one reviewer. The reviewer it names attacks that risk first; every reviewer still checks every angle."), "standpoint section omitted its shared instruction")
 		})
 	}
 }
 
 func TestReviewerStandpointsAC6_SameInput(rsT *testing.T) {
 	const rsID = "standpoint-input-identity-wrong"
-	rsW := rsNew(rsT)
+	rsC := rsCollect(rsT, rsID)
+	rsT.Run("both-assigned-partial-rerun", func(rsT *testing.T) {
+		rsW := rsNew(rsT, rsC)
+		rsW.rsUse(rsW.rsFake("claude", "claude", rsW.rsAnswer("claude", 1, rsReport(true, "checked stored records"), true), ""), rsW.rsFake("codex", "codex", rsW.rsAnswer("codex", 1, rsReport(true, "checked contract readers"), true), ""))
+		rsOptions := []string{"--standpoint", "claude=Attack stored records", "--standpoint", "codex=Attack contract readers"}
+		rsW.rsWrite(filepath.Join(rsW.rsDir, "fail-claude"), "intentional")
+		rsFirst := rsW.rsOut("both-assigned", "01-candidate")
+		if !rsW.rsRun(rsID, rsFirst, "candidate", 0, 1, rsOptions...) {
+			return
+		}
+		rsA := rsW.rsRaw(rsFirst)
+		rsAssert(rsC, rsState(rsA, "claude")["status"] == "failed" && rsState(rsA, "codex")["status"] == "completed", "two assigned reviewers did not leave exactly claude unfinished")
+		rsAssert(rsC, len(rsW.rsCalls("claude")) == 1 && len(rsW.rsCalls("codex")) == 1, "initial two-standpoint round did not run both reviewers exactly once")
+		rsW.rsRemove(filepath.Join(rsW.rsDir, "fail-claude"))
+		rsSame := rsW.rsOut("both-assigned", "02-candidate")
+		if !rsW.rsRun(rsID, rsSame, "candidate", 0, 1, append([]string{"--reviewers", "claude"}, rsOptions...)...) {
+			return
+		}
+		rsB := rsW.rsRaw(rsSame)
+		rsAssert(rsC, rsB["counted"] == false && reflect.DeepEqual(rsB["rerun_of"], []any{"01-candidate"}) && rsB["packet_sha256"] == rsA["packet_sha256"], "partial rerun with both standpoints changed identity: counted=%v rerun_of=%v", rsB["counted"], rsB["rerun_of"])
+		rsAssert(rsC, rsState(rsB, "claude")["status"] == "completed" && reflect.DeepEqual(rsB["requested_reviewers"], []any{"claude"}) && len(rsW.rsCalls("claude")) == 2 && len(rsW.rsCalls("codex")) == 1, "partial rerun did not complete only the previously failed reviewer")
+		// Even changing the completed, unselected reviewer's text changes the
+		// shared packet: retaining that assignment is part of the identity.
+		rsChanged := rsW.rsOut("both-assigned", "03-candidate")
+		if !rsW.rsRun(rsID, rsChanged, "candidate", 0, 1, "--reviewers", "claude", "--standpoint", "claude=Attack stored records", "--standpoint", "codex=Attack contract readers differently") {
+			return
+		}
+		rsChangedRecord := rsW.rsRaw(rsChanged)
+		rsAssert(rsC, rsChangedRecord["counted"] == true && len(rsList(rsChangedRecord["rerun_of"])) == 0 && rsChangedRecord["packet_sha256"] != rsA["packet_sha256"], "changed unselected reviewer's standpoint was treated as the same packet")
+	})
+	rsW := rsNew(rsT, rsC)
 	rsW.rsUse(rsW.rsFake("claude", "claude", rsW.rsAnswer("claude", 1, rsReport(true, "checked"), true), ""), rsW.rsFake("codex", "codex", rsW.rsAnswer("codex", 1, nil, false), ""))
 	rsW.rsWrite(filepath.Join(rsW.rsDir, "fail-claude"), "intentional")
 	rsFirst := rsW.rsOut("identity", "01-candidate")
@@ -679,19 +883,19 @@ func TestReviewerStandpointsAC6_SameInput(rsT *testing.T) {
 		return
 	}
 	rsA, rsB := rsW.rsRaw(rsFirst), rsW.rsRaw(rsSame)
-	rsAssert(rsT, rsID, rsB["counted"] == false && reflect.DeepEqual(rsB["rerun_of"], []any{"01-candidate"}) && rsB["packet_sha256"] == rsA["packet_sha256"], "same standpoint rerun changed identity: counted=%v rerun_of=%v", rsB["counted"], rsB["rerun_of"])
+	rsAssert(rsC, rsB["counted"] == false && reflect.DeepEqual(rsB["rerun_of"], []any{"01-candidate"}) && rsB["packet_sha256"] == rsA["packet_sha256"], "same standpoint rerun changed identity: counted=%v rerun_of=%v", rsB["counted"], rsB["rerun_of"])
 	rsGate := rsW.rsGate("identity", 1, rsFirst, rsSame)
 	for _, rsGR := range rsList(rsGate["rounds"]) {
-		rsAssert(rsT, rsID, rsMap(rsGR)["completed_required"] == rsMap(rsGR)["required_reviewers"], "rerun did not complete the original packet's required reviewers: %v", rsGR)
+		rsAssert(rsC, rsMap(rsGR)["completed_required"] == rsMap(rsGR)["required_reviewers"], "rerun did not complete the original packet's required reviewers: %v", rsGR)
 	}
 	rsCode, _, rsErr := rsW.rsCLI("waive", rsFirst, "claude", "--user-quote", rsQuote)
-	rsAssert(rsT, rsID, rsCode == 65 && strings.Contains(rsErr, "same packet"), "waive did not recognize completion of the same packet: exit %d %s", rsCode, rsErr)
+	rsAssert(rsC, rsCode == 65 && strings.Contains(rsErr, "same packet"), "waive did not recognize completion of the same packet: exit %d %s", rsCode, rsErr)
 	rsChanged := rsW.rsOut("identity", "03-candidate")
 	if !rsW.rsRun(rsID, rsChanged, "candidate", 0, 1, "--standpoint", "claude=Attack stored records differently") {
 		return
 	}
-	rsC := rsW.rsRaw(rsChanged)
-	rsAssert(rsT, rsID, rsC["counted"] == true && len(rsList(rsC["rerun_of"])) == 0 && rsC["packet_sha256"] != rsA["packet_sha256"], "changed text was treated as the old packet")
+	rsChangedRecord := rsW.rsRaw(rsChanged)
+	rsAssert(rsC, rsChangedRecord["counted"] == true && len(rsList(rsChangedRecord["rerun_of"])) == 0 && rsChangedRecord["packet_sha256"] != rsA["packet_sha256"], "changed text was treated as the old packet")
 	// A changed assignment is also a new packet, even with identical text.
 	rsW.rsAll(1, map[string]string{"codex": "Attack stored records"})
 	rsAssigned := rsW.rsOut("identity", "04-candidate")
@@ -699,9 +903,9 @@ func TestReviewerStandpointsAC6_SameInput(rsT *testing.T) {
 		return
 	}
 	rsD := rsW.rsRaw(rsAssigned)
-	rsAssert(rsT, rsID, rsD["counted"] == true && len(rsList(rsD["rerun_of"])) == 0 && rsD["packet_sha256"] != rsA["packet_sha256"], "changed assignment did not count as a new packet")
+	rsAssert(rsC, rsD["counted"] == true && len(rsList(rsD["rerun_of"])) == 0 && rsD["packet_sha256"] != rsA["packet_sha256"], "changed assignment did not count as a new packet")
 	rsCap := rsW.rsCap(filepath.Dir(rsFirst))
-	rsAssert(rsT, rsID, rsMap(rsCap["cap"])["counted"] == float64(3), "cap report does not count the three distinct packets: %v", rsCap["cap"])
+	rsAssert(rsC, rsMap(rsCap["cap"])["counted"] == float64(3), "cap report does not count the three distinct packets: %v", rsCap["cap"])
 	// Completion under a DIFFERENT standpoint must not prevent waiving the
 	// failed original, or give the original completion credit in the gate.
 	rsW.rsUse(rsW.rsFake("claude", "claude", rsW.rsAnswer("claude", 1, rsReport(true, "checked"), true), ""))
@@ -717,9 +921,9 @@ func TestReviewerStandpointsAC6_SameInput(rsT *testing.T) {
 	}
 	rsG := rsW.rsGate("different", 1, rsFailed, rsOther)
 	rsGRs := rsList(rsG["rounds"])
-	rsAssert(rsT, rsID, len(rsGRs) == 2 && rsMap(rsGRs[0])["completed_required"] == float64(0), "different packet incorrectly completed the original reviewer")
+	rsAssert(rsC, len(rsGRs) == 2 && rsMap(rsGRs[0])["completed_required"] == float64(0), "different packet incorrectly completed the original reviewer")
 	rsCode, _, rsErr = rsW.rsCLI("waive", rsFailed, "claude", "--user-quote", rsQuote)
-	rsAssert(rsT, rsID, rsCode == 0, "different packet prevented waiver: exit %d %s", rsCode, rsErr)
+	rsAssert(rsC, rsCode == 0, "different packet prevented waiver: exit %d %s", rsCode, rsErr)
 	// Fixes reruns share their base only for exactly the same packet. Changing
 	// a standpoint on that rerun must trigger the ordinary chain refusal.
 	rsSeed := rsW.rsOut("chain", "01-candidate")
@@ -735,11 +939,11 @@ func TestReviewerStandpointsAC6_SameInput(rsT *testing.T) {
 	if !rsW.rsRun(rsID, rsFixAgain, "fixes", 1, 2, "--standpoint", "claude=chain") {
 		return
 	}
-	rsAssert(rsT, rsID, rsW.rsRaw(rsFixAgain)["counted"] == false && reflect.DeepEqual(rsW.rsRaw(rsFixAgain)["rerun_of"], []any{"02-fixes"}), "same fixes packet did not rerun outside the cap")
+	rsAssert(rsC, rsW.rsRaw(rsFixAgain)["counted"] == false && reflect.DeepEqual(rsW.rsRaw(rsFixAgain)["rerun_of"], []any{"02-fixes"}), "same fixes packet did not rerun outside the cap")
 	rsFixGate := rsW.rsGate("chain", 2, rsSeed, rsFix, rsFixAgain)
-	rsAssert(rsT, rsID, rsFixGate["state"] != "blocked", "same fixes rerun broke gate chain: %v", rsFixGate["reasons"])
+	rsAssert(rsC, rsFixGate["state"] != "blocked", "same fixes rerun broke gate chain: %v", rsFixGate["reasons"])
 	rsCode, _, rsErr = rsW.rsCLI(rsW.rsArgs(rsW.rsOut("chain", "04-fixes"), "fixes", 1, 2, "--standpoint", "claude=changed chain")...)
-	rsAssert(rsT, rsID, rsCode == 65 && strings.Contains(rsErr, "chain"), "changed fixes packet reused the old base: exit %d %s", rsCode, rsErr)
+	rsAssert(rsC, rsCode == 65 && strings.Contains(rsErr, "chain"), "changed fixes packet reused the old base: exit %d %s", rsCode, rsErr)
 	// Recurring findings group reruns of one packet once, but split text and
 	// assignment changes. Native pending reviewers make genuine reruns possible.
 	rsW.rsUse(rsNative("a"), rsNative("b"))
@@ -763,7 +967,7 @@ func TestReviewerStandpointsAC6_SameInput(rsT *testing.T) {
 		rsRecurring = append(rsRecurring, rsOut)
 	}
 	rsRC := rsList(rsW.rsCap(filepath.Dir(rsRecurring[0]))["recurring"])
-	rsAssert(rsT, rsID, len(rsRC) == 1 && reflect.DeepEqual(rsMap(rsRC[0])["rounds"], []any{"01-candidate", "03-candidate", "04-candidate"}), "cap-report did not split exactly the three standpoint packets: %v", rsRC)
+	rsAssert(rsC, len(rsRC) == 1 && reflect.DeepEqual(rsMap(rsRC[0])["rounds"], []any{"01-candidate", "03-candidate", "04-candidate"}), "cap-report did not split exactly the three standpoint packets: %v", rsRC)
 	// Quota fallback must receive exactly the designated attempt's input.
 	for _, rsPreset := range []string{"codex", "agy"} {
 		rsW.rsUse(rsW.rsFake(rsPreset, rsPreset, rsW.rsAnswer(rsPreset, 1, rsReport(true, "checked fallback"), true), "fallback_model=\"synthetic-fallback\""))
@@ -774,7 +978,7 @@ func TestReviewerStandpointsAC6_SameInput(rsT *testing.T) {
 		}
 		rsCalls := rsW.rsCalls(rsPreset)[rsBefore:]
 		rsSt := rsState(rsW.rsRaw(rsOut), rsPreset)
-		rsAssert(rsT, rsID, len(rsCalls) == 2 && len(rsList(rsSt["attempts"])) == 2 && rsSt["fallback_used"] == true && rsSt["status"] == "completed", "%s did not make exactly one fallback attempt: %v", rsPreset, rsSt)
+		rsAssert(rsC, len(rsCalls) == 2 && len(rsList(rsSt["attempts"])) == 2 && rsSt["fallback_used"] == true && rsSt["status"] == "completed", "%s did not make exactly one fallback attempt: %v", rsPreset, rsSt)
 		if len(rsCalls) == 2 {
 			rsFirstInput := rsW.rsRead(filepath.Join(rsCalls[0], "stdin"))
 			rsSecondInput := rsW.rsRead(filepath.Join(rsCalls[1], "stdin"))
@@ -782,16 +986,34 @@ func TestReviewerStandpointsAC6_SameInput(rsT *testing.T) {
 				rsFirstInput = rsArg(rsW.rsRead(filepath.Join(rsCalls[0], "argv")), "-p")
 				rsSecondInput = rsArg(rsW.rsRead(filepath.Join(rsCalls[1], "argv")), "-p")
 			}
-			rsAssert(rsT, rsID, rsFirstInput == rsSecondInput && strings.Contains(rsFirstInput, rsInstruction(rsPreset, true)), "%s fallback input differs from designated input", rsPreset)
+			rsAssert(rsC, rsFirstInput == rsSecondInput && strings.Contains(rsFirstInput, rsInstruction(rsPreset, true)), "%s fallback input differs from designated input", rsPreset)
 		}
 	}
 }
 
 func TestReviewerStandpointsAC7_Uncovered(rsT *testing.T) {
 	const rsID = "uncovered-standpoint-hidden"
+	rsC := rsCollect(rsT, rsID)
+	for _, rsMode := range []string{"result", "transcript"} {
+		rsT.Run("native-"+rsMode, func(rsT *testing.T) {
+			rsW := rsNew(rsT, rsC)
+			rsW.rsUse(rsNative("native"))
+			rsOut := rsW.rsOut("native-uncovered", "01-candidate")
+			if !rsW.rsRun(rsID, rsOut, "candidate", 0, 1, "--standpoint", "native=Attack recorded completion") {
+				return
+			}
+			rsBefore := rsW.rsRaw(rsOut)
+			rsAssert(rsC, rsState(rsBefore, "native")["status"] == "pending" && reflect.DeepEqual(rsBefore["standpoints_uncovered"], []any{"native"}), "pending native standpoint must be uncovered")
+			rsAssert(rsC, strings.Contains(rsW.rsRead(filepath.Join(rsOut, "summary.md")), "- Standpoints without a completed reviewer: native\n"), "pending native standpoint is missing from the summary")
+			rsW.rsRecord(rsOut, "native", rsW.rsAnswer("native", 1, rsReport(true, "checked recorded completion"), true), rsMode)
+			rsAfter := rsW.rsRaw(rsOut)
+			rsAssert(rsC, rsState(rsAfter, "native")["status"] == "completed" && reflect.DeepEqual(rsAfter["standpoints_uncovered"], []any{}), "record did not remove the completed native reviewer from standpoints_uncovered: %v", rsAfter["standpoints_uncovered"])
+			rsAssert(rsC, !strings.Contains(rsW.rsRead(filepath.Join(rsOut, "summary.md")), "Standpoints without a completed reviewer"), "record left the completed native standpoint uncovered in summary.md")
+		})
+	}
 	for _, rsWaived := range []bool{false, true} {
 		rsT.Run(fmt.Sprintf("waived-%t", rsWaived), func(rsT *testing.T) {
-			rsW := rsNew(rsT)
+			rsW := rsNew(rsT, rsC)
 			rsW.rsUse(rsW.rsFake("claude", "claude", rsW.rsAnswer("claude", 1, rsReport(true, "checked"), true), ""), rsW.rsFake("codex", "codex", rsW.rsAnswer("codex", 1, nil, false), ""))
 			rsW.rsWrite(filepath.Join(rsW.rsDir, "fail-claude"), "intentional")
 			rsOut := rsW.rsOut("uncovered", "01-candidate")
@@ -802,13 +1024,13 @@ func TestReviewerStandpointsAC7_Uncovered(rsT *testing.T) {
 				rsW.rsMust(0, "waive", rsOut, "claude", "--user-quote", rsQuote)
 			}
 			rsR := rsW.rsRaw(rsOut)
-			rsAssert(rsT, rsID, reflect.DeepEqual(rsR["standpoints_uncovered"], []any{"claude"}), "failed or waived standpoint was not uncovered: %v", rsR["standpoints_uncovered"])
+			rsAssert(rsC, reflect.DeepEqual(rsR["standpoints_uncovered"], []any{"claude"}), "failed or waived standpoint was not uncovered: %v", rsR["standpoints_uncovered"])
 			rsSummary := rsW.rsMust(0, "summary", rsOut)
-			rsAssert(rsT, rsID, strings.Contains(rsSummary, "- Standpoints without a completed reviewer: claude\n") && strings.Contains(rsSummary, "  - standpoint report: none\n"), "summary hides uncovered standpoint or absent report")
+			rsAssert(rsC, strings.Contains(rsSummary, "- Standpoints without a completed reviewer: claude\n") && strings.Contains(rsSummary, "  - standpoint report: none\n"), "summary hides uncovered standpoint or absent report")
 			rsBefore := rsW.rsGate("with", 1, rsOut)
 			rsW.rsStrip(rsOut)
 			rsAfter := rsW.rsGate("without", 1, rsOut)
-			rsAssert(rsT, rsID, reflect.DeepEqual(rsGateJudgment(rsBefore), rsGateJudgment(rsAfter)), "standpoint fields changed gate state or reasons: %v versus %v", rsGateJudgment(rsBefore), rsGateJudgment(rsAfter))
+			rsAssert(rsC, reflect.DeepEqual(rsGateJudgment(rsBefore), rsGateJudgment(rsAfter)), "standpoint fields changed gate state or reasons: %v versus %v", rsGateJudgment(rsBefore), rsGateJudgment(rsAfter))
 		})
 	}
 }
@@ -862,27 +1084,56 @@ func (rsW *rsWorld) rsPinDigests(rsOut string) {
 	rsPacket := rsW.rsRead(filepath.Join(rsOut, "packet.md"))
 	rsActual := rsString(rsR["packet_sha256"])
 	if rsActual != rsHash(rsPacket) {
-		rsW.rsT.Errorf("jaekit:violation=no-standpoint-round-changed packet_sha256 is not the digest of packet.md")
+		rsAssert(rsW.rsChecks, false, "packet_sha256 is not the digest of packet.md")
 	} else {
 		rsW.rsReplacements[rsActual] = rsHash(rsW.rsNormalize(rsPacket))
 	}
 	rsConfig := rsMap(rsR["config"])
+	rsConfigBody := rsW.rsRead(rsW.rsConfig)
+	rsW.rsReplacements[rsHash(rsConfigBody)] = rsHash(rsW.rsNormalize(rsConfigBody))
 	rsDigest := rsString(rsConfig["digest"])
 	if len(rsDigest) >= 12 {
 		rsW.rsReplacements[rsDigest] = "<config-digest>"
 		rsW.rsReplacements[rsDigest[:12]] = "<short-config-digest>"
 	}
 }
+
+// Remove only execution timing fields. In particular, do not remove new
+// standpoint fields from reviewer entries or any other newly emitted key.
+func rsWithoutTiming(rsV any) {
+	switch rsValue := rsV.(type) {
+	case map[string]any:
+		for rsKey, rsChild := range rsValue {
+			switch rsKey {
+			case "started_at", "finished_at", "elapsed_seconds":
+				delete(rsValue, rsKey)
+			default:
+				rsWithoutTiming(rsChild)
+			}
+		}
+	case []any:
+		for _, rsChild := range rsValue {
+			rsWithoutTiming(rsChild)
+		}
+	}
+}
+
 func (rsW *rsWorld) rsSnapshot(rsOut string) map[string]any {
 	rsW.rsPinDigests(rsOut)
 	rsR := rsW.rsRaw(rsOut)
 	rsInputs := map[string]any{}
-	for _, rsName := range rsNames {
+	for _, rsValue := range rsList(rsR["requested_reviewers"]) {
+		rsName := rsString(rsValue)
 		if rsName == "native" {
 			rsInputs[rsName] = map[string]any{"prompt.md": rsW.rsNormalize(rsW.rsRead(filepath.Join(rsOut, rsName, "prompt.md")))}
 			continue
 		}
 		rsInputs[rsName] = map[string]any{"argv": rsW.rsNormalize(rsW.rsLast(rsName, "argv")), "stdin": rsW.rsNormalize(rsW.rsLast(rsName, "stdin"))}
+		if rsName == "claude" {
+			// Unlike agy/codex, claude receives schema bytes in argv, not a
+			// path. Pin those exact bytes independently of schema.json.
+			rsMap(rsInputs[rsName])["--json-schema"] = rsArg(rsW.rsLast(rsName, "argv"), "--json-schema")
+		}
 		if rsName == "command" {
 			rsMap(rsInputs[rsName])["prompt"] = rsW.rsNormalize(rsW.rsLast(rsName, "prompt"))
 		}
@@ -894,7 +1145,9 @@ func (rsW *rsWorld) rsSnapshot(rsOut string) map[string]any {
 			rsW.rsT.Fatalf("setup: capture PACKET.md: %v", rsErr)
 		}
 	}
-	return map[string]any{"inputs": rsInputs, "packet.md": rsW.rsNormalize(rsW.rsRead(filepath.Join(rsOut, "packet.md"))), "schema.json": rsW.rsRead(filepath.Join(rsOut, "schema.json")), "packet_sha256": rsW.rsNormalize(rsString(rsR["packet_sha256"])), "summary.md": rsW.rsNormalize(rsW.rsRead(filepath.Join(rsOut, "summary.md")))}
+	delete(rsR, "standpoints") // AC-8 separately requires this to be exactly [].
+	rsWithoutTiming(rsR)
+	return map[string]any{"inputs": rsInputs, "round.json": rsW.rsJSON(rsW.rsNormalize(rsW.rsEncode(rsR))), "packet.md": rsW.rsNormalize(rsW.rsRead(filepath.Join(rsOut, "packet.md"))), "schema.json": rsW.rsRead(filepath.Join(rsOut, "schema.json")), "packet_sha256": rsW.rsNormalize(rsString(rsR["packet_sha256"])), "summary.md": rsW.rsNormalize(rsW.rsRead(filepath.Join(rsOut, "summary.md")))}
 }
 func (rsW *rsWorld) rsStages() (map[string]any, []string) {
 	rsSnapshots := map[string]any{}
@@ -914,6 +1167,12 @@ func (rsW *rsWorld) rsStages() (map[string]any, []string) {
 		rsSnapshots[rsStage] = rsW.rsSnapshot(rsOut)
 		rsRounds = append(rsRounds, rsOut)
 	}
+	// A separate series avoids changing the legacy rerun fixture's history.
+	rsW.rsUse(rsW.rsFake("agy", "agy", rsW.rsAnswer("agy-large", 1, nil, false), ""))
+	rsLarge := rsW.rsOut("baseline-large", "01-candidate")
+	rsW.rsRun("", rsLarge, "candidate", 0, 1, "--criteria", rsW.rsLargeCriteria())
+	rsSnapshots["agy-file"] = rsW.rsSnapshot(rsLarge)
+	rsRounds = append(rsRounds, rsLarge)
 	return rsSnapshots, rsRounds
 }
 func (rsW *rsWorld) rsLoadFixture() map[string]any {
@@ -1035,7 +1294,8 @@ func (rsW *rsWorld) rsConfigSnapshot() map[string]any {
 }
 func TestReviewerStandpointsAC8_NoStandpointUnchanged(rsT *testing.T) {
 	const rsID = "no-standpoint-round-changed"
-	rsW := rsNew(rsT)
+	rsC := rsCollect(rsT, rsID)
+	rsW := rsNew(rsT, rsC)
 	rsSnapshots, rsRounds := rsW.rsStages()
 	if os.Getenv("RS_WRITE_BASE") == "1" {
 		if _, rsPresent := rsW.rsRaw(rsRounds[0])["standpoints"]; rsPresent {
@@ -1052,19 +1312,19 @@ func TestReviewerStandpointsAC8_NoStandpointUnchanged(rsT *testing.T) {
 		return
 	}
 	rsFixtureValue := rsW.rsLoadFixture()
-	for _, rsStage := range []string{"plan", "plan-delta", "candidate", "fixes"} {
-		rsAssert(rsT, rsID, reflect.DeepEqual(rsW.rsJSON(rsW.rsEncode(rsSnapshots[rsStage])), rsMap(rsFixtureValue["stages"])[rsStage]), "%s no-standpoint input, packet, schema, digest or summary differs from base.json", rsStage)
+	for _, rsStage := range []string{"plan", "plan-delta", "candidate", "fixes", "agy-file"} {
+		rsAssert(rsC, reflect.DeepEqual(rsW.rsJSON(rsW.rsEncode(rsSnapshots[rsStage])), rsMap(rsFixtureValue["stages"])[rsStage]), "%s no-standpoint input, packet, schema, digest, whole round.json or summary differs from base.json", rsStage)
 	}
 	for _, rsOut := range rsRounds {
 		rsR := rsW.rsRaw(rsOut)
 		rsSP, rsPresent := rsR["standpoints"]
-		rsAssert(rsT, rsID, rsPresent && reflect.DeepEqual(rsSP, []any{}), "%s must record explicit standpoints: []", filepath.Base(rsOut))
+		rsAssert(rsC, rsPresent && reflect.DeepEqual(rsSP, []any{}), "%s must record explicit standpoints: []", filepath.Base(rsOut))
 		for _, rsName := range rsNames {
 			_, rsErr := os.Stat(filepath.Join(rsOut, rsName, "input.md"))
 			if rsErr != nil && !os.IsNotExist(rsErr) {
 				rsT.Fatalf("setup: stat: %v", rsErr)
 			}
-			rsAssert(rsT, rsID, os.IsNotExist(rsErr), "no-standpoint round created %s/input.md", rsName)
+			rsAssert(rsC, os.IsNotExist(rsErr), "no-standpoint round created %s/input.md", rsName)
 		}
 	}
 	// Restore the OLD candidate record and its digest, not a record newly
@@ -1081,29 +1341,32 @@ func TestReviewerStandpointsAC8_NoStandpointUnchanged(rsT *testing.T) {
 	rsAgain := rsW.rsOut("baseline", "05-candidate")
 	rsW.rsRun(rsID, rsAgain, "candidate", 0, 1, "--reviewers", "native", "--question", "Is AC-1 covered?")
 	rsAgainRecord := rsW.rsRaw(rsAgain)
-	rsAssert(rsT, rsID, rsAgainRecord["counted"] == false && reflect.DeepEqual(rsAgainRecord["rerun_of"], []any{"03-candidate"}), "old no-standpoint packet is not an uncounted rerun: %v %v", rsAgainRecord["counted"], rsAgainRecord["rerun_of"])
+	rsAssert(rsC, rsAgainRecord["counted"] == false && reflect.DeepEqual(rsAgainRecord["rerun_of"], []any{"03-candidate"}), "old no-standpoint packet is not an uncounted rerun: %v %v", rsAgainRecord["counted"], rsAgainRecord["rerun_of"])
 }
 
 func TestReviewerStandpointsAC11_EarlierRecords(rsT *testing.T) {
-	rsW := rsNew(rsT)
+	rsC := rsCollect(rsT, "")
+	rsW := rsNew(rsT, rsC)
 	rsFixtureValue := rsW.rsLoadFixture()
 	rsW.rsRestore(rsMap(rsFixtureValue["legacy"]))
 	rsPrevious := rsW.rsRead(rsW.rsOut("gates", "legacy.json"))
 	rsGot := rsW.rsLegacyRead()
-	rsAssert(rsT, "", reflect.DeepEqual(rsW.rsJSON(rsW.rsEncode(rsGot)), rsFixtureValue["legacy_expected"]), "legacy gate/cap-report/triage/waive results differ from base.json\ngot: %s\nwant: %s", rsW.rsEncode(rsGot), rsW.rsEncode(rsFixtureValue["legacy_expected"]))
+	rsAssert(rsC, reflect.DeepEqual(rsW.rsJSON(rsW.rsEncode(rsGot)), rsFixtureValue["legacy_expected"]), "legacy gate/cap-report/triage/waive results differ from base.json\ngot: %s\nwant: %s", rsW.rsEncode(rsGot), rsW.rsEncode(rsFixtureValue["legacy_expected"]))
 	rsGate := rsMap(rsW.rsJSON(rsW.rsRead(rsW.rsOut("gates", "legacy.json"))))
-	rsAssert(rsT, "", rsGate["previous_gate_digest"] == rsHash(rsPrevious), "legacy gate replacement did not preserve previous_gate_digest")
+	rsAssert(rsC, rsGate["previous_gate_digest"] == rsHash(rsPrevious), "legacy gate replacement did not preserve previous_gate_digest")
 }
 func TestReviewerStandpointsAC12_Config(rsT *testing.T) {
-	rsW := rsNew(rsT)
+	rsC := rsCollect(rsT, "")
+	rsW := rsNew(rsT, rsC)
 	rsFixtureValue := rsW.rsLoadFixture()
 	rsGot := rsW.rsConfigSnapshot()
-	rsAssert(rsT, "", reflect.DeepEqual(rsW.rsJSON(rsW.rsEncode(rsGot)), rsFixtureValue["config"]), "configuration output, accepted keys or refusal probes changed\ngot: %s\nwant: %s", rsW.rsEncode(rsGot), rsW.rsEncode(rsFixtureValue["config"]))
+	rsAssert(rsC, reflect.DeepEqual(rsW.rsJSON(rsW.rsEncode(rsGot)), rsFixtureValue["config"]), "configuration output, accepted keys or refusal probes changed\ngot: %s\nwant: %s", rsW.rsEncode(rsGot), rsW.rsEncode(rsFixtureValue["config"]))
 }
 
 func TestReviewerStandpointsAC9_ClassificationIndependent(rsT *testing.T) {
 	const rsID = "classification-reads-standpoint"
-	rsW := rsNew(rsT)
+	rsC := rsCollect(rsT, rsID)
+	rsW := rsNew(rsT, rsC)
 	rsObserved := []any{}
 	for rsI, rsSP := range []string{"", "Attack classification from a consumer's position"} {
 		rsSeries := fmt.Sprintf("classification-%d", rsI)
@@ -1128,7 +1391,7 @@ func TestReviewerStandpointsAC9_ClassificationIndependent(rsT *testing.T) {
 		for _, rsF := range rsList(rsW.rsJSON(rsW.rsRead(filepath.Join(rsOut, "findings.json")))) {
 			rsClasses = append(rsClasses, rsMap(rsF)["class"])
 		}
-		rsAssert(rsT, rsID, reflect.DeepEqual(rsClasses, []any{"defect", "requirement-question", "hardening", "note", "defect", "defect", "defect"}), "standpoint changed representative finding classes: %v", rsClasses)
+		rsAssert(rsC, reflect.DeepEqual(rsClasses, []any{"defect", "requirement-question", "hardening", "note", "defect", "defect", "defect"}), "standpoint changed representative finding classes: %v", rsClasses)
 		for _, rsArgs := range [][]string{
 			{"triage", rsOut, "native-F1", "fix", "--commit", rsW.rsCommits[2], "--failed-before", "synthetic failure", "--passed-after", "synthetic pass"},
 			{"triage", rsOut, "native-F2", "answer", "--user-quote", "synthetic decision"},
@@ -1137,7 +1400,7 @@ func TestReviewerStandpointsAC9_ClassificationIndependent(rsT *testing.T) {
 			{"triage", rsOut, "native-F7", "defer", "--to", "synthetic follow-up", "--user-quote", "defer this"},
 		} {
 			rsCode, _, rsErr := rsW.rsCLI(rsArgs...)
-			rsAssert(rsT, rsID, rsCode == 0, "standpoint changed disposition acceptance: %v exit %d %s", rsArgs[2:4], rsCode, rsErr)
+			rsAssert(rsC, rsCode == 0, "standpoint changed disposition acceptance: %v exit %d %s", rsArgs[2:4], rsCode, rsErr)
 		}
 		rsFix := rsW.rsOut(rsSeries, "02-fixes")
 		if !rsW.rsRun(rsID, rsFix, "fixes", 1, 2, rsOptions...) {
@@ -1150,18 +1413,19 @@ func TestReviewerStandpointsAC9_ClassificationIndependent(rsT *testing.T) {
 		}
 		rsW.rsRecord(rsCumulative, "native", rsW.rsAnswer("cumulative", 2, rsReport(true, "checked"), rsSP != ""), "result")
 		rsCapCode, _, rsCapErr := rsW.rsCLI(rsW.rsArgs(rsW.rsOut(rsSeries, "04-candidate"), "candidate", 0, 2, rsOptions...)...)
-		rsAssert(rsT, rsID, rsCapCode == 65 && strings.Contains(rsCapErr, "cap"), "standpoint changed code cap refusal: %d %s", rsCapCode, rsCapErr)
+		rsAssert(rsC, rsCapCode == 65 && strings.Contains(rsCapErr, "cap"), "standpoint changed code cap refusal: %d %s", rsCapCode, rsCapErr)
 		rsAfter := rsW.rsGate("classification-after-"+strconv.Itoa(rsI), 2, rsOut, rsFix, rsCumulative)
 		rsRecord := map[string]any{"findings": rsW.rsJSON(rsW.rsRead(filepath.Join(rsOut, "findings.json"))), "ledger": rsW.rsRead(filepath.Join(rsOut, "ledger.jsonl")), "gate_before": rsGateJudgment(rsBefore), "gate_after": rsGateJudgment(rsAfter), "cap_report": rsW.rsCap(filepath.Dir(rsOut)), "counted": []any{rsW.rsRaw(rsOut)["counted"], rsW.rsRaw(rsFix)["counted"], rsW.rsRaw(rsCumulative)["counted"]}}
 		rsText := strings.ReplaceAll(rsW.rsNormalize(rsW.rsEncode(rsRecord)), rsSeries, "classification")
 		rsObserved = append(rsObserved, rsW.rsJSON(rsText))
 	}
-	rsAssert(rsT, rsID, reflect.DeepEqual(rsObserved[0], rsObserved[1]), "classification, dispositions, caps, chain or gate judgments depend on standpoints")
+	rsAssert(rsC, reflect.DeepEqual(rsObserved[0], rsObserved[1]), "classification, dispositions, caps, chain or gate judgments depend on standpoints")
 }
 
 func TestReviewerStandpointsAC10_SameReviewers(rsT *testing.T) {
 	const rsID = "reviewer-count-changed"
-	rsW := rsNew(rsT)
+	rsC := rsCollect(rsT, rsID)
+	rsW := rsNew(rsT, rsC)
 	rsObserved := []any{}
 	for rsI := 0; rsI < 2; rsI++ {
 		rsTexts := map[string]string{}
@@ -1188,7 +1452,7 @@ func TestReviewerStandpointsAC10_SameReviewers(rsT *testing.T) {
 		for _, rsName := range rsNames {
 			if rsName != "native" {
 				rsProcesses[rsName] = len(rsW.rsCalls(rsName)) - rsBefore[rsName]
-				rsAssert(rsT, rsID, rsProcesses[rsName] == 1, "%s did not start exactly once", rsName)
+				rsAssert(rsC, rsProcesses[rsName] == 1, "%s did not start exactly once", rsName)
 			}
 			rsSt := rsState(rsR, rsName)
 			rsAttempts[rsName] = map[string]any{"attempts": len(rsList(rsSt["attempts"])), "status": rsSt["status"], "required": rsSt["required"], "preset": rsSt["preset"]}
@@ -1202,5 +1466,5 @@ func TestReviewerStandpointsAC10_SameReviewers(rsT *testing.T) {
 		rsObservation := map[string]any{"processes": rsProcesses, "attempts": rsAttempts, "requested": rsR["requested_reviewers"], "required": rsR["required_reviewers"], "gate": rsGateJudgment(rsG), "gate_required": rsRequired}
 		rsObserved = append(rsObserved, rsW.rsJSON(strings.ReplaceAll(rsW.rsNormalize(rsW.rsEncode(rsObservation)), rsSeries, "reviewers")))
 	}
-	rsAssert(rsT, rsID, reflect.DeepEqual(rsObserved[0], rsObserved[1]), "standpoints changed process names/count, attempts or gate required-reviewer judgment")
+	rsAssert(rsC, reflect.DeepEqual(rsObserved[0], rsObserved[1]), "standpoints changed process names/count, attempts or gate required-reviewer judgment")
 }
