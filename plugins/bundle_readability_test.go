@@ -162,6 +162,8 @@ var (
 			"Leave out paths and links to goal documents, execution bundles and review records that Git does not track",
 			"leave out the raw user conversation",
 			"instead, describe the content briefly or say it is in local records",
+			// AC-7 scope: 03-candidate codex-F2, the user's answer "검수 요약 있는 목표만 (Recommended)".
+			"This PR guidance applies only to a goal that has a `## 검수 요약`",
 		},
 		"ko": {
 			"완료한 목표의 PR 설명을 쓰거나 고칠 때 그 목표의 `## 검수 요약`에서 만든다",
@@ -172,6 +174,8 @@ var (
 			"Git이 추적하지 않는 목표 문서, 실행 묶음, 검토 기록의 경로와 링크는 넣지 않는다",
 			"사용자 대화의 원문은 넣지 않는다",
 			"대신 내용을 짧게 적거나 로컬 기록에 있다고 적는다",
+			// AC-7 scope: 03-candidate codex-F2, the user's answer "검수 요약 있는 목표만 (Recommended)".
+			"이 PR 설명 안내는 `## 검수 요약`이 있는 목표에만 적용한다",
 		},
 	}
 	// AC-8: user-request boundary, no additional authority, no erased findings.
