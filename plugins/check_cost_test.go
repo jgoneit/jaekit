@@ -143,11 +143,11 @@ package plugins
 //       stays the one examples/empty-input/PLAN.md has).
 //       assets/templates/REVIEW.md `## 검증 방법과 환경`, one line:
 //       "`run-rules/7`", "requires a baseline", "`요구`".
-// AC-18 "0.1.27" in plugins/seal/.claude-plugin/plugin.json,
+// AC-18 "0.1.28" in plugins/seal/.claude-plugin/plugin.json,
 //       plugins/seal/.codex-plugin/plugin.json, the seal entry of
 //       .claude-plugin/marketplace.json and the skill front matter
-//       (`  version: "0.1.27"`); in references/ha.md the line holding
-//       "Seal 0.1.27" holds after it "`run-rules/7`", "needs a Core that
+//       (`  version: "0.1.28"`); in references/ha.md the line holding
+//       "Seal 0.1.28" holds after it "`run-rules/7`", "needs a Core that
 //       declares `run-rules/7`", "baseline" and "freeze".
 //
 // SKILL.md, references/bundle.md and references/ha.md never hold the
@@ -168,7 +168,7 @@ import (
 )
 
 const (
-	ckSealVersion  = "0.1.27"
+	ckSealVersion  = "0.1.28"
 	ckNewRules     = "run-rules/7"
 	ckOldRules     = "run-rules/6"
 	ckSkillDir     = "seal/skills/seal"
@@ -1015,8 +1015,8 @@ func TestCheckCostAC17_Documents(t *testing.T) {
 	c.report(t, v)
 }
 
-// AC-18: Seal's version is 0.1.27 everywhere it is written, and the version
-// list says what 0.1.27 changes and that it needs a Core with run-rules/7.
+// AC-18: Seal's version is 0.1.28 everywhere it is written, and the version
+// list says what 0.1.28 changes and that it needs a Core with run-rules/7.
 func TestCheckCostAC18_SealVersion(t *testing.T) {
 	const v = "seal-version-not-raised"
 	const (
@@ -1058,7 +1058,7 @@ func TestCheckCostAC18_SealVersion(t *testing.T) {
 	if !slices.Contains(strings.Split(front, "\n"), `  version: "`+ckSealVersion+`"`) {
 		t.Errorf("jaekit:violation=%s %s front matter does not say version %q", v, ckSkill, ckSealVersion)
 	}
-	// The entry runs from "Seal 0.1.27" to the end of its line.
+	// The entry runs from "Seal 0.1.28" to the end of its line.
 	entry := ""
 	if _, rest, ok := strings.Cut(files[ckHaRef], "Seal "+ckSealVersion); ok {
 		entry, _, _ = strings.Cut(rest, "\n")
