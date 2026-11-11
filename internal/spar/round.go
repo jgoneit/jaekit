@@ -421,7 +421,7 @@ func Run(o RunOptions) (int, error) {
 	r.Prior = priorDirs
 	packet := buildPacket(packetInput{Stage: o.Stage, Base: base, Head: head, BaseTree: baseTree, HeadTree: headTree,
 		Angles: cfg.Angles, CheckPaths: cfg.CheckPaths, Criteria: criteria, Rules: rules, Subjects: subjects,
-		Decisions: o.Decisions, Questions: o.Questions, Prior: prior, Diff: changes})
+		Decisions: o.Decisions, Standpoints: o.Standpoints, Questions: o.Questions, Prior: prior, Diff: changes})
 	r.PacketSHA256 = newDocument("", "", []byte(packet)).SHA256
 	counted, rerunOf, err := admit(siblings, exts, r)
 	if err != nil {
@@ -508,6 +508,16 @@ func runRound(o RunOptions, r *RoundRecord, out string, packet []byte) (int, err
 			st.Status, st.Reason = StatusNotRun, "dry run: the packet and workspace were built, no reviewer ran"
 		}
 		r.Reviewers[rv.Name] = st
+		if len(o.Standpoints) > 0 {
+			dir := filepath.Join(out, rv.Name)
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				return ExitInternal, err
+			}
+			input := reviewerInput(rv, out, packet, standpointInstruction(o.Standpoints, rv.Name))
+			if err := os.WriteFile(filepath.Join(dir, "input.md"), input, 0o644); err != nil {
+				return ExitInternal, err
+			}
+		}
 	}
 	if err := writeJSON(filepath.Join(out, "round.json"), r); err != nil {
 		return ExitInternal, err
@@ -541,7 +551,7 @@ func runRound(o RunOptions, r *RoundRecord, out string, packet []byte) (int, err
 	for i, rv := range r.Config.Reviewers {
 		st := r.Reviewers[rv.Name]
 		if rv.Preset == nativePreset {
-			if err := prepareNative(out, template, packet, r, st); err != nil {
+			if err := prepareNative(out, template, packet, r, st, standpointInstruction(o.Standpoints, rv.Name)); err != nil {
 				return ExitInternal, err
 			}
 			continue
@@ -549,7 +559,7 @@ func runRound(o RunOptions, r *RoundRecord, out string, packet []byte) (int, err
 		wg.Add(1)
 		go func(i int, rv Reviewer, st *ReviewerState) {
 			defer wg.Done()
-			result := runReviewer(rv, st, tmp, i, out, packet, r)
+			result := runReviewer(rv, st, tmp, i, out, packet, r, standpointInstruction(o.Standpoints, rv.Name))
 			mu.Lock()
 			results[rv.Name] = result
 			mu.Unlock()
@@ -570,7 +580,11 @@ func runRound(o RunOptions, r *RoundRecord, out string, packet []byte) (int, err
 
 // runReviewer runs a reviewer with its model and, after a quota or rate
 // refusal, once more with its fallback model on the same packet.
-func runReviewer(rv Reviewer, st *ReviewerState, tmp string, i int, out string, packet []byte, r *RoundRecord) any {
+func runReviewer(rv Reviewer, st *ReviewerState, tmp string, i int, out string, packet []byte, r *RoundRecord, instructions ...string) any {
+	var instruction string
+	if len(instructions) > 0 {
+		instruction = instructions[0]
+	}
 	models := []string{rv.Model}
 	if rv.FallbackModel != "" && rv.FallbackModel != rv.Model && rv.Preset != commandPreset {
 		models = append(models, rv.FallbackModel)
@@ -587,8 +601,13 @@ func runReviewer(rv Reviewer, st *ReviewerState, tmp string, i int, out string, 
 		if err := copyTree(filepath.Join(tmp, "template"), ws); err != nil {
 			a = Attempt{Model: model, Status: StatusFailed, Reason: "workspace: " + err.Error(), StartedAt: now(), FinishedAt: now()}
 		} else {
-			a = runAttempt(rv, model, runPaths{workspace: ws, dir: dir, packet: filepath.Join(out, "packet.md"),
-				schema: filepath.Join(out, "schema.json")}, packet, r.Config.Angles, r.Head)
+			paths := runPaths{workspace: ws, dir: dir, packet: filepath.Join(out, "packet.md"),
+				schema: filepath.Join(out, "schema.json"), instruction: instruction}
+			if instruction != "" {
+				paths.input = filepath.Join(out, rv.Name, "input.md")
+				paths.packet = paths.input
+			}
+			a = runAttempt(rv, model, paths, packet, r.Config.Angles, r.Head)
 		}
 		os.RemoveAll(ws)
 		st.Attempts = append(st.Attempts, a)
@@ -715,7 +734,7 @@ You are a clean-context reviewer started by the host agent. Review the packet be
 
 // prepareNative writes a native reviewer's prompt and workspace, in the
 // folder named after it, for the host's clean-context subagent.
-func prepareNative(out, template string, packet []byte, r *RoundRecord, st *ReviewerState) error {
+func prepareNative(out, template string, packet []byte, r *RoundRecord, st *ReviewerState, instructions ...string) error {
 	dir := filepath.Join(out, st.Name)
 	ws := filepath.Join(dir, "workspace")
 	if err := copyTree(template, ws); err != nil {
@@ -726,8 +745,12 @@ func prepareNative(out, template string, packet []byte, r *RoundRecord, st *Revi
 		return err
 	}
 	st.WorkspaceDigest = manifestDigest(entries)
-	prompt := fmt.Sprintf(nativeInstructions, ws, filepath.Join(out, "schema.json"), out, st.Name) + string(packet)
-	if err := os.WriteFile(filepath.Join(dir, "prompt.md"), []byte(prompt), 0o644); err != nil {
+	var instruction string
+	if len(instructions) > 0 {
+		instruction = instructions[0]
+	}
+	prompt := reviewerInput(Reviewer{Name: st.Name, Preset: nativePreset}, out, packet, instruction)
+	if err := os.WriteFile(filepath.Join(dir, "prompt.md"), prompt, 0o644); err != nil {
 		return err
 	}
 	st.Status = StatusPending

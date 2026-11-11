@@ -93,19 +93,32 @@ func documentsDigest(docs []Document) string {
 }
 
 type packetInput struct {
-	Stage      string
-	Base, Head string
-	BaseTree   string
-	HeadTree   string
-	Angles     []string
-	CheckPaths []string
-	Criteria   []Document
-	Rules      []Document
-	Subjects   []Document
-	Decisions  []Decision
-	Questions  []string
-	Prior      []string
-	Diff       []byte
+	Stage       string
+	Base, Head  string
+	BaseTree    string
+	HeadTree    string
+	Angles      []string
+	CheckPaths  []string
+	Criteria    []Document
+	Rules       []Document
+	Subjects    []Document
+	Decisions   []Decision
+	Standpoints []Standpoint
+	Questions   []string
+	Prior       []string
+	Diff        []byte
+}
+
+func standpointInstruction(standpoints []Standpoint, name string) string {
+	if len(standpoints) == 0 {
+		return ""
+	}
+	for _, s := range standpoints {
+		if s.Reviewer == name {
+			return fmt.Sprintf("Your standpoint for this round is the one under `### %s` in `## Standpoints for this round`. Attack that risk first and hardest, and still check every angle as the packet asks. Report what you checked from it in `standpoint_report`.\n\n", name)
+		}
+	}
+	return "You have no standpoint this round. Review the whole change as the packet asks; the standpoints below belong to other reviewers.\n\n"
 }
 
 func fence(text string) string {
@@ -200,6 +213,12 @@ func buildPacket(in packetInput) string {
 			fmt.Fprintf(&b, "### Decision %d\n\n", i+1)
 			embedText(&b, "What it settles:", d.Settles)
 			embedText(&b, "The user's words:", d.UserQuote)
+		}
+	}
+	if len(in.Standpoints) > 0 {
+		b.WriteString("## Standpoints for this round\n\nEach standpoint below belongs to one reviewer. The reviewer it names attacks that risk first; every reviewer still checks every angle.\n\n")
+		for _, s := range in.Standpoints {
+			embedText(&b, "### "+s.Reviewer, s.Text)
 		}
 	}
 	if len(in.Questions) > 0 {
