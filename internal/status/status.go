@@ -308,6 +308,9 @@ type Criterion struct {
 	Reason    string   `json:"reason"`
 	Records   []int    `json:"records"`
 	Attempts  Attempts `json:"attempts"`
+	// Only change conditions under run-rules/7 expose this field. A pointer
+	// keeps an unmarked condition's false distinct from earlier rules' absence.
+	BaselineRequired *bool `json:"baseline_required,omitempty"`
 }
 
 // Attempts counts every record for a criterion, fresh or not, so failures
@@ -681,6 +684,10 @@ func (e *evaluator) criteria(rep *Report) error {
 		}
 		rep.commandDigests[c.id] = e.currentDigest(c.id)
 		ev := Criterion{ID: c.id, Kind: kind, Required: c.required, Records: []int{}, Attempts: Attempts{FailCommits: []string{}}}
+		if SelectiveBaseline(e.rules) && kind == bundle.KindChange {
+			required := RequiresBaseline(e.rules, b.Row(c.id))
+			ev.BaselineRequired = &required
+		}
 		var C, B []*record.Line
 		for i := range e.in.Lines {
 			l := &e.in.Lines[i]

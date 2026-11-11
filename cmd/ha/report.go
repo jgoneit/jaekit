@@ -28,6 +28,7 @@ type reportWords struct {
 
 	changed, notStarted, cannotCompare string
 	checked                            string
+	checkedMarked, removedMarks        string
 	// When Git cannot compare the base with HEAD, the summary says so and
 	// nothing else is computed (the user's decision on the impl review).
 	notComputed, limitsNotComputed, fetchBase string
@@ -66,6 +67,8 @@ var reportLanguages = map[string]reportWords{
 		limitsNotComputed: "assurance local; check author: executor; the other limits were not computed",
 		fetchBase:         "fetch the history that contains base %s (for example `git fetch --unshallow` in a shallow clone), then run `ha report %s` again",
 		checked:           "%d of %d required conditions satisfied (%d by check records, %d by user confirmation); %d of %d change conditions have a fresh baseline",
+		checkedMarked:     "%d of %d required conditions satisfied (%d by check records, %d by user confirmation); %[7]d of %[6]d change conditions require a baseline; %[5]d of them have a fresh baseline",
+		removedMarks:      "baseline mark removed after start: ",
 		none:              "none",
 		userDecisions:     "user decisions: ",
 		confirmed:         "manual conditions satisfied by a quoted confirmation: ",
@@ -115,6 +118,8 @@ var reportLanguages = map[string]reportWords{
 		limitsNotComputed: "보증 수준 local; 검사 작성자: 실행자; 나머지 한계는 계산하지 못함",
 		fetchBase:         "base %s가 든 이력을 받고(예: 얕은 clone에서는 `git fetch --unshallow`) `ha report %s` 다시 실행",
 		checked:           "필수 조건 %[2]d개 중 %[1]d개 충족(검사 기록 %[3]d개, 사용자 확인 %[4]d개); change 조건 %[6]d개 중 %[5]d개에 신선한 baseline",
+		checkedMarked:     "필수 조건 %[2]d개 중 %[1]d개 충족(검사 기록 %[3]d개, 사용자 확인 %[4]d개); change 조건 %[6]d개 중 %[7]d개가 baseline을 요구하고 그중 %[5]d개에 신선한 baseline",
+		removedMarks:      "시작 뒤 baseline 표시를 뺀 조건: ",
 		none:              "없음",
 		userDecisions:     "사용자 결정: ",
 		confirmed:         "인용 확인으로 충족한 manual 조건: ",
@@ -340,7 +345,7 @@ func (v *reportView) changed() string {
 }
 
 func (v *reportView) checked() string {
-	var required, satisfied, byCheck, byUser, change, fresh int
+	var required, satisfied, byCheck, byUser, change, fresh, marked int
 	for _, c := range v.source {
 		if !c.required {
 			continue
@@ -358,10 +363,19 @@ func (v *reportView) checked() string {
 	for _, c := range v.rep.Criteria {
 		if c.Kind == "change" {
 			change++
+			if status.SelectiveBaseline(v.rep.Rules) {
+				if c.BaselineRequired == nil || !*c.BaselineRequired {
+					continue
+				}
+				marked++
+			}
 			if v.rep.FreshBaseline(c.ID) {
 				fresh++
 			}
 		}
+	}
+	if status.SelectiveBaseline(v.rep.Rules) {
+		return fmt.Sprintf(v.words.checkedMarked, satisfied, required, byCheck, byUser, fresh, change, marked)
 	}
 	return fmt.Sprintf(v.words.checked, satisfied, required, byCheck, byUser, fresh, change)
 }
@@ -441,6 +455,9 @@ func (v *reportView) toReview() string {
 	if len(commands) > 0 {
 		items = append(items, v.words.commands+strings.Join(commands, ", "))
 	}
+	if removed := v.removedBaselineMarks(); len(removed) > 0 {
+		items = append(items, v.words.removedMarks+strings.Join(removed, ", "))
+	}
 	if f := v.rep.Findings; f != nil && f.Unresolved > 0 {
 		items = append(items, fmt.Sprintf(v.words.findings, f.Unresolved))
 	}
@@ -449,6 +466,27 @@ func (v *reportView) toReview() string {
 		return v.words.none
 	}
 	return strings.Join(items, "; ")
+}
+
+// removedBaselineMarks compares the start's marks with the current change
+// rows. Marks added since start are not removals, and restoring a mark clears
+// its review item. Earlier rules keep their existing report output.
+func (v *reportView) removedBaselineMarks() []string {
+	if !status.SelectiveBaseline(v.rep.Rules) {
+		return nil
+	}
+	start := startLine(v.lines)
+	if start == nil {
+		return nil
+	}
+	var removed []string
+	for _, id := range start.BaselineMarked {
+		row := v.w.bundle.Row(id)
+		if row != nil && row.Kind == "change" && !status.RequiresBaseline(v.rep.Rules, row) {
+			removed = append(removed, id)
+		}
+	}
+	return removed
 }
 
 // reviewFindings are the items of the last recorded review note's finding
