@@ -46,25 +46,32 @@ func usageError(format string, args ...any) error {
 	return &ExitError{ExitUsage, fmt.Sprintf(format, args...)}
 }
 
+// Standpoint assigns one risk to a reviewer for this round.
+type Standpoint struct {
+	Reviewer string `json:"reviewer"`
+	Text     string `json:"text"`
+}
+
 // RunOptions are the inputs of `spar run`.
 type RunOptions struct {
-	Repo       string
-	Stage      string
-	Base, Head string
-	Out        string
-	Criteria   []string
-	Rules      []string
-	Subjects   []string
-	Questions  []string
-	Decisions  []Decision
-	CheckPaths []string
-	Reviewers  []string // nil: the configured list
-	Choices    []Choice // the agent's --model and --effort values
-	Label      string
-	DryRun     bool
-	Version    string
-	Getenv     func(string) string
-	Log        io.Writer
+	Repo        string
+	Stage       string
+	Base, Head  string
+	Out         string
+	Criteria    []string
+	Rules       []string
+	Subjects    []string
+	Questions   []string
+	Decisions   []Decision
+	Standpoints []Standpoint
+	CheckPaths  []string
+	Reviewers   []string // nil: the configured list
+	Choices     []Choice // the agent's --model and --effort values
+	Label       string
+	DryRun      bool
+	Version     string
+	Getenv      func(string) string
+	Log         io.Writer
 }
 
 func readDocument(repo, path, what string) (Document, error) {
@@ -314,6 +321,9 @@ func Run(o RunOptions) (int, error) {
 	if err != nil {
 		return ExitRefused, err
 	}
+	if err := validateStandpoints(o, cfg); err != nil {
+		return ExitRefused, err
+	}
 	if len(o.CheckPaths) > 0 {
 		cfg.CheckPaths = uniq(append(cfg.CheckPaths, o.CheckPaths...))
 		cfg.Digest = cfg.digest()
@@ -422,6 +432,47 @@ func Run(o RunOptions) (int, error) {
 		r.RerunOf = rerunOf
 	}
 	return runRound(o, r, out, []byte(packet))
+}
+
+// validateStandpoints runs before creating any round or starting reviewers.
+// A configured reviewer can retain its standpoint during a partial rerun.
+func validateStandpoints(o RunOptions, cfg *Config) error {
+	if len(o.Standpoints) == 0 {
+		return nil
+	}
+	known := map[string]bool{}
+	for _, rv := range cfg.Reviewers {
+		known[rv.Name] = true
+	}
+	if o.Reviewers != nil {
+		user := &Config{defaultTimeout: DefaultTimeout}
+		configured, err := user.loadReviewers(o.Getenv)
+		if err != nil {
+			return err
+		}
+		for _, rv := range configured {
+			known[rv.Name] = true
+		}
+	}
+	seen := map[string]bool{}
+	for _, s := range o.Standpoints {
+		preview := []rune(s.Text)
+		if len(preview) > 40 {
+			preview = preview[:40]
+		}
+		switch {
+		case !known[s.Reviewer]:
+			return refused("--standpoint: unknown reviewer %q", s.Reviewer)
+		case seen[s.Reviewer]:
+			return refused("--standpoint: reviewer %q has more than one standpoint", s.Reviewer)
+		case !utf8.ValidString(s.Text):
+			return refused("--standpoint for %q: text %q is not valid UTF-8", s.Reviewer, string(preview))
+		case strings.TrimSpace(s.Text) == "":
+			return refused("--standpoint for %q: text %q is empty after trimming", s.Reviewer, string(preview))
+		}
+		seen[s.Reviewer] = true
+	}
+	return nil
 }
 
 func nonNil(docs []Document) []Document {
