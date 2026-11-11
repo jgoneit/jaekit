@@ -273,6 +273,12 @@ When a goal with a completion record is reopened with `reopen`, the earlier cont
 - Reading rules: write in the user's language; say what a record is, with its seq only as an aid; keep each item short; never copy check output or finding text; a finding is its ID, one line and its ending. The finding text stays in Spar's records.
 - At completion, the executor's judgment sentences live only here, and `## 완료 보고` points here ([Completion report](#completion-report)).
 
+Only when the user asked for a PR does the following guidance apply. This guidance adds no authority to create, change or push a PR, or answer a review.
+
+When writing or changing a completed goal's PR description, build it from that goal's `## 검수 요약`. Include the completion record's commit, the changed behavior and files, and an evidence summary. Include every item of `### 직접 볼 것`, including deferred findings with their issues and findings without a disposition; include `### 보지 않은 것`. Add the items the project instructions require in a PR description, such as a list of deferred findings and check boundaries. Never drop a `### 직접 볼 것` item or rewrite it as resolved.
+
+Leave out paths and links to goal documents, execution bundles and review records that Git does not track, since a PR reader cannot open them. Also leave out the raw user conversation; instead, describe the content briefly or say it is in local records.
+
 ## Assurance policy and counterexamples
 
 For new goals started with Seal 0.1.11 or later, and requested material verification redesigns, REVIEW connects condition groups to risk (false-success impact, boundary, evidence gap), selected policy source, and required or optional guarantees. Explain exclusions instead of classifying by condition count; low-risk exclusions need a reason, and only unresolved outcome-changing guarantees need a user decision. Preserve older formats and never fabricate retrospective reviews. No universal pre-baseline review order is prescribed.
