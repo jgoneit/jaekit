@@ -61,6 +61,24 @@ func reviewerLine(st *ReviewerState) string {
 		fmt.Fprintf(&b, ": %s", short(st.Reason, 400))
 	}
 	b.WriteString("\n")
+	if st.ReviewerStandpoint != nil && st.Standpoint != nil {
+		line, _, _ := strings.Cut(*st.Standpoint, "\n")
+		runes := []rune(line)
+		if len(runes) > 80 {
+			runes = runes[:80]
+		}
+		fmt.Fprintf(&b, "  - standpoint: %s\n", string(runes))
+		report := "none"
+		if st.StandpointReport != nil {
+			state := "unchecked"
+			if st.StandpointReport.Checked {
+				state = "checked"
+			}
+			detail, _, _ := strings.Cut(st.StandpointReport.Detail, "\n")
+			report = state + ": " + detail
+		}
+		fmt.Fprintf(&b, "  - standpoint report: %s\n", report)
+	}
 	if len(st.Attempts) > 1 || st.FallbackUsed {
 		for _, a := range st.Attempts {
 			fmt.Fprintf(&b, "  - model %s: %s", a.Model, a.Status)
@@ -105,6 +123,16 @@ func renderSummary(dir string, r *RoundRecord, findings []Finding, ledger []Ledg
 	fmt.Fprintf(&b, "# Spar round %s\n\n", filepath.Base(dir))
 	fmt.Fprintf(&b, "- Stage: %s, base %s, head %s\n", r.Stage, shortID(r.Base), shortID(r.Head))
 	fmt.Fprintf(&b, "- Packet: sha256 %s\n", r.PacketSHA256)
+	if len(r.Standpoints) > 0 {
+		var names []string
+		for _, s := range r.Standpoints {
+			names = append(names, s.Reviewer)
+		}
+		fmt.Fprintf(&b, "- Standpoints: %d for %s\n", len(names), strings.Join(names, ", "))
+		if r.StandpointsUncovered != nil && len(*r.StandpointsUncovered) > 0 {
+			fmt.Fprintf(&b, "- Standpoints without a completed reviewer: %s\n", strings.Join(*r.StandpointsUncovered, ", "))
+		}
+	}
 	if r.Config != nil {
 		source := r.Config.Source.Kind
 		if r.Config.Source.Path != "" {

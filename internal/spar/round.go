@@ -401,8 +401,9 @@ func Run(o RunOptions) (int, error) {
 		Sequence: len(siblings) + 1, Repo: repo, Base: base, Head: head, BaseTree: baseTree, HeadTree: headTree,
 		DiffSHA256: newDocument("", "", changes).SHA256, Criteria: criteria, CriteriaDigest: documentsDigest(criteria),
 		Rules: nonNil(rules), Subjects: nonNil(subjects), Questions: append([]string{}, o.Questions...),
-		Decisions: append([]Decision(nil), o.Decisions...),
-		Config:    cfg, DryRun: o.DryRun, RerunOf: []string{}, Reviewers: map[string]*ReviewerState{},
+		Decisions:   append([]Decision(nil), o.Decisions...),
+		Standpoints: append([]Standpoint{}, o.Standpoints...),
+		Config:      cfg, DryRun: o.DryRun, RerunOf: []string{}, Reviewers: map[string]*ReviewerState{},
 		Links: LinkTargets{CriteriaIDs: criteriaIDs(criteria), Rules: ruleTargets(repo, rules)},
 	}
 	for _, rv := range cfg.Reviewers {
@@ -495,7 +496,7 @@ func runRound(o RunOptions, r *RoundRecord, out string, packet []byte) (int, err
 	if err := os.WriteFile(packetPath, packet, 0o644); err != nil {
 		return ExitInternal, err
 	}
-	if err := os.WriteFile(schemaPath, resultSchema(), 0o644); err != nil {
+	if err := os.WriteFile(schemaPath, resultSchema(len(r.Standpoints) > 0), 0o644); err != nil {
 		return ExitInternal, err
 	}
 	for _, rv := range r.Config.Reviewers {
@@ -509,6 +510,7 @@ func runRound(o RunOptions, r *RoundRecord, out string, packet []byte) (int, err
 		}
 		r.Reviewers[rv.Name] = st
 		if len(o.Standpoints) > 0 {
+			st.ReviewerStandpoint = &ReviewerStandpoint{Standpoint: standpointFor(r.Standpoints, rv.Name)}
 			dir := filepath.Join(out, rv.Name)
 			if err := os.MkdirAll(dir, 0o755); err != nil {
 				return ExitInternal, err
@@ -519,6 +521,7 @@ func runRound(o RunOptions, r *RoundRecord, out string, packet []byte) (int, err
 			}
 		}
 	}
+	updateStandpointCoverage(r)
 	if err := writeJSON(filepath.Join(out, "round.json"), r); err != nil {
 		return ExitInternal, err
 	}
@@ -606,6 +609,7 @@ func runReviewer(rv Reviewer, st *ReviewerState, tmp string, i int, out string, 
 			if instruction != "" {
 				paths.input = filepath.Join(out, rv.Name, "input.md")
 				paths.packet = paths.input
+				paths.standpoint = standpointFor(r.Standpoints, rv.Name)
 			}
 			a = runAttempt(rv, model, paths, packet, r.Config.Angles, r.Head)
 		}
@@ -650,6 +654,12 @@ func finishRound(out string, r *RoundRecord, results map[string]any) error {
 // applyResult records a completed result in a reviewer's state and returns
 // its classified findings.
 func applyResult(c classifier, st *ReviewerState, name string, result map[string]any) []Finding {
+	if st.ReviewerStandpoint != nil {
+		st.StandpointReport = nil
+		if report := object(result["standpoint_report"]); report != nil {
+			st.StandpointReport = &StandpointReport{Checked: report["checked"].(bool), Detail: str(report["detail"])}
+		}
+	}
 	st.Verdict = str(result["verdict"])
 	st.Limits = str(result["limits"])
 	st.AnglesChecked = []string{}
@@ -712,6 +722,7 @@ func saveRound(out string, r *RoundRecord, added []Finding, fresh bool) error {
 			}
 		}
 	}
+	updateStandpointCoverage(r)
 	if err := writeJSON(filepath.Join(out, "round.json"), r); err != nil {
 		return err
 	}

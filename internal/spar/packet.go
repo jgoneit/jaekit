@@ -35,7 +35,7 @@ var stageText = map[string]string{
 }
 
 // resultSchema is the JSON schema a reviewer's result follows.
-func resultSchema() []byte {
+func resultSchema(withStandpoints ...bool) []byte {
 	str := map[string]any{"type": "string"}
 	enum := func(values []string) map[string]any { return map[string]any{"type": "string", "enum": values} }
 	finding := map[string]any{
@@ -65,6 +65,16 @@ func resultSchema() []byte {
 			"findings":         map[string]any{"type": "array", "items": finding},
 			"limits":           str,
 		},
+	}
+	if len(withStandpoints) > 0 && withStandpoints[0] {
+		schema["required"] = append(schema["required"].([]string), "standpoint_report")
+		schema["properties"].(map[string]any)["standpoint_report"] = map[string]any{
+			"type": []string{"object", "null"}, "additionalProperties": false,
+			"required": []string{"checked", "detail"},
+			"properties": map[string]any{
+				"checked": map[string]any{"type": "boolean"}, "detail": str,
+			},
+		}
 	}
 	data, _ := json.MarshalIndent(schema, "", "  ")
 	return append(data, '\n')

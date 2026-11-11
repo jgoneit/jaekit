@@ -121,12 +121,13 @@ type reviewSpec struct {
 }
 
 type runPaths struct {
-	workspace   string // the reviewer's copy: head/ and base/
-	dir         string // the reviewer's record folder in the round
-	packet      string // the round's packet.md
-	schema      string // the round's schema.json
-	instruction string // optional reviewer-specific instruction, ending with a blank line
-	input       string // persistent input.md, shared by designated and fallback attempts
+	workspace   string  // the reviewer's copy: head/ and base/
+	dir         string  // the reviewer's record folder in the round
+	packet      string  // the round's packet.md
+	schema      string  // the round's schema.json
+	instruction string  // optional reviewer-specific instruction, ending with a blank line
+	input       string  // persistent input.md, shared by designated and fallback attempts
+	standpoint  *string // assigned standpoint, nil when this reviewer has none
 }
 
 func jsonLines(data []byte) []map[string]any {
@@ -189,7 +190,7 @@ func specFor(r Reviewer, model, binary string, p runPaths, packet []byte) review
 }
 
 func claudeSpec(r Reviewer, model, binary string, p runPaths, packet []byte) reviewSpec {
-	schema := string(resultSchema())
+	schema := string(resultSchema(p.input != ""))
 	argv := []string{binary, "-p", "--model", model}
 	if r.Effort != "" {
 		argv = append(argv, "--effort", r.Effort)
@@ -986,7 +987,11 @@ loop:
 	}
 	data, _ := json.MarshalIndent(result, "", "  ")
 	os.WriteFile(filepath.Join(p.dir, "result.json"), append(data, '\n'), 0o644)
-	if problems := validateResult(result, head, angles); len(problems) > 0 {
+	var standpoint []*string
+	if p.input != "" {
+		standpoint = append(standpoint, p.standpoint)
+	}
+	if problems := validateResult(result, head, angles, standpoint...); len(problems) > 0 {
 		return finish(StatusInvalidOutput, strings.Join(first(problems, 5), "; "))
 	}
 	a.result = result
@@ -1127,17 +1132,44 @@ func unknownKeys(m map[string]any, known []string) []string {
 	return out
 }
 
-func validateResult(result any, head string, angles []string) []string {
+func validateResult(result any, head string, angles []string, standpoint ...*string) []string {
 	m := object(result)
 	if m == nil {
 		return []string{"result is not a JSON object"}
 	}
 	var problems []string
 	resultKeys := []string{"reviewed_head", "verdict", "angles_checked", "angles_unchecked", "findings", "limits"}
+	// The optional argument marks a round with standpoints; nil means
+	// this reviewer has none. Without it the old schema stays exact.
+	if len(standpoint) > 0 {
+		// Report these problems first, so truncating a longer failure
+		// reason cannot hide the required standpoint_report diagnostic.
+		report := m["standpoint_report"]
+		if report == nil {
+			if standpoint[0] != nil {
+				problems = append(problems, "standpoint_report is required for the assigned standpoint")
+			}
+		} else if v := object(report); v == nil {
+			problems = append(problems, "standpoint_report is not an object or null")
+		} else {
+			if _, ok := v["checked"].(bool); !ok {
+				problems = append(problems, "standpoint_report.checked is not a boolean")
+			}
+			if detail, ok := v["detail"].(string); !ok || strings.TrimSpace(detail) == "" {
+				problems = append(problems, "standpoint_report.detail is not non-blank text")
+			}
+			for _, key := range unknownKeys(v, []string{"checked", "detail"}) {
+				problems = append(problems, fmt.Sprintf("standpoint_report has unknown key %q", key))
+			}
+		}
+	}
 	for _, key := range resultKeys {
 		if _, ok := m[key]; !ok {
 			problems = append(problems, "missing "+key)
 		}
+	}
+	if len(standpoint) > 0 {
+		resultKeys = append(resultKeys, "standpoint_report")
 	}
 	// The keys are exactly the schema's (G1).
 	for _, key := range unknownKeys(m, resultKeys) {
