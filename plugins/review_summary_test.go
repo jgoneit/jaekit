@@ -102,9 +102,9 @@ func rsmReadGuide(t *testing.T, violation, path string) (string, bool) {
 }
 
 // rsmGuideText drops comments in prose, retaining the original markup for
-// fixed-token checks. Comment delimiters in fenced code and matched code
-// spans are literal text. Backtick runs must match in length; a closing
-// fence may be longer than its opener, but cannot have trailing text.
+// fixed-token checks. Comment delimiters in fenced code and matched one-line
+// code spans are literal text. Backtick runs must match in length; a closing
+// fence may be longer than its opener, with only spaces and tabs after it.
 func rsmGuideText(text string) string {
 	var out strings.Builder
 	fence := ""
@@ -132,7 +132,8 @@ func rsmGuideText(text string) string {
 				}
 			}
 			if fence != "" {
-				if strings.HasPrefix(marker, fence) && strings.TrimSpace(trimmed[len(marker):]) == "" {
+				tail := strings.TrimSuffix(strings.TrimSuffix(trimmed[len(marker):], "\n"), "\r")
+				if strings.HasPrefix(marker, fence) && strings.Trim(tail, " \t") == "" {
 					fence = ""
 				}
 				out.WriteString(line)
@@ -163,14 +164,8 @@ func rsmGuideText(text string) string {
 			n := run(text[i:])
 			end := i + n
 			// An unmatched opener is ordinary text, not a code span that
-			// hides subsequent comments. A span cannot cross a blank line.
-			for j := end; j < len(text); {
-				if text[j] == '\n' {
-					next := strings.TrimLeft(text[j+1:], " \t\r")
-					if strings.HasPrefix(next, "\n") {
-						break
-					}
-				}
+			// hides subsequent comments. A span cannot cross a line ending.
+			for j := end; j < len(text) && text[j] != '\n'; {
 				if text[j] != '`' {
 					j++
 					continue
@@ -1076,6 +1071,72 @@ func TestReviewSummaryAC16_Version(t *testing.T) {
 	}
 	if ha, ok := rsmRead(t, v, rsmHa); ok {
 		rsmNeed(t, v, rsmHa, ha, "Seal 0.1.24 adds the review summary (`## 검수 요약`) in `PROGRESS.md` without a Core change.")
+	}
+}
+
+func TestReviewSummaryHelpersGuideTextLineBoundaries(t *testing.T) {
+	tests := []struct {
+		name string
+		text string
+		want string
+	}{
+		{
+			name: "backticks in separate list items",
+			text: "- stray `\n- <!-- hidden --> `\n",
+			want: "- stray `\n-  `\n",
+		},
+		{
+			name: "backtick on a comment line",
+			text: "stray `\n<!-- hidden ` -->\nvisible\n",
+			want: "stray `\n\nvisible\n",
+		},
+		{
+			name: "backtick before a fence",
+			text: "stray `\n~~~\n<!-- literal ` -->\n~~~\n<!-- hidden -->\n",
+			want: "stray `\n~~~\n<!-- literal ` -->\n~~~\n\n",
+		},
+		{
+			name: "matched code spans on one line",
+			text: "`<!-- literal -->` and ``<!-- literal ` -->`` <!-- hidden -->\n",
+			want: "`<!-- literal -->` and ``<!-- literal ` -->`` \n",
+		},
+		{
+			name: "unmatched run on one line",
+			text: "``<!-- hidden -->`\n",
+			want: "```\n",
+		},
+		{
+			name: "nonbreaking space after backtick fence",
+			text: "```\n```\u00a0\n<!-- literal -->\n```\n<!-- hidden -->\n",
+			want: "```\n```\u00a0\n<!-- literal -->\n```\n\n",
+		},
+		{
+			name: "nonbreaking space after tilde fence",
+			text: "~~~\n~~~\u00a0\n<!-- literal -->\n~~~\n<!-- hidden -->\n",
+			want: "~~~\n~~~\u00a0\n<!-- literal -->\n~~~\n\n",
+		},
+		{
+			name: "form feed after fence",
+			text: "```\n```\f\n<!-- literal -->\n```\n<!-- hidden -->\n",
+			want: "```\n```\f\n<!-- literal -->\n```\n\n",
+		},
+		{
+			name: "spaces and tabs after longer fence",
+			text: "   ```\n<!-- literal -->\n   ```` \t \n<!-- hidden -->\n",
+			want: "   ```\n<!-- literal -->\n   ```` \t \n\n",
+		},
+		{
+			name: "spaces and tabs before CRLF",
+			text: "~~~\r\n<!-- literal -->\r\n~~~ \t\r\n<!-- hidden -->\r\n",
+			want: "~~~\r\n<!-- literal -->\r\n~~~ \t\r\n\r\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := rsmGuideText(tt.text); got != tt.want {
+				t.Errorf("rsmGuideText = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 
