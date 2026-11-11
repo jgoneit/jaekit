@@ -223,12 +223,13 @@ func Gate(o GateOptions) (int, error) {
 	// packet in some round of the same stage, base, head and packet (a rerun
 	// completes the original), as a required reviewer of the same preset, or
 	// hold the user's waiver in this round itself.
-	completedIn := map[string]bool{}
-	identity := func(r *RoundRecord) string {
-		return r.Stage + "\x00" + r.Base + "\x00" + r.Head + "\x00" + r.PacketSHA256
+	type completionKey struct {
+		packet       packetIdentity
+		name, preset string
 	}
-	credit := func(r *RoundRecord, name, preset string) string {
-		return identity(r) + "\x00" + name + "\x00" + preset
+	completedIn := map[completionKey]bool{}
+	credit := func(r *RoundRecord, name, preset string) completionKey {
+		return completionKey{packetKey(r), name, preset}
 	}
 	for _, lr := range rounds {
 		for name, st := range lr.round.Reviewers {

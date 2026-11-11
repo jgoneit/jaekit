@@ -134,10 +134,20 @@ func priorLines(siblings []sibling, current *RoundRecord) ([]string, []string, e
 	return lines, dirs, nil
 }
 
-// isRerun reports whether two rounds review the same packet: same stage,
-// base, head and packet digest.
+// packetIdentity is shared by admission, chain checks, completion credit,
+// waivers and recurring-finding counts. Standpoints and their assignments
+// live inside the packet and are therefore covered by its digest.
+type packetIdentity struct {
+	stage, base, head, digest string
+}
+
+func packetKey(r *RoundRecord) packetIdentity {
+	return packetIdentity{r.Stage, r.Base, r.Head, r.PacketSHA256}
+}
+
+// isRerun reports whether two rounds review the same packet.
 func isRerun(a, b *RoundRecord) bool {
-	return sameIdentity(a, b) && a.PacketSHA256 == b.PacketSHA256
+	return packetKey(a) == packetKey(b)
 }
 
 // admit applies the stage caps, the rerun rule and the fixes chain. It
@@ -149,7 +159,7 @@ func admit(siblings []sibling, exts []Extension, r *RoundRecord) (bool, []string
 	// reviewers did not complete the packet.
 	var same []sibling
 	for _, s := range siblings {
-		if !s.round.DryRun && sameIdentity(s.round, r) && s.round.PacketSHA256 == r.PacketSHA256 {
+		if !s.round.DryRun && isRerun(s.round, r) {
 			same = append(same, s)
 		}
 	}
