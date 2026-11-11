@@ -81,13 +81,13 @@ func TestHaReviewGateAC13_SealStartsUnderTheNewRules(t *testing.T) {
 		t.Fatalf("setup: %v", err)
 	}
 	features := strings.Join(decl.Features, " ") + " "
-	if len(decl.Rules) != 1 || decl.Rules[0] != "run-rules/6" || len(rgMissing(strings.Join(decl.Formats["review_gate"], " "), "review-gate/v1")) > 0 ||
+	if len(decl.Rules) != 1 || decl.Rules[0] != "run-rules/7" || len(rgMissing(strings.Join(decl.Formats["review_gate"], " "), "review-gate/v1")) > 0 ||
 		len(rgMissing(features, append([]string{"review-gate/v1 "}, rgRules4Features...)...)) > 0 {
-		t.Errorf("jaekit:violation=%s Seal's Core requirements are rules %v, review_gate formats %v, features %v; want run-rules/6 with review-gate/v1 and the run-rules/4 features",
+		t.Errorf("jaekit:violation=%s Seal's Core requirements are rules %v, review_gate formats %v, features %v; want run-rules/7 with review-gate/v1 and the run-rules/4 features",
 			v, decl.Rules, decl.Formats["review_gate"], decl.Features)
 	}
 	skill := rgTreeFile(t, "plugins/seal/skills/seal/SKILL.md")
-	if missing := rgMissing(skill, "`ha start <goal> --rules run-rules/6 --request", "--check-skill`", rgRecordCommand); len(missing) > 0 {
+	if missing := rgMissing(skill, "`ha start <goal> --rules run-rules/7 --request", "--check-skill`", rgRecordCommand); len(missing) > 0 {
 		t.Errorf("jaekit:violation=%s the Seal skill lacks %v", v, missing)
 	}
 	review := rgSection(skill, "## Independent review")
@@ -202,8 +202,8 @@ func TestHaReviewGateAC13_SealCheckerNeedsTheNewRules(t *testing.T) {
 		}
 		return code, report
 	}
-	if code, report := decide(core(func(map[string]any) {})); code != 0 || report["rules"] != "run-rules/6" {
-		t.Errorf("jaekit:violation=%s on this Core the helper decides exit %d, rules %v; want a run-rules/6 start", v, code, report["rules"])
+	if code, report := decide(core(func(map[string]any) {})); code != 0 || report["rules"] != "run-rules/7" {
+		t.Errorf("jaekit:violation=%s on this Core the helper decides exit %d, rules %v; want a run-rules/7 start", v, code, report["rules"])
 	}
 	without := func(list []any, value string) []any {
 		var out []any
@@ -218,8 +218,8 @@ func TestHaReviewGateAC13_SealCheckerNeedsTheNewRules(t *testing.T) {
 		label  string
 		change func(map[string]any)
 	}{
-		{"a Core without run-rules/6", func(m map[string]any) {
-			m["supported_rules"] = without(m["supported_rules"].([]any), "run-rules/6")
+		{"a Core without run-rules/7", func(m map[string]any) {
+			m["supported_rules"] = without(m["supported_rules"].([]any), "run-rules/7")
 		}},
 		{"a Core without the review-gate/v1 feature", func(m map[string]any) {
 			m["features"] = without(m["features"].([]any), "review-gate/v1")

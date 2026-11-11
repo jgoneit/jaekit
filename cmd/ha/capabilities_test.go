@@ -186,7 +186,7 @@ func TestCompatibilityAC8_ConsumerAndActualBinary(t *testing.T) {
 			t.Fatal(err)
 		}
 		hash := sha256.Sum256(data)
-		if report["executable"] != resolved || report["sha256"] != hex.EncodeToString(hash[:]) || report["rules"] != "run-rules/6" {
+		if report["executable"] != resolved || report["sha256"] != hex.EncodeToString(hash[:]) || report["rules"] != "run-rules/7" {
 			t.Fatalf("[requirement] decision does not bind the actual binary: %v", report)
 		}
 		entries, err := os.ReadDir(dir)

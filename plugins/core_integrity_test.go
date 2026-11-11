@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	cpSealVersion  = "0.1.26"
+	cpSealVersion  = "0.1.27"
 	cpNewRules     = "run-rules/6"
 	cpOldRules     = "run-rules/5"
 	cpSkillDir     = "seal/skills/seal"
@@ -408,15 +408,15 @@ func TestCoreIntegrityAC9_SealStartsUnderRulesV6(t *testing.T) {
 		}
 	}
 	ref := files[cpHaRef]
-	// The entry runs from "Seal 0.1.26" to the next Seal version or the end
+	// The entry runs from "Seal 0.1.27" to the next Seal version or the end
 	// of its paragraph.
 	entry := ""
 	if loc := cpEntry.FindStringIndex(ref); loc != nil {
 		entry, _, _ = strings.Cut(ref[loc[1]:], "\n\n")
 		entry, _, _ = strings.Cut(entry, "Seal 0.1.")
 	}
-	if !strings.Contains(entry, cpNewRules) {
-		t.Errorf("jaekit:violation=%s %s has no Seal %s entry that names %s", v, cpHaRef, cpSealVersion, cpNewRules)
+	if !strings.Contains(entry, "run-rules/7") {
+		t.Errorf("jaekit:violation=%s %s has no Seal %s entry that names %s", v, cpHaRef, cpSealVersion, "run-rules/7")
 	}
 	if _, ok := cpSection(ref, cpHeading(cpNewRules)); !ok {
 		t.Errorf("jaekit:violation=%s %s has no `## %s` section", v, cpHaRef, cpNewRules)
