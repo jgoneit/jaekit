@@ -1,9 +1,13 @@
 package status
 
 import (
+	"bytes"
+	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/jgoneit/jaekit/internal/bundle"
+	"github.com/jgoneit/jaekit/internal/goaldocs"
 	"github.com/jgoneit/jaekit/internal/record"
 )
 
@@ -19,6 +23,68 @@ func TestRules7InheritsRules6(t *testing.T) {
 	}
 	if Rules != RulesV3 {
 		t.Fatalf("default rules changed to %s", Rules)
+	}
+}
+
+func TestRules7BaselineRequirementDisplay(t *testing.T) {
+	for _, rules := range []string{RulesV1, RulesV2, RulesV3, RulesV4, RulesV5, RulesV6, RulesV7} {
+		t.Run(rules, func(t *testing.T) {
+			in := rules6ComputationInput(t, rules)
+			in.Goal.Criteria = []goaldocs.Criterion{{ID: "AC-1"}, {ID: "AC-2", Optional: true}, {ID: "AC-3"}, {ID: "AC-4"}}
+			in.Bundle.Rows = []bundle.Row{
+				{ID: "AC-1", Kind: bundle.KindChange, Command: "true"},
+				{ID: "AC-2", Kind: bundle.KindChange, Command: "true"},
+				{ID: "AC-3", Kind: bundle.KindMaintain, Command: "true"},
+				{ID: "AC-4", Kind: bundle.KindManual},
+			}
+			var previousJSON []byte
+			var previousMarkdown string
+			for _, marked := range []string{"AC-1", "AC-2", ""} {
+				for i := range in.Bundle.Rows {
+					in.Bundle.Rows[i].BaselineRequired = in.Bundle.Rows[i].ID == marked
+				}
+				rep := rules6Compute(t, in)
+				data, err := rep.JSON()
+				if err != nil {
+					t.Fatal(err)
+				}
+				var output struct {
+					Criteria []map[string]any `json:"criteria"`
+				}
+				if err := json.Unmarshal(data, &output); err != nil {
+					t.Fatal(err)
+				}
+				for _, c := range output.Criteria {
+					value, exists := c["baseline_required"]
+					if rules == RulesV7 && c["kind"] == "change" {
+						want := c["id"] == marked
+						if got, ok := value.(bool); !ok || got != want {
+							t.Errorf("%s baseline_required = %#v; want %t", c["id"], value, want)
+						}
+					} else if exists {
+						t.Errorf("%s unexpectedly has baseline_required = %#v", c["id"], value)
+					}
+				}
+				markdown := rep.Markdown(in.Goal.Dir)
+				if rules == RulesV7 {
+					ids := marked
+					if ids == "" {
+						ids = "none"
+					}
+					if want := "- baseline required: " + ids + "\n"; !strings.Contains(markdown, want) {
+						t.Errorf("status lacks %q: %s", want, markdown)
+					}
+				} else {
+					if strings.Contains(markdown, "- baseline required:") {
+						t.Errorf("%s unexpectedly shows baseline requirements", rules)
+					}
+					if previousJSON != nil && (!bytes.Equal(data, previousJSON) || markdown != previousMarkdown) {
+						t.Errorf("%s output changed with the PLAN baseline marks", rules)
+					}
+				}
+				previousJSON, previousMarkdown = data, markdown
+			}
+		})
 	}
 }
 

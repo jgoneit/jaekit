@@ -47,3 +47,39 @@ func TestRules7EmptyStartMarksAreRecorded(t *testing.T) {
 		t.Fatalf("baseline_marked = %#v (exists %t); want []", marks, exists)
 	}
 }
+
+func TestRules7ReportRestoredAndAddedBaselineMarks(t *testing.T) {
+	f := ccRepo(t, ccGoal{conds: []ccCond{ccChange("AC-1", ccMark), ccChange("AC-2", "—"), ccMaintain("AC-3")}, column: true})
+	f.start("rules7-report")
+	before := f.records()
+	show := func(removed bool) {
+		t.Helper()
+		for _, lang := range []string{"ko", "en"} {
+			prefix := "baseline mark removed after start: "
+			if lang == "ko" {
+				prefix = "시작 뒤 baseline 표시를 뺀 조건: "
+			}
+			review := f.summary("rules7-report", "current marks", lang, 1)
+			item, exists := ccItem(review, prefix)
+			if exists != removed || (removed && item != "AC-1") {
+				t.Errorf("%s removed mark = %q (present %t); want AC-1 present %t", lang, item, exists, removed)
+			}
+		}
+	}
+	show(false)
+	f.mark("AC-1", "")
+	show(true)
+	f.mark("AC-1", ccMark)
+	show(false)
+	f.mark("AC-2", ccMark)
+	show(false)
+	f.mark("AC-2", "—")
+	show(false)
+	// A mark belongs in this item only while the condition is still change.
+	f.cond("AC-1").kind = "maintain"
+	f.mark("AC-1", "")
+	show(false)
+	if !bytes.Equal(before, f.records()) {
+		t.Fatal("reading the reports changed the run records")
+	}
+}
