@@ -312,6 +312,8 @@ A goal started with Seal 0.1.13 or later may record detailed judgments once in t
 
 This is where the user starts reviewing a finished goal, so that the user can see in one place what changed, why and on what evidence, and what a person must inspect directly. Written once `ha done` records completion, as of that completion record, and rewritten as of each new completion record after a reopen; not written before completion or when work stops at `needs_user`, `blocked` or `budget_exhausted`. Before that, the heading holds one line saying so, and at a stop `## 현재` and the completion report (section 6) carry the state as before. `ha` does not read this section.
 
+When a goal with a completion record is reopened with `reopen`, the earlier content of this section stays unchanged until the next completion record. Add one line at its top saying which completion record (seq and commit) it is as of, that the goal was reopened so that completion record is no longer valid, and that this section will be rewritten after the next completion record. A stop in between (`needs_user`, `blocked`, `budget_exhausted`) leaves the earlier content and that line as they are. After the next completion record, rewrite this section as of that record; that line does not remain. For a reopened goal this rule applies instead of the one line kept before completion.
+
 The section has the items below, all of them and in this order; write `없음` under a heading with nothing to list.
 
 - Opening lines, with no heading: the completion record's seq and commit, the assurance tier, how many required conditions are satisfied, and the review gate result; one line on what the change does; where to start looking.
@@ -324,6 +326,10 @@ The section has the items below, all of them and in this order; write `없음` u
 - `### 자세히` (details): the documents and sections that hold the detail.
 
 The judgment items of the completion report's item 2 (section 6) go here: the changed files and the condition each contributed to under `### 바뀐 동작과 파일`; assumed open decisions under `### 누가 정했나`; `manual` conditions under `### 직접 볼 것`; the expected-result grounds, the actual observation boundary, the test method and the review stages actually taken (or why they were skipped, and, when the SPEC tier and the project instructions differed, the review each required and the one followed) under `### 근거`; the unobserved scope and substitute environments under `### 보지 않은 것`; where the independent review results are under `### 자세히`; and whether the head to be sent or merged is the completion record's commit, with the fact that the completion does not cover a difference unless `ha status` at that head still names that completion record, in the opening lines.
+
+The two parts of `### 근거` and the items of the opening lines are minimum lists; the items the judgment-item paragraph assigns join them in the same place.
+
+The judgment items moved from item 2 of the completion report keep its qualifications: the executor's statements are marked as claims, and facts confirmed by records are kept apart from the executor's interpretation. When conditions, checks or environments differ from the plan, state the evidence's version and the scope that evidence covers.
 
 Reading rules: write in the user's language; say what a record is, with its seq only as an aid; keep each item short; never copy check output or finding text; a finding is its ID, one line and its ending. The original text of a finding stays in the review records. At completion, the executor's judgment sentences are only in this section, and the completion report points to it (section 6).
 

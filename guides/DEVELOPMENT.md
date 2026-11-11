@@ -37,6 +37,14 @@ claude plugin install spar@jaekit
 
 명령과 기록 형식은 [contracts/run-record.md](../contracts/run-record.md)에 있습니다.
 
+## Seal skill 분량
+
+[Seal skill](../plugins/seal/skills/seal/SKILL.md)의 상한은 앞머리를 포함해 공백으로 나눈 단어 2,300개다. 이 상한은 [`TestSealSlimAC14_WordLimit`](../plugins/seal_slim_review_tiers_test.go)와 [`TestSparOnboardingAC8_SkillSizeAndPins`](../plugins/spar_onboarding_test.go)가 정한다.
+
+Seal에 더하는 규칙은 `references/`의 절에 쓰고 skill에는 그 절로 가는 링크를 둔다. skill이 이미 그 절을 링크하면 skill을 바꾸지 않는다.
+
+skill 단어를 늘리는 변경은 같은 변경에서 그만큼 줄이거나 상한을 올리는 사용자의 말을 받는다. 다른 목표의 시험이 skill에 고정한 문장은 그 시험을 바꾸는 사용자의 말 없이 옮기지 않는다.
+
 ## 저장소 검사
 
 바꾼 뒤에는 저장소 루트에서 공통 검사를 실행합니다. 필요한 도구와 검사 범위는 [저장소 지침의 Validation](../AGENTS.md#validation)에 있습니다.

@@ -37,6 +37,14 @@ claude plugin install spar@jaekit
 
 Commands and the record format are in [contracts/run-record.en.md](../contracts/run-record.en.md).
 
+## Seal skill size
+
+The [Seal skill](../plugins/seal/skills/seal/SKILL.md) has a limit of 2,300 whitespace-separated words, front matter included. [`TestSealSlimAC14_WordLimit`](../plugins/seal_slim_review_tiers_test.go) and [`TestSparOnboardingAC8_SkillSizeAndPins`](../plugins/spar_onboarding_test.go) set this limit.
+
+New Seal rules go into a section under `references/`, and the skill links that section. When the skill already links that section, the skill does not change.
+
+A change that adds skill words removes as many in the same change or gets the user's words raising the limit. Sentences another goal's tests pin in the skill move only with the user's words changing those tests.
+
 ## Repository checks
 
 After a change, run the common checks from the repository root. The tools they need and what they cover are in [Validation in the repository instructions](../AGENTS.md#validation).

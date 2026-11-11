@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	cpSealVersion  = "0.1.27"
+	cpSealVersion  = "0.1.28"
 	cpNewRules     = "run-rules/6"
 	cpOldRules     = "run-rules/5"
 	cpSkillDir     = "seal/skills/seal"
@@ -408,7 +408,7 @@ func TestCoreIntegrityAC9_SealStartsUnderRulesV6(t *testing.T) {
 		}
 	}
 	ref := files[cpHaRef]
-	// The entry runs from "Seal 0.1.27" to the next Seal version or the end
+	// The entry runs from "Seal 0.1.28" to the next Seal version or the end
 	// of its paragraph.
 	entry := ""
 	if loc := cpEntry.FindStringIndex(ref); loc != nil {
