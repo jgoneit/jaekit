@@ -509,6 +509,68 @@ func TestCheckCostAC10_FreezeShown(t *testing.T) {
 		f.cwSource(v, label, fz, planNote, []string{"checks/ac-2-extra.txt"})
 	}()
 
+	// A maintain condition's 검사 경로 are check paths of the condition table
+	// too: its script changed after the freeze, a path added to it and one
+	// removed from it are listed (03-candidate codex-F1).
+	func() {
+		cs := conds()
+		gone := "checks/ac-3-gone.txt"
+		cs[2].paths = []string{ccMaintainScript("AC-3"), "checks/ac-3-input.txt", gone}
+		f := ccRepo(t, ccGoal{tier: "standard", conds: cs, column: true})
+		f.start(v)
+		frozen := f.implement()
+		freezeRound := ccRound(f, "candidate", f.base, frozen, false)
+		freezeNote := cwGateSeq(f, v, "the gate recorded right after the freeze round", ccGate(f, freezeRound))
+		f.revise(ccMaintainScript("AC-3"), "fix after the first candidate round")
+		f.put("checks/ac-3-new.txt", "a check input of a maintain condition added after the freeze\n")
+		f.setPaths("AC-3", ccMaintainScript("AC-3"), "checks/ac-3-input.txt", "checks/ac-3-new.txt")
+		f.head = f.commit("change the maintain check after the review")
+		f.recordGate(v, "the last gate", ccGate(f, freezeRound, ccRound(f, "fixes", frozen, f.head, false),
+			ccRound(f, "candidate", f.base, f.head, false)))
+		label := "a maintain condition's check paths changed after the freeze"
+		fz, files := f.freeze(v, label, f.state(v, label))
+		want := map[string]ccFrozen{
+			ccMaintainScript("AC-3"): {state: "changed", nullReason: true},
+			"checks/ac-3-new.txt":    {state: "added", nullReason: true},
+			gone:                     {state: "removed", nullReason: true},
+		}
+		if fz["stage"] != "candidate" || fz["head"] != frozen || !ccSameFrozen(files, want) {
+			t.Errorf("jaekit:violation=%s %s: check_freeze stage %v head %v files %+v; want candidate at %s with files %+v", v, label, fz["stage"], fz["head"], files, frozen, want)
+		}
+		observed(label, fz, true)
+		f.cwSource(v, label, fz, freezeNote, []string{gone})
+	}()
+
+	// Two review series reviewed the same head as their first candidate
+	// round. The last gate's freeze round is the second series' round, so the
+	// freeze-time table is the one recorded with that series' gate, not the
+	// earlier series' note with the same order, stage, base and head
+	// (03-candidate codex-F2).
+	func() {
+		const helper = "checks/ac-2-second.txt"
+		f := ccRepo(t, ccGoal{tier: "standard", conds: conds(), column: true})
+		f.start(v)
+		f.put(helper, "a check input both series' heads have\n")
+		frozen := f.implement()
+		first := ccGate(f, ccRound(f, "candidate", f.base, frozen, false))
+		f.record(v, "the first series' gate", cwWriteSeries(f, first, "docs/reviews/first-series"))
+		f.setPaths("AC-2", ccScript("AC-2"), ccDecl("AC-2"), "checks/ac-2-extra.txt", "checks/ac-2-early.txt", helper)
+		f.record(v, "the second series' gate", cwWriteSeries(f, first, "docs/reviews/second-series"))
+		lines := ciLines(f.rgFixture)
+		secondNote := lines[len(lines)-1].seq()
+		f.setPaths("AC-2", ccScript("AC-2"), ccDecl("AC-2"), "checks/ac-2-extra.txt", "checks/ac-2-early.txt")
+		f.record(v, "the second series' gate again", cwWriteSeries(f, first, "docs/reviews/second-series"))
+		label := "two series with the same first candidate round"
+		fz, files := f.freeze(v, label, f.state(v, label))
+		want := map[string]ccFrozen{helper: {state: "removed", nullReason: true}}
+		if fz["series"] != "second-series" || fz["round"] != "01-candidate" || fz["head"] != frozen || !ccSameFrozen(files, want) {
+			t.Errorf("jaekit:violation=%s %s: check_freeze series %v round %v head %v files %+v; want second-series/01-candidate at %s with files %+v",
+				v, label, fz["series"], fz["round"], fz["head"], files, frozen, want)
+		}
+		observed(label, fz, true)
+		f.cwSource(v, label, fz, secondNote, []string{helper})
+	}()
+
 	// No review note right after the freeze round, only a gate recorded after
 	// later rounds: the freeze-time table is not known. The changed check
 	// file is still listed; the check path removed after the freeze is not
@@ -570,6 +632,19 @@ func TestCheckCostAC10_FreezeShown(t *testing.T) {
 			ccRound(f, "candidate", f.base, f.head, false)))
 		f.noFreeze(v, "a strict goal whose gate has only a dry-run plan round")
 	}()
+}
+
+// cwWriteSeries writes g as a gate file whose rounds are in the review
+// series folder series instead of rgRoundFolder and returns its path.
+func cwWriteSeries(f *ccFixture, g rgGate, series string) string {
+	f.t.Helper()
+	value := g.gateValue()
+	for _, r := range value["rounds"].([]any) {
+		round := r.(map[string]any)
+		round["path"] = series + strings.TrimPrefix(round["path"].(string), rgRoundFolder)
+	}
+	path, _ := f.write(value)
+	return path
 }
 
 // ccSameFrozen reports whether two check_freeze file sets are equal.

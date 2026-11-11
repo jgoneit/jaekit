@@ -53,7 +53,9 @@ type ccCond struct {
 	// commit, so its baseline passes unexpectedly.
 	atBase bool
 	// paths are the 검사 경로 when they are not the condition's producer and
-	// declaration; files other than those two get synthetic content.
+	// declaration; files other than those two get synthetic content. A
+	// maintain condition has no 검사 경로 (`—`) unless paths is set; its
+	// files other than its command's script get synthetic content.
 	paths []string
 	// violation is the identifier a change condition's producer reports
 	// while the value is wrong; "" is the declared ccViolation.
@@ -192,6 +194,8 @@ func ccPlan(g ccGoal) string {
 		if c.kind == "change" {
 			paths = strings.Join(c.checkPaths(), ", ")
 			changes = append(changes, c.id)
+		} else if len(c.paths) > 0 {
+			paths = strings.Join(c.paths, ", ")
 		}
 		fmt.Fprintf(&b, "| %s | %s | `%s` | %s | T001 |", c.id, c.kind, c.command(), paths)
 		if g.column {
@@ -242,6 +246,11 @@ func ccRepo(t *testing.T, g ccGoal) *ccFixture {
 		for _, c := range g.conds {
 			if c.kind != "change" {
 				r.put(ccMaintainScript(c.id), "grep -qx ok src/value.txt\n")
+				for _, p := range c.paths {
+					if p != ccMaintainScript(c.id) {
+						r.put(p, "synthetic check input of "+c.id+"\n")
+					}
+				}
 				continue
 			}
 			value := "old\n"
