@@ -5,7 +5,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/jgoneit/jaekit/internal/bundle"
 	"github.com/jgoneit/jaekit/internal/gitx"
 	"github.com/jgoneit/jaekit/internal/record"
 	"github.com/jgoneit/jaekit/internal/reviewgate"
@@ -73,8 +72,8 @@ func (e *evaluator) checkFreeze() (*CheckFreeze, error) {
 	}
 	f := &CheckFreeze{Stage: stage, Series: frozen.Series, Round: frozen.Round, Head: frozen.Head, Files: []FrozenCheckFile{}}
 	// The earliest note whose final round is this freeze round owns the
-	// table. Matching the gate order, stage, base and head avoids borrowing
-	// another round's table when the same head was reviewed more than once.
+	// table. Matching the gate order, series, round, stage, base and head
+	// avoids borrowing another round's table when a head was reviewed again.
 	old := map[string]bool{}
 	for _, l := range e.in.Lines {
 		if l.Kind != "note" || l.Note != "review" || reviewgate.Valid(l.Review) != nil {
@@ -85,7 +84,7 @@ func (e *evaluator) checkFreeze() (*CheckFreeze, error) {
 			continue
 		}
 		r := rounds[len(rounds)-1]
-		if r.DryRun || r.Sequence != frozen.Sequence || r.Stage != frozen.Stage || r.Base != frozen.Base || r.Head != frozen.Head {
+		if r.DryRun || r.Sequence != frozen.Sequence || r.Series != frozen.Series || r.Round != frozen.Round || r.Stage != frozen.Stage || r.Base != frozen.Base || r.Head != frozen.Head {
 			continue
 		}
 		if l.CheckPaths == nil {
@@ -103,10 +102,8 @@ func (e *evaluator) checkFreeze() (*CheckFreeze, error) {
 	}
 	current := map[string]bool{}
 	for _, row := range e.in.Bundle.Rows {
-		if row.Kind == bundle.KindChange {
-			for _, path := range row.CheckPaths {
-				current[path] = true
-			}
+		for _, path := range row.CheckPaths {
+			current[path] = true
 		}
 	}
 	paths := map[string]bool{}

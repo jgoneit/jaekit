@@ -24,6 +24,9 @@ func TestRules7FreezeTableRoundIdentity(t *testing.T) {
 	otherBase.Base = "another-base"
 	otherHead.Head = "another-head"
 	otherSequence.Sequence = 9
+	otherSeries, otherRound := frozen, frozen
+	otherSeries.Series = "another-series"
+	otherRound.Round = "another-round"
 	for _, tc := range []struct {
 		name  string
 		first record.Line
@@ -34,6 +37,8 @@ func TestRules7FreezeTableRoundIdentity(t *testing.T) {
 		{"base differs", note(2, map[string][]string{}, plan, otherBase), 3},
 		{"head differs", note(2, map[string][]string{}, plan, otherHead), 3},
 		{"sequence differs", note(2, map[string][]string{}, plan, otherSequence), 3},
+		{"series differs", note(2, map[string][]string{}, plan, otherSeries), 3},
+		{"round differs", note(2, map[string][]string{}, plan, otherRound), 3},
 		{"earliest exact match", note(2, map[string][]string{}, plan, frozen), 2},
 		{"earliest match lacks table", note(2, nil, plan, frozen), 0},
 	} {
