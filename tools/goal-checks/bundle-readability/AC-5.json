@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "ExistingDocsKept",
+      "violation": "existing-docs-rule-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestBundleReadabilityAC5_ExistingDocsKept"
+      }
+    }
+  ]
+}
