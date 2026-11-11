@@ -110,6 +110,91 @@ func (f *ccFixture) notRecorded(violation, label string, want bool) {
 	}
 }
 
+// cwGateSeq records the gate and returns the seq of its review note.
+func cwGateSeq(f *ccFixture, violation, label string, g rgGate) int {
+	f.t.Helper()
+	f.recordGate(violation, label, g)
+	lines := ciLines(f.rgFixture)
+	return lines[len(lines)-1].seq()
+}
+
+// cwTableFrom is how the human freeze line ("human") and each report
+// language name the review note that kept the freeze-time condition table;
+// the report says it in the entry of each removed check path.
+var cwTableFrom = map[string]string{
+	"human": "condition table from review note seq ",
+	"ko":    "(review note seq %d 때의 조건표)",
+	"en":    "(condition table of review note seq %d)",
+}
+
+// cwHolds reports whether text holds phrase followed by n and then no
+// other digit.
+func cwHolds(text, phrase string, n int) bool {
+	want := fmt.Sprintf("%s%d", phrase, n)
+	for from := 0; ; {
+		i := strings.Index(text[from:], want)
+		if i < 0 {
+			return false
+		}
+		end := from + i + len(want)
+		if end == len(text) || text[end] < '0' || text[end] > '9' {
+			return true
+		}
+		from = end
+	}
+}
+
+// cwEntry is the entry of a report list item whose first word is path.
+func cwEntry(item, path string) (string, bool) {
+	for _, entry := range strings.Split(item, ",") {
+		if words := strings.Fields(entry); len(words) > 0 && words[0] == path {
+			return strings.TrimSpace(entry), true
+		}
+	}
+	return "", false
+}
+
+// cwSource reports a freeze display that does not name the source of the
+// freeze-time condition table: the seq from of the review note that kept
+// it, or none (from 0). The status JSON check_freeze.table_from is that seq
+// or null; the human freeze line holds "condition table from review note
+// seq <from>" or no such phrase; the report entry of each removed check path
+// holds the phrase of its language, and with no note no report names one.
+func (f *ccFixture) cwSource(violation, label string, fz map[string]any, from int, removed []string) {
+	f.t.Helper()
+	raw, present := fz["table_from"]
+	n, isNumber := ccNumber(fz, "table_from")
+	switch {
+	case from == 0 && (!present || raw != nil):
+		f.t.Errorf("jaekit:violation=%s %s: check_freeze table_from %v (present %v); want null", violation, label, raw, present)
+	case from > 0 && (!isNumber || n != from):
+		f.t.Errorf("jaekit:violation=%s %s: check_freeze table_from %v; want the review note seq %d", violation, label, raw, from)
+	}
+	line, _ := ccLine(f.output(violation, label, "status", rgGoal), "- check freeze: ")
+	if from > 0 && !cwHolds(line, cwTableFrom["human"], from) {
+		f.t.Errorf("jaekit:violation=%s %s: ha status freeze line %q; want it to hold %q", violation, label, line, fmt.Sprintf("%s%d", cwTableFrom["human"], from))
+	}
+	if from == 0 && strings.Contains(line, cwTableFrom["human"]) {
+		f.t.Errorf("jaekit:violation=%s %s: ha status freeze line %q names a review note; want none", violation, label, line)
+	}
+	for _, lang := range []string{"ko", "en"} {
+		review := f.summary(violation, label, lang, 1)
+		if from == 0 {
+			if prefix, _, _ := strings.Cut(cwTableFrom[lang], "%d"); strings.Contains(review, prefix) {
+				f.t.Errorf("jaekit:violation=%s %s: ha report --lang %s to-review line %q names a review note; want none", violation, label, lang, review)
+			}
+			continue
+		}
+		without, _ := ccItem(review, ccFreezeItems[lang][1])
+		want := fmt.Sprintf(cwTableFrom[lang], from)
+		for _, path := range removed {
+			if entry, ok := cwEntry(without, path); !ok || !strings.Contains(entry, want) {
+				f.t.Errorf("jaekit:violation=%s %s: ha report --lang %s entry %q of the removed %s; want it to hold %q", violation, label, lang, entry, path, want)
+			}
+		}
+	}
+}
+
 // ccPaths are the paths of a report list item, each item's first word.
 func ccPaths(item string) []string {
 	var out []string
@@ -223,9 +308,11 @@ func TestCheckCostAC5_StatusAndReportShowMark(t *testing.T) {
 // after the freeze round of its last recorded gate, with the reasons that
 // still hold for them, in its status and report. The check paths of the
 // freeze-time condition table come from the earliest review note whose gate
-// ends with the freeze round; without one, removed check paths are not
-// observed and the status and report say so. The display never blocks
-// completion and is absent for other goals.
+// ends with the freeze round, and the status and report name that note's
+// seq as the table's source (cwSource); without one, removed check paths are
+// not observed, no source is named and the status and report say that the
+// table was not recorded. The display never blocks completion and is absent
+// for other goals.
 func TestCheckCostAC10_FreezeShown(t *testing.T) {
 	const v = "check-freeze-hidden"
 	const (
@@ -239,11 +326,14 @@ func TestCheckCostAC10_FreezeShown(t *testing.T) {
 		extra.paths = []string{ccScript("AC-2"), ccDecl("AC-2"), "checks/ac-2-extra.txt", "checks/ac-2-early.txt"}
 		return []ccCond{ccChange("AC-1", ccMark), extra, ccMaintain("AC-3")}
 	}
+	// short reports whether the word after the line's last " at " (without
+	// trailing punctuation) is the head's first seven or more characters.
 	short := func(line, head string) bool {
-		i := strings.LastIndex(line, " at ")
 		token := ""
-		if i >= 0 {
-			token = strings.TrimSpace(line[i+len(" at "):])
+		if i := strings.LastIndex(line, " at "); i >= 0 {
+			if words := strings.Fields(line[i+len(" at "):]); len(words) > 0 {
+				token = strings.TrimRight(words[0], ",;:.)")
+			}
 		}
 		return len(token) >= 7 && strings.HasPrefix(head, token)
 	}
@@ -278,7 +368,7 @@ func TestCheckCostAC10_FreezeShown(t *testing.T) {
 		// dry-run candidate round before the first counted candidate round.
 		freezeRounds := []rgRound{ccRound(f, "plan", f.base, f.base, false), ccRound(f, "candidate", f.base, f.base, true),
 			ccRound(f, "candidate", f.base, frozen, false)}
-		f.recordGate(v, "the gate recorded right after the freeze round", ccGate(f, freezeRounds...))
+		freezeNote := cwGateSeq(f, v, "the gate recorded right after the freeze round", ccGate(f, freezeRounds...))
 		label := "the freeze head is HEAD"
 		fz, files := f.freeze(v, label, f.state(v, label))
 		if fz["stage"] != "candidate" || fz["head"] != frozen || len(files) > 0 {
@@ -286,6 +376,7 @@ func TestCheckCostAC10_FreezeShown(t *testing.T) {
 		}
 		observed(label, fz, true)
 		f.notRecorded(v, label, false)
+		f.cwSource(v, label, fz, freezeNote, nil)
 
 		// After the freeze: AC-1's producer changed with a reason that
 		// holds; AC-2's producer changed with a reason, then changed again;
@@ -328,6 +419,9 @@ func TestCheckCostAC10_FreezeShown(t *testing.T) {
 		}
 		observed(label, fz, true)
 		f.notRecorded(v, label, false)
+		// The later gate's note does not end with the freeze round, so the
+		// table still comes from the note right after it.
+		f.cwSource(v, label, fz, freezeNote, []string{"checks/ac-2-extra.txt", "checks/ac-2-late.txt"})
 
 		human := f.output(v, label, "status", rgGoal)
 		if line, ok := ccLine(human, "- check freeze: candidate round "); !ok || !short(line, frozen) {
@@ -376,7 +470,7 @@ func TestCheckCostAC10_FreezeShown(t *testing.T) {
 		planned := f.commit("the checks the plan round reviews")
 		f.head = planned
 		planRounds := []rgRound{ccRound(f, "plan", f.base, f.base, true), ccRound(f, "plan", f.base, planned, false)}
-		f.recordGate(v, "the gate recorded right after the plan round", ccGate(f, planRounds...))
+		planNote := cwGateSeq(f, v, "the gate recorded right after the plan round", ccGate(f, planRounds...))
 		f.revise(ccScript("AC-1"), "fix after the plan round")
 		f.setPaths("AC-2", ccScript("AC-2"), ccDecl("AC-2"), "checks/ac-2-early.txt")
 		f.implement()
@@ -391,6 +485,7 @@ func TestCheckCostAC10_FreezeShown(t *testing.T) {
 		if line, ok := ccLine(f.output(v, label, "status", rgGoal), "- check freeze: plan round "); !ok || !short(line, planned) {
 			t.Errorf("jaekit:violation=%s %s: ha status freeze line %q; want `- check freeze: plan round <series>/<round> at %s`", v, label, line, planned[:12])
 		}
+		f.cwSource(v, label, fz, planNote, []string{"checks/ac-2-extra.txt"})
 	}()
 
 	// No review note right after the freeze round, only a gate recorded after
@@ -416,6 +511,7 @@ func TestCheckCostAC10_FreezeShown(t *testing.T) {
 		}
 		observed(label, fz, false)
 		f.notRecorded(v, label, true)
+		f.cwSource(v, label, fz, 0, nil)
 	}()
 
 	// No display: light, no tier line, no gate, and gates without the

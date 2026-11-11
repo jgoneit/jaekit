@@ -784,17 +784,16 @@ func (s *cwTwins) same(label string, want int, act cwAct) []cwObs {
 }
 
 // cwEstimates are the estimate views AC-13 compares: the minimum with the
-// default check selection, and the default baseline selection.
-var cwEstimates = [][]string{{"estimate", rgGoal, "--format", "json"}, {"estimate", rgGoal, "--baseline", "--format", "json"},
-	{"estimate", rgGoal}, {"estimate", rgGoal, "--baseline"}}
+// default check selection, and the default baseline selection, as JSON and
+// human-readable; cwEstimateViews names them in the expected outputs.
+var (
+	cwEstimates = [][]string{{"estimate", rgGoal, "--format", "json"}, {"estimate", rgGoal, "--baseline", "--format", "json"},
+		{"estimate", rgGoal}, {"estimate", rgGoal, "--baseline"}}
+	cwEstimateViews = []string{"estimate json", "estimate baseline json", "estimate text", "estimate baseline text"}
+)
 
 // cwEarlierRules are the rule versions AC-13 keeps.
 var cwEarlierRules = []string{"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5", "run-rules/6"}
-
-// cwEstimateKeys are the fields of `ha estimate --format json` that hold the
-// required minimum and the default selection.
-var cwEstimateKeys = []string{"required_change", "required_maintain", "minimum_runs", "shortfall", "headroom",
-	"default_check_runs", "default_baseline_runs", "default_additional_runs", "selected"}
 
 // cwNames are the values of one repository that the expected outputs name
 // instead of their bytes: its commits, by their subjects, and its temporary
@@ -973,7 +972,8 @@ func (s *cwTwins) keep(view string, render func() []string) {
 }
 
 // keepState compares the status JSON, the human-readable status and the
-// Korean report of the only twin with the expected ones at a fixed point.
+// Korean and English reports of the only twin with the expected ones at a
+// fixed point.
 func (s *cwTwins) keepState(when string, obs []cwObs) {
 	s.t.Helper()
 	if s.kept == "" {
@@ -982,7 +982,7 @@ func (s *cwTwins) keepState(when string, obs []cwObs) {
 	f := s.twins[0].f
 	n := cwNamesOf(f)
 	s.keep("status json "+when, func() []string { return n.json(obs[0].state.value) })
-	for _, view := range [][]string{{"status", rgGoal, "--format", "md"}, {"report", rgGoal, "--lang", "ko"}} {
+	for _, view := range [][]string{{"status", rgGoal, "--format", "md"}, {"report", rgGoal, "--lang", "ko"}, {"report", rgGoal, "--lang", "en"}} {
 		s.keep(view[0]+" "+view[len(view)-1]+" "+when, func() []string {
 			code, out := f.ha(view...)
 			if code == exitInternal || code == exitUsage {
@@ -993,16 +993,22 @@ func (s *cwTwins) keepState(when string, obs []cwObs) {
 	}
 }
 
-// keepEstimate compares the minimum and default baseline selection of `ha
-// estimate --baseline --format json` with the expected ones.
-func (s *cwTwins) keepEstimate(view string, obs []cwObs) {
+// keepEstimate compares one estimate view (cwEstimates[i]) of the only twin
+// with the expected one: every field of a JSON view, or the exit and every
+// line of a human-readable one.
+func (s *cwTwins) keepEstimate(i int, when string, obs []cwObs) {
 	s.t.Helper()
+	view := cwEstimateViews[i] + " " + when
 	s.keep(view, func() []string {
+		n := cwNamesOf(s.twins[0].f)
+		if args := cwEstimates[i]; args[len(args)-1] != "json" {
+			return n.output(obs[0].code, obs[0].out)
+		}
 		var doc map[string]any
 		if err := json.Unmarshal([]byte(obs[0].out), &doc); err != nil {
 			s.t.Fatalf("setup: %s: ha estimate printed no JSON: %v: %s", view, err, cwFirst(obs[0].out))
 		}
-		return cwNamesOf(s.twins[0].f).json(doc, cwEstimateKeys...)
+		return n.json(doc)
 	})
 }
 
@@ -1014,16 +1020,14 @@ func (s *cwTwins) keepEstimate(view string, obs []cwObs) {
 func cwEarlierSteps(s *cwTwins, later *cwTwin) {
 	s.t.Helper()
 	ref := s.twins[0]
-	estimates := func(when string) []cwObs {
+	// estimates runs every estimate view; a set with kept outputs compares
+	// each with the expected one at this point.
+	estimates := func(when string) {
 		s.t.Helper()
-		var selected []cwObs
 		for i, args := range cwEstimates {
 			obs := s.query(when+": ha "+strings.Join(args, " "), cwHa(args...))
-			if i == 1 {
-				selected = obs
-			}
+			s.keepEstimate(i, when, obs)
 		}
-		return selected
 	}
 	lint := func(label string) {
 		s.t.Helper()
@@ -1031,10 +1035,10 @@ func cwEarlierSteps(s *cwTwins, later *cwTwin) {
 		s.keep(label, func() []string { return cwNamesOf(ref.f).output(obs[0].code, obs[0].out) })
 	}
 	lint("ha lint before the start")
-	s.keepEstimate("estimate before the start", estimates("before the start"))
+	estimates("before the start")
 	s.start("the start")
 	lint("ha lint after the start")
-	s.keepEstimate("estimate after the start", estimates("after the start"))
+	estimates("after the start")
 
 	s.commit("the code commit", "src/one.txt", "ok\n", "src/two.txt", "ok\n")
 	obs := s.same("every required condition checked", exitOK, cwHa("check", rgGoal))
@@ -1083,10 +1087,12 @@ func cwEarlierSteps(s *cwTwins, later *cwTwin) {
 }
 
 // AC-13: for each earlier rule (run-rules/1 to /6), a goal gives the steps'
-// exits, record changes, statuses and reasons, the lint result, the minimum
-// and default baseline selection of ha estimate, and at two points (the
-// baselines missing, and after ha done) the `ha status` JSON and human
-// output and the Korean `ha report` that this tree's ha gave before this goal
+// exits, record changes, statuses and reasons, the lint result, every field
+// of `ha estimate --format json` and every line of the human-readable `ha
+// estimate`, each with and without --baseline, before and after the start
+// and with AC-2's baseline missing, and at two points (the baselines
+// missing, and after ha done) the `ha status` JSON and human output and the
+// Korean and English `ha report` that this tree's ha gave before this goal
 // (cwKept). The same goal whose PLAN has the baseline column, from its start
 // or added after its completion, gives the same lint result, estimates,
 // judgment, reasons, completion, `ha status` JSON and human output and `ha
@@ -1468,31 +1474,127 @@ var cwKept = map[string][]string{
 		`exit 0`,
 		`ok: no lint problems`,
 	},
-	"estimate before the start": {
+	"estimate json before the start": {
+		`budget_source: "PLAN.md"`,
 		`default_additional_runs: 0`,
 		`default_baseline_runs: 2`,
 		`default_check_runs: 3`,
+		`goal: "docs/specs/demo"`,
 		`headroom: 45`,
+		`limitation: "Fresh required lower bound only; excludes retries, preparation and manual time. Not a total-time estimate or completion guarantee. PLAN limit is not an existing run's remaining budget; existing records and budget windows are unchanged."`,
 		`minimum_runs: 5`,
+		`plan_runs_limit: 50`,
 		`required_change: 2`,
 		`required_maintain: 1`,
+		`schema: "estimate/v1"`,
+		`selected: {"additional_runs":0,"mode":"check","optional_runs":0,"repeated_required_runs":0,"runs":3,"targets":["AC-1","AC-2","AC-3"],"task_runs":0}`,
+		`shortfall: 0`,
+	},
+	"estimate baseline json before the start": {
+		`budget_source: "PLAN.md"`,
+		`default_additional_runs: 0`,
+		`default_baseline_runs: 2`,
+		`default_check_runs: 3`,
+		`goal: "docs/specs/demo"`,
+		`headroom: 45`,
+		`limitation: "Fresh required lower bound only; excludes retries, preparation and manual time. Not a total-time estimate or completion guarantee. PLAN limit is not an existing run's remaining budget; existing records and budget windows are unchanged."`,
+		`minimum_runs: 5`,
+		`plan_runs_limit: 50`,
+		`required_change: 2`,
+		`required_maintain: 1`,
+		`schema: "estimate/v1"`,
 		`selected: {"additional_runs":0,"mode":"baseline","optional_runs":0,"repeated_required_runs":0,"runs":2,"targets":["AC-1","AC-2"],"task_runs":0}`,
 		`shortfall: 0`,
+	},
+	"estimate text before the start": {
+		`exit 0`,
+		`## ha estimate: docs/specs/demo`,
+		"",
+		`- required minimum: 5 runs (2 change × 2 + 1 maintain; manual: 0)`,
+		`- PLAN run limit: 50; shortfall: 0; headroom above minimum: 45`,
+		`- default commands: check 3 + baseline 2 runs; additional to minimum: 0`,
+		`- selected check: 3 runs; additional: 0 (optional 0, task 0, repeated required 0)`,
+		`  - AC-1`,
+		`  - AC-2`,
+		`  - AC-3`,
+		"",
+		`Fresh required lower bound only; excludes retries, preparation and manual time. Not a total-time estimate or completion guarantee. PLAN limit is not an existing run's remaining budget; existing records and budget windows are unchanged.`,
+	},
+	"estimate baseline text before the start": {
+		`exit 0`,
+		`## ha estimate: docs/specs/demo`,
+		"",
+		`- required minimum: 5 runs (2 change × 2 + 1 maintain; manual: 0)`,
+		`- PLAN run limit: 50; shortfall: 0; headroom above minimum: 45`,
+		`- default commands: check 3 + baseline 2 runs; additional to minimum: 0`,
+		`- selected baseline: 2 runs; additional: 0 (optional 0, task 0, repeated required 0)`,
+		`  - AC-1`,
+		`  - AC-2`,
+		"",
+		`Fresh required lower bound only; excludes retries, preparation and manual time. Not a total-time estimate or completion guarantee. PLAN limit is not an existing run's remaining budget; existing records and budget windows are unchanged.`,
 	},
 	"ha lint after the start": {
 		`exit 0`,
 		`ok: no lint problems`,
 	},
-	"estimate after the start": {
+	"estimate json after the start": {
+		`budget_source: "PLAN.md"`,
 		`default_additional_runs: 0`,
 		`default_baseline_runs: 2`,
 		`default_check_runs: 3`,
+		`goal: "docs/specs/demo"`,
 		`headroom: 45`,
+		`limitation: "Fresh required lower bound only; excludes retries, preparation and manual time. Not a total-time estimate or completion guarantee. PLAN limit is not an existing run's remaining budget; existing records and budget windows are unchanged."`,
 		`minimum_runs: 5`,
+		`plan_runs_limit: 50`,
 		`required_change: 2`,
 		`required_maintain: 1`,
+		`schema: "estimate/v1"`,
+		`selected: {"additional_runs":0,"mode":"check","optional_runs":0,"repeated_required_runs":0,"runs":3,"targets":["AC-1","AC-2","AC-3"],"task_runs":0}`,
+		`shortfall: 0`,
+	},
+	"estimate baseline json after the start": {
+		`budget_source: "PLAN.md"`,
+		`default_additional_runs: 0`,
+		`default_baseline_runs: 2`,
+		`default_check_runs: 3`,
+		`goal: "docs/specs/demo"`,
+		`headroom: 45`,
+		`limitation: "Fresh required lower bound only; excludes retries, preparation and manual time. Not a total-time estimate or completion guarantee. PLAN limit is not an existing run's remaining budget; existing records and budget windows are unchanged."`,
+		`minimum_runs: 5`,
+		`plan_runs_limit: 50`,
+		`required_change: 2`,
+		`required_maintain: 1`,
+		`schema: "estimate/v1"`,
 		`selected: {"additional_runs":0,"mode":"baseline","optional_runs":0,"repeated_required_runs":0,"runs":2,"targets":["AC-1","AC-2"],"task_runs":0}`,
 		`shortfall: 0`,
+	},
+	"estimate text after the start": {
+		`exit 0`,
+		`## ha estimate: docs/specs/demo`,
+		"",
+		`- required minimum: 5 runs (2 change × 2 + 1 maintain; manual: 0)`,
+		`- PLAN run limit: 50; shortfall: 0; headroom above minimum: 45`,
+		`- default commands: check 3 + baseline 2 runs; additional to minimum: 0`,
+		`- selected check: 3 runs; additional: 0 (optional 0, task 0, repeated required 0)`,
+		`  - AC-1`,
+		`  - AC-2`,
+		`  - AC-3`,
+		"",
+		`Fresh required lower bound only; excludes retries, preparation and manual time. Not a total-time estimate or completion guarantee. PLAN limit is not an existing run's remaining budget; existing records and budget windows are unchanged.`,
+	},
+	"estimate baseline text after the start": {
+		`exit 0`,
+		`## ha estimate: docs/specs/demo`,
+		"",
+		`- required minimum: 5 runs (2 change × 2 + 1 maintain; manual: 0)`,
+		`- PLAN run limit: 50; shortfall: 0; headroom above minimum: 45`,
+		`- default commands: check 3 + baseline 2 runs; additional to minimum: 0`,
+		`- selected baseline: 2 runs; additional: 0 (optional 0, task 0, repeated required 0)`,
+		`  - AC-1`,
+		`  - AC-2`,
+		"",
+		`Fresh required lower bound only; excludes retries, preparation and manual time. Not a total-time estimate or completion guarantee. PLAN limit is not an existing run's remaining budget; existing records and budget windows are unchanged.`,
 	},
 	"status json with the baselines missing": {
 		`assurance: "local"`,
@@ -1602,6 +1704,95 @@ var cwKept = map[string][]string{
 		"- AC-1 `baseline_missing` (executor): 신선한 기록 없음",
 		"- AC-2 `baseline_missing` (executor): 신선한 기록 없음",
 	},
+	"report en with the baselines missing": {
+		`exit 0`,
+		`Changed: 2 files and 1 commits outside the bundle documents since base <commit base>`,
+		`Checked: 1 of 3 required conditions satisfied (1 by check records, 0 by user confirmation); 0 of 2 change conditions have a fresh baseline`,
+		`To review: none`,
+		`Remaining limits: assurance local; check author: executor; HEAD is not covered by a completion record`,
+		"Next step: resolve AC-1 `baseline_missing` (executor)",
+		"",
+		"### Stamp for `## 현재`",
+		"",
+		`- record head: seq 4 (<line hash>), recorded at <time>; status: incomplete`,
+		"",
+		`### Evidence per condition`,
+		"",
+		`Source: current state`,
+		`| ID | kind | required | satisfied | records |`,
+		`| --- | --- | --- | --- | --- |`,
+		`| AC-1 | change | yes | no | — |`,
+		`| AC-2 | change | yes | no | — |`,
+		`| AC-3 | maintain | yes | yes | 4 |`,
+		"",
+		`### Completion coverage`,
+		"",
+		`- completion record: none`,
+		"",
+		`### Output of unmet conditions`,
+		"",
+		"- AC-1 `baseline_missing` (executor): no fresh record",
+		"- AC-2 `baseline_missing` (executor): no fresh record",
+	},
+	"estimate json with AC-2's baseline missing": {
+		`budget_source: "PLAN.md"`,
+		`default_additional_runs: 0`,
+		`default_baseline_runs: 2`,
+		`default_check_runs: 3`,
+		`goal: "docs/specs/demo"`,
+		`headroom: 45`,
+		`limitation: "Fresh required lower bound only; excludes retries, preparation and manual time. Not a total-time estimate or completion guarantee. PLAN limit is not an existing run's remaining budget; existing records and budget windows are unchanged."`,
+		`minimum_runs: 5`,
+		`plan_runs_limit: 50`,
+		`required_change: 2`,
+		`required_maintain: 1`,
+		`schema: "estimate/v1"`,
+		`selected: {"additional_runs":0,"mode":"check","optional_runs":0,"repeated_required_runs":0,"runs":3,"targets":["AC-1","AC-2","AC-3"],"task_runs":0}`,
+		`shortfall: 0`,
+	},
+	"estimate baseline json with AC-2's baseline missing": {
+		`budget_source: "PLAN.md"`,
+		`default_additional_runs: 0`,
+		`default_baseline_runs: 2`,
+		`default_check_runs: 3`,
+		`goal: "docs/specs/demo"`,
+		`headroom: 45`,
+		`limitation: "Fresh required lower bound only; excludes retries, preparation and manual time. Not a total-time estimate or completion guarantee. PLAN limit is not an existing run's remaining budget; existing records and budget windows are unchanged."`,
+		`minimum_runs: 5`,
+		`plan_runs_limit: 50`,
+		`required_change: 2`,
+		`required_maintain: 1`,
+		`schema: "estimate/v1"`,
+		`selected: {"additional_runs":0,"mode":"baseline","optional_runs":0,"repeated_required_runs":0,"runs":2,"targets":["AC-1","AC-2"],"task_runs":0}`,
+		`shortfall: 0`,
+	},
+	"estimate text with AC-2's baseline missing": {
+		`exit 0`,
+		`## ha estimate: docs/specs/demo`,
+		"",
+		`- required minimum: 5 runs (2 change × 2 + 1 maintain; manual: 0)`,
+		`- PLAN run limit: 50; shortfall: 0; headroom above minimum: 45`,
+		`- default commands: check 3 + baseline 2 runs; additional to minimum: 0`,
+		`- selected check: 3 runs; additional: 0 (optional 0, task 0, repeated required 0)`,
+		`  - AC-1`,
+		`  - AC-2`,
+		`  - AC-3`,
+		"",
+		`Fresh required lower bound only; excludes retries, preparation and manual time. Not a total-time estimate or completion guarantee. PLAN limit is not an existing run's remaining budget; existing records and budget windows are unchanged.`,
+	},
+	"estimate baseline text with AC-2's baseline missing": {
+		`exit 0`,
+		`## ha estimate: docs/specs/demo`,
+		"",
+		`- required minimum: 5 runs (2 change × 2 + 1 maintain; manual: 0)`,
+		`- PLAN run limit: 50; shortfall: 0; headroom above minimum: 45`,
+		`- default commands: check 3 + baseline 2 runs; additional to minimum: 0`,
+		`- selected baseline: 2 runs; additional: 0 (optional 0, task 0, repeated required 0)`,
+		`  - AC-1`,
+		`  - AC-2`,
+		"",
+		`Fresh required lower bound only; excludes retries, preparation and manual time. Not a total-time estimate or completion guarantee. PLAN limit is not an existing run's remaining budget; existing records and budget windows are unchanged.`,
+	},
 	"status json after ha done": {
 		`assurance: "local"`,
 		`@1,2,3 budget: {"elapsed_limit_seconds":14400,"elapsed_seconds":"<seconds>","exceeded":false,"excess_runs":0,"history":[],"reached":false,"remaining_runs":44,"revision":1,"runs":6,"runs_limit":50,"window_start":1}`,
@@ -1701,5 +1892,34 @@ var cwKept = map[string][]string{
 		`### 미충족 조건의 원문 위치`,
 		"",
 		`- 없음`,
+	},
+	"report en after ha done": {
+		`exit 0`,
+		`Changed: 2 files and 1 commits outside the bundle documents since base <commit base>`,
+		`Checked: 3 of 3 required conditions satisfied (3 by check records, 0 by user confirmation); 2 of 2 change conditions have a fresh baseline`,
+		`To review: none`,
+		`Remaining limits: assurance local; check author: executor`,
+		`Next step: none; completion record seq 9 holds and nothing is left to do`,
+		"",
+		"### Stamp for `## 현재`",
+		"",
+		`- record head: seq 9 (<line hash>), recorded at <time>; status: complete; completion record: seq 9`,
+		"",
+		`### Evidence per condition`,
+		"",
+		`Source: completion record seq 9`,
+		`| ID | kind | required | satisfied | records |`,
+		`| --- | --- | --- | --- | --- |`,
+		`| AC-1 | change | yes | yes | 2, 5, 7 |`,
+		`| AC-2 | change | yes | yes | 3, 8 |`,
+		`| AC-3 | maintain | yes | yes | 4 |`,
+		"",
+		`### Completion coverage`,
+		"",
+		`- completion record seq 9, commit <commit the code commit>; HEAD <commit the code commit> is covered`,
+		"",
+		`### Output of unmet conditions`,
+		"",
+		`- none`,
 	},
 }
