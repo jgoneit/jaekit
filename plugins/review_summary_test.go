@@ -930,7 +930,7 @@ func TestReviewSummaryAC12_TemplateBundle(t *testing.T) {
 // now 0.1.25, which passes decisions and invariant places to review rounds.
 func TestReviewSummaryAC16_Version(t *testing.T) {
 	const v = "seal-version-not-raised"
-	const want = "0.1.26"
+	const want = "0.1.27"
 	for _, p := range []string{"seal/.claude-plugin/plugin.json", "seal/.codex-plugin/plugin.json"} {
 		text, ok := rsmRead(t, v, p)
 		if !ok {
@@ -970,7 +970,7 @@ func TestReviewSummaryAC16_Version(t *testing.T) {
 		}
 	}
 	if skill, ok := rsmRead(t, v, rsmSkill); ok {
-		rsmNeed(t, v, rsmSkill, skill, "version: \"0.1.26\"")
+		rsmNeed(t, v, rsmSkill, skill, "version: \"0.1.27\"")
 	}
 	if ha, ok := rsmRead(t, v, rsmHa); ok {
 		rsmNeed(t, v, rsmHa, ha, "Seal 0.1.24 adds the review summary (`## 검수 요약`) in `PROGRESS.md` without a Core change.")

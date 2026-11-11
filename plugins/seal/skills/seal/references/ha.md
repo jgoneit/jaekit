@@ -6,6 +6,8 @@ The commands below describe release v0.1.8: ha 0.1.8, spar 0.1.8 and Seal 0.1.23
 
 Seal 0.1.26 starts new goals under `run-rules/6` ([run-rules/6](#run-rules6)) and declares that rule with the same formats and features as Seal 0.1.21. It needs a Core that declares `run-rules/6`; ha 0.1.8 does not. Already-started goals keep their saved rules.
 
+Seal 0.1.27 starts new goals under `run-rules/7` ([run-rules/7](#run-rules7)) with selective baseline requirements, scoped input-failure guidance and check-freeze reporting; it needs a Core that declares `run-rules/7`. Already-started goals keep their saved rules.
+
 ## Core compatibility
 
 A new start passes `--check-skill`: `ha start` reads `core-requirements.json` beside the SKILL.md given to `--skill` and compares every rule, format and feature it lists with this executable's `ha capabilities` output. Anything missing is printed as `ha: missing Core support: …` and the start exits 65 with no record. A Core without the check, such as ha 0.1.6, rejects the flag with exit 64 and no record, and a Core without a command Seal uses (`ha report`, `ha doctor`) reports an unknown command with exit 64. In each case record nothing and stop: report the executable (`which -a ha` on Unix, `Get-Command ha -All` on PowerShell) and the message. Never install tools, build `ha`, or fall back to older rules or an older Seal.
