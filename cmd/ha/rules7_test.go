@@ -2,11 +2,104 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
 )
+
+func TestRules7ReviewNamesUseParsedRounds(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		path      any
+		alias     string
+		wantNames bool
+	}{
+		{"uppercase rounds longer", "docs/reviews/demo-rounds/01-candidate", `,"Rounds":[{"path":"other/01-fixes"},{"path":"other/02-fixes"}]`, true},
+		{"uppercase rounds same length", "docs/reviews/demo-rounds/01-candidate", `,"Rounds":[{"path":"other/01-fixes"}]`, true},
+		{"numeric path", 42, "", false},
+		{"object path", map[string]any{"name": "candidate"}, "", false},
+		{"array path", []any{"candidate"}, "", false},
+		{"boolean path", true, "", false},
+		{"null path", nil, "", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, rules := range []string{"run-rules/6", "run-rules/7"} {
+				t.Run(rules, func(t *testing.T) {
+					f := rgRepo(t, "standard")
+					f.start("review-name-compatibility", "--rules", rules)
+					f.head = f.base
+					gate := f.covering("candidate").gateValue()
+					gate["rounds"].([]any)[0].(map[string]any)["path"] = tc.path
+					data, err := json.Marshal(gate)
+					if err != nil {
+						t.Fatal(err)
+					}
+					// Put the unknown uppercase key after rounds: a struct
+					// decoder would overwrite the validated lowercase list.
+					data = append(data[:len(data)-1], []byte(tc.alias+"}")...)
+					code, out := f.ha("note", rgGoal, "review", "--gate", f.writeBytes(data))
+					if code != exitOK || out != "noted: review (seq 2)\n" {
+						t.Fatalf("review note: exit %d: %s", code, out)
+					}
+					lines := ciLines(f)
+					if len(lines) != 2 {
+						t.Fatalf("record count = %d; want 2", len(lines))
+					}
+					review := lines[1].m["review"].(map[string]any)
+					rounds := review["rounds"].([]any)
+					if len(rounds) != 1 {
+						t.Fatalf("recorded rounds = %v; want one validated round", rounds)
+					}
+					round := rounds[0].(map[string]any)
+					if round["stage"] != "candidate" || round["base"] != f.base || round["head"] != f.head {
+						t.Fatalf("validated round changed: %v", round)
+					}
+					if rules == "run-rules/7" && tc.wantNames {
+						if round["series"] != "demo-rounds" || round["round"] != "01-candidate" {
+							t.Fatalf("display names did not come from lowercase rounds: %v", round)
+						}
+					} else if round["series"] != nil || round["round"] != nil {
+						t.Fatalf("unexpected display names: %v", round)
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestRules7ReviewFileErrorsMatchRules6(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		path string
+		want string
+	}{
+		{"missing", "missing.json", "the file does not exist"},
+		{"folder", "", "is a folder, not a file"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), tc.path)
+			var previous string
+			for _, rules := range []string{"run-rules/6", "run-rules/7"} {
+				t.Run(rules, func(t *testing.T) {
+					f := rgRepo(t, "standard")
+					f.start("review-file-compatibility", "--rules", rules)
+					before := f.records()
+					code, out := f.ha("note", rgGoal, "review", "--gate", path)
+					if code != exitRefused || !strings.Contains(out, tc.want) || !bytes.Equal(before, f.records()) {
+						t.Fatalf("review note: exit %d, record changed %t: %s", code, !bytes.Equal(before, f.records()), out)
+					}
+					if rules == "run-rules/7" && out != previous {
+						t.Fatalf("message = %q; run-rules/6 gave %q", out, previous)
+					}
+					previous = out
+				})
+			}
+		})
+	}
+}
 
 func TestRules7CheckChangeBlobBinding(t *testing.T) {
 	const v = "rules7-check-change"

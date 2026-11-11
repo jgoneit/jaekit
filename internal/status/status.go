@@ -923,7 +923,7 @@ func (e *evaluator) judge(id, kind string, C, B []*record.Line) string {
 			return "baseline_unexpected_pass"
 		case bFail > 0:
 			return "baseline_failed"
-		case bErr <= ErrorReruns && (last(B) == "error" || last(B) == "unknown"):
+		case bErr <= ErrorReruns && (last(B) == "error" || last(B) == "unknown") && (!SelectiveBaseline(e.rules) || RequiresBaseline(e.rules, e.in.Bundle.Row(id))):
 			return "baseline_error"
 		}
 	}

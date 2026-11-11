@@ -1,0 +1,28 @@
+# A within-limit optional baseline error does not block a fresh current pass.
+include rules-v7-goal
+replace checks/feature.sh "\"status\":\"violation\",\"violation\":\"value-wrong\"" "\"status\":\"error\",\"reason\":\"setup_error\""
+commit "feature check reports a baseline environment error"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/7
+expect-exit 0
+include rules-v7-implement
+ha check $GOAL --baseline
+expect-exit 0
+ha check $GOAL --baseline AC-2
+expect-exit 1
+expect-records 3
+expect-record 3 result error
+ha check $GOAL
+expect-exit 0
+expect-status complete
+expect-satisfied AC-2
+
+# The same unmarked baseline still blocks once its errors exceed the limit.
+ha check $GOAL --baseline AC-2
+expect-exit 1
+expect-records 7
+expect-record 7 result error
+expect-status needs_user
+expect-unsatisfied AC-2
+expect-satisfied AC-1
+expect-satisfied AC-3
+expect-reasons AC-2:error_limit

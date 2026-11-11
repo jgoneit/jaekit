@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"math"
 	"net/url"
 	"os"
@@ -1083,35 +1084,46 @@ func readReviewNote(path, rules string) (*record.ReviewData, error) {
 		return reviewgate.Read(path)
 	}
 	info, err := os.Stat(path)
-	if err != nil {
-		return nil, err
-	}
-	if !info.Mode().IsRegular() {
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return nil, errors.New("the file does not exist")
+	case err != nil:
+		return nil, fmt.Errorf("the file cannot be read: %v", err)
+	case info.IsDir():
+		return nil, errors.New("is a folder, not a file")
+	case !info.Mode().IsRegular():
 		return nil, errors.New("is not a regular file")
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("the file cannot be read: %v", err)
 	}
 	review, err := reviewgate.Parse(data)
 	if err != nil {
 		return nil, err
 	}
-	var names struct {
-		Rounds []struct {
-			Path string `json:"path"`
-		} `json:"rounds"`
+	// Display-only fields cannot reject a gate Parse accepts. Use exact
+	// keys so an unknown case variant cannot replace the validated list.
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal(data, &top); err != nil {
+		return review, nil
 	}
-	if err := json.Unmarshal(data, &names); err != nil {
-		return nil, err
+	var rounds []json.RawMessage
+	if err := json.Unmarshal(top["rounds"], &rounds); err != nil || len(rounds) != len(review.Rounds) {
+		return review, nil
 	}
-	for i, r := range names.Rounds {
-		if r.Path == "" {
+	for i, raw := range rounds {
+		var round map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &round); err != nil {
+			continue
+		}
+		var name string
+		if err := json.Unmarshal(round["path"], &name); err != nil || name == "" {
 			continue
 		}
 		// Gate paths can have either platform's separators. Keep only the
 		// series and round folder names, never a machine's absolute path.
-		path := filepath.FromSlash(strings.ReplaceAll(r.Path, "\\", "/"))
+		path := filepath.FromSlash(strings.ReplaceAll(name, "\\", "/"))
 		review.Rounds[i].Series = filepath.Base(filepath.Dir(path))
 		review.Rounds[i].Round = filepath.Base(path)
 	}

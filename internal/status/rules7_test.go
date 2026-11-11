@@ -158,7 +158,10 @@ func TestRules7OptionalBaselineRetainsAdverseResults(t *testing.T) {
 		{"unmarked positive", false, []string{"pass"}, []string{"fail_as_expected"}, ""},
 		{"unexpected pass persists", false, []string{"pass"}, []string{"unexpected_pass", "fail_as_expected"}, "baseline_unexpected_pass"},
 		{"unintended violation persists", false, []string{"pass"}, []string{"fail", "fail_as_expected"}, "baseline_failed"},
-		{"baseline inconclusive", false, []string{"pass"}, []string{"unknown"}, "baseline_error"},
+		{"baseline inconclusive", false, []string{"pass"}, []string{"unknown"}, ""},
+		{"baseline error", false, []string{"pass"}, []string{"error"}, ""},
+		{"marked baseline inconclusive", true, []string{"pass"}, []string{"unknown"}, "baseline_error"},
+		{"marked baseline error", true, []string{"pass"}, []string{"error"}, "baseline_error"},
 		{"baseline retry succeeds", false, []string{"pass"}, []string{"error", "fail_as_expected"}, ""},
 		{"baseline error cap", false, []string{"pass"}, []string{"unknown", "error", "fail_as_expected"}, "error_limit"},
 	} {
@@ -185,5 +188,19 @@ func TestRules7OptionalBaselineRetainsAdverseResults(t *testing.T) {
 	check.Evidence = nil
 	if got := e.judge("AC-1", bundle.KindChange, []*record.Line{check}, nil); got != "evidence_invalid" {
 		t.Fatalf("unproved pass = %q; want evidence_invalid", got)
+	}
+}
+
+func TestRules7EarlierRulesRetainBaselineError(t *testing.T) {
+	for _, rules := range []string{RulesV1, RulesV2, RulesV3, RulesV4, RulesV5, RulesV6} {
+		t.Run(rules, func(t *testing.T) {
+			e, line := strictJudgeFixture()
+			e.rules = rules
+			checks := []*record.Line{line("check", "pass")}
+			baselines := []*record.Line{line("baseline", "error")}
+			if got := e.judge("AC-1", bundle.KindChange, checks, baselines); got != "baseline_error" {
+				t.Fatalf("reason = %q; want baseline_error", got)
+			}
+		})
 	}
 }
