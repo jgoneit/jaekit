@@ -1,9 +1,11 @@
 """The reviewer criteria in AGENTS.md agree with the executor rules beside them.
 
-A reviewer must not call a check defective for an input failure the check
-result contract lets the check declare as a violation, and a boundary stated
-after a finding does not cover it on either side. Fixed phrases in one list
-item of `### For reviewers`, as in test_review_rules.py.
+A reviewer treats an input failure counted as a violation as a defect only
+for a producer of a condition requiring a baseline, with the exception the
+check result contract allows. Counting an input failure as a pass is always
+a defect, and a boundary stated after a finding does not cover it on either
+side. Fixed phrases in one list item of `### For reviewers`, as in
+test_review_rules.py.
 """
 import importlib.util
 from pathlib import Path
@@ -21,8 +23,10 @@ class ReviewerAgreement(rules.Observed):
 
     def test_declared_input_failures_are_not_defects(self):
         absent = rules.missing(self.reviewers(), [
-            ("input failure", "is a defect", "unless the check declares that case as a violation",
+            ("input failure", "as a violation is a defect only when",
+             "producer of a condition that requires a baseline", "unless the check declares that case as a violation",
              "check result contract allows", "missing: violation"),
+            ("any check that counts an input failure as a pass is a defect",),
         ])
         self.require(not absent, "reviewer-contract-conflict", f"AGENTS.md {rules.REVIEWERS_HEADING} lacks: {absent}")
 

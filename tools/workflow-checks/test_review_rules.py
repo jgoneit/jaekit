@@ -105,9 +105,12 @@ class CheckBoundaries(Observed):
 
     def test_input_failures_have_declared_result_meanings(self):
         absent = missing(section(agents(), RULES_HEADING), [
-            ("for each producer", "before the plan round", "violation", "error", "inconclusive",
-             "missing target file", "corrupt input", "cannot start", "signal"),
-            ("check result contract", "does not declare as a violation", "never counted"),
+            ("for each producer of a change condition that requires a baseline", "before the plan round",
+             "violation", "error", "inconclusive", "missing target file", "corrupt input",
+             "a tool that cannot start", "termination by a signal"),
+            ("every other check", "only has to keep an input failure from counting as a pass"),
+            ("whether a condition requires a baseline", "does not depend on the rule version",
+             "earlier rule", "every change condition requires a baseline"),
         ])
         self.require(not absent, "input-failure-rule-missing", f"AGENTS.md lacks: {absent}")
 
@@ -153,7 +156,11 @@ class ReviewFindings(Observed):
             ("counterexample", "input that a spec criterion, a contract or a protected regression path requires",
              "is a defect"),
             ("edge case", "outside the stated check boundary", "links to nothing", "low severity"),
-            ("input failure", "missing file", "corrupt input", "cannot start", "signal", "violation", "defect"),
+            ("input failure", "missing file", "corrupt input", "cannot start", "signal",
+             "as a violation is a defect only when", "producer of a condition that requires a baseline",
+             "unless the check declares that case as a violation", "check result contract allows",
+             "missing: violation"),
+            ("any check that counts an input failure as a pass is a defect",),
             ("pull request description", "check boundaries", "grounds"),
         ])
         self.require(reviewers.strip() and not absent, "reviewer-criteria-missing",
