@@ -693,6 +693,30 @@ func cwBudgetArgs(f *rgFixture, extra ...string) []string {
 	return args
 }
 
+// cwNoPanic runs ha in the twin. ha runs in this process, so a panic is
+// the observed violation, not a crash of the check.
+func cwNoPanic(s *cwTwins, label string, tw *cwTwin, args ...string) (code int, out string) {
+	s.t.Helper()
+	defer func() {
+		if r := recover(); r != nil {
+			s.t.Fatalf("jaekit:violation=%s %s: ha %s panicked in %s: %v", s.violation, label, args[0], tw.name, r)
+		}
+	}()
+	return tw.f.ha(args...)
+}
+
+// cwSameMessage reports a twin whose first output line, with its own
+// repository and gate folders named alike, differs from the reference's.
+func cwSameMessage(s *cwTwins, label string, obs []cwObs) {
+	s.t.Helper()
+	ref := cwNamesOf(s.twins[0].f).text(cwFirst(obs[0].out))
+	for i := 1; i < len(obs); i++ {
+		if got := cwNamesOf(s.twins[i].f).text(cwFirst(obs[i].out)); got != ref {
+			s.t.Fatalf("jaekit:violation=%s %s: %s says %q, %s says %q", s.violation, label, s.twins[i].name, got, s.twins[0].name, ref)
+		}
+	}
+}
+
 // cwMutate is a covering gate's bytes after change.
 func cwMutate(f *rgFixture, change func(m map[string]any)) []byte {
 	f.t.Helper()
@@ -1374,19 +1398,45 @@ func TestCheckCostAC14_SameAsRulesV6Elsewhere(t *testing.T) {
 		s.done("ha done after " + form.label)
 	}
 
-	// Gate files that cannot be recorded leave the record as it was.
+	// Gate files that cannot be recorded leave the record as it was, and
+	// both goals refuse them with the same message (05-candidate claude-F2).
 	for _, form := range []struct {
 		label string
 		path  func(f *rgFixture) string
 	}{
 		{"a missing gate file", func(f *rgFixture) string { return filepath.Join(f.gates, "missing.json") }},
+		{"a gate path that is a folder", func(f *rgFixture) string { return f.gates }},
 		{"a gate file that is not JSON", func(f *rgFixture) string { return f.writeBytes([]byte("{not json")) }},
 		{"a gate of another schema", func(f *rgFixture) string {
 			return f.writeBytes(cwMutate(f, func(m map[string]any) { m["schema"] = "review-gate/v2" }))
 		}},
 	} {
-		s.refused(form.label, func(tw *cwTwin) (int, string) {
+		obs := s.refused(form.label, func(tw *cwTwin) (int, string) {
 			return tw.f.ha("note", rgGoal, "review", "--gate", form.path(tw.f))
+		})
+		cwSameMessage(s, form.label, obs)
+	}
+
+	// Gate files the run-rules/6 goal records are recorded by the
+	// run-rules/7 goal too: an unknown top-level field after "rounds" that
+	// differs from it only in case and lists more rounds, and a round path
+	// that is not a string (05-candidate codex-F1 and claude-F2).
+	for _, form := range []struct {
+		label string
+		data  func(f *rgFixture) []byte
+	}{
+		{"a covering gate followed by an unknown Rounds field", func(f *rgFixture) []byte {
+			data := cwMutate(f, func(map[string]any) {})
+			extra := `,"Rounds":[{"path":"docs/reviews/other/01-candidate"},{"path":"docs/reviews/other/02-fixes"}]}`
+			return append(bytes.TrimSuffix(bytes.TrimSpace(data), []byte("}")), extra...)
+		}},
+		{"a covering gate whose round path is not a string", func(f *rgFixture) []byte {
+			return cwMutate(f, func(m map[string]any) { m["rounds"].([]any)[0].(map[string]any)["path"] = 7 })
+		}},
+	} {
+		s.step(form.label, exitOK, func(tw *cwTwin) (int, string) {
+			path := tw.f.writeBytes(form.data(tw.f))
+			return cwNoPanic(s, form.label, tw, "note", rgGoal, "review", "--gate", path)
 		})
 	}
 

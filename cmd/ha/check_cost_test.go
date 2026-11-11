@@ -726,18 +726,28 @@ func TestCheckCostAC2_SatisfactionFollowsMark(t *testing.T) {
 			t.Errorf("jaekit:violation=%s %s: the goal is complete; want the baseline to block AC-2", v, label)
 		}
 
-		f.must(v, "the first baseline of the unmarked AC-3", exitProblems, "check", rgGoal, "AC-3", "--baseline")
-		f.must(v, "the second baseline of the unmarked AC-3", exitProblems, "check", rgGoal, "AC-3", "--baseline")
-		// The premise of this form: both baselines failed to start.
-		var starts []string
-		for _, l := range ccRuns(ciLines(f.rgFixture), "baseline") {
-			if ccTarget(l) == "AC-3" {
-				starts = append(starts, fmt.Sprint(l.m["result"]))
+		// The premise of this form: each baseline of AC-3 failed to start.
+		starts := func(want ...string) {
+			t.Helper()
+			var got []string
+			for _, l := range ccRuns(ciLines(f.rgFixture), "baseline") {
+				if ccTarget(l) == "AC-3" {
+					got = append(got, fmt.Sprint(l.m["result"]))
+				}
+			}
+			if !rgSame(got, want) {
+				t.Fatalf("setup: the AC-3 baselines recorded %v; the form needs %v of a command that cannot start", got, want)
 			}
 		}
-		if !rgSame(starts, []string{"error", "error"}) {
-			t.Fatalf("setup: the AC-3 baselines recorded %v; the form needs two errors of a command that cannot start", starts)
-		}
+		f.must(v, "the first baseline of the unmarked AC-3", exitProblems, "check", rgGoal, "AC-3", "--baseline")
+		starts("error")
+		// One error within the limit of one rerun is not an adverse result:
+		// only errors over the limit block an unmarked condition
+		// (05-candidate claude-F1).
+		label = "one baseline of the unmarked AC-3 whose command cannot start"
+		expect(label, f.state(v, label), "AC-3", true, "")
+		f.must(v, "the second baseline of the unmarked AC-3", exitProblems, "check", rgGoal, "AC-3", "--baseline")
+		starts("error", "error")
 		label = "two baselines of the unmarked AC-3 whose command cannot start"
 		s = f.state(v, label)
 		expect(label, s, "AC-3", false, "error_limit")
