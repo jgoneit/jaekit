@@ -317,6 +317,8 @@ const (
 	rsfQualKo    = "0.1.24 이상으로 시작해 완료한 목표에서는 판단 문장이 `## 검수 요약`에 있습니다"
 	rsfGuideEn   = "README.md"
 	rsfPhraseEn  = "after a reopen the section is rewritten as of the new completion record"
+	rsfQualEn    = "In a finished goal started with 0.1.24 or later, the judgment is in `## 검수 요약`"
+	rsfReadmeEn  = "current state, review summary, timeline, completion report"
 	rsfGuideTest = "TestReviewSummaryAC15_Guides"
 	rsfGuideViol = "jaekit:violation=guides-review-summary-missing"
 )
@@ -522,6 +524,32 @@ func TestReviewSummaryFollowupsAC4_VisibleGuideText(t *testing.T) {
 		{"a comment around the whole paragraph of an English guide phrase", func() {
 			edit("whole paragraph", rsfGuideEn, rsfPhraseEn, true, "<!-- ", " -->")
 		}, rsfViolation},
+		{"a comment around only the English qualifier inside its paragraph", func() {
+			edit("English qualifier only", rsfGuideEn, rsfQualEn, false, "<!-- ", " -->")
+		}, rsfViolation},
+		{"the README-only phrase moved out of its code block into a comment", func() {
+			text := orig[rsfGuideEn]
+			s, e, ok := rsfSpan(text, rsfReadmeEn)
+			if !ok {
+				t.Fatalf("setup: %s has no %q", rsfGuideEn, rsfReadmeEn)
+			}
+			out := text[:s] + "files" + text[e:] + "\n\n<!-- " + rsfReadmeEn + " -->\n"
+			if err := os.WriteFile(filepath.Join(dir, rsfGuideEn), []byte(out), 0o644); err != nil {
+				t.Fatalf("setup: %v", err)
+			}
+		}, rsfViolation},
+		{"the phrase only inside a code span that holds a whole comment", func() {
+			edit("comment in a code span", rsfGuideKo, rsfPhraseKo, false, "`<!-- ", " -->`")
+		}, rsfPass},
+		{"the phrase only inside a fenced code block that holds a whole comment", func() {
+			text := orig[rsfGuideKo]
+			s, e, _ := rsfSpan(text, rsfPhraseKo)
+			_, be, _ := rsfBlock(text, rsfPhraseKo)
+			out := text[:s] + text[e:be] + "\n\n```text\n<!-- " + rsfPhraseKo + " -->\n```" + text[be:]
+			if err := os.WriteFile(filepath.Join(dir, rsfGuideKo), []byte(out), 0o644); err != nil {
+				t.Fatalf("setup: %v", err)
+			}
+		}, rsfPass},
 		{"an unclosed `<!--` inside a code span before the phrase", func() {
 			edit("code span", rsfGuideKo, rsfPhraseKo, false, "`<!--` ", "")
 		}, rsfPass},
