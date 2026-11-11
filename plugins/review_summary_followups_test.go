@@ -124,7 +124,7 @@ var rsfPolicy = map[string][]string{
 // base, the user's answer "0.1.28로 올림 (Recommended)"), and the phrase of
 // its change-list paragraph.
 const (
-	rsfSealVersion = "0.1.28"
+	rsfSealVersion = "0.1.29"
 	rsfNoCore      = "no Core change"
 )
 
