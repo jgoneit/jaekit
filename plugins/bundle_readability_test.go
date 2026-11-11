@@ -57,17 +57,19 @@ var (
 		{"목표 문서의 `## Open Decisions`에 남은 결정, 그리고 계획 중 새로 드러난 결과를 바꾸는 결정", "가정은 보고서에 다시 나온다"},
 		{"Decisions left in the goal documents' `## Open Decisions`, and outcome-changing decisions that came up newly during planning", "Assumptions appear again in the report"},
 	}
-	// AC-2: new-form version boundary and preservation of earlier forms.
+	// SPEC AC-2: version boundary, earlier forms and the fixed no-rewrite sentence.
 	brReviewBoundary = map[string][]string{
-		"en": {"The split REVIEW form applies to goals started with seal 0.1.29 or later", "A goal started with an earlier Seal keeps the REVIEW form it started with"},
-		"ko": {"나뉜 REVIEW 형식은 seal 0.1.29 이상으로 시작한 목표에 쓴다", "그 전 Seal로 시작한 목표의 REVIEW는 시작할 때의 형식을 유지한다"},
+		"en": {
+			"The split REVIEW form applies to goals started with seal 0.1.29 or later",
+			"A goal started with an earlier Seal keeps the REVIEW form it started with",
+			"An existing `REVIEW.md` is never rewritten into the split form",
+		},
+		"ko": {
+			"나뉜 REVIEW 형식은 seal 0.1.29 이상으로 시작한 목표에 쓴다",
+			"그 전 Seal로 시작한 목표의 REVIEW는 시작할 때의 형식을 유지한다",
+			"이미 있는 `REVIEW.md`는 나뉜 형식으로 고쳐 쓰지 않는다",
+		},
 	}
-	// AC-2: representative prohibited rewrite sentences and their negations.
-	brSentenceSplit = brRegexp.MustCompile(`[.!?](?:\s+|$)|。`)
-	brExisting      = brRegexp.MustCompile(`(?i)\b(existing|earlier|old)\b|이미|기존`)
-	brReviewName    = brRegexp.MustCompile(`(?i)\bREVIEW(?:\.md)?\b`)
-	brRewrite       = brRegexp.MustCompile(`(?i)\brewrit\w*\b|\bconvert\w*\b|\bmigrat\w*\b|고쳐 쓰|바꿔 쓰`)
-	brNegation      = brRegexp.MustCompile(`(?i)\b(never|not)\b|않|없`)
 	// AC-3: today's complete level-two heading list, in order.
 	brReviewHeadings = []string{"## 요구사항 대응", "## 불필요한 task", "## 문서 충돌", "## 중요한 미결정", "## 검증 방법과 환경", "## 독립 검토", "## 결론"}
 	// AC-3: today's exact scope/trust-boundary phrases, in template/doc order.
@@ -134,7 +136,6 @@ var (
 	brReady           = "Ready"
 	brFormatKey       = "Criteria-Format:"
 	brAssuranceKey    = "Assurance:"
-	brDefaultTier     = "standard"
 	brCriteriaHeading = "## Acceptance Criteria"
 	brOpenHeading     = "## Open Decisions"
 	brRequiredIDs     = []string{"AC-1", "AC-2"}
@@ -253,6 +254,31 @@ func brSection(brText, brHeading string) (string, bool) {
 	return brStrings.Join(brLines[brStart:], "\n"), true
 }
 
+// Each heading must occur exactly once as an unfenced whole line.
+func brHeadingOrder(brText, brFirst, brSecond string) bool {
+	brFirstLine, brSecondLine, brOpen := -1, -1, ""
+	for brI, brLine := range brStrings.Split(brText, "\n") {
+		var brFenced bool
+		brOpen, brFenced = brFence(brOpen, brLine)
+		if brFenced {
+			continue
+		}
+		switch brStrings.TrimRight(brLine, " \t\r") {
+		case brFirst:
+			if brFirstLine >= 0 {
+				return false
+			}
+			brFirstLine = brI
+		case brSecond:
+			if brSecondLine >= 0 {
+				return false
+			}
+			brSecondLine = brI
+		}
+	}
+	return brFirstLine >= 0 && brSecondLine > brFirstLine
+}
+
 func brNeed(brMissing *[]string, brWhere, brText string, brTokens ...string) {
 	for _, brToken := range brTokens {
 		if !brStrings.Contains(brNorm(brText), brNorm(brToken)) {
@@ -299,10 +325,10 @@ func brRow(brText string) string {
 func TestBundleReadabilityAC1_ReviewDecisionsSplit(brT *brTesting.T) {
 	var brMissing []string
 	brSectionText := brDocSection(brT, &brMissing, brDoc{brReviewTemplate, brReviewHeading, "en"})
-	brUser, brUserOK := brSection(brSectionText, brUserHeading)
-	brAssume, brAssumeOK := brSection(brSectionText, brAssumeHeading)
-	if !brUserOK || !brAssumeOK || brStrings.Index(brSectionText, brUserHeading) >= brStrings.Index(brSectionText, brAssumeHeading) {
-		brMissing = append(brMissing, brReviewTemplate+" must have the user's answer subheading before the assumption subheading inside "+brReviewHeading)
+	brUser, _ := brSection(brSectionText, brUserHeading)
+	brAssume, _ := brSection(brSectionText, brAssumeHeading)
+	if !brHeadingOrder(brSectionText, brUserHeading, brAssumeHeading) {
+		brMissing = append(brMissing, brReviewTemplate+" must have each subheading once, with the user's answer before the assumption inside "+brReviewHeading)
 	}
 	brNeed(&brMissing, brReviewTemplate+" "+brUserHeading, brUser, brUserItems["en"]...)
 	brNeed(&brMissing, brReviewTemplate+" "+brAssumeHeading, brAssume, brAssumeItems["en"]...)
@@ -324,11 +350,6 @@ func TestBundleReadabilityAC2_ReviewFormatBoundary(brT *brTesting.T) {
 	for _, brD := range brReviewDocs {
 		brText := brDocSection(brT, &brMissing, brD)
 		brNeed(&brMissing, brD.brPath+" "+brD.brHeading, brText, brReviewBoundary[brD.brLang]...)
-		for _, brSentence := range brSentenceSplit.Split(brNorm(brText), -1) {
-			if brExisting.MatchString(brSentence) && brReviewName.MatchString(brSentence) && brRewrite.MatchString(brSentence) && !brNegation.MatchString(brSentence) {
-				brMissing = append(brMissing, brFmt.Sprintf("%s directs rewriting an existing REVIEW: %q", brD.brPath, brSentence))
-			}
-		}
 	}
 	brFail(brT, "review-format-boundary-missing", brMissing)
 }
@@ -376,7 +397,17 @@ func brDecisionLine(brText string) (string, bool) {
 			brFound = brLine
 		}
 	}
-	return brFound, brStrings.HasPrefix(brFound, "- "+brMarkerPlaceholder+" ") && brStrings.Count(brFound, brMarkerPlaceholder) == 1
+	brPrefix := "- " + brMarkerPlaceholder + " "
+	if !brStrings.HasPrefix(brFound, brPrefix) || brStrings.Count(brFound, brMarkerPlaceholder) != 1 {
+		return brFound, false
+	}
+	brTail := brStrings.TrimSpace(brStrings.TrimPrefix(brFound, brPrefix))
+	brSlots := brPlaceholder.FindAllStringIndex(brTail, -1)
+	if len(brSlots) != 2 || brSlots[0][0] != 0 {
+		return brFound, false
+	}
+	return brFound, brStrings.TrimSpace(brTail[brSlots[0][1]:brSlots[1][0]]) == brSourceLabel &&
+		brStrings.TrimSpace(brTail[brSlots[1][1]:]) == ""
 }
 
 func TestBundleReadabilityAC4_DecisionMarkers(brT *brTesting.T) {
@@ -386,7 +417,7 @@ func TestBundleReadabilityAC4_DecisionMarkers(brT *brTesting.T) {
 	brNeed(&brMissing, brSpecSkill+" "+brSpecLanguage, brText, brMarkers...)
 	for _, brFile := range brSpecTemplates {
 		if _, brOK := brDecisionLine(brRead(brT, brFile)); !brOK {
-			brMissing = append(brMissing, brFmt.Sprintf("%s %s needs one decision line starting %q and containing %q", brFile, brDecisionHeading, "- "+brMarkerPlaceholder+" ", brSourceLabel))
+			brMissing = append(brMissing, brFmt.Sprintf("%s %s needs one decision line starting %q, then a decision placeholder, then %q and its trailing placeholder", brFile, brDecisionHeading, "- "+brMarkerPlaceholder+" ", brSourceLabel))
 		}
 	}
 	brFail(brT, "decision-marker-missing", brMissing)
@@ -481,6 +512,17 @@ func brHeader(brText, brKey string) string {
 	return ""
 }
 
+func brTemplateHeaders(brMissing *[]string, brWhere, brText string) bool {
+	brOK := true
+	for _, brKey := range []string{brStatusKey, brFormatKey, brAssuranceKey} {
+		if brHeader(brText, brKey) == "" {
+			*brMissing = append(*brMissing, brWhere+" lacks its "+brKey+" header")
+			brOK = false
+		}
+	}
+	return brOK
+}
+
 func brSyntheticSpec(brText, brLine, brMarker string) string {
 	// Replace the marker before filling other angle-bracket placeholders.
 	brText = brStrings.Replace(brText, brLine, brStrings.Replace(brLine, brMarkerPlaceholder, brMarker, 1), 1)
@@ -495,9 +537,6 @@ func brSyntheticSpec(brText, brLine, brMarker string) string {
 		}
 	}
 	brText = brStrings.Join(brLines, "\n")
-	if brHeader(brText, brAssuranceKey) == "" {
-		brText = brStrings.Replace(brText, brStatusKey+" "+brReady, brStatusKey+" "+brReady+"\n"+brAssuranceKey+" "+brDefaultTier, 1)
-	}
 	if brOpen, brOK := brSection(brText, brOpenHeading); brOK {
 		brText = brStrings.Replace(brText, brOpen, brOpenHeading+"\n\n없음\n", 1)
 	}
@@ -577,9 +616,6 @@ func brCompareReads(brMissing *[]string, brWhere, brSource string, brMarked, brP
 	// document loader supplies Status and interpreted criteria. Preserve and
 	// compare the format header, and compare its parsed bodies/IDs as well.
 	brTier := brHeader(brSource, brAssuranceKey)
-	if brTier == "" {
-		brTier = brDefaultTier
-	}
 	if brMarked.brGoal.Status != brReady || brPlain.brGoal.Status != brReady ||
 		brMarked.brGoal.Assurance != brTier || brPlain.brGoal.Assurance != brTier ||
 		!brStrings.Contains(brMarked.brLint, brTierOutput+brTier) ||
@@ -614,6 +650,9 @@ func TestBundleReadabilityAC6_MarkedTemplatesRead(brT *brTesting.T) {
 	var brMissing []string
 	for brI, brFile := range brSpecTemplates {
 		brSource := brRead(brT, brFile)
+		if !brTemplateHeaders(&brMissing, brFile, brSource) {
+			continue
+		}
 		brLine, brOK := brDecisionLine(brSource)
 		if !brOK {
 			brMissing = append(brMissing, brFile+" lacks the decision-line marker placeholder "+brMarkerPlaceholder)
@@ -724,4 +763,93 @@ func brJSONString(brT *brTesting.T, brFile string, brObject map[string]brJSON.Ra
 		brT.Fatalf("setup: %s %s is not a JSON string: %v", brFile, brKey, brErr)
 	}
 	return brValue
+}
+
+func TestBundleReadabilityHelpersHeadingOrder(brT *brTesting.T) {
+	brOrdered := brUserHeading + "\n\n" + brAssumeHeading
+	brReversed := brAssumeHeading + "\n\n" + brUserHeading
+	brMention := "Use `" + brUserHeading + "`, then `" + brAssumeHeading + "`."
+	for _, brCase := range []struct {
+		brName, brBody string
+		brWant         bool
+	}{
+		{"ordered headings", brOrdered, true},
+		{"prose mentions only", brMention, false},
+		{"prose before reversed headings", brMention + "\n" + brReversed, false},
+		{"duplicate user heading", brOrdered + "\n" + brUserHeading, false},
+		{"duplicate assumption heading", brOrdered + "\n" + brAssumeHeading, false},
+		{"missing user heading", brAssumeHeading, false},
+		{"missing assumption heading", brUserHeading, false},
+		{"indented mentions", " " + brUserHeading + "\n " + brAssumeHeading, false},
+		{"fenced headings only", "```md\n" + brOrdered + "\n```", false},
+		{"fenced reverse before headings", "~~~md\n" + brReversed + "\n~~~\n" + brOrdered, true},
+	} {
+		brT.Run(brCase.brName, func(brT *brTesting.T) {
+			brText := brReviewHeading + "\n\n" + brCase.brBody
+			if brGot := brHeadingOrder(brText, brUserHeading, brAssumeHeading); brGot != brCase.brWant {
+				brT.Errorf("heading order = %t, want %t", brGot, brCase.brWant)
+			}
+		})
+	}
+}
+
+func TestBundleReadabilityHelpersDecisionLine(brT *brTesting.T) {
+	brPrefix := "- " + brMarkerPlaceholder + " "
+	for _, brCase := range []struct {
+		brName, brLine string
+		brWant         bool
+	}{
+		{"marker decision source", brPrefix + "<decision and reason> Source: <source>", true},
+		{"source before decision", brPrefix + "Source: <source> <decision and reason>", false},
+		{"marker after decision", "- <decision and reason> " + brMarkerPlaceholder + " Source: <source>", false},
+		{"indented marker", " " + brPrefix + "<decision and reason> Source: <source>", false},
+		{"missing decision placeholder", brPrefix + "decision Source: <source>", false},
+		{"missing source placeholder", brPrefix + "<decision and reason> Source: source", false},
+		{"content after source", brPrefix + "<decision and reason> Source: <source> trailing decision", false},
+		{"duplicate marker", brPrefix + brMarkerPlaceholder + " <decision and reason> Source: <source>", false},
+	} {
+		brT.Run(brCase.brName, func(brT *brTesting.T) {
+			brText := brDecisionHeading + "\n\n" + brCase.brLine
+			brLine, brGot := brDecisionLine(brText)
+			if brGot != brCase.brWant {
+				brT.Errorf("decision line = %t, want %t for %q", brGot, brCase.brWant, brLine)
+			}
+		})
+	}
+}
+
+func TestBundleReadabilityHelpersTemplateHeaders(brT *brTesting.T) {
+	brLine := "- " + brMarkerPlaceholder + " <decision and reason> Source: <source>"
+	for _, brCase := range []struct {
+		brName, brHeaders string
+		brWant            bool
+	}{
+		{"standard", "Status: Draft\nCriteria-Format: nested/1\nAssurance: standard", true},
+		{"strict", "Status: Draft\nCriteria-Format: nested/1\nAssurance: strict", true},
+		{"missing status", "Criteria-Format: nested/1\nAssurance: strict", false},
+		{"missing format", "Status: Draft\nAssurance: strict", false},
+		{"missing assurance", "Status: Draft\nCriteria-Format: nested/1", false},
+		{"empty assurance", "Status: Draft\nCriteria-Format: nested/1\nAssurance:", false},
+	} {
+		brT.Run(brCase.brName, func(brT *brTesting.T) {
+			brText := "# synthetic\n\n" + brCase.brHeaders + "\n\n" + brDecisionHeading + "\n\n" + brLine
+			var brMissing []string
+			if brGot := brTemplateHeaders(&brMissing, brCase.brName, brText); brGot != brCase.brWant || (len(brMissing) == 0) != brCase.brWant {
+				brT.Errorf("template headers = %t, want %t; missing = %q", brGot, brCase.brWant, brMissing)
+			}
+			brSpec := brSyntheticSpec(brText, brLine, brMarkers[0])
+			for _, brKey := range []string{brFormatKey, brAssuranceKey} {
+				if brGot, brWant := brHeader(brSpec, brKey), brHeader(brText, brKey); brGot != brWant {
+					brT.Errorf("synthetic %s = %q, want original %q", brKey, brGot, brWant)
+				}
+			}
+			brWantStatus := brHeader(brText, brStatusKey)
+			if brWantStatus != "" {
+				brWantStatus = brReady
+			}
+			if brGot := brHeader(brSpec, brStatusKey); brGot != brWantStatus {
+				brT.Errorf("synthetic Status = %q, want %q", brGot, brWantStatus)
+			}
+		})
+	}
 }
