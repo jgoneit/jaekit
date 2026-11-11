@@ -27,6 +27,13 @@ Other files in the goal directory, such as check scripts or fixtures, are code: 
 - `검사 경로`: the check files that decide the condition, comma separated, no globs. Required for `change`: the baseline copies exactly these files from HEAD onto the base commit.
 - `Task`: the task IDs that implement the condition.
 
+For `run-rules/7`, an optional final `baseline` column marks the change conditions that require a baseline:
+
+| ID | 종류 | 검증 명령 | 검사 경로 | Task | baseline |
+| --- | --- | --- | --- | --- | --- |
+
+Write `요구` for a required baseline, matching the per-condition judgment in `REVIEW.md`; an empty cell or `—` means no baseline requirement. Without the column, no change condition is marked. `요구` on a non-change row or any other value is a `baseline_marker` lint problem. The five-column table remains valid, and goals under earlier rules keep their baseline requirements regardless of these marks. Check paths remain required for every change condition, including unmarked ones, for structured results, review and the check freeze.
+
 Lint rules: every goal criterion appears once; every condition has a task; every task is grounded in a condition or is a prerequisite of another task; no dependency cycles; `change` has a command and check paths; `maintain` has a command; `manual` has a reason.
 
 Behavior that must be preserved belongs in the goal documents as a required criterion. If it is missing there but must not break, raise it with the user in `REVIEW.md` under open decisions; an `EX-n` row cannot protect it.
@@ -69,6 +76,8 @@ Same four groups as a task document.
 
 ## Questions for the user
 
+Under `run-rules/7`, "before any baseline" means before the goal has any `ha check` record, current check or baseline: foreseeable questions, `ha doctor` and the `strict` plan round all use this point, even when no condition requires a baseline.
+
 Before any baseline, once PLAN is written and `ha doctor` has run, gather every decision that the goal documents, the plan, the project instructions and the code already show and that the current rules leave to the user's words, and ask them all in one message. Typical decisions, not a complete list:
 
 - a change that project instructions reserve for the user's words, such as a plan that changes a file on a protected path;
@@ -108,7 +117,27 @@ History in a synthetic repository the check builds itself, such as a temporary f
 
 **Maintain conditions.** A `maintain` condition is observed as the property the goal documents require: content, output, format or behavior in the tree being checked. A check that confirms a file is unchanged since the base commit is not an observation of that property. When the requirement is that a path does not change at all, two history-free means exist. Leave the path outside `바꿀 수 있는 경로`, so that Core reports any committed change to it since the base commit as `out_of_scope`, which only the user resolves. Or compare the file with the expected content written in a tracked check file. A check may also observe the property the file must keep, for example that a block still contains the required commands.
 
-**Change conditions and the baseline.** The baseline is Core's mechanism: `ha check --baseline` runs the condition on a temporary worktree of the base commit with the check paths copied from HEAD. Check code never checks out, reads or compares the base commit to imitate that run. It observes the required property in whatever tree it runs on, so it reports the declared violation on the base commit and a pass after the change.
+**Change conditions and the baseline.** The baseline is Core's mechanism: `ha check --baseline` runs the condition on a temporary worktree of the base commit with the check paths copied from HEAD. Check code never checks out, reads or compares the base commit to imitate that run. For a condition requiring a baseline, it observes the required property in whatever tree it runs on, so it reports the declared violation on the base commit and a pass after the change.
+
+Under `run-rules/7`, a marked change condition's baseline is recorded once its check files are settled, not after every check fix during development. Running a check before implementation to see it fail is a working habit, not a record. A later change that makes required baseline evidence stale still needs fresh evidence; the freshness rules remain unchanged.
+
+**Input failures.** An input failure, whether a missing target file, corrupt input, a tool that cannot start or termination by a signal, is never a pass for any check.
+
+For checks that require no baseline (maintain, `EX-n`, task commands and unmarked change conditions under `run-rules/7`), classifying an input failure as violation, error or inconclusive is not a check defect; a violation leaves its `fail` until the input changes. Maintain, `EX-n` and task commands still record by exit status, so their input failures must exit nonzero.
+
+A dedicated producer of a marked change condition reports none of those four input failures as a violation unless the condition itself makes that case a violation and the result contract allows declaring it, such as a required file's absence with `missing: violation`. Write the four outcomes in `REVIEW.md` before the plan round, or before any review round when no plan round is taken. This producer rule follows the baseline requirement: it also applies to every change condition under earlier rules that require a baseline.
+
+Runner adapters classify input failures themselves under the check-result contract; the executor does not choose separate classifications for them. Preserve the [assurance policy's distinctions](#assurance-policy-and-counterexamples) in records and reports.
+
+**Check freeze.** Under `run-rules/7`, the freeze head is the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`, in the recorded latest gate's order, excluding dry runs. A `light` goal, a goal without a tier, or a gate without that round has no freeze.
+
+The frozen files are the check declarations, producers, tests, helpers and settings listed in change conditions' check paths. Include all these inputs in the condition table, including those of unmarked conditions.
+
+Record `ha note <goal> review --gate <file>` right after the freeze round, while that round is the gate's last round, to retain the freeze-time condition table. Without that note, removed check paths are unobserved; a later gate alone cannot reconstruct the table.
+
+For a check file changed after the freeze, commit it and record `ha note <goal> check-change checks:<path> --reason "<finding ID, or condition and reason>"` on the clean tree. Include the finding ID when fixing a review finding. The reason binds to that path's current HEAD blob or its absence and stops covering it when the file changes again.
+
+Give the next code round the changed check files and their reasons, using its check paths and questions; no plan-delta round is required for these changes. Before the freeze, no reason is required for check changes; check defects found by review may still be fixed after it. The freeze display informs review and does not itself block completion.
 
 **Conditions about history.** Some conditions concern history or refs themselves, such as a tag's type or a commit message format. Such a check reads only the range and refs the condition names. When that history is missing or unreadable, the result is unobserved, environment error or skip, as distinguished under the assurance policy below, neither a violation nor a pass. A structured `change` check reports that state in its result report. Core records a `maintain`, `EX-n` or task command by its exit status alone and records any nonzero exit as a failure, so check before `ha check` that the named range and refs can be read. When they cannot, record no result. For a required condition or task, keep it and completion pending and continue independent work; record a block with cause `environment` (`ha note <goal> block --cause environment --quote "…"`) only when that is all that remains. An `EX-n` check stays unobserved and never blocks completion. `REVIEW.md` records why the check needs history and the range it reads.
 
@@ -148,6 +177,8 @@ Reading material groups:
 Summaries point to a document and section. They never replace a criterion.
 
 ## REVIEW.md
+
+Under `run-rules/7`, state for each change condition whether it requires a baseline and why: require one for bug fixes and regressions with a defect at base, prohibitions such as "X does not happen", and conditions possibly partly met at base. The PLAN `baseline` column uses `요구` exactly when that judgment requires it; the `strict` plan round reviews this judgment too.
 
 | Section | Check |
 | --- | --- |
@@ -232,7 +263,7 @@ This is where the user starts reviewing a finished goal: what changed, why and o
   3. `### 근거`: for every condition, what the check that satisfied it observed and the commit where it passed, never by seq alone; and a table `라운드 | 지적 | 끝` with one row for every review round, a round with no findings included. Every finding of the round ends in exactly one of `고침`, `반박`, `중복`, `사용자의 답`, `이슈로 보류`, `자동 보류`, `처리 없음`.
   4. `### 누가 정했나`: decisions in three groups: decided by the user, with where their words are; proposed by the agent and accepted by the user; executor assumptions nobody was asked about. Mark an assumption that reads a SPEC sentence.
   5. `### 직접 볼 것`: ordered by risk, the highest at the top, one or two lines each: every item the `직접 볼 것` line of `ha report` lists and, whatever that line shows, every deferred finding with its issue; every finding left with no disposition; executor assumptions that read a SPEC sentence; conditions met by checks that observe fixed text only, whose documents a person must read; `manual` conditions; the changes under `### 범위 밖이나 기존 것을 바꾼 곳`.
-  6. `### 보지 않은 것`: Unobserved scope and substitutes, assurance `local`, that the executor wrote the checks, and that the summary is not evidence of deployment, installation or a real model call.
+  6. `### 보지 않은 것`: Unobserved scope and substitutes, assurance `local`, that the executor wrote the checks, and that the summary is not evidence of deployment, installation or a real model call. Under `run-rules/7`, list change conditions met without a baseline: whether their checks distinguish base from head was not observed.
   7. `### 자세히`: the documents and sections that hold the detail, such as `REVIEW.md`, `## 타임라인` and the review round folders.
 - The judgment items of the [completion report](#completion-report)'s item 2 go here: the changed files and the condition each contributed to under `### 바뀐 동작과 파일`; assumed open decisions under `### 누가 정했나`; `manual` conditions under `### 직접 볼 것`; the expected-result grounds, the actual observation boundary, the test method and the review stages actually taken (or why they were skipped, and, when the SPEC tier and the project instructions differed, the review each required and the one followed) under `### 근거`; the unobserved scope and substitute environments under `### 보지 않은 것`; where the independent review results are under `### 자세히`; and whether the head to be sent or merged is the completion record's commit, with the fact that the completion does not cover a difference unless `ha status` at that head still names that completion record, in the opening lines.
 - Reading rules: write in the user's language; say what a record is, with its seq only as an aid; keep each item short; never copy check output or finding text; a finding is its ID, one line and its ending. The finding text stays in Spar's records.

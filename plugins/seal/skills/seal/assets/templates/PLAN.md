@@ -6,6 +6,8 @@
 | AC-1 | change | `<command that reports the declared AC-1 observations>` | <declaration JSON>, <producer and configuration files>, <other check files> | T001 |
 | AC-2 | maintain | `<command that checks AC-2>` | — | T001 |
 
+Under `run-rules/7`, add an optional final `baseline` column and write `요구` for each change condition that `REVIEW.md` judges requires a baseline; an empty cell or `—` means none is required. Keep the judgment and table marks aligned. Without the column no condition is marked, and all change conditions still need check paths. Earlier-rule goals keep their existing baseline requirements.
+
 Every check above, and every file it runs or reads, judges only the tree being checked and the external inputs its condition names: no fixed or base commit and no other commits, refs or history. The exception is a condition about history or refs itself, such as a tag's type, whose check reads only the range and refs the condition names (see the skill's `references/bundle.md`, Check inputs). A `maintain` check observes the property the goal documents require in that tree; a check that a file is unchanged since the base commit does not. A path that must not change at all stays outside `바꿀 수 있는 경로`, where Core reports a change to it as `out_of_scope`.
 
 Use narrow checks while exploring and record the expensive full verification once, with `ha check` on the final candidate; running it once for development and once more for the record on the same candidate is a cost to avoid. When several required conditions need the same full regression, the recommended layout is that one condition owns it and the others observe their own property; this does not drop or weaken a condition.

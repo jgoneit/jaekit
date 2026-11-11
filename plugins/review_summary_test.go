@@ -892,7 +892,7 @@ func TestReviewSummaryAC12_TemplateBundle(t *testing.T) {
 	run("git", "init", "-q")
 	commit("base")
 	run(ha, "lint", goal)
-	run(ha, "start", goal, "--rules", "run-rules/6", "--request", "demo 구현해줘", "--skill", skill, "--check-skill")
+	run(ha, "start", goal, "--rules", "run-rules/7", "--request", "demo 구현해줘", "--skill", skill, "--check-skill")
 	writeProgress("| T001 | todo | |", "| T001 | done | |")
 	commit("task done")
 	run(ha, "check", goal)
