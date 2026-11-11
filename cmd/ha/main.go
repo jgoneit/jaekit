@@ -4,6 +4,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -61,6 +62,8 @@ Usage:
   ha note   <goal> input --quote <user words>
   ha note   <goal> test-change tests:<path> --criteria <AC-n,...> --how <how it is checked>
                    [--moved-to <path> ...] [--weakened]                   (run-rules/4, /5, /6)
+  ha note   <goal> check-change checks:<path> --reason <finding ID, or condition and reason>
+                                                                          (run-rules/7)
   ha note   <goal> wait --reason <decision asked>                         (run-rules/4, /5, /6)
   ha note   <goal> resume                                                 (run-rules/4, /5, /6)
   ha note   <goal> recover <AC-n> --input check|baseline --change <changed condition>
@@ -876,13 +879,14 @@ var blockCauses = []string{"auth", "permission", "quota", "environment", "spec",
 // record (run-record.md §4.7); earlier rules refuse them before writing.
 var rules4Notes = map[string]bool{"test-change": true, "wait": true, "resume": true, "recover": true, "allow-recovery": true}
 
-// noteFlags are the run-rules/4 and run-rules/5 options each note kind takes.
+// noteFlags are the options each note kind takes; its rule gate is below.
 var noteFlags = map[string]map[string]bool{
 	"test-change":    {"criteria": true, "how": true, "moved-to": true, "weakened": true},
 	"wait":           {"reason": true},
 	"recover":        {"input": true, "change": true},
 	"allow-recovery": {"input": true, "count": true},
 	"review":         {"gate": true},
+	"check-change":   {"reason": true},
 }
 
 func (c *cli) note(in []string) int {
@@ -891,7 +895,7 @@ func (c *cli) note(in []string) int {
 		return c.fail(exitUsage, "%v", err)
 	}
 	if len(a.pos) < 2 {
-		return c.fail(exitUsage, "usage: ha note <goal> <block|unblock|confirm|reopen|input|test-change|wait|resume|recover|allow-recovery|review> ...")
+		return c.fail(exitUsage, "usage: ha note <goal> <block|unblock|confirm|reopen|input|test-change|check-change|wait|resume|recover|allow-recovery|review> ...")
 	}
 	// The run-rules/4 and run-rules/5 options belong to their note kinds;
 	// every other kind refuses them as an unknown flag, as before they
@@ -925,6 +929,9 @@ func (c *cli) note(in []string) int {
 	}
 	if kind == "review" && !status.Reviewed(goalRules) {
 		return c.fail(exitRefused, "review notes need a goal started with %s or %s; this goal keeps %s", status.RulesV5, status.RulesV6, goalRules)
+	}
+	if kind == "check-change" && goalRules != status.RulesV7 {
+		return c.fail(exitUsage, "unknown note kind %q", kind)
 	}
 	e := &record.Note{Header: record.Header{Kind: "note", HaVersion: version}, Note: kind, Quote: quote}
 	var validate func([]record.Line) error
@@ -983,6 +990,19 @@ func (c *cli) note(in []string) int {
 			return c.fail(code, "%v", err)
 		}
 		e.TestChange, e.Bound = &data.TestChangeData, &record.Bound{Blob: data.boundBlob}
+	case "check-change":
+		if len(a.pos) != 3 || !strings.HasPrefix(a.pos[2], "checks:") || a.pos[2] == "checks:" {
+			return c.fail(exitUsage, "check-change needs a subject checks:<path>")
+		}
+		if e.Reason = strings.TrimSpace(a.vals["reason"]); e.Reason == "" {
+			return c.fail(exitUsage, "check-change needs --reason naming a finding ID, or a condition and reason")
+		}
+		e.Subject = a.pos[2]
+		data, code, err := c.checkChange(w, strings.TrimPrefix(e.Subject, "checks:"), goalRules)
+		if err != nil {
+			return c.fail(code, "%v", err)
+		}
+		e.CheckChange = data
 	case "wait":
 		if e.Reason = strings.TrimSpace(a.vals["reason"]); e.Reason == "" {
 			return c.fail(exitUsage, "wait needs --reason naming the decision the user was asked")
@@ -993,11 +1013,20 @@ func (c *cli) note(in []string) int {
 		if strings.TrimSpace(path) == "" {
 			return c.fail(exitUsage, "review needs --gate <review-gate/v1 file>")
 		}
-		review, err := reviewgate.Read(path)
+		review, err := readReviewNote(path, goalRules)
 		if err != nil {
 			return c.fail(exitRefused, "review gate %s: %v; nothing recorded", path, err)
 		}
 		e.Review = review
+		if goalRules == status.RulesV7 {
+			paths := map[string][]string{}
+			for _, row := range w.bundle.Rows {
+				if row.Kind == bundle.KindChange {
+					paths[row.ID] = append([]string{}, row.CheckPaths...)
+				}
+			}
+			e.CheckPaths = &paths
+		}
 	case "recover", "allow-recovery":
 		if len(a.pos) < 3 {
 			return c.fail(exitUsage, "%s needs a condition ID", kind)
@@ -1044,6 +1073,76 @@ func (c *cli) note(in []string) int {
 	}
 	fmt.Fprintf(c.out, "noted: %s (seq %d)\n", strings.TrimSpace(kind+" "+e.Subject), l.Seq)
 	return exitOK
+}
+
+// readReviewNote adds only the /7 display names to the ordinary gate
+// summary. Parse the same bytes for both, so names cannot come from a
+// different revision of the gate. Earlier rules retain their exact record.
+func readReviewNote(path, rules string) (*record.ReviewData, error) {
+	if rules != status.RulesV7 {
+		return reviewgate.Read(path)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, errors.New("is not a regular file")
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	review, err := reviewgate.Parse(data)
+	if err != nil {
+		return nil, err
+	}
+	var names struct {
+		Rounds []struct {
+			Path string `json:"path"`
+		} `json:"rounds"`
+	}
+	if err := json.Unmarshal(data, &names); err != nil {
+		return nil, err
+	}
+	for i, r := range names.Rounds {
+		if r.Path == "" {
+			continue
+		}
+		// Gate paths can have either platform's separators. Keep only the
+		// series and round folder names, never a machine's absolute path.
+		path := filepath.FromSlash(strings.ReplaceAll(r.Path, "\\", "/"))
+		review.Rounds[i].Series = filepath.Base(filepath.Dir(path))
+		review.Rounds[i].Round = filepath.Base(path)
+	}
+	return review, nil
+}
+
+func (c *cli) checkChange(w *workspace, path, rules string) (*record.CheckChangeData, int, error) {
+	excl, err := w.excludes(rules)
+	if err != nil {
+		return nil, exitInternal, err
+	}
+	clean, err := w.repo.Clean(excl)
+	if err != nil {
+		return nil, exitInternal, err
+	}
+	if !clean {
+		return nil, exitRefused, errors.New("commit or revert changes before recording a check change; it binds to the file at HEAD")
+	}
+	head, err := w.repo.Head()
+	if err != nil {
+		return nil, exitInternal, err
+	}
+	blob, err := w.repo.Blob(head, path)
+	if err != nil {
+		return nil, exitInternal, err
+	}
+	d := &record.CheckChangeData{}
+	if blob != gitx.Deleted {
+		d.Blob = &blob
+	}
+	return d, exitOK, nil
 }
 
 type testChangeNote struct {

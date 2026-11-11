@@ -221,6 +221,7 @@ type Report struct {
 	TestAuthority  *TestAuthority    `json:"test_authority,omitempty"`
 	TestChanges    []TestChange      `json:"test_changes,omitempty"`
 	Recoveries     []Recovery        `json:"recoveries,omitempty"`
+	CheckFreeze    *CheckFreeze      `json:"check_freeze,omitempty"`
 	commandDigests map[string]string // for the done line
 	// judged, doneState, freshBaselines and confirmations feed the human
 	// output only; status/v1 is unchanged.
@@ -506,6 +507,9 @@ func Compute(in Input) (*Report, error) {
 	}
 	e.changes(rep)
 	e.logs(rep)
+	if rep.CheckFreeze, err = e.checkFreeze(); err != nil {
+		return nil, err
+	}
 
 	completion, err := e.completionRecord(rep)
 	if err != nil {
