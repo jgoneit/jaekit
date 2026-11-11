@@ -36,6 +36,12 @@ Read [references/goal-docs.md](references/goal-docs.md) before writing or editin
 - A goal that changes behavior has `## 사용 시나리오`: representative flows, relevant failure or boundary cases, and behavior to keep, each tied to criterion IDs. A small fix needs one or two sentences, not a large document.
 - Behavior that must not break is a required criterion. Anything left out of the goal documents does not count toward completion.
 - Every decision you write or change under decisions and reasons names its source: the user's words, a repository file path, an existing goal document, or a proposal of yours stated in your report. An outcome-changing decision none of these supports is not a decision; ask, or list it under `## Open Decisions`. Decisions already there without a source stay as they are: never invent one; list them in the consistency report.
+- In new SPEC documents, put one marker at the very start of each decision sentence under decisions and reasons, and keep the detailed source at the end. Choose in this order:
+  - `[사용자]` when the source includes the user's words.
+  - `[제안]` when there are no user's words and the source includes a Spec proposal stated in the report.
+  - `[기존]` otherwise: only a repository file, an existing goal document, or a review finding identifier.
+- Markers follow their sources: when the source changes, the marker changes with it. This includes a user's request to change a proposal and an agent invocation recording the user's acceptance as a decision. Write them as-is: the markers are contract tokens in every language.
+- Decisions without a marker remain valid. When editing an existing document, add no marker unless the user decides. Existing source labels stay unchanged.
 - A goal that changes existing code states today's behavior as fact, with the file path that shows it, and separates what changes from what stays the same. What stays the same is a `유지` scenario and a required criterion.
 - A goal that joins components (UI and API, service and store, two services) has at least one criterion that checks the core flow across the real boundary. Leave the method to the implementer.
 - `## 작업 분해 제안` is optional. It proposes results and dependencies (`W1`, `W2`, …), never order, method, or progress.
@@ -149,4 +155,4 @@ These rules add to the rest of this skill when an agent invoked it.
 
 ## Language
 
-Write prose and ordinary headings in the user's language. Keep contract tokens exactly as written: `Status:`, `Draft`, `Ready`, `Criteria-Format: nested/1`, `Assurance:`, `light`, `standard`, `strict`, `Proposed-By: agent`, `amendments/`, the amendment headings `## 계기`, `## 바꿀 곳`, `## 바뀌기 전`, `## 바뀐 뒤`, `## Acceptance Criteria`, `## Open Decisions`, `## 사용 시나리오`, `## 작업 분해 제안`, `AC-n`, `W`, `(선택)`, the table headers `ID | 결과 | 조건 | 의존` and `종류 | 시나리오 | 조건`, and the scenario kinds `흐름`, `경계`, `유지`.
+Write prose and ordinary headings in the user's language. Keep contract tokens exactly as written: `Status:`, `Draft`, `Ready`, `Criteria-Format: nested/1`, `Assurance:`, `light`, `standard`, `strict`, `Proposed-By: agent`, `amendments/`, the amendment headings `## 계기`, `## 바꿀 곳`, `## 바뀌기 전`, `## 바뀐 뒤`, `## Acceptance Criteria`, `## Open Decisions`, `## 사용 시나리오`, `## 작업 분해 제안`, `AC-n`, `W`, `(선택)`, the decision markers `[사용자]`, `[제안]`, `[기존]`, the table headers `ID | 결과 | 조건 | 의존` and `종류 | 시나리오 | 조건`, and the scenario kinds `흐름`, `경계`, `유지`.
