@@ -12,6 +12,14 @@
 ## 중요한 미결정
 <none, or each open decision closed by the user's quoted answer or an explicit assumption; a reading that keeps a component's declared scope or trust boundary is such an assumption, not a question>
 
+<With no decision at all, write only one line `없음`. Otherwise keep both subheadings and write `없음` under an empty one.>
+
+### 사용자의 답
+<each item: the decision, the user's quoted answer, and where that answer is recorded>
+
+### 실행자 가정
+<each item: the assumption and its reason; mark an assumption that reads a SPEC sentence; include readings that keep a declared scope or trust boundary; repeat assumptions in the report>
+
 ## 검증 방법과 환경
 <whether each command runs here; tools, data, network and repository history (a check reads history only when its condition is about history; name the range it reads); how a cross-component flow is checked across the boundary>
 
