@@ -352,7 +352,7 @@ func TestCoreIntegrityAC9_SealStartsUnderRulesV6(t *testing.T) {
 	}
 	var without []any
 	for _, r := range supported {
-		if r != cpNewRules {
+		if r != "run-rules/7" {
 			without = append(without, r)
 		}
 	}
@@ -370,8 +370,8 @@ func TestCoreIntegrityAC9_SealStartsUnderRulesV6(t *testing.T) {
 
 	// core-requirements.json declares the new rule and keeps every format
 	// and feature it declared under run-rules/5.
-	if !slices.Equal(decl.Rules, []string{cpNewRules}) {
-		t.Errorf("jaekit:violation=%s %s declares rules %v, want [%s]", v, cpRequirements, decl.Rules, cpNewRules)
+	if !slices.Equal(decl.Rules, []string{"run-rules/7"}) {
+		t.Errorf("jaekit:violation=%s %s declares rules %v, want [%s]", v, cpRequirements, decl.Rules, "run-rules/7")
 	}
 	var dropped []string
 	for _, key := range []string{"criteria", "check_declaration", "check_result", "check_evidence", "assurance_tier", "core_requirements", "review_gate"} {
@@ -392,8 +392,8 @@ func TestCoreIntegrityAC9_SealStartsUnderRulesV6(t *testing.T) {
 
 	// The skill's start line, version and version list.
 	skill := files[cpSkill]
-	if !strings.Contains(skill, "`ha start <goal> --rules "+cpNewRules+" --request") {
-		t.Errorf("jaekit:violation=%s %s does not start with `ha start <goal> --rules %s --request`", v, cpSkill, cpNewRules)
+	if !strings.Contains(skill, "`ha start <goal> --rules run-rules/7 --request") {
+		t.Errorf("jaekit:violation=%s %s does not start with `ha start <goal> --rules %s --request`", v, cpSkill, "run-rules/7")
 	}
 	front := ""
 	if rest, ok := strings.CutPrefix(skill, "---\n"); ok {
@@ -423,20 +423,20 @@ func TestCoreIntegrityAC9_SealStartsUnderRulesV6(t *testing.T) {
 	}
 
 	// The skill's start, with its requirements checked, records run-rules/6.
-	out, code := cpRun(t, fresh, env, ha, "start", cpGoal, "--rules", cpNewRules, "--request", "implement the synthetic goal",
+	out, code := cpRun(t, fresh, env, ha, "start", cpGoal, "--rules", "run-rules/7", "--request", "implement the synthetic goal",
 		"--skill", filepath.Join(skillCopy, "SKILL.md"), "--check-skill")
 	first, _, _ := strings.Cut(strings.TrimSpace(out), "\n")
 	started := false
 	switch {
 	case code == 64 && strings.Contains(out, "--rules"):
-		t.Errorf("jaekit:violation=%s ha start --rules %s --check-skill with the skill is refused: exit %d: %s", v, cpNewRules, code, first)
+		t.Errorf("jaekit:violation=%s ha start --rules %s --check-skill with the skill is refused: exit %d: %s", v, "run-rules/7", code, first)
 	case code == 65 && strings.Contains(out, "skill requirements"):
 		t.Errorf("jaekit:violation=%s this tree's ha refuses the skill's requirements: exit %d: %s", v, code, first)
 	case code != 0:
 		t.Fatalf("setup: ha start --check-skill exit %d: %s", code, out)
 	default:
-		if got := cpStartRules(t, fresh); got != cpNewRules {
-			t.Errorf("jaekit:violation=%s the skill's start recorded rules %q, want %q", v, got, cpNewRules)
+		if got := cpStartRules(t, fresh); got != "run-rules/7" {
+			t.Errorf("jaekit:violation=%s the skill's start recorded rules %q, want %q", v, got, "run-rules/7")
 		} else {
 			started = true
 		}
@@ -444,15 +444,15 @@ func TestCoreIntegrityAC9_SealStartsUnderRulesV6(t *testing.T) {
 
 	// Seal's helper starts with this tree's ha under run-rules/6, refuses a
 	// Core without it, and resumes a run-rules/5 goal under its saved rule.
-	if r, code := cpHelperRun(t, bin, env, "--ha", ha, "--operation", "start"); code != 0 || !r.Compatible || cpRulesOf(r) != cpNewRules {
+	if r, code := cpHelperRun(t, bin, env, "--ha", ha, "--operation", "start"); code != 0 || !r.Compatible || cpRulesOf(r) != "run-rules/7" {
 		t.Errorf("jaekit:violation=%s check_core.py --operation start with this tree's ha: exit %d, compatible %v, rules %s, reason %s; want 0 with %s",
-			v, code, r.Compatible, cpRulesOf(r), r.Reason, cpNewRules)
+			v, code, r.Compatible, cpRulesOf(r), r.Reason, "run-rules/7")
 	}
 	r, code := cpHelperRun(t, bin, env, "--ha", fake, "--operation", "start")
-	named := slices.ContainsFunc(r.Missing, func(m string) bool { return strings.Contains(m, cpNewRules) })
+	named := slices.ContainsFunc(r.Missing, func(m string) bool { return strings.Contains(m, "run-rules/7") })
 	if code != 2 || r.Compatible || !named {
 		t.Errorf("jaekit:violation=%s check_core.py --operation start with a Core without %s: exit %d, compatible %v, missing %v; want 2 naming %s",
-			v, cpNewRules, code, r.Compatible, r.Missing, cpNewRules)
+			v, "run-rules/7", code, r.Compatible, r.Missing, "run-rules/7")
 	}
 	if r, code := cpHelperRun(t, earlier, env, "--ha", ha, "--operation", "resume", "--goal", cpGoal); code != 0 || !r.Compatible || cpRulesOf(r) != cpOldRules {
 		t.Errorf("jaekit:violation=%s check_core.py --operation resume of a %s goal: exit %d, compatible %v, rules %s, reason %s, missing %v; want 0 under %s",
@@ -464,9 +464,9 @@ func TestCoreIntegrityAC9_SealStartsUnderRulesV6(t *testing.T) {
 	// goal, the refused start above is the observation.
 	if started {
 		for _, op := range []string{"resume", "check", "budget"} {
-			if r, code := cpHelperRun(t, fresh, env, "--ha", ha, "--operation", op, "--goal", cpGoal); code != 0 || !r.Compatible || cpRulesOf(r) != cpNewRules {
+			if r, code := cpHelperRun(t, fresh, env, "--ha", ha, "--operation", op, "--goal", cpGoal); code != 0 || !r.Compatible || cpRulesOf(r) != "run-rules/7" {
 				t.Errorf("jaekit:violation=%s check_core.py --operation %s of a %s goal: exit %d, compatible %v, rules %s, reason %s, missing %v; want 0 under %s",
-					v, op, cpNewRules, code, r.Compatible, cpRulesOf(r), r.Reason, r.Missing, cpNewRules)
+					v, op, "run-rules/7", code, r.Compatible, cpRulesOf(r), r.Reason, r.Missing, "run-rules/7")
 			}
 		}
 	}
@@ -546,7 +546,7 @@ func TestCoreIntegrityAC12_Documents(t *testing.T) {
 	}
 
 	// Seal: the skill's start line and the reference's run-rules/6 section.
-	report(cpSkill, cpMissing("the skill", files[cpSkill], "--rules "+cpNewRules))
+	report(cpSkill, cpMissing("the skill", files[cpSkill], "--rules run-rules/7"))
 	if sec, ok := cpSection(files[cpHaRef], cpHeading(cpNewRules)); !ok {
 		report(cpHaRef, []string{"the section `## " + cpNewRules + "`"})
 	} else {

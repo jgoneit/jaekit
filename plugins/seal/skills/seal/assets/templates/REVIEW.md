@@ -15,6 +15,10 @@
 ## 검증 방법과 환경
 <whether each command runs here; tools, data, network and repository history (a check reads history only when its condition is about history; name the range it reads); how a cross-component flow is checked across the boundary>
 
+<under `run-rules/7`, state for every change condition whether it requires a baseline and why: bug fixes and regressions with a defect at base, prohibitions such as "X does not happen", and conditions possibly partly met at base require one; the PLAN `baseline` column marks exactly those conditions with `요구`, and the `strict` plan round reviews the judgment>
+
+<for each dedicated producer of a change condition requiring a baseline, state the outcomes of a missing target file, corrupt input, a tool that cannot start and termination by a signal before the plan round, or before any review round without a plan round; none is a violation unless the condition itself makes it one and the result contract allows declaring it; runner adapters classify input failures themselves; no check may count an input failure as a pass>
+
 <for goals started with seal 0.1.10 or later; existing goals retain their starting format:
 - Expected-result grounds: requirement/public contract/agreed invariant and location; unresolved/conflicting grounds stay explicit
 - Planned observation boundary: scope and relevant environment; planned is not observed

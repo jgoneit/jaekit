@@ -344,7 +344,7 @@ func TestSealSlimAC13_StartFormChecksSkill(t *testing.T) {
 		ssViolate(t, id, "%s names no `ha start <goal> … --skill …` command", ssSkill)
 		return
 	}
-	for _, flag := range []string{"--check-skill", "--rules run-rules/6", "--skill <path to this SKILL.md>"} {
+	for _, flag := range []string{"--check-skill", "--rules run-rules/7", "--skill <path to this SKILL.md>"} {
 		if !strings.Contains(form, flag) {
 			ssViolate(t, id, "the start form %q lacks %s", form, flag)
 		}
@@ -967,7 +967,7 @@ func TestSealSlimAC36_Declaration(t *testing.T) {
 			}
 		}
 	}
-	has(decl.Rules, "run-rules/6")
+	has(decl.Rules, "run-rules/7")
 	has(decl.Features, "review-gate/v1", "test-authority/v1", "reported-wait/v1", "preapproved-runs/v1", "error-recovery/v1", "command-time-limits/v1",
 		"structured-change-results/v1", "report/v1", "doctor/v1", "auto-budget/v1")
 	has(decl.Formats["check_declaration"], "check-declaration/v1")
