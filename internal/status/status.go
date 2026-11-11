@@ -30,37 +30,50 @@ const (
 	RulesV4 = "run-rules/4"
 	RulesV5 = "run-rules/5"
 	RulesV6 = "run-rules/6"
+	RulesV7 = "run-rules/7"
 	Rules   = RulesV3
 )
 
 // Supported reports whether this build computes goals started under rules.
-// It is the only rule-support decision; run-rules/4 through run-rules/6 are chosen
+// It is the only rule-support decision; run-rules/4 through run-rules/7 are chosen
 // with `ha start --rules` and never by default.
 func Supported(rules string) bool {
-	return rules == RulesV1 || rules == RulesV2 || rules == RulesV3 || rules == RulesV4 || rules == RulesV5 || rules == RulesV6
+	return rules == RulesV1 || rules == RulesV2 || rules == RulesV3 || rules == RulesV4 || rules == RulesV5 || rules == RulesV6 || rules == RulesV7
 }
 
 // Structured reports whether rules keep the run-rules/3 semantics: structured
 // change results, inconclusive results under the error limit, and budget
-// changes. run-rules/4 through run-rules/6 keep them all.
+// changes. run-rules/4 through run-rules/7 keep them all.
 func Structured(rules string) bool {
-	return rules == RulesV3 || rules == RulesV4 || rules == RulesV5 || rules == RulesV6
+	return rules == RulesV3 || rules == RulesV4 || rules == RulesV5 || rules == RulesV6 || rules == RulesV7
 }
 
 // Autonomous reports whether rules keep the run-rules/4 additions: test-change
 // authority, reported waits, pre-approved limits, error recovery and command
-// time limits. run-rules/5 and run-rules/6 keep them all.
-func Autonomous(rules string) bool { return rules == RulesV4 || rules == RulesV5 || rules == RulesV6 }
+// time limits. run-rules/5 through run-rules/7 keep them all.
+func Autonomous(rules string) bool {
+	return rules == RulesV4 || rules == RulesV5 || rules == RulesV6 || rules == RulesV7
+}
 
 // Reviewed reports whether rules judge the recorded review gate of a goal
 // whose SPEC asks for independent review (run-record.md §4.8).
-func Reviewed(rules string) bool { return rules == RulesV5 || rules == RulesV6 }
+func Reviewed(rules string) bool { return rules == RulesV5 || rules == RulesV6 || rules == RulesV7 }
 
 // CompletionIntegrity reports whether rules apply the run-rules/6 judgments:
 // review coverage starts at the goal base, only reviewed tiers invalidate a
 // completion on a later review note, unjudged done lines are skipped, and
 // post-completion intervals are excluded from elapsed budget time.
-func CompletionIntegrity(rules string) bool { return rules == RulesV6 }
+func CompletionIntegrity(rules string) bool { return rules == RulesV6 || rules == RulesV7 }
+
+// SelectiveBaseline reports whether only PLAN-marked change conditions need
+// a baseline. Earlier rules ignore the optional marker column.
+func SelectiveBaseline(rules string) bool { return rules == RulesV7 }
+
+// RequiresBaseline is shared by judgment, default selection and run estimates.
+// It reads the current PLAN mark, not the marks copied into the start record.
+func RequiresBaseline(rules string, row *bundle.Row) bool {
+	return row != nil && row.Kind == bundle.KindChange && (!SelectiveBaseline(rules) || row.BaselineRequired)
+}
 
 // Excludes returns the paths left out of the code state of goal g under
 // rules: the goal's own documents and bundle, the amendment documents of the
@@ -164,7 +177,7 @@ var classOf = map[string]string{
 type UnsupportedRulesError struct{ Rules string }
 
 func (e *UnsupportedRulesError) Error() string {
-	return fmt.Sprintf("goal was started with rules %q; this ha computes only %q, %q, %q, %q, %q and %q", e.Rules, RulesV1, RulesV2, RulesV3, RulesV4, RulesV5, RulesV6)
+	return fmt.Sprintf("goal was started with rules %q; this ha computes only %q, %q, %q, %q, %q, %q and %q", e.Rules, RulesV1, RulesV2, RulesV3, RulesV4, RulesV5, RulesV6, RulesV7)
 }
 
 // Input is everything the computation reads.
@@ -893,7 +906,7 @@ func (e *evaluator) judge(id, kind string, C, B []*record.Line) string {
 	}
 	if kind == bundle.KindChange {
 		switch {
-		case len(B) == 0:
+		case len(B) == 0 && (!SelectiveBaseline(e.rules) || RequiresBaseline(e.rules, e.in.Bundle.Row(id))):
 			return "baseline_missing"
 		case count(B, "unexpected_pass") > 0:
 			return "baseline_unexpected_pass"
@@ -909,7 +922,7 @@ func (e *evaluator) judge(id, kind string, C, B []*record.Line) string {
 	if cPass == 0 {
 		return "criterion_missing"
 	}
-	if kind == bundle.KindChange && count(B, "fail_as_expected") == 0 {
+	if kind == bundle.KindChange && (!SelectiveBaseline(e.rules) || RequiresBaseline(e.rules, e.in.Bundle.Row(id))) && count(B, "fail_as_expected") == 0 {
 		return "baseline_missing"
 	}
 	return ""

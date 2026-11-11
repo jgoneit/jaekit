@@ -168,6 +168,10 @@ type Start struct {
 	Budget        Budget         `json:"budget"`
 	TestAuthority *TestAuthority `json:"test_authority,omitempty"`
 	Scope         *ScopeCopy     `json:"scope,omitempty"`
+
+	// BaselineMarked records the PLAN marks at a run-rules/7 start, including
+	// an empty list; nil leaves earlier start records byte-for-byte unchanged.
+	BaselineMarked *[]string `json:"baseline_marked,omitempty"`
 }
 
 // Check is a `check` line.
@@ -454,6 +458,8 @@ type Line struct {
 	Criteria       []CriterionResult `json:"criteria"`
 	CommandDigests map[string]string `json:"command_digests"`
 	Raw            []byte            `json:"-"`
+
+	BaselineMarked []string `json:"baseline_marked,omitempty"`
 }
 
 // Hash is the hex sha256 of the line bytes; the next line's prev.

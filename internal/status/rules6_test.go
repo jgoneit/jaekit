@@ -26,7 +26,7 @@ func TestRules6Inheritance(t *testing.T) {
 		{RulesV4, true, true, true, false, false},
 		{RulesV5, true, true, true, true, false},
 		{RulesV6, true, true, true, true, true},
-		{"run-rules/7", false, false, false, false, false},
+		{"run-rules/8", false, false, false, false, false},
 		{"", false, false, false, false, false},
 	} {
 		t.Run(tc.rules, func(t *testing.T) {
@@ -40,7 +40,7 @@ func TestRules6Inheritance(t *testing.T) {
 	if Rules != RulesV3 {
 		t.Errorf("default rules = %s; want %s", Rules, RulesV3)
 	}
-	if message := (&UnsupportedRulesError{Rules: "run-rules/7"}).Error(); !strings.Contains(message, `"run-rules/6"`) {
+	if message := (&UnsupportedRulesError{Rules: "run-rules/8"}).Error(); !strings.Contains(message, `"run-rules/6"`) {
 		t.Errorf("unsupported-rule diagnostic omits run-rules/6: %s", message)
 	}
 }

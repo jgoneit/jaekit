@@ -41,7 +41,7 @@ func TestCompatibilityAC7_GoallessReadOnlyQuery(t *testing.T) {
 		t.Fatalf("[requirement] wrong capability identity/default: %v", report)
 	}
 	wanted := map[string]any{
-		"supported_rules": []any{"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5", "run-rules/6"},
+		"supported_rules": []any{"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5", "run-rules/6", "run-rules/7"},
 		"formats": map[string]any{
 			"finding":          []any{"run-finding/v1"},
 			"decision_history": []any{"decision-history/v1"},
