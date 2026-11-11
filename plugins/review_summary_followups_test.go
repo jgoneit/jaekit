@@ -323,6 +323,13 @@ const (
 	rsfGuideViol = "jaekit:violation=guides-review-summary-missing"
 )
 
+// The eight guides the guide check reads, by the language of their required
+// phrases; each holds its language's phrase above.
+var (
+	rsfGuidesKo = []string{rsfGuideKo, "guides/OPERATIONS.md", "guides/OVERVIEW.md", "README.ko.md"}
+	rsfGuidesEn = []string{"guides/USAGE.en.md", "guides/OPERATIONS.en.md", "guides/OVERVIEW.en.md", rsfGuideEn}
+)
+
 // The outcomes of one run of the guide check.
 const (
 	rsfViolation = "its violation"
@@ -447,7 +454,7 @@ func TestReviewSummaryFollowupsAC4_VisibleGuideText(t *testing.T) {
 	dir := t.TempDir()
 	rsfCopy(t, dir)
 	orig := map[string]string{}
-	for _, f := range []string{rsfGuideKo, rsfGuideEn, "guides/OVERVIEW.md", "guides/OPERATIONS.en.md"} {
+	for _, f := range append(append([]string{}, rsfGuidesKo...), rsfGuidesEn...) {
 		data, err := os.ReadFile(filepath.Join(dir, f))
 		if err != nil {
 			t.Fatalf("setup: cannot read the copy of %s: %v", f, err)
@@ -521,6 +528,17 @@ func TestReviewSummaryFollowupsAC4_VisibleGuideText(t *testing.T) {
 		{"a comment around only the qualifier inside its list item", func() {
 			edit("qualifier only", rsfGuideKo, rsfQualKo, false, "<!-- ", " -->")
 		}, rsfViolation},
+		{"an unclosed comment before the paragraph of a Korean guide phrase", func() {
+			edit("unclosed comment", rsfGuideKo, rsfPhraseKo, true, "<!-- ", "")
+		}, rsfViolation},
+		{"a stray backtick in one list item and a comment in the next", func() {
+			text := orig[rsfGuideKo]
+			s, e, _ := rsfBlock(text, rsfPhraseKo)
+			out := text[:s] + "- a stray ` backtick\n- <!-- " + text[s:e] + " -->" + text[e:]
+			if err := os.WriteFile(filepath.Join(dir, rsfGuideKo), []byte(out), 0o644); err != nil {
+				t.Fatalf("setup: %v", err)
+			}
+		}, rsfViolation},
 		{"a comment around the whole paragraph of an English guide phrase", func() {
 			edit("whole paragraph", rsfGuideEn, rsfPhraseEn, true, "<!-- ", " -->")
 		}, rsfViolation},
@@ -578,6 +596,26 @@ func TestReviewSummaryFollowupsAC4_VisibleGuideText(t *testing.T) {
 				t.Fatalf("setup: a file without permissions can still be read here, so the form cannot be built")
 			}
 		}, rsfSkip},
+	}
+	// The phrase-only form in each of the other six guides, with that guide's
+	// own required phrase (03-candidate claude-F2).
+	for _, set := range []struct {
+		files  []string
+		phrase string
+	}{{rsfGuidesKo, rsfPhraseKo}, {rsfGuidesEn, rsfPhraseEn}} {
+		for _, file := range set.files {
+			if file == rsfGuideKo || file == rsfGuideEn {
+				continue
+			}
+			file, phrase := file, set.phrase
+			forms = append(forms, struct {
+				name  string
+				build func()
+				want  string
+			}{"a comment around only the guide phrase in " + file, func() {
+				edit("phrase only", file, phrase, false, "<!-- ", " -->")
+			}, rsfViolation})
+		}
 	}
 	for _, f := range forms {
 		restore()
