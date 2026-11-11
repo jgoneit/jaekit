@@ -114,6 +114,7 @@ var (
 	brMarkerPlaceholder = "<[사용자], [제안] or [기존]>"
 	brSourceLabel       = "Source:"
 	brDecisionHeading   = "## Decisions and reasons"
+	brDecisionItem      = brRegexp.MustCompile(`^\s*(?:[-+*]|[0-9]+[.)])\s+`)
 	brSpecTemplates     = []string{
 		"spec/skills/spec/assets/templates/backend-feature.md",
 		"spec/skills/spec/assets/templates/cross-module-feature.md",
@@ -121,8 +122,8 @@ var (
 	}
 	// AC-5: existing decisions, user-selected additions and existing labels.
 	brExistingRules = map[string][]string{
-		"en": {"Decisions without a marker remain valid", "When editing an existing document, add no marker unless the user decides", "Existing source labels stay unchanged"},
-		"ko": {"표시 없는 결정도 그대로 유효하다", "기존 문서를 고칠 때 사용자가 정하지 않으면 표시를 더하지 않는다", "이미 있는 출처 표기는 바꾸지 않는다"},
+		"en": {"Decisions without a marker remain valid", "When editing an existing document, add no marker unless the user decides", "Existing source labels stay unchanged", "A document whose decisions already carry markers keeps marking the decisions added or changed in later edits."},
+		"ko": {"표시 없는 결정도 그대로 유효하다", "기존 문서를 고칠 때 사용자가 정하지 않으면 표시를 더하지 않는다", "이미 있는 출처 표기는 바꾸지 않는다", "결정에 이미 표시가 있는 문서는 뒤에 더하거나 고친 결정에도 표시를 붙인다."},
 	}
 	// AC-5: the exact forbidden patterns in TestSpecPluginKnowsNothingOfSeal.
 	brForbidden = []*brRegexp.Regexp{
@@ -313,13 +314,27 @@ func brFail(brT *brTesting.T, brViolation string, brMissing []string) {
 }
 
 func brRow(brText string) string {
+	brOpen := ""
 	for _, brLine := range brStrings.Split(brText, "\n") {
-		brCells := brStrings.Split(brLine, "|")
-		if len(brCells) >= 3 && brStrings.Contains(brCells[1], brDecisionRow) {
+		var brFenced bool
+		brOpen, brFenced = brFence(brOpen, brLine)
+		if brFenced {
+			continue
+		}
+		if brStrings.HasPrefix(brLine, "| "+brDecisionRow+" |") || brStrings.HasPrefix(brLine, "| `"+brDecisionRow+"` ") {
 			return brLine
 		}
 	}
 	return ""
+}
+
+func brNeedReviewRow(brMissing *[]string, brWhere, brText, brLang string, brScope []string) {
+	brText = brRow(brText)
+	brNeed(brMissing, brWhere, brText, brDecisionOrder)
+	brNeed(brMissing, brWhere, brText, brUserItems[brLang]...)
+	brNeed(brMissing, brWhere, brText, brAssumeItems[brLang]...)
+	brNeed(brMissing, brWhere, brText, brEmptyDecisions[brLang]...)
+	brNeed(brMissing, brWhere, brText, brScope...)
 }
 
 func TestBundleReadabilityAC1_ReviewDecisionsSplit(brT *brTesting.T) {
@@ -335,12 +350,7 @@ func TestBundleReadabilityAC1_ReviewDecisionsSplit(brT *brTesting.T) {
 	brNeed(&brMissing, brReviewTemplate+" "+brReviewHeading, brSectionText, brEmptyDecisions["en"]...)
 	for brI, brD := range brReviewDocs {
 		brText := brDocSection(brT, &brMissing, brD)
-		brWhere := brD.brPath + " " + brD.brHeading
-		brNeed(&brMissing, brWhere, brText, brDecisionOrder)
-		brNeed(&brMissing, brWhere, brText, brUserItems[brD.brLang]...)
-		brNeed(&brMissing, brWhere, brText, brAssumeItems[brD.brLang]...)
-		brNeed(&brMissing, brWhere, brText, brEmptyDecisions[brD.brLang]...)
-		brNeed(&brMissing, brWhere+" decision row", brRow(brText), brDecisionScope[brI]...)
+		brNeedReviewRow(&brMissing, brD.brPath+" "+brD.brHeading+" decision row", brText, brD.brLang, brDecisionScope[brI])
 	}
 	brFail(brT, "review-decisions-not-split", brMissing)
 }
@@ -382,31 +392,41 @@ func TestBundleReadabilityAC3_ReviewKept(brT *brTesting.T) {
 	}
 }
 
-// Return the sole decision placeholder line, not a Source: in another section.
+// Return the first decision placeholder only if every unfenced Source: list
+// item in the decisions section carries its marker and trailing source.
 func brDecisionLine(brText string) (string, bool) {
 	brSec, brOK := brSection(brText, brDecisionHeading)
 	if !brOK {
 		return "", false
 	}
-	brFound := ""
+	brFound, brOpen := "", ""
 	for _, brLine := range brStrings.Split(brSec, "\n") {
-		if brStrings.Contains(brLine, brSourceLabel) {
-			if brFound != "" {
-				return "", false
-			}
+		var brFenced bool
+		brOpen, brFenced = brFence(brOpen, brLine)
+		if brFenced || !brDecisionItem.MatchString(brLine) || !brStrings.Contains(brLine, brSourceLabel) {
+			continue
+		}
+		if !brMarkedDecisionLine(brLine) {
+			return brLine, false
+		}
+		if brFound == "" {
 			brFound = brLine
 		}
 	}
+	return brFound, brFound != ""
+}
+
+func brMarkedDecisionLine(brLine string) bool {
 	brPrefix := "- " + brMarkerPlaceholder + " "
-	if !brStrings.HasPrefix(brFound, brPrefix) || brStrings.Count(brFound, brMarkerPlaceholder) != 1 {
-		return brFound, false
+	if !brStrings.HasPrefix(brLine, brPrefix) || brStrings.Count(brLine, brMarkerPlaceholder) != 1 {
+		return false
 	}
-	brTail := brStrings.TrimSpace(brStrings.TrimPrefix(brFound, brPrefix))
+	brTail := brStrings.TrimSpace(brStrings.TrimPrefix(brLine, brPrefix))
 	brSlots := brPlaceholder.FindAllStringIndex(brTail, -1)
 	if len(brSlots) != 2 || brSlots[0][0] != 0 {
-		return brFound, false
+		return false
 	}
-	return brFound, brStrings.TrimSpace(brTail[brSlots[0][1]:brSlots[1][0]]) == brSourceLabel &&
+	return brStrings.TrimSpace(brTail[brSlots[0][1]:brSlots[1][0]]) == brSourceLabel &&
 		brStrings.TrimSpace(brTail[brSlots[1][1]:]) == ""
 }
 
@@ -417,7 +437,7 @@ func TestBundleReadabilityAC4_DecisionMarkers(brT *brTesting.T) {
 	brNeed(&brMissing, brSpecSkill+" "+brSpecLanguage, brText, brMarkers...)
 	for _, brFile := range brSpecTemplates {
 		if _, brOK := brDecisionLine(brRead(brT, brFile)); !brOK {
-			brMissing = append(brMissing, brFmt.Sprintf("%s %s needs one decision line starting %q, then a decision placeholder, then %q and its trailing placeholder", brFile, brDecisionHeading, "- "+brMarkerPlaceholder+" ", brSourceLabel))
+			brMissing = append(brMissing, brFmt.Sprintf("%s %s needs at least one unfenced decision line, with every %q list item starting %q, then a decision placeholder, then %q and its trailing placeholder", brFile, brDecisionHeading, brSourceLabel, "- "+brMarkerPlaceholder+" ", brSourceLabel))
 		}
 	}
 	brFail(brT, "decision-marker-missing", brMissing)
@@ -524,10 +544,27 @@ func brTemplateHeaders(brMissing *[]string, brWhere, brText string) bool {
 }
 
 func brSyntheticSpec(brText, brLine, brMarker string) string {
-	// Replace the marker before filling other angle-bracket placeholders.
-	brText = brStrings.Replace(brText, brLine, brStrings.Replace(brLine, brMarkerPlaceholder, brMarker, 1), 1)
-	brText = brPlaceholder.ReplaceAllString(brText, "synthetic")
+	// Mark the selected unfenced decision before filling other placeholders;
+	// an identical fenced example must not take its place.
 	brLines := brStrings.Split(brText, "\n")
+	brOpen, brInDecisions := "", false
+	for brI, brCurrent := range brLines {
+		var brFenced bool
+		brOpen, brFenced = brFence(brOpen, brCurrent)
+		if brFenced {
+			continue
+		}
+		if brLevel(brCurrent) > 0 && brLevel(brCurrent) <= brLevel(brDecisionHeading) {
+			brInDecisions = brStrings.TrimRight(brCurrent, " \t\r") == brDecisionHeading
+		}
+		if brInDecisions && brCurrent == brLine {
+			brLines[brI] = brStrings.Replace(brLine, brMarkerPlaceholder, brMarker, 1)
+			break
+		}
+	}
+	brText = brStrings.Join(brLines, "\n")
+	brText = brPlaceholder.ReplaceAllString(brText, "synthetic")
+	brLines = brStrings.Split(brText, "\n")
 	for brI, brLine := range brLines {
 		if brLevel(brLine) == 2 {
 			break
@@ -793,13 +830,56 @@ func TestBundleReadabilityHelpersHeadingOrder(brT *brTesting.T) {
 	}
 }
 
+func TestBundleReadabilityHelpersReviewRow(brT *brTesting.T) {
+	for brI, brD := range brReviewDocs {
+		brT.Run(brD.brPath, func(brT *brTesting.T) {
+			brTokens := []string{brDecisionOrder}
+			brTokens = append(brTokens, brUserItems[brD.brLang]...)
+			brTokens = append(brTokens, brAssumeItems[brD.brLang]...)
+			brTokens = append(brTokens, brEmptyDecisions[brD.brLang]...)
+			brSplit := brStrings.Join(brTokens, ". ")
+			brScope := brStrings.Join(brDecisionScope[brI], ". ")
+			brLabel := "| " + brDecisionRow + " | "
+			if brI == 2 {
+				brLabel = "| `" + brDecisionRow + "` (important open decisions) | "
+			}
+			for _, brCase := range []struct {
+				brName, brRows string
+				brWant         bool
+			}{
+				{"rules in decision row", brLabel + brScope + ". " + brSplit + " |", true},
+				{"split rules in another row", "| 문서 충돌 | " + brSplit + " |\n" + brLabel + brScope + " |", false},
+				{"scope in another row", "| 문서 충돌 | " + brScope + " |\n" + brLabel + brSplit + " |", false},
+				{"decision label mentioned by another row", "| 문서 충돌 (" + brDecisionRow + ") | " + brScope + ". " + brSplit + " |", false},
+			} {
+				brT.Run(brCase.brName, func(brT *brTesting.T) {
+					var brMissing []string
+					brNeedReviewRow(&brMissing, brCase.brName, brD.brHeading+"\n\n"+brCase.brRows, brD.brLang, brDecisionScope[brI])
+					if brGot := len(brMissing) == 0; brGot != brCase.brWant {
+						brT.Errorf("review row = %t, want %t; missing = %q", brGot, brCase.brWant, brMissing)
+					}
+				})
+			}
+		})
+	}
+}
+
 func TestBundleReadabilityHelpersDecisionLine(brT *brTesting.T) {
 	brPrefix := "- " + brMarkerPlaceholder + " "
+	brValid := brPrefix + "<decision and reason> Source: <source>"
+	brBare := "- <decision and reason>"
 	for _, brCase := range []struct {
 		brName, brLine string
 		brWant         bool
 	}{
-		{"marker decision source", brPrefix + "<decision and reason> Source: <source>", true},
+		{"marker decision source", brValid, true},
+		{"multiple marked decisions", brValid + "\n" + brPrefix + "<another decision> Source: <another source>", true},
+		{"unmarked decision after marked decision", brValid + "\n" + brBare + " Source: <source>", false},
+		{"unmarked decision before marked decision", brBare + " Source: <source>\n" + brValid, false},
+		{"unmarked star list item", brValid + "\n* <decision> Source: <source>", false},
+		{"unmarked plus list item", brValid + "\n+ <decision> Source: <source>", false},
+		{"unmarked numbered list item", brValid + "\n1. <decision> Source: <source>", false},
+		{"source in prose", "Source: describes the final field.\n" + brValid, true},
 		{"source before decision", brPrefix + "Source: <source> <decision and reason>", false},
 		{"marker after decision", "- <decision and reason> " + brMarkerPlaceholder + " Source: <source>", false},
 		{"indented marker", " " + brPrefix + "<decision and reason> Source: <source>", false},
@@ -813,6 +893,38 @@ func TestBundleReadabilityHelpersDecisionLine(brT *brTesting.T) {
 			brLine, brGot := brDecisionLine(brText)
 			if brGot != brCase.brWant {
 				brT.Errorf("decision line = %t, want %t for %q", brGot, brCase.brWant, brLine)
+			}
+		})
+	}
+	for _, brFenceToken := range []string{"```", "~~~"} {
+		brExample := brFenceToken + "md\n" + brPrefix + "<example decision> Source: <example source>\n" + brFenceToken
+		for _, brCase := range []struct {
+			brName, brBody string
+			brWant         bool
+		}{
+			{"fenced decision only", brExample, false},
+			{"fenced decision and bare real decision", brExample + "\n" + brBare, false},
+			{"fenced decision and unmarked real source", brExample + "\n" + brBare + " Source: <source>", false},
+			{"fenced example before real decision", brExample + "\n" + brValid, true},
+			{"fenced unmarked example before real decision", brFenceToken + "md\n" + brBare + " Source: <source>\n" + brFenceToken + "\n" + brValid, true},
+		} {
+			brT.Run(brFenceToken+"/"+brCase.brName, func(brT *brTesting.T) {
+				brLine, brGot := brDecisionLine(brDecisionHeading + "\n\n" + brCase.brBody)
+				if brGot != brCase.brWant || (brGot && brLine != brValid) {
+					brT.Errorf("decision line = %q, %t; want unfenced line %q, %t", brLine, brGot, brValid, brCase.brWant)
+				}
+			})
+		}
+		brT.Run(brFenceToken+"/synthetic marks real decision", func(brT *brTesting.T) {
+			brText := brDecisionHeading + "\n\n" + brFenceToken + "md\n" + brValid + "\n" + brFenceToken + "\n" + brValid
+			brLine, brOK := brDecisionLine(brText)
+			if !brOK {
+				brT.Fatal("valid unfenced decision was not selected")
+			}
+			brSpec := brSyntheticSpec(brText, brLine, brMarkers[0])
+			brWant := brDecisionHeading + "\n\n" + brFenceToken + "md\n- synthetic synthetic Source: synthetic\n" + brFenceToken + "\n- " + brMarkers[0] + " synthetic Source: synthetic"
+			if brSpec != brWant {
+				brT.Errorf("synthetic SPEC = %q, want %q", brSpec, brWant)
 			}
 		})
 	}
