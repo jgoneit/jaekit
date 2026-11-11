@@ -392,8 +392,9 @@ func TestBundleReadabilityAC3_ReviewKept(brT *brTesting.T) {
 	}
 }
 
-// Return the first decision placeholder only if every unfenced Source: list
-// item in the decisions section carries its marker and trailing source.
+// Return the first decision placeholder only if every unfenced list item in
+// the decisions section carries its marker and trailing source (03-candidate
+// codex-F1: an item without Source: is a decision too).
 func brDecisionLine(brText string) (string, bool) {
 	brSec, brOK := brSection(brText, brDecisionHeading)
 	if !brOK {
@@ -403,7 +404,7 @@ func brDecisionLine(brText string) (string, bool) {
 	for _, brLine := range brStrings.Split(brSec, "\n") {
 		var brFenced bool
 		brOpen, brFenced = brFence(brOpen, brLine)
-		if brFenced || !brDecisionItem.MatchString(brLine) || !brStrings.Contains(brLine, brSourceLabel) {
+		if brFenced || !brDecisionItem.MatchString(brLine) {
 			continue
 		}
 		if !brMarkedDecisionLine(brLine) {
@@ -437,7 +438,7 @@ func TestBundleReadabilityAC4_DecisionMarkers(brT *brTesting.T) {
 	brNeed(&brMissing, brSpecSkill+" "+brSpecLanguage, brText, brMarkers...)
 	for _, brFile := range brSpecTemplates {
 		if _, brOK := brDecisionLine(brRead(brT, brFile)); !brOK {
-			brMissing = append(brMissing, brFmt.Sprintf("%s %s needs at least one unfenced decision line, with every %q list item starting %q, then a decision placeholder, then %q and its trailing placeholder", brFile, brDecisionHeading, brSourceLabel, "- "+brMarkerPlaceholder+" ", brSourceLabel))
+			brMissing = append(brMissing, brFmt.Sprintf("%s %s needs at least one unfenced decision line, with every unfenced list item starting %q, then a decision placeholder, then %q and its trailing placeholder", brFile, brDecisionHeading, "- "+brMarkerPlaceholder+" ", brSourceLabel))
 		}
 	}
 	brFail(brT, "decision-marker-missing", brMissing)
@@ -879,6 +880,9 @@ func TestBundleReadabilityHelpersDecisionLine(brT *brTesting.T) {
 		{"unmarked star list item", brValid + "\n* <decision> Source: <source>", false},
 		{"unmarked plus list item", brValid + "\n+ <decision> Source: <source>", false},
 		{"unmarked numbered list item", brValid + "\n1. <decision> Source: <source>", false},
+		{"source-less decision after marked decision", brValid + "\n" + brBare, false},
+		{"source-less decision before marked decision", brBare + "\n" + brValid, false},
+		{"marked decision without source after marked decision", brValid + "\n" + brPrefix + "<another decision>", false},
 		{"source in prose", "Source: describes the final field.\n" + brValid, true},
 		{"source before decision", brPrefix + "Source: <source> <decision and reason>", false},
 		{"marker after decision", "- <decision and reason> " + brMarkerPlaceholder + " Source: <source>", false},
