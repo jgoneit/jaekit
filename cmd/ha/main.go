@@ -44,9 +44,9 @@ const usage = `ha — Seal Core: run records and completion for one goal
 Usage:
   ha capabilities [--format json]
   ha lint   <goal>
-  ha estimate <goal> [AC-n | EX-n | T001 ...] [--baseline] [--format md|json]
+  ha estimate <goal> [AC-n | EX-n | T001 ...] [--baseline] [--rules <version>] [--format md|json]
   ha start  <goal> --request <quote> [--skill <path to SKILL.md> [--check-skill]]
-                   [--rules run-rules/4|run-rules/5|run-rules/6] [--test-authority <agent interpretation>]
+                   [--rules run-rules/4|run-rules/5|run-rules/6|run-rules/7] [--test-authority <agent interpretation>]
                    [--host-name <name>] [--host-version <version>] [--model <model>]
   ha check  <goal> [AC-n | EX-n | T001 ...] [--baseline]
   ha budget <goal> --runs <total> --from <old-total> --window <seq> --revision <seq>
@@ -162,6 +162,8 @@ type workspace struct {
 	records string
 	lock    string
 	logDir  string
+
+	goalRules string // recorded rules, or the rules selected for start/estimate
 	// logRel is logDir as records name it: repository-relative, with .git
 	// standing for this working tree's git directory, so a linked worktree
 	// records the same path as a normal checkout (run-record.md §2.2).
@@ -216,6 +218,8 @@ func openGoal(arg string) (*workspace, error) {
 		lock:    filepath.Join(haDir, "lock"),
 		logDir:  filepath.Join(haDir, "runs", url.PathEscape(slashRel)),
 		logRel:  ".git/ha/runs/" + url.PathEscape(slashRel),
+
+		goalRules: rules(lines),
 	}, nil
 }
 
@@ -300,22 +304,23 @@ func (c *cli) start(in []string) int {
 	if quote == "" {
 		return c.fail(exitUsage, "--request is required: quote the user's request that authorizes this goal")
 	}
-	// run-rules/4 through run-rules/6 are chosen, never the default
+	// run-rules/4 through run-rules/7 are chosen, never the default
 	// (run-record.md §4.6).
 	goalRules := status.Rules
 	if r, ok := a.vals["rules"]; ok && r != status.Rules {
-		if r != status.RulesV4 && r != status.RulesV5 && r != status.RulesV6 {
-			return c.fail(exitUsage, "--rules accepts %s, %s, %s or %s", status.RulesV3, status.RulesV4, status.RulesV5, status.RulesV6)
+		if r != status.RulesV4 && r != status.RulesV5 && r != status.RulesV6 && r != status.RulesV7 {
+			return c.fail(exitUsage, "--rules accepts %s, %s, %s, %s or %s", status.RulesV3, status.RulesV4, status.RulesV5, status.RulesV6, status.RulesV7)
 		}
 		goalRules = r
 		if w.bundle, err = bundle.LoadForRules(w.repo.Root, w.goal, goalRules); err != nil {
 			return c.fail(exitInternal, "%v", err)
 		}
 	}
+	w.goalRules = goalRules
 	interpretation, hasAuthority := a.vals["test-authority"]
 	interpretation = strings.TrimSpace(interpretation)
 	if hasAuthority && (!status.Autonomous(goalRules) || interpretation == "") {
-		return c.fail(exitUsage, "--test-authority needs --rules %s, %s or %s and the executor's reading of the request", status.RulesV4, status.RulesV5, status.RulesV6)
+		return c.fail(exitUsage, "--test-authority needs --rules %s, %s, %s or %s and the executor's reading of the request", status.RulesV4, status.RulesV5, status.RulesV6, status.RulesV7)
 	}
 	if a.bools["check-skill"] && a.vals["skill"] == "" {
 		return c.fail(exitUsage, "--check-skill needs --skill <path to SKILL.md>")
@@ -397,6 +402,15 @@ func (c *cli) start(in []string) int {
 	if auto != nil {
 		e.Budget.Auto = auto.record()
 	}
+	if status.SelectiveBaseline(goalRules) {
+		marked := []string{}
+		for _, row := range w.bundle.Rows {
+			if status.RequiresBaseline(goalRules, &row) {
+				marked = append(marked, row.ID)
+			}
+		}
+		e.BaselineMarked = &marked
+	}
 	if status.Autonomous(goalRules) {
 		// The authority range and the test classification stay as started.
 		e.Scope = &record.ScopeCopy{Allowed: append([]string{}, w.bundle.Scope.Allowed...),
@@ -456,7 +470,7 @@ func (c *cli) targets(w *workspace, names []string, baseline bool) ([]target, er
 	g, b := w.goal, w.bundle
 	if len(names) == 0 {
 		for _, r := range b.Rows {
-			if baseline && r.Kind == bundle.KindChange {
+			if baseline && status.RequiresBaseline(w.goalRules, &r) {
 				names = append(names, r.ID)
 				continue
 			}

@@ -408,6 +408,7 @@ seal 0.1.20 전의 Seal로 시작한 목표는 시작할 때의 보고 형식을
 | `shell_syntax` | 검증 명령에 셸 문법이 있다 |
 | `command_parse` | 검증 명령을 낱말로 나눌 수 없다(닫히지 않은 따옴표 등) |
 | `check_paths_missing` | `change` 조건에 검사 경로가 없다 |
+| `baseline_marker` | baseline 칸이 `요구`·`—`·빈 칸 밖의 값이거나, `change`가 아닌 행에 `요구`가 있다 |
 | `check_path_glob` | 검사 경로가 glob이다 |
 | `manual_reason_missing` | `manual` 조건에 사유가 없다 |
 | `criterion_without_task` | task가 없는 조건 |

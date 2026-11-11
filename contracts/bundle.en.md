@@ -412,6 +412,7 @@ Execution bundle
 | `shell_syntax` | A verification command contains shell syntax |
 | `command_parse` | A verification command cannot be split into words (an unclosed quote and so on) |
 | `check_paths_missing` | A `change` condition has no check paths |
+| `baseline_marker` | A baseline cell is neither `요구`, `—` nor empty, or a row that is not a `change` condition contains `요구` |
 | `check_path_glob` | A check path is a glob |
 | `manual_reason_missing` | A `manual` condition has no reason |
 | `criterion_without_task` | A condition without a task |

@@ -12,7 +12,72 @@ import (
 	"time"
 
 	"github.com/jgoneit/jaekit/internal/goaldocs"
+	"github.com/jgoneit/jaekit/internal/markdown"
 )
+
+func TestBaselineColumnAndMarkersAcrossRules(t *testing.T) {
+	for _, rules := range []string{"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5", "run-rules/6", "run-rules/7"} {
+		for _, tc := range []struct {
+			name, kind, mark        string
+			column, marked, invalid bool
+		}{
+			{"five columns", KindChange, "", false, false, false},
+			{"required", KindChange, "요구", true, true, false},
+			{"empty", KindChange, "", true, false, false},
+			{"dash", KindChange, "—", true, false, false},
+			{"invalid value", KindChange, "yes", true, false, true},
+			{"maintain required", KindMaintain, "요구", true, false, true},
+			{"manual required", KindManual, "요구", true, false, true},
+		} {
+			t.Run(rules+"/"+tc.name, func(t *testing.T) {
+				root := t.TempDir()
+				header := "| ID | 종류 | 검증 명령 | 검사 경로 | Task |"
+				separator := "| --- | --- | --- | --- | --- |"
+				row := "| AC-1 | " + tc.kind + " | `go test ./...` | check.go | T001 |"
+				if tc.column {
+					header += " baseline |"
+					separator += " --- |"
+					row += " " + tc.mark + " |"
+				}
+				write(t, root, "g/SPEC.md", spec)
+				write(t, root, "g/PLAN.md", "## 조건표\n"+header+"\n"+separator+"\n"+row+"\n")
+				g, err := goaldocs.Load(root, "g")
+				if err != nil {
+					t.Fatal(err)
+				}
+				b, err := LoadForRules(root, g, rules)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got := b.Row("AC-1")
+				if got == nil || got.BaselineRequired != tc.marked {
+					t.Fatalf("row = %+v; marked %t", got, tc.marked)
+				}
+				invalid := false
+				for _, p := range b.Problems {
+					if p.Code == "table_columns" {
+						t.Fatal(p)
+					}
+					invalid = invalid || p.Code == "baseline_marker"
+				}
+				if invalid != tc.invalid {
+					t.Fatalf("baseline_marker = %t; want %t", invalid, tc.invalid)
+				}
+			})
+		}
+	}
+	// Only a final baseline column extends the existing table contract.
+	for _, header := range []string{
+		"| ID | 종류 | 검증 명령 | 검사 경로 | baseline | Task |",
+		"| ID | 종류 | 검증 명령 | 검사 경로 | Task | extra |",
+	} {
+		l := &loader{b: &Bundle{}}
+		l.readRows(markdown.Parse("## 조건표\n"+header+"\n| --- | --- | --- | --- | --- | --- |\n"), "PLAN.md")
+		if len(l.b.Problems) != 1 || l.b.Problems[0].Code != "table_columns" {
+			t.Fatalf("invalid header: %v", l.b.Problems)
+		}
+	}
+}
 
 func TestSplitCommand(t *testing.T) {
 	cases := []struct {

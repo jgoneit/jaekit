@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jgoneit/jaekit/internal/bundle"
+	"github.com/jgoneit/jaekit/internal/status"
 )
 
 // requiredRunCounts describes a fresh, failure-free run, not work remaining in
@@ -30,7 +31,17 @@ func requiredRunCounts(w *workspace) (changes, maintains int) {
 
 func minimumRequiredRuns(w *workspace) int {
 	changes, maintains := requiredRunCounts(w)
-	return 2*changes + maintains
+	return changes + maintains + requiredBaselineRuns(w)
+}
+
+func requiredBaselineRuns(w *workspace) int {
+	count := 0
+	for _, criterion := range w.goal.Criteria {
+		if !criterion.Optional && status.RequiresBaseline(w.goalRules, w.bundle.Row(criterion.ID)) {
+			count++
+		}
+	}
+	return count
 }
 
 type estimateSelection struct {
@@ -79,7 +90,7 @@ func (c *cli) estimateTargets(w *workspace, names []string, baseline bool) ([]ta
 		hasTarget := false
 		for _, row := range w.bundle.Rows {
 			criterion := w.goal.Criterion(row.ID)
-			if baseline && row.Kind == bundle.KindChange ||
+			if baseline && status.RequiresBaseline(w.goalRules, &row) ||
 				!baseline && criterion != nil && !criterion.Optional &&
 					(row.Kind == bundle.KindChange || row.Kind == bundle.KindMaintain) {
 				hasTarget = true
@@ -118,7 +129,7 @@ func selectionEstimate(w *workspace, targets []target, baseline bool) estimateSe
 }
 
 func (c *cli) estimate(in []string) int {
-	a, err := parseArgs(in, []string{"format"}, []string{"baseline"})
+	a, err := parseArgs(in, []string{"format", "rules"}, []string{"baseline"})
 	if err != nil {
 		return c.fail(exitUsage, "%v", err)
 	}
@@ -132,6 +143,25 @@ func (c *cli) estimate(in []string) int {
 	w, code := c.openOrFail(a, 1)
 	if w == nil {
 		return code
+	}
+	if requested, ok := a.vals["rules"]; ok {
+		if !status.Supported(requested) {
+			return c.fail(exitUsage, "unsupported --rules %q", requested)
+		}
+		lines, bad, err := w.read()
+		if err != nil {
+			return c.fail(exitInternal, "%v", err)
+		}
+		if bad != nil {
+			return c.fail(exitRefused, "%v", bad)
+		}
+		if started := startLine(lines); started != nil && started.Rules != requested {
+			return c.fail(exitUsage, "--rules %s differs from the goal's recorded rules %s", requested, started.Rules)
+		}
+		w.goalRules = requested
+		if w.bundle, err = bundle.LoadForRules(w.repo.Root, w.goal, requested); err != nil {
+			return c.fail(exitInternal, "%v", err)
+		}
 	}
 	if c.printLint(w) > 0 {
 		return exitProblems
@@ -187,8 +217,14 @@ func (c *cli) estimate(in []string) int {
 		}
 	} else {
 		fmt.Fprintf(c.out, "## ha estimate: %s\n\n", report.Goal)
-		fmt.Fprintf(c.out, "- required minimum: %d runs (%d change × 2 + %d maintain; manual: 0)\n",
-			report.MinimumRuns, changes, maintains)
+		if status.SelectiveBaseline(w.goalRules) {
+			marked := requiredBaselineRuns(w)
+			fmt.Fprintf(c.out, "- required minimum: %d runs (%d marked change × 2 + %d unmarked change + %d maintain; manual: 0)\n",
+				report.MinimumRuns, marked, changes-marked, maintains)
+		} else {
+			fmt.Fprintf(c.out, "- required minimum: %d runs (%d change × 2 + %d maintain; manual: 0)\n",
+				report.MinimumRuns, changes, maintains)
+		}
 		fmt.Fprintf(c.out, "- PLAN run limit: %d; shortfall: %d; headroom above minimum: %d\n",
 			report.PlanRunsLimit, report.Shortfall, report.Headroom)
 		if auto != nil {
