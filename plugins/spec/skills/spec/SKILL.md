@@ -41,7 +41,7 @@ Read [references/goal-docs.md](references/goal-docs.md) before writing or editin
   - `[제안]` when there are no user's words and the source includes a Spec proposal stated in the report.
   - `[기존]` otherwise: only a repository file, an existing goal document, or a review finding identifier.
 - Markers follow their sources: when the source changes, the marker changes with it. This includes a user's request to change a proposal and an agent invocation recording the user's acceptance as a decision. Write them as-is: the markers are contract tokens in every language.
-- Decisions without a marker remain valid. When editing an existing document, add no marker unless the user decides. Existing source labels stay unchanged.
+- Decisions without a marker remain valid. When editing an existing document, add no marker unless the user decides. A document whose decisions already carry markers keeps marking the decisions added or changed in later edits. Existing source labels stay unchanged.
 - A goal that changes existing code states today's behavior as fact, with the file path that shows it, and separates what changes from what stays the same. What stays the same is a `유지` scenario and a required criterion.
 - A goal that joins components (UI and API, service and store, two services) has at least one criterion that checks the core flow across the real boundary. Leave the method to the implementer.
 - `## 작업 분해 제안` is optional. It proposes results and dependencies (`W1`, `W2`, …), never order, method, or progress.

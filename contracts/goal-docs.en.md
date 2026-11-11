@@ -237,7 +237,7 @@ In new SPEC documents, put one marker at the very start of each decision sentenc
 
 Markers follow their sources: when the source changes, the marker changes with it. This includes a user's request to change a proposal and an agent invocation recording the user's acceptance as a decision. Write them as-is: the markers are contract tokens in every language.
 
-Decisions without a marker remain valid. When editing an existing document, add no marker unless the user decides. Existing source labels stay unchanged.
+Decisions without a marker remain valid. When editing an existing document, add no marker unless the user decides. A document whose decisions already carry markers keeps marking the decisions added or changed in later edits. Existing source labels stay unchanged.
 
 A Spec proposal stated in the report becomes the user's decision when the user accepts it or requests implementation with those goal documents. When the user says to change it, Spec edits the document, and the source of that decision becomes the user's words. An already written `Spec 제안(저장 때 동의)` (Spec proposal, agreed at save) label is left as it is.
 
