@@ -90,6 +90,108 @@ func rsmRead(t *testing.T, violation, path string) (string, bool) {
 	return string(data), true
 }
 
+// rsmReadGuide removes HTML comments only for the eight public guides read
+// by AC-15. Other checks still read their source, including template comments.
+func rsmReadGuide(t *testing.T, violation, path string) (string, bool) {
+	t.Helper()
+	text, ok := rsmRead(t, violation, path)
+	if !ok {
+		return "", false
+	}
+	return rsmGuideText(text), true
+}
+
+// rsmGuideText drops comments in prose, retaining the original markup for
+// fixed-token checks. Comment delimiters in fenced code and matched code
+// spans are literal text. Backtick runs must match in length; a closing
+// fence may be longer than its opener, but cannot have trailing text.
+func rsmGuideText(text string) string {
+	var out strings.Builder
+	fence := ""
+	run := func(s string) int {
+		n := 1
+		for n < len(s) && s[n] == s[0] {
+			n++
+		}
+		return n
+	}
+	for i := 0; i < len(text); {
+		if i == 0 || text[i-1] == '\n' {
+			end := strings.IndexByte(text[i:], '\n')
+			if end < 0 {
+				end = len(text)
+			} else {
+				end += i + 1
+			}
+			line := text[i:end]
+			trimmed := strings.TrimLeft(line, " ")
+			marker := ""
+			if len(line)-len(trimmed) <= 3 && len(trimmed) >= 3 && (trimmed[0] == '`' || trimmed[0] == '~') {
+				if n := run(trimmed); n >= 3 {
+					marker = trimmed[:n]
+				}
+			}
+			if fence != "" {
+				if strings.HasPrefix(marker, fence) && strings.TrimSpace(trimmed[len(marker):]) == "" {
+					fence = ""
+				}
+				out.WriteString(line)
+				i = end
+				continue
+			}
+			if marker != "" && (marker[0] == '~' || !strings.Contains(trimmed[len(marker):], "`")) {
+				fence = marker
+				out.WriteString(line)
+				i = end
+				continue
+			}
+		}
+		if strings.HasPrefix(text[i:], "<!--") {
+			end := strings.Index(text[i+4:], "-->")
+			if end < 0 {
+				break
+			}
+			i += 4 + end + 3
+			continue
+		}
+		if text[i] == '\\' && i+1 < len(text) {
+			out.WriteString(text[i : i+2])
+			i += 2
+			continue
+		}
+		if text[i] == '`' {
+			n := run(text[i:])
+			end := i + n
+			// An unmatched opener is ordinary text, not a code span that
+			// hides subsequent comments. A span cannot cross a blank line.
+			for j := end; j < len(text); {
+				if text[j] == '\n' {
+					next := strings.TrimLeft(text[j+1:], " \t\r")
+					if strings.HasPrefix(next, "\n") {
+						break
+					}
+				}
+				if text[j] != '`' {
+					j++
+					continue
+				}
+				m := run(text[j:])
+				if m == n {
+					end = j + m
+					break
+				}
+				j += m
+			}
+			out.WriteString(text[i:end])
+			i = end
+			continue
+		}
+		out.WriteByte(text[i])
+		i++
+	}
+	return out.String()
+}
+
 // rsmLevel is the heading level of a Markdown line, or 0 when it is not a
 // heading. Lines inside fenced code blocks are left to the caller.
 func rsmLevel(line string) int {
@@ -752,19 +854,19 @@ func TestReviewSummaryAC15_Guides(t *testing.T) {
 		"For a finished goal, read `## 검수 요약` first",
 	}
 	for _, p := range []string{"../guides/USAGE.md", "../guides/OPERATIONS.md", "../guides/OVERVIEW.md", "../README.ko.md"} {
-		if text, ok := rsmRead(t, v, p); ok {
+		if text, ok := rsmReadGuide(t, v, p); ok {
 			rsmNeed(t, v, p, text, ko...)
 		}
 	}
 	for _, p := range []string{"../guides/USAGE.en.md", "../guides/OPERATIONS.en.md", "../guides/OVERVIEW.en.md", "../README.md"} {
-		if text, ok := rsmRead(t, v, p); ok {
+		if text, ok := rsmReadGuide(t, v, p); ok {
 			rsmNeed(t, v, p, text, en...)
 		}
 	}
-	if text, ok := rsmRead(t, v, "../README.ko.md"); ok {
+	if text, ok := rsmReadGuide(t, v, "../README.ko.md"); ok {
 		rsmNeed(t, v, "../README.ko.md", text, "현재 상태, 검수 요약, 타임라인, 완료 보고")
 	}
-	if text, ok := rsmRead(t, v, "../README.md"); ok {
+	if text, ok := rsmReadGuide(t, v, "../README.md"); ok {
 		rsmNeed(t, v, "../README.md", text, "current state, review summary, timeline, completion report")
 	}
 	// The reading instructions the guides and READMEs already had now say
@@ -780,7 +882,7 @@ func TestReviewSummaryAC15_Guides(t *testing.T) {
 		{"../README.ko.md", "그 아래에 자기 판단만 덧붙입니다", rsmQualKo},
 		{"../README.md", "then adds only its own judgment below it", rsmQualEn},
 	} {
-		text, ok := rsmRead(t, v, q.path)
+		text, ok := rsmReadGuide(t, v, q.path)
 		if !ok {
 			continue
 		}
