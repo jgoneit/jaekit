@@ -621,7 +621,17 @@ func TestReviewerStandpointsAC2_RecordShowsStandpoints(rsT *testing.T) {
 	rsW.rsRecord(rsOld, "native", rsW.rsAnswer("old", 1, nil, false), "result")
 	rsW.rsStrip(rsOld)
 	rsOldSummary := rsW.rsMust(0, "summary", rsOld)
-	rsAssert(rsC, !strings.Contains(strings.ToLower(rsOldSummary), "standpoint") && strings.Contains(rsOldSummary, "native: completed"), "old-format summary was not read as a round without standpoints")
+	// The summary prints the configuration path, which lies under this test's
+	// temp dir and so contains the test name; look only at the A6 labels.
+	rsOldLabels := []string{}
+	for _, rsLine := range strings.Split(rsOldSummary, "\n") {
+		for _, rsLabel := range []string{"- Standpoints:", "- Standpoints without a completed reviewer:", "  - standpoint:", "  - standpoint report:"} {
+			if strings.HasPrefix(rsLine, rsLabel) {
+				rsOldLabels = append(rsOldLabels, rsLine)
+			}
+		}
+	}
+	rsAssert(rsC, len(rsOldLabels) == 0 && strings.Contains(rsOldSummary, "native: completed"), "old-format summary was not read as a round without standpoints: %q", rsOldLabels)
 	rsAssert(rsC, rsW.rsGate("old", 1, rsOld)["state"] != "blocked", "old-format round was blocked")
 }
 
