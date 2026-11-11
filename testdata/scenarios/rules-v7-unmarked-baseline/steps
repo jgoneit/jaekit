@@ -1,0 +1,33 @@
+# An explicitly requested adverse baseline blocks even an unmarked change.
+include rules-v7-goal
+write src/feature.txt "ready\n"
+commit "feature already passes at the base"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/7
+expect-exit 0
+include rules-v7-implement
+ha check $GOAL --baseline
+expect-exit 0
+expect-records 2
+expect-record 2 target "{\"criterion\":\"AC-1\"}"
+expect-record 2 result fail_as_expected
+ha check $GOAL
+expect-exit 0
+expect-records 5
+expect-status complete
+expect-satisfied AC-2
+ha check $GOAL --baseline AC-2
+expect-exit 1
+expect-records 6
+expect-record 6 kind baseline
+expect-record 6 target "{\"criterion\":\"AC-2\"}"
+expect-record 6 result unexpected_pass
+expect-status incomplete
+expect-unsatisfied AC-2
+expect-satisfied AC-1
+expect-satisfied AC-3
+expect-reasons AC-2:baseline_unexpected_pass
+ha done $GOAL
+expect-exit 1
+expect-completion-record absent
+expect-records 7
+expect-record 7 kind done

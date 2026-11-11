@@ -1,0 +1,5 @@
+# Implement the two values, preserving all check definitions.
+write src/greeting.txt "hello\n"
+write src/feature.txt "ready\n"
+progress T001 done
+commit "implement greeting and feature with their checks"
