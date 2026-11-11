@@ -293,7 +293,7 @@ v0.1.7부터 Seal(0.1.21 이상)은 새 목표를 `ha start --rules run-rules/5`
 - Spar를 쓸 수 없어 검토 없이 끝내려면, 사용자가 SPEC을 `Assurance: light`로 낮추는 수정을 정합니다. 그 뒤 `confirm spec`과 신선한 검사로 gate 없이 완료됩니다.
 - `light`이거나 등급 줄이 없는 목표, 그리고 `run-rules/1`~`run-rules/4`로 시작한 목표는 지금처럼 gate 없이 판정합니다.
 
-Seal 0.1.26부터는 위 시작 규칙을 대신해 새 목표를 `ha start --rules run-rules/6 … --check-skill`로 시작합니다. `run-rules/6`을 지원하는 Core가 필요하며, ha 0.1.8은 이를 지원하지 않습니다. 지원이 없으면 기록 없이 멈추고 이전 규칙으로 물러나지 않습니다. `/6`은 `/5`의 규칙 가운데 다음 네 판정만 바꿉니다.
+Seal 0.1.26은 위 시작 규칙을 대신해 새 목표를 `ha start --rules run-rules/6 … --check-skill`로 시작합니다. `run-rules/6`을 지원하는 Core가 필요하며, ha 0.1.8은 이를 지원하지 않습니다. 지원이 없으면 기록 없이 멈추고 이전 규칙으로 물러나지 않습니다. `/6`은 `/5`의 규칙 가운데 다음 네 판정만 바꿉니다.
 
 - `standard`·`strict` 목표의 마지막 candidate 라운드(dry run 제외)는 시작 기록의 `base_commit`부터 검토해야 합니다. 다르면 `review_base_mismatch`가 gate seq와 두 base를 보이고 완료를 막습니다. fixes 라운드만 있어도 같은 이유가 나옵니다. 시작 base부터의 candidate 뒤에 fixes가 이어져도 되고, 그 사슬은 Spar가 확인합니다. `reopen`도 시작 base를 옮기지 않습니다.
 - `light`이거나 등급 줄이 없는 목표는 완료 뒤 `review` note를 남겨도 다른 조건이 유효하면 완료 기록이 유지됩니다. `standard`·`strict`는 이전처럼 그 기록이 무효가 되어 새 gate로 다시 판정합니다.
@@ -301,6 +301,30 @@ Seal 0.1.26부터는 위 시작 규칙을 대신해 새 목표를 `ha start --ru
 - 완료 `done`부터 다음 검사·baseline의 시작이나 완료가 아닌 `done`까지의 시간을 예산 경과에서 뺍니다. 둘 다 없으면 창의 마지막 예산 기록까지이고, 그 사이의 note와 발견 줄은 구간을 끝내지 않습니다. `post_completion_seconds`가 신고 대기·실행 구간과 겹치지 않는 추가 공제 초를 보이며, 상태·보고·비용은 같은 경과를 씁니다. 실행 횟수와 한도는 그대로이고, 완료 뒤 코드 재작업은 `reopen`으로 새 창을 엽니다.
 
 `run-rules/1`~`run-rules/5`로 시작한 목표는 기존 판정을 유지하며 자동 이전하지 않습니다. 구간과 출력의 정확한 정의는 [실행 기록 계약](../contracts/run-record.md#49-run-rules6)에 있습니다.
+
+## baseline 선택과 검사 동결 (run-rules/7)
+
+현재 Seal은 새 목표를 `run-rules/7`로 시작합니다. 지원하지 않는 Core에서는 기록 없이 멈추며 이전 규칙으로 물러나지 않습니다. 직접 실행하는 `ha start`의 기본 규칙은 `run-rules/3` 그대로이고, 이미 `/1`~`/6`으로 시작한 목표의 판정·출력·기록은 바뀌지 않습니다.
+
+PLAN 조건표의 선택 `baseline` 열에 `요구`를 적은 change 조건만 baseline을 요구합니다. 빈 칸·`—`나 열이 없으면 요구하지 않습니다. 버그 수정·회귀·"X가 일어나지 않는다"·base에서 일부가 이미 충족된 조건처럼 거짓 통과 위험이 있는 조건을 고르고, 이유를 plan 라운드 전에 REVIEW에 적습니다. 표시하지 않은 change 조건도 검사 경로와 구조화 결과 계약은 필요하지만, base에도 있는 진입점에 묶을 필요 없이 새 함수의 시험에 연결할 수 있습니다.
+
+필수 최소량은 `표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain`입니다. manual은 0회입니다. 표시한 change 1개, 표시하지 않은 change 4개, maintain 3개가 모두 필수라면 최소 9회이고, 자동 상한은 `max(50, ⌈9 × 1.5⌉) = 50`입니다. 시작 전에는 `ha estimate <goal> --rules run-rules/7`로 이 값을 봅니다. 시작한 목표는 저장된 규칙을 쓰며 다른 `--rules`를 주면 거절합니다.
+
+대상 없는 `ha check <goal> --baseline`은 표시한 change 조건만 고릅니다(표시한 선택 조건도 포함). 표시가 하나도 없으면 기록 없이 거절합니다. 표시하지 않은 조건을 직접 지정해 baseline을 실행할 수도 있고, 실제 실행은 예산에 셉니다. 그 baseline의 신선한 불리한 결과도 판정에 남습니다. 표시한 조건의 baseline은 검사 파일이 정해진 뒤 한 번 기록하도록 계획합니다. 검사 수정마다 기록하는 습관을 줄이자는 안내이며, 이미 낡은 근거를 신선하게 만드는 예외가 아닙니다.
+
+`/7`에서 "baseline 전" 질문 모으기·`ha doctor`·`strict`의 plan 라운드는 baseline이 없는 목표에서도 현재 검사나 baseline 어느 쪽이든 첫 `ha check` 기록 전에 마칩니다. 시작 전에 알 수 있는 질문을 모으되, 물을 것이 없으면 바로 일합니다.
+
+- 입력 실패인 대상 파일 없음, 손상된 입력, 시작하지 못하는 도구, 신호 종료는 통과가 아니다.
+- baseline을 요구하지 않는 검사(maintain, `EX-n`, task 명령, 표시하지 않은 change 조건)는 입력 실패를 위반, 오류, 판정 불가 중 하나로 세어도 그것만으로 검사의 결함이 아니다. 위반으로 기록된 실패는 입력이 달라질 때까지 남는다.
+- baseline을 요구하는 change 조건의 전용 생산자는 입력 실패를 위반으로 보고하지 않는다. 결과 계약이 허용하는 경우(예: `missing: violation`)는 예외이며 그 선택은 plan 라운드 전에, plan이 없으면 어떤 검토 라운드보다도 전에 `REVIEW.md`에 적는다.
+
+baseline을 요구하는지는 규칙에 따라 읽습니다. `run-rules/6`까지는 모든 change 조건이 요구하고 `/7`은 표시한 조건만 요구합니다. 러너 어댑터는 입력 실패를 스스로 분류하며, [결과 계약](../contracts/check-result.md)의 분류와 입력 실패 표는 바뀌지 않습니다.
+
+검사 동결 시점은 기록된 마지막 gate의 dry run이 아닌 라운드 중 `strict`의 첫 `plan` 라운드 또는 `standard`의 첫 `candidate` 라운드입니다. change 조건의 검사 경로에 있는 선언·생산자·시험·도우미·설정이 대상입니다. Seal은 동결 라운드 바로 뒤 `ha note <goal> review --gate <file>`로 gate와 그때 조건표의 검사 경로를 기록합니다. 동결 라운드에서 끝난 gate note가 없으면 뺀 검사 경로를 관측할 수 없고, 상태와 보고에 `동결 때의 조건표가 기록되지 않음`이 나옵니다.
+
+동결 뒤 검사 파일을 고치면 commit하고 `ha note <goal> check-change checks:<path> --reason "<지적 ID, 또는 조건과 이유>"`로 까닭을 남깁니다. 검토 지적을 고친 변경이면 그 지적 ID를 씁니다. 까닭은 지금 blob에 묶이므로 파일을 다시 바꾸면 그 변경의 까닭도 다시 남깁니다. 다음 코드 검토 라운드에 바뀐 검사와 까닭을 함께 줍니다. 동결 전 변경에는 이 까닭이 필요 없고, 동결 뒤에도 검사 결함을 고칠 수 있습니다. 동결 표시는 자체로 완료를 막거나 plan-delta를 요구하지 않습니다.
+
+`ha status`는 change 조건마다 `baseline_required`와 사람용 `baseline required` 줄을 보입니다. `ha report`의 `확인한 것`은 모든 change 조건 중 baseline을 요구한 수와 그중 신선한 baseline 수를 나눠 보입니다. `직접 볼 것`에서 시작 뒤 뺀 baseline 표시, 동결 뒤 바뀐 검사 파일과 까닭, 까닭 없는 변경을 읽습니다. 뺀 경로에는 비교에 쓴 `review` note seq가 붙습니다. `light`나 기록된 gate가 없는 목표에는 동결 표시가 없고, 검수 요약의 `### 보지 않은 것`에는 baseline 없이 충족한 change 조건을 적습니다. [실행 기록 계약 §4.10](../contracts/run-record.md#410-run-rules7)에 정확한 필드와 표시가 있습니다.
 
 ## 목표 하나의 비용 보기
 
@@ -322,7 +346,7 @@ ha cost docs/specs/<goal> --series docs/reviews/<goal>
 
 ## 자동 예산
 
-PLAN의 `## 예산`에 횟수를 숫자 대신 `- 검증 실행: 자동`으로 쓰면 `ha start`가 상한을 정합니다. 상한은 `max(50, ⌈필수 최소량 × 1.5⌉)`입니다. 필수 change가 34개인 목표는 최소량 68회, 상한 102회입니다. `경과 시간`은 지금처럼 직접 씁니다. 숫자를 쓴 PLAN은 지금과 같습니다.
+PLAN의 `## 예산`에 횟수를 숫자 대신 `- 검증 실행: 자동`으로 쓰면 `ha start`가 상한을 정합니다. 상한은 `max(50, ⌈필수 최소량 × 1.5⌉)`입니다. `run-rules/6`까지를 쓰는 필수 change가 34개인 목표는 최소량 68회, 상한 102회입니다. `경과 시간`은 지금처럼 직접 씁니다. 숫자를 쓴 PLAN은 지금과 같습니다.
 
 산정한 상한이 미리 승인한 상한 이하이면 묻지 않고 시작합니다. 미리 승인한 상한은 사용자 설정 폴더의 `ha.json`에 한 번 적어 둡니다. 폴더는 `~/.config/jaekit/`이고, `XDG_CONFIG_HOME`이 설정되어 있으면 `$XDG_CONFIG_HOME/jaekit/`입니다. 파일이 없으면 상한은 50회입니다. 저장소 안의 파일은 이 상한을 정하지 못합니다. 이를 확인하려고 파일이 있으면 `git worktree list -z`로 작업 트리를 읽으므로 Git 2.36 이상이 필요합니다.
 

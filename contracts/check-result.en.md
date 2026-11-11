@@ -134,7 +134,7 @@ When CRLF/LF conversion of check inputs makes the actual bytes differ from HEAD,
 
 ## 5. Runner adapters
 
-A change condition under `run-rules/3`, `run-rules/4`, `run-rules/5` or `run-rules/6` can link a target to one existing test through a runner adapter instead of a producer. Only an executable whose `ha capabilities` has `check-adapter/v1` in `formats.check_declaration` and `runner-adapters/v1` in `features` supports this. Adapters are optional. The format and meaning of producer declarations (§1 to §4) stay as they are; without support, use the reference producer or a dedicated producer. `/1` and `/2` goals, and maintain, manual, task and `EX-n` checks, are judged by exit code as now even when the result contract has an adapter declaration, and placeholder words are not replaced.
+A change condition under `run-rules/3`, `run-rules/4`, `run-rules/5`, `run-rules/6` or `run-rules/7` can link a target to one existing test through a runner adapter instead of a producer. Only an executable whose `ha capabilities` has `check-adapter/v1` in `formats.check_declaration` and `runner-adapters/v1` in `features` supports this. Adapters are optional. The format and meaning of producer declarations (§1 to §4) stay as they are; without support, use the reference producer or a dedicated producer. `/1` and `/2` goals, and maintain, manual, task and `EX-n` checks, are judged by exit code as now even when the result contract has an adapter declaration, and placeholder words are not replaced.
 
 ### Declaration
 
