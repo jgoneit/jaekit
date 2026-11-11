@@ -714,9 +714,8 @@ func TestReviewerStandpointsAC4_Refusals(rsT *testing.T) {
 		rsCode    int
 		rsMention string
 	}{
-		{"unknown", []string{"--standpoint", "unknown=attack"}, 65, "unknown"},
+		{"unknown", []string{"--reviewers", "other", "--standpoint", "unknown=attack"}, 65, "unknown"},
 		{"case-sensitive", []string{"--standpoint", "Cmd=attack"}, 65, "Cmd"},
-		{"excluded", []string{"--reviewers", "other", "--standpoint", "cmd=attack"}, 65, "cmd"},
 		{"duplicate", []string{"--standpoint", "cmd=first", "--standpoint", "cmd=second"}, 65, "cmd"},
 		{"blank", []string{"--standpoint", "cmd= \n\t"}, 65, "cmd"},
 		{"invalid-utf8", []string{"--standpoint", "cmd=bad\xfftext"}, 65, "cmd"},
@@ -745,6 +744,26 @@ func TestReviewerStandpointsAC4_Refusals(rsT *testing.T) {
 			}
 		})
 	}
+	// The accepted name set is the union of configured and selected names:
+	// selecting only other must retain cmd's standpoint without running cmd.
+	rsT.Run("configured-unselected", func(rsT *testing.T) {
+		rsW := rsNew(rsT, rsC)
+		rsW.rsUse(rsW.rsFake("cmd", "command", rsW.rsAnswer("cmd", 1, rsReport(true, "checked"), true), ""), rsW.rsFake("other", "command", rsW.rsAnswer("other", 1, nil, false), ""))
+		rsOut := rsW.rsOut("configured-unselected", "01-candidate")
+		rsText := "Retain the configured reviewer's risk during a partial run."
+		if !rsW.rsRun(rsID, rsOut, "candidate", 0, 1, "--reviewers", "other", "--standpoint", "cmd="+rsText) {
+			return
+		}
+		rsAssert(rsC, len(rsW.rsCalls("cmd")) == 0 && len(rsW.rsCalls("other")) == 1, "configured but unselected reviewer ran, or selected reviewer did not run exactly once")
+		rsR := rsW.rsRaw(rsOut)
+		rsAssert(rsC, rsState(rsR, "other")["status"] == "completed" && reflect.DeepEqual(rsR["requested_reviewers"], []any{"other"}), "standpoint for an unselected configured reviewer changed the selected reviewers or prevented completion")
+		rsPacket := rsW.rsRead(filepath.Join(rsOut, "packet.md"))
+		_, rsSectionBody, rsFound := strings.Cut(rsPacket, "\n"+rsSection+"\n")
+		rsSectionBody = strings.SplitN(rsSectionBody, "\n## ", 2)[0]
+		_, rsAssignment, rsAssigned := strings.Cut(rsSectionBody, "\n### cmd\n")
+		rsAssignment = strings.SplitN(rsAssignment, "\n### ", 2)[0]
+		rsAssert(rsC, rsFound && rsAssigned && strings.Contains(rsAssignment, rsText), "packet's standpoint section omitted the configured but unselected reviewer's assignment")
+	})
 	for rsI, rsText := range []string{"first line\nsecond line", "  inner   spaces = retained  "} {
 		rsT.Run(fmt.Sprintf("accepted-%d", rsI), func(rsT *testing.T) {
 			rsW := rsNew(rsT, rsC)
@@ -822,6 +841,35 @@ func TestReviewerStandpointsAC5_TextVerbatim(rsT *testing.T) {
 func TestReviewerStandpointsAC6_SameInput(rsT *testing.T) {
 	const rsID = "standpoint-input-identity-wrong"
 	rsC := rsCollect(rsT, rsID)
+	rsT.Run("both-assigned-partial-rerun", func(rsT *testing.T) {
+		rsW := rsNew(rsT, rsC)
+		rsW.rsUse(rsW.rsFake("claude", "claude", rsW.rsAnswer("claude", 1, rsReport(true, "checked stored records"), true), ""), rsW.rsFake("codex", "codex", rsW.rsAnswer("codex", 1, rsReport(true, "checked contract readers"), true), ""))
+		rsOptions := []string{"--standpoint", "claude=Attack stored records", "--standpoint", "codex=Attack contract readers"}
+		rsW.rsWrite(filepath.Join(rsW.rsDir, "fail-claude"), "intentional")
+		rsFirst := rsW.rsOut("both-assigned", "01-candidate")
+		if !rsW.rsRun(rsID, rsFirst, "candidate", 0, 1, rsOptions...) {
+			return
+		}
+		rsA := rsW.rsRaw(rsFirst)
+		rsAssert(rsC, rsState(rsA, "claude")["status"] == "failed" && rsState(rsA, "codex")["status"] == "completed", "two assigned reviewers did not leave exactly claude unfinished")
+		rsAssert(rsC, len(rsW.rsCalls("claude")) == 1 && len(rsW.rsCalls("codex")) == 1, "initial two-standpoint round did not run both reviewers exactly once")
+		rsW.rsRemove(filepath.Join(rsW.rsDir, "fail-claude"))
+		rsSame := rsW.rsOut("both-assigned", "02-candidate")
+		if !rsW.rsRun(rsID, rsSame, "candidate", 0, 1, append([]string{"--reviewers", "claude"}, rsOptions...)...) {
+			return
+		}
+		rsB := rsW.rsRaw(rsSame)
+		rsAssert(rsC, rsB["counted"] == false && reflect.DeepEqual(rsB["rerun_of"], []any{"01-candidate"}) && rsB["packet_sha256"] == rsA["packet_sha256"], "partial rerun with both standpoints changed identity: counted=%v rerun_of=%v", rsB["counted"], rsB["rerun_of"])
+		rsAssert(rsC, rsState(rsB, "claude")["status"] == "completed" && reflect.DeepEqual(rsB["requested_reviewers"], []any{"claude"}) && len(rsW.rsCalls("claude")) == 2 && len(rsW.rsCalls("codex")) == 1, "partial rerun did not complete only the previously failed reviewer")
+		// Even changing the completed, unselected reviewer's text changes the
+		// shared packet: retaining that assignment is part of the identity.
+		rsChanged := rsW.rsOut("both-assigned", "03-candidate")
+		if !rsW.rsRun(rsID, rsChanged, "candidate", 0, 1, "--reviewers", "claude", "--standpoint", "claude=Attack stored records", "--standpoint", "codex=Attack contract readers differently") {
+			return
+		}
+		rsChangedRecord := rsW.rsRaw(rsChanged)
+		rsAssert(rsC, rsChangedRecord["counted"] == true && len(rsList(rsChangedRecord["rerun_of"])) == 0 && rsChangedRecord["packet_sha256"] != rsA["packet_sha256"], "changed unselected reviewer's standpoint was treated as the same packet")
+	})
 	rsW := rsNew(rsT, rsC)
 	rsW.rsUse(rsW.rsFake("claude", "claude", rsW.rsAnswer("claude", 1, rsReport(true, "checked"), true), ""), rsW.rsFake("codex", "codex", rsW.rsAnswer("codex", 1, nil, false), ""))
 	rsW.rsWrite(filepath.Join(rsW.rsDir, "fail-claude"), "intentional")
