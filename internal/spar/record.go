@@ -26,8 +26,23 @@ type AngleNote struct {
 	Reason string `json:"reason,omitempty"`
 }
 
+// StandpointReport says what a reviewer checked from its assigned risk,
+// or why it could not check it.
+type StandpointReport struct {
+	Checked bool   `json:"checked"`
+	Detail  string `json:"detail"`
+}
+
+// ReviewerStandpoint is present only in rounds that received standpoints.
+// Its nil fields are explicit JSON nulls for an unassigned reviewer.
+type ReviewerStandpoint struct {
+	Standpoint       *string           `json:"standpoint"`
+	StandpointReport *StandpointReport `json:"standpoint_report"`
+}
+
 // ReviewerState is a reviewer's outcome in a round.
 type ReviewerState struct {
+	*ReviewerStandpoint
 	Name            string      `json:"name"`
 	Preset          string      `json:"preset"`
 	Isolation       string      `json:"isolation"`
@@ -58,36 +73,38 @@ type ReviewerState struct {
 
 // RoundRecord is round.json.
 type RoundRecord struct {
-	Schema             string                    `json:"schema"`
-	SparVersion        string                    `json:"spar_version"`
-	Stage              string                    `json:"stage"`
-	Label              string                    `json:"label,omitempty"`
-	Series             string                    `json:"series"`
-	Sequence           int                       `json:"sequence"`
-	Repo               string                    `json:"repo"`
-	Base               string                    `json:"base"`
-	Head               string                    `json:"head"`
-	BaseTree           string                    `json:"base_tree"`
-	HeadTree           string                    `json:"head_tree"`
-	DiffSHA256         string                    `json:"diff_sha256"`
-	Criteria           []Document                `json:"criteria"`
-	CriteriaDigest     string                    `json:"criteria_digest"`
-	Rules              []Document                `json:"rules"`
-	Subjects           []Document                `json:"subjects"`
-	Questions          []string                  `json:"questions"`
-	Decisions          []Decision                `json:"decisions,omitempty"`
-	Prior              []string                  `json:"prior"`
-	PacketSHA256       string                    `json:"packet_sha256"`
-	Config             *Config                   `json:"config"`
-	Links              LinkTargets               `json:"links"`
-	RequestedReviewers []string                  `json:"requested_reviewers"`
-	RequiredReviewers  []string                  `json:"required_reviewers"`
-	DryRun             bool                      `json:"dry_run"`
-	Counted            bool                      `json:"counted"`
-	RerunOf            []string                  `json:"rerun_of"`
-	StartedAt          string                    `json:"started_at"`
-	FinishedAt         string                    `json:"finished_at,omitempty"`
-	Reviewers          map[string]*ReviewerState `json:"reviewers"`
+	Schema               string                    `json:"schema"`
+	SparVersion          string                    `json:"spar_version"`
+	Stage                string                    `json:"stage"`
+	Label                string                    `json:"label,omitempty"`
+	Series               string                    `json:"series"`
+	Sequence             int                       `json:"sequence"`
+	Repo                 string                    `json:"repo"`
+	Base                 string                    `json:"base"`
+	Head                 string                    `json:"head"`
+	BaseTree             string                    `json:"base_tree"`
+	HeadTree             string                    `json:"head_tree"`
+	DiffSHA256           string                    `json:"diff_sha256"`
+	Criteria             []Document                `json:"criteria"`
+	CriteriaDigest       string                    `json:"criteria_digest"`
+	Rules                []Document                `json:"rules"`
+	Subjects             []Document                `json:"subjects"`
+	Questions            []string                  `json:"questions"`
+	Decisions            []Decision                `json:"decisions,omitempty"`
+	Standpoints          []Standpoint              `json:"standpoints"`
+	StandpointsUncovered *[]string                 `json:"standpoints_uncovered,omitempty"`
+	Prior                []string                  `json:"prior"`
+	PacketSHA256         string                    `json:"packet_sha256"`
+	Config               *Config                   `json:"config"`
+	Links                LinkTargets               `json:"links"`
+	RequestedReviewers   []string                  `json:"requested_reviewers"`
+	RequiredReviewers    []string                  `json:"required_reviewers"`
+	DryRun               bool                      `json:"dry_run"`
+	Counted              bool                      `json:"counted"`
+	RerunOf              []string                  `json:"rerun_of"`
+	StartedAt            string                    `json:"started_at"`
+	FinishedAt           string                    `json:"finished_at,omitempty"`
+	Reviewers            map[string]*ReviewerState `json:"reviewers"`
 }
 
 // Decision is a decision of the user a round received (G35): what it
@@ -173,7 +190,35 @@ func loadRound(dir string) (*RoundRecord, error) {
 	if r.Reviewers == nil {
 		r.Reviewers = map[string]*ReviewerState{}
 	}
+	if r.Standpoints == nil {
+		r.Standpoints = []Standpoint{}
+	}
 	return &r, nil
+}
+
+func standpointFor(standpoints []Standpoint, name string) *string {
+	for _, s := range standpoints {
+		if s.Reviewer == name {
+			return strPtr(s.Text)
+		}
+	}
+	return nil
+}
+
+// updateStandpointCoverage observes completion in this round; a waiver
+// does not turn an unfinished standpoint into a completed review.
+func updateStandpointCoverage(r *RoundRecord) {
+	r.StandpointsUncovered = nil
+	if len(r.Standpoints) == 0 {
+		return
+	}
+	uncovered := []string{}
+	for _, s := range r.Standpoints {
+		if st := r.Reviewers[s.Reviewer]; st == nil || st.Status != StatusCompleted {
+			uncovered = append(uncovered, s.Reviewer)
+		}
+	}
+	r.StandpointsUncovered = &uncovered
 }
 
 func loadFindings(dir string) ([]Finding, error) {

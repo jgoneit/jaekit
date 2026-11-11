@@ -274,17 +274,17 @@ func CapReport(o CapReportOptions) (int, error) {
 	// Recurring: a link of asked findings in two or more packets; reruns of
 	// one packet are one.
 	type link struct{ kind, name string }
-	packets := map[link]map[string]bool{}
+	packets := map[link]map[packetIdentity]bool{}
 	names := map[link][]string{}
 	for _, l := range list {
-		packet := l.round.Stage + "\x00" + l.round.Base + "\x00" + l.round.Head + "\x00" + l.round.PacketSHA256
+		packet := packetKey(l.round)
 		for _, f := range l.findings {
 			if !asked(f) || excluded(l.final, f) || f.LinkKind == "none" || f.Link == "" {
 				continue
 			}
 			k := link{f.LinkKind, f.Link}
 			if packets[k] == nil {
-				packets[k] = map[string]bool{}
+				packets[k] = map[packetIdentity]bool{}
 			}
 			// A rerun of a listed packet adds no round: each packet shows as
 			// its first round.

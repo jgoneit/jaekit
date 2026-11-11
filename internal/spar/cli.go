@@ -15,6 +15,7 @@ const usageText = `usage:
   spar run --stage plan|plan-delta|candidate|fixes --base REV [--head REV] --out DIR
            --criteria FILE... [--rules FILE]... [--subject FILE]... [--question TEXT]...
            [--decision TEXT --decision-quote TEXT]...
+           [--standpoint NAME=TEXT]...
            [--check-path GLOB]... [--reviewers NAME,...] [--model NAME=MODEL]... [--effort NAME=EFFORT]...
            [--repo DIR] [--label TEXT] [--dry-run]
   spar record ROUND native (--result FILE|- | --transcript FILE) [--model M] [--agent TEXT]
@@ -174,6 +175,18 @@ func agentChoices(p parsed) ([]Choice, error) {
 	return out, nil
 }
 
+func standpoints(p parsed) ([]Standpoint, error) {
+	var out []Standpoint
+	for _, value := range p.values["standpoint"] {
+		name, text, ok := strings.Cut(value, "=")
+		if !ok || name == "" {
+			return nil, usageError("--standpoint needs NAME=TEXT, got %q", value)
+		}
+		out = append(out, Standpoint{Reviewer: name, Text: text})
+	}
+	return out, nil
+}
+
 // Main runs the spar command line and returns its exit code.
 func Main(version string, args []string, stdin io.Reader, stdout, stderr io.Writer, getenv func(string) string) int {
 	if len(args) == 0 {
@@ -224,7 +237,7 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 		return ExitOK, ShowConfigWith(p.one("repo"), getenv, reviewerOverride(p), choices, stdout)
 	case "run":
 		p, err := parseArgs(rest, []string{"stage", "base", "head", "out", "criteria", "rules", "subject", "question",
-			"decision", "decision-quote", "check-path", "reviewers", "model", "effort", "repo", "label"}, []string{"dry-run"})
+			"decision", "decision-quote", "standpoint", "check-path", "reviewers", "model", "effort", "repo", "label"}, []string{"dry-run"})
 		if err != nil {
 			// A decision without what it settles or without the user's
 			// words is out of form (G35), whichever part is missing.
@@ -244,9 +257,13 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 		if err != nil {
 			return ExitRefused, err
 		}
+		ss, err := standpoints(p)
+		if err != nil {
+			return ExitUsage, err
+		}
 		code, err := Run(RunOptions{Repo: p.one("repo"), Stage: p.one("stage"), Base: p.one("base"), Head: p.one("head"),
 			Out: p.one("out"), Criteria: p.values["criteria"], Rules: p.values["rules"], Subjects: p.values["subject"],
-			Questions: p.values["question"], Decisions: ds, CheckPaths: p.values["check-path"], Reviewers: reviewerOverride(p),
+			Questions: p.values["question"], Decisions: ds, Standpoints: ss, CheckPaths: p.values["check-path"], Reviewers: reviewerOverride(p),
 			Choices: choices, Label: p.one("label"), DryRun: p.flags["dry-run"], Version: version, Getenv: getenv, Log: stderr})
 		if err == nil {
 			fmt.Fprintf(stdout, "spar: round written to %s\n", p.one("out"))

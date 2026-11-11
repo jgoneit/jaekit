@@ -247,13 +247,17 @@ func Record(o RecordOptions) (int, error) {
 	entries, err := manifest(ws)
 	var added []Finding
 	result, ok := lastJSONObject([]byte(reply))
+	var standpoint []*string
+	if len(r.Standpoints) > 0 {
+		standpoint = append(standpoint, standpointFor(r.Standpoints, o.Reviewer))
+	}
 	switch {
 	case err != nil || st.WorkspaceDigest == "" || manifestDigest(entries) != st.WorkspaceDigest:
 		st.Status, st.Reason = StatusWorkspaceModified, "the native workspace changed after it was prepared"
 	case !ok:
 		st.Status, st.Reason = StatusInvalidOutput, "the reply holds no JSON object"
 	default:
-		if problems := validateResult(result, r.Head, r.Config.Angles); len(problems) > 0 {
+		if problems := validateResult(result, r.Head, r.Config.Angles, standpoint...); len(problems) > 0 {
 			st.Status, st.Reason = StatusInvalidOutput, strings.Join(first(problems, 5), "; ")
 		} else if str(result["verdict"]) == "could_not_review" {
 			st.Status, st.Reason = StatusFailed, "the reviewer reported it could not review: "+short(str(result["limits"]), 300)
