@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "EveryRouteGetsItsStandpoint",
+      "violation": "standpoint-not-delivered",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestReviewerStandpointsAC1_EveryRouteGetsItsStandpoint"
+      }
+    }
+  ]
+}
