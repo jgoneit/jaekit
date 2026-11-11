@@ -1159,6 +1159,35 @@ func (rsW *rsWorld) rsSnapshot(rsOut string) map[string]any {
 	rsWithoutTiming(rsR)
 	return map[string]any{"inputs": rsInputs, "round.json": rsW.rsJSON(rsW.rsNormalize(rsW.rsEncode(rsR))), "packet.md": rsW.rsNormalize(rsW.rsRead(filepath.Join(rsOut, "packet.md"))), "schema.json": rsW.rsRead(filepath.Join(rsOut, "schema.json")), "packet_sha256": rsW.rsNormalize(rsString(rsR["packet_sha256"])), "summary.md": rsW.rsNormalize(rsW.rsRead(filepath.Join(rsOut, "summary.md")))}
 }
+
+// rsCompactLimit keeps base.json small enough to fit a review packet: a
+// snapshot value longer than this is pinned by its length and sha256 instead
+// of its bytes, which still fixes every byte (02-candidate: the agy PACKET.md
+// route, 888 KB twice, made the packet exceed the reviewers' input limits).
+const rsCompactLimit = 64 << 10
+
+func rsCompact(rsValue any) any {
+	switch rsV := rsValue.(type) {
+	case map[string]any:
+		rsOut := make(map[string]any, len(rsV))
+		for rsK, rsX := range rsV {
+			rsOut[rsK] = rsCompact(rsX)
+		}
+		return rsOut
+	case []any:
+		rsOut := make([]any, len(rsV))
+		for rsI, rsX := range rsV {
+			rsOut[rsI] = rsCompact(rsX)
+		}
+		return rsOut
+	case string:
+		if len(rsV) > rsCompactLimit {
+			return fmt.Sprintf("sha256:%s bytes:%d", rsHash(rsV), len(rsV))
+		}
+	}
+	return rsValue
+}
+
 func (rsW *rsWorld) rsStages() (map[string]any, []string) {
 	rsSnapshots := map[string]any{}
 	rsRounds := []string{}
@@ -1174,14 +1203,14 @@ func (rsW *rsWorld) rsStages() (map[string]any, []string) {
 			rsExtra = append(rsExtra, "--subject", filepath.Join(rsW.rsRepo, "PLAN.md"))
 		}
 		rsW.rsRun("", rsOut, rsStage, rsBase, rsHead, rsExtra...)
-		rsSnapshots[rsStage] = rsW.rsSnapshot(rsOut)
+		rsSnapshots[rsStage] = rsCompact(rsW.rsSnapshot(rsOut))
 		rsRounds = append(rsRounds, rsOut)
 	}
 	// A separate series avoids changing the legacy rerun fixture's history.
 	rsW.rsUse(rsW.rsFake("agy", "agy", rsW.rsAnswer("agy-large", 1, nil, false), ""))
 	rsLarge := rsW.rsOut("baseline-large", "01-candidate")
 	rsW.rsRun("", rsLarge, "candidate", 0, 1, "--criteria", rsW.rsLargeCriteria())
-	rsSnapshots["agy-file"] = rsW.rsSnapshot(rsLarge)
+	rsSnapshots["agy-file"] = rsCompact(rsW.rsSnapshot(rsLarge))
 	rsRounds = append(rsRounds, rsLarge)
 	return rsSnapshots, rsRounds
 }
