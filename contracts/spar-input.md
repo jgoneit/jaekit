@@ -1,6 +1,6 @@
 # 계약: Spar 입력 형식
 
-`spar`가 리뷰어 결과, 리뷰어 실행, 설정 파일, 명령 인자, 다시 읽는 기록에서 받는 입력 필드는 아래 표 하나가 정한다. 표는 필드마다 받는 형식과 정규화, 형식 밖 입력의 결과, 그 규칙을 쓰는 곳(소비처)을 적는다. 받는 형식 밖의 입력은 표에 적은 결과로 끝나고, 다른 값으로 읽히거나 조용히 받아들여지지 않는다. 한 행의 소비처는 모두 같은 규칙을 쓴다. [검토 라운드](review-round.md), [검토 gate](review-gate.md), [Spar 설정](spar-config.md)은 각 필드의 형식을 이 표의 행으로 가리킨다. 아래 예시의 경로·이름은 합성이다.
+`spar`가 리뷰어 결과, 리뷰어 실행, 설정 파일, 명령 인자, 다시 읽는 기록에서 받는 입력 필드는 아래 표와 관점 규칙이 정한다. 표는 필드마다 받는 형식과 정규화, 형식 밖 입력의 결과, 그 규칙을 쓰는 곳(소비처)을 적는다. 받는 형식 밖의 입력은 표에 적은 결과로 끝나고, 다른 값으로 읽히거나 조용히 받아들여지지 않는다. 한 행의 소비처는 모두 같은 규칙을 쓴다. [검토 라운드](review-round.md), [검토 gate](review-gate.md), [Spar 설정](spar-config.md)은 각 필드의 형식을 이 표의 행으로 가리킨다. 아래 예시의 경로·이름은 합성이다.
 
 ## 1. 결과 이름
 
@@ -17,7 +17,7 @@
 
 | 행 | 필드 (주는 쪽) | 받는 형식과 정규화 | 형식 밖의 결과 | 소비처 |
 | --- | --- | --- | --- | --- |
-| G1 | 결과 객체 (리뷰어) | JSON 객체 하나. 키는 정확히 `reviewed_head`, `verdict`, `angles_checked`, `angles_unchecked`, `findings`, `limits` | 객체가 아님, 키가 빠짐, 모르는 키: `invalid_output`(이유에 키 이름) | 모든 preset의 결과 확인(`spar run`), `spar record --result`·`--transcript`(`spar record`) |
+| G1 | 결과 객체 (리뷰어) | JSON 객체 하나. 키는 `reviewed_head`, `verdict`, `angles_checked`, `angles_unchecked`, `findings`, `limits`이고, 관점이 있는 라운드는 아래 관점 보고 규칙에 따라 `standpoint_report`를 더 받는다 | 객체가 아님, 필수 키가 빠짐, 모르는 키: `invalid_output`(이유에 키 이름) | 모든 preset의 결과 확인(`spar run`), `spar record --result`·`--transcript`(`spar record`) |
 | G2 | `reviewed_head` (리뷰어) | 7자 이상이고 패킷 head 커밋 ID의 앞부분과 글자 그대로 같은 문자열 | `invalid_output` | G1과 같음(`spar run`, `spar record`) |
 | G3 | `verdict` (리뷰어) | `no_blocking_findings`, `blocking_findings`, `could_not_review`. `could_not_review`는 `failed`로 기록 | `invalid_output` | G1과 같음(`spar run`, `spar record`) |
 | G4 | 각도 항목 (리뷰어) | `angles_checked`의 항목은 `{angle, result}`, `angles_unchecked`의 항목은 `{angle, reason}`, 값은 문자열, `angle`은 다섯 각도 중 하나. 요청한 각도는 두 목록 어디든 한 번 이상 나와야 한다. 같은 각도가 여러 번, 두 목록에 함께 나와도 받고 받은 그대로 기록한다 | 목록이 아님, 항목이 객체가 아님, 키 빠짐·모르는 키, 모르는 각도, 요청 각도 누락: `invalid_output` | G1과 같음(`spar run`, `spar record`), 요약(`summary.md`)의 각도 |
@@ -48,10 +48,40 @@
 | G29 | gate 라운드 목록 (호출자) | 하나 이상의 라운드 폴더, 주어진 순서로 읽는다. 주어진 라운드의 series에 있는 dry run이 아닌 `review-round/v1` 라운드는 모두 목록에 있어야 한다. 지적을 기록하기 전에 멈춘 라운드(`finished_at`과 `findings.json`이 모두 없음)는 dry run처럼 빠진다(목록에 주면 dry run처럼 `blocked`) | 읽을 수 없는 라운드, 목록에 없는 같은 series의 라운드: `blocked` 사유(`<series>: round <이름> of the series is not in the gate list`) | `spar gate` |
 | G30 | 지적 ID와 처리 옵션: `triage`의 지적, `--of`, `--evidence`, `--to`, `--user-quote`, `--failed-before`, `--passed-after`, 그리고 `waive`의 `--user-quote` (호출자) | 지적 ID는 그 라운드 `findings.json`의 `id`와 글자 그대로 같음. 문장 옵션은 앞뒤 공백을 뗀 뒤 비어 있으면 주지 않은 것 | 모르는 지적, 처리 규칙 위반, 사용자의 말이 없는 `waive`: 거부 | `spar triage`, `spar gate`의 `duplicate` 추적, `spar waive` |
 | G31 | `--stage`, `extend --stage`, `extend --by`, `extend --cause`, `extend --reason` (호출자) | 계약의 단계 이름. `--by`는 1 이상의 정수. `extend --cause`는 code 연장에서 `churn`, `recurring`, `unrelated`, `hardening`, `other` 가운데 하나(대소문자 구분). `extend --reason`은 앞뒤 공백을 뗀 글이고, code 연장에서 `--by`가 2 이상이거나 `--cause other`이면 비어 있지 않아야 한다 | 단계나 `--by`가 형식 밖이거나, code 연장에 `--cause`가 없거나 목록 밖이거나, plan·plan-delta 연장에 `--cause`·`--reason`을 주면 사용법 오류. 필요한 이유가 없으면 거부. 어느 경우도 기록하지 않는다 | `spar run`, `spar extend` |
-| G32 | 다시 읽는 기록: `round.json`, `findings.json`, `ledger.jsonl`, 라운드의 `waivers.jsonl`, series의 `extensions.jsonl` (spar가 쓴 것) | 같은 spar가 쓴 `review-round/v1` 형식. 이 목표 전에 쓴 기록처럼 `location_unreadable`이 없는 지적은 위치를 읽은 지적이고, `smallest_fix`가 없는 지적은 방향 없음이다. `extensions.jsonl` 줄에 `cause`·`reason`이 없으면(이 기능 전의 줄과 plan·plan-delta 연장) 원인이 기록되지 않은 연장이다. `waivers.jsonl`은 `spar waive`와 `spar gate`만 읽는다. 없는 라운드는 결정이 없는 라운드이고, 있으면 줄마다 `reviewer`·`preset`과 앞뒤 공백을 뗀 뒤 비어 있지 않은 `user_quote`가 있어야 한다 | 읽을 수 없음(파일 없음, JSON 아님, schema 다름): `spar run`·`spar extend`·`spar triage`·`spar record`·`spar waive`·`spar cap-report`는 각자 읽는 기록에서 거부, `spar gate`는 `blocked` 사유. `waivers.jsonl`이 JSON이 아니거나 위 항목이 빠진 줄을 가지면 `spar waive`는 거부, `spar gate`는 `blocked` 사유 | `spar run`의 series 읽기, `spar record`, `spar triage`, `spar extend`, `spar waive`, `spar gate`, `spar cap-report` |
+| G32 | 다시 읽는 기록: `round.json`, `findings.json`, `ledger.jsonl`, 라운드의 `waivers.jsonl`, series의 `extensions.jsonl` (spar가 쓴 것) | 같은 spar가 쓴 `review-round/v1` 형식. 관점 필드가 없는 이전 기록은 관점 없는 라운드다. 이 목표 전에 쓴 기록처럼 `location_unreadable`이 없는 지적은 위치를 읽은 지적이고, `smallest_fix`가 없는 지적은 방향 없음이다. `extensions.jsonl` 줄에 `cause`·`reason`이 없으면(이 기능 전의 줄과 plan·plan-delta 연장) 원인이 기록되지 않은 연장이다. `waivers.jsonl`은 `spar waive`와 `spar gate`만 읽는다. 없는 라운드는 결정이 없는 라운드이고, 있으면 줄마다 `reviewer`·`preset`과 앞뒤 공백을 뗀 뒤 비어 있지 않은 `user_quote`가 있어야 한다 | 읽을 수 없음(파일 없음, JSON 아님, schema 다름): `spar run`·`spar extend`·`spar triage`·`spar record`·`spar waive`·`spar cap-report`는 각자 읽는 기록에서 거부, `spar gate`는 `blocked` 사유. `waivers.jsonl`이 JSON이 아니거나 위 항목이 빠진 줄을 가지면 `spar waive`는 거부, `spar gate`는 `blocked` 사유 | `spar run`의 series 읽기, `spar record`, `spar triage`, `spar extend`, `spar waive`, `spar gate`, `spar cap-report` |
 | G33 | 동시 실행 (호출자) | series마다 한 번에 하나의 쓰기: `spar run`(상한 판단부터 기록까지), `spar record`, `spar triage`, `spar extend`, `spar waive`가 같은 series 잠금을 쥐고, 다른 쓰기가 쥐고 있으면 표준 오류에 `spar: waiting for another write of <series> to finish`를 쓰고 기다린다. 잠금을 쥔 뒤 기록을 다시 읽는다. `spar gate`는 잠그지 않는다 | 해당 없음(기다린다). `spar gate`가 쓰는 중인 라운드를 읽어 해석하지 못하면 G32의 `blocked` 사유 | `spar run`, `spar record`, `spar triage`, `spar extend`, `spar waive` |
 | G34 | `cap-report`의 series, `cap-report --format` (호출자) | series 폴더 하나. `--format`은 `md`(기본)나 `json` | series를 주지 않았거나 형식이 둘 밖이면 사용법 오류. series가 없거나 폴더가 아니면 거부 | `spar cap-report` |
 | G35 | 사용자의 결정: `--decision`, `--decision-quote` (호출자) | `--decision`(결정이 정한 대상) 하나와, 그 뒤 다음 `--decision` 전에 오는 `--decision-quote`(사용자의 말) 하나가 한 쌍이다. 두 글은 앞뒤 공백을 뗀 뒤 비어 있지 않은 올바른 UTF-8이다. 그 밖의 글은 모두 받고(여러 줄, 백틱과 코드 울타리, `-`로 시작하는 글, `=`·`:`, 앞뒤 공백), 떼거나 바꾸지 않고 받은 그대로 받은 순서로 쓴다. spar는 그 말이 사용자의 말인지 확인하지 않는다 | 짝이 없는 `--decision`·`--decision-quote`(말이 없는 결정, 다음 결정 전에 말이 없는 결정, 결정 없는 말), 명령줄 끝에서 값이 없는 두 옵션(다른 옵션의 값 없음은 사용법 오류), 앞뒤 공백을 뗀 뒤 빈 글, 올바른 UTF-8이 아닌 글: 거부(65). 리뷰어를 띄우지 않고 series 폴더와 라운드 폴더를 만들지 않으며, 몇 번째 결정의 어느 옵션인지 보인다 | `spar run`의 패킷(`packet.md`의 `## Decisions the user made`)과 그 digest(`packet_sha256`, 재실행 판단), `round.json`의 `decisions` |
+
+### 관점 인자
+
+`spar run`에 `--standpoint NAME=TEXT`로 준다. 첫 `=`가 리뷰어 이름과 글을 나누며, 옵션을 여러 번 쓸 수 있다. 거부(65): 이번 실행의 설정과 `--reviewers`에 없는 이름, 한 리뷰어에 관점 둘 이상, 앞뒤 공백을 뗀 뒤 빈 글, 올바른 UTF-8이 아닌 글. 이름은 G20처럼 대소문자를 구분해 정확히 비교한다. `=`가 없거나 이름이 비면 사용법 오류(64)다. 두 거부 모두 리뷰어를 띄우거나 라운드 폴더를 만들기 전에 일어나며, 메시지에 문제의 이름이나 값을 보인다. 그 밖의 글은 받은 그대로 쓴다.
+
+받는 이름은 설정된 리뷰어와 `--reviewers`로 고른 이름의 합집합이다. 이번 실행에서 빠진 설정된 리뷰어의 관점도 패킷에 남길 수 있으므로, 일부만 재실행할 때도 앞선 관점 목록 전체를 같은 순서로 넘긴다. 관점은 실행 인자로만 받고 사용자·프로젝트 설정 키는 없으며, `spar config`는 그대로다.
+
+### 관점 전달
+
+공유 패킷의 `## Standpoints for this round` 절에는 모든 관점과 리뷰어 배정이 들어간다. 리뷰어마다 자기 관점을 알리고 모든 각도를 확인하면서 그 위험을 공격하라는 지시도 받으며, 관점이 없는 리뷰어는 변경 전체를 검토하라는 지시를 받는다.
+
+- `claude`와 `codex`는 지시와 패킷을 표준 입력으로 받는다.
+- `agy`는 명령 안내, 지시, 패킷을 `-p`로 받으며, 큰 패킷이면 `PACKET.md`에 패킷을 두고 `-p`에는 명령 안내, 지시, 파일 안내를 둔다.
+- `command`는 `{prompt}`로 리뷰어의 `input.md`를 받고, `native`는 `prompt.md`의 고정 지시 뒤에 관점 지시를 받는다.
+
+관점이 있는 라운드는 실제 실행과 `--dry-run` 모두 리뷰어마다 지시와 패킷을 `<round>/<reviewer>/input.md`에 남긴다.
+
+관점의 글과 배정은 패킷 안에 있으므로 `packet_sha256`이 같은 입력의 일부로 식별하며, 어느 하나라도 바꾸면 새 입력이다. 끝내지 못한 리뷰어만 다시 돌리고 단계, base, head와 `packet_sha256`이 같은 관점을 포함해 그대로이면 상한에 세지 않는다.
+
+관점은 각도, 분류, 처리, 상한, gate의 상태와 사유를 바꾸지 않는다.
+
+### 관점 보고와 기록
+
+`standpoint_report`는 관점 보고 객체다. `checked`는 불리언이고 `detail`은 공백뿐이 아닌 글이다. 참이면 확인한 것, 거짓이면 확인하지 못한 이유다. 관점을 받은 리뷰어의 보고가 없거나 null이거나 형식이 틀리면 `invalid_output`이고 이유에 `standpoint_report`가 들어가며, 관점이 없는 리뷰어에게는 보고를 요구하지 않는다. 모든 preset에 `spar run`과 `spar record --result` 또는 `--transcript`가 같은 확인을 한다.
+
+관점이 있는 라운드의 `schema.json`은 `standpoint_report`를 `["object","null"]` 형식으로 더하고, 엄격한 schema를 쓰는 CLI를 위해 `required`에 넣는다. 객체의 키는 정확히 `checked`와 `detail`이며, 실행 시 확인은 관점 없는 리뷰어가 키를 빼거나 null을 쓰는 것도 받는다. `claude` preset의 `--json-schema` 인자도 그 라운드의 schema다. 관점이 없는 라운드에서는 이 키가 여전히 모르는 키이고 이전 schema가 그대로다. 형식에 맞는 `checked: false` 보고는 한계를 설명하며, 그 자체로 `completed`를 막지 않는다.
+
+`round.json`은 `standpoints`에 reviewer/text 쌍, `standpoints_uncovered`에 완료한 리뷰어가 없는 관점의 리뷰어 이름, 리뷰어마다 `standpoint`와 `standpoint_report`에 글과 보고 또는 null을 남긴다. `summary.md`는 리뷰어마다 관점과 보고를 보이고, waive된 리뷰어를 포함해 완료한 리뷰어가 없는 관점을 보인다. 형식은 `review-round/v1` 그대로이며, 관점 필드가 없는 기록은 관점 없음으로 읽는다.
+
+관점이 없으면 리뷰어 입력, `schema.json`, `packet_sha256`, `summary.md`는 바이트까지 그대로이고, 관점 지시와 `input.md`는 생기지 않는다. `round.json`에는 `standpoints: []`만 더해진다.
 
 ## 3. 위치·연결 문법
 

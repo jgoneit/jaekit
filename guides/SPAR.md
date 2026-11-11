@@ -24,6 +24,14 @@ v0.1.7부터 Seal은 새 목표를 `run-rules/5`로 시작하고, `run-rules/5`�
 
 커밋 메시지, Git 이력, 무시된 파일은 패킷에 없습니다. 기준 문서나 코드가 지금 쓰는 에이전트의 제공자 말고 다른 제공자에게 가면 안 되는 경우에는 `native` 리뷰어만 설정하세요. 컴퓨터 밖으로 아예 나가면 안 되는 경우에는 Spar를 돌리지 마세요. `native`를 포함한 모든 리뷰어가 패킷을 제공자에게 보냅니다.
 
+공유 패킷의 `## Standpoints for this round` 절에는 모든 관점과 리뷰어 배정이 들어간다. 리뷰어마다 자기 관점을 알리고 모든 각도를 확인하면서 그 위험을 공격하라는 지시도 받으며, 관점이 없는 리뷰어는 변경 전체를 검토하라는 지시를 받는다.
+
+- `claude`와 `codex`는 지시와 패킷을 표준 입력으로 받는다.
+- `agy`는 명령 안내, 지시, 패킷을 `-p`로 받으며, 큰 패킷이면 `PACKET.md`에 패킷을 두고 `-p`에는 명령 안내, 지시, 파일 안내를 둔다.
+- `command`는 `{prompt}`로 리뷰어의 `input.md`를 받고, `native`는 `prompt.md`의 고정 지시 뒤에 관점 지시를 받는다.
+
+관점이 있는 라운드는 실제 실행과 `--dry-run` 모두 리뷰어마다 지시와 패킷을 `<round>/<reviewer>/input.md`에 남긴다.
+
 ## 리뷰어 설정
 
 리뷰어는 사용자 설정에서만 옵니다. Spar는 `$SPAR_CONFIG`, `$XDG_CONFIG_HOME/jaekit/spar.toml`, `~/.config/jaekit/spar.toml` 가운데 처음 찾은 파일을 읽습니다. 없으면 이미 있는 clean-review `config.json`의 `reviewers` 목록을, 그것도 없으면 `claude`, `codex`, `agy`를 씁니다. 빈 목록(`reviewers = []`)은 `native` 리뷰어 하나입니다.
@@ -93,7 +101,7 @@ argv = ["/opt/example/bin/example-reviewer", "--prompt", "{prompt}", "--workspac
 timeout_seconds = 600
 ```
 
-- `{prompt}`는 라운드의 `packet.md` 경로, `{workspace}`는 두 커밋의 사본(`head/`, `base/`), `{schema}`는 결과 JSON schema 경로입니다.
+- `{prompt}`는 관점 없는 라운드의 `packet.md` 경로이고, 관점이 있는 라운드는 그 리뷰어의 `input.md` 경로입니다. `{workspace}`는 두 커밋의 사본(`head/`, `base/`), `{schema}`는 결과 JSON schema 경로입니다.
 - 명령이 무엇을 하는지 spar가 확인할 수 없으므로 `unverified`로 기록되고 필수 리뷰어 수에 들지 않습니다. 지적은 같은 규칙으로 분류되고 처리됩니다.
 
 라운드를 돌리기 전에 `spar config`로 띄울 리뷰어를 확인합니다. `spar config`는 라운드가 띄울 리뷰어, 목록의 출처와 digest를 출력합니다. `spar run --reviewers codex,agy`는 한 번의 실행에서 목록을 바꾸고, 라운드 기록에 그렇게 남습니다.
@@ -168,6 +176,29 @@ spar run --stage fixes --base 2222222 --head 3333333 \
 위치가 어떤 파일도 가리키지 않는 지적은 버리지 않고 읽을 수 없는 위치로 표시하며, 자동 보류하지 않습니다.
 
 </details>
+
+### 리뷰어별 관점
+
+plan과 candidate 라운드(누적 라운드 포함)에서는 에이전트가 변경의 주된 위험을 골라 리뷰어마다 서로 다른 관점을 하나씩 줍니다. 위험보다 리뷰어가 많으면 나머지는 관점 없이 검토합니다. fixes와 plan-delta에서는 앞선 관점을 다시 주거나 주지 않을 수 있습니다. 관점은 공격할 위험, 먼저 볼 곳, 보는 입장을 적고 해결이 맞다는 주장이나 풀이 설명은 넣지 않습니다. 다음은 codex가 설정된 경우의 합성 예시입니다.
+
+```bash
+spar run --stage candidate --base 1111111 --head 2222222 \
+  --criteria docs/specs/example/SPEC.md --rules AGENTS.md \
+  --standpoint "codex=저장 형식을 읽는 쪽의 입장에서, 이전 기록을 읽는 코드를 먼저 보고 바뀐 필드가 이전 기록을 거부하는 위험을 공격하라." \
+  --out docs/reviews/example/02-candidate
+```
+
+`spar run`에 `--standpoint NAME=TEXT`로 준다. 첫 `=`가 리뷰어 이름과 글을 나누며, 옵션을 여러 번 쓸 수 있다. 거부(65): 이번 실행의 설정과 `--reviewers`에 없는 이름, 한 리뷰어에 관점 둘 이상, 앞뒤 공백을 뗀 뒤 빈 글, 올바른 UTF-8이 아닌 글. 이름은 G20처럼 대소문자를 구분해 정확히 비교한다. `=`가 없거나 이름이 비면 사용법 오류(64)다. 두 거부 모두 리뷰어를 띄우거나 라운드 폴더를 만들기 전에 일어나며, 메시지에 문제의 이름이나 값을 보인다. 그 밖의 글은 받은 그대로 쓴다.
+
+받는 이름은 설정된 리뷰어와 `--reviewers`로 고른 이름의 합집합이다. 이번 실행에서 빠진 설정된 리뷰어의 관점도 패킷에 남길 수 있으므로, 일부만 재실행할 때도 앞선 관점 목록 전체를 같은 순서로 넘긴다. 관점은 실행 인자로만 받고 사용자·프로젝트 설정 키는 없으며, `spar config`는 그대로다.
+
+관점의 글과 배정은 패킷 안에 있으므로 `packet_sha256`이 같은 입력의 일부로 식별하며, 어느 하나라도 바꾸면 새 입력이다. 끝내지 못한 리뷰어만 다시 돌리고 단계, base, head와 `packet_sha256`이 같은 관점을 포함해 그대로이면 상한에 세지 않는다.
+
+`standpoint_report`는 관점 보고 객체다. `checked`는 불리언이고 `detail`은 공백뿐이 아닌 글이다. 참이면 확인한 것, 거짓이면 확인하지 못한 이유다. 관점을 받은 리뷰어의 보고가 없거나 null이거나 형식이 틀리면 `invalid_output`이고 이유에 `standpoint_report`가 들어가며, 관점이 없는 리뷰어에게는 보고를 요구하지 않는다. 모든 preset에 `spar run`과 `spar record --result` 또는 `--transcript`가 같은 확인을 한다.
+
+`round.json`은 `standpoints`에 reviewer/text 쌍, `standpoints_uncovered`에 완료한 리뷰어가 없는 관점의 리뷰어 이름, 리뷰어마다 `standpoint`와 `standpoint_report`에 글과 보고 또는 null을 남긴다. `summary.md`는 리뷰어마다 관점과 보고를 보이고, waive된 리뷰어를 포함해 완료한 리뷰어가 없는 관점을 보인다. 형식은 `review-round/v1` 그대로이며, 관점 필드가 없는 기록은 관점 없음으로 읽는다. gate를 보고할 때는 waive된 경우를 포함해 완료한 리뷰어 없이 남은 관점도 함께 알립니다.
+
+관점은 각도, 분류, 처리, 상한, gate의 상태와 사유를 바꾸지 않는다.
 
 ## 지적과 gate
 
