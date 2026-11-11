@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Version",
+      "violation": "seal-version-not-raised",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReviewSummaryFollowupsAC6_Version"
+      }
+    }
+  ]
+}

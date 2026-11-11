@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "VisibleGuideText",
+      "violation": "guide-comment-counted",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReviewSummaryFollowupsAC4_VisibleGuideText"
+      }
+    }
+  ]
+}
