@@ -1,0 +1,39 @@
+# A passing unmarked change needs no baseline; a marked one still does.
+include rules-v7-goal
+commit "selective baseline goal"
+ha estimate $GOAL --rules run-rules/7 --baseline --format json
+expect-exit 0
+expect-output "\"minimum_runs\": 4"
+expect-output "\"default_baseline_runs\": 1"
+expect-output "\"AC-1\""
+expect-no-output "\"AC-2\""
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/7
+expect-exit 0
+expect-record 1 rules run-rules/7
+expect-record 1 baseline_marked "[\"AC-1\"]"
+include rules-v7-implement
+ha check $GOAL
+expect-exit 0
+expect-records 4
+expect-unsatisfied AC-1
+expect-satisfied AC-2
+expect-satisfied AC-3
+expect-reasons AC-1:baseline_missing
+expect-completion-record absent
+ha check $GOAL --baseline
+expect-exit 0
+expect-records 5
+expect-record 5 kind baseline
+expect-record 5 target "{\"criterion\":\"AC-1\"}"
+expect-record 5 result fail_as_expected
+expect-satisfied AC-1
+expect-reasons none
+ha status $GOAL
+expect-exit 0
+expect-output "- baseline required: AC-1"
+ha done $GOAL
+expect-exit 0
+expect-completion-record present
+ha report $GOAL --lang en
+expect-exit 0
+expect-output "1 of 2 change conditions require a baseline; 1 of them have a fresh baseline"

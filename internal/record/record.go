@@ -168,6 +168,10 @@ type Start struct {
 	Budget        Budget         `json:"budget"`
 	TestAuthority *TestAuthority `json:"test_authority,omitempty"`
 	Scope         *ScopeCopy     `json:"scope,omitempty"`
+
+	// BaselineMarked records the PLAN marks at a run-rules/7 start, including
+	// an empty list; nil leaves earlier start records byte-for-byte unchanged.
+	BaselineMarked *[]string `json:"baseline_marked,omitempty"`
 }
 
 // Check is a `check` line.
@@ -248,6 +252,12 @@ type TestChangeData struct {
 	How      string      `json:"how"`
 	MovedTo  []MovedPath `json:"moved_to,omitempty"`
 	Weakened bool        `json:"weakened"`
+}
+
+// CheckChangeData binds a run-rules/7 check-change reason to the HEAD blob.
+// A nil blob records that the path was absent at HEAD.
+type CheckChangeData struct {
+	Blob *string `json:"blob"`
 }
 
 // RecoveryData names a condition and input whose error limit a recover note
@@ -365,6 +375,9 @@ type ReviewRound struct {
 	RequiredReviewers int              `json:"required_reviewers"`
 	CompletedRequired int              `json:"completed_required"`
 	DryRun            bool             `json:"dry_run"`
+	// Names retained only by run-rules/7 notes, without the gate's full path.
+	Series string `json:"series,omitempty"`
+	Round  string `json:"round,omitempty"`
 }
 
 // ReviewDocument is a criteria document a round received: its name and the
@@ -383,15 +396,18 @@ type ReviewOpen struct {
 // Note is a `note` line.
 type Note struct {
 	Header
-	Note       string          `json:"note"`
-	Cause      string          `json:"cause,omitempty"`
-	Subject    string          `json:"subject,omitempty"`
-	Bound      *Bound          `json:"bound,omitempty"`
-	Quote      string          `json:"quote"`
-	Reason     string          `json:"reason,omitempty"`
-	TestChange *TestChangeData `json:"test_change,omitempty"`
-	Recovery   *RecoveryData   `json:"recovery,omitempty"`
-	Review     *ReviewData     `json:"review,omitempty"`
+	Note        string           `json:"note"`
+	Cause       string           `json:"cause,omitempty"`
+	Subject     string           `json:"subject,omitempty"`
+	Bound       *Bound           `json:"bound,omitempty"`
+	Quote       string           `json:"quote"`
+	Reason      string           `json:"reason,omitempty"`
+	TestChange  *TestChangeData  `json:"test_change,omitempty"`
+	Recovery    *RecoveryData    `json:"recovery,omitempty"`
+	Review      *ReviewData      `json:"review,omitempty"`
+	CheckChange *CheckChangeData `json:"check_change,omitempty"`
+	// A pointer preserves an empty table while omitting it for earlier rules.
+	CheckPaths *map[string][]string `json:"check_paths,omitempty"`
 }
 
 // Done is a `done` line.
@@ -454,6 +470,10 @@ type Line struct {
 	Criteria       []CriterionResult `json:"criteria"`
 	CommandDigests map[string]string `json:"command_digests"`
 	Raw            []byte            `json:"-"`
+
+	BaselineMarked []string            `json:"baseline_marked,omitempty"`
+	CheckChange    *CheckChangeData    `json:"check_change,omitempty"`
+	CheckPaths     map[string][]string `json:"check_paths,omitempty"`
 }
 
 // Hash is the hex sha256 of the line bytes; the next line's prev.

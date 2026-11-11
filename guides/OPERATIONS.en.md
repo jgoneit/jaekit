@@ -59,7 +59,7 @@ The Python compatibility helper is optional. Even without Python, you can direct
 - Without a budget it starts with `검증 실행: 자동` and asks once, only when approval is needed.
 - It checks the tools the checks need with `ha doctor` before any baseline and asks about unavailable tools in one question.
 
-The agent can compare the minimum verification run count in PLAN with the limit using `ha estimate docs/specs/<goal>`. For example, 34 required `change` conditions need at least 68 runs: one before and one after the change for each. `manual` conditions are not included in the check execution count. The estimate also separately displays:
+The agent can compare the minimum verification run count in PLAN with the limit using `ha estimate docs/specs/<goal>`. For example, up to `run-rules/6`, 34 required `change` conditions need at least 68 runs: one before and one after the change for each. `manual` conditions are not included in the check execution count. The estimate also separately displays:
 - Optional conditions included in default comparative verification.
 - Additional run counts for explicitly selected `AC`, `EX`, or task commands.
 
@@ -93,7 +93,7 @@ Adding this marker to an existing goal changes the goal document. Therefore, pre
 
 ## What a failure before the change means
 
-A check for a `change` condition must show the **intended violation** before the change. The mere fact that a command failed does not constitute pre-modification evidence.
+Up to `run-rules/6`, a check for every change condition must show the **intended violation** before the change; under `run-rules/7`, this applies to a marked change condition. The mere fact that a command failed does not constitute pre-modification evidence.
 
 A `change` check must link declared targets and requirement violations through structured results. The following are not accepted as expected failures:
 - Missing dependencies
@@ -103,7 +103,7 @@ A `change` check must link declared targets and requirement violations through s
 
 Results where an actually executed check directly observes the absence of functionality can be distinguished.
 
-All declared targets must run. Before the change, there must be the intended violation, without errors or other assertion failures. Current checks require that all of the same targets pass.
+When recording a baseline, all declared targets must run and show the intended violation without errors or other assertion failures. Current checks require all declared targets to pass whether or not a baseline is required.
 
 See the [check result contract and reference check](../contracts/check-result.en.md) for how to link them. The reference check is a small example that actually reads files; it does not automatically install specific test runners or support all runners.
 
@@ -136,6 +136,30 @@ Seal 0.1.26 starts under `run-rules/6`. `/6` changes only four judgments from `/
 Existing goals started under `/1` through `/5` keep their previous judgments and are not automatically migrated.
 
 </details>
+
+## Baseline selection and check freeze (run-rules/7)
+
+Current Seal starts new goals under `run-rules/7`. It stops without a record on a Core that lacks support and does not fall back to earlier rules. A direct `ha start` still defaults to `run-rules/3`; judgments, output and records of goals already started under `/1` through `/6` stay unchanged.
+
+Only change conditions with `요구` in the condition table's optional `baseline` column require a baseline. An empty cell, `—`, or no column means none is required. Mark conditions at risk of a false pass, such as bug fixes, regressions, "X does not happen", or conditions partly met at base, and write the reason in REVIEW before the plan round. Unmarked change conditions still need check paths and the structured result contract, but can link to tests of new functions without an entry point that also exists at base.
+
+The required minimum is marked required change × 2 + unmarked required change + required maintain (`표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain`). Manual conditions count as 0 runs. One marked change, four unmarked changes and three maintains, all required, need at least 9 runs; the automatic limit is `max(50, ⌈9 × 1.5⌉) = 50`. Before starting, view this with `ha estimate <goal> --rules run-rules/7`. Started goals use their saved rules and refuse a different `--rules`.
+
+With no target, `ha check <goal> --baseline` selects only marked change conditions, including marked optional conditions. With none marked, it refuses without a record. An explicitly named unmarked condition can also run a baseline, and actual runs count toward the budget. Fresh adverse results from that baseline still affect judgment. Plan to record a marked condition's baseline once its check files are settled. This reduces the habit of recording after every check fix; it does not make stale evidence fresh.
+
+Under `/7`, the "before any baseline" questions, `ha doctor` and the `strict` plan round all happen before the goal has any `ha check` record, current check or baseline, even when the goal needs no baseline. Seal gathers foreseeable questions before work; with nothing to ask, it proceeds.
+
+- An input failure—a missing target file, corrupt input, a tool that cannot start, or termination by a signal—is never a pass.
+- Checks that require no baseline (maintain, `EX-n`, task commands and unmarked change conditions) may count an input failure as a violation, error or inconclusive result; that alone is not a check defect. A failure recorded as a violation remains until the input changes.
+- A dedicated producer of a marked change condition reports none of them as a violation unless the result contract allows it, such as `missing: violation`; record that choice in `REVIEW.md` before the plan round, or before any review round when there is no plan round.
+
+Read the baseline requirement under the goal's rules: all change conditions require it up to `run-rules/6`, and only marked conditions do under `/7`. Runner adapters classify input failures themselves; the classifications and input-failure table of the [result contract](../contracts/check-result.en.md) stay unchanged.
+
+The check freeze uses the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`, in gate order among the last recorded gate's non-dry-run rounds. It covers declarations, producers, tests, helpers and settings in the condition table's check paths, from every row that lists any. Right after the freeze round, Seal records the gate and current condition table's check paths with `ha note <goal> review --gate <file>`. Without a gate note ending at that round, removed check paths are unobserved and status and report show `freeze-time condition table was not recorded`.
+
+After changing a check file following the freeze, commit it and record `ha note <goal> check-change checks:<path> --reason "<finding ID, or condition and reason>"`. A review fix names its finding ID. The reason binds to the current blob, so another edit needs a reason for that edit. Give the next code review round the changed checks and reasons together. No such reason is needed before the freeze; check defects may still be fixed afterward. The freeze display itself neither blocks completion nor requires a plan-delta.
+
+`ha status` shows `baseline_required` on each change condition and a human-readable `baseline required` line. `Checked` in `ha report` separates how many of all change conditions require a baseline from how many of those have fresh baselines. Read `To review` for baseline marks removed since the start, check files changed after the freeze with reasons, and changes without reasons. Removed paths identify the source `review` note seq. `light` goals and goals without a recorded gate have no freeze display. The review summary's `### 보지 않은 것` lists change conditions satisfied without a baseline. [Run record §4.10](../contracts/run-record.en.md#410-run-rules7) defines exact fields and wording.
 
 ## Reading the completion report
 
@@ -194,7 +218,7 @@ The budget window runs from the last start or `reopen` to the timestamp of the l
 
 Under `run-rules/6`, an interval after completion starts at the `at` of a judged `complete` `done` and ends at the earlier of the earliest `started_at` of a check or baseline that started in the same second as that `at` or later and the `at` of a non-complete `done`. A run that started before completion and was recorded afterward does not end the interval. With neither endpoint, it ends at the window's last budget record. Another completion `done` continues the interval; notes and finding lines do not end it. Run intervals stay elapsed, and time overlapping reported waits is subtracted only once. The additional excluded seconds are `budget.post_completion_seconds`, with `elapsed_seconds = span_seconds - reported_wait_seconds - post_completion_seconds`. The human-readable status Budget section and the budget window in `ha cost` JSON show these seconds separately; the remaining limits in `ha report` and `ha cost` use the same elapsed time. Work before the first run after completion is also excluded, so code rework proceeds in a new window opened with `reopen` quoting the user's request. Run counts, limits and refusal to change a completed window's budget stay unchanged.
 
-Reaching the limit means usage equals the limit; exceeding it means usage actually surpassed the limit. A goal with a completion record does not enter `budget_exhausted` as time passes. Under `/2` through `/6`, if all required conditions are satisfied and only budget exhaustion remains, completion can be recorded. This is not authority for additional execution; nor is budget a mechanism that automatically blocks check execution or terminates running checks.
+Reaching the limit means usage equals the limit; exceeding it means usage actually surpassed the limit. A goal with a completion record does not enter `budget_exhausted` as time passes. Under `/2` through `/7`, if all required conditions are satisfied and only budget exhaustion remains, completion can be recorded. This is not authority for additional execution; nor is budget a mechanism that automatically blocks check execution or terminates running checks.
 
 ## Continuing in a new conversation
 

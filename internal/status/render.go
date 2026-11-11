@@ -185,10 +185,24 @@ func (rep *Report) Markdown(goalArg string) string {
 		skill = fmt.Sprintf("%s %s (claimed)", rep.Skill.Name, rep.Skill.Version)
 	}
 	w("- rules: %s; skill: %s; ha: %s\n", rep.Rules, skill, rep.HaVersion)
+	if SelectiveBaseline(rep.Rules) {
+		var required []string
+		for _, c := range rep.Criteria {
+			if c.BaselineRequired != nil && *c.BaselineRequired {
+				required = append(required, c.ID)
+			}
+		}
+		ids := "none"
+		if len(required) > 0 {
+			ids = strings.Join(required, ", ")
+		}
+		w("- baseline required: %s\n", ids)
+	}
 	w("- code: %s, tree clean: %s; goal digest: %s\n", shortHash(rep.Commit), yesNo(rep.TreeClean), shortHash(rep.SpecDigest))
 	u := rep.Usage
 	w("- attempts: %d total; types: %d check, %d baseline; outcomes: %d environment errors, %d unknown; inputs: %d current, %d stale; valid positive evidence: %d (overlapping axes)\n", u.Total, u.Checks, u.Baselines, u.EnvironmentErrors, u.Unknowns, u.CurrentInputs, u.StaleInputs, u.ValidEvidence)
 
+	rep.renderCheckFreeze(w)
 	rep.unmet(w, goal)
 
 	w("\n### Criteria\n\n| ID | kind | required | satisfied | reason | records | attempts |\n| --- | --- | --- | --- | --- | --- | --- |\n")

@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "EarlierRulesIgnoreMark",
+      "violation": "earlier-rules-change-with-mark",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestCheckCostAC13_EarlierRulesIgnoreMark"
+      }
+    }
+  ]
+}

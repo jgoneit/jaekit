@@ -76,6 +76,11 @@ The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evi
 | `rules-v6-late-review-note` | run-record.md §4.9, §5.1 | an optional blocked review note after a light goal's completion preserves its completion seq in status and report without another `done` |
 | `rules-v6-unjudged-done` | run-record.md §4.9, §5.1 | a done line with an unjudged record head does not hide the earlier judged completion or its stale explanation after a code change |
 | `rules-v6-post-completion` | run-record.md §4.9, §5.2 | a note five hours after completion leaves out that gap even when code changes invalidate completion; status and cost expose the separate field, completed-window budget changes stay refused, and reopen starts a new window |
+| `rules-v7-selective-baseline` | run-record.md §4.10, §1.1 | an unmarked change passes without a baseline; a marked change remains `baseline_missing` until the default baseline selects only it; completion uses one baseline |
+| `rules-v7-unmarked-baseline` | run-record.md §4.10 | an explicitly requested unmarked baseline that passes unexpectedly blocks that condition and completion |
+| `rules-v7-unmarked-baseline-error` | run-record.md §4.10 | an unmarked baseline error within the limit allows a fresh current pass; another baseline error exceeds the limit and blocks completion |
+| `rules-v7-default-baseline-empty` | run-record.md §1.1, §4.10 | no marked changes means zero default baselines, refusal with no new record, and completion from passing current checks |
+| `rules-v7-check-freeze` | run-record.md §4.10, §1.3 | a synthetic `standard` goal uses an automatic limit from minimum 4, one baseline and three passing checks; a check changed after the first candidate is visible without a reason and with its recorded reason in status and both report languages, then completes; a maintain row's changed and removed check path remains visible after completion |
 | `rules-v1-kept` | run-rules-2 AC-10 | historical `run-rules/1` budget semantics remain; a future dirty check is refused |
 | `blocked` | bundle.md §5 | `blocked` until unblock |
 | `not-started` | run-record.md §4.2 | `incomplete`, `not_started`; checks refused |

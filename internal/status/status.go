@@ -30,37 +30,50 @@ const (
 	RulesV4 = "run-rules/4"
 	RulesV5 = "run-rules/5"
 	RulesV6 = "run-rules/6"
+	RulesV7 = "run-rules/7"
 	Rules   = RulesV3
 )
 
 // Supported reports whether this build computes goals started under rules.
-// It is the only rule-support decision; run-rules/4 through run-rules/6 are chosen
+// It is the only rule-support decision; run-rules/4 through run-rules/7 are chosen
 // with `ha start --rules` and never by default.
 func Supported(rules string) bool {
-	return rules == RulesV1 || rules == RulesV2 || rules == RulesV3 || rules == RulesV4 || rules == RulesV5 || rules == RulesV6
+	return rules == RulesV1 || rules == RulesV2 || rules == RulesV3 || rules == RulesV4 || rules == RulesV5 || rules == RulesV6 || rules == RulesV7
 }
 
 // Structured reports whether rules keep the run-rules/3 semantics: structured
 // change results, inconclusive results under the error limit, and budget
-// changes. run-rules/4 through run-rules/6 keep them all.
+// changes. run-rules/4 through run-rules/7 keep them all.
 func Structured(rules string) bool {
-	return rules == RulesV3 || rules == RulesV4 || rules == RulesV5 || rules == RulesV6
+	return rules == RulesV3 || rules == RulesV4 || rules == RulesV5 || rules == RulesV6 || rules == RulesV7
 }
 
 // Autonomous reports whether rules keep the run-rules/4 additions: test-change
 // authority, reported waits, pre-approved limits, error recovery and command
-// time limits. run-rules/5 and run-rules/6 keep them all.
-func Autonomous(rules string) bool { return rules == RulesV4 || rules == RulesV5 || rules == RulesV6 }
+// time limits. run-rules/5 through run-rules/7 keep them all.
+func Autonomous(rules string) bool {
+	return rules == RulesV4 || rules == RulesV5 || rules == RulesV6 || rules == RulesV7
+}
 
 // Reviewed reports whether rules judge the recorded review gate of a goal
 // whose SPEC asks for independent review (run-record.md §4.8).
-func Reviewed(rules string) bool { return rules == RulesV5 || rules == RulesV6 }
+func Reviewed(rules string) bool { return rules == RulesV5 || rules == RulesV6 || rules == RulesV7 }
 
 // CompletionIntegrity reports whether rules apply the run-rules/6 judgments:
 // review coverage starts at the goal base, only reviewed tiers invalidate a
 // completion on a later review note, unjudged done lines are skipped, and
 // post-completion intervals are excluded from elapsed budget time.
-func CompletionIntegrity(rules string) bool { return rules == RulesV6 }
+func CompletionIntegrity(rules string) bool { return rules == RulesV6 || rules == RulesV7 }
+
+// SelectiveBaseline reports whether only PLAN-marked change conditions need
+// a baseline. Earlier rules ignore the optional marker column.
+func SelectiveBaseline(rules string) bool { return rules == RulesV7 }
+
+// RequiresBaseline is shared by judgment, default selection and run estimates.
+// It reads the current PLAN mark, not the marks copied into the start record.
+func RequiresBaseline(rules string, row *bundle.Row) bool {
+	return row != nil && row.Kind == bundle.KindChange && (!SelectiveBaseline(rules) || row.BaselineRequired)
+}
 
 // Excludes returns the paths left out of the code state of goal g under
 // rules: the goal's own documents and bundle, the amendment documents of the
@@ -164,7 +177,7 @@ var classOf = map[string]string{
 type UnsupportedRulesError struct{ Rules string }
 
 func (e *UnsupportedRulesError) Error() string {
-	return fmt.Sprintf("goal was started with rules %q; this ha computes only %q, %q, %q, %q, %q and %q", e.Rules, RulesV1, RulesV2, RulesV3, RulesV4, RulesV5, RulesV6)
+	return fmt.Sprintf("goal was started with rules %q; this ha computes only %q, %q, %q, %q, %q, %q and %q", e.Rules, RulesV1, RulesV2, RulesV3, RulesV4, RulesV5, RulesV6, RulesV7)
 }
 
 // Input is everything the computation reads.
@@ -208,6 +221,7 @@ type Report struct {
 	TestAuthority  *TestAuthority    `json:"test_authority,omitempty"`
 	TestChanges    []TestChange      `json:"test_changes,omitempty"`
 	Recoveries     []Recovery        `json:"recoveries,omitempty"`
+	CheckFreeze    *CheckFreeze      `json:"check_freeze,omitempty"`
 	commandDigests map[string]string // for the done line
 	// judged, doneState, freshBaselines and confirmations feed the human
 	// output only; status/v1 is unchanged.
@@ -295,6 +309,9 @@ type Criterion struct {
 	Reason    string   `json:"reason"`
 	Records   []int    `json:"records"`
 	Attempts  Attempts `json:"attempts"`
+	// Only change conditions under run-rules/7 expose this field. A pointer
+	// keeps an unmarked condition's false distinct from earlier rules' absence.
+	BaselineRequired *bool `json:"baseline_required,omitempty"`
 }
 
 // Attempts counts every record for a criterion, fresh or not, so failures
@@ -493,6 +510,9 @@ func Compute(in Input) (*Report, error) {
 	}
 	e.changes(rep)
 	e.logs(rep)
+	if rep.CheckFreeze, err = e.checkFreeze(); err != nil {
+		return nil, err
+	}
 
 	completion, err := e.completionRecord(rep)
 	if err != nil {
@@ -668,6 +688,10 @@ func (e *evaluator) criteria(rep *Report) error {
 		}
 		rep.commandDigests[c.id] = e.currentDigest(c.id)
 		ev := Criterion{ID: c.id, Kind: kind, Required: c.required, Records: []int{}, Attempts: Attempts{FailCommits: []string{}}}
+		if SelectiveBaseline(e.rules) && kind == bundle.KindChange {
+			required := RequiresBaseline(e.rules, b.Row(c.id))
+			ev.BaselineRequired = &required
+		}
 		var C, B []*record.Line
 		for i := range e.in.Lines {
 			l := &e.in.Lines[i]
@@ -893,13 +917,13 @@ func (e *evaluator) judge(id, kind string, C, B []*record.Line) string {
 	}
 	if kind == bundle.KindChange {
 		switch {
-		case len(B) == 0:
+		case len(B) == 0 && (!SelectiveBaseline(e.rules) || RequiresBaseline(e.rules, e.in.Bundle.Row(id))):
 			return "baseline_missing"
 		case count(B, "unexpected_pass") > 0:
 			return "baseline_unexpected_pass"
 		case bFail > 0:
 			return "baseline_failed"
-		case bErr <= ErrorReruns && (last(B) == "error" || last(B) == "unknown"):
+		case bErr <= ErrorReruns && (last(B) == "error" || last(B) == "unknown") && (!SelectiveBaseline(e.rules) || RequiresBaseline(e.rules, e.in.Bundle.Row(id))):
 			return "baseline_error"
 		}
 	}
@@ -909,7 +933,7 @@ func (e *evaluator) judge(id, kind string, C, B []*record.Line) string {
 	if cPass == 0 {
 		return "criterion_missing"
 	}
-	if kind == bundle.KindChange && count(B, "fail_as_expected") == 0 {
+	if kind == bundle.KindChange && (!SelectiveBaseline(e.rules) || RequiresBaseline(e.rules, e.in.Bundle.Row(id))) && count(B, "fail_as_expected") == 0 {
 		return "baseline_missing"
 	}
 	return ""

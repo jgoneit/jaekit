@@ -41,7 +41,7 @@ func TestCompatibilityAC7_GoallessReadOnlyQuery(t *testing.T) {
 		t.Fatalf("[requirement] wrong capability identity/default: %v", report)
 	}
 	wanted := map[string]any{
-		"supported_rules": []any{"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5", "run-rules/6"},
+		"supported_rules": []any{"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5", "run-rules/6", "run-rules/7"},
 		"formats": map[string]any{
 			"finding":          []any{"run-finding/v1"},
 			"decision_history": []any{"decision-history/v1"},
@@ -186,7 +186,7 @@ func TestCompatibilityAC8_ConsumerAndActualBinary(t *testing.T) {
 			t.Fatal(err)
 		}
 		hash := sha256.Sum256(data)
-		if report["executable"] != resolved || report["sha256"] != hex.EncodeToString(hash[:]) || report["rules"] != "run-rules/6" {
+		if report["executable"] != resolved || report["sha256"] != hex.EncodeToString(hash[:]) || report["rules"] != "run-rules/7" {
 			t.Fatalf("[requirement] decision does not bind the actual binary: %v", report)
 		}
 		entries, err := os.ReadDir(dir)

@@ -1,0 +1,96 @@
+# A standard goal freezes its checks at the first candidate round.
+# Generated gates describe only this synthetic repository; no reviewer runs.
+include rules-v7-goal
+replace $GOAL/SPEC.md "Status: Ready" "Status: Ready\nAssurance: standard"
+replace $GOAL/PLAN.md "| AC-3 | maintain | `sh tests/keep.sh` | — |" "| AC-3 | maintain | `sh tests/keep.sh` | checks/preserve.sh |"
+write checks/preserve.sh "# Synthetic maintain check input.\n"
+write tests/keep.sh "set -eu\ngrep -qx keep src/keep.txt\npython3 tests/gates.py\n"
+commit "standard goal with synthetic review gates"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/7
+expect-exit 0
+expect-output "minimum required: 4 runs; auto limit: 50"
+expect-record 1 budget "{\"runs\":50,\"elapsed_seconds\":14400,\"cost\":\"미관측\",\"auto\":{\"minimum_runs\":4,\"computed_runs\":50,\"preapproved_runs\":50,\"source\":\"default\"}}"
+include rules-v7-implement
+ha check $GOAL --baseline
+expect-exit 0
+expect-records 2
+expect-record 2 target "{\"criterion\":\"AC-1\"}"
+expect-record 2 result fail_as_expected
+ha check $GOAL
+expect-exit 0
+expect-records 5
+expect-record 3 result pass
+expect-record 4 result pass
+expect-record 5 result pass
+expect-reasons review_missing
+ha note $GOAL review --gate .git/current-gate.json
+expect-exit 0
+expect-records 6
+ha status $GOAL --format json
+expect-exit 0
+expect-output "\"check_freeze\":"
+expect-output "\"stage\": \"candidate\""
+expect-output "\"table_from\": 6"
+expect-output "\"files\": []"
+append checks/feature.sh "# F1: document the exact feature value checked.\n"
+commit "clarify the feature check after candidate review"
+ha check $GOAL
+expect-exit 0
+expect-records 9
+ha note $GOAL review --gate .git/current-gate.json
+expect-exit 0
+expect-records 10
+# The missing reason is visible, but does not add a completion blocker.
+expect-status complete
+expect-reasons none
+ha status $GOAL
+expect-exit 0
+expect-output "- check freeze: candidate round greet/01-candidate at "
+expect-output "condition table from review note seq 6"
+expect-output "  - checks/feature.sh changed: no reason"
+ha report $GOAL --lang ko
+expect-exit 0
+expect-output "직접 볼 것:"
+expect-output "동결 뒤 까닭 없이 바뀐 검사 파일: checks/feature.sh"
+expect-no-output "동결 뒤 바뀐 검사 파일(까닭 있음):"
+ha note $GOAL check-change checks:checks/feature.sh --reason "F1: clarify the exact feature value checked for AC-2"
+expect-exit 0
+expect-records 11
+ha status $GOAL
+expect-exit 0
+expect-output "  - checks/feature.sh changed: seq 11: F1: clarify the exact feature value checked for AC-2"
+expect-no-output "checks/feature.sh changed: no reason"
+ha done $GOAL
+expect-exit 0
+expect-records 12
+expect-completion-record present
+ha report $GOAL --lang ko
+expect-exit 0
+expect-output "직접 볼 것:"
+expect-output "동결 뒤 바뀐 검사 파일(까닭 있음): checks/feature.sh (seq 11: F1: clarify the exact feature value checked for AC-2)"
+expect-no-output "동결 뒤 까닭 없이 바뀐 검사 파일:"
+ha report $GOAL --lang en
+expect-exit 0
+expect-output "check files changed after the freeze with a reason: checks/feature.sh (seq 11: F1: clarify the exact feature value checked for AC-2)"
+expect-output "1 of 2 change conditions require a baseline; 1 of them have a fresh baseline"
+expect-no-output "check files changed after the freeze without a reason:"
+expect-attempt AC-1 baselines 1
+expect-attempt AC-2 baselines 0
+
+# Maintain rows participate in the freeze even after the goal was completed.
+append checks/preserve.sh "# F2: clarify the maintain check input.\n"
+commit "clarify the maintain check after the freeze"
+ha status $GOAL
+expect-exit 1
+expect-output "condition table from review note seq 6"
+expect-output "  - checks/preserve.sh changed: no reason"
+ha report $GOAL --lang en
+expect-exit 0
+expect-output "check files changed after the freeze without a reason: checks/preserve.sh"
+
+# Removing only the maintain row's path keeps the file in HEAD and reports it.
+replace $GOAL/PLAN.md "| AC-3 | maintain | `sh tests/keep.sh` | checks/preserve.sh |" "| AC-3 | maintain | `sh tests/keep.sh` | — |"
+ha status $GOAL
+expect-exit 1
+expect-output "condition table from review note seq 6"
+expect-output "  - checks/preserve.sh removed: no reason"

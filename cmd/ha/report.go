@@ -28,6 +28,7 @@ type reportWords struct {
 
 	changed, notStarted, cannotCompare string
 	checked                            string
+	checkedMarked, removedMarks        string
 	// When Git cannot compare the base with HEAD, the summary says so and
 	// nothing else is computed (the user's decision on the impl review).
 	notComputed, limitsNotComputed, fetchBase string
@@ -36,6 +37,7 @@ type reportWords struct {
 	exempt, weakened, commands, findings string
 	// The review finding lists of the last review note (§1.3).
 	reviewDeferred, reviewAuto, reviewUnhandled, reviewNotRecorded, reviewUnreadable string
+	freezeReason, freezeNoReason, freezeNoTable, freezeTableFrom                     string
 
 	limits, optional, budget, notCovered string
 
@@ -66,6 +68,8 @@ var reportLanguages = map[string]reportWords{
 		limitsNotComputed: "assurance local; check author: executor; the other limits were not computed",
 		fetchBase:         "fetch the history that contains base %s (for example `git fetch --unshallow` in a shallow clone), then run `ha report %s` again",
 		checked:           "%d of %d required conditions satisfied (%d by check records, %d by user confirmation); %d of %d change conditions have a fresh baseline",
+		checkedMarked:     "%d of %d required conditions satisfied (%d by check records, %d by user confirmation); %[7]d of %[6]d change conditions require a baseline; %[5]d of them have a fresh baseline",
+		removedMarks:      "baseline mark removed after start: ",
 		none:              "none",
 		userDecisions:     "user decisions: ",
 		confirmed:         "manual conditions satisfied by a quoted confirmation: ",
@@ -78,6 +82,10 @@ var reportLanguages = map[string]reportWords{
 		reviewUnhandled:   "review findings without a disposition: ",
 		reviewNotRecorded: "the review gate's finding lists were not recorded (review note seq %d)",
 		reviewUnreadable:  "the recorded review finding lists cannot be read (review note seq %d)",
+		freezeReason:      "check files changed after the freeze with a reason: ",
+		freezeNoReason:    "check files changed after the freeze without a reason: ",
+		freezeNoTable:     "freeze-time condition table was not recorded",
+		freezeTableFrom:   " (condition table of review note seq %d)",
 		limits:            "assurance local; check author: executor",
 		optional:          "; optional conditions not satisfied: ",
 		budget:            "; budget exceeded: %d/%d runs, %d/%d seconds",
@@ -115,6 +123,8 @@ var reportLanguages = map[string]reportWords{
 		limitsNotComputed: "보증 수준 local; 검사 작성자: 실행자; 나머지 한계는 계산하지 못함",
 		fetchBase:         "base %s가 든 이력을 받고(예: 얕은 clone에서는 `git fetch --unshallow`) `ha report %s` 다시 실행",
 		checked:           "필수 조건 %[2]d개 중 %[1]d개 충족(검사 기록 %[3]d개, 사용자 확인 %[4]d개); change 조건 %[6]d개 중 %[5]d개에 신선한 baseline",
+		checkedMarked:     "필수 조건 %[2]d개 중 %[1]d개 충족(검사 기록 %[3]d개, 사용자 확인 %[4]d개); change 조건 %[6]d개 중 %[7]d개가 baseline을 요구하고 그중 %[5]d개에 신선한 baseline",
+		removedMarks:      "시작 뒤 baseline 표시를 뺀 조건: ",
 		none:              "없음",
 		userDecisions:     "사용자 결정: ",
 		confirmed:         "인용 확인으로 충족한 manual 조건: ",
@@ -127,6 +137,10 @@ var reportLanguages = map[string]reportWords{
 		reviewUnhandled:   "처리 없는 검토 지적: ",
 		reviewNotRecorded: "검토 gate의 지적 목록이 기록되지 않음(review note seq %d)",
 		reviewUnreadable:  "기록된 검토 지적 목록을 읽을 수 없음(review note seq %d)",
+		freezeReason:      "동결 뒤 바뀐 검사 파일(까닭 있음): ",
+		freezeNoReason:    "동결 뒤 까닭 없이 바뀐 검사 파일: ",
+		freezeNoTable:     "동결 때의 조건표가 기록되지 않음",
+		freezeTableFrom:   " (review note seq %d 때의 조건표)",
 		limits:            "보증 수준 local; 검사 작성자: 실행자",
 		optional:          "; 충족되지 않은 선택 조건: ",
 		budget:            "; 예산 초과: 실행 %d/%d회, 경과 %d/%d초",
@@ -340,7 +354,7 @@ func (v *reportView) changed() string {
 }
 
 func (v *reportView) checked() string {
-	var required, satisfied, byCheck, byUser, change, fresh int
+	var required, satisfied, byCheck, byUser, change, fresh, marked int
 	for _, c := range v.source {
 		if !c.required {
 			continue
@@ -358,10 +372,19 @@ func (v *reportView) checked() string {
 	for _, c := range v.rep.Criteria {
 		if c.Kind == "change" {
 			change++
+			if status.SelectiveBaseline(v.rep.Rules) {
+				if c.BaselineRequired == nil || !*c.BaselineRequired {
+					continue
+				}
+				marked++
+			}
 			if v.rep.FreshBaseline(c.ID) {
 				fresh++
 			}
 		}
+	}
+	if status.SelectiveBaseline(v.rep.Rules) {
+		return fmt.Sprintf(v.words.checkedMarked, satisfied, required, byCheck, byUser, fresh, change, marked)
 	}
 	return fmt.Sprintf(v.words.checked, satisfied, required, byCheck, byUser, fresh, change)
 }
@@ -441,14 +464,71 @@ func (v *reportView) toReview() string {
 	if len(commands) > 0 {
 		items = append(items, v.words.commands+strings.Join(commands, ", "))
 	}
+	if removed := v.removedBaselineMarks(); len(removed) > 0 {
+		items = append(items, v.words.removedMarks+strings.Join(removed, ", "))
+	}
 	if f := v.rep.Findings; f != nil && f.Unresolved > 0 {
 		items = append(items, fmt.Sprintf(v.words.findings, f.Unresolved))
 	}
 	items = append(items, v.reviewFindings()...)
+	items = append(items, v.checkFreezeItems()...)
 	if len(items) == 0 {
 		return v.words.none
 	}
 	return strings.Join(items, "; ")
+}
+
+// removedBaselineMarks compares the start's marks with the current change
+// rows. Marks added since start are not removals, and restoring a mark clears
+// its review item. Earlier rules keep their existing report output.
+func (v *reportView) removedBaselineMarks() []string {
+	if !status.SelectiveBaseline(v.rep.Rules) {
+		return nil
+	}
+	start := startLine(v.lines)
+	if start == nil {
+		return nil
+	}
+	var removed []string
+	for _, id := range start.BaselineMarked {
+		row := v.w.bundle.Row(id)
+		if row != nil && row.Kind == "change" && !status.RequiresBaseline(v.rep.Rules, row) {
+			removed = append(removed, id)
+		}
+	}
+	return removed
+}
+
+func (v *reportView) checkFreezeItems() []string {
+	f := v.rep.CheckFreeze
+	if f == nil {
+		return nil
+	}
+	var items, withReason, withoutReason []string
+	if !f.RemovedObserved {
+		items = append(items, v.words.freezeNoTable)
+	}
+	for _, file := range f.Files {
+		entry := file.Path
+		if r := file.Reason; r != nil {
+			entry += fmt.Sprintf(" (seq %d: %s)", r.Seq, r.Reason)
+		}
+		if file.State == "removed" && f.TableFrom != nil {
+			entry += fmt.Sprintf(v.words.freezeTableFrom, *f.TableFrom)
+		}
+		if file.Reason != nil {
+			withReason = append(withReason, entry)
+		} else {
+			withoutReason = append(withoutReason, entry)
+		}
+	}
+	if len(withReason) > 0 {
+		items = append(items, v.words.freezeReason+strings.Join(withReason, ", "))
+	}
+	if len(withoutReason) > 0 {
+		items = append(items, v.words.freezeNoReason+strings.Join(withoutReason, ", "))
+	}
+	return items
 }
 
 // reviewFindings are the items of the last recorded review note's finding

@@ -16,15 +16,15 @@ import shutil
 import subprocess
 import sys
 
-KNOWN_RULES = {"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5", "run-rules/6"}
-# Seal starts new goals under run-rules/6, chosen with `ha start --rules`; the
+KNOWN_RULES = {"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5", "run-rules/6", "run-rules/7"}
+# Seal starts new goals under run-rules/7, chosen with `ha start --rules`; the
 # Core's default rule stays run-rules/3.
-START_RULES = "run-rules/6"
-STRUCTURED_RULES = {"run-rules/3", "run-rules/4", "run-rules/5", "run-rules/6"}
+START_RULES = "run-rules/7"
+STRUCTURED_RULES = {"run-rules/3", "run-rules/4", "run-rules/5", "run-rules/6", "run-rules/7"}
 # run-rules/5 keeps run-rules/4 and adds the recorded review gate. A Core that
 # lists the review-gate/v1 feature reads the review-gate/v1 format
 # (contracts/core-capabilities.md §9), so an existing goal needs the feature.
-AUTONOMOUS_RULES = {"run-rules/4", "run-rules/5", "run-rules/6"}
+AUTONOMOUS_RULES = {"run-rules/4", "run-rules/5", "run-rules/6", "run-rules/7"}
 REVIEW_GATE_FEATURES = {"review-gate/v1"}
 REVIEW_GATE_FORMATS = {"review_gate": {"review-gate/v1"}}
 FORMATS = {
@@ -195,7 +195,7 @@ def requirements(capabilities, operation: str, goal: str | None):
             features = features | {"structured-change-results/v1"}
         if rules in AUTONOMOUS_RULES and operation in ("resume", "check", "budget"):
             features = features | RULES4_FEATURES
-        if rules in {"run-rules/5", "run-rules/6"} and operation in ("resume", "check", "budget"):
+        if rules in {"run-rules/5", "run-rules/6", "run-rules/7"} and operation in ("resume", "check", "budget"):
             features = features | REVIEW_GATE_FEATURES
     required_formats = {"criteria": criteria}
     if rules in STRUCTURED_RULES and operation not in ("finding", "history"):

@@ -63,7 +63,7 @@ var ssDuties = []ssDuty{
 	{"ha-path", "ref", "ha.md", "inspect PATH and executable selection"},
 	{"ha-checkout-build", "skill", "", "is only for developing Jaekit"},
 	{"capability-compare", "changed", "capability-check", ""},
-	{"start-rules", "skill", "", "--rules run-rules/6"},
+	{"start-rules", "skill", "", "--rules run-rules/7"},
 	{"host-flags", "ref", "ha.md", "Add `--host-name`, `--host-version` and `--model` when you know them."},
 	{"start-lint", "skill", "", "refuses with no record on lint problems"},
 	{"rules4-unsupported-stop", "ha", "../contracts/core-capabilities.md", "확인이 반드시 일어나야 하는 시작은"},

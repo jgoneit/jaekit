@@ -47,7 +47,9 @@ type Row struct {
 	EvidencePath   string
 	Evidence       *evidence.Declaration
 	EvidenceDigest string
-	// Limit is the time limit a run-rules/4, run-rules/5 or run-rules/6 goal applies to the
+	// BaselineRequired is the optional PLAN marker; only run-rules/7 judges it.
+	BaselineRequired bool
+	// Limit is the time limit a run-rules/4 through run-rules/7 goal applies to the
 	// command.
 	Limit time.Duration
 }
@@ -57,7 +59,7 @@ func (r Row) CommandDigest() string { return Digest(r.Command) }
 
 // CommandDigestFor binds the structured contract only under its opted-in rule.
 // Old goals keep their exact original command digest. Under run-rules/4 through
-// run-rules/6 the digest also binds the command's applied time limit.
+// run-rules/7 the digest also binds the command's applied time limit.
 func (r Row) CommandDigestFor(rules string) string {
 	digest := r.CommandDigest()
 	if structuredRules(rules) && r.Kind == KindChange && r.EvidencePath != "" {
@@ -266,11 +268,11 @@ func (l *loader) read(rel string) (string, bool, error) {
 // structured result contract; limitRules also read `## 시간 제한`
 // (run-record.md §4.6). The bundle package does not import the status rules.
 func structuredRules(rules string) bool {
-	return rules == "run-rules/3" || rules == "run-rules/4" || rules == "run-rules/5" || rules == "run-rules/6"
+	return rules == "run-rules/3" || rules == "run-rules/4" || rules == "run-rules/5" || rules == "run-rules/6" || rules == "run-rules/7"
 }
 
 func limitRules(rules string) bool {
-	return rules == "run-rules/4" || rules == "run-rules/5" || rules == "run-rules/6"
+	return rules == "run-rules/4" || rules == "run-rules/5" || rules == "run-rules/6" || rules == "run-rules/7"
 }
 
 // Load reads the bundle of goal g under root. Format problems are collected
@@ -364,7 +366,12 @@ func (l *loader) readRows(doc *markdown.Doc, file string) {
 	if !ok {
 		return
 	}
-	tb, ok := l.table(lines, file, "조건표", "ID", "종류", "검증 명령", "검사 경로", "Task")
+	cols := []string{"ID", "종류", "검증 명령", "검사 경로", "Task"}
+	withBaseline := append(append([]string{}, cols...), "baseline")
+	if tables := markdown.Tables(lines); len(tables) > 0 && tables[0].HeaderIs(withBaseline...) {
+		cols = withBaseline
+	}
+	tb, ok := l.table(lines, file, "조건표", cols...)
 	if !ok {
 		return
 	}
@@ -406,6 +413,19 @@ func (l *loader) readRows(doc *markdown.Doc, file string) {
 			row.CheckPaths = append(row.CheckPaths, path.Clean(p))
 		}
 		row.Tasks = taskRef.FindAllString(r.Cell(4), -1)
+		if len(cols) == 6 {
+			switch marker := strings.TrimSpace(r.Cell(5)); marker {
+			case "", "—":
+			case "요구":
+				if row.Kind != KindChange {
+					l.problem("baseline_marker", file, r.Line, "%s baseline 요구 is only valid for change conditions", row.ID)
+				} else {
+					row.BaselineRequired = true
+				}
+			default:
+				l.problem("baseline_marker", file, r.Line, "%s baseline must be 요구, — or empty: %q", row.ID, marker)
+			}
+		}
 		l.b.Rows = append(l.b.Rows, row)
 	}
 }

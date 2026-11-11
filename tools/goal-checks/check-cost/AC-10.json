@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "FreezeShown",
+      "violation": "check-freeze-hidden",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestCheckCostAC10_FreezeShown"
+      }
+    }
+  ]
+}
