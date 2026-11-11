@@ -2,10 +2,142 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
 )
+
+func TestRules7CheckChangeBlobBinding(t *testing.T) {
+	const v = "rules7-check-change"
+	const helper = "checks/helper.txt"
+	cond := ccChange("AC-1", "")
+	cond.paths = []string{ccScript("AC-1"), ccDecl("AC-1"), helper}
+	f := ccRepo(t, ccGoal{tier: "standard", conds: []ccCond{cond}})
+	f.start(v)
+	f.recordGate(v, "freeze", ccGate(f, ccRound(f, "candidate", f.base, f.base, false)))
+
+	f.revise(helper, "changed after review")
+	before := f.records()
+	code, out := f.ha("note", rgGoal, "check-change", "checks:"+helper, "--reason", "F1: repair check input")
+	if code != exitRefused || !bytes.Equal(before, f.records()) {
+		t.Fatalf("dirty check-change: exit %d, record changed %t: %s", code, !bytes.Equal(before, f.records()), out)
+	}
+	f.head = f.commit("repair check input")
+	seq := f.changeNote(v, helper, "F1: repair check input")
+	lines := ciLines(f.rgFixture)
+	data, _ := lines[len(lines)-1].m["check_change"].(map[string]any)
+	if want := f.git("rev-parse", "HEAD:"+helper); data["blob"] != want {
+		t.Fatalf("reason bound to %v; want HEAD blob %s", data, want)
+	}
+	_, files := f.freeze(v, "current reason", f.state(v, "current reason"))
+	if got := files[helper]; got.seq != seq || got.state != "changed" {
+		t.Fatalf("current reason = %+v", got)
+	}
+
+	f.revise(helper, "later change invalidates the reason")
+	f.head = f.commit("revise input again")
+	_, files = f.freeze(v, "stale reason", f.state(v, "stale reason"))
+	if got := files[helper]; !got.nullReason {
+		t.Fatalf("reason survived a later blob change: %+v", got)
+	}
+
+	f.git("rm", "--", helper)
+	f.setPaths("AC-1", ccScript("AC-1"), ccDecl("AC-1"))
+	f.head = f.commit("remove obsolete check input")
+	seq = f.changeNote(v, helper, "F2: input no longer used")
+	lines = ciLines(f.rgFixture)
+	data, _ = lines[len(lines)-1].m["check_change"].(map[string]any)
+	if blob, present := data["blob"]; !present || blob != nil {
+		t.Fatalf("absent path binding = %v; want explicit null blob", data)
+	}
+	_, files = f.freeze(v, "removed reason", f.state(v, "removed reason"))
+	if got := files[helper]; got.seq != seq || got.state != "removed" {
+		t.Fatalf("removed path reason = %+v", got)
+	}
+	f.put(helper, "returned after deletion\n")
+	f.head = f.commit("restore check input")
+	_, files = f.freeze(v, "stale deletion reason", f.state(v, "stale deletion reason"))
+	if got := files[helper]; !got.nullReason {
+		t.Fatalf("null binding survived re-adding the file: %+v", got)
+	}
+}
+
+func TestRules7ReviewTableSnapshotAndNames(t *testing.T) {
+	const v = "rules7-review-table"
+	const helper = "checks/helper.txt"
+	cond := ccChange("AC-1", "")
+	cond.paths = []string{ccScript("AC-1"), ccDecl("AC-1"), helper}
+	f := ccRepo(t, ccGoal{tier: "standard", conds: []ccCond{cond, ccMaintain("AC-2")}})
+	f.start(v)
+	if _, ok := ciLines(f.rgFixture)[0].m["check_paths"]; ok {
+		t.Fatal("start record must not keep the freeze table")
+	}
+	gate := ccGate(f, ccRound(f, "candidate", f.base, f.base, false))
+	seq := cwGateSeq(f, v, "first freeze note", gate)
+	lines := ciLines(f.rgFixture)
+	paths, _ := lines[len(lines)-1].m["check_paths"].(map[string]any)
+	if len(paths) != 1 || !reflect.DeepEqual(paths["AC-1"], []any{ccScript("AC-1"), ccDecl("AC-1"), helper}) {
+		t.Fatalf("review check_paths = %v; want the change condition paths", paths)
+	}
+	f.setPaths("AC-1", ccScript("AC-1"), ccDecl("AC-1"))
+	f.recordGate(v, "same gate with a later condition table", gate)
+	fz, files := f.freeze(v, "earliest snapshot retained", f.state(v, "earliest snapshot retained"))
+	if fz["series"] != "demo-rounds" || fz["round"] != "01-candidate" || fz["table_from"] != float64(seq) || files[helper].state != "removed" {
+		t.Fatalf("freeze identity and original table = %v, files %v", fz, files)
+	}
+}
+
+func TestRules7CheckChangeRejectedByEarlierRules(t *testing.T) {
+	for n := 1; n <= 6; n++ {
+		t.Run(fmt.Sprint(n), func(t *testing.T) {
+			f := ccRepo(t, ccGoal{conds: []ccCond{ccChange("AC-1", "")}})
+			rules := fmt.Sprintf("run-rules/%d", n)
+			startRules := rules
+			if cwSaved(rules) {
+				startRules = "run-rules/3"
+			}
+			f.rgFixture.start("earlier-rule-check-change", "--rules", startRules)
+			if cwSaved(rules) {
+				cwSaveRules(f.rgFixture, rules)
+			}
+			before := f.records()
+			code, out := f.ha("note", rgGoal, "check-change", "checks:"+ccScript("AC-1"), "--reason", "F1: repair check")
+			if code != exitUsage || !bytes.Equal(before, f.records()) {
+				t.Fatalf("earlier-rule note exit %d, record changed %t: %s", code, !bytes.Equal(before, f.records()), out)
+			}
+			if n >= 5 {
+				f.recordGate("earlier-rule-review", "earlier-rule review", ccGate(f, ccRound(f, "candidate", f.base, f.base, false)))
+				lines := ciLines(f.rgFixture)
+				last := lines[len(lines)-1].m
+				if _, ok := last["check_paths"]; ok {
+					t.Fatal("earlier review acquired a condition table")
+				}
+				review := last["review"].(map[string]any)
+				round := review["rounds"].([]any)[0].(map[string]any)
+				if _, series := round["series"]; series {
+					t.Fatal("earlier review acquired round display names")
+				}
+			}
+		})
+	}
+}
+
+func TestRules7EmptyFreezeTableIsObserved(t *testing.T) {
+	const v = "rules7-empty-freeze-table"
+	f := ccRepo(t, ccGoal{tier: "standard", conds: []ccCond{ccMaintain("AC-1")}})
+	f.start(v)
+	seq := cwGateSeq(f, v, "empty freeze table", ccGate(f, ccRound(f, "candidate", f.base, f.base, false)))
+	lines := ciLines(f.rgFixture)
+	paths, ok := lines[len(lines)-1].m["check_paths"].(map[string]any)
+	if !ok || len(paths) != 0 {
+		t.Fatalf("check_paths = %v; want a recorded empty object", paths)
+	}
+	fz, files := f.freeze(v, "empty freeze table", f.state(v, "empty freeze table"))
+	if fz["table_from"] != float64(seq) || fz["removed_observed"] != true || len(files) != 0 {
+		t.Fatalf("empty table was not observed: %v, files %v", fz, files)
+	}
+}
 
 func TestRules7EstimateRulesAndStartMarks(t *testing.T) {
 	f := ccRepo(t, ccGoal{conds: []ccCond{ccChange("AC-1", ccMark), ccChange("AC-2", "—"), ccMaintain("AC-3")}, column: true})

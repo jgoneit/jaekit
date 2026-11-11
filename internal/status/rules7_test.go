@@ -11,6 +11,55 @@ import (
 	"github.com/jgoneit/jaekit/internal/record"
 )
 
+func TestRules7FreezeTableRoundIdentity(t *testing.T) {
+	plan := record.ReviewRound{Stage: "plan", Sequence: 1, Base: "base", Head: "plan"}
+	frozen := record.ReviewRound{Stage: "candidate", Sequence: 2, Base: "base", Head: "frozen", Series: "demo", Round: "02-candidate"}
+	later := record.ReviewRound{Stage: "fixes", Sequence: 3, Base: "frozen", Head: "later"}
+	note := func(seq int, paths map[string][]string, rounds ...record.ReviewRound) record.Line {
+		return record.Line{Header: record.Header{Kind: "note", Seq: seq}, Note: "review", CheckPaths: paths,
+			Review: &record.ReviewData{Schema: "review-gate/v1", GateDigest: strings.Repeat("0", 64), State: "complete", Rounds: rounds}}
+	}
+	otherStage, otherBase, otherHead, otherSequence := frozen, frozen, frozen, frozen
+	otherStage.Stage = "fixes"
+	otherBase.Base = "another-base"
+	otherHead.Head = "another-head"
+	otherSequence.Sequence = 9
+	for _, tc := range []struct {
+		name  string
+		first record.Line
+		want  int
+	}{
+		{"order differs", note(2, map[string][]string{}, frozen), 3},
+		{"stage differs", note(2, map[string][]string{}, plan, otherStage), 3},
+		{"base differs", note(2, map[string][]string{}, plan, otherBase), 3},
+		{"head differs", note(2, map[string][]string{}, plan, otherHead), 3},
+		{"sequence differs", note(2, map[string][]string{}, plan, otherSequence), 3},
+		{"earliest exact match", note(2, map[string][]string{}, plan, frozen), 2},
+		{"earliest match lacks table", note(2, nil, plan, frozen), 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := &evaluator{rules: RulesV7, start: &record.Line{}, in: Input{
+				Goal: &goaldocs.Goal{Assurance: "standard"}, Bundle: &bundle.Bundle{},
+				Lines: []record.Line{tc.first, note(3, map[string][]string{}, plan, frozen), note(4, map[string][]string{}, plan, frozen, later)},
+			}}
+			got, err := e.checkFreeze()
+			if err != nil || got == nil {
+				t.Fatalf("freeze = %v, error %v", got, err)
+			}
+			if got.Head != frozen.Head || got.Series != "demo" || got.Round != "02-candidate" || len(got.Files) != 0 {
+				t.Fatalf("freeze round = %+v", got)
+			}
+			if tc.want == 0 {
+				if got.TableFrom != nil || got.RemovedObserved {
+					t.Fatalf("missing table treated as observed: %+v", got)
+				}
+			} else if got.TableFrom == nil || *got.TableFrom != tc.want || !got.RemovedObserved {
+				t.Fatalf("table source = %+v; want note %d", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestRules7InheritsRules6(t *testing.T) {
 	if !Supported(RulesV7) || !Structured(RulesV7) || !Autonomous(RulesV7) ||
 		!Reviewed(RulesV7) || !CompletionIntegrity(RulesV7) || !SelectiveBaseline(RulesV7) {

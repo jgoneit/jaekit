@@ -202,6 +202,7 @@ func (rep *Report) Markdown(goalArg string) string {
 	u := rep.Usage
 	w("- attempts: %d total; types: %d check, %d baseline; outcomes: %d environment errors, %d unknown; inputs: %d current, %d stale; valid positive evidence: %d (overlapping axes)\n", u.Total, u.Checks, u.Baselines, u.EnvironmentErrors, u.Unknowns, u.CurrentInputs, u.StaleInputs, u.ValidEvidence)
 
+	rep.renderCheckFreeze(w)
 	rep.unmet(w, goal)
 
 	w("\n### Criteria\n\n| ID | kind | required | satisfied | reason | records | attempts |\n| --- | --- | --- | --- | --- | --- | --- |\n")

@@ -37,6 +37,7 @@ type reportWords struct {
 	exempt, weakened, commands, findings string
 	// The review finding lists of the last review note (§1.3).
 	reviewDeferred, reviewAuto, reviewUnhandled, reviewNotRecorded, reviewUnreadable string
+	freezeReason, freezeNoReason, freezeNoTable, freezeTableFrom                     string
 
 	limits, optional, budget, notCovered string
 
@@ -81,6 +82,10 @@ var reportLanguages = map[string]reportWords{
 		reviewUnhandled:   "review findings without a disposition: ",
 		reviewNotRecorded: "the review gate's finding lists were not recorded (review note seq %d)",
 		reviewUnreadable:  "the recorded review finding lists cannot be read (review note seq %d)",
+		freezeReason:      "check files changed after the freeze with a reason: ",
+		freezeNoReason:    "check files changed after the freeze without a reason: ",
+		freezeNoTable:     "freeze-time condition table was not recorded",
+		freezeTableFrom:   " (condition table of review note seq %d)",
 		limits:            "assurance local; check author: executor",
 		optional:          "; optional conditions not satisfied: ",
 		budget:            "; budget exceeded: %d/%d runs, %d/%d seconds",
@@ -132,6 +137,10 @@ var reportLanguages = map[string]reportWords{
 		reviewUnhandled:   "처리 없는 검토 지적: ",
 		reviewNotRecorded: "검토 gate의 지적 목록이 기록되지 않음(review note seq %d)",
 		reviewUnreadable:  "기록된 검토 지적 목록을 읽을 수 없음(review note seq %d)",
+		freezeReason:      "동결 뒤 바뀐 검사 파일(까닭 있음): ",
+		freezeNoReason:    "동결 뒤 까닭 없이 바뀐 검사 파일: ",
+		freezeNoTable:     "동결 때의 조건표가 기록되지 않음",
+		freezeTableFrom:   " (review note seq %d 때의 조건표)",
 		limits:            "보증 수준 local; 검사 작성자: 실행자",
 		optional:          "; 충족되지 않은 선택 조건: ",
 		budget:            "; 예산 초과: 실행 %d/%d회, 경과 %d/%d초",
@@ -462,6 +471,7 @@ func (v *reportView) toReview() string {
 		items = append(items, fmt.Sprintf(v.words.findings, f.Unresolved))
 	}
 	items = append(items, v.reviewFindings()...)
+	items = append(items, v.checkFreezeItems()...)
 	if len(items) == 0 {
 		return v.words.none
 	}
@@ -487,6 +497,38 @@ func (v *reportView) removedBaselineMarks() []string {
 		}
 	}
 	return removed
+}
+
+func (v *reportView) checkFreezeItems() []string {
+	f := v.rep.CheckFreeze
+	if f == nil {
+		return nil
+	}
+	var items, withReason, withoutReason []string
+	if !f.RemovedObserved {
+		items = append(items, v.words.freezeNoTable)
+	}
+	for _, file := range f.Files {
+		entry := file.Path
+		if r := file.Reason; r != nil {
+			entry += fmt.Sprintf(" (seq %d: %s)", r.Seq, r.Reason)
+		}
+		if file.State == "removed" && f.TableFrom != nil {
+			entry += fmt.Sprintf(v.words.freezeTableFrom, *f.TableFrom)
+		}
+		if file.Reason != nil {
+			withReason = append(withReason, entry)
+		} else {
+			withoutReason = append(withoutReason, entry)
+		}
+	}
+	if len(withReason) > 0 {
+		items = append(items, v.words.freezeReason+strings.Join(withReason, ", "))
+	}
+	if len(withoutReason) > 0 {
+		items = append(items, v.words.freezeNoReason+strings.Join(withoutReason, ", "))
+	}
+	return items
 }
 
 // reviewFindings are the items of the last recorded review note's finding
