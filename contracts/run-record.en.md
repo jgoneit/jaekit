@@ -388,7 +388,7 @@ Irregular entries such as Windows junctions are not treated as safe regular file
 
 `/5` goals also write the `review` note (`review`: the review gate summary, §4.8). Its quote is empty.
 
-`/4` and `/5` goals also write the `test-change` (subject `tests:<path>`, `bound.blob`, `test_change`: `criteria`, `how`, `moved_to`, `weakened`), `wait` (`reason`), `resume`, and `recover` and `allow-recovery` (`recovery`: `criterion`, `input`, `change` or `count`) notes (§4.7).
+`/4` and `/5` goals also write the `test-change` (subject `tests:<path>`, `bound.blob`, `test_change`: `criteria`, `how`, `moved_to`, `weakened`), `wait` (`reason`), `resume`, and `recover` and `allow-recovery` (`recovery`: `criterion`, `input`, `change` or `count`) notes (§4.7). `/7` goals also write the `check-change` note (subject `checks:<path>`, `reason`, `check_change.blob`: the path's HEAD blob, or `null` when the path is absent), and their `review` note adds `check_paths`, the condition table's check paths per change condition ID at that time (`{}` for an empty table) (§4.10).
 
 ### 2.5 `done`
 
@@ -771,7 +771,7 @@ A goal started with `ha start --rules run-rules/5` keeps all the rules of `run-r
 | `schema`, `spar_version` | the values from the file |
 | `state` | `complete` \| `degraded` \| `blocked` |
 | `expect_head`, `last_reviewed_head` | the expected head and the last reviewed head |
-| `rounds[]` | in the file's order: `stage`, `sequence`, `base`, `head`, `criteria_digest`, `criteria` (`name`, `sha256`), `required_reviewers`, `completed_required`, `dry_run` |
+| `rounds[]` | in the file's order: `stage`, `sequence`, `base`, `head`, `criteria_digest`, `criteria` (`name`, `sha256`), `required_reviewers`, `completed_required`, `dry_run`; under `/7` also the round folder names `series` and `round` |
 | `open` | the number of open `defect` and `requirement-question` findings |
 | `findings` | present only when the gate has the finding lists: `deferred` (for each item of the gate's `deferred_findings`, its `series`, `round`, `id`, `class` and `to`), `unhandled` (for each item of `unhandled_findings`, its `series`, `round`, `id` and `class`) and `auto_deferred` (the gate's count). Other fields of the items are not stored. Judgment does not read this field; only the report does (§1.3) |
 

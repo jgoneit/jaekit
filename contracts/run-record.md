@@ -384,7 +384,7 @@ Windows의 junction 등 irregular 항목도 안전한 일반 파일·디렉토�
 
 `/5` 목표는 `review` note(`review`: 검토 gate 요약, §4.8)도 쓴다. 인용은 비어 있다.
 
-`/4`·`/5` 목표는 `test-change`(대상 `tests:<path>`, `bound.blob`, `test_change`: `criteria`, `how`, `moved_to`, `weakened`), `wait`(`reason`), `resume`, `recover`·`allow-recovery`(`recovery`: `criterion`, `input`, `change` 또는 `count`) note도 쓴다(§4.7).
+`/4`·`/5` 목표는 `test-change`(대상 `tests:<path>`, `bound.blob`, `test_change`: `criteria`, `how`, `moved_to`, `weakened`), `wait`(`reason`), `resume`, `recover`·`allow-recovery`(`recovery`: `criterion`, `input`, `change` 또는 `count`) note도 쓴다(§4.7). `/7` 목표는 `check-change` note(대상 `checks:<path>`, `reason`, `check_change.blob`: 그 경로의 HEAD blob, 경로가 없으면 `null`)도 쓰고, `review` note에 그때 조건표의 change 조건 ID별 검사 경로 `check_paths`(빈 표는 `{}`)를 더한다(§4.10).
 
 ### 2.5 `done`
 
@@ -767,7 +767,7 @@ Windows의 junction 등 irregular 항목도 안전한 일반 파일·디렉토�
 | `schema`, `spar_version` | 파일의 값 |
 | `state` | `complete` \| `degraded` \| `blocked` |
 | `expect_head`, `last_reviewed_head` | 기대 head와 마지막으로 검토된 head |
-| `rounds[]` | 파일의 순서대로 `stage`, `sequence`, `base`, `head`, `criteria_digest`, `criteria`(`name`, `sha256`), `required_reviewers`, `completed_required`, `dry_run` |
+| `rounds[]` | 파일의 순서대로 `stage`, `sequence`, `base`, `head`, `criteria_digest`, `criteria`(`name`, `sha256`), `required_reviewers`, `completed_required`, `dry_run`; `/7`에서는 라운드 폴더의 이름 `series`, `round`도 |
 | `open` | 열린 `defect`, `requirement-question` 수 |
 | `findings` | gate에 지적 목록이 있을 때만 있다. `deferred`(gate의 `deferred_findings` 항목마다 `series`, `round`, `id`, `class`, `to`), `unhandled`(`unhandled_findings` 항목마다 `series`, `round`, `id`, `class`), `auto_deferred`(gate의 수). 항목의 다른 필드는 남기지 않는다. 판정은 이 필드를 읽지 않고 보고만 읽는다(§1.3) |
 
