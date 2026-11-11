@@ -2,7 +2,7 @@
 name: spec
 description: Write or update goal documents (SPEC.md with AC-n completion criteria, user scenarios, and open decisions). The user can call it directly. A host agent calls it only when the user asks to work through Jaekit, Spec, or goal documents ("do this with jaekit"), or when a question that only a change to an existing goal document can resolve, such as a review finding, needs an amendment. Not for ordinary implementation requests or bug reports that do not mention goal documents. Writes the documents directly and reports; with no open decision it asks once whether to implement now, then stops.
 metadata:
-  version: "0.1.13"
+  version: "0.1.14"
 ---
 
 # Spec
