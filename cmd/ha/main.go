@@ -1021,7 +1021,7 @@ func (c *cli) note(in []string) int {
 		if goalRules == status.RulesV7 {
 			paths := map[string][]string{}
 			for _, row := range w.bundle.Rows {
-				if row.Kind == bundle.KindChange {
+				if len(row.CheckPaths) > 0 {
 					paths[row.ID] = append([]string{}, row.CheckPaths...)
 				}
 			}

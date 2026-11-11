@@ -384,7 +384,7 @@ Windows의 junction 등 irregular 항목도 안전한 일반 파일·디렉토�
 
 `/5` 목표는 `review` note(`review`: 검토 gate 요약, §4.8)도 쓴다. 인용은 비어 있다.
 
-`/4`·`/5` 목표는 `test-change`(대상 `tests:<path>`, `bound.blob`, `test_change`: `criteria`, `how`, `moved_to`, `weakened`), `wait`(`reason`), `resume`, `recover`·`allow-recovery`(`recovery`: `criterion`, `input`, `change` 또는 `count`) note도 쓴다(§4.7). `/7` 목표는 `check-change` note(대상 `checks:<path>`, `reason`, `check_change.blob`: 그 경로의 HEAD blob, 경로가 없으면 `null`)도 쓰고, `review` note에 그때 조건표의 change 조건 ID별 검사 경로 `check_paths`(빈 표는 `{}`)를 더한다(§4.10).
+`/4`·`/5` 목표는 `test-change`(대상 `tests:<path>`, `bound.blob`, `test_change`: `criteria`, `how`, `moved_to`, `weakened`), `wait`(`reason`), `resume`, `recover`·`allow-recovery`(`recovery`: `criterion`, `input`, `change` 또는 `count`) note도 쓴다(§4.7). `/7` 목표는 `check-change` note(대상 `checks:<path>`, `reason`, `check_change.blob`: 그 경로의 HEAD blob, 경로가 없으면 `null`)도 쓰고, `review` note에 그때 조건표에서 검사 경로를 적은 행의 조건 ID별 `check_paths`(그런 행이 없으면 `{}`)를 더한다(§4.10).
 
 ### 2.5 `done`
 
@@ -825,9 +825,9 @@ fixes 사슬과 기대 head의 확인은 gate 상태 `complete`가 맡는다([re
 
 **상태와 보고.** 상태 JSON의 change 조건마다 `baseline_required`(`criteria[].baseline_required`, bool)가 있고, 사람용 상태는 `- baseline required: <쉼표로 나눈 ID 목록 또는 none>`을 보인다. `/1`~`/6` 출력에는 이 필드와 줄을 더하지 않는다. `ha report`의 `확인한 것`은 `change 조건 N개 중 M개가 baseline을 요구하고 그중 K개에 신선한 baseline`(en: `M of N change conditions require a baseline; K of them have a fresh baseline`)을 보인다. N은 모든 change 조건 수, M은 지금 표시한 수, K는 그중 상태 계산이 신선한 baseline 근거로 인정한 수다. `직접 볼 것`은 시작 기록의 `baseline_marked`에 있고 지금 표시가 없는 change 조건을 `시작 뒤 baseline 표시를 뺀 조건: …`(en: `baseline mark removed after start: …`)으로 보인다. 시작 뒤 더한 표시는 뺀 표시가 아니다.
 
-**동결 시점과 비교.** 검사 동결은 기록된 마지막 `review` note의 gate에서 dry run이 아닌 라운드를 gate 순서대로 읽어, `strict`의 첫 `plan` 라운드 또는 `standard`의 첫 `candidate` 라운드 head를 기준으로 한다. `light`, 등급 줄이 없는 목표, 기록된 gate나 해당 라운드가 없는 목표에는 동결 표시가 없다. 동결 대상은 change 조건의 검사 경로에 있는 선언·생산자·시험·도우미·설정이다. 지금 검사 경로의 파일을 동결 head와 HEAD에서 비교해 내용이 다르면 `changed`, 동결 head에 없으면 `added`로 보이며, 동결 때의 조건표에서 빠진 경로는 `removed`다. 바뀌지 않은 파일은 목록에 없다.
+**동결 시점과 비교.** 검사 동결은 기록된 마지막 `review` note의 gate에서 dry run이 아닌 라운드를 gate 순서대로 읽어, `strict`의 첫 `plan` 라운드 또는 `standard`의 첫 `candidate` 라운드 head를 기준으로 한다. `light`, 등급 줄이 없는 목표, 기록된 gate나 해당 라운드가 없는 목표에는 동결 표시가 없다. 동결 대상은 조건표에서 검사 경로를 적은 모든 행의 경로에 있는 선언·생산자·시험·도우미·설정이다. 지금 검사 경로의 파일을 동결 head와 HEAD에서 비교해 내용이 다르면 `changed`, 동결 head에 없으면 `added`로 보이며, 동결 때의 조건표에서 빠진 경로는 `removed`다. 바뀌지 않은 파일은 목록에 없다.
 
-`/7`의 `ha note <goal> review --gate <file>`은 그때 조건표의 change 조건별 `check_paths`도 기록한다. 동결 때의 조건표는 동결 라운드가 gate의 마지막 라운드인 가장 이른 `review` note의 `check_paths`다. 라운드는 gate의 순서·단계·base·head로 맞춘다. 따라서 Seal은 동결 라운드 바로 뒤에 gate를 기록한다. 시작 기록의 검사 경로는 이 표의 대용이 아니다. 파일 내용과 동결 head에 파일이 있었는지는 Git으로 비교한다.
+`/7`의 `ha note <goal> review --gate <file>`은 그때 조건표에서 검사 경로를 적은 모든 행의 조건 ID별 `check_paths`도 기록한다. 동결 때의 조건표는 동결 라운드가 gate의 마지막 라운드인 가장 이른 `review` note의 `check_paths`다. 라운드는 gate의 순서·series·round·단계·base·head로 맞춘다. 따라서 Seal은 동결 라운드 바로 뒤에 gate를 기록한다. 시작 기록의 검사 경로는 이 표의 대용이 아니다. 파일 내용과 동결 head에 파일이 있었는지는 Git으로 비교한다.
 
 그 note가 없으면 뺀 경로를 관측하지 못한다. `check_freeze.removed_observed`는 `false`, `table_from`은 `null`이고 `files`에는 `removed` 항목이 없다. 상태와 보고는 `동결 때의 조건표가 기록되지 않음`(en·사람용 상태: `freeze-time condition table was not recorded`)을 보인다. note가 있으면 `removed_observed: true`, `table_from`은 그 note의 seq다.
 

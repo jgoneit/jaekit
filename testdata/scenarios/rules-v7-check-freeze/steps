@@ -2,6 +2,8 @@
 # Generated gates describe only this synthetic repository; no reviewer runs.
 include rules-v7-goal
 replace $GOAL/SPEC.md "Status: Ready" "Status: Ready\nAssurance: standard"
+replace $GOAL/PLAN.md "| AC-3 | maintain | `sh tests/keep.sh` | — |" "| AC-3 | maintain | `sh tests/keep.sh` | checks/preserve.sh |"
+write checks/preserve.sh "# Synthetic maintain check input.\n"
 write tests/keep.sh "set -eu\ngrep -qx keep src/keep.txt\npython3 tests/gates.py\n"
 commit "standard goal with synthetic review gates"
 ha start $GOAL --request "implement the synthetic goal" --rules run-rules/7
@@ -74,3 +76,21 @@ expect-output "1 of 2 change conditions require a baseline; 1 of them have a fre
 expect-no-output "check files changed after the freeze without a reason:"
 expect-attempt AC-1 baselines 1
 expect-attempt AC-2 baselines 0
+
+# Maintain rows participate in the freeze even after the goal was completed.
+append checks/preserve.sh "# F2: clarify the maintain check input.\n"
+commit "clarify the maintain check after the freeze"
+ha status $GOAL
+expect-exit 1
+expect-output "condition table from review note seq 6"
+expect-output "  - checks/preserve.sh changed: no reason"
+ha report $GOAL --lang en
+expect-exit 0
+expect-output "check files changed after the freeze without a reason: checks/preserve.sh"
+
+# Removing only the maintain row's path keeps the file in HEAD and reports it.
+replace $GOAL/PLAN.md "| AC-3 | maintain | `sh tests/keep.sh` | checks/preserve.sh |" "| AC-3 | maintain | `sh tests/keep.sh` | — |"
+ha status $GOAL
+expect-exit 1
+expect-output "condition table from review note seq 6"
+expect-output "  - checks/preserve.sh removed: no reason"

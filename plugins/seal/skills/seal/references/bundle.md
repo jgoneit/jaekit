@@ -131,7 +131,7 @@ Runner adapters classify input failures themselves under the check-result contra
 
 **Check freeze.** Under `run-rules/7`, the freeze head is the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`, in the recorded latest gate's order, excluding dry runs. A `light` goal, a goal without a tier, or a gate without that round has no freeze.
 
-The frozen files are the check declarations, producers, tests, helpers and settings listed in change conditions' check paths. Include all these inputs in the condition table, including those of unmarked conditions.
+The frozen files are the check declarations, producers, tests, helpers and settings listed in the condition table's check paths, from every row that lists any. Include all these inputs in the condition table, including those of unmarked conditions.
 
 Record `ha note <goal> review --gate <file>` right after the freeze round, while that round is the gate's last round, to retain the freeze-time condition table. Without that note, removed check paths are unobserved; a later gate alone cannot reconstruct the table.
 

@@ -123,6 +123,45 @@ func TestRules7CheckChangeRejectedByEarlierRules(t *testing.T) {
 	}
 }
 
+func TestRules7FreezeMaintainCheckPaths(t *testing.T) {
+	const v = "rules7-maintain-check-freeze"
+	const path = "checks/preserve.sh"
+	for _, tier := range []string{"standard", "strict"} {
+		t.Run(tier, func(t *testing.T) {
+			f := ccRepo(t, ccGoal{tier: tier, conds: []ccCond{ccMaintain("AC-1"), ccMaintain("AC-2")}})
+			plan := string(f.read(rgGoal + "/PLAN.md"))
+			row := "| AC-1 | maintain | `sh tests/ac-1.sh` | "
+			f.put(rgGoal+"/PLAN.md", strings.Replace(plan, row+"—", row+path, 1))
+			f.put(path, "# Synthetic maintain check input.\n")
+			f.commit("declare a maintain check path")
+			f.start(v)
+			stage := "candidate"
+			if tier == "strict" {
+				stage = "plan"
+			}
+			seq := cwGateSeq(f, v, "maintain freeze", ccGate(f, ccRound(f, stage, f.base, f.base, false)))
+			lines := ciLines(f.rgFixture)
+			paths, _ := lines[len(lines)-1].m["check_paths"].(map[string]any)
+			if len(paths) != 1 || !reflect.DeepEqual(paths["AC-1"], []any{path}) {
+				t.Errorf("review check_paths = %v; want only AC-1's maintain path", paths)
+			}
+			f.revise(path, "changed after the freeze")
+			f.head = f.commit("revise the maintain check input")
+			fz, files := f.freeze(v, "maintain path changed", f.state(v, "maintain path changed"))
+			if fz["table_from"] != float64(seq) || len(files) != 1 || files[path].state != "changed" {
+				t.Errorf("maintain path change = %v, files %v", fz, files)
+			}
+			// Removing a path from the table must remain visible even while
+			// its file is still present in HEAD.
+			f.put(rgGoal+"/PLAN.md", plan)
+			fz, files = f.freeze(v, "maintain path removed", f.state(v, "maintain path removed"))
+			if fz["table_from"] != float64(seq) || len(files) != 1 || files[path].state != "removed" {
+				t.Errorf("maintain path removal = %v, files %v", fz, files)
+			}
+		})
+	}
+}
+
 func TestRules7EmptyFreezeTableIsObserved(t *testing.T) {
 	const v = "rules7-empty-freeze-table"
 	f := ccRepo(t, ccGoal{tier: "standard", conds: []ccCond{ccMaintain("AC-1")}})
