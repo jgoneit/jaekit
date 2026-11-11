@@ -70,6 +70,10 @@ package plugins
 //       failure": "as a violation is a defect only when", "producer of a
 //       condition that requires a baseline", "`missing: violation`", "as a
 //       pass is a defect".
+//       No line of AGENTS.md `## Checks and review` holds the earlier
+//       unconditional wordings "For each producer, state before the plan
+//       round", "is never counted as one" or "as a violation is a defect,
+//       unless".
 //       tools/workflow-checks/test_review_rules.py and
 //       test_review_rules_consistency.py pass on this tree; on a copy of
 //       AGENTS.md whose Input failures item is the earlier one,
@@ -83,7 +87,9 @@ package plugins
 //       "after the freeze", "commit", "`ha note <goal> check-change
 //       checks:<path> --reason", "finding ID";
 //       "next code round", "changed check files", "plan-delta";
-//       "before the freeze", "no reason", "may still be fixed".
+//       "before the freeze", "no reason", "may still be fixed";
+//       "`ha note <goal> review --gate", "right after the freeze round",
+//       "condition table".
 // AC-17 The formula token is "표시한 필수 change × 2 + 표시하지 않은 필수
 //       change + 필수 maintain" in every language. The mark tokens are
 //       "`baseline` 열" (ko) or "`baseline` column" (en) with "`요구`"; the
@@ -100,8 +106,28 @@ package plugins
 //       holds "run-rules/7" with "supported_rules" and "--rules
 //       run-rules/7".
 //       guides/USAGE.md, .en.md, guides/OPERATIONS.md, .en.md: a section
-//       whose heading holds "run-rules/7" with the formula, the mark tokens
-//       and the freeze line.
+//       whose heading holds "run-rules/7" with the formula, the mark tokens,
+//       the freeze line and three lines of the input-failure policy:
+//       ko "입력 실패", "대상 파일 없음", "손상된 입력", "시작하지 못하는
+//       도구", "신호 종료", "통과가 아니다"; "baseline을 요구하지 않는 검사",
+//       "위반, 오류, 판정 불가", "검사의 결함이 아니다"; "baseline을 요구하는
+//       change 조건의 전용 생산자", "위반으로 보고하지 않는다", "허용하는
+//       경우";
+//       en "input failure", "missing target file", "corrupt input", "tool
+//       that cannot start", "signal", "never a pass"; "require no
+//       baseline", "violation, error or inconclusive", "not a check
+//       defect"; "dedicated producer of a marked change condition", "reports
+//       none of them as a violation", "result contract allows".
+//       Each line of a guide holding one of its earlier sentences that ask
+//       every change condition for a baseline still holds it and says its
+//       rule scope with "run-rules/7" or "run-rules/6까지" (ko), "run-rules/7"
+//       or "up to run-rules/6" (en), backquotes aside. The sentences:
+//       USAGE.md "필수 change가 34개인 목표는 최소량 68회"; USAGE.en.md "a
+//       goal with 34 required change conditions needs at least 68 runs";
+//       OPERATIONS.md "**의도한 위반**을 보여야", "수정 전·후 각 한 번씩
+//       최소 68회"; OPERATIONS.en.md "must show the **intended violation**
+//       before the change", "need at least 68 runs: one before and one after
+//       the change for each".
 //       SKILL.md: "--rules run-rules/7". references/ha.md `## run-rules/7`:
 //       "run-rules/6", the formula, the en mark tokens, the en freeze line,
 //       "`ha note <goal> check-change". references/bundle.md "### `## 조건표`":
@@ -181,6 +207,10 @@ const (
 	ckEarlierInputFailures = "- **Input failures.** For each producer, state before the plan round which result (violation, error or inconclusive) follows from a missing target file, corrupt input, a tool that cannot start, and termination by a signal. A case that the check result contract does not declare as a violation is never counted as one."
 	ckEarlierReviewers     = "- A check that counts an input failure (a missing file, corrupt input, a tool that cannot start, a signal) as a violation is a defect, unless the check declares that case as a violation where the check result contract allows it, such as `missing: violation`."
 )
+
+// ckEarlierPhrases are the unconditional wordings of those items that no
+// line of AGENTS.md `## Checks and review` holds any longer.
+var ckEarlierPhrases = []string{"For each producer, state before the plan round", "is never counted as one", "as a violation is a defect, unless"}
 
 // ckRead reads the files a test needs; any that cannot be read is a broken
 // setup.
@@ -687,7 +717,8 @@ func TestCheckCostAC11_FreezeGuidance(t *testing.T) {
 		[]string{"frozen", "declarations", "producers", "tests", "helpers", "settings"},
 		[]string{"after the freeze", "commit", "`ha note <goal> check-change checks:<path> --reason", "finding ID"},
 		[]string{"next code round", "changed check files", "plan-delta"},
-		[]string{"before the freeze", "no reason", "may still be fixed"})
+		[]string{"before the freeze", "no reason", "may still be fixed"},
+		[]string{"`ha note <goal> review --gate", "right after the freeze round", "condition table"})
 	c.tokens(ckSkill, "(the link to that section)", []string{files[ckSkill]}, "](references/bundle.md#check-inputs)")
 	c.report(t, v)
 }
@@ -777,6 +808,15 @@ func TestCheckCostAC9_AgentsInputFailureRule(t *testing.T) {
 		c.tokens(ckAgents, "For reviewers", items, "as a violation is a defect only when", "producer of a condition that requires a baseline",
 			"`missing: violation`", "as a pass is a defect")
 	}
+	// The earlier unconditional wordings are gone from the whole section.
+	for i := rulesAt + 1; i < end; i++ {
+		flat := ckFlat(lines[i])
+		for _, phrase := range ckEarlierPhrases {
+			if strings.Contains(flat, ckFlat(phrase)) {
+				c.lack("%s `## Checks and review` line %d still holds the earlier unconditional %q", ckAgents, i+1, phrase)
+			}
+		}
+	}
 	c.report(t, v)
 
 	// The repository checks pass on this tree.
@@ -828,9 +868,33 @@ func TestCheckCostAC9_AgentsInputFailureRule(t *testing.T) {
 // minimum formula, the mark names and the freeze stages.
 func TestCheckCostAC17_Documents(t *testing.T) {
 	const v = "rules-v7-undocumented"
-	type lang struct{ mark, freeze []string }
-	ko := lang{[]string{"`baseline` 열", "`요구`"}, []string{"동결", "첫 `plan` 라운드", "첫 `candidate` 라운드"}}
-	en := lang{[]string{"`baseline` column", "`요구`"}, []string{"freeze", "earliest `plan` round", "earliest `candidate` round"}}
+	type lang struct {
+		mark, freeze []string
+		// inputs are the lines of the narrowed input-failure policy; scope
+		// holds the phrases one of which says an earlier sentence's rule
+		// scope.
+		inputs [][]string
+		scope  []string
+	}
+	ko := lang{[]string{"`baseline` 열", "`요구`"}, []string{"동결", "첫 `plan` 라운드", "첫 `candidate` 라운드"},
+		[][]string{{"입력 실패", "대상 파일 없음", "손상된 입력", "시작하지 못하는 도구", "신호 종료", "통과가 아니다"},
+			{"baseline을 요구하지 않는 검사", "위반, 오류, 판정 불가", "검사의 결함이 아니다"},
+			{"baseline을 요구하는 change 조건의 전용 생산자", "위반으로 보고하지 않는다", "허용하는 경우"}},
+		[]string{"run-rules/7", "run-rules/6까지"}}
+	en := lang{[]string{"`baseline` column", "`요구`"}, []string{"freeze", "earliest `plan` round", "earliest `candidate` round"},
+		[][]string{{"input failure", "missing target file", "corrupt input", "tool that cannot start", "signal", "never a pass"},
+			{"require no baseline", "violation, error or inconclusive", "not a check defect"},
+			{"dedicated producer of a marked change condition", "reports none of them as a violation", "result contract allows"}},
+		[]string{"run-rules/7", "up to run-rules/6"}}
+	// The guides' sentences that ask every change condition for a baseline,
+	// as they read before this goal: each line holding one also says its
+	// rule scope.
+	earlier := map[string][]string{
+		"../guides/USAGE.md":         {"필수 change가 34개인 목표는 최소량 68회"},
+		"../guides/USAGE.en.md":      {"a goal with 34 required change conditions needs at least 68 runs"},
+		"../guides/OPERATIONS.md":    {"**의도한 위반**을 보여야", "수정 전·후 각 한 번씩 최소 68회"},
+		"../guides/OPERATIONS.en.md": {"must show the **intended violation** before the change", "need at least 68 runs: one before and one after the change for each"},
+	}
 	docs := map[string]lang{
 		"../contracts/run-record.md": ko, "../contracts/run-record.en.md": en,
 		"../guides/USAGE.md": ko, "../guides/USAGE.en.md": en,
@@ -866,10 +930,27 @@ func TestCheckCostAC17_Documents(t *testing.T) {
 	for _, p := range paths[4:6] {
 		c.in(p, files[p], rule, ckHolding(ckNewRules), []string{"supported_rules", "--rules " + ckNewRules})
 	}
-	// guides: the run-rules/7 section.
+	// guides: the run-rules/7 section with the narrowed input-failure
+	// policy, and the rule scope of each earlier sentence.
 	for _, p := range paths[6:10] {
 		l := docs[p]
-		c.in(p, files[p], rule, ckHolding(ckNewRules), append([]string{ckFormula}, l.mark...), l.freeze)
+		c.in(p, files[p], rule, ckHolding(ckNewRules), append([]string{ckFormula}, l.mark...), append([][]string{l.freeze}, l.inputs...)...)
+		for _, sentence := range earlier[p] {
+			found := false
+			for i, line := range strings.Split(files[p], "\n") {
+				if !strings.Contains(ckFlat(line), ckFlat(sentence)) {
+					continue
+				}
+				found = true
+				plain := ckFlat(strings.ReplaceAll(line, "`", ""))
+				if !slices.ContainsFunc(l.scope, func(s string) bool { return strings.Contains(plain, ckFlat(s)) }) {
+					c.lack("%s line %d holds %q without its rule scope (one of %q)", p, i+1, sentence, l.scope)
+				}
+			}
+			if !found {
+				c.lack("%s: no line holding the earlier sentence %q", p, sentence)
+			}
+		}
 	}
 	// Seal: the skill, its references and templates.
 	c.tokens(ckSkill, "(the skill)", []string{files[ckSkill]}, "--rules "+ckNewRules)

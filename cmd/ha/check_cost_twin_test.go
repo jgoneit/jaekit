@@ -10,20 +10,22 @@ package main
 // is, and every commit has a fixed date, so twins whose PLANs differ still
 // have the same commit IDs.
 //
-// AC-13: a goal started under run-rules/6 is judged, estimated, shown and
-// completed the same whether its PLAN has the mark column or not, and the
-// default start rule stays run-rules/3. AC-14: outside the judgments the goal
-// changes, a run-rules/7 goal whose every change condition is marked is
-// judged and commanded like the same record under run-rules/6.
+// AC-13: a goal started under each earlier rule (run-rules/1 to /6) gives
+// the outputs this tree's ha gave before this goal (cwKept), and is judged,
+// estimated, shown and completed the same whether its PLAN has the mark
+// column or not; the default start rule stays run-rules/3. AC-14: outside the
+// judgments the goal changes, a run-rules/7 goal whose every change condition
+// is marked is judged and commanded like the same record under run-rules/6.
 //
 // The checks use only the ha command line (runMain) and the helpers of
 // review_gate_test.go and core_integrity_test.go; they never run Spar, a
 // reviewer or a model, and never read a commit, ref or record outside the
 // repositories they build. A difference between the twins, a lint problem
-// the mark brings to a run-rules/6 goal, and a refused run-rules/7 start are
-// the observed violation (jaekit:violation=...). Every other failure,
-// including a reference twin that does not reach the state a step names, is
-// a broken setup (setup:).
+// the mark brings to an earlier rule's goal, an earlier rule's output that
+// differs from the expected one, and a refused run-rules/7 start are the
+// observed violation (jaekit:violation=...). Every other failure, including
+// a reference twin that does not reach the state a step names, is a broken
+// setup (setup:).
 
 import (
 	"bytes"
@@ -35,6 +37,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -166,6 +169,13 @@ type cwTwins struct {
 	drop map[string]bool
 	// human also compares the human-readable status and reports.
 	human bool
+	// kept names the earlier rule whose expected outputs (cwKept) the only
+	// twin's steps and views are compared with; "" in a set of twins. With
+	// it, every deviation from those outputs is the observed violation, so
+	// the steps do not check the reference twin's state as setup.
+	kept string
+	// steps are the step lines of a set with kept outputs so far.
+	steps []string
 }
 
 // cwObs is what follows one step in one twin.
@@ -415,7 +425,8 @@ func (s *cwTwins) views(f *rgFixture) map[string]string {
 // run does one step on each twin in turn. want is the reference twin's exit
 // (cwPending: any nonzero exit); another one means the fixture did not build
 // the state the step names. An internal error (70) of any twin is a broken
-// setup too.
+// setup too. In a set with kept outputs the step's line (cwStepLine) is
+// compared with the expected one instead.
 func (s *cwTwins) run(label string, want int, act cwAct) []cwObs {
 	s.t.Helper()
 	obs := make([]cwObs, len(s.twins))
@@ -435,10 +446,25 @@ func (s *cwTwins) run(label string, want int, act cwAct) []cwObs {
 			}
 		}
 	}
+	if s.kept != "" {
+		s.steps = append(s.steps, cwStepLine(label, obs[0]))
+		s.keep("steps", func() []string { return s.steps })
+		return obs
+	}
 	if got := obs[0].code; (want == cwPending && got == exitOK) || (want != cwPending && got != want) {
 		s.t.Fatalf("setup: %s: exit %d in %s, want %d: %s", label, got, s.twins[0].name, want, cwFirst(obs[0].out))
 	}
 	return obs
+}
+
+// cwStepLine is what follows one step: the exit, how the record changed,
+// and the status and reasons after it ("none" before the start).
+func cwStepLine(label string, o cwObs) string {
+	state := "none"
+	if o.state.value != nil {
+		state = fmt.Sprintf("%s (exit %d) %v", o.state.status, o.state.code, o.state.reasons)
+	}
+	return fmt.Sprintf("%s: exit %d; record %s; status %s", label, o.code, o.record, state)
 }
 
 // compare reports the first difference between a twin and the reference
@@ -483,9 +509,13 @@ func (s *cwTwins) step(label string, want int, act cwAct) []cwObs {
 
 // has fails the setup unless the reference twin's reasons include code, or
 // leave it out when want is false. A code ending in ":" stands for any
-// reason of that condition (AC-n:).
+// reason of that condition (AC-n:). A set with kept outputs observes the
+// reasons in its step lines instead.
 func (s *cwTwins) has(label string, obs []cwObs, code string, want bool) {
 	s.t.Helper()
+	if s.kept != "" {
+		return
+	}
 	found := false
 	for _, r := range obs[0].state.reasons {
 		found = found || r == code || (strings.HasSuffix(code, ":") && strings.HasPrefix(r, code))
@@ -546,30 +576,55 @@ func (s *cwTwins) edit(label string, change func(p *cwPlan)) []cwObs {
 	})
 }
 
-// start starts every twin under its rule. A refused run-rules/7 start is the
-// observed violation, and so is a start that records another rule.
+// cwSaved reports whether a goal under rules is a saved-record fixture:
+// this tree's ha starts run-rules/3 to /7 with --rules, and no longer starts
+// run-rules/1 or /2.
+func cwSaved(rules string) bool { return rules == "run-rules/1" || rules == "run-rules/2" }
+
+// cwSaveRules turns the goal this tree's ha just started under run-rules/3
+// into a saved goal of rules: its start line, still the record's only line,
+// names rules. No later line links to it yet, so no hash link is joined
+// again (estimate_test.go makes its earlier-rule goals the same way).
+func cwSaveRules(f *rgFixture, rules string) {
+	f.t.Helper()
+	lines := ciLines(f)
+	if len(lines) != 1 || lines[0].kind() != "start" {
+		f.t.Fatalf("setup: the record after ha start is not one start line (%d lines)", len(lines))
+	}
+	lines[0].m["rules"] = rules
+	ciWrite(f, ciRelink(f, lines, 0))
+}
+
+// start starts every twin under its rule; a saved-record fixture's twin
+// starts under run-rules/3 and is saved under its rule. A refused run-rules/7
+// start is the observed violation, and so is a start that records another
+// rule; in a set with kept outputs so is any refused start.
 func (s *cwTwins) start(label string, extra ...string) {
 	s.t.Helper()
 	obs := s.run(label, exitOK, func(tw *cwTwin) (int, string) {
-		code, out := tw.f.ha(append([]string{"start", rgGoal, "--request", cwRequest, "--rules", tw.rules}, extra...)...)
-		if code != exitOK && tw.rules == "run-rules/7" {
-			s.t.Fatalf("jaekit:violation=%s ha refuses to start %s under %s: exit %d: %s", s.violation, tw.name, tw.rules, code, cwFirst(out))
+		rules := tw.rules
+		if cwSaved(rules) {
+			rules = "run-rules/3"
 		}
-		if code != exitOK && tw != s.twins[0] {
-			s.t.Fatalf("jaekit:violation=%s ha refuses to start %s under %s: exit %d: %s", s.violation, tw.name, tw.rules, code, cwFirst(out))
+		code, out := tw.f.ha(append([]string{"start", rgGoal, "--request", cwRequest, "--rules", rules}, extra...)...)
+		if code != exitOK && (tw.rules == "run-rules/7" || tw != s.twins[0] || s.kept != "") {
+			s.t.Fatalf("jaekit:violation=%s ha refuses to start %s under %s: exit %d: %s", s.violation, tw.name, rules, code, cwFirst(out))
 		}
 		if code != exitOK {
-			s.t.Fatalf("setup: ha start of %s under %s exit %d: %s", tw.name, tw.rules, code, cwFirst(out))
+			s.t.Fatalf("setup: ha start of %s under %s exit %d: %s", tw.name, rules, code, cwFirst(out))
+		}
+		if cwSaved(tw.rules) {
+			cwSaveRules(tw.f, tw.rules)
 		}
 		tw.f.base = tw.f.git("rev-parse", "HEAD")
 		return code, out
 	})
 	for i, o := range obs {
 		if got := o.state.value["rules"]; got != s.twins[i].rules {
-			if i == 0 {
+			if i == 0 && s.kept == "" {
 				s.t.Fatalf("setup: %s: %s computes under %v", label, s.twins[i].name, got)
 			}
-			s.t.Fatalf("jaekit:violation=%s %s: ha start --rules %s started %s, which computes under %v", s.violation, label, s.twins[i].rules, s.twins[i].name, got)
+			s.t.Fatalf("jaekit:violation=%s %s: the start of %s, which computes under %v", s.violation, label, s.twins[i].name, got)
 		}
 	}
 	s.compare(label, obs)
@@ -668,7 +723,7 @@ func (s *cwTwins) output(label string, obs []cwObs) {
 	}
 }
 
-// noMarkFields reports a run-rules/6 status that carries a field only a
+// noMarkFields reports an earlier rule's status that carries a field only a
 // run-rules/7 goal shows (criteria[].baseline_required, check_freeze).
 func (s *cwTwins) noMarkFields(label string, obs []cwObs) {
 	s.t.Helper()
@@ -676,21 +731,50 @@ func (s *cwTwins) noMarkFields(label string, obs []cwObs) {
 		if o.state.value == nil {
 			continue
 		}
+		tw := s.twins[i]
 		if _, ok := o.state.value["check_freeze"]; ok {
-			s.t.Fatalf("jaekit:violation=%s %s: the run-rules/6 status of %s has check_freeze", s.violation, label, s.twins[i].name)
+			s.t.Fatalf("jaekit:violation=%s %s: the %s status of %s has check_freeze", s.violation, label, tw.rules, tw.name)
 		}
 		list, _ := o.state.value["criteria"].([]any)
 		for _, item := range list {
 			c, _ := item.(map[string]any)
 			if _, ok := c["baseline_required"]; ok {
-				s.t.Fatalf("jaekit:violation=%s %s: the run-rules/6 status of %s has criteria[].baseline_required (%v)", s.violation, label, s.twins[i].name, c["id"])
+				s.t.Fatalf("jaekit:violation=%s %s: the %s status of %s has criteria[].baseline_required (%v)", s.violation, label, tw.rules, tw.name, c["id"])
 			}
 		}
 	}
 }
 
-// same runs a step, compares it, its output and the fields a run-rules/6
-// status must not have.
+// query runs a command that only reads the goal (ha lint, ha estimate) on
+// each twin and compares its exit, normalized output and record change with
+// the reference's. A set of twins leaves out the status and views, which
+// such a command leaves as they were unless it changes the record; a set
+// with kept outputs runs it as any step.
+func (s *cwTwins) query(label string, act cwAct) []cwObs {
+	s.t.Helper()
+	if s.kept != "" {
+		return s.same(label, exitOK, act)
+	}
+	obs := make([]cwObs, len(s.twins))
+	for i, tw := range s.twins {
+		f := s.use(tw)
+		before := cwRecords(f)
+		code, out := act(tw)
+		if code == exitInternal {
+			s.t.Fatalf("setup: %s: ha internal error in %s: %s", label, tw.name, cwFirst(out))
+		}
+		obs[i] = cwObs{code: code, out: out, record: cwChange(before, cwRecords(f))}
+	}
+	if obs[0].code != exitOK {
+		s.t.Fatalf("setup: %s: exit %d in %s, want 0: %s", label, obs[0].code, s.twins[0].name, cwFirst(obs[0].out))
+	}
+	s.compare(label, obs)
+	s.output(label, obs)
+	return obs
+}
+
+// same runs a step, compares it, its output and the fields an earlier
+// rule's status must not have.
 func (s *cwTwins) same(label string, want int, act cwAct) []cwObs {
 	s.t.Helper()
 	obs := s.step(label, want, act)
@@ -704,35 +788,257 @@ func (s *cwTwins) same(label string, want int, act cwAct) []cwObs {
 var cwEstimates = [][]string{{"estimate", rgGoal, "--format", "json"}, {"estimate", rgGoal, "--baseline", "--format", "json"},
 	{"estimate", rgGoal}, {"estimate", rgGoal, "--baseline"}}
 
-// AC-13: a run-rules/6 goal whose PLAN has the baseline column, from its
-// start or added after its completion, gives the same lint result, estimate
-// (minimum and default baseline selection), judgment, reasons, completion,
-// `ha status` JSON and human output and `ha report` as the same goal without
-// the column; no command rewrites its record; and a start without --rules
-// still uses run-rules/3.
-func TestCheckCostAC13_EarlierRulesIgnoreMark(t *testing.T) {
-	const v = "earlier-rules-change-with-mark"
-	plain := &cwTwin{name: "the run-rules/6 goal without the baseline column", rules: "run-rules/6"}
-	marked := &cwTwin{name: "the run-rules/6 goal with the baseline column", rules: "run-rules/6",
-		plan: cwPlan{marks: []string{cwReq, "", "—"}}}
-	later := &cwTwin{name: "the run-rules/6 goal that gains the baseline column after its completion", rules: "run-rules/6"}
-	s := newCWTwins(t, v, "", plain, marked, later)
-	s.human = true
+// cwEarlierRules are the rule versions AC-13 keeps.
+var cwEarlierRules = []string{"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5", "run-rules/6"}
 
-	estimates := func(when string) {
-		t.Helper()
-		for _, args := range cwEstimates {
-			s.same(when+": ha "+strings.Join(args, " "), exitOK, cwHa(args...))
+// cwEstimateKeys are the fields of `ha estimate --format json` that hold the
+// required minimum and the default selection.
+var cwEstimateKeys = []string{"required_change", "required_maintain", "minimum_runs", "shortfall", "headroom",
+	"default_check_runs", "default_baseline_runs", "default_additional_runs", "selected"}
+
+// cwNames are the values of one repository that the expected outputs name
+// instead of their bytes: its commits, by their subjects, and its temporary
+// folders.
+type cwNames struct {
+	commits map[string]string
+	paths   [][2]string
+}
+
+func cwNamesOf(f *rgFixture) cwNames {
+	f.t.Helper()
+	n := cwNames{commits: map[string]string{}}
+	for _, line := range strings.Split(f.git("log", "--all", "--format=%H %s"), "\n") {
+		if id, subject, ok := strings.Cut(line, " "); ok {
+			n.commits[id] = "<commit " + subject + ">"
 		}
 	}
-	s.same("ha lint before the start", exitOK, cwHa("lint", rgGoal))
-	estimates("before the start")
+	for _, p := range [][2]string{{f.dir, "<repo>"}, {f.gates, "<gates>"}} {
+		if real, err := filepath.EvalSymlinks(p[0]); err == nil && real != p[0] {
+			n.paths = append(n.paths, [2]string{real, p[1]})
+		}
+		n.paths = append(n.paths, p)
+	}
+	sort.SliceStable(n.paths, func(i, j int) bool { return len(n.paths[i][0]) > len(n.paths[j][0]) })
+	return n
+}
+
+// What the expected outputs leave out of human-readable text, besides
+// commits and temporary folders: times (cwTimeText), the line hash after a
+// record seq, and lengths of time. A run limit (the number after "/") stays.
+var (
+	cwKeptHead   = regexp.MustCompile(`seq (\d+) \([0-9a-f]{7,64}\)`)
+	cwKeptWindow = regexp.MustCompile(`\b\d+/(\d+) seconds\b`)
+	cwKeptSpan   = regexp.MustCompile(`\b(leaves out|window span) \d+ seconds\b`)
+	cwKeptHex    = regexp.MustCompile(`\b[0-9a-f]{7,40}\b`)
+)
+
+func (n cwNames) text(s string) string {
+	for _, p := range n.paths {
+		s = strings.ReplaceAll(s, p[0], p[1])
+	}
+	s = cwTimeText.ReplaceAllString(s, "<time>")
+	s = cwKeptHead.ReplaceAllString(s, "seq $1 (<line hash>)")
+	s = cwKeptWindow.ReplaceAllString(s, "<seconds>/$1 seconds")
+	s = cwKeptSpan.ReplaceAllString(s, "$1 <seconds> seconds")
+	return cwKeptHex.ReplaceAllStringFunc(s, func(h string) string {
+		for id, name := range n.commits {
+			if strings.HasPrefix(id, h) {
+				return name
+			}
+		}
+		return h
+	})
+}
+
+// value normalizes a decoded JSON value: times, lengths of time and the line
+// hash of every record head become placeholders, and strings are normalized
+// as text.
+func (n cwNames) value(v any, key string) any {
+	switch x := v.(type) {
+	case map[string]any:
+		m := map[string]any{}
+		for k, val := range x {
+			s, isText := val.(string)
+			_, isNumber := val.(float64)
+			switch {
+			case (k == "at" || k == "started_at") && isText && s != "":
+				m[k] = "<time>"
+			case cwTimeKeys[k] && isNumber:
+				m[k] = "<seconds>"
+			case key == "record_head" && k == "sha256" && isText:
+				m[k] = "<line hash>"
+			default:
+				m[k] = n.value(val, k)
+			}
+		}
+		return m
+	case []any:
+		out := make([]any, len(x))
+		for i, val := range x {
+			out[i] = n.value(val, key)
+		}
+		return out
+	case string:
+		return n.text(x)
+	}
+	return v
+}
+
+func cwCompact(v any) string {
+	var b bytes.Buffer
+	enc := json.NewEncoder(&b)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(v); err != nil {
+		return fmt.Sprint(v)
+	}
+	return strings.TrimSuffix(b.String(), "\n")
+}
+
+// json renders a normalized JSON document as lines: one per field (only the
+// given ones, when keys are given), and one per item of a list that is not
+// empty.
+func (n cwNames) json(doc map[string]any, keys ...string) []string {
+	if len(keys) == 0 {
+		for k := range doc {
+			keys = append(keys, k)
+		}
+	}
+	sort.Strings(keys)
+	var lines []string
+	for _, k := range keys {
+		val, ok := doc[k]
+		if !ok {
+			lines = append(lines, k+": (absent)")
+			continue
+		}
+		val = n.value(val, k)
+		if list, isList := val.([]any); isList && len(list) > 0 {
+			for i, item := range list {
+				lines = append(lines, fmt.Sprintf("%s[%d]: %s", k, i, cwCompact(item)))
+			}
+			continue
+		}
+		lines = append(lines, k+": "+cwCompact(val))
+	}
+	return lines
+}
+
+// output renders a command's exit code and normalized output as lines.
+func (n cwNames) output(code int, out string) []string {
+	return append([]string{fmt.Sprintf("exit %d", code)}, strings.Split(strings.TrimRight(n.text(out), "\n"), "\n")...)
+}
+
+// cwKeptFor is the expected output of rules: the lines of view that carry no
+// rule tag, and those whose tag ("@4,5,6 ") names its number.
+func cwKeptFor(view []string, rules string) []string {
+	number := strings.TrimPrefix(rules, "run-rules/")
+	var out []string
+	for _, line := range view {
+		if tag, rest, ok := strings.Cut(line, " "); ok && strings.HasPrefix(tag, "@") {
+			if !slices.Contains(strings.Split(tag[1:], ","), number) {
+				continue
+			}
+			line = rest
+		}
+		out = append(out, line)
+	}
+	return out
+}
+
+// keep compares a view of the only twin of a set with kept outputs with the
+// expected lines of its rule. A view the check has no expected lines for is
+// a broken check.
+func (s *cwTwins) keep(view string, render func() []string) {
+	s.t.Helper()
+	if s.kept == "" {
+		return
+	}
+	expected, ok := cwKept[view]
+	if !ok {
+		s.t.Fatalf("setup: no expected output %q", view)
+	}
+	want, got := cwKeptFor(expected, s.kept), render()
+	if view == "steps" {
+		// The steps so far; a flow with more steps than the expected list
+		// is a changed check, not a changed ha.
+		if len(got) > len(want) {
+			s.t.Fatalf("setup: step %d %q has no expected line", len(got), got[len(got)-1])
+		}
+		want = want[:len(got)]
+	}
+	if n, a, b := cwFirstDiff(strings.Join(want, "\n"), strings.Join(got, "\n")); n > 0 {
+		s.t.Fatalf("jaekit:violation=%s %s, %s: line %d is %q, want %q as this tree's ha gave it before this goal",
+			s.violation, s.twins[0].name, view, n, b, a)
+	}
+}
+
+// keepState compares the status JSON, the human-readable status and the
+// Korean report of the only twin with the expected ones at a fixed point.
+func (s *cwTwins) keepState(when string, obs []cwObs) {
+	s.t.Helper()
+	if s.kept == "" {
+		return
+	}
+	f := s.twins[0].f
+	n := cwNamesOf(f)
+	s.keep("status json "+when, func() []string { return n.json(obs[0].state.value) })
+	for _, view := range [][]string{{"status", rgGoal, "--format", "md"}, {"report", rgGoal, "--lang", "ko"}} {
+		s.keep(view[0]+" "+view[len(view)-1]+" "+when, func() []string {
+			code, out := f.ha(view...)
+			if code == exitInternal || code == exitUsage {
+				s.t.Fatalf("setup: ha %v exit %d: %s", view, code, cwFirst(out))
+			}
+			return n.output(code, out)
+		})
+	}
+}
+
+// keepEstimate compares the minimum and default baseline selection of `ha
+// estimate --baseline --format json` with the expected ones.
+func (s *cwTwins) keepEstimate(view string, obs []cwObs) {
+	s.t.Helper()
+	s.keep(view, func() []string {
+		var doc map[string]any
+		if err := json.Unmarshal([]byte(obs[0].out), &doc); err != nil {
+			s.t.Fatalf("setup: %s: ha estimate printed no JSON: %v: %s", view, err, cwFirst(obs[0].out))
+		}
+		return cwNamesOf(s.twins[0].f).json(doc, cwEstimateKeys...)
+	})
+}
+
+// cwEarlierSteps are AC-13's steps on a set of one earlier rule: the start,
+// the checks, the default baseline selection and ha done, then, when later
+// is one of the twins, the mark column added to its completed goal. A set
+// with kept outputs compares its views at fixed points; a set of twins
+// compares the twins after every step.
+func cwEarlierSteps(s *cwTwins, later *cwTwin) {
+	s.t.Helper()
+	ref := s.twins[0]
+	estimates := func(when string) []cwObs {
+		s.t.Helper()
+		var selected []cwObs
+		for i, args := range cwEstimates {
+			obs := s.query(when+": ha "+strings.Join(args, " "), cwHa(args...))
+			if i == 1 {
+				selected = obs
+			}
+		}
+		return selected
+	}
+	lint := func(label string) {
+		s.t.Helper()
+		obs := s.query(label, cwHa("lint", rgGoal))
+		s.keep(label, func() []string { return cwNamesOf(ref.f).output(obs[0].code, obs[0].out) })
+	}
+	lint("ha lint before the start")
+	s.keepEstimate("estimate before the start", estimates("before the start"))
 	s.start("the start")
-	s.same("ha lint after the start", exitOK, cwHa("lint", rgGoal))
-	estimates("after the start")
+	lint("ha lint after the start")
+	s.keepEstimate("estimate after the start", estimates("after the start"))
 
 	s.commit("the code commit", "src/one.txt", "ok\n", "src/two.txt", "ok\n")
 	obs := s.same("every required condition checked", exitOK, cwHa("check", rgGoal))
+	s.keepState("with the baselines missing", obs)
 	s.has("every required condition checked", obs, "AC-1:baseline_missing", true)
 	s.has("every required condition checked", obs, "AC-2:baseline_missing", true)
 	obs = s.same("AC-1's baseline", exitOK, cwHa("check", rgGoal, "--baseline", "AC-1"))
@@ -743,12 +1049,19 @@ func TestCheckCostAC13_EarlierRulesIgnoreMark(t *testing.T) {
 
 	label := "the default baseline selection"
 	obs = s.same(label, exitOK, cwHa("check", rgGoal, "--baseline"))
-	if want := "appended baseline/AC-1/fail_as_expected, baseline/AC-2/fail_as_expected"; obs[0].record != want {
-		t.Fatalf("setup: %s: the run record %s in %s, want %s", label, obs[0].record, plain.name, want)
+	if want := "appended baseline/AC-1/fail_as_expected, baseline/AC-2/fail_as_expected"; s.kept == "" && obs[0].record != want {
+		s.t.Fatalf("setup: %s: the run record %s in %s, want %s", label, obs[0].record, ref.name, want)
 	}
 	obs = s.same("ha done", exitOK, cwHa("done", rgGoal))
-	if obs[0].state.completion == nil {
-		t.Fatalf("setup: ha done: no completion record in %s", plain.name)
+	s.keepState("after ha done", obs)
+	if s.kept == "" && obs[0].state.completion == nil {
+		s.t.Fatalf("setup: ha done: no completion record in %s", ref.name)
+	}
+	if s.kept != "" {
+		if len(s.steps) != len(cwKeptFor(cwKept["steps"], s.kept)) {
+			s.t.Fatalf("setup: %d steps, but the expected output has %d", len(s.steps), len(cwKeptFor(cwKept["steps"], s.kept)))
+		}
+		return
 	}
 
 	// The column added to the completed goal changes no judgment, view or
@@ -762,15 +1075,51 @@ func TestCheckCostAC13_EarlierRulesIgnoreMark(t *testing.T) {
 		return exitOK, ""
 	})
 	if obs[0].state.status != "complete" {
-		t.Fatalf("setup: %s: status %s in %s", label, obs[0].state.status, plain.name)
+		s.t.Fatalf("setup: %s: status %s in %s", label, obs[0].state.status, ref.name)
 	}
-	s.same("ha lint after the completion", exitOK, cwHa("lint", rgGoal))
+	s.query("ha lint after the completion", cwHa("lint", rgGoal))
 	estimates("after the completion")
 	s.same("ha done again", exitOK, cwHa("done", rgGoal))
+}
+
+// AC-13: for each earlier rule (run-rules/1 to /6), a goal gives the steps'
+// exits, record changes, statuses and reasons, the lint result, the minimum
+// and default baseline selection of ha estimate, and at two points (the
+// baselines missing, and after ha done) the `ha status` JSON and human
+// output and the Korean `ha report` that this tree's ha gave before this goal
+// (cwKept). The same goal whose PLAN has the baseline column, from its start
+// or added after its completion, gives the same lint result, estimates,
+// judgment, reasons, completion, `ha status` JSON and human output and `ha
+// report` as the goal without the column; no command rewrites its record;
+// and a start without --rules still uses run-rules/3. This tree's ha starts
+// run-rules/3 to /6; a run-rules/1 or /2 goal is a saved-record fixture
+// (cwSaveRules). The kept outputs of every rule are compared before any
+// twins, so a base where only the column differs fails on the twins.
+func TestCheckCostAC13_EarlierRulesIgnoreMark(t *testing.T) {
+	const v = "earlier-rules-change-with-mark"
+	for _, rules := range cwEarlierRules {
+		func() {
+			plain := &cwTwin{name: "the " + rules + " goal without the baseline column", rules: rules}
+			s := newCWTwins(t, v, "", plain)
+			s.kept = rules
+			cwEarlierSteps(s, nil)
+		}()
+	}
+	for _, rules := range cwEarlierRules {
+		func() {
+			plain := &cwTwin{name: "the " + rules + " goal without the baseline column", rules: rules}
+			marked := &cwTwin{name: "the " + rules + " goal with the baseline column", rules: rules,
+				plan: cwPlan{marks: []string{cwReq, "", "—"}}}
+			later := &cwTwin{name: "the " + rules + " goal that gains the baseline column after its completion", rules: rules}
+			s := newCWTwins(t, v, "", plain, marked, later)
+			s.human = true
+			cwEarlierSteps(s, later)
+		}()
+	}
 
 	// The default start rule.
-	caps := plain.f
-	code, out := caps.ha("capabilities", "--format", "json")
+	fresh := cwRepo(t, "", cwPlan{})
+	code, out := fresh.ha("capabilities", "--format", "json")
 	var info struct {
 		Default string `json:"default_rules"`
 	}
@@ -780,7 +1129,6 @@ func TestCheckCostAC13_EarlierRulesIgnoreMark(t *testing.T) {
 	if info.Default != "run-rules/3" {
 		t.Fatalf("jaekit:violation=%s ha capabilities names the default start rule %q, want run-rules/3", v, info.Default)
 	}
-	fresh := cwRepo(t, "", cwPlan{})
 	if code, out := fresh.ha("start", rgGoal, "--request", cwRequest); code != exitOK {
 		t.Fatalf("setup: ha start without --rules exit %d: %s", code, cwFirst(out))
 	}
@@ -1086,4 +1434,272 @@ func TestCheckCostAC14_SameAsRulesV6Elsewhere(t *testing.T) {
 	if obs[0].state.completion != nil {
 		t.Fatalf("setup: a reopen after the completion record: completion record %v in %s", obs[0].state.completion, old.name)
 	}
+}
+
+// cwKept holds, for each view AC-13 compares, the normalized output this
+// tree's ha gave before this goal under run-rules/1 to /6. A line that
+// starts with "@" and rule numbers ("@4,5,6 ") is in the output of those
+// rules only; every other line is in all six.
+var cwKept = map[string][]string{
+	"steps": {
+		`ha lint before the start: exit 0; record unchanged; status none`,
+		`before the start: ha estimate docs/specs/demo --format json: exit 0; record unchanged; status none`,
+		`before the start: ha estimate docs/specs/demo --baseline --format json: exit 0; record unchanged; status none`,
+		`before the start: ha estimate docs/specs/demo: exit 0; record unchanged; status none`,
+		`before the start: ha estimate docs/specs/demo --baseline: exit 0; record unchanged; status none`,
+		`the start: exit 0; record appended start; status incomplete (exit 1) [AC-1:criterion_missing AC-2:criterion_missing AC-3:criterion_missing]`,
+		`ha lint after the start: exit 0; record unchanged; status incomplete (exit 1) [AC-1:criterion_missing AC-2:criterion_missing AC-3:criterion_missing]`,
+		`after the start: ha estimate docs/specs/demo --format json: exit 0; record unchanged; status incomplete (exit 1) [AC-1:criterion_missing AC-2:criterion_missing AC-3:criterion_missing]`,
+		`after the start: ha estimate docs/specs/demo --baseline --format json: exit 0; record unchanged; status incomplete (exit 1) [AC-1:criterion_missing AC-2:criterion_missing AC-3:criterion_missing]`,
+		`after the start: ha estimate docs/specs/demo: exit 0; record unchanged; status incomplete (exit 1) [AC-1:criterion_missing AC-2:criterion_missing AC-3:criterion_missing]`,
+		`after the start: ha estimate docs/specs/demo --baseline: exit 0; record unchanged; status incomplete (exit 1) [AC-1:criterion_missing AC-2:criterion_missing AC-3:criterion_missing]`,
+		`the code commit: exit 0; record unchanged; status incomplete (exit 1) [AC-1:criterion_missing AC-2:criterion_missing AC-3:criterion_missing]`,
+		`every required condition checked: exit 0; record appended check/AC-1/pass, check/AC-2/pass, check/AC-3/pass; status incomplete (exit 1) [AC-1:baseline_missing AC-2:baseline_missing]`,
+		`AC-1's baseline: exit 0; record appended baseline/AC-1/fail_as_expected; status incomplete (exit 1) [AC-2:baseline_missing]`,
+		`ha done with AC-2's baseline missing: exit 1; record appended done/incomplete; status incomplete (exit 1) [AC-2:baseline_missing]`,
+		`with AC-2's baseline missing: ha estimate docs/specs/demo --format json: exit 0; record unchanged; status incomplete (exit 1) [AC-2:baseline_missing]`,
+		`with AC-2's baseline missing: ha estimate docs/specs/demo --baseline --format json: exit 0; record unchanged; status incomplete (exit 1) [AC-2:baseline_missing]`,
+		`with AC-2's baseline missing: ha estimate docs/specs/demo: exit 0; record unchanged; status incomplete (exit 1) [AC-2:baseline_missing]`,
+		`with AC-2's baseline missing: ha estimate docs/specs/demo --baseline: exit 0; record unchanged; status incomplete (exit 1) [AC-2:baseline_missing]`,
+		`the default baseline selection: exit 0; record appended baseline/AC-1/fail_as_expected, baseline/AC-2/fail_as_expected; status complete (exit 0) []`,
+		`ha done: exit 0; record appended done/complete; status complete (exit 0) []`,
+	},
+	"ha lint before the start": {
+		`exit 0`,
+		`ok: no lint problems`,
+	},
+	"estimate before the start": {
+		`default_additional_runs: 0`,
+		`default_baseline_runs: 2`,
+		`default_check_runs: 3`,
+		`headroom: 45`,
+		`minimum_runs: 5`,
+		`required_change: 2`,
+		`required_maintain: 1`,
+		`selected: {"additional_runs":0,"mode":"baseline","optional_runs":0,"repeated_required_runs":0,"runs":2,"targets":["AC-1","AC-2"],"task_runs":0}`,
+		`shortfall: 0`,
+	},
+	"ha lint after the start": {
+		`exit 0`,
+		`ok: no lint problems`,
+	},
+	"estimate after the start": {
+		`default_additional_runs: 0`,
+		`default_baseline_runs: 2`,
+		`default_check_runs: 3`,
+		`headroom: 45`,
+		`minimum_runs: 5`,
+		`required_change: 2`,
+		`required_maintain: 1`,
+		`selected: {"additional_runs":0,"mode":"baseline","optional_runs":0,"repeated_required_runs":0,"runs":2,"targets":["AC-1","AC-2"],"task_runs":0}`,
+		`shortfall: 0`,
+	},
+	"status json with the baselines missing": {
+		`assurance: "local"`,
+		`@1,2,3 budget: {"elapsed_limit_seconds":14400,"elapsed_seconds":"<seconds>","exceeded":false,"excess_runs":0,"history":[],"reached":false,"remaining_runs":47,"revision":1,"runs":3,"runs_limit":50,"window_start":1}`,
+		`@4,5 budget: {"elapsed_limit_seconds":14400,"elapsed_seconds":"<seconds>","exceeded":false,"excess_runs":0,"history":[],"reached":false,"remaining_runs":47,"reported_wait_seconds":"<seconds>","revision":1,"runs":3,"runs_limit":50,"span_seconds":"<seconds>","wait_basis":"executor_reported","window_start":1}`,
+		`@6 budget: {"elapsed_limit_seconds":14400,"elapsed_seconds":"<seconds>","exceeded":false,"excess_runs":0,"history":[],"post_completion_seconds":"<seconds>","reached":false,"remaining_runs":47,"reported_wait_seconds":"<seconds>","revision":1,"runs":3,"runs_limit":50,"span_seconds":"<seconds>","wait_basis":"executor_reported","window_start":1}`,
+		`changes: {"command_changed":[],"ha_version_changed":[],"invalid_confirmations":[],"kind_changed":[],"optional":[]}`,
+		`check_author: "executor"`,
+		`commit: "<commit the code commit>"`,
+		`complete_without_record: false`,
+		`completion_record: null`,
+		`criteria[0]: {"attempts":{"baseline_errors":0,"baseline_fails":0,"baseline_unknowns":0,"baselines":0,"checks":1,"errors":0,"fail_commits":[],"fails":0,"stale":0,"unexpected_passes":0,"unknowns":0},"id":"AC-1","kind":"change","reason":"baseline_missing","records":[],"required":true,"satisfied":false}`,
+		`criteria[1]: {"attempts":{"baseline_errors":0,"baseline_fails":0,"baseline_unknowns":0,"baselines":0,"checks":1,"errors":0,"fail_commits":[],"fails":0,"stale":0,"unexpected_passes":0,"unknowns":0},"id":"AC-2","kind":"change","reason":"baseline_missing","records":[],"required":true,"satisfied":false}`,
+		`criteria[2]: {"attempts":{"baseline_errors":0,"baseline_fails":0,"baseline_unknowns":0,"baselines":0,"checks":1,"errors":0,"fail_commits":[],"fails":0,"stale":0,"unexpected_passes":0,"unknowns":0},"id":"AC-3","kind":"maintain","reason":"","records":[4],"required":true,"satisfied":true}`,
+		`exit_code: 1`,
+		`findings: {"candidate":0,"confirmed":0,"confirmed_existing":0,"findings":[],"goal":"docs/specs/demo","record_head":{"seq":4,"sha256":"<line hash>"},"schema":"findings/v1","unresolved":0}`,
+		`goal: "docs/specs/demo"`,
+		`ha_version: "0.1.8-dev"`,
+		`lint: null`,
+		`logs: []`,
+		`reasons[0]: {"class":"executor","code":"baseline_missing","criterion":"AC-1"}`,
+		`reasons[1]: {"class":"executor","code":"baseline_missing","criterion":"AC-2"}`,
+		`record_head: {"seq":4,"sha256":"<line hash>"}`,
+		`@1 rules: "run-rules/1"`,
+		`@2 rules: "run-rules/2"`,
+		`@3 rules: "run-rules/3"`,
+		`@4 rules: "run-rules/4"`,
+		`@5 rules: "run-rules/5"`,
+		`@6 rules: "run-rules/6"`,
+		`schema: "status/v1"`,
+		`skill: {"digest":"","name":"","version":""}`,
+		`spec_digest: "cc7b0b169f30b8975d9bd8f7d60fdcadd05989a0bdec7efce7fdee6a82169604"`,
+		`status: "incomplete"`,
+		`tree_clean: true`,
+		`usage: {"baselines":0,"checks":3,"current_inputs":3,"environment_errors":0,"stale_inputs":0,"total":3,"unknowns":0,"valid_evidence":3}`,
+	},
+	"status md with the baselines missing": {
+		`exit 1`,
+		`## ha status: docs/specs/demo`,
+		"",
+		`- status: **incomplete** (exit 1)`,
+		`- completion record: none`,
+		`- assurance: local (an agent with the same user permissions can change checks and records)`,
+		`- check author: executor`,
+		`- record head: seq 4 (<line hash>)`,
+		`@1 - rules: run-rules/1; skill: not recorded; ha: 0.1.8-dev`,
+		`@2 - rules: run-rules/2; skill: not recorded; ha: 0.1.8-dev`,
+		`@3 - rules: run-rules/3; skill: not recorded; ha: 0.1.8-dev`,
+		`@4 - rules: run-rules/4; skill: not recorded; ha: 0.1.8-dev`,
+		`@5 - rules: run-rules/5; skill: not recorded; ha: 0.1.8-dev`,
+		`@6 - rules: run-rules/6; skill: not recorded; ha: 0.1.8-dev`,
+		`- code: <commit the code commit>, tree clean: yes; goal digest: cc7b0b169f30`,
+		`- attempts: 3 total; types: 3 check, 0 baseline; outcomes: 0 environment errors, 0 unknown; inputs: 3 current, 0 stale; valid positive evidence: 3 (overlapping axes)`,
+		"",
+		`### Unmet`,
+		"",
+		"- AC-1 `baseline_missing` (executor): no fresh record",
+		"- AC-2 `baseline_missing` (executor): no fresh record",
+		"",
+		`### Criteria`,
+		"",
+		`| ID | kind | required | satisfied | reason | records | attempts |`,
+		`| --- | --- | --- | --- | --- | --- | --- |`,
+		`| AC-1 | change | yes | no | baseline_missing | — | checks 1 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |`,
+		`| AC-2 | change | yes | no | baseline_missing | — | checks 1 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |`,
+		`| AC-3 | maintain | yes | yes | — | 4 | checks 1 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |`,
+		"",
+		`### Reasons`,
+		"",
+		"- `baseline_missing` (executor) AC-1",
+		"- `baseline_missing` (executor) AC-2",
+		"",
+		`### Budget`,
+		"",
+		`- window from seq 1: 3/50 runs, <seconds>/14400 seconds`,
+		`- budget revision: 1; remaining: 47 runs; excess: 0 runs; run cap reached: no`,
+		`@4,5,6 - elapsed leaves out <seconds> seconds of waits the executor reported (window span <seconds> seconds)`,
+		`@6 - elapsed also leaves out <seconds> seconds after completion, excluding reported waits and runs`,
+	},
+	"report ko with the baselines missing": {
+		`exit 0`,
+		`바뀐 것: base <commit base> 이후 실행 묶음 문서 밖에서 파일 2개, commit 1개`,
+		`확인한 것: 필수 조건 3개 중 1개 충족(검사 기록 1개, 사용자 확인 0개); change 조건 2개 중 0개에 신선한 baseline`,
+		`직접 볼 것: 없음`,
+		`남은 한계: 보증 수준 local; 검사 작성자: 실행자; 지금 HEAD를 덮는 완료 기록이 없음`,
+		"다음 행동: AC-1 `baseline_missing` 해결 (executor)",
+		"",
+		"### `## 현재` 도장",
+		"",
+		`- 기록 head: seq 4 (<line hash>), 기록 시각 <time>; 상태: incomplete`,
+		"",
+		`### 조건별 근거`,
+		"",
+		`근거 출처: 지금 상태`,
+		`| ID | 종류 | 필수 | 충족 | 근거 기록 |`,
+		`| --- | --- | --- | --- | --- |`,
+		`| AC-1 | change | 예 | 아니오 | — |`,
+		`| AC-2 | change | 예 | 아니오 | — |`,
+		`| AC-3 | maintain | 예 | 예 | 4 |`,
+		"",
+		`### 완료 범위`,
+		"",
+		`- 완료 기록: none`,
+		"",
+		`### 미충족 조건의 원문 위치`,
+		"",
+		"- AC-1 `baseline_missing` (executor): 신선한 기록 없음",
+		"- AC-2 `baseline_missing` (executor): 신선한 기록 없음",
+	},
+	"status json after ha done": {
+		`assurance: "local"`,
+		`@1,2,3 budget: {"elapsed_limit_seconds":14400,"elapsed_seconds":"<seconds>","exceeded":false,"excess_runs":0,"history":[],"reached":false,"remaining_runs":44,"revision":1,"runs":6,"runs_limit":50,"window_start":1}`,
+		`@4,5 budget: {"elapsed_limit_seconds":14400,"elapsed_seconds":"<seconds>","exceeded":false,"excess_runs":0,"history":[],"reached":false,"remaining_runs":44,"reported_wait_seconds":"<seconds>","revision":1,"runs":6,"runs_limit":50,"span_seconds":"<seconds>","wait_basis":"executor_reported","window_start":1}`,
+		`@6 budget: {"elapsed_limit_seconds":14400,"elapsed_seconds":"<seconds>","exceeded":false,"excess_runs":0,"history":[],"post_completion_seconds":"<seconds>","reached":false,"remaining_runs":44,"reported_wait_seconds":"<seconds>","revision":1,"runs":6,"runs_limit":50,"span_seconds":"<seconds>","wait_basis":"executor_reported","window_start":1}`,
+		`changes: {"command_changed":[],"ha_version_changed":[],"invalid_confirmations":[],"kind_changed":[],"optional":[]}`,
+		`check_author: "executor"`,
+		`commit: "<commit the code commit>"`,
+		`complete_without_record: false`,
+		`completion_record: 9`,
+		`criteria[0]: {"attempts":{"baseline_errors":0,"baseline_fails":0,"baseline_unknowns":0,"baselines":2,"checks":1,"errors":0,"fail_commits":[],"fails":0,"stale":0,"unexpected_passes":0,"unknowns":0},"id":"AC-1","kind":"change","reason":"","records":[2,5,7],"required":true,"satisfied":true}`,
+		`criteria[1]: {"attempts":{"baseline_errors":0,"baseline_fails":0,"baseline_unknowns":0,"baselines":1,"checks":1,"errors":0,"fail_commits":[],"fails":0,"stale":0,"unexpected_passes":0,"unknowns":0},"id":"AC-2","kind":"change","reason":"","records":[3,8],"required":true,"satisfied":true}`,
+		`criteria[2]: {"attempts":{"baseline_errors":0,"baseline_fails":0,"baseline_unknowns":0,"baselines":0,"checks":1,"errors":0,"fail_commits":[],"fails":0,"stale":0,"unexpected_passes":0,"unknowns":0},"id":"AC-3","kind":"maintain","reason":"","records":[4],"required":true,"satisfied":true}`,
+		`exit_code: 0`,
+		`findings: {"candidate":0,"confirmed":0,"confirmed_existing":0,"findings":[],"goal":"docs/specs/demo","record_head":{"seq":9,"sha256":"<line hash>"},"schema":"findings/v1","unresolved":0}`,
+		`goal: "docs/specs/demo"`,
+		`ha_version: "0.1.8-dev"`,
+		`lint: null`,
+		`logs: []`,
+		`reasons: []`,
+		`record_head: {"seq":9,"sha256":"<line hash>"}`,
+		`@1 rules: "run-rules/1"`,
+		`@2 rules: "run-rules/2"`,
+		`@3 rules: "run-rules/3"`,
+		`@4 rules: "run-rules/4"`,
+		`@5 rules: "run-rules/5"`,
+		`@6 rules: "run-rules/6"`,
+		`schema: "status/v1"`,
+		`skill: {"digest":"","name":"","version":""}`,
+		`spec_digest: "cc7b0b169f30b8975d9bd8f7d60fdcadd05989a0bdec7efce7fdee6a82169604"`,
+		`status: "complete"`,
+		`tree_clean: true`,
+		`usage: {"baselines":3,"checks":3,"current_inputs":6,"environment_errors":0,"stale_inputs":0,"total":6,"unknowns":0,"valid_evidence":6}`,
+	},
+	"status md after ha done": {
+		`exit 0`,
+		`## ha status: docs/specs/demo`,
+		"",
+		`- status: **complete** (exit 0)`,
+		`- completion record: seq 9`,
+		`- assurance: local (an agent with the same user permissions can change checks and records)`,
+		`- check author: executor`,
+		`- record head: seq 9 (<line hash>)`,
+		`@1 - rules: run-rules/1; skill: not recorded; ha: 0.1.8-dev`,
+		`@2 - rules: run-rules/2; skill: not recorded; ha: 0.1.8-dev`,
+		`@3 - rules: run-rules/3; skill: not recorded; ha: 0.1.8-dev`,
+		`@4 - rules: run-rules/4; skill: not recorded; ha: 0.1.8-dev`,
+		`@5 - rules: run-rules/5; skill: not recorded; ha: 0.1.8-dev`,
+		`@6 - rules: run-rules/6; skill: not recorded; ha: 0.1.8-dev`,
+		`- code: <commit the code commit>, tree clean: yes; goal digest: cc7b0b169f30`,
+		`- attempts: 6 total; types: 3 check, 3 baseline; outcomes: 0 environment errors, 0 unknown; inputs: 6 current, 0 stale; valid positive evidence: 6 (overlapping axes)`,
+		"",
+		`### Criteria`,
+		"",
+		`| ID | kind | required | satisfied | reason | records | attempts |`,
+		`| --- | --- | --- | --- | --- | --- | --- |`,
+		`| AC-1 | change | yes | yes | — | 2, 5, 7 | checks 1 (fail 0, error 0), baselines 2 (unexpected pass 0, error 0), stale 0 |`,
+		`| AC-2 | change | yes | yes | — | 3, 8 | checks 1 (fail 0, error 0), baselines 1 (unexpected pass 0, error 0), stale 0 |`,
+		`| AC-3 | maintain | yes | yes | — | 4 | checks 1 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |`,
+		"",
+		`### Reasons`,
+		"",
+		`None.`,
+		"",
+		`### Budget`,
+		"",
+		`- window from seq 1: 6/50 runs, <seconds>/14400 seconds`,
+		`- budget revision: 1; remaining: 44 runs; excess: 0 runs; run cap reached: no`,
+		`@4,5,6 - elapsed leaves out <seconds> seconds of waits the executor reported (window span <seconds> seconds)`,
+		`@6 - elapsed also leaves out <seconds> seconds after completion, excluding reported waits and runs`,
+	},
+	"report ko after ha done": {
+		`exit 0`,
+		`바뀐 것: base <commit base> 이후 실행 묶음 문서 밖에서 파일 2개, commit 1개`,
+		`확인한 것: 필수 조건 3개 중 3개 충족(검사 기록 3개, 사용자 확인 0개); change 조건 2개 중 2개에 신선한 baseline`,
+		`직접 볼 것: 없음`,
+		`남은 한계: 보증 수준 local; 검사 작성자: 실행자`,
+		`다음 행동: 없음; 완료 기록 seq 9이 유효하고 남은 할 일이 없음`,
+		"",
+		"### `## 현재` 도장",
+		"",
+		`- 기록 head: seq 9 (<line hash>), 기록 시각 <time>; 상태: complete; 완료 기록: seq 9`,
+		"",
+		`### 조건별 근거`,
+		"",
+		`근거 출처: 완료 기록 seq 9`,
+		`| ID | 종류 | 필수 | 충족 | 근거 기록 |`,
+		`| --- | --- | --- | --- | --- |`,
+		`| AC-1 | change | 예 | 예 | 2, 5, 7 |`,
+		`| AC-2 | change | 예 | 예 | 3, 8 |`,
+		`| AC-3 | maintain | 예 | 예 | 4 |`,
+		"",
+		`### 완료 범위`,
+		"",
+		`- 완료 기록 seq 9, commit <commit the code commit>; 지금 HEAD <commit the code commit>를 덮음`,
+		"",
+		`### 미충족 조건의 원문 위치`,
+		"",
+		`- 없음`,
+	},
 }
