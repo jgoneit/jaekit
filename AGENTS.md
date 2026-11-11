@@ -37,7 +37,7 @@ These rules apply to goals carried in this repository and to their pull requests
 
 - **Observation boundary.** For each check a goal adds or changes, record its observation boundary and the failure kinds it does not cover in the goal bundle's existing `REVIEW.md` items, before the plan round reviews the check. A boundary record is grounds for classifying a finding only when it was recorded before that finding.
 - **Boundaries cannot narrow requirements.** Inputs that a SPEC criterion, a contract, a protected regression path or a selected assurance requires cannot be placed outside a check's boundary. A counterexample on such an input is fixed, or it blocks completion. Narrowing a boundary below the SPEC criterion is a scope change that the user decides.
-- **Input failures.** For each producer, state before the plan round which result (violation, error or inconclusive) follows from a missing target file, corrupt input, a tool that cannot start, and termination by a signal. A case that the check result contract does not declare as a violation is never counted as one.
+- **Input failures.** For each producer of a change condition that requires a baseline, state before the plan round which result (violation, error or inconclusive) follows from a missing target file, corrupt input, a tool that cannot start, and termination by a signal. Every other check only has to keep an input failure from counting as a pass. Whether a condition requires a baseline does not depend on the rule version: in a Jaekit goal still running under an earlier rule, every change condition requires a baseline.
 - **Open-ended inputs.** When a criterion's input is open-ended, such as sentences or paths in documents, the goal documents name the representative forms to check.
 - **New checks.** New checks observe fixed tokens, commands, links or version matches instead of scanning an open category of sentences or paths.
 - **CI observers.** A new CI observer reuses the native CI admission in `tools/verification-checks/cross_platform_ci.py` for run and attempt identity, source commit and tree, and report reading, as `tools/history-checks/ci_observer.py` does. Only its goal-specific judgment is written separately.
@@ -54,7 +54,7 @@ These rules apply to goals carried in this repository and to their pull requests
 
 - State whether each finding links to a criterion, rule or contract, and whether this change introduced it.
 - A counterexample on an input that a SPEC criterion, a contract or a protected regression path requires is a defect. Mark an edge case that lies outside the stated check boundary and links to nothing as low severity, separately.
-- A check that counts an input failure (a missing file, corrupt input, a tool that cannot start, a signal) as a violation is a defect, unless the check declares that case as a violation where the check result contract allows it, such as `missing: violation`.
+- A check that counts an input failure (a missing file, corrupt input, a tool that cannot start, a signal) as a violation is a defect only when it is the producer of a condition that requires a baseline, unless the check declares that case as a violation where the check result contract allows it, such as `missing: violation`. Any check that counts an input failure as a pass is a defect.
 - Read the check boundaries stated in the pull request description as grounds for your judgment. A boundary added after a finding does not cover that finding.
 
 ## Validation
