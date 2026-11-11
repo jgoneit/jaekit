@@ -293,7 +293,7 @@ When the installed `ha` does not know `run-rules/5` or other support Seal requir
 - To finish without review when Spar cannot run, you decide a SPEC change that lowers the tier to `Assurance: light`. After `confirm spec` and fresh checks, the goal completes without a gate.
 - A `light` goal, a goal without the tier line, and goals started under `run-rules/1` to `run-rules/4` are judged without a gate, as before.
 
-From Seal 0.1.26, new goals start with `ha start --rules run-rules/6 … --check-skill` instead of the start rule above. This needs a Core that supports `run-rules/6`; ha 0.1.8 does not. Without support, Seal stops without a record and does not fall back to earlier rules. `/6` changes only these four judgments from `/5`.
+Seal 0.1.26 starts new goals with `ha start --rules run-rules/6 … --check-skill` instead of the start rule above. This needs a Core that supports `run-rules/6`; ha 0.1.8 does not. Without support, Seal stops without a record and does not fall back to earlier rules. `/6` changes only these four judgments from `/5`.
 
 - The last candidate round (excluding dry runs) for a `standard` or `strict` goal must review from the start record's `base_commit`. A mismatch gives `review_base_mismatch` with the gate seq and both bases and blocks completion. A gate with only fixes rounds gives the same reason. Fixes may follow a candidate from the start base; Spar checks their chain. `reopen` does not move the start base.
 - For a `light` goal or one without a tier line, a `review` note after completion leaves an otherwise valid completion record in place. For `standard` and `strict`, the record is invalidated and the new gate is judged, as before.
@@ -301,6 +301,30 @@ From Seal 0.1.26, new goals start with `ha start --rules run-rules/6 … --check
 - Budget elapsed time excludes the interval from a completion `done` to the next check or baseline start or a non-complete `done`. With neither endpoint, it ends at the window's last budget record; notes and findings in between do not end it. `post_completion_seconds` shows the additional excluded seconds that do not overlap reported waits or run intervals; status, report and cost use the same elapsed time. Run counts and limits stay unchanged; code rework after completion opens a new window with `reopen`.
 
 Goals started under `run-rules/1` through `run-rules/5` keep their existing judgments and are not migrated automatically. The exact interval and output definitions are in the [run record contract](../contracts/run-record.en.md#49-run-rules6).
+
+## Baseline selection and check freeze (run-rules/7)
+
+Current Seal starts new goals under `run-rules/7`. It stops without a record on a Core that lacks support and does not fall back to earlier rules. A direct `ha start` still defaults to `run-rules/3`; judgments, output and records of goals already started under `/1` through `/6` stay unchanged.
+
+Only change conditions with `요구` in the condition table's optional `baseline` column require a baseline. An empty cell, `—`, or no column means none is required. Mark conditions at risk of a false pass, such as bug fixes, regressions, "X does not happen", or conditions partly met at base, and write the reason in REVIEW before the plan round. Unmarked change conditions still need check paths and the structured result contract, but can link to tests of new functions without an entry point that also exists at base.
+
+The required minimum is marked required change × 2 + unmarked required change + required maintain (`표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain`). Manual conditions count as 0 runs. One marked change, four unmarked changes and three maintains, all required, need at least 9 runs; the automatic limit is `max(50, ⌈9 × 1.5⌉) = 50`. Before starting, view this with `ha estimate <goal> --rules run-rules/7`. Started goals use their saved rules and refuse a different `--rules`.
+
+With no target, `ha check <goal> --baseline` selects only marked change conditions, including marked optional conditions. With none marked, it refuses without a record. An explicitly named unmarked condition can also run a baseline, and actual runs count toward the budget. Fresh adverse results from that baseline still affect judgment. Plan to record a marked condition's baseline once its check files are settled. This reduces the habit of recording after every check fix; it does not make stale evidence fresh.
+
+Under `/7`, the "before any baseline" questions, `ha doctor` and the `strict` plan round all happen before the goal has any `ha check` record, current check or baseline, even when the goal needs no baseline. Seal gathers foreseeable questions before work; with nothing to ask, it proceeds.
+
+- An input failure—a missing target file, corrupt input, a tool that cannot start, or termination by a signal—is never a pass.
+- Checks that require no baseline (maintain, `EX-n`, task commands and unmarked change conditions) may count an input failure as a violation, error or inconclusive result; that alone is not a check defect. A failure recorded as a violation remains until the input changes.
+- A dedicated producer of a marked change condition reports none of them as a violation unless the result contract allows it, such as `missing: violation`; record that choice in `REVIEW.md` before the plan round, or before any review round when there is no plan round.
+
+Read the baseline requirement under the goal's rules: all change conditions require it up to `run-rules/6`, and only marked conditions do under `/7`. Runner adapters classify input failures themselves; the classifications and input-failure table of the [result contract](../contracts/check-result.en.md) stay unchanged.
+
+The check freeze uses the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`, in gate order among the last recorded gate's non-dry-run rounds. It covers declarations, producers, tests, helpers and settings in change conditions' check paths. Right after the freeze round, Seal records the gate and current condition table's check paths with `ha note <goal> review --gate <file>`. Without a gate note ending at that round, removed check paths are unobserved and status and report show `freeze-time condition table was not recorded`.
+
+After changing a check file following the freeze, commit it and record `ha note <goal> check-change checks:<path> --reason "<finding ID, or condition and reason>"`. A review fix names its finding ID. The reason binds to the current blob, so another edit needs a reason for that edit. Give the next code review round the changed checks and reasons together. No such reason is needed before the freeze; check defects may still be fixed afterward. The freeze display itself neither blocks completion nor requires a plan-delta.
+
+`ha status` shows `baseline_required` on each change condition and a human-readable `baseline required` line. `Checked` in `ha report` separates how many of all change conditions require a baseline from how many of those have fresh baselines. Read `To review` for baseline marks removed since the start, check files changed after the freeze with reasons, and changes without reasons. Removed paths identify the source `review` note seq. `light` goals and goals without a recorded gate have no freeze display. The review summary's `### 보지 않은 것` lists change conditions satisfied without a baseline. [Run record §4.10](../contracts/run-record.en.md#410-run-rules7) defines exact fields and wording.
 
 ## Reading one goal's cost
 
@@ -322,7 +346,7 @@ ha cost docs/specs/<goal> --series docs/reviews/<goal>
 
 ## Automatic budget
 
-If the plan's `## 예산` gives the run count as `- 검증 실행: 자동` (automatic) instead of a number, `ha start` sets the limit. The limit is `max(50, ⌈required minimum × 1.5⌉)`: a goal with 34 required change conditions needs at least 68 runs and gets a limit of 102. You still write `경과 시간` (elapsed time) yourself. A plan with a number works as before.
+If the plan's `## 예산` gives the run count as `- 검증 실행: 자동` (automatic) instead of a number, `ha start` sets the limit. The limit is `max(50, ⌈required minimum × 1.5⌉)`: up to `run-rules/6`, a goal with 34 required change conditions needs at least 68 runs and gets a limit of 102. You still write `경과 시간` (elapsed time) yourself. A plan with a number works as before.
 
 When the computed limit is at or below the limit you approved in advance, the goal starts without a question. Write that pre-approved limit once in `ha.json` in your user configuration folder: `~/.config/jaekit/`, or `$XDG_CONFIG_HOME/jaekit/` when `XDG_CONFIG_HOME` is set. Without the file, the limit is 50 runs. No file inside a repository can set this limit. To check that, ha lists the working trees with `git worktree list -z` when the file exists, which needs Git 2.36 or later.
 

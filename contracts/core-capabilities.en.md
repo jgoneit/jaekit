@@ -4,7 +4,7 @@
 
 > This is a translation of the [Korean original](core-capabilities.md). Where the two differ, the Korean original decides.
 
-This contract applies to Core `0.1.8` and Seal `0.1.23` of v0.1.8. The capability example below is from that release; §10 adds the requirements of Seal 0.1.26, which uses `run-rules/6`. The capability query was introduced in v0.1.3, and the earlier release `v0.1.2` does not have this command. Even after an update, the capabilities of the actual executable are checked, and compatibility is never judged from version numbers alone. Spec writes documents without a Core installation or this query.
+This contract applies to Core `0.1.8` and Seal `0.1.23` of v0.1.8. The capability example below is from that release; §10 covers Seal 0.1.26 and `run-rules/6`, and §11 covers current Seal and `run-rules/7`. The capability query was introduced in v0.1.3, and the earlier release `v0.1.2` does not have this command. Even after an update, the capabilities of the actual executable are checked, and compatibility is never judged from version numbers alone. Spec writes documents without a Core installation or this query.
 
 ## 1. Query without a goal
 
@@ -203,3 +203,11 @@ A Core that supports `run-rules/6` adds `run-rules/6` to `supported_rules`. It a
 Seal 0.1.26 changes `rules` in `core-requirements.json` to `["run-rules/6"]` and keeps Seal 0.1.21's format and feature requirements. It starts new goals with `ha start <goal> --rules run-rules/6 … --check-skill`. The check tool's `--operation start` also requires this declaration, so missing `/6` or any other required support causes refusal without a record and without falling back to earlier rules. The ha 0.1.8 in the v0.1.8 example above does not support `/6`.
 
 Resuming, checking or changing the run limit of an existing goal follows its saved rules. A saved `/6` requires that rule and the format and feature support required under `/5`; the requirements and judgments of `/1` through `/5` goals do not change. A Core without `/6` support neither computes nor records that goal and exits 66. Installation or an update does not migrate existing goals to new rules.
+
+## 11. run-rules/7
+
+A Core that supports `run-rules/7` lists it in `supported_rules` alongside `run-rules/1` through `run-rules/6`. It adds no format or feature identifier and retains the formats and features of `/6`. `default_rules` stays `run-rules/3`; a direct start selects the rule with `ha start --rules run-rules/7`. `/7` requires baselines only for change conditions marked in PLAN and changes default baseline selection, the minimum, status and report output, and check freeze display ([Run record](run-record.en.md) §4.10).
+
+Current Seal requires `["run-rules/7"]` in the `rules` of `core-requirements.json` and starts with `ha start <goal> --rules run-rules/7 … --check-skill`. Missing `/7` or any other required support causes refusal without a record and without falling back to earlier rules. The ha 0.1.8 in the v0.1.8 example above does not support `/7`. Already-started goals keep their saved rules, and adding supported rules does not convert earlier records.
+
+Resuming, checking or changing the run limit of a `/7` goal also follows its saved rule and the format and feature requirements of `/6`. A Core without `/7` support neither computes nor records that goal and exits 66.

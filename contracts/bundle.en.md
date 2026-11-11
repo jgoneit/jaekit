@@ -53,6 +53,17 @@ The rules are as follows (`ha lint` checks them).
 3. A `change` condition has a verification command and check paths. A `maintain` condition has a verification command. A `manual` condition has a reason.
 4. To use the whole existing test suite as a preservation condition, add one `maintain` condition. When the goal documents have no such condition, add it as `EX-n`. `EX-n` is the executor's extra check, so it does not block the status. Behavior that must be preserved must be a required condition in the goal documents ([goal-docs.md](goal-docs.en.md) §2.3). When there is no such condition but you see behavior that must not break, ask the user in the pre-execution review (`중요한 미결정`, important open decisions, in §4).
 
+An optional `baseline` column may be added at the end; the five-column table remains valid. In `run-rules/7`, `요구` in the `baseline` column means that the change condition requires a baseline. An empty cell, `—`, or no column means no baseline is required. Check paths and the structured result contract remain required for every change condition, marked or not.
+
+```markdown
+| ID | 종류 | 검증 명령 | 검사 경로 | Task | baseline |
+| --- | --- | --- | --- | --- | --- |
+| AC-1 | change | `python3 checks/greeting.py` | checks/greeting.py | T001 | 요구 |
+| AC-2 | change | `python3 checks/format.py` | checks/format.py | T001 | — |
+```
+
+`요구` on a row other than `change`, or a value other than `요구`, `—` or empty, is a `baseline_marker` lint problem. The column and lint apply regardless of rule version, but `run-rules/1` through `run-rules/6` ignore marks for judgment and keep their baseline requirement, default selection, minimum and output. `/7` judges by the current PLAN's marks. The report in [Run record](run-record.en.md) §4.10 shows marks removed since the start.
+
 ### 2.1.1 Result contract (`## 결과 계약`)
 
 Link `run-rules/3` change checks to the [structured result contract](check-result.en.md). PLAN holds an `ID | 선언 경로` table that maps each such change condition to a repository-relative JSON declaration path. Include the declaration and the producer and configuration files in the condition table's check paths as well. A plain nonzero exit alone is not an expected failure, and ordinary maintain, manual and task checks are not forced over to this contract. Existing `/1` and `/2` goals keep their earlier result semantics.
@@ -112,11 +123,11 @@ A cycle in the dependencies is an error.
 
 The budget window starts at `ha start` or at the last `reopen` (the user's rework request). The Seal Skill sets the defaults. When the user sets values in the request, those values are used. When the user sets no budget, Seal 0.1.20 or later writes `검증 실행: 자동`; when the start stops because it needs the user's approval, Seal asks once, showing the computed value and the pre-approved limit, and writes the number the user approved in `검증 실행`. It does not ask the same question again for the same PLAN. Seal never writes or changes the pre-approved limit setting. A budget can be lowered before the start; raising it needs the user's decision. Editing PLAN during the work does not by itself change the limits. Under `/3`, `ha budget` changes the total run-count limit of the same window and keeps the usage and the time limit. An increase records the user's original words and context; a decrease records a reason. An explicit resume under `/3` carries over the latest run-count limit. `/1` and `/2` keep the original limit and the existing resume meaning ([run-record.md](run-record.en.md) §5.2).
 
-In `/4`, `/5` and `/6` goals, user waits the executor reports are left out of the elapsed time, and within the pre-approved limit the user set with a quote, the executor raises the run-count limit for a reason alone ([run-record.md](run-record.en.md) §4.7).
+In `/4`, `/5`, `/6` and `/7` goals, user waits the executor reports are left out of the elapsed time, and within the pre-approved limit the user set with a quote, the executor raises the run-count limit for a reason alone ([run-record.md](run-record.en.md) §4.7).
 
 ### 2.5 Time limits (`## 시간 제한`)
 
-An optional section. It is read only in `run-rules/4`, `run-rules/5` and `run-rules/6` goals; a goal started under other rules runs every command with 900 seconds even when this section exists. Write one per line in PLAN's `## 시간 제한` section, like `- AC-3: 30분`, `- T002 명령 1: 20분` or `- EX-4: 1시간 30분`.
+An optional section. It is read only in `run-rules/4`, `run-rules/5`, `run-rules/6` and `run-rules/7` goals; a goal started under other rules runs every command with 900 seconds even when this section exists. Write one per line in PLAN's `## 시간 제한` section, like `- AC-3: 30분`, `- T002 명령 1: 20분` or `- EX-4: 1시간 30분`.
 
 - A target is a condition ID that has a command (`AC-n`, `EX-n`), or a task and a command number (`T002 명령 1`, the command order in the task document's `## 완료 조건`).
 - A value is a positive integer with the unit `시간` (hours), `분` (minutes) or `초` (seconds), or a combination of them. The maximum is 7200 seconds (2 hours).
@@ -191,10 +202,10 @@ Seal 0.1.20 or later reads the SPEC's `Assurance:` line ([goal-docs.md](goal-doc
 - For each product invariant and decision rule the change introduces or alters, `## 독립 검토` lists the places that read or keep it: each place's repository path, and the name used there when it differs from the change's name. It includes places that keep the same invariant under another name, not only those found by name; when the change alters no invariant, it says so; and every round from the plan round to the cumulative round gets one `--question` per place, asking whether that place still keeps the invariant at head; the list adds places for reviewers to look at and never narrows what they read. The list of places applies to goals whose start record names seal 0.1.25 or later, and existing goals' `REVIEW.md` is never rewritten to the new form.
 - When a contract or check about open-ended input (sentences, paths, names, formats and so on) is added or changed, the plan writes the supported input forms before the plan review. Those forms cannot be narrower than the input that a SPEC condition, a contract or a protected path requires; narrowing them is for the user to decide. Ask the user about an open-ended condition whose forms are not written.
 - Seal decides the disposition of findings. Fix a `defect` or rebut it with evidence; ask the user about a `requirement-question` (without editing the goal documents); never fix an automatically deferred `hardening` without the user's words. A finding about input outside the supported forms is `hardening`; when it was classified as a `defect`, rebut it by citing where the contract wrote the supported forms.
-- A `standard` or `strict` goal started with `run-rules/5` or `run-rules/6`, after the cumulative round, makes a `spar gate` for HEAD from that series' rounds, records it with `ha note <goal> review --gate <file>` and then runs `ha done`. The rounds get all goal documents as `--criteria`. When no gate is recorded, or the recorded gate is stale, Core does not record completion ([run-record.md](run-record.en.md) §4.8). When Spar is missing or cannot run, completion is held; to finish without review, the user decides a goal-document change that lowers the tier to `light`. The acceptance of a separate review below does not apply to these goals.
+- A `standard` or `strict` goal started with `run-rules/5`, `run-rules/6` or `run-rules/7`, after the cumulative round, makes a `spar gate` for HEAD from that series' rounds, records it with `ha note <goal> review --gate <file>` and then runs `ha done`. The rounds get all goal documents as `--criteria`. When no gate is recorded, or the recorded gate is stale, Core does not record completion ([run-record.md](run-record.en.md) §4.8). When Spar is missing or cannot run, completion is held; to finish without review, the user decides a goal-document change that lowers the tier to `light`. The acceptance of a separate review below does not apply to these goals.
 - When Spar is missing or cannot run and review is not required, proceed and write in the completion report that there was no independent review. In a goal started with `run-rules/4` or earlier where review is required, hold completion and record the cause, the affected conditions, the missing evidence and the resolution condition. Another separate review that records its role, inputs, reviewed version, findings or no findings, limits and checkable references counts as the required review; the completion report states that Spar was not used and the method that was used, and that review too covers the whole last head before `ha done`.
 - When the user asks to apply remote review after a completion record, proceed in this order: `reopen` quoting that request, the fix, one cumulative round, re-recording stale required checks, and `ha done`.
-- In goals started with `run-rules/4` or earlier, the tier does not change the judgment or the output of `ha status` and `ha done`; in goals started with `run-rules/5` or `run-rules/6`, the gate above becomes a completion condition. The `REVIEW.md` of a goal started with an earlier Seal keeps the format it started with.
+- In goals started with `run-rules/4` or earlier, the tier does not change the judgment or the output of `ha status` and `ha done`; in goals started with `run-rules/5`, `run-rules/6` or `run-rules/7`, the gate above becomes a completion condition. The `REVIEW.md` of a goal started with an earlier Seal keeps the format it started with.
 
 ### Verification evidence and observation scope
 
@@ -428,7 +439,7 @@ Execution bundle
 | `task_doc_missing` | The task document that the `문서` column points to does not exist |
 | `proposal_unknown` | A task's `제안` is a `W` that is not in the goal documents |
 | `budget_missing` | `검증 실행` or `경과 시간` is missing or cannot be read |
-| `time_limit_invalid` | A `## 시간 제한` item of a `run-rules/4`, `run-rules/5` or `run-rules/6` goal is malformed, exceeds 7200 seconds, has a target that does not exist, or declares the same target twice |
+| `time_limit_invalid` | A `## 시간 제한` item of a `run-rules/4`, `run-rules/5`, `run-rules/6` or `run-rules/7` goal is malformed, exceeds 7200 seconds, has a target that does not exist, or declares the same target twice |
 | `evidence_invalid` | A condition, declaration or producer input in the result contract table is invalid |
 | `evidence_overlay_missing` | A declaration or producer input is missing from that condition's check paths |
 | `other_bundles_invalid` | The `다른 목표 실행 묶음` item in `## 범위` does not start with the exact key `다른 목표 실행 묶음:`, or its value is not the single code span `검사 입력` |
