@@ -118,16 +118,22 @@ package plugins
 //       baseline", "violation, error or inconclusive", "not a check
 //       defect"; "dedicated producer of a marked change condition", "reports
 //       none of them as a violation", "result contract allows".
-//       Each line of a guide holding one of its earlier sentences that ask
-//       every change condition for a baseline still holds it and says its
-//       rule scope with "run-rules/7" or "run-rules/6까지" (ko), "run-rules/7"
-//       or "up to run-rules/6" (en), backquotes aside. The sentences:
-//       USAGE.md "필수 change가 34개인 목표는 최소량 68회"; USAGE.en.md "a
-//       goal with 34 required change conditions needs at least 68 runs";
-//       OPERATIONS.md "**의도한 위반**을 보여야", "수정 전·후 각 한 번씩
-//       최소 68회"; OPERATIONS.en.md "must show the **intended violation**
-//       before the change", "need at least 68 runs: one before and one after
-//       the change for each".
+//       The guides' earlier sentences that ask every change condition for a
+//       baseline need not stay. Each sentence of a guide that still holds
+//       one of them says its rule scope in that same sentence, backquotes
+//       aside: "run-rules/6까지" (ko) or "up to run-rules/6" (en); or
+//       "run-rules/7" together with "표시한 change 조건" (ko) or "marked
+//       change condition" (en, not preceded by a letter, so "unmarked" does
+//       not count). The rule name alone does not count. A sentence ends at
+//       ".", "!" or "?" followed by a space or the line end; "e.g." and
+//       "i.e." end none. A guide that drops them is checked only through the
+//       run-rules/7 section's tokens above. The earlier sentences: USAGE.md
+//       "필수 change가 34개인 목표는 최소량 68회"; USAGE.en.md "a goal with 34
+//       required change conditions needs at least 68 runs"; OPERATIONS.md
+//       "**의도한 위반**을 보여야", "수정 전·후 각 한 번씩 최소 68회";
+//       OPERATIONS.en.md "must show the **intended violation** before the
+//       change", "need at least 68 runs: one before and one after the change
+//       for each".
 //       SKILL.md: "--rules run-rules/7". references/ha.md `## run-rules/7`:
 //       "run-rules/6", the formula, the en mark tokens, the en freeze line,
 //       "`ha note <goal> check-change". references/bundle.md "### `## 조건표`":
@@ -239,6 +245,48 @@ var ckSpace = regexp.MustCompile(`\s+`)
 // ckFlat reads runs of white space as one space and ignores case.
 func ckFlat(s string) string {
 	return strings.ToLower(strings.TrimSpace(ckSpace.ReplaceAllString(s, " ")))
+}
+
+// ckPlain is ckFlat without backquotes.
+func ckPlain(s string) string { return ckFlat(strings.ReplaceAll(s, "`", "")) }
+
+// ckSentenceEnd is the end of a sentence: ".", "!" or "?" followed by white
+// space or the end of the text.
+var ckSentenceEnd = regexp.MustCompile(`[.!?](\s|$)`)
+
+// ckSentences splits one line into its sentences; "e.g." and "i.e." end
+// none.
+func ckSentences(line string) []string {
+	var out []string
+	start := 0
+	for _, m := range ckSentenceEnd.FindAllStringIndex(line, -1) {
+		end := m[0] + 1
+		if lower := strings.ToLower(line[start:end]); strings.HasSuffix(lower, "e.g.") || strings.HasSuffix(lower, "i.e.") {
+			continue
+		}
+		out = append(out, strings.TrimSpace(line[start:end]))
+		start = end
+	}
+	if rest := strings.TrimSpace(line[start:]); rest != "" {
+		out = append(out, rest)
+	}
+	return out
+}
+
+// ckWord reports whether text holds token where no ASCII letter comes right
+// before it ("marked", not "unmarked").
+func ckWord(text, token string) bool {
+	for from := 0; ; {
+		i := strings.Index(text[from:], token)
+		if i < 0 {
+			return false
+		}
+		at := from + i
+		if at == 0 || !(text[at-1] >= 'a' && text[at-1] <= 'z' || text[at-1] >= 'A' && text[at-1] <= 'Z') {
+			return true
+		}
+		from = at + 1
+	}
 }
 
 // ckLevel is the heading level of a Markdown line, or 0.
@@ -870,25 +918,32 @@ func TestCheckCostAC17_Documents(t *testing.T) {
 	const v = "rules-v7-undocumented"
 	type lang struct {
 		mark, freeze []string
-		// inputs are the lines of the narrowed input-failure policy; scope
-		// holds the phrases one of which says an earlier sentence's rule
-		// scope.
+		// inputs are the lines of the narrowed input-failure policy.
 		inputs [][]string
-		scope  []string
+		// earlierRules restricts an earlier sentence to the earlier rules;
+		// marked, with the rule name, restricts it to the marked conditions
+		// under run-rules/7.
+		earlierRules, marked string
 	}
 	ko := lang{[]string{"`baseline` 열", "`요구`"}, []string{"동결", "첫 `plan` 라운드", "첫 `candidate` 라운드"},
 		[][]string{{"입력 실패", "대상 파일 없음", "손상된 입력", "시작하지 못하는 도구", "신호 종료", "통과가 아니다"},
 			{"baseline을 요구하지 않는 검사", "위반, 오류, 판정 불가", "검사의 결함이 아니다"},
 			{"baseline을 요구하는 change 조건의 전용 생산자", "위반으로 보고하지 않는다", "허용하는 경우"}},
-		[]string{"run-rules/7", "run-rules/6까지"}}
+		"run-rules/6까지", "표시한 change 조건"}
 	en := lang{[]string{"`baseline` column", "`요구`"}, []string{"freeze", "earliest `plan` round", "earliest `candidate` round"},
 		[][]string{{"input failure", "missing target file", "corrupt input", "tool that cannot start", "signal", "never a pass"},
 			{"require no baseline", "violation, error or inconclusive", "not a check defect"},
 			{"dedicated producer of a marked change condition", "reports none of them as a violation", "result contract allows"}},
-		[]string{"run-rules/7", "up to run-rules/6"}}
+		"up to run-rules/6", "marked change condition"}
+	// scoped reports whether a flattened sentence without backquotes says
+	// the rule scope of the earlier sentence it holds.
+	scoped := func(l lang, sentence string) bool {
+		return strings.Contains(sentence, ckFlat(l.earlierRules)) ||
+			(strings.Contains(sentence, ckNewRules) && ckWord(sentence, ckFlat(l.marked)))
+	}
 	// The guides' sentences that ask every change condition for a baseline,
-	// as they read before this goal: each line holding one also says its
-	// rule scope.
+	// as they read before this goal: each sentence still holding one says
+	// its rule scope.
 	earlier := map[string][]string{
 		"../guides/USAGE.md":         {"필수 change가 34개인 목표는 최소량 68회"},
 		"../guides/USAGE.en.md":      {"a goal with 34 required change conditions needs at least 68 runs"},
@@ -930,25 +985,22 @@ func TestCheckCostAC17_Documents(t *testing.T) {
 	for _, p := range paths[4:6] {
 		c.in(p, files[p], rule, ckHolding(ckNewRules), []string{"supported_rules", "--rules " + ckNewRules})
 	}
-	// guides: the run-rules/7 section with the narrowed input-failure
-	// policy, and the rule scope of each earlier sentence.
+	// guides: the run-rules/7 section with the replacement guidance (the
+	// formula, the mark, the freeze and the narrowed input-failure policy),
+	// and the rule scope of each earlier sentence a guide keeps. A guide may
+	// drop the earlier sentences.
 	for _, p := range paths[6:10] {
 		l := docs[p]
 		c.in(p, files[p], rule, ckHolding(ckNewRules), append([]string{ckFormula}, l.mark...), append([][]string{l.freeze}, l.inputs...)...)
-		for _, sentence := range earlier[p] {
-			found := false
+		for _, phrase := range earlier[p] {
+			want := ckPlain(phrase)
 			for i, line := range strings.Split(files[p], "\n") {
-				if !strings.Contains(ckFlat(line), ckFlat(sentence)) {
-					continue
+				for _, sentence := range ckSentences(ckPlain(line)) {
+					if strings.Contains(sentence, want) && !scoped(l, sentence) {
+						c.lack("%s line %d keeps the earlier %q in the sentence %q without its rule scope (%q, or %q with %q)",
+							p, i+1, phrase, sentence, l.earlierRules, ckNewRules, l.marked)
+					}
 				}
-				found = true
-				plain := ckFlat(strings.ReplaceAll(line, "`", ""))
-				if !slices.ContainsFunc(l.scope, func(s string) bool { return strings.Contains(plain, ckFlat(s)) }) {
-					c.lack("%s line %d holds %q without its rule scope (one of %q)", p, i+1, sentence, l.scope)
-				}
-			}
-			if !found {
-				c.lack("%s: no line holding the earlier sentence %q", p, sentence)
 			}
 		}
 	}
