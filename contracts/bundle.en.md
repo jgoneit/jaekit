@@ -335,7 +335,7 @@ The judgment items moved from item 2 of the completion report keep its qualifica
 
 Reading rules: write in the user's language; say what a record is, with its seq only as an aid; keep each item short; never copy check output or finding text; a finding is its ID, one line and its ending. The original text of a finding stays in the review records. At completion, the executor's judgment sentences are only in this section, and the completion report points to it (section 6).
 
-Only when the user asked for a PR does the following guidance apply. This guidance adds no authority to create, change or push a PR, or answer a review.
+Only when the user asked for a PR does the following guidance apply. This PR guidance applies only to a goal that has a `## 검수 요약`. This guidance adds no authority to create, change or push a PR, or answer a review.
 
 When writing or changing a completed goal's PR description, build it from that goal's `## 검수 요약`. Include the completion record's commit, the changed behavior and files, and an evidence summary. Include every item of `### 직접 볼 것`, including deferred findings with their issues and findings without a disposition; include `### 보지 않은 것`. Add the items the project instructions require in a PR description, such as a list of deferred findings and check boundaries. Never drop a `### 직접 볼 것` item or rewrite it as resolved.
 
