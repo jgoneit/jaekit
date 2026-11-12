@@ -51,6 +51,18 @@ Give every goal document as `--criteria`: SPEC.md and each goal document it link
 - Pass `--rules` for the repository rules (such as `AGENTS.md`) and contracts the change must keep, and `--question` for a question you need answered. Do not pass your own reasoning about the solution; the reviewers start from the criteria.
 - Pass every decision the user made during the review to each later round, with or without Seal: `--decision` with what it settles, followed by `--decision-quote` with the user's words, one pair per decision. An answer to a `requirement-question` is one. The packet's `## Decisions the user made` section tells reviewers that spar does not check that the words are the user's, not to report what a decision settles, to report a change that goes beyond it, and, when following a decision breaks a criterion, rule or contract the decision does not address, to report a `requirement-question` that links it. `decisions` in `round.json` keeps them. An empty or unpaired decision is refused.
 
+### Choose reviewer standpoints
+
+In plan and candidate rounds, including the cumulative round, pick the change's main risks. Give each reviewer a different standpoint, one each; when there are fewer risks than reviewers, leave the rest without one. In fixes and plan-delta rounds, you may give the earlier standpoints again or give none. A standpoint names the risk to attack, where to look first and the position from which to see it. Do not claim that the fix is right or explain the solution. Pick risks from a changed contract boundary, a stored format and its earlier records, the meaning of a check's result, or another place that keeps the same invariant. A standpoint does not replace angles.
+
+Pass `--standpoint NAME=TEXT` to `spar run`. The first `=` separates the reviewer name from the text; the option may be repeated. Refused (65): a name outside this run's configured reviewers and `--reviewers`, more than one standpoint for a reviewer, text empty after trimming whitespace, or invalid UTF-8. Names are compared exactly and case-sensitively, as in G20. A missing `=` or an empty name is a usage error (64). Both refusals happen before any reviewer starts or any round folder is created; the message names the offending name or value. Other text is kept unchanged.
+
+The accepted names are the union of the configured reviewers and the names selected by `--reviewers`. A configured reviewer omitted from this run may still have a standpoint in the packet; when rerunning a subset, pass the full earlier list of standpoints in the same order. Standpoints are run arguments only, with no user or project configuration key; `spar config` is unchanged.
+
+When rerunning only reviewers that did not finish, give the same standpoints so the rerun is not counted. Standpoint text and assignments are in the packet, so `packet_sha256` identifies them as part of the same input; changing either makes a new input. A rerun of only unfinished reviewers is not counted when stage, base, head and `packet_sha256` are unchanged, including the same standpoints.
+
+Standpoints do not change angles, classification, dispositions, caps or the gate's state and reasons. When reporting the gate, name standpoints left without a completed reviewer.
+
 ## Reviewers
 
 - `claude`, `codex` and `agy` run as read-only, offline CLIs that spar checks (`verified`). A reviewer that uses a forbidden tool or changes its workspace copy is recorded as `tool_violation` or `workspace_modified` and its findings are dropped.
@@ -61,6 +73,22 @@ Give every goal document as `--criteria`: SPEC.md and each goal document it link
 - The `native` reviewer is a clean-context subagent of your host. `spar run` writes `native/prompt.md` and a workspace in the round folder (a native reviewer with another name gets a folder of that name). Start a subagent with no other context, only read access to that workspace and the instruction to read that prompt and reply with the JSON object it asks for. Then record the reply: `spar record <round> native --result <file>` or `--transcript <subagent transcript>`; transcript warnings stay in the record.
 - A reviewer that ends `unavailable`, `timed_out`, `invalid_output` or `failed` is shown with its cause. It is never a round without findings. Rerun only that reviewer with `--reviewers <name>` when the cause is gone; a `--reviewers` list never removes the configured required reviewers from the gate.
 - When a required reviewer did not complete a round and the user says to go on without it, record their words for that round: `spar waive <round> <reviewer> --user-quote "<their words>"`. Never record a waiver without the user's words. A waiver covers its round only; record one for each round the reviewer did not complete.
+
+### Standpoint delivery and reports
+
+The shared packet's `## Standpoints for this round` section contains all standpoints and their reviewer assignments. Each reviewer also receives an instruction identifying its own standpoint and asking it to attack that risk while still checking every angle; an unassigned reviewer is told to review the whole change.
+
+- `claude` and `codex` receive the instruction and packet on standard input.
+- `agy` receives the command note, instruction and packet in `-p`; for a large packet, `PACKET.md` holds the packet and `-p` holds the command note, instruction and file reference.
+- `command` receives the reviewer's `input.md` through `{prompt}`; `native` receives the instruction after its fixed instructions in `prompt.md`.
+
+For a round with standpoints, both a real run and `--dry-run` leave in `<round>/<reviewer>/input.md` exactly the input that reviewer receives. For `agy` with a large packet, `input.md` holds its `-p` text and the packet is in `PACKET.md`.
+
+`standpoint_report` is an object with two fields. `checked` is a boolean and `detail` is nonblank text: what was checked when true, or why it could not be checked when false. For an assigned reviewer, a missing, null or malformed report is `invalid_output`, with `standpoint_report` in the reason; an unassigned reviewer need not report one. An unassigned reviewer's `standpoint_report` is not checked and is recorded as `null`. Every preset uses the same check in `spar run` and `spar record --result` or `--transcript`.
+
+`round.json` keeps `standpoints` as reviewer/text pairs, `standpoints_uncovered` as reviewer names without a completed reviewer, and each reviewer's `standpoint` and `standpoint_report` as text/report or null. `summary.md` shows each reviewer's standpoint and report, and standpoints without a completed reviewer, including waived reviewers. The schema remains `review-round/v1`; records without standpoint fields mean no standpoints.
+
+Without standpoints, reviewer inputs, `schema.json`, `packet_sha256` and `summary.md` remain byte for byte unchanged; no standpoint instruction or `input.md` is added. Only `standpoints: []` is added to `round.json`.
 
 ## Classes and dispositions
 

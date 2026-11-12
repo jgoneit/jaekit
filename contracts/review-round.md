@@ -1,6 +1,6 @@
 # 계약: review-round/v1
 
-`spar run`은 한 라운드를 실행하고 라운드 폴더에 `review-round/v1` 기록을 남긴다. 리뷰어 결과와 지적 처리는 이 기록에만 쌓이고, 다른 도구(나중에는 `ha`)가 읽을 수 있도록 이 형식을 고정한다. 각 입력 필드의 받는 형식과 형식 밖의 결과는 [입력 형식](spar-input.md)의 표(G1~G33)가 정하고, 이 문서는 그 행을 가리킨다. 아래 예시의 커밋·경로·문장은 합성이다.
+`spar run`은 한 라운드를 실행하고 라운드 폴더에 `review-round/v1` 기록을 남긴다. 리뷰어 결과와 지적 처리는 이 기록에만 쌓이고, 다른 도구(나중에는 `ha`)가 읽을 수 있도록 이 형식을 고정한다. 각 입력 필드의 받는 형식과 형식 밖의 결과는 [입력 형식](spar-input.md)의 표와 관점 입력 규칙(2절)가 정하고, 이 문서는 그 행을 가리킨다. 아래 예시의 커밋·경로·문장은 합성이다.
 
 ## 1. 명령
 
@@ -19,6 +19,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 | `--rules` | 규칙·계약 문서. 프로젝트 설정의 `rules`(G23)가 더해진다 |
 | `--subject` | plan 단계에서 검토할 문서 |
 | `--question` | 이번 라운드에 묻는 질문 |
+| `--standpoint NAME=TEXT` | 리뷰어별 관점. 아래 형식과 거부 규칙을 따른다 |
 | `--decision`, `--decision-quote` | 사용자의 결정 하나. `--decision`은 결정이 정한 대상, 바로 다음의 `--decision-quote`는 사용자의 말이다. 결정마다 한 쌍을 주고, 여러 번 줄 수 있다. 형식은 G35이고, 형식 밖의 결정은 리뷰어를 띄우기 전에 거부한다. spar는 그 말이 사용자의 말인지 확인하지 않는다 |
 | `--check-path` | 이번 실행의 검사 경로 glob(G24). 잘못된 glob은 리뷰어를 띄우기 전에 거부한다 |
 | `--reviewers` | 이번 실행의 리뷰어 이름 목록(G25) |
@@ -29,12 +30,16 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 라운드 폴더의 부모 폴더가 한 검토의 series다. 같은 series의 다른 `review-round/v1` 라운드에서 상한, 이전 head와 이전 지적을 읽는다. 다른 형식의 기록 폴더는 읽지도 바꾸지도 않는다. series 폴더 자체를 잠가(잠금 파일을 만들지 않는다) series마다 한 번에 한 쓰기만 한다(G33). `spar run`은 상한 판단부터 라운드 기록을 마칠 때까지, `spar record`·`spar triage`·`spar extend`·`spar waive`는 기록을 읽고 쓰는 동안 같은 잠금을 쥔다. 다른 쓰기가 잠금을 쥐고 있으면 표준 오류에 알리고 그것이 끝날 때까지 기다린다. `spar gate`는 잠그지 않는다.
 
-종료 코드: 0 라운드 기록을 썼고 완료했거나 대기 중인 리뷰어가 있음, 1 라운드 기록을 썼지만 완료하거나 대기 중인 리뷰어가 없음, 64 사용법 오류, 65 거부(설정 오류, 추적되는 기록 폴더, 상한 초과, 사슬 끊김, 읽을 수 없는 입력, 형식 밖의 결정), 70 내부 오류. 거부는 리뷰어를 띄우기 전에 일어나고 라운드 폴더를 만들지 않는다.
+종료 코드: 0 라운드 기록을 썼고 완료했거나 대기 중인 리뷰어가 있음, 1 라운드 기록을 썼지만 완료하거나 대기 중인 리뷰어가 없음, 64 사용법 오류, 65 거부(설정 오류, 추적되는 기록 폴더, 상한 초과, 사슬 끊김, 읽을 수 없는 입력, 형식 밖의 결정·관점), 70 내부 오류. 거부는 리뷰어를 띄우기 전에 일어나고 라운드 폴더를 만들지 않는다.
+
+`spar run`에 `--standpoint NAME=TEXT`로 준다. 첫 `=`가 리뷰어 이름과 글을 나누며, 옵션을 여러 번 쓸 수 있다. 거부(65): 이번 실행의 설정과 `--reviewers`에 없는 이름, 한 리뷰어에 관점 둘 이상, 앞뒤 공백을 뗀 뒤 빈 글, 올바른 UTF-8이 아닌 글. 이름은 G20처럼 대소문자를 구분해 정확히 비교한다. `=`가 없거나 이름이 비면 사용법 오류(64)다. 두 거부 모두 리뷰어를 띄우거나 라운드 폴더를 만들기 전에 일어나며, 메시지에 문제의 이름이나 값을 보인다. 그 밖의 글은 받은 그대로 쓴다. 진단에 글을 보일 때는 앞 40자까지 쓴다.
+
+받는 이름은 설정된 리뷰어와 `--reviewers`로 고른 이름의 합집합이다. 이번 실행에서 빠진 설정된 리뷰어의 관점도 패킷에 남길 수 있으므로, 일부만 재실행할 때도 앞선 관점 목록 전체를 같은 순서로 넘긴다. 관점은 실행 인자로만 받고 사용자·프로젝트 설정 키는 없으며, `spar config`는 그대로다.
 
 ## 2. 패킷과 작업공간
 
-- `packet.md`는 모든 리뷰어가 받는 한 텍스트다. 단계 설명, 두 커밋 ID와 tree ID, 공격 각도와 보고 방법, 기준 문서·규칙 문서·검토 대상 문서의 전문, 사용자의 결정, 질문, 같은 series의 앞선 라운드 지적, 두 커밋 사이의 diff가 들어간다. 커밋 메시지, Git 이력, 무시된 파일, 리뷰어 목록은 들어가지 않는다. `packet_sha256`은 이 파일의 sha256이다.
-- 결정을 받은 라운드의 패킷에는 검토 대상 문서 뒤, 질문 앞에 `## Decisions the user made` 절이 하나 있다. 네 단계가 모두 같다. 절은 아래 안내로 시작하고, 결정마다 `### Decision <n>` 아래에 정한 대상과 사용자의 말을 받은 그대로, 받은 순서로 둔다. 두 글은 각자 그 글의 어떤 백틱 줄보다 긴 코드 울타리 안에 있어서, 글 안의 제목과 울타리가 결정 절 밖의 절을 만들거나 끝내지 않는다. 결정을 받지 않은 라운드에는 이 절이 없고, 그 패킷은 이 절이 생기기 전 spar가 같은 입력에서 만든 패킷과 바이트 단위로 같다. 결정은 패킷의 일부라서, 같은 결정의 같은 입력은 같은 패킷이고 결정이 하나라도 다르면 다른 패킷이다(8절). 리뷰어 안내는 다음 네 줄이다. spar는 이 안내를 분류로 강제하지 않는다.
+- `packet.md`는 모든 리뷰어가 받는 한 텍스트다. 단계 설명, 두 커밋 ID와 tree ID, 공격 각도와 보고 방법, 기준 문서·규칙 문서·검토 대상 문서의 전문, 사용자의 결정, 질문, 같은 series의 앞선 라운드 지적, 두 커밋 사이의 diff가 들어간다. 커밋 메시지, Git 이력, 무시된 파일, 리뷰어 목록은 들어가지 않는다. 예외는 관점이 있을 때 배정된 리뷰어 이름을 넣는 `## Standpoints for this round` 절이다. `packet_sha256`은 이 파일의 sha256이다.
+- 결정을 받은 라운드의 패킷에는 검토 대상 문서 뒤, 질문 앞에 `## Decisions the user made` 절이 하나 있다. 네 단계가 모두 같다. 절은 아래 안내로 시작하고, 결정마다 `### Decision <n>` 아래에 정한 대상과 사용자의 말을 받은 그대로, 받은 순서로 둔다. 두 글은 각자 그 글의 어떤 백틱 줄보다 긴 코드 울타리 안에 있어서, 글 안의 제목과 울타리가 결정 절 밖의 절을 만들거나 끝내지 않는다. 결정을 받지 않은 라운드에는 이 절이 없고, 관점도 없으면 그 패킷은 이 절이 생기기 전 spar가 같은 입력에서 만든 패킷과 바이트 단위로 같다. 결정은 패킷의 일부라서, 같은 결정의 같은 입력은 같은 패킷이고 결정이 하나라도 다르면 다른 패킷이다(8절). 리뷰어 안내는 다음 네 줄이다. spar는 이 안내를 분류로 강제하지 않는다.
   - Each decision below was recorded by the caller as the user's words; spar does not check that it is.
   - Do not report the change for doing what a decision settles.
   - Report as usual a change that goes beyond what a decision settles.
@@ -42,7 +47,21 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 - 앞선 라운드 지적은 plan-delta에서는 plan·plan-delta 라운드, fixes에서는 candidate·fixes 라운드의 것이다. 패킷은 그 지적을 리뷰어 이름이 든 지적 ID(`codex-F1` 등)로 보인다. 단계·base·head가 같은 라운드는 넣지 않아서 같은 입력의 재실행은 같은 패킷을 받는다.
 - 리뷰어마다 임시 작업공간 사본을 만든다. `head/`와 `base/`에는 두 커밋의 추적 파일이 blob 그대로 들어가고 `.git`은 없다. symlink는 만들지 않고 그 blob(대상 경로)을 담은 일반 파일로 둔다.
 - `schema.json`은 리뷰어 결과의 JSON schema다.
-- `claude`는 표준 입력, `codex`는 표준 입력, `agy`는 `-p` 인자로 패킷을 받는다. `agy`의 `-p` 값은 패킷 앞에 명령 안내를 붙인 것이다. 안내는 파일 읽기·목록·검색 도구를 먼저 쓰고, 셸 명령은 4절의 읽기 전용 프로그램과 `sed -n`을 `|`·`&&`·`||`·`;`로만 이으며, 코드·시험·빌드·Git이나 그 밖의 프로그램을 실행하면 검토가 멈추고 결과를 버린다(`tool_violation`)고 말한다. `packet.md`는 그대로이고, 다른 리뷰어는 안내를 받지 않는다. 안내와 패킷을 합친 것이 인자 하나의 한도(Linux 120 KiB, 그 밖 768 KiB)를 넘으면 `agy`는 패킷과 같은 바이트의 `PACKET.md`를 작업공간 최상위에 받고 `-p`는 안내와 그 파일을 읽으라는 짧은 지시다. 시도 기록의 `argv`는 안내 뒤의 패킷을 `<packet.md>`로 보인다. 시도 기록의 `packet_transport`(`stdin`, `argument`, `file`)가 이를 남기고, `PACKET.md`가 바뀌면 `workspace_modified`다. `command`는 `{prompt}` 자리에 `packet.md` 경로를 받는다. 패킷은 각 리뷰어의 제공자에게 전송된다.
+- 관점이 없는 라운드에서 `claude`는 표준 입력, `codex`는 표준 입력, `agy`는 `-p` 인자로 패킷을 받는다. `agy`의 `-p` 값은 패킷 앞에 명령 안내를 붙인 것이다. 안내는 파일 읽기·목록·검색 도구를 먼저 쓰고, 셸 명령은 4절의 읽기 전용 프로그램과 `sed -n`을 `|`·`&&`·`||`·`;`로만 이으며, 코드·시험·빌드·Git이나 그 밖의 프로그램을 실행하면 검토가 멈추고 결과를 버린다(`tool_violation`)고 말한다. `packet.md`는 그대로이고, 다른 리뷰어는 안내를 받지 않는다. 안내와 패킷을 합친 것이 인자 하나의 한도(Linux 120 KiB, 그 밖 768 KiB)를 넘으면 `agy`는 패킷과 같은 바이트의 `PACKET.md`를 작업공간 최상위에 받고 `-p`는 안내와 그 파일을 읽으라는 짧은 지시다. 시도 기록의 `argv`는 안내 뒤의 패킷을 `<packet.md>`로 보인다. 시도 기록의 `packet_transport`(`stdin`, `argument`, `file`)가 이를 남기고, `PACKET.md`가 바뀌면 `workspace_modified`다. `command`는 `{prompt}` 자리에 `packet.md` 경로를 받는다. 패킷은 각 리뷰어의 제공자에게 전송된다.
+
+공유 패킷의 `## Standpoints for this round` 절에는 모든 관점과 리뷰어 배정이 들어간다. 리뷰어마다 자기 관점을 알리고 모든 각도를 확인하면서 그 위험을 공격하라는 지시도 받으며, 관점이 없는 리뷰어는 변경 전체를 검토하라는 지시를 받는다.
+
+- `claude`와 `codex`는 지시와 패킷을 표준 입력으로 받는다.
+- `agy`는 명령 안내, 지시, 패킷을 `-p`로 받으며, 큰 패킷이면 `PACKET.md`에 패킷을 두고 `-p`에는 명령 안내, 지시, 파일 안내를 둔다.
+- `command`는 `{prompt}`로 리뷰어의 `input.md`를 받고, `native`는 `prompt.md`의 고정 지시 뒤에 관점 지시를 받는다.
+
+관점이 있는 라운드는 실제 실행과 `--dry-run` 모두 리뷰어마다 그 리뷰어가 받는 입력을 그대로 `<round>/<reviewer>/input.md`에 남긴다. 큰 패킷을 받는 `agy`의 `input.md`는 `-p` 글이고, 패킷은 `PACKET.md`에 있다.
+
+관점을 받은 리뷰어의 지시는 다음과 같다: "Your standpoint for this round is the one under `### <name>` in `## Standpoints for this round`. Attack that risk first and hardest, and still check every angle as the packet asks. Report what you checked from it in `standpoint_report`." 받지 않은 리뷰어의 지시는 다음과 같다: "You have no standpoint this round. Review the whole change as the packet asks; the standpoints below belong to other reviewers." 지시 뒤에 빈 줄을 두고 패킷이 이어진다. 리뷰어별 지시는 배정에서 정해지므로 별도 digest가 필요 없다.
+
+관점 절은 관점이 있을 때만 생기며, `## Decisions the user made`가 있으면 그 뒤, 질문 앞에 놓인다. 첫 안내는 다음과 같다: "Each standpoint below belongs to one reviewer. The reviewer it names attacks that risk first; every reviewer still checks every angle." 배정마다 인자를 받은 순서로 `### <reviewer>` 아래에 글을 받은 그대로, 그 글의 가장 긴 백틱 연속보다 긴 코드 울타리 안에 둔다. 줄바꿈, 제목, 코드 울타리, ASCII 밖의 글자도 울타리를 끝내거나 다른 패킷 절을 만들지 않는다.
+
+관점이 없으면 리뷰어 입력, `schema.json`, `packet_sha256`, `summary.md`는 바이트까지 그대로이고, 관점 지시와 `input.md`는 생기지 않는다. `round.json`에는 `standpoints: []`만 더해진다.
 
 ## 3. 리뷰어 결과
 
@@ -72,15 +91,19 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 - spar가 읽는 방식: `location`은 G7, `rule`·`contract` 연결은 G8, `criterion` 연결은 G9. 위치를 읽을 수 없는 지적도 결과에서 버리지 않는다.
 - `could_not_review`는 완료가 아니라 `failed`로 기록한다.
 
+`standpoint_report`는 관점 보고 객체다. `checked`는 불리언이고 `detail`은 공백뿐이 아닌 글이다. 참이면 확인한 것, 거짓이면 확인하지 못한 이유다. 관점을 받은 리뷰어의 보고가 없거나 null이거나 형식이 틀리면 `invalid_output`이고 이유에 `standpoint_report`가 들어가며, 관점이 없는 리뷰어에게는 보고를 요구하지 않는다. 관점이 없는 리뷰어의 `standpoint_report`는 확인하지 않고 `null`로 기록한다. 모든 preset에 `spar run`과 `spar record --result` 또는 `--transcript`가 같은 확인을 한다.
+
+관점이 있는 라운드의 `schema.json`은 `standpoint_report`를 `["object","null"]` 형식으로 더하고, 엄격한 schema를 쓰는 CLI를 위해 `required`에 넣는다. 객체의 키는 정확히 `checked`와 `detail`이며, 실행 시 확인은 관점 없는 리뷰어가 키를 빼거나 null을 쓰는 것도 받는다. `claude` preset의 `--json-schema` 인자도 그 라운드의 schema다. 관점이 없는 라운드에서는 이 키가 여전히 모르는 키이고 이전 schema가 그대로다. 형식에 맞는 `checked: false` 보고는 한계를 설명하며, 그 자체로 `completed`를 막지 않는다.
+
 ## 4. 리뷰어 상태
 
 | 상태 | 뜻 |
 | --- | --- |
-| `completed` | 결과가 schema와 head, 각도 요구를 만족했다 |
+| `completed` | 결과가 schema와 head, 각도 및 배정된 관점의 보고 요구를 만족했다 |
 | `pending` | `native`가 호스트 하위 에이전트의 답을 기다린다 |
 | `unavailable` | CLI가 없거나, 사용량·요청 한도나 인증으로 거절했다 |
 | `timed_out` | 시간 제한 안에 결과가 없었다 |
-| `invalid_output` | 결과가 없거나 JSON이 아니거나 schema·head·각도 요구를 어겼다 |
+| `invalid_output` | 결과가 없거나 JSON이 아니거나 schema·head·각도·배정된 관점의 보고 요구를 어겼다 |
 | `failed` | 실행 파일을 실행할 수 없거나, 결과 없이 0이 아닌 종료, 또는 `could_not_review` |
 | `tool_violation` | 허용 밖의 도구나 명령을 썼다. 결과는 쓰지 않는다 |
 | `workspace_modified` | 작업공간 사본의 `head/`·`base/`가 바뀌었다. 결과는 쓰지 않는다 |
@@ -109,6 +132,10 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 `round.json`의 주요 필드: `schema`(`review-round/v1`), `spar_version`, `stage`, `label`, `series`, `sequence`, `repo`, `base`, `head`, `base_tree`, `head_tree`, `diff_sha256`, `criteria`·`rules`·`subjects`(`name`, `source`, `sha256`), `criteria_digest`(기준 문서 이름과 sha256의 sha256), `questions`, `decisions`(결정을 받은 라운드에만 있다. 받은 순서의 항목마다 `settles`(정한 대상)와 `user_quote`(사용자의 말)를 받은 그대로 남긴다), `prior`, `packet_sha256`, `config`([설정 계약](spar-config.md)의 적용 기록), `links`(연결 확인에 쓴 `criteria_ids`와 규칙 문서의 `rules[]`: `names`, `file_name`, `lines`), `requested_reviewers`, `required_reviewers`, `dry_run`, `counted`, `rerun_of`, `started_at`, `finished_at`, `reviewers`.
 
 `reviewers.<이름>`: `name`, `preset`, `isolation`(`verified`, `host`, `unverified`), `required`, `status`, `reason`, `requested_model`, `model_source`(`claude`·`codex`·`agy`만: `user`, `agent`, `preset`), `observed_model`, `fallback_model`, `fallback_used`, `effort`, `effort_source`(`claude`·`codex`만, 같은 세 값), `elapsed_seconds`, `timeout_seconds`(G19), `resets`, `attempts`, `findings`(완료한 경우의 지적 수, 아니면 `null`), `verdict`, `angles_checked`, `angles_unchecked`, `limits`, `warnings`, `agent`, `recorded_from`, `workspace_digest`(native 작업공간을 준비할 때의 digest).
+
+`round.json`은 `standpoints`에 reviewer/text 쌍, `standpoints_uncovered`에 완료한 리뷰어가 없는 관점의 리뷰어 이름, 리뷰어마다 `standpoint`와 `standpoint_report`에 글과 보고 또는 null을 남긴다. `summary.md`는 리뷰어마다 관점과 보고를 보이고, waive된 리뷰어를 포함해 완료한 리뷰어가 없는 관점을 보인다. 형식은 `review-round/v1` 그대로이며, 관점 필드가 없는 기록은 관점 없음으로 읽는다.
+
+`standpoints`는 `reviewer`와 `text`를 담은 객체를 인자 순서로 둔 배열이고, 관점이 없으면 `[]`다. `standpoints_uncovered`와 리뷰어별 관점 필드는 관점이 있는 라운드에만 있다. 완료한 리뷰어가 없다는 것은 배정된 리뷰어가 그 라운드를 완료하지 못했다는 뜻이며, 실행 목록에서 빠진 리뷰어도 포함한다. `checked: false`라는 뜻은 아니다. waive는 리뷰어를 완료시키지 않는다. `spar record`가 리뷰어를 완료하면 남은 이름과 요약을 다시 계산한다. 요약 머리에는 `- Standpoints: <n> for <names>`, 남은 관점이 있으면 `- Standpoints without a completed reviewer: <names>`가 나온다. 관점을 받은 리뷰어 아래에는 `  - standpoint: <첫 줄, 80자까지>`와 `  - standpoint report: checked|unchecked: <detail 첫 줄>`가 나오고, 보고가 없으면 `  - standpoint report: none`이다.
 
 ## 6. 분류
 
@@ -154,9 +181,13 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 - 상한 계산, 재실행 판단, gate는 `cause`·`reason`을 읽지 않는다. 원인이 없는 줄(이 기능 전에 기록한 줄)도 지금처럼 `stage`와 `by`로 센다.
 - code 상한 거부 메시지는 위의 글 뒤에 ``; read why with `spar cap-report <series>` and record a code extension with --cause``를 붙인다. plan·plan-delta 상한 거부 메시지는 그대로다.
 
+관점의 글과 배정은 패킷 안에 있으므로 `packet_sha256`이 같은 입력의 일부로 식별하며, 어느 하나라도 바꾸면 새 입력이다. 끝내지 못한 리뷰어만 다시 돌리고 단계, base, head와 `packet_sha256`이 같은 관점을 포함해 그대로이면 상한에 세지 않는다.
+
+관점은 각도, 분류, 처리, 상한, gate의 상태와 사유를 바꾸지 않는다. 대체 모델 실행도 같은 관점 지시와 `input.md`를 쓴다. 관점은 리뷰어 수, 필수 리뷰어 판단, 시도나 라운드를 늘리지 않는다. 재실행, fixes 사슬, gate의 완료 판단, `spar waive`, `spar cap-report`는 같은 패킷 식별 규칙을 쓴다.
+
 ## 9. native 리뷰어
 
-`native` preset 리뷰어는 `pending`으로 시작하고 자기 이름의 폴더에 `prompt.md`(지시와 패킷 전문)와 `workspace/`를 남긴다(기본 이름이면 `native/prompt.md`). 호스트의 clean-context 하위 에이전트가 답하면 `spar record <라운드> <이름> --result <파일|->`나 `--transcript <전사 기록>`으로 기록한다. dry run 라운드와 이미 완료한 리뷰어는 기록하지 않는다. 기록할 때 작업공간이 준비 때와 같은지, 결과가 schema·head·각도 요구를 만족하는지, 라운드의 `findings.json`·`ledger.jsonl`이 있는지 확인한다(없으면 거부). 전사 기록(G15)에서 `Read`·`Grep`·`Glob` 밖의 도구 사용, 호스트가 제공한 그 밖의 도구, 호스트가 더한 맥락(Git 상태, 지시 파일, hook 맥락), 프롬프트를 읽지 않은 것, 그리고 `Read`·`Grep`·`Glob`이 native 작업공간과 `prompt.md` 밖을 읽은 것은 `warnings`에 남는다. 맥락의 내용과 읽은 경로는 기록하지 않고 종류와 도구 이름만 남긴다. 격리 등급은 `host`이고 필수 리뷰어에 든다.
+`native` preset 리뷰어는 `pending`으로 시작하고 자기 이름의 폴더에 `prompt.md`(지시와 패킷 전문)와 `workspace/`를 남긴다(기본 이름이면 `native/prompt.md`). 호스트의 clean-context 하위 에이전트가 답하면 `spar record <라운드> <이름> --result <파일|->`나 `--transcript <전사 기록>`으로 기록한다. dry run 라운드와 이미 완료한 리뷰어는 기록하지 않는다. 기록할 때 작업공간이 준비 때와 같은지, 결과가 schema·head·각도·배정된 관점의 보고 요구를 만족하는지, 라운드의 `findings.json`·`ledger.jsonl`이 있는지 확인한다(없으면 거부). 전사 기록(G15)에서 `Read`·`Grep`·`Glob` 밖의 도구 사용, 호스트가 제공한 그 밖의 도구, 호스트가 더한 맥락(Git 상태, 지시 파일, hook 맥락), 프롬프트를 읽지 않은 것, 그리고 `Read`·`Grep`·`Glob`이 native 작업공간과 `prompt.md` 밖을 읽은 것은 `warnings`에 남는다. 맥락의 내용과 읽은 경로는 기록하지 않고 종류와 도구 이름만 남긴다. 격리 등급은 `host`이고 필수 리뷰어에 든다.
 
 ## 10. 필수 리뷰어를 빼는 결정
 

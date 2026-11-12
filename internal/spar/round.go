@@ -46,25 +46,32 @@ func usageError(format string, args ...any) error {
 	return &ExitError{ExitUsage, fmt.Sprintf(format, args...)}
 }
 
+// Standpoint assigns one risk to a reviewer for this round.
+type Standpoint struct {
+	Reviewer string `json:"reviewer"`
+	Text     string `json:"text"`
+}
+
 // RunOptions are the inputs of `spar run`.
 type RunOptions struct {
-	Repo       string
-	Stage      string
-	Base, Head string
-	Out        string
-	Criteria   []string
-	Rules      []string
-	Subjects   []string
-	Questions  []string
-	Decisions  []Decision
-	CheckPaths []string
-	Reviewers  []string // nil: the configured list
-	Choices    []Choice // the agent's --model and --effort values
-	Label      string
-	DryRun     bool
-	Version    string
-	Getenv     func(string) string
-	Log        io.Writer
+	Repo        string
+	Stage       string
+	Base, Head  string
+	Out         string
+	Criteria    []string
+	Rules       []string
+	Subjects    []string
+	Questions   []string
+	Decisions   []Decision
+	Standpoints []Standpoint
+	CheckPaths  []string
+	Reviewers   []string // nil: the configured list
+	Choices     []Choice // the agent's --model and --effort values
+	Label       string
+	DryRun      bool
+	Version     string
+	Getenv      func(string) string
+	Log         io.Writer
 }
 
 func readDocument(repo, path, what string) (Document, error) {
@@ -127,10 +134,20 @@ func priorLines(siblings []sibling, current *RoundRecord) ([]string, []string, e
 	return lines, dirs, nil
 }
 
-// isRerun reports whether two rounds review the same packet: same stage,
-// base, head and packet digest.
+// packetIdentity is shared by admission, chain checks, completion credit,
+// waivers and recurring-finding counts. Standpoints and their assignments
+// live inside the packet and are therefore covered by its digest.
+type packetIdentity struct {
+	stage, base, head, digest string
+}
+
+func packetKey(r *RoundRecord) packetIdentity {
+	return packetIdentity{r.Stage, r.Base, r.Head, r.PacketSHA256}
+}
+
+// isRerun reports whether two rounds review the same packet.
 func isRerun(a, b *RoundRecord) bool {
-	return sameIdentity(a, b) && a.PacketSHA256 == b.PacketSHA256
+	return packetKey(a) == packetKey(b)
 }
 
 // admit applies the stage caps, the rerun rule and the fixes chain. It
@@ -142,7 +159,7 @@ func admit(siblings []sibling, exts []Extension, r *RoundRecord) (bool, []string
 	// reviewers did not complete the packet.
 	var same []sibling
 	for _, s := range siblings {
-		if !s.round.DryRun && sameIdentity(s.round, r) && s.round.PacketSHA256 == r.PacketSHA256 {
+		if !s.round.DryRun && isRerun(s.round, r) {
 			same = append(same, s)
 		}
 	}
@@ -314,6 +331,9 @@ func Run(o RunOptions) (int, error) {
 	if err != nil {
 		return ExitRefused, err
 	}
+	if err := validateStandpoints(o, cfg); err != nil {
+		return ExitRefused, err
+	}
 	if len(o.CheckPaths) > 0 {
 		cfg.CheckPaths = uniq(append(cfg.CheckPaths, o.CheckPaths...))
 		cfg.Digest = cfg.digest()
@@ -391,8 +411,9 @@ func Run(o RunOptions) (int, error) {
 		Sequence: len(siblings) + 1, Repo: repo, Base: base, Head: head, BaseTree: baseTree, HeadTree: headTree,
 		DiffSHA256: newDocument("", "", changes).SHA256, Criteria: criteria, CriteriaDigest: documentsDigest(criteria),
 		Rules: nonNil(rules), Subjects: nonNil(subjects), Questions: append([]string{}, o.Questions...),
-		Decisions: append([]Decision(nil), o.Decisions...),
-		Config:    cfg, DryRun: o.DryRun, RerunOf: []string{}, Reviewers: map[string]*ReviewerState{},
+		Decisions:   append([]Decision(nil), o.Decisions...),
+		Standpoints: append([]Standpoint{}, o.Standpoints...),
+		Config:      cfg, DryRun: o.DryRun, RerunOf: []string{}, Reviewers: map[string]*ReviewerState{},
 		Links: LinkTargets{CriteriaIDs: criteriaIDs(criteria), Rules: ruleTargets(repo, rules)},
 	}
 	for _, rv := range cfg.Reviewers {
@@ -411,7 +432,7 @@ func Run(o RunOptions) (int, error) {
 	r.Prior = priorDirs
 	packet := buildPacket(packetInput{Stage: o.Stage, Base: base, Head: head, BaseTree: baseTree, HeadTree: headTree,
 		Angles: cfg.Angles, CheckPaths: cfg.CheckPaths, Criteria: criteria, Rules: rules, Subjects: subjects,
-		Decisions: o.Decisions, Questions: o.Questions, Prior: prior, Diff: changes})
+		Decisions: o.Decisions, Standpoints: o.Standpoints, Questions: o.Questions, Prior: prior, Diff: changes})
 	r.PacketSHA256 = newDocument("", "", []byte(packet)).SHA256
 	counted, rerunOf, err := admit(siblings, exts, r)
 	if err != nil {
@@ -422,6 +443,47 @@ func Run(o RunOptions) (int, error) {
 		r.RerunOf = rerunOf
 	}
 	return runRound(o, r, out, []byte(packet))
+}
+
+// validateStandpoints runs before creating any round or starting reviewers.
+// A configured reviewer can retain its standpoint during a partial rerun.
+func validateStandpoints(o RunOptions, cfg *Config) error {
+	if len(o.Standpoints) == 0 {
+		return nil
+	}
+	known := map[string]bool{}
+	for _, rv := range cfg.Reviewers {
+		known[rv.Name] = true
+	}
+	if o.Reviewers != nil {
+		user := &Config{defaultTimeout: DefaultTimeout}
+		configured, err := user.loadReviewers(o.Getenv)
+		if err != nil {
+			return err
+		}
+		for _, rv := range configured {
+			known[rv.Name] = true
+		}
+	}
+	seen := map[string]bool{}
+	for _, s := range o.Standpoints {
+		preview := []rune(s.Text)
+		if len(preview) > 40 {
+			preview = preview[:40]
+		}
+		switch {
+		case !known[s.Reviewer]:
+			return refused("--standpoint: unknown reviewer %q", s.Reviewer)
+		case seen[s.Reviewer]:
+			return refused("--standpoint: reviewer %q has more than one standpoint", s.Reviewer)
+		case !utf8.ValidString(s.Text):
+			return refused("--standpoint for %q: text %q is not valid UTF-8", s.Reviewer, string(preview))
+		case strings.TrimSpace(s.Text) == "":
+			return refused("--standpoint for %q: text %q is empty after trimming", s.Reviewer, string(preview))
+		}
+		seen[s.Reviewer] = true
+	}
+	return nil
 }
 
 func nonNil(docs []Document) []Document {
@@ -444,7 +506,7 @@ func runRound(o RunOptions, r *RoundRecord, out string, packet []byte) (int, err
 	if err := os.WriteFile(packetPath, packet, 0o644); err != nil {
 		return ExitInternal, err
 	}
-	if err := os.WriteFile(schemaPath, resultSchema(), 0o644); err != nil {
+	if err := os.WriteFile(schemaPath, resultSchema(len(r.Standpoints) > 0), 0o644); err != nil {
 		return ExitInternal, err
 	}
 	for _, rv := range r.Config.Reviewers {
@@ -457,7 +519,19 @@ func runRound(o RunOptions, r *RoundRecord, out string, packet []byte) (int, err
 			st.Status, st.Reason = StatusNotRun, "dry run: the packet and workspace were built, no reviewer ran"
 		}
 		r.Reviewers[rv.Name] = st
+		if len(o.Standpoints) > 0 {
+			st.ReviewerStandpoint = &ReviewerStandpoint{Standpoint: standpointFor(r.Standpoints, rv.Name)}
+			dir := filepath.Join(out, rv.Name)
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				return ExitInternal, err
+			}
+			input := reviewerInput(rv, out, packet, standpointInstruction(o.Standpoints, rv.Name))
+			if err := os.WriteFile(filepath.Join(dir, "input.md"), input, 0o644); err != nil {
+				return ExitInternal, err
+			}
+		}
 	}
+	updateStandpointCoverage(r)
 	if err := writeJSON(filepath.Join(out, "round.json"), r); err != nil {
 		return ExitInternal, err
 	}
@@ -490,7 +564,7 @@ func runRound(o RunOptions, r *RoundRecord, out string, packet []byte) (int, err
 	for i, rv := range r.Config.Reviewers {
 		st := r.Reviewers[rv.Name]
 		if rv.Preset == nativePreset {
-			if err := prepareNative(out, template, packet, r, st); err != nil {
+			if err := prepareNative(out, template, packet, r, st, standpointInstruction(o.Standpoints, rv.Name)); err != nil {
 				return ExitInternal, err
 			}
 			continue
@@ -498,7 +572,7 @@ func runRound(o RunOptions, r *RoundRecord, out string, packet []byte) (int, err
 		wg.Add(1)
 		go func(i int, rv Reviewer, st *ReviewerState) {
 			defer wg.Done()
-			result := runReviewer(rv, st, tmp, i, out, packet, r)
+			result := runReviewer(rv, st, tmp, i, out, packet, r, standpointInstruction(o.Standpoints, rv.Name))
 			mu.Lock()
 			results[rv.Name] = result
 			mu.Unlock()
@@ -519,7 +593,11 @@ func runRound(o RunOptions, r *RoundRecord, out string, packet []byte) (int, err
 
 // runReviewer runs a reviewer with its model and, after a quota or rate
 // refusal, once more with its fallback model on the same packet.
-func runReviewer(rv Reviewer, st *ReviewerState, tmp string, i int, out string, packet []byte, r *RoundRecord) any {
+func runReviewer(rv Reviewer, st *ReviewerState, tmp string, i int, out string, packet []byte, r *RoundRecord, instructions ...string) any {
+	var instruction string
+	if len(instructions) > 0 {
+		instruction = instructions[0]
+	}
 	models := []string{rv.Model}
 	if rv.FallbackModel != "" && rv.FallbackModel != rv.Model && rv.Preset != commandPreset {
 		models = append(models, rv.FallbackModel)
@@ -536,8 +614,14 @@ func runReviewer(rv Reviewer, st *ReviewerState, tmp string, i int, out string, 
 		if err := copyTree(filepath.Join(tmp, "template"), ws); err != nil {
 			a = Attempt{Model: model, Status: StatusFailed, Reason: "workspace: " + err.Error(), StartedAt: now(), FinishedAt: now()}
 		} else {
-			a = runAttempt(rv, model, runPaths{workspace: ws, dir: dir, packet: filepath.Join(out, "packet.md"),
-				schema: filepath.Join(out, "schema.json")}, packet, r.Config.Angles, r.Head)
+			paths := runPaths{workspace: ws, dir: dir, packet: filepath.Join(out, "packet.md"),
+				schema: filepath.Join(out, "schema.json"), instruction: instruction}
+			if instruction != "" {
+				paths.input = filepath.Join(out, rv.Name, "input.md")
+				paths.packet = paths.input
+				paths.standpoint = standpointFor(r.Standpoints, rv.Name)
+			}
+			a = runAttempt(rv, model, paths, packet, r.Config.Angles, r.Head)
 		}
 		os.RemoveAll(ws)
 		st.Attempts = append(st.Attempts, a)
@@ -580,6 +664,15 @@ func finishRound(out string, r *RoundRecord, results map[string]any) error {
 // applyResult records a completed result in a reviewer's state and returns
 // its classified findings.
 func applyResult(c classifier, st *ReviewerState, name string, result map[string]any) []Finding {
+	if st.ReviewerStandpoint != nil {
+		// Only an assigned reviewer's report was validated and is kept; an
+		// unassigned reviewer's standpoint_report stays an explicit null.
+		st.StandpointReport = nil
+		if report := object(result["standpoint_report"]); report != nil && st.Standpoint != nil {
+			checked, _ := report["checked"].(bool)
+			st.StandpointReport = &StandpointReport{Checked: checked, Detail: str(report["detail"])}
+		}
+	}
 	st.Verdict = str(result["verdict"])
 	st.Limits = str(result["limits"])
 	st.AnglesChecked = []string{}
@@ -642,6 +735,7 @@ func saveRound(out string, r *RoundRecord, added []Finding, fresh bool) error {
 			}
 		}
 	}
+	updateStandpointCoverage(r)
 	if err := writeJSON(filepath.Join(out, "round.json"), r); err != nil {
 		return err
 	}
@@ -664,7 +758,7 @@ You are a clean-context reviewer started by the host agent. Review the packet be
 
 // prepareNative writes a native reviewer's prompt and workspace, in the
 // folder named after it, for the host's clean-context subagent.
-func prepareNative(out, template string, packet []byte, r *RoundRecord, st *ReviewerState) error {
+func prepareNative(out, template string, packet []byte, r *RoundRecord, st *ReviewerState, instructions ...string) error {
 	dir := filepath.Join(out, st.Name)
 	ws := filepath.Join(dir, "workspace")
 	if err := copyTree(template, ws); err != nil {
@@ -675,8 +769,12 @@ func prepareNative(out, template string, packet []byte, r *RoundRecord, st *Revi
 		return err
 	}
 	st.WorkspaceDigest = manifestDigest(entries)
-	prompt := fmt.Sprintf(nativeInstructions, ws, filepath.Join(out, "schema.json"), out, st.Name) + string(packet)
-	if err := os.WriteFile(filepath.Join(dir, "prompt.md"), []byte(prompt), 0o644); err != nil {
+	var instruction string
+	if len(instructions) > 0 {
+		instruction = instructions[0]
+	}
+	prompt := reviewerInput(Reviewer{Name: st.Name, Preset: nativePreset}, out, packet, instruction)
+	if err := os.WriteFile(filepath.Join(dir, "prompt.md"), prompt, 0o644); err != nil {
 		return err
 	}
 	st.Status = StatusPending

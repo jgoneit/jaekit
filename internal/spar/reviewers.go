@@ -121,10 +121,13 @@ type reviewSpec struct {
 }
 
 type runPaths struct {
-	workspace string // the reviewer's copy: head/ and base/
-	dir       string // the reviewer's record folder in the round
-	packet    string // the round's packet.md
-	schema    string // the round's schema.json
+	workspace   string  // the reviewer's copy: head/ and base/
+	dir         string  // the reviewer's record folder in the round
+	packet      string  // the round's packet.md
+	schema      string  // the round's schema.json
+	instruction string  // optional reviewer-specific instruction, ending with a blank line
+	input       string  // persistent input.md, shared by designated and fallback attempts
+	standpoint  *string // assigned standpoint, nil when this reviewer has none
 }
 
 func jsonLines(data []byte) []map[string]any {
@@ -176,9 +179,9 @@ func errorMessage(v any) string {
 func specFor(r Reviewer, model, binary string, p runPaths, packet []byte) reviewSpec {
 	switch r.Preset {
 	case "claude":
-		return claudeSpec(r, model, binary, p, packet)
+		return claudeSpec(r, model, binary, p, append([]byte(p.instruction), packet...))
 	case "codex":
-		return codexSpec(r, model, binary, p, packet)
+		return codexSpec(r, model, binary, p, append([]byte(p.instruction), packet...))
 	case "agy":
 		return agySpec(r, model, binary, p, packet)
 	default:
@@ -187,7 +190,7 @@ func specFor(r Reviewer, model, binary string, p runPaths, packet []byte) review
 }
 
 func claudeSpec(r Reviewer, model, binary string, p runPaths, packet []byte) reviewSpec {
-	schema := string(resultSchema())
+	schema := string(resultSchema(p.input != ""))
 	argv := []string{binary, "-p", "--model", model}
 	if r.Effort != "" {
 		argv = append(argv, "--effort", r.Effort)
@@ -300,16 +303,37 @@ func codexSpec(r Reviewer, model, binary string, p runPaths, packet []byte) revi
 	}
 }
 
+func agyPrompt(packet []byte, instruction string) (prompt, transport string) {
+	prompt, transport = agyCommandNote+instruction+string(packet), "argument"
+	if len(prompt) > argumentLimit() {
+		prompt, transport = agyCommandNote+instruction+"The review packet is the file "+packetFile+" in the current folder, next to head/ and base/. "+
+			"Read all of it and follow it exactly; it is the whole task.", "file"
+	}
+	return prompt, transport
+}
+
+// reviewerInput is also used by dry runs, which prepare the exact prompt
+// without resolving or starting any reviewer executable.
+func reviewerInput(rv Reviewer, out string, packet []byte, instruction string) []byte {
+	prompt := instruction + string(packet)
+	switch rv.Preset {
+	case "agy":
+		prompt, _ = agyPrompt(packet, instruction)
+	case nativePreset:
+		prompt = fmt.Sprintf(nativeInstructions, filepath.Join(out, rv.Name, "workspace"), filepath.Join(out, "schema.json"), out, rv.Name) + prompt
+	}
+	return []byte(prompt)
+}
+
 func agySpec(r Reviewer, model, binary string, p runPaths, packet []byte) reviewSpec {
 	// agy takes its prompt as an argument: the command note, then the packet.
 	// When the two are over the argument limit, the packet goes into the
 	// workspace unchanged and the prompt is the note and a pointer to it.
-	prompt, transport := agyCommandNote+string(packet), "argument"
-	shown := agyCommandNote + "<packet.md>"
-	if len(prompt) > argumentLimit() {
+	prompt, transport := agyCommandNote+p.instruction+string(packet), "argument"
+	shown := agyCommandNote + p.instruction + "<packet.md>"
+	if _, kind := agyPrompt(packet, p.instruction); kind == "file" {
 		if err := os.WriteFile(filepath.Join(p.workspace, packetFile), packet, 0o644); err == nil {
-			prompt, transport = agyCommandNote+"The review packet is the file "+packetFile+" in the current folder, next to head/ and base/. "+
-				"Read all of it and follow it exactly; it is the whole task.", "file"
+			prompt, transport = agyPrompt(packet, p.instruction)
 			shown = prompt
 		}
 	}
@@ -831,6 +855,13 @@ func runAttempt(r Reviewer, model string, p runPaths, packet []byte, angles []st
 		return finish(StatusFailed, err.Error())
 	}
 	spec := specFor(r, model, binary, p, packet)
+	if p.input != "" && r.Preset == "agy" {
+		// Preserve the actual argument, including the inline fallback when
+		// the large packet could not be written into the workspace.
+		if err := os.WriteFile(p.input, []byte(spec.argv[2]), 0o644); err != nil {
+			return finish(StatusFailed, err.Error())
+		}
+	}
 	a.Argv, a.PacketTransport = spec.display, spec.transport
 	if r.Preset != "command" {
 		version, inTime := toolVersion(binary, deadlineAt)
@@ -956,7 +987,11 @@ loop:
 	}
 	data, _ := json.MarshalIndent(result, "", "  ")
 	os.WriteFile(filepath.Join(p.dir, "result.json"), append(data, '\n'), 0o644)
-	if problems := validateResult(result, head, angles); len(problems) > 0 {
+	var standpoint []*string
+	if p.input != "" {
+		standpoint = append(standpoint, p.standpoint)
+	}
+	if problems := validateResult(result, head, angles, standpoint...); len(problems) > 0 {
 		return finish(StatusInvalidOutput, strings.Join(first(problems, 5), "; "))
 	}
 	a.result = result
@@ -1097,17 +1132,44 @@ func unknownKeys(m map[string]any, known []string) []string {
 	return out
 }
 
-func validateResult(result any, head string, angles []string) []string {
+func validateResult(result any, head string, angles []string, standpoint ...*string) []string {
 	m := object(result)
 	if m == nil {
 		return []string{"result is not a JSON object"}
 	}
 	var problems []string
 	resultKeys := []string{"reviewed_head", "verdict", "angles_checked", "angles_unchecked", "findings", "limits"}
+	// The optional argument marks a round with standpoints; nil means
+	// this reviewer has none, so its standpoint_report, whatever it holds
+	// or when left out, is neither checked nor recorded (AC-3). Without
+	// the argument the old schema stays exact.
+	if len(standpoint) > 0 && standpoint[0] != nil {
+		// Report these problems first, so truncating a longer failure
+		// reason cannot hide the required standpoint_report diagnostic.
+		report := m["standpoint_report"]
+		if report == nil {
+			problems = append(problems, "standpoint_report is required for the assigned standpoint")
+		} else if v := object(report); v == nil {
+			problems = append(problems, "standpoint_report is not an object or null")
+		} else {
+			if _, ok := v["checked"].(bool); !ok {
+				problems = append(problems, "standpoint_report.checked is not a boolean")
+			}
+			if detail, ok := v["detail"].(string); !ok || strings.TrimSpace(detail) == "" {
+				problems = append(problems, "standpoint_report.detail is not non-blank text")
+			}
+			for _, key := range unknownKeys(v, []string{"checked", "detail"}) {
+				problems = append(problems, fmt.Sprintf("standpoint_report has unknown key %q", key))
+			}
+		}
+	}
 	for _, key := range resultKeys {
 		if _, ok := m[key]; !ok {
 			problems = append(problems, "missing "+key)
 		}
+	}
+	if len(standpoint) > 0 {
+		resultKeys = append(resultKeys, "standpoint_report")
 	}
 	// The keys are exactly the schema's (G1).
 	for _, key := range unknownKeys(m, resultKeys) {
