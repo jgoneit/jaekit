@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "ReviewDecisionsSplit",
+      "violation": "review-decisions-not-split",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestBundleReadabilityAC1_ReviewDecisionsSplit"
+      }
+    }
+  ]
+}

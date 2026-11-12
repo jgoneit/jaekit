@@ -229,6 +229,16 @@ For every decision Spec writes or changes, it records the source. The source is 
 
 An outcome-changing decision that none of these can source is not written as a decision. Spec asks about it or leaves it in `## Open Decisions`.
 
+In new SPEC documents, put one marker at the very start of each decision sentence under decisions and reasons, and keep the detailed source at the end. Choose in this order:
+
+- `[사용자]` when the source includes the user's words.
+- `[제안]` when there are no user's words and the source includes a Spec proposal stated in the report.
+- `[기존]` otherwise: only a repository file, an existing goal document, or a review finding identifier.
+
+Markers follow their sources: when the source changes, the marker changes with it. This includes a user's request to change a proposal and an agent invocation recording the user's acceptance as a decision. Write them as-is: the markers are contract tokens in every language.
+
+Decisions without a marker remain valid. When editing an existing document, add no marker unless the user decides. A document whose decisions already carry markers keeps marking the decisions added or changed in later edits. Existing source labels stay unchanged.
+
 A Spec proposal stated in the report becomes the user's decision when the user accepts it or requests implementation with those goal documents. When the user says to change it, Spec edits the document, and the source of that decision becomes the user's words. An already written `Spec 제안(저장 때 동의)` (Spec proposal, agreed at save) label is left as it is.
 
 Spec does not invent and fill in sources for decisions that already existed without one, because a source filled in later easily becomes a guess. When editing that document, Spec reports it as a consistency result, and the user decides whether to add a source.

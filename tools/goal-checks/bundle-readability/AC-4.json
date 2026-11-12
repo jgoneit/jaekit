@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "DecisionMarkers",
+      "violation": "decision-marker-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestBundleReadabilityAC4_DecisionMarkers"
+      }
+    }
+  ]
+}
