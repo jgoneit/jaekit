@@ -665,9 +665,12 @@ func finishRound(out string, r *RoundRecord, results map[string]any) error {
 // its classified findings.
 func applyResult(c classifier, st *ReviewerState, name string, result map[string]any) []Finding {
 	if st.ReviewerStandpoint != nil {
+		// Only an assigned reviewer's report was validated and is kept; an
+		// unassigned reviewer's standpoint_report stays an explicit null.
 		st.StandpointReport = nil
-		if report := object(result["standpoint_report"]); report != nil {
-			st.StandpointReport = &StandpointReport{Checked: report["checked"].(bool), Detail: str(report["detail"])}
+		if report := object(result["standpoint_report"]); report != nil && st.Standpoint != nil {
+			checked, _ := report["checked"].(bool)
+			st.StandpointReport = &StandpointReport{Checked: checked, Detail: str(report["detail"])}
 		}
 	}
 	st.Verdict = str(result["verdict"])

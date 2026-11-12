@@ -1140,15 +1140,15 @@ func validateResult(result any, head string, angles []string, standpoint ...*str
 	var problems []string
 	resultKeys := []string{"reviewed_head", "verdict", "angles_checked", "angles_unchecked", "findings", "limits"}
 	// The optional argument marks a round with standpoints; nil means
-	// this reviewer has none. Without it the old schema stays exact.
-	if len(standpoint) > 0 {
+	// this reviewer has none, so its standpoint_report, whatever it holds
+	// or when left out, is neither checked nor recorded (AC-3). Without
+	// the argument the old schema stays exact.
+	if len(standpoint) > 0 && standpoint[0] != nil {
 		// Report these problems first, so truncating a longer failure
 		// reason cannot hide the required standpoint_report diagnostic.
 		report := m["standpoint_report"]
 		if report == nil {
-			if standpoint[0] != nil {
-				problems = append(problems, "standpoint_report is required for the assigned standpoint")
-			}
+			problems = append(problems, "standpoint_report is required for the assigned standpoint")
 		} else if v := object(report); v == nil {
 			problems = append(problems, "standpoint_report is not an object or null")
 		} else {

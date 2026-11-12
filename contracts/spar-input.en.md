@@ -71,7 +71,7 @@ The shared packet's `## Standpoints for this round` section contains all standpo
 - `agy` receives the command note, instruction and packet in `-p`; for a large packet, `PACKET.md` holds the packet and `-p` holds the command note, instruction and file reference.
 - `command` receives the reviewer's `input.md` through `{prompt}`; `native` receives the instruction after its fixed instructions in `prompt.md`.
 
-For a round with standpoints, both a real run and `--dry-run` leave each reviewer's instruction and packet in `<round>/<reviewer>/input.md`.
+For a round with standpoints, both a real run and `--dry-run` leave in `<round>/<reviewer>/input.md` exactly the input that reviewer receives. For `agy` with a large packet, `input.md` holds its `-p` text and the packet is in `PACKET.md`.
 
 Standpoint text and assignments are in the packet, so `packet_sha256` identifies them as part of the same input; changing either makes a new input. A rerun of only unfinished reviewers is not counted when stage, base, head and `packet_sha256` are unchanged, including the same standpoints.
 
@@ -79,7 +79,7 @@ Standpoints do not change angles, classification, dispositions, caps or the gate
 
 ### Standpoint reports and records
 
-`standpoint_report` is an object with two fields. `checked` is a boolean and `detail` is nonblank text: what was checked when true, or why it could not be checked when false. For an assigned reviewer, a missing, null or malformed report is `invalid_output`, with `standpoint_report` in the reason; an unassigned reviewer need not report one. Every preset uses the same check in `spar run` and `spar record --result` or `--transcript`.
+`standpoint_report` is an object with two fields. `checked` is a boolean and `detail` is nonblank text: what was checked when true, or why it could not be checked when false. For an assigned reviewer, a missing, null or malformed report is `invalid_output`, with `standpoint_report` in the reason; an unassigned reviewer need not report one. An unassigned reviewer's `standpoint_report` is not checked and is recorded as `null`. Every preset uses the same check in `spar run` and `spar record --result` or `--transcript`.
 
 In a round with standpoints, `schema.json` adds `standpoint_report` with type `["object","null"]` and includes it in `required` for CLIs that enforce a strict schema. The object has exactly `checked` and `detail`; the runtime check allows an unassigned reviewer to omit the key or use null. The `claude` preset's `--json-schema` argument is this round's schema. In a round without standpoints the key remains unknown and the earlier schema is unchanged. A valid `checked: false` report explains a limit; it does not by itself prevent `completed`.
 
