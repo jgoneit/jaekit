@@ -55,7 +55,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 - `agy`는 명령 안내, 지시, 패킷을 `-p`로 받으며, 큰 패킷이면 `PACKET.md`에 패킷을 두고 `-p`에는 명령 안내, 지시, 파일 안내를 둔다.
 - `command`는 `{prompt}`로 리뷰어의 `input.md`를 받고, `native`는 `prompt.md`의 고정 지시 뒤에 관점 지시를 받는다.
 
-관점이 있는 라운드는 실제 실행과 `--dry-run` 모두 리뷰어마다 지시와 패킷을 `<round>/<reviewer>/input.md`에 남긴다.
+관점이 있는 라운드는 실제 실행과 `--dry-run` 모두 리뷰어마다 그 리뷰어가 받는 입력을 그대로 `<round>/<reviewer>/input.md`에 남긴다. 큰 패킷을 받는 `agy`의 `input.md`는 `-p` 글이고, 패킷은 `PACKET.md`에 있다.
 
 관점을 받은 리뷰어의 지시는 다음과 같다: "Your standpoint for this round is the one under `### <name>` in `## Standpoints for this round`. Attack that risk first and hardest, and still check every angle as the packet asks. Report what you checked from it in `standpoint_report`." 받지 않은 리뷰어의 지시는 다음과 같다: "You have no standpoint this round. Review the whole change as the packet asks; the standpoints below belong to other reviewers." 지시 뒤에 빈 줄을 두고 패킷이 이어진다. 리뷰어별 지시는 배정에서 정해지므로 별도 digest가 필요 없다.
 
@@ -91,7 +91,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 - spar가 읽는 방식: `location`은 G7, `rule`·`contract` 연결은 G8, `criterion` 연결은 G9. 위치를 읽을 수 없는 지적도 결과에서 버리지 않는다.
 - `could_not_review`는 완료가 아니라 `failed`로 기록한다.
 
-`standpoint_report`는 관점 보고 객체다. `checked`는 불리언이고 `detail`은 공백뿐이 아닌 글이다. 참이면 확인한 것, 거짓이면 확인하지 못한 이유다. 관점을 받은 리뷰어의 보고가 없거나 null이거나 형식이 틀리면 `invalid_output`이고 이유에 `standpoint_report`가 들어가며, 관점이 없는 리뷰어에게는 보고를 요구하지 않는다. 모든 preset에 `spar run`과 `spar record --result` 또는 `--transcript`가 같은 확인을 한다.
+`standpoint_report`는 관점 보고 객체다. `checked`는 불리언이고 `detail`은 공백뿐이 아닌 글이다. 참이면 확인한 것, 거짓이면 확인하지 못한 이유다. 관점을 받은 리뷰어의 보고가 없거나 null이거나 형식이 틀리면 `invalid_output`이고 이유에 `standpoint_report`가 들어가며, 관점이 없는 리뷰어에게는 보고를 요구하지 않는다. 관점이 없는 리뷰어의 `standpoint_report`는 확인하지 않고 `null`로 기록한다. 모든 preset에 `spar run`과 `spar record --result` 또는 `--transcript`가 같은 확인을 한다.
 
 관점이 있는 라운드의 `schema.json`은 `standpoint_report`를 `["object","null"]` 형식으로 더하고, 엄격한 schema를 쓰는 CLI를 위해 `required`에 넣는다. 객체의 키는 정확히 `checked`와 `detail`이며, 실행 시 확인은 관점 없는 리뷰어가 키를 빼거나 null을 쓰는 것도 받는다. `claude` preset의 `--json-schema` 인자도 그 라운드의 schema다. 관점이 없는 라운드에서는 이 키가 여전히 모르는 키이고 이전 schema가 그대로다. 형식에 맞는 `checked: false` 보고는 한계를 설명하며, 그 자체로 `completed`를 막지 않는다.
 

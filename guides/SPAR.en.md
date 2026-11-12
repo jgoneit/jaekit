@@ -30,7 +30,7 @@ The shared packet's `## Standpoints for this round` section contains all standpo
 - `agy` receives the command note, instruction and packet in `-p`; for a large packet, `PACKET.md` holds the packet and `-p` holds the command note, instruction and file reference.
 - `command` receives the reviewer's `input.md` through `{prompt}`; `native` receives the instruction after its fixed instructions in `prompt.md`.
 
-For a round with standpoints, both a real run and `--dry-run` leave each reviewer's instruction and packet in `<round>/<reviewer>/input.md`.
+For a round with standpoints, both a real run and `--dry-run` leave in `<round>/<reviewer>/input.md` exactly the input that reviewer receives. For `agy` with a large packet, `input.md` holds its `-p` text and the packet is in `PACKET.md`.
 
 ## Configure reviewers
 
@@ -194,7 +194,7 @@ The accepted names are the union of the configured reviewers and the names selec
 
 Standpoint text and assignments are in the packet, so `packet_sha256` identifies them as part of the same input; changing either makes a new input. A rerun of only unfinished reviewers is not counted when stage, base, head and `packet_sha256` are unchanged, including the same standpoints.
 
-`standpoint_report` is an object with two fields. `checked` is a boolean and `detail` is nonblank text: what was checked when true, or why it could not be checked when false. For an assigned reviewer, a missing, null or malformed report is `invalid_output`, with `standpoint_report` in the reason; an unassigned reviewer need not report one. Every preset uses the same check in `spar run` and `spar record --result` or `--transcript`.
+`standpoint_report` is an object with two fields. `checked` is a boolean and `detail` is nonblank text: what was checked when true, or why it could not be checked when false. For an assigned reviewer, a missing, null or malformed report is `invalid_output`, with `standpoint_report` in the reason; an unassigned reviewer need not report one. An unassigned reviewer's `standpoint_report` is not checked and is recorded as `null`. Every preset uses the same check in `spar run` and `spar record --result` or `--transcript`.
 
 `round.json` keeps `standpoints` as reviewer/text pairs, `standpoints_uncovered` as reviewer names without a completed reviewer, and each reviewer's `standpoint` and `standpoint_report` as text/report or null. `summary.md` shows each reviewer's standpoint and report, and standpoints without a completed reviewer, including waived reviewers. The schema remains `review-round/v1`; records without standpoint fields mean no standpoints. When reporting the gate, also name standpoints left without a completed reviewer, including waived reviewers.
 

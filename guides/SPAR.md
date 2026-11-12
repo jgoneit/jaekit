@@ -30,7 +30,7 @@ v0.1.7부터 Seal은 새 목표를 `run-rules/5`로 시작하고, `run-rules/5`�
 - `agy`는 명령 안내, 지시, 패킷을 `-p`로 받으며, 큰 패킷이면 `PACKET.md`에 패킷을 두고 `-p`에는 명령 안내, 지시, 파일 안내를 둔다.
 - `command`는 `{prompt}`로 리뷰어의 `input.md`를 받고, `native`는 `prompt.md`의 고정 지시 뒤에 관점 지시를 받는다.
 
-관점이 있는 라운드는 실제 실행과 `--dry-run` 모두 리뷰어마다 지시와 패킷을 `<round>/<reviewer>/input.md`에 남긴다.
+관점이 있는 라운드는 실제 실행과 `--dry-run` 모두 리뷰어마다 그 리뷰어가 받는 입력을 그대로 `<round>/<reviewer>/input.md`에 남긴다. 큰 패킷을 받는 `agy`의 `input.md`는 `-p` 글이고, 패킷은 `PACKET.md`에 있다.
 
 ## 리뷰어 설정
 
@@ -194,7 +194,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 관점의 글과 배정은 패킷 안에 있으므로 `packet_sha256`이 같은 입력의 일부로 식별하며, 어느 하나라도 바꾸면 새 입력이다. 끝내지 못한 리뷰어만 다시 돌리고 단계, base, head와 `packet_sha256`이 같은 관점을 포함해 그대로이면 상한에 세지 않는다.
 
-`standpoint_report`는 관점 보고 객체다. `checked`는 불리언이고 `detail`은 공백뿐이 아닌 글이다. 참이면 확인한 것, 거짓이면 확인하지 못한 이유다. 관점을 받은 리뷰어의 보고가 없거나 null이거나 형식이 틀리면 `invalid_output`이고 이유에 `standpoint_report`가 들어가며, 관점이 없는 리뷰어에게는 보고를 요구하지 않는다. 모든 preset에 `spar run`과 `spar record --result` 또는 `--transcript`가 같은 확인을 한다.
+`standpoint_report`는 관점 보고 객체다. `checked`는 불리언이고 `detail`은 공백뿐이 아닌 글이다. 참이면 확인한 것, 거짓이면 확인하지 못한 이유다. 관점을 받은 리뷰어의 보고가 없거나 null이거나 형식이 틀리면 `invalid_output`이고 이유에 `standpoint_report`가 들어가며, 관점이 없는 리뷰어에게는 보고를 요구하지 않는다. 관점이 없는 리뷰어의 `standpoint_report`는 확인하지 않고 `null`로 기록한다. 모든 preset에 `spar run`과 `spar record --result` 또는 `--transcript`가 같은 확인을 한다.
 
 `round.json`은 `standpoints`에 reviewer/text 쌍, `standpoints_uncovered`에 완료한 리뷰어가 없는 관점의 리뷰어 이름, 리뷰어마다 `standpoint`와 `standpoint_report`에 글과 보고 또는 null을 남긴다. `summary.md`는 리뷰어마다 관점과 보고를 보이고, waive된 리뷰어를 포함해 완료한 리뷰어가 없는 관점을 보인다. 형식은 `review-round/v1` 그대로이며, 관점 필드가 없는 기록은 관점 없음으로 읽는다. gate를 보고할 때는 waive된 경우를 포함해 완료한 리뷰어 없이 남은 관점도 함께 알립니다.
 
