@@ -678,6 +678,32 @@ func TestReviewerStandpointsAC3_ReportRequired(rsT *testing.T) {
 			})
 		}
 	}
+	// 03-candidate claude-F1: SPEC AC-3 does not require the report of an
+	// unassigned reviewer, so a malformed one neither fails its result nor is
+	// recorded; its standpoint_report stays null.
+	for _, rsBad := range []any{map[string]any{"checked": "yes", "detail": ""}, "not an object", map[string]any{"checked": true, "detail": "x", "extra": 1}} {
+		for _, rsRoute := range []string{"run", "result"} {
+			rsT.Run(fmt.Sprintf("unassigned-malformed/%s/%v", rsRoute, rsBad), func(rsT *testing.T) {
+				rsW := rsNew(rsT, rsC)
+				rsAnswer := rsW.rsAnswer("whole", 1, rsBad, true)
+				rsWhole := rsNative("whole")
+				if rsRoute == "run" {
+					rsWhole = rsW.rsFake("whole", "command", rsAnswer, "")
+				}
+				rsW.rsUse(rsW.rsFake("assigned", "command", rsW.rsAnswer("assigned", 1, rsReport(true, "checked validation"), true), ""), rsWhole)
+				rsOut := rsW.rsOut("unassigned", "01-candidate")
+				if !rsW.rsRun(rsID, rsOut, "candidate", 0, 1, "--standpoint", "assigned=Attack report validation") {
+					return
+				}
+				if rsRoute == "result" {
+					rsW.rsRecord(rsOut, "whole", rsAnswer, "result")
+				}
+				rsSt := rsState(rsW.rsRaw(rsOut), "whole")
+				rsReportValue, rsHas := rsSt["standpoint_report"]
+				rsAssert(rsC, rsSt["status"] == "completed" && rsHas && rsReportValue == nil, "%s: an unassigned reviewer's malformed report %v failed or was recorded: %v", rsRoute, rsBad, rsSt)
+			})
+		}
+	}
 	// Both checked values are valid, and null is permitted for an unassigned
 	// reviewer (the missing-key case above is a separate observation).
 	for _, rsChecked := range []bool{true, false} {

@@ -68,15 +68,17 @@ var (
 		"`claude` and `codex` receive the instruction and packet on standard input.",                                                                                                                               // SPEC AC-14, AC-1: stdin routes.
 		"`agy` receives the command note, instruction and packet in `-p`; for a large packet, `PACKET.md` holds the packet and `-p` holds the command note, instruction and file reference.",                       // SPEC AC-14, AC-1: agy routes.
 		"`command` receives the reviewer's `input.md` through `{prompt}`; `native` receives the instruction after its fixed instructions in `prompt.md`.",                                                          // SPEC AC-14, AC-1: command and native routes.
-		"For a round with standpoints, both a real run and `--dry-run` leave each reviewer's instruction and packet in `<round>/<reviewer>/input.md`.",                                                             // SPEC AC-14, AC-1: persisted input.
+		"For a round with standpoints, both a real run and `--dry-run` leave in `<round>/<reviewer>/input.md` exactly the input that reviewer receives.",                                                           // SPEC AC-14, AC-1: persisted input (03-candidate codex-F2).
+		"For `agy` with a large packet, `input.md` holds its `-p` text and the packet is in `PACKET.md`.",                                                                                                          // SPEC AC-14, AC-1: persisted agy file route.
 	}
 	rpDeliveryKo = []string{
-		"공유 패킷의 `## Standpoints for this round` 절에는 모든 관점과 리뷰어 배정이 들어간다.",                          // SPEC AC-14, AC-1: shared section.
-		"리뷰어마다 자기 관점을 알리고 모든 각도를 확인하면서 그 위험을 공격하라는 지시도 받으며, 관점이 없는 리뷰어는 변경 전체를 검토하라는 지시를 받는다.",     // SPEC AC-14, AC-1: individual instructions.
-		"`claude`와 `codex`는 지시와 패킷을 표준 입력으로 받는다.",                                                  // SPEC AC-14, AC-1: stdin routes.
-		"`agy`는 명령 안내, 지시, 패킷을 `-p`로 받으며, 큰 패킷이면 `PACKET.md`에 패킷을 두고 `-p`에는 명령 안내, 지시, 파일 안내를 둔다.", // SPEC AC-14, AC-1: agy routes.
-		"`command`는 `{prompt}`로 리뷰어의 `input.md`를 받고, `native`는 `prompt.md`의 고정 지시 뒤에 관점 지시를 받는다.",  // SPEC AC-14, AC-1: command and native routes.
-		"관점이 있는 라운드는 실제 실행과 `--dry-run` 모두 리뷰어마다 지시와 패킷을 `<round>/<reviewer>/input.md`에 남긴다.",      // SPEC AC-14, AC-1: persisted input.
+		"공유 패킷의 `## Standpoints for this round` 절에는 모든 관점과 리뷰어 배정이 들어간다.",                               // SPEC AC-14, AC-1: shared section.
+		"리뷰어마다 자기 관점을 알리고 모든 각도를 확인하면서 그 위험을 공격하라는 지시도 받으며, 관점이 없는 리뷰어는 변경 전체를 검토하라는 지시를 받는다.",          // SPEC AC-14, AC-1: individual instructions.
+		"`claude`와 `codex`는 지시와 패킷을 표준 입력으로 받는다.",                                                       // SPEC AC-14, AC-1: stdin routes.
+		"`agy`는 명령 안내, 지시, 패킷을 `-p`로 받으며, 큰 패킷이면 `PACKET.md`에 패킷을 두고 `-p`에는 명령 안내, 지시, 파일 안내를 둔다.",      // SPEC AC-14, AC-1: agy routes.
+		"`command`는 `{prompt}`로 리뷰어의 `input.md`를 받고, `native`는 `prompt.md`의 고정 지시 뒤에 관점 지시를 받는다.",       // SPEC AC-14, AC-1: command and native routes.
+		"관점이 있는 라운드는 실제 실행과 `--dry-run` 모두 리뷰어마다 그 리뷰어가 받는 입력을 그대로 `<round>/<reviewer>/input.md`에 남긴다.", // SPEC AC-14, AC-1: persisted input (03-candidate codex-F2).
+		"큰 패킷을 받는 `agy`의 `input.md`는 `-p` 글이고, 패킷은 `PACKET.md`에 있다.",                                    // SPEC AC-14, AC-1: persisted agy file route.
 	}
 	rpResultEn = []string{
 		"`standpoint_report`", // SPEC AC-14, AC-3: result key.
