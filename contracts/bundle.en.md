@@ -183,10 +183,12 @@ When the review finds a contradiction or ambiguity in the goal documents, do not
 | `요구사항 대응` (requirement mapping) | The `ha lint` result (missing, orphan, cycle). Whether the SPEC's scope and non-goals are reflected in the tasks. Whether the condition table covers the goal documents' user scenarios. Where the plan differs from the work breakdown proposal, and why |
 | `불필요한 task` (unneeded tasks) | Tasks that contribute to no condition |
 | `문서 충돌` (document conflicts) | Conflicts among the SPEC, project documents and the actual code |
-| `중요한 미결정` (important open decisions) | Decisions left in the goal documents' `## Open Decisions`, and outcome-changing decisions that came up newly during planning (public behavior, data, permissions, irreversible design). Close each item with the user's answer (quoted) or an "assumption". Assumptions appear again in the report. A reading that keeps a component's declared scope or trust boundary is not a question but such an assumption (§2.1.2). |
+| `중요한 미결정` (important open decisions) | Decisions left in the goal documents' `## Open Decisions`, and outcome-changing decisions that came up newly during planning (public behavior, data, permissions, irreversible design). Close each item with the user's answer (quoted) or an "assumption". Assumptions appear again in the report. A reading that keeps a component's declared scope or trust boundary is not a question but such an assumption (§2.1.2). Use `### 사용자의 답`, `### 실행자 가정` in that order. Under `### 사용자의 답`, each item contains the decision, the user's quoted answer, and where that answer is recorded. Under `### 실행자 가정`, each item contains the assumption and its reason; mark an assumption that reads a SPEC sentence. Readings that keep a declared scope or trust boundary go under `### 실행자 가정`. With no decision at all, write only one line `없음`. Otherwise keep both subheadings and write `없음` under an empty one. |
 | `검증 방법과 환경` (verification method and environment) | Whether each condition's command can run in this environment; the tools, data, network and repository history it needs (history only when the condition is about history, together with the range it reads). For a goal that connects several components, by what method the conditions checked across the boundary are verified |
 | `독립 검토` (independent review) | The SPEC's `Assurance:` tier (none when absent), the floor the project instructions require and the one followed, the planned review stages (plan, candidate, fixes, cumulative round) or the reason they were skipped under `light`, the product's invariants and decision rules the plan review will look at with the places that read or keep them ("Assurance tier and review order" below), and the supported input forms of the open-ended inputs a new contract or check covers. Once rounds run, point to those round and gate records and do not copy the list of findings |
 | `결론` (conclusion) | `ready` or `needs_user` (reason) |
+
+The split REVIEW form applies to goals started with seal 0.1.29 or later. A goal started with an earlier Seal keeps the REVIEW form it started with. An existing `REVIEW.md` is never rewritten into the split form.
 
 ### Assurance tier and review order
 
@@ -332,6 +334,12 @@ The two parts of `### 근거` and the items of the opening lines are minimum lis
 The judgment items moved from item 2 of the completion report keep its qualifications: the executor's statements are marked as claims, and facts confirmed by records are kept apart from the executor's interpretation. When conditions, checks or environments differ from the plan, state the evidence's version and the scope that evidence covers.
 
 Reading rules: write in the user's language; say what a record is, with its seq only as an aid; keep each item short; never copy check output or finding text; a finding is its ID, one line and its ending. The original text of a finding stays in the review records. At completion, the executor's judgment sentences are only in this section, and the completion report points to it (section 6).
+
+Only when the user asked for a PR does the following guidance apply. This PR guidance applies only to a goal that has a `## 검수 요약`. This guidance adds no authority to create, change or push a PR, or answer a review.
+
+When writing or changing a completed goal's PR description, build it from that goal's `## 검수 요약`. Include the completion record's commit, the changed behavior and files, and an evidence summary. Include every item of `### 직접 볼 것`, including deferred findings with their issues and findings without a disposition; include `### 보지 않은 것`. Add the items the project instructions require in a PR description, such as a list of deferred findings and check boundaries. Never drop a `### 직접 볼 것` item or rewrite it as resolved.
+
+Leave out paths and links to goal documents, execution bundles and review records that Git does not track, since a PR reader cannot open them. Also leave out the raw user conversation; instead, describe the content briefly or say it is in local records.
 
 ## 6. Completion report
 

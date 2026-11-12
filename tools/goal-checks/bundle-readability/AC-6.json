@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "MarkedTemplatesRead",
+      "violation": "marked-template-not-read",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestBundleReadabilityAC6_MarkedTemplatesRead"
+      }
+    }
+  ]
+}
