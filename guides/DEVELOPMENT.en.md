@@ -39,7 +39,7 @@ Commands and the record format are in [contracts/run-record.en.md](../contracts/
 
 ## Seal skill size
 
-The [Seal skill](../plugins/seal/skills/seal/SKILL.md) has a limit of 2,300 whitespace-separated words, front matter included. [`TestSealSlimAC14_WordLimit`](../plugins/seal_slim_review_tiers_test.go) and [`TestSparOnboardingAC8_SkillSizeAndPins`](../plugins/spar_onboarding_test.go) set this limit.
+The [Seal skill](../plugins/seal/skills/seal/SKILL.md) has a limit of 2,300 whitespace-separated words, front matter included. [`TestSealSkillWordCap`](../plugins/seal_skill_rules_test.go) and [`TestSealSkillWordCapStated`](../plugins/seal_skill_rules_test.go) set this limit.
 
 New Seal rules go into a section under `references/`, and the skill links that section. When the skill already links that section, the skill does not change.
 
