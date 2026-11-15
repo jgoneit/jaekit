@@ -42,6 +42,7 @@ These rules apply to goals carried in this repository and to their pull requests
 - **New checks.** New checks observe fixed tokens, commands, links or version matches instead of scanning an open category of sentences or paths.
 - **CI observers.** A new CI observer reuses the native CI admission in `tools/verification-checks/cross_platform_ci.py` for run and attempt identity, source commit and tree, and report reading, as `tools/history-checks/ci_observer.py` does. Only its goal-specific judgment is written separately.
 - **Protected paths.** A check bound to a protected path in `contracts/regressions.json` changes only in a separate goal that changes that path.
+- **Goal check lifetime.** A check that a goal adds is not deleted before that goal's completion record. Once the goal's pull request is merged, each check it added either becomes a regression, bound in `contracts/regressions.json` or placed where the full verification or a required CI job runs it, or is deleted in the next change. This applies wherever the check lives, inside or outside `tools/goal-checks/`.
 
 ### Review findings
 
