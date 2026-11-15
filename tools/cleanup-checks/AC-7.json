@@ -1,0 +1,46 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "FigureCaption",
+      "violation": "prose-pinned",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/cleanup-checks",
+        "name": "TestCleanupAC7_FigureCaption"
+      }
+    },
+    {
+      "id": "DemoScenes",
+      "violation": "prose-pinned",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/cleanup-checks",
+        "name": "TestCleanupAC7_DemoScenes"
+      }
+    },
+    {
+      "id": "ReleaseNotes",
+      "violation": "prose-pinned",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/cleanup-checks",
+        "name": "TestCleanupAC7_ReleaseNotes"
+      }
+    },
+    {
+      "id": "ParagraphOrder",
+      "violation": "prose-pinned",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/cleanup-checks",
+        "name": "TestCleanupAC7_ParagraphOrder"
+      }
+    },
+    {
+      "id": "GuideSentence",
+      "violation": "prose-pinned",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/cleanup-checks",
+        "name": "TestCleanupAC7_GuideSentence"
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "OldNames",
+      "violation": "goal-named-test-file",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/cleanup-checks",
+        "name": "TestCleanupAC4_OldNames"
+      }
+    },
+    {
+      "id": "PropertyFiles",
+      "violation": "test-file-without-property",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/cleanup-checks",
+        "name": "TestCleanupAC4_PropertyFiles"
+      }
+    }
+  ]
+}
