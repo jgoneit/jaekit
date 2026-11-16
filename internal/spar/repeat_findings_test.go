@@ -403,8 +403,16 @@ func TestRepeatFindingsAC2_FixesStageDistinguishes(t *testing.T) {
 	const id = "fixes-stage-not-distinguished"
 	w := newRptWorld(t, false)
 	packet := w.fixesPacket(filepathSeries(w, "s"))
-	if !strings.Contains(packet, rptFixed) || !strings.Contains(packet, rptNotFixed) {
-		t.Errorf("jaekit:violation=%s the fixes stage line does not separate %q from %q", id, rptFixed, rptNotFixed)
+	// The distinction belongs to the stage line of the round section, not to
+	// any other part of the packet.
+	var stage string
+	for _, line := range strings.Split(pdSectionOf(packet, "## Round"), "\n") {
+		if strings.HasPrefix(line, "- Stage: `fixes`.") {
+			stage = line
+		}
+	}
+	if !strings.Contains(stage, rptFixed) || !strings.Contains(stage, rptNotFixed) {
+		t.Errorf("jaekit:violation=%s the fixes stage line does not separate %q from %q: %q", id, rptFixed, rptNotFixed, stage)
 	}
 }
 
