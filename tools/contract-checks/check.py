@@ -6,6 +6,9 @@ compliance. Each registered condition owns its observed violation identifier.
 A broken example relation is reported only for the conditions that own its
 meaning; the condition that traces a whole example shares every relation.
 Declarations are consumed by Core, never used as the observation's answer.
+A clause on a skill document is looked up in every document of that skill,
+its SKILL.md and references/*.md, so a rule may move between them; the named
+document must still exist.
 """
 from __future__ import annotations
 
@@ -20,6 +23,7 @@ PRODUCER = "jaekit-document-contracts"
 VERSION = "1"
 SEAL = "plugins/seal/skills/seal/"
 SPEC = "plugins/spec/skills/spec/"
+SKILL_DOC = re.compile(r"^plugins/[^/]+/skills/[^/]+/(?:SKILL\.md|references/[^/]+\.md)$")
 
 # A clause is a product path and required semantic anchors. The checks read
 # only these public product artifacts, never this source or private goals.
@@ -150,25 +154,45 @@ def reporting_links(root: Path, criterion: str) -> list[str]:
     return problems
 
 
+def skill_documents(root: Path, name: str) -> list[str]:
+    """The documents of the skill that holds name: SKILL.md, then references/*.md by name."""
+    skill = name.split("/references/")[0] if "/references/" in name else name.rsplit("/", 1)[0]
+    refs = sorted(path.relative_to(root).as_posix() for path in (root / skill / "references").glob("*.md"))
+    return [skill + "/SKILL.md"] + refs
+
+
+def clause_text(root: Path, name: str) -> str | None:
+    """The text a clause on name is looked up in; None when name is absent.
+
+    A skill document's clause reads every document of its skill that exists,
+    SKILL.md first.
+    """
+    if not (root / name).exists():
+        return None
+    names = skill_documents(root, name) if SKILL_DOC.match(name) else [name]
+    return "\n".join((root / doc).read_text(encoding="utf-8") for doc in names if (root / doc).exists())
+
+
 def observe(root: Path, suite: str, criterion: str) -> tuple[dict, list[str]]:
     clauses = REQUIREMENTS[suite][criterion]
     target = f"{suite}.{criterion}"
     missing = []
     for name, anchors in clauses:
-        path = root / name
         # An absent required product document is directly observed absence.
         # Permission, decoding, I/O and programming errors are not violations.
-        if not path.exists():
+        source = clause_text(root, name)
+        if source is None:
             missing.append(f"{name}: required product artifact absent")
             continue
-        source = path.read_text(encoding="utf-8")
         for anchor in anchors:
             if anchor not in source:
                 missing.append(f"{name}: missing contract clause {anchor!r}")
     if suite == "reporting":
         missing.extend(reporting_links(root, criterion))
         if criterion == "AC-6":
-            for name in (SEAL + "SKILL.md", SEAL + "references/bundle.md"):
+            for name in skill_documents(root, SEAL + "SKILL.md"):
+                if not (root / name).exists():
+                    continue
                 source = (root / name).read_text(encoding="utf-8")
                 if re.search(r"(?i)(?:real execution|real model success) (?:alone )?(?:proves|guarantees) correctness", source):
                     missing.append(f"{name}: execution is incorrectly a correctness guarantee")
