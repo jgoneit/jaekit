@@ -5,26 +5,21 @@ import (
 	"testing"
 )
 
-// Spec stops after writing the goal documents even when the
-// request that invoked it, or a reply to its report, asks for implementation,
-// and nothing outside the goal documents changes, remote state and subagent
-// work included.
+// Spec stops after writing the goal documents even when the request that
+// invoked it, or a reply to its report, asks for implementation. The Spec
+// skill holds none of the old wording that let implementation continue after
+// saving, and its Codex manifest, the goal document contract and a quality
+// case say that implementation starts with a new request.
 func TestSpecStopsAfterSaving(t *testing.T) {
+	forbidSkillText(t, specSkillDir,
+		"implementation continues after saving",
+		"or the reply that agrees to save",
+		"If this same request does not also explicitly ask",
+	)
 	for _, c := range []struct {
 		path        string
 		musts, nots []string
 	}{
-		{"spec/skills/spec/SKILL.md", []string{
-			"An implementation request made earlier in the conversation does not extend to it.",
-			"that implementation starts with a new request, then stop",
-			"or a reply that answers your questions or asks for changes, also asks for implementation",
-			"pull requests, review replies or resolutions, releases, or deployments",
-			"Subagents you start follow these rules too",
-		}, []string{
-			"implementation continues after saving",
-			"or the reply that agrees to save",
-			"If this same request does not also explicitly ask",
-		}},
 		{"spec/.codex-plugin/plugin.json",
 			[]string{"implementation starts with a new request"},
 			[]string{"unless the same request also asked for implementation"}},
@@ -49,27 +44,13 @@ func TestSpecStopsAfterSaving(t *testing.T) {
 	}
 }
 
-// a message that asks for goal documents to be written or changed
-// never starts the work, even when it also asks for implementation.
+// the Seal skill holds none of the old wording that took a message asking
+// for goal documents, or a reply agreeing to save them, as an implementation
+// request.
 func TestSealStartsOnlyAfterSaving(t *testing.T) {
-	text := read(t, "seal/skills/seal/SKILL.md")
-	for _, s := range []string{
-		"A message that asks for goal documents to be written or changed",
-		"an answer to its questions",
-		"even when it also asks for implementation",
-		"Work starts only from a later message, sent once the goal documents are written.",
-	} {
-		if !strings.Contains(text, s) {
-			t.Errorf("Seal SKILL.md lacks %q", s)
-		}
-	}
-	for _, s := range []string{
+	forbidSkillText(t, sealSkillDir,
 		"It is one only when that same message also asks for implementation.",
 		"명세부터 구현까지 해줘",
 		"a reply that agrees to save its draft",
-	} {
-		if strings.Contains(text, s) {
-			t.Errorf("Seal SKILL.md still says %q", s)
-		}
-	}
+	)
 }

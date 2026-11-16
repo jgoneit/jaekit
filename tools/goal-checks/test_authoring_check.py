@@ -13,7 +13,12 @@ import authoring_check  # noqa: E402
 
 checker = authoring_check.checker
 FILE_CRITERIA = ("AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-8", "AC-10")
-INPUTS = sorted({name for name, _ in authoring_check.SECTIONS.values()} | {
+# The producer reads a Seal document's clauses across every document of the
+# skill, so the copy holds the skill's SKILL.md and all its references.
+SEAL_DOCS = {authoring_check.SKILL} | {
+    path.relative_to(checker.ROOT).as_posix()
+    for path in (checker.ROOT / authoring_check.SKILL).parent.glob("references/*.md")}
+INPUTS = sorted({name for name, _ in authoring_check.SECTIONS.values()} | SEAL_DOCS | {
     "internal/status/status.go", "cmd/ha/baseline.go", ".claude-plugin/marketplace.json",
     "plugins/seal/.claude-plugin/plugin.json", "plugins/seal/.codex-plugin/plugin.json"})
 
@@ -37,6 +42,20 @@ class CurrentTree(unittest.TestCase):
                 with self.subTest(criterion=criterion):
                     self.assertEqual(authoring_check.observe(root, "authoring", criterion),
                                      authoring_check.observe(checker.ROOT, "authoring", criterion))
+
+    def test_heading_anchor_needs_its_own_line(self):
+        # A kept heading of SKILL.md is not found in a longer heading of
+        # another document of the skill.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            copy(INPUTS, root)
+            path = root / authoring_check.SKILL
+            text = path.read_text(encoding="utf-8")
+            self.assertIn("\n## Assurance policy\n", text)
+            path.write_text(text.replace("\n## Assurance policy\n", "\n## Assurance\n"), encoding="utf-8")
+            observation, problems = authoring_check.observe(root, "authoring", "AC-9")
+            self.assertEqual(observation["status"], "violation")
+            self.assertIn(f"{authoring_check.SKILL} kept rules: missing '## Assurance policy'", problems)
 
     def test_missing_product_file_is_an_observed_violation(self):
         for criterion in ("AC-1", "AC-10"):

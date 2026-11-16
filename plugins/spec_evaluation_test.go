@@ -9,19 +9,6 @@ import (
 	"testing"
 )
 
-// questions are only about decisions that change the outcome.
-func TestSpecQuestionRule(t *testing.T) {
-	text := read(t, "spec/skills/spec/SKILL.md")
-	for _, must := range []string{
-		"Ask only about decisions that change the outcome",
-		"Never ask what an implementer can decide, such as names, file layout, or internal order.",
-	} {
-		if !strings.Contains(text, must) {
-			t.Errorf("Spec SKILL.md lacks %q", must)
-		}
-	}
-}
-
 // the Spec plugin carries its guidance, references, and templates
 // itself, and no document in it links outside the plugin.
 func TestSpecPluginSelfContained(t *testing.T) {
@@ -94,39 +81,15 @@ func TestSpecCasesCoverMaintenance(t *testing.T) {
 	}
 }
 
-// a criterion met only by a person's confirmation or by work
-// outside the goal becomes an evaluation item after completion, is listed
-// before saving, and stays a criterion only when the user asks. The skill
-// body, its reference, and the goal document contract say the same.
+// a criterion met only by a person's confirmation or by work outside the goal
+// becomes an evaluation item after completion, and stays a criterion only
+// when the user asks: the goal document contract says so.
 func TestSpecMovesHumanChecksToEvaluation(t *testing.T) {
-	for _, c := range []struct {
-		path  string
-		musts []string
-	}{
-		{"spec/skills/spec/SKILL.md", []string{
-			"No completion criterion is met only by a person's confirmation or judgment",
-			"Keep such an item as an evaluation item after completion under related context",
-			"keep as criteria the properties this goal's output needs for that result",
-			"If the user asks to keep one as a completion criterion, do so and name their words as its source.",
-			"list every item you kept as an evaluation item instead of a completion criterion",
-		}},
-		{"spec/skills/spec/references/goal-docs.md", []string{
-			"No completion criterion is met only by a person's confirmation or judgment",
-			"The user may ask to keep one as a criterion.",
-		}},
-		{"../contracts/goal-docs.md", []string{
-			"사람의 확인이나 판단 자체가 충족 조건인 것",
-			"완료 뒤 평가 항목으로 관련 맥락에 확인할 곳과 함께 남기고",
-			"사용자가 완료 조건으로 두라고 하면 그 말을 출처로 따른다",
-		}},
-	} {
-		text := read(t, c.path)
-		for _, must := range c.musts {
-			if !strings.Contains(text, must) {
-				t.Errorf("%s lacks %q", c.path, must)
-			}
-		}
-	}
+	requireAll(t, "../contracts/goal-docs.md",
+		"사람의 확인이나 판단 자체가 충족 조건인 것",
+		"완료 뒤 평가 항목으로 관련 맥락에 확인할 곳과 함께 남기고",
+		"사용자가 완료 조건으로 두라고 하면 그 말을 출처로 따른다",
+	)
 }
 
 // a quality case checks AC-28 with a request that holds both a

@@ -41,7 +41,7 @@ In new SPEC documents, put one marker at the very start of each decision sentenc
 
 Markers follow their sources: when the source changes, the marker changes with it. This includes a user's request to change a proposal and an agent invocation recording the user's acceptance as a decision. Write them as-is: the markers are contract tokens in every language.
 
-Decisions without a marker remain valid. When editing an existing document, add no marker unless the user decides. A document whose decisions already carry markers keeps marking the decisions added or changed in later edits. Existing source labels stay unchanged.
+Decisions without a marker remain valid. When editing an existing document, add no marker unless the user decides. A document whose decisions already carry markers keeps marking the decisions added or changed in later edits. Existing source labels stay unchanged. Source labels already written for a proposal agreed to when saving stay as they are.
 
 ## Criteria
 
@@ -152,11 +152,13 @@ After writing or editing, when no outcome-changing decision is open, or the only
 
 ## Outcome boundaries and examples
 
-Describe only relevant boundaries in existing decisions and criteria: the result for uninterpretable input, observation unit, before/after set invariants, and supported environment. A request is distinct from a session containing many requests; additions and removals outside the requested set need a preservation result. No separate empty table is required.
+For classification, authorization, or an external contract, connect only relevant boundaries to observable outcomes: the result for uninterpretable input, the observation unit (request, session, or transaction), before/after set invariants (what may be added, removed, or changed), and the supported environment. Two requests in one session cannot silently share evidence; the same name across installations need not identify the same object. Do not add an empty boundary table to every goal. A request is distinct from a session containing many requests; additions and removals outside the requested set need a preservation result.
 
-Use the user's words, public contract, or existing decision as the source; ask only about unresolved outcomes. Code describes current behavior without establishing intent. Already settled boundaries need no repeated question. Official platform or shell support belongs in outcomes; fixtures, snapshots, frameworks, and model assignment remain implementation and verification choices within those outcomes.
+Do not ask again when a public contract, the user's words, or an existing decision already settles the outcome; link its source. An unresolved outcome remains an Open Decision and keeps the document Draft. Today's implementation alone does not establish intended behavior. Implementation and verification methods within decided outcomes remain with the implementer: fixtures, snapshots, frameworks, database setup, and model assignment are not product support promises.
 
-Mark cases as an exhaustive set or representative examples. A representative set has an observable general property over the requested scope; an exhaustive list has an outside-list result. Consider special names, symlinks, shallow clones, real versus fake systems, and concurrent ordering only when they can change this goal's result. Preserve existing IDs, document format, small-change depth, and the separation between writing and implementation.
+State whether a criterion's cases form an exhaustive set or representative examples. Representative examples express an observable general property for the requested scope, including unlisted cases; an exhaustive set states the result for values outside the list. State the result outside the supported scope when it affects the outcome. Neither more examples nor a test command replaces that property.
+
+Relevant values and environments include space- or newline-containing names, symlinks, identical names in different locations, shallow clones, real versus fake systems, and concurrent ordering. Connect applicable failure and preservation outcomes to criteria or open decisions; do not turn these examples into a checklist for unrelated changes. Public OS, shell, and clone support is an outcome; how to test that support remains a method choice. Preserve existing criterion IDs, chosen format, editing scope, and historical documents; these additions create no retrospective obligation. Keep a small change's depth, and the separation between writing and implementation.
 
 ## Work breakdown proposal
 
@@ -171,13 +173,16 @@ It is a proposal. The implementer may use, split, or merge it. Every proposal is
 
 ## Consistency
 
-Before handing over the documents, confirm and report in the conversation:
-- Goal, non-goals, constraints, decisions, and criteria agree.
-- Every criterion is observable.
-- Scenarios reach criteria; behavior to keep is required; a joining goal crosses the boundary.
-- Nothing unrequested entered the scope.
-- `Status: Draft` while outcome-changing decisions are open and appear in `## Open Decisions`; `Status: Ready` when none is.
-- With a work breakdown proposal, every criterion reaches a proposal.
-- Every decision written or changed names its source; existing ones without a source are reported, not filled in.
-- A goal that changes existing code states today's behavior with file paths, and behavior that stays the same is required.
-- No completion criterion is met only by a person's confirmation or judgment, or only by work the implementer cannot do inside the goal (another goal's completion, a run in an environment the implementer cannot start, records from real use after completion). Such an item is an evaluation item after completion under related context, with where it is checked; the properties the goal's output needs for that result stay as criteria. The user may ask to keep one as a criterion.
+Check the documents before saving and report the result in the conversation; keep only the corrected documents in the files.
+
+- Goal, non-goals, constraints, decisions, and criteria do not contradict each other.
+- Every criterion is an observable result.
+- Every flow and keep item in `## 사용 시나리오` reaches a criterion, and behavior that must not break is required.
+- A goal that joins components has a criterion that crosses the boundary.
+- Nothing the user did not ask for has entered the scope.
+- Every decision you wrote or changed names its source; existing decisions without one are listed, not filled in.
+- For a change to existing code, today's behavior is stated with file paths, behavior that stays the same is required, and every place the change reaches is covered by a scenario or criterion or reported as not applying.
+- If a work breakdown proposal exists, every criterion reaches a proposal and dependencies have no cycle.
+- `Status:` matches the open decisions: `Draft` while an outcome-changing decision is open and listed in `## Open Decisions`, `Ready` when none is. The templates start at `Draft`.
+- No completion criterion is met only by a person's confirmation or judgment (such as "the designer approves the screen"), or only by work the implementer cannot do inside the goal: another goal's completion, a run in an environment the implementer cannot start, or records that build up from real use after completion. Keep such an item as an evaluation item after completion under related context, with where it is checked, and keep as criteria the properties this goal's output needs for that result. If the user asks to keep one as a completion criterion, do so and name their words as its source.
+

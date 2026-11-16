@@ -173,34 +173,38 @@ func rvLine(t *testing.T, path string, tokens ...string) {
 	t.Errorf("%s has no line with all of %q", path, tokens)
 }
 
-// The Seal skill and its ha reference send a missing ha to the current
-// release's install guide, and the core capabilities contract links the
+// rvPinnedURL is a release-pinned Jaekit URL in a skill document, whether a
+// link target or bare text.
+var rvPinnedURL = regexp.MustCompile("https://github\\.com/jgoneit/jaekit/blob/(v\\d+\\.\\d+\\.\\d+)/[^\\s)<>\\]`]*")
+
+// Every release-pinned URL of the Seal skill, linked or bare, names the
+// current release; the skill links the current release's reference check and
+// names its install guide; and the core capabilities contract links the
 // current release's check_core.py.
 func TestReleaseVersionSkillLinks(t *testing.T) {
-	const skill = "seal/skills/seal/SKILL.md"
+	requireSkillTokens(t, sealSkillDir,
+		"link:https://github.com/jgoneit/jaekit/blob/"+rvTag+"/guides/INSTALL.en.md#get-the-reference-check")
 	install := "https://github.com/jgoneit/jaekit/blob/" + rvTag + "/guides/INSTALL.md"
-	for _, path := range []string{skill, "seal/skills/seal/references/ha.md"} {
-		requireAll(t, path, install)
+	named := false
+	for _, doc := range skillDocs(t, sealSkillDir) {
+		for _, m := range rvPinnedURL.FindAllStringSubmatch(doc.text, -1) {
+			url := strings.TrimRight(m[0], ".,;:")
+			if m[1] != rvTag {
+				t.Errorf("%s names %s, want the current release %s", doc.path, url, rvTag)
+			}
+			named = named || url == install || strings.HasPrefix(url, install+"#")
+		}
+	}
+	if !named {
+		t.Errorf("%s does not name %s", sealSkillDir, install)
 	}
 	requireAll(t, "../contracts/core-capabilities.md",
 		"Seal에 포함된 [check_core.py](https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/seal/skills/seal/scripts/check_core.py)")
-	// The instruction for a missing ha carries the link itself; the last
-	// line naming that case is the instruction.
-	var line string
-	for _, l := range strings.Split(read(t, skill), "\n") {
-		if strings.Contains(l, "If `ha` is missing") {
-			line = l
-		}
-	}
-	if line == "" {
-		t.Fatalf("%s has no line with %q", skill, "If `ha` is missing")
-	}
-	requireIn(t, skill+" missing-ha instruction", line, install)
 }
 
 // The install guides' combination table has the current release's row and
-// the source build's row, and the usage and operations guides and the Seal
-// ha reference state the current combination.
+// the source build's row, and the usage and operations guides state the
+// current combination.
 func TestReleaseVersionCombination(t *testing.T) {
 	for _, c := range []struct {
 		path string
@@ -223,5 +227,4 @@ func TestReleaseVersionCombination(t *testing.T) {
 	for _, path := range []string{"../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md", "../guides/OPERATIONS.en.md"} {
 		rvLine(t, path, "v0.1.8", "ha 0.1.8", "spar 0.1.8", "spec 0.1.13", "seal 0.1.23", "0.1.4")
 	}
-	requireAll(t, "seal/skills/seal/references/ha.md", "The commands below describe release v0.1.8: ha 0.1.8, spar 0.1.8 and Seal 0.1.23.")
 }

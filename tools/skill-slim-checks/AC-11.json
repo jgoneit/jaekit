@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "VersionsAgree",
+      "violation": "versions-disagree",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/skill-slim-checks",
+        "name": "TestSkillSlimAC11_VersionsAgree"
+      }
+    },
+    {
+      "id": "VersionsRaised",
+      "violation": "version-not-raised",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/skill-slim-checks",
+        "name": "TestSkillSlimAC11_VersionsRaised"
+      }
+    }
+  ]
+}

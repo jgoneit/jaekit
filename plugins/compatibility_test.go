@@ -37,8 +37,9 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 	// route and release links at v0.1.8; release v0.1.8 ships Spec 0.1.13 and
 	// Seal 0.1.23. Seal 0.1.24 adds the review summary in PROGRESS.md after
 	// that release, and Seal 0.1.25 passes decisions and invariant places to
-	// review rounds.
-	for name, want := range map[string]string{"spec": "0.1.14", "seal": "0.1.29"} {
+	// review rounds. Spec 0.1.15 and Seal 0.1.30 move rules used only in rare
+	// situations to their reference documents.
+	for name, want := range map[string]string{"spec": "0.1.15", "seal": "0.1.30"} {
 		t.Run(name, func(t *testing.T) {
 			_, version := frontMatter(t, filepath.Join(name, "skills", name, "SKILL.md"))
 			if version != want {
@@ -184,20 +185,13 @@ func TestCompatibilityRunRecordRunsLimitNamesRunRules4(t *testing.T) {
 }
 
 func TestCompatibilityAC12_SpecAndVerificationBoundaries(t *testing.T) {
-	specPath := "spec/skills/spec/SKILL.md"
-	spec := read(t, specPath)
-	keys, _ := frontMatter(t, specPath)
+	keys, _ := frontMatter(t, "spec/skills/spec/SKILL.md")
 	// Agents may invoke Spec, but only for Jaekit or goal-document work and
 	// amendments, never for an ordinary implementation request.
 	if _, blocked := keys["disable-model-invocation"]; blocked || !strings.Contains(keys["description"],
 		"Not for ordinary implementation requests or bug reports that do not mention goal documents.") {
 		t.Error("[requirement] Spec lost its invocation boundary")
 	}
-	compatibilityContains(t, specPath, spec,
-		"without installing Core, querying its capabilities, or running verification",
-		"The implementing agent chooses the checks, runner and verification method",
-		"implementation starts with a new request", "This skill never edits code or runs checks",
-		"preserve its format selection or its absence")
 	err := filepath.WalkDir("spec/skills/spec/assets/templates", func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -217,9 +211,7 @@ func TestCompatibilityAC12_SpecAndVerificationBoundaries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sealPath := "seal/skills/seal/SKILL.md"
-	compatibilityContains(t, sealPath, read(t, sealPath),
-		"Choose the checks, runner and verification method", "does not require an official adapter",
-		"Python 3 is not a prerequisite for Seal", "Do not require `/3` declarations for `/1` or `/2`",
-		"ordinary maintain, manual and task checks retain their roles")
+	// Seal keeps the rule-version tokens of leaving /1 and /2 goals without
+	// /3 declarations.
+	requireSkillTokens(t, sealSkillDir, "/1", "/2", "/3")
 }

@@ -2,7 +2,7 @@
 name: spar
 description: Run independent review rounds on a plan or a change with the spar binary — the same packet to every configured reviewer, classified findings, limited dispositions, stage caps and a review gate file. Use when the user asks for an independent or adversarial review of a plan or an implementation, for example "$spar:spar" in Codex, "/spar:spar" in Claude Code, or "이 변경을 spar로 리뷰해줘".
 metadata:
-  version: "0.1.4"
+  version: "0.1.5"
 ---
 
 # Spar
@@ -23,7 +23,7 @@ Spar makes reviewers attack a plan or a change from outside your context. The `s
 | --- | --- | --- |
 | plan | Once, after the plan and its checks are written and before implementation | `spar run --stage plan` with `--subject` for the plan documents |
 | plan delta | At most once, only when the plan round changed the plan or its checks | `spar run` with `--stage plan-delta`, the earlier plan head as base |
-| candidate | On the commit you believe meets every criterion; when fixes followed, once more as the cumulative round over the goal's base commit to the last head | `spar run` with `--stage candidate`, the goal's base commit as base |
+| candidate | On the commit you believe meets every criterion; when fixes followed, once more as the cumulative round | `spar run` with `--stage candidate`, the goal's base commit as base |
 | fixes | After committing fixes for findings; its base is the head of the previous code round | `spar run` with `--stage fixes` |
 
 For example, a candidate round:
@@ -37,58 +37,23 @@ spar run --stage candidate --base <base commit> --head <candidate commit> \
 Give every goal document as `--criteria`: SPEC.md and each goal document it links, one flag per file. Give each check file the change adds or changes, such as result declarations, producers and tests, as `--check-path`, so that findings in them follow the check-path rules below.
 
 - Caps: one plan round, one plan-delta round and three code rounds (candidate and fixes together) per series, unless the project configuration says otherwise. `spar run` refuses a round past its cap before any reviewer starts.
-- The cumulative round reviews the whole change once more, from the goal's base commit to the last head, after fix rounds: a `fixes` round sees only the fixes. Run it as a `candidate` round; it does not take earlier findings and counts toward the code-round cap like the first candidate round. When no fixes followed the first candidate round, that round is the cumulative round. When the cap leaves no room for it, extending the cap follows the rule below.
-- Only the user can allow more rounds. Ask them, then record their words: `spar extend <series> --stage plan|plan-delta --by N --user-quote "<their words>"`. A code extension also takes `--cause`, as below.
-- Each time the code cap is reached, run `spar cap-report <series>` before you ask. Pick one cause from its signals and show the user the signals with that cause's recommendation:
-  - `churn`: fixes made new findings in the files they changed. Recommend to extend by 1 and fix again within each finding's `smallest_fix`.
-  - `recurring`: findings on the same link come back. Recommend not to extend; ask which reading of that requirement is meant.
-  - `unrelated`: the findings are not about this change. Recommend not to extend; defer them with the user's words and file them as issues.
-  - `hardening`: the checks grew more than the rest of the change. Recommend not to extend; trim the checks that grew past what the criteria need.
-  - `other`: none of these fits. Say why in `--reason`.
-- Record a code extension only with the user's words and the cause you showed: `spar extend <series> --stage code --by 1 --cause <cause> --user-quote "<their words>"`. Extend by 1 unless the user's words say more; `--by 2` or more, and `--cause other`, need `--reason`.
-- `spar cap-report` shows the code rounds counted against the cap, each round's findings by class, the open findings and four signals: churn (findings in files the fixes changed), recurring links, defects the reviewers marked as not introduced by the change, and check growth. Churn is counted by file, so a finding about another line of a changed file counts. Recurring links are counted by link, so the same problem under different links is not grouped. Unrelated defects use each reviewer's `introduced_by_change` as reported. `ha cost` shows each extension's cause and reason below it, or that no cause was recorded.
+- The cumulative round reviews the whole change once more, from the goal's base commit to the last head: a `fixes` round sees only the fixes. Run it as a `candidate` round; it does not take earlier findings and counts toward the code-round cap like the first candidate round. When no fixes followed the first candidate round, that round is the cumulative round. When the cap leaves no room for it, extending the cap follows the rule below.
+- Only the user can allow more rounds. Ask them, then record their words: `spar extend <series> --stage plan|plan-delta --by N --user-quote "<their words>"`. Record a code extension only with the user's words and the cause you showed them: `spar extend <series> --stage code --by 1 --cause <cause> --user-quote "<their words>"`. Extend by 1 unless the user's words say more. Read [At the code cap](references/rounds.md#at-the-code-cap) each time the code cap is reached, before you ask.
 - A rerun of the same stage, base, head and packet is not counted only when it starts reviewers that did not complete that packet, for example after a quota refusal. Anything else counts.
 - Pass `--rules` for the repository rules (such as `AGENTS.md`) and contracts the change must keep, and `--question` for a question you need answered. Do not pass your own reasoning about the solution; the reviewers start from the criteria.
-- Pass every decision the user made during the review to each later round, with or without Seal: `--decision` with what it settles, followed by `--decision-quote` with the user's words, one pair per decision. An answer to a `requirement-question` is one. The packet's `## Decisions the user made` section tells reviewers that spar does not check that the words are the user's, not to report what a decision settles, to report a change that goes beyond it, and, when following a decision breaks a criterion, rule or contract the decision does not address, to report a `requirement-question` that links it. `decisions` in `round.json` keeps them. An empty or unpaired decision is refused.
-
-### Choose reviewer standpoints
-
-In plan and candidate rounds, including the cumulative round, pick the change's main risks. Give each reviewer a different standpoint, one each; when there are fewer risks than reviewers, leave the rest without one. In fixes and plan-delta rounds, you may give the earlier standpoints again or give none. A standpoint names the risk to attack, where to look first and the position from which to see it. Do not claim that the fix is right or explain the solution. Pick risks from a changed contract boundary, a stored format and its earlier records, the meaning of a check's result, or another place that keeps the same invariant. A standpoint does not replace angles.
-
-Pass `--standpoint NAME=TEXT` to `spar run`. The first `=` separates the reviewer name from the text; the option may be repeated. Refused (65): a name outside this run's configured reviewers and `--reviewers`, more than one standpoint for a reviewer, text empty after trimming whitespace, or invalid UTF-8. Names are compared exactly and case-sensitively, as in G20. A missing `=` or an empty name is a usage error (64). Both refusals happen before any reviewer starts or any round folder is created; the message names the offending name or value. Other text is kept unchanged.
-
-The accepted names are the union of the configured reviewers and the names selected by `--reviewers`. A configured reviewer omitted from this run may still have a standpoint in the packet; when rerunning a subset, pass the full earlier list of standpoints in the same order. Standpoints are run arguments only, with no user or project configuration key; `spar config` is unchanged.
-
-When rerunning only reviewers that did not finish, give the same standpoints so the rerun is not counted. Standpoint text and assignments are in the packet, so `packet_sha256` identifies them as part of the same input; changing either makes a new input. A rerun of only unfinished reviewers is not counted when stage, base, head and `packet_sha256` are unchanged, including the same standpoints.
-
-Standpoints do not change angles, classification, dispositions, caps or the gate's state and reasons. When reporting the gate, name standpoints left without a completed reviewer.
+- Pass every decision the user made during the review to each later round, with or without Seal: `--decision` with what it settles, followed by `--decision-quote` with the user's words, one pair per decision. An answer to a `requirement-question` is one. Read [Decisions in later rounds](references/rounds.md#decisions-in-later-rounds) when you pass one, for what the packet tells reviewers.
+- Give reviewers standpoints, the risks each attacks, in plan and candidate rounds. Read [Reviewer standpoints](references/rounds.md#reviewer-standpoints) before every plan or candidate round, including the cumulative round, before any other round you give standpoints, and before you rerun reviewers of a round that had them.
 
 ## Reviewers
 
 - `claude`, `codex` and `agy` run as read-only, offline CLIs that spar checks (`verified`). A reviewer that uses a forbidden tool or changes its workspace copy is recorded as `tool_violation` or `workspace_modified` and its findings are dropped.
 - `agy`'s shell may join read-only programs with `|`, `&&`, `||` or `;`; running code, tests, builds, git or any other program is `tool_violation`. spar gives agy this rule in a command note at the start of its prompt.
 - `agy` runs its designated model first and its fallback model once, in the same round and on the same packet, only when the designated model is refused for quota or rate limits. Tell the user when the fallback ran and when the quota resets.
-- A reviewer's `model` (`claude`, `codex`, `agy`) or `effort` (`claude`, `codex`) that the user's configuration writes is fixed. For one it leaves open, you may choose for a run with `--model NAME=MODEL` and `--effort NAME=EFFORT` on `spar run`; without them the preset's values run. Check `spar config` before you choose: `model_source` `user` means the user fixed the model, `default_model` is what runs without your choice, and `allowed_models` or `allowed_efforts` limit what you may pass. Choose for what the round has to examine, never to make the review easier to pass. spar refuses, before any reviewer starts, a value for a model or effort the user wrote, a model or effort for a `native` or `command` reviewer, an effort for `agy`, a name that is not a reviewer of the run, a second model or effort for the same reviewer, a value outside the allowed list, and one that is empty, is not valid UTF-8, starts with `-` or holds a space or control character. A model you chose falls back only to the `fallback_model` the user wrote. After a round, `round.json` (`reviewers.<name>.model_source` and `effort_source`) and `summary.md` (`model <model> [<source>]`, `effort <effort> [<source>]`) show each reviewer's model and effort with its source (`user`, `agent`, `preset`). When you report a round, say which model and effort you chose for each reviewer.
+- A reviewer's model or effort that the user's configuration writes is fixed. For one it leaves open, you may choose a value for a run. Choose for what the round has to examine, never to make the review easier to pass. When you report a round, say which model and effort you chose for each reviewer. Read [Reviewer models and effort](references/rounds.md#reviewer-models-and-effort) before you choose one.
 - A `command` reviewer is an extra view: it is `unverified` and never counts as required.
 - The `native` reviewer is a clean-context subagent of your host. `spar run` writes `native/prompt.md` and a workspace in the round folder (a native reviewer with another name gets a folder of that name). Start a subagent with no other context, only read access to that workspace and the instruction to read that prompt and reply with the JSON object it asks for. Then record the reply: `spar record <round> native --result <file>` or `--transcript <subagent transcript>`; transcript warnings stay in the record.
 - A reviewer that ends `unavailable`, `timed_out`, `invalid_output` or `failed` is shown with its cause. It is never a round without findings. Rerun only that reviewer with `--reviewers <name>` when the cause is gone; a `--reviewers` list never removes the configured required reviewers from the gate.
 - When a required reviewer did not complete a round and the user says to go on without it, record their words for that round: `spar waive <round> <reviewer> --user-quote "<their words>"`. Never record a waiver without the user's words. A waiver covers its round only; record one for each round the reviewer did not complete.
-
-### Standpoint delivery and reports
-
-The shared packet's `## Standpoints for this round` section contains all standpoints and their reviewer assignments. Each reviewer also receives an instruction identifying its own standpoint and asking it to attack that risk while still checking every angle; an unassigned reviewer is told to review the whole change.
-
-- `claude` and `codex` receive the instruction and packet on standard input.
-- `agy` receives the command note, instruction and packet in `-p`; for a large packet, `PACKET.md` holds the packet and `-p` holds the command note, instruction and file reference.
-- `command` receives the reviewer's `input.md` through `{prompt}`; `native` receives the instruction after its fixed instructions in `prompt.md`.
-
-For a round with standpoints, both a real run and `--dry-run` leave in `<round>/<reviewer>/input.md` exactly the input that reviewer receives. For `agy` with a large packet, `input.md` holds its `-p` text and the packet is in `PACKET.md`.
-
-`standpoint_report` is an object with two fields. `checked` is a boolean and `detail` is nonblank text: what was checked when true, or why it could not be checked when false. For an assigned reviewer, a missing, null or malformed report is `invalid_output`, with `standpoint_report` in the reason; an unassigned reviewer need not report one. An unassigned reviewer's `standpoint_report` is not checked and is recorded as `null`. Every preset uses the same check in `spar run` and `spar record --result` or `--transcript`.
-
-`round.json` keeps `standpoints` as reviewer/text pairs, `standpoints_uncovered` as reviewer names without a completed reviewer, and each reviewer's `standpoint` and `standpoint_report` as text/report or null. `summary.md` shows each reviewer's standpoint and report, and standpoints without a completed reviewer, including waived reviewers. The schema remains `review-round/v1`; records without standpoint fields mean no standpoints.
-
-Without standpoints, reviewer inputs, `schema.json`, `packet_sha256` and `summary.md` remain byte for byte unchanged; no standpoint instruction or `input.md` is added. Only `standpoints: []` is added to `round.json`.
 
 ## Classes and dispositions
 

@@ -37,13 +37,17 @@ claude plugin install spar@jaekit
 
 Commands and the record format are in [contracts/run-record.en.md](../contracts/run-record.en.md).
 
-## Seal skill size
+## Skill size
 
-The [Seal skill](../plugins/seal/skills/seal/SKILL.md) has a limit of 2,300 whitespace-separated words, front matter included. [`TestSealSkillWordCap`](../plugins/seal_skill_rules_test.go) and [`TestSealSkillWordCapStated`](../plugins/seal_skill_rules_test.go) set this limit.
+Each skill has a word limit: whitespace-separated words, front matter included. [`TestSkillWordCaps`](../plugins/skill_tokens_test.go) and [`TestSkillWordCapsStated`](../plugins/skill_tokens_test.go) set these limits.
 
-New Seal rules go into a section under `references/`, and the skill links that section. When the skill already links that section, the skill does not change.
+- The [Spec skill](../plugins/spec/skills/spec/SKILL.md) has a limit of 2,800 words.
+- The [Spar skill](../plugins/spar/skills/spar/SKILL.md) has a limit of 2,600 words.
+- The [Seal skill](../plugins/seal/skills/seal/SKILL.md) has a limit of 2,300 words. [`TestSealSkillWordCap`](../plugins/seal_skill_rules_test.go) and [`TestSealSkillWordCapStated`](../plugins/seal_skill_rules_test.go) check it too.
 
-A change that adds skill words removes as many in the same change or gets the user's words raising the limit. Sentences another goal's tests pin in the skill move only with the user's words changing those tests.
+When a change would push a skill above its limit, the same change moves rules used only in rare situations to that skill's reference documents. A limit is raised only by the user's words.
+
+Rules only the user decides, and things the agent must not do, stay in the skill body. The body links a moved section with a line that says when to read it; when the skill already links that section, the skill does not change. Skill rules tests read format tokens (code spans, headings, link targets), not sentences, so rewording a sentence or moving it to a reference document does not fail them. Phrases a protected contract check requires move verbatim.
 
 ## Repository checks
 

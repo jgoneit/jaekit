@@ -28,7 +28,7 @@ class DesignContracts(unittest.TestCase):
    ('| AC-1; 문자열 존재를 실행으로 인정 |','| AC-99; 무관한 입력 |'),
    ('| exec true 뒤 ha 호출 텍스트 |','| |'),
   ]
-  paths={p for clauses in checker.REQUIREMENTS[SUITE].values() for p,_ in clauses}
+  paths=checker.clause_inputs({p for clauses in checker.REQUIREMENTS[SUITE].values() for p,_ in clauses})
   for old,new in changes:
    with self.subTest(change=old),tempfile.TemporaryDirectory() as directory:
     root=Path(directory)

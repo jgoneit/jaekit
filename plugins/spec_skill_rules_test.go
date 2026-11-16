@@ -1,9 +1,10 @@
 package plugins
 
 // Property: Spec skill rules
-// Checks the decision markers, the unmarked-decision rule, the template header
-// lines and the project-records rule in the Spec skill, its goal-docs reference
-// and its SPEC templates. Whitespace may wrap inside prose tokens.
+// Checks that the decision markers and the goal location stay format tokens of
+// the Spec skill and that its documents name no local retention
+// infrastructure, and checks the decision lines and header lines of its SPEC
+// templates.
 
 import (
 	"fmt"
@@ -13,42 +14,15 @@ import (
 )
 
 const (
-	spkSkill          = "spec/skills/spec/SKILL.md"
-	spkGoalDocs       = "spec/skills/spec/references/goal-docs.md"
-	spkLanguage       = "## Language"
-	spkDecisionHead   = "## Decisions and reasons"
-	spkMarkerSlot     = "<[사용자], [제안] or [기존]>"
-	spkSourceLabel    = "Source:"
-	spkStatusKey      = "Status:"
-	spkFormatKey      = "Criteria-Format:"
-	spkAssuranceKey   = "Assurance:"
-	spkOutputContract = "## Output contract"
-	spkSpecSection    = "## SPEC.md"
+	spkDecisionHead = "## Decisions and reasons"
+	spkMarkerSlot   = "<[사용자], [제안] or [기존]>"
+	spkSourceLabel  = "Source:"
+	spkStatusKey    = "Status:"
+	spkFormatKey    = "Criteria-Format:"
+	spkAssuranceKey = "Assurance:"
 )
 
 var (
-	// The decision rules are read only in these sections.
-	spkRuleSections = []struct{ path, heading string }{
-		{spkSkill, spkOutputContract},
-		{spkGoalDocs, spkSpecSection},
-	}
-	// Marker placement, source priority, trailing source and changes.
-	spkMarkerRules = []string{
-		"In new SPEC documents, put one marker at the very start of each decision sentence",
-		"`[사용자]` when the source includes the user's words",
-		"`[제안]` when there are no user's words and the source includes a Spec proposal stated in the report",
-		"`[기존]` otherwise: only a repository file, an existing goal document, or a review finding identifier",
-		"keep the detailed source at the end",
-		"when the source changes, the marker changes with it",
-		"the markers are contract tokens in every language",
-	}
-	// Existing decisions, user-selected additions and existing labels.
-	spkUnmarkedRules = []string{
-		"Decisions without a marker remain valid",
-		"When editing an existing document, add no marker unless the user decides",
-		"Existing source labels stay unchanged",
-		"A document whose decisions already carry markers keeps marking the decisions added or changed in later edits.",
-	}
 	spkMarkers      = []string{"[사용자]", "[제안]", "[기존]"}
 	spkDecisionItem = regexp.MustCompile(`^\s*(?:[-+*]|[0-9]+[.)])\s+`)
 	spkPlaceholder  = regexp.MustCompile(`<[^<>\n]+>`)
@@ -58,8 +32,6 @@ var (
 		"spec/skills/spec/assets/templates/product.md",
 	}
 )
-
-func spkNorm(text string) string { return strings.Join(strings.Fields(text), " ") }
 
 func spkLevel(line string) int {
 	n := len(line) - len(strings.TrimLeft(line, "#"))
@@ -109,23 +81,6 @@ func spkSection(text, heading string) (string, bool) {
 		return "", false
 	}
 	return strings.Join(lines[start:], "\n"), true
-}
-
-func spkNeed(missing *[]string, where, text string, tokens ...string) {
-	for _, token := range tokens {
-		if !strings.Contains(spkNorm(text), spkNorm(token)) {
-			*missing = append(*missing, fmt.Sprintf("%s lacks %q", where, token))
-		}
-	}
-}
-
-func spkFileSection(t *testing.T, missing *[]string, path, heading string) string {
-	t.Helper()
-	text, ok := spkSection(read(t, path), heading)
-	if !ok {
-		*missing = append(*missing, fmt.Sprintf("%s lacks section %q", path, heading))
-	}
-	return text
 }
 
 func spkReport(t *testing.T, missing []string) {
@@ -199,32 +154,16 @@ func spkTemplateHeaders(missing *[]string, where, text string) bool {
 	return ok
 }
 
-// The skill and the goal-docs reference state the marker rules, the skill's
-// Language section keeps the markers as tokens, and each SPEC template's
-// decision lines start with the marker placeholder and end with a source.
+// The decision markers stay format tokens of the Spec skill, and each SPEC
+// template's decision lines start with the marker placeholder and end with a
+// source.
 func TestSpecSkillDecisionMarkers(t *testing.T) {
+	requireSkillTokens(t, specSkillDir, spkMarkers...)
 	var missing []string
-	for _, s := range spkRuleSections {
-		text := spkFileSection(t, &missing, s.path, s.heading)
-		spkNeed(&missing, s.path+" "+s.heading, text, spkMarkerRules...)
-	}
-	text := spkFileSection(t, &missing, spkSkill, spkLanguage)
-	spkNeed(&missing, spkSkill+" "+spkLanguage, text, spkMarkers...)
 	for _, file := range spkTemplates {
 		if _, ok := spkDecisionLine(read(t, file)); !ok {
 			missing = append(missing, fmt.Sprintf("%s %s needs at least one unfenced decision line, with every unfenced list item starting %q, then a decision placeholder, then %q and its trailing placeholder", file, spkDecisionHead, "- "+spkMarkerSlot+" ", spkSourceLabel))
 		}
-	}
-	spkReport(t, missing)
-}
-
-// The skill and the goal-docs reference keep unmarked decisions valid and
-// leave existing documents' markers and source labels to the user.
-func TestSpecSkillUnmarkedDecisionsStayValid(t *testing.T) {
-	var missing []string
-	for _, s := range spkRuleSections {
-		text := spkFileSection(t, &missing, s.path, s.heading)
-		spkNeed(&missing, s.path+" "+s.heading, text, spkUnmarkedRules...)
 	}
 	spkReport(t, missing)
 }
@@ -239,15 +178,12 @@ func TestSpecSkillTemplateHeaders(t *testing.T) {
 	spkReport(t, missing)
 }
 
-// The skill names the goal location and leaves Git tracking of goal
-// documents to the project.
+// The goal location stays a format token of the Spec skill, and no document
+// of the skill turns local retention infrastructure into a product
+// requirement.
 func TestSpecSkillProjectRecords(t *testing.T) {
-	requireIn(t, spkSkill, read(t, spkSkill), "docs/specs/<goal>", "Do not force ignored private documents into Git", "not a requirement for other projects")
-	for _, localOnly := range []string{"private backup repository", "primary checkout", "launchd"} {
-		if strings.Contains(read(t, spkSkill), localOnly) {
-			t.Errorf("%s turned local retention infrastructure into a product requirement: %s", spkSkill, localOnly)
-		}
-	}
+	requireSkillTokens(t, specSkillDir, "docs/specs/<goal>")
+	forbidSkillText(t, specSkillDir, "private backup repository", "primary checkout", "launchd")
 }
 
 func TestSpecSkillHelperDecisionLine(t *testing.T) {

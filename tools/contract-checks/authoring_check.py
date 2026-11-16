@@ -3,7 +3,9 @@
 
 Each clause names a product document, the section (or table row) that must
 hold it and the semantic anchors it must contain there, so an anchor elsewhere
-in the file does not count. Relations compare the guidance with the Core facts
+in the file does not count. A clause on a skill document reads the section of
+that heading in every document of the skill, SKILL.md first, so a rule may
+move between them. Relations compare the guidance with the Core facts
 it states, the source identity files and the existing user points it keeps.
 Everything is read from the tree this process runs in: no commit, ref or
 history is read, so a baseline run on the base commit and a run on the change
@@ -268,9 +270,21 @@ def read(root, name):
 
 
 def section(root, key):
-    """The section text, None when the file is absent, '' when the heading is."""
+    """The section text, None when the file is absent, '' when the heading is.
+
+    For a skill document, the sections with this heading in every document of
+    that skill are read together, SKILL.md first.
+    """
     name, heading = SECTIONS[key]
-    source = read(root, name)
+    if read(root, name) is None:
+        return None
+    names = checker.skill_documents(root, name) if checker.SKILL_DOC.match(name) else [name]
+    parts = [part for part in (one_section(read(root, doc), heading) for doc in names) if part is not None]
+    return "\n".join(parts)
+
+
+def one_section(source, heading):
+    """One document's section under heading, or None when it lacks the heading."""
     if source is None:
         return None
     lines = source.split("\n")
@@ -284,7 +298,7 @@ def section(root, key):
                     break
                 out.append(following)
             return "\n".join(out)
-    return ""
+    return None
 
 
 def row(root, key, label):
@@ -382,7 +396,7 @@ def observe(root, suite, criterion):
             problems.append(f"{name}: required product artifact absent")
             return
         for anchor in anchors:
-            if anchor not in text:
+            if not checker.has_anchor(text, anchor):
                 problems.append(f"{name} {where}: missing {anchor!r}")
 
     for key, anchors in CLAUSES.get(criterion, []):
@@ -409,10 +423,10 @@ def observe(root, suite, criterion):
         # The guidance states Core's out_of_scope; the Core source and reference must say the same.
         require("internal/status/status.go", read(root, "internal/status/status.go"),
                 ('add("out_of_scope", "changed since base outside 바꿀 수 있는 경로", outside)',), "out_of_scope")
-        require(HA, read(root, HA),
+        require(HA, checker.clause_text(root, HA),
                 ("| `out_of_scope` | user | Files changed since base outside `바꿀 수 있는 경로` |",), "Reasons")
     if criterion == "AC-3":
-        require(HA, read(root, HA), ("Runs `change` conditions on a temporary worktree of the base commit with their check paths copied from HEAD",), "Commands")
+        require(HA, checker.clause_text(root, HA), ("Runs `change` conditions on a temporary worktree of the base commit with their check paths copied from HEAD",), "Commands")
         require("cmd/ha/baseline.go", read(root, "cmd/ha/baseline.go"), ("baselineFiles",), "baseline overlay")
     if criterion == "AC-8":
         skill = version(read(root, SKILL))
@@ -442,12 +456,12 @@ def observe(root, suite, criterion):
                 problems.append(f"guidance does not name Seal {want} as its starting version")
     if criterion == "AC-9":
         for name, anchors in KEPT:
-            require(name, read(root, name), anchors, "kept rules")
+            require(name, checker.clause_text(root, name), anchors, "kept rules")
         if not problems:
             problems.extend(regressions(root))
     if criterion == "AC-6":
         for name, anchors in USER_POINTS:
-            require(name, read(root, name), anchors, "existing user points")
+            require(name, checker.clause_text(root, name), anchors, "existing user points")
         found = set(re.findall(r"(?m)^\| `([a-z_]+)` \| user \|", read(root, HA) or ""))
         if found != USER_REASONS:
             problems.append(f"user-resolved reasons changed: {sorted(found ^ USER_REASONS)}")

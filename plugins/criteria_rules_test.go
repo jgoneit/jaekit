@@ -19,33 +19,10 @@ func requireAll(t *testing.T, path string, musts ...string) {
 	}
 }
 
-// every criterion has a stable AC-n ID, and optional ones carry
-// the marker right after it.
+// every criterion has an AC-n ID, and optional ones carry the (선택)
+// marker: both stay format tokens of the Spec skill.
 func TestSpecCriterionIDRules(t *testing.T) {
-	requireAll(t, "spec/skills/spec/SKILL.md",
-		"Every completion criterion has an ID `AC-n` that is stable within the goal.",
-		"Optional criteria carry `(선택)` right after the ID.")
-}
-
-// editing keeps existing IDs and never reuses a removed one.
-func TestSpecKeepsCriterionIDs(t *testing.T) {
-	requireAll(t, "spec/skills/spec/SKILL.md", "keep every existing criterion ID, never reuse a removed ID")
-}
-
-// a work breakdown proposal covers every criterion, has no cycle,
-// and states no order, method, or progress.
-func TestSpecWorkBreakdownRules(t *testing.T) {
-	requireAll(t, "spec/skills/spec/SKILL.md",
-		"never order, method, or progress",
-		"every criterion reaches a proposal and dependencies have no cycle")
-	requireAll(t, "spec/skills/spec/references/goal-docs.md",
-		"Every proposal is grounded in a criterion, and dependencies have no cycle. Never state order, method, or progress.")
-}
-
-// the documents are checked before saving and the result is
-// reported in the conversation.
-func TestSpecChecksBeforeSaving(t *testing.T) {
-	requireAll(t, "spec/skills/spec/SKILL.md", "Check the documents before saving and report the result in the conversation")
+	requireSkillTokens(t, specSkillDir, "AC-n", "(선택)")
 }
 
 // goal documents Spec saved in this repository pass the goal
@@ -70,10 +47,10 @@ func TestSyntheticGoalDocsPassLint(t *testing.T) {
 	}
 }
 
-// tasks name the work breakdown proposal they follow, and the
-// review explains where the plan differs.
+// tasks name the work breakdown proposal they follow in the 제안 column, or
+// none, and the review explains where the plan differs: the column name, the
+// W proposal IDs, the none mark and REVIEW.md stay format tokens of the Seal
+// skill.
 func TestSealMapsTasksToProposals(t *testing.T) {
-	requireAll(t, "seal/skills/seal/references/bundle.md",
-		"`제안` is the `W` proposal it follows or `—` (explain differences in `REVIEW.md`)",
-		"differences from the work breakdown proposal and why")
+	requireSkillTokens(t, sealSkillDir, "제안", "W", "—", "REVIEW.md")
 }

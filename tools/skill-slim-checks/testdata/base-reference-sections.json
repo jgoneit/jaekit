@@ -1,0 +1,349 @@
+{
+ "seal": [
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "PLAN.md",
+   "level": 2,
+   "sha256": "24e0b1616a572bd99da69a8df7088d33ae0faa298615fc903a7e7270d7a4b750"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "`## 조건표`",
+   "level": 3,
+   "sha256": "02d98d7c57028e6412862a445904b7c939c90936b9b117f36c9696dd8fc7dee0"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "`## 결과 계약`",
+   "level": 3,
+   "sha256": "d27e77ff4b3f1f9f4a8692a58a43e9d9122a08788111f46e9f04a75bddb463a7"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "`## 범위`",
+   "level": 3,
+   "sha256": "5dd7465606cb1fb3f528bbb88e7f51a1b4274c4f7f5228bfa9412311cfc34e71"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "`## Task`",
+   "level": 3,
+   "sha256": "60f8e081b15d01b1d62e7f70b2d1cf9e39fa2061aea579cf95d55b04b1d22c6e"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "`## 예산`",
+   "level": 3,
+   "sha256": "be663be951d3910ad77415a3a5589ecca34cfe5e3311e55bc984577cd93a1e9c"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "`## 실행 환경`",
+   "level": 3,
+   "sha256": "fb26da26b65f4f3880c890b6d15db7f3bbae61e430bc8a5884434af8af043902"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "`## 읽을 자료` (when tasks stay inside PLAN.md)",
+   "level": 3,
+   "sha256": "2a34d2f95683c025fb85014633a68a147f6f32be1a17a88e79b801ba6b171420"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "Questions for the user",
+   "level": 2,
+   "sha256": "2e36defbde22eb9c58ea1fa6d529e4d4e1e15e718f49dd431ed0387c83efd77e"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "Check inputs",
+   "level": 2,
+   "sha256": "0c93617cc419ab6b005051067a036a2c78445175ff7df67f90d2807efd4d5048"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "Final candidate evidence",
+   "level": 2,
+   "sha256": "456fcf116d0d7c18be1617f7b88bf671770de52a9c730f3a9031cd84b4889d7e"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "tasks/T001.md",
+   "level": 2,
+   "sha256": "fb07be008b19842506b8d046e919aa110ae27370dc26f0a6605dd9c1a7cac783"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "REVIEW.md",
+   "level": 2,
+   "sha256": "f8356094d63544f778926cc4451fa46557e5a9ae5ec5f2e93ce2ca71105c1564"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "Evidence and observation scope",
+   "level": 3,
+   "sha256": "5fc7339e771cd470464e39e29be21a74a372981c62b07d829d839e13a552e3a4"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "PROGRESS.md",
+   "level": 2,
+   "sha256": "faf8a810730ac2081172975d46d7c09547e45b84cb8b4dea1ee0c8da1e4910a5"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "`## 타임라인`",
+   "level": 3,
+   "sha256": "4c2c27f45eee06d182fa0d6f1cafd9a84d27837240203e1bc32c60b345e2b1cf"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "PROGRESS with decision history",
+   "level": 3,
+   "sha256": "1e4b0f5b57eea24059609984f1a06967555b3be252aef9c9e9db1f097b864397"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "Review summary",
+   "level": 2,
+   "sha256": "d141dfe3a1e5040c435b5513321dd2d012107ec26dafe538160a46e3cc5738a8"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "Assurance policy and counterexamples",
+   "level": 2,
+   "sha256": "44a16b1bcd0f29fe978e324312a497152e98c9441587986ad6e43fb864edc1e8"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "Post-completion discovery documents",
+   "level": 2,
+   "sha256": "b38ce0308c12bd5ba6a7b35f0d1d9997fed351ceac795d369854cad5e4ca1ba2"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "Completion report",
+   "level": 2,
+   "sha256": "1110a0350730c4b321c4a5485d4680ac57641abaac279883e1c38c4329aaefa6"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/earlier-goals.md",
+   "heading": "Starting and resuming",
+   "level": 2,
+   "sha256": "5956589664d748551b6ebd20636dabac360e87db68857e5b5ba6e70f9483b986"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/earlier-goals.md",
+   "heading": "PROGRESS",
+   "level": 2,
+   "sha256": "6233177c4625f2ea78edd87d9525a0489dd47ff943e31f2e7a2f7b6eb1244fb1"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/earlier-goals.md",
+   "heading": "Review and evidence",
+   "level": 2,
+   "sha256": "c7917908e13dfea77eaf3ddb94a27111d9e1019674b7bf45e977f08de5a1d17e"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/earlier-goals.md",
+   "heading": "Goals started under run-rules/4 or earlier",
+   "level": 2,
+   "sha256": "98020b898a87164e9119bbb7d87b9150444eea94b28d3bc8a7dba8b6bd559109"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/earlier-goals.md",
+   "heading": "Completion report",
+   "level": 2,
+   "sha256": "6c79c8ec6ea9efc2ea04bf325027ab65a77b650f54ef88109d8283a23c931835"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "Core compatibility",
+   "level": 2,
+   "sha256": "c0093e71b197fda6197f499ad64d772430d5af4ab1e4f4a33d80be6f7616e830"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "Commands",
+   "level": 2,
+   "sha256": "a8580c1834d97c8a84d23fa8f4beef68f3793c917c6f35aeb9d519c78b20796c"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "Post-completion findings",
+   "level": 3,
+   "sha256": "2bf43ffd97817a4f4bf8f400f5b7e4095459502f3178225a68bf97d55e6c06bf"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "Decision history",
+   "level": 3,
+   "sha256": "fbc8be175083618f36092563193bf0a7a83e916473ae5eaa2b715940ec50cc50"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "Before execution",
+   "level": 2,
+   "sha256": "12c2b027175bc423d654de9fcff1197edb27b9cea0da04541a11dbafbb778f17"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "Structured change results",
+   "level": 2,
+   "sha256": "d70919e6e23a654d02295706b70d403820096d9706b884f95b47ce4f7bd243c3"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "run-rules/4",
+   "level": 2,
+   "sha256": "e2ae748d07984b0c263159a9a377e095dfa620856d62346e14acd75d9ec08bb1"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "run-rules/5",
+   "level": 2,
+   "sha256": "fb69c533f07c9104b741fa92902bff5f68a5cdbc6d6cfff52ec6c6a33876e03c"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "run-rules/6",
+   "level": 2,
+   "sha256": "5d50f5c17c8d9d068f5d8089edfdb9e8309183b05bf0dca538409e95c24df5e4"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "run-rules/7",
+   "level": 2,
+   "sha256": "9a2aca4eff971c46aaff73aa1cd0777435b137a1ed636d391beb5b04d506d3fb"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "Budget changes",
+   "level": 2,
+   "sha256": "2ebe3e2080ffcc4d266095cafbb7f7a26178e4e0157996a34131e4c2d56568aa"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "States",
+   "level": 2,
+   "sha256": "5ae6b211a65462f90b0da0c39e7b6018760d20918e3372f944fb04af7a37294a"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "Status output",
+   "level": 2,
+   "sha256": "fe9e3a2b7034f451cf86425c511bb5c37cb65c144a1ee6af259dfdbb0b8199da"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "Reasons",
+   "level": 2,
+   "sha256": "599168cff242f30b634cae6c613cb62b1ed677e3bea9d12f9e1fd0ac443ba8e5"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "What checks read",
+   "level": 2,
+   "sha256": "c9eb5f65a4d8b9823ed513301275ef1b469aa707d9406db4a988750150a7597d"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "Freshness",
+   "level": 2,
+   "sha256": "00dfb4e85c3c4d3d18fac7853d1dcbafd9af64a69df8e3988a6b029e10e7cc69"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "Final head",
+   "level": 2,
+   "sha256": "0967a82992d0d154570370b6292435733a19ed983d6881ace702ddc252dc62a4"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "",
+   "level": 1,
+   "sha256": "907cca87e427f3036e0e1f95c696313f73d98efa9d1ae24ffe87e62098e77987"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/earlier-goals.md",
+   "heading": "",
+   "level": 1,
+   "sha256": "471a9bd7915981de6304aa1c97b1e43866d50bbf173ffde796289f7a71be2fff"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "",
+   "level": 1,
+   "sha256": "8ae02f9a3447107e82fab15e7f965adbe4bd8e967e2df9ceac7b840a70006b46"
+  }
+ ],
+ "spar": [],
+ "spec": [
+  {
+   "doc": "plugins/spec/skills/spec/references/goal-docs.md",
+   "heading": "Document set",
+   "level": 2,
+   "sha256": "897a84c52e82231e9d9905e9909dfd3a6a77f261409fed9dcb3d3264ea3b0d5f"
+  },
+  {
+   "doc": "plugins/spec/skills/spec/references/goal-docs.md",
+   "heading": "SPEC.md",
+   "level": 2,
+   "sha256": "4fd0c0a76dab7e404d55f2b4304047cc8ac378e0227108582a53689bef6c6abb"
+  },
+  {
+   "doc": "plugins/spec/skills/spec/references/goal-docs.md",
+   "heading": "Criteria",
+   "level": 2,
+   "sha256": "f17af878a1b5e96ed28307c49fa1646b72bffa54a696f8659705f18f9820af57"
+  },
+  {
+   "doc": "plugins/spec/skills/spec/references/goal-docs.md",
+   "heading": "Header lines",
+   "level": 2,
+   "sha256": "b55d913dfbead231579f32230fb81331681bf048e78b70f1d5fb947796f35bf1"
+  },
+  {
+   "doc": "plugins/spec/skills/spec/references/goal-docs.md",
+   "heading": "Amendment documents",
+   "level": 2,
+   "sha256": "8506c5992d3a42f0681fbb6c636c096b68a18a846060e605645e88313544857e"
+  },
+  {
+   "doc": "plugins/spec/skills/spec/references/goal-docs.md",
+   "heading": "The implement-now question",
+   "level": 2,
+   "sha256": "6b893b95f99b8cdafb38a7163f8c6f7544b0b671cb7840e2514bebf7e594acf9"
+  },
+  {
+   "doc": "plugins/spec/skills/spec/references/goal-docs.md",
+   "heading": "User scenarios",
+   "level": 2,
+   "sha256": "0ad93581213486aecbad51a2236ccba2f75dfb5024566415b041e8e4579ac41a"
+  },
+  {
+   "doc": "plugins/spec/skills/spec/references/goal-docs.md",
+   "heading": "Outcome boundaries and examples",
+   "level": 2,
+   "sha256": "f2f397555cdeb01b99118e8b2b1224e56e6e9f3b6f4b9ac0c4150348e526ccf4"
+  },
+  {
+   "doc": "plugins/spec/skills/spec/references/goal-docs.md",
+   "heading": "Work breakdown proposal",
+   "level": 2,
+   "sha256": "1c64f69cd3b6a316ff709c85a42fbe56f1e2fb44032b693c84aea8b3f5198e8d"
+  },
+  {
+   "doc": "plugins/spec/skills/spec/references/goal-docs.md",
+   "heading": "Consistency",
+   "level": 2,
+   "sha256": "57312cffbcc66d6219482ef35f05754797e6f6ac7f7c0daa99ab03324a7bc837"
+  },
+  {
+   "doc": "plugins/spec/skills/spec/references/goal-docs.md",
+   "heading": "",
+   "level": 1,
+   "sha256": "22b1bcd6fa5588fc4ffd1195a6ab92e8e3821f140623fcb29ae561250f34776c"
+  }
+ ]
+}

@@ -165,12 +165,10 @@ func TestSpecInvocationBoundary(t *testing.T) {
 	}
 }
 
-// the status follows the open decisions, so a template's Draft does
-// not survive into documents with none open.
+// the status follows the open decisions: the skill keeps the Ready status
+// that documents with none open take.
 func TestSpecStatusFollowsOpenDecisions(t *testing.T) {
-	if !strings.Contains(read(t, "spec/skills/spec/SKILL.md"), "`Ready` when none is") {
-		t.Error("Spec SKILL.md must say the status is Ready when no outcome-changing decision is open")
-	}
+	requireSkillTokens(t, specSkillDir, "Ready")
 }
 
 // templates for behavior changes carry user scenarios, and
@@ -208,26 +206,10 @@ func TestSpecTemplates(t *testing.T) {
 	}
 }
 
-// the maintenance-first rules are in the
-// skill body.
+// the maintenance-first rules name docs/specs/, where the skill looks for
+// goal documents that cover the same behavior.
 func TestSpecMaintenanceRules(t *testing.T) {
-	text := read(t, "spec/skills/spec/SKILL.md")
-	for _, must := range []string{
-		"decide what kind of request this is",
-		"report in the conversation instead of pasting the full documents",
-		"names its source",
-		"Decisions already there without a source stay as they are: never invent one",
-		"states today's behavior as fact",
-		"saved settings and data",
-		"Code shows what happens, not what was meant.",
-		"Look in `docs/specs/` for goal documents that cover the same behavior",
-		"Small is a depth, not a kind",
-		"For a change to existing code, whatever its size:",
-	} {
-		if !strings.Contains(text, must) {
-			t.Errorf("Spec SKILL.md lacks %q", must)
-		}
-	}
+	requireSkillTokens(t, specSkillDir, "docs/specs/")
 }
 
 // the repository instructions keep testdata scenarios for rules ha
@@ -241,31 +223,24 @@ func TestAgentsScopesScenarioRule(t *testing.T) {
 	}
 }
 
-// the skill body states no work order.
+// no document of the Seal skill states a work order.
 func TestSealSkillPrescribesNoOrder(t *testing.T) {
 	ordering := regexp.MustCompile(`(?i)\b(first|then|afterwards|next step|step \d|before you|after you)\b|먼저|다음에|그다음`)
-	for _, p := range []string{"seal/skills/seal/SKILL.md", "seal/skills/seal/references/bundle.md", "seal/skills/seal/references/ha.md"} {
-		for i, line := range strings.Split(read(t, p), "\n") {
+	for _, doc := range skillDocs(t, sealSkillDir) {
+		for i, line := range strings.Split(doc.text, "\n") {
 			if m := ordering.FindString(line); m != "" {
-				t.Errorf("%s:%d uses ordering word %q: %s", p, i+1, m, line)
+				t.Errorf("%s:%d uses ordering word %q: %s", doc.path, i+1, m, line)
 			}
 		}
 	}
 }
 
-// the completion rules and prohibitions from the role card
-// are present, and the skill passes itself to ha start.
+// the skill keeps the format tokens of the completion rules and
+// prohibitions from the role card, and passes itself to ha start.
 func TestSealSkillCarriesCompletionRules(t *testing.T) {
-	text := read(t, "seal/skills/seal/SKILL.md")
-	for _, must := range []string{
-		"ha done", "completion record", "ha note <goal> confirm", "reopen", "input",
-		"--skill", "never edit them", "runs.jsonl", "terminal failures", "ha log",
-		"## 개선 메모", "`local`", "Status: Ready",
-	} {
-		if !strings.Contains(strings.ToLower(text), strings.ToLower(must)) {
-			t.Errorf("Seal SKILL.md lacks %q", must)
-		}
-	}
+	requireSkillTokens(t, sealSkillDir,
+		"ha done", "ha note <goal> confirm", "reopen", "input", "--skill", "runs.jsonl", "ha log",
+		"## 개선 메모", "local", "Status: Ready")
 }
 
 func headings(text string) []string {

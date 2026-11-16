@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "LinksResolve",
+      "violation": "moved-unlinked",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/skill-slim-checks",
+        "name": "TestSkillSlimAC6_LinksResolve"
+      }
+    },
+    {
+      "id": "MovedLinked",
+      "violation": "moved-unlinked",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/skill-slim-checks",
+        "name": "TestSkillSlimAC6_MovedLinked"
+      }
+    }
+  ]
+}
