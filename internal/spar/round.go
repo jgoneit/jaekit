@@ -134,8 +134,16 @@ func priorLines(siblings []sibling, current *RoundRecord) ([]string, []string, b
 		if err != nil {
 			return nil, nil, false, err
 		}
+		ids := map[string]bool{}
+		for _, f := range findings {
+			ids[f.ID] = true
+		}
 		last := map[string]LedgerEntry{}
 		for _, e := range ledger {
+			if !ids[e.Finding] {
+				return nil, nil, false, fmt.Errorf("%s/ledger.jsonl has a line for %q, which is not a finding of that round",
+					filepath.Base(s.dir), e.Finding)
+			}
 			if !slices.Contains(Dispositions, e.Disposition) {
 				return nil, nil, false, fmt.Errorf("%s/ledger.jsonl has a line for %s with the unknown disposition %q (%s)",
 					filepath.Base(s.dir), e.Finding, e.Disposition, strings.Join(Dispositions, ", "))
