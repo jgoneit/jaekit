@@ -16,7 +16,7 @@ These instructions apply to the entire repository.
 - Keep documentation examples synthetic. Do not commit personal conversations, local environment details, private planning records, or raw execution output.
 - Root `docs/` is reserved for local development goals and is ignored. Test fixtures may use nested `docs/specs/` paths.
 - Keep root `docs/` as a plain folder, without a nested Git repository or a symlink to another checkout: `ha` finds the code repository from the goal path.
-- Keep goal documents local. Do not create a separate backup repository or automatically sync or transmit them. Never force-add them to the public repository.
+- Keep goal documents local. Do not create a separate backup repository or automatically sync or transmit them. Never force-add them to the public repository. The one exception is a Spar round's packet, which passes goal documents to the reviewer CLIs the user configured.
 - Put executable checks in tracked paths outside root `docs/` so baseline checks can run from the code commit.
 - Publish only reviewed product files. Do not link public documentation to private goals or historical execution records.
 - Change the contract and implementation together when behavior changes.
@@ -42,7 +42,7 @@ These rules apply to goals carried in this repository and to their pull requests
 - **New checks.** New checks observe fixed tokens, commands, links or version matches instead of scanning an open category of sentences or paths.
 - **CI observers.** A new CI observer reuses the native CI admission in `tools/verification-checks/cross_platform_ci.py` for run and attempt identity, source commit and tree, and report reading, as `tools/history-checks/ci_observer.py` does. Only its goal-specific judgment is written separately.
 - **Protected paths.** A check bound to a protected path in `contracts/regressions.json` changes only in a separate goal that changes that path.
-- **Goal check lifetime.** A check that a goal adds is not deleted before that goal's completion record. Once the goal's pull request is merged, each check it added either becomes a regression, bound in `contracts/regressions.json` or placed where the full verification or a required CI job runs it, or is deleted in the next change. This applies wherever the check lives, inside or outside `tools/goal-checks/`.
+- **Goal check lifetime.** A check that a goal adds is not deleted before that goal's completion record. Once the goal's pull request is merged, each check it added either becomes a regression, bound in `contracts/regressions.json` or placed where the full verification or a required CI job runs it, or is deleted in the next change. This applies wherever the check lives, inside or outside `tools/goal-checks/`. It covers goals whose pull requests merge after this rule was added; checks of earlier goals that a tracked file or workflow still runs stay until a later change decides them.
 
 ### Review findings
 
