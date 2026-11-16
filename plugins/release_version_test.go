@@ -72,22 +72,26 @@ func TestReleaseVersionPinsAndDownloads(t *testing.T) {
 	}
 }
 
-// rvWindowsLines is how many lines of each Windows guide say that the
-// current release has no Windows files.
-const rvWindowsLines = 3
+// rvBacktickTag is a release tag in a code span, the form the Windows guides
+// use for the current release.
+var rvBacktickTag = regexp.MustCompile("`(v\\d+\\.\\d+\\.\\d+)`")
 
-// The Windows guides name the current release on each line that says it has
-// no Windows files.
+// Every release tag the Windows guides write in a code span names the current
+// release, and each guide has one, so changing one of them fails. How many
+// lines name it, and where, is left to the prose.
 func TestReleaseVersionWindowsGuides(t *testing.T) {
 	for _, path := range []string{"../guides/WINDOWS.md", "../guides/WINDOWS.en.md"} {
-		n := 0
-		for _, line := range strings.Split(read(t, path), "\n") {
-			if strings.Contains(line, rvTag) && strings.Contains(line, "Windows") {
-				n++
+		seen := 0
+		for number, line := range strings.Split(read(t, path), "\n") {
+			for _, m := range rvBacktickTag.FindAllStringSubmatch(line, -1) {
+				seen++
+				if m[1] != rvTag {
+					t.Errorf("%s:%d names %s, want the current release %s", path, number+1, m[1], rvTag)
+				}
 			}
 		}
-		if n != rvWindowsLines {
-			t.Errorf("%s has %d lines naming %s with Windows, want %d", path, n, rvTag, rvWindowsLines)
+		if seen == 0 {
+			t.Errorf("%s names no release tag in a code span, want %s", path, rvTag)
 		}
 	}
 }
