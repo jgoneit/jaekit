@@ -39,7 +39,7 @@ claude plugin install spar@jaekit
 
 ## Seal skill 분량
 
-[Seal skill](../plugins/seal/skills/seal/SKILL.md)의 상한은 앞머리를 포함해 공백으로 나눈 단어 2,300개다. 이 상한은 [`TestSealSlimAC14_WordLimit`](../plugins/seal_slim_review_tiers_test.go)와 [`TestSparOnboardingAC8_SkillSizeAndPins`](../plugins/spar_onboarding_test.go)가 정한다.
+[Seal skill](../plugins/seal/skills/seal/SKILL.md)의 상한은 앞머리를 포함해 공백으로 나눈 단어 2,300개다. 이 상한은 [`TestSealSkillWordCap`](../plugins/seal_skill_rules_test.go)와 [`TestSealSkillWordCapStated`](../plugins/seal_skill_rules_test.go)가 정한다.
 
 Seal에 더하는 규칙은 `references/`의 절에 쓰고 skill에는 그 절로 가는 링크를 둔다. skill이 이미 그 절을 링크하면 skill을 바꾸지 않는다.
 

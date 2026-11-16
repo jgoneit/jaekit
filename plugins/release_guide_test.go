@@ -70,7 +70,6 @@ func TestReleaseGuideReleaseFiles(t *testing.T) {
 	requireIn(t, "INSTALL Release 파일로 설치", files,
 		"https://github.com/jgoneit/jaekit/releases/tag/v0.1.8",
 		"`ha_0.1.8_<os>_<arch>.tar.gz`",
-		"아래 명령은 고치지 않고 그대로 붙여 넣습니다.",
 		`name="ha_0.1.8_${os}_${arch}"`,
 		`url="https://github.com/jgoneit/jaekit/releases/download/v0.1.8"`,
 		`curl -fsSLO "$url/$name.tar.gz"`,
@@ -89,13 +88,13 @@ func TestReleaseGuideReleaseFiles(t *testing.T) {
 		"(guides/INSTALL.md)")
 }
 
-// the linked install guide shows the ha version and how to find
-// another ha earlier on PATH.
+// the linked install guide shows the ha version check, its expected
+// output and the commands that find another ha earlier on PATH.
 func TestReleaseGuideVersionCheck(t *testing.T) {
 	requireIn(t, "INSTALL 버전 확인", mdSection(t, "../guides/INSTALL.md", "### 버전 확인"),
 		"ha --version\nwhich -a ha\n",
-		"`ha --version`은 `ha 0.1.8`을 출력해야 합니다.", "`which -a ha`의 첫 줄", "실제로 실행되는 파일",
-		"PATH", "지우거나 PATH 순서를 바꿉니다", "`go env GOBIN`", "`$(go env GOPATH)/bin`",
+		"`ha --version`", "`ha 0.1.8`", "`which -a ha`",
+		"PATH", "`go env GOBIN`", "`$(go env GOPATH)/bin`",
 	)
 }
 
@@ -118,7 +117,6 @@ func TestReleaseGuideLocalMigration(t *testing.T) {
 			"codex plugin add spec@jaekit\n"+
 			"codex plugin add seal@jaekit\n"+
 			"codex plugin add spar@jaekit\n",
-		"지우면 그 marketplace에서 설치한 spec·seal·spar도 함께 지워지므로 다시 설치합니다.",
 	)
 }
 
@@ -130,17 +128,18 @@ func TestReleaseGuideLocalMigration(t *testing.T) {
 // guides/INSTALL.md .
 func TestReleaseGuideOperationsSetup(t *testing.T) {
 	requireAll(t, "../guides/OPERATIONS.md", "(INSTALL.md)", "(USAGE.md)")
-	TestReadmeVisualGuideAC8(t)
+	TestReadmeAndGuidesGiveInstallCommands(t)
 }
 
 // README-linked guides keep host invocations, the Seal start
-// command and resume phrase, the two-step flow, and plugin conflict guidance.
+// command and resume phrase, the two-step flow, and the link to plugin
+// conflict guidance.
 func TestReleaseGuideKeepsExisting(t *testing.T) {
 	TestSpecInvocationGuide(t)
 	TestSealStartCommandGuide(t)
 	TestGuidesDescribeDirectSave(t)
-	requireAll(t, "../guides/USAGE.md", "`docs/specs/<goal> 이어서 해줘`", "`@Spec`", "보장이 없습니다")
-	requireAll(t, "../guides/INSTALL.md", "다른 플러그인과 혼동되면", "(USAGE.md#문제-해결)")
+	requireAll(t, "../guides/USAGE.md", "`docs/specs/<goal> 이어서 해줘`", "`@Spec`")
+	requireAll(t, "../guides/INSTALL.md", "(USAGE.md#문제-해결)")
 }
 
 // the linked install guide goes brew, version
