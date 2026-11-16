@@ -910,9 +910,10 @@ func variants(t tb, root string, p phrase) []variant {
 }
 
 // lookup runs the protected checks' observe on dir for one phrase and tells
-// whether its criterion reports the phrase missing.
+// whether its clause reports the phrase missing.
 func lookup(t tb, root, dir string, p phrase) bool {
-	req, err := json.Marshal([]map[string]string{{"suite": p.Suite, "criterion": p.Criterion, "phrase": p.Phrase}})
+	req, err := json.Marshal([]map[string]string{{"suite": p.Suite, "criterion": p.Criterion, "file": p.File,
+		"section": p.Section, "row": p.Row, "phrase": p.Phrase}})
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
