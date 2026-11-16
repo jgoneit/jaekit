@@ -50,10 +50,10 @@ const (
 // criterion in the question before any baseline.
 func TestRepeatFindingsAC7_FirstRoundBoundaries(t *testing.T) {
 	rptRequire(t, "first-round-rule-missing", map[string][]string{
-		rptSealSkill:  {"before the first review round"},
-		rptSealBundle: {"before the first review round", "supported input forms of an open-ended criterion"},
-		rptSealReview: {"before the first review round"},
-		rptBundleEn:   {"before the first review round", "supported input forms of an open-ended criterion"},
+		rptSealSkill:  {"before the earliest review round"},
+		rptSealBundle: {"before the earliest review round", "supported input forms of an open-ended criterion"},
+		rptSealReview: {"before the earliest review round"},
+		rptBundleEn:   {"before the earliest review round", "supported input forms of an open-ended criterion"},
 		rptBundleKo:   {"첫 검토 라운드 전에", "열린 조건의 지원 입력 형식"},
 	})
 }
