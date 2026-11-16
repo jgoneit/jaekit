@@ -1,0 +1,320 @@
+package plugins
+
+// Property: Skill format tokens
+// A skill's rules tests read its format tokens across the skill's SKILL.md
+// and references/*.md: code span contents, fenced lines, headings and link
+// targets. Rewording prose, or moving it between the skill's documents, keeps
+// every token, so it never fails these checks. Rules only the user decides,
+// and things the agent must not do, are checked in their SKILL.md body
+// section. Each skill's SKILL.md stays within its word cap, and both
+// development guides state that cap on the line that links the skill.
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"sort"
+	"strings"
+	"testing"
+)
+
+const (
+	specSkillDir = "spec/skills/spec"
+	sparSkillDir = "spar/skills/spar"
+	sealSkillDir = "seal/skills/seal"
+)
+
+// skillWordCaps are the whitespace-separated word caps of each SKILL.md,
+// front matter included.
+var skillWordCaps = map[string]int{specSkillDir: 2800, sparSkillDir: 2600, sealSkillDir: 2300}
+
+// skillDoc is one document of a skill, its path relative to plugins/.
+type skillDoc struct{ path, text string }
+
+// skillDocs returns a skill's SKILL.md and then its references/*.md in name
+// order.
+func skillDocs(t *testing.T, dir string) []skillDoc {
+	t.Helper()
+	out := []skillDoc{{dir + "/SKILL.md", read(t, dir+"/SKILL.md")}}
+	refs, err := filepath.Glob(filepath.Join(dir, "references", "*.md"))
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	sort.Strings(refs)
+	for _, ref := range refs {
+		p := filepath.ToSlash(ref)
+		out = append(out, skillDoc{p, read(t, p)})
+	}
+	return out
+}
+
+var skillLink = regexp.MustCompile(`\]\(([^)\s]+)(?:\s+"[^"]*")?\)`)
+
+// skillSpans returns the contents of a line's inline code spans, white space
+// runs read as one space, and the line with those spans removed.
+func skillSpans(line string) (spans []string, outside string) {
+	var b strings.Builder
+	for i := 0; i < len(line); {
+		if line[i] != '`' {
+			b.WriteByte(line[i])
+			i++
+			continue
+		}
+		n := 0
+		for i+n < len(line) && line[i+n] == '`' {
+			n++
+		}
+		closing := strings.Index(line[i+n:], strings.Repeat("`", n))
+		if closing < 0 {
+			b.WriteString(line[i : i+n])
+			i += n
+			continue
+		}
+		spans = append(spans, skillFlat(line[i+n:i+n+closing]))
+		i += n + closing + n
+	}
+	return spans, b.String()
+}
+
+// skillTokenSet holds a skill's format tokens.
+type skillTokenSet struct {
+	code     []string        // code span contents and fenced lines, white space runs as one space
+	headings map[string]bool // heading texts without their markers
+	links    map[string]bool // link targets resolved against plugins/
+}
+
+func skillFlat(s string) string { return strings.Join(strings.Fields(s), " ") }
+
+// skillTokens reads every format token of a skill's documents.
+func skillTokens(t *testing.T, dir string) skillTokenSet {
+	t.Helper()
+	set := skillTokenSet{headings: map[string]bool{}, links: map[string]bool{}}
+	for _, doc := range skillDocs(t, dir) {
+		fence := ""
+		for i, line := range strings.Split(doc.text, "\n") {
+			trimmed := strings.TrimSpace(line)
+			switch {
+			case i == 0 && trimmed == "---":
+				fence = "---"
+				continue
+			case fence == "---":
+				if trimmed == "---" {
+					fence = ""
+				}
+				continue
+			case fence != "":
+				if strings.HasPrefix(trimmed, fence) {
+					fence = ""
+				} else {
+					set.code = append(set.code, skillFlat(line))
+				}
+				continue
+			case strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~"):
+				fence = trimmed[:3]
+				continue
+			case strings.HasPrefix(line, "#"):
+				set.headings[strings.TrimSpace(strings.TrimLeft(line, "#"))] = true
+			}
+			spans, outside := skillSpans(line)
+			set.code = append(set.code, spans...)
+			for _, m := range skillLink.FindAllStringSubmatch(outside, -1) {
+				set.links[skillResolve(doc.path, m[1])] = true
+			}
+		}
+	}
+	return set
+}
+
+// skillResolve turns a link target written in doc into a path relative to
+// plugins/ with its anchor; external links stay as written.
+func skillResolve(doc, target string) string {
+	if strings.Contains(target, "://") || strings.HasPrefix(target, "mailto:") {
+		return target
+	}
+	if strings.HasPrefix(target, "#") {
+		return doc + target
+	}
+	path, anchor, _ := strings.Cut(target, "#")
+	joined := filepath.ToSlash(filepath.Clean(filepath.Join(filepath.Dir(doc), path)))
+	if anchor != "" {
+		return joined + "#" + anchor
+	}
+	return joined
+}
+
+// has reports whether token is a format token of the set: a link target when
+// it starts with "link:" (relative to the skill's directory), text inside one
+// code span or fenced line, or, when it starts with "#", also a heading (its
+// level does not matter).
+func (s skillTokenSet) has(dir, token string) bool {
+	switch {
+	case strings.HasPrefix(token, "#") && s.headings[strings.TrimSpace(strings.TrimLeft(token, "#"))]:
+		return true
+	case strings.HasPrefix(token, "link:"):
+		target := strings.TrimPrefix(token, "link:")
+		return s.links[target] || s.links[skillResolve(dir+"/SKILL.md", target)]
+	}
+	want := skillFlat(token)
+	for _, c := range s.code {
+		if strings.Contains(c, want) {
+			return true
+		}
+	}
+	return false
+}
+
+// requireSkillTokens reports each token that no document of the skill holds
+// as a format token.
+func requireSkillTokens(t *testing.T, dir string, tokens ...string) {
+	t.Helper()
+	set := skillTokens(t, dir)
+	for _, tok := range tokens {
+		if !set.has(dir, tok) {
+			t.Errorf("%s lacks the format token %q", dir, tok)
+		}
+	}
+}
+
+// skillBodySection returns the lines of one section of a skill's SKILL.md,
+// from heading to the next heading of the same or a higher level, outside
+// fenced code; ok is false when the heading is absent.
+func skillBodySection(t *testing.T, dir, heading string) ([]string, bool) {
+	t.Helper()
+	level := len(heading) - len(strings.TrimLeft(heading, "#"))
+	var out []string
+	in, fenced := false, false
+	for _, line := range strings.Split(read(t, dir+"/SKILL.md"), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
+			fenced = !fenced
+		}
+		if !fenced && strings.HasPrefix(line, "#") {
+			depth := len(line) - len(strings.TrimLeft(line, "#"))
+			if in && depth <= level {
+				break
+			}
+			if trimmed == heading {
+				in = true
+				continue
+			}
+		}
+		if in {
+			out = append(out, line)
+		}
+	}
+	return out, in
+}
+
+// requireBodyTokens reports each token that no code span of the named
+// SKILL.md body section holds. It checks the rules that must stay in the
+// body: rules only the user decides and things the agent must not do.
+func requireBodyTokens(t *testing.T, dir, heading string, tokens ...string) {
+	t.Helper()
+	lines, ok := skillBodySection(t, dir, heading)
+	if !ok {
+		t.Errorf("%s/SKILL.md has no body section %q", dir, heading)
+		return
+	}
+	var spans []string
+	for _, line := range lines {
+		s, _ := skillSpans(line)
+		spans = append(spans, s...)
+	}
+	for _, tok := range tokens {
+		found := false
+		for _, s := range spans {
+			found = found || strings.Contains(s, skillFlat(tok))
+		}
+		if !found {
+			t.Errorf("%s/SKILL.md %s lacks the rule token %q: this rule stays in the body", dir, heading, tok)
+		}
+	}
+}
+
+// forbidSkillText reports each phrase some document of the skill holds. An
+// absence check may name prose: rewording never adds it.
+func forbidSkillText(t *testing.T, dir string, phrases ...string) {
+	t.Helper()
+	for _, doc := range skillDocs(t, dir) {
+		flat := skillFlat(doc.text)
+		for _, p := range phrases {
+			if strings.Contains(flat, skillFlat(p)) {
+				t.Errorf("%s holds %q", doc.path, p)
+			}
+		}
+	}
+}
+
+// skillWords counts a SKILL.md as the caps count it: whitespace-separated
+// words of the whole file, front matter included.
+func skillWords(t *testing.T, dir string) int {
+	t.Helper()
+	return len(strings.Fields(read(t, dir+"/SKILL.md")))
+}
+
+// TestSkillLinksResolve checks every relative link of the three skills'
+// documents: the path exists and an anchor names a heading of its file.
+func TestSkillLinksResolve(t *testing.T) {
+	for _, dir := range []string{specSkillDir, sparSkillDir, sealSkillDir} {
+		for _, doc := range skillDocs(t, dir) {
+			fenced := false
+			for i, line := range strings.Split(doc.text, "\n") {
+				trimmed := strings.TrimSpace(line)
+				if strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
+					fenced = !fenced
+				}
+				if fenced {
+					continue
+				}
+				_, outside := skillSpans(line)
+				for _, m := range skillLink.FindAllStringSubmatch(outside, -1) {
+					target := skillResolve(doc.path, m[1])
+					if strings.Contains(target, "://") || strings.HasPrefix(target, "mailto:") {
+						continue
+					}
+					path, anchor, _ := strings.Cut(target, "#")
+					if _, err := os.Stat(path); err != nil {
+						t.Errorf("%s:%d links %s, which does not exist", doc.path, i+1, m[1])
+						continue
+					}
+					if anchor != "" && !skillAnchors(read(t, path))[anchor] {
+						t.Errorf("%s:%d links %s, whose heading does not exist", doc.path, i+1, m[1])
+					}
+				}
+			}
+		}
+	}
+}
+
+// skillAnchors returns GitHub's heading anchors of a Markdown document.
+func skillAnchors(text string) map[string]bool {
+	out, seen := map[string]bool{}, map[string]int{}
+	fenced := false
+	for _, line := range strings.Split(text, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
+			fenced = !fenced
+		}
+		if fenced || !strings.HasPrefix(line, "#") {
+			continue
+		}
+		var b strings.Builder
+		for _, r := range strings.ToLower(strings.TrimSpace(strings.TrimLeft(line, "#"))) {
+			switch {
+			case r == ' ':
+				b.WriteRune('-')
+			case r == '-' || r == '_' || r >= '0' && r <= '9' || r >= 'a' && r <= 'z' || r >= 0xAC00 && r <= 0xD7A3:
+				b.WriteRune(r)
+			}
+		}
+		s := b.String()
+		if n := seen[s]; n > 0 {
+			out[fmt.Sprintf("%s-%d", s, n)] = true
+		} else {
+			out[s] = true
+		}
+		seen[s]++
+	}
+	return out
+}

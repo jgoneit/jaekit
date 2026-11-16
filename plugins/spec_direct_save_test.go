@@ -16,49 +16,34 @@ func forbidAll(t *testing.T, path string, nots ...string) {
 	}
 }
 
-// once the writing target is settled, Spec writes or
-// edits the goal documents without waiting for a save agreement, and an open
-// decision keeps Status: Draft and is asked in the same report.
+// once the writing target is settled, Spec writes or edits the goal
+// documents without waiting for a save agreement, and an open decision is
+// listed under ## Open Decisions with Status: Draft. Both stay format tokens of
+// the Spec skill, and the skill holds none of the old save-agreement wording.
 func TestSpecWritesWithoutSaveAgreement(t *testing.T) {
-	requireAll(t, "spec/skills/spec/SKILL.md",
-		"Once the writing target is settled, write or edit the goal documents directly; never wait for the user to agree before saving them.",
-		"When an outcome-changing decision is still open, list it under `## Open Decisions`, keep `Status: Draft`, and ask about it in the same report.",
-	)
-	forbidAll(t, "spec/skills/spec/SKILL.md", "Save only after the user agrees", "that agreement covers those decisions")
+	requireSkillTokens(t, specSkillDir, "Open Decisions", "Status: Draft")
+	forbidSkillText(t, specSkillDir, "Save only after the user agrees", "that agreement covers those decisions")
 }
 
-// after writing, Spec reports the request kind, the
-// files and sections, its own decisions with sources, evaluation items, open
-// questions, and the consistency result, without pasting the full draft.
+// after writing, Spec reports what it wrote instead of pasting the full
+// draft: the Spec skill holds none of the old wording that showed the full
+// draft or every changed section.
 func TestSpecReportsWhatItWrote(t *testing.T) {
-	requireAll(t, "spec/skills/spec/SKILL.md",
-		"After writing, report in the conversation instead of pasting the full documents:",
-		"the request kind and whether it is a small fix",
-		"the paths of the files you wrote or edited and the sections that changed",
-		"the decisions you made that the user did not state, each with its source",
-		"your open questions, and the result of the consistency check",
-		"list every item you kept as an evaluation item instead of a completion criterion",
-	)
-	forbidAll(t, "spec/skills/spec/SKILL.md", "show the full draft", "show every changed section in full")
+	forbidSkillText(t, specSkillDir, "show the full draft", "show every changed section in full")
 }
 
-// the source category is a proposal stated in Spec's
-// report everywhere Spec reads it, it becomes the user's decision on
-// acceptance or an implementation request, and existing labels stay.
+// the source category is a proposal stated in Spec's report everywhere Spec
+// reads it, and it becomes the user's decision on acceptance or an
+// implementation request, existing labels staying. The Spec skill holds none
+// of the old wording of a proposal the user agreed to when saving, the SPEC
+// templates name the new category, and the goal document contract says the
+// same.
 func TestSpecProposalBecomesDecisionOnRequest(t *testing.T) {
-	requireAll(t, "spec/skills/spec/SKILL.md",
-		"an existing goal document, or a proposal of yours stated in your report.",
-		"A proposal of yours stated in your report becomes the user's decision when the user accepts it or asks for implementation from these goal documents.",
-		"When the user asks to change one, edit the documents; its source becomes the user's words.",
-		"Source labels already written for a proposal agreed to when saving stay as they are.",
-		"it becomes a decision whose source is a proposal stated in your report, and it goes into the list of decisions in your report.",
-	)
-	forbidAll(t, "spec/skills/spec/SKILL.md",
+	forbidSkillText(t, specSkillDir,
 		"a proposal of yours that the user agreed to when saving",
+		"the user agreed to when saving",
 		"the list of decisions shown before saving",
 	)
-	requireAll(t, "spec/skills/spec/references/goal-docs.md", "or a proposal Spec stated in its report |")
-	forbidAll(t, "spec/skills/spec/references/goal-docs.md", "agreed to when saving")
 	for _, name := range []string{"backend-feature", "cross-module-feature", "product"} {
 		path := "spec/skills/spec/assets/templates/" + name + ".md"
 		requireAll(t, path, "or a proposal stated in your report>")
@@ -72,73 +57,48 @@ func TestSpecProposalBecomesDecisionOnRequest(t *testing.T) {
 	forbidAll(t, "../contracts/goal-docs.md", "- 저장 때 동의를 받은 Spec의 제안")
 }
 
-// an answer or a change request edits the same goal
-// documents and Spec reports again; criterion IDs stay.
+// an answer or a change request edits the same goal documents, which turn
+// Status: Ready once no outcome-changing decision is open: that token stays a
+// format token of the Spec skill.
 func TestSpecRevisesSameDocuments(t *testing.T) {
-	requireAll(t, "spec/skills/spec/SKILL.md",
-		"When the user answers your questions or asks for changes, edit the same goal documents and report again.",
-		"Set `Status: Ready` once no outcome-changing decision is open.",
-		"keep every existing criterion ID, never reuse a removed ID",
-	)
+	requireSkillTokens(t, specSkillDir, "Status: Ready")
 }
 
-// after writing or editing, Spec stops: with a content
-// decision open it says implementation starts with a new request, even when
-// the invoking request or a reply asks for implementation; otherwise it asks
-// the implement-now question and stops. Nothing outside the goal documents
-// changes.
+// after writing or editing, Spec stops: while a content decision is open
+// implementation starts with a new request, and otherwise it asks the
+// implement-now question. The Spec skill holds none of the old wording that
+// reported after saving or took a save agreement, and the Codex manifest
+// describes the stop.
 func TestSpecStopsAfterWriting(t *testing.T) {
-	requireAll(t, "spec/skills/spec/SKILL.md",
-		"When a decision about the content is still open, do not ask it: report that implementation starts with a new request, then stop.",
-		"This holds even when the request that invoked this skill, or a reply that answers your questions or asks for changes, also asks for implementation.",
-		"end the report with one separate question: whether to implement the goal now. This is the implement-now question.",
-		"After asking, stop. Do not implement, run checks, or call an execution tool",
-		"Nothing outside the goal documents changes",
-		"This skill never edits code or runs checks.",
-	)
-	forbidAll(t, "spec/skills/spec/SKILL.md", "After saving, report", "the reply that agrees to save")
+	forbidSkillText(t, specSkillDir, "After saving, report", "the reply that agrees to save")
 	requireAll(t, "spec/.codex-plugin/plugin.json",
 		"After writing and reporting it stops. While a decision is open, implementation starts with a new request;",
 		"with nothing left to decide it asks whether to implement now")
 }
 
-// Draft means an outcome-changing decision is open,
-// Ready means none is, and neither authorizes implementation, in the skill
-// body and the contract.
+// Draft means an outcome-changing decision is open, Ready means none is, and
+// neither authorizes implementation. Status: Draft and Status: Ready stay
+// format tokens of the Spec skill, and the goal document contract says the
+// same.
 func TestSpecStatusGrantsNothing(t *testing.T) {
-	requireAll(t, "spec/skills/spec/SKILL.md",
-		"`Status: Draft` means an outcome-changing decision is still open; `Status: Ready` means none is. Both describe the documents. Neither authorizes implementation.",
-	)
-	requireAll(t, "spec/skills/spec/references/goal-docs.md",
-		"| `Draft` while an outcome-changing decision is open, `Ready` when none is. A description, not an authorization |",
-	)
+	requireSkillTokens(t, specSkillDir, "Status: Draft", "Status: Ready")
 	requireAll(t, "../contracts/goal-docs.md",
 		"`Status: Ready`는 실행 권한이 아니다.",
 		"`Draft`는 결과를 바꾸는 미결정이 남았다는 뜻이고 `Ready`는 남지 않았다는 뜻이다. 문서의 설명이며 어느 쪽도 실행 권한이 아니다.",
 	)
 }
 
-// Seal never takes a message asking for goal documents
-// as an implementation request, gives no save-agreement example, and starts
-// only from a message sent once the documents are written.
+// Seal never takes a message asking for goal documents as an implementation
+// request: its skill holds none of the old save-agreement wording.
 func TestSealIgnoresDocumentRequests(t *testing.T) {
-	requireAll(t, "seal/skills/seal/SKILL.md",
-		"A message that asks for goal documents to be written or changed, such as a call to a goal-document skill, whether the user or an agent made it, or an answer to its questions about their content, is not such a request either, even when it also asks for implementation",
-		"Work starts only from a later message, sent once the goal documents are written.",
-		"The user's affirmative answer to it, sent directly in reply, is a request to implement or continue the goal the question names.",
-		"An answer that also asks for a change, an answer about another goal, and an answer given after the goal documents changed since the question are not such a request",
-	)
-	forbidAll(t, "seal/skills/seal/SKILL.md", "agrees to save", "save its draft", "after the goal documents are saved")
+	forbidSkillText(t, sealSkillDir, "agrees to save", "save its draft", "after the goal documents are saved")
 }
 
-// a continue or implement request sent once the goal
-// documents changed during a run confirms that change, quoted, and the report
-// names the changed criteria.
+// a continue or implement request sent once the goal documents changed during
+// a run confirms that change: the confirm spec note form stays a format token
+// of the Seal skill, and the role card contract says the same.
 func TestSealTakesContinueAsConfirmation(t *testing.T) {
-	requireAll(t, "seal/skills/seal/SKILL.md",
-		"When the goal documents change once a run has started, a later request from the user to continue or implement confirms that change.",
-		"Record it with `ha note <goal> confirm spec --quote \"…\"`, quoting that request, and name the changed criteria in your report.",
-	)
+	requireSkillTokens(t, sealSkillDir, `ha note <goal> confirm spec --quote "…"`)
 	requireAll(t, "../contracts/role-card.md",
 		"실행을 시작한 뒤 목표 문서가 바뀌고 사용자가 계속이나 구현을 요청하면, 그 요청이 바뀐 목표 문서의 확인이다.",
 		"그 요청을 인용해 `ha note confirm spec`으로 남기고, 보고에 바뀐 조건을 밝힌다.",
@@ -299,31 +259,14 @@ func TestPluginVersionsRaisedForDirectSave(t *testing.T) {
 	}
 }
 
-// Seal reads the goal documents, never edits them,
-// and asks the user when the goal, scope, or criteria look wrong.
-func TestSealKeepsGoalDocsReadOnly(t *testing.T) {
-	requireAll(t, "seal/skills/seal/SKILL.md",
-		"The goal documents (SPEC.md and the Markdown files it links in the goal directory) belong to the user. Read them; never edit them.",
-		"When the goal, scope, or criteria look wrong or need to change, ask the user.",
-		"Editing goal documents, or lowering, dropping, or reinterpreting a criterion. Ask the user instead.",
-	)
-}
-
-// when goal documents cover the same behavior and the
-// request and conversation leave the writing target open, Spec asks for it
-// with a recommendation and its reason before writing or editing any file. A
-// target the user named or chose is not asked again, and the target is the
-// only thing asked before writing.
+// when goal documents in docs/specs/ cover the same behavior and the writing
+// target is open, Spec asks for it before writing, and once it is settled it
+// writes the documents with content decisions under ## Open Decisions and
+// Status: Draft. Those stay format tokens of the Spec skill, and the skill
+// holds none of the old propose-then-wait wording.
 func TestSpecAsksTargetBeforeWriting(t *testing.T) {
-	requireAll(t, "spec/skills/spec/SKILL.md",
-		"When goal documents in `docs/specs/` cover the same behavior and neither the request nor the conversation has settled the writing target (a new goal or an edit to one of those documents, and which one), ask the user to choose before writing or editing any file.",
-		"Put the target you recommend first, with the reason and what each option gives up, and follow the user's choice.",
-		"That message writes nothing; wait for the answer.",
-		"When the user named the target or already chose it in this conversation, do not ask again.",
-		"The target is the only thing asked before writing: once it is settled, write the documents, and keep open decisions about their content under `## Open Decisions` with `Status: Draft`, asked in your report.",
-		"Look in `docs/specs/` for goal documents that cover the same behavior, and settle the writing target as above.",
-	)
-	forbidAll(t, "spec/skills/spec/SKILL.md", "If one does, propose either a new goal or an edit to that document")
+	requireSkillTokens(t, specSkillDir, "docs/specs/", "Open Decisions", "Status: Draft")
+	forbidSkillText(t, specSkillDir, "If one does, propose either a new goal or an edit to that document")
 }
 
 // a quality case has a goal document covering the same

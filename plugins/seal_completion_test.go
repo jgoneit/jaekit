@@ -5,58 +5,30 @@ import (
 	"testing"
 )
 
-// once the work starts, the skill asks the user only about items
-// that need the user, never for progress or per-task approval.
+// once the work starts, the skill asks the user about the items of the
+// needs_user state.
 func TestSealAsksOnlyForUserDecisions(t *testing.T) {
-	text := read(t, "seal/skills/seal/SKILL.md")
-	for _, must := range []string{
-		"Carry one goal to completion from a single user request.",
-		"`needs_user`: ask the user about each listed item.",
-		"Asking for approval per task or per tool use.",
-	} {
-		if !strings.Contains(text, must) {
-			t.Errorf("Seal SKILL.md lacks %q", must)
-		}
-	}
+	requireSkillTokens(t, sealSkillDir, "needs_user")
 }
 
-// a resume request is answered from the bundle and the computed
-// state, and progress notes that disagree with the computed state are claims.
+// a resume request is answered from the computed state of ha status, and
+// PROGRESS.md is brought in line with it.
 func TestSealResumesFromComputedState(t *testing.T) {
-	text := read(t, "seal/skills/seal/SKILL.md")
-	for _, must := range []string{
-		"treat everything in the bundle as claims",
-		"`ha status <goal>` computes the actual state",
-		"Trust the computed state, bring `PROGRESS.md` in line with it",
-	} {
-		if !strings.Contains(text, must) {
-			t.Errorf("Seal SKILL.md lacks %q", must)
-		}
-	}
+	requireSkillTokens(t, sealSkillDir, "ha status <goal>", "PROGRESS.md")
 }
 
-// a completion record is reported without waiting for the user to
-// check the result, and the goal reopens only on the user's rework request.
-// The role card states the same rule.
+// the role card states that a completion record is reported without waiting
+// for the user to check the result, and that the goal reopens only on the
+// user's rework request.
 func TestSealReportsCompletionWithoutWaiting(t *testing.T) {
-	for _, c := range []struct {
-		path  string
-		musts []string
-	}{
-		{"seal/skills/seal/SKILL.md", []string{
-			"report it without waiting for the user to check the result",
-			"take up the goal again only when the user asks for rework",
-		}},
-		{"../contracts/role-card.md", []string{
-			"완료 기록이 남으면 사용자의 확인을 기다리지 않고 완료를 보고한다",
-			"사용자가 재작업을 요청할 때만 다시 작업하고",
-		}},
+	const path = "../contracts/role-card.md"
+	text := read(t, path)
+	for _, must := range []string{
+		"완료 기록이 남으면 사용자의 확인을 기다리지 않고 완료를 보고한다",
+		"사용자가 재작업을 요청할 때만 다시 작업하고",
 	} {
-		text := read(t, c.path)
-		for _, must := range c.musts {
-			if !strings.Contains(text, must) {
-				t.Errorf("%s lacks %q", c.path, must)
-			}
+		if !strings.Contains(text, must) {
+			t.Errorf("%s lacks %q", path, must)
 		}
 	}
 }

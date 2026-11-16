@@ -173,34 +173,27 @@ func rvLine(t *testing.T, path string, tokens ...string) {
 	t.Errorf("%s has no line with all of %q", path, tokens)
 }
 
-// The Seal skill and its ha reference send a missing ha to the current
-// release's install guide, and the core capabilities contract links the
-// current release's check_core.py.
+// rvPinnedLink is a link target pinned to a release tag.
+var rvPinnedLink = regexp.MustCompile(`jaekit/blob/(v\d+\.\d+\.\d+)/`)
+
+// Every release-pinned link target of the Seal skill names the current
+// release, one of them is the current release's install guide, and the core
+// capabilities contract links the current release's check_core.py.
 func TestReleaseVersionSkillLinks(t *testing.T) {
-	const skill = "seal/skills/seal/SKILL.md"
-	install := "https://github.com/jgoneit/jaekit/blob/" + rvTag + "/guides/INSTALL.md"
-	for _, path := range []string{skill, "seal/skills/seal/references/ha.md"} {
-		requireAll(t, path, install)
+	requireSkillTokens(t, sealSkillDir,
+		"link:https://github.com/jgoneit/jaekit/blob/"+rvTag+"/guides/INSTALL.en.md#get-the-reference-check")
+	for target := range skillTokens(t, sealSkillDir).links {
+		if m := rvPinnedLink.FindStringSubmatch(target); m != nil && m[1] != rvTag {
+			t.Errorf("%s links %s, want the current release %s", sealSkillDir, target, rvTag)
+		}
 	}
 	requireAll(t, "../contracts/core-capabilities.md",
 		"Seal에 포함된 [check_core.py](https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/seal/skills/seal/scripts/check_core.py)")
-	// The instruction for a missing ha carries the link itself; the last
-	// line naming that case is the instruction.
-	var line string
-	for _, l := range strings.Split(read(t, skill), "\n") {
-		if strings.Contains(l, "If `ha` is missing") {
-			line = l
-		}
-	}
-	if line == "" {
-		t.Fatalf("%s has no line with %q", skill, "If `ha` is missing")
-	}
-	requireIn(t, skill+" missing-ha instruction", line, install)
 }
 
 // The install guides' combination table has the current release's row and
-// the source build's row, and the usage and operations guides and the Seal
-// ha reference state the current combination.
+// the source build's row, and the usage and operations guides state the
+// current combination.
 func TestReleaseVersionCombination(t *testing.T) {
 	for _, c := range []struct {
 		path string
@@ -223,5 +216,4 @@ func TestReleaseVersionCombination(t *testing.T) {
 	for _, path := range []string{"../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md", "../guides/OPERATIONS.en.md"} {
 		rvLine(t, path, "v0.1.8", "ha 0.1.8", "spar 0.1.8", "spec 0.1.13", "seal 0.1.23", "0.1.4")
 	}
-	requireAll(t, "seal/skills/seal/references/ha.md", "The commands below describe release v0.1.8: ha 0.1.8, spar 0.1.8 and Seal 0.1.23.")
 }

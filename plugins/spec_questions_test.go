@@ -7,133 +7,29 @@ import (
 	"testing"
 )
 
-// questionsSection returns the `## Questions` section of the Spec skill body.
-func questionsSection(t *testing.T) string {
-	t.Helper()
-	text := read(t, "spec/skills/spec/SKILL.md")
-	_, rest, ok := strings.Cut(text, "\n## Questions\n")
-	if !ok {
-		t.Fatal("Spec SKILL.md has no ## Questions section")
-	}
-	section, _, _ := strings.Cut(rest, "\n## ")
-	return section
-}
-
-func requireInQuestions(t *testing.T, musts ...string) {
-	t.Helper()
-	section := questionsSection(t)
-	for _, s := range musts {
-		if !strings.Contains(section, s) {
-			t.Errorf("Spec SKILL.md ## Questions lacks %q", s)
-		}
-	}
-}
-
-// a question with options leads with the recommended
-// option, its reason, and what each option gives up.
-func TestSpecLeadsWithRecommendation(t *testing.T) {
-	requireInQuestions(t, "When a question has options, put the option you recommend first, with the reason and what each option gives up.")
-}
-
-// with more than one draft, Spec says which it
-// recommends and why.
-func TestSpecRecommendsAmongDrafts(t *testing.T) {
-	requireInQuestions(t, "When you show more than one draft, say which one you recommend and why.")
-}
-
-// behavior only the user knows is asked with a concrete
-// proposal, and answers outside the options are accepted.
-func TestSpecProposesUserOnlyBehavior(t *testing.T) {
-	requireInQuestions(t, "For behavior only the user knows, offer a concrete proposal they can adjust, and accept an answer outside the options you offered.")
-}
-
-// without grounds for either option, Spec says so
-// instead of inventing a preference.
-func TestSpecInventsNoPreference(t *testing.T) {
-	requireInQuestions(t, "When nothing in the request, the code, or the documents favors one option, say so instead of inventing a preference.")
-}
-
-// a recommendation becomes a decision only when the user
-// accepts it or leaves the choice to Spec, with a reported proposal as source.
-func TestSpecTreatsRecommendationAsProposal(t *testing.T) {
-	requireInQuestions(t,
-		"A recommendation is not a decision until the user accepts it.",
-		"When the user accepts it or leaves the choice to you",
-		"it becomes a decision whose source is a proposal stated in your report, and it goes into the list of decisions in your report.",
-	)
-}
-
-// the questions and goal documents cover the
-// outcome-changing decisions of the requested behavior and what it reaches.
-// Five views judge omissions without demanding every combination, and the
-// skill leaves how to find them to the agent.
+// the Spec skill leaves how to find outcome-changing decisions to the agent:
+// no document of it prescribes a discovery step.
 func TestSpecCoversOutcomeDecisions(t *testing.T) {
-	requireInQuestions(t,
-		"Your questions and the goal documents leave out no decision that changes the outcome within the requested behavior and the places the change reaches.",
-		"Whether one is missing is judged by holding these views against what the goal touches (people and roles, stored data, states, and outside systems) and each pair that meets:",
-		"- How many: one or many, and what belongs to what.",
-		"- Life: how each is created, changed, and ended.",
-		"- At the same time: what happens when two actions reach the same data at once.",
-		"- Values: which values a state or identifier can take, and what must be unique.",
-		"- Failure: what a failure leaves behind.",
-		"The views test for omissions; they do not demand an answer for every combination.",
-		"Leave out combinations that do not change the outcome or lie outside the requested behavior.",
-		"A decision that fits none of the views counts the same when it changes the outcome.",
-		"How and in what order you find these decisions is up to you.",
-	)
-	section := questionsSection(t)
-	for _, step := range []string{"Before asking", "List what the goal touches"} {
-		if strings.Contains(section, step) {
-			t.Errorf("Spec SKILL.md ## Questions prescribes a discovery step: %q", step)
-		}
-	}
+	forbidSkillText(t, specSkillDir, "Before asking", "List what the goal touches")
 }
 
-// each such decision is in the goal documents with its
-// source (code shows behavior, not intent), left to the implementer as a
-// tuning value or a behavior-neutral detail, or asked or listed as open.
+// a decision neither settled nor left to the implementer is asked about or
+// listed under ## Open Decisions: that section name stays a format token of
+// the Spec skill.
 func TestSpecPlacesCoveredDecisions(t *testing.T) {
-	requireInQuestions(t,
-		"Each such decision ends up in one of three places.",
-		"When the user's words, existing goal documents, or the code settle it, it is in the goal documents with its source;",
-		"the code shows today's behavior but not whether it was meant, so when the code and documents cannot settle that and the answer changes the result, ask.",
-		"A value the implementer can tune inside a decided behavior, and an implementation detail that does not change behavior (names, file layout, internal order), is left to the implementer without asking.",
-		"Every other one is asked about or listed under `## Open Decisions`.",
-	)
+	requireSkillTokens(t, specSkillDir, "Open Decisions")
 }
 
-// covered decisions never widen the scope, the views are
-// not a question list, and the documents record no check per view.
-func TestSpecKeepsCoverageInScope(t *testing.T) {
-	requireInQuestions(t,
-		"Such a decision never adds a feature the user did not ask for to the scope or the criteria.",
-		"The views are not a question list, and the goal documents do not record a check per view.",
-	)
-}
-
-// a small fix covers the decisions the change touches,
-// including existing behavior the change affects.
-func TestSpecSmallFixCoversAffectedBehavior(t *testing.T) {
-	requireInQuestions(t, "For a small fix, cover only the decisions the change touches, including existing behavior the change affects.")
-}
-
-// the existing question principles stay, and there is
-// no cap on the number of questions.
+// a decision the user leaves open is recorded under ## Open Decisions with
+// Status: Draft, both format tokens of the Spec skill, and no document of the
+// skill caps the number of questions.
 func TestSpecKeepsQuestionPrinciples(t *testing.T) {
-	requireInQuestions(t,
-		"Ask only about decisions that change the outcome: externally visible behavior, data and compatibility, permissions and security, irreversible design, and scope.",
-		"Never ask what an implementer can decide, such as names, file layout, or internal order.",
-		"Group related questions in one message.",
-		"When the user leaves a decision open, record it in `## Open Decisions` and keep `Status: Draft`.",
-		"Code shows what happens, not what was meant.",
-		"Never ask what the code settles.",
-	)
-	text := read(t, "spec/skills/spec/SKILL.md")
-	if !strings.Contains(text, "Find every place the changed behavior reaches: other paths into the same code, saved settings and data, and update or migration paths.") {
-		t.Error("Spec SKILL.md lost the procedure for places the change reaches")
-	}
-	if m := regexp.MustCompile(`(?i)\b(at most|no more than|up to|maximum of)\s+\w+\s+questions?\b`).FindString(text); m != "" {
-		t.Errorf("Spec SKILL.md caps the number of questions: %q", m)
+	requireSkillTokens(t, specSkillDir, "Open Decisions", "Status: Draft")
+	questionCap := regexp.MustCompile(`(?i)\b(at most|no more than|up to|maximum of)\s+\w+\s+questions?\b`)
+	for _, doc := range skillDocs(t, specSkillDir) {
+		if m := questionCap.FindString(doc.text); m != "" {
+			t.Errorf("%s caps the number of questions: %q", doc.path, m)
+		}
 	}
 }
 

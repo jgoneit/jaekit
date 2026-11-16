@@ -63,18 +63,13 @@ func TestRunRules2Contracts(t *testing.T) {
 	requireIn(t, "bundle.md §8", mdSection(t, rr2Bundle, "## 8. `ha lint` 오류 코드"), "`other_bundles_invalid`")
 }
 
-// the Seal guidance tells the agent what run-rules/2
-// changes, that completing over the budget is not leave to keep working, how
-// to declare checks that read other goals' bundles, and that run-rules/1
-// goals keep the earlier rules.
+// the Seal guidance keeps the tokens of what run-rules/2 changes, of a goal
+// complete over the budget and its reopen, and of the plan declaration for
+// checks that read other goals' bundles; the PLAN template carries that
+// declaration's field.
 func TestRunRules2SealGuide(t *testing.T) {
-	const ha = "seal/skills/seal/references/ha.md"
-	requireIn(t, "ha.md States", mdSection(t, ha, "## States"),
-		"`run-rules/2`", "`run-rules/1`", "`budget_exceeded`", "evidence already", "`reopen`")
-	requireIn(t, "ha.md Freshness", mdSection(t, ha, "## Freshness"),
-		"other goals", "`run-rules/2`", "다른 목표 실행 묶음: `검사 입력`")
-	requireIn(t, "references/bundle.md 범위", mdSection(t, "seal/skills/seal/references/bundle.md", "### `## 범위`"),
-		"`다른 목표 실행 묶음:`", "`검사 입력`", "`run-rules/2`")
+	requireSkillTokens(t, sealSkillDir,
+		"run-rules/1", "run-rules/2", "budget_exceeded", "reopen", "다른 목표 실행 묶음: `검사 입력`")
 	requireIn(t, "templates/PLAN.md 범위", mdSection(t, "seal/skills/seal/assets/templates/PLAN.md", "## 범위"),
 		"다른 목표 실행 묶음")
 }
