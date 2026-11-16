@@ -31,22 +31,24 @@ This checks source contracts and executable support. Whether installed Codex or 
 | `ha capabilities [--format json]` | Read-only support information without a goal or record; JSON is the default |
 | `ha lint <goal>` | Lists goal document and bundle format problems, one per line: code, file:line, detail. Exit 1 when any exist |
 | `ha estimate <goal> [AC-n \| EX-n \| T001 …] [--baseline] [--format md\|json]` | Reads the PLAN lower bound, limit and shortfall, plus default and selected runs. Executes nothing; does not change records or budgets |
-| `ha start <goal> --request "<quote>" --skill <SKILL.md> [--check-skill] [--rules run-rules/4 \| run-rules/5] [--test-authority "…"] [--host-name …] [--host-version …] [--model …]` | Records the start once per goal. Refuses lint problems, a second start, a PLAN limit below the required minimum, an automatic limit above the user's pre-approved limit, and, with `--check-skill`, missing Core support the skill declares, before writing a start record. Add `--host-name`, `--host-version` and `--model` when you know them. Without `--rules` the goal uses the default `run-rules/3` |
+| `ha start <goal> --request "<quote>" --skill <SKILL.md> [--check-skill] [--rules run-rules/4 \| run-rules/5 \| run-rules/6 \| run-rules/7] [--test-authority "…"] [--host-name …] [--host-version …] [--model …]` | Records the start once per goal. Refuses lint problems, a second start, a PLAN limit below the required minimum, an automatic limit above the user's pre-approved limit, and, with `--check-skill`, missing Core support the skill declares, before writing a start record. Add `--host-name`, `--host-version` and `--model` when you know them. Without `--rules` the goal uses the default `run-rules/3` |
 | `ha check <goal> [AC-n \| EX-n \| T001 …]` | Runs the conditions' commands at HEAD and records each result. With no targets it runs every required `change` and `maintain` condition |
 | `ha check <goal> --baseline [AC-n …]` | Runs `change` conditions on a temporary worktree of the base commit with their check paths copied from HEAD. Expected result: `fail_as_expected` |
-| `ha budget <goal> --runs N --from P --window W --revision R [--quote "…" --context "…"] [--reason "…"] [--interpretation "…"]` | `/3`, `/4` and `/5`: changes the current window's total run limit while retaining usage; quote and context for increases, reason for decreases |
-| `ha budget <goal> --preapprove N --window W --revision R --quote "…" --context "…"` | `/4` and `/5` only: records the user's pre-approved run limit for the window; the limit itself stays |
+| `ha budget <goal> --runs N --from P --window W --revision R [--quote "…" --context "…"] [--reason "…"] [--interpretation "…"]` | `/3` to `/7`: changes the current window's total run limit while retaining usage; quote and context for increases, reason for decreases |
+| `ha budget <goal> --preapprove N --window W --revision R --quote "…" --context "…"` | `/4` to `/7` only: records the user's pre-approved run limit for the window; the limit itself stays |
 | `ha note <goal> confirm <AC-n \| scope:<path> \| tests:<path> \| spec> --quote "…"` | Records a quoted user confirmation, bound to the current content. It loses effect if that content changes |
 | `ha note <goal> reopen --quote "…"` | Records a rework request; voids the completion record and opens a new budget window |
 | `ha note <goal> input --quote "…"` | Records any other user instruction or answer |
 | `ha note <goal> block --cause <cause> [--quote "…"]` / `unblock` | Records a stop that cannot be fixed by retrying, and its end |
-| `ha note <goal> test-change tests:<path> --criteria AC-n[,…] --how "…" [--moved-to <path> …] [--weakened]` | `/4` and `/5` only: the executor's reason for changing an existing test, bound to the files at HEAD |
-| `ha note <goal> wait --reason "…"` / `resume` | `/4` and `/5` only: the start and end of a wait for the user that the executor reports |
-| `ha note <goal> recover <AC-n> --input check\|baseline --change "…"` | `/4` and `/5` only: resets an input past its error limit; earlier errors leave the limit, failures stay |
-| `ha note <goal> allow-recovery <AC-n> --input check\|baseline --count N --quote "…"` | `/4` and `/5` only: the user allows N more recoveries for that input |
-| `ha note <goal> review --gate <file>` | `/5` only: records a `review-gate/v1` file's digest and the summary the review judgment reads. An unusable file exits 65 and records nothing |
+| `ha note <goal> test-change tests:<path> --criteria AC-n[,…] --how "…" [--moved-to <path> …] [--weakened]` | `/4` to `/7` only: the executor's reason for changing an existing test, bound to the files at HEAD |
+| `ha note <goal> wait --reason "…"` / `resume` | `/4` to `/7` only: the start and end of a wait for the user that the executor reports |
+| `ha note <goal> recover <AC-n> --input check\|baseline --change "…"` | `/4` to `/7` only: resets an input past its error limit; earlier errors leave the limit, failures stay |
+| `ha note <goal> allow-recovery <AC-n> --input check\|baseline --count N --quote "…"` | `/4` to `/7` only: the user allows N more recoveries for that input |
+| `ha note <goal> review --gate <file>` | `/5` to `/7` only: records a `review-gate/v1` file's digest and the summary the review judgment reads. An unusable file exits 65 and records nothing |
+| `ha note <goal> check-change checks:<path> --reason "…"` | `/7` only: records the reason for a committed change to a check file after the check freeze, bound to that file at HEAD. Earlier rules refuse it with 64 |
 | `ha status <goal> [--format md\|json]` | Prints the computed state |
 | `ha report <goal> [--lang ko\|en]` | Prints the same state for people: a five-line summary, the stamp for `## 현재`, evidence per condition, completion coverage and where unmet output is. Read-only and deterministic; records nothing |
+| `ha cost <goal> [--series <folder>]… [--format md\|json] [--lang ko\|en]` | Shows what one goal cost in verification and review, from its records, its goal documents, Git and the Spar series folders named with `--series`. Read-only |
 | `ha doctor <goal>` | Runs each probe of PLAN `## 실행 환경` once with a 60-second limit and prints `사용 가능` or `사용 불가` with the reason. Records nothing and uses no runs |
 | `ha done <goal> [--format md\|json]` | Computes the state and records it. When the state is `complete`, the line is the completion record |
 | `ha log <goal> <seq> [--tail N]` | Shows the local output of one run. Output never leaves this clone |

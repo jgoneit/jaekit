@@ -16,7 +16,7 @@ Jaekit을 처음 설치하거나, 새 버전으로 업데이트하거나, 제거
 
 ## 기본 설치
 
-Git과 Codex 또는 Claude Code가 필요합니다. brew로 설치하려면 [Homebrew](https://brew.sh)도 준비합니다. 작업할 프로젝트는 Git으로 변경 이력을 관리하는 폴더여야 합니다. Jaekit 저장소를 clone(내 컴퓨터로 복사)할 필요는 없습니다.
+Git 2.36 이상과 Codex 또는 Claude Code가 필요합니다. brew로 설치하려면 [Homebrew](https://brew.sh)도 준비합니다. 작업할 프로젝트는 Git으로 변경 이력을 관리하는 폴더여야 합니다. Jaekit 저장소를 clone(내 컴퓨터로 복사)할 필요는 없습니다.
 
 현재 공개 릴리스의 Seal Core `ha`는 Windows를 지원하지 않습니다. [Windows 네이티브 후보 안내](WINDOWS.md)는 별도 후보 패키지를 다룹니다. Windows 11 x64·PowerShell 5.1/7의 실제 설치·Core 실행·호스트 동작은 아직 확인하지 않았으며, 교차 빌드와 로컬 검사는 그 근거를 대신하지 않습니다.
 
