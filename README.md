@@ -105,7 +105,7 @@ flowchart TD
 
 ### What you need
 
-- **Git** and **a project folder managed with Git.** You do not need to clone the Jaekit repository.
+- **Git 2.36 or later** and **a project folder managed with Git.** You do not need to clone the Jaekit repository.
 - **Claude Code** or **[Codex CLI](https://learn.chatgpt.com/docs/codex/cli)**
 - On macOS and Linux, **[Homebrew](https://brew.sh)** (a program installer) is recommended. Without it, install from a Release file.
 
@@ -192,13 +192,17 @@ codex plugin add spar@jaekit
 
 ### Before your first `standard` goal
 
-Add `docs/reviews/` to your project's `.gitignore` before its first `standard` or `strict` goal. Spar writes review records only to a folder Git ignores, and in a project that has never run Spar, Git does not ignore that folder yet, so the first review round would stop. `light` goals and goals that do not use Spar do not need this step.
+Do two things before a project's first `standard` or `strict` goal. `light` goals and goals that do not use Spar need neither.
+
+**1. Ignore the review folder, and commit that change.** Add `docs/reviews/` to your project's `.gitignore`. Spar writes review records only to a folder Git ignores, and in a project that has never run Spar, Git does not ignore that folder yet, so the first review round would stop. Commit the change before the goal starts: Seal runs checks only on a committed, clean tree.
 
 ```text
 docs/reviews/
 ```
 
 To use another folder or `.git/info/exclude` instead, see [Set up a project](guides/SPAR.en.md#set-up-a-project) in the Spar guide.
+
+**2. List the reviewer CLIs you have.** Without a user configuration, Spar requires the `claude`, `codex` and `agy` CLIs, and a goal whose required reviewer cannot run does not complete. Write `~/.config/jaekit/spar.toml` that lists only the CLIs you have: see [Configure reviewers](guides/SPAR.en.md#configure-reviewers).
 
 ### Your first task
 

@@ -55,23 +55,23 @@ Usage:
                     [--quote <user words> --context <request context>]
                     [--reason <reason>] [--interpretation <agent interpretation>]
   ha budget <goal> --preapprove <total> --window <seq> --revision <seq>
-                    --quote <user words> --context <request context>      (run-rules/4, /5, /6)
+                    --quote <user words> --context <request context>      (run-rules/4 to /7)
   ha note   <goal> block --cause <auth|permission|quota|environment|spec|other> [--quote <text>]
   ha note   <goal> unblock [--quote <text>]
   ha note   <goal> confirm <AC-n | scope:<path> | tests:<path> | spec> --quote <user words>
   ha note   <goal> reopen --quote <user words>
   ha note   <goal> input --quote <user words>
   ha note   <goal> test-change tests:<path> --criteria <AC-n,...> --how <how it is checked>
-                   [--moved-to <path> ...] [--weakened]                   (run-rules/4, /5, /6)
+                   [--moved-to <path> ...] [--weakened]                   (run-rules/4 to /7)
   ha note   <goal> check-change checks:<path> --reason <finding ID, or condition and reason>
                                                                           (run-rules/7)
-  ha note   <goal> wait --reason <decision asked>                         (run-rules/4, /5, /6)
-  ha note   <goal> resume                                                 (run-rules/4, /5, /6)
+  ha note   <goal> wait --reason <decision asked>                         (run-rules/4 to /7)
+  ha note   <goal> resume                                                 (run-rules/4 to /7)
   ha note   <goal> recover <AC-n> --input check|baseline --change <changed condition>
-                                                                          (run-rules/4, /5, /6)
+                                                                          (run-rules/4 to /7)
   ha note   <goal> allow-recovery <AC-n> --input check|baseline --count <n> --quote <user words>
-                                                                          (run-rules/4, /5, /6)
-  ha note   <goal> review --gate <review-gate/v1 file>                    (run-rules/5, /6)
+                                                                          (run-rules/4 to /7)
+  ha note   <goal> review --gate <review-gate/v1 file>                    (run-rules/5 to /7)
   ha finding <goal> [--input <JSON file>] [--format json|md]
   ha history <goal> [add|current|list|show] ...   (see ha history --help)
   ha status <goal> [--format md|json]
@@ -79,6 +79,7 @@ Usage:
   ha log    <goal> <seq> [--tail N]
   ha timing <goal> [--format md|json]
   ha report <goal> [--lang ko|en]
+  ha cost   <goal> [--series <folder>]... [--format md|json] [--lang ko|en]
   ha doctor <goal>
   ha --version
 
@@ -926,10 +927,10 @@ func (c *cli) note(in []string) int {
 	}
 	kind, quote := a.pos[1], strings.TrimSpace(a.vals["quote"])
 	if rules4Notes[kind] && !status.Autonomous(goalRules) {
-		return c.fail(exitRefused, "%s notes need a goal started with %s, %s or %s; this goal keeps %s", kind, status.RulesV4, status.RulesV5, status.RulesV6, goalRules)
+		return c.fail(exitRefused, "%s notes need a goal started with %s, %s, %s or %s; this goal keeps %s", kind, status.RulesV4, status.RulesV5, status.RulesV6, status.RulesV7, goalRules)
 	}
 	if kind == "review" && !status.Reviewed(goalRules) {
-		return c.fail(exitRefused, "review notes need a goal started with %s or %s; this goal keeps %s", status.RulesV5, status.RulesV6, goalRules)
+		return c.fail(exitRefused, "review notes need a goal started with %s, %s or %s; this goal keeps %s", status.RulesV5, status.RulesV6, status.RulesV7, goalRules)
 	}
 	if kind == "check-change" && goalRules != status.RulesV7 {
 		return c.fail(exitUsage, "unknown note kind %q", kind)

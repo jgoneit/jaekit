@@ -122,7 +122,7 @@ It cannot choose reviewers, commands, executables, models, efforts or allowed li
 
 ## Set up a project
 
-Spar writes review records only to a folder Git ignores, because a packet can contain private documents. In a project that has never run Spar, Git does not ignore that folder yet, so the first round stops with exit 65 before any reviewer starts and writes nothing. Before a project's first `standard` or `strict` goal, add one line to the project's `.gitignore`:
+Spar writes review records only to a folder Git ignores, because a packet can contain private documents. In a project that has never run Spar, Git does not ignore that folder yet, so the first round stops with exit 65 before any reviewer starts and writes nothing. Before a project's first `standard` or `strict` goal, add one line to the project's `.gitignore`, and commit that change before the goal starts, since Seal runs checks only on a committed, clean tree:
 
 ```text
 docs/reviews/
