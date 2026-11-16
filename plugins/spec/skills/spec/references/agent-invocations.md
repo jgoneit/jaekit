@@ -1,7 +1,5 @@
 # Agent invocations
 
-These rules add to [Agent invocations](../SKILL.md#agent-invocations) in the skill body when an agent invoked Spec. The body keeps who decides: only the user's own words answer, accept, or make documents `Ready`.
-
 ## New goals
 
 Settle the writing target as for any request, then write `docs/specs/<goal>/SPEC.md` at once and report; never show only a summary in the conversation and defer the file. The document has `Status: Draft` and one unindented `Proposed-By: agent` line before the first level-two section. Under decisions and reasons, record why the agent invoked this skill, with its source: a quote of the user's words, a review finding's identifier, or the path of a file read. `## Open Decisions` holds one item asking whether the user accepts this proposal, next to any open decision about the content. Never write a new goal into a goal directory that already exists; when goal documents cover the same behavior, ask for the writing target before writing, as [Reading the request](../SKILL.md#reading-the-request) says.

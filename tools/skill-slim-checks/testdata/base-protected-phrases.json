@@ -4784,7 +4784,29 @@
   "suite": "design"
  },
  {
+  "criterion": "AC-9",
+  "file": "examples/verification-design.md",
+  "message": "synthetic assurance example lost scope/decision clause",
+  "module": "design_check.py",
+  "phrase": "E2는 R2·check-v2·code-v2의 가상 근거다",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
   "criterion": "AC-2",
+  "file": "examples/verification-design.md",
+  "message": "synthetic assurance example lost scope/decision clause",
+  "module": "design_check.py",
+  "phrase": "E3의 fake 결과는 실제 모델 관측이 아니다",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-9",
   "file": "examples/verification-design.md",
   "message": "synthetic assurance example lost scope/decision clause",
   "module": "design_check.py",
@@ -4806,7 +4828,29 @@
   "suite": "design"
  },
  {
+  "criterion": "AC-9",
+  "file": "examples/verification-design.md",
+  "message": "synthetic assurance example lost scope/decision clause",
+  "module": "design_check.py",
+  "phrase": "R1을 v2의 검토로 재사용하지 않는다",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
   "criterion": "AC-4",
+  "file": "examples/verification-design.md",
+  "message": "synthetic assurance example lost scope/decision clause",
+  "module": "design_check.py",
+  "phrase": "확인된 위반을 위험 문구만 추가하여 닫지 않는다",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-9",
   "file": "examples/verification-design.md",
   "message": "synthetic assurance example lost scope/decision clause",
   "module": "design_check.py",
@@ -4839,6 +4883,17 @@
   "suite": "finding-docs"
  },
  {
+  "criterion": "AC-6",
+  "file": "examples/verification-findings.md",
+  "message": "finding example lost its evidence/authority/scope boundary",
+  "module": "finding_docs_check.py",
+  "phrase": "F4는 새 요구로 확인되었으며 기존 조건 위반 수에 넣지 않는다",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
   "criterion": "AC-2",
   "file": "examples/verification-findings.md",
   "message": "finding example lost its evidence/authority/scope boundary",
@@ -4850,7 +4905,29 @@
   "suite": "finding-docs"
  },
  {
+  "criterion": "AC-6",
+  "file": "examples/verification-findings.md",
+  "message": "finding example lost its evidence/authority/scope boundary",
+  "module": "finding_docs_check.py",
+  "phrase": "F5는 code-v1의 미해결 발견이며 code-v2에서 재현했는지는 미관측",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
   "criterion": "AC-2",
+  "file": "examples/verification-findings.md",
+  "message": "finding example lost its evidence/authority/scope boundary",
+  "module": "finding_docs_check.py",
+  "phrase": "현재 결함이 없는 것처럼 설명하지 않는다",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-6",
   "file": "examples/verification-findings.md",
   "message": "finding example lost its evidence/authority/scope boundary",
   "module": "finding_docs_check.py",
@@ -4883,7 +4960,29 @@
   "suite": "finding-docs"
  },
  {
+  "criterion": "AC-6",
+  "file": "examples/verification-findings.md",
+  "message": "finding example lost its evidence/authority/scope boundary",
+  "module": "finding_docs_check.py",
+  "phrase": "가상 사용자 요청 U1: “F1을 수정해 주세요.”",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
   "criterion": "AC-2",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "observation-draft: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "출처: 요청 A.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-7",
   "file": "evals/spec-cases/decision-boundaries.md",
   "message": "observation-draft: concrete criterion or decision source omits the agreed boundary",
   "module": "spec_check.py",
@@ -4905,7 +5004,29 @@
   "suite": "spec-boundaries"
  },
  {
+  "criterion": "AC-7",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "observation-draft: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "실행하지 않은 텍스트를 실행 근거로 인정하지 않는다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
   "criterion": "AC-3",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "observation-draft: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "대표 사례이며 예시 밖의 비실행 텍스트에도 같은 성질이 적용된다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-7",
   "file": "evals/spec-cases/decision-boundaries.md",
   "message": "observation-draft: concrete criterion or decision source omits the agreed boundary",
   "module": "spec_check.py",
@@ -4927,7 +5048,29 @@
   "suite": "spec-boundaries"
  },
  {
+  "criterion": "AC-7",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "observation-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "출처: 사용자 답 A.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
   "criterion": "AC-1",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "observation-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "해당 요청에서 실제로 실행하지 않은 텍스트는 실행 근거가 아니다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-7",
   "file": "evals/spec-cases/decision-boundaries.md",
   "message": "observation-ready: concrete criterion or decision source omits the agreed boundary",
   "module": "spec_check.py",
@@ -4949,7 +5092,29 @@
   "suite": "spec-boundaries"
  },
  {
+  "criterion": "AC-7",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "observation-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "판독 불가는 근거 불충분이고 다른 요청의 근거는 섞이지 않는다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
   "criterion": "AC-2",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "cleanup-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "출처: 공개 계약 B.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-7",
   "file": "evals/spec-cases/decision-boundaries.md",
   "message": "cleanup-ready: concrete criterion or decision source omits the agreed boundary",
   "module": "spec_check.py",
@@ -4971,7 +5136,29 @@
   "suite": "spec-boundaries"
  },
  {
+  "criterion": "AC-7",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "cleanup-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "호출 전후 선택 범위 밖의 모든 파일은 추가·삭제·변경되지 않는다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
   "criterion": "AC-3",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "cleanup-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "목록 밖의 관계없는 파일도 보존된다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-7",
   "file": "evals/spec-cases/decision-boundaries.md",
   "message": "cleanup-ready: concrete criterion or decision source omits the agreed boundary",
   "module": "spec_check.py",
@@ -4993,7 +5180,29 @@
   "suite": "spec-boundaries"
  },
  {
+  "criterion": "AC-7",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "cleanup-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "대상인지 판단할 수 없으면 해당 파일을 보존한다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
   "criterion": "AC-2",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "allowlist-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "출처: 요청 C.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-7",
   "file": "evals/spec-cases/decision-boundaries.md",
   "message": "allowlist-ready: concrete criterion or decision source omits the agreed boundary",
   "module": "spec_check.py",
@@ -5015,7 +5224,40 @@
   "suite": "spec-boundaries"
  },
  {
+  "criterion": "AC-7",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "allowlist-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "`a`와 `b`만 허용한다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
   "criterion": "AC-1",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "allowlist-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "전체 목록 밖의 값과 판정 불가는 거부한다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "allowlist-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "전체 목록 밖의 값과 판정 불가는 거부한다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-7",
   "file": "evals/spec-cases/decision-boundaries.md",
   "message": "allowlist-ready: concrete criterion or decision source omits the agreed boundary",
   "module": "spec_check.py",

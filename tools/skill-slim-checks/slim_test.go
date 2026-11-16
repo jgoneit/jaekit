@@ -256,19 +256,32 @@ type refSection struct {
 	doc, heading string
 	level        int
 	anchors      []string
-	sha256       string
+	// preamble marks the prose before a document's first level-2 heading;
+	// only a link to the document itself, or to its title, reaches it.
+	preamble bool
+	sha256   string
 }
 
-// refSections reads the level-2 and level-3 sections of a skill's reference
-// documents in the tree at root.
+// fieldsDigest is the SHA-256 of lines with white space runs as one space.
+func fieldsDigest(lines []string) string {
+	sum := sha256.Sum256([]byte(strings.Join(strings.Fields(strings.Join(lines, " ")), " ")))
+	return hex.EncodeToString(sum[:])
+}
+
+// refSections reads the sections of a skill's reference documents in the
+// tree at root: every level-2 and level-3 section; every level-1 heading
+// after the first level-2 heading with the text directly under it; and the
+// preamble, the non-heading text before the first level-2 heading. A
+// level-1 part or preamble with no text holds no rule and is left out.
 func refSections(t tb, root string, s skill) []refSection {
 	var out []refSection
 	for _, doc := range docs(t, root, s)[1:] {
 		text := readFile(t, root, doc)
 		lines := strings.Split(text, "\n")
 		kinds := classify(text)
+		anchor := map[int]string{}
 		seen := map[string]int{}
-		parent := ""
+		firstL2 := len(lines)
 		for i, kind := range kinds {
 			if kind != kindHead {
 				continue
@@ -280,42 +293,57 @@ func refSections(t tb, root string, s skill) []refSection {
 			} else {
 				seen[a]++
 			}
-			lv := headingLevel(lines[i])
-			if lv == 2 {
-				parent = a
+			anchor[i] = a
+			if headingLevel(lines[i]) == 2 && firstL2 == len(lines) {
+				firstL2 = i
 			}
-			if lv != 2 && lv != 3 {
-				continue
-			}
-			end := len(lines)
+		}
+		end := func(i, lv int) int {
 			for j := i + 1; j < len(lines); j++ {
 				if kinds[j] == kindHead && headingLevel(lines[j]) <= lv {
-					end = j
-					break
+					return j
 				}
 			}
-			sum := sha256.Sum256([]byte(strings.Join(strings.Fields(strings.Join(lines[i+1:end], " ")), " ")))
-			anchors := []string{a}
-			if lv == 3 && parent != "" {
-				anchors = append(anchors, parent)
-			}
-			out = append(out, refSection{doc: doc, heading: headingText(lines[i]), level: lv, anchors: anchors, sha256: hex.EncodeToString(sum[:])})
+			return len(lines)
 		}
-		// The text outside every level-2 section (the preamble and level-1
-		// parts) is one more section, of level 1 and no heading; a link to
-		// the document or any of its anchors reaches it.
-		var outside []string
-		inside := false
+		parent := ""
 		for i, kind := range kinds {
-			if kind == kindHead && headingLevel(lines[i]) <= 2 {
-				inside = headingLevel(lines[i]) == 2
+			if kind != kindHead {
+				continue
 			}
-			if !inside {
-				outside = append(outside, lines[i])
+			lv := headingLevel(lines[i])
+			if lv == 2 {
+				parent = anchor[i]
+			}
+			switch {
+			case lv == 2 || lv == 3:
+				anchors := []string{anchor[i]}
+				if lv == 3 && parent != "" {
+					anchors = append(anchors, parent)
+				}
+				out = append(out, refSection{doc: doc, heading: headingText(lines[i]), level: lv, anchors: anchors, sha256: fieldsDigest(lines[i+1 : end(i, lv)])})
+			case lv == 1 && i > firstL2:
+				parent = ""
+				body := lines[i+1 : end(i, 2)]
+				if strings.TrimSpace(strings.Join(body, "")) != "" {
+					out = append(out, refSection{doc: doc, heading: headingText(lines[i]), level: 1, anchors: []string{anchor[i]}, sha256: fieldsDigest(body)})
+				}
 			}
 		}
-		sum := sha256.Sum256([]byte(strings.Join(strings.Fields(strings.Join(outside, " ")), " ")))
-		out = append(out, refSection{doc: doc, level: 1, sha256: hex.EncodeToString(sum[:])})
+		var pre []string
+		var title []string
+		for i := 0; i < firstL2; i++ {
+			if kinds[i] == kindHead {
+				if headingLevel(lines[i]) == 1 && len(title) == 0 {
+					title = []string{anchor[i]}
+				}
+				continue
+			}
+			pre = append(pre, lines[i])
+		}
+		if strings.TrimSpace(strings.Join(pre, "")) != "" {
+			out = append(out, refSection{doc: doc, level: 1, anchors: title, preamble: true, sha256: fieldsDigest(pre)})
+		}
 	}
 	return out
 }
@@ -324,8 +352,9 @@ func refSections(t tb, root string, s skill) []refSection {
 // SKILL.md that links it, or its enclosing level-2 section, and says when to
 // read it. Such sections are the representatives, every level-2 or level-3
 // section that is new since the base, and every base section whose text
-// changed; a document's text outside its level-2 sections counts as one
-// more section, reached by any link to that document.
+// changed; a level-1 heading after the first level-2 heading, with its text,
+// counts as a section reached by its own anchor, and a document's preamble
+// counts as one reached by a link to the document itself or its title.
 func TestSkillSlimAC6_MovedLinked(t *testing.T) {
 	root := repoRoot(t)
 	var base map[string][]struct {
@@ -377,16 +406,16 @@ func TestSkillSlimAC6_MovedLinked(t *testing.T) {
 				}
 				for _, target := range linkTargets(lines[i]) {
 					full := resolve(s.body(), target)
-					if sec.level == 1 {
-						found = found || full == sec.doc || strings.HasPrefix(full, sec.doc+"#")
+					if sec.preamble {
+						found = found || full == sec.doc
 					}
 					for _, a := range sec.anchors {
 						found = found || full == sec.doc+"#"+a
 					}
 				}
 			}
-			if !found && sec.level == 1 {
-				t.Errorf("jaekit:violation=moved-unlinked: %s has no line that links %s and says when to read it (its text outside level-2 sections is new or changed)",
+			if !found && sec.preamble {
+				t.Errorf("jaekit:violation=moved-unlinked: %s has no line that links %s itself and says when to read it (its text before the first level-2 heading is new or changed)",
 					s.body(), strings.TrimPrefix(sec.doc, s.dir+"/"))
 			} else if !found {
 				t.Errorf("jaekit:violation=moved-unlinked: %s has no line that links %s#%s and says when to read it",

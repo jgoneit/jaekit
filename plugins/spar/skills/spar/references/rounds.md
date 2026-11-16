@@ -1,7 +1,5 @@
 # Spar rounds
 
-These sections hold Spar rules for particular situations. The [skill body](../SKILL.md) says when to read each one; its rules still apply here.
-
 ## At the code cap
 
 Each time the code cap is reached, run `spar cap-report <series>` before you ask the user for more rounds. Pick one cause from its signals and show the user the signals with that cause's recommendation:
