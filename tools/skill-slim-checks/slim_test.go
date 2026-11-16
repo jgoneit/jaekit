@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 )
 
@@ -215,9 +217,11 @@ func TestSkillSlimAC6_LinksResolve(t *testing.T) {
 						continue
 					}
 					path, anchor, _ := strings.Cut(full, "#")
-					if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(path))); err != nil {
+					if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(path))); errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR) {
 						t.Errorf("jaekit:violation=moved-unlinked: %s:%d links %s, which does not exist", doc, i+1, target)
 						continue
+					} else if err != nil {
+						t.Fatalf("setup: %s:%d links %s, which cannot be read: %v", doc, i+1, target, err)
 					}
 					if anchor != "" && (!strings.HasSuffix(path, ".md") || !slugs(readFile(t, root, path))[anchor]) {
 						t.Errorf("jaekit:violation=moved-unlinked: %s:%d links %s, whose heading does not exist", doc, i+1, target)
@@ -890,18 +894,57 @@ func removePhrase(text, p, keep string) string {
 	return strings.Join(lines, "\n")
 }
 
+// otherSection returns the first heading line of text, at the level of
+// heading, whose text differs from it.
+func otherSection(t tb, text, heading string) string {
+	level := headingLevel(heading)
+	lines := strings.Split(text, "\n")
+	for i, kind := range classify(text) {
+		if kind == kindHead && headingLevel(lines[i]) == level && headingText(lines[i]) != headingText(heading) {
+			return strings.TrimSpace(lines[i])
+		}
+	}
+	t.Fatalf("setup: no other level-%d section than %q to place a phrase in", level, heading)
+	return ""
+}
+
 // variants builds the copy states of a phrase. A phrase of a skill document
 // has three: removed from every document of its skill (reported missing), and
 // moved only into the skill's SKILL.md or into a reference document other
 // than its own file (not reported); a row phrase moves with its table row. A
-// phrase of any other file has one: removed from that file (reported
-// missing).
+// phrase scoped to a section has a fourth: moved only into another section of
+// its file (reported missing). A phrase of any other file is removed from
+// that file, and a section phrase there is also moved only into another
+// section of it; both are reported missing.
 func variants(t tb, root string, p phrase) []variant {
 	if !skillSource(p.File) {
-		return []variant{{p: p, name: "removed from " + p.File, want: true,
+		out := []variant{{p: p, name: "removed from " + p.File, want: true,
 			change: func(t tb, dir string, pristine map[string]string) {
 				writeFile(t, dir, p.File, removePhrase(pristine[p.File], p.Phrase, p.Section))
 			}}}
+		if p.Section != "" {
+			other := otherSection(t, readFile(t, root, p.File), p.Section)
+			out = append(out, variant{p: p, name: "only in " + p.File + " " + other, want: true,
+				change: func(t tb, dir string, pristine map[string]string) {
+					text, add := pristine[p.File], []string{p.Phrase}
+					if p.Row != "" {
+						lines := strings.Split(text, "\n")
+						for i, l := range lines {
+							if strings.HasPrefix(l, "| "+p.Row+" |") && strings.Contains(l, p.Phrase) {
+								add = []string{l}
+								lines = append(lines[:i], lines[i+1:]...)
+								break
+							}
+						}
+						if add[0] == p.Phrase {
+							t.Fatalf("setup: %s has no row %q holding %q", p.File, p.Row, p.Phrase)
+						}
+						text = strings.Join(lines, "\n")
+					}
+					writeFile(t, dir, p.File, insertIn(removePhrase(text, p.Phrase, p.Section), other, add))
+				}})
+		}
+		return out
 	}
 	s := skill{}
 	for _, c := range skills {
@@ -944,6 +987,21 @@ func variants(t tb, root string, p phrase) []variant {
 				writeFile(t, dir, doc, removePhrase(pristine[doc], p.Phrase, p.Section))
 			}
 		}}}
+	if p.Section != "" {
+		other := otherSection(t, readFile(t, root, p.File), p.Section)
+		out = append(out, variant{p: p, name: "only in " + p.File + " " + other, want: true,
+			change: func(t tb, dir string, pristine map[string]string) {
+				row := strip(dir, pristine)
+				add := []string{p.Phrase}
+				if p.Row != "" {
+					if row == "" {
+						t.Fatalf("setup: %s has no row %q holding %q", p.File, p.Row, p.Phrase)
+					}
+					add = []string{row}
+				}
+				writeFile(t, dir, p.File, insertIn(readFile(t, dir, p.File), other, add))
+			}})
+	}
 	for _, target := range targets {
 		target := target
 		out = append(out, variant{p: p, name: "only in " + target, want: false,
