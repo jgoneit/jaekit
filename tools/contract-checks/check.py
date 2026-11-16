@@ -170,6 +170,25 @@ def skill_documents(root: Path, name: str) -> list[str]:
     return [doc for doc in [skill + "/SKILL.md"] + refs if doc not in EARLIER_GOALS_ONLY or doc == name]
 
 
+def clause_inputs(names) -> set[str]:
+    """The files under ROOT that clauses on names are looked up in: each name,
+    and for a skill document every document of its skill the lookup reads."""
+    out = set()
+    for name in names:
+        out.add(name)
+        if SKILL_DOC.match(name) and (ROOT / name).exists():
+            out.update(doc for doc in skill_documents(ROOT, name) if (ROOT / doc).exists())
+    return out
+
+
+def has_anchor(source: str, anchor: str) -> bool:
+    """Whether source holds anchor. A Markdown heading anchor ('#' first) must
+    be a whole line, so a longer heading elsewhere does not stand in for it."""
+    if anchor.startswith("#"):
+        return any(line.rstrip() == anchor for line in source.splitlines())
+    return anchor in source
+
+
 def clause_text(root: Path, name: str) -> str | None:
     """The text a clause on name is looked up in; None when name is absent.
 
@@ -194,7 +213,7 @@ def observe(root: Path, suite: str, criterion: str) -> tuple[dict, list[str]]:
             missing.append(f"{name}: required product artifact absent")
             continue
         for anchor in anchors:
-            if anchor not in source:
+            if not has_anchor(source, anchor):
                 missing.append(f"{name}: missing contract clause {anchor!r}")
     if suite == "reporting":
         missing.extend(reporting_links(root, criterion))

@@ -31,7 +31,7 @@ class SpecContracts(unittest.TestCase):
             ("전체 목록 밖의 값과 판정 불가는 거부한다.", "전체 목록 밖의 값은 허용한다."),
             ("출처: 사용자 답 A.", "출처: 현재 코드."),
         ]
-        paths = {path for clauses in checker.REQUIREMENTS[SUITE].values() for path, _ in clauses}
+        paths = checker.clause_inputs({path for clauses in checker.REQUIREMENTS[SUITE].values() for path, _ in clauses})
         for old, new in mutations:
             with self.subTest(mutation=old), tempfile.TemporaryDirectory() as directory:
                 root=Path(directory)

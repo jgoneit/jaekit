@@ -316,6 +316,35 @@ func TestSkillLinksResolve(t *testing.T) {
 	}
 }
 
+// Every reference document of a skill is the target of a link in its
+// SKILL.md, so a rule outside the body is always reachable from it.
+func TestSkillReferencesLinkedFromBody(t *testing.T) {
+	for _, dir := range []string{specSkillDir, sparSkillDir, sealSkillDir} {
+		docs := skillDocs(t, dir)
+		linked := map[string]bool{}
+		fenced := false
+		for _, line := range strings.Split(docs[0].text, "\n") {
+			trimmed := strings.TrimSpace(line)
+			if strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
+				fenced = !fenced
+			}
+			if fenced {
+				continue
+			}
+			_, outside := skillSpans(line)
+			for _, m := range skillLink.FindAllStringSubmatch(outside, -1) {
+				path, _, _ := strings.Cut(skillResolve(docs[0].path, m[1]), "#")
+				linked[path] = true
+			}
+		}
+		for _, doc := range docs[1:] {
+			if !linked[doc.path] {
+				t.Errorf("%s does not link %s", docs[0].path, doc.path)
+			}
+		}
+	}
+}
+
 // skillAnchors returns GitHub's heading anchors of a Markdown document.
 func skillAnchors(text string) map[string]bool {
 	out, seen := map[string]bool{}, map[string]int{}

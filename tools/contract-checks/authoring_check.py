@@ -396,7 +396,7 @@ def observe(root, suite, criterion):
             problems.append(f"{name}: required product artifact absent")
             return
         for anchor in anchors:
-            if anchor not in text:
+            if not checker.has_anchor(text, anchor):
                 problems.append(f"{name} {where}: missing {anchor!r}")
 
     for key, anchors in CLAUSES.get(criterion, []):

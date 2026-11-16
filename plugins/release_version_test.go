@@ -173,19 +173,30 @@ func rvLine(t *testing.T, path string, tokens ...string) {
 	t.Errorf("%s has no line with all of %q", path, tokens)
 }
 
-// rvPinnedLink is a link target pinned to a release tag.
-var rvPinnedLink = regexp.MustCompile(`jaekit/blob/(v\d+\.\d+\.\d+)/`)
+// rvPinnedURL is a release-pinned Jaekit URL in a skill document, whether a
+// link target or bare text.
+var rvPinnedURL = regexp.MustCompile("https://github\\.com/jgoneit/jaekit/blob/(v\\d+\\.\\d+\\.\\d+)/[^\\s)<>\\]`]*")
 
-// Every release-pinned link target of the Seal skill names the current
-// release, one of them is the current release's install guide, and the core
-// capabilities contract links the current release's check_core.py.
+// Every release-pinned URL of the Seal skill, linked or bare, names the
+// current release; the skill links the current release's reference check and
+// names its install guide; and the core capabilities contract links the
+// current release's check_core.py.
 func TestReleaseVersionSkillLinks(t *testing.T) {
 	requireSkillTokens(t, sealSkillDir,
 		"link:https://github.com/jgoneit/jaekit/blob/"+rvTag+"/guides/INSTALL.en.md#get-the-reference-check")
-	for target := range skillTokens(t, sealSkillDir).links {
-		if m := rvPinnedLink.FindStringSubmatch(target); m != nil && m[1] != rvTag {
-			t.Errorf("%s links %s, want the current release %s", sealSkillDir, target, rvTag)
+	install := "https://github.com/jgoneit/jaekit/blob/" + rvTag + "/guides/INSTALL.md"
+	named := false
+	for _, doc := range skillDocs(t, sealSkillDir) {
+		for _, m := range rvPinnedURL.FindAllStringSubmatch(doc.text, -1) {
+			url := strings.TrimRight(m[0], ".,;:")
+			if m[1] != rvTag {
+				t.Errorf("%s names %s, want the current release %s", doc.path, url, rvTag)
+			}
+			named = named || url == install || strings.HasPrefix(url, install+"#")
 		}
+	}
+	if !named {
+		t.Errorf("%s does not name %s", sealSkillDir, install)
 	}
 	requireAll(t, "../contracts/core-capabilities.md",
 		"Seal에 포함된 [check_core.py](https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/seal/skills/seal/scripts/check_core.py)")

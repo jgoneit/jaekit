@@ -26,7 +26,7 @@ class PublicContract(unittest.TestCase):
 
     def fixture(self, directory):
         root = Path(directory)
-        paths = {name for clauses in checker.REQUIREMENTS[SUITE].values() for name, _ in clauses}
+        paths = checker.clause_inputs({name for clauses in checker.REQUIREMENTS[SUITE].values() for name, _ in clauses})
         paths.update({"examples/empty-input/REVIEW.md", "examples/empty-input/PROGRESS.md", "examples/verification-reporting.md"})
         for name in paths:
             source = checker.ROOT / name

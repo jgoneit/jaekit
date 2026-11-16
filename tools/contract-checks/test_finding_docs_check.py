@@ -22,7 +22,7 @@ class FindingDocuments(unittest.TestCase):
    ('| E3 | code-v2 | AC-1 | F1 |','| E3 | code-v1 | AC-99 | F5 |'),
    ('문서 표의 상태는 기계가 검증한 최신 상태가 아니다','문서 표의 상태는 기계가 검증한 최신 상태다'),
   ]
-  paths={p for clauses in checker.REQUIREMENTS[SUITE].values() for p,_ in clauses}
+  paths=checker.clause_inputs({p for clauses in checker.REQUIREMENTS[SUITE].values() for p,_ in clauses})
   for old,new in mutations:
    with self.subTest(mutation=old),tempfile.TemporaryDirectory() as directory:
     root=Path(directory)

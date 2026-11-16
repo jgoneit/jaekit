@@ -10,7 +10,7 @@ import tempfile
 
 
 def copy_inputs(checker, suite, root):
-    names = {name for clauses in checker.REQUIREMENTS[suite].values() for name, _ in clauses}
+    names = checker.clause_inputs({name for clauses in checker.REQUIREMENTS[suite].values() for name, _ in clauses})
     for name in names:
         source = checker.ROOT / name
         if source.exists():
