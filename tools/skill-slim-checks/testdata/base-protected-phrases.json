@@ -1,0 +1,1739 @@
+[
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "check.py",
+  "phrase": "Expected-result grounds",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "check.py",
+  "phrase": "Planned observation boundary",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "check.py",
+  "phrase": "Method and substitutes",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "check.py",
+  "phrase": "not the authority for correctness",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "check.py",
+  "phrase": "planned, not performed, and observed",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "check.py",
+  "phrase": "only environments that affect the condition",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "check.py",
+  "phrase": "unobserved",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "check.py",
+  "phrase": "planned review to observed report",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "check.py",
+  "phrase": "condition, check, or environment changes",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "check.py",
+  "phrase": "recorded facts from the executor's interpretation",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "check.py",
+  "phrase": "event time and writing time",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "check.py",
+  "phrase": "time source",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "check.py",
+  "phrase": "not every tool call",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "check.py",
+  "phrase": "expected-result grounds",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "check.py",
+  "phrase": "observed boundaries",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "check.py",
+  "phrase": "methods and substitutes",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "check.py",
+  "phrase": "does not establish deployment",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "design_check.py",
+  "phrase": "selected assurance policy",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "design_check.py",
+  "phrase": "required conditions and source",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "design_check.py",
+  "phrase": "Risk alone does not mandate",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "design_check.py",
+  "phrase": "may not downgrade",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "design_check.py",
+  "phrase": "same property, input scope, and environment",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "design_check.py",
+  "phrase": "A reachable real system alone",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "design_check.py",
+  "phrase": "structured original evidence",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "design_check.py",
+  "phrase": "fake",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "design_check.py",
+  "phrase": "initial contract, check, and expected-result grounds",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "design_check.py",
+  "phrase": "implementation and integration code",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "design_check.py",
+  "phrase": "not a different model or certified identity",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "design_check.py",
+  "phrase": "candidate from reproduced counterexample",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "design_check.py",
+  "phrase": "reporting risk alone",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "design_check.py",
+  "phrase": "scope-changing proposal",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "design_check.py",
+  "phrase": "general property",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "design_check.py",
+  "phrase": "unobserved, environment error, skip, and observed violation",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "design_check.py",
+  "phrase": "not successful evidence or an intended baseline violation",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "design_check.py",
+  "phrase": "product allow/deny policy",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "design_check.py",
+  "phrase": "keep completion pending",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "design_check.py",
+  "phrase": "cause, affected conditions, missing evidence, and resolution",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "design_check.py",
+  "phrase": "independent useful work",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "design_check.py",
+  "phrase": "optional unobserved comparison",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "design_check.py",
+  "phrase": "goal, checks, code, grounds, environment, or assurance policy changes",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "design_check.py",
+  "phrase": "preserve the reviewed versions",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "design_check.py",
+  "phrase": "do not reuse",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "finding_docs_check.py",
+  "phrase": "historical completion",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "finding_docs_check.py",
+  "phrase": "unresolved discoveries",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "finding_docs_check.py",
+  "phrase": "rework request and progress",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "finding_docs_check.py",
+  "phrase": "Do not overwrite",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "candidate, confirmed, duplicate, dismissed, and resolved",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "new requirement from an existing-condition violation",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "correction target",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "not a unique confirmed-defect count",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "finding_docs_check.py",
+  "phrase": "does not authorize rework",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "finding_docs_check.py",
+  "phrase": "explicit user request",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "finding_docs_check.py",
+  "phrase": "does not change the execution budget",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "Seal 0.1.12",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "missing means unrecorded",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "Do not migrate",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "raw logs remain",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "finding_docs_check.py",
+  "phrase": "document format",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "finding_docs_check.py",
+  "phrase": "machine-verified finding state",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/spec/skills/spec/SKILL.md",
+  "module": "spec_check.py",
+  "phrase": "uninterpretable input",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/spec/skills/spec/SKILL.md",
+  "module": "spec_check.py",
+  "phrase": "observation unit",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/spec/skills/spec/SKILL.md",
+  "module": "spec_check.py",
+  "phrase": "before/after set invariants",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/spec/skills/spec/SKILL.md",
+  "module": "spec_check.py",
+  "phrase": "supported environment",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/spec/skills/spec/references/goal-docs.md",
+  "module": "spec_check.py",
+  "phrase": "observation unit",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/spec/skills/spec/references/goal-docs.md",
+  "module": "spec_check.py",
+  "phrase": "only relevant boundaries",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/spec/skills/spec/SKILL.md",
+  "module": "spec_check.py",
+  "phrase": "Do not ask again when a public contract",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/spec/skills/spec/SKILL.md",
+  "module": "spec_check.py",
+  "phrase": "Implementation and verification methods",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/spec/skills/spec/SKILL.md",
+  "module": "spec_check.py",
+  "phrase": "unresolved outcome",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/spec/skills/spec/SKILL.md",
+  "module": "spec_check.py",
+  "phrase": "exhaustive set or representative examples",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/spec/skills/spec/SKILL.md",
+  "module": "spec_check.py",
+  "phrase": "observable general property",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/spec/skills/spec/SKILL.md",
+  "module": "spec_check.py",
+  "phrase": "outside the supported scope",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/spec/skills/spec/references/goal-docs.md",
+  "module": "spec_check.py",
+  "phrase": "exhaustive set or representative examples",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/spec/skills/spec/references/goal-docs.md",
+  "module": "spec_check.py",
+  "phrase": "general property",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/spec/skills/spec/SKILL.md",
+  "module": "spec_check.py",
+  "phrase": "newline-containing names",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/spec/skills/spec/SKILL.md",
+  "module": "spec_check.py",
+  "phrase": "symlinks",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/spec/skills/spec/SKILL.md",
+  "module": "spec_check.py",
+  "phrase": "shallow clones",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/spec/skills/spec/SKILL.md",
+  "module": "spec_check.py",
+  "phrase": "concurrent ordering",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/spec/skills/spec/SKILL.md",
+  "module": "spec_check.py",
+  "phrase": "do not turn these examples into a checklist",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "every check in the condition table",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "`change`, `maintain`, `EX-n` and task commands",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "producer, configuration or helper file",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "the tree being checked",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "external inputs its condition names",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "start or base commit",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "fixed commit",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "start record or Core output",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "other commits, refs or objects",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "full clone and a history-less clone",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "synthetic repository",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "references/bundle.md#check-inputs",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "same verdict",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "full clone and a history-less clone",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "pinned SHA",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "base read from the start record or Core output",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "diff against an earlier commit",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "remote-tracking branch",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "`HEAD~n`",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "merge-base",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "log range",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "another worktree",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "synthetic repository the check builds itself",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "producer, configuration or helper file",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "`change`, `maintain`, `EX-n` and task commands",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "`maintain`",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "property the goal documents require",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "content, output, format or behavior",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "unchanged since the base commit",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "does not observe that property",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "outside `바꿀 수 있는 경로`",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "`out_of_scope`",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "expected content written in a tracked check file",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "content, output, format or behavior",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "not an observation of that property",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "outside `바꿀 수 있는 경로`",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "`out_of_scope`",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "since the base commit",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "tracked check file",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "only by Core's baseline run",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "never checks out, reads or compares the base commit",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "violation on the base commit and a pass after the change",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "temporary worktree of the base commit",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "check paths copied from HEAD",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "never checks out, reads or compares the base commit",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "violation on the base commit and a pass after the change",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/references/ha.md",
+  "module": "authoring_check.py",
+  "phrase": "baseline",
+  "row": "",
+  "section": "## What checks read",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/references/ha.md",
+  "module": "authoring_check.py",
+  "phrase": "temporary worktree of the base commit",
+  "row": "",
+  "section": "## What checks read",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/references/ha.md",
+  "module": "authoring_check.py",
+  "phrase": "`out_of_scope`",
+  "row": "",
+  "section": "## What checks read",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/references/ha.md",
+  "module": "authoring_check.py",
+  "phrase": "`test_definition_changed`",
+  "row": "",
+  "section": "## What checks read",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/references/ha.md",
+  "module": "authoring_check.py",
+  "phrase": "Checks themselves",
+  "row": "",
+  "section": "## What checks read",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "about repository history or refs",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "tag's type",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "commit message format",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "only the range and refs the condition names",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "error or unobserved",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "neither a violation nor a pass",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "pre-execution review",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "tag's type",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "commit message format",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "only the range and refs the condition names",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "unobserved, environment error or skip",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "neither a violation nor a pass",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "records why the check needs history and the range it reads",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "declares its own scope or trust boundary",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "pinned to a version or release",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "preserving past verdicts",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "isolating imports",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "limiting its inputs",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "current behavior",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "keeps the declaration",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "explicit assumption",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "the report repeats",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "without asking the user",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "same import boundary",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "document-conflict rule",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "pinned to a version or release",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "preserves past verdicts",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "isolates imports",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "limits its inputs",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "current behavior",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "explicit assumption",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "repeat it in the report",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "inside the boundary it declares",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "same import boundary",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "without asking the user",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "document-conflict rule",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "add no user confirmation, approval or question",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "the executor applies them and decides whether an existing check needs rewriting",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "add no user confirmation, approval or question",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "decides whether an existing check is worth rewriting",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-8",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "checks written or changed from Seal 0.1.14 on",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-8",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "whichever Seal version started the goal",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-8",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md`",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-8",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "checks written or changed from that version on",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-8",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "whichever Seal version started the goal",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-8",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md`",
+  "row": "",
+  "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "repository history",
+  "row": "검증 방법과 환경",
+  "section": "## REVIEW.md",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "range it reads",
+  "row": "검증 방법과 환경",
+  "section": "## REVIEW.md",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "declared scope or trust boundary",
+  "row": "중요한 미결정",
+  "section": "## REVIEW.md",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "Python 3 is not a prerequisite for Seal",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "does not require an official adapter",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "Existing `/1` and `/2` goals retain their result semantics",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "## Assurance policy",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "No particular runner or adapter is required",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "Any other value is the lint problem `other_bundles_invalid`",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "ha note <goal> confirm <AC-n | scope:<path> | tests:<path> | spec>",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "When the goal, scope, or criteria look wrong or need to change, ask the user",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/SKILL.md",
+  "module": "authoring_check.py",
+  "phrase": "`needs_user` means asking the user about those items",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "Changes outside them need the user's confirmation",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "Editing or deleting a test that existed at base needs the user's confirmation",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "Never resolve them by editing the goal documents; ask",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/references/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "Close each with the user's quoted answer or an explicit assumption that the report repeats",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/references/ha.md",
+  "module": "authoring_check.py",
+  "phrase": "| `out_of_scope` | user | Files changed since base outside `바꿀 수 있는 경로` |",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/references/ha.md",
+  "module": "authoring_check.py",
+  "phrase": "Runs `change` conditions on a temporary worktree of the base commit with their check paths copied from HEAD",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ }
+]

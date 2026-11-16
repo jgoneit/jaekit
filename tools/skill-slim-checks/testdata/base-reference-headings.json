@@ -1,0 +1,171 @@
+{
+ "seal": [
+  [
+   "plugins/seal/skills/seal/references/bundle.md",
+   "PLAN.md"
+  ],
+  [
+   "plugins/seal/skills/seal/references/bundle.md",
+   "Questions for the user"
+  ],
+  [
+   "plugins/seal/skills/seal/references/bundle.md",
+   "Check inputs"
+  ],
+  [
+   "plugins/seal/skills/seal/references/bundle.md",
+   "Final candidate evidence"
+  ],
+  [
+   "plugins/seal/skills/seal/references/bundle.md",
+   "tasks/T001.md"
+  ],
+  [
+   "plugins/seal/skills/seal/references/bundle.md",
+   "REVIEW.md"
+  ],
+  [
+   "plugins/seal/skills/seal/references/bundle.md",
+   "PROGRESS.md"
+  ],
+  [
+   "plugins/seal/skills/seal/references/bundle.md",
+   "Review summary"
+  ],
+  [
+   "plugins/seal/skills/seal/references/bundle.md",
+   "Assurance policy and counterexamples"
+  ],
+  [
+   "plugins/seal/skills/seal/references/bundle.md",
+   "Post-completion discovery documents"
+  ],
+  [
+   "plugins/seal/skills/seal/references/bundle.md",
+   "Completion report"
+  ],
+  [
+   "plugins/seal/skills/seal/references/earlier-goals.md",
+   "Starting and resuming"
+  ],
+  [
+   "plugins/seal/skills/seal/references/earlier-goals.md",
+   "PROGRESS"
+  ],
+  [
+   "plugins/seal/skills/seal/references/earlier-goals.md",
+   "Review and evidence"
+  ],
+  [
+   "plugins/seal/skills/seal/references/earlier-goals.md",
+   "Goals started under run-rules/4 or earlier"
+  ],
+  [
+   "plugins/seal/skills/seal/references/earlier-goals.md",
+   "Completion report"
+  ],
+  [
+   "plugins/seal/skills/seal/references/ha.md",
+   "Core compatibility"
+  ],
+  [
+   "plugins/seal/skills/seal/references/ha.md",
+   "Commands"
+  ],
+  [
+   "plugins/seal/skills/seal/references/ha.md",
+   "Before execution"
+  ],
+  [
+   "plugins/seal/skills/seal/references/ha.md",
+   "Structured change results"
+  ],
+  [
+   "plugins/seal/skills/seal/references/ha.md",
+   "run-rules/4"
+  ],
+  [
+   "plugins/seal/skills/seal/references/ha.md",
+   "run-rules/5"
+  ],
+  [
+   "plugins/seal/skills/seal/references/ha.md",
+   "run-rules/6"
+  ],
+  [
+   "plugins/seal/skills/seal/references/ha.md",
+   "run-rules/7"
+  ],
+  [
+   "plugins/seal/skills/seal/references/ha.md",
+   "Budget changes"
+  ],
+  [
+   "plugins/seal/skills/seal/references/ha.md",
+   "States"
+  ],
+  [
+   "plugins/seal/skills/seal/references/ha.md",
+   "Status output"
+  ],
+  [
+   "plugins/seal/skills/seal/references/ha.md",
+   "Reasons"
+  ],
+  [
+   "plugins/seal/skills/seal/references/ha.md",
+   "What checks read"
+  ],
+  [
+   "plugins/seal/skills/seal/references/ha.md",
+   "Freshness"
+  ],
+  [
+   "plugins/seal/skills/seal/references/ha.md",
+   "Final head"
+  ]
+ ],
+ "spar": [],
+ "spec": [
+  [
+   "plugins/spec/skills/spec/references/goal-docs.md",
+   "Document set"
+  ],
+  [
+   "plugins/spec/skills/spec/references/goal-docs.md",
+   "SPEC.md"
+  ],
+  [
+   "plugins/spec/skills/spec/references/goal-docs.md",
+   "Criteria"
+  ],
+  [
+   "plugins/spec/skills/spec/references/goal-docs.md",
+   "Header lines"
+  ],
+  [
+   "plugins/spec/skills/spec/references/goal-docs.md",
+   "Amendment documents"
+  ],
+  [
+   "plugins/spec/skills/spec/references/goal-docs.md",
+   "The implement-now question"
+  ],
+  [
+   "plugins/spec/skills/spec/references/goal-docs.md",
+   "User scenarios"
+  ],
+  [
+   "plugins/spec/skills/spec/references/goal-docs.md",
+   "Outcome boundaries and examples"
+  ],
+  [
+   "plugins/spec/skills/spec/references/goal-docs.md",
+   "Work breakdown proposal"
+  ],
+  [
+   "plugins/spec/skills/spec/references/goal-docs.md",
+   "Consistency"
+  ]
+ ]
+}

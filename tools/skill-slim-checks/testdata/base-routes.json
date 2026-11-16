@@ -1,0 +1,170 @@
+{
+ "archive-consumer-input-boundary": {
+  "boundary": "Synthetic tar/gzip bytes and controlled download responses exercise local consumer boundaries. This is not an observation of a published archive, remote download or actual host installation.",
+  "invariant": "I3",
+  "property": "The same bounded archive parser rejects invalid or unsupported observation inputs across archive collection and installation consumers while accepting supported archives.",
+  "status": "protected"
+ },
+ "authoring-check-current-tree": {
+  "boundary": "Covers the file-reading criteria. The consistency criterion also runs the plugin Go regressions and the public documentation check in the checked tree; their result meaning is the authoring-check-result-meaning route.",
+  "invariant": "I1",
+  "property": "The Seal check-authoring producer judges only the files of the checked tree: a copy without Git metadata or history gives the same verdicts, and a missing or malformed product file is an observed violation. Its guidance scans flag a concrete goal path that only starts with a placeholder name, and an exemption phrase exempts only the asking words it governs.",
+  "status": "protected"
+ },
+ "authoring-check-result-meaning": {
+  "boundary": "Synthetic process results replace go and the documentation check; the actual commands run when the producer checks a tree. The child process overrides GOFLAGS with a single space, so flags persisted with `go env -w` cannot skip the required tests, and sets GOWORK=off.",
+  "invariant": "I2",
+  "property": "A failing required plugin regression or public documentation check is a violation; a missing tool, a tool on PATH that cannot start, a run ended by a signal, build failure, skipped or absent required test, or crashed check is an error, never a violation or a pass.",
+  "status": "protected"
+ },
+ "current-file-independence": {
+  "boundary": "Explicit history audit needs its selected history range; absence is UNVERIFIED, not evidence that current files violate their contract.",
+  "invariant": "I1",
+  "property": "Current TrackedFiles checks, public file and documentation checks and the route producers' current-file judgments run in full and shallow public-only copies; the full Go suite and the docs group run once in the original tree; explicit audits do not fetch absent history.",
+  "status": "protected"
+ },
+ "entry-name-ci-observation": {
+  "boundary": "Synthetic GitHub responses replace gh; the actual API and job logs are read only when the goal check runs. It reads no repository history beyond the checked-out commit and tree identifiers.",
+  "invariant": "I3",
+  "property": "The goal reader counts a pull request CI result only when the Windows job's tested-source context names this commit and a merge with this checkout's tree, the release run tested the same merge, each native report names that tested source, and every selected run and the checkout are unchanged when read again before the result. It reports a failure only when a shell's native check report names a failed name-character refusal; a missing, cancelled, skipped, unfinished, setup-stopped or otherwise unattributed step failure is unobserved.",
+  "status": "protected"
+ },
+ "explicit-retention-inputs": {
+  "boundary": "Local records are intentional inputs only to the explicit retention audit. The shared tests create synthetic records; they neither require nor transmit previous private executions, and a read-only audit is not an automatic backup service.",
+  "invariant": "I1",
+  "property": "Only an explicitly selected retention input reads local execution records; ordinary public checks keep separate inputs. Linked-worktree output lookup binds the selected checkout and stored digest.",
+  "status": "protected"
+ },
+ "gap-producer-meaning": {
+  "boundary": "Version-2 repository result contracts retain separate assertion/execution/selection/attribution targets. Untagged or ambiguous failures remain adverse with attribution error; source or output text is not guessed into the expected identifier. These are synthetic local process and actual Core current/baseline checks, not model or remote CI observations.",
+  "invariant": "I2",
+  "property": "Repository convenience producer must preserve UNVERIFIED, mixed test facts and observed assertion identity independently of its declaration.",
+  "status": "protected"
+ },
+ "goal-producer-meaning": {
+  "boundary": "Version-2 repository result contracts retain separate assertion/execution/selection/attribution targets. Untagged or ambiguous failures remain adverse with attribution error; source or output text is not guessed into the expected identifier. These are synthetic local process and actual Core current/baseline checks, not model or remote CI observations.",
+  "invariant": "I2",
+  "property": "Repository convenience producer must preserve UNVERIFIED, mixed test facts and observed assertion identity independently of its declaration.",
+  "status": "protected"
+ },
+ "native-request-and-uncertainty": {
+  "boundary": "This covers the explicit tested syntax and original-receipt checks; unsupported shell/identity gaps remain separate rows.",
+  "invariant": "I3",
+  "property": "Known supported native JSON/JavaScript/shell forms preserve request anchors, uncertain extra calls and original receipt binding through Spec/Seal consumers.",
+  "status": "protected"
+ },
+ "observation-identity-gap": {
+  "boundary": "Local real Core, original receipts, explicit goal/checkout and verified source images are tested. Missing source objects or unsupported records remain unavailable without fetching. Direct installation uses synthetic local archives and controlled fresh roots, not live release downloads or model sessions.",
+  "invariant": "I3",
+  "property": "Executable, project, goal, request and original tool call must bind to the claimed observation.",
+  "status": "protected"
+ },
+ "parent-result-adapter-meaning": {
+  "boundary": "Synthetic producers exercise the adapter protocol. They are not product evidence; the integration goal separately invokes actual child probes on the combined source tree and records their observations.",
+  "invariant": "I2",
+  "property": "Integration aggregation preserves each child target attempt/status/actual violation/reason and reports declaration/report/exit binding faults instead of synthesizing the expected failure.",
+  "status": "protected"
+ },
+ "post-completion-recorded-facts": {
+  "boundary": "Actual built CLI and synthetic Git/file/concurrency fixtures check record structure and references, not the truth of a reported defect. The shared CLI suite does not require an installed historical binary; fixed legacy-binary observations are a separate release/development check.",
+  "invariant": "I2",
+  "property": "Historical completion, current finding judgments and explicitly linked rework remain separate saved facts; post-completion notes cannot change historical execution budget or bypass revision conflicts.",
+  "status": "protected"
+ },
+ "public-scanner-existing-scope": {
+  "boundary": "Existing policy excludes testdata content as synthetic fixture data; this is local to the scanner. Required current/history path inspection is the distinct gap below.",
+  "invariant": "I5",
+  "property": "Existing tracked public-content scope rejects forbidden private references while accepting public synthetic names and rule definitions.",
+  "status": "protected"
+ },
+ "public-scanner-path-gap": {
+  "boundary": "Current-file and explicitly ranged history consumers retain their own forbidden-reference and synthetic-fixture policies. Missing history is unavailable; it is not required for current-file checks. Newline/tab/quoted names are filesystem paths, not line records.",
+  "invariant": "I5",
+  "property": "Each current-file and explicit history scanner inspects required path information under its existing forbidden-reference and synthetic-fixture policy.",
+  "status": "protected"
+ },
+ "reference-producer-to-cli": {
+  "boundary": "This protection applies to the reference producer. The three repository convenience producers have the distinct gaps below.",
+  "invariant": "I2",
+  "property": "The shipped reference producer crosses actual ha check baseline/current/store/done boundaries with positive and adverse evidence.",
+  "status": "protected"
+ },
+ "registry-selection-integrity": {
+  "boundary": "The static selector supports unconditional direct calls and literal loops only; actual execution is separate.",
+  "invariant": "I4",
+  "property": "The public finite registry validates explicit existing definitions and common selection without claiming execution.",
+  "status": "protected"
+ },
+ "release-checker-import-boundary": {
+  "boundary": "One direct-import process with synthetic archives and caller modules shadowing standard names. Static import order and dynamic imports (importlib.import_module) are outside it.",
+  "invariant": "I3",
+  "property": "Code that imports the release acceptance checker check.py directly runs no caller module: the installation consumer uses the namespace that defined the checker, and the asset and archive judgments import nothing from the caller's path.",
+  "status": "protected"
+ },
+ "review-producer-meaning": {
+  "boundary": "Version-2 repository result contracts retain separate assertion/execution/selection/attribution targets. Untagged or ambiguous failures remain adverse with attribution error; source or output text is not guessed into the expected identifier. These are synthetic local process and actual Core current/baseline checks, not model or remote CI observations.",
+  "invariant": "I2",
+  "property": "Repository convenience producer must preserve UNVERIFIED, mixed test facts and observed assertion identity independently of its declaration.",
+  "status": "protected"
+ },
+ "runner-adapter-classification": {
+  "boundary": "go test -json is observed by running a real nested Go 1.27 go test -json through ha (TestAdapterGoTestJSONFlow) and by fixed event streams; JUnit XML is observed from files a separate shell or test-binary process writes at the location ha names and from fixed documents shaped like the output of pytest 9.1.1, Vitest 5.0.5, jest-junit 17.0.0 and Node's reporter, whose real output was checked once outside the repository. No real pytest, Vitest or Jest process runs here.",
+  "invariant": "I2",
+  "property": "A check-adapter/v1 target is the declared violation only when its linked test failed with the same jaekit:violation= marker on every failure message's first line; unmarked failures, output problems, unknown output forms and missing attempt history are never the intended baseline assertion or a pass.",
+  "status": "protected"
+ },
+ "seal-evidence-and-assurance-contract": {
+  "boundary": "Public document and synthetic relationship mutations validate the contract. They are not actual model executions, an independent-review certificate, or Core enforcement of natural-language judgments.",
+  "invariant": "I2",
+  "property": "Seal public artifacts distinguish expected-result basis, observed boundary and substitutes; selected mandatory assurance gaps and later findings cannot be rewritten as successful observed completion.",
+  "status": "protected"
+ },
+ "shared-command-failures": {
+  "boundary": "Synthetic command fixtures verify invocation/failure wiring; they do not claim compiled-product or remote CI success.",
+  "invariant": "I4",
+  "property": "Existing unconditional groups retain failure forwarding, four builds, nonmutation and docs dependency boundaries.",
+  "status": "protected"
+ },
+ "shared-tool-preflight": {
+  "boundary": "Selection fixture uses controlled wrappers; actual shell semantic regressions remain in the Go group and run separately.",
+  "invariant": "I4",
+  "property": "Missing/unusable shells fail before shared checks, and the actual review launchers use preflight-selected absolute paths.",
+  "status": "protected"
+ },
+ "shell-reachability-gap": {
+  "boundary": "Controlled actual bash/zsh processes define the tested reachability family. Incomplete or unsupported syntax cannot supply execution or absence; arbitrary supplied transcripts are not executed by the consumer.",
+  "invariant": "I3",
+  "property": "Unparseable or unreachable calls must not count as observed execution.",
+  "status": "protected"
+ },
+ "spec-observation-boundary-contract": {
+  "boundary": "These regressions validate public document relationships and synthetic goal loading. They do not prove that a host or model follows the guidance or that the examples cover every future goal.",
+  "invariant": "I3",
+  "property": "Public Spec guidance and loadable examples preserve observation unit, unsupported-input outcome, invariants, support assumptions and representative versus exhaustive examples.",
+  "status": "protected"
+ },
+ "stored-proof-independence": {
+  "boundary": "Stored integrity proof remains required; raw log absence is not a replacement for a missing structured report.",
+  "invariant": "I1",
+  "property": "Saved result proof can be classified after local raw logs are unavailable.",
+  "status": "protected"
+ },
+ "stored-result-judgment": {
+  "boundary": "A zero process exit does not turn adverse structured evidence into a pass.",
+  "invariant": "I2",
+  "property": "Stored evidence and current/baseline judgment preserve adverse, environment, retry and positive-evidence distinctions.",
+  "status": "protected"
+ },
+ "structured-classification": {
+  "boundary": "Unsupported or malformed reports are unknown/error, not the intended baseline assertion.",
+  "invariant": "I2",
+  "property": "Core classifies actual target/attempt/status/violation and keeps adverse mixed facts.",
+  "status": "protected"
+ },
+ "windows-archive-consumer-contract": {
+  "boundary": "Synthetic ZIPs, a package.py archive built from package.py's own synthetic source and synthetic release notes exercise the check and the gate locally. Installer-specific refusals (case folding, DOS attributes, the manifest size limit) are left to the installer's own package check, which runs on the exact archive only in the release workflow's Windows job; no published archive is observed here.",
+  "invariant": "I3",
+  "property": "A structural Windows ZIP check (check_archives.windows_files) accepts a package.py archive and refuses one whose file set, paths (package.py's path rules and scope), manifest field names, version or platform, file sizes or SHA-256 digests, or Core format differ from what package.py builds. The publication gate keeps a Windows archive only when the Windows job checked those bytes and the release notes carry exactly one acceptance line with their digest.",
+  "status": "protected"
+ }
+}
