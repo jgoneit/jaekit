@@ -105,7 +105,7 @@ flowchart TD
 
 ### 준비물
 
-- **Git**과 **Git으로 관리하는 작업 프로젝트 폴더.** Jaekit 저장소를 clone할 필요는 없습니다.
+- **Git 2.36 이상**과 **Git으로 관리하는 작업 프로젝트 폴더.** Jaekit 저장소를 clone할 필요는 없습니다.
 - **Claude Code** 또는 **[Codex CLI](https://learn.chatgpt.com/docs/codex/cli)**
 - macOS·Linux에서는 **[Homebrew](https://brew.sh)**(프로그램 설치 도구)를 권장합니다. 없으면 Release 파일로 설치합니다.
 
@@ -192,13 +192,17 @@ codex plugin add spar@jaekit
 
 ### 첫 `standard` 목표 전에
 
-프로젝트에 첫 `standard`·`strict` 목표를 맡기기 전에 프로젝트의 `.gitignore`에 `docs/reviews/`를 더합니다. Spar는 Git이 무시하는 폴더에만 검토 기록을 쓰는데, Spar를 처음 쓰는 프로젝트의 Git은 아직 그 폴더를 무시하지 않아서 첫 검토 라운드가 멈춥니다. `light` 목표와 Spar를 쓰지 않는 목표에는 필요 없습니다.
+프로젝트에 첫 `standard`·`strict` 목표를 맡기기 전에 두 가지를 합니다. `light` 목표와 Spar를 쓰지 않는 목표에는 둘 다 필요 없습니다.
+
+**1. 검토 폴더를 무시하게 하고, 그 변경을 커밋합니다.** 프로젝트의 `.gitignore`에 `docs/reviews/`를 더합니다. Spar는 Git이 무시하는 폴더에만 검토 기록을 쓰는데, Spar를 처음 쓰는 프로젝트의 Git은 아직 그 폴더를 무시하지 않아서 첫 검토 라운드가 멈춥니다. 목표를 시작하기 전에 이 변경을 커밋합니다. Seal은 커밋된 깨끗한 트리에서만 검사를 돌립니다.
 
 ```text
 docs/reviews/
 ```
 
 다른 폴더나 `.git/info/exclude`를 쓰려면 Spar 안내의 [프로젝트 준비](guides/SPAR.md#프로젝트-준비)를 봅니다.
+
+**2. 가진 리뷰어 CLI만 적습니다.** 사용자 설정이 없으면 Spar는 `claude`·`codex`·`agy` CLI를 모두 필수 리뷰어로 쓰고, 필수 리뷰어가 돌지 못한 목표는 완료되지 않습니다. 가진 CLI만 적은 `~/.config/jaekit/spar.toml`을 씁니다. [리뷰어 설정](guides/SPAR.md#리뷰어-설정)을 봅니다.
 
 ### 첫 작업 맡기기
 
