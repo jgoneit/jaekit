@@ -119,8 +119,8 @@ func (w *rptWorld) candidateWithDispositions(series string) string {
 	w.useConfig(w.printer(w.answer(series+"-candidate", c[1], findings...)))
 	out := filepath.Join(w.repo, "reviews", series, "01-candidate")
 	w.run(w.round("candidate", c[0], c[1], out)...)
-	w.triage(out, "cmd-F1", "fix", "--commit", c[2], "--failed-before", "the greeting was wrong", "--passed-after", "it is right")
-	w.triage(out, "cmd-F2", "reject", "--evidence", rptLongEvidence)
+	w.triage(out, "cmd-F1", "fix", "--commit", c[2], "--failed-before", "the greeting was wrong", "--passed-after", "it is right", "--note", "고친 메모")
+	w.triage(out, "cmd-F2", "reject", "--evidence", rptLongEvidence, "--note", "반박 메모")
 	w.triage(out, "cmd-F3", "defer", "--to", "#999", "--user-quote", "미뤄도 된다는 사용자의 말")
 	w.triage(out, "cmd-F4", "duplicate", "--of", "cmd-F1")
 	w.triage(out, "cmd-F5", "answer", "--user-quote", "사용자의 답 원문")
@@ -161,9 +161,12 @@ func TestRepeatFindingsAC1_DispositionShown(t *testing.T) {
 	}
 
 	// Those details are all the line shows: not the fix's before and after
-	// notes, nor the user's words recorded with a deferral to a target.
+	// texts, nor a note recorded with a disposition, nor the user's words
+	// recorded with a deferral to a target. A deferral, automatic or not,
+	// shows its target or reason, as AC-1 lists for defer.
 	for finding, extra := range map[string][]string{
-		"cmd-F1": {"the greeting was wrong", "it is right"},
+		"cmd-F1": {"the greeting was wrong", "it is right", "고친 메모"},
+		"cmd-F2": {"반박 메모"},
 		"cmd-F3": {"미뤄도 된다는 사용자의 말"},
 	} {
 		line := rptEarlierLine(packet, "01-candidate", finding)
@@ -538,10 +541,13 @@ func TestRepeatFindingsAC4_UnreadableBoundaryRefused(t *testing.T) {
 	}
 }
 
-// AC-4: --boundary refuses and accepts the documents --criteria does. A
-// missing file, a folder, a file without read permission, an empty file, a
-// file outside the repository and a file that is not UTF-8 each get the same
-// outcome: refused with 65 and no round folder, or a round.
+// AC-4: --boundary refuses and accepts the documents --criteria does. By
+// contracts/spar-input.md G26, --criteria refuses a file it cannot read (a
+// missing file, a folder, a file without read permission) with 65 and no
+// round folder, and takes any readable file (an empty file, a file outside
+// the repository, a file that is not UTF-8). --boundary gives each form that
+// outcome. A --criteria outcome off the contract fails without this check's
+// violation: it belongs to AC-11.
 func TestRepeatFindingsAC4_SameCasesAsCriteria(t *testing.T) {
 	const id = "boundary-cases-differ"
 	w := newRptWorld(t, false)
@@ -569,13 +575,15 @@ func TestRepeatFindingsAC4_SameCasesAsCriteria(t *testing.T) {
 		}
 		return fmt.Sprintf("exit %d with round folder %v", code, err == nil)
 	}
+	contract := map[string]string{"missing": "refused", "folder": "refused", "unreadable": "refused",
+		"empty": "accepted", "outside": "accepted", "not-utf8": "accepted"}
 	for name, path := range forms {
-		want := outcome("--criteria", name, path)
-		if want != "refused" && want != "accepted" {
-			pdSetup(t, false, "--criteria with a %s document: %s", name, want)
+		want := contract[name]
+		if got := outcome("--criteria", name, path); got != want {
+			t.Errorf("--criteria with a %s document is %s, but contracts/spar-input.md G26 says %s", name, got, want)
 		}
 		if got := outcome("--boundary", name, path); got != want {
-			t.Errorf("jaekit:violation=%s a %s document is %s as --criteria but %s as --boundary", id, name, want, got)
+			t.Errorf("jaekit:violation=%s a %s document is %s as --boundary, but %s as --criteria by contracts/spar-input.md G26", id, name, got, want)
 		}
 	}
 }
@@ -849,7 +857,8 @@ func TestRepeatFindingsAC6_ConfigShowsLimit(t *testing.T) {
 	const id = "config-limit-not-shown"
 	w := newRptWorld(t, false)
 	head := w.commits[1]
-	w.useConfig(w.pdFake("claude", head), w.pdFake("codex", head)+"max_packet_bytes = 123456\n")
+	w.useConfig(w.pdFake("claude", head), w.pdFake("codex", head)+"max_packet_bytes = 123456\n", w.pdFake("agy", head),
+		"[[reviewers]]\nname = \"native\"\npreset = \"native\"\n\n")
 	sources := map[string]string{}
 	limits := map[string]int{}
 	reviewers := w.rptConfigReviewers(id)
@@ -866,6 +875,12 @@ func TestRepeatFindingsAC6_ConfigShowsLimit(t *testing.T) {
 	}
 	if sources["codex"] != "user" || limits["codex"] != 123456 {
 		t.Errorf("jaekit:violation=%s codex's limit shows as %d from %q, want 123456 from the user", id, limits["codex"], sources["codex"])
+	}
+	if sources["agy"] != "preset" || limits["agy"] <= 0 {
+		t.Errorf("jaekit:violation=%s agy's limit shows as %d from %q, want the preset's", id, limits["agy"], sources["agy"])
+	}
+	if sources["native"] != "" || limits["native"] != 0 {
+		t.Errorf("jaekit:violation=%s native shows a limit %d from %q without a setting", id, limits["native"], sources["native"])
 	}
 }
 
