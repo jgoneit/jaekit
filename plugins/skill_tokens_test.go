@@ -144,9 +144,9 @@ func skillResolve(doc, target string) string {
 }
 
 // has reports whether token is a format token of the set: a link target when
-// it starts with "link:" (relative to the skill's directory), text inside one
-// code span or fenced line, or, when it starts with "#", also a heading (its
-// level does not matter).
+// it starts with "link:" (relative to the skill's directory), whole words
+// inside one code span or fenced line, or, when it starts with "#", also a
+// heading (its level does not matter).
 func (s skillTokenSet) has(dir, token string) bool {
 	switch {
 	case strings.HasPrefix(token, "#") && s.headings[strings.TrimSpace(strings.TrimLeft(token, "#"))]:
@@ -157,11 +157,70 @@ func (s skillTokenSet) has(dir, token string) bool {
 	}
 	want := skillFlat(token)
 	for _, c := range s.code {
-		if strings.Contains(c, want) {
+		if skillSpanHolds(c, want) {
 			return true
 		}
 	}
 	return false
+}
+
+// skillWordByte reports whether b continues a word in a code span: an ASCII
+// letter or digit, '_', '-', or a byte of a non-ASCII character.
+func skillWordByte(b byte) bool {
+	return b == '_' || b == '-' || b >= 0x80 ||
+		b >= '0' && b <= '9' || b >= 'a' && b <= 'z' || b >= 'A' && b <= 'Z'
+}
+
+// skillSpanHolds reports whether a code span holds token as whole words: at
+// an occurrence where the span does not continue a word past either edge of
+// the token, so "block" is not found in "review_blocked".
+func skillSpanHolds(span, token string) bool {
+	if token == "" {
+		return false
+	}
+	for from := 0; from <= len(span); {
+		i := strings.Index(span[from:], token)
+		if i < 0 {
+			return false
+		}
+		i += from
+		end := i + len(token)
+		left := i == 0 || !skillWordByte(token[0]) || !skillWordByte(span[i-1])
+		right := end == len(span) || !skillWordByte(token[len(token)-1]) || !skillWordByte(span[end])
+		if left && right {
+			return true
+		}
+		from = i + 1
+	}
+	return false
+}
+
+// A code span token is found only as whole words of a span.
+func TestSkillSpanHoldsWholeWords(t *testing.T) {
+	for _, c := range []struct {
+		span, token string
+		want        bool
+	}{
+		{"block", "block", true},
+		{"record a block", "block", true},
+		{"review_blocked", "block", false},
+		{"check-change", "check", false},
+		{"run-rules/7", "rules", false},
+		{"--weakened-invalid", "--weakened", false},
+		{"run-rules/70", "run-rules/7", false},
+		{"ha start --rules run-rules/7 --check-skill", "--rules run-rules/7", true},
+		{"budget.post_completion_seconds", "post_completion_seconds", true},
+		{"docs/specs/<goal>/SPEC.md", "docs/specs/<goal>", true},
+		{"ha note <goal> review --gate <file>", "ha note <goal> review --gate", true},
+		{"## 개선 메모", "개선 메모", true},
+		{"개선메모", "개선", false},
+		{"blockblock block", "block", true},
+		{"", "block", false},
+	} {
+		if got := skillSpanHolds(c.span, c.token); got != c.want {
+			t.Errorf("skillSpanHolds(%q, %q) = %v, want %v", c.span, c.token, got, c.want)
+		}
+	}
 }
 
 // requireSkillTokens reports each token that no document of the skill holds
@@ -224,7 +283,7 @@ func requireBodyTokens(t *testing.T, dir, heading string, tokens ...string) {
 	for _, tok := range tokens {
 		found := false
 		for _, s := range spans {
-			found = found || strings.Contains(s, skillFlat(tok))
+			found = found || skillSpanHolds(s, skillFlat(tok))
 		}
 		if !found {
 			t.Errorf("%s/SKILL.md %s lacks the rule token %q: this rule stays in the body", dir, heading, tok)

@@ -227,4 +227,20 @@ func TestReleaseVersionCombination(t *testing.T) {
 	for _, path := range []string{"../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md", "../guides/OPERATIONS.en.md"} {
 		rvLine(t, path, "v0.1.8", "ha 0.1.8", "spar 0.1.8", "spec 0.1.13", "seal 0.1.23", "0.1.4")
 	}
+	// The Seal skill states the combination its commands describe on one
+	// line: the release, ha, spar and Seal versions in that order, with no
+	// other number between them. Only the numbers are read, which rewording
+	// and moving the sentence keep.
+	const seal = "0.1.23"
+	v := regexp.QuoteMeta(rvVersion)
+	combo := regexp.MustCompile(`(?:^|[^0-9.])` + v + `[^0-9]+` + v + `[^0-9]+` + v + `[^0-9]+` + regexp.QuoteMeta(seal) + `(?:[^0-9]|$)`)
+	stated := false
+	for _, doc := range skillDocs(t, sealSkillDir) {
+		for _, line := range strings.Split(doc.text, "\n") {
+			stated = stated || combo.MatchString(line)
+		}
+	}
+	if !stated {
+		t.Errorf("%s has no line naming release %s, ha %s, spar %s and Seal %s in that order", sealSkillDir, rvTag, rvVersion, rvVersion, seal)
+	}
 }
