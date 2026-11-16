@@ -37,13 +37,17 @@ claude plugin install spar@jaekit
 
 명령과 기록 형식은 [contracts/run-record.md](../contracts/run-record.md)에 있습니다.
 
-## Seal skill 분량
+## Skill 분량
 
-[Seal skill](../plugins/seal/skills/seal/SKILL.md)의 상한은 앞머리를 포함해 공백으로 나눈 단어 2,300개다. 이 상한은 [`TestSealSkillWordCap`](../plugins/seal_skill_rules_test.go)와 [`TestSealSkillWordCapStated`](../plugins/seal_skill_rules_test.go)가 정한다.
+skill마다 단어 상한이 있다. 앞머리를 포함해 공백으로 나눈 단어 수다. [`TestSkillWordCaps`](../plugins/skill_tokens_test.go)와 [`TestSkillWordCapsStated`](../plugins/skill_tokens_test.go)가 이 상한을 정한다.
 
-Seal에 더하는 규칙은 `references/`의 절에 쓰고 skill에는 그 절로 가는 링크를 둔다. skill이 이미 그 절을 링크하면 skill을 바꾸지 않는다.
+- [Spec skill](../plugins/spec/skills/spec/SKILL.md)의 상한은 2,800단어다.
+- [Spar skill](../plugins/spar/skills/spar/SKILL.md)의 상한은 2,600단어다.
+- [Seal skill](../plugins/seal/skills/seal/SKILL.md)의 상한은 2,300단어다. [`TestSealSkillWordCap`](../plugins/seal_skill_rules_test.go)와 [`TestSealSkillWordCapStated`](../plugins/seal_skill_rules_test.go)도 이 상한을 본다.
 
-skill 단어를 늘리는 변경은 같은 변경에서 그만큼 줄이거나 상한을 올리는 사용자의 말을 받는다. 다른 목표의 시험이 skill에 고정한 문장은 그 시험을 바꾸는 사용자의 말 없이 옮기지 않는다.
+변경이 스킬을 상한 위로 밀면, 같은 변경에서 그 스킬의 드문 상황에만 쓰는 규칙을 그 스킬의 참조 문서로 옮긴다. 상한은 사용자의 말로만 올린다.
+
+사용자만 정하는 규칙과 에이전트가 하면 안 되는 일은 skill 본문에 남긴다. 옮긴 절은 본문에서 언제 읽을지 말하는 줄로 링크한다. skill이 이미 그 절을 링크하면 skill을 바꾸지 않는다. skill 규칙 시험은 문장이 아니라 형식 토큰(코드 span, 제목, 링크 대상)을 본다. 그래서 문장을 고치거나 참조 문서로 옮겨도 시험은 실패하지 않는다. 보호 계약 검사가 요구하는 구절은 글자 그대로 옮긴다.
 
 ## 저장소 검사
 

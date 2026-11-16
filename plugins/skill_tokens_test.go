@@ -253,6 +253,35 @@ func skillWords(t *testing.T, dir string) int {
 	return len(strings.Fields(read(t, dir+"/SKILL.md")))
 }
 
+// TestSkillWordCaps keeps each SKILL.md within its cap.
+func TestSkillWordCaps(t *testing.T) {
+	for _, dir := range []string{specSkillDir, sparSkillDir, sealSkillDir} {
+		if n, limit := skillWords(t, dir), skillWordCaps[dir]; n > limit {
+			t.Errorf("%s/SKILL.md has %d words, above its cap %s", dir, n, skillCapText(limit))
+		}
+	}
+}
+
+func skillCapText(n int) string { return fmt.Sprintf("%d,%03d", n/1000, n%1000) }
+
+// TestSkillWordCapsStated checks that both development guides state each
+// skill's cap on the line that links its SKILL.md.
+func TestSkillWordCapsStated(t *testing.T) {
+	for _, guide := range []string{"../guides/DEVELOPMENT.md", "../guides/DEVELOPMENT.en.md"} {
+		lines := strings.Split(read(t, guide), "\n")
+		for _, dir := range []string{specSkillDir, sparSkillDir, sealSkillDir} {
+			link, stated := "(../plugins/"+dir+"/SKILL.md)", skillCapText(skillWordCaps[dir])
+			found := false
+			for _, line := range lines {
+				found = found || strings.Contains(line, link) && strings.Contains(line, stated)
+			}
+			if !found {
+				t.Errorf("%s has no line that links %s/SKILL.md and states its cap %s", guide, dir, stated)
+			}
+		}
+	}
+}
+
 // TestSkillLinksResolve checks every relative link of the three skills'
 // documents: the path exists and an anchor names a heading of its file.
 func TestSkillLinksResolve(t *testing.T) {
@@ -317,4 +346,31 @@ func skillAnchors(text string) map[string]bool {
 		seen[s]++
 	}
 	return out
+}
+
+// TestSkillAuthorityRulesInBody checks the representative rules that only
+// the user decides, and things the agent must not do: each stays in its
+// SKILL.md body section, marked by a code span token, so moving it to a
+// reference document or deleting it fails here.
+func TestSkillAuthorityRulesInBody(t *testing.T) {
+	for _, c := range []struct {
+		dir     string
+		section string
+		tokens  []string
+	}{
+		{specSkillDir, "## Agent invocations", []string{"Status: Ready", "amendments/<name>.md"}},
+		{specSkillDir, "## Writing and reporting", []string{"implement-now"}},
+		{specSkillDir, "## Boundaries", []string{"docs/specs/<goal>/"}},
+		{sealSkillDir, "## Authority", []string{"ha start --request", "Status: Ready", "SPEC.md"}},
+		{sealSkillDir, "## Independent review", []string{"hardening", "spar extend"}},
+		{sealSkillDir, "## Budget", []string{"ha budget"}},
+		{sealSkillDir, "## Forbidden", []string{"SPEC.md", "runs.jsonl", "block", "ha log", "## 개선 메모"}},
+		{sparSkillDir, "## When to run each stage", []string{"spar extend"}},
+		{sparSkillDir, "## Reviewers", []string{"spar waive"}},
+		{sparSkillDir, "## Classes and dispositions", []string{"answer"}},
+	} {
+		t.Run(c.dir+" "+c.section, func(t *testing.T) {
+			requireBodyTokens(t, c.dir, c.section, c.tokens...)
+		})
+	}
 }
