@@ -1,0 +1,30 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "FirstRoundBoundaries",
+      "violation": "first-round-rule-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRepeatFindingsAC7_FirstRoundBoundaries"
+      }
+    },
+    {
+      "id": "WidenedCheckRecords",
+      "violation": "widened-check-rule-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRepeatFindingsAC7_WidenedCheckRecords"
+      }
+    },
+    {
+      "id": "BoundaryEveryRound",
+      "violation": "boundary-passing-rule-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRepeatFindingsAC7_BoundaryEveryRound"
+      }
+    }
+  ]
+}

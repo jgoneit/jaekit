@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "UnreadableBoundaryRefused",
+      "violation": "unreadable-boundary-accepted",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestRepeatFindingsAC4_UnreadableBoundaryRefused"
+      }
+    },
+    {
+      "id": "InputTableRow",
+      "violation": "boundary-input-row-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestRepeatFindingsAC4_InputTableRow"
+      }
+    }
+  ]
+}
