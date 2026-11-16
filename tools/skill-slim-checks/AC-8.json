@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "AllProse",
+      "violation": "prose-pinned",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/skill-slim-checks",
+        "name": "TestSkillSlimAC8_AllProse"
+      }
+    },
+    {
+      "id": "Representatives",
+      "violation": "prose-pinned",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/skill-slim-checks",
+        "name": "TestSkillSlimAC8_Representatives"
+      }
+    }
+  ]
+}

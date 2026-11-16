@@ -1,0 +1,30 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "PhraseLookup",
+      "violation": "protected-lookup",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/skill-slim-checks",
+        "name": "TestSkillSlimAC9_PhraseLookup"
+      }
+    },
+    {
+      "id": "RouteChecks",
+      "violation": "route-check-fails",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/skill-slim-checks",
+        "name": "TestSkillSlimAC9_RouteChecks"
+      }
+    },
+    {
+      "id": "RouteProperties",
+      "violation": "route-changed",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/skill-slim-checks",
+        "name": "TestSkillSlimAC9_RouteProperties"
+      }
+    }
+  ]
+}
