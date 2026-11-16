@@ -815,6 +815,12 @@ func TestRepeatFindingsAC6_UserLimit(t *testing.T) {
 	w := newRptWorld(t, false)
 	head := w.commits[1]
 	w.useConfig(w.pdFake("claude", head))
+	preset := 0
+	for _, r := range w.rptConfigReviewers(id) {
+		if r["name"] == "claude" {
+			preset = rptLimit(r)
+		}
+	}
 	size := w.rptSize("measure")
 	w.useConfig(w.pdFake("claude", head) + fmt.Sprintf("max_packet_bytes = %d\n", size-1))
 	out := filepath.Join(w.repo, "reviews", "small", "01-candidate")
@@ -828,9 +834,13 @@ func TestRepeatFindingsAC6_UserLimit(t *testing.T) {
 			t.Errorf("jaekit:violation=%s the user's larger limit shows as %d", id, rptLimit(r))
 		}
 	}
-	// The larger limit applies to the run: a packet over the claude default
-	// gets a round.
-	big := w.write(filepath.Join(w.repo, "docs", "BIG.md"), strings.Repeat("x", DefaultPacketLimit+1))
+	// The larger limit applies to the run: a packet over the claude default,
+	// as spar config shows it without a setting, gets a round.
+	if preset <= 0 {
+		t.Errorf("jaekit:violation=%s claude shows no default limit for the user's larger limit to exceed", id)
+		return
+	}
+	big := w.write(filepath.Join(w.repo, "docs", "BIG.md"), strings.Repeat("x", preset+1))
 	out = filepath.Join(w.repo, "reviews", "large", "01-candidate")
 	code, stderr = w.spar(append(w.round("candidate", w.commits[0], head, out), "--criteria", big, "--dry-run")...)
 	if _, err := os.Stat(out); (code != ExitOK && code != ExitNoResult) || err != nil {
