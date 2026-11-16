@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -135,6 +136,10 @@ func priorLines(siblings []sibling, current *RoundRecord) ([]string, []string, b
 		}
 		last := map[string]LedgerEntry{}
 		for _, e := range ledger {
+			if !slices.Contains(Dispositions, e.Disposition) {
+				return nil, nil, false, fmt.Errorf("%s/ledger.jsonl has a line for %s with the unknown disposition %q (%s)",
+					filepath.Base(s.dir), e.Finding, e.Disposition, strings.Join(Dispositions, ", "))
+			}
 			last[e.Finding] = e
 		}
 		dirs = append(dirs, filepath.Base(s.dir))
@@ -168,7 +173,7 @@ func dispositionText(e LedgerEntry) string {
 		// A requirement-question the user rejected is closed by the user's
 		// words, which are its ground.
 		ground := e.Evidence
-		if ground == "" {
+		if strings.TrimSpace(ground) == "" {
 			ground = e.UserQuote
 		}
 		return with("reject", ground)
