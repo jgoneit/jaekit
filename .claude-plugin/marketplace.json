@@ -13,21 +13,21 @@
       "name": "spec",
       "source": "./plugins/spec",
       "description": "Turn an idea or change into goal documents with stable completion criteria that any coding agent can implement. The user or the host agent can call it; Ready and the start of implementation come only from the user's words. With nothing left to decide it asks whether to implement now, and the user's yes starts it; a separate implementation request still works.",
-      "version": "0.1.14",
+      "version": "0.1.15",
       "category": "development"
     },
     {
       "name": "seal",
       "source": "./plugins/seal",
       "description": "Carry a goal document to recorded completion: the agent plans, implements, and verifies, and completion is declared only from Seal Core run records.",
-      "version": "0.1.29",
+      "version": "0.1.30",
       "category": "development"
     },
     {
       "name": "spar",
       "source": "./plugins/spar",
       "description": "Run independent review rounds on pinned commits with several reviewer CLIs, classify their findings, and record a review gate the agent can stop on.",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "category": "development"
     }
   ]
