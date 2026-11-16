@@ -440,6 +440,21 @@ func TestGateFixCommitsAndChain(t *testing.T) {
 	if _, _, err := admit([]sibling{{a, cand}, {b, fix}}, nil, moved); err == nil || !strings.Contains(err.Error(), "chain") {
 		t.Errorf("admission let a fixes round on another base skip the chain: %v", err)
 	}
+	// The previous fixes round's base with another head is not the same
+	// range: its base is not the previous head, so the chain breaks.
+	writeFile(t, filepath.Join(f.repo, "app.txt"), "another head\n")
+	gitRun(t, f.repo, "add", "-A")
+	gitRun(t, f.repo, "commit", "-qm", "another head")
+	another := gitRun(t, f.repo, "rev-parse", "HEAD")
+	beside := f.round("06-fixes", &RoundRecord{Stage: "fixes", Base: head, Head: another, Sequence: 6, Counted: true, PacketSHA256: "s",
+		RequiredReviewers: []string{"host"}, Config: cfg, Reviewers: done}, nil, nil)
+	if g := f.gate(another, a, b, beside); !strings.Contains(strings.Join(g.Reasons, " "), "chain") {
+		t.Errorf("a fixes round with the previous base and another head kept the chain: %s %v", g.State, g.Reasons)
+	}
+	sideways := &RoundRecord{Stage: "fixes", Base: head, Head: another, PacketSHA256: "s", Config: cfg, RequestedReviewers: []string{"host"}}
+	if _, _, err := admit([]sibling{{a, cand}, {b, fix}}, nil, sideways); err == nil || !strings.Contains(err.Error(), "chain") {
+		t.Errorf("admission let a fixes round with the previous base and another head skip the chain: %v", err)
+	}
 }
 
 // The gate applies the cap of the series' last round, also when an earlier

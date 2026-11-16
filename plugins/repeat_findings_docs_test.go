@@ -50,11 +50,11 @@ const (
 // criterion in the question before any baseline.
 func TestRepeatFindingsAC7_FirstRoundBoundaries(t *testing.T) {
 	rptRequire(t, "first-round-rule-missing", map[string][]string{
-		rptSealSkill:  {"before the earliest review round"},
-		rptSealBundle: {"before the earliest review round", "supported input forms of an open-ended criterion"},
-		rptSealReview: {"before the earliest review round"},
-		rptBundleEn:   {"before the earliest review round", "supported input forms of an open-ended criterion"},
-		rptBundleKo:   {"첫 검토 라운드 전에", "열린 조건의 지원 입력 형식"},
+		rptSealSkill:  {"before the earliest review round", "each check's boundary", "ask in the question before any baseline"},
+		rptSealBundle: {"before the earliest review round", "check boundaries", "supported input forms of an open-ended criterion", "in the one question before any baseline"},
+		rptSealReview: {"before the earliest review round", "each check's boundary"},
+		rptBundleEn:   {"before the earliest review round", "each check's boundary", "supported input forms of an open-ended criterion", "in the one question before any baseline"},
+		rptBundleKo:   {"첫 검토 라운드 전에", "검사마다의 경계", "열린 조건의 지원 입력 형식", "baseline 전에 한 번에 묻는 질문"},
 	})
 }
 

@@ -445,7 +445,7 @@ func TestRepeatFindingsAC3_BoundaryGuidance(t *testing.T) {
 	if k := strings.Index(section, "### "); k >= 0 {
 		guidance = section[:k]
 	}
-	for _, token := range []string{"`hardening`", "`check_impact`", "`none`", "`defect`", "protected"} {
+	for _, token := range []string{"`hardening`", "`check_impact`", "`none`", "name the boundary", "`defect`", "protected"} {
 		if !strings.Contains(guidance, token) {
 			t.Errorf("jaekit:violation=%s the boundary guidance does not name %s", id, token)
 		}
@@ -712,18 +712,16 @@ func (w *rptWorld) rptSize(series string, extra ...string) int {
 }
 
 // rptRefused reports whether a run was refused for the packet size: exit 65,
-// no round folder, and a message that names the reviewer, its limit and a
-// packet size over that limit.
-func (w *rptWorld) rptRefused(code int, stderr, out string, reviewer string, limit int) bool {
+// no round folder, and a message that names the reviewer, its limit and the
+// packet's measured size, each as a whole number of its own.
+func (w *rptWorld) rptRefused(code int, stderr, out string, reviewer string, limit, size int) bool {
 	_, err := os.Stat(out)
-	over := false
+	numbers := map[string]bool{}
 	for _, word := range strings.FieldsFunc(stderr, func(r rune) bool { return r < '0' || r > '9' }) {
-		if n, err := strconv.Atoi(word); err == nil && n > limit {
-			over = true
-		}
+		numbers[word] = true
 	}
-	return code == ExitRefused && os.IsNotExist(err) && over &&
-		strings.Contains(stderr, reviewer) && strings.Contains(stderr, strconv.Itoa(limit))
+	return code == ExitRefused && os.IsNotExist(err) && size > limit && numbers[strconv.Itoa(size)] &&
+		numbers[strconv.Itoa(limit)] && strings.Contains(stderr, reviewer)
 }
 
 // AC-6: a packet over a reviewer's limit is refused with 65 before any
@@ -744,7 +742,7 @@ func TestRepeatFindingsAC6_OversizeRefused(t *testing.T) {
 			args = append(args, "--dry-run")
 		}
 		code, stderr := w.spar(args...)
-		if !w.rptRefused(code, stderr, out, "cmd", size-1) {
+		if !w.rptRefused(code, stderr, out, "cmd", size-1, size) {
 			t.Errorf("jaekit:violation=%s a %d-byte packet over the limit %d (dry run %v): exit %d: %s", id, size, size-1, dry, code, pdFirstLine(stderr))
 		}
 	}
@@ -792,11 +790,13 @@ func TestRepeatFindingsAC6_PresetDefaults(t *testing.T) {
 		return
 	}
 	big := w.write(filepath.Join(w.repo, "docs", "BIG.md"), strings.Repeat("x", limits["claude"]+1))
+	w.useConfig("[[reviewers]]\nname = \"native\"\npreset = \"native\"\n\n")
+	size := w.rptSize("big-measure", "--criteria", big)
 	w.useConfig(w.pdFake("claude", head))
 	out := filepath.Join(w.repo, "reviews", "big", "01-candidate")
 	code, stderr := w.spar(append(w.round("candidate", w.commits[0], head, out), "--criteria", big, "--dry-run")...)
-	if _, err := os.Stat(out); code != ExitRefused || err == nil || !strings.Contains(stderr, strconv.Itoa(limits["claude"])) {
-		t.Errorf("jaekit:violation=%s a packet over the claude default %d was not refused: exit %d: %s", id, limits["claude"], code, pdFirstLine(stderr))
+	if !w.rptRefused(code, stderr, out, "claude", limits["claude"], size) {
+		t.Errorf("jaekit:violation=%s a %d-byte packet over the claude default %d was not refused: exit %d: %s", id, size, limits["claude"], code, pdFirstLine(stderr))
 	}
 }
 
@@ -811,7 +811,7 @@ func TestRepeatFindingsAC6_UserLimit(t *testing.T) {
 	w.useConfig(w.pdFake("claude", head) + fmt.Sprintf("max_packet_bytes = %d\n", size-1))
 	out := filepath.Join(w.repo, "reviews", "small", "01-candidate")
 	code, stderr := w.spar(append(w.round("candidate", w.commits[0], head, out), "--dry-run")...)
-	if !w.rptRefused(code, stderr, out, "claude", size-1) {
+	if !w.rptRefused(code, stderr, out, "claude", size-1, size) {
 		t.Errorf("jaekit:violation=%s the user's smaller limit %d did not refuse a %d-byte packet: exit %d: %s", id, size-1, size, code, pdFirstLine(stderr))
 	}
 	w.useConfig(w.pdFake("claude", head) + "max_packet_bytes = 50000000\n")
@@ -819,6 +819,14 @@ func TestRepeatFindingsAC6_UserLimit(t *testing.T) {
 		if r["name"] == "claude" && rptLimit(r) != 50000000 {
 			t.Errorf("jaekit:violation=%s the user's larger limit shows as %d", id, rptLimit(r))
 		}
+	}
+	// The larger limit applies to the run: a packet over the claude default
+	// gets a round.
+	big := w.write(filepath.Join(w.repo, "docs", "BIG.md"), strings.Repeat("x", DefaultPacketLimit+1))
+	out = filepath.Join(w.repo, "reviews", "large", "01-candidate")
+	code, stderr = w.spar(append(w.round("candidate", w.commits[0], head, out), "--criteria", big, "--dry-run")...)
+	if _, err := os.Stat(out); (code != ExitOK && code != ExitNoResult) || err != nil {
+		t.Errorf("jaekit:violation=%s the user's larger limit did not admit a packet over the default: exit %d: %s", id, code, pdFirstLine(stderr))
 	}
 }
 
