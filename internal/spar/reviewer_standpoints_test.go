@@ -960,8 +960,9 @@ func TestReviewerStandpointsAC6_SameInput(rsT *testing.T) {
 	rsAssert(rsC, len(rsGRs) == 2 && rsMap(rsGRs[0])["completed_required"] == float64(0), "different packet incorrectly completed the original reviewer")
 	rsCode, _, rsErr = rsW.rsCLI("waive", rsFailed, "claude", "--user-quote", rsQuote)
 	rsAssert(rsC, rsCode == 0, "different packet prevented waiver: exit %d %s", rsCode, rsErr)
-	// Fixes reruns share their base only for exactly the same packet. Changing
-	// a standpoint on that rerun must trigger the ordinary chain refusal.
+	// A fixes round of the same range shares its base with the earlier one:
+	// a rerun of the same packet outside the cap, and a changed standpoint as
+	// a new counted round (review-repeat-findings, AC-1).
 	rsSeed := rsW.rsOut("chain", "01-candidate")
 	rsW.rsRun(rsID, rsSeed, "candidate", 0, 1, "--standpoint", "claude=chain")
 	rsW.rsAnswer("claude", 2, rsReport(true, "checked fix"), true)
@@ -978,8 +979,15 @@ func TestReviewerStandpointsAC6_SameInput(rsT *testing.T) {
 	rsAssert(rsC, rsW.rsRaw(rsFixAgain)["counted"] == false && reflect.DeepEqual(rsW.rsRaw(rsFixAgain)["rerun_of"], []any{"02-fixes"}), "same fixes packet did not rerun outside the cap")
 	rsFixGate := rsW.rsGate("chain", 2, rsSeed, rsFix, rsFixAgain)
 	rsAssert(rsC, rsFixGate["state"] != "blocked", "same fixes rerun broke gate chain: %v", rsFixGate["reasons"])
-	rsCode, _, rsErr = rsW.rsCLI(rsW.rsArgs(rsW.rsOut("chain", "04-fixes"), "fixes", 1, 2, "--standpoint", "claude=changed chain")...)
-	rsAssert(rsC, rsCode == 65 && strings.Contains(rsErr, "chain"), "changed fixes packet reused the old base: exit %d %s", rsCode, rsErr)
+	rsChangedFix := rsW.rsOut("chain", "04-fixes")
+	rsCode, _, rsErr = rsW.rsCLI(rsW.rsArgs(rsChangedFix, "fixes", 1, 2, "--standpoint", "claude=changed chain")...)
+	rsAssert(rsC, rsCode == 0 || rsCode == 1, "changed fixes packet on the same commits was refused: exit %d %s", rsCode, rsErr)
+	if rsCode == 0 || rsCode == 1 {
+		rsChangedFixRecord := rsW.rsRaw(rsChangedFix)
+		rsRerunOf, _ := rsChangedFixRecord["rerun_of"].([]any)
+		rsAssert(rsC, rsChangedFixRecord["counted"] == true && len(rsRerunOf) == 0,
+			"changed fixes packet on the same commits is not a new counted round: %v %v", rsChangedFixRecord["counted"], rsChangedFixRecord["rerun_of"])
+	}
 	// Recurring findings group reruns of one packet once, but split text and
 	// assignment changes. Native pending reviewers make genuine reruns possible.
 	rsW.rsUse(rsNative("a"), rsNative("b"))

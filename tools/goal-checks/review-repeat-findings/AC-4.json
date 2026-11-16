@@ -17,6 +17,14 @@
         "package": "github.com/jgoneit/jaekit/internal/spar",
         "name": "TestRepeatFindingsAC4_InputTableRow"
       }
+    },
+    {
+      "id": "SameCasesAsCriteria",
+      "violation": "boundary-cases-differ",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestRepeatFindingsAC4_SameCasesAsCriteria"
+      }
     }
   ]
 }

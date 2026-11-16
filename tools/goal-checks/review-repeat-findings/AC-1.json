@@ -33,6 +33,14 @@
         "package": "github.com/jgoneit/jaekit/internal/spar",
         "name": "TestRepeatFindingsAC1_RerunAfterTriage"
       }
+    },
+    {
+      "id": "LastDispositionShown",
+      "violation": "earlier-disposition-shown",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestRepeatFindingsAC1_LastDispositionShown"
+      }
     }
   ]
 }

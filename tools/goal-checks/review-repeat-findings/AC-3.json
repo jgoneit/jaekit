@@ -25,6 +25,14 @@
         "package": "github.com/jgoneit/jaekit/internal/spar",
         "name": "TestRepeatFindingsAC3_BoundaryRecorded"
       }
+    },
+    {
+      "id": "BoundaryInPacketIdentity",
+      "violation": "boundary-outside-packet",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestRepeatFindingsAC3_BoundaryInPacketIdentity"
+      }
     }
   ]
 }

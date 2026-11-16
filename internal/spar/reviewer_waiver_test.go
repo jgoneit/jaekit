@@ -640,7 +640,8 @@ func TestSparWaiverAC6_WaiverCoversItsRoundOnly(t *testing.T) {
 
 // The fields a round record holds before this change (contracts/review-
 // round.md, section 5), and the model and effort sources and the agent's
-// choices that spar-agent-model-choice adds, which the gate does not read
+// choices that spar-agent-model-choice adds and the packet limits that
+// review-repeat-findings adds, which the gate does not read
 // (contracts/spar-config.md, section 4): a round written now holds no
 // other, so the gate reads it as it reads an earlier round.
 var (
@@ -651,8 +652,8 @@ var (
 	rwConfigKeys = []string{"angles", "caps", "check_paths", "choices", "configured_required", "digest", "files", "override",
 		"reviewers", "rules", "source"}
 	rwConfigReviewerKeys = []string{"allowed_efforts", "allowed_models", "argv", "binary", "default_effort", "default_model",
-		"effort", "effort_source", "fallback_model", "isolation", "model", "model_source", "name", "preset",
-		"required", "timeout_seconds"}
+		"effort", "effort_source", "fallback_model", "isolation", "max_packet_bytes", "max_packet_bytes_source",
+		"model", "model_source", "name", "preset", "required", "timeout_seconds"}
 	rwReviewerStateKeys = []string{"agent", "angles_checked", "angles_unchecked", "attempts", "effort", "effort_source",
 		"elapsed_seconds", "fallback_model", "fallback_used", "findings", "isolation", "limits", "model_source", "name",
 		"observed_model", "preset", "reason", "recorded_from", "requested_model", "required", "resets", "status",
