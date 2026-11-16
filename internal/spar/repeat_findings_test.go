@@ -115,6 +115,7 @@ func (w *rptWorld) candidateWithDispositions(series string) string {
 		rptFinding("F5", "requirement-question", "AC-2", "claim five"),
 		rptFinding("F6", "hardening", "", "claim six"),
 		rptFinding("F7", "defect", "AC-1", "claim seven"),
+		rptFinding("F8", "requirement-question", "AC-2", "claim eight"),
 	}
 	w.useConfig(w.printer(w.answer(series+"-candidate", c[1], findings...)))
 	out := filepath.Join(w.repo, "reviews", series, "01-candidate")
@@ -124,6 +125,7 @@ func (w *rptWorld) candidateWithDispositions(series string) string {
 	w.triage(out, "cmd-F3", "defer", "--to", "#999", "--user-quote", "미뤄도 된다는 사용자의 말")
 	w.triage(out, "cmd-F4", "duplicate", "--of", "cmd-F1")
 	w.triage(out, "cmd-F5", "answer", "--user-quote", "사용자의 답 원문")
+	w.triage(out, "cmd-F8", "reject", "--evidence", "   ", "--user-quote", "사용자가 거절한 말")
 	return out
 }
 
@@ -149,6 +151,7 @@ func TestRepeatFindingsAC1_DispositionShown(t *testing.T) {
 		{"cmd-F4", "duplicate", "cmd-F1"},
 		{"cmd-F5", "answer", "사용자의 답 원문"},
 		{"cmd-F6", "defer", "auto"},
+		{"cmd-F8", "reject", "사용자가 거절한 말"},
 	} {
 		line := rptEarlierLine(packet, "01-candidate", want.finding)
 		if line == "" {
@@ -284,6 +287,24 @@ func TestRepeatFindingsAC1_LastDispositionShown(t *testing.T) {
 	}
 	if !strings.Contains(line, "defer") || !strings.Contains(line, "#321") || strings.Contains(line, "reject") || strings.Contains(line, "처음 근거") {
 		t.Errorf("jaekit:violation=%s the line does not show only the last disposition, a deferral to #321: %s", id, line)
+	}
+}
+
+// AC-1: an earlier ledger line with a disposition spar does not know is
+// refused before a reviewer starts, as contracts/spar-input.md G32 refuses a
+// line it cannot interpret, and no round folder is left.
+func TestRepeatFindingsAC1_UnknownDispositionRefused(t *testing.T) {
+	const id = "unknown-disposition-shown"
+	w := newRptWorld(t, false)
+	c := w.commits
+	w.useConfig(w.printer(w.answer("x-candidate", c[1], rptFinding("F1", "defect", "AC-1", "claim one"))))
+	cand := filepath.Join(w.repo, "reviews", "x", "01-candidate")
+	w.run(w.round("candidate", c[0], c[1], cand)...)
+	w.write(filepath.Join(cand, "ledger.jsonl"), `{"finding":"cmd-F1","disposition":"bogus"}`+"\n")
+	out := filepath.Join(w.repo, "reviews", "x", "02-fixes")
+	code, stderr := w.spar(append(w.round("fixes", c[1], c[2], out), "--dry-run")...)
+	if _, err := os.Stat(out); code != ExitRefused || err == nil || !strings.Contains(stderr, "bogus") {
+		t.Errorf("jaekit:violation=%s a ledger line with the disposition bogus: exit %d, round folder left %v: %s", id, code, err == nil, pdFirstLine(stderr))
 	}
 }
 
@@ -452,6 +473,24 @@ func TestRepeatFindingsAC3_BoundaryGuidance(t *testing.T) {
 		if !strings.Contains(guidance, token) {
 			t.Errorf("jaekit:violation=%s the boundary guidance does not name %s", id, token)
 		}
+	}
+	// Each case is on its own line with its own classification: outside a
+	// boundary is hardening without check impact and names the boundary; an
+	// input a requirement needs is a defect.
+	var outside, required string
+	for _, line := range strings.Split(guidance, "\n") {
+		switch {
+		case strings.Contains(line, "outside") && strings.Contains(line, "`hardening`"):
+			outside = line
+		case strings.Contains(line, "`defect`"):
+			required = line
+		}
+	}
+	if outside == "" || !strings.Contains(outside, "`check_impact` `none`") || !strings.Contains(outside, "name the boundary") || strings.Contains(outside, "`defect`") {
+		t.Errorf("jaekit:violation=%s no guidance line pairs a counterexample outside a boundary with `hardening`, `check_impact` `none` and naming the boundary: %q", id, outside)
+	}
+	if required == "" || !strings.Contains(required, "requires") || !strings.Contains(required, "protected") || strings.Contains(required, "`hardening`") {
+		t.Errorf("jaekit:violation=%s no guidance line pairs a counterexample on a required input with `defect`: %q", id, required)
 	}
 }
 

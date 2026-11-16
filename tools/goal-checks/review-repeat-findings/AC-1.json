@@ -41,6 +41,14 @@
         "package": "github.com/jgoneit/jaekit/internal/spar",
         "name": "TestRepeatFindingsAC1_LastDispositionShown"
       }
+    },
+    {
+      "id": "UnknownDispositionRefused",
+      "violation": "unknown-disposition-shown",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestRepeatFindingsAC1_UnknownDispositionRefused"
+      }
     }
   ]
 }

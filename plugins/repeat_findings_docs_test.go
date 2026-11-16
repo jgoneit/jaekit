@@ -9,7 +9,6 @@ package plugins
 import (
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 )
@@ -158,8 +157,9 @@ func TestRepeatFindingsAC9_LimitDocs(t *testing.T) {
 // this Seal runs.
 func TestRepeatFindingsAC14_EarlierGoals(t *testing.T) {
 	const id = "earlier-goal-rule-missing"
-	version := rptSealVersion(t)
+	version := rptRuleSeal
 	rptRequire(t, id, map[string][]string{
+		rptSealSkill: {"in goals started with seal " + version + " or later, before the earliest review round", "Every round gets `REVIEW.md` as `--boundary`"},
 		rptSealBundle: {
 			"goals started with seal " + version + " or later",
 			"`--boundary` in every round this Seal runs, whichever Seal started the goal",
@@ -179,22 +179,16 @@ func TestRepeatFindingsAC14_EarlierGoals(t *testing.T) {
 	}
 }
 
-var rptVersionLine = regexp.MustCompile(`(?m)^  version: "([0-9.]+)"$`)
+// rptRuleSeal is the Seal version that brought these rules. A later Seal
+// keeps them and their version line, so the checks name this version, not
+// the one in the skill's front matter.
+const rptRuleSeal = "0.1.31"
 
-func rptSealVersion(t *testing.T) string {
-	t.Helper()
-	m := rptVersionLine.FindStringSubmatch(rptDoc(t, rptSealSkill))
-	if m == nil {
-		t.Skipf("setup: %s has no version", rptSealSkill)
-	}
-	return m[1]
-}
-
-// AC-15: the Seal version list has a line for the current Seal version that
-// names this change and says it makes no Core change.
+// AC-15: the Seal version list has a line for the Seal version that brought
+// this change, which names it and says it makes no Core change.
 func TestRepeatFindingsAC15_Changelog(t *testing.T) {
 	const id = "changelog-entry-missing"
-	version := rptSealVersion(t)
+	version := rptRuleSeal
 	var line string
 	for _, l := range strings.Split(rptDoc(t, rptSealHa), "\n") {
 		if strings.HasPrefix(l, "Seal "+version+" ") {
