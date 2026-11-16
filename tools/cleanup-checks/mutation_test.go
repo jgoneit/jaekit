@@ -364,6 +364,27 @@ func TestCleanupAC7_GuideSentence(t *testing.T) {
 	})
 }
 
+// AC-7: guide sentences that staying plugins tests pinned before the cleanup.
+// Each edit breaks the exact fragment that was pinned.
+func TestCleanupAC7_FormerPins(t *testing.T) {
+	requirePass(t, "rewords guide sentences that plugins tests used to pin", []edit{
+		{file: "guides/INSTALL.md", section: "## Release 파일로 설치",
+			old: "아래 명령은 고치지 않고 그대로 붙여 넣습니다.", new: "아래 명령은 그대로, 고치지 않고 붙여 넣습니다."},
+		{file: "guides/INSTALL.md", section: "### 버전 확인",
+			old: "`which -a ha`의 첫 줄이 실제로 실행되는 파일입니다", new: "`which -a ha`가 먼저 보여 주는 줄이 실행되는 파일입니다"},
+		{file: "guides/INSTALL.md", section: "### 버전 확인",
+			old: "해당 파일을 지우거나 PATH 순서를 바꿉니다.", new: "그 파일을 지우거나, PATH에서 순서를 바꿉니다."},
+		{file: "guides/INSTALL.md", section: "### Codex",
+			old: "다른 플러그인과 혼동되면", new: "다른 플러그인과 헷갈리면"},
+		{file: "guides/INSTALL.md", section: "## 로컬 경로 등록에서 옮기기",
+			old: "spec·seal·spar도 함께 지워지므로 다시 설치합니다.", new: "spec·seal·spar까지 지워지므로 다시 설치합니다."},
+		{file: "guides/USAGE.md", old: "같은 지침이 선택된다는 보장이 없습니다.", new: "같은 지침이 선택된다고 보장할 수 없습니다."},
+		{file: "guides/USAGE.md", old: "그 자체로 구현을 시작하지 않습니다.", new: "이 표시만으로 구현이 시작되지는 않습니다."},
+		{file: "guides/USAGE.md", old: "\"응\"이라고 답하면 구현이 시작됩니다.", new: "\"응\"이라고 답하면 바로 구현이 시작됩니다."},
+		{file: "guides/USAGE.md", old: "구현 시작 명령도 계속 쓸 수 있습니다.", new: "구현 시작 명령도 여전히 쓸 수 있습니다."},
+	})
+}
+
 // namedTests are the plugins tests that kept declarations and the release
 // check select by name.
 var namedTests = []string{"TestRelease011UninstallGuide", "TestRelease011UpdateGuide", "TestRelease013ReferenceGuidance"}
