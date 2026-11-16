@@ -474,9 +474,10 @@ func TestRepeatFindingsAC3_BoundaryGuidance(t *testing.T) {
 			t.Errorf("jaekit:violation=%s the boundary guidance does not name %s", id, token)
 		}
 	}
-	// Each case is on its own line with its own classification: outside a
-	// boundary is hardening without check impact and names the boundary; an
-	// input a requirement needs is a defect.
+	// Each case is on its own line with its own classification and its fixed
+	// qualifier: outside a boundary and needed by nothing is hardening without
+	// check impact and names the boundary; an input a requirement needs is a
+	// defect whatever a boundary says.
 	var outside, required string
 	for _, line := range strings.Split(guidance, "\n") {
 		switch {
@@ -486,10 +487,12 @@ func TestRepeatFindingsAC3_BoundaryGuidance(t *testing.T) {
 			required = line
 		}
 	}
-	if outside == "" || !strings.Contains(outside, "`check_impact` `none`") || !strings.Contains(outside, "name the boundary") || strings.Contains(outside, "`defect`") {
+	if outside == "" || !strings.Contains(outside, "that no criterion, rule, contract or protected regression path requires") ||
+		!strings.Contains(outside, "`check_impact` `none`") || !strings.Contains(outside, "name the boundary") || strings.Contains(outside, "`defect`") {
 		t.Errorf("jaekit:violation=%s no guidance line pairs a counterexample outside a boundary with `hardening`, `check_impact` `none` and naming the boundary: %q", id, outside)
 	}
-	if required == "" || !strings.Contains(required, "requires") || !strings.Contains(required, "protected") || strings.Contains(required, "`hardening`") {
+	if required == "" || !strings.Contains(required, "requires") || !strings.Contains(required, "protected") ||
+		!strings.Contains(required, "whatever a boundary says") || strings.Contains(required, "`hardening`") {
 		t.Errorf("jaekit:violation=%s no guidance line pairs a counterexample on a required input with `defect`: %q", id, required)
 	}
 }
