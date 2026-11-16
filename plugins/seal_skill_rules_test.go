@@ -496,6 +496,9 @@ func TestSealSkillWordCapStated(t *testing.T) {
 // build for developing Jaekit only.
 func TestSealSkillMissingHa(t *testing.T) {
 	skill := read(t, skSkill)
+	if strings.Contains(skill, "from the jaekit repository") {
+		t.Errorf("%s sends users to the jaekit repository to install ha", skSkill)
+	}
 	skRequire(t, skSkill, skill,
 		"If `ha` is missing, refuses the start or does not know a command (exit 64), record nothing and stop",
 		"report the executable and message",
@@ -824,6 +827,11 @@ func TestSealSkillQuestionsUpFront(t *testing.T) {
 func TestSealSkillProjectRecords(t *testing.T) {
 	skRequirePhrases(t, skPhrase{skSkill, "", true, []string{
 		"docs/specs/<goal>", "Do not force ignored private documents into Git", "not a requirement for other projects"}})
+	for _, localOnly := range []string{"private backup repository", "primary checkout", "launchd"} {
+		if strings.Contains(read(t, skSkill), localOnly) {
+			t.Errorf("%s turned local retention infrastructure into a product requirement: %s", skSkill, localOnly)
+		}
+	}
 }
 
 // Review rounds take the goal's added or changed check files as

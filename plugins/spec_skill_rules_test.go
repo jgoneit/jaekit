@@ -243,6 +243,11 @@ func TestSpecSkillTemplateHeaders(t *testing.T) {
 // documents to the project.
 func TestSpecSkillProjectRecords(t *testing.T) {
 	requireIn(t, spkSkill, read(t, spkSkill), "docs/specs/<goal>", "Do not force ignored private documents into Git", "not a requirement for other projects")
+	for _, localOnly := range []string{"private backup repository", "primary checkout", "launchd"} {
+		if strings.Contains(read(t, spkSkill), localOnly) {
+			t.Errorf("%s turned local retention infrastructure into a product requirement: %s", spkSkill, localOnly)
+		}
+	}
 }
 
 func TestSpecSkillHelperDecisionLine(t *testing.T) {

@@ -104,10 +104,20 @@ var rvFixedForms = []*regexp.Regexp{
 	regexp.MustCompile(`\.local/share/jaekit/(\d+\.\d+\.\d+)`),
 	regexp.MustCompile(`\*\*(v\d+\.\d+\.\d+)\*\*`),
 	regexp.MustCompile(`current=(\d+\.\d+\.\d+)`),
+	regexp.MustCompile("`[#@](v\\d+\\.\\d+\\.\\d+)`"),
 }
 
+// rvVersionSpan is a backticked ha or spar version. It names the current
+// release unless its line names an earlier or later release tag, as the
+// release history rows do.
+var (
+	rvVersionSpan = regexp.MustCompile("`(?:ha|spar) (\\d+\\.\\d+\\.\\d+)(?:-dev)?`")
+	rvAnyTag      = regexp.MustCompile(`\bv(\d+\.\d+\.\d+)\b`)
+)
+
 // Every fixed version form in the READMEs and guides names the current
-// release, so changing one place to another version fails.
+// release, and so does every backticked ha or spar version on a line that
+// names no other release, so changing one place to another version fails.
 func TestReleaseVersionFixedForms(t *testing.T) {
 	guides, err := filepath.Glob("../guides/*.md")
 	if err != nil || len(guides) == 0 {
@@ -116,6 +126,18 @@ func TestReleaseVersionFixedForms(t *testing.T) {
 	seen := 0
 	for _, path := range append([]string{"../README.md", "../README.ko.md", "../README.en.md"}, guides...) {
 		for number, line := range strings.Split(read(t, path), "\n") {
+			other := false
+			for _, m := range rvAnyTag.FindAllStringSubmatch(line, -1) {
+				other = other || m[1] != rvVersion
+			}
+			if !other {
+				for _, m := range rvVersionSpan.FindAllStringSubmatch(line, -1) {
+					seen++
+					if m[1] != rvVersion {
+						t.Errorf("%s:%d names %s in %q, want the current release %s", path, number+1, m[1], m[0], rvVersion)
+					}
+				}
+			}
 			for _, form := range rvFixedForms {
 				for _, m := range form.FindAllStringSubmatch(line, -1) {
 					seen++
