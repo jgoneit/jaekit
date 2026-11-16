@@ -353,7 +353,7 @@ func newClassifier(r *RoundRecord) (classifier, error) {
 	if c.base, err = gitTree(r.Repo, r.Base); err != nil {
 		return c, fmt.Errorf("the base commit cannot be read: %v", err)
 	}
-	c.docs = roundDocuments(r.Repo, r.Criteria, r.Rules, r.Subjects)
+	c.docs = roundDocuments(r.Repo, r.Criteria, r.Rules, r.Subjects, r.Boundaries)
 	return c, nil
 }
 

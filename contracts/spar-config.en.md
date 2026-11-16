@@ -4,7 +4,7 @@
 
 > This is a translation of the [Korean original](spar-config.md). Where the two differ, the Korean original decides.
 
-Two configuration files decide which reviewers `spar` starts and which caps, angles, rules and check paths it uses. The user configuration chooses the reviewers, and a repository's project configuration cannot choose reviewers. The format is [TOML 1.0.0](https://toml.io/en/v1.0.0), and `spar` reads it with `github.com/pelletier/go-toml/v2` v2.2.4 (G17). The table in [Input formats](spar-input.en.md) defines the accepted format of each value and the result outside that format, and this document points to its rows (G16 to G25). The names, paths and models in the examples below are synthetic.
+Two configuration files decide which reviewers `spar` starts and which caps, angles, rules and check paths it uses. The user configuration chooses the reviewers, and a repository's project configuration cannot choose reviewers. The format is [TOML 1.0.0](https://toml.io/en/v1.0.0), and `spar` reads it with `github.com/pelletier/go-toml/v2` v2.2.4 (G17). The table in [Input formats](spar-input.en.md) defines the accepted format of each value and the result outside that format, and this document points to its rows (G16 to G25, and G37). The names, paths and models in the examples below are synthetic.
 
 ## 1. User configuration and source order
 
@@ -28,6 +28,7 @@ timeout_seconds = 1800          # default time limit for every reviewer (seconds
 [[reviewers]]
 name = "codex"                  # name used in records and --reviewers; the preset name when omitted
 preset = "codex"
+max_packet_bytes = 1000000      # the largest packet in bytes this reviewer receives
 
 [[reviewers]]
 name = "agy"
@@ -53,16 +54,19 @@ timeout_seconds = 600
 | `effort` | The reasoning effort of `claude` or `codex`. When written, the agent cannot choose it |
 | `allowed_models`, `allowed_efforts` | The lists of models and efforts the agent may choose ("How the model and effort are decided" below) |
 | `timeout_seconds` | A positive integer (G19). The per-reviewer value takes precedence over the top-level value, and the top-level value is the default for every reviewer that file determines. The executable's version check also runs within this time |
+| `max_packet_bytes` | The largest packet (`packet.md`) in bytes this reviewer receives. A positive integer, only in a reviewer entry, and any preset may have it (G37). Without it, the preset value below applies. `spar run` refuses a packet larger than the limit of any reviewer of the run before any reviewer starts, dry runs included, and writes no round ([Review round](review-round.en.md) section 2) |
 
 Preset defaults:
 
-| preset | Isolation grade | Required | Default model | Default fallback model | Default effort |
-| --- | --- | --- | --- | --- | --- |
-| `claude` | `verified` | Yes | `opus` | None | `high` |
-| `codex` | `verified` | Yes | `gpt-6-astra` | None | `high` |
-| `agy` | `verified` | Yes | `gemini-4-argon-high` | `gemini-3.8-flash-high` | None |
-| `native` | `host` | Yes | None | None | None |
-| `command` | `unverified` | No | None | None | None |
+| preset | Isolation grade | Required | Default model | Default fallback model | Default effort | Default packet limit |
+| --- | --- | --- | --- | --- | --- | --- |
+| `claude` | `verified` | Yes | `opus` | None | `high` | 1,200,000 bytes |
+| `codex` | `verified` | Yes | `gpt-6-astra` | None | `high` | 1,200,000 bytes |
+| `agy` | `verified` | Yes | `gemini-4-argon-high` | `gemini-3.8-flash-high` | None | 4,000,000 bytes |
+| `native` | `host` | Yes | None | None | None | None |
+| `command` | `unverified` | No | None | None | None | None |
+
+The default packet limits come from local rounds: `claude` and `codex` completed rounds with packets of up to about 0.7 MB and failed on input length with a 2.4 MB packet, and `agy` completed with 3 MB packets. A limit is there to stop before sending a packet the reviewer CLI cannot take; spar does not check a provider's actual limit.
 
 Giving `binary`, `model`, `fallback_model` or `effort` to a preset that does not use it is an error (`agy` does not use `effort`). The rule for finding the executable: G14.
 
@@ -127,6 +131,7 @@ A configuration error starts no reviewer, creates no round folder and ends with 
 - TOML syntax error (including what TOML 1.0 does not allow and defining the same table twice): the line of the error
 - Unknown key: the line of that key
 - Duplicate reviewer name (ignoring case), reserved name, unknown preset, key not used by the preset: the line of that key
+- A `max_packet_bytes` that is not a positive integer (0, a negative number, a string, a fraction and so on): the line of that key, with `max_packet_bytes` in the content
 - Invalid `rules` or `check_paths` item: the line of that key and the item
 - Source path that is not a regular file: that path
 - `command` without `argv`, an entry without `preset`: the line of that entry's `[[reviewers]]` header
@@ -143,8 +148,8 @@ A configuration error starts no reviewer, creates no round folder and ends with 
 | `choices` | The values the agent gave for this run, as received: per item `reviewer`, `key` (`model`, `effort`), `value`. Models first, and for each key in the order given. When there are none, the empty list `[]`. Rounds written before this field existed do not have it, and rewriting such a round does not add it |
 | `configured_required` | `name` and `preset` of the reviewers that the configuration makes required, regardless of `--reviewers`. The gate treats them as required reviewers |
 | `files` | The path and sha256 of each configuration file read |
-| `reviewers` | The applied reviewers (`name`, `preset`, `isolation`, `required`, `model`, `fallback_model`, `effort`, `binary`, `argv`, `timeout_seconds`). `claude`, `codex` and `agy` have `model_source` (`user`: the user configuration, `agent`: the agent's `--model`, `preset`: the preset value), and `claude` and `codex` have `effort_source` (the same three values). When the agent may choose (it is not written), they have `default_model` and `default_effort`, used when the agent does not choose; when written, `allowed_models` and `allowed_efforts`. `native` and `command` do not have these fields |
+| `reviewers` | The applied reviewers (`name`, `preset`, `isolation`, `required`, `model`, `fallback_model`, `effort`, `binary`, `argv`, `timeout_seconds`). `claude`, `codex` and `agy` have `model_source` (`user`: the user configuration, `agent`: the agent's `--model`, `preset`: the preset value), and `claude` and `codex` have `effort_source` (the same three values). When the agent may choose (it is not written), they have `default_model` and `default_effort`, used when the agent does not choose; when written, `allowed_models` and `allowed_efforts`. `native` and `command` do not have these fields. A reviewer with a packet limit has `max_packet_bytes` (bytes) and `max_packet_bytes_source` (`preset`: the preset value, `user`: the user configuration); a reviewer without a limit (`native` or `command` without a user setting) has neither field |
 | `angles`, `caps`, `check_paths`, `rules` | The applied values |
-| `digest` | The sha256 of the canonical JSON of the reviewers, `configured_required`, angles, caps, check paths and rules. It is the same when the applied values are the same, even from different sources: the reviewers' `model_source`, `effort_source`, `default_model` and `default_effort` and `choices` are left out, and the values the agent chose enter as the applied `model` and `effort`. Even with the same `--reviewers`, the digest differs when the reviewers that the configuration makes required differ |
+| `digest` | The sha256 of the canonical JSON of the reviewers, `configured_required`, angles, caps, check paths and rules. It is the same when the applied values are the same, even from different sources: the reviewers' `model_source`, `effort_source`, `default_model`, `default_effort` and `max_packet_bytes_source` and `choices` are left out (so a user-written limit equal to the preset's gives the same digest), and the values the agent chose enter as the applied `model` and `effort`. Even with the same `--reviewers`, the digest differs when the reviewers that the configuration makes required differ |
 
 `spar run --check-path GLOB` adds to that run's `check_paths` and is reflected in the digest. The format is the same as `check_paths` (G24), and an invalid glob is refused before any reviewer starts.

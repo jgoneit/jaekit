@@ -236,7 +236,7 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 		}
 		return ExitOK, ShowConfigWith(p.one("repo"), getenv, reviewerOverride(p), choices, stdout)
 	case "run":
-		p, err := parseArgs(rest, []string{"stage", "base", "head", "out", "criteria", "rules", "subject", "question",
+		p, err := parseArgs(rest, []string{"stage", "base", "head", "out", "criteria", "rules", "subject", "boundary", "question",
 			"decision", "decision-quote", "standpoint", "check-path", "reviewers", "model", "effort", "repo", "label"}, []string{"dry-run"})
 		if err != nil {
 			// A decision without what it settles or without the user's
@@ -263,7 +263,7 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 		}
 		code, err := Run(RunOptions{Repo: p.one("repo"), Stage: p.one("stage"), Base: p.one("base"), Head: p.one("head"),
 			Out: p.one("out"), Criteria: p.values["criteria"], Rules: p.values["rules"], Subjects: p.values["subject"],
-			Questions: p.values["question"], Decisions: ds, Standpoints: ss, CheckPaths: p.values["check-path"], Reviewers: reviewerOverride(p),
+			Boundaries: p.values["boundary"], Questions: p.values["question"], Decisions: ds, Standpoints: ss, CheckPaths: p.values["check-path"], Reviewers: reviewerOverride(p),
 			Choices: choices, Label: p.one("label"), DryRun: p.flags["dry-run"], Version: version, Getenv: getenv, Log: stderr})
 		if err == nil {
 			fmt.Fprintf(stdout, "spar: round written to %s\n", p.one("out"))

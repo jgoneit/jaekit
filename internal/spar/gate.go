@@ -294,7 +294,9 @@ func Gate(o GateOptions) (int, error) {
 				switch {
 				case lastCode == nil:
 					blocked = append(blocked, fmt.Sprintf("%s: a fixes round needs an earlier code round in the gate list", lr.path))
-				case !isRerun(lastCode, r) && lastCode.Head != r.Base:
+				// A fixes round of the same range as the previous one
+				// repeats it, with the same packet or another.
+				case !sameIdentity(lastCode, r) && lastCode.Head != r.Base:
 					blocked = append(blocked, fmt.Sprintf("%s: the fixes chain is broken: base %s is not the previous head %s",
 						lr.path, shortID(r.Base), shortID(lastCode.Head)))
 				}

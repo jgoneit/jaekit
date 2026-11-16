@@ -83,7 +83,8 @@ Before any baseline, once PLAN is written and `ha doctor` has run, gather every 
 - a change that project instructions reserve for the user's words, such as a plan that changes a file on a protected path;
 - a change to an existing test that the request does not authorize;
 - a place where the goal documents and the code seem to disagree and the user must choose;
-- unusable tools that `ha doctor` reports, and a computed budget that needs approval.
+- unusable tools that `ha doctor` reports, and a computed budget that needs approval;
+- the supported input forms of an open-ended criterion that the goal documents do not name.
 
 Any other decision of that kind goes in the same message. Give each question its options, the recommended one leading, and what each answer changes. When a condition can be met only by the user's confirmation, such as a `manual` condition, the same message names it and what you will ask them to confirm at the end. With no such decision or condition, ask nothing and start the work; never ask whether anything else needs asking.
 
@@ -91,17 +92,19 @@ An answer settles only what it says. A change outside the recorded authority or 
 
 Once the work has started, ask each question when it arises, such as a `requirement-question` from review, a round cap or a scope change nobody could foresee; questions pending at the same moment go in one message. Ask for the confirmations completion needs in one message, once the results they confirm exist.
 
-**Decisions for review rounds.** Pass every review round, from the plan round to the cumulative round, the user's decisions recorded before it that the goal documents do not hold: each answer that closed an item of REVIEW.md `## 중요한 미결정`, each `confirm` and `input` note that quotes the user's words, and each answer to a review's `requirement-question`. Give each decision as `--decision` with what it settles, taken from the REVIEW.md item or the confirmation's target, followed by `--decision-quote` with the recorded quote unchanged. Round cap extensions, reviewer waivers and `reopen` are not decisions about the change; never pass them. Pass decisions in every round this Seal runs, whichever Seal started the goal. Put each value in single quotes, writing a single quote in it as `'\''`, so that the shell passes the recorded words byte for byte. A cumulative round with two decisions and one place question ([REVIEW.md](#reviewmd)) looks like this:
+**Decisions for review rounds.** Pass every review round, from the plan round to the cumulative round, the user's decisions recorded before it that the goal documents do not hold: each answer that closed an item of REVIEW.md `## 중요한 미결정`, each `confirm` and `input` note that quotes the user's words, and each answer to a review's `requirement-question`. Give each decision as `--decision` with what it settles, taken from the REVIEW.md item or the confirmation's target, followed by `--decision-quote` with the recorded quote unchanged. Round cap extensions, reviewer waivers and `reopen` are not decisions about the change; never pass them. Pass decisions in every round this Seal runs, whichever Seal started the goal. Put each value in single quotes, writing a single quote in it as `'\''`, so that the shell passes the recorded words byte for byte. A cumulative round with the boundary document, two decisions and one place question ([REVIEW.md](#reviewmd)) looks like this:
 
 ```bash
 spar run --stage candidate --base <goal base commit> --head <head> \
   --criteria docs/specs/<goal>/SPEC.md --rules AGENTS.md \
+  --boundary docs/specs/<goal>/REVIEW.md \
   --decision '<what decision 1 settles>' --decision-quote '<the recorded words of decision 1>' \
   --decision '<what decision 2 settles>' --decision-quote '<the recorded words of decision 2>' \
   --question '<path> (<name used there>): does it still keep <invariant> at head?' \
   --out docs/reviews/<goal>/<NN>-candidate
 ```
 
+**Boundaries for review rounds.** Pass the goal's `REVIEW.md` as `--boundary` to every review round, from the plan round to the cumulative round, so that reviewers read each check's recorded boundary and supported input forms before they report a counterexample. Pass `REVIEW.md` as `--boundary` in every round this Seal runs, whichever Seal started the goal.
 
 ## Check inputs
 
@@ -191,6 +194,8 @@ Under `run-rules/7`, state for each change condition whether it requires a basel
 | 결론 | `ready` or `needs_user` with the reason |
 
 The split REVIEW form applies to goals started with seal 0.1.29 or later. A goal started with an earlier Seal keeps the REVIEW form it started with. An existing `REVIEW.md` is never rewritten into the split form.
+
+Supported input forms and check boundaries are written before the earliest review round of every tier: the plan round for `strict`, otherwise the earliest candidate round. When the goal documents name no forms for an open-ended criterion, ask for them in the one question before any baseline. When a review fix widens the inputs a check observes, widen its boundary record in the same step; narrowing one stays the user's decision. This timing applies to goals started with seal 0.1.31 or later; an existing goal's `REVIEW.md` is never rewritten for it.
 
 The review section follows the skill's review timing: a plan round, when the tier or the selected policy asks for one, runs before any baseline, and in a goal under review `ha done` waits for a cumulative round over the goal's base commit to the last head. Under `run-rules/5` or `run-rules/6`, a `standard` or `strict` goal's rounds take every goal document as criteria, and the `spar gate` file of that series is recorded with `ha note <goal> review --gate <file>` before `ha done`; the review section names the gate record by reference. Supported input forms are never narrower than a SPEC criterion, contract or protected regression path requires; narrowing them is the user's decision, and a finding about input outside them is `hardening`. Every round, from the plan round to the cumulative round, gets one `--question` per place, asking whether that place still keeps its invariant at head; the list adds places for reviewers to look at and never narrows what they read. The list of places applies to goals whose start record names seal 0.1.25 or later, and existing goals' `REVIEW.md` is never rewritten to the new form. Goals started with an earlier Seal keep the review format they started with ([earlier-goals.md](earlier-goals.md)).
 

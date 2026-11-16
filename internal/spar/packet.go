@@ -34,6 +34,25 @@ var stageText = map[string]string{
 	"fixes":      "The head fixes findings of earlier rounds. Review the fixes from base to head, and whether they fix those findings without breaking anything else.",
 }
 
+// fixesDisposedText is the fixes stage line when an earlier finding has a
+// recorded disposition: a finding recorded as not fixed was left on purpose.
+const fixesDisposedText = "The head fixes findings of earlier rounds. Review the fixes from base to head: whether the findings recorded as fixed are fixed without breaking anything else, " +
+	"and whether the findings recorded as rejected, deferred, duplicate or answered still hold as recorded."
+
+// rereportGuidance opens the earlier findings when any of them has a
+// recorded disposition.
+const rereportGuidance = "Each line ends with the finding's last disposition when one is recorded. " +
+	"Report a finding with a recorded disposition again only with a failure scenario that the recorded disposition does not answer.\n\n"
+
+// stageLine is the stage text of a packet. A packet without a recorded
+// disposition keeps the text it had before dispositions were shown.
+func stageLine(in packetInput) string {
+	if in.Stage == "fixes" && in.Disposed {
+		return fixesDisposedText
+	}
+	return stageText[in.Stage]
+}
+
 // resultSchema is the JSON schema a reviewer's result follows.
 func resultSchema(withStandpoints ...bool) []byte {
 	str := map[string]any{"type": "string"}
@@ -112,11 +131,15 @@ type packetInput struct {
 	Criteria    []Document
 	Rules       []Document
 	Subjects    []Document
+	Boundaries  []Document
 	Decisions   []Decision
 	Standpoints []Standpoint
 	Questions   []string
 	Prior       []string
-	Diff        []byte
+	// Disposed is true when an earlier finding's line ends with its
+	// recorded disposition.
+	Disposed bool
+	Diff     []byte
 }
 
 func standpointInstruction(standpoints []Standpoint, name string) string {
@@ -156,6 +179,12 @@ const decisionGuidance = "- Each decision below was recorded by the caller as th
 	"- When following a decision breaks a criterion, rule or contract that the decision does not address, " +
 	"report a `requirement-question` that links that criterion, rule or contract.\n\n"
 
+// boundaryGuidance opens the boundary documents: what a check does not cover
+// is hardening unless a requirement needs that input.
+const boundaryGuidance = "- The documents below state what each check observes and the inputs it does not cover, as the caller recorded them; spar does not check that they are right.\n" +
+	"- A counterexample on an input outside a stated boundary that no criterion, rule, contract or protected regression path requires: report it as `hardening` with `check_impact` `none`, and name the boundary it is outside.\n" +
+	"- A counterexample on an input that a criterion, a contract or a protected regression path requires is a `defect`, whatever a boundary says.\n\n"
+
 // embedText writes a label and a text as given inside a fence longer than
 // any run of backticks in it, so that no heading or fence in the text makes
 // or ends a section of the packet. The closing fence always follows a
@@ -176,7 +205,7 @@ func buildPacket(in packetInput) string {
 	b.WriteString("Read only the files in the review workspace: `head/` holds the tracked files of the head commit and `base/` those of the base commit. " +
 		"There is no Git history. Do not change, create or delete any file, and do not use the network.\n\n")
 	fmt.Fprintf(&b, "## Round\n\n- Stage: `%s`. %s\n- Base commit: `%s` (tree `%s`)\n- Head commit: `%s` (tree `%s`)\n\n",
-		in.Stage, stageText[in.Stage], in.Base, in.BaseTree, in.Head, in.HeadTree)
+		in.Stage, stageLine(in), in.Base, in.BaseTree, in.Head, in.HeadTree)
 	b.WriteString("## Attack angles\n\nCheck every angle below. Report each one in `angles_checked` with what you checked, or in `angles_unchecked` with the reason; a result that leaves an angle out of both is not accepted.\n\n")
 	for _, a := range in.Angles {
 		fmt.Fprintf(&b, "- `%s`: %s\n", a, angleText[a])
@@ -217,6 +246,12 @@ func buildPacket(in packetInput) string {
 			embedDoc(&b, d)
 		}
 	}
+	if len(in.Boundaries) > 0 {
+		b.WriteString("## Check boundaries\n\n" + boundaryGuidance)
+		for _, d := range in.Boundaries {
+			embedDoc(&b, d)
+		}
+	}
 	if len(in.Decisions) > 0 {
 		b.WriteString("## Decisions the user made\n\n" + decisionGuidance)
 		for i, d := range in.Decisions {
@@ -240,6 +275,9 @@ func buildPacket(in packetInput) string {
 	}
 	if len(in.Prior) > 0 {
 		b.WriteString("## Findings of earlier rounds\n\n")
+		if in.Disposed {
+			b.WriteString(rereportGuidance)
+		}
 		for _, p := range in.Prior {
 			fmt.Fprintf(&b, "- %s\n", p)
 		}

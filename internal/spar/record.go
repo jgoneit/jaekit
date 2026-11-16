@@ -73,22 +73,25 @@ type ReviewerState struct {
 
 // RoundRecord is round.json.
 type RoundRecord struct {
-	Schema               string                    `json:"schema"`
-	SparVersion          string                    `json:"spar_version"`
-	Stage                string                    `json:"stage"`
-	Label                string                    `json:"label,omitempty"`
-	Series               string                    `json:"series"`
-	Sequence             int                       `json:"sequence"`
-	Repo                 string                    `json:"repo"`
-	Base                 string                    `json:"base"`
-	Head                 string                    `json:"head"`
-	BaseTree             string                    `json:"base_tree"`
-	HeadTree             string                    `json:"head_tree"`
-	DiffSHA256           string                    `json:"diff_sha256"`
-	Criteria             []Document                `json:"criteria"`
-	CriteriaDigest       string                    `json:"criteria_digest"`
-	Rules                []Document                `json:"rules"`
-	Subjects             []Document                `json:"subjects"`
+	Schema         string     `json:"schema"`
+	SparVersion    string     `json:"spar_version"`
+	Stage          string     `json:"stage"`
+	Label          string     `json:"label,omitempty"`
+	Series         string     `json:"series"`
+	Sequence       int        `json:"sequence"`
+	Repo           string     `json:"repo"`
+	Base           string     `json:"base"`
+	Head           string     `json:"head"`
+	BaseTree       string     `json:"base_tree"`
+	HeadTree       string     `json:"head_tree"`
+	DiffSHA256     string     `json:"diff_sha256"`
+	Criteria       []Document `json:"criteria"`
+	CriteriaDigest string     `json:"criteria_digest"`
+	Rules          []Document `json:"rules"`
+	Subjects       []Document `json:"subjects"`
+	// Boundaries is absent in a round without boundary documents, as in
+	// rounds written before spar took them.
+	Boundaries           []Document                `json:"boundaries,omitempty"`
 	Questions            []string                  `json:"questions"`
 	Decisions            []Decision                `json:"decisions,omitempty"`
 	Standpoints          []Standpoint              `json:"standpoints"`

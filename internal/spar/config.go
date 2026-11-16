@@ -58,9 +58,21 @@ type Reviewer struct {
 	DefaultEffort  string   `json:"default_effort,omitempty"`
 	AllowedEfforts []string `json:"allowed_efforts,omitempty"`
 	TimeoutSeconds int64    `json:"timeout_seconds"`
+	// PacketLimit is the largest packet in bytes this reviewer is given, 0
+	// for none, and PacketLimitSource where it came from (preset or user).
+	PacketLimit       int64  `json:"max_packet_bytes,omitempty"`
+	PacketLimitSource string `json:"max_packet_bytes_source,omitempty"`
 	// The keys the user's file writes for this reviewer.
 	modelWritten, effortWritten, fallbackWritten bool
 }
+
+// Default packet limits in bytes. Local rounds completed with packets of
+// about 0.7 MB for claude and codex, and failed for input length at 2.4 MB;
+// agy completed with packets of 3 MB.
+const (
+	DefaultPacketLimit    = 1_200_000
+	DefaultAgyPacketLimit = 4_000_000
+)
 
 // Where a reviewer's model or effort came from.
 const (
@@ -135,9 +147,12 @@ type Config struct {
 
 // presets are the reviewer kinds and their defaults.
 var presets = map[string]Reviewer{
-	"claude":  {Preset: "claude", Isolation: IsolationVerified, Required: true, Model: "opus", Effort: "high"},
-	"codex":   {Preset: "codex", Isolation: IsolationVerified, Required: true, Model: "gpt-6-astra", Effort: "high"},
-	"agy":     {Preset: "agy", Isolation: IsolationVerified, Required: true, Model: "gemini-4-argon-high", FallbackModel: "gemini-3.8-flash-high"},
+	"claude": {Preset: "claude", Isolation: IsolationVerified, Required: true, Model: "opus", Effort: "high",
+		PacketLimit: DefaultPacketLimit, PacketLimitSource: SourcePreset},
+	"codex": {Preset: "codex", Isolation: IsolationVerified, Required: true, Model: "gpt-6-astra", Effort: "high",
+		PacketLimit: DefaultPacketLimit, PacketLimitSource: SourcePreset},
+	"agy": {Preset: "agy", Isolation: IsolationVerified, Required: true, Model: "gemini-4-argon-high", FallbackModel: "gemini-3.8-flash-high",
+		PacketLimit: DefaultAgyPacketLimit, PacketLimitSource: SourcePreset},
 	"native":  {Preset: "native", Isolation: IsolationHost, Required: true},
 	"command": {Preset: "command", Isolation: IsolationUnverified, Required: false},
 }
@@ -211,6 +226,9 @@ type reviewerEntry struct {
 	AllowedModels  any    `toml:"allowed_models"`
 	AllowedEfforts any    `toml:"allowed_efforts"`
 	TimeoutSeconds *int64 `toml:"timeout_seconds"`
+	// MaxPacketBytes is read as any value so that a wrong type is reported
+	// as the setting's own problem.
+	MaxPacketBytes any `toml:"max_packet_bytes"`
 }
 
 type userFile struct {
@@ -770,6 +788,13 @@ func parseReviewers(path string, raw map[string]any, file userFile, lines map[st
 			}
 			r.TimeoutSeconds = *e.TimeoutSeconds
 		}
+		if e.MaxPacketBytes != nil {
+			n, ok := e.MaxPacketBytes.(int64)
+			if !ok || n <= 0 {
+				return nil, true, fail("max_packet_bytes", "max_packet_bytes must be a positive whole number of bytes")
+			}
+			r.PacketLimit, r.PacketLimitSource = n, SourceUser
+		}
 		out = append(out, r)
 	}
 	return out, present, nil
@@ -954,6 +979,7 @@ func (c *Config) digest() string {
 	reviewers := make([]Reviewer, len(c.Reviewers))
 	for i, r := range c.Reviewers {
 		r.ModelSource, r.DefaultModel, r.EffortSource, r.DefaultEffort = "", "", "", ""
+		r.PacketLimitSource = ""
 		reviewers[i] = r
 	}
 	applied := struct {

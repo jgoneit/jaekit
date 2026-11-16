@@ -1,6 +1,6 @@
 # 계약: Spar 설정
 
-`spar`가 어떤 리뷰어를 띄우고 어떤 상한·각도·규칙·검사 경로를 쓸지는 두 설정 파일이 정한다. 사용자 설정은 리뷰어를 정하고, 저장소의 프로젝트 설정은 리뷰어를 정할 수 없다. 형식은 [TOML 1.0.0](https://toml.io/en/v1.0.0)이고 `spar`는 `github.com/pelletier/go-toml/v2` v2.2.4로 읽는다(G17). 각 값의 받는 형식과 형식 밖의 결과는 [입력 형식](spar-input.md)의 표가 정하고, 이 문서는 그 행(G16~G25)을 가리킨다. 아래 예시의 이름·경로·모델은 합성이다.
+`spar`가 어떤 리뷰어를 띄우고 어떤 상한·각도·규칙·검사 경로를 쓸지는 두 설정 파일이 정한다. 사용자 설정은 리뷰어를 정하고, 저장소의 프로젝트 설정은 리뷰어를 정할 수 없다. 형식은 [TOML 1.0.0](https://toml.io/en/v1.0.0)이고 `spar`는 `github.com/pelletier/go-toml/v2` v2.2.4로 읽는다(G17). 각 값의 받는 형식과 형식 밖의 결과는 [입력 형식](spar-input.md)의 표가 정하고, 이 문서는 그 행(G16~G25, G37)을 가리킨다. 아래 예시의 이름·경로·모델은 합성이다.
 
 ## 1. 사용자 설정과 출처 순서
 
@@ -24,6 +24,7 @@ timeout_seconds = 1800          # 모든 리뷰어의 기본 시간 제한(초)
 [[reviewers]]
 name = "codex"                  # 기록과 --reviewers에서 쓰는 이름, 생략하면 preset 이름
 preset = "codex"
+max_packet_bytes = 1000000      # 이 리뷰어가 받을 패킷의 최대 바이트 수
 
 [[reviewers]]
 name = "agy"
@@ -49,16 +50,19 @@ timeout_seconds = 600
 | `effort` | `claude`·`codex`의 추론 강도. 적으면 에이전트가 고를 수 없다 |
 | `allowed_models`, `allowed_efforts` | 에이전트가 고를 수 있는 모델·강도의 목록(아래 "모델과 강도를 정하는 순서") |
 | `timeout_seconds` | 양의 정수(G19). 리뷰어별 값이 최상위 값보다 앞서고, 최상위 값은 그 파일로 정해지는 모든 리뷰어의 기본값이다. 실행 파일의 버전 확인도 이 시간 안에서 한다 |
+| `max_packet_bytes` | 이 리뷰어가 받을 패킷(`packet.md`)의 최대 바이트 수. 리뷰어 항목에만 있는 양의 정수이고 모든 preset에 적을 수 있다(G37). 적지 않으면 아래 preset 값이다. 이번 실행의 어느 리뷰어의 한도보다 큰 패킷은 `spar run`이 dry run을 포함해 리뷰어를 띄우기 전에 거부하고 라운드를 쓰지 않는다([검토 라운드](review-round.md) 2절) |
 
 preset 기본값:
 
-| preset | 격리 등급 | 필수 | 기본 모델 | 기본 대체 모델 | 기본 강도 |
-| --- | --- | --- | --- | --- | --- |
-| `claude` | `verified` | 예 | `opus` | 없음 | `high` |
-| `codex` | `verified` | 예 | `gpt-6-astra` | 없음 | `high` |
-| `agy` | `verified` | 예 | `gemini-4-argon-high` | `gemini-3.8-flash-high` | 없음 |
-| `native` | `host` | 예 | 없음 | 없음 | 없음 |
-| `command` | `unverified` | 아니요 | 없음 | 없음 | 없음 |
+| preset | 격리 등급 | 필수 | 기본 모델 | 기본 대체 모델 | 기본 강도 | 기본 패킷 한도 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `claude` | `verified` | 예 | `opus` | 없음 | `high` | 1,200,000바이트 |
+| `codex` | `verified` | 예 | `gpt-6-astra` | 없음 | `high` | 1,200,000바이트 |
+| `agy` | `verified` | 예 | `gemini-4-argon-high` | `gemini-3.8-flash-high` | 없음 | 4,000,000바이트 |
+| `native` | `host` | 예 | 없음 | 없음 | 없음 | 없음 |
+| `command` | `unverified` | 아니요 | 없음 | 없음 | 없음 | 없음 |
+
+기본 패킷 한도는 로컬 라운드에서 왔다. `claude`와 `codex`는 약 0.7 MB까지의 패킷으로 라운드를 완료했고 2.4 MB 패킷에서 입력 길이로 실패했으며, `agy`는 3 MB 패킷으로 완료했다. 한도는 리뷰어 CLI가 받지 못할 패킷을 보내기 전에 멈추려는 것이고, 제공자의 실제 한도를 확인하지 않는다.
 
 `binary`·`model`·`fallback_model`·`effort`를 쓰지 않는 preset에 주면 오류다(`agy`는 `effort`를 쓰지 않는다). 실행 파일을 찾는 규칙: G14.
 
@@ -123,6 +127,7 @@ code = 3
 - TOML 문법 오류(TOML 1.0이 허용하지 않는 것, 같은 표를 두 번 정의한 것 포함): 오류가 난 줄
 - 모르는 키: 그 키의 줄
 - 중복된 리뷰어 이름(대소문자 무시), 예약 이름, 모르는 preset, preset에 쓰이지 않는 키: 그 키의 줄
+- 양의 정수가 아닌 `max_packet_bytes`(0, 음수, 문자열, 소수 등): 그 키의 줄, 내용에 `max_packet_bytes`
 - 잘못된 `rules`·`check_paths` 항목: 그 키의 줄과 항목
 - 일반 파일이 아닌 출처 경로: 그 경로
 - `argv`가 없는 `command`, `preset`이 없는 항목: 그 `[[reviewers]]` 머리의 줄
@@ -139,8 +144,8 @@ code = 3
 | `choices` | 에이전트가 이번 실행에 준 값을 받은 그대로: 항목마다 `reviewer`, `key`(`model`·`effort`), `value`. 모델이 먼저, 키마다 준 순서. 없으면 빈 목록 `[]`. 이 필드가 생기기 전에 쓴 라운드에는 없고, 그 라운드를 다시 써도 생기지 않는다 |
 | `configured_required` | `--reviewers`와 관계없이 설정이 필수로 정한 리뷰어의 `name`·`preset`. gate가 필수 리뷰어로 본다 |
 | `files` | 읽은 설정 파일의 경로와 sha256 |
-| `reviewers` | 적용된 리뷰어(`name`, `preset`, `isolation`, `required`, `model`, `fallback_model`, `effort`, `binary`, `argv`, `timeout_seconds`). `claude`·`codex`·`agy`는 `model_source`(`user`: 사용자 설정, `agent`: 에이전트의 `--model`, `preset`: preset 값)를, `claude`·`codex`는 `effort_source`(같은 세 값)를 가진다. 에이전트가 고를 수 있으면(적히지 않았으면) 고르지 않을 때 쓰일 `default_model`·`default_effort`를, 적었으면 `allowed_models`·`allowed_efforts`를 가진다. `native`·`command`에는 이 필드들이 없다 |
+| `reviewers` | 적용된 리뷰어(`name`, `preset`, `isolation`, `required`, `model`, `fallback_model`, `effort`, `binary`, `argv`, `timeout_seconds`). `claude`·`codex`·`agy`는 `model_source`(`user`: 사용자 설정, `agent`: 에이전트의 `--model`, `preset`: preset 값)를, `claude`·`codex`는 `effort_source`(같은 세 값)를 가진다. 에이전트가 고를 수 있으면(적히지 않았으면) 고르지 않을 때 쓰일 `default_model`·`default_effort`를, 적었으면 `allowed_models`·`allowed_efforts`를 가진다. `native`·`command`에는 이 필드들이 없다. 패킷 한도가 있는 리뷰어는 `max_packet_bytes`(바이트)와 `max_packet_bytes_source`(`preset`: preset 값, `user`: 사용자 설정)를 가지고, 한도가 없는 리뷰어(사용자가 정하지 않은 `native`·`command`)에는 두 필드가 없다 |
 | `angles`, `caps`, `check_paths`, `rules` | 적용된 값 |
-| `digest` | 리뷰어·`configured_required`·각도·상한·검사 경로·규칙의 정규 JSON sha256. 출처가 달라도 적용한 값이 같으면 같다: 리뷰어의 `model_source`·`effort_source`·`default_model`·`default_effort`와 `choices`는 넣지 않고, 에이전트가 고른 값은 적용한 `model`·`effort`로 들어간다. `--reviewers`가 같아도 설정이 필수로 정한 리뷰어가 다르면 digest가 다르다 |
+| `digest` | 리뷰어·`configured_required`·각도·상한·검사 경로·규칙의 정규 JSON sha256. 출처가 달라도 적용한 값이 같으면 같다: 리뷰어의 `model_source`·`effort_source`·`default_model`·`default_effort`·`max_packet_bytes_source`와 `choices`는 넣지 않고(그래서 preset과 같은 한도를 사용자가 적어도 digest가 같다), 에이전트가 고른 값은 적용한 `model`·`effort`로 들어간다. `--reviewers`가 같아도 설정이 필수로 정한 리뷰어가 다르면 digest가 다르다 |
 
 `spar run --check-path GLOB`은 그 실행의 `check_paths`에 더하며 digest에 반영된다. 형식은 `check_paths`와 같고(G24), 잘못된 glob은 리뷰어를 띄우기 전에 거부한다.
