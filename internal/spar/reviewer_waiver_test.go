@@ -679,10 +679,9 @@ func rwPreChangeForm(t *testing.T, round string) []string {
 	if err != nil || json.Unmarshal(data, &r) != nil {
 		t.Fatalf("%s/round.json cannot be read: %v", round, err)
 	}
-	// Since reviewer-standpoints, a round without standpoints also records
-	// "standpoints": [] (that goal's SPEC AC-8; the user's answer "빈
-	// standpoints만 허용 (Recommended)"). Only that empty list is allowed;
-	// any other value is still a field an earlier round cannot hold.
+	// A round without standpoints also records "standpoints": []. Only that
+	// empty list is allowed; any other value is still a field an earlier
+	// round cannot hold.
 	if list, ok := r["standpoints"].([]any); ok && len(list) == 0 {
 		delete(r, "standpoints")
 	}
