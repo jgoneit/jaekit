@@ -1,6 +1,78 @@
 [
  {
   "criterion": "AC-1",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "기대 결과의 근거",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "관측할 경계",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "시험 방법과 대체 환경",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "조건 그룹",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "check.py",
+  "phrase": "Expected-result grounds",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "check.py",
+  "phrase": "Planned observation boundary",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "check.py",
+  "phrase": "Method and substitutes",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "check.py",
+  "phrase": "condition groups",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "module": "check.py",
   "phrase": "Expected-result grounds",
@@ -37,6 +109,33 @@
  },
  {
   "criterion": "AC-2",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "예정·미수행·실제 수행",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "결과에 영향을 주는 환경만",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "미관측",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "module": "check.py",
   "phrase": "planned, not performed, and observed",
@@ -58,6 +157,87 @@
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "module": "check.py",
   "phrase": "unobserved",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "덮지 않는 실패 종류",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "예시를 전체 입력의 정답으로 확대하지",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "검사 개수",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "check.py",
+  "phrase": "Failure classes not covered",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "check.py",
+  "phrase": "general property",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "check.py",
+  "phrase": "not a sufficiency score",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "검토의 예정과 보고의 실제 결과",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "조건·검사·환경이 바뀌면",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "기록으로 확인한 사실과 실행자의 해석",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -90,6 +270,141 @@
   "suite": "reporting"
  },
  {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "check.py",
+  "phrase": "planned review to observed report",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "check.py",
+  "phrase": "unobserved",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "check.py",
+  "phrase": "changed condition, check, or environment",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "사건 시각과 작성 시각",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "시각 출처",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "남은 조건",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "새 사실",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "가설의 근거",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "줄일 불확실성",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "check.py",
+  "phrase": "event time and writing time",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "check.py",
+  "phrase": "time source",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "check.py",
+  "phrase": "remaining conditions",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "check.py",
+  "phrase": "new facts",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "check.py",
+  "phrase": "hypothesis evidence",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "check.py",
+  "phrase": "uncertainty to reduce",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "module": "check.py",
@@ -112,6 +427,33 @@
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "module": "check.py",
   "phrase": "not every tool call",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "확인한 것·확인하지 못한 것·위험한 경계",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "배포·설치·실제 모델 실행의 증거를 대신하지",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "contracts/bundle.md",
+  "module": "check.py",
+  "phrase": "검사 작성자가 실행자",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -153,6 +495,168 @@
   "suite": "reporting"
  },
  {
+  "criterion": "AC-7",
+  "file": "examples/empty-input/REVIEW.md",
+  "module": "check.py",
+  "phrase": "기대 결과의 근거",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "examples/empty-input/REVIEW.md",
+  "module": "check.py",
+  "phrase": "관측할 경계",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "examples/empty-input/REVIEW.md",
+  "module": "check.py",
+  "phrase": "시험 방법과 대체 환경",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "examples/empty-input/REVIEW.md",
+  "module": "check.py",
+  "phrase": "AC-1, AC-2",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "examples/empty-input/REVIEW.md",
+  "module": "check.py",
+  "phrase": "덮지 않는 실패 종류",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "examples/empty-input/PROGRESS.md",
+  "module": "check.py",
+  "phrase": "미수행",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "examples/empty-input/PROGRESS.md",
+  "module": "check.py",
+  "phrase": "미관측",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "examples/empty-input/PROGRESS.md",
+  "module": "check.py",
+  "phrase": "시각 출처",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "examples/empty-input/PROGRESS.md",
+  "module": "check.py",
+  "phrase": "기록 없음",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "examples/empty-input/PROGRESS.md",
+  "module": "check.py",
+  "phrase": "AC-1, AC-2",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "guides/OPERATIONS.md",
+  "module": "check.py",
+  "phrase": "기대 결과의 근거",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "guides/OPERATIONS.md",
+  "module": "check.py",
+  "phrase": "관측 경계",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "guides/OPERATIONS.md",
+  "module": "check.py",
+  "phrase": "시험 방법과 대체 환경",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "guides/OPERATIONS.md",
+  "module": "check.py",
+  "phrase": "기존 목표",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "examples/verification-reporting.md",
+  "module": "check.py",
+  "phrase": "가상 형식 예시",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "examples/verification-reporting.md",
+  "module": "check.py",
+  "phrase": "실제 수행 기록이 아니다",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "examples/verification-reporting.md",
+  "module": "check.py",
+  "phrase": "review-v1",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "examples/verification-reporting.md",
+  "module": "check.py",
+  "phrase": "review-v2",
+  "row": "",
+  "section": "",
+  "suite": "reporting"
+ },
+ {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "module": "design_check.py",
@@ -184,6 +688,42 @@
   "file": "plugins/seal/skills/seal/SKILL.md",
   "module": "design_check.py",
   "phrase": "may not downgrade",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "contracts/bundle.md",
+  "module": "design_check.py",
+  "phrase": "보증 정책의 출처",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "contracts/bundle.md",
+  "module": "design_check.py",
+  "phrase": "위험도만으로",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "contracts/bundle.md",
+  "module": "design_check.py",
+  "phrase": "잘못된 성공의 영향",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "contracts/bundle.md",
+  "module": "design_check.py",
+  "phrase": "조건 그룹",
   "row": "",
   "section": "",
   "suite": "design"
@@ -225,6 +765,33 @@
   "suite": "design"
  },
  {
+  "criterion": "AC-2",
+  "file": "contracts/bundle.md",
+  "module": "design_check.py",
+  "phrase": "같은 성질·입력 범위·환경",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "contracts/bundle.md",
+  "module": "design_check.py",
+  "phrase": "실제 시스템이 존재한다는 이유만으로",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "contracts/bundle.md",
+  "module": "design_check.py",
+  "phrase": "구조화된 원본",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "module": "design_check.py",
@@ -252,6 +819,42 @@
   "suite": "design"
  },
  {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "design_check.py",
+  "phrase": "review role",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "design_check.py",
+  "phrase": "provided context",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "design_check.py",
+  "phrase": "code and check versions",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "design_check.py",
+  "phrase": "not performed",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "module": "design_check.py",
@@ -274,6 +877,33 @@
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "module": "design_check.py",
   "phrase": "scope-changing proposal",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "contracts/bundle.md",
+  "module": "design_check.py",
+  "phrase": "보고의 위험 문구만 추가",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "contracts/bundle.md",
+  "module": "design_check.py",
+  "phrase": "재현·기각·수정",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "contracts/bundle.md",
+  "module": "design_check.py",
+  "phrase": "원래 조건 위반",
   "row": "",
   "section": "",
   "suite": "design"
@@ -315,6 +945,33 @@
   "suite": "design"
  },
  {
+  "criterion": "AC-5",
+  "file": "contracts/bundle.md",
+  "module": "design_check.py",
+  "phrase": "일반 성질",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "contracts/bundle.md",
+  "module": "design_check.py",
+  "phrase": "판정 불가",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "contracts/bundle.md",
+  "module": "design_check.py",
+  "phrase": "미관측·환경 오류·skip·실제 위반",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "module": "design_check.py",
@@ -351,6 +1008,60 @@
   "suite": "design"
  },
  {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "design_check.py",
+  "phrase": "required assurance gaps",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "design_check.py",
+  "phrase": "affected conditions",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "design_check.py",
+  "phrase": "completion pending",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "contracts/role-card.md",
+  "module": "design_check.py",
+  "phrase": "필수 보증이 빠진 조건",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "contracts/role-card.md",
+  "module": "design_check.py",
+  "phrase": "완료 보류",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "contracts/role-card.md",
+  "module": "design_check.py",
+  "phrase": "권한·예산",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
   "criterion": "AC-7",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "module": "design_check.py",
@@ -376,6 +1087,240 @@
   "row": "",
   "section": "",
   "suite": "design"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "contracts/bundle.md",
+  "module": "design_check.py",
+  "phrase": "검토 대상 버전",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "contracts/bundle.md",
+  "module": "design_check.py",
+  "phrase": "새 적용 범위",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "contracts/bundle.md",
+  "module": "design_check.py",
+  "phrase": "소급",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "design_check.py",
+  "phrase": "Assurance policy",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "design_check.py",
+  "phrase": "counterexample",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "design_check.py",
+  "phrase": "required or optional",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "design_check.py",
+  "phrase": "policy source",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "examples/verification-design.md",
+  "module": "design_check.py",
+  "phrase": "가상 형식 예시",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "examples/verification-design.md",
+  "module": "design_check.py",
+  "phrase": "실제 실행 기록이 아니다",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "examples/verification-design.md",
+  "module": "design_check.py",
+  "phrase": "## 보증 연결",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "examples/verification-design.md",
+  "module": "design_check.py",
+  "phrase": "## 검토 내역",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "examples/verification-design.md",
+  "module": "design_check.py",
+  "phrase": "## 반례 내역",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "guides/OPERATIONS.md",
+  "module": "design_check.py",
+  "phrase": "명시한 보증 정책",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "guides/OPERATIONS.md",
+  "module": "design_check.py",
+  "phrase": "선택 비교",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "guides/OPERATIONS.md",
+  "module": "design_check.py",
+  "phrase": "완료 보류",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "finding_docs_check.py",
+  "phrase": "## 완료 뒤 발견",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "finding_docs_check.py",
+  "phrase": "completion reference",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "finding_docs_check.py",
+  "phrase": "target code",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "finding_docs_check.py",
+  "phrase": "condition absent or unresolved",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "finding_docs_check.py",
+  "phrase": "event time",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "module": "finding_docs_check.py",
+  "phrase": "recording time",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "contracts/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "발견 식별자",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "contracts/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "당시 완료 참조",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "contracts/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "조건 미포함·연결 미정",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "contracts/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "사건 시각",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "contracts/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "기록 시각",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
  },
  {
   "criterion": "AC-2",
@@ -409,6 +1354,33 @@
   "file": "plugins/seal/skills/seal/SKILL.md",
   "module": "finding_docs_check.py",
   "phrase": "Do not overwrite",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "contracts/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "당시 완료·현재 발견·재작업",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "contracts/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "한곳의 상세",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "contracts/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "현재 결함이 없는 것처럼",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -450,6 +1422,33 @@
   "suite": "finding-docs"
  },
  {
+  "criterion": "AC-3",
+  "file": "contracts/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "후보·확인·중복·기각·해결",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "contracts/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "정정 대상",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "contracts/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "고유한 확인 결함 수",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "module": "finding_docs_check.py",
@@ -472,6 +1471,33 @@
   "file": "plugins/seal/skills/seal/SKILL.md",
   "module": "finding_docs_check.py",
   "phrase": "does not change the execution budget",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "contracts/role-card.md",
+  "module": "finding_docs_check.py",
+  "phrase": "발견을 적는 것만으로",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "contracts/role-card.md",
+  "module": "finding_docs_check.py",
+  "phrase": "재작업 요청",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "contracts/role-card.md",
+  "module": "finding_docs_check.py",
+  "phrase": "실행 예산",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -513,6 +1539,42 @@
   "suite": "finding-docs"
  },
  {
+  "criterion": "AC-5",
+  "file": "contracts/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "Seal 0.1.12",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "contracts/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "미기록",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "contracts/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "원문 로그",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-5",
+  "file": "contracts/bundle.md",
+  "module": "finding_docs_check.py",
+  "phrase": "구조화 조회",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "module": "finding_docs_check.py",
@@ -526,6 +1588,87 @@
   "file": "plugins/seal/skills/seal/SKILL.md",
   "module": "finding_docs_check.py",
   "phrase": "machine-verified finding state",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "examples/verification-findings.md",
+  "module": "finding_docs_check.py",
+  "phrase": "가상 형식 예시",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "examples/verification-findings.md",
+  "module": "finding_docs_check.py",
+  "phrase": "실제 실행 기록이 아니다",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "examples/verification-findings.md",
+  "module": "finding_docs_check.py",
+  "phrase": "## 당시 완료",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "examples/verification-findings.md",
+  "module": "finding_docs_check.py",
+  "phrase": "## 발견 원본",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "examples/verification-findings.md",
+  "module": "finding_docs_check.py",
+  "phrase": "## 후속 판단",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "examples/verification-findings.md",
+  "module": "finding_docs_check.py",
+  "phrase": "## 현재 요약",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "guides/OPERATIONS.md",
+  "module": "finding_docs_check.py",
+  "phrase": "완료 뒤 발견",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "guides/OPERATIONS.md",
+  "module": "finding_docs_check.py",
+  "phrase": "당시 완료",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "guides/OPERATIONS.md",
+  "module": "finding_docs_check.py",
+  "phrase": "구조화 조회",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -562,6 +1705,42 @@
   "file": "plugins/spec/skills/spec/SKILL.md",
   "module": "spec_check.py",
   "phrase": "supported environment",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "contracts/goal-docs.md",
+  "module": "spec_check.py",
+  "phrase": "판정 불가 입력",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "contracts/goal-docs.md",
+  "module": "spec_check.py",
+  "phrase": "관측 단위",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "contracts/goal-docs.md",
+  "module": "spec_check.py",
+  "phrase": "전후 집합 불변식",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "contracts/goal-docs.md",
+  "module": "spec_check.py",
+  "phrase": "지원 환경",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -612,6 +1791,33 @@
   "suite": "spec-boundaries"
  },
  {
+  "criterion": "AC-2",
+  "file": "contracts/goal-docs.md",
+  "module": "spec_check.py",
+  "phrase": "공개 계약이 이미 답하는",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "contracts/goal-docs.md",
+  "module": "spec_check.py",
+  "phrase": "구현·검증 방법",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "contracts/goal-docs.md",
+  "module": "spec_check.py",
+  "phrase": "출처",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
   "criterion": "AC-3",
   "file": "plugins/spec/skills/spec/SKILL.md",
   "module": "spec_check.py",
@@ -657,6 +1863,42 @@
   "suite": "spec-boundaries"
  },
  {
+  "criterion": "AC-3",
+  "file": "plugins/spec/skills/spec/assets/templates/small-change.md",
+  "module": "spec_check.py",
+  "phrase": "exhaustive or representative",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/spec/skills/spec/assets/templates/backend-feature.md",
+  "module": "spec_check.py",
+  "phrase": "exhaustive or representative",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/spec/skills/spec/assets/templates/cross-module-feature.md",
+  "module": "spec_check.py",
+  "phrase": "exhaustive or representative",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "plugins/spec/skills/spec/assets/templates/product.md",
+  "module": "spec_check.py",
+  "phrase": "exhaustive or representative",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
   "criterion": "AC-4",
   "file": "plugins/spec/skills/spec/SKILL.md",
   "module": "spec_check.py",
@@ -697,6 +1939,132 @@
   "file": "plugins/spec/skills/spec/SKILL.md",
   "module": "spec_check.py",
   "phrase": "do not turn these examples into a checklist",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "contracts/goal-docs.md",
+  "module": "spec_check.py",
+  "phrase": "줄바꿈 이름",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "contracts/goal-docs.md",
+  "module": "spec_check.py",
+  "phrase": "symlink",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "contracts/goal-docs.md",
+  "module": "spec_check.py",
+  "phrase": "얕은 clone",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "contracts/goal-docs.md",
+  "module": "spec_check.py",
+  "phrase": "동시 실행 순서",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "contracts/goal-docs.md",
+  "module": "spec_check.py",
+  "phrase": "고정 점검표",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "module": "spec_check.py",
+  "phrase": "가상 시나리오",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "module": "spec_check.py",
+  "phrase": "실제 사용자 대화나 실행 기록이 아닙니다",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "module": "spec_check.py",
+  "phrase": "관측 단위",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "module": "spec_check.py",
+  "phrase": "판정 불가",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "module": "spec_check.py",
+  "phrase": "표본",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "module": "spec_check.py",
+  "phrase": "묻지 않아야 할 것",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "module": "spec_check.py",
+  "phrase": "## 사용자 답",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "evals/spec-cases/README.md",
+  "module": "spec_check.py",
+  "phrase": "[decision-boundaries](decision-boundaries.md)",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "evals/spec-cases/readme-typo.md",
+  "module": "spec_check.py",
+  "phrase": "질문 상한: 0",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -927,6 +2295,15 @@
   "suite": "authoring"
  },
  {
+  "criterion": "AC-1",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "authoring_check.py",
+  "phrase": "repository history",
+  "row": "",
+  "section": "## 검증 방법과 환경",
+  "suite": "authoring"
+ },
+ {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "module": "authoring_check.py",
@@ -1050,6 +2427,42 @@
   "phrase": "tracked check file",
   "row": "",
   "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/assets/templates/PLAN.md",
+  "module": "authoring_check.py",
+  "phrase": "`maintain`",
+  "row": "",
+  "section": "## 조건표",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/assets/templates/PLAN.md",
+  "module": "authoring_check.py",
+  "phrase": "property the goal documents require",
+  "row": "",
+  "section": "## 조건표",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/assets/templates/PLAN.md",
+  "module": "authoring_check.py",
+  "phrase": "unchanged since the base commit",
+  "row": "",
+  "section": "## 조건표",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "plugins/seal/skills/seal/assets/templates/PLAN.md",
+  "module": "authoring_check.py",
+  "phrase": "`out_of_scope`",
+  "row": "",
+  "section": "## 조건표",
   "suite": "authoring"
  },
  {
@@ -1278,6 +2691,15 @@
   "suite": "authoring"
  },
  {
+  "criterion": "AC-4",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "authoring_check.py",
+  "phrase": "range it reads",
+  "row": "",
+  "section": "## 검증 방법과 환경",
+  "suite": "authoring"
+ },
+ {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "module": "authoring_check.py",
@@ -1485,6 +2907,15 @@
   "suite": "authoring"
  },
  {
+  "criterion": "AC-5",
+  "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "module": "authoring_check.py",
+  "phrase": "declared scope or trust boundary",
+  "row": "",
+  "section": "## 중요한 미결정",
+  "suite": "authoring"
+ },
+ {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "module": "authoring_check.py",
@@ -1518,6 +2949,24 @@
   "phrase": "decides whether an existing check is worth rewriting",
   "row": "",
   "section": "## Check inputs",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "사용자 확인·승인·질문 단계를 더하지 않는다",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "실행자가 규칙을 적용하고 기존 검사를 고칠지 판단한다",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
  },
  {
@@ -1575,6 +3024,402 @@
   "suite": "authoring"
  },
  {
+  "criterion": "AC-8",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "Seal 0.1.14부터 쓰거나 바꾸는 검사에 적용한다",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-8",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "어느 Seal 버전으로 시작했는지는 따지지 않는다",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-8",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "기존 목표의 검사, 기록, PROGRESS·REVIEW를 다시 쓰거나 변환하라고 요구하지 않는다",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "`change`, `maintain`, `EX-n`, task 명령",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "생산자·설정·보조 파일",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "검사하는 트리",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "조건이 지정한 외부 입력",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "시작·base 커밋",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "고정 커밋",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "시작 기록이나 Core 출력",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "다른 커밋, ref, 객체",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "과거 커밋과의 diff",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "merge-base",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "원격 추적 branch",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "`HEAD~n`",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "log 범위",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "다른 worktree",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "전체 clone과 히스토리 없는 clone",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "합성 저장소",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "`maintain`",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "성질(내용, 출력, 형식, 동작)",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "그 성질의 관측이 아니다",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "`바꿀 수 있는 경로` 밖",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "`out_of_scope`",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "추적되는 검사 파일에 적은 기대 내용",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "baseline 실행으로만 관측",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "임시 worktree",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "checkout하거나 읽거나 비교해",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "base에서는 위반을, 변경 뒤에는 통과",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "태그 종류나 커밋 메시지 형식",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "범위와 ref만",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "위반도 통과도 아니고",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "미관측",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "실행 전 검토에 적는다",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "범위나 신뢰 경계",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "특정 버전·릴리스 고정, 과거 판정 보존, import 격리, 제한된 입력",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "지금의 동작",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "명시적 가정",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "보고에서 되풀이",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "사용자에게 새로 묻지 않는다",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "같은 import 경계",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "문서 충돌 규칙",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "사용자 확인·승인·질문 단계를 더하지 않는다",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "Seal 0.1.14",
+  "row": "",
+  "section": "### 2.1.2 검사 입력과 관측",
+  "suite": "authoring"
+ },
+ {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "module": "authoring_check.py",
@@ -1599,6 +3444,24 @@
   "phrase": "declared scope or trust boundary",
   "row": "중요한 미결정",
   "section": "## REVIEW.md",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "저장소 히스토리",
+  "row": "검증 방법과 환경",
+  "section": "## 4. `REVIEW.md`",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "범위나 신뢰 경계",
+  "row": "중요한 미결정",
+  "section": "## 4. `REVIEW.md`",
   "suite": "authoring"
  },
  {
@@ -1651,6 +3514,15 @@
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "module": "authoring_check.py",
   "phrase": "Any other value is the lint problem `other_bundles_invalid`",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "contracts/bundle.md",
+  "module": "authoring_check.py",
+  "phrase": "`/1`·`/2`의 기존 목표는 종전 결과 의미를 유지한다",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -1720,6 +3592,15 @@
  },
  {
   "criterion": "AC-2",
+  "file": "internal/status/status.go",
+  "module": "authoring_check.py",
+  "phrase": "add(\"out_of_scope\", \"changed since base outside 바꿀 수 있는 경로\", outside)",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/references/ha.md",
   "module": "authoring_check.py",
   "phrase": "| `out_of_scope` | user | Files changed since base outside `바꿀 수 있는 경로` |",
@@ -1732,6 +3613,15 @@
   "file": "plugins/seal/skills/seal/references/ha.md",
   "module": "authoring_check.py",
   "phrase": "Runs `change` conditions on a temporary worktree of the base commit with their check paths copied from HEAD",
+  "row": "",
+  "section": "",
+  "suite": "authoring"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "cmd/ha/baseline.go",
+  "module": "authoring_check.py",
+  "phrase": "baselineFiles",
   "row": "",
   "section": "",
   "suite": "authoring"

@@ -16,8 +16,11 @@ same phrase in another clause of the criterion is judged on its own.
 
 authoring_check's regressions() runs the plugins Go tests and the public
 documentation check; it looks up no phrase, so it is replaced with an empty
-result here. Everything else runs as written. It prints a JSON list of
-booleans in request order. Any exception exits nonzero.
+result here. Everything else runs as written. It prints a JSON list in
+request order: true when the clause reports the phrase missing, false when
+it does not, and "error" when the criterion's observe() raises, so the check
+refuses the tree without reaching a result. Any other exception exits
+nonzero.
 """
 import importlib
 import json
@@ -39,8 +42,15 @@ def main():
     for request in requests:
         key = (request["suite"], request["criterion"])
         if key not in problems:
-            _, problems[key] = check.observe(root, *key)
-        out.append(any(reports(line, request) for line in problems[key]))
+            try:
+                _, problems[key] = check.observe(root, *key)
+            except Exception as error:  # the check refuses the tree
+                print(f"{key[0]} {key[1]}: {type(error).__name__}: {error}", file=sys.stderr)
+                problems[key] = None
+        if problems[key] is None:
+            out.append("error")
+        else:
+            out.append(any(reports(line, request) for line in problems[key]))
     print(json.dumps(out))
 
 

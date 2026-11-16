@@ -4,12 +4,11 @@ package skillslimchecks
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -246,63 +245,126 @@ var representatives = []moved{
 
 var whenToRead = regexp.MustCompile(`(?i)\bread\b.*\b(when|whenever|before|after|if|while|once)\b`)
 
-// AC-6: each moved section has a line in its SKILL.md that links it and says
-// when to read it.
-func TestSkillSlimAC6_MovedLinked(t *testing.T) {
-	root := repoRoot(t)
-	var base map[string][][2]string
-	expected(t, "base-reference-headings.json", &base)
-	want := map[moved]bool{}
-	for _, m := range representatives {
-		want[m] = true
-	}
-	for _, s := range skills {
-		known := map[[2]string]bool{}
-		for _, row := range base[s.name] {
-			known[row] = true
-		}
-		for _, doc := range docs(t, root, s)[1:] {
-			text := readFile(t, root, doc)
-			lines := strings.Split(text, "\n")
-			for i, kind := range classify(text) {
-				if kind == kindHead && headingLevel(lines[i]) == 2 && !known[[2]string{doc, headingText(lines[i])}] {
-					want[moved{s.name, strings.TrimPrefix(doc, s.dir+"/"), headingText(lines[i])}] = true
+// refSection is one level-2 or level-3 section of a reference document: its
+// heading, the anchors that reach it (its own and its enclosing level-2
+// heading's) and a digest of its text with white space runs as one space.
+type refSection struct {
+	doc, heading string
+	level        int
+	anchors      []string
+	sha256       string
+}
+
+// refSections reads the level-2 and level-3 sections of a skill's reference
+// documents in the tree at root.
+func refSections(t tb, root string, s skill) []refSection {
+	var out []refSection
+	for _, doc := range docs(t, root, s)[1:] {
+		text := readFile(t, root, doc)
+		lines := strings.Split(text, "\n")
+		kinds := classify(text)
+		seen := map[string]int{}
+		parent := ""
+		for i, kind := range kinds {
+			if kind != kindHead {
+				continue
+			}
+			a := slug(headingText(lines[i]))
+			if n := seen[a]; n > 0 {
+				seen[a]++
+				a = fmt.Sprintf("%s-%d", a, n)
+			} else {
+				seen[a]++
+			}
+			lv := headingLevel(lines[i])
+			if lv == 2 {
+				parent = a
+			}
+			if lv != 2 && lv != 3 {
+				continue
+			}
+			end := len(lines)
+			for j := i + 1; j < len(lines); j++ {
+				if kinds[j] == kindHead && headingLevel(lines[j]) <= lv {
+					end = j
+					break
 				}
 			}
+			sum := sha256.Sum256([]byte(strings.Join(strings.Fields(strings.Join(lines[i+1:end], " ")), " ")))
+			anchors := []string{a}
+			if lv == 3 && parent != "" {
+				anchors = append(anchors, parent)
+			}
+			out = append(out, refSection{doc: doc, heading: headingText(lines[i]), level: lv, anchors: anchors, sha256: hex.EncodeToString(sum[:])})
 		}
 	}
-	var list []moved
-	for m := range want {
-		list = append(list, m)
+	return out
+}
+
+// AC-6: every reference section that holds moved rules has a line in its
+// SKILL.md that links it, or its enclosing level-2 section, and says when to
+// read it. Such sections are the representatives, every level-2 or level-3
+// section that is new since the base, and every base section whose text
+// changed.
+func TestSkillSlimAC6_MovedLinked(t *testing.T) {
+	root := repoRoot(t)
+	var base map[string][]struct {
+		Doc, Heading, Sha256 string
+		Level                int
 	}
-	sort.Slice(list, func(i, j int) bool { return fmt.Sprint(list[i]) < fmt.Sprint(list[j]) })
-	for _, m := range list {
-		s := skillNamed(m.skill)
-		doc := s.dir + "/" + m.doc
-		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(doc))); err != nil {
-			t.Errorf("jaekit:violation=moved-unlinked: %s does not exist, so it holds no section %q", doc, m.heading)
-			continue
+	expected(t, "base-reference-sections.json", &base)
+	for _, s := range skills {
+		was := map[[2]string]string{}
+		for _, row := range base[s.name] {
+			was[[2]string{row.Doc, row.Heading}] = row.Sha256
 		}
-		anchor := slug(m.heading)
-		if !slugs(readFile(t, root, doc))[anchor] {
-			t.Errorf("jaekit:violation=moved-unlinked: %s has no section %q", doc, m.heading)
-			continue
+		now := refSections(t, root, s)
+		var want []refSection
+		for _, sec := range now {
+			if sum, ok := was[[2]string{sec.doc, sec.heading}]; !ok || sum != sec.sha256 {
+				want = append(want, sec)
+			}
+		}
+		for _, m := range representatives {
+			if m.skill != s.name {
+				continue
+			}
+			doc := s.dir + "/" + m.doc
+			found := false
+			for _, sec := range now {
+				if sec.doc == doc && sec.heading == m.heading {
+					found = true
+					want = append(want, sec)
+				}
+			}
+			if !found {
+				t.Errorf("jaekit:violation=moved-unlinked: %s has no section %q", doc, m.heading)
+			}
 		}
 		body := readFile(t, root, s.body())
 		lines := strings.Split(body, "\n")
-		found := false
-		for i, kind := range classify(body) {
-			if kind != kindProse {
+		kinds := classify(body)
+		reported := map[[2]string]bool{}
+		for _, sec := range want {
+			if reported[[2]string{sec.doc, sec.heading}] {
 				continue
 			}
-			links := false
-			for _, target := range linkTargets(lines[i]) {
-				links = links || resolve(s.body(), target) == doc+"#"+anchor
+			reported[[2]string{sec.doc, sec.heading}] = true
+			found := false
+			for i, kind := range kinds {
+				if kind != kindProse || !whenToRead.MatchString(anyLinks.ReplaceAllString(masked(lines[i]), "]")) {
+					continue
+				}
+				for _, target := range linkTargets(lines[i]) {
+					for _, a := range sec.anchors {
+						found = found || resolve(s.body(), target) == sec.doc+"#"+a
+					}
+				}
 			}
-			found = found || links && whenToRead.MatchString(anyLinks.ReplaceAllString(masked(lines[i]), "]"))
-		}
-		if !found {
-			t.Errorf("jaekit:violation=moved-unlinked: %s has no line that links %s#%s and says when to read it", s.body(), m.doc, anchor)
+			if !found {
+				t.Errorf("jaekit:violation=moved-unlinked: %s has no line that links %s#%s and says when to read it",
+					s.body(), strings.TrimPrefix(sec.doc, s.dir+"/"), sec.anchors[0])
+			}
 		}
 	}
 }
@@ -333,63 +395,106 @@ var authorities = []authority{
 	{"spar", "## Classes and dispositions", "answer"},
 }
 
-// authorityLine returns the index of the first line of the rule's body
-// section with a code span that holds its token, or -1.
-func authorityLine(t tb, root string, a authority) int {
+// authorityBlocks returns the first line of every block (list item or
+// paragraph) of the rule's body section that has a code span holding its
+// token, in order; ok is false when the section is absent.
+func authorityBlocks(t tb, root string, a authority) (starts []int, ok bool) {
 	text := readFile(t, root, skillNamed(a.skill).body())
 	start, end, ok := section(text, a.section)
 	if !ok {
-		return -1
+		return nil, false
 	}
 	lines := strings.Split(text, "\n")
 	kinds := classify(text)
+	seen := map[int]bool{}
 	for i := start + 1; i < end; i++ {
 		if kinds[i] != kindProse {
 			continue
 		}
 		for _, r := range codeRanges(lines[i]) {
 			if strings.Contains(codeText(lines[i], r), a.token) {
-				return i
+				b, _ := block(text, i)
+				if !seen[b] {
+					seen[b] = true
+					starts = append(starts, b)
+				}
 			}
 		}
+	}
+	return starts, true
+}
+
+// authorityBlock returns the one block that holds the rule's token, or
+// reports a violation and -1: a rule whose token sits in no block, or in
+// more than one, cannot be told apart from its section by a test.
+func authorityBlock(t *testing.T, root string, a authority) int {
+	t.Helper()
+	starts, ok := authorityBlocks(t, root, a)
+	switch {
+	case !ok:
+		t.Errorf("jaekit:violation=authority-moved: %s has no section %s", skillNamed(a.skill).body(), a.section)
+	case len(starts) == 0:
+		t.Errorf("jaekit:violation=authority-moved: %s %s holds no code span with %q", skillNamed(a.skill).body(), a.section, a.token)
+	case len(starts) > 1:
+		t.Errorf("jaekit:violation=authority-moved: %s %s holds %q in %d blocks, so moving the rule leaves it behind",
+			skillNamed(a.skill).body(), a.section, a.token, len(starts))
+	default:
+		return starts[0]
 	}
 	return -1
 }
 
-// AC-7: each representative rule is in its body section.
+// AC-7: each representative rule is in its body section, in one block.
 func TestSkillSlimAC7_InBody(t *testing.T) {
 	root := repoRoot(t)
 	for _, a := range authorities {
-		if authorityLine(t, root, a) < 0 {
-			t.Errorf("jaekit:violation=authority-moved: %s %s holds no code span with %q", skillNamed(a.skill).body(), a.section, a.token)
-		}
+		authorityBlock(t, root, a)
 	}
 }
 
-// AC-7: a copy whose rule moved from its body section to the skill's first
-// reference document fails a plugins test that names the rule's token.
-func TestSkillSlimAC7_MoveFails(t *testing.T) {
+// firstReference is the skill's first reference document, or a new
+// references/moved.md when the skill has none.
+func firstReference(t tb, dir string, s skill) string {
+	if refs := docs(t, dir, s)[1:]; len(refs) > 0 {
+		return refs[0]
+	}
+	moved := s.dir + "/references/moved.md"
+	writeFile(t, dir, moved, "# Moved\n")
+	return moved
+}
+
+// deleteBlock removes lines [start, end) of doc.
+func deleteBlock(t tb, root, doc string, start, end int) {
+	lines := strings.Split(readFile(t, root, doc), "\n")
+	writeFile(t, root, doc, strings.Join(append(append([]string{}, lines[:start]...), lines[end:]...), "\n"))
+}
+
+// AC-7: a copy whose rule block moved from its body section to the skill's
+// first reference document, and a copy whose rule block is deleted, each fail
+// a plugins test that names the rule's token.
+func TestSkillSlimAC7_MovedOrDeletedFails(t *testing.T) {
 	root := repoRoot(t)
 	var trees []*edited
 	var rules []authority
 	for _, a := range authorities {
 		a := a
-		i := authorityLine(t, root, a)
+		i := authorityBlock(t, root, a)
 		if i < 0 {
-			t.Errorf("jaekit:violation=authority-moved: %s %s holds no code span with %q", skillNamed(a.skill).body(), a.section, a.token)
 			continue
 		}
 		s := skillNamed(a.skill)
-		refs := docs(t, root, s)[1:]
-		if len(refs) == 0 {
-			t.Fatalf("setup: %s has no reference document to move %q into", s.dir, a.token)
-		}
-		trees = append(trees, &edited{what: fmt.Sprintf("moves the %s rule with %q to %s", s.name, a.token, refs[0]),
-			change: func(t tb, dir string) {
-				start, end := block(readFile(t, dir, s.body()), i)
-				moveBlock(t, dir, s.body(), start, end, refs[0])
-			}})
-		rules = append(rules, a)
+		trees = append(trees,
+			&edited{what: fmt.Sprintf("moves the %s rule with %q to its first reference document", s.name, a.token),
+				change: func(t tb, dir string) {
+					start, end := block(readFile(t, dir, s.body()), i)
+					moveBlock(t, dir, s.body(), start, end, firstReference(t, dir, s))
+				}},
+			&edited{what: fmt.Sprintf("deletes the %s rule with %q", s.name, a.token),
+				change: func(t tb, dir string) {
+					start, end := block(readFile(t, dir, s.body()), i)
+					deleteBlock(t, dir, s.body(), start, end)
+				}})
+		rules = append(rules, a, a)
 	}
 	if len(trees) == 0 {
 		return
@@ -405,25 +510,33 @@ func TestSkillSlimAC7_MoveFails(t *testing.T) {
 	}
 }
 
-// exempt reports whether a top-level plugins test is one AC-8 excepts: a test
-// defined in a plugins file that a regression route with a skill source
-// checks, or a TestCompatibilityAC10_ or TestCompatibilityAC11_ test.
-func exempt(t tb, root string) func(string) bool {
-	t.Helper()
+// baseExempt is what AC-8 excepts, extracted once from the goal's base: the
+// plugins tests defined in the files that regression routes with a skill
+// source check, the TestCompatibilityAC10_ and AC11_ tests, and the phrases
+// the protected checks require in the skill documents (the protected contract
+// checks' anchors, the strings their tests mutate, and the AC10 and AC11
+// tests' strings).
+type baseExempt struct {
+	Tests   []string `json:"tests"`
+	Phrases []string `json:"phrases"`
+}
+
+func readExempt(t tb) baseExempt {
+	var e baseExempt
+	expected(t, "base-exempt.json", &e)
+	if len(e.Tests) == 0 || len(e.Phrases) == 0 {
+		t.Fatalf("setup: testdata/base-exempt.json lists no test or no phrase")
+	}
+	return e
+}
+
+// exempt reports whether a top-level plugins test is one AC-8 excepts.
+func exempt(t tb) func(string) bool {
 	names := map[string]bool{}
-	define := regexp.MustCompile(`(?m)^func (Test\w+)\(t \*testing\.T\)`)
-	for _, file := range protectedPluginFiles(t, root) {
-		found := define.FindAllStringSubmatch(readFile(t, root, file), -1)
-		if len(found) == 0 {
-			t.Fatalf("setup: %s defines no test", file)
-		}
-		for _, m := range found {
-			names[m[1]] = true
-		}
+	for _, n := range readExempt(t).Tests {
+		names[n] = true
 	}
-	return func(name string) bool {
-		return names[name] || strings.HasPrefix(name, "TestCompatibilityAC10_") || strings.HasPrefix(name, "TestCompatibilityAC11_")
-	}
+	return func(name string) bool { return names[name] }
 }
 
 type route struct {
@@ -453,100 +566,9 @@ func skillSource(path string) bool {
 	return regexp.MustCompile(`^plugins/[^/]+/skills/[^/]+/(SKILL\.md|references/[^/]+\.md)$`).MatchString(path)
 }
 
-// protectedPluginFiles are the plugins test files that routes with a skill
-// source check.
-func protectedPluginFiles(t tb, root string) []string {
-	files := map[string]bool{}
-	for _, r := range routes(t, root) {
-		skillRoute := false
-		for _, src := range r.Sources {
-			skillRoute = skillRoute || skillSource(src)
-		}
-		for _, c := range r.Checks {
-			if skillRoute && strings.HasPrefix(c.File, "plugins/") {
-				files[c.File] = true
-			}
-		}
-	}
-	var out []string
-	for f := range files {
-		out = append(out, f)
-	}
-	sort.Strings(out)
-	if len(out) == 0 {
-		t.Fatalf("setup: no plugins test file is checked by a route with a skill source")
-	}
-	return out
-}
-
-var pyString = regexp.MustCompile(`"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'`)
-
-// keptPhrases are the phrases AC-8 excepts, found in the skills' prose: the
-// string literals of the protected contract checks, of the protected plugins
-// test files, and of the TestCompatibilityAC10_ and AC11_ tests.
-func keptPhrases(t tb, root string) []string {
-	t.Helper()
-	var literals []string
-	sources, err := filepath.Glob(filepath.Join(root, "tools", "contract-checks", "*.py"))
-	if err != nil || len(sources) == 0 {
-		t.Fatalf("setup: no tools/contract-checks/*.py: %v", err)
-	}
-	for _, src := range sources {
-		if strings.HasPrefix(filepath.Base(src), "test_") {
-			continue
-		}
-		data, err := os.ReadFile(src)
-		if err != nil {
-			t.Fatalf("setup: %v", err)
-		}
-		for _, m := range pyString.FindAllStringSubmatch(string(data), -1) {
-			lit := m[1] + m[2]
-			lit = strings.NewReplacer(`\\`, `\`, `\'`, `'`, `\"`, `"`).Replace(lit)
-			literals = append(literals, lit)
-		}
-	}
-	goLiterals := func(file string, keep func(name string) bool) {
-		fset := token.NewFileSet()
-		parsed, err := parser.ParseFile(fset, filepath.Join(root, filepath.FromSlash(file)), nil, 0)
-		if err != nil {
-			t.Fatalf("setup: parse %s: %v", file, err)
-		}
-		for _, decl := range parsed.Decls {
-			fn, ok := decl.(*ast.FuncDecl)
-			if ok && !keep(fn.Name.Name) {
-				continue
-			}
-			ast.Inspect(decl, func(n ast.Node) bool {
-				if lit, ok := n.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-					if s, err := strconv.Unquote(lit.Value); err == nil {
-						literals = append(literals, s)
-					}
-				}
-				return true
-			})
-		}
-	}
-	for _, file := range protectedPluginFiles(t, root) {
-		goLiterals(file, func(string) bool { return true })
-	}
-	goLiterals("plugins/compatibility_test.go", func(name string) bool {
-		return strings.HasPrefix(name, "TestCompatibilityAC10_") || strings.HasPrefix(name, "TestCompatibilityAC11_")
-	})
-	var prose []string
-	for _, s := range skills {
-		for _, doc := range docs(t, root, s) {
-			prose = append(prose, readFile(t, root, doc))
-		}
-	}
-	all := strings.Join(prose, "\n")
-	seen := map[string]bool{}
-	var out []string
-	for _, lit := range literals {
-		if len(strings.TrimSpace(lit)) >= 3 && !seen[lit] && strings.Contains(all, lit) {
-			seen[lit] = true
-			out = append(out, lit)
-		}
-	}
+// keptPhrases are the phrases AC-8 excepts, longest first.
+func keptPhrases(t tb) []string {
+	out := append([]string{}, readExempt(t).Phrases...)
 	sort.Slice(out, func(i, j int) bool { return len(out[i]) > len(out[j]) })
 	return out
 }
@@ -637,15 +659,14 @@ func rewordAll(t tb, dir string, kept []string) int {
 // reference documents reworded passes every plugins test AC-8 does not
 // except.
 func TestSkillSlimAC8_AllProse(t *testing.T) {
-	root := repoRoot(t)
-	kept := keptPhrases(t, root)
+	kept := keptPhrases(t)
 	tree := &edited{what: "rewords every prose line of the three skills", change: func(t tb, dir string) {
 		if rewordAll(t, dir, kept) == 0 {
 			t.Fatalf("setup: the copy has no prose line to reword")
 		}
 	}}
 	runEdited(t, []*edited{tree})
-	if failed := tree.run.failedOutside(exempt(t, root)); len(failed) > 0 {
+	if failed := tree.run.failedOutside(exempt(t)); len(failed) > 0 {
 		t.Errorf("jaekit:violation=prose-pinned: the plugins tests fail on a copy that %s: %s", tree.what, strings.Join(failed, ", "))
 	}
 }
@@ -713,49 +734,41 @@ func rewordFirst(t tb, dir string, s skill, heading string, kept []string) {
 	t.Fatalf("setup: %s %s has no prose line", doc, heading)
 }
 
-// moveFirstRule moves the first block of the Spec body that lies in a
-// level-2 section other than an AC-7 section and holds no AC-7 token to the
-// skill's goal-docs reference.
-func moveFirstRule(t tb, dir string) {
-	s := skillNamed("spec")
+// moveFirstBlock moves the first prose block of a SKILL.md section to the
+// skill's first reference document. The block must hold no AC-7 token.
+func moveFirstBlock(t tb, dir string, s skill, heading string) {
 	text := readFile(t, dir, s.body())
+	start, end, ok := section(text, heading)
+	if !ok {
+		t.Fatalf("setup: %s has no section %s", s.body(), heading)
+	}
 	lines := strings.Split(text, "\n")
 	kinds := classify(text)
-	protectedSection := map[string]bool{}
-	for _, a := range authorities {
-		if a.skill == "spec" {
-			protectedSection[a.section] = true
-		}
-	}
-	current := ""
-	for i, kind := range kinds {
-		if kind == kindHead && headingLevel(lines[i]) == 2 {
-			current = strings.TrimSpace(lines[i])
+	for i := start + 1; i < end; i++ {
+		if kinds[i] != kindProse {
 			continue
 		}
-		if kind != kindProse || current == "" || protectedSection[current] {
-			continue
-		}
-		start, end := block(text, i)
-		holds := false
-		for _, l := range lines[start:end] {
+		b, e := block(text, i)
+		for _, l := range lines[b:e] {
 			for _, a := range authorities {
-				holds = holds || a.skill == "spec" && strings.Contains(l, a.token)
+				if a.skill == s.name && strings.Contains(l, a.token) {
+					t.Fatalf("setup: the first block of %s %s holds the AC-7 token %q", s.body(), heading, a.token)
+				}
 			}
 		}
-		if !holds {
-			moveBlock(t, dir, s.body(), start, end, s.dir+"/references/goal-docs.md")
-			return
-		}
+		moveBlock(t, dir, s.body(), b, e, firstReference(t, dir, s))
+		return
 	}
-	t.Fatalf("setup: the Spec body has no block to move")
+	t.Fatalf("setup: %s %s has no prose block", s.body(), heading)
 }
 
 // AC-8: the representative edits AC-8 names each leave every plugins test
-// AC-8 does not except passing.
+// AC-8 does not except passing: a reworded sentence in Spec Questions, Seal
+// Resuming and Spar Classes and dispositions, and one rule block of each
+// body moved to its first reference document (Spec Outcome boundaries, a
+// rule for rare goals; Seal Resuming; Spar Limits).
 func TestSkillSlimAC8_Representatives(t *testing.T) {
-	root := repoRoot(t)
-	kept := keptPhrases(t, root)
+	kept := keptPhrases(t)
 	trees := []*edited{
 		{what: "rewords a sentence of Spec Questions", change: func(t tb, dir string) {
 			rewordFirst(t, dir, skillNamed("spec"), "## Questions", kept)
@@ -766,10 +779,18 @@ func TestSkillSlimAC8_Representatives(t *testing.T) {
 		{what: "rewords a sentence of Spar Classes and dispositions", change: func(t tb, dir string) {
 			rewordFirst(t, dir, skillNamed("spar"), "## Classes and dispositions", kept)
 		}},
-		{what: "moves a rule paragraph of the Spec body to its reference", change: moveFirstRule},
+		{what: "moves the first block of Spec Outcome boundaries to its reference", change: func(t tb, dir string) {
+			moveFirstBlock(t, dir, skillNamed("spec"), "## Outcome boundaries")
+		}},
+		{what: "moves the first block of Seal Resuming to its reference", change: func(t tb, dir string) {
+			moveFirstBlock(t, dir, skillNamed("seal"), "## Resuming")
+		}},
+		{what: "moves the first block of Spar Limits to its reference", change: func(t tb, dir string) {
+			moveFirstBlock(t, dir, skillNamed("spar"), "## Limits")
+		}},
 	}
 	runEdited(t, trees)
-	ex := exempt(t, root)
+	ex := exempt(t)
 	for _, tree := range trees {
 		if failed := tree.run.failedOutside(ex); len(failed) > 0 {
 			t.Errorf("jaekit:violation=prose-pinned: the plugins tests fail on a copy that %s: %s", tree.what, strings.Join(failed, ", "))
@@ -777,10 +798,15 @@ func TestSkillSlimAC8_Representatives(t *testing.T) {
 	}
 }
 
-// AC-9: every base route keeps its invariant, status, property and boundary.
+// AC-9: every base route keeps its invariant, status, property and boundary,
+// and every source and check it listed; a route may add sources and checks.
 func TestSkillSlimAC9_RouteProperties(t *testing.T) {
 	root := repoRoot(t)
-	var base map[string]struct{ Invariant, Status, Property, Boundary string }
+	var base map[string]struct {
+		Invariant, Status, Property, Boundary string
+		Sources                               []string
+		Checks                                []struct{ File, Selector, Group string }
+	}
 	expected(t, "base-routes.json", &base)
 	now := map[string]route{}
 	for _, r := range routes(t, root) {
@@ -797,6 +823,25 @@ func TestSkillSlimAC9_RouteProperties(t *testing.T) {
 			t.Errorf("jaekit:violation=route-changed: route %s is gone", id)
 		} else if r.Invar != b.Invariant || r.Status != b.Status || r.Property != b.Property || r.Boundary != b.Boundary {
 			t.Errorf("jaekit:violation=route-changed: route %s changed its invariant, status, property or boundary", id)
+		} else {
+			sources := map[string]bool{}
+			for _, s := range r.Sources {
+				sources[s] = true
+			}
+			for _, s := range b.Sources {
+				if !sources[s] {
+					t.Errorf("jaekit:violation=route-changed: route %s no longer lists the source %s", id, s)
+				}
+			}
+			checks := map[[3]string]bool{}
+			for _, c := range r.Checks {
+				checks[[3]string{c.File, c.Selector, c.Group}] = true
+			}
+			for _, c := range b.Checks {
+				if !checks[[3]string{c.File, c.Selector, c.Group}] {
+					t.Errorf("jaekit:violation=route-changed: route %s no longer lists the check %s %s", id, c.File, c.Selector)
+				}
+			}
 		}
 	}
 }
@@ -845,11 +890,19 @@ func removePhrase(text, p, keep string) string {
 	return strings.Join(lines, "\n")
 }
 
-// variants builds the three copy states of a phrase: removed from every
-// document of its skill (reported missing), and moved only into the skill's
-// SKILL.md or into a reference document other than its own file (not
-// reported). A row phrase moves with its table row.
+// variants builds the copy states of a phrase. A phrase of a skill document
+// has three: removed from every document of its skill (reported missing), and
+// moved only into the skill's SKILL.md or into a reference document other
+// than its own file (not reported); a row phrase moves with its table row. A
+// phrase of any other file has one: removed from that file (reported
+// missing).
 func variants(t tb, root string, p phrase) []variant {
+	if !skillSource(p.File) {
+		return []variant{{p: p, name: "removed from " + p.File, want: true,
+			change: func(t tb, dir string, pristine map[string]string) {
+				writeFile(t, dir, p.File, removePhrase(pristine[p.File], p.Phrase, p.Section))
+			}}}
+	}
 	s := skill{}
 	for _, c := range skills {
 		if strings.HasPrefix(p.File, c.dir+"/") {
@@ -909,11 +962,19 @@ func variants(t tb, root string, p phrase) []variant {
 	return out
 }
 
-// lookup runs the protected checks' observe on dir for one phrase and tells
-// whether its clause reports the phrase missing.
-func lookup(t tb, root, dir string, p phrase) bool {
-	req, err := json.Marshal([]map[string]string{{"suite": p.Suite, "criterion": p.Criterion, "file": p.File,
-		"section": p.Section, "row": p.Row, "phrase": p.Phrase}})
+// lookupResult is how one clause treats one phrase on a tree: reported
+// missing, or its criterion's check raised and reached no result.
+type lookupResult struct{ reported, errored bool }
+
+// lookup runs the protected checks' observe on dir for each phrase and tells
+// how its clause treats it.
+func lookup(t tb, root, dir string, ps []phrase) []lookupResult {
+	var reqs []map[string]string
+	for _, p := range ps {
+		reqs = append(reqs, map[string]string{"suite": p.Suite, "criterion": p.Criterion, "file": p.File,
+			"section": p.Section, "row": p.Row, "phrase": p.Phrase})
+	}
+	req, err := json.Marshal(reqs)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -925,24 +986,44 @@ func lookup(t tb, root, dir string, p phrase) bool {
 	var out, errb bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errb
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("setup: protected_lookup.py on %s %s: %v: %s", p.Suite, p.Criterion, err, tail(errb.String()))
+		t.Fatalf("setup: protected_lookup.py: %v: %s", err, tail(errb.String()))
 	}
-	var got []bool
-	if err := json.Unmarshal(out.Bytes(), &got); err != nil || len(got) != 1 {
+	var got []any
+	if err := json.Unmarshal(out.Bytes(), &got); err != nil || len(got) != len(ps) {
 		t.Fatalf("setup: protected_lookup.py printed %q: %v", tail(out.String()), err)
 	}
-	return got[0]
+	res := make([]lookupResult, len(got))
+	for i, g := range got {
+		switch g {
+		case true:
+			res[i].reported = true
+		case false:
+		case "error":
+			res[i].errored = true
+		default:
+			t.Fatalf("setup: protected_lookup.py printed %v for %q", g, ps[i].Phrase)
+		}
+	}
+	return res
 }
 
-// AC-9: every phrase the protected contract checks required in a skill
-// document at the base is still required, and found when it sits only in the
-// skill's SKILL.md or only in another of its reference documents.
+// AC-9: every phrase the protected contract checks required at the base is
+// still required, and a phrase of a skill document is found when it sits only
+// in the skill's SKILL.md or only in another of its reference documents.
 func TestSkillSlimAC9_PhraseLookup(t *testing.T) {
 	root := repoRoot(t)
 	var base []phrase
 	expected(t, "base-protected-phrases.json", &base)
 	if len(base) == 0 {
 		t.Fatalf("setup: testdata/base-protected-phrases.json lists no phrase")
+	}
+	// Control: on the unchanged copy every criterion's check reaches a
+	// result, so a check that raises on a copy state raised because of it.
+	control := syntheticTree(t, root, t.TempDir())
+	for i, r := range lookup(t, root, control, base) {
+		if r.errored {
+			t.Fatalf("setup: %s %s raises on the unchanged copy", base[i].Suite, base[i].Criterion)
+		}
 	}
 	var all []variant
 	for _, p := range base {
@@ -980,12 +1061,18 @@ func TestSkillSlimAC9_PhraseLookup(t *testing.T) {
 					pristine[doc] = readFile(g, dir, doc)
 				}
 			}
+			for _, p := range base {
+				if _, ok := pristine[p.File]; !ok {
+					pristine[p.File] = readFile(g, dir, p.File)
+				}
+			}
 			for i := w; i < len(all); i += workers {
 				for doc, text := range pristine {
 					writeFile(g, dir, doc, text)
 				}
 				all[i].change(g, dir, pristine)
-				results[i] = result{all[i], lookup(g, root, dir, all[i].p)}
+				r := lookup(g, root, dir, []phrase{all[i].p})[0]
+				results[i] = result{all[i], r.reported || r.errored}
 			}
 		}(w)
 	}
@@ -993,6 +1080,13 @@ func TestSkillSlimAC9_PhraseLookup(t *testing.T) {
 	if len(failures) > 0 {
 		t.Fatalf("setup: %s", strings.Join(failures, "; "))
 	}
+	counts := map[string]int{}
+	for _, r := range results {
+		counts[fmt.Sprintf("want reported %v, reported %v", r.v.want, r.reported)]++
+	}
+	t.Logf("%d phrases, %d copy states: %v", len(base), len(results), counts)
+	// A check that raises on a copy state does not accept the phrase there,
+	// so it counts as reporting it missing.
 	for _, r := range results {
 		if r.reported != r.v.want {
 			verb := "still reports it missing"
@@ -1005,11 +1099,58 @@ func TestSkillSlimAC9_PhraseLookup(t *testing.T) {
 	}
 }
 
+// probeTools fails as setup when a tool the route checks start cannot start,
+// so that a missing tool never reaches a route test as its failure.
+func probeTools(t *testing.T, root string) {
+	t.Helper()
+	for _, argv := range [][]string{{"go", "version"}, {"git", "--version"}, {"python3", "--version"}} {
+		cmd := exec.Command(argv[0], argv[1:]...)
+		cmd.Dir = root
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("setup: %s cannot start: %v: %s", strings.Join(argv, " "), err, tail(string(out)))
+		}
+	}
+}
+
+// goRouteResult reads go test -json output: the tests that passed, failed
+// and were skipped.
+func goRouteResult(out []byte) (passed, failed, skipped []string, ok bool) {
+	for _, line := range bytes.Split(out, []byte("\n")) {
+		if len(bytes.TrimSpace(line)) == 0 {
+			continue
+		}
+		var ev struct{ Action, Test string }
+		if json.Unmarshal(line, &ev) != nil {
+			return nil, nil, nil, false
+		}
+		if ev.Test == "" {
+			continue
+		}
+		switch ev.Action {
+		case "pass":
+			passed = append(passed, ev.Test)
+		case "fail":
+			failed = append(failed, ev.Test)
+		case "skip":
+			skipped = append(skipped, ev.Test)
+		}
+	}
+	return passed, failed, skipped, true
+}
+
+var (
+	unittestRan      = regexp.MustCompile(`Ran [1-9]\d* tests?`)
+	unittestFailures = regexp.MustCompile(`FAILED \([^)]*\bfailures=[1-9]\d*`)
+)
+
 // AC-9: the checks of every route whose sources include a skill document or
-// a protected contract check pass on the checked tree. The full verification
-// under AC-13 runs the checks of every other route.
+// a protected contract check pass on the checked tree. A failing test is the
+// violation; a check that does not start, does not build, runs no test or
+// skips a test reaches no result. The full verification under AC-13 runs the
+// checks of every other route.
 func TestSkillSlimAC9_RouteChecks(t *testing.T) {
 	root := repoRoot(t)
+	probeTools(t, root)
 	ran := 0
 	for _, r := range routes(t, root) {
 		related := false
@@ -1024,7 +1165,7 @@ func TestSkillSlimAC9_RouteChecks(t *testing.T) {
 			var cmd *exec.Cmd
 			switch c.Group {
 			case "go":
-				cmd = exec.Command("go", "test", "-count=1", "-run", "^(?:"+c.Selector+")$", "./"+filepath.ToSlash(filepath.Dir(c.File)))
+				cmd = exec.Command("go", "test", "-json", "-count=1", "-run", "^(?:"+c.Selector+")$", "./"+filepath.ToSlash(filepath.Dir(c.File)))
 				cmd.Env = append(os.Environ(), "GOWORK=off", "GOFLAGS= ")
 			case "docs":
 				cmd = exec.Command("python3", "-m", "unittest", "discover", "-s", filepath.Dir(c.File), "-p", filepath.Base(c.File), "-k", c.Selector)
@@ -1032,19 +1173,32 @@ func TestSkillSlimAC9_RouteChecks(t *testing.T) {
 				t.Fatalf("setup: route %s check %s has unknown group %q", r.ID, c.File, c.Group)
 			}
 			cmd.Dir = root
-			var out bytes.Buffer
-			cmd.Stdout, cmd.Stderr = &out, &out
+			var stdout, stderr bytes.Buffer
+			cmd.Stdout, cmd.Stderr = &stdout, &stderr
 			err := cmd.Run()
-			text := out.String()
 			var exit *exec.ExitError
+			exited1 := errors.As(err, &exit) && exit.ExitCode() == 1
+			name := fmt.Sprintf("route %s check %s %s", r.ID, c.File, c.Selector)
+			if c.Group == "go" {
+				passed, failed, skipped, ok := goRouteResult(stdout.Bytes())
+				switch {
+				case !ok:
+					t.Fatalf("setup: %s printed no test events: %v: %s", name, err, tail(stdout.String()+stderr.String()))
+				case exited1 && len(failed) > 0:
+					t.Errorf("jaekit:violation=route-check-fails: %s fails: %s", name, strings.Join(failed, ", "))
+				case err == nil && len(passed) > 0 && len(skipped) == 0:
+				default:
+					t.Fatalf("setup: %s reached no result (passed %d, skipped %v): %v: %s", name, len(passed), skipped, err, tail(stderr.String()))
+				}
+				continue
+			}
+			text := stdout.String() + stderr.String()
 			switch {
-			case err == nil && (c.Group == "go" && strings.Contains(text, "ok ") && !strings.Contains(text, "[no tests to run]") ||
-				c.Group == "docs" && regexp.MustCompile(`Ran [1-9]\d* tests?`).MatchString(text)):
-			case errors.As(err, &exit) && exit.ExitCode() == 1 &&
-				(c.Group == "go" && strings.Contains(text, "--- FAIL:") || c.Group == "docs" && regexp.MustCompile(`FAILED \(failures=\d+\)`).MatchString(text)):
-				t.Errorf("jaekit:violation=route-check-fails: route %s check %s %s fails: %s", r.ID, c.File, c.Selector, tail(text))
+			case exited1 && unittestFailures.MatchString(text):
+				t.Errorf("jaekit:violation=route-check-fails: %s fails: %s", name, tail(text))
+			case err == nil && unittestRan.MatchString(text) && !strings.Contains(text, "skipped="):
 			default:
-				t.Fatalf("setup: route %s check %s %s did not run to a result: %v: %s", r.ID, c.File, c.Selector, err, tail(text))
+				t.Fatalf("setup: %s reached no result: %v: %s", name, err, tail(text))
 			}
 		}
 	}
