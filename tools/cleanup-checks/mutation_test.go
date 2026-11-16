@@ -13,11 +13,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+	"unicode"
 )
 
 // edit replaces one fixed string in a file of a copied tree. The string must
@@ -383,6 +385,134 @@ func TestCleanupAC7_FormerPins(t *testing.T) {
 		{file: "guides/USAGE.md", old: "\"응\"이라고 답하면 구현이 시작됩니다.", new: "\"응\"이라고 답하면 바로 구현이 시작됩니다."},
 		{file: "guides/USAGE.md", old: "구현 시작 명령도 계속 쓸 수 있습니다.", new: "구현 시작 명령도 여전히 쓸 수 있습니다."},
 	})
+}
+
+// AC-7: every prose line of the root READMEs and guides reworded at once. Only
+// the tests the user kept as exceptions may fail: those other kept records
+// bind by name or assertion order.
+func TestCleanupAC7_AllProse(t *testing.T) {
+	requireControl(t)
+	dir := syntheticTree(t, nil)
+	if n := rewordProse(t, dir); n == 0 {
+		t.Fatalf("setup: the copy has no prose line to reword")
+	}
+	syntheticCommit(t, dir, "reword prose")
+	exempt := exceptionTests(t)
+	var pinned []string
+	seen := map[string]bool{}
+	for _, name := range runPlugins(t, dir).failed {
+		top, _, _ := strings.Cut(name, "/")
+		if !seen[top] && !exempt(top) {
+			pinned = append(pinned, top)
+		}
+		seen[top] = true
+	}
+	if len(pinned) > 0 {
+		t.Errorf("jaekit:violation=prose-pinned: the plugins tests fail on a tree whose README and guide prose lines are all reworded: %s",
+			strings.Join(pinned, ", "))
+	}
+}
+
+// exceptionTests reports whether a top-level plugins test is one the user kept
+// as an exception to AC-7: a test defined in a protected file, the
+// compatibility tests that root declarations bind, or the uninstall test that
+// a kept declaration runs by name.
+func exceptionTests(t *testing.T) func(string) bool {
+	t.Helper()
+	root := repoRoot(t)
+	protected := map[string]bool{}
+	define := regexp.MustCompile(`(?m)^func (Test\w+)\(t \*testing\.T\) \{`)
+	for path := range protectedFiles {
+		if !strings.HasSuffix(path, "_test.go") {
+			continue
+		}
+		names := define.FindAllStringSubmatch(string(readFile(t, root, path)), -1)
+		if len(names) == 0 {
+			t.Fatalf("setup: %s defines no test", path)
+		}
+		for _, name := range names {
+			protected[name[1]] = true
+		}
+	}
+	return func(name string) bool {
+		return protected[name] || name == "TestRelease011UninstallGuide" ||
+			strings.HasPrefix(name, "TestCompatibilityAC10_") || strings.HasPrefix(name, "TestCompatibilityAC11_")
+	}
+}
+
+var (
+	proseKeep  = regexp.MustCompile("`[^`]*`|!?\\[[^\\]]*\\]\\([^)]*\\)|https?://\\S+|<[^>]+>")
+	boldLabel  = regexp.MustCompile(`^\*\*[^*]+\*\*:?\s*$`)
+	readmeDocs = []string{"README.md", "README.ko.md", "README.en.md"}
+)
+
+// rewordProse puts " ~ " between every two words of every prose line of the
+// root READMEs and guides/*.md in dir, and returns how many lines changed. A
+// prose line is outside code fences and not a heading, table row, blank line
+// or bold label; code spans, links, URLs and HTML tags inside it are kept.
+func rewordProse(t *testing.T, dir string) int {
+	t.Helper()
+	guides, err := filepath.Glob(filepath.Join(dir, "guides", "*.md"))
+	if err != nil || len(guides) == 0 {
+		t.Fatalf("setup: the copy has no guides/*.md: %v", err)
+	}
+	docs := guides
+	for _, name := range readmeDocs {
+		docs = append(docs, filepath.Join(dir, name))
+	}
+	changed := 0
+	for _, path := range docs {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("setup: read %s: %v", path, err)
+		}
+		lines := strings.Split(string(data), "\n")
+		fence := false
+		for i, line := range lines {
+			trimmed := strings.TrimSpace(line)
+			if strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
+				fence = !fence
+				continue
+			}
+			if fence || trimmed == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(trimmed, "|") || boldLabel.MatchString(trimmed) {
+				continue
+			}
+			if reworded := rewordLine(line); reworded != line {
+				lines[i] = reworded
+				changed++
+			}
+		}
+		if err := os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0o644); err != nil {
+			t.Fatalf("setup: write %s: %v", path, err)
+		}
+	}
+	return changed
+}
+
+func rewordLine(line string) string {
+	var b strings.Builder
+	last := 0
+	for _, m := range proseKeep.FindAllStringIndex(line, -1) {
+		b.WriteString(markWords(line[last:m[0]]))
+		b.WriteString(line[m[0]:m[1]])
+		last = m[1]
+	}
+	b.WriteString(markWords(line[last:]))
+	return b.String()
+}
+
+// markWords replaces each single space between two letters with " ~ ".
+func markWords(s string) string {
+	runes := []rune(s)
+	var b strings.Builder
+	for i, r := range runes {
+		if r == ' ' && i > 0 && i+1 < len(runes) && unicode.IsLetter(runes[i-1]) && unicode.IsLetter(runes[i+1]) {
+			b.WriteString(" ~ ")
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }
 
 // namedTests are the plugins tests that kept declarations and the release

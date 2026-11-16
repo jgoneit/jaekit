@@ -473,15 +473,17 @@ func TestSealSkillWordCap(t *testing.T) {
 	}
 }
 
-// Both development guides state the cap this file enforces, and the skill is
-// within it.
+// Both development guides state the cap this file enforces on the line that
+// links the Seal skill, and the skill is within it.
 func TestSealSkillWordCapStated(t *testing.T) {
-	for _, stated := range [][2]string{
-		{"../guides/DEVELOPMENT.md", "앞머리를 포함해 공백으로 나눈 단어 2,300개다."},
-		{"../guides/DEVELOPMENT.en.md", "has a limit of 2,300 whitespace-separated words, front matter included."},
-	} {
-		if !strings.Contains(read(t, stated[0]), stated[1]) {
-			t.Errorf("%s does not state the Seal skill cap: lacks %q", stated[0], stated[1])
+	const link, stated = "(../plugins/seal/skills/seal/SKILL.md)", "2,300"
+	for _, path := range []string{"../guides/DEVELOPMENT.md", "../guides/DEVELOPMENT.en.md"} {
+		found := false
+		for _, line := range strings.Split(read(t, path), "\n") {
+			found = found || strings.Contains(line, link) && strings.Contains(line, stated)
+		}
+		if !found {
+			t.Errorf("%s has no line that links the Seal skill and states the cap %s", path, stated)
 		}
 	}
 	if n := len(strings.Fields(read(t, skSkill))); n > skWordCap {

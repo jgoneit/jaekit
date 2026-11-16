@@ -42,8 +42,9 @@ func TestReleaseVersionIdentity(t *testing.T) {
 // both hosts' marketplace to its tag, and the install and WSL guides
 // download its files.
 func TestReleaseVersionPinsAndDownloads(t *testing.T) {
-	requireAll(t, "../README.md", "The current release is **"+rvTag+"**", "`ha "+rvVersion+"`")
-	requireAll(t, "../README.ko.md", "현재 배포판은 **"+rvTag+"**입니다", "`ha "+rvVersion+"`")
+	for _, path := range []string{"../README.md", "../README.ko.md"} {
+		requireAll(t, path, "**"+rvTag+"**", "`ha "+rvVersion+"`")
+	}
 	for _, path := range []string{"../README.md", "../README.ko.md", "../guides/INSTALL.md", "../guides/INSTALL.en.md"} {
 		requireAll(t, path,
 			"claude plugin marketplace add jgoneit/jaekit#"+rvTag,
@@ -63,26 +64,34 @@ func TestReleaseVersionPinsAndDownloads(t *testing.T) {
 		requireIn(t, c.path+" section "+c.heading, mdSection(t, c.path, c.heading),
 			"releases/download/"+rvTag, "ha_"+rvVersion+"_")
 	}
-	for _, c := range []struct{ path, current string }{
-		{"../guides/WSL.md", "현재 공개 배포판은 `" + rvTag + "`입니다"},
-		{"../guides/WSL.en.md", "The current public release is `" + rvTag + "`"},
-	} {
-		requireAll(t, c.path, c.current, "ha_"+rvVersion+"_linux_amd64.tar.gz", "~/.local/share/jaekit/"+rvVersion,
+	for _, path := range []string{"../guides/WSL.md", "../guides/WSL.en.md"} {
+		requireAll(t, path, "`"+rvTag+"`", "ha_"+rvVersion+"_linux_amd64.tar.gz", "~/.local/share/jaekit/"+rvVersion,
 			"https://github.com/jgoneit/jaekit/releases/tag/"+rvTag)
 	}
 }
 
-// The Windows guides name the current release as the one without Windows
+// The Windows guides name the current release where they speak of Windows
 // files.
 func TestReleaseVersionWindowsGuides(t *testing.T) {
-	requireAll(t, "../guides/WINDOWS.md",
-		"현재 공개 배포판 `"+rvTag+"`에 Windows 파일이 있다는 뜻이 아닙니다",
-		"현재 배포판 `"+rvTag+"`에도 Windows 파일이 없습니다",
-		"공개 배포판 "+rvTag+"에는 Windows 파일이 없고")
-	requireAll(t, "../guides/WINDOWS.en.md",
-		"It does not mean the current public release, `"+rvTag+"`, includes Windows files",
-		"the current release, `"+rvTag+"`, has no Windows files",
-		"Public release "+rvTag+" has no Windows files")
+	for _, path := range []string{"../guides/WINDOWS.md", "../guides/WINDOWS.en.md"} {
+		rvLine(t, path, rvTag, "Windows")
+	}
+}
+
+// rvLine requires one line of the document to hold every token, so a
+// sentence around the tokens can be reworded.
+func rvLine(t *testing.T, path string, tokens ...string) {
+	t.Helper()
+	for _, line := range strings.Split(read(t, path), "\n") {
+		all := true
+		for _, token := range tokens {
+			all = all && strings.Contains(line, token)
+		}
+		if all {
+			return
+		}
+	}
+	t.Errorf("%s has no line with all of %q", path, tokens)
 }
 
 // The Seal skill and its ha reference send a missing ha to the current
@@ -132,9 +141,8 @@ func TestReleaseVersionCombination(t *testing.T) {
 			}
 		}
 	}
-	requireAll(t, "../guides/USAGE.md", "현재 배포판 v0.1.8은 ha 0.1.8·spar 0.1.8·spec 0.1.13·seal 0.1.23·spar 플러그인 0.1.4 조합입니다")
-	requireAll(t, "../guides/USAGE.en.md", "The current release v0.1.8 combines ha 0.1.8, spar 0.1.8, spec 0.1.13, seal 0.1.23 and the spar plugin 0.1.4")
-	requireAll(t, "../guides/OPERATIONS.md", "v0.1.8(ha 0.1.8·spar 0.1.8·spec 0.1.13·seal 0.1.23·spar 플러그인 0.1.4)")
-	requireAll(t, "../guides/OPERATIONS.en.md", "v0.1.8 (ha 0.1.8, spar 0.1.8, spec 0.1.13, seal 0.1.23, spar plugin 0.1.4)")
+	for _, path := range []string{"../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md", "../guides/OPERATIONS.en.md"} {
+		rvLine(t, path, "v0.1.8", "ha 0.1.8", "spar 0.1.8", "spec 0.1.13", "seal 0.1.23", "0.1.4")
+	}
 	requireAll(t, "seal/skills/seal/references/ha.md", "The commands below describe release v0.1.8: ha 0.1.8, spar 0.1.8 and Seal 0.1.23.")
 }

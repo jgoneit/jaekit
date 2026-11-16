@@ -49,6 +49,14 @@
         "package": "github.com/jgoneit/jaekit/tools/cleanup-checks",
         "name": "TestCleanupAC7_FormerPins"
       }
+    },
+    {
+      "id": "AllProse",
+      "violation": "prose-pinned",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/cleanup-checks",
+        "name": "TestCleanupAC7_AllProse"
+      }
     }
   ]
 }
