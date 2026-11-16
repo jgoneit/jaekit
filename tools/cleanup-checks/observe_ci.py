@@ -43,7 +43,9 @@ def full_verification():
 
 
 def head_checks(repo, head):
-    runs = policy.pages(f"repos/{repo}/commits/{head}/check-runs", "check_runs")
+    # filter=all, as tools/check_main_policy.py reads them: the default
+    # filter can leave out a queued or running rerun and keep an older success.
+    runs = policy.pages(f"repos/{repo}/commits/{head}/check-runs?filter=all", "check_runs")
     results, reasons = policy.check_results(runs, head)
     for row in results:
         print(f"{row['name']}: {'success' if row['satisfied'] else row['reason']}")
