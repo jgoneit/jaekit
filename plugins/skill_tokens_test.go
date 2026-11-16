@@ -364,7 +364,7 @@ func TestSkillAuthorityRulesInBody(t *testing.T) {
 		{sealSkillDir, "## Authority", []string{"ha start --request", "Status: Ready", "SPEC.md"}},
 		{sealSkillDir, "## Independent review", []string{"hardening", "spar extend"}},
 		{sealSkillDir, "## Budget", []string{"ha budget"}},
-		{sealSkillDir, "## Forbidden", []string{"SPEC.md", "runs.jsonl", "block", "ha log", "## 개선 메모"}},
+		{sealSkillDir, "## Forbidden", []string{"SPEC.md", "runs.jsonl", "block", "ha log", "## 개선 메모", "T001"}},
 		{sparSkillDir, "## When to run each stage", []string{"spar extend"}},
 		{sparSkillDir, "## Reviewers", []string{"spar waive"}},
 		{sparSkillDir, "## Classes and dispositions", []string{"answer"}},

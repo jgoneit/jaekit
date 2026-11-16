@@ -13,7 +13,12 @@ import authoring_check  # noqa: E402
 
 checker = authoring_check.checker
 FILE_CRITERIA = ("AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-8", "AC-10")
-INPUTS = sorted({name for name, _ in authoring_check.SECTIONS.values()} | {
+# The producer reads a Seal document's clauses across every document of the
+# skill, so the copy holds the skill's SKILL.md and all its references.
+SEAL_DOCS = {authoring_check.SKILL} | {
+    path.relative_to(checker.ROOT).as_posix()
+    for path in (checker.ROOT / authoring_check.SKILL).parent.glob("references/*.md")}
+INPUTS = sorted({name for name, _ in authoring_check.SECTIONS.values()} | SEAL_DOCS | {
     "internal/status/status.go", "cmd/ha/baseline.go", ".claude-plugin/marketplace.json",
     "plugins/seal/.claude-plugin/plugin.json", "plugins/seal/.codex-plugin/plugin.json"})
 

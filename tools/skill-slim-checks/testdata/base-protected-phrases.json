@@ -89,6 +89,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "check.py",
@@ -100,6 +101,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "check.py",
@@ -111,6 +113,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "check.py",
@@ -122,6 +125,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "check.py",
@@ -166,6 +170,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "check.py",
@@ -177,6 +182,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "check.py",
@@ -188,6 +194,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "check.py",
@@ -298,6 +305,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "check.py",
@@ -309,6 +317,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "check.py",
@@ -320,6 +329,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "check.py",
@@ -496,6 +506,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "check.py",
@@ -507,6 +518,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "check.py",
@@ -518,6 +530,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "check.py",
@@ -562,6 +575,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "check.py",
@@ -573,6 +587,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "check.py",
@@ -584,6 +599,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "check.py",
@@ -595,6 +611,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "check.py",
@@ -804,6 +821,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "design_check.py",
@@ -815,6 +833,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "design_check.py",
@@ -826,6 +845,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "design_check.py",
@@ -837,6 +857,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "design_check.py",
@@ -892,6 +913,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "design_check.py",
@@ -903,6 +925,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "design_check.py",
@@ -914,6 +937,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "design_check.py",
@@ -925,6 +949,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "design_check.py",
@@ -969,6 +994,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "design_check.py",
@@ -980,6 +1006,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "design_check.py",
@@ -991,6 +1018,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "design_check.py",
@@ -1046,6 +1074,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "design_check.py",
@@ -1057,6 +1086,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "design_check.py",
@@ -1068,6 +1098,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "design_check.py",
@@ -1112,6 +1143,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "design_check.py",
@@ -1123,6 +1155,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "design_check.py",
@@ -1134,6 +1167,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "design_check.py",
@@ -1145,6 +1179,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "design_check.py",
@@ -1189,6 +1224,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "design_check.py",
@@ -1200,6 +1236,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "design_check.py",
@@ -1211,6 +1248,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "design_check.py",
@@ -1222,6 +1260,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "design_check.py",
@@ -1299,6 +1338,7 @@
  },
  {
   "criterion": "AC-7",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "design_check.py",
@@ -1310,6 +1350,7 @@
  },
  {
   "criterion": "AC-7",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "design_check.py",
@@ -1321,6 +1362,7 @@
  },
  {
   "criterion": "AC-7",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "design_check.py",
@@ -1618,6 +1660,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "finding_docs_check.py",
@@ -1629,6 +1672,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "finding_docs_check.py",
@@ -1640,6 +1684,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "finding_docs_check.py",
@@ -1651,6 +1696,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "finding_docs_check.py",
@@ -1695,6 +1741,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "finding_docs_check.py",
@@ -1706,6 +1753,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "finding_docs_check.py",
@@ -1717,6 +1765,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "finding_docs_check.py",
@@ -1728,6 +1777,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "finding_docs_check.py",
@@ -1772,6 +1822,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "finding_docs_check.py",
@@ -1783,6 +1834,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "finding_docs_check.py",
@@ -1794,6 +1846,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "finding_docs_check.py",
@@ -1838,6 +1891,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "finding_docs_check.py",
@@ -1849,6 +1903,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "finding_docs_check.py",
@@ -1860,6 +1915,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "finding_docs_check.py",
@@ -1871,6 +1927,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "finding_docs_check.py",
@@ -1926,6 +1983,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "finding_docs_check.py",
@@ -1937,6 +1995,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "finding_docs_check.py",
@@ -2531,6 +2590,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2543,6 +2603,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2555,6 +2616,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2567,6 +2629,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2579,6 +2642,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2591,6 +2655,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2603,6 +2668,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2615,6 +2681,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2627,6 +2694,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2639,6 +2707,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2651,6 +2720,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2663,6 +2733,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2675,6 +2746,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2687,6 +2759,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2699,6 +2772,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2711,6 +2785,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2723,6 +2798,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2735,6 +2811,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2747,6 +2824,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2759,6 +2837,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2771,6 +2850,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2783,6 +2863,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2795,6 +2876,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2807,6 +2889,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2819,6 +2902,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2843,6 +2927,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2855,6 +2940,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2867,6 +2953,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2879,6 +2966,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2891,6 +2979,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2903,6 +2992,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2915,6 +3005,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2927,6 +3018,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2939,6 +3031,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2951,6 +3044,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2963,6 +3057,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2975,6 +3070,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2987,6 +3083,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -2999,6 +3096,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3059,6 +3157,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3071,6 +3170,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3083,6 +3183,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3095,6 +3196,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3107,6 +3209,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3119,6 +3222,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3131,6 +3235,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3143,6 +3248,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/ha.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3155,6 +3261,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/ha.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3167,6 +3274,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/ha.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3179,6 +3287,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/ha.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3191,6 +3300,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/ha.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3203,6 +3313,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3215,6 +3326,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3227,6 +3339,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3239,6 +3352,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3251,6 +3365,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3263,6 +3378,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3275,6 +3391,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3287,6 +3404,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3299,6 +3417,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3311,6 +3430,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3323,6 +3443,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3335,6 +3456,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3347,6 +3469,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3371,6 +3494,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3383,6 +3507,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3395,6 +3520,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3407,6 +3533,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3419,6 +3546,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3431,6 +3559,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3443,6 +3572,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3455,6 +3585,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3467,6 +3598,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3479,6 +3611,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3491,6 +3624,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3503,6 +3637,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3515,6 +3650,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3527,6 +3663,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3539,6 +3676,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3551,6 +3689,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3563,6 +3702,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3575,6 +3715,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3587,6 +3728,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3599,6 +3741,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3611,6 +3754,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3623,6 +3767,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3635,6 +3780,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3659,6 +3805,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3671,6 +3818,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3683,6 +3831,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3695,6 +3844,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3731,6 +3881,7 @@
  },
  {
   "criterion": "AC-8",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3743,6 +3894,7 @@
  },
  {
   "criterion": "AC-8",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3755,6 +3907,7 @@
  },
  {
   "criterion": "AC-8",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3767,6 +3920,7 @@
  },
  {
   "criterion": "AC-8",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3779,6 +3933,7 @@
  },
  {
   "criterion": "AC-8",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -3791,6 +3946,7 @@
  },
  {
   "criterion": "AC-8",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4331,6 +4487,7 @@
  },
  {
   "criterion": "AC-1",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4343,6 +4500,7 @@
  },
  {
   "criterion": "AC-4",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4355,6 +4513,7 @@
  },
  {
   "criterion": "AC-5",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4391,6 +4550,7 @@
  },
  {
   "criterion": "AC-9",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4402,6 +4562,7 @@
  },
  {
   "criterion": "AC-9",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4413,6 +4574,7 @@
  },
  {
   "criterion": "AC-9",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4424,6 +4586,7 @@
  },
  {
   "criterion": "AC-9",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4435,6 +4598,7 @@
  },
  {
   "criterion": "AC-9",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4446,6 +4610,7 @@
  },
  {
   "criterion": "AC-9",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4468,6 +4633,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4479,6 +4645,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4490,6 +4657,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/SKILL.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4501,6 +4669,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4512,6 +4681,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4523,6 +4693,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4534,6 +4705,7 @@
  },
  {
   "criterion": "AC-6",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/bundle.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4556,6 +4728,7 @@
  },
  {
   "criterion": "AC-2",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/ha.md",
   "message": "",
   "module": "authoring_check.py",
@@ -4567,6 +4740,7 @@
  },
  {
   "criterion": "AC-3",
+  "earlier_goals": "reported",
   "file": "plugins/seal/skills/seal/references/ha.md",
   "message": "",
   "module": "authoring_check.py",

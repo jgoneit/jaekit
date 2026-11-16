@@ -417,6 +417,7 @@ var authorities = []authority{
 	{"seal", "## Forbidden", "block"},
 	{"seal", "## Forbidden", "ha log"},
 	{"seal", "## Forbidden", "## 개선 메모"},
+	{"seal", "## Forbidden", "T001"},
 	{"spar", "## When to run each stage", "spar extend"},
 	{"spar", "## Reviewers", "spar waive"},
 	{"spar", "## Classes and dispositions", "answer"},
@@ -884,7 +885,14 @@ type phrase struct {
 	// removal states: "reported" or "error" (it raised).
 	Removed      string `json:"removed"`
 	OtherSection string `json:"other_section"`
+	// EarlierGoals is how the base check treated the phrase placed only in
+	// the Seal reference written for earlier goals.
+	EarlierGoals string `json:"earlier_goals"`
 }
+
+// earlierGoalsOnly is the Seal reference written only for goals an earlier
+// Seal started: a protected phrase of another document is not found there.
+const earlierGoalsOnly = "plugins/seal/skills/seal/references/earlier-goals.md"
 
 // variant is one copy state for a phrase and whether its criterion should
 // report the phrase missing there.
@@ -944,7 +952,9 @@ func otherSection(t tb, text, heading string) string {
 // moved only into the skill's SKILL.md or into a reference document other
 // than its own file (not reported); a row phrase moves with its table row. A
 // phrase scoped to a section has a fourth: moved only into another section of
-// its file (reported missing). A phrase of any other file is removed from
+// its file (reported missing). A Seal phrase of another document than the
+// reference written for earlier goals has one more: moved only into that
+// reference (reported missing), and the "other reference" state never uses it. A phrase of any other file is removed from
 // that file, and a section phrase there is also moved only into another
 // section of it; both are reported missing.
 func variants(t tb, root string, p phrase) []variant {
@@ -989,7 +999,7 @@ func variants(t tb, root string, p phrase) []variant {
 	all := docs(t, root, s)
 	targets := []string{s.body()}
 	for _, ref := range all[1:] {
-		if ref != p.File {
+		if ref != p.File && ref != earlierGoalsOnly {
 			targets = append(targets, ref)
 			break
 		}
@@ -1032,6 +1042,22 @@ func variants(t tb, root string, p phrase) []variant {
 				}
 				writeFile(t, dir, p.File, insertIn(readFile(t, dir, p.File), other, add))
 			}})
+	}
+	for _, ref := range all[1:] {
+		if ref == earlierGoalsOnly && p.File != earlierGoalsOnly {
+			out = append(out, variant{p: p, name: "only in " + ref, want: true, base: p.EarlierGoals,
+				change: func(t tb, dir string, pristine map[string]string) {
+					row := strip(dir, pristine)
+					add := []string{p.Phrase}
+					if p.Row != "" {
+						if row == "" {
+							t.Fatalf("setup: %s has no row %q holding %q", p.File, p.Row, p.Phrase)
+						}
+						add = []string{row}
+					}
+					writeFile(t, dir, earlierGoalsOnly, insertIn(readFile(t, dir, earlierGoalsOnly), p.Section, add))
+				}})
+		}
 	}
 	for _, target := range targets {
 		target := target

@@ -93,7 +93,7 @@ Lower a budget freely. Once started, only `ha budget` changes the run limit: an 
 - Retrying terminal failures (record a `block`) or rerunning an errored check past its limit; treating results from outside `ha`, or another agent's agreement, as completion evidence.
 - Copying verification output, `ha log` included, into the bundle or report.
 - Changing this skill, its templates, or `ha` while carrying a goal; note ideas under `## 개선 메모`.
-- Asking for approval per task or per tool use.
+- Asking for approval per task (`T001`, …) or per tool use.
 
 ## Language
 

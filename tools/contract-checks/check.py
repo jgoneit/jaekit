@@ -154,11 +154,20 @@ def reporting_links(root: Path, criterion: str) -> list[str]:
     return problems
 
 
+# References written only for goals an earlier Seal started. Their text is not
+# the current guidance, so a clause finds an anchor there only when the clause
+# names that document itself.
+EARLIER_GOALS_ONLY = {SEAL + "references/earlier-goals.md"}
+
+
 def skill_documents(root: Path, name: str) -> list[str]:
-    """The documents of the skill that holds name: SKILL.md, then references/*.md by name."""
+    """The documents of the skill that holds name: SKILL.md, then references/*.md by name.
+
+    A reference in EARLIER_GOALS_ONLY is included only when name is that reference.
+    """
     skill = name.split("/references/")[0] if "/references/" in name else name.rsplit("/", 1)[0]
     refs = sorted(path.relative_to(root).as_posix() for path in (root / skill / "references").glob("*.md"))
-    return [skill + "/SKILL.md"] + refs
+    return [doc for doc in [skill + "/SKILL.md"] + refs if doc not in EARLIER_GOALS_ONLY or doc == name]
 
 
 def clause_text(root: Path, name: str) -> str | None:
