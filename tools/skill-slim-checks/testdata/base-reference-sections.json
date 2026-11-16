@@ -257,6 +257,24 @@
    "heading": "Final head",
    "level": 2,
    "sha256": "0967a82992d0d154570370b6292435733a19ed983d6881ace702ddc252dc62a4"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/bundle.md",
+   "heading": "",
+   "level": 1,
+   "sha256": "47674a1ca3344c70c6b79be3be997fc6618413c10fc7442a5ae163031211af0f"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/earlier-goals.md",
+   "heading": "",
+   "level": 1,
+   "sha256": "fbc2301ca08d3a7915580312b131ec2a3f375dabcd4ffbeb2f56d699111e4531"
+  },
+  {
+   "doc": "plugins/seal/skills/seal/references/ha.md",
+   "heading": "",
+   "level": 1,
+   "sha256": "3a81c49d8a6f7e7df95c9dd4f3ba3262fb7d90985d08b20a3fb782d8ecdbc5ff"
   }
  ],
  "spar": [],
@@ -320,6 +338,12 @@
    "heading": "Consistency",
    "level": 2,
    "sha256": "57312cffbcc66d6219482ef35f05754797e6f6ac7f7c0daa99ab03324a7bc837"
+  },
+  {
+   "doc": "plugins/spec/skills/spec/references/goal-docs.md",
+   "heading": "",
+   "level": 1,
+   "sha256": "a70a4e51b33e025182e8cac5127ff4c5834f96c13747283812df0a7db3979589"
   }
  ]
 }

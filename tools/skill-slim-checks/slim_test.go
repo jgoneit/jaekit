@@ -301,6 +301,21 @@ func refSections(t tb, root string, s skill) []refSection {
 			}
 			out = append(out, refSection{doc: doc, heading: headingText(lines[i]), level: lv, anchors: anchors, sha256: hex.EncodeToString(sum[:])})
 		}
+		// The text outside every level-2 section (the preamble and level-1
+		// parts) is one more section, of level 1 and no heading; a link to
+		// the document or any of its anchors reaches it.
+		var outside []string
+		inside := false
+		for i, kind := range kinds {
+			if kind == kindHead && headingLevel(lines[i]) <= 2 {
+				inside = headingLevel(lines[i]) == 2
+			}
+			if !inside {
+				outside = append(outside, lines[i])
+			}
+		}
+		sum := sha256.Sum256([]byte(strings.Join(strings.Fields(strings.Join(outside, " ")), " ")))
+		out = append(out, refSection{doc: doc, level: 1, sha256: hex.EncodeToString(sum[:])})
 	}
 	return out
 }
@@ -309,7 +324,8 @@ func refSections(t tb, root string, s skill) []refSection {
 // SKILL.md that links it, or its enclosing level-2 section, and says when to
 // read it. Such sections are the representatives, every level-2 or level-3
 // section that is new since the base, and every base section whose text
-// changed.
+// changed; a document's text outside its level-2 sections counts as one
+// more section, reached by any link to that document.
 func TestSkillSlimAC6_MovedLinked(t *testing.T) {
 	root := repoRoot(t)
 	var base map[string][]struct {
@@ -360,12 +376,19 @@ func TestSkillSlimAC6_MovedLinked(t *testing.T) {
 					continue
 				}
 				for _, target := range linkTargets(lines[i]) {
+					full := resolve(s.body(), target)
+					if sec.level == 1 {
+						found = found || full == sec.doc || strings.HasPrefix(full, sec.doc+"#")
+					}
 					for _, a := range sec.anchors {
-						found = found || resolve(s.body(), target) == sec.doc+"#"+a
+						found = found || full == sec.doc+"#"+a
 					}
 				}
 			}
-			if !found {
+			if !found && sec.level == 1 {
+				t.Errorf("jaekit:violation=moved-unlinked: %s has no line that links %s and says when to read it (its text outside level-2 sections is new or changed)",
+					s.body(), strings.TrimPrefix(sec.doc, s.dir+"/"))
+			} else if !found {
 				t.Errorf("jaekit:violation=moved-unlinked: %s has no line that links %s#%s and says when to read it",
 					s.body(), strings.TrimPrefix(sec.doc, s.dir+"/"), sec.anchors[0])
 			}
@@ -854,6 +877,13 @@ func TestSkillSlimAC9_RouteProperties(t *testing.T) {
 // document at the goal's base.
 type phrase struct {
 	Module, Suite, Criterion, File, Section, Row, Phrase string
+	// Message is set for an inline clause, which its check tests inside
+	// observe() and reports with this fixed message naming no phrase.
+	Message string
+	// Removed and OtherSection are how the base check treated the phrase's
+	// removal states: "reported" or "error" (it raised).
+	Removed      string `json:"removed"`
+	OtherSection string `json:"other_section"`
 }
 
 // variant is one copy state for a phrase and whether its criterion should
@@ -861,7 +891,8 @@ type phrase struct {
 type variant struct {
 	p      phrase
 	name   string
-	want   bool // reported missing
+	want   bool   // reported missing
+	base   string // for a removal state, how the base check treated it
 	change func(t tb, dir string, pristine map[string]string)
 }
 
@@ -918,13 +949,13 @@ func otherSection(t tb, text, heading string) string {
 // section of it; both are reported missing.
 func variants(t tb, root string, p phrase) []variant {
 	if !skillSource(p.File) {
-		out := []variant{{p: p, name: "removed from " + p.File, want: true,
+		out := []variant{{p: p, name: "removed from " + p.File, want: true, base: p.Removed,
 			change: func(t tb, dir string, pristine map[string]string) {
 				writeFile(t, dir, p.File, removePhrase(pristine[p.File], p.Phrase, p.Section))
 			}}}
 		if p.Section != "" {
 			other := otherSection(t, readFile(t, root, p.File), p.Section)
-			out = append(out, variant{p: p, name: "only in " + p.File + " " + other, want: true,
+			out = append(out, variant{p: p, name: "only in " + p.File + " " + other, want: true, base: p.OtherSection,
 				change: func(t tb, dir string, pristine map[string]string) {
 					text, add := pristine[p.File], []string{p.Phrase}
 					if p.Row != "" {
@@ -981,7 +1012,7 @@ func variants(t tb, root string, p phrase) []variant {
 		}
 		return row
 	}
-	out := []variant{{p: p, name: "removed from every document of " + s.name, want: true,
+	out := []variant{{p: p, name: "removed from every document of " + s.name, want: true, base: p.Removed,
 		change: func(t tb, dir string, pristine map[string]string) {
 			for _, doc := range all {
 				writeFile(t, dir, doc, removePhrase(pristine[doc], p.Phrase, p.Section))
@@ -989,7 +1020,7 @@ func variants(t tb, root string, p phrase) []variant {
 		}}}
 	if p.Section != "" {
 		other := otherSection(t, readFile(t, root, p.File), p.Section)
-		out = append(out, variant{p: p, name: "only in " + p.File + " " + other, want: true,
+		out = append(out, variant{p: p, name: "only in " + p.File + " " + other, want: true, base: p.OtherSection,
 			change: func(t tb, dir string, pristine map[string]string) {
 				row := strip(dir, pristine)
 				add := []string{p.Phrase}
@@ -1030,7 +1061,7 @@ func lookup(t tb, root, dir string, ps []phrase) []lookupResult {
 	var reqs []map[string]string
 	for _, p := range ps {
 		reqs = append(reqs, map[string]string{"suite": p.Suite, "criterion": p.Criterion, "file": p.File,
-			"section": p.Section, "row": p.Row, "phrase": p.Phrase})
+			"section": p.Section, "row": p.Row, "phrase": p.Phrase, "message": p.Message})
 	}
 	req, err := json.Marshal(reqs)
 	if err != nil {
@@ -1089,8 +1120,8 @@ func TestSkillSlimAC9_PhraseLookup(t *testing.T) {
 	}
 	const workers = 4
 	type result struct {
-		v        variant
-		reported bool
+		v                 variant
+		reported, errored bool
 	}
 	results := make([]result, len(all))
 	dirs := make([]string, workers)
@@ -1130,7 +1161,7 @@ func TestSkillSlimAC9_PhraseLookup(t *testing.T) {
 				}
 				all[i].change(g, dir, pristine)
 				r := lookup(g, root, dir, []phrase{all[i].p})[0]
-				results[i] = result{all[i], r.reported || r.errored}
+				results[i] = result{all[i], r.reported, r.errored}
 			}
 		}(w)
 	}
@@ -1138,22 +1169,37 @@ func TestSkillSlimAC9_PhraseLookup(t *testing.T) {
 	if len(failures) > 0 {
 		t.Fatalf("setup: %s", strings.Join(failures, "; "))
 	}
+	for _, v := range all {
+		if v.want && v.base != "reported" && v.base != "error" {
+			t.Fatalf("setup: testdata/base-protected-phrases.json has no base outcome for %q %s", v.p.Phrase, v.name)
+		}
+	}
 	counts := map[string]int{}
 	for _, r := range results {
-		counts[fmt.Sprintf("want reported %v, reported %v", r.v.want, r.reported)]++
+		counts[fmt.Sprintf("want reported %v, reported %v, raised %v", r.v.want, r.reported, r.errored)]++
 	}
 	t.Logf("%d phrases, %d copy states: %v", len(base), len(results), counts)
-	// A check that raises on a copy state does not accept the phrase there,
-	// so it counts as reporting it missing.
+	// A removal state must be reported as the base check reported it; a
+	// raise is accepted only where the base check raised too (it could not
+	// read the document without that anchor), so a lookup that starts
+	// raising instead of reporting fails here. A moved state must be
+	// accepted, without a report or a raise.
 	for _, r := range results {
-		if r.reported != r.v.want {
-			verb := "still reports it missing"
-			if r.v.want {
-				verb = "no longer reports it missing"
-			}
-			t.Errorf("jaekit:violation=protected-lookup: %s %s %s: with %q %s, the check %s",
-				r.v.p.Module, r.v.p.Suite, r.v.p.Criterion, r.v.p.Phrase, r.v.name, verb)
+		var verb string
+		switch {
+		case r.v.want && r.errored && r.v.base != "error":
+			verb = "raises where the base check reported it missing"
+		case r.v.want && !r.reported && !r.errored:
+			verb = "no longer reports it missing"
+		case !r.v.want && r.errored:
+			verb = "raises"
+		case !r.v.want && r.reported:
+			verb = "still reports it missing"
+		default:
+			continue
 		}
+		t.Errorf("jaekit:violation=protected-lookup: %s %s %s: with %q %s, the check %s",
+			r.v.p.Module, r.v.p.Suite, r.v.p.Criterion, r.v.p.Phrase, r.v.name, verb)
 	}
 }
 

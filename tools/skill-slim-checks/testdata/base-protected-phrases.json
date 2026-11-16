@@ -2,8 +2,10 @@
  {
   "criterion": "AC-1",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "기대 결과의 근거",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -11,8 +13,10 @@
  {
   "criterion": "AC-1",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "관측할 경계",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -20,8 +24,10 @@
  {
   "criterion": "AC-1",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "시험 방법과 대체 환경",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -29,8 +35,10 @@
  {
   "criterion": "AC-1",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "조건 그룹",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -38,8 +46,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "check.py",
   "phrase": "Expected-result grounds",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -47,8 +57,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "check.py",
   "phrase": "Planned observation boundary",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -56,8 +68,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "check.py",
   "phrase": "Method and substitutes",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -65,8 +79,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "check.py",
   "phrase": "condition groups",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -74,8 +90,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "Expected-result grounds",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -83,8 +101,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "Planned observation boundary",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -92,8 +112,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "Method and substitutes",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -101,8 +123,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "not the authority for correctness",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -110,8 +134,10 @@
  {
   "criterion": "AC-2",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "예정·미수행·실제 수행",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -119,8 +145,10 @@
  {
   "criterion": "AC-2",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "결과에 영향을 주는 환경만",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -128,8 +156,10 @@
  {
   "criterion": "AC-2",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "미관측",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -137,8 +167,10 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "planned, not performed, and observed",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -146,8 +178,10 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "only environments that affect the condition",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -155,8 +189,10 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "unobserved",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -164,8 +200,10 @@
  {
   "criterion": "AC-3",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "덮지 않는 실패 종류",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -173,8 +211,10 @@
  {
   "criterion": "AC-3",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "예시를 전체 입력의 정답으로 확대하지",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -182,8 +222,10 @@
  {
   "criterion": "AC-3",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "검사 개수",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -191,8 +233,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "check.py",
   "phrase": "Failure classes not covered",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -200,8 +244,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "check.py",
   "phrase": "general property",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -209,8 +255,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "check.py",
   "phrase": "not a sufficiency score",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -218,8 +266,10 @@
  {
   "criterion": "AC-4",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "검토의 예정과 보고의 실제 결과",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -227,8 +277,10 @@
  {
   "criterion": "AC-4",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "조건·검사·환경이 바뀌면",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -236,8 +288,10 @@
  {
   "criterion": "AC-4",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "기록으로 확인한 사실과 실행자의 해석",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -245,8 +299,10 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "planned review to observed report",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -254,8 +310,10 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "condition, check, or environment changes",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -263,8 +321,10 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "recorded facts from the executor's interpretation",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -272,8 +332,10 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "planned review to observed report",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -281,8 +343,10 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "unobserved",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -290,8 +354,10 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "changed condition, check, or environment",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -299,8 +365,10 @@
  {
   "criterion": "AC-5",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "사건 시각과 작성 시각",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -308,8 +376,10 @@
  {
   "criterion": "AC-5",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "시각 출처",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -317,8 +387,10 @@
  {
   "criterion": "AC-5",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "남은 조건",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -326,8 +398,10 @@
  {
   "criterion": "AC-5",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "새 사실",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -335,8 +409,10 @@
  {
   "criterion": "AC-5",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "가설의 근거",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -344,8 +420,10 @@
  {
   "criterion": "AC-5",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "줄일 불확실성",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -353,8 +431,10 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "event time and writing time",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -362,8 +442,10 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "time source",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -371,8 +453,10 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "remaining conditions",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -380,8 +464,10 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "new facts",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -389,8 +475,10 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "hypothesis evidence",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -398,8 +486,10 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "uncertainty to reduce",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -407,8 +497,10 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "event time and writing time",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -416,8 +508,10 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "time source",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -425,8 +519,10 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "not every tool call",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -434,8 +530,10 @@
  {
   "criterion": "AC-6",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "확인한 것·확인하지 못한 것·위험한 경계",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -443,8 +541,10 @@
  {
   "criterion": "AC-6",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "배포·설치·실제 모델 실행의 증거를 대신하지",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -452,8 +552,10 @@
  {
   "criterion": "AC-6",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "check.py",
   "phrase": "검사 작성자가 실행자",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -461,8 +563,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "check.py",
   "phrase": "expected-result grounds",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -470,8 +574,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "check.py",
   "phrase": "observed boundaries",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -479,8 +585,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "check.py",
   "phrase": "methods and substitutes",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -488,8 +596,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "check.py",
   "phrase": "does not establish deployment",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -497,8 +607,10 @@
  {
   "criterion": "AC-7",
   "file": "examples/empty-input/REVIEW.md",
+  "message": "",
   "module": "check.py",
   "phrase": "기대 결과의 근거",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -506,8 +618,10 @@
  {
   "criterion": "AC-7",
   "file": "examples/empty-input/REVIEW.md",
+  "message": "",
   "module": "check.py",
   "phrase": "관측할 경계",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -515,8 +629,10 @@
  {
   "criterion": "AC-7",
   "file": "examples/empty-input/REVIEW.md",
+  "message": "",
   "module": "check.py",
   "phrase": "시험 방법과 대체 환경",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -524,8 +640,10 @@
  {
   "criterion": "AC-7",
   "file": "examples/empty-input/REVIEW.md",
+  "message": "",
   "module": "check.py",
   "phrase": "AC-1, AC-2",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -533,8 +651,10 @@
  {
   "criterion": "AC-7",
   "file": "examples/empty-input/REVIEW.md",
+  "message": "",
   "module": "check.py",
   "phrase": "덮지 않는 실패 종류",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -542,8 +662,10 @@
  {
   "criterion": "AC-7",
   "file": "examples/empty-input/PROGRESS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "미수행",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -551,8 +673,10 @@
  {
   "criterion": "AC-7",
   "file": "examples/empty-input/PROGRESS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "미관측",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -560,8 +684,10 @@
  {
   "criterion": "AC-7",
   "file": "examples/empty-input/PROGRESS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "시각 출처",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -569,8 +695,10 @@
  {
   "criterion": "AC-7",
   "file": "examples/empty-input/PROGRESS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "기록 없음",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -578,8 +706,10 @@
  {
   "criterion": "AC-7",
   "file": "examples/empty-input/PROGRESS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "AC-1, AC-2",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -587,8 +717,10 @@
  {
   "criterion": "AC-7",
   "file": "guides/OPERATIONS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "기대 결과의 근거",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -596,8 +728,10 @@
  {
   "criterion": "AC-7",
   "file": "guides/OPERATIONS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "관측 경계",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -605,8 +739,10 @@
  {
   "criterion": "AC-7",
   "file": "guides/OPERATIONS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "시험 방법과 대체 환경",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -614,8 +750,10 @@
  {
   "criterion": "AC-7",
   "file": "guides/OPERATIONS.md",
+  "message": "",
   "module": "check.py",
   "phrase": "기존 목표",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -623,8 +761,10 @@
  {
   "criterion": "AC-7",
   "file": "examples/verification-reporting.md",
+  "message": "",
   "module": "check.py",
   "phrase": "가상 형식 예시",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -632,8 +772,10 @@
  {
   "criterion": "AC-7",
   "file": "examples/verification-reporting.md",
+  "message": "",
   "module": "check.py",
   "phrase": "실제 수행 기록이 아니다",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -641,8 +783,10 @@
  {
   "criterion": "AC-7",
   "file": "examples/verification-reporting.md",
+  "message": "",
   "module": "check.py",
   "phrase": "review-v1",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -650,8 +794,10 @@
  {
   "criterion": "AC-7",
   "file": "examples/verification-reporting.md",
+  "message": "",
   "module": "check.py",
   "phrase": "review-v2",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "reporting"
@@ -659,8 +805,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "selected assurance policy",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -668,8 +816,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "required conditions and source",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -677,8 +827,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "Risk alone does not mandate",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -686,8 +838,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "may not downgrade",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -695,8 +849,10 @@
  {
   "criterion": "AC-1",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "보증 정책의 출처",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -704,8 +860,10 @@
  {
   "criterion": "AC-1",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "위험도만으로",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -713,8 +871,10 @@
  {
   "criterion": "AC-1",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "잘못된 성공의 영향",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -722,8 +882,10 @@
  {
   "criterion": "AC-1",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "조건 그룹",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -731,8 +893,10 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "same property, input scope, and environment",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -740,8 +904,10 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "A reachable real system alone",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -749,8 +915,10 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "structured original evidence",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -758,8 +926,10 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "fake",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -767,8 +937,10 @@
  {
   "criterion": "AC-2",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "같은 성질·입력 범위·환경",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -776,8 +948,10 @@
  {
   "criterion": "AC-2",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "실제 시스템이 존재한다는 이유만으로",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -785,8 +959,10 @@
  {
   "criterion": "AC-2",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "구조화된 원본",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -794,8 +970,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "initial contract, check, and expected-result grounds",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -803,8 +981,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "implementation and integration code",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -812,8 +992,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "not a different model or certified identity",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -821,8 +1003,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "review role",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -830,8 +1014,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "provided context",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -839,8 +1025,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "code and check versions",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -848,8 +1036,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "not performed",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -857,8 +1047,10 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "candidate from reproduced counterexample",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -866,8 +1058,10 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "reporting risk alone",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -875,8 +1069,10 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "scope-changing proposal",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -884,8 +1080,10 @@
  {
   "criterion": "AC-4",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "보고의 위험 문구만 추가",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -893,8 +1091,10 @@
  {
   "criterion": "AC-4",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "재현·기각·수정",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -902,8 +1102,10 @@
  {
   "criterion": "AC-4",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "원래 조건 위반",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -911,8 +1113,10 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "general property",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -920,8 +1124,10 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "unobserved, environment error, skip, and observed violation",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -929,8 +1135,10 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "not successful evidence or an intended baseline violation",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -938,8 +1146,10 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "product allow/deny policy",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -947,8 +1157,10 @@
  {
   "criterion": "AC-5",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "일반 성질",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -956,8 +1168,10 @@
  {
   "criterion": "AC-5",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "판정 불가",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -965,8 +1179,10 @@
  {
   "criterion": "AC-5",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "미관측·환경 오류·skip·실제 위반",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -974,8 +1190,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "keep completion pending",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -983,8 +1201,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "cause, affected conditions, missing evidence, and resolution",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -992,8 +1212,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "independent useful work",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1001,8 +1223,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "optional unobserved comparison",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1010,8 +1234,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "required assurance gaps",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1019,8 +1245,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "affected conditions",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1028,8 +1256,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "completion pending",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1037,8 +1267,10 @@
  {
   "criterion": "AC-6",
   "file": "contracts/role-card.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "필수 보증이 빠진 조건",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1046,8 +1278,10 @@
  {
   "criterion": "AC-6",
   "file": "contracts/role-card.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "완료 보류",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1055,8 +1289,10 @@
  {
   "criterion": "AC-6",
   "file": "contracts/role-card.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "권한·예산",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1064,8 +1300,10 @@
  {
   "criterion": "AC-7",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "goal, checks, code, grounds, environment, or assurance policy changes",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1073,8 +1311,10 @@
  {
   "criterion": "AC-7",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "preserve the reviewed versions",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1082,8 +1322,10 @@
  {
   "criterion": "AC-7",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "do not reuse",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1091,8 +1333,10 @@
  {
   "criterion": "AC-7",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "검토 대상 버전",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1100,8 +1344,10 @@
  {
   "criterion": "AC-7",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "새 적용 범위",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1109,8 +1355,10 @@
  {
   "criterion": "AC-7",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "소급",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1118,8 +1366,10 @@
  {
   "criterion": "AC-9",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "Assurance policy",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1127,8 +1377,10 @@
  {
   "criterion": "AC-9",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "counterexample",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1136,8 +1388,10 @@
  {
   "criterion": "AC-9",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "required or optional",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1145,8 +1399,10 @@
  {
   "criterion": "AC-9",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "policy source",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1154,8 +1410,10 @@
  {
   "criterion": "AC-9",
   "file": "examples/verification-design.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "가상 형식 예시",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1163,8 +1421,10 @@
  {
   "criterion": "AC-9",
   "file": "examples/verification-design.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "실제 실행 기록이 아니다",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1172,8 +1432,10 @@
  {
   "criterion": "AC-9",
   "file": "examples/verification-design.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "## 보증 연결",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1181,8 +1443,10 @@
  {
   "criterion": "AC-9",
   "file": "examples/verification-design.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "## 검토 내역",
+  "removed": "error",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1190,8 +1454,10 @@
  {
   "criterion": "AC-9",
   "file": "examples/verification-design.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "## 반례 내역",
+  "removed": "error",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1199,8 +1465,10 @@
  {
   "criterion": "AC-9",
   "file": "guides/OPERATIONS.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "명시한 보증 정책",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1208,8 +1476,10 @@
  {
   "criterion": "AC-9",
   "file": "guides/OPERATIONS.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "선택 비교",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1217,8 +1487,10 @@
  {
   "criterion": "AC-9",
   "file": "guides/OPERATIONS.md",
+  "message": "",
   "module": "design_check.py",
   "phrase": "완료 보류",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "design"
@@ -1226,8 +1498,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "## 완료 뒤 발견",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1235,8 +1509,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "completion reference",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1244,8 +1520,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "target code",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1253,8 +1531,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "condition absent or unresolved",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1262,8 +1542,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "event time",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1271,8 +1553,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/assets/templates/PROGRESS.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "recording time",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1280,8 +1564,10 @@
  {
   "criterion": "AC-1",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "발견 식별자",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1289,8 +1575,10 @@
  {
   "criterion": "AC-1",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "당시 완료 참조",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1298,8 +1586,10 @@
  {
   "criterion": "AC-1",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "조건 미포함·연결 미정",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1307,8 +1597,10 @@
  {
   "criterion": "AC-1",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "사건 시각",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1316,8 +1608,10 @@
  {
   "criterion": "AC-1",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "기록 시각",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1325,8 +1619,10 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "historical completion",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1334,8 +1630,10 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "unresolved discoveries",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1343,8 +1641,10 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "rework request and progress",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1352,8 +1652,10 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "Do not overwrite",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1361,8 +1663,10 @@
  {
   "criterion": "AC-2",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "당시 완료·현재 발견·재작업",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1370,8 +1674,10 @@
  {
   "criterion": "AC-2",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "한곳의 상세",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1379,8 +1685,10 @@
  {
   "criterion": "AC-2",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "현재 결함이 없는 것처럼",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1388,8 +1696,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "candidate, confirmed, duplicate, dismissed, and resolved",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1397,8 +1707,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "new requirement from an existing-condition violation",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1406,8 +1718,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "correction target",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1415,8 +1729,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "not a unique confirmed-defect count",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1424,8 +1740,10 @@
  {
   "criterion": "AC-3",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "후보·확인·중복·기각·해결",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1433,8 +1751,10 @@
  {
   "criterion": "AC-3",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "정정 대상",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1442,8 +1762,10 @@
  {
   "criterion": "AC-3",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "고유한 확인 결함 수",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1451,8 +1773,10 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "does not authorize rework",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1460,8 +1784,10 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "explicit user request",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1469,8 +1795,10 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "does not change the execution budget",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1478,8 +1806,10 @@
  {
   "criterion": "AC-4",
   "file": "contracts/role-card.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "발견을 적는 것만으로",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1487,8 +1817,10 @@
  {
   "criterion": "AC-4",
   "file": "contracts/role-card.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "재작업 요청",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1496,8 +1828,10 @@
  {
   "criterion": "AC-4",
   "file": "contracts/role-card.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "실행 예산",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1505,8 +1839,10 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "Seal 0.1.12",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1514,8 +1850,10 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "missing means unrecorded",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1523,8 +1861,10 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "Do not migrate",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1532,8 +1872,10 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "raw logs remain",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1541,8 +1883,10 @@
  {
   "criterion": "AC-5",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "Seal 0.1.12",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1550,8 +1894,10 @@
  {
   "criterion": "AC-5",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "미기록",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1559,8 +1905,10 @@
  {
   "criterion": "AC-5",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "원문 로그",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1568,8 +1916,10 @@
  {
   "criterion": "AC-5",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "구조화 조회",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1577,8 +1927,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "document format",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1586,8 +1938,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "machine-verified finding state",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1595,8 +1949,10 @@
  {
   "criterion": "AC-6",
   "file": "examples/verification-findings.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "가상 형식 예시",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1604,8 +1960,10 @@
  {
   "criterion": "AC-6",
   "file": "examples/verification-findings.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "실제 실행 기록이 아니다",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1613,8 +1971,10 @@
  {
   "criterion": "AC-6",
   "file": "examples/verification-findings.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "## 당시 완료",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1622,8 +1982,10 @@
  {
   "criterion": "AC-6",
   "file": "examples/verification-findings.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "## 발견 원본",
+  "removed": "error",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1631,8 +1993,10 @@
  {
   "criterion": "AC-6",
   "file": "examples/verification-findings.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "## 후속 판단",
+  "removed": "error",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1640,8 +2004,10 @@
  {
   "criterion": "AC-6",
   "file": "examples/verification-findings.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "## 현재 요약",
+  "removed": "error",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1649,8 +2015,10 @@
  {
   "criterion": "AC-6",
   "file": "guides/OPERATIONS.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "완료 뒤 발견",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1658,8 +2026,10 @@
  {
   "criterion": "AC-6",
   "file": "guides/OPERATIONS.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "당시 완료",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1667,8 +2037,10 @@
  {
   "criterion": "AC-6",
   "file": "guides/OPERATIONS.md",
+  "message": "",
   "module": "finding_docs_check.py",
   "phrase": "구조화 조회",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "finding-docs"
@@ -1676,8 +2048,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/spec/skills/spec/SKILL.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "uninterpretable input",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1685,8 +2059,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/spec/skills/spec/SKILL.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "observation unit",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1694,8 +2070,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/spec/skills/spec/SKILL.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "before/after set invariants",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1703,8 +2081,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/spec/skills/spec/SKILL.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "supported environment",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1712,8 +2092,10 @@
  {
   "criterion": "AC-1",
   "file": "contracts/goal-docs.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "판정 불가 입력",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1721,8 +2103,10 @@
  {
   "criterion": "AC-1",
   "file": "contracts/goal-docs.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "관측 단위",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1730,8 +2114,10 @@
  {
   "criterion": "AC-1",
   "file": "contracts/goal-docs.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "전후 집합 불변식",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1739,8 +2125,10 @@
  {
   "criterion": "AC-1",
   "file": "contracts/goal-docs.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "지원 환경",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1748,8 +2136,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/spec/skills/spec/references/goal-docs.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "observation unit",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1757,8 +2147,10 @@
  {
   "criterion": "AC-1",
   "file": "plugins/spec/skills/spec/references/goal-docs.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "only relevant boundaries",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1766,8 +2158,10 @@
  {
   "criterion": "AC-2",
   "file": "plugins/spec/skills/spec/SKILL.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "Do not ask again when a public contract",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1775,8 +2169,10 @@
  {
   "criterion": "AC-2",
   "file": "plugins/spec/skills/spec/SKILL.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "Implementation and verification methods",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1784,8 +2180,10 @@
  {
   "criterion": "AC-2",
   "file": "plugins/spec/skills/spec/SKILL.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "unresolved outcome",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1793,8 +2191,10 @@
  {
   "criterion": "AC-2",
   "file": "contracts/goal-docs.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "공개 계약이 이미 답하는",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1802,8 +2202,10 @@
  {
   "criterion": "AC-2",
   "file": "contracts/goal-docs.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "구현·검증 방법",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1811,8 +2213,10 @@
  {
   "criterion": "AC-2",
   "file": "contracts/goal-docs.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "출처",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1820,8 +2224,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/spec/skills/spec/SKILL.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "exhaustive set or representative examples",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1829,8 +2235,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/spec/skills/spec/SKILL.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "observable general property",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1838,8 +2246,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/spec/skills/spec/SKILL.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "outside the supported scope",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1847,8 +2257,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/spec/skills/spec/references/goal-docs.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "exhaustive set or representative examples",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1856,8 +2268,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/spec/skills/spec/references/goal-docs.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "general property",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1865,8 +2279,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/spec/skills/spec/assets/templates/small-change.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "exhaustive or representative",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1874,8 +2290,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/spec/skills/spec/assets/templates/backend-feature.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "exhaustive or representative",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1883,8 +2301,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/spec/skills/spec/assets/templates/cross-module-feature.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "exhaustive or representative",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1892,8 +2312,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/spec/skills/spec/assets/templates/product.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "exhaustive or representative",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1901,8 +2323,10 @@
  {
   "criterion": "AC-4",
   "file": "plugins/spec/skills/spec/SKILL.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "newline-containing names",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1910,8 +2334,10 @@
  {
   "criterion": "AC-4",
   "file": "plugins/spec/skills/spec/SKILL.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "symlinks",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1919,8 +2345,10 @@
  {
   "criterion": "AC-4",
   "file": "plugins/spec/skills/spec/SKILL.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "shallow clones",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1928,8 +2356,10 @@
  {
   "criterion": "AC-4",
   "file": "plugins/spec/skills/spec/SKILL.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "concurrent ordering",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1937,8 +2367,10 @@
  {
   "criterion": "AC-4",
   "file": "plugins/spec/skills/spec/SKILL.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "do not turn these examples into a checklist",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1946,8 +2378,10 @@
  {
   "criterion": "AC-4",
   "file": "contracts/goal-docs.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "줄바꿈 이름",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1955,8 +2389,10 @@
  {
   "criterion": "AC-4",
   "file": "contracts/goal-docs.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "symlink",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1964,8 +2400,10 @@
  {
   "criterion": "AC-4",
   "file": "contracts/goal-docs.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "얕은 clone",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1973,8 +2411,10 @@
  {
   "criterion": "AC-4",
   "file": "contracts/goal-docs.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "동시 실행 순서",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1982,8 +2422,10 @@
  {
   "criterion": "AC-4",
   "file": "contracts/goal-docs.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "고정 점검표",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -1991,8 +2433,10 @@
  {
   "criterion": "AC-7",
   "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "가상 시나리오",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -2000,8 +2444,10 @@
  {
   "criterion": "AC-7",
   "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "실제 사용자 대화나 실행 기록이 아닙니다",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -2009,8 +2455,10 @@
  {
   "criterion": "AC-7",
   "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "관측 단위",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -2018,8 +2466,10 @@
  {
   "criterion": "AC-7",
   "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "판정 불가",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -2027,8 +2477,10 @@
  {
   "criterion": "AC-7",
   "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "표본",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -2036,8 +2488,10 @@
  {
   "criterion": "AC-7",
   "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "묻지 않아야 할 것",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -2045,8 +2499,10 @@
  {
   "criterion": "AC-7",
   "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "## 사용자 답",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -2054,8 +2510,10 @@
  {
   "criterion": "AC-7",
   "file": "evals/spec-cases/README.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "[decision-boundaries](decision-boundaries.md)",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -2063,8 +2521,10 @@
  {
   "criterion": "AC-7",
   "file": "evals/spec-cases/readme-typo.md",
+  "message": "",
   "module": "spec_check.py",
   "phrase": "질문 상한: 0",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "spec-boundaries"
@@ -2072,8 +2532,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "every check in the condition table",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2081,8 +2544,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "`change`, `maintain`, `EX-n` and task commands",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2090,8 +2556,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "producer, configuration or helper file",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2099,8 +2568,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "the tree being checked",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2108,8 +2580,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "external inputs its condition names",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2117,8 +2592,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "start or base commit",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2126,8 +2604,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "fixed commit",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2135,8 +2616,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "start record or Core output",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2144,8 +2628,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "other commits, refs or objects",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2153,8 +2640,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "full clone and a history-less clone",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2162,8 +2652,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "synthetic repository",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2171,8 +2664,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "references/bundle.md#check-inputs",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2180,8 +2676,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "same verdict",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2189,8 +2688,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "full clone and a history-less clone",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2198,8 +2700,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "pinned SHA",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2207,8 +2712,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "base read from the start record or Core output",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2216,8 +2724,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "diff against an earlier commit",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2225,8 +2736,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "remote-tracking branch",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2234,8 +2748,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "`HEAD~n`",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2243,8 +2760,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "merge-base",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2252,8 +2772,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "log range",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2261,8 +2784,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "another worktree",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2270,8 +2796,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "synthetic repository the check builds itself",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2279,8 +2808,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "producer, configuration or helper file",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2288,8 +2820,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "`change`, `maintain`, `EX-n` and task commands",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2297,8 +2832,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "repository history",
+  "removed": "reported",
   "row": "",
   "section": "## 검증 방법과 환경",
   "suite": "authoring"
@@ -2306,8 +2844,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "`maintain`",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2315,8 +2856,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "property the goal documents require",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2324,8 +2868,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "content, output, format or behavior",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2333,8 +2880,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "unchanged since the base commit",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2342,8 +2892,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "does not observe that property",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2351,8 +2904,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "outside `바꿀 수 있는 경로`",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2360,8 +2916,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "`out_of_scope`",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2369,8 +2928,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "expected content written in a tracked check file",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2378,8 +2940,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "content, output, format or behavior",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2387,8 +2952,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "not an observation of that property",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2396,8 +2964,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "outside `바꿀 수 있는 경로`",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2405,8 +2976,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "`out_of_scope`",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2414,8 +2988,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "since the base commit",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2423,8 +3000,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "tracked check file",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2432,8 +3012,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/assets/templates/PLAN.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "`maintain`",
+  "removed": "reported",
   "row": "",
   "section": "## 조건표",
   "suite": "authoring"
@@ -2441,8 +3024,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/assets/templates/PLAN.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "property the goal documents require",
+  "removed": "reported",
   "row": "",
   "section": "## 조건표",
   "suite": "authoring"
@@ -2450,8 +3036,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/assets/templates/PLAN.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "unchanged since the base commit",
+  "removed": "reported",
   "row": "",
   "section": "## 조건표",
   "suite": "authoring"
@@ -2459,8 +3048,11 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/assets/templates/PLAN.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "`out_of_scope`",
+  "removed": "reported",
   "row": "",
   "section": "## 조건표",
   "suite": "authoring"
@@ -2468,8 +3060,11 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "only by Core's baseline run",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2477,8 +3072,11 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "never checks out, reads or compares the base commit",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2486,8 +3084,11 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "violation on the base commit and a pass after the change",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2495,8 +3096,11 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "temporary worktree of the base commit",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2504,8 +3108,11 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "check paths copied from HEAD",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2513,8 +3120,11 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "never checks out, reads or compares the base commit",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2522,8 +3132,11 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "violation on the base commit and a pass after the change",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2531,8 +3144,11 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/references/ha.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "baseline",
+  "removed": "reported",
   "row": "",
   "section": "## What checks read",
   "suite": "authoring"
@@ -2540,8 +3156,11 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/references/ha.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "temporary worktree of the base commit",
+  "removed": "reported",
   "row": "",
   "section": "## What checks read",
   "suite": "authoring"
@@ -2549,8 +3168,11 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/references/ha.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "`out_of_scope`",
+  "removed": "reported",
   "row": "",
   "section": "## What checks read",
   "suite": "authoring"
@@ -2558,8 +3180,11 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/references/ha.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "`test_definition_changed`",
+  "removed": "reported",
   "row": "",
   "section": "## What checks read",
   "suite": "authoring"
@@ -2567,8 +3192,11 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/references/ha.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "Checks themselves",
+  "removed": "reported",
   "row": "",
   "section": "## What checks read",
   "suite": "authoring"
@@ -2576,8 +3204,11 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "about repository history or refs",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2585,8 +3216,11 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "tag's type",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2594,8 +3228,11 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "commit message format",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2603,8 +3240,11 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "only the range and refs the condition names",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2612,8 +3252,11 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "error or unobserved",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2621,8 +3264,11 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "neither a violation nor a pass",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2630,8 +3276,11 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "pre-execution review",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2639,8 +3288,11 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "tag's type",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2648,8 +3300,11 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "commit message format",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2657,8 +3312,11 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "only the range and refs the condition names",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2666,8 +3324,11 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "unobserved, environment error or skip",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2675,8 +3336,11 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "neither a violation nor a pass",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2684,8 +3348,11 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "records why the check needs history and the range it reads",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2693,8 +3360,11 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "range it reads",
+  "removed": "reported",
   "row": "",
   "section": "## 검증 방법과 환경",
   "suite": "authoring"
@@ -2702,8 +3372,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "declares its own scope or trust boundary",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2711,8 +3384,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "pinned to a version or release",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2720,8 +3396,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "preserving past verdicts",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2729,8 +3408,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "isolating imports",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2738,8 +3420,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "limiting its inputs",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2747,8 +3432,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "current behavior",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2756,8 +3444,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "keeps the declaration",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2765,8 +3456,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "explicit assumption",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2774,8 +3468,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "the report repeats",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2783,8 +3480,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "without asking the user",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2792,8 +3492,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "same import boundary",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2801,8 +3504,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "document-conflict rule",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2810,8 +3516,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "pinned to a version or release",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2819,8 +3528,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "preserves past verdicts",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2828,8 +3540,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "isolates imports",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2837,8 +3552,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "limits its inputs",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2846,8 +3564,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "current behavior",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2855,8 +3576,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "explicit assumption",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2864,8 +3588,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "repeat it in the report",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2873,8 +3600,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "inside the boundary it declares",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2882,8 +3612,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "same import boundary",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2891,8 +3624,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "without asking the user",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2900,8 +3636,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "document-conflict rule",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2909,8 +3648,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/assets/templates/REVIEW.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "declared scope or trust boundary",
+  "removed": "reported",
   "row": "",
   "section": "## 중요한 미결정",
   "suite": "authoring"
@@ -2918,8 +3660,11 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "add no user confirmation, approval or question",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2927,8 +3672,11 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "the executor applies them and decides whether an existing check needs rewriting",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2936,8 +3684,11 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "add no user confirmation, approval or question",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2945,8 +3696,11 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "decides whether an existing check is worth rewriting",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2954,8 +3708,11 @@
  {
   "criterion": "AC-6",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "사용자 확인·승인·질문 단계를 더하지 않는다",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -2963,8 +3720,11 @@
  {
   "criterion": "AC-6",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "실행자가 규칙을 적용하고 기존 검사를 고칠지 판단한다",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -2972,8 +3732,11 @@
  {
   "criterion": "AC-8",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "checks written or changed from Seal 0.1.14 on",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2981,8 +3744,11 @@
  {
   "criterion": "AC-8",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "whichever Seal version started the goal",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2990,8 +3756,11 @@
  {
   "criterion": "AC-8",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md`",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -2999,8 +3768,11 @@
  {
   "criterion": "AC-8",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "checks written or changed from that version on",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -3008,8 +3780,11 @@
  {
   "criterion": "AC-8",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "whichever Seal version started the goal",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -3017,8 +3792,11 @@
  {
   "criterion": "AC-8",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md`",
+  "removed": "reported",
   "row": "",
   "section": "## Check inputs",
   "suite": "authoring"
@@ -3026,8 +3804,11 @@
  {
   "criterion": "AC-8",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "Seal 0.1.14부터 쓰거나 바꾸는 검사에 적용한다",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3035,8 +3816,11 @@
  {
   "criterion": "AC-8",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "어느 Seal 버전으로 시작했는지는 따지지 않는다",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3044,8 +3828,11 @@
  {
   "criterion": "AC-8",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "기존 목표의 검사, 기록, PROGRESS·REVIEW를 다시 쓰거나 변환하라고 요구하지 않는다",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3053,8 +3840,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "`change`, `maintain`, `EX-n`, task 명령",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3062,8 +3852,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "생산자·설정·보조 파일",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3071,8 +3864,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "검사하는 트리",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3080,8 +3876,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "조건이 지정한 외부 입력",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3089,8 +3888,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "시작·base 커밋",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3098,8 +3900,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "고정 커밋",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3107,8 +3912,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "시작 기록이나 Core 출력",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3116,8 +3924,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "다른 커밋, ref, 객체",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3125,8 +3936,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "과거 커밋과의 diff",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3134,8 +3948,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "merge-base",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3143,8 +3960,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "원격 추적 branch",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3152,8 +3972,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "`HEAD~n`",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3161,8 +3984,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "log 범위",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3170,8 +3996,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "다른 worktree",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3179,8 +4008,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "전체 clone과 히스토리 없는 clone",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3188,8 +4020,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "합성 저장소",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3197,8 +4032,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "`maintain`",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3206,8 +4044,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "성질(내용, 출력, 형식, 동작)",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3215,8 +4056,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "그 성질의 관측이 아니다",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3224,8 +4068,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "`바꿀 수 있는 경로` 밖",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3233,8 +4080,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "`out_of_scope`",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3242,8 +4092,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "추적되는 검사 파일에 적은 기대 내용",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3251,8 +4104,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "baseline 실행으로만 관측",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3260,8 +4116,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "임시 worktree",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3269,8 +4128,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "checkout하거나 읽거나 비교해",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3278,8 +4140,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "base에서는 위반을, 변경 뒤에는 통과",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3287,8 +4152,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "태그 종류나 커밋 메시지 형식",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3296,8 +4164,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "범위와 ref만",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3305,8 +4176,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "위반도 통과도 아니고",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3314,8 +4188,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "미관측",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3323,8 +4200,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "실행 전 검토에 적는다",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3332,8 +4212,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "범위나 신뢰 경계",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3341,8 +4224,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "특정 버전·릴리스 고정, 과거 판정 보존, import 격리, 제한된 입력",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3350,8 +4236,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "지금의 동작",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3359,8 +4248,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "명시적 가정",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3368,8 +4260,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "보고에서 되풀이",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3377,8 +4272,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "사용자에게 새로 묻지 않는다",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3386,8 +4284,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "같은 import 경계",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3395,8 +4296,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "문서 충돌 규칙",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3404,8 +4308,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "사용자 확인·승인·질문 단계를 더하지 않는다",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3413,8 +4320,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "Seal 0.1.14",
+  "removed": "reported",
   "row": "",
   "section": "### 2.1.2 검사 입력과 관측",
   "suite": "authoring"
@@ -3422,8 +4332,11 @@
  {
   "criterion": "AC-1",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "repository history",
+  "removed": "reported",
   "row": "검증 방법과 환경",
   "section": "## REVIEW.md",
   "suite": "authoring"
@@ -3431,8 +4344,11 @@
  {
   "criterion": "AC-4",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "range it reads",
+  "removed": "reported",
   "row": "검증 방법과 환경",
   "section": "## REVIEW.md",
   "suite": "authoring"
@@ -3440,8 +4356,11 @@
  {
   "criterion": "AC-5",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "declared scope or trust boundary",
+  "removed": "reported",
   "row": "중요한 미결정",
   "section": "## REVIEW.md",
   "suite": "authoring"
@@ -3449,8 +4368,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "저장소 히스토리",
+  "removed": "reported",
   "row": "검증 방법과 환경",
   "section": "## 4. `REVIEW.md`",
   "suite": "authoring"
@@ -3458,8 +4380,11 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
+  "other_section": "reported",
   "phrase": "범위나 신뢰 경계",
+  "removed": "reported",
   "row": "중요한 미결정",
   "section": "## 4. `REVIEW.md`",
   "suite": "authoring"
@@ -3467,8 +4392,10 @@
  {
   "criterion": "AC-9",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "Python 3 is not a prerequisite for Seal",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -3476,8 +4403,10 @@
  {
   "criterion": "AC-9",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "does not require an official adapter",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -3485,8 +4414,10 @@
  {
   "criterion": "AC-9",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "Existing `/1` and `/2` goals retain their result semantics",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -3494,8 +4425,10 @@
  {
   "criterion": "AC-9",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "## Assurance policy",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -3503,8 +4436,10 @@
  {
   "criterion": "AC-9",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "No particular runner or adapter is required",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -3512,8 +4447,10 @@
  {
   "criterion": "AC-9",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "Any other value is the lint problem `other_bundles_invalid`",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -3521,8 +4458,10 @@
  {
   "criterion": "AC-9",
   "file": "contracts/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "`/1`·`/2`의 기존 목표는 종전 결과 의미를 유지한다",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -3530,8 +4469,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "ha note <goal> confirm <AC-n | scope:<path> | tests:<path> | spec>",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -3539,8 +4480,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "When the goal, scope, or criteria look wrong or need to change, ask the user",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -3548,8 +4491,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/SKILL.md",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "`needs_user` means asking the user about those items",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -3557,8 +4502,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "Changes outside them need the user's confirmation",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -3566,8 +4513,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "Editing or deleting a test that existed at base needs the user's confirmation",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -3575,8 +4524,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "Never resolve them by editing the goal documents; ask",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -3584,8 +4535,10 @@
  {
   "criterion": "AC-6",
   "file": "plugins/seal/skills/seal/references/bundle.md",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "Close each with the user's quoted answer or an explicit assumption that the report repeats",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -3593,8 +4546,10 @@
  {
   "criterion": "AC-2",
   "file": "internal/status/status.go",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "add(\"out_of_scope\", \"changed since base outside 바꿀 수 있는 경로\", outside)",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -3602,8 +4557,10 @@
  {
   "criterion": "AC-2",
   "file": "plugins/seal/skills/seal/references/ha.md",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "| `out_of_scope` | user | Files changed since base outside `바꿀 수 있는 경로` |",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -3611,8 +4568,10 @@
  {
   "criterion": "AC-3",
   "file": "plugins/seal/skills/seal/references/ha.md",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "Runs `change` conditions on a temporary worktree of the base commit with their check paths copied from HEAD",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
@@ -3620,10 +4579,276 @@
  {
   "criterion": "AC-3",
   "file": "cmd/ha/baseline.go",
+  "message": "",
   "module": "authoring_check.py",
   "phrase": "baselineFiles",
+  "removed": "reported",
   "row": "",
   "section": "",
   "suite": "authoring"
+ },
+ {
+  "criterion": "AC-9",
+  "file": "examples/verification-design.md",
+  "message": "synthetic assurance example lost scope/decision clause",
+  "module": "design_check.py",
+  "phrase": "실제 실행 기록이 아니다",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "examples/verification-design.md",
+  "message": "synthetic assurance example lost scope/decision clause",
+  "module": "design_check.py",
+  "phrase": "E2는 R2·check-v2·code-v2의 가상 근거다",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "examples/verification-design.md",
+  "message": "synthetic assurance example lost scope/decision clause",
+  "module": "design_check.py",
+  "phrase": "E3의 fake 결과는 실제 모델 관측이 아니다",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-7",
+  "file": "examples/verification-design.md",
+  "message": "synthetic assurance example lost scope/decision clause",
+  "module": "design_check.py",
+  "phrase": "R1을 v2의 검토로 재사용하지 않는다",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "examples/verification-design.md",
+  "message": "synthetic assurance example lost scope/decision clause",
+  "module": "design_check.py",
+  "phrase": "확인된 위반을 위험 문구만 추가하여 닫지 않는다",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "design"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "examples/verification-findings.md",
+  "message": "finding example lost its evidence/authority/scope boundary",
+  "module": "finding_docs_check.py",
+  "phrase": "실제 실행 기록이 아니다",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "examples/verification-findings.md",
+  "message": "finding example lost its evidence/authority/scope boundary",
+  "module": "finding_docs_check.py",
+  "phrase": "F4는 새 요구로 확인되었으며 기존 조건 위반 수에 넣지 않는다",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "examples/verification-findings.md",
+  "message": "finding example lost its evidence/authority/scope boundary",
+  "module": "finding_docs_check.py",
+  "phrase": "F5는 code-v1의 미해결 발견이며 code-v2에서 재현했는지는 미관측",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "examples/verification-findings.md",
+  "message": "finding example lost its evidence/authority/scope boundary",
+  "module": "finding_docs_check.py",
+  "phrase": "현재 결함이 없는 것처럼 설명하지 않는다",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-6",
+  "file": "examples/verification-findings.md",
+  "message": "finding example lost its evidence/authority/scope boundary",
+  "module": "finding_docs_check.py",
+  "phrase": "문서 표의 상태는 기계가 검증한 최신 상태가 아니다",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-4",
+  "file": "examples/verification-findings.md",
+  "message": "finding example lost its evidence/authority/scope boundary",
+  "module": "finding_docs_check.py",
+  "phrase": "가상 사용자 요청 U1: “F1을 수정해 주세요.”",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "finding-docs"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "observation-draft: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "출처: 요청 A.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "observation-draft: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "실행하지 않은 텍스트를 실행 근거로 인정하지 않는다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "observation-draft: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "대표 사례이며 예시 밖의 비실행 텍스트에도 같은 성질이 적용된다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "observation-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "출처: 사용자 답 A.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "observation-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "해당 요청에서 실제로 실행하지 않은 텍스트는 실행 근거가 아니다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "observation-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "판독 불가는 근거 불충분이고 다른 요청의 근거는 섞이지 않는다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "cleanup-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "출처: 공개 계약 B.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "cleanup-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "호출 전후 선택 범위 밖의 모든 파일은 추가·삭제·변경되지 않는다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "cleanup-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "목록 밖의 관계없는 파일도 보존된다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "cleanup-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "대상인지 판단할 수 없으면 해당 파일을 보존한다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-2",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "allowlist-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "출처: 요청 C.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-3",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "allowlist-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "`a`와 `b`만 허용한다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
+ },
+ {
+  "criterion": "AC-1",
+  "file": "evals/spec-cases/decision-boundaries.md",
+  "message": "allowlist-ready: concrete criterion or decision source omits the agreed boundary",
+  "module": "spec_check.py",
+  "phrase": "전체 목록 밖의 값과 판정 불가는 거부한다.",
+  "removed": "reported",
+  "row": "",
+  "section": "",
+  "suite": "spec-boundaries"
  }
 ]

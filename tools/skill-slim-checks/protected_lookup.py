@@ -4,7 +4,10 @@
 Usage: protected_lookup.py <tree> <requests.json>
 
 The requests are a JSON list of {"suite", "criterion", "file", "section",
-"row", "phrase"}: one clause of a criterion and one of its anchors. The script
+"row", "phrase", "message"}: one clause of a criterion and one of its
+anchors. An inline clause, which its check tests inside observe() and reports
+with a fixed message naming no phrase, carries that message: the clause
+reports the phrase missing when a problem line is exactly that message. The script
 imports the contract checks of <tree>/tools/contract-checks and calls the
 chained observe() for each criterion on <tree>, as their main() does. The
 clause reports the phrase missing when a problem line starts with the
@@ -56,6 +59,8 @@ def main():
 
 def reports(line, request):
     """Whether one problem line is this clause reporting this phrase missing."""
+    if request.get("message"):
+        return line == request["message"]
     if not (line.startswith(request["file"] + ":") or line.startswith(request["file"] + " ")):
         return False
     if repr(request["phrase"]) not in line or not (" missing " in line or " lacks " in line or ": missing" in line):
