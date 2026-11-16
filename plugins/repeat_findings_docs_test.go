@@ -159,9 +159,11 @@ func TestRepeatFindingsAC14_EarlierGoals(t *testing.T) {
 	const id = "earlier-goal-rule-missing"
 	version := rptRuleSeal
 	rptRequire(t, id, map[string][]string{
-		rptSealSkill: {"in goals started with seal " + version + " or later, before the earliest review round", "Every round gets `REVIEW.md` as `--boundary`"},
+		rptSealSkill: {"in goals started with seal " + version + " or later, before the earliest review round", "(in earlier goals, before any plan round)",
+			"Every round gets `REVIEW.md` as `--boundary`"},
 		rptSealBundle: {
 			"goals started with seal " + version + " or later",
+			"goals started earlier write the forms before any plan round",
 			"`--boundary` in every round this Seal runs, whichever Seal started the goal",
 		},
 	})

@@ -163,6 +163,22 @@ func TestRepeatFindingsAC1_DispositionShown(t *testing.T) {
 		}
 	}
 
+	// The automatic deferral shows the reason spar recorded with it, not only
+	// its mark.
+	var auto struct {
+		Reason string `json:"reason"`
+	}
+	for _, l := range strings.Split(w.read(filepath.Join(w.repo, "reviews", "d", "01-candidate", "ledger.jsonl")), "\n") {
+		if strings.Contains(l, `"finding":"cmd-F6"`) && json.Unmarshal([]byte(l), &auto) == nil {
+			break
+		}
+	}
+	if reason := []rune(auto.Reason); len(reason) < 20 {
+		pdSetup(t, false, "the candidate's ledger has no reason for the automatic deferral of cmd-F6")
+	} else if line := rptEarlierLine(packet, "01-candidate", "cmd-F6"); !strings.Contains(line, string(reason[:20])) {
+		t.Errorf("jaekit:violation=%s the automatic deferral does not show its reason %q: %s", id, auto.Reason, line)
+	}
+
 	// Those details are all the line shows: not the fix's before and after
 	// texts, nor a note recorded with a disposition, nor the user's words
 	// recorded with a deferral to a target. A deferral, automatic or not,
@@ -290,21 +306,29 @@ func TestRepeatFindingsAC1_LastDispositionShown(t *testing.T) {
 	}
 }
 
-// AC-1: an earlier ledger line with a disposition spar does not know is
-// refused before a reviewer starts, as contracts/spar-input.md G32 refuses a
-// line it cannot interpret, and no round folder is left.
+// AC-1: an earlier ledger line with a disposition spar does not know, or
+// without a finding of its round, is refused before a reviewer starts, as
+// contracts/spar-input.md G32 refuses a line it cannot interpret, and no
+// round folder is left.
 func TestRepeatFindingsAC1_UnknownDispositionRefused(t *testing.T) {
 	const id = "unknown-disposition-shown"
 	w := newRptWorld(t, false)
 	c := w.commits
-	w.useConfig(w.printer(w.answer("x-candidate", c[1], rptFinding("F1", "defect", "AC-1", "claim one"))))
-	cand := filepath.Join(w.repo, "reviews", "x", "01-candidate")
-	w.run(w.round("candidate", c[0], c[1], cand)...)
-	w.write(filepath.Join(cand, "ledger.jsonl"), `{"finding":"cmd-F1","disposition":"bogus"}`+"\n")
-	out := filepath.Join(w.repo, "reviews", "x", "02-fixes")
-	code, stderr := w.spar(append(w.round("fixes", c[1], c[2], out), "--dry-run")...)
-	if _, err := os.Stat(out); code != ExitRefused || err == nil || !strings.Contains(stderr, "bogus") {
-		t.Errorf("jaekit:violation=%s a ledger line with the disposition bogus: exit %d, round folder left %v: %s", id, code, err == nil, pdFirstLine(stderr))
+	for i, x := range []struct{ line, named string }{
+		{`{"finding":"cmd-F1","disposition":"bogus"}`, "bogus"},
+		{`{"disposition":"reject","evidence":"no finding"}`, `""`},
+		{`{"finding":"cmd-F9","disposition":"reject","evidence":"another round's"}`, "cmd-F9"},
+	} {
+		series := fmt.Sprintf("x%d", i)
+		w.useConfig(w.printer(w.answer(series+"-candidate", c[1], rptFinding("F1", "defect", "AC-1", "claim one"))))
+		cand := filepath.Join(w.repo, "reviews", series, "01-candidate")
+		w.run(w.round("candidate", c[0], c[1], cand)...)
+		w.write(filepath.Join(cand, "ledger.jsonl"), x.line+"\n")
+		out := filepath.Join(w.repo, "reviews", series, "02-fixes")
+		code, stderr := w.spar(append(w.round("fixes", c[1], c[2], out), "--dry-run")...)
+		if _, err := os.Stat(out); code != ExitRefused || err == nil || !strings.Contains(stderr, x.named) {
+			t.Errorf("jaekit:violation=%s the ledger line %s: exit %d, round folder left %v: %s", id, x.line, code, err == nil, pdFirstLine(stderr))
+		}
 	}
 }
 
@@ -636,8 +660,8 @@ func TestRepeatFindingsAC4_SameCasesAsCriteria(t *testing.T) {
 func TestRepeatFindingsAC4_InputTableRow(t *testing.T) {
 	const id = "boundary-input-row-missing"
 	for path, tokens := range map[string][]string{
-		"../../contracts/spar-input.md":    {"패킷", "`round.json`"},
-		"../../contracts/spar-input.en.md": {"packet", "`round.json`"},
+		"../../contracts/spar-input.md":    {"패킷", "`round.json`", "거부(65)"},
+		"../../contracts/spar-input.en.md": {"packet", "`round.json`", "refused (65)"},
 	} {
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -653,8 +677,8 @@ func TestRepeatFindingsAC4_InputTableRow(t *testing.T) {
 			t.Errorf("jaekit:violation=%s %s has no input row for `--boundary`", id, path)
 			continue
 		}
-		if cells := strings.Split(row, "|"); len(cells) < 6 {
-			t.Errorf("jaekit:violation=%s %s's `--boundary` row does not have the four columns", id, path)
+		if cells := strings.Split(row, "|"); len(cells) != 7 {
+			t.Errorf("jaekit:violation=%s %s's `--boundary` row does not have the table's five columns", id, path)
 		}
 		for _, token := range tokens {
 			if !strings.Contains(row, token) {
