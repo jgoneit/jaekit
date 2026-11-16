@@ -545,3 +545,68 @@ func TestExportWritesLinksAsFilesAndRecordsFollowTheirRepository(t *testing.T) {
 		}
 	}
 }
+
+// spar record refuses a round whose ledger cannot be read before it writes
+// anything, so the reviewer stays unrecorded and a retry succeeds once the
+// ledger is repaired (G32).
+func TestRecordRefusesAnUnreadableLedgerBeforeWriting(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is not installed")
+	}
+	dir := t.TempDir()
+	repo := filepath.Join(dir, "repo")
+	os.MkdirAll(repo, 0o755)
+	gitRun(t, repo, "init", "-q")
+	writeFile(t, filepath.Join(repo, ".gitignore"), "/reviews/\n")
+	writeFile(t, filepath.Join(repo, "app.txt"), "one\n")
+	gitRun(t, repo, "add", "-A")
+	gitRun(t, repo, "commit", "-qm", "base")
+	base := gitRun(t, repo, "rev-parse", "HEAD")
+	writeFile(t, filepath.Join(repo, "app.txt"), "two\n")
+	gitRun(t, repo, "commit", "-qam", "head")
+	head := gitRun(t, repo, "rev-parse", "HEAD")
+	criteria := writeFile(t, filepath.Join(dir, "SPEC.md"), "- **AC-1** two\n")
+	config := writeFile(t, filepath.Join(dir, "spar.toml"), "[[reviewers]]\nname = \"host\"\npreset = \"native\"\n")
+	out := filepath.Join(repo, "reviews", "demo", "01-candidate")
+	opts := RunOptions{Repo: repo, Stage: "candidate", Base: base, Head: head, Out: out, Criteria: []string{criteria},
+		Version: "test", Getenv: env(map[string]string{"SPAR_CONFIG": config, "HOME": dir})}
+	if code, err := Run(opts); err != nil || code != ExitOK {
+		t.Fatalf("run: %d %v", code, err)
+	}
+	var checked []any
+	for _, a := range Angles {
+		checked = append(checked, map[string]any{"angle": a, "result": "ok"})
+	}
+	data, _ := json.Marshal(map[string]any{"reviewed_head": head, "verdict": "blocking_findings",
+		"angles_checked": checked, "angles_unchecked": []any{}, "limits": "",
+		"findings": []any{rawFinding("F1", map[string]any{"link_kind": "criterion", "link": "AC-1", "location": "head/app.txt:1"})}})
+	replyFile := writeFile(t, filepath.Join(dir, "reply.json"), "```json\n"+string(data)+"\n```\n")
+
+	ledger := filepath.Join(out, "ledger.jsonl")
+	if err := os.WriteFile(ledger, []byte("{\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	before := map[string][]byte{}
+	for _, name := range []string{"round.json", "findings.json", "ledger.jsonl"} {
+		before[name], _ = os.ReadFile(filepath.Join(out, name))
+	}
+	code, err := Record(RecordOptions{Round: out, Reviewer: "host", Result: replyFile})
+	if err == nil || code != ExitRefused {
+		t.Fatalf("a round with an unreadable ledger was recorded: %d %v", code, err)
+	}
+	for name, want := range before {
+		if got, _ := os.ReadFile(filepath.Join(out, name)); string(got) != string(want) {
+			t.Errorf("a refused record changed %s", name)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(out, "host", "result.json")); err == nil {
+		t.Error("a refused record wrote the reviewer's result.json")
+	}
+
+	if err := os.WriteFile(ledger, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code, err := Record(RecordOptions{Round: out, Reviewer: "host", Result: replyFile}); err != nil || code != ExitOK {
+		t.Fatalf("the retry after repairing the ledger: %d %v", code, err)
+	}
+}

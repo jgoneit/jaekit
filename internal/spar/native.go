@@ -208,6 +208,9 @@ func Record(o RecordOptions) (int, error) {
 	case st.Status == StatusCompleted:
 		return ExitRefused, refused("%s of %s is already recorded", o.Reviewer, o.Round)
 	}
+	if err := checkRoundRecords(dir); err != nil {
+		return ExitRefused, err
+	}
 	nativeDir := filepath.Join(dir, o.Reviewer)
 	var reply string
 	var warnings []string

@@ -694,14 +694,30 @@ func applyResult(c classifier, st *ReviewerState, name string, result map[string
 
 // saveRound adds findings and their automatic deferrals to a round and
 // rewrites its record and summary.
+// checkRoundRecords refuses a round whose findings or ledger is missing or
+// cannot be read back. A command that adds to a round calls it before it
+// writes anything, so a refusal leaves the round as it was (G32): rewriting a
+// lost findings file would drop the findings it held, and a ledger read only
+// after the rewrite would leave a reviewer marked completed.
+func checkRoundRecords(out string) error {
+	for _, name := range []string{"findings.json", "ledger.jsonl"} {
+		if _, err := os.Stat(filepath.Join(out, name)); err != nil {
+			return refused("%s/%s is missing; the round record is incomplete", out, name)
+		}
+	}
+	if _, err := loadFindings(out); err != nil {
+		return refused("%s/findings.json cannot be read: %v", out, err)
+	}
+	if _, err := loadLedger(out); err != nil {
+		return refused("%s/ledger.jsonl cannot be read: %v", out, err)
+	}
+	return nil
+}
+
 func saveRound(out string, r *RoundRecord, added []Finding, fresh bool) error {
 	if !fresh {
-		// Adding to a round needs its records: rewriting a lost findings
-		// file would drop the findings it held.
-		for _, name := range []string{"findings.json", "ledger.jsonl"} {
-			if _, err := os.Stat(filepath.Join(out, name)); err != nil {
-				return refused("%s/%s is missing; the round record is incomplete", out, name)
-			}
+		if err := checkRoundRecords(out); err != nil {
+			return err
 		}
 	}
 	findings, err := loadFindings(out)
