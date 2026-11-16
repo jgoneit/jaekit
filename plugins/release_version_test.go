@@ -6,6 +6,8 @@ package plugins
 // READMEs, the guides' pins and downloads, and the Seal skill's links.
 
 import (
+	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -70,11 +72,62 @@ func TestReleaseVersionPinsAndDownloads(t *testing.T) {
 	}
 }
 
-// The Windows guides name the current release where they speak of Windows
-// files.
+// rvWindowsLines is how many lines of each Windows guide say that the
+// current release has no Windows files.
+const rvWindowsLines = 3
+
+// The Windows guides name the current release on each line that says it has
+// no Windows files.
 func TestReleaseVersionWindowsGuides(t *testing.T) {
 	for _, path := range []string{"../guides/WINDOWS.md", "../guides/WINDOWS.en.md"} {
-		rvLine(t, path, rvTag, "Windows")
+		n := 0
+		for _, line := range strings.Split(read(t, path), "\n") {
+			if strings.Contains(line, rvTag) && strings.Contains(line, "Windows") {
+				n++
+			}
+		}
+		if n != rvWindowsLines {
+			t.Errorf("%s has %d lines naming %s with Windows, want %d", path, n, rvTag, rvWindowsLines)
+		}
+	}
+}
+
+// rvFixedForms are the ways the READMEs and guides write a version that can
+// only mean the current release: marketplace pins, release pages and
+// downloads, release-pinned links, archive names, installed data paths, the
+// READMEs' bold release and the Release file script's current version.
+var rvFixedForms = []*regexp.Regexp{
+	regexp.MustCompile(`jaekit[#@](v\d+\.\d+\.\d+)`),
+	regexp.MustCompile(`releases/(?:download|tag)/(v\d+\.\d+\.\d+)`),
+	regexp.MustCompile(`jaekit/blob/(v\d+\.\d+\.\d+)/`),
+	regexp.MustCompile(`\bha_(\d+\.\d+\.\d+)_`),
+	regexp.MustCompile(`\.local/share/jaekit/(\d+\.\d+\.\d+)`),
+	regexp.MustCompile(`\*\*(v\d+\.\d+\.\d+)\*\*`),
+	regexp.MustCompile(`current=(\d+\.\d+\.\d+)`),
+}
+
+// Every fixed version form in the READMEs and guides names the current
+// release, so changing one place to another version fails.
+func TestReleaseVersionFixedForms(t *testing.T) {
+	guides, err := filepath.Glob("../guides/*.md")
+	if err != nil || len(guides) == 0 {
+		t.Fatalf("no guides: %v", err)
+	}
+	seen := 0
+	for _, path := range append([]string{"../README.md", "../README.ko.md", "../README.en.md"}, guides...) {
+		for number, line := range strings.Split(read(t, path), "\n") {
+			for _, form := range rvFixedForms {
+				for _, m := range form.FindAllStringSubmatch(line, -1) {
+					seen++
+					if m[1] != rvTag && m[1] != rvVersion {
+						t.Errorf("%s:%d names %s in %q, want the current release %s", path, number+1, m[1], m[0], rvTag)
+					}
+				}
+			}
+		}
+	}
+	if seen == 0 {
+		t.Fatalf("the READMEs and guides have no fixed version form")
 	}
 }
 

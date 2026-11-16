@@ -19,7 +19,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-	"unicode"
 )
 
 // edit replaces one fixed string in a file of a copied tree. The string must
@@ -441,15 +440,19 @@ func exceptionTests(t *testing.T) func(string) bool {
 }
 
 var (
-	proseKeep  = regexp.MustCompile("`[^`]*`|!?\\[[^\\]]*\\]\\([^)]*\\)|https?://\\S+|<[^>]+>")
+	// proseKeep marks what a reworded line keeps as it is: code spans, link
+	// targets, URLs, HTML tags, and a name followed by a version such as
+	// `ha 0.1.8` or `Python 3`.
+	proseKeep  = regexp.MustCompile("`[^`]*`|\\]\\([^)]*\\)|https?://\\S+|<[^>]+>|\\p{L}[\\p{L}\\p{N}_.-]* v?\\d+(?:\\.\\d+)*(?:-dev)?")
 	boldLabel  = regexp.MustCompile(`^\*\*[^*]+\*\*:?\s*$`)
 	readmeDocs = []string{"README.md", "README.ko.md", "README.en.md"}
 )
 
-// rewordProse puts " ~ " between every two words of every prose line of the
-// root READMEs and guides/*.md in dir, and returns how many lines changed. A
-// prose line is outside code fences and not a heading, table row, blank line
-// or bold label; code spans, links, URLs and HTML tags inside it are kept.
+// rewordProse puts " ~ " at every single space between two other characters
+// of every prose line of the root READMEs and guides/*.md in dir, and returns
+// how many lines changed. A prose line is outside code fences and not a
+// heading, table row, blank line or bold label. Link text and image
+// descriptions are reworded; what proseKeep matches is kept.
 func rewordProse(t *testing.T, dir string) int {
 	t.Helper()
 	guides, err := filepath.Glob(filepath.Join(dir, "guides", "*.md"))
@@ -489,28 +492,23 @@ func rewordProse(t *testing.T, dir string) int {
 	return changed
 }
 
+// rewordLine replaces each single space whose neighbors are not spaces with
+// " ~ ", outside what proseKeep matches. Spaces next to punctuation, code
+// spans and links count, so no two words of prose stay adjacent.
 func rewordLine(line string) string {
-	var b strings.Builder
-	last := 0
+	keep := make([]bool, len(line))
 	for _, m := range proseKeep.FindAllStringIndex(line, -1) {
-		b.WriteString(markWords(line[last:m[0]]))
-		b.WriteString(line[m[0]:m[1]])
-		last = m[1]
+		for i := m[0]; i < m[1]; i++ {
+			keep[i] = true
+		}
 	}
-	b.WriteString(markWords(line[last:]))
-	return b.String()
-}
-
-// markWords replaces each single space between two letters with " ~ ".
-func markWords(s string) string {
-	runes := []rune(s)
 	var b strings.Builder
-	for i, r := range runes {
-		if r == ' ' && i > 0 && i+1 < len(runes) && unicode.IsLetter(runes[i-1]) && unicode.IsLetter(runes[i+1]) {
+	for i := 0; i < len(line); i++ {
+		if line[i] == ' ' && !keep[i] && i > 0 && i+1 < len(line) && line[i-1] != ' ' && line[i+1] != ' ' {
 			b.WriteString(" ~ ")
 			continue
 		}
-		b.WriteRune(r)
+		b.WriteByte(line[i])
 	}
 	return b.String()
 }
@@ -612,6 +610,22 @@ func TestCleanupAC13_Selection(t *testing.T) {
 	for _, name := range namedTests[:2] {
 		if !releaseRun.passed[name] {
 			problems = append(problems, "the release check's selection does not run "+name+" to a pass")
+		}
+	}
+	// check_9 of the release check selects by prefix; each prefix that
+	// selected moved tests at the base still selects a passing test.
+	const prefixes = `"^(TestCompatibilityAC10_|TestCompatibilityAC11_|TestRelease|TestReadme)"`
+	if !strings.Contains(release, prefixes) {
+		problems = append(problems, "tools/release-checks/check.py lacks the selection "+prefixes)
+	}
+	prefixRun := runPlugins(t, root, "-run", "^(TestCompatibilityAC10_|TestCompatibilityAC11_|TestRelease|TestReadme)")
+	for _, prefix := range []string{"TestRelease", "TestReadme"} {
+		found := false
+		for name := range prefixRun.passed {
+			found = found || strings.HasPrefix(name, prefix)
+		}
+		if !found {
+			problems = append(problems, "the release check's prefix selection runs no passing "+prefix+" test")
 		}
 	}
 	if len(problems) > 0 {

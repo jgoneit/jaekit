@@ -128,7 +128,7 @@ func TestReleaseGuideLocalMigration(t *testing.T) {
 // guides/INSTALL.md .
 func TestReleaseGuideOperationsSetup(t *testing.T) {
 	requireAll(t, "../guides/OPERATIONS.md", "(INSTALL.md)", "(USAGE.md)")
-	TestInstallCommandsReadmeAndGuidesGiveCommands(t)
+	TestReadmeAndGuidesGiveInstallCommands(t)
 }
 
 // README-linked guides keep host invocations, the Seal start

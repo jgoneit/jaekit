@@ -162,7 +162,7 @@ func dlCheckLinks(t *testing.T, path string, r dlReading) {
 // Relative links in the READMEs, the install, usage and operations guides
 // in both languages and the issue templates reach files that exist and
 // headings outside code blocks there.
-func TestDocLinksReachTargets(t *testing.T) {
+func TestReadmeAndGuideLinksReachTargets(t *testing.T) {
 	files := []string{"../README.md", "../README.ko.md", "../README.en.md", "../guides/INSTALL.md", "../guides/INSTALL.en.md",
 		"../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md", "../guides/OPERATIONS.en.md"}
 	forms, _ := filepath.Glob("../.github/ISSUE_TEMPLATE/*.yml")
@@ -178,7 +178,7 @@ func TestDocLinksReachTargets(t *testing.T) {
 // usage guide when the README links it, and the image notes reach files that
 // exist and heading lines there. This reading also counts heading lines
 // inside code blocks.
-func TestDocLinksReachTargetsAnyHeadingLine(t *testing.T) {
+func TestReadmeAndGuideLinksAnyHeadingLine(t *testing.T) {
 	for _, l := range []struct{ readme, install, operations, usage, notes string }{
 		{"../README.ko.md", "../guides/INSTALL.md", "../guides/OPERATIONS.md", "../guides/USAGE.md", "../assets/readme/SOURCES.md"},
 		{"../README.md", "../guides/INSTALL.en.md", "../guides/OPERATIONS.en.md", "../guides/USAGE.en.md", "../assets/readme/SOURCES.en.md"},
@@ -218,7 +218,7 @@ func dlNormLinks(links []string) []string {
 // guides, link the same destinations apart from language suffixes. Each
 // README links its install guide, and each install guide links the other
 // language's.
-func TestDocLinksLanguagePairsAgree(t *testing.T) {
+func TestReadmeAndGuideLanguagePairsAgree(t *testing.T) {
 	for _, pair := range []struct{ ko, en, sep string }{
 		{"../README.ko.md", "../README.md", "\n"},
 		{"../guides/INSTALL.md", "../guides/INSTALL.en.md", " "},

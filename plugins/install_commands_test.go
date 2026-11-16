@@ -163,7 +163,7 @@ func TestInstallCommandsGuideHostBlocks(t *testing.T) {
 }
 
 // The READMEs give the same install and update commands as the guides.
-func TestInstallCommandsReadmeHostBlocks(t *testing.T) {
+func TestReadmeHostInstallBlocks(t *testing.T) {
 	for _, r := range []struct{ path, install, update string }{
 		{icReadme, "### Install", "### Update"},
 		{icReadmeKo, "### 설치", "### 업데이트"},
@@ -267,7 +267,7 @@ func icHeadingSection(t *testing.T, path, heading string) string {
 // marketplace-removal commands; case is ignored. When a README links the
 // install guide's Codex section directly, that guide's ha install and
 // version-check sections hold their commands.
-func TestInstallCommandsReadmeAndGuidesGiveCommands(t *testing.T) {
+func TestReadmeAndGuidesGiveInstallCommands(t *testing.T) {
 	for _, l := range []struct{ readme, install, usage, haHeading, versionHeading string }{
 		{icReadmeKo, icInstall, "../guides/USAGE.md", "### ha 설치", "### 버전 확인"},
 		{icReadme, icInstallEn, "../guides/USAGE.en.md", "### Install ha", "### Check the version"},
@@ -337,7 +337,7 @@ func icGuideBlock(t *testing.T, path, heading, prefix string) string {
 // ```text, ```markdown or ```mermaid opening and its ``` closing, so no
 // command escapes the comparison in a bare, tilde, indented or other-language
 // fence. Inline code and prose are outside this check.
-func TestInstallCommandsReadmeMatchesGuide(t *testing.T) {
+func TestReadmeInstallCommandsMatchGuide(t *testing.T) {
 	for _, c := range []struct{ readme, install, update, guide, guideHa, guideCheck, guideUpdate string }{
 		{icReadmeKo, "### 설치", "### 업데이트", icInstall, "### ha 설치", "### 버전 확인", "## 업데이트"},
 		{icReadme, "### Install", "### Update", icInstallEn, "### Install ha", "### Check the version", "## Update"},
