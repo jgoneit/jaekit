@@ -283,22 +283,26 @@ def section(root, key):
     return "\n".join(parts)
 
 
+def section_span(lines, heading):
+    """The indexes (start, end) of the lines under heading, or None when it is absent."""
+    level = len(heading) - len(heading.lstrip("#"))
+    for i, line in enumerate(lines):
+        if line.strip() == heading:
+            for j in range(i + 1, len(lines)):
+                depth = len(lines[j]) - len(lines[j].lstrip("#"))
+                if 0 < depth <= level and lines[j][depth:depth + 1] == " ":
+                    return i + 1, j
+            return i + 1, len(lines)
+    return None
+
+
 def one_section(source, heading):
     """One document's section under heading, or None when it lacks the heading."""
     if source is None:
         return None
     lines = source.split("\n")
-    level = len(heading) - len(heading.lstrip("#"))
-    for i, line in enumerate(lines):
-        if line.strip() == heading:
-            out = []
-            for following in lines[i + 1:]:
-                depth = len(following) - len(following.lstrip("#"))
-                if 0 < depth <= level and following[depth:depth + 1] == " ":
-                    break
-                out.append(following)
-            return "\n".join(out)
-    return None
+    span = section_span(lines, heading)
+    return None if span is None else "\n".join(lines[span[0]:span[1]])
 
 
 def row(root, key, label):
@@ -376,26 +380,35 @@ def changed_texts(root):
     Each text is named after the document that holds it. A skill document's
     section is read in each document of the skill that has the heading, once
     for sections that share it, and the lines naming Seal 0.1.14 in every
-    document the clause lookup reads.
+    document the clause lookup reads, except a line already read as part of a
+    section or row of the same document: each sentence is scanned once.
     """
-    texts, seen = [], set()
+    texts, seen, covered, rows = [], set(), {}, {}
     for key in ("skill", "bundle", "ha", "contract", "plan", "review", "review-decisions"):
         name, heading = SECTIONS[key]
         if read(root, name) is None:
             continue
         for doc in checker.skill_documents(root, name) if checker.SKILL_DOC.match(name) else [name]:
-            if (doc, heading) not in seen:
-                seen.add((doc, heading))
-                text = one_section(read(root, doc), heading)
-                if text:
-                    texts.append((doc, text))
+            if (doc, heading) in seen or read(root, doc) is None:
+                continue
+            seen.add((doc, heading))
+            lines = read(root, doc).split("\n")
+            span = section_span(lines, heading)
+            if span is None:
+                continue
+            covered.setdefault(doc, set()).update(range(*span))
+            text = "\n".join(lines[span[0]:span[1]])
+            if text:
+                texts.append((doc, text))
     for key, labels in ROW_SOURCES.items():
         for label in labels:
             line = row(root, key, label)
             if line:
                 texts.append((SECTIONS[key][0], line))
+                rows.setdefault(SECTIONS[key][0], set()).add(line)
     for doc in checker.skill_documents(root, SKILL):
-        texts.extend((doc, line) for line in (read(root, doc) or "").split("\n") if "Seal 0.1.14" in line)
+        texts.extend((doc, line) for i, line in enumerate((read(root, doc) or "").split("\n"))
+                     if "Seal 0.1.14" in line and i not in covered.get(doc, ()) and line not in rows.get(doc, ()))
     return texts
 
 
@@ -492,10 +505,6 @@ def observe(root, suite, criterion):
             for pattern, label in PRIVATE:
                 for match in pattern.finditer(text):
                     problems.append(f"{name}: {label} in new guidance: {match.group(0)!r}")
-    if criterion in ("AC-6", "AC-10"):
-        # A line naming Seal 0.1.14 inside a scanned section is read twice;
-        # its problem is reported once.
-        problems = list(dict.fromkeys(problems))
     target = f"{suite}.{criterion}"
     observation = {"target": target, "attempt": 1, "status": "pass"}
     if problems:
