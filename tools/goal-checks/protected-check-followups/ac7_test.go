@@ -104,11 +104,11 @@ type routeCheck struct {
 }
 
 // What each of the three protected routes records once this goal's checks
-// changed: its sources, its check, and the fixed tokens of its new examples
-// and property.
+// changed: its sources, its check, and the fixed tokens of its new examples,
+// property and boundary.
 var routeRecords = map[string]struct {
-	sources, examples, property []string
-	check                       routeCheck
+	sources, examples, property, boundary []string
+	check                                 routeCheck
 }{
 	"authoring-check-current-tree": {
 		sources:  []string{"tools/contract-checks/authoring_check.py", "tools/contract-checks/check.py"},
@@ -122,7 +122,7 @@ var routeRecords = map[string]struct {
 	},
 	"observation-identity-gap": {
 		sources:  []string{"tools/release-checks/source_identity.py"},
-		examples: []string{"automatic Git maintenance started by the sentinel's commit"},
+		boundary: []string{"Fixture repositories turn off Git's automatic maintenance"},
 		check:    routeCheck{"tools/release-checks/integration_evidence_boundaries.py", "SourceIdentityEvidence"},
 	},
 }
@@ -141,6 +141,7 @@ func TestProtectedAC7_RouteRecords(t *testing.T) {
 			Sources  []string     `json:"sources"`
 			Examples []string     `json:"examples"`
 			Property string       `json:"property"`
+			Boundary string       `json:"boundary"`
 			Checks   []routeCheck `json:"checks"`
 		} `json:"routes"`
 	}
@@ -171,6 +172,11 @@ func TestProtectedAC7_RouteRecords(t *testing.T) {
 		for _, token := range want.property {
 			if !strings.Contains(route.Property, token) {
 				t.Errorf("route %s property does not say %q", route.ID, token)
+			}
+		}
+		for _, token := range want.boundary {
+			if !strings.Contains(route.Boundary, token) {
+				t.Errorf("route %s boundary does not say %q", route.ID, token)
 			}
 		}
 		if !slices.Contains(route.Checks, want.check) {

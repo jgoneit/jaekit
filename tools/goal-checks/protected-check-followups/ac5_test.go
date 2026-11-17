@@ -5,6 +5,7 @@ package protectedchecks
 import (
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -36,8 +37,22 @@ func currentTree(t *testing.T, tree string) unittestResult {
 	return runUnittest(t, filepath.Join(tree, "tools", "goal-checks"), nil, "test_authoring_check.CurrentTree")
 }
 
+// The fixed text of tools/verify.py by which its docs group runs every
+// test_*.py of tools/goal-checks, the protected route's test included.
+var fullVerification = []string{
+	`("Goal check regressions", "goal-checks")`,
+	`"-m", "unittest", "discover", "-s", f"tools/{directory}",`,
+	`"-p", "test_*.py"`,
+}
+
 func guarded(t *testing.T, id, what, old, new string) {
 	t.Helper()
+	verify := read(t, filepath.Join(repoRoot(t), "tools", "verify.py"))
+	for _, token := range fullVerification {
+		if !strings.Contains(verify, token) {
+			t.Errorf("jaekit:violation=%s the full verification does not run CurrentTree: tools/verify.py lacks %s", id, token)
+		}
+	}
 	if r := currentTree(t, producerCopy(t, "", "")); !r.ok {
 		t.Fatalf("control: CurrentTree fails on the unchanged copy:\n%s", tail(r.output, 30))
 	}

@@ -76,6 +76,13 @@ func TestProtectedAC3_BundleSentenceOnce(t *testing.T) {
 	if got := sealLineInSection(t); !once(got, bundleDoc) {
 		t.Errorf("jaekit:violation=%s a local path in the Seal 0.1.14 line of %s %s is not reported once under that document: %q", id, bundleDoc, checkInputs, got)
 	}
+	// Two sentences of one document whose problems read the same are two problems.
+	two := docTree(t)
+	insertAfterHeading(t, filepath.Join(two, bundleDoc), checkInputs,
+		"Checks may read /Users/example/notes for context.\n\nOlder runs kept /Users/example/archive instead.")
+	if got := withText(authoring(t, two, "AC-10").Problems, localPath, "/Users/e"); len(got) != 2 || len(named(got, bundleDoc)) != 2 {
+		t.Errorf("jaekit:violation=%s two sentences with a local path in %s %s are not reported once each under that document: %q", id, bundleDoc, checkInputs, got)
+	}
 }
 
 func TestProtectedAC3_SkillSentenceOnce(t *testing.T) {
