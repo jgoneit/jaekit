@@ -21,6 +21,11 @@ SEAL_DOCS = {authoring_check.SKILL} | {
 INPUTS = sorted({name for name, _ in authoring_check.SECTIONS.values()} | SEAL_DOCS | {
     "internal/status/status.go", "cmd/ha/baseline.go", ".claude-plugin/marketplace.json",
     "plugins/seal/.claude-plugin/plugin.json", "plugins/seal/.codex-plugin/plugin.json"})
+# Read for a clause only when the clause names it. Spelled out here so that a
+# lookup that changes the producer's exclusion set still finds this document.
+EARLIER_GOALS = authoring_check.P + "references/earlier-goals.md"
+# An existing user point that only references/bundle.md states.
+BUNDLE_POINT = "Never resolve them by editing the goal documents; ask"
 
 
 def copy(paths, root):
@@ -28,6 +33,17 @@ def copy(paths, root):
         destination = root / path
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(checker.ROOT / path, destination)
+
+
+def remove_everywhere(test, root, phrase):
+    """Delete phrase from every Seal document of the copy; it must be somewhere."""
+    removed = 0
+    for name in SEAL_DOCS:
+        path = root / name
+        text = path.read_text(encoding="utf-8")
+        removed += text.count(phrase)
+        path.write_text(text.replace(phrase, ""), encoding="utf-8")
+    test.assertGreater(removed, 0, f"{phrase!r} is in no Seal document")
 
 
 class CurrentTree(unittest.TestCase):
@@ -56,6 +72,38 @@ class CurrentTree(unittest.TestCase):
             observation, problems = authoring_check.observe(root, "authoring", "AC-9")
             self.assertEqual(observation["status"], "violation")
             self.assertIn(f"{authoring_check.SKILL} kept rules: missing '## Assurance policy'", problems)
+
+    def test_a_phrase_only_in_earlier_goals_is_found_only_by_a_clause_on_it(self):
+        # The earlier-goals reference is read only for a clause that names it,
+        # so a user point moved there alone is missing everywhere else.
+        self.assertIn(BUNDLE_POINT, dict(authoring_check.USER_POINTS)[authoring_check.BUNDLE])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            copy(INPUTS, root)
+            remove_everywhere(self, root, BUNDLE_POINT)
+            earlier = root / EARLIER_GOALS
+            earlier.write_text(earlier.read_text(encoding="utf-8") + f"\n{BUNDLE_POINT}.\n", encoding="utf-8")
+            observation, problems = authoring_check.observe(root, "authoring", "AC-6")
+            self.assertEqual(observation["status"], "violation")
+            self.assertIn(f"{authoring_check.BUNDLE} existing user points: missing {BUNDLE_POINT!r}", problems)
+            for name in sorted(SEAL_DOCS - {EARLIER_GOALS}):
+                with self.subTest(clause=name):
+                    self.assertFalse(checker.has_anchor(checker.clause_text(root, name), BUNDLE_POINT))
+            self.assertTrue(checker.has_anchor(checker.clause_text(root, EARLIER_GOALS), BUNDLE_POINT))
+
+    def test_a_phrase_absent_from_every_skill_document_is_missing(self):
+        # Every clause reads the checked tree's documents only: a phrase that
+        # the copy no longer has is found by no clause, whichever document it names.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            copy(INPUTS, root)
+            remove_everywhere(self, root, BUNDLE_POINT)
+            observation, problems = authoring_check.observe(root, "authoring", "AC-6")
+            self.assertEqual(observation["status"], "violation")
+            self.assertIn(f"{authoring_check.BUNDLE} existing user points: missing {BUNDLE_POINT!r}", problems)
+            for name in sorted(SEAL_DOCS):
+                with self.subTest(clause=name):
+                    self.assertFalse(checker.has_anchor(checker.clause_text(root, name), BUNDLE_POINT))
 
     def test_missing_product_file_is_an_observed_violation(self):
         for criterion in ("AC-1", "AC-10"):
