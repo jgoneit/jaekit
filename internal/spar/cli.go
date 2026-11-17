@@ -13,7 +13,7 @@ const usageText = `usage:
   spar --version
   spar config [--repo DIR] [--reviewers NAME,...] [--model NAME=MODEL]... [--effort NAME=EFFORT]...
   spar run --stage plan|plan-delta|candidate|fixes --base REV [--head REV] --out DIR
-           --criteria FILE... [--rules FILE]... [--subject FILE]... [--question TEXT]...
+           --criteria FILE... [--rules FILE]... [--subject FILE]... [--boundary FILE]... [--question TEXT]...
            [--decision TEXT --decision-quote TEXT]...
            [--standpoint NAME=TEXT]...
            [--check-path GLOB]... [--reviewers NAME,...] [--model NAME=MODEL]... [--effort NAME=EFFORT]...
@@ -30,6 +30,14 @@ const usageText = `usage:
 exit codes: 0 success, 1 no reviewer completed or is pending, 3 gate degraded, 4 gate blocked,
             64 usage, 65 refused, 70 internal error
 `
+
+// runValued and runBare are the options spar run takes; the usage text
+// lists each of them.
+var (
+	runValued = []string{"stage", "base", "head", "out", "criteria", "rules", "subject", "boundary", "question",
+		"decision", "decision-quote", "standpoint", "check-path", "reviewers", "model", "effort", "repo", "label"}
+	runBare = []string{"dry-run"}
+)
 
 type parsed struct {
 	positional []string
@@ -236,8 +244,7 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 		}
 		return ExitOK, ShowConfigWith(p.one("repo"), getenv, reviewerOverride(p), choices, stdout)
 	case "run":
-		p, err := parseArgs(rest, []string{"stage", "base", "head", "out", "criteria", "rules", "subject", "boundary", "question",
-			"decision", "decision-quote", "standpoint", "check-path", "reviewers", "model", "effort", "repo", "label"}, []string{"dry-run"})
+		p, err := parseArgs(rest, runValued, runBare)
 		if err != nil {
 			// A decision without what it settles or without the user's
 			// words is out of form (G35), whichever part is missing.
