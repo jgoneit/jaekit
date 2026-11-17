@@ -1,0 +1,30 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "BundleSentenceOnce",
+      "violation": "bundle-problem-not-once",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/goal-checks/protected-check-followups",
+        "name": "TestProtectedAC3_BundleSentenceOnce"
+      }
+    },
+    {
+      "id": "SkillSentenceOnce",
+      "violation": "skill-problem-not-once",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/goal-checks/protected-check-followups",
+        "name": "TestProtectedAC3_SkillSentenceOnce"
+      }
+    },
+    {
+      "id": "UserStepOnce",
+      "violation": "user-step-not-once",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/goal-checks/protected-check-followups",
+        "name": "TestProtectedAC3_UserStepOnce"
+      }
+    }
+  ]
+}

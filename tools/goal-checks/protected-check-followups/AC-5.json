@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "EarlierGoalsLookupGuarded",
+      "violation": "earlier-goals-lookup-unguarded",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/goal-checks/protected-check-followups",
+        "name": "TestProtectedAC5_EarlierGoalsLookupGuarded"
+      }
+    },
+    {
+      "id": "CheckedTreeLookupGuarded",
+      "violation": "checked-tree-lookup-unguarded",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/goal-checks/protected-check-followups",
+        "name": "TestProtectedAC5_CheckedTreeLookupGuarded"
+      }
+    }
+  ]
+}

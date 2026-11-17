@@ -578,7 +578,7 @@
         "identity substitutions",
         "partial direct-install or tested-source provenance"
       ],
-      "boundary": "Local real Core, original receipts, explicit goal/checkout and verified source images are tested. Missing source objects or unsupported records remain unavailable without fetching. Direct installation uses synthetic local archives and controlled fresh roots, not live release downloads or model sessions.",
+      "boundary": "Local real Core, original receipts, explicit goal/checkout and verified source images are tested. Missing source objects or unsupported records remain unavailable without fetching. Direct installation uses synthetic local archives and controlled fresh roots, not live release downloads or model sessions. SourceIdentityEvidence's source and sentinel repositories turn off Git's automatic maintenance, so only the code under test can change them while their contents are compared.",
       "checks": [
         {
           "file": "tools/release-checks/integration_core_observation.py",
@@ -1214,9 +1214,10 @@
       "invariant": "I1",
       "status": "protected",
       "sources": [
-        "tools/contract-checks/authoring_check.py"
+        "tools/contract-checks/authoring_check.py",
+        "tools/contract-checks/check.py"
       ],
-      "property": "The Seal check-authoring producer judges only the files of the checked tree: a copy without Git metadata or history gives the same verdicts, and a missing or malformed product file is an observed violation. Its guidance scans flag a concrete goal path that only starts with a placeholder name, and an exemption phrase exempts only the asking words it governs.",
+      "property": "The Seal check-authoring producer judges only the files of the checked tree: a copy without Git metadata or history gives the same verdicts, and a missing or malformed product file is an observed violation. Its guidance scans flag a concrete goal path that only starts with a placeholder name, and an exemption phrase exempts only the asking words it governs. A clause on a Seal skill document is looked up in the checked tree's SKILL.md and references, and in the earlier-goals reference only when the clause names it.",
       "examples": [
         "copy of the read files without .git",
         "missing Seal skill file",
@@ -1229,13 +1230,16 @@
         "checkout-local path under /opt or /var",
         "question verb aimed at the user",
         "exempt noun list followed by a new imperative",
-        "absolute path outside the listed roots"
+        "absolute path outside the listed roots",
+        "clause phrase only in the earlier-goals reference",
+        "clause phrase absent from every skill document"
       ],
       "families": [
         "checkout and history-less copy",
         "absent product artifact",
         "malformed product artifact",
-        "guidance text scans"
+        "guidance text scans",
+        "cross-document clause lookup"
       ],
       "boundary": "Covers the file-reading criteria. The consistency criterion also runs the plugin Go regressions and the public documentation check in the checked tree; their result meaning is the authoring-check-result-meaning route.",
       "checks": [

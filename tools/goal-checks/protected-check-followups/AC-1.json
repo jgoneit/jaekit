@@ -1,0 +1,30 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "MovedReasonsTable",
+      "violation": "reasons-table-not-found",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/goal-checks/protected-check-followups",
+        "name": "TestProtectedAC1_MovedReasonsTable"
+      }
+    },
+    {
+      "id": "ReasonSetExact",
+      "violation": "reason-set-not-exact",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/goal-checks/protected-check-followups",
+        "name": "TestProtectedAC1_ReasonSetExact"
+      }
+    },
+    {
+      "id": "EarlierGoalsOnlyTable",
+      "violation": "earlier-goals-table-accepted",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/goal-checks/protected-check-followups",
+        "name": "TestProtectedAC1_EarlierGoalsOnlyTable"
+      }
+    }
+  ]
+}

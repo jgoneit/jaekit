@@ -283,22 +283,26 @@ def section(root, key):
     return "\n".join(parts)
 
 
+def section_span(lines, heading):
+    """The indexes (start, end) of the lines under heading, or None when it is absent."""
+    level = len(heading) - len(heading.lstrip("#"))
+    for i, line in enumerate(lines):
+        if line.strip() == heading:
+            for j in range(i + 1, len(lines)):
+                depth = len(lines[j]) - len(lines[j].lstrip("#"))
+                if 0 < depth <= level and lines[j][depth:depth + 1] == " ":
+                    return i + 1, j
+            return i + 1, len(lines)
+    return None
+
+
 def one_section(source, heading):
     """One document's section under heading, or None when it lacks the heading."""
     if source is None:
         return None
     lines = source.split("\n")
-    level = len(heading) - len(heading.lstrip("#"))
-    for i, line in enumerate(lines):
-        if line.strip() == heading:
-            out = []
-            for following in lines[i + 1:]:
-                depth = len(following) - len(following.lstrip("#"))
-                if 0 < depth <= level and following[depth:depth + 1] == " ":
-                    break
-                out.append(following)
-            return "\n".join(out)
-    return None
+    span = section_span(lines, heading)
+    return None if span is None else "\n".join(lines[span[0]:span[1]])
 
 
 def row(root, key, label):
@@ -371,18 +375,46 @@ def regressions(root):
 
 
 def changed_texts(root):
-    """Every place this goal's guidance is written, for AC-6 and AC-10."""
-    texts = []
+    """Every place this goal's guidance is written, for AC-6 and AC-10.
+
+    Each text is named after the document that holds it, and each line of a
+    document is scanned at most once, by its position. A skill document's
+    section and its table rows are read in each document of the skill that has
+    the heading; then the lines naming Seal 0.1.14 in every document the
+    clause lookup reads, except those already read.
+    """
+    texts, covered = [], {}
+
+    def documents(name):
+        return checker.skill_documents(root, name) if checker.SKILL_DOC.match(name) else [name]
+
+    def spans(key):
+        """(document, its lines, the span under the key's heading) for each document that has it."""
+        name, heading = SECTIONS[key]
+        if read(root, name) is None:
+            return
+        for doc in documents(name):
+            source = read(root, doc)
+            span = section_span(source.split("\n"), heading) if source is not None else None
+            if span is not None:
+                yield doc, source.split("\n"), span
+
     for key in ("skill", "bundle", "ha", "contract", "plan", "review", "review-decisions"):
-        text = section(root, key)
-        if text:
-            texts.append((SECTIONS[key][0], text))
+        for doc, lines, (start, end) in spans(key):
+            fresh = [i for i in range(start, end) if i not in covered.get(doc, ())]
+            covered.setdefault(doc, set()).update(fresh)
+            text = "\n".join(lines[i] for i in fresh)
+            if text:
+                texts.append((doc, text))
     for key, labels in ROW_SOURCES.items():
-        for label in labels:
-            line = row(root, key, label)
-            if line:
-                texts.append((SECTIONS[key][0], line))
-    texts.extend((HA, line) for line in (read(root, HA) or "").split("\n") if "Seal 0.1.14" in line)
+        for doc, lines, (start, end) in spans(key):
+            for i in range(start, end):
+                if i not in covered.get(doc, ()) and any(lines[i].startswith(f"| {label} |") for label in labels):
+                    covered.setdefault(doc, set()).add(i)
+                    texts.append((doc, lines[i]))
+    for doc in documents(SKILL):
+        texts.extend((doc, line) for i, line in enumerate((read(root, doc) or "").split("\n"))
+                     if "Seal 0.1.14" in line and i not in covered.get(doc, ()))
     return texts
 
 
@@ -462,7 +494,9 @@ def observe(root, suite, criterion):
     if criterion == "AC-6":
         for name, anchors in USER_POINTS:
             require(name, checker.clause_text(root, name), anchors, "existing user points")
-        found = set(re.findall(r"(?m)^\| `([a-z_]+)` \| user \|", read(root, HA) or ""))
+        # The reasons table may be in any document the clause lookup reads.
+        found = {reason for doc in checker.skill_documents(root, HA)
+                 for reason in re.findall(r"(?m)^\| `([a-z_]+)` \| user \|", read(root, doc) or "")}
         if found != USER_REASONS:
             problems.append(f"user-resolved reasons changed: {sorted(found ^ USER_REASONS)}")
         for name, text in changed_texts(root):
