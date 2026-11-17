@@ -1785,7 +1785,7 @@ func TestSealBundleReferenceSparForm(t *testing.T) {
 	// Every document the form names is in the world, so that a refusal
 	// observes the form and not a missing file.
 	for i := 0; i+1 < len(words); i++ {
-		if (words[i] == "--criteria" || words[i] == "--rules" || words[i] == "--subject") && !filepath.IsAbs(words[i+1]) {
+		if (words[i] == "--criteria" || words[i] == "--rules" || words[i] == "--subject" || words[i] == "--boundary") && !filepath.IsAbs(words[i+1]) {
 			path := filepath.Join(w.repo, filepath.FromSlash(words[i+1]))
 			if _, err := os.Stat(path); err != nil {
 				w.write(path, "# Document\n\n- **AC-1** one\n")

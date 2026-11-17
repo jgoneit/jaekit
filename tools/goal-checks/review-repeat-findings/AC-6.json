@@ -1,0 +1,46 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "OversizeRefused",
+      "violation": "oversize-packet-admitted",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestRepeatFindingsAC6_OversizeRefused"
+      }
+    },
+    {
+      "id": "PresetDefaults",
+      "violation": "preset-limit-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestRepeatFindingsAC6_PresetDefaults"
+      }
+    },
+    {
+      "id": "UserLimit",
+      "violation": "user-limit-ignored",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestRepeatFindingsAC6_UserLimit"
+      }
+    },
+    {
+      "id": "BadLimitRefused",
+      "violation": "bad-limit-accepted",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestRepeatFindingsAC6_BadLimitRefused"
+      }
+    },
+    {
+      "id": "ConfigShowsLimit",
+      "violation": "config-limit-not-shown",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestRepeatFindingsAC6_ConfigShowsLimit"
+      }
+    }
+  ]
+}

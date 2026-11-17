@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Changelog",
+      "violation": "changelog-entry-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRepeatFindingsAC15_Changelog"
+      }
+    }
+  ]
+}

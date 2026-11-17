@@ -18,6 +18,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 | `--criteria` | 기준 문서. 하나 이상 필수. 문서 인자의 이름은 G26 |
 | `--rules` | 규칙·계약 문서. 프로젝트 설정의 `rules`(G23)가 더해진다 |
 | `--subject` | plan 단계에서 검토할 문서 |
+| `--boundary` | 검사 경계 문서: 각 검사가 무엇을 관찰하고 어떤 입력을 다루지 않는지 적은 문서. 네 단계 모두 받고 여러 번 줄 수 있다(G36). 패킷의 `## Check boundaries` 절(2절)과 `round.json`의 `boundaries`(5절)에 들어간다 |
 | `--question` | 이번 라운드에 묻는 질문 |
 | `--standpoint NAME=TEXT` | 리뷰어별 관점. 아래 형식과 거부 규칙을 따른다 |
 | `--decision`, `--decision-quote` | 사용자의 결정 하나. `--decision`은 결정이 정한 대상, 바로 다음의 `--decision-quote`는 사용자의 말이다. 결정마다 한 쌍을 주고, 여러 번 줄 수 있다. 형식은 G35이고, 형식 밖의 결정은 리뷰어를 띄우기 전에 거부한다. spar는 그 말이 사용자의 말인지 확인하지 않는다 |
@@ -30,7 +31,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 라운드 폴더의 부모 폴더가 한 검토의 series다. 같은 series의 다른 `review-round/v1` 라운드에서 상한, 이전 head와 이전 지적을 읽는다. 다른 형식의 기록 폴더는 읽지도 바꾸지도 않는다. series 폴더 자체를 잠가(잠금 파일을 만들지 않는다) series마다 한 번에 한 쓰기만 한다(G33). `spar run`은 상한 판단부터 라운드 기록을 마칠 때까지, `spar record`·`spar triage`·`spar extend`·`spar waive`는 기록을 읽고 쓰는 동안 같은 잠금을 쥔다. 다른 쓰기가 잠금을 쥐고 있으면 표준 오류에 알리고 그것이 끝날 때까지 기다린다. `spar gate`는 잠그지 않는다.
 
-종료 코드: 0 라운드 기록을 썼고 완료했거나 대기 중인 리뷰어가 있음, 1 라운드 기록을 썼지만 완료하거나 대기 중인 리뷰어가 없음, 64 사용법 오류, 65 거부(설정 오류, 추적되는 기록 폴더, 상한 초과, 사슬 끊김, 읽을 수 없는 입력, 형식 밖의 결정·관점), 70 내부 오류. 거부는 리뷰어를 띄우기 전에 일어나고 라운드 폴더를 만들지 않는다.
+종료 코드: 0 라운드 기록을 썼고 완료했거나 대기 중인 리뷰어가 있음, 1 라운드 기록을 썼지만 완료하거나 대기 중인 리뷰어가 없음, 64 사용법 오류, 65 거부(설정 오류, 추적되는 기록 폴더, 상한 초과, 사슬 끊김, 읽을 수 없는 입력, 형식 밖의 결정·관점, 리뷰어의 `max_packet_bytes`를 넘는 패킷), 70 내부 오류. 거부는 리뷰어를 띄우기 전에 일어나고 라운드 폴더를 만들지 않는다.
 
 `spar run`에 `--standpoint NAME=TEXT`로 준다. 첫 `=`가 리뷰어 이름과 글을 나누며, 옵션을 여러 번 쓸 수 있다. 거부(65): 이번 실행의 설정과 `--reviewers`에 없는 이름, 한 리뷰어에 관점 둘 이상, 앞뒤 공백을 뗀 뒤 빈 글, 올바른 UTF-8이 아닌 글. 이름은 G20처럼 대소문자를 구분해 정확히 비교한다. `=`가 없거나 이름이 비면 사용법 오류(64)다. 두 거부 모두 리뷰어를 띄우거나 라운드 폴더를 만들기 전에 일어나며, 메시지에 문제의 이름이나 값을 보인다. 그 밖의 글은 받은 그대로 쓴다. 진단에 글을 보일 때는 앞 40자까지 쓴다.
 
@@ -38,16 +39,24 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 ## 2. 패킷과 작업공간
 
-- `packet.md`는 모든 리뷰어가 받는 한 텍스트다. 단계 설명, 두 커밋 ID와 tree ID, 공격 각도와 보고 방법, 기준 문서·규칙 문서·검토 대상 문서의 전문, 사용자의 결정, 질문, 같은 series의 앞선 라운드 지적, 두 커밋 사이의 diff가 들어간다. 커밋 메시지, Git 이력, 무시된 파일, 리뷰어 목록은 들어가지 않는다. 예외는 관점이 있을 때 배정된 리뷰어 이름을 넣는 `## Standpoints for this round` 절이다. `packet_sha256`은 이 파일의 sha256이다.
-- 결정을 받은 라운드의 패킷에는 검토 대상 문서 뒤, 질문 앞에 `## Decisions the user made` 절이 하나 있다. 네 단계가 모두 같다. 절은 아래 안내로 시작하고, 결정마다 `### Decision <n>` 아래에 정한 대상과 사용자의 말을 받은 그대로, 받은 순서로 둔다. 두 글은 각자 그 글의 어떤 백틱 줄보다 긴 코드 울타리 안에 있어서, 글 안의 제목과 울타리가 결정 절 밖의 절을 만들거나 끝내지 않는다. 결정을 받지 않은 라운드에는 이 절이 없고, 관점도 없으면 그 패킷은 이 절이 생기기 전 spar가 같은 입력에서 만든 패킷과 바이트 단위로 같다. 결정은 패킷의 일부라서, 같은 결정의 같은 입력은 같은 패킷이고 결정이 하나라도 다르면 다른 패킷이다(8절). 리뷰어 안내는 다음 네 줄이다. spar는 이 안내를 분류로 강제하지 않는다.
+- `packet.md`는 모든 리뷰어가 받는 한 텍스트다. 단계 설명, 두 커밋 ID와 tree ID, 공격 각도와 보고 방법, 기준 문서·규칙 문서·검토 대상 문서·검사 경계 문서의 전문, 사용자의 결정, 질문, 같은 series의 앞선 라운드 지적과 그 마지막 처리, 두 커밋 사이의 diff가 들어간다. 커밋 메시지, Git 이력, 무시된 파일, 리뷰어 목록은 들어가지 않는다. 예외는 관점이 있을 때 배정된 리뷰어 이름을 넣는 `## Standpoints for this round` 절이다. `packet_sha256`은 이 파일의 sha256이다.
+- 검사 경계 문서(`--boundary`, G36)를 받은 라운드의 패킷에는 검토 대상 문서 뒤, 결정 절 앞에 `## Check boundaries` 절이 하나 있다. 네 단계가 모두 같다. 절은 아래 안내로 시작하고, 문서마다 받은 순서로 `### <문서 이름>` 아래에 그 전문을 다른 문서처럼 그 글의 어떤 백틱 연속보다 긴 코드 울타리 안에 둔다. 경계 문서를 받지 않은 라운드에는 이 절이 없다. 경계 문서는 패킷의 일부라서 하나라도 다르면 다른 패킷이다(8절). 경계 문서는 위치가 가리킬 수 있는 라운드 문서이기도 하지만(G7), 연결 대상(G8)이나 기준 ID(G9)의 출처는 아니다. 리뷰어 안내는 다음 세 줄이다. spar는 경계 문서의 내용이 맞는지 확인하지 않고, 이 안내를 분류로 강제하지 않는다.
+  - The documents below state what each check observes and the inputs it does not cover, as the caller recorded them; spar does not check that they are right.
+  - A counterexample on an input outside a stated boundary that no criterion, rule, contract or protected regression path requires: report it as `hardening` with `check_impact` `none`, and name the boundary it is outside.
+  - A counterexample on an input that a criterion, a contract or a protected regression path requires is a `defect`, whatever a boundary says.
+- 결정을 받은 라운드의 패킷에는 검토 대상 문서와 검사 경계 절 뒤, 질문 앞에 `## Decisions the user made` 절이 하나 있다. 네 단계가 모두 같다. 절은 아래 안내로 시작하고, 결정마다 `### Decision <n>` 아래에 정한 대상과 사용자의 말을 받은 그대로, 받은 순서로 둔다. 두 글은 각자 그 글의 어떤 백틱 줄보다 긴 코드 울타리 안에 있어서, 글 안의 제목과 울타리가 결정 절 밖의 절을 만들거나 끝내지 않는다. 결정을 받지 않은 라운드에는 이 절이 없고, 관점, 검사 경계 문서, 처리가 기록된 앞선 지적도 없으면 그 패킷은 이 절이 생기기 전 spar가 같은 입력에서 만든 패킷과 바이트 단위로 같다. 결정은 패킷의 일부라서, 같은 결정의 같은 입력은 같은 패킷이고 결정이 하나라도 다르면 다른 패킷이다(8절). 리뷰어 안내는 다음 네 줄이다. spar는 이 안내를 분류로 강제하지 않는다.
   - Each decision below was recorded by the caller as the user's words; spar does not check that it is.
   - Do not report the change for doing what a decision settles.
   - Report as usual a change that goes beyond what a decision settles.
   - When following a decision breaks a criterion, rule or contract that the decision does not address, report a `requirement-question` that links that criterion, rule or contract.
-- 앞선 라운드 지적은 plan-delta에서는 plan·plan-delta 라운드, fixes에서는 candidate·fixes 라운드의 것이다. 패킷은 그 지적을 리뷰어 이름이 든 지적 ID(`codex-F1` 등)로 보인다. 단계·base·head가 같은 라운드는 넣지 않아서 같은 입력의 재실행은 같은 패킷을 받는다.
+- 앞선 라운드 지적은 plan-delta에서는 plan·plan-delta 라운드, fixes에서는 candidate·fixes 라운드의 것이다(dry run은 빠진다). 패킷의 `## Findings of earlier rounds` 절은 지적마다 `<라운드 폴더> <지적 ID> [<분류>] at <위치>: <주장>` 한 줄을 보이고, 지적 ID에는 리뷰어 이름이 든다(`codex-F1` 등). 주장은 공백(줄바꿈 포함)을 하나로 모으고, 300자를 넘으면 앞 299자 뒤에 `…`를 붙여 줄인다.
+- 그 라운드의 `ledger.jsonl`에 처리가 기록된 지적은 줄 끝에 그 지적의 마지막 처리(그 지적의 마지막 원장 항목)가 ` — <처리>`로 붙는다. 처리의 형식은 `fix: commit <커밋 ID 앞 12자>`, `reject: <근거>`, `defer: to <대상>`, spar의 자동 보류는 `defer (auto): <이유>`, `duplicate of <지적>`, `answer: <사용자의 말>`이다. `--evidence` 없이 `--user-quote`로 닫은 `reject`(사용자가 정한 `requirement-question`)는 그 사용자의 말을 근거로 보인다. 근거·이유·사용자의 말은 주장처럼 줄이고, 그 글이 비어 있으면 처리 이름만 쓴다. 처리가 없는 지적의 줄은 그대로다.
+- 처리가 기록된 지적이 하나라도 있으면 그 절의 머리 바로 아래에 다음 안내가 온다: "Each line ends with the finding's last disposition when one is recorded. Report a finding with a recorded disposition again only with a failure scenario that the recorded disposition does not answer." 곧 처리가 기록된 지적은 기록된 처리가 답하지 못하는 실패 시나리오가 있을 때만 다시 보고하라는 안내다. 그런 fixes 라운드의 단계 설명은 "The head fixes findings of earlier rounds. Review the fixes from base to head: whether the findings recorded as fixed are fixed without breaking anything else, and whether the findings recorded as rejected, deferred, duplicate or answered still hold as recorded."로 바뀐다. 처리가 기록된 지적이 없으면 안내가 없고 단계 설명도 그대로이며, plan-delta의 단계 설명은 늘 그대로다. spar는 이 안내를 분류로 강제하지 않는다.
+- 단계·base·head가 같은 라운드의 지적은 넣지 않는다. 그래서 그 사이 앞선 지적의 처리가 바뀌지 않았으면 같은 입력의 재실행은 같은 패킷을 받는다. 처리는 패킷의 일부라서 처리가 바뀐 뒤의 실행은 다른 패킷이고, 같은 패킷의 재실행이 아니므로 상한에 센다(8절).
 - 리뷰어마다 임시 작업공간 사본을 만든다. `head/`와 `base/`에는 두 커밋의 추적 파일이 blob 그대로 들어가고 `.git`은 없다. symlink는 만들지 않고 그 blob(대상 경로)을 담은 일반 파일로 둔다.
 - `schema.json`은 리뷰어 결과의 JSON schema다.
 - 관점이 없는 라운드에서 `claude`는 표준 입력, `codex`는 표준 입력, `agy`는 `-p` 인자로 패킷을 받는다. `agy`의 `-p` 값은 패킷 앞에 명령 안내를 붙인 것이다. 안내는 파일 읽기·목록·검색 도구를 먼저 쓰고, 셸 명령은 4절의 읽기 전용 프로그램과 `sed -n`을 `|`·`&&`·`||`·`;`로만 이으며, 코드·시험·빌드·Git이나 그 밖의 프로그램을 실행하면 검토가 멈추고 결과를 버린다(`tool_violation`)고 말한다. `packet.md`는 그대로이고, 다른 리뷰어는 안내를 받지 않는다. 안내와 패킷을 합친 것이 인자 하나의 한도(Linux 120 KiB, 그 밖 768 KiB)를 넘으면 `agy`는 패킷과 같은 바이트의 `PACKET.md`를 작업공간 최상위에 받고 `-p`는 안내와 그 파일을 읽으라는 짧은 지시다. 시도 기록의 `argv`는 안내 뒤의 패킷을 `<packet.md>`로 보인다. 시도 기록의 `packet_transport`(`stdin`, `argument`, `file`)가 이를 남기고, `PACKET.md`가 바뀌면 `workspace_modified`다. `command`는 `{prompt}` 자리에 `packet.md` 경로를 받는다. 패킷은 각 리뷰어의 제공자에게 전송된다.
+- 패킷 크기 한도: 리뷰어마다 `max_packet_bytes`(G37, [설정 계약](spar-config.md) 1절)가 있을 수 있다. preset 값은 `claude`·`codex` 1,200,000바이트, `agy` 4,000,000바이트이고, `native`·`command`는 사용자가 정하지 않으면 한도가 없다. `packet.md`가 이번 실행의 리뷰어(`--reviewers`로 고른 뒤) 가운데 어느 하나의 한도보다 크면, `spar run`은 dry run을 포함해 리뷰어를 띄우기 전에 65로 거부하고 라운드 폴더를 쓰지 않는다. 그래서 그 단계의 라운드 수와 상한은 그대로다. 메시지는 패킷 크기, 리뷰어 이름과 그 한도를 보이고, 변경이나 그 문서를 줄이거나 사용자 설정에서 그 리뷰어의 `max_packet_bytes`를 올리라고 말한다. 비교하는 것은 `packet.md`의 바이트 수이고, `agy`의 명령 안내와 관점 지시는 세지 않는다.
 
 공유 패킷의 `## Standpoints for this round` 절에는 모든 관점과 리뷰어 배정이 들어간다. 리뷰어마다 자기 관점을 알리고 모든 각도를 확인하면서 그 위험을 공격하라는 지시도 받으며, 관점이 없는 리뷰어는 변경 전체를 검토하라는 지시를 받는다.
 
@@ -129,7 +138,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 | `workspace/` | dry run에서만: 리뷰어가 받을 작업공간(`head/`, `base/`) |
 | `<native 리뷰어>/` | `prompt.md`, 작업공간, 기록된 결과. 기본 이름이면 `native/` |
 
-`round.json`의 주요 필드: `schema`(`review-round/v1`), `spar_version`, `stage`, `label`, `series`, `sequence`, `repo`, `base`, `head`, `base_tree`, `head_tree`, `diff_sha256`, `criteria`·`rules`·`subjects`(`name`, `source`, `sha256`), `criteria_digest`(기준 문서 이름과 sha256의 sha256), `questions`, `decisions`(결정을 받은 라운드에만 있다. 받은 순서의 항목마다 `settles`(정한 대상)와 `user_quote`(사용자의 말)를 받은 그대로 남긴다), `prior`, `packet_sha256`, `config`([설정 계약](spar-config.md)의 적용 기록), `links`(연결 확인에 쓴 `criteria_ids`와 규칙 문서의 `rules[]`: `names`, `file_name`, `lines`), `requested_reviewers`, `required_reviewers`, `dry_run`, `counted`, `rerun_of`, `started_at`, `finished_at`, `reviewers`.
+`round.json`의 주요 필드: `schema`(`review-round/v1`), `spar_version`, `stage`, `label`, `series`, `sequence`, `repo`, `base`, `head`, `base_tree`, `head_tree`, `diff_sha256`, `criteria`·`rules`·`subjects`(`name`, `source`, `sha256`), `boundaries`(검사 경계 문서를 받은 라운드에만 있고, 같은 세 필드를 받은 순서로 둔다. 이 필드가 없는 라운드는 이 기능 전에 기록한 라운드를 포함해 경계 문서가 없는 라운드로 읽는다), `criteria_digest`(기준 문서 이름과 sha256의 sha256), `questions`, `decisions`(결정을 받은 라운드에만 있다. 받은 순서의 항목마다 `settles`(정한 대상)와 `user_quote`(사용자의 말)를 받은 그대로 남긴다), `prior`, `packet_sha256`, `config`([설정 계약](spar-config.md)의 적용 기록. 한도가 있는 리뷰어는 `reviewers[]`에 `max_packet_bytes`와 `max_packet_bytes_source`를 가진다), `links`(연결 확인에 쓴 `criteria_ids`와 규칙 문서의 `rules[]`: `names`, `file_name`, `lines`), `requested_reviewers`, `required_reviewers`, `dry_run`, `counted`, `rerun_of`, `started_at`, `finished_at`, `reviewers`.
 
 `reviewers.<이름>`: `name`, `preset`, `isolation`(`verified`, `host`, `unverified`), `required`, `status`, `reason`, `requested_model`, `model_source`(`claude`·`codex`·`agy`만: `user`, `agent`, `preset`), `observed_model`, `fallback_model`, `fallback_used`, `effort`, `effort_source`(`claude`·`codex`만, 같은 세 값), `elapsed_seconds`, `timeout_seconds`(G19), `resets`, `attempts`, `findings`(완료한 경우의 지적 수, 아니면 `null`), `verdict`, `angles_checked`, `angles_unchecked`, `limits`, `warnings`, `agent`, `recorded_from`, `workspace_digest`(native 작업공간을 준비할 때의 digest).
 
@@ -175,7 +184,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 - 단계 묶음은 `plan`, `plan_delta`, `code`(candidate와 fixes)다. series에서 `counted`가 `true`인 같은 묶음의 라운드 수가 상한과 연장의 합 이상이면 새 실행을 거부한다.
 - 같은 단계·base·head·패킷 digest의 앞선 실행이 있고, 이번 실행의 리뷰어가 모두 그 실행들에서 완료하지 못한 리뷰어(이름과 preset이 같은 리뷰어)이면 상한에 세지 않는다(`counted: false`, `rerun_of`). 라운드는 series마다 하나씩 실행되므로 `finished_at`이 없는 앞선 라운드는 도중에 멈춘 것이고, 그 리뷰어는 완료하지 못한 것이다. 그 밖의 실행은 모두 센다.
-- fixes 라운드의 base는 같은 series의 마지막 code 라운드의 head여야 한다. 아니면 거부한다. 이번 실행과 단계·base·head·패킷 digest가 모두 같은 앞선 라운드(같은 패킷의 재실행)만 건너뛴다. 패킷이 다르면 base·head가 같아도 그 라운드가 사슬의 마지막이다.
+- fixes 라운드의 base는 같은 series의 마지막 code 라운드의 head여야 한다. 아니면 거부한다. 이때 이번 실행과 단계·base·head가 같은 앞선 라운드는 패킷 digest와 관계없이 건너뛴다. 같은 패킷의 재실행이든, 처리가 바뀐 뒤처럼 패킷이 달라진 같은 범위의 새 라운드든 그 라운드가 되풀이하는 라운드와 base를 같이 쓰기 때문이다. 그래서 같은 범위의 fixes 라운드는 그보다 앞선 code 라운드에 이어지고, 그 code 라운드의 head와 base가 다를 때만 사슬이 끊긴다. 패킷이 다른 같은 범위의 라운드는 재실행이 아니므로 상한에 센다.
 - 연장은 `spar extend <series> --stage plan|plan-delta|code --by N [--cause <원인>] [--reason "…"] --user-quote "…"`로 series의 `extensions.jsonl`에 `{"stage", "by", "cause", "reason", "user_quote", "recorded_at"}`을 더한다. `cause`와 `reason`은 있을 때만 쓴다. 사용자의 말이 없으면 거부한다. series 경로는 `--out`과 같은 기록 경로 규칙(G28)을 따르고(검토하는 저장소를 찾지 못해도 그 경로가 속한 저장소로 확인한다), `--repo`가 Git 저장소가 아니면 거부한다.
 - code 연장은 상한을 다 쓴 원인을 `--cause`로 받는다. 값은 `churn`, `recurring`, `unrelated`, `hardening`, `other` 다섯 가운데 하나이고(대소문자 구분), 이 다섯이 전부다. 없거나 목록 밖이면 사용법 오류(64)다. `--reason`은 앞뒤 공백을 떼고 기록하며, 뗀 뒤 비면 이유가 없는 것이다. `--by`가 2 이상이거나 `--cause other`이면 이유가 필요하고, 없으면 거부(65)한다. plan·plan-delta 연장은 `--cause`·`--reason`을 받지 않아 사용법 오류(64)로 끝나며, 그 줄은 이전처럼 `{"stage", "by", "user_quote", "recorded_at"}`이다. 어느 오류와 거부도 아무것도 쓰지 않는다. 원인은 실행자가 11절의 보고를 보고 고르며, spar는 고르지 않는다.
 - 상한 계산, 재실행 판단, gate는 `cause`·`reason`을 읽지 않는다. 원인이 없는 줄(이 기능 전에 기록한 줄)도 지금처럼 `stage`와 `by`로 센다.
@@ -183,7 +192,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 관점의 글과 배정은 패킷 안에 있으므로 `packet_sha256`이 같은 입력의 일부로 식별하며, 어느 하나라도 바꾸면 새 입력이다. 끝내지 못한 리뷰어만 다시 돌리고 단계, base, head와 `packet_sha256`이 같은 관점을 포함해 그대로이면 상한에 세지 않는다.
 
-관점은 각도, 분류, 처리, 상한, gate의 상태와 사유를 바꾸지 않는다. 대체 모델 실행도 같은 관점 지시와 `input.md`를 쓴다. 관점은 리뷰어 수, 필수 리뷰어 판단, 시도나 라운드를 늘리지 않는다. 재실행, fixes 사슬, gate의 완료 판단, `spar waive`, `spar cap-report`는 같은 패킷 식별 규칙을 쓴다.
+관점은 각도, 분류, 처리, 상한, gate의 상태와 사유를 바꾸지 않는다. 대체 모델 실행도 같은 관점 지시와 `input.md`를 쓴다. 관점은 리뷰어 수, 필수 리뷰어 판단, 시도나 라운드를 늘리지 않는다. 재실행, gate의 완료 판단, `spar waive`, `spar cap-report`는 같은 패킷 식별 규칙을 쓰고, fixes 사슬은 단계·base·head만 본다.
 
 ## 9. native 리뷰어
 

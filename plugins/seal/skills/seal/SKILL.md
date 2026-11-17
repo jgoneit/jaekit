@@ -2,7 +2,7 @@
 name: seal
 description: Carry a goal in docs/specs/<goal>/ to recorded completion — plan, implement, verify through the ha binary, and resume in a new session. Use when the user calls this skill with a goal or asks to implement, finish, or continue a goal document, for example "$seal:seal docs/specs/x" in Codex, "/seal:seal docs/specs/x" in Claude Code, "docs/specs/x 구현해줘", or "docs/specs/x 이어서 해줘".
 metadata:
-  version: "0.1.30"
+  version: "0.1.31"
 ---
 
 # Seal
@@ -59,7 +59,7 @@ Start reviewers from the initial contract, check, and expected-result grounds (t
 
 Spar owns how rounds run.
 
-- `REVIEW.md` states the product invariants and decision rules the change introduces or alters and, before any plan round, the supported forms of open-ended input a contract or check it adds or changes covers, never narrower than a SPEC criterion, contract or protected regression path requires without the user's decision; ask the user when an open criterion has none. A `plan` round, if `strict` or the selected policy asks, comes before any baseline and also reviews them, as questions.
+- `REVIEW.md` states the product invariants and decision rules the change introduces or alters and, in goals started with seal 0.1.31 or later, before the earliest review round of every tier (in earlier goals, before any plan round), the supported forms of open-ended input a contract or check it adds or changes covers and each check's boundary, never narrower than a SPEC criterion, contract or protected regression path requires without the user's decision; ask in the question before any baseline when an open criterion has none, and when a fix widens a check, widen its boundary record in the same step. A `plan` round, if `strict` or the selected policy asks, comes before any baseline and also reviews them, as questions. Every round gets `REVIEW.md` as `--boundary`.
 - The cumulative round is a `candidate` round from the goal's base commit to the last head; a goal under review runs `ha done` only once it ends with no open `defect` or `requirement-question`. A `fixes` round never replaces it; a candidate round with no later fixes is one. Rounds take the goal's added or changed check files (declarations, producers, tests) as `--check-path` and, from `run-rules/5`, all goal documents as criteria; `ha note <goal> review --gate <file>` records their `spar gate` before `ha done`.
 - You decide dispositions: fix or rebut a `defect`; ask the user about a `requirement-question`; never fix a deferred `hardening` item without the user's words. A finding outside the supported forms is `hardening`; the contract's statement of the forms rebuts a `defect` label.
 - At a round cap, ask the user as the Spar skill says (`spar extend`); never pass it or skip the cumulative round without the user's words.

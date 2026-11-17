@@ -12,6 +12,8 @@ Seal 0.1.28 keeps 0.1.27's `run-rules/7` start with its baseline and freeze guid
 
 Seal 0.1.29 keeps 0.1.28's `run-rules/7` start with its baseline and freeze guidance, splits `## 중요한 미결정` into the user's answers and the executor's assumptions for newly started goals, and adds pull request description guidance from the review summary; it makes no Core change and needs a Core that declares `run-rules/7`.
 
+Seal 0.1.31 keeps the `run-rules/7` start, asks for supported input forms and check boundaries before the earliest review round of every tier, widens a check's boundary record in the same step as the fix that widens the check, and passes `REVIEW.md` to every review round as `--boundary`, which needs a Spar that takes `--boundary`; it makes no Core change and needs a Core that declares `run-rules/7`.
+
 ## Core compatibility
 
 A new start passes `--check-skill`: `ha start` reads `core-requirements.json` beside the SKILL.md given to `--skill` and compares every rule, format and feature it lists with this executable's `ha capabilities` output. Anything missing is printed as `ha: missing Core support: …` and the start exits 65 with no record. A Core without the check, such as ha 0.1.6, rejects the flag with exit 64 and no record, and a Core without a command Seal uses (`ha report`, `ha doctor`) reports an unknown command with exit 64. In each case record nothing and stop: report the executable (`which -a ha` on Unix, `Get-Command ha -All` on PowerShell) and the message. Never install tools, build `ha`, or fall back to older rules or an older Seal.

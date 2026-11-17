@@ -398,8 +398,9 @@ func TestRunHoldsTheSeriesUntilItsRoundEnds(t *testing.T) {
 	}
 }
 
-// Every fixed finding's commit must be in the expected head, and only a
-// rerun of the same packet is exempt from the fixes chain.
+// Every fixed finding's commit must be in the expected head. A fixes round of
+// the same range as the previous one, with the same packet or another, keeps
+// the fixes chain (review-repeat-findings, AC-1); another base breaks it.
 func TestGateFixCommitsAndChain(t *testing.T) {
 	f := newFixture(t)
 	base, head, later := f.revs[0], f.revs[1], f.revs[2]
@@ -416,8 +417,13 @@ func TestGateFixCommitsAndChain(t *testing.T) {
 		RequiredReviewers: []string{"host"}, Config: cfg, Reviewers: done}, nil, nil)
 	c := f.round("03-fixes", &RoundRecord{Stage: "fixes", Base: head, Head: later, Sequence: 3, Counted: true, PacketSHA256: "q",
 		RequiredReviewers: []string{"host"}, Config: cfg, Reviewers: done}, nil, nil)
-	if g := f.gate(later, a, b, c); !strings.Contains(strings.Join(g.Reasons, " "), "chain") {
-		t.Errorf("a fixes round with another packet on the same commits kept the chain: %s %v", g.State, g.Reasons)
+	if g := f.gate(later, a, b, c); strings.Contains(strings.Join(g.Reasons, " "), "chain") {
+		t.Errorf("a fixes round with another packet on the same commits broke the chain: %s %v", g.State, g.Reasons)
+	}
+	other := f.round("05-fixes", &RoundRecord{Stage: "fixes", Base: base, Head: later, Sequence: 5, Counted: true, PacketSHA256: "r",
+		RequiredReviewers: []string{"host"}, Config: cfg, Reviewers: done}, nil, nil)
+	if g := f.gate(later, a, b, other); !strings.Contains(strings.Join(g.Reasons, " "), "chain") {
+		t.Errorf("a fixes round on another base kept the chain: %s %v", g.State, g.Reasons)
 	}
 	rerun := f.round("04-fixes", &RoundRecord{Stage: "fixes", Base: head, Head: later, Sequence: 4, PacketSHA256: "p",
 		RequiredReviewers: []string{"host"}, Config: cfg, Reviewers: done}, nil, nil)
@@ -427,8 +433,27 @@ func TestGateFixCommitsAndChain(t *testing.T) {
 	next := &RoundRecord{Stage: "fixes", Base: head, Head: later, PacketSHA256: "q", Config: cfg, RequestedReviewers: []string{"host"}}
 	cand, _ := loadRound(a)
 	fix, _ := loadRound(b)
-	if _, _, err := admit([]sibling{{a, cand}, {b, fix}}, nil, next); err == nil || !strings.Contains(err.Error(), "chain") {
-		t.Errorf("admission let another packet on the same commits skip the chain: %v", err)
+	if counted, rerunOf, err := admit([]sibling{{a, cand}, {b, fix}}, nil, next); err != nil || !counted || len(rerunOf) != 0 {
+		t.Errorf("admission did not take another packet on the same commits as a new counted round: %v %v %v", counted, rerunOf, err)
+	}
+	moved := &RoundRecord{Stage: "fixes", Base: base, Head: later, PacketSHA256: "r", Config: cfg, RequestedReviewers: []string{"host"}}
+	if _, _, err := admit([]sibling{{a, cand}, {b, fix}}, nil, moved); err == nil || !strings.Contains(err.Error(), "chain") {
+		t.Errorf("admission let a fixes round on another base skip the chain: %v", err)
+	}
+	// The previous fixes round's base with another head is not the same
+	// range: its base is not the previous head, so the chain breaks.
+	writeFile(t, filepath.Join(f.repo, "app.txt"), "another head\n")
+	gitRun(t, f.repo, "add", "-A")
+	gitRun(t, f.repo, "commit", "-qm", "another head")
+	another := gitRun(t, f.repo, "rev-parse", "HEAD")
+	beside := f.round("06-fixes", &RoundRecord{Stage: "fixes", Base: head, Head: another, Sequence: 6, Counted: true, PacketSHA256: "s",
+		RequiredReviewers: []string{"host"}, Config: cfg, Reviewers: done}, nil, nil)
+	if g := f.gate(another, a, b, beside); !strings.Contains(strings.Join(g.Reasons, " "), "chain") {
+		t.Errorf("a fixes round with the previous base and another head kept the chain: %s %v", g.State, g.Reasons)
+	}
+	sideways := &RoundRecord{Stage: "fixes", Base: head, Head: another, PacketSHA256: "s", Config: cfg, RequestedReviewers: []string{"host"}}
+	if _, _, err := admit([]sibling{{a, cand}, {b, fix}}, nil, sideways); err == nil || !strings.Contains(err.Error(), "chain") {
+		t.Errorf("admission let a fixes round with the previous base and another head skip the chain: %v", err)
 	}
 }
 

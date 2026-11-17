@@ -12,7 +12,7 @@ From v0.1.7, Seal starts new goals under `run-rules/5`, and a `standard` or `str
 
 ## What leaves your computer
 
-Each reviewer receives the whole packet: the criteria documents, the rule documents, the documents under review, the user's decisions you pass (in the user's own words) and your questions, and the diff between the two commits. A reviewer CLI can also read the tracked files of both commits in its workspace copy and send what it opens to its provider.
+Each reviewer receives the whole packet: the criteria documents, the rule documents, the documents under review, the check boundary documents, the user's decisions you pass (in the user's own words) and your questions, the earlier rounds' findings with their recorded dispositions (evidence and the user's words included), and the diff between the two commits. A reviewer CLI can also read the tracked files of both commits in its workspace copy and send what it opens to its provider.
 
 | Reviewer | Provider that receives the packet |
 | --- | --- |
@@ -71,6 +71,7 @@ fallback_model = "gemini-3.8-flash-high"
 - `agy` may use its file read, list and search tools and shell commands that join read-only programs (`ls`, `grep`, `cat`, `diff`, `true` and so on) and `sed -n` with `|`, `&&`, `||` or `;`. If it runs code, tests, builds, git or any other program, spar stops that reviewer, records it as `tool_violation` and drops its result. spar puts this rule in a short note at the start of agy's prompt.
 - `fallback_model` runs once, in the same round and on the same packet, only when the designated model is refused for quota or rate limits. `fallback_model = ""` turns the preset's default fallback off.
 - `native` is a clean-context subagent of your agent. Spar writes its prompt and workspace into the round folder and records the reply the agent brings back. It is recorded as `host` and counts as required.
+- Each reviewer can have `max_packet_bytes`, the largest packet in bytes it receives. Without it, `claude` and `codex` take 1,200,000 bytes and `agy` 4,000,000 bytes, and `native` and `command` have no limit. When the packet is larger than the limit of any reviewer of the run, `spar run` stops with 65 before any reviewer starts and writes no round, so it uses none of the cap. Make the change or the documents you pass smaller, or raise the limit when you know that reviewer takes larger packets. `spar config` shows each reviewer's limit and its source (`max_packet_bytes_source`).
 
 ### Models and effort
 
@@ -165,6 +166,10 @@ spar run --stage fixes --base 2222222 --head 3333333 \
 ```
 
 Decisions go into the packet's `## Decisions the user made` section as given and stay in `decisions` in `round.json`. The section tells reviewers not to report what a decision settles, to report as usual a change that goes beyond it, and, when following a decision breaks a criterion, rule or contract the decision does not address, to report a `requirement-question` that links it. spar does not check that the words are the user's. An empty decision, an unpaired option or text that is not valid UTF-8 is refused before any reviewer starts. The same input with the same decisions is the same packet; different decisions make another packet.
+
+When you have documents that state the checks' boundaries, that is, what each check observes and which inputs it does not cover, pass them with `--boundary`. All four stages take it, and it may be repeated. The documents go into the packet's `## Check boundaries` section and stay in `boundaries` in `round.json`. The section tells reviewers to report a counterexample on an input outside a stated boundary that no criterion, rule, contract or protected regression path requires as `hardening` with `check_impact` `none`, naming the boundary, and to report a counterexample on an input that a criterion, a contract or a protected regression path requires as a `defect`, whatever a boundary says. spar does not check that a boundary document is right. A boundary document that cannot be read is refused before any reviewer starts.
+
+The packet of a fixes or plan-delta round shows the earlier rounds' findings, and when a finding has a recorded disposition, its line ends with its last disposition (`fix: commit …`, `reject: …`, `defer: to …`, `defer (auto): …`, `duplicate of …`, `answer: …`). When any does, the packet asks reviewers to report a finding with a recorded disposition again only with a failure scenario that the recorded disposition does not answer. A fixes round also asks them to check that the findings recorded as fixed are fixed and that the findings recorded as rejected, deferred, duplicate or answered still hold as recorded. Record dispositions with `spar triage` before you run the next round, and the reviewers review with those dispositions in view. Dispositions are part of the packet, so a fixes round run on the same base and head after a disposition changed is a new round that counts toward the cap, and its chain continues from the code round before it.
 
 Each round writes a new, Git-ignored folder with `round.json`, `packet.md`, `findings.json`, `ledger.jsonl` and `summary.md`. The finding table in `summary.md` shows each claim whole, on one line in the `Claim` column, so that file alone is enough to classify and close the findings. Spar refuses a folder that Git would track, because the packet can contain private documents ([Set up a project](#set-up-a-project)).
 

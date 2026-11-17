@@ -2,12 +2,12 @@
 name: spar
 description: Run independent review rounds on a plan or a change with the spar binary — the same packet to every configured reviewer, classified findings, limited dispositions, stage caps and a review gate file. Use when the user asks for an independent or adversarial review of a plan or an implementation, for example "$spar:spar" in Codex, "/spar:spar" in Claude Code, or "이 변경을 spar로 리뷰해줘".
 metadata:
-  version: "0.1.5"
+  version: "0.1.6"
 ---
 
 # Spar
 
-Spar makes reviewers attack a plan or a change from outside your context. The `spar` binary pins two commits, builds one packet (criteria, rules, documents under review and the diff, without Git history, ignored files or commit messages), runs every configured reviewer on it in parallel, classifies their findings and keeps a ledger of what was done with each one. You run the rounds, decide what each finding means for the work, and record that decision. This skill states when to run rounds, how findings may be closed and what the records do not prove.
+Spar makes reviewers attack a plan or a change from outside your context. The `spar` binary pins two commits, builds one packet (criteria, rules, documents under review, check boundaries and the diff, without Git history, ignored files or commit messages), runs every configured reviewer on it in parallel, classifies their findings and keeps a ledger of what was done with each one. You run the rounds, decide what each finding means for the work, and record that decision. This skill states when to run rounds, how findings may be closed and what the records do not prove.
 
 ## Before the first round
 
@@ -42,6 +42,7 @@ Give every goal document as `--criteria`: SPEC.md and each goal document it link
 - A rerun of the same stage, base, head and packet is not counted only when it starts reviewers that did not complete that packet, for example after a quota refusal. Anything else counts.
 - Pass `--rules` for the repository rules (such as `AGENTS.md`) and contracts the change must keep, and `--question` for a question you need answered. Do not pass your own reasoning about the solution; the reviewers start from the criteria.
 - Pass every decision the user made during the review to each later round, with or without Seal: `--decision` with what it settles, followed by `--decision-quote` with the user's words, one pair per decision. An answer to a `requirement-question` is one. Read [Decisions in later rounds](references/rounds.md#decisions-in-later-rounds) when you pass one, for what the packet tells reviewers.
+- When a document states each check's boundary, what it observes and which inputs it does not cover, pass it with `--boundary` to every round; every stage takes it, and it may be repeated. The packet's `## Check boundaries` section tells reviewers to report a counterexample outside a stated boundary that no criterion, rule, contract or protected regression path requires as `hardening` with `check_impact` `none`, naming the boundary, and one on an input that a criterion, contract or protected regression path requires as a `defect`, whatever a boundary says. spar does not check that a boundary is right; `boundaries` in `round.json` keeps the documents.
 - Give reviewers standpoints, the risks each attacks, in plan and candidate rounds. Read [Reviewer standpoints](references/rounds.md#reviewer-standpoints) before every plan or candidate round, including the cumulative round, before any other round you give standpoints, and before you rerun reviewers of a round that had them.
 
 ## Reviewers
@@ -51,6 +52,7 @@ Give every goal document as `--criteria`: SPEC.md and each goal document it link
 - `agy` runs its designated model first and its fallback model once, in the same round and on the same packet, only when the designated model is refused for quota or rate limits. Tell the user when the fallback ran and when the quota resets.
 - A reviewer's model or effort that the user's configuration writes is fixed. For one it leaves open, you may choose a value for a run. Choose for what the round has to examine, never to make the review easier to pass. When you report a round, say which model and effort you chose for each reviewer. Read [Reviewer models and effort](references/rounds.md#reviewer-models-and-effort) before you choose one.
 - A `command` reviewer is an extra view: it is `unverified` and never counts as required.
+- A reviewer may have a packet limit, `max_packet_bytes` in the user's configuration: 1,200,000 bytes for `claude` and `codex` and 4,000,000 for `agy` unless the user sets one, and none for `native` and `command`. `spar run` refuses a larger packet with 65 before any reviewer starts, dry runs included, and writes no round, so the cap is unchanged. Make the change or its documents smaller, or ask the user to raise the limit; do not edit the user's configuration yourself.
 - The `native` reviewer is a clean-context subagent of your host. `spar run` writes `native/prompt.md` and a workspace in the round folder (a native reviewer with another name gets a folder of that name). Start a subagent with no other context, only read access to that workspace and the instruction to read that prompt and reply with the JSON object it asks for. Then record the reply: `spar record <round> native --result <file>` or `--transcript <subagent transcript>`; transcript warnings stay in the record.
 - A reviewer that ends `unavailable`, `timed_out`, `invalid_output` or `failed` is shown with its cause. It is never a round without findings. Rerun only that reviewer with `--reviewers <name>` when the cause is gone; a `--reviewers` list never removes the configured required reviewers from the gate.
 - When a required reviewer did not complete a round and the user says to go on without it, record their words for that round: `spar waive <round> <reviewer> --user-quote "<their words>"`. Never record a waiver without the user's words. A waiver covers its round only; record one for each round the reviewer did not complete.
@@ -74,6 +76,8 @@ Close findings with `spar triage <round> <finding> <disposition>`:
 - `duplicate`: needs `--of` another finding of the same round; a `defect` or `requirement-question` points only at one of its own class and stays open until that finding is closed.
 - `answer`: closes a `requirement-question` with the user's words.
 - Every disposition that closes a `requirement-question` needs `--user-quote`, and fixing an automatically deferred `hardening` item in this change needs `--user-quote` too. Never put words in the user's mouth.
+
+Record each disposition before the next round. In fixes and plan-delta packets, an earlier finding's line ends with its last disposition when one is recorded, and the packet asks reviewers to report such a finding again only with a failure scenario that the recorded disposition does not answer. A disposition is part of the packet: a fixes round run on the same base and head after a disposition changed is a new round that counts toward the cap, and its chain continues from the code round before it.
 
 When findings on the same premise come back for two rounds in a row, stop fixing the list: test the premise against the criteria and the code, and ask the user when the premise is a reading of a requirement.
 

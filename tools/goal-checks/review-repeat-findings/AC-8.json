@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "SealExampleRuns",
+      "violation": "seal-example-without-boundary",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestRepeatFindingsAC8_SealExampleRuns"
+      }
+    },
+    {
+      "id": "TriageThenFixes",
+      "violation": "fixes-packet-without-reject",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestRepeatFindingsAC8_TriageThenFixes"
+      }
+    }
+  ]
+}

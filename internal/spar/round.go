@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -54,13 +55,16 @@ type Standpoint struct {
 
 // RunOptions are the inputs of `spar run`.
 type RunOptions struct {
-	Repo        string
-	Stage       string
-	Base, Head  string
-	Out         string
-	Criteria    []string
-	Rules       []string
-	Subjects    []string
+	Repo       string
+	Stage      string
+	Base, Head string
+	Out        string
+	Criteria   []string
+	Rules      []string
+	Subjects   []string
+	// Boundaries are the documents that state each check's observation
+	// boundary for the reviewers (--boundary).
+	Boundaries  []string
 	Questions   []string
 	Decisions   []Decision
 	Standpoints []Standpoint
@@ -105,8 +109,9 @@ func readDocuments(repo string, paths []string, what string) ([]Document, error)
 
 // priorLines lists the findings of earlier rounds of the same stage group,
 // leaving out rounds of the same stage, base and head so that a rerun gets
-// the same packet.
-func priorLines(siblings []sibling, current *RoundRecord) ([]string, []string, error) {
+// the same packet. A finding with a recorded disposition ends with its last
+// one; the bool reports whether any line does.
+func priorLines(siblings []sibling, current *RoundRecord) ([]string, []string, bool, error) {
 	var groups []string
 	switch current.Stage {
 	case "plan-delta":
@@ -114,28 +119,88 @@ func priorLines(siblings []sibling, current *RoundRecord) ([]string, []string, e
 	case "fixes":
 		groups = []string{"code"}
 	default:
-		return []string{}, []string{}, nil
+		return []string{}, []string{}, false, nil
 	}
-	lines, dirs := []string{}, []string{}
+	lines, dirs, disposed := []string{}, []string{}, false
 	for _, s := range siblings {
 		if s.round.DryRun || sameIdentity(s.round, current) || !contains(groups, stageGroup(s.round.Stage)) {
 			continue
 		}
 		findings, err := loadFindings(s.dir)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, false, err
+		}
+		ledger, err := loadLedger(s.dir)
+		if err != nil {
+			return nil, nil, false, err
+		}
+		ids := map[string]bool{}
+		for _, f := range findings {
+			ids[f.ID] = true
+		}
+		last := map[string]LedgerEntry{}
+		for _, e := range ledger {
+			if !ids[e.Finding] {
+				return nil, nil, false, fmt.Errorf("%s/ledger.jsonl has a line for %q, which is not a finding of that round",
+					filepath.Base(s.dir), e.Finding)
+			}
+			if !slices.Contains(Dispositions, e.Disposition) {
+				return nil, nil, false, fmt.Errorf("%s/ledger.jsonl has a line for %s with the unknown disposition %q (%s)",
+					filepath.Base(s.dir), e.Finding, e.Disposition, strings.Join(Dispositions, ", "))
+			}
+			last[e.Finding] = e
 		}
 		dirs = append(dirs, filepath.Base(s.dir))
 		for _, f := range findings {
-			lines = append(lines, fmt.Sprintf("%s %s [%s] at %s: %s", filepath.Base(s.dir), f.ID, f.Class,
-				f.Location, short(f.Claim, 300)))
+			line := fmt.Sprintf("%s %s [%s] at %s: %s", filepath.Base(s.dir), f.ID, f.Class,
+				f.Location, short(f.Claim, 300))
+			if e, ok := last[f.ID]; ok {
+				line += " — " + dispositionText(e)
+				disposed = true
+			}
+			lines = append(lines, line)
 		}
 	}
-	return lines, dirs, nil
+	return lines, dirs, disposed, nil
 }
 
-// packetIdentity is shared by admission, chain checks, completion credit,
-// waivers and recurring-finding counts. Standpoints and their assignments
+// dispositionText is a finding's last disposition as an earlier finding's
+// line shows it: what was decided and what the record gives for it, the
+// recorded texts shortened as a claim is.
+func dispositionText(e LedgerEntry) string {
+	with := func(name, detail string) string {
+		if detail = short(detail, 300); detail != "" {
+			return name + ": " + detail
+		}
+		return name
+	}
+	switch e.Disposition {
+	case "fix":
+		return with("fix", "commit "+shortID(e.Commit))
+	case "reject":
+		// A requirement-question the user rejected is closed by the user's
+		// words, which are its ground.
+		ground := e.Evidence
+		if strings.TrimSpace(ground) == "" {
+			ground = e.UserQuote
+		}
+		return with("reject", ground)
+	case "defer":
+		if e.Auto {
+			return with("defer (auto)", e.Reason)
+		}
+		return with("defer", "to "+e.To)
+	case "duplicate":
+		return "duplicate of " + e.Of
+	case "answer":
+		return with("answer", e.UserQuote)
+	}
+	return e.Disposition
+}
+
+// packetIdentity is shared by admission, completion credit, waivers and
+// recurring-finding counts; the fixes chain compares stage, base and head
+// only (sameIdentity). Standpoints and their assignments
 // live inside the packet and are therefore covered by its digest.
 type packetIdentity struct {
 	stage, base, head, digest string
@@ -197,9 +262,11 @@ func admit(siblings []sibling, exts []Extension, r *RoundRecord) (bool, []string
 	if r.Stage == "fixes" {
 		var previous *RoundRecord
 		for _, s := range siblings {
-			// Only a rerun of the same packet shares its base with the
-			// round it repeats; any other code round extends the chain.
-			if s.round.DryRun || stageGroup(s.round.Stage) != "code" || isRerun(s.round, r) {
+			// A fixes round of the same range shares its base with the
+			// round it repeats, whether it reruns the same packet or is a
+			// new round with another one (such as after a disposition
+			// changed); any other code round extends the chain.
+			if s.round.DryRun || stageGroup(s.round.Stage) != "code" || sameIdentity(s.round, r) {
 				continue
 			}
 			previous = s.round
@@ -371,6 +438,10 @@ func Run(o RunOptions) (int, error) {
 	if err != nil {
 		return ExitRefused, err
 	}
+	boundaries, err := readDocuments(repo, o.Boundaries, "boundary document")
+	if err != nil {
+		return ExitRefused, err
+	}
 	baseTree, err := treeOf(repo, base)
 	if err != nil {
 		return ExitInternal, err
@@ -410,7 +481,7 @@ func Run(o RunOptions) (int, error) {
 		Schema: RoundSchema, SparVersion: o.Version, Stage: o.Stage, Label: o.Label, Series: series,
 		Sequence: len(siblings) + 1, Repo: repo, Base: base, Head: head, BaseTree: baseTree, HeadTree: headTree,
 		DiffSHA256: newDocument("", "", changes).SHA256, Criteria: criteria, CriteriaDigest: documentsDigest(criteria),
-		Rules: nonNil(rules), Subjects: nonNil(subjects), Questions: append([]string{}, o.Questions...),
+		Rules: nonNil(rules), Subjects: nonNil(subjects), Boundaries: boundaries, Questions: append([]string{}, o.Questions...),
 		Decisions:   append([]Decision(nil), o.Decisions...),
 		Standpoints: append([]Standpoint{}, o.Standpoints...),
 		Config:      cfg, DryRun: o.DryRun, RerunOf: []string{}, Reviewers: map[string]*ReviewerState{},
@@ -425,14 +496,23 @@ func Run(o RunOptions) (int, error) {
 	if r.RequiredReviewers == nil {
 		r.RequiredReviewers = []string{}
 	}
-	prior, priorDirs, err := priorLines(siblings, r)
+	prior, priorDirs, disposed, err := priorLines(siblings, r)
 	if err != nil {
 		return ExitRefused, refused("series %s: %v", series, err)
 	}
 	r.Prior = priorDirs
 	packet := buildPacket(packetInput{Stage: o.Stage, Base: base, Head: head, BaseTree: baseTree, HeadTree: headTree,
 		Angles: cfg.Angles, CheckPaths: cfg.CheckPaths, Criteria: criteria, Rules: rules, Subjects: subjects,
-		Decisions: o.Decisions, Standpoints: o.Standpoints, Questions: o.Questions, Prior: prior, Diff: changes})
+		Boundaries: boundaries, Decisions: o.Decisions, Standpoints: o.Standpoints, Questions: o.Questions, Prior: prior, Disposed: disposed, Diff: changes})
+	// A packet a reviewer cannot take is refused before the round folder
+	// exists, so that no round is written or counted (dry runs included).
+	for _, rv := range cfg.Reviewers {
+		if rv.PacketLimit > 0 && int64(len(packet)) > rv.PacketLimit {
+			return ExitRefused, refused("the packet is %d bytes, over the %d-byte limit of reviewer %s (max_packet_bytes); "+
+				"no round is written or counted: make the change or its documents smaller, or raise max_packet_bytes for %s in the user configuration",
+				len(packet), rv.PacketLimit, rv.Name, rv.Name)
+		}
+	}
 	r.PacketSHA256 = newDocument("", "", []byte(packet)).SHA256
 	counted, rerunOf, err := admit(siblings, exts, r)
 	if err != nil {
