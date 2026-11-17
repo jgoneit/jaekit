@@ -187,7 +187,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 - fixes 라운드의 base는 같은 series의 마지막 code 라운드의 head여야 한다. 아니면 거부한다. 이때 이번 실행과 단계·base·head가 같은 앞선 라운드는 패킷 digest와 관계없이 건너뛴다. 같은 패킷의 재실행이든, 처리가 바뀐 뒤처럼 패킷이 달라진 같은 범위의 새 라운드든 그 라운드가 되풀이하는 라운드와 base를 같이 쓰기 때문이다. 그래서 같은 범위의 fixes 라운드는 그보다 앞선 code 라운드에 이어지고, 그 code 라운드의 head와 base가 다를 때만 사슬이 끊긴다. 패킷이 다른 같은 범위의 라운드는 재실행이 아니므로 상한에 센다.
 - 연장은 `spar extend <series> --stage plan|plan-delta|code --by N [--cause <원인>] [--reason "…"] --user-quote "…"`로 series의 `extensions.jsonl`에 `{"stage", "by", "cause", "reason", "user_quote", "recorded_at"}`을 더한다. `cause`와 `reason`은 있을 때만 쓴다. 사용자의 말이 없으면 거부한다. series 경로는 `--out`과 같은 기록 경로 규칙(G28)을 따르고(검토하는 저장소를 찾지 못해도 그 경로가 속한 저장소로 확인한다), `--repo`가 Git 저장소가 아니면 거부한다.
 - code 연장은 상한을 다 쓴 원인을 `--cause`로 받는다. 값은 `churn`, `recurring`, `unrelated`, `hardening`, `other` 다섯 가운데 하나이고(대소문자 구분), 이 다섯이 전부다. 없거나 목록 밖이면 사용법 오류(64)다. `--reason`은 앞뒤 공백을 떼고 기록하며, 뗀 뒤 비면 이유가 없는 것이다. `--by`가 2 이상이거나 `--cause other`이면 이유가 필요하고, 없으면 거부(65)한다. plan·plan-delta 연장은 `--cause`·`--reason`을 받지 않아 사용법 오류(64)로 끝나며, 그 줄은 이전처럼 `{"stage", "by", "user_quote", "recorded_at"}`이다. 어느 오류와 거부도 아무것도 쓰지 않는다. 원인은 실행자가 11절의 보고를 보고 고르며, spar는 고르지 않는다.
-- 상한 계산, 재실행 판단, gate는 `cause`·`reason`을 읽지 않는다. 원인이 없는 줄(이 기능 전에 기록한 줄)도 지금처럼 `stage`와 `by`로 센다.
+- 상한 계산, 재실행 판단, gate는 `cause`·`reason`을 읽지 않는다. 원인이 없는 줄(이 기능 전에 기록한 줄)도 지금처럼 `stage`와 `by`로 센다. 그래서 `cause`나 `reason`이 글이 아닌 줄도 이 셋에서는 그 둘이 없는 줄과 같이 판단한다. 그 둘을 보여 주는 `spar cap-report`(11절)와 `ha cost`([run-record.md](run-record.md) §1.7)는 다른 형식 밖의 연장 줄처럼 그 series를 거부한다.
 - code 상한 거부 메시지는 위의 글 뒤에 ``; read why with `spar cap-report <series>` and record a code extension with --cause``를 붙인다. plan·plan-delta 상한 거부 메시지는 그대로다.
 
 관점의 글과 배정은 패킷 안에 있으므로 `packet_sha256`이 같은 입력의 일부로 식별하며, 어느 하나라도 바꾸면 새 입력이다. 끝내지 못한 리뷰어만 다시 돌리고 단계, base, head와 `packet_sha256`이 같은 관점을 포함해 그대로이면 상한에 세지 않는다.
@@ -265,7 +265,7 @@ Markdown은 JSON의 `schema`(형식 이름)를 뺀 모든 값을 담는다. 순�
 - 끝난 라운드(`finished_at`이 있음)에 `findings.json`이 없거나, `findings.json`이 있는데 `ledger.jsonl`이 없다.
 - 목록 라운드의 `findings.json`이 지적의 목록이 아니거나(`null` 포함), 지적에 `id`가 없거나, `class`가 네 class 밖이거나, 신호가 읽는 `introduced_by_change`가 `yes`·`no`·`unknown` 밖이거나 `link_kind`가 `criterion`·`rule`·`contract`·`none` 밖이다. 또는 지적의 `id`·`class`·`introduced_by_change`·`link_kind`·`link`·`path`가 없거나 `null`이거나 글이 아니거나, 있는 `location_unreadable`이 참거짓이 아니다.
 - 목록 라운드의 `ledger.jsonl` 줄이 해석되지 않거나, `finding`이 없거나, `disposition`이 다섯 처리 밖이다.
-- `extensions.jsonl` 줄이 해석되지 않거나 형식 밖이다: `stage`가 `plan`·`plan-delta`·`code` 밖, `by`가 1 미만, `user_quote`가 비었음, `cause`가 code 줄이 아닌 곳에 있거나 다섯 값 밖, `cause`가 있는 줄의 `by`가 2 이상이거나 `cause`가 `other`인데 `reason`이 없거나 비었음. 원인이 없는 code 줄(이 기능 전에 기록한 줄)에는 이유를 요구하지 않는다.
+- `extensions.jsonl` 줄이 해석되지 않거나 형식 밖이다: `stage`가 `plan`·`plan-delta`·`code` 밖, `by`가 1 미만, `user_quote`가 비었음, `cause`나 `reason`이 글이 아님(`null`은 값이 없는 것), `cause`가 code 줄이 아닌 곳에 있거나 다섯 값 밖, `cause`가 있는 줄의 `by`가 2 이상이거나 `cause`가 `other`인데 `reason`이 없거나 비었음. 원인이 없는 code 줄(이 기능 전에 기록한 줄)에는 이유를 요구하지 않는다.
 - `--repo`가 Git 저장소가 아니거나 Git을 시작할 수 없다.
 - 실행하는 Git이 2.44보다 오래되었고(`GIT_NO_LAZY_FETCH`를 모른다) 저장소가 부분 clone이다(`extensions.partialClone`이나 참인 `remote.<이름>.promisor`가 있음). 객체를 읽기 전에 거부하며, 이유에 Git 버전을 밝힌다.
 - 목록 라운드의 base나 head가 저장소에 없다(얕은 clone 포함), 또는 보고에 필요한 객체가 부분 clone에 없다.

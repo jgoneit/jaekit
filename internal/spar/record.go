@@ -147,6 +147,23 @@ type Extension struct {
 	RecordedAt string `json:"recorded_at"`
 }
 
+// capExtension is an extensions.jsonl line as the cap computation, the
+// rerun decision and the gate read it. It has no cause or reason: they
+// decide none of these (contracts/review-round.md §8), so a line whose
+// cause or reason is not text decides the same as one without them. Only
+// the displays (spar cap-report, ha cost) read and refuse those values.
+type capExtension struct {
+	Stage      string `json:"stage"`
+	By         int    `json:"by"`
+	UserQuote  string `json:"user_quote"`
+	RecordedAt string `json:"recorded_at"`
+}
+
+// capPart is the part of a line the cap computation reads.
+func (e Extension) capPart() capExtension {
+	return capExtension{Stage: e.Stage, By: e.By, UserQuote: e.UserQuote, RecordedAt: e.RecordedAt}
+}
+
 // Causes are the reasons a code cap ran out that a code extension records.
 var Causes = []string{"churn", "recurring", "unrelated", "hardening", "other"}
 
@@ -334,8 +351,16 @@ func seriesRounds(series string) ([]sibling, error) {
 	return out, nil
 }
 
+// loadExtensions reads a series' extensions.jsonl with each line's cause
+// and reason, for the report that shows them.
 func loadExtensions(series string) ([]Extension, error) {
 	return readJSONLines[Extension](filepath.Join(series, "extensions.jsonl"))
+}
+
+// loadCapExtensions reads a series' extensions.jsonl for the cap
+// computation of spar run and spar gate, without cause and reason.
+func loadCapExtensions(series string) ([]capExtension, error) {
+	return readJSONLines[capExtension](filepath.Join(series, "extensions.jsonl"))
 }
 
 // stageGroup names the cap a stage counts against.
@@ -361,7 +386,7 @@ func capFor(c Caps, group string) int64 {
 	}
 }
 
-func extensionsFor(exts []Extension, group string) int64 {
+func extensionsFor(exts []capExtension, group string) int64 {
 	var n int64
 	for _, e := range exts {
 		g := e.Stage

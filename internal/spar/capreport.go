@@ -155,7 +155,11 @@ func CapReport(o CapReportOptions) (int, error) {
 			rep.Cap.Counted++
 		}
 	}
-	rep.Cap.Extensions = extensionsFor(exts, "code")
+	counts := make([]capExtension, 0, len(exts))
+	for _, e := range exts {
+		counts = append(counts, e.capPart())
+	}
+	rep.Cap.Extensions = extensionsFor(counts, "code")
 	if rep.Cap.Code != nil {
 		allowed := *rep.Cap.Code + rep.Cap.Extensions
 		rep.Cap.Allowed = &allowed

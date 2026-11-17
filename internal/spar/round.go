@@ -217,7 +217,7 @@ func isRerun(a, b *RoundRecord) bool {
 
 // admit applies the stage caps, the rerun rule and the fixes chain. It
 // returns whether the run counts against the cap and which rounds it reruns.
-func admit(siblings []sibling, exts []Extension, r *RoundRecord) (bool, []string, error) {
+func admit(siblings []sibling, exts []capExtension, r *RoundRecord) (bool, []string, error) {
 	group := stageGroup(r.Stage)
 	// Rounds of a series run one at a time under its lock, so every earlier
 	// round here has ended; one without finished_at was stopped, and its
@@ -473,7 +473,7 @@ func Run(o RunOptions) (int, error) {
 	if err != nil {
 		return ExitRefused, refused("series %s: %v", series, err)
 	}
-	exts, err := loadExtensions(series)
+	exts, err := loadCapExtensions(series)
 	if err != nil {
 		return ExitRefused, refused("series %s: %v", series, err)
 	}

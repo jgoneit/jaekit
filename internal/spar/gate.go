@@ -612,7 +612,7 @@ func capProblems(rounds []loadedRound) []string {
 				caps[s] = sib.round.Config.Caps
 			}
 		}
-		exts, err := loadExtensions(s)
+		exts, err := loadCapExtensions(s)
 		if err != nil {
 			problems = append(problems, fmt.Sprintf("series %s: %v", s, err))
 			continue
