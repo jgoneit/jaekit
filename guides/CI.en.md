@@ -72,7 +72,7 @@ The [site workflow](../.github/workflows/pages.yml) builds the [documentation si
 
 - `Site build` builds the site. It fails when a link target or the release version cannot be read. On `main` it builds the head of `main` when the run starts, not the commit that started the run, so the last run publishes the latest commit.
 - `Site test` tests the built site's documents, links and page behavior. It does not hold back publishing.
-- `Site deploy` publishes to GitHub Pages only after `Site build` succeeds on `main`.
+- `Site deploy` publishes to GitHub Pages only after `Site build` succeeds on `main`. Before publishing it compares the commit the build was made from with the current commit of `main`: when they differ it skips publishing and succeeds, so re-running an older run's failed deploy does not publish an older site. When it cannot read the current commit of `main`, it fails without publishing.
 
 These jobs are not required checks, so a failure does not block a merge. When a build or deployment fails, the previously published site stays. The [site source guide](../tools/site/README.md) explains how to build the site locally.
 
