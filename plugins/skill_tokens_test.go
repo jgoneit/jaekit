@@ -446,7 +446,7 @@ func TestSkillAuthorityRulesInBody(t *testing.T) {
 		section string
 		tokens  []string
 	}{
-		{specSkillDir, "## Agent invocations", []string{"Status: Ready", "amendments/<name>.md"}},
+		{specSkillDir, "## Agent invocations", []string{"## Open Decisions", "Status: Ready", "amendments/<name>.md"}},
 		{specSkillDir, "## Writing and reporting", []string{"implement-now"}},
 		{specSkillDir, "## Boundaries", []string{"docs/specs/<goal>/"}},
 		{sealSkillDir, "## Authority", []string{"ha start --request", "Status: Ready", "SPEC.md"}},
