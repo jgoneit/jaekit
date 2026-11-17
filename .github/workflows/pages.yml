@@ -16,7 +16,9 @@ permissions:
 # run replaces a pending one. Runs need not start in push order, so a run on
 # main builds the head of main when it starts, not the commit that started it;
 # the last run then publishes the latest commit. A newer pull request run
-# cancels an older one.
+# cancels an older one. Re-running only an older run's failed deploy reuses
+# that run's build, so the deploy job publishes only when the commit it was
+# built from is still main's current commit.
 concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -25,12 +27,20 @@ jobs:
   build:
     name: Site build
     runs-on: ubuntu-24.04
+    outputs:
+      commit: ${{ steps.commit.outputs.sha }}
     steps:
       - name: Check out the commit (on main, main's head)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && 'refs/heads/main' || '' }}
           persist-credentials: false
+      - name: Record the built commit
+        id: commit
+        shell: bash
+        run: |
+          sha="$(git rev-parse --verify HEAD)"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
       - name: Build the site
         run: python3 tools/site/build.py --out "$RUNNER_TEMP/site" --base /jaekit/ --cache "$RUNNER_TEMP/site-cache"
       - name: Upload the Pages artifact
@@ -70,6 +80,38 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Compare the built commit with main's current commit
+        id: current
+        shell: bash
+        timeout-minutes: 5
+        env:
+          BUILT: ${{ needs.build.outputs.commit }}
+          REPOSITORY: ${{ github.server_url }}/${{ github.repository }}.git
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          if ! [[ "$BUILT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Site deploy stopped: the build did not record the commit it built."
+            exit 1
+          fi
+          if ! listing="$(git ls-remote --exit-code "$REPOSITORY" refs/heads/main)"; then
+            echo "::error::Site deploy stopped: cannot read main's current commit."
+            exit 1
+          fi
+          current="$(awk '$2 == "refs/heads/main" { print $1 }' <<< "$listing")"
+          if ! [[ "$current" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Site deploy stopped: cannot read main's current commit."
+            exit 1
+          fi
+          if [ "$current" != "$BUILT" ]; then
+            message="Site deploy skipped: this run built $BUILT, but main is now $current. The run that builds main's current commit publishes it."
+            echo "$message"
+            echo "$message" >> "$GITHUB_STEP_SUMMARY"
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Site deploy publishes $BUILT, main's current commit."
+          echo "deploy=true" >> "$GITHUB_OUTPUT"
       - name: Publish to GitHub Pages
         id: deployment
+        if: steps.current.outputs.deploy == 'true'
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
