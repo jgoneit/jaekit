@@ -4,6 +4,7 @@ package protectedchecks
 
 import (
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -37,21 +38,40 @@ func currentTree(t *testing.T, tree string) unittestResult {
 	return runUnittest(t, filepath.Join(tree, "tools", "goal-checks"), nil, "test_authoring_check.CurrentTree")
 }
 
-// The fixed text of tools/verify.py by which its docs group runs every
-// test_*.py of tools/goal-checks, the protected route's test included.
-var fullVerification = []string{
-	`("Goal check regressions", "goal-checks")`,
-	`"-m", "unittest", "discover", "-s", f"tools/{directory}",`,
-	`"-p", "test_*.py"`,
+// The fixed text of tools/verify.py by which the full verification runs the
+// protected route's test: the default group "all" runs verify_docs, and one
+// loop of verify_docs discovers test_*.py in each listed tools/ directory,
+// tools/goal-checks among them.
+const (
+	groupDefault = `parser.add_argument("group", nargs="?", choices=("all", "go", "docs"), default="all")`
+	docsDispatch = "        if args.group in (\"all\", \"docs\"):\n            verify_docs(env)\n"
+	goalChecks   = `("Goal check regressions", "goal-checks")`
+)
+
+var discoverLoop = regexp.MustCompile(`for label, directory in \(((?:[^()]|\([^()]*\))*)\):\s*` +
+	`run\(label, \[sys\.executable, "-m", "unittest", "discover", "-s", f"tools/\{directory\}",\s*"-p", "test_\*\.py"\], env\)`)
+
+// fullVerificationRuns reports whether tools/verify.py, as fixed text, runs
+// the tests of tools/goal-checks in its default group.
+func fullVerificationRuns(t *testing.T) bool {
+	t.Helper()
+	verify := read(t, filepath.Join(repoRoot(t), "tools", "verify.py"))
+	start := strings.Index(verify, "\ndef verify_docs(")
+	if start < 0 || !strings.Contains(verify, groupDefault) || !strings.Contains(verify, docsDispatch) {
+		return false
+	}
+	body := verify[start+1:]
+	if end := strings.Index(body, "\ndef "); end >= 0 {
+		body = body[:end]
+	}
+	loop := discoverLoop.FindStringSubmatch(body)
+	return loop != nil && strings.Contains(loop[1], goalChecks)
 }
 
 func guarded(t *testing.T, id, what, old, new string) {
 	t.Helper()
-	verify := read(t, filepath.Join(repoRoot(t), "tools", "verify.py"))
-	for _, token := range fullVerification {
-		if !strings.Contains(verify, token) {
-			t.Errorf("jaekit:violation=%s the full verification does not run CurrentTree: tools/verify.py lacks %s", id, token)
-		}
+	if !fullVerificationRuns(t) {
+		t.Errorf("jaekit:violation=%s the full verification does not run CurrentTree: tools/verify.py's default group has no discover loop over tools/goal-checks test_*.py", id)
 	}
 	if r := currentTree(t, producerCopy(t, "", "")); !r.ok {
 		t.Fatalf("control: CurrentTree fails on the unchanged copy:\n%s", tail(r.output, 30))

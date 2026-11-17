@@ -122,7 +122,7 @@ var routeRecords = map[string]struct {
 	},
 	"observation-identity-gap": {
 		sources:  []string{"tools/release-checks/source_identity.py"},
-		boundary: []string{"Fixture repositories turn off Git's automatic maintenance"},
+		boundary: []string{"SourceIdentityEvidence's source and sentinel repositories turn off Git's automatic maintenance"},
 		check:    routeCheck{"tools/release-checks/integration_evidence_boundaries.py", "SourceIdentityEvidence"},
 	},
 }
