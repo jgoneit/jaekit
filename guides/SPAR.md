@@ -201,7 +201,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 `standpoint_report`는 관점 보고 객체다. `checked`는 불리언이고 `detail`은 공백뿐이 아닌 글이다. 참이면 확인한 것, 거짓이면 확인하지 못한 이유다. 관점을 받은 리뷰어의 보고가 없거나 null이거나 형식이 틀리면 `invalid_output`이고 이유에 `standpoint_report`가 들어가며, 관점이 없는 리뷰어에게는 보고를 요구하지 않는다. 관점이 없는 리뷰어의 `standpoint_report`는 확인하지 않고 `null`로 기록한다. 모든 preset에 `spar run`과 `spar record --result` 또는 `--transcript`가 같은 확인을 한다.
 
-`round.json`은 `standpoints`에 reviewer/text 쌍, `standpoints_uncovered`에 완료한 리뷰어가 없는 관점의 리뷰어 이름, 리뷰어마다 `standpoint`와 `standpoint_report`에 글과 보고 또는 null을 남긴다. `summary.md`는 리뷰어마다 관점과 보고를 보이고, waive된 리뷰어를 포함해 완료한 리뷰어가 없는 관점을 보인다. 형식은 `review-round/v1` 그대로이며, 관점 필드가 없는 기록은 관점 없음으로 읽는다. gate를 보고할 때는 waive된 경우를 포함해 완료한 리뷰어 없이 남은 관점도 함께 알립니다.
+`round.json`은 `standpoints`에 reviewer/text 쌍, `standpoints_uncovered`에 완료한 리뷰어가 없는 관점의 리뷰어 이름, 리뷰어마다 `standpoint`와 `standpoint_report`에 글과 보고 또는 null을 남긴다. `summary.md`는 리뷰어마다 관점과 보고를 보이고, waive된 리뷰어를 포함해 완료한 리뷰어가 없는 관점을 보인다. 형식은 `review-round/v1` 그대로이며, 관점 필드가 없는 기록은 관점 없음으로 읽는다. `spar gate`는 같은 패킷의 주어진 라운드 어디에서도 리뷰어가 완료하지 않은 관점을 `uncovered_standpoints`에 보인다. 재실행에서 완료한 리뷰어는 자기 관점을 채우고, waive된 리뷰어의 관점은 남는다. gate를 보고할 때는 이 관점도 함께 알립니다.
 
 관점은 각도, 분류, 처리, 상한, gate의 상태와 사유를 바꾸지 않는다.
 

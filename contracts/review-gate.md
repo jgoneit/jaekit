@@ -80,10 +80,13 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
 | `auto_deferred` | 마지막 처리가 자동 보류인 `hardening` 수. 위치를 읽을 수 없는 `hardening`은 원장 항목이 없어 세지 않는다 |
 | `deferred_findings` | 목록의 모든 라운드에서 마지막 처리가 사람이 정한 `defer`(자동 보류가 아닌 것)인 지적마다 `series`(series 폴더 이름), `round`(라운드 폴더 이름), `id`, `class`(`findings.json`의 분류), `to`(원장의 `to` 값 그대로). 자동 보류는 `auto_deferred` 수로만 남는다 |
 | `unhandled_findings` | 목록의 모든 라운드에서 원장에 처리가 없는 지적마다, 분류와 관계없이 `series`, `round`, `id`, `class`. 처리 없는 `note`와 위치를 읽을 수 없는 `hardening`도 들어간다 |
+| `uncovered_standpoints` | 단계·base·head·패킷(`packet_digest`)이 같은 주어진 라운드 어디에서도 리뷰어가 완료하지 않은 관점마다 `reviewer`와 `text`(라운드의 `standpoints`와 같음), 그리고 그 패킷의 주어진 라운드마다 `series`·`round` 폴더 이름을 주어진 순서로 담은 `rounds`. 주어진 라운드에 관점이 있으면 있고(비어 있을 수 있음), 없으면 없다 |
 | `growth.added_lines` | 목록의 fixes 라운드마다 `git diff --numstat -M <base> <head>`의 더한 줄(이름을 바꾼 파일은 새 경로에서 더한 줄만)을 그 라운드 설정의 검사 경로(`check`)와 그 밖(`other`)으로 나눈 합. 같은 base·head는 한 번만 센다 |
 | `growth.over_hardening` | `check`가 `other`보다 크면 `true` |
 | `growth.rounds[]` | fixes 라운드별 `check`·`other` |
 
 두 목록은 주어진 라운드 순서, 라운드마다 `findings.json`의 순서다. 라운드와 series는 경로가 아니라 폴더 이름이라 주어진 라운드 경로가 절대 경로여도 들어가지 않는다. 다른 처리(`fix`, `reject`, `duplicate`, `answer`)로 끝난 지적은 어느 목록에도 없다. 두 목록은 상태, 사유, 종료 코드, 다른 필드를 바꾸지 않는다. 지적 원문은 들어가지 않는다. 이 두 필드가 없는 파일은 이 필드 전의 Spar가 쓴 것이다. `ha`가 이 목록을 기록하는 방식은 [run-record.md](run-record.md) §4.8에 있다.
+
+`uncovered_standpoints`는 라운드의 `standpoints_uncovered`([검토 라운드](review-round.md) 5절)를 한 패킷의 재실행에 걸쳐 합친다. `completed_required`가 필수 리뷰어를 합치는 것과 같으며, 예를 들어 `[{"reviewer": "agy", "text": "…", "rounds": [{"series": "example", "round": "02-candidate"}]}]`이다. 관점은 그것이 가리키는 리뷰어가 이름으로(preset이나 필수 여부와 관계없이) 그 패킷의 주어진 라운드 어디에서도 `completed`가 아닐 때만 들어가며, 재실행에서 완료한 리뷰어는 그 패킷의 모든 라운드에서 자기 관점을 채운다. 관점 글과 배정은 패킷에 들어 있으므로 한 패킷의 라운드는 같은 관점을 가지고, 리뷰어와 글이 같아도 다른 패킷의 라운드는 그 관점을 채우지 않는다. waive된 리뷰어는 완료하지 않았으므로 `round.json`·`summary.md`에서처럼 그 관점은 목록에 남고, 결정은 `waived_reviewers`에 보인다. 항목은 주어진 라운드 순서, 라운드 안에서는 그 `standpoints` 순서를 따르며 한 패킷의 관점은 한 번만 나온다. gate가 읽지 못한 라운드는 보지 않는다. 이 목록은 상태, 사유, 종료 코드, 다른 필드를 바꾸지 않고, `ha`는 이것을 읽지 않는다. 주어진 라운드에 관점이 없는 gate에는 이 필드가 없어 파일이 이 필드 전과 같다. 관점이 있는 라운드의 gate에 이 필드가 없으면 이 필드 전의 Spar가 쓴 것이다.
 
 `growth`는 검토가 수정을 검사 코드 쪽으로 부풀렸는지 읽게 하는 기록이다. `over_hardening`은 판단을 대신하지 않고 상태를 바꾸지 않는다.

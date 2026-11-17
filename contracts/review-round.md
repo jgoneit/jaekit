@@ -100,9 +100,9 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 - spar가 읽는 방식: `location`은 G7, `rule`·`contract` 연결은 G8, `criterion` 연결은 G9. 위치를 읽을 수 없는 지적도 결과에서 버리지 않는다.
 - `could_not_review`는 완료가 아니라 `failed`로 기록한다.
 
-`standpoint_report`는 관점 보고 객체다. `checked`는 불리언이고 `detail`은 공백뿐이 아닌 글이다. 참이면 확인한 것, 거짓이면 확인하지 못한 이유다. 관점을 받은 리뷰어의 보고가 없거나 null이거나 형식이 틀리면 `invalid_output`이고 이유에 `standpoint_report`가 들어가며, 관점이 없는 리뷰어에게는 보고를 요구하지 않는다. 관점이 없는 리뷰어의 `standpoint_report`는 확인하지 않고 `null`로 기록한다. 모든 preset에 `spar run`과 `spar record --result` 또는 `--transcript`가 같은 확인을 한다.
+`standpoint_report`는 관점 보고 객체다. `checked`는 불리언이고 `detail`은 공백뿐이 아닌 글이다. 참이면 확인한 것, 거짓이면 확인하지 못한 이유다. 관점을 받은 리뷰어의 보고가 없거나 null이거나 형식이 틀리면 `invalid_output`이고 이유에 `standpoint_report`가 들어간다. 관점이 없는 리뷰어에게는 보고를 요구하지 않으며, 그 `standpoint_report`는 빠졌든 null이든 다른 값이든 확인하지 않고 `null`로 기록한다. 모든 preset에 `spar run`과 `spar record --result` 또는 `--transcript`가 같은 확인을 한다.
 
-관점이 있는 라운드의 `schema.json`은 `standpoint_report`를 `["object","null"]` 형식으로 더하고, 엄격한 schema를 쓰는 CLI를 위해 `required`에 넣는다. 객체의 키는 정확히 `checked`와 `detail`이며, 실행 시 확인은 관점 없는 리뷰어가 키를 빼거나 null을 쓰는 것도 받는다. `claude` preset의 `--json-schema` 인자도 그 라운드의 schema다. 관점이 없는 라운드에서는 이 키가 여전히 모르는 키이고 이전 schema가 그대로다. 형식에 맞는 `checked: false` 보고는 한계를 설명하며, 그 자체로 `completed`를 막지 않는다.
+관점이 있는 라운드의 `schema.json`은 `standpoint_report`를 `["object","null"]` 형식으로 더하고, 엄격한 schema를 쓰는 CLI를 위해 `required`에 넣는다. 객체의 키는 정확히 `checked`와 `detail`이다. `claude` preset의 `--json-schema` 인자도 그 라운드의 schema다. 관점이 없는 라운드에서는 이 키가 여전히 모르는 키이고 이전 schema가 그대로다. 형식에 맞는 `checked: false` 보고는 한계를 설명하며, 그 자체로 `completed`를 막지 않는다.
 
 ## 4. 리뷰어 상태
 
@@ -144,7 +144,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 `round.json`은 `standpoints`에 reviewer/text 쌍, `standpoints_uncovered`에 완료한 리뷰어가 없는 관점의 리뷰어 이름, 리뷰어마다 `standpoint`와 `standpoint_report`에 글과 보고 또는 null을 남긴다. `summary.md`는 리뷰어마다 관점과 보고를 보이고, waive된 리뷰어를 포함해 완료한 리뷰어가 없는 관점을 보인다. 형식은 `review-round/v1` 그대로이며, 관점 필드가 없는 기록은 관점 없음으로 읽는다.
 
-`standpoints`는 `reviewer`와 `text`를 담은 객체를 인자 순서로 둔 배열이고, 관점이 없으면 `[]`다. `standpoints_uncovered`와 리뷰어별 관점 필드는 관점이 있는 라운드에만 있다. 완료한 리뷰어가 없다는 것은 배정된 리뷰어가 그 라운드를 완료하지 못했다는 뜻이며, 실행 목록에서 빠진 리뷰어도 포함한다. `checked: false`라는 뜻은 아니다. waive는 리뷰어를 완료시키지 않는다. `spar record`가 리뷰어를 완료하면 남은 이름과 요약을 다시 계산한다. 요약 머리에는 `- Standpoints: <n> for <names>`, 남은 관점이 있으면 `- Standpoints without a completed reviewer: <names>`가 나온다. 관점을 받은 리뷰어 아래에는 `  - standpoint: <첫 줄, 80자까지>`와 `  - standpoint report: checked|unchecked: <detail 첫 줄>`가 나오고, 보고가 없으면 `  - standpoint report: none`이다.
+`standpoints`는 `reviewer`와 `text`를 담은 객체를 인자 순서로 둔 배열이고, 관점이 없으면 `[]`다. `standpoints_uncovered`와 리뷰어별 관점 필드는 관점이 있는 라운드에만 있다. 완료한 리뷰어가 없다는 것은 배정된 리뷰어가 그 라운드를 완료하지 못했다는 뜻이며, 실행 목록에서 빠진 리뷰어도 포함한다. `checked: false`라는 뜻은 아니다. waive는 리뷰어를 완료시키지 않는다. `spar record`가 리뷰어를 완료하면 남은 이름과 요약을 다시 계산한다. 이것은 라운드마다의 값이며, 한 패킷의 재실행에 걸쳐서는 gate의 `uncovered_standpoints`([검토 gate](review-gate.md) 3절)가 어느 라운드에서도 리뷰어가 완료하지 않은 관점을 보인다. 요약 머리에는 `- Standpoints: <n> for <names>`, 남은 관점이 있으면 `- Standpoints without a completed reviewer: <names>`가 나온다. 관점을 받은 리뷰어 아래에는 `  - standpoint: <첫 줄, 80자까지>`와 `  - standpoint report: checked|unchecked: <detail 첫 줄>`가 나오고, 보고가 없으면 `  - standpoint report: none`이다.
 
 ## 6. 분류
 

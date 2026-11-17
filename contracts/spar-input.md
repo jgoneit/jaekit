@@ -77,9 +77,9 @@
 
 ### 관점 보고와 기록
 
-`standpoint_report`는 관점 보고 객체다. `checked`는 불리언이고 `detail`은 공백뿐이 아닌 글이다. 참이면 확인한 것, 거짓이면 확인하지 못한 이유다. 관점을 받은 리뷰어의 보고가 없거나 null이거나 형식이 틀리면 `invalid_output`이고 이유에 `standpoint_report`가 들어가며, 관점이 없는 리뷰어에게는 보고를 요구하지 않는다. 관점이 없는 리뷰어의 `standpoint_report`는 확인하지 않고 `null`로 기록한다. 모든 preset에 `spar run`과 `spar record --result` 또는 `--transcript`가 같은 확인을 한다.
+`standpoint_report`는 관점 보고 객체다. `checked`는 불리언이고 `detail`은 공백뿐이 아닌 글이다. 참이면 확인한 것, 거짓이면 확인하지 못한 이유다. 관점을 받은 리뷰어의 보고가 없거나 null이거나 형식이 틀리면 `invalid_output`이고 이유에 `standpoint_report`가 들어간다. 관점이 없는 리뷰어에게는 보고를 요구하지 않으며, 그 `standpoint_report`는 빠졌든 null이든 다른 값이든 확인하지 않고 `null`로 기록한다. 모든 preset에 `spar run`과 `spar record --result` 또는 `--transcript`가 같은 확인을 한다.
 
-관점이 있는 라운드의 `schema.json`은 `standpoint_report`를 `["object","null"]` 형식으로 더하고, 엄격한 schema를 쓰는 CLI를 위해 `required`에 넣는다. 객체의 키는 정확히 `checked`와 `detail`이며, 실행 시 확인은 관점 없는 리뷰어가 키를 빼거나 null을 쓰는 것도 받는다. `claude` preset의 `--json-schema` 인자도 그 라운드의 schema다. 관점이 없는 라운드에서는 이 키가 여전히 모르는 키이고 이전 schema가 그대로다. 형식에 맞는 `checked: false` 보고는 한계를 설명하며, 그 자체로 `completed`를 막지 않는다.
+관점이 있는 라운드의 `schema.json`은 `standpoint_report`를 `["object","null"]` 형식으로 더하고, 엄격한 schema를 쓰는 CLI를 위해 `required`에 넣는다. 객체의 키는 정확히 `checked`와 `detail`이다. `claude` preset의 `--json-schema` 인자도 그 라운드의 schema다. 관점이 없는 라운드에서는 이 키가 여전히 모르는 키이고 이전 schema가 그대로다. 형식에 맞는 `checked: false` 보고는 한계를 설명하며, 그 자체로 `completed`를 막지 않는다.
 
 `round.json`은 `standpoints`에 reviewer/text 쌍, `standpoints_uncovered`에 완료한 리뷰어가 없는 관점의 리뷰어 이름, 리뷰어마다 `standpoint`와 `standpoint_report`에 글과 보고 또는 null을 남긴다. `summary.md`는 리뷰어마다 관점과 보고를 보이고, waive된 리뷰어를 포함해 완료한 리뷰어가 없는 관점을 보인다. 형식은 `review-round/v1` 그대로이며, 관점 필드가 없는 기록은 관점 없음으로 읽는다.
 
