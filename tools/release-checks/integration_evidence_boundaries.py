@@ -268,6 +268,9 @@ class SourceIdentityEvidence(unittest.TestCase):
         self.git('init', '-q')
         self.git('config', 'user.name', 'Synthetic Test')
         self.git('config', 'user.email', 'synthetic@example.invalid')
+        # A commit may start Git's automatic maintenance, which writes into
+        # .git (objects/maintenance.lock) while a test compares its contents.
+        self.git('config', 'maintenance.auto', 'false')
         self.git('add', '.')
         self.git('commit', '-qm', 'synthetic source')
         self.tree = self.git('rev-parse', 'HEAD^{tree}').decode().strip()
@@ -412,6 +415,9 @@ class SourceIdentityEvidence(unittest.TestCase):
             (sentinel / 'data').write_bytes(b'preserve this repository\n')
             identity.git(sentinel, 'config', 'user.name', 'Sentinel')
             identity.git(sentinel, 'config', 'user.email', 'sentinel@example.invalid')
+            # Only the snapshot's own writes may change the sentinel; the
+            # automatic maintenance its commit could start is turned off.
+            identity.git(sentinel, 'config', 'maintenance.auto', 'false')
             identity.git(sentinel, 'add', '.')
             identity.git(sentinel, 'commit', '-qm', 'sentinel')
             def contents(root):
