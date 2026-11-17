@@ -26,23 +26,6 @@ func TestProtectedAC4_EarlierGoalsScanned(t *testing.T) {
 	}
 }
 
-// otherSealDocs lists SKILL.md and every reference but
-// references/earlier-goals.md, as the checked tree has them.
-func otherSealDocs(t *testing.T) []string {
-	t.Helper()
-	refs, err := filepath.Glob(filepath.Join(repoRoot(t), seal, "references", "*.md"))
-	if err != nil || len(refs) == 0 {
-		t.Fatalf("no Seal references: %v", err)
-	}
-	docs := []string{skillDoc}
-	for _, ref := range refs {
-		if doc := seal + "references/" + filepath.Base(ref); doc != earlierDoc {
-			docs = append(docs, doc)
-		}
-	}
-	return docs
-}
-
 func TestProtectedAC4_SkillStillScanned(t *testing.T) {
 	const id = "skill-not-scanned"
 	for _, doc := range otherSealDocs(t) {

@@ -125,6 +125,23 @@ func copyDir(t *testing.T, src, dst string) {
 	}
 }
 
+// otherSealDocs lists SKILL.md and every reference but
+// references/earlier-goals.md, as the checked tree has them.
+func otherSealDocs(t *testing.T) []string {
+	t.Helper()
+	refs, err := filepath.Glob(filepath.Join(repoRoot(t), seal, "references", "*.md"))
+	if err != nil || len(refs) == 0 {
+		t.Fatalf("no Seal references: %v", err)
+	}
+	docs := []string{skillDoc}
+	for _, ref := range refs {
+		if doc := seal + "references/" + filepath.Base(ref); doc != earlierDoc {
+			docs = append(docs, doc)
+		}
+	}
+	return docs
+}
+
 // docTree copies the documents the contract producers read into a new
 // temporary tree.
 func docTree(t *testing.T) string {
