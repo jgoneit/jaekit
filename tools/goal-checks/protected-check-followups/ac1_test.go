@@ -100,9 +100,17 @@ func TestProtectedAC1_MovedReasonsTable(t *testing.T) {
 	root := docTree(t)
 	faithful(t, "authoring", root, "AC-6")
 	before := reasonProblems(t, root)
-	moveTable(t, root, bundleDoc)
-	if after := reasonProblems(t, root); !slices.Equal(before, after) {
-		t.Errorf("jaekit:violation=%s moving the table unchanged to %s changes the reason result from %q to %q", id, bundleDoc, before, after)
+	// Every other document of the lookup: SKILL.md and each reference but
+	// references/ha.md and references/earlier-goals.md.
+	for _, doc := range otherSealDocs(t) {
+		if doc == haDoc {
+			continue
+		}
+		moved := docTree(t)
+		moveTable(t, moved, doc)
+		if after := reasonProblems(t, moved); !slices.Equal(before, after) {
+			t.Errorf("jaekit:violation=%s moving the table unchanged to %s changes the reason result from %q to %q", id, doc, before, after)
+		}
 	}
 	split := docTree(t)
 	splitTable(t, split, bundleDoc)

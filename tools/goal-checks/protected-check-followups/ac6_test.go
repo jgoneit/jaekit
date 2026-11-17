@@ -99,8 +99,27 @@ func toolsCopy(t *testing.T, fault string) string {
 	return tree
 }
 
+// The fixed lines by which the sentinel test turns automatic maintenance off
+// in each repository it compares, before that repository's first commit. The
+// emulation cannot place the source repository's lock after its snapshot, so
+// that repository's setting is read as text.
+var maintenanceOff = []struct{ setting, commit string }{
+	{"        self.git('config', 'maintenance.auto', 'false')\n", "        self.git('commit', '-qm', 'synthetic source')\n"},
+	{"            identity.git(sentinel, 'config', 'maintenance.auto', 'false')\n", "            identity.git(sentinel, 'commit', '-qm', 'sentinel')\n"},
+}
+
 func TestProtectedAC6_MaintenanceLockIgnored(t *testing.T) {
 	const id = "maintenance-lock-fails-sentinel"
+	source := read(t, filepath.Join(releaseChecks(repoRoot(t)), "integration_evidence_boundaries.py"))
+	for _, m := range maintenanceOff {
+		at, commit := strings.Index(source, m.setting), strings.Index(source, m.commit)
+		if commit < 0 {
+			t.Fatalf("integration_evidence_boundaries.py has no %q", strings.TrimSpace(m.commit))
+		}
+		if at < 0 || at > commit {
+			t.Errorf("jaekit:violation=%s %q does not come before %q", id, strings.TrimSpace(m.setting), strings.TrimSpace(m.commit))
+		}
+	}
 	emulationWorks(t)
 	env, _, log := fakeGit(t)
 	r := runUnittest(t, releaseChecks(repoRoot(t)), env, sentinelTest)
