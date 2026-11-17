@@ -572,14 +572,13 @@
       "property": "Executable, project, goal, request and original tool call must bind to the claimed observation.",
       "examples": [
         "another Core executable path",
-        "another goal in a synthetic receipt",
-        "automatic Git maintenance started by the sentinel's commit"
+        "another goal in a synthetic receipt"
       ],
       "families": [
         "identity substitutions",
         "partial direct-install or tested-source provenance"
       ],
-      "boundary": "Local real Core, original receipts, explicit goal/checkout and verified source images are tested. Missing source objects or unsupported records remain unavailable without fetching. Direct installation uses synthetic local archives and controlled fresh roots, not live release downloads or model sessions.",
+      "boundary": "Local real Core, original receipts, explicit goal/checkout and verified source images are tested. Missing source objects or unsupported records remain unavailable without fetching. Direct installation uses synthetic local archives and controlled fresh roots, not live release downloads or model sessions. Fixture repositories turn off Git's automatic maintenance, so only the code under test can change them while their contents are compared.",
       "checks": [
         {
           "file": "tools/release-checks/integration_core_observation.py",
