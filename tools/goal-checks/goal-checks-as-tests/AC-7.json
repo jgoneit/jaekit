@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Shorter",
+      "violation": "section-not-shorter",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/goal-checks/goal-checks-as-tests",
+        "name": "TestGoalChecksAC7_Shorter"
+      }
+    }
+  ]
+}
