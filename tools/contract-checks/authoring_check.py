@@ -371,18 +371,31 @@ def regressions(root):
 
 
 def changed_texts(root):
-    """Every place this goal's guidance is written, for AC-6 and AC-10."""
-    texts = []
+    """Every place this goal's guidance is written, for AC-6 and AC-10.
+
+    Each text is named after the document that holds it. A skill document's
+    section is read in each document of the skill that has the heading, once
+    for sections that share it, and the lines naming Seal 0.1.14 in every
+    document the clause lookup reads.
+    """
+    texts, seen = [], set()
     for key in ("skill", "bundle", "ha", "contract", "plan", "review", "review-decisions"):
-        text = section(root, key)
-        if text:
-            texts.append((SECTIONS[key][0], text))
+        name, heading = SECTIONS[key]
+        if read(root, name) is None:
+            continue
+        for doc in checker.skill_documents(root, name) if checker.SKILL_DOC.match(name) else [name]:
+            if (doc, heading) not in seen:
+                seen.add((doc, heading))
+                text = one_section(read(root, doc), heading)
+                if text:
+                    texts.append((doc, text))
     for key, labels in ROW_SOURCES.items():
         for label in labels:
             line = row(root, key, label)
             if line:
                 texts.append((SECTIONS[key][0], line))
-    texts.extend((HA, line) for line in (read(root, HA) or "").split("\n") if "Seal 0.1.14" in line)
+    for doc in checker.skill_documents(root, SKILL):
+        texts.extend((doc, line) for line in (read(root, doc) or "").split("\n") if "Seal 0.1.14" in line)
     return texts
 
 
@@ -462,7 +475,9 @@ def observe(root, suite, criterion):
     if criterion == "AC-6":
         for name, anchors in USER_POINTS:
             require(name, checker.clause_text(root, name), anchors, "existing user points")
-        found = set(re.findall(r"(?m)^\| `([a-z_]+)` \| user \|", read(root, HA) or ""))
+        # The reasons table may be in any document the clause lookup reads.
+        found = {reason for doc in checker.skill_documents(root, HA)
+                 for reason in re.findall(r"(?m)^\| `([a-z_]+)` \| user \|", read(root, doc) or "")}
         if found != USER_REASONS:
             problems.append(f"user-resolved reasons changed: {sorted(found ^ USER_REASONS)}")
         for name, text in changed_texts(root):
@@ -477,6 +492,10 @@ def observe(root, suite, criterion):
             for pattern, label in PRIVATE:
                 for match in pattern.finditer(text):
                     problems.append(f"{name}: {label} in new guidance: {match.group(0)!r}")
+    if criterion in ("AC-6", "AC-10"):
+        # A line naming Seal 0.1.14 inside a scanned section is read twice;
+        # its problem is reported once.
+        problems = list(dict.fromkeys(problems))
     target = f"{suite}.{criterion}"
     observation = {"target": target, "attempt": 1, "status": "pass"}
     if problems:
