@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jgoneit/jaekit/internal/record"
 	"github.com/jgoneit/jaekit/internal/reviewgate"
 	"github.com/jgoneit/jaekit/internal/reviewseries"
 )
@@ -1125,22 +1126,26 @@ func TestRepeatFindingsAC11_RoundWithoutBoundaries(t *testing.T) {
 }
 
 // AC-12: Core reads a series with boundary documents and dispositions as it
-// reads the same series without them.
+// reads the same series without them, and a series without any disposition
+// differs from one with a disposition only in the ledger entry and the
+// gate's judgment of that finding.
 func TestRepeatFindingsAC12_CoreReadsNewRecords(t *testing.T) {
 	w := newRptWorld(t, true)
 	one, two := w.rptBoundaries()
 	c := w.commits
-	// read runs a candidate round, rejects its finding, runs a fixes round
-	// and gates the series. It returns what Core reads from them: the series
-	// that ha cost and the review check of ha done read, and the gate that ha
-	// note review --gate reads, through both of Core's gate readers. The
-	// folder, the round times and the gate file's own digest differ between
-	// two series by construction and are cleared.
-	read := func(series string, extra ...string) []any {
+	// read runs a candidate round, rejects its finding when triaged, runs a
+	// fixes round and gates the series. It returns what Core reads from
+	// them: the series that ha cost and the review check of ha done read,
+	// and the gate that ha note review --gate reads, through both of Core's
+	// gate readers. The folder, the round times and the gate file's own
+	// digest differ between two series by construction and are cleared.
+	read := func(series string, triaged bool, extra ...string) []any {
 		w.useConfig(w.printer(w.answer(series, c[1], rptFinding("F1", "defect", "AC-1", "the greeting changed"))))
 		cand := filepath.Join(w.repo, "reviews", series, "01-candidate")
 		w.run(append(w.round("candidate", c[0], c[1], cand), extra...)...)
-		w.triage(cand, "cmd-F1", "reject", "--evidence", "AC-1이 인사말을 바꾸라고 한다")
+		if triaged {
+			w.triage(cand, "cmd-F1", "reject", "--evidence", "AC-1이 인사말을 바꾸라고 한다")
+		}
 		w.useConfig(w.printer(w.answer(series+"-fixes", c[2])))
 		fixes := filepath.Join(w.repo, "reviews", series, "02-fixes")
 		w.run(append(w.round("fixes", c[1], c[2], fixes), extra...)...)
@@ -1156,7 +1161,7 @@ func TestRepeatFindingsAC12_CoreReadsNewRecords(t *testing.T) {
 			}
 		}
 		gate := filepath.Join(w.dir, series+"-gate.json")
-		code, _, stderr := w.main("gate", cand, fixes, "--expect-head", c[2], "--out", gate)
+		code, _, stderr := w.main("gate", cand, fixes, "--expect-head", c[2], "--out", gate, "--repo", w.repo)
 		data, err := os.ReadFile(gate)
 		if err != nil {
 			t.Fatalf("spar gate exits %d and wrote no gate file: %v: %s", code, err, stderr)
@@ -1172,13 +1177,72 @@ func TestRepeatFindingsAC12_CoreReadsNewRecords(t *testing.T) {
 		g.GateDigest, p.GateDigest = "", ""
 		return []any{s, g, p}
 	}
-	with := read("with", "--boundary", one, "--boundary", two)
-	without := read("without")
+	with := read("with", true, "--boundary", one, "--boundary", two)
+	without := read("without", true)
 	for i, what := range []string{"series", "gate", "parsed gate"} {
 		if !reflect.DeepEqual(with[i], without[i]) {
 			a, _ := json.Marshal(with[i])
 			b, _ := json.Marshal(without[i])
 			t.Errorf("Core reads the %s with boundaries and dispositions differently:\n%s\nwithout them:\n%s", what, a, b)
+		}
+	}
+
+	// The same series without any disposition. In the series, only the
+	// candidate round's ledger differs: the reject entry is absent. In the
+	// gate, only its reading of that entry differs: the finding is open, so
+	// the gate counts one open defect, lists it as unhandled and is blocked,
+	// where the gate with the disposition is only degraded (a command
+	// reviewer is never a required one). Every round field (counted,
+	// rerun_of, findings, reviewers and the rest) and the gate's rounds read
+	// the same.
+	open := read("open", false)
+	reject := []reviewseries.LedgerEntry{{Finding: "cmd-F1", Disposition: "reject"}}
+	disposed, undisposed := without[0].(*reviewseries.Series), open[0].(*reviewseries.Series)
+	if len(disposed.Rounds) != 2 || len(undisposed.Rounds) != 2 {
+		t.Fatalf("Core reads %d and %d rounds, want 2 in each series", len(disposed.Rounds), len(undisposed.Rounds))
+	}
+	if !reflect.DeepEqual(disposed.Rounds[0].Ledger, reject) || len(undisposed.Rounds[0].Ledger) != 0 ||
+		len(disposed.Rounds[1].Ledger) != 0 || len(undisposed.Rounds[1].Ledger) != 0 {
+		t.Errorf("Core reads the ledgers %v and %v with the disposition, %v and %v without it",
+			disposed.Rounds[0].Ledger, disposed.Rounds[1].Ledger, undisposed.Rounds[0].Ledger, undisposed.Rounds[1].Ledger)
+	}
+	withoutLedger := func(s *reviewseries.Series) reviewseries.Series {
+		cp := *s
+		cp.Rounds = append([]reviewseries.Round(nil), s.Rounds...)
+		for i := range cp.Rounds {
+			cp.Rounds[i].Ledger = nil
+		}
+		return cp
+	}
+	if a, b := withoutLedger(disposed), withoutLedger(undisposed); !reflect.DeepEqual(a, b) {
+		x, _ := json.Marshal(a)
+		y, _ := json.Marshal(b)
+		t.Errorf("apart from the ledger, Core reads the series with a disposition differently:\n%s\nwithout one:\n%s", x, y)
+	}
+	for i, what := range []string{"gate", "parsed gate"} {
+		dg, ug := without[i+1].(*record.ReviewData), open[i+1].(*record.ReviewData)
+		want := []record.ReviewFinding{{Series: "open", Round: "01-candidate", ID: "cmd-F1", Class: "defect"}}
+		dl, err := reviewgate.ReadFindings(dg.Findings)
+		if err != nil {
+			t.Fatalf("Core cannot read the findings of the %s with a disposition: %v", what, err)
+		}
+		ul, err := reviewgate.ReadFindings(ug.Findings)
+		if err != nil {
+			t.Fatalf("Core cannot read the findings of the %s without a disposition: %v", what, err)
+		}
+		if dg.State != StateDegraded || dg.Open != (record.ReviewOpen{}) || len(dl.Unhandled) != 0 ||
+			ug.State != StateBlocked || ug.Open != (record.ReviewOpen{Defect: 1}) || !reflect.DeepEqual(ul.Unhandled, want) ||
+			len(dl.Deferred) != 0 || len(ul.Deferred) != 0 || dl.AutoDeferred != 0 || ul.AutoDeferred != 0 {
+			t.Errorf("Core reads the %s as %s, open %+v, lists %+v with the disposition; %s, open %+v, lists %+v without it",
+				what, dg.State, dg.Open, dl, ug.State, ug.Open, ul)
+		}
+		a, b := *dg, *ug
+		a.State, a.Open, a.Findings = "", record.ReviewOpen{}, nil
+		b.State, b.Open, b.Findings = "", record.ReviewOpen{}, nil
+		if !reflect.DeepEqual(a, b) {
+			x, _ := json.Marshal(a)
+			y, _ := json.Marshal(b)
+			t.Errorf("apart from its judgment of cmd-F1, Core reads the %s with a disposition differently:\n%s\nwithout one:\n%s", what, x, y)
 		}
 	}
 }
