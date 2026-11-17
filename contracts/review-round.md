@@ -265,6 +265,7 @@ Markdown은 JSON의 `schema`(형식 이름)를 뺀 모든 값을 담는다. 순�
 - 끝난 라운드(`finished_at`이 있음)에 `findings.json`이 없거나, `findings.json`이 있는데 `ledger.jsonl`이 없다.
 - 목록 라운드의 `findings.json`이 지적의 목록이 아니거나(`null` 포함), 지적에 `id`가 없거나, `class`가 네 class 밖이거나, 신호가 읽는 `introduced_by_change`가 `yes`·`no`·`unknown` 밖이거나 `link_kind`가 `criterion`·`rule`·`contract`·`none` 밖이다. 또는 지적의 `id`·`class`·`introduced_by_change`·`link_kind`·`link`·`path`가 없거나 `null`이거나 글이 아니거나, 있는 `location_unreadable`이 참거짓이 아니다.
 - 목록 라운드의 `ledger.jsonl` 줄이 해석되지 않거나, `finding`이 없거나, `disposition`이 다섯 처리 밖이다.
+- 목록 라운드 지적의 원장 항목이 그 처리와 그 지적의 class에 7절이 요구하는 값을 갖추지 않았다. `spar triage`가 항목을 쓰기 전에 요구하는 것과 같고, 옵션의 값은 같은 이름의 원장 키다(`--failed-before`는 `failed_before`). 예를 들어 `commit`·`failed_before`·`passed_after` 중 하나가 없는 `fix`, `to`가 없는 `defer`, `user_quote`가 없는 `defect`의 `defer`다. fix 커밋이 리뷰한 head 뒤에 오는지는 Git으로 보지 않는다. `auto`가 참인 항목은 spar의 자동 보류로만 받는다: `hardening` 지적의 `defer`이고 `reason`이 비어 있지 않다. 이런 항목은 지적을 닫거나 신호에서 빼기 전에 거부한다. 그 라운드의 지적이 아닌 `finding`의 항목은 어떤 지적도 닫지 않으므로 이 확인을 하지 않는다.
 - `extensions.jsonl` 줄이 해석되지 않거나 형식 밖이다: `stage`가 `plan`·`plan-delta`·`code` 밖, `by`가 1 미만, `user_quote`가 비었음, `cause`나 `reason`이 글이 아님(`null`은 값이 없는 것), `cause`가 code 줄이 아닌 곳에 있거나 다섯 값 밖, `cause`가 있는 줄의 `by`가 2 이상이거나 `cause`가 `other`인데 `reason`이 없거나 비었음. 원인이 없는 code 줄(이 기능 전에 기록한 줄)에는 이유를 요구하지 않는다.
 - `--repo`가 Git 저장소가 아니거나 Git을 시작할 수 없다.
 - 실행하는 Git이 2.44보다 오래되었고(`GIT_NO_LAZY_FETCH`를 모른다) 저장소가 부분 clone이다(`extensions.partialClone`이나 참인 `remote.<이름>.promisor`가 있음). 객체를 읽기 전에 거부하며, 이유에 Git 버전을 밝힌다.

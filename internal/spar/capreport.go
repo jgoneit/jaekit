@@ -565,8 +565,15 @@ func checkExtensions(series string, exts []Extension) error {
 // checkRecords refuses findings and ledger entries outside the form spar
 // writes: every finding has an ID, one of the four classes and the values
 // spar writes for the fields the signals read, and every ledger entry names
-// a finding and one of the five dispositions.
+// a finding and one of the five dispositions. An entry for a finding of the
+// round also has the fields its disposition requires, as spar triage
+// requires them, or is spar's automatic deferral (entryProblem): otherwise
+// it would close or exclude the finding.
 func checkRecords(dir string, findings []Finding, ledger []LedgerEntry) error {
+	byID := map[string]Finding{}
+	for _, f := range findings {
+		byID[f.ID] = f // the last one with the ID, as spar triage finds it
+	}
 	for i, f := range findings {
 		switch f.Class {
 		case "defect", "requirement-question", "hardening", "note":
@@ -592,6 +599,14 @@ func checkRecords(dir string, findings []Finding, ledger []LedgerEntry) error {
 		}
 		if e.Finding == "" {
 			return fmt.Errorf("%s: entry %d names no finding", filepath.Join(dir, "ledger.jsonl"), i+1)
+		}
+		f, ok := byID[e.Finding]
+		if !ok {
+			continue // it closes no finding of the round
+		}
+		if problem := entryProblem(f, findings, e); problem != "" {
+			return fmt.Errorf("%s: entry %d (%s %s, %s): %s", filepath.Join(dir, "ledger.jsonl"), i+1, e.Finding, e.Disposition,
+				f.Class, problem)
 		}
 	}
 	return nil

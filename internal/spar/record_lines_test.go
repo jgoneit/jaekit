@@ -5,6 +5,7 @@ package spar
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -13,10 +14,10 @@ import (
 	"github.com/jgoneit/jaekit/internal/reviewseries"
 )
 
-// Checks of record lines that spar extend never writes but a hand edit or
-// another tool can (issue #214). They drive the spar command line on the
-// synthetic repository of cap_report_test.go; Core's series reader (the one
-// ha cost uses) is called directly.
+// Checks of record lines that spar extend and spar triage never write but a
+// hand edit or another tool can (issues #213 and #214). They drive the spar
+// command line on the synthetic repository of cap_report_test.go; Core's
+// series reader (the one ha cost uses) is called directly.
 
 // rlGate runs spar gate over the four code rounds of a main series with a
 // fourth fixes round and returns its exit and its file without the fields
@@ -178,6 +179,181 @@ func TestExtensionCauseOrReasonNotTextRefusedByDisplays(t *testing.T) {
 		if _, err := reviewseries.Read(series); err == nil || !strings.Contains(err.Error(), ext+" line 1 cannot be read") {
 			t.Errorf("jaekit:violation=%s ha cost's series reader with an extension line with %s gives %v, want the error naming %s line 1",
 				v, c.what, err, ext)
+		}
+	}
+}
+
+// rlEntry is a ledger line a hand edit or another tool could write.
+type rlEntry struct {
+	what   string
+	round  string
+	fields map[string]any
+	// names is a word the refusal must contain: the missing key or the rule.
+	names string
+}
+
+// rlClone copies a series to a new one beside it and appends entries to the
+// ledger of one of its rounds.
+func (w *crWorld) rlClone(series, name, round string, entries ...map[string]any) string {
+	w.t.Helper()
+	dst := filepath.Join(filepath.Dir(series), name)
+	if err := os.CopyFS(dst, os.DirFS(series)); err != nil {
+		w.t.Fatalf("setup: %v", err)
+	}
+	ledger := filepath.Join(dst, round, "ledger.jsonl")
+	body := string(w.read(ledger))
+	for _, e := range entries {
+		e["recorded_at"] = "2026-01-01T00:00:00Z"
+		data, err := json.Marshal(e)
+		if err != nil {
+			w.t.Fatalf("setup: %v", err)
+		}
+		body += string(data) + "\n"
+	}
+	w.write(ledger, body)
+	return dst
+}
+
+// rlTriageArgs turns an entry a person could make into spar triage's
+// arguments: each ledger key is the option of the same name.
+func rlTriageArgs(e map[string]any) []string {
+	args := []string{e["finding"].(string), e["disposition"].(string)}
+	for _, key := range []string{"commit", "failed_before", "passed_after", "evidence", "of", "to", "user_quote"} {
+		if val, ok := e[key]; ok {
+			args = append(args, "--"+strings.ReplaceAll(key, "_", "-"), val.(string))
+		}
+	}
+	return args
+}
+
+// Issue #213: spar cap-report refuses a ledger entry that lacks a value its
+// disposition requires, as spar triage refuses to write it, instead of
+// letting it close or exclude the finding; an automatic deferral in the form
+// spar run writes stays valid.
+func TestCapReportRefusesLedgerEntryMissingItsDispositionFields(t *testing.T) {
+	const v = "cap-report-malformed-entry-closes-finding"
+	w := newCRWorld(t)
+	series := w.mainSeries("rl-ledger")
+	if code, _, errs := w.report(series, "--format", "json"); code != ExitOK {
+		t.Fatalf("setup: spar cap-report of the series exits %d: %s", code, errs)
+	}
+	// 01-candidate: host-F3 is a hardening spar deferred automatically.
+	// 03-candidate: host-F1, host-F2 and host-F4 are open defects (host-F4
+	// a duplicate of host-F1) and host-F3 an open requirement question.
+	fix := func(finding, commit string) map[string]any {
+		return map[string]any{"finding": finding, "disposition": "fix", "commit": w.commit[commit],
+			"failed_before": "synthetic failure", "passed_after": "synthetic pass"}
+	}
+	without := func(e map[string]any, keys ...string) map[string]any {
+		for _, k := range keys {
+			delete(e, k)
+		}
+		return e
+	}
+	with := func(e map[string]any, key string, val any) map[string]any {
+		e[key] = val
+		return e
+	}
+	entry := func(finding, disposition string, kv ...string) map[string]any {
+		e := map[string]any{"finding": finding, "disposition": disposition}
+		for i := 0; i+1 < len(kv); i += 2 {
+			e[kv[i]] = kv[i+1]
+		}
+		return e
+	}
+	for i, c := range []rlEntry{
+		{"a fix without commit", "03-candidate", without(fix("host-F2", "head3"), "commit"), `needs "commit"`},
+		{"a fix without failed_before", "03-candidate", without(fix("host-F2", "head3"), "failed_before"), `"failed_before"`},
+		{"a fix with a blank passed_after", "03-candidate", with(fix("host-F2", "head3"), "passed_after", "  "), `"passed_after"`},
+		{"a reject of a defect without evidence", "03-candidate", entry("host-F2", "reject"), `needs "evidence"`},
+		{"a defer without to", "03-candidate", entry("host-F2", "defer", "user_quote", "synthetic words"), `needs "to"`},
+		{"a defer of a defect without user_quote", "03-candidate", entry("host-F2", "defer", "to", "issue 1"), `needs "user_quote"`},
+		{"a duplicate without of", "03-candidate", entry("host-F2", "duplicate"), `needs "of"`},
+		{"a duplicate of itself", "03-candidate", entry("host-F2", "duplicate", "of", "host-F2"), `needs "of"`},
+		{"a duplicate of no finding of the round", "03-candidate", entry("host-F2", "duplicate", "of", "host-F9"), `"of" host-F9 is not a finding`},
+		{"a defect duplicating a requirement question", "03-candidate", entry("host-F2", "duplicate", "of", "host-F3"), "can only duplicate"},
+		{"an answer to a defect", "03-candidate", entry("host-F2", "answer", "user_quote", "synthetic words"), "answered"},
+		{"a reject of a requirement question without user_quote", "03-candidate", entry("host-F3", "reject", "evidence", "synthetic evidence"), `needs "user_quote"`},
+		{"an answer without user_quote", "03-candidate", entry("host-F3", "answer"), `needs "user_quote"`},
+		{"a fix of a hardening without user_quote", "01-candidate", fix("host-F3", "head2"), `needs "user_quote"`},
+		{"an automatic deferral of a defect", "03-candidate", with(entry("host-F2", "defer", "reason", "synthetic", "to", "deferred hardening"), "auto", true), "automatic"},
+		{"an automatic deferral without a reason", "01-candidate", with(entry("host-F3", "defer", "to", "deferred hardening"), "auto", true), "automatic"},
+		{"an automatic fix", "03-candidate", with(fix("host-F2", "head3"), "auto", true), "automatic"},
+	} {
+		ledger := filepath.Join(w.rlClone(series, fmt.Sprintf("rl-refused-%d", i), c.round, c.fields), c.round, "ledger.jsonl")
+		code, out, errs := w.report(filepath.Dir(filepath.Dir(ledger)), "--format", "json")
+		if code != ExitRefused || out != "" || !strings.Contains(errs, ledger) || !strings.Contains(errs, c.fields["finding"].(string)) ||
+			!strings.Contains(errs, c.names) {
+			t.Errorf("jaekit:violation=%s spar cap-report with %s: exit %d, report %q, reason %q; want 65, no report and a reason naming %s, %s and %q",
+				v, c.what, code, out, errs, ledger, c.fields["finding"], c.names)
+		}
+		// spar triage refuses to write the same entry, and writes nothing.
+		if auto, _ := c.fields["auto"].(bool); auto {
+			continue
+		}
+		round := filepath.Join(series, c.round)
+		before := string(w.read(filepath.Join(round, "ledger.jsonl")))
+		if code, _, errs := w.spar(append([]string{"triage", round}, rlTriageArgs(c.fields)...)...); code != ExitRefused {
+			t.Errorf("jaekit:violation=%s spar triage writes %s (exit %d: %s), which spar cap-report refuses", v, c.what, code, errs)
+		}
+		if after := string(w.read(filepath.Join(round, "ledger.jsonl"))); after != before {
+			t.Fatalf("jaekit:violation=%s spar triage wrote %s into %s/ledger.jsonl; later cases would read it", v, c.what, round)
+		}
+	}
+
+	// Entries in the forms spar writes report as before: an automatic
+	// deferral of a hardening with a reason, with or without to, and
+	// complete entries that close the finding they name.
+	open := func(doc map[string]any, round, finding string) bool {
+		list, _ := doc["open"].([]any)
+		for _, item := range list {
+			if m, _ := item.(map[string]any); m["round"] == round && m["finding"] == finding {
+				return true
+			}
+		}
+		return false
+	}
+	unrelated := func(doc map[string]any, round, finding string) bool {
+		list, _ := doc["unrelated"].([]any)
+		for _, item := range list {
+			if m, _ := item.(map[string]any); m["round"] == round && m["finding"] == finding {
+				return true
+			}
+		}
+		return false
+	}
+	base := w.reportJSON(v, series)
+	if !open(base, "03-candidate", "host-F2") || !open(base, "03-candidate", "host-F3") || !unrelated(base, "03-candidate", "host-F2") {
+		t.Fatalf("setup: the report of the series does not list 03-candidate host-F2 and host-F3 as open: %v", base["open"])
+	}
+	for i, c := range []struct {
+		what    string
+		round   string
+		entries []map[string]any
+		closes  string
+	}{
+		{"an automatic deferral of a hardening with a reason", "01-candidate",
+			[]map[string]any{with(entry("host-F3", "defer", "reason", "hardening: synthetic", "to", "deferred hardening"), "auto", true)}, ""},
+		{"an automatic deferral of a hardening with a reason and no to", "01-candidate",
+			[]map[string]any{with(entry("host-F3", "defer", "reason", "hardening: synthetic"), "auto", true)}, ""},
+		{"a complete fix", "03-candidate", []map[string]any{fix("host-F2", "head3")}, "host-F2"},
+		{"a complete defer of a defect", "03-candidate", []map[string]any{entry("host-F2", "defer", "to", "issue 1", "user_quote", "synthetic words")}, "host-F2"},
+		{"a complete reject", "03-candidate", []map[string]any{entry("host-F2", "reject", "evidence", "synthetic evidence")}, "host-F2"},
+		{"a complete answer", "03-candidate", []map[string]any{entry("host-F3", "answer", "user_quote", "synthetic words")}, "host-F3"},
+		{"a duplicate of a defect a complete fix closed", "03-candidate",
+			[]map[string]any{fix("host-F1", "head3"), entry("host-F2", "duplicate", "of", "host-F1")}, "host-F2"},
+	} {
+		clone := w.rlClone(series, fmt.Sprintf("rl-accepted-%d", i), c.round, c.entries...)
+		doc := w.reportJSON(v, clone)
+		if c.closes == "" {
+			crExpect(t, v, "the open findings with "+c.what, doc["open"], base["open"])
+			continue
+		}
+		if open(doc, c.round, c.closes) {
+			t.Errorf("jaekit:violation=%s with %s, %s %s is still open: %v", v, c.what, c.round, c.closes, doc["open"])
+		}
+		if c.what == "a complete reject" && unrelated(doc, c.round, c.closes) {
+			t.Errorf("jaekit:violation=%s with %s, %s %s still counts as an unrelated defect", v, c.what, c.round, c.closes)
 		}
 	}
 }
