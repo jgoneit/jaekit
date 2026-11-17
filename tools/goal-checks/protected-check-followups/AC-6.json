@@ -1,0 +1,30 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "MaintenanceLockIgnored",
+      "violation": "maintenance-lock-fails-sentinel",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/goal-checks/protected-check-followups",
+        "name": "TestProtectedAC6_MaintenanceLockIgnored"
+      }
+    },
+    {
+      "id": "SentinelWriteCaught",
+      "violation": "sentinel-write-not-caught",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/goal-checks/protected-check-followups",
+        "name": "TestProtectedAC6_SentinelWriteCaught"
+      }
+    },
+    {
+      "id": "OriginalWriteCaught",
+      "violation": "original-write-not-caught",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/goal-checks/protected-check-followups",
+        "name": "TestProtectedAC6_OriginalWriteCaught"
+      }
+    }
+  ]
+}
