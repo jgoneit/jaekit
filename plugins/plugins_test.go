@@ -6,6 +6,7 @@ package plugins
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -223,15 +224,151 @@ func TestAgentsScopesScenarioRule(t *testing.T) {
 	}
 }
 
-// no document of the Seal skill states a work order.
-func TestSealSkillPrescribesNoOrder(t *testing.T) {
-	ordering := regexp.MustCompile(`(?i)\b(first|then|afterwards|next step|step \d|before you|after you)\b|먼저|다음에|그다음`)
-	for _, doc := range skillDocs(t, sealSkillDir) {
-		for i, line := range strings.Split(doc.text, "\n") {
-			if m := ordering.FindString(line); m != "" {
-				t.Errorf("%s:%d uses ordering word %q: %s", doc.path, i+1, m, line)
-			}
+// The fixed forms that prescribe a work order in a Seal document. Ordering
+// words in prose ("first", "then", "먼저") are not such a form.
+const (
+	orderNumberedItem = "numbered list item" // a line that begins `1.` or `2)`
+	orderStepLabel    = "Step N label"       // `Step 1` or `Step 1:` opening a line, heading or list item
+)
+
+var (
+	sealNumberedItem = regexp.MustCompile(`^\s*(?:>\s*)*\d{1,9}[.)](?:\s|$)`)
+	sealStepLabel    = regexp.MustCompile(`^\s*(?:>\s*)*(?:#{1,6}\s+|[-*+]\s+|\d{1,9}[.)]\s+)?(?:\*\*|__|\*|_)?(?i:step)\s+\d+\b`)
+)
+
+// sealOrderForm returns the work-order form line has, or "" when it has none.
+func sealOrderForm(line string) string {
+	switch {
+	case sealStepLabel.MatchString(line):
+		return orderStepLabel
+	case sealNumberedItem.MatchString(line):
+		return orderNumberedItem
+	}
+	return ""
+}
+
+// sealLayoutSections are the sections, by document and innermost heading,
+// whose numbered lists order the parts of a document the executor writes,
+// not its work: the headings of `## 검수 요약` and the items of the
+// completion report. Only their unfenced numbered list items are accepted;
+// a Step label is reported there too.
+var sealLayoutSections = []struct{ path, heading string }{
+	{sealSkillDir + "/references/bundle.md", "## Review summary"},
+	{sealSkillDir + "/references/bundle.md", "## Completion report"},
+	{sealSkillDir + "/references/earlier-goals.md", "## Completion report"},
+}
+
+func sealLayoutSection(path, heading string) bool {
+	for _, s := range sealLayoutSections {
+		if s.path == path && s.heading == heading {
+			return true
 		}
+	}
+	return false
+}
+
+// sealOrderLines returns each line of a Seal document, given by its path
+// relative to plugins/, that has a work-order form outside the layout
+// sections, as "path:line: form: text".
+func sealOrderLines(path, text string) []string {
+	var out []string
+	heading, fence := "", ""
+	for i, line := range strings.Split(text, "\n") {
+		trimmed := strings.TrimSpace(line)
+		switch {
+		case fence != "":
+			if strings.HasPrefix(trimmed, fence) {
+				fence = ""
+			}
+		case strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~"):
+			fence = trimmed[:3]
+		case strings.HasPrefix(line, "#"):
+			heading = trimmed
+		}
+		form := sealOrderForm(line)
+		if form == "" || form == orderNumberedItem && fence == "" && sealLayoutSection(path, heading) {
+			continue
+		}
+		out = append(out, fmt.Sprintf("%s:%d: %s: %s", path, i+1, form, line))
+	}
+	return out
+}
+
+// no document of the Seal skill states a work order: no numbered list of
+// work and no Step label. Each layout section it accepts still exists.
+func TestSealSkillPrescribesNoOrder(t *testing.T) {
+	for _, doc := range skillDocs(t, sealSkillDir) {
+		for _, found := range sealOrderLines(doc.path, doc.text) {
+			t.Errorf("%s", found)
+		}
+	}
+	for _, s := range sealLayoutSections {
+		if !strings.Contains("\n"+read(t, s.path)+"\n", "\n"+s.heading+"\n") {
+			t.Errorf("%s has no layout section %q: drop it from sealLayoutSections", s.path, s.heading)
+		}
+	}
+}
+
+// The line rule rejects the fixed forms of a work order and accepts prose
+// that only uses an ordering word.
+func TestSealOrderForms(t *testing.T) {
+	for _, c := range []struct{ line, want string }{
+		{"1. Run `ha start`.", orderNumberedItem},
+		{"2) Record the baseline.", orderNumberedItem},
+		{"   3. Run the checks.", orderNumberedItem},
+		{"> 4. Record `ha done`.", orderNumberedItem},
+		{"10.", orderNumberedItem},
+		{"# Step 1", orderStepLabel},
+		{"### Step 1: Plan", orderStepLabel},
+		{"Step 2 records the baseline.", orderStepLabel},
+		{"- **Step 3.** Run the checks.", orderStepLabel},
+		{"1. Step 1: Plan", orderStepLabel},
+		{"Record the baseline, then run the checks.", ""},
+		{"First read the goal documents; afterwards, report.", ""},
+		{"먼저 목표 문서를 읽고 그다음 보고한다.", ""},
+		{"Widen the boundary record in the same step as the fix.", ""},
+		{"Redesign step 5 stays a later goal.", ""},
+		{"1.5 times the budget", ""},
+		{"- `ha start` records the start.", ""},
+		{"| 1. | table cell |", ""},
+	} {
+		if got := sealOrderForm(c.line); got != c.want {
+			t.Errorf("sealOrderForm(%q) = %q, want %q", c.line, got, c.want)
+		}
+	}
+}
+
+// A numbered list is accepted only in a layout section of its own document,
+// and never under a subheading of one or inside a fence.
+func TestSealOrderLinesLayoutSections(t *testing.T) {
+	doc := strings.Join([]string{
+		"## Completion report",
+		"1. The `ha report` output.",
+		"2. The executor's judgment.",
+		"```",
+		"## Not a heading",
+		"1. Fenced item.",
+		"```",
+		"### Steps",
+		"1. Run the checks.",
+		"## Work",
+		"1. Run `ha start`.",
+		"## Completion report",
+		"Step 1: Plan",
+	}, "\n")
+	path := sealSkillDir + "/references/bundle.md"
+	got := sealOrderLines(path, doc)
+	want := []string{
+		path + ":6: numbered list item: 1. Fenced item.",
+		path + ":9: numbered list item: 1. Run the checks.",
+		path + ":11: numbered list item: 1. Run `ha start`.",
+		path + ":13: Step N label: Step 1: Plan",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("sealOrderLines(bundle.md) =\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	if other := sealOrderLines(sealSkillDir+"/SKILL.md", doc); len(other) != 6 {
+		t.Errorf("sealOrderLines(SKILL.md) reported %d lines, want all 6:\n%s", len(other), strings.Join(other, "\n"))
 	}
 }
 

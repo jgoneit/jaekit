@@ -40,7 +40,8 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 	// review rounds. Spec 0.1.15 and Seal 0.1.30 move rules used only in rare
 	// situations to their reference documents. Seal 0.1.31 writes check
 	// boundaries before the first review round and passes them to every round.
-	for name, want := range map[string]string{"spec": "0.1.15", "seal": "0.1.31"} {
+	// Spec 0.1.16 marks its user's-words rule with a token of its own.
+	for name, want := range map[string]string{"spec": "0.1.16", "seal": "0.1.31"} {
 		t.Run(name, func(t *testing.T) {
 			_, version := frontMatter(t, filepath.Join(name, "skills", name, "SKILL.md"))
 			if version != want {
