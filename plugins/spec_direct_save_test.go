@@ -153,6 +153,36 @@ func TestGuidesDescribeDirectSave(t *testing.T) {
 	forbidAll(t, "../README.ko.md", "초안 전문을 보여 준 뒤 동의하면")
 }
 
+// each usage guide shows the two-step flow under fixed headings outside
+// fenced code and HTML comments: Spec saves the goal documents and stops, and
+// then implementation starts on a separate request. Only the two heading
+// lines and their order are required; the prose under them stays free.
+func TestUsageGuidesPutSpecStopBeforeImplementation(t *testing.T) {
+	for _, c := range []struct{ guide, spec, implement string }{
+		{"../guides/USAGE.md", "### Spec은 저장 후 멈춤", "### 구현은 별도 요청으로 시작"},
+		{"../guides/USAGE.en.md", "### Spec saves, then stops", "### Implementation starts on a separate request"},
+	} {
+		spec, implement := -1, -1
+		for i, unit := range mdUnits(read(t, c.guide)) {
+			switch {
+			case unit == c.spec && spec < 0:
+				spec = i
+			case unit == c.implement && implement < 0:
+				implement = i
+			}
+		}
+		if spec < 0 {
+			t.Errorf("%s lacks the heading line %q", c.guide, c.spec)
+		}
+		if implement < 0 {
+			t.Errorf("%s lacks the heading line %q", c.guide, c.implement)
+		}
+		if spec >= 0 && implement >= 0 && spec > implement {
+			t.Errorf("%s puts %q after %q", c.guide, c.spec, c.implement)
+		}
+	}
+}
+
 // Synthetic cases require direct save and count outside changes until Spec stops.
 func TestSpecCasesUseDirectSave(t *testing.T) {
 	requireAll(t, "../evals/spec-cases/same-request-handoff.md",

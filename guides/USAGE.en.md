@@ -34,6 +34,8 @@ See the [Codex plugin naming rules](https://developers.openai.com/plugins/build/
 
 ## Changing a goal or continuing
 
+### Spec saves, then stops
+
 Read Spec's report, then answer or ask for changes to revise the same document. Spec saves the goal, scope, and completion conditions directly to `docs/specs/<goal>/SPEC.md`, reports what it wrote and any decisions it made with their sources, then stops.
 
 Even if you also ask it to implement the work, it only writes the goal documents. Decisions Spec proposes become yours when you accept them or ask to implement that goal.
@@ -43,6 +45,8 @@ If a goal already covers the same behavior and you have not chosen which documen
 - `Status: Draft`: an outcome-changing decision remains, and Spec asks about it.
 - `Status: Ready`: the document is ready. It does not start implementation by itself.
 - `Assurance:`: how much independent review the implementer must get. Use `light` for small fixes, `standard` for ordinary changes, and `strict` for goals that change a public contract, stored data, permissions, or a boundary between components. Spec proposes a tier and reports why. To use another tier, say so, for example "make it strict".
+
+### Implementation starts on a separate request
 
 When no outcome-changing decision is left, Spec ends its report with a separate question: it asks whether to implement now, naming the goal path and its tier. If you answer yes, implementation starts. If your answer also asks for a change ("yes, but drop AC-2"), Spec edits the documents first and asks again. The start command still works, and you can also tell Seal `Implement docs/specs/<goal>` instead of using the start command. You do not approve each step during the work. Answer decisions that affect the outcome and conditions that need your own confirmation.
 

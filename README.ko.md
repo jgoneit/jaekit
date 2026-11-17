@@ -133,7 +133,7 @@ flowchart TD
 - 현재 공개 릴리스에서 네이티브 Windows는 기록 도구 `ha`가 지원되지 않아 Seal을 쓸 수 없습니다. 이 제한은 네이티브 실행에 관한 것입니다.
 - Spec은 `ha`가 필요 없지만, Windows에서의 설치와 동작은 아직 확인하지 않았습니다.
 - WSL2의 Ubuntu 24.04 LTS x64에서는 Linux용 Release 파일로 설치합니다. Homebrew는 필요하지 않습니다. 실제 WSL2 설치와 에이전트 사용은 아직 확인하지 않았습니다. → [WSL2 준비 안내](guides/WSL.md)
-- 네이티브 Windows(Windows 11 x64, PowerShell 5.1·7)는 개발 중인 후보만 있고, 실제 실행은 확인 전입니다. → [Windows 네이티브 후보 안내](guides/WINDOWS.md)
+- **지원하지 않음**: 네이티브 Windows(Windows 11 x64, PowerShell 5.1·7)는 개발 중인 후보만 있고, 실제 실행은 확인 전입니다. → [Windows 네이티브 후보 안내](guides/WINDOWS.md)
 
 </details>
 
