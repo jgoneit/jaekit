@@ -144,7 +144,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 `round.json`은 `standpoints`에 reviewer/text 쌍, `standpoints_uncovered`에 완료한 리뷰어가 없는 관점의 리뷰어 이름, 리뷰어마다 `standpoint`와 `standpoint_report`에 글과 보고 또는 null을 남긴다. `summary.md`는 리뷰어마다 관점과 보고를 보이고, waive된 리뷰어를 포함해 완료한 리뷰어가 없는 관점을 보인다. 형식은 `review-round/v1` 그대로이며, 관점 필드가 없는 기록은 관점 없음으로 읽는다.
 
-`standpoints`는 `reviewer`와 `text`를 담은 객체를 인자 순서로 둔 배열이고, 관점이 없으면 `[]`다. `standpoints_uncovered`와 리뷰어별 관점 필드는 관점이 있는 라운드에만 있다. 완료한 리뷰어가 없다는 것은 배정된 리뷰어가 그 라운드를 완료하지 못했다는 뜻이며, 실행 목록에서 빠진 리뷰어도 포함한다. `checked: false`라는 뜻은 아니다. waive는 리뷰어를 완료시키지 않는다. `spar record`가 리뷰어를 완료하면 남은 이름과 요약을 다시 계산한다. 요약 머리에는 `- Standpoints: <n> for <names>`, 남은 관점이 있으면 `- Standpoints without a completed reviewer: <names>`가 나온다. 관점을 받은 리뷰어 아래에는 `  - standpoint: <첫 줄, 80자까지>`와 `  - standpoint report: checked|unchecked: <detail 첫 줄>`가 나오고, 보고가 없으면 `  - standpoint report: none`이다.
+`standpoints`는 `reviewer`와 `text`를 담은 객체를 인자 순서로 둔 배열이고, 관점이 없으면 `[]`다. `standpoints_uncovered`와 리뷰어별 관점 필드는 관점이 있는 라운드에만 있다. 완료한 리뷰어가 없다는 것은 배정된 리뷰어가 그 라운드를 완료하지 못했다는 뜻이며, 실행 목록에서 빠진 리뷰어도 포함한다. `checked: false`라는 뜻은 아니다. waive는 리뷰어를 완료시키지 않는다. `spar record`가 리뷰어를 완료하면 남은 이름과 요약을 다시 계산한다. 이것은 라운드마다의 값이며, 한 패킷의 재실행에 걸쳐서는 gate의 `uncovered_standpoints`([검토 gate](review-gate.md) 3절)가 어느 라운드에서도 리뷰어가 완료하지 않은 관점을 보인다. 요약 머리에는 `- Standpoints: <n> for <names>`, 남은 관점이 있으면 `- Standpoints without a completed reviewer: <names>`가 나온다. 관점을 받은 리뷰어 아래에는 `  - standpoint: <첫 줄, 80자까지>`와 `  - standpoint report: checked|unchecked: <detail 첫 줄>`가 나오고, 보고가 없으면 `  - standpoint report: none`이다.
 
 ## 6. 분류
 

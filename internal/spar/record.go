@@ -217,11 +217,19 @@ func updateStandpointCoverage(r *RoundRecord) {
 	}
 	uncovered := []string{}
 	for _, s := range r.Standpoints {
-		if st := r.Reviewers[s.Reviewer]; st == nil || st.Status != StatusCompleted {
+		if !standpointCompleted(r, s) {
 			uncovered = append(uncovered, s.Reviewer)
 		}
 	}
 	r.StandpointsUncovered = &uncovered
+}
+
+// standpointCompleted reports whether the reviewer a standpoint names, by
+// name whatever its preset or required flag, completed round r. round.json,
+// summary.md and the gate all read coverage through it.
+func standpointCompleted(r *RoundRecord, s Standpoint) bool {
+	st := r.Reviewers[s.Reviewer]
+	return st != nil && st.Status == StatusCompleted
 }
 
 func loadFindings(dir string) ([]Finding, error) {
