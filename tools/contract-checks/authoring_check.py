@@ -377,38 +377,44 @@ def regressions(root):
 def changed_texts(root):
     """Every place this goal's guidance is written, for AC-6 and AC-10.
 
-    Each text is named after the document that holds it. A skill document's
-    section is read in each document of the skill that has the heading, once
-    for sections that share it, and the lines naming Seal 0.1.14 in every
-    document the clause lookup reads, except a line already read as part of a
-    section or row of the same document: each sentence is scanned once.
+    Each text is named after the document that holds it, and each line of a
+    document is scanned at most once, by its position. A skill document's
+    section and its table rows are read in each document of the skill that has
+    the heading; then the lines naming Seal 0.1.14 in every document the
+    clause lookup reads, except those already read.
     """
-    texts, seen, covered, rows = [], set(), {}, {}
-    for key in ("skill", "bundle", "ha", "contract", "plan", "review", "review-decisions"):
+    texts, covered = [], {}
+
+    def documents(name):
+        return checker.skill_documents(root, name) if checker.SKILL_DOC.match(name) else [name]
+
+    def spans(key):
+        """(document, its lines, the span under the key's heading) for each document that has it."""
         name, heading = SECTIONS[key]
         if read(root, name) is None:
-            continue
-        for doc in checker.skill_documents(root, name) if checker.SKILL_DOC.match(name) else [name]:
-            if (doc, heading) in seen or read(root, doc) is None:
-                continue
-            seen.add((doc, heading))
-            lines = read(root, doc).split("\n")
-            span = section_span(lines, heading)
-            if span is None:
-                continue
-            covered.setdefault(doc, set()).update(range(*span))
-            text = "\n".join(lines[span[0]:span[1]])
+            return
+        for doc in documents(name):
+            source = read(root, doc)
+            span = section_span(source.split("\n"), heading) if source is not None else None
+            if span is not None:
+                yield doc, source.split("\n"), span
+
+    for key in ("skill", "bundle", "ha", "contract", "plan", "review", "review-decisions"):
+        for doc, lines, (start, end) in spans(key):
+            fresh = [i for i in range(start, end) if i not in covered.get(doc, ())]
+            covered.setdefault(doc, set()).update(fresh)
+            text = "\n".join(lines[i] for i in fresh)
             if text:
                 texts.append((doc, text))
     for key, labels in ROW_SOURCES.items():
-        for label in labels:
-            line = row(root, key, label)
-            if line:
-                texts.append((SECTIONS[key][0], line))
-                rows.setdefault(SECTIONS[key][0], set()).add(line)
-    for doc in checker.skill_documents(root, SKILL):
+        for doc, lines, (start, end) in spans(key):
+            for i in range(start, end):
+                if i not in covered.get(doc, ()) and any(lines[i].startswith(f"| {label} |") for label in labels):
+                    covered.setdefault(doc, set()).add(i)
+                    texts.append((doc, lines[i]))
+    for doc in documents(SKILL):
         texts.extend((doc, line) for i, line in enumerate((read(root, doc) or "").split("\n"))
-                     if "Seal 0.1.14" in line and i not in covered.get(doc, ()) and line not in rows.get(doc, ()))
+                     if "Seal 0.1.14" in line and i not in covered.get(doc, ()))
     return texts
 
 
