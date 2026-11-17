@@ -28,15 +28,107 @@ type TriageOptions struct {
 	Log          io.Writer
 }
 
+// entryNames names the fields of a disposition where they are given: as
+// spar triage's options, or as the keys of a ledger line, quoted as JSON
+// keys.
+type entryNames struct{ commit, failedBefore, passedAfter, evidence, of, to, userQuote string }
+
+var (
+	triageOptions = entryNames{"--commit", "--failed-before", "--passed-after", "--evidence", "--of", "--to", "--user-quote"}
+	ledgerKeys    = entryNames{`"commit"`, `"failed_before"`, `"passed_after"`, `"evidence"`, `"of"`, `"to"`, `"user_quote"`}
+)
+
+// fieldsProblem says why the fields of a disposition do not fit it or the
+// finding's class (contracts/review-round.md §7). spar triage applies it
+// before it writes an entry and spar cap-report before an entry it reads
+// closes or excludes a finding, so both hold the same rules. It reads no
+// Git: whether a fix commit comes after the reviewed head is triage's own
+// check.
+func fieldsProblem(f Finding, findings []Finding, e LedgerEntry, n entryNames) string {
+	switch e.Disposition {
+	case "fix":
+		if e.Commit == "" || strings.TrimSpace(e.FailedBefore) == "" || strings.TrimSpace(e.PassedAfter) == "" {
+			return fmt.Sprintf("a fix needs %s, %s and %s: the fix commit, the observation that failed before it and the one that passes after it",
+				n.commit, n.failedBefore, n.passedAfter)
+		}
+	case "reject":
+		if f.Class != "requirement-question" && strings.TrimSpace(e.Evidence) == "" {
+			return fmt.Sprintf("a reject needs %s that disproves the finding", n.evidence)
+		}
+	case "defer":
+		if strings.TrimSpace(e.To) == "" {
+			return fmt.Sprintf("a defer needs %s: where the finding goes", n.to)
+		}
+		if f.Class == "defect" && strings.TrimSpace(e.UserQuote) == "" {
+			return fmt.Sprintf("deferring a defect needs %s with the user's words", n.userQuote)
+		}
+	case "duplicate":
+		if e.Of == "" || e.Of == f.ID {
+			return fmt.Sprintf("a duplicate needs %s another finding of the same round", n.of)
+		}
+		var target *Finding
+		for i := range findings {
+			if findings[i].ID == e.Of {
+				target = &findings[i]
+			}
+		}
+		if target == nil {
+			return fmt.Sprintf("%s %s is not a finding of this round", n.of, e.Of)
+		}
+		// A defect or requirement question closes only through a finding
+		// of its own class, and only once that finding is closed (gate).
+		if (f.Class == "defect" || f.Class == "requirement-question") && target.Class != f.Class {
+			return fmt.Sprintf("a %s can only duplicate another %s; %s is %s", f.Class, f.Class, target.ID, target.Class)
+		}
+	case "answer":
+		if f.Class != "requirement-question" {
+			return "only a requirement question is answered; this finding is " + f.Class
+		}
+	default:
+		return fmt.Sprintf("unknown disposition %q (%s)", e.Disposition, strings.Join(Dispositions, ", "))
+	}
+	return ""
+}
+
+// quoteProblem says why closing the finding with this disposition needs
+// the user's words that the entry does not have.
+func quoteProblem(f Finding, e LedgerEntry, n entryNames) string {
+	quote := strings.TrimSpace(e.UserQuote) != ""
+	if f.Class == "requirement-question" && e.Disposition != "duplicate" && !quote {
+		return fmt.Sprintf("closing a requirement question needs %s with the user's words", n.userQuote)
+	}
+	if f.Class == "hardening" && e.Disposition == "fix" && !quote {
+		return fmt.Sprintf("fixing a deferred hardening item in this change needs %s with the user's words", n.userQuote)
+	}
+	return ""
+}
+
+// entryProblem says why a ledger line may not close or exclude its finding.
+// An automatic entry is valid only in the form spar run writes: the
+// deferral of a hardening finding with a reason. Every other entry needs
+// the fields spar triage requires before it writes one.
+func entryProblem(f Finding, findings []Finding, e LedgerEntry) string {
+	if e.Auto {
+		if e.Disposition == "defer" && f.Class == "hardening" && strings.TrimSpace(e.Reason) != "" {
+			return ""
+		}
+		return "an automatic entry is spar's deferral of a hardening finding, with a reason"
+	}
+	if problem := fieldsProblem(f, findings, e, ledgerKeys); problem != "" {
+		return problem
+	}
+	return quoteProblem(f, e, ledgerKeys)
+}
+
 // dispositionProblem says why a disposition does not fit a finding's class.
 func dispositionProblem(f Finding, findings []Finding, o TriageOptions, repo, head string) (string, string) {
-	quote := strings.TrimSpace(o.UserQuote) != ""
+	e := LedgerEntry{Disposition: o.Disposition, Commit: o.Commit, FailedBefore: o.FailedBefore, PassedAfter: o.PassedAfter,
+		Evidence: o.Evidence, Of: o.Of, To: o.To, UserQuote: o.UserQuote}
+	if problem := fieldsProblem(f, findings, e, triageOptions); problem != "" {
+		return problem, ""
+	}
 	var commit string
-	switch o.Disposition {
-	case "fix":
-		if o.Commit == "" || strings.TrimSpace(o.FailedBefore) == "" || strings.TrimSpace(o.PassedAfter) == "" {
-			return "a fix needs --commit, --failed-before and --passed-after: the fix commit, the observation that failed before it and the one that passes after it", ""
-		}
+	if o.Disposition == "fix" {
 		c, err := resolveCommit(repo, o.Commit)
 		if err != nil {
 			return "--commit: " + err.Error(), ""
@@ -45,47 +137,9 @@ func dispositionProblem(f Finding, findings []Finding, o TriageOptions, repo, he
 			return fmt.Sprintf("the fix commit %s does not come after the reviewed head %s", shortID(c), shortID(head)), ""
 		}
 		commit = c
-	case "reject":
-		if f.Class != "requirement-question" && strings.TrimSpace(o.Evidence) == "" {
-			return "a reject needs --evidence that disproves the finding", ""
-		}
-	case "defer":
-		if strings.TrimSpace(o.To) == "" {
-			return "a defer needs --to: where the finding goes", ""
-		}
-		if f.Class == "defect" && !quote {
-			return "deferring a defect needs --user-quote with the user's words", ""
-		}
-	case "duplicate":
-		if o.Of == "" || o.Of == f.ID {
-			return "a duplicate needs --of another finding of the same round", ""
-		}
-		var target *Finding
-		for i := range findings {
-			if findings[i].ID == o.Of {
-				target = &findings[i]
-			}
-		}
-		if target == nil {
-			return fmt.Sprintf("--of %s is not a finding of this round", o.Of), ""
-		}
-		// A defect or requirement question closes only through a finding
-		// of its own class, and only once that finding is closed (gate).
-		if (f.Class == "defect" || f.Class == "requirement-question") && target.Class != f.Class {
-			return fmt.Sprintf("a %s can only duplicate another %s; %s is %s", f.Class, f.Class, target.ID, target.Class), ""
-		}
-	case "answer":
-		if f.Class != "requirement-question" {
-			return "only a requirement question is answered; this finding is " + f.Class, ""
-		}
-	default:
-		return fmt.Sprintf("unknown disposition %q (%s)", o.Disposition, strings.Join(Dispositions, ", ")), ""
 	}
-	if f.Class == "requirement-question" && o.Disposition != "duplicate" && !quote {
-		return "closing a requirement question needs --user-quote with the user's words", ""
-	}
-	if f.Class == "hardening" && o.Disposition == "fix" && !quote {
-		return "fixing a deferred hardening item in this change needs --user-quote with the user's words", ""
+	if problem := quoteProblem(f, e, triageOptions); problem != "" {
+		return problem, ""
 	}
 	return "", commit
 }
