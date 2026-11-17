@@ -578,7 +578,7 @@
         "identity substitutions",
         "partial direct-install or tested-source provenance"
       ],
-      "boundary": "Local real Core, original receipts, explicit goal/checkout and verified source images are tested. Missing source objects or unsupported records remain unavailable without fetching. Direct installation uses synthetic local archives and controlled fresh roots, not live release downloads or model sessions. Fixture repositories turn off Git's automatic maintenance, so only the code under test can change them while their contents are compared.",
+      "boundary": "Local real Core, original receipts, explicit goal/checkout and verified source images are tested. Missing source objects or unsupported records remain unavailable without fetching. Direct installation uses synthetic local archives and controlled fresh roots, not live release downloads or model sessions. SourceIdentityEvidence's source and sentinel repositories turn off Git's automatic maintenance, so only the code under test can change them while their contents are compared.",
       "checks": [
         {
           "file": "tools/release-checks/integration_core_observation.py",
