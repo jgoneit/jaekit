@@ -185,6 +185,26 @@ const boundaryGuidance = "- The documents below state what each check observes a
 	"- A counterexample on an input outside a stated boundary that no criterion, rule, contract or protected regression path requires: report it as `hardening` with `check_impact` `none`, and name the boundary it is outside.\n" +
 	"- A counterexample on an input that a criterion, a contract or a protected regression path requires is a `defect`, whatever a boundary says.\n\n"
 
+// boundaryInCriteria stands under the name of a boundary document that is
+// also a criteria document of the packet, in place of a second copy of its
+// text.
+const boundaryInCriteria = "This is the criteria document of the same name under `## Criteria` above; its text is not repeated here.\n\n"
+
+// inCriteria reports whether boundary document d is a criteria document of
+// the same run: the same file (source, the path by which a file given twice
+// is included once) with the same content, under a name that no other
+// criteria document has, so that the name points to that one text.
+func inCriteria(criteria []Document, d Document) bool {
+	same, named := false, 0
+	for _, c := range criteria {
+		if c.Name == d.Name {
+			named++
+			same = same || (c.Source == d.Source && c.SHA256 == d.SHA256)
+		}
+	}
+	return same && named == 1
+}
+
 // embedText writes a label and a text as given inside a fence longer than
 // any run of backticks in it, so that no heading or fence in the text makes
 // or ends a section of the packet. The closing fence always follows a
@@ -249,6 +269,10 @@ func buildPacket(in packetInput) string {
 	if len(in.Boundaries) > 0 {
 		b.WriteString("## Check boundaries\n\n" + boundaryGuidance)
 		for _, d := range in.Boundaries {
+			if inCriteria(in.Criteria, d) {
+				fmt.Fprintf(&b, "### %s\n\n%s", d.Name, boundaryInCriteria)
+				continue
+			}
 			embedDoc(&b, d)
 		}
 	}
