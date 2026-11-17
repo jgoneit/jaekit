@@ -41,7 +41,7 @@ func guarded(t *testing.T, id, what, old, new string) {
 	if r := currentTree(t, producerCopy(t, "", "")); !r.ok {
 		t.Fatalf("control: CurrentTree fails on the unchanged copy:\n%s", tail(r.output, 30))
 	}
-	if r := currentTree(t, producerCopy(t, old, new)); r.ok {
+	if r := currentTree(t, producerCopy(t, old, new)); !caught(t, r, "CurrentTree with the changed lookup") {
 		t.Errorf("jaekit:violation=%s CurrentTree passes when the lookup %s", id, what)
 	}
 }

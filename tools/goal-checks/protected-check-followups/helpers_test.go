@@ -239,16 +239,34 @@ func faithful(t *testing.T, mode, root string, args ...string) {
 }
 
 type unittestResult struct {
-	ran    int
-	ok     bool
-	output string
+	ran, failures, errors int
+	ok                    bool
+	output                string
 }
 
-var ranLine = regexp.MustCompile(`(?m)^Ran (\d+) tests? in `)
+var (
+	ranLine    = regexp.MustCompile(`(?m)^Ran (\d+) tests? in `)
+	failedLine = regexp.MustCompile(`^FAILED \((.+)\)$`)
+	countPart  = regexp.MustCompile(`^(failures|errors|skipped|expected failures|unexpected successes)=(\d+)$`)
+)
 
-// runUnittest runs python3 -m unittest with the given arguments in dir. A
-// result it cannot read, or a module that did not load (unittest's
-// _FailedTest), is an input failure.
+// caught reports whether a run on a faulted copy failed an assertion. A run
+// that ended in an error has not shown that the fault is caught, so it is an
+// input failure, never a pass of the guard.
+func caught(t *testing.T, r unittestResult, what string) bool {
+	t.Helper()
+	if r.ok {
+		return false
+	}
+	if r.errors > 0 || r.failures == 0 {
+		t.Fatalf("%s: the run ended in an error, not a failed assertion:\n%s", what, tail(r.output, 30))
+	}
+	return true
+}
+
+// runUnittest runs python3 -m unittest with the given arguments in dir and
+// reads its failure and error counts. A result it cannot read, or a module
+// that did not load (unittest's _FailedTest), is an input failure.
 func runUnittest(t *testing.T, dir string, env []string, args ...string) unittestResult {
 	t.Helper()
 	cmd := exec.Command(tool(t, "python3"), append([]string{"-m", "unittest", "-v"}, args...)...)
@@ -263,17 +281,34 @@ func runUnittest(t *testing.T, dir string, env []string, args ...string) unittes
 	if m == nil || strings.Contains(text, "_FailedTest") {
 		t.Fatalf("unittest %v gave no readable result:\n%s", args, text)
 	}
-	ran, _ := strconv.Atoi(m[1])
+	r := unittestResult{output: text}
+	r.ran, _ = strconv.Atoi(m[1])
 	lines := strings.Split(strings.TrimSpace(text), "\n")
 	last := strings.TrimSpace(lines[len(lines)-1])
-	ok := err == nil && (last == "OK" || strings.HasPrefix(last, "OK ("))
-	if !ok && !strings.HasPrefix(last, "FAILED (") {
-		t.Fatalf("unittest %v ended with an unknown line %q:\n%s", args, last, text)
+	switch counts := failedLine.FindStringSubmatch(last); {
+	case err == nil && (last == "OK" || strings.HasPrefix(last, "OK (")):
+		r.ok = true
+	case err != nil && counts != nil:
+		for _, part := range strings.Split(counts[1], ", ") {
+			c := countPart.FindStringSubmatch(part)
+			if c == nil {
+				t.Fatalf("unittest %v ended with an unknown count %q:\n%s", args, part, text)
+			}
+			n, _ := strconv.Atoi(c[2])
+			switch c[1] {
+			case "failures":
+				r.failures = n
+			case "errors":
+				r.errors = n
+			}
+		}
+	default:
+		t.Fatalf("unittest %v ended with an unknown line %q (%v):\n%s", args, last, err, text)
 	}
-	if ran == 0 {
+	if r.ran == 0 {
 		t.Fatalf("unittest %v ran no test:\n%s", args, text)
 	}
-	return unittestResult{ran: ran, ok: ok, output: text}
+	return r
 }
 
 func tail(text string, n int) string {

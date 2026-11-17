@@ -97,34 +97,84 @@ func TestProtectedAC7_AnchorExclusionKept(t *testing.T) {
 	}
 }
 
-// The three protected routes stay protected, the registry is valid, and each
-// route check names a class or test that exists in its file.
+// routeCheck is one check of a route record.
+type routeCheck struct {
+	File     string `json:"file"`
+	Selector string `json:"selector"`
+}
+
+// What each of the three protected routes records once this goal's checks
+// changed: its sources, its check, and the fixed tokens of its new examples
+// and property.
+var routeRecords = map[string]struct {
+	sources, examples, property []string
+	check                       routeCheck
+}{
+	"authoring-check-current-tree": {
+		sources:  []string{"tools/contract-checks/authoring_check.py", "tools/contract-checks/check.py"},
+		examples: []string{"clause phrase only in the earlier-goals reference", "clause phrase absent from every skill document"},
+		property: []string{"in the earlier-goals reference only when the clause names it"},
+		check:    routeCheck{"tools/goal-checks/test_authoring_check.py", "CurrentTree"},
+	},
+	"authoring-check-result-meaning": {
+		sources: []string{"tools/contract-checks/authoring_check.py", "tools/contract-checks/check.py"},
+		check:   routeCheck{"tools/goal-checks/test_authoring_check.py", "ResultMeaning"},
+	},
+	"observation-identity-gap": {
+		sources:  []string{"tools/release-checks/source_identity.py"},
+		examples: []string{"automatic Git maintenance started by the sentinel's commit"},
+		check:    routeCheck{"tools/release-checks/integration_evidence_boundaries.py", "SourceIdentityEvidence"},
+	},
+}
+
+// The three protected routes stay protected, the registry is valid, each
+// route check names a class or test that exists in its file, and each record
+// carries what routeRecords lists.
 func TestProtectedAC7_RouteRecords(t *testing.T) {
 	if out, ok := run(t, "python3", "tools/regression_map.py", "--format", "json"); !ok {
 		t.Errorf("the regression registry is not valid:\n%s", tail(out, 20))
 	}
 	var registry struct {
 		Routes []struct {
-			ID     string `json:"id"`
-			Status string `json:"status"`
-			Checks []struct {
-				File     string `json:"file"`
-				Selector string `json:"selector"`
-			} `json:"checks"`
+			ID       string       `json:"id"`
+			Status   string       `json:"status"`
+			Sources  []string     `json:"sources"`
+			Examples []string     `json:"examples"`
+			Property string       `json:"property"`
+			Checks   []routeCheck `json:"checks"`
 		} `json:"routes"`
 	}
 	root := repoRoot(t)
 	if err := json.Unmarshal([]byte(read(t, filepath.Join(root, "contracts", "regressions.json"))), &registry); err != nil {
 		t.Fatalf("contracts/regressions.json: %v", err)
 	}
-	want := map[string]bool{"authoring-check-current-tree": false, "authoring-check-result-meaning": false, "observation-identity-gap": false}
+	found := map[string]bool{}
 	for _, route := range registry.Routes {
-		if _, ok := want[route.ID]; !ok {
+		want, ok := routeRecords[route.ID]
+		if !ok {
 			continue
 		}
-		want[route.ID] = true
+		found[route.ID] = true
 		if route.Status != "protected" {
 			t.Errorf("route %s is %q, not protected", route.ID, route.Status)
+		}
+		for _, source := range want.sources {
+			if !slices.Contains(route.Sources, source) {
+				t.Errorf("route %s does not list the source %s", route.ID, source)
+			}
+		}
+		for _, example := range want.examples {
+			if !slices.Contains(route.Examples, example) {
+				t.Errorf("route %s does not list the example %q", route.ID, example)
+			}
+		}
+		for _, token := range want.property {
+			if !strings.Contains(route.Property, token) {
+				t.Errorf("route %s property does not say %q", route.ID, token)
+			}
+		}
+		if !slices.Contains(route.Checks, want.check) {
+			t.Errorf("route %s does not check %s %s", route.ID, want.check.File, want.check.Selector)
 		}
 		for _, check := range route.Checks {
 			text := read(t, filepath.Join(root, check.File))
@@ -133,8 +183,8 @@ func TestProtectedAC7_RouteRecords(t *testing.T) {
 			}
 		}
 	}
-	for id, found := range want {
-		if !found {
+	for id := range routeRecords {
+		if !found[id] {
 			t.Errorf("route %s is missing from contracts/regressions.json", id)
 		}
 	}

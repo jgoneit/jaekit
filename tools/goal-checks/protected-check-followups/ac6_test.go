@@ -12,28 +12,46 @@ import (
 
 const sentinelTest = "integration_evidence_boundaries.SourceIdentityEvidence.test_git_environment_cannot_redirect_snapshot_writes"
 
+// The assertions of the sentinel test that compare each repository's
+// contents; a failed comparison prints its line in the traceback.
+const (
+	sentinelCompare = "self.assertEqual(contents(sentinel), other)"
+	originalCompare = "self.assertEqual(contents(self.root), original)"
+	// The temporary folder name of the sentinel repository.
+	sentinelPrefix = "jaekit-git-sentinel-"
+)
+
 // The start of source_identity.git's Git call; the injected faults go right before it.
 const gitCall = "    try:\n        result = subprocess.run([\"git\", \"-c\", \"core.hooksPath=/dev/null\", \"-c\", \"core.fsmonitor=false\", *arguments],"
 
-// fakeGit puts fake-git.sh first on PATH as git. It returns the environment
-// and the fake's path: a Go command resolves its name with the parent's PATH,
-// so the emulation control calls the fake by path; Python's subprocess
-// resolves git with the PATH of the environment it is given.
-func fakeGit(t *testing.T) ([]string, string) {
+// isolatedGit keeps the host's system and global Git configuration out of a
+// run, so a host maintenance.auto setting cannot decide it.
+func isolatedGit() []string {
+	return []string{"GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL=" + os.DevNull}
+}
+
+// fakeGit puts fake-git.sh first on PATH as git. It returns the environment,
+// the fake's path and the log of the Git directories it wrote a lock into. A
+// Go command resolves its name with the parent's PATH, so the emulation
+// control calls the fake by path; Python's subprocess resolves git with the
+// PATH of the environment it is given.
+func fakeGit(t *testing.T) (env []string, fake, log string) {
 	t.Helper()
 	dir := t.TempDir()
-	fake := filepath.Join(dir, "git")
+	fake = filepath.Join(dir, "git")
 	copyFile(t, filepath.Join(repoRoot(t), "tools", "goal-checks", "protected-check-followups", "fake-git.sh"), fake)
 	if err := os.Chmod(fake, 0o755); err != nil {
 		t.Fatalf("fake git: %v", err)
 	}
 	state := filepath.Join(t.TempDir(), "pending")
 	write(t, state, "")
-	return []string{
+	write(t, state+".log", "")
+	env = append([]string{
 		"PATH=" + dir + string(os.PathListSeparator) + os.Getenv("PATH"),
 		"JAEKIT_REAL_GIT=" + tool(t, "git"),
 		"JAEKIT_FAKE_GIT_STATE=" + state,
-	}, fake
+	}, isolatedGit()...)
+	return env, fake, state + ".log"
 }
 
 func gitIn(t *testing.T, git, dir string, env []string, args ...string) {
@@ -50,7 +68,7 @@ func gitIn(t *testing.T, git, dir string, env []string, args ...string) {
 func emulationWorks(t *testing.T) {
 	t.Helper()
 	for _, auto := range []string{"", "false"} {
-		env, git := fakeGit(t)
+		env, git, _ := fakeGit(t)
 		repo := t.TempDir()
 		gitIn(t, git, repo, env, "init", "-q")
 		gitIn(t, git, repo, env, "config", "user.name", "Synthetic")
@@ -84,33 +102,58 @@ func toolsCopy(t *testing.T, fault string) string {
 func TestProtectedAC6_MaintenanceLockIgnored(t *testing.T) {
 	const id = "maintenance-lock-fails-sentinel"
 	emulationWorks(t)
-	env, _ := fakeGit(t)
+	env, _, log := fakeGit(t)
 	r := runUnittest(t, releaseChecks(repoRoot(t)), env, sentinelTest)
-	switch {
-	case r.ok:
-	case strings.Contains(r.output, "maintenance.lock"):
-		t.Errorf("jaekit:violation=%s the sentinel comparison fails on the maintenance lock its own setup started:\n%s", id, tail(r.output, 12))
-	default:
+	if r.ok {
+		return
+	}
+	if !caught(t, r, "the sentinel test under the emulated maintenance") || !strings.Contains(r.output, sentinelCompare) ||
+		!strings.Contains(read(t, log), sentinelPrefix) {
 		t.Fatalf("the sentinel test fails for another reason:\n%s", tail(r.output, 30))
 	}
+	t.Errorf("jaekit:violation=%s the sentinel comparison fails on the maintenance lock its own commit started:\n%s", id, tail(r.output, 12))
 }
 
-func snapshotWriteCaught(t *testing.T, id, what, fault string) {
+// writeCaught runs the sentinel test on an unchanged copy (it must pass) and
+// on a copy with fault injected; the faulted run must fail the comparison
+// named by compare, not end in an error.
+func writeCaught(t *testing.T, fault, compare string) bool {
 	t.Helper()
-	if r := runUnittest(t, releaseChecks(toolsCopy(t, "")), nil, sentinelTest); !r.ok {
+	if r := runUnittest(t, releaseChecks(toolsCopy(t, "")), isolatedGit(), sentinelTest); !r.ok {
 		t.Fatalf("control: the sentinel test fails on the unchanged copy:\n%s", tail(r.output, 30))
 	}
-	if r := runUnittest(t, releaseChecks(toolsCopy(t, fault)), nil, sentinelTest); r.ok {
-		t.Errorf("jaekit:violation=%s the sentinel test passes when the snapshot %s", id, what)
+	r := runUnittest(t, releaseChecks(toolsCopy(t, fault)), isolatedGit(), sentinelTest)
+	if !caught(t, r, "the sentinel test with an injected write") {
+		return false
 	}
+	if !strings.Contains(r.output, compare) {
+		t.Fatalf("the injected write fails another assertion than %q:\n%s", compare, tail(r.output, 30))
+	}
+	return true
+}
+
+// A write the snapshot makes into the sentinel's Git directory while the
+// test's GIT_DIR points there. Nothing the snapshot reads changes.
+func sentinelWrite(parts string) string {
+	return "    if os.environ.get(\"GIT_DIR\"):\n        open(os.path.join(os.environ[\"GIT_DIR\"], " + parts + "), \"a\").close()\n"
 }
 
 func TestProtectedAC6_SentinelWriteCaught(t *testing.T) {
-	snapshotWriteCaught(t, "sentinel-write-not-caught", "writes objects into the sentinel through GIT_OBJECT_DIRECTORY",
-		"    env.update({key: value for key, value in os.environ.items() if key == \"GIT_OBJECT_DIRECTORY\"})\n")
+	const id = "sentinel-write-not-caught"
+	for _, c := range []struct{ what, parts string }{
+		{"writes objects/maintenance.lock into the sentinel's Git directory", `"objects", "maintenance.lock"`},
+		{"writes another file into the sentinel's Git directory", `"jaekit-probe"`},
+	} {
+		if !writeCaught(t, sentinelWrite(c.parts), sentinelCompare) {
+			t.Errorf("jaekit:violation=%s the sentinel test passes when the snapshot %s", id, c.what)
+		}
+	}
 }
 
 func TestProtectedAC6_OriginalWriteCaught(t *testing.T) {
-	snapshotWriteCaught(t, "original-write-not-caught", "writes a file into the checked repository's .git",
-		"    if os.path.isdir(os.path.join(root, \".git\")):\n        open(os.path.join(root, \".git\", \"jaekit-probe\"), \"a\").close()\n")
+	const id = "original-write-not-caught"
+	fault := "    if os.path.isdir(os.path.join(root, \".git\")):\n        open(os.path.join(root, \".git\", \"jaekit-probe\"), \"a\").close()\n"
+	if !writeCaught(t, fault, originalCompare) {
+		t.Errorf("jaekit:violation=%s the sentinel test passes when the snapshot writes a file into the checked repository's .git", id)
+	}
 }

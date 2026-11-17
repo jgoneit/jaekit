@@ -73,6 +73,23 @@ func changeTable(t *testing.T, root, doc, change string) {
 	replaceOnce(t, path, table, changed)
 }
 
+// splitTable moves the record_invalid row out of the table in
+// references/ha.md into a table of its own, with the same header, at the end
+// of doc: the reasons are then split across two documents.
+func splitTable(t *testing.T, root, doc string) {
+	t.Helper()
+	path := filepath.Join(root, haDoc)
+	table, _ := reasonsTable(t, read(t, path), haDoc)
+	rows := strings.Split(table, "\n")
+	i := slices.IndexFunc(rows, func(row string) bool { return strings.HasPrefix(row, removedRow) })
+	if i < 2 || !strings.Contains(rows[1], "---") {
+		t.Fatalf("%s: the reasons table has no header above %q", haDoc, removedRow)
+	}
+	moved := rows[0] + "\n" + rows[1] + "\n" + rows[i]
+	replaceOnce(t, path, table, strings.Join(slices.Delete(rows, i, i+1), "\n"))
+	appendText(t, filepath.Join(root, doc), moved)
+}
+
 func reasonProblems(t *testing.T, root string) []string {
 	t.Helper()
 	return withText(authoring(t, root, "AC-6").Problems, reasonsChanged)
@@ -86,6 +103,11 @@ func TestProtectedAC1_MovedReasonsTable(t *testing.T) {
 	moveTable(t, root, bundleDoc)
 	if after := reasonProblems(t, root); !slices.Equal(before, after) {
 		t.Errorf("jaekit:violation=%s moving the table unchanged to %s changes the reason result from %q to %q", id, bundleDoc, before, after)
+	}
+	split := docTree(t)
+	splitTable(t, split, bundleDoc)
+	if after := reasonProblems(t, split); !slices.Equal(before, after) {
+		t.Errorf("jaekit:violation=%s splitting the rows between %s and %s changes the reason result from %q to %q", id, haDoc, bundleDoc, before, after)
 	}
 }
 
