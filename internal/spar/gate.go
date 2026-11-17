@@ -93,8 +93,26 @@ type GateRecord struct {
 	// the order of the rounds given and of each round's findings.json.
 	DeferredFindings  []GateDeferred  `json:"deferred_findings"`
 	UnhandledFindings []GateUnhandled `json:"unhandled_findings"`
-	Growth            Growth          `json:"growth"`
-	WrittenAt         string          `json:"written_at"`
+	// UncoveredStandpoints is nil, and the field absent, when no given round
+	// has standpoints, so such a gate keeps the bytes it had before the field.
+	UncoveredStandpoints *[]GateStandpoint `json:"uncovered_standpoints,omitempty"`
+	Growth               Growth            `json:"growth"`
+	WrittenAt            string            `json:"written_at"`
+}
+
+// GateStandpoint is a standpoint whose reviewer completed none of the given
+// rounds of the packet that carries it, with those rounds.
+type GateStandpoint struct {
+	Reviewer string          `json:"reviewer"`
+	Text     string          `json:"text"`
+	Rounds   []GateRoundName `json:"rounds"`
+}
+
+// GateRoundName names a round by the folder names of its series and round,
+// as GateDeferred does.
+type GateRoundName struct {
+	Series string `json:"series"`
+	Round  string `json:"round"`
 }
 
 // GateDeferred is a finding a person deferred, named by the folder names of
@@ -351,6 +369,8 @@ func Gate(o GateOptions) (int, error) {
 	if n := g.Open["defect"] + g.Open["requirement-question"]; n > 0 {
 		blocked = append(blocked, fmt.Sprintf("%d open defect or requirement-question finding(s)", n))
 	}
+	// A record only: standpoints never add a reason.
+	g.UncoveredStandpoints = uncoveredStandpoints(rounds)
 	measured := map[string]bool{}
 	for _, lr := range rounds {
 		r := lr.round
@@ -399,6 +419,53 @@ func Gate(o GateOptions) (int, error) {
 		return ExitInternal, err
 	}
 	return code, nil
+}
+
+// uncoveredStandpoints joins the rounds' standpoint coverage over reruns of
+// one packet, as the completion credit above joins required reviewers: a
+// standpoint is listed when its reviewer completed none of the given rounds
+// with that packet identity. Standpoints and their assignments are in the
+// packet, so those rounds carry the same ones, and another packet never
+// covers them. A waiver is not a completion. Entries follow the given rounds
+// and each round's standpoints, once per packet. It returns nil when no round
+// has standpoints.
+func uncoveredStandpoints(rounds []loadedRound) *[]GateStandpoint {
+	type key struct {
+		packet     packetIdentity
+		standpoint Standpoint
+	}
+	var order []key
+	entries := map[key]*GateStandpoint{}
+	covered := map[key]bool{}
+	for _, lr := range rounds {
+		r := lr.round
+		// Folder names, never the path given: it may be absolute.
+		dir := realish(lr.path)
+		name := GateRoundName{Series: filepath.Base(filepath.Dir(dir)), Round: filepath.Base(dir)}
+		for _, s := range r.Standpoints {
+			k := key{packetKey(r), s}
+			e := entries[k]
+			if e == nil {
+				e = &GateStandpoint{Reviewer: s.Reviewer, Text: s.Text, Rounds: []GateRoundName{}}
+				entries[k] = e
+				order = append(order, k)
+			}
+			e.Rounds = append(e.Rounds, name)
+			if standpointCompleted(r, s) {
+				covered[k] = true
+			}
+		}
+	}
+	if len(order) == 0 {
+		return nil
+	}
+	out := []GateStandpoint{}
+	for _, k := range order {
+		if !covered[k] {
+			out = append(out, *entries[k])
+		}
+	}
+	return &out
 }
 
 // requiredOf lists a round's required reviewers: those it ran as required

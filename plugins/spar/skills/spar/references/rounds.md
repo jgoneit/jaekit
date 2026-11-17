@@ -16,7 +16,7 @@ Record the code extension as [When to run each stage](../SKILL.md#when-to-run-ea
 
 ## Reviewer standpoints
 
-A standpoint points one reviewer at one risk of the change. Standpoints do not replace or change angles, and they do not change classification, dispositions, caps or the gate's state and reasons. When reporting the gate, name standpoints left without a completed reviewer.
+A standpoint points one reviewer at one risk of the change. Standpoints do not replace or change angles, and they do not change classification, dispositions, caps or the gate's state and reasons. When reporting the gate, name the standpoints in the gate file's `uncovered_standpoints`, with their rounds: those whose reviewer completed no gated round of the same packet, waived reviewers included. A rerun's completion covers the earlier round of its packet, so read this list, not each round's `standpoints_uncovered`.
 
 ### Choose reviewer standpoints
 
