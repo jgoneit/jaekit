@@ -7,11 +7,6 @@ import (
 	"testing"
 )
 
-const (
-	userStep  = "guidance may add a user step"
-	localPath = "local path in new guidance"
-)
-
 // versionLine puts one "Seal 0.1.14" guidance line in a new section at the
 // end of doc, outside the sections the producer already reads.
 func versionLine(t *testing.T, doc, line string) string {

@@ -28,6 +28,12 @@ const (
 	bundleDoc  = seal + "references/bundle.md"
 	haDoc      = seal + "references/ha.md"
 	earlierDoc = seal + "references/earlier-goals.md"
+
+	// The labels of the authoring producer's AC-6 and AC-10 guidance problems.
+	// Each condition's checks list this file, so a baseline, which copies only
+	// a condition's own check paths, still has them.
+	userStep  = "guidance may add a user step"
+	localPath = "local path in new guidance"
 )
 
 // repoRoot is the checked tree: go test runs in this package's directory.
