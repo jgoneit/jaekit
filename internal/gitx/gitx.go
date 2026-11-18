@@ -12,27 +12,33 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	procenv "github.com/jgoneit/jaekit/internal/run"
 )
 
 // Repo is a git working tree.
 type Repo struct {
 	Root   string // absolute top-level directory
 	GitDir string // absolute git directory of this working tree
+
+	// env is the environment git runs in: the one OpenIn was given, or the
+	// process's own (the zero value).
+	env procenv.Environment
 }
 
 // Deleted is the blob value of a path that does not exist at a revision.
 const Deleted = "deleted"
 
-func command(dir string, args ...string) *exec.Cmd {
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
+func command(env procenv.Environment, dir string, args ...string) *exec.Cmd {
+	// git is found through the environment's PATH, not the process's.
+	cmd := env.Command(dir, "git", args...)
 	// GIT_OPTIONAL_LOCKS=0 keeps `git status` from refreshing the index.
-	cmd.Env = append(os.Environ(), "GIT_OPTIONAL_LOCKS=0", "LC_ALL=C")
+	cmd.Env = append(env.Environ(), "GIT_OPTIONAL_LOCKS=0", "LC_ALL=C")
 	return cmd
 }
 
-func run(dir string, args ...string) ([]byte, error) {
-	cmd := command(dir, args...)
+func run(env procenv.Environment, dir string, args ...string) ([]byte, error) {
+	cmd := command(env, dir, args...)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()
@@ -42,9 +48,14 @@ func run(dir string, args ...string) ([]byte, error) {
 	return out, nil
 }
 
-// Open finds the working tree that contains dir.
-func Open(dir string) (*Repo, error) {
-	out, err := run(dir, "rev-parse", "--show-toplevel", "--absolute-git-dir")
+// Open finds the working tree that contains dir, running git in the
+// process's own environment.
+func Open(dir string) (*Repo, error) { return OpenIn(procenv.Environment{}, dir) }
+
+// OpenIn is Open in the given environment; every git command of the Repo
+// runs in it.
+func OpenIn(env procenv.Environment, dir string) (*Repo, error) {
+	out, err := run(env, dir, "rev-parse", "--show-toplevel", "--absolute-git-dir")
 	if err != nil {
 		return nil, fmt.Errorf("not inside a git working tree: %w", err)
 	}
@@ -52,10 +63,10 @@ func Open(dir string) (*Repo, error) {
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("unexpected git rev-parse output: %q", out)
 	}
-	return &Repo{Root: filepath.Clean(parts[0]), GitDir: filepath.Clean(parts[1])}, nil
+	return &Repo{Root: filepath.Clean(parts[0]), GitDir: filepath.Clean(parts[1]), env: env}, nil
 }
 
-func (r *Repo) run(args ...string) ([]byte, error) { return run(r.Root, args...) }
+func (r *Repo) run(args ...string) ([]byte, error) { return run(r.env, r.Root, args...) }
 
 // CommonDir returns the absolute git directory shared by every working tree of
 // this repository. In a normal checkout it is GitDir; in a linked worktree it
@@ -147,7 +158,7 @@ func (r *Repo) Same(a, b string, excludes []string) (bool, error) {
 		return true, nil
 	}
 	args := append([]string{"diff", "--quiet", "--no-ext-diff", "--no-textconv", a, b, "--"}, Pathspec(excludes)...)
-	cmd := command(r.Root, args...)
+	cmd := command(r.env, r.Root, args...)
 	err := cmd.Run()
 	if err == nil {
 		return true, nil
@@ -198,7 +209,7 @@ func (r *Repo) CommitsChanging(a, b string, excludes []string) (int, error) {
 
 // Blob returns the blob id of path at rev, or Deleted when it does not exist.
 func (r *Repo) Blob(rev, path string) (string, error) {
-	cmd := command(r.Root, "rev-parse", "--verify", "--quiet", rev+":"+path)
+	cmd := command(r.env, r.Root, "rev-parse", "--verify", "--quiet", rev+":"+path)
 	out, err := cmd.Output()
 	if err != nil {
 		var ee *exec.ExitError

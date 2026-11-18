@@ -105,6 +105,13 @@ func ExecWithStdout(dir string, argv []string, timeout time.Duration, logPath st
 	return execWithOutput(dir, argv, timeout, logPath, extraEnv, startProcess, stdout)
 }
 
+// ExecIn is ExecWithStdout in the given environment: argv[0] is resolved
+// through its PATH and working directory, and the process receives its
+// entries followed by extraEnv. The zero Environment is ExecWithStdout.
+func ExecIn(env Environment, dir string, argv []string, timeout time.Duration, logPath string, extraEnv []string, stdout io.Writer) (Result, error) {
+	return execIn(env, dir, argv, timeout, logPath, extraEnv, startProcess, stdout)
+}
+
 // stdoutDrain bounds how long ha keeps reading a copied standard output after
 // the process exited, for example while a detached descendant still holds it.
 // A copy cut short this way is a wait failure, never evidence, whatever the
@@ -120,6 +127,10 @@ func execWithStarter(dir string, argv []string, timeout time.Duration, logPath s
 }
 
 func execWithOutput(dir string, argv []string, timeout time.Duration, logPath string, extraEnv []string, starter processStarter, stdout io.Writer) (Result, error) {
+	return execIn(Environment{}, dir, argv, timeout, logPath, extraEnv, starter, stdout)
+}
+
+func execIn(env Environment, dir string, argv []string, timeout time.Duration, logPath string, extraEnv []string, starter processStarter, stdout io.Writer) (Result, error) {
 	log, err := os.OpenFile(logPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {
 		return Result{}, err
@@ -127,9 +138,8 @@ func execWithOutput(dir string, argv []string, timeout time.Duration, logPath st
 	res := Result{Limit: timeout, CPU: CPU{Status: CPUUnavailable}}
 	var finalizationErr error
 	start := time.Now()
-	cmd := exec.Command(argv[0], argv[1:]...)
-	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), extraEnv...)
+	cmd := env.Command(dir, argv[0], argv[1:]...)
+	cmd.Env = append(env.Environ(), extraEnv...)
 	cmd.Stdout = log
 	cmd.Stderr = log
 	// A copied standard output comes through a pipe that ha reads itself:

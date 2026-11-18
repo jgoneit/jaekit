@@ -18,8 +18,7 @@ func (c *cli) executeCheckOutput(dir string, argv []string, timeout time.Duratio
 	if c.execute != nil {
 		return c.execute(dir, argv, timeout, logPath, env)
 	}
-	if stdout != nil {
-		return run.ExecWithStdout(dir, argv, timeout, logPath, env, stdout)
-	}
-	return run.ExecWithEnv(dir, argv, timeout, logPath, env)
+	// The command is found through the invocation's PATH and receives its
+	// environment; a nil stdout is ExecWithEnv in that environment.
+	return run.ExecIn(c.env, dir, argv, timeout, logPath, env, stdout)
 }

@@ -361,7 +361,7 @@ func (c *cli) historyAdd(a *args, w *workspace, store *history.Store, facts hist
 		}
 		var r io.Reader = os.Stdin
 		if path != "-" {
-			f, err := os.Open(path)
+			f, err := c.open(path)
 			if err != nil {
 				return c.fail(exitUsage, "invalid_input: %v", err)
 			}

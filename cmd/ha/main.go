@@ -98,9 +98,31 @@ func main() {
 	os.Exit(runMain(os.Args[1:], os.Stdout, os.Stderr))
 }
 
+// invocation is the working directory and the environment one ha command
+// reads and starts its child processes with: goal and path arguments,
+// configuration variables, and the PATH that finds git and check commands.
+type invocation struct {
+	env run.Environment
+	// dirErr is why the working directory could not be read. A command that
+	// needs it fails with this error, as os.Getwd failed before.
+	dirErr error
+	// own is true when env.Dir is this process's working directory, where a
+	// relative path already resolves: path arguments are then used as the
+	// user wrote them, and so are the names in messages.
+	own bool
+}
+
+// processDir reports whether the working directory is the process's own:
+// ha's process passed it, or nothing was passed (the zero invocation of a
+// cli built directly), which is read from the process when it is needed.
+func (inv invocation) processDir() bool {
+	return inv.own || (inv.env.Dir == "" && inv.dirErr == nil)
+}
+
 type cli struct {
 	out, err io.Writer
 	execute  checkExecutor
+	invocation
 }
 
 func (c *cli) fail(code int, format string, a ...any) int {
@@ -108,8 +130,69 @@ func (c *cli) fail(code int, format string, a ...any) int {
 	return code
 }
 
+// at is the name ha opens for a path argument: a relative path is relative
+// to the invocation's working directory. In ha's own process that is the
+// process working directory, so the name is used as written. Otherwise the
+// directory is prefixed without cleaning, so ".." after a symbolic link
+// resolves as the operating system resolves it from a working directory.
+func (c *cli) at(p string) string {
+	if c.processDir() || p == "" || filepath.IsAbs(p) || filepath.VolumeName(p) != "" || os.IsPathSeparator(p[0]) {
+		return p
+	}
+	return c.env.Dir + string(filepath.Separator) + p
+}
+
+// abs is filepath.Abs against the invocation's working directory.
+func (c *cli) abs(p string) (string, error) {
+	switch {
+	case c.processDir():
+		return filepath.Abs(p)
+	case filepath.IsAbs(p):
+		return filepath.Clean(p), nil
+	case c.dirErr != nil:
+		return "", c.dirErr
+	}
+	return filepath.Join(c.env.Dir, p), nil
+}
+
+// spelled is a message about the relative path argument p as the user reads
+// it: the names below the working directory that a package gave for the path
+// ha opened (at) are shown relative to it again. Messages about an absolute
+// argument, and every message in ha's own process, are unchanged.
+func (c *cli) spelled(p, msg string) string {
+	if c.processDir() || c.at(p) == p {
+		return msg
+	}
+	return strings.ReplaceAll(msg, c.env.Dir+string(filepath.Separator), "")
+}
+
+// open opens a path argument (at); an error names it as the user wrote it.
+func (c *cli) open(p string) (*os.File, error) {
+	name := c.at(p)
+	f, err := os.Open(name)
+	var pathErr *fs.PathError
+	if errors.As(err, &pathErr) && pathErr.Path == name {
+		pathErr.Path = p
+	}
+	return f, err
+}
+
+// runMain runs ha in this process's working directory and environment, as
+// the binary does.
 func runMain(argv []string, stdout, stderr io.Writer) int {
-	c := &cli{out: stdout, err: stderr}
+	dir, err := os.Getwd()
+	return runIn(invocation{env: run.Environment{Dir: dir, Env: os.Environ()}, dirErr: err, own: true}, argv, stdout, stderr)
+}
+
+// runWith runs ha in the working directory dir (absolute) with the
+// environment env (KEY=VALUE entries, as os.Environ returns them), without
+// reading or changing the process's own. Tests use it to run concurrently.
+func runWith(dir string, env []string, argv []string, stdout, stderr io.Writer) int {
+	return runIn(invocation{env: run.Environment{Dir: dir, Env: env}}, argv, stdout, stderr)
+}
+
+func runIn(inv invocation, argv []string, stdout, stderr io.Writer) int {
+	c := &cli{out: stdout, err: stderr, invocation: inv}
 	if len(argv) == 0 {
 		fmt.Fprint(stderr, usage)
 		return exitUsage
@@ -173,12 +256,22 @@ type workspace struct {
 	// standing for this working tree's git directory, so a linked worktree
 	// records the same path as a normal checkout (run-record.md §2.2).
 	logRel string
+
+	// env is the invocation's environment: git, the evidence inputs and the
+	// configuration variables are read with it.
+	env run.Environment
 }
 
-func openGoal(arg string) (*workspace, error) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, err
+func (c *cli) openGoal(arg string) (*workspace, error) {
+	if c.dirErr != nil {
+		return nil, c.dirErr
+	}
+	cwd := c.env.Dir
+	if cwd == "" {
+		var err error
+		if cwd, err = os.Getwd(); err != nil {
+			return nil, err
+		}
 	}
 	abs := arg
 	if !filepath.IsAbs(abs) {
@@ -191,7 +284,7 @@ func openGoal(arg string) (*workspace, error) {
 	if abs, err = filepath.EvalSymlinks(abs); err != nil {
 		return nil, err
 	}
-	repo, err := gitx.Open(abs)
+	repo, err := gitx.OpenIn(c.env, abs)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +302,7 @@ func openGoal(arg string) (*workspace, error) {
 	if err != nil {
 		return nil, err
 	}
-	b, err := bundle.LoadForRules(repo.Root, g, rules(lines))
+	b, err := bundle.LoadForRulesIn(c.env, repo.Root, g, rules(lines))
 	if err != nil {
 		return nil, err
 	}
@@ -225,6 +318,7 @@ func openGoal(arg string) (*workspace, error) {
 		logRel:  ".git/ha/runs/" + url.PathEscape(slashRel),
 
 		goalRules: rules(lines),
+		env:       c.env,
 	}, nil
 }
 
@@ -260,7 +354,7 @@ func (c *cli) openOrFail(a *args, n int) (*workspace, int) {
 	if len(a.pos) < n {
 		return nil, c.fail(exitUsage, "missing <goal>; run ha --help")
 	}
-	w, err := openGoal(a.pos[0])
+	w, err := c.openGoal(a.pos[0])
 	if err != nil {
 		return nil, c.fail(exitRefused, "%v", err)
 	}
@@ -317,7 +411,7 @@ func (c *cli) start(in []string) int {
 			return c.fail(exitUsage, "--rules accepts %s, %s, %s, %s or %s", status.RulesV3, status.RulesV4, status.RulesV5, status.RulesV6, status.RulesV7)
 		}
 		goalRules = r
-		if w.bundle, err = bundle.LoadForRules(w.repo.Root, w.goal, goalRules); err != nil {
+		if w.bundle, err = bundle.LoadForRulesIn(w.env, w.repo.Root, w.goal, goalRules); err != nil {
 			return c.fail(exitInternal, "%v", err)
 		}
 	}
@@ -376,15 +470,15 @@ func (c *cli) start(in []string) int {
 		// reads every file, so an unusable declaration (a broken link, a
 		// folder, a FIFO) is refused as the declaration. A skill without one
 		// is read first, as before, and keeps its own errors.
-		_, lerr := os.Lstat(filepath.Join(filepath.Dir(p), coreRequirementsFile))
+		_, lerr := os.Lstat(filepath.Join(filepath.Dir(c.at(p)), coreRequirementsFile))
 		declared := lerr == nil
 		if declared {
 			if code := c.checkSkillRequirements(p, a.bools["check-skill"]); code >= 0 {
 				return code
 			}
 		}
-		if skill, err = readSkill(p); err != nil {
-			return c.fail(exitRefused, "%v", err)
+		if skill, err = readSkill(c.at(p)); err != nil {
+			return c.fail(exitRefused, "%s", c.spelled(p, err.Error()))
 		}
 		if !declared {
 			if code := c.checkSkillRequirements(p, a.bools["check-skill"]); code >= 0 {
@@ -1015,9 +1109,9 @@ func (c *cli) note(in []string) int {
 		if strings.TrimSpace(path) == "" {
 			return c.fail(exitUsage, "review needs --gate <review-gate/v1 file>")
 		}
-		review, err := readReviewNote(path, goalRules)
+		review, err := readReviewNote(c.at(path), goalRules)
 		if err != nil {
-			return c.fail(exitRefused, "review gate %s: %v; nothing recorded", path, err)
+			return c.fail(exitRefused, "review gate %s: %s; nothing recorded", path, c.spelled(path, err.Error()))
 		}
 		e.Review = review
 		if goalRules == status.RulesV7 {

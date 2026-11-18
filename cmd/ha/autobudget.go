@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -54,6 +55,7 @@ func (e *preapprovalError) Error() string {
 // userConfigFile is <$XDG_CONFIG_HOME or ~/.config>/jaekit/ha.json. The home
 // is $HOME when set, otherwise os.UserHomeDir (USERPROFILE on Windows), as
 // for Spar's configuration; unlike Spar there is one folder and no fallback.
+// getenv reads the invocation's environment, os.UserHomeDir included.
 func userConfigFile(getenv func(string) string) (string, error) {
 	if base := getenv("XDG_CONFIG_HOME"); base != "" {
 		path := filepath.Join(base, configFolder, configFile)
@@ -65,7 +67,7 @@ func userConfigFile(getenv func(string) string) (string, error) {
 	home := getenv("HOME")
 	if home == "" {
 		var err error
-		if home, err = os.UserHomeDir(); err != nil {
+		if home, err = userHomeDir(getenv); err != nil {
 			return "", &preapprovalError{"~/.config/" + configFolder + "/" + configFile, "cannot determine the home folder: " + err.Error()}
 		}
 	}
@@ -74,6 +76,29 @@ func userConfigFile(getenv func(string) string) (string, error) {
 		return path, &preapprovalError{path, "the home folder is not an absolute path"}
 	}
 	return path, nil
+}
+
+// userHomeDir is os.UserHomeDir reading getenv instead of the process
+// environment: $HOME, or %USERPROFILE% on Windows, with the same fixed
+// answers and the same error when it is empty.
+func userHomeDir(getenv func(string) string) (string, error) {
+	name, shown := "HOME", "$HOME"
+	switch runtime.GOOS {
+	case "windows":
+		name, shown = "USERPROFILE", "%userprofile%"
+	case "plan9":
+		name, shown = "home", "$home"
+	}
+	if v := getenv(name); v != "" {
+		return v, nil
+	}
+	switch runtime.GOOS {
+	case "android":
+		return "/sdcard", nil
+	case "ios":
+		return "/", nil
+	}
+	return "", errors.New(shown + " is not defined")
 }
 
 var positiveInteger = regexp.MustCompile(`^[1-9][0-9]*$`)
@@ -159,7 +184,7 @@ func (a autoBudget) record() *record.AutoBudget {
 
 // computeAutoBudget is the one computation `ha start` and `ha estimate` share.
 func computeAutoBudget(w *workspace) (autoBudget, error) {
-	cap, err := readPreapproval(os.Getenv, w.repo.Worktrees)
+	cap, err := readPreapproval(w.env.Getenv, w.repo.Worktrees)
 	if err != nil {
 		return autoBudget{}, err
 	}
