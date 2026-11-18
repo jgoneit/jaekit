@@ -29,6 +29,7 @@ func TestGoalChecksAC3_SeparateProducers(t *testing.T) {
 			"next change",
 			"stands in for the completion record",
 			"inside or outside",
+			"merged after PR #252",
 			"a tracked file or workflow still runs",
 		}
 		for _, token := range missingTokens(producers, tokens) {
