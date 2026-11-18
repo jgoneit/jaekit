@@ -1,15 +1,20 @@
 // Command parallelstate is the static part of the cmd-ha-test-speed AC-3
 // check (tools/goal-checks/cmd-ha-test-speed/stability.py). It reports Go
 // tests that call t.Parallel() and can reach a change of process-wide state:
-// the environment or the working directory. See usage below.
+// the environment or the working directory. It follows calls of the
+// functions and methods declared in the same package; calls through function
+// values and calls of interface methods are not followed. See usage below.
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"go/types"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -33,20 +38,35 @@ Reachable code is the whole body of the parallel function, function literals
 in it included: the code after the t.Parallel() call ("after") and the code
 before it ("before"; a test that changes this state and then calls
 t.Parallel() is reported too). From there it follows, transitively, the
-bodies of package-level functions of the same package that the code names by
-identifier, whether it calls them or passes them as a value. A call of, or a
-reference to, one of the functions above is a finding. Each finding lists one
-shortest path from the parallel function to the call.
+bodies of the functions and methods of the same package that the code names,
+whether it calls them or passes them as a value:
 
-Not followed: method calls, interface calls and calls through function values
-(variables, fields, parameters, results), functions of other packages, and
-testing parameters copied into local variables. A local variable that
-shadows a package-level function name is read as that function. Writes to
-package-level variables are not looked for. The -race and -shuffle runs of
-stability.py cover what this static reading misses.
+  package-level functions  by identifier:  f(...)  f
+  methods                  by selector:    x.m(...)  x.f.m(...)  x.m  T.m  (*T).m
+
+A method's receiver type comes from go/types, run on each package alone with
+every import read as an empty package: it is the declared type of the
+variable, field, parameter or result (or of any other expression) the method
+is selected on, and a method promoted from an embedded field is that field
+type's method. Every declaration of that method (one per build constraint)
+is followed. When the receiver's type cannot be known (it comes from another
+package, or the code does not type-check), every method of the package with
+that name is followed, and the path marks the step "by name". A method
+selected on a testing parameter or on an imported package is not followed.
+A call of, or a reference to, one of the calls above is a finding. Each
+finding lists one shortest path from the parallel function to the call.
+
+Not followed: calls of interface methods, calls through function values
+(variables, fields, parameters, results), functions and methods of other
+packages, and testing values copied into local variables or held in struct
+fields. A local variable that shadows a package-level function name is read
+as that function. Writes to package-level variables are not looked for. The
+-race runs of stability.py do not report what this static reading misses:
+the environment is guarded by a lock and the working directory is not Go
+memory.
 
 Exit 0: nothing found. Exit 1: a finding; each is printed. Exit 2: DIR cannot
-be read, holds no .go file, or a file cannot be parsed.
+be read, holds no .go file, a file cannot be parsed, or go/types stops.
 `
 
 var (
@@ -140,6 +160,8 @@ func inspect(root ast.Node, sc scope, f *file, visit func(ast.Node, scope)) {
 	})
 }
 
+// function is a package-level function or a method. name is "f" for a
+// function and "T.m" or "(*T).m" for a method.
 type function struct {
 	name string
 	file *file
@@ -154,16 +176,28 @@ type body struct {
 	file  *file
 }
 
-// reference is a finding site (what is "os.Chdir") or a package-level
-// function named in a body (what is the function's name).
+// reference is a finding site: what is "os.Chdir", "t.Setenv" and so on.
 type reference struct {
 	what string
 	pos  token.Pos
 }
 
+// link is a function or method of the package that a body names: every
+// declaration it can be. byName is true for a method whose receiver's type
+// is not known, so to holds every method of the package with that name.
+type link struct {
+	pos    token.Pos
+	to     []*function
+	byName bool
+}
+
 type analysis struct {
-	fset  *token.FileSet
-	funcs map[string][]*function
+	fset    *token.FileSet
+	funcs   map[string][]*function  // package-level functions by name
+	methods map[string][]*function  // methods by "T.m", T the receiver's base type
+	byName  map[string][]*function  // methods by method name
+	declAt  map[token.Pos]*function // methods by the position of their name
+	info    *types.Info
 }
 
 func (a *analysis) at(pos token.Pos) string {
@@ -171,13 +205,17 @@ func (a *analysis) at(pos token.Pos) string {
 	return filepath.Base(p.Filename) + ":" + strconv.Itoa(p.Line)
 }
 
-// scan lists the forbidden calls and the package-level functions a block names.
-func (a *analysis) scan(block *ast.BlockStmt, sc scope, f *file) (forbidden, named []reference) {
+// scan lists the forbidden calls and the functions and methods of the
+// package that a block names.
+func (a *analysis) scan(block *ast.BlockStmt, sc scope, f *file) (forbidden []reference, named []link) {
 	skip := map[*ast.Ident]bool{}
 	inspect(block, sc, f, func(n ast.Node, sc scope) {
 		switch e := n.(type) {
 		case *ast.SelectorExpr:
 			skip[e.Sel] = true
+			if l, ok := a.method(e, sc); ok {
+				named = append(named, l)
+			}
 			x, ok := e.X.(*ast.Ident)
 			if !ok {
 				return
@@ -202,8 +240,8 @@ func (a *analysis) scan(block *ast.BlockStmt, sc scope, f *file) (forbidden, nam
 			if _, isParam := sc[e.Name]; isParam {
 				return
 			}
-			if len(a.funcs[e.Name]) > 0 {
-				named = append(named, reference{e.Name, e.Pos()})
+			if fns := a.funcs[e.Name]; len(fns) > 0 {
+				named = append(named, link{pos: e.Pos(), to: fns})
 				return
 			}
 			for path, names := range packageCalls {
@@ -214,6 +252,128 @@ func (a *analysis) scan(block *ast.BlockStmt, sc scope, f *file) (forbidden, nam
 		}
 	})
 	return forbidden, named
+}
+
+// method resolves the selector e to the methods of the package it can name.
+// ok is false when e selects no method of the package: a field, a method of
+// an interface or of another package, or a member of an imported package.
+func (a *analysis) method(e *ast.SelectorExpr, sc scope) (l link, ok bool) {
+	all := a.byName[e.Sel.Name]
+	if len(all) == 0 {
+		return link{}, false
+	}
+	if sel, found := a.info.Selections[e]; found {
+		fn, isFunc := sel.Obj().(*types.Func)
+		if !isFunc || sel.Kind() == types.FieldVal {
+			return link{}, false
+		}
+		decl := a.declAt[fn.Origin().Pos()]
+		if decl == nil {
+			return link{}, false // a method of an interface
+		}
+		return link{pos: e.Pos(), to: a.methods[methodKey(decl.decl)]}, true
+	}
+	if x, isIdent := e.X.(*ast.Ident); isIdent {
+		if _, isPackage := a.info.Uses[x].(*types.PkgName); isPackage {
+			return link{}, false
+		}
+		if sc[x.Name].kind != "" {
+			return link{}, false // a method of package testing
+		}
+	}
+	return link{pos: e.Pos(), to: all, byName: true}, true
+}
+
+// receiverBase returns the receiver's base type name of a method, without
+// "*" and type parameters, and whether the receiver is a pointer.
+func receiverBase(decl *ast.FuncDecl) (name string, pointer bool) {
+	if decl.Recv == nil || len(decl.Recv.List) == 0 {
+		return "?", false
+	}
+	expr := decl.Recv.List[0].Type
+	for {
+		switch e := expr.(type) {
+		case *ast.ParenExpr:
+			expr = e.X
+			continue
+		case *ast.StarExpr:
+			pointer = true
+			expr = e.X
+			continue
+		case *ast.IndexExpr:
+			expr = e.X
+			continue
+		case *ast.IndexListExpr:
+			expr = e.X
+			continue
+		case *ast.Ident:
+			return e.Name, pointer
+		}
+		return "?", pointer
+	}
+}
+
+func methodKey(decl *ast.FuncDecl) string {
+	base, _ := receiverBase(decl)
+	return base + "." + decl.Name.Name
+}
+
+func methodLabel(decl *ast.FuncDecl) string {
+	base, pointer := receiverBase(decl)
+	if pointer {
+		return "(*" + base + ")." + decl.Name.Name
+	}
+	return base + "." + decl.Name.Name
+}
+
+// emptyImports reads every import as an empty package, so go/types types
+// the package alone: what comes from another package has no type.
+type emptyImports map[string]*types.Package
+
+func (m emptyImports) Import(path string) (*types.Package, error) {
+	if p := m[path]; p != nil {
+		return p, nil
+	}
+	p := types.NewPackage(path, packageName(path))
+	p.MarkComplete()
+	m[path] = p
+	return p, nil
+}
+
+// packageName guesses an imported package's name from its path, as
+// goimports does: ".../go-toml/v2" is "toml", "gopkg.in/yaml.v3" is "yaml".
+func packageName(path string) string {
+	parts := strings.Split(path, "/")
+	name := parts[len(parts)-1]
+	if len(parts) > 1 && len(name) > 1 && name[0] == 'v' && strings.Trim(name[1:], "0123456789") == "" {
+		name = parts[len(parts)-2]
+	}
+	if i := strings.Index(name, ".v"); i > 0 {
+		name = name[:i]
+	}
+	name = strings.TrimPrefix(name, "go-")
+	return strings.ReplaceAll(name, "-", "_")
+}
+
+// typeInfo runs go/types on one package. Its type errors are expected (the
+// imports are empty) and only leave types unknown; a panic is an error.
+func typeInfo(name string, fset *token.FileSet, files []*file) (info *types.Info, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			info, err = nil, fmt.Errorf("go/types stopped on package %s: %v", name, r)
+		}
+	}()
+	syntax := make([]*ast.File, len(files))
+	for i, f := range files {
+		syntax[i] = f.syntax
+	}
+	info = &types.Info{
+		Selections: map[*ast.SelectorExpr]*types.Selection{},
+		Uses:       map[*ast.Ident]types.Object{},
+	}
+	conf := types.Config{Importer: emptyImports{}, Error: func(error) {}, FakeImportC: true}
+	_, _ = conf.Check(name, fset, syntax, info) // type errors only leave types unknown
+	return info, nil
 }
 
 // parallelCall returns the position of the first t.Parallel() call on the
@@ -249,7 +409,7 @@ type finding struct {
 }
 
 type step struct {
-	name string
+	fn   *function
 	path []string
 }
 
@@ -270,33 +430,40 @@ func (a *analysis) findings(root *body, parallel token.Pos) []finding {
 		add(when(call.pos, parallel), call, start)
 	}
 	for _, label := range []string{"before", "after"} {
-		visited := map[string]bool{}
+		visited := map[*function]bool{}
 		var queue []step
-		for _, ref := range named {
-			if when(ref.pos, parallel) == label && !visited[ref.what] {
-				visited[ref.what] = true
-				queue = append(queue, step{ref.what, start})
+		follow := func(l link, path []string) {
+			for _, fn := range l.to {
+				if visited[fn] {
+					continue
+				}
+				visited[fn] = true
+				name := fn.name
+				if l.byName {
+					name += " by name"
+				}
+				queue = append(queue, step{fn, append(append([]string(nil), path...), name+" ("+a.at(fn.decl.Pos())+")")})
+			}
+		}
+		for _, l := range named {
+			if when(l.pos, parallel) == label {
+				follow(l, start)
 			}
 		}
 		for len(queue) > 0 {
 			current := queue[0]
 			queue = queue[1:]
-			for _, fn := range a.funcs[current.name] {
-				if fn.decl.Body == nil {
-					continue
-				}
-				path := append(append([]string(nil), current.path...), fn.name+" ("+a.at(fn.decl.Pos())+")")
-				sc := scope{}.with(fn.decl, fn.decl.Recv, fn.decl.Type, fn.file)
-				calls, next := a.scan(fn.decl.Body, sc, fn.file)
-				for _, call := range calls {
-					add(label, call, path)
-				}
-				for _, ref := range next {
-					if !visited[ref.what] {
-						visited[ref.what] = true
-						queue = append(queue, step{ref.what, path})
-					}
-				}
+			fn := current.fn
+			if fn.decl.Body == nil {
+				continue
+			}
+			sc := scope{}.with(fn.decl, fn.decl.Recv, fn.decl.Type, fn.file)
+			calls, next := a.scan(fn.decl.Body, sc, fn.file)
+			for _, call := range calls {
+				add(label, call, current.path)
+			}
+			for _, l := range next {
+				follow(l, current.path)
 			}
 		}
 	}
@@ -356,13 +523,33 @@ func load(dir string) (*token.FileSet, []*file, error) {
 }
 
 // run analyses one package name (main or main_test) of the directory.
-func run(fset *token.FileSet, files []*file) ([]finding, int) {
-	a := &analysis{fset: fset, funcs: map[string][]*function{}}
+func run(name string, fset *token.FileSet, files []*file) ([]finding, int, error) {
+	info, err := typeInfo(name, fset, files)
+	if err != nil {
+		return nil, 0, err
+	}
+	a := &analysis{
+		fset:    fset,
+		funcs:   map[string][]*function{},
+		methods: map[string][]*function{},
+		byName:  map[string][]*function{},
+		declAt:  map[token.Pos]*function{},
+		info:    info,
+	}
 	for _, f := range files {
 		for _, decl := range f.syntax.Decls {
-			if fn, ok := decl.(*ast.FuncDecl); ok && fn.Recv == nil && fn.Name.Name != "_" {
-				a.funcs[fn.Name.Name] = append(a.funcs[fn.Name.Name], &function{fn.Name.Name, f, fn})
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Name.Name == "_" {
+				continue
 			}
+			if fn.Recv == nil {
+				a.funcs[fn.Name.Name] = append(a.funcs[fn.Name.Name], &function{fn.Name.Name, f, fn})
+				continue
+			}
+			m := &function{methodLabel(fn), f, fn}
+			a.methods[methodKey(fn)] = append(a.methods[methodKey(fn)], m)
+			a.byName[fn.Name.Name] = append(a.byName[fn.Name.Name], m)
+			a.declAt[fn.Name.Pos()] = m
 		}
 	}
 	var bodies []*body
@@ -396,21 +583,33 @@ func run(fset *token.FileSet, files []*file) ([]finding, int) {
 			found = append(found, item)
 		}
 	}
-	return found, parallel
+	return found, parallel, nil
 }
 
 func main() {
-	flag.Usage = func() { fmt.Fprint(os.Stderr, usage) }
-	flag.Parse()
-	if flag.NArg() != 1 {
-		flag.Usage()
-		os.Exit(2)
+	os.Exit(check(os.Args[1:], os.Stdout, os.Stderr))
+}
+
+// check runs the command with args and returns its exit code.
+func check(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("parallelstate", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	flags.Usage = func() { fmt.Fprint(stderr, usage) }
+	if err := flags.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
+		return 2
 	}
-	dir := flag.Arg(0)
+	if flags.NArg() != 1 {
+		flags.Usage()
+		return 2
+	}
+	dir := flags.Arg(0)
 	fset, files, err := load(dir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "parallelstate: not observed: %v\n", err)
-		os.Exit(2)
+		fmt.Fprintf(stderr, "parallelstate: not observed: %v\n", err)
+		return 2
 	}
 	byPackage := map[string][]*file{}
 	var names []string
@@ -424,7 +623,11 @@ func main() {
 	var found []finding
 	parallel := 0
 	for _, name := range names {
-		items, count := run(fset, byPackage[name])
+		items, count, err := run(name, fset, byPackage[name])
+		if err != nil {
+			fmt.Fprintf(stderr, "parallelstate: not observed: %v\n", err)
+			return 2
+		}
 		found = append(found, items...)
 		parallel += count
 	}
@@ -437,12 +640,13 @@ func main() {
 		return false
 	})
 	for _, item := range found {
-		fmt.Printf("parallel test reaches %s %s:\n    %s\n", item.call.what, item.when, strings.Join(item.path, " -> "))
+		fmt.Fprintf(stdout, "parallel test reaches %s %s:\n    %s\n", item.call.what, item.when, strings.Join(item.path, " -> "))
 	}
 	if len(found) > 0 {
-		fmt.Printf("parallelstate: violation: %d finding(s) in %d parallel function(s) of %s\n", len(found), parallel, dir)
-		os.Exit(1)
+		fmt.Fprintf(stdout, "parallelstate: violation: %d finding(s) in %d parallel function(s) of %s\n", len(found), parallel, dir)
+		return 1
 	}
-	fmt.Printf("parallelstate: pass: %d parallel function(s) in %d file(s) of %s; none reaches a process-state change\n",
+	fmt.Fprintf(stdout, "parallelstate: pass: %d parallel function(s) in %d file(s) of %s; none reaches a process-state change\n",
 		parallel, len(files), dir)
+	return 0
 }
