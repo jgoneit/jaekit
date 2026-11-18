@@ -94,7 +94,7 @@
             <tr>
               <th scope="row"><span lang="ko">바꾸기 전에도 통과하는 검사</span><span lang="en">A check that already passes before the change</span></th>
               <td class="without"><i class="tag"><span lang="ko">대화로만</span><span lang="en">Plain</span></i><span lang="ko">새 동작이 생겼는지 가려내지 못하는 검사도 통과로 보입니다.</span><span lang="en">A check that can't tell whether the new behavior exists still looks like a pass.</span></td>
-              <td class="with"><i class="tag">Jaekit</i><span lang="ko">새 동작의 검사는 바꾸기 전 코드에서 그 동작이 없어 실패한 기록이 있어야 근거가 됩니다.</span><span lang="en">A check for new behavior counts only with a record of it failing on the code before the change, because the behavior was missing.</span></td>
+              <td class="with"><i class="tag">Jaekit</i><span lang="ko"><code>요구</code>를 표시한 change 조건, 곧 base commit에 이미 있는 결함을 고치는 버그 수정·회귀나 "X가 일어나지 않는다" 같은 금지 조건의 검사는 바꾸기 전 코드에서 실패한 기록이 있어야 근거가 됩니다.</span><span lang="en">A check for a change condition marked <code>요구</code>, a bug fix or regression whose defect is already present at the base commit or a prohibition such as "X does not happen", counts only with a record of it failing on the code before the change.</span></td>
             </tr>
             <tr>
               <th scope="row"><span lang="ko">기존 테스트를 고치면</span><span lang="en">Existing tests are edited</span></th>
