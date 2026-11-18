@@ -43,8 +43,8 @@ Specify the commits, settings, or functionality to revert and any documentation,
 
 <!-- 리뷰어가 판단해 주었으면 하는 부분을 구체적으로 적어 주세요.
 State the specific points you want the reviewer to assess.
-이 변경의 검사가 관측하는 경계와 덮지 않는 실패 종류를 적어 주세요. 입력 실패(파일 없음·깨짐·도구 시작 불가·signal)가 어떤 결과가 되는지도 함께 적어 주세요.
-State the observation boundary of this change's checks and the failure kinds it does not cover, including the result of each input failure (missing file, corrupt input, a tool that cannot start, a signal).
+열린 입력을 다루는 검사는 검사 경계와 다루지 않는 실패 종류를 기록해 주세요. 기준선이 필요한 변경 조건의 별도 생산자는 각 입력 실패(파일 없음·손상된 입력·도구 시작 불가·signal)의 결과를 명시해 주세요.
+For a check of open-ended input, record its boundary and the failure kinds it does not cover. For a separate producer of a change condition that requires a baseline, state the result of each input failure (missing file, corrupt input, a tool that cannot start, a signal).
 defer한 리뷰 지적이 있으면 지적마다 그 이유를 적어 주세요.
 List any deferred review findings with the reason for each.
 비공개 목표 이름·기록·로컬 경로는 넣지 말고 공개할 수 있는 말로 적어 주세요.
