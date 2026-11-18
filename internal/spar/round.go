@@ -111,8 +111,10 @@ func readDocuments(repo string, paths []string, what string) ([]Document, error)
 // priorLines lists the findings of earlier rounds of the same stage group,
 // leaving out dry runs and rounds of the same stage, base and head so that a
 // rerun gets the same packet. A candidate run of a recorded round's stage,
-// base and head reads only the rounds before the earliest such round, so a
-// code round recorded after it does not change the rerun's packet. A finding
+// base and head reads exactly the rounds the earliest such round names in
+// its prior: none when that round was recorded before candidate rounds
+// received earlier findings (prior null, missing or empty). So a code round
+// recorded before or after it does not change the rerun's packet. A finding
 // with a recorded disposition ends with its last one; the bool reports
 // whether any line does.
 func priorLines(siblings []sibling, current *RoundRecord) ([]string, []string, bool, error) {
@@ -125,17 +127,25 @@ func priorLines(siblings []sibling, current *RoundRecord) ([]string, []string, b
 	default:
 		return []string{}, []string{}, false, nil
 	}
+	reads := func(s sibling) bool {
+		return !s.round.DryRun && !sameIdentity(s.round, current) && contains(groups, stageGroup(s.round.Stage))
+	}
 	if current.Stage == "candidate" {
 		for i, s := range siblings {
-			if !s.round.DryRun && sameIdentity(s.round, current) {
-				siblings = siblings[:i]
-				break
+			if s.round.DryRun || !sameIdentity(s.round, current) {
+				continue
 			}
+			var err error
+			if siblings, err = originalPrior(siblings[:i], s); err != nil {
+				return nil, nil, false, err
+			}
+			reads = func(sibling) bool { return true }
+			break
 		}
 	}
 	lines, dirs, disposed := []string{}, []string{}, false
 	for _, s := range siblings {
-		if s.round.DryRun || sameIdentity(s.round, current) || !contains(groups, stageGroup(s.round.Stage)) {
+		if !reads(s) {
 			continue
 		}
 		findings, err := loadFindings(s.dir)
@@ -174,6 +184,34 @@ func priorLines(siblings []sibling, current *RoundRecord) ([]string, []string, b
 		}
 	}
 	return lines, dirs, disposed, nil
+}
+
+// originalPrior is the rounds among before, the rounds recorded before
+// original, that original's prior names, in series order. A prior that
+// names a round the series no longer holds before original is an error: the
+// rerun could not receive what original received.
+func originalPrior(before []sibling, original sibling) ([]sibling, error) {
+	named := map[string]bool{}
+	for _, d := range original.round.Prior {
+		named[d] = true
+	}
+	var out []sibling
+	for _, s := range before {
+		if name := filepath.Base(s.dir); named[name] {
+			out = append(out, s)
+			delete(named, name)
+		}
+	}
+	if len(named) > 0 {
+		missing := make([]string, 0, len(named))
+		for d := range named {
+			missing = append(missing, d)
+		}
+		sort.Strings(missing)
+		return nil, fmt.Errorf("%s/round.json names %s in prior, which the series does not hold before it",
+			filepath.Base(original.dir), strings.Join(missing, ", "))
+	}
+	return out, nil
 }
 
 // dispositionText is a finding's last disposition as an earlier finding's
