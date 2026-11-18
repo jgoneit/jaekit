@@ -14,13 +14,17 @@ through inventory.py, and requires:
 - no renames.json key starting with TestNative;
 - every cmd/ha test that tools/windows/native_checks.py (its NATIVE["cmd/ha"]
   list) or tools/verification-checks/cross_platform_ci.py (its SCENARIOS and
-  WINDOWS sets) selects by exact name, at the base commit or now, to exist at
+  WINDOWS sets) selects by exact name, now or at the base commit, to exist at
   head, and, when it is a base test, only in files whose constraint (build
   lines and GOOS/GOARCH file suffix) is that of its base file. For a subtest
   path the part before the first `/` is the test. A cross_platform_ci.py name
   is a cmd/ha name when it is a base cmd/ha test or listed in NATIVE["cmd/ha"];
   its other names belong to other packages. No other tools/windows/ file
   selects a cmd/ha test by name.
+
+The base selections are base_tests.json's `native_selections`, which
+`inventory.py --write-snapshot` records from the base commit; the static part
+reads no commit, only this checkout's files.
 
 The CI side is the native admission of
 tools/verification-checks/cross_platform_ci.py, reused as
@@ -54,12 +58,12 @@ without printing gh output.
 Exit 0: the static part and both runs passed. Exit 1: a native test name or
 constraint changed, a TestNative rename is listed, or a run or job is missing,
 pending, skipped, cancelled or failed, or the observation changed while it was
-read; the reason is printed. Exit 2: base_tests.json, renames.json, a Go test
-file or a selecting file is missing or cannot be read, or GitHub, git or the
-API data could not be read. Neither is ever a pass.
+read; the reason is printed. Exit 2: base_tests.json (its native_selections
+included), renames.json, a Go test file or a selecting file is missing,
+malformed or cannot be read, or GitHub, git or the API data could not be read.
+Neither is ever a pass.
 """
 import argparse
-import ast
 from collections import defaultdict
 import contextlib
 import importlib.util
@@ -84,50 +88,6 @@ REPOSITORY = "jgoneit/jaekit"
 RELEASE_JOBS = ("Build release files", "Windows release archive", "Release candidate")
 CI_GATE = "Seal Core"
 NATIVE_PREFIX = "TestNative"
-WINDOWS_SELECTION = "tools/windows/native_checks.py"
-CI_SELECTION = "tools/verification-checks/cross_platform_ci.py"
-
-
-def assigned(source, label, name):
-    """The value node assigned to a module-level name, read with ast (the file is not run)."""
-    try:
-        tree = ast.parse(source, filename=label)
-    except (SyntaxError, ValueError) as error:
-        raise inventory.InputFailure(f"{label} cannot be parsed: {error}") from None
-    found = [node.value for node in tree.body if isinstance(node, (ast.Assign, ast.AnnAssign))
-             and any(isinstance(target, ast.Name) and target.id == name
-                     for target in (node.targets if isinstance(node, ast.Assign) else [node.target]))]
-    if len(found) != 1 or found[0] is None:
-        raise inventory.InputFailure(f"{label} does not assign {name} exactly once at module level")
-    return found[0]
-
-
-def test_names(node):
-    """Top-level Go test names in the string literals under an ast node (`TestX/case` gives TestX)."""
-    return {item.value.split("/", 1)[0] for item in ast.walk(node)
-            if isinstance(item, ast.Constant) and isinstance(item.value, str)
-            and inventory.is_test_name(item.value.split("/", 1)[0])}
-
-
-def selections(source_of):
-    """(cmd/ha names, other names) the two selecting files list by exact name."""
-    windows_label, ci_label = source_of(WINDOWS_SELECTION), source_of(CI_SELECTION)
-    native = assigned(windows_label[0], windows_label[1], "NATIVE")
-    if not isinstance(native, ast.Dict):
-        raise inventory.InputFailure(f"{windows_label[1]} NATIVE is not a dict literal")
-    lists = [value for key, value in zip(native.keys, native.values)
-             if isinstance(key, ast.Constant) and key.value == inventory.PACKAGE_DIR]
-    if len(lists) != 1:
-        raise inventory.InputFailure(f"{windows_label[1]} NATIVE has no single {inventory.PACKAGE_DIR!r} entry")
-    named = test_names(lists[0])
-    if not named:
-        raise inventory.InputFailure(f"{windows_label[1]} NATIVE[{inventory.PACKAGE_DIR!r}] names no test")
-    unqualified = set()
-    for name in ("SCENARIOS", "WINDOWS"):
-        unqualified |= test_names(assigned(ci_label[0], ci_label[1], name))
-    if not unqualified:
-        raise inventory.InputFailure(f"{ci_label[1]} SCENARIOS and WINDOWS name no test")
-    return named, unqualified
 
 
 def static_part():
@@ -156,13 +116,10 @@ def static_part():
             raise inventory.InputFailure(f"{path} cannot be read: {error}") from None
         return inventory.decode(path, data), path
 
-    def at_base(path):
-        label = f"{snapshot['commit'][:12]}:{path}"
-        return inventory.decode(label, inventory.git("show", f"{snapshot['commit']}:{path}")), label
-
+    base = snapshot["native_selections"]
     selected = defaultdict(set)
-    for where, source_of in (("now", at_head), ("at base", at_base)):
-        named, unqualified = selections(source_of)
+    for where, (named, unqualified) in (("now", inventory.selections(at_head)),
+                                         ("at base", (set(base["named"]), set(base["unqualified"])))):
         # Other unqualified names are tests of other packages (internal/run, internal/record, ...).
         for name in named | {name for name in unqualified if name in base_sets}:
             selected[name].add(where)
@@ -176,7 +133,7 @@ def static_part():
                             + "; base " + " and ".join(sorted(inventory.show(key) for key in base_sets[name])))
     native = sorted(name for name in base_sets if name.startswith(NATIVE_PREFIX))
     return problems, (f"{len(native)} base TestNative tests, {len(selected)} cmd/ha tests selected by name in "
-                      f"{WINDOWS_SELECTION} or {CI_SELECTION}")
+                      f"{inventory.WINDOWS_SELECTION} or {inventory.CI_SELECTION}")
 
 
 def pull_request_present():

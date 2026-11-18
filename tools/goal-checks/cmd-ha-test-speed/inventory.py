@@ -11,8 +11,13 @@ Usage, from the repository root:
 commit, its name, its build constraint line (or null) and its top-level
 `func TestXxx(` names, TestMain included, plus every cmd/ha selector entry
 of contracts/regressions.json at that commit as (route id, file, selector),
-repeats across routes kept. `renames.json` maps a base test name to the list
-of head names that replace it.
+repeats across routes kept, plus `native_selections`: the test names that
+tools/windows/native_checks.py (NATIVE["cmd/ha"], `named`) and
+tools/verification-checks/cross_platform_ci.py (SCENARIOS and WINDOWS,
+`unqualified`) select by exact name at that commit, each a sorted list, as
+`selections()` returns them. ci.py reads the base selections from it, never
+from the commit. `renames.json` maps a base test name to the list of head
+names that replace it.
 
 AC-2 passes when every base test exists at head as a top-level test of a
 compiled cmd/ha/*_test.go file (Go ignores names starting with `_` or `.`),
@@ -37,11 +42,15 @@ clause together with a GOOS/GOARCH file-name suffix.
 
 The reader is lexical (tools/go_selection.py tokens), not a Go compiler.
 
+The checks read only this checkout's files; git runs only for --write-snapshot.
+
 Exit 0: pass. Exit 1: a violation; each missing name, selector or constraint
 is printed. Exit 2: not observed: the snapshot or renames file is missing or
-corrupt, a Go file cannot be read or tokenized, or git fails. Never a pass.
+corrupt, a Go file cannot be read or tokenized, or git fails (--write-snapshot).
+Never a pass.
 """
 import argparse
+import ast
 from collections import Counter, defaultdict
 import importlib.util
 import json
@@ -56,7 +65,10 @@ PACKAGE_DIR = "cmd/ha"
 SNAPSHOT = HERE / "base_tests.json"
 RENAMES = HERE / "renames.json"
 REGRESSIONS = "contracts/regressions.json"
-SCHEMA = "cmd-ha-test-inventory/v2"
+SCHEMA = "cmd-ha-test-inventory/v3"
+FIELDS = ("schema", "commit", "files", "regression_selectors", "native_selections")
+WINDOWS_SELECTION = "tools/windows/native_checks.py"
+CI_SELECTION = "tools/verification-checks/cross_platform_ci.py"
 GITTEST = "github.com/jgoneit/jaekit/internal/gittest"
 CONSTRAINT = re.compile(r"//(?:go:build(?:\s|$)|\s*\+build(?:\s|$))")
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
@@ -133,6 +145,50 @@ def decode(name, data):
         raise InputFailure(f"{name} is not UTF-8: {error}") from None
 
 
+def assigned(source, label, name):
+    """The value node assigned to a module-level name, read with ast (the file is not run)."""
+    try:
+        tree = ast.parse(source, filename=label)
+    except (SyntaxError, ValueError) as error:
+        raise InputFailure(f"{label} cannot be parsed: {error}") from None
+    found = [node.value for node in tree.body if isinstance(node, (ast.Assign, ast.AnnAssign))
+             and any(isinstance(target, ast.Name) and target.id == name
+                     for target in (node.targets if isinstance(node, ast.Assign) else [node.target]))]
+    if len(found) != 1 or found[0] is None:
+        raise InputFailure(f"{label} does not assign {name} exactly once at module level")
+    return found[0]
+
+
+def test_names(node):
+    """Top-level Go test names in the string literals under an ast node (`TestX/case` gives TestX)."""
+    return {item.value.split("/", 1)[0] for item in ast.walk(node)
+            if isinstance(item, ast.Constant) and isinstance(item.value, str)
+            and is_test_name(item.value.split("/", 1)[0])}
+
+
+def selections(source_of):
+    """(cmd/ha names, other names) the two selecting files list by exact name.
+
+    source_of(path) returns (text, label) for one selecting file."""
+    windows_label, ci_label = source_of(WINDOWS_SELECTION), source_of(CI_SELECTION)
+    native = assigned(windows_label[0], windows_label[1], "NATIVE")
+    if not isinstance(native, ast.Dict):
+        raise InputFailure(f"{windows_label[1]} NATIVE is not a dict literal")
+    lists = [value for key, value in zip(native.keys, native.values)
+             if isinstance(key, ast.Constant) and key.value == PACKAGE_DIR]
+    if len(lists) != 1:
+        raise InputFailure(f"{windows_label[1]} NATIVE has no single {PACKAGE_DIR!r} entry")
+    named = test_names(lists[0])
+    if not named:
+        raise InputFailure(f"{windows_label[1]} NATIVE[{PACKAGE_DIR!r}] names no test")
+    unqualified = set()
+    for name in ("SCENARIOS", "WINDOWS"):
+        unqualified |= test_names(assigned(ci_label[0], ci_label[1], name))
+    if not unqualified:
+        raise InputFailure(f"{ci_label[1]} SCENARIOS and WINDOWS name no test")
+    return named, unqualified
+
+
 def head_files():
     """Parse the cmd/ha test files Go compiles in this checkout."""
     directory = ROOT / PACKAGE_DIR
@@ -206,8 +262,14 @@ def selectors(regressions, label):
 
 def validate_snapshot(snapshot):
     label = SNAPSHOT.relative_to(ROOT).as_posix()
-    if not isinstance(snapshot, dict) or set(snapshot) != {"schema", "commit", "files", "regression_selectors"}:
-        raise InputFailure(f"{label} does not have the snapshot fields")
+    if not isinstance(snapshot, dict):
+        raise InputFailure(f"{label} is not an object")
+    if set(snapshot) != set(FIELDS):
+        missing = [field for field in FIELDS if field not in snapshot]
+        extra = sorted(field for field in snapshot if field not in FIELDS)
+        raise InputFailure(f"{label} does not have the snapshot fields: "
+                           + "; ".join(([f"missing {', '.join(missing)}"] if missing else [])
+                                       + ([f"unexpected {', '.join(extra)}"] if extra else [])))
     if snapshot["schema"] != SCHEMA:
         raise InputFailure(f"{label} schema is not {SCHEMA}")
     if not isinstance(snapshot["commit"], str) or not re.fullmatch(r"[0-9a-f]{40}", snapshot["commit"]):
@@ -234,6 +296,14 @@ def validate_snapshot(snapshot):
             and row["route"] and isinstance(row["file"], str) and row["file"].startswith(PACKAGE_DIR + "/")
             and isinstance(row["selector"], str) for row in entries):
         raise InputFailure(f"{label} regression_selectors is not a non-empty list of cmd/ha route/file/selector rows")
+    chosen = snapshot["native_selections"]
+    if not isinstance(chosen, dict) or set(chosen) != {"named", "unqualified"}:
+        raise InputFailure(f"{label} native_selections does not have exactly the fields named and unqualified")
+    for key in ("named", "unqualified"):
+        names = chosen[key]
+        if (not isinstance(names, list) or not names or not all(is_test_name(name) for name in names)
+                or names != sorted(set(names))):
+            raise InputFailure(f"{label} native_selections {key} is not a non-empty sorted list of unique Go test names")
     return snapshot
 
 
@@ -456,18 +526,26 @@ def write_snapshot(revision):
         build, tests, _ = parse(name, decode(path, git("show", f"{commit}:{path}")))
         rows.append({"file": name, "build": build, "tests": tests})
     entries = selectors(strict_json(REGRESSIONS, git("show", f"{commit}:{REGRESSIONS}")), REGRESSIONS)
+
+    def at_commit(path):
+        label = f"{commit[:12]}:{path}"
+        return decode(label, git("show", f"{commit}:{path}")), label
+
+    named, unqualified = selections(at_commit)
     snapshot = {
         "schema": SCHEMA,
         "commit": commit,
         "files": rows,
         "regression_selectors": [{"route": route, "file": path, "selector": selector}
                                  for route, path, selector in sorted(entries)],
+        "native_selections": {"named": sorted(named), "unqualified": sorted(unqualified)},
     }
     validate_snapshot(snapshot)
     SNAPSHOT.write_text(json.dumps(snapshot, indent=1) + "\n", encoding="utf-8")
     tests = sum(len(row["tests"]) for row in rows)
     print(f"wrote {SNAPSHOT.relative_to(ROOT).as_posix()}: {len(rows)} files, {tests} tests, "
-          f"{len(snapshot['regression_selectors'])} selectors at {commit}")
+          f"{len(snapshot['regression_selectors'])} selectors, {len(named)} named and {len(unqualified)} "
+          f"unqualified native selections at {commit}")
 
 
 def main():

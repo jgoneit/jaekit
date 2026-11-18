@@ -1,5 +1,5 @@
 {
- "schema": "cmd-ha-test-inventory/v2",
+ "schema": "cmd-ha-test-inventory/v3",
  "commit": "27008c9ab9e705a9f72d4459225c9c18f6aea8d5",
  "files": [
   {
@@ -630,5 +630,38 @@
    "file": "cmd/ha/baseline_budget_test.go",
    "selector": "TestBaselineBudgetAC1_ReferenceFlow"
   }
- ]
+ ],
+ "native_selections": {
+  "named": [
+   "TestNativeBaselineRejectsJunction",
+   "TestNativeCoreGitLifecycle",
+   "TestNativeDoctorProbes",
+   "TestNativeEvidencePathScenarios",
+   "TestNativeHistoryFileEvidence",
+   "TestNativeHistoryGitLifecycle",
+   "TestNativeHistoryRequestIDPresence",
+   "TestNativeHistoryWindowsFileBoundaries",
+   "TestNativeProcessTimeoutScenarios",
+   "TestNativeProcessUnconfirmedShutdownScenarios",
+   "TestNativeRecordedTiming",
+   "TestNativeReportOutput",
+   "TestNativeStartBudgetAndSkill",
+   "TestNativeWindowsBaselineJunctionScenarios",
+   "TestNativeWindowsEvidencePathScenarios",
+   "TestNativeWindowsProcessControlScenarios"
+  ],
+  "unqualified": [
+   "TestNativeAdmissionFailureHasNoOutputDigest",
+   "TestNativeArgvEnvironmentAndOutcomes",
+   "TestNativeBaselineRejectsJunction",
+   "TestNativeCleanCRLFStillRequiresCommittedBytes",
+   "TestNativeConcurrentProcessesPreserveRecords",
+   "TestNativeCoreGitLifecycle",
+   "TestNativeJobLayout",
+   "TestNativeLockIsReleasedWhenOwnerExits",
+   "TestNativeTimeoutStopsDescendantWrites",
+   "TestNativeUnconfirmedShutdownHasNoOutputDigest",
+   "TestNativeWindowsEvidencePaths"
+  ]
+ }
 }
