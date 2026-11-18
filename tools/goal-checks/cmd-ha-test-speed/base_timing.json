@@ -1,3 +1,885 @@
 {
-  "placeholder": true
+ "commit": "27008c9ab9e705a9f72d4459225c9c18f6aea8d5",
+ "go_version": "go version go1.27.3 darwin/arm64",
+ "package": "./cmd/ha",
+ "cpus": 10,
+ "runs": [
+  378.66,
+  379.95,
+  380.143
+ ],
+ "median": 379.95,
+ "load": [
+  3.64111328125,
+  8.40185546875,
+  9.544921875
+ ],
+ "outcomes": {
+  "TestAdapterGoTestJSONFlow": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestAdapterJUnitFlow": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestAutoRunsIsMaxOf50AndMinimumTimesOneAndAHalf": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC10_ConsentAndValidation": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC11_ConcurrentRevision": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC12_Persistence": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC13_ReopenAndCompletion": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC14_Legacy": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC15_BudgetOnlyComplete": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC16_ExistingEntryPaths": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC1_ReferenceFlow": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC2_Environment": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC3_UnknownAndMixed": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC4_Freshness": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC5_InvalidResultsAndRetries": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC6_PartialBatch": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC6_PreparationAndOutputStorage": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC6_Usage": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC7_CountsAndPrivacy": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC8_TotalLimit": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineBudgetAC9_TimeUnchanged": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineSafetyAC1_AllRulesRefuseNewUnsafeCopies": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineSafetyAC1_BaseSymlinks": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineSafetyAC1_CommittedSymlinkWithCheckoutDisabled": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineSafetyAC1_HeadSources": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineSafetyAC2_PreparationFailure": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineSafetyAC2_WholeListBeforeWrites": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineSafetyAC3_PartialBatch": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineSafetyAC4_RealStartFailureIsCharged": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineSafetyAC4_RegularOverlay": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestBaselineSafetyAC5_StoredCompletionAndReopen": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCapabilityConsumerChecksTheOptionalTimingFormat": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCheckCostAC10_FreezeShown": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCheckCostAC12_SelectiveFlowEndToEnd": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCheckCostAC13_EarlierRulesIgnoreMark": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCheckCostAC14_SameAsRulesV6Elsewhere": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCheckCostAC1_StartAndCapabilities": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCheckCostAC2_SatisfactionFollowsMark": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCheckCostAC3_DefaultSelectionFollowsMark": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCheckCostAC4_MinimumFollowsMark": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCheckCostAC5_StatusAndReportShowMark": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCheckPreflightPreservesExclusions": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCheckPreflightRefusesDirty": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCheckPreflightStopsDirtyBatch": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCheckWithoutStartStillRefused": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCompatibilityAC7_GoallessReadOnlyQuery": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCompatibilityAC8_ConsumerAndActualBinary": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCompatibilityAC9_LegacyResumeAndOrdinaryChecks": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCompatibilityAC9_UndeclaredV3AndManualRemainSupported": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCompatibilityRunRules4Goals": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCoreIntegrityAC10_CoreStaysDeterministicAndApart": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCoreIntegrityAC1_StartAndCapabilities": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCoreIntegrityAC2_ReviewStartsAtTheBase": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCoreIntegrityAC3_LateReviewNoteByTier": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCoreIntegrityAC4_UnjudgedDoneLineIsSkipped": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCoreIntegrityAC5_TimeAfterCompletionLeavesElapsed": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCoreIntegrityAC6_PostCompletionBoundaries": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCoreIntegrityAC7_EarlierRulesKeepTheirJudgments": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCoreIntegrityAC8_SameAsRulesV5Elsewhere": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCostGrowthMatchesMeasuredRanges": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCostGrowthNeedsAGateListingEveryFixesRound": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCostMalformedRoundTimeIsRefused": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCostMalformedRoundTimesGiveOneMessage": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCostUnstartedGoalWithSeriesShowsNoZeroWaits": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCostWaitsBeforeRunRules4AreNotRecorded": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestCriteriaFormatFreshness": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestDirtyDiagnostics": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestDoctorProcessControlFailure": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestEstimateAC10": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestEstimateAC8": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestFileEvidenceBoundsDirectoryDescriptors": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestFileEvidenceBoundsGrowth": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestFileEvidenceConfinedWalkRejectsLinks": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestFileEvidencePreservesSearchOnlyDirectories": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestFileEvidencePreservesStablePathStates": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestFileEvidenceRejectsReplacedLeaf": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestFileEvidenceRejectsReplacedParent": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestFileEvidenceRejectsReplacedRoot": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestFileEvidenceSeparatesMissingFromUnreadable": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestFindingRequiredListsScenario": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestFindingResolutionRefsScenario": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestFindingRetryEquivalentScenario": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestFindingStoredReuseCLI": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestFindingsPublicCLI": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestGoalCostSummaryAC10_RealSparRecords": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestGoalCostSummaryAC11_ContractAndGuides": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestGoalCostSummaryAC1_KindAndSize": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestGoalCostSummaryAC2_VerificationCost": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestGoalCostSummaryAC3_QuestionsAndWaits": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestGoalCostSummaryAC4_ReviewRounds": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestGoalCostSummaryAC5_FindingsAndGrowth": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestGoalCostSummaryAC6_TokensNotRecorded": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestGoalCostSummaryAC7_OutputForms": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestGoalCostSummaryAC8_ReadOnly": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestGoalCostSummaryAC9_InputProblems": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC10_GoalWithoutTierCompletesWithoutAGate": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC11_EarlierRulesKeepTheirJudgment": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC12_CoreStaysApartFromSparAndDeterministic": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC13_SealCheckerNeedsTheNewRules": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC13_SealStartsUnderTheNewRules": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC14_CapabilitiesContractStatesTheGate": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC14_GuidesStateTheGate": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC14_RunRecordContractStatesTheGate": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC14_SealSkillStatesNoGateNoCompletion": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC1_RecordsTheGateSummary": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC2_StandardGoalCompletesWithACoveringGate": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC3_StrictGoalNeedsACoveringPlanRound": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC4_StaleReviewedHeadKeepsCompletionPending": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC5_ChangedGoalDocumentsKeepCompletionPending": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC6_IncompleteGateKeepsCompletionPending": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC7_MissingGateKeepsCompletionPending": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC8_UnusableGateFileIsRefused": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateAC9_LightGoalCompletesWithoutAGate": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateRecord_DoneComputedBeforeAGateDoesNotStand": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestHaReviewGateRecord_StoredSummaryMissingAFieldIsInvalid": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestNativeBaselineSymlinkScenarios": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestNativeCoreGitLifecycle": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestNativeDoctorHelper": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestNativeDoctorProbes": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestNativeEvidencePathScenarios": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestNativeHistoryFileEvidence": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestNativeHistoryGitLifecycle": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestNativeHistoryRequestIDPresence": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestNativeProcessTimeoutScenarios": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestNativeProcessUnconfirmedShutdownScenarios": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestNativeReportOutput": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestNativeStartBudgetAndSkill": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestProcessScenarioDriver": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestProducerFacts_AdverseAssertionSurvivesLaterSuccess": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestProducerFacts_CurrentAndBaselinePreserveObservedMeaning": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestProducerFacts_EachSuiteProducerReachesCore": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestReadCoreRequirementsForms": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestReadPreapprovalForms": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestReadPreapprovalListsTreesOnlyForAFile": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestReportRangeFailureIsNotReadAgain": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestReportSummaryParts": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestReviewFindingsReportAC11_ApartAndDeterministic": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestReviewFindingsReportAC2_NoteKeepsTheLists": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestReviewFindingsReportAC3_ReportShowsTheLists": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestReviewFindingsReportAC4_EmptyListsKeepTheLine": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestReviewFindingsReportAC5_OldGateSaysNotRecorded": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestReviewFindingsReportAC6_MalformedLists": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestRules6PostCompletionBudgetOutputs": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestRules6StartRefusesOtherVersions": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestRules7CheckChangeBlobBinding": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestRules7CheckChangeRejectedByEarlierRules": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestRules7EmptyFreezeTableIsObserved": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestRules7EmptyStartMarksAreRecorded": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestRules7EstimateRulesAndStartMarks": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestRules7FreezeMaintainCheckPaths": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestRules7ReportRestoredAndAddedBaselineMarks": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestRules7ReviewFileErrorsMatchRules6": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestRules7ReviewNamesUseParsedRounds": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestRules7ReviewTableSnapshotAndNames": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestRunRecordStatesOutputPath": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestScenarioIndex": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestScenarios": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestSparAgentModelAC10_HaCostReadsBothForms": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestSparCapReportAC10_LinesWithoutCauseInHaCost": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestSparCapReportAC9_HaCostShowsCause": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestSparSmallestFixAC6_HaCostReadsBothForms": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestStartBudgetAC9": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestTemplateFlowAC6_ExampleAndTemplateReachRecordedCompletion": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestTimingMarkdownShowsEachKeptCPUValue": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestTimingViewHidesOnlyTheDamagedCPUTime": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestTimingViewLimitUseDoesNotOverflow": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestTimingViewNamesTheGoalWithoutAnAbsolutePath": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestTimingViewReadsEachCPUValueOnItsOwn": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestTimingViewReadsEachValueOnItsOwn": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestTimingViewReportsAFailedWrite": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestTimingViewShowsLimitUseAndNoFreeFormValues": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestUnsupportedRulesPrecedeRecordIntegrity": [
+   "pass",
+   "pass",
+   "pass"
+  ],
+  "TestUsageNamesTheRunRules4Forms": [
+   "pass",
+   "pass",
+   "pass"
+  ]
+ },
+ "measured_at": "2026-11-18T18:22:58+00:00"
 }
