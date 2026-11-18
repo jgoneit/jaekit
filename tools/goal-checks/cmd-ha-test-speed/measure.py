@@ -32,12 +32,23 @@ description passes when it contains both of these, as fixed tokens:
   `after: 121.6 s, 121.6 s, 116.6 s`. `after:` is lowercase with no letter,
   digit or `_` right before it; each time is digits with an optional decimal
   part, then a space and `s`; a comma separates them; spaces or tabs may
-  follow `after:` and each comma. Each time is at most half the base median.
-  At least one line has this form, and every line that has it meets the
-  limit.
+  follow `after:` and each comma. At least one such line has a median of
+  its three times that meets both of these:
+  - at most half the base median, as HalfTime requires of the head median;
+  - within ±20% of the head median this run just measured: |line median -
+    head median| <= 0.2 x head median.
+  Lines that miss either are ignored when another line meets both. Only the
+  median counts, so a line with one slower run still meets the criterion.
+  Why ±20%: the description holds the times of one earlier run of the same
+  head, written before this check ran, and runs of one commit vary, so the
+  line cannot be required to equal this run's times. ±20% still refuses
+  times that were not measured on this head, such as `after: 1 s, 1 s, 1 s`
+  beside a 121 s head.
 
 A description without them is the violation `measurements-not-in-pr`. When
-HalfTime is not a pass, MeasurementsInPR is `skip` (not_selected).
+no `after:` line meets both conditions, each line is printed with the
+conditions it misses. When HalfTime is not a pass, MeasurementsInPR is
+`skip` (not_selected).
 
 Record the base, on a quiet machine, from a tree whose cmd/ha is the base:
 
@@ -123,6 +134,9 @@ HIDDEN = ("HA_EVIDENCE_PATH", "HA_EVIDENCE_INVOCATION", "HA_EVIDENCE_DECLARATION
 # The pull request's `after:` line: three times in seconds, on one line.
 AFTER = re.compile(r"(?<![A-Za-z0-9_])after:[ \t]*" + r",[ \t]*".join([r"(\d+(?:\.\d+)?) s"] * RUNS)
                    + r"(?![A-Za-z0-9_])")
+# How far an `after:` line's median may be from the head median this run
+# measured: the line holds an earlier run of the same head, and runs vary.
+HEAD_TOLERANCE = Decimal("0.2")
 
 
 class Unobserved(Exception):
@@ -408,8 +422,13 @@ def pr_body():
     return data["body"]
 
 
-def pr_problems(body, base):
-    """What the pull request description lacks of the measurements; empty when it has them all."""
+def pr_problems(body, base, head):
+    """What the pull request description lacks of the measurements; empty when it has them all.
+
+    head is the head median this run measured. An `after:` line counts when
+    the median of its three times is at most half the base median and within
+    HEAD_TOLERANCE of head; the other lines are ignored when one counts.
+    """
     problems = []
     labels = [f"base run {index}" for index in range(1, RUNS + 1)] + ["base median"]
     for label, value in zip(labels, [*base["runs"], base["median"]]):
@@ -417,15 +436,24 @@ def pr_problems(body, base):
         if not re.search(r"(?<![0-9.])" + re.escape(token) + r"(?![A-Za-z0-9_])", body):
             problems.append(f"{label} `{token}` is missing")
     half = Decimal(repr(base["median"])) / 2
+    measured = Decimal(repr(head))
+    slack = measured * HEAD_TOLERANCE
     lines = list(AFTER.finditer(body))
     if not lines:
         problems.append("no line has `after:` followed by three times in seconds")
+    missed = []
     for line in lines:
-        over = [value for value in line.groups() if Decimal(value) > half]
-        if over:
-            problems.append(f"`{line.group(0)}`: " + ", ".join(f"{value} s" for value in over)
-                            + f" over half the base median ({half} s)")
-    return problems
+        reported = median([Decimal(value) for value in line.groups()])
+        reasons = []
+        if reported > half:
+            reasons.append(f"its median {reported} s is over half the base median ({half} s)")
+        if abs(reported - measured) > slack:
+            reasons.append(f"its median {reported} s is not within ±{HEAD_TOLERANCE * 100:.0f}% of the head "
+                           f"median {measured} s measured now ({measured - slack} s to {measured + slack} s)")
+        if not reasons:
+            return problems
+        missed.append(f"`{line.group(0)}`: " + "; ".join(reasons))
+    return problems + missed
 
 
 def load_average():
@@ -499,7 +527,7 @@ def check(args):
     print(f"{TARGET} {observation['status']}")
     if observation["status"] == "pass":
         try:
-            problems = pr_problems(pr_body(), base)
+            problems = pr_problems(pr_body(), base, head)
             for line in problems:
                 print(f"pull request description: {line}")
             if problems:

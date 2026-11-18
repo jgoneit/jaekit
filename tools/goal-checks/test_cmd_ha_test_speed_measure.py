@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Tests of measure.py's pull request item (target MeasurementsInPR).
+"""Tests of cmd-ha-test-speed/measure.py's pull request item (target MeasurementsInPR).
 
-Run from the repository root:
+Full verification runs them with the other goal check regressions:
 
-  python3 tools/goal-checks/cmd-ha-test-speed/test_measure.py
+  python3 -m unittest discover -s tools/goal-checks -p 'test_*.py'
 
 No test runs `go test`: the timing runs are replaced, and `gh` is a fake
 script on PATH that prints a given output and exits with a given code.
@@ -21,14 +21,16 @@ import tempfile
 import unittest
 from unittest import mock
 
-HERE = Path(__file__).resolve().parent
-SPEC = importlib.util.spec_from_file_location("cmd_ha_measure", HERE / "measure.py")
+PATH = Path(__file__).resolve().parent / "cmd-ha-test-speed" / "measure.py"
+SPEC = importlib.util.spec_from_file_location("cmd_ha_measure", PATH)
 measure = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(measure)
 
 DECLARATION = "tools/goal-checks/cmd-ha-test-speed/AC-1.json"
 # A base like base_timing.json's; the tests do not read that file.
 BASE = {"runs": [378.66, 379.95, 380.143], "median": 379.95}
+# The head median of GOOD_BODY's after line, as if this run measured it.
+HEAD = 121.6
 # The form of PR #285's description.
 GOOD_BODY = (
     "## Measurements\n\n"
@@ -83,23 +85,23 @@ class SecondsTokenTest(unittest.TestCase):
 
 class PrProblemsTest(unittest.TestCase):
     def test_pr_285_body_has_every_measurement(self):
-        self.assertEqual(measure.pr_problems(GOOD_BODY, BASE), [])
+        self.assertEqual(measure.pr_problems(GOOD_BODY, BASE, HEAD), [])
 
     def test_crlf_body_has_every_measurement(self):
-        self.assertEqual(measure.pr_problems(GOOD_BODY.replace("\n", "\r\n"), BASE), [])
+        self.assertEqual(measure.pr_problems(GOOD_BODY.replace("\n", "\r\n"), BASE, HEAD), [])
 
     def test_missing_base_measurements(self):
         body = GOOD_BODY.replace("378.7 s", "378.6 s")
-        self.assertEqual(measure.pr_problems(body, BASE), ["base run 1 `378.7 s` is missing"])
+        self.assertEqual(measure.pr_problems(body, BASE, HEAD), ["base run 1 `378.7 s` is missing"])
         body = GOOD_BODY.replace("380.0 s", "379.9 s")
-        self.assertEqual(measure.pr_problems(body, BASE),
+        self.assertEqual(measure.pr_problems(body, BASE, HEAD),
                          ["base run 2 `380.0 s` is missing", "base median `380.0 s` is missing"])
 
     def test_token_boundaries(self):
         for wrong in ("1378.7 s", "0.378.7 s", "378.7 sec", "378.7 s_", "378.7s"):
             with self.subTest(wrong=wrong):
                 body = GOOD_BODY.replace("378.7 s", wrong)
-                self.assertIn("base run 1 `378.7 s` is missing", measure.pr_problems(body, BASE))
+                self.assertIn("base run 1 `378.7 s` is missing", measure.pr_problems(body, BASE, HEAD))
 
     def test_missing_or_malformed_after_line(self):
         for body in (
@@ -111,18 +113,63 @@ class PrProblemsTest(unittest.TestCase):
             GOOD_BODY.replace("121.6 s, 121.6 s, 116.6 s", "121.6, 121.6, 116.6 s"),
         ):
             with self.subTest(body=body):
-                self.assertEqual(measure.pr_problems(body, BASE),
+                self.assertEqual(measure.pr_problems(body, BASE, HEAD),
                                  ["no line has `after:` followed by three times in seconds"])
 
-    def test_after_time_over_half(self):
-        # Half of 379.95 is 189.975.
-        body = GOOD_BODY.replace("116.6 s", "190.0 s")
-        self.assertEqual(len(measure.pr_problems(body, BASE)), 1)
-        self.assertIn("190.0 s over half", measure.pr_problems(body, BASE)[0])
-        self.assertEqual(measure.pr_problems(GOOD_BODY.replace("116.6 s", "189.975 s"), BASE), [])
-        # A second after line over the limit is a violation even beside a good one.
-        body = GOOD_BODY + "after: 300.1 s, 121.6 s, 116.6 s\n"
-        self.assertEqual(len(measure.pr_problems(body, BASE)), 1)
+    def after(self, times):
+        """GOOD_BODY with its after line's three times replaced."""
+        return GOOD_BODY.replace("121.6 s, 121.6 s, 116.6 s", times)
+
+    def test_one_slow_run_on_a_median_passing_line(self):
+        # The median is 121.6 s; 300.0 s alone is over half the base median (189.975 s).
+        self.assertEqual(measure.pr_problems(self.after("121.6 s, 121.6 s, 300.0 s"), BASE, HEAD), [])
+        self.assertEqual(measure.pr_problems(self.after("300.0 s, 116.6 s, 121.6 s"), BASE, HEAD), [])
+
+    def test_times_not_measured_on_this_head(self):
+        problems = measure.pr_problems(self.after("1 s, 1 s, 1 s"), BASE, 121.0)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("`after: 1 s, 1 s, 1 s`", problems[0])
+        self.assertIn("its median 1 s is not within ±20% of the head median 121.0 s measured now", problems[0])
+        self.assertNotIn("over half", problems[0])
+
+    def test_within_twenty_percent_of_the_head(self):
+        # 121.0 s ± 24.2 s is 96.8 s to 145.2 s, both ends included.
+        for times in ("140.0 s, 140.0 s, 140.0 s", "145.2 s, 145.2 s, 145.2 s", "96.8 s, 96.8 s, 96.8 s",
+                      "100 s, 96.8 s, 150.0 s"):
+            with self.subTest(times=times):
+                self.assertEqual(measure.pr_problems(self.after(times), BASE, 121.0), [])
+        for times in ("145.3 s, 145.3 s, 145.3 s", "96.7 s, 96.7 s, 96.7 s", "60 s, 60 s, 121 s"):
+            with self.subTest(times=times):
+                problems = measure.pr_problems(self.after(times), BASE, 121.0)
+                self.assertEqual(len(problems), 1)
+                self.assertIn("not within ±20% of the head median 121.0 s", problems[0])
+
+    def test_median_over_half_the_base(self):
+        # Half of 379.95 is 189.975; the line is within ±20% of this head, so only the half condition fails.
+        problems = measure.pr_problems(self.after("190.0 s, 190.0 s, 116.6 s"), BASE, 190.0)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("its median 190.0 s is over half the base median (189.975 s)", problems[0])
+        self.assertNotIn("±20%", problems[0])
+        self.assertEqual(measure.pr_problems(self.after("189.975 s, 189.975 s, 116.6 s"), BASE, 189.975), [])
+
+    def test_both_conditions_named(self):
+        problems = measure.pr_problems(self.after("300.0 s, 300.0 s, 300.0 s"), BASE, HEAD)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("its median 300.0 s is over half the base median (189.975 s)", problems[0])
+        self.assertIn("not within ±20% of the head median 121.6 s", problems[0])
+
+    def test_failing_lines_beside_one_that_meets_both(self):
+        for extra in ("after: 1 s, 1 s, 1 s\n", "after: 300.1 s, 300.1 s, 300.1 s\n"):
+            with self.subTest(extra=extra):
+                self.assertEqual(measure.pr_problems(GOOD_BODY + extra, BASE, HEAD), [])
+                self.assertEqual(measure.pr_problems(extra + GOOD_BODY, BASE, HEAD), [])
+
+    def test_every_line_named_when_none_meets_both(self):
+        body = self.after("1 s, 1 s, 1 s") + "after: 300.1 s, 300.1 s, 300.1 s\n"
+        problems = measure.pr_problems(body, BASE, HEAD)
+        self.assertEqual(len(problems), 2)
+        self.assertIn("`after: 1 s, 1 s, 1 s`: its median 1 s is not within ±20%", problems[0])
+        self.assertIn("`after: 300.1 s, 300.1 s, 300.1 s`: its median 300.1 s is over half", problems[1])
 
 
 class PrBodyTest(unittest.TestCase):
@@ -168,6 +215,7 @@ class CheckTest(unittest.TestCase):
                 "load": [0.0, 0.0, 0.0], "outcomes": {"TestA": ["pass"] * 3},
                 "measured_at": "2026-11-18T00:00:00+00:00"}
         runs = [{"TestA": "pass"}] * 3
+        stdout = io.StringIO()
         with tempfile.TemporaryDirectory() as folder:
             gh = FakeGh(folder, **fake)
             report = Path(folder) / "report.json"
@@ -178,9 +226,10 @@ class CheckTest(unittest.TestCase):
                     mock.patch.object(measure, "go_identity", return_value=("go version fake", "x/cmd/ha")), \
                     mock.patch.object(measure, "read_renames", return_value={}), \
                     mock.patch.object(measure, "measure", return_value=(head_times, runs)), \
-                    contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(io.StringIO()):
                 code = measure.check(argparse.Namespace(declaration=DECLARATION, package="./cmd/ha"))
             observations = json.loads(report.read_text(encoding="utf-8"))["observations"]
+            self.stdout = stdout.getvalue()
             return code, observations, gh.calls()
 
     def test_pass_with_measurements_in_pr(self):
@@ -197,6 +246,21 @@ class CheckTest(unittest.TestCase):
         self.assertEqual(observations[0]["status"], "pass")
         self.assertEqual(observations[1], {"target": "MeasurementsInPR", "attempt": 1, "status": "violation",
                                            "violation": "measurements-not-in-pr"})
+
+    def test_after_line_compared_with_the_head_measured_now(self):
+        # GOOD_BODY's after line has median 121.6 s. A run of the same head
+        # that measures 130.0 s is within ±20% of it; one that measures 60.0 s
+        # is half time too, but the description's times are not from it.
+        code, observations, _ = self.run_check([130.0, 125.0, 140.0], stdout=body_json(GOOD_BODY))
+        self.assertEqual(code, 0)
+        self.assertEqual(observations[1]["status"], "pass")
+        code, observations, _ = self.run_check([60.0, 60.0, 60.0], stdout=body_json(GOOD_BODY))
+        self.assertEqual(code, 1)
+        self.assertEqual(observations, [{"target": "HalfTime", "attempt": 1, "status": "pass"},
+                                        {"target": "MeasurementsInPR", "attempt": 1, "status": "violation",
+                                         "violation": "measurements-not-in-pr"}])
+        self.assertIn("pull request description: `after: 121.6 s, 121.6 s, 116.6 s`: its median 121.6 s is not "
+                      "within ±20% of the head median 60.0 s measured now", self.stdout)
 
     def test_gh_failure_is_an_error(self):
         code, observations, _ = self.run_check([121.6, 121.6, 116.6], code=1)

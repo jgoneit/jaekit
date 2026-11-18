@@ -22,7 +22,7 @@ import (
 // fails. Each violation's message starts with sharedBinaryViolation; an
 // unmarked t.Fatalf is an input failure: the check itself could not run.
 //
-// Three child processes of this test binary observe what one process with a
+// Four child processes of this test binary observe what one process with a
 // warm cache cannot: a new process has nothing cached, so its first caller
 // is the one that builds.
 //
@@ -38,6 +38,13 @@ import (
 //     time, and the later caller asks again. The later caller must fail
 //     naming the binary's path and `changed`, and the child must report
 //     shared-binary-changed (TestMain) and exit nonzero.
+//   - The changed-last child's first caller builds ./cmd/ha and one test
+//     then changes that file the same way, with no caller after it. Every
+//     test must pass, and the child must still exit nonzero with TestMain's
+//     own shared-binary-changed line: a line that starts with the marker
+//     after the testing package's final PASS line, where no test's output
+//     can be. In the changed child the later caller's failure carries the
+//     same marker, so only this child shows that TestMain checks.
 const (
 	sharedBinaryTest      = "TestSharedBinaryAC4_SafeSharedBuild"
 	sharedBinaryViolation = "jaekit:violation=shared-binary-unsafe: "
@@ -48,9 +55,10 @@ const (
 	sharedBinaryUnbuildableSource = "package main\n\nthis is not Go\n"
 	sharedBinaryCompilerError     = "syntax error: non-declaration statement outside function body"
 	// The child modes.
-	sharedBinaryFailingMode = "shared-binary-unbuildable"
-	sharedBinaryCleanupMode = "shared-binary-cleanup"
-	sharedBinaryChangedMode = "shared-binary-changed"
+	sharedBinaryFailingMode     = "shared-binary-unbuildable"
+	sharedBinaryCleanupMode     = "shared-binary-cleanup"
+	sharedBinaryChangedMode     = "shared-binary-changed"
+	sharedBinaryChangedLastMode = "shared-binary-changed-last"
 	// Lines the children print; the parent reads them.
 	sharedBinaryCalling     = "shared-binary-ac4-child: asking for an unbuildable package in"
 	sharedBinaryReturned    = "shared-binary-ac4-child: sharedBinary returned in"
@@ -68,11 +76,13 @@ const (
 // The subtests of the children. Every caller of the failing child asks for
 // the unbuildable package; the cleanup child's first caller ends before the
 // later caller asks; the changed child's middle test changes the binary
-// between its two callers.
+// between its two callers; the changed-last child's last test changes it
+// after its only caller.
 var (
-	sharedBinaryFailingCallers = []string{"first-caller", "second-caller"}
-	sharedBinaryCleanupCallers = []string{"first-caller", "later-caller"}
-	sharedBinaryChangedCallers = []string{"first-caller", "changing-test", "later-caller"}
+	sharedBinaryFailingCallers     = []string{"first-caller", "second-caller"}
+	sharedBinaryCleanupCallers     = []string{"first-caller", "later-caller"}
+	sharedBinaryChangedCallers     = []string{"first-caller", "changing-test", "later-caller"}
+	sharedBinaryChangedLastCallers = sharedBinaryChangedCallers[:2:2]
 )
 
 func TestSharedBinaryAC4_SafeSharedBuild(t *testing.T) {
@@ -90,7 +100,10 @@ func TestSharedBinaryAC4_SafeSharedBuild(t *testing.T) {
 		sharedBinaryCleanupChild(t)
 		return
 	case sharedBinaryChangedMode:
-		sharedBinaryChangedChild(t)
+		sharedBinaryChangedChild(t, sharedBinaryChangedCallers)
+		return
+	case sharedBinaryChangedLastMode:
+		sharedBinaryChangedChild(t, sharedBinaryChangedLastCallers)
 		return
 	}
 	t.Parallel()
@@ -138,6 +151,8 @@ func TestSharedBinaryAC4_SafeSharedBuild(t *testing.T) {
 	t.Logf("cleanup: the later caller got the same unchanged ./cmd/ha binary")
 	sharedBinaryCheckChanged(t)
 	t.Logf("changed: the later caller failed naming the change, and the child reported %s", sharedBinaryChangedName)
+	sharedBinaryCheckChangedLast(t)
+	t.Logf("changed-last: every test passed, and TestMain reported %s and failed the child", sharedBinaryChangedName)
 }
 
 // sharedBinaryCheckUnbuildable writes a module whose ./unbuildable package
@@ -249,6 +264,60 @@ func sharedBinaryCheckChanged(t *testing.T) {
 	}
 }
 
+// sharedBinaryCheckChangedLast runs the changed-last child: a test changes
+// the shared binary after its only caller, so no caller can fail for it.
+// Every test there must pass, and the child must still exit nonzero with
+// TestMain's shared-binary-changed line for that binary.
+func sharedBinaryCheckChangedLast(t *testing.T) {
+	t.Helper()
+	text, err := sharedBinaryRunChild(t, sharedBinaryChangedLastMode, "")
+	path := sharedBinaryLine(text, sharedBinaryChanged)
+	callers := sharedBinaryChangedLastCallers
+	summary, report := sharedBinaryMainReport(text, path)
+	var exit *exec.ExitError
+	switch {
+	case strings.Contains(text, sharedBinaryChildSetup) || path == "":
+		t.Fatalf("changed-last child could not change its shared binary: %v:\n%s", err, text)
+	case summary != "PASS" || sharedBinaryOutcome(text, callers, "PASS") != strings.Join(callers, ","):
+		t.Fatalf("not observed: a test of the changed-last child did not pass (final line %q), so TestMain's "+
+			"check is not observed alone: %v:\n%s", summary, err, text)
+	case err == nil:
+		t.Fatalf(sharedBinaryViolation+"a test changed %s after its last caller, and the child passed: "+
+			"TestMain did not check the shared binaries:\n%s", path, text)
+	case !errors.As(err, &exit):
+		t.Fatalf("changed-last child could not run: %v:\n%s", err, text)
+	case report == "":
+		t.Fatalf(sharedBinaryViolation+"a test changed %s after its last caller, and the child exited %d without "+
+			"TestMain's %s line for it after the final PASS line:\n%s", path, exit.ExitCode(), sharedBinaryChangedName, text)
+	}
+}
+
+// sharedBinaryMainReport returns the testing package's final summary line
+// in a child's -test.v output (PASS or FAIL, "" when it has none) and the
+// first line after it that starts with TestMain's shared-binary-changed
+// marker and names path. m.Run prints the summary as it returns, so a line
+// after it comes from TestMain, not from a test; a test's own failure lines
+// are indented and come before it.
+func sharedBinaryMainReport(text, path string) (summary, report string) {
+	lines := strings.Split(text, "\n")
+	last := -1
+	for i, line := range lines {
+		if line := strings.TrimRight(line, "\r"); line == "PASS" || line == "FAIL" {
+			summary, last = line, i
+		}
+	}
+	if last < 0 || path == "" {
+		return summary, ""
+	}
+	for _, line := range lines[last+1:] {
+		line = strings.TrimRight(line, "\r")
+		if strings.HasPrefix(line, sharedBinaryChangedReport+": ") && strings.Contains(line, path) {
+			return summary, line
+		}
+	}
+	return summary, ""
+}
+
 // sharedBinaryCleanupChild runs in the cleanup child: the first caller records
 // the path and content, ends, and the later caller must find the same file.
 func sharedBinaryCleanupChild(t *testing.T) {
@@ -296,28 +365,33 @@ func sharedBinaryCleanupChild(t *testing.T) {
 	})
 }
 
-// sharedBinaryChangedChild runs in the changed child: the first caller gets
-// ./cmd/ha, the changing test changes that file, and the later caller asks
-// again. Only the later caller may fail; TestMain reports the change.
-func sharedBinaryChangedChild(t *testing.T) {
+// sharedBinaryChangedChild runs in the changed and changed-last children:
+// the first caller gets ./cmd/ha and the changing test changes that file.
+// With a third subtest name (the changed child), the later caller asks again
+// and only it may fail; without one (the changed-last child), no test asks
+// again and every test passes. TestMain reports the change in both.
+func sharedBinaryChangedChild(t *testing.T, callers []string) {
 	var path string
-	t.Run(sharedBinaryChangedCallers[0], func(t *testing.T) {
+	t.Run(callers[0], func(t *testing.T) {
 		fmt.Println(sharedBinaryFirstAsking)
 		path = sharedBinary(t, "./cmd/ha")
 	})
 	if path == "" {
 		t.Fatalf(sharedBinaryChildSetup + "the first caller did not get ./cmd/ha")
 	}
-	t.Run(sharedBinaryChangedCallers[1], func(t *testing.T) {
+	t.Run(callers[1], func(t *testing.T) {
 		if err := sharedBinaryChange(path); err != nil {
 			t.Fatalf(sharedBinaryChildSetup+"cannot change %q: %v", path, err)
 		}
 		fmt.Println(sharedBinaryChanged + path)
 	})
-	t.Run(sharedBinaryChangedCallers[2], func(t *testing.T) {
+	if len(callers) < 3 {
+		return
+	}
+	t.Run(callers[2], func(t *testing.T) {
 		fmt.Println(sharedBinaryLaterAsking)
 		again := sharedBinary(t, "./cmd/ha")
-		fmt.Println(sharedBinaryReturned, sharedBinaryChangedCallers[2], again)
+		fmt.Println(sharedBinaryReturned, callers[2], again)
 	})
 }
 
