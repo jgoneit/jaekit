@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "NarrowedRecords",
+      "violation": "records-not-narrowed",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/tools/goal-checks/goal-checks-as-tests",
+        "name": "TestGoalChecksAC4_NarrowedRecords"
+      }
+    }
+  ]
+}
