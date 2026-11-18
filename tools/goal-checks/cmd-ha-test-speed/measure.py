@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""cmd-ha-test-speed AC-1 producer: check-result/v1, target HalfTime.
+"""cmd-ha-test-speed AC-1 producer: check-result/v1, targets HalfTime and MeasurementsInPR.
 
 Check, from the repository root:
 
@@ -17,6 +17,27 @@ all three head runs, or be mapped by renames.json (in this folder) to names
 that all pass in all three head runs. Otherwise the result is `error`
 (execution_error), not `pass` or `violation`, and each such test is printed
 with its head outcomes (pass, skip, or missing).
+
+After a HalfTime pass, and only then, it reads this branch's pull request
+description with `gh pr view --json body` (target MeasurementsInPR). The
+description passes when it contains both of these, as fixed tokens:
+
+- Every value of base_timing.json's `runs` and its `median`, as a person
+  copies it from the file: the recorded decimal rounded half up to one
+  decimal, then a space and `s`. 378.66 is `378.7 s`, 379.95 is `380.0 s`
+  (not Python's `379.9`), 380.143 is `380.1 s`. A token counts only when no
+  digit or `.` comes right before it and no letter, digit or `_` right after
+  it, so `1380.0 s` and `380.0 sec` do not count.
+- A line with `after:` followed by three times in seconds:
+  `after: 121.6 s, 121.6 s, 116.6 s`. `after:` is lowercase with no letter,
+  digit or `_` right before it; each time is digits with an optional decimal
+  part, then a space and `s`; a comma separates them; spaces or tabs may
+  follow `after:` and each comma. Each time is at most half the base median.
+  At least one line has this form, and every line that has it meets the
+  limit.
+
+A description without them is the violation `measurements-not-in-pr`. When
+HalfTime is not a pass, MeasurementsInPR is `skip` (not_selected).
 
 Record the base, on a quiet machine, from a tree whose cmd/ha is the base:
 
@@ -39,9 +60,10 @@ HA_EVIDENCE_DECLARATION_DIGEST, as in contracts/check-result.md §2. Run alone,
 it only prints and exits. The go test children do not inherit the HA_EVIDENCE_*
 or HA_JUNIT_XML variables.
 
-Outcomes. Exit 0 and `pass`: the head median is at most 0.5 x the base median.
-Exit 1 and `violation` (`not-half-time`): it is larger. Exit 2 and `error`,
-never `pass`, with these reasons:
+Outcomes. Exit 0: both targets pass. Exit 1: a target is a `violation` and
+none is an `error`; HalfTime is `not-half-time` when the head median is more
+than 0.5 x the base median. Exit 2: a target is an `error`, never `pass`.
+HalfTime's error reasons:
 
 - base_timing.json missing: dependency_missing.
 - base_timing.json the placeholder, corrupt, with other fields, or recorded for
@@ -57,6 +79,15 @@ never `pass`, with these reasons:
 - a base-passing test that does not pass in every head run (renames applied):
   execution_error, after the three runs.
 
+MeasurementsInPR's error reasons, never `pass` or `violation`:
+
+- gh not on PATH: dependency_missing; gh not executable: permission_denied.
+- gh that cannot start otherwise, is killed by a signal, exceeds 120 seconds
+  or exits nonzero (no pull request for this branch, no authentication, no
+  network): execution_error. gh's own messages are not printed.
+- output that is not UTF-8 JSON, or a `body` that is missing or not a string:
+  execution_error.
+
 The base and renames.json are read before any test runs, so the placeholder
 fails at once. An invalid declaration, a declaration for another producer, or
 a report path that cannot be written gives exit 2 without a report, which `ha`
@@ -64,6 +95,7 @@ reads as unknown.
 """
 import argparse
 import datetime
+from decimal import ROUND_HALF_UP, Decimal
 import json
 import math
 import os
@@ -76,8 +108,10 @@ import sys
 ROOT = Path(__file__).resolve().parents[3]
 CHECK_DIR = "tools/goal-checks/cmd-ha-test-speed/"
 SELF = CHECK_DIR + "measure.py"
-PRODUCER, PRODUCER_VERSION = "cmd-ha-timing", "1"
+PRODUCER, PRODUCER_VERSION = "cmd-ha-timing", "2"
 TARGET, VIOLATION = "HalfTime", "not-half-time"
+PR_TARGET, PR_VIOLATION = "MeasurementsInPR", "measurements-not-in-pr"
+PR_VIEW = ["gh", "pr", "view", "--json", "body"]
 DEFAULT_PACKAGE = "./cmd/ha"
 RUNS = 3
 RUN_TIMEOUT = 1800
@@ -86,6 +120,9 @@ OUTCOMES = ("pass", "skip", "fail")
 RENAMES = CHECK_DIR + "renames.json"
 TEST_NAME = re.compile(r"Test(?:[A-Z0-9_][A-Za-z0-9_]*)?")
 HIDDEN = ("HA_EVIDENCE_PATH", "HA_EVIDENCE_INVOCATION", "HA_EVIDENCE_DECLARATION_DIGEST", "HA_JUNIT_XML")
+# The pull request's `after:` line: three times in seconds, on one line.
+AFTER = re.compile(r"(?<![A-Za-z0-9_])after:[ \t]*" + r",[ \t]*".join([r"(\d+(?:\.\d+)?) s"] * RUNS)
+                   + r"(?![A-Za-z0-9_])")
 
 
 class Unobserved(Exception):
@@ -134,8 +171,9 @@ def declaration(name):
     if (not isinstance(data, dict) or set(data) != {"schema", "producer", "producer_version", "producer_paths", "targets"}
             or data["schema"] != "check-declaration/v1" or data["producer"] != PRODUCER
             or data["producer_version"] != PRODUCER_VERSION
-            or data["targets"] != [{"id": TARGET, "violation": VIOLATION}]):
-        raise ValueError(f"{name} is not the {PRODUCER} declaration for {TARGET}")
+            or data["targets"] != [{"id": TARGET, "violation": VIOLATION},
+                                   {"id": PR_TARGET, "violation": PR_VIOLATION}]):
+        raise ValueError(f"{name} is not the {PRODUCER} declaration for {TARGET} and {PR_TARGET}")
     paths = data["producer_paths"]
     if not isinstance(paths, list):
         raise ValueError(f"{name} producer_paths is not a list")
@@ -348,6 +386,48 @@ def measure_once(package, import_path):
     return float(elapsed), top
 
 
+def seconds_token(value):
+    """A recorded time as a person copies it: rounded half up to one decimal, then ` s`."""
+    return f"{Decimal(repr(value)).quantize(Decimal('0.1'), rounding=ROUND_HALF_UP)} s"
+
+
+def pr_body():
+    """This branch's pull request description; Unobserved when it cannot be read."""
+    command = " ".join(PR_VIEW)
+    result = run(PR_VIEW)
+    if result.returncode:
+        # Like cross_platform_ci.py, do not print a failing GitHub request's own output.
+        raise Unobserved("execution_error", f"{command} exited {result.returncode}: no pull request for this "
+                         "branch, or gh is not authenticated or cannot reach GitHub")
+    try:
+        data = json.loads(result.stdout.decode("utf-8"), object_pairs_hook=unique_pairs)
+    except (UnicodeDecodeError, ValueError) as error:
+        raise Unobserved("execution_error", f"{command} output is not UTF-8 JSON: {error}") from None
+    if not isinstance(data, dict) or not isinstance(data.get("body"), str):
+        raise Unobserved("execution_error", f"{command} output has no text body")
+    return data["body"]
+
+
+def pr_problems(body, base):
+    """What the pull request description lacks of the measurements; empty when it has them all."""
+    problems = []
+    labels = [f"base run {index}" for index in range(1, RUNS + 1)] + ["base median"]
+    for label, value in zip(labels, [*base["runs"], base["median"]]):
+        token = seconds_token(value)
+        if not re.search(r"(?<![0-9.])" + re.escape(token) + r"(?![A-Za-z0-9_])", body):
+            problems.append(f"{label} `{token}` is missing")
+    half = Decimal(repr(base["median"])) / 2
+    lines = list(AFTER.finditer(body))
+    if not lines:
+        problems.append("no line has `after:` followed by three times in seconds")
+    for line in lines:
+        over = [value for value in line.groups() if Decimal(value) > half]
+        if over:
+            problems.append(f"`{line.group(0)}`: " + ", ".join(f"{value} s" for value in over)
+                            + f" over half the base median ({half} s)")
+    return problems
+
+
 def load_average():
     try:
         return list(os.getloadavg())
@@ -384,6 +464,7 @@ def check(args):
         print(f"{TARGET}: not observed: {error}", file=sys.stderr)
         return 2
     observation = {"target": TARGET, "attempt": 1}
+    pr = {"target": PR_TARGET, "attempt": 1}
     try:
         base = read_base(base_path)
         version, import_path = go_identity(args.package)
@@ -416,6 +497,22 @@ def check(args):
         observation.update(status="error", reason=error.reason)
         print(f"{TARGET}: error ({error.reason}): {error}", file=sys.stderr)
     print(f"{TARGET} {observation['status']}")
+    if observation["status"] == "pass":
+        try:
+            problems = pr_problems(pr_body(), base)
+            for line in problems:
+                print(f"pull request description: {line}")
+            if problems:
+                pr.update(status="violation", violation=PR_VIOLATION)
+            else:
+                pr["status"] = "pass"
+        except Unobserved as error:
+            pr.update(status="error", reason=error.reason)
+            print(f"{PR_TARGET}: error ({error.reason}): {error}", file=sys.stderr)
+    else:
+        pr.update(status="skip", reason="not_selected")
+    print(f"{PR_TARGET} {pr['status']}")
+    observations = [observation, pr]
     if evidence:
         report = {
             "schema": "check-result/v1",
@@ -424,7 +521,7 @@ def check(args):
             "producer": PRODUCER,
             "producer_version": PRODUCER_VERSION,
             "attempts_complete": True,
-            "observations": [observation],
+            "observations": observations,
         }
         try:
             with open(evidence, "x", encoding="utf-8") as output:
@@ -433,7 +530,12 @@ def check(args):
         except OSError as error:
             print(f"{TARGET}: report not written: {error}", file=sys.stderr)
             return 2
-    return {"pass": 0, "violation": 1}.get(observation["status"], 2)
+    statuses = {item["status"] for item in observations}
+    if "error" in statuses:
+        return 2
+    if "violation" in statuses:
+        return 1
+    return 0 if statuses == {"pass"} else 2
 
 
 def git(*args):
