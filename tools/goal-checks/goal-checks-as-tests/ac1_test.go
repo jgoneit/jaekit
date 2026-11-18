@@ -18,8 +18,8 @@ func ac1Label(token string) string {
 }
 
 // TestGoalChecksAC1_ProductTests observes that the Goal checks bullet states
-// the product-test form of goal checks and that the section no longer names a
-// build tag or a tools/goal-checks/<goal> location.
+// the product-test form of goal checks, for Go and Python tests, and that the
+// section no longer names a build tag or a tools/goal-checks/<goal> location.
 func TestGoalChecksAC1_ProductTests(t *testing.T) {
 	section := checksSection(t, readAgents(t))
 	goalChecks, ok := findBullet(t, sectionBullets(section), "Goal checks")
@@ -28,7 +28,7 @@ func TestGoalChecksAC1_ProductTests(t *testing.T) {
 	if !ok {
 		problems = append(problems, `no bullet with the lead "Goal checks"`)
 	} else {
-		for _, token := range missingTokens(goalChecks, []string{"go-test-json", "jaekit:violation=", "full verification"}) {
+		for _, token := range missingTokens(goalChecks, []string{"go-test-json", "jaekit:violation=", "Python", "full verification"}) {
 			problems = append(problems, "the Goal checks bullet lacks "+ac1Label(token))
 		}
 	}
