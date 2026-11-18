@@ -50,7 +50,7 @@ These rules apply to goals carried in this repository and to their pull requests
 - Findings from remote pull request reviews follow the same triage as local review rounds. Each one ends as fix, reject, defer or duplicate, and its record says whether it is linked to a criterion, rule or contract and whether this change introduced it.
 - Defer only edge cases that are outside the recorded boundary and linked to nothing. List deferred findings in the pull request description and in the completion report.
 - Classify a finding against the boundary records and protected paths as of the reviewed commit. A path widened later in the same pull request does not reclassify findings already received.
-- When more than three remote review rounds have led to criterion-linked fixes, stop. State the recurring findings and the criterion they trace to, ask the user which of two readings of that criterion is intended, and wait for the answer.
+- **Repeated premises.** This rule applies to local rounds and to remote pull request reviews alike. After a premise was rejected with evidence or answered by the user, do not fix a finding on the same premise that brings no failure scenario the recorded disposition does not answer: record it as a duplicate of the earlier finding, or reject it citing that disposition. A finding with a new failure scenario is a new finding. When the same premise comes back that way twice, ask the user which reading of the criterion is intended, and wait for the answer.
 
 ### For reviewers
 

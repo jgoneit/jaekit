@@ -135,12 +135,15 @@ class ReviewFindings(Observed):
         ])
         self.require(not absent, "remote-triage-rule-missing", f"AGENTS.md lacks: {absent}")
 
-    def test_pull_request_rounds_stop_after_three(self):
+    def test_repeated_premises_stop_and_ask(self):
         absent = missing(section(agents(), RULES_HEADING), [
-            ("more than three", "remote review rounds", "criterion-linked fixes", "stop", "recurring findings",
-             "criterion they trace to", "two readings", "wait for the answer"),
+            ("repeated premises", "local rounds and to remote pull request reviews alike",
+             "rejected with evidence or answered by the user", "same premise",
+             "no failure scenario the recorded disposition does not answer", "duplicate of the earlier finding",
+             "reject it citing that disposition", "a finding with a new failure scenario is a new finding",
+             "comes back that way twice", "which reading of the criterion is intended", "wait for the answer"),
         ])
-        self.require(not absent, "pr-round-limit-missing", f"AGENTS.md lacks: {absent}")
+        self.require(not absent, "repeated-premise-rule-missing", f"AGENTS.md lacks: {absent}")
 
     def test_classification_uses_the_reviewed_commit(self):
         absent = missing(section(agents(), RULES_HEADING), [

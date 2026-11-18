@@ -2,7 +2,7 @@
 name: spar
 description: Run independent review rounds on a plan or a change with the spar binary — the same packet to every configured reviewer, classified findings, limited dispositions, stage caps and a review gate file. Use when the user asks for an independent or adversarial review of a plan or an implementation, for example "$spar:spar" in Codex, "/spar:spar" in Claude Code, or "이 변경을 spar로 리뷰해줘".
 metadata:
-  version: "0.1.7"
+  version: "0.1.8"
 ---
 
 # Spar
@@ -34,10 +34,10 @@ spar run --stage candidate --base <base commit> --head <candidate commit> \
   --rules AGENTS.md --check-path <check file> --out docs/reviews/<goal>/02-candidate
 ```
 
-Give every goal document as `--criteria`: SPEC.md and each goal document it links, one flag per file. Give each check file the change adds or changes, such as result declarations, producers and tests, as `--check-path`, so that findings in them follow the check-path rules below.
+Give every goal document as `--criteria`: SPEC.md and each goal document it links, one flag per file. Give each check file the change adds or changes, such as result declarations, producers and tests, as `--check-path`, so that findings in them follow the check-path rules below. Give a check that only reads fixed text in a file, such as a document token test, as `--text-check` instead: it is a check path too, and the packet asks reviewers to judge whether it reads the right fixed text in the right file.
 
 - Caps: one plan round, one plan-delta round and three code rounds (candidate and fixes together) per series, unless the project configuration says otherwise. `spar run` refuses a round past its cap before any reviewer starts.
-- The cumulative round reviews the whole change once more, from the goal's base commit to the last head: a `fixes` round sees only the fixes. Run it as a `candidate` round; it does not take earlier findings and counts toward the code-round cap like the first candidate round. When no fixes followed the first candidate round, that round is the cumulative round. When the cap leaves no room for it, extending the cap follows the rule below.
+- The cumulative round reviews the whole change once more, from the goal's base commit to the last head: a `fixes` round sees only the fixes. Run it as a `candidate` round; it receives the earlier code rounds' findings with their last dispositions and counts toward the code-round cap like the first candidate round. When no fixes followed the first candidate round, that round is the cumulative round. When the cap leaves no room for it, extending the cap follows the rule below.
 - Only the user can allow more rounds. Ask them, then record their words: `spar extend <series> --stage plan|plan-delta --by N --user-quote "<their words>"`. Record a code extension only with the user's words and the cause you showed them: `spar extend <series> --stage code --by 1 --cause <cause> --user-quote "<their words>"`. Extend by 1 unless the user's words say more. Read [At the code cap](references/rounds.md#at-the-code-cap) each time the code cap is reached, before you ask.
 - A rerun of the same stage, base, head and packet is not counted only when it starts reviewers that did not complete that packet, for example after a quota refusal. Anything else counts.
 - Pass `--rules` for the repository rules (such as `AGENTS.md`) and contracts the change must keep, and `--question` for a question you need answered. Do not pass your own reasoning about the solution; the reviewers start from the criteria.
@@ -77,9 +77,9 @@ Close findings with `spar triage <round> <finding> <disposition>`:
 - `answer`: closes a `requirement-question` with the user's words.
 - Every disposition that closes a `requirement-question` needs `--user-quote`, and fixing an automatically deferred `hardening` item in this change needs `--user-quote` too. Never put words in the user's mouth.
 
-Record each disposition before the next round. In fixes and plan-delta packets, an earlier finding's line ends with its last disposition when one is recorded, and the packet asks reviewers to report such a finding again only with a failure scenario that the recorded disposition does not answer. A disposition is part of the packet: a fixes round run on the same base and head after a disposition changed is a new round that counts toward the cap, and its chain continues from the code round before it.
+Record each disposition before the next round. In candidate, fixes and plan-delta packets, an earlier finding's line ends with its last disposition when one is recorded, and the packet asks reviewers to report such a finding again only with a failure scenario that the recorded disposition does not answer. A disposition is part of the packet: a fixes round run on the same base and head after a disposition changed is a new round that counts toward the cap, and its chain continues from the code round before it.
 
-When findings on the same premise come back for two rounds in a row, stop fixing the list: test the premise against the criteria and the code, and ask the user when the premise is a reading of a requirement.
+**Repeated premises.** This rule applies to local rounds and to remote pull request reviews alike. After a premise was rejected with evidence or answered by the user, do not fix a finding on the same premise that brings no failure scenario the recorded disposition does not answer: record it as a duplicate of the earlier finding, or reject it citing that disposition. A finding with a new failure scenario is a new finding. When the same premise comes back that way twice, ask the user which reading of the criterion is intended, and wait for the answer. In `spar triage`, `duplicate --of` names a finding of the same round; for a finding of an earlier round, record `reject --evidence` citing that disposition.
 
 ## The gate
 

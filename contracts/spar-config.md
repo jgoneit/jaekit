@@ -149,3 +149,5 @@ code = 3
 | `digest` | 리뷰어·`configured_required`·각도·상한·검사 경로·규칙의 정규 JSON sha256. 출처가 달라도 적용한 값이 같으면 같다: 리뷰어의 `model_source`·`effort_source`·`default_model`·`default_effort`·`max_packet_bytes_source`와 `choices`는 넣지 않고(그래서 preset과 같은 한도를 사용자가 적어도 digest가 같다), 에이전트가 고른 값은 적용한 `model`·`effort`로 들어간다. `--reviewers`가 같아도 설정이 필수로 정한 리뷰어가 다르면 digest가 다르다 |
 
 `spar run --check-path GLOB`은 그 실행의 `check_paths`에 더하며 digest에 반영된다. 형식은 `check_paths`와 같고(G24), 잘못된 glob은 리뷰어를 띄우기 전에 거부한다.
+
+`spar run --text-check GLOB`은 검사 경로를 고정 글만 읽는 검사, 곧 파일의 고정 글을 읽는 검사로 선언한다. 여러 번 줄 수 있고, glob마다 `--check-path`처럼 확인하며(G24) 같은 방식으로 그 실행의 `check_paths`에 더한다. `round.json`은 그 glob들을 `config.text_check_paths`에도 정렬하고 중복 없이 남기고, 그런 glob이 없는 실행에서는 이 필드를 뺀다. `text_check_paths`는 `digest`에 들지 않는다: 그 glob들은 `check_paths`로만 digest에 든다. 패킷의 `- Fixed-text checks:` 줄과 `check-validity` 문장은 이것에서 나온다([검토 라운드](review-round.md) 2절).
