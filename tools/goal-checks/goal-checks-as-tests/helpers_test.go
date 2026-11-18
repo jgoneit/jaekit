@@ -7,10 +7,10 @@
 //
 // A change condition's failure that observes its declared violation has a
 // first line starting with "jaekit:violation=<id>: ". An input failure (an
-// unreadable file, a missing or repeated heading, a missing bullet that exists
-// today, two bullets with the lead a check looks up) fails with t.Fatalf and
-// no marker, so the go-test-json adapter never reads it as a pass or as the
-// declared violation.
+// unreadable file, a file that is not valid UTF-8, a missing or repeated
+// heading, a missing bullet that exists today, two bullets with the lead a
+// check looks up) fails with t.Fatalf and no marker, so the go-test-json
+// adapter never reads it as a pass or as the declared violation.
 package goalchecksastests
 
 import (
@@ -55,12 +55,17 @@ func repoRoot(t *testing.T) string {
 	}
 }
 
-// readRepoFile reads a file named relative to the repository root.
+// readRepoFile reads a file named relative to the repository root. Every file
+// a check reads comes through here. Bytes that are not valid UTF-8 are corrupt
+// input: searched as text, they could hide a token and let a check pass.
 func readRepoFile(t *testing.T, root, rel string) string {
 	t.Helper()
 	data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
 	if err != nil {
 		t.Fatalf("cannot read %s: %v", rel, err)
+	}
+	if !utf8.Valid(data) {
+		t.Fatalf("%s is not valid UTF-8", rel)
 	}
 	return string(data)
 }
@@ -68,11 +73,7 @@ func readRepoFile(t *testing.T, root, rel string) string {
 // readAgents reads the checked tree's AGENTS.md.
 func readAgents(t *testing.T) string {
 	t.Helper()
-	text := readRepoFile(t, repoRoot(t), agentsFile)
-	if !utf8.ValidString(text) {
-		t.Fatalf("%s is not valid UTF-8", agentsFile)
-	}
-	return text
+	return readRepoFile(t, repoRoot(t), agentsFile)
 }
 
 // lineOffsets returns the byte offset of every line in text that equals line
@@ -127,8 +128,12 @@ func reviewBlock(t *testing.T, text string) string {
 	return text[start:end]
 }
 
+// bullet is one lead bullet of a section: its lead, the byte offset of its
+// lead line in the section, and its text from that line through its last
+// continuation line, newline included.
 type bullet struct {
 	lead string
+	off  int
 	text string
 }
 
@@ -145,28 +150,39 @@ func bulletLead(line string) (string, bool) {
 	return rest[:i], true
 }
 
-// sectionBullets splits a section into bullets. A bullet runs from its lead
-// line through the line before the next lead line or the end of the section.
+// sectionBullets returns a section's lead bullets in order. A bullet starts at
+// a line that starts with "- **<Lead>.**" and takes in each following line
+// that is indented and not blank. It ends before the first blank line, the
+// first line without indentation (another bullet, a paragraph, a heading) or
+// the end of the section, so text after a list is never part of its last
+// bullet.
 func sectionBullets(section string) []bullet {
 	var out []bullet
-	start, lead := -1, ""
+	open := false
 	for off := 0; off < len(section); {
-		end := len(section)
+		end, next := len(section), len(section)
 		if i := strings.IndexByte(section[off:], '\n'); i >= 0 {
-			end = off + i
+			end, next = off+i, off+i+1
 		}
-		if l, ok := bulletLead(section[off:end]); ok {
-			if start >= 0 {
-				out = append(out, bullet{lead, section[start:off]})
-			}
-			start, lead = off, l
+		line := section[off:end]
+		if lead, ok := bulletLead(line); ok {
+			out = append(out, bullet{lead: lead, off: off, text: section[off:next]})
+			open = true
+		} else if open && isContinuation(line) {
+			b := &out[len(out)-1]
+			b.text = section[b.off:next]
+		} else {
+			open = false
 		}
-		off = end + 1
-	}
-	if start >= 0 {
-		out = append(out, bullet{lead, section[start:]})
+		off = next
 	}
 	return out
+}
+
+// isContinuation reports whether line continues the bullet above it: it starts
+// with a space or a tab and has other text.
+func isContinuation(line string) bool {
+	return (strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t")) && strings.TrimSpace(line) != ""
 }
 
 // findBullet returns the one bullet with the given lead. Two bullets with the

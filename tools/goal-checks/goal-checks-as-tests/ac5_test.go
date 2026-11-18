@@ -51,9 +51,8 @@ func ac5FirstDiff(got, want string) string {
 
 // TestGoalChecksAC5_PrinciplesKept keeps the input-failure pass rule, the
 // Boundaries cannot narrow requirements and Protected paths bullets, and the
-// review-findings text unchanged. A bullet's trailing newlines are not part of
-// its compared text, so a bullet that moves to the end of the section, where
-// the blank line before "### Review findings" follows it, still compares equal.
+// review-findings text unchanged. A bullet's text ends with its line's
+// newline, which is not part of the compared text.
 func TestGoalChecksAC5_PrinciplesKept(t *testing.T) {
 	text := readAgents(t)
 	section := checksSection(t, text)
