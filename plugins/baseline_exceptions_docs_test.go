@@ -61,11 +61,11 @@ func beSealDocuments(t *testing.T) []beDocument {
 	return docs
 }
 
-// bePublicGuides loads the root readmes and every Markdown file directly
-// under guides/.
+// bePublicGuides loads the root readmes, every Markdown file directly under
+// guides/, and the public site home page.
 func bePublicGuides(t *testing.T) []beDocument {
 	t.Helper()
-	paths := []string{"../README.md", "../README.ko.md"}
+	paths := []string{"../README.md", "../README.ko.md", "../tools/site/home.html"}
 	guides, err := filepath.Glob("../guides/*.md")
 	if err != nil {
 		t.Fatalf("cannot list public guides: %v", err)
@@ -123,6 +123,182 @@ func quoteToken(token string) string {
 	return "\"" + token + "\""
 }
 
+type beHeading struct {
+	line  int
+	level int
+	title string
+}
+
+func beATXHeading(line string) (int, string, bool) {
+	indent := len(line) - len(strings.TrimLeft(line, " "))
+	if indent > 3 {
+		return 0, "", false
+	}
+	content := line[indent:]
+	level := 0
+	for level < len(content) && content[level] == '#' {
+		level++
+	}
+	if level == 0 || level > 6 || (len(content) > level && content[level] != ' ' && content[level] != '\t') {
+		return 0, "", false
+	}
+	title := strings.TrimSpace(content[level:])
+	end := len(title)
+	for end > 0 && title[end-1] == '#' {
+		end--
+	}
+	if end < len(title) && end > 0 && (title[end-1] == ' ' || title[end-1] == '\t') {
+		title = strings.TrimSpace(title[:end])
+	}
+	return level, title, true
+}
+
+func beFenceMarker(line string) (byte, int, bool) {
+	indent := len(line) - len(strings.TrimLeft(line, " "))
+	if indent > 3 {
+		return 0, 0, false
+	}
+	content := line[indent:]
+	if len(content) == 0 || (content[0] != '`' && content[0] != '~') {
+		return 0, 0, false
+	}
+	marker := content[0]
+	length := 0
+	for length < len(content) && content[length] == marker {
+		length++
+	}
+	return marker, length, length >= 3
+}
+
+func beFenceCloses(line string, marker byte, minimum int) bool {
+	foundMarker, length, ok := beFenceMarker(line)
+	if !ok || foundMarker != marker || length < minimum {
+		return false
+	}
+	indent := len(line) - len(strings.TrimLeft(line, " "))
+	return strings.TrimSpace(line[indent+length:]) == ""
+}
+
+func beSetextHeading(line string) (int, bool) {
+	indent := len(line) - len(strings.TrimLeft(line, " "))
+	if indent > 3 {
+		return 0, false
+	}
+	content := strings.TrimSpace(line)
+	if content == "" || (content[0] != '=' && content[0] != '-') {
+		return 0, false
+	}
+	for i := 1; i < len(content); i++ {
+		if content[i] != content[0] {
+			return 0, false
+		}
+	}
+	if content[0] == '=' {
+		return 1, true
+	}
+	return 2, true
+}
+
+func beHeadings(text string) ([]string, []beHeading) {
+	lines := strings.Split(text, "\n")
+	var headings []beHeading
+	var fence byte
+	fenceLength := 0
+	for i, line := range lines {
+		if fence != 0 {
+			if beFenceCloses(line, fence, fenceLength) {
+				fence = 0
+				fenceLength = 0
+			}
+			continue
+		}
+		if marker, length, ok := beFenceMarker(line); ok {
+			fence = marker
+			fenceLength = length
+			continue
+		}
+		if level, title, ok := beATXHeading(line); ok {
+			headings = append(headings, beHeading{line: i, level: level, title: title})
+			continue
+		}
+		if i+1 < len(lines) {
+			if level, ok := beSetextHeading(lines[i+1]); ok && strings.TrimSpace(line) != "" {
+				headings = append(headings, beHeading{line: i, level: level, title: strings.TrimSpace(line)})
+			}
+		}
+	}
+	return lines, headings
+}
+
+func beSectionEnd(lines []string, headings []beHeading, headingIndex int) int {
+	heading := headings[headingIndex]
+	for _, next := range headings[headingIndex+1:] {
+		if next.level <= heading.level {
+			return next.line
+		}
+	}
+	return len(lines)
+}
+
+func beSection(text, headingLine string) (string, bool) {
+	level, title, ok := beATXHeading(headingLine)
+	if !ok {
+		return "", false
+	}
+	lines, headings := beHeadings(text)
+	for i, heading := range headings {
+		if heading.level == level && heading.title == title {
+			end := beSectionEnd(lines, headings, i)
+			return strings.Join(lines[heading.line:end], "\n"), true
+		}
+	}
+	return "", false
+}
+
+func beSectionContainingLine(text, token string) (string, bool, bool) {
+	lines, headings := beHeadings(text)
+	targetLine := -1
+	for i, line := range lines {
+		if strings.Contains(line, token) {
+			targetLine = i
+			break
+		}
+	}
+	if targetLine == -1 {
+		return "", false, false
+	}
+	headingIndex := -1
+	for i, heading := range headings {
+		if heading.line > targetLine {
+			break
+		}
+		headingIndex = i
+	}
+	if headingIndex == -1 {
+		return "", true, false
+	}
+	end := beSectionEnd(lines, headings, headingIndex)
+	return strings.Join(lines[headings[headingIndex].line:end], "\n"), true, targetLine < end
+}
+
+func beRequireSection(issues *[]string, path, text, heading string, tokens ...string) {
+	section, found := beSection(text, heading)
+	if !found {
+		*issues = append(*issues, path+" is missing section "+quoteToken(heading))
+	}
+	beRequire(issues, path, section, tokens...)
+}
+
+func beRequireExampleSection(issues *[]string, path, text, exampleLine string, tokens ...string) {
+	section, foundLine, foundSection := beSectionContainingLine(text, exampleLine)
+	if !foundLine {
+		*issues = append(*issues, path+" is missing example line "+quoteToken(exampleLine))
+	} else if !foundSection {
+		*issues = append(*issues, path+" has no section containing example line "+quoteToken(exampleLine))
+	}
+	beRequire(issues, path, section, tokens...)
+}
+
 func beReport(t *testing.T, id string, issues []string) {
 	t.Helper()
 	if len(issues) != 0 {
@@ -160,7 +336,10 @@ func TestBaselineExceptionsAC2_ReasonsForMarkedOnly(t *testing.T) {
 		beRequire(&issues, path, beSealText(t, docs, path), "for each marked condition only", "needs no reason")
 	}
 	for _, doc := range docs {
-		beForbid(&issues, doc.path, doc.text, "whether it requires a baseline and why")
+		beForbid(&issues, doc.path, doc.text,
+			"whether it requires a baseline and why",
+			"REVIEW explains each judgment",
+			"per-condition judgment")
 	}
 	beReport(t, id, issues)
 }
@@ -176,7 +355,11 @@ func TestBaselineExceptionsAC3_RecordBeforeCompletion(t *testing.T) {
 		text := beSealText(t, sealDocs, path)
 		beRequire(&issues, path, text, beReviewPhrase)
 	}
-	beRequire(&issues, beBundle, beSealText(t, sealDocs, beBundle), "reviewed like fixed code")
+	beRequire(&issues, beBundle, beSealText(t, sealDocs, beBundle),
+		"reviewed like fixed code",
+		"passes or errs instead of violating",
+		"fix the check",
+		"record the baseline again")
 	for _, path := range []string{"../guides/USAGE.en.md", "../guides/OPERATIONS.en.md"} {
 		beRequire(&issues, path, bePublicText(t, publicDocs, path), beReviewPhrase)
 	}
@@ -241,19 +424,45 @@ func TestBaselineExceptionsAC7_PublicGuidesMatch(t *testing.T) {
 	const id = "public-baseline-promise-remains"
 	docs := bePublicGuides(t)
 	var issues []string
+	for _, path := range []string{"../README.md", "../guides/OVERVIEW.en.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.en.md"} {
+		beRequire(&issues, path, bePublicText(t, docs, path),
+			"already present at the base commit",
+			"a prohibition such as")
+	}
+	for _, path := range []string{"../README.ko.md", "../guides/OVERVIEW.md", "../guides/USAGE.md", "../guides/OPERATIONS.md"} {
+		beRequire(&issues, path, bePublicText(t, docs, path),
+			"base commit에 이미 있는",
+			"같은 금지 조건")
+	}
 	beRequire(&issues, "../README.md", bePublicText(t, docs, "../README.md"),
-		"change conditions marked `요구`", "already present at the base commit", "to show the record's shape")
+		"change conditions marked `요구`")
 	beRequire(&issues, "../guides/OVERVIEW.en.md", bePublicText(t, docs, "../guides/OVERVIEW.en.md"),
-		"change conditions marked `요구`", "already present at the base commit", "can be met by a passing record", "to show the record's shape")
+		"change conditions marked `요구`")
 	beRequire(&issues, "../README.ko.md", bePublicText(t, docs, "../README.ko.md"),
-		"`요구`를 표시한 change 조건", "base commit에 이미 있는", "기록의 모양을 보이려는")
+		"`요구`를 표시한 change 조건")
 	beRequire(&issues, "../guides/OVERVIEW.md", bePublicText(t, docs, "../guides/OVERVIEW.md"),
-		"`요구`를 표시한 change 조건", "base commit에 이미 있는", "통과 기록으로 충족될 수 있습니다", "기록의 모양을 보이려는")
+		"`요구`를 표시한 change 조건")
 	beRequire(&issues, "../guides/OPERATIONS.en.md", bePublicText(t, docs, "../guides/OPERATIONS.en.md"),
 		"Up to `run-rules/6`, a check for every change condition must show")
 	beRequire(&issues, "../guides/OPERATIONS.md", bePublicText(t, docs, "../guides/OPERATIONS.md"),
 		"`run-rules/6`까지는 모든 change 조건의 검사가")
+	beRequire(&issues, "../tools/site/home.html", bePublicText(t, docs, "../tools/site/home.html"),
+		"already present at the base commit",
+		"base commit에 이미 있는")
+	beRequireSection(&issues, "../guides/OVERVIEW.en.md", bePublicText(t, docs, "../guides/OVERVIEW.en.md"),
+		"## What completion means, and what it does not", "can be met by a passing record")
+	beRequireSection(&issues, "../guides/OVERVIEW.md", bePublicText(t, docs, "../guides/OVERVIEW.md"),
+		"## 완료가 뜻하는 것과 뜻하지 않는 것", "통과 기록으로 충족될 수 있습니다")
+	beRequireSection(&issues, "../guides/OVERVIEW.en.md", bePublicText(t, docs, "../guides/OVERVIEW.en.md"),
+		"## How one goal goes through", "to show the record's shape", "is usually not marked")
+	beRequireSection(&issues, "../guides/OVERVIEW.md", bePublicText(t, docs, "../guides/OVERVIEW.md"),
+		"## 목표 하나가 지나가는 길", "기록의 모양을 보이려는", "보통 표시하지 않")
+	beRequireExampleSection(&issues, "../README.md", bePublicText(t, docs, "../README.md"),
+		"`ha log docs/specs/password-link 3`", "to show the record's shape", "is usually not marked")
+	beRequireExampleSection(&issues, "../README.ko.md", bePublicText(t, docs, "../README.ko.md"),
+		"`ha log docs/specs/password-link 3`", "기록의 모양을 보이려는", "보통 표시하지 않")
 	englishForbidden := []string{
+		"Mark conditions at risk of a false pass, such as",
 		"For new behavior, the check must fail on the code before the change",
 		"A check for new behavior counts only with a record of it failing",
 		"each required condition on new behavior has records of its check failing",
@@ -262,6 +471,7 @@ func TestBaselineExceptionsAC7_PublicGuidesMatch(t *testing.T) {
 		"records the requirement violation before the change and satisfaction afterward",
 	}
 	koreanForbidden := []string{
+		"거짓 통과 위험이 있는 조건을 고르고",
 		"새로 생기는 동작이라면 그 검사가 바꾸기 전 코드에서는",
 		"새 동작의 검사는 바꾸기 전 코드에서 그 동작이 없어 실패한 기록이 있어야 근거가 됩니다",
 		"필수 조건 가운데 새 동작의 검사는 바꾸기 전에",
