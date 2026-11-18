@@ -64,18 +64,19 @@ type RunOptions struct {
 	Subjects   []string
 	// Boundaries are the documents that state each check's observation
 	// boundary for the reviewers (--boundary).
-	Boundaries  []string
-	Questions   []string
-	Decisions   []Decision
-	Standpoints []Standpoint
-	CheckPaths  []string
-	Reviewers   []string // nil: the configured list
-	Choices     []Choice // the agent's --model and --effort values
-	Label       string
-	DryRun      bool
-	Version     string
-	Getenv      func(string) string
-	Log         io.Writer
+	Boundaries     []string
+	Questions      []string
+	Decisions      []Decision
+	Standpoints    []Standpoint
+	CheckPaths     []string
+	TextCheckPaths []string
+	Reviewers      []string // nil: the configured list
+	Choices        []Choice // the agent's --model and --effort values
+	Label          string
+	DryRun         bool
+	Version        string
+	Getenv         func(string) string
+	Log            io.Writer
 }
 
 func readDocument(repo, path, what string) (Document, error) {
@@ -108,18 +109,29 @@ func readDocuments(repo string, paths []string, what string) ([]Document, error)
 }
 
 // priorLines lists the findings of earlier rounds of the same stage group,
-// leaving out rounds of the same stage, base and head so that a rerun gets
-// the same packet. A finding with a recorded disposition ends with its last
-// one; the bool reports whether any line does.
+// leaving out dry runs and rounds of the same stage, base and head so that a
+// rerun gets the same packet. A candidate run of a recorded round's stage,
+// base and head reads only the rounds before the earliest such round, so a
+// code round recorded after it does not change the rerun's packet. A finding
+// with a recorded disposition ends with its last one; the bool reports
+// whether any line does.
 func priorLines(siblings []sibling, current *RoundRecord) ([]string, []string, bool, error) {
 	var groups []string
 	switch current.Stage {
 	case "plan-delta":
 		groups = []string{"plan", "plan_delta"}
-	case "fixes":
+	case "candidate", "fixes":
 		groups = []string{"code"}
 	default:
 		return []string{}, []string{}, false, nil
+	}
+	if current.Stage == "candidate" {
+		for i, s := range siblings {
+			if !s.round.DryRun && sameIdentity(s.round, current) {
+				siblings = siblings[:i]
+				break
+			}
+		}
 	}
 	lines, dirs, disposed := []string{}, []string{}, false
 	for _, s := range siblings {
@@ -380,9 +392,14 @@ func Run(o RunOptions) (int, error) {
 	}
 	// A check path given for this run follows the table's glob rule (G24):
 	// a wrong one is refused before anything is read or written.
-	for _, p := range o.CheckPaths {
-		if err := validGlob(p); err != nil {
-			return ExitRefused, refused("--check-path %q: %v", p, err)
+	for _, check := range []struct {
+		option string
+		paths  []string
+	}{{"--check-path", o.CheckPaths}, {"--text-check", o.TextCheckPaths}} {
+		for _, p := range check.paths {
+			if err := validGlob(p); err != nil {
+				return ExitRefused, refused("%s %q: %v", check.option, p, err)
+			}
 		}
 	}
 	start := o.Repo
@@ -401,8 +418,13 @@ func Run(o RunOptions) (int, error) {
 	if err := validateStandpoints(o, cfg); err != nil {
 		return ExitRefused, err
 	}
-	if len(o.CheckPaths) > 0 {
-		cfg.CheckPaths = uniq(append(cfg.CheckPaths, o.CheckPaths...))
+	// A fixed-text check is also a check path of the run. The record keeps
+	// the declarations sorted and unique, outside config.digest.
+	if len(o.TextCheckPaths) > 0 {
+		cfg.TextCheckPaths = slices.Compact(slices.Sorted(slices.Values(o.TextCheckPaths)))
+	}
+	if paths := append(slices.Clone(o.CheckPaths), cfg.TextCheckPaths...); len(paths) > 0 {
+		cfg.CheckPaths = uniq(append(cfg.CheckPaths, paths...))
 		cfg.Digest = cfg.digest()
 	}
 	base, err := resolveCommit(repo, o.Base)
@@ -502,7 +524,7 @@ func Run(o RunOptions) (int, error) {
 	}
 	r.Prior = priorDirs
 	packet := buildPacket(packetInput{Stage: o.Stage, Base: base, Head: head, BaseTree: baseTree, HeadTree: headTree,
-		Angles: cfg.Angles, CheckPaths: cfg.CheckPaths, Criteria: criteria, Rules: rules, Subjects: subjects,
+		Angles: cfg.Angles, CheckPaths: cfg.CheckPaths, TextCheckPaths: cfg.TextCheckPaths, Criteria: criteria, Rules: rules, Subjects: subjects,
 		Boundaries: boundaries, Decisions: o.Decisions, Standpoints: o.Standpoints, Questions: o.Questions, Prior: prior, Disposed: disposed, Diff: changes})
 	// A packet a reviewer cannot take is refused before the round folder
 	// exists, so that no round is written or counted (dry runs included).
