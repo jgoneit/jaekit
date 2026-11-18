@@ -1,8 +1,413 @@
 #!/usr/bin/env python3
-"""Placeholder for the AC-1 timing producer. The goal's check worker replaces it.
+"""cmd-ha-test-speed AC-1 producer: check-result/v1, target HalfTime.
 
-It never reports a result, so it can never count as a pass.
+Check, from the repository root:
+
+  python3 tools/goal-checks/cmd-ha-test-speed/measure.py tools/goal-checks/cmd-ha-test-speed/AC-1.json
+
+It runs `go test -count=1 -json ./cmd/ha` three times and reads each run's
+`Elapsed` from the final package `pass` event of github.com/jgoneit/jaekit/cmd/ha.
+The target passes when the median of the three is at most half the median in
+base_timing.json; otherwise it is the violation `not-half-time`. It prints the
+three times, the base median, the ratio and the 1- and 5-minute load averages.
+
+Record the base, on a quiet machine, from a tree whose cmd/ha is the base:
+
+  python3 tools/goal-checks/cmd-ha-test-speed/measure.py --record-base tools/goal-checks/cmd-ha-test-speed/base_timing.json
+
+This runs the same three measurements and writes
+{"commit", "go_version", "package", "cpus", "runs", "median", "load", "measured_at"}.
+`measured_at` comes from the clock when it is written. It refuses tracked
+changes outside tools/goal-checks/cmd-ha-test-speed/ and writes nothing when
+a run fails.
+
+`--package` (default ./cmd/ha) measures another package of this module; it
+exists to exercise this producer on small packages. A base recorded for one
+package is refused for another.
+
+Under `ha`, the report goes to HA_EVIDENCE_PATH with HA_EVIDENCE_INVOCATION and
+HA_EVIDENCE_DECLARATION_DIGEST, as in contracts/check-result.md §2. Run alone,
+it only prints and exits. The go test children do not inherit the HA_EVIDENCE_*
+or HA_JUNIT_XML variables.
+
+Outcomes. Exit 0 and `pass`: the head median is at most 0.5 x the base median.
+Exit 1 and `violation` (`not-half-time`): it is larger. Exit 2 and `error`,
+never `pass`, with these reasons:
+
+- base_timing.json missing: dependency_missing.
+- base_timing.json the placeholder, corrupt, with other fields, or recorded for
+  another `go version`, CPU count or package: setup_error.
+- go not on PATH: dependency_missing; go not executable: permission_denied.
+- GOFLAGS set (it can change which tests run): setup_error.
+- a run that does not build: compile_error.
+- a run that exits nonzero, is killed by a signal, exceeds 30 minutes, writes
+  output that is not go test JSON, has no single final package pass event, has
+  a failed test, or runs no test: execution_error.
+
+The base is read before any test runs, so the placeholder fails at once. An
+invalid declaration, a declaration for another producer, or a report path that
+cannot be written gives exit 2 without a report, which `ha` reads as unknown.
 """
+import argparse
+import datetime
+import json
+import math
+import os
+from pathlib import Path
+import re
+import stat
+import subprocess
 import sys
 
-sys.exit("measure.py is a placeholder: the AC-1 producer has not been written yet")
+ROOT = Path(__file__).resolve().parents[3]
+CHECK_DIR = "tools/goal-checks/cmd-ha-test-speed/"
+SELF = CHECK_DIR + "measure.py"
+PRODUCER, PRODUCER_VERSION = "cmd-ha-timing", "1"
+TARGET, VIOLATION = "HalfTime", "not-half-time"
+DEFAULT_PACKAGE = "./cmd/ha"
+RUNS = 3
+RUN_TIMEOUT = 1800
+BASE_FIELDS = {"commit", "go_version", "package", "cpus", "runs", "median", "load", "measured_at"}
+HIDDEN = ("HA_EVIDENCE_PATH", "HA_EVIDENCE_INVOCATION", "HA_EVIDENCE_DECLARATION_DIGEST", "HA_JUNIT_XML")
+
+
+class Unobserved(Exception):
+    def __init__(self, reason, message):
+        super().__init__(message)
+        self.reason = reason
+
+
+def local_file(name):
+    """A regular file inside the repository, reached without symlinks."""
+    if not isinstance(name, str) or not name or "\\" in name:
+        raise ValueError(f"invalid path {name!r}")
+    path = Path(name)
+    if path.is_absolute() or any(part in ("..", ".git") for part in path.parts):
+        raise ValueError(f"invalid path {name!r}")
+    current = ROOT
+    for index, part in enumerate(path.parts):
+        current /= part
+        mode = current.lstat().st_mode
+        if stat.S_ISLNK(mode) or (index < len(path.parts) - 1 and not stat.S_ISDIR(mode)):
+            raise ValueError(f"unsafe path {name!r}")
+    if not stat.S_ISREG(mode):
+        raise ValueError(f"{name} is not a regular file")
+    return current
+
+
+def unique_pairs(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate key {key!r}")
+        result[key] = value
+    return result
+
+
+def read_json(name):
+    data = local_file(name).read_bytes()
+    if len(data) > 1 << 20:
+        raise ValueError(f"{name} is larger than 1 MiB")
+    return json.loads(data.decode("utf-8"), object_pairs_hook=unique_pairs)
+
+
+def declaration(name):
+    """Return the base timing path named by a valid AC-1 declaration."""
+    data = read_json(name)
+    if (not isinstance(data, dict) or set(data) != {"schema", "producer", "producer_version", "producer_paths", "targets"}
+            or data["schema"] != "check-declaration/v1" or data["producer"] != PRODUCER
+            or data["producer_version"] != PRODUCER_VERSION
+            or data["targets"] != [{"id": TARGET, "violation": VIOLATION}]):
+        raise ValueError(f"{name} is not the {PRODUCER} declaration for {TARGET}")
+    paths = data["producer_paths"]
+    if not isinstance(paths, list):
+        raise ValueError(f"{name} producer_paths is not a list")
+    bases = [path for path in paths if isinstance(path, str) and Path(path).name == "base_timing.json"]
+    if SELF not in paths or len(bases) != 1:
+        raise ValueError(f"{name} must list {SELF} and one base_timing.json")
+    return bases[0]
+
+
+def number(value, minimum=0.0):
+    return (isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+            and value >= minimum)
+
+
+def median(values):
+    return sorted(values)[len(values) // 2]
+
+
+def validate_base(data, name):
+    """Structural checks of a recorded base; Unobserved(setup_error) when it is not one."""
+    if not isinstance(data, dict):
+        raise Unobserved("setup_error", f"{name} is not a JSON object")
+    if "placeholder" in data:
+        raise Unobserved("setup_error", f"{name} is the placeholder; record the base first with --record-base")
+    if set(data) != BASE_FIELDS:
+        raise Unobserved("setup_error", f"{name} fields are {sorted(data)}, not {sorted(BASE_FIELDS)}")
+    problems = []
+    if not isinstance(data["commit"], str) or not re.fullmatch(r"[0-9a-f]{40}", data["commit"]):
+        problems.append("commit is not a full commit ID")
+    if not isinstance(data["go_version"], str) or not data["go_version"].startswith("go version "):
+        problems.append("go_version is not `go version` output")
+    if not isinstance(data["package"], str) or not data["package"]:
+        problems.append("package is empty")
+    if not isinstance(data["cpus"], int) or isinstance(data["cpus"], bool) or data["cpus"] < 1:
+        problems.append("cpus is not a positive integer")
+    runs = data["runs"]
+    if not isinstance(runs, list) or len(runs) != RUNS or not all(number(run) and run > 0 for run in runs):
+        problems.append(f"runs is not {RUNS} positive seconds")
+    elif data["median"] != median(runs):
+        problems.append("median is not the median of runs")
+    load = data["load"]
+    if not isinstance(load, list) or len(load) != 3 or not all(number(value) for value in load):
+        problems.append("load is not three load averages")
+    try:
+        if datetime.datetime.fromisoformat(data["measured_at"]).tzinfo is None:
+            problems.append("measured_at has no time zone")
+    except (TypeError, ValueError):
+        problems.append("measured_at is not an ISO 8601 time")
+    if problems:
+        raise Unobserved("setup_error", f"{name} is corrupt: " + "; ".join(problems))
+    return data
+
+
+def read_base(name):
+    try:
+        data = read_json(name)
+    except FileNotFoundError:
+        raise Unobserved("dependency_missing", f"{name} is missing") from None
+    except PermissionError:
+        raise Unobserved("permission_denied", f"{name} cannot be read") from None
+    except (OSError, UnicodeError, ValueError) as error:
+        raise Unobserved("setup_error", f"{name} is unreadable or corrupt: {error}") from None
+    return validate_base(data, name)
+
+
+def child_env():
+    env = dict(os.environ)
+    for name in HIDDEN:
+        env.pop(name, None)
+    return env
+
+
+def run(argv, timeout=120):
+    try:
+        result = subprocess.run(argv, cwd=ROOT, env=child_env(), capture_output=True, timeout=timeout)
+    except FileNotFoundError:
+        raise Unobserved("dependency_missing", f"{argv[0]} is not on PATH") from None
+    except PermissionError:
+        raise Unobserved("permission_denied", f"{argv[0]} cannot be executed") from None
+    except subprocess.TimeoutExpired:
+        raise Unobserved("execution_error", f"{' '.join(argv)} did not finish within {timeout}s") from None
+    except OSError as error:
+        raise Unobserved("execution_error", f"{argv[0]} could not start: {error}") from None
+    if result.returncode < 0:
+        raise Unobserved("execution_error", f"{' '.join(argv)} was killed by signal {-result.returncode}")
+    return result
+
+
+def text(argv, strip=True):
+    result = run(argv)
+    if result.returncode:
+        raise Unobserved("execution_error", f"{' '.join(argv)} exited {result.returncode}: "
+                         + result.stderr.decode("utf-8", "replace").strip()[-400:])
+    try:
+        output = result.stdout.decode("utf-8")
+    except UnicodeDecodeError:
+        raise Unobserved("execution_error", f"{' '.join(argv)} output is not UTF-8") from None
+    return output.strip() if strip else output
+
+
+def go_identity(package):
+    """Return (go version, import path) and refuse GOFLAGS."""
+    version = text(["go", "version"])
+    flags = text(["go", "env", "GOFLAGS"])
+    if flags:
+        raise Unobserved("setup_error", f"GOFLAGS is {flags!r}; it can change which tests run")
+    lines = text(["go", "list", "-f", "{{.ImportPath}}", package]).splitlines()
+    if len(lines) != 1 or not lines[0]:
+        raise Unobserved("setup_error", f"{package} is not one package")
+    return version, lines[0]
+
+
+def measure_once(package, import_path):
+    """Run the package's tests once; return (package Elapsed, tests passed, tests skipped)."""
+    result = run(["go", "test", "-count=1", "-json", package], timeout=RUN_TIMEOUT)
+    events = []
+    try:
+        for line in result.stdout.decode("utf-8").splitlines():
+            if line.strip():
+                event = json.loads(line)
+                if not isinstance(event, dict):
+                    raise ValueError("not an object")
+                events.append(event)
+    except (UnicodeDecodeError, ValueError) as error:
+        raise Unobserved("execution_error", f"go test output is not go test JSON: {error}") from None
+    if any(event.get("Action") == "build-fail" for event in events):
+        raise Unobserved("compile_error", f"{package} does not build: "
+                         + result.stderr.decode("utf-8", "replace").strip()[-400:])
+    tests = {}
+    for event in events:
+        if event.get("Package") == import_path and event.get("Test") and event.get("Action") in ("pass", "fail", "skip"):
+            tests[event["Test"]] = event["Action"]
+    failed = sorted(name for name, action in tests.items() if action == "fail")
+    if result.returncode or failed:
+        raise Unobserved("execution_error", f"go test {package} exited {result.returncode}; failed tests: "
+                         + (", ".join(failed[:20]) or "none reported") + "; "
+                         + result.stderr.decode("utf-8", "replace").strip()[-400:])
+    final = [event for event in events if event.get("Package") == import_path and not event.get("Test")
+             and event.get("Action") in ("pass", "fail", "skip")]
+    if len(final) != 1 or final[0].get("Action") != "pass":
+        raise Unobserved("execution_error", f"go test {package} has no single final package pass event")
+    elapsed = final[0].get("Elapsed")
+    if not number(elapsed) or elapsed <= 0:
+        raise Unobserved("execution_error", f"go test {package} package pass event has no positive Elapsed")
+    top = {name: action for name, action in tests.items() if "/" not in name}
+    passed = sum(action == "pass" for action in top.values())
+    if not passed:
+        raise Unobserved("execution_error", f"go test {package} ran no test")
+    return float(elapsed), passed, sum(action == "skip" for action in top.values())
+
+
+def load_average():
+    try:
+        return list(os.getloadavg())
+    except (AttributeError, OSError):
+        return None
+
+
+def show_load(label, load):
+    if load is None:
+        return f"{label} load average unavailable"
+    return f"{label} load average 1m {load[0]:.2f}, 5m {load[1]:.2f}"
+
+
+def measure(package, import_path):
+    times = []
+    for attempt in range(1, RUNS + 1):
+        elapsed, passed, skipped = measure_once(package, import_path)
+        times.append(elapsed)
+        print(f"run {attempt}: {elapsed:.3f}s ({passed} top-level tests passed, {skipped} skipped)", flush=True)
+    return times
+
+
+def check(args):
+    try:
+        base_path = declaration(args.declaration)
+        evidence = os.environ.get("HA_EVIDENCE_PATH")
+        if evidence and not (os.environ.get("HA_EVIDENCE_INVOCATION") and os.environ.get("HA_EVIDENCE_DECLARATION_DIGEST")):
+            raise ValueError("HA_EVIDENCE_PATH is set without the invocation and declaration digest")
+    except (OSError, UnicodeError, ValueError) as error:
+        print(f"{TARGET}: not observed: {error}", file=sys.stderr)
+        return 2
+    observation = {"target": TARGET, "attempt": 1}
+    try:
+        base = read_base(base_path)
+        version, import_path = go_identity(args.package)
+        if base["go_version"] != version:
+            raise Unobserved("setup_error", f"go version differs: base {base['go_version']!r}, now {version!r}")
+        if base["cpus"] != os.cpu_count():
+            raise Unobserved("setup_error", f"CPU count differs: base {base['cpus']}, now {os.cpu_count()}")
+        if base["package"] != args.package:
+            raise Unobserved("setup_error", f"base was recorded for {base['package']}, not {args.package}")
+        print(show_load("before:", load_average()), flush=True)
+        times = measure(args.package, import_path)
+        head = median(times)
+        ratio = head / base["median"]
+        print("head times: " + ", ".join(f"{value:.3f}s" for value in times) + f"; head median {head:.3f}s")
+        print(f"base median {base['median']:.3f}s (commit {base['commit'][:12]}, measured {base['measured_at']})")
+        print(f"ratio {ratio:.3f} (pass at <= 0.500)")
+        print(show_load("after:", load_average()))
+        if head <= 0.5 * base["median"]:
+            observation["status"] = "pass"
+        else:
+            observation.update(status="violation", violation=VIOLATION)
+    except Unobserved as error:
+        observation.update(status="error", reason=error.reason)
+        print(f"{TARGET}: error ({error.reason}): {error}", file=sys.stderr)
+    print(f"{TARGET} {observation['status']}")
+    if evidence:
+        report = {
+            "schema": "check-result/v1",
+            "invocation": os.environ["HA_EVIDENCE_INVOCATION"],
+            "declaration_digest": os.environ["HA_EVIDENCE_DECLARATION_DIGEST"],
+            "producer": PRODUCER,
+            "producer_version": PRODUCER_VERSION,
+            "attempts_complete": True,
+            "observations": [observation],
+        }
+        try:
+            with open(evidence, "x", encoding="utf-8") as output:
+                json.dump(report, output, separators=(",", ":"))
+                output.write("\n")
+        except OSError as error:
+            print(f"{TARGET}: report not written: {error}", file=sys.stderr)
+            return 2
+    return {"pass": 0, "violation": 1}.get(observation["status"], 2)
+
+
+def git(*args):
+    return text(["git", *args], strip=args[0] != "status")
+
+
+def record(args):
+    try:
+        target = Path(args.record_base)
+        if target.is_absolute() or ".." in target.parts or target.is_symlink():
+            raise Unobserved("setup_error", f"{args.record_base} must be a repository-relative path")
+        changed = [line[3:] for line in git("status", "--porcelain", "--untracked-files=no").splitlines()
+                   if not line[3:].startswith(CHECK_DIR)]
+        if changed:
+            raise Unobserved("setup_error", "tracked files differ from HEAD outside " + CHECK_DIR + ": "
+                             + ", ".join(changed[:10]))
+        commit = git("rev-parse", "--verify", "HEAD^{commit}")
+        version, import_path = go_identity(args.package)
+        load = load_average()
+        if load is None:
+            raise Unobserved("setup_error", "load averages are unavailable")
+        print(show_load("before:", load), flush=True)
+        times = measure(args.package, import_path)
+        print(show_load("after:", load_average()))
+        data = {
+            "commit": commit,
+            "go_version": version,
+            "package": args.package,
+            "cpus": os.cpu_count(),
+            "runs": times,
+            "median": median(times),
+            "load": load,
+            "measured_at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+        }
+        validate_base(data, args.record_base)
+        path = ROOT / target
+        temporary = path.with_name(path.name + ".tmp")
+        temporary.write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
+        os.replace(temporary, path)
+    except Unobserved as error:
+        print(f"record-base: error ({error.reason}): {error}; nothing written", file=sys.stderr)
+        return 2
+    except OSError as error:
+        print(f"record-base: cannot write {args.record_base}: {error}", file=sys.stderr)
+        return 2
+    print(f"wrote {args.record_base}: runs " + ", ".join(f"{value:.3f}s" for value in times)
+          + f", median {data['median']:.3f}s at {commit[:12]}")
+    return 0
+
+
+def main():
+    parser = argparse.ArgumentParser(description="cmd-ha-test-speed AC-1 timing producer")
+    parser.add_argument("declaration", nargs="?", help="AC-1 declaration (check mode)")
+    parser.add_argument("--record-base", metavar="PATH", help="measure this tree and write the base timing")
+    parser.add_argument("--package", default=DEFAULT_PACKAGE, help="package to measure (default ./cmd/ha)")
+    args = parser.parse_args()
+    if bool(args.declaration) == bool(args.record_base):
+        parser.error("give either a declaration or --record-base PATH")
+    if Path.cwd().resolve() != ROOT:
+        print(f"run from the repository root {ROOT}", file=sys.stderr)
+        return 2
+    return record(args) if args.record_base else check(args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
