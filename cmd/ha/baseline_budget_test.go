@@ -159,6 +159,7 @@ func criterionReport(t *testing.T, f *preflightFixture, id string) map[string]an
 }
 
 func TestBaselineBudgetAC1_ReferenceFlow(t *testing.T) {
+	t.Parallel()
 	f := resultFixture(t, "reference")
 	before := requireResult(t, resultCheck(t, f, true), "fail_as_expected")
 	if before["declaration_digest"] == "" || len(before["targets"].([]any)) != 2 {
@@ -185,8 +186,10 @@ func TestBaselineBudgetAC1_ReferenceFlow(t *testing.T) {
 }
 
 func TestBaselineBudgetAC2_Environment(t *testing.T) {
+	t.Parallel()
 	for _, mode := range []string{"environment", "mixed", "signal"} {
 		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
 			f := resultFixture(t, mode)
 			requireResult(t, resultCheck(t, f, true), "error")
 			if criterionReport(t, f, "AC-1")["satisfied"] == true {
@@ -198,14 +201,17 @@ func TestBaselineBudgetAC2_Environment(t *testing.T) {
 }
 
 func TestBaselineBudgetAC3_UnknownAndMixed(t *testing.T) {
+	t.Parallel()
 	for _, mode := range []string{"plain", "missing", "skip", "empty", "wrong-target", "nonce", "retry", "hidden-retry", "conflict", "malformed", "secret"} {
 		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
 			f := resultFixture(t, mode)
 			requireResult(t, resultCheck(t, f, true), "unknown")
 		})
 	}
 	for _, mode := range []string{"wrong", "mixed-assertion"} {
 		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
 			f := resultFixture(t, mode)
 			requireResult(t, resultCheck(t, f, true), "fail")
 		})
@@ -213,8 +219,10 @@ func TestBaselineBudgetAC3_UnknownAndMixed(t *testing.T) {
 }
 
 func TestBaselineBudgetAC4_Freshness(t *testing.T) {
+	t.Parallel()
 	for _, change := range []string{"declaration", "producer", "configuration"} {
 		t.Run(change, func(t *testing.T) {
+			t.Parallel()
 			f := resultFixture(t, "reference")
 			requireResult(t, resultCheck(t, f, true), "fail_as_expected")
 			f.put("src/greeting.txt", "hello\n")
@@ -242,8 +250,10 @@ func TestBaselineBudgetAC4_Freshness(t *testing.T) {
 }
 
 func TestBaselineBudgetAC5_InvalidResultsAndRetries(t *testing.T) {
+	t.Parallel()
 	for _, rules := range []string{"run-rules/1", "run-rules/2", "run-rules/3"} {
 		t.Run(rules, func(t *testing.T) {
+			t.Parallel()
 			f := newPreflightFixture(t)
 			f.rules(rules)
 			if code, out := f.ha("check", scenarioGoal, "AC-2"); code != 0 {
@@ -258,6 +268,7 @@ func TestBaselineBudgetAC5_InvalidResultsAndRetries(t *testing.T) {
 		})
 	}
 	t.Run("shared unknown error allowance", func(t *testing.T) {
+		t.Parallel()
 		f := resultFixture(t, "missing")
 		resultCheck(t, f, true)
 		resultCheck(t, f, true)
@@ -270,6 +281,7 @@ func TestBaselineBudgetAC5_InvalidResultsAndRetries(t *testing.T) {
 func mustJSON(v any) []byte { b, _ := json.Marshal(v); return b }
 
 func TestBaselineBudgetAC6_Usage(t *testing.T) {
+	t.Parallel()
 	f := resultFixture(t, "environment")
 	resultCheck(t, f, true)
 	if f.report()["budget"].(map[string]any)["runs"] != float64(1) {
@@ -286,6 +298,7 @@ func TestBaselineBudgetAC6_Usage(t *testing.T) {
 }
 
 func TestBaselineBudgetAC7_CountsAndPrivacy(t *testing.T) {
+	t.Parallel()
 	f := resultFixture(t, "secret")
 	requireResult(t, resultCheck(t, f, true), "unknown")
 	data := mustJSON(f.report())
@@ -301,6 +314,7 @@ func TestBaselineBudgetAC7_CountsAndPrivacy(t *testing.T) {
 }
 
 func TestBaselineBudgetAC6_PartialBatch(t *testing.T) {
+	t.Parallel()
 	f := resultFixture(t, "environment")
 	f.put("checks/reference.py", "open('became-dirty.txt', 'w').write('dirty')\n"+string(f.read("checks/reference.py")))
 	f.git("add", "checks/reference.py")
@@ -319,7 +333,9 @@ func TestBaselineBudgetAC6_PartialBatch(t *testing.T) {
 }
 
 func TestBaselineBudgetAC6_PreparationAndOutputStorage(t *testing.T) {
+	t.Parallel()
 	t.Run("maintain output lost after a real successful process", func(t *testing.T) {
+		t.Parallel()
 		f := newPreflightFixture(t)
 		f.put("tests/keep.sh", "python3 tests/lose-output.py\n")
 		f.put("tests/lose-output.py", "from pathlib import Path\nfor p in Path('.git/ha/runs').rglob('.pending-*.log'): p.unlink()\n")
@@ -336,6 +352,7 @@ func TestBaselineBudgetAC6_PreparationAndOutputStorage(t *testing.T) {
 		}
 	})
 	t.Run("missing overlay was never attempted", func(t *testing.T) {
+		t.Parallel()
 		f := resultFixture(t, "reference")
 		plan := string(f.read(scenarioGoal + "/PLAN.md"))
 		plan = strings.Replace(plan, "checks/reference.json, checks/declaration.json |", "checks/reference.json, checks/declaration.json, checks/missing.txt |", 1)
@@ -351,6 +368,7 @@ func TestBaselineBudgetAC6_PreparationAndOutputStorage(t *testing.T) {
 	})
 	for _, baseline := range []bool{false, true} {
 		t.Run("lost output baseline="+strconv.FormatBool(baseline), func(t *testing.T) {
+			t.Parallel()
 			f := resultFixture(t, "lost-output")
 			line := resultCheck(t, f, baseline)
 			proof := requireResult(t, line, "error")
@@ -388,8 +406,10 @@ func seedUsage(t *testing.T, f *preflightFixture, n int) {
 }
 
 func TestBaselineBudgetAC8_TotalLimit(t *testing.T) {
+	t.Parallel()
 	for _, limit := range []int{100, 40, 48} {
 		t.Run(strconv.Itoa(limit), func(t *testing.T) {
+			t.Parallel()
 			f := newPreflightFixture(t)
 			seedUsage(t, f, 48)
 			if code, out := budgetRequest(t, f, 50, limit, 1, 1, "--quote", "100회까지 진행해줘", "--context", "이 창의 총상한 요청", "--reason", "reduce scope"); code != 0 {
@@ -414,6 +434,7 @@ func TestBaselineBudgetAC8_TotalLimit(t *testing.T) {
 }
 
 func TestBaselineBudgetAC9_TimeUnchanged(t *testing.T) {
+	t.Parallel()
 	f := newPreflightFixture(t)
 	before := f.report()["budget"].(map[string]any)
 	if code, out := budgetRequest(t, f, 50, 100, 1, 1, "--quote", "좋아", "--context", "이 목표 현재 창 총상한 100회 요청에 대한 답"); code != 0 {
@@ -433,6 +454,7 @@ func TestBaselineBudgetAC9_TimeUnchanged(t *testing.T) {
 }
 
 func TestBaselineBudgetAC10_ConsentAndValidation(t *testing.T) {
+	t.Parallel()
 	f := newPreflightFixture(t)
 	for _, extra := range [][]string{nil, {"--quote", "좋아"}, {"--context", "total 100"}} {
 		before := f.read(scenarioGoal + "/runs.jsonl")
@@ -458,6 +480,7 @@ func TestBaselineBudgetAC10_ConsentAndValidation(t *testing.T) {
 }
 
 func TestBaselineBudgetAC11_ConcurrentRevision(t *testing.T) {
+	t.Parallel()
 	f := newPreflightFixture(t)
 	var wg sync.WaitGroup
 	codes := make(chan int, 2)
@@ -492,6 +515,7 @@ func TestBaselineBudgetAC11_ConcurrentRevision(t *testing.T) {
 }
 
 func TestBaselineBudgetAC12_Persistence(t *testing.T) {
+	t.Parallel()
 	f := newPreflightFixture(t)
 	if code, out := budgetRequest(t, f, 50, 90, 1, 1, "--quote", "90회까지", "--context", "same window total", "--interpretation", "agent interpretation"); code != 0 {
 		t.Fatalf("%d %s", code, out)
@@ -513,6 +537,7 @@ func TestBaselineBudgetAC12_Persistence(t *testing.T) {
 }
 
 func TestBaselineBudgetAC13_ReopenAndCompletion(t *testing.T) {
+	t.Parallel()
 	f := newPreflightFixture(t)
 	if code, out := budgetRequest(t, f, 50, 90, 1, 1, "--quote", "90회까지", "--context", "current total"); code != 0 {
 		t.Fatal(out)
@@ -541,8 +566,10 @@ func TestBaselineBudgetAC13_ReopenAndCompletion(t *testing.T) {
 }
 
 func TestBaselineBudgetAC14_Legacy(t *testing.T) {
+	t.Parallel()
 	for _, rules := range []string{"run-rules/1", "run-rules/2"} {
 		t.Run(rules, func(t *testing.T) {
+			t.Parallel()
 			f := newPreflightFixture(t)
 			f.rules(rules)
 			// Preserve legacy's plain exit interpretation, including an expected
@@ -571,6 +598,7 @@ func TestBaselineBudgetAC14_Legacy(t *testing.T) {
 }
 
 func TestBaselineBudgetAC15_BudgetOnlyComplete(t *testing.T) {
+	t.Parallel()
 	f := resultFixture(t, "reference")
 	requireResult(t, resultCheck(t, f, true), "fail_as_expected")
 	f.put("src/greeting.txt", "hello\n")
@@ -594,6 +622,7 @@ func TestBaselineBudgetAC15_BudgetOnlyComplete(t *testing.T) {
 }
 
 func TestBaselineBudgetAC16_ExistingEntryPaths(t *testing.T) {
+	t.Parallel()
 	// Existing focused tests cover actual dirty, symlink, task, exclusion,
 	// nested parser and minimum-budget paths under the new default.
 	t.Run("dirty", TestCheckPreflightRefusesDirty)
@@ -602,6 +631,7 @@ func TestBaselineBudgetAC16_ExistingEntryPaths(t *testing.T) {
 	t.Run("exclusions", TestCheckPreflightPreservesExclusions)
 	for _, target := range []string{"AC-2", "T001"} {
 		t.Run(target, func(t *testing.T) {
+			t.Parallel()
 			f := newPreflightFixture(t)
 			if code, out := f.ha("check", scenarioGoal, target); code != 0 {
 				t.Fatalf("unrelated path required result contract: %d %s", code, out)

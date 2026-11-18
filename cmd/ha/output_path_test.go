@@ -12,6 +12,7 @@ import (
 // standing for that working tree's git directory, and older absolute paths
 // read as written.
 func TestRunRecordStatesOutputPath(t *testing.T) {
+	t.Parallel()
 	doc, err := os.ReadFile(filepath.Join("..", "..", "contracts", "run-record.md"))
 	if err != nil {
 		t.Fatal(err)

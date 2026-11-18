@@ -269,6 +269,7 @@ func TestNativeStartBudgetAndSkill(t *testing.T) {
 }
 
 func TestAutoRunsIsMaxOf50AndMinimumTimesOneAndAHalf(t *testing.T) {
+	t.Parallel()
 	for minimum, want := range map[int]int{0: 50, 1: 50, 33: 50, 34: 51, 35: 53, 68: 102, 100: 150} {
 		if got := autoRuns(minimum); got != want {
 			t.Errorf("autoRuns(%d) = %d, want %d", minimum, got, want)
@@ -277,6 +278,7 @@ func TestAutoRunsIsMaxOf50AndMinimumTimesOneAndAHalf(t *testing.T) {
 }
 
 func TestReadPreapprovalForms(t *testing.T) {
+	t.Parallel()
 	repo := t.TempDir()
 	for content, want := range map[string]int{
 		`{"preapproved_runs": 1}`: 1, `{"preapproved_runs": 2147483647}`: 2147483647, " {\"preapproved_runs\":120}\n": 120,
@@ -347,6 +349,7 @@ func checkPreapprovalAncestors(t *testing.T) {
 }
 
 func TestReadCoreRequirementsForms(t *testing.T) {
+	t.Parallel()
 	good := `{"schema": "core-requirements/v1", "rules": ["run-rules/4"], "formats": {"criteria": ["nested/1"]}, "features": ["estimate/v1"]}`
 	req, _, err := readCoreRequirements(writeSkill(t, good))
 	if err != nil || req == nil || len(req.missing(supportedCapabilities())) != 0 {
@@ -450,6 +453,7 @@ func swapCase(s string) string {
 }
 
 func TestReadPreapprovalListsTreesOnlyForAFile(t *testing.T) {
+	t.Parallel()
 	xdg := t.TempDir()
 	env := func(k string) string { return map[string]string{"XDG_CONFIG_HOME": xdg}[k] }
 	failing := func() ([]string, error) { return nil, fmt.Errorf("git worktree list --porcelain -z: refused") }

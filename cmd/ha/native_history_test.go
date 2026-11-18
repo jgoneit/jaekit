@@ -266,7 +266,7 @@ func TestNativeHistoryFileEvidence(t *testing.T) {
 	}
 	// Shared reader checks include the exact 64 MiB boundary and growth both
 	// after the identity check and while the bounded reader is consuming bytes.
-	TestFileEvidenceBoundsGrowth(t)
+	fileEvidenceBoundsGrowth(t)
 	for _, kind := range []string{"file", "directory", "removed"} {
 		t.Run("replace-"+kind, func(t *testing.T) {
 			root := t.TempDir()

@@ -33,7 +33,7 @@ func crhWrite(t *testing.T, path, body string) {
 }
 
 // crhRepo makes a repository with the goal docs/specs/demo whose review
-// records go in the ignored docs/reviews/, and moves into it.
+// records go in the ignored docs/reviews/; ha runs in it (crhCost).
 func crhRepo(t *testing.T) string {
 	t.Helper()
 	if _, err := exec.LookPath("git"); err != nil {
@@ -53,25 +53,24 @@ func crhRepo(t *testing.T) string {
 			t.Fatalf("setup: git %v: %v %s", args, err, out)
 		}
 	}
-	t.Chdir(repo)
 	return repo
 }
 
-// crhCost runs ha cost on the demo goal with one series.
-func crhCost(t *testing.T, series string, args ...string) string {
+// crhCost runs ha cost on the demo goal in repo with one series.
+func crhCost(t *testing.T, repo, series string, args ...string) string {
 	t.Helper()
-	var out, errs bytes.Buffer
-	if code := runMain(append([]string{"cost", "docs/specs/demo", "--series", series}, args...), &out, &errs); code != exitOK {
-		t.Fatalf("setup: ha cost --series %s %v exits %d: %s", series, args, code, errs.String())
+	code, out, errs := haIn(repo, envIn(repo, os.Environ()), append([]string{"cost", "docs/specs/demo", "--series", series}, args...)...)
+	if code != exitOK {
+		t.Fatalf("setup: ha cost --series %s %v exits %d: %s", series, args, code, errs)
 	}
-	return out.String()
+	return out
 }
 
 // crhQuestions decodes the questions section of ha cost --format json.
-func crhQuestions(t *testing.T, series string) map[string]any {
+func crhQuestions(t *testing.T, repo, series string) map[string]any {
 	t.Helper()
 	var doc map[string]any
-	if err := json.Unmarshal([]byte(crhCost(t, series, "--format", "json")), &doc); err != nil {
+	if err := json.Unmarshal([]byte(crhCost(t, repo, series, "--format", "json")), &doc); err != nil {
 		t.Fatalf("setup: ha cost --format json printed no JSON object: %v", err)
 	}
 	q, _ := doc["questions"].(map[string]any)
@@ -103,21 +102,13 @@ func crhExpect(t *testing.T, v, what string, got, want any) {
 // ha cost's list of cap extensions, in English and Korean Markdown and in
 // JSON; the count by source stays one per extension line.
 func TestSparCapReportAC9_HaCostShowsCause(t *testing.T) {
+	t.Parallel()
 	const v = "cost-cause-missing"
 	if _, err := exec.LookPath("go"); err != nil {
 		t.Fatalf("setup: go is not available: %v", err)
 	}
-	root, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatalf("setup: %v", err)
-	}
 	tools := t.TempDir()
-	spar := filepath.Join(tools, "spar")
-	build := exec.Command("go", "build", "-o", spar, "./cmd/spar")
-	build.Dir = root
-	if out, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("setup: go build ./cmd/spar: %v: %s", err, out)
-	}
+	spar := sharedBinary(t, "./cmd/spar")
 	repo := crhRepo(t)
 	series := "docs/reviews/cause"
 	for _, args := range [][]string{
@@ -139,7 +130,7 @@ func TestSparCapReportAC9_HaCostShowsCause(t *testing.T) {
 			t.Fatalf("setup: this tree's spar extend %v did not run to an exit: %v %s", args, err, out)
 		}
 	}
-	q := crhQuestions(t, series)
+	q := crhQuestions(t, repo, series)
 	crhExpect(t, v, "the cap extensions in JSON", q["extensions"], []any{
 		map[string]any{"series": series, "stage": "code", "by": 2, "cause": "churn", "reason": "two fixes touched greet.py",
 			"user_quote": "synthetic words one"},
@@ -150,7 +141,7 @@ func TestSparCapReportAC9_HaCostShowsCause(t *testing.T) {
 		t.Errorf("jaekit:violation=%s the extensions by source are %v, want 2", v, q["by_source"])
 	}
 	for _, c := range []struct{ lang, cause, reason string }{{"en", "cause", "reason"}, {"ko", "원인", "이유"}} {
-		text := crhCost(t, series, "--lang", c.lang)
+		text := crhCost(t, repo, series, "--lang", c.lang)
 		for _, pair := range [][2]string{
 			{"  - " + series + ": code +2: synthetic words one", "    - " + c.cause + ": churn; " + c.reason + ": two fixes touched greet.py"},
 			{"  - " + series + ": code +1: synthetic words two", "    - " + c.cause + ": other; " + c.reason + ": the reviewer quota ran out"},
@@ -166,13 +157,14 @@ func TestSparCapReportAC9_HaCostShowsCause(t *testing.T) {
 // before, keep their JSON form and say in Markdown that no cause was
 // recorded.
 func TestSparCapReportAC10_LinesWithoutCauseInHaCost(t *testing.T) {
+	t.Parallel()
 	const v = "extension-compat-broken"
-	crhRepo(t)
+	repo := crhRepo(t)
 	series := "docs/reviews/old"
-	crhWrite(t, filepath.Join(series, "extensions.jsonl"),
+	crhWrite(t, filepath.Join(repo, series, "extensions.jsonl"),
 		`{"stage":"code","by":1,"user_quote":"synthetic words one","recorded_at":"2026-01-01T00:00:00Z"}`+"\n"+
 			`{"stage":"plan","by":1,"user_quote":"synthetic words two","recorded_at":"2026-01-01T00:01:00Z"}`+"\n")
-	q := crhQuestions(t, series)
+	q := crhQuestions(t, repo, series)
 	crhExpect(t, v, "extension lines without a cause in JSON", q["extensions"], []any{
 		map[string]any{"series": series, "stage": "code", "by": 1, "user_quote": "synthetic words one"},
 		map[string]any{"series": series, "stage": "plan", "by": 1, "user_quote": "synthetic words two"},
@@ -181,7 +173,7 @@ func TestSparCapReportAC10_LinesWithoutCauseInHaCost(t *testing.T) {
 		t.Errorf("jaekit:violation=%s the extensions by source are %v, want 2", v, q["by_source"])
 	}
 	for _, c := range []struct{ lang, none string }{{"en", "    - cause: not recorded"}, {"ko", "    - 원인: 기록 없음"}} {
-		text := crhCost(t, series, "--lang", c.lang)
+		text := crhCost(t, repo, series, "--lang", c.lang)
 		for _, line := range []string{"  - " + series + ": code +1: synthetic words one", "  - " + series + ": plan +1: synthetic words two"} {
 			if !crhFollowed(text, line, c.none) {
 				t.Errorf("jaekit:violation=%s ha cost --lang %s does not show %q under %q:\n%s", v, c.lang, c.none, line, text)

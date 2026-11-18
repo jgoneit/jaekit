@@ -16,6 +16,7 @@ import (
 )
 
 func TestCheckCostAC12_SelectiveFlowEndToEnd(t *testing.T) {
+	t.Parallel()
 	const v = "selective-flow-broken"
 	const reason = "claude-F3: AC-2's producer compared the wrong value"
 	f := ccRepo(t, ccGoal{tier: "standard", conds: []ccCond{ccChange("AC-1", ccMark), ccChange("AC-2", "—"), ccMaintain("AC-3")},

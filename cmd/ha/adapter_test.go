@@ -10,22 +10,16 @@ import (
 // adapterFixture is a synthetic goal whose AC-1 runs command through an adapter
 // declaration. The files in base are committed before the start; the linked
 // test and the declaration's final violation come after it, as a user adds them.
-func adapterFixture(t *testing.T, command, checks string, base map[string]string) *preflightFixture {
+// The fixture's commands run with the environment entries set (KEY=VALUE).
+func adapterFixture(t *testing.T, command, checks string, base map[string]string, set ...string) *preflightFixture {
 	t.Helper()
 	root, err := filepath.Abs(filepath.Join(scenarioRoot, "_base"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	f := &preflightFixture{t: t, dir: t.TempDir()}
+	f.env = envWith(os.Environ(), append(set, gitFixtureEnv(os.DevNull, "synthetic", "synthetic@example.invalid")...)...)
 	copyTree(t, root, f.dir)
-	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
-	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	for _, key := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
-		t.Setenv(key, "synthetic")
-	}
-	for _, key := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
-		t.Setenv(key, "synthetic@example.invalid")
-	}
 	for name, text := range base {
 		f.put(name, text)
 	}
@@ -37,7 +31,6 @@ func adapterFixture(t *testing.T, command, checks string, base map[string]string
 	f.git("init", "-q", "-b", "main")
 	f.git("add", "-A")
 	f.git("commit", "-q", "-m", "synthetic base")
-	t.Chdir(f.dir)
 	if code, out := f.ha("start", scenarioGoal, "--request", "synthetic verification", "--rules", "run-rules/4"); code != 0 {
 		t.Fatalf("start: exit %d: %s", code, out)
 	}
@@ -49,6 +42,7 @@ const greetTest = `package greet
 import "testing"
 
 func TestGreets(t *testing.T) {
+	t.Parallel()
 	t.Log("jaekit:violation=greeting-missing is only logged")
 	if got := Hello(); got != "hello" {
 		t.Fatalf("jaekit:violation=greeting-missing the greeting is %q", got)
@@ -62,9 +56,7 @@ func TestUnlinked(t *testing.T) {}
 // baseline observes the declared violation on the base commit, the check
 // passes after the change, and the record keeps the plan's command.
 func TestAdapterGoTestJSONFlow(t *testing.T) {
-	t.Setenv("GOTOOLCHAIN", "local")
-	t.Setenv("GOPROXY", "off")
-	t.Setenv("GOFLAGS", "-mod=mod")
+	t.Parallel()
 	declaration := func(violation string) string {
 		return `{"schema": "check-adapter/v1", "adapter": "go-test-json", "targets": [{"id": "greeting", "violation": "` + violation + `", "test": {"package": "example.com/demo/greet", "name": "TestGreets"}}]}`
 	}
@@ -72,7 +64,7 @@ func TestAdapterGoTestJSONFlow(t *testing.T) {
 		"go.mod":           "module example.com/demo\n\ngo 1.27\n",
 		"greet/greet.go":   "package greet\n\nfunc Hello() string { return \"hi\" }\n",
 		"checks/AC-1.json": declaration("greeting-draft"),
-	})
+	}, "GOTOOLCHAIN=local", "GOPROXY=off", "GOFLAGS=-mod=mod")
 	f.put("greet/greet_test.go", greetTest)
 	f.put("checks/AC-1.json", declaration("greeting-missing"))
 	f.git("add", "-A")
@@ -107,6 +99,7 @@ func TestAdapterGoTestJSONFlow(t *testing.T) {
 // TestAdapterJUnitFlow runs a separate runner that writes JUnit XML where ha
 // names it, through the placeholder or the variable alone.
 func TestAdapterJUnitFlow(t *testing.T) {
+	t.Parallel()
 	runner := `# Write to the argument, or to HA_JUNIT_XML when there is none.
 out="${1:-$HA_JUNIT_XML}"
 if grep -qx hello src/greeting.txt; then
@@ -119,6 +112,7 @@ exit 1
 	declaration := `{"schema": "check-adapter/v1", "adapter": "junit-xml", "targets": [{"id": "greeting", "violation": "greeting-missing", "test": {"classname": "tests.greeting", "name": "says hello"}}]}`
 	for name, command := range map[string]string{"placeholder": "sh tests/junit.sh {HA_JUNIT_XML}", "variable": "sh tests/junit.sh"} {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			f := adapterFixture(t, command, "tests/junit.sh", map[string]string{"tests/junit.sh": runner, "checks/AC-1.json": declaration})
 			requireResult(t, resultCheck(t, f, true), "fail_as_expected")
 			f.put("src/greeting.txt", "hello\n")

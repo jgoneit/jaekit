@@ -46,6 +46,7 @@ func rfrOld(t *testing.T, ha string, f *rfrFixture, args ...string) (int, string
 	t.Helper()
 	cmd := exec.Command(ha, args...)
 	cmd.Dir = f.dir
+	cmd.Env = envIn(f.dir, f.env)
 	out, err := cmd.CombinedOutput()
 	var exit *exec.ExitError
 	switch {
@@ -77,6 +78,7 @@ func rfrOldJudgment(t *testing.T, ha string, f *rfrFixture) (int, string, []stri
 }
 
 func TestReviewFindingsReportAC8_Release018ReadsTheNote(t *testing.T) {
+	t.Parallel()
 	old := rfrRelease018(t)
 	deferred, unhandled := rfrLists()
 	for _, tc := range []struct {

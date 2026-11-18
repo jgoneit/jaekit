@@ -1,7 +1,7 @@
 package main
 
-// These tests exercise the public command boundary and use only APIs that
-// existed before preflight. This file alone can be overlaid on the base commit.
+// These tests exercise the public command boundary. Each fixture passes its
+// repository and environment to ha (runWith), so the tests can run at once.
 import (
 	"bytes"
 	"encoding/json"
@@ -17,6 +17,9 @@ type preflightFixture struct {
 	t      *testing.T
 	dir    string
 	marker string
+	// env is the environment of the fixture's git and ha commands, which run
+	// in dir, as t.Setenv and t.Chdir(dir) would leave it for them.
+	env []string
 }
 
 func newPreflightFixture(t *testing.T) *preflightFixture {
@@ -27,15 +30,8 @@ func newPreflightFixture(t *testing.T) *preflightFixture {
 	}
 	f := &preflightFixture{t: t, dir: t.TempDir(), marker: filepath.Join(t.TempDir(), "executed")}
 	copyTree(t, base, f.dir)
-	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
-	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	for _, key := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
-		t.Setenv(key, "synthetic")
-	}
-	for _, key := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
-		t.Setenv(key, "synthetic@example.invalid")
-	}
-	t.Setenv("HA_PREFLIGHT_MARKER", f.marker)
+	f.env = envWith(os.Environ(), append(gitFixtureEnv(os.DevNull, "synthetic", "synthetic@example.invalid"),
+		"HA_PREFLIGHT_MARKER="+f.marker)...)
 	f.put(".gitignore", "ignored/\n")
 	f.put("tests/greeting.sh", "printf 'greeting\\n' >> \"$HA_PREFLIGHT_MARKER\"\n")
 	f.put("tests/keep.sh", "printf 'keep\\n' >> \"$HA_PREFLIGHT_MARKER\"\n")
@@ -47,11 +43,19 @@ func newPreflightFixture(t *testing.T) *preflightFixture {
 	f.git("init", "-q", "-b", "main")
 	f.git("add", "-A")
 	f.git("commit", "-q", "-m", "synthetic base")
-	t.Chdir(f.dir)
 	if code, out := f.ha("start", scenarioGoal, "--request", "synthetic verification"); code != 0 {
 		t.Fatalf("start: exit %d: %s", code, out)
 	}
 	return f
+}
+
+// environ is the fixture's environment: env, or the process's own for a
+// fixture made without one, whose test sets it with t.Setenv.
+func (f *preflightFixture) environ() []string {
+	if f.env == nil {
+		return os.Environ()
+	}
+	return f.env
 }
 
 func (f *preflightFixture) put(name, text string) {
@@ -76,8 +80,7 @@ func (f *preflightFixture) read(name string) []byte {
 
 func (f *preflightFixture) git(args ...string) string {
 	f.t.Helper()
-	cmd := exec.Command("git", args...)
-	cmd.Dir = f.dir
+	cmd := envCommand(f.dir, envIn(f.dir, f.environ()), "git", args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		f.t.Fatalf("git %v: %v: %s", args, err, out)
@@ -87,9 +90,8 @@ func (f *preflightFixture) git(args ...string) string {
 
 func (f *preflightFixture) ha(args ...string) (int, string) {
 	f.t.Helper()
-	var out, stderr bytes.Buffer
-	code := runMain(args, &out, &stderr)
-	return code, out.String() + stderr.String()
+	code, out, stderr := haIn(f.dir, envIn(f.dir, f.environ()), args...)
+	return code, out + stderr
 }
 
 func (f *preflightFixture) report() map[string]any {
@@ -133,8 +135,10 @@ func (f *preflightFixture) logs() []string {
 }
 
 func TestCheckPreflightRefusesDirty(t *testing.T) {
+	t.Parallel()
 	for _, target := range [][]string{{"AC-2"}, {"--baseline", "AC-1"}, {"T001"}} {
 		t.Run(strings.Join(target, "-"), func(t *testing.T) {
+			t.Parallel()
 			f := newPreflightFixture(t)
 			f.put("src/keep.txt", "uncommitted\n")
 			before := f.read(scenarioGoal + "/runs.jsonl")
@@ -154,6 +158,7 @@ func TestCheckPreflightRefusesDirty(t *testing.T) {
 		})
 	}
 	t.Run("git status failure", func(t *testing.T) {
+		t.Parallel()
 		f := newPreflightFixture(t)
 		realGit, err := exec.LookPath("git")
 		if err != nil {
@@ -164,8 +169,7 @@ func TestCheckPreflightRefusesDirty(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(bin, "git"), []byte(wrapper), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		t.Setenv("HA_REAL_GIT", realGit)
-		t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+		f.env = envWith(f.env, "HA_REAL_GIT="+realGit, "PATH="+bin+string(os.PathListSeparator)+envValue(f.env, "PATH"))
 		before := f.read(scenarioGoal + "/runs.jsonl")
 		code, out := f.ha("check", scenarioGoal, "AC-2")
 		if code != 70 || !strings.Contains(out, "cannot inspect working tree") {
@@ -181,6 +185,7 @@ func TestCheckPreflightRefusesDirty(t *testing.T) {
 }
 
 func TestDirtyDiagnostics(t *testing.T) {
+	t.Parallel()
 	f := newPreflightFixture(t)
 	outside := t.TempDir()
 	link := filepath.Join(f.dir, "tracked-link")
@@ -188,7 +193,7 @@ func TestDirtyDiagnostics(t *testing.T) {
 		t.Fatal(err)
 	}
 	// A local-only submodule fixture exercises Git's own submodule status rules.
-	sub := &preflightFixture{t: t, dir: t.TempDir()}
+	sub := &preflightFixture{t: t, dir: t.TempDir(), env: f.env}
 	sub.git("init", "-q", "-b", "main")
 	sub.put("file.txt", "base\n")
 	sub.git("add", "-A")
@@ -251,8 +256,10 @@ func TestDirtyDiagnostics(t *testing.T) {
 }
 
 func TestCheckPreflightStopsDirtyBatch(t *testing.T) {
+	t.Parallel()
 	for _, result := range []string{"0", "1"} {
 		t.Run("first exit "+result, func(t *testing.T) {
+			t.Parallel()
 			f := newPreflightFixture(t)
 			// This assertion preserves the legacy exit-code interpretation.
 			// The /3 partial-batch case lives in baseline_budget_test.go.
@@ -294,8 +301,10 @@ func TestCheckPreflightStopsDirtyBatch(t *testing.T) {
 }
 
 func TestCheckPreflightPreservesExclusions(t *testing.T) {
+	t.Parallel()
 	for _, rules := range []string{"run-rules/1", "run-rules/2"} {
 		t.Run(rules, func(t *testing.T) {
+			t.Parallel()
 			f := newPreflightFixture(t)
 			f.rules(rules)
 			f.put("ignored/local.txt", "ignored\n")
@@ -312,11 +321,11 @@ func TestCheckPreflightPreservesExclusions(t *testing.T) {
 		})
 	}
 	t.Run("linked worktree", func(t *testing.T) {
+		t.Parallel()
 		f := newPreflightFixture(t)
 		linked := filepath.Join(t.TempDir(), "linked")
 		f.git("worktree", "add", "--detach", "-q", linked, "HEAD")
 		f.dir = linked
-		t.Chdir(linked)
 		if code, out := f.ha("start", scenarioGoal, "--request", "linked synthetic goal"); code != 0 {
 			t.Fatalf("linked start: exit %d: %s", code, out)
 		}
@@ -330,6 +339,7 @@ func TestCheckPreflightPreservesExclusions(t *testing.T) {
 	})
 	for _, rules := range []string{"run-rules/1", "run-rules/2"} {
 		t.Run("historical dirty record "+rules, func(t *testing.T) {
+			t.Parallel()
 			f := newPreflightFixture(t)
 			f.rules(rules)
 			if code, out := f.ha("check", scenarioGoal, "AC-2"); code != 0 {

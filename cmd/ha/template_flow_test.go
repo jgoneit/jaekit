@@ -11,6 +11,7 @@ import (
 // This reads product templates/examples, rather than restating a passing
 // declaration in the test. The copied goal invokes the real reference process.
 func TestTemplateFlowAC6_ExampleAndTemplateReachRecordedCompletion(t *testing.T) {
+	t.Parallel()
 	root, err := filepath.Abs("../..")
 	if err != nil {
 		t.Fatal(err)
@@ -40,15 +41,9 @@ func TestTemplateFlowAC6_ExampleAndTemplateReachRecordedCompletion(t *testing.T)
 	files["tools/check-result-reference.py"] = readProduct("tools/check-result-reference.py")
 	for _, form := range []string{"published-example", "filled-template"} {
 		t.Run(form, func(t *testing.T) {
-			f := &preflightFixture{t: t, dir: t.TempDir()}
-			t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
-			t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-			for _, key := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
-				t.Setenv(key, "synthetic")
-			}
-			for _, key := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
-				t.Setenv(key, "synthetic@example.invalid")
-			}
+			t.Parallel()
+			f := &preflightFixture{t: t, dir: t.TempDir(),
+				env: envWith(os.Environ(), gitFixtureEnv(os.DevNull, "synthetic", "synthetic@example.invalid")...)}
 			for name, contents := range files {
 				f.put(name, contents)
 			}
@@ -83,7 +78,6 @@ func TestTemplateFlowAC6_ExampleAndTemplateReachRecordedCompletion(t *testing.T)
 			f.git("init", "-q", "-b", "main")
 			f.git("add", "-A")
 			f.git("commit", "-qm", "synthetic template baseline")
-			t.Chdir(f.dir)
 			for _, args := range [][]string{{"lint", scenarioGoal}, {"start", scenarioGoal, "--request", "synthetic template flow"}, {"check", scenarioGoal, "--baseline", "AC-1"}} {
 				if code, out := f.ha(args...); code != 0 {
 					t.Fatalf("template flow preparation/execution %v failed: %d %s", args, code, out)

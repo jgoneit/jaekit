@@ -74,9 +74,11 @@ func producerFactsFixtureFor(t *testing.T, body, expected string, command bool, 
 }
 
 func TestProducerFacts_EachSuiteProducerReachesCore(t *testing.T) {
+	t.Parallel()
 	for _, producer := range []string{"review", "gap"} {
 		for _, mixed := range []bool{false, true} {
 			t.Run(producer+map[bool]string{false: "-known", true: "-mixed"}[mixed], func(t *testing.T) {
+				t.Parallel()
 				body := "    def test_one(self): self.fail('[violation:actual] observed')\n"
 				if mixed {
 					body += "    def test_two(self): self.skipTest('not observed')\n"
@@ -101,6 +103,7 @@ func TestProducerFacts_EachSuiteProducerReachesCore(t *testing.T) {
 }
 
 func TestProducerFacts_CurrentAndBaselinePreserveObservedMeaning(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name, body, expected, current, baseline, violation string
 		command                                            bool
@@ -122,6 +125,7 @@ func TestProducerFacts_CurrentAndBaselinePreserveObservedMeaning(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			f := producerFactsFixture(t, tc.body, tc.expected, tc.command)
 			for _, baseline := range []bool{true, false} {
 				entry := resultCheck(t, f, baseline)
@@ -157,6 +161,7 @@ func TestProducerFacts_CurrentAndBaselinePreserveObservedMeaning(t *testing.T) {
 }
 
 func TestProducerFacts_AdverseAssertionSurvivesLaterSuccess(t *testing.T) {
+	t.Parallel()
 	body := "    def test_one(self):\n        from pathlib import Path\n        if not Path('ignored/now-pass').exists(): self.fail('[violation:actual] observed')\n"
 	f := producerFactsFixture(t, body, "actual", false)
 	first := resultCheck(t, f, false)

@@ -16,6 +16,7 @@ import (
 )
 
 func TestFileEvidenceRejectsReplacedRoot(t *testing.T) {
+	t.Parallel()
 	const fixtureEnv = "JAEKIT_TEST_REPLACED_EVIDENCE_ROOT"
 	if root := os.Getenv(fixtureEnv); root != "" {
 		// The repository was a directory when its path was selected, then
@@ -50,6 +51,7 @@ func TestFileEvidenceRejectsReplacedRoot(t *testing.T) {
 }
 
 func TestFileEvidenceBoundsDirectoryDescriptors(t *testing.T) {
+	t.Parallel()
 	const fixtureEnv = "JAEKIT_TEST_DEEP_EVIDENCE_ROOT"
 	const content = "deeply nested evidence\n"
 	name := strings.Repeat("d/", 90) + "evidence"
@@ -87,6 +89,7 @@ func TestFileEvidenceBoundsDirectoryDescriptors(t *testing.T) {
 }
 
 func TestFileEvidencePreservesSearchOnlyDirectories(t *testing.T) {
+	t.Parallel()
 	if os.Geteuid() == 0 {
 		t.Skip("root bypasses directory permission checks")
 	}

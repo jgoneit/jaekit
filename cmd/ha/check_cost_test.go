@@ -8,7 +8,7 @@ package main
 // the check files changed after the first review round that received them
 // (the check freeze).
 //
-// The tests drive the ha command line (runMain) on synthetic repositories
+// The tests drive the ha command line (runWith) on synthetic repositories
 // built with the helpers of review_gate_test.go. Every change condition there
 // has its own check-result/v1 producer (a POSIX sh script reading one value
 // file) and declaration, so a baseline overlays only that condition's check
@@ -227,8 +227,8 @@ type ccFixture struct {
 	g ccGoal
 }
 
-// ccRepo makes a committed repository holding the goal g and makes it the
-// working directory. Every change condition's value says old at base (ok
+// ccRepo makes a committed repository holding the goal g, where the
+// fixture's commands run. Every change condition's value says old at base (ok
 // with atBase). The pre-approved run limit is the default: the user
 // configuration folder is an empty temporary one.
 func ccRepo(t *testing.T, g ccGoal) *ccFixture {
@@ -237,10 +237,10 @@ func ccRepo(t *testing.T, g ccGoal) *ccFixture {
 	if _, err := exec.LookPath("sh"); err != nil {
 		t.Fatalf("setup: sh is not available: %v", err)
 	}
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	config := rgEnv("XDG_CONFIG_HOME=" + t.TempDir())
 	g.conds = append([]ccCond(nil), g.conds...)
 	f := &ccFixture{g: g}
-	f.rgFixture = rgRepo(t, g.tier, func(r *rgFixture) {
+	f.rgFixture = rgRepo(t, g.tier, config, func(r *rgFixture) {
 		r.put(rgGoal+"/SPEC.md", ccSpec(g))
 		r.put(rgGoal+"/PLAN.md", ccPlan(g))
 		for _, c := range g.conds {
@@ -365,19 +365,18 @@ func (f *ccFixture) must(violation, label string, want int, args ...string) stri
 // setup.
 func (f *ccFixture) state(violation, label string) rgState {
 	f.t.Helper()
-	var out, errb bytes.Buffer
-	code := runMain([]string{"status", rgGoal, "--format", "json"}, &out, &errb)
+	code, out, errb := haIn(f.dir, envIn(f.dir, f.env), "status", rgGoal, "--format", "json")
 	if code == exitInternal {
-		f.t.Fatalf("setup: %s: ha status exit %d: %s", label, code, errb.String())
+		f.t.Fatalf("setup: %s: ha status exit %d: %s", label, code, errb)
 	}
-	if out.Len() == 0 {
-		f.t.Fatalf("jaekit:violation=%s %s: ha status gave no status JSON: exit %d: %s", violation, label, code, strings.TrimSpace(errb.String()))
+	if len(out) == 0 {
+		f.t.Fatalf("jaekit:violation=%s %s: ha status gave no status JSON: exit %d: %s", violation, label, code, strings.TrimSpace(errb))
 	}
 	var value map[string]any
-	if err := json.Unmarshal(out.Bytes(), &value); err != nil {
+	if err := json.Unmarshal([]byte(out), &value); err != nil {
 		f.t.Fatalf("setup: %s: ha status JSON: %v", label, err)
 	}
-	s := rgState{code: code, raw: out.Bytes(), value: value, completion: value["completion_record"]}
+	s := rgState{code: code, raw: []byte(out), value: value, completion: value["completion_record"]}
 	s.status, _ = value["status"].(string)
 	list, _ := value["reasons"].([]any)
 	for _, item := range list {
@@ -399,15 +398,14 @@ func (f *ccFixture) state(violation, label string) rgState {
 // violation; an internal error is a broken setup.
 func (f *ccFixture) output(violation, label string, args ...string) string {
 	f.t.Helper()
-	var out, errb bytes.Buffer
-	code := runMain(args, &out, &errb)
+	code, out, errb := haIn(f.dir, envIn(f.dir, f.env), args...)
 	if code == exitInternal {
-		f.t.Fatalf("setup: %s: ha %v exit %d: %s", label, args, code, errb.String())
+		f.t.Fatalf("setup: %s: ha %v exit %d: %s", label, args, code, errb)
 	}
-	if out.Len() == 0 {
-		f.t.Fatalf("jaekit:violation=%s %s: ha %v printed nothing: exit %d: %s", violation, label, args, code, strings.TrimSpace(errb.String()))
+	if len(out) == 0 {
+		f.t.Fatalf("jaekit:violation=%s %s: ha %v printed nothing: exit %d: %s", violation, label, args, code, strings.TrimSpace(errb))
 	}
-	return out.String()
+	return out
 }
 
 // ccReportLabels are the summary labels of `ha report` by language: the
@@ -556,6 +554,7 @@ func (f *ccFixture) startBudget() map[string]any {
 // AC-1: run-rules/7 can be chosen at the start and is listed as supported;
 // the default start rule stays run-rules/3.
 func TestCheckCostAC1_StartAndCapabilities(t *testing.T) {
+	t.Parallel()
 	const v = "rules-v7-unsupported"
 	var out, errb bytes.Buffer
 	code := runMain([]string{"capabilities", "--format", "json"}, &out, &errb)
@@ -622,6 +621,7 @@ func TestCheckCostAC1_StartAndCapabilities(t *testing.T) {
 // unmarked one (unexpected_pass, a failure other than the intended one,
 // errors past the limit) still blocks it.
 func TestCheckCostAC2_SatisfactionFollowsMark(t *testing.T) {
+	t.Parallel()
 	const v = "baseline-requirement-wrong"
 	expect := func(label string, s rgState, id string, satisfied bool, reason string) {
 		t.Helper()
@@ -780,6 +780,7 @@ func TestCheckCostAC2_SatisfactionFollowsMark(t *testing.T) {
 // no mark nothing is selected and nothing recorded. ha estimate selects the
 // same.
 func TestCheckCostAC3_DefaultSelectionFollowsMark(t *testing.T) {
+	t.Parallel()
 	const v = "baseline-selection-wrong"
 	selected := func(est map[string]any) []string {
 		sel, _ := est["selected"].(map[string]any)
@@ -870,6 +871,7 @@ func TestCheckCostAC3_DefaultSelectionFollowsMark(t *testing.T) {
 // required change + required maintain; ha start's limit check and automatic
 // budget and ha estimate use it.
 func TestCheckCostAC4_MinimumFollowsMark(t *testing.T) {
+	t.Parallel()
 	const v = "baseline-minimum-wrong"
 	// The SPEC example: one marked change, four unmarked changes and three
 	// maintain conditions give minimum 9 (run-rules/6 gives 13).

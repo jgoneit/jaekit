@@ -11,6 +11,7 @@ import (
 // A file reference is missing only when the path does not exist; a parent
 // that cannot be traversed or resolved leaves its existence unknown.
 func TestFileEvidenceSeparatesMissingFromUnreadable(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	write := func(p, s string) {
 		t.Helper()

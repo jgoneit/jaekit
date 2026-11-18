@@ -27,8 +27,10 @@ func evidenceLink(t *testing.T, target, name string) {
 }
 
 func TestFileEvidenceRejectsReplacedLeaf(t *testing.T) {
+	t.Parallel()
 	for _, kind := range evidenceReplacementKinds() {
 		t.Run(kind, func(t *testing.T) {
+			t.Parallel()
 			root := t.TempDir()
 			name := filepath.Join(root, "evidence")
 			original := filepath.Join(root, "original")
@@ -69,8 +71,10 @@ func TestFileEvidenceRejectsReplacedLeaf(t *testing.T) {
 }
 
 func TestFileEvidenceRejectsReplacedParent(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"outside", "inside"} {
 		t.Run(kind, func(t *testing.T) {
+			t.Parallel()
 			root := t.TempDir()
 			parent := filepath.Join(root, "docs")
 			other := filepath.Join(root, "other")
@@ -93,6 +97,7 @@ func TestFileEvidenceRejectsReplacedParent(t *testing.T) {
 }
 
 func TestFileEvidenceConfinedWalkRejectsLinks(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	outside := t.TempDir()
 	evidenceWrite(t, filepath.Join(root, "docs", "evidence"), "checked\n")
@@ -128,6 +133,7 @@ func TestFileEvidenceConfinedWalkRejectsLinks(t *testing.T) {
 }
 
 func TestFileEvidencePreservesStablePathStates(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	data := "checked\n"
 	evidenceWrite(t, filepath.Join(root, "docs", "evidence"), data)
@@ -172,7 +178,15 @@ func (r *growingEvidenceReader) Read(p []byte) (int, error) {
 }
 
 func TestFileEvidenceBoundsGrowth(t *testing.T) {
+	t.Parallel()
+	fileEvidenceBoundsGrowth(t)
+}
+
+// fileEvidenceBoundsGrowth is TestFileEvidenceBoundsGrowth's checks, which
+// TestNativeHistoryFileEvidence runs too.
+func fileEvidenceBoundsGrowth(t *testing.T) {
 	t.Run("initial size boundary", func(t *testing.T) {
+		t.Parallel()
 		root := t.TempDir()
 		name := filepath.Join(root, "evidence")
 		evidenceWrite(t, name, "")
@@ -191,6 +205,7 @@ func TestFileEvidenceBoundsGrowth(t *testing.T) {
 		}
 	})
 	t.Run("growth after check", func(t *testing.T) {
+		t.Parallel()
 		root := t.TempDir()
 		name := filepath.Join(root, "evidence")
 		evidenceWrite(t, name, "x")
@@ -204,6 +219,7 @@ func TestFileEvidenceBoundsGrowth(t *testing.T) {
 		}
 	})
 	t.Run("growth during read", func(t *testing.T) {
+		t.Parallel()
 		name := filepath.Join(t.TempDir(), "evidence")
 		evidenceWrite(t, name, "x")
 		f, err := os.Open(name)

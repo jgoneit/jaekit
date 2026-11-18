@@ -18,17 +18,17 @@ import (
 	"github.com/jgoneit/jaekit/internal/goaldocs"
 )
 
-func compatibilityCommand(args ...string) (int, string, string) {
-	var out, stderr bytes.Buffer
-	code := runMain(args, &out, &stderr)
-	return code, out.String(), stderr.String()
+// compatibilityCommand runs ha in dir with env.
+func compatibilityCommand(dir string, env []string, args ...string) (int, string, string) {
+	return haIn(dir, env, args...)
 }
 
 func TestCompatibilityAC7_GoallessReadOnlyQuery(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
-	t.Chdir(dir)
-	t.Setenv("PATH", dir) // No git, shell, model or verification process is available.
-	code, out, stderr := compatibilityCommand("capabilities", "--format", "json")
+	// No git, shell, model or verification process is available.
+	env := envIn(dir, os.Environ(), "PATH="+dir)
+	code, out, stderr := compatibilityCommand(dir, env, "capabilities", "--format", "json")
 	if code != 0 {
 		t.Fatalf("[requirement] goal-free capability query: exit %d: %s", code, stderr)
 	}
@@ -36,7 +36,7 @@ func TestCompatibilityAC7_GoallessReadOnlyQuery(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &report); err != nil {
 		t.Fatalf("[requirement] capabilities must be JSON: %v", err)
 	}
-	_, versionOut, _ := compatibilityCommand("--version")
+	_, versionOut, _ := compatibilityCommand(dir, env, "--version")
 	if report["schema"] != "ha-capabilities/v1" || report["ha_version"] != strings.TrimSpace(strings.TrimPrefix(versionOut, "ha ")) || report["default_rules"] != "run-rules/3" {
 		t.Fatalf("[requirement] wrong capability identity/default: %v", report)
 	}
@@ -60,7 +60,7 @@ func TestCompatibilityAC7_GoallessReadOnlyQuery(t *testing.T) {
 			t.Errorf("[requirement] %s: got %v, want %v", key, report[key], want)
 		}
 	}
-	code, again, stderr := compatibilityCommand("capabilities")
+	code, again, stderr := compatibilityCommand(dir, env, "capabilities")
 	if code != 0 || again != out || stderr != "" {
 		t.Errorf("[requirement] capability query is not deterministic: %d %s", code, stderr)
 	}
@@ -72,7 +72,7 @@ func TestCompatibilityAC7_GoallessReadOnlyQuery(t *testing.T) {
 		t.Fatalf("[requirement] query wrote files without a goal: %v", files)
 	}
 	for _, args := range [][]string{{"capabilities", "goal"}, {"capabilities", "--format", "md"}, {"capabilities", "--format", ""}, {"capabilities", "--unknown"}} {
-		code, out, _ := compatibilityCommand(args...)
+		code, out, _ := compatibilityCommand(dir, env, args...)
 		if code != 64 || out != "" {
 			t.Errorf("[requirement] invalid query accepted: %v: %d %s", args, code, out)
 		}
@@ -123,6 +123,7 @@ func compatibilityMutate(t *testing.T, change func(map[string]any)) string {
 }
 
 func TestCompatibilityAC8_ConsumerAndActualBinary(t *testing.T) {
+	t.Parallel()
 	helper, err := filepath.Abs("../../plugins/seal/skills/seal/scripts/check_core.py")
 	if err != nil {
 		t.Fatal(err)
@@ -137,24 +138,20 @@ func TestCompatibilityAC8_ConsumerAndActualBinary(t *testing.T) {
 	if err != nil {
 		t.Fatal("test environment requires Python 3 for the optional consumer check")
 	}
-	root, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
-	actual := filepath.Join(t.TempDir(), "ha")
-	build := exec.Command("go", "build", "-mod=readonly", "-o", actual, "./cmd/ha")
-	build.Dir = root
-	if out, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build test Core: %v: %s", err, out)
-	}
-	call := func(t *testing.T, core, operation, goal, reason string, want int, env []string) map[string]any {
+	actual := sharedBinary(t, "./cmd/ha")
+	// callIn runs the consumer in dir ("" is the test process's directory).
+	callIn := func(t *testing.T, dir, core, operation, goal, reason string, want int, env []string) map[string]any {
 		t.Helper()
 		args := []string{helper, "--ha", core, "--operation", operation}
 		if goal != "" {
 			args = append(args, "--goal", goal)
 		}
 		cmd := exec.Command(python, args...)
-		cmd.Env = append(os.Environ(), append([]string{"PYTHONDONTWRITEBYTECODE=1"}, env...)...)
+		base := os.Environ()
+		if dir != "" {
+			cmd.Dir, base = dir, envIn(dir, base)
+		}
+		cmd.Env = append(base, append([]string{"PYTHONDONTWRITEBYTECODE=1"}, env...)...)
 		out, err := cmd.CombinedOutput()
 		code := 0
 		if err != nil {
@@ -173,10 +170,14 @@ func TestCompatibilityAC8_ConsumerAndActualBinary(t *testing.T) {
 		}
 		return report
 	}
+	call := func(t *testing.T, core, operation, goal, reason string, want int, env []string) map[string]any {
+		t.Helper()
+		return callIn(t, "", core, operation, goal, reason, want, env)
+	}
 	t.Run("real Core and no goal or writes", func(t *testing.T) {
+		t.Parallel()
 		dir := t.TempDir()
-		t.Chdir(dir)
-		report := call(t, actual, "start", "", "compatible", 0, nil)
+		report := callIn(t, dir, actual, "start", "", "compatible", 0, nil)
 		resolved, err := filepath.EvalSymlinks(actual)
 		if err != nil {
 			t.Fatal(err)
@@ -220,6 +221,7 @@ func TestCompatibilityAC8_ConsumerAndActualBinary(t *testing.T) {
 		{"no legacy fallback", compatibilityMutate(t, func(v map[string]any) { v["default_rules"] = "run-rules/2" }), "unsupported_default_rule", 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			core := compatibilityFake(t, t.TempDir(), tc.response, tc.exit, false)
 			report := call(t, core, "start", "", tc.reason, 2, nil)
 			if report["executable"] == nil || report["sha256"] == nil {
@@ -228,13 +230,16 @@ func TestCompatibilityAC8_ConsumerAndActualBinary(t *testing.T) {
 		})
 	}
 	t.Run("missing Core", func(t *testing.T) {
+		t.Parallel()
 		call(t, filepath.Join(t.TempDir(), "missing"), "start", "", "core_missing", 2, nil)
 	})
 	t.Run("changed executable", func(t *testing.T) {
+		t.Parallel()
 		core := compatibilityFake(t, t.TempDir(), compatibilityJSON, 0, true)
 		call(t, core, "start", "", "binary_changed", 2, nil)
 	})
 	t.Run("PATH precedence and no fallback", func(t *testing.T) {
+		t.Parallel()
 		badDir, goodDir := t.TempDir(), t.TempDir()
 		bad := compatibilityFake(t, badDir, "old Core", 64, false)
 		compatibilityFake(t, goodDir, compatibilityJSON, 0, false)
@@ -248,6 +253,7 @@ func TestCompatibilityAC8_ConsumerAndActualBinary(t *testing.T) {
 		}
 	})
 	t.Run("stored legacy rules need no v3 declaration support", func(t *testing.T) {
+		t.Parallel()
 		response := compatibilityMutate(t, func(v map[string]any) {
 			v["default_rules"], v["supported_rules"] = "run-rules/4", []string{"run-rules/1", "run-rules/2", "run-rules/4"}
 			v["features"] = []string{"dirty-preflight/v1", "baseline-safe-copy/v1"}
@@ -277,6 +283,7 @@ func TestCompatibilityAC8_ConsumerAndActualBinary(t *testing.T) {
 		}
 	})
 	t.Run("criteria selector agrees with Core boundaries", func(t *testing.T) {
+		t.Parallel()
 		response := compatibilityMutate(t, func(v map[string]any) {
 			v["formats"].(map[string]any)["criteria"] = []string{"legacy"}
 		})
@@ -297,6 +304,7 @@ func TestCompatibilityAC8_ConsumerAndActualBinary(t *testing.T) {
 			{"backtick inside fence info is not a fence", "```example`text\nCriteria-Format: nested/1\n", "", "missing_support", false},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
 				root := t.TempDir()
 				goal := filepath.Join(root, "goal")
 				source := "# Synthetic\nStatus: Ready\n" + tc.before + "\n## Acceptance Criteria\n- AC-1 Synthetic result.\n" + tc.after
@@ -324,8 +332,10 @@ func TestCompatibilityAC8_ConsumerAndActualBinary(t *testing.T) {
 }
 
 func TestCompatibilityAC9_LegacyResumeAndOrdinaryChecks(t *testing.T) {
+	t.Parallel()
 	for _, rules := range []string{"run-rules/1", "run-rules/2"} {
 		t.Run(rules, func(t *testing.T) {
+			t.Parallel()
 			f := newPreflightFixture(t)
 			f.rules(rules)
 			f.put("tests/greeting.sh", "exit 1\n")
@@ -354,6 +364,7 @@ func TestCompatibilityAC9_LegacyResumeAndOrdinaryChecks(t *testing.T) {
 }
 
 func TestCompatibilityAC9_UndeclaredV3AndManualRemainSupported(t *testing.T) {
+	t.Parallel()
 	f := newPreflightFixture(t)
 	if code, out := f.ha("check", scenarioGoal, "AC-1"); code != 1 {
 		t.Fatalf("bare Core must record an unsupported /3 producer: %d: %s", code, out)

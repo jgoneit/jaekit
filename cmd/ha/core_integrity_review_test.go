@@ -54,6 +54,7 @@ func ciExpectBaseReason(f *rgFixture, violation, label string, gateSeq int, roun
 // last candidate round of the last gate (dry runs left out) starts at the
 // start record's base commit; fixes rounds after it stay Spar's chain.
 func TestCoreIntegrityAC2_ReviewStartsAtTheBase(t *testing.T) {
+	t.Parallel()
 	const v = "review-base-unchecked"
 	type form struct {
 		label, tier string
@@ -131,6 +132,7 @@ func TestCoreIntegrityAC2_ReviewStartsAtTheBase(t *testing.T) {
 // AC-3: under run-rules/6 a review note after a completion record voids it
 // only when the current tier judges the gate (standard, strict).
 func TestCoreIntegrityAC3_LateReviewNoteByTier(t *testing.T) {
+	t.Parallel()
 	const v = "late-review-note-voids-unreviewed"
 	for _, tier := range []string{"light", ""} {
 		label := "tier " + tier
@@ -179,6 +181,7 @@ func TestCoreIntegrityAC3_LateReviewNoteByTier(t *testing.T) {
 // before it is not a completion record, and the computation keeps looking at
 // the done lines before it.
 func TestCoreIntegrityAC4_UnjudgedDoneLineIsSkipped(t *testing.T) {
+	t.Parallel()
 	const v = "unjudged-done-hides-completion"
 	bundleOnly := func(f *rgFixture, note string) {
 		f.put(rgGoal+"/PROGRESS.md", "# PROGRESS — demo\n\n## Task 상태\n| Task | 상태 | 메모 |\n| --- | --- | --- |\n| T001 | done | "+note+" |\n")

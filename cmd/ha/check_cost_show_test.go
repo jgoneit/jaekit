@@ -258,6 +258,7 @@ func (f *ccFixture) noFreeze(violation, label string) {
 // conditions require a baseline, how many of them have a fresh one, and the
 // marks removed after the start.
 func TestCheckCostAC5_StatusAndReportShowMark(t *testing.T) {
+	t.Parallel()
 	const v = "baseline-requirement-hidden"
 	f := ccRepo(t, ccGoal{conds: []ccCond{ccChange("AC-1", ccMark), ccChange("AC-2", "—"), ccMaintain("AC-3"), ccChange("AC-4", ccMark)}, column: true})
 	f.start(v)
@@ -335,6 +336,7 @@ func TestCheckCostAC5_StatusAndReportShowMark(t *testing.T) {
 // table was not recorded. The display never blocks completion and is absent
 // for other goals.
 func TestCheckCostAC10_FreezeShown(t *testing.T) {
+	t.Parallel()
 	const v = "check-freeze-hidden"
 	const (
 		reasonOne = "claude-F1: the producer named the wrong value file"
