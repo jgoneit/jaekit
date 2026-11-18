@@ -9,16 +9,22 @@ Usage, from the repository root:
 
 `base_tests.json` is the base snapshot: for every cmd/ha/*_test.go of the base
 commit, its name, its build constraint line (or null) and its top-level
-`func TestXxx(` names, TestMain included, plus the cmd/ha selectors of
-contracts/regressions.json at that commit. `renames.json` maps a base test
-name to the list of head names that replace it.
+`func TestXxx(` names, TestMain included, plus every cmd/ha selector entry
+of contracts/regressions.json at that commit as (route id, file, selector),
+repeats across routes kept. `renames.json` maps a base test name to the list
+of head names that replace it.
 
 AC-2 passes when every base test exists at head as a top-level test of a
 compiled cmd/ha/*_test.go file (Go ignores names starting with `_` or `.`),
-or is mapped in renames.json to names that all exist; and when every cmd/ha
-selector of the current contracts/regressions.json, and every base selector,
-is still listed and passes tools/go_selection.py's validate_test at head:
-declared exactly once in the named file, which has no build constraint.
+or is mapped in renames.json to names that all exist; and when every base
+selector entry is still in the current contracts/regressions.json, counted
+as entries, not unique (file, selector) pairs. The one exception: the base
+entry's selector is mapped in renames.json, and the same route at head has
+an entry for each name it maps to, naming the head cmd/ha/*_test.go file
+that declares that name. Every current cmd/ha selector, and every base
+selector not replaced that way, must pass tools/go_selection.py's
+validate_test at head: declared exactly once in the named file, which has no
+build constraint.
 
 AC-7 passes when every head file that existed at base keeps its base
 constraint; a new file has none, unless it holds tests that came from base
@@ -36,7 +42,7 @@ is printed. Exit 2: not observed: the snapshot or renames file is missing or
 corrupt, a Go file cannot be read or tokenized, or git fails. Never a pass.
 """
 import argparse
-from collections import defaultdict
+from collections import Counter, defaultdict
 import importlib.util
 import json
 from pathlib import Path
@@ -50,7 +56,7 @@ PACKAGE_DIR = "cmd/ha"
 SNAPSHOT = HERE / "base_tests.json"
 RENAMES = HERE / "renames.json"
 REGRESSIONS = "contracts/regressions.json"
-SCHEMA = "cmd-ha-test-inventory/v1"
+SCHEMA = "cmd-ha-test-inventory/v2"
 GITTEST = "github.com/jgoneit/jaekit/internal/gittest"
 CONSTRAINT = re.compile(r"//(?:go:build(?:\s|$)|\s*\+build(?:\s|$))")
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
@@ -178,7 +184,7 @@ def read_local(path):
 
 
 def selectors(regressions, label):
-    """The unique (file, selector) pairs of cmd/ha checks in a regression map."""
+    """Every cmd/ha check of a regression map as (route id, file, selector), repeats kept."""
     if not isinstance(regressions, dict) or not isinstance(regressions.get("routes"), list):
         raise InputFailure(f"{label} has no routes list")
     found = []
@@ -192,7 +198,9 @@ def selectors(regressions, label):
             if check["file"].startswith(PACKAGE_DIR + "/"):
                 if not isinstance(check.get("selector"), str):
                     raise InputFailure(f"{label} has a {PACKAGE_DIR} check without a selector")
-                found.append((check["file"], check["selector"]))
+                if not isinstance(route.get("id"), str) or not route["id"]:
+                    raise InputFailure(f"{label} has a route with a {PACKAGE_DIR} check but no id")
+                found.append((route["id"], check["file"], check["selector"]))
     return found
 
 
@@ -220,11 +228,12 @@ def validate_snapshot(snapshot):
         tests = row["tests"]
         if not isinstance(tests, list) or not all(is_test_name(name) for name in tests) or len(set(tests)) != len(tests):
             raise InputFailure(f"{label}: {row['file']} tests are not unique Go test names")
-    pairs = snapshot["regression_selectors"]
-    if not isinstance(pairs, list) or not pairs or not all(
-            isinstance(row, dict) and set(row) == {"file", "selector"} and isinstance(row["file"], str)
-            and row["file"].startswith(PACKAGE_DIR + "/") and isinstance(row["selector"], str) for row in pairs):
-        raise InputFailure(f"{label} regression_selectors is not a non-empty list of cmd/ha file/selector rows")
+    entries = snapshot["regression_selectors"]
+    if not isinstance(entries, list) or not entries or not all(
+            isinstance(row, dict) and set(row) == {"route", "file", "selector"} and isinstance(row["route"], str)
+            and row["route"] and isinstance(row["file"], str) and row["file"].startswith(PACKAGE_DIR + "/")
+            and isinstance(row["selector"], str) for row in entries):
+        raise InputFailure(f"{label} regression_selectors is not a non-empty list of cmd/ha route/file/selector rows")
     return snapshot
 
 
@@ -266,10 +275,29 @@ def check_ac2(snapshot, renames, head):
         if missing:
             problems.append(f"missing test: {name} (base {where}) is renamed to {', '.join(missing)}, not at head")
     current = selectors(read_local(ROOT / REGRESSIONS), REGRESSIONS)
-    base = [(row["file"], row["selector"]) for row in snapshot["regression_selectors"]]
-    for pair in sorted(set(base) - set(current)):
-        problems.append(f"selector removed: {pair[0]} {pair[1]} is no longer in {REGRESSIONS}")
-    for path, selector in sorted(set(current) | set(base)):
+    base = [(row["route"], row["file"], row["selector"]) for row in snapshot["regression_selectors"]]
+    declared = defaultdict(set)
+    for name, row in head.items():
+        for test in row["tests"]:
+            declared[test].add(f"{PACKAGE_DIR}/{name}")
+    have = Counter(current)
+    replaced = set()
+    for entry, count in sorted(Counter(base).items()):
+        route, path, selector = entry
+        lost = count - have[entry]
+        if lost <= 0:
+            continue
+        new = renames.get(selector)
+        if new and all(any((route, file, name) in have for file in declared[name]) for name in new):
+            replaced.add((path, selector))
+            continue
+        copies = f" ({lost} of {count} entries)" if count > 1 else ""
+        problems.append(f"selector removed: route {route}: {path} {selector}{copies} is no longer in {REGRESSIONS}"
+                        + (f", and the route does not name each of {', '.join(new)} in the head file declaring it"
+                           if new else ""))
+    pairs = {(path, selector) for _, path, selector in current}
+    pairs |= {(path, selector) for _, path, selector in base if (path, selector) not in replaced}
+    for path, selector in sorted(pairs):
         try:
             gs.validate_test(ROOT / path, selector, root=ROOT)
         except FileNotFoundError:
@@ -280,8 +308,8 @@ def check_ac2(snapshot, renames, head):
             raise InputFailure(f"{path} is not UTF-8: {error}") from None
         except OSError as error:
             raise InputFailure(f"{path} cannot be read: {error}") from None
-    summary = (f"{len(base_files)} base tests, {len(current)} current cmd/ha selector entries "
-               f"({len(set(current) | set(base))} unique with the base selectors)")
+    summary = (f"{len(base_files)} base tests, {len(base)} base and {len(current)} current cmd/ha selector "
+               f"entries, {len(pairs)} (file, selector) pairs validated")
     return problems, summary
 
 
@@ -427,12 +455,13 @@ def write_snapshot(revision):
             raise InputFailure(f"{path} is not a file at {commit}")
         build, tests, _ = parse(name, decode(path, git("show", f"{commit}:{path}")))
         rows.append({"file": name, "build": build, "tests": tests})
-    pairs = selectors(strict_json(REGRESSIONS, git("show", f"{commit}:{REGRESSIONS}")), REGRESSIONS)
+    entries = selectors(strict_json(REGRESSIONS, git("show", f"{commit}:{REGRESSIONS}")), REGRESSIONS)
     snapshot = {
         "schema": SCHEMA,
         "commit": commit,
         "files": rows,
-        "regression_selectors": [{"file": path, "selector": selector} for path, selector in sorted(set(pairs))],
+        "regression_selectors": [{"route": route, "file": path, "selector": selector}
+                                 for route, path, selector in sorted(entries)],
     }
     validate_snapshot(snapshot)
     SNAPSHOT.write_text(json.dumps(snapshot, indent=1) + "\n", encoding="utf-8")

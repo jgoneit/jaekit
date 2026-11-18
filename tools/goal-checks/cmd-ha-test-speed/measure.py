@@ -11,15 +11,24 @@ The target passes when the median of the three is at most half the median in
 base_timing.json; otherwise it is the violation `not-half-time`. It prints the
 three times, the base median, the ratio and the 1- and 5-minute load averages.
 
+The times are compared only when the same tests ran. Every top-level test
+that passed in all three base runs (base_timing.json `outcomes`) must pass in
+all three head runs, or be mapped by renames.json (in this folder) to names
+that all pass in all three head runs. Otherwise the result is `error`
+(execution_error), not `pass` or `violation`, and each such test is printed
+with its head outcomes (pass, skip, or missing).
+
 Record the base, on a quiet machine, from a tree whose cmd/ha is the base:
 
   python3 tools/goal-checks/cmd-ha-test-speed/measure.py --record-base tools/goal-checks/cmd-ha-test-speed/base_timing.json
 
 This runs the same three measurements and writes
-{"commit", "go_version", "package", "cpus", "runs", "median", "load", "measured_at"}.
-`measured_at` comes from the clock when it is written. It refuses tracked
-changes outside tools/goal-checks/cmd-ha-test-speed/ and writes nothing when
-a run fails.
+{"commit", "go_version", "package", "cpus", "runs", "median", "load", "outcomes", "measured_at"}.
+`outcomes` maps every top-level test to its outcome (pass, skip or fail) in
+each of the three runs. `measured_at` comes from the clock when it is written.
+It refuses a tree where `git status --porcelain` shows anything, tracked or
+untracked, outside tools/goal-checks/cmd-ha-test-speed/, and writes nothing
+when a run fails, a test fails, or a test's outcome differs between the runs.
 
 `--package` (default ./cmd/ha) measures another package of this module; it
 exists to exercise this producer on small packages. A base recorded for one
@@ -37,16 +46,21 @@ never `pass`, with these reasons:
 - base_timing.json missing: dependency_missing.
 - base_timing.json the placeholder, corrupt, with other fields, or recorded for
   another `go version`, CPU count or package: setup_error.
+- renames.json missing: dependency_missing; corrupt or not a map of test
+  names to non-empty lists of unique test names: setup_error.
 - go not on PATH: dependency_missing; go not executable: permission_denied.
 - GOFLAGS set (it can change which tests run): setup_error.
 - a run that does not build: compile_error.
 - a run that exits nonzero, is killed by a signal, exceeds 30 minutes, writes
   output that is not go test JSON, has no single final package pass event, has
   a failed test, or runs no test: execution_error.
+- a base-passing test that does not pass in every head run (renames applied):
+  execution_error, after the three runs.
 
-The base is read before any test runs, so the placeholder fails at once. An
-invalid declaration, a declaration for another producer, or a report path that
-cannot be written gives exit 2 without a report, which `ha` reads as unknown.
+The base and renames.json are read before any test runs, so the placeholder
+fails at once. An invalid declaration, a declaration for another producer, or
+a report path that cannot be written gives exit 2 without a report, which `ha`
+reads as unknown.
 """
 import argparse
 import datetime
@@ -67,7 +81,10 @@ TARGET, VIOLATION = "HalfTime", "not-half-time"
 DEFAULT_PACKAGE = "./cmd/ha"
 RUNS = 3
 RUN_TIMEOUT = 1800
-BASE_FIELDS = {"commit", "go_version", "package", "cpus", "runs", "median", "load", "measured_at"}
+BASE_FIELDS = {"commit", "go_version", "package", "cpus", "runs", "median", "load", "outcomes", "measured_at"}
+OUTCOMES = ("pass", "skip", "fail")
+RENAMES = CHECK_DIR + "renames.json"
+TEST_NAME = re.compile(r"Test(?:[A-Z0-9_][A-Za-z0-9_]*)?")
 HIDDEN = ("HA_EVIDENCE_PATH", "HA_EVIDENCE_INVOCATION", "HA_EVIDENCE_DECLARATION_DIGEST", "HA_JUNIT_XML")
 
 
@@ -162,6 +179,16 @@ def validate_base(data, name):
     load = data["load"]
     if not isinstance(load, list) or len(load) != 3 or not all(number(value) for value in load):
         problems.append("load is not three load averages")
+    outcomes = data["outcomes"]
+    if (not isinstance(outcomes, dict) or not outcomes
+            or not all(isinstance(name, str) and TEST_NAME.fullmatch(name) for name in outcomes)
+            or not all(isinstance(values, list) and len(values) == RUNS and all(value in OUTCOMES for value in values)
+                       for values in outcomes.values())):
+        problems.append(f"outcomes is not a map of top-level test names to {RUNS} outcomes from {OUTCOMES}")
+    elif any(len(set(values)) != 1 or "fail" in values for values in outcomes.values()):
+        problems.append("outcomes has a failed test or a test whose outcome differs between runs")
+    elif "pass" not in {values[0] for values in outcomes.values()}:
+        problems.append("outcomes has no passing test")
     try:
         if datetime.datetime.fromisoformat(data["measured_at"]).tzinfo is None:
             problems.append("measured_at has no time zone")
@@ -182,6 +209,58 @@ def read_base(name):
     except (OSError, UnicodeError, ValueError) as error:
         raise Unobserved("setup_error", f"{name} is unreadable or corrupt: {error}") from None
     return validate_base(data, name)
+
+
+def read_renames():
+    """renames.json: base test name -> non-empty list of unique head test names."""
+    try:
+        data = read_json(RENAMES)
+    except FileNotFoundError:
+        raise Unobserved("dependency_missing", f"{RENAMES} is missing") from None
+    except PermissionError:
+        raise Unobserved("permission_denied", f"{RENAMES} cannot be read") from None
+    except (OSError, UnicodeError, ValueError) as error:
+        raise Unobserved("setup_error", f"{RENAMES} is unreadable or corrupt: {error}") from None
+    if not isinstance(data, dict) or not all(
+            isinstance(old, str) and TEST_NAME.fullmatch(old) and isinstance(new, list) and new
+            and all(isinstance(name, str) and TEST_NAME.fullmatch(name) for name in new) and len(set(new)) == len(new)
+            for old, new in data.items()):
+        raise Unobserved("setup_error", f"{RENAMES} is not a map of test names to non-empty lists of unique test names")
+    return data
+
+
+def base_outcomes(runs):
+    """Every top-level test's outcome in each run; Unobserved when a test failed or its outcomes differ."""
+    names = sorted(set().union(*runs))
+    outcomes = {name: [run.get(name, "missing") for run in runs] for name in names}
+    bad = [f"{name} ({', '.join(values)})" for name, values in outcomes.items()
+           if len(set(values)) != 1 or "fail" in values]
+    if bad:
+        raise Unobserved("execution_error", f"test outcomes differ between the base runs or a test failed: "
+                         + "; ".join(bad[:20]))
+    return outcomes
+
+
+def outcome_differences(base, runs, renames):
+    """Base tests that passed in every base run and do not pass in every given run, renames applied."""
+    def passes(name):
+        return all(run.get(name) == "pass" for run in runs)
+
+    def show(name):
+        return ", ".join(run.get(name, "missing") for run in runs)
+
+    problems = []
+    for name, values in sorted(base.items()):
+        if set(values) != {"pass"} or passes(name):
+            continue
+        new = renames.get(name)
+        if new and all(passes(other) for other in new):
+            continue
+        detail = f"{name}: base pass in all {len(values)} runs, head {show(name)}"
+        if new:
+            detail += "; renamed to " + "; ".join(f"{other} ({show(other)})" for other in new)
+        problems.append(detail)
+    return problems
 
 
 def child_env():
@@ -232,7 +311,7 @@ def go_identity(package):
 
 
 def measure_once(package, import_path):
-    """Run the package's tests once; return (package Elapsed, tests passed, tests skipped)."""
+    """Run the package's tests once; return (package Elapsed, top-level test outcomes)."""
     result = run(["go", "test", "-count=1", "-json", package], timeout=RUN_TIMEOUT)
     events = []
     try:
@@ -264,10 +343,9 @@ def measure_once(package, import_path):
     if not number(elapsed) or elapsed <= 0:
         raise Unobserved("execution_error", f"go test {package} package pass event has no positive Elapsed")
     top = {name: action for name, action in tests.items() if "/" not in name}
-    passed = sum(action == "pass" for action in top.values())
-    if not passed:
+    if not any(action == "pass" for action in top.values()):
         raise Unobserved("execution_error", f"go test {package} ran no test")
-    return float(elapsed), passed, sum(action == "skip" for action in top.values())
+    return float(elapsed), top
 
 
 def load_average():
@@ -284,12 +362,16 @@ def show_load(label, load):
 
 
 def measure(package, import_path):
-    times = []
+    """Return the three times and each run's top-level test outcomes."""
+    times, runs = [], []
     for attempt in range(1, RUNS + 1):
-        elapsed, passed, skipped = measure_once(package, import_path)
+        elapsed, top = measure_once(package, import_path)
         times.append(elapsed)
+        runs.append(top)
+        passed = sum(action == "pass" for action in top.values())
+        skipped = sum(action == "skip" for action in top.values())
         print(f"run {attempt}: {elapsed:.3f}s ({passed} top-level tests passed, {skipped} skipped)", flush=True)
-    return times
+    return times, runs
 
 
 def check(args):
@@ -311,14 +393,21 @@ def check(args):
             raise Unobserved("setup_error", f"CPU count differs: base {base['cpus']}, now {os.cpu_count()}")
         if base["package"] != args.package:
             raise Unobserved("setup_error", f"base was recorded for {base['package']}, not {args.package}")
+        renames = read_renames()
         print(show_load("before:", load_average()), flush=True)
-        times = measure(args.package, import_path)
+        times, runs = measure(args.package, import_path)
         head = median(times)
         ratio = head / base["median"]
         print("head times: " + ", ".join(f"{value:.3f}s" for value in times) + f"; head median {head:.3f}s")
         print(f"base median {base['median']:.3f}s (commit {base['commit'][:12]}, measured {base['measured_at']})")
         print(f"ratio {ratio:.3f} (pass at <= 0.500)")
         print(show_load("after:", load_average()))
+        differences = outcome_differences(base["outcomes"], runs, renames)
+        for line in differences:
+            print(f"outcome differs: {line}")
+        if differences:
+            raise Unobserved("execution_error", f"{len(differences)} base-passing test(s) do not pass in every head "
+                             "run, so the times are not comparable")
         if head <= 0.5 * base["median"]:
             observation["status"] = "pass"
         else:
@@ -351,15 +440,35 @@ def git(*args):
     return text(["git", *args], strip=args[0] != "status")
 
 
+def outside_check_dir():
+    """Paths `git status --porcelain` shows, tracked or untracked, outside CHECK_DIR."""
+    records = git("status", "--porcelain", "-z", "--untracked-files=all").split("\0")
+    paths, index = [], 0
+    while index < len(records):
+        record = records[index]
+        index += 1
+        if not record:
+            continue
+        if len(record) < 4 or record[2] != " ":
+            raise Unobserved("execution_error", f"unexpected git status record {record!r}")
+        paths.append(record[3:])
+        if "R" in record[:2] or "C" in record[:2]:
+            # A rename or copy record is followed by its source path.
+            if index >= len(records) or not records[index]:
+                raise Unobserved("execution_error", f"git status rename record without a source: {record!r}")
+            paths.append(records[index])
+            index += 1
+    return [path for path in paths if not path.startswith(CHECK_DIR)]
+
+
 def record(args):
     try:
         target = Path(args.record_base)
         if target.is_absolute() or ".." in target.parts or target.is_symlink():
             raise Unobserved("setup_error", f"{args.record_base} must be a repository-relative path")
-        changed = [line[3:] for line in git("status", "--porcelain", "--untracked-files=no").splitlines()
-                   if not line[3:].startswith(CHECK_DIR)]
+        changed = outside_check_dir()
         if changed:
-            raise Unobserved("setup_error", "tracked files differ from HEAD outside " + CHECK_DIR + ": "
+            raise Unobserved("setup_error", "git status shows tracked or untracked files outside " + CHECK_DIR + ": "
                              + ", ".join(changed[:10]))
         commit = git("rev-parse", "--verify", "HEAD^{commit}")
         version, import_path = go_identity(args.package)
@@ -367,8 +476,9 @@ def record(args):
         if load is None:
             raise Unobserved("setup_error", "load averages are unavailable")
         print(show_load("before:", load), flush=True)
-        times = measure(args.package, import_path)
+        times, runs = measure(args.package, import_path)
         print(show_load("after:", load_average()))
+        outcomes = base_outcomes(runs)
         data = {
             "commit": commit,
             "go_version": version,
@@ -377,6 +487,7 @@ def record(args):
             "runs": times,
             "median": median(times),
             "load": load,
+            "outcomes": outcomes,
             "measured_at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
         }
         validate_base(data, args.record_base)

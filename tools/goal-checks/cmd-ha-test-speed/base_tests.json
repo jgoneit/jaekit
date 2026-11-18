@@ -1,5 +1,5 @@
 {
- "schema": "cmd-ha-test-inventory/v1",
+ "schema": "cmd-ha-test-inventory/v2",
  "commit": "27008c9ab9e705a9f72d4459225c9c18f6aea8d5",
  "files": [
   {
@@ -541,60 +541,94 @@
  ],
  "regression_selectors": [
   {
-   "file": "cmd/ha/adapter_test.go",
-   "selector": "TestAdapterGoTestJSONFlow"
-  },
-  {
-   "file": "cmd/ha/adapter_test.go",
-   "selector": "TestAdapterJUnitFlow"
-  },
-  {
-   "file": "cmd/ha/baseline_budget_test.go",
-   "selector": "TestBaselineBudgetAC1_ReferenceFlow"
-  },
-  {
-   "file": "cmd/ha/baseline_budget_test.go",
-   "selector": "TestBaselineBudgetAC2_Environment"
-  },
-  {
-   "file": "cmd/ha/baseline_budget_test.go",
-   "selector": "TestBaselineBudgetAC3_UnknownAndMixed"
-  },
-  {
-   "file": "cmd/ha/baseline_budget_test.go",
-   "selector": "TestBaselineBudgetAC5_InvalidResultsAndRetries"
-  },
-  {
-   "file": "cmd/ha/findings_contract_test.go",
-   "selector": "TestFindingsPublicCLI"
-  },
-  {
-   "file": "cmd/ha/findings_review_test.go",
-   "selector": "TestFindingRequiredListsScenario"
-  },
-  {
-   "file": "cmd/ha/findings_review_test.go",
-   "selector": "TestFindingResolutionRefsScenario"
-  },
-  {
-   "file": "cmd/ha/findings_review_test.go",
-   "selector": "TestFindingRetryEquivalentScenario"
-  },
-  {
-   "file": "cmd/ha/findings_review_test.go",
-   "selector": "TestFindingStoredReuseCLI"
-  },
-  {
+   "route": "gap-producer-meaning",
    "file": "cmd/ha/producer_semantics_test.go",
    "selector": "TestProducerFacts_AdverseAssertionSurvivesLaterSuccess"
   },
   {
+   "route": "gap-producer-meaning",
+   "file": "cmd/ha/producer_semantics_test.go",
+   "selector": "TestProducerFacts_EachSuiteProducerReachesCore"
+  },
+  {
+   "route": "goal-producer-meaning",
+   "file": "cmd/ha/producer_semantics_test.go",
+   "selector": "TestProducerFacts_AdverseAssertionSurvivesLaterSuccess"
+  },
+  {
+   "route": "goal-producer-meaning",
    "file": "cmd/ha/producer_semantics_test.go",
    "selector": "TestProducerFacts_CurrentAndBaselinePreserveObservedMeaning"
   },
   {
+   "route": "post-completion-recorded-facts",
+   "file": "cmd/ha/findings_contract_test.go",
+   "selector": "TestFindingsPublicCLI"
+  },
+  {
+   "route": "post-completion-recorded-facts",
+   "file": "cmd/ha/findings_review_test.go",
+   "selector": "TestFindingRequiredListsScenario"
+  },
+  {
+   "route": "post-completion-recorded-facts",
+   "file": "cmd/ha/findings_review_test.go",
+   "selector": "TestFindingResolutionRefsScenario"
+  },
+  {
+   "route": "post-completion-recorded-facts",
+   "file": "cmd/ha/findings_review_test.go",
+   "selector": "TestFindingRetryEquivalentScenario"
+  },
+  {
+   "route": "post-completion-recorded-facts",
+   "file": "cmd/ha/findings_review_test.go",
+   "selector": "TestFindingStoredReuseCLI"
+  },
+  {
+   "route": "reference-producer-to-cli",
+   "file": "cmd/ha/baseline_budget_test.go",
+   "selector": "TestBaselineBudgetAC1_ReferenceFlow"
+  },
+  {
+   "route": "reference-producer-to-cli",
+   "file": "cmd/ha/baseline_budget_test.go",
+   "selector": "TestBaselineBudgetAC2_Environment"
+  },
+  {
+   "route": "reference-producer-to-cli",
+   "file": "cmd/ha/baseline_budget_test.go",
+   "selector": "TestBaselineBudgetAC3_UnknownAndMixed"
+  },
+  {
+   "route": "reference-producer-to-cli",
+   "file": "cmd/ha/baseline_budget_test.go",
+   "selector": "TestBaselineBudgetAC5_InvalidResultsAndRetries"
+  },
+  {
+   "route": "review-producer-meaning",
+   "file": "cmd/ha/producer_semantics_test.go",
+   "selector": "TestProducerFacts_AdverseAssertionSurvivesLaterSuccess"
+  },
+  {
+   "route": "review-producer-meaning",
    "file": "cmd/ha/producer_semantics_test.go",
    "selector": "TestProducerFacts_EachSuiteProducerReachesCore"
+  },
+  {
+   "route": "runner-adapter-classification",
+   "file": "cmd/ha/adapter_test.go",
+   "selector": "TestAdapterGoTestJSONFlow"
+  },
+  {
+   "route": "runner-adapter-classification",
+   "file": "cmd/ha/adapter_test.go",
+   "selector": "TestAdapterJUnitFlow"
+  },
+  {
+   "route": "stored-proof-independence",
+   "file": "cmd/ha/baseline_budget_test.go",
+   "selector": "TestBaselineBudgetAC1_ReferenceFlow"
   }
  ]
 }
