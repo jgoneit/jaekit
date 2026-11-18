@@ -485,7 +485,9 @@ func TestBaselineExceptionsAC7_PublicGuidesMatch(t *testing.T) {
 		"`run-rules/6`까지는 모든 change 조건의 검사가")
 	beRequire(&issues, "../tools/site/home.html", bePublicText(t, docs, "../tools/site/home.html"),
 		"already present at the base commit",
-		"base commit에 이미 있는")
+		"a prohibition such as",
+		"base commit에 이미 있는",
+		"같은 금지 조건")
 	beRequireSection(&issues, "../guides/OVERVIEW.en.md", bePublicText(t, docs, "../guides/OVERVIEW.en.md"),
 		"## What completion means, and what it does not", "can be met by a passing record")
 	beRequireSection(&issues, "../guides/OVERVIEW.md", bePublicText(t, docs, "../guides/OVERVIEW.md"),
