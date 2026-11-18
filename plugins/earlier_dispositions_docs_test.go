@@ -23,11 +23,10 @@ import (
 )
 
 const (
-	edSkill         = "plugins/spar/skills/spar/SKILL.md"
-	edRounds        = "plugins/spar/skills/spar/references/rounds.md"
-	edAgents        = "AGENTS.md"
-	edCumulative    = "receives the earlier code rounds' findings with their last dispositions"
-	edOldCumulative = "does not take earlier findings"
+	edSkill      = "plugins/spar/skills/spar/SKILL.md"
+	edRounds     = "plugins/spar/skills/spar/references/rounds.md"
+	edAgents     = "AGENTS.md"
+	edCumulative = "receives the earlier code rounds' findings with their last dispositions"
 	// edRepeatedPremises is the one rule on repeated premises, from its bold
 	// name to the end of its last sentence.
 	edRepeatedPremises = "**Repeated premises.** This rule applies to local rounds and to remote pull request reviews alike. " +
@@ -35,7 +34,22 @@ const (
 		"record it as a duplicate of the earlier finding, or reject it citing that disposition. A finding with a new failure scenario is a new finding. " +
 		"When the same premise comes back that way twice, ask the user which reading of the criterion is intended, and wait for the answer."
 	edPremisesName = "**Repeated premises.**"
+	// edTriageSentence follows the rule in the Spar skill: how spar triage
+	// records a finding on a premise an earlier round settled.
+	edTriageSentence = "In `spar triage`, `duplicate --of` names a finding of the same round; " +
+		"for a finding of an earlier round, record `reject --evidence` citing that disposition."
+	// edFindingsHeading opens the AGENTS.md section that holds the rule.
+	edFindingsHeading = "### Review findings"
 )
+
+// edOldCumulative are the old phrases that say a candidate round takes no
+// earlier findings, or that only fixes and plan-delta packets show them.
+var edOldCumulative = []string{
+	"does not take earlier findings",
+	"In fixes and plan-delta packets, an earlier finding's line ends",
+	"The packet of a fixes or plan-delta round shows the earlier rounds' findings",
+	"fixes·plan-delta 라운드의 패킷은 앞선 라운드의 지적을 보이고",
+}
 
 // edOldPremiseRules are the phrases of the two rules the one rule replaces.
 var edOldPremiseRules = []string{"two rounds in a row", "more than three remote review rounds"}
@@ -112,13 +126,18 @@ func edReport(t *testing.T, id string, problems []string) {
 // AC-2: the Spar skill, its rounds reference and the review-round and Spar
 // input contracts say that a candidate round (the cumulative round included)
 // receives the earlier code rounds' findings with their last dispositions,
-// and no representative document still says that it does not.
+// the review-round contract names the candidate round after an earlier code
+// round among the rounds that list earlier findings, and no representative
+// document still says that a candidate round does not, or that only fixes
+// and plan-delta packets show them.
 func TestSparEarlierDispositionsAC2_CumulativeTakesDispositions(t *testing.T) {
 	required := []struct{ path, token string }{
 		{edSkill, edCumulative},
 		{edRounds, edCumulative},
 		{"contracts/review-round.en.md", "for candidate and fixes rounds"},
 		{"contracts/review-round.md", "candidate와 fixes에서는"},
+		{"contracts/review-round.en.md", "is not a candidate round after an earlier code round"},
+		{"contracts/review-round.md", "앞 code 라운드 뒤의 candidate 라운드도 아니면"},
 		{"contracts/spar-input.en.md", "In a candidate, fixes or plan-delta round"},
 		{"contracts/spar-input.md", "candidate·fixes·plan-delta 라운드의"},
 	}
@@ -134,16 +153,58 @@ func TestSparEarlierDispositionsAC2_CumulativeTakesDispositions(t *testing.T) {
 		}
 	}
 	for _, p := range paths {
-		if strings.Contains(representative[p], edOldCumulative) {
-			problems = append(problems, fmt.Sprintf("%s still says %q", p, edOldCumulative))
+		for _, old := range edOldCumulative {
+			if strings.Contains(representative[p], old) {
+				problems = append(problems, fmt.Sprintf("%s still says %q", p, old))
+			}
 		}
 	}
 	edReport(t, "cumulative-without-dispositions", problems)
 }
 
+// edSection is the byte range of the section that heading opens: from its
+// line to the next ATX heading of level three or higher (#, ## or ###)
+// outside a ``` or ~~~ fence, or the end of text. found is false when no line
+// outside a fence is heading; several is true when more than one is.
+func edSection(text, heading string) (start, end int, found, several bool) {
+	fenced := false
+	offset := 0
+	for _, line := range strings.SplitAfter(text, "\n") {
+		at := offset
+		offset += len(line)
+		body := strings.TrimRight(line, "\r\n")
+		trimmed := strings.TrimLeft(body, " ")
+		if len(body)-len(trimmed) > 3 {
+			continue
+		}
+		if strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
+			fenced = !fenced
+			continue
+		}
+		if fenced {
+			continue
+		}
+		level := len(trimmed) - len(strings.TrimLeft(trimmed, "#"))
+		isHeading := level >= 1 && level <= 6 && (len(trimmed) == level || trimmed[level] == ' ')
+		switch {
+		case strings.TrimRight(trimmed, " ") == heading:
+			if found {
+				several = true
+				continue
+			}
+			start, end, found = at, len(text), true
+		case found && end == len(text) && isHeading && level <= 3:
+			end = at
+		}
+	}
+	return start, end, found, several
+}
+
 // AC-5: the Spar skill and AGENTS.md give the one rule on repeated premises
-// byte for byte, wherever its bold name appears, and no representative
-// document keeps the phrases of the two rules it replaces.
+// byte for byte, wherever its bold name appears; AGENTS.md has its bold name
+// once, inside the Review findings section; the Spar skill adds the one
+// sentence on spar triage; and no representative document keeps the phrases
+// of the two rules it replaces.
 func TestSparEarlierDispositionsAC5_OneRepeatedPremiseRule(t *testing.T) {
 	texts := map[string]string{edSkill: edRead(t, edSkill), edAgents: edRead(t, edAgents)}
 	paths, representative := edRepresentative(t)
@@ -167,6 +228,25 @@ func TestSparEarlierDispositionsAC5_OneRepeatedPremiseRule(t *testing.T) {
 				problems = append(problems, fmt.Sprintf("%s's rule differs from the one rule: %q", p, line))
 			}
 			rest = rest[len(edPremisesName):]
+		}
+	}
+	if !strings.Contains(texts[edSkill], edTriageSentence) {
+		problems = append(problems, fmt.Sprintf("%s does not have %q", edSkill, edTriageSentence))
+	}
+	if agents := texts[edAgents]; strings.Contains(agents, edPremisesName) {
+		if n := strings.Count(agents, edPremisesName); n != 1 {
+			problems = append(problems, fmt.Sprintf("%s has %s %d times, want once", edAgents, edPremisesName, n))
+		}
+		start, end, found, several := edSection(agents, edFindingsHeading)
+		switch {
+		case !found:
+			problems = append(problems, fmt.Sprintf("%s has no %q heading for the rule to stand under", edAgents, edFindingsHeading))
+		case several:
+			problems = append(problems, fmt.Sprintf("%s has more than one %q heading", edAgents, edFindingsHeading))
+		default:
+			if i := strings.Index(agents, edPremisesName); i < start || i >= end {
+				problems = append(problems, fmt.Sprintf("%s's first %s is not inside its %q section", edAgents, edPremisesName, edFindingsHeading))
+			}
 		}
 	}
 	for _, p := range paths {
