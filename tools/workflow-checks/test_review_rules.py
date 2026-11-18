@@ -81,7 +81,7 @@ class Observed(unittest.TestCase):
 class CheckBoundaries(Observed):
     def test_boundaries_are_recorded_in_review_before_findings(self):
         absent = missing(section(agents(), RULES_HEADING), [
-            ("for each check a goal adds or changes", "observation boundary", "failure kinds", "review.md", "before the plan round"),
+            ("for open-ended checks", "observation boundary", "failure kinds", "review.md", "before review"),
             ("grounds for classifying a finding", "only when", "recorded before that finding"),
         ])
         self.require(not absent, "boundary-record-rule-missing", f"AGENTS.md lacks: {absent}")
@@ -105,9 +105,9 @@ class CheckBoundaries(Observed):
 
     def test_input_failures_have_declared_result_meanings(self):
         absent = missing(section(agents(), RULES_HEADING), [
-            ("for each producer of a change condition that requires a baseline", "before the plan round",
+            ("baseline-requiring change condition's separate producer", "before the plan round",
              "violation", "error", "inconclusive", "missing target file", "corrupt input",
-             "a tool that cannot start", "termination by a signal"),
+             "failed tool start", "signal termination"),
             ("every other check", "only has to keep an input failure from counting as a pass"),
             ("whether a condition requires a baseline", "does not depend on the rule version",
              "earlier rule", "every change condition requires a baseline"),
