@@ -34,6 +34,10 @@ const (
 		"record it as a duplicate of the earlier finding, or reject it citing that disposition. A finding with a new failure scenario is a new finding. " +
 		"When the same premise comes back that way twice, ask the user which reading of the criterion is intended, and wait for the answer."
 	edPremisesName = "**Repeated premises.**"
+	// edPremisesOnce is a phrase of the one rule's last sentence that no
+	// other text uses: it stands once in each file that gives the rule, so a
+	// second copy of the rule, with or without its bold name, is not one rule.
+	edPremisesOnce = "When the same premise comes back that way twice, ask the user which reading of the criterion is intended"
 	// edTriageSentence follows the rule in the Spar skill: how spar triage
 	// records a finding on a premise an earlier round settled.
 	edTriageSentence = "In `spar triage`, `duplicate --of` names a finding of the same round; " +
@@ -201,8 +205,9 @@ func edSection(text, heading string) (start, end int, found, several bool) {
 }
 
 // AC-5: the Spar skill and AGENTS.md give the one rule on repeated premises
-// byte for byte, wherever its bold name appears; AGENTS.md has its bold name
-// once, inside the Review findings section; the Spar skill adds the one
+// byte for byte, wherever its bold name appears, and each has the rule's
+// phrase edPremisesOnce exactly once; AGENTS.md has its bold name once,
+// inside the Review findings section; the Spar skill adds the one
 // sentence on spar triage; and no representative document keeps the phrases
 // of the two rules it replaces.
 func TestSparEarlierDispositionsAC5_OneRepeatedPremiseRule(t *testing.T) {
@@ -228,6 +233,9 @@ func TestSparEarlierDispositionsAC5_OneRepeatedPremiseRule(t *testing.T) {
 				problems = append(problems, fmt.Sprintf("%s's rule differs from the one rule: %q", p, line))
 			}
 			rest = rest[len(edPremisesName):]
+		}
+		if n := strings.Count(text, edPremisesOnce); n != 1 {
+			problems = append(problems, fmt.Sprintf("%s has %q %d times, want once: the rule stands once", p, edPremisesOnce, n))
 		}
 	}
 	if !strings.Contains(texts[edSkill], edTriageSentence) {

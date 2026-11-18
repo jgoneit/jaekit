@@ -185,12 +185,103 @@ func (w *rptWorld) edRerun(v *edViolations) {
 	}
 }
 
+// edPreChangeRerun checks, in a world of its own, the rerun of a candidate
+// round recorded the way Spar recorded one before the change: its round.json
+// has "prior": null and its packet no earlier findings, although code rounds
+// were recorded before it. Two code rounds with a finding each come before
+// that original and one after it. A run of the original's stage, base and
+// head with only the reviewer that did not complete it must get the
+// original's packet digest, none of those rounds' findings, and be recorded
+// as an uncounted rerun of it. The world's project configuration raises the
+// code cap, so that a rerun counted as a new round is still recorded, never
+// refused.
+func edPreChangeRerun(t *testing.T) {
+	v := &edViolations{t: t, id: "pre-change-rerun-gets-earlier-findings"}
+	w := newRptWorld(t, true)
+	c := w.commits
+	w.write(filepath.Join(w.repo, ".jaekit", "spar.toml"), "[caps]\ncode = 9\n")
+	late := pdCommand("late", w.script("late", "if [ \"$1\" = --version ]; then exit 0; fi\nexit 3\n"))
+	const earlierClaim, fixesClaim, laterClaim = "pre-change earlier claim", "pre-change fixes claim", "pre-change later claim"
+
+	// The packet the original got: a candidate round from c0 to c2 in a
+	// series without earlier rounds, as a candidate round was given none.
+	w.useConfig(late)
+	alone := filepath.Join(w.repo, "reviews", "ed-pre-alone", "01-candidate")
+	w.run(w.round("candidate", c[0], c[2], alone)...)
+	packet := w.read(filepath.Join(alone, "packet.md"))
+	digest, _ := w.rawRound(alone)["packet_sha256"].(string)
+	if section := pdSectionOf(packet, edEarlierHeading); digest == "" || section != "" {
+		t.Fatalf("setup: a candidate round without earlier rounds has the digest %q and the earlier findings %q",
+			digest, edLinesWith(section, "- "))
+	}
+
+	series := filepath.Join(w.repo, "reviews", "ed-pre")
+	// 01, 02: a candidate round from c0 to c1 and a fixes round from c1 to
+	// c2, with one finding each.
+	w.useConfig(w.printer(w.answer("ed-pre-candidate", c[1], rptFinding("F1", "defect", "AC-1", earlierClaim))))
+	w.run(w.round("candidate", c[0], c[1], filepath.Join(series, "01-candidate"))...)
+	w.useConfig(w.printer(w.answer("ed-pre-fixes", c[2], rptFinding("F1", "defect", "AC-1", fixesClaim))))
+	w.run(w.round("fixes", c[1], c[2], filepath.Join(series, "02-fixes"))...)
+	// 03: the original from c0 to c2, which late does not complete. Its
+	// round.json and packet are then written as Spar wrote them before the
+	// change: prior null, and the packet without earlier findings.
+	w.useConfig(late)
+	original := filepath.Join(series, "03-candidate")
+	w.run(w.round("candidate", c[0], c[2], original)...)
+	if s := w.edReviewerStatus(original, "late"); s == "" || s == StatusCompleted {
+		t.Fatalf("setup: reviewer late of 03-candidate is %q, want a status other than completed", s)
+	}
+	recorded := w.rawRound(original)
+	recorded["prior"], recorded["packet_sha256"] = nil, digest
+	data, err := json.MarshalIndent(recorded, "", "  ")
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	w.write(filepath.Join(original, "round.json"), string(data)+"\n")
+	w.write(filepath.Join(original, "packet.md"), packet)
+	// 04: a later code round, a candidate round from c1 to c2 with one
+	// finding.
+	w.useConfig(w.printer(w.answer("ed-pre-later", c[2], rptFinding("F1", "defect", "AC-1", laterClaim))))
+	w.run(w.round("candidate", c[1], c[2], filepath.Join(series, "04-candidate"))...)
+	for _, name := range []string{"01-candidate", "02-fixes", "04-candidate"} {
+		if n := len(w.edFindings(filepath.Join(series, name))); n != 1 {
+			t.Fatalf("setup: %s recorded %d findings, want 1", name, n)
+		}
+	}
+	// 05: the rerun of the original's stage, base and head.
+	w.useConfig(late)
+	again := filepath.Join(series, "05-candidate")
+	w.run(append(w.round("candidate", c[0], c[2], again), "--reviewers", "late")...)
+
+	r := w.rawRound(again)
+	if got, _ := r["packet_sha256"].(string); got != digest {
+		v.add("the run of 03-candidate's stage, base and head after 04-candidate gets the packet digest %q, not 03-candidate's %q", got, digest)
+	}
+	rerun := w.read(filepath.Join(again, "packet.md"))
+	if section := pdSectionOf(rerun, edEarlierHeading); section != "" {
+		v.add("the run of 03-candidate's stage, base and head lists earlier findings that 03-candidate did not get: %q",
+			edLinesWith(section, "- "))
+	}
+	for _, claim := range []string{earlierClaim, fixesClaim, laterClaim} {
+		if strings.Contains(rerun, claim) {
+			v.add("the run of 03-candidate's stage, base and head holds %q of a code round of the series", claim)
+		}
+	}
+	if r["counted"] != false || !reflect.DeepEqual(r["rerun_of"], []any{"03-candidate"}) {
+		v.add("the run of 03-candidate's stage, base and head is recorded with counted %v and rerun_of %v, want false and [03-candidate]",
+			r["counted"], r["rerun_of"])
+	}
+	v.report()
+}
+
 // AC-1: a candidate round's packet lists the findings of the series' earlier
 // code rounds, each with its last recorded disposition, in the form fixes
 // rounds give them, and leaves out plan rounds, dry runs and rounds of its
 // own stage, base and head; round.json names the rounds it read. A later run
 // of a recorded round's stage, base and head gets only the code rounds
-// recorded before that round, so it reruns the same packet.
+// recorded before that round, so it reruns the same packet; a rerun of a
+// round recorded before the change, with prior null and no earlier findings,
+// gets none (its own marker, from edPreChangeRerun).
 func TestSparEarlierDispositionsAC1_CandidateGetsEarlierFindings(t *testing.T) {
 	v := &edViolations{t: t, id: "candidate-without-earlier-findings"}
 	w := newRptWorld(t, true)
@@ -283,6 +374,7 @@ func TestSparEarlierDispositionsAC1_CandidateGetsEarlierFindings(t *testing.T) {
 	}
 	w.edRerun(v)
 	v.report()
+	edPreChangeRerun(t)
 }
 
 // edDry runs a dry candidate round of the world's base and head into series
