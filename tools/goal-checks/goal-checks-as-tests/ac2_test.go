@@ -11,21 +11,25 @@ import (
 // ac2ProducersLead is the one bullet that may name the next change.
 const ac2ProducersLead = "Separate producers"
 
-// ac2Preamble returns the section's text before its first bullet. The bullets
-// of sectionBullets run without gaps from the first lead line to the end of
-// the section, so the preamble is what their lengths leave at the start.
-func ac2Preamble(section string, bullets []bullet) string {
-	n := len(section)
-	for _, b := range bullets {
-		n -= len(b.text)
+// ac2OutsideBullets returns the section's text that is in no bullet: the text
+// before the first bullet, between bullets and after the last one. The pieces
+// are joined at line starts, so a token without a newline never spans two.
+func ac2OutsideBullets(section string, bullets []bullet) string {
+	var b strings.Builder
+	prev := 0
+	for _, bl := range bullets {
+		b.WriteString(section[prev:bl.off])
+		prev = bl.off + len(bl.text)
 	}
-	return section[:n]
+	b.WriteString(section[prev:])
+	return b.String()
 }
 
 // TestGoalChecksAC2_SamePullRequest observes that the Goal checks bullet
 // retires goal checks in the same pull request, that no separate Goal check
 // lifetime bullet remains, and that "next change" appears in the section only
-// inside the Separate producers bullet.
+// inside the Separate producers bullet's own text: not in the preamble, another
+// bullet or text after the list.
 func TestGoalChecksAC2_SamePullRequest(t *testing.T) {
 	section := checksSection(t, readAgents(t))
 	bullets := sectionBullets(section)
@@ -43,8 +47,8 @@ func TestGoalChecksAC2_SamePullRequest(t *testing.T) {
 	if hasLead(bullets, "Goal check lifetime") {
 		problems = append(problems, `the section still has a bullet with the lead "Goal check lifetime"`)
 	}
-	if strings.Contains(ac2Preamble(section, bullets), "next change") {
-		problems = append(problems, `the section contains "next change" before its first bullet`)
+	if strings.Contains(ac2OutsideBullets(section, bullets), "next change") {
+		problems = append(problems, `the section contains "next change" outside its bullets`)
 	}
 	for _, b := range bullets {
 		if b.lead != ac2ProducersLead && strings.Contains(b.text, "next change") {
