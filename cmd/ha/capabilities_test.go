@@ -18,9 +18,12 @@ import (
 	"github.com/jgoneit/jaekit/internal/goaldocs"
 )
 
-// compatibilityCommand runs ha in dir with env.
-func compatibilityCommand(dir string, env []string, args ...string) (int, string, string) {
-	return haIn(dir, env, args...)
+// compatibilityCommand runs ha as its own process in dir with env as its
+// whole environment: a file it writes relative to its working directory
+// lands in dir, and a program it looks up goes through env's PATH.
+func compatibilityCommand(t *testing.T, dir string, env []string, args ...string) (int, string, string) {
+	t.Helper()
+	return haProcess(t, dir, env, args...)
 }
 
 func TestCompatibilityAC7_GoallessReadOnlyQuery(t *testing.T) {
@@ -28,7 +31,7 @@ func TestCompatibilityAC7_GoallessReadOnlyQuery(t *testing.T) {
 	dir := t.TempDir()
 	// No git, shell, model or verification process is available.
 	env := envIn(dir, os.Environ(), "PATH="+dir)
-	code, out, stderr := compatibilityCommand(dir, env, "capabilities", "--format", "json")
+	code, out, stderr := compatibilityCommand(t, dir, env, "capabilities", "--format", "json")
 	if code != 0 {
 		t.Fatalf("[requirement] goal-free capability query: exit %d: %s", code, stderr)
 	}
@@ -36,7 +39,7 @@ func TestCompatibilityAC7_GoallessReadOnlyQuery(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &report); err != nil {
 		t.Fatalf("[requirement] capabilities must be JSON: %v", err)
 	}
-	_, versionOut, _ := compatibilityCommand(dir, env, "--version")
+	_, versionOut, _ := compatibilityCommand(t, dir, env, "--version")
 	if report["schema"] != "ha-capabilities/v1" || report["ha_version"] != strings.TrimSpace(strings.TrimPrefix(versionOut, "ha ")) || report["default_rules"] != "run-rules/3" {
 		t.Fatalf("[requirement] wrong capability identity/default: %v", report)
 	}
@@ -60,7 +63,7 @@ func TestCompatibilityAC7_GoallessReadOnlyQuery(t *testing.T) {
 			t.Errorf("[requirement] %s: got %v, want %v", key, report[key], want)
 		}
 	}
-	code, again, stderr := compatibilityCommand(dir, env, "capabilities")
+	code, again, stderr := compatibilityCommand(t, dir, env, "capabilities")
 	if code != 0 || again != out || stderr != "" {
 		t.Errorf("[requirement] capability query is not deterministic: %d %s", code, stderr)
 	}
@@ -72,7 +75,7 @@ func TestCompatibilityAC7_GoallessReadOnlyQuery(t *testing.T) {
 		t.Fatalf("[requirement] query wrote files without a goal: %v", files)
 	}
 	for _, args := range [][]string{{"capabilities", "goal"}, {"capabilities", "--format", "md"}, {"capabilities", "--format", ""}, {"capabilities", "--unknown"}} {
-		code, out, _ := compatibilityCommand(dir, env, args...)
+		code, out, _ := compatibilityCommand(t, dir, env, args...)
 		if code != 64 || out != "" {
 			t.Errorf("[requirement] invalid query accepted: %v: %d %s", args, code, out)
 		}
