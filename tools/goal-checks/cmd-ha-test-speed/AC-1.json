@@ -4,7 +4,8 @@
   "producer_version": "1",
   "producer_paths": [
     "tools/goal-checks/cmd-ha-test-speed/measure.py",
-    "tools/goal-checks/cmd-ha-test-speed/base_timing.json"
+    "tools/goal-checks/cmd-ha-test-speed/base_timing.json",
+    "tools/goal-checks/cmd-ha-test-speed/renames.json"
   ],
   "targets": [
     {
