@@ -71,6 +71,7 @@ var rgRules4Features = []string{"test-authority/v1", "reported-wait/v1", "preapp
 // AC-13: Seal declares run-rules/5 and the gate support, starts with them
 // and records the gate before `ha done`; this Core accepts that start.
 func TestHaReviewGateAC13_SealStartsUnderTheNewRules(t *testing.T) {
+	t.Parallel()
 	const v = "seal-start-rules-not-new"
 	var decl struct {
 		Rules    []string            `json:"rules"`
@@ -146,6 +147,7 @@ func TestHaReviewGateAC13_SealStartsUnderTheNewRules(t *testing.T) {
 // AC-13: Seal's compatibility helper starts new goals under run-rules/5 and
 // refuses a Core that lacks it or the gate support.
 func TestHaReviewGateAC13_SealCheckerNeedsTheNewRules(t *testing.T) {
+	t.Parallel()
 	const v = "seal-checker-accepts-old-core"
 	python, err := exec.LookPath("python3")
 	if err != nil {
@@ -237,6 +239,7 @@ func TestHaReviewGateAC13_SealCheckerNeedsTheNewRules(t *testing.T) {
 // AC-14: the run record contract states the new rules, the gate record and
 // the reasons.
 func TestHaReviewGateAC14_RunRecordContractStatesTheGate(t *testing.T) {
+	t.Parallel()
 	const v = "run-record-gate-missing"
 	text := rgTreeFile(t, "contracts/run-record.md")
 	rules5 := rgSection(text, "### 4.8 run-rules/5")
@@ -261,6 +264,7 @@ func TestHaReviewGateAC14_RunRecordContractStatesTheGate(t *testing.T) {
 // AC-14: the Core capability contract names the rule, the format and the
 // feature, and the tier statements say which rules they apply to.
 func TestHaReviewGateAC14_CapabilitiesContractStatesTheGate(t *testing.T) {
+	t.Parallel()
 	const v = "capabilities-gate-missing"
 	text := rgTreeFile(t, "contracts/core-capabilities.md")
 	section := rgSection(text, "## 9. run-rules/5")
@@ -295,6 +299,7 @@ func TestHaReviewGateAC14_CapabilitiesContractStatesTheGate(t *testing.T) {
 // AC-14: both usage guides explain the new rules, the gate record, the
 // reasons and how to finish without review.
 func TestHaReviewGateAC14_GuidesStateTheGate(t *testing.T) {
+	t.Parallel()
 	const v = "guide-gate-missing"
 	for path, heading := range map[string]string{"guides/USAGE.md": "## 검토 gate (run-rules/5)", "guides/USAGE.en.md": "## Review gate (run-rules/5)"} {
 		section := rgSection(rgTreeFile(t, path), heading)
@@ -310,6 +315,7 @@ func TestHaReviewGateAC14_GuidesStateTheGate(t *testing.T) {
 // tier change, and accepts a separate review in its place only for goals
 // started under the earlier rules.
 func TestHaReviewGateAC14_SealSkillStatesNoGateNoCompletion(t *testing.T) {
+	t.Parallel()
 	const v = "seal-without-spar-sentence-missing"
 	skill := rgTreeFile(t, "plugins/seal/skills/seal/SKILL.md")
 	const statement = "From `run-rules/5`, a `standard` or `strict` goal completes only with a recorded Spar gate; without one, completion stays pending, and finishing without review needs the user's goal-document change that lowers the tier to `light`."

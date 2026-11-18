@@ -159,7 +159,7 @@ func (c *cli) estimate(in []string) int {
 			return c.fail(exitUsage, "--rules %s differs from the goal's recorded rules %s", requested, started.Rules)
 		}
 		w.goalRules = requested
-		if w.bundle, err = bundle.LoadForRules(w.repo.Root, w.goal, requested); err != nil {
+		if w.bundle, err = bundle.LoadForRulesIn(w.env, w.repo.Root, w.goal, requested); err != nil {
 			return c.fail(exitInternal, "%v", err)
 		}
 	}

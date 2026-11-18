@@ -52,6 +52,7 @@ func (f *rgFixture) rgRewrite(lines [][]byte) {
 // after that gate. Its completion must not stand, so the blocked gate is
 // judged.
 func TestHaReviewGateRecord_DoneComputedBeforeAGateDoesNotStand(t *testing.T) {
+	t.Parallel()
 	f := newRGFixture(t, "unused", "standard")
 	f.recordGate("unused", "a covering gate", f.chained())
 	f.expectDone("unused", "a covering gate")
@@ -72,6 +73,7 @@ func TestHaReviewGateRecord_DoneComputedBeforeAGateDoesNotStand(t *testing.T) {
 // A stored review summary with a field removed by hand is invalid record
 // data, not a summary with zero open findings.
 func TestHaReviewGateRecord_StoredSummaryMissingAFieldIsInvalid(t *testing.T) {
+	t.Parallel()
 	f := newRGFixture(t, "unused", "standard")
 	open := f.chained()
 	open.defect = 1

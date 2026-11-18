@@ -22,6 +22,7 @@ import (
 	"github.com/jgoneit/jaekit/internal/evidence"
 	"github.com/jgoneit/jaekit/internal/goaldocs"
 	"github.com/jgoneit/jaekit/internal/markdown"
+	"github.com/jgoneit/jaekit/internal/run"
 )
 
 // Criterion kinds.
@@ -247,6 +248,7 @@ type loader struct {
 	root string
 	g    *goaldocs.Goal
 	b    *Bundle
+	env  run.Environment // git's environment for evidence inputs
 }
 
 func (l *loader) problem(code, file string, line int, format string, a ...any) {
@@ -283,8 +285,16 @@ func Load(root string, g *goaldocs.Goal) (*Bundle, error) {
 
 // LoadForRules preserves legacy free-form sections by reading structured result
 // declarations only for goals whose recorded rules opt into that contract.
+// The git commands that read evidence inputs run in the process's own
+// environment.
 func LoadForRules(root string, g *goaldocs.Goal, rules string) (*Bundle, error) {
-	l := &loader{root: root, g: g, b: &Bundle{Dir: g.Dir, Progress: map[string]string{}}}
+	return LoadForRulesIn(run.Environment{}, root, g, rules)
+}
+
+// LoadForRulesIn is LoadForRules with the git commands that read evidence
+// inputs run in the given environment.
+func LoadForRulesIn(env run.Environment, root string, g *goaldocs.Goal, rules string) (*Bundle, error) {
+	l := &loader{root: root, g: g, b: &Bundle{Dir: g.Dir, Progress: map[string]string{}}, env: env}
 	planPath := g.Dir + "/PLAN.md"
 	src, ok, err := l.read(planPath)
 	if err != nil {

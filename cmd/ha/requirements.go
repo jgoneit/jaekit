@@ -137,14 +137,15 @@ func (r *coreRequirements) missing(have capabilityReport) []string {
 // checkSkillRequirements refuses the start when the skill's declaration is
 // unusable or names support this executable lacks; required is --check-skill,
 // which also refuses a skill without a declaration. It returns -1 to go on.
+// skillMD is the --skill argument as the user wrote it.
 func (c *cli) checkSkillRequirements(skillMD string, required bool) int {
-	req, path, err := readCoreRequirements(skillMD)
+	req, path, err := readCoreRequirements(c.at(skillMD))
 	if err != nil {
-		return c.fail(exitRefused, "skill requirements %s: %v; nothing recorded", path, err)
+		return c.fail(exitRefused, "%s", c.spelled(skillMD, fmt.Sprintf("skill requirements %s: %v; nothing recorded", path, err)))
 	}
 	if req == nil {
 		if required {
-			return c.fail(exitRefused, "skill requirements %s: absent; --check-skill needs the skill's %s declaration; nothing recorded", path, coreRequirementsFile)
+			return c.fail(exitRefused, "%s", c.spelled(skillMD, fmt.Sprintf("skill requirements %s: absent; --check-skill needs the skill's %s declaration; nothing recorded", path, coreRequirementsFile)))
 		}
 		return -1
 	}

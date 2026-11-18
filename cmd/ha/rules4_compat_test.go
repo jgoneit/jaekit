@@ -14,6 +14,7 @@ import (
 // where a run-rules/4 goal uses them, and never for a run-rules/3 goal
 // (core-capabilities.md §6).
 func TestCompatibilityRunRules4Goals(t *testing.T) {
+	t.Parallel()
 	helper, err := filepath.Abs("../../plugins/seal/skills/seal/scripts/check_core.py")
 	if err != nil {
 		t.Fatal(err)
@@ -91,6 +92,7 @@ func TestCompatibilityRunRules4Goals(t *testing.T) {
 // The built-in help names every run-rules/4 form the parser accepts, so the
 // only way to start a /4 goal and its notes can be found from ha --help.
 func TestUsageNamesTheRunRules4Forms(t *testing.T) {
+	t.Parallel()
 	for _, form := range []string{"--rules run-rules/4", "--test-authority", "--preapprove <total>"} {
 		if !strings.Contains(usage, form) {
 			t.Errorf("ha --help does not show %q", form)

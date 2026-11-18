@@ -24,6 +24,7 @@ func timingLine(timing string) record.Line {
 // values each hide only the value concerned (run-record.md §1.2). An absent
 // field or key is not recorded; a timing that is null is not an object.
 func TestTimingViewReadsEachValueOnItsOwn(t *testing.T) {
+	t.Parallel()
 	cases := map[string]struct {
 		timing string
 		want   map[string]string
@@ -46,6 +47,7 @@ func TestTimingViewReadsEachValueOnItsOwn(t *testing.T) {
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			r := timingOf(timingLine(c.timing))
 			if len(r.Unavailable) != len(c.want) {
 				t.Fatalf("unavailable %v, want %v", r.Unavailable, c.want)
@@ -63,6 +65,7 @@ func TestTimingViewReadsEachValueOnItsOwn(t *testing.T) {
 }
 
 func TestTimingViewShowsLimitUseAndNoFreeFormValues(t *testing.T) {
+	t.Parallel()
 	r := timingOf(timingLine(`{"limit_ms":900000,"limit_elapsed_ms":612345,"limit_reached":false,"cpu":{"status":"measured","user_ms":1200,"system_ms":300,"scope":"job-process-tree","source":"job-object-accounting"}}`))
 	if r.LimitUsePermille == nil || *r.LimitUsePermille != 680 || len(r.Unavailable) != 0 {
 		t.Fatalf("limit use: %+v", r)
@@ -84,6 +87,7 @@ func TestTimingViewShowsLimitUseAndNoFreeFormValues(t *testing.T) {
 // A damaged CPU time hides only that time; the rest of the CPU value stays
 // visible (run-record.md §1.2).
 func TestTimingViewHidesOnlyTheDamagedCPUTime(t *testing.T) {
+	t.Parallel()
 	for field, other := range map[string]string{"user_ms": "system_ms", "system_ms": "user_ms"} {
 		timing := `{"limit_ms":1000,"limit_elapsed_ms":500,"limit_reached":false,"cpu":{"status":"measured","user_ms":200,"system_ms":300,"scope":"process-and-waited-descendants","source":"wait4-rusage"}}`
 		timing = strings.Replace(timing, `"`+field+`":`, `"`+field+`":-`, 1)
@@ -110,6 +114,7 @@ func TestTimingViewHidesOnlyTheDamagedCPUTime(t *testing.T) {
 // hides only itself, and the JSON keeps the damaged key as null
 // (run-record.md §1.2).
 func TestTimingViewReadsEachCPUValueOnItsOwn(t *testing.T) {
+	t.Parallel()
 	intact := `{"status":"measured","user_ms":200,"system_ms":300,"scope":"process-and-waited-descendants","source":"wait4-rusage"}`
 	cases := map[string]struct {
 		cpu, json string
@@ -138,6 +143,7 @@ func TestTimingViewReadsEachCPUValueOnItsOwn(t *testing.T) {
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			r := timingOf(timingLine(`{"limit_ms":1000,"limit_elapsed_ms":500,"limit_reached":false,"cpu":` + c.cpu + `}`))
 			if len(r.Unavailable) != len(c.want) {
 				t.Fatalf("unavailable %v, want %v", r.Unavailable, c.want)
@@ -167,6 +173,7 @@ func TestTimingViewReadsEachCPUValueOnItsOwn(t *testing.T) {
 // Proximity is the exact quotient, and invalid only when it does not fit
 // (run-record.md §1.2).
 func TestTimingViewLimitUseDoesNotOverflow(t *testing.T) {
+	t.Parallel()
 	r := timingOf(timingLine(`{"limit_ms":9223372036854775807,"limit_elapsed_ms":9223372036854775806,"limit_reached":false,"cpu":{"status":"unavailable"}}`))
 	if r.LimitUsePermille == nil || *r.LimitUsePermille != 999 {
 		t.Fatalf("near-maximum values: use %v, unavailable %v", r.LimitUsePermille, r.Unavailable)
@@ -215,6 +222,7 @@ func TestTimingViewReportsAFailedWrite(t *testing.T) {
 // The Seal consumer reads formats.timing as optional, and a present value with
 // the wrong type is uninterpretable like any other format (core-capabilities.md).
 func TestCapabilityConsumerChecksTheOptionalTimingFormat(t *testing.T) {
+	t.Parallel()
 	helper, err := filepath.Abs("../../plugins/seal/skills/seal/scripts/check_core.py")
 	if err != nil {
 		t.Fatal(err)
@@ -236,6 +244,7 @@ func TestCapabilityConsumerChecksTheOptionalTimingFormat(t *testing.T) {
 		{"duplicate name", []string{"timing/v1", "timing/v1"}, 2, "invalid_capabilities"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			response := compatibilityMutate(t, func(v map[string]any) {
 				// A start also needs what Seal declares in core-requirements.json.
 				v["supported_rules"] = append(v["supported_rules"].([]any), "run-rules/5", "run-rules/6", "run-rules/7")
@@ -270,6 +279,7 @@ func TestCapabilityConsumerChecksTheOptionalTimingFormat(t *testing.T) {
 // The Markdown view shows the CPU keys the JSON view shows, with the same
 // values or the same invalid markers, whatever the status (run-record.md §1.2).
 func TestTimingMarkdownShowsEachKeptCPUValue(t *testing.T) {
+	t.Parallel()
 	for name, c := range map[string]struct {
 		cpu  string
 		want []string
@@ -283,6 +293,7 @@ func TestTimingMarkdownShowsEachKeptCPUValue(t *testing.T) {
 		"intact failed":      {`{"status":"failed"}`, []string{"| measurement failed |"}, []string{"measurement failed;"}},
 	} {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			r := timingOf(timingLine(`{"limit_ms":1000,"limit_elapsed_ms":500,"limit_reached":false,"cpu":` + c.cpu + `}`))
 			md := timingMarkdown(timingReport{Schema: timingSchema, Goal: "docs/specs/g", Runs: []timingRun{r}})
 			for _, s := range c.want {

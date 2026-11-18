@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"time"
 
 	"github.com/jgoneit/jaekit/internal/record"
@@ -57,7 +56,7 @@ func (c *cli) finding(in []string) int {
 	if input == "" || a.vals["format"] != "" {
 		return c.fail(exitUsage, "--input needs a file and writes a JSON receipt; --format is for queries")
 	}
-	f, err := os.Open(input)
+	f, err := c.open(input)
 	if err != nil {
 		return c.fail(exitUsage, "finding input: %v", err)
 	}

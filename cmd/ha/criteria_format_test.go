@@ -12,8 +12,10 @@ import (
 // Selecting a new document interpretation must not reuse evidence or a user's
 // confirmation of the old interpretation, even when all criterion IDs survive.
 func TestCriteriaFormatFreshness(t *testing.T) {
+	t.Parallel()
 	for _, rules := range []string{status.RulesV1, status.RulesV2} {
 		t.Run(rules, func(t *testing.T) {
+			t.Parallel()
 			s := unsupportedRulesFixture(t)
 			st := step{where: t.Name()}
 			edit := func(rel, before, after string) {

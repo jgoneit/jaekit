@@ -16,7 +16,6 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -28,29 +27,31 @@ import (
 	"github.com/jgoneit/jaekit/internal/status"
 )
 
-var scenarioRoot = "../../testdata/scenarios"
+// scenarioRoot is the absolute scenario folder, found from the package
+// directory the test process starts in; tests only read it.
+var scenarioRoot, scenarioRootErr = filepath.Abs("../../testdata/scenarios")
 
 const scenarioGoal = "docs/specs/greet"
 
 type scenario struct {
 	t        *testing.T
 	name     string
-	root     string // the repository's main checkout
-	dir      string // the working tree steps run in
-	path     string // PATH with the test runner
-	bare     string // PATH without it
-	config   string // XDG_CONFIG_HOME, so automatic budgets never read the user's own file
+	root     string   // the repository's main checkout
+	dir      string   // the working tree steps run in
+	path     string   // PATH with the test runner
+	bare     string   // PATH without it
+	config   string   // XDG_CONFIG_HOME, so automatic budgets never read the user's own file
+	env      []string // the environment of the steps' git and ha commands (PATH is path)
 	lastOut  string
 	lastCode int
 	allOut   strings.Builder
 }
 
 func TestScenarios(t *testing.T) {
-	abs, err := filepath.Abs(scenarioRoot)
-	if err != nil {
-		t.Fatal(err)
+	t.Parallel()
+	if scenarioRootErr != nil {
+		t.Fatal(scenarioRootErr)
 	}
-	scenarioRoot = abs
 	entries, err := os.ReadDir(scenarioRoot)
 	if err != nil {
 		t.Fatal(err)
@@ -62,7 +63,10 @@ func TestScenarios(t *testing.T) {
 		}
 		n++
 		name := e.Name()
-		t.Run(name, func(t *testing.T) { runScenario(t, name) })
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			runScenario(t, name)
+		})
 	}
 	if n == 0 {
 		t.Fatal("no scenarios found")
@@ -100,28 +104,19 @@ func runScenario(t *testing.T, name string) {
 	}
 	cfg := filepath.Join(t.TempDir(), "gitconfig")
 	os.WriteFile(cfg, nil, 0o644)
-	t.Setenv("GIT_CONFIG_GLOBAL", cfg)
-	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	for _, k := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
-		t.Setenv(k, "scenario")
-	}
-	for _, k := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
-		t.Setenv(k, "scenario@example.invalid")
-	}
 	bin := t.TempDir()
 	runner := filepath.Join(bin, "jaekit-test-runner")
 	if err := os.WriteFile(runner, []byte("#!/bin/sh\nexec sh \"$@\"\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	s.config = t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", s.config)
 	s.bare = os.Getenv("PATH")
 	s.path = bin + string(os.PathListSeparator) + s.bare
-	t.Setenv("PATH", s.path)
+	s.env = envWith(os.Environ(), append(gitFixtureEnv(cfg, "scenario", "scenario@example.invalid"),
+		"XDG_CONFIG_HOME="+s.config, "PATH="+s.path)...)
 	s.git("init", "-q", "-b", "main")
 	s.git("add", "-A")
 	s.git("commit", "-q", "-m", "base")
-	t.Chdir(s.dir)
 	steps := s.load(filepath.Join(scenarioRoot, name, "steps"), 0)
 	for _, st := range steps {
 		s.do(st)
@@ -217,8 +212,7 @@ func (s *scenario) fatalf(st step, format string, a ...any) {
 
 func (s *scenario) git(args ...string) string {
 	s.t.Helper()
-	cmd := exec.Command("git", args...)
-	cmd.Dir = s.dir
+	cmd := envCommand(s.dir, envIn(s.dir, s.env), "git", args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		s.t.Fatalf("git %v: %v\n%s", args, err, out)
@@ -226,17 +220,29 @@ func (s *scenario) git(args ...string) string {
 	return string(out)
 }
 
-func (s *scenario) ha(args ...string) {
-	var out, errb bytes.Buffer
-	s.lastCode = runMain(args, &out, &errb)
-	s.lastOut = out.String() + errb.String()
-	s.allOut.WriteString(out.String())
+// ha runs ha in the steps' working tree with their environment; haWith
+// runs it with another one (ha-without-runner).
+func (s *scenario) ha(args ...string) { s.haWith(s.env, args...) }
+
+func (s *scenario) haWith(env []string, args ...string) {
+	code, out, errb := haIn(s.dir, envIn(s.dir, env), args...)
+	s.lastCode = code
+	s.lastOut = out + errb
+	s.allOut.WriteString(out)
+}
+
+// run is runMain for the status views the expectations read.
+func (s *scenario) run(args []string, stdout, stderr *bytes.Buffer) int {
+	code, out, errb := haIn(s.dir, envIn(s.dir, s.env), args...)
+	stdout.WriteString(out)
+	stderr.WriteString(errb)
+	return code
 }
 
 func (s *scenario) report(st step) *status.Report {
 	s.t.Helper()
 	var out, errb bytes.Buffer
-	code := runMain([]string{"status", scenarioGoal, "--format", "json"}, &out, &errb)
+	code := s.run([]string{"status", scenarioGoal, "--format", "json"}, &out, &errb)
 	var rep status.Report
 	if err := json.Unmarshal(out.Bytes(), &rep); err != nil {
 		s.fatalf(st, "status json: %v (exit %d, stderr %s)", err, code, errb.String())
@@ -315,9 +321,7 @@ func (s *scenario) do(st step) {
 	case "ha":
 		s.ha(a[1:]...)
 	case "ha-without-runner":
-		os.Setenv("PATH", s.bare)
-		s.ha(a[1:]...)
-		os.Setenv("PATH", s.path)
+		s.haWith(envWith(s.env, "PATH="+s.bare), a[1:]...)
 	case "write", "append":
 		need(3)
 		p := s.file(a[1])
@@ -392,7 +396,6 @@ func (s *scenario) do(st step) {
 		wt := filepath.Join(s.t.TempDir(), a[1])
 		s.git("worktree", "add", "-q", "-b", a[1], wt)
 		s.dir = wt
-		s.t.Chdir(wt)
 	case "drop-record":
 		need(2)
 		n, _ := strconv.Atoi(a[1])
@@ -580,7 +583,7 @@ func (s *scenario) do(st step) {
 		need(2)
 		rec, _ := os.ReadFile(s.file(scenarioGoal + "/runs.jsonl"))
 		var md bytes.Buffer
-		runMain([]string{"status", scenarioGoal}, &md, &bytes.Buffer{})
+		s.run([]string{"status", scenarioGoal}, &md, &bytes.Buffer{})
 		for where, text := range map[string]string{"runs.jsonl": string(rec), "ha output": s.allOut.String(), "status md": md.String()} {
 			if strings.Contains(text, a[1]) {
 				s.fatalf(st, "%q found in %s", a[1], where)
@@ -591,8 +594,8 @@ func (s *scenario) do(st step) {
 		// records, in any ha output so far, or in status as Markdown or JSON.
 		rec, _ := os.ReadFile(s.file(scenarioGoal + "/runs.jsonl"))
 		var md, js bytes.Buffer
-		runMain([]string{"status", scenarioGoal}, &md, &bytes.Buffer{})
-		runMain([]string{"status", scenarioGoal, "--format", "json"}, &js, &bytes.Buffer{})
+		s.run([]string{"status", scenarioGoal}, &md, &bytes.Buffer{})
+		s.run([]string{"status", scenarioGoal, "--format", "json"}, &js, &bytes.Buffer{})
 		var dirs []string
 		for _, d := range []string{s.root, s.dir} {
 			dirs = append(dirs, d)
@@ -609,9 +612,9 @@ func (s *scenario) do(st step) {
 		}
 	case "expect-deterministic":
 		var first, second bytes.Buffer
-		runMain([]string{"status", scenarioGoal, "--format", "json"}, &first, &bytes.Buffer{})
+		s.run([]string{"status", scenarioGoal, "--format", "json"}, &first, &bytes.Buffer{})
 		time.Sleep(1100 * time.Millisecond)
-		runMain([]string{"status", scenarioGoal, "--format", "json"}, &second, &bytes.Buffer{})
+		s.run([]string{"status", scenarioGoal, "--format", "json"}, &second, &bytes.Buffer{})
 		if !bytes.Equal(first.Bytes(), second.Bytes()) {
 			s.fatalf(st, "status output changed between runs")
 		}
@@ -630,6 +633,7 @@ func (s *scenario) do(st step) {
 // Every scenario directory is listed in testdata/scenarios/README.md and
 // every listed scenario exists, so the table stays a faithful index.
 func TestScenarioIndex(t *testing.T) {
+	t.Parallel()
 	root, _ := filepath.Abs("../../testdata/scenarios")
 	readme, err := os.ReadFile(filepath.Join(root, "README.md"))
 	if err != nil {

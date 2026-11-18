@@ -11,12 +11,13 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/jgoneit/jaekit/internal/run"
 )
 
 const (
@@ -62,7 +63,11 @@ func ValidPath(p string) bool {
 // ReadInput reads a tracked regular input without traversing symlinks. No Git
 // mutation or source rewrite is performed. Inputs must equal HEAD even when
 // their paths are otherwise excluded from ordinary working-tree checks.
-func ReadInput(root, p string) ([]byte, error) {
+// git runs in the process's own environment.
+func ReadInput(root, p string) ([]byte, error) { return ReadInputIn(run.Environment{}, root, p) }
+
+// ReadInputIn is ReadInput with git run in the given environment.
+func ReadInputIn(env run.Environment, root, p string) ([]byte, error) {
 	if !ValidPath(p) {
 		return nil, fmt.Errorf("invalid evidence path %q", p)
 	}
@@ -79,9 +84,8 @@ func ReadInput(root, p string) ([]byte, error) {
 		}
 	}
 	git := func(args ...string) ([]byte, error) {
-		cmd := exec.Command("git", args...)
-		cmd.Dir = root
-		cmd.Env = append(os.Environ(), "GIT_OPTIONAL_LOCKS=0", "LC_ALL=C")
+		cmd := env.Command(root, "git", args...)
+		cmd.Env = append(env.Environ(), "GIT_OPTIONAL_LOCKS=0", "LC_ALL=C")
 		return cmd.Output()
 	}
 	entry, err := git("ls-tree", "-z", "HEAD", "--", ":(literal)"+p)
@@ -105,9 +109,13 @@ func ReadInput(root, p string) ([]byte, error) {
 	return data, nil
 }
 
-// Load validates a declaration and binds its raw bytes and every producer file.
-func Load(root, p string) (*Declaration, string, error) {
-	data, err := ReadInput(root, p)
+// Load validates a declaration and binds its raw bytes and every producer
+// file, running git in the process's own environment.
+func Load(root, p string) (*Declaration, string, error) { return LoadIn(run.Environment{}, root, p) }
+
+// LoadIn is Load with git run in the given environment.
+func LoadIn(env run.Environment, root, p string) (*Declaration, string, error) {
+	data, err := ReadInputIn(env, root, p)
 	if err != nil {
 		return nil, "", err
 	}
@@ -126,7 +134,7 @@ func Load(root, p string) (*Declaration, string, error) {
 		if producer == p {
 			return nil, "", errors.New("the declaration cannot also be a producer path")
 		}
-		content, err := ReadInput(root, producer)
+		content, err := ReadInputIn(env, root, producer)
 		if err != nil {
 			return nil, "", err
 		}

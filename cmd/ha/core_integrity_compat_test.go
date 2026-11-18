@@ -37,6 +37,7 @@ func ciHa018(t *testing.T) string {
 }
 
 func TestCoreIntegrityAC1_OlderCoreRefuses(t *testing.T) {
+	t.Parallel()
 	const v = "rules-v6-unsupported"
 	old := ciHa018(t)
 	f := ciFixture(t, v, "")
@@ -45,6 +46,7 @@ func TestCoreIntegrityAC1_OlderCoreRefuses(t *testing.T) {
 		{"note", rgGoal, "wait", "--reason", "the user decides"}, {"done", rgGoal}} {
 		cmd := exec.Command(old, args...)
 		cmd.Dir = f.dir
+		cmd.Env = envIn(f.dir, f.env)
 		out, err := cmd.CombinedOutput()
 		code := 0
 		var exit *exec.ExitError

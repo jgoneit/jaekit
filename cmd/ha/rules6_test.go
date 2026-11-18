@@ -12,8 +12,10 @@ import (
 // Adding a start option does not enable historical or unknown rules for new
 // goals. The refusal must advertise the new option without creating a record.
 func TestRules6StartRefusesOtherVersions(t *testing.T) {
+	t.Parallel()
 	for _, rules := range []string{"run-rules/1", "run-rules/2", "run-rules/8", ""} {
 		t.Run(rules, func(t *testing.T) {
+			t.Parallel()
 			f := rgRepo(t, "")
 			code, out := f.ha("start", rgGoal, "--request", "implement the synthetic goal", "--rules", rules)
 			if code != exitUsage || !strings.Contains(out, "--rules accepts run-rules/3, run-rules/4, run-rules/5, run-rules/6 or run-rules/7") {
@@ -27,8 +29,10 @@ func TestRules6StartRefusesOtherVersions(t *testing.T) {
 }
 
 func TestRules6PostCompletionBudgetOutputs(t *testing.T) {
+	t.Parallel()
 	for _, rules := range []string{"run-rules/4", "run-rules/5", "run-rules/6"} {
 		t.Run(rules, func(t *testing.T) {
+			t.Parallel()
 			f := rgRepo(t, "light")
 			ciMust(f, exitOK, "start", rgGoal, "--request", "implement the synthetic goal", "--rules", rules)
 			check := func(want int64) {

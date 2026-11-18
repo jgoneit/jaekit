@@ -5,7 +5,7 @@ package main
 // disposition (AC-2), `ha report` shows them on its `To review` line (AC-3,
 // AC-4), says so when a gate had no lists (AC-5) or a stored list cannot be
 // read (AC-6), and refuses a gate whose lists are malformed (AC-6). The
-// tests drive the ha command line (runMain) on synthetic repositories and
+// tests drive the ha command line (runWith) on synthetic repositories and
 // write review gates in the public review-gate/v1 form, as `spar gate`
 // writes them, reusing the pure gate helpers of review_gate_test.go; they
 // never run Spar or a reviewer. A change check names the property it
@@ -41,6 +41,9 @@ type rfrFixture struct {
 	dir, gates       string
 	base, work, head string
 	files            int
+	// env is the environment of the fixture's git and ha commands, which run
+	// in dir; a test may hold two fixtures.
+	env []string
 }
 
 // rfrChange is a fixture for a change check: a broken setup skips.
@@ -62,14 +65,7 @@ func newRFR(t *testing.T, tier string, stop func(string, ...any)) *rfrFixture {
 		stop("git is not available: %v", err)
 	}
 	f.dir, f.gates = t.TempDir(), t.TempDir()
-	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
-	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	for _, key := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
-		t.Setenv(key, "synthetic")
-	}
-	for _, key := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
-		t.Setenv(key, "synthetic@example.invalid")
-	}
+	f.env = envWith(os.Environ(), gitFixtureEnv(os.DevNull, "synthetic", "synthetic@example.invalid")...)
 	f.put(rgGoal+"/SPEC.md", rgSpec(tier))
 	f.put(rgGoal+"/note.md", "# Value note\n\nThe value is one word on one line.\n")
 	f.put(rgGoal+"/PLAN.md", rgPlan)
@@ -79,7 +75,6 @@ func newRFR(t *testing.T, tier string, stop func(string, ...any)) *rfrFixture {
 	f.put("tests/value.sh", "grep -qx ok src/value.txt\n")
 	f.git("init", "-q", "-b", "main")
 	f.commit("base")
-	t.Chdir(f.dir)
 	if code, out := f.ha("start", rgGoal, "--request", "implement the synthetic goal", "--rules", "run-rules/5"); code != exitOK {
 		stop("ha start exit %d: %s", code, out)
 	}
@@ -107,8 +102,7 @@ func (f *rfrFixture) put(rel, body string) {
 
 func (f *rfrFixture) git(args ...string) string {
 	f.t.Helper()
-	cmd := exec.Command("git", args...)
-	cmd.Dir = f.dir
+	cmd := envCommand(f.dir, envIn(f.dir, f.env), "git", args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		f.stop("git %v: %v: %s", args, err, out)
@@ -127,12 +121,8 @@ func (f *rfrFixture) commit(message string) string {
 // two fixtures.
 func (f *rfrFixture) ha(args ...string) (int, string) {
 	f.t.Helper()
-	if err := os.Chdir(f.dir); err != nil {
-		f.stop("%v", err)
-	}
-	var out, errb bytes.Buffer
-	code := runMain(args, &out, &errb)
-	return code, out.String() + errb.String()
+	code, out, errb := haIn(f.dir, envIn(f.dir, f.env), args...)
+	return code, out + errb
 }
 
 func (f *rfrFixture) docs() []rgDoc {
@@ -315,6 +305,7 @@ func rfrLists() (deferred, unhandled []any) {
 // with no finding text and no absolute path, and the judgment of the same
 // record is the judgment of a gate without the lists.
 func TestReviewFindingsReportAC2_NoteKeepsTheLists(t *testing.T) {
+	t.Parallel()
 	const id = "note-drops-finding-lists"
 	deferred, unhandled := rfrLists()
 	for _, tc := range []struct {
@@ -419,6 +410,7 @@ var rfrUserItem = map[string]string{"en": "user decisions: `review_open_question
 // existing items, in both languages, and any one of the three is not
 // `none`.
 func TestReviewFindingsReportAC3_ReportShowsTheLists(t *testing.T) {
+	t.Parallel()
 	const id = "report-hides-finding-lists"
 	deferred, unhandled := rfrLists()
 	f := rfrChange(t, "standard")
@@ -462,6 +454,7 @@ func TestReviewFindingsReportAC3_ReportShowsTheLists(t *testing.T) {
 // AC-4: a gate whose lists are both empty leaves the `To review` line as it
 // was before this change.
 func TestReviewFindingsReportAC4_EmptyListsKeepTheLine(t *testing.T) {
+	t.Parallel()
 	f := rfrKeep(t, "standard")
 	f.note(withLists(f.chained().gateValue(), []any{}, []any{}, 0))
 	want := map[string]string{"en": "none", "ko": "없음"}
@@ -483,6 +476,7 @@ func TestReviewFindingsReportAC4_EmptyListsKeepTheLine(t *testing.T) {
 // AC-5: a gate from a Spar without the lists is recorded as before, and the
 // `To review` line says its lists were not recorded, with the note's seq.
 func TestReviewFindingsReportAC5_OldGateSaysNotRecorded(t *testing.T) {
+	t.Parallel()
 	const id = "old-gate-reads-as-none"
 	f := rfrChange(t, "standard")
 	path := f.writeGate(f.chained().gateValue())
@@ -511,6 +505,7 @@ func TestReviewFindingsReportAC5_OldGateSaysNotRecorded(t *testing.T) {
 // recorded; a stored list that cannot be read leaves the judgment as it is,
 // and the `To review` line says it cannot be read, with the note's seq.
 func TestReviewFindingsReportAC6_MalformedLists(t *testing.T) {
+	t.Parallel()
 	const id = "malformed-lists-accepted"
 	f := rfrChange(t, "standard")
 	deferred, unhandled := rfrLists()
@@ -616,6 +611,7 @@ func (f *rfrFixture) storeFindings(raw string) {
 // AC-11: ha and its packages do not import Spar's, and the same record,
 // bundle, Git and --lang give the same report.
 func TestReviewFindingsReportAC11_ApartAndDeterministic(t *testing.T) {
+	t.Parallel()
 	goTool, err := exec.LookPath("go")
 	if err != nil {
 		t.Fatalf("setup: go is not available: %v", err)

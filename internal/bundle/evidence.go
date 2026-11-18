@@ -29,7 +29,7 @@ func (l *loader) readEvidence(doc *markdown.Doc, file string) {
 		seen[id] = true
 		p := strings.Trim(strings.TrimSpace(entry.Cell(1)), "`")
 		row.EvidencePath = p
-		d, binding, err := evidence.Load(l.root, p)
+		d, binding, err := evidence.LoadIn(l.env, l.root, p)
 		if err != nil {
 			l.problem("evidence_invalid", file, entry.Line, "%s: %v", id, err)
 			continue

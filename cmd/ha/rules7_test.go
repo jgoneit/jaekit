@@ -11,6 +11,7 @@ import (
 )
 
 func TestRules7ReviewNamesUseParsedRounds(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		name      string
 		path      any
@@ -26,8 +27,10 @@ func TestRules7ReviewNamesUseParsedRounds(t *testing.T) {
 		{"null path", nil, "", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			for _, rules := range []string{"run-rules/6", "run-rules/7"} {
 				t.Run(rules, func(t *testing.T) {
+					t.Parallel()
 					f := rgRepo(t, "standard")
 					f.start("review-name-compatibility", "--rules", rules)
 					f.head = f.base
@@ -71,6 +74,7 @@ func TestRules7ReviewNamesUseParsedRounds(t *testing.T) {
 }
 
 func TestRules7ReviewFileErrorsMatchRules6(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		name string
 		path string
@@ -80,8 +84,10 @@ func TestRules7ReviewFileErrorsMatchRules6(t *testing.T) {
 		{"folder", "", "is a folder, not a file"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			path := filepath.Join(t.TempDir(), tc.path)
 			var previous string
+			// run-rules/7 is compared with run-rules/6's message: in order.
 			for _, rules := range []string{"run-rules/6", "run-rules/7"} {
 				t.Run(rules, func(t *testing.T) {
 					f := rgRepo(t, "standard")
@@ -102,6 +108,7 @@ func TestRules7ReviewFileErrorsMatchRules6(t *testing.T) {
 }
 
 func TestRules7CheckChangeBlobBinding(t *testing.T) {
+	t.Parallel()
 	const v = "rules7-check-change"
 	const helper = "checks/helper.txt"
 	cond := ccChange("AC-1", "")
@@ -157,6 +164,7 @@ func TestRules7CheckChangeBlobBinding(t *testing.T) {
 }
 
 func TestRules7ReviewTableSnapshotAndNames(t *testing.T) {
+	t.Parallel()
 	const v = "rules7-review-table"
 	const helper = "checks/helper.txt"
 	cond := ccChange("AC-1", "")
@@ -182,8 +190,10 @@ func TestRules7ReviewTableSnapshotAndNames(t *testing.T) {
 }
 
 func TestRules7CheckChangeRejectedByEarlierRules(t *testing.T) {
+	t.Parallel()
 	for n := 1; n <= 6; n++ {
 		t.Run(fmt.Sprint(n), func(t *testing.T) {
+			t.Parallel()
 			f := ccRepo(t, ccGoal{conds: []ccCond{ccChange("AC-1", "")}})
 			rules := fmt.Sprintf("run-rules/%d", n)
 			startRules := rules
@@ -217,10 +227,12 @@ func TestRules7CheckChangeRejectedByEarlierRules(t *testing.T) {
 }
 
 func TestRules7FreezeMaintainCheckPaths(t *testing.T) {
+	t.Parallel()
 	const v = "rules7-maintain-check-freeze"
 	const path = "checks/preserve.sh"
 	for _, tier := range []string{"standard", "strict"} {
 		t.Run(tier, func(t *testing.T) {
+			t.Parallel()
 			f := ccRepo(t, ccGoal{tier: tier, conds: []ccCond{ccMaintain("AC-1"), ccMaintain("AC-2")}})
 			plan := string(f.read(rgGoal + "/PLAN.md"))
 			row := "| AC-1 | maintain | `sh tests/ac-1.sh` | "
@@ -256,6 +268,7 @@ func TestRules7FreezeMaintainCheckPaths(t *testing.T) {
 }
 
 func TestRules7EmptyFreezeTableIsObserved(t *testing.T) {
+	t.Parallel()
 	const v = "rules7-empty-freeze-table"
 	f := ccRepo(t, ccGoal{tier: "standard", conds: []ccCond{ccMaintain("AC-1")}})
 	f.start(v)
@@ -272,6 +285,7 @@ func TestRules7EmptyFreezeTableIsObserved(t *testing.T) {
 }
 
 func TestRules7EstimateRulesAndStartMarks(t *testing.T) {
+	t.Parallel()
 	f := ccRepo(t, ccGoal{conds: []ccCond{ccChange("AC-1", ccMark), ccChange("AC-2", "—"), ccMaintain("AC-3")}, column: true})
 	for _, tc := range []struct {
 		rules   string
@@ -304,6 +318,7 @@ func TestRules7EstimateRulesAndStartMarks(t *testing.T) {
 }
 
 func TestRules7EmptyStartMarksAreRecorded(t *testing.T) {
+	t.Parallel()
 	f := ccRepo(t, ccGoal{conds: []ccCond{ccChange("AC-1", ""), ccMaintain("AC-2")}})
 	f.start("rules7-start")
 	marks, exists := ciLines(f.rgFixture)[0].m["baseline_marked"]
@@ -313,6 +328,7 @@ func TestRules7EmptyStartMarksAreRecorded(t *testing.T) {
 }
 
 func TestRules7ReportRestoredAndAddedBaselineMarks(t *testing.T) {
+	t.Parallel()
 	f := ccRepo(t, ccGoal{conds: []ccCond{ccChange("AC-1", ccMark), ccChange("AC-2", "—"), ccMaintain("AC-3")}, column: true})
 	f.start("rules7-report")
 	before := f.records()

@@ -109,6 +109,7 @@ func ciSync(f *rgFixture, violation string, gates bool) (prefix, whole []ciLine)
 // does not run out after syncing with main; status, report and cost use the
 // same elapsed time.
 func TestCoreIntegrityAC5_TimeAfterCompletionLeavesElapsed(t *testing.T) {
+	t.Parallel()
 	const v = "post-completion-time-counted"
 	h, m := time.Hour, time.Minute
 	f := rgRepo(t, "standard", ciElapsed("10시간"))
@@ -192,6 +193,7 @@ func TestCoreIntegrityAC5_TimeAfterCompletionLeavesElapsed(t *testing.T) {
 // finding line neither ends that time nor changes the budget, and a done
 // line that records no completion ends it.
 func TestCoreIntegrityAC6_PostCompletionBoundaries(t *testing.T) {
+	t.Parallel()
 	const v = "post-completion-boundary-wrong"
 	h, m := time.Hour, time.Minute
 
