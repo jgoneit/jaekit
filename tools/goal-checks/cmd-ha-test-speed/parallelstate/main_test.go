@@ -424,3 +424,357 @@ func TestInputFailuresExitTwo(t *testing.T) {
 		}
 	})
 }
+
+const mutexWrite = `package fx
+
+import (
+	"sync"
+	"testing"
+)
+
+var (
+	mu      sync.Mutex
+	current string
+)
+
+func setCurrent(name string) { // @set
+	mu.Lock()
+	defer mu.Unlock()
+	current = name // @write
+}
+
+func TestSet(t *testing.T) { // @test
+	t.Parallel() // @parallel
+	setCurrent(t.Name())
+}
+
+func TestRead(t *testing.T) {
+	t.Parallel()
+	mu.Lock()
+	defer mu.Unlock()
+	_ = current
+}
+`
+
+// A helper that writes a package-level variable under a mutex is a finding,
+// and the mutex's own Lock and Unlock are not.
+func TestWriteThroughHelperUnderMutex(t *testing.T) {
+	t.Parallel()
+	dir, code, stdout, stderr := observe(t, map[string]string{"fx_test.go": mutexWrite})
+	line := func(marker string) string { return at(t, "fx_test.go", mutexWrite, marker) }
+	want := "parallel test reaches write of current after t.Parallel() at " + line("@parallel") + ":\n" +
+		"    TestSet (" + line("@test") + ") -> setCurrent (" + line("@set") + ") -> write of current (" + line("@write") + ")\n" +
+		"parallelstate: violation: 1 finding(s) in 2 parallel function(s) of " + dir + "\n"
+	if code != 1 || stdout != want || stderr != "" {
+		t.Fatalf("exit %d\nstdout:\n%s\nwant:\n%s\nstderr:\n%s", code, stdout, want, stderr)
+	}
+}
+
+const writeForms = `package fx
+
+import (
+	"encoding/json"
+	"testing"
+)
+
+type config struct {
+	dir    string
+	limits map[string]int
+}
+
+var (
+	settings config
+	cache    = map[string]string{}
+	table    [4]int
+	counts   []int
+	ptr      *config
+	hits     int
+)
+
+func TestField(t *testing.T) { // @field
+	t.Parallel()
+	settings.dir = t.TempDir() // @fieldwrite
+}
+
+func TestMapIndex(t *testing.T) { // @map
+	t.Parallel()
+	cache["k"] = "v" // @mapwrite
+}
+
+func TestOtherForms(t *testing.T) { // @forms
+	t.Parallel()
+	settings.limits["n"]++    // @incdec
+	table[1] += 2             // @opassign
+	delete(cache, "k")        // @delete
+	clear(counts)             // @clear
+	copy(counts[1:], []int{}) // @copy
+	(*ptr).dir = "x"          // @deref
+	for hits = range counts { // @range
+	}
+	_ = json.Unmarshal(nil, &settings) // @address
+}
+`
+
+func TestFieldIndexAndOtherWrites(t *testing.T) {
+	t.Parallel()
+	_, code, stdout, stderr := observe(t, map[string]string{"fx_test.go": writeForms})
+	line := func(marker string) string { return at(t, "fx_test.go", writeForms, marker) }
+	forms := "    TestOtherForms (" + line("@forms") + ") -> write of "
+	expect(t, code, stdout, stderr, 1,
+		"    TestField ("+line("@field")+") -> write of settings ("+line("@fieldwrite")+")",
+		"    TestMapIndex ("+line("@map")+") -> write of cache ("+line("@mapwrite")+")",
+		forms+"settings ("+line("@incdec")+")",
+		forms+"table ("+line("@opassign")+")",
+		forms+"cache ("+line("@delete")+")",
+		forms+"counts ("+line("@clear")+")",
+		forms+"counts ("+line("@copy")+")",
+		forms+"ptr ("+line("@deref")+")",
+		forms+"hits ("+line("@range")+")",
+		forms+"settings ("+line("@address")+")",
+		"parallelstate: violation: 10 finding(s) in 3 parallel function(s) of ")
+}
+
+// Reads of package-level variables, and writes of local variables, fields
+// of local copies and struct keys, are no finding: go/types tells a local
+// variable from the package-level one it shadows.
+const readOnly = `package fx
+
+import "testing"
+
+type config struct{ dir string }
+
+var (
+	defaults = map[string]string{"a": "b"}
+	limit    = 3
+	names    []string
+	settings config
+)
+
+func lookup(key string) string { return defaults[key] }
+
+func TestReadOnly(t *testing.T) {
+	t.Parallel()
+	if lookup("a") == "" || len(names) > limit {
+		t.Fatal("unexpected")
+	}
+	local := settings
+	local.dir = t.TempDir()
+	copied := config{dir: settings.dir}
+	copied.dir += "/x"
+	m := map[string]int{}
+	m["x"]++
+	delete(m, "x")
+	for _, name := range names {
+		_ = name
+	}
+	limit := 4
+	limit++
+	_ = &local
+	_ = limit
+}
+`
+
+func TestReadOnlyUsePasses(t *testing.T) {
+	t.Parallel()
+	dir, code, stdout, stderr := observe(t, map[string]string{"fx_test.go": readOnly})
+	want := "parallelstate: pass: 1 parallel function(s) in 1 file(s) of " + dir + "; none reaches a process-state change\n"
+	if code != 0 || stdout != want || stderr != "" {
+		t.Fatalf("exit %d\nstdout:\n%s\nwant:\n%s\nstderr:\n%s", code, stdout, want, stderr)
+	}
+}
+
+// sharedHelper is a synthetic shared-build helper with the names that
+// sharedBuildWriters lists.
+const sharedHelper = `package fx
+
+import (
+	"os"
+	"sync"
+	"testing"
+)
+
+var sharedBuilds = struct {
+	sync.Mutex
+	folder string
+	byPkg  map[string]*sharedBuild
+}{byPkg: map[string]*sharedBuild{}}
+
+type sharedBuild struct {
+	once sync.Once
+	path string
+	err  error
+}
+
+func sharedBinary(t testing.TB, pkg string) string { // @binary
+	sharedBuilds.Lock()
+	build := sharedBuilds.byPkg[pkg]
+	if build == nil {
+		build = &sharedBuild{}
+		sharedBuilds.byPkg[pkg] = build // @index
+	}
+	sharedBuilds.Unlock()
+	build.once.Do(func() { build.err = build.make(pkg) })
+	if build.err != nil {
+		t.Fatal(build.err)
+	}
+	trace(pkg)
+	return build.path
+}
+
+func (b *sharedBuild) make(pkg string) error { // @make
+	folder, err := sharedBuildFolder()
+	if err != nil {
+		return err
+	}
+	b.path = folder + "/" + pkg
+	return nil
+}
+
+func sharedBuildFolder() (string, error) { // @folder
+	sharedBuilds.Lock()
+	defer sharedBuilds.Unlock()
+	if sharedBuilds.folder == "" {
+		sharedBuilds.folder, _ = os.MkdirTemp("", "bin-") // @folderwrite
+	}
+	return sharedBuilds.folder, nil
+}
+`
+
+const sharedTest = `package fx
+
+import "testing"
+
+func TestShared(t *testing.T) { // @test
+	t.Parallel()
+	_ = sharedBinary(t, "./cmd/ha")
+}
+`
+
+const quietTrace = `package fx
+
+func trace(string) {}
+`
+
+// Writes in the listed functions of shared_build_test.go, entered through
+// sharedBinary, are allowed.
+func TestAllowlistedSharedBuildWritesPass(t *testing.T) {
+	t.Parallel()
+	dir, code, stdout, stderr := observe(t, map[string]string{
+		"shared_build_test.go": sharedHelper,
+		"trace_test.go":        quietTrace,
+		"fx_test.go":           sharedTest,
+	})
+	want := "parallelstate: pass: 1 parallel function(s) in 3 file(s) of " + dir + "; none reaches a process-state change\n"
+	if code != 0 || stdout != want || stderr != "" {
+		t.Fatalf("exit %d\nstdout:\n%s\nwant:\n%s\nstderr:\n%s", code, stdout, want, stderr)
+	}
+}
+
+const loudTrace = `package fx
+
+var lastBuilt string
+
+func trace(pkg string) { lastBuilt = pkg } // @trace
+`
+
+const directFolder = `package fx
+
+import "testing"
+
+func TestFolder(t *testing.T) { // @direct
+	t.Parallel()
+	_, _ = sharedBuildFolder()
+}
+`
+
+// The allowlist hides no other write: a function outside it that
+// sharedBinary calls, a listed function reached without sharedBinary, and
+// the same functions in a file of another name are findings.
+func TestAllowlistHidesNoOtherWrite(t *testing.T) {
+	t.Parallel()
+	line := func(file, src, marker string) string { return at(t, file, src, marker) }
+	t.Run("outside the list or entered elsewhere", func(t *testing.T) {
+		t.Parallel()
+		_, code, stdout, stderr := observe(t, map[string]string{
+			"shared_build_test.go": sharedHelper,
+			"trace_test.go":        loudTrace,
+			"fx_test.go":           sharedTest,
+			"direct_test.go":       directFolder,
+		})
+		shared := func(marker string) string { return line("shared_build_test.go", sharedHelper, marker) }
+		expect(t, code, stdout, stderr, 1,
+			"    TestShared ("+line("fx_test.go", sharedTest, "@test")+") -> sharedBinary ("+shared("@binary")+") -> "+
+				"trace ("+line("trace_test.go", loudTrace, "@trace")+") -> write of lastBuilt ("+line("trace_test.go", loudTrace, "@trace")+")",
+			"    TestFolder ("+line("direct_test.go", directFolder, "@direct")+") -> sharedBuildFolder ("+shared("@folder")+") -> "+
+				"write of sharedBuilds ("+shared("@folderwrite")+")",
+			"parallelstate: violation: 2 finding(s) in 2 parallel function(s) of ")
+	})
+	t.Run("another file", func(t *testing.T) {
+		t.Parallel()
+		_, code, stdout, stderr := observe(t, map[string]string{
+			"helpers_test.go": sharedHelper,
+			"trace_test.go":   quietTrace,
+			"fx_test.go":      sharedTest,
+		})
+		helper := func(marker string) string { return line("helpers_test.go", sharedHelper, marker) }
+		binary := "    TestShared (" + line("fx_test.go", sharedTest, "@test") + ") -> sharedBinary (" + helper("@binary") + ") -> "
+		expect(t, code, stdout, stderr, 1,
+			binary+"write of sharedBuilds ("+helper("@index")+")",
+			binary+"(*sharedBuild).make ("+helper("@make")+") -> sharedBuildFolder ("+helper("@folder")+") -> write of sharedBuilds ("+helper("@folderwrite")+")",
+			"parallelstate: violation: 2 finding(s) in 1 parallel function(s) of ")
+	})
+}
+
+const otherPackageWrite = `package fx
+
+import (
+	"testing"
+
+	"example.com/other"
+)
+
+func TestOther(t *testing.T) {
+	t.Parallel()
+	other.Value = 1
+	other.Table["k"] = 2
+	other.Count++
+	delete(other.Table, "k")
+	_ = &other.Value
+	other.Set(t.Name())
+}
+`
+
+const globalVar = `package fx
+
+var Global int
+`
+
+const externalTest = `package fx_test
+
+import (
+	"testing"
+
+	"example.com/fx"
+)
+
+func TestExternal(t *testing.T) {
+	t.Parallel()
+	fx.Global = 2
+	fx.Global++
+}
+`
+
+// Variables of other packages are not in scope: an imported package's, and,
+// from the external test package, the package under test's.
+func TestWriteInAnotherPackageIsNotReported(t *testing.T) {
+	t.Parallel()
+	dir, code, stdout, stderr := observe(t, map[string]string{
+		"fx_test.go":     otherPackageWrite,
+		"global.go":      globalVar,
+		"export_test.go": externalTest,
+	})
+	want := "parallelstate: pass: 2 parallel function(s) in 3 file(s) of " + dir + "; none reaches a process-state change\n"
+	if code != 0 || stdout != want || stderr != "" {
+		t.Fatalf("exit %d\nstdout:\n%s\nwant:\n%s\nstderr:\n%s", code, stdout, want, stderr)
+	}
+}
