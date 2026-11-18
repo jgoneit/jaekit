@@ -299,6 +299,43 @@ func beRequireExampleSection(issues *[]string, path, text, exampleLine string, t
 	beRequire(issues, path, section, tokens...)
 }
 
+// beHTMLSection returns the lines from the first line whose <section opening
+// tag carries attr through the first following line containing </section>.
+// foundOpen reports the opening line and foundClose the closing line.
+func beHTMLSection(text, attr string) (string, bool, bool) {
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		start := strings.Index(line, "<section")
+		if start == -1 {
+			continue
+		}
+		tag := line[start:]
+		if end := strings.Index(tag, ">"); end != -1 {
+			tag = tag[:end]
+		}
+		if !strings.Contains(tag, attr) {
+			continue
+		}
+		for j := i + 1; j < len(lines); j++ {
+			if strings.Contains(lines[j], "</section>") {
+				return strings.Join(lines[i:j+1], "\n"), true, true
+			}
+		}
+		return "", true, false
+	}
+	return "", false, false
+}
+
+func beRequireHTMLSection(issues *[]string, path, text, attr string, tokens ...string) {
+	section, foundOpen, foundClose := beHTMLSection(text, attr)
+	if !foundOpen {
+		*issues = append(*issues, path+" is missing a <section with "+attr)
+	} else if !foundClose {
+		*issues = append(*issues, path+" has no </section> after the <section with "+attr)
+	}
+	beRequire(issues, path, section, tokens...)
+}
+
 func beReport(t *testing.T, id string, issues []string) {
 	t.Helper()
 	if len(issues) != 0 {
@@ -461,6 +498,8 @@ func TestBaselineExceptionsAC7_PublicGuidesMatch(t *testing.T) {
 		"`ha log docs/specs/password-link 3`", "to show the record's shape", "is usually not marked")
 	beRequireExampleSection(&issues, "../README.ko.md", bePublicText(t, docs, "../README.ko.md"),
 		"`ha log docs/specs/password-link 3`", "기록의 모양을 보이려는", "보통 표시하지 않")
+	beRequireHTMLSection(&issues, "../tools/site/home.html", bePublicText(t, docs, "../tools/site/home.html"),
+		`id="try"`, "to show the record's shape", "is usually not marked", "기록의 모양을 보이려는", "보통 표시하지 않")
 	englishForbidden := []string{
 		"Mark conditions at risk of a false pass, such as",
 		"For new behavior, the check must fail on the code before the change",
