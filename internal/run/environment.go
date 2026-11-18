@@ -91,15 +91,40 @@ func (e Environment) Command(dir, name string, args ...string) *exec.Cmd {
 	return cmd
 }
 
-// at names a file for os.Stat: a relative name is relative to Dir.
+// at names a file for os.Stat: the file the OS opens for name in a process
+// whose working directory is Dir.
 func (e Environment) at(name string) string {
-	if filepath.IsAbs(name) || filepath.VolumeName(name) != "" {
-		return name
-	}
-	if e.Dir == "" {
+	if e.Dir == "" && filepath.VolumeName(name) == "" && (name == "" || !os.IsPathSeparator(name[0])) {
+		// The process's own working directory: "." keeps a lookup from
+		// searching PATH.
 		return "." + string(filepath.Separator) + name
 	}
-	return filepath.Join(e.Dir, name)
+	return resolveIn(e.Dir, name, filepath.VolumeName, os.IsPathSeparator, filepath.Join)
+}
+
+// resolveIn is the path the OS opens for name in a process whose working
+// directory is dir ("" is the process's own), under one system's path
+// syntax: volume is filepath.VolumeName, isSep is os.IsPathSeparator and
+// join is filepath.Join. A name rooted without a drive (\x on Windows) is on
+// dir's volume; a drive-relative name (C:x) is in dir only when dir is on
+// that drive, and otherwise left for the drive's own current directory; an
+// absolute, UNC or device path is unchanged; any other name is in dir.
+func resolveIn(dir, name string, volume func(string) string, isSep func(byte) bool, join func(...string) string) string {
+	vol := volume(name)
+	rest := name[len(vol):]
+	rooted := rest != "" && isSep(rest[0])
+	switch {
+	case vol != "" && (rooted || isSep(vol[0])):
+		return name
+	case vol != "":
+		if dir != "" && strings.EqualFold(vol, volume(dir)) {
+			return join(dir, rest)
+		}
+		return name
+	case rooted:
+		return volume(dir) + name
+	}
+	return join(dir, name)
 }
 
 // errDotAllowed reports GODEBUG=execerrdot=0 in this environment, which makes

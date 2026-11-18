@@ -905,14 +905,24 @@ func TestGoalCostSummaryAC8_ReadOnly(t *testing.T) {
 	}
 	beforeOthers := others()
 	beforeTree := gcTree(t, f.dir)
+	costs := [][]string{{gcGoal}, {gcGoal, "--series", gcSeries}, {gcGoal, "--series", gcSeries, "--format", "json"}, {gcGoal, "--series", gcSeries, "--lang", "ko"}}
 	var outputs []string
-	for _, args := range [][]string{{gcGoal}, {gcGoal, "--series", gcSeries}, {gcGoal, "--series", gcSeries, "--format", "json"}, {gcGoal, "--series", gcSeries, "--lang", "ko"}} {
+	for _, args := range costs {
 		outputs = append(outputs, f.cost(t, v, args...))
 	}
 	time.Sleep(1100 * time.Millisecond)
-	for i, args := range [][]string{{gcGoal}, {gcGoal, "--series", gcSeries}, {gcGoal, "--series", gcSeries, "--format", "json"}, {gcGoal, "--series", gcSeries, "--lang", "ko"}} {
+	for i, args := range costs {
 		if again := f.cost(t, v, args...); again != outputs[i] {
 			t.Errorf("jaekit:violation=%s ha cost %v printed a different summary a second later", v, args)
+		}
+	}
+	// The same summaries from ha as its own process, run in the repository
+	// with the fakes first on its own PATH: a CLI it starts through its
+	// process's PATH, and not only through the environment it passes on,
+	// records that it ran.
+	for _, args := range costs {
+		if code, _, errs := haProcess(t, f.dir, envIn(f.dir, f.env), append([]string{"cost"}, args...)...); code != exitOK {
+			t.Fatalf("jaekit:violation=%s ha cost %v as its own process gave exit %d, want 0: %s", v, args, code, strings.TrimSpace(errs))
 		}
 	}
 	afterTree := gcTree(t, f.dir)
