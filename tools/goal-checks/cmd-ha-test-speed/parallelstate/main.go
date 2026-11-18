@@ -1,9 +1,16 @@
 // Command parallelstate is the static part of the cmd-ha-test-speed AC-3
 // check (tools/goal-checks/cmd-ha-test-speed/stability.py). It reports Go
 // tests that call t.Parallel() and can reach a change of process-wide state:
-// the environment or the working directory. It follows calls of the
-// functions and methods declared in the same package; calls through function
-// values and calls of interface methods are not followed. See usage below.
+// the environment, the working directory, or a package-level variable of the
+// package analysed. It follows calls of the functions and methods declared in
+// the same package; calls through function values and calls of interface
+// methods are not followed. Variables of other packages are not in scope:
+// every import is read as an empty package. Taking a variable's address with
+// & counts as a write; the address a pointer method's call takes implicitly
+// (v.Lock(), v.Write(p)) does not, and writes through a copy of the
+// variable's value (a map, slice or pointer held elsewhere) are not seen.
+// Writes in the shared-build helper are allowed by sharedBuildWriters. See
+// usage below.
 package main
 
 import (
@@ -53,17 +60,41 @@ is followed. When the receiver's type cannot be known (it comes from another
 package, or the code does not type-check), every method of the package with
 that name is followed, and the path marks the step "by name". A method
 selected on a testing parameter or on an imported package is not followed.
-A call of, or a reference to, one of the calls above is a finding. Each
-finding lists one shortest path from the parallel function to the call.
+A call of, or a reference to, one of the calls above is a finding.
+
+A write of a package-level variable of the package analysed, as go/types
+resolves the name (not a local variable, parameter or field that has the
+name), in the same reachable code is a finding too, "write of v":
+
+  v = x  v += x  v++  v--  for v = range x    the variable itself
+  v.f = x  v[i] = x  (*v).f = x  v.f[i]++      a field of it, an index into
+                                               it, what it points to, mixed
+  delete(v, k)  clear(v)  copy(v[i:], x)       builtins that change it
+  &v  &v.f  &v[i]                              its address, wherever it goes
+
+Writes in the shared-build helper of cmd/ha are allowed, as the allowlist
+sharedBuildWriters lists them: sharedBinary and the functions only it
+calls, in shared_build_test.go (AC-4 checks that helper separately). They
+are allowed only on a path that enters the list through sharedBinary and
+stays in it: a listed function reached another way, and a function outside
+the list that a listed one calls, are checked as any other.
+
+Each finding lists one shortest path from the parallel function to the call
+or the write.
 
 Not followed: calls of interface methods, calls through function values
 (variables, fields, parameters, results), functions and methods of other
 packages, and testing values copied into local variables or held in struct
 fields. A local variable that shadows a package-level function name is read
-as that function. Writes to package-level variables are not looked for. The
--race runs of stability.py do not report what this static reading misses:
-the environment is guarded by a lock and the working directory is not Go
-memory.
+as that function. Not looked for: variables of other packages (every import
+is read as an empty package, so other.V = x is not seen), writes through a
+copy of a variable's value (a map, slice or pointer held in a local
+variable, field, parameter or result), the address that calling a pointer
+method on a variable takes implicitly (v.Lock(), v.Write(p)), and writes by
+reflection or package unsafe. The -race runs of stability.py do not report
+what this static reading misses: the environment is guarded by a lock, the
+working directory is not Go memory, and a package-level value written under
+a mutex does not race.
 
 Exit 0: nothing found. Exit 1: a finding; each is printed. Exit 2: DIR cannot
 be read, holds no .go file, a file cannot be parsed, or go/types stops.
@@ -76,7 +107,34 @@ var (
 	}
 	testingCalls = map[string]bool{"Setenv": true, "Chdir": true}
 	testingKinds = map[string]bool{"T": true, "B": true, "F": true, "TB": true}
+	// changingBuiltins change the value of their first argument.
+	changingBuiltins = map[string]bool{"delete": true, "clear": true, "copy": true}
 )
+
+// sharedBuildWriters is the allowlist of package-level writes: the file of
+// cmd/ha, then sharedBinary and the functions only it calls. sharedBinary
+// builds each binary once per test process for every test that asks, so it
+// keeps the builds in the package-level sharedBuilds under its lock; AC-4
+// checks that helper and its binaries separately. A write in one of these
+// functions is allowed only on a path that enters them through sharedBinary
+// (the first name) and stays in them.
+const sharedBuildWriters = "shared_build_test.go: sharedBinary (*sharedBuild).make sharedBuildFolder sharedModuleRoot"
+
+// inSharedBuild reports whether fn, named from code that is (from) or is not
+// in the shared-build helper, is in it: fn is the first function of
+// sharedBuildWriters, or another one of them named from inside the helper.
+func inSharedBuild(fn *function, from bool) bool {
+	file, names, _ := strings.Cut(sharedBuildWriters, ": ")
+	if fn.file.name != file {
+		return false
+	}
+	for i, name := range strings.Fields(names) {
+		if name == fn.name {
+			return i == 0 || from
+		}
+	}
+	return false
+}
 
 type file struct {
 	name    string
@@ -193,6 +251,7 @@ type link struct {
 
 type analysis struct {
 	fset    *token.FileSet
+	pkg     *types.Package
 	funcs   map[string][]*function  // package-level functions by name
 	methods map[string][]*function  // methods by "T.m", T the receiver's base type
 	byName  map[string][]*function  // methods by method name
@@ -205,12 +264,40 @@ func (a *analysis) at(pos token.Pos) string {
 	return filepath.Base(p.Filename) + ":" + strconv.Itoa(p.Line)
 }
 
-// scan lists the forbidden calls and the functions and methods of the
-// package that a block names.
-func (a *analysis) scan(block *ast.BlockStmt, sc scope, f *file) (forbidden []reference, named []link) {
+// scan lists the forbidden calls, the writes of package-level variables and
+// the functions and methods of the package that a block names.
+func (a *analysis) scan(block *ast.BlockStmt, sc scope, f *file) (forbidden, writes []reference, named []link) {
 	skip := map[*ast.Ident]bool{}
+	write := func(target ast.Expr) {
+		if v := a.packageVar(target); v != nil {
+			writes = append(writes, reference{"write of " + v.Name(), target.Pos()})
+		}
+	}
 	inspect(block, sc, f, func(n ast.Node, sc scope) {
 		switch e := n.(type) {
+		case *ast.AssignStmt:
+			if e.Tok != token.DEFINE {
+				for _, lhs := range e.Lhs {
+					write(lhs)
+				}
+			}
+		case *ast.IncDecStmt:
+			write(e.X)
+		case *ast.RangeStmt:
+			if e.Tok == token.ASSIGN {
+				write(e.Key)
+				write(e.Value)
+			}
+		case *ast.UnaryExpr:
+			if e.Op == token.AND {
+				write(e.X)
+			}
+		case *ast.CallExpr:
+			if id, ok := ast.Unparen(e.Fun).(*ast.Ident); ok && len(e.Args) > 0 {
+				if b, isBuiltin := a.info.Uses[id].(*types.Builtin); isBuiltin && changingBuiltins[b.Name()] {
+					write(e.Args[0])
+				}
+			}
 		case *ast.SelectorExpr:
 			skip[e.Sel] = true
 			if l, ok := a.method(e, sc); ok {
@@ -251,7 +338,36 @@ func (a *analysis) scan(block *ast.BlockStmt, sc scope, f *file) (forbidden []re
 			}
 		}
 	})
-	return forbidden, named
+	return forbidden, writes, named
+}
+
+// packageVar returns the package-level variable of the package analysed
+// whose value a write of target changes: target itself, or the variable that
+// target selects a field of, indexes, slices or dereferences, in any mix. It
+// returns nil for anything else, a variable of another package included.
+func (a *analysis) packageVar(target ast.Expr) *types.Var {
+	for {
+		switch e := target.(type) {
+		case *ast.ParenExpr:
+			target = e.X
+		case *ast.SelectorExpr:
+			target = e.X // a field; a package name below it is no variable
+		case *ast.IndexExpr:
+			target = e.X
+		case *ast.SliceExpr:
+			target = e.X
+		case *ast.StarExpr:
+			target = e.X
+		case *ast.Ident:
+			v, ok := a.info.Uses[e].(*types.Var)
+			if !ok || v.IsField() || a.pkg == nil || v.Parent() != a.pkg.Scope() {
+				return nil
+			}
+			return v
+		default:
+			return nil
+		}
+	}
 }
 
 // method resolves the selector e to the methods of the package it can name.
@@ -357,10 +473,10 @@ func packageName(path string) string {
 
 // typeInfo runs go/types on one package. Its type errors are expected (the
 // imports are empty) and only leave types unknown; a panic is an error.
-func typeInfo(name string, fset *token.FileSet, files []*file) (info *types.Info, err error) {
+func typeInfo(name string, fset *token.FileSet, files []*file) (pkg *types.Package, info *types.Info, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			info, err = nil, fmt.Errorf("go/types stopped on package %s: %v", name, r)
+			pkg, info, err = nil, nil, fmt.Errorf("go/types stopped on package %s: %v", name, r)
 		}
 	}()
 	syntax := make([]*ast.File, len(files))
@@ -372,8 +488,11 @@ func typeInfo(name string, fset *token.FileSet, files []*file) (info *types.Info
 		Uses:       map[*ast.Ident]types.Object{},
 	}
 	conf := types.Config{Importer: emptyImports{}, Error: func(error) {}, FakeImportC: true}
-	_, _ = conf.Check(name, fset, syntax, info) // type errors only leave types unknown
-	return info, nil
+	pkg, _ = conf.Check(name, fset, syntax, info) // type errors only leave types unknown
+	if pkg == nil {
+		return nil, nil, fmt.Errorf("go/types returned no package for %s", name)
+	}
+	return pkg, info, nil
 }
 
 // parallelCall returns the position of the first t.Parallel() call on the
@@ -408,9 +527,18 @@ type finding struct {
 	order [3]int
 }
 
+// step is a function to scan and the path to it. shared is true when the
+// path entered the shared-build helper through sharedBinary and stayed in
+// it: the writes of package-level variables in fn are then allowed.
 type step struct {
-	fn   *function
-	path []string
+	fn     *function
+	path   []string
+	shared bool
+}
+
+type visit struct {
+	fn     *function
+	shared bool
 }
 
 func (a *analysis) findings(root *body, parallel token.Pos) []finding {
@@ -424,25 +552,26 @@ func (a *analysis) findings(root *body, parallel token.Pos) []finding {
 		seen[key] = true
 		found = append(found, finding{root: root, when: when, call: call, path: append([]string(nil), path...)})
 	}
-	start := []string{root.label + " (" + a.at(root.node.Pos()) + ")"}
-	forbidden, named := a.scan(root.block, root.scope, root.file)
-	for _, call := range forbidden {
-		add(when(call.pos, parallel), call, start)
+	start := step{path: []string{root.label + " (" + a.at(root.node.Pos()) + ")"}}
+	forbidden, writes, named := a.scan(root.block, root.scope, root.file)
+	for _, call := range append(forbidden, writes...) {
+		add(when(call.pos, parallel), call, start.path)
 	}
 	for _, label := range []string{"before", "after"} {
-		visited := map[*function]bool{}
+		visited := map[visit]bool{}
 		var queue []step
-		follow := func(l link, path []string) {
+		follow := func(l link, from step) {
 			for _, fn := range l.to {
-				if visited[fn] {
+				shared := inSharedBuild(fn, from.shared)
+				if visited[visit{fn, shared}] {
 					continue
 				}
-				visited[fn] = true
+				visited[visit{fn, shared}] = true
 				name := fn.name
 				if l.byName {
 					name += " by name"
 				}
-				queue = append(queue, step{fn, append(append([]string(nil), path...), name+" ("+a.at(fn.decl.Pos())+")")})
+				queue = append(queue, step{fn, append(append([]string(nil), from.path...), name+" ("+a.at(fn.decl.Pos())+")"), shared})
 			}
 		}
 		for _, l := range named {
@@ -458,12 +587,15 @@ func (a *analysis) findings(root *body, parallel token.Pos) []finding {
 				continue
 			}
 			sc := scope{}.with(fn.decl, fn.decl.Recv, fn.decl.Type, fn.file)
-			calls, next := a.scan(fn.decl.Body, sc, fn.file)
+			calls, writes, next := a.scan(fn.decl.Body, sc, fn.file)
+			if !current.shared {
+				calls = append(calls, writes...)
+			}
 			for _, call := range calls {
 				add(label, call, current.path)
 			}
 			for _, l := range next {
-				follow(l, current.path)
+				follow(l, current)
 			}
 		}
 	}
@@ -524,12 +656,13 @@ func load(dir string) (*token.FileSet, []*file, error) {
 
 // run analyses one package name (main or main_test) of the directory.
 func run(name string, fset *token.FileSet, files []*file) ([]finding, int, error) {
-	info, err := typeInfo(name, fset, files)
+	pkg, info, err := typeInfo(name, fset, files)
 	if err != nil {
 		return nil, 0, err
 	}
 	a := &analysis{
 		fset:    fset,
+		pkg:     pkg,
 		funcs:   map[string][]*function{},
 		methods: map[string][]*function{},
 		byName:  map[string][]*function{},
