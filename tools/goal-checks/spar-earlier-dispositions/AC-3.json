@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "TextCheckDeclared",
+      "violation": "text-check-not-declared",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/internal/spar",
+        "name": "TestSparEarlierDispositionsAC3_TextCheckDeclared"
+      }
+    }
+  ]
+}
