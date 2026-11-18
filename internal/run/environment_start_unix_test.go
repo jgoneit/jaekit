@@ -1,0 +1,91 @@
+//go:build !windows
+
+package run
+
+import (
+	"errors"
+	"fmt"
+	"io/fs"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"reflect"
+	"testing"
+	"time"
+)
+
+// With the process's own working directory and environment, as ha's entry
+// point passes them, a command that cannot start fails with exactly the
+// error exec.Command gives for the same name started in the same folder: a
+// missing ./name, a missing bare name and an existing ./name that cannot be
+// executed. Through the exec path ha check uses (ExecIn), the outcome, the
+// error and the "could not start" line in the log are those of the zero
+// Environment, which is exec.Command as on the start commit.
+func TestEnvironmentStartErrorsMatchExecCommand(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	process := Environment{Dir: wd, Env: os.Environ()}
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "tool"), []byte("#!/bin/sh\nexit 0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		name  string
+		wraps error
+	}{
+		{"./missing-tool", fs.ErrNotExist},
+		{fmt.Sprintf("run-missing-tool-%d", os.Getpid()), exec.ErrNotFound},
+		{"./tool", fs.ErrPermission},
+	} {
+		cmd := exec.Command(c.name)
+		cmd.Dir = dir
+		want := startError(cmd)
+		if !errors.Is(want, c.wraps) {
+			t.Fatalf("setup: exec.Command(%q) in %s: start error %v, want one wrapping %v", c.name, dir, want, c.wraps)
+		}
+		if got := startError(process.Command(dir, c.name)); !reflect.DeepEqual(got, want) {
+			t.Errorf("Command(%q) start error %T %v; exec.Command gives %T %v", c.name, got, got, want, want)
+		}
+
+		before, beforeLog := execStart(t, Environment{}, dir, c.name)
+		after, afterLog := execStart(t, process, dir, c.name)
+		if before.Outcome != Error || before.Reason != "process_start" || !reflect.DeepEqual(before.StartError, want) {
+			t.Fatalf("setup: the zero Environment ran %q as %s/%s, %v", c.name, before.Outcome, before.Reason, before.StartError)
+		}
+		if after.Outcome != before.Outcome || after.Reason != before.Reason || !reflect.DeepEqual(after.StartError, before.StartError) {
+			t.Errorf("ExecIn(%q) = %s/%s, %T %v; exec.Command gives %s/%s, %T %v", c.name,
+				after.Outcome, after.Reason, after.StartError, after.StartError,
+				before.Outcome, before.Reason, before.StartError, before.StartError)
+		}
+		if afterLog != beforeLog {
+			t.Errorf("ExecIn(%q) logged %q; exec.Command gives %q", c.name, afterLog, beforeLog)
+		}
+	}
+}
+
+// startError starts cmd and returns Start's error; a command that started is
+// waited for.
+func startError(cmd *exec.Cmd) error {
+	err := cmd.Start()
+	if err == nil {
+		_ = cmd.Wait()
+	}
+	return err
+}
+
+// execStart runs name through ExecIn in env and returns the result and the log.
+func execStart(t *testing.T, env Environment, dir, name string) (Result, string) {
+	t.Helper()
+	logPath := filepath.Join(t.TempDir(), "output.log")
+	res, err := ExecIn(env, dir, []string{name}, time.Minute, logPath, nil, nil)
+	if err != nil {
+		t.Fatalf("setup: ExecIn(%q): %v", name, err)
+	}
+	log, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("setup: read the log of %q: %v", name, err)
+	}
+	return res, string(log)
+}

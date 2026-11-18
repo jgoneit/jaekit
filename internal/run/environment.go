@@ -59,36 +59,61 @@ func (e Environment) Getenv(key string) string {
 // environment's PATH (and PATHEXT on Windows) and working directory instead
 // of the process's. It sets Dir; the caller sets Env, usually from Environ.
 // A name that cannot be resolved gives a Cmd whose Start returns the same
-// error exec.Command would have stored.
+// error exec.Command and exec.Cmd.Start would have returned.
 func (e Environment) Command(dir, name string, args ...string) *exec.Cmd {
-	if e.Env == nil && e.Dir == "" {
+	lookup := commandLookup(runtime.GOOS, name, filepath.Base)
+	if lookup == lookupNone || (e.Env == nil && e.Dir == "") {
+		// exec.Command's own Cmd. For a name os/exec looks nothing up for
+		// (a name with a slash on Unix, an empty name), os.StartProcess or
+		// Start itself reports a missing or unusable file, so the error is
+		// os/exec's by construction rather than a copy of it.
 		cmd := exec.Command(name, args...)
 		cmd.Dir = dir
 		return cmd
 	}
-	path, err := name, error(nil)
-	switch {
-	case filepath.Base(name) == name:
-		var found string
-		found, err = e.LookPath(name)
-		if found != "" {
-			path = found
-		}
-	case runtime.GOOS == "windows":
-		lookup := dir
-		if filepath.IsAbs(name) {
-			lookup = ""
-		}
-		var found string
-		if found, err = e.lookExtensions(name, lookup); err == nil {
-			path = found
-		}
+	var path string
+	var err error
+	if lookup == lookupPath {
+		path, err = e.LookPath(name)
+	} else {
+		// Start would add the extension relative to dir; an absolute name
+		// has a volume and is looked up as it is, as in os/exec.
+		path, err = e.lookExtensions(name, dir)
+	}
+	if path == "" {
+		path = name
 	}
 	// The resolved path is kept, and Args[0] stays the name, as exec.Command
 	// leaves them; Start returns Err before it starts anything.
 	cmd := &exec.Cmd{Path: path, Args: append([]string{name}, args...), Err: err}
 	cmd.Dir = dir
 	return cmd
+}
+
+// nameLookup is what os/exec resolves for a command name before it starts the
+// process: exec.Command searches PATH for a name without a path separator,
+// and on Windows exec.Cmd.Start adds a %PATHEXT% extension to any other
+// non-empty name, relative to Cmd.Dir. Nothing is looked up for the rest:
+// os.StartProcess opens such a name as it is, and Start refuses an empty
+// one ("exec: no command").
+type nameLookup int
+
+const (
+	lookupNone nameLookup = iota
+	lookupPath
+	lookupExtensions
+)
+
+// commandLookup is the lookup os/exec on goos makes for name, where base is
+// that system's filepath.Base.
+func commandLookup(goos, name string, base func(string) string) nameLookup {
+	switch {
+	case base(name) == name:
+		return lookupPath
+	case goos == "windows" && name != "":
+		return lookupExtensions
+	}
+	return lookupNone
 }
 
 // at names a file for os.Stat: the file the OS opens for name in a process
