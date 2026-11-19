@@ -299,11 +299,45 @@ func beRequireExampleSection(issues *[]string, path, text, exampleLine string, t
 	beRequire(issues, path, section, tokens...)
 }
 
-// beHTMLSection returns the lines from the first line whose <section opening
-// tag carries attr through the first following line containing </section>.
-// foundOpen reports the opening line and foundClose the closing line.
-func beHTMLSection(text, attr string) (string, bool, bool) {
+// beStripHTMLComments removes every <!-- … --> comment, so that only text a
+// reader can see is checked. An unterminated comment removes the rest of the
+// text, which then lacks the required tokens rather than passing.
+func beStripHTMLComments(text string) string {
+	var b strings.Builder
+	for {
+		start := strings.Index(text, "<!--")
+		if start == -1 {
+			b.WriteString(text)
+			return b.String()
+		}
+		b.WriteString(text[:start])
+		end := strings.Index(text[start+4:], "-->")
+		if end == -1 {
+			return b.String()
+		}
+		text = text[start+4+end+3:]
+	}
+}
+
+// beHTMLSectionTag reports whether a <section opening tag carries attr as an
+// attribute of its own: attr must follow whitespace, so text inside another
+// attribute's value (data-x='id="try"') does not count.
+func beHTMLSectionTag(tag, attr string) bool {
+	for _, sep := range []string{" ", "\t", "\n"} {
+		if strings.Contains(tag, sep+attr) {
+			return true
+		}
+	}
+	return false
+}
+
+// beHTMLSection returns the lines from the line whose <section opening tag
+// carries attr through the first following line containing </section>.
+// foundOpen reports the opening line, foundClose the closing line, and count
+// how many <section opening tags carry attr.
+func beHTMLSection(text, attr string) (string, bool, bool, int) {
 	lines := strings.Split(text, "\n")
+	section, foundOpen, foundClose, count := "", false, false, 0
 	for i, line := range lines {
 		start := strings.Index(line, "<section")
 		if start == -1 {
@@ -313,25 +347,32 @@ func beHTMLSection(text, attr string) (string, bool, bool) {
 		if end := strings.Index(tag, ">"); end != -1 {
 			tag = tag[:end]
 		}
-		if !strings.Contains(tag, attr) {
+		if !beHTMLSectionTag(tag, attr) {
 			continue
 		}
+		count++
+		if count > 1 {
+			continue
+		}
+		foundOpen = true
 		for j := i + 1; j < len(lines); j++ {
 			if strings.Contains(lines[j], "</section>") {
-				return strings.Join(lines[i:j+1], "\n"), true, true
+				section, foundClose = strings.Join(lines[i:j+1], "\n"), true
+				break
 			}
 		}
-		return "", true, false
 	}
-	return "", false, false
+	return section, foundOpen, foundClose, count
 }
 
 func beRequireHTMLSection(issues *[]string, path, text, attr string, tokens ...string) {
-	section, foundOpen, foundClose := beHTMLSection(text, attr)
+	section, foundOpen, foundClose, count := beHTMLSection(text, attr)
 	if !foundOpen {
 		*issues = append(*issues, path+" is missing a <section with "+attr)
 	} else if !foundClose {
 		*issues = append(*issues, path+" has no </section> after the <section with "+attr)
+	} else if count > 1 {
+		*issues = append(*issues, path+" has more than one <section with "+attr)
 	}
 	beRequire(issues, path, section, tokens...)
 }
@@ -483,7 +524,7 @@ func TestBaselineExceptionsAC7_PublicGuidesMatch(t *testing.T) {
 		"Up to `run-rules/6`, a check for every change condition must show")
 	beRequire(&issues, "../guides/OPERATIONS.md", bePublicText(t, docs, "../guides/OPERATIONS.md"),
 		"`run-rules/6`까지는 모든 change 조건의 검사가")
-	beRequire(&issues, "../tools/site/home.html", bePublicText(t, docs, "../tools/site/home.html"),
+	beRequire(&issues, "../tools/site/home.html", beStripHTMLComments(bePublicText(t, docs, "../tools/site/home.html")),
 		"already present at the base commit",
 		"a prohibition such as",
 		"base commit에 이미 있는",
@@ -500,7 +541,7 @@ func TestBaselineExceptionsAC7_PublicGuidesMatch(t *testing.T) {
 		"`ha log docs/specs/password-link 3`", "to show the record's shape", "is usually not marked")
 	beRequireExampleSection(&issues, "../README.ko.md", bePublicText(t, docs, "../README.ko.md"),
 		"`ha log docs/specs/password-link 3`", "기록의 모양을 보이려는", "보통 표시하지 않")
-	beRequireHTMLSection(&issues, "../tools/site/home.html", bePublicText(t, docs, "../tools/site/home.html"),
+	beRequireHTMLSection(&issues, "../tools/site/home.html", beStripHTMLComments(bePublicText(t, docs, "../tools/site/home.html")),
 		`id="try"`, "to show the record's shape", "is usually not marked", "기록의 모양을 보이려는", "보통 표시하지 않")
 	englishForbidden := []string{
 		"Mark conditions at risk of a false pass, such as",
