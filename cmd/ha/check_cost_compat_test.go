@@ -17,6 +17,7 @@ import (
 )
 
 func TestCheckCostAC1_OlderCoreRefuses(t *testing.T) {
+	t.Parallel()
 	const v = "rules-v7-unsupported"
 	f := ccRepo(t, ccGoal{conds: []ccCond{ccChange("AC-1", ccMark), ccChange("AC-2", "—"), ccMaintain("AC-3")}, column: true})
 	f.start(v)
@@ -28,6 +29,7 @@ func TestCheckCostAC1_OlderCoreRefuses(t *testing.T) {
 		{"note", rgGoal, "wait", "--reason", "the user decides"}, {"done", rgGoal}} {
 		cmd := exec.Command(old, args...)
 		cmd.Dir = f.dir
+		cmd.Env = envIn(f.dir, f.env)
 		out, err := cmd.CombinedOutput()
 		code := 0
 		var exit *exec.ExitError

@@ -3,7 +3,7 @@ package main
 // Checks of the goal ha-review-gate: a goal started under run-rules/5 whose
 // SPEC asks for independent review (`Assurance: standard` or `strict`)
 // completes only with a recorded review gate that covers the last head and the
-// current goal documents. The tests drive the ha command line (runMain) on
+// current goal documents. The tests drive the ha command line (runWith) on
 // synthetic repositories and write review gates in the public review-gate/v1
 // form (contracts/review-gate.md), as `spar gate` writes them; they never run
 // Spar or a reviewer. The opening line of an assertion's failure message names
@@ -63,6 +63,9 @@ type rgFixture struct {
 	dir, gates       string
 	base, work, head string
 	files            int
+	// env is the environment the fixture's git and ha commands run with,
+	// in dir, as t.Setenv and t.Chdir(dir) would leave it for them.
+	env []string
 }
 
 func rgSHA(data []byte) string {
@@ -95,23 +98,17 @@ func rgRequireGit(t *testing.T) {
 }
 
 // rgRepo makes a committed repository holding one goal with the given tier
-// ("" for a SPEC without the line) and makes it the working directory. Its
+// ("" for a SPEC without the line), where the fixture's commands run. Its
 // goal documents are SPEC.md and the note SPEC.md links. Each prepare
-// function changes the files before the first commit.
+// function changes the files, or the environment (rgEnv), before the first
+// commit.
 func rgRepo(t *testing.T, tier string, prepare ...func(*rgFixture)) *rgFixture {
 	t.Helper()
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skipf("git is not available: %v", err)
 	}
 	f := &rgFixture{t: t, dir: t.TempDir(), gates: t.TempDir()}
-	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
-	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	for _, key := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
-		t.Setenv(key, "synthetic")
-	}
-	for _, key := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
-		t.Setenv(key, "synthetic@example.invalid")
-	}
+	f.env = envWith(os.Environ(), gitFixtureEnv(os.DevNull, "synthetic", "synthetic@example.invalid")...)
 	f.put(rgGoal+"/SPEC.md", rgSpec(tier))
 	f.put(rgGoal+"/note.md", "# Value note\n\nThe value is one word on one line.\n")
 	f.put(rgGoal+"/PLAN.md", rgPlan)
@@ -125,8 +122,13 @@ func rgRepo(t *testing.T, tier string, prepare ...func(*rgFixture)) *rgFixture {
 	f.git("init", "-q", "-b", "main")
 	f.git("add", "-A")
 	f.git("commit", "-q", "-m", "base")
-	t.Chdir(f.dir)
 	return f
+}
+
+// rgEnv is a prepare function that sets environment entries (KEY=VALUE) for
+// every later command of the fixture, its first commit included.
+func rgEnv(set ...string) func(*rgFixture) {
+	return func(f *rgFixture) { f.env = envWith(f.env, set...) }
 }
 
 // newRGFixture starts the goal under run-rules/5, adds two code commits (work
@@ -179,8 +181,7 @@ func (f *rgFixture) read(rel string) []byte {
 
 func (f *rgFixture) git(args ...string) string {
 	f.t.Helper()
-	cmd := exec.Command("git", args...)
-	cmd.Dir = f.dir
+	cmd := envCommand(f.dir, envIn(f.dir, f.env), "git", args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		f.t.Fatalf("setup: git %v: %v: %s", args, err, out)
@@ -196,9 +197,8 @@ func (f *rgFixture) commit(message string) string {
 }
 
 func (f *rgFixture) ha(args ...string) (int, string) {
-	var out, errb bytes.Buffer
-	code := runMain(args, &out, &errb)
-	return code, out.String() + errb.String()
+	code, out, errb := haIn(f.dir, envIn(f.dir, f.env), args...)
+	return code, out + errb
 }
 
 // check records a passing AC-1 check at the current head.
@@ -355,13 +355,12 @@ type rgState struct {
 
 func (f *rgFixture) status() rgState {
 	f.t.Helper()
-	var out, errb bytes.Buffer
-	code := runMain([]string{"status", rgGoal, "--format", "json"}, &out, &errb)
+	code, out, errb := haIn(f.dir, envIn(f.dir, f.env), "status", rgGoal, "--format", "json")
 	var value map[string]any
-	if err := json.Unmarshal(out.Bytes(), &value); err != nil {
-		f.t.Fatalf("setup: ha status exit %d gave no status JSON: %v: %s", code, err, errb.String())
+	if err := json.Unmarshal([]byte(out), &value); err != nil {
+		f.t.Fatalf("setup: ha status exit %d gave no status JSON: %v: %s", code, err, errb)
 	}
-	s := rgState{code: code, raw: out.Bytes(), value: value, completion: value["completion_record"]}
+	s := rgState{code: code, raw: []byte(out), value: value, completion: value["completion_record"]}
 	s.status, _ = value["status"].(string)
 	list, _ := value["reasons"].([]any)
 	for _, item := range list {
@@ -428,6 +427,7 @@ func (f *rgFixture) expectDone(violation, label string) {
 // AC-1: a gate file is recorded with its digest and the summary the
 // judgment needs, and the record keeps no finding text, quote or round path.
 func TestHaReviewGateAC1_RecordsTheGateSummary(t *testing.T) {
+	t.Parallel()
 	const v = "gate-summary-not-recorded"
 	f := newRGFixture(t, v, "standard")
 	complete := f.covering("plan", "candidate")
@@ -505,6 +505,7 @@ func TestHaReviewGateAC1_RecordsTheGateSummary(t *testing.T) {
 // gate is complete, reviewed the head through a code round, covers the
 // current goal documents and has no open finding.
 func TestHaReviewGateAC2_StandardGoalCompletesWithACoveringGate(t *testing.T) {
+	t.Parallel()
 	const v = "covering-gate-not-accepted"
 	f := newRGFixture(t, v, "standard")
 	extra := f.covering("candidate")
@@ -552,6 +553,7 @@ func TestHaReviewGateAC2_StandardGoalCompletesWithACoveringGate(t *testing.T) {
 // AC-3: a strict goal also needs a plan round, and its latest plan round must
 // cover the current goal documents.
 func TestHaReviewGateAC3_StrictGoalNeedsACoveringPlanRound(t *testing.T) {
+	t.Parallel()
 	const v = "strict-plan-review-not-required"
 	f := newRGFixture(t, v, "strict")
 	codeOnly := f.chained()
@@ -576,6 +578,7 @@ func TestHaReviewGateAC3_StrictGoalNeedsACoveringPlanRound(t *testing.T) {
 // AC-4: a gate whose reviewed head is not HEAD leaves completion pending with
 // a stale-head reason; a gate recorded for the new head completes it.
 func TestHaReviewGateAC4_StaleReviewedHeadKeepsCompletionPending(t *testing.T) {
+	t.Parallel()
 	const v = "stale-review-head-accepted"
 	f := newRGFixture(t, v, "standard")
 	f.recordGate(v, "a gate of the head", f.covering("candidate"))
@@ -599,6 +602,7 @@ func TestHaReviewGateAC4_StaleReviewedHeadKeepsCompletionPending(t *testing.T) {
 // AC-5: goal documents changed after the review, or a tier raised to strict,
 // leave completion pending with a reason that the review does not cover them.
 func TestHaReviewGateAC5_ChangedGoalDocumentsKeepCompletionPending(t *testing.T) {
+	t.Parallel()
 	const v = "stale-goal-documents-accepted"
 	f := newRGFixture(t, v, "standard")
 	f.recordGate(v, "a covering gate", f.covering("candidate"))
@@ -635,6 +639,7 @@ func TestHaReviewGateAC5_ChangedGoalDocumentsKeepCompletionPending(t *testing.T)
 // AC-6: a degraded or blocked gate, or one with an open defect or
 // requirement-question, leaves completion pending with distinct reasons.
 func TestHaReviewGateAC6_IncompleteGateKeepsCompletionPending(t *testing.T) {
+	t.Parallel()
 	const v = "incomplete-gate-accepted"
 	f := newRGFixture(t, v, "standard")
 	gate := func(state string, defect, question int) rgGate {
@@ -669,6 +674,7 @@ func TestHaReviewGateAC6_IncompleteGateKeepsCompletionPending(t *testing.T) {
 // no other note stands in for the gate; lowering the tier to light by a goal
 // document change lets it complete without one.
 func TestHaReviewGateAC7_MissingGateKeepsCompletionPending(t *testing.T) {
+	t.Parallel()
 	const v = "missing-gate-accepted"
 	for _, tier := range []string{"strict", "standard"} {
 		f := newRGFixture(t, v, tier)
@@ -696,6 +702,7 @@ func TestHaReviewGateAC7_MissingGateKeepsCompletionPending(t *testing.T) {
 // AC-8: an unusable gate file is refused with its reason and nothing is
 // recorded; the goal's judgment stays as it was.
 func TestHaReviewGateAC8_UnusableGateFileIsRefused(t *testing.T) {
+	t.Parallel()
 	const v = "unusable-gate-recorded"
 	f := newRGFixture(t, v, "standard")
 	mutate := func(change func(m map[string]any)) []byte {
@@ -788,6 +795,7 @@ func TestHaReviewGateAC8_UnusableGateFileIsRefused(t *testing.T) {
 // AC-9 (kept): a light goal under the new rules completes on its other
 // conditions alone, with or without a gate.
 func TestHaReviewGateAC9_LightGoalCompletesWithoutAGate(t *testing.T) {
+	t.Parallel()
 	rgRequireGit(t)
 	const v = "light-goal-needs-a-gate"
 	f := newRGFixture(t, v, "light")
@@ -804,6 +812,7 @@ func TestHaReviewGateAC9_LightGoalCompletesWithoutAGate(t *testing.T) {
 // AC-10 (kept): a goal under the new rules without an `Assurance:` line
 // completes on its other conditions alone.
 func TestHaReviewGateAC10_GoalWithoutTierCompletesWithoutAGate(t *testing.T) {
+	t.Parallel()
 	rgRequireGit(t)
 	const v = "goal-without-tier-needs-a-gate"
 	f := newRGFixture(t, v, "")
@@ -821,6 +830,7 @@ var rgStatusKeys = []string{"assurance", "budget", "changes", "check_author", "c
 // before, a standard tier included: they complete without a gate, keep their
 // status fields and completion record, and refuse a review note.
 func TestHaReviewGateAC11_EarlierRulesKeepTheirJudgment(t *testing.T) {
+	t.Parallel()
 	rgRequireGit(t)
 	const v = "earlier-rules-judgment-changed"
 	for _, rules := range []string{"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4"} {
@@ -873,6 +883,7 @@ func TestHaReviewGateAC11_EarlierRulesKeepTheirJudgment(t *testing.T) {
 // judging a gate give the same result for the same input, without reading
 // the gate file again.
 func TestHaReviewGateAC12_CoreStaysApartFromSparAndDeterministic(t *testing.T) {
+	t.Parallel()
 	rgRequireGit(t)
 	const v = "core-not-apart-or-not-deterministic"
 	list := exec.Command("go", "list", "-deps", "github.com/jgoneit/jaekit/cmd/ha")

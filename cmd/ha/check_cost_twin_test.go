@@ -17,7 +17,7 @@ package main
 // judgments the goal changes, a run-rules/7 goal whose every change condition
 // is marked is judged and commanded like the same record under run-rules/6.
 //
-// The checks use only the ha command line (runMain) and the helpers of
+// The checks use only the ha command line (runWith) and the helpers of
 // review_gate_test.go and core_integrity_test.go; they never run Spar, a
 // reviewer or a model, and never read a commit, ref or record outside the
 // repositories they build. A difference between the twins, a lint problem
@@ -139,10 +139,11 @@ func (p cwPlan) text() string {
 
 // cwRepo makes the committed repository of the synthetic goal with the tier
 // ("" for a SPEC without the line) and the PLAN. Only the producer, the
-// declarations, the maintained value and its test are committed.
+// declarations, the maintained value and its test are committed, each commit
+// dated cwDate.
 func cwRepo(t *testing.T, tier string, plan cwPlan) *rgFixture {
 	t.Helper()
-	return rgRepo(t, tier, func(f *rgFixture) {
+	return rgRepo(t, tier, rgEnv("GIT_AUTHOR_DATE="+cwDate, "GIT_COMMITTER_DATE="+cwDate), func(f *rgFixture) {
 		f.put(".gitignore", "/"+rgGoal+"/\n")
 		f.put(rgGoal+"/SPEC.md", cwSpec(tier))
 		f.put(rgGoal+"/PLAN.md", plan.text())
@@ -205,8 +206,6 @@ func cwFirst(out string) string {
 func newCWTwins(t *testing.T, violation, tier string, twins ...*cwTwin) *cwTwins {
 	t.Helper()
 	rgRequireGit(t)
-	t.Setenv("GIT_AUTHOR_DATE", cwDate)
-	t.Setenv("GIT_COMMITTER_DATE", cwDate)
 	set := &cwTwins{t: t, violation: violation, twins: twins, drop: map[string]bool{}}
 	for _, tw := range twins {
 		tw.f = cwRepo(t, tier, tw.plan)
@@ -215,14 +214,9 @@ func newCWTwins(t *testing.T, violation, tier string, twins ...*cwTwin) *cwTwins
 	return set
 }
 
+// use returns the twin's repository; its commands run in it.
 func (s *cwTwins) use(tw *cwTwin) *rgFixture {
 	s.t.Helper()
-	if err := os.Chdir(tw.f.dir); err != nil {
-		s.t.Fatalf("setup: %v", err)
-	}
-	if err := os.Setenv("PWD", tw.f.dir); err != nil {
-		s.t.Fatalf("setup: %v", err)
-	}
 	return tw.f
 }
 
@@ -1126,25 +1120,40 @@ func cwEarlierSteps(s *cwTwins, later *cwTwin) {
 // (cwSaveRules). The kept outputs of every rule are compared before any
 // twins, so a base where only the column differs fails on the twins.
 func TestCheckCostAC13_EarlierRulesIgnoreMark(t *testing.T) {
+	t.Parallel()
 	const v = "earlier-rules-change-with-mark"
-	for _, rules := range cwEarlierRules {
-		func() {
-			plain := &cwTwin{name: "the " + rules + " goal without the baseline column", rules: rules}
-			s := newCWTwins(t, v, "", plain)
-			s.kept = rules
-			cwEarlierSteps(s, nil)
-		}()
+	// Each rule's set has its own repositories, so the sets of one kind run
+	// at once; the twins start only after every kept output matched.
+	kept := t.Run("kept outputs", func(t *testing.T) {
+		for _, rules := range cwEarlierRules {
+			t.Run(rules, func(t *testing.T) {
+				t.Parallel()
+				plain := &cwTwin{name: "the " + rules + " goal without the baseline column", rules: rules}
+				s := newCWTwins(t, v, "", plain)
+				s.kept = rules
+				cwEarlierSteps(s, nil)
+			})
+		}
+	})
+	if !kept {
+		return
 	}
-	for _, rules := range cwEarlierRules {
-		func() {
-			plain := &cwTwin{name: "the " + rules + " goal without the baseline column", rules: rules}
-			marked := &cwTwin{name: "the " + rules + " goal with the baseline column", rules: rules,
-				plan: cwPlan{marks: []string{cwReq, "", "—"}}}
-			later := &cwTwin{name: "the " + rules + " goal that gains the baseline column after its completion", rules: rules}
-			s := newCWTwins(t, v, "", plain, marked, later)
-			s.human = true
-			cwEarlierSteps(s, later)
-		}()
+	twins := t.Run("twins", func(t *testing.T) {
+		for _, rules := range cwEarlierRules {
+			t.Run(rules, func(t *testing.T) {
+				t.Parallel()
+				plain := &cwTwin{name: "the " + rules + " goal without the baseline column", rules: rules}
+				marked := &cwTwin{name: "the " + rules + " goal with the baseline column", rules: rules,
+					plan: cwPlan{marks: []string{cwReq, "", "—"}}}
+				later := &cwTwin{name: "the " + rules + " goal that gains the baseline column after its completion", rules: rules}
+				s := newCWTwins(t, v, "", plain, marked, later)
+				s.human = true
+				cwEarlierSteps(s, later)
+			})
+		}
+	})
+	if !twins {
+		return
 	}
 
 	// The default start rule.
@@ -1177,6 +1186,7 @@ func TestCheckCostAC13_EarlierRulesIgnoreMark(t *testing.T) {
 // pre-approved limits, time limits, the dirty refusal, the baseline copy
 // refusal, out-of-scope changes and review gate states.
 func TestCheckCostAC14_SameAsRulesV6Elsewhere(t *testing.T) {
+	t.Parallel()
 	const v = "rules-v7-differs-from-v6"
 	old := &cwTwin{name: "the run-rules/6 goal", rules: "run-rules/6"}
 	now := &cwTwin{name: "the run-rules/7 goal with every change condition marked", rules: "run-rules/7",

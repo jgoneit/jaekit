@@ -10,10 +10,13 @@ import (
 )
 
 func TestUnsupportedRulesPrecedeRecordIntegrity(t *testing.T) {
+	t.Parallel()
 	for _, rules := range []string{"run-rules/99", status.RulesV1, status.RulesV2} {
 		t.Run(rules, func(t *testing.T) {
+			t.Parallel()
 			for _, damage := range []string{"prev", "seq", "unterminated"} {
 				t.Run(damage, func(t *testing.T) {
+					t.Parallel()
 					s := unsupportedRulesFixture(t)
 					s.ha("start", scenarioGoal, "--request", "implement", "--skill-name", "seal", "--skill-version", "0.1.0")
 					if s.lastCode != 0 {
@@ -75,6 +78,7 @@ func TestUnsupportedRulesPrecedeRecordIntegrity(t *testing.T) {
 }
 
 func TestCheckWithoutStartStillRefused(t *testing.T) {
+	t.Parallel()
 	s := unsupportedRulesFixture(t)
 	s.ha("check", scenarioGoal, "AC-2")
 	if s.lastCode != exitRefused {
@@ -94,17 +98,9 @@ func unsupportedRulesFixture(t *testing.T) *scenario {
 	if err := os.WriteFile(cfg, nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("GIT_CONFIG_GLOBAL", cfg)
-	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	for _, key := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
-		t.Setenv(key, "scenario")
-	}
-	for _, key := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
-		t.Setenv(key, "scenario@example.invalid")
-	}
+	s.env = envWith(os.Environ(), gitFixtureEnv(cfg, "scenario", "scenario@example.invalid")...)
 	s.git("init", "-q", "-b", "main")
 	s.git("add", "-A")
 	s.git("commit", "-q", "-m", "base")
-	t.Chdir(s.dir)
 	return s
 }

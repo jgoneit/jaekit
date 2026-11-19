@@ -50,15 +50,16 @@ func sfhWrite(t *testing.T, path, body string) {
 	}
 }
 
-// sfhCost runs ha cost --format json on one series and decodes it.
-func sfhCost(t *testing.T, series string) map[string]any {
+// sfhCost runs ha cost --format json on one series in the repository and
+// decodes it.
+func sfhCost(t *testing.T, repo, series string) map[string]any {
 	t.Helper()
-	var out, errs bytes.Buffer
-	if code := runMain([]string{"cost", "docs/specs/demo", "--series", series, "--format", "json"}, &out, &errs); code != exitOK {
-		t.Fatalf("AC-6: ha cost --series %s exits %d: %s", series, code, errs.String())
+	code, out, errs := haIn(repo, envIn(repo, os.Environ()), "cost", "docs/specs/demo", "--series", series, "--format", "json")
+	if code != exitOK {
+		t.Fatalf("AC-6: ha cost --series %s exits %d: %s", series, code, errs)
 	}
 	var doc map[string]any
-	if err := json.Unmarshal(bytes.ReplaceAll(out.Bytes(), []byte(series), []byte("<series>")), &doc); err != nil {
+	if err := json.Unmarshal(bytes.ReplaceAll([]byte(out), []byte(series), []byte("<series>")), &doc); err != nil {
 		t.Fatalf("AC-6: ha cost --format json printed no JSON object: %v", err)
 	}
 	return doc
@@ -68,22 +69,14 @@ func sfhCost(t *testing.T, series string) map[string]any {
 // give the same review and findings summary, and the class counts are the
 // ones findings.json holds.
 func TestSparSmallestFixAC6_HaCostReadsBothForms(t *testing.T) {
+	t.Parallel()
 	for _, tool := range []string{"git", "go"} {
 		if _, err := exec.LookPath(tool); err != nil {
 			t.Fatalf("setup: %s is not available: %v", tool, err)
 		}
 	}
-	root, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatalf("setup: %v", err)
-	}
 	tools := t.TempDir()
-	spar := filepath.Join(tools, "spar")
-	build := exec.Command("go", "build", "-o", spar, "./cmd/spar")
-	build.Dir = root
-	if out, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("setup: go build ./cmd/spar: %v: %s", err, out)
-	}
+	spar := sharedBinary(t, "./cmd/spar")
 	config := filepath.Join(tools, "spar.toml")
 	sfhWrite(t, config, "[[reviewers]]\nname = \"host\"\npreset = \"native\"\n")
 	env := []string{"SPAR_CONFIG=" + config, "HOME=" + tools, "XDG_CONFIG_HOME=" + filepath.Join(tools, "config"),
@@ -169,9 +162,8 @@ func TestSparSmallestFixAC6_HaCostReadsBothForms(t *testing.T) {
 	old, _ := json.MarshalIndent(findings, "", "  ")
 	sfhWrite(t, filepath.Join(repo, "docs/reviews/old/01-candidate/findings.json"), string(old)+"\n")
 
-	t.Chdir(repo)
-	withDirections := sfhCost(t, "docs/reviews/new")
-	without := sfhCost(t, "docs/reviews/old")
+	withDirections := sfhCost(t, repo, "docs/reviews/new")
+	without := sfhCost(t, repo, "docs/reviews/old")
 	for _, key := range []string{"review", "findings"} {
 		if !reflect.DeepEqual(withDirections[key], without[key]) {
 			t.Errorf("AC-6: ha cost %s differs between the series with smallest_fix and without it:\n%v\n%v", key, withDirections[key], without[key])

@@ -313,7 +313,7 @@ func (c *cli) cost(in []string) int {
 		if s == "" {
 			return c.fail(exitUsage, "--series needs a folder")
 		}
-		key, err := filepath.Abs(s)
+		key, err := c.abs(s)
 		if err != nil {
 			return c.fail(exitUsage, "--series %s: %v", s, err)
 		}
@@ -338,10 +338,11 @@ func (c *cli) cost(in []string) int {
 	}
 	var series []*reviewseries.Series
 	for _, path := range a.lists["series"] {
-		s, err := reviewseries.Read(path)
+		s, err := reviewseries.Read(c.at(path))
 		if err != nil {
-			return c.fail(exitRefused, "%v; nothing is summarized", err)
+			return c.fail(exitRefused, "%s; nothing is summarized", c.spelled(path, err.Error()))
 		}
+		s.Path = path // the summary names the folder as the user wrote it
 		series = append(series, s)
 	}
 	doc, err := c.costSummary(w, lines, series)

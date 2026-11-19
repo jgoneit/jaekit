@@ -1,0 +1,667 @@
+{
+ "schema": "cmd-ha-test-inventory/v3",
+ "commit": "27008c9ab9e705a9f72d4459225c9c18f6aea8d5",
+ "files": [
+  {
+   "file": "adapter_test.go",
+   "build": null,
+   "tests": [
+    "TestAdapterGoTestJSONFlow",
+    "TestAdapterJUnitFlow"
+   ]
+  },
+  {
+   "file": "baseline_budget_test.go",
+   "build": null,
+   "tests": [
+    "TestBaselineBudgetAC1_ReferenceFlow",
+    "TestBaselineBudgetAC2_Environment",
+    "TestBaselineBudgetAC3_UnknownAndMixed",
+    "TestBaselineBudgetAC4_Freshness",
+    "TestBaselineBudgetAC5_InvalidResultsAndRetries",
+    "TestBaselineBudgetAC6_Usage",
+    "TestBaselineBudgetAC7_CountsAndPrivacy",
+    "TestBaselineBudgetAC6_PartialBatch",
+    "TestBaselineBudgetAC6_PreparationAndOutputStorage",
+    "TestBaselineBudgetAC8_TotalLimit",
+    "TestBaselineBudgetAC9_TimeUnchanged",
+    "TestBaselineBudgetAC10_ConsentAndValidation",
+    "TestBaselineBudgetAC11_ConcurrentRevision",
+    "TestBaselineBudgetAC12_Persistence",
+    "TestBaselineBudgetAC13_ReopenAndCompletion",
+    "TestBaselineBudgetAC14_Legacy",
+    "TestBaselineBudgetAC15_BudgetOnlyComplete",
+    "TestBaselineBudgetAC16_ExistingEntryPaths"
+   ]
+  },
+  {
+   "file": "baseline_safety_test.go",
+   "build": null,
+   "tests": [
+    "TestBaselineSafetyAC1_BaseSymlinks",
+    "TestBaselineSafetyAC1_HeadSources",
+    "TestBaselineSafetyAC2_WholeListBeforeWrites",
+    "TestBaselineSafetyAC2_PreparationFailure",
+    "TestBaselineSafetyAC3_PartialBatch",
+    "TestBaselineSafetyAC4_RegularOverlay",
+    "TestBaselineSafetyAC4_RealStartFailureIsCharged",
+    "TestBaselineSafetyAC1_AllRulesRefuseNewUnsafeCopies",
+    "TestBaselineSafetyAC1_CommittedSymlinkWithCheckoutDisabled",
+    "TestBaselineSafetyAC5_StoredCompletionAndReopen"
+   ]
+  },
+  {
+   "file": "baseline_windows_test.go",
+   "build": null,
+   "tests": [
+    "TestNativeBaselineRejectsJunction"
+   ]
+  },
+  {
+   "file": "capabilities_test.go",
+   "build": null,
+   "tests": [
+    "TestCompatibilityAC7_GoallessReadOnlyQuery",
+    "TestCompatibilityAC8_ConsumerAndActualBinary",
+    "TestCompatibilityAC9_LegacyResumeAndOrdinaryChecks",
+    "TestCompatibilityAC9_UndeclaredV3AndManualRemainSupported"
+   ]
+  },
+  {
+   "file": "check_cost_compat_test.go",
+   "build": "//go:build jaekit_compat_018",
+   "tests": [
+    "TestCheckCostAC1_OlderCoreRefuses"
+   ]
+  },
+  {
+   "file": "check_cost_flow_test.go",
+   "build": null,
+   "tests": [
+    "TestCheckCostAC12_SelectiveFlowEndToEnd"
+   ]
+  },
+  {
+   "file": "check_cost_show_test.go",
+   "build": null,
+   "tests": [
+    "TestCheckCostAC5_StatusAndReportShowMark",
+    "TestCheckCostAC10_FreezeShown"
+   ]
+  },
+  {
+   "file": "check_cost_test.go",
+   "build": null,
+   "tests": [
+    "TestCheckCostAC1_StartAndCapabilities",
+    "TestCheckCostAC2_SatisfactionFollowsMark",
+    "TestCheckCostAC3_DefaultSelectionFollowsMark",
+    "TestCheckCostAC4_MinimumFollowsMark"
+   ]
+  },
+  {
+   "file": "check_cost_twin_test.go",
+   "build": null,
+   "tests": [
+    "TestCheckCostAC13_EarlierRulesIgnoreMark",
+    "TestCheckCostAC14_SameAsRulesV6Elsewhere"
+   ]
+  },
+  {
+   "file": "core_integrity_budget_test.go",
+   "build": null,
+   "tests": [
+    "TestCoreIntegrityAC5_TimeAfterCompletionLeavesElapsed",
+    "TestCoreIntegrityAC6_PostCompletionBoundaries"
+   ]
+  },
+  {
+   "file": "core_integrity_compat_test.go",
+   "build": "//go:build jaekit_compat_018",
+   "tests": [
+    "TestCoreIntegrityAC1_OlderCoreRefuses"
+   ]
+  },
+  {
+   "file": "core_integrity_review_test.go",
+   "build": null,
+   "tests": [
+    "TestCoreIntegrityAC2_ReviewStartsAtTheBase",
+    "TestCoreIntegrityAC3_LateReviewNoteByTier",
+    "TestCoreIntegrityAC4_UnjudgedDoneLineIsSkipped"
+   ]
+  },
+  {
+   "file": "core_integrity_test.go",
+   "build": null,
+   "tests": [
+    "TestCoreIntegrityAC1_StartAndCapabilities",
+    "TestCoreIntegrityAC7_EarlierRulesKeepTheirJudgments",
+    "TestCoreIntegrityAC10_CoreStaysDeterministicAndApart"
+   ]
+  },
+  {
+   "file": "core_integrity_twin_test.go",
+   "build": null,
+   "tests": [
+    "TestCoreIntegrityAC8_SameAsRulesV5Elsewhere"
+   ]
+  },
+  {
+   "file": "cost_test.go",
+   "build": "//go:build !windows",
+   "tests": [
+    "TestCostWaitsBeforeRunRules4AreNotRecorded",
+    "TestCostUnstartedGoalWithSeriesShowsNoZeroWaits",
+    "TestCostGrowthNeedsAGateListingEveryFixesRound",
+    "TestCostMalformedRoundTimeIsRefused",
+    "TestCostGrowthMatchesMeasuredRanges",
+    "TestCostMalformedRoundTimesGiveOneMessage"
+   ]
+  },
+  {
+   "file": "criteria_format_test.go",
+   "build": null,
+   "tests": [
+    "TestCriteriaFormatFreshness"
+   ]
+  },
+  {
+   "file": "estimate_test.go",
+   "build": null,
+   "tests": [
+    "TestEstimateAC8",
+    "TestStartBudgetAC9",
+    "TestEstimateAC10"
+   ]
+  },
+  {
+   "file": "findings_contract_test.go",
+   "build": null,
+   "tests": [
+    "TestFindingsPublicCLI"
+   ]
+  },
+  {
+   "file": "findings_review_test.go",
+   "build": null,
+   "tests": [
+    "TestFindingRetryEquivalentScenario",
+    "TestFindingRequiredListsScenario",
+    "TestFindingResolutionRefsScenario",
+    "TestFindingStoredReuseCLI"
+   ]
+  },
+  {
+   "file": "goal_cost_summary_test.go",
+   "build": "//go:build !windows",
+   "tests": [
+    "TestGoalCostSummaryAC1_KindAndSize",
+    "TestGoalCostSummaryAC2_VerificationCost",
+    "TestGoalCostSummaryAC3_QuestionsAndWaits",
+    "TestGoalCostSummaryAC4_ReviewRounds",
+    "TestGoalCostSummaryAC5_FindingsAndGrowth",
+    "TestGoalCostSummaryAC6_TokensNotRecorded",
+    "TestGoalCostSummaryAC7_OutputForms",
+    "TestGoalCostSummaryAC8_ReadOnly",
+    "TestGoalCostSummaryAC9_InputProblems",
+    "TestGoalCostSummaryAC11_ContractAndGuides",
+    "TestGoalCostSummaryAC10_RealSparRecords"
+   ]
+  },
+  {
+   "file": "history_evidence_boundary_test.go",
+   "build": null,
+   "tests": [
+    "TestFileEvidenceRejectsReplacedLeaf",
+    "TestFileEvidenceRejectsReplacedParent",
+    "TestFileEvidenceConfinedWalkRejectsLinks",
+    "TestFileEvidencePreservesStablePathStates",
+    "TestFileEvidenceBoundsGrowth"
+   ]
+  },
+  {
+   "file": "history_evidence_boundary_unix_test.go",
+   "build": "//go:build darwin || linux",
+   "tests": [
+    "TestFileEvidenceRejectsReplacedRoot",
+    "TestFileEvidenceBoundsDirectoryDescriptors",
+    "TestFileEvidencePreservesSearchOnlyDirectories"
+   ]
+  },
+  {
+   "file": "history_evidence_test.go",
+   "build": "//go:build darwin || linux",
+   "tests": [
+    "TestFileEvidenceSeparatesMissingFromUnreadable"
+   ]
+  },
+  {
+   "file": "history_evidence_windows_test.go",
+   "build": null,
+   "tests": [
+    "TestNativeHistoryWindowsFileBoundaries"
+   ]
+  },
+  {
+   "file": "history_request_id_test.go",
+   "build": null,
+   "tests": [
+    "TestNativeHistoryRequestIDPresence"
+   ]
+  },
+  {
+   "file": "main_test.go",
+   "build": null,
+   "tests": [
+    "TestMain"
+   ]
+  },
+  {
+   "file": "native_baseline_junction_test.go",
+   "build": null,
+   "tests": []
+  },
+  {
+   "file": "native_baseline_junction_unix_test.go",
+   "build": "//go:build !windows",
+   "tests": [
+    "TestNativeBaselineSymlinkScenarios"
+   ]
+  },
+  {
+   "file": "native_baseline_junction_windows_test.go",
+   "build": null,
+   "tests": [
+    "TestNativeWindowsBaselineJunctionScenarios"
+   ]
+  },
+  {
+   "file": "native_evidence_path_test.go",
+   "build": null,
+   "tests": [
+    "TestNativeEvidencePathScenarios"
+   ]
+  },
+  {
+   "file": "native_evidence_path_windows_test.go",
+   "build": null,
+   "tests": [
+    "TestNativeWindowsEvidencePathScenarios"
+   ]
+  },
+  {
+   "file": "native_history_test.go",
+   "build": null,
+   "tests": [
+    "TestNativeHistoryGitLifecycle",
+    "TestNativeHistoryFileEvidence"
+   ]
+  },
+  {
+   "file": "native_process_test.go",
+   "build": null,
+   "tests": [
+    "TestProcessScenarioDriver",
+    "TestNativeProcessTimeoutScenarios",
+    "TestNativeProcessUnconfirmedShutdownScenarios"
+   ]
+  },
+  {
+   "file": "native_process_windows_test.go",
+   "build": null,
+   "tests": [
+    "TestNativeWindowsProcessControlScenarios"
+   ]
+  },
+  {
+   "file": "native_report_doctor_test.go",
+   "build": null,
+   "tests": [
+    "TestNativeReportOutput",
+    "TestNativeDoctorHelper",
+    "TestNativeDoctorProbes"
+   ]
+  },
+  {
+   "file": "native_test.go",
+   "build": null,
+   "tests": [
+    "TestNativeCoreGitLifecycle"
+   ]
+  },
+  {
+   "file": "native_timing_test.go",
+   "build": "//go:build windows",
+   "tests": [
+    "TestNativeRecordedTiming"
+   ]
+  },
+  {
+   "file": "output_path_test.go",
+   "build": null,
+   "tests": [
+    "TestRunRecordStatesOutputPath"
+   ]
+  },
+  {
+   "file": "preflight_test.go",
+   "build": null,
+   "tests": [
+    "TestCheckPreflightRefusesDirty",
+    "TestDirtyDiagnostics",
+    "TestCheckPreflightStopsDirtyBatch",
+    "TestCheckPreflightPreservesExclusions"
+   ]
+  },
+  {
+   "file": "producer_semantics_test.go",
+   "build": null,
+   "tests": [
+    "TestProducerFacts_EachSuiteProducerReachesCore",
+    "TestProducerFacts_CurrentAndBaselinePreserveObservedMeaning",
+    "TestProducerFacts_AdverseAssertionSurvivesLaterSuccess"
+   ]
+  },
+  {
+   "file": "report_doctor_test.go",
+   "build": null,
+   "tests": [
+    "TestDoctorProcessControlFailure",
+    "TestReportSummaryParts"
+   ]
+  },
+  {
+   "file": "report_range_unix_test.go",
+   "build": "//go:build !windows",
+   "tests": [
+    "TestReportRangeFailureIsNotReadAgain"
+   ]
+  },
+  {
+   "file": "review_findings_compat_test.go",
+   "build": "//go:build jaekit_compat_018",
+   "tests": [
+    "TestReviewFindingsReportAC8_Release018ReadsTheNote"
+   ]
+  },
+  {
+   "file": "review_findings_report_test.go",
+   "build": null,
+   "tests": [
+    "TestReviewFindingsReportAC2_NoteKeepsTheLists",
+    "TestReviewFindingsReportAC3_ReportShowsTheLists",
+    "TestReviewFindingsReportAC4_EmptyListsKeepTheLine",
+    "TestReviewFindingsReportAC5_OldGateSaysNotRecorded",
+    "TestReviewFindingsReportAC6_MalformedLists",
+    "TestReviewFindingsReportAC11_ApartAndDeterministic"
+   ]
+  },
+  {
+   "file": "review_gate_docs_test.go",
+   "build": null,
+   "tests": [
+    "TestHaReviewGateAC13_SealStartsUnderTheNewRules",
+    "TestHaReviewGateAC13_SealCheckerNeedsTheNewRules",
+    "TestHaReviewGateAC14_RunRecordContractStatesTheGate",
+    "TestHaReviewGateAC14_CapabilitiesContractStatesTheGate",
+    "TestHaReviewGateAC14_GuidesStateTheGate",
+    "TestHaReviewGateAC14_SealSkillStatesNoGateNoCompletion"
+   ]
+  },
+  {
+   "file": "review_gate_record_test.go",
+   "build": null,
+   "tests": [
+    "TestHaReviewGateRecord_DoneComputedBeforeAGateDoesNotStand",
+    "TestHaReviewGateRecord_StoredSummaryMissingAFieldIsInvalid"
+   ]
+  },
+  {
+   "file": "review_gate_test.go",
+   "build": null,
+   "tests": [
+    "TestHaReviewGateAC1_RecordsTheGateSummary",
+    "TestHaReviewGateAC2_StandardGoalCompletesWithACoveringGate",
+    "TestHaReviewGateAC3_StrictGoalNeedsACoveringPlanRound",
+    "TestHaReviewGateAC4_StaleReviewedHeadKeepsCompletionPending",
+    "TestHaReviewGateAC5_ChangedGoalDocumentsKeepCompletionPending",
+    "TestHaReviewGateAC6_IncompleteGateKeepsCompletionPending",
+    "TestHaReviewGateAC7_MissingGateKeepsCompletionPending",
+    "TestHaReviewGateAC8_UnusableGateFileIsRefused",
+    "TestHaReviewGateAC9_LightGoalCompletesWithoutAGate",
+    "TestHaReviewGateAC10_GoalWithoutTierCompletesWithoutAGate",
+    "TestHaReviewGateAC11_EarlierRulesKeepTheirJudgment",
+    "TestHaReviewGateAC12_CoreStaysApartFromSparAndDeterministic"
+   ]
+  },
+  {
+   "file": "rules4_compat_test.go",
+   "build": null,
+   "tests": [
+    "TestCompatibilityRunRules4Goals",
+    "TestUsageNamesTheRunRules4Forms"
+   ]
+  },
+  {
+   "file": "rules6_test.go",
+   "build": null,
+   "tests": [
+    "TestRules6StartRefusesOtherVersions",
+    "TestRules6PostCompletionBudgetOutputs"
+   ]
+  },
+  {
+   "file": "rules7_test.go",
+   "build": null,
+   "tests": [
+    "TestRules7ReviewNamesUseParsedRounds",
+    "TestRules7ReviewFileErrorsMatchRules6",
+    "TestRules7CheckChangeBlobBinding",
+    "TestRules7ReviewTableSnapshotAndNames",
+    "TestRules7CheckChangeRejectedByEarlierRules",
+    "TestRules7FreezeMaintainCheckPaths",
+    "TestRules7EmptyFreezeTableIsObserved",
+    "TestRules7EstimateRulesAndStartMarks",
+    "TestRules7EmptyStartMarksAreRecorded",
+    "TestRules7ReportRestoredAndAddedBaselineMarks"
+   ]
+  },
+  {
+   "file": "scenario_test.go",
+   "build": null,
+   "tests": [
+    "TestScenarios",
+    "TestScenarioIndex"
+   ]
+  },
+  {
+   "file": "spar_agent_model_test.go",
+   "build": "//go:build !windows",
+   "tests": [
+    "TestSparAgentModelAC10_HaCostReadsBothForms"
+   ]
+  },
+  {
+   "file": "spar_cap_report_test.go",
+   "build": "//go:build !windows",
+   "tests": [
+    "TestSparCapReportAC9_HaCostShowsCause",
+    "TestSparCapReportAC10_LinesWithoutCauseInHaCost"
+   ]
+  },
+  {
+   "file": "spar_smallest_fix_test.go",
+   "build": "//go:build !windows",
+   "tests": [
+    "TestSparSmallestFixAC6_HaCostReadsBothForms"
+   ]
+  },
+  {
+   "file": "start_budget_test.go",
+   "build": null,
+   "tests": [
+    "TestNativeStartBudgetAndSkill",
+    "TestAutoRunsIsMaxOf50AndMinimumTimesOneAndAHalf",
+    "TestReadPreapprovalForms",
+    "TestReadCoreRequirementsForms",
+    "TestReadPreapprovalListsTreesOnlyForAFile"
+   ]
+  },
+  {
+   "file": "template_flow_test.go",
+   "build": null,
+   "tests": [
+    "TestTemplateFlowAC6_ExampleAndTemplateReachRecordedCompletion"
+   ]
+  },
+  {
+   "file": "timing_test.go",
+   "build": null,
+   "tests": [
+    "TestTimingViewReadsEachValueOnItsOwn",
+    "TestTimingViewShowsLimitUseAndNoFreeFormValues",
+    "TestTimingViewHidesOnlyTheDamagedCPUTime",
+    "TestTimingViewReadsEachCPUValueOnItsOwn",
+    "TestTimingViewLimitUseDoesNotOverflow",
+    "TestTimingViewNamesTheGoalWithoutAnAbsolutePath",
+    "TestTimingViewReportsAFailedWrite",
+    "TestCapabilityConsumerChecksTheOptionalTimingFormat",
+    "TestTimingMarkdownShowsEachKeptCPUValue"
+   ]
+  },
+  {
+   "file": "unsupported_rules_integrity_test.go",
+   "build": null,
+   "tests": [
+    "TestUnsupportedRulesPrecedeRecordIntegrity",
+    "TestCheckWithoutStartStillRefused"
+   ]
+  }
+ ],
+ "regression_selectors": [
+  {
+   "route": "gap-producer-meaning",
+   "file": "cmd/ha/producer_semantics_test.go",
+   "selector": "TestProducerFacts_AdverseAssertionSurvivesLaterSuccess"
+  },
+  {
+   "route": "gap-producer-meaning",
+   "file": "cmd/ha/producer_semantics_test.go",
+   "selector": "TestProducerFacts_EachSuiteProducerReachesCore"
+  },
+  {
+   "route": "goal-producer-meaning",
+   "file": "cmd/ha/producer_semantics_test.go",
+   "selector": "TestProducerFacts_AdverseAssertionSurvivesLaterSuccess"
+  },
+  {
+   "route": "goal-producer-meaning",
+   "file": "cmd/ha/producer_semantics_test.go",
+   "selector": "TestProducerFacts_CurrentAndBaselinePreserveObservedMeaning"
+  },
+  {
+   "route": "post-completion-recorded-facts",
+   "file": "cmd/ha/findings_contract_test.go",
+   "selector": "TestFindingsPublicCLI"
+  },
+  {
+   "route": "post-completion-recorded-facts",
+   "file": "cmd/ha/findings_review_test.go",
+   "selector": "TestFindingRequiredListsScenario"
+  },
+  {
+   "route": "post-completion-recorded-facts",
+   "file": "cmd/ha/findings_review_test.go",
+   "selector": "TestFindingResolutionRefsScenario"
+  },
+  {
+   "route": "post-completion-recorded-facts",
+   "file": "cmd/ha/findings_review_test.go",
+   "selector": "TestFindingRetryEquivalentScenario"
+  },
+  {
+   "route": "post-completion-recorded-facts",
+   "file": "cmd/ha/findings_review_test.go",
+   "selector": "TestFindingStoredReuseCLI"
+  },
+  {
+   "route": "reference-producer-to-cli",
+   "file": "cmd/ha/baseline_budget_test.go",
+   "selector": "TestBaselineBudgetAC1_ReferenceFlow"
+  },
+  {
+   "route": "reference-producer-to-cli",
+   "file": "cmd/ha/baseline_budget_test.go",
+   "selector": "TestBaselineBudgetAC2_Environment"
+  },
+  {
+   "route": "reference-producer-to-cli",
+   "file": "cmd/ha/baseline_budget_test.go",
+   "selector": "TestBaselineBudgetAC3_UnknownAndMixed"
+  },
+  {
+   "route": "reference-producer-to-cli",
+   "file": "cmd/ha/baseline_budget_test.go",
+   "selector": "TestBaselineBudgetAC5_InvalidResultsAndRetries"
+  },
+  {
+   "route": "review-producer-meaning",
+   "file": "cmd/ha/producer_semantics_test.go",
+   "selector": "TestProducerFacts_AdverseAssertionSurvivesLaterSuccess"
+  },
+  {
+   "route": "review-producer-meaning",
+   "file": "cmd/ha/producer_semantics_test.go",
+   "selector": "TestProducerFacts_EachSuiteProducerReachesCore"
+  },
+  {
+   "route": "runner-adapter-classification",
+   "file": "cmd/ha/adapter_test.go",
+   "selector": "TestAdapterGoTestJSONFlow"
+  },
+  {
+   "route": "runner-adapter-classification",
+   "file": "cmd/ha/adapter_test.go",
+   "selector": "TestAdapterJUnitFlow"
+  },
+  {
+   "route": "stored-proof-independence",
+   "file": "cmd/ha/baseline_budget_test.go",
+   "selector": "TestBaselineBudgetAC1_ReferenceFlow"
+  }
+ ],
+ "native_selections": {
+  "named": [
+   "TestNativeBaselineRejectsJunction",
+   "TestNativeCoreGitLifecycle",
+   "TestNativeDoctorProbes",
+   "TestNativeEvidencePathScenarios",
+   "TestNativeHistoryFileEvidence",
+   "TestNativeHistoryGitLifecycle",
+   "TestNativeHistoryRequestIDPresence",
+   "TestNativeHistoryWindowsFileBoundaries",
+   "TestNativeProcessTimeoutScenarios",
+   "TestNativeProcessUnconfirmedShutdownScenarios",
+   "TestNativeRecordedTiming",
+   "TestNativeReportOutput",
+   "TestNativeStartBudgetAndSkill",
+   "TestNativeWindowsBaselineJunctionScenarios",
+   "TestNativeWindowsEvidencePathScenarios",
+   "TestNativeWindowsProcessControlScenarios"
+  ],
+  "unqualified": [
+   "TestNativeAdmissionFailureHasNoOutputDigest",
+   "TestNativeArgvEnvironmentAndOutcomes",
+   "TestNativeBaselineRejectsJunction",
+   "TestNativeCleanCRLFStillRequiresCommittedBytes",
+   "TestNativeConcurrentProcessesPreserveRecords",
+   "TestNativeCoreGitLifecycle",
+   "TestNativeJobLayout",
+   "TestNativeLockIsReleasedWhenOwnerExits",
+   "TestNativeTimeoutStopsDescendantWrites",
+   "TestNativeUnconfirmedShutdownHasNoOutputDigest",
+   "TestNativeWindowsEvidencePaths"
+  ]
+ }
+}

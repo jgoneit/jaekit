@@ -105,11 +105,9 @@ func ctFirst(out string) string {
 func newCTTwins(t *testing.T, tier string) *ctTwins {
 	t.Helper()
 	rgRequireGit(t)
-	t.Setenv("GIT_AUTHOR_DATE", ctDate)
-	t.Setenv("GIT_COMMITTER_DATE", ctDate)
 	tw := &ctTwins{t: t}
 	for i := range tw.pair {
-		tw.pair[i] = rgRepo(t, tier, func(f *rgFixture) {
+		tw.pair[i] = rgRepo(t, tier, rgEnv("GIT_AUTHOR_DATE="+ctDate, "GIT_COMMITTER_DATE="+ctDate), func(f *rgFixture) {
 			f.put(".gitignore", "/"+rgGoal+"/runs.jsonl\n")
 		})
 	}
@@ -117,18 +115,11 @@ func newCTTwins(t *testing.T, tier string) *ctTwins {
 	return tw
 }
 
-// use makes twin i's repository the working directory, as ha reads the goal
-// path from it.
+// use returns twin i's repository; its commands run in it, as ha reads the
+// goal path from the working directory.
 func (tw *ctTwins) use(i int) *rgFixture {
 	tw.t.Helper()
-	f := tw.pair[i]
-	if err := os.Chdir(f.dir); err != nil {
-		tw.t.Fatalf("setup: %v", err)
-	}
-	if err := os.Setenv("PWD", f.dir); err != nil {
-		tw.t.Fatalf("setup: %v", err)
-	}
-	return f
+	return tw.pair[i]
 }
 
 func (tw *ctTwins) sameHead(label string) {
@@ -487,6 +478,7 @@ func ctReplaceFirst(t *testing.T, re *regexp.Regexp, line []byte, value string) 
 }
 
 func TestCoreIntegrityAC8_SameAsRulesV5Elsewhere(t *testing.T) {
+	t.Parallel()
 	tw := newCTTwins(t, "standard")
 	tw.start("the start")
 

@@ -25,37 +25,30 @@ import (
 	"testing"
 )
 
-// amhCost runs ha cost --format json on one series and decodes it.
-func amhCost(t *testing.T, series string) map[string]any {
+// amhCost runs ha cost --format json on one series in the repository and
+// decodes it.
+func amhCost(t *testing.T, repo, series string) map[string]any {
 	t.Helper()
-	var out, errs bytes.Buffer
-	if code := runMain([]string{"cost", "docs/specs/demo", "--series", series, "--format", "json"}, &out, &errs); code != exitOK {
-		t.Fatalf("AC-10: ha cost --series %s exits %d: %s", series, code, errs.String())
+	code, out, errs := haIn(repo, envIn(repo, os.Environ()), "cost", "docs/specs/demo", "--series", series, "--format", "json")
+	if code != exitOK {
+		t.Fatalf("AC-10: ha cost --series %s exits %d: %s", series, code, errs)
 	}
 	var doc map[string]any
-	if err := json.Unmarshal(bytes.ReplaceAll(out.Bytes(), []byte(series), []byte("<series>")), &doc); err != nil {
+	if err := json.Unmarshal(bytes.ReplaceAll([]byte(out), []byte(series), []byte("<series>")), &doc); err != nil {
 		t.Fatalf("AC-10: ha cost --format json printed no JSON object: %v", err)
 	}
 	return doc
 }
 
 func TestSparAgentModelAC10_HaCostReadsBothForms(t *testing.T) {
+	t.Parallel()
 	for _, tool := range []string{"git", "go"} {
 		if _, err := exec.LookPath(tool); err != nil {
 			t.Fatalf("setup: %s is not available: %v", tool, err)
 		}
 	}
-	root, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatalf("setup: %v", err)
-	}
 	tools := t.TempDir()
-	spar := filepath.Join(tools, "spar")
-	build := exec.Command("go", "build", "-o", spar, "./cmd/spar")
-	build.Dir = root
-	if out, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("setup: go build ./cmd/spar: %v: %s", err, out)
-	}
+	spar := sharedBinary(t, "./cmd/spar")
 	env := []string{"HOME=" + tools, "XDG_CONFIG_HOME=" + filepath.Join(tools, "config"),
 		"GIT_CONFIG_GLOBAL=" + os.DevNull, "GIT_CONFIG_NOSYSTEM=1", "GIT_AUTHOR_NAME=synthetic",
 		"GIT_AUTHOR_EMAIL=synthetic@example.invalid", "GIT_COMMITTER_NAME=synthetic", "GIT_COMMITTER_EMAIL=synthetic@example.invalid"}
@@ -141,9 +134,8 @@ func TestSparAgentModelAC10_HaCostReadsBothForms(t *testing.T) {
 	old, _ := json.MarshalIndent(rec, "", "  ")
 	sfhWrite(t, filepath.Join(repo, "docs/reviews/old/01-candidate/round.json"), string(old)+"\n")
 
-	t.Chdir(repo)
-	withSources := amhCost(t, "docs/reviews/new")
-	without := amhCost(t, "docs/reviews/old")
+	withSources := amhCost(t, repo, "docs/reviews/new")
+	without := amhCost(t, repo, "docs/reviews/old")
 	for _, key := range []string{"review", "findings"} {
 		if withSources[key] == nil || !reflect.DeepEqual(withSources[key], without[key]) {
 			t.Errorf("AC-10: ha cost %s differs between the series with model sources and without them:\n%v\n%v", key, withSources[key], without[key])

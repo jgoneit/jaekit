@@ -11,39 +11,36 @@ import (
 // Each finding decision scenario also runs alone, so one decision can be
 // observed without the rest of the scenario suite.
 func runNamedScenario(t *testing.T, name string) {
-	abs, err := filepath.Abs(scenarioRoot)
-	if err != nil {
-		t.Fatal(err)
+	if scenarioRootErr != nil {
+		t.Fatal(scenarioRootErr)
 	}
-	scenarioRoot = abs
 	runScenario(t, name)
 }
 
 func TestFindingRetryEquivalentScenario(t *testing.T) {
+	t.Parallel()
 	runNamedScenario(t, "findings-retry-equivalent")
 }
 
 func TestFindingRequiredListsScenario(t *testing.T) {
+	t.Parallel()
 	runNamedScenario(t, "findings-required-lists")
 }
 
 func TestFindingResolutionRefsScenario(t *testing.T) {
+	t.Parallel()
 	runNamedScenario(t, "findings-resolution-refs")
 }
 
 // The stored-reuse regression crosses the real binary, the record bytes and
 // the Seal support helper, so it runs as a separate process here.
 func TestFindingStoredReuseCLI(t *testing.T) {
+	t.Parallel()
 	root, err := filepath.Abs("../..")
 	if err != nil {
 		t.Fatal(err)
 	}
-	binary := filepath.Join(t.TempDir(), "ha")
-	build := exec.Command("go", "build", "-mod=readonly", "-o", binary, "./cmd/ha")
-	build.Dir = root
-	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build fixture: %v: %s", err, output)
-	}
+	binary := sharedBinary(t, "./cmd/ha")
 	command := exec.Command("python3", "tools/findings-checks/test_stored_reuse.py")
 	command.Dir = root
 	for _, env := range os.Environ() {

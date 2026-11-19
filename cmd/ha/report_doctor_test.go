@@ -27,6 +27,7 @@ func TestDoctorProcessControlFailure(t *testing.T) {
 }
 
 func TestReportSummaryParts(t *testing.T) {
+	t.Parallel()
 	if got := oneLine.Replace("docs/specs/two\nlines\r"); got != `docs/specs/two\nlines\r` {
 		t.Fatalf("oneLine: %q", got)
 	}

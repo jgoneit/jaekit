@@ -6,7 +6,7 @@ package main
 // cost in verification and review from its run record, its goal documents,
 // Git and the Spar review series folders a person names
 // (contracts/run-record.md §1.7). The tests drive the ha command line
-// (runMain) on synthetic repositories and write review series in the public
+// (runWith) on synthetic repositories and write review series in the public
 // review-round/v1 and review-gate/v1 forms (contracts/review-round.md §5,
 // contracts/review-gate.md §3), as spar writes them; only AC-10 runs a real
 // spar binary, with a host reviewer whose answers the test writes. Each
@@ -59,6 +59,9 @@ type gcFixture struct {
 	head string
 	// seqs names the record lines the fixture made.
 	seqs map[string]int
+	// env is the environment of the fixture's git, ha and spar commands,
+	// which run in dir, as t.Setenv and t.Chdir(dir) would leave it.
+	env []string
 }
 
 func gcSpec(tier string) string {
@@ -96,22 +99,15 @@ func gcSHA(data []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// gcRepo makes a committed repository holding one goal and makes it the
-// working directory.
-func gcRepo(t *testing.T, tier string) *gcFixture {
+// gcRepo makes a committed repository holding one goal, where the
+// fixture's commands run with the environment entries set (KEY=VALUE).
+func gcRepo(t *testing.T, tier string, set ...string) *gcFixture {
 	t.Helper()
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skipf("git is not available: %v", err)
 	}
 	f := &gcFixture{t: t, dir: t.TempDir(), seqs: map[string]int{}}
-	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
-	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	for _, key := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
-		t.Setenv(key, "synthetic")
-	}
-	for _, key := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
-		t.Setenv(key, "synthetic@example.invalid")
-	}
+	f.env = envWith(os.Environ(), append(gitFixtureEnv(os.DevNull, "synthetic", "synthetic@example.invalid"), set...)...)
 	f.put(".gitignore", "/docs/reviews/\n")
 	f.put(gcGoal+"/SPEC.md", gcSpec(tier))
 	f.put(gcGoal+"/PLAN.md", gcPlan)
@@ -125,7 +121,6 @@ func gcRepo(t *testing.T, tier string) *gcFixture {
 	f.put("checks/AC-1.json", gcDeclaration)
 	f.git("init", "-q", "-b", "main")
 	f.commit("base")
-	t.Chdir(f.dir)
 	return f
 }
 
@@ -175,8 +170,7 @@ func (f *gcFixture) read(rel string) []byte {
 
 func (f *gcFixture) git(args ...string) string {
 	f.t.Helper()
-	cmd := exec.Command("git", args...)
-	cmd.Dir = f.dir
+	cmd := envCommand(f.dir, envIn(f.dir, f.env), "git", args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		f.t.Fatalf("setup: git %v: %v: %s", args, err, out)
@@ -192,17 +186,22 @@ func (f *gcFixture) commit(message string) string {
 	return f.head
 }
 
-func gcHa(args ...string) (int, string, string) {
-	var out, errb bytes.Buffer
-	code := runMain(args, &out, &errb)
-	return code, out.String(), errb.String()
+// ha runs ha in the fixture's repository with its environment.
+func (f *gcFixture) ha(args ...string) (int, string, string) {
+	return haIn(f.dir, envIn(f.dir, f.env), args...)
+}
+
+// in is the fixture for another checkout of the same goal (a clone), with
+// the same environment.
+func (f *gcFixture) in(dir string) *gcFixture {
+	return &gcFixture{t: f.t, dir: dir, base: f.base, head: f.head, seqs: f.seqs, env: f.env}
 }
 
 // must runs an ha command that exists before this goal; any other exit is a
 // broken setup. It returns the seq the command printed, if any.
 func (f *gcFixture) must(name string, want int, args ...string) {
 	f.t.Helper()
-	code, out, errs := gcHa(args...)
+	code, out, errs := f.ha(args...)
 	if code != want {
 		f.t.Fatalf("setup: ha %v: exit %d, want %d: %s%s", args, code, want, out, errs)
 	}
@@ -400,9 +399,9 @@ func (f *gcFixture) series(dir string) {
 
 // cost runs ha cost and requires it to print a summary: a Core without the
 // command, or one that refuses the input, is the observed violation.
-func gcCost(t *testing.T, violation string, args ...string) string {
+func (f *gcFixture) cost(t *testing.T, violation string, args ...string) string {
 	t.Helper()
-	code, out, errs := gcHa(append([]string{"cost"}, args...)...)
+	code, out, errs := f.ha(append([]string{"cost"}, args...)...)
 	if code != exitOK {
 		t.Fatalf("jaekit:violation=%s ha cost %v gave exit %d, want 0: %s", violation, args, code, strings.TrimSpace(errs))
 	}
@@ -410,9 +409,9 @@ func gcCost(t *testing.T, violation string, args ...string) string {
 }
 
 // costJSON runs ha cost --format json and decodes it.
-func gcCostJSON(t *testing.T, violation string, args ...string) map[string]any {
+func (f *gcFixture) costJSON(t *testing.T, violation string, args ...string) map[string]any {
 	t.Helper()
-	out := gcCost(t, violation, append(args, "--format", "json")...)
+	out := f.cost(t, violation, append(args, "--format", "json")...)
 	var doc map[string]any
 	if err := json.Unmarshal([]byte(out), &doc); err != nil {
 		t.Fatalf("jaekit:violation=%s ha cost --format json printed no JSON object: %v", violation, err)
@@ -469,9 +468,9 @@ func gcContains(t *testing.T, violation, label, text string, wants ...string) {
 	}
 }
 
-func gcStatus(t *testing.T) map[string]any {
+func (f *gcFixture) statusDoc(t *testing.T) map[string]any {
 	t.Helper()
-	_, out, _ := gcHa("status", gcGoal, "--format", "json")
+	_, out, _ := f.ha("status", gcGoal, "--format", "json")
 	var doc map[string]any
 	if err := json.Unmarshal([]byte(out), &doc); err != nil {
 		t.Fatalf("setup: ha status --format json: %v: %s", err, out)
@@ -482,10 +481,11 @@ func gcStatus(t *testing.T) map[string]any {
 // AC-1: the goal's tier, rules version, criteria counts, the files and
 // commits ha report's Changed counts, and the valid completion record.
 func TestGoalCostSummaryAC1_KindAndSize(t *testing.T) {
+	t.Parallel()
 	const v = "cost-kind-missing"
 	f := gcBuild(t)
-	doc := gcCostJSON(t, v, gcGoal)
-	_, report, _ := gcHa("report", gcGoal)
+	doc := f.costJSON(t, v, gcGoal)
+	_, report, _ := f.ha("report", gcGoal)
 	changed := regexp.MustCompile(`^Changed: (\d+) files and (\d+) commits`).FindStringSubmatch(report)
 	if changed == nil {
 		t.Fatalf("setup: ha report printed no Changed counts:\n%s", report)
@@ -494,7 +494,7 @@ func TestGoalCostSummaryAC1_KindAndSize(t *testing.T) {
 	commits, _ := strconv.Atoi(changed[2])
 	gcExpect(t, v, "kind", doc["kind"], map[string]any{"assurance": "standard", "rules": "run-rules/5", "required_criteria": 2,
 		"optional_criteria": 1, "base": f.base, "changed_files": files, "changed_commits": commits, "completion_record": f.seqs["done"]})
-	text := gcCost(t, v, gcGoal)
+	text := f.cost(t, v, gcGoal)
 	gcContains(t, v, "the Markdown summary", text, "- assurance tier: standard", "- rules: run-rules/5", "- criteria: 2 required, 1 optional",
 		fmt.Sprintf("- changed: %d files and %d commits outside the bundle documents since base %s", files, commits, f.base[:12]),
 		fmt.Sprintf("- completion record: seq %d", f.seqs["done"]))
@@ -502,11 +502,11 @@ func TestGoalCostSummaryAC1_KindAndSize(t *testing.T) {
 	// valid completion record shows none.
 	g := gcRepo(t, "")
 	g.must("", exitOK, "start", gcGoal, "--request", gcRequest, "--rules", "run-rules/5")
-	doc = gcCostJSON(t, v, gcGoal)
+	doc = g.costJSON(t, v, gcGoal)
 	if gcAt(doc, "kind", "assurance") != nil || gcAt(doc, "unavailable", "kind.assurance") != "none" || gcAt(doc, "kind", "completion_record") != nil {
 		t.Errorf("jaekit:violation=%s a SPEC without an Assurance line and a goal without completion give kind %v", v, doc["kind"])
 	}
-	gcContains(t, v, "the Markdown summary", gcCost(t, v, gcGoal), "- assurance tier: none", "- completion record: none")
+	gcContains(t, v, "the Markdown summary", g.cost(t, v, gcGoal), "- assurance tier: none", "- completion record: none")
 }
 
 // gcRecordCounts reads the run record the way the summary must count it.
@@ -549,9 +549,10 @@ func gcCount(t *testing.T, records []byte) gcCounts {
 // re-recorded run with the inputs that changed or the previous result, the
 // note counts, the record span and the budget values ha status shows.
 func TestGoalCostSummaryAC2_VerificationCost(t *testing.T) {
+	t.Parallel()
 	const v = "cost-verification-missing"
 	f := gcBuild(t)
-	doc := gcCostJSON(t, v, gcGoal)
+	doc := f.costJSON(t, v, gcGoal)
 	c := gcCount(t, f.read(gcGoal+"/runs.jsonl"))
 	vr := doc["verification"]
 	gcExpect(t, v, "runs", gcAt(vr, "runs"), c.runs)
@@ -578,8 +579,8 @@ func TestGoalCostSummaryAC2_VerificationCost(t *testing.T) {
 		bd := gcStatusBudget(status)
 		gcExpect(t, v, "budget", gcAt(doc, "verification", "budget"), bd)
 	}
-	budget(doc, gcStatus(t))
-	text := gcCost(t, v, gcGoal)
+	budget(doc, f.statusDoc(t))
+	text := f.cost(t, v, gcGoal)
 	gcContains(t, v, "the Markdown summary", text,
 		fmt.Sprintf("  - AC-1 baseline seq %d after seq %d: overlaid check files changed", s["baseline2"], s["baseline1"]),
 		fmt.Sprintf("  - AC-3 check seq %d after seq %d: code changed", s["ac3pass"], s["ac3fail"]),
@@ -587,9 +588,9 @@ func TestGoalCostSummaryAC2_VerificationCost(t *testing.T) {
 		fmt.Sprintf("- run time: %d ms in all (check %d ms, baseline %d ms)", c.check+c.baseline, c.check, c.baseline))
 	// A reopen opens a new budget window; the summary follows ha status.
 	f.must("reopen", exitOK, "note", gcGoal, "reopen", "--quote", "synthetic rework request")
-	doc = gcCostJSON(t, v, gcGoal)
+	doc = f.costJSON(t, v, gcGoal)
 	gcExpect(t, v, "notes after a reopen", gcAt(doc, "verification", "notes", "reopen"), 1)
-	budget(doc, gcStatus(t))
+	budget(doc, f.statusDoc(t))
 	if gcAt(doc, "kind", "completion_record") != nil {
 		t.Errorf("jaekit:violation=%s after a reopen the summary still names completion record %v", v, gcAt(doc, "kind", "completion_record"))
 	}
@@ -607,16 +608,17 @@ func gcStatusBudget(status map[string]any) map[string]any {
 // requirement questions with their answers, the cap extensions and the
 // waivers, counted by source and listed.
 func TestGoalCostSummaryAC3_QuestionsAndWaits(t *testing.T) {
+	t.Parallel()
 	const v = "cost-questions-missing"
 	f := gcBuild(t)
-	doc := gcCostJSON(t, v, gcGoal, "--series", gcSeries)
+	doc := f.costJSON(t, v, gcGoal, "--series", gcSeries)
 	// Each synthetic line is a minute after the one before it, and a wait
 	// runs from the second after its note to the line that ends it.
 	gcExpect(t, v, "waits", gcAt(doc, "questions", "waits"), []any{
 		map[string]any{"seq": f.seqs["wait1"], "reason": gcWaitOne, "seconds": 59},
 		map[string]any{"seq": f.seqs["wait2"], "reason": gcWaitTwo, "seconds": 59},
 	})
-	gcExpect(t, v, "reported_wait_seconds", gcAt(doc, "questions", "reported_wait_seconds"), gcAt(gcStatus(t), "budget", "reported_wait_seconds"))
+	gcExpect(t, v, "reported_wait_seconds", gcAt(doc, "questions", "reported_wait_seconds"), gcAt(f.statusDoc(t), "budget", "reported_wait_seconds"))
 	gcExpect(t, v, "input and confirm notes", []any{gcAt(doc, "questions", "input_notes"), gcAt(doc, "questions", "confirm_notes")}, []int{1, 1})
 	gcExpect(t, v, "questions by source", gcAt(doc, "questions", "by_source"),
 		map[string]any{"wait": 2, "requirement_question": 1, "extension": 1, "waiver": 1})
@@ -624,20 +626,20 @@ func TestGoalCostSummaryAC3_QuestionsAndWaits(t *testing.T) {
 		"round": "01-candidate", "finding": "claude-F2", "disposition": "answer", "user_quote": gcQuestionText}})
 	gcExpect(t, v, "extensions", gcAt(doc, "questions", "extensions"), []any{map[string]any{"series": gcSeries, "stage": "code", "by": 1, "user_quote": gcExtendQuote}})
 	gcExpect(t, v, "waivers", gcAt(doc, "questions", "waivers"), []any{map[string]any{"series": gcSeries, "round": "01-candidate", "reviewer": "agy", "user_quote": gcWaiverQuote}})
-	text := gcCost(t, v, gcGoal, "--series", gcSeries)
+	text := f.cost(t, v, gcGoal, "--series", gcSeries)
 	gcContains(t, v, "the Markdown summary", text,
 		"- questions by source: waits 2, requirement-questions 1, cap extensions 1, reviewer waivers 1",
 		fmt.Sprintf("  - seq %d, 59 seconds: %s", f.seqs["wait1"], gcWaitOne), fmt.Sprintf("  - seq %d, 59 seconds: %s", f.seqs["wait2"], gcWaitTwo),
 		"- input notes 1; confirm notes 1", "  - "+gcSeries+" 01-candidate claude-F2: answer: "+gcQuestionText,
 		"  - "+gcSeries+": code +1: "+gcExtendQuote, "  - "+gcSeries+" 01-candidate agy: "+gcWaiverQuote)
 	// Without a series the Spar sources are not given, never zero.
-	doc = gcCostJSON(t, v, gcGoal)
+	doc = f.costJSON(t, v, gcGoal)
 	for _, key := range []string{"requirement_question", "extension", "waiver"} {
 		if gcAt(doc, "questions", "by_source", key) != nil || gcAt(doc, "unavailable", "questions.by_source."+key) != "not_given" {
 			t.Errorf("jaekit:violation=%s without a series the %s source is %v", v, key, gcAt(doc, "questions", "by_source", key))
 		}
 	}
-	gcContains(t, v, "the Markdown summary", gcCost(t, v, gcGoal), "requirement-questions, cap extensions and reviewer waivers not given")
+	gcContains(t, v, "the Markdown summary", f.cost(t, v, gcGoal), "requirement-questions, cap extensions and reviewer waivers not given")
 }
 
 // AC-4: rounds by stage, counted rounds apart from reruns, dry runs left
@@ -645,9 +647,10 @@ func TestGoalCostSummaryAC3_QuestionsAndWaits(t *testing.T) {
 // status, attempts and fallback, and each reviewer's total; without a series
 // the review part is not given and shows no zero.
 func TestGoalCostSummaryAC4_ReviewRounds(t *testing.T) {
+	t.Parallel()
 	const v = "cost-review-missing"
-	gcBuild(t)
-	doc := gcCostJSON(t, v, gcGoal, "--series", gcSeries)
+	f := gcBuild(t)
+	doc := f.costJSON(t, v, gcGoal, "--series", gcSeries)
 	r := doc["review"]
 	gcExpect(t, v, "stages", gcAt(r, "stages"), []any{
 		map[string]any{"stage": "plan", "counted": 0, "reruns": 0, "counted_not_recorded": 0},
@@ -676,7 +679,7 @@ func TestGoalCostSummaryAC4_ReviewRounds(t *testing.T) {
 		map[string]any{"reviewer": "claude", "seconds": 140.125, "rounds": 2, "not_recorded": 0},
 		map[string]any{"reviewer": "codex", "seconds": 961.25, "rounds": 3, "not_recorded": 0},
 	})
-	text := gcCost(t, v, gcGoal, "--series", gcSeries)
+	text := f.cost(t, v, gcGoal, "--series", gcSeries)
 	gcContains(t, v, "the Markdown summary", text,
 		"- rounds by stage: plan 0 counted, 0 reruns; plan-delta 0 counted, 0 reruns; candidate 1 counted, 0 reruns; fixes 1 counted, 1 reruns",
 		"  - "+gcSeries+" 01-candidate (candidate, sequence 1, counted): 600s, 2026-01-01T00:00:00Z – 2026-01-01T00:10:00Z",
@@ -686,11 +689,11 @@ func TestGoalCostSummaryAC4_ReviewRounds(t *testing.T) {
 		t.Errorf("jaekit:violation=%s the dry run is listed among the rounds:\n%s", v, text)
 	}
 	// Without a series the review part says it was not given.
-	doc = gcCostJSON(t, v, gcGoal)
+	doc = f.costJSON(t, v, gcGoal)
 	if doc["review"] != nil || gcAt(doc, "unavailable", "review") != "not_given" {
 		t.Errorf("jaekit:violation=%s without a series the review part is %v", v, doc["review"])
 	}
-	text = gcCost(t, v, gcGoal)
+	text = f.cost(t, v, gcGoal)
 	section := text[strings.Index(text, "## Review rounds"):strings.Index(text, "## Findings and fixes")]
 	if !strings.Contains(section, "- not given: no review series was named with --series") || regexp.MustCompile(`\b0\b`).MatchString(section) {
 		t.Errorf("jaekit:violation=%s without a series the review part shows:\n%s", v, section)
@@ -701,9 +704,10 @@ func TestGoalCostSummaryAC4_ReviewRounds(t *testing.T) {
 // automatic deferrals apart, and the lines fixes rounds added as the gate's
 // growth records them; 0 without a fixes round.
 func TestGoalCostSummaryAC5_FindingsAndGrowth(t *testing.T) {
+	t.Parallel()
 	const v = "cost-findings-missing"
 	f := gcBuild(t)
-	doc := gcCostJSON(t, v, gcGoal, "--series", gcSeries)
+	doc := f.costJSON(t, v, gcGoal, "--series", gcSeries)
 	d := func(fix, reject, deferred, auto, duplicate, answer, none int) map[string]any {
 		return map[string]any{"fix": fix, "reject": reject, "defer": deferred, "auto_defer": auto, "duplicate": duplicate, "answer": answer, "none": none}
 	}
@@ -715,7 +719,7 @@ func TestGoalCostSummaryAC5_FindingsAndGrowth(t *testing.T) {
 	})
 	gcExpect(t, v, "growth", gcAt(doc, "findings", "growth"), []any{map[string]any{"series": gcSeries, "lines": map[string]any{"check": 7, "other": 3}, "source": "gate", "gate": "gate.json"}})
 	gcExpect(t, v, "growth total", gcAt(doc, "findings", "growth_total"), map[string]any{"check": 7, "other": 3})
-	text := gcCost(t, v, gcGoal, "--series", gcSeries)
+	text := f.cost(t, v, gcGoal, "--series", gcSeries)
 	gcContains(t, v, "the Markdown summary", text,
 		"- defect: 3 (check paths 1, other 2, unreadable location 0, location not recorded 0)",
 		"  - fix 1, reject 1, defer 0, automatic defer 0, duplicate 1, answer 0, no disposition 0",
@@ -733,7 +737,7 @@ func TestGoalCostSummaryAC5_FindingsAndGrowth(t *testing.T) {
 	if err := os.Remove(filepath.Join(f.dir, "docs/reviews/nogate/gate.json")); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
-	doc = gcCostJSON(t, v, gcGoal, "--series", "docs/reviews/nofixes", "--series", "docs/reviews/nogate")
+	doc = f.costJSON(t, v, gcGoal, "--series", "docs/reviews/nofixes", "--series", "docs/reviews/nogate")
 	gcExpect(t, v, "growth of two series", gcAt(doc, "findings", "growth"), []any{
 		map[string]any{"series": "docs/reviews/nofixes", "lines": map[string]any{"check": 0, "other": 0}, "source": "no_fixes_round", "gate": nil},
 		map[string]any{"series": "docs/reviews/nogate", "lines": nil, "source": "no_gate_file", "gate": nil},
@@ -746,9 +750,10 @@ func TestGoalCostSummaryAC5_FindingsAndGrowth(t *testing.T) {
 // AC-6 (manual; this test runs with the full verification): tokens are not
 // recorded anywhere, so the summary shows them as not recorded, never as 0.
 func TestGoalCostSummaryAC6_TokensNotRecorded(t *testing.T) {
+	t.Parallel()
 	const v = "cost-tokens-shown"
-	gcBuild(t)
-	doc := gcCostJSON(t, v, gcGoal, "--series", gcSeries)
+	f := gcBuild(t)
+	doc := f.costJSON(t, v, gcGoal, "--series", gcSeries)
 	gcExpect(t, v, "tokens", doc["tokens"], map[string]any{"input": nil, "cached_input": nil, "output": nil})
 	for _, key := range []string{"input", "cached_input", "output"} {
 		if gcAt(doc, "unavailable", "tokens."+key) != "not_recorded" {
@@ -756,7 +761,7 @@ func TestGoalCostSummaryAC6_TokensNotRecorded(t *testing.T) {
 		}
 	}
 	for lang, want := range map[string]string{"en": "- new input, cached input and output tokens: not recorded", "ko": "- 새 입력·캐시 입력·출력 토큰: 기록 없음"} {
-		text := gcCost(t, v, gcGoal, "--series", gcSeries, "--lang", lang)
+		text := f.cost(t, v, gcGoal, "--series", gcSeries, "--lang", lang)
 		section := text[strings.LastIndex(text, "\n## "):]
 		if !strings.Contains(section, want) || regexp.MustCompile(`\d`).MatchString(section) {
 			t.Errorf("jaekit:violation=%s the %s token part is:\n%s", v, lang, section)
@@ -776,11 +781,12 @@ func gcNumbers(text string) []string {
 // changes only labels and sentences, and no sentence compares the goal with
 // another or claims an improvement.
 func TestGoalCostSummaryAC7_OutputForms(t *testing.T) {
+	t.Parallel()
 	const v = "cost-output-forms-differ"
 	f := gcBuild(t)
-	en := gcCost(t, v, gcGoal, "--series", gcSeries)
-	ko := gcCost(t, v, gcGoal, "--series", gcSeries, "--lang", "ko")
-	if def := gcCost(t, v, gcGoal, "--series", gcSeries, "--lang", "en"); def != en {
+	en := f.cost(t, v, gcGoal, "--series", gcSeries)
+	ko := f.cost(t, v, gcGoal, "--series", gcSeries, "--lang", "ko")
+	if def := f.cost(t, v, gcGoal, "--series", gcSeries, "--lang", "en"); def != en {
 		t.Errorf("jaekit:violation=%s --lang en differs from the default", v)
 	}
 	if en == ko {
@@ -795,12 +801,12 @@ func TestGoalCostSummaryAC7_OutputForms(t *testing.T) {
 			t.Errorf("jaekit:violation=%s %q appears %d times in English and %d in Korean", v, token, strings.Count(en, token), strings.Count(ko, token))
 		}
 	}
-	jsonOut := gcCost(t, v, gcGoal, "--series", gcSeries, "--format", "json")
+	jsonOut := f.cost(t, v, gcGoal, "--series", gcSeries, "--format", "json")
 	var doc map[string]any
 	if err := json.Unmarshal([]byte(jsonOut), &doc); err != nil {
 		t.Fatalf("jaekit:violation=%s no JSON: %v", v, err)
 	}
-	if ko2 := gcCost(t, v, gcGoal, "--series", gcSeries, "--format", "json", "--lang", "ko"); ko2 != jsonOut {
+	if ko2 := f.cost(t, v, gcGoal, "--series", gcSeries, "--format", "json", "--lang", "ko"); ko2 != jsonOut {
 		t.Errorf("jaekit:violation=%s the JSON form changes with --lang", v)
 	}
 	// Every number of the JSON form, other than the digests, commits and
@@ -876,6 +882,7 @@ func gcTree(t *testing.T, dir string) map[string]string {
 // later, starts no reviewer or model CLI, and leaves the other commands'
 // output and exit codes as they were.
 func TestGoalCostSummaryAC8_ReadOnly(t *testing.T) {
+	t.Parallel()
 	const v = "cost-not-read-only"
 	f := gcBuild(t)
 	// Reviewer and model CLIs on PATH record that they ran.
@@ -886,26 +893,36 @@ func TestGoalCostSummaryAC8_ReadOnly(t *testing.T) {
 			t.Fatalf("setup: %v", err)
 		}
 	}
-	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	f.env = envWith(f.env, "PATH="+bin+string(os.PathListSeparator)+envValue(f.env, "PATH"))
 	others := func() []string {
 		var out []string
 		for _, args := range [][]string{{"status", gcGoal, "--format", "json"}, {"status", gcGoal}, {"report", gcGoal}, {"report", gcGoal, "--lang", "ko"},
 			{"timing", gcGoal, "--format", "json"}, {"lint", gcGoal}} {
-			code, stdout, stderr := gcHa(args...)
+			code, stdout, stderr := f.ha(args...)
 			out = append(out, fmt.Sprintf("%v exit %d\n%s%s", args, code, stdout, stderr))
 		}
 		return out
 	}
 	beforeOthers := others()
 	beforeTree := gcTree(t, f.dir)
+	costs := [][]string{{gcGoal}, {gcGoal, "--series", gcSeries}, {gcGoal, "--series", gcSeries, "--format", "json"}, {gcGoal, "--series", gcSeries, "--lang", "ko"}}
 	var outputs []string
-	for _, args := range [][]string{{gcGoal}, {gcGoal, "--series", gcSeries}, {gcGoal, "--series", gcSeries, "--format", "json"}, {gcGoal, "--series", gcSeries, "--lang", "ko"}} {
-		outputs = append(outputs, gcCost(t, v, args...))
+	for _, args := range costs {
+		outputs = append(outputs, f.cost(t, v, args...))
 	}
 	time.Sleep(1100 * time.Millisecond)
-	for i, args := range [][]string{{gcGoal}, {gcGoal, "--series", gcSeries}, {gcGoal, "--series", gcSeries, "--format", "json"}, {gcGoal, "--series", gcSeries, "--lang", "ko"}} {
-		if again := gcCost(t, v, args...); again != outputs[i] {
+	for i, args := range costs {
+		if again := f.cost(t, v, args...); again != outputs[i] {
 			t.Errorf("jaekit:violation=%s ha cost %v printed a different summary a second later", v, args)
+		}
+	}
+	// The same summaries from ha as its own process, run in the repository
+	// with the fakes first on its own PATH: a CLI it starts through its
+	// process's PATH, and not only through the environment it passes on,
+	// records that it ran.
+	for _, args := range costs {
+		if code, _, errs := haProcess(t, f.dir, envIn(f.dir, f.env), append([]string{"cost"}, args...)...); code != exitOK {
+			t.Fatalf("jaekit:violation=%s ha cost %v as its own process gave exit %d, want 0: %s", v, args, code, strings.TrimSpace(errs))
 		}
 	}
 	afterTree := gcTree(t, f.dir)
@@ -935,26 +952,28 @@ func TestGoalCostSummaryAC8_ReadOnly(t *testing.T) {
 // the rest is counted; a clone without the base cannot compare the changed
 // files and commits but still shows what the record gives.
 func TestGoalCostSummaryAC9_InputProblems(t *testing.T) {
+	t.Parallel()
 	const v = "cost-input-problem-wrong"
+	var f *gcFixture
 	refused := func(label, want string, args ...string) {
 		t.Helper()
-		code, out, errs := gcHa(append([]string{"cost"}, args...)...)
+		code, out, errs := f.ha(append([]string{"cost"}, args...)...)
 		if code != exitRefused || out != "" || !strings.Contains(errs, want) {
 			t.Errorf("jaekit:violation=%s %s: exit %d, stdout %q, stderr %q; want 65, no summary and %q named", v, label, code, out, errs, want)
 		}
 	}
 	// Not started.
-	gcRepo(t, "standard")
-	doc := gcCostJSON(t, v, gcGoal)
+	unstarted := gcRepo(t, "standard")
+	doc := unstarted.costJSON(t, v, gcGoal)
 	if doc["verification"] != nil || gcAt(doc, "unavailable", "verification") != "not_started" || gcAt(doc, "kind", "required_criteria") != 2.0 ||
 		gcAt(doc, "kind", "assurance") != "standard" || gcAt(doc, "kind", "rules") != nil {
 		t.Errorf("jaekit:violation=%s a goal without a start record gives %v", v, doc)
 	}
-	gcContains(t, v, "a goal without a start record", gcCost(t, v, gcGoal), "- no run record: the goal has not started", "- criteria: 2 required, 1 optional")
+	gcContains(t, v, "a goal without a start record", unstarted.cost(t, v, gcGoal), "- no run record: the goal has not started", "- criteria: 2 required, 1 optional")
 
-	f := gcBuild(t)
+	f = gcBuild(t)
 	// Skipped folders and files are named.
-	doc = gcCostJSON(t, v, gcGoal, "--series", gcSeries)
+	doc = f.costJSON(t, v, gcGoal, "--series", gcSeries)
 	gcExpect(t, v, "skipped", gcAt(doc, "review", "series", 0, "skipped"), []any{
 		map[string]any{"name": "notes.txt", "why": "not a review-gate/v1 file"},
 		map[string]any{"name": "other-tool/", "why": "round.json is not a review-round/v1 record"},
@@ -986,14 +1005,14 @@ func TestGoalCostSummaryAC9_InputProblems(t *testing.T) {
 		"reviewers": map[string]any{"claude": map[string]any{"status": "completed"}}}
 	f.putJSON("docs/reviews/older/01-candidate/round.json", older)
 	f.putJSON("docs/reviews/older/01-candidate/findings.json", []any{map[string]any{"id": "claude-F1", "class": "defect"}})
-	doc = gcCostJSON(t, v, gcGoal, "--series", "docs/reviews/older")
+	doc = f.costJSON(t, v, gcGoal, "--series", "docs/reviews/older")
 	gcExpect(t, v, "an older round", gcAt(doc, "review", "rounds", 0), map[string]any{"series": "docs/reviews/older", "round": "01-candidate",
 		"stage": "candidate", "sequence": 1, "counted": nil, "rerun_of": nil, "started_at": "2026-01-01T00:00:00Z", "finished_at": "2026-01-01T00:01:00Z",
 		"seconds": 60, "reviewers": []any{map[string]any{"name": "claude", "status": "completed", "elapsed_seconds": nil, "attempts": nil, "fallback_used": nil}}})
 	gcExpect(t, v, "the candidate stage of an older round", gcAt(doc, "review", "stages", 2), map[string]any{"stage": "candidate", "counted": 0, "reruns": 0, "counted_not_recorded": 1})
 	gcExpect(t, v, "an older finding", gcAt(doc, "findings", "classes", 0, "location_not_recorded"), 1)
 	gcExpect(t, v, "an older reviewer's time", gcAt(doc, "review", "reviewer_seconds", 0), map[string]any{"reviewer": "claude", "seconds": 40, "rounds": 2, "not_recorded": 1})
-	gcContains(t, v, "an older round", gcCost(t, v, gcGoal, "--series", "docs/reviews/older"),
+	gcContains(t, v, "an older round", f.cost(t, v, gcGoal, "--series", "docs/reviews/older"),
 		"    - claude: completed, not recorded, not recorded, not recorded", "counting not recorded")
 	// A shallow clone: Git cannot compare the base with HEAD.
 	records := f.read(gcGoal + "/runs.jsonl")
@@ -1002,15 +1021,14 @@ func TestGoalCostSummaryAC9_InputProblems(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(clone, gcGoal, "runs.jsonl"), records, 0o644); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
-	t.Chdir(clone)
-	doc = gcCostJSON(t, v, gcGoal)
+	shallow := f.in(clone)
+	doc = shallow.costJSON(t, v, gcGoal)
 	if gcAt(doc, "kind", "changed_files") != nil || gcAt(doc, "unavailable", "kind.changed_files") != "cannot_compare" ||
 		gcAt(doc, "unavailable", "kind.changed_commits") != "cannot_compare" || gcAt(doc, "verification", "runs", "check", "pass") == nil ||
 		gcAt(doc, "kind", "rules") != "run-rules/5" {
 		t.Errorf("jaekit:violation=%s a shallow clone gives kind %v, verification %v", v, doc["kind"], doc["verification"])
 	}
-	gcContains(t, v, "a shallow clone", gcCost(t, v, gcGoal), "- changed: Git cannot compare base "+f.base[:12]+" with HEAD")
-	t.Chdir(f.dir)
+	gcContains(t, v, "a shallow clone", shallow.cost(t, v, gcGoal), "- changed: Git cannot compare base "+f.base[:12]+" with HEAD")
 	// A broken run record.
 	path := filepath.Join(f.dir, gcGoal, "runs.jsonl")
 	edited := bytes.Replace(records, []byte(gcWaitOne), []byte("edited by hand"), 1)
@@ -1026,6 +1044,7 @@ func TestGoalCostSummaryAC9_InputProblems(t *testing.T) {
 // similar size, and that a before-and-after comparison of a few goals is not
 // a causal effect.
 func TestGoalCostSummaryAC11_ContractAndGuides(t *testing.T) {
+	t.Parallel()
 	const v = "cost-docs-missing"
 	read := func(path string) string {
 		t.Helper()
@@ -1052,8 +1071,7 @@ func TestGoalCostSummaryAC11_ContractAndGuides(t *testing.T) {
 // repository; any exit but want is a broken setup.
 func (f *gcFixture) spar(bin string, want int, args ...string) string {
 	f.t.Helper()
-	cmd := exec.Command(bin, args...)
-	cmd.Dir = f.dir
+	cmd := envCommand(f.dir, envIn(f.dir, f.env), bin, args...)
 	out, err := cmd.CombinedOutput()
 	code := 0
 	if exit, ok := err.(*exec.ExitError); ok {
@@ -1106,29 +1124,18 @@ func gcRaw(id, class, location, linkKind, link, introduced string) map[string]an
 // with a fixes round, an automatically deferred finding and a disposition
 // quoting the user: the summary's numbers are the ones both tools recorded.
 func TestGoalCostSummaryAC10_RealSparRecords(t *testing.T) {
+	t.Parallel()
 	const v = "cost-not-matching-records"
-	root, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatalf("setup: %v", err)
-	}
 	if _, err := exec.LookPath("go"); err != nil {
 		t.Skipf("go is not available: %v", err)
 	}
 	tools := t.TempDir()
-	spar := filepath.Join(tools, "spar")
-	build := exec.Command("go", "build", "-o", spar, "./cmd/spar")
-	build.Dir = root
-	if out, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("setup: go build ./cmd/spar: %v: %s", err, out)
-	}
+	spar := sharedBinary(t, "./cmd/spar")
 	config := filepath.Join(tools, "spar.toml")
 	if err := os.WriteFile(config, []byte("[[reviewers]]\nname = \"host\"\npreset = \"native\"\n"), 0o644); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
-	t.Setenv("SPAR_CONFIG", config)
-	t.Setenv("HOME", tools)
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tools, "config"))
-	f := gcRepo(t, "standard")
+	f := gcRepo(t, "standard", "SPAR_CONFIG="+config, "HOME="+tools, "XDG_CONFIG_HOME="+filepath.Join(tools, "config"))
 	f.base = f.head
 	f.must("start", exitOK, "start", gcGoal, "--request", gcRequest, "--rules", "run-rules/5")
 	f.must("baseline", exitOK, "check", gcGoal, "--baseline", "AC-1")
@@ -1204,7 +1211,7 @@ func TestGoalCostSummaryAC10_RealSparRecords(t *testing.T) {
 			first.final, gate["growth"], gate["state"])
 	}
 
-	doc := gcCostJSON(t, v, gcGoal, "--series", series)
+	doc := f.costJSON(t, v, gcGoal, "--series", series)
 	c := gcCount(t, f.read(gcGoal+"/runs.jsonl"))
 	gcExpect(t, v, "verification runs", gcAt(doc, "verification", "runs"), c.runs)
 	gcExpect(t, v, "verification time", gcAt(doc, "verification", "duration_ms", "total"), c.check+c.baseline)
@@ -1244,5 +1251,5 @@ func TestGoalCostSummaryAC10_RealSparRecords(t *testing.T) {
 	gcExpect(t, v, "growth", gcAt(doc, "findings", "growth_total"), gcAt(gate, "growth", "added_lines"))
 	gcExpect(t, v, "requirement question", gcAt(doc, "questions", "requirement_questions", 0, "user_quote"), gcQuestionText)
 	gcExpect(t, v, "waits", gcAt(doc, "questions", "by_source", "wait"), 1)
-	gcExpect(t, v, "budget", gcAt(doc, "verification", "budget"), gcStatusBudget(gcStatus(t)))
+	gcExpect(t, v, "budget", gcAt(doc, "verification", "budget"), gcStatusBudget(f.statusDoc(t)))
 }

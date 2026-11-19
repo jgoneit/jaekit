@@ -35,15 +35,8 @@ func safetyFixture(t *testing.T) *preflightFixture {
 	t.Helper()
 	f := &preflightFixture{t: t, dir: t.TempDir(), marker: filepath.Join(t.TempDir(), "executed")}
 	copyTree(t, filepath.Join(scenarioRoot, "_base"), f.dir)
-	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
-	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	for _, key := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
-		t.Setenv(key, "synthetic")
-	}
-	for _, key := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
-		t.Setenv(key, "synthetic@example.invalid")
-	}
-	t.Setenv("HA_PREFLIGHT_MARKER", f.marker)
+	f.env = envWith(os.Environ(), append(gitFixtureEnv(os.DevNull, "synthetic", "synthetic@example.invalid"),
+		"HA_PREFLIGHT_MARKER="+f.marker)...)
 	f.put(".gitignore", "ignored/\n")
 	f.put("checks/producer.py", safetyProducer)
 	if err := os.Chmod(filepath.Join(f.dir, "checks/producer.py"), 0o755); err != nil {
@@ -64,7 +57,6 @@ func safetyStart(t *testing.T, f *preflightFixture, rules string) {
 	f.git("init", "-q", "-b", "main")
 	f.git("add", "-A")
 	f.git("commit", "-qm", "synthetic base")
-	t.Chdir(f.dir)
 	if code, out := f.ha("start", scenarioGoal, "--request", "synthetic baseline safety"); code != 0 {
 		t.Fatalf("fixture start: %d: %s", code, out)
 	}
@@ -114,6 +106,7 @@ func safetyRefused(t *testing.T, f *preflightFixture, problem string, args ...st
 }
 
 func TestBaselineSafetyAC1_BaseSymlinks(t *testing.T) {
+	t.Parallel()
 	for _, parent := range []bool{false, true} {
 		for _, destination := range []string{"internal", "external", "dangling"} {
 			name := destination + "-leaf"
@@ -121,6 +114,7 @@ func TestBaselineSafetyAC1_BaseSymlinks(t *testing.T) {
 				name = destination + "-parent"
 			}
 			t.Run(name, func(t *testing.T) {
+				t.Parallel()
 				f := safetyFixture(t)
 				outside := filepath.Join(t.TempDir(), "sentinel")
 				if err := os.Mkdir(outside, 0o755); err != nil {
@@ -169,8 +163,10 @@ func TestBaselineSafetyAC1_BaseSymlinks(t *testing.T) {
 }
 
 func TestBaselineSafetyAC1_HeadSources(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []string{"extra-symlink", "extra-directory", "producer-symlink", "declaration-symlink"} {
 		t.Run(kind, func(t *testing.T) {
+			t.Parallel()
 			f := safetyFixture(t)
 			safetyStart(t, f, "run-rules/3")
 			p := "overlay/data.txt"
@@ -210,9 +206,6 @@ func safetyGitObserver(t *testing.T, f *preflightFixture, fault string) string {
 	}
 	bin := t.TempDir()
 	observation := filepath.Join(t.TempDir(), "snapshot.json")
-	t.Setenv("HA_SAFETY_REAL_GIT", git)
-	t.Setenv("HA_SAFETY_OBSERVATION", observation)
-	t.Setenv("HA_SAFETY_FAULT", fault)
 	script := `import json, os, pathlib, subprocess, sys
 a=sys.argv[1:]
 if a[:2] == ['worktree','remove']:
@@ -232,7 +225,8 @@ sys.exit(code)
 	if err := os.WriteFile(filepath.Join(bin, "git"), []byte("#!"+python+"\n"+script), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	f.env = envWith(f.env, "HA_SAFETY_REAL_GIT="+git, "HA_SAFETY_OBSERVATION="+observation, "HA_SAFETY_FAULT="+fault,
+		"PATH="+bin+string(os.PathListSeparator)+envValue(f.env, "PATH"))
 	return observation
 }
 
@@ -250,8 +244,10 @@ func safetyObserved(t *testing.T, p string) map[string]any {
 }
 
 func TestBaselineSafetyAC2_WholeListBeforeWrites(t *testing.T) {
+	t.Parallel()
 	for _, problem := range []string{"missing-source", "unsafe-last-destination"} {
 		t.Run(problem, func(t *testing.T) {
+			t.Parallel()
 			f := safetyFixture(t)
 			p := string(f.read(scenarioGoal + "/PLAN.md"))
 			p = strings.Replace(p, "overlay/data.txt |", "overlay/data.txt, last/data.txt |", 1)
@@ -279,8 +275,10 @@ func TestBaselineSafetyAC2_WholeListBeforeWrites(t *testing.T) {
 }
 
 func TestBaselineSafetyAC2_PreparationFailure(t *testing.T) {
+	t.Parallel()
 	for _, fault := range []string{"readonly", "changed-parent"} {
 		t.Run(fault, func(t *testing.T) {
+			t.Parallel()
 			if fault == "readonly" && os.Geteuid() == 0 {
 				t.Skip("permission fault needs an unprivileged process")
 			}
@@ -309,6 +307,7 @@ func TestBaselineSafetyAC2_PreparationFailure(t *testing.T) {
 }
 
 func TestBaselineSafetyAC3_PartialBatch(t *testing.T) {
+	t.Parallel()
 	f := safetyFixture(t)
 	p := string(f.read(scenarioGoal + "/PLAN.md"))
 	p = strings.Replace(p, "| AC-2 | maintain", "| EX-1 | change | `./checks/producer.py` | checks/producer.py, checks/declaration.json, missing.txt | T001 |\n| EX-2 | change | `./checks/producer.py` | checks/producer.py, checks/declaration.json | T001 |\n| AC-2 | maintain", 1)
@@ -337,8 +336,10 @@ func TestBaselineSafetyAC3_PartialBatch(t *testing.T) {
 }
 
 func TestBaselineSafetyAC4_RegularOverlay(t *testing.T) {
+	t.Parallel()
 	for _, rules := range []string{"run-rules/1", "run-rules/2", "run-rules/3"} {
 		t.Run(rules, func(t *testing.T) {
+			t.Parallel()
 			f := safetyFixture(t)
 			safetyLink(t, "missing-unrelated", filepath.Join(f.dir, "unrelated-link"))
 			safetyStart(t, f, rules)
@@ -347,7 +348,7 @@ func TestBaselineSafetyAC4_RegularOverlay(t *testing.T) {
 			p := string(f.read(scenarioGoal + "/PLAN.md"))
 			f.put(scenarioGoal+"/PLAN.md", strings.Replace(p, "overlay/data.txt |", "overlay/data.txt, new/deep/file.txt |", 1))
 			safetyCommit(f)
-			t.Setenv("HA_SAFETY_EXPECT_COPY", "1")
+			f.env = envWith(f.env, "HA_SAFETY_EXPECT_COPY=1")
 			code, out := f.ha("check", scenarioGoal, "--baseline", "AC-1")
 			if code != 0 || !strings.Contains(out, "fail_as_expected") {
 				t.Fatalf("[requirement] safe regular overlay failed: %d: %s", code, out)
@@ -364,8 +365,10 @@ func TestBaselineSafetyAC4_RegularOverlay(t *testing.T) {
 }
 
 func TestBaselineSafetyAC4_RealStartFailureIsCharged(t *testing.T) {
+	t.Parallel()
 	for _, rules := range []string{"run-rules/1", "run-rules/2", "run-rules/3"} {
 		t.Run(rules, func(t *testing.T) {
+			t.Parallel()
 			f := safetyFixture(t)
 			safetyStart(t, f, rules)
 			p := string(f.read(scenarioGoal + "/PLAN.md"))
@@ -380,8 +383,10 @@ func TestBaselineSafetyAC4_RealStartFailureIsCharged(t *testing.T) {
 }
 
 func TestBaselineSafetyAC1_AllRulesRefuseNewUnsafeCopies(t *testing.T) {
+	t.Parallel()
 	for _, rules := range []string{"run-rules/1", "run-rules/2", "run-rules/3"} {
 		t.Run(rules, func(t *testing.T) {
+			t.Parallel()
 			f := safetyFixture(t)
 			safetyRemove(t, filepath.Join(f.dir, "overlay/data.txt"))
 			safetyLink(t, "../src/keep.txt", filepath.Join(f.dir, "overlay/data.txt"))
@@ -399,6 +404,7 @@ func TestBaselineSafetyAC1_AllRulesRefuseNewUnsafeCopies(t *testing.T) {
 }
 
 func TestBaselineSafetyAC1_CommittedSymlinkWithCheckoutDisabled(t *testing.T) {
+	t.Parallel()
 	f := safetyFixture(t)
 	safetyRemove(t, filepath.Join(f.dir, "overlay/data.txt"))
 	safetyLink(t, "../src/keep.txt", filepath.Join(f.dir, "overlay/data.txt"))
@@ -411,8 +417,10 @@ func TestBaselineSafetyAC1_CommittedSymlinkWithCheckoutDisabled(t *testing.T) {
 }
 
 func TestBaselineSafetyAC5_StoredCompletionAndReopen(t *testing.T) {
+	t.Parallel()
 	for _, rules := range []string{"run-rules/1", "run-rules/2", "run-rules/3"} {
 		t.Run(rules, func(t *testing.T) {
+			t.Parallel()
 			f := safetyFixture(t)
 			safetyStart(t, f, rules)
 			f.put("src/greeting.txt", "hello\n")

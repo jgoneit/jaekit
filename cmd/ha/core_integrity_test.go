@@ -4,7 +4,7 @@ package main
 // run-rules/6 keeps every run-rules/5 rule and changes four judgments (the
 // start of the reviewed range, a review note after a completion, a done line
 // that did not judge the line before it, and time after a completion). The
-// tests drive the ha command line (runMain) on synthetic repositories built
+// tests drive the ha command line (runWith) on synthetic repositories built
 // with the helpers of review_gate_test.go and write review gates in the
 // public review-gate/v1 form; they never run Spar, a reviewer or a model.
 // Where a judgment depends on time, the record made through the command line
@@ -234,12 +234,11 @@ func ciReason(s rgState, code string) map[string]any {
 // ciMarkdown runs ha with the arguments and returns its standard output.
 func ciMarkdown(f *rgFixture, args ...string) string {
 	f.t.Helper()
-	var out, errb bytes.Buffer
-	code := runMain(args, &out, &errb)
-	if code == exitInternal || out.Len() == 0 {
-		f.t.Fatalf("setup: ha %v exit %d: %s", args, code, errb.String())
+	code, out, errb := haIn(f.dir, envIn(f.dir, f.env), args...)
+	if code == exitInternal || len(out) == 0 {
+		f.t.Fatalf("setup: ha %v exit %d: %s", args, code, errb)
 	}
-	return out.String()
+	return out
 }
 
 // ciCompletionLine is the completion record line of `ha status`.
@@ -271,6 +270,7 @@ func ciInt(m map[string]any, key string) (int64, bool) {
 // AC-1: run-rules/6 can be chosen at the start and is listed as supported;
 // the default start rule stays run-rules/3.
 func TestCoreIntegrityAC1_StartAndCapabilities(t *testing.T) {
+	t.Parallel()
 	const v = "rules-v6-unsupported"
 	var out, errb bytes.Buffer
 	if code := runMain([]string{"capabilities", "--format", "json"}, &out, &errb); code != exitOK {
@@ -311,6 +311,7 @@ func TestCoreIntegrityAC1_StartAndCapabilities(t *testing.T) {
 // the run-rules/5 goals in the situations of #150 and #151, and a goal
 // before run-rules/5 still refuses review notes.
 func TestCoreIntegrityAC7_EarlierRulesKeepTheirJudgments(t *testing.T) {
+	t.Parallel()
 	rgRequireGit(t)
 
 	// #150 under run-rules/5: a light goal's completion is voided by a
@@ -381,6 +382,7 @@ func TestCoreIntegrityAC7_EarlierRulesKeepTheirJudgments(t *testing.T) {
 // AC-10: ha imports no Spar package, its status computation reads no
 // current time, and the same record, bundle and Git give the same status.
 func TestCoreIntegrityAC10_CoreStaysDeterministicAndApart(t *testing.T) {
+	t.Parallel()
 	rgRequireGit(t)
 	root, err := filepath.Abs("../..")
 	if err != nil {
