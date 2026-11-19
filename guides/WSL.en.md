@@ -85,7 +85,7 @@ The workflow checks out the commit it runs on and builds and checks the files wi
 
 Start a new agent session from the same Linux project and follow the [host-specific invocation guide](USAGE.en.md#sending-commands). Confirm that the Skill actually loaded is Jaekit's Spec or Seal and that its source and version match the intended installation. Finding a CLI on PATH does not establish that a Skill was loaded.
 
-Ask Spec for a small change. It writes goal documents and stops. Review the result, then ask Seal to implement it **in a separate message**. Seal checks the actual Core's capabilities and records the requirement violation before the change and satisfaction afterward. Read the [completion evidence](USAGE.en.md#reading-the-completion-report) rather than relying only on the agent's description.
+Ask Spec for a small change. It writes goal documents and stops. Review the result, then ask Seal to implement it **in a separate message**. Seal checks the actual Core's capabilities and records each condition's check result after the change; for a change condition marked `요구`, it also records the requirement violation before the change. Read the [completion evidence](USAGE.en.md#reading-the-completion-report) rather than relying only on the agent's description.
 
 To resume unfinished work, name the same goal in a new agent session in the same distribution and project. For completed work, you can inspect records and raw logs. Rework after completion needs a separate request. See [Saved files](USAGE.en.md#saved-files) for locations and `ha log` usage. These are usage instructions, not a report of an observed WSL2 run.
 

@@ -407,6 +407,7 @@ Seal의 판단:
 
 - 맨 위 다섯 줄은 바뀐 것, 확인한 것, 직접 볼 것, 남은 한계, 다음 행동입니다. `ha report`가 실행 기록·Git·목표 문서로 계산한 값이며, 에이전트의 주장이 아닙니다.
 - **근거 기록**은 `runs.jsonl`의 줄 번호(seq)입니다. AC-1의 seq 2는 시작 commit에서 돌린 검사가 선언대로 실패한 기록이고, seq 3은 같은 검사가 결과에서 통과한 기록입니다. seq 5는 Spar gate를 기록한 `review` note이고, 완료 기록 seq 6은 `ha done`이 완료를 기록했다는 뜻입니다.
+- 이 예시는 기록의 모양을 보이려는 뜻으로 AC-1의 바꾸기 전 실패 기록을 남겨 두었고, 모든 change 조건에 그 기록이 필요하던 이전 규칙을 따릅니다. `run-rules/7`에서는 이 링크처럼 새 기능을 더하는 조건에는 `요구`를 보통 표시하지 않으며, 통과 기록만으로 충족됩니다.
 - 실행의 출력 원문은 `.git/ha/`에 남습니다. 터미널에서 `ha log docs/specs/password-link 3`으로 봅니다.
 
 > [!IMPORTANT]
@@ -478,7 +479,7 @@ Assurance: standard
 | AC-1 | checks/login-link.json |
 ```
 
-- `change`는 새 동작입니다. Seal은 같은 검사를 시작 commit에서도 돌려 선언대로 실패하는지 보고, 결과에서는 통과해야 합니다.
+- `change`는 새 동작이며, 그 검사는 결과에서 통과해야 합니다. `run-rules/6`까지는 Seal이 모든 change 조건의 검사를 시작 commit에서도 돌려 선언대로 실패한 기록을 남기며, AC-1의 기록이 그 예입니다. `run-rules/7`부터는 선택 열 `baseline`에 `요구`를 표시한 change 조건만 그 기록이 필요합니다. base commit에 이미 있는 결함을 고치는 버그 수정·회귀나, "X가 일어나지 않는다" 같은 금지 조건입니다.
 - `maintain`은 계속 동작해야 하는 기존 동작이고, `manual`은 사용자만 확인할 수 있는 조건입니다.
 - 계획에는 Seal이 바꿀 수 있는 경로, task, 실행 예산도 들어갑니다. `REVIEW.md`는 이 계획의 검토와 검토 등급·계획한 검토 단계를 담고, 나중에 Spar 라운드와 gate를 요약해 `docs/reviews/password-link/`의 기록을 가리킵니다.
 

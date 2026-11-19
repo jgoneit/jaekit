@@ -94,7 +94,7 @@
             <tr>
               <th scope="row"><span lang="ko">바꾸기 전에도 통과하는 검사</span><span lang="en">A check that already passes before the change</span></th>
               <td class="without"><i class="tag"><span lang="ko">대화로만</span><span lang="en">Plain</span></i><span lang="ko">새 동작이 생겼는지 가려내지 못하는 검사도 통과로 보입니다.</span><span lang="en">A check that can't tell whether the new behavior exists still looks like a pass.</span></td>
-              <td class="with"><i class="tag">Jaekit</i><span lang="ko">새 동작의 검사는 바꾸기 전 코드에서 그 동작이 없어 실패한 기록이 있어야 근거가 됩니다.</span><span lang="en">A check for new behavior counts only with a record of it failing on the code before the change, because the behavior was missing.</span></td>
+              <td class="with"><i class="tag">Jaekit</i><span lang="ko"><code>요구</code>를 표시한 change 조건, 곧 base commit에 이미 있는 결함을 고치는 버그 수정·회귀나 "X가 일어나지 않는다" 같은 금지 조건의 검사는 바꾸기 전 코드에서 실패한 기록이 있어야 근거가 됩니다.</span><span lang="en">A check for a change condition marked <code>요구</code>, a bug fix or regression whose defect is already present at the base commit or a prohibition such as "X does not happen", counts only with a record of it failing on the code before the change.</span></td>
             </tr>
             <tr>
               <th scope="row"><span lang="ko">기존 테스트를 고치면</span><span lang="en">Existing tests are edited</span></th>
@@ -205,6 +205,8 @@
         <p class="term-caption" id="term-caption" lang="en">Fictional · not connected to an agent or repository, and the record numbers are not results of a real run.</p>
         <p class="term-legend" lang="ko"><b>AC-1</b> 완료 조건 1번 · <b>baseline</b> 바꾸기 전에 돌린 검사 · <b>seq</b> 기록 번호 · <b>spar</b> 독립 검토 실행</p>
         <p class="term-legend" lang="en"><b>AC-1</b> completion condition 1 · <b>baseline</b> the check run before the change · <b>seq</b> record number · <b>spar</b> an independent review run</p>
+        <p class="term-legend" lang="ko">이 예시는 기록의 모양을 보이려는 뜻으로 <b>AC-1</b>의 바꾸기 전 실패 기록을 남겨 두었고, 모든 change 조건에 그 기록이 필요하던 이전 규칙을 따릅니다. <b>run-rules/7</b>에서는 이 링크처럼 새 기능을 더하는 조건에는 <b>요구</b>를 보통 표시하지 않으며, 통과 기록만으로 충족됩니다.</p>
+        <p class="term-legend" lang="en">The example keeps <b>AC-1</b>'s failure record before the change to show the record's shape; it follows an earlier rule under which every change condition needed one. Under <b>run-rules/7</b>, a condition that adds a new feature, like this link, is usually not marked <b>요구</b>, and its passing record alone meets it.</p>
       </div>
     </div>
   </section>

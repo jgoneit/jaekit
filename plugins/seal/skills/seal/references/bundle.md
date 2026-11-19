@@ -32,7 +32,7 @@ For `run-rules/7`, an optional final `baseline` column marks the change conditio
 | ID | 종류 | 검증 명령 | 검사 경로 | Task | baseline |
 | --- | --- | --- | --- | --- | --- |
 
-Write `요구` for a required baseline, matching the per-condition judgment in `REVIEW.md`; an empty cell or `—` means no baseline requirement. Without the column, no change condition is marked. `요구` on a non-change row or any other value is a `baseline_marker` lint problem. The five-column table remains valid, and goals under earlier rules keep their baseline requirements regardless of these marks. Check paths remain required for every change condition, including unmarked ones, for structured results, review and the check freeze.
+Write `요구` for a required baseline, exactly on the marked conditions whose reasons `REVIEW.md` gives ([REVIEW.md](#reviewmd)); an empty cell or `—` means no baseline requirement. Without the column, no change condition is marked. `요구` on a non-change row or any other value is a `baseline_marker` lint problem. The five-column table remains valid, and goals under earlier rules keep their baseline requirements regardless of these marks. Check paths remain required for every change condition, including unmarked ones, for structured results, review and the check freeze.
 
 Lint rules: every goal criterion appears once; every condition has a task; every task is grounded in a condition or is a prerequisite of another task; no dependency cycles; `change` has a command and check paths; `maintain` has a command; `manual` has a reason.
 
@@ -122,7 +122,7 @@ History in a synthetic repository the check builds itself, such as a temporary f
 
 **Change conditions and the baseline.** A `change` violation on the base commit is observed only by Core's baseline run: `ha check --baseline` runs the condition on a temporary worktree of the base commit with the check paths copied from HEAD. Check code never checks out, reads or compares the base commit to imitate that run. For a condition requiring a baseline, it observes the required property in whatever tree it runs on, so it reports the declared violation on the base commit and a pass after the change.
 
-Under `run-rules/7`, a marked change condition's baseline is recorded once its check files are settled, not after every check fix during development. Running a check before implementation to see it fail is a working habit, not a record. A later change that makes required baseline evidence stale still needs fresh evidence; the freshness rules remain unchanged.
+Under `run-rules/7`, a marked change condition's baseline is recorded once, after the last review round and right before the completion record, not after every check fix during development. Running a check before implementation to see it fail is a working habit, not a record. When that baseline passes or errs instead of violating, the executor must fix the check; the fixed check is reviewed like fixed code, and then the executor must record the baseline again. A later change that makes required baseline evidence stale still needs fresh evidence; the freshness rules remain unchanged.
 
 **Input failures.** An input failure, whether a missing target file, corrupt input, a tool that cannot start or termination by a signal, is never a pass for any check.
 
@@ -181,7 +181,7 @@ Summaries point to a document and section. They never replace a criterion.
 
 ## REVIEW.md
 
-Under `run-rules/7`, state for each change condition whether it requires a baseline and why: require one for bug fixes and regressions with a defect at base, prohibitions such as "X does not happen", and conditions possibly partly met at base. The PLAN `baseline` column uses `요구` exactly when that judgment requires it; the `strict` plan round reviews this judgment too.
+Under `run-rules/7`, a change condition requires a baseline only in two cases: a bug fix or regression whose defect is already present at the base commit, and a prohibition such as "X does not happen". A condition that adds a new feature is not marked by default. Write the reason for each marked condition only; an unmarked condition needs no reason. The PLAN `baseline` column uses `요구` exactly on the conditions given a reason here; the `strict` plan round reviews the marks and their reasons too. A `run-rules/7` goal already started keeps the marks it started with: the executor neither removes nor adds marks to fit these two cases. `ha` does not lock the marks: it reads the current PLAN, and `ha report` lists marks removed since start under `직접 볼 것`.
 
 | Section | Check |
 | --- | --- |
