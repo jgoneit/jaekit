@@ -73,7 +73,6 @@ Usage:
                                                                           (run-rules/4 to /7)
   ha note   <goal> review --gate <review-gate/v1 file>                    (run-rules/5 to /7)
   ha finding <goal> [--input <JSON file>] [--format json|md]
-  ha history <goal> [add|current|list|show] ...   (see ha history --help)
   ha status <goal> [--format md|json]
   ha done   <goal> [--format md|json]
   ha log    <goal> <seq> [--tail N]
@@ -219,8 +218,6 @@ func runIn(inv invocation, argv []string, stdout, stderr io.Writer) int {
 		return c.budget(rest)
 	case "finding":
 		return c.finding(rest)
-	case "history":
-		return c.history(rest)
 	case "note":
 		return c.note(rest)
 	case "status":

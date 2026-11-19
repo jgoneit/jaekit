@@ -37,8 +37,6 @@ The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evi
 | `findings-required-lists` | findings.md 입력과 조회 | omitted, null or mistyped required lists are refused with exit 64 and no record; empty arrays stay arrays |
 | `findings-resolution-refs` | findings.md 입력과 조회 | current `resolution_refs` only on `resolved`; earlier references stay in history |
 | `findings-stored-limit` | findings.md 입력과 조회 | stored findings at the byte limit remain readable; oversized records block queries and writes without changing the chain |
-| `decision-history-flow` | decision-history.md | events, relations, a stale correction and a replay leave completion and the tree unchanged; current judgments mark corrected grounds; Markdown keeps an external version whole; a linked worktree shares the history |
-| `history-rules-unsupported` | decision-history.md | an unsupported start rule yields exit 66 and `history_unsupported:` for default/current/list, both show forms, new registration and the original request; no run record is added |
 | `reopen-after-done` | EVALUATION §3.1 | completion record voided, new budget window |
 | `completion-invalidated` | run-record.md §5.1 | a completion that no longer holds names its seq, commit and each broken condition; unmet conditions are listed before the table |
 | `done-output-kept` | run-record.md §4.4 | `ha done` on an incomplete goal keeps its output: `none`, no unmet summary or done details |
