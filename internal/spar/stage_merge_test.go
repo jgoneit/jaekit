@@ -820,6 +820,62 @@ func TestSparStageMergeAC7_LegacySeriesReadUnchanged(t *testing.T) {
 		}
 		smGolden(t, format.golden, w.smNormalize(stdout))
 	}
+
+	// Two more recorded shapes cut from the fixture: a plan-delta round and
+	// no fixes round, and a fixes round that is only a dry run. The cap
+	// report's growth line stays the one the code before the change printed
+	// for them.
+	for _, shape := range []struct {
+		name string
+		keep []string
+	}{
+		{"legacy-plan-delta", []string{"01-plan", "02-plan-delta", "03-candidate"}},
+		{"legacy-dry-fixes", []string{"01-plan", "03-candidate", "06-fixes"}},
+	} {
+		dir := w.smLegacyShape(shape.name, shape.keep...)
+		label := "spar cap-report --format md of " + strings.Join(shape.keep, ", ")
+		code, stdout, stderr := w.spar("cap-report", dir, "--format", "md", "--repo", w.repo)
+		if code != ExitOK {
+			t.Errorf("%s exits %d: %s", label, code, smFirstLine(stderr))
+			continue
+		}
+		lines := strings.Split(stdout, "\n")
+		if !slices.Contains(lines, smLegacyGrowth) {
+			t.Errorf("%s has no line %q", label, smLegacyGrowth)
+		}
+		for _, line := range lines {
+			if strings.Contains(line, "not measured") {
+				t.Errorf("%s prints %q; want %q as before the change", label, line, smLegacyGrowth)
+			}
+		}
+	}
+}
+
+// smLegacyGrowth is the growth line the cap report gave a recorded series
+// without a measured fixes round before the change: its format at commit
+// eb093be is "- added lines: check %d, other %d; over hardening: %s".
+const smLegacyGrowth = "- added lines: check 0, other 0; over hardening: no"
+
+// smLegacyShape copies the legacy fixture into the series name and keeps
+// only the round folders keep; extensions.jsonl goes too, as no shape
+// reaches the code cap it extended.
+func (w *smWorld) smLegacyShape(name string, keep ...string) string {
+	w.t.Helper()
+	series := filepath.Join(w.repo, "reviews", name)
+	w.smCopyFixture(series)
+	entries, err := os.ReadDir(series)
+	if err != nil {
+		w.t.Fatalf("setup: %v", err)
+	}
+	for _, e := range entries {
+		if slices.Contains(keep, e.Name()) {
+			continue
+		}
+		if err := os.RemoveAll(filepath.Join(series, e.Name())); err != nil {
+			w.t.Fatalf("setup: %v", err)
+		}
+	}
+	return series
 }
 
 // AC-8: a project configuration that still sets caps.plan_delta loads; a
