@@ -50,10 +50,10 @@ for tool in git ha "${2:-}"; do
   printf '%s: %s\n' "$tool" "$selected"
 done
 
-# ha finds the code repository from the goal path, keeps run records in its Git
-# directory and decision history in the common Git directory. Ask the selected
-# Linux Git, read-only, for all three; a linked worktree or a separate Git
-# directory can put the last two elsewhere.
+# ha finds the code repository from the goal path and keeps run records in its
+# Git directory. Ask the selected Linux Git, read-only, for the repository root,
+# the Git directory and the common Git directory; a linked worktree or a
+# separate Git directory can put the last two elsewhere.
 git_paths="$("$git_command" -C "$project" rev-parse --path-format=absolute \
   --show-toplevel --absolute-git-dir --git-common-dir 2>/dev/null)" ||
   fail "Git does not recognize the project as a worktree: $project"

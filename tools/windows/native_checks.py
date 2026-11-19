@@ -35,26 +35,6 @@ NATIVE = {
                           *("TestNativeAdapterClassification/" + case + "/" + ending for case in
                             ("go-typed-fail", "go-typed-unmarked", "go-typed-pass", "J1", "J2", "J3", "J5", "J10")
                             for ending in ("lf", "crlf"))],
-    "internal/history": ["TestNativeHistoryStorageLifecycle", "TestNativeHistoryStorageLocks",
-                         "TestNativeHistoryStorageIntegrity", "TestNativeHistoryStoragePathSafety",
-                         "TestNativeStorageBoundsHistoryLines", "TestNativeShowRejectsMalformedIdentifiers",
-                         "TestNativeShowPreservesValidIdentifierLookup",
-                         *("TestNativeHistoryStorageLifecycle/" + case for case in
-                           ("registration_replay_and_correction", "concurrent_stores_and_corrections",
-                            "lineage_and_current", "evidence_replay_preserves_observation", "case_alias_shares_storage")),
-                         *("TestNativeHistoryStorageLocks/" + case for case in
-                           ("reader_waits_for_writer", "first_registration_retry", "shared_readers_exclude_writer",
-                            "process_exit_releases_ownership")),
-                         *("TestNativeHistoryStorageIntegrity/" + case for case in
-                           ("absence_damage_and_unsupported", "trailing_loss", "interrupted_marker_catches_up",
-                            "uncertain_append_retry", "last_replacement_failure_is_uncertain",
-                            "snapshot_survives_marker_replacement", "snapshot_opens_before_rename_source_closes")),
-                         *("TestNativeHistoryStoragePathSafety/junction_" + case for case in
-                           ("common", "ha", "history", "start", "events.jsonl", "lock", "last", "last.tmp")),
-                         "TestNativeHistoryStoragePathSafety/open_ancestors_and_lock_cannot_be_replaced",
-                         "TestNativeHistoryStoragePathSafety/hard-linked_files_cannot_redirect_reads_or_writes",
-                         *("TestNativeHistoryStoragePathSafety/hard-linked_files_cannot_redirect_reads_or_writes/" + case
-                           for case in ("events.jsonl", "lock", "last", "last.tmp"))],
     "cmd/ha": ["TestNativeRecordedTiming", "TestNativeStartBudgetAndSkill",
                *("TestNativeStartBudgetAndSkill/" + case for case in
                  ("ancestors", "folder_identity", "home_before_userprofile", "xdg_folder", "home_folder",
@@ -62,16 +42,6 @@ NATIVE = {
                   "skill_supported")),
                "TestNativeCoreGitLifecycle", "TestNativeCoreGitLifecycle/linked=false",
                "TestNativeCoreGitLifecycle/linked=true", "TestNativeBaselineRejectsJunction",
-               "TestNativeHistoryGitLifecycle", "TestNativeHistoryFileEvidence",
-               "TestNativeHistoryRequestIDPresence",
-               "TestNativeHistoryWindowsFileBoundaries",
-               *("TestNativeHistoryGitLifecycle/linked=" + value for value in ("false", "true")),
-               *("TestNativeHistoryFileEvidence/replace-" + kind for kind in ("file", "directory", "removed")),
-               *("TestNativeHistoryFileEvidence/" + case for case in
-                 ("initial_size_boundary", "growth_after_check", "growth_during_read")),
-               *("TestNativeHistoryWindowsFileBoundaries/" + case for case in
-                 ("special-references", "stable-parent-and-outside", "junction-race-parent",
-                  "junction-race-root", "confined-reparse", "sharing-denial")),
                "TestNativeWindowsBaselineJunctionScenarios",
                *("TestNativeWindowsBaselineJunctionScenarios/" + case for case in
                  ("regular-before", "parent-junction", "leaf-junction", "partial-batch", "regular-after")),
