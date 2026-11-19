@@ -90,7 +90,7 @@ SPEC의 `Assurance:` 줄에 따라 독립 검토 단계가 정해집니다. 검�
 | --- | --- |
 | `light` | 독립 검토를 생략할 수 있고, 생략하면 이유를 `REVIEW.md`와 완료 보고에 남깁니다 |
 | `standard` | 최종 후보의 candidate 라운드, 검토 수정 뒤 목표의 base commit부터 새 head까지의 candidate 라운드, `ha done` 전 누적 라운드 |
-| `strict` | `standard`에 더해 baseline 전 plan 라운드 한 번. 검사 계획만이 아니라 제품의 불변식과 결정 규칙도 봅니다. 그 뒤 목표 문서나 검사가 바뀌면 다음 candidate 라운드가 그때의 목표 문서를 검토합니다 |
+| `strict` | `standard`에 더해 baseline 전 plan 라운드 한 번. 검사 계획만이 아니라 제품의 불변식과 결정 규칙도 봅니다. 그 뒤 목표 문서나 검사가 바뀌면 다음 candidate 라운드가 그때의 목표 문서를 검토합니다. SPEC.md나 연결된 목표 문서가 바뀌었으면 `review_docs_stale`이 풀리도록 사용자의 말로 plan 상한을 연장해 plan 라운드를 한 번 더 받습니다 |
 
 누적 라운드는 목표의 base commit부터 마지막 head까지 전체를 다시 보는 candidate 라운드입니다. 검토 수정 뒤의 candidate 라운드 가운데 열린 `defect`·`requirement-question` 없이 끝난 마지막 라운드가 누적 라운드이고, 독립 검토를 받는 목표에서 Seal은 이 라운드 뒤에만 `ha done`을 실행합니다.
 

@@ -16,7 +16,7 @@ Seal 0.1.31 keeps the `run-rules/7` start, asks for supported input forms and ch
 
 Seal 0.1.32 keeps the `run-rules/7` start, marks a change condition for a baseline only in two cases, gives reasons for marked conditions only and records marked baselines after the last review round and right before the completion record; it makes no Core change and needs a Core that declares `run-rules/7`.
 
-Seal 0.1.33 keeps the `run-rules/7` start and runs review rounds only as `plan` and `candidate`: after review fixes, one `candidate` round from the goal's base commit to the new head, and no second round for a changed plan; it makes no Core change and needs a Core that declares `run-rules/7`. Gates over series recorded with `plan-delta` and `fixes` rounds are read as before.
+Seal 0.1.33 keeps the `run-rules/7` start and runs review rounds only as `plan` and `candidate`: after review fixes, one `candidate` round from the goal's base commit to the new head, and another `plan` round, after a plan cap extension, only when a goal document changed after the plan round; it makes no Core change and needs a Core that declares `run-rules/7`. Gates over series recorded with `plan-delta` and `fixes` rounds are read as before.
 
 ## Core compatibility
 

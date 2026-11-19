@@ -144,7 +144,7 @@ docs/reviews/
 | `plan` | 계획과 검사를 쓴 뒤, 구현 전에 한 번 |
 | `candidate` | 모든 기준을 만족해야 하는 커밋에서, 그리고 검토 수정 뒤 다시. base는 늘 목표의 base commit |
 
-새 라운드는 이 두 단계로만 시작합니다. `--stage plan-delta`나 `--stage fixes`는 아무것도 기록하기 전에 `candidate`를 알리는 사용법 오류(64)로 거부됩니다. 검토 수정 뒤에는 목표의 base commit부터 새 head까지 `candidate` 라운드를 한 번 돌립니다. 이 라운드는 앞선 코드 라운드의 지적과 그 마지막 처리를 받고, 그런 라운드 가운데 열린 `defect`·`requirement-question` 없이 끝난 마지막 라운드가 누적 라운드입니다. plan 라운드로 목표 문서나 검사가 바뀌어도 plan을 다시 보는 라운드는 없고, 다음 `candidate` 라운드가 그때의 목표 문서를 검토합니다. 이 변경 전에 기록된 `plan-delta`·`fixes` 라운드는 `spar gate`와 `spar cap-report`가 그대로 읽습니다.
+새 라운드는 이 두 단계로만 시작합니다. `--stage plan-delta`나 `--stage fixes`는 아무것도 기록하기 전에 `candidate`를 알리는 사용법 오류(64)로 거부됩니다. 검토 수정 뒤에는 목표의 base commit부터 새 head까지 `candidate` 라운드를 한 번 돌립니다. 이 라운드는 앞선 코드 라운드의 지적과 그 마지막 처리를 받고, 그런 라운드 가운데 열린 `defect`·`requirement-question` 없이 끝난 마지막 라운드가 누적 라운드입니다. plan 라운드로 목표 문서나 검사가 바뀌면 다음 `candidate` 라운드가 그때의 목표 문서를 검토하고, 계획이나 검사만 바뀌었으면 plan 라운드를 다시 돌리지 않습니다. 다만 `strict` 목표에서 Seal Core는 마지막 `plan` 라운드도 지금의 목표 문서를 받았기를 요구하므로(`review_docs_stale`), plan 라운드 뒤에 SPEC.md나 그것이 연결한 목표 문서가 바뀌면 사용자에게 plan 상한 연장(`spar extend <series> --stage plan --by 1 --user-quote "…"`)을 묻고 지금의 head에서 `plan` 라운드를 한 번 더 돌립니다. 이 변경 전에 기록된 `plan-delta`·`fixes` 라운드는 `spar gate`와 `spar cap-report`가 그대로 읽습니다.
 
 한 series는 plan 1회, 코드 라운드 2회까지입니다. 상한을 넘는 라운드는 리뷰어를 띄우기 전에 거부되고, `spar extend`로 기록한 사용자의 말이 있어야 더 돌릴 수 있습니다. 사용량 거절 등으로 같은 패킷을 끝내지 못한 리뷰어만 다시 돌리는 실행은 세지 않습니다. 기록된 series에 새 라운드를 더하면 그 라운드가 기록하는 상한으로 셉니다. 기록된 fixes 라운드도 코드 라운드로 세므로, 이미 그만큼 코드 라운드를 기록한 series에서 candidate를 더 돌리려면 연장이 필요합니다.
 
