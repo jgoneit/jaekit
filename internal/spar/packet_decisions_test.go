@@ -232,11 +232,12 @@ func (w *pdWorld) accepted(code int, stderr, id string) bool {
 	return false
 }
 
-// stages runs a round of every stage in a new series with the decisions:
-// plan, plan-delta and fixes as dry runs, candidate as a real round of a
-// command reviewer that reports one finding, so that the fixes round
-// follows a code round and lists an earlier finding. It returns each round's
-// packet by stage, or nil when spar did not take the decisions.
+// stages runs a round of every stage a new round starts as in a new series
+// with the decisions: plan as a dry run, candidate as a real round of a
+// command reviewer that reports one finding. It returns each round's packet
+// by stage, or nil when spar did not take the decisions. A plan-delta and a
+// fixes round with the decisions, as dry runs after them, are refused
+// (oldStageRefused).
 func (w *pdWorld) stages(series string, ds []pdDecision, id string) map[string]string {
 	w.t.Helper()
 	c := w.commits
@@ -249,9 +250,7 @@ func (w *pdWorld) stages(series string, ds []pdDecision, id string) map[string]s
 	}{
 		{"plan", c[0], c[1], []string{"--subject", plan, "--question", "Does the plan cover AC-1?",
 			"--question", "Does it cover AC-2?", "--check-path", "app/**", "--dry-run"}},
-		{"plan-delta", c[0], c[1], []string{"--subject", plan, "--dry-run"}},
 		{"candidate", c[0], c[1], nil},
-		{"fixes", c[1], c[2], []string{"--dry-run"}},
 	}
 	packets := map[string]string{}
 	for i, r := range runs {
@@ -263,7 +262,40 @@ func (w *pdWorld) stages(series string, ds []pdDecision, id string) map[string]s
 		}
 		packets[r.stage] = w.read(filepath.Join(out, "packet.md"))
 	}
+	w.oldStageRefused("plan-delta", c[0], c[1], filepath.Join(w.repo, "reviews", series, "03-plan-delta"),
+		append([]string{"--subject", plan, "--dry-run"}, pdArgs(ds)...)...)
+	w.oldStageRefused("fixes", c[1], c[2], filepath.Join(w.repo, "reviews", series, "03-fixes"),
+		append([]string{"--dry-run"}, pdArgs(ds)...)...)
 	return packets
+}
+
+// oldStageRefused runs a round of stage, plan-delta or fixes, from base to
+// head into out and fails the test unless spar refuses it before writing
+// anything: a new round starts only as plan or candidate, and the refusal is
+// a usage error (64) whose first line names candidate.
+func (w *pdWorld) oldStageRefused(stage, base, head, out string, extra ...string) {
+	w.t.Helper()
+	code, stderr := w.spar(append(w.round(stage, base, head, out), extra...)...)
+	_, err := os.Lstat(out)
+	if code != ExitUsage || !strings.Contains(pdFirstLine(stderr), "candidate") || !os.IsNotExist(err) {
+		w.t.Errorf("spar run --stage %s exits %d and leaves its round folder: %v: %s; want a usage error (64) naming candidate before anything is written",
+			stage, code, err == nil, pdFirstLine(stderr))
+	}
+}
+
+// recordAs gives the round in out, which spar run wrote, the stage stage in
+// its round.json: a series recorded before plan-delta and fixes rounds
+// stopped starting holds rounds of those stages, and spar run no longer
+// writes them.
+func (w *pdWorld) recordAs(out, stage string) {
+	w.t.Helper()
+	r := w.rawRound(out)
+	r["stage"] = stage
+	data, err := json.MarshalIndent(r, "", "  ")
+	if err != nil {
+		pdSetup(w.t, w.keeps, "%v", err)
+	}
+	w.write(filepath.Join(out, "round.json"), string(data)+"\n")
 }
 
 // normalize replaces the world's commit and tree IDs with their place.
@@ -419,11 +451,11 @@ func TestSparPacketDecisionsAC1_DecisionSection(t *testing.T) {
 	if with == nil {
 		return
 	}
-	for _, stage := range Stages {
+	for _, stage := range StartStages {
 		pdCheckSection(t, id, "the "+stage+" packet", with[stage], pdTricky)
 	}
 	without := w.stages("without", nil, id)
-	for _, stage := range Stages {
+	for _, stage := range StartStages {
 		if n := pdCount(pdHeadings(without[stage]), pdSection); n != 0 {
 			t.Errorf("jaekit:violation=%s the %s packet without decisions has %d %q sections", id, stage, n, pdSection)
 		}
@@ -738,7 +770,7 @@ func TestSparPacketDecisionsAC5_Forms(t *testing.T) {
 func TestSparPacketDecisionsAC6_NoDecisionPacketUnchanged(t *testing.T) {
 	w := newPDWorld(t, true)
 	packets := w.stages("none", nil, "")
-	for _, stage := range Stages {
+	for _, stage := range StartStages {
 		want, err := os.ReadFile(filepath.Join("testdata", "packet-decisions", stage+".md"))
 		if err != nil {
 			t.Fatalf("setup: %v", err)

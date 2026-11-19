@@ -79,6 +79,10 @@ func newCRWorld(t *testing.T) *crWorld {
 	w.commit["head3"] = w.git("rev-parse", "HEAD")
 	w.criteria = w.write(filepath.Join(w.dir, "SPEC.md"), "# Goal\n\n## Acceptance Criteria\n"+
 		"- **AC-1** greet('') returns 'hello'.\n- **AC-2** other() returns 1.\n- **AC-3** greet never fails.\n- **AC-4** Names stay as given.\n")
+	// The project configuration allows the three counted code rounds of the
+	// main series, the code cap spar had by default before it became two;
+	// every round records it, and the reports show it.
+	w.write(filepath.Join(w.repo, ".jaekit", "spar.toml"), "[caps]\ncode = 3\n")
 	w.use("host")
 	return w
 }
@@ -161,12 +165,31 @@ func (w *crWorld) must(want int, args ...string) {
 	}
 }
 
-// run starts a round of the configured reviewers in series/name.
+// run starts a round of the configured reviewers in series/name. A fixes
+// round is written as a series recorded before fixes rounds stopped
+// starting holds it: spar run writes a candidate round of its range, whose
+// round.json then names the stage fixes.
 func (w *crWorld) run(series, name, stage, base, head string, extra ...string) string {
 	w.t.Helper()
 	out := filepath.Join(series, name)
-	w.must(ExitOK, append([]string{"run", "--stage", stage, "--base", w.commit[base], "--head", w.commit[head],
+	run := stage
+	if stage == "fixes" {
+		run = "candidate"
+	}
+	w.must(ExitOK, append([]string{"run", "--stage", run, "--base", w.commit[base], "--head", w.commit[head],
 		"--criteria", w.criteria, "--rules", w.rules, "--check-path", "checks/**", "--out", out, "--repo", w.repo}, extra...)...)
+	if run != stage {
+		var r map[string]any
+		if err := json.Unmarshal(w.read(filepath.Join(out, "round.json")), &r); err != nil {
+			w.t.Fatalf("setup: round.json of %s: %v", name, err)
+		}
+		r["stage"] = stage
+		data, err := json.MarshalIndent(r, "", "  ")
+		if err != nil {
+			w.t.Fatalf("setup: %v", err)
+		}
+		w.write(filepath.Join(out, "round.json"), string(data)+"\n")
+	}
 	return out
 }
 
@@ -210,7 +233,9 @@ func crFinding(id, class, link, path, introduced string) map[string]any {
 }
 
 // mainSeries writes three counted code rounds (candidate, fixes, cumulative
-// candidate) with the findings and dispositions of REVIEW.md "AC-2 series".
+// candidate) with the findings and dispositions of REVIEW.md "AC-2 series";
+// the fixes round is recorded as a series written before fixes rounds
+// stopped starting holds it (run).
 func (w *crWorld) mainSeries(name string) string {
 	w.t.Helper()
 	series := filepath.Join(w.repo, "reviews", name)
@@ -305,14 +330,16 @@ func (w *crWorld) extensions(v, series string) []map[string]any {
 }
 
 // AC-1: when the code cap stops spar run, the refusal still says what it
-// said and adds the cap-report command for that series; the plan and
-// plan-delta refusals stay as they are.
+// said and adds the cap-report command for that series; the plan cap
+// refusal stays as it is. A plan-delta round, whose cap refusal was kept
+// beside it, no longer starts: it is refused as a usage error naming
+// candidate, before anything is written.
 func TestSparCapReportAC1_CodeCapRefusalNamesReport(t *testing.T) {
 	const v = "cap-refusal-no-report"
 	w := newCRWorld(t)
 	series := w.mainSeries("ac1")
-	code, _, errs := w.spar("run", "--stage", "fixes", "--base", w.commit["head2"], "--head", w.commit["head3"],
-		"--criteria", w.criteria, "--rules", w.rules, "--check-path", "checks/**", "--out", filepath.Join(series, "04-fixes"),
+	code, _, errs := w.spar("run", "--stage", "candidate", "--base", w.commit["base"], "--head", w.commit["head3"],
+		"--criteria", w.criteria, "--rules", w.rules, "--check-path", "checks/**", "--out", filepath.Join(series, "04-candidate"),
 		"--repo", w.repo)
 	if code != ExitRefused {
 		t.Fatalf("setup: a fourth code round exits %d, want the cap refusal 65: %s", code, errs)
@@ -326,10 +353,20 @@ func TestSparCapReportAC1_CodeCapRefusalNamesReport(t *testing.T) {
 			t.Errorf("jaekit:violation=%s the code cap refusal does not say %q:\n%s", v, want, errs)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(series, "04-fixes")); err == nil {
+	if _, err := os.Stat(filepath.Join(series, "04-candidate")); err == nil {
 		t.Errorf("jaekit:violation=%s the refused code round left a round folder", v)
 	}
-	for _, stage := range []string{"plan", "plan-delta"} {
+	delta := filepath.Join(w.repo, "reviews", "ac1-plan-delta")
+	code, _, errs = w.spar("run", "--stage", "plan-delta", "--base", w.commit["base"], "--head", w.commit["head1"],
+		"--criteria", w.criteria, "--rules", w.rules, "--check-path", "checks/**", "--out", filepath.Join(delta, "01-plan-delta"),
+		"--repo", w.repo)
+	if first, _, _ := strings.Cut(errs, "\n"); code != ExitUsage || !strings.Contains(first, "candidate") {
+		t.Errorf("a plan-delta round exits %d (%q), want the usage error 64 naming candidate", code, first)
+	}
+	if _, err := os.Lstat(delta); err == nil {
+		t.Errorf("the refused plan-delta round wrote its series folder")
+	}
+	for _, stage := range []string{"plan"} {
 		s := filepath.Join(w.repo, "reviews", "ac1-"+stage)
 		w.run(s, "01-"+stage, stage, "base", "head1")
 		code, _, errs := w.spar("run", "--stage", stage, "--base", w.commit["base"], "--head", w.commit["head2"],
@@ -1259,7 +1296,7 @@ func TestSparCapReportAC6_CodeExtensionKeepsCause(t *testing.T) {
 		"--repo", w.repo); code != ExitOK {
 		t.Fatalf("jaekit:violation=%s spar extend with a cause exits %d: %s", v, code, errs)
 	}
-	w.run(series, "04-fixes", "fixes", "head2", "head3")
+	w.run(series, "04-candidate", "candidate", "base", "head3")
 }
 
 // AC-7: a code extension without a valid cause, without a reason for
@@ -1339,7 +1376,7 @@ func TestSparCapReportAC10_LinesWithoutCauseInSpar(t *testing.T) {
 	gate := func(series, out string) map[string]any {
 		t.Helper()
 		code, _, errs := w.spar("gate", filepath.Join(series, "01-candidate"), filepath.Join(series, "02-fixes"),
-			filepath.Join(series, "03-candidate"), filepath.Join(series, "04-fixes"), "--expect-head", w.commit["head3"],
+			filepath.Join(series, "03-candidate"), filepath.Join(series, "04-candidate"), "--expect-head", w.commit["head3"],
 			"--out", out, "--repo", w.repo)
 		if code != ExitBlocked {
 			t.Fatalf("setup: spar gate exits %d, want blocked (open findings): %s", code, errs)
@@ -1356,7 +1393,7 @@ func TestSparCapReportAC10_LinesWithoutCauseInSpar(t *testing.T) {
 	old := `{"stage":"code","by":1,"user_quote":"synthetic words","recorded_at":"2026-01-01T00:00:00Z"}` + "\n"
 	w.write(filepath.Join(series, "extensions.jsonl"), old)
 	w.use("host", "aide")
-	r4 := w.run(series, "04-fixes", "fixes", "head2", "head3")
+	r4 := w.run(series, "04-candidate", "candidate", "base", "head3")
 	w.record(r4, "host", "head3")
 	withOld := gate(series, filepath.Join(w.repo, "reviews", "gate-old.json"))
 	w.write(filepath.Join(series, "extensions.jsonl"),
@@ -1366,9 +1403,9 @@ func TestSparCapReportAC10_LinesWithoutCauseInSpar(t *testing.T) {
 		t.Errorf("jaekit:violation=%s spar gate differs between an extension line with a cause and one without:\n%v\n%v", v, withOld, withCause)
 	}
 	// With the line with a cause, the reviewer that did not complete
-	// 04-fixes reruns the same packet uncounted.
-	code, _, errs := w.spar("run", "--stage", "fixes", "--base", w.commit["head2"], "--head", w.commit["head3"],
-		"--criteria", w.criteria, "--rules", w.rules, "--check-path", "checks/**", "--out", filepath.Join(series, "04b-fixes"),
+	// 04-candidate reruns the same packet uncounted.
+	code, _, errs := w.spar("run", "--stage", "candidate", "--base", w.commit["base"], "--head", w.commit["head3"],
+		"--criteria", w.criteria, "--rules", w.rules, "--check-path", "checks/**", "--out", filepath.Join(series, "04b-candidate"),
 		"--repo", w.repo, "--reviewers", "aide")
 	var rerun struct {
 		Counted bool     `json:"counted"`
@@ -1376,9 +1413,9 @@ func TestSparCapReportAC10_LinesWithoutCauseInSpar(t *testing.T) {
 	}
 	if code != ExitOK {
 		t.Errorf("jaekit:violation=%s with an extension line with a cause a rerun of the same packet exits %d: %s", v, code, errs)
-	} else if json.Unmarshal(w.read(filepath.Join(series, "04b-fixes", "round.json")), &rerun) != nil || rerun.Counted ||
-		!reflect.DeepEqual(rerun.RerunOf, []string{"04-fixes"}) {
-		t.Errorf("jaekit:violation=%s with an extension line with a cause a rerun of the same packet is %+v, want uncounted of 04-fixes", v, rerun)
+	} else if json.Unmarshal(w.read(filepath.Join(series, "04b-candidate", "round.json")), &rerun) != nil || rerun.Counted ||
+		!reflect.DeepEqual(rerun.RerunOf, []string{"04-candidate"}) {
+		t.Errorf("jaekit:violation=%s with an extension line with a cause a rerun of the same packet is %+v, want uncounted of 04-candidate", v, rerun)
 	}
 	// Both lines count: a fifth code round is refused at 4 of 4.
 	code, _, errs = w.spar("run", "--stage", "candidate", "--base", w.commit["base"], "--head", w.commit["head3"],

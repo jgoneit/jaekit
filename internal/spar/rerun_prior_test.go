@@ -16,7 +16,9 @@ import (
 )
 
 // rrWorld adds a fourth commit, c3, to a repeat-findings world, so that a
-// fixes round can follow a candidate round from c0 to c2.
+// fixes round can follow a candidate round from c0 to c2, and a project
+// configuration that allows the three counted code rounds its series hold
+// before an extension.
 type rrWorld struct {
 	*rptWorld
 	late string // a reviewer that never completes
@@ -31,16 +33,27 @@ func newRRWorld(t *testing.T) *rrWorld {
 	w.commits = append(w.commits, w.git("rev-parse", "HEAD"))
 	w.trees = append(w.trees, w.git("rev-parse", "HEAD^{tree}"))
 	w.late = pdCommand("late", w.script("late", "if [ \"$1\" = --version ]; then exit 0; fi\nexit 3\n"))
+	w.write(filepath.Join(w.repo, ".jaekit", "spar.toml"), "[caps]\ncode = 3\n")
 	return w
 }
 
 // code runs a code round from base to head into series/name whose command
-// reviewer reports one finding with claim, beside the reviewer late.
+// reviewer reports one finding with claim, beside the reviewer late. A
+// fixes round is written as a series recorded before fixes rounds stopped
+// starting holds it: spar run writes a candidate round of its range, whose
+// round.json then names the stage fixes.
 func (w *rrWorld) code(series, name, stage, base, head, claim string) string {
 	w.t.Helper()
 	w.useConfig(w.printer(w.answer(filepath.Base(series)+"-"+name, head, rptFinding("F1", "defect", "AC-1", claim))), w.late)
 	out := filepath.Join(series, name)
-	w.run(w.round(stage, base, head, out)...)
+	run := stage
+	if stage == "fixes" {
+		run = "candidate"
+	}
+	w.run(w.round(run, base, head, out)...)
+	if run != stage {
+		w.recordAs(out, stage)
+	}
 	if n := len(w.findings(out)); n != 1 {
 		w.t.Fatalf("setup: %s recorded %d findings, want 1", name, n)
 	}
