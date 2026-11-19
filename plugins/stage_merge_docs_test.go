@@ -78,6 +78,7 @@ var (
 		{"O10", "When no fixes followed the first candidate round, that round is the cumulative round"},
 		{"O11", "a fixes round run on the same base and head after a disposition changed"},
 		{"O12", "After committing fixes for findings; its base is the head of the previous code round"},
+		{"O13", "and the cumulative round to the last head"},
 	}
 )
 
