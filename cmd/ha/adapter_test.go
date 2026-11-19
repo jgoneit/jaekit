@@ -42,7 +42,6 @@ const greetTest = `package greet
 import "testing"
 
 func TestGreets(t *testing.T) {
-	t.Parallel()
 	t.Log("jaekit:violation=greeting-missing is only logged")
 	if got := Hello(); got != "hello" {
 		t.Fatalf("jaekit:violation=greeting-missing the greeting is %q", got)
