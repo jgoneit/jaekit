@@ -1,0 +1,131 @@
+{
+  "schema": "review-round/v1",
+  "spar_version": "eb093be",
+  "stage": "fixes",
+  "series": "@DIR@/repo/reviews/legacy",
+  "sequence": 6,
+  "repo": "@DIR@/repo",
+  "base": "93cac67dc43b88547e3c13cb3f9d4dc3f373d3ff",
+  "head": "fdab52c8730c3b39fa79414b1d1fea95272aa0d6",
+  "base_tree": "a8293ce88b8c484ff059377a5716a998bf717435",
+  "head_tree": "1b9c1626379dfcd8a6914ba60a8ecd955992dde8",
+  "diff_sha256": "b12f5c3ad73b82393d75a823716b58e5f4622155def0a0ad0d08c83640e4b4e4",
+  "criteria": [
+    {
+      "name": "SPEC.md",
+      "source": "@DIR@/SPEC.md",
+      "sha256": "f6a1b96ad2c610d47736f19358bea1835c2a30dd3a767927719a82dab62735a6"
+    }
+  ],
+  "criteria_digest": "d2109b483355e9e7976c75088bde0f779686c9bad8f501fb47659025daeda8d4",
+  "rules": [
+    {
+      "name": "AGENTS.md",
+      "source": "@DIR@/repo/AGENTS.md",
+      "sha256": "65eff83fa972e830d713c55cf93609f4163c4b0cd869676173b1a459abae762f"
+    }
+  ],
+  "subjects": [],
+  "questions": [],
+  "standpoints": [],
+  "prior": [
+    "03-candidate",
+    "04-fixes",
+    "05-candidate"
+  ],
+  "packet_sha256": "edf164e65b6104cc7b4a2190877d476bcb79bfe025b5765d6a62562f9798361e",
+  "config": {
+    "source": {
+      "kind": "SPAR_CONFIG",
+      "path": "@DIR@/spar.toml"
+    },
+    "override": null,
+    "choices": [],
+    "files": [
+      {
+        "path": "@DIR@/spar.toml",
+        "sha256": "6729d5db708012b7276f26d8ca73462f8ded9727b072188ab5d6569d9ad37b8d"
+      }
+    ],
+    "reviewers": [
+      {
+        "name": "host",
+        "preset": "native",
+        "isolation": "host",
+        "required": true,
+        "timeout_seconds": 1800
+      }
+    ],
+    "configured_required": [
+      {
+        "name": "host",
+        "preset": "native"
+      }
+    ],
+    "angles": [
+      "requirement-counterexample",
+      "side-effects",
+      "design",
+      "premises",
+      "check-validity"
+    ],
+    "caps": {
+      "plan": 1,
+      "plan_delta": 1,
+      "code": 3
+    },
+    "check_paths": [
+      "checks/**"
+    ],
+    "rules": [],
+    "digest": "e04eac770486bfe552fff6206a320cb6be019de4f00607d120697feab63414bf"
+  },
+  "links": {
+    "criteria_ids": [
+      "AC-1",
+      "AC-2",
+      "AC-3"
+    ],
+    "rules": [
+      {
+        "names": [
+          "AGENTS.md",
+          "@DIR@/repo/AGENTS.md"
+        ],
+        "file_name": "AGENTS.md",
+        "lines": 3
+      }
+    ]
+  },
+  "requested_reviewers": [
+    "host"
+  ],
+  "required_reviewers": [
+    "host"
+  ],
+  "dry_run": true,
+  "counted": false,
+  "rerun_of": [],
+  "started_at": "2026-01-01T00:00:00Z",
+  "finished_at": "2026-01-01T00:00:00Z",
+  "reviewers": {
+    "host": {
+      "name": "host",
+      "preset": "native",
+      "isolation": "host",
+      "required": true,
+      "status": "not_run",
+      "reason": "dry run: the packet and workspace were built, no reviewer ran",
+      "requested_model": null,
+      "observed_model": null,
+      "fallback_used": false,
+      "elapsed_seconds": 0,
+      "timeout_seconds": 1800,
+      "attempts": [],
+      "findings": null,
+      "angles_checked": [],
+      "angles_unchecked": [],
+      "warnings": []
+    }
+  }
+}

@@ -1,0 +1,152 @@
+{
+  "schema": "review-round/v1",
+  "spar_version": "eb093be",
+  "stage": "plan-delta",
+  "series": "@DIR@/repo/reviews/legacy",
+  "sequence": 2,
+  "repo": "@DIR@/repo",
+  "base": "6f153db7ffe18958da1d62a0844e1db0ffd42547",
+  "head": "6f153db7ffe18958da1d62a0844e1db0ffd42547",
+  "base_tree": "9ac61768b16a8acdac782785c8c3371a9917141b",
+  "head_tree": "9ac61768b16a8acdac782785c8c3371a9917141b",
+  "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "criteria": [
+    {
+      "name": "SPEC.md",
+      "source": "@DIR@/SPEC.md",
+      "sha256": "f6a1b96ad2c610d47736f19358bea1835c2a30dd3a767927719a82dab62735a6"
+    }
+  ],
+  "criteria_digest": "d2109b483355e9e7976c75088bde0f779686c9bad8f501fb47659025daeda8d4",
+  "rules": [
+    {
+      "name": "AGENTS.md",
+      "source": "@DIR@/repo/AGENTS.md",
+      "sha256": "65eff83fa972e830d713c55cf93609f4163c4b0cd869676173b1a459abae762f"
+    }
+  ],
+  "subjects": [
+    {
+      "name": "PLAN.md",
+      "source": "@DIR@/PLAN.md",
+      "sha256": "1ffe8b5c7773316c39db88b02c70a4afd3f0cab2c3c613f64a504b5401e6d58c"
+    }
+  ],
+  "questions": [],
+  "standpoints": [],
+  "prior": [
+    "01-plan"
+  ],
+  "packet_sha256": "152dba05c16d495a0dd57a8c9a5d11324b0a128e45c8dc17c7d02bc1ae8e3f10",
+  "config": {
+    "source": {
+      "kind": "SPAR_CONFIG",
+      "path": "@DIR@/spar.toml"
+    },
+    "override": null,
+    "choices": [],
+    "files": [
+      {
+        "path": "@DIR@/spar.toml",
+        "sha256": "6729d5db708012b7276f26d8ca73462f8ded9727b072188ab5d6569d9ad37b8d"
+      }
+    ],
+    "reviewers": [
+      {
+        "name": "host",
+        "preset": "native",
+        "isolation": "host",
+        "required": true,
+        "timeout_seconds": 1800
+      }
+    ],
+    "configured_required": [
+      {
+        "name": "host",
+        "preset": "native"
+      }
+    ],
+    "angles": [
+      "requirement-counterexample",
+      "side-effects",
+      "design",
+      "premises",
+      "check-validity"
+    ],
+    "caps": {
+      "plan": 1,
+      "plan_delta": 1,
+      "code": 3
+    },
+    "check_paths": [
+      "checks/**"
+    ],
+    "rules": [],
+    "digest": "e04eac770486bfe552fff6206a320cb6be019de4f00607d120697feab63414bf"
+  },
+  "links": {
+    "criteria_ids": [
+      "AC-1",
+      "AC-2",
+      "AC-3"
+    ],
+    "rules": [
+      {
+        "names": [
+          "AGENTS.md",
+          "@DIR@/repo/AGENTS.md"
+        ],
+        "file_name": "AGENTS.md",
+        "lines": 3
+      }
+    ]
+  },
+  "requested_reviewers": [
+    "host"
+  ],
+  "required_reviewers": [
+    "host"
+  ],
+  "dry_run": false,
+  "counted": true,
+  "rerun_of": [],
+  "started_at": "2026-01-01T00:00:00Z",
+  "finished_at": "2026-01-01T00:00:00Z",
+  "reviewers": {
+    "host": {
+      "name": "host",
+      "preset": "native",
+      "isolation": "host",
+      "required": true,
+      "status": "completed",
+      "requested_model": null,
+      "observed_model": null,
+      "fallback_used": false,
+      "elapsed_seconds": 0,
+      "timeout_seconds": 1800,
+      "attempts": [
+        {
+          "model": "",
+          "status": "completed",
+          "elapsed_seconds": 0,
+          "started_at": "2026-01-01T00:00:00Z",
+          "finished_at": "2026-01-01T00:00:00Z"
+        }
+      ],
+      "findings": 0,
+      "verdict": "no_blocking_findings",
+      "angles_checked": [
+        "requirement-counterexample",
+        "side-effects",
+        "design",
+        "premises",
+        "check-validity"
+      ],
+      "angles_unchecked": [],
+      "limits": "synthetic reviewer",
+      "warnings": [],
+      "recorded_from": "result",
+      "workspace_digest": "2f02b9c6e851fbb214174d3746c49f430b2272fa91cf78e06b8111a812f05abe"
+    }
+  }
+}
