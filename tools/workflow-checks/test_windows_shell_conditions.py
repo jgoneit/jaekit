@@ -57,7 +57,7 @@ def check_policy(workflow):
         require(re.search(r"(?m)^        shell: " + shell + "$", steps[native]), "wrong shell binding: " + key)
         command = './tools/windows/native_checks.ps1 -OutputDirectory "$env:RUNNER_TEMP/jaekit-windows-' + directory + '"'
         require(re.search(r"(?m)^        run: " + re.escape(command) + r"$", steps[native]),
-                "both shells must invoke the complete native suite, including history")
+                "both shells must invoke the complete native suite")
 
 
 class WindowsShellConditions(unittest.TestCase):
@@ -84,7 +84,7 @@ class WindowsShellConditions(unittest.TestCase):
                 with self.assertRaises(AssertionError):
                     check_policy(mutated)
 
-    def test_either_shell_cannot_replace_native_history_with_a_build_or_subset(self):
+    def test_either_shell_cannot_replace_the_native_suite_with_a_build_or_subset(self):
         source = (ROOT / ".github/workflows/ci.yml").read_text()
         for shell in ("ps51", "ps7"):
             command = './tools/windows/native_checks.ps1 -OutputDirectory "$env:RUNNER_TEMP/jaekit-windows-' + shell + '"'

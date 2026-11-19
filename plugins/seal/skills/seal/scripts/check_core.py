@@ -98,7 +98,7 @@ def validate(value):
         if not strings(formats.get(key)):
             raise Refusal("invalid_capabilities", ["formats:" + key])
 
-    for key in ("finding", "decision_history", "timing", "review_gate"):
+    for key in ("finding", "timing", "review_gate"):
         if key in formats and not strings(formats[key]):
             raise Refusal("invalid_capabilities", ["formats:" + key])
     return value
@@ -183,7 +183,7 @@ def requirements(capabilities, operation: str, goal: str | None):
         features = START_FEATURES
     else:
         rules, criteria_format, has_findings = stored_goal(goal)
-        finding = finding or (has_findings and operation != "history")
+        finding = finding or has_findings
         criteria = {criteria_format}
         features = (EXECUTION_FEATURES if operation in ("resume", "check")
                     else {"budget-change/v1"} if operation == "budget" else set())
@@ -198,18 +198,13 @@ def requirements(capabilities, operation: str, goal: str | None):
         if rules in {"run-rules/5", "run-rules/6", "run-rules/7"} and operation in ("resume", "check", "budget"):
             features = features | REVIEW_GATE_FEATURES
     required_formats = {"criteria": criteria}
-    if rules in STRUCTURED_RULES and operation not in ("finding", "history"):
+    if rules in STRUCTURED_RULES and operation != "finding":
         required_formats.update({key: {value} for key, value in FORMATS.items()})
     if operation == "start":
         required_formats.update(START_FORMATS)
     if finding:
         features = features | {"post-completion-findings/v1"}
         required_formats["finding"] = {"run-finding/v1"}
-    if operation == "history":
-        # Decision history is optional and lives outside runs.jsonl; using it
-        # needs only its own support besides the saved rule and format.
-        features = features | {"decision-history/v1"}
-        required_formats["decision_history"] = {"decision-history/v1"}
     missing = ["features:" + key for key in sorted(features - set(capabilities["features"]))]
     for kind, values in required_formats.items():
         missing += ["formats:" + kind + ":" + key
@@ -264,11 +259,11 @@ class Parser(argparse.ArgumentParser):
 def main() -> int:
     parser = Parser(description=__doc__)
     parser.add_argument("--ha", default="ha")
-    parser.add_argument("--operation", choices=("start", "resume", "check", "budget", "finding", "history"), default="start")
+    parser.add_argument("--operation", choices=("start", "resume", "check", "budget", "finding"), default="start")
     parser.add_argument("--goal")
     args = parser.parse_args()
     if (args.operation == "start") == (args.goal is not None):
-        parser.error("start takes no --goal; resume/check/budget/finding/history require --goal")
+        parser.error("start takes no --goal; resume/check/budget/finding require --goal")
     report = check(args.ha, args.operation, args.goal)
     print(json.dumps(report, sort_keys=True))
     return 0 if report["compatible"] else 2
