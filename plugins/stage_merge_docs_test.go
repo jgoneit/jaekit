@@ -79,6 +79,9 @@ var (
 		{"O11", "a fixes round run on the same base and head after a disposition changed"},
 		{"O12", "After committing fixes for findings; its base is the head of the previous code round"},
 		{"O13", "and the cumulative round to the last head"},
+		{"O14", "narrow checks pass and the cumulative round"},
+		{"O15", "(plan, candidate, cumulative round)"},
+		{"O16", "after review fixes and the cumulative round"},
 	}
 )
 
@@ -173,6 +176,14 @@ var (
 		{"Q47", "plan-delta를 요구하지 않습니다"},
 		{"Q48", "for candidate and fixes rounds"},
 		{"Q49", "candidate와 fixes에서는"},
+		{"Q50", "and a cumulative round before `ha done`"},
+		{"Q51", "`ha done` 전에 누적 라운드를 받는다"},
+		{"Q52", "`ha done` 전 누적 라운드"},
+		{"Q53", "after review fixes and the cumulative round"},
+		{"Q54", "candidate 라운드와 누적 라운드를 받고"},
+		{"Q55", "(plan, candidate, cumulative round)"},
+		{"Q56", "(plan, candidate, 누적 라운드)"},
+		{"Q57", "검토 수정 뒤의 candidate 라운드와 누적 라운드"},
 	}
 )
 
