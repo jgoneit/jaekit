@@ -128,7 +128,7 @@ Starting with Seal 0.1.16, Seal starts new goals under `run-rules/4`, and from 0
 
 Seal 0.1.26 starts under `run-rules/6`. `/6` changes only four judgments from `/5`.
 
-- For `standard` and `strict` goals, `review_base_mismatch` blocks completion if the last candidate round (excluding dry runs) did not review from the start's `base_commit`. Spar's gate checks a fixes chain following a candidate from the start base.
+- For `standard` and `strict` goals, `review_base_mismatch` blocks completion if the last candidate round (excluding dry runs) did not review from the start's `base_commit`. Spar's gate checks a recorded fixes chain following a candidate from the start base.
 - A `review` note after completion voids the completion record only for the current `standard` or `strict` tier. With `light` or no tier line, an otherwise valid completion record stays valid.
 - A `done` line is judged when its `record_head` is the hash of an earlier line and every line strictly between that line and the `done` line is a finding line (`run-finding/v1`), including when there are no intervening lines. The named line may itself be a finding line. Every `done` line is judged on the full record first, so a line may be judged even when its `record_head` names an unjudged line. Unjudged complete and non-complete `done` lines are then treated as absent from status computation, including the completion record and its explanation, the latest done line, the budget window, elapsed time, post-completion intervals and budget-change refusal. Status, report, cost and budget changes use this same view. An earlier record still needs every other validity condition; a judged line invalid for another reason still stops the search.
 - The interval after completion until the next run or a non-complete `done` leaves elapsed time and is shown separately as `post_completion_seconds`. The budget explanation below and [contract §4.9](../contracts/run-record.en.md#49-run-rules6) define its boundaries.
@@ -157,7 +157,7 @@ Read the baseline requirement under the goal's rules: all change conditions requ
 
 The check freeze uses the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`, in gate order among the last recorded gate's non-dry-run rounds. It covers declarations, producers, tests, helpers and settings in the condition table's check paths, from every row that lists any. Right after the freeze round, Seal records the gate and current condition table's check paths with `ha note <goal> review --gate <file>`. Without a gate note ending at that round, removed check paths are unobserved and status and report show `freeze-time condition table was not recorded`.
 
-After changing a check file following the freeze, commit it and record `ha note <goal> check-change checks:<path> --reason "<finding ID, or condition and reason>"`. A review fix names its finding ID. The reason binds to the current blob, so another edit needs a reason for that edit. Give the next code review round the changed checks and reasons together. No such reason is needed before the freeze; check defects may still be fixed afterward. The freeze display itself neither blocks completion nor requires a plan-delta.
+After changing a check file following the freeze, commit it and record `ha note <goal> check-change checks:<path> --reason "<finding ID, or condition and reason>"`. A review fix names its finding ID. The reason binds to the current blob, so another edit needs a reason for that edit. Give the next candidate round the changed checks and reasons together, and that round reviews the changed checks. No such reason is needed before the freeze; check defects may still be fixed afterward. The freeze display itself does not block completion.
 
 `ha status` shows `baseline_required` on each change condition and a human-readable `baseline required` line. `Checked` in `ha report` separates how many of all change conditions require a baseline from how many of those have fresh baselines. Read `To review` for baseline marks removed since the start, check files changed after the freeze with reasons, and changes without reasons. Removed paths identify the source `review` note seq. `light` goals and goals without a recorded gate have no freeze display. The review summary's `### 보지 않은 것` lists change conditions satisfied without a baseline. [Run record §4.10](../contracts/run-record.en.md#410-run-rules7) defines exact fields and wording.
 
@@ -236,7 +236,7 @@ If required independent reviews or actual boundary evidence are missing, complet
 
 From Seal 0.1.20 the SPEC's `Assurance:` tier sets the independent review stages:
 
-- `standard` takes the candidate, fixes and cumulative rounds, `strict` adds a plan round before any baseline, and `light` may skip review with a reason.
+- `standard` takes a candidate round on the final candidate, a candidate round from the base commit after review fixes and the cumulative round, `strict` adds one plan round before any baseline, and `light` may skip review with a reason.
 - When project instructions ask for more review, Seal follows them.
 
 A goal that needs independent review runs `ha done` only once a cumulative round over the whole last head ends with no open finding ([usage guide](USAGE.en.md#seals-pre-start-checks-and-review-order)).

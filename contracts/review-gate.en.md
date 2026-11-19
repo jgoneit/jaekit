@@ -9,7 +9,7 @@
 ## 1. Command
 
 ```bash
-spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
+spar gate docs/reviews/example/02-candidate docs/reviews/example/03-candidate \
   --expect-head 3333333 --out docs/reviews/example/gate.json
 ```
 
@@ -27,7 +27,7 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
 - Cap exceeded: for each series of the rounds, the rounds on disk and the given rounds that are `counted` are counted per stage group, and the count exceeds the sum of the cap in the configuration of the round with the largest `sequence` in that series and the extensions in `extensions.jsonl`. The same holds when the given rounds are earlier than that round
 - Findings without a disposition: a `defect` or `requirement-question` with no disposition in the ledger. A `duplicate` is closed only when following the findings it points to reaches a closing disposition; when it reaches an open finding or the findings point to each other, it is open
 - The fix commit of a finding disposed as `fix` is not contained in the expected head. Every `fix` is checked, whatever the class (including `hardening` and `note`)
-- Broken code round chain: the base of a fixes round in the list is not the head of the code round right before it, or there is no code round before it. A fixes round whose stage, base and head match the code round right before it is left out of this check whatever its packet digest: whether it reruns the same packet or is a new round whose packet differs, such as after a disposition changed, it repeats that round. For any other fixes round, the chain breaks only when its base is not the head of the code round right before it
+- Broken code round chain: the base of a recorded fixes round in the list is not the head of the code round right before it, or there is no code round before it. A fixes round whose stage, base and head match the code round right before it is left out of this check whatever its packet digest: whether it reruns the same packet or is a new round whose packet differs, such as after a disposition changed, it repeats that round. For any other fixes round, the chain breaks only when its base is not the head of the code round right before it
 - Expected head not reviewed: the head of the last code round (the last round if there is none) is not the expected head
 - Dry run rounds, unreadable rounds, rounds without `findings.json` or `ledger.jsonl`, rounds whose `waivers.jsonl` cannot be read, commits that are not in the repository
 - A round of the same series that is not in the list (G29): `<series>: round <이름> of the series is not in the gate list`. This keeps a gate from being made without earlier rounds and passing over open findings
@@ -65,7 +65,7 @@ Decisions are recorded only by quoting the user's words, are read only from that
   "auto_deferred": 2,
   "deferred_findings": [{"series": "example", "round": "02-candidate", "id": "codex-F3", "class": "defect", "to": "https://github.com/example/demo/issues/7"}],
   "unhandled_findings": [{"series": "example", "round": "02-candidate", "id": "claude-F2", "class": "note"}],
-  "growth": {"added_lines": {"check": 40, "other": 12}, "over_hardening": true, "rounds": []},
+  "growth": {"added_lines": {"check": 0, "other": 0}, "over_hardening": false, "rounds": []},
   "written_at": "2026-01-01T00:00:00Z"
 }
 ```
@@ -87,10 +87,10 @@ Decisions are recorded only by quoting the user's words, are read only from that
 | `uncovered_standpoints` | For each standpoint whose reviewer completed none of the given rounds with the same stage, base, head and packet (`packet_digest`): `reviewer` and `text` (as in the round's `standpoints`) and `rounds`, the `series` and `round` folder names of each given round of that packet, in the given order. Present, possibly empty, when a given round has standpoints; absent otherwise |
 | `growth.added_lines` | For each fixes round in the list, the added lines of `git diff --numstat -M <base> <head>` (for renamed files, only the lines added at the new path), split into that round's configured check paths (`check`) and everything else (`other`), and summed. The same base and head are counted once |
 | `growth.over_hardening` | `true` when `check` is larger than `other` |
-| `growth.rounds[]` | `check` and `other` for each fixes round |
+| `growth.rounds[]` | `check` and `other` for each fixes round. With no recorded fixes round, `growth.rounds` is empty: growth was not measured. The zeros of `added_lines` and the `false` of `over_hardening` then do not mean that nothing was added |
 
 Both lists follow the order of the rounds given and, within a round, the order of `findings.json`. The round and series are folder names, not paths, so a round path given as an absolute path does not appear. A finding closed with another disposition (`fix`, `reject`, `duplicate`, `answer`) is in neither list. The lists do not change the state, the reasons, the exit code or any other field. No finding text is included. A file without these two fields was written by a Spar before them. How `ha` records the lists is in [run-record.md](run-record.en.md) §4.8.
 
 `uncovered_standpoints` joins the rounds' `standpoints_uncovered` ([Review round](review-round.en.md) section 5) over the reruns of one packet, as `completed_required` does for required reviewers, for example `[{"reviewer": "agy", "text": "…", "rounds": [{"series": "example", "round": "02-candidate"}]}]`. A standpoint is listed only when the reviewer it names, by name whatever its preset or whether it is required, is `completed` in none of the given rounds of that packet; a reviewer that completed in a rerun covers its standpoint in every round of the packet. Standpoint text and assignments are in the packet, so the rounds of one packet carry the same standpoints, and a round of another packet does not cover them, even with the same reviewer and text. A waived reviewer did not complete, so its standpoint stays listed, as in `round.json` and `summary.md`; the decision itself is in `waived_reviewers`. Entries follow the order of the rounds given and, within a round, the order of its `standpoints`; a standpoint of one packet appears once. Rounds the gate cannot read are not considered. The list does not change the state, the reasons, the exit code or any other field, and `ha` does not read it. A gate whose given rounds have no standpoints has no such field, so its file is as it was before the field; a gate without the field over rounds with standpoints was written by a Spar before it.
 
-`growth` is a record that lets a reader see whether review has inflated fixes toward check code. `over_hardening` does not replace judgment and does not change the state.
+`growth` is a record that lets a reader see whether review has inflated fixes toward check code. New rounds are never fixes rounds, so growth is measured only in a series that recorded fixes rounds. `over_hardening` does not replace judgment and does not change the state.

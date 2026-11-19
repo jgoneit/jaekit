@@ -119,7 +119,7 @@ Seal 0.1.16부터 새 목표를 `run-rules/4`로 시작합니다. 0.1.21부터�
 
 Seal 0.1.26은 `run-rules/6`으로 시작합니다. `/6`은 `/5`의 네 판정만 바꿉니다.
 
-- `standard`·`strict` 목표의 마지막 candidate 라운드(dry run 제외)가 시작 `base_commit`부터 검토하지 않았으면 `review_base_mismatch`로 완료를 막습니다. 시작 base부터의 candidate 뒤 fixes 사슬은 Spar의 gate가 확인합니다.
+- `standard`·`strict` 목표의 마지막 candidate 라운드(dry run 제외)가 시작 `base_commit`부터 검토하지 않았으면 `review_base_mismatch`로 완료를 막습니다. 시작 base부터의 candidate 뒤에 기록된 fixes 사슬은 Spar의 gate가 확인합니다.
 - 완료 뒤 `review` note는 현재 등급이 `standard`·`strict`일 때만 완료 기록을 무효로 합니다. `light`이거나 등급 줄이 없으면 다른 조건이 유효한 완료 기록을 유지합니다.
 - `record_head`가 앞선 줄의 hash이고 그 줄과 `done` 줄 사이에 발견 줄(`run-finding/v1`)만 있거나 아무 줄도 없으면, 그 `done` 줄은 판정한 줄입니다. `record_head`가 가리키는 줄 자체는 발견 줄이어도 됩니다. 모든 `done` 줄은 전체 기록에서 먼저 판정하므로, `record_head`가 판정하지 않은 줄을 가리켜도 판정한 줄이 될 수 있습니다. 그런 다음 판정하지 않은 `done` 줄은 완료 여부와 관계없이 상태 계산에서 없는 것으로 취급합니다. 완료 기록과 그 설명, 최신 done 줄, 예산 창, 경과 시간, 완료 뒤 구간, 예산 변경 거부가 모두 이에 따르며 상태·보고·비용·예산 변경은 같은 뷰를 씁니다. 앞의 기록도 다른 유효성 조건을 만족해야 하며, 판정했지만 다른 이유로 무효인 줄에서는 이전처럼 멈춥니다.
 - 완료 뒤 다음 실행이나 완료가 아닌 `done`까지의 구간을 경과에서 빼고 `post_completion_seconds`로 따로 보입니다. 아래 예산 설명과 [계약 §4.9](../contracts/run-record.md#49-run-rules6)에 경계가 있습니다.
@@ -148,7 +148,7 @@ baseline을 요구하는지는 규칙에 따라 읽습니다. `run-rules/6`까�
 
 검사 동결 시점은 기록된 마지막 gate의 dry run이 아닌 라운드 중 `strict`의 첫 `plan` 라운드 또는 `standard`의 첫 `candidate` 라운드입니다. 조건표에서 검사 경로를 적은 모든 행의 경로에 있는 선언·생산자·시험·도우미·설정이 대상입니다. Seal은 동결 라운드 바로 뒤 `ha note <goal> review --gate <file>`로 gate와 그때 조건표의 검사 경로를 기록합니다. 동결 라운드에서 끝난 gate note가 없으면 뺀 검사 경로를 관측할 수 없고, 상태와 보고에 `동결 때의 조건표가 기록되지 않음`이 나옵니다.
 
-동결 뒤 검사 파일을 고치면 commit하고 `ha note <goal> check-change checks:<path> --reason "<지적 ID, 또는 조건과 이유>"`로 까닭을 남깁니다. 검토 지적을 고친 변경이면 그 지적 ID를 씁니다. 까닭은 지금 blob에 묶이므로 파일을 다시 바꾸면 그 변경의 까닭도 다시 남깁니다. 다음 코드 검토 라운드에 바뀐 검사와 까닭을 함께 줍니다. 동결 전 변경에는 이 까닭이 필요 없고, 동결 뒤에도 검사 결함을 고칠 수 있습니다. 동결 표시는 자체로 완료를 막거나 plan-delta를 요구하지 않습니다.
+동결 뒤 검사 파일을 고치면 commit하고 `ha note <goal> check-change checks:<path> --reason "<지적 ID, 또는 조건과 이유>"`로 까닭을 남깁니다. 검토 지적을 고친 변경이면 그 지적 ID를 씁니다. 까닭은 지금 blob에 묶이므로 파일을 다시 바꾸면 그 변경의 까닭도 다시 남깁니다. 다음 candidate 라운드에 바뀐 검사와 까닭을 함께 주면 그 라운드가 바뀐 검사를 검토합니다. 동결 전 변경에는 이 까닭이 필요 없고, 동결 뒤에도 검사 결함을 고칠 수 있습니다. 동결 표시는 자체로 완료를 막지 않습니다.
 
 `ha status`는 change 조건마다 `baseline_required`와 사람용 `baseline required` 줄을 보입니다. `ha report`의 `확인한 것`은 모든 change 조건 중 baseline을 요구한 수와 그중 신선한 baseline 수를 나눠 보입니다. `직접 볼 것`에서 시작 뒤 뺀 baseline 표시, 동결 뒤 바뀐 검사 파일과 까닭, 까닭 없는 변경을 읽습니다. 뺀 경로에는 비교에 쓴 `review` note seq가 붙습니다. `light`나 기록된 gate가 없는 목표에는 동결 표시가 없고, 검수 요약의 `### 보지 않은 것`에는 baseline 없이 충족한 change 조건을 적습니다. [실행 기록 계약 §4.10](../contracts/run-record.md#410-run-rules7)에 정확한 필드와 표시가 있습니다.
 
@@ -222,7 +222,7 @@ Seal 0.1.10부터 도입된 보고 형식은 기대 결과의 근거, 실제 관
 
 Seal 0.1.20부터는 SPEC의 `Assurance:` 등급이 독립 검토 단계를 정합니다.
 
-- `standard`는 최종 후보·수정·누적 라운드, `strict`는 baseline 전 plan 라운드를 더하고, `light`는 이유를 남기고 생략할 수 있습니다.
+- `standard`는 최종 후보의 candidate 라운드, 검토 수정 뒤 base commit부터의 candidate 라운드와 누적 라운드를 받고, `strict`는 baseline 전 plan 라운드 한 번을 더하며, `light`는 이유를 남기고 생략할 수 있습니다.
 - 프로젝트 지침이 더 많은 검토를 요구하면 그쪽을 따릅니다.
 
 독립 검토가 필요한 목표는 마지막 head 전체를 본 누적 라운드가 열린 지적 없이 끝난 뒤에만 `ha done`을 실행합니다([사용 안내](USAGE.md#seal의-시작-전-확인과-검토-순서)).

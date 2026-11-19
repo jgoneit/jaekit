@@ -2,7 +2,7 @@
 name: seal
 description: Carry a goal in docs/specs/<goal>/ to recorded completion — plan, implement, verify through the ha binary, and resume in a new session. Use when the user calls this skill with a goal or asks to implement, finish, or continue a goal document, for example "$seal:seal docs/specs/x" in Codex, "/seal:seal docs/specs/x" in Claude Code, "docs/specs/x 구현해줘", or "docs/specs/x 이어서 해줘".
 metadata:
-  version: "0.1.32"
+  version: "0.1.33"
 ---
 
 # Seal
@@ -50,7 +50,7 @@ Read [Check inputs](references/bundle.md#check-inputs) before writing or changin
 Apply the selected assurance policy, linking required conditions and source, the effect of a false success, the boundary and evidence gaps. Risk alone does not mandate a fixed review procedure; the executor may not downgrade a selected required guarantee.
 
 - SPEC's `Assurance:` line sets the tier; project instructions such as `AGENTS.md` are a floor it raises, never lowers: follow the one asking for more review and report what each required. Without the line, the selected policy applies.
-- `light` may skip independent review, with the reason in `REVIEW.md` and the report. `standard`, or a selected policy needing review, takes a `candidate` round once the final candidate's narrow checks pass, a `fixes` round after review-fix commits and the cumulative round; `strict` adds a `plan` round.
+- `light` may skip independent review, with the reason in `REVIEW.md` and the report. `standard`, or a selected policy needing review, takes a `candidate` round once the final candidate's narrow checks pass and the cumulative round; `strict` adds a `plan` round.
 - A tier changed mid-goal applies once the user asks to continue; a stage it adds runs on the current head before completion, and earlier records stay. `REVIEW.md` names the tier, or none, and planned stages; the report, the tier and stages received or why skipped.
 
 Start reviewers from the initial contract, check, and expected-result grounds (they may read implementation and integration code); independence is not a different model or certified identity. From `run-rules/5`, a `standard` or `strict` goal completes only with a recorded Spar gate; without one, completion stays pending, and finishing without review needs the user's goal-document change that lowers the tier to `light`. When a required review is unavailable, keep completion pending, record cause, affected conditions, missing evidence, and resolution, and continue independent useful work; report a skipped optional review, and an optional unobserved comparison may stay a gap. Never invent reviews.
@@ -60,7 +60,7 @@ Start reviewers from the initial contract, check, and expected-result grounds (t
 Spar owns how rounds run.
 
 - `REVIEW.md` states the product invariants and decision rules the change introduces or alters and, in goals started with seal 0.1.31 or later, before the earliest review round of every tier (in earlier goals, before any plan round), the supported forms of open-ended input a contract or check it adds or changes covers and each check's boundary, never narrower than a SPEC criterion, contract or protected regression path requires without the user's decision; ask in the question before any baseline when an open criterion has none, and when a fix widens a check, widen its boundary record in the same step. A `plan` round, if `strict` or the selected policy asks, comes before any baseline and also reviews them, as questions. Every round gets `REVIEW.md` as `--boundary`.
-- The cumulative round is a `candidate` round from the goal's base commit to the last head; a goal under review runs `ha done` only once it ends with no open `defect` or `requirement-question`. A `fixes` round never replaces it; a candidate round with no later fixes is one. Rounds take the goal's added or changed check files (declarations, producers, tests) as `--check-path` and, from `run-rules/5`, all goal documents as criteria; `ha note <goal> review --gate <file>` records their `spar gate` before `ha done`.
+- After review fixes, run one `candidate` round from the goal's base commit to the new head. The last such round that ends with no open `defect` or `requirement-question` is the cumulative round, and a goal under review runs `ha done` only after it. A `strict` goal takes one `plan` round before implementation; when it leads to changed goal documents or checks, the next `candidate` round reviews the current goal documents. Rounds take the goal's added or changed check files (declarations, producers, tests) as `--check-path` and, from `run-rules/5`, all goal documents as criteria; `ha note <goal> review --gate <file>` records their `spar gate` before `ha done`.
 - You decide dispositions: fix or rebut a `defect`; ask the user about a `requirement-question`; never fix a deferred `hardening` item without the user's words. A finding outside the supported forms is `hardening`; the contract's statement of the forms rebuts a `defect` label.
 - At a round cap, ask the user as the Spar skill says (`spar extend`); never pass it or skip the cumulative round without the user's words.
 - `REVIEW.md` and the report summarize Spar's round and gate records by reference, never copying findings.

@@ -138,12 +138,12 @@ func TestSparEarlierDispositionsAC2_CumulativeTakesDispositions(t *testing.T) {
 	required := []struct{ path, token string }{
 		{edSkill, edCumulative},
 		{edRounds, edCumulative},
-		{"contracts/review-round.en.md", "for candidate and fixes rounds"},
-		{"contracts/review-round.md", "candidate와 fixes에서는"},
+		{"contracts/review-round.en.md", "The earlier rounds' findings of a candidate round are those of the series' earlier code rounds"},
+		{"contracts/review-round.md", "candidate 라운드의 앞선 라운드 지적은 같은 series의 앞선 code 라운드"},
 		{"contracts/review-round.en.md", "is not a candidate round after an earlier code round"},
 		{"contracts/review-round.md", "앞 code 라운드 뒤의 candidate 라운드도 아니면"},
-		{"contracts/spar-input.en.md", "In a candidate, fixes or plan-delta round"},
-		{"contracts/spar-input.md", "candidate·fixes·plan-delta 라운드의"},
+		{"contracts/spar-input.en.md", "In a candidate round, `spar run` also reads the earlier code rounds' `ledger.jsonl`"},
+		{"contracts/spar-input.md", "candidate 라운드의 `spar run`은 앞선 code 라운드(기록된 fixes 라운드 포함)의 `ledger.jsonl`도 읽는다"},
 	}
 	texts := map[string]string{}
 	for _, r := range required {

@@ -141,12 +141,12 @@ docs/reviews/
 
 | 단계 | 시점 |
 | --- | --- |
-| `plan` | 계획과 검사를 쓴 뒤 한 번 |
-| `plan-delta` | plan 라운드로 계획이 바뀌었을 때 최대 한 번 |
-| `candidate` | 모든 기준을 만족해야 하는 커밋에서 |
-| `fixes` | 지적을 고친 뒤. base는 이전 코드 라운드의 head |
+| `plan` | 계획과 검사를 쓴 뒤, 구현 전에 한 번 |
+| `candidate` | 모든 기준을 만족해야 하는 커밋에서, 그리고 검토 수정 뒤 다시. base는 늘 목표의 base commit |
 
-한 series는 plan 1회, plan delta 1회, 코드 라운드 3회까지입니다. 상한을 넘는 라운드는 리뷰어를 띄우기 전에 거부되고, `spar extend`로 기록한 사용자의 말이 있어야 더 돌릴 수 있습니다. 사용량 거절 등으로 같은 패킷을 끝내지 못한 리뷰어만 다시 돌리는 실행은 세지 않습니다.
+새 라운드는 이 두 단계로만 시작합니다. `--stage plan-delta`나 `--stage fixes`는 아무것도 기록하기 전에 `candidate`를 알리는 사용법 오류(64)로 거부됩니다. 검토 수정 뒤에는 목표의 base commit부터 새 head까지 `candidate` 라운드를 한 번 돌립니다. 이 라운드는 앞선 코드 라운드의 지적과 그 마지막 처리를 받고, 그런 라운드 가운데 열린 `defect`·`requirement-question` 없이 끝난 마지막 라운드가 누적 라운드입니다. plan 라운드로 목표 문서나 검사가 바뀌어도 plan을 다시 보는 라운드는 없고, 다음 `candidate` 라운드가 그때의 목표 문서를 검토합니다. 이 변경 전에 기록된 `plan-delta`·`fixes` 라운드는 `spar gate`와 `spar cap-report`가 그대로 읽습니다.
+
+한 series는 plan 1회, 코드 라운드 2회까지입니다. 상한을 넘는 라운드는 리뷰어를 띄우기 전에 거부되고, `spar extend`로 기록한 사용자의 말이 있어야 더 돌릴 수 있습니다. 사용량 거절 등으로 같은 패킷을 끝내지 못한 리뷰어만 다시 돌리는 실행은 세지 않습니다. 기록된 series에 새 라운드를 더하면 그 라운드가 기록하는 상한으로 셉니다. 기록된 fixes 라운드도 코드 라운드로 세므로, 이미 그만큼 코드 라운드를 기록한 series에서 candidate를 더 돌리려면 연장이 필요합니다.
 
 코드 라운드 상한을 다 쓰면 `spar run`의 거부 메시지가 그 series의 상한 보고를 안내합니다. `spar cap-report`는 그 series의 기록과 Git만 읽어 상한 사용, 라운드, 열린 지적, 네 신호(수정 연쇄, 반복 기준, 변경 무관, 검사 비대)를 보이고, 아무것도 쓰지 않습니다. 수정 연쇄는 파일 단위, 반복 기준은 연결 단위로 세고, 변경 무관은 리뷰어의 판단을 그대로 씁니다.
 
@@ -159,19 +159,19 @@ spar cap-report docs/reviews/example
 사용자가 정한 것은 그 뒤의 모든 라운드에 결정으로 넘깁니다. `requirement-question`에 대한 사용자의 답이 대표적인 결정이고, Seal 없이 Spar만 쓸 때도 같습니다. 결정마다 `--decision`(정한 대상)과 바로 다음의 `--decision-quote`(사용자의 말)를 한 쌍으로 줍니다.
 
 ```bash
-spar run --stage fixes --base 2222222 --head 3333333 \
+spar run --stage candidate --base 1111111 --head 3333333 \
   --criteria docs/specs/example/SPEC.md --rules AGENTS.md \
   --decision "AC-2의 빈 입력" --decision-quote "빈 입력은 오류로 둬" \
-  --out docs/reviews/example/03-fixes
+  --out docs/reviews/example/03-candidate
 ```
 
 결정은 패킷의 `## Decisions the user made` 절에 받은 그대로 들어가고 `round.json`의 `decisions`에 남습니다. 절의 안내는 리뷰어에게 결정이 정한 대로 한 것은 지적하지 말고, 결정을 넘는 변경은 평소대로 지적하며, 결정을 따르면 그 결정이 다루지 않은 기준·규칙·계약이 깨질 때는 그것을 연결한 `requirement-question`으로 보고하라고 말합니다. spar는 그 말이 사용자의 말인지 확인하지 않습니다. 빈 결정, 짝이 없는 옵션, 올바른 UTF-8이 아닌 글은 리뷰어를 띄우기 전에 거부됩니다. 같은 결정으로 같은 입력을 다시 돌리면 같은 패킷이고, 결정이 다르면 다른 패킷입니다.
 
-검사의 경계, 곧 각 검사가 무엇을 관찰하고 어떤 입력을 다루지 않는지 적은 문서가 있으면 `--boundary`로 줍니다. 네 단계 모두 받고 여러 번 줄 수 있습니다. 문서는 패킷의 `## Check boundaries` 절에 들어가고 `round.json`의 `boundaries`에 남습니다. 목표의 `REVIEW.md`처럼 같은 파일을 `--criteria`로도 주면 그 전문은 기준 문서로 한 번만 들어가고, 경계 절에는 그 이름과 기준 문서를 가리키는 한 줄만 있으므로 리뷰어의 `max_packet_bytes`에 두 번 세지 않습니다. 절의 안내는 리뷰어에게, 어떤 기준·규칙·계약·보호된 회귀 경로도 요구하지 않는 경계 밖 입력의 반례는 그 경계를 밝혀 `check_impact` `none`인 `hardening`으로 보고하고, 기준·계약·보호된 회귀 경로가 요구하는 입력의 반례는 경계가 무엇이라 하든 `defect`로 보고하라고 말합니다. spar는 경계 문서가 맞는지 확인하지 않습니다. 읽을 수 없는 경계 문서는 리뷰어를 띄우기 전에 거부됩니다.
+검사의 경계, 곧 각 검사가 무엇을 관찰하고 어떤 입력을 다루지 않는지 적은 문서가 있으면 `--boundary`로 줍니다. 두 단계 모두 받고 여러 번 줄 수 있습니다. 문서는 패킷의 `## Check boundaries` 절에 들어가고 `round.json`의 `boundaries`에 남습니다. 목표의 `REVIEW.md`처럼 같은 파일을 `--criteria`로도 주면 그 전문은 기준 문서로 한 번만 들어가고, 경계 절에는 그 이름과 기준 문서를 가리키는 한 줄만 있으므로 리뷰어의 `max_packet_bytes`에 두 번 세지 않습니다. 절의 안내는 리뷰어에게, 어떤 기준·규칙·계약·보호된 회귀 경로도 요구하지 않는 경계 밖 입력의 반례는 그 경계를 밝혀 `check_impact` `none`인 `hardening`으로 보고하고, 기준·계약·보호된 회귀 경로가 요구하는 입력의 반례는 경계가 무엇이라 하든 `defect`로 보고하라고 말합니다. spar는 경계 문서가 맞는지 확인하지 않습니다. 읽을 수 없는 경계 문서는 리뷰어를 띄우기 전에 거부됩니다.
 
 문서에서 토큰을 찾는 시험처럼 파일의 고정 글만 읽는 검사는 `--check-path`와 함께, 또는 그 대신 `--text-check`로 줍니다. 여러 번 줄 수 있고 다른 검사 경로와 같은 검사 경로이므로 분류는 그대로입니다. `round.json`은 그 glob을 `config.text_check_paths`에 남기고, 패킷은 `- Fixed-text checks:` 줄에 보이며, `check-validity` 각도는 리뷰어에게 그 검사가 맞는 파일의 맞는 고정 글을 읽는지 판단하고, 고정 글로는 동작을 증명할 수 없다는 지적은 그것을 요구하는 기준·계약·보호 경로를 밝힌 `requirement-question`으로만 보고하라고 합니다.
 
-candidate·fixes·plan-delta 라운드의 패킷은 앞선 라운드의 지적을 보입니다. plan-delta에서는 plan·plan-delta 라운드, candidate와 fixes에서는 candidate·fixes 라운드의 지적입니다. 그래서 누적 라운드도 앞선 코드 라운드의 지적을 봅니다. 처리가 기록된 지적은 줄 끝에 그 지적의 마지막 처리(`fix: commit …`, `reject: …`, `defer: to …`, `defer (auto): …`, `duplicate of …`, `answer: …`)가 붙습니다. 그런 지적이 있으면 패킷은 리뷰어에게, 처리가 기록된 지적은 기록된 처리가 답하지 못하는 실패 시나리오가 있을 때만 다시 보고하라고 합니다. fixes 라운드에서는 고쳤다고 기록한 지적이 고쳐졌는지와, 거절·보류·중복·답변으로 기록한 지적이 기록대로 맞는지를 보라고 합니다. 다음 라운드를 돌리기 전에 처리를 `spar triage`로 기록하면 리뷰어가 그 처리를 보고 검토합니다. 처리는 패킷의 일부이므로, 처리를 바꾼 뒤 같은 base·head로 돌린 fixes 라운드는 새 라운드로 상한에 세고, 사슬은 그 앞의 코드 라운드에 이어집니다. 앞 `candidate` 라운드의 base·head로 뒤에 다시 `candidate`를 돌리면 그 라운드가 받은 앞선 지적만 받습니다. 그 라운드의 `round.json` `prior`가 적은 라운드를 읽으므로, candidate 라운드가 앞선 지적을 받기 전에 기록한 라운드라면 앞선 지적을 받지 않습니다. `fixes`나 `plan-delta` 실행은 자기와 단계·base·head가 같은 라운드만 빼므로, 그 라운드 뒤에 기록한 라운드의 지적도 받습니다.
+candidate 라운드의 패킷은 같은 series의 앞선 코드 라운드(candidate 라운드와 기록된 fixes 라운드)의 지적을 보입니다. 그래서 검토 수정 뒤의 candidate 라운드와 누적 라운드도 앞선 코드 라운드의 지적을 봅니다. plan 라운드는 앞선 지적을 받지 않습니다. 처리가 기록된 지적은 줄 끝에 그 지적의 마지막 처리(`fix: commit …`, `reject: …`, `defer: to …`, `defer (auto): …`, `duplicate of …`, `answer: …`)가 붙습니다. 그런 지적이 있으면 패킷은 리뷰어에게, 처리가 기록된 지적은 기록된 처리가 답하지 못하는 실패 시나리오가 있을 때만 다시 보고하라고 합니다. 다음 라운드를 돌리기 전에 처리를 `spar triage`로 기록하면 리뷰어가 그 처리를 보고 검토합니다. 처리는 패킷의 일부이므로, 처리를 바꾼 뒤 같은 base·head로 돌린 candidate 라운드는 새 라운드로 상한에 셉니다. 앞 `candidate` 라운드의 base·head로 뒤에 다시 `candidate`를 돌리면 그 라운드가 받은 앞선 지적만 받습니다. 그 라운드의 `round.json` `prior`가 적은 라운드를 읽으므로, candidate 라운드가 앞선 지적을 받기 전에 기록한 라운드라면 앞선 지적을 받지 않습니다.
 
 라운드마다 Git이 무시하는 새 폴더에 `round.json`, `packet.md`, `findings.json`, `ledger.jsonl`, `summary.md`가 생깁니다. `summary.md`의 지적 표는 주장을 자르지 않고 `Claim` 칸에 한 줄로 보이므로, 그 파일만 읽고도 지적을 분류하고 처리할 수 있습니다. 패킷에 비공개 문서가 들어갈 수 있으므로 Git이 추적할 폴더는 거부합니다([프로젝트 준비](#프로젝트-준비)).
 
@@ -186,7 +186,7 @@ candidate·fixes·plan-delta 라운드의 패킷은 앞선 라운드의 지적�
 
 ### 리뷰어별 관점
 
-plan과 candidate 라운드(누적 라운드 포함)에서는 에이전트가 변경의 주된 위험을 골라 리뷰어마다 서로 다른 관점을 하나씩 줍니다. 위험보다 리뷰어가 많으면 나머지는 관점 없이 검토합니다. fixes와 plan-delta에서는 앞선 관점을 다시 주거나 주지 않을 수 있습니다. 관점은 공격할 위험, 먼저 볼 곳, 보는 입장을 적고 해결이 맞다는 주장이나 풀이 설명은 넣지 않습니다. 다음은 codex가 설정된 경우의 합성 예시입니다.
+plan과 candidate 라운드마다(검토 수정 뒤의 candidate 라운드와 누적 라운드 포함) 에이전트가 변경의 주된 위험을 골라 리뷰어마다 서로 다른 관점을 하나씩 줍니다. 위험보다 리뷰어가 많으면 나머지는 관점 없이 검토합니다. 관점은 공격할 위험, 먼저 볼 곳, 보는 입장을 적고 해결이 맞다는 주장이나 풀이 설명은 넣지 않습니다. 다음은 codex가 설정된 경우의 합성 예시입니다.
 
 ```bash
 spar run --stage candidate --base 1111111 --head 2222222 \
@@ -223,7 +223,7 @@ Spar는 지적을 `defect`, `requirement-question`, `hardening`, `note` 가운�
 
 ### gate의 상태
 
-`spar gate`는 라운드들과 완료하려는 head를 읽고 `review-gate/v1` 파일을 씁니다. `complete`(종료 0), 필수 리뷰어가 끝내지 못했고 그 라운드에 사용자의 결정이 없으면 `degraded`(3), 열린 지적·상한 초과·검토되지 않은 head가 있으면 `blocked`(4)입니다. 검토 수정이 검사 코드와 그 밖에 더한 줄 수도 남깁니다. [gate 계약](../contracts/review-gate.md)을 보세요.
+`spar gate`는 라운드들과 완료하려는 head를 읽고 `review-gate/v1` 파일을 씁니다. `complete`(종료 0), 필수 리뷰어가 끝내지 못했고 그 라운드에 사용자의 결정이 없으면 `degraded`(3), 열린 지적·상한 초과·검토되지 않은 head가 있으면 `blocked`(4)입니다. 기록된 fixes 라운드가 있으면 그 검토 수정이 검사 코드와 그 밖에 더한 줄 수도 남기고, 없으면 그 줄 수를 재지 않습니다. [gate 계약](../contracts/review-gate.md)을 보세요.
 
 ### 리뷰어 없이 진행하기
 
