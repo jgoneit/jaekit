@@ -413,19 +413,52 @@ func smUsage(v *smViolations, label, stderr string) {
 // options of the run.
 func (w *smWorld) smTryOldStage(v *smViolations, where, series, stage, base, head string, dry bool, extra ...string) {
 	w.t.Helper()
-	label := "spar run --stage " + stage
-	args := w.runArgs(stage, base, head, "")
+	args := w.runArgs(stage, base, head, filepath.Join(series, w.next(series, stage)))
 	if dry {
-		label += " --dry-run"
 		args = append(args, "--dry-run")
 	}
-	for _, e := range extra {
-		label += " " + strconv.Quote(e)
+	w.smJudgeOldStage(v, where, series, append(args, extra...))
+}
+
+// smOldStageArgs are the arguments of a run of stage from base to head into
+// the next round of series, valid but for its stage, with before placed
+// ahead of the stage option and the stage given inline (--stage=STAGE) when
+// inline is set.
+func (w *smWorld) smOldStageArgs(series, stage, base, head string, inline bool, before ...string) []string {
+	rest := w.runArgs(stage, base, head, filepath.Join(series, w.next(series, stage)))[3:]
+	args := append([]string{"run"}, before...)
+	if inline {
+		args = append(args, "--stage="+stage)
+	} else {
+		args = append(args, "--stage", stage)
 	}
-	args = append(args, extra...)
-	label += " in " + where
-	out := filepath.Join(series, w.next(series, stage))
-	args[slices.Index(args, "--out")+1] = out
+	return append(args, rest...)
+}
+
+// smRunValues are the options of a run whose values a label leaves out:
+// the same in every run of AC-3.
+var smRunValues = []string{"--base", "--head", "--out", "--criteria", "--rules", "--check-path", "--repo", "--subject"}
+
+// smLabel names a run by its arguments without the values of smRunValues.
+func smLabel(args []string) string {
+	var parts []string
+	for i := 0; i < len(args); i++ {
+		if slices.Contains(smRunValues, args[i]) {
+			i++
+			continue
+		}
+		parts = append(parts, strconv.Quote(args[i]))
+	}
+	return "spar " + strings.Join(parts, " ")
+}
+
+// smJudgeOldStage runs spar with args, a plan-delta or fixes round into
+// series, and adds to v what spar did other than refuse it as
+// smTryOldStage requires.
+func (w *smWorld) smJudgeOldStage(v *smViolations, where, series string, args []string) {
+	w.t.Helper()
+	label := smLabel(args) + " in " + where
+	out := args[slices.Index(args, "--out")+1]
 	existed := w.exists(series)
 	var before map[string]string
 	if existed {
@@ -502,6 +535,15 @@ func TestSparStageMergeAC3_OldStagesRefused(t *testing.T) {
 		{"fixes", c[1], c[2], []string{"--no-such-option"}},
 	} {
 		w.smTryOldStage(v, "a series with a recorded candidate round", series, form.stage, form.base, form.head, false, form.extra...)
+	}
+	// An option that fails to parse before the stage option, and the stage
+	// given inline, still meet the stage refusal.
+	for _, args := range [][]string{
+		w.smOldStageArgs(series, "fixes", c[1], c[2], false, "--no-such-option"),
+		w.smOldStageArgs(series, "fixes", c[1], c[2], true, "--no-such-option"),
+		w.smOldStageArgs(series, "plan-delta", c[0], c[0], true),
+	} {
+		w.smJudgeOldStage(v, "a series with a recorded candidate round", series, args)
 	}
 
 	// A series folder of its own for each run, so that every run meets one
@@ -611,7 +653,8 @@ func TestSparStageMergeAC5_DefaultCodeCapTwo(t *testing.T) {
 
 // AC-6: a series of a plan round and two candidate rounds, the last from the
 // original base to the new head with the first one's defect fixed, gives a
-// complete gate without reasons or fixes growth.
+// complete gate without reasons or fixes growth, and a cap report that
+// says it measured no added lines.
 func TestSparStageMergeAC6_PlanAndCandidateGate(t *testing.T) {
 	w := newSMWorld(t)
 	c := w.commits
@@ -641,7 +684,27 @@ func TestSparStageMergeAC6_PlanAndCandidateGate(t *testing.T) {
 	if !ok || len(rounds) != 0 || growth["over_hardening"] != false {
 		t.Errorf("the gate's growth is %v; want no rounds and over_hardening false", g["growth"])
 	}
+
+	// The cap report of a series without a fixes round measures no added
+	// lines and says so.
+	code, report, stderr := w.spar("cap-report", series, "--format", "md", "--repo", w.repo)
+	if code != ExitOK {
+		t.Fatalf("spar cap-report %s --format md exits %d: %s", filepath.Base(series), code, smFirstLine(stderr))
+	}
+	lines := strings.Split(report, "\n")
+	if !slices.Contains(lines, smNotMeasured) {
+		t.Errorf("spar cap-report of 01-plan, 02-candidate and 03-candidate has no line %q", smNotMeasured)
+	}
+	for _, line := range lines {
+		if strings.HasPrefix(line, "- added lines: check ") {
+			t.Errorf("spar cap-report of a series without a fixes round prints %q; want %q", line, smNotMeasured)
+		}
+	}
 }
+
+// smNotMeasured is the cap report's check growth line for a series without
+// a recorded fixes round.
+const smNotMeasured = "- added lines: not measured (no recorded fixes round)"
 
 // smLegacyRounds are the legacy series' rounds a gate lists: every one but
 // the dry run 06-fixes.
