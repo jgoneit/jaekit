@@ -409,8 +409,9 @@ func smUsage(v *smViolations, label, stderr string) {
 // spar did other than refuse it as a usage error (exit 64) whose message
 // names candidate and whose usage text lists only plan and candidate,
 // before anything is written: an --out that exists, a series that changed,
-// or a series folder that did not exist and now does.
-func (w *smWorld) smTryOldStage(v *smViolations, where, series, stage, base, head string, dry bool) {
+// or a series folder that did not exist and now does. extra are more
+// options of the run.
+func (w *smWorld) smTryOldStage(v *smViolations, where, series, stage, base, head string, dry bool, extra ...string) {
 	w.t.Helper()
 	label := "spar run --stage " + stage
 	args := w.runArgs(stage, base, head, "")
@@ -418,6 +419,10 @@ func (w *smWorld) smTryOldStage(v *smViolations, where, series, stage, base, hea
 		label += " --dry-run"
 		args = append(args, "--dry-run")
 	}
+	for _, e := range extra {
+		label += " " + strconv.Quote(e)
+	}
+	args = append(args, extra...)
 	label += " in " + where
 	out := filepath.Join(series, w.next(series, stage))
 	args[slices.Index(args, "--out")+1] = out
@@ -455,8 +460,8 @@ func (w *smWorld) smTryOldStage(v *smViolations, where, series, stage, base, hea
 // error (exit 64) whose message names candidate, before anything is
 // written, also as a dry run: in a series with a recorded candidate round,
 // in a series folder that does not exist yet and in a series recorded
-// before the change with plan-delta and fixes rounds (the legacy fixture).
-// The usage text lists only plan and candidate for spar run; plan and
+// before the change with plan-delta and fixes rounds (the legacy fixture),
+// and also when another option of the run is wrong. The usage text lists only plan and candidate for spar run; plan and
 // candidate rounds still start.
 func TestSparStageMergeAC3_OldStagesRefused(t *testing.T) {
 	v := &smViolations{t: t, id: "old-stage-started"}
@@ -483,6 +488,20 @@ func TestSparStageMergeAC3_OldStagesRefused(t *testing.T) {
 	first := w.run(series, "01-candidate", "candidate", c[0], c[1])
 	w.record(first, c[1], smFinding("F1", "defect", "AC-1", "app/greet.py", "yes"))
 	tryAll("a series with a recorded candidate round", func(int) string { return series }, c[1], c[2])
+	// An old stage is refused before any other option of the run is judged:
+	// a decision without its other part, a standpoint out of form, a model
+	// for a reviewer that is not configured.
+	for _, form := range []struct {
+		stage, base, head string
+		extra             []string
+	}{
+		{"fixes", c[1], c[2], []string{"--decision", "x"}},
+		{"plan-delta", c[0], c[0], []string{"--decision-quote", "y"}},
+		{"fixes", c[1], c[2], []string{"--standpoint", "noequals"}},
+		{"plan-delta", c[0], c[0], []string{"--model", "nosuch=m"}},
+	} {
+		w.smTryOldStage(v, "a series with a recorded candidate round", series, form.stage, form.base, form.head, false, form.extra...)
+	}
 
 	// A series folder of its own for each run, so that every run meets one
 	// that does not exist yet.
