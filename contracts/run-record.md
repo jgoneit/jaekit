@@ -831,7 +831,7 @@ fixes 사슬과 기대 head의 확인은 gate 상태 `complete`가 맡는다([re
 
 그 note가 없으면 뺀 경로를 관측하지 못한다. `check_freeze.removed_observed`는 `false`, `table_from`은 `null`이고 `files`에는 `removed` 항목이 없다. 상태와 보고는 `동결 때의 조건표가 기록되지 않음`(en·사람용 상태: `freeze-time condition table was not recorded`)을 보인다. note가 있으면 `removed_observed: true`, `table_from`은 그 note의 seq다.
 
-**까닭 기록.** 동결 뒤 검사 파일을 고치면 commit한 뒤 `ha note <goal> check-change checks:<path> --reason "<지적 ID, 또는 조건과 이유>"`로 남긴다. `check-change`는 `/7`에서만 받으며 앞 규칙에서는 64로 거절한다. dirty 트리에서는 기록하지 않는다. note는 그 경로의 HEAD blob에 묶이고, HEAD에 경로가 없으면 `null`에 묶인다. 지금 blob과 같을 때만 지금 변경의 까닭으로 인정하므로 그 뒤 파일을 다시 고치면 앞의 까닭은 쓰지 않는다. 까닭은 실행자의 주장이다. 동결 전 변경에는 이 까닭을 요구하지 않고, 동결 뒤에도 검사 결함은 고칠 수 있다. 다음 코드 검토 라운드는 바뀐 검사와 까닭을 함께 받는다. 동결 표시는 자체로 완료를 막거나 plan-delta를 요구하지 않는다. 기존 gate 신선도와 완료 조건은 그대로다.
+**까닭 기록.** 동결 뒤 검사 파일을 고치면 commit한 뒤 `ha note <goal> check-change checks:<path> --reason "<지적 ID, 또는 조건과 이유>"`로 남긴다. `check-change`는 `/7`에서만 받으며 앞 규칙에서는 64로 거절한다. dirty 트리에서는 기록하지 않는다. note는 그 경로의 HEAD blob에 묶이고, HEAD에 경로가 없으면 `null`에 묶인다. 지금 blob과 같을 때만 지금 변경의 까닭으로 인정하므로 그 뒤 파일을 다시 고치면 앞의 까닭은 쓰지 않는다. 까닭은 실행자의 주장이다. 동결 전 변경에는 이 까닭을 요구하지 않고, 동결 뒤에도 검사 결함은 고칠 수 있다. 다음 코드 검토 라운드는 바뀐 검사와 까닭을 함께 받는다. 동결 표시는 자체로 완료를 막지 않는다. 기존 gate 신선도와 완료 조건은 그대로다.
 
 **동결 출력.** 동결이 있으면 상태 JSON에 `check_freeze` 객체가 있다. 없으면 필드 자체를 생략한다(`null`이 아님).
 

@@ -1046,7 +1046,7 @@ func TestSparWaiverAC9_SkillStatesTheWaiver(t *testing.T) {
 	const skill = "plugins/spar/skills/spar/SKILL.md"
 	rwStates(t, id, skill,
 		"\n- When a required reviewer did not complete a round and the user says to go on without it, record their words for that round: `spar waive <round> <reviewer> --user-quote \"<their words>\"`. Never record a waiver without the user's words. A waiver covers its round only; record one for each round the reviewer did not complete.\n",
-		"\n- `complete` only when every required reviewer completed every round or holds the user's waiver for that round, at least one required reviewer completed each round's packet, the code rounds form a chain up to the expected head, and no `defect` or `requirement-question` is open.\n",
+		"\n- `complete` only when every required reviewer completed every round or holds the user's waiver for that round, at least one required reviewer completed each round's packet, the last code round reviewed the expected head (with recorded fixes rounds in an unbroken chain), and no `defect` or `requirement-question` is open.\n",
 		"\n- `degraded` when a required reviewer did not complete a round and holds no waiver for it, a round had no required reviewer, or no required reviewer completed a round's packet. Tell the user which reviewer and why; do not present the review as complete.\n",
 		"\n- A waived reviewer is not a `degraded` reason; the gate file lists it under its round's `waived_reviewers` with its status and the user's words. A round where no required reviewer completed stays `degraded` even with waivers. Report the waivers with the gate.\n",
 		"A `complete` gate means the required reviewers the user did not waive found nothing open;",

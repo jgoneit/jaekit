@@ -92,7 +92,7 @@ The SPEC's `Assurance:` line sets the independent review stages. Spar decides ho
 | `standard` | A candidate round on the final candidate, a candidate round from the goal's base commit to the new head after review fixes, and a cumulative round before `ha done` |
 | `strict` | `standard` plus one plan round before any baseline, which covers the product's invariants and decision rules as well as the check plan. When the goal documents or checks change after it, the next candidate round reviews the current goal documents. When SPEC.md or a linked goal document changed, Seal takes one more plan round after a plan cap extension in your words, so that `review_docs_stale` clears |
 
-The cumulative round is a candidate round over the whole change, from the goal's base commit to the last head: of the candidate rounds after review fixes, the last one that ends with no open `defect` or `requirement-question`. In a goal under review, Seal runs `ha done` only after that round.
+The cumulative round is a candidate round over the whole change, from the goal's base commit to the last head: of the candidate rounds after review fixes, the last one that ends with no open `defect` or `requirement-question`; when no fixes followed the first candidate round, that round is the cumulative round. In a goal under review, Seal runs `ha done` only after that round.
 
 - When project instructions such as `AGENTS.md` ask for more review, Seal follows them and says so in the completion report.
 - A goal without the line keeps the selected assurance policy as before.
