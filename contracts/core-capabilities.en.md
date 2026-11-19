@@ -4,7 +4,7 @@
 
 > This is a translation of the [Korean original](core-capabilities.md). Where the two differ, the Korean original decides.
 
-This contract applies to Core `0.1.8` and Seal `0.1.23` of v0.1.8. The capability example below is from that release; §10 covers Seal 0.1.26 and `run-rules/6`, and §11 covers current Seal and `run-rules/7`. The capability query was introduced in v0.1.3, and the earlier release `v0.1.2` does not have this command. Even after an update, the capabilities of the actual executable are checked, and compatibility is never judged from version numbers alone. Spec writes documents without a Core installation or this query.
+This contract applies to Core `0.1.8` and Seal `0.1.23` of v0.1.8. The capability example below is from that release, with the lines of one optional extension removed in later source left out; §10 covers Seal 0.1.26 and `run-rules/6`, and §11 covers current Seal and `run-rules/7`. The capability query was introduced in v0.1.3, and the earlier release `v0.1.2` does not have this command. Even after an update, the capabilities of the actual executable are checked, and compatibility is never judged from version numbers alone. Spec writes documents without a Core installation or this query.
 
 ## 1. Query without a goal
 
@@ -28,7 +28,6 @@ Exit codes are `0` for success, `64` for invalid arguments and `70` for an outpu
     "check_result": ["check-result/v1"],
     "check_evidence": ["check-evidence/v1"],
     "finding": ["run-finding/v1"],
-    "decision_history": ["decision-history/v1"],
     "timing": ["timing/v1"],
     "assurance_tier": ["light", "standard", "strict"],
     "core_requirements": ["core-requirements/v1"],
@@ -37,7 +36,7 @@ Exit codes are `0` for success, `64` for invalid arguments and `70` for an outpu
   "features": [
     "estimate/v1", "dirty-preflight/v1", "baseline-safe-copy/v1",
     "structured-change-results/v1", "budget-change/v1",
-    "post-completion-findings/v1", "decision-history/v1", "run-timing/v1",
+    "post-completion-findings/v1", "run-timing/v1",
     "test-authority/v1", "reported-wait/v1", "preapproved-runs/v1",
     "error-recovery/v1", "command-time-limits/v1", "runner-adapters/v1",
     "report/v1", "doctor/v1", "auto-budget/v1", "core-requirements/v1",
@@ -70,7 +69,6 @@ Every field above is required except `formats.timing`, `formats.assurance_tier`,
 | `structured-change-results/v1` | For a `/3` change, structured classification linked to the call and preservation of the full attempt history |
 | `budget-change/v1` | For `/3`, a change of the total run limit of the current window, preserving the usage and time limits and refusing revision conflicts |
 | `post-completion-findings/v1` | An optional extension that preserves finding claims, revisions and rework relations linked to a historical completion |
-| `decision-history/v1` | An optional extension that provides registration, relations and queries of a decision history kept apart from run records (§5) |
 | `run-timing/v1` | An optional extension that provides recording of `timing` measurements on `check` and `baseline` lines and a read-only timing view (`ha timing`) |
 | `test-authority/v1` | `run-rules/4`'s test change authority, the copy of the scope at start, and `test-change` evidence (§6) |
 | `reported-wait/v1` | `run-rules/4`'s `wait` and `resume` reports, `started_at`, and budget elapsed time that excludes reported waits (§6) |
@@ -119,7 +117,7 @@ python3 <seal-skill>/scripts/check_core.py --ha <실제 Core 경로> --operation
 python3 <seal-skill>/scripts/check_core.py --ha <실제 Core 경로> --operation resume --goal <기존 목표>
 ```
 
-The tool of Seal 0.1.20 checks all requirements of `core-requirements.json` for `start`. So when it judges a new start compatible for the same executable, the requirement check of `ha start --check-skill` does not refuse either. The judgments for `resume`, `check`, `budget`, `finding` and `history` stay the same.
+The tool of Seal 0.1.20 checks all requirements of `core-requirements.json` for `start`. So when it judges a new start compatible for the same executable, the requirement check of `ha start --check-skill` does not refuse either. The judgments for `resume`, `check`, `budget` and `finding` stay the same.
 
 `--ha` defaults to `ha` and uses the first executable found on PATH. `--operation` is `start` (default), `resume`, `check`, `budget` or `finding`. `start` takes no goal, and the other requests take an existing goal. The tool reads the existing goal's first `start`, the record schema and the SPEC format selector, and leaves the verification of actual record integrity to Core.
 
@@ -138,14 +136,6 @@ The query is stopped after 5 seconds and is not retried automatically. This tool
 From Core 0.1.4, Core includes [post-completion findings](findings.en.md) and provides `run-finding/v1` in `formats.finding` and `post-completion-findings/v1` in `features`. The v0.1.8 release example above also has both items. The v0.1.3 Core does not have this extension, so the actual capabilities are checked, and features are never inferred from version numbers alone. The requirements of the existing start, check and budget operations stay. For finding input and queries, the two additional supports of the actual executable and support for the stored rules and the current condition format are checked. Run features or `/3` declaration support are not required for finding operations alone.
 
 The optional tool included in Seal 0.1.12 supports `--operation finding --goal <기존 목표>`. When an existing goal has `run-finding/v1` lines, resume, check and budget also require the two additional supports. The tool reads the presence of known line schemas, and Core verifies the integrity of hashes and history. Unknown schemas are refused. It is not assumed that the tool of an earlier installation has the new argument, and checking the actual capabilities directly is also valid. When the support cannot be confirmed, no new finding record is written.
-
-## 5. Optional decision history extension
-
-A Core that supports [decision history](decision-history.en.md) provides `decision-history/v1` in `formats.decision_history` and `decision-history/v1` in `features`. This extension is provided from release v0.1.5 (`ha 0.1.5`) and is absent in v0.1.4 (`ha 0.1.4`). For registering and querying history, the two additional supports of the actual executable and support for the stored start rules and the current condition format are checked. Decision history is outside `runs.jsonl`, so this extension is not added to the requirements of a new start or of resume, check, budget and finding operations on existing goals. Without the support, no history is written, and the handoff goes through the existing Markdown.
-
-The optional tool included in Seal 0.1.13 does the same check with `--operation history --goal <기존 목표>`. It is not assumed that the tool of an earlier installation has this argument, and checking the actual capabilities directly is also valid.
-
-The macOS and Linux executables of the current source and the Windows x64 local candidate provide the two decision history items with the same meaning. On Windows too, registration, resend, correction, the default/current view, list and both forms of show are covered; it is not a form that has only the capabilities while direct calls are all unsupported. This feature advertisement does not mean a public Windows release or acceptance of Windows 11 installation and host use. The platform and repository scope follow the [decision history contract](decision-history.en.md#1-support-and-compatibility) and the [Windows candidate guide](../guides/WINDOWS.en.md).
 
 ## 6. run-rules/4 features
 

@@ -828,8 +828,7 @@ var rel011En = rel011Lang{
 
 // rel011RemoveOutput deletes the raw check output under the working tree's own
 // Git directory, which is not .git in a linked worktree. It removes only
-// ha/runs, so the decision history shared through the common Git directory
-// (contracts/decision-history.md) stays.
+// ha/runs, so anything else under the Git directory stays.
 const rel011RemoveOutput = `gitdir="$(git rev-parse --absolute-git-dir)" && rm -rf "$gitdir/ha/runs"` + "\n"
 
 // rel011Blocks returns a section of the install guide and its shell blocks.

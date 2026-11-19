@@ -211,9 +211,9 @@ What each release includes:
 <summary>What earlier releases include</summary>
 
 - **Previous release `v0.1.7`**: Default rules `/3`; Seal starts new goals under `/5` (a `standard` or `strict` goal completes only with a recorded Spar gate), Spar review rounds and gate, runner adapters, `ha report`, `ha doctor` and the automatic budget, Core support check at start (`--check-skill`), Spec that the agent can call
-- **Previous release `v0.1.6`**: Default rules `/3`; Seal starts new goals under `/4` (proceeding within recorded authority), decision history and run timing, check-authoring guidance, final-candidate evidence, post-completion findings, evidence and assurance-policy reporting; no Spar or `/5`
+- **Previous release `v0.1.6`**: Default rules `/3`; Seal starts new goals under `/4` (proceeding within recorded authority), run timing, check-authoring guidance, final-candidate evidence, post-completion findings, evidence and assurance-policy reporting; no Spar or `/5`
 - **Previous release `v0.1.5`**: Same Core behavior as v0.1.6; Seal before the run limit of a reopened `/4` window was linked to its contract
-- **Previous release `v0.1.4`**: Default rules `/3`, post-completion findings, evidence and assurance-policy reporting; no `/4`, decision history or run timing
+- **Previous release `v0.1.4`**: Default rules `/3`, post-completion findings, evidence and assurance-policy reporting; no `/4` or run timing
 - **Previous release `v0.1.3`**: Default rules `/3`, capabilities, run estimation and total-limit changes; no post-completion findings extension
 - **Previous release `v0.1.2`**: Default rules `/2`; does not meet the new Seal's support requirements
 
@@ -406,11 +406,9 @@ claude plugin marketplace remove jaekit
 
 Installation, updates and removal preserve your project's documents, records and raw output. Whether Git tracks the goal documents and the files Seal made (`SPEC.md`, `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, and `runs.jsonl` in `docs/specs/<goal>/`) depends on project policy. Both tracked records and ignored private records stay. Raw check output is under `ha/runs/` in that working tree's Git directory, which git does not track. That is usually under `.git/ha/`; in a linked worktree, where `.git` is a file, it is under the directory that `git rev-parse --absolute-git-dir` prints.
 
-The optional [decision history](../contracts/decision-history.en.md) is under `ha/history/`, per run start record, in the common Git directory that every working tree of the repository shares (`git rev-parse --git-common-dir`). In a normal checkout that is the same `.git/ha/` as the raw check output. Removing a linked worktree leaves this history in place, but the remaining history does not preserve or restore goal documents or raw check output. It does not travel to a new clone or another machine, and deleting the whole Git directory removes it with no automatic recovery.
-
 If you also choose to remove goal documents and records, first check whether they need preserving and whether Git tracks them. For a tracked goal, run `git rm -r docs/specs/<goal>` from that repository's root and commit. This command does not remove untracked goals; handle those separately under the project's local retention policy. Do not force ignored documents into Git.
 
-To remove the raw check output too, paste the command below in that working tree while no Jaekit check is running (while Seal is not working). It removes the raw check output of every goal in that working tree. Decision history, the output of other working trees, and the goal documents and run records stay.
+To remove the raw check output too, paste the command below in that working tree while no Jaekit check is running (while Seal is not working). It removes the raw check output of every goal in that working tree. The output of other working trees and the goal documents and run records stay.
 
 ```bash
 gitdir="$(git rev-parse --absolute-git-dir)" && rm -rf "$gitdir/ha/runs"
