@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "OneRepeatedPremiseRule",
+      "violation": "repeated-premise-rules-differ",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSparEarlierDispositionsAC5_OneRepeatedPremiseRule"
+      }
+    }
+  ]
+}

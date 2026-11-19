@@ -64,18 +64,19 @@ type RunOptions struct {
 	Subjects   []string
 	// Boundaries are the documents that state each check's observation
 	// boundary for the reviewers (--boundary).
-	Boundaries  []string
-	Questions   []string
-	Decisions   []Decision
-	Standpoints []Standpoint
-	CheckPaths  []string
-	Reviewers   []string // nil: the configured list
-	Choices     []Choice // the agent's --model and --effort values
-	Label       string
-	DryRun      bool
-	Version     string
-	Getenv      func(string) string
-	Log         io.Writer
+	Boundaries     []string
+	Questions      []string
+	Decisions      []Decision
+	Standpoints    []Standpoint
+	CheckPaths     []string
+	TextCheckPaths []string
+	Reviewers      []string // nil: the configured list
+	Choices        []Choice // the agent's --model and --effort values
+	Label          string
+	DryRun         bool
+	Version        string
+	Getenv         func(string) string
+	Log            io.Writer
 }
 
 func readDocument(repo, path, what string) (Document, error) {
@@ -108,22 +109,43 @@ func readDocuments(repo string, paths []string, what string) ([]Document, error)
 }
 
 // priorLines lists the findings of earlier rounds of the same stage group,
-// leaving out rounds of the same stage, base and head so that a rerun gets
-// the same packet. A finding with a recorded disposition ends with its last
-// one; the bool reports whether any line does.
+// leaving out dry runs and rounds of the same stage, base and head so that a
+// rerun gets the same packet. A candidate run of a recorded round's stage,
+// base and head reads exactly the rounds the earliest such round names in
+// its prior: none when that round was recorded before candidate rounds
+// received earlier findings (prior null, missing or empty). So a code round
+// recorded before or after it does not change the rerun's packet. A finding
+// with a recorded disposition ends with its last one; the bool reports
+// whether any line does.
 func priorLines(siblings []sibling, current *RoundRecord) ([]string, []string, bool, error) {
 	var groups []string
 	switch current.Stage {
 	case "plan-delta":
 		groups = []string{"plan", "plan_delta"}
-	case "fixes":
+	case "candidate", "fixes":
 		groups = []string{"code"}
 	default:
 		return []string{}, []string{}, false, nil
 	}
+	reads := func(s sibling) bool {
+		return !s.round.DryRun && !sameIdentity(s.round, current) && contains(groups, stageGroup(s.round.Stage))
+	}
+	if current.Stage == "candidate" {
+		for i, s := range siblings {
+			if s.round.DryRun || !sameIdentity(s.round, current) {
+				continue
+			}
+			var err error
+			if siblings, err = originalPrior(siblings[:i], s); err != nil {
+				return nil, nil, false, err
+			}
+			reads = func(sibling) bool { return true }
+			break
+		}
+	}
 	lines, dirs, disposed := []string{}, []string{}, false
 	for _, s := range siblings {
-		if s.round.DryRun || sameIdentity(s.round, current) || !contains(groups, stageGroup(s.round.Stage)) {
+		if !reads(s) {
 			continue
 		}
 		findings, err := loadFindings(s.dir)
@@ -162,6 +184,34 @@ func priorLines(siblings []sibling, current *RoundRecord) ([]string, []string, b
 		}
 	}
 	return lines, dirs, disposed, nil
+}
+
+// originalPrior is the rounds among before, the rounds recorded before
+// original, that original's prior names, in series order. A prior that
+// names a round the series no longer holds before original is an error: the
+// rerun could not receive what original received.
+func originalPrior(before []sibling, original sibling) ([]sibling, error) {
+	named := map[string]bool{}
+	for _, d := range original.round.Prior {
+		named[d] = true
+	}
+	var out []sibling
+	for _, s := range before {
+		if name := filepath.Base(s.dir); named[name] {
+			out = append(out, s)
+			delete(named, name)
+		}
+	}
+	if len(named) > 0 {
+		missing := make([]string, 0, len(named))
+		for d := range named {
+			missing = append(missing, d)
+		}
+		sort.Strings(missing)
+		return nil, fmt.Errorf("%s/round.json names %s in prior, which the series does not hold before it",
+			filepath.Base(original.dir), strings.Join(missing, ", "))
+	}
+	return out, nil
 }
 
 // dispositionText is a finding's last disposition as an earlier finding's
@@ -380,9 +430,14 @@ func Run(o RunOptions) (int, error) {
 	}
 	// A check path given for this run follows the table's glob rule (G24):
 	// a wrong one is refused before anything is read or written.
-	for _, p := range o.CheckPaths {
-		if err := validGlob(p); err != nil {
-			return ExitRefused, refused("--check-path %q: %v", p, err)
+	for _, check := range []struct {
+		option string
+		paths  []string
+	}{{"--check-path", o.CheckPaths}, {"--text-check", o.TextCheckPaths}} {
+		for _, p := range check.paths {
+			if err := validGlob(p); err != nil {
+				return ExitRefused, refused("%s %q: %v", check.option, p, err)
+			}
 		}
 	}
 	start := o.Repo
@@ -401,8 +456,13 @@ func Run(o RunOptions) (int, error) {
 	if err := validateStandpoints(o, cfg); err != nil {
 		return ExitRefused, err
 	}
-	if len(o.CheckPaths) > 0 {
-		cfg.CheckPaths = uniq(append(cfg.CheckPaths, o.CheckPaths...))
+	// A fixed-text check is also a check path of the run. The record keeps
+	// the declarations sorted and unique, outside config.digest.
+	if len(o.TextCheckPaths) > 0 {
+		cfg.TextCheckPaths = slices.Compact(slices.Sorted(slices.Values(o.TextCheckPaths)))
+	}
+	if paths := append(slices.Clone(o.CheckPaths), cfg.TextCheckPaths...); len(paths) > 0 {
+		cfg.CheckPaths = uniq(append(cfg.CheckPaths, paths...))
 		cfg.Digest = cfg.digest()
 	}
 	base, err := resolveCommit(repo, o.Base)
@@ -502,7 +562,7 @@ func Run(o RunOptions) (int, error) {
 	}
 	r.Prior = priorDirs
 	packet := buildPacket(packetInput{Stage: o.Stage, Base: base, Head: head, BaseTree: baseTree, HeadTree: headTree,
-		Angles: cfg.Angles, CheckPaths: cfg.CheckPaths, Criteria: criteria, Rules: rules, Subjects: subjects,
+		Angles: cfg.Angles, CheckPaths: cfg.CheckPaths, TextCheckPaths: cfg.TextCheckPaths, Criteria: criteria, Rules: rules, Subjects: subjects,
 		Boundaries: boundaries, Decisions: o.Decisions, Standpoints: o.Standpoints, Questions: o.Questions, Prior: prior, Disposed: disposed, Diff: changes})
 	// A packet a reviewer cannot take is refused before the round folder
 	// exists, so that no round is written or counted (dry runs included).
