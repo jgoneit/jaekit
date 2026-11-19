@@ -116,8 +116,12 @@ func TestRemoveHistoryAC2_StoredHistoryKept(t *testing.T) {
 		return b.String()
 	}
 	without := outputs()
-	stored := ".git/ha/history/" + strings.Repeat("b", 64)
+	// An earlier release kept this goal's history under the sha256 of its
+	// start record line: events.jsonl, lock and last.
+	start, _, _ := strings.Cut(string(f.read(scenarioGoal+"/runs.jsonl")), "\n")
+	stored := fmt.Sprintf(".git/ha/history/%x", sha256.Sum256([]byte(start)))
 	f.put(stored+"/events.jsonl", "{\"kind\":\"decision\"}\n")
+	f.put(stored+"/lock", "")
 	f.put(stored+"/last", "1\n")
 	history := filepath.Join(f.dir, ".git", "ha", "history")
 	before := treeDigest(t, history)

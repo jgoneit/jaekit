@@ -105,11 +105,11 @@ func TestRemoveHistoryAC5_NoHistoryDocs(t *testing.T) {
 // sentence about the stored records.
 func TestRemoveHistoryAC5_StoredHistoryNote(t *testing.T) {
 	var problems []string
-	if !strings.Contains(readRepo(t, "guides/USAGE.md"), storedNoteKo) {
-		problems = append(problems, "guides/USAGE.md lacks the stored-records sentence")
+	if strings.Count(readRepo(t, "guides/USAGE.md"), storedNoteKo) != 1 {
+		problems = append(problems, "guides/USAGE.md does not have the stored-records sentence exactly once")
 	}
-	if !strings.Contains(readRepo(t, "guides/USAGE.en.md"), storedNoteEn) {
-		problems = append(problems, "guides/USAGE.en.md lacks the stored-records sentence")
+	if strings.Count(readRepo(t, "guides/USAGE.en.md"), storedNoteEn) != 1 {
+		problems = append(problems, "guides/USAGE.en.md does not have the stored-records sentence exactly once")
 	}
 	if len(problems) > 0 {
 		t.Errorf("jaekit:violation=stored-history-note-missing: %s", strings.Join(problems, "\n"))
