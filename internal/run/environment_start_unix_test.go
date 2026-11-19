@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 )
@@ -61,6 +63,40 @@ func TestEnvironmentStartErrorsMatchExecCommand(t *testing.T) {
 		}
 		if afterLog != beforeLog {
 			t.Errorf("ExecIn(%q) logged %q; exec.Command gives %q", c.name, afterLog, beforeLog)
+		}
+	}
+}
+
+// An empty Env is an empty environment: Environ gives a non-nil empty copy,
+// so a child started with it, directly or through ExecIn, receives none of
+// the process's variables, as exec.Cmd gives none for an empty, non-nil Env.
+func TestEnvironmentEmptyEnvGivesChildNoVariables(t *testing.T) {
+	const parentOnly = "RUN_PARENT_ONLY_VARIABLE=parent"
+	t.Setenv("RUN_PARENT_ONLY_VARIABLE", "parent")
+	process := os.Environ()
+	if !slices.Contains(process, parentOnly) {
+		t.Fatalf("setup: %s is not in the process environment", parentOnly)
+	}
+	dir := t.TempDir()
+	env := Environment{Dir: dir, Env: []string{}}
+	if got := env.Environ(); got == nil || len(got) != 0 {
+		t.Fatalf("Environ() of an empty Env = %#v; want a non-nil empty slice", got)
+	}
+	cmd := env.Command(dir, "/usr/bin/env")
+	cmd.Env = env.Environ()
+	direct, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("/usr/bin/env with the empty environment: %v", err)
+	}
+	res, logged := execStart(t, env, dir, "/usr/bin/env")
+	if res.Outcome != Pass {
+		t.Fatalf("ExecIn(/usr/bin/env) with the empty environment = %s/%s, %v; log %q", res.Outcome, res.Reason, res.StartError, logged)
+	}
+	for _, child := range []struct{ via, out string }{{"Command", string(direct)}, {"ExecIn", logged}} {
+		for _, entry := range process {
+			if strings.Contains(child.out, entry) {
+				t.Errorf("a child started through %s with the empty environment received the process entry %q", child.via, entry)
+			}
 		}
 	}
 }

@@ -24,12 +24,14 @@ type Environment struct {
 }
 
 // Environ returns a copy of the entries child processes receive, so callers
-// may append to it.
+// may append to it. The copy of a non-nil Env is never nil, even when Env is
+// empty: os/exec gives a child the process environment for a nil Cmd.Env,
+// and no entries for an empty one.
 func (e Environment) Environ() []string {
 	if e.Env == nil {
 		return os.Environ()
 	}
-	return append([]string(nil), e.Env...)
+	return append(make([]string, 0, len(e.Env)), e.Env...)
 }
 
 // LookupEnv is os.LookupEnv for this environment. When a name appears more
@@ -124,16 +126,44 @@ func (e Environment) at(name string) string {
 		// searching PATH.
 		return "." + string(filepath.Separator) + name
 	}
-	return resolveIn(e.Dir, name, filepath.VolumeName, os.IsPathSeparator, filepath.Join)
+	join := filepath.Join
+	if runtime.GOOS != "windows" {
+		// Unix resolves a ".." in the name physically, after following a
+		// symlink in Dir, so the name is left to it as it is; Windows
+		// normalizes a path lexically, as filepath.Join cleans it.
+		join = joinUncleaned
+	}
+	return resolveIn(e.Dir, name, filepath.VolumeName, os.IsPathSeparator, join)
+}
+
+// joinUncleaned joins path elements under Unix path syntax as the OS reads
+// them: each element as it is, after one "/" unless the path so far already
+// ends with one. Unlike filepath.Join it removes no "." or ".." element and
+// no repeated separator; empty elements are skipped, as filepath.Join skips
+// them.
+func joinUncleaned(elem ...string) string {
+	out := ""
+	for _, e := range elem {
+		switch {
+		case e == "":
+		case out == "" || strings.HasSuffix(out, "/"):
+			out += e
+		default:
+			out += "/" + e
+		}
+	}
+	return out
 }
 
 // resolveIn is the path the OS opens for name in a process whose working
 // directory is dir ("" is the process's own), under one system's path
 // syntax: volume is filepath.VolumeName, isSep is os.IsPathSeparator and
-// join is filepath.Join. A name rooted without a drive (\x on Windows) is on
-// dir's volume; a drive-relative name (C:x) is in dir only when dir is on
-// that drive, and otherwise left for the drive's own current directory; an
-// absolute, UNC or device path is unchanged; any other name is in dir.
+// join adds a name to a directory as that system resolves the result
+// (joinUncleaned on Unix, filepath.Join on Windows). A name rooted without a
+// drive (\x on Windows) is on dir's volume; a drive-relative name (C:x) is
+// in dir only when dir is on that drive, and otherwise left for the drive's
+// own current directory; an absolute, UNC or device path is unchanged; any
+// other name is in dir.
 func resolveIn(dir, name string, volume func(string) string, isSep func(byte) bool, join func(...string) string) string {
 	vol := volume(name)
 	rest := name[len(vol):]

@@ -2,7 +2,6 @@ package run
 
 import (
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -71,6 +70,8 @@ func TestResolveInWindowsForms(t *testing.T) {
 	}
 }
 
+// Unix paths are joined as the OS reads them: a ".." after a symlinked
+// directory is resolved by the kernel, so nothing is cleaned lexically.
 func TestResolveInUnixForms(t *testing.T) {
 	none := func(string) string { return "" }
 	slash := func(c byte) bool { return c == '/' }
@@ -79,8 +80,14 @@ func TestResolveInUnixForms(t *testing.T) {
 		{"/repo", "bin/tool", "/repo/bin/tool"},
 		{"/repo", `\bin\tool`, `/repo/\bin\tool`},
 		{"/repo", "C:tool", "/repo/C:tool"},
+		{"/repo/link", "../bin/tool", "/repo/link/../bin/tool"},
+		{"/repo", "./tool", "/repo/./tool"},
+		{"/repo", "sub//tool", "/repo/sub//tool"},
+		{"/repo/../other", "tool", "/repo/../other/tool"},
+		{"/repo/", "tool", "/repo/tool"},
+		{"/", "tool", "/tool"},
 	} {
-		if got := resolveIn(c.dir, c.name, none, slash, path.Join); got != c.want {
+		if got := resolveIn(c.dir, c.name, none, slash, joinUncleaned); got != c.want {
 			t.Errorf("resolveIn(%q, %q) = %q, want %q", c.dir, c.name, got, c.want)
 		}
 	}
