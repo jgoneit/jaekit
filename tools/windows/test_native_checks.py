@@ -36,10 +36,23 @@ class WindowsNativeSelectionTests(unittest.TestCase):
         self.assertIn(native.MODULE + "cmd/ha/TestNativeCoreGitLifecycle/linked=true", report["required"])
         self.assertIn(native.MODULE + "internal/record/TestNativeLockIsReleasedWhenOwnerExits", report["required"])
 
-    def test_old_core_case_cannot_be_missing(self):
-        events = [event for event in native_events() if event.get("Test") != "TestNativeCoreGitLifecycle/linked=true"]
-        with self.assertRaises(ValueError):
-            parse_native_events(events)
+    def test_required_case_cannot_be_missing_skipped_failed_or_interrupted(self):
+        # A required subtest under a passing parent: missing, skipped, failed,
+        # never run or never finished is not a pass.
+        package, name = native.MODULE + "cmd/ha", "TestNativeCoreGitLifecycle/linked=true"
+        for kind in ("missing", "skip", "fail", "no-run", "interrupted"):
+            events = native_events()
+            if kind == "missing":
+                events = [e for e in events if not (e["Package"] == package and e.get("Test") == name)]
+            elif kind in ("no-run", "interrupted"):
+                action = "run" if kind == "no-run" else "pass"
+                events = [e for e in events if not (e["Package"] == package and e.get("Test") == name and e["Action"] == action)]
+            else:
+                for e in events:
+                    if e["Package"] == package and e.get("Test") == name and e["Action"] == "pass":
+                        e["Action"] = kind
+            with self.subTest(outcome=kind), self.assertRaises(ValueError):
+                parse_native_events(events)
 
 
 class WindowsNativeReportTests(unittest.TestCase):

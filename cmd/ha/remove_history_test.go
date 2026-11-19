@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -91,10 +92,12 @@ func treeDigest(t *testing.T, dir string) string {
 }
 
 // TestRemoveHistoryAC2_StoredHistoryKept (maintain): beside a goal carried to
-// completion, stored history files change neither the output of ha status,
-// report and doctor nor themselves, and ha done still records completion.
-// (Each ha done appends a completion record, so its output is not compared.)
+// completion, stored history files change neither the exit codes and output
+// of ha status, report, doctor and done nor themselves.
+// Each ha done appends a completion record, so record numbers, hashes, times
+// and elapsed seconds are masked before the outputs are compared.
 func TestRemoveHistoryAC2_StoredHistoryKept(t *testing.T) {
+	stamps := regexp.MustCompile(`seq \d+|\b[0-9a-f]{12}\b|\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ|\d+/\d+ seconds`)
 	f := reportFixture(t)
 	f.must(0, "start", scenarioGoal, "--request", "synthetic stored history")
 	f.must(0, "check", scenarioGoal, "AC-1", "--baseline")
@@ -106,9 +109,9 @@ func TestRemoveHistoryAC2_StoredHistoryKept(t *testing.T) {
 	f.must(0, "done", scenarioGoal)
 	outputs := func() string {
 		var b strings.Builder
-		for _, args := range [][]string{{"status", scenarioGoal}, {"report", scenarioGoal, "--lang", "en"}, {"doctor", scenarioGoal}} {
+		for _, args := range [][]string{{"status", scenarioGoal}, {"report", scenarioGoal, "--lang", "en"}, {"doctor", scenarioGoal}, {"done", scenarioGoal}} {
 			code, out := f.ha(args...)
-			fmt.Fprintf(&b, "%v exit %d\n%s\n", args, code, out)
+			fmt.Fprintf(&b, "%v exit %d\n%s\n", args, code, stamps.ReplaceAllString(out, "#"))
 		}
 		return b.String()
 	}
@@ -121,7 +124,6 @@ func TestRemoveHistoryAC2_StoredHistoryKept(t *testing.T) {
 	if with := outputs(); with != without {
 		t.Errorf("outputs differ with stored history:\nwithout:\n%s\nwith:\n%s", without, with)
 	}
-	f.must(0, "done", scenarioGoal)
 	if treeDigest(t, history) != before {
 		t.Error("the stored history changed")
 	}
@@ -151,10 +153,12 @@ func TestRemoveHistoryAC3_NoHistoryCapability(t *testing.T) {
 		problems = append(problems, "features has decision-history/v1")
 	}
 	root, _, _ := startBudgetFixture(t, 1, "60")
-	for _, declaration := range []string{`{"schema": "core-requirements/v1", "features": ["decision-history/v1"]}`,
-		`{"schema": "core-requirements/v1", "formats": {"decision_history": ["decision-history/v1"]}}`} {
+	for declaration, missing := range map[string]string{
+		`{"schema": "core-requirements/v1", "features": ["decision-history/v1"]}`:                      "missing Core support: features decision-history/v1",
+		`{"schema": "core-requirements/v1", "formats": {"decision_history": ["decision-history/v1"]}}`: "missing Core support: formats.decision_history decision-history/v1",
+	} {
 		code, text := estimateTestCLI("start", startBudgetGoal, "--request", "synthetic", "--skill", writeSkill(t, declaration), "--check-skill")
-		if code != 65 || !strings.Contains(text, "decision") || startBudgetRecords(t, root) != nil {
+		if code != 65 || !strings.Contains(text, missing) || startBudgetRecords(t, root) != nil {
 			problems = append(problems, fmt.Sprintf("start with %s: exit %d: %s", declaration, code, text))
 		}
 	}
