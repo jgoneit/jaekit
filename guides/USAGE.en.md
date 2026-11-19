@@ -171,7 +171,7 @@ Find the goal and its records in `docs/specs/<goal>/`:
 - **Linked worktrees:** in a separate working folder sharing the same Git history, output is under `ha/` in the Git directory printed by `git rev-parse --absolute-git-dir`.
 - **Read output:** run `ha log <goal> <seq>` in Terminal. Here `<goal>` is the goal path, and `<seq>` is the record number from the report.
 - **Run timing:** use `ha timing <goal>` to see which checks took long and how close they came to their time limit. It requires a Core with capability `run-timing/v1`; measurement details are below.
-- **Decision history:** with capability `decision-history/v1`, Seal can keep summaries, evidence and correction links in the optional [decision history](../contracts/decision-history.en.md). Use `ha history <goal>` for current judgments, or `ha history <goal> show <event ID>` for one event's evidence and neighboring links.
+- **Earlier decision records:** Decision records an earlier release left under `ha/history/` in the common Git directory are not deleted. To read them, use `v0.1.8`, the last release with that feature.
 
 <details>
 <summary>Run timing: measurements and limits</summary>
@@ -196,17 +196,6 @@ CPU covers different processes on each system, so do not compare it across syste
 | Windows | Every process in its Job Object |
 
 CPU that was not measured shows as unavailable or failed, never as 0. Checks recorded before this feature show as not recorded.
-
-</details>
-
-<details>
-<summary>Decision history: availability, storage, and limits</summary>
-
-The history covers observations, causes, decisions, actions and verifications. Release v0.1.5 (`ha 0.1.5`) first provides it; v0.1.4 and earlier do not.
-
-The history stays local under `ha/history/` in the common Git directory that every working folder of the repository shares. It does not travel to a new clone or another computer.
-
-So `PROGRESS.md` still holds the current state, important decisions with short reasons, and how to resume without it. Recording or correcting history changes no completion, check result or budget, and the feature adds no approval step.
 
 </details>
 
