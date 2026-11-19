@@ -73,6 +73,11 @@ var (
 		{"O6", "candidate, fixes and the cumulative round"},
 		// O7: the bundle reference's 독립 검토 row lists fixes as a review stage.
 		{"O7", "(plan, candidate, fixes, cumulative round)"},
+		{"O8", "a candidate round with no later fixes is one"},
+		{"O9", "three code rounds (candidate and fixes together)"},
+		{"O10", "When no fixes followed the first candidate round, that round is the cumulative round"},
+		{"O11", "a fixes round run on the same base and head after a disposition changed"},
+		{"O12", "After committing fixes for findings; its base is the head of the previous code round"},
 	}
 )
 
@@ -88,6 +93,9 @@ var (
 		{"P3", "one plan-delta round"},
 		{"P4", "--stage plan|plan-delta"},
 		{"P5", "In fixes and plan-delta rounds, you may give the earlier standpoints again or give none"},
+		{"P6", "In candidate, fixes and plan-delta packets"},
+		{"P7", "no plan-delta round is required"},
+		{"P8", "no plan-delta is required"},
 	}
 )
 
@@ -111,6 +119,8 @@ var (
 		{"contracts/review-gate.md", smToken{"R10", "기록된 fixes 라운드가 없으면 `growth.rounds`는 비어 있다: growth를 재지 않았다"}},
 		{"guides/SPAR.en.md", smToken{"R11", "One series allows one plan round and two code rounds"}},
 		{"guides/SPAR.md", smToken{"R12", "한 series는 plan 1회, 코드 라운드 2회까지입니다"}},
+		{"contracts/review-round.en.md", smToken{"R13", "A recorded series that gets a new round is counted against the caps that new round records"}},
+		{"contracts/review-round.md", smToken{"R14", "기록된 series에 새 라운드를 더하면 그 새 라운드가 기록한 상한으로 센다"}},
 	}
 	smAC9Old = []smToken{
 		{"Q1", "One series allows one plan round, one plan-delta round and three code rounds"},
@@ -130,6 +140,38 @@ var (
 		{"Q15", "after fixing findings; its base is the previous code round's head"},
 		{"Q16", "지적을 고친 뒤. base는 이전 코드 라운드의 head"},
 		{"Q17", "`standard`는 최종 후보·수정·누적 라운드"},
+		{"Q18", "| `--stage` | `plan`, `plan-delta`, `candidate`, `fixes` |"},
+		{"Q19", "those of the plan and plan-delta rounds for plan-delta"},
+		{"Q20", "plan-delta에서는 plan·plan-delta 라운드"},
+		{"Q21", "The stage description of such a fixes round becomes"},
+		{"Q22", "그런 fixes 라운드의 단계 설명은"},
+		{"Q23", "A `fixes` or `plan-delta` run"},
+		{"Q24", "`fixes`나 `plan-delta` 실행"},
+		{"Q25", "The base of a fixes round must be the head of the last code round of the same series"},
+		{"Q26", "fixes 라운드의 base는 같은 series의 마지막 code 라운드의 head여야 한다"},
+		{"Q27", "The plan and plan-delta cap refusals are unchanged"},
+		{"Q28", "plan·plan-delta 상한 거부 메시지는 그대로다"},
+		{"Q29", "docs/reviews/example/03-fixes"},
+		{"Q30", "In a candidate, fixes or plan-delta round"},
+		{"Q31", "candidate·fixes·plan-delta 라운드의"},
+		{"Q32", "plan_delta = 1"},
+		{"Q33", "(plan, candidate, fixes, cumulative round)"},
+		{"Q34", "계획한 검토 단계(plan, candidate, fixes, 누적 라운드)"},
+		{"Q35", "A fixes round that saw only the fixes cannot replace it"},
+		{"Q36", "수정분만 본 fixes 라운드는 이를 대신하지 못"},
+		{"Q37", "The packet of a candidate, fixes or plan-delta round"},
+		{"Q38", "A fixes round also asks them"},
+		{"Q39", "fixes 라운드에서는 고쳤다고 기록한 지적이"},
+		{"Q40", "a fixes round run on the same base and head after a disposition changed"},
+		{"Q41", "같은 base·head로 돌린 fixes 라운드는 새 라운드로"},
+		{"Q42", "In fixes and plan-delta rounds the earlier standpoints"},
+		{"Q43", "fixes와 plan-delta에서는 앞선 관점을"},
+		{"Q44", "Fixes may follow a candidate"},
+		{"Q45", "candidate 뒤에 fixes가 이어져도 되고"},
+		{"Q46", "requires a plan-delta"},
+		{"Q47", "plan-delta를 요구하지 않습니다"},
+		{"Q48", "for candidate and fixes rounds"},
+		{"Q49", "candidate와 fixes에서는"},
 	}
 )
 
