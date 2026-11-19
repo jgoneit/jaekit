@@ -499,6 +499,7 @@ func TestSparStageMergeAC3_OldStagesRefused(t *testing.T) {
 		{"plan-delta", c[0], c[0], []string{"--decision-quote", "y"}},
 		{"fixes", c[1], c[2], []string{"--standpoint", "noequals"}},
 		{"plan-delta", c[0], c[0], []string{"--model", "nosuch=m"}},
+		{"fixes", c[1], c[2], []string{"--no-such-option"}},
 	} {
 		w.smTryOldStage(v, "a series with a recorded candidate round", series, form.stage, form.base, form.head, false, form.extra...)
 	}
