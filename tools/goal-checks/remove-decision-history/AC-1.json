@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "HistoryCommandUnknown",
+      "violation": "history-command-present",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestRemoveHistoryAC1_HistoryCommandUnknown"
+      }
+    }
+  ]
+}
