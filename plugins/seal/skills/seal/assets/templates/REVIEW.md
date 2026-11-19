@@ -23,7 +23,7 @@
 ## 검증 방법과 환경
 <whether each command runs here; tools, data, network and repository history (a check reads history only when its condition is about history; name the range it reads); how a cross-component flow is checked across the boundary>
 
-<under `run-rules/7`, state for every change condition whether it requires a baseline and why: bug fixes and regressions with a defect at base, prohibitions such as "X does not happen", and conditions possibly partly met at base require one; the PLAN `baseline` column marks exactly those conditions with `요구`, and the `strict` plan round reviews the judgment>
+<under `run-rules/7`, a change condition requires a baseline only in two cases: a bug fix or regression whose defect is already present at the base commit, and a prohibition such as "X does not happen"; a condition that adds a new feature is not marked by default; write the reason for each marked condition only, and an unmarked condition needs no reason; the PLAN `baseline` column marks exactly the conditions given a reason here with `요구`, and the `strict` plan round reviews the marks and their reasons>
 
 <for each dedicated producer of a change condition requiring a baseline, state the outcomes of a missing target file, corrupt input, a tool that cannot start and termination by a signal before the plan round, or before any review round without a plan round; none is a violation unless the condition itself makes it one and the result contract allows declaring it; runner adapters classify input failures themselves; no check may count an input failure as a pass>
 

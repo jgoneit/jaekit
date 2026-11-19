@@ -407,6 +407,7 @@ How to read it:
 
 - The five lines at the top say what changed, what was checked, what you should look at yourself, the limits that remain and the next step. `ha report` computes them from the run record, Git and the goal documents; they are not the agent's own claim.
 - **records** are line numbers (seq) in `runs.jsonl`. For AC-1, seq 2 is the check run on the starting commit, failing as declared, and seq 3 is the same check passing on the result. Seq 5 is the `review` note that recorded the Spar gate, and completion record seq 6 means `ha done` recorded completion.
+- The example keeps AC-1's failure record before the change to show the record's shape; it follows an earlier rule under which every change condition needed one. Under `run-rules/7`, a condition that adds a new feature, like this link, is usually not marked `요구`, and its passing record alone meets it.
 - The raw output of a run stays in `.git/ha/`. `ha log docs/specs/password-link 3` prints it in Terminal.
 
 > [!IMPORTANT]
@@ -478,7 +479,7 @@ None
 | AC-1 | checks/login-link.json |
 ```
 
-- `change` is new behavior. Seal also runs its check on the starting commit, where it must fail the way the declaration says, and then on the result, where it must pass.
+- `change` is new behavior. Its check must pass on the result. Up to `run-rules/6`, Seal also runs every change condition's check on the starting commit, where it fails as declared, as AC-1's records show. From `run-rules/7`, only change conditions marked `요구` in an optional last `baseline` column need that record: a bug fix or regression whose defect is already present at the base commit, or a prohibition such as "X does not happen".
 - `maintain` is behavior that must keep working. `manual` is a condition only you can confirm.
 - The plan also lists the paths Seal may change, its tasks and a run budget. `REVIEW.md` holds the review of this plan, the review tier and the planned review stages, and later summarizes the Spar rounds and gate, pointing to their records in `docs/reviews/password-link/`.
 

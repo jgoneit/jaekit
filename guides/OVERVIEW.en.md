@@ -32,7 +32,7 @@ Jaekit holds on to three things and leaves the rest to the agent.
 
 1. **You set the goal.** What finished means, the completion conditions, is written down before the work starts. While implementing, the agent does not edit that document.
 2. **The agent does the work.** Planning, order and tools are the agent's choice. You do not approve each step; it asks only when a decision would change the outcome.
-3. **Completion is judged from records.** A goal is recorded as complete only when each required completion condition has a record of its check. A condition that cannot be checked automatically is met by recording your confirmation. For new behavior, the check must fail on the code before the change, because the behavior is missing, and pass after it: a check that already passes before the change cannot tell whether the new behavior exists. A check that guards existing behavior may pass from the start.
+3. **Completion is judged from records.** A goal is recorded as complete only when each required completion condition has a record of its check. A condition that cannot be checked automatically is met by recording your confirmation. From `run-rules/7`, the rules current Seal starts goals under, only change conditions marked `요구` also need a record of their check failing on the code before the change. Seal marks two kinds: a bug fix or regression whose defect is already present at the base commit, and a prohibition such as "X does not happen". For these, a check that already passes before the change cannot tell whether the fix or the prohibition works. Other checks, such as one for a new feature or one that guards existing behavior, count with a passing record.
 
 ## What changes when you use it
 
@@ -43,7 +43,7 @@ Here is the same work handed over in a plain conversation and through Jaekit. Ei
 | Starting the work | What finished means is scattered across the chat | The completion conditions are written down first, and work starts after you confirm them |
 | A check runs | Only the words "it passed" are left | Each check your agent runs through `ha` is recorded on one line: the commit, the command and the result |
 | The code changes again | You can't tell whether the earlier pass still holds | The earlier pass stays in the record but no longer counts. The check has to run again on the current code |
-| A check that already passes before the change | A check that can't tell whether the new behavior exists still looks like a pass | A check for new behavior counts only with a record of it failing on the code before the change, because the behavior was missing |
+| A check that already passes before the change | A check that can't tell whether the new behavior exists still looks like a pass | A check for a change condition marked `요구`, a bug fix or regression whose defect is already present at the base commit or a prohibition such as "X does not happen", counts only with a record of it failing on the code before the change |
 | Existing tests are edited | A loosened test still shows "pass" | A test change the request didn't allow, or one that weakens a test, blocks completion until you confirm it |
 | The goal or scope changes | It can slip by unnoticed | A changed goal document, or a file outside the goal folder changed beyond the agreed scope, blocks completion until you confirm it |
 | The conversation ends | You explain everything again | In a new conversation, name the goal folder and ask to continue; the agent reads the folder and its record and picks up from there |
@@ -73,6 +73,9 @@ Follow a **fictional example** of adding a "Forgot password" link to a login scr
 3. **You review it and answer yes.** If a condition is missing, ask for a fix. If it is right, reply yes to the question whether to implement now. Seal starts then.
 4. **Seal plans.** It writes in `PLAN.md` how each condition is checked. `AC-1` is new behavior; `AC-2` is behavior that must keep working.
 5. **`ha` checks and records.** The agent first runs the `AC-1` check on the code before the change and records it failing, because the link is not there yet. Then it implements and runs it again to record a pass. `AC-2` gets a passing record. Every run is appended to `runs.jsonl`, one line each.
+
+   The example keeps `AC-1`'s failure record before the change to show the record's shape; it follows an earlier rule under which every change condition needed one. Under `run-rules/7`, a condition that adds a new feature, like this link, is usually not marked `요구`, and its passing record alone meets it.
+
 6. **Spar reviews independently.** This goal's tier is `standard`, so reviewers in another context review the change before completion. The agent fixes the findings that need it, and the finished review is recorded as a gate.
 7. **`ha done` records completion.** When every required condition is met and the other requirements, such as the review record, are in place, a completion record is written and the report is added to `PROGRESS.md`.
 8. **You read the report.** Read its five lines, what changed, what was checked, what to look at, remaining limits and the next action, with the evidence per condition, and look at the actual result too. In a finished goal started with 0.1.24 or later, the judgment is in `## 검수 요약`.
@@ -119,7 +122,7 @@ The goal document's `Assurance:` line sets how much independent review the goal 
 A completion record means:
 
 - Each required completion condition has a check record or a necessary user confirmation.
-- For a newly started goal, each required condition on new behavior has records of its check failing before the change, because the behavior was missing, and passing after it.
+- For a newly started goal, each required change condition marked `요구` has records of its check failing on the code before the change and passing after it. An unmarked change condition can be met by a passing record, with no record of a failure before the change.
 - For newly started `standard` and `strict` goals, there is a Spar record (the review gate) that reviewed the code and goal documents as they were when completion was recorded.
 
 It does not mean:

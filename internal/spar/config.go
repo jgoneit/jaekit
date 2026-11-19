@@ -138,6 +138,7 @@ type Config struct {
 	Angles             []string      `json:"angles"`
 	Caps               Caps          `json:"caps"`
 	CheckPaths         []string      `json:"check_paths"`
+	TextCheckPaths     []string      `json:"text_check_paths,omitempty"` // --text-check, sorted; also in CheckPaths, not in Digest
 	Rules              []string      `json:"rules"`
 	Digest             string        `json:"digest"`
 	// defaultTimeout is the time limit of reviewers the source file does

@@ -27,6 +27,9 @@ var angleText = map[string]string{
 	"check-validity":             "For each check the change adds or changes: does it observe the required property at the checked tree, or a proxy? Can it pass on wrong code, or report a tool failure as a violation?",
 }
 
+const fixedTextCheckValidity = "For a check declared as fixed-text only, judge whether it reads the right fixed text in the right file; " +
+	"report that fixed text cannot prove the behavior only as a `requirement-question` that names the SPEC criterion, contract or protected path requiring it."
+
 var stageText = map[string]string{
 	"plan":       "The subject documents are a plan for meeting the criteria. Review the plan and the checks it adds, before implementation.",
 	"plan-delta": "The plan was reviewed before and changed since. Review the change of the plan against the earlier findings listed below.",
@@ -122,20 +125,21 @@ func documentsDigest(docs []Document) string {
 }
 
 type packetInput struct {
-	Stage       string
-	Base, Head  string
-	BaseTree    string
-	HeadTree    string
-	Angles      []string
-	CheckPaths  []string
-	Criteria    []Document
-	Rules       []Document
-	Subjects    []Document
-	Boundaries  []Document
-	Decisions   []Decision
-	Standpoints []Standpoint
-	Questions   []string
-	Prior       []string
+	Stage          string
+	Base, Head     string
+	BaseTree       string
+	HeadTree       string
+	Angles         []string
+	CheckPaths     []string
+	TextCheckPaths []string
+	Criteria       []Document
+	Rules          []Document
+	Subjects       []Document
+	Boundaries     []Document
+	Decisions      []Decision
+	Standpoints    []Standpoint
+	Questions      []string
+	Prior          []string
 	// Disposed is true when an earlier finding's line ends with its
 	// recorded disposition.
 	Disposed bool
@@ -228,7 +232,11 @@ func buildPacket(in packetInput) string {
 		in.Stage, stageLine(in), in.Base, in.BaseTree, in.Head, in.HeadTree)
 	b.WriteString("## Attack angles\n\nCheck every angle below. Report each one in `angles_checked` with what you checked, or in `angles_unchecked` with the reason; a result that leaves an angle out of both is not accepted.\n\n")
 	for _, a := range in.Angles {
-		fmt.Fprintf(&b, "- `%s`: %s\n", a, angleText[a])
+		text := angleText[a]
+		if a == "check-validity" && len(in.TextCheckPaths) > 0 {
+			text += " " + fixedTextCheckValidity
+		}
+		fmt.Fprintf(&b, "- `%s`: %s\n", a, text)
 	}
 	b.WriteString("\n## How to report\n\n")
 	b.WriteString("- Reply with one JSON object that follows the result schema: `reviewed_head` (the head commit ID above), `verdict`, `angles_checked`, `angles_unchecked`, `findings` and `limits`.\n")
@@ -249,6 +257,13 @@ func buildPacket(in packetInput) string {
 		b.WriteString(". At these paths a finding that claims `false_pass`, `meaning_inverted` or a linked `contract_violation` is recorded as a `defect`, whatever its `proposed_class`. " +
 			"Any other finding at these paths is recorded as `hardening` and deferred, unless it proposes `requirement-question` and links the criterion, rule or contract it asks about, " +
 			"and that link exists: such a question stays open for the user. A `contract` link to a file in these paths does not keep a question open.\n")
+	}
+	if len(in.TextCheckPaths) > 0 {
+		b.WriteString("- Fixed-text checks:")
+		for _, p := range in.TextCheckPaths {
+			fmt.Fprintf(&b, " `%s`", p)
+		}
+		b.WriteString(".\n")
 	}
 	b.WriteString("\n## Criteria\n\n")
 	for _, d := range in.Criteria {
