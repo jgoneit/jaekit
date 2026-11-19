@@ -222,7 +222,7 @@ Seal 0.1.10부터 도입된 보고 형식은 기대 결과의 근거, 실제 관
 
 Seal 0.1.20부터는 SPEC의 `Assurance:` 등급이 독립 검토 단계를 정합니다.
 
-- `standard`는 최종 후보의 candidate 라운드, 검토 수정 뒤 base commit부터의 candidate 라운드와 누적 라운드를 받고, `strict`는 baseline 전 plan 라운드 한 번을 더하며, `light`는 이유를 남기고 생략할 수 있습니다.
+- `standard`는 최종 후보의 candidate 라운드와 검토 수정 뒤 base commit부터의 candidate 라운드를 받고(마지막 candidate 라운드가 누적 라운드입니다), `strict`는 baseline 전 plan 라운드 한 번을 더하며, `light`는 이유를 남기고 생략할 수 있습니다.
 - 프로젝트 지침이 더 많은 검토를 요구하면 그쪽을 따릅니다.
 
 독립 검토가 필요한 목표는 마지막 head 전체를 본 누적 라운드가 열린 지적 없이 끝난 뒤에만 `ha done`을 실행합니다([사용 안내](USAGE.md#seal의-시작-전-확인과-검토-순서)).
