@@ -39,6 +39,9 @@ func TestRemoveHistoryAC1_HistoryCommandUnknown(t *testing.T) {
 	for _, args := range [][]string{{"history"}, {"history", "--help"}, {"history", "docs/specs/g"},
 		{"history", "docs/specs/g", "add", "--kind", "결정", "--summary", "x"}, {"history", "docs/specs/g", "show", "D1"}} {
 		code, out, stderr := haProcess(t, dir, os.Environ(), args...)
+		if code < 0 {
+			t.Fatalf("setup: ha %v ended by a signal", args)
+		}
 		first, _, _ := strings.Cut(stderr, "\n")
 		if code != 64 || out != "" || first != `ha: unknown command "history"; run ha --help` {
 			problems = append(problems, fmt.Sprintf("ha %s: exit %d, stdout %q, stderr %q", strings.Join(args, " "), code, out, first))
@@ -47,7 +50,11 @@ func TestRemoveHistoryAC1_HistoryCommandUnknown(t *testing.T) {
 	if treeDigest(t, dir) != before {
 		problems = append(problems, "the repository changed")
 	}
-	if _, out, stderr := haProcess(t, dir, os.Environ(), "--help"); strings.Contains(out+stderr, "ha history") {
+	code, out, stderr := haProcess(t, dir, os.Environ(), "--help")
+	if code != 0 {
+		t.Fatalf("setup: ha --help: exit %d: %s", code, stderr)
+	}
+	if strings.Contains(out+stderr, "ha history") {
 		problems = append(problems, "ha --help lists ha history")
 	}
 	if len(problems) > 0 {
@@ -83,12 +90,48 @@ func treeDigest(t *testing.T, dir string) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
+// TestRemoveHistoryAC2_StoredHistoryKept (maintain): beside a goal carried to
+// completion, stored history files change neither the output of ha status,
+// report and doctor nor themselves, and ha done still records completion.
+// (Each ha done appends a completion record, so its output is not compared.)
+func TestRemoveHistoryAC2_StoredHistoryKept(t *testing.T) {
+	f := reportFixture(t)
+	f.must(0, "start", scenarioGoal, "--request", "synthetic stored history")
+	f.must(0, "check", scenarioGoal, "AC-1", "--baseline")
+	f.put("src/greeting.txt", "hello\n")
+	f.git("add", "src/greeting.txt")
+	f.git("commit", "-qm", "synthetic change")
+	f.must(0, "check", scenarioGoal, "AC-1", "AC-2")
+	f.put(scenarioGoal+"/PROGRESS.md", strings.Replace(string(f.read(scenarioGoal+"/PROGRESS.md")), "| todo |", "| done |", 1))
+	f.must(0, "done", scenarioGoal)
+	outputs := func() string {
+		var b strings.Builder
+		for _, args := range [][]string{{"status", scenarioGoal}, {"report", scenarioGoal, "--lang", "en"}, {"doctor", scenarioGoal}} {
+			code, out := f.ha(args...)
+			fmt.Fprintf(&b, "%v exit %d\n%s\n", args, code, out)
+		}
+		return b.String()
+	}
+	without := outputs()
+	stored := ".git/ha/history/" + strings.Repeat("b", 64)
+	f.put(stored+"/events.jsonl", "{\"kind\":\"decision\"}\n")
+	f.put(stored+"/last", "1\n")
+	history := filepath.Join(f.dir, ".git", "ha", "history")
+	before := treeDigest(t, history)
+	if with := outputs(); with != without {
+		t.Errorf("outputs differ with stored history:\nwithout:\n%s\nwith:\n%s", without, with)
+	}
+	f.must(0, "done", scenarioGoal)
+	if treeDigest(t, history) != before {
+		t.Error("the stored history changed")
+	}
+}
+
 // TestRemoveHistoryAC3_NoHistoryCapability: ha capabilities announces neither
-// the decision-history format nor its feature. A skill that requires either
-// is then refused by the existing missing-support path of ha start
-// --check-skill (TestNativeStartBudgetAndSkill).
+// the decision-history format nor its feature, and a skill that requires
+// either is refused at start with exit 65 and no record. Starting with
+// Seal's own requirements stays with the existing start tests.
 func TestRemoveHistoryAC3_NoHistoryCapability(t *testing.T) {
-	t.Parallel()
 	code, out, stderr := haProcess(t, t.TempDir(), os.Environ(), "capabilities", "--format", "json")
 	if code != 0 {
 		t.Fatalf("setup: ha capabilities: exit %d: %s", code, stderr)
@@ -107,6 +150,14 @@ func TestRemoveHistoryAC3_NoHistoryCapability(t *testing.T) {
 	if slices.Contains(caps.Features, "decision-history/v1") {
 		problems = append(problems, "features has decision-history/v1")
 	}
+	root, _, _ := startBudgetFixture(t, 1, "60")
+	for _, declaration := range []string{`{"schema": "core-requirements/v1", "features": ["decision-history/v1"]}`,
+		`{"schema": "core-requirements/v1", "formats": {"decision_history": ["decision-history/v1"]}}`} {
+		code, text := estimateTestCLI("start", startBudgetGoal, "--request", "synthetic", "--skill", writeSkill(t, declaration), "--check-skill")
+		if code != 65 || !strings.Contains(text, "decision") || startBudgetRecords(t, root) != nil {
+			problems = append(problems, fmt.Sprintf("start with %s: exit %d: %s", declaration, code, text))
+		}
+	}
 	if len(problems) > 0 {
 		t.Errorf("jaekit:violation=history-capability-declared: %s", strings.Join(problems, "\n"))
 	}
@@ -122,6 +173,9 @@ func TestRemoveHistoryAC4_CheckCoreRefusesHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if _, err := os.Stat(helper); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
 	python, err := exec.LookPath("python3")
 	if err != nil {
 		t.Fatal("setup: the check needs python3")
@@ -130,8 +184,8 @@ func TestRemoveHistoryAC4_CheckCoreRefusesHistory(t *testing.T) {
 	cmd.Dir = t.TempDir()
 	out, err := cmd.CombinedOutput()
 	var exit *exec.ExitError
-	if err != nil && !errors.As(err, &exit) {
-		t.Fatalf("setup: start python3: %v", err)
+	if err != nil && !errors.As(err, &exit) || !cmd.ProcessState.Exited() {
+		t.Fatalf("setup: python3 did not run to an exit: %v", err)
 	}
 	if code := cmd.ProcessState.ExitCode(); code != 64 || !strings.Contains(string(out), "invalid choice: 'history'") {
 		t.Errorf("jaekit:violation=history-operation-supported: check_core.py --operation history: exit %d: %s", code, out)
