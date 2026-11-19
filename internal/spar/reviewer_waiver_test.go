@@ -169,6 +169,30 @@ func (w *rwWorld) run(out string, options ...string) string {
 	return out
 }
 
+// fixesRound writes, into out, a fixes round from head to fix as a series
+// recorded before fixes rounds stopped starting holds it: spar run writes a
+// candidate round of that range, whose round.json then names the stage
+// fixes.
+func (w *rwWorld) fixesRound(out string) string {
+	w.t.Helper()
+	w.run(out, "--base", w.head, "--head", w.fix)
+	data, err := os.ReadFile(filepath.Join(out, "round.json"))
+	if err != nil {
+		w.t.Fatal(err)
+	}
+	var r map[string]any
+	if err := json.Unmarshal(data, &r); err != nil {
+		w.t.Fatalf("round.json of %s: %v", out, err)
+	}
+	r["stage"] = "fixes"
+	data, err = json.MarshalIndent(r, "", "  ")
+	if err != nil {
+		w.t.Fatal(err)
+	}
+	w.write(filepath.Join(out, "round.json"), string(data)+"\n")
+	return out
+}
+
 // record records a native reviewer's answer to a round's packet.
 func (w *rwWorld) record(out, name string, findings ...map[string]any) {
 	w.t.Helper()
@@ -611,8 +635,9 @@ func TestSparWaiverAC5_RoundWithoutACompletedReviewerStaysDegraded(t *testing.T)
 }
 
 // AC-6 (kept): a decision covers its round only. Another round where the
-// same reviewer did not finish, a rerun of the same packet or a later
-// fixes round, is a degraded reason as it is without any decision.
+// same reviewer did not finish, a rerun of the same packet or the later
+// candidate round after review fixes, is a degraded reason as it is without
+// any decision.
 func TestSparWaiverAC6_WaiverCoversItsRoundOnly(t *testing.T) {
 	w := newRWWorld(t, true)
 	w.use(rwNative("host"), w.missingAgy())
@@ -629,12 +654,12 @@ func TestSparWaiverAC6_WaiverCoversItsRoundOnly(t *testing.T) {
 	series = w.newSeries()
 	candidate := w.run(filepath.Join(series, "01-candidate"))
 	w.record(candidate, "host")
-	fixes := w.run(filepath.Join(series, "02-fixes"), "--stage", "fixes", "--base", w.head, "--head", w.fix)
-	w.record(fixes, "host")
+	later := w.run(filepath.Join(series, "02-candidate"), "--head", w.fix)
+	w.record(later, "host")
 	w.waive(candidate, "agy", "agy", "unavailable")
-	g = w.gate(w.fix, []string{candidate, fixes})
-	if listed, ok := g.waived(1); g.rec.State != StateDegraded || !rwHas(g.rec.Reasons, rwUnavailable(fixes, "agy")) || !ok || len(listed) != 0 {
-		t.Errorf("a fixes round without its own waiver: %s, reasons %v, waived %v", g.rec.State, g.rec.Reasons, listed)
+	g = w.gate(w.fix, []string{candidate, later})
+	if listed, ok := g.waived(1); g.rec.State != StateDegraded || !rwHas(g.rec.Reasons, rwUnavailable(later, "agy")) || !ok || len(listed) != 0 {
+		t.Errorf("the candidate round after review fixes without its own waiver: %s, reasons %v, waived %v", g.rec.State, g.rec.Reasons, listed)
 	}
 }
 
@@ -932,7 +957,7 @@ func TestSparWaiverAC8_BlockedReasonsIgnoreWaivers(t *testing.T) {
 		series := w.newSeries()
 		candidate := w.run(filepath.Join(series, "01-candidate"))
 		w.record(candidate, "host")
-		fixes := w.run(filepath.Join(series, "02-fixes"), "--stage", "fixes", "--base", w.head, "--head", w.fix)
+		fixes := w.fixesRound(filepath.Join(series, "02-fixes"))
 		w.record(fixes, "host")
 		return candidate, fixes
 	}
@@ -1021,7 +1046,7 @@ func TestSparWaiverAC9_SkillStatesTheWaiver(t *testing.T) {
 	const skill = "plugins/spar/skills/spar/SKILL.md"
 	rwStates(t, id, skill,
 		"\n- When a required reviewer did not complete a round and the user says to go on without it, record their words for that round: `spar waive <round> <reviewer> --user-quote \"<their words>\"`. Never record a waiver without the user's words. A waiver covers its round only; record one for each round the reviewer did not complete.\n",
-		"\n- `complete` only when every required reviewer completed every round or holds the user's waiver for that round, at least one required reviewer completed each round's packet, the code rounds form a chain up to the expected head, and no `defect` or `requirement-question` is open.\n",
+		"\n- `complete` only when every required reviewer completed every round or holds the user's waiver for that round, at least one required reviewer completed each round's packet, the last code round reviewed the expected head (with recorded fixes rounds in an unbroken chain), and no `defect` or `requirement-question` is open.\n",
 		"\n- `degraded` when a required reviewer did not complete a round and holds no waiver for it, a round had no required reviewer, or no required reviewer completed a round's packet. Tell the user which reviewer and why; do not present the review as complete.\n",
 		"\n- A waived reviewer is not a `degraded` reason; the gate file lists it under its round's `waived_reviewers` with its status and the user's words. A round where no required reviewer completed stays `degraded` even with waivers. Report the waivers with the gate.\n",
 		"A `complete` gate means the required reviewers the user did not waive found nothing open;",

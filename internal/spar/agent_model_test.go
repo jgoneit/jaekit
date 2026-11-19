@@ -872,25 +872,25 @@ func TestSparAgentModelAC8_JudgmentUnchanged(t *testing.T) {
 		t.Errorf("AC-8: the gate with the waiver exits %d: %s", code, judgment(g, failed))
 	}
 	// The cap counts rounds with the agent's model as it counts others:
-	// the fourth code round of a series is refused before any reviewer.
+	// under the default code cap of two, the third code round of a series,
+	// a candidate round from the base to the head after another fix, is
+	// refused before any reviewer.
 	series := filepath.Dir(w.round("ac8-cap"))
-	base, head := w.base, w.head
-	for i := 1; i <= 4; i++ {
-		stage := "candidate"
+	head := w.head
+	for i := 1; i <= 3; i++ {
 		if i > 1 {
-			stage, base = "fixes", head
 			w.write(filepath.Join(w.repo, "app", "greet.py"), fmt.Sprintf("def greet(name):\n    return 'hello ' + name  # %d\n", i))
 			w.git("commit", "-qam", fmt.Sprintf("fix %d", i))
 			head = w.git("rev-parse", "HEAD")
 		}
-		out := filepath.Join(series, fmt.Sprintf("%02d-%s", i, stage))
-		code, _, errs := w.spar("run", "--stage", stage, "--base", base, "--head", head, "--criteria", w.criteria,
+		out := filepath.Join(series, fmt.Sprintf("%02d-candidate", i))
+		code, _, errs := w.spar("run", "--stage", "candidate", "--base", w.base, "--head", head, "--criteria", w.criteria,
 			"--out", out, "--repo", w.repo, "--model", "codex=agent-codex")
 		switch {
-		case i < 4 && code != ExitOK && code != ExitNoResult:
+		case i < 3 && code != ExitOK && code != ExitNoResult:
 			t.Errorf("AC-8: code round %d with the agent's model exits %d: %s", i, code, errs)
-		case i == 4 && (code != ExitRefused || amExists(out)):
-			t.Errorf("AC-8: the fourth code round with the agent's model exits %d (folder %v), want the cap's refusal: %s", code, amExists(out), errs)
+		case i == 3 && (code != ExitRefused || amExists(out) || !strings.Contains(errs, "2 of 2")):
+			t.Errorf("AC-8: the third code round with the agent's model exits %d (folder %v), want the cap's refusal at 2 of 2: %s", code, amExists(out), errs)
 		}
 	}
 	// Native and command reviewers record no model source.

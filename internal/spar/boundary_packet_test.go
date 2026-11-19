@@ -107,7 +107,7 @@ func TestBoundaryCriteriaDocumentInPacketOnce(t *testing.T) {
 	review := w.bpReview()
 	text := w.read(review)
 	packets := w.rptStages("once", "--criteria", review, "--boundary", one, "--boundary", review)
-	for _, stage := range Stages {
+	for _, stage := range StartStages {
 		packet := packets[stage]
 		if n := strings.Count(packet, text); n != 1 {
 			t.Errorf("the %s packet holds the text of docs/REVIEW.md %d times, want 1", stage, n)
@@ -133,7 +133,7 @@ func TestBoundaryOnlyDocumentStillEmbedded(t *testing.T) {
 	one, two := w.rptBoundaries()
 	review := w.bpReview()
 	packets := w.rptStages("only", "--criteria", review, "--boundary", one, "--boundary", review, "--boundary", two)
-	for _, stage := range Stages {
+	for _, stage := range StartStages {
 		section := pdSectionOf(packets[stage], rptBoundaryHeading)
 		for _, path := range []string{one, two} {
 			if !strings.Contains(section, w.read(path)) {
@@ -152,7 +152,7 @@ func TestBoundaryPacketWithoutCriteriaCopyUnchanged(t *testing.T) {
 	w := newRptWorld(t, true)
 	one, two := w.rptBoundaries()
 	packets := w.rptStages("fixed", "--boundary", one, "--boundary", two)
-	for _, stage := range Stages {
+	for _, stage := range StartStages {
 		if got, want := w.normalize(packets[stage]), bpFixed(t, stage); got != want {
 			n, g, h := bpFirstDiff(got, want)
 			t.Errorf("the %s packet with boundary documents that are not criteria differs from the earlier packet at line %d: got %q, want %q", stage, n, g, h)
@@ -166,7 +166,7 @@ func TestBoundaryGuidanceUnchangedWithCriteriaCopy(t *testing.T) {
 	w := newRptWorld(t, true)
 	review := w.bpReview()
 	packets := w.rptStages("guidance", "--criteria", review, "--boundary", review)
-	for _, stage := range Stages {
+	for _, stage := range StartStages {
 		got, want := bpGuidance(packets[stage]), bpGuidance(bpFixed(t, stage))
 		if want == "" || got != want {
 			n, g, h := bpFirstDiff(got, want)
@@ -184,7 +184,7 @@ func TestBoundaryCriteriaDocumentStillRecorded(t *testing.T) {
 	review := w.bpReview()
 	w.rptStages("rec", "--criteria", review, "--boundary", one, "--boundary", review)
 	spec := filepath.Join(w.repo, "docs", "SPEC.md")
-	for i, stage := range []string{"plan", "plan-delta", "candidate", "fixes"} {
+	for i, stage := range StartStages {
 		r := w.rawRound(filepath.Join(w.repo, "reviews", "rec", fmt.Sprintf("%02d-%s", i+1, stage)))
 		names, sums := bpRecorded(r, "boundaries")
 		if !reflect.DeepEqual(names, []string{"docs/B1.md", "docs/REVIEW.md"}) || !reflect.DeepEqual(sums, []string{bpSum(w.read(one)), bpSum(w.read(review))}) {

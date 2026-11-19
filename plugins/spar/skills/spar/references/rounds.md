@@ -12,7 +12,7 @@ Each time the code cap is reached, run `spar cap-report <series>` before you ask
 
 Record the code extension as [When to run each stage](../SKILL.md#when-to-run-each-stage) says, with `--cause` set to the cause you showed. `--by 2` or more, and `--cause other`, need `--reason`.
 
-`spar cap-report` shows the code rounds counted against the cap, each round's findings by class, the open findings and four signals: churn (findings in files the fixes changed), recurring links, defects the reviewers marked as not introduced by the change, and check growth. Churn is counted by file, so a finding about another line of a changed file counts. Recurring links are counted by link, so the same problem under different links is not grouped. Unrelated defects use each reviewer's `introduced_by_change` as reported. `ha cost` shows each extension's cause and reason below it, or that no cause was recorded.
+`spar cap-report` shows the code rounds counted against the cap, each round's findings by class, the open findings and four signals: churn (findings in files the fixes changed), recurring links, defects the reviewers marked as not introduced by the change, and check growth, which only recorded fixes rounds measure: in a series of plan and candidate rounds the growth values of the gate and of the cap-report JSON stay 0 and the cap-report Markdown says growth was not measured, so judge the `hardening` cause from the fix commits. Churn is counted by file, so a finding about another line of a changed file counts. Recurring links are counted by link, so the same problem under different links is not grouped. Unrelated defects use each reviewer's `introduced_by_change` as reported. `ha cost` shows each extension's cause and reason below it, or that no cause was recorded.
 
 ## Reviewer standpoints
 
@@ -20,7 +20,7 @@ A standpoint points one reviewer at one risk of the change. Standpoints do not r
 
 ### Choose reviewer standpoints
 
-In plan and candidate rounds, including the cumulative round, pick the change's main risks. Give each reviewer a different standpoint, one each; when there are fewer risks than reviewers, leave the rest without one. The cumulative round receives the earlier code rounds' findings with their last dispositions in its packet, so do not turn those findings into standpoints: pick risks of the whole change. In fixes and plan-delta rounds, you may give the earlier standpoints again or give none. A standpoint names the risk to attack, where to look first and the position from which to see it. Do not claim that the fix is right or explain the solution. Pick risks from a changed contract boundary, a stored format and its earlier records, the meaning of a check's result, or another place that keeps the same invariant.
+In every plan and candidate round, the cumulative round included, pick the change's main risks. Give each reviewer a different standpoint, one each; when there are fewer risks than reviewers, leave the rest without one. A candidate round after an earlier code round receives the earlier code rounds' findings with their last dispositions in its packet, so do not turn those findings into standpoints: pick risks of the whole change. A standpoint names the risk to attack, where to look first and the position from which to see it. Do not claim that the fix is right or explain the solution. Pick risks from a changed contract boundary, a stored format and its earlier records, the meaning of a check's result, or another place that keeps the same invariant.
 
 ### Pass standpoints
 

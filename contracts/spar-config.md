@@ -107,13 +107,12 @@ check_paths = ["tools/checks/**", "**/*_test.go"]
 
 [caps]
 plan = 1
-plan_delta = 1
-code = 3
+code = 2
 ```
 
 프로젝트 설정은 작업 트리의 파일을 읽는다(G16).
 
-- `caps`: 한 series에서 단계별로 셀 수 있는 라운드 수. 기본은 `plan` 1, `plan_delta` 1, `code` 3(candidate와 fixes 합계). 0 이상의 정수(G22).
+- `caps`: 한 series에서 단계 묶음별로 셀 수 있는 라운드 수. 기본은 `plan` 1, `code` 2(candidate 라운드와 기록된 fixes 라운드 합계). 0 이상의 정수(G22). `plan_delta`는 읽지만 새 라운드에는 쓰이지 않는다: 그 키를 적은 이전 설정 파일도 오류 없이 읽히고, 라운드마다 `config.caps`에 그 값이 기록되며, `spar gate`는 기록된 plan-delta 라운드를 그 값으로 센다.
 - `angles`: 패킷이 묻는 공격 각도. 기본은 다섯 개 `requirement-counterexample`, `side-effects`, `design`, `premises`, `check-validity`이고, 이 가운데 일부로 줄일 수 있다. 순서는 위 순서로 정규화한다(G22).
 - `rules`: 매 라운드 패킷에 넣을 규칙 문서(G23). 저장소 안에서 읽을 수 있는 파일이어야 하고, 아니면 `spar config`와 `spar run` 모두 설정 오류다.
 - `check_paths`: 검사 코드로 보는 경로의 glob(G24). 잘못된 glob은 설정 오류다. 분류와 gate의 `growth`, 패킷이 쓴다.

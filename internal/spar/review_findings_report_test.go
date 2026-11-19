@@ -387,10 +387,11 @@ func TestReviewFindingsReportAC10_PriorLinesKeepTheirCut(t *testing.T) {
 	w.write(filepath.Join(w.repo, "app", "main.py"), "print('three')\n")
 	w.git("commit", "-qam", "fix")
 	fixed := w.git("rev-parse", "HEAD")
-	out := filepath.Join(w.repo, "reviews", "s1", "02-fixes")
-	if code, _, msg := w.spar("run", "--stage", "fixes", "--base", w.head, "--head", fixed, "--out", out, "--criteria", w.criteria,
+	// The candidate round after review fixes, from the base to the new head.
+	out := filepath.Join(w.repo, "reviews", "s1", "02-candidate")
+	if code, _, msg := w.spar("run", "--stage", "candidate", "--base", w.base, "--head", fixed, "--out", out, "--criteria", w.criteria,
 		"--check-path", "checks/**", "--repo", w.repo); code != ExitOK {
-		t.Fatalf("setup: spar run fixes exits %d: %s", code, msg)
+		t.Fatalf("setup: spar run candidate exits %d: %s", code, msg)
 	}
 	packet, err := os.ReadFile(filepath.Join(out, "packet.md"))
 	if err != nil {
@@ -399,6 +400,6 @@ func TestReviewFindingsReportAC10_PriorLinesKeepTheirCut(t *testing.T) {
 	collapsed := []rune(strings.Join(strings.Fields(claim), " "))
 	want := "01-candidate native-F1 [defect] at head/app/main.py:1: " + string(collapsed[:299]) + "…"
 	if !strings.Contains(string(packet), want) {
-		t.Errorf("the fixes packet does not hold the earlier finding line %q", want)
+		t.Errorf("the candidate packet does not hold the earlier finding line %q", want)
 	}
 }

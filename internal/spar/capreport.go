@@ -96,6 +96,10 @@ type capGrowth struct {
 	Check         int  `json:"check"`
 	Other         int  `json:"other"`
 	OverHardening bool `json:"over_hardening"`
+	// unmeasured is whether the series' rounds, dry runs included, hold no
+	// plan-delta or fixes round, so no new round could have measured
+	// growth; the JSON form does not carry it.
+	unmeasured bool
 }
 
 type capLimits struct {
@@ -314,7 +318,17 @@ func CapReport(o CapReportOptions) (int, error) {
 		rep.Recurring = append(rep.Recurring, capRecurring{k.kind, k.name, names[k]})
 	}
 
-	// Check growth: the gate's growth over the listed fixes rounds.
+	// Check growth: the gate's growth over the listed fixes rounds. A series
+	// that holds a plan-delta or fixes round, a dry run too, was recorded
+	// before new rounds took only plan and candidate and keeps the line it
+	// had; a series of plan and candidate rounds alone measured nothing.
+	rep.CheckGrowth.unmeasured = true
+	for _, sib := range rounds {
+		if sib.round.Stage == "plan-delta" || sib.round.Stage == "fixes" {
+			rep.CheckGrowth.unmeasured = false
+			break
+		}
+	}
 	measured := map[string]bool{}
 	for _, l := range list {
 		r := l.round
@@ -688,11 +702,18 @@ func renderCapReport(rep *capReport) string {
 	line("")
 	line("### Check growth")
 	line("")
-	over := "no"
-	if rep.CheckGrowth.OverHardening {
-		over = "yes"
+	// A series of plan and candidate rounds alone measured no line, so its
+	// zeros are not shown as a measurement. Every other series keeps the
+	// line it had before new rounds took only plan and candidate.
+	if rep.CheckGrowth.unmeasured {
+		line("- added lines: not measured (no recorded fixes round)")
+	} else {
+		over := "no"
+		if rep.CheckGrowth.OverHardening {
+			over = "yes"
+		}
+		line("- added lines: check %d, other %d; over hardening: %s", rep.CheckGrowth.Check, rep.CheckGrowth.Other, over)
 	}
-	line("- added lines: check %d, other %d; over hardening: %s", rep.CheckGrowth.Check, rep.CheckGrowth.Other, over)
 	line("")
 	line("## Limits")
 	line("")

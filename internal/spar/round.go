@@ -28,8 +28,28 @@ const (
 	commandPreset = "command"
 )
 
-// Stages a round can be.
+// Stages a recorded round can be. Series recorded before plan-delta and
+// fixes rounds stopped starting keep them, and every reader accepts them.
 var Stages = []string{"plan", "plan-delta", "candidate", "fixes"}
+
+// StartStages are the stages a new round of spar run starts as.
+var StartStages = []string{"plan", "candidate"}
+
+// retiredStages are the recorded stages a new round no longer starts as,
+// each with the round to run instead.
+var retiredStages = map[string]string{
+	"plan-delta": "--stage plan-delta no longer starts a round; after the plan changes, the next candidate round reviews the current goal documents",
+	"fixes":      "--stage fixes no longer starts a round; after review fixes, run a candidate round from the goal's base commit to the new head",
+}
+
+// retiredStage is the usage error for a stage a new round no longer starts
+// as, or nil for any other stage.
+func retiredStage(stage string) error {
+	if text, ok := retiredStages[stage]; ok {
+		return usageError("%s", text)
+	}
+	return nil
+}
 
 // ExitError carries the exit code a failure ends the command with.
 type ExitError struct {
@@ -108,40 +128,33 @@ func readDocuments(repo string, paths []string, what string) ([]Document, error)
 	return docs, nil
 }
 
-// priorLines lists the findings of earlier rounds of the same stage group,
-// leaving out dry runs and rounds of the same stage, base and head so that a
-// rerun gets the same packet. A candidate run of a recorded round's stage,
-// base and head reads exactly the rounds the earliest such round names in
-// its prior: none when that round was recorded before candidate rounds
-// received earlier findings (prior null, missing or empty). So a code round
-// recorded before or after it does not change the rerun's packet. A finding
-// with a recorded disposition ends with its last one; the bool reports
-// whether any line does.
+// priorLines lists, for a candidate round, the findings of the series'
+// earlier code rounds (candidate and recorded fixes rounds), leaving out dry
+// runs and rounds of the same stage, base and head so that a rerun gets the
+// same packet; a plan round lists none. A candidate run of a recorded
+// round's stage, base and head reads exactly the rounds the earliest such
+// round names in its prior: none when that round was recorded before
+// candidate rounds received earlier findings (prior null, missing or empty).
+// So a code round recorded before or after it does not change the rerun's
+// packet. A finding with a recorded disposition ends with its last one; the
+// bool reports whether any line does.
 func priorLines(siblings []sibling, current *RoundRecord) ([]string, []string, bool, error) {
-	var groups []string
-	switch current.Stage {
-	case "plan-delta":
-		groups = []string{"plan", "plan_delta"}
-	case "candidate", "fixes":
-		groups = []string{"code"}
-	default:
+	if current.Stage != "candidate" {
 		return []string{}, []string{}, false, nil
 	}
 	reads := func(s sibling) bool {
-		return !s.round.DryRun && !sameIdentity(s.round, current) && contains(groups, stageGroup(s.round.Stage))
+		return !s.round.DryRun && !sameIdentity(s.round, current) && stageGroup(s.round.Stage) == "code"
 	}
-	if current.Stage == "candidate" {
-		for i, s := range siblings {
-			if s.round.DryRun || !sameIdentity(s.round, current) {
-				continue
-			}
-			var err error
-			if siblings, err = originalPrior(siblings[:i], s); err != nil {
-				return nil, nil, false, err
-			}
-			reads = func(sibling) bool { return true }
-			break
+	for i, s := range siblings {
+		if s.round.DryRun || !sameIdentity(s.round, current) {
+			continue
 		}
+		var err error
+		if siblings, err = originalPrior(siblings[:i], s); err != nil {
+			return nil, nil, false, err
+		}
+		reads = func(sibling) bool { return true }
+		break
 	}
 	lines, dirs, disposed := []string{}, []string{}, false
 	for _, s := range siblings {
@@ -309,6 +322,9 @@ func admit(siblings []sibling, exts []capExtension, r *RoundRecord) (bool, []str
 			}
 		}
 	}
+	// Run refuses a new fixes round before admission (StartStages), so only
+	// a record given to admit directly reaches this check; the gate applies
+	// the same chain to recorded fixes rounds.
 	if r.Stage == "fixes" {
 		var previous *RoundRecord
 		for _, s := range siblings {
@@ -404,8 +420,13 @@ func strPtr(s string) *string {
 
 // Run carries out `spar run`: one round on a pinned packet.
 func Run(o RunOptions) (int, error) {
-	if !contains(Stages, o.Stage) {
-		return ExitUsage, usageError("--stage must be one of %s", strings.Join(Stages, ", "))
+	// A stage a new round does not start as is refused before anything is
+	// read or written, dry runs included.
+	if err := retiredStage(o.Stage); err != nil {
+		return ExitUsage, err
+	}
+	if !contains(StartStages, o.Stage) {
+		return ExitUsage, usageError("--stage must be one of %s", strings.Join(StartStages, ", "))
 	}
 	if o.Base == "" || o.Out == "" {
 		return ExitUsage, usageError("spar run needs --base and --out")

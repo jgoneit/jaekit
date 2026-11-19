@@ -1,0 +1,27 @@
+[
+  {
+    "id": "host-F1",
+    "reviewer": "host",
+    "reviewer_id": "F1",
+    "class": "defect",
+    "class_reason": "proposed class",
+    "proposed_class": "defect",
+    "angle": "requirement-counterexample",
+    "location": "head/app/greet.py:1",
+    "path": "app/greet.py",
+    "in_check_paths": false,
+    "location_unreadable": false,
+    "claim": "synthetic claim F1",
+    "failure_scenario": "synthetic failure F1",
+    "evidence": "head/app/greet.py:1",
+    "link_kind": "criterion",
+    "link": "AC-1",
+    "claimed_link_kind": "criterion",
+    "claimed_link": "AC-1",
+    "introduced_by_change": "unknown",
+    "regression": "no",
+    "check_impact": "none",
+    "confidence": "high",
+    "smallest_fix": ""
+  }
+]

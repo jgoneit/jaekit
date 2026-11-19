@@ -5,7 +5,7 @@
 ## 1. 명령
 
 ```bash
-spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
+spar gate docs/reviews/example/02-candidate docs/reviews/example/03-candidate \
   --expect-head 3333333 --out docs/reviews/example/gate.json
 ```
 
@@ -23,7 +23,7 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
 - 상한 초과: 라운드의 series마다, 디스크에 있는 라운드와 주어진 라운드 가운데 `counted`인 것을 단계 묶음별로 세어 그 series에서 `sequence`가 가장 큰 라운드 설정의 상한과 `extensions.jsonl` 연장의 합을 넘음. 주어진 라운드가 그보다 앞선 라운드여도 같다
 - 처리되지 않은 지적: 원장에 처리가 없는 `defect`·`requirement-question`. `duplicate`는 가리킨 지적을 따라가 닫는 처리에 닿을 때만 닫히고, 열린 지적에 닿거나 서로를 가리키면 열려 있다
 - `fix`로 처리한 지적의 수정 커밋이 기대 head에 포함되지 않음. 분류와 관계없이(`hardening`·`note` 포함) 모든 `fix`를 확인한다
-- 코드 라운드 사슬 끊김: 목록의 fixes 라운드 base가 바로 앞 code 라운드의 head가 아니거나, 앞에 code 라운드가 없음. 바로 앞 code 라운드와 단계·base·head가 같은 fixes 라운드는 패킷 digest와 관계없이 이 확인에서 빠진다: 같은 패킷의 재실행이든, 처리가 바뀐 뒤처럼 패킷이 다른 새 라운드든 그 라운드를 되풀이하는 것이다. 그 밖의 fixes 라운드는 base가 바로 앞 code 라운드의 head와 다를 때만 사슬이 끊긴다
+- 코드 라운드 사슬 끊김: 목록의 기록된 fixes 라운드 base가 바로 앞 code 라운드의 head가 아니거나, 앞에 code 라운드가 없음. 바로 앞 code 라운드와 단계·base·head가 같은 fixes 라운드는 패킷 digest와 관계없이 이 확인에서 빠진다: 같은 패킷의 재실행이든, 처리가 바뀐 뒤처럼 패킷이 다른 새 라운드든 그 라운드를 되풀이하는 것이다. 그 밖의 fixes 라운드는 base가 바로 앞 code 라운드의 head와 다를 때만 사슬이 끊긴다
 - 기대 head 미검토: 마지막 code 라운드(없으면 마지막 라운드)의 head가 기대 head가 아님
 - dry run 라운드, 읽을 수 없는 라운드, `findings.json`이나 `ledger.jsonl`이 없는 라운드, `waivers.jsonl`을 읽을 수 없는 라운드, 저장소에 없는 커밋
 - 목록에 없는 같은 series의 라운드(G29): `<series>: round <이름> of the series is not in the gate list`. 앞선 라운드를 빼고 gate를 만들어 열린 지적을 지나치지 않게 한다
@@ -61,7 +61,7 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
   "auto_deferred": 2,
   "deferred_findings": [{"series": "example", "round": "02-candidate", "id": "codex-F3", "class": "defect", "to": "https://github.com/example/demo/issues/7"}],
   "unhandled_findings": [{"series": "example", "round": "02-candidate", "id": "claude-F2", "class": "note"}],
-  "growth": {"added_lines": {"check": 40, "other": 12}, "over_hardening": true, "rounds": []},
+  "growth": {"added_lines": {"check": 0, "other": 0}, "over_hardening": false, "rounds": []},
   "written_at": "2026-01-01T00:00:00Z"
 }
 ```
@@ -83,10 +83,10 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-fixes \
 | `uncovered_standpoints` | 단계·base·head·패킷(`packet_digest`)이 같은 주어진 라운드 어디에서도 리뷰어가 완료하지 않은 관점마다 `reviewer`와 `text`(라운드의 `standpoints`와 같음), 그리고 그 패킷의 주어진 라운드마다 `series`·`round` 폴더 이름을 주어진 순서로 담은 `rounds`. 주어진 라운드에 관점이 있으면 있고(비어 있을 수 있음), 없으면 없다 |
 | `growth.added_lines` | 목록의 fixes 라운드마다 `git diff --numstat -M <base> <head>`의 더한 줄(이름을 바꾼 파일은 새 경로에서 더한 줄만)을 그 라운드 설정의 검사 경로(`check`)와 그 밖(`other`)으로 나눈 합. 같은 base·head는 한 번만 센다 |
 | `growth.over_hardening` | `check`가 `other`보다 크면 `true` |
-| `growth.rounds[]` | fixes 라운드별 `check`·`other` |
+| `growth.rounds[]` | fixes 라운드별 `check`·`other`. 기록된 fixes 라운드가 없으면 `growth.rounds`는 비어 있다: growth를 재지 않았다. 그때 `added_lines`의 0과 `over_hardening`의 `false`는 더한 줄이 없었다는 뜻이 아니다 |
 
 두 목록은 주어진 라운드 순서, 라운드마다 `findings.json`의 순서다. 라운드와 series는 경로가 아니라 폴더 이름이라 주어진 라운드 경로가 절대 경로여도 들어가지 않는다. 다른 처리(`fix`, `reject`, `duplicate`, `answer`)로 끝난 지적은 어느 목록에도 없다. 두 목록은 상태, 사유, 종료 코드, 다른 필드를 바꾸지 않는다. 지적 원문은 들어가지 않는다. 이 두 필드가 없는 파일은 이 필드 전의 Spar가 쓴 것이다. `ha`가 이 목록을 기록하는 방식은 [run-record.md](run-record.md) §4.8에 있다.
 
 `uncovered_standpoints`는 라운드의 `standpoints_uncovered`([검토 라운드](review-round.md) 5절)를 한 패킷의 재실행에 걸쳐 합친다. `completed_required`가 필수 리뷰어를 합치는 것과 같으며, 예를 들어 `[{"reviewer": "agy", "text": "…", "rounds": [{"series": "example", "round": "02-candidate"}]}]`이다. 관점은 그것이 가리키는 리뷰어가 이름으로(preset이나 필수 여부와 관계없이) 그 패킷의 주어진 라운드 어디에서도 `completed`가 아닐 때만 들어가며, 재실행에서 완료한 리뷰어는 그 패킷의 모든 라운드에서 자기 관점을 채운다. 관점 글과 배정은 패킷에 들어 있으므로 한 패킷의 라운드는 같은 관점을 가지고, 리뷰어와 글이 같아도 다른 패킷의 라운드는 그 관점을 채우지 않는다. waive된 리뷰어는 완료하지 않았으므로 `round.json`·`summary.md`에서처럼 그 관점은 목록에 남고, 결정은 `waived_reviewers`에 보인다. 항목은 주어진 라운드 순서, 라운드 안에서는 그 `standpoints` 순서를 따르며 한 패킷의 관점은 한 번만 나온다. gate가 읽지 못한 라운드는 보지 않는다. 이 목록은 상태, 사유, 종료 코드, 다른 필드를 바꾸지 않고, `ha`는 이것을 읽지 않는다. 주어진 라운드에 관점이 없는 gate에는 이 필드가 없어 파일이 이 필드 전과 같다. 관점이 있는 라운드의 gate에 이 필드가 없으면 이 필드 전의 Spar가 쓴 것이다.
 
-`growth`는 검토가 수정을 검사 코드 쪽으로 부풀렸는지 읽게 하는 기록이다. `over_hardening`은 판단을 대신하지 않고 상태를 바꾸지 않는다.
+`growth`는 검토가 수정을 검사 코드 쪽으로 부풀렸는지 읽게 하는 기록이다. 새 라운드는 fixes 라운드가 아니므로 growth는 fixes 라운드를 기록한 series에서만 잰다. `over_hardening`은 판단을 대신하지 않고 상태를 바꾸지 않는다.

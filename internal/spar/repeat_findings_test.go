@@ -35,8 +35,9 @@ const (
 	rptRereport = "only with a failure scenario that the recorded disposition does not answer"
 	rptFixed    = "recorded as fixed"
 	rptNotFixed = "recorded as rejected, deferred, duplicate or answered"
-	// rptOldFixes is the fixes stage line of a packet without dispositions.
-	rptOldFixes = "The head fixes findings of earlier rounds. Review the fixes from base to head, and whether they fix those findings without breaking anything else."
+	// rptCandidate is the stage text of a candidate packet, with or without
+	// dispositions.
+	rptCandidate = "The head is a candidate implementation of the criteria. Review the whole change from base to head."
 )
 
 type rptWorld struct{ *pdWorld }
@@ -130,21 +131,40 @@ func (w *rptWorld) candidateWithDispositions(series string) string {
 	return out
 }
 
-// fixesPacket is the packet of a fixes dry run from commit 1 to 2 after the
-// candidate round of series.
-func (w *rptWorld) fixesPacket(series string, extra ...string) string {
+// nextPacket is the packet of the round after review fixes, a candidate dry
+// run from the base commit 0 to the new head 2, after the candidate round of
+// series from commit 0 to 1.
+func (w *rptWorld) nextPacket(series string, extra ...string) string {
 	w.t.Helper()
-	out := filepath.Join(w.repo, "reviews", series, "02-fixes")
-	w.run(append(append(w.round("fixes", w.commits[1], w.commits[2], out), "--dry-run"), extra...)...)
+	out := filepath.Join(w.repo, "reviews", series, "02-candidate")
+	w.run(append(append(w.round("candidate", w.commits[0], w.commits[2], out), "--dry-run"), extra...)...)
 	return w.read(filepath.Join(out, "packet.md"))
 }
 
+// fixesRefused fails the test unless a fixes dry run from commit 1 to 2,
+// the round that came after review fixes before candidate rounds took its
+// place, is refused in series before anything is written.
+func (w *rptWorld) fixesRefused(series string) {
+	w.t.Helper()
+	w.oldStageRefused("fixes", w.commits[1], w.commits[2], filepath.Join(w.repo, "reviews", series, "03-fixes"), "--dry-run")
+}
+
+// planDeltaRefused fails the test unless a plan-delta dry run of the plan
+// from commit 0 to 2 is refused in series before anything is written.
+func (w *rptWorld) planDeltaRefused(series string) {
+	w.t.Helper()
+	w.oldStageRefused("plan-delta", w.commits[0], w.commits[2], filepath.Join(w.repo, "reviews", series, "02-plan-delta"),
+		"--subject", filepath.Join(w.repo, "docs", "PLAN.md"), "--dry-run")
+}
+
 // AC-1: each disposition and the automatic deferral show on the finding's
-// line of a fixes packet, and of a plan-delta packet.
+// line of the packet of the candidate round after review fixes. A
+// plan-delta round, which showed the dispositions of the plan round, is
+// refused.
 func TestRepeatFindingsAC1_DispositionShown(t *testing.T) {
 	const id = "disposition-not-shown"
 	w := newRptWorld(t, false)
-	packet := w.fixesPacket(filepathSeries(w, "d"))
+	packet := w.nextPacket(filepathSeries(w, "d"))
 	for _, want := range []struct{ finding, disposition, detail string }{
 		{"cmd-F1", "fix", shortID(w.commits[2])},
 		{"cmd-F2", "reject", "근거-시작"},
@@ -156,7 +176,7 @@ func TestRepeatFindingsAC1_DispositionShown(t *testing.T) {
 	} {
 		line := rptEarlierLine(packet, "01-candidate", want.finding)
 		if line == "" {
-			pdSetup(t, false, "the fixes packet lists no %s", want.finding)
+			pdSetup(t, false, "the candidate packet lists no %s", want.finding)
 		}
 		after := strings.SplitN(line, ": ", 2)
 		if len(after) < 2 || !strings.Contains(after[1], want.disposition) || !strings.Contains(after[1], want.detail) {
@@ -197,22 +217,14 @@ func TestRepeatFindingsAC1_DispositionShown(t *testing.T) {
 		}
 	}
 
-	// A plan-delta round shows the dispositions of the plan round.
+	// A plan-delta round after a plan round with a disposition is refused.
 	c := w.commits
 	plan := filepath.Join(w.repo, "docs", "PLAN.md")
 	w.useConfig(w.printer(w.answer("plan", c[1], rptFinding("F1", "defect", "AC-1", "the plan misses AC-1"))))
 	out := filepath.Join(w.repo, "reviews", "p", "01-plan")
 	w.run(append(w.round("plan", c[0], c[1], out), "--subject", plan)...)
 	w.triage(out, "cmd-F1", "reject", "--evidence", "계획의 둘째 문단이 AC-1을 다룬다")
-	delta := filepath.Join(w.repo, "reviews", "p", "02-plan-delta")
-	w.run(append(w.round("plan-delta", c[0], c[2], delta), "--subject", plan, "--dry-run")...)
-	line := rptEarlierLine(w.read(filepath.Join(delta, "packet.md")), "01-plan", "cmd-F1")
-	if line == "" {
-		pdSetup(t, false, "the plan-delta packet lists no cmd-F1")
-	}
-	if !strings.Contains(line, "reject") || !strings.Contains(line, "계획의 둘째 문단이 AC-1을 다룬다") {
-		t.Errorf("jaekit:violation=%s the plan-delta line does not show the reject and its evidence: %s", id, line)
-	}
+	w.planDeltaRefused("p")
 }
 
 // filepathSeries runs the candidate round with dispositions in a series of
@@ -257,12 +269,12 @@ func TestRepeatFindingsAC1_LongTextShortened(t *testing.T) {
 		}
 		w.triage(out, p.disposed, p.disposition, flag, p.text)
 	}
-	packet := w.fixesPacket("l")
+	packet := w.nextPacket("l")
 	for _, p := range pairs {
 		claimLine, line := rptEarlierLine(packet, "01-candidate", p.claim), rptEarlierLine(packet, "01-candidate", p.disposed)
 		shown := strings.SplitN(claimLine, ": ", 2)
 		if line == "" || len(shown) < 2 {
-			pdSetup(t, false, "the fixes packet lists no %s or %s", p.claim, p.disposed)
+			pdSetup(t, false, "the candidate packet lists no %s or %s", p.claim, p.disposed)
 		}
 		if !strings.Contains(line, p.disposition) || !strings.HasSuffix(line, shown[1]) {
 			t.Errorf("jaekit:violation=%s the %s text of %s (%d characters) is not shortened like the claim %q: %s",
@@ -281,7 +293,7 @@ func TestRepeatFindingsAC1_LongTextShortened(t *testing.T) {
 func TestRepeatFindingsAC1_UntriagedLineUnchanged(t *testing.T) {
 	const id = "untriaged-line-changed"
 	w := newRptWorld(t, false)
-	packet := w.fixesPacket(filepathSeries(w, "u"))
+	packet := w.nextPacket(filepathSeries(w, "u"))
 	want := "- 01-candidate cmd-F7 [defect] at head/app/main.py:1: claim seven"
 	if line := rptEarlierLine(packet, "01-candidate", "cmd-F7"); line != want {
 		t.Errorf("jaekit:violation=%s the line of an open finding is %q, not %q", id, line, want)
@@ -298,9 +310,9 @@ func TestRepeatFindingsAC1_LastDispositionShown(t *testing.T) {
 	w.run(w.round("candidate", c[0], c[1], out)...)
 	w.triage(out, "cmd-F1", "reject", "--evidence", "처음 근거")
 	w.triage(out, "cmd-F1", "defer", "--to", "#321", "--user-quote", "나중에 하자는 사용자의 말")
-	line := rptEarlierLine(w.fixesPacket("last"), "01-candidate", "cmd-F1")
+	line := rptEarlierLine(w.nextPacket("last"), "01-candidate", "cmd-F1")
 	if line == "" {
-		pdSetup(t, false, "the fixes packet lists no cmd-F1")
+		pdSetup(t, false, "the candidate packet lists no cmd-F1")
 	}
 	if !strings.Contains(line, "defer") || !strings.Contains(line, "#321") || strings.Contains(line, "reject") || strings.Contains(line, "처음 근거") {
 		t.Errorf("jaekit:violation=%s the line does not show only the last disposition, a deferral to #321: %s", id, line)
@@ -310,7 +322,8 @@ func TestRepeatFindingsAC1_LastDispositionShown(t *testing.T) {
 // AC-1: an earlier ledger line with a disposition spar does not know, or
 // without a finding of its round, is refused before a reviewer starts, as
 // contracts/spar-input.md G32 refuses a line it cannot interpret, and no
-// round folder is left.
+// round folder is left: here in the candidate round after review fixes,
+// from the base commit 0 to the new head 2.
 func TestRepeatFindingsAC1_UnknownDispositionRefused(t *testing.T) {
 	const id = "unknown-disposition-shown"
 	w := newRptWorld(t, false)
@@ -325,34 +338,36 @@ func TestRepeatFindingsAC1_UnknownDispositionRefused(t *testing.T) {
 		cand := filepath.Join(w.repo, "reviews", series, "01-candidate")
 		w.run(w.round("candidate", c[0], c[1], cand)...)
 		w.write(filepath.Join(cand, "ledger.jsonl"), x.line+"\n")
-		out := filepath.Join(w.repo, "reviews", series, "02-fixes")
-		code, stderr := w.spar(append(w.round("fixes", c[1], c[2], out), "--dry-run")...)
+		out := filepath.Join(w.repo, "reviews", series, "02-candidate")
+		code, stderr := w.spar(append(w.round("candidate", c[0], c[2], out), "--dry-run")...)
 		if _, err := os.Stat(out); code != ExitRefused || err == nil || !strings.Contains(stderr, x.named) {
 			t.Errorf("jaekit:violation=%s the ledger line %s: exit %d, round folder left %v: %s", id, x.line, code, err == nil, pdFirstLine(stderr))
 		}
 	}
 }
 
-// AC-1: a disposition recorded between a fixes round and its retry on the
-// same commits makes another packet. The retry is a new counted round, not a
-// rerun of the same packet, and spar gate does not call the fixes chain
-// broken.
+// AC-1: a disposition recorded between the candidate round after review
+// fixes, from the base commit 0 to the new head 2, and its retry on the same
+// commits makes another packet. The retry is a new counted round, not a
+// rerun of the same packet, and spar gate does not call a chain broken. The
+// project configuration allows the three counted code rounds.
 func TestRepeatFindingsAC1_RerunAfterTriage(t *testing.T) {
 	const id = "rerun-ignores-disposition"
 	w := newRptWorld(t, false)
 	c := w.commits
+	w.write(filepath.Join(w.repo, ".jaekit", "spar.toml"), "[caps]\ncode = 3\n")
 	w.useConfig(w.printer(w.answer("r-candidate", c[1],
 		rptFinding("F1", "defect", "AC-1", "first"), rptFinding("F2", "defect", "AC-1", "second"))))
 	cand := filepath.Join(w.repo, "reviews", "r", "01-candidate")
 	w.run(w.round("candidate", c[0], c[1], cand)...)
 	w.triage(cand, "cmd-F1", "reject", "--evidence", "first is wrong")
 	w.useConfig(pdCommand("cmd", w.script("fail", "if [ \"$1\" = --version ]; then exit 0; fi\nexit 3\n")))
-	first := filepath.Join(w.repo, "reviews", "r", "02-fixes")
-	w.run(w.round("fixes", c[1], c[2], first)...)
+	first := filepath.Join(w.repo, "reviews", "r", "02-candidate")
+	w.run(w.round("candidate", c[0], c[2], first)...)
 	w.triage(cand, "cmd-F2", "reject", "--evidence", "second is wrong too")
-	w.useConfig(w.printer(w.answer("r-fixes", c[2])))
-	again := filepath.Join(w.repo, "reviews", "r", "03-fixes")
-	if code, stderr := w.spar(w.round("fixes", c[1], c[2], again)...); code != ExitOK && code != ExitNoResult {
+	w.useConfig(w.printer(w.answer("r-again", c[2])))
+	again := filepath.Join(w.repo, "reviews", "r", "03-candidate")
+	if code, stderr := w.spar(w.round("candidate", c[0], c[2], again)...); code != ExitOK && code != ExitNoResult {
 		t.Errorf("jaekit:violation=%s the retry on the same commits after a new disposition was refused: exit %d: %s", id, code, pdFirstLine(stderr))
 		return
 	}
@@ -371,19 +386,20 @@ func TestRepeatFindingsAC1_RerunAfterTriage(t *testing.T) {
 	}
 	for _, reason := range g.Reasons {
 		if strings.Contains(reason, "chain") {
-			t.Errorf("jaekit:violation=%s spar gate calls the fixes chain broken: %s", id, reason)
+			t.Errorf("jaekit:violation=%s spar gate calls a chain broken: %s", id, reason)
 		}
 	}
 }
 
 // AC-2: a packet whose earlier findings have a disposition tells reviewers
 // to report such a finding again only with a failure scenario the record
-// does not answer, in a fixes and a plan-delta round.
+// does not answer, in the candidate round after review fixes. A plan-delta
+// round, which carried it for the plan round's findings, is refused.
 func TestRepeatFindingsAC2_RereportGuidance(t *testing.T) {
 	const id = "rereport-guidance-missing"
 	w := newRptWorld(t, false)
-	if packet := w.fixesPacket(filepathSeries(w, "g")); !strings.Contains(packet, rptRereport) {
-		t.Errorf("jaekit:violation=%s the fixes packet does not say %q", id, rptRereport)
+	if packet := w.nextPacket(filepathSeries(w, "g")); !strings.Contains(packet, rptRereport) {
+		t.Errorf("jaekit:violation=%s the candidate packet does not say %q", id, rptRereport)
 	}
 	c := w.commits
 	plan := filepath.Join(w.repo, "docs", "PLAN.md")
@@ -391,29 +407,26 @@ func TestRepeatFindingsAC2_RereportGuidance(t *testing.T) {
 	out := filepath.Join(w.repo, "reviews", "gp", "01-plan")
 	w.run(append(w.round("plan", c[0], c[1], out), "--subject", plan)...)
 	w.triage(out, "cmd-F1", "reject", "--evidence", "it does not")
-	delta := filepath.Join(w.repo, "reviews", "gp", "02-plan-delta")
-	w.run(append(w.round("plan-delta", c[0], c[2], delta), "--subject", plan, "--dry-run")...)
-	if !strings.Contains(w.read(filepath.Join(delta, "packet.md")), rptRereport) {
-		t.Errorf("jaekit:violation=%s the plan-delta packet does not say %q", id, rptRereport)
-	}
+	w.planDeltaRefused("gp")
 }
 
-// AC-2: the fixes stage line of such a packet separates findings recorded as
-// fixed from those recorded as not fixed.
+// AC-2: the fixes stage line separated findings recorded as fixed from those
+// recorded as not fixed. A fixes round is now refused, and the candidate
+// round after review fixes keeps the candidate stage line whatever the
+// earlier findings' dispositions; the guidance on findings with a recorded
+// disposition is the one AC2_RereportGuidance checks.
 func TestRepeatFindingsAC2_FixesStageDistinguishes(t *testing.T) {
-	const id = "fixes-stage-not-distinguished"
 	w := newRptWorld(t, false)
-	packet := w.fixesPacket(filepathSeries(w, "s"))
-	// The distinction belongs to the stage line of the round section, not to
-	// any other part of the packet.
+	packet := w.nextPacket(filepathSeries(w, "s"))
+	w.fixesRefused("s")
 	var stage string
 	for _, line := range strings.Split(pdSectionOf(packet, "## Round"), "\n") {
-		if strings.HasPrefix(line, "- Stage: `fixes`.") {
+		if strings.HasPrefix(line, "- Stage: ") {
 			stage = line
 		}
 	}
-	if !strings.Contains(stage, rptFixed) || !strings.Contains(stage, rptNotFixed) {
-		t.Errorf("jaekit:violation=%s the fixes stage line does not separate %q from %q: %q", id, rptFixed, rptNotFixed, stage)
+	if want := "- Stage: `candidate`. " + rptCandidate; stage != want {
+		t.Errorf("the stage line of the candidate packet after review fixes is %q, want %q", stage, want)
 	}
 }
 
@@ -426,10 +439,12 @@ func (w *rptWorld) rptBoundaries() (string, string) {
 	return one, two
 }
 
-// rptStages runs a round of every stage with the two boundary documents and
-// returns each packet by stage: plan, plan-delta and fixes as dry runs,
-// candidate as a real round of a command reviewer that reports nothing, so
-// that the fixes round follows a code round.
+// rptStages runs a round of every stage a new round starts as with the extra
+// arguments, such as the two boundary documents, and returns each packet by
+// stage: plan as a dry run in 01-plan, candidate in 02-candidate as a real
+// round of a command reviewer that reports nothing. A plan-delta and a fixes
+// round with the same arguments, as dry runs after them, are refused
+// (oldStageRefused).
 func (w *rptWorld) rptStages(series string, extra ...string) map[string]string {
 	w.t.Helper()
 	c := w.commits
@@ -441,9 +456,7 @@ func (w *rptWorld) rptStages(series string, extra ...string) map[string]string {
 		extra             []string
 	}{
 		{"plan", c[0], c[1], append([]string{"--subject", plan}, dry...)},
-		{"plan-delta", c[0], c[1], append([]string{"--subject", plan}, dry...)},
 		{"candidate", c[0], c[1], nil},
-		{"fixes", c[1], c[2], dry},
 	}
 	packets := map[string]string{}
 	for i, r := range runs {
@@ -458,6 +471,9 @@ func (w *rptWorld) rptStages(series string, extra ...string) map[string]string {
 		}
 		packets[r.stage] = w.read(filepath.Join(out, "packet.md"))
 	}
+	w.oldStageRefused("plan-delta", c[0], c[1], filepath.Join(w.repo, "reviews", series, "03-plan-delta"),
+		append(append([]string{"--subject", plan}, dry...), extra...)...)
+	w.oldStageRefused("fixes", c[1], c[2], filepath.Join(w.repo, "reviews", series, "03-fixes"), append(dry, extra...)...)
 	return packets
 }
 
@@ -472,7 +488,7 @@ func TestRepeatFindingsAC3_BoundarySection(t *testing.T) {
 		t.Errorf("jaekit:violation=%s spar run does not take --boundary", id)
 		return
 	}
-	for _, stage := range Stages {
+	for _, stage := range StartStages {
 		packet := packets[stage]
 		if n := pdCount(pdHeadings(packet), rptBoundaryHeading); n != 1 {
 			t.Errorf("jaekit:violation=%s the %s packet has %d %q sections, want 1", id, stage, n, rptBoundaryHeading)
@@ -544,7 +560,7 @@ func TestRepeatFindingsAC3_BoundaryRecorded(t *testing.T) {
 		s := sha256.Sum256([]byte(w.read(path)))
 		return hex.EncodeToString(s[:])
 	}
-	for i, stage := range []string{"plan", "plan-delta", "candidate", "fixes"} {
+	for i, stage := range StartStages {
 		r := w.rawRound(filepath.Join(w.repo, "reviews", "br", fmt.Sprintf("%02d-%s", i+1, stage)))
 		list, _ := r["boundaries"].([]any)
 		var names, sums []string
@@ -697,10 +713,11 @@ func TestRepeatFindingsAC4_InputTableRow(t *testing.T) {
 	}
 }
 
-// AC-5: in a fixes round with dispositions and boundary documents, every
-// reviewer receives the same packet: claude and codex on standard input, agy
-// after its command note as an argument and as PACKET.md, native in
-// prompt.md and a command reviewer at its {prompt} path.
+// AC-5: in the candidate round after review fixes, from the base commit to
+// the new head, with dispositions and boundary documents, every reviewer
+// receives the same packet: claude and codex on standard input, agy after
+// its command note as an argument and as PACKET.md, native in prompt.md and
+// a command reviewer at its {prompt} path.
 func TestRepeatFindingsAC5_EveryReviewerGetsSamePacket(t *testing.T) {
 	const id = "reviewer-packet-differs"
 	w := newRptWorld(t, false)
@@ -711,8 +728,8 @@ func TestRepeatFindingsAC5_EveryReviewerGetsSamePacket(t *testing.T) {
 		amQuote(filepath.Join(w.dir, "got", "command"))+"\ncat "+amQuote(w.answer("command", head))+"\n")
 	w.useConfig(w.pdFake("claude", head), w.pdFake("codex", head), w.pdFake("agy", head),
 		"[[reviewers]]\nname = \"native\"\npreset = \"native\"\n\n", pdCommand("command", cmd, "{prompt}"))
-	out := filepath.Join(w.repo, "reviews", "all", "02-fixes")
-	code, stderr := w.spar(append(w.round("fixes", w.commits[1], head, out), "--boundary", one, "--boundary", two)...)
+	out := filepath.Join(w.repo, "reviews", "all", "02-candidate")
+	code, stderr := w.spar(append(w.round("candidate", w.commits[0], head, out), "--boundary", one, "--boundary", two)...)
 	if code == ExitUsage && strings.Contains(stderr, "boundary") {
 		t.Errorf("jaekit:violation=%s spar run does not take --boundary", id)
 		return
@@ -1063,7 +1080,8 @@ func TestRepeatFindingsAC8_SealExampleRuns(t *testing.T) {
 }
 
 // AC-8: a finding rejected with spar triage after a candidate round shows
-// its reject and evidence in the next fixes round's packet.
+// its reject and evidence in the packet of the candidate round after review
+// fixes, which took the place of the next fixes round.
 func TestRepeatFindingsAC8_TriageThenFixes(t *testing.T) {
 	const id = "fixes-packet-without-reject"
 	w := newRptWorld(t, false)
@@ -1072,12 +1090,12 @@ func TestRepeatFindingsAC8_TriageThenFixes(t *testing.T) {
 	cand := filepath.Join(w.repo, "reviews", "t", "01-candidate")
 	w.run(w.round("candidate", c[0], c[1], cand)...)
 	w.triage(cand, "cmd-F1", "reject", "--evidence", "AC-1이 인사말을 바꾸라고 한다")
-	line := rptEarlierLine(w.fixesPacket("t"), "01-candidate", "cmd-F1")
+	line := rptEarlierLine(w.nextPacket("t"), "01-candidate", "cmd-F1")
 	if line == "" {
-		pdSetup(t, false, "the fixes packet lists no cmd-F1")
+		pdSetup(t, false, "the candidate packet lists no cmd-F1")
 	}
 	if !strings.Contains(line, "reject") || !strings.Contains(line, "AC-1이 인사말을 바꾸라고 한다") {
-		t.Errorf("jaekit:violation=%s the fixes packet does not show the reject and its evidence: %s", id, line)
+		t.Errorf("jaekit:violation=%s the candidate packet does not show the reject and its evidence: %s", id, line)
 	}
 }
 
@@ -1088,19 +1106,20 @@ func TestRepeatFindingsAC10_FixedPackets(t *testing.T) {
 	t.Run("standpoints", TestReviewerStandpointsAC8_NoStandpointUnchanged)
 }
 
-// AC-10: a fixes packet whose earlier finding has no disposition keeps the
-// earlier line, the earlier stage line and no new guidance or section.
+// AC-10: the packet of the candidate round after review fixes, whose
+// earlier finding has no disposition, keeps the earlier line, the candidate
+// stage line and no new guidance or section.
 func TestRepeatFindingsAC10_OpenFindingPacket(t *testing.T) {
 	w := newRptWorld(t, true)
 	c := w.commits
 	w.useConfig(w.printer(w.answer("o-candidate", c[1], rptFinding("F1", "defect", "AC-1", "the greeting changed"))))
 	w.run(w.round("candidate", c[0], c[1], filepath.Join(w.repo, "reviews", "o", "01-candidate"))...)
-	packet := w.fixesPacket("o")
+	packet := w.nextPacket("o")
 	if line := rptEarlierLine(packet, "01-candidate", "cmd-F1"); line != "- 01-candidate cmd-F1 [defect] at head/app/main.py:1: the greeting changed" {
 		t.Errorf("the line of an open finding changed: %q", line)
 	}
-	if !strings.Contains(packet, rptOldFixes) {
-		t.Errorf("the fixes stage line changed")
+	if !strings.Contains(packet, "- Stage: `candidate`. "+rptCandidate+"\n") {
+		t.Errorf("the candidate stage line changed")
 	}
 	for _, s := range []string{rptRereport, rptFixed, rptBoundaryHeading} {
 		if strings.Contains(packet, s) {
@@ -1109,8 +1128,9 @@ func TestRepeatFindingsAC10_OpenFindingPacket(t *testing.T) {
 	}
 }
 
-// AC-11: a round without boundary documents writes no boundary key, and a
-// fixes round reads such a round as one without boundaries.
+// AC-11: a round without boundary documents writes no boundary key, and the
+// candidate round after review fixes reads such a round as one without
+// boundaries.
 func TestRepeatFindingsAC11_RoundWithoutBoundaries(t *testing.T) {
 	w := newRptWorld(t, true)
 	c := w.commits
@@ -1120,8 +1140,8 @@ func TestRepeatFindingsAC11_RoundWithoutBoundaries(t *testing.T) {
 	if _, ok := w.rawRound(cand)["boundaries"]; ok {
 		t.Errorf("a round without boundary documents records a boundaries key")
 	}
-	if strings.Contains(w.fixesPacket("n"), rptBoundaryHeading) {
-		t.Errorf("a fixes round after a round without boundaries has a boundary section")
+	if strings.Contains(w.nextPacket("n"), rptBoundaryHeading) {
+		t.Errorf("the candidate round after a round without boundaries has a boundary section")
 	}
 }
 
@@ -1133,12 +1153,13 @@ func TestRepeatFindingsAC12_CoreReadsNewRecords(t *testing.T) {
 	w := newRptWorld(t, true)
 	one, two := w.rptBoundaries()
 	c := w.commits
-	// read runs a candidate round, rejects its finding when triaged, runs a
-	// fixes round and gates the series. It returns what Core reads from
-	// them: the series that ha cost and the review check of ha done read,
-	// and the gate that ha note review --gate reads, through both of Core's
-	// gate readers. The folder, the round times and the gate file's own
-	// digest differ between two series by construction and are cleared.
+	// read runs a candidate round, rejects its finding when triaged, runs the
+	// candidate round after review fixes from the base commit to the new
+	// head and gates the series. It returns what Core reads from them: the
+	// series that ha cost and the review check of ha done read, and the gate
+	// that ha note review --gate reads, through both of Core's gate readers.
+	// The folder, the round times and the gate file's own digest differ
+	// between two series by construction and are cleared.
 	read := func(series string, triaged bool, extra ...string) []any {
 		w.useConfig(w.printer(w.answer(series, c[1], rptFinding("F1", "defect", "AC-1", "the greeting changed"))))
 		cand := filepath.Join(w.repo, "reviews", series, "01-candidate")
@@ -1147,8 +1168,8 @@ func TestRepeatFindingsAC12_CoreReadsNewRecords(t *testing.T) {
 			w.triage(cand, "cmd-F1", "reject", "--evidence", "AC-1이 인사말을 바꾸라고 한다")
 		}
 		w.useConfig(w.printer(w.answer(series+"-fixes", c[2])))
-		fixes := filepath.Join(w.repo, "reviews", series, "02-fixes")
-		w.run(append(w.round("fixes", c[1], c[2], fixes), extra...)...)
+		fixes := filepath.Join(w.repo, "reviews", series, "02-candidate")
+		w.run(append(w.round("candidate", c[0], c[2], fixes), extra...)...)
 		s, err := reviewseries.Read(filepath.Join(w.repo, "reviews", series))
 		if err != nil {
 			t.Fatalf("Core cannot read the series %s: %v", series, err)

@@ -30,29 +30,21 @@ var angleText = map[string]string{
 const fixedTextCheckValidity = "For a check declared as fixed-text only, judge whether it reads the right fixed text in the right file; " +
 	"report that fixed text cannot prove the behavior only as a `requirement-question` that names the SPEC criterion, contract or protected path requiring it."
 
+// stageText is the stage line of a packet, for each stage a new round
+// starts as (StartStages).
 var stageText = map[string]string{
-	"plan":       "The subject documents are a plan for meeting the criteria. Review the plan and the checks it adds, before implementation.",
-	"plan-delta": "The plan was reviewed before and changed since. Review the change of the plan against the earlier findings listed below.",
-	"candidate":  "The head is a candidate implementation of the criteria. Review the whole change from base to head.",
-	"fixes":      "The head fixes findings of earlier rounds. Review the fixes from base to head, and whether they fix those findings without breaking anything else.",
+	"plan":      "The subject documents are a plan for meeting the criteria. Review the plan and the checks it adds, before implementation.",
+	"candidate": "The head is a candidate implementation of the criteria. Review the whole change from base to head.",
 }
-
-// fixesDisposedText is the fixes stage line when an earlier finding has a
-// recorded disposition: a finding recorded as not fixed was left on purpose.
-const fixesDisposedText = "The head fixes findings of earlier rounds. Review the fixes from base to head: whether the findings recorded as fixed are fixed without breaking anything else, " +
-	"and whether the findings recorded as rejected, deferred, duplicate or answered still hold as recorded."
 
 // rereportGuidance opens the earlier findings when any of them has a
 // recorded disposition.
 const rereportGuidance = "Each line ends with the finding's last disposition when one is recorded. " +
 	"Report a finding with a recorded disposition again only with a failure scenario that the recorded disposition does not answer.\n\n"
 
-// stageLine is the stage text of a packet. A packet without a recorded
-// disposition keeps the text it had before dispositions were shown.
+// stageLine is the stage text of a packet; a recorded disposition of an
+// earlier finding does not change it.
 func stageLine(in packetInput) string {
-	if in.Stage == "fixes" && in.Disposed {
-		return fixesDisposedText
-	}
 	return stageText[in.Stage]
 }
 
