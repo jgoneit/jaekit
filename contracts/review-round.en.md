@@ -260,7 +260,7 @@ The Markdown holds every value of the JSON but `schema` (the format's name), in 
    - `### Churn`: `- <round>: <count> (<ID>, …)`, or `- <round>: 0`.
    - `### Recurring links`: `- <link_kind> <link>: <round>, …`
    - `### Unrelated defects`: first `- count: <n>`, then `- <round> <finding>`. When it is 0, only the `- count: 0` line.
-   - `### Check growth`: `- added lines: check <n>, other <n>; over hardening: yes|no`
+   - `### Check growth`: `- added lines: check <n>, other <n>; over hardening: yes|no`. With no recorded fixes round in the list, `- added lines: not measured (no recorded fixes round)` instead.
 7. `## Limits`: `- churn: …`, `- recurring: …`, `- unrelated: …`
 
 In these cases it names the failed path or commit on standard error, ends with 65 and gives no report. It never turns a broken input into a report without signals.

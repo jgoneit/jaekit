@@ -102,6 +102,39 @@ func parseArgs(args []string, valued, bare []string) (parsed, error) {
 	return p, nil
 }
 
+// scanValue is the value parseArgs would give name, the last one given as
+// p.one reads it, read without stopping where parseArgs stops: it walks args
+// as parseArgs does, so the value of another valued option is never taken
+// for an option, and it passes over an unknown option or a bare flag given
+// a value as an option without a value.
+func scanValue(args, valued []string, name string) string {
+	found := ""
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		if a == "--" {
+			break
+		}
+		if !strings.HasPrefix(a, "--") || a == "-" {
+			continue
+		}
+		n, value, inline := strings.Cut(a[2:], "=")
+		if !contains(valued, n) {
+			continue
+		}
+		if !inline {
+			if i+1 >= len(args) {
+				break
+			}
+			i++
+			value = args[i]
+		}
+		if n == name {
+			found = value
+		}
+	}
+	return found
+}
+
 func reviewerOverride(p parsed) []string {
 	if !p.has("reviewers") {
 		return nil
@@ -244,6 +277,12 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 		}
 		return ExitOK, ShowConfigWith(p.one("repo"), getenv, reviewerOverride(p), choices, stdout)
 	case "run":
+		// A stage a new round no longer starts as is refused before the
+		// options are parsed, as Run refuses it, also when an option before
+		// or after --stage is unknown or out of form.
+		if serr := retiredStage(scanValue(rest, runValued, "stage")); serr != nil {
+			return ExitUsage, serr
+		}
 		p, err := parseArgs(rest, runValued, runBare)
 		missingDecision := p.missing == "decision" || p.missing == "decision-quote"
 		// A stage a new round no longer starts as is refused before any

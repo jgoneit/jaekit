@@ -96,6 +96,9 @@ type capGrowth struct {
 	Check         int  `json:"check"`
 	Other         int  `json:"other"`
 	OverHardening bool `json:"over_hardening"`
+	// measured is whether a recorded fixes round was listed; the JSON form
+	// does not carry it.
+	measured bool
 }
 
 type capLimits struct {
@@ -322,6 +325,7 @@ func CapReport(o CapReportOptions) (int, error) {
 			continue
 		}
 		measured[r.Base+".."+r.Head] = true
+		rep.CheckGrowth.measured = true
 		added, err := numstatWith(repo, noLazyFetch, r.Base, r.Head)
 		if err != nil {
 			return ExitRefused, refused("%s: added lines cannot be read: %v", l.name, err)
@@ -688,11 +692,17 @@ func renderCapReport(rep *capReport) string {
 	line("")
 	line("### Check growth")
 	line("")
-	over := "no"
-	if rep.CheckGrowth.OverHardening {
-		over = "yes"
+	// Without a recorded fixes round no line was measured, so the zeros
+	// are not shown as a measurement.
+	if !rep.CheckGrowth.measured {
+		line("- added lines: not measured (no recorded fixes round)")
+	} else {
+		over := "no"
+		if rep.CheckGrowth.OverHardening {
+			over = "yes"
+		}
+		line("- added lines: check %d, other %d; over hardening: %s", rep.CheckGrowth.Check, rep.CheckGrowth.Other, over)
 	}
-	line("- added lines: check %d, other %d; over hardening: %s", rep.CheckGrowth.Check, rep.CheckGrowth.Other, over)
 	line("")
 	line("## Limits")
 	line("")

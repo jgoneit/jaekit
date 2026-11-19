@@ -256,7 +256,7 @@ Markdown은 JSON의 `schema`(형식 이름)를 뺀 모든 값을 담는다. 순�
    - `### Churn`: `- <round>: <count> (<ID>, …)`, 0이면 `- <round>: 0`.
    - `### Recurring links`: `- <link_kind> <link>: <round>, …`
    - `### Unrelated defects`: 먼저 `- count: <n>`, 이어서 `- <round> <finding>`. 0이면 `- count: 0` 줄만 있다.
-   - `### Check growth`: `- added lines: check <n>, other <n>; over hardening: yes|no`
+   - `### Check growth`: `- added lines: check <n>, other <n>; over hardening: yes|no`. 목록에 기록된 fixes 라운드가 없으면 그 대신 `- added lines: not measured (no recorded fixes round)`.
 7. `## Limits`: `- churn: …`, `- recurring: …`, `- unrelated: …`
 
 다음 경우에는 표준 오류에 실패한 경로나 커밋을 밝히고 65로 끝나며 보고를 내지 않는다. 깨진 입력을 신호가 없는 보고로 바꾸지 않는다.

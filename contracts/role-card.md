@@ -32,7 +32,7 @@
 - 별도 검토의 동의는 Core의 충분성 판정이 아니다. 실행자는 적용 보증의 출처·범위와 검토 대상 버전을 남기고 방법·시점·모델을 선택한다. 확인된 조건 위반은 위험 문구만 더해 닫지 않는다.
 
 **보증 등급과 검토 순서**
-- SPEC의 `Assurance:` 등급에 맞는 독립 검토 단계를 적용한다. `standard`는 최종 후보의 candidate 단계, 검토 수정 뒤 목표의 base commit부터 새 head까지의 candidate 라운드, `ha done` 전 누적 라운드를 받고, `strict`는 baseline 전에 plan 단계를 한 번 더하며, `light`는 이유를 `REVIEW.md`와 완료 보고에 남기고 생략할 수 있다. 줄이 없으면 선택된 보증 정책을 따른다.
+- SPEC의 `Assurance:` 등급에 맞는 독립 검토 단계를 적용한다. `standard`는 최종 후보의 candidate 단계와 검토 수정 뒤 목표의 base commit부터 새 head까지의 candidate 라운드를 받고(`ha done` 전의 마지막 candidate 라운드가 누적 라운드다), `strict`는 baseline 전에 plan 단계를 한 번 더하며, `light`는 이유를 `REVIEW.md`와 완료 보고에 남기고 생략할 수 있다. 줄이 없으면 선택된 보증 정책을 따른다.
 - 프로젝트 지침(`AGENTS.md` 등)의 보증 요구는 하한이다. 등급과 다르면 더 많은 검토를 요구하는 쪽을 따르고, 완료 보고에 각각이 요구한 검토와 따른 쪽을 적는다.
 - 독립 검토가 필요한 목표는 목표의 base commit부터 마지막 head까지 전체를 본 누적 라운드가 열린 `defect`·`requirement-question` 없이 끝난 뒤에만 `ha done`을 실행한다. 검토 수정 뒤의 라운드도 base commit부터 보는 candidate 라운드이므로, 그런 라운드 가운데 열린 `defect`·`requirement-question` 없이 끝난 마지막 라운드가 누적 라운드다.
 - `run-rules/5`·`run-rules/6`·`run-rules/7`으로 시작한 `standard`·`strict` 목표는 라운드에 목표 문서를 모두 기준으로 주고, 누적 라운드 뒤 `spar gate` 파일을 `ha note <goal> review --gate <file>`로 기록한 다음 `ha done`을 실행한다. gate가 없으면 완료가 보류되고, 검토 없이 끝내려면 사용자가 등급을 `light`로 낮추는 목표 문서 수정을 정한다([run-record.md](run-record.md) §4.8).

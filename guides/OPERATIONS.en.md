@@ -236,7 +236,7 @@ If required independent reviews or actual boundary evidence are missing, complet
 
 From Seal 0.1.20 the SPEC's `Assurance:` tier sets the independent review stages:
 
-- `standard` takes a candidate round on the final candidate, a candidate round from the base commit after review fixes and the cumulative round, `strict` adds one plan round before any baseline, and `light` may skip review with a reason.
+- `standard` takes a candidate round on the final candidate and a candidate round from the base commit after review fixes (the last candidate round is the cumulative round), `strict` adds one plan round before any baseline, and `light` may skip review with a reason.
 - When project instructions ask for more review, Seal follows them.
 
 A goal that needs independent review runs `ha done` only once a cumulative round over the whole last head ends with no open finding ([usage guide](USAGE.en.md#seals-pre-start-checks-and-review-order)).
