@@ -247,11 +247,10 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 		p, err := parseArgs(rest, runValued, runBare)
 		missingDecision := p.missing == "decision" || p.missing == "decision-quote"
 		// A stage a new round no longer starts as is refused before any
-		// other option is checked, as Run refuses it.
-		if err == nil || missingDecision {
-			if serr := retiredStage(p.one("stage")); serr != nil {
-				return ExitUsage, serr
-			}
+		// other option is checked, as Run refuses it, also when a later
+		// option fails to parse.
+		if serr := retiredStage(p.one("stage")); serr != nil {
+			return ExitUsage, serr
 		}
 		if err != nil {
 			// A decision without what it settles or without the user's
