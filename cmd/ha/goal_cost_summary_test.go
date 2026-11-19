@@ -1136,6 +1136,10 @@ func TestGoalCostSummaryAC10_RealSparRecords(t *testing.T) {
 		t.Fatalf("setup: %v", err)
 	}
 	f := gcRepo(t, "standard", "SPAR_CONFIG="+config, "HOME="+tools, "XDG_CONFIG_HOME="+filepath.Join(tools, "config"))
+	// The series counts three code rounds; the project configuration of the
+	// base commit allows them.
+	f.put(".jaekit/spar.toml", "[caps]\ncode = 3\n")
+	f.commit("spar caps")
 	f.base = f.head
 	f.must("start", exitOK, "start", gcGoal, "--request", gcRequest, "--rules", "run-rules/5")
 	f.must("baseline", exitOK, "check", gcGoal, "--baseline", "AC-1")
@@ -1159,7 +1163,16 @@ func TestGoalCostSummaryAC10_RealSparRecords(t *testing.T) {
 	fix := f.commit("fix")
 	f.spar(spar, 0, "triage", series+"/01-candidate", "host-F1", "fix", "--commit", fix, "--failed-before", "synthetic before", "--passed-after", "synthetic after")
 	f.spar(spar, 0, "triage", series+"/01-candidate", "host-F3", "answer", "--user-quote", gcQuestionText)
-	run("fixes", "02-fixes", work)
+	// The fixes round from work to head, written as a series recorded before
+	// fixes rounds stopped starting holds it: spar writes a candidate round
+	// of that range, whose round.json then names the stage fixes.
+	run("candidate", "02-fixes", work)
+	var fixes map[string]any
+	if err := json.Unmarshal(f.read(series+"/02-fixes/round.json"), &fixes); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	fixes["stage"] = "fixes"
+	f.putJSON(series+"/02-fixes/round.json", fixes)
 	f.answer(spar, series+"/02-fixes", f.head)
 	run("candidate", "03-candidate", f.base)
 	f.answer(spar, series+"/03-candidate", f.head)

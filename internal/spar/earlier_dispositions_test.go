@@ -141,13 +141,15 @@ func (w *rptWorld) edReviewerStatus(dir, name string) string {
 }
 
 // edRerun runs, in a series of its own, a candidate round from c0 to c1, a
-// fixes round from c1 to c2 with one finding, and then the candidate round's
-// identity again with only the reviewer that did not complete it, and adds
-// to v what the rerun did not do: get the first round's packet byte for
-// byte, without earlier findings, and be recorded as an uncounted rerun of
-// it. The series holds two counted code rounds before the rerun, so that a
-// rerun counted as a new round is still admitted under the code cap of
-// three and recorded, never refused.
+// fixes round from c1 to c2 with one finding (recorded as a series written
+// before fixes rounds stopped starting holds it), and then the candidate
+// round's identity again with only the reviewer that did not complete it,
+// and adds to v what the rerun did not do: get the first round's packet
+// byte for byte, without earlier findings, and be recorded as an uncounted
+// rerun of it. The series holds two counted code rounds before the rerun,
+// so that a rerun counted as a new round is still admitted under the code
+// cap of three that the world's project configuration sets and recorded,
+// never refused.
 func (w *rptWorld) edRerun(v *edViolations) {
 	w.t.Helper()
 	c := w.commits
@@ -163,7 +165,8 @@ func (w *rptWorld) edRerun(v *edViolations) {
 	}
 	w.useConfig(w.printer(w.answer("ed-rerun-fixes", c[2], rptFinding("F1", "defect", "AC-1", "rerun fixes claim"))), late)
 	fixes := filepath.Join(series, "02-fixes")
-	w.run(w.round("fixes", c[1], c[2], fixes)...)
+	w.run(w.round("candidate", c[1], c[2], fixes)...)
+	w.recordAs(fixes, "fixes")
 	if n := len(w.edFindings(fixes)); n != 1 {
 		w.t.Fatalf("setup: 02-fixes recorded %d findings, want 1", n)
 	}
@@ -217,11 +220,13 @@ func edPreChangeRerun(t *testing.T) {
 
 	series := filepath.Join(w.repo, "reviews", "ed-pre")
 	// 01, 02: a candidate round from c0 to c1 and a fixes round from c1 to
-	// c2, with one finding each.
+	// c2 (recorded as a series written before fixes rounds stopped starting
+	// holds it), with one finding each.
 	w.useConfig(w.printer(w.answer("ed-pre-candidate", c[1], rptFinding("F1", "defect", "AC-1", earlierClaim))))
 	w.run(w.round("candidate", c[0], c[1], filepath.Join(series, "01-candidate"))...)
 	w.useConfig(w.printer(w.answer("ed-pre-fixes", c[2], rptFinding("F1", "defect", "AC-1", fixesClaim))))
-	w.run(w.round("fixes", c[1], c[2], filepath.Join(series, "02-fixes"))...)
+	w.run(w.round("candidate", c[1], c[2], filepath.Join(series, "02-fixes"))...)
+	w.recordAs(filepath.Join(series, "02-fixes"), "fixes")
 	// 03: the original from c0 to c2, which late does not complete. Its
 	// round.json and packet are then written as Spar wrote them before the
 	// change: prior null, and the packet without earlier findings.
@@ -286,6 +291,8 @@ func TestSparEarlierDispositionsAC1_CandidateGetsEarlierFindings(t *testing.T) {
 	v := &edViolations{t: t, id: "candidate-without-earlier-findings"}
 	w := newRptWorld(t, true)
 	c := w.commits
+	// The series below count three code rounds.
+	w.write(filepath.Join(w.repo, ".jaekit", "spar.toml"), "[caps]\ncode = 3\n")
 	series := filepath.Join(w.repo, "reviews", "ed")
 	const evidence = "AC-1 asks for the first greeting"
 	const planClaim, dryClaim, sameClaim = "plan round claim", "dry run claim", "same identity claim"
@@ -304,10 +311,12 @@ func TestSparEarlierDispositionsAC1_CandidateGetsEarlierFindings(t *testing.T) {
 	cand := filepath.Join(series, "02-candidate")
 	w.run(w.round("candidate", c[0], c[1], cand)...)
 	w.triage(cand, "cmd-F1", "reject", "--evidence", evidence)
-	// 03: a fixes round from c1 to c2 with one open finding.
+	// 03: a fixes round from c1 to c2 with one open finding, recorded as a
+	// series written before fixes rounds stopped starting holds it.
 	w.useConfig(w.printer(w.answer("ed-fixes", c[2], rptFinding("F1", "defect", "AC-1", "fixes claim"))))
 	fixes := filepath.Join(series, "03-fixes")
-	w.run(w.round("fixes", c[1], c[2], fixes)...)
+	w.run(w.round("candidate", c[1], c[2], fixes)...)
+	w.recordAs(fixes, "fixes")
 	// 04: a dry run, given findings of its own.
 	dry := filepath.Join(series, "04-candidate")
 	w.run(append(w.round("candidate", c[0], c[1], dry), "--dry-run")...)
@@ -325,9 +334,9 @@ func TestSparEarlierDispositionsAC1_CandidateGetsEarlierFindings(t *testing.T) {
 	if len(want) != 3 {
 		t.Fatalf("setup: the candidate and fixes rounds recorded %d findings, want 3", len(want))
 	}
-	// The form above is the one the fixes round's own packet gives the
-	// candidate round's findings; a form that differs is a broken premise of
-	// this check, not an observation.
+	// The form above is the one the fixes round's own packet, written by
+	// spar run for its range, gives the candidate round's findings; a form
+	// that differs is a broken premise of this check, not an observation.
 	if got := edLinesWith(pdSectionOf(w.read(filepath.Join(fixes, "packet.md")), edEarlierHeading), "- "); !reflect.DeepEqual(got, want[:2]) {
 		t.Fatalf("setup: the fixes packet lists the earlier findings as %q, not %q", got, want[:2])
 	}

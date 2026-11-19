@@ -137,6 +137,8 @@ func TestGateKeepsAWaivedReviewersStandpointUncovered(t *testing.T) {
 
 func TestGateDoesNotLetAnotherPacketCoverAStandpoint(t *testing.T) {
 	w := gsWorld(t, true)
+	// The series counts three code rounds.
+	w.rsWrite(filepath.Join(w.rsRepo, ".jaekit", "spar.toml"), "[caps]\ncode = 3\n")
 	first := w.rsOut("other", "01-candidate")
 	a := gsRun(w, first, "candidate", 0, 1, "--standpoint", "claude="+gsStored)
 	gsStatus(t, a, "claude", StatusFailed)
@@ -144,11 +146,12 @@ func TestGateDoesNotLetAnotherPacketCoverAStandpoint(t *testing.T) {
 	// Changed text on the same commits is another packet.
 	changed := w.rsOut("other", "02-candidate")
 	b := gsRun(w, changed, "candidate", 0, 1, "--standpoint", "claude="+gsStored+" differently")
-	// The same text in a later stage and range is another packet too.
+	// The same text in a later range, the candidate round after review fixes
+	// from the base to the new head, is another packet too.
 	w.rsAnswer("claude", 2, rsReport(true, "checked stored records"), true)
 	w.rsAnswer("codex", 2, nil, false)
-	fixes := w.rsOut("other", "03-fixes")
-	c := gsRun(w, fixes, "fixes", 1, 2, "--standpoint", "claude="+gsStored)
+	fixes := w.rsOut("other", "03-candidate")
+	c := gsRun(w, fixes, "candidate", 0, 2, "--standpoint", "claude="+gsStored)
 	for _, r := range []map[string]any{b, c} {
 		gsStatus(t, r, "claude", StatusCompleted)
 		if r["counted"] != true || r["packet_sha256"] == a["packet_sha256"] {

@@ -20,12 +20,12 @@ import (
 // series reader (the one ha cost uses) is called directly.
 
 // rlGate runs spar gate over the four code rounds of a main series with a
-// fourth fixes round and returns its exit and its file without the fields
-// that differ between two runs by construction.
+// fourth candidate round and returns its exit and its file without the
+// fields that differ between two runs by construction.
 func (w *crWorld) rlGate(series, out string) (int, map[string]any) {
 	w.t.Helper()
 	code, _, errs := w.spar("gate", filepath.Join(series, "01-candidate"), filepath.Join(series, "02-fixes"),
-		filepath.Join(series, "03-candidate"), filepath.Join(series, "04-fixes"), "--expect-head", w.commit["head3"],
+		filepath.Join(series, "03-candidate"), filepath.Join(series, "04-candidate"), "--expect-head", w.commit["head3"],
 		"--out", out, "--repo", w.repo)
 	var doc map[string]any
 	if err := json.Unmarshal(w.read(out), &doc); err != nil {
@@ -77,8 +77,8 @@ func TestExtensionCauseOrReasonNotTextDecidesAsWithoutThemInRunAndGate(t *testin
 	// cause: the cap of 3 and the line's by of 1.
 	w.write(ext, rlNotText[0].line+"\n")
 	w.use("host", "aide")
-	r4 := filepath.Join(series, "04-fixes")
-	code, _, errs := w.spar("run", "--stage", "fixes", "--base", w.commit["head2"], "--head", w.commit["head3"],
+	r4 := filepath.Join(series, "04-candidate")
+	code, _, errs := w.spar("run", "--stage", "candidate", "--base", w.commit["base"], "--head", w.commit["head3"],
 		"--criteria", w.criteria, "--rules", w.rules, "--check-path", "checks/**", "--out", r4, "--repo", w.repo)
 	if code != ExitOK {
 		t.Fatalf("jaekit:violation=%s spar run under an extension line with %s exits %d: %s", v, rlNotText[0].what, code, errs)
@@ -118,11 +118,11 @@ func TestExtensionCauseOrReasonNotTextDecidesAsWithoutThemInRunAndGate(t *testin
 		}
 	}
 
-	// A reviewer that did not complete 04-fixes reruns its packet uncounted
+	// A reviewer that did not complete 04-candidate reruns its packet uncounted
 	// under the line with a reason that is true.
 	w.write(ext, rlNotText[2].line+"\n")
-	rerun := filepath.Join(series, "04b-fixes")
-	code, _, errs = w.spar("run", "--stage", "fixes", "--base", w.commit["head2"], "--head", w.commit["head3"],
+	rerun := filepath.Join(series, "04b-candidate")
+	code, _, errs = w.spar("run", "--stage", "candidate", "--base", w.commit["base"], "--head", w.commit["head3"],
 		"--criteria", w.criteria, "--rules", w.rules, "--check-path", "checks/**", "--out", rerun, "--repo", w.repo,
 		"--reviewers", "aide")
 	var rec struct {
@@ -133,8 +133,8 @@ func TestExtensionCauseOrReasonNotTextDecidesAsWithoutThemInRunAndGate(t *testin
 	case code != ExitOK:
 		t.Errorf("jaekit:violation=%s under an extension line with %s a rerun of the same packet exits %d: %s", v, rlNotText[2].what, code, errs)
 	case json.Unmarshal(w.read(filepath.Join(rerun, "round.json")), &rec) != nil || rec.Counted ||
-		!reflect.DeepEqual(rec.RerunOf, []string{"04-fixes"}):
-		t.Errorf("jaekit:violation=%s under an extension line with %s a rerun of the same packet is %+v, want uncounted of 04-fixes",
+		!reflect.DeepEqual(rec.RerunOf, []string{"04-candidate"}):
+		t.Errorf("jaekit:violation=%s under an extension line with %s a rerun of the same packet is %+v, want uncounted of 04-candidate",
 			v, rlNotText[2].what, rec)
 	}
 }

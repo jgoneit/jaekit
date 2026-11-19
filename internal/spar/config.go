@@ -90,6 +90,9 @@ type Choice struct {
 }
 
 // Caps are the stage limits: plan rounds, plan-delta rounds and code rounds.
+// A new round starts only as plan or candidate; PlanDelta stays so that
+// configurations that set it keep loading, rounds keep recording it and the
+// gate reads a series recorded with plan-delta rounds against it.
 type Caps struct {
 	Plan      int64 `json:"plan"`
 	PlanDelta int64 `json:"plan_delta"`
@@ -261,7 +264,7 @@ func LoadConfig(repo string, getenv func(string) string, override []string) (*Co
 // reviewer whose model or effort the user's file does not write takes the
 // agent's value, else the preset's.
 func LoadConfigWith(repo string, getenv func(string) string, override []string, choices []Choice) (*Config, error) {
-	c := &Config{Angles: append([]string(nil), Angles...), Caps: Caps{Plan: 1, PlanDelta: 1, Code: 3},
+	c := &Config{Angles: append([]string(nil), Angles...), Caps: Caps{Plan: 1, PlanDelta: 1, Code: 2},
 		CheckPaths: []string{}, Rules: []string{}, Files: []FileDigest{}, defaultTimeout: DefaultTimeout}
 	configured, err := c.loadReviewers(getenv)
 	if err != nil {

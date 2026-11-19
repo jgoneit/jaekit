@@ -388,6 +388,16 @@ func rsGateJudgment(rsG map[string]any) map[string]any {
 func (rsW *rsWorld) rsCap(rsSeries string) map[string]any {
 	return rsMap(rsW.rsJSON(rsW.rsMust(0, "cap-report", rsSeries, "--format", "json", "--repo", rsW.rsRepo)))
 }
+
+// rsRecordAs gives the round rsOut, which spar run wrote, the stage rsStage
+// in its round.json, as a series recorded before plan-delta and fixes rounds
+// stopped starting holds such a round.
+func (rsW *rsWorld) rsRecordAs(rsOut, rsStage string) {
+	rsR := rsW.rsRaw(rsOut)
+	rsR["stage"] = rsStage
+	rsW.rsWrite(filepath.Join(rsOut, "round.json"), rsW.rsEncode(rsR))
+}
+
 func (rsW *rsWorld) rsRemove(rsPath string) {
 	rsW.rsT.Helper()
 	if rsErr := os.Remove(rsPath); rsErr != nil {
@@ -462,7 +472,8 @@ func TestReviewerStandpointsAC1_EveryRouteGetsItsStandpoint(rsT *testing.T) {
 		rsT.Run(fmt.Sprintf("agy-file-%t", rsLarge), func(rsT *testing.T) {
 			rsW := rsNew(rsT, rsC)
 			// A real earlier round supplies the same nonempty prior findings to
-			// each fixes run, alongside the documents, decision and question.
+			// each run of the candidate round after review fixes (base 0 to
+			// head 2), alongside the documents, decision and question.
 			rsW.rsUse(rsNative("native"))
 			rsSeed := rsW.rsOut("delivery", "01-candidate")
 			rsW.rsRun(rsID, rsSeed, "candidate", 0, 1)
@@ -491,13 +502,13 @@ func TestReviewerStandpointsAC1_EveryRouteGetsItsStandpoint(rsT *testing.T) {
 				}
 				rsW.rsUse(rsEntries...)
 			}
-			rsOut := rsW.rsOut("delivery", "02-fixes")
+			rsOut := rsW.rsOut("delivery", "02-candidate")
 			rsCommon := []string{"--decision", "Keep the existing classification", "--decision-quote", "Keep it", "--question", "Are AC-1 and the shared rules covered?", "--subject", filepath.Join(rsW.rsRepo, "PLAN.md")}
 			if rsLarge {
 				rsCommon = append(rsCommon, "--criteria", rsW.rsLargeCriteria())
 			}
 			rsUse(false)
-			if !rsW.rsRun(rsID, rsOut, "fixes", 1, 2, rsCommon...) {
+			if !rsW.rsRun(rsID, rsOut, "candidate", 0, 2, rsCommon...) {
 				return
 			}
 			rsPlainPacket := rsW.rsRead(filepath.Join(rsOut, "packet.md"))
@@ -523,7 +534,7 @@ func TestReviewerStandpointsAC1_EveryRouteGetsItsStandpoint(rsT *testing.T) {
 			}
 			// Reuse the exact output path so even native's fixed path-bearing
 			// instructions must match without normalizing any prompt bytes.
-			if !rsW.rsRun(rsID, rsOut, "fixes", 1, 2, append(append([]string{}, rsOptions...), "--dry-run")...) {
+			if !rsW.rsRun(rsID, rsOut, "candidate", 0, 2, append(append([]string{}, rsOptions...), "--dry-run")...) {
 				return
 			}
 			rsDryInputs := map[string]string{}
@@ -535,7 +546,7 @@ func TestReviewerStandpointsAC1_EveryRouteGetsItsStandpoint(rsT *testing.T) {
 				rsDryFile = rsW.rsRead(filepath.Join(rsOut, "packet.md"))
 			}
 			rsClear()
-			if !rsW.rsRun(rsID, rsOut, "fixes", 1, 2, rsOptions...) {
+			if !rsW.rsRun(rsID, rsOut, "candidate", 0, 2, rsOptions...) {
 				return
 			}
 			rsPacket := rsW.rsRead(filepath.Join(rsOut, "packet.md"))
@@ -907,6 +918,8 @@ func TestReviewerStandpointsAC6_SameInput(rsT *testing.T) {
 		rsAssert(rsC, rsChangedRecord["counted"] == true && len(rsList(rsChangedRecord["rerun_of"])) == 0 && rsChangedRecord["packet_sha256"] != rsA["packet_sha256"], "changed unselected reviewer's standpoint was treated as the same packet")
 	})
 	rsW := rsNew(rsT, rsC)
+	// The series below count three code rounds each.
+	rsW.rsWrite(filepath.Join(rsW.rsRepo, ".jaekit", "spar.toml"), "[caps]\ncode = 3\n")
 	rsW.rsUse(rsW.rsFake("claude", "claude", rsW.rsAnswer("claude", 1, rsReport(true, "checked"), true), ""), rsW.rsFake("codex", "codex", rsW.rsAnswer("codex", 1, nil, false), ""))
 	rsW.rsWrite(filepath.Join(rsW.rsDir, "fail-claude"), "intentional")
 	rsFirst := rsW.rsOut("identity", "01-candidate")
@@ -960,33 +973,34 @@ func TestReviewerStandpointsAC6_SameInput(rsT *testing.T) {
 	rsAssert(rsC, len(rsGRs) == 2 && rsMap(rsGRs[0])["completed_required"] == float64(0), "different packet incorrectly completed the original reviewer")
 	rsCode, _, rsErr = rsW.rsCLI("waive", rsFailed, "claude", "--user-quote", rsQuote)
 	rsAssert(rsC, rsCode == 0, "different packet prevented waiver: exit %d %s", rsCode, rsErr)
-	// A fixes round of the same range shares its base with the earlier one:
-	// a rerun of the same packet outside the cap, and a changed standpoint as
-	// a new counted round (review-repeat-findings, AC-1).
+	// The candidate round after review fixes, from the base to the new head,
+	// after an earlier candidate round: a rerun of the same packet outside
+	// the cap, and a changed standpoint as a new counted round
+	// (review-repeat-findings, AC-1).
 	rsSeed := rsW.rsOut("chain", "01-candidate")
 	rsW.rsRun(rsID, rsSeed, "candidate", 0, 1, "--standpoint", "claude=chain")
 	rsW.rsAnswer("claude", 2, rsReport(true, "checked fix"), true)
 	rsW.rsWrite(filepath.Join(rsW.rsDir, "fail-claude"), "intentional")
-	rsFix := rsW.rsOut("chain", "02-fixes")
-	if !rsW.rsRun(rsID, rsFix, "fixes", 1, 2, "--standpoint", "claude=chain") {
+	rsFix := rsW.rsOut("chain", "02-candidate")
+	if !rsW.rsRun(rsID, rsFix, "candidate", 0, 2, "--standpoint", "claude=chain") {
 		return
 	}
 	rsW.rsRemove(filepath.Join(rsW.rsDir, "fail-claude"))
-	rsFixAgain := rsW.rsOut("chain", "03-fixes")
-	if !rsW.rsRun(rsID, rsFixAgain, "fixes", 1, 2, "--standpoint", "claude=chain") {
+	rsFixAgain := rsW.rsOut("chain", "03-candidate")
+	if !rsW.rsRun(rsID, rsFixAgain, "candidate", 0, 2, "--standpoint", "claude=chain") {
 		return
 	}
-	rsAssert(rsC, rsW.rsRaw(rsFixAgain)["counted"] == false && reflect.DeepEqual(rsW.rsRaw(rsFixAgain)["rerun_of"], []any{"02-fixes"}), "same fixes packet did not rerun outside the cap")
+	rsAssert(rsC, rsW.rsRaw(rsFixAgain)["counted"] == false && reflect.DeepEqual(rsW.rsRaw(rsFixAgain)["rerun_of"], []any{"02-candidate"}), "same candidate packet after review fixes did not rerun outside the cap")
 	rsFixGate := rsW.rsGate("chain", 2, rsSeed, rsFix, rsFixAgain)
-	rsAssert(rsC, rsFixGate["state"] != "blocked", "same fixes rerun broke gate chain: %v", rsFixGate["reasons"])
-	rsChangedFix := rsW.rsOut("chain", "04-fixes")
-	rsCode, _, rsErr = rsW.rsCLI(rsW.rsArgs(rsChangedFix, "fixes", 1, 2, "--standpoint", "claude=changed chain")...)
-	rsAssert(rsC, rsCode == 0 || rsCode == 1, "changed fixes packet on the same commits was refused: exit %d %s", rsCode, rsErr)
+	rsAssert(rsC, rsFixGate["state"] != "blocked", "same candidate rerun after review fixes blocked the gate: %v", rsFixGate["reasons"])
+	rsChangedFix := rsW.rsOut("chain", "04-candidate")
+	rsCode, _, rsErr = rsW.rsCLI(rsW.rsArgs(rsChangedFix, "candidate", 0, 2, "--standpoint", "claude=changed chain")...)
+	rsAssert(rsC, rsCode == 0 || rsCode == 1, "changed candidate packet on the same commits was refused: exit %d %s", rsCode, rsErr)
 	if rsCode == 0 || rsCode == 1 {
 		rsChangedFixRecord := rsW.rsRaw(rsChangedFix)
 		rsRerunOf, _ := rsChangedFixRecord["rerun_of"].([]any)
 		rsAssert(rsC, rsChangedFixRecord["counted"] == true && len(rsRerunOf) == 0,
-			"changed fixes packet on the same commits is not a new counted round: %v %v", rsChangedFixRecord["counted"], rsChangedFixRecord["rerun_of"])
+			"changed candidate packet on the same commits is not a new counted round: %v %v", rsChangedFixRecord["counted"], rsChangedFixRecord["rerun_of"])
 	}
 	// Recurring findings group reruns of one packet once, but split text and
 	// assignment changes. Native pending reviewers make genuine reruns possible.
@@ -1222,23 +1236,37 @@ func rsCompact(rsValue any) any {
 	return rsValue
 }
 
+// rsStages runs a no-standpoint round of each stage a new round starts as in
+// the series baseline (01-plan, 02-candidate) and the agy file route, and
+// returns their snapshots and folders. A plan-delta and a fixes round of the
+// same form are refused before anything is written.
 func (rsW *rsWorld) rsStages() (map[string]any, []string) {
 	rsSnapshots := map[string]any{}
 	rsRounds := []string{}
-	for rsI, rsStage := range []string{"plan", "plan-delta", "candidate", "fixes"} {
-		rsBase, rsHead := 0, 1
-		if rsStage == "fixes" {
-			rsBase, rsHead = 1, 2
-		}
-		rsW.rsAll(rsHead, nil)
+	for rsI, rsStage := range StartStages {
+		rsW.rsAll(1, nil)
 		rsOut := rsW.rsOut("baseline", fmt.Sprintf("%02d-%s", rsI+1, rsStage))
 		rsExtra := []string{"--question", "Is AC-1 covered?"}
-		if rsStage == "plan" || rsStage == "plan-delta" {
+		if rsStage == "plan" {
 			rsExtra = append(rsExtra, "--subject", filepath.Join(rsW.rsRepo, "PLAN.md"))
 		}
-		rsW.rsRun("", rsOut, rsStage, rsBase, rsHead, rsExtra...)
+		rsW.rsRun("", rsOut, rsStage, 0, 1, rsExtra...)
 		rsSnapshots[rsStage] = rsCompact(rsW.rsSnapshot(rsOut))
 		rsRounds = append(rsRounds, rsOut)
+	}
+	for _, rsOld := range []struct {
+		rsStage        string
+		rsBase, rsHead int
+		rsExtra        []string
+	}{
+		{"plan-delta", 0, 1, []string{"--question", "Is AC-1 covered?", "--subject", filepath.Join(rsW.rsRepo, "PLAN.md")}},
+		{"fixes", 1, 2, []string{"--question", "Is AC-1 covered?"}},
+	} {
+		rsOut := rsW.rsOut("baseline", "03-"+rsOld.rsStage)
+		rsCode, _, rsErr := rsW.rsCLI(rsW.rsArgs(rsOut, rsOld.rsStage, rsOld.rsBase, rsOld.rsHead, rsOld.rsExtra...)...)
+		_, rsStatErr := os.Lstat(rsOut)
+		rsAssert(rsW.rsChecks, rsCode == ExitUsage && strings.Contains(strings.Split(rsErr, "\n")[0], "candidate") && os.IsNotExist(rsStatErr),
+			"a no-standpoint %s round exits %d and leaves its folder: %v: %s; want a usage error (64) naming candidate", rsOld.rsStage, rsCode, rsStatErr == nil, strings.Split(rsErr, "\n")[0])
 	}
 	// A separate series avoids changing the legacy rerun fixture's history.
 	rsW.rsUse(rsW.rsFake("agy", "agy", rsW.rsAnswer("agy-large", 1, nil, false), ""))
@@ -1376,7 +1404,7 @@ func TestReviewerStandpointsAC8_NoStandpointUnchanged(rsT *testing.T) {
 		}
 		// Candidate's native reviewer is still pending, so its old record is a
 		// real rerun target after the product gains standpoints.
-		rsCandidate := rsRounds[2]
+		rsCandidate := rsRounds[1]
 		rsArchive := rsW.rsArchive(filepath.Join(rsCandidate, "round.json"), filepath.Join(rsCandidate, "findings.json"), filepath.Join(rsCandidate, "ledger.jsonl"))
 		rsLegacy := rsW.rsLegacySetup()
 		rsLegacyExpected := rsW.rsLegacyRead()
@@ -1385,7 +1413,7 @@ func TestReviewerStandpointsAC8_NoStandpointUnchanged(rsT *testing.T) {
 		return
 	}
 	rsFixtureValue := rsW.rsLoadFixture()
-	for _, rsStage := range []string{"plan", "plan-delta", "candidate", "fixes", "agy-file"} {
+	for _, rsStage := range []string{"plan", "candidate", "agy-file"} {
 		rsAssert(rsC, reflect.DeepEqual(rsW.rsJSON(rsW.rsEncode(rsSnapshots[rsStage])), rsMap(rsFixtureValue["stages"])[rsStage]), "%s no-standpoint input, packet, schema, digest, whole round.json or summary differs from base.json", rsStage)
 	}
 	for _, rsOut := range rsRounds {
@@ -1404,17 +1432,17 @@ func TestReviewerStandpointsAC8_NoStandpointUnchanged(rsT *testing.T) {
 	// emitted by the product under test. Translate its normalized packet hash
 	// back to the actual packet bytes in this temporary world.
 	rsArchive := rsMap(rsFixtureValue["rerun"])
-	rsCurrentPacket := rsW.rsRead(filepath.Join(rsRounds[2], "packet.md"))
+	rsCurrentPacket := rsW.rsRead(filepath.Join(rsRounds[1], "packet.md"))
 	rsNormalizedHash := rsString(rsMap(rsMap(rsFixtureValue["stages"])["candidate"])["packet_sha256"])
 	for rsRel, rsValue := range rsArchive {
 		rsText := strings.ReplaceAll(rsString(rsValue), rsNormalizedHash, rsHash(rsCurrentPacket))
 		rsW.rsWrite(filepath.Join(rsW.rsDir, rsRel), rsW.rsExpand(rsText))
 	}
 	rsW.rsAll(1, nil)
-	rsAgain := rsW.rsOut("baseline", "05-candidate")
+	rsAgain := rsW.rsOut("baseline", "03-candidate")
 	rsW.rsRun(rsID, rsAgain, "candidate", 0, 1, "--reviewers", "native", "--question", "Is AC-1 covered?")
 	rsAgainRecord := rsW.rsRaw(rsAgain)
-	rsAssert(rsC, rsAgainRecord["counted"] == false && reflect.DeepEqual(rsAgainRecord["rerun_of"], []any{"03-candidate"}), "old no-standpoint packet is not an uncounted rerun: %v %v", rsAgainRecord["counted"], rsAgainRecord["rerun_of"])
+	rsAssert(rsC, rsAgainRecord["counted"] == false && reflect.DeepEqual(rsAgainRecord["rerun_of"], []any{"02-candidate"}), "old no-standpoint packet is not an uncounted rerun: %v %v", rsAgainRecord["counted"], rsAgainRecord["rerun_of"])
 }
 
 func TestReviewerStandpointsAC11_EarlierRecords(rsT *testing.T) {
@@ -1440,6 +1468,8 @@ func TestReviewerStandpointsAC9_ClassificationIndependent(rsT *testing.T) {
 	const rsID = "classification-reads-standpoint"
 	rsC := rsCollect(rsT, rsID)
 	rsW := rsNew(rsT, rsC)
+	// Each series counts three code rounds before the cap refuses a fourth.
+	rsW.rsWrite(filepath.Join(rsW.rsRepo, ".jaekit", "spar.toml"), "[caps]\ncode = 3\n")
 	rsObserved := []any{}
 	for rsI, rsSP := range []string{"", "Attack classification from a consumer's position"} {
 		rsSeries := fmt.Sprintf("classification-%d", rsI)
@@ -1475,10 +1505,13 @@ func TestReviewerStandpointsAC9_ClassificationIndependent(rsT *testing.T) {
 			rsCode, _, rsErr := rsW.rsCLI(rsArgs...)
 			rsAssert(rsC, rsCode == 0, "standpoint changed disposition acceptance: %v exit %d %s", rsArgs[2:4], rsCode, rsErr)
 		}
+		// A fixes round from 1 to 2 as a series recorded before fixes rounds
+		// stopped starting holds it.
 		rsFix := rsW.rsOut(rsSeries, "02-fixes")
-		if !rsW.rsRun(rsID, rsFix, "fixes", 1, 2, rsOptions...) {
+		if !rsW.rsRun(rsID, rsFix, "candidate", 1, 2, rsOptions...) {
 			return
 		}
+		rsW.rsRecordAs(rsFix, "fixes")
 		rsW.rsRecord(rsFix, "native", rsW.rsAnswer("fix", 2, rsReport(true, "checked"), rsSP != ""), "result")
 		rsCumulative := rsW.rsOut(rsSeries, "03-candidate")
 		if !rsW.rsRun(rsID, rsCumulative, "candidate", 0, 2, rsOptions...) {
