@@ -420,10 +420,12 @@ func TestSealSkillEarlierGoalForms(t *testing.T) {
 }
 
 // The review stages, the order of ha done and rework, the finding classes
-// and the earlier review form keep their tokens.
+// and the earlier review form keep their tokens. The round after review fixes
+// is a candidate round from the goal's base commit, as the cumulative round
+// command shows.
 func TestSealSkillReviewOrder(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "plan", "candidate", "fixes", "strict", "REVIEW.md", "ha done", "reopen",
-		"defect", "requirement-question", "hardening", "run-rules/4")
+	requireSkillTokens(t, sealSkillDir, "plan", "candidate", "--stage candidate --base <goal base commit>", "strict",
+		"REVIEW.md", "ha done", "reopen", "defect", "requirement-question", "hardening", "run-rules/4")
 }
 
 // SPEC's `Assurance:` line, the tiers, the stages they take, the REVIEW.md

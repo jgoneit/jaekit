@@ -111,13 +111,12 @@ check_paths = ["tools/checks/**", "**/*_test.go"]
 
 [caps]
 plan = 1
-plan_delta = 1
-code = 3
+code = 2
 ```
 
 The project configuration is read from the file in the working tree (G16).
 
-- `caps`: the number of rounds per stage that one series can count. The defaults are `plan` 1, `plan_delta` 1 and `code` 3 (candidate and fixes together). Integers of 0 or more (G22).
+- `caps`: the number of rounds per stage group that one series can count. The defaults are `plan` 1 and `code` 2 (candidate rounds and recorded fixes rounds together). Integers of 0 or more (G22). `plan_delta` is still read, and no new round uses it: an earlier configuration file that sets it still loads without error, each round records its value in `config.caps`, and `spar gate` counts recorded plan-delta rounds against it.
 - `angles`: the attack angles the packet asks about. The default is the five angles `requirement-counterexample`, `side-effects`, `design`, `premises`, `check-validity`, and it can be reduced to some of them. The order is normalized to the order above (G22).
 - `rules`: the rule documents to put in the packet of every round (G23). Each must be a file readable inside the repository; otherwise both `spar config` and `spar run` end with a configuration error.
 - `check_paths`: globs of the paths treated as check code (G24). An invalid glob is a configuration error. Classification, the gate's `growth` and the packet use them.
