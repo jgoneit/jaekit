@@ -386,53 +386,125 @@ func smChanged(before, after map[string]string) []string {
 	return out
 }
 
-// AC-3: a new round of the stage plan-delta or fixes is refused as a usage
-// error (exit 64) whose message names candidate, before anything is
-// written, also as a dry run; plan and candidate rounds still start in the
-// same series.
-func TestSparStageMergeAC3_OldStagesRefused(t *testing.T) {
-	v := &smViolations{t: t, id: "old-stage-started"}
-	w := newSMWorld(t)
-	c := w.commits
-	series := filepath.Join(w.repo, "reviews", "old-stages")
-	first := w.run(series, "01-candidate", "candidate", c[0], c[1])
-	w.record(first, c[1], smFinding("F1", "defect", "AC-1", "app/greet.py", "yes"))
-	// Each run is valid but for its stage: the plan-delta round reviews the
-	// plan, the fixes round continues the chain from 01-candidate's head.
-	for _, form := range []struct {
-		stage, base, head string
-		dry               bool
-	}{
-		{"plan-delta", c[0], c[0], false},
-		{"plan-delta", c[0], c[0], true},
-		{"fixes", c[1], c[2], false},
-		{"fixes", c[1], c[2], true},
-	} {
-		label := "spar run --stage " + form.stage
-		args := w.runArgs(form.stage, form.base, form.head, "")
-		if form.dry {
-			label += " --dry-run"
-			args = append(args, "--dry-run")
-		}
-		out := filepath.Join(series, w.next(series, form.stage))
-		args[slices.Index(args, "--out")+1] = out
-		before := w.smSnapshot(series)
-		code, _, stderr := w.spar(args...)
-		switch {
-		case code == ExitOK || code == ExitNoResult:
-			v.add("%s started a round (exit %d)", label, code)
-		case code != ExitUsage:
-			v.add("%s exits %d, want 64: %s", label, code, smFirstLine(stderr))
-		case !strings.Contains(smFirstLine(stderr), "candidate"):
-			v.add("%s is refused with %q, which does not name candidate", label, smFirstLine(stderr))
-		}
-		if w.exists(out) {
-			v.add("%s wrote %s", label, filepath.Base(out))
-		}
+// smUsageRun is the run line the usage text gives once only plan and
+// candidate rounds start; smUsageOldRun is the line before the change.
+const (
+	smUsageRun    = "spar run --stage plan|candidate --base REV"
+	smUsageOldRun = "spar run --stage plan|plan-delta|candidate|fixes"
+)
+
+// smUsage adds to v what the usage text printed in stderr does wrong: it
+// lacks the run line for plan and candidate only, or keeps the old one.
+func smUsage(v *smViolations, label, stderr string) {
+	if !strings.Contains(stderr, smUsageRun) {
+		v.add("%s prints a usage text without the line %q", label, smUsageRun)
+	}
+	if strings.Contains(stderr, smUsageOldRun) {
+		v.add("%s prints a usage text with the old line %q", label, smUsageOldRun)
+	}
+}
+
+// smTryOldStage runs one round of stage (plan-delta or fixes) from base to
+// head into series, where it is valid but for its stage, and adds to v what
+// spar did other than refuse it as a usage error (exit 64) whose message
+// names candidate and whose usage text lists only plan and candidate,
+// before anything is written: an --out that exists, a series that changed,
+// or a series folder that did not exist and now does.
+func (w *smWorld) smTryOldStage(v *smViolations, where, series, stage, base, head string, dry bool) {
+	w.t.Helper()
+	label := "spar run --stage " + stage
+	args := w.runArgs(stage, base, head, "")
+	if dry {
+		label += " --dry-run"
+		args = append(args, "--dry-run")
+	}
+	label += " in " + where
+	out := filepath.Join(series, w.next(series, stage))
+	args[slices.Index(args, "--out")+1] = out
+	existed := w.exists(series)
+	var before map[string]string
+	if existed {
+		before = w.smSnapshot(series)
+	}
+	code, _, stderr := w.spar(args...)
+	switch {
+	case code == ExitOK || code == ExitNoResult:
+		v.add("%s started a round (exit %d)", label, code)
+	case code != ExitUsage:
+		v.add("%s exits %d, want 64: %s", label, code, smFirstLine(stderr))
+	case !strings.Contains(smFirstLine(stderr), "candidate"):
+		v.add("%s is refused with %q, which does not name candidate", label, smFirstLine(stderr))
+	}
+	if code == ExitUsage {
+		smUsage(v, label, stderr)
+	}
+	if w.exists(out) {
+		v.add("%s wrote %s", label, filepath.Base(out))
+	}
+	switch {
+	case !existed && w.exists(series):
+		v.add("%s created the series folder %s", label, filepath.Base(series))
+	case existed:
 		if changed := smChanged(before, w.smSnapshot(series)); len(changed) > 0 {
 			v.add("%s changed the series: %s", label, strings.Join(changed, ", "))
 		}
 	}
+}
+
+// AC-3: a new round of the stage plan-delta or fixes is refused as a usage
+// error (exit 64) whose message names candidate, before anything is
+// written, also as a dry run: in a series with a recorded candidate round,
+// in a series folder that does not exist yet and in a series recorded
+// before the change with plan-delta and fixes rounds (the legacy fixture).
+// The usage text lists only plan and candidate for spar run; plan and
+// candidate rounds still start.
+func TestSparStageMergeAC3_OldStagesRefused(t *testing.T) {
+	v := &smViolations{t: t, id: "old-stage-started"}
+	w := newSMWorld(t)
+	c := w.commits
+	// Each run is valid but for its stage: the plan-delta round reviews the
+	// plan, the fixes round continues the chain from the head of the
+	// series' last code round.
+	tryAll := func(where string, series func(i int) string, fixesBase, fixesHead string) {
+		for i, form := range []struct {
+			stage, base, head string
+			dry               bool
+		}{
+			{"plan-delta", c[0], c[0], false},
+			{"plan-delta", c[0], c[0], true},
+			{"fixes", fixesBase, fixesHead, false},
+			{"fixes", fixesBase, fixesHead, true},
+		} {
+			w.smTryOldStage(v, where, series(i), form.stage, form.base, form.head, form.dry)
+		}
+	}
+
+	series := filepath.Join(w.repo, "reviews", "old-stages")
+	first := w.run(series, "01-candidate", "candidate", c[0], c[1])
+	w.record(first, c[1], smFinding("F1", "defect", "AC-1", "app/greet.py", "yes"))
+	tryAll("a series with a recorded candidate round", func(int) string { return series }, c[1], c[2])
+
+	// A series folder of its own for each run, so that every run meets one
+	// that does not exist yet.
+	tryAll("a series folder that does not exist", func(i int) string {
+		return filepath.Join(w.repo, "reviews", fmt.Sprintf("fresh-%d", i+1))
+	}, c[1], c[2])
+
+	if !slices.Equal(c, smLegacyCommits) {
+		t.Fatalf("setup: the synthetic repository has the commits %v, want %v that the legacy fixture names", c, smLegacyCommits)
+	}
+	legacy := filepath.Join(w.repo, "reviews", "legacy")
+	w.smCopyFixture(legacy)
+	// 05-candidate, the legacy series' last code round, reviewed c2.
+	tryAll("the legacy series with plan-delta and fixes rounds", func(int) string { return legacy }, c[2], c[3])
+
+	// The usage text of any usage error of spar run.
+	code, _, stderr := w.spar("run", "--no-such-option")
+	if code != ExitUsage {
+		t.Fatalf("setup: spar run --no-such-option exits %d, want 64: %s", code, smFirstLine(stderr))
+	}
+	smUsage(v, "spar run --no-such-option", stderr)
+
 	for _, form := range []struct{ stage, base, head string }{{"plan", c[0], c[0]}, {"candidate", c[0], c[2]}} {
 		out := filepath.Join(series, w.next(series, form.stage))
 		code, _, stderr := w.spar(w.runArgs(form.stage, form.base, form.head, out)...)
@@ -668,17 +740,18 @@ func TestSparStageMergeAC7_LegacySeriesReadUnchanged(t *testing.T) {
 }
 
 // AC-8: a project configuration that still sets caps.plan_delta loads; a
-// candidate round records it, and counts against the code cap.
+// candidate round records it, and it lends nothing to the plan or code cap:
+// with plan_delta 5 the plan cap stays 1 and the code cap 2.
 func TestSparStageMergeAC8_OldPlanDeltaCapLoads(t *testing.T) {
 	w := newSMWorld(t)
 	c := w.commits
-	w.write(filepath.Join(w.repo, ".jaekit", "spar.toml"), "[caps]\nplan = 1\nplan_delta = 2\ncode = 2\n")
+	w.write(filepath.Join(w.repo, ".jaekit", "spar.toml"), "[caps]\nplan = 1\nplan_delta = 5\ncode = 2\n")
 	cfg, code, stderr := w.smConfig()
 	if cfg == nil {
 		t.Fatalf("spar config with caps.plan_delta in the project configuration exits %d: %s; want it loaded", code, stderr)
 	}
-	if caps := smCaps(cfg); caps["plan_delta"] != float64(2) || caps["code"] != float64(2) {
-		t.Errorf("spar config shows the caps %v, want plan_delta 2 and code 2 from the project configuration", caps)
+	if caps := smCaps(cfg); caps["plan_delta"] != float64(5) || caps["plan"] != float64(1) || caps["code"] != float64(2) {
+		t.Errorf("spar config shows the caps %v, want plan 1, plan_delta 5 and code 2 from the project configuration", caps)
 	}
 	series := filepath.Join(w.repo, "reviews", "old-config")
 	for _, head := range []string{c[1], c[2]} {
@@ -690,8 +763,8 @@ func TestSparStageMergeAC8_OldPlanDeltaCapLoads(t *testing.T) {
 		}
 		r := w.rawRound(out)
 		recorded, _ := r["config"].(map[string]any)
-		if caps := smCaps(recorded); caps["plan_delta"] != float64(2) || caps["code"] != float64(2) || r["counted"] != true {
-			t.Errorf("candidate round %s records config.caps %v and counted %v; want plan_delta 2, code 2 and counted",
+		if caps := smCaps(recorded); caps["plan_delta"] != float64(5) || caps["code"] != float64(2) || r["counted"] != true {
+			t.Errorf("candidate round %s records config.caps %v and counted %v; want plan_delta 5, code 2 and counted",
 				filepath.Base(out), caps, r["counted"])
 		}
 	}
@@ -700,5 +773,15 @@ func TestSparStageMergeAC8_OldPlanDeltaCapLoads(t *testing.T) {
 	if code != ExitRefused || !strings.Contains(stderr, "2 of 2") || w.exists(third) {
 		t.Errorf("the third candidate round under code = 2 exits %d and wrote its folder: %t: %s; want the code cap refusal (65) naming 2 of 2",
 			code, w.exists(third), smFirstLine(stderr))
+	}
+	plan := filepath.Join(series, w.next(series, "plan"))
+	if code, _, stderr := w.spar(w.runArgs("plan", c[0], c[0], plan)...); code != ExitOK {
+		t.Errorf("the first plan round under plan = 1 exits %d: %s; want it started", code, smFirstLine(stderr))
+	}
+	again := filepath.Join(series, w.next(series, "plan"))
+	code, _, stderr = w.spar(w.runArgs("plan", c[0], c[1], again)...)
+	if code != ExitRefused || !strings.Contains(stderr, "plan cap") || !strings.Contains(stderr, "1 of 1") || w.exists(again) {
+		t.Errorf("a second plan round under plan = 1 and plan_delta = 5 exits %d and wrote its folder: %t: %s; want the plan cap refusal (65) naming 1 of 1",
+			code, w.exists(again), smFirstLine(stderr))
 	}
 }
