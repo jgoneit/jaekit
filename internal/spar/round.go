@@ -42,6 +42,15 @@ var retiredStages = map[string]string{
 	"fixes":      "--stage fixes no longer starts a round; after review fixes, run a candidate round from the goal's base commit to the new head",
 }
 
+// retiredStage is the usage error for a stage a new round no longer starts
+// as, or nil for any other stage.
+func retiredStage(stage string) error {
+	if text, ok := retiredStages[stage]; ok {
+		return usageError("%s", text)
+	}
+	return nil
+}
+
 // ExitError carries the exit code a failure ends the command with.
 type ExitError struct {
 	Code int
@@ -413,8 +422,8 @@ func strPtr(s string) *string {
 func Run(o RunOptions) (int, error) {
 	// A stage a new round does not start as is refused before anything is
 	// read or written, dry runs included.
-	if text, ok := retiredStages[o.Stage]; ok {
-		return ExitUsage, usageError("%s", text)
+	if err := retiredStage(o.Stage); err != nil {
+		return ExitUsage, err
 	}
 	if !contains(StartStages, o.Stage) {
 		return ExitUsage, usageError("--stage must be one of %s", strings.Join(StartStages, ", "))

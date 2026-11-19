@@ -245,10 +245,18 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 		return ExitOK, ShowConfigWith(p.one("repo"), getenv, reviewerOverride(p), choices, stdout)
 	case "run":
 		p, err := parseArgs(rest, runValued, runBare)
+		missingDecision := p.missing == "decision" || p.missing == "decision-quote"
+		// A stage a new round no longer starts as is refused before any
+		// other option is checked, as Run refuses it.
+		if err == nil || missingDecision {
+			if serr := retiredStage(p.one("stage")); serr != nil {
+				return ExitUsage, serr
+			}
+		}
 		if err != nil {
 			// A decision without what it settles or without the user's
 			// words is out of form (G35), whichever part is missing.
-			if p.missing == "decision" || p.missing == "decision-quote" {
+			if missingDecision {
 				return ExitRefused, missingDecisionValue(p)
 			}
 			return ExitUsage, err
