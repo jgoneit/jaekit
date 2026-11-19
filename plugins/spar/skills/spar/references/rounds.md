@@ -20,7 +20,7 @@ A standpoint points one reviewer at one risk of the change. Standpoints do not r
 
 ### Choose reviewer standpoints
 
-In plan and candidate rounds, including the cumulative round, pick the change's main risks. Give each reviewer a different standpoint, one each; when there are fewer risks than reviewers, leave the rest without one. In fixes and plan-delta rounds, you may give the earlier standpoints again or give none. A standpoint names the risk to attack, where to look first and the position from which to see it. Do not claim that the fix is right or explain the solution. Pick risks from a changed contract boundary, a stored format and its earlier records, the meaning of a check's result, or another place that keeps the same invariant.
+In plan and candidate rounds, including the cumulative round, pick the change's main risks. Give each reviewer a different standpoint, one each; when there are fewer risks than reviewers, leave the rest without one. The cumulative round receives the earlier code rounds' findings with their last dispositions in its packet, so do not turn those findings into standpoints: pick risks of the whole change. In fixes and plan-delta rounds, you may give the earlier standpoints again or give none. A standpoint names the risk to attack, where to look first and the position from which to see it. Do not claim that the fix is right or explain the solution. Pick risks from a changed contract boundary, a stored format and its earlier records, the meaning of a check's result, or another place that keeps the same invariant.
 
 ### Pass standpoints
 

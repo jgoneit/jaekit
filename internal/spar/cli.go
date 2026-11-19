@@ -16,7 +16,7 @@ const usageText = `usage:
            --criteria FILE... [--rules FILE]... [--subject FILE]... [--boundary FILE]... [--question TEXT]...
            [--decision TEXT --decision-quote TEXT]...
            [--standpoint NAME=TEXT]...
-           [--check-path GLOB]... [--reviewers NAME,...] [--model NAME=MODEL]... [--effort NAME=EFFORT]...
+           [--check-path GLOB]... [--text-check GLOB]... [--reviewers NAME,...] [--model NAME=MODEL]... [--effort NAME=EFFORT]...
            [--repo DIR] [--label TEXT] [--dry-run]
   spar record ROUND native (--result FILE|- | --transcript FILE) [--model M] [--agent TEXT]
   spar triage ROUND FINDING fix|reject|defer|duplicate|answer [--commit REV] [--failed-before TEXT]
@@ -35,7 +35,7 @@ exit codes: 0 success, 1 no reviewer completed or is pending, 3 gate degraded, 4
 // lists each of them.
 var (
 	runValued = []string{"stage", "base", "head", "out", "criteria", "rules", "subject", "boundary", "question",
-		"decision", "decision-quote", "standpoint", "check-path", "reviewers", "model", "effort", "repo", "label"}
+		"decision", "decision-quote", "standpoint", "check-path", "text-check", "reviewers", "model", "effort", "repo", "label"}
 	runBare = []string{"dry-run"}
 )
 
@@ -270,7 +270,8 @@ func dispatch(version string, args []string, stdin io.Reader, stdout, stderr io.
 		}
 		code, err := Run(RunOptions{Repo: p.one("repo"), Stage: p.one("stage"), Base: p.one("base"), Head: p.one("head"),
 			Out: p.one("out"), Criteria: p.values["criteria"], Rules: p.values["rules"], Subjects: p.values["subject"],
-			Boundaries: p.values["boundary"], Questions: p.values["question"], Decisions: ds, Standpoints: ss, CheckPaths: p.values["check-path"], Reviewers: reviewerOverride(p),
+			Boundaries: p.values["boundary"], Questions: p.values["question"], Decisions: ds, Standpoints: ss, CheckPaths: p.values["check-path"],
+			TextCheckPaths: p.values["text-check"], Reviewers: reviewerOverride(p),
 			Choices: choices, Label: p.one("label"), DryRun: p.flags["dry-run"], Version: version, Getenv: getenv, Log: stderr})
 		if err == nil {
 			fmt.Fprintf(stdout, "spar: round written to %s\n", p.one("out"))
