@@ -1,10 +1,10 @@
-# 계약: 실행 묶음 (execution bundle)
+# Contract: Execution bundle
 
-이 문서는 실행 묶음 파일의 구성과 필드에 대한 canonical 정의다. 실행 묶음은 Seal의 산출물이다. 실행 묶음이 읽는 목표 문서(Spec의 산출물)는 [goal-docs.md](goal-docs.md)에 있다. 실행 기록(`runs.jsonl`)의 형식은 [run-record.md](run-record.md)에 있다.
+This document is the canonical definition of the execution bundle's files and fields. The execution bundle is Seal's output. The goal documents the execution bundle reads (Spec's output) are in [goal-docs.md](goal-docs.md). The format of the run record (`runs.jsonl`) is in [run-record.md](run-record.md).
 
-실행 묶음은 한 목표의 **바뀌는 계획과 진행**을 담는다. 목적은 하나다. **다른 에이전트가 이전 대화 없이 이 묶음만 읽고 남은 일부터 이어서 끝낼 수 있어야 한다**. 문서 수를 늘리는 것이 목적이 아니다.
+The execution bundle holds one goal's **changing plan and progress**. It has one purpose: **another agent, without the earlier conversation, must be able to read only this bundle and finish the work from what remains**. Adding more documents is not the purpose.
 
-## 1. 위치와 소유
+## 1. Location and ownership
 
 ```text
 docs/specs/<goal>/
@@ -18,38 +18,38 @@ docs/specs/<goal>/
   runs.jsonl     실행 기록 (`ha`만 덧붙인다)
 ```
 
-| 파일 | 쓰는 주체 | 바꿀 수 있는 때 |
+| File | Writer | When it may change |
 | --- | --- | --- |
-| 목표 문서(`SPEC.md`와 링크된 보조 문서) | 사용자(Spec으로 작성) | 사용자가 결정할 때만. 바뀌면 목표 digest가 바뀌어 모든 기록이 stale이 된다. Seal은 읽기만 한다. |
-| `PLAN.md` | 실행자 | 언제든. 단, 조건표는 목표 문서의 조건 ID를 참조하고, 계획 변경은 `PROGRESS.md`에 기록한다. |
-| `REVIEW.md` | 실행자(검토용 subagent를 써도 된다) | 실행 전, 그리고 영향이 큰 계획 변경 뒤 |
-| `tasks/` | 실행자 | 계획 변경과 함께 |
-| `PROGRESS.md` | 실행자 | 언제든 |
-| `runs.jsonl` | `ha`만 | 덧붙이기만 한다. |
+| Goal documents (`SPEC.md` and the auxiliary documents it links) | The user (written with Spec) | Only when the user decides. A change changes the goal digest, and every record becomes stale. Seal only reads them. |
+| `PLAN.md` | The executor | Any time. The condition table, however, refers to the goal documents' condition IDs, and plan changes are recorded in `PROGRESS.md`. |
+| `REVIEW.md` | The executor (a review subagent may be used) | Before execution, and after a plan change with a large impact |
+| `tasks/` | The executor | Together with a plan change |
+| `PROGRESS.md` | The executor | Any time |
+| `runs.jsonl` | `ha` only | Append only. |
 
-goal 디렉토리 안의 다른 파일(검증 스크립트, fixture 등)은 묶음 문서가 아니라 **코드**로 다룬다. 신선도와 범위 확인에 그대로 들어간다([run-record.md](run-record.md) §2). 검증에 영향을 주는 파일을 goal 디렉토리에 두어도, 바뀌면 이전 결과가 stale이 된다. 같은 부모 아래 다른 목표의 실행 묶음 파일이 코드 상태에 들어가는지는 규칙 버전에 따른다([run-record.md](run-record.md) §4.6). 예외로 `amendments/`의 수정안 문서는 목표 문서도 코드도 아니다. SPEC.md가 링크해도 목표 문서 집합에 들지 않고, 이 목표의 것과 같은 부모 아래 다른 목표의 것 모두 규칙 버전에 관계없이 코드 상태에서 빠진다([goal-docs.md](goal-docs.md) §6.6, [run-record.md](run-record.md) §2).
+Other files in the goal directory (verification scripts, fixtures and so on) are treated as **code**, not as bundle documents. They enter the freshness and scope checks as they are ([run-record.md](run-record.md) §2). Even when a file that affects verification sits in the goal directory, a change to it makes earlier results stale. Whether another goal's execution bundle files under the same parent enter the code state depends on the rules version ([run-record.md](run-record.md) §4.6). As an exception, the amendment documents in `amendments/` are neither goal documents nor code. Even when SPEC.md links them, they are not part of the goal document set, and both this goal's and those of other goals under the same parent are left out of the code state whatever the rules version ([goal-docs.md](goal-docs.md) §6.6, [run-record.md](run-record.md) §2).
 
-모든 파일은 일반 Markdown이다. `ha lint`가 읽어야 하는 부분만 아래의 표 형식을 지킨다. 그 밖의 서술은 자유다.
+Every file is plain Markdown. Only the parts `ha lint` must read follow the table formats below. Other prose is free.
 
 ## 2. `PLAN.md`
 
-### 2.1 조건표 (`## 조건표`)
+### 2.1 Condition table (`## 조건표`)
 
-| 열 | 의미 |
+| Column | Meaning |
 | --- | --- |
-| `ID` | 목표 문서의 `AC-n`. 조건 문장은 다시 쓰지 않는다. `ha`가 목표 문서에서 읽는다. 필수 여부도 목표 문서의 `(선택)` 표시를 따른다([goal-docs.md](goal-docs.md) §2.1). 실행자가 더하는 확인은 `EX-n`이고 언제나 선택이다. |
-| `종류` | `change`(새 동작), `maintain`(기존 동작 보존), `manual`(이 환경에서 기계로 확인할 수 없음) |
-| `검증 명령` | 저장소 루트에서 실행할 명령. 코드 span 하나로 쓴다. `ha`는 셸 없이 argv로 실행하므로 파이프(`\|`), 리다이렉트, `&`, `;`, `$`, backquote를 쓰지 않는다. 낱말은 공백으로 나누고, 작은따옴표·큰따옴표로 묶을 수 있다. 복잡하면 저장소 안 스크립트를 가리킨다. `manual`이면 `—`와 사유를 쓴다. |
-| `검사 경로` | 이 조건을 판정하는 검사 파일 경로(glob 불가). `change` 조건은 필수다. Baseline 확인에서 이 파일들만 base 위에 덧씌운다. |
-| `Task` | 이 조건을 구현하는 task ID 목록 |
+| `ID` | The goal documents' `AC-n`. Do not rewrite the condition text. `ha` reads it from the goal documents. Whether the condition is required also follows the `(선택)` (optional) mark in the goal documents ([goal-docs.md](goal-docs.md) §2.1). Checks the executor adds are `EX-n` and are always optional. |
+| `종류` | `change` (new behavior), `maintain` (existing behavior kept), `manual` (cannot be checked by machine in this environment) |
+| `검증 명령` | The command to run from the repository root, written as one code span. `ha` runs it as argv without a shell, so do not use pipes (`\|`), redirects, `&`, `;`, `$` or backquotes. Words are split on spaces and can be grouped with single or double quotes. When it is complex, point to a script in the repository. For `manual`, write `—` and the reason. |
+| `검사 경로` | Paths of the check files that judge this condition (no globs). Required for `change` conditions. The baseline check overlays only these files on the base. |
+| `Task` | The list of task IDs that implement this condition |
 
-규칙은 다음과 같다(`ha lint`가 확인한다).
-1. 목표 문서의 모든 `AC-n`이 조건표에 정확히 한 번 있다. 빠진 ID와 목표 문서에 없는 `AC` ID는 오류다. 목표 문서에 ID가 없는 조건이 있으면 오류이고, 실행자는 목표 문서를 고치지 않고 사용자에게 알린다.
-2. 모든 조건에 task가 하나 이상 있다. 모든 task는 조건이나 다른 task의 선행 산출물에 근거한다. 고아 task는 오류다.
-3. `change` 조건은 검증 명령과 검사 경로가 있다. `maintain` 조건은 검증 명령이 있다. `manual` 조건은 사유가 있다.
-4. 기존 테스트 전체를 보존 조건으로 쓰려면 `maintain` 조건을 하나 둔다. 목표 문서에 그런 조건이 없으면 `EX-n`으로 더한다. `EX-n`은 실행자의 추가 확인이라 상태를 막지 않는다. 반드시 보존해야 하는 동작은 목표 문서의 필수 조건이어야 한다([goal-docs.md](goal-docs.md) §2.3). 그런 조건이 없는데 깨지면 안 되는 동작이 보이면, 실행 전 검토에서 사용자에게 묻는다(§4의 중요한 미결정).
+The rules are as follows (`ha lint` checks them).
+1. Every `AC-n` of the goal documents appears in the condition table exactly once. A missing ID, and an `AC` ID that is not in the goal documents, are errors. A condition without an ID in the goal documents is an error, and the executor tells the user instead of editing the goal documents.
+2. Every condition has at least one task. Every task rests on a condition or on another task's prerequisite output. An orphan task is an error.
+3. A `change` condition has a verification command and check paths. A `maintain` condition has a verification command. A `manual` condition has a reason.
+4. To use the whole existing test suite as a preservation condition, add one `maintain` condition. When the goal documents have no such condition, add it as `EX-n`. `EX-n` is the executor's extra check, so it does not block the status. Behavior that must be preserved must be a required condition in the goal documents ([goal-docs.md](goal-docs.md) §2.3). When there is no such condition but you see behavior that must not break, ask the user in the pre-execution review (`중요한 미결정`, important open decisions, in §4).
 
-선택 열 `baseline`을 마지막에 더할 수 있다. 다섯 열 표도 그대로 유효하다. `baseline` 열의 `요구`는 `run-rules/7`에서 해당 change 조건이 baseline을 요구한다는 뜻이고, 빈 칸·`—`나 열이 없으면 요구하지 않는다. 모든 change 조건의 검사 경로와 구조화 결과 계약은 표시 여부와 관계없이 필요하다.
+An optional `baseline` column may be added at the end; the five-column table remains valid. In `run-rules/7`, `요구` in the `baseline` column means that the change condition requires a baseline. An empty cell, `—`, or no column means no baseline is required. Check paths and the structured result contract remain required for every change condition, marked or not.
 
 ```markdown
 | ID | 종류 | 검증 명령 | 검사 경로 | Task | baseline |
@@ -58,215 +58,215 @@ goal 디렉토리 안의 다른 파일(검증 스크립트, fixture 등)은 묶�
 | AC-2 | change | `python3 checks/format.py` | checks/format.py | T001 | — |
 ```
 
-`change`가 아닌 행의 `요구`, 또는 `요구`·`—`·빈 칸 밖의 값은 `baseline_marker` lint 문제다. 열과 lint는 규칙 버전에 관계없이 읽지만, `run-rules/1`~`run-rules/6`은 표시를 판정에 쓰지 않고 기존 baseline 요구·기본 선택·최소량·출력을 유지한다. `/7`은 지금 PLAN의 표시로 판정한다. 시작 때의 표시와 지금 표시의 차이는 [실행 기록](run-record.md) §4.10의 보고에서 읽는다.
+`요구` on a row other than `change`, or a value other than `요구`, `—` or empty, is a `baseline_marker` lint problem. The column and lint apply regardless of rule version, but `run-rules/1` through `run-rules/6` ignore marks for judgment and keep their baseline requirement, default selection, minimum and output. `/7` judges by the current PLAN's marks. The difference between the marks at the start and the current marks is read from the report in [Run record](run-record.md) §4.10.
 
-### 2.1.1 결과 계약 (`## 결과 계약`)
+### 2.1.1 Result contract (`## 결과 계약`)
 
-`run-rules/3`의 change 검사는 [구조화 결과 계약](check-result.md)에 연결한다. PLAN에는 `ID | 선언 경로` 표를 두며 해당 change 조건과 저장소 상대 JSON 선언 경로를 대응시킨다. 선언과 생산자·설정 파일은 조건표의 검사 경로에도 포함한다. 단순 nonzero만으로 기대 실패가 되지 않으며 일반 maintain·manual·task를 이 계약으로 강제 이전하지 않는다. `/1`·`/2`의 기존 목표는 종전 결과 의미를 유지한다.
+Link `run-rules/3` change checks to the [structured result contract](check-result.md). PLAN holds an `ID | 선언 경로` table that maps each such change condition to a repository-relative JSON declaration path. Include the declaration and the producer and configuration files in the condition table's check paths as well. A plain nonzero exit alone is not an expected failure, and ordinary maintain, manual and task checks are not forced over to this contract. Existing `/1` and `/2` goals keep their earlier result semantics.
 
-선언 경로는 생산자 선언(`check-declaration/v1`) 대신 러너 어댑터 선언(`check-adapter/v1`)을 가리킬 수도 있다. 이때 대상마다 이미 있는 시험 하나를 연결하고, 검증 명령은 `go test -json …`이나 JUnit XML을 쓰는 러너 명령 그대로다. 생산자 파일은 없으므로 검사 경로에는 선언과 연결한 시험 파일을 넣는다. 형식·출력 위치(`{HA_JUNIT_XML}`)·판정은 [change 검사 결과](check-result.md#5-러너-어댑터) §5다. 실제 실행 파일의 지원 정보에 `check-adapter/v1`이 있을 때만 쓴다.
+The declaration path may also point to a runner adapter declaration (`check-adapter/v1`) instead of a producer declaration (`check-declaration/v1`). Then each target is linked to one test that already exists, and the verification command is the runner command itself that uses `go test -json …` or JUnit XML. There are no producer files, so the check paths hold the declaration and the linked test files. The format, the output location (`{HA_JUNIT_XML}`) and the judgment are in §5 of [change check results](check-result.md#5-runner-adapters). Use it only when the actual executable's capabilities list `check-adapter/v1`.
 
-### 2.1.2 검사 입력과 관측
+### 2.1.2 Check inputs and observation
 
-Seal 0.1.14부터 쓰거나 바꾸는 검사에 적용한다. 목표를 어느 Seal 버전으로 시작했는지는 따지지 않는다. 이 규칙만을 이유로 기존 목표의 검사, 기록, PROGRESS·REVIEW를 다시 쓰거나 변환하라고 요구하지 않는다. 사용자 확인·승인·질문 단계를 더하지 않는다. 실행자가 규칙을 적용하고 기존 검사를 고칠지 판단한다.
+These rules apply to checks written or changed from Seal 0.1.14 on. Which Seal version started the goal does not matter. They never require rewriting or converting an existing goal's checks, records, PROGRESS or REVIEW for this rule alone. They add no user confirmation, approval or question step. The executor applies the rules and judges whether to fix existing checks.
 
-- **검사가 읽는 것.** 조건표의 모든 검사(`change`, `maintain`, `EX-n`, task 명령)와 그 명령이 실행하거나 읽는 생산자·설정·보조 파일은 검사하는 트리와 조건이 지정한 외부 입력만으로 판정한다. 목표의 시작·base 커밋이나 다른 고정 커밋을 검사에 담지 않는다. 시작 기록이나 Core 출력에서 base를 읽어 쓰는 것도 마찬가지다. 저장소의 다른 커밋, ref, 객체를 읽어 판정하지 않는다. 과거 커밋과의 diff, merge-base, 원격 추적 branch, `HEAD~n` 같은 상대 ref, log 범위, 다른 worktree가 그 예다. 일반 성질은 "같은 트리를 가진 전체 clone과 히스토리 없는 clone에서 판정이 같다"이다. 검사가 스스로 만든 합성 저장소의 히스토리는 대상이 아니다.
-- **유지 조건.** `maintain` 조건은 목표 문서가 요구하는 성질(내용, 출력, 형식, 동작)을 검사하는 트리에서 관측한다. 검사 코드로 "base 커밋 이후 변경 없음"을 확인하는 것은 그 성질의 관측이 아니다. 경로가 아예 바뀌지 않아야 하면 그 경로를 `바꿀 수 있는 경로` 밖에 둔다. 그러면 Core가 base 이후 커밋된 변경을 `out_of_scope`로 알리고, 사용자만 해소한다. 검사는 그 파일이 지킬 성질을 보거나, 추적되는 검사 파일에 적은 기대 내용과 비교할 수 있다.
-- **변경 조건과 baseline.** base 커밋에서의 위반은 Core의 baseline 실행으로만 관측한다. baseline은 base 커밋의 임시 worktree에 HEAD의 검사 경로를 덧씌워 실행한다. 검사 코드는 base 커밋을 checkout하거나 읽거나 비교해 baseline을 흉내 내지 않는다. 같은 검사가 실행되는 트리에서 요구 성질을 관측하므로 base에서는 위반을, 변경 뒤에는 통과를 낸다.
-- **히스토리 자체가 조건일 때.** 태그 종류나 커밋 메시지 형식처럼 조건이 히스토리나 ref에 관한 것이면 검사는 조건이 지정한 범위와 ref만 읽는다. 그 히스토리가 없거나 읽을 수 없으면 위반도 통과도 아니고 오류나 미관측이다. 구조화된 결과를 내는 `change` 검사는 그 상태를 결과 보고에 적는다. `maintain`, `EX-n`, task 명령은 종료 코드로만 기록되고 0이 아닌 종료는 모두 실패로 기록된다. 그래서 실행자는 `ha check` 전에 지정한 범위와 ref를 읽을 수 있는지 확인한다. 읽을 수 없으면 결과를 기록하지 않는다. 필수 조건이나 task라면 그 조건과 완료를 보류하고 독립 작업을 계속하며, 남은 일이 그것뿐일 때 원인 `environment`의 막힘을 기록한다. `EX-n` 검사는 미관측으로 남으며 완료를 막지 않는다. 이 구분은 §4의 미관측·환경 오류·skip·실제 위반 구분과 같다. 그런 검사가 필요한 이유와 읽는 범위는 실행 전 검토에 적는다.
-- **선언된 경계.** 목표 문서가 가리키거나 바꾸려는 구성 요소가 범위나 신뢰 경계를 스스로 선언했을 수 있다. 특정 버전·릴리스 고정, 과거 판정 보존, import 격리, 제한된 입력이 그 예다. 그 선언은 지금의 동작이므로 목표 문서가 바꾸라고 명시하지 않는 한 지킨다. 목표 문서를 그 구성 요소를 넓히는 해석과 별도 구성 요소를 두는 해석 모두로 만족할 수 있으면, 선언을 지키는 해석을 고르고 실행 전 검토에 명시적 가정으로 남겨 보고에서 되풀이한다. 사용자에게 새로 묻지 않는다. 목표 문서가 그 구성 요소를 바꾸라고 명시하면 새 코드는 선언된 경계 안에 둔다. 예를 들어 새 import도 같은 import 경계를 거친다. 어느 해석도 선언과 목표 문서를 함께 만족하지 못하면 기존 문서 충돌 규칙을 따른다.
+- **What a check reads.** Every check in the condition table (`change`, `maintain`, `EX-n`, task commands), and the producer, configuration and helper files its command runs or reads, judge only from the tree being checked and the external inputs the condition names. Do not put the goal's start or base commit, or any other fixed commit, into a check. The same goes for reading the base from the start record or Core output and using it. Do not judge by reading other commits, refs or objects of the repository. Examples are a diff against a past commit, a merge-base, a remote-tracking branch, a relative ref such as `HEAD~n`, a log range and another worktree. The general property is "a full clone and a history-less clone with the same tree give the same verdict". The history of a synthetic repository the check builds itself is not covered.
+- **Maintain conditions.** A `maintain` condition observes the property the goal documents require (content, output, format, behavior) in the tree being checked. Confirming "no change since the base commit" in check code is not an observation of that property. When a path must not change at all, leave it outside `바꿀 수 있는 경로` (paths that may change). Core then reports changes committed since the base as `out_of_scope`, and only the user resolves them. A check can look at the property the file must keep, or compare the file with expected content written in a tracked check file.
+- **Change conditions and the baseline.** A violation on the base commit is observed only by Core's baseline run. The baseline runs on a temporary worktree of the base commit with HEAD's check paths overlaid. Check code never imitates the baseline by checking out, reading or comparing the base commit. The same check observes the required property in the tree it runs on, so it gives a violation on the base and a pass after the change.
+- **When history itself is the condition.** When a condition is about history or refs, such as a tag's type or a commit message format, the check reads only the range and refs the condition names. When that history is missing or cannot be read, the result is neither a violation nor a pass but an error or unobserved. A `change` check that produces a structured result writes that state in its result report. `maintain`, `EX-n` and task commands are recorded by exit code only, and every nonzero exit is recorded as a failure. So before `ha check`, the executor confirms that the named range and refs can be read. When they cannot, record no result. For a required condition or task, hold that condition and completion and continue independent work; when that is all the work left, record a block with cause `environment`. An `EX-n` check stays unobserved and does not block completion. This distinction is the same as the distinction in §4 among unobserved, environment error, skip and actual violation. Write in the pre-execution review why such a check is needed and the range it reads.
+- **Declared boundaries.** A component the goal documents point to or intend to change may have declared its own scope or trust boundary. Examples are pinning to a specific version or release, preserving past verdicts, isolating imports and limited inputs. That declaration is current behavior, so keep it unless the goal documents explicitly say to change it. When the goal documents can be satisfied both by a reading that widens the component and by a reading that adds a separate component, choose the reading that keeps the declaration, leave it in the pre-execution review as an explicit assumption and repeat it in the report. Do not ask the user anew. When the goal documents explicitly say to change the component, keep new code inside the declared boundary. For example, a new import also goes through the same import boundary. When no reading satisfies both the declaration and the goal documents, follow the existing document-conflict rule.
 
-### 2.1.3 최종 후보 근거
+### 2.1.3 Final candidate evidence
 
-계획 규칙이며 고정 순서가 아니다. 방법과 순서는 실행자가 고른다.
+These are planning rules, not a fixed order. The executor chooses the method and the order.
 
-- 탐색 중에는 바꾼 곳에 맞는 좁은 검사를 쓴다. 그 결과는 작업 정보이며 근거가 아니다.
-- 완료에 필요한 비싼 전체 검증은 최종 후보에서 `ha check`로 한 번 얻도록 PLAN에 적는다. 같은 후보에서 개발용으로 전체 검증을 돌린 뒤 기록용으로 다시 돌리는 것은 피할 비용이다.
-- `ha check`는 조건마다 명령을 따로 실행한다. 여러 필수 조건이 같은 전체 회귀를 필요로 하면 한 조건이 그 회귀를 맡고, 다른 조건은 자기 성질을 관측하도록 권한다. 권장이며 강제 절차가 아니다. 공유 실행을 배정할 뿐 조건을 삭제하거나 약화하는 것이 아니며, 조건마다 자기 기록 결과가 필요하다.
+- While exploring, use narrow checks that fit what changed. Their results are working information, not evidence.
+- Write in PLAN that the expensive full verification that completion needs is obtained once with `ha check` on the final candidate. Running the full verification for development and then again for the record on the same candidate is a cost to avoid.
+- `ha check` runs each condition's command separately. When several required conditions need the same full regression, it is recommended that one condition owns that regression and the other conditions observe their own properties. This is a recommendation, not a required procedure. It only assigns the shared run; it does not drop or weaken a condition, and each condition needs its own recorded result.
 
-### 2.2 범위 (`## 범위`)
+### 2.2 Scope (`## 범위`)
 
-- `바꿀 수 있는 경로`: glob 목록. 범위 확인의 기준이다. SPEC의 범위·비목표에서 도출하고, 근거가 되는 SPEC 절을 적는다. Seal 0.1.23 이상은 계획이 새로 만들 시험·검사 파일과 그 도우미 파일을 처음부터 여기에 넣어, 그 파일을 더해도 범위 확인을 묻지 않는다. 목표 문서가 바꾸지 말라고 한 경로는 넣지 않는다.
-- `테스트 경로`: 테스트 정의로 보는 glob 목록. 기존 테스트 정의 변경 확인의 기준이다. 비우면 `ha`의 기본값(`tests/**`, `**/*_test.*`, `**/test_*.*`, `**/*.test.*`, `**/*.spec.*`)을 쓴다.
-- `유지할 동작`: SPEC의 비목표·현재 동작에서 지켜야 할 것
-- `다른 목표 실행 묶음`: 선택. 이 목표의 검사가 다른 목표의 실행 묶음 파일(`PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl`, `tasks/`)을 입력으로 읽을 때만 둔다. 값은 code span `검사 입력` 하나다. 예: ``- 다른 목표 실행 묶음: `검사 입력` (이전 목표의 PROGRESS.md를 검사한다)``
-  - 선언하면 `run-rules/2`와 `run-rules/3`에서도 다른 목표의 실행 묶음 파일이 이 목표의 코드 상태에 들어간다. 그 파일만 바뀌어도 이전 결과가 낡고, 그 파일의 변경은 범위 확인에도 들어간다([run-record.md](run-record.md) §4.6).
-  - `ha`는 상태를 계산하고 기록할 때의 PLAN에서 이 선언을 읽는다. 진행 중에 더하면 그때부터 적용된다. 지우면 다른 목표의 실행 묶음이 다시 빠지고, 그 때문에 낡았던 결과가 다시 신선해질 수 있다. 더하거나 지우는 것은 계획 변경으로 남긴다.
-  - 항목은 정확히 `다른 목표 실행 묶음:`으로 시작해야 한다. 이 이름 뒤에 다른 말이 붙거나 콜론이 없으면, 또는 다른 값이거나 code span이 없으면 lint 오류 `other_bundles_invalid`다.
-  - `run-rules/1` 목표에서는 다른 목표의 실행 묶음이 원래 코드라 결과가 달라지지 않는다.
+- `바꿀 수 있는 경로` (paths that may change): a list of globs. It is the basis of the scope check. Derive it from the SPEC's scope and non-goals, and write the SPEC section it rests on. Seal 0.1.23 or later puts the test and check files the plan will create, and their helper files, here from the start, so adding those files raises no scope question. Do not include paths the goal documents say must not change.
+- `테스트 경로` (test paths): a list of globs treated as test definitions. It is the basis of the check for changes to existing test definitions. When it is empty, `ha`'s defaults (`tests/**`, `**/*_test.*`, `**/test_*.*`, `**/*.test.*`, `**/*.spec.*`) are used.
+- `유지할 동작` (behavior to keep): what must be kept, from the SPEC's non-goals and current behavior
+- `다른 목표 실행 묶음` (other goals' execution bundles): optional. Add it only when this goal's checks read another goal's execution bundle files (`PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl`, `tasks/`) as input. The value is the single code span `검사 입력` (check input). Example: ``- 다른 목표 실행 묶음: `검사 입력` (이전 목표의 PROGRESS.md를 검사한다)``
+  - When it is declared, other goals' execution bundle files enter this goal's code state under `run-rules/2` and `run-rules/3` too. A change to those files alone makes earlier results stale, and changes to them also enter the scope check ([run-record.md](run-record.md) §4.6).
+  - `ha` reads this declaration from PLAN as it is when computing the status and when recording. Added during the work, it applies from then on. Removed, it leaves other goals' execution bundles out again, and results that were stale because of them can become fresh again. Record adding or removing it as a plan change.
+  - The item must start with exactly `다른 목표 실행 묶음:`. When other words follow this name or the colon is missing, or the value is different or has no code span, it is the lint error `other_bundles_invalid`.
+  - In a `run-rules/1` goal, other goals' execution bundles are code already, so the result does not change.
 
-`바꿀 수 있는 경로`를 넓히는 것은 계획 변경이다. 단, 넓힌 범위가 SPEC의 비목표나 범위와 충돌하면 사용자 결정이 필요하다.
+Widening `바꿀 수 있는 경로` is a plan change. When the widened scope conflicts with the SPEC's non-goals or scope, however, it needs the user's decision.
 
-### 2.3 Task 목록 (`## Task`)
+### 2.3 Task list (`## Task`)
 
-| 열 | 의미 |
+| Column | Meaning |
 | --- | --- |
-| `ID` | `T001` 형식 |
-| `목표` | 어떤 동작을 완성하는가. "파일 생성", "클래스 추가"처럼 동작이 아닌 목표는 피한다. |
-| `근거` | 구현하는 조건 ID |
-| `제안` | 대응하는 작업 분해 제안 `W` ID 또는 `—`. 목표 문서에 제안이 있는데 다르게 계획했으면 `REVIEW.md`의 요구사항 대응에 이유를 남긴다. |
-| `선행` | 먼저 끝나야 하는 task ID |
-| `필수` | `예` \| `아니오` |
-| `문서` | `tasks/T001.md` 또는 `—`(PLAN 안에 합친 경우) |
+| `ID` | The `T001` form |
+| `목표` | What behavior it completes. Avoid goals that are not behavior, such as "create a file" or "add a class". |
+| `근거` | The condition IDs it implements |
+| `제안` | The matching work breakdown proposal's `W` ID, or `—`. When the goal documents have a proposal and you planned differently, leave the reason in `요구사항 대응` (requirement mapping) of `REVIEW.md`. |
+| `선행` | Task IDs that must finish first |
+| `필수` | `예` (yes) \| `아니오` (no) |
+| `문서` | `tasks/T001.md`, or `—` (when merged into PLAN) |
 
-의존성에 순환이 있으면 오류다.
+A cycle in the dependencies is an error.
 
-### 2.4 예산 (`## 예산`)
+### 2.4 Budget (`## 예산`)
 
-- `검증 실행`: 예산 창 안의 `ha check` 실행 횟수 상한(baseline 포함). 값을 정확히 `자동`으로 쓰면(`검증 실행: 자동`) `ha start`가 `max(50, ⌈필수 최소량 × 1.5⌉)`로 정하고, 사용자 설정 폴더의 `ha.json`에 적은 사전 승인 상한(없으면 50)을 넘으면 기록 없이 시작을 거부한다. 숫자가 든 `검증 실행` 항목이 있으면 그 숫자를 쓴다([run-record.md](run-record.md) §1.5)
-- `경과 시간`: 예산 창 안의 첫 기록부터 마지막 기록까지의 시간 상한. `4시간`, `90분`, `1시간 30분`, `2h30m`처럼 쓴다. 현재 시각이 아니라 기록 시각으로 잰다. 그래서 기다리는 동안 상태를 조회하기만 해서는 늘지 않지만, 기다린 뒤 같은 창에 기록이 붙으면 기다린 시간도 들어간다. 완료 뒤에 시간이 지나도 완료가 취소되지 않는다([run-record.md](run-record.md) §5)
-- `비용`: 알 수 있으면 상한. 관측 수단이 없으면 `미관측`
+- `검증 실행` (verification runs): the limit on the number of `ha check` runs within the budget window (baselines included). When the value is written exactly as `자동` (automatic), as in `검증 실행: 자동`, `ha start` sets it to `max(50, ⌈필수 최소량 × 1.5⌉)` (the larger of 50 and the required minimum × 1.5, rounded up), and when that exceeds the pre-approved limit written in `ha.json` in the user configuration folder (50 without one), it refuses the start without a record. When the `검증 실행` item holds a number, that number is used ([run-record.md](run-record.md) §1.5)
+- `경과 시간` (elapsed time): the limit on the time from the first record to the last record within the budget window. Write it like `4시간`, `90분`, `1시간 30분` or `2h30m`. It is measured by record times, not by the current time. So it does not grow while you only query the status during a wait, but when a record is added to the same window after the wait, the waited time counts too. Time passing after completion does not cancel the completion ([run-record.md](run-record.md) §5)
+- `비용` (cost): the limit, if it can be known. `미관측` (unobserved) when there is no means to observe it
 
-예산 창은 `ha start`나 마지막 `reopen`(사용자의 재작업 요청)에서 시작한다. 기본값은 Seal Skill이 정한다. 사용자가 요청에서 정하면 그 값을 쓴다. Seal 0.1.20 이상은 사용자가 예산을 정하지 않으면 `검증 실행: 자동`을 쓰고, 시작이 사용자 승인 필요로 멈추면 산정 값과 사전 승인 상한을 보이며 한 번 묻고, 사용자가 승인한 숫자를 `검증 실행`에 쓴다. 같은 PLAN에 같은 질문을 다시 하지 않는다. Seal은 사전 승인 상한 설정을 쓰거나 고치지 않는다. 시작 전 예산은 줄일 수 있고 증액에는 사용자 결정이 필요하다. 진행 중 PLAN 수정만으로 한도는 바뀌지 않는다. `/3`는 `ha budget`으로 같은 창의 총 실행 횟수 상한을 바꾸며 사용량·시간 상한을 유지한다. 증액은 사용자 원문과 문맥, 감액은 이유를 남긴다. `/3`의 명시적 재개는 최신 횟수 상한을 계승한다. `/1`·`/2`는 최초 상한과 기존 재개 의미를 유지한다([run-record.md](run-record.md) §5.2).
+The budget window starts at `ha start` or at the last `reopen` (the user's rework request). The Seal Skill sets the defaults. When the user sets values in the request, those values are used. When the user sets no budget, Seal 0.1.20 or later writes `검증 실행: 자동`; when the start stops because it needs the user's approval, Seal asks once, showing the computed value and the pre-approved limit, and writes the number the user approved in `검증 실행`. It does not ask the same question again for the same PLAN. Seal never writes or changes the pre-approved limit setting. A budget can be lowered before the start; raising it needs the user's decision. Editing PLAN during the work does not by itself change the limits. Under `/3`, `ha budget` changes the total run-count limit of the same window and keeps the usage and the time limit. An increase records the user's original words and context; a decrease records a reason. An explicit resume under `/3` carries over the latest run-count limit. `/1` and `/2` keep the original limit and the existing resume meaning ([run-record.md](run-record.md) §5.2).
 
-`/4`·`/5`·`/6`·`/7` 목표에서는 실행자가 신고한 사용자 대기가 경과 시간에서 빠지고, 사용자가 인용으로 정한 사전 승인 상한 안에서 실행자가 이유만으로 횟수 상한을 올린다([run-record.md](run-record.md) §4.7).
+In `/4`, `/5`, `/6` and `/7` goals, user waits the executor reports are left out of the elapsed time, and within the pre-approved limit the user set with a quote, the executor raises the run-count limit for a reason alone ([run-record.md](run-record.md) §4.7).
 
-### 2.5 시간 제한 (`## 시간 제한`)
+### 2.5 Time limits (`## 시간 제한`)
 
-선택 절이다. `run-rules/4`·`run-rules/5`·`run-rules/6`·`run-rules/7` 목표에서만 읽고, 그 밖의 규칙으로 시작한 목표는 이 절이 있어도 모든 명령을 900초로 실행한다. PLAN의 `## 시간 제한` 절에 `- AC-3: 30분`, `- T002 명령 1: 20분`, `- EX-4: 1시간 30분`처럼 한 줄에 하나씩 쓴다.
+An optional section. It is read only in `run-rules/4`, `run-rules/5`, `run-rules/6` and `run-rules/7` goals; a goal started under other rules runs every command with 900 seconds even when this section exists. Write one per line in PLAN's `## 시간 제한` section, like `- AC-3: 30분`, `- T002 명령 1: 20분` or `- EX-4: 1시간 30분`.
 
-- 대상은 명령이 있는 조건 ID(`AC-n`, `EX-n`)나 task와 명령 순번(`T002 명령 1`, task 문서 `## 완료 조건`의 명령 순서)이다.
-- 값은 양의 정수와 단위 `시간`·`분`·`초`, 또는 그 조합이다. 최대 7200초(2시간)다.
-- 최대를 넘는 값, 형식이 맞지 않는 값, 없는 대상, 같은 대상의 두 번째 선언은 `time_limit_invalid` lint 문제라 `ha start`·`ha check`가 실행 전에 거부한다.
-- 선언하지 않은 명령은 900초다. baseline은 그 조건의 제한으로 실행한다. 적용 제한은 명령 digest에 들어가므로, 제한을 바꾸면 이전 결과는 신선하지 않다([run-record.md](run-record.md) §4.7).
+- A target is a condition ID that has a command (`AC-n`, `EX-n`), or a task and a command number (`T002 명령 1`, the command order in the task document's `## 완료 조건`).
+- A value is a positive integer with the unit `시간` (hours), `분` (minutes) or `초` (seconds), or a combination of them. The maximum is 7200 seconds (2 hours).
+- A value over the maximum, a malformed value, a target that does not exist and a second declaration for the same target are the lint problem `time_limit_invalid`, so `ha start` and `ha check` refuse before running.
+- A command without a declaration gets 900 seconds. The baseline runs with that condition's limit. The applied limit is part of the command digest, so after a limit changes, earlier results are not fresh ([run-record.md](run-record.md) §4.7).
 
-### 2.6 실행 환경 (`## 실행 환경`)
+### 2.6 Execution environment (`## 실행 환경`)
 
-선택 절이다. 검사가 쓰는 도구를 시작 전에 확인하려고 PLAN에 `## 실행 환경` 절을 두고, 한 줄에 도구 하나씩 `` - <이름>: `<점검 명령>` `` 형식으로 쓴다. 예: `` - 브라우저: `node scripts/probe-browser.mjs` ``.
+An optional section. To confirm the tools that checks use before the start, put a `## 실행 환경` section in PLAN and write one tool per line in the form `` - <name>: `<probe command>` ``. Example: `` - 브라우저: `node scripts/probe-browser.mjs` ``.
 
-- 절의 범위는 다른 PLAN 절과 같다: 제목 줄부터 fenced code block 밖의 다음 1·2단계 제목 전까지. 빈 줄은 건너뛰고 나머지 줄은 모두 이 형식의 목록 항목이어야 한다. 절 안의 fenced code block도 항목이 아니므로 형식이 아닌 줄이다: `ha doctor`는 블록마다 여는 줄을 알린다(바로 이어진 블록도 따로).
-- 이름은 첫 `:` 앞의 글자에서 앞뒤 공백을 뗀 것이다. 비어 있거나 백틱을 담을 수 없고, 같은 이름은 한 번만 쓴다.
-- 점검 명령은 조건표의 검증 명령과 같은 규칙을 따른다: 코드 스팬 하나, 셸 문법 없음, 공백이 있는 낱말은 따옴표.
-- Seal 0.1.20 이상은 검사에 필요한 도구(브라우저, DB, 컨테이너, 외부 서비스 등)를 이 절에 적고, baseline을 기록하기 전과 재개 뒤 첫 검사 전에 `ha doctor`를 돌린다. 사용 불가인 도구는 한 질문으로 모아 묻고, 권한이나 설정을 스스로 넓히지 않으며, 기다리는 동안 독립적인 작업을 계속한다.
-- Seal 0.1.23 이상은 baseline을 기록하기 전에, 목표 문서·계획·프로젝트 지침·코드에서 미리 알 수 있고 사용자의 말이 필요한 결정을 쓸 수 없는 도구와 승인이 필요한 예산까지 모아 한 메시지로 묻는다. 사용자 확인으로만 충족할 조건이 있으면 그 조건과 끝에 확인해 달라고 할 것을 같은 메시지에서 알린다. 물을 것이 없으면 아무것도 묻지 않는다.
-- 이 절은 `ha doctor`만 읽는다. `ha doctor`는 점검마다 60초 고정 제한으로 실행하고 도구마다 `사용 가능` 또는 `사용 불가`와 이유를 보이며, 기록·실행 횟수·실행 묶음에 아무것도 남기지 않는다([run-record.md](run-record.md) §1.4).
-- 형식이 아닌 줄(`environment_item_invalid`), 셸 문법(`shell_syntax`), 빈 명령(`command_empty`), 낱말로 나눌 수 없는 명령(`command_parse`), 겹치는 이름(`environment_name_duplicate`), 둘째 `## 실행 환경` 절(`environment_section_duplicate`)은 `ha doctor`만 파일과 줄로 알리고 어떤 점검도 실행하지 않는다. lint 오류가 아니다: 절이 있든 없든, 어떤 내용이든 `ha lint`·`ha start`·`ha check`·`ha status`의 결과는 같다.
+- The section's extent is the same as for other PLAN sections: from the heading line up to the next level-1 or level-2 heading outside a fenced code block. Blank lines are skipped, and every other line must be a list item in this form. A fenced code block in the section is not an item either, so it is a malformed line: `ha doctor` reports the opening line of each block (also separately for a block that immediately follows another).
+- The name is the text before the first `:` with leading and trailing spaces removed. It cannot be empty or contain a backtick, and the same name is used only once.
+- The probe command follows the same rules as the verification command of the condition table: one code span, no shell syntax, and quotes around words with spaces.
+- Seal 0.1.20 or later lists the tools checks need (browser, database, container, external service and so on) in this section, and runs `ha doctor` before recording any baseline and before the first check after a resume. It gathers unusable tools into one question, never widens permissions or settings on its own, and keeps doing independent work while it waits.
+- Before recording any baseline, Seal 0.1.23 or later gathers the decisions that can be known in advance from the goal documents, the plan, the project instructions and the code and that need the user's words, together with unusable tools and a budget that needs approval, and asks them in one message. When a condition can be met only by user confirmation, the same message names that condition and what the user will be asked to confirm at the end. When there is nothing to ask, it asks nothing.
+- Only `ha doctor` reads this section. `ha doctor` runs each probe with a fixed 60-second limit, shows `사용 가능` (available) or `사용 불가` (unavailable) with the reason for each tool, and leaves nothing in the record, the run count or the execution bundle ([run-record.md](run-record.md) §1.4).
+- A malformed line (`environment_item_invalid`), shell syntax (`shell_syntax`), an empty command (`command_empty`), a command that cannot be split into words (`command_parse`), a duplicate name (`environment_name_duplicate`) and a second `## 실행 환경` section (`environment_section_duplicate`) are reported only by `ha doctor`, with file and line, and then no probe runs. They are not lint errors: with or without the section, and whatever its content, the results of `ha lint`, `ha start`, `ha check` and `ha status` are the same.
 
 ## 3. `tasks/T00n.md`
 
-| 절 | 내용 |
+| Section | Content |
 | --- | --- |
-| 목표 | 이 task가 완성하는 동작 |
-| 근거 | 조건 ID와, 그 조건이 나온 SPEC 절 |
-| 선행 조건 | 필요한 task와 그 산출물 |
-| 읽을 자료 | 아래 네 구분으로 쓴다. 이전 대화를 모르는 에이전트가 저장소 문서 전체를 다시 읽지 않고 필요한 근거를 찾게 하는 것이 목적이다. |
-| 범위 | 바꿀 대상과 유지해야 할 동작 |
-| 완료 조건 | 어떤 조건(`AC-n`)이 통과해야 하는가. Task 단계에서 따로 확인할 명령이 있으면 `## 완료 조건` 절의 목록 항목에 코드 span 하나만 써서 적는다(예: `` - `go test ./pkg/x` ``). `ha check <goal> T001`이 이 명령들을 순서대로 실행해 기록한다. 이 기록은 조건 충족에 쓰이지 않는다. |
+| `목표` (goal) | The behavior this task completes |
+| `근거` (basis) | The condition IDs and the SPEC sections those conditions come from |
+| `선행 조건` (prerequisites) | The tasks needed and their outputs |
+| `읽을 자료` (reading material) | Written in the four groups below. The purpose is to let an agent that does not know the earlier conversation find the evidence it needs without rereading all the repository's documents. |
+| `범위` (scope) | What to change and the behavior that must be kept |
+| `완료 조건` (completion criteria) | Which conditions (`AC-n`) must pass. When the task step has its own commands to check, write each in a list item of the `## 완료 조건` section that holds only one code span (for example `` - `go test ./pkg/x` ``). `ha check <goal> T001` runs these commands in order and records them. These records are not used to satisfy conditions. |
 
-**읽을 자료의 구분**
+**Groups in `읽을 자료`**
 
-| 구분 | 남길 것 |
+| Group | What to leave |
 | --- | --- |
-| 필수 맥락 | 목표를 이해하는 데 필요한 문서의 해당 절과 코드 위치 |
-| 필요할 때 참고 | 세부 설계, 긴 배경 자료 |
-| 판단 근거 | 어떤 기존 동작·문서를 근거로 결정했는가 |
-| 충돌·미확인 | 문서와 코드가 다른 부분, 아직 확인하지 못한 사실 |
+| `필수 맥락` (essential context) | The relevant sections of documents and the code locations needed to understand the goal |
+| `필요할 때 참고` (reference when needed) | Detailed design, long background material |
+| `판단 근거` (grounds for decisions) | Which existing behavior or document a decision rests on |
+| `충돌·미확인` (conflicts and unconfirmed) | Where documents and code differ, facts not yet confirmed |
 
-요약은 원문을 찾아가는 안내로만 쓴다. 문서 경로와 절을 함께 적고, 요약으로 원래 완료 조건을 대체하지 않는다. 작은 목표에서 task를 PLAN 안에 합쳤다면 같은 구분을 `PLAN.md`의 `## 읽을 자료` 절에 둔다.
+Use summaries only as a guide to the original. Write the document path and section with them, and never replace the original completion criteria with a summary. When a small goal merges its tasks into PLAN, put the same groups in the `## 읽을 자료` section of `PLAN.md`.
 
 ## 4. `REVIEW.md`
 
-실행 전 검토의 결과다. 검토 통과는 "실행할 준비가 됐다"는 뜻이지 구현이 맞다는 뜻이 아니다.
+The result of the pre-execution review. Passing the review means "ready to execute", not that the implementation is right.
 
-Spec의 정합성 확인([goal-docs.md](goal-docs.md) §3)과는 대상이 다르다.
-- Spec의 정합성 확인: 목표 자체가 명확한가
-- 실행 전 검토(이 문서): 그 목표를 구현할 계획과 검증 방법이 충분한가
+Its subject differs from Spec's consistency check ([goal-docs.md](goal-docs.md) §3).
+- Spec's consistency check: is the goal itself clear?
+- Pre-execution review (this document): are the plan and the verification method for implementing that goal sufficient?
 
-검토 중 목표 문서의 모순이나 모호함을 찾으면 목표 문서를 고치지 않는다. 사용자에게 묻는다.
+When the review finds a contradiction or ambiguity in the goal documents, do not edit the goal documents. Ask the user.
 
-| 절 | 확인할 것 |
+| Section | What to check |
 | --- | --- |
-| 요구사항 대응 | `ha lint` 결과(누락·고아·순환). SPEC의 범위·비목표가 task에 반영됐는지. 목표 문서의 사용 시나리오가 조건표로 덮이는지. 작업 분해 제안과 다르게 계획한 부분과 그 이유 |
-| 불필요한 task | 조건에 기여하지 않는 task |
-| 문서 충돌 | SPEC, 프로젝트 문서, 코드 현실 사이의 충돌 |
-| 중요한 미결정 | 목표 문서의 `## Open Decisions`에 남은 결정, 그리고 계획 중 새로 드러난 결과를 바꾸는 결정(공개 동작·데이터·권한·비가역 설계). 각 항목은 사용자 답변(인용) 또는 "가정"으로 닫는다. 가정은 보고서에 다시 나온다. 구성 요소가 선언한 범위나 신뢰 경계를 지키는 해석은 질문이 아니라 이런 가정이다(§2.1.2). `### 사용자의 답`, `### 실행자 가정` 순서로 나눈다. `### 사용자의 답`의 각 항목에는 결정, 사용자의 답 인용, 그 답이 기록된 곳을 적는다. `### 실행자 가정`의 각 항목에는 가정과 그 이유를 적고, SPEC 문장을 해석한 가정에는 그렇다는 표시를 붙인다. 선언된 범위나 신뢰 경계를 지키는 해석은 `### 실행자 가정`에 적는다. 결정이 하나도 없으면 `없음` 한 줄만 둔다. 그렇지 않으면 두 소제목을 모두 두고 빈 쪽에 `없음`을 쓴다. |
-| 검증 방법과 환경 | 조건마다 명령이 이 환경에서 실행 가능한지, 필요한 도구·데이터·네트워크·저장소 히스토리(히스토리는 조건이 히스토리에 관한 것일 때만, 읽는 범위와 함께). 여러 구성요소를 잇는 목표면 경계 너머 확인 조건을 어떤 방법으로 검증하는지 |
-| 독립 검토 | SPEC의 `Assurance:` 등급(없으면 없음), 프로젝트 지침이 요구하는 하한과 따른 쪽, 계획한 검토 단계(plan, 그다음 마지막 라운드가 누적 라운드인 candidate 라운드) 또는 `light`에서 생략한 이유, plan 검토가 볼 제품의 불변식과 결정 규칙과 그것을 읽거나 지키는 곳(아래 "보증 등급과 검토 순서"), 목표가 더하거나 바꾸는 검사마다의 경계와, 더하거나 바꾸는 계약이나 검사가 다루는 열린 입력의 지원 입력 형식. 라운드가 돌면 그 라운드·gate 기록을 가리키고 지적 목록을 옮겨 적지 않는다 |
-| 결론 | `ready` 또는 `needs_user`(사유) |
+| `요구사항 대응` (requirement mapping) | The `ha lint` result (missing, orphan, cycle). Whether the SPEC's scope and non-goals are reflected in the tasks. Whether the condition table covers the goal documents' user scenarios. Where the plan differs from the work breakdown proposal, and why |
+| `불필요한 task` (unneeded tasks) | Tasks that contribute to no condition |
+| `문서 충돌` (document conflicts) | Conflicts among the SPEC, project documents and the actual code |
+| `중요한 미결정` (important open decisions) | Decisions left in the goal documents' `## Open Decisions`, and outcome-changing decisions that came up newly during planning (public behavior, data, permissions, irreversible design). Close each item with the user's answer (quoted) or an "assumption". Assumptions appear again in the report. A reading that keeps a component's declared scope or trust boundary is not a question but such an assumption (§2.1.2). Use `### 사용자의 답`, `### 실행자 가정` in that order. Under `### 사용자의 답`, each item contains the decision, the user's quoted answer, and where that answer is recorded. Under `### 실행자 가정`, each item contains the assumption and its reason; mark an assumption that reads a SPEC sentence. Readings that keep a declared scope or trust boundary go under `### 실행자 가정`. With no decision at all, write only one line `없음`. Otherwise keep both subheadings and write `없음` under an empty one. |
+| `검증 방법과 환경` (verification method and environment) | Whether each condition's command can run in this environment; the tools, data, network and repository history it needs (history only when the condition is about history, together with the range it reads). For a goal that connects several components, by what method the conditions checked across the boundary are verified |
+| `독립 검토` (independent review) | The SPEC's `Assurance:` tier (none when absent), the floor the project instructions require and the one followed, the planned review stages (plan, then candidate rounds, the last of which is the cumulative round) or the reason they were skipped under `light`, the product's invariants and decision rules the plan review will look at with the places that read or keep them ("Assurance tier and review order" below), the boundary of each check the goal adds or changes, and the supported input forms of the open-ended inputs a contract or check it adds or changes covers. Once rounds run, point to those round and gate records and do not copy the list of findings |
+| `결론` (conclusion) | `ready` or `needs_user` (reason) |
 
-나뉜 REVIEW 형식은 seal 0.1.29 이상으로 시작한 목표에 쓴다. 그 전 Seal로 시작한 목표의 REVIEW는 시작할 때의 형식을 유지한다. 이미 있는 `REVIEW.md`는 나뉜 형식으로 고쳐 쓰지 않는다.
+The split REVIEW form applies to goals started with seal 0.1.29 or later. A goal started with an earlier Seal keeps the REVIEW form it started with. An existing `REVIEW.md` is never rewritten into the split form.
 
-### 보증 등급과 검토 순서
+### Assurance tier and review order
 
-Seal 0.1.20 이상은 SPEC의 `Assurance:` 줄([goal-docs.md](goal-docs.md) §2.5)을 읽고 등급에 맞는 독립 검토 단계를 적용한다. 검토의 방법(패킷, 리뷰어, 분류 규칙, 단계 상한)은 Spar가 정하고, 이 계약은 시점과 처리만 정한다.
+Seal 0.1.20 or later reads the SPEC's `Assurance:` line ([goal-docs.md](goal-docs.md) §2.5) and applies the independent review stages that match the tier. Spar decides how review runs (packet, reviewers, classification rules, stage caps); this contract decides only the timing and the disposition.
 
-- `standard`: 좁은 검사가 통과한 최종 후보에서 candidate 단계를 받고, 검토 수정 commit 뒤에는 목표의 base commit부터 새 head까지 candidate 라운드를 한 번 더 받으며, `ha done` 전의 마지막 candidate 라운드가 누적 라운드다.
-- `strict`: `standard`에 더해 baseline을 기록하기 전에 plan 단계를 한 번 받는다. 검토 대상은 계획과 검사 선언, 그리고 이 변경이 도입하거나 바꾸는 제품의 불변식과 결정 규칙(대상 식별, 위치 해석, 재시도, 상한 등)이다. plan 라운드로 목표 문서나 검사가 바뀌면 다음 candidate 라운드가 그때의 목표 문서를 검토하고, 계획이나 검사만 바뀌었으면 plan 라운드를 다시 받지 않는다. plan 라운드 뒤에 SPEC.md나 그것이 연결한 목표 문서가 바뀌면 Core가 마지막 plan 라운드도 지금의 목표 문서를 받았기를 요구하므로(`review_docs_stale`, [run-record.md](run-record.md) §4.8), 사용자의 말로 plan 상한을 연장해 지금의 head에서 plan 라운드를 한 번 더 받는다.
-- `light`: 독립 검토를 생략할 수 있고, 생략하면 이유를 `REVIEW.md`와 완료 보고에 남긴다. 받으면 아래 완료 순서를 따른다.
-- 줄이 없는 목표는 선택된 보증 정책을 따른다. 프로젝트 지침(`AGENTS.md` 등)의 보증 요구는 하한이다. 등급은 그것을 올릴 수만 있고 낮추지 못하며, 둘이 다르면 더 많은 검토를 요구하는 쪽을 따르고 완료 보고에 각각이 요구한 검토와 따른 쪽을 적는다.
-- 구현 중에 등급이 바뀌고 사용자가 계속을 요청하면 바뀐 등급을 적용한다. 올라간 등급이 요구하는데 받지 않은 단계는 완료 전에 지금 head에 대해 받고, 이미 받은 검토의 기록은 지우지 않는다.
-- 누적 라운드는 Spar candidate 단계를 목표의 base commit부터 마지막 head까지로 다시 부른 라운드다. 독립 검토가 필요한 목표는 누적 라운드가 열린 `defect`·`requirement-question` 없이 끝난 뒤에만 `ha done`을 실행한다. 검토 수정 뒤의 라운드도 이렇게 base commit부터 보는 candidate 라운드라서 앞선 code 라운드의 지적과 그 마지막 처리를 받고, 그런 라운드 가운데 열린 `defect`·`requirement-question` 없이 끝난 마지막 라운드가 누적 라운드다. candidate 라운드 뒤에 수정이 없었으면 그 라운드가 누적 라운드다. 누적 라운드가 상한에 걸리면 사용자에게 묻고, 사용자의 말 없이 상한을 넘기거나 건너뛰지 않는다.
-- 라운드마다 그 라운드 전에 기록된, 목표 문서에 없는 사용자의 결정을 모두 넘긴다: `REVIEW.md` `## 중요한 미결정`을 닫은 사용자의 답, 사용자의 말을 인용한 확인(`confirm`)과 입력(`input`), 검토의 `requirement-question`에 대한 사용자의 답. 결정마다 정한 대상(`REVIEW.md`의 항목이나 확인의 대상)을 `--decision`으로, 기록된 인용을 그대로 `--decision-quote`로 준다. 상한 연장, 리뷰어 waiver, `reopen`은 넘기지 않는다. plan부터 누적 라운드까지 모든 라운드에 넘긴다. 결정 넘기기는 목표를 어느 Seal로 시작했든 이 Seal이 돌리는 라운드에 쓴다.
-- `## 독립 검토`는 변경이 도입하거나 바꾸는 제품 불변식과 결정 규칙마다 그것을 읽거나 지키는 곳을 적는다. 곳마다 저장소 경로를 적고, 그곳에서 쓰는 이름이 변경의 이름과 다르면 그 이름도 적는다. 이름으로 찾은 곳뿐 아니라 같은 불변식을 다른 이름으로 지키는 곳도 넣는다. 바꾸는 불변식이 없으면 없다고 적는다. plan부터 누적 라운드까지 라운드마다, 곳마다 그곳이 head에서도 그 불변식을 지키는지 묻는 `--question` 하나를 넘긴다. 목록은 리뷰어가 볼 곳을 더할 뿐 읽는 범위를 좁히지 않는다. 곳 목록은 seal 0.1.25 이상으로 시작한 목표에 쓰고, 이미 있는 목표의 `REVIEW.md`는 새 형식으로 고쳐 쓰지 않는다.
-- 계획은 목표가 더하거나 바꾸는 모든 검사에 대해 검사마다의 경계, 곧 그 검사가 무엇을 관찰하고 어떤 입력을 다루지 않는지를 모든 등급에서 첫 검토 라운드 전에(plan 라운드가 있는 목표(`strict`이거나 고른 정책이 요구할 때)는 plan 라운드, 없으면 첫 candidate 라운드) `REVIEW.md`에 적는다. 열린 입력(문장, 경로, 이름, 형식 등)에 대한 계약이나 검사를 더하거나 바꾸면 그 지원 입력 형식도 같은 때에 적는다. 검사의 경계와 지원 입력 형식은 SPEC 조건·계약·보호된 회귀 경로가 요구하는 입력보다 좁을 수 없고, 경계나 형식을 좁히는 것은 사용자가 정한다. 형식이 적히지 않은 열린 조건의 지원 입력 형식은 baseline 전에 한 번에 묻는 질문에 넣는다. 리뷰 수정이 검사가 보는 입력을 넓히면 같은 단계에서 그 경계 기록을 넓힌다. Seal은 `REVIEW.md`를 `--boundary`로 모든 검토 라운드에 넘긴다. seal 0.1.31 전에 시작한 목표는 시작할 때의 시점대로 plan 검토 전에 경계와 형식을 적고, 그 `REVIEW.md`는 고쳐 쓰지 않는다.
-- 지적의 처리는 Seal이 정한다. `defect`는 고치거나 근거로 반박하고, `requirement-question`은 사용자에게 묻고(목표 문서는 고치지 않는다), 자동 보류된 `hardening`은 사용자의 말 없이 고치지 않는다. 지원 형식 밖의 입력에 대한 지적은 `hardening`이며, `defect`로 분류되었으면 계약이 지원 형식을 적은 위치를 근거로 반박한다.
-- `run-rules/5`·`run-rules/6`·`run-rules/7`으로 시작한 `standard`·`strict` 목표는 누적 라운드 뒤 그 series의 라운드로 `spar gate`를 HEAD에 대해 만들고 `ha note <goal> review --gate <file>`로 기록한 다음 `ha done`을 실행한다. 라운드에는 목표 문서를 모두 `--criteria`로 준다. 기록된 gate가 없거나 낡았으면 Core가 완료를 기록하지 않는다([run-record.md](run-record.md) §4.8). Spar가 없거나 실행할 수 없으면 완료는 보류되고, 검토 없이 끝내려면 사용자가 등급을 `light`로 낮추는 목표 문서 수정을 정한다. 아래 별도 검토의 인정은 이 목표에 적용하지 않는다.
-- Spar가 없거나 실행할 수 없으면, 검토가 필수가 아닐 때 진행하고 완료 보고에 독립 검토가 없었다고 적는다. `run-rules/4` 이하로 시작한 목표에서 검토가 필수이면 완료를 보류하고 원인·영향 조건·부족한 근거·해소 조건을 남긴다. 역할·입력·검토한 버전·지적 또는 지적 없음·한계·확인할 수 있는 참조를 남긴 다른 별도 검토는 필수 검토로 인정하며, 완료 보고는 Spar를 쓰지 않았다는 사실과 쓴 방법을 적고, 그 검토도 `ha done` 전에 마지막 head 전체를 본다.
-- 완료 기록 뒤 사용자가 원격 리뷰 반영을 요청하면 그 요청을 인용한 `reopen`, 수정, 누적 라운드 한 번, 낡은 필수 검사의 재기록, `ha done` 순으로 진행한다.
-- `run-rules/4` 이하로 시작한 목표에서는 `ha status`·`ha done`의 판정과 출력이 등급 때문에 바뀌지 않고, `run-rules/5`·`run-rules/6`·`run-rules/7`으로 시작한 목표는 위 gate가 완료 조건이 된다. 그 전 Seal로 시작한 목표의 `REVIEW.md`는 시작할 때의 형식을 유지한다.
+- `standard`: takes a candidate stage on the final candidate whose narrow checks pass and one more candidate round from the goal's base commit to the new head after the review-fix commits; the last candidate round before `ha done` is the cumulative round.
+- `strict`: in addition to `standard`, takes one plan stage before recording any baseline. It reviews the plan and the check declarations, and the product's invariants and decision rules that this change introduces or alters (target identification, location resolution, retries, caps and so on). When the plan round leads to changed goal documents or checks, the next candidate round reviews the current goal documents, and a change to the plan or checks alone takes no new plan round. When SPEC.md or a goal document it links changes after the plan round, Core also needs the last plan round to have received the current goal documents (`review_docs_stale`, [run-record.md](run-record.md) §4.8), so the goal takes one more plan round on the current head after a plan cap extension in the user's words.
+- `light`: may skip independent review; when it does, it leaves the reason in `REVIEW.md` and the completion report. When it takes review, it follows the completion order below.
+- A goal without the line follows the selected assurance policy. The assurance requirements of project instructions (`AGENTS.md` and the like) are a floor. The tier can only raise it, never lower it; when the two differ, follow the one that asks for more review, and write in the completion report the review each required and the one followed.
+- When the tier changes during implementation and the user asks to continue, apply the changed tier. A stage that the raised tier requires but that was not taken is taken on the current head before completion, and the records of reviews already taken are not deleted.
+- The cumulative round is a round that calls Spar's candidate stage again over the goal's base commit to the last head. A goal that needs independent review runs `ha done` only after the cumulative round ends with no open `defect` or `requirement-question`. A round after review fixes is such a candidate round from the base commit too and receives the earlier code rounds' findings with their last dispositions, and the last such round that ends with no open `defect` or `requirement-question` is the cumulative round. When there were no fixes after the candidate round, that round is the cumulative round. When the cumulative round hits a cap, ask the user; never go past the cap or skip the round without the user's words.
+- Every round receives all the user's decisions recorded before it that the goal documents do not hold: the user's answers that closed `REVIEW.md` `## 중요한 미결정` items, confirmations (`confirm`) and inputs (`input`) that quote the user's words, and the user's answers to a review's `requirement-question`. Each decision gives what it settles (the `REVIEW.md` item or the confirmation's target) as `--decision` and the recorded quote unchanged as `--decision-quote`. Round cap extensions, reviewer waivers and `reopen` are not passed. Decisions go to every round from the plan round to the cumulative round. Passing decisions applies to every round this Seal runs, whichever Seal started the goal.
+- For each product invariant and decision rule the change introduces or alters, `## 독립 검토` lists the places that read or keep it: each place's repository path, and the name used there when it differs from the change's name. It includes places that keep the same invariant under another name, not only those found by name; when the change alters no invariant, it says so; and every round from the plan round to the cumulative round gets one `--question` per place, asking whether that place still keeps the invariant at head; the list adds places for reviewers to look at and never narrows what they read. The list of places applies to goals started with seal 0.1.25 or later, and existing goals' `REVIEW.md` is never rewritten to the new form.
+- For every check the goal adds or changes, the plan records each check's boundary, what the check observes and which inputs it does not cover, in `REVIEW.md` before the earliest review round of every tier: the plan round when the goal has one (`strict`, or a selected policy that asks for one), otherwise the earliest candidate round. When a contract or check about open-ended input (sentences, paths, names, formats and so on) is added or changed, the plan records its supported input forms at the same time. A check's boundary and the supported input forms cannot be narrower than the input that a SPEC condition, a contract or a protected regression path requires, and narrowing a boundary or the forms is the user's decision. Ask for the supported input forms of an open-ended criterion whose forms are not written in the one question before any baseline. When a review fix widens the inputs a check observes, widen its boundary record in the same step. Seal passes `REVIEW.md` as `--boundary` to every review round. Goals started before seal 0.1.31 keep the timing they started with, writing the boundaries and forms before the plan review, and their `REVIEW.md` is not rewritten.
+- Seal decides the disposition of findings. Fix a `defect` or rebut it with evidence; ask the user about a `requirement-question` (without editing the goal documents); never fix an automatically deferred `hardening` without the user's words. A finding about input outside the supported forms is `hardening`; when it was classified as a `defect`, rebut it by citing where the contract wrote the supported forms.
+- A `standard` or `strict` goal started with `run-rules/5`, `run-rules/6` or `run-rules/7`, after the cumulative round, makes a `spar gate` for HEAD from that series' rounds, records it with `ha note <goal> review --gate <file>` and then runs `ha done`. The rounds get all goal documents as `--criteria`. When no gate is recorded, or the recorded gate is stale, Core does not record completion ([run-record.md](run-record.md) §4.8). When Spar is missing or cannot run, completion is held; to finish without review, the user decides a goal-document change that lowers the tier to `light`. The acceptance of a separate review below does not apply to these goals.
+- When Spar is missing or cannot run and review is not required, proceed and write in the completion report that there was no independent review. In a goal started with `run-rules/4` or earlier where review is required, hold completion and record the cause, the affected conditions, the missing evidence and the resolution condition. Another separate review that records its role, inputs, reviewed version, findings or no findings, limits and checkable references counts as the required review; the completion report states that Spar was not used and the method that was used, and that review too covers the whole last head before `ha done`.
+- When the user asks to apply remote review after a completion record, proceed in this order: `reopen` quoting that request, the fix, one cumulative round, re-recording stale required checks, and `ha done`.
+- In goals started with `run-rules/4` or earlier, the tier does not change the judgment or the output of `ha status` and `ha done`; in goals started with `run-rules/5`, `run-rules/6` or `run-rules/7`, the gate above becomes a completion condition. The `REVIEW.md` of a goal started with an earlier Seal keeps the format it started with.
 
-### 검증 근거와 관측 범위
+### Verification evidence and observation scope
 
-Seal 0.1.10 이상으로 시작한 새 목표는 기존 검토와 완료 보고에 아래 구분을 사용한다. 기존 목표는 시작할 때의 형식을 유지하며, 새 항목의 부재는 미기록이지 실패·미실행의 증거가 아니다. 기존 기록을 자동 변환하거나 과거 관측을 채우지 않는다.
+New goals started with Seal 0.1.10 or later use the distinctions below in their existing review and completion report. Existing goals keep the format they started with, and the absence of the new items means unrecorded, not evidence of failure or non-execution. Do not convert existing records automatically or fill in past observations.
 
-- **기대 결과의 근거**: 사용자 요구·공개 계약·합의한 불변식과 위치. 실제 동작·참조 구현을 기준으로 삼았다면 그 선택의 계약과 범위도 밝힌다. 실제 실행이나 fake 기대값 자체는 올바름을 정하는 권위가 아니다.
-- **관측할 경계**: 확인하려는 실제 셸·DB·HTTP·모델 등의 경계와 범위. 결과에 영향을 주는 환경만 적고 예정·미수행·실제 수행을 구분한다.
-- **시험 방법과 대체 환경**: 합성 입력·fake·실패 주입·참조 구현 비교가 무엇을 통제하거나 대신하는지. 예시를 전체 입력의 정답으로 확대하지 않는다.
-- **덮지 않는 실패 종류**: 일반 성질·대표 예시·환경 가정의 공백과 위험한 경계. 남은 위험이 없다는 주장에도 범위를 붙이며 검사 개수는 충분성의 근거가 아니다.
+- **Grounds for the expected result**: the user's requirement, a public contract or an agreed invariant, and its location. When actual behavior or a reference implementation was taken as the standard, also state the contract and scope of that choice. An actual run or a fake's expected value is not in itself the authority on correctness.
+- **Boundary to observe**: the boundary and scope of the actual shell, database, HTTP, model or other system to be checked. Write only the environments that affect the result, and distinguish planned, not performed and actually performed.
+- **Test method and substitute environment**: what synthetic inputs, fakes, fault injection and comparison with a reference implementation control or stand in for. Do not stretch an example into the right answer for all inputs.
+- **Failure kinds not covered**: gaps in the general property, the representative examples and the environment assumptions, and risky boundaries. Even a claim that no risk remains carries a scope, and the number of checks is not evidence of sufficiency.
 
-모든 조건은 이 세 축과 공백에 연결한다. 같은 내용을 공유하는 조건 그룹은 한 설명을 참조할 수 있으며 AC별 반복이나 여러 문서의 같은 표 복제는 요구하지 않는다. 기대 근거가 미정·충돌이면 그 상태를 드러내고 완성된 정답처럼 쓰지 않는다.
+Link every condition to these three axes and the gaps. A group of conditions that shares the same content may refer to one explanation; repetition per AC, or copies of the same table in several documents, are not required. When the expected grounds are undecided or conflicting, show that state, and do not write them as a finished answer.
 
-검토의 예정과 보고의 실제 결과를 연결한다. 조건·검사·환경이 바뀌면 근거의 버전과 적용 범위도 구분하며, 이전 결과를 새 관측으로 쓰지 않는다. 기록으로 확인한 사실과 실행자의 해석을 구분한다. 접근·실행이 막힌 범위와 이유는 미관측으로 남긴다.
+Link what the review planned to the actual results in the report. When a condition, check or environment changes, also distinguish the version and the applicable scope of the evidence, and do not use earlier results as new observations. Distinguish facts confirmed by records from the executor's interpretation. Leave the scope where access or execution was blocked, and the reason, as unobserved.
 
-`needs_user`인 중요한 미결정이 남아 있으면 실행하지 않고 사용자에게 묻는다. 클래스명, 파일 배치, 구현 순서처럼 구현자가 정할 수 있는 것은 묻지 않는다(Spec의 질문 원칙과 같다).
+While an important open decision at `needs_user` remains, do not execute; ask the user. Do not ask about what the implementer can decide, such as class names, file layout or implementation order (the same as Spec's questioning principle).
 
-### 보증 정책과 반례
+### Assurance policy and counterexamples
 
-Seal 0.1.11 이상으로 시작하는 새 목표와 사용자가 요청한 영향이 큰 검증 설계 변경은 조건 또는 조건 그룹에 보증 정책의 출처, 필수·선택 여부, 위험의 이유를 연결한다. 잘못된 성공의 영향, 관련 경계, 현재 근거의 공백을 설명하고 고위험 후보를 제외한 이유도 남긴다. 위험도만으로 모든 목표에 같은 agent·모델·기준 검사 전 순서를 강제하지 않는다. 실행자가 이미 정한 필수 보증을 낮추지 않으며 미결정인 결과만 사용자 결정으로 남긴다.
+New goals started with Seal 0.1.11 or later, and high-impact verification design changes the user requested, link to each condition or condition group the source of the assurance policy, whether it is required or optional, and the reason for the risk. Explain the impact of a false success, the relevant boundary and the gaps in the current evidence, and also record why high-risk candidates were excluded. Do not impose on every goal the same agent, model or pre-baseline-check order on risk level alone. Do not lower a required assurance the executor has already set; leave only undecided outcomes for the user's decision.
 
-기대 근거·관측 경계·방법과 대체 환경을 분리하고 실제 비교는 같은 성질·입력 범위·환경의 결과와 차이를 연결한다. 조건이 주장하는 성질이나 정책에 필요할 때 실제 경계 근거를 확보하며 실제 시스템이 존재한다는 이유만으로 모든 조건에 호출을 요구하지 않는다. 구조화된 원본과 대상 연결이 있으면 불완전한 문자열 추론으로 대체하지 않는다. fake·합성·참조 구현이나 모델 한 번의 성공을 전체 실제 계약 보장으로 승격하지 않는다.
+Keep the expected grounds, the observation boundary, and the method and substitute environment separate; an actual comparison links the results and differences for the same property, input range and environment. Obtain evidence at the actual boundary when the property or policy a condition claims needs it, and do not require a call for every condition only because a real system exists. When structured originals linked to their targets exist, do not replace them with incomplete inference from strings. Do not promote the success of a fake, a synthetic setup, a reference implementation or a single model run into a guarantee of the whole real contract.
 
-독립 검토는 별도의 검토이며 초기 입력은 목표·공개 계약·검사·기대 근거다. 구현자의 해법 설명으로 시작점을 고정하지 않지만 필요한 구현·통합 코드도 살필 수 있다. 조건·검사·코드 버전, 제공 맥락, 역할, 확인 가능한 근거, 발견·미발견·미수행과 한계를 남긴다. 자기 검토에 다른 역할 이름만 붙인 것은 독립 검토가 아니며 모델 다양성·인증 신원·충분성 보증을 주장하지 않는다.
+Independent review is a separate review, and its initial input is the goal, the public contract, the checks and the expected grounds. It does not fix its starting point on the implementer's explanation of the solution, but it may also examine the implementation and integration code it needs. Record the condition, check and code versions, the context provided, the role, checkable evidence, what was found, not found or not performed, and the limits. A self-review with only a different role name attached is not independent review, and no claim is made of model diversity, certified identity or a guarantee of sufficiency.
 
-반례 후보는 입력·예상 위반·검사의 누락 이유와 연결하고 재현·기각·수정·남은 공백을 구분한다. 원래 조건 위반이 확인되면 완료하지 않는다. 기존 검사를 반복 통과시키고 보고의 위험 문구만 추가하는 것으로 닫지 않으며 놓친 일반 성질을 어떤 검사와 수정 근거로 처리했는지 남긴다. 범위를 바꾸는 제안은 사용자 결정 대상으로 남긴다.
+Link a counterexample candidate to its input, the expected violation and why the check misses it, and distinguish reproduction, rejection, fix and remaining gaps. When a violation of the original condition is confirmed, do not complete. Do not close it by passing the existing checks again and only adding risk wording to the report; record which check and which fix evidence handled the missed general property. Leave a proposal that changes the scope for the user to decide.
 
-근거를 인정하는 검사는 판정 불가를 성공으로 쓰지 않으며 금지 검사는 판정 불가를 실행 없음으로 숨기지 않는다. 미관측·환경 오류·skip·실제 위반을 보존한다. 판정 불가는 의도한 baseline 위반 근거도 아니다. 증거 충분성과 제품 입력의 허용·거부는 별개다.
+A check that accepts evidence does not use inconclusive as success, and a prohibition check does not hide inconclusive as no execution. Preserve unobserved, environment error, skip and actual violation. Inconclusive is not evidence of an intended baseline violation either. Evidence sufficiency and whether the product accepts or rejects an input are separate matters.
 
-필수 검토나 실제 근거가 없으면 원인·영향 조건·부족한 근거·해소 조건을 기록하고 해당 필수 작업을 미완료로 두어 완료를 보류한다. 무관한 작업은 기존 권한·예산 안에서 계속하며 선택 비교는 미관측·위험을 후속 평가로 둘 수 있다. 자동 설치·비용 증가·권한 확대나 사실 없는 검토 기록으로 공백을 채우지 않는다.
+When a required review or actual evidence is missing, record the cause, the affected conditions, the missing evidence and the resolution condition, leave that required work unfinished and hold completion. Unrelated work continues within the existing authority and budget, and an optional comparison may leave its unobserved scope and risk to a later evaluation. Do not fill the gap with automatic installation, increased cost, widened permissions or a review record without facts.
 
-목표·검사·코드·기대 근거·환경·정책이 바뀌면 검토 대상 버전과 범위를 보존하고 새 적용 범위를 구분한다. 과거 검토를 새 입력으로 재사용하거나 미기록 검토를 소급 생성하지 않는다. Core의 결정성·local 보증·결과 구분·불리한 이력·예산·권한은 유지하고 방법·시점·검토자·모델·mutation은 실행자가 선택한다.
+When the goal, checks, code, expected grounds, environment or policy change, preserve the reviewed version and scope, and distinguish the new applicable scope. Do not reuse a past review for new inputs, or create an unrecorded review retroactively. Core's determinism, local assurance, result distinctions, adverse history, budget and authority stay; the executor chooses the method, timing, reviewers, model and mutation.
 
 ## 5. `PROGRESS.md`
 
-아래 형식은 seal 0.1.20 이상으로 시작한 목표에 쓴다. 그 전 Seal로 시작한 목표는 시작할 때의 PROGRESS 형식을 유지한다. 시작 기록의 Skill 버전은 `ha status`의 `skill:` 줄에 있다. seal 0.1.6~0.1.19로 시작한 목표의 `## 현재`는 확인 시각(시간대 포함)과 그때의 `ha status`·`ha done` 판정과 기록 head를 손으로 적는 짧은 요약이며, 고칠 때마다 확인 시각과 기록 head를 그때 값으로 쓰고 확인 시각은 참고다. 그 밖의 절(`## 타임라인`, 두 표의 시각 규칙)은 아래와 같다.
+The format below is used for goals started with seal 0.1.20 or later. A goal started with an earlier Seal keeps the PROGRESS format it started with. The Skill version of the start record is on the `skill:` line of `ha status`. In a goal started with seal 0.1.6 to 0.1.19, `## 현재` is a short summary in which the check time (with time zone), the `ha status` and `ha done` judgment of that time and the record head are written by hand; each edit writes the check time and the record head as of then, and the check time is for reference. The other sections (`## 타임라인`, the time rules of the two tables) are as below.
 
-| 절 | 내용 |
+| Section | Content |
 | --- | --- |
-| `## 현재` | 짧은 최신 요약(대략 5~8줄). 맨 위에 `ha report <goal>`이 `## 현재` 도장으로 보이는 값을 그대로 붙인다: 기록 head(`ha status`가 보여 주는 그대로 seq와 hash, 예: `seq 2 (0123456789ab)`. 기록이 아직 없으면(`ha start` 전) `ha status`처럼 `none`), 그 기록에 저장된 시각(시간대 포함), 상태, 완료 기록이 있으면 완료 기록 seq. 확인 시각을 손으로 적지 않는다. 그 아래에 진행 중인 일, 남은 문제, 다음 작업, 재개 방법을 담는다. 기록 head가 바뀔 때마다 새 도장으로 고친다. 이어받는 사람은 기록 head를 `ha status`와 비교해 낡았는지 본다. 같은 seq라도 hash가 다르면 다른 기록이다. 도장의 시각은 참고다. 지난 경위는 쓰지 않고 `## 타임라인`을 가리킨다. 완료 기록을 남길 때는 그 완료 기록 기준이라고 밝히고, 묶음의 마지막 commit 뒤에 일어나 묶음에 남지 않는 일(병합, PR 답글, 병합 뒤 확인 등)을 어디서 보는지 가리킨다. 완료 뒤에 할 일을 진행 중인 일처럼 쓰지 않는다. |
-| `## 검수 요약` | seal 0.1.24 이상으로 시작한 목표에서 완료 기록 뒤에 쓰는 검수 요약. 사용자가 완료한 목표의 검수를 시작하는 곳이다. 아래 5.4절. `ha`는 이 절을 읽지 않는다. |
-| `## Task 상태` | 표: `Task`, `상태`(`todo` \| `doing` \| `done` \| `dropped` \| `blocked`), `메모`. `done`은 주장이다. `dropped`는 계획 변경 기록이 있어야 한다. |
-| `## 타임라인` | (선택) 판단이나 다음 행동을 바꾼 사건을 덧붙이는 이력. 아래 5.1절. `ha`는 이 절을 읽지 않는다. |
-| `## 계획 변경` | 표: `시각`, `변경`, `이유`, `영향`, `다시 검토한 것`. 조건 종류 변경(예: `change` → `maintain`)도 여기에 남긴다. `시각`은 시간대를 포함한다. 한 행은 사건 하나다. 같은 사건을 타임라인에도 쓰면 상세 설명은 그 타임라인 항목에만 두고, 행은 한 줄 요약과 그 항목의 시각으로 가리킨다. |
-| `## 막힘` | 표: `시각`, `원인 종류`(`auth` \| `permission` \| `quota` \| `environment` \| `spec` \| `other`), `내용`, `해소 조건`. 종료형 실패는 다시 시도하지 않고 여기에 남긴다. `시각`은 시간대를 포함한다. 한 행은 사건 하나다. 같은 사건을 타임라인에도 쓰면 상세 설명은 그 타임라인 항목에만 두고, 행은 한 줄 요약과 그 항목의 시각으로 가리킨다. |
-| `## 개선 메모` | (선택) 실행자가 본 Seal Skill·템플릿·`ha`의 문제와 제안. 주장이다. 이 목표 안에서 Skill이나 템플릿을 고치지는 않는다. |
-| `## 완료 보고` | 아래 6절 |
+| `## 현재` | A short, current summary (about 5 to 8 lines). At the top, paste unchanged the values `ha report <goal>` shows as the `## 현재` stamp: the record head (seq and hash exactly as `ha status` shows them, for example `seq 2 (0123456789ab)`; while there is no record yet (before `ha start`), `none`, as in `ha status`), the time stored in that record (with time zone), the state, and the completion record seq when there is a completion record. Do not write a check time by hand. Below it go the work in progress, the open problems, the next work and how to resume. Update it with a new stamp whenever the record head changes. Whoever takes over compares the record head with `ha status` to see whether it is stale. The same seq with a different hash is a different record. The stamp's time is for reference. Do not write past events; point to `## 타임라인`. When a completion record is left, state that the summary is as of that completion record, and point to where to see what happens after the bundle's last commit and does not stay in the bundle (merge, PR replies, checks after the merge and so on). Do not write work to do after completion as if it were in progress. |
+| `## 검수 요약` | Review summary. For a goal started with seal 0.1.24 or later, written after the completion record. Where the user starts reviewing the finished goal. See 5.4 below. `ha` does not read this section. |
+| `## Task 상태` | Table: `Task`, `상태` (state: `todo` \| `doing` \| `done` \| `dropped` \| `blocked`), `메모` (note). `done` is a claim. `dropped` needs a plan change record. |
+| `## 타임라인` | Optional. A history to which events that changed a judgment or the next action are appended. See 5.1 below. `ha` does not read this section. |
+| `## 계획 변경` | Table: `시각` (time), `변경` (change), `이유` (reason), `영향` (impact), `다시 검토한 것` (what was reviewed again). A condition kind change (for example `change` → `maintain`) is recorded here too. `시각` includes the time zone. One row is one event. When the same event is also written in the timeline, the detailed description stays only in that timeline entry, and the row points to it with a one-line summary and that entry's time. |
+| `## 막힘` | Table: `시각` (time), `원인 종류` (cause kind: `auth` \| `permission` \| `quota` \| `environment` \| `spec` \| `other`), `내용` (description), `해소 조건` (resolution condition). Terminal failures are not retried but recorded here. `시각` includes the time zone. One row is one event. When the same event is also written in the timeline, the detailed description stays only in that timeline entry, and the row points to it with a one-line summary and that entry's time. |
+| `## 개선 메모` | Optional. Problems with, and suggestions for, the Seal Skill, its templates and `ha` that the executor noticed. These are claims. The Skill and the templates are not changed inside this goal. |
+| `## 완료 보고` | Section 6 below |
 
-### 5.1 타임라인
+### 5.1 Timeline
 
-`## 타임라인`은 선택 절이다. 판단이나 다음 행동을 바꾼 사건을 시간 순서로 덧붙여, 다른 세션에서 이어받는 사람이 "왜 이렇게 바꿨는가"를 알 수 있게 한다. 내용은 실행자의 주장이다.
+`## 타임라인` is an optional section. Events that changed a judgment or the next action are appended in time order, so that someone taking over in another session can learn "why it was changed this way". Its content is the executor's claim.
 
-- **항목 제목**: `### <시각> · seq <기록 head> — <종류> · <한 줄 요약>`
-  - 시각은 시간대를 포함한 ISO 8601이다(예: `2026-01-01T09:00:00+09:00`, UTC면 `Z`). 정확한 시각을 모르면 지어내지 않는다.
-  - seq는 항목을 쓸 때의 기록 head다(제목에는 seq만 쓰고, hash는 `## 현재`에 쓴다). 기록이 아직 없으면 `seq none`으로 쓴다. 검사 실행에 묶인 항목은 그 실행의 seq를 쓴다. seq는 `runs.jsonl`의 해시 연결로 확인되는 순서라서, 주장인 시각보다 확인하기 쉽다.
-  - 종류는 `관측`, `원인`, `결정`, `조치`, `검증`, `막힘`, `재개` 중 하나다.
-- **시각 출처와 판단**: 사건 시각과 작성 시각을 구분하고 시각 출처를 남긴다. 원래 사건 시각을 모르면 미상으로 두고 제목에는 실제 작성 시각을 사용할 수 있다. 남은 조건, 새 사실, 가설의 근거, 다음에 줄일 불확실성을 해당하는 만큼 적는다. 매 도구 호출을 기록하지 않으며 같은 코드·환경·가설의 같은 결과를 진전으로 꾸미지 않는다. 반복 뒤에는 원인 분리·다른 가설·막힌 조건처럼 달라진 판단이 드러나야 한다.
-- **본문 표시**: 원인은 `가설`·`확정`·`기각`, 조치는 `예정`·`반영`, 검증은 `대기`·`통과`·`실패`로 표시한다(예: `원인 [확정]: …`). 근거는 AC, commit, seq로 가리키고 검사 출력 원문은 옮기지 않는다(6절).
-- **덧붙이기만 한다.** 이전 항목은 고치지 않는다. 그 시점에 대기였다는 것도 이력이다. 판단이 바뀌면 새 항목에 무엇을 어떤 근거로 기각했는지 적는다. 원인 확인부터 검증까지 한 번에 끝난 작은 사건은 한 항목이어도 된다.
-- **남기는 것**: 판단이나 다음 행동을 바꾼 사건. 새 문제, 원인 확정·변경, 접근 방법 변경, 중요한 검증 결과, 막힘과 재개다. 재개는 다시 일을 시작하는 모든 경우다. 새 세션이 이어받을 때, 막힘이 풀렸을 때, `needs_user`에 답을 받았을 때가 해당한다. `재개` 항목에는 `## 현재`가 실제 상태와 달랐던 것이 있으면 그것을 적는다.
-- **남기지 않는 것**: 일상적인 편집과 읽기, 같은 실패의 반복 실행, 변화 없는 진행 보고
-- **분량**: 항목은 대략 3~6줄, `## 현재`는 대략 5~8줄이다. 편집 기준이며 상한이 아니다. 복잡한 원인 분석은 더 쓸 수 있다.
+- **Entry heading**: `### <time> · seq <record head> — <kind> · <one-line summary>`
+  - The time is ISO 8601 with the time zone (for example `2026-01-01T09:00:00+09:00`, or `Z` for UTC). When you do not know the exact time, do not make one up.
+  - The seq is the record head when the entry is written (the heading carries only the seq; the hash goes in `## 현재`). While there is no record yet, write `seq none`. An entry tied to a check run uses that run's seq. The seq is an order confirmed by the hash chain of `runs.jsonl`, so it is easier to confirm than the time, which is a claim.
+  - The kind is one of `관측` (observation), `원인` (cause), `결정` (decision), `조치` (action), `검증` (verification), `막힘` (block) and `재개` (resume).
+- **Time source and judgment**: distinguish the event time from the writing time, and record the time source. When the original event time is unknown, leave it unknown; the heading may use the actual writing time. Write the remaining conditions, new facts, the grounds for a hypothesis and the uncertainty to reduce next, as far as they apply. Do not record every tool call, and do not dress up the same result from the same code, environment and hypothesis as progress. After a repetition, a changed judgment must show, such as a separated cause, a different hypothesis or a blocked condition.
+- **Body marks**: mark a `원인` (cause) as `가설` (hypothesis), `확정` (confirmed) or `기각` (rejected); a `조치` (action) as `예정` (planned) or `반영` (applied); and a `검증` (verification) as `대기` (pending), `통과` (passed) or `실패` (failed) (for example `원인 [확정]: …`). Point to evidence by AC, commit and seq, and do not copy raw check output (section 6).
+- **Append only.** Do not edit earlier entries. That something was `대기` (pending) at that point is history too. When a judgment changes, write in a new entry what was rejected and on what grounds. A small event that went from confirming the cause to verification at once may be one entry.
+- **What to record**: events that changed a judgment or the next action. These are a new problem, a cause confirmed or changed, a change of approach, an important verification result, and blocks and resumes. A resume is any case of starting work again. This covers a new session taking over, a block being cleared and an answer received to `needs_user`. A `재개` entry notes where `## 현재` differed from the actual state, if it did.
+- **What not to record**: routine edits and reads, repeated runs of the same failure, progress reports with no change
+- **Length**: an entry is about 3 to 6 lines and `## 현재` about 5 to 8 lines. This is editing guidance, not a limit. A complex cause analysis may run longer.
 
-아래는 형식 설명용 가상 예시다. 실제 실행 기록을 나타내지 않는다.
+Below is a hypothetical example to explain the format. It does not represent an actual run record.
 
 ```markdown
 ### 2026-01-01T09:00:00+09:00 · seq 2 — 원인 · AC-1 빈 입력 처리
@@ -275,81 +275,81 @@ Seal 0.1.11 이상으로 시작하는 새 목표와 사용자가 요청한 영�
 - 조치 [예정]: 빈 입력일 때 0을 반환한다.
 ```
 
-### 5.2 완료 뒤 발견
+### 5.2 Post-completion findings
 
-Seal 0.1.12 이후의 새 보고는 `## 완료 뒤 발견`에 상세를 적거나 한곳의 상세를 참조할 수 있다. 기존 목표의 형식·완료 보고·실행 기록은 자동 변환하지 않고 새 절이 없으면 미기록으로 읽는다. 구형 목표에 새 발견을 덧붙일 때도 과거 관측을 만들거나 원래 완료 보고를 덮어쓰지 않는다.
+New reports from Seal 0.1.12 on may write details in `## 완료 뒤 발견` or refer to details kept in one place. The format, completion report and run record of existing goals are not converted automatically, and a missing new section is read as unrecorded. Even when appending a new finding to an older goal, do not create past observations or overwrite the original completion report.
 
-발견 식별자, 대상 코드·목표·당시 완료 참조, 관련 조건 또는 조건 미포함·연결 미정, 내용·출처·재현 근거·관측 범위·현재 확인 주장·후속 작업을 연결한다. 모르는 값은 미정·없음으로 두며 임의 버전·조건·검사 결과를 채우지 않는다. 사건 시각과 기록 시각을 구분하고 시각 출처를 남긴다. 모르는 사건 시각은 미상이며 작성 시각으로 대신하지 않는다.
+Link the finding identifier; the target code, goal and reference to the completion at the time; the related condition, or no condition included, or link undecided; and the description, source, reproduction evidence, observed scope, current confirmation claim and follow-up work. Leave unknown values as undecided or none, and do not fill in arbitrary versions, conditions or check results. Distinguish the event time from the recording time and record the time source. An unknown event time is unknown, and the writing time does not stand in for it.
 
-후보·확인·중복·기각·해결과 새 요구·기존 조건 위반을 구별한다. 판단이 바뀌면 원본을 보존하고 정정 대상·새 판단·이유·근거를 덧붙인다. 중복은 기준 발견을 가리키고 해결은 수정·재확인 근거와 미확인 범위를 남긴다. 보고 수를 고유한 확인 결함 수로 설명하지 않는다. 문서의 상태 이름은 기계적 최신 상태나 동시 수정 충돌 해결을 보장하지 않는다.
+Distinguish candidate, confirmed, duplicate, rejected and resolved, and tell a new requirement apart from a violation of an existing condition. When a judgment changes, preserve the original and append the correction target, the new judgment, the reason and the evidence. A duplicate points to the canonical finding, and a resolution records the fix and recheck evidence and the unconfirmed scope. Do not describe the number of reports as the number of unique confirmed defects. A document's state names do not guarantee a mechanically current state or the resolution of conflicts from concurrent edits.
 
-현재 요약은 당시 완료·현재 발견·재작업 요청과 진행 여부를 구별한다. 확인된 기존 조건 위반이 있는데 완료 기록만 앞세워 현재 결함이 없는 것처럼 설명하지 않는다. 상세는 한곳에 두고 요약에서 참조하며 후속 수정·검사를 과거 완료의 근거로 소급하지 않는다.
+The current summary distinguishes the completion at the time, the current findings, and rework requests and whether they are in progress. When a confirmed violation of an existing condition exists, do not put the completion record forward and describe things as if there were no current defect. Keep the details in one place and refer to them from the summary, and do not apply later fixes or checks retroactively as evidence for the past completion.
 
-문서 기록·확인·기각·해결은 기존 완료·실행 예산·사용자 권한을 바꾸거나 재작업을 시작하지 않는다. 명시적인 재작업 요청이 있으면 원문 출처·대상 발견·후속 결과를 연결하고 요청·예정·진행·완료·미요청을 구분한다. 원문 로그와 비공개 대화는 기존 보관 경계를 지키고 허용된 위치·식별자로 참조한다. 공개 예시는 합성이라고 밝힌다. 이 문서 형식은 Core의 구조화 조회나 상태 전이 구현이 아니며 별도 기능 계약을 대신하지 않는다.
+Recording, confirming, rejecting or resolving in documents does not change the existing completion, execution budget or user authority, and does not start rework. When there is an explicit rework request, link its original source, the target finding and the follow-up result, and distinguish requested, planned, in progress, complete and not requested. Raw logs and private conversations keep their existing storage boundaries and are referred to by permitted locations and identifiers. Public examples state that they are synthetic. This document format is not an implementation of Core's structured queries or state transitions, and does not replace a separate feature contract.
 
-사용자 요청 없이 받은 리뷰·PR 지적은 완료 목표의 코드를 고칠 권한이 아니다. 이 형식의 완료 뒤 발견으로 남기고 보고한다. 코드를 고치려면 사용자의 요청과 `reopen`이 필요하다.
+Review or PR findings received without the user's request are not authority to change the completed goal's code. Record them as post-completion findings in this format and report them. Changing the code needs the user's request and `reopen`.
 
-### 5.4 검수 요약
+### 5.4 Review summary
 
-`## 검수 요약`은 seal 0.1.24 이상으로 시작한 목표에 쓴다. 그 전 Seal로 시작한 목표는 시작할 때의 PROGRESS와 보고 형식을 유지한다. 이미 있는 목표의 `PROGRESS.md`는 새 형식으로 바꾸지 않는다.
+`## 검수 요약` applies to goals started with seal 0.1.24 or later. A goal started with an earlier Seal keeps the PROGRESS and report form it started with, and existing goals' `PROGRESS.md` is never converted to the new form.
 
-사용자가 완료한 목표의 검수를 시작하는 절이다. 무엇이 바뀌었는지, 왜 바뀌었고 무엇이 근거인지, 사람이 직접 봐야 할 것이 무엇인지를 한 곳에서 보게 한다. `ha done`이 완료 기록을 남긴 뒤 그 완료 기록 기준으로 쓴다. 목표를 다시 열어 완료를 다시 기록하면 새 완료 기록 기준으로 다시 쓴다. 완료 기록 전과 멈춤(`needs_user`, `blocked`, `budget_exhausted`) 때는 쓰지 않는다. 그 전에는 제목 아래에 그렇다는 한 줄만 두고, 멈춤 때는 지금처럼 `## 현재`와 완료 보고(6절)가 상태를 맡는다. `ha`는 이 절을 읽지 않는다.
+This is where the user starts reviewing a finished goal, so that the user can see in one place what changed, why and on what evidence, and what a person must inspect directly. Written once `ha done` records completion, as of that completion record, and rewritten as of each new completion record after a reopen; not written before completion or when work stops at `needs_user`, `blocked` or `budget_exhausted`. Before that, the heading holds one line saying so, and at a stop `## 현재` and the completion report (section 6) carry the state as before. `ha` does not read this section.
 
-완료 기록이 있는 목표를 `reopen`으로 다시 열면, 다음 완료 기록 전까지 이 절의 이전 내용은 고치지 않는다. 맨 위에 한 줄을 둔다. 그 줄은 이 요약이 어느 완료 기록(seq와 commit) 기준인지, 목표를 다시 열어 그 완료 기록이 지금은 유효하지 않다는 것, 다음 완료 기록 뒤 다시 쓴다는 것을 말한다. 그 사이에 멈춰도(`needs_user`, `blocked`, `budget_exhausted`) 이전 내용과 그 줄은 그대로다. 다음 완료 기록 뒤에는 그 기록 기준으로 이 절을 다시 쓰고 그 줄은 남지 않는다. 다시 연 목표에는 완료 기록 전에 두는 한 줄 대신 이 규칙을 따른다.
+When a goal with a completion record is reopened with `reopen`, the earlier content of this section stays unchanged until the next completion record. Add one line at its top saying which completion record (seq and commit) it is as of, that the goal was reopened so that completion record is no longer valid, and that this section will be rewritten after the next completion record. A stop in between (`needs_user`, `blocked`, `budget_exhausted`) leaves the earlier content and that line as they are. After the next completion record, rewrite this section as of that record; that line does not remain. For a reopened goal this rule applies instead of the one line kept before completion.
 
-절의 구성은 아래 항목이 전부이며 이 순서다. 해당하는 것이 없는 항목에는 `없음`을 쓴다.
+The section consists of the items below and nothing else, in this order; write `없음` in an item with nothing to list.
 
-- 제목 없는 첫 줄들: 완료 기록의 seq와 commit, 보증 등급, 필수 조건 충족 수, 독립 검토 gate의 결과. 이 변경이 하는 일 한 줄. 먼저 볼 항목.
-- `### 바뀐 동작과 파일`: 열이 `바뀐 동작 | 조건 | 파일`인 표. 목표의 base부터 완료 commit까지 바뀐 파일은 목표 문서를 빼고 모두 어느 행엔가 나온다. 이 목표의 검사 파일도 행으로 둔다.
-- `### 범위 밖이나 기존 것을 바꾼 곳`: SPEC 범위 밖의 파일 변경, 기존 시험의 변경, 이전 목표가 남긴 검사의 변경을 하나씩 적고, 각각에 그 변경을 허락한 사용자의 말이 있는 곳이나 이유를 함께 쓴다.
-- `### 근거`: 조건마다 그 조건을 충족한 검사가 무엇을 확인했는지와 어느 commit에서 통과했는지. seq만으로 가리키지 않는다. 그리고 독립 검토 라운드마다 한 행인 `라운드 | 지적 | 끝` 표. 지적이 없는 라운드도 행을 둔다. 라운드의 지적은 하나도 빠짐없이 끝 하나로 분류된다: `고침`, `반박`, `중복`, `사용자의 답`, `이슈로 보류`, `자동 보류`, `처리 없음`.
-- `### 누가 정했나`: 결정을 세 가지로 나눈다. 사용자가 정한 것(사용자의 말이 있는 곳), 에이전트가 제안하고 사용자가 받아들인 것, 묻지 않고 정한 실행자 가정. SPEC 문장을 해석한 가정에는 그렇다는 표시를 붙인다.
-- `### 직접 볼 것`: 위험이 큰 순서로, 항목마다 한두 줄로 적는다. `ha report`의 `직접 볼 것` 줄이 보이는 항목 전부와, 그 줄이 무엇을 보이든 다음이 모두 들어간다: 보류한 지적 전부와 그 이슈, 처리 없이 남은 지적 전부, SPEC 문장을 해석해서 정한 실행자 가정, 고정 문구만 확인하는 검사로 충족한 조건(문서의 실제 내용은 사람이 읽어야 한다), `manual` 조건, `### 범위 밖이나 기존 것을 바꾼 곳`의 변경.
-- `### 보지 않은 것`: 관측하지 않은 범위와 대체 환경, 보증 수준 `local`, 검사를 실행자가 썼다는 사실, 배포·설치·실제 모델 실행의 증거가 아니라는 사실.
-- `### 자세히`: 세부 기록이 있는 문서와 절.
+- Opening lines, with no heading: the completion record's seq and commit, the assurance tier, how many required conditions are satisfied, and the review gate result; one line on what the change does; where to start looking.
+- `### 바뀐 동작과 파일` (changed behavior and files): a table `바뀐 동작 | 조건 | 파일` (changed behavior, condition, files). Every file changed from the goal's base to the completion commit, goal documents excepted, appears in a row; this goal's check files have rows too.
+- `### 범위 밖이나 기존 것을 바꾼 곳` (changes outside the scope or to existing things): one item each for files outside the SPEC scope, changes to existing tests, and changes to checks an earlier goal left, each with where the user's words allowing it are, or the reason.
+- `### 근거` (evidence): for every condition, what the check that satisfied it observed and the commit where it passed, never by seq alone; and a table `라운드 | 지적 | 끝` (round, findings, ending) with one row for every review round, a round with no findings included. Every finding of the round ends in exactly one of `고침` (fixed), `반박` (rebutted), `중복` (duplicate), `사용자의 답` (the user's answer), `이슈로 보류` (deferred to an issue), `자동 보류` (deferred automatically) and `처리 없음` (no disposition).
+- `### 누가 정했나` (who decided): decisions in three groups: decided by the user, with where their words are; proposed by the agent and accepted by the user; executor assumptions nobody was asked about. Mark an assumption that reads a SPEC sentence.
+- `### 직접 볼 것` (what to inspect directly): ordered by risk, the highest at the top, one or two lines each: every item the `직접 볼 것` line of `ha report` lists and, whatever that line shows, every deferred finding with its issue; every finding left with no disposition; executor assumptions that read a SPEC sentence; conditions met by checks that observe fixed text only, whose documents a person must read; `manual` conditions; the changes under `### 범위 밖이나 기존 것을 바꾼 곳`.
+- `### 보지 않은 것` (what was not observed): the unobserved scope and substitute environments, the assurance level `local`, the fact that the executor wrote the checks, and the fact that the summary is not evidence of deployment, installation or a real model run.
+- `### 자세히` (details): the documents and sections that hold the detail.
 
-완료 보고(6절)의 2에 있던 판단 항목은 다음 자리에 둔다. 바뀐 파일과 각 파일이 기여한 조건은 `### 바뀐 동작과 파일`, 가정한 미결정은 `### 누가 정했나`, `manual` 조건은 `### 직접 볼 것`, 기대 결과의 근거·실제 관측 경계·시험 방법과 실제로 받은 검토 단계(생략했으면 그 이유, SPEC 등급과 프로젝트 지침이 달랐으면 각각이 요구한 검토와 따른 쪽)는 `### 근거`, 미관측 범위와 대체 환경은 `### 보지 않은 것`, 독립 검토 결과의 위치는 `### 자세히`에 쓴다. 보내거나 병합하려는 head가 완료 기록의 commit인지와, 다르면 그 차이를 완료가 덮지 않는다는 사실(그 head에서 `ha status`가 같은 완료 기록을 계속 보이면 덮는다)은 첫 줄들에 쓴다.
+The judgment items of the completion report's item 2 (section 6) go here: the changed files and the condition each contributed to under `### 바뀐 동작과 파일`; assumed open decisions under `### 누가 정했나`; `manual` conditions under `### 직접 볼 것`; the expected-result grounds, the actual observation boundary, the test method and the review stages actually taken (or why they were skipped, and, when the SPEC tier and the project instructions differed, the review each required and the one followed) under `### 근거`; the unobserved scope and substitute environments under `### 보지 않은 것`; where the independent review results are under `### 자세히`; and whether the head to be sent or merged is the completion record's commit, with the fact that the completion does not cover a difference unless `ha status` at that head still names that completion record, in the opening lines.
 
-이 구성에서 `### 근거`의 두 부분과 첫 줄들의 항목은 최소 목록이다. 판단 항목 대응 문단이 정한 항목은 그 목록과 함께 그 자리에 들어간다.
+The two parts of `### 근거` and the items of the opening lines are minimum lists; the items the judgment-item paragraph assigns join them in the same place.
 
-완료 보고 2에서 옮긴 판단 항목도 완료 보고 2의 한정을 지킨다. 실행자의 설명은 주장으로 표시한다. 기록으로 확인한 사실과 실행자의 해석을 나눈다. 조건·검사·환경이 계획과 달라졌으면 근거의 버전과 그 근거가 덮는 범위를 밝힌다.
+The judgment items moved from item 2 of the completion report keep its qualifications: the executor's statements are marked as claims, and facts confirmed by records are kept apart from the executor's interpretation. When conditions, checks or environments differ from the plan, state the evidence's version and the scope that evidence covers.
 
-읽기 규칙: 사용자의 언어로 쓴다. 기록은 무엇인지를 먼저 쓰고 seq는 보조로만 붙인다. 항목마다 짧게 쓴다. 검증 출력과 지적 원문을 옮겨 적지 않는다. 지적은 ID, 한 줄 요약, 끝만 적는다. 지적 원문은 검토 기록에 둔다. 완료 때 실행자의 판단 문장은 이 절에만 있고, 완료 보고는 이 절을 가리킨다(6절).
+Reading rules: write in the user's language; say what a record is, with its seq only as an aid; keep each item short; never copy check output or finding text; a finding is its ID, one line and its ending. The original text of a finding stays in the review records. At completion, the executor's judgment sentences are only in this section, and the completion report points to it (section 6).
 
-다음 안내는 사용자가 PR을 요청했을 때만 적용한다. 이 PR 설명 안내는 `## 검수 요약`이 있는 목표에만 적용한다. PR을 만들거나 고치거나 올리거나 리뷰에 답할 권한을 더하지 않는다.
+Only when the user asked for a PR does the following guidance apply. This PR guidance applies only to a goal that has a `## 검수 요약`. This guidance adds no authority to create, change or push a PR, or answer a review.
 
-완료한 목표의 PR 설명을 쓰거나 고칠 때 그 목표의 `## 검수 요약`에서 만든다. 완료 기록의 commit, 바뀐 동작과 파일, 근거 요약을 넣는다. `### 직접 볼 것`의 모든 항목을 넣고, 보류한 지적과 그 이슈 및 처리 없는 지적도 포함한다. `### 보지 않은 것`을 넣는다. 프로젝트 지침이 PR 설명에 요구하는 항목도 넣는다. 보류한 지적의 목록과 검사 경계가 그 예다. `### 직접 볼 것` 항목을 빼거나 해결된 것처럼 바꿔 쓰지 않는다.
+When writing or changing a completed goal's PR description, build it from that goal's `## 검수 요약`. Include the completion record's commit, the changed behavior and files, and an evidence summary. Include every item of `### 직접 볼 것`, including deferred findings with their issues and findings without a disposition; include `### 보지 않은 것`. Add the items the project instructions require in a PR description, such as a list of deferred findings and check boundaries. Never drop a `### 직접 볼 것` item or rewrite it as resolved.
 
-PR을 읽는 사람이 열 수 없으므로, Git이 추적하지 않는 목표 문서, 실행 묶음, 검토 기록의 경로와 링크는 넣지 않는다. 사용자 대화의 원문은 넣지 않는다. 대신 내용을 짧게 적거나 로컬 기록에 있다고 적는다.
+Leave out paths and links to goal documents, execution bundles and review records that Git does not track, since a PR reader cannot open them. Also leave out the raw user conversation; instead, describe the content briefly or say it is in local records.
 
-## 6. 완료 보고
+## 6. Completion report
 
-`ha done`이 완료 기록을 남겼을 때, 또는 더 진행할 수 없어 멈출 때(`needs_user`, `blocked`, `budget_exhausted`) 쓴다.
+Written when `ha done` has left a completion record, or when work stops because it cannot go further (`needs_user`, `blocked`, `budget_exhausted`).
 
-seal 0.1.20 이상으로 시작한 목표의 완료 보고는 다음 두 부분이다.
+The completion report of a goal started with seal 0.1.20 or later has these two parts.
 
-1. 그때의 `ha report <goal>` 출력. 사용자의 언어가 한국어면 `--lang ko`, 그 밖이면 `--lang en`으로 실행하고 그대로 붙인다. 다섯 줄 요약, `## 현재` 도장, 조건별 근거, 완료 범위(완료 기록의 seq와 commit, HEAD를 덮는지), 미충족 조건의 원문 위치가 들어 있고 검증 출력 원문은 없다. `ha status`·`ha done` 출력 원문은 붙이지 않는다.
-2. 그 아래에 실행자의 판단 문장만 더한다: 바뀐 파일과 각 파일이 기여한 조건(주장), 가정한 미결정과 `manual` 조건, 기대 결과의 근거·실제 관측 경계·시험 방법과 대체 환경·미관측 범위, 보증 등급과 실제로 받은 검토 단계 또는 생략한 이유, 독립 검토 결과의 위치, SPEC 등급과 프로젝트 지침이 달랐으면 각각이 요구한 검토와 따른 쪽, 보내거나 병합하려는 head가 완료 기록의 commit인지와 다르면 그 차이를 완료가 덮지 않는다는 사실(그 head에서 `ha status`가 같은 완료 기록을 계속 보이면 덮는다), 보증 수준 `local`과 검사 작성자가 실행자라는 사실, 보고가 배포·설치·실제 모델 실행의 증거가 아니라는 사실, 완료가 아니면 이어 가는 방법.
+1. The `ha report <goal>` output of that moment. Run it with `--lang ko` when the user's language is Korean and with `--lang en` otherwise, and paste it unchanged. It holds the five-line summary, the `## 현재` stamp, the evidence per condition, the completion coverage (the completion record's seq and commit, and whether it covers HEAD) and where the original output of unmet conditions is, and no raw verification output. Do not paste the raw `ha status` or `ha done` output.
+2. Below it, add only the executor's judgment sentences: the changed files and the condition each contributed to (a claim); assumed open decisions and `manual` conditions; the grounds for the expected result, the actual observation boundary, the test method and substitute environment, and the unobserved scope; the assurance tier and the review stages actually taken, or the reason they were skipped; where the independent review results are; when the SPEC tier and the project instructions differed, the review each required and the one followed; whether the head to be sent or merged is the completion record's commit and, when it differs, the fact that the completion does not cover the difference (it does cover it when `ha status` at that head keeps showing the same completion record); the assurance level `local` and the fact that the executor wrote the checks; the fact that the report is not evidence of deployment, installation or a real model run; and, when not complete, how to continue.
 
-seal 0.1.24 이상으로 시작한 목표에서 완료 기록 뒤의 완료 보고는 1의 출력과 `## 검수 요약`을 가리키는 한 줄이다. 2의 판단 문장은 `## 검수 요약`에만 쓴다(5.4절). 멈출 때는 위 두 부분 그대로다.
+For a goal started with seal 0.1.24 or later, at completion `## 완료 보고` holds item 1 and one line pointing to `## 검수 요약`; item 2 lives only in `## 검수 요약` (5.4). When work stops, both parts stay as above.
 
-seal 0.1.20 전의 Seal로 시작한 목표는 시작할 때의 보고 형식을 유지하며, 순서는 다음과 같다.
+A goal started with a Seal earlier than 0.1.20 keeps the report format it started with, in the order below.
 
-1. 완료면 `ha done`의 출력, 멈출 때는 `ha status --format md`의 출력. 그대로 붙이고 고쳐 쓰지 않는다. 이 출력에는 결과, 이유, digest, 기록 seq만 있고 검증 출력 원문은 없다.
-2. 완료 범위(Seal 0.1.15 이상으로 시작한 목표): 완료 기록의 seq와 commit, 보내거나 병합하려는 head가 그 commit과 같은지, 다르면 그 차이는 완료가 덮지 않는다는 사실. 다만 그 head에서 `ha status`가 같은 완료 기록을 계속 보이면 완료가 덮는다. 그 전 Seal로 시작한 목표는 시작할 때의 보고 형식을 유지한다.
-3. 조건별 근거: 조건, 결과, 기록 seq. 상태 출력에 있으면 생략한다.
-4. 바뀐 파일과 각 파일이 기여한 조건. **에이전트의 설명이며 주장으로 표시한다.**
-5. 남은 한계: 가정한 미결정, `manual` 조건, 보증 수준(`local`), 검사 작성자가 실행자라는 사실
-6. 새 보고 형식에서는 검토의 기대 근거·예정 경계·방법을 실제 수행·결과·근거·미관측과 연결한다. 확인한 것·확인하지 못한 것·위험한 경계를 조건 또는 공유 그룹으로 제시한다. 계획과 달라진 검사·환경·버전, 근거의 유효 범위도 밝힌다. 보고는 배포·설치·실제 모델 실행의 증거를 대신하지 않는다.
-7. 이어 가는 방법: 완료가 아니면 무엇이 남았고 어떤 조건에서 다시 시작하는가
+1. On completion, the output of `ha done`; when stopping, the output of `ha status --format md`. Paste it unchanged and do not rewrite it. This output holds only the result, reasons, digests and record seqs, and no raw verification output.
+2. Completion coverage (goals started with Seal 0.1.15 or later): the completion record's seq and commit, whether the head to be sent or merged is the same as that commit, and, when it differs, the fact that the completion does not cover the difference. When `ha status` at that head keeps showing the same completion record, however, the completion covers it. A goal started with an earlier Seal keeps the report format it started with.
+3. Evidence per condition: condition, result, record seq. Omit it when the status output has it.
+4. The changed files and the condition each contributed to. **This is the agent's explanation; mark it as a claim.**
+5. Remaining limits: assumed open decisions, `manual` conditions, the assurance level (`local`), the fact that the executor wrote the checks
+6. In the new report format, link the review's expected grounds, planned boundary and method to what was actually performed, the results, the evidence and what was unobserved. Present what was confirmed, what could not be confirmed and the risky boundaries by condition or shared group. Also state the checks, environments and versions that differ from the plan, and the valid scope of the evidence. The report does not stand in for evidence of deployment, installation or a real model run.
+7. How to continue: when not complete, what remains and under what conditions the work starts again
 
-완료 기록 뒤 사용자가 원격 리뷰나 PR 지적의 반영을 요청하면 그것이 재작업 요청이다. 그 요청을 인용해 `reopen`을 기록하고, 고친 뒤 독립 검토가 필요한 목표는 누적 라운드를 한 번 받고, 최종 head에서 낡은 필수 검사를 다시 기록하며, 보내거나 병합하기 전에 `ha done`으로 완료를 다시 기록한다. 다시 기록할 검사는 Core의 신선도가 정한다(`run-record.md` §3).
+When the user asks, after a completion record, to apply remote review or PR findings, that is a rework request. Record `reopen` quoting that request; after the fix, a goal that needs independent review takes one cumulative round; re-record the stale required checks on the final head; and before sending or merging, record completion again with `ha done`. Core's freshness decides which checks to re-record (`run-record.md` §3).
 
-**검증 출력 원문은 실행 묶음 어디에도 붙이지 않는다.** 실행 묶음은 커밋되며 사용자가 다른 사람과 공유할 수 있다. 실패 원인을 설명해야 하면 요약하고, 원문은 `ha log <goal> <seq>`로 로컬에서 보게 한다.
+**Never paste raw verification output anywhere in the execution bundle.** The execution bundle is committed, and the user may share it with others. When a failure's cause needs explaining, summarize it, and let the raw output be viewed locally with `ha log <goal> <seq>`.
 
-## 7. 예시 (작은 목표, task를 PLAN에 합친 경우)
+## 7. Example (a small goal, with its task merged into PLAN)
 
-아래는 `/1`·`/2`의 일반 러너 명령 예시다. 새 `/3` change에는 이 pytest 종료 코드만으로 충분하지 않다. [결과 계약의 실제 참조 연동](check-result.md#4-실제-참조-연동)처럼 선언·생산자를 연결한다. 기존 검사 전체를 보존하는 maintain에는 일반 러너를 계속 사용할 수 있다.
+Below is an example of ordinary runner commands for `/1` and `/2`. For a new `/3` change, this pytest exit code alone is not enough. Link a declaration and a producer, as in [the result contract's actual reference integration](check-result.md#4-actual-reference-integration). A maintain condition that preserves all existing checks can keep using an ordinary runner.
 
 ```markdown
 # PLAN — empty-input
@@ -376,66 +376,66 @@ seal 0.1.20 전의 Seal로 시작한 목표는 시작할 때의 보고 형식을
 - 비용: 미관측
 ```
 
-## 8. `ha lint` 오류 코드
+## 8. `ha lint` error codes
 
-`ha lint`는 오류마다 코드, 파일과 줄, 설명을 한 줄로 출력한다. 오류가 없으면 `ok: no lint problems` 한 줄을 출력하고, 목표 문서에 올바른 `Assurance:` 줄([goal-docs.md](goal-docs.md) §2.5)이 있으면 그 다음 줄에 `assurance tier: <등급>`을 더한다. 오류가 하나라도 있으면 `ha start`와 `ha check`를 거절하고, `ha status`는 `lint_error`를 낸다.
+`ha lint` prints one line per error with the code, the file and line, and a description. With no errors, it prints the single line `ok: no lint problems`, and when the goal documents have a valid `Assurance:` line ([goal-docs.md](goal-docs.md) §2.5), it adds `assurance tier: <tier>` on the next line. With even one error, `ha start` and `ha check` are refused, and `ha status` gives `lint_error`.
 
-목표 문서([goal-docs.md](goal-docs.md))
+Goal documents ([goal-docs.md](goal-docs.md))
 
-| 코드 | 뜻 |
+| Code | Meaning |
 | --- | --- |
-| `spec_missing` | goal 디렉토리에 `SPEC.md`가 없다 |
-| `criteria_missing` | `## Acceptance Criteria` 절이 없거나 조건이 없다 |
-| `criterion_without_id` | `AC-n` ID가 없는 조건 |
-| `criterion_duplicate_id` | 같은 `AC-n`이 두 번 나온다 |
-| `criteria_format` | 목표 문서의 목록 형식 값이나 선택 표시 위치가 올바르지 않다 |
-| `criteria_format_duplicate` | 목표 문서에 목록 형식 선택 표시가 두 번 이상 나온다 |
-| `assurance_format` | `Assurance:` 줄의 값이 `light`, `standard`, `strict`가 아니거나, 들여썼거나, 첫 2단계 절 뒤에 있다 |
-| `assurance_format_duplicate` | `Assurance:` 줄이 두 번 이상 나온다 |
-| `criterion_indentation` | 새 목록 형식의 들여쓰기가 애매하거나 지원되지 않는다 |
-| `goal_doc_link_missing` | SPEC.md나 보조 문서가 링크한 goal 디렉토리 안 문서가 없다 |
-| `proposal_invalid_id` | 작업 분해 제안의 ID가 `W1` 형식이 아니다 |
-| `proposal_duplicate_id` | 같은 `W` ID가 두 번 나온다 |
-| `proposal_unknown_criterion` | 제안이 없는 `AC-n`을 가리킨다 |
-| `proposal_unknown_dependency` | 제안이 없는 `W`에 의존한다 |
-| `proposal_cycle` | 제안의 의존에 순환이 있다 |
-| `table_columns` | 계약 표의 열 이름이 다르다(목표 문서와 실행 묶음 공통) |
+| `spec_missing` | The goal directory has no `SPEC.md` |
+| `criteria_missing` | There is no `## Acceptance Criteria` section, or it has no conditions |
+| `criterion_without_id` | A condition without an `AC-n` ID |
+| `criterion_duplicate_id` | The same `AC-n` appears twice |
+| `criteria_format` | The goal documents' list format value, or the position of its selection marker, is invalid |
+| `criteria_format_duplicate` | The list format selection marker appears more than once in the goal documents |
+| `assurance_format` | The value of the `Assurance:` line is not `light`, `standard` or `strict`, or the line is indented, or it comes after the first level-2 section |
+| `assurance_format_duplicate` | The `Assurance:` line appears more than once |
+| `criterion_indentation` | Indentation in the new list format is ambiguous or unsupported |
+| `goal_doc_link_missing` | A document inside the goal directory that SPEC.md or an auxiliary document links does not exist |
+| `proposal_invalid_id` | A work breakdown proposal's ID is not in the `W1` form |
+| `proposal_duplicate_id` | The same `W` ID appears twice |
+| `proposal_unknown_criterion` | A proposal points to an `AC-n` that does not exist |
+| `proposal_unknown_dependency` | A proposal depends on a `W` that does not exist |
+| `proposal_cycle` | The proposals' dependencies have a cycle |
+| `table_columns` | A contract table's column names differ (common to goal documents and execution bundles) |
 
-실행 묶음
+Execution bundle
 
-| 코드 | 뜻 |
+| Code | Meaning |
 | --- | --- |
-| `plan_missing` | `PLAN.md`가 없다 |
-| `bundle_file_missing` | `REVIEW.md`나 `PROGRESS.md`가 없다 |
-| `plan_section_missing` | `## 조건표`, `## 범위`, `## Task`, `## 예산` 중 빠진 절이나 표가 있다 |
-| `criterion_invalid_id` | 조건표의 ID가 `AC-n`·`EX-n` 형식이 아니다 |
-| `criterion_duplicate_row` | 같은 조건이 조건표에 두 번 나온다 |
-| `criterion_unknown` | 조건표의 `AC-n`이 목표 문서에 없다 |
-| `criterion_not_in_plan` | 목표 문서의 `AC-n`이 조건표에 없다 |
-| `invalid_kind` | 종류가 `change`, `maintain`, `manual`이 아니다 |
-| `command_missing` | `change`·`maintain` 조건에 검증 명령이 없다 |
-| `command_multiple` | 한 칸에 검증 명령이 둘 이상이다 |
-| `shell_syntax` | 검증 명령에 셸 문법이 있다 |
-| `command_parse` | 검증 명령을 낱말로 나눌 수 없다(닫히지 않은 따옴표 등) |
-| `check_paths_missing` | `change` 조건에 검사 경로가 없다 |
-| `baseline_marker` | baseline 칸이 `요구`·`—`·빈 칸 밖의 값이거나, `change`가 아닌 행에 `요구`가 있다 |
-| `check_path_glob` | 검사 경로가 glob이다 |
-| `manual_reason_missing` | `manual` 조건에 사유가 없다 |
-| `criterion_without_task` | task가 없는 조건 |
-| `scope_missing` | `바꿀 수 있는 경로`가 없다 |
-| `task_invalid_id` | task ID가 `T001` 형식이 아니다 |
-| `task_duplicate_id` | 같은 task ID가 두 번 나온다 |
-| `task_required_invalid` | `필수`가 `예`·`아니오`가 아니다 |
-| `task_unknown` | 조건표가 없는 task를 가리킨다 |
-| `task_unknown_criterion` | task가 조건표에 없는 조건을 근거로 든다 |
-| `task_unknown_dependency` | task가 없는 task에 의존한다 |
-| `task_orphan` | 조건에 근거하지 않고 다른 task의 선행도 아닌 task |
-| `task_cycle` | task 의존에 순환이 있다 |
-| `task_doc_missing` | `문서` 열이 가리키는 task 문서가 없다 |
-| `proposal_unknown` | task의 `제안`이 목표 문서에 없는 `W`다 |
-| `budget_missing` | `검증 실행`이나 `경과 시간`이 없거나 읽을 수 없다 |
-| `time_limit_invalid` | `run-rules/4`·`run-rules/5`·`run-rules/6`·`run-rules/7` 목표의 `## 시간 제한` 항목이 형식에 맞지 않거나, 7200초를 넘거나, 대상이 없거나, 같은 대상을 두 번 선언한다 |
-| `evidence_invalid` | 결과 계약 표의 조건·선언·생산자 입력이 유효하지 않다 |
-| `evidence_overlay_missing` | 선언 또는 생산자 입력이 해당 조건의 검사 경로에 빠져 있다 |
-| `other_bundles_invalid` | `## 범위`의 `다른 목표 실행 묶음` 항목이 정확한 키 `다른 목표 실행 묶음:`으로 시작하지 않거나 값이 code span `검사 입력` 하나가 아니다 |
-| `progress_state_invalid` | `PROGRESS.md`의 task 상태가 허용된 값이 아니다 |
+| `plan_missing` | There is no `PLAN.md` |
+| `bundle_file_missing` | `REVIEW.md` or `PROGRESS.md` is missing |
+| `plan_section_missing` | A section or table among `## 조건표`, `## 범위`, `## Task` and `## 예산` is missing |
+| `criterion_invalid_id` | An ID in the condition table is not in the `AC-n` or `EX-n` form |
+| `criterion_duplicate_row` | The same condition appears twice in the condition table |
+| `criterion_unknown` | An `AC-n` in the condition table is not in the goal documents |
+| `criterion_not_in_plan` | An `AC-n` in the goal documents is not in the condition table |
+| `invalid_kind` | The kind is not `change`, `maintain` or `manual` |
+| `command_missing` | A `change` or `maintain` condition has no verification command |
+| `command_multiple` | One cell holds more than one verification command |
+| `shell_syntax` | A verification command contains shell syntax |
+| `command_parse` | A verification command cannot be split into words (an unclosed quote and so on) |
+| `check_paths_missing` | A `change` condition has no check paths |
+| `baseline_marker` | A baseline cell is neither `요구`, `—` nor empty, or a row that is not a `change` condition contains `요구` |
+| `check_path_glob` | A check path is a glob |
+| `manual_reason_missing` | A `manual` condition has no reason |
+| `criterion_without_task` | A condition without a task |
+| `scope_missing` | `바꿀 수 있는 경로` is missing |
+| `task_invalid_id` | A task ID is not in the `T001` form |
+| `task_duplicate_id` | The same task ID appears twice |
+| `task_required_invalid` | `필수` is not `예` or `아니오` |
+| `task_unknown` | The condition table points to a task that does not exist |
+| `task_unknown_criterion` | A task cites, as its basis, a condition that is not in the condition table |
+| `task_unknown_dependency` | A task depends on a task that does not exist |
+| `task_orphan` | A task that rests on no condition and is not a prerequisite of another task |
+| `task_cycle` | The task dependencies have a cycle |
+| `task_doc_missing` | The task document that the `문서` column points to does not exist |
+| `proposal_unknown` | A task's `제안` is a `W` that is not in the goal documents |
+| `budget_missing` | `검증 실행` or `경과 시간` is missing or cannot be read |
+| `time_limit_invalid` | A `## 시간 제한` item of a `run-rules/4`, `run-rules/5`, `run-rules/6` or `run-rules/7` goal is malformed, exceeds 7200 seconds, has a target that does not exist, or declares the same target twice |
+| `evidence_invalid` | A condition, declaration or producer input in the result contract table is invalid |
+| `evidence_overlay_missing` | A declaration or producer input is missing from that condition's check paths |
+| `other_bundles_invalid` | The `다른 목표 실행 묶음` item in `## 범위` does not start with the exact key `다른 목표 실행 묶음:`, or its value is not the single code span `검사 입력` |
+| `progress_state_invalid` | A task state in `PROGRESS.md` is not an allowed value |
