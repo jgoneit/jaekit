@@ -1,16 +1,16 @@
-# 계약: 목표 문서 (Spec → Seal)
+# Contract: Goal documents (Spec → Seal)
 
-이 문서는 Spec이 만들고 Seal이 읽는 목표 문서에 대한 canonical 정의다. 두 제품 사이의 인터페이스는 이것 하나다. Seal이 만드는 실행 묶음은 [bundle.md](bundle.md)에 있다.
+This document is the canonical definition of the goal documents that Spec writes and Seal reads. It is the only interface between the two products. The execution bundle that Seal writes is in [bundle.md](bundle.md).
 
-원칙은 다음과 같다.
-- **목표 문서는 일반 Markdown이다.** Seal 없이도 사람과 아무 에이전트가 읽고 쓸 수 있다.
-- **Seal을 모른다.** Seal의 명령, 파일 이름, 상태, 기록 형식을 쓰거나 참조하지 않는다.
-- **실행 상태를 담지 않는다.** 진행, 재시도, 현재 task, 검증 결과는 실행 묶음에 있다.
-- **누가 썼는지 묻지 않는다.** Seal은 Spec이 직접 만들지 않은 문서라도 이 계약을 따르면 받는다. 사람이 직접 쓴 목표 문서도 같다. 에이전트가 부른 Spec이 쓴 문서의 `Proposed-By: agent` 줄(§2.6)도 이 원칙을 바꾸지 않는다.
+The principles are as follows.
+- **Goal documents are plain Markdown.** People and any agent can read and write them without Seal.
+- **They do not know Seal.** They neither use nor refer to Seal's commands, file names, states or record formats.
+- **They hold no execution state.** Progress, retries, the current task and verification results are in the execution bundle.
+- **They do not ask who wrote them.** Seal accepts a document that follows this contract even if Spec did not write it. The same goes for goal documents a person wrote directly. The `Proposed-By: agent` line (§2.6) in a document written by Spec in an agent invocation does not change this principle either.
 
-두 제품을 이어 쓰는 권한은 목표 문서가 저장된 뒤 사용자가 따로 보내는 구현 요청이다. `Status: Ready`는 실행 권한이 아니다. Spec을 부른 요청은 목표 문서만 요구한다. 요청이 "추가해줘", "고쳐줘" 같은 작업 지시나 버그 제보로 표현되어도, 같은 대화 앞부분에 구현 요청이 있었어도 같다. Spec을 부른 요청이나 질문에 답하거나 수정을 요청하는 답이 구현까지 요청해도 Spec은 목표 문서를 쓴 뒤 멈춘다. 목표 문서를 쓴 뒤 Spec이 따로 묻는 구현 여부 질문에 대한 사용자의 긍정 답은 그 자체가 따로 보낸 구현 요청이다(§6.7). 목표 문서 밖에는 저장소 파일뿐 아니라 브랜치, PR과 리뷰 스레드, 릴리스와 배포도 들어간다.
+The authority to carry work from one product to the other is an implementation request that the user sends separately after the goal documents are saved. `Status: Ready` is not an authority to execute. A request that invoked Spec asks only for goal documents. This holds even when the request is phrased as a work instruction such as "add this" or "fix this" or as a bug report, and even when an implementation request came earlier in the same conversation. Even when the request that invoked Spec, or a reply that answers a question or asks for changes, also asks for implementation, Spec stops after writing the goal documents. The user's affirmative answer to the implement-now question that Spec asks separately after writing the goal documents is itself a separately sent implementation request (§6.7). What lies outside the goal documents includes not only repository files but also branches, PRs and review threads, releases and deployments.
 
-## 1. 위치와 문서 집합
+## 1. Location and document set
 
 ```text
 docs/specs/<goal>/
@@ -19,33 +19,33 @@ docs/specs/<goal>/
   amendments/<이름>.md     수정안 문서(선택, §6.6). 목표 문서 집합에 들지 않는다
 ```
 
-**목표 문서 집합**은 SPEC.md와, SPEC.md에서 링크를 따라 닿는 goal 디렉토리 안의 Markdown 문서다. 링크된 문서가 다시 링크한 문서도 포함한다. 실행 묶음 파일(`PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `tasks/`, `runs.jsonl`)은 링크되어도 들어가지 않는다. `amendments/` 아래의 수정안 문서도 링크되어도 목표 문서 집합에 들지 않는다. 코드 블록 안의 링크는 따라가지 않는다.
+The **goal document set** is SPEC.md and the Markdown documents inside the goal directory that are reachable from SPEC.md by following links. It includes the documents that linked documents link in turn. Execution bundle files (`PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `tasks/`, `runs.jsonl`) do not belong to it even when linked. Amendment documents under `amendments/` are not in the goal document set either, even when linked. Links inside code blocks are not followed.
 
-Seal은 이 집합 전체의 digest를 목표 digest로 쓴다([run-record.md](run-record.md) §2.1의 `spec_digest`). 목표 digest는 문서를 저장소 기준 경로 순으로 놓고, 각 문서마다 `경로`, NUL 바이트, 내용의 sha256(16진수), 줄바꿈을 이은 바이트열의 sha256(16진수)이다.
+Seal uses the digest of this whole set as the goal digest (`spec_digest` in [run-record.md](run-record.md) §2.1). The goal digest puts the documents in order of repository-relative path and is the sha256 (hex) of the byte string that joins, for each document, `경로` (path), a NUL byte, the sha256 (hex) of its content, and a newline.
 
-목표 문서는 사용자 소유다. Spec이 작성을 돕고, 바꾸는 것은 사용자의 결정이다.
+Goal documents belong to the user. Spec helps write them; changing them is the user's decision.
 
-## 2. SPEC.md의 내용
+## 2. Contents of SPEC.md
 
-| 절 | 내용 |
+| Section | Content |
 | --- | --- |
-| `Status:` 한 줄 | `Draft` \| `Ready`. `Draft`는 결과를 바꾸는 미결정이 남았다는 뜻이고 `Ready`는 남지 않았다는 뜻이다. 문서의 설명이며 어느 쪽도 실행 권한이 아니다. |
-| `Criteria-Format:` 한 줄 | 새 문서는 `nested/1`을 명시한다. 표시가 없는 기존 문서는 종전 목록 해석을 유지한다(§2.1). |
-| `Assurance:` 한 줄 | 보증 등급 `light` \| `standard` \| `strict`. Spec이 제안하고 사용자가 확인한다. 줄이 없는 기존 문서는 지금 규칙을 따른다(§2.5). |
-| `Proposed-By:` 한 줄 | 에이전트가 부른 Spec이 쓴 새 문서에만 `Proposed-By: agent`를 둔다(§2.6). |
-| 목표 | 무엇을 왜 바꾸는가 |
-| 범위와 비목표 | 바뀌는 것과 바뀌지 않는 것. 기존 코드를 바꾸는 목표는 지금 동작을 근거 파일 경로와 함께 사실로 적고, 바뀌는 것과 그대로인 것을 구분한다(§6.3) |
-| 사용 시나리오 | (기능을 바꾸는 목표) 대표 사용 흐름, 관련 실패·경계 상황, 유지할 동작과 각각이 닿는 조건(§2.3) |
-| 제약 | 지켜야 할 호환성, 권한, 데이터, 성능 규칙 |
-| 결정과 근거 | 결과를 바꾸는 결정, 검토한 선택지, 고른 이유, 출처(§6.2) |
-| `## Acceptance Criteria` | 완료 조건(§2.1) |
-| 관련 맥락 | 이전 대화를 모르는 실행자가 읽어야 할 코드·문서·외부 자료 |
-| `## Open Decisions` | 남은 결정. 없으면 "없음" |
-| `## 작업 분해 제안` | (선택) §2.2 |
+| `Status:` line | `Draft` \| `Ready`. `Draft` means an outcome-changing open decision remains, and `Ready` means none does. It describes the document; neither is an authority to execute. |
+| `Criteria-Format:` line | New documents state `nested/1`. Existing documents without the marker keep the earlier list interpretation (§2.1). |
+| `Assurance:` line | Assurance tier `light` \| `standard` \| `strict`. Spec proposes it and the user confirms it. Existing documents without the line follow the current rules (§2.5). |
+| `Proposed-By:` line | Only a new document written by Spec in an agent invocation has `Proposed-By: agent` (§2.6). |
+| Goal | What changes and why |
+| Scope and non-goals | What changes and what does not. A goal that changes existing code states today's behavior as fact with the file paths that show it, and separates what changes from what stays the same (§6.3) |
+| User scenarios | (Goals that change behavior) representative usage flows, related failure and boundary cases, behavior to keep, and the criteria each one reaches (§2.3) |
+| Constraints | Compatibility, permission, data and performance rules to respect |
+| Decisions and reasons | Outcome-changing decisions, options considered, why the choice was made, sources (§6.2) |
+| `## Acceptance Criteria` | Completion criteria (§2.1) |
+| Related context | Code, documents and outside material that an executor who does not know the earlier conversation needs to read |
+| `## Open Decisions` | Remaining decisions; "none" if there are none |
+| `## 작업 분해 제안` | (optional) §2.2 |
 
-깊이는 변경 위험도에 비례한다. 작은 변경에 빈 절을 강제하지 않는다. 변경 규모에 맞는 템플릿(Small Change, Backend Feature, Cross-module Feature, Product)을 쓸 수 있다. 작은 수정의 사용 시나리오는 한두 문장이면 된다.
+Depth is proportional to the risk of the change. Empty sections are not forced on small changes. A template that fits the size of the change (Small Change, Backend Feature, Cross-module Feature, Product) can be used. The user scenarios of a small fix need only a sentence or two.
 
-### 2.1 완료 조건과 ID
+### 2.1 Completion criteria and IDs
 
 ```markdown
 Criteria-Format: nested/1
@@ -59,43 +59,43 @@ Criteria-Format: nested/1
 - **AC-3** (선택) `--json`이면 같은 값을 JSON으로 출력한다.
 ```
 
-- 조건마다 `AC-n` ID를 붙인다. ID는 goal 안에서 안정적이다. 조건을 지우면 그 번호를 다시 쓰지 않는다. 문장을 고쳐도 ID는 유지한다. 바뀐 사실은 digest로 드러난다.
-- 조건은 기본적으로 필수다. 선택 조건은 ID 뒤에 `(선택)`을 붙인다. 필수 여부는 목표 문서만 정한다.
-- 조건은 관측할 수 있는 결과로 쓴다. 구현 방법과 검증 명령은 쓰지 않는다. 그것은 실행자가 정한다.
-- 조건은 구현 단위보다 사용자가 겪는 결과에 가깝게 쓴다. 예를 들어 "저장 API를 구현한다"보다 "사용자가 저장한 내용을 새로 조회해도 같은 값이 나타난다"가 목표에 가깝다.
+- Each criterion gets an `AC-n` ID. IDs are stable within the goal. When a criterion is removed, its number is never reused. The ID stays when the wording is changed. What changed shows in the digest.
+- Criteria are required by default. An optional criterion has `(선택)` after its ID. Only the goal documents decide whether a criterion is required.
+- Criteria are written as observable results. Implementation methods and verification commands are not written; the executor decides those.
+- Criteria are written closer to the result the user experiences than to units of implementation. For example, "When the user queries saved content again, the same values appear" is closer to the goal than "Implement the save API".
 
-**목록 형식 선택.** 새 SPEC.md는 첫 `##` 절 이전, `Status:` 근처에 `Criteria-Format: nested/1`을 한 줄 적는다. 선택 표시는 들여쓰지 않으며 fenced 코드 블록 안의 예시는 선택으로 읽지 않는다. 첫 `##` 절 이전에 공백이나 탭으로 들여쓴 선택 표시는 `criteria_format` 오류다. 절 안의 들여쓴 본문에 인용된 표시는 선택으로 읽지 않으며 기존 본문 해석을 유지한다. 중복 표시는 `criteria_format_duplicate`, 지원하지 않는 값·빈 값·잘못된 위치는 `criteria_format` 오류다. 알 수 없는 형식을 종전 해석으로 대신 읽지 않는다.
+**List format selection.** A new SPEC.md writes one `Criteria-Format: nested/1` line before the first `##` section, near `Status:`. The selector is not indented, and an example inside a fenced code block is not read as a selection. A selector indented with spaces or tabs before the first `##` section is a `criteria_format` error. A marker quoted in an indented body inside a section is not read as a selection and keeps the existing body interpretation. A duplicate marker is a `criteria_format_duplicate` error; an unsupported value, an empty value or a wrong position is a `criteria_format` error. An unknown format is never read with the earlier interpretation instead.
 
-형식 선택을 찾을 때는 코드 블록을 연 backtick 또는 tilde와 같은 문자가 적어도 같은 수만큼 이어지고 뒤에는 공백·탭만 있는 줄을 닫는 fence로 본다. 더 짧은 fence나 뒤에 일반 텍스트가 붙은 줄은 예제를 끝내지 않는다. 이 경계 판별은 선택 표시 탐색에만 적용하며 기존 AC 본문이나 실행 묶음의 Markdown 해석을 바꾸지 않는다.
+When looking for the format selection, a line is a closing fence when it has the same character as the backtick or tilde that opened the code block, repeated at least as many times, followed only by spaces or tabs. A shorter fence, or a line with ordinary text after it, does not end the example. This boundary rule applies only to finding the selector; it does not change the Markdown interpretation of existing AC bodies or of execution bundles.
 
-`nested/1`의 `## Acceptance Criteria` 목록은 다음과 같이 읽는다.
+Under `nested/1`, the `## Acceptance Criteria` list is read as follows.
 
-- 최상위 목록은 `-`, `*`, `+`와 공백으로 시작한다. 첫 목록의 들여쓰기(0~3칸)가 그 절의 최상위 수준이다. 같은 수준의 다음 목록은 새 조건이며 ID가 필요하다. 최상위 ID 누락·중복은 계속 오류다.
-- 부모 목록 기호 뒤 첫 내용이 시작하는 열 이상으로 들여쓴 줄은 본문이다. `- AC-1 ...`처럼 기호 뒤 공백이 한 칸이면 본문 시작은 두 칸이다. 따라서 부모가 0칸이면 2·3·4칸의 하위 목록을 모두 본문으로 읽는다. 부모가 두 칸 들여써졌다면 본문은 네 칸부터다. 기호 뒤 공백을 더 쓰면 본문 시작 열도 그만큼 늘어난다.
-- 본문의 목록 기호와 내용은 보존하며, 그 안의 `AC-n` 표기는 독립 조건을 만들지 않는다. 각 내용 줄의 앞뒤 공백은 제거한다. 일반 문장도 같은 본문 들여쓰기 규칙을 따른다.
-- 빈 줄 뒤에도 본문 시작 열 이상으로 들여쓴 줄은 같은 조건에 속한다. 연결되는 문단 사이 빈 줄은 한 개로 정규화하고, 끝의 빈 줄은 버린다. 같은 수준의 다음 목록, 들여쓰지 않은 일반 문단·하위 제목, 절의 끝은 본문 연결을 끝낸다.
-- 최상위와 본문 시작 열 사이의 애매한 들여쓰기, 부모 없는 들여쓴 내용, 첫 목록의 4칸 이상 들여쓰기, 들여쓰기나 목록 기호 뒤 구분 공백에 사용한 탭은 `criterion_indentation`으로 위치와 이유를 알려 준다. 조용히 버리거나 자동 변환하지 않는다. fenced 코드 블록은 기존과 같이 읽지 않는다.
+- A top-level list item starts with `-`, `*` or `+` and a space. The indentation of the first list item (0 to 3 spaces) is the section's top level. The next item at the same level is a new criterion and needs an ID. A missing or duplicate top-level ID is still an error.
+- A line indented at or beyond the column where the first content after the parent's list marker starts is body. With one space after the marker, as in `- AC-1 ...`, the body starts at two spaces. So with a parent at 0 spaces, child lists at 2, 3 and 4 spaces are all read as body. If the parent is indented two spaces, the body starts at four. More spaces after the marker move the body's starting column by as much.
+- List markers and content in the body are preserved, and an `AC-n` written there does not create a separate criterion. Leading and trailing whitespace is removed from each content line. Ordinary sentences follow the same body indentation rule.
+- A line indented at or beyond the body's starting column belongs to the same criterion even after a blank line. Blank lines between connected paragraphs are normalized to one, and trailing blank lines are dropped. The next list item at the same level, an unindented ordinary paragraph or subheading, or the end of the section ends the body.
+- Ambiguous indentation between the top level and the body's starting column, indented content without a parent, a first list item indented 4 or more spaces, and tabs used for indentation or as the separating space after a list marker are reported as `criterion_indentation` with the position and the reason. They are never silently dropped or automatically converted. Fenced code blocks are not read, as before.
 
-**기존 문서 보존.** 선택 표시가 없으면 기존 목록 해석을 그대로 쓴다. 0~3칸 목록은 독립 항목이며, 이어지는 들여쓴 문장은 앞뒤 공백을 제거해 본문에 넣고 빈 줄에서 연결을 끊는다. 기존 탭 continuation도 유지한다. 새 목록 규칙은 목표의 AC에만 적용하며 실행 입력의 범위·작업 명령·예산 목록은 바꾸지 않는다.
+**Existing documents are preserved.** Without the selector, the existing list interpretation is used unchanged. A list item at 0 to 3 spaces is a separate item; following indented sentences go into its body with leading and trailing whitespace removed, and a blank line ends the continuation. Existing tab continuation is also kept. The new list rules apply only to the goal's ACs; they do not change the scope, task command or budget lists of the execution input.
 
-기존 문서를 편집한다는 이유만으로 선택 표시를 추가하지 않는다. 사용자가 새 형식으로 전환하기로 결정했을 때만 명시한다. 이 줄을 더하거나 바꾸면 원문과 목표 digest가 달라지므로 이전 검사 근거·수동 확인을 새 해석의 근거로 묵시적으로 재사용할 수 없다. 원문이나 과거 기록을 자동으로 고쳐 호환성을 맞추지 않는다.
+Editing an existing document is not by itself a reason to add the selector. It is stated only when the user decides to switch to the new format. Adding or changing this line changes the text and the goal digest, so earlier check evidence and manual confirmations cannot be reused implicitly as evidence for the new interpretation. The text or past records are never rewritten automatically to fit compatibility.
 
-### 2.2 작업 분해 제안 (선택)
+### 2.2 Work breakdown proposal (optional)
 
-| 열 | 의미 |
+| Column | Meaning |
 | --- | --- |
-| `ID` | `W1`, `W2`… goal 안에서 안정적이다. |
-| `결과` | 완성되면 존재하는 결과(동작, 데이터 변경, 문서). 절차나 단계가 아니다. |
-| `조건` | 이 결과가 근거로 삼는 `AC-n` |
-| `의존` | 먼저 있어야 하는 결과의 `W` ID |
+| `ID` | `W1`, `W2`… stable within the goal. |
+| `결과` | A result that exists when finished (a behavior, a data change, a document). Not a procedure or a step. |
+| `조건` | The `AC-n` this result is grounded in |
+| `의존` | `W` IDs of results that must exist first |
 
-- 제안이다. 실행자는 그대로 쓰거나, 나누거나, 합칠 수 있다. 다르게 계획하면 실행 묶음에 이유를 남긴다([bundle.md](bundle.md) §2.3).
-- 모든 제안은 조건 하나 이상에 근거한다. 의존에 순환이 없다.
-- 순서나 방법을 지시하지 않는다. 실행 상태(진행 중, 끝남)를 적지 않는다.
+- It is a proposal. The executor may use it as is, split it or merge it. An executor that plans differently records the reason in the execution bundle ([bundle.md](bundle.md) §2.3).
+- Every proposal is grounded in at least one criterion. Dependencies have no cycle.
+- It does not dictate order or method. It does not record execution state (in progress, done).
 
-### 2.3 사용 시나리오와 완료 조건
+### 2.3 User scenarios and completion criteria
 
-기능을 바꾸는 목표는 사용자가 기대한 흐름이 완료 조건에 모두 들어갔는지 확인할 수 있게 사용 시나리오를 쓴다. 각 항목은 그것을 확인하는 조건 ID에 닿는다.
+A goal that changes behavior writes user scenarios, so that one can confirm every flow the user expects is in the completion criteria. Each item reaches the IDs of the criteria that check it.
 
 ```markdown
 ## 사용 시나리오
@@ -106,31 +106,31 @@ Criteria-Format: nested/1
 | 유지 | 비어 있지 않은 파일의 출력 형식은 그대로다 | AC-2 |
 ```
 
-| 종류 | 쓰는 것 |
+| Kind | What to write |
 | --- | --- |
-| 흐름 | 대표 사용 흐름: 누가, 어떤 상황에서, 무엇을 하고, 어떤 결과를 얻는가 |
-| 경계 | 이 작업에 해당하는 실패·경계 상황만. 예: 빈 입력, 권한 부족, 중복 요청 |
-| 유지 | 깨지면 안 되는 기존 기능·데이터·호환성 |
+| `흐름` | A representative usage flow: who, in what situation, does what, and gets what result |
+| `경계` | Only the failure and boundary cases that apply to this work. For example: empty input, missing permission, a duplicate request |
+| `유지` | Existing features, data and compatibility that must not break |
 
-규칙
-- 모든 흐름과 유지 항목은 조건 하나 이상에 닿는다.
-- **반드시 보존해야 하는 기존 동작은 여기서 필수 조건으로 정한다.** 실행자가 실행 묶음에 더하는 확인(`EX-n`)은 완료를 막지 않는다([bundle.md](bundle.md) §2.1). 목표 문서에 없으면 그 동작은 완료의 근거가 되지 않는다.
-- **여러 구성요소를 잇는 목표**(예: 화면과 API, 서비스와 저장소, 두 서비스)는 핵심 사용 흐름을 실제 경계 너머로 확인하는 조건을 하나 이상 둔다. 구성요소별 검사가 모두 통과해도 요청 경로나 데이터 형식이 어긋날 수 있기 때문이다. 검증 방법은 실행자가 정한다.
-- 작은 수정은 한두 문장으로 충분하다. 시나리오를 위해 큰 문서를 만들지 않는다.
+Rules
+- Every `흐름` (flow) and `유지` (keep) item reaches at least one criterion.
+- **Existing behavior that must be preserved is made a required criterion here.** Checks the executor adds in the execution bundle (`EX-n`) do not block completion ([bundle.md](bundle.md) §2.1). If it is not in the goal documents, that behavior is not grounds for completion.
+- **A goal that joins several components** (for example a screen and an API, a service and a store, two services) has at least one criterion that checks the core usage flow across the real boundary. Every per-component check can pass while the request path or the data format still disagrees. The executor decides how to verify it.
+- A small fix needs only a sentence or two. Do not create a large document for the scenarios.
 
-이 절은 사람과 Spec이 읽는 형식이다. Seal은 형식을 검사하지 않고, 조건 ID만 조건표로 이어받는다.
+This section is a format that people and Spec read. Seal does not check its format; it carries over only the criterion IDs into the condition table.
 
-### 2.4 판정 경계와 예시의 범위
+### 2.4 Judgment boundaries and the scope of examples
 
-분류·판정·권한·외부 계약을 바꾸는 목표는 관련 있는 판정 불가 입력의 결과, 관측 단위, 전후 집합 불변식, 지원 환경을 기존 결정·조건에 연결한다. 한 세션의 여러 요청은 다른 관측 단위이고, 한 호출 전후 추가·삭제·변경되어도 되는 집합을 구별한다. 환경이 다른 같은 이름을 같은 대상이라고 가정하지 않는다. 모든 목표에 빈 경계표를 붙이지 않는다.
+A goal that changes classification, judgment, permissions or an external contract links the relevant results for inputs that cannot be judged, observation units, before/after set invariants and supported environments to existing decisions and criteria. Several requests in one session are different observation units, and the sets that may be added to, removed from or changed before and after one call are distinguished. The same name in a different environment is not assumed to be the same target. An empty boundary table is not attached to every goal.
 
-사용자 말·기존 결정·공개 계약이 이미 답하는 경계는 출처를 연결하고 다시 묻지 않는다. 현재 코드만으로 의도를 확정하지 않는다. 미결정인 결과는 Open Decisions에 남기고 Draft를 유지한다. 이미 정한 결과 안의 구현·검증 방법은 실행자에게 남긴다. 공식 OS·셸·clone 지원 범위와 시험 fixture·스냅샷·DB 구성·프레임워크·모델 배정은 구별한다.
+A boundary that the user's words, an existing decision or a public contract already answers is linked to its source and not asked again. Intent is not settled from current code alone. An undecided result stays in Open Decisions, and the document stays Draft. Implementation and verification methods within an already decided result are left to the executor. The official OS, shell and clone support scope is kept distinct from test fixtures, snapshots, DB configuration, frameworks and model assignment.
 
-예시가 전체 목록인지 표본인지 쓴다. 표본에는 목록 밖의 요청 범위에도 적용되는 관측 가능한 일반 성질을 쓰며, 전체 목록은 목록 밖 결과를 정한다. 예시에 없다는 이유만으로 자동으로 범위 밖이 되지 않는다. 일반 성질을 구현 순서나 검증 명령으로 대체하지 않는다.
+State whether examples are a complete list or a sample. A sample states an observable general property that also applies to the requested scope outside the list; a complete list decides the result outside the list. Being absent from the examples does not by itself put something out of scope. The general property is not replaced with an implementation order or a verification command.
 
-공백·줄바꿈 이름, symlink·다른 위치의 같은 이름, 얕은 clone, 실제와 fake, 동시 실행 순서는 결과에 관련될 때만 살핀다. 해당하는 유지·실패 결과가 조건 또는 미결정에 연결되어야 한다. 이 예시는 고정 점검표가 아니며 새 플랫폼이나 잠금 정책을 범위에 자동 추가하지 않는다. 기존 목표 편집은 사용자가 정한 범위·조건 ID·문서 형식을 보존하며 과거 목표나 완료 기록을 변환하지 않는다.
+Names with spaces or line breaks, symlinks and the same name in another location, shallow clones, real versus fake, and concurrent execution order are examined only when they bear on the result. The applicable preservation or failure results must be linked to a criterion or an open decision. These examples are not a fixed checklist and do not automatically add new platforms or locking policies to the scope. Editing an existing goal preserves the scope, criterion IDs and document format the user set, and does not convert past goals or completion records.
 
-### 2.5 보증 등급 (`Assurance:`)
+### 2.5 Assurance tier (`Assurance:`)
 
 ```markdown
 # 로그인 실패 문구 정리
@@ -140,32 +140,32 @@ Criteria-Format: nested/1
 Assurance: light
 ```
 
-새 SPEC.md는 첫 `##` 절 이전, `Status:` 근처에 들여쓰지 않은 `Assurance:` 줄을 한 번 둔다. 값은 `light`, `standard`, `strict` 셋뿐이며 이것이 전체 목록이다. 등급은 실행자가 받아야 하는 독립 검토의 범위를 뜻한다.
+A new SPEC.md has one unindented `Assurance:` line before the first `##` section, near `Status:`. The only values are `light`, `standard` and `strict`, and this is the complete list. The tier means the scope of independent review the executor must get.
 
-| 등급 | 독립 검토의 범위 |
+| Tier | Scope of independent review |
 | --- | --- |
-| `light` | 독립 검토를 생략할 수 있고, 생략하면 이유를 남긴다 |
-| `standard` | 최종 후보와 그 뒤 수정을 검토한다 |
-| `strict` | `standard`에 구현 전 계획 검토를 더한다 |
+| `light` | Independent review may be skipped; when it is skipped, the reason is recorded |
+| `standard` | The final candidate and the fixes after it are reviewed |
+| `strict` | `standard` plus a plan review before implementation |
 
-등급을 실행 규칙과 완료 판정에 적용하는 방법과 검토 횟수 상한 같은 세부는 실행 도구의 계약이 정한다. 줄이 없는 목표는 지금 규칙을 따른다. 줄은 SPEC.md의 일부이므로 등급을 바꾸면 목표 digest가 바뀌고 목표가 바뀐 것으로 다룬다.
+How the tier applies to run rules and completion judgment, and details such as the cap on the number of reviews, are set by the execution tool's contract. A goal without the line follows the current rules. The line is part of SPEC.md, so changing the tier changes the goal digest and is treated as a change to the goal.
 
-이 등급은 `ha status --format json`의 `assurance` 필드와 다르다. 그 필드는 언제나 `"local"`이며 근거가 같은 사용자 권한의 로컬 실행에서 나왔다는 뜻이다([run-record.md](run-record.md) §4.5).
+This tier is different from the `assurance` field of `ha status --format json`. That field is always `"local"` and means the evidence came from local runs with the same user's permissions ([run-record.md](run-record.md) §4.5).
 
-위치와 오류 규칙은 `Criteria-Format:`과 같다(§2.1). fenced 코드 블록 안의 줄은 읽지 않고, 닫는 fence는 형식 선택과 같은 규칙으로 판별한다. 절 안의 들여쓴 본문에 인용된 줄도 읽지 않는다. 오류는 다음 네 경우가 전체 목록이며 `ha lint`가 파일, 줄 번호, 이유와 함께 알린다.
+Placement and error rules are the same as for `Criteria-Format:` (§2.1). Lines inside fenced code blocks are not read, and the closing fence is determined by the same rule as for format selection. A line quoted in an indented body inside a section is not read either. The following four cases are the complete list of errors, and `ha lint` reports them with the file, the line number and the reason.
 
-- 셋 밖의 값, 빈 값, 대소문자가 다른 값(예: `Light`): `assurance_format`
-- 첫 `##` 절 이전에 공백이나 탭으로 들여쓴 줄: `assurance_format`
-- 두 번 이상 나온 줄: `assurance_format_duplicate`
-- 첫 `##` 절 뒤에 들여쓰지 않고 나온 줄: `assurance_format`
+- A value outside the three, an empty value, or a value in different case (for example `Light`): `assurance_format`
+- A line indented with spaces or tabs before the first `##` section: `assurance_format`
+- A line that appears two or more times: `assurance_format_duplicate`
+- An unindented line after the first `##` section: `assurance_format`
 
-값 뒤의 공백과 CRLF 줄바꿈은 결과를 바꾸지 않는다. 오류가 있으면 등급이 없는 것으로 읽지 않고 오류로 남긴다. 한 문서에 `Criteria-Format:` 오류가 함께 있으면 둘 다 알린다. 같은 바이트의 문서는 작업 폴더, 시각, 환경 변수와 관계없이 같은 등급과 같은 오류로 읽힌다.
+Spaces after the value and CRLF line endings do not change the result. When there is an error, it is not read as having no tier; it stays an error. When the same document also has a `Criteria-Format:` error, both are reported. A document with the same bytes is read as the same tier and the same errors regardless of working folder, time or environment variables.
 
-Core는 줄을 읽고 검증하고 지원을 밝힌다. `ha lint`가 문제 없이 끝나면 `ok: no lint problems` 다음 줄에 `assurance tier: <등급>`으로 읽은 등급을 보이며, 줄이 없는 목표의 출력은 그대로다. `run-rules/4` 이하로 시작한 목표에서는 판정, `ha status`와 `ha done`의 출력, 예산이 등급 때문에 바뀌지 않는다([core-capabilities.md](core-capabilities.md)의 `formats.assurance_tier`). `run-rules/5`·`run-rules/6`·`run-rules/7`으로 시작한 목표는 판정할 때의 등급이 `standard`나 `strict`이면 기록된 검토 gate가 지금 HEAD와 목표 문서를 덮어야 완료된다([run-record.md](run-record.md) §4.8). 그래서 이 문서 집합을 고친 뒤에는 그 검토가 낡는다.
+Core reads and validates the line and declares support. When `ha lint` finishes without problems, it shows the tier it read as `assurance tier: <tier>` on the line after `ok: no lint problems`; the output for a goal without the line is unchanged. For a goal started under `run-rules/4` or earlier, the judgment, the output of `ha status` and `ha done`, and the budget do not change because of the tier (`formats.assurance_tier` in [core-capabilities.md](core-capabilities.md)). A goal started under `run-rules/5`, `run-rules/6` or `run-rules/7` whose tier at judgment time is `standard` or `strict` completes only when a recorded review gate covers the current HEAD and goal documents ([run-record.md](run-record.md) §4.8). So after this document set is edited, that review becomes stale.
 
-기존 목표 문서에는 사용자가 정하지 않는 한 `Assurance:` 줄을 더하지 않는다. 이미 있는 등급은 사용자의 말 없이 바꾸지 않는다. 등급을 고르는 기준은 Spec의 사용 규칙에 있다.
+An `Assurance:` line is not added to existing goal documents unless the user decides so. An existing tier is not changed without the user's words. The criteria for choosing a tier are in Spec's usage rules.
 
-### 2.6 에이전트 제안 (`Proposed-By:`)
+### 2.6 Agent proposals (`Proposed-By:`)
 
 ```markdown
 # 로그인 실패 문구 정리
@@ -176,128 +176,128 @@ Assurance: light
 Proposed-By: agent
 ```
 
-`Proposed-By: agent`는 에이전트가 부른 Spec이 쓴 새 목표 문서임을 알리는 줄이다(§6.6). 첫 `##` 절 이전에 들여쓰지 않고 한 번 둔다. 사용자가 직접 부른 Spec이 쓴 문서에는 이 줄이 없다. 이 줄은 문서가 어디서 시작됐는지만 알리며 승인 표시가 아니다. 사용자가 제안을 받아들인 뒤에도 남고, `Proposed-By: agent` 줄은 받아들인 뒤에도 바꾸거나 지우지 않는다. 수락은 사용자의 말을 출처로 한 결정으로 남는다. Core는 이 줄을 해석하지 않는다. 누가 썼는지 묻지 않는다는 원칙(머리말)은 그대로다.
+`Proposed-By: agent` is a line saying that the document is a new goal document written by Spec in an agent invocation (§6.6). It appears once, unindented, before the first `##` section. A document written by Spec that the user invoked directly does not have this line. The line says only where the document started; it is not a mark of approval. It stays after the user accepts the proposal, and the `Proposed-By: agent` line is not changed or removed after acceptance either. The acceptance remains as a decision whose source is the user's words. Core does not interpret this line. The principle of not asking who wrote a document (introduction) stays as it is.
 
-## 3. 정합성
+## 3. Consistency
 
-Spec은 목표 문서를 넘기기 전에 다음을 확인한다. 결과는 대화로 보고하고, 문서에는 고친 결과만 남긴다.
-- 목표, 비목표, 제약, 결정, 완료 조건이 서로 어긋나지 않는다.
-- 모든 완료 조건이 관측할 수 있는 결과다.
-- 결과를 바꾸는 미결정이 남았으면 `Status: Draft`이고, `## Open Decisions`에 있다. 남은 미결정이 없으면 `Status: Ready`다.
-- 작업 분해 제안이 있으면 모든 조건이 제안 하나 이상에 닿는다.
-- 사용 시나리오가 있으면 모든 흐름과 유지 항목이 조건에 닿는다. 깨지면 안 되는 기존 동작이 필수 조건으로 있다.
-- 여러 구성요소를 잇는 목표면 경계 너머로 흐름을 확인하는 조건이 있다.
-- 사용자가 요청하지 않은 기능이 범위에 들어가지 않았다.
-- Spec이 쓰거나 고친 결정마다 출처가 있다. 출처 없이 이미 있던 결정은 채우지 않고 보고했다(§6.2).
-- 기존 코드를 바꾸는 목표면 지금 동작이 근거 파일 경로와 함께 있고, 영향 지점마다 조건에 들어갔거나 해당 없음으로 본 이유를 보고했다(§6.3).
-- 사람의 확인이나 판단 자체가 충족 조건인 것, 실행자가 목표 안에서 만들 수 없는 일(다른 목표의 완료, 실행자가 띄울 수 없는 환경에서의 실행, 완료 뒤 실제 사용에서 쌓이는 기록)로만 충족되는 것은 완료 조건이 아니다. 완료 뒤 평가 항목으로 관련 맥락에 확인할 곳과 함께 남기고, 그 결과를 내려고 산출물이 갖출 성질은 완료 조건으로 남긴다. 옮긴 항목은 보고의 결정 목록(§6.4)에 적고, 사용자가 완료 조건으로 두라고 하면 그 말을 출처로 따른다.
+Before handing over goal documents, Spec checks the following. It reports the results in the conversation and leaves only the corrected result in the documents.
+- Goal, non-goals, constraints, decisions and completion criteria do not contradict each other.
+- Every completion criterion is an observable result.
+- If an outcome-changing open decision remains, the document is `Status: Draft` and the decision is in `## Open Decisions`. If no open decision remains, it is `Status: Ready`.
+- If there is a work breakdown proposal, every criterion reaches at least one proposal.
+- If there are user scenarios, every `흐름` and `유지` item reaches a criterion. Existing behavior that must not break is there as a required criterion.
+- A goal that joins several components has a criterion that checks the flow across the boundary.
+- No feature the user did not request entered the scope.
+- Every decision Spec wrote or changed has a source. Decisions that already existed without a source were reported, not filled in (§6.2).
+- A goal that changes existing code has today's behavior with the file paths that show it, and each affected point was either put into a criterion or reported with the reason it was judged not applicable (§6.3).
+- Something whose fulfillment condition is a person's confirmation or judgment itself, or that is fulfilled only by work the executor cannot produce within the goal (another goal's completion, a run in an environment the executor cannot start, records that accumulate from real use after completion), is not a completion criterion. It stays under related context as an evaluation item after completion, with where to check it, and the properties the output needs in order to produce that result stay as completion criteria. Moved items are listed in the report's decision list (§6.4); if the user says to keep one as a completion criterion, Spec follows those words as the source.
 
-Seal은 목표 문서를 읽을 때 형식만 확인한다(`ha lint`). 예: ID 중복, ID 없는 조건, 존재하지 않는 `W`나 `AC` 참조. 형식이 틀리면 고치지 않고 사용자에게 알린다.
+When Seal reads goal documents, it checks only their format (`ha lint`). For example: duplicate IDs, criteria without IDs, references to a `W` or `AC` that does not exist. When the format is wrong, Seal does not fix it; it tells the user.
 
-## 4. 목표 문서의 독립성
+## 4. Independence of goal documents
 
-목표 문서가 Seal 없이도 쓸모 있는지는 시험으로 확인한다. Seal이 설치되지 않은 새 에이전트에게 목표 문서만 준다. 그 에이전트가 별도의 의도 설명 없이 구현에 착수할 수 있어야 한다.
+Whether goal documents are useful without Seal is confirmed by a test. Give only the goal documents to a new agent that does not have Seal installed. That agent must be able to start implementing without a separate explanation of intent.
 
-## 5. 플러그인과 템플릿
+## 5. Plugin and templates
 
-Spec의 [사용 규칙](https://github.com/jgoneit/jaekit/blob/v0.1.8/plugins/spec/skills/spec/SKILL.md)과 [문서 형식 안내](https://github.com/jgoneit/jaekit/blob/v0.1.8/plugins/spec/skills/spec/references/goal-docs.md)는 플러그인에 함께 배포된다. 문서의 깊이는 변경 위험도에 맞추고, 필요 없는 빈 절은 만들지 않는다.
+Spec's [usage rules](https://github.com/jgoneit/jaekit/blob/v0.1.8/plugins/spec/skills/spec/SKILL.md) and [document format guide](https://github.com/jgoneit/jaekit/blob/v0.1.8/plugins/spec/skills/spec/references/goal-docs.md) ship together with the plugin. The depth of a document fits the risk of the change, and unneeded empty sections are not created.
 
-## 6. 쓰는 과정
+## 6. Writing process
 
-Spec이 목표 문서를 쓰는 동안 지키는 규칙이다. 기본 상황은 기존 코드 위의 변경이다.
+These are the rules Spec follows while writing goal documents. The default situation is a change on top of existing code.
 
-### 6.1 요청 종류
+### 6.1 Request kinds
 
-목표 문서를 쓰기 전에 요청이 무엇인지 정하고, 보고(§6.4)에서 근거와 함께 알린다. 종류는 겹칠 수 있다.
-- 새 프로젝트: 지금 템플릿 그대로 쓴다. 전용 절차는 아직 없다.
-- 기존 코드 변경: 크기와 관계없이 §6.3을 따른다.
-- 기존 목표 문서 수정: 기존 조건 ID를 유지한다(§2.1). 어느 문서를 고칠지 요청과 대화로 정해지지 않았으면 쓰기 전에 고른다(§6.4).
+Before writing goal documents, Spec decides what the request is and states it with its grounds in the report (§6.4). Kinds can overlap.
+- New project: use the current template as is. There is no dedicated procedure yet.
+- Change to existing code: follow §6.3 regardless of size.
+- Edit to existing goal documents: keep the existing criterion IDs (§2.1). If the request and the conversation have not settled which document to edit, choose before writing (§6.4).
 
-작은 수정인지도 함께 알린다. 작은 수정은 종류가 아니라 깊이다. 문서와 질문이 짧아질 뿐이고, 기존 코드를 바꾸면 §6.3을 따른다.
+Spec also states whether it is a small fix. A small fix is a depth, not a kind. Only the documents and questions get shorter; if it changes existing code, §6.3 applies.
 
-### 6.2 결정의 출처
+### 6.2 Sources of decisions
 
-Spec이 쓰거나 고친 결정마다 출처를 적는다. 출처는 다음 넷 가운데 하나다.
-- 사용자의 말
-- 저장소 파일 위치
-- 기존 목표 문서
-- 보고에 적은 Spec의 제안
+For every decision Spec writes or changes, it records the source. The source is one of these four.
+- The user's words
+- A repository file location
+- An existing goal document
+- A Spec proposal stated in the report
 
-어느 것으로도 댈 수 없는 결과를 바꾸는 결정은 결정으로 적지 않는다. 묻거나 `## Open Decisions`에 남긴다.
+An outcome-changing decision that none of these can source is not written as a decision. Spec asks about it or leaves it in `## Open Decisions`.
 
-새 SPEC 문서에서는 결정 문장 맨 앞에 표시 하나를 둔다. 결정과 이유 절의 각 결정에 적용하며, 자세한 출처는 끝에 그대로 둔다. 표시는 다음 순서로 고른다.
+In new SPEC documents, put one marker at the very start of each decision sentence under decisions and reasons, and keep the detailed source at the end. Choose in this order:
 
-- 출처에 사용자의 말이 있으면 `[사용자]`.
-- 사용자의 말 없이 보고에 적은 Spec의 제안이 있으면 `[제안]`.
-- 그 밖에 저장소 파일, 기존 목표 문서, 검토 지적의 식별자만 있으면 `[기존]`.
+- `[사용자]` when the source includes the user's words.
+- `[제안]` when there are no user's words and the source includes a Spec proposal stated in the report.
+- `[기존]` otherwise: only a repository file, an existing goal document, or a review finding identifier.
 
-출처가 바뀌면 표시도 함께 바뀐다. 사용자가 제안을 바꾸라고 하거나, 에이전트 호출에서 사용자의 수락을 결정으로 옮길 때도 같다. 표시는 언어와 관계없는 계약 토큰이다. 사용자의 언어와 관계없이 그대로 쓴다.
+Markers follow their sources: when the source changes, the marker changes with it. This includes a user's request to change a proposal and an agent invocation recording the user's acceptance as a decision. Write them as-is: the markers are contract tokens in every language.
 
-표시 없는 결정도 그대로 유효하다. 기존 문서를 고칠 때 사용자가 정하지 않으면 표시를 더하지 않는다. 결정에 이미 표시가 있는 문서는 뒤에 더하거나 고친 결정에도 표시를 붙인다. 이미 있는 출처 표기는 바꾸지 않는다.
+Decisions without a marker remain valid. When editing an existing document, add no marker unless the user decides. A document whose decisions already carry markers keeps marking the decisions added or changed in later edits. Existing source labels stay unchanged.
 
-보고에 적은 Spec의 제안은 사용자가 받아들이거나 그 목표 문서로 구현을 요청하면 사용자의 결정이 된다. 사용자가 바꾸라고 하면 문서를 고치고, 그 결정의 출처는 사용자의 말이 된다. 이미 적힌 "Spec 제안(저장 때 동의)" 표기는 그대로 둔다.
+A Spec proposal stated in the report becomes the user's decision when the user accepts it or requests implementation with those goal documents. When the user says to change it, Spec edits the document, and the source of that decision becomes the user's words. An already written `Spec 제안(저장 때 동의)` (Spec proposal, agreed at save) label is left as it is.
 
-출처 없이 이미 있던 결정은 지어내 채우지 않는다. 나중에 채운 출처는 추측이 되기 쉽기 때문이다. 그 문서를 고칠 때 정합성 결과로 알리고, 출처를 더할지는 사용자가 정한다.
+Spec does not invent and fill in sources for decisions that already existed without one, because a source filled in later easily becomes a guess. When editing that document, Spec reports it as a consistency result, and the user decides whether to add a source.
 
-### 6.3 기존 코드를 바꾸는 목표
+### 6.3 Goals that change existing code
 
-- 바꾸려는 동작에 닿는 코드, 테스트, 문서를 읽는다. 실행하지 않는다.
-- 지금 동작을 근거 파일 경로와 함께 사실로 적는다. 바뀌는 것과 그대로인 것을 구분하고, 그대로여야 하는 것은 `유지` 시나리오와 필수 조건이 된다.
-- 같은 동작을 다루는 목표 문서가 `docs/specs/`에 있으면, 새 목표로 쓸지 그 문서를 고칠지 근거와 함께 제안하고 사용자의 결정대로 한다. 요청과 대화로 정해지지 않았으면 쓰기 전에 묻는다(§6.4).
-- 바뀌는 동작이 닿는 곳을 찾는다. 같은 코드로 들어오는 다른 경로, 저장된 설정과 데이터, 업데이트와 이전 경로다. 해당하는 것은 `유지` 시나리오나 조건이 되고, 해당하지 않는다고 본 것은 이유와 함께 정합성 결과로 보고한다.
-- 코드는 무엇이 일어나는지 보여 줄 뿐 무엇을 의도했는지는 보여 주지 않는다. 지금 동작이 의도인지 실수인지 코드와 문서로 정할 수 없고 그 판단이 결과를 바꾸면 묻는다. 코드로 알 수 있는 것은 묻지 않는다.
+- Read the code, tests and documents that touch the behavior to change. Do not run them.
+- State today's behavior as fact with the file paths that show it. Separate what changes from what stays the same; what must stay becomes a `유지` scenario and a required criterion.
+- If goal documents covering the same behavior exist in `docs/specs/`, propose with grounds whether to write a new goal or edit those documents, and do as the user decides. If the request and the conversation have not settled this, ask before writing (§6.4).
+- Find where the changed behavior reaches: other paths into the same code, saved settings and data, update and migration paths. Those that apply become `유지` scenarios or criteria; those judged not to apply are reported with reasons as consistency results.
+- Code shows what happens, not what was intended. When code and documents cannot settle whether today's behavior is intended or a mistake, and that judgment changes the outcome, ask. Do not ask what the code can tell.
 
-### 6.4 저장과 보고
+### 6.4 Saving and reporting
 
-**작성 대상.** 같은 동작을 다루는 목표 문서가 `docs/specs/`에 있는데 요청과 대화가 작성 대상(새 목표인지 그 문서 수정인지, 또는 어느 목표 문서를 고칠지)을 정하지 않았으면, Spec은 어떤 파일도 쓰거나 고치기 전에 그 선택을 묻는다. 추천하는 대상을 맨 앞에 두고 근거와 선택지마다 잃는 것을 함께 적으며(§6.5 추천 먼저), 사용자의 선택을 따른다. 이 질문에서는 아무 파일도 쓰지 않고 답을 기다린다. 사용자가 대상을 지목했거나 대화에서 이미 골랐으면 다시 묻지 않는다. 쓰기 전에 받는 것은 작성 대상뿐이다. 대상이 정해진 뒤 내용의 미결정은 아래처럼 `Status: Draft`로 쓰고 묻는다.
+**Writing target.** When goal documents covering the same behavior exist in `docs/specs/` and the request and the conversation have not settled the writing target (a new goal or an edit of those documents, or which goal documents to edit), Spec asks for that choice before writing or editing any file. It puts the recommended target first, with the grounds and what each option loses (§6.5 Recommendation first), and follows the user's choice. With this question it writes no file and waits for the answer. If the user named the target or already chose it in the conversation, Spec does not ask again. The writing target is the only thing obtained before writing. Once the target is settled, open content decisions are written with `Status: Draft` and asked about, as below.
 
-**바로 저장.** 작성 대상이 정해지면 Spec은 사용자의 저장 동의를 기다리지 않고 목표 문서를 바로 쓰거나 고친다. 결과를 바꾸는 미결정이 남으면 `Status: Draft`로 쓰고 그 결정을 `## Open Decisions`에 두며, 같은 보고에서 묻는다.
+**Save at once.** Once the writing target is settled, Spec writes or edits the goal documents at once, without waiting for the user's consent to save. If an outcome-changing open decision remains, it writes `Status: Draft`, puts that decision in `## Open Decisions`, and asks about it in the same report.
 
-쓰거나 고친 뒤에는 대화에 보고한다. 초안 전문을 대화에 붙이지 않는다. 검토는 파일과 diff로 한다. 보고에는 다음이 있다.
-- 요청 종류와 작은 수정인지(§6.1)
-- 쓰거나 고친 파일 경로와 바뀐 절
-- 사용자가 말하지 않았는데 Spec이 정한 결정과 출처(§6.2)
-- 완료 뒤 평가 항목으로 옮긴 항목(§3)
-- 열린 질문
-- 정합성 확인 결과(§3)
+After writing or editing, Spec reports in the conversation. It does not paste the full draft into the conversation; review happens with the files and the diff. The report contains the following.
+- The request kind and whether it is a small fix (§6.1)
+- The paths of files written or edited, and the sections changed
+- Decisions Spec made that the user did not state, with their sources (§6.2)
+- Items moved to evaluation items after completion (§3)
+- Open questions
+- Consistency check results (§3)
 
-사용자가 질문에 답하거나 수정을 요청하면 같은 목표 문서를 고치고 다시 보고한다. 기존 조건 ID를 유지하고 지운 ID를 다시 쓰지 않는다(§2.1). 결과를 바꾸는 미결정이 남지 않으면 `Status: Ready`로 바꾼다.
+When the user answers a question or asks for changes, Spec edits the same goal documents and reports again. It keeps existing criterion IDs and never reuses a removed ID (§2.1). When no outcome-changing open decision remains, it changes the document to `Status: Ready`.
 
-결과를 바꾸는 열린 결정이 없거나 남은 것이 에이전트 제안이나 수정안의 수락뿐이면, 보고 끝에 구현 여부 질문을 따로 한 번 한다(§6.7). 내용의 열린 결정이 남은 보고에서 구현은 새 요청으로 시작한다고 알리고 멈춘다. Spec을 부른 요청이나 답이 구현까지 요청해도 같다. 사용자는 파일과 보고를 보고 고칠 것을 말하거나, 구현 여부 질문에 답하거나, 구현을 요청한다.
+When no outcome-changing decision is open, or the only one left is accepting an agent's proposal or an amendment, the report ends with one separate implement-now question (§6.7). A report that still has open content decisions says that implementation starts with a new request, and stops. This holds even when the request that invoked Spec or a reply also asks for implementation. The user reviews the files and the report, then says what to change, answers the implement-now question, or requests implementation.
 
-### 6.5 질문
+### 6.5 Questions
 
-결과를 바꾸는 결정에만 묻고, 구현자가 정할 수 있는 세부(이름, 파일 배치, 내부 순서)는 묻지 않는다. 관련 질문은 묶어 묻는다. 질문 수 상한과 고정된 질문 목록은 두지 않는다.
+Spec asks only about outcome-changing decisions, and does not ask about details the implementer can decide (names, file layout, internal order). Related questions are asked together. There is no cap on the number of questions and no fixed question list.
 
-**말하지 않은 결정.** 질문과 목표 문서는 요청된 동작과 그 변경이 닿는 범위에서 결과를 바꾸는 결정을 빠뜨리지 않는다. 빠졌는지는 목표가 건드리는 대상(사람과 역할, 저장 데이터, 상태, 외부 시스템)과 서로 만나는 대상의 쌍에 다음 관점을 대어 판단한다.
-- 개수와 관계: 하나인가 여럿인가, 누가 무엇을 가지는가
-- 생애: 언제 생기고 바뀌고 끝나는가
-- 동시에 일어나는 일: 두 행동이 같은 데이터에 닿을 때 어떻게 되는가
-- 값의 집합: 상태와 식별자가 가질 수 있는 값, 고유성
-- 실패: 실패하면 무엇이 남는가
+**Unstated decisions.** The questions and the goal documents do not miss outcome-changing decisions within the requested behavior and the scope its change reaches. Whether one is missing is judged by applying the following perspectives to the things the goal touches (people and roles, stored data, states, external systems) and to the pairs of those things that meet.
+- Count and relations: one or many, who owns what
+- Lifecycle: when it is created, changes and ends
+- Things that happen at once: what happens when two actions touch the same data
+- Value sets: the values that states and identifiers can take, uniqueness
+- Failure: what remains when it fails
 
-관점은 누락을 판단하는 기준일 뿐이며 모든 대상·쌍·관점의 조합에 답을 요구하지 않는다. 결과를 바꾸지 않거나 요청된 동작과 관계없는 조합은 다루지 않는다. 어느 관점에도 맞지 않는 결정도 결과를 바꾸면 같다. 그런 결정을 어떤 순서와 방법으로 찾을지는 정하지 않는다.
+The perspectives are only a standard for judging omissions; they do not require an answer for every combination of thing, pair and perspective. Combinations that do not change the outcome or are unrelated to the requested behavior are not covered. A decision that fits no perspective is treated the same if it changes the outcome. The order and method for finding such decisions are not specified.
 
-그런 결정은 셋 가운데 한 곳에 있다.
-- 사용자의 말, 기존 목표 문서, 코드로 정해지면 출처와 함께 목표 문서에 있다(§6.2). 코드는 지금 동작을 보여 줄 뿐 의도를 정하지 않으므로, 지금 동작이 의도인지 실수인지 코드와 문서로 정할 수 없고 그 판단이 결과를 바꾸면 묻는다(§6.3).
-- 이미 정한 동작 안에서 구현자가 조정할 수 있는 값과 동작을 바꾸지 않는 구현 세부(이름, 파일 배치, 내부 순서)는 묻지 않고 구현자에게 맡긴다.
-- 나머지는 질문으로 묻거나 `## Open Decisions`에 있다.
+Such a decision is in one of three places.
+- If the user's words, existing goal documents or the code settle it, it is in the goal documents with its source (§6.2). Because code shows only today's behavior and does not settle intent, Spec asks when code and documents cannot settle whether today's behavior is intended or a mistake and that judgment changes the outcome (§6.3).
+- Values the implementer can adjust within already decided behavior, and implementation details that do not change behavior (names, file layout, internal order), are left to the implementer without asking.
+- The rest is asked as a question or is in `## Open Decisions`.
 
-그런 결정 때문에 요청하지 않은 기능이 범위나 조건에 들어가지 않는다. 다섯 관점은 질문 목록이 아니며, 목표 문서에 관점별 점검 결과를 쓰지 않는다. 작은 수정에서는 바꾸는 것과 그 변경으로 영향을 받는 기존 동작에 닿는 결정만 다룬다.
+Such decisions do not bring unrequested features into the scope or the criteria. The five perspectives are not a question list, and per-perspective check results are not written in goal documents. In a small fix, only decisions that touch what changes and the existing behavior that change affects are covered.
 
-**추천 먼저.** 선택지가 있는 질문은 추천하는 선택지를 맨 앞에 두고, 그 이유와 선택지마다 잃는 것을 함께 적는다. 초안을 둘 이상 보이면 어느 쪽을 추천하는지와 이유를 함께 말한다. 사용자만 아는 동작은 사용자가 고칠 수 있는 구체적인 제안으로 묻고, 제시한 선택지 밖의 답도 받는다. 요청, 코드, 문서 어디에도 한쪽을 고를 근거가 없으면 선호를 지어내지 않고 근거가 없다고 말한다. 추천은 사용자가 받아들이기 전에는 결정이 아니다. 사용자가 받아들이거나 "알아서 정해 줘"처럼 맡기면, 보고에 적은 Spec의 제안을 출처로 하는 결정이 되고 보고의 결정 목록(§6.4)에 오른다.
+**Recommendation first.** A question with options puts the recommended option first, with the reason and what each option loses. When showing two or more drafts, Spec says which one it recommends and why. Behavior only the user knows is asked about as a concrete proposal the user can correct, and answers outside the offered options are accepted too. When nothing in the request, code or documents gives grounds to choose one side, Spec does not invent a preference; it says there are no grounds. A recommendation is not a decision until the user accepts it. When the user accepts it or leaves it to Spec, as in "you decide", it becomes a decision whose source is the Spec proposal stated in the report, and it goes into the report's decision list (§6.4).
 
-### 6.6 에이전트 호출과 수정안 문서
+### 6.6 Agent invocation and amendment documents
 
-**직접 호출과 에이전트 호출.** 사용자가 skill을 직접 부르거나(`/spec:spec`, `$spec:spec`) Spec을 이름으로 가리켜(`@Spec`) 목표 문서를 요청하면 직접 호출이다. 나머지는 모두 에이전트 호출이다. Spec을 가리키지 않은 평범한 말("이걸 목표 문서로 정리해줘")에 에이전트가 Spec을 부른 경우도 에이전트 호출이다. 호스트 에이전트는 두 경우에만 Spec을 부른다. 사용자가 Jaekit이나 Spec, 목표 문서로 일하라고 할 때("이거 jaekit으로 해줘")와, 목표 문서를 바꿔야만 풀리는 질문(검토 지적 포함)에 수정안이 필요할 때다. 목표 문서를 말하지 않은 평범한 구현 요청과 버그 제보에는 부르지 않는다. 에이전트가 부른 Spec도 Spec이며 이 계약의 다른 규칙을 모두 따른다.
+**Direct invocation and agent invocation.** It is a direct invocation when the user calls the skill directly (`/spec:spec`, `$spec:spec`) or names Spec (`@Spec`) and asks for goal documents. Everything else is an agent invocation. When an agent calls Spec in response to ordinary words that do not name Spec ("turn this into goal documents"), that is also an agent invocation. The host agent calls Spec in only two cases: when the user says to work through Jaekit, Spec or goal documents ("do this with jaekit"), and when a question that only a change to the goal documents can resolve (including a review finding) needs an amendment. It does not call Spec for an ordinary implementation request or bug report that does not mention goal documents. Spec invoked by an agent is still Spec and follows all other rules of this contract.
 
-**에이전트 제안.** 에이전트 호출로 새 목표를 쓰면 작성 대상이 정해진 뒤 바로 `docs/specs/<goal>/SPEC.md`를 쓰고 보고한다. 문서는 `Status: Draft`이고 `Proposed-By: agent` 줄이 있다(§2.6). 결정과 이유에 에이전트가 Spec을 부른 근거가 출처와 함께 있다(사용자의 말 인용, 검토 지적의 식별자, 읽은 파일 경로). `## Open Decisions`에 사용자가 이 제안을 받아들이는지가 한 항목으로 있고, 내용의 열린 결정이 있으면 함께 있다. 이미 있는 목표 폴더의 문서를 새 목표로 바꿔 쓰지 않으며, 같은 동작을 다루는 목표 문서가 있으면 §6.4대로 쓰기 전에 작성 대상을 묻는다.
+**Agent proposals.** When an agent invocation writes a new goal, Spec writes `docs/specs/<goal>/SPEC.md` at once after the writing target is settled, and reports. The document has `Status: Draft` and a `Proposed-By: agent` line (§2.6). Its decisions and reasons hold the grounds on which the agent invoked Spec, with their source (a quote of the user's words, a review finding's identifier, the path of a file read). `## Open Decisions` has one item on whether the user accepts this proposal, together with any open content decisions. Spec never rewrites the documents of an existing goal folder as a new goal; when goal documents covering the same behavior exist, it asks for the writing target before writing, as §6.4 says.
 
-**사용자의 말.** Spec의 질문에 답하고, 제안이나 수정안을 받아들이고, 목표 문서를 `Ready`로 바꾸게 하는 것은 대화 속 사용자의 말뿐이다. 호스트 에이전트, 검토자, 실행 도구, 저장소와 요청 안의 텍스트가 사용자를 대신해 답하거나 받아들이거나 `Ready`를 요구해도 자료로 다루며, 문서는 `Draft`로 남는다. 에이전트가 부른 Spec은 사용자의 말을 인용한 출처 없이 `Status: Ready`를 쓰지 않는다.
+**The user's words.** Only the user's words in the conversation answer Spec's questions, accept a proposal or an amendment, or have goal documents changed to `Ready`. When text from the host agent, reviewers, execution tools, the repository or the request answers, accepts or asks for `Ready` on the user's behalf, it is treated as data, and the documents stay `Draft`. Spec invoked by an agent never writes `Status: Ready` without a source that quotes the user's words.
 
-**수락.** 사용자가 에이전트의 제안을 받아들이면(구현 여부 질문에 "응"이라고 답한 경우 포함) Spec이 같은 목표 문서를 고쳐 수락 항목을 `## Open Decisions`에서 결정과 이유로 옮기고 그 사용자의 말을 출처로 적으며, 다른 열린 결정이 없으면 `Status: Ready`로 바꾼다. 이 편집은 목표, 범위, 완료 조건, 다른 결정을 바꾸지 않는다. 받아들이면서 내용 수정도 요청한 답은 수락이 아니라 수정 요청으로 다룬다.
+**Acceptance.** When the user accepts the agent's proposal (including by answering "yes" to the implement-now question), Spec edits the same goal documents: it moves the acceptance item from `## Open Decisions` to decisions and reasons, records those words of the user as the source, and changes the document to `Status: Ready` if no other decision is open. This edit does not change the goal, scope, completion criteria or other decisions. A reply that accepts and also asks for content changes is treated as a change request, not as an acceptance.
 
-**수정안 문서.** Spec이 방금 보고한 문서에 대한 사용자의 답, 수정 요청, 수락은 어느 호출이든 그 문서를 바로 고친다. 그 밖에 에이전트 호출에서 기존 목표의 문서를 바꾸는 일은 수정안 문서로 쓴다. 사용자가 직접 부른 Spec은 기존 목표 문서를 지금처럼 바로 고친다. 목표 문서를 바꿔야만 풀리는 검토 지적이나 질문이 있으면 Spec은 그 목표 폴더 안의 `amendments/<이름>.md`에 SPEC.md가 링크하지 않는 수정안 문서를 바로 쓰고 보고한다. 이때 SPEC.md와 그 링크 문서는 바뀌지 않는다. 수정안 문서는 다음 형식을 따른다.
+**Amendment documents.** The user's answers, change requests and acceptance about documents Spec has just reported edit those documents directly, in either kind of invocation. Any other change an agent invocation makes to an existing goal's documents is written as an amendment document. Spec invoked directly by the user edits existing goal documents directly, as now. When there is a review finding or question that only a change to the goal documents can resolve, Spec at once writes an amendment document, which SPEC.md does not link, at `amendments/<name>.md` inside that goal folder, and reports. At that point SPEC.md and its linked documents do not change. An amendment document follows this format.
 
 ```markdown
 # 수정안: <짧은 이름>
@@ -315,17 +315,17 @@ Spec이 쓰거나 고친 결정마다 출처를 적는다. 출처는 다음 넷 
 <바뀐 뒤의 문장>
 ```
 
-수정안이 여럿이면 문서도 따로 쓰고 하나씩 정한다. 사용자가 받아들이면 Spec이 수정을 SPEC.md(와 링크 문서)에 반영하고 그 출처를 사용자의 말로 적은 뒤 수정안 문서를 지운다. 기존 조건 ID는 유지되고 지운 ID는 다시 쓰지 않는다(§2.1). 사용자가 거절하면 Spec은 수정안 문서만 지우고, 그 목표의 목표 문서 집합은 수정안을 쓰기 전과 바이트 단위로 같다. 수정안을 쓴 뒤 목표 문서의 해당 문장이 이미 바뀌었으면, 받아들인다는 답이 와도 반영하지 않고 사용자에게 알린다.
+Several amendments are written as separate documents and decided one at a time. When the user accepts one, Spec applies the change to SPEC.md (and the linked documents), records the user's words as its source, and then deletes the amendment document. Existing criterion IDs are kept, and removed IDs are never reused (§2.1). When the user rejects one, Spec deletes only the amendment document, and the goal's document set is byte for byte the same as before the amendment was written. If the affected sentences in the goal documents have already changed after the amendment was written, Spec does not apply it even when the answer accepts it, and tells the user.
 
-수정안 문서는 SPEC.md가 링크해도 목표 문서 집합(§1)과 목표 digest에 들어가지 않는다. 실행 기록에서는 실행 묶음처럼 묶음 문서로 다뤄 코드 상태에서 빠진다([run-record.md](run-record.md) §2). 그래서 수정안 문서를 쓰고 지우는 동안 진행 중인 목표의 상태는 수정안이 없을 때와 같다.
+Amendment documents are not in the goal document set (§1) or the goal digest, even when SPEC.md links them. Run records treat them as bundle documents, like the execution bundle, so they are left out of the code state ([run-record.md](run-record.md) §2). So while amendment documents are written and deleted, the state of a goal in progress is the same as when there is no amendment.
 
-### 6.7 구현 여부 질문
+### 6.7 The implement-now question
 
-Spec이 목표 문서를 쓰거나 고친 보고에서 결과를 바꾸는 열린 결정이 없거나 남은 것이 에이전트 제안이나 수정안의 수락뿐이면, 보고 끝에 구현 여부 질문을 따로 한 번 한다. 질문은 대상 목표 경로와 그 문서의 `Assurance:` 등급(없으면 없다는 것)을 밝힌다. 수락이 남은 문서면 "응"이 그 수락도 된다고 밝힌다. 내용의 열린 결정이 남은 보고에는 이 질문이 없다. 사용자가 이 대화에서 구현하지 말라고 했으면 묻지 않고, 수락만 기록한 편집 뒤에는 다시 묻지 않는다. 질문한 뒤 Spec은 멈춘다. 질문 문구는 특정 실행 도구의 이름이나 명령을 쓰지 않는다.
+In a report where Spec wrote or edited goal documents, when no outcome-changing decision is open, or the only one left is accepting an agent's proposal or an amendment, the report ends with one separate implement-now question. The question names the target goal path and that document's `Assurance:` tier (or that it has none). For a document with an acceptance still open, it says that "yes" also gives that acceptance. A report with open content decisions has no such question. If the user said in this conversation not to implement, Spec does not ask, and it does not ask again after an edit that only records an acceptance. After asking, Spec stops. The wording of the question does not use the name or commands of a particular execution tool.
 
-구현 여부 질문에 바로 답한 사용자의 긍정 답만 그 질문이 다룬 목표의 구현(또는 이어서 하기) 요청이다.
+Only the user's affirmative answer given directly to the implement-now question is a request to implement (or continue) the goal that question covered.
 
-- 구현 요청이 되는 대표 형태: "응", "네", "구현해줘", "진행해"
-- 구현 요청이 아닌 대표 형태: Spec 내용 질문에 대한 답(구현도 해 달라고 함께 말해도), 긍정과 수정 요청이 함께 있는 답("응, 그런데 AC-2는 빼줘"), Spec을 부른 요청 자체(사용자가 불렀든 에이전트가 불렀든), 대화 앞부분의 구현 요청, 질문이 다루지 않은 목표에 대한 답, 질문 뒤에 목표 문서가 바뀐 경우의 답
+- Representative forms that are implementation requests: "yeah", "yes", "implement it", "go ahead"
+- Representative forms that are not implementation requests: an answer to a question about Spec's content (even if it also asks for implementation), an answer with both an affirmation and a change request ("yes, but drop AC-2"), the request that invoked Spec itself (whether the user or an agent invoked it), an implementation request earlier in the conversation, an answer about a goal the question did not cover, an answer given when the goal documents changed after the question
 
-위 예시는 전체 목록이 아니다. 일반 성질은 "목표 문서를 쓴 뒤 따로 물은 구현 여부 질문에, 그 질문이 보고한 문서에 대해 바로 답한 별도의 긍정만 센다"이다. 그 답이 일으킨 수락 기록(§6.6 수락)과 수정안 반영은 바뀐 것으로 치지 않는다. 이 답이 구현 요청이 되어도 `Status: Ready`가 실행 권한이 아니라는 원칙과 두 제품을 이어 쓰는 권한에 대한 머리말의 규칙은 그대로다.
+The examples above are not a complete list. The general property is: "count only a separate affirmation given directly to the implement-now question asked separately after the goal documents were written, about the documents that question reported." The acceptance record that answer causes (§6.6 Acceptance) and the application of an amendment do not count as a change. Even when this answer becomes an implementation request, the principle that `Status: Ready` is not an authority to execute and the introduction's rule on the authority to carry work from one product to the other stay as they are.
