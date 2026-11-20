@@ -1,30 +1,30 @@
-# 계약: Spar 설정
+# Contract: Spar configuration
 
-`spar`가 어떤 리뷰어를 띄우고 어떤 상한·각도·규칙·검사 경로를 쓸지는 두 설정 파일이 정한다. 사용자 설정은 리뷰어를 정하고, 저장소의 프로젝트 설정은 리뷰어를 정할 수 없다. 형식은 [TOML 1.0.0](https://toml.io/en/v1.0.0)이고 `spar`는 `github.com/pelletier/go-toml/v2` v2.2.4로 읽는다(G17). 각 값의 받는 형식과 형식 밖의 결과는 [입력 형식](spar-input.md)의 표가 정하고, 이 문서는 그 행(G16~G25, G37)을 가리킨다. 아래 예시의 이름·경로·모델은 합성이다.
+Two configuration files decide which reviewers `spar` starts and which caps, angles, rules and check paths it uses. The user configuration chooses the reviewers, and a repository's project configuration cannot choose reviewers. The format is [TOML 1.0.0](https://toml.io/en/v1.0.0), and `spar` reads it with `github.com/pelletier/go-toml/v2` v2.2.4 (G17). The table in [Input formats](spar-input.md) defines the accepted format of each value and the result outside that format, and this document points to its rows (G16 to G25, and G37). The names, paths and models in the examples below are synthetic.
 
-## 1. 사용자 설정과 출처 순서
+## 1. User configuration and source order
 
-리뷰어 목록은 처음 찾은 출처 하나에서만 온다.
+The reviewer list comes only from the first source found.
 
-1. 환경 변수 `SPAR_CONFIG`가 가리킨 파일
+1. The file that the environment variable `SPAR_CONFIG` points to
 2. `$XDG_CONFIG_HOME/jaekit/spar.toml`
 3. `~/.config/jaekit/spar.toml`
-4. 위 셋이 모두 없으면 clean-review가 읽는 `config.json` 하나의 `reviewers` 목록. 그 파일은 clean-review와 같은 방식으로 정한다: 환경 변수 `CLEAN_REVIEW_CONFIG`가 있으면 그 파일, 없으면 `$XDG_CONFIG_HOME/clean-review/config.json`, `XDG_CONFIG_HOME`도 없으면 `~/.config/clean-review/config.json`. 정한 파일이 없으면 다른 경로를 찾지 않고 다음 출처로 넘어간다. 각 이름은 같은 이름의 preset이다(`claude`, `codex`, `agy`, `native`).
-5. 그것도 없으면 `claude`, `codex`, `agy`
+4. When none of these three exists, the `reviewers` list of the one `config.json` that clean-review reads. That file is chosen the same way clean-review chooses it: the file in the environment variable `CLEAN_REVIEW_CONFIG` when it is set, otherwise `$XDG_CONFIG_HOME/clean-review/config.json`, and `~/.config/clean-review/config.json` when `XDG_CONFIG_HOME` is not set either. When the chosen file does not exist, no other path is searched and the next source is used. Each name is the preset of the same name (`claude`, `codex`, `agy`, `native`).
+5. Without that either, `claude`, `codex`, `agy`
 
-- 출처 파일(G16): 가리킨 경로가 없으면(깨진 심볼릭 링크 포함) 다음 출처로 넘어가고, 건너뛴 경로를 `source.skipped`에 남긴다. 있는 경로가 일반 파일이 아니거나(폴더, FIFO 등) 파일이 잘못되었으면 넘어가지 않고 설정 오류로 끝난다. clean-review `config.json`(G18)은 JSON 객체이고 `reviewers`는 이름 문자열의 배열이다(`null`도 잘못된 값이다).
-- 출처 파일에 `reviewers` 키가 없으면 기본 목록, 빈 목록이면 `native` 하나다. 그 파일의 최상위 `timeout_seconds`는 이 경우에도 모든 리뷰어의 기본값이다(G19).
-- `spar run`과 `spar config`의 `--reviewers a,b`(G25)는 설정보다 앞선다. 설정에 있는 이름은 그 설정을, 없는 이름은 같은 이름의 preset을 쓴다. 빈 값(`--reviewers ""`)과 빈 항목만 있는 값은 `native` 하나다. 적용 기록의 `override`에 `{"kind": "--reviewers", "names": [...]}`로 남는다.
+- Source files (G16): when the path does not exist (a broken symbolic link included), the next source is used and the skipped path is kept in `source.skipped`. When an existing path is not a regular file (a folder, a FIFO and so on) or the file is invalid, spar does not move on and ends with a configuration error. The clean-review `config.json` (G18) is a JSON object, and `reviewers` is an array of name strings (`null` is also an invalid value).
+- When the source file has no `reviewers` key, the default list applies; when the list is empty, `native` alone. The file's top-level `timeout_seconds` is the default for every reviewer in these cases too (G19).
+- `--reviewers a,b` (G25) of `spar run` and `spar config` takes precedence over the configuration. A name in the configuration uses that configuration, and a name not in it uses the preset of the same name. An empty value (`--reviewers ""`) and a value with only empty items mean `native` alone. It is kept in `override` of the applied configuration record as `{"kind": "--reviewers", "names": [...]}`.
 
-### 형식
+### Format
 
 ```toml
-timeout_seconds = 1800          # 모든 리뷰어의 기본 시간 제한(초)
+timeout_seconds = 1800          # default time limit for every reviewer (seconds)
 
 [[reviewers]]
-name = "codex"                  # 기록과 --reviewers에서 쓰는 이름, 생략하면 preset 이름
+name = "codex"                  # name used in records and --reviewers; the preset name when omitted
 preset = "codex"
-max_packet_bytes = 1000000      # 이 리뷰어가 받을 패킷의 최대 바이트 수
+max_packet_bytes = 1000000      # the largest packet in bytes this reviewer receives
 
 [[reviewers]]
 name = "agy"
@@ -39,55 +39,55 @@ argv = ["/opt/example/bin/example-reviewer", "--prompt", "{prompt}", "--workspac
 timeout_seconds = 600
 ```
 
-| 키 | 뜻 |
+| Key | Meaning |
 | --- | --- |
-| `name` | 기록과 `--reviewers`에서 쓰는 이름(G20). 생략하면 preset 이름. 한 파일에서 대소문자를 무시하고 겹치면 오류. 라운드 폴더에 spar가 쓰는 이름과 그 `.tmp` 이름은 쓸 수 없다 |
-| `preset` | `claude`, `codex`, `agy`, `native`, `command` 중 하나. 필수(G21) |
-| `argv` | `command`에만 쓰고 `command`에는 필수. 셸 없이 그대로 실행하는 인자 배열이며 `{prompt}`·`{workspace}`·`{schema}`를 패킷 파일·작업공간·결과 schema 경로로 바꾼다 |
-| `binary` | `claude`·`codex`·`agy`의 실행 파일. 없으면 PATH에서 preset 이름을 찾는다 |
-| `model` | 요청할 모델. 적으면 에이전트가 고를 수 없다 |
-| `fallback_model` | 지정 모델이 사용량·요청 한도로 거절될 때 같은 라운드에서 한 번 쓰는 모델. 빈 문자열이면 대체 모델이 없다 |
-| `effort` | `claude`·`codex`의 추론 강도. 적으면 에이전트가 고를 수 없다 |
-| `allowed_models`, `allowed_efforts` | 에이전트가 고를 수 있는 모델·강도의 목록(아래 "모델과 강도를 정하는 순서") |
-| `timeout_seconds` | 양의 정수(G19). 리뷰어별 값이 최상위 값보다 앞서고, 최상위 값은 그 파일로 정해지는 모든 리뷰어의 기본값이다. 실행 파일의 버전 확인도 이 시간 안에서 한다 |
-| `max_packet_bytes` | 이 리뷰어가 받을 패킷(`packet.md`)의 최대 바이트 수. 리뷰어 항목에만 있는 양의 정수이고 모든 preset에 적을 수 있다(G37). 적지 않으면 아래 preset 값이다. 이번 실행의 어느 리뷰어의 한도보다 큰 패킷은 `spar run`이 dry run을 포함해 리뷰어를 띄우기 전에 거부하고 라운드를 쓰지 않는다([검토 라운드](review-round.md) 2절) |
+| `name` | The name used in records and in `--reviewers` (G20). When omitted, the preset name. Names that are the same within one file, ignoring case, are an error. The names spar writes in a round folder, and their `.tmp` names, cannot be used |
+| `preset` | One of `claude`, `codex`, `agy`, `native`, `command`. Required (G21) |
+| `argv` | Only for `command`, and required for `command`. An argument array run as is without a shell, in which `{prompt}`, `{workspace}` and `{schema}` are replaced with the paths of the packet file, the workspace and the result schema |
+| `binary` | The executable of `claude`, `codex` or `agy`. Without it, the preset name is looked up on PATH |
+| `model` | The model to request. When written, the agent cannot choose it |
+| `fallback_model` | The model used once in the same round when the designated model is refused for usage or rate limits. An empty string means no fallback model |
+| `effort` | The reasoning effort of `claude` or `codex`. When written, the agent cannot choose it |
+| `allowed_models`, `allowed_efforts` | The lists of models and efforts the agent may choose ("How the model and effort are decided" below) |
+| `timeout_seconds` | A positive integer (G19). The per-reviewer value takes precedence over the top-level value, and the top-level value is the default for every reviewer that file determines. The executable's version check also runs within this time |
+| `max_packet_bytes` | The largest packet (`packet.md`) in bytes this reviewer receives. A positive integer, only in a reviewer entry, and any preset may have it (G37). Without it, the preset value below applies. `spar run` refuses a packet larger than the limit of any reviewer of the run before any reviewer starts, dry runs included, and writes no round ([Review round](review-round.md) section 2) |
 
-preset 기본값:
+Preset defaults:
 
-| preset | 격리 등급 | 필수 | 기본 모델 | 기본 대체 모델 | 기본 강도 | 기본 패킷 한도 |
+| preset | Isolation grade | Required | Default model | Default fallback model | Default effort | Default packet limit |
 | --- | --- | --- | --- | --- | --- | --- |
-| `claude` | `verified` | 예 | `opus` | 없음 | `high` | 1,200,000바이트 |
-| `codex` | `verified` | 예 | `gpt-6-astra` | 없음 | `high` | 1,200,000바이트 |
-| `agy` | `verified` | 예 | `gemini-4-argon-high` | `gemini-3.8-flash-high` | 없음 | 4,000,000바이트 |
-| `native` | `host` | 예 | 없음 | 없음 | 없음 | 없음 |
-| `command` | `unverified` | 아니요 | 없음 | 없음 | 없음 | 없음 |
+| `claude` | `verified` | Yes | `opus` | None | `high` | 1,200,000 bytes |
+| `codex` | `verified` | Yes | `gpt-6-astra` | None | `high` | 1,200,000 bytes |
+| `agy` | `verified` | Yes | `gemini-4-argon-high` | `gemini-3.8-flash-high` | None | 4,000,000 bytes |
+| `native` | `host` | Yes | None | None | None | None |
+| `command` | `unverified` | No | None | None | None | None |
 
-기본 패킷 한도는 로컬 라운드에서 왔다. `claude`와 `codex`는 약 0.7 MB까지의 패킷으로 라운드를 완료했고 2.4 MB 패킷에서 입력 길이로 실패했으며, `agy`는 3 MB 패킷으로 완료했다. 한도는 리뷰어 CLI가 받지 못할 패킷을 보내기 전에 멈추려는 것이고, 제공자의 실제 한도를 확인하지 않는다.
+The default packet limits come from local rounds: `claude` and `codex` completed rounds with packets of up to about 0.7 MB and failed on input length with a 2.4 MB packet, and `agy` completed with 3 MB packets. A limit is there to stop before sending a packet the reviewer CLI cannot take; spar does not check a provider's actual limit.
 
-`binary`·`model`·`fallback_model`·`effort`를 쓰지 않는 preset에 주면 오류다(`agy`는 `effort`를 쓰지 않는다). 실행 파일을 찾는 규칙: G14.
+Giving `binary`, `model`, `fallback_model` or `effort` to a preset that does not use it is an error (`agy` does not use `effort`). The rule for finding the executable: G14.
 
-### 모델과 강도를 정하는 순서
+### How the model and effort are decided
 
-`claude`·`codex`·`agy` 리뷰어의 모델과 `claude`·`codex` 리뷰어의 강도는 이 순서로 정한다(G25).
+The model of a `claude`, `codex` or `agy` reviewer and the effort of a `claude` or `codex` reviewer are decided in this order (G25).
 
-1. 사용자 설정 파일의 그 리뷰어 항목에 `model`(강도는 `effort`)이 적혀 있으면 그 값. preset 기본값과 같은 값이나 `effort = ""`를 적어도 적힌 것이다.
-2. 적혀 있지 않으면 이번 실행에서 에이전트가 `spar run`이나 `spar config`에 준 `--model 이름=모델`(강도는 `--effort 이름=강도`)의 값. 적히지 않은 리뷰어는 이 넷이 전부다: 파일 항목에 그 키가 없는 것, clean-review 출처의 이름, 기본 목록의 이름, `--reviewers`로 준 설정 밖의 이름.
-3. 둘 다 없으면 preset 값.
+1. When the reviewer's entry in the user configuration file writes `model` (for the effort, `effort`), that value. A value equal to the preset default, or `effort = ""`, also counts as written.
+2. When it is not written, the value of `--model 이름=모델` (for the effort, `--effort 이름=강도`) that the agent gave `spar run` or `spar config` for this run. These four are all the reviewers for which it is not written: a file entry without that key, a name from the clean-review source, a name from the default list, and a name outside the configuration given with `--reviewers`.
+3. When neither is there, the preset value.
 
-에이전트가 모델을 고른 리뷰어의 대체 모델은 사용자가 적은 `fallback_model`뿐이고, 적혀 있지 않으면 대체 모델이 없다. preset의 대체 모델은 preset 모델과 짝이라 붙지 않는다. 대체 실행의 조건(한도 거절, 지정 모델과 다름)과 같은 강도로 도는 것은 그대로다. 에이전트가 고르지 않은 리뷰어는 이 변경 전과 같이 적힌 값과 preset 값으로 돈다.
+The only fallback model for a reviewer whose model the agent chose is the `fallback_model` the user wrote; when none is written, there is no fallback model. The preset's fallback model is paired with the preset model and is not attached. The conditions for the fallback run (a limit refusal, a model different from the designated one) and its running with the same effort are unchanged. A reviewer the agent did not choose for runs with the written and preset values, as before this change.
 
-인자는 여러 번 줄 수 있고 첫 `=`에서 나눈다. `=`가 없거나 이름이 비면 사용법 오류(64)다. 다음은 거부(65)이고, 리뷰어를 하나도 띄우지 않고 라운드 폴더를 만들지 않으며, 메시지에 리뷰어 이름과 값을 `%q`로 감싸 보인다. 이 목록이 전부다.
+The arguments can be given more than once and are split at the first `=`. Without `=`, or with an empty name, it is a usage error (64). The following are refused (65): no reviewer starts, no round folder is created, and the message shows the reviewer name and the value quoted with `%q`. This list is complete.
 
-- 사용자 설정에 `model`이 적힌 리뷰어의 모델, `effort`가 적힌 리뷰어의 강도
-- `native`·`command` 리뷰어의 모델이나 강도, `agy` 리뷰어의 강도
-- 이번 실행의 리뷰어가 아닌 이름(이름은 글자 그대로 맞춘다)
-- 같은 리뷰어에 같은 키를 두 번
-- 허용 목록이 적힌 리뷰어에 그 목록에 없는 값
-- 비었거나, 올바른 UTF-8이 아니거나(기록이 받은 그대로 담을 수 없다), `-`로 시작하거나, 공백 문자(`unicode.IsSpace`)나 제어 문자(`unicode.IsControl`)를 품은 값
+- A model for a reviewer whose user configuration writes `model`, an effort for one that writes `effort`
+- A model or effort for a `native` or `command` reviewer, an effort for an `agy` reviewer
+- A name that is not a reviewer of this run (names are matched literally)
+- The same key twice for the same reviewer
+- A value outside the allowed list for a reviewer that has one
+- A value that is empty, is not valid UTF-8 (the record cannot hold it as received), starts with `-`, or holds a whitespace character (`unicode.IsSpace`) or a control character (`unicode.IsControl`)
 
-이 밖의 값은 바꾸지 않고 인자 하나로 CLI에 넘긴다. spar는 모델 이름이나 강도 값이 실제로 있는지 확인하지 않고, CLI가 받지 않으면 그 리뷰어는 실패로 기록된다.
+Any other value is passed to the CLI unchanged as one argument. spar does not check whether the model name or effort value exists; when the CLI does not accept it, that reviewer is recorded as failed.
 
-사용자 설정 파일의 항목은 허용 목록을 가질 수 있다: `allowed_models`(`claude`·`codex`·`agy`)와 `allowed_efforts`(`claude`·`codex`). 목록이 있으면 에이전트의 값은 목록의 한 항목과 대소문자까지 같아야 한다. 목록은 에이전트의 선택만 묶고, 에이전트가 고르지 않으면 목록과 관계없이 preset 값이다. 다음은 그 키의 줄을 대는 설정 오류다: 빈 목록, 문자열이 아닌 항목, 위의 값 형식을 어기는 항목, 같은 항목에 `model`과 `allowed_models`(또는 `effort`와 `allowed_efforts`)를 함께 적은 것, 그 키를 쓰지 않는 preset의 목록.
+An entry in the user configuration file can have allowed lists: `allowed_models` (`claude`, `codex`, `agy`) and `allowed_efforts` (`claude`, `codex`). With a list, the agent's value must equal one item of the list, case included. A list limits only the agent's choice; when the agent does not choose, the preset value applies regardless of the list. The following are configuration errors that name the key's line: an empty list, an item that is not a string, an item that breaks the value format above, `model` and `allowed_models` (or `effort` and `allowed_efforts`) in the same entry, and a list for a preset that does not use that key.
 
 ```toml
 [[reviewers]]
@@ -96,9 +96,9 @@ allowed_models = ["example-model-pro", "example-model-mini"]
 allowed_efforts = ["low", "medium", "high"]
 ```
 
-## 2. 프로젝트 설정
+## 2. Project configuration
 
-저장소 최상위의 `.jaekit/spar.toml`은 다음 키만 가진다.
+`.jaekit/spar.toml` at the repository root has only the following keys.
 
 ```toml
 angles = ["requirement-counterexample", "check-validity"]
@@ -110,43 +110,43 @@ plan = 1
 code = 2
 ```
 
-프로젝트 설정은 작업 트리의 파일을 읽는다(G16).
+The project configuration is read from the file in the working tree (G16).
 
-- `caps`: 한 series에서 단계 묶음별로 셀 수 있는 라운드 수. 기본은 `plan` 1, `code` 2(candidate 라운드와 기록된 fixes 라운드 합계). 0 이상의 정수(G22). `plan_delta`는 읽지만 새 라운드에는 쓰이지 않는다: 그 키를 적은 이전 설정 파일도 오류 없이 읽히고, 라운드마다 `config.caps`에 그 값이 기록되며, `spar gate`는 기록된 plan-delta 라운드를 그 값으로 센다.
-- `angles`: 패킷이 묻는 공격 각도. 기본은 다섯 개 `requirement-counterexample`, `side-effects`, `design`, `premises`, `check-validity`이고, 이 가운데 일부로 줄일 수 있다. 순서는 위 순서로 정규화한다(G22).
-- `rules`: 매 라운드 패킷에 넣을 규칙 문서(G23). 저장소 안에서 읽을 수 있는 파일이어야 하고, 아니면 `spar config`와 `spar run` 모두 설정 오류다.
-- `check_paths`: 검사 코드로 보는 경로의 glob(G24). 잘못된 glob은 설정 오류다. 분류와 gate의 `growth`, 패킷이 쓴다.
+- `caps`: the number of rounds per stage group that one series can count. The defaults are `plan` 1 and `code` 2 (candidate rounds and recorded fixes rounds together). Integers of 0 or more (G22). `plan_delta` is still read, and no new round uses it: an earlier configuration file that sets it still loads without error, each round records its value in `config.caps`, and `spar gate` counts recorded plan-delta rounds against it.
+- `angles`: the attack angles the packet asks about. The default is the five angles `requirement-counterexample`, `side-effects`, `design`, `premises`, `check-validity`, and it can be reduced to some of them. The order is normalized to the order above (G22).
+- `rules`: the rule documents to put in the packet of every round (G23). Each must be a file readable inside the repository; otherwise both `spar config` and `spar run` end with a configuration error.
+- `check_paths`: globs of the paths treated as check code (G24). An invalid glob is a configuration error. Classification, the gate's `growth` and the packet use them.
 
-`reviewers`, `preset`, `command`, `argv`, `binary`, `model`, `fallback_model`, `effort`, `allowed_models`, `allowed_efforts`는 어느 깊이에 있어도 그 키 이름과 위치를 대는 오류로 거부한다. clone한 저장소가 사용자 컴퓨터에서 명령을 실행하거나 사용자 계정의 비용을 바꾸지 못하게 하기 위해서다.
+`reviewers`, `preset`, `command`, `argv`, `binary`, `model`, `fallback_model`, `effort`, `allowed_models` and `allowed_efforts` are refused at any depth with an error that names the key and its location. This keeps a cloned repository from running commands on the user's computer or changing the costs on the user's account.
 
-## 3. 오류
+## 3. Errors
 
-설정 오류는 리뷰어를 하나도 띄우지 않고, 라운드 폴더를 만들지 않으며 종료 코드 65로 끝난다. 메시지는 `<파일>:<줄>[:<열>]: <내용>` 형식이고 내용에 문제의 키나 값을 넣는다.
+A configuration error starts no reviewer, creates no round folder and ends with exit code 65. The message has the form `<file>:<line>[:<column>]: <content>`, and the content names the key or value at fault.
 
-- TOML 문법 오류(TOML 1.0이 허용하지 않는 것, 같은 표를 두 번 정의한 것 포함): 오류가 난 줄
-- 모르는 키: 그 키의 줄
-- 중복된 리뷰어 이름(대소문자 무시), 예약 이름, 모르는 preset, preset에 쓰이지 않는 키: 그 키의 줄
-- 양의 정수가 아닌 `max_packet_bytes`(0, 음수, 문자열, 소수 등): 그 키의 줄, 내용에 `max_packet_bytes`
-- 잘못된 `rules`·`check_paths` 항목: 그 키의 줄과 항목
-- 일반 파일이 아닌 출처 경로: 그 경로
-- `argv`가 없는 `command`, `preset`이 없는 항목: 그 `[[reviewers]]` 머리의 줄
-- 프로젝트 설정의 금지된 키: 그 키의 줄
+- TOML syntax error (including what TOML 1.0 does not allow and defining the same table twice): the line of the error
+- Unknown key: the line of that key
+- Duplicate reviewer name (ignoring case), reserved name, unknown preset, key not used by the preset: the line of that key
+- A `max_packet_bytes` that is not a positive integer (0, a negative number, a string, a fraction and so on): the line of that key, with `max_packet_bytes` in the content
+- Invalid `rules` or `check_paths` item: the line of that key and the item
+- Source path that is not a regular file: that path
+- `command` without `argv`, an entry without `preset`: the line of that entry's `[[reviewers]]` header
+- Forbidden key in the project configuration: the line of that key
 
-## 4. 적용 기록
+## 4. Applied configuration record
 
-`spar config [--repo DIR] [--reviewers a,b] [--model 이름=모델]... [--effort 이름=강도]...`는 적용될 설정을 JSON으로 출력하고, 같은 인자를 준 라운드 기록 `round.json`의 `config`도 같은 값이다. `spar config`는 `spar run`이 거부하는 값을 같은 이유로 거부한다.
+`spar config [--repo DIR] [--reviewers a,b] [--model 이름=모델]... [--effort 이름=강도]...` prints the configuration that will apply as JSON, and `config` in the round record `round.json` given the same arguments has the same value. `spar config` refuses the values `spar run` refuses, for the same reasons.
 
-| 필드 | 뜻 |
+| Field | Meaning |
 | --- | --- |
-| `source` | `kind`(`SPAR_CONFIG`, `XDG_CONFIG_HOME`, `HOME`, `clean-review`, `default`), `path`, `skipped`, `note` |
-| `override` | `--reviewers`를 썼으면 그 이름들, 아니면 `null` |
-| `choices` | 에이전트가 이번 실행에 준 값을 받은 그대로: 항목마다 `reviewer`, `key`(`model`·`effort`), `value`. 모델이 먼저, 키마다 준 순서. 없으면 빈 목록 `[]`. 이 필드가 생기기 전에 쓴 라운드에는 없고, 그 라운드를 다시 써도 생기지 않는다 |
-| `configured_required` | `--reviewers`와 관계없이 설정이 필수로 정한 리뷰어의 `name`·`preset`. gate가 필수 리뷰어로 본다 |
-| `files` | 읽은 설정 파일의 경로와 sha256 |
-| `reviewers` | 적용된 리뷰어(`name`, `preset`, `isolation`, `required`, `model`, `fallback_model`, `effort`, `binary`, `argv`, `timeout_seconds`). `claude`·`codex`·`agy`는 `model_source`(`user`: 사용자 설정, `agent`: 에이전트의 `--model`, `preset`: preset 값)를, `claude`·`codex`는 `effort_source`(같은 세 값)를 가진다. 에이전트가 고를 수 있으면(적히지 않았으면) 고르지 않을 때 쓰일 `default_model`·`default_effort`를, 적었으면 `allowed_models`·`allowed_efforts`를 가진다. `native`·`command`에는 이 필드들이 없다. 패킷 한도가 있는 리뷰어는 `max_packet_bytes`(바이트)와 `max_packet_bytes_source`(`preset`: preset 값, `user`: 사용자 설정)를 가지고, 한도가 없는 리뷰어(사용자가 정하지 않은 `native`·`command`)에는 두 필드가 없다 |
-| `angles`, `caps`, `check_paths`, `rules` | 적용된 값 |
-| `digest` | 리뷰어·`configured_required`·각도·상한·검사 경로·규칙의 정규 JSON sha256. 출처가 달라도 적용한 값이 같으면 같다: 리뷰어의 `model_source`·`effort_source`·`default_model`·`default_effort`·`max_packet_bytes_source`와 `choices`는 넣지 않고(그래서 preset과 같은 한도를 사용자가 적어도 digest가 같다), 에이전트가 고른 값은 적용한 `model`·`effort`로 들어간다. `--reviewers`가 같아도 설정이 필수로 정한 리뷰어가 다르면 digest가 다르다 |
+| `source` | `kind` (`SPAR_CONFIG`, `XDG_CONFIG_HOME`, `HOME`, `clean-review`, `default`), `path`, `skipped`, `note` |
+| `override` | The names when `--reviewers` was used, otherwise `null` |
+| `choices` | The values the agent gave for this run, as received: per item `reviewer`, `key` (`model`, `effort`), `value`. Models first, and for each key in the order given. When there are none, the empty list `[]`. Rounds written before this field existed do not have it, and rewriting such a round does not add it |
+| `configured_required` | `name` and `preset` of the reviewers that the configuration makes required, regardless of `--reviewers`. The gate treats them as required reviewers |
+| `files` | The path and sha256 of each configuration file read |
+| `reviewers` | The applied reviewers (`name`, `preset`, `isolation`, `required`, `model`, `fallback_model`, `effort`, `binary`, `argv`, `timeout_seconds`). `claude`, `codex` and `agy` have `model_source` (`user`: the user configuration, `agent`: the agent's `--model`, `preset`: the preset value), and `claude` and `codex` have `effort_source` (the same three values). When the agent may choose (it is not written), they have `default_model` and `default_effort`, used when the agent does not choose, and, when the user wrote the allowed lists, `allowed_models` and `allowed_efforts`. `native` and `command` do not have these fields. A reviewer with a packet limit has `max_packet_bytes` (bytes) and `max_packet_bytes_source` (`preset`: the preset value, `user`: the user configuration); a reviewer without a limit (`native` or `command` without a user setting) has neither field |
+| `angles`, `caps`, `check_paths`, `rules` | The applied values |
+| `digest` | The sha256 of the canonical JSON of the reviewers, `configured_required`, angles, caps, check paths and rules. It is the same when the applied values are the same, even from different sources: the reviewers' `model_source`, `effort_source`, `default_model`, `default_effort` and `max_packet_bytes_source` and `choices` are left out (so a user-written limit equal to the preset's gives the same digest), and the values the agent chose enter as the applied `model` and `effort`. Even with the same `--reviewers`, the digest differs when the reviewers that the configuration makes required differ |
 
-`spar run --check-path GLOB`은 그 실행의 `check_paths`에 더하며 digest에 반영된다. 형식은 `check_paths`와 같고(G24), 잘못된 glob은 리뷰어를 띄우기 전에 거부한다.
+`spar run --check-path GLOB` adds to that run's `check_paths` and is reflected in the digest. The format is the same as `check_paths` (G24), and an invalid glob is refused before any reviewer starts.
 
-`spar run --text-check GLOB`은 검사 경로를 고정 글만 읽는 검사, 곧 파일의 고정 글을 읽는 검사로 선언한다. 여러 번 줄 수 있고, glob마다 `--check-path`처럼 확인하며(G24) 같은 방식으로 그 실행의 `check_paths`에 더한다. `round.json`은 그 glob들을 `config.text_check_paths`에도 정렬하고 중복 없이 남기고, 그런 glob이 없는 실행에서는 이 필드를 뺀다. `text_check_paths`는 `digest`에 들지 않는다: 그 glob들은 `check_paths`로만 digest에 든다. 패킷의 `- Fixed-text checks:` 줄과 `check-validity` 문장은 이것에서 나온다([검토 라운드](review-round.md) 2절).
+`spar run --text-check GLOB` declares a check path as fixed-text only: a check that reads fixed text in files. It may be repeated, and each glob is validated as `--check-path` is (G24) and adds to that run's `check_paths` in the same way. `round.json` also keeps the globs in `config.text_check_paths`, sorted and without duplicates; the field is omitted when the run has none. `text_check_paths` is not part of `digest`: the globs enter it only as `check_paths`. The packet's `- Fixed-text checks:` line and `check-validity` sentence come from it ([Review round](review-round.md) section 2).

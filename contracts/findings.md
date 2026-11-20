@@ -1,77 +1,77 @@
-# 계약: 완료 뒤 발견
+# Contract: Post-completion findings
 
-완료 뒤 발견은 당시 완료와 별도로 보존하는 출처 있는 주장이다. Core는 참조·개정·이력의 구조를 확인하며, 결함의 참 여부·심각도·해결 충분성을 인증하지 않는다. 발견이 늘거나 확인되어도 기존 완료 판정·종료 결과·실행 권한은 바꾸지 않는다. 코드·목표·검사 근거 변경과 명시적 사용자 재작업 요청에 대한 기존 완료 유효성 규칙은 유지한다.
+A post-completion finding is a claim with a source, kept separately from the completion as it was at the time. Core checks the structure of references, revisions and history; it does not certify whether a defect is real, how severe it is, or whether a resolution is sufficient. More findings, or confirmed findings, do not change existing completion judgments, end results or execution authority. The existing completion validity rules for changes to code, goals or check evidence and for an explicit user rework request stay in force.
 
-## 지원과 호환
+## Support and compatibility
 
-완료 뒤 발견은 Core 0.1.4와 Seal 0.1.12부터 포함된다. v0.1.3 Core는 이 확장을 지원하지 않는다.
+Post-completion findings are included from Core 0.1.4 and Seal 0.1.12. Core v0.1.3 does not support this extension.
 
-`capabilities`의 `features`에 `post-completion-findings/v1`, `formats.finding`에 `run-finding/v1`이 있는 실행 파일이 이 기능을 지원한다. 기능 사용 전에 실제 선택한 바이너리의 두 항목을 확인한다. 버전 문자열만으로 추정하지 않는다. 추가 형식·기능이 없는 소비자에게 쓰기를 맡기거나 새 자료를 정상 조회했다고 설명하지 않는다.
+An executable whose `capabilities` has `post-completion-findings/v1` in `features` and `run-finding/v1` in `formats.finding` supports this feature. Before using the feature, check these two entries in the binary actually selected. Do not infer support from the version string alone. Do not hand writes to a consumer without the added format and feature, or describe the new data as read normally.
 
-기존 `run/v1` 기록과 시작의 `run-rules/1`, `/2`, `/3`는 바꾸지 않는다. 새 발견만 같은 `runs.jsonl` 해시 체인에 `schema: run-finding/v1`, `kind: finding`으로 추가한다. 기존 schema에 알 수 없는 note나 kind를 추가하는 방식은 구형 소비자가 무시할 수 있으므로 사용하지 않는다. 과거 줄 바이트·순번·해시는 유지된다.
+Existing `run/v1` records and the `run-rules/1`, `/2` and `/3` of the start are not changed. Only new findings are appended to the same `runs.jsonl` hash chain, with `schema: run-finding/v1` and `kind: finding`. Adding an unknown note or kind to an existing schema is not used, because older consumers could ignore it. The bytes, sequence numbers and hashes of past lines are kept.
 
-구형 Core는 새 schema를 읽으면 schema 불일치에 따른 `record_integrity`로 드러내고 정상 완료·추가 쓰기를 거부한다. 구형 바이너리가 이 확장을 지원하거나 친절한 기능 미지원 코드로 거부한다고 주장하지 않는다. 새 발견을 기록한 자료는 기능을 지원하는 소비자로 이용한다. 자동 설치·다운그레이드·기록 이전은 없다. 확장 없는 유효한 구기록은 계속 기존 규칙으로 읽는다.
+When an older Core reads the new schema, it reports `record_integrity` from the schema mismatch and refuses normal completion and further writes. We do not claim that older binaries support this extension or refuse it with a friendly unsupported-feature code. Data that records new findings is used with a consumer that supports the feature. There is no automatic installation, downgrade or record migration. Valid older records without the extension are still read under the existing rules.
 
-## 입력과 조회
+## Input and queries
 
 ```text
 ha finding <goal> --input <JSON file>
 ha finding <goal> [--format json|md]
 ```
 
-조회 기본 형식은 JSON이며 읽기만 한다. 변경은 JSON 파일 하나를 받고 JSON 영수증을 출력한다. 변경과 `--format`을 같이 쓰지 않는다. 입력은 UTF-8 JSON 객체 하나, 최대 1 MiB이며 잘못된 UTF-8·중복 키·알 수 없는 필드·추가 객체·32단계보다 깊은 중첩을 거부한다. 필드 이름은 대소문자를 포함해 계약과 정확히 일치해야 하며, 이 규칙은 중첩 객체에도 적용한다. 출력 원문이나 문서 내용을 자동으로 읽거나 복사하지 않는다.
+The default query format is JSON, and a query only reads. A change takes one JSON file and prints a JSON receipt. A change is not combined with `--format`. The input is one UTF-8 JSON object of at most 1 MiB; invalid UTF-8, duplicate keys, unknown fields, extra objects and nesting deeper than 32 levels are rejected. Field names must match the contract exactly, including case, and this rule applies to nested objects too. Raw output and document contents are never read or copied automatically.
 
-저장한 발견 줄은 최대 2 MiB + 64 KiB(2,162,688바이트)다. 저장할 때 다시 인코딩하면 입력이 최대 두 배가 되고(U+2028·U+2029를 6바이트 escape로 쓴다) 공통 header가 붙는다. Core는 이 크기를 넘는 줄을 쓰지 않고 거부하며(65), 지원 확인은 이 크기까지의 발견 줄을 받아들인다. 이 크기를 넘는 발견 줄은 범위 밖, 읽을 수 없는 줄은 손상, 알 수 없는 schema는 미지원으로 구별한다. 입력 상한 1 MiB는 그대로다.
+A stored finding line is at most 2 MiB + 64 KiB (2,162,688 bytes). Re-encoding on storage can at most double the input (U+2028 and U+2029 are written as 6-byte escapes), and a common header is added. Core refuses to write a line over this size (65), and the support check accepts finding lines up to this size. A finding line over this size is distinguished as out of range, an unreadable line as corrupt, and an unknown schema as unsupported. The 1 MiB input limit stays the same.
 
-변경 객체의 필드는 다음과 같다. 예시 식별자는 모두 가상 자료다.
+The fields of a change object are as follows. All example identifiers are fictional data.
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `id` | 목표 안의 고유 발견 ID. ASCII 영숫자로 시작하는 영숫자·`_.:/-`, 1~128자 |
-| `request_id` | 논리적 변경 요청 ID. 같은 문법. 불확실한 저장 뒤 재조회·안전한 같은 요청 재전송에 사용 |
-| `revision` | 신규면 0, 후속 변경이면 읽고 판단한 그 발견의 최신 이벤트 seq |
-| `completion` | `{ "seq", "sha256" }`. 같은 목표 체인의 당시 성공 완료와 정확한 원문 해시 |
-| `criteria` | 해당 완료가 기록한 조건 ID 목록. 현재 SPEC의 조건 목록으로 소급 대체하지 않음. 필수 배열이며 생략·null은 거부하고 빈 배열은 허용 |
-| `mapping` | `linked`이면 조건 목록 필수. `unmapped`(연결 미정)·`outside`(조건 밖)는 조건 목록이 비어야 함 |
-| `status` | `candidate`, `confirmed`, `duplicate`, `dismissed`, `resolved`. 새 발견은 반드시 candidate |
-| `category` | 출처 있는 분류 주장. 기존 조건 위반은 `existing_condition`, 새 요구는 `new_requirement`, 미정은 `unknown` 등을 사용 |
-| `summary`, `source` | 비어 있지 않은 요약·출처 주장. 문서나 로그를 자동 수집하지 않음 |
-| `evidence` | 확인·중복·기각·해결 판단의 명시적 근거 참조. 해당 상태에는 하나 이상 필요. 필수 배열이며 생략·null은 거부하고 빈 배열은 허용 |
-| `reason` | 후속 변경에서 판단 또는 내용을 바꾸는 이유. 신규에는 선택 |
-| `event_at` | 선택. 출처가 알고 있는 사건 시각의 RFC 3339 주장. 모르면 생략하며 기록 시각과 별개 |
-| `duplicate_of` | duplicate일 때 같은 목표의 기존 발견 ID. 자기 참조·순환은 거부 |
-| `resolution_refs` | resolved일 때 하나 이상의 수정·재확인 참조. 한 수정이 여러 발견에 쓰일 수 있음. 다른 상태의 개정에는 둘 수 없으며 이전 해결 참조는 이력에 남음. 선택 목록이라 생략·null·빈 배열은 같은 내용 |
-| `rework` | 선택. 해당 완료보다 뒤에 저장된, 사용자 인용이 있는 reopen 기록의 `{ "seq", "sha256" }`. 자동 생성하지 않음 |
-| `document` | 선택. `{ "ref", "recorded_at", "event_at" }`. 기존 문서 참조와 알려진 시각. 모르는 시각은 빈 문자열 |
+| `id` | Unique finding ID within the goal. Alphanumerics and `_.:/-` starting with an ASCII alphanumeric, 1–128 characters |
+| `request_id` | Logical change request ID. Same grammar. Used to query again after an uncertain save and to resend the same request safely |
+| `revision` | 0 for a new finding; for a later change, the seq of that finding's latest event as read and judged |
+| `completion` | `{ "seq", "sha256" }`. The successful completion at the time in the same goal's chain, and the exact hash of its original text |
+| `criteria` | The list of criterion IDs that completion recorded. Not retroactively replaced with the current SPEC's criterion list. A required array: omission and null are rejected, an empty array is allowed |
+| `mapping` | `linked` requires a criterion list. `unmapped` (link undecided) and `outside` (outside the criteria) require the criterion list to be empty |
+| `status` | `candidate`, `confirmed`, `duplicate`, `dismissed`, `resolved`. A new finding must be candidate |
+| `category` | A classification claim with a source. Use `existing_condition` for a violation of an existing criterion, `new_requirement` for a new requirement, `unknown` when undecided, and so on |
+| `summary`, `source` | Non-empty claims of a summary and a source. Documents and logs are not collected automatically |
+| `evidence` | Explicit evidence references for a confirmed, duplicate, dismissed or resolved judgment. Those states need at least one. A required array: omission and null are rejected, an empty array is allowed |
+| `reason` | The reason a later change alters the judgment or the content. Optional for a new finding |
+| `event_at` | Optional. An RFC 3339 claim of the event time the source knows. Omit it when unknown; it is separate from the record time |
+| `duplicate_of` | For duplicate, the ID of an existing finding in the same goal. Self-references and cycles are rejected |
+| `resolution_refs` | For resolved, one or more fix or recheck references. One fix may serve several findings. Not allowed in a revision with another state; earlier resolution references stay in the history. An optional list, so omission, null and an empty array mean the same |
+| `rework` | Optional. `{ "seq", "sha256" }` of a reopen record that quotes the user and was saved after that completion. Never generated automatically |
+| `document` | Optional. `{ "ref", "recorded_at", "event_at" }`. A reference to an existing document and its known times. An unknown time is an empty string |
 
-조건·근거·해결 참조 목록은 각각 256개 이하이며, 각 항목은 비어 있지 않은 8192바이트 이하의 문자열이고 중복되지 않는다. 요청은 해당 개정의 전체 내용이며 생략한 선택 필드는 그 개정에 없는 것으로 남는다. 기존 판단·근거는 이전 이벤트에 그대로 보존된다. 완료 참조는 후속 정정으로 바꿀 수 없다. 다른 완료는 다른 발견 ID로 기록한다.
+The criterion, evidence and resolution reference lists each hold at most 256 items; each item is a non-empty string of at most 8192 bytes, with no duplicates. A request is the whole content of that revision; an omitted optional field stays absent from that revision. Earlier judgments and evidence stay preserved in the earlier events. The completion reference cannot be changed by a later correction. A different completion is recorded under a different finding ID.
 
-확인·해결은 Core가 해당 외부 근거를 실행했다는 뜻이 아니다. 알려진 근거 참조를 가진 주장이다. 문서 참조를 넣는 것만으로 후보가 확인되거나 해결·재작업 요청이 생기지 않는다. 문서의 원래 내용은 수정하지 않는다.
+Confirmed and resolved do not mean that Core ran that outside evidence. They are claims with known evidence references. Adding a document reference alone does not confirm a candidate or create a resolution or a rework request. The original content of the document is not changed.
 
-## 이력·충돌·저장 실패
+## History, conflicts and save failures
 
-모든 변경은 기존 기록 잠금 안에서 최신 자료를 다시 읽고 검증한 뒤 덧붙인다. 다른 발견의 동시 변경은 보존하고, 같은 발견의 오래된 revision은 충돌로 거부한다. 사건 시각이나 마지막 작성자라는 이유로 덮어쓰지 않는다. 중복 관계도 같은 경계 안에서 다시 확인한다.
+Every change is appended inside the existing record lock, after the latest data is read again and validated. Concurrent changes to other findings are preserved; a stale revision of the same finding is rejected as a conflict. Nothing is overwritten on the grounds of an event time or of being the last writer. Duplicate relations are also checked again inside the same boundary.
 
-같은 request_id와 같은 내용이 이미 적용됐다면 원래 seq·해시의 영수증을 돌려주고 추가 기록을 만들지 않는다. 내용은 저장되는 표현으로 비교하므로 선택 목록을 빈 배열로 쓰거나 생략한 차이는 같은 요청이다. 같은 ID의 다른 내용은 거부한다. 입력 거부는 기록을 바꾸지 않는다. 쓰기·동기화·닫기 실패는 적용됐을 수 있는 오류이며 성공·미적용으로 단정하지 않는다. 원래 request_id로 저장 상태를 확인한다. 부분 쓰기로 체인이 손상되면 조회·추가 쓰기가 오류를 드러내고 자동 복구·재시도하지 않는다.
+If the same request_id with the same content was already applied, the receipt with the original seq and hash is returned and no further record is made. Content is compared in its stored form, so writing an optional list as an empty array or omitting it is the same request. Different content under the same ID is rejected. A rejected input does not change the record. A write, sync or close failure is an error that may have been applied; it is not taken as success or as not applied. Check the saved state with the original request_id. If a partial write corrupts the chain, queries and further writes report the error, and there is no automatic repair or retry.
 
-변경 성공 영수증은 `finding-receipt/v1`이며 `id`, `request_id`, `seq`, `sha256`, `replayed`를 제공한다. 종료 코드는 성공 0, 잘못된 JSON·인수 64, 참조·개정·저장 자료·상태전이 거부 65, 미지원 실행 규칙 66, 내부 또는 쓰기 적용 불확실성 70이다. 영수증 출력 실패에도 실제 저장은 남았을 수 있다.
+The receipt of a successful change is `finding-receipt/v1` and provides `id`, `request_id`, `seq`, `sha256` and `replayed`. Exit codes: 0 for success; 64 for invalid JSON or arguments; 65 for a rejected reference, revision, stored data or state transition; 66 for unsupported run rules; 70 for an internal error or uncertainty whether a write was applied. Even when printing the receipt fails, the actual save may remain.
 
-## 조회와 완료의 관계
+## Queries and completion
 
-`findings/v1`은 `goal`, 전체 체인의 `record_head`, `findings`, `candidate`, `confirmed`, `confirmed_existing`, `unresolved`를 제공한다. 각 발견은 `id`, 최신 `revision`, 당시 `commit`·`spec_digest`, 최신 `change`, 순서 있는 `history`, `rework_status`, `rework_completion`을 갖는다. 이력 항목은 이벤트 `seq`, `at`, `sha256`, `change`다.
+`findings/v1` provides `goal`, the whole chain's `record_head`, `findings`, `candidate`, `confirmed`, `confirmed_existing` and `unresolved`. Each finding has `id`, the latest `revision`, the `commit` and `spec_digest` at the time, the latest `change`, an ordered `history`, `rework_status` and `rework_completion`. A history entry is the event's `seq`, `at`, `sha256` and `change`.
 
-`candidate`·`confirmed`가 미해결이다. `confirmed_existing`은 confirmed 중 linked이고 category가 existing_condition인 보고다. 기각·중복·새 요구·미확인 후보를 확인된 기존 결함 수로 합하지 않는다. 이 숫자는 등록된 주장의 집계이며 전체 사용 목표나 실제 모든 결함의 분모가 아니다.
+`candidate` and `confirmed` are unresolved. `confirmed_existing` is the reports among confirmed that are linked and whose category is existing_condition. Dismissed, duplicate, new-requirement and unconfirmed candidates are not added to the count of confirmed existing defects. These numbers aggregate registered claims; they are not a denominator over all goals in use or all actual defects.
 
-rework_status의 `not_requested`는 연결한 명시적 재작업 요청이 없다는 뜻이다. 다른 사용자의 요청을 추론하지 않는다. 연결한 reopen이 있으면 `requested`, 그 뒤부터 다음 reopen 전까지의 구간에 성공 완료 기록이 있으면 `completed`이며 그 구간의 마지막 성공 완료를 별도로 가리킨다. 뒤의 다른 재작업 구간에서 이룬 완료를 앞선 요청의 결과로 연결하지 않는다. 후속 완료가 모든 발견의 실제 해결을 인증한 것으로 취급하지 않는다. 해결 판단과 재작업 결과는 별개다.
+`not_requested` in rework_status means there is no linked explicit rework request. Other user requests are not inferred. With a linked reopen it is `requested`; when the span from that reopen until the next reopen has a successful completion record, it is `completed`, and the last successful completion in that span is pointed to separately. A completion achieved in a later, different rework span is not linked as the result of an earlier request. A later completion is not treated as certifying that every finding was actually resolved. The resolution judgment and the rework result are separate.
 
-일반 status의 `findings`에도 같은 조회가 포함되고, 사람용 status는 완료 표시와 함께 미해결 후보·확인 보고·재작업 관계를 표시한다. 사람용 조회는 발견마다 상태와 `category`·`mapping`을 표시하며 합계만으로 개별 분류를 대신하지 않는다. 현재 유효한 `completion_record`와 각 발견이 가리키는 역사적 완료는 별개다. 발견 등록만으로 현재 완료나 종료 결과를 무효화하지 않지만 미해결을 숨기지 않는다. 동일한 저장 자료의 조회는 현재 시각이나 모델 호출 없이 동일하다.
+The `findings` of ordinary status include the same query, and the human-readable status shows unresolved candidates, confirmed reports and rework relations together with the completion display. The human-readable query shows each finding's state with its `category` and `mapping`; totals alone do not replace the individual classifications. The currently valid `completion_record` and the historical completion each finding points to are separate. Registering a finding alone does not invalidate the current completion or end result, but unresolved findings are not hidden. Queries of the same stored data are identical, without the current time or a model call.
 
-## 실행 예산
+## Run budget
 
-발견 이벤트는 실행 예산의 시간·횟수 입력에서 제외한다. 실제 전체 체인의 seq와 head는 바꾸지 않는다. 완료 오래 뒤의 등록·정정·해결·문서 연결이나 재개 후 발견 갱신만으로 경과 시간·사용량·초과 여부·한도·창이 변하지 않는다.
+Finding events are excluded from the time and count inputs of the run budget. The seq and head of the actual whole chain are not changed. Registration, correction, resolution or document linking long after completion, or finding updates after a resume, do not by themselves change elapsed time, usage, whether a limit is exceeded, limits or windows.
 
-기존 일반 기록의 예산 의미는 그대로다. 실제 검사, 기존 note, 예산 변경, 사용자가 요청한 reopen은 저장 규칙의 기존 계산에 따라 반영된다. /3 재개는 최신 횟수 상한을 계승하고 /1·/2는 기존 최초 한도를 따른다. 발견으로 예산을 초기화하거나 원래 사용량·실패를 지우지 않는다.
+The budget meaning of existing ordinary records is unchanged. Actual checks, existing notes, budget changes and reopens the user requested count under the existing calculation of the saved rules. A /3 resume inherits the latest run limit, and /1 and /2 follow the existing original limits. Findings never reset the budget or erase the original usage or failures.
 
-## Seal 전달
+## Seal handoff
 
-기능을 지원하는 Core로 발견을 다룰 때는 실제 capability와 형식을 확인한 후 입력한다. 완료 보고에는 당시 완료 참조, 현재 미해결 발견과 확인 상태, 명시적 재작업 요청·결과의 연결을 함께 전달한다. 원문 완료 보고를 후속 판단으로 덮어쓰거나, 문서 링크를 기계 확인 결과로 승격하지 않는다. 문서만 있는 자료는 별도 입력으로 출처를 명시해서 연결할 수 있으며 자동 수입하지 않는다.
+When handling findings with a Core that supports the feature, check the actual capability and format before input. The completion report conveys the completion reference at the time, the currently unresolved findings and their confirmation states, and the links between explicit rework requests and their results. Never overwrite the original completion report with later judgments, or promote a document link to a machine-checked result. Material that exists only as documents can be linked as a separate input with its source stated; it is never imported automatically.

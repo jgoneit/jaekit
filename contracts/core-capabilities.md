@@ -1,16 +1,16 @@
-# 계약: Core 지원 정보와 Seal 호환 확인
+# Contract: Core capabilities and the Seal compatibility check
 
-이 계약은 v0.1.8의 Core `0.1.8`·Seal `0.1.23`에 적용한다. 아래 지원 정보 예시는 그 배포판의 것이며, 그 뒤 소스에서 없어진 선택 기능 하나의 줄은 뺐다. Seal 0.1.26과 `run-rules/6`은 §10, 현재 Seal과 `run-rules/7`은 §11에서 다룬다. 지원 정보 조회는 v0.1.3에서 도입했으며 이전 배포판 `v0.1.2`에는 이 명령이 없다. 업데이트 뒤에도 실제 실행 파일의 지원 정보를 확인하며 버전 숫자만으로 호환성을 판단하지 않는다. Spec은 Core 설치나 이 조회 없이 문서를 작성한다.
+This contract applies to Core `0.1.8` and Seal `0.1.23` of v0.1.8. The capability example below is from that release, with the lines of one optional extension removed in later source left out; §10 covers Seal 0.1.26 and `run-rules/6`, and §11 covers current Seal and `run-rules/7`. The capability query was introduced in v0.1.3, and the earlier release `v0.1.2` does not have this command. Even after an update, the capabilities of the actual executable are checked, and compatibility is never judged from version numbers alone. Spec writes documents without a Core installation or this query.
 
-## 1. 목표 없는 조회
+## 1. Query without a goal
 
 ```text
 ha capabilities --format json
 ```
 
-`--format` 생략 시에도 JSON을 출력한다. 목표 인수와 JSON 이외의 형식은 받지 않는다. 이 실행 파일이 지원하는 내용을 stdout에 JSON 객체 하나와 줄바꿈으로 출력한다. 목표·저장소·설정·실행 기록을 열거나 바꾸지 않고, Git·검사·모델 프로세스도 시작하지 않는다. 같은 바이너리의 조회 내용은 현재 시각이나 작업 폴더에 따라 달라지지 않는다.
+Without `--format`, it also prints JSON. It accepts no goal argument and no format other than JSON. It prints what this executable supports to stdout as one JSON object followed by a newline. It does not open or change goals, repositories, configuration or run records, and it starts no Git, check or model process. The query output of the same binary does not vary with the current time or the working folder.
 
-종료 코드는 성공 `0`, 잘못된 인수 `64`, 출력 실패 `70`이다. 구 Core의 알 수 없는 명령 종료 `64`는 조회 미지원이며, 버전 출력 성공으로 대신 통과시키지 않는다. 다른 실패·시간 초과·읽을 수 없는 출력도 지원 확인 성공이 아니다.
+Exit codes are `0` for success, `64` for invalid arguments and `70` for an output failure. An older Core's unknown-command exit `64` means the query is unsupported, and a successful version print never passes in its place. Other failures, timeouts and unreadable output are not a successful support check either.
 
 ```json
 {
@@ -41,113 +41,113 @@ ha capabilities --format json
 }
 ```
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `schema` | 정확히 `ha-capabilities/v1`. 다른 schema는 이 계약으로 해석하지 않는다 |
-| `ha_version` | 조회한 Core의 비어 있지 않은 버전 식별자. 숫자 비교만으로 기능을 추정하지 않는다 |
-| `supported_rules` | 저장된 목표에서 지원하는 규칙 목록 |
-| `default_rules` | 새 `start`가 선택하는 규칙. `supported_rules` 안에 있어야 한다 |
-| `formats.criteria` | `legacy`는 선택자 없는 기존 문서, `nested/1`은 명시적으로 선택한 새 목록 형식 |
-| `formats.check_declaration`, `check_result`, `check_evidence` | 지원하는 선언·생산자 보고·저장 요약의 schema 목록 |
-| `formats.timing` | 시간 보기(`ha timing --format json`)의 schema 목록. 선택적이며 없을 수 있다 |
-| `formats.assurance_tier` | 목표 문서의 `Assurance:` 줄에서 읽고 검증하는 값 목록(`light`, `standard`, `strict`). 선택적이며 없을 수 있다 |
-| `formats.core_requirements` | `ha start --skill`이 읽는 skill의 Core 요구 선언 schema 목록(`core-requirements/v1`, §8). 선택적이며 없을 수 있다 |
-| `formats.review_gate` | `ha note <goal> review --gate <file>`이 읽는 검토 gate 파일 schema 목록(`review-gate/v1`, §9). 선택적이며 없을 수 있다 |
-| `features` | 아래 기능 식별자 목록 |
+| `schema` | Exactly `ha-capabilities/v1`. Another schema is not interpreted by this contract |
+| `ha_version` | The non-empty version identifier of the queried Core. Features are never inferred from a numeric comparison alone |
+| `supported_rules` | The list of rules supported for stored goals |
+| `default_rules` | The rules a new `start` selects. Must be in `supported_rules` |
+| `formats.criteria` | `legacy` is the existing documents without a selector, `nested/1` the new list format selected explicitly |
+| `formats.check_declaration`, `check_result`, `check_evidence` | The lists of supported schemas for declarations, producer reports and stored summaries |
+| `formats.timing` | The list of schemas of the timing view (`ha timing --format json`). Optional, and may be absent |
+| `formats.assurance_tier` | The list of values read and validated from the `Assurance:` line of goal documents (`light`, `standard`, `strict`). Optional, and may be absent |
+| `formats.core_requirements` | The list of schemas of a skill's Core requirement declaration that `ha start --skill` reads (`core-requirements/v1`, §8). Optional, and may be absent |
+| `formats.review_gate` | The list of review gate file schemas that `ha note <goal> review --gate <file>` reads (`review-gate/v1`, §9). Optional, and may be absent |
+| `features` | The list of feature identifiers below |
 
-선택적이라고 적은 `formats.timing`, `formats.assurance_tier`, `formats.core_requirements`, `formats.review_gate`를 뺀 위 필드는 모두 필수다. 목록은 중복 없는 문자열 배열이며 각 문자열은 비어 있지 않다. 빈 형식·기능 목록은 해당 지원이 없다는 뜻이다. 중복 JSON 키, 잘못된 타입, 필수 정보 누락, 손상·뒤에 붙은 JSON은 해석 불가다. 같은 schema의 추가 필드·새 목록 항목은 허용하되 소비자가 아는 필수 지원을 대신하지 않는다.
+Every field above is required except `formats.timing`, `formats.assurance_tier`, `formats.core_requirements` and `formats.review_gate`, which are marked optional. Lists are arrays of strings without duplicates, and each string is non-empty. An empty format or feature list means there is no such support. Duplicate JSON keys, wrong types, missing required information, and corrupt or trailing JSON cannot be interpreted. Additional fields and new list items in the same schema are allowed, but they do not replace a required support the consumer knows.
 
-| 기능 | 약속 |
+| Feature | Promise |
 | --- | --- |
-| `estimate/v1` | 기록을 바꾸지 않는 시작 전 최소 검증 횟수 추정 |
-| `dirty-preflight/v1` | 실제 검사 대상 실행 전에 dirty 상태와 조회 실패를 구분해 거부 |
-| `baseline-safe-copy/v1` | 모든 지원 규칙의 앞으로 실행할 baseline에서 대상별 전체 복사 목록을 확인하고, HEAD 비일반 파일과 목적지·부모 symlink를 실행 전에 거부 |
-| `structured-change-results/v1` | `/3` change의 호출에 연결된 구조화 분류와 전체 시도 이력 보존 |
-| `budget-change/v1` | `/3` 현재 창의 횟수 총상한 변경, 사용량·시간 상한 보존과 개정 충돌 거부 |
-| `post-completion-findings/v1` | 역사적 완료에 연결된 발견 주장·개정·재작업 관계를 보존하는 선택적 확장 |
-| `run-timing/v1` | `check`·`baseline` 줄의 `timing` 측정값 기록과 읽기 전용 시간 보기(`ha timing`)를 제공하는 선택적 확장 |
-| `test-authority/v1` | `run-rules/4`의 시험 변경 권한·시작 범위 사본과 `test-change` 근거(§6) |
-| `reported-wait/v1` | `run-rules/4`의 `wait`·`resume` 신고와 `started_at`, 신고한 대기를 뺀 예산 경과(§6) |
-| `preapproved-runs/v1` | `run-rules/4`의 사전 승인 상한과 그 안의 이유만 있는 증액(§6) |
-| `error-recovery/v1` | `run-rules/4`의 `recover`·`allow-recovery`와 회복 횟수 표시(§6) |
-| `command-time-limits/v1` | `run-rules/4`의 PLAN `## 시간 제한`, 명령 digest의 적용 제한, 실행 전 안내(§6) |
-| `runner-adapters/v1` | `/3`·`/4`·`/5` change 조건의 `check-adapter/v1` 선언으로 `go test -json` 표준 출력과 JUnit XML을 직접 분류하는 선택적 확장(§7) |
-| `report/v1` | 기록을 바꾸지 않고 `ha status`와 같은 계산으로 다섯 줄 요약·도장·조건별 근거·완료 범위를 보이는 사람용 보고(`ha report`, [실행 기록](run-record.md) §1.3) |
-| `doctor/v1` | PLAN `## 실행 환경`의 점검 명령을 60초 고정 제한으로 실행하고 아무것도 기록하지 않는 실행 환경 점검(`ha doctor`, [실행 기록](run-record.md) §1.4) |
-| `auto-budget/v1` | PLAN `검증 실행: 자동`의 시작 상한 산정, 사용자 설정의 사전 승인 상한, 그 상한을 넘는 시작의 거부와 `ha estimate`의 표시(§8, [실행 기록](run-record.md) §1.5) |
-| `core-requirements/v1` | `ha start --skill`의 skill Core 요구 선언 확인과 선언을 필수로 하는 `--check-skill`(§8) |
-| `review-gate/v1` | `run-rules/5`의 검토 gate 기록(`ha note <goal> review --gate <file>`)과 `standard`·`strict` 목표의 gate 판정(§9, [실행 기록](run-record.md) §4.8) |
+| `estimate/v1` | An estimate, before the start and without changing records, of the minimum verification run count |
+| `dirty-preflight/v1` | Refusal before the actual check targets run, distinguishing a dirty state from a query failure |
+| `baseline-safe-copy/v1` | In the baselines still to run under every supported rule, a check of the full copy list per target, and refusal of non-regular files in HEAD and of destination or parent symlinks before running |
+| `structured-change-results/v1` | For a `/3` change, structured classification linked to the call and preservation of the full attempt history |
+| `budget-change/v1` | For `/3`, a change of the total run limit of the current window, preserving the usage and time limits and refusing revision conflicts |
+| `post-completion-findings/v1` | An optional extension that preserves finding claims, revisions and rework relations linked to a historical completion |
+| `run-timing/v1` | An optional extension that provides recording of `timing` measurements on `check` and `baseline` lines and a read-only timing view (`ha timing`) |
+| `test-authority/v1` | `run-rules/4`'s test change authority, the copy of the scope at start, and `test-change` evidence (§6) |
+| `reported-wait/v1` | `run-rules/4`'s `wait` and `resume` reports, `started_at`, and budget elapsed time that excludes reported waits (§6) |
+| `preapproved-runs/v1` | `run-rules/4`'s pre-approved limit and increases within it that need only a reason (§6) |
+| `error-recovery/v1` | `run-rules/4`'s `recover` and `allow-recovery`, and the display of recovery counts (§6) |
+| `command-time-limits/v1` | `run-rules/4`'s PLAN `## 시간 제한`, the applied limit in the command digest, and notice before running (§6) |
+| `runner-adapters/v1` | An optional extension that classifies `go test -json` standard output and JUnit XML directly through `check-adapter/v1` declarations of `/3`, `/4` and `/5` change conditions (§7) |
+| `report/v1` | A report for people (`ha report`, [Run record](run-record.md) §1.3) that, without changing records and by the same computation as `ha status`, shows a five-line summary, a stamp, the evidence per condition and the completion coverage |
+| `doctor/v1` | An execution environment check (`ha doctor`, [Run record](run-record.md) §1.4) that runs the check commands of PLAN `## 실행 환경` with a fixed 60-second limit and records nothing |
+| `auto-budget/v1` | Computation of the start limit for PLAN `검증 실행: 자동`, the pre-approved limit in user configuration, refusal of a start above that limit, and its display in `ha estimate` (§8, [Run record](run-record.md) §1.5) |
+| `core-requirements/v1` | The check of a skill's Core requirement declaration in `ha start --skill`, and `--check-skill`, which makes the declaration required (§8) |
+| `review-gate/v1` | `run-rules/5`'s review gate record (`ha note <goal> review --gate <file>`) and the gate judgment for `standard` and `strict` goals (§9, [Run record](run-record.md) §4.8) |
 
-시간 보기를 지원하는 Core는 `formats.timing`에 `timing/v1`, `features`에 `run-timing/v1`을 제공한다([실행 기록](run-record.md) §1.2, §2.2). 측정값은 판정·예산에 쓰이지 않으므로 이 확장은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 추가되지 않는다. 지원이 없는 Core에서도 일반 실행은 그대로이고, 시간 보기만 쓸 수 없다.
+A Core that supports the timing view provides `timing/v1` in `formats.timing` and `run-timing/v1` in `features` ([Run record](run-record.md) §1.2, §2.2). Measurements are not used for judgments or budgets, so this extension is not added to the requirements of a new start or of resume, check, budget and finding operations on existing goals. On a Core without this support, ordinary runs stay the same; only the timing view cannot be used.
 
-목표 문서의 `Assurance:` 줄([목표 문서](goal-docs.md) §2.5)을 읽고 검증하는 Core는 `formats.assurance_tier`에 `light`, `standard`, `strict`를 제공한다. v0.1.7 이후 배포판(위 예시는 v0.1.8)에는 이 항목이 있고 v0.1.6 이하 배포판에는 없다. 등급은 구현 담당이 받을 검토의 범위를 정한다. `run-rules/4` 이하로 시작한 목표에서는 판정, `ha status`와 `ha done`의 출력, 예산이 등급 때문에 바뀌지 않고, `run-rules/5`로 시작한 `standard`·`strict` 목표는 기록된 검토 gate가 완료 조건이 된다(§9). 줄은 SPEC.md의 일부이므로 목표 digest에 들어가고, 올바른 줄이 있으면 `ha lint` 성공 출력에 `assurance tier: <등급>` 줄이 더해지며, 형식이 틀린 줄은 다른 lint 오류처럼 `ha start`와 `ha check`를 막는다([목표 문서](goal-docs.md) §2.5, [실행 묶음](bundle.md) §8). 그래서 이 항목은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 더하지 않는다. 항목이 없는 Core는 줄을 검증하지 않을 뿐이고 일반 실행은 그대로다. 이 항목의 이름은 `ha status`의 `assurance` 필드(근거 표시, 항상 `local`)와 섞이지 않도록 따로 정했다.
+A Core that reads and validates the `Assurance:` line of goal documents ([Goal documents](goal-docs.md) §2.5) provides `light`, `standard` and `strict` in `formats.assurance_tier`. Releases from v0.1.7 on (the example above is v0.1.8) have this item, and releases v0.1.6 and earlier do not. The tier sets the scope of the review the implementer receives. For goals started under `run-rules/4` or earlier, judgments, the output of `ha status` and `ha done`, and budgets do not change because of the tier; for `standard` and `strict` goals started under `run-rules/5`, a recorded review gate becomes a condition of completion (§9). The line is part of SPEC.md, so it is included in the goal digest; when a valid line is present, an `assurance tier: <tier>` line is added to the success output of `ha lint`, and a malformed line blocks `ha start` and `ha check` like other lint errors ([Goal documents](goal-docs.md) §2.5, [Execution bundle](bundle.md) §8). So this item is not added to the requirements of a new start or of resume, check, budget and finding operations on existing goals. A Core without this item only does not validate the line, and ordinary runs stay the same. The name of this item was chosen separately so that it is not confused with the `assurance` field of `ha status` (the evidence display, always `local`).
 
-기능의 상세 의미는 [실행 기록](run-record.md), [결과 계약](check-result.md), [목표 문서](goal-docs.md)에 따른다. 지원 정보는 독립 인증이나 코드 무결성 증명이 아니다.
+The detailed meaning of the features follows [Run record](run-record.md), [Result contract](check-result.md) and [Goal documents](goal-docs.md). Capabilities are not independent certification or proof of code integrity.
 
-## 2. Seal 0.1.17의 소비 계약
+## 2. Consumption contract of Seal 0.1.17
 
-호환 확인은 상태를 바꾸는 작업 전에 수행한다. 실제 사용할 실행 파일의 절대 경로를 확정하고 **그 경로**로 조회한다. 성공한 실행 파일과 이후 사용할 Core가 달라지면 이전 확인을 재사용하지 않는다. PATH의 다른 파일, 다른 세션의 결과, 버전 문자열만으로 대체하지 않는다. 확인 뒤에도 경로·바이너리가 바뀌었으면 다시 확인한다. 조회는 자동 설치·권한 확대·목표 또는 기록 변경의 권한을 주지 않는다.
+The compatibility check is done before any operation that changes state. Settle the absolute path of the executable that will actually be used, and query with **that path**. If the executable that succeeded and the Core used afterward differ, the earlier check is not reused. It is not replaced by another file on PATH, another session's result or the version string alone. If the path or the binary changed even after the check, check again. The query grants no authority to install automatically, widen permissions, or change goals or records.
 
-에이전트는 위 JSON을 아래 표와 직접 비교할 수 있다. Python이나 별도 호환 검사 프로그램은 Seal의 필수 의존성이 아니다.
+The agent can compare the JSON above directly with the table below. Python or a separate compatibility check program is not a required dependency of Seal.
 
-| 요청 | 선택할 규칙과 필요한 지원 |
+| Request | Rules to select and support needed |
 | --- | --- |
-| 새 시작 | `default_rules`가 `run-rules/3`이며 지원 목록에도 있어야 한다. `criteria`의 `legacy`·`nested/1`, 선언·보고·요약의 각 v1, 완료 뒤 발견 확장을 제외한 위 다섯 실행 기능이 모두 필요하다. Seal 0.1.16부터 지원 목록에 `run-rules/4`, 기능에 §6의 다섯도 요구하고 `ha start --rules run-rules/4`로 시작한다. Seal 0.1.21부터는 대신 `run-rules/5`와 §9의 두 항목도 요구하고 `ha start --rules run-rules/5`로 시작한다 |
-| 기존 목표 재개·검사 | `start`에 저장된 `/1`·`/2`·`/3`·`/4`·`/5`와 목표가 선택한 criteria 형식을 지원해야 한다. `dirty-preflight/v1`, `baseline-safe-copy/v1`이 필요하다. 저장 규칙이 `/3`·`/4`·`/5`면 선언·보고·요약 v1과 `structured-change-results/v1`도 필요하고, `/4`·`/5`면 §6의 다섯 기능도, `/5`면 §9의 `review-gate/v1` 기능도 필요하다 |
-| 기존 목표 횟수 상한 변경 | 저장 규칙이 `/3`·`/4`·`/5`이고 `budget-change/v1`을 지원해야 한다. 해당 목표의 criteria 형식과 선언·보고·요약 형식도 지원해야 하고, `/4`·`/5`면 §6의 다섯 기능도, `/5`면 §9의 `review-gate/v1` 기능도 필요하다. `/1`·`/2`에는 이 동작을 적용하지 않는다 |
+| New start | `default_rules` must be `run-rules/3` and must also be in the supported list. `legacy` and `nested/1` of `criteria`, each v1 of declarations, reports and summaries, and all five run features above other than the post-completion findings extension are needed. From Seal 0.1.16, `run-rules/4` in the supported list and the five of §6 in the features are also required, and it starts with `ha start --rules run-rules/4`. From Seal 0.1.21, instead, `run-rules/5` and the two items of §9 are also required, and it starts with `ha start --rules run-rules/5` |
+| Resuming or checking an existing goal | The `/1`, `/2`, `/3`, `/4` or `/5` stored in `start` and the criteria format the goal selected must be supported. `dirty-preflight/v1` and `baseline-safe-copy/v1` are needed. When the stored rules are `/3`, `/4` or `/5`, declaration, report and summary v1 and `structured-change-results/v1` are also needed; for `/4` and `/5`, the five features of §6 too, and for `/5`, the `review-gate/v1` feature of §9 too |
+| Changing the run limit of an existing goal | The stored rules must be `/3`, `/4` or `/5`, and `budget-change/v1` must be supported. The goal's criteria format and the declaration, report and summary formats must also be supported; for `/4` and `/5`, the five features of §6 are also needed, and for `/5`, the `review-gate/v1` feature of §9 too. This operation does not apply to `/1` and `/2` |
 
-새 시작에서 모르는 기본 규칙이나 이전 기본 규칙으로 조용히 대체하지 않는다. 기존 목표는 기본 시작 규칙을 적용하지 않는다. 예를 들어 기본이 미래 `/4`여도 저장된 `/2`와 요청에 필요한 지원이 있다면 기존 `/2`의 확인은 통과할 수 있다. 새 `/3` 지원 때문에 `/1`·`/2` 목표나 기록을 변환하거나 결과 선언을 추가하도록 요구하지 않는다.
+A new start does not silently substitute an unknown default rule or an earlier default rule. The default start rule does not apply to existing goals. For example, even if the default is a future `/4`, the check for an existing `/2` can pass when the stored `/2` and the support the request needs are present. New `/3` support does not require converting `/1` or `/2` goals or records, or adding result declarations.
 
-조회 미지원·실패, 필수 정보 누락·해석 불가, 필요한 규칙·형식·기능 부족이면 확인한 대상과 이유를 알리고 새 시작·재개 등 상태 변경 전에 멈춘다. 구버전이면 [설치 안내](../guides/INSTALL.md#업데이트)를 안내하되 자동 설치·업데이트하거나 구규칙으로 우회하지 않는다.
+When the query is unsupported or fails, required information is missing or cannot be interpreted, or a needed rule, format or feature is missing, report the target checked and the reason, and stop before any state change such as a new start or resume. For an older version, point to the [installation guide](../guides/INSTALL.en.md#update), but do not install or update automatically or work around it with older rules.
 
-Seal 0.1.20부터는 이 표를 손으로 대조하지 않는다. 새 시작은 skill 폴더의 `core-requirements.json`(§8)에 필요한 지원을 선언하고 `ha start --check-skill`로 시작하므로, 빠진 지원이 있으면 Core가 기록 없이 거부한다. 그 선언에는 위 새 시작의 요구와 함께 `report/v1`, `doctor/v1`, `auto-budget/v1`, `core-requirements/v1`, `formats.core_requirements`의 `core-requirements/v1`, `formats.assurance_tier`의 `light`·`standard`·`strict`가 들어 있다. Seal 0.1.21의 선언은 규칙을 `run-rules/5`로 바꾸고 §9의 `review-gate/v1` 기능과 `formats.review_gate`를 더한다. 기존 목표는 각 명령이 저장된 규칙을 계산하거나 66으로 거부하며, Seal은 그 거부와 실행 파일을 보고하고 멈춘다. 실행 파일 절대 경로의 재확인은 하지 않는다. 기록의 줄마다 `ha_version`이 남고 `ha status`가 그것을 보인다.
+From Seal 0.1.20, this table is not compared by hand. A new start declares the needed support in `core-requirements.json` (§8) in the skill folder and starts with `ha start --check-skill`, so when any support is missing, Core refuses without a record. Along with the new start requirements above, that declaration contains `report/v1`, `doctor/v1`, `auto-budget/v1`, `core-requirements/v1`, `core-requirements/v1` of `formats.core_requirements`, and `light`, `standard` and `strict` of `formats.assurance_tier`. The declaration of Seal 0.1.21 changes the rules to `run-rules/5` and adds the `review-gate/v1` feature of §9 and `formats.review_gate`. For existing goals, each command computes the stored rules or refuses with 66, and Seal reports that refusal and the executable and stops. The absolute path of the executable is not checked again. Each line of the record keeps `ha_version`, and `ha status` shows it.
 
-호환 확인은 입력 lint, 저장 기록의 무결성, 사용자 구현 권한, 완료 판정을 대신하지 않는다. 이 표의 확인은 Seal이 한다. Core는 skill이 §8의 선언을 두면 `ha start --skill`에서 그 선언을 이 실행 파일의 지원 정보와 대조해 빠진 지원이 있으면 기록 없이 시작을 거부하고, 선언이 없는 skill의 시작은 그대로 받는다. 직접 Core를 사용하는 미선언 `/3` change는 기존처럼 실제 시도를 기록하고 `unknown`으로 분류할 수 있다. 일반 maintain·manual·task 검사는 구조화 change 계약으로 강제 이전하지 않는다.
+The compatibility check does not replace input lint, the integrity of stored records, the user's implementation authority or the completion judgment. Seal performs the checks of this table. When a skill has the declaration of §8, Core compares that declaration with this executable's capabilities at `ha start --skill` and refuses the start without a record when any support is missing; it accepts the start of a skill without a declaration as before. An undeclared `/3` change that uses Core directly can, as before, record the actual attempt and classify it as `unknown`. Ordinary maintain, manual and task checks are not forced over to the structured change contract.
 
-## 3. 선택적 결정적 소비 도구
+## 3. Optional deterministic consumer tool
 
-Python 3가 이미 있다면 Seal에 포함된 [check_core.py](https://github.com/jgoneit/jaekit/blob/v0.1.8/plugins/seal/skills/seal/scripts/check_core.py)로 같은 계약을 확인할 수 있다. 도구가 없거나 Python을 쓰지 않는 경우에도 위 계약을 직접 소비할 수 있다.
+If Python 3 is already present, the same contract can be checked with [check_core.py](https://github.com/jgoneit/jaekit/blob/v0.1.8/plugins/seal/skills/seal/scripts/check_core.py), included in Seal. Without the tool, or without Python, the contract above can be consumed directly.
 
 ```text
 python3 <seal-skill>/scripts/check_core.py --ha <실제 Core 경로> --operation start
 python3 <seal-skill>/scripts/check_core.py --ha <실제 Core 경로> --operation resume --goal <기존 목표>
 ```
 
-Seal 0.1.20의 도구는 `start`에서 `core-requirements.json`의 요구를 모두 확인한다. 그래서 같은 실행 파일에 대해 새 시작을 호환이라고 판단하면 `ha start --check-skill`의 요구 확인도 거부하지 않는다. `resume`·`check`·`budget`·`finding`의 판단은 그대로다.
+The tool of Seal 0.1.20 checks all requirements of `core-requirements.json` for `start`. So when it judges a new start compatible for the same executable, the requirement check of `ha start --check-skill` does not refuse either. The judgments for `resume`, `check`, `budget` and `finding` stay the same.
 
-`--ha`는 기본 `ha`이며 PATH에서 처음 찾은 실행 파일을 사용한다. `--operation`은 `start`(기본), `resume`, `check`, `budget`, `finding`이다. `start`에는 목표를 받지 않고 나머지 요청에는 기존 목표를 받는다. 기존 목표의 첫 `start`, 기록의 schema와 SPEC 형식 선택자를 읽으며 실제 기록 무결성 검증은 Core에 남긴다.
+`--ha` defaults to `ha` and uses the first executable found on PATH. `--operation` is `start` (default), `resume`, `check`, `budget` or `finding`. `start` takes no goal, and the other requests take an existing goal. The tool reads the existing goal's first `start`, the record schema and the SPEC format selector, and leaves the verification of actual record integrity to Core.
 
-도구는 symlink를 해소한 절대 경로로 한 번 조회한다. 조회 전후 SHA-256이 다르면 거부한다. 성공 시 응답의 `executable` 경로를 실제 Core 호출에도 사용한다. 해시는 영구 캐시나 비협조 외부 프로세스에 대한 교체 방지 보증이 아니다.
+The tool queries once with the absolute path with symlinks resolved. If the SHA-256 differs before and after the query, it refuses. On success, the `executable` path of the response is also used for the actual Core calls. The hash is not a guarantee against replacement for a permanent cache or for uncooperative external processes.
 
-stdout은 `seal-core-compatibility/v1` JSON이다. `compatible`, `reason`, `requested_executable`, `executable`, `sha256`, `ha_version`, `operation`, `rules`, `missing`을 제공한다. 아직 확인하지 못한 값은 null이며, 원문 Core 출력·목표 내용·사용자 발화를 복사하지 않는다. 실행 파일 경로는 로컬 진단 정보이므로 공개 보고에 그대로 옮길 필요가 없다.
+stdout is `seal-core-compatibility/v1` JSON. It provides `compatible`, `reason`, `requested_executable`, `executable`, `sha256`, `ha_version`, `operation`, `rules` and `missing`. Values not checked yet are null, and it does not copy raw Core output, goal content or user utterances. The executable path is local diagnostic information, so it need not be carried as it is into public reports.
 
-- 종료 `0`: 호환 확인 성공.
-- 종료 `2`: 확인 거부. `core_missing`, `query_unsupported`, `query_failed`, `query_timeout`, `binary_changed`, `unsupported_schema`, `invalid_capabilities`, `unsupported_default_rule`, `unsupported_stored_rule`, `unsupported_record_schema`, `unsupported_operation`, `missing_support`, `goal_unreadable`, `goal_record_oversized`, `goal_format_invalid` 중 사유를 제공한다. 저장된 발견 줄이 [계약 상한](findings.md#입력과-조회)을 넘으면 `goal_record_oversized`, 읽을 수 없거나 손상된 기록은 `goal_unreadable`, 알 수 없는 기록 schema는 `unsupported_record_schema`다.
-- 종료 `64`: 도구 인수 오류.
+- Exit `0`: the compatibility check succeeded.
+- Exit `2`: the check refused. It gives one of the reasons `core_missing`, `query_unsupported`, `query_failed`, `query_timeout`, `binary_changed`, `unsupported_schema`, `invalid_capabilities`, `unsupported_default_rule`, `unsupported_stored_rule`, `unsupported_record_schema`, `unsupported_operation`, `missing_support`, `goal_unreadable`, `goal_record_oversized`, `goal_format_invalid`. A stored finding line over the [contract limit](findings.md#input-and-queries) is `goal_record_oversized`, an unreadable or corrupt record is `goal_unreadable`, and an unknown record schema is `unsupported_record_schema`.
+- Exit `64`: a tool argument error.
 
-조회는 5초 후 중단하며 자동 재시도하지 않는다. 이 도구는 실제 시작·재개·검사·설치를 실행하거나 결과를 파일로 저장하지 않는다. 설치된 Codex·Claude가 이 지침을 실제로 따르는지는 별도 호스트 검증 대상이다.
+The query is stopped after 5 seconds and is not retried automatically. This tool does not run an actual start, resume, check or installation, and does not save results to a file. Whether installed Codex and Claude actually follow these instructions is a subject of separate host verification.
 
-## 4. 선택적 완료 뒤 발견 확장
+## 4. Optional post-completion findings extension
 
-Core 0.1.4부터 [완료 뒤 발견](findings.md)을 포함하며 `formats.finding`에 `run-finding/v1`, `features`에 `post-completion-findings/v1`을 제공한다. 위 v0.1.8 배포 예시에도 두 항목이 있다. v0.1.3 Core에는 이 확장이 없으므로 실제 지원 정보를 확인하며, 버전 숫자만으로 기능을 추정하지 않는다. 기존 시작·검사·예산 작업의 요구는 유지한다. 발견 입력과 조회에는 실제 실행 파일의 두 추가 지원, 저장된 규칙과 현재 조건 형식의 지원을 확인한다. 발견 작업만을 위해 실행 기능이나 `/3` 선언 지원을 요구하지 않는다.
+From Core 0.1.4, Core includes [post-completion findings](findings.md) and provides `run-finding/v1` in `formats.finding` and `post-completion-findings/v1` in `features`. The v0.1.8 release example above also has both items. The v0.1.3 Core does not have this extension, so the actual capabilities are checked, and features are never inferred from version numbers alone. The requirements of the existing start, check and budget operations stay. For finding input and queries, the two additional supports of the actual executable and support for the stored rules and the current condition format are checked. Run features or `/3` declaration support are not required for finding operations alone.
 
-Seal 0.1.12에 포함된 선택형 도구는 `--operation finding --goal <기존 목표>`를 지원한다. 기존 목표에 `run-finding/v1` 줄이 있으면 resume·check·budget도 두 추가 지원을 요구한다. 도구는 알려진 줄 schema의 존재를 읽으며 해시·이력의 무결성은 Core가 검증한다. 알 수 없는 schema는 거부한다. 이전 설치의 도구에 새 인수가 있다고 가정하지 않으며, 실제 capability를 직접 확인하는 방법도 유효하다. 지원을 확인하지 못하면 새 발견 기록을 쓰지 않는다.
+The optional tool included in Seal 0.1.12 supports `--operation finding --goal <기존 목표>`. When an existing goal has `run-finding/v1` lines, resume, check and budget also require the two additional supports. The tool reads the presence of known line schemas, and Core verifies the integrity of hashes and history. Unknown schemas are refused. It is not assumed that the tool of an earlier installation has the new argument, and checking the actual capabilities directly is also valid. When the support cannot be confirmed, no new finding record is written.
 
-## 6. run-rules/4 기능
+## 6. run-rules/4 features
 
-`run-rules/4`를 지원하는 Core는 `supported_rules`에 `run-rules/4`, `features`에 `test-authority/v1`, `reported-wait/v1`, `preapproved-runs/v1`, `error-recovery/v1`, `command-time-limits/v1`을 함께 제공한다. `default_rules`는 `run-rules/3` 그대로다. 그래서 기본 규칙을 확인하는 이전 Seal과 배포·설치 식별은 바뀌지 않는다. 새 규칙은 `ha start --rules run-rules/4`로만 고른다. 다섯 기능의 의미는 [실행 기록](run-record.md) §4.7이다.
+A Core that supports `run-rules/4` provides `run-rules/4` in `supported_rules` together with `test-authority/v1`, `reported-wait/v1`, `preapproved-runs/v1`, `error-recovery/v1` and `command-time-limits/v1` in `features`. `default_rules` stays `run-rules/3`. So earlier Seal versions that check the default rules, and the release and installation identification, do not change. The new rules are selected only with `ha start --rules run-rules/4`. The meaning of the five features is in [Run record](run-record.md) §4.7.
 
-Seal 0.1.16부터 확인 도구는 새 시작에서 이 규칙과 다섯 기능을 모두 요구하고 시작 규칙으로 `run-rules/4`를 낸다. 하나라도 없으면 기록 전에 거부한다. 저장 규칙이 `/4`인 목표의 재개·검사·횟수 상한 변경도 다섯 기능을 요구한다. `/1`·`/2`·`/3` 목표의 요구는 그대로다. `/4`를 지원하지 않는 Core는 그 목표를 66으로 거부하고 기록하지 않는다.
+From Seal 0.1.16, the check tool requires these rules and all five features for a new start and gives `run-rules/4` as the start rules. When any of them is missing, it refuses before recording. Resuming, checking and changing the run limit of goals whose stored rules are `/4` also require the five features. The requirements of `/1`, `/2` and `/3` goals stay the same. A Core that does not support `/4` refuses that goal with 66 and does not record.
 
-## 7. 러너 어댑터
+## 7. Runner adapters
 
-러너 어댑터를 지원하는 Core는 `formats.check_declaration`의 끝에 `check-adapter/v1`, `features`의 끝에 `runner-adapters/v1`을 더해 제공한다. 두 항목의 의미는 [change 검사 결과](check-result.md#5-러너-어댑터) §5다. 기존 항목과 그 순서, `default_rules`는 그대로다.
+A Core that supports runner adapters provides `check-adapter/v1` added at the end of `formats.check_declaration` and `runner-adapters/v1` added at the end of `features`. The meaning of both items is in §5 of [change check results](check-result.md#5-runner-adapters). The existing items, their order and `default_rules` stay the same.
 
-어댑터는 선택이므로 이 확장은 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 추가되지 않는다. Seal과 호환 확인 도구의 요구도 그대로다. 실행자는 실제 실행 파일의 지원 정보에 두 항목이 모두 있을 때만 어댑터 선언을 쓴다. 지원이 없는 Core는 어댑터 선언을 알 수 없는 선언으로 보고 lint 문제(`evidence_invalid`)로 시작과 검사를 거부하며 기록하지 않는다. 그때는 참조 생산자나 전용 생산자를 쓴다.
+Adapters are optional, so this extension is not added to the requirements of a new start or of resume, check, budget and finding operations on existing goals. The requirements of Seal and of the compatibility check tool also stay the same. The executor writes adapter declarations only when both items are in the actual executable's capabilities. A Core without the support treats an adapter declaration as an unknown declaration and refuses the start and checks as a lint problem (`evidence_invalid`) without recording. In that case, use the reference producer or a dedicated producer.
 
-## 8. skill의 Core 요구 선언
+## 8. A skill's Core requirement declaration
 
-skill은 SKILL.md와 같은 폴더의 `core-requirements.json`에 자신에게 필요한 Core 지원을 선언할 수 있다. `ha start --skill <SKILL.md>`가 이 선언을 읽어 실행 파일의 지원 정보(§1의 `ha capabilities`와 같은 값)와 대조한다([실행 기록](run-record.md) §1.6). 지원하는 Core는 `formats.core_requirements`에 `core-requirements/v1`, `features`에 `core-requirements/v1`을 제공한다.
+A skill can declare the Core support it needs in `core-requirements.json` in the same folder as SKILL.md. `ha start --skill <SKILL.md>` reads this declaration and compares it with the executable's capabilities (the same values as `ha capabilities` in §1) ([Run record](run-record.md) §1.6). A Core that supports this provides `core-requirements/v1` in `formats.core_requirements` and `core-requirements/v1` in `features`.
 
 ```json
 {
@@ -158,42 +158,42 @@ skill은 SKILL.md와 같은 폴더의 `core-requirements.json`에 자신에게 �
 }
 ```
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `schema` | 필수. 정확히 `core-requirements/v1` |
-| `rules` | 선택. 각 값이 `supported_rules`에 있어야 한다 |
-| `formats` | 선택. 키마다 그 키가 `formats`에 있고(목록이 비어 있어도) 각 값이 그 목록에 있어야 한다 |
-| `features` | 선택. 각 값이 `features`에 있어야 한다 |
+| `schema` | Required. Exactly `core-requirements/v1` |
+| `rules` | Optional. Each value must be in `supported_rules` |
+| `formats` | Optional. For each key, that key must be in `formats` (even when its list is empty), and each value must be in that list |
+| `features` | Optional. Each value must be in `features` |
 
-- 목록은 비어 있지 않은 문자열의 배열이고 한 목록 안에서 값이 겹치지 않는다. `formats`는 그런 목록을 값으로 갖는 객체다. 빈 목록이나 없는 필드는 그 종류의 요구가 없다는 뜻이다. 단 `formats`의 키는 목록이 비어 있어도 그 키 자체를 요구한다.
-- UTF-8 JSON 객체 하나이며 64 KiB 이하다. 맨 앞 BOM 하나는 허용한다. 필드 이름은 정확한 철자여야 하며 대소문자만 다른 이름도 모르는 필드다. 다른 schema 값, 모르는 필드, 중복 키, 뒤에 붙은 데이터, `null`, 잘못된 타입은 형식 위반이다. 대상이 없는 symlink나 폴더처럼 읽을 수 없는 항목도 거부한다.
-- 빠진 항목이 있으면 항목마다 `ha: missing Core support: <rules|formats.<키>|features> <값> (ha <버전>)`을 보이고(`formats`의 키 자체가 없고 그 목록이 비어 있으면 값 없이 `formats.<키>`), 형식 위반이면 그 이유를 보이며, 둘 다 기록 없이 65로 끝난다. 모르는 값을 무시하고 시작하지 않는다.
-- 선언 파일이 없는 skill과 `--skill` 없는 시작은 이 확인을 하지 않는다. Seal 0.1.20은 선언을 두고 `--check-skill`로 시작한다. 선언하지 않은 Seal 0.1.17~0.1.19는 지금처럼 시작하며, 그 Seal들의 §2 확인과 [check_core.py](https://github.com/jgoneit/jaekit/blob/v0.1.6/plugins/seal/skills/seal/scripts/check_core.py)는 추가된 항목을 허용하므로 같은 결론을 낸다.
-- `--check-skill`은 선언을 필수로 한다. 이 기능 전의 Core(배포판 v0.1.6 등)는 이 플래그를 모르는 플래그로 64에 끝내고 기록하지 않으므로, 확인이 반드시 일어나야 하는 시작은 `ha start <goal> --skill <SKILL.md> --check-skill` 형식을 쓴다.
-- 선언은 Core 지원의 요구일 뿐이다. 사용자 구현 권한, 입력 lint, 완료 판정을 대신하지 않는다.
+- Lists are arrays of non-empty strings, and values do not repeat within one list. `formats` is an object whose values are such lists. An empty list or an absent field means no requirement of that kind. However, a key of `formats` requires the key itself even when its list is empty.
+- It is one UTF-8 JSON object of 64 KiB or less. One leading BOM is allowed. Field names must be spelled exactly; a name that differs only in case is an unknown field. Another schema value, unknown fields, duplicate keys, trailing data, `null` and wrong types are format violations. Unreadable entries, such as a symlink without a target or a folder, are also refused.
+- When items are missing, it shows `ha: missing Core support: <rules|formats.<key>|features> <value> (ha <version>)` for each item (just `formats.<key>`, without a value, when the `formats` key itself is missing and its list is empty); for a format violation it shows the reason; both end with 65 without a record. It never ignores unknown values to start.
+- A skill without a declaration file, and a start without `--skill`, do not do this check. Seal 0.1.20 has the declaration and starts with `--check-skill`. Seal 0.1.17 to 0.1.19, which do not declare, start as they do now, and those Seal versions' §2 check and [check_core.py](https://github.com/jgoneit/jaekit/blob/v0.1.6/plugins/seal/skills/seal/scripts/check_core.py) allow the added items, so they reach the same conclusion.
+- `--check-skill` makes the declaration required. A Core from before this feature (release v0.1.6 and others) ends with 64 on this flag as an unknown flag and does not record, so a start where the check must happen uses the form `ha start <goal> --skill <SKILL.md> --check-skill`.
+- The declaration is only a requirement of Core support. It does not replace the user's implementation authority, input lint or the completion judgment.
 
-`auto-budget/v1`은 PLAN `검증 실행: 자동`의 시작 상한 산정을 제공한다는 뜻이다([실행 기록](run-record.md) §1.5). 두 기능은 선택이므로 §2 표의 새 시작이나 기존 목표의 재개·검사·예산·발견 작업의 요구에 더하지 않는다. skill이 쓰려면 §8의 선언에 적는다.
+`auto-budget/v1` means that the start limit computation for PLAN `검증 실행: 자동` is provided ([Run record](run-record.md) §1.5). The two features are optional, so they are not added to the requirements of a new start or of resume, check, budget and finding operations on existing goals in the §2 table. A skill that uses them lists them in its §8 declaration.
 
 ## 9. run-rules/5
 
-`run-rules/5`를 지원하는 Core는 `supported_rules`에 `run-rules/5`, `formats.review_gate`에 `review-gate/v1`, `features`에 `review-gate/v1`을 함께 제공한다. `default_rules`는 `run-rules/3` 그대로이고, 새 규칙은 `ha start --rules run-rules/5`로만 고른다. `/5`는 `run-rules/4`의 규칙을 모두 지키므로 §6의 다섯 기능도 함께 제공한다.
+A Core that supports `run-rules/5` provides `run-rules/5` in `supported_rules`, `review-gate/v1` in `formats.review_gate` and `review-gate/v1` in `features` together. `default_rules` stays `run-rules/3`, and the new rules are selected only with `ha start --rules run-rules/5`. `/5` keeps all the rules of `run-rules/4`, so it also provides the five features of §6.
 
-`/5` 목표에서 실행자는 Spar가 쓴 `review-gate/v1` 파일을 `ha note <goal> review --gate <file>`로 기록하고, SPEC의 `Assurance:` 등급이 `standard`나 `strict`이면 기록된 마지막 gate가 지금 HEAD와 목표 문서를 덮어야 완료된다. 기록 내용, 거부, 이유는 [실행 기록](run-record.md) §4.8이다. Core는 gate 파일의 공개 형식만 읽고 Spar를 실행하거나 리뷰어·모델을 부르지 않는다.
+In a `/5` goal, the executor records the `review-gate/v1` file Spar wrote with `ha note <goal> review --gate <file>`, and when the SPEC's `Assurance:` tier is `standard` or `strict`, the goal completes only when the last recorded gate covers the current HEAD and the goal documents. The recorded content, refusals and reasons are in [Run record](run-record.md) §4.8. Core reads only the public format of the gate file; it does not run Spar or call reviewers or models.
 
-Seal 0.1.21은 `core-requirements.json`(§8)에 `run-rules/5`, `review-gate/v1` 기능, `formats.review_gate`의 `review-gate/v1`을 선언하고 `ha start <goal> --rules run-rules/5 … --check-skill`로 시작한다. 확인 도구도 새 시작에서 이 셋을 요구하고 시작 규칙으로 `run-rules/5`를 내며, 하나라도 없으면 기록 전에 거부한다. `review-gate/v1` 기능을 제공하는 Core는 `formats.review_gate`의 `review-gate/v1`도 제공하므로, 저장 규칙이 `/5`인 목표의 재개·검사·횟수 상한 변경은 §6의 다섯 기능과 `review-gate/v1` 기능을 요구한다. `/1`~`/4` 목표의 요구는 그대로다. `/5`를 지원하지 않는 Core는 그 목표를 66으로 거부하고 기록하지 않는다.
+Seal 0.1.21 declares `run-rules/5`, the `review-gate/v1` feature and `review-gate/v1` of `formats.review_gate` in `core-requirements.json` (§8) and starts with `ha start <goal> --rules run-rules/5 … --check-skill`. The check tool also requires these three for a new start and gives `run-rules/5` as the start rules, and when any of them is missing it refuses before recording. A Core that provides the `review-gate/v1` feature also provides `review-gate/v1` of `formats.review_gate`, so resuming, checking and changing the run limit of goals whose stored rules are `/5` require the five features of §6 and the `review-gate/v1` feature. The requirements of `/1` to `/4` goals stay the same. A Core that does not support `/5` refuses that goal with 66 and does not record.
 
 ## 10. run-rules/6
 
-`run-rules/6`을 지원하는 Core는 `supported_rules`에 `run-rules/6`을 더한다. 새 형식이나 기능 식별자는 더하지 않으며, `/5`의 형식·기능과 §6의 다섯 기능을 그대로 지원한다. `default_rules`는 `run-rules/3`이고, 직접 시작할 때는 `ha start --rules run-rules/6`으로 고른다. 이 규칙은 `/5`에서 검토 범위의 시작, 완료 뒤 review note, 판정하지 않은 done 줄, 완료 뒤 시간의 네 판정만 바꾼다([실행 기록](run-record.md) §4.9).
+A Core that supports `run-rules/6` adds `run-rules/6` to `supported_rules`. It adds no format or feature identifier and retains the formats and features of `/5` and the five features of §6. `default_rules` stays `run-rules/3`; a direct start selects the rule with `ha start --rules run-rules/6`. This rule changes only four judgments from `/5`: the start of the review range, review notes after completion, unjudged done lines, and time after completion ([Run record](run-record.md) §4.9).
 
-Seal 0.1.26의 `core-requirements.json`은 `rules`를 `["run-rules/6"]`으로 바꾸고 Seal 0.1.21의 형식·기능 요구를 유지한다. 새 목표는 `ha start <goal> --rules run-rules/6 … --check-skill`로 시작한다. 확인 도구의 `--operation start`도 이 선언을 요구하므로, `/6`이나 다른 필수 지원이 없으면 기록 없이 거부하고 이전 규칙으로 물러나지 않는다. 위 v0.1.8의 ha 0.1.8은 `/6`을 지원하지 않는다.
+Seal 0.1.26 changes `rules` in `core-requirements.json` to `["run-rules/6"]` and keeps Seal 0.1.21's format and feature requirements. It starts new goals with `ha start <goal> --rules run-rules/6 … --check-skill`. The check tool's `--operation start` also requires this declaration, so missing `/6` or any other required support causes refusal without a record and without falling back to earlier rules. The ha 0.1.8 in the v0.1.8 example above does not support `/6`.
 
-기존 목표의 재개·검사·횟수 상한 변경은 저장된 규칙을 따른다. 저장 규칙이 `/6`이면 그 규칙과 `/5`에서 요구한 형식·기능 지원이 필요하고, `/1`~`/5` 목표의 요구와 판정은 바뀌지 않는다. `/6`을 지원하지 않는 Core는 그 목표를 계산하거나 기록하지 않고 66으로 끝난다. 설치나 업데이트는 기존 목표를 새 규칙으로 이전하지 않는다.
+Resuming, checking or changing the run limit of an existing goal follows its stored rules. When the stored rules are `/6`, support for those rules and for the formats and features required under `/5` is needed; the requirements and judgments of `/1` through `/5` goals do not change. A Core without `/6` support neither computes nor records that goal and exits 66. Installation or an update does not migrate existing goals to new rules.
 
 ## 11. run-rules/7
 
-`run-rules/7`을 지원하는 Core는 `supported_rules`에 `run-rules/1`~`run-rules/6`과 함께 `run-rules/7`을 싣는다. 새 형식이나 기능 식별자는 더하지 않고 `/6`의 형식·기능 지원을 유지한다. `default_rules`는 `run-rules/3` 그대로이며, 직접 시작할 때는 `ha start --rules run-rules/7`로 고른다. `/7`은 PLAN에 표시한 change 조건만 baseline을 요구하며, 기본 baseline 선택·최소량·상태와 보고·검사 동결 표시를 바꾼다([실행 기록](run-record.md) §4.10).
+A Core that supports `run-rules/7` lists it in `supported_rules` alongside `run-rules/1` through `run-rules/6`. It adds no format or feature identifier and retains the formats and features of `/6`. `default_rules` stays `run-rules/3`; a direct start selects the rule with `ha start --rules run-rules/7`. `/7` requires baselines only for change conditions marked in PLAN and changes default baseline selection, the minimum, status and report output, and check freeze display ([Run record](run-record.md) §4.10).
 
-현재 Seal은 `core-requirements.json`의 `rules`로 `["run-rules/7"]`을 요구하고 `ha start <goal> --rules run-rules/7 … --check-skill`로 시작한다. `/7`이나 다른 필수 지원이 없으면 기록 없이 거부하고 이전 규칙으로 물러나지 않는다. 위 v0.1.8 예시의 ha 0.1.8은 `/7`을 지원하지 않는다. 이미 시작한 목표는 저장된 규칙을 유지하며, 지원 목록을 늘려도 이전 기록을 변환하지 않는다.
+Current Seal requires `["run-rules/7"]` in the `rules` of `core-requirements.json` and starts with `ha start <goal> --rules run-rules/7 … --check-skill`. Missing `/7` or any other required support causes refusal without a record and without falling back to earlier rules. The ha 0.1.8 in the v0.1.8 example above does not support `/7`. Already-started goals keep their stored rules, and adding supported rules does not convert earlier records.
 
-`/7`로 시작한 목표의 재개·검사·횟수 상한 변경도 저장된 규칙과 `/6`의 형식·기능 요구를 따른다. `/7`을 지원하지 않는 Core는 그 목표를 계산하거나 기록하지 않고 66으로 끝난다.
+Resuming, checking or changing the run limit of a `/7` goal also follows its stored rules and the format and feature requirements of `/6`. A Core without `/7` support neither computes nor records that goal and exits 66.
