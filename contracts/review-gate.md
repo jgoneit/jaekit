@@ -1,44 +1,44 @@
-# 계약: review-gate/v1
+# Contract: review-gate/v1
 
-`spar gate`는 라운드 목록과 기대 head로 검토가 끝났는지 판단하고 `review-gate/v1` 파일을 쓴다. 이 파일은 검토 기록이며 완료 근거가 아니다. 완료 규칙은 그 규칙을 가진 쪽(예: Seal의 `ha done`)이 정한다. 아래 예시는 합성이다.
+`spar gate` judges from a list of rounds and an expected head whether the review is finished, and writes a `review-gate/v1` file. This file is a review record, not evidence of completion. Completion rules are set by the side that owns them (for example Seal's `ha done`). The example below is synthetic.
 
-## 1. 명령
+## 1. Command
 
 ```bash
 spar gate docs/reviews/example/02-candidate docs/reviews/example/03-candidate \
   --expect-head 3333333 --out docs/reviews/example/gate.json
 ```
 
-- 라운드는 주어진 순서로 읽는다(G29). 주어진 라운드의 series에 있는 dry run이 아닌 라운드는 모두 목록에 있어야 한다. 지적을 기록하기 전에 멈춘 라운드(`finished_at`과 `findings.json`이 모두 없음)는 dry run처럼 빠진다.
-- `--out`은 [입력 형식](spar-input.md)의 기록 경로 규칙(G28)을 따른다. 그 밖에 주어진 라운드 폴더 안이나 series의 `extensions.jsonl`이면 거부하고, 이미 있는 파일은 `review-gate/v1` 파일일 때만 덮는다. 거부하면 아무것도 쓰지 않는다.
-- 인자가 맞으면 상태와 관계없이 파일을 쓴다. 읽을 수 없는 라운드, 해석할 수 없는 기대 head도 `blocked` 사유로 기록한다.
-- 종료 코드: `complete` 0, `degraded` 3, `blocked` 4, 사용법 오류 64, 기록 경로 거부 65, 내부 오류 70.
+- Rounds are read in the given order (G29). Every round in the series of the given rounds that is not a dry run must be in the list. A round that stopped before recording findings (with neither `finished_at` nor `findings.json`) is left out like a dry run.
+- `--out` follows the record path rule (G28) of [Input formats](spar-input.md). Beyond that, it is refused when it is inside a given round folder or is the series' `extensions.jsonl`, and an existing file is overwritten only when it is a `review-gate/v1` file. When it is refused, nothing is written.
+- When the arguments are valid, the file is written whatever the state. An unreadable round and an expected head that cannot be resolved are also recorded as `blocked` reasons.
+- Exit codes: `complete` 0, `degraded` 3, `blocked` 4, usage error 64, record path refusal 65, internal error 70.
 
-## 2. 상태
+## 2. States
 
-`blocked`가 `degraded`보다, `degraded`가 `complete`보다 앞선다.
+`blocked` takes precedence over `degraded`, and `degraded` over `complete`.
 
-`blocked` 사유:
+`blocked` reasons:
 
-- 상한 초과: 라운드의 series마다, 디스크에 있는 라운드와 주어진 라운드 가운데 `counted`인 것을 단계 묶음별로 세어 그 series에서 `sequence`가 가장 큰 라운드 설정의 상한과 `extensions.jsonl` 연장의 합을 넘음. 주어진 라운드가 그보다 앞선 라운드여도 같다
-- 처리되지 않은 지적: 원장에 처리가 없는 `defect`·`requirement-question`. `duplicate`는 가리킨 지적을 따라가 닫는 처리에 닿을 때만 닫히고, 열린 지적에 닿거나 서로를 가리키면 열려 있다
-- `fix`로 처리한 지적의 수정 커밋이 기대 head에 포함되지 않음. 분류와 관계없이(`hardening`·`note` 포함) 모든 `fix`를 확인한다
-- 코드 라운드 사슬 끊김: 목록의 기록된 fixes 라운드 base가 바로 앞 code 라운드의 head가 아니거나, 앞에 code 라운드가 없음. 바로 앞 code 라운드와 단계·base·head가 같은 fixes 라운드는 패킷 digest와 관계없이 이 확인에서 빠진다: 같은 패킷의 재실행이든, 처리가 바뀐 뒤처럼 패킷이 다른 새 라운드든 그 라운드를 되풀이하는 것이다. 그 밖의 fixes 라운드는 base가 바로 앞 code 라운드의 head와 다를 때만 사슬이 끊긴다
-- 기대 head 미검토: 마지막 code 라운드(없으면 마지막 라운드)의 head가 기대 head가 아님
-- dry run 라운드, 읽을 수 없는 라운드, `findings.json`이나 `ledger.jsonl`이 없는 라운드, `waivers.jsonl`을 읽을 수 없는 라운드, 저장소에 없는 커밋
-- 목록에 없는 같은 series의 라운드(G29): `<series>: round <이름> of the series is not in the gate list`. 앞선 라운드를 빼고 gate를 만들어 열린 지적을 지나치지 않게 한다
+- Cap exceeded: for each series of the rounds, the rounds on disk and the given rounds that are `counted` are counted per stage group, and the count exceeds the sum of the cap in the configuration of the round with the largest `sequence` in that series and the extensions in `extensions.jsonl`. The same holds when the given rounds are earlier than that round
+- Findings without a disposition: a `defect` or `requirement-question` with no disposition in the ledger. A `duplicate` is closed only when following the findings it points to reaches a closing disposition; when it reaches an open finding or the findings point to each other, it is open
+- The fix commit of a finding disposed as `fix` is not contained in the expected head. Every `fix` is checked, whatever the class (including `hardening` and `note`)
+- Broken code round chain: the base of a recorded fixes round in the list is not the head of the code round right before it, or there is no code round before it. A fixes round whose stage, base and head match the code round right before it is left out of this check whatever its packet digest: whether it reruns the same packet or is a new round whose packet differs, such as after a disposition changed, it repeats that round. For any other fixes round, the chain breaks only when its base is not the head of the code round right before it
+- Expected head not reviewed: the head of the last code round (the last round if there is none) is not the expected head
+- Dry run rounds, unreadable rounds, rounds without `findings.json` or `ledger.jsonl`, rounds whose `waivers.jsonl` cannot be read, commits that are not in the repository
+- A round of the same series that is not in the list (G29): `<series>: round <name> of the series is not in the gate list`. This keeps a gate from being made without earlier rounds and passing over open findings
 
-`degraded` 사유:
+`degraded` reasons:
 
-- 필수 리뷰어가 완료하지 않음. 필수 리뷰어는 라운드가 필수로 실행한 리뷰어와 그 설정이 필수로 정한 리뷰어(`config.configured_required`)다. `--reviewers`로 뺀 설정의 필수 리뷰어도 포함된다. 같은 단계·base·head·패킷의 다른 라운드(재실행)에서 같은 이름·preset의 필수 리뷰어로 완료했으면 완료로 본다. 이름이 같아도 preset이 다르면 그 필수 리뷰어는 실행되지 않은 것이다. 그 라운드의 `waivers.jsonl`에 사용자의 결정(`spar waive`, [검토 라운드](review-round.md) 10절)이 있는 리뷰어는 이 사유가 되지 않고 그 라운드의 `waived_reviewers`에 보인다.
-- 필수 리뷰어가 없는 라운드(예: `command` 리뷰어만 있는 라운드)
-- 결정이 적용된 리뷰어가 있는데 완료한 필수 리뷰어가 하나도 없는 라운드: `<라운드>: no required reviewer completed this round`. 결정은 독립 검토가 없는 라운드를 `complete`로 만들지 않는다. 완료한 필수 리뷰어는 `completed_required`로 세는 리뷰어이며, 같은 단계·base·head·패킷의 재실행에서 완료한 리뷰어를 포함한다.
+- A required reviewer did not complete. Required reviewers are the reviewers the round ran as required and the reviewers its configuration sets as required (`config.configured_required`). Required reviewers of the configuration that were left out with `--reviewers` are included. A reviewer that completed as a required reviewer with the same name and preset in another round with the same stage, base, head and packet (a rerun) counts as completed. With the same name but a different preset, that required reviewer was not run. A reviewer that has a user decision (`spar waive`, [Review round](review-round.md) section 10) in that round's `waivers.jsonl` is not this reason and appears in that round's `waived_reviewers`.
+- A round without required reviewers (for example, a round with only `command` reviewers)
+- A round with reviewers to which a decision applies but in which no required reviewer completed: `<round>: no required reviewer completed this round`. A decision does not make a round without independent review `complete`. Completed required reviewers are the reviewers counted in `completed_required`, including reviewers that completed in a rerun with the same stage, base, head and packet.
 
-결정은 사용자의 말을 인용해서만 기록되고, 그 라운드 폴더의 `waivers.jsonl`에서만 읽어 그 라운드에만 적용한다. 다른 라운드의 결정은 같은 패킷의 재실행이라도 적용하지 않는다. 결정은 이름과 preset이 같은 필수 리뷰어에 적용되고, 결정이 있어도 그 리뷰어가 완료했으면(같은 패킷의 재실행 포함) 완료로 세며 `waived_reviewers`에 넣지 않는다. `waivers.jsonl`이 없는 라운드(이 기능 전에 기록한 라운드 포함)와, 이 기능 전에 이름이 `waivers.jsonl`(대소문자 무시)인 리뷰어를 실행해 그 폴더가 그 자리에 있는 라운드는 결정이 없는 라운드이고, 그 gate의 상태·사유·필드는 결정 기능이 없을 때와 같다.
+Decisions are recorded only by quoting the user's words, are read only from that round folder's `waivers.jsonl`, and apply only to that round. A decision of another round does not apply, even for a rerun of the same packet. A decision applies to the required reviewer with the same name and preset; if that reviewer completed despite the decision (including in a rerun of the same packet), it counts as completed and is not put in `waived_reviewers`. A round without `waivers.jsonl` (including rounds recorded before this feature), and a round that ran a reviewer named `waivers.jsonl` (case-insensitive) before this feature so that its folder is in that place, are rounds without decisions, and that gate's state, reasons and fields are the same as without the decision feature.
 
-`complete`는 사유가 하나도 없을 때뿐이다.
+`complete` only when there is no reason at all.
 
-## 3. 파일
+## 3. File
 
 ```json
 {
@@ -66,27 +66,27 @@ spar gate docs/reviews/example/02-candidate docs/reviews/example/03-candidate \
 }
 ```
 
-| 필드 | 뜻 |
+| Field | Meaning |
 | --- | --- |
-| `state`, `reasons` | 상태와 사유. `blocked` 사유가 먼저 온다 |
-| `expect_head` | 기대 head의 커밋 ID |
-| `last_reviewed_head` | 마지막으로 검토된 head |
-| `previous_gate_digest` | 같은 `--out` 경로에 있던 이전 gate 파일 바이트의 sha256, 없으면 `null` |
-| `rounds[]` | 라운드의 `criteria_digest`, 패킷 digest(`packet_digest`), 설정 digest(`config_digest`), 요청한 리뷰어 이름과 필수로 인정된 리뷰어 수(`required_reviewers`), 그중 완료한 수(`completed_required`, 같은 단계·base·head·패킷의 재실행에서 완료한 것 포함) |
-| `rounds[].criteria` | 라운드가 받은 기준 문서마다 `round.json`의 순서대로 `name`(저장소 안이면 저장소 상대 경로, 밖이면 파일 이름; 심볼릭 링크를 푼 이름)과 내용의 `sha256`. 원본 경로는 넣지 않는다. `ha`의 `run-rules/5`·`run-rules/6`·`run-rules/7`이 목표 문서와의 대응을 이것으로 판단한다([run-record.md](run-record.md) §4.8) |
-| `rounds[].waived_reviewers` | 결정이 적용된 필수 리뷰어마다 `name`, `preset`, `status`(`round.json`의 상태, 라운드가 그 이름과 preset의 리뷰어를 실행하지 않았으면 `not_run`), `reason`(`round.json`의 원인, 없으면 빠짐), `user_quote`, `recorded_at`(결정의 기록 시각). `completed_required`에 세지 않는다. 적용된 결정이 없는 라운드에는 이 필드가 없다 |
-| `open` | 열린 `defect`와 `requirement-question` 수 |
-| `open_findings` | 열린 지적의 라운드와 ID |
-| `auto_deferred` | 마지막 처리가 자동 보류인 `hardening` 수. 위치를 읽을 수 없는 `hardening`은 원장 항목이 없어 세지 않는다 |
-| `deferred_findings` | 목록의 모든 라운드에서 마지막 처리가 사람이 정한 `defer`(자동 보류가 아닌 것)인 지적마다 `series`(series 폴더 이름), `round`(라운드 폴더 이름), `id`, `class`(`findings.json`의 분류), `to`(원장의 `to` 값 그대로). 자동 보류는 `auto_deferred` 수로만 남는다 |
-| `unhandled_findings` | 목록의 모든 라운드에서 원장에 처리가 없는 지적마다, 분류와 관계없이 `series`, `round`, `id`, `class`. 처리 없는 `note`와 위치를 읽을 수 없는 `hardening`도 들어간다 |
-| `uncovered_standpoints` | 단계·base·head·패킷(`packet_digest`)이 같은 주어진 라운드 어디에서도 리뷰어가 완료하지 않은 관점마다 `reviewer`와 `text`(라운드의 `standpoints`와 같음), 그리고 그 패킷의 주어진 라운드마다 `series`·`round` 폴더 이름을 주어진 순서로 담은 `rounds`. 주어진 라운드에 관점이 있으면 있고(비어 있을 수 있음), 없으면 없다 |
-| `growth.added_lines` | 목록의 fixes 라운드마다 `git diff --numstat -M <base> <head>`의 더한 줄(이름을 바꾼 파일은 새 경로에서 더한 줄만)을 그 라운드 설정의 검사 경로(`check`)와 그 밖(`other`)으로 나눈 합. 같은 base·head는 한 번만 센다 |
-| `growth.over_hardening` | `check`가 `other`보다 크면 `true` |
-| `growth.rounds[]` | fixes 라운드별 `check`·`other`. 기록된 fixes 라운드가 없으면 `growth.rounds`는 비어 있다: growth를 재지 않았다. 그때 `added_lines`의 0과 `over_hardening`의 `false`는 더한 줄이 없었다는 뜻이 아니다 |
+| `state`, `reasons` | The state and the reasons. `blocked` reasons come first |
+| `expect_head` | The commit ID of the expected head |
+| `last_reviewed_head` | The head reviewed last |
+| `previous_gate_digest` | The sha256 of the bytes of the previous gate file at the same `--out` path, or `null` when there was none |
+| `rounds[]` | The round's `criteria_digest`, packet digest (`packet_digest`), configuration digest (`config_digest`), the requested reviewer names and the number of reviewers accepted as required (`required_reviewers`), and how many of them completed (`completed_required`, including those that completed in a rerun with the same stage, base, head and packet) |
+| `rounds[].criteria` | For each criteria document the round received, in the order of `round.json`: `name` (the repository-relative path when inside the repository, the file name when outside; the name with symbolic links resolved) and the `sha256` of its content. The original path is not included. `ha`'s `run-rules/5`, `run-rules/6` and `run-rules/7` use this to judge the correspondence to the goal documents ([run-record.md](run-record.md) §4.8) |
+| `rounds[].waived_reviewers` | For each required reviewer to which a decision applied: `name`, `preset`, `status` (the status in `round.json`, or `not_run` when the round did not run a reviewer with that name and preset), `reason` (the cause in `round.json`, omitted when there is none), `user_quote`, `recorded_at` (when the decision was recorded). Not counted in `completed_required`. Absent in a round with no applied decision |
+| `open` | The number of open `defect` and `requirement-question` findings |
+| `open_findings` | The round and ID of each open finding |
+| `auto_deferred` | The number of `hardening` findings whose last disposition is an automatic deferral. A `hardening` whose location cannot be read has no ledger entry and is not counted |
+| `deferred_findings` | For each finding, in every round of the list, whose last disposition is a `defer` a person made (not an automatic deferral): `series` (the series folder name), `round` (the round folder name), `id`, `class` (the class in `findings.json`) and `to` (the ledger's `to` value as it is). Automatic deferrals stay only in the `auto_deferred` count |
+| `unhandled_findings` | For each finding, in every round of the list, that has no disposition in the ledger, whatever its class: `series`, `round`, `id`, `class`. A `note` without a disposition and a `hardening` whose location cannot be read are included |
+| `uncovered_standpoints` | For each standpoint whose reviewer completed none of the given rounds with the same stage, base, head and packet (`packet_digest`): `reviewer` and `text` (as in the round's `standpoints`) and `rounds`, the `series` and `round` folder names of each given round of that packet, in the given order. Present, possibly empty, when a given round has standpoints; absent otherwise |
+| `growth.added_lines` | For each fixes round in the list, the added lines of `git diff --numstat -M <base> <head>` (for renamed files, only the lines added at the new path), split into that round's configured check paths (`check`) and everything else (`other`), and summed. The same base and head are counted once |
+| `growth.over_hardening` | `true` when `check` is larger than `other` |
+| `growth.rounds[]` | `check` and `other` for each fixes round. With no recorded fixes round, `growth.rounds` is empty: growth was not measured. The zeros of `added_lines` and the `false` of `over_hardening` then do not mean that nothing was added |
 
-두 목록은 주어진 라운드 순서, 라운드마다 `findings.json`의 순서다. 라운드와 series는 경로가 아니라 폴더 이름이라 주어진 라운드 경로가 절대 경로여도 들어가지 않는다. 다른 처리(`fix`, `reject`, `duplicate`, `answer`)로 끝난 지적은 어느 목록에도 없다. 두 목록은 상태, 사유, 종료 코드, 다른 필드를 바꾸지 않는다. 지적 원문은 들어가지 않는다. 이 두 필드가 없는 파일은 이 필드 전의 Spar가 쓴 것이다. `ha`가 이 목록을 기록하는 방식은 [run-record.md](run-record.md) §4.8에 있다.
+Both lists follow the order of the rounds given and, within a round, the order of `findings.json`. The round and series are folder names, not paths, so a round path given as an absolute path does not appear. A finding closed with another disposition (`fix`, `reject`, `duplicate`, `answer`) is in neither list. The lists do not change the state, the reasons, the exit code or any other field. No finding text is included. A file without these two fields was written by a Spar before them. How `ha` records the lists is in [run-record.md](run-record.md) §4.8.
 
-`uncovered_standpoints`는 라운드의 `standpoints_uncovered`([검토 라운드](review-round.md) 5절)를 한 패킷의 재실행에 걸쳐 합친다. `completed_required`가 필수 리뷰어를 합치는 것과 같으며, 예를 들어 `[{"reviewer": "agy", "text": "…", "rounds": [{"series": "example", "round": "02-candidate"}]}]`이다. 관점은 그것이 가리키는 리뷰어가 이름으로(preset이나 필수 여부와 관계없이) 그 패킷의 주어진 라운드 어디에서도 `completed`가 아닐 때만 들어가며, 재실행에서 완료한 리뷰어는 그 패킷의 모든 라운드에서 자기 관점을 채운다. 관점 글과 배정은 패킷에 들어 있으므로 한 패킷의 라운드는 같은 관점을 가지고, 리뷰어와 글이 같아도 다른 패킷의 라운드는 그 관점을 채우지 않는다. waive된 리뷰어는 완료하지 않았으므로 `round.json`·`summary.md`에서처럼 그 관점은 목록에 남고, 결정은 `waived_reviewers`에 보인다. 항목은 주어진 라운드 순서, 라운드 안에서는 그 `standpoints` 순서를 따르며 한 패킷의 관점은 한 번만 나온다. gate가 읽지 못한 라운드는 보지 않는다. 이 목록은 상태, 사유, 종료 코드, 다른 필드를 바꾸지 않고, `ha`는 이것을 읽지 않는다. 주어진 라운드에 관점이 없는 gate에는 이 필드가 없어 파일이 이 필드 전과 같다. 관점이 있는 라운드의 gate에 이 필드가 없으면 이 필드 전의 Spar가 쓴 것이다.
+`uncovered_standpoints` joins the rounds' `standpoints_uncovered` ([Review round](review-round.md) section 5) over the reruns of one packet, as `completed_required` does for required reviewers, for example `[{"reviewer": "agy", "text": "…", "rounds": [{"series": "example", "round": "02-candidate"}]}]`. A standpoint is listed only when the reviewer it names, by name whatever its preset or whether it is required, is `completed` in none of the given rounds of that packet; a reviewer that completed in a rerun covers its standpoint in every round of the packet. Standpoint text and assignments are in the packet, so the rounds of one packet carry the same standpoints, and a round of another packet does not cover them, even with the same reviewer and text. A waived reviewer did not complete, so its standpoint stays listed, as in `round.json` and `summary.md`; the decision itself is in `waived_reviewers`. Entries follow the order of the rounds given and, within a round, the order of its `standpoints`; a standpoint of one packet appears once. Rounds the gate cannot read are not considered. The list does not change the state, the reasons, the exit code or any other field, and `ha` does not read it. A gate whose given rounds have no standpoints has no such field, so its file is as it was before the field; a gate without the field over rounds with standpoints was written by a Spar before it.
 
-`growth`는 검토가 수정을 검사 코드 쪽으로 부풀렸는지 읽게 하는 기록이다. 새 라운드는 fixes 라운드가 아니므로 growth는 fixes 라운드를 기록한 series에서만 잰다. `over_hardening`은 판단을 대신하지 않고 상태를 바꾸지 않는다.
+`growth` is a record that lets a reader see whether review has inflated fixes toward check code. New rounds are never fixes rounds, so growth is measured only in a series that recorded fixes rounds. `over_hardening` does not replace judgment and does not change the state.
