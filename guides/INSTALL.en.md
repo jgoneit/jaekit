@@ -219,7 +219,7 @@ What each release includes:
 
 </details>
 
-The tag-pinned installation commands below install v0.1.8. Seal checks the actual Core executable's capabilities and stops before recording if support is missing or cannot be established. Matching version numbers or switching to older rules does not establish compatibility. See the [Core capabilities contract](../contracts/core-capabilities.en.md) for the required support.
+The tag-pinned installation commands below install v0.1.8. Seal checks the actual Core executable's capabilities and stops before recording if support is missing or cannot be established. Matching version numbers or switching to older rules does not establish compatibility. See the [Core capabilities contract](../contracts/core-capabilities.md) for the required support.
 
 Spec writes documents without installing Core or querying capabilities. New Spec 0.1.13 documents use `nested/1`, so implementation needs a Core that supports that format. Updates do not change existing goal formats, `/1`, `/2` or `/3` records, usage or time limits. See the [v0.1.8 release notes](https://github.com/jgoneit/jaekit/releases/tag/v0.1.8) for the scope of actual host checks.
 
@@ -258,7 +258,7 @@ Then run the following from the project root in the same terminal. It stops if a
 )
 ```
 
-Follow the [synthetic example's PLAN and observation steps](../examples/check-result/README.md) to preserve the initial file as the baseline before starting the goal. The command is `python3 tools/check-result-reference.py checks/declaration.json checks/reference.json`; `ha check` supplies the invocation-specific report path. It distinguishes the initial file's actual requirement violation from a pass after the change; environment errors are not expected failures. Commit the declaration, configuration and producer before checking and include all three in PLAN's check paths. Choose targets and paths that fit your project. See the [result contract](../contracts/check-result.en.md) for the format.
+Follow the [synthetic example's PLAN and observation steps](../examples/check-result/README.md) to preserve the initial file as the baseline before starting the goal. The command is `python3 tools/check-result-reference.py checks/declaration.json checks/reference.json`; `ha check` supplies the invocation-specific report path. It distinguishes the initial file's actual requirement violation from a pass after the change; environment errors are not expected failures. Commit the declaration, configuration and producer before checking and include all three in PLAN's check paths. Choose targets and paths that fit your project. See the [result contract](../contracts/check-result.md) for the format.
 
 ## Update
 
