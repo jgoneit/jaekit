@@ -1,130 +1,130 @@
-# 계약: 실행 기록 (`run/v1`)과 완료 판정
+# Contract: Run record (`run/v1`) and completion judgment
 
-이 문서는 다음에 대한 canonical 정의다.
-- 실행 기록 `runs.jsonl`의 줄 형식
-- 그 기록으로 조건 충족과 상태를 계산하는 규칙
-- 완료 기록
+This document is the canonical definition of the following.
+- The line format of the run record `runs.jsonl`
+- The rules that compute condition satisfaction and status from that record
+- The completion record
 
-실행 묶음은 [bundle.md](bundle.md)에 있다. 완료 뒤 발견은 [명시적 기록 확장](findings.md)으로 연결한다. 이 확장을 사용하는 자료에는 `run-finding/v1` 줄이 함께 있으며, 기존 `run/v1` 줄과 저장된 실행 규칙은 바꾸지 않는다.
+The execution bundle is in [bundle.md](bundle.md). Post-completion findings are linked through an [explicit record extension](findings.md). Data that uses this extension also contains `run-finding/v1` lines; it does not change existing `run/v1` lines or the stored run rules.
 
-실행 기록은 `ha`만 덧붙인다. 에이전트는 기록을 직접 쓰지 않고 `ha` 명령을 호출한다. 같은 사용자 권한의 에이전트가 파일을 고칠 수는 있으므로, 이 기록의 보증 수준은 `local`을 넘지 않는다.
+Only `ha` appends to the run record. The agent does not write the record directly; it calls `ha` commands. An agent with the same user permissions can still edit the file, so the assurance level of this record does not exceed `local`.
 
-## 1. `ha` 명령
+## 1. `ha` commands
 
-| 명령 | 하는 일 | 기록 |
+| Command | What it does | Record |
 | --- | --- | --- |
-| `ha lint <goal>` | 목표 문서 형식(조건 ID, `Assurance:` 줄), 실행 묶음 구조, 모든 조건 ID의 조건표 대응, 조건↔task 양방향 대응, 순환, 참조 파일 존재, 검증 방법 누락을 확인한다. 오류 코드는 [bundle.md](bundle.md) §8에 있다. | 없음 |
-| `ha estimate <goal> [AC-n \| EX-n \| T001 ...] [--baseline] [--rules <rules>] [--format md\|json]` | 현재 PLAN의 필수 최소 실행량, 상한·부족량, 기본 선택과 지정한 대상의 실행량을 읽기 전용으로 계산한다(§1.1). PLAN의 횟수 상한이 자동이면 산정 값·사전 승인 상한·승인 필요 여부도 보인다(§1.5). | 없음 |
-| `ha start <goal> --request <인용> [--skill <SKILL.md> [--check-skill]] [--rules run-rules/4 \| run-rules/5 \| run-rules/6 \| run-rules/7] [--test-authority <해석>] [--host-name …] [--host-version …] [--model …]` | 시작을 기록한다. `--rules`가 없으면 기본 규칙 `run-rules/3`이다(§4.6). `--test-authority`는 `run-rules/4`~`run-rules/7`에서 받는다(§4.7). `run-rules/5`는 §4.8이다. 이미 있으면 거절한다. 새 시작이 필요하면 사용자가 묶음을 새로 만든다. lint 오류나 필수 최소 실행량보다 작은 PLAN 상한이 있어도 기록 생성 전에 거절한다. dirty 시작은 기존처럼 경고하며 허용한다. `--skill`을 주면 `ha`가 그 머리말에서 이름과 버전을 읽고 Skill 디렉토리의 digest를 계산한다(§2.1). PLAN의 횟수 상한이 자동이면 상한을 산정하고, 사전 승인 상한을 넘거나 그 설정을 쓸 수 없으면 기록 생성 전에 거절한다(§1.5). skill의 Core 요구 선언이 이 실행 파일이 지원하지 않는 것을 요구하거나 손상됐으면 기록 생성 전에 거절한다(§1.6). | `start` |
-| `ha check <goal> [AC-n \| T00n ...]` | 지정한 조건이나 task의 검증 명령을 실행한다. 대상이 없으면 모든 required 조건을 실행한다(통합 검증). | `check` |
-| `ha check <goal> --baseline [AC-n ...]` | `change` 조건의 검사 경로만 base commit 임시 worktree에 덧씌워 실행한다. | `baseline` |
-| `ha budget <goal> --runs N --from P --window W --revision R [--quote <인용> --context <문맥>] [--reason <이유>] [--interpretation <해석>]` | `/3`~`/7` 현재 창의 총 실행 횟수 상한을 바꾼다. 양의 정수 인수가 모두 필요하며, 증액은 인용·문맥, 감액은 이유가 필요하다(§5.2). `/4`~`/7`은 사전 승인 상한 안의 증액을 이유만으로 받는다(§4.7). | `budget_change` |
-| `ha budget <goal> --preapprove N --window W --revision R --quote <인용> --context <문맥>` | `/4`~`/7`만: 그 창의 사전 승인 상한을 기록한다. 상한 자체는 그대로다(§4.7). | `budget_change` |
-| `ha note <goal> <block \| unblock \| confirm \| reopen \| input> [대상] --quote <인용> [--cause <원인>]` | 막힘, 해소, 사용자 확인, 사용자의 재작업 요청, 그 밖의 사용자 입력을 남긴다. 사용자 발화는 인용한다. `block`은 `--cause`가 필요하고, `confirm`은 대상(§2.4)과 인용이 필요하다. | `note` |
-| `ha note <goal> <test-change \| wait \| resume \| recover \| allow-recovery> …` | `/4`~`/7`만: 시험 변경의 근거, 사용자 대기의 시작과 끝, 오류 한도 회복과 그 사용자 허용을 남긴다(§4.7). `/1`·`/2`·`/3` 목표는 65로 거부한다. | `note` |
-| `ha note <goal> review --gate <file>` | `/5`~`/7`만: Spar가 쓴 `review-gate/v1` 파일의 digest와 판정에 쓰는 요약을 남긴다(§4.8). `/1`~`/4` 목표는 65로 거부한다. 쓸 수 없는 파일은 이유와 함께 65로 거부하고 기록하지 않는다. | `note` |
-| `ha note <goal> check-change checks:<path> --reason <이유>` | `/7` 전용: commit한 검사 변경의 까닭을 경로의 HEAD blob에 묶어 기록한다(§4.10). 앞 규칙은 64로 거절한다. | `note` |
-| `ha status <goal> [--format md\|json]` | 기록·묶음·git에서 상태를 계산해 출력한다(§4). | 없음 |
-| `ha done <goal>` | 완료를 주장한다. `ha status`와 같은 계산을 하고 그 결과를 기록한다. 결과가 `complete`면 이 줄이 **완료 기록**이다(§5). exit code는 `ha status`와 같다. | `done` |
-| `ha log <goal> <seq> [--tail N]` | 그 실행의 로컬 출력 원문을 보여 준다. 로컬에서 읽기 위한 것이다. | 없음 |
-| `ha timing <goal> [--format md\|json]` | 기록을 읽기만 해서 실행마다 시간 제한·제한 구간 경과·CPU를 보여 준다(§1.2). 검사를 실행하지 않고, 판정·예산에 쓰지 않는다. | 없음 |
-| `ha report <goal> [--lang ko\|en]` | 사람이 읽는 다섯 줄 요약과 `PROGRESS.md` `## 현재`에 쓸 도장, 조건별 근거, 완료 범위, 미충족 조건의 원문 위치를 보인다(§1.3). `ha status`와 같은 계산을 읽기만 한다. | 없음 |
-| `ha doctor <goal>` | PLAN의 선택 절 `## 실행 환경`에 적은 점검 명령을 실행해 도구마다 `사용 가능`·`사용 불가`를 보인다(§1.4, [bundle.md](bundle.md) §2.6). 판정·예산과 무관하다. | 없음 |
-| `ha cost <goal> [--series <folder>]... [--format md\|json] [--lang ko\|en]` | 목표 하나가 검증과 검토에 들인 비용을 기록에서 모아 보인다(§1.7). 사람이 가리킨 Spar series 폴더만 읽고, 아무것도 쓰지 않는다. | 없음 |
+| `ha lint <goal>` | Checks the goal document format (condition IDs, the `Assurance:` line), the execution bundle structure, that every condition ID maps to the condition table, the two-way mapping between conditions and tasks, cycles, that referenced files exist, and missing verification methods. Error codes are in [bundle.md](bundle.md) §8. | None |
+| `ha estimate <goal> [AC-n \| EX-n \| T001 ...] [--baseline] [--rules <rules>] [--format md\|json]` | Computes, read-only, the current PLAN's required minimum run count, the limit and the shortfall, and the run counts of the default selection and of the given targets (§1.1). When PLAN's run limit is automatic, it also shows the computed value, the pre-approved limit and whether approval is needed (§1.5). | None |
+| `ha start <goal> --request <인용> [--skill <SKILL.md> [--check-skill]] [--rules run-rules/4 \| run-rules/5 \| run-rules/6 \| run-rules/7] [--test-authority <해석>] [--host-name …] [--host-version …] [--model …]` | Records the start. Without `--rules`, the default rules are `run-rules/3` (§4.6). `--test-authority` is accepted with `run-rules/4` through `run-rules/7` (§4.7). `run-rules/5` is in §4.8. If one already exists, it refuses. When a new start is needed, the user creates a new bundle. It also refuses before creating the record when there is a lint error or a PLAN limit smaller than the required minimum run count. A dirty start is allowed with a warning, as before. With `--skill`, `ha` reads the name and version from that file's front matter and computes the digest of the Skill directory (§2.1). When PLAN's run limit is automatic, it computes the limit, and refuses before creating the record if the limit exceeds the pre-approved limit or that setting cannot be used (§1.5). If the skill's Core requirements declaration requires something this executable does not support, or is corrupt, it refuses before creating the record (§1.6). | `start` |
+| `ha check <goal> [AC-n \| T00n ...]` | Runs the verification commands of the given conditions or tasks. With no target, it runs all required conditions (integrated verification). | `check` |
+| `ha check <goal> --baseline [AC-n ...]` | Overlays only the check paths of `change` conditions onto a temporary worktree of the base commit and runs them. | `baseline` |
+| `ha budget <goal> --runs N --from P --window W --revision R [--quote <인용> --context <문맥>] [--reason <이유>] [--interpretation <해석>]` | Changes the total run limit of the current window for `/3` through `/7`. All positive integer arguments are required; an increase needs a quote and context, and a decrease needs a reason (§5.2). `/4` through `/7` accept an increase within the pre-approved limit with a reason alone (§4.7). | `budget_change` |
+| `ha budget <goal> --preapprove N --window W --revision R --quote <인용> --context <문맥>` | `/4` through `/7` only: records the pre-approved limit of that window. The limit itself stays the same (§4.7). | `budget_change` |
+| `ha note <goal> <block \| unblock \| confirm \| reopen \| input> [대상] --quote <인용> [--cause <원인>]` | Records a block, its resolution, a user confirmation, the user's rework request, or other user input. The user's words are quoted. `block` needs `--cause`, and `confirm` needs a subject (§2.4) and a quote. | `note` |
+| `ha note <goal> <test-change \| wait \| resume \| recover \| allow-recovery> …` | `/4` through `/7` only: records the grounds for a test change, the start and end of a wait for the user, and recovery from the error limit and the user's permission for it (§4.7). Goals under `/1`, `/2` and `/3` are refused with 65. | `note` |
+| `ha note <goal> review --gate <file>` | `/5` through `/7` only: records the digest of the `review-gate/v1` file that Spar wrote and the summary the judgment uses (§4.8). Goals under `/1` to `/4` are refused with 65. A file that cannot be used is refused with 65 and its reason, and nothing is recorded. | `note` |
+| `ha note <goal> check-change checks:<path> --reason <reason>` | `/7` only: records a reason bound to the check path's HEAD blob after a committed change (§4.10). Earlier rules refuse with 64. | `note` |
+| `ha status <goal> [--format md\|json]` | Computes the status from the record, the bundle and git, and prints it (§4). | None |
+| `ha done <goal>` | Claims completion. It does the same computation as `ha status` and records the result. When the result is `complete`, this line is the **completion record** (§5). The exit code is the same as for `ha status`. | `done` |
+| `ha log <goal> <seq> [--tail N]` | Shows the raw local output of that run. It is for reading locally. | None |
+| `ha timing <goal> [--format md\|json]` | Only reads the record and shows, for each run, the time limit, the elapsed time of the limited interval, and CPU (§1.2). It runs no check and is not used for judgment or budget. | None |
+| `ha report <goal> [--lang ko\|en]` | Shows a five-line summary for people, a stamp to write in `PROGRESS.md` `## 현재`, the evidence per condition, the completion coverage, and where the output of unmet conditions is (§1.3). It only reads the same computation as `ha status`. | None |
+| `ha doctor <goal>` | Runs the check commands written in PLAN's optional section `## 실행 환경` (execution environment) and shows `사용 가능` (available) or `사용 불가` (unavailable) for each tool (§1.4, [bundle.md](bundle.md) §2.6). It has nothing to do with judgment or budget. | None |
+| `ha cost <goal> [--series <folder>]... [--format md\|json] [--lang ko\|en]` | Gathers from the records and shows what one goal cost in verification and review (§1.7). It reads only the Spar series folders a person points to, and writes nothing. | None |
 
-`ha`는 검증 명령을 셸 없이 argv로 실행한다. 명령마다 시간 제한(기본 900초)을 둔다. 시간 제한이 되면 Unix에서는 그 명령의 프로세스 그룹, Windows 네이티브 후보에서는 실행 전에 배정한 kill-on-close Job Object를 종료한다. Windows는 일반 하위 프로세스가 끝났는지 확인한 뒤 출력을 확정하며, 프로세스 제어·종료 확인에 실패하면 통과 근거나 최종 출력 digest를 만들지 않는다. 시작 뒤 정리 실패도 제한된 시간 안에 오류로 반환한다. 임의의 외부 서비스나 별도 권한으로 실행한 프로세스를 격리하는 보장은 아니다. `check`, `baseline`, `note`, `start`, `budget_change`는 기록에 덧붙이기 전에 git 디렉토리의 `ha/lock`을 잡는다. Unix는 `flock`, Windows 네이티브 후보는 같은 파일의 배타적 `LockFileEx` 잠금을 사용하며, 프로세스 종료로 OS 잠금이 해제되어도 손상된 기록은 기존 연결 검증에서 거부한다. 그래서 여러 `ha`가 동시에 덧붙여도 연결이 끊기지 않는다.
+`ha` runs verification commands as argv, without a shell. Each command has a time limit (900 seconds by default). When the time limit is reached, it terminates the command's process group on Unix, and on the native Windows candidate, the kill-on-close Job Object assigned before the run. On Windows it finalizes the output after confirming that ordinary child processes have ended; if process control or the confirmation of termination fails, it produces no pass evidence and no final output digest. A cleanup failure after the start is also returned as an error within a bounded time. This is not a guarantee that arbitrary external services or processes run with separate permissions are isolated. `check`, `baseline`, `note`, `start` and `budget_change` take `ha/lock` in the git directory before appending to the record. Unix uses `flock`, and the native Windows candidate uses an exclusive `LockFileEx` lock on the same file; even when the OS lock is released because a process ended, a corrupted record is refused by the existing chain verification. So several `ha` processes appending at once do not break the chain.
 
-**종료 코드**
-- `ha check`: 모든 결과가 기대대로면(`pass`, baseline은 `fail_as_expected`) 0, 아니면 1
-- `ha lint`: 오류가 없으면 0, 있으면 1
-- `ha estimate`: 필수 최소량을 PLAN 상한이 수용하면 0, 부족하거나 lint 오류가 있으면 1. 자동 예산이면 산정 값이 사전 승인 상한 이하일 때 0, 사용자 승인이 필요하면 1, 사전 승인 상한 설정을 쓸 수 없으면 65(§1.5)
+**Exit codes**
+- `ha check`: 0 when every result is as expected (`pass`; for a baseline, `fail_as_expected`), otherwise 1
+- `ha lint`: 0 with no errors, 1 with any
+- `ha estimate`: 0 when the PLAN limit accommodates the required minimum, 1 when it falls short or there is a lint error. With an automatic budget, 0 when the computed value is at or below the pre-approved limit, 1 when user approval is needed, 65 when the pre-approved limit setting cannot be used (§1.5)
 - `ha status`, `ha done`: §4.3
-- `ha timing`: 성공 0. 끊긴 기록은 65(거절)이며 아무것도 보여 주지 않는다. 보기를 출력에 쓰지 못하면 70이다
-- `ha report`: 보고를 출력하면 상태와 무관하게 0. 사용법 오류(`--lang`이 `ko`·`en`이 아님 포함) 64, 목표 디렉터리 없음 65, 지원하지 않는 규칙 66, Git이 base와 HEAD를 비교할 수 없음(다섯 줄 요약은 출력함, §1.3)·내부 오류·출력 실패 70. 끊긴 기록은 거절하지 않고 `record_integrity`가 있는 계산 결과를 보인다
-- `ha doctor`: 모든 도구가 `사용 가능`이거나 절·항목이 없으면 0, 하나라도 `사용 불가`면 1, 절의 입력 오류와 PLAN.md 없음 65(아무 점검도 실행하지 않음), 사용법 오류 64, 프로세스를 제어·확인하지 못하면 70. 기록을 판정에 쓰지 않으므로 시작 전, 지원하지 않는 규칙, 끊긴 기록의 목표에도 같다
-- `ha cost`: 요약을 출력하면 0. 사용법 오류(`--format`·`--lang` 값, 같은 폴더를 가리킨 `--series` 둘 포함) 64, 목표 디렉터리 없음·끊긴 기록·쓸 수 없는 series 65(요약을 출력하지 않음, §1.7), 지원하지 않는 규칙 66, 내부 오류·출력 실패 70
-- `ha budget`: 성공 0, 잘못된 인수 64, 값·창·개정·완료 상태 등의 거부 65(`/3` 목표의 `--preapprove` 포함), 구규칙 또는 미지원 규칙 66, 내부 오류·쓰기 적용 불확실성 70
-- 모든 명령: 64 사용법 오류, 65 거절(시작 전, 이미 시작함, lint 오류, 끊긴 기록, 확인 조건 불충족, dirty 검증, 시작 예산 부족, 자동 예산의 사용자 승인 필요, 사전 승인 상한 설정 오류, skill의 Core 요구 미지원·선언 손상, 쓸 수 없는 검토 gate 파일), 66 지원하지 않는 규칙 버전, 70 내부 오류
+- `ha timing`: 0 on success. A broken record is 65 (refusal) and nothing is shown. 70 when the view cannot be written to the output
+- `ha report`: 0 whenever it prints the report, whatever the status. 64 for a usage error (including `--lang` other than `ko` or `en`), 65 for a missing goal directory, 66 for unsupported rules, 70 when Git cannot compare base and HEAD (the five-line summary is printed, §1.3), for an internal error, or for an output failure. A broken record is not refused; it shows the computed result that has `record_integrity`
+- `ha doctor`: 0 when every tool is `사용 가능` or there is no section or no item, 1 when any is `사용 불가`, 65 for an input error in the section or a missing PLAN.md (no check is run), 64 for a usage error, 70 when it cannot control or confirm a process. It does not use the record for judgment, so this is the same before the start, for unsupported rules, and for a goal with a broken record
+- `ha cost`: 0 when it prints the summary. 64 for a usage error (including `--format` or `--lang` values, and two `--series` pointing to the same folder), 65 for a missing goal directory, a broken record or a series that cannot be used (no summary is printed, §1.7), 66 for unsupported rules, 70 for an internal error or an output failure
+- `ha budget`: 0 on success, 64 for invalid arguments, 65 for refusals on value, window, revision, completed state and the like (including `--preapprove` on a `/3` goal), 66 for old or unsupported rules, 70 for an internal error or uncertainty whether the write was applied
+- All commands: 64 usage error, 65 refusal (not started, already started, lint error, broken record, confirmation conditions not met, dirty verification, start budget too small, user approval needed for an automatic budget, pre-approved limit setting error, skill Core requirements unsupported or declaration corrupt, unusable review gate file), 66 unsupported rules version, 70 internal error
 
-출력 원문은 git 디렉토리의 `ha/runs/<goal-key>/<seq>.log`에만 둔다. `<goal-key>`는 저장소 기준 goal 경로를 URL 경로 이스케이프한 것이다(예: `docs%2Fspecs%2Fempty-input`). 목표가 여럿이면 seq가 겹치기 때문이다. 실행 기록과 `ha status`·`ha done`의 출력에는 결과, 이유, digest, 로컬 경로와 명시적으로 기록한 사용자 확인·예산 변경 정보를 넣는다. 출력 원문은 넣지 않는다. 출력에 비밀이 섞일 수 있고, 상태 출력은 완료 보고에 보존되기 때문이다. 목표 문서와 기록의 Git 추적 여부는 프로젝트 정책에 따른다. 원문은 `ha log`로만 본다.
+Raw output is kept only in `ha/runs/<goal-key>/<seq>.log` in the git directory. `<goal-key>` is the repository-relative goal path, URL-path-escaped (for example `docs%2Fspecs%2Fempty-input`). This is because seq values overlap when there are several goals. The run record and the output of `ha status` and `ha done` contain results, reasons, digests, local paths, and explicitly recorded user confirmation and budget change information. They do not contain raw output. That is because output may contain secrets, and status output is preserved in the completion report. Whether goal documents and the record are tracked by Git follows the project's policy. Raw output is viewed only with `ha log`.
 
-### 1.1 실행 전 진단
+### 1.1 Diagnostics before a run
 
-**작업 상태.** `check`·`baseline`·task 검증은 각 대상의 프로세스를 시작하기 직전에 적용 규칙의 제외 경로를 반영해 Git 상태를 확인한다. 제외되지 않는 변경이 있으면 exit 65로 거부한다. Git 상태를 읽지 못하면 exit 70이며 실행하지 않는다. 거부된 대상의 검사 기록·실행 횟수·출력 파일은 만들지 않는다. 여러 대상 중 앞선 대상만 실행됐다면 수행/미수행 개수를 출력하고 앞선 결과는 그대로 보존한다. 실행 후 생긴 오류나 stale 결과도 기록과 사용량에 남는다.
+**Working state.** Just before starting each target's process, `check`, `baseline` and task verification check the Git status, taking into account the excluded paths of the applicable rules. If there is a change that is not excluded, they refuse with exit 65. If the Git status cannot be read, the exit is 70 and nothing runs. No check record, run count or output file is created for a refused target. If only earlier targets among several ran, the numbers of run and not-run targets are printed, and the earlier results are kept as they are. Errors or stale results that arise after a run also remain in the record and the usage.
 
-진단은 저장소 상대 경로, tracked/untracked, 관측한 symlink 여부를 구분하며 삭제·이름 변경의 경로와 submodule 상태도 표시한다. untracked 경로는 해당 경로의 ignore 규칙 검토를 안내할 수 있으나 자동으로 바꾸지 않는다. tracked 변경을 ignore 추가로 해결할 수 있다고 안내하지 않는다. 실행 중 파일 변경을 원자적으로 막는 기능은 아니며 현재 완료 근거는 §3의 신선도 판정을 계속 적용한다.
+The diagnostics distinguish repository-relative paths, tracked/untracked, and whether a symlink was observed, and also show the paths of deletions and renames and the submodule state. For an untracked path they may suggest reviewing that path's ignore rules, but they do not change them automatically. They do not suggest that a tracked change can be resolved by adding an ignore. This is not a feature that atomically prevents file changes during a run, and the freshness judgment of §3 still applies to current completion evidence.
 
-이 거부는 지원하는 `/1`·`/2`·`/3` 목표의 앞으로 실행할 검사에 적용한다. 과거 `tree_clean: false` 기록의 결과와 사용량을 삭제하거나 재해석하지 않는다. 시작의 dirty 경고와 기존 Git ignore·규칙별 실행 문서 제외도 유지한다.
+This refusal applies to checks to be run from now on in supported `/1`, `/2` and `/3` goals. It does not delete or reinterpret the results and usage of past `tree_clean: false` records. The dirty warning at the start and the existing Git ignore and per-rules exclusion of run documents also stay.
 
-**실행량.** `run-rules/6`까지 `ha estimate`의 필수 최소량은 `필수 change × 2 + 필수 maintain`이다. manual은 0회이며 필수 change 34개면 68회다. `run-rules/7`에서는 `표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain`이다(§4.10). 실패 없는 새로운 실행의 하한이므로 재시도·환경 준비·수동 확인 시간·실제 총시간 또는 완료를 보장하지 않는다. 검사나 환경 probe를 실행하지 않고 기록·예산 창·작업 파일도 바꾸지 않는다.
+**Run count.** Up to `run-rules/6`, the required minimum of `ha estimate` is `필수 change × 2 + 필수 maintain`: manual counts as 0 runs, and 34 required change conditions make 68 runs. Under `run-rules/7`, the minimum is `표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain` (§4.10). It is a lower bound for new runs without failures, so it does not guarantee retries, environment preparation, manual confirmation time, the actual total time, or completion. It runs no check or environment probe, and does not change the record, the budget window or working files.
 
-기본 `check`는 필수 change/maintain을 선택한다. 기본 `--baseline`은 `run-rules/6`까지 조건표의 모든 change(선택 AC와 EX 포함)를, `run-rules/7`에서는 표시한 change만 선택한다(§4.10). `estimate`는 이 기본 실행량과 필수 하한을 넘는 추가량을 함께 표시한다. 명시한 대상은 실제 `check`와 같은 순서로 선택한다. 선택 AC·EX는 추가량, task의 각 명령은 각각 한 회이며, 중복 대상도 실제 실행과 같이 반복 계산한다. `--baseline`의 명시 대상은 change 조건만 허용한다. manual만 있는 기본 선택은 추정치 0이며 실제 `check`의 no-target 오류는 바뀌지 않는다.
+The default `check` selects the required change/maintain conditions. Up to `run-rules/6`, default `--baseline` selects every change condition in the condition table (including optional ACs and EXs); under `run-rules/7`, it selects only marked change conditions (§4.10). `estimate` shows this default run count together with the additional runs above the required lower bound. Explicit targets are selected in the same order as an actual `check`. Optional ACs and EXs are additional runs, each task command is one run, and duplicate targets are counted repeatedly, as in an actual run. Explicit targets of `--baseline` may only be change conditions. A default selection with only manual conditions estimates 0, and the no-target error of an actual `check` does not change.
 
-상한은 **현재 PLAN의 전체 상한**이다(PLAN의 횟수 상한이 자동이면 §1.5의 산정 값). 진행 중 목표의 남은 예산이 아니다. 새로운 `start`는 상한이 필수 하한보다 작으면 최소량·상한·부족량을 출력하고 기록을 만들기 전에 exit 65로 거부한다. 같은 값이면 시작할 수 있다. 선택 검사나 재시도 여유 때문에 자동 증액하지 않는다. 기존 목표의 상한과 재개 창은 §5.2 그대로이며 진행 중 검사에 예산 제한을 새로 적용하지 않는다.
+The limit is **the whole limit of the current PLAN** (the computed value of §1.5 when PLAN's run limit is automatic). It is not the remaining budget of a goal in progress. When the limit is smaller than the required lower bound, a new `start` prints the minimum, the limit and the shortfall, and refuses with exit 65 before creating the record. An equal value can start. It does not raise the limit automatically for optional checks or retry headroom. The limits and resume windows of existing goals stay as in §5.2, and no new budget restriction is applied to checks in progress.
 
-JSON 출력은 `schema: estimate/v1`이며 다음을 제공한다.
+The JSON output is `schema: estimate/v1` and provides the following.
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `goal`, `budget_source` | 저장소 상대 목표 경로, `PLAN.md` |
-| `required_change`, `required_maintain`, `minimum_runs` | 필수 종류별 수와 최소 실행량 |
-| `plan_runs_limit`, `shortfall`, `headroom` | PLAN 상한, 부족량, 하한 위의 여유. 부족량과 여유는 음수가 아니다 |
-| `default_check_runs`, `default_baseline_runs`, `default_additional_runs` | 기본 두 명령의 실행량과 합계에서 하한을 뺀 값 |
-| `selected` | `mode`, 순서와 중복을 보존한 `targets`, `runs`, `additional_runs`, `optional_runs`, `task_runs`, `repeated_required_runs` |
-| `limitation` | 추정치의 범위와 기존 예산 창을 바꾸지 않는다는 설명 |
+| `goal`, `budget_source` | Repository-relative goal path; `PLAN.md` |
+| `required_change`, `required_maintain`, `minimum_runs` | Required counts by kind, and the minimum run count |
+| `plan_runs_limit`, `shortfall`, `headroom` | PLAN limit, shortfall, and headroom above the lower bound. Shortfall and headroom are never negative |
+| `default_check_runs`, `default_baseline_runs`, `default_additional_runs` | Run counts of the two default commands, and their total minus the lower bound |
+| `selected` | `mode`, `targets` with order and duplicates preserved, `runs`, `additional_runs`, `optional_runs`, `task_runs`, `repeated_required_runs` |
+| `limitation` | A statement of the estimate's scope and that it does not change existing budget windows |
 
-`selected.additional_runs`는 선택·task·필수 대상 중복의 합이다. 같은 phase에서 필수 대상을 처음 선택한 실행은 이미 하한에 포함되므로 추가량이 아니다. 여러 번의 CLI 호출을 합친 비용은 추적하지 않는다.
+`selected.additional_runs` is the sum of optional targets, task targets and duplicate required targets. The run that first selects a required target in the same phase is already included in the lower bound, so it is not additional. The combined cost of several CLI calls is not tracked.
 
-### 1.2 시간 보기 (`ha timing`)
+### 1.2 Timing view (`ha timing`)
 
-`ha timing <goal>`은 기록의 `check`·`baseline` 줄마다 순번, 대상(조건 ID, 또는 task와 그 명령 순번), 종류(`check`·`baseline`), 결과, `duration_ms`, 적용 제한, 제한 구간 경과와 근접도, 제한 발동 여부, CPU를 보여 준다. 값의 뜻은 §2.2의 `timing`이다. 이 보기는 검사를 실행하지 않고 기록·로그·잠금·작업 트리를 바꾸지 않는다. 상태 계산·신선도·사용량·예산은 이 값을 읽지 않는다. 기록이 끊겼으면 아무것도 보여 주지 않고 65로 끝난다.
+For each `check` and `baseline` line of the record, `ha timing <goal>` shows the sequence number, the target (a condition ID, or a task and its command number), the kind (`check` or `baseline`), the result, `duration_ms`, the applied limit, the elapsed time of the limited interval and its proximity to the limit, whether the limit fired, and CPU. The values mean what `timing` means in §2.2. This view runs no check and does not change the record, logs, lock or working tree. Status computation, freshness, usage and budget do not read these values. If the record is broken, it shows nothing and exits 65.
 
-`--format json`은 `timing/v1` 문서 하나다.
+`--format json` is one `timing/v1` document.
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
 | `schema` | `"timing/v1"` |
-| `goal` | 저장소 기준 목표 디렉터리. 명령에 절대 경로를 줘도 상대 경로다 |
-| `runs[]` | 기록 순서의 실행. `seq`, `target`, `kind`, `result`, `duration_ms`, `limit_ms`, `limit_elapsed_ms`, `limit_use_permille`, `limit_reached`, `cpu`, `unavailable` |
-| `total_duration_ms` | 나열한 실행의 `duration_ms` 합 |
-| `total_meaning` | 합계의 뜻. 실행은 겹칠 수 있고, 이 합은 목표 경과 시간이나 예산이 아니다 |
+| `goal` | Repository-relative goal directory. It is relative even when the command is given an absolute path |
+| `runs[]` | Runs in record order. `seq`, `target`, `kind`, `result`, `duration_ms`, `limit_ms`, `limit_elapsed_ms`, `limit_use_permille`, `limit_reached`, `cpu`, `unavailable` |
+| `total_duration_ms` | Sum of `duration_ms` of the listed runs |
+| `total_meaning` | What the total means. Runs can overlap, and this sum is not the goal's elapsed time or budget |
 
-- 단위는 밀리초 정수다. `limit_use_permille`은 `limit_elapsed_ms × 1000 ÷ limit_ms`의 정수 몫(소수 버림)이다. 두 값 중 하나라도 없으면 `null`이다. 몫이 64비트 정수를 넘으면 `null`이고 `invalid`다.
-- 값이 없으면 그 필드는 `null`이고, `unavailable`에 이유가 있다. `not_recorded`는 그 값이 줄에 없다는 뜻이다(이 필드가 생기기 전에 기록한 줄 등). `not_measured`는 기록된 `null`, 곧 제한 타이머가 켜지지 않았다는 뜻이다. `invalid`는 타입이나 값이 맞지 않는다는 뜻이다. 0이나 900초 같은 값으로 채우거나 규칙 버전에서 추정하지 않는다.
-- 한 값이 손상돼도 그 값만 `invalid`다. 같은 줄의 다른 값과 다른 줄은 그대로 보인다. `timing` 필드가 없으면 다섯 값이 모두 `not_recorded`이고, 객체에 없는 키도 `not_recorded`다. `timing`이 `null`이거나 객체가 아니면 다섯 값이 모두 `invalid`다.
-- `cpu`는 기록의 `{ "status", "user_ms", "system_ms", "scope", "source" }`를 키마다 따로 읽어 보인다. 기록에 있는 키는 그대로 나오고, 그 값이 손상됐으면 그 키만 `null`이며 `unavailable`의 `cpu.<키>`가 `invalid`다. 같은 CPU의 다른 키는 그대로 보인다. `status`가 `measured`면 다섯 키가 모두 나오고, 기록에 없는 키도 `null`과 `invalid`다. `unavailable`·`failed`는 기록에 있는 키만 나오며, 그 상태에 시간이 있으면 그 시간은 `null`과 `invalid`다. `status`가 세 값이 아니면 `null`과 `invalid`다. `scope`·`source`는 §2.2의 고정 코드만 보이고, 그 밖의 값은 `null`과 `invalid`다. 그래서 기록에 들어간 임의 문자열이 보기로 나오지 않는다. `cpu`가 객체가 아니면 `cpu`가 `null`이고 `unavailable`의 `cpu`가 `invalid`다.
+- Units are integer milliseconds. `limit_use_permille` is the integer quotient (fraction discarded) of `limit_elapsed_ms × 1000 ÷ limit_ms`. If either value is missing, it is `null`. If the quotient exceeds a 64-bit integer, it is `null` and `invalid`.
+- When a value is missing, that field is `null` and `unavailable` holds the reason. `not_recorded` means the value is not in the line (for example a line recorded before this field existed). `not_measured` means a recorded `null`, that is, the limit timer was not started. `invalid` means the type or value does not fit. It never fills in a value such as 0 or 900 seconds, and never infers one from the rules version.
+- When one value is corrupt, only that value is `invalid`. The other values of the same line and other lines are shown as they are. Without the `timing` field, all five values are `not_recorded`, and a key missing from the object is also `not_recorded`. When `timing` is `null` or not an object, all five values are `invalid`.
+- `cpu` reads and shows the record's `{ "status", "user_ms", "system_ms", "scope", "source" }` key by key. Keys in the record appear as they are; when a key's value is corrupt, only that key is `null` and `cpu.<키>` in `unavailable` is `invalid`. The other keys of the same CPU are shown as they are. When `status` is `measured`, all five keys appear, and a key missing from the record is also `null` and `invalid`. With `unavailable` or `failed`, only the keys in the record appear, and if that status has times, those times are `null` and `invalid`. When `status` is not one of the three values, it is `null` and `invalid`. `scope` and `source` show only the fixed codes of §2.2, and any other value is `null` and `invalid`. So arbitrary strings in the record never appear in the view. When `cpu` is not an object, `cpu` is `null` and `cpu` in `unavailable` is `invalid`.
 
-사람이 읽는 형식은 같은 값을 표 하나로 보이고, 실행 시간의 합과 그 합이 목표 경과 시간이나 예산이 아니라는 문장을 덧붙인다. CPU 칸은 상태가 무엇이든 JSON이 보이는 키를 같은 값이나 같은 이용 불가 표시로 보인다.
+The human-readable format shows the same values in one table, and adds the sum of run times and a sentence saying that the sum is not the goal's elapsed time or budget. Whatever the status, the CPU column shows the keys the JSON shows, with the same values or the same unavailable marks.
 
-### 1.3 사람용 보고 (`ha report`)
+### 1.3 Human-readable report (`ha report`)
 
-`ha report <goal> [--lang ko|en]`은 한 목표를 사람이 읽는 형태로 보인다. `ha status`와 같은 기록·실행 묶음·목표 문서·Git을 같은 계산(§4)으로 읽고, 그 결과만 쓴다. 조건 충족·상태·이유·완료 기록의 유효성을 따로 판단하지 않으므로 보고는 `ha status`와 다른 상태를 말하지 않는다. 기록에 줄을 더하지 않고 `ha/lock`을 잡지 않으며 `.git/ha`·실행 묶음·작업 트리·index·ref를 바꾸지 않는다. 현재 시각을 읽지 않는다: 같은 기록·묶음·Git·`--lang`이면 출력이 같다. `status/v1`과 다른 명령의 출력은 이 명령 때문에 바뀌지 않는다.
+`ha report <goal> [--lang ko|en]` shows one goal in a form for people. It reads the same record, execution bundle, goal documents and Git as `ha status`, with the same computation (§4), and uses only its result. It does not judge condition satisfaction, status, reasons or the validity of completion records separately, so the report never states a status different from `ha status`. It adds no line to the record, does not take `ha/lock`, and does not change `.git/ha`, the execution bundle, the working tree, the index or refs. It does not read the current time: with the same record, bundle, Git and `--lang`, the output is the same. `status/v1` and the output of other commands do not change because of this command.
 
-`--lang`은 `ko`·`en`이고 없으면 `en`이다. 언어는 표지·제목·설명 문장만 바꾼다. 이유 코드, 분류(`executor`·`user`), 상태 이름, 조건 ID, 종류, seq·hash·commit, 원인 코드, `ha log`·`ha start`·`ha done`·`ha lint` 명령, `none`, `no stored output`, `local`, `## 현재`는 두 언어에서 같다.
+`--lang` is `ko` or `en`, and `en` when absent. The language changes only labels, headings and explanatory sentences. Reason codes, classifications (`executor`, `user`), status names, condition IDs, kinds, seq, hash and commit, cause codes, the `ha log`, `ha start`, `ha done` and `ha lint` commands, `none`, `no stored output`, `local` and `## 현재` are the same in both languages.
 
-**다섯 줄 요약.** 출력의 첫 다섯 줄이며 순서와 표지가 고정이다. 영어는 `Changed`, `Checked`, `To review`, `Remaining limits`, `Next step`, 한국어는 `바뀐 것`, `확인한 것`, `직접 볼 것`, `남은 한계`, `다음 행동`이고, 표지 뒤는 `: `이다.
+**Five-line summary.** These are the first five lines of the output, with a fixed order and fixed labels. In English they are `Changed`, `Checked`, `To review`, `Remaining limits` and `Next step`; in Korean, `바뀐 것`, `확인한 것`, `직접 볼 것`, `남은 한계` and `다음 행동`. Each label is followed by `: `.
 
-| 표지 | 내용 |
+| Label | Content |
 | --- | --- |
-| `Changed` / `바뀐 것` | 시작 기록의 base commit부터 HEAD까지 실행 묶음 문서 밖에서 바뀐 파일 수(`ha status`의 `out_of_scope`와 같은 목록의 길이)와 그 경로를 바꾼 병합 아닌 commit 수. 시작 전이면 base가 없다는 사실, Git이 비교하지 못하면 그 사실(아래) |
-| `Checked` / `확인한 것` | 필수 조건 수와 그중 충족한 수(검사 기록으로 충족한 `change`·`maintain` 수와 사용자 확인으로 충족한 `manual` 수), `run-rules/6`까지는 조건표의 모든 `change` 조건 수와 그중 신선한 `fail_as_expected` baseline이 있는 수. `/7`은 표시한 수와 그중 신선한 baseline 수를 따로 보인다(§4.10). 그 baseline은 상태 계산이 근거로 받는 것이어야 한다(결과와 종료 코드가 맞고, 구조화된 결과의 `change` 조건이면 저장된 근거 요약이 검증을 통과한다) |
-| `To review` / `직접 볼 것` | 이 순서의 전체 집합: 분류가 `user`인 남은 이유와 그 대상, 인용 확인으로 충족한 `manual` 조건과 그 확인 seq, 실행자 근거로 면제된 시험 변경(§4.7), `--weakened` 표시가 있는 시험 변경, 시작 뒤 바뀐 검증 명령(`changes.command_changed`), 해결되지 않은 완료 뒤 발견 수, 기록된 마지막 `review` note의 검토 지적(아래). `/7`은 뺀 baseline 표시와 동결 뒤 검사 변경도 보인다(§4.10). 없으면 `none` / `없음` |
-| `Remaining limits` / `남은 한계` | 늘 보증 수준 `local`과 검사 작성자 실행자. 충족되지 않은 선택 조건, 예산 초과(실행·경과의 사용량과 상한), 지금 HEAD를 덮는 완료 기록이 없다는 사실을 해당할 때 더한다 |
-| `Next step` / `다음 행동` | 상태마다 하나: 시작 전이면 `ha start <goal>`(lint 문제가 있으면 `ha lint <goal>` 먼저), 그 밖의 `incomplete`는 분류가 `executor`인 첫 이유와 그 대상, `needs_user`는 분류가 `user`인 이유 전부와 그 대상, 완료 기록이 없는 `complete`는 `ha done <goal>`, 유효한 완료 기록이 있으면 그 seq와 남은 할 일이 없다는 사실, `blocked`는 마지막 `block`의 seq와 원인, `budget_exhausted`는 사용자의 예산 결정과 사용량·상한 |
+| `Changed` / `바뀐 것` | The number of files changed outside the execution bundle documents from the start record's base commit to HEAD (the length of the same list as `out_of_scope` in `ha status`), and the number of non-merge commits that changed those paths. Before the start, the fact that there is no base; when Git cannot compare, that fact (below) |
+| `Checked` / `확인한 것` | The number of required conditions and how many of them are satisfied (the number of `change` and `maintain` conditions satisfied by check records, and the number of `manual` conditions satisfied by user confirmation), and, up to `run-rules/6`, the number of all `change` conditions in the condition table and how many of them have a fresh `fail_as_expected` baseline. `/7` separately shows the marked count and fresh baseline count among marked conditions (§4.10). That baseline must be one that status computation accepts as evidence (the result and exit code match, and for a `change` condition with structured results, the stored evidence summary passes verification) |
+| `To review` / `직접 볼 것` | The complete set, in this order: remaining reasons classified `user` and their targets, `manual` conditions satisfied by a quoted confirmation and the seq of that confirmation, test changes exempted on the executor's grounds (§4.7), test changes marked `--weakened`, verification commands changed after the start (`changes.command_changed`), the number of unresolved post-completion findings, and the review findings of the last recorded `review` note (below). `/7` also shows removed baseline marks and check changes after the freeze (§4.10). `none` / `없음` when there are none |
+| `Remaining limits` / `남은 한계` | Always the assurance level `local` and the check author, the executor. When they apply, it adds unsatisfied optional conditions, an exceeded budget (usage and limit of runs and elapsed time), and the fact that no completion record covers the current HEAD |
+| `Next step` / `다음 행동` | One per status: before the start, `ha start <goal>` (`ha lint <goal>` first when there is a lint problem); any other `incomplete`, the first reason classified `executor` and its target; `needs_user`, all reasons classified `user` and their targets; `complete` without a completion record, `ha done <goal>`; with a valid completion record, its seq and the fact that nothing is left to do; `blocked`, the seq and cause of the last `block`; `budget_exhausted`, the user's budget decision with usage and limit |
 
-이유의 대상은 조건 이유면 조건 ID(`` AC-2 `criterion_failed` ``), 목표 수준 이유면 그 이유가 가리키는 task나 경로(`` `task_open` (T002) ``, `` `out_of_scope` (lib/other.txt) ``)다. 요약의 값에 줄바꿈이 있으면 `\n`으로 써서 각 줄을 한 줄로 지킨다.
+A reason's target is the condition ID for a condition reason (`` AC-2 `criterion_failed` ``), and for a goal-level reason, the task or path that the reason points to (`` `task_open` (T002) ``, `` `out_of_scope` (lib/other.txt) ``). A line break in a summary value is written as `\n`, so that each line stays one line.
 
-**검토 지적.** 기록에 `review` note(§4.8)가 있으면 `직접 볼 것`은 위 항목 뒤에 기록된 마지막 `review` note의 지적 목록을 이 순서로 보인다. `<series>`와 `<round>`는 폴더 이름, `<to>`는 기록된 보류 대상 그대로이고, 한 항목 안의 지적은 기록 순서대로 `, `로 잇는다.
+**Review findings.** When the record has a `review` note (§4.8), `To review` / `직접 볼 것` shows, after the items above and in this order, the finding lists of the last recorded `review` note. `<series>` and `<round>` are folder names, `<to>` is the recorded deferral target as it is, and the findings within one item are joined with `, ` in their recorded order.
 
-- 보류한 지적이 있으면 `review findings deferred: <series>/<round> <id> [<class>] → <to>` / `보류한 검토 지적: <series>/<round> <id> [<class>] → <to>`.
-- 자동 보류 수가 0보다 크면 `auto-deferred hardening findings: <n>` / `자동 보류한 hardening 지적: <n>개`.
-- 처리 없는 지적이 있으면 `review findings without a disposition: <series>/<round> <id> [<class>]` / `처리 없는 검토 지적: <series>/<round> <id> [<class>]`.
-- 그 note에 목록이 없으면, 즉 목록 전의 Spar가 쓴 gate를 기록했으면 위 셋 대신 `the review gate's finding lists were not recorded (review note seq <n>)` / `검토 gate의 지적 목록이 기록되지 않음(review note seq <n>)`.
-- 저장된 목록을 읽을 수 없으면(손으로 고친 기록) 위 셋 대신 `the recorded review finding lists cannot be read (review note seq <n>)` / `기록된 검토 지적 목록을 읽을 수 없음(review note seq <n>)`. 판정은 이 목록을 읽지 않으므로 상태와 이유는 그대로다.
+- When there are deferred findings, `review findings deferred: <series>/<round> <id> [<class>] → <to>` / `보류한 검토 지적: <series>/<round> <id> [<class>] → <to>`.
+- When the automatic deferral count is greater than 0, `auto-deferred hardening findings: <n>` / `자동 보류한 hardening 지적: <n>개`.
+- When there are findings without a disposition, `review findings without a disposition: <series>/<round> <id> [<class>]` / `처리 없는 검토 지적: <series>/<round> <id> [<class>]`.
+- When that note has no lists, that is, a gate written by a Spar before the lists was recorded, instead of the three above: `the review gate's finding lists were not recorded (review note seq <n>)` / `검토 gate의 지적 목록이 기록되지 않음(review note seq <n>)`.
+- When the stored lists cannot be read (a hand-edited record), instead of the three above: `the recorded review finding lists cannot be read (review note seq <n>)` / `기록된 검토 지적 목록을 읽을 수 없음(review note seq <n>)`. Judgment does not read the lists, so the status and the reasons stay as they are.
 
-`review` note가 없거나, 두 목록이 비고 자동 보류 수가 0이면 더하는 항목이 없다. 보고는 gate 파일이나 Spar 폴더를 읽지 않는다.
+With no `review` note, or with both lists empty and an automatic deferral count of 0, nothing is added. The report does not read the gate file or Spar's folders.
 
-**Git이 base와 HEAD를 비교할 수 없을 때.** base commit이 없는 얕은 clone처럼 Git이 그 범위를 읽지 못하면 `ha status`는 지금처럼 계산하지 못하고 70으로 끝난다. `ha report`는 다섯 줄만 보이고 70으로 끝난다: `Changed`는 비교할 수 없다는 사실, `Checked`와 `To review`는 계산하지 못했다는 사실, `Remaining limits`는 `local`과 검사 작성자 뒤에 나머지 한계를 계산하지 못했다는 사실, `Next step`은 base가 든 이력을 받는 방법(예: `git fetch --unshallow`)과 다시 실행할 명령이다. 상세는 보이지 않는다. 범위를 읽는 일 하나라도 실패하면 이 경우다: `ha status`와 같은 계산이 바뀐 파일을 읽다 실패한 경우와 `ha report`가 파일 수와 commit 수를 읽다 실패한 경우 모두다. 실패한 읽기는 다시 읽지 않는다.
+**When Git cannot compare base and HEAD.** When Git cannot read that range, as in a shallow clone without the base commit, `ha status`, as now, cannot compute and exits 70. `ha report` shows only the five lines and exits 70: `Changed` states that the comparison is impossible, `Checked` and `To review` state that they could not be computed, `Remaining limits` states, after `local` and the check author, that the remaining limits could not be computed, and `Next step` gives how to fetch the history that contains the base (for example `git fetch --unshallow`) and the command to run again. Details are not shown. Any single failure to read the range is this case: both when the computation shared with `ha status` fails while reading the changed files, and when `ha report` fails while reading the file count and commit count. A failed read is not retried.
 
 ```text
 Changed: Git cannot compare base 3c1f0a9e7b25 with HEAD 9a8b7c6d5e4f
@@ -134,15 +134,15 @@ Remaining limits: assurance local; check author: executor; the other limits were
 Next step: fetch the history that contains base 3c1f0a9e7b25 (for example `git fetch --unshallow` in a shallow clone), then run `ha report docs/specs/example` again
 ```
 
-**근거 출처.** 유효한 완료 기록이 있으면 그 `done` 줄에 저장된 조건(§2.5)을, 없으면 지금 계산한 조건을 쓴다. 충족 수, 인용 확인 `manual`, 충족되지 않은 선택 조건, 조건별 근거 표가 이 출처 하나를 읽는다. 필수 여부는 목표 문서에서 읽는다.
+**Evidence source.** With a valid completion record, it uses the conditions stored in that `done` line (§2.5); otherwise, the conditions computed now. The satisfied counts, `manual` conditions confirmed by quote, unsatisfied optional conditions and the evidence-per-condition table all read this one source. Whether a condition is required is read from the goal documents.
 
-**상세.** 요약 뒤에 빈 줄로 나눈 네 부분이 이 순서로 온다.
-- `` ### Stamp for `## 현재` `` / `` ### `## 현재` 도장 ``: 기록 head의 seq와 hash 앞 12자, 그 줄에 저장된 시각(`at`) 문자열, 상태, 유효한 완료 기록 seq(있으면). `PROGRESS.md`의 `## 현재`에 확인 시각과 기록 head로 옮겨 적는 값이다. 기록이 없으면 기록 head는 `none`이고, 저장된 시각을 RFC 3339로 읽을 수 없으면 읽을 수 없다고 보인다.
-- `### Evidence per condition` / `### 조건별 근거`: 근거 출처(완료 기록 seq 또는 지금 상태)와 조건마다 ID·종류·필수·충족·근거 기록 seq의 표.
-- `### Completion coverage` / `### 완료 범위`: 유효한 완료 기록의 seq·commit과 HEAD를 덮는다는 사실, 또는 무효가 된 가장 최근 완료 기록의 seq·commit, HEAD를 덮지 않는다는 사실, §4.4와 같은 무효 이유, 그 commit 뒤의 차이가 완료에 들지 않는다는 사실. 완료 기록이 없으면 `none`.
-- `### Output of unmet conditions` / `### 미충족 조건의 원문 위치`: 충족되지 않은 필수 조건마다 `### Unmet`(§4.4)과 같은 기록 선택과 표기(`ha log <goal> <seq>`, 원문이 없으면 `no stored output`). 영어 줄은 `ha status`의 해당 줄과 같다. 없으면 `none` / `없음`.
+**Details.** After the summary come four parts separated by blank lines, in this order.
+- `` ### Stamp for `## 현재` `` / `` ### `## 현재` 도장 ``: the record head's seq and the first 12 characters of its hash, the time (`at`) string stored in that line, the status, and the valid completion record's seq (if any). These are the values to copy into `## 현재` of `PROGRESS.md` as the check time and the record head. Without records, the record head is `none`; when the stored time cannot be read as RFC 3339, it shows that it cannot be read.
+- `### Evidence per condition` / `### 조건별 근거`: the evidence source (a completion record seq or the current status) and a table of ID, kind, required, satisfied and evidence record seqs for each condition.
+- `### Completion coverage` / `### 완료 범위`: the seq and commit of the valid completion record and the fact that it covers HEAD; or the seq and commit of the most recent completion record that became invalid, the fact that it does not cover HEAD, the invalidity reason as in §4.4, and the fact that differences after that commit are not part of the completion. `none` when there is no completion record.
+- `### Output of unmet conditions` / `### 미충족 조건의 원문 위치`: for each unsatisfied required condition, the same record selection and notation as `### Unmet` (§4.4) (`ha log <goal> <seq>`, or `no stored output` when there is no raw output). The English lines are the same as the corresponding lines of `ha status`. `none` / `없음` when there are none.
 
-합성 예시(완료 기록이 유효한 목표):
+Synthetic example (a goal with a valid completion record):
 
 ```text
 Changed: 2 files and 2 commits outside the bundle documents since base 3c1f0a9e7b25
@@ -160,24 +160,24 @@ Next step: none; completion record seq 5 holds and nothing is left to do
 다음 행동: 없음; 완료 기록 seq 5이 유효하고 남은 할 일이 없음
 ```
 
-### 1.4 실행 환경 점검 (`ha doctor`)
+### 1.4 Environment check (`ha doctor`)
 
-`ha doctor <goal>`은 PLAN의 선택 절 `## 실행 환경`([bundle.md](bundle.md) §2.6)에 적은 점검 명령을 항목 순서대로 하나씩 실행한다. 저장소 루트에서, 셸 없이 인자 배열로, 표준 입력을 닫고, `ha`의 환경 변수를 물려 실행한다. 점검마다 시간 제한은 60초로 고정이고 PLAN의 `## 시간 제한`과 무관하다. 시간 제한이 되면 `ha check`와 같은 프로세스 제어(Unix는 프로세스 그룹, Windows 후보는 kill-on-close Job Object)로 그 프로세스와 하위 프로세스를 끝낸다.
+`ha doctor <goal>` runs the check commands written in PLAN's optional section `## 실행 환경` ([bundle.md](bundle.md) §2.6) one at a time, in item order. It runs them from the repository root, as an argument array without a shell, with standard input closed, inheriting `ha`'s environment variables. The time limit of each check is fixed at 60 seconds and is unrelated to PLAN's `## 시간 제한` (time limit). When the time limit is reached, it ends that process and its child processes with the same process control as `ha check` (a process group on Unix, a kill-on-close Job Object on the Windows candidate).
 
-도구마다 한 줄 `<이름>: 사용 가능` 또는 `<이름>: 사용 불가 (<이유>)`를 보인다. 종료 0이면 `사용 가능`이다. `사용 불가`의 이유는 다음 다섯 가지가 전체 집합이다.
-- `실행 파일 없음`: 권한 거부가 아닌 시작 실패(PATH에 없음, 파일 없음, 실행 형식이 아님)
-- `실행 권한 없음`: 권한 거부로 시작하지 못함
-- `시간 초과`: 60초 제한에 걸림. `시간 초과, 60초`로 보인다
-- `신호로 종료`: 신호로 끝남. `신호로 종료, 신호 <번호>`로 보인다
-- `0이 아닌 종료`: 그 밖의 0 아닌 종료. `0이 아닌 종료, 종료 코드 <코드>`로 보인다
+It shows one line per tool, `<이름>: 사용 가능` or `<이름>: 사용 불가 (<이유>)`. Exit 0 is `사용 가능` (available). The reasons for `사용 불가` (unavailable) are exactly these five.
+- `실행 파일 없음` (no executable): a start failure that is not a permission denial (not on PATH, no file, not an executable format)
+- `실행 권한 없음` (no permission to run): could not start because permission was denied
+- `시간 초과` (timed out): hit the 60-second limit. Shown as `시간 초과, 60초`
+- `신호로 종료` (ended by a signal): ended by a signal. Shown as `신호로 종료, 신호 <번호>`
+- `0이 아닌 종료` (nonzero exit): any other nonzero exit. Shown as `0이 아닌 종료, 종료 코드 <코드>`
 
-`사용 불가` 줄 아래에 그 점검 출력의 끝부분을 줄마다 공백 네 칸을 붙여 보인다. 끝부분은 마지막 20줄이고, 그 20줄이 2,000바이트를 넘으면 마지막 2,000바이트(UTF-8 글자 경계에서 시작)다. 줄 끝의 `\r`은 뗀다. 시작 실패에는 `ha check`의 출력 파일과 같은 시작 실패 진단 한 줄이 보인다. `사용 가능`인 점검의 출력은 보이지 않는다.
+Under a `사용 불가` line, it shows the end of that check's output, with four spaces in front of each line. The end is the last 20 lines, or, when those 20 lines exceed 2,000 bytes, the last 2,000 bytes (starting at a UTF-8 character boundary). A `\r` at the end of a line is removed. For a start failure, one start-failure diagnostic line appears, the same as in `ha check`'s output file. The output of a `사용 가능` check is not shown.
 
-`ha doctor`는 아무것도 남기지 않는다. 점검 출력은 운영체제 임시 디렉터리의 새 파일에 받고 그 점검의 줄을 쓴 뒤 지운다. 기록 줄·실행 횟수·`ha/lock`·`ha/runs`의 출력 파일·실행 묶음 변경이 생기지 않는다. 기록을 판정에 쓰지 않으므로 시작 전에도, 어느 규칙의 목표에도 같다. `ha`가 프로세스를 제어하거나 종료를 확인하지 못하면(Windows 후보에서 Job Object를 만들거나 설정하지 못한 경우 포함) 그 도구를 `사용 불가`로 세지 않고 그때까지의 줄을 남긴 채 70으로 끝난다.
+`ha doctor` leaves nothing behind. It receives check output in a new file in the operating system's temporary directory and deletes it after writing that check's line. No record line, run count, `ha/lock`, output file in `ha/runs` or execution bundle change is produced. It does not use the record for judgment, so it is the same before the start and for a goal under any rules. When `ha` cannot control a process or confirm its termination (including failing to create or configure a Job Object on the Windows candidate), it does not count that tool as `사용 불가`; it keeps the lines written so far and exits 70.
 
-절이 없으면 그렇다는 한 줄, 항목이 없으면 그렇다는 한 줄을 쓰고 0으로 끝난다. 절의 입력 오류는 lint와 같은 `코드<탭>파일:줄<탭>설명` 형식으로 모두 보이고 어떤 점검도 실행하지 않은 채 65로 끝난다. 이 절은 `ha doctor`만 읽는다: 절이 있든 없든, 어떤 내용이든 `ha lint`·`ha start`·`ha check`·`ha status`의 결과는 같다.
+Without the section, it writes one line saying so; without items, one line saying so; then it exits 0. Input errors in the section are all shown in the same `코드<탭>파일:줄<탭>설명` (code, tab, file:line, tab, description) format as lint, and it exits 65 without running any check. Only `ha doctor` reads this section: with or without the section, and whatever it contains, the results of `ha lint`, `ha start`, `ha check` and `ha status` are the same.
 
-합성 예시:
+Synthetic example:
 
 ```text
 셸: 사용 가능
@@ -185,393 +185,393 @@ Next step: none; completion record seq 5 holds and nothing is left to do
     ha: could not start "synthetic-browser": exec: "synthetic-browser": executable file not found in $PATH
 ```
 
-### 1.5 자동 예산
+### 1.5 Automatic budget
 
-PLAN `## 예산`의 `검증 실행` 값이 정확히 `자동`이면(`- 검증 실행: 자동`) 횟수 상한을 `ha start`가 정한다. 숫자가 든 `검증 실행` 항목이 하나라도 있으면 지금처럼 그 숫자(여럿이면 마지막 것)를 쓰고, `자동`은 숫자가 든 항목이 하나도 없을 때만 적용된다. 그래서 이 기능 전의 `ha`가 숫자로 읽은 PLAN은 모두 같은 숫자로 읽는다. `경과 시간`에는 자동이 없고 지금처럼 필수다. `ha lint`는 자동 표시를 문제로 보지 않고 사용자 설정을 읽지 않는다.
+When the `검증 실행` (verification runs) value in PLAN `## 예산` (budget) is exactly `자동` (automatic) (`- 검증 실행: 자동`), `ha start` sets the run limit. If there is any `검증 실행` item that contains a number, that number is used as now (the last one when there are several), and `자동` applies only when no item contains a number. So every PLAN that an `ha` from before this feature read as a number is read as the same number. `경과 시간` (elapsed time) has no automatic value and is required as now. `ha lint` does not treat the automatic mark as a problem and does not read the user configuration.
 
-**산정.** 상한은 `max(50, ⌈최소량 × 1.5⌉)`이다. 최소량은 §1.1에서 규칙에 따라 정한 필수 최소량이다. `run-rules/6`까지 필수 change 34개, maintain 0개면 최소량 68, 상한 102다. `run-rules/7`에서는 34개 모두 표시했을 때 이 예와 같고, 아니면 §4.10의 식을 쓴다. 필수 조건이 모두 manual이면 50.
+**Computation.** The limit is `max(50, ⌈최소량 × 1.5⌉)`. The minimum is the rule-dependent required minimum of §1.1. Up to `run-rules/6`, 34 required change conditions and 0 maintain conditions yield a minimum of 68 and a limit of 102; under `run-rules/7`, that example holds when all 34 are marked. Otherwise use the formula of §4.10. When all required conditions are manual, 50.
 
-**사전 승인 상한.** 사용자가 미리 승인한 상한은 사용자 설정 폴더의 `ha.json`에서 읽는다. 폴더는 `XDG_CONFIG_HOME`이 비어 있지 않으면 `$XDG_CONFIG_HOME/jaekit/`, 아니면 `~/.config/jaekit/`다. 홈은 `HOME`이 비어 있지 않으면 그 값, 아니면 운영체제의 홈(Windows는 `USERPROFILE`)이다. macOS·Linux·Windows에서 같은 규칙이며 다른 후보로 넘어가지 않는다. Spar 설정(`spar.toml`)과 같은 `jaekit` 폴더다. 파일은 JSON 객체 하나이고, 멤버는 정확히 `preapproved_runs` 하나, 값은 부호·소수점·지수 없는 정수 1~2147483647이다. 맨 앞의 UTF-8 BOM 하나는 허용한다.
+**Pre-approved limit.** The limit the user approved in advance is read from `ha.json` in the user configuration folder. The folder is `$XDG_CONFIG_HOME/jaekit/` when `XDG_CONFIG_HOME` is not empty, otherwise `~/.config/jaekit/`. Home is the value of `HOME` when it is not empty, otherwise the operating system's home (`USERPROFILE` on Windows). The rule is the same on macOS, Linux and Windows, and it never falls through to another candidate. It is the same `jaekit` folder as the Spar configuration (`spar.toml`). The file is one JSON object with exactly one member, `preapproved_runs`, whose value is an integer from 1 to 2147483647 without sign, decimal point or exponent. One leading UTF-8 BOM is allowed.
 
 ```json
 {"preapproved_runs": 120}
 ```
 
-- 파일이 없으면(그 경로에 항목이 없고, 이미 있는 가장 가까운 상위 항목이 폴더) 상한은 50이고 출처는 `default`다. 설정하지 않은 사용자는 50으로 덮이는 목표에서 질문을 받지 않는다.
-- 그 밖에는 거부한다: 대상이 없는 symlink(그 경로나 상위 폴더), 일반 파일이 아닌 항목, 64 KiB를 넘는 파일, 읽기 실패, 폴더가 아닌 상위 항목, 절대 경로가 아닌 `XDG_CONFIG_HOME`이나 홈, 정할 수 없는 홈, JSON이 아니거나 잘못된 UTF-8, 중복 키·모르는 키(대소문자만 다른 `preapproved_runs`도)·키 없음·뒤에 붙은 데이터, 정수 리터럴이 아니거나 범위 밖인 값.
-- 파일의 실제 경로(symlink 해소)가 목표 저장소의 어느 작업 트리(`git worktree list --porcelain -z`의 최상위들) 안이면 거부한다. 폴더는 이름이 아니라 동일성으로 비교한다. 저장소 안의 파일은 이 상한을 정하지 못한다. 파일이 있는데 그 목록을 읽지 못하면(`-z`가 없는 Git 2.36 전 등) 거부한다. 파일이 없으면 목록을 읽지 않는다.
-- 이 파일은 `ha start`와 `ha estimate`가 PLAN이 자동일 때만 읽는다. 숫자 PLAN과 다른 명령은 읽지 않으므로, 손상된 설정이 숫자 예산 목표를 막지 않는다.
+- When the file does not exist (there is no entry at that path, and the nearest existing ancestor entry is a folder), the limit is 50 and the source is `default`. A user who set nothing is not asked a question for a goal that 50 covers.
+- Everything else is refused: a symlink without a target (at that path or a parent folder), an entry that is not a regular file, a file over 64 KiB, a read failure, an ancestor entry that is not a folder, an `XDG_CONFIG_HOME` or home that is not an absolute path, a home that cannot be determined, non-JSON or invalid UTF-8, duplicate keys, unknown keys (including `preapproved_runs` that differs only in case), a missing key, trailing data, and a value that is not an integer literal or is out of range.
+- If the file's real path (with symlinks resolved) is inside any working tree of the goal's repository (the top levels from `git worktree list --porcelain -z`), it is refused. Folders are compared by identity, not by name. A file inside the repository cannot set this limit. If the file exists but that list cannot be read (for example Git before 2.36, which lacks `-z`), it is refused. If the file does not exist, the list is not read.
+- Only `ha start` and `ha estimate` read this file, and only when PLAN is automatic. A numeric PLAN and other commands do not read it, so a corrupt setting never blocks a goal with a numeric budget.
 
-설정을 쓸 수 없으면 두 명령은 `ha: pre-approved run limit: <경로>: <이유>`를 보이고 기록 없이 65로 끝난다. 기본값으로 대신하지 않는다.
+When the setting cannot be used, both commands show `ha: pre-approved run limit: <경로>: <이유>` and exit 65 without a record. The default does not stand in for it.
 
-**시작.** 산정 값이 사전 승인 상한 이하이면 시작한다. 시작 기록의 `budget.runs`가 산정 값이고 정보 객체 `auto`가 산정 근거를 남긴다(§2.1). 출력 둘째 줄은 `minimum required: <n> runs; auto limit: <m> (minimum × 1.5, at least 50); pre-approved limit: <c> from <설정 파일 경로 또는 default>`다. 산정 값이 상한보다 크면 기록 없이 65로 끝나며 표준 오류에 최소량, 산정 값, 상한과 출처, 사용자의 승인이 필요하다는 것을 보인다. 합성 예:
+**Start.** When the computed value is at or below the pre-approved limit, the goal starts. The start record's `budget.runs` is the computed value, and the informational object `auto` keeps the basis of the computation (§2.1). The second output line is `minimum required: <n> runs; auto limit: <m> (minimum × 1.5, at least 50); pre-approved limit: <c> from <설정 파일 경로 또는 default>`. When the computed value exceeds the limit, it exits 65 without a record and shows on standard error the minimum, the computed value, the limit and its source, and that the user's approval is needed. Synthetic example:
 
 ```text
 ha: auto budget 102 runs (minimum 68 × 1.5, at least 50) exceeds the pre-approved limit 50 from default; the user's approval is needed: write the approved number in PLAN `검증 실행`, or have the user raise preapproved_runs in <설정 폴더>/jaekit/ha.json
 ```
 
-사용자가 승인하면 그 숫자를 PLAN `검증 실행`에 쓰거나(숫자 상한은 사전 승인 상한과 비교하지 않는다), 사용자가 설정의 `preapproved_runs`를 올린다. 이 사전 승인 상한은 `/4`의 `ha budget --preapprove`(§4.7)와 별개로 시작 상한만 정한다. 시작 뒤 증액·재개 규칙(§4.7, §5.2)과 상태 계산은 숫자로 시작한 목표와 같다.
+When the user approves, that number is written in PLAN `검증 실행` (a numeric limit is not compared with the pre-approved limit), or the user raises `preapproved_runs` in the setting. This pre-approved limit sets only the start limit, separately from `/4`'s `ha budget --preapprove` (§4.7). The increase and resume rules after the start (§4.7, §5.2) and status computation are the same as for a goal started with a number.
 
-**추정.** `ha estimate`는 같은 산정을 기록 없이 한다. 자동 예산이면 JSON에 `auto` 객체(`computed_runs`, `preapproved_runs`, `source`, 설정 파일이 있을 때만 `source_path`, `approval_needed`)를 더하고 `plan_runs_limit`은 산정 값이다. Markdown 형식은 `- auto budget: <m> runs (minimum <n> × 1.5, at least 50); pre-approved limit: <c> from <출처>; user approval needed: yes|no` 줄을 더한다. 숫자 PLAN의 출력은 그대로다.
+**Estimate.** `ha estimate` does the same computation without a record. With an automatic budget, it adds an `auto` object to the JSON (`computed_runs`, `preapproved_runs`, `source`, `source_path` only when the setting file exists, and `approval_needed`), and `plan_runs_limit` is the computed value. The Markdown format adds the line `- auto budget: <m> runs (minimum <n> × 1.5, at least 50); pre-approved limit: <c> from <출처>; user approval needed: yes|no`. The output for a numeric PLAN is unchanged.
 
-### 1.6 skill의 Core 요구 확인
+### 1.6 Checking a skill's Core requirements
 
-`ha start --skill <SKILL.md>`는 그 파일과 같은 폴더의 `core-requirements.json`을 읽는다. 형식은 [Core 지원 정보 계약](core-capabilities.md) §8의 `core-requirements/v1`이다.
+`ha start --skill <SKILL.md>` reads `core-requirements.json` in the same folder as that file. The format is `core-requirements/v1` in §8 of the [Core capabilities contract](core-capabilities.md).
 
-- 그 경로에 항목이 없으면 선언이 없는 skill이고 시작은 지금과 같다.
-- 선언한 규칙·형식·기능 가운데 이 실행 파일의 지원 정보(`ha capabilities`와 같은 값)에 없는 것이 있으면, 빠진 항목마다 `ha: missing Core support: <rules|formats.<키>|features> <값> (ha <버전>)`을 보이고(`formats`의 키 자체가 없고 그 목록이 비어 있으면 값 없이 `formats.<키>`) 기록 없이 65로 끝난다.
-- 선언을 읽을 수 없거나 형식에 맞지 않으면 `ha: skill requirements <경로>: <이유>; nothing recorded`를 보이고 65로 끝난다. 모르는 값을 무시하고 시작하지 않는다.
-- `--check-skill`을 주면 선언이 필수다. 선언이 없으면 65, `--skill` 없이 주면 사용법 오류 64다. 이 기능 전의 `ha`는 이 플래그를 모르는 플래그로 64에 끝내고 기록하지 않는다. 그래서 확인이 반드시 일어나야 하는 시작은 이 형식을 쓴다.
-- 확인은 작업 트리 확인 뒤, 기록 전에 한다. 선언 경로에 항목이 있으면 Skill 디렉토리 digest를 계산하기 전에 확인하므로, 쓸 수 없는 선언(대상 없는 symlink, 폴더, FIFO 등)은 위 이유로 거부한다. 선언이 없는 skill은 지금처럼 먼저 읽고 그 오류도 지금과 같다. 시작 기록의 `skill`(`name`, `version`, `digest`)은 그대로이고 digest에 선언 파일도 들어간다.
+- If there is no entry at that path, the skill has no declaration and the start is as now.
+- If any declared rules, format or feature is missing from this executable's capabilities (the same values as `ha capabilities`), it shows `ha: missing Core support: <rules|formats.<키>|features> <값> (ha <버전>)` for each missing item (`formats.<키>` without a value when the `formats` key itself is missing and its list is empty) and exits 65 without a record.
+- If the declaration cannot be read or does not fit the format, it shows `ha: skill requirements <경로>: <이유>; nothing recorded` and exits 65. It never ignores unknown values and starts.
+- With `--check-skill`, the declaration is required. Without a declaration it is 65; given without `--skill`, it is usage error 64. An `ha` from before this feature ends with 64 on this flag as an unknown flag and records nothing. So a start where the check must happen uses this form.
+- The check happens after the working tree check and before the record. When there is an entry at the declaration path, it is checked before the Skill directory digest is computed, so an unusable declaration (a symlink without a target, a folder, a FIFO and so on) is refused with the reason above. A skill without a declaration is read first, as now, and its errors are also as now. The start record's `skill` (`name`, `version`, `digest`) is unchanged, and the digest includes the declaration file.
 
-### 1.7 비용 요약 (`ha cost`)
+### 1.7 Cost summary (`ha cost`)
 
-`ha cost <goal> [--series <folder>]... [--format md|json] [--lang ko|en]`은 목표 하나가 검증과 검토에 들인 비용을 보인다. 그 목표의 `runs.jsonl`, 목표 문서, Git, 그리고 사람이 `--series`로 가리킨 Spar series 폴더만 읽는다. series 위치는 짐작하지 않으며 `--series`는 여러 번 줄 수 있다. 기록에 줄을 더하지 않고 `ha/lock`을 잡지 않으며 기록·작업 트리·index·ref·Spar 기록을 바꾸지 않는다. 현재 시각을 읽지 않고 모델을 부르거나 리뷰어를 띄우지 않는다: 같은 기록·Git·series·인자이면 출력이 같다. 요약은 숫자만 보이고, 다른 목표와 비교하거나 개선·효과를 말하는 문장을 쓰지 않는다. 이 명령은 다른 명령의 출력·판정·기록을 바꾸지 않는다.
+`ha cost <goal> [--series <folder>]... [--format md|json] [--lang ko|en]` shows what one goal cost in verification and review. It reads only that goal's `runs.jsonl`, the goal documents, Git, and the Spar series folders a person points to with `--series`. It does not guess series locations, and `--series` can be given several times. It adds no line to the record, does not take `ha/lock`, and does not change the record, the working tree, the index, refs or Spar records. It does not read the current time, call a model or launch a reviewer: with the same record, Git, series and arguments, the output is the same. The summary shows numbers only and never writes a sentence that compares with another goal or speaks of improvement or effect. This command does not change the output, judgments or records of other commands.
 
-**읽는 Spar 형식.** `ha`는 Spar 패키지를 가져오지 않고 공개 파일 형식만 읽는다.
-- [`review-round/v1`](review-round.md) §5: 라운드 폴더의 `round.json`(`stage`, `sequence`, `dry_run`, `counted`, `rerun_of`, `started_at`, `finished_at`, `reviewers.<이름>`의 `status`·`elapsed_seconds`·`attempts`·`fallback_used`), `findings.json`(`id`, `class`, `in_check_paths`, `location_unreadable`), `ledger.jsonl`(`finding`, `disposition`, `auto`, `user_quote`), `waivers.jsonl`(`reviewer`, `user_quote`), series의 `extensions.jsonl`(`stage`, `by`, `cause`, `reason`, `user_quote`).
-- [`review-gate/v1`](review-gate.md) §3: series 폴더 맨 위의 gate 파일. `state`와 `growth.added_lines`만 읽는다.
+**Spar formats read.** `ha` does not import Spar packages; it reads only the public file formats.
+- [`review-round/v1`](review-round.md) §5: in a round folder, `round.json` (`stage`, `sequence`, `dry_run`, `counted`, `rerun_of`, `started_at`, `finished_at`, and `status`, `elapsed_seconds`, `attempts` and `fallback_used` of `reviewers.<이름>`), `findings.json` (`id`, `class`, `in_check_paths`, `location_unreadable`), `ledger.jsonl` (`finding`, `disposition`, `auto`, `user_quote`) and `waivers.jsonl` (`reviewer`, `user_quote`); and the series' `extensions.jsonl` (`stage`, `by`, `cause`, `reason`, `user_quote`).
+- [`review-gate/v1`](review-gate.md) §3: gate files at the top of a series folder. Only `state` and `growth.added_lines` are read.
 
-series 폴더 안에서는 Spar처럼 읽는다. `round.json`의 `schema`가 `review-round/v1`인 폴더가 라운드이고, `round.json`이 없거나 다른 형식의 JSON인 폴더는 다른 도구의 것이라 건너뛴다. 맨 위 파일은 `extensions.jsonl`과 `schema`가 `review-gate/v1`인 JSON 객체만 읽고 나머지는 건너뛴다. 건너뛴 항목은 이름과 까닭을 요약에 보인다. 라운드는 `sequence` 순, 같으면 폴더 이름 순이다. dry run 라운드는 어떤 수에도 넣지 않고 series마다 그 수만 보인다.
+Inside a series folder, it reads as Spar does. A folder whose `round.json` has the `schema` `review-round/v1` is a round; a folder without `round.json`, or with JSON of another format, belongs to another tool and is skipped. Of the top-level files, only `extensions.jsonl` and JSON objects whose `schema` is `review-gate/v1` are read, and the rest are skipped. Skipped entries are shown in the summary with their names and reasons. Rounds are ordered by `sequence`, and by folder name when equal. Dry-run rounds are not included in any count; only their number is shown for each series.
 
-**항목과 출처.**
+**Items and sources.**
 
-| 항목 | 값 | 출처 |
+| Item | Value | Source |
 | --- | --- | --- |
-| 종류와 크기 | 지금 SPEC.md의 `Assurance:` 등급(없으면 없음), 시작 기록의 규칙 버전, 필수·선택 조건 수, base 이후 실행 묶음 문서 밖에서 바뀐 파일 수와 commit 수, 유효한 완료 기록 seq | 목표 문서, `start` 줄, `ha report`의 `Changed`와 같은 Git 비교(§1.3), `ha status`와 같은 계산의 완료 기록 |
-| 실행 | `check`·`baseline` 줄 수(종류·결과별), `duration_ms`의 종류별 합과 합계, 대상(조건 ID, task는 `T001#1`)마다 실행 수 | `check`·`baseline` 줄. 실행은 겹칠 수 있어 합은 경과 시간이 아니다(§1.2) |
-| 다시 기록한 실행 | 같은 대상·같은 종류의 앞 줄이 있는 줄마다 그 seq, 앞 줄 seq, 앞 줄과 달라진 입력(`code`: check는 `commit`, baseline은 `base_commit`; `goal_documents`: `spec_digest`; `command`: `command_digest`; `overlay`: baseline의 덧씌운 경로·digest 집합)과 앞 줄의 결과. 달라진 입력이 없으면 빈 목록과 앞 줄의 결과다 | 두 줄의 필드만 비교한다 |
-| note | `test-change`, `recover`, `allow-recovery`, `reopen`, `input`, `confirm` note 수. `/4` 전에 시작한 목표는 앞의 세 종류를 기록할 수 없어 기록 없음이다 | `note` 줄 |
-| 기록 구간 | 첫 줄과 마지막 줄의 seq·`at`과 그 사이의 초 | 발견 줄(`run-finding/v1`)을 뺀 줄 |
-| 예산 창 | `window_start`, `span_seconds`, `reported_wait_seconds`, `elapsed_seconds`, `elapsed_limit_seconds`, `runs`, `runs_limit` | `ha status`의 `budget`과 같은 계산(§4.5, §5.2). `/4` 전에는 구간과 대기가 기록 없음이다 |
-| 대기 | `wait` note마다 seq, 물은 결정(`reason`), 그 대기 하나의 초. 초는 §4.7의 계산(note 다음 초부터 가장 이른 끝까지, 창을 넘지 않고 실행 구간을 뺌)을 그 창에서 그 대기에만 한 값이다. 기록 전체의 신고 대기는 창마다 겹친 대기를 한 번 센 합이다. `/4` 전에 시작한 목표는 대기를 신고할 수 없어 목록·합·출처별 수가 기록 없음이다 | `wait`와 그 끝이 되는 줄 |
-| 질문 | 출처별 수: 대기 신고, Spar `requirement-question` 지적, 상한 연장, 리뷰어 waiver. 그리고 지적마다 마지막 처리와 그 사용자 인용, 연장마다 단계·수·인용과 그 아래 줄의 원인과 이유(Markdown `    - 원인: <원인>; 이유: <이유>`, 영어 `    - cause: <cause>; reason: <reason>`, 이유가 없으면 그 부분이 없다. 원인이 없는 줄(이 기능 전의 줄과 plan·plan-delta 연장)은 `    - 원인: 기록 없음`, 영어 `    - cause: not recorded`. JSON의 연장 객체에는 `cause`·`reason`이 줄에 있을 때만 든다), waiver마다 라운드·리뷰어·인용의 목록. 범위·권한 결정과 재확인으로 나누지 않는다 | `wait` note, series의 `findings.json`·`ledger.jsonl`·`extensions.jsonl`·`waivers.jsonl` |
-| 라운드 | 단계(`plan`, `plan-delta`, `candidate`, `fixes`)마다 `counted`가 참인 수, 거짓인 재실행 수, `counted`가 없는 수. 라운드마다 `started_at`과 `finished_at` 사이의 초(`finished_at`이 없으면 끝나지 않음)와 리뷰어마다 상태·`elapsed_seconds`·시도 수·대체 모델 사용 | `round.json` |
-| 리뷰어 시간 | 리뷰어 이름마다 `elapsed_seconds`의 합(밀리초로 반올림해 더함), 라운드 수, 시간이 없는 라운드 수 | `round.json` |
-| 지적 | 분류마다 수와 위치별 수: 검사 경로(`in_check_paths` 참), 그 밖(거짓), 읽을 수 없는 위치(`location_unreadable` 참), 위치 기록 없음(`in_check_paths` 없음) | `findings.json` |
-| 처리 | 분류마다 지적의 마지막 원장 항목: `fix`, `reject`, `defer`(자동 보류 `auto: true`는 따로), `duplicate`, `answer`, 처리 없음 | `ledger.jsonl` |
-| 수정이 더한 줄 | series마다: fixes 라운드(dry run이 아니고 `findings.json`이 있는 것)가 없으면 `check`·`other` 0. 있으면 그 series의 gate 파일 가운데 잰 범위(`growth.rounds[]`의 `base`..`head`)의 집합이 series의 fixes 라운드 범위(`round.json`의 `base`..`head`)의 집합과 꼭 같은 파일의 `growth.added_lines`다. gate는 자기가 잰 범위만 더하고 같은 범위는 한 번만 세기 때문이다. gate가 라운드 경로를 어떤 형태로 적었는지는 보지 않는다. 그런 파일이 여럿이면 `review` note가 가장 나중에 기록한 digest의 파일, 기록된 것이 없으면 이름 순으로 첫 파일이다. gate 파일이 없거나(`no_gate_file`), 그런 파일이 없거나(`gate_misses_rounds`, gate 뒤에 돈 fixes 라운드, gate가 재지 못한 범위 등), 고른 파일에 `growth`가 없으면(`gate_without_growth`) 기록 없음이다. 모든 series에 값이 있을 때만 합계를 보인다 | gate 파일, `review` note의 `gate_digest` |
-| gate 파일 | series마다 이름, digest, `state`, 그 digest를 가진 마지막 `review` note의 seq | gate 파일, `review` note |
-| 토큰 | 새 입력·캐시 입력·출력 토큰은 늘 기록 없음이다. 0으로 보이지 않는다 | 어느 기록에도 없다. 기록하는 일은 [이슈 #174](https://github.com/jgoneit/jaekit/issues/174) |
+| Kind and size | The `Assurance:` tier in the current SPEC.md (none when absent), the rules version of the start record, the numbers of required and optional conditions, the numbers of files and commits changed outside the execution bundle documents since the base, the valid completion record seq | Goal documents, the `start` line, the same Git comparison as `Changed` in `ha report` (§1.3), the completion record from the same computation as `ha status` |
+| Runs | The number of `check` and `baseline` lines (by kind and by result), the sums of `duration_ms` by kind and in total, the number of runs per target (condition ID; `T001#1` for a task) | `check` and `baseline` lines. Runs can overlap, so the sum is not elapsed time (§1.2) |
+| Re-recorded runs | For each line that has a previous line with the same target and the same kind: its seq, the previous line's seq, the inputs that differ from the previous line (`code`: `commit` for check, `base_commit` for baseline; `goal_documents`: `spec_digest`; `command`: `command_digest`; `overlay`: the set of overlaid paths and digests of a baseline), and the previous line's result. When no input differs, an empty list and the previous line's result | Only the fields of the two lines are compared |
+| note | The numbers of `test-change`, `recover`, `allow-recovery`, `reopen`, `input` and `confirm` notes. A goal started before `/4` cannot record the first three kinds, so they are not recorded | `note` lines |
+| Record span | The seq and `at` of the first and last lines, and the seconds between them | Lines other than finding lines (`run-finding/v1`) |
+| Budget window | `window_start`, `span_seconds`, `reported_wait_seconds`, `elapsed_seconds`, `elapsed_limit_seconds`, `runs`, `runs_limit` | The same computation as `budget` in `ha status` (§4.5, §5.2). Before `/4`, the span and waits are not recorded |
+| Waits | For each `wait` note: its seq, the decision asked (`reason`), and the seconds of that one wait. The seconds are the computation of §4.7 (from the second after the note to the earliest end, not past the window, minus run intervals) applied in that window to that wait alone. The reported wait of the whole record is the sum in which overlapping waits are counted once per window. A goal started before `/4` cannot report waits, so the list, the sum and the counts by source are not recorded | `wait` and the line that ends it |
+| Questions | Counts by source: reported waits, Spar `requirement-question` findings, cap extensions, reviewer waivers. Then lists: for each finding, its last disposition and the user's quote; for each extension, the stage, count and quote, with its cause and reason on the line below (Markdown `    - cause: <cause>; reason: <reason>`, Korean `    - 원인: <원인>; 이유: <이유>`, without the reason part when there is none; a line without a cause, from before this feature or a plan or plan-delta extension, shows `    - cause: not recorded`, Korean `    - 원인: 기록 없음`; the JSON extension object has `cause` and `reason` only when the line has them); for each waiver, the round, reviewer and quote. They are not split into scope or authority decisions and re-checks | `wait` notes; the series' `findings.json`, `ledger.jsonl`, `extensions.jsonl` and `waivers.jsonl` |
+| Rounds | For each stage (`plan`, `plan-delta`, `candidate`, `fixes`): the number with `counted` true, the number of reruns with it false, and the number without `counted`. For each round, the seconds between `started_at` and `finished_at` (not finished when `finished_at` is absent), and for each reviewer, the status, `elapsed_seconds`, the number of attempts and fallback model use | `round.json` |
+| Reviewer time | For each reviewer name: the sum of `elapsed_seconds` (each rounded to milliseconds, then added), the number of rounds, and the number of rounds without a time | `round.json` |
+| Findings | For each class, the count and the counts by location: check paths (`in_check_paths` true), elsewhere (false), unreadable location (`location_unreadable` true), no location recorded (`in_check_paths` absent) | `findings.json` |
+| Dispositions | For each class, the last ledger entry of each finding: `fix`, `reject`, `defer` (automatic deferrals, `auto: true`, counted separately), `duplicate`, `answer`, no disposition | `ledger.jsonl` |
+| Lines added by fixes | For each series: when there is no fixes round (one that is not a dry run and has `findings.json`), `check` and `other` are 0. Otherwise, it is `growth.added_lines` of the gate file of that series whose set of measured ranges (`base`..`head` of `growth.rounds[]`) is exactly the set of the series' fixes round ranges (`base`..`head` of `round.json`). That is because a gate adds only the ranges it measured and counts the same range only once. How the gate wrote the round paths is not considered. When there are several such files, it is the file with the digest that a `review` note recorded last, or, when none is recorded, the first file by name. It is not recorded when there is no gate file (`no_gate_file`), when there is no such file (`gate_misses_rounds`: a fixes round run after the gate, a range the gate did not measure and so on), or when the chosen file has no `growth` (`gate_without_growth`). The total is shown only when every series has a value | Gate files; `gate_digest` of `review` notes |
+| Gate files | For each series: the name, the digest, `state`, and the seq of the last `review` note with that digest | Gate files, `review` notes |
+| Tokens | New input, cached input and output tokens are always not recorded. They are not shown as 0 | No record holds them. Recording them is [issue #174](https://github.com/jgoneit/jaekit/issues/174) |
 
-**출력.** 기본은 Markdown이다. 제목(`# Cost summary: <goal>`, 한국어는 `# 비용 요약: <goal>`) 뒤에 여섯 절(종류와 크기, 검증, 질문과 대기, 검토 라운드, 지적과 수정, 토큰)이 이 순서로 온다. `--lang`은 `ko`·`en`이고 없으면 `en`이며, 표지와 문장만 바꾼다. 조건 ID, seq, 결과, 단계, 분류, 처리, 리뷰어 이름과 상태, 파일 이름, 인용은 두 언어에서 같다. 인용과 `reason` 안의 줄바꿈은 `\n`으로 쓴다. `--format json`은 같은 값을 `cost/v1` 문서 하나로 보인다. 최상위 키는 `schema`, `goal`, `kind`, `verification`, `questions`, `review`, `findings`, `tokens`, `unavailable`이고, 값이 없는 곳은 `null`이며 `unavailable`이 그 위치(점으로 이은 키)와 까닭을 보인다: `not_started`(시작 기록 없음), `not_given`(`--series` 없음), `not_recorded`(기록에 그 값이 없음), `cannot_compare`(Git이 base와 HEAD를 비교하지 못함), `not_computed`(그 값을 계산할 수 없음), `none`(등급 줄이나 유효한 완료 기록이 없음). `unavailable`은 목록 밖의 위치만 이름 붙인다. 목록 항목 안의 `null`은 그 항목의 기록에 값이 없다는 뜻이다: 라운드의 `counted`·`rerun_of`·`started_at`·`finished_at`과 리뷰어의 `elapsed_seconds`·`attempts`·`fallback_used`는 그 필드가 `round.json`에 없음, 라운드의 `seconds`는 끝나지 않았거나 시각이 없음, `growth[].lines`는 그 항목의 `source`가 까닭, gate의 `recorded_seq`는 그 digest를 기록한 `review` note가 없음, 요구 질문의 `disposition`·`user_quote`는 처리나 인용이 없음이다. 상한 연장의 `cause`·`reason`은 예외로, 값이 없으면 `null`을 쓰지 않고 키를 빼어 이 기능 전과 같은 객체로 둔다. JSON은 `--lang`에 따라 바뀌지 않는다. 0과 기록 없음은 구별한다.
+**Output.** The default is Markdown. After the title (`# Cost summary: <goal>`, or `# 비용 요약: <goal>` in Korean) come six sections in this order: kind and size, verification, questions and waits, review rounds, findings and fixes, and tokens. `--lang` is `ko` or `en`, `en` when absent, and it changes only labels and sentences. Condition IDs, seq, results, stages, classes, dispositions, reviewer names and statuses, file names and quotes are the same in both languages. Line breaks inside quotes and `reason` are written as `\n`. `--format json` shows the same values as one `cost/v1` document. The top-level keys are `schema`, `goal`, `kind`, `verification`, `questions`, `review`, `findings`, `tokens` and `unavailable`; where a value is missing it is `null`, and `unavailable` shows that location (keys joined with dots) and the reason: `not_started` (no start record), `not_given` (no `--series`), `not_recorded` (the record does not have that value), `cannot_compare` (Git cannot compare base and HEAD), `not_computed` (that value cannot be computed), `none` (no tier line or no valid completion record). `unavailable` names only locations outside lists. A `null` inside a list item means that item's record has no value: for a round's `counted`, `rerun_of`, `started_at` and `finished_at` and a reviewer's `elapsed_seconds`, `attempts` and `fallback_used`, the field is absent from `round.json`; for a round's `seconds`, the round did not finish or has no time; for `growth[].lines`, that item's `source` is the reason; for a gate's `recorded_seq`, there is no `review` note that recorded that digest; for a requirement question's `disposition` and `user_quote`, there is no disposition or quote. A cap extension's `cause` and `reason` are the exception: without a value the key is left out instead of `null`, so the object stays as it was before this feature. The JSON does not change with `--lang`. 0 and not recorded are kept distinct.
 
-**입력 문제.**
-- 시작 기록이 없는 목표: 목표 문서에서 읽는 등급과 조건 수만 보이고, 실행 기록이 없다고 말한다(`verification`은 `not_started`). 0으로 보이지 않는다.
-- `--series`가 없으면 검토 라운드와 지적 절은 주지 않았다고만 말하고, 질문의 Spar 출처는 `not_given`이다.
-- 없는 series 경로, 폴더가 아닌 경로, 읽을 수 없는 폴더: 그 경로를 밝힌 오류로 65에 끝나고 요약을 출력하지 않는다.
-- `review-round/v1` 라운드가 깨졌으면(JSON이 아닌 `round.json`, 열 수 없는 `round.json`, 형식에 맞지 않는 필드, RFC 3339 시각이 아닌 `started_at`·`finished_at`, 해석되지 않는 `findings.json`, 해석되지 않는 `ledger.jsonl`·`waivers.jsonl`·`extensions.jsonl` 줄(보여 주는 `cause`나 `reason`이 있는데 글이 아닌 `extensions.jsonl` 줄 포함. Spar의 상한과 gate는 그 둘을 읽지 않는다, review-round.md §8), dry run이 아니고 끝난 라운드의 `findings.json` 없음, `findings.json`이 있는데 `ledger.jsonl` 없음): 그 파일을 밝힌 오류로 65에 끝나고 요약을 출력하지 않는다. 일부만 센 요약을 보이지 않는다. `findings.json`과 `finished_at`이 모두 없는 라운드는 지적을 기록하기 전에 멈춘 라운드라 지적이 없다. 이름이 `waivers.jsonl`인 폴더는 waiver가 없는 것이다(review-gate.md §2).
-- 끊긴 `runs.jsonl`: 그 파일을 밝힌 오류로 65에 끝나고 요약을 출력하지 않는다.
-- 예전 `ha`·`spar`가 남겨 필드가 없는 기록: 그 값만 기록 없음으로 보이고(예: `counted`, `elapsed_seconds`, `attempts`, `fallback_used`, `in_check_paths`, `/4` 전의 대기) 나머지는 센다. `location_unreadable`이 없는 지적은 위치를 읽은 지적이다(review-round.md §6).
-- 얕은 clone처럼 Git이 base와 HEAD를 비교할 수 없거나 기록이 가리키는 commit을 읽을 수 없을 때: 바뀐 파일·commit 수는 비교할 수 없다고 보이고(`cannot_compare`), 완료 기록은 계산하지 못했다고 보이며, 기록에서 읽는 값은 그대로 보인다. 종료 코드는 0이다.
+**Input problems.**
+- A goal without a start record: it shows only the tier and the condition counts read from the goal documents, and says there is no run record (`verification` is `not_started`). It does not show 0.
+- Without `--series`, the review round and finding sections only say that none was given, and the Spar sources of questions are `not_given`.
+- A series path that does not exist, a path that is not a folder, a folder that cannot be read: it exits 65 with an error naming that path, and prints no summary.
+- A broken `review-round/v1` round (a `round.json` that is not JSON, a `round.json` that cannot be opened, a field that does not fit the format, a `started_at` or `finished_at` that is not an RFC 3339 time, a `findings.json` that cannot be parsed, a `ledger.jsonl`, `waivers.jsonl` or `extensions.jsonl` line that cannot be parsed (an `extensions.jsonl` line with a `cause` or `reason`, which the summary shows, that is not text included; Spar's caps and gate do not read them, review-round.md §8), no `findings.json` in a finished round that is not a dry run, no `ledger.jsonl` while `findings.json` exists): it exits 65 with an error naming that file, and prints no summary. It never shows a partially counted summary. A round without both `findings.json` and `finished_at` stopped before recording findings, so it has no findings. A folder named `waivers.jsonl` means there are no waivers (review-gate.md §2).
+- A broken `runs.jsonl`: it exits 65 with an error naming that file, and prints no summary.
+- Records left by an older `ha` or `spar` without some fields: only those values are shown as not recorded (for example `counted`, `elapsed_seconds`, `attempts`, `fallback_used`, `in_check_paths`, waits before `/4`), and the rest are counted. A finding without `location_unreadable` is a finding whose location was read (review-round.md §6).
+- When Git cannot compare base and HEAD, as in a shallow clone, or cannot read a commit that the record points to: the changed file and commit counts are shown as impossible to compare (`cannot_compare`), the completion record is shown as not computed, and the values read from the record are shown as they are. The exit code is 0.
 
-## 2. 줄 형식
+## 2. Line format
 
-모든 줄의 공통 필드는 다음과 같다.
+Every line has the following common fields.
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
 | `schema` | `"run/v1"` |
-| `seq` | 1부터 증가하는 정수 |
-| `prev` | 직전 줄의 바이트 sha256. 첫 줄은 `null` |
+| `seq` | An integer increasing from 1 |
+| `prev` | The sha256 of the previous line's bytes. `null` for the first line |
 | `kind` | `start` \| `check` \| `baseline` \| `note` \| `done` \| `budget_change` |
-| `at` | UTC 시각 |
-| `ha_version` | 기록한 `ha` 버전 |
+| `at` | UTC time |
+| `ha_version` | The `ha` version that recorded the line |
 
-이 문서에서 **묶음 문서**는 goal 디렉토리 안의 다음 파일만 뜻한다.
-- 목표 문서: `SPEC.md`와 링크된 보조 문서([goal-docs.md](goal-docs.md) §1)
+In this document, **bundle documents** means only the following files in the goal directory.
+- Goal documents: `SPEC.md` and the linked supporting documents ([goal-docs.md](goal-docs.md) §1)
 - `PLAN.md`
 - `REVIEW.md`
 - `PROGRESS.md`
 - `tasks/**`
 - `runs.jsonl`
-- `amendments/**`: 수정안 문서([goal-docs.md](goal-docs.md) §6.6). SPEC.md가 링크해도 목표 문서 집합에 들지 않는다.
+- `amendments/**`: amendment documents ([goal-docs.md](goal-docs.md) §6.6). They are not part of the goal document set even when SPEC.md links to them.
 
-같은 부모 아래 다른 목표 디렉토리(§4.6)의 `amendments/**`도 규칙 버전에 관계없이 코드 상태에서 뺀다. goal 디렉토리 안의 다른 파일(검증 스크립트, fixture 등)은 코드로 다룬다. **코드 상태**는 다음 둘을 합친 것이다.
-- HEAD의 tree에서 묶음 문서를 뺀 것
-- 작업 트리의 변경: 추적 파일 수정, 추적되지 않은 파일. 무시된 파일(`.gitignore`)은 빠진다.
+`amendments/**` of other goal directories under the same parent (§4.6) is also excluded from the code state, whatever the rules version. Other files in the goal directory (verification scripts, fixtures and so on) are treated as code. The **code state** is these two combined.
+- HEAD's tree without the bundle documents
+- Changes in the working tree: modifications to tracked files, and untracked files. Ignored files (`.gitignore`) are left out.
 
 ### 2.1 `start`
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `goal` | goal 디렉토리 경로 |
-| `base_commit` | 시작 시점의 HEAD |
-| `tree_clean` | 시작 시점에 묶음 문서 밖 작업 트리가 깨끗했는가 |
-| `spec_digest` | 목표 문서 집합의 digest. 각 문서의 경로와 내용 sha256을 경로 순으로 이은 것의 sha256([goal-docs.md](goal-docs.md) §1) |
-| `request` | `{ "source": "conversation", "quote": "<사용자 요청 인용>" }`. 주장이다. |
-| `host` | `{ "name", "version", "model" }`. 주장이다. |
-| `skill` | `{ "name", "version", "digest" }`. 에이전트가 읽은 Seal Skill과 템플릿 패키지. `--skill`이면 `ha`가 머리말의 `name`과 `metadata.version`을 읽고, Skill 디렉토리의 파일 전체를 목표 digest와 같은 방식으로 digest한다. 어느 파일을 가리킬지는 에이전트가 정하므로 여전히 주장이다. |
-| `rules` | 상태 계산 규칙 버전(예: `"run-rules/1"`). `ha`가 넣는다. 이 목표의 상태는 끝까지 이 버전으로 계산한다(§4). |
-| `budget` | PLAN의 예산 `{ "runs", "elapsed_seconds", "cost" }`. 최초 한도다. `/1`·`/2`는 이 값을 계속 쓰고, `/3`의 횟수 상한은 유효한 변경 기록을 반영한다(§5.2). 자동 예산(§1.5)이면 `runs`가 산정 값이고 정보 객체 `"auto": { "minimum_runs", "computed_runs", "preapproved_runs", "source" }`가 더해진다. `source`는 `default` 또는 `user_config`이며 사용자 경로는 넣지 않는다. 상태 계산은 `auto`를 읽지 않는다. |
+| `goal` | The goal directory path |
+| `base_commit` | HEAD at the start |
+| `tree_clean` | Whether the working tree outside the bundle documents was clean at the start |
+| `spec_digest` | The digest of the goal document set: the sha256 of each document's path and content sha256, concatenated in path order ([goal-docs.md](goal-docs.md) §1) |
+| `request` | `{ "source": "conversation", "quote": "<사용자 요청 인용>" }`. It is a claim. |
+| `host` | `{ "name", "version", "model" }`. It is a claim. |
+| `skill` | `{ "name", "version", "digest" }`. The Seal Skill and template package the agent read. With `--skill`, `ha` reads `name` and `metadata.version` from the front matter, and digests all files in the Skill directory the same way as the goal digest. The agent decides which file to point to, so it is still a claim. |
+| `rules` | The status computation rules version (for example `"run-rules/1"`). `ha` sets it. This goal's status is computed with this version to the end (§4). |
+| `budget` | PLAN's budget `{ "runs", "elapsed_seconds", "cost" }`. It is the initial limit. `/1` and `/2` keep using this value, and the run limit of `/3` reflects valid change records (§5.2). With an automatic budget (§1.5), `runs` is the computed value and the informational object `"auto": { "minimum_runs", "computed_runs", "preapproved_runs", "source" }` is added. `source` is `default` or `user_config`, and the user's path is not included. Status computation does not read `auto`. |
 
-`/4` 시작 줄에는 `scope`(`allowed`, `tests`: 시작 때 PLAN `## 범위`의 경로 사본)가 있고, `--test-authority`를 주면 `test_authority`(`interpretation`)도 있다(§4.7).
+A `/4` start line has `scope` (`allowed`, `tests`: copies of the paths in PLAN `## 범위` (scope) at the start), and, with `--test-authority`, also `test_authority` (`interpretation`) (§4.7).
 
-`/7` 시작 줄에는 시작 때 baseline을 요구한다고 표시한 조건 ID 목록인 `baseline_marked`도 있다(§4.10).
+A `/7` start line also has `baseline_marked`, the IDs marked as requiring a baseline at the start (§4.10).
 
 ### 2.2 `check`
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `target` | `{ "criterion": "AC-1" }` 또는 `{ "task": "T001", "index": 1 }` |
-| `criterion_kind` | 실행할 때의 조건 종류. task 검사는 없다. 종류 변경을 기록만으로 드러내기 위해 남긴다. |
-| `argv` | 실행한 명령 |
-| `command_digest` | PLAN에 적힌 명령 문자열의 sha256 |
-| `commit` | 실행 시점의 HEAD |
-| `tree_clean` | 실행 시점에 묶음 문서 밖 작업 트리가 깨끗했는가 |
-| `spec_digest` | 실행 시점의 SPEC digest |
-| `exit` | exit code. 시작 실패나 시간 초과면 `null` |
-| `result` | `/1`·`/2`와 일반 maintain·task는 `pass`(exit 0) \| `fail`(exit ≠ 0) \| `error`(시작 실패, 시간 초과). `/3` change는 [구조화 결과 계약](check-result.md)에 따라 분류한다. |
-| `timing` | 선택적 프로세스 측정값(아래). 판정·신선도·사용량·예산에 쓰지 않는다. |
-| `duration_ms`, `output_digest`, `output_path` | 실행 시간, 출력 digest, 로컬 출력 위치(저장소 기준 경로, 예: `.git/ha/runs/<goal-key>/7.log`). `output_path`에는 절대 경로를 쓰지 않는다. linked worktree에서도 형식이 같고, 이때 `.git`은 그 작업 트리의 git 디렉토리를 뜻한다. 이전 `ha`가 남긴 절대 경로는 고쳐 쓰지 않고 그대로 읽는다. `/3`에서 실제 시도 뒤 출력 저장이 실패하면 `error`·`process_output`으로 시도와 사용량을 남기고 `output_path`·`output_digest`는 빈 값일 수 있다. |
+| `target` | `{ "criterion": "AC-1" }` or `{ "task": "T001", "index": 1 }` |
+| `criterion_kind` | The condition kind at run time. Task checks have none. It is kept so that a change of kind shows from the record alone. |
+| `argv` | The command that was run |
+| `command_digest` | The sha256 of the command string written in PLAN |
+| `commit` | HEAD at run time |
+| `tree_clean` | Whether the working tree outside the bundle documents was clean at run time |
+| `spec_digest` | The SPEC digest at run time |
+| `exit` | The exit code. `null` on a start failure or a timeout |
+| `result` | For `/1` and `/2`, and for ordinary maintain and task checks: `pass` (exit 0) \| `fail` (exit ≠ 0) \| `error` (start failure, timeout). A `/3` change is classified according to the [structured result contract](check-result.md). |
+| `timing` | Optional process measurements (below). Not used for judgment, freshness, usage or budget. |
+| `duration_ms`, `output_digest`, `output_path` | Run time, output digest, local output location (a repository-relative path, for example `.git/ha/runs/<goal-key>/7.log`). `output_path` never holds an absolute path. The format is the same in a linked worktree, where `.git` means that working tree's git directory. Absolute paths left by an earlier `ha` are read as they are, not rewritten. In `/3`, when saving the output fails after an actual attempt, the attempt and usage are recorded with `error` and `process_output`, and `output_path` and `output_digest` may be empty. |
 
-`timing`은 이 실행의 측정값이다. 이 필드가 없는 줄(이전 `ha`의 줄)은 그 값이 기록되지 않은 것이다.
+`timing` holds the measurements of this run. A line without this field (a line from an earlier `ha`) has those values not recorded.
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `limit_ms` | 이 실행에 적용한 시간 제한. 밀리초 정수 하나이며, 두 목표가 함께 쓰는 적용 제한의 유일한 기록값이다 |
-| `limit_elapsed_ms` | 제한 타이머가 켜진 때(프로세스 시작에 성공한 뒤)부터 프로세스 종료를 확인했거나 시간 초과를 결정한 때까지. 그 뒤의 하위 프로세스 정리·종료 확인 시간은 들어가지 않는다. 프로세스가 시작하지 못해 타이머가 켜지지 않았으면 `null`이다 |
-| `limit_reached` | 시간 제한이 발동했는가 |
-| `cpu` | `{ "status", "user_ms", "system_ms", "scope", "source" }`. `status`는 `measured`, `unavailable`(실행된 프로세스가 없거나 운영체제가 주지 않음), `failed`(읽기 실패)다. `user_ms`·`system_ms`는 `measured`일 때만 있다 |
+| `limit_ms` | The time limit applied to this run. One integer in milliseconds; it is the only recorded value of the applied limit that the two goals share |
+| `limit_elapsed_ms` | From when the limit timer started (after the process started successfully) until the process's exit was confirmed or the timeout was decided. Time spent afterward cleaning up child processes and confirming their exit is not included. `null` when the process could not start and the timer was not started |
+| `limit_reached` | Whether the time limit fired |
+| `cpu` | `{ "status", "user_ms", "system_ms", "scope", "source" }`. `status` is `measured`, `unavailable` (no process ran, or the operating system does not provide it) or `failed` (reading failed). `user_ms` and `system_ms` are present only for `measured` |
 
-`cpu.scope`와 `cpu.source`는 고정 코드다. Unix(macOS·Linux)는 `process-and-waited-descendants`·`wait4-rusage`다. `wait4`가 돌려준 값으로, 실행한 프로세스와 그 프로세스가 기다린 하위 프로세스만 센다. 시간 제한으로 프로세스 그룹째 종료된, 기다리지 않은 하위 프로세스는 들어가지 않는다. Windows는 `job-process-tree`·`job-object-accounting`이다. 실행 전에 배정한 Job Object에서 돈 모든 프로세스를, 모두 끝난 뒤 센다. 두 범위가 달라 운영체제 사이의 값을 같은 뜻으로 비교하지 않는다.
+`cpu.scope` and `cpu.source` are fixed codes. On Unix (macOS, Linux) they are `process-and-waited-descendants` and `wait4-rusage`. These are the values `wait4` returned, and they count only the process that was run and the child processes it waited for. Child processes that were not waited for, terminated with the whole process group by the time limit, are not included. On Windows they are `job-process-tree` and `job-object-accounting`. All processes that ran in the Job Object assigned before the run are counted after they have all ended. The two scopes differ, so values are not compared across operating systems as having the same meaning.
 
-`duration_ms`의 뜻은 그대로다. 명령 준비·프로세스 시작 전에 재기 시작해 종료 대기·정리 뒤에 끝난다. 그래서 `duration_ms`를 `limit_ms`로 나눈 값은 정확한 여유가 아니고, 근접도는 `limit_elapsed_ms`로 본다(§1.2). 실행 전 거부와 준비 실패는 실행이 아니므로 줄도 측정값도 만들지 않는다. 측정값에는 절대 경로, 환경 변수 값, 명령 출력이 들어가지 않는다.
+The meaning of `duration_ms` is unchanged. Timing starts before command preparation and process start, and ends after waiting for exit and cleanup. So `duration_ms` divided by `limit_ms` is not the exact headroom; proximity is read from `limit_elapsed_ms` (§1.2). A refusal before a run and a preparation failure are not runs, so they produce neither a line nor measurements. Measurements contain no absolute paths, environment variable values or command output.
 
-`timing`의 값은 판정하지 않으므로, 타입이나 값이 손상된 `timing`은 기록의 무결성 오류가 아니다. 읽는 쪽은 그 값만 이용 불가로 다룬다. JSON 자체의 손상과 `seq`·`prev` 연결 끊김은 지금처럼 무결성 오류다. 알 수 없는 필드를 무시하고 원문 바이트로 해시를 잇는 이전 `ha`(v0.1.4 이하)는 이 필드가 든 기록을 자기 지원 규칙 안에서 읽고 이어 쓴다.
+`timing` values are not judged, so a `timing` with a corrupt type or value is not a record integrity error. Readers treat only that value as unavailable. Corruption of the JSON itself and a break in the `seq`/`prev` chain are integrity errors, as now. An earlier `ha` (v0.1.4 or earlier), which ignores unknown fields and chains hashes over the original bytes, reads records that contain this field and keeps appending to them within its own supported rules.
 
-`/3` change 줄에는 `evidence`가 더해진다. [check-result.md](check-result.md)의 `check-evidence/v1` 간결한 근거이며 선언·생산자 입력, 호출, 보고 digest와 대상별 관측을 연결한다. `unknown`은 판정 불가이고 통과가 아니다.
+A `/3` change line adds `evidence`. It is the compact `check-evidence/v1` evidence of [check-result.md](check-result.md), and links the declaration and producer inputs, the invocation, the report digest and the per-target observations. `unknown` is inconclusive, not a pass.
 
-`/4` 줄에는 실행 시작 시각 `started_at`이 더해진다(§4.7). baseline 줄도 같다.
+A `/4` line adds the run start time `started_at` (§4.7). So does a baseline line.
 
 ### 2.3 `baseline`
 
-`check`의 필드에 다음이 더해진다. `commit`은 덧씌울 검사 파일을 가져온 HEAD다.
+The following are added to the fields of `check`. `commit` is the HEAD that the overlaid check files were taken from.
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `base_commit` | `start`의 base commit |
-| `overlay` | `[{ "path", "digest" }]`. HEAD에서 가져와 덧씌운 검사 파일 |
-| `result` | `/1`·`/2`: `fail_as_expected`(exit ≠ 0) \| `unexpected_pass`(exit 0) \| `error`. `/3`는 [구조화 결과 계약](check-result.md)을 적용한다. |
+| `base_commit` | The base commit of `start` |
+| `overlay` | `[{ "path", "digest" }]`. Check files taken from HEAD and overlaid |
+| `result` | `/1`, `/2`: `fail_as_expected` (exit ≠ 0) \| `unexpected_pass` (exit 0) \| `error`. `/3` applies the [structured result contract](check-result.md). |
 
-`/1`·`/2`는 실패의 원인(예: 아직 없는 모듈의 import 실패)을 구분하지 않는다. `/3` change는 선언한 대상의 실제 관측을 요구한다. import·수집·기동 오류, 미실행, 불명확한 일반 스크립트 실패는 기대 실패가 아니다. 실행 가능한 검사가 기능 부재를 직접 관측한 경우는 선언한 요구 위반일 수 있다. 사람이 출력 원문을 보려면 `ha log`를 쓴다.
+`/1` and `/2` do not distinguish the cause of a failure (for example an import failure of a module that does not exist yet). A `/3` change requires an actual observation of the declared target. Import, collection and startup errors, not running, and unclear failures of ordinary scripts are not expected failures. When a runnable check directly observes that a feature is absent, it can be a violation of the declared requirement. A person who wants to see the raw output uses `ha log`.
 
-앞으로 수행하는 baseline은 `/1`·`/2`·`/3` 모두 검사 대상 하나의 전체 복사 목록을 파일 적용 전에 확인한다. HEAD 원본은 커밋된 일반 파일(`100644` 또는 `100755`)이어야 하며, 기준 상태의 복사 대상이나 부모가 symlink이면 내부·외부·끊어진 링크 모두 거부한다. 선언·생산자와 추가 검사 경로에 같은 조건을 적용한다. 안전한 일반 파일 교체, 없는 부모·파일 생성, 실행 권한은 유지하며 복사와 무관한 symlink는 허용한다.
+For baselines run from now on, in `/1`, `/2` and `/3` alike, the full copy list of one check target is checked before any file is applied. The HEAD source must be a committed regular file (`100644` or `100755`), and if a copy destination or its parent in the base state is a symlink, it is refused, whether the link is internal, external or broken. The same conditions apply to declaration, producer and additional check paths. Safe replacement of regular files, creation of missing parents and files, and execute permission are kept, and symlinks unrelated to the copy are allowed.
 
-Windows의 junction 등 irregular 항목도 안전한 일반 파일·디렉토리로 취급하지 않는다. 준비 오류나 관측된 불안전 경로 변경으로 안전성을 확인할 수 없으면 명령을 시작하지 않는다. 실패 원인과 해당 저장소 상대 경로를 알리고, 원래 작업 트리와 임시 worktree 밖 파일의 내용·권한을 보존한다. 미실행 대상의 검사 기록·사용량은 추가하지 않으며 일괄 요청에서 이미 실행된 대상의 기록·사용량은 유지한다. 이는 신규 실행의 안전 조건으로, 과거 기록을 소급 재분류하지 않는다. 실제 프로세스 시작 시도 이후의 오류·실패는 기존 기록·사용량 규칙을 따른다. 임의의 비협조 외부 프로세스를 격리하거나 검사 명령 자체의 쓰기를 제한하는 기능은 아니다.
+Irregular entries such as Windows junctions are not treated as safe regular files or directories either. When safety cannot be established because of a preparation error or an observed unsafe path change, the command is not started. It reports the cause of the failure and the repository-relative path concerned, and preserves the content and permissions of the original working tree and of files outside the temporary worktree. No check record or usage is added for targets that did not run, and in a batch request the records and usage of targets that already ran are kept. This is a safety condition for new runs and does not retroactively reclassify past records. Errors and failures after an actual attempt to start a process follow the existing record and usage rules. This is not a feature that isolates arbitrary uncooperative external processes or restricts the writes of the check command itself.
 
 ### 2.4 `note`
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `note` | `block` \| `unblock` \| `confirm` \| `reopen` \| `input`. `/4`·`/5`와 `/5`의 note는 아래 |
-| `cause` | `block`일 때 원인 종류([bundle.md](bundle.md) §5) |
-| `subject` | `confirm`일 때 대상: `AC-n`(manual 조건), `scope:<path>`, `tests:<path>`, `spec` |
-| `bound` | `confirm`일 때 `ha`가 계산해 묶는 값(아래 표). 필드는 `criterion_sha256`, `spec_digest`, `blob` 중 해당하는 것이다. 에이전트가 넣지 않는다. |
-| `quote` | 사용자 발화 인용(`confirm`, `reopen`, `input`) 또는 설명. 주장이다. |
+| `note` | `block` \| `unblock` \| `confirm` \| `reopen` \| `input`. The notes `/4` and `/5` goals use, and those only `/5` goals use, are below |
+| `cause` | For `block`, the cause kind ([bundle.md](bundle.md) §5) |
+| `subject` | For `confirm`, the subject: `AC-n` (a manual condition), `scope:<path>`, `tests:<path>`, `spec` |
+| `bound` | For `confirm`, the value that `ha` computes and binds (table below). The fields are whichever of `criterion_sha256`, `spec_digest` and `blob` apply. The agent does not set it. |
+| `quote` | A quote of the user's words (`confirm`, `reopen`, `input`) or an explanation. It is a claim. |
 
-`confirm`은 **확인한 그 내용**에만 유효하다. `ha`는 기록할 때 대상의 현재 값을 `bound`에 묶는다. 상태를 계산할 때 그 값이 지금과 다르면 그 확인은 무효다. 무효가 된 확인은 상태 출력에 따로 나열된다.
+`confirm` is valid only for **the exact content confirmed**. When recording, `ha` binds the subject's current value in `bound`. If that value differs from the current one when the status is computed, the confirmation is invalid. Invalidated confirmations are listed separately in the status output.
 
-| 대상 | `bound` | 유효 조건 |
+| Subject | `bound` | Valid when |
 | --- | --- | --- |
-| `AC-n` | 목표 문서에 있는 그 조건 문장의 sha256, 목표 digest. `manual` 조건에만 쓸 수 있다 | 둘 다 현재와 같다 |
-| `scope:<path>` | 그 경로의 HEAD blob id(삭제면 `deleted`). 기록 때 작업 트리가 깨끗해야 한다 | 현재 HEAD의 같은 경로가 같은 blob이다 |
-| `tests:<path>` | 같음 | 같음 |
-| `spec` | 현재 SPEC digest | 현재 SPEC digest와 같다 |
+| `AC-n` | The sha256 of that condition's sentence in the goal documents, and the goal digest. Usable only for `manual` conditions | Both equal the current values |
+| `scope:<path>` | The HEAD blob id of that path (`deleted` if deleted). The working tree must be clean when recording | The same path in the current HEAD is the same blob |
+| `tests:<path>` | Same | Same |
+| `spec` | The current SPEC digest | Equals the current SPEC digest |
 
-`input`은 실행 중 사용자 발화 가운데 `confirm`이나 `reopen`이 아닌 것이다. 예: 진행 지시, 질문에 대한 답, 새 요구, 수정 요청. `ha`는 분류하지 않는다. 분류가 필요하면 사람이 기록을 읽고 판단한다. 상태 계산에는 쓰지 않는다. 개선 후보의 근거가 되고, 과거 목표를 재실행할 때 같은 질문에 답하는 자료가 된다.
+`input` is any of the user's words during a run that is not `confirm` or `reopen`. Examples: an instruction to proceed, an answer to a question, a new requirement, a change request. `ha` does not classify it. When a classification is needed, a person reads the record and decides. It is not used in status computation. It serves as grounds for improvement candidates, and as material for answering the same questions when a past goal is run again.
 
-`/5` 목표는 `review` note(`review`: 검토 gate 요약, §4.8)도 쓴다. 인용은 비어 있다.
+`/5` goals also write the `review` note (`review`: the review gate summary, §4.8). Its quote is empty.
 
-`/4`·`/5` 목표는 `test-change`(대상 `tests:<path>`, `bound.blob`, `test_change`: `criteria`, `how`, `moved_to`, `weakened`), `wait`(`reason`), `resume`, `recover`·`allow-recovery`(`recovery`: `criterion`, `input`, `change` 또는 `count`) note도 쓴다(§4.7). `/7` 목표는 `check-change` note(대상 `checks:<path>`, `reason`, `check_change.blob`: 그 경로의 HEAD blob, 경로가 없으면 `null`)도 쓰고, `review` note에 그때 조건표에서 검사 경로를 적은 행의 조건 ID별 `check_paths`(그런 행이 없으면 `{}`)를 더한다(§4.10).
+`/4` and `/5` goals also write the `test-change` (subject `tests:<path>`, `bound.blob`, `test_change`: `criteria`, `how`, `moved_to`, `weakened`), `wait` (`reason`), `resume`, and `recover` and `allow-recovery` (`recovery`: `criterion`, `input`, `change` or `count`) notes (§4.7). `/7` goals also write the `check-change` note (subject `checks:<path>`, `reason`, `check_change.blob`: the path's HEAD blob, or `null` when the path is absent), and their `review` note adds `check_paths`, the condition table's check paths by condition ID for every row that lists any at that time (`{}` when no row lists paths) (§4.10).
 
 ### 2.5 `done`
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `status` | 계산한 상태(§4) |
-| `reasons` | 남은 이유 목록 |
-| `commit`, `tree_clean`, `spec_digest` | 계산 시점의 코드 상태와 SPEC |
-| `record_head` | 이 줄 직전까지의 기록 head |
-| `criteria` | 조건별 `{ "id", "kind", "satisfied", "records": [seq…] }`. 근거가 된 기록 |
-| `command_digests` | 조건별 현재 명령 digest |
+| `status` | The computed status (§4) |
+| `reasons` | The list of remaining reasons |
+| `commit`, `tree_clean`, `spec_digest` | The code state and SPEC at the time of computation |
+| `record_head` | The record head up to just before this line |
+| `criteria` | `{ "id", "kind", "satisfied", "records": [seq…] }` per condition. The records that served as evidence |
+| `command_digests` | The current command digest per condition |
 
 ### 2.6 `budget_change`
 
-`/3` 전용 줄이다. 공통 필드와 다음 `budget_change` 객체를 기록한다.
+A `/3`-only line. It records the common fields and the following `budget_change` object.
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `goal` | 시작 기록과 같은 목표 |
-| `window_start` | 변경 대상 start/reopen seq |
-| `revision` | 변경 직전 최신 start/reopen/budget_change seq |
-| `previous_runs`, `runs` | 이전·새 총 실행 횟수 상한 |
-| `quote`, `context` | 증액을 뒷받침하는 사용자 원문과 요청 문맥. 출처 미검증이면 실행자의 주장 |
-| `interpretation` | 선택적인 에이전트 해석. 사용자 원문과 구분 |
-| `reason` | 변경 이유. 감액에는 필수 |
+| `goal` | The same goal as the start record |
+| `window_start` | The start/reopen seq that the change targets |
+| `revision` | The latest start/reopen/budget_change seq just before the change |
+| `previous_runs`, `runs` | The previous and new total run limits |
+| `quote`, `context` | The user's original words that support an increase, and the request context. If the source is not verified, the executor's claim |
+| `interpretation` | An optional agent interpretation, kept distinct from the user's original words |
+| `reason` | The reason for the change. Required for a decrease |
 
-명령의 `--window`, `--revision`, `--from`이 각각 현재 창·개정·상한과 일치해야 한다. 잠금 아래 최신 기록을 읽어 비교한 뒤 기록한다. 단순 검사 기록 추가는 예산 개정이 아니며 실제 누적 사용량에 반영한다. 새 변경의 seq가 그 뒤 예산 개정이 된다.
+The command's `--window`, `--revision` and `--from` must match the current window, revision and limit respectively. It reads the latest record under the lock, compares, and then records. Merely adding check records is not a budget revision; it is reflected in the actual cumulative usage. The seq of a new change becomes the budget revision from then on.
 
-`/4`의 사전 승인은 `preapproved_runs`를 가진 `budget_change`이며 `runs`는 `previous_runs`와 같다(§4.7).
+A `/4` pre-approval is a `budget_change` with `preapproved_runs`, and its `runs` equals `previous_runs` (§4.7).
 
-## 3. 신선도
+## 3. Freshness
 
-결과는 그 결과가 나온 코드 상태, SPEC, 검증 명령에 묶인다.
+A result is bound to the code state, SPEC and verification command it came from.
 
-**전제: 지금 작업 트리가 깨끗하다.** 묶음 문서 밖의 작업 트리에 변경(추적 파일 수정, 추적되지 않은 파일)이 있으면 지금의 코드 상태는 어떤 commit과도 같지 않다. 이때는 어떤 기록도 신선하지 않고, 상태 이유는 `worktree_dirty`다.
+**Premise: the working tree is clean now.** If the working tree outside the bundle documents has changes (modified tracked files, untracked files), the current code state matches no commit. Then no record is fresh, and the status reason is `worktree_dirty`.
 
-여기서 **묶음 문서**는 자기 목표의 목표 문서와 실행 묶음(`amendments/**` 포함), 그리고 같은 부모 아래 다른 목표의 `amendments/**`다. `run-rules/2`와 `run-rules/3`에서는 다른 목표의 실행 묶음 파일도 들어간다(§4.6). 이 계약에서 "묶음 문서 밖"은 모두 이 목록 밖을 뜻한다.
+Here the **bundle documents** are the goal's own goal documents and execution bundle (including `amendments/**`), and the `amendments/**` of other goals under the same parent. Under `run-rules/2` and `run-rules/3`, the execution bundle files of other goals are included too (§4.6). Everywhere in this contract, "outside the bundle documents" means outside this list.
 
-`check` 줄 r은 다음을 모두 만족할 때 **신선하다**.
-1. 지금 작업 트리가 깨끗하다(전제).
-2. `r.tree_clean`이 참이다.
-3. 기록 commit과 HEAD 사이에 묶음 문서 밖의 차이가 없다. 예: `git diff --quiet r.commit HEAD -- . ':(exclude)<goal>/SPEC.md' ':(exclude)<goal>/PLAN.md' …`
-4. `r.spec_digest`가 현재 SPEC digest와 같다.
-5. `r.command_digest`가 현재 PLAN의 해당 명령 digest와 같다.
+A `check` line r is **fresh** when all of the following hold.
+1. The working tree is clean now (the premise).
+2. `r.tree_clean` is true.
+3. There is no difference outside the bundle documents between the record's commit and HEAD. For example: `git diff --quiet r.commit HEAD -- . ':(exclude)<goal>/SPEC.md' ':(exclude)<goal>/PLAN.md' …`
+4. `r.spec_digest` equals the current SPEC digest.
+5. `r.command_digest` equals the digest of the corresponding command in the current PLAN.
 
-`baseline` 줄 b는 다음을 모두 만족할 때 신선하다. 3은 요구하지 않는다. baseline은 base commit에서 실행했고, 덧씌운 검사 파일의 digest가 HEAD와의 연결이다.
-- 위의 1, 2, 4, 5가 성립한다.
-- `b.base_commit`이 `start`의 base commit과 같다.
-- `b.overlay`의 경로 집합이 지금 조건표의 검사 경로와 같고, 각 digest가 현재 HEAD의 같은 경로 내용과 같다.
+A `baseline` line b is fresh when all of the following hold. Item 3 is not required. The baseline ran at the base commit, and the digests of the overlaid check files are its link to HEAD.
+- Items 1, 2, 4 and 5 above hold.
+- `b.base_commit` equals the base commit of `start`.
+- The set of paths in `b.overlay` equals the check paths of the current condition table, and each digest equals the content of the same path at the current HEAD.
 
-`/3` change에는 선언·결과 계약·대상·생산자 버전과 내용의 연결도 필요하다([check-result.md](check-result.md)). 명령 문자열이 같아도 이 의미가 바뀌면 이전 검사와 완료 근거를 재사용하지 않는다. 러너 어댑터 선언(`check-adapter/v1`)이면 생산자 대신 선언 바이트와 그 어댑터의 판정 의미 버전이 연결된다. Core가 같은 러너 출력을 다르게 판정하게 되어 어댑터의 판정 의미 버전이 오르면, 그 어댑터로 얻은 이전 baseline·검사·완료 근거는 신선하지 않다. 선언의 위반이나 연결한 시험 이름이 바뀌어도 같다. 출력 위치의 경로는 기록되지 않으므로 신선도에 쓰이지 않는다([check-result.md](check-result.md#5-러너-어댑터) §5). 상태 재구성은 저장된 간결한 근거로 하므로 원문 로그가 없어지거나 현재 시각이 달라졌다는 이유만으로 판정이 바뀌지 않는다.
+A `/3` change also needs its link to the declaration, the result contract, the targets, and the producer version and content ([check-result.md](check-result.md)). Even when the command string is the same, earlier checks and completion evidence are not reused if this meaning changes. For a runner adapter declaration (`check-adapter/v1`), the declaration bytes and the adapter's judgment semantics version are linked instead of the producer. When Core comes to judge the same runner output differently and the adapter's judgment semantics version goes up, earlier baselines, checks and completion evidence obtained with that adapter are not fresh. The same holds when the declaration's violation or the linked test name changes. The path of the output location is not recorded, so it is not used for freshness ([check-result.md](check-result.md#5-runner-adapters) §5). Status is reconstructed from the stored compact evidence, so a judgment does not change merely because the raw log is gone or the current time is different.
 
-신선하지 않은 줄은 지우지 않는다. 충족 계산에 쓰지 않을 뿐이다. 이전 실패와 오류는 시도 이력으로 남는다(§4.4).
+Lines that are not fresh are never deleted. They are only left out of the satisfaction computation. Earlier failures and errors remain as attempt history (§4.4).
 
-**한계**: 무시된 파일(`.gitignore`)은 코드 상태에 들어가지 않는다. 검사가 무시된 파일(예: 로컬 설정)에 의존하면 같은 코드 상태에서도 결과가 달라질 수 있다.
+**Limitation**: ignored files (`.gitignore`) are not part of the code state. If a check depends on an ignored file (for example, local settings), its result can differ even in the same code state.
 
-## 4. 상태 계산 (`ha status`, `ha done`)
+## 4. Status computation (`ha status`, `ha done`)
 
-입력은 `runs.jsonl`, 실행 묶음, git뿐이다. 모델을 호출하지 않고, **현재 시각을 쓰지 않는다.** 같은 입력이면 언제 계산해도 같은 결과다.
+The only inputs are `runs.jsonl`, the execution bundle and git. It calls no model and **never uses the current time.** The same input gives the same result whenever it is computed.
 
-계산 규칙은 `start`의 `rules` 버전을 따른다. `ha`가 새 규칙 버전을 갖게 되어도 진행 중인 목표에는 시작할 때의 버전을 쓴다. 그 버전을 지원하지 않는 `ha`는 계산하지 않고 종료 코드 66(지원하지 않는 규칙 버전)으로 끝낸다.
+The computation rules follow the `rules` version of `start`. Even when `ha` gains a new rules version, a goal in progress uses the version it started with. An `ha` that does not support that version does not compute, and exits with code 66 (unsupported rules version).
 
-### 4.1 조건별 충족
+### 4.1 Satisfaction per condition
 
-먼저 조건마다 충족 여부를 정한다. 전체 상태는 그다음에 계산한다.
+First, each condition is decided as satisfied or not. The overall status is computed after that.
 
-아래 표는 `run-rules/6`까지 모든 change 조건에 적용한다. `/7`의 baseline 요구 차이는 §4.10을 따른다. C는 그 조건의 신선한 `check` 줄, B는 신선한 `baseline` 줄이다. E는 같은 코드 상태에서 허용하는 오류 재실행 수다(기본 1). 오류(`error`)는 검사가 판단을 내지 못한 것이다. 실패의 증거도 통과의 증거도 아니다. 그래서 E번까지는 다시 실행할 수 있다. 실패(`fail`)는 다시 실행해도 지워지지 않는다.
+Up to `run-rules/6`, the tables below apply to every change condition; `/7` changes the baseline requirement only as defined in §4.10. C is the condition's fresh `check` lines, and B its fresh `baseline` lines. E is the number of error reruns allowed in the same code state (default 1). An error (`error`) means the check reached no judgment. It is evidence of neither failure nor pass. So it can be run again up to E times. A failure (`fail`) is not erased by running again.
 
-| 종류 | 충족 조건 |
+| Kind | Satisfied when |
 | --- | --- |
-| `maintain` | C에 `pass`가 하나 이상 있고, `fail`이 없고, `error`가 E개 이하이고, C의 가장 최근 줄이 `pass`다. |
-| `change` | `maintain`의 조건을 C가 만족한다. 그리고 B에 `fail_as_expected`가 하나 이상 있고, `unexpected_pass`가 없고, `error`가 E개 이하이고, B의 가장 최근 줄이 `fail_as_expected`다. |
-| `manual` | 그 조건에 유효한 `confirm`이 있다(§2.4). `check` 기록은 요구하지 않는다. |
+| `maintain` | C has at least one `pass`, no `fail`, at most E `error`s, and the most recent line of C is `pass`. |
+| `change` | C meets the `maintain` condition. In addition, B has at least one `fail_as_expected`, no `unexpected_pass`, at most E `error`s, and the most recent line of B is `fail_as_expected`. |
+| `manual` | The condition has a valid `confirm` (§2.4). No `check` record is required. |
 
-충족되지 않은 조건은 다음 순서로 처음 맞는 이유 하나를 받는다.
+A condition that is not satisfied gets one reason: the first that matches, in the following order.
 
-| 이유 | 대상 | 조건 | 분류 |
+| Reason | Applies to | When | Class |
 | --- | --- | --- | --- |
-| `criterion_missing` | change, maintain | C가 비어 있다 | 실행자가 고침 |
-| `criterion_flaky` | change, maintain | C에 `pass`와 `fail`이 함께 있다. 같은 코드에서 결과가 갈렸다 | 실행자가 고침(검사나 코드를 고쳐 다시 검증) |
-| `criterion_failed` | change, maintain | C에 `fail`이 있다 | 실행자가 고침 |
-| `criterion_error` | change, maintain | C의 `error`가 E개 이하이고, 가장 최근 줄이 `error`다 | 실행자가 고침(다시 실행) |
-| `baseline_missing` | change | B가 비어 있고 이 조건이 baseline을 요구한다(§4.10) | 실행자가 고침 |
-| `baseline_unexpected_pass` | change | B에 `unexpected_pass`가 있다 | 실행자가 고침(검사를 고치거나, 계획 변경으로 종류를 `maintain`으로 바꾼다) |
-| `baseline_failed` | change | `/3`의 신선한 baseline에 의도와 다른 assertion 실패 또는 내부 시도 불일치가 있다 | 실행자가 고침 |
-| `evidence_invalid` | change | `/3`의 저장된 간결한 근거가 유효하지 않다 | 실행자가 고침 |
-| `baseline_error` | change | B의 `error`가 E개 이하이고, 가장 최근 줄이 `error`다 | 실행자가 고침(다시 실행) |
-| `error_limit` | change, maintain | C나 B의 `error`가 E개를 넘었다. 같은 코드에서 검사 환경이 계속 판단을 내지 못한다 | 사용자 확인 |
-| `manual_unconfirmed` | manual | 유효한 `confirm`이 없다(없거나, 확인한 뒤 내용이 바뀌었다) | 사용자 확인 |
+| `criterion_missing` | change, maintain | C is empty | executor fixes |
+| `criterion_flaky` | change, maintain | C has both `pass` and `fail`. The results split on the same code | executor fixes (fix the check or the code and verify again) |
+| `criterion_failed` | change, maintain | C has a `fail` | executor fixes |
+| `criterion_error` | change, maintain | C has at most E `error`s, and the most recent line is `error` | executor fixes (run again) |
+| `baseline_missing` | change | B is empty and this condition requires a baseline (§4.10) | executor fixes |
+| `baseline_unexpected_pass` | change | B has an `unexpected_pass` | executor fixes (fix the check, or change the kind to `maintain` through a plan change) |
+| `baseline_failed` | change | A fresh `/3` baseline has an assertion failure other than the intended one, or an internal attempt mismatch | executor fixes |
+| `evidence_invalid` | change | The stored compact evidence of `/3` is not valid | executor fixes |
+| `baseline_error` | change | B has at most E `error`s, and the most recent line is `error` | executor fixes (run again) |
+| `error_limit` | change, maintain | The `error`s in C or B exceed E. The check environment keeps failing to reach a judgment on the same code | user confirmation |
+| `manual_unconfirmed` | manual | There is no valid `confirm` (there is none, or the content changed after it was confirmed) | user confirmation |
 
-`/3` change는 위 양의 근거 조건에 [구조화 결과 계약](check-result.md)을 함께 적용한다. `unknown`은 `error`와 같은 재시도 한도를 쓴다. baseline의 의도와 다른 assertion 실패나 내부 시도 불일치는 `fail`로 남고 `baseline_failed`다. 환경 오류·판정 불가와 섞인 경우에도 대상별 불리한 관측을 보존하며, 같은 입력의 뒤 통과로 이를 해소하지 않는다. 현재 입력에 대한 간결한 근거 자체가 부정합이면 `evidence_invalid`다. 선언이 바뀌어 낡은 입력이 된 기록은 신선도에서 제외한다. 알 수 없는 결과값과 부정합 저장 데이터는 모든 지원 규칙에서 `record_invalid`(사용자 확인)로 드러나며 완료 근거가 되지 않는다.
+A `/3` change applies the [structured result contract](check-result.md) together with the positive-evidence conditions above. `unknown` uses the same retry limit as `error`. In a baseline, an assertion failure other than the intended one, or an internal attempt mismatch, stays a `fail` and gives `baseline_failed`. Even when mixed with environment errors or inconclusive results, unfavorable observations per target are preserved, and a later pass on the same input does not clear them. If the compact evidence for the current input is itself inconsistent, the reason is `evidence_invalid`. A record whose input went stale because the declaration changed is excluded by freshness. Unknown result values and inconsistent stored data show up as `record_invalid` (user confirmation) under every supported rules version, and never become completion evidence.
 
-선택 조건(목표 문서의 `(선택)` 표시)과 실행자가 더한 `EX-n`도 같은 방식으로 계산해 출력하지만, 상태를 막지 않는다. 필수 여부는 목표 문서에서만 읽는다.
+Optional conditions (marked `(선택)` in the goal documents) and `EX-n` added by the executor are computed and printed the same way, but do not block the status. Whether a condition is required is read only from the goal documents.
 
-### 4.2 목표 수준의 이유
+### 4.2 Goal-level reasons
 
-| 이유 | 조건 | 분류 |
+| Reason | When | Class |
 | --- | --- | --- |
-| `lint_error` | `ha lint` 오류가 있다 | 실행자가 고침 |
-| `not_started` | `start` 줄이 없다 | 실행자가 고침 |
-| `record_integrity` | `prev` 연결이 끊겼거나 `seq`가 어긋난다 | 사용자 확인 |
-| `worktree_dirty` | 묶음 문서 밖 작업 트리가 깨끗하지 않다(§3 전제) | 실행자가 고침(commit하거나 되돌린다) |
-| `out_of_scope` | base 이후 바뀐 파일(묶음 문서 제외) 중 `바꿀 수 있는 경로`에 맞지 않고, 그 경로에 유효한 `confirm scope:`가 없는 것이 있다 | 사용자 확인 |
-| `test_definition_changed` | base에 있던 테스트 경로 파일이 수정·삭제됐고, 그 경로에 유효한 `confirm tests:`가 없다 | 사용자 확인 |
-| `spec_changed` | 현재 SPEC digest가 `start`의 digest와 다르고, 유효한 `confirm spec`이 없다 | 사용자 확인 |
-| `task_open` | required task가 `PROGRESS.md`에서 `done`이나 `dropped`가 아니다 | 실행자가 고침 |
-| `record_invalid` | 알 수 없는 결과값이나 부정합 저장 데이터가 있다 | 사용자 확인 |
-| `blocked` | 마지막 `block` 뒤에 `unblock`이 없다 | 원인 해소 |
-| `budget_exceeded` | 예산 창(§5.2) 안의 `check`·`baseline` 줄 수나 경과 시간이 예산을 넘었다 | 사용자 결정 |
-| `review_missing` | `/5`·`/6`·`/7`: 등급이 검토를 요구하는데 기록된 gate가 없다(§4.8) | 실행자가 고침 |
-| `review_blocked` | `/5`·`/6`·`/7`: 기록된 마지막 gate가 `blocked`(§4.8) | 실행자가 고침 |
-| `review_degraded` | `/5`·`/6`·`/7`: 기록된 마지막 gate가 `degraded`(§4.8) | 실행자가 고침 |
-| `review_open_defect` | `/5`·`/6`·`/7`: 그 gate에 열린 `defect`가 있다(§4.8) | 실행자가 고침 |
-| `review_open_question` | `/5`·`/6`·`/7`: 그 gate에 열린 `requirement-question`이 있다(§4.8) | 사용자 확인 |
-| `review_code_missing` | `/5`·`/6`·`/7`: 그 gate에 code 라운드가 없다(§4.8) | 실행자가 고침 |
-| `review_head_stale` | `/5`·`/6`·`/7`: 그 gate가 검토한 head가 HEAD가 아니다(§4.8) | 실행자가 고침 |
-| `review_base_mismatch` | `/6`·`/7`: 그 gate의 마지막 candidate 라운드(dry run 제외)의 base가 목표의 시작 base commit과 다르거나 fixes 라운드만 있다(§4.9) | 실행자가 고침: 목표의 시작 base commit부터 누적 candidate 라운드를 돌리고 gate를 기록 |
-| `review_docs_stale` | `/5`·`/6`·`/7`: 그 gate의 라운드가 지금의 목표 문서를 받지 않았다(§4.8) | 실행자가 고침 |
-| `review_plan_missing` | `/5`·`/6`·`/7`: `strict`인데 그 gate에 계획 라운드가 없다(§4.8) | 실행자가 고침 |
+| `lint_error` | `ha lint` has errors | executor fixes |
+| `not_started` | There is no `start` line | executor fixes |
+| `record_integrity` | A `prev` link is broken or a `seq` is out of sequence | user confirmation |
+| `worktree_dirty` | The working tree outside the bundle documents is not clean (§3 premise) | executor fixes (commit or revert) |
+| `out_of_scope` | Among the files changed since base (excluding the bundle documents), there is one that does not match `바꿀 수 있는 경로` (paths that may change) and has no valid `confirm scope:` for its path | user confirmation |
+| `test_definition_changed` | A test-path file that existed at base was modified or deleted, and its path has no valid `confirm tests:` | user confirmation |
+| `spec_changed` | The current SPEC digest differs from the digest of `start`, and there is no valid `confirm spec` | user confirmation |
+| `task_open` | A required task is not `done` or `dropped` in `PROGRESS.md` | executor fixes |
+| `record_invalid` | There is an unknown result value or inconsistent stored data | user confirmation |
+| `blocked` | The last `block` has no `unblock` after it | cause resolved |
+| `budget_exceeded` | The number of `check` and `baseline` lines, or the elapsed time, within the budget window (§5.2) exceeds the budget | user decision |
+| `review_missing` | `/5`, `/6` and `/7`: the tier requires review but no gate is recorded (§4.8) | executor fixes |
+| `review_blocked` | `/5`, `/6` and `/7`: the last recorded gate is `blocked` (§4.8) | executor fixes |
+| `review_degraded` | `/5`, `/6` and `/7`: the last recorded gate is `degraded` (§4.8) | executor fixes |
+| `review_open_defect` | `/5`, `/6` and `/7`: that gate has an open `defect` (§4.8) | executor fixes |
+| `review_open_question` | `/5`, `/6` and `/7`: that gate has an open `requirement-question` (§4.8) | user confirmation |
+| `review_code_missing` | `/5`, `/6` and `/7`: that gate has no code round (§4.8) | executor fixes |
+| `review_head_stale` | `/5`, `/6` and `/7`: the head that gate reviewed is not HEAD (§4.8) | executor fixes |
+| `review_base_mismatch` | `/6` and `/7`: the base of that gate's last candidate round (excluding dry runs) differs from the goal's start base commit, or the gate has only fixes rounds (§4.9) | executor fixes: run the cumulative candidate round from the goal's start base commit and record its gate |
+| `review_docs_stale` | `/5`, `/6` and `/7`: that gate's rounds did not receive the current goal documents (§4.8) | executor fixes |
+| `review_plan_missing` | `/5`, `/6` and `/7`: the goal is `strict` but that gate has no plan round (§4.8) | executor fixes |
 
-### 4.3 상태
+### 4.3 Status
 
-다음 순서로 처음 맞는 것이 상태다. 모든 이유는 상태와 함께 출력한다.
+The status is the first of the following that matches, in order. All reasons are printed with the status.
 
-1. 유효한 완료 기록이 있다(§5.1) → `complete`. 이 경우 예산은 계산하지 않는다.
-2. 모든 required 조건이 충족됐고 목표 수준의 이유가 없다 → `complete`. `run-rules/2`와 `run-rules/3`에서는 남은 이유가 `budget_exceeded`뿐이어도 여기에 해당한다(§4.6).
-3. `blocked` 이유가 있다 → `blocked`
-4. `budget_exceeded` 이유가 있다 → `budget_exhausted`
-5. "실행자가 고침" 이유가 하나라도 있다 → `incomplete`
-6. 나머지("사용자 확인"만 남음) → `needs_user`
+1. There is a valid completion record (§5.1) → `complete`. In this case the budget is not computed.
+2. All required conditions are satisfied and there is no goal-level reason → `complete`. Under `run-rules/2` and `run-rules/3`, this also applies when the only remaining reason is `budget_exceeded` (§4.6).
+3. There is a `blocked` reason → `blocked`
+4. There is a `budget_exceeded` reason → `budget_exhausted`
+5. There is at least one "executor fixes" reason → `incomplete`
+6. Otherwise (only "user confirmation" remains) → `needs_user`
 
-2에 해당하더라도 완료를 선언하려면 `ha done`으로 완료 기록을 남겨야 한다. `ha status`는 이때 "완료 기록 없음"을 함께 출력한다.
+Even in case 2, declaring completion requires leaving a completion record with `ha done`. In that case `ha status` also prints "no completion record".
 
-**exit code**: `complete` 0, `incomplete` 1, `needs_user` 2, `blocked` 3, `budget_exhausted` 4, 사용법·내부 오류 64 이상(§1).
+**exit code**: `complete` 0, `incomplete` 1, `needs_user` 2, `blocked` 3, `budget_exhausted` 4, usage and internal errors 64 or above (§1).
 
-### 4.4 출력
+### 4.4 Output
 
-출력에는 다음을 넣는다. **출력 원문(로그 내용)은 넣지 않는다**(§1).
-- **머리말**
-  - `보증 수준: local`과 "같은 사용자 권한의 에이전트가 검사와 기록을 바꿀 수 있음"
-  - `검사 작성자: 실행자`
-  - 기록 head
-  - 완료 기록 seq(있으면)
-  - 규칙 버전, Skill 이름·버전(주장)
-- **조건별**
-  - 종류, 필수 여부, 충족 여부, 이유, 근거 기록 seq
-  - 시도 이력: 신선하지 않은 것까지 포함한 `fail`·`error` 수와 그 commit. 사소한 commit으로 이전 실패를 지우고 다시 통과시키는 것을 드러낸다.
-- **목표 수준의 이유**
-- **사람이 봐야 할 변화**
-  - 검증 명령이 `start` 이후 바뀐 조건과 바뀌기 전후의 명령
-  - 종류가 바뀐 조건과 선택 조건 목록
-  - 무효가 된 사용자 확인(§2.4)
-  - 목표 진행 중에 `ha_version`이 바뀐 줄
-- **로컬 출력 위치**: 실패·오류 기록의 로컬 출력 경로. 내용은 `ha log`로 본다.
+The output includes the following. **It never includes raw output (log contents)** (§1).
+- **Header**
+  - `보증 수준: local` (assurance level: local) and "an agent with the same user permissions can change checks and records"
+  - `검사 작성자: 실행자` (check author: executor)
+  - record head
+  - completion record seq (if any)
+  - rules version, Skill name and version (claimed)
+- **Per condition**
+  - kind, whether required, whether satisfied, reason, evidence record seqs
+  - attempt history: the number of `fail`s and `error`s, including those that are not fresh, and their commits. This exposes erasing an earlier failure with a trivial commit and passing again.
+- **Goal-level reasons**
+- **Changes a person needs to look at**
+  - conditions whose verification command changed since `start`, with the commands before and after the change
+  - conditions whose kind changed, and the list of optional conditions
+  - user confirmations that became invalid (§2.4)
+  - lines where `ha_version` changed while the goal was in progress
+- **Local output location**: the local output paths of failure and error records. View their content with `ha log`.
 
-상태가 `complete`가 아니면 사람용 출력은 조건 표 앞에 **미충족 요약**(`### Unmet`)을 둔다.
-- 미충족 required 조건마다 ID, 이유 코드, 분류(§4.1의 `executor`·`user` 등)를 보인다.
-- 그 이유가 기대는 신선한 기록이 있으면 그 seq를 보인다. 기록은 다음과 같이 고른다.
-  - 기록이 무효면 문제가 된 줄을 고른다.
-  - baseline 이유면 기대와 다른 결과를 낸 가장 최근 baseline을 고른다.
-  - `error_limit`이면 check와 baseline 가운데 가장 최근 오류·판정 불가 기록을 고른다.
-  - 그 밖에는 통과하지 않은 가장 최근 check를 고른다.
-  - 그런 기록이 없으면 그 종류의 가장 최근 신선한 기록을 고른다.
-- 그 기록에 저장된 원문이 있으면, 정확한 명령 `ha log <goal> <seq>`를 함께 보인다.
-  - `<goal>`은 명령에 준 goal 인수 그대로다. 같은 디렉토리에서 그 명령을 실행하면 된다.
-  - 인수가 절대 경로면 저장소 기준 goal 경로를 쓴다. 이 명령은 저장소 루트에서 실행한다. 사람용 출력에는 절대 경로가 들어가지 않는다.
-  - `ha done` 안내와 로컬 출력 위치의 `ha log` 안내도 같은 goal 표기를 쓴다.
-  - goal 표기에 영문자·숫자·`-_./@%+=:,` 밖의 문자가 있으면 작은따옴표로 감싸, 복사한 명령에서 한 인수로 넘어가게 한다.
-- 원문이 없는 기록은 `no stored output`이라고 보이고 명령을 만들지 않는다. 원문이 없는 경우는 출력 저장 실패와 출력 경로가 없는 기록이다.
-- 신선한 기록이 없는 조건은 `no fresh record`라고 보이고 seq를 만들지 않는다. 실행 전에 거절된 시도는 기록을 남기지 않으므로 이 경우다. `manual` 조건은 기록 대신 확인을 기다리므로 이 표시를 붙이지 않는다.
-- 목표 수준의 이유는 코드와 분류를 보인다.
-- 표와 `### Reasons` 목록은 그대로 둔다.
-- `ha done`의 사람용 출력은 이 요약을 두지 않고, 완료 기록 줄에도 아래 `done` 정보를 붙이지 않는다. `ha done` 출력은 이전 형식 그대로다.
+When the status is not `complete`, the human-readable output puts an **unmet summary** (`### Unmet`) before the condition table.
+- For each unmet required condition, it shows the ID, the reason code and the class (`executor`, `user` and so on from §4.1).
+- If there is a fresh record that the reason relies on, it shows that seq. The record is chosen as follows.
+  - If a record is invalid, choose the line that caused the problem.
+  - For a baseline reason, choose the most recent baseline whose result differed from the expectation.
+  - For `error_limit`, choose the most recent error or inconclusive record among checks and baselines.
+  - Otherwise, choose the most recent check that did not pass.
+  - If there is no such record, choose the most recent fresh record of that kind.
+- If that record has stored raw output, it also shows the exact command `ha log <goal> <seq>`.
+  - `<goal>` is the goal argument exactly as given to the command. Run that command from the same directory.
+  - If the argument is an absolute path, it uses the repository-relative goal path. Run this command from the repository root. Human-readable output never contains an absolute path.
+  - The `ha done` hint and the `ha log` hint at the local output location use the same goal notation.
+  - If the goal notation contains characters other than ASCII letters, digits and `-_./@%+=:,`, it is wrapped in single quotes, so that a copied command passes it as one argument.
+- A record without raw output shows `no stored output`, and no command is generated. A record lacks raw output when saving the output failed or when the record has no output path.
+- A condition without a fresh record shows `no fresh record`, and no seq is generated. An attempt rejected before running leaves no record, so it falls in this case. A `manual` condition waits for a confirmation instead of a record, so it does not get this mark.
+- Goal-level reasons show their code and class.
+- The table and the `### Reasons` list stay as they are.
+- The human-readable output of `ha done` does not include this summary, and its completion record line does not get the `done` information below either. The output of `ha done` keeps its earlier format.
 
-완료 기록 줄은 유효한 완료 기록이 없을 때 다음과 같이 보인다.
-- 가장 최근 `done` 줄의 상태가 `complete`가 아니면, 그 seq와 commit, 그리고 그 줄이 완료가 아닌 상태로 기록됐다는 사실을 보인다. 그런 줄은 완료였던 적이 없다.
-- 가장 최근 완료 기록(`status: complete`인 `done` 줄)이 있으면, 그 seq와 commit, 그리고 무효가 된 이유를 모두 보인다. 이유는 §5.1의 유효 조건 가운데 깨진 것이고, 이 순서로 보인다.
-  1. 기록 연결 끊김
-  2. 무효한 저장 기록
-  3. 묶음 문서 밖의 미커밋 변경
-  4. 그 commit 뒤 코드 변경(Git이 비교할 수 없는 commit 포함)
-  5. 목표 문서 변경
-  6. required 명령 변경(조건 ID)
-  7. 뒤따른 `reopen`(seq)
-  8. `/3`에서 required 조건이 모두 충족되지 않음
-- `done` 줄이 하나도 없으면 지금처럼 `none`이다. 완료 조건만 충족한 목표에는 지금처럼 `ha done` 안내를 붙인다.
+When there is no valid completion record, the completion record line shows the following.
+- If the status of the most recent `done` line is not `complete`, it shows its seq and commit, and the fact that the line was recorded with a status other than complete. Such a line was never a completion.
+- If there is a most recent completion record (a `done` line with `status: complete`), it shows its seq and commit, and every reason it became invalid. The reasons are the broken validity conditions of §5.1, shown in this order.
+  1. broken record link
+  2. invalid stored record
+  3. uncommitted changes outside the bundle documents
+  4. code changes after that commit (including a commit Git cannot compare)
+  5. goal document changes
+  6. required command changes (condition ID)
+  7. a following `reopen` (seq)
+  8. under `/3`, not all required conditions are satisfied
+- If there is no `done` line at all, it is `none` as before. A goal that has only satisfied the completion conditions gets the `ha done` hint, as before.
 
-합성 예시(완료 뒤 코드가 바뀌고, `ha done`을 다시 실행해 미완료가 기록된 목표):
+Synthetic example (a goal whose code changed after completion, and where running `ha done` again recorded an incomplete result):
 
 ```text
 - completion record: none; latest done seq 9 (commit 2b7e01c4a9d3) recorded incomplete, not a completion; latest completion seq 6 (commit 8f3a2d91c0b7) is no longer valid: code outside the bundle documents changed since that commit; required conditions are not all satisfied
@@ -582,327 +582,327 @@ Windows의 junction 등 irregular 항목도 안전한 일반 파일·디렉토�
 - AC-3 `criterion_missing` (executor): no fresh record
 ```
 
-`ha check`는 기대대로 끝나지 않은 대상마다 대상별 결과 줄 뒤에 `output for <대상>: ha log <goal> <seq>`를 출력한다. 뒤의 대상이 실행 전에 거절되거나 기록되지 못해 묶음이 일찍 끝나도, 그 전에 기록된 대상의 줄은 출력한다. `<goal>` 표기는 위와 같다. 원문이 저장되지 않은 대상에는 `output for <대상>: no stored output (seq N)`을 출력한다. 대상별 결과 줄과 종료 코드는 바뀌지 않는다.
+For each target that did not end as expected, `ha check` prints `output for <대상>: ha log <goal> <seq>` after that target's result line. Even if the batch ends early because a later target is rejected before running or cannot be recorded, the lines for targets recorded before that are printed. The `<goal>` notation is the same as above. For a target whose raw output was not stored, it prints `output for <대상>: no stored output (seq N)`. The per-target result lines and the exit code do not change.
 
-이 출력은 판정·`status/v1`·완료 기록·`ha log`를 바꾸지 않는다. 같은 기록·묶음·Git이면 같다.
+This output does not change the judgment, `status/v1`, the completion record or `ha log`. With the same record, bundle and Git, it is the same.
 
-`--format md`(기본)는 사람이 읽고 `PROGRESS.md`에 붙이는 형식이다. 표지와 이유 코드는 계약 그대로 쓰고, 설명 문장은 영어로 쓴다.
+`--format md` (the default) is the format people read and paste into `PROGRESS.md`. Labels and reason codes are written exactly as in the contract, and explanatory sentences are written in English.
 
 ### 4.5 `--format json`
 
-외부 도구가 읽을 수 있는 구조화된 형식이다. 필드 순서는 아래 표의 순서로 고정되고, 들여쓰기는 공백 두 칸이다. 현재 시각을 새로 읽지 않는다. 발견·예산 이력은 저장된 시각만 포함하며 같은 입력이면 바이트 단위로 같다. 시험이 아래 표와 실제 출력의 필드를 비교한다.
+A structured format that external tools can read. The field order is fixed to the order of the tables below, and indentation is two spaces. It does not read the current time anew. Finding and budget history include only stored times, so the same input gives byte-identical output. Tests compare the fields of the tables below with the actual output.
 
-#### 상태 문서 (`status/v1`)
+#### Status document (`status/v1`)
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
 | `schema` | `"status/v1"` |
-| `goal` | goal 디렉토리(저장소 기준) |
-| `status` | §4.3의 상태 |
-| `exit_code` | §4.3의 종료 코드 |
-| `assurance` | 항상 `"local"` |
-| `check_author` | 항상 `"executor"` |
-| `rules` | 계산에 쓴 규칙 버전 |
-| `ha_version` | 계산한 `ha`의 버전 |
-| `skill` | `start`의 Skill(주장) 또는 `null` |
-| `record_head` | `{ "seq", "sha256" }` 또는 기록이 없으면 `null` |
-| `completion_record` | 유효한 완료 기록의 seq 또는 `null` |
-| `complete_without_record` | 모든 조건이 충족됐지만 완료 기록이 없으면 `true` |
-| `commit` | 지금 HEAD |
-| `tree_clean` | 지금 묶음 문서 밖 작업 트리가 깨끗한가 |
-| `spec_digest` | 지금 목표 digest |
-| `criteria` | 조건별 평가(아래) |
-| `reasons` | 상태를 정한 이유. 필수 조건의 미충족 이유와 목표 수준의 이유 |
-| `lint` | lint 오류 `{ "code", "file", "line", "detail" }` |
-| `changes` | 사람이 봐야 할 변화(아래) |
-| `budget` | 예산 창(아래) 또는 시작 전이면 `null` |
-| `findings` | [완료 뒤 발견](findings.md)의 `findings/v1` 조회. 당시 완료·현재 미해결·재작업 관계이며 기존 상태·종료 결과를 대신하지 않는다 |
-| `usage` | 전체 시도·결과·근거의 서로 다른 집계 축(아래) |
-| `logs` | 실패·오류 기록의 `{ "seq", "target", "result", "path" }`와 선택 `reason`(검증된 사유 코드 또는 `evidence_invalid`·`record_invalid`) |
+| `goal` | goal directory (repository-relative) |
+| `status` | the status from §4.3 |
+| `exit_code` | the exit code from §4.3 |
+| `assurance` | always `"local"` |
+| `check_author` | always `"executor"` |
+| `rules` | the rules version used for the computation |
+| `ha_version` | the version of the `ha` that computed it |
+| `skill` | the Skill of `start` (claimed), or `null` |
+| `record_head` | `{ "seq", "sha256" }`, or `null` if there is no record |
+| `completion_record` | the seq of the valid completion record, or `null` |
+| `complete_without_record` | `true` if all conditions are satisfied but there is no completion record |
+| `commit` | the current HEAD |
+| `tree_clean` | whether the working tree outside the bundle documents is clean now |
+| `spec_digest` | the current goal digest |
+| `criteria` | per-condition evaluation (below) |
+| `reasons` | the reasons that set the status: unmet reasons of required conditions, and goal-level reasons |
+| `lint` | lint errors `{ "code", "file", "line", "detail" }` |
+| `changes` | changes a person needs to look at (below) |
+| `budget` | the budget window (below), or `null` before the start |
+| `findings` | the `findings/v1` query of [post-completion findings](findings.md): completion at the time, what is unresolved now, and rework relations. It does not replace the existing status or exit result |
+| `usage` | separate aggregation axes of all attempts, results and evidence (below) |
+| `logs` | `{ "seq", "target", "result", "path" }` of failure and error records, with an optional `reason` (a verified reason code, or `evidence_invalid` or `record_invalid`) |
 
-#### 조건 (`criteria[]`)
+#### Conditions (`criteria[]`)
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `id` | `AC-n` 또는 `EX-n` |
-| `kind` | `change` \| `maintain` \| `manual`. 조건표에 없으면 빈 문자열 |
-| `required` | 필수 조건인가 |
-| `satisfied` | §4.1의 충족 여부 |
-| `reason` | 충족되지 않았으면 §4.1의 이유, 충족됐으면 빈 문자열 |
-| `records` | 충족의 근거가 된 신선한 기록의 seq |
-| `attempts` | 시도 이력(아래) |
+| `id` | `AC-n` or `EX-n` |
+| `kind` | `change` \| `maintain` \| `manual`. An empty string if it is not in the condition table |
+| `required` | whether the condition is required |
+| `satisfied` | whether it is satisfied, per §4.1 |
+| `reason` | the §4.1 reason if not satisfied, an empty string if satisfied |
+| `records` | the seqs of the fresh records that were evidence for satisfaction |
+| `attempts` | attempt history (below) |
 
-#### 시도 (`attempts`)
+#### Attempts (`attempts`)
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `checks` | 이 조건의 `check` 줄 수(신선하지 않은 것 포함) |
-| `fails` | 그중 `fail` |
-| `errors` | 그중 `error` |
-| `baselines` | `baseline` 줄 수 |
-| `unexpected_passes` | 그중 `unexpected_pass` |
-| `baseline_errors` | 그중 `error` |
-| `unknowns` | check 중 판정 불가(`unknown`) |
-| `baseline_unknowns` | baseline 중 판정 불가(`unknown`) |
-| `baseline_fails` | baseline 중 의도와 다른 assertion 실패(`fail`) |
-| `stale` | 신선하지 않은 `check`·`baseline` 줄 수 |
-| `fail_commits` | `fail`·`error`가 난 commit(앞 12자리) |
+| `checks` | the number of `check` lines of this condition (including those not fresh) |
+| `fails` | of those, `fail` |
+| `errors` | of those, `error` |
+| `baselines` | the number of `baseline` lines |
+| `unexpected_passes` | of those, `unexpected_pass` |
+| `baseline_errors` | of those, `error` |
+| `unknowns` | checks that were inconclusive (`unknown`) |
+| `baseline_unknowns` | baselines that were inconclusive (`unknown`) |
+| `baseline_fails` | baselines with an assertion failure other than the intended one (`fail`) |
+| `stale` | the number of `check` and `baseline` lines that are not fresh |
+| `fail_commits` | the commits where a `fail` or `error` occurred (first 12 characters) |
 
-#### 실행량 (`usage`)
+#### Usage (`usage`)
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `total` | 전체 check·baseline 시도 수 |
-| `checks`, `baselines` | 시도 종류별 수 |
-| `environment_errors`, `unknowns` | 오류·판정 불가 결과 수 |
-| `current_inputs`, `stale_inputs` | 현재 입력과 연결되는 시도·낡은 입력의 시도 수 |
-| `valid_evidence` | 현재 입력의 유효한 pass·기대 baseline 근거 수 |
+| `total` | the total number of check and baseline attempts |
+| `checks`, `baselines` | the number per attempt kind |
+| `environment_errors`, `unknowns` | the number of error and inconclusive results |
+| `current_inputs`, `stale_inputs` | the number of attempts linked to the current input, and of attempts on stale input |
+| `valid_evidence` | the number of valid pass and expected-baseline evidence for the current input |
 
-종류·결과·신선도는 서로 겹치는 축이다. 모든 열을 더해 총실행량으로 만들지 않는다. `valid_evidence`는 현재 입력의 양의 근거 부분집합이며 조건이나 목표 전체의 충족 수가 아니다.
+Kind, result and freshness are overlapping axes. The columns are never added together into a total run count. `valid_evidence` is the subset of positive evidence for the current input, not a count of satisfied conditions or of the whole goal.
 
-#### 이유 (`reasons[]`)
+#### Reasons (`reasons[]`)
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `code` | §4.1·§4.2의 이유 |
-| `class` | `executor`(실행자가 고침) \| `user`(사용자 확인) \| `blocked` \| `budget` |
-| `criterion` | 조건의 이유일 때 조건 ID |
-| `paths` | `out_of_scope`, `test_definition_changed`, `worktree_dirty`의 저장소 상대 경로 |
-| `detail` | 설명(영어). `worktree_dirty`는 경로별 tracked/untracked와 관측한 파일 유형·변경 상태를 포함한다 |
+| `code` | the reason from §4.1 or §4.2 |
+| `class` | `executor` (executor fixes) \| `user` (user confirmation) \| `blocked` \| `budget` |
+| `criterion` | the condition ID, when it is a condition's reason |
+| `paths` | repository-relative paths for `out_of_scope`, `test_definition_changed` and `worktree_dirty` |
+| `detail` | description (in English). For `worktree_dirty` it includes tracked/untracked per path and the observed file type and change state |
 
-#### 변화 (`changes`)
+#### Changes (`changes`)
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `command_changed` | `{ "criterion", "seq", "before", "after" }`: 이전 기록과 검증 명령이 다른 조건 |
-| `kind_changed` | `{ "criterion", "seq", "before", "after" }`: 이전 기록과 종류가 다른 조건 |
-| `optional` | 선택 조건과 `EX-n` |
-| `invalid_confirmations` | `{ "seq", "subject", "reason" }`: 효력을 잃은 확인 |
-| `ha_version_changed` | `{ "seq", "ha_version" }`: `start`와 다른 `ha` 버전이 쓴 줄 |
+| `command_changed` | `{ "criterion", "seq", "before", "after" }`: conditions whose verification command differs from the earlier record |
+| `kind_changed` | `{ "criterion", "seq", "before", "after" }`: conditions whose kind differs from the earlier record |
+| `optional` | optional conditions and `EX-n` |
+| `invalid_confirmations` | `{ "seq", "subject", "reason" }`: confirmations that lost their effect |
+| `ha_version_changed` | `{ "seq", "ha_version" }`: lines written by an `ha` version different from that of `start` |
 
-#### 예산 (`budget`)
+#### Budget (`budget`)
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `window_start` | 예산 창이 시작한 줄의 seq |
-| `runs` | 창 안의 `check`·`baseline` 줄 수 |
-| `runs_limit` | `/1`·`/2`는 최초 상한, `/3`는 최신 유효 횟수 상한, `/4`는 현재 창의 횟수 상한. `/4`의 재개 창은 §4.7이 정한 새 창의 상한에서 시작한다 |
-| `revision` | 현재 창의 최신 start/reopen/budget_change seq |
-| `remaining_runs` | 남은 횟수(최소 0) |
-| `excess_runs` | 초과 횟수(최소 0) |
-| `reached` | 사용량이 횟수 상한과 같은가 |
-| `history` | `{ "seq", "at", "change": <budget_change 객체> }` 목록. 이전 변경도 보존 |
-| `elapsed_seconds` | 창 안의 경과 시간 |
-| `elapsed_limit_seconds` | `start`의 `budget.elapsed_seconds` |
-| `exceeded` | 예산을 넘었는가 |
+| `window_start` | the seq of the line where the budget window started |
+| `runs` | the number of `check` and `baseline` lines in the window |
+| `runs_limit` | `/1` and `/2`: the initial limit; `/3`: the latest valid run limit; `/4`: the run limit of the current window. A resumed window under `/4` starts from the new window's limit set by §4.7 |
+| `revision` | the latest start/reopen/budget_change seq of the current window |
+| `remaining_runs` | remaining runs (minimum 0) |
+| `excess_runs` | excess runs (minimum 0) |
+| `reached` | whether usage equals the run limit |
+| `history` | a list of `{ "seq", "at", "change": <budget_change 객체> }` (the budget change object). Earlier changes are kept too |
+| `elapsed_seconds` | the elapsed time in the window |
+| `elapsed_limit_seconds` | `budget.elapsed_seconds` of `start` |
+| `exceeded` | whether the budget was exceeded |
 
-### 4.6 규칙 버전
+### 4.6 Rules versions
 
-`start`의 `rules`가 계산 규칙을 정한다. 새 `ha start`는 `run-rules/3`를 기록한다. `ha start --rules run-rules/4`는 `run-rules/4`를(§4.7), `ha start --rules run-rules/5`는 `run-rules/5`를(§4.8), `ha start --rules run-rules/6`은 `run-rules/6`을(§4.9) 기록한다. `ha start --rules run-rules/7`은 `run-rules/7`을 기록한다(§4.10). 기본 규칙은 바뀌지 않으며 현재 Seal은 이 옵션으로 `run-rules/7`을 고른다. `/1`~`/6`으로 시작한 목표는 새 바이너리에서도 해당 규칙으로 계산하고 이후 실행에도 새 결과·예산 의미를 섞지 않는다. 자동 이전이나 과거 기록 재작성은 하지 않는다. 새 change 검사는 구조화 결과 계약에 연동되어야 유효 근거를 얻는다.
+The `rules` of `start` set the computation rules. A new `ha start` records `run-rules/3`. `ha start --rules run-rules/4` records `run-rules/4` (§4.7), `ha start --rules run-rules/5` records `run-rules/5` (§4.8), and `ha start --rules run-rules/6` records `run-rules/6` (§4.9). `ha start --rules run-rules/7` records `run-rules/7` (§4.10). The default rule does not change; current Seal chooses `run-rules/7` with this option. A goal started under `/1` through `/6` is computed under its saved rule even by a new binary, and later runs do not mix in the new result or budget semantics. There is no automatic migration and no rewriting of past records. A new change check gets valid evidence only when it is connected to the structured result contract.
 
-`ha`가 지원하지 않는 규칙 버전에는 계산도 기록도 하지 않는다. `ha status`, `ha done`, `ha check`, `ha note`, `ha budget`이 66으로 끝난다. 시작 규칙을 읽을 수 있으면 그 뒤 무결성 오류보다 미지원 규칙 거부가 우선한다. 지원 규칙에서도 미지 결과·부정합 데이터는 성공 근거가 아니다. 유효한 구기록의 의미만 호환 대상으로 보존한다.
+For a rules version that `ha` does not support, it neither computes nor records. `ha status`, `ha done`, `ha check`, `ha note` and `ha budget` exit with 66. If the start rule can be read, rejecting the unsupported rule takes precedence over integrity errors after it. Even under supported rules, unknown results and inconsistent data are not evidence of success. Only the meaning of valid old records is preserved for compatibility.
 
 | | `run-rules/1` | `run-rules/2` | `run-rules/3` | `run-rules/4` | `run-rules/5` | `run-rules/6` | `run-rules/7` |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 묶음 문서(코드 상태에서 빼는 경로) | 자기 목표의 목표 문서와 실행 묶음, 다른 목표의 `amendments/**` | 다른 목표의 실행 묶음 파일도 포함. PLAN의 `다른 목표 실행 묶음` 선언은 입력으로 유지 | `/2`와 같음 | `/2`와 같음 | `/2`와 같음 | `/2`와 같음 | `/6`과 같음 |
-| 남은 이유가 `budget_exceeded`뿐일 때 | `budget_exhausted` | `complete`. `ha done`이 완료 기록을 남김 | `/2`와 같음 | `/2`와 같음 | `/2`와 같음 | `/2`와 같음 | `/6`과 같음 |
-| change의 실패·통과 근거 | 프로세스 종료 결과 | `/1`과 같음 | 선언한 대상·요구 위반·오류·호출 연결을 구조화 결과로 확인 | `/3`과 같음 | `/3`과 같음 | `/3`과 같음 | `/6`과 같음 |
-| 현재 창의 횟수 상한 변경 | 미지원 | 미지원 | `budget_change`, 사용량 유지 | `/3`에 사전 승인 상한 안의 이유만 있는 증액을 더함 | `/4`와 같음 | `/4`와 같음 | `/6`과 같음 |
-| 재개 창의 횟수 상한 | 최초 start 상한 | 최초 start 상한 | 최신 유효 횟수 상한 계승 | 시작 상한이나 사용자 인용으로 정한 마지막 상한. 사전 승인은 계승하지 않음 | `/4`와 같음 | `/4`와 같음 | `/6`과 같음 |
-| 기존 시험 변경 | 사용자 확인 | 사용자 확인 | 사용자 확인 | 기록된 권한 안에서 근거가 있으면 확인 없이 충족 | `/4`와 같음 | `/4`와 같음 | `/6`과 같음 |
-| 경과 시간 | 창 전체 | 창 전체 | 창 전체 | 실행자가 신고한 대기를 뺌 | `/4`와 같음 | `/4`에 완료 뒤 구간 공제를 더함(§4.9) | `/6`과 같음 |
-| 오류 한도 | 같은 코드에서 E=1 | `/1`과 같음 | 판정 불가도 함께 셈 | `/3`에 회복 note를 더함 | `/4`와 같음 | `/4`와 같음 | `/6`과 같음 |
-| 명령별 시간 제한 | 900초 | 900초 | 900초 | PLAN `## 시간 제한`, 없으면 900초 | `/4`와 같음 | `/4`와 같음 | `/6`과 같음 |
-| 검토 gate | 판정에 쓰지 않음 | 판정에 쓰지 않음 | 판정에 쓰지 않음 | 판정에 쓰지 않음 | `standard`·`strict` 목표는 기록된 마지막 gate가 지금 HEAD와 목표 문서를 덮어야 완료(§4.8) | `/5`에 마지막 candidate의 시작 base 확인을 더함(§4.9) | `/6`과 같음 |
-| baseline 요구 | 모든 change 조건 | `/1`과 같음 | `/1`과 같음 | `/1`과 같음 | `/1`과 같음 | `/1`과 같음 | 표시한 change 조건만(§4.10) |
-| 검사 동결 표시 | 없음 | 없음 | 없음 | 없음 | 없음 | 없음 | 검토 동결 뒤 바뀐 검사 파일과 까닭(§4.10) |
+| Bundle documents (paths left out of the code state) | The goal's own goal documents and execution bundle, and other goals' `amendments/**` | Also includes other goals' execution bundle files. The PLAN's `다른 목표 실행 묶음` (other goals' execution bundles) declaration stays an input | Same as `/2` | Same as `/2` | Same as `/2` | Same as `/2` | Same as `/6` |
+| When the only remaining reason is `budget_exceeded` | `budget_exhausted` | `complete`. `ha done` leaves a completion record | Same as `/2` | Same as `/2` | Same as `/2` | Same as `/2` | Same as `/6` |
+| Failure and pass evidence for change | Process exit result | Same as `/1` | Declared targets, required violations, errors and invocation link are confirmed through structured results | Same as `/3` | Same as `/3` | Same as `/3` | Same as `/6` |
+| Changing the run limit of the current window | Unsupported | Unsupported | `budget_change`, usage kept | `/3` plus increases within the pre-approved limit that need only a reason | Same as `/4` | Same as `/4` | Same as `/6` |
+| Run limit of a resumed window | Initial start limit | Initial start limit | Inherits the latest valid run limit | The start limit or the last limit set by a user quote. Pre-approval is not inherited | Same as `/4` | Same as `/4` | Same as `/6` |
+| Changing existing tests | User confirmation | User confirmation | User confirmation | Satisfied without confirmation when there is a rationale within the recorded authority | Same as `/4` | Same as `/4` | Same as `/6` |
+| Elapsed time | Whole window | Whole window | Whole window | Minus the waits the executor reported | Same as `/4` | `/4` plus exclusion of intervals after completion (§4.9) | Same as `/6` |
+| Error limit | E=1 on the same code | Same as `/1` | Inconclusive results count too | `/3` plus recovery notes | Same as `/4` | Same as `/4` | Same as `/6` |
+| Per-command time limit | 900 seconds | 900 seconds | 900 seconds | PLAN `## 시간 제한`, or 900 seconds without it | Same as `/4` | Same as `/4` | Same as `/6` |
+| Review gate | Not used in judgment | Not used in judgment | Not used in judgment | Not used in judgment | A `standard` or `strict` goal completes only when the last recorded gate covers the current HEAD and goal documents (§4.8) | `/5` plus the last candidate starting at the start base (§4.9) | Same as `/6` |
+| Baseline required | Every change condition | Same as `/1` | Same as `/1` | Same as `/1` | Same as `/1` | Same as `/1` | Only marked change conditions (§4.10) |
+| Check freeze display | None | None | None | None | None | None | Changed check files and reasons since the review freeze (§4.10) |
 
-**다른 목표의 실행 묶음 파일.** 자기 목표 디렉토리와 같은 부모 아래에서, 지금 작업 트리에 `SPEC.md`가 있는 다른 디렉토리 바로 아래의 `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl`, `tasks/`다. 그 디렉토리의 `SPEC.md`와 그것이 링크한 문서, `checks/` 같은 다른 파일은 코드다. 같은 부모 아래가 아니거나 `SPEC.md`가 없는 디렉토리(예: `examples/`, `testdata/` 아래의 목표 모양 디렉토리)도 코드다. 그 다른 목표 디렉토리의 `amendments/`는 실행 묶음 파일이 아니지만, 모든 규칙 버전에서 PLAN의 `다른 목표 실행 묶음` 선언과 관계없이 코드 상태에서 빠진다(§2). 이 목록은 묶음 문서를 쓰는 모든 판단에 같이 쓴다.
-- 작업 트리가 깨끗한지: §3의 전제, `check`·`baseline`이 남기는 `tree_clean`, 경로 확인 `confirm`
-- 신선도: §3의 3
-- base 이후 바뀐 파일: §4.2의 `out_of_scope`, `test_definition_changed`
-- 완료 기록의 유효성: §5.1
+**Other goals' execution bundle files.** These are `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl` and `tasks/` directly under another directory that is under the same parent as the goal's own directory and has a `SPEC.md` in the current working tree. That directory's `SPEC.md`, the documents it links, and other files such as `checks/` are code. A directory that is not under the same parent, or that has no `SPEC.md` (for example, a goal-shaped directory under `examples/` or `testdata/`), is also code. The `amendments/` of that other goal directory is not an execution bundle file, but under every rules version it is left out of the code state regardless of the PLAN's `다른 목표 실행 묶음` declaration (§2). This list is used alike in every judgment that uses the bundle documents.
+- Whether the working tree is clean: the §3 premise, the `tree_clean` that `check` and `baseline` leave, and path confirmations (`confirm`)
+- Freshness: item 3 of §3
+- Files changed since base: `out_of_scope` and `test_definition_changed` in §4.2
+- Validity of the completion record: §5.1
 
-같은 브랜치에서 여러 목표를 함께 진행할 때, 다른 목표가 진행 기록만 커밋해도 이 목표의 결과가 낡지 않게 하려는 것이다. 다른 목표의 실행 묶음을 검사 입력으로 읽는 목표는 PLAN `## 범위`에 `다른 목표 실행 묶음:` 항목을 두고 값으로 `검사 입력`을 쓴다([bundle.md](bundle.md) §2.2). 선언은 계산하고 기록할 때의 PLAN에서 읽는다.
+The purpose is that, when several goals progress together on the same branch, this goal's results do not go stale just because another goal committed only its progress records. A goal that reads other goals' execution bundles as check input puts a `다른 목표 실행 묶음:` item in PLAN `## 범위` and writes `검사 입력` (check input) as its value ([bundle.md](bundle.md) §2.2). The declaration is read from the PLAN at the time of computing and recording.
 
-**예산 초과만 남은 완료.** 필수 조건이 모두 충족되고 남은 이유가 `budget_exceeded`뿐이면 상태는 `complete`이고, `ha done`이 완료 기록을 남긴다. 다른 이유가 하나라도 함께 남으면 §4.3의 순서 그대로다. 예를 들어 사용자 확인 이유와 함께면 `budget_exhausted`이고 두 이유가 모두 나온다. 예산 사용량과 초과 여부는 `budget`에 계속 나온다. 이것은 이미 얻은 근거로 완료를 기록하는 것이고, 예산을 넘겨 더 검증하거나 작업할 권한이 아니다. 추가 사용에는 사용자 근거가 필요하다. `/3`의 같은 창 횟수 증액은 `budget_change`, 명시적 재작업·새 창은 `reopen`이며 `/1`·`/2`는 기존 `reopen`을 쓴다(§5.2). `ha check`는 실행 전에 예산을 확인하지 않는다.
+**Completion with only the budget exceeded.** When all required conditions are satisfied and the only remaining reason is `budget_exceeded`, the status is `complete`, and `ha done` leaves a completion record. If even one other reason remains as well, the §4.3 order applies unchanged. For example, together with a user-confirmation reason the status is `budget_exhausted`, and both reasons appear. Budget usage and whether it was exceeded keep appearing in `budget`. This records completion with evidence already obtained; it is not authority to verify or work further beyond the budget. Further use needs grounds from the user. Under `/3`, a run increase in the same window is `budget_change`, and explicit rework or a new window is `reopen`; `/1` and `/2` use the existing `reopen` (§5.2). `ha check` does not check the budget before running.
 
 
 ### 4.7 run-rules/4
 
-`ha start --rules run-rules/4`로 시작한 목표는 `run-rules/3`의 규칙을 모두 지키고 아래를 더한다. `run-rules/5` 목표도 이 절을 모두 따르고 §4.8을 더한다. 실행자의 근거·대기 신고·회복 사유는 주장이며 Core는 그 사실을 확인하지 않는다. Core는 기록과 연결만 본다. 새 note와 `--preapprove`는 `/1`·`/2`·`/3` 목표에서 65로 거부되고 기록되지 않으며, 그 목표의 상태 JSON에는 아래 필드가 나오지 않는다. 새 note 옵션(`--reason`, `--criteria`, `--how`, `--moved-to`, `--weakened`, `--input`, `--change`, `--count`)은 그 옵션을 쓰는 note 종류에만 받고, 다른 종류에 주면 규칙과 무관하게 64로 거부된다.
+A goal started with `ha start --rules run-rules/4` keeps all the rules of `run-rules/3` and adds the following. A `run-rules/5` goal also follows all of this section and adds §4.8. The executor's rationale, wait reports and recovery reasons are claims, and Core does not verify them as facts. Core looks only at the records and their links. New notes and `--preapprove` are rejected with 65 and not recorded for `/1`, `/2` and `/3` goals, and the status JSON of those goals does not show the fields below. The new note options (`--reason`, `--criteria`, `--how`, `--moved-to`, `--weakened`, `--input`, `--change`, `--count`) are accepted only for the note kinds that use them; given to another kind, they are rejected with 64 regardless of the rules.
 
-**시험 변경 권한.** `--test-authority <해석>`이 시작 요청을 시험 변경 권한으로 읽은 실행자의 해석을 `start.test_authority.interpretation`에 남긴다. 없으면 권한 없음이다. `/4` 시작 줄은 권한과 무관하게 PLAN `## 범위`의 `바꿀 수 있는 경로`와 `테스트 경로`(기본값 포함) 사본을 `start.scope.allowed`·`start.scope.tests`에 남긴다. base에 있던 파일 중 `scope.tests`에 맞는 것이 수정·삭제되면 시험 변경이다. 시작 뒤 PLAN을 고쳐도 이 분류는 넓어지거나 좁아지지 않는다. 다음을 모두 만족하면 사용자 확인 없이 충족된다.
-- 권한이 있고, 경로가 `scope.allowed` 안이다.
-- 그 경로의 마지막 `ha note <goal> test-change tests:<path> --criteria <AC-n,…> --how <확인 방법> [--moved-to <path> …] [--weakened]` note가 조건 ID와 확인 방법을 밝히고 `--weakened`가 없다. note는 깨끗한 트리에서만 기록되고 그때 HEAD의 파일 blob(`bound.blob`)과 옮긴 경로마다의 blob(`test_change.moved_to`)을 묶는다.
-- HEAD의 그 경로가 note가 묶은 것과 같다. 수정이면 blob이 같고, 삭제면 note도 삭제된 경로에 묶였다(`bound.blob`이 `deleted`). 수정한 버전에 남긴 근거는 뒤의 삭제를 면제하지 않는다.
-- 삭제면 note가 옮긴 새 경로를 하나 이상 밝힌다. 수정이든 삭제든 옮긴 새 경로마다 `scope.allowed` 안이며 HEAD의 blob이 note의 것과 같다. 연결된 파일 하나라도 다시 바뀌면 면제되지 않는다.
+**Test change authority.** `--test-authority <해석>` records in `start.test_authority.interpretation` the executor's interpretation that reads the start request as test change authority. Without it, there is no authority. Regardless of authority, the `/4` start line stores copies of `바꿀 수 있는 경로` (paths that may change) and `테스트 경로` (test paths) from PLAN `## 범위`, defaults included, in `start.scope.allowed` and `start.scope.tests`. When a file that existed at base and matches `scope.tests` is modified or deleted, that is a test change. Editing PLAN after the start neither widens nor narrows this classification. A test change is satisfied without user confirmation when all of the following hold.
+- There is authority, and the path is inside `scope.allowed`.
+- The last `ha note <goal> test-change tests:<path> --criteria <AC-n,…> --how <확인 방법> [--moved-to <path> …] [--weakened]` note for that path states the condition IDs and how they are checked, and has no `--weakened`. The note is recorded only on a clean tree, and binds the file blob at that HEAD (`bound.blob`) and the blob of each moved-to path (`test_change.moved_to`).
+- That path at HEAD is the same as what the note bound. For a modification the blob is the same; for a deletion the note was also bound to the deleted path (`bound.blob` is `deleted`). A rationale left for a modified version does not exempt a later deletion.
+- For a deletion, the note states at least one new path the test moved to. For a modification or a deletion alike, each new moved-to path is inside `scope.allowed`, and its blob at HEAD equals the one in the note. If even one linked file changes again, the change is not exempt.
 
-상태 JSON의 `test_changes`가 시험 변경마다 `path`, `change`(`modified`·`deleted`), `blob`, `exempt`, `confirmed`, 면제되지 않은 이유 `reason`, 실행자 주장 `rationale`(`seq`, `claim: "executor"`, `criteria`, `how`, `moved_to`의 `path`·`blob`, `weakened`)을 보이고, 사람이 읽는 형식도 경로마다 최종 blob(삭제면 `deleted`)과 옮긴 경로의 blob을 보이며, `test_authority`가 `request_quote`, `interpretation`, `allowed`를 보인다. 면제되지 않고 확인되지 않은 경로만 `test_definition_changed`에 남는다.
+For each test change, `test_changes` in the status JSON shows `path`, `change` (`modified` or `deleted`), `blob`, `exempt`, `confirmed`, the reason it is not exempt `reason`, and the executor's claim `rationale` (`seq`, `claim: "executor"`, `criteria`, `how`, the `path` and `blob` of `moved_to`, `weakened`). The human-readable format also shows, per path, the final blob (`deleted` for a deletion) and the blobs of the moved-to paths, and `test_authority` shows `request_quote`, `interpretation` and `allowed`. Only paths that are neither exempt nor confirmed remain in `test_definition_changed`.
 
-**신고한 대기.** `/4`의 `check`·`baseline` 줄은 실행 시작 시각 `started_at`(RFC 3339, 초 단위)을 남긴다. `ha note <goal> wait --reason <물은 결정>`이 대기를 시작하고 `ha note <goal> resume`이 끝낸다. 대기는 note 시각의 다음 초부터, 가장 이른 끝까지다: 인용을 가진 `input`·`confirm`·`allow-recovery` note나 인용을 가진 `budget_change`, `resume` note, note와 같은 초나 그 뒤에 시작한 실행의 `started_at`. 같은 초 안의 순서는 알 수 없으므로 그 실행이 대기를 끝낸 것으로 본다. 창(`reopen`)을 넘지 않는다. 겹친 대기는 한 번만 세고, 실행 구간 `[started_at, at]`은 대기와 겹쳐도 빼지 않는다. 발견 줄은 대기와 예산에 영향이 없다. 상태 `budget`의 `elapsed_seconds`가 예산 경과(창 길이에서 신고한 대기를 뺀 값)이고, `reported_wait_seconds`, `span_seconds`, `wait_basis: "executor_reported"`가 함께 나온다.
+**Reported waits.** Under `/4`, `check` and `baseline` lines record the run start time `started_at` (RFC 3339, to the second). `ha note <goal> wait --reason <물은 결정>` starts a wait and `ha note <goal> resume` ends it. A wait runs from the second after the note's time to the earliest end: an `input`, `confirm` or `allow-recovery` note with a quote, a `budget_change` with a quote, a `resume` note, or the `started_at` of a run that started in the same second as the note or later. The order within one second cannot be known, so that run is taken to have ended the wait. A wait does not cross a window (`reopen`). Overlapping waits are counted once, and the run interval `[started_at, at]` is not subtracted even when it overlaps a wait. Finding lines do not affect waits or the budget. `elapsed_seconds` in the status `budget` is the budget's elapsed time (the window length minus reported waits), and `reported_wait_seconds`, `span_seconds` and `wait_basis: "executor_reported"` appear with it.
 
-**사전 승인 상한.** `ha budget <goal> --preapprove <N> --window <W> --revision <R> --quote <인용> --context <문맥>`이 그 창의 사전 승인 상한을 `budget_change.preapproved_runs`로 기록한다. N은 지금 상한보다 커야 한다. 그 창에서 `--runs`를 N 이하로 올리는 데는 `--reason`만 있으면 된다. 상태 `budget.preapproved_runs`가 그 값을 보인다. 새 창의 상한은 시작 상한이나 사용자 인용으로 정한 마지막 상한(그 뒤의 감액은 반영)이고, 사전 승인과 그 안의 증액은 계승하지 않는다.
+**Pre-approved limit.** `ha budget <goal> --preapprove <N> --window <W> --revision <R> --quote <인용> --context <문맥>` records the window's pre-approved limit as `budget_change.preapproved_runs`. N must be greater than the current limit. In that window, raising `--runs` to N or less needs only `--reason`. The status `budget.preapproved_runs` shows that value. A new window's limit is the start limit or the last limit set by a user quote (with later decreases applied); the pre-approval and the increases within it are not inherited.
 
-**오류 회복.** `ha note <goal> recover <AC-n> --input check|baseline --change <바뀐 실행 조건>`은 그 조건·입력의 신선한 오류와 판정 불가가 한도(E=1)를 넘었을 때만 기록된다. 그때 그 입력의 한도에 들어간 오류·판정 불가 줄의 seq를 `recovery.clears`에 남기고, 그 줄들만 그 입력의 한도 계산에서 빠진다. 계산은 note보다 앞선, 같은 조건·같은 입력의 오류·판정 불가 줄만 받아들이고 목록의 다른 seq는 무시한다. 입력(명령·제한·검사 경로 등)이 바뀌었다가 돌아와 다시 신선해진 다른 오류는 그대로 센다. 같은 입력의 `fail`과 baseline `unexpected_pass`, 다른 조건과 다른 입력은 그대로다. 실행자 회복은 조건·입력마다 2회다. `ha note <goal> allow-recovery <AC-n> --input check|baseline --count <N> --quote <인용>`이 N회를 더한다. 한도를 넘지 않은 입력의 회복과 남은 횟수가 없는 회복은 65로 거부된다. 상태 JSON의 `recoveries`가 회복이나 허용이 있거나 한도를 넘은 입력마다 `criterion`, `input`, `errors`(어느 회복도 지정하지 않은 신선한 오류·판정 불가 수)와 그 seq `error_seqs`, `limit_reached`, `used`, `allowed`, `remaining`을 보인다. 사용자 입력·예산 변경·`reopen`·뒤의 통과는 오류 한도를 풀지 않는다.
+**Error recovery.** `ha note <goal> recover <AC-n> --input check|baseline --change <바뀐 실행 조건>` is recorded only when the fresh errors and inconclusive results of that condition and input have exceeded the limit (E=1). It then stores in `recovery.clears` the seqs of the error and inconclusive lines counted in that input's limit, and only those lines leave that input's limit computation. The computation accepts only error and inconclusive lines of the same condition and the same input that precede the note, and ignores other seqs in the list. Other errors that became fresh again after the input (command, limit, check paths and so on) changed and came back are still counted. The same input's `fail`s and baseline `unexpected_pass`es, other conditions and other inputs stay as they are. Executor recoveries are 2 per condition and input. `ha note <goal> allow-recovery <AC-n> --input check|baseline --count <N> --quote <인용>` adds N. A recovery for an input that has not exceeded the limit, and a recovery with no remaining count, are rejected with 65. For each input that has a recovery or an allowance or has exceeded the limit, `recoveries` in the status JSON shows `criterion`, `input`, `errors` (the number of fresh errors and inconclusive results that no recovery named) with their seqs `error_seqs`, `limit_reached`, `used`, `allowed` and `remaining`. User input, budget changes, `reopen` and later passes do not lift the error limit.
 
-**명령별 시간 제한.** PLAN의 선택 절 `## 시간 제한`([bundle.md](bundle.md) §2.5)이 조건이나 task 명령의 시간 제한을 정한다. 최대 7200초이고, 넘거나 대상이 없는 선언은 lint 문제라 실행 전에 거부된다. baseline은 그 조건의 제한을 쓴다. 명령 digest에 적용 제한(밀리초)이 들어가므로 제한을 바꾸면 이전 결과는 신선하지 않다. 선언하지 않은 명령은 900초다.
+**Per-command time limits.** The optional PLAN section `## 시간 제한` ([bundle.md](bundle.md) §2.5) sets the time limit of a condition or task command. The maximum is 7200 seconds; a declaration that exceeds it or has no target is a lint problem and is rejected before running. A baseline uses its condition's limit. The applied limit (in milliseconds) is part of the command digest, so changing the limit makes earlier results not fresh. An undeclared command gets 900 seconds.
 
-**실행 전 안내.** `ha check`는 대상마다 실행 전에 같은 대상(조건, 또는 task와 명령 순번)의 이전 `check`·`baseline` 줄을 읽고, 표준 출력에 그 대상의 결과 줄보다 먼저 한 줄을 낸다.
-- 가장 최근에 제한이 발동했거나 제한 구간 사용이 800‰ 이상인 실행: `time-limit notice: <대상> seq <n> limit reached` 또는 `time-limit notice: <대상> seq <n> <p>‰ of the limit`. 제한 구간이 없어 `duration_ms`로 계산했으면 끝에 ` (approximate)`를 붙인다.
-- 이전 실행이 없거나 적용 제한을 기록한 이전 실행이 없으면: `time-limit notice: <대상> risk unknown`.
+**Pre-run notice.** Before running each target, `ha check` reads the earlier `check` and `baseline` lines of the same target (a condition, or a task and its command index), and prints one line to standard output before that target's result line.
+- For the most recent run in which the limit fired or the limit interval use was 800‰ or more: `time-limit notice: <대상> seq <n> limit reached` or `time-limit notice: <대상> seq <n> <p>‰ of the limit`. If there was no limit interval and the value was computed from `duration_ms`, ` (approximate)` is appended.
+- If there is no earlier run, or no earlier run that recorded its applied limit: `time-limit notice: <대상> risk unknown`.
 
-`<대상>`은 결과 줄과 같은 표기(`AC-3`, `T002#1`)다. 안내 줄은 이 세 형식 가운데 하나 그대로이고 다른 말을 덧붙이지 않는다. 그래서 이전 실행이 없을 때 안전하다는 말이 나오지 않는다. 안내는 실행을 막지 않고 기록·실행 횟수를 쓰지 않는다.
+`<대상>` (the target) uses the same notation as the result line (`AC-3`, `T002#1`). The notice line is exactly one of these three forms, with nothing added. So it never says a run is safe when there is no earlier run. The notice does not block the run, and neither writes a record nor uses a run.
 
 ### 4.8 run-rules/5
 
-`ha start --rules run-rules/5`로 시작한 목표는 `run-rules/4`의 규칙(§4.7)을 모두 지키고, SPEC의 `Assurance:` 등급([goal-docs.md](goal-docs.md) §2.5)이 독립 검토를 요구하면 기록된 검토 gate를 완료 조건으로 쓴다. 기본 시작 규칙은 그대로 `run-rules/3`이고, `/5`는 이 옵션으로만 고른다. `run-rules/1`~`run-rules/4`로 시작한 목표는 진행 중이든 완료했든 판정, 상태 출력, 완료 기록이 그대로이고, `review` note를 65로 거부하며 기록하지 않는다. `/5` 목표의 상태 JSON은 `/4`와 같은 필드를 갖고, 아래 이유만 더해진다.
+A goal started with `ha start --rules run-rules/5` keeps all the rules of `run-rules/4` (§4.7), and when the SPEC's `Assurance:` tier ([goal-docs.md](goal-docs.md) §2.5) requires independent review, it uses the recorded review gate as a completion condition. The default start rule stays `run-rules/3`; `/5` is chosen only with this option. For goals started under `run-rules/1` to `run-rules/4`, whether in progress or complete, judgment, status output and completion records stay as they were, and a `review` note is rejected with 65 and not recorded. The status JSON of a `/5` goal has the same fields as `/4`, with only the reasons below added.
 
-**gate 기록.** `ha note <goal> review --gate <file>`은 Spar의 `spar gate`가 쓴 `review-gate/v1` 파일([review-gate.md](review-gate.md))을 한 번 읽어 note 줄의 `review`에 다음만 남긴다. 판정은 이 요약만 읽고 파일을 다시 읽지 않는다. 기록은 실행자의 주장이고, 실행자가 나중 gate를 기록하지 않는 것은 Core가 막지 못한다. 보증 수준은 `local`이다.
+**Recording a gate.** `ha note <goal> review --gate <file>` reads once the `review-gate/v1` file ([review-gate.md](review-gate.md)) written by Spar's `spar gate`, and stores only the following in the note line's `review`. Judgment reads only this summary and never rereads the file. The record is the executor's claim, and Core cannot prevent the executor from not recording a later gate. The assurance level is `local`.
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `gate_digest` | 파일 바이트의 sha256 |
-| `schema`, `spar_version` | 파일의 값 |
+| `gate_digest` | the sha256 of the file bytes |
+| `schema`, `spar_version` | the values from the file |
 | `state` | `complete` \| `degraded` \| `blocked` |
-| `expect_head`, `last_reviewed_head` | 기대 head와 마지막으로 검토된 head |
-| `rounds[]` | 파일의 순서대로 `stage`, `sequence`, `base`, `head`, `criteria_digest`, `criteria`(`name`, `sha256`), `required_reviewers`, `completed_required`, `dry_run`; `/7`에서는 라운드 폴더의 이름 `series`, `round`도 |
-| `open` | 열린 `defect`, `requirement-question` 수 |
-| `findings` | gate에 지적 목록이 있을 때만 있다. `deferred`(gate의 `deferred_findings` 항목마다 `series`, `round`, `id`, `class`, `to`), `unhandled`(`unhandled_findings` 항목마다 `series`, `round`, `id`, `class`), `auto_deferred`(gate의 수). 항목의 다른 필드는 남기지 않는다. 판정은 이 필드를 읽지 않고 보고만 읽는다(§1.3) |
+| `expect_head`, `last_reviewed_head` | the expected head and the last reviewed head |
+| `rounds[]` | in the file's order: `stage`, `sequence`, `base`, `head`, `criteria_digest`, `criteria` (`name`, `sha256`), `required_reviewers`, `completed_required`, `dry_run`; under `/7` also the round folder names `series` and `round` |
+| `open` | the number of open `defect` and `requirement-question` findings |
+| `findings` | present only when the gate has the finding lists: `deferred` (for each item of the gate's `deferred_findings`, its `series`, `round`, `id`, `class` and `to`), `unhandled` (for each item of `unhandled_findings`, its `series`, `round`, `id` and `class`) and `auto_deferred` (the gate's count). Other fields of the items are not stored. Judgment does not read this field; only the report does (§1.3) |
 
-gate의 `reasons`, `open_findings`, 라운드 `path`, `waived_reviewers`(사용자 인용 포함), `growth`, `written_at`, `previous_gate_digest`는 남기지 않는다. 라운드와 series는 폴더 이름으로만 남는다. `to`는 원장의 보류 대상 글을 그대로 남기고 그 안의 경로를 고치지 않는다. 기록에 경로를 남기지 않으려면 `spar triage --to`에 이슈 주소 같은 식별자를 준다. 지적 원문은 Spar 기록이 정본이다. 기록할 때 HEAD, 작업 트리, 목표 문서와 대조하지 않고, 같은 파일을 다시 기록하면 같은 요약이 한 번 더 남는다.
+The gate's `reasons`, `open_findings`, the rounds' `path`, `waived_reviewers` (including user quotes), `growth`, `written_at` and `previous_gate_digest` are not stored. Rounds and series are kept only as folder names. `to` keeps the ledger's deferral target text as it is, and paths inside it are not rewritten. To keep paths out of the record, give `spar triage --to` an identifier such as an issue URL. Spar's record is the authoritative copy of the findings' text. Recording does not compare the file against HEAD, the working tree or the goal documents, and recording the same file again stores the same summary once more.
 
-파일이 없거나 일반 파일이 아니거나 읽을 수 없음, JSON 객체 하나가 아님(빈 파일, 뒤에 붙은 데이터 포함), `schema`가 `review-gate/v1`이 아님, 위 필드가 없거나 타입이 틀림(`state`가 세 값 밖, `stage`가 `plan`·`plan-delta`·`candidate`·`fixes` 밖, 정수가 아니거나 음수인 수, `criteria` 항목의 빈 `name`이나 64자리 소문자 hex가 아닌 `sha256`)이면 `ha: review gate <file>: <이유>; nothing recorded`를 보이고 65로 끝나며 아무것도 기록하지 않는다. `deferred_findings`나 `unhandled_findings`가 하나라도 있으면 지적 목록도 같은 거부의 대상이다: 둘 다 목록이어야 하고, 항목마다 객체이며 `series`·`round`가 폴더 이름(비지 않고 `/`·NUL이 없으며 `.`·`..`이 아님. Unix의 폴더 이름처럼 `\`는 들어갈 수 있다), `id`가 빈 문자열이 아니고, `class`가 `defect`·`requirement-question`·`hardening`·`note` 가운데 하나여야 한다. `deferred_findings` 항목은 `to`가 빈 문자열이 아니어야 하고, `auto_deferred`는 음수가 아닌 정수여야 한다. 둘 다 없으면 이 목록 전의 gate로 보아 지금처럼 기록하고 `auto_deferred`를 읽지 않는다. 그 밖의 모르는 필드는 무시한다. `--quote`를 주면 규칙과 무관하게 64이고, `/5` 목표에서 `--gate`가 없거나 비었으면 64다.
+If the file is missing, is not a regular file or cannot be read; is not exactly one JSON object (including an empty file or trailing data); has a `schema` other than `review-gate/v1`; or lacks a field above or has the wrong type (a `state` outside the three values, a `stage` outside `plan`, `plan-delta`, `candidate` and `fixes`, a number that is not an integer or is negative, an empty `name` or a `sha256` that is not 64 lowercase hex digits in a `criteria` item), the command prints `ha: review gate <file>: <이유>; nothing recorded`, exits with 65 and records nothing. When either `deferred_findings` or `unhandled_findings` is present, the finding lists fall under the same refusal: both must be lists; each item must be an object whose `series` and `round` are folder names (not empty, without `/` or NUL, and not `.` or `..`; a `\` may appear, as in a Unix folder name), whose `id` is not an empty string and whose `class` is one of `defect`, `requirement-question`, `hardening` and `note`; each `deferred_findings` item must have a `to` that is not an empty string; and `auto_deferred` must be a non-negative integer. When both are absent, the gate is taken as one from before the lists: it is recorded as before and `auto_deferred` is not read. Other unknown fields are ignored. Giving `--quote` is 64 regardless of the rules, and on a `/5` goal a missing or empty `--gate` is 64.
 
-**판정.** 판정할 때의 SPEC.md 등급이 `standard`나 `strict`이면, 기록 전체에서 가장 나중의 `review` note(기록된 마지막 gate)로 아래 이유를 계산한다. 등급이 `light`이거나 줄이 없으면 gate가 필요 없고, gate를 기록했어도 이 이유가 나오지 않는다. 등급은 시작 기록이 아니라 지금의 SPEC.md에서 읽는다. 등급을 바꾸면 목표 digest가 바뀌므로 `spec_changed`와 `confirm spec`도 지금처럼 적용된다.
+**Judgment.** If the SPEC.md tier at judgment time is `standard` or `strict`, the reasons below are computed from the latest `review` note in the whole record (the last recorded gate). If the tier is `light` or there is no tier line, no gate is needed, and these reasons do not appear even when a gate was recorded. The tier is read from the current SPEC.md, not from the start record. Changing the tier changes the goal digest, so `spec_changed` and `confirm spec` apply as usual.
 
-| 이유 | 조건 | 분류 |
+| Reason | When | Class |
 | --- | --- | --- |
-| `review_missing` | `review` note가 없다. `confirm`, `input` 같은 다른 note는 gate를 대신하지 않는다 | 실행자가 고침 |
-| `review_blocked` | gate 상태가 `blocked` | 실행자가 고침 |
-| `review_degraded` | gate 상태가 `degraded` | 실행자가 고침 |
-| `review_open_defect` | 열린 `defect`가 있다 | 실행자가 고침 |
-| `review_open_question` | 열린 `requirement-question`이 있다 | 사용자 확인 |
-| `review_code_missing` | dry run이 아닌 `candidate`·`fixes` 라운드가 없다 | 실행자가 고침 |
-| `review_head_stale` | `last_reviewed_head`나 목록의 마지막 code 라운드(dry run 제외)의 `head`가 지금 HEAD와 다르다. commit ID를 그대로 비교하므로 묶음 문서만 바꾼 commit도 다른 head다 | 실행자가 고침 |
-| `review_docs_stale` | 마지막 code 라운드가, `strict`면 마지막 `plan`·`plan-delta` 라운드도, 지금의 목표 문서를 모두 받지 않았다 | 실행자가 고침 |
-| `review_plan_missing` | `strict`인데 dry run이 아닌 `plan`·`plan-delta` 라운드가 없다 | 실행자가 고침 |
+| `review_missing` | There is no `review` note. Other notes, such as `confirm` and `input`, do not stand in for a gate | executor fixes |
+| `review_blocked` | The gate state is `blocked` | executor fixes |
+| `review_degraded` | The gate state is `degraded` | executor fixes |
+| `review_open_defect` | There is an open `defect` | executor fixes |
+| `review_open_question` | There is an open `requirement-question` | user confirmation |
+| `review_code_missing` | There is no `candidate` or `fixes` round that is not a dry run | executor fixes |
+| `review_head_stale` | `last_reviewed_head`, or the `head` of the last code round in the list (dry runs excluded), differs from the current HEAD. Commit IDs are compared as they are, so a commit that changed only bundle documents is also a different head | executor fixes |
+| `review_docs_stale` | The last code round, and for `strict` also the last `plan` or `plan-delta` round, did not receive all of the current goal documents | executor fixes |
+| `review_plan_missing` | The goal is `strict` but there is no `plan` or `plan-delta` round that is not a dry run | executor fixes |
 
-라운드가 지금의 목표 문서를 받았다는 것은, 목표 문서 집합([goal-docs.md](goal-docs.md) §1)의 문서마다 그 라운드의 `criteria`에 `sha256`이 지금 내용의 sha256이고 이름이 다음 둘 중 하나인 항목이 있다는 뜻이다: 그 문서의 저장소 기준 경로(`/` 구분), 또는 심볼릭 링크를 푼 이름(푼 파일이 저장소 안이면 그 저장소 기준 경로, 밖이면 파일 이름). 뒤의 것은 Spar가 기준 문서를 부르는 방식이다. 다른 기준 문서가 더 있거나 순서가 달라도 된다. Spar의 `criteria_digest`와 SPEC digest는 정의가 달라 비교하지 않는다. 목표 문서는 모두 검토하는 저장소에서 `--criteria`로 준다. "마지막"은 gate 파일의 라운드 순서다.
+A round received the current goal documents when, for each document in the goal document set ([goal-docs.md](goal-docs.md) §1), the round's `criteria` has an item whose `sha256` is the sha256 of the current content and whose name is one of these two: the document's repository-relative path (`/`-separated), or its name with symbolic links resolved (the repository-relative path if the resolved file is inside the repository, the file name if it is outside). The latter is how Spar names criteria documents. Extra criteria documents or a different order are fine. Spar's `criteria_digest` and the SPEC digest have different definitions, so they are not compared. All goal documents are given with `--criteria` in the repository under review. "Last" refers to the round order in the gate file.
 
-fixes 사슬과 기대 head의 확인은 gate 상태 `complete`가 맡는다([review-gate.md](review-gate.md) §2). Core는 사슬을 다시 계산하지 않고, 지적의 옳고 그름도 판단하지 않는다.
+The gate state `complete` is what covers checking the fixes chain and the expected head ([review-gate.md](review-gate.md) §2). Core does not recompute the chain, and does not judge whether findings are right or wrong.
 
-이 이유가 하나라도 있으면 `ha done`은 완료를 기록하지 않는다. 완료 기록 뒤에 `review` note를 기록하면 `reopen`처럼 그 완료 기록이 무효가 되고 새 gate로 다시 판정한다(§5.1). `ha done`이 상태를 계산하는 동안 다른 `ha`가 줄을 붙였으면 그 `done` 줄의 `record_head`가 바로 앞 줄과 다르고, 그 완료 기록도 무효다. 그 사이에 붙은 `review` note가 판정되지 않은 채 완료 기록 앞에 남지 않게 하려는 것이다. 유효한 완료 기록이 있는 동안에는 이 이유를 상태 이유에서 뺀다. 그 완료 기록이 판정한 코드 상태와 목표 문서를 고정하므로, 완료 뒤 묶음 문서만 commit해도 완료가 유지된다. 저장된 `review` 요약의 `gate_digest`가 sha256이 아니거나, `schema`·`state`·`stage`가 위 값 밖이거나, 수가 음수이거나, `criteria` 항목에 이름이나 sha256이 없거나, 위 표의 필드가 없거나 `null`이면 `record_invalid`다. 기록은 `ha`만 쓰므로 그런 요약은 손으로 고친 기록이다. `findings`는 판정이 읽지 않으므로 이 판단에 들어가지 않는다. 저장된 `findings`가 위 형식이 아니면 상태와 이유는 그대로이고, 보고가 그 목록을 읽을 수 없다고 보인다(§1.3).
+If any of these reasons exists, `ha done` does not record completion. Recording a `review` note after a completion record invalidates that completion record, as `reopen` does, and judgment is made again with the new gate (§5.1). If another `ha` appended a line while `ha done` was computing the status, that `done` line's `record_head` differs from the line just before it, and that completion record is invalid too. This keeps a `review` note appended in between from sitting unjudged before the completion record. While a valid completion record exists, these reasons are left out of the status reasons. That completion record fixes the code state and goal documents it judged, so committing only bundle documents after completion keeps the completion. If the stored `review` summary has a `gate_digest` that is not a sha256, a `schema`, `state` or `stage` outside the values above, a negative number, a `criteria` item without a name or sha256, or a field from the table above that is missing or `null`, the reason is `record_invalid`. Only `ha` writes the record, so such a summary is a hand-edited record. Judgment does not read `findings`, so it is not part of this check. When the stored `findings` is not in the form above, the status and the reasons stay as they are, and the report says the lists cannot be read (§1.3).
 
-검토 없이 끝내려면 사용자가 등급을 `light`로 낮추는 목표 문서 수정을 정한다. 그 뒤 `confirm spec`과 신선한 검사로 gate 없이 완료된다.
+To finish without review, the user decides a goal document change that lowers the tier to `light`. After that, the goal completes without a gate through `confirm spec` and fresh checks.
 
 ### 4.9 run-rules/6
 
-`ha start --rules run-rules/6`으로 시작한 목표는 `run-rules/5`의 규칙을 모두 지키고 아래 네 판정만 바꾼다. 기본 시작 규칙은 그대로 `run-rules/3`이다. Seal 0.1.26은 `core-requirements.json`에 `run-rules/6`을 선언하고 `--rules run-rules/6 --check-skill`로 새 목표를 시작한다. 필요한 지원이 없으면 기록 없이 멈추며 이전 규칙으로 물러나지 않는다. `/1`~`/5`로 시작한 목표의 판정과 이미 남은 완료 기록의 의미는 그대로다.
+A goal started with `ha start --rules run-rules/6` keeps all the rules of `run-rules/5` and changes only the four judgments below. The default start rule stays `run-rules/3`. Seal 0.1.26 declares `run-rules/6` in `core-requirements.json` and starts new goals with `--rules run-rules/6 --check-skill`. Without the required support, it stops without a record and does not fall back to earlier rules. Goals started under `/1` through `/5` keep their judgments and the meaning of their existing completion records.
 
-**검토 범위의 시작.** `standard`·`strict` 목표에서는 기록된 마지막 gate의 마지막 candidate 라운드(dry run 제외)의 `base`가 시작 기록의 `base_commit`과 같은 전체 commit ID여야 한다. `reopen` 뒤에도 비교 대상은 최초 시작 base다. 다르면 실행자 분류의 `review_base_mismatch`가 `review_head_stale` 뒤에 나오고 `ha done`은 완료를 기록하지 않는다. 설명은 `the review gate recorded at seq <n>: its last candidate round <sequence> reviewed from <base 12자>; the goal started at <base 12자>`로 gate seq, candidate 순번과 base, 시작 base를 밝힌다. fixes 라운드만 있고 candidate가 없으면 같은 이유와 `the review gate recorded at seq <n> has no candidate round; the goal started at <base 12자>`를 보인다. code 라운드 자체가 없으면 이 이유는 더하지 않고 기존 `review_code_missing`을 쓴다. 시작 base부터의 candidate 뒤에 fixes 라운드가 이어져도 된다. fixes 사슬은 여전히 Spar의 gate 상태가 확인하며 Core는 다시 계산하지 않는다.
+**Start of the review range.** For a `standard` or `strict` goal, the last candidate round (excluding dry runs) of the last recorded gate must have the same full commit ID in `base` as the start record's `base_commit`. The comparison still uses the original start base after `reopen`. A mismatch adds the executor reason `review_base_mismatch` after `review_head_stale`, and `ha done` does not record completion. Its detail is `the review gate recorded at seq <n>: its last candidate round <sequence> reviewed from <base, 12 characters>; the goal started at <base, 12 characters>`, naming the gate seq, candidate sequence and base, and start base. With only fixes rounds and no candidate, it gives the same reason and `the review gate recorded at seq <n> has no candidate round; the goal started at <base, 12 characters>`. With no code round at all, it does not add this reason and uses the existing `review_code_missing`. Fixes rounds may follow a candidate from the start base. Spar's gate state still checks the fixes chain; Core does not recalculate it.
 
-**완료 뒤 review note.** 완료 기록 뒤의 `review` note는 판정할 때 SPEC.md의 등급이 `standard`나 `strict`일 때만 그 완료 기록을 무효로 한다. `light`이거나 등급 줄이 없으면 다른 유효성 조건을 만족하는 완료 기록은 그대로이고, `ha done`을 다시 할 필요가 없다. 등급을 고치면 SPEC digest가 바뀌므로 기존 유효성 확인은 그대로 적용된다. `run-rules/5`는 등급과 관계없이 뒤의 `review` note가 완료 기록을 무효로 한다.
+**Review notes after completion.** A `review` note after a completion record voids that record only when the tier in SPEC.md at judgment time is `standard` or `strict`. With `light` or no tier line, an otherwise valid completion record stays valid without another `ha done`. Editing the tier changes the SPEC digest, so the existing validity checks still apply. Under `run-rules/5`, a later `review` note voids the completion record regardless of tier.
 
-**판정하지 않은 done 줄.** `run-rules/6`에서 `record_head`가 앞선 줄의 hash이고 그 줄과 `done` 줄 사이에 발견 줄(`run-finding/v1`)만 있거나 아무 줄도 없으면, 그 `done` 줄은 판정한 줄이다. `record_head`가 가리키는 줄 자체는 발견 줄이어도 된다. 발견 줄은 완료 판정과 예산 입력에 들어가지 않기 때문이다. 첫 줄인 `done`이나 `record_head`가 `null`이거나 앞선 줄의 hash가 아닌 `done`은 판정하지 않은 줄이다. 그 사이에 note·실행 등 발견 줄이 아닌 줄이 하나라도 있으면 판정하지 않은 줄이다. 모든 `done` 줄은 줄을 제거하기 전의 전체 기록에서 먼저 판정하므로, `record_head`가 판정하지 않은 줄을 가리켜도 판정한 줄이 될 수 있다. 그런 다음 판정하지 않은 `done` 줄은 완료 여부와 관계없이 상태 계산에서 없는 것으로 취급한다. 완료 기록과 그 설명, 최신 done 줄, 예산 창과 경과 시간, 완료 뒤 구간, 예산 변경 거부가 모두 같은 뷰를 쓴다. 상태·보고·비용·예산 변경은 이 뷰에 일치한다. 사슬과 기록 검증, `record_head`, 발견과 실행 횟수는 전체 기록을 그대로 쓴다. 앞의 줄도 모든 유효성 조건을 만족해야 하며, 그 뒤의 `review` note는 위 등급 규칙대로 적용된다. 판정했지만 다른 이유로 무효인 줄에서는 이전처럼 탐색을 멈춘다. `run-rules/5`는 가장 나중의 완료 `done` 줄이 판정하지 않은 줄이면 앞의 유효한 완료 기록을 찾지 않는다. `ha done`의 계산과 기록을 한 잠금으로 묶는 변경은 아니다.
+**Unjudged done lines.** Under `run-rules/6`, a `done` line is judged when its `record_head` is the hash of an earlier line and every line strictly between that line and the `done` line is a finding line (`run-finding/v1`), including when there are no intervening lines. The named line may itself be a finding line. Finding lines enter neither the completion judgment nor the budget inputs. A `done` that is the first line, and a `done` whose `record_head` is `null` or is not the hash of an earlier line, are unjudged. When any line that is not a finding line, such as a note or a run, comes in between, the line is unjudged. Every `done` line is judged on the full record before any lines are removed; a line whose `record_head` names an unjudged line can therefore still be judged. An unjudged `done` line, complete or non-complete, is then treated as absent from status computation: the completion record and its explanation, the latest done line, the budget window and elapsed time, post-completion intervals, and budget-change refusal all use this same view. Status, report, cost and budget changes agree on that view. Chain and record validation, `record_head`, findings and run counts still use the full record. An earlier line still needs every validity condition; later `review` notes apply under the tier rule above. A judged line invalid for another reason stops the search as before. Under `run-rules/5`, when the latest completion `done` line was not judged, the search does not find an earlier valid completion record. This change does not put the computation and recording of `ha done` under one lock.
 
-**완료 뒤 시간.** 예산 창 안에서 `status`가 `complete`인 `done` 줄의 `at`부터, 그 `at`과 같은 초나 그 뒤에 처음 시작한 검사·baseline의 `started_at`이나 그 뒤의 판정한 `done` 줄 중 완료가 아닌 줄의 `at` 가운데 이른 시점까지를 경과에서 뺀다. 판정한 완료 `done` 줄(위의 판정하지 않은 done 줄이 아닌 줄)만 이 구간을 시작한다. 완료 `done` 줄 전에 시작한 실행은 그 뒤 기록되더라도 구간을 끝내지 않는다. 둘 다 없으면 창의 마지막 실행 예산 대상 기록에서 끝난다. 그 사이의 다른 `complete` 줄은 구간을 이어 가고, note(`wait`, `input`, `review` 등)와 발견 줄은 끝내지 않는다. `reopen`은 새 창을 연다. 구간은 창 안으로 자르고 실행 구간과 신고 대기를 제외하므로, 실행 시간은 경과에 남고 겹친 대기는 한 번만 빠진다. `run-rules/5`에는 이 추가 공제가 없다.
+**Time after completion.** Within a budget window, elapsed time excludes the interval from the `at` of a `done` line whose `status` is `complete` to the earlier of the earliest `started_at` among checks or baselines that started in the same second as that `at` or later and the `at` of a later judged non-complete `done` line. Only a judged completion `done` line (one that is not an unjudged done line above) starts this interval. A run that started before the completion `done` line does not end the interval, even if recorded afterward. With neither endpoint, it ends at the window's last record subject to the run budget. Another `complete` line in between continues the interval; notes (`wait`, `input`, `review` and others) and finding lines do not end it. `reopen` opens a new window. The interval is clipped to the window and excludes run intervals and reported waits, so run time stays elapsed and overlapping waits are subtracted only once. `run-rules/5` has no such additional deduction.
 
-`run-rules/6`의 상태 JSON `budget.post_completion_seconds`와 `ha cost` JSON의 예산 창 `post_completion_seconds`는 이렇게 추가로 뺀 초다. 따라서 `elapsed_seconds = span_seconds - reported_wait_seconds - post_completion_seconds`다. 사람용 상태의 Budget 절에도 `elapsed also leaves out <초> seconds after completion, excluding reported waits and runs`를 따로 보인다. `ha report`의 `남은 한계`와 예산 결정, `ha cost`의 예산 창도 같은 경과를 쓴다. 시간은 저장된 `at`과 `started_at`으로만 계산하며 현재 시각을 읽지 않는다. 실행 횟수, 예산 창과 한도, 완료 기록이 있는 창의 예산 변경 거부는 그대로다. 완료 뒤 첫 실행 전에 한 작업 시간도 이 구간에 들어가므로, 완료 뒤 코드를 고치는 재작업은 사용자 요청을 인용한 `reopen`으로 새 창에서 진행한다.
+The `budget.post_completion_seconds` in `run-rules/6` status JSON and the budget window's `post_completion_seconds` in `ha cost` JSON are these additional excluded seconds. Thus `elapsed_seconds = span_seconds - reported_wait_seconds - post_completion_seconds`. The human-readable status Budget section also shows `elapsed also leaves out <seconds> seconds after completion, excluding reported waits and runs` on its own line. The `Remaining limits` / `남은 한계` line and the budget decision in `ha report`, and the budget window in `ha cost`, use the same elapsed time. Time is calculated only from stored `at` and `started_at`, never the current time. Run counts, budget windows and limits, and refusal to change the budget of a window with a completion record stay unchanged. Work before the first run after completion also falls in this interval, so rework that edits code after completion proceeds in a new window opened by `reopen` quoting the user's request.
 
 ### 4.10 run-rules/7
 
-`ha start --rules run-rules/7`로 시작한 목표는 `run-rules/6`의 규칙을 지키면서 baseline 요구·기본 선택·필수 최소량·상태와 보고·검사 동결 표시를 아래처럼 바꾼다. 기본 시작 규칙은 `run-rules/3` 그대로다. 현재 Seal은 `--rules run-rules/7 --check-skill`로 시작하며 필요한 지원이 없으면 기록 없이 거부한다. `run-rules/1`~`run-rules/6`으로 시작한 목표는 PLAN에 표시 열을 더해도 판정·최소량·기본 선택·출력·완료 기록의 의미가 바뀌지 않고 기존 기록도 변환하지 않는다.
+A goal started with `ha start --rules run-rules/7` retains the rules of `run-rules/6` except for the baseline requirement, default selection, required minimum, status and report output, and check freeze display below. The default start rule stays `run-rules/3`. Current Seal starts with `--rules run-rules/7 --check-skill` and refuses without a record when required support is missing. Goals started under `run-rules/1` through `run-rules/6` keep their judgments, minimum, default selection, output and completion-record meaning even when PLAN gains the mark column; existing records are not converted.
 
-**baseline 요구.** PLAN 조건표의 선택 `baseline` 열에 `요구`가 있는 change 조건만 baseline을 요구한다([bundle.md](bundle.md) §2.1). 빈 칸·`—`나 열이 없으면 요구하지 않는다. 지금 PLAN의 표시가 판정을 정하며, 시작 기록의 `baseline_marked`에는 시작 때 표시한 조건 ID 목록을 남긴다. 시작 뒤 표시를 더하면 그때부터 baseline이 필요하고, 빼면 필요하지 않지만 보고에 드러난다. 모든 change 조건의 검사 경로와 구조화 결과 계약은 여전히 필수다.
+**Baseline requirement.** Only a change condition with `요구` in the condition table's optional `baseline` column requires a baseline ([bundle.md](bundle.md) §2.1). An empty cell, `—`, or no column means no baseline is required. Current PLAN marks determine judgment; the start record's `baseline_marked` stores the condition IDs marked at the start. Adding a mark after the start requires a baseline from then on; removing it removes the requirement but is visible in the report. Check paths and the structured result contract remain required for every change condition.
 
-표시한 조건은 §4.1의 신선한 현재 검사와 `fail_as_expected` baseline을 모두 요구한다. 표시하지 않은 조건은 baseline이 없어도 신선한 현재 검사의 통과로 충족할 수 있다. 다만 그 조건에 baseline을 기록했다면 신선한 불리한 결과(`unexpected_pass`, 의도한 위반이 아닌 실패, 한도를 넘은 오류)를 무시하지 않는다. 한도 안의 baseline 오류나 판정 불가는 표시하지 않은 조건의 충족을 막지 않으며, 오류 한도를 넘었을 때만 막는다. 표시를 빼거나 뒤의 통과로 같은 입력의 불리한 결과를 지울 수 없다. baseline을 기록할 때의 신선도·구조화 결과·오류 한도와 회복은 `/6`과 같다.
+A marked condition needs both the fresh current check and `fail_as_expected` baseline of §4.1. An unmarked condition can be satisfied by a fresh passing current check without a baseline. If a baseline was recorded for it, however, fresh adverse results (`unexpected_pass`, a failure other than the intended violation, and errors over the limit) still apply. A baseline error or inconclusive result within the limit does not block an unmarked condition; only exceeding the error limit does. Removing a mark or passing later does not erase adverse results on the same input. Baseline freshness, structured results, error limits and recovery remain as in `/6`.
 
-**기본 선택과 최소량.** 대상 없는 `ha check <goal> --baseline`은 표시한 change 조건만 고른다(표시한 선택 AC·EX 포함). 표시가 하나도 없으면 64로 거절하고 기록을 남기지 않는다. 대상을 명시하면 표시하지 않은 change 조건도 baseline을 실행할 수 있고 사용량에 센다. 기본 현재 검사는 여전히 필수 change·maintain을 고른다.
+**Default selection and minimum.** With no target, `ha check <goal> --baseline` selects only marked change conditions, including marked optional ACs and EXs. With no marks, it refuses with 64 and writes no record. An explicitly named unmarked change condition can still run a baseline, which counts toward usage. Default current checks still select required change and maintain conditions.
 
-필수 최소량은 `표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain`이다. manual은 0회다. 표시한 필수 change 1개, 표시하지 않은 필수 change 4개, 필수 maintain 3개면 최소 9회이고 자동 상한은 `max(50, ⌈9 × 1.5⌉) = 50`이다. 시작의 상한 확인, `ha estimate`, 자동 예산이 같은 식을 쓴다. 시작 전에는 `ha estimate <goal> --rules run-rules/7`로 고르고, `--rules`를 생략하면 기존 기본 규칙으로 추정한다. 시작한 목표는 저장된 규칙을 쓰며 그와 다른 `--rules`는 64로 거절한다. `estimate --baseline`의 기본 대상도 표시한 조건만이고, 대상이 없으면 0회다.
+The required minimum is marked required change × 2 + unmarked required change + required maintain (`표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain`). Manual conditions count as 0 runs. One marked required change, four unmarked required changes and three required maintains need at least 9 runs; the automatic limit is `max(50, ⌈9 × 1.5⌉) = 50`. The start's limit check, `ha estimate` and automatic budget use this same formula. Before starting, select it with `ha estimate <goal> --rules run-rules/7`; omitting `--rules` estimates under the existing default rules. A started goal uses its saved rules and refuses a different `--rules` with 64. The default `estimate --baseline` selection also includes only marked conditions and estimates 0 runs when there are none.
 
-**상태와 보고.** 상태 JSON의 change 조건마다 `baseline_required`(`criteria[].baseline_required`, bool)가 있고, 사람용 상태는 `- baseline required: <쉼표로 나눈 ID 목록 또는 none>`을 보인다. `/1`~`/6` 출력에는 이 필드와 줄을 더하지 않는다. `ha report`의 `확인한 것`은 `change 조건 N개 중 M개가 baseline을 요구하고 그중 K개에 신선한 baseline`(en: `M of N change conditions require a baseline; K of them have a fresh baseline`)을 보인다. N은 모든 change 조건 수, M은 지금 표시한 수, K는 그중 상태 계산이 신선한 baseline 근거로 인정한 수다. `직접 볼 것`은 시작 기록의 `baseline_marked`에 있고 지금 표시가 없는 change 조건을 `시작 뒤 baseline 표시를 뺀 조건: …`(en: `baseline mark removed after start: …`)으로 보인다. 시작 뒤 더한 표시는 뺀 표시가 아니다.
+**Status and report.** Each change condition in status JSON has `baseline_required` (`criteria[].baseline_required`, bool), and human-readable status shows `- baseline required: <comma-separated IDs or none>`. These fields and lines are absent from `/1` through `/6` output. The `Checked` / `확인한 것` line of `ha report` says `M of N change conditions require a baseline; K of them have a fresh baseline` (ko: `change 조건 N개 중 M개가 baseline을 요구하고 그중 K개에 신선한 baseline`). N counts all change conditions, M counts those currently marked, and K counts those among M whose fresh baseline status accepts as evidence. `To review` / `직접 볼 것` shows change conditions present in the start's `baseline_marked` but now unmarked as `baseline mark removed after start: …` (ko: `시작 뒤 baseline 표시를 뺀 조건: …`). Marks added after the start are not removed marks.
 
-**동결 시점과 비교.** 검사 동결은 기록된 마지막 `review` note의 gate에서 dry run이 아닌 라운드를 gate 순서대로 읽어, `strict`의 첫 `plan` 라운드 또는 `standard`의 첫 `candidate` 라운드 head를 기준으로 한다. `light`, 등급 줄이 없는 목표, 기록된 gate나 해당 라운드가 없는 목표에는 동결 표시가 없다. 동결 대상은 조건표에서 검사 경로를 적은 모든 행의 경로에 있는 선언·생산자·시험·도우미·설정이다. 지금 검사 경로의 파일을 동결 head와 HEAD에서 비교해 내용이 다르면 `changed`, 동결 head에 없으면 `added`로 보이며, 동결 때의 조건표에서 빠진 경로는 `removed`다. 바뀌지 않은 파일은 목록에 없다.
+**Freeze point and comparison.** The check freeze reads the non-dry-run rounds of the last recorded `review` note's gate in gate order and uses the head of the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`. There is no freeze display for `light`, no tier line, no recorded gate, or no matching round. The frozen inputs are declarations, producers, tests, helpers and settings in the condition table's check paths, from every row that lists any. Comparing files currently in those paths between the freeze head and HEAD yields `changed` when content differs and `added` when absent at the freeze head; paths removed from the freeze-time condition table are `removed`. Unchanged files are absent from the list.
 
-`/7`의 `ha note <goal> review --gate <file>`은 그때 조건표에서 검사 경로를 적은 모든 행의 조건 ID별 `check_paths`도 기록한다. 동결 때의 조건표는 동결 라운드가 gate의 마지막 라운드인 가장 이른 `review` note의 `check_paths`다. 라운드는 gate의 순서·series·round·단계·base·head로 맞춘다. 따라서 Seal은 동결 라운드 바로 뒤에 gate를 기록한다. 시작 기록의 검사 경로는 이 표의 대용이 아니다. 파일 내용과 동결 head에 파일이 있었는지는 Git으로 비교한다.
+Under `/7`, `ha note <goal> review --gate <file>` also records the current condition table's `check_paths` by condition ID for every row that lists any. The freeze-time table is the `check_paths` of the earliest `review` note whose gate ends at the freeze round. Rounds are matched by gate order, series, round, stage, base and head. Seal therefore records the gate right after the freeze round. The start record's check paths do not substitute for this table. File contents and presence at the freeze head are compared through Git.
 
-그 note가 없으면 뺀 경로를 관측하지 못한다. `check_freeze.removed_observed`는 `false`, `table_from`은 `null`이고 `files`에는 `removed` 항목이 없다. 상태와 보고는 `동결 때의 조건표가 기록되지 않음`(en·사람용 상태: `freeze-time condition table was not recorded`)을 보인다. note가 있으면 `removed_observed: true`, `table_from`은 그 note의 seq다.
+Without that note, removed paths are unobserved: `check_freeze.removed_observed` is `false`, `table_from` is `null`, and `files` contains no `removed` items. Status and report show `freeze-time condition table was not recorded` (ko report: `동결 때의 조건표가 기록되지 않음`). With the note, it is `removed_observed: true`, and `table_from` is that note's seq.
 
-**까닭 기록.** 동결 뒤 검사 파일을 고치면 commit한 뒤 `ha note <goal> check-change checks:<path> --reason "<지적 ID, 또는 조건과 이유>"`로 남긴다. `check-change`는 `/7`에서만 받으며 앞 규칙에서는 64로 거절한다. dirty 트리에서는 기록하지 않는다. note는 그 경로의 HEAD blob에 묶이고, HEAD에 경로가 없으면 `null`에 묶인다. 지금 blob과 같을 때만 지금 변경의 까닭으로 인정하므로 그 뒤 파일을 다시 고치면 앞의 까닭은 쓰지 않는다. 까닭은 실행자의 주장이다. 동결 전 변경에는 이 까닭을 요구하지 않고, 동결 뒤에도 검사 결함은 고칠 수 있다. 다음 코드 검토 라운드는 바뀐 검사와 까닭을 함께 받는다. 동결 표시는 자체로 완료를 막지 않는다. 기존 gate 신선도와 완료 조건은 그대로다.
+**Reason record.** After changing a check file following the freeze, commit it and record `ha note <goal> check-change checks:<path> --reason "<finding ID, or condition and reason>"`. `check-change` is accepted only under `/7`; earlier rules refuse it with 64. It is not recorded in a dirty tree. The note binds to the path's HEAD blob, or `null` when the path is absent from HEAD. It is a reason for the current change only while that blob matches, so a later file edit stops the earlier reason from applying. Reasons are executor claims. Changes before the freeze require no such reason; check defects may still be fixed after the freeze. The next code review round receives the changed checks and reasons together. The freeze display itself does not block completion. Existing gate freshness and completion requirements remain.
 
-**동결 출력.** 동결이 있으면 상태 JSON에 `check_freeze` 객체가 있다. 없으면 필드 자체를 생략한다(`null`이 아님).
+**Freeze output.** When a freeze exists, status JSON has a `check_freeze` object. Otherwise the field is omitted, not `null`.
 
-| 필드 | 의미 |
+| Field | Meaning |
 | --- | --- |
-| `stage`, `series`, `round`, `head` | 동결 라운드의 단계·series·round와 전체 commit ID |
-| `removed_observed`, `table_from` | 동결 때 조건표의 관측 여부와 출처 `review` note seq, 없으면 `false`·`null` |
-| `files` | 바뀐 파일 목록. 변화가 없으면 `[]` |
-| `files[].path`, `files[].state` | 경로와 `changed`·`added`·`removed` |
-| `files[].reason` | 지금 blob과 맞는 까닭의 `{ "seq": n, "reason": "<까닭>" }`, 없으면 `null` |
+| `stage`, `series`, `round`, `head` | Freeze round stage, series, round and full commit ID |
+| `removed_observed`, `table_from` | Whether the freeze-time table was observed and its source `review` note seq; `false` and `null` without it |
+| `files` | Changed files; `[]` when none changed |
+| `files[].path`, `files[].state` | Path and `changed`, `added` or `removed` |
+| `files[].reason` | `{ "seq": n, "reason": "<reason>" }` matching the current blob, or `null` |
 
-사람용 상태는 `- check freeze: <stage> round <series>/<round> at <짧은 head>` 줄과 파일마다 `  - <path> <state>: <까닭 또는 no reason>`을 보인다. 짧은 head는 전체 ID의 7자 이상 앞부분이다. 조건표의 출처가 있으면 동결 줄에 `condition table from review note seq N`도 보인다. 앞 규칙의 상태에는 `check_freeze`와 동결 줄이 없다.
+Human-readable status shows `- check freeze: <stage> round <series>/<round> at <short head>` and `  - <path> <state>: <reason or no reason>` for each file. The short head is a prefix of at least seven characters of the full ID. With a table source, the freeze line also shows `condition table from review note seq N`. Earlier rules have neither `check_freeze` nor the freeze lines.
 
-`ha report`의 `직접 볼 것`은 `동결 뒤 바뀐 검사 파일(까닭 있음): <path> (seq n: <까닭>)`(en: `check files changed after the freeze with a reason: <path> (seq n: <reason>)`)과 `동결 뒤 까닭 없이 바뀐 검사 파일: <path>`(en: `check files changed after the freeze without a reason: <path>`)을 따로 보인다. 까닭 없는 뺀 경로마다 `(review note seq N 때의 조건표)`(en: `(condition table of review note seq N)`)를 붙여 비교 출처를 밝힌다.
+`To review` / `직접 볼 것` in `ha report` separately shows `check files changed after the freeze with a reason: <path> (seq n: <reason>)` (ko: `동결 뒤 바뀐 검사 파일(까닭 있음): <path> (seq n: <까닭>)`) and `check files changed after the freeze without a reason: <path>` (ko: `동결 뒤 까닭 없이 바뀐 검사 파일: <path>`). Each removed path without a reason carries `(condition table of review note seq N)` (ko: `(review note seq N 때의 조건표)`) to identify the comparison source.
 
-## 5. 완료 기록과 예산
+## 5. Completion record and budget
 
-### 5.1 완료 기록
+### 5.1 Completion record
 
-`ha done`이 `complete`를 계산하면 그 `done` 줄이 완료 기록이다. 완료 기록은 "`ha`가 이 코드 상태, 이 SPEC, 이 기록 head에서 완료를 확인했다"는 사실을 고정한다.
+When `ha done` computes `complete`, that `done` line is the completion record. A completion record fixes the fact that "`ha` confirmed completion at this code state, this SPEC and this record head".
 
-완료 기록 d는 다음을 모두 만족하는 동안 **유효하다**.
-- 지금 작업 트리가 깨끗하다.
-- d.commit과 HEAD 사이에 묶음 문서 밖의 차이가 없다. 묶음 문서는 규칙 버전에 따른다(§4.6).
-- SPEC digest와 required 조건의 명령 digest가 d와 같다. `/3` change의 구조화 선언·생산자 입력도 같은 의미여야 한다.
-- d 이후에 `reopen` note가 없다. `/5`에서는 `review` note도 없고, d의 `record_head`가 d 바로 앞 줄이다(§4.8).
-- `run-rules/6`에서는 d가 판정한 줄이어야 하고(`record_head`가 앞선 줄의 hash이고 그 줄과 d 사이에는 발견 줄(`run-finding/v1`)만 있거나 아무 줄도 없으며, 가리키는 줄 자체는 발견 줄이어도 됨), 뒤의 `review` note는 현재 등급이 `standard`·`strict`일 때만 d를 무효로 한다. 모든 `done` 줄은 전체 기록에서 먼저 판정하고, 판정하지 않은 줄은 완료 여부와 관계없이 상태 계산에서 없는 것으로 취급한다. 완료 기록과 그 설명, 최신 done 줄, 예산 창, 경과 시간, 완료 뒤 구간, 예산 변경 거부가 모두 이에 따른다. 판정했지만 다른 이유로 무효인 줄에서는 멈춘다(§4.9).
-- d와 그 앞 줄의 `prev` 연결이 온전하다. 끊겼으면 완료 기록도 근거가 되지 않는다(`record_integrity`).
+A completion record d is **valid** while all of the following hold.
+- The working tree is clean now.
+- There is no difference outside the bundle documents between d.commit and HEAD. The bundle documents follow the rules version (§4.6).
+- The SPEC digest and the command digests of the required conditions are the same as in d. For a `/3` change, the structured declarations and producer inputs must also have the same meaning.
+- There is no `reopen` note after d. Under `/5`, there is no `review` note either, and d's `record_head` is the line just before d (§4.8).
+- Under `run-rules/6`, d must be a judged line (its `record_head` is the hash of an earlier line and every line strictly between that line and d is a finding line (`run-finding/v1`), including when there are no intervening lines; the named line may itself be a finding line), and later `review` notes void d only for the current `standard` or `strict` tier. Every `done` line is judged on the full record first; unjudged complete and non-complete lines are then absent from status computation, including the completion record and its explanation, the latest done line, the budget window, elapsed time, post-completion intervals and budget-change refusal. A judged line invalid for another reason stops the search (§4.9).
+- The `prev` links of d and the lines before it are intact. If they are broken, the completion record is not evidence either (`record_integrity`).
 
-유효한 완료 기록이 있으면 상태는 `complete`이고, 그 뒤에 시간이 얼마나 지났는지와 무관하다. 완료 기록이 무효가 되면(코드나 SPEC이 바뀜, 재작업 요청) 기록은 이력으로 남고, 상태는 §4.1–§4.3대로 다시 계산한다.
+With a valid completion record, the status is `complete`, regardless of how much time has passed since. When a completion record becomes invalid (the code or SPEC changed, rework was requested), the record remains as history, and the status is computed again per §4.1–§4.3.
 
-`/5`에서 완료를 기록하는 계산은 검토 이유(§4.8)도 확인한다. `run-rules/6`은 여기에 검토 범위의 시작 확인을 더한다(§4.9).
+Under `/5`, the computation that records completion also checks the review reasons (§4.8). `run-rules/6` adds the check of where the review range starts (§4.9).
 
-`ha done`의 결과가 `complete`가 아니어도 `done` 줄은 남는다. 이것은 "완료를 주장했지만 완료가 아니었다"는 기록이다.
+Even when the result of `ha done` is not `complete`, the `done` line remains. It is a record that "completion was claimed but it was not complete".
 
-### 5.2 예산
+### 5.2 Budget
 
-예산은 진행 중인 작업에 적용한다. PLAN을 고치는 것만으로 진행 중 한도가 바뀌지는 않는다. 검사 실행 수는 CLI 호출 수가 아니라 `check`·`baseline` 줄 수다. 실패·오류·판정 불가·stale도 실제 시도라면 세며 baseline을 면제하지 않는다. 실행 전 거부와 worktree 준비 실패는 검사 실행과 구분한다. `/3`에서 선언한 overlay 파일을 준비할 수 없어 실행 전에 거부하면 검사 기록과 사용량이 생기지 않는다.
+The budget applies to work in progress. Editing PLAN alone does not change in-progress limits. The number of check runs is the number of `check` and `baseline` lines, not the number of CLI calls. Failures, errors, inconclusive results and stale results count if they were actual attempts, and baselines are not exempt. Rejection before running and worktree preparation failures are kept apart from check runs. Under `/3`, a rejection before running because a declared overlay file cannot be prepared creates no check record and no usage.
 
-- **창**: 마지막 `start` 또는 `reopen`부터 마지막 저장 기록까지다. 검사 사용량은 기록 추가 순서로 귀속한다. 재개 전에 시작해 재개 뒤 기록된 검사도 새 창에 포함된다.
-- **발견 기록**: `run-finding/v1` 줄은 실행 예산 입력에서 제외한다. 전체 체인의 순번·head는 그대로 유지한다. 발견의 등록·판단·정정만으로 사용량·창·한도·경과 시간이 바뀌지 않는다. 기존 `run/v1` 자료의 의미는 유지한다.
-- **경과 시간**: 마지막 실행 예산 대상 기록 `at`에서 창 시작 `at`을 뺀 값이다. 현재 시각 조회로 늘지 않는다. 예산 변경을 포함한 새 기록이 붙으면 기다린 시간도 들어가되, `/4`·`/5`는 신고한 대기를 빼고(§4.7), `run-rules/6`은 완료 뒤 구간의 `post_completion_seconds`도 뺀다(§4.9). 실행 구간은 빼지 않고 신고 대기와 겹친 시간은 한 번만 뺀다. 상태·보고·비용은 같은 경과를 쓴다.
-- **도달과 초과**: 사용량이 상한과 같으면 도달이고, `사용량 > 상한`일 때 초과다. 남은 횟수는 0 아래로 표시하지 않으며 초과량은 별도로 표시한다.
-- **실행 전 강제 제한 없음**: 예산은 동시 실행 슬롯을 예약하지 않고, 진행 중 검사를 종료하거나 검사 시작을 강제 차단하지 않는다. 예산 초과만 남은 완료는 추가 실행 권한이 아니다.
+- **Window**: from the last `start` or `reopen` to the last saved record. Check usage is attributed by the order in which records were appended. A check that started before a resume and was recorded after it is included in the new window.
+- **Finding records**: `run-finding/v1` lines are excluded from run budget input. The sequence numbers and head of the whole chain stay as they are. Registering, judging or correcting findings alone does not change usage, window, limits or elapsed time. The meaning of existing `run/v1` data is kept.
+- **Elapsed time**: the `at` of the last record subject to the run budget minus the `at` of the window start. It does not grow by querying the current time. When a new record is appended, including a budget change, the time spent waiting is included too, except that `/4` and `/5` subtract reported waits (§4.7), and `run-rules/6` also subtracts `post_completion_seconds` for the intervals after completion (§4.9). Run intervals are not subtracted, and time overlapping reported waits is subtracted only once. Status, report and cost use the same elapsed time.
+- **Reached and exceeded**: when usage equals the limit, the limit is reached; when `사용량 > 상한` (usage > limit), it is exceeded. Remaining runs are never shown below 0, and the excess is shown separately.
+- **No forced limit before running**: the budget does not reserve concurrent run slots, and does not terminate running checks or forcibly block checks from starting. Completion with only the budget exceeded is not authority for further runs.
 
-`/1`·`/2`의 한도는 항상 `start.budget`이다. 사용자 발화를 인용한 `reopen`은 같은 최초 상한의 새 창을 연다.
+Under `/1` and `/2`, the limits are always `start.budget`. A `reopen` that quotes the user's words opens a new window with the same initial limits.
 
-`ha status <goal> --format json`의 `budget.window_start`, `revision`, `runs_limit`을 변경의 비교 대상으로 쓴다. 예를 들어 현재 창 1·개정 1·상한 50인 합성 목표의 변경 명령은 다음과 같다.
+A change compares against `budget.window_start`, `revision` and `runs_limit` from `ha status <goal> --format json`. For example, the change command for a synthetic goal with current window 1, revision 1 and limit 50 is the following.
 
 ```bash
 ha budget docs/specs/example --runs 100 --from 50 --window 1 --revision 1 --quote "검증 상한을 100회로 늘려줘" --context "이 목표의 현재 창 총상한 50회를 100회로 변경"
 ```
 
-상태를 읽은 뒤 창이나 개정이 바뀌었다면 명령은 거부된다. 숫자를 임의로 갱신해 재시도하지 말고 변경된 상태와 사용자 요청의 적용 범위를 확인한다.
+If the window or revision changed after the status was read, the command is rejected. Do not update the numbers at will and retry; check the changed status and the scope the user's request applies to.
 
-`/3`의 `budget_change`는 **현재 창의 총 실행 횟수 상한**만 바꾼다. 48/50에서 100으로 바꾸면 48/100이고 잔여는 52다. 40으로 낮추면 48/40, 잔여 0, 초과 8이다. 시간 상한·창 시작·실제 사용량은 유지하며 변경 자체는 검사 횟수가 아니다. 증액에는 대상과 한도를 뒷받침하는 사용자 원문과 요청 문맥이 필요하고 감액에는 이유를 남긴다. 에이전트 해석은 원문과 구분하며, 호스트 출처가 검증되지 않은 인용은 실행자가 기록한 주장이다. 짧은 동의나 호출 토큰을 형식만으로 거부하지 않는다.
+A `/3` `budget_change` changes only **the total run limit of the current window**. Changing 48/50 to 100 gives 48/100 with 52 remaining. Lowering it to 40 gives 48/40, 0 remaining and 8 in excess. The elapsed-time limit, window start and actual usage are kept, and the change itself is not a check run. An increase needs the user's original words and the request context supporting the target and the limit; a decrease leaves a reason. The agent's interpretation is kept apart from the original words, and a quote whose host source is not verified is a claim recorded by the executor. A short agreement or an invocation token is not rejected on its form alone.
 
-변경은 현재 창·이전 예산 개정·이전 상한과 연결한다. 같은 창에 검사 기록이 추가돼도 사용량은 빠지지 않는다. 다른 변경이나 재개로 창·개정·상한이 달라졌으면 기록하지 않고 충돌을 알린다. 자동 합산·재적용하지 않는다. 빈 변경, 동일 값, 양수가 아닌 값, 지원하지 않는 시간 변경도 상한 변경 기록을 만들지 않는다.
+A change is linked to the current window, the previous budget revision and the previous limit. Even when check records are added to the same window, usage is not taken out. If another change or a resume changed the window, revision or limit, nothing is recorded and the conflict is reported. Changes are never summed or reapplied automatically. An empty change, the same value, a value that is not positive, and an unsupported time change also create no limit change record.
 
-예산 변경만으로 재작업·새 창·unblock이 생기거나 실패·오류 한도가 초기화되지 않는다. 완료 기록이 있는 창은 명시적 재개가 필요하다. `/3`의 `reopen`은 최신 유효 횟수 상한과 최초 시간 상한을 계승하고 새 창 사용량을 센다. 이전 창의 사용량과 변경 이력은 남는다.
+A budget change alone does not create rework, a new window or an unblock, and does not reset failure or error limits. A window with a completion record needs an explicit resume. Under `/3`, `reopen` inherits the latest valid run limit and the initial elapsed-time limit, and counts the new window's usage. The previous window's usage and change history remain.
 
-출력 파일이 사라지거나 이름 변경에 실패해도 `/3`에서 실제 시도는 출력 참조가 빈 `error`·`process_output` 기록으로 보존한다. 이는 기록 저장소 자체의 쓰기 성공을 보증한다는 뜻은 아니다.
+Even if an output file disappears or renaming it fails, under `/3` the actual attempt is preserved as an `error` record with `process_output` and an empty output reference. This does not mean that writing to the record store itself is guaranteed to succeed.
 
-기록 쓰기 후 동기화·닫기 오류는 이미 적용됐을 수 있다. 실패를 성공 또는 미적용으로 단정하지 않으며 저장 상태 확인 없이 다시 적용하지 않는다. 저장소 손상·쓰기 불능에도 무손실 기록을 보증하지 않는다.
+When syncing or closing fails after a record write, the write may already have been applied. Such a failure is never assumed to be a success or to be unapplied, and it is not applied again without checking the stored state. Lossless records are not guaranteed when the storage is damaged or cannot be written.
 
-`/2`·`/3`는 필수 조건이 모두 충족되고 예산 초과만 남으면 완료를 기록할 수 있다(§4.6). 완료 뒤 재작업 요청은 `ha note reopen`으로 남기며 이전 완료 기록을 무효로 한다.
+Under `/2` and `/3`, completion can be recorded when all required conditions are satisfied and only the budget excess remains (§4.6). A rework request after completion is recorded with `ha note reopen`, which invalidates the earlier completion record.
 
-## 6. 규칙
+## 6. Rules
 
-1. 실행 기록은 덧붙이기만 한다. 실패한 실행을 지우거나 다시 실행해 덮지 않는다. 오류만 §4.1의 한도 안에서 다시 실행할 수 있다. 연결이 끊긴 기록에는 `ha`가 더 덧붙이지 않는다.
-2. `ha` 밖에서 돌린 테스트 결과는 상태 계산에 쓰지 않는다.
-3. 완료 선언은 `ha done`이 완료 기록을 남긴 뒤에만 한다.
-4. `note`의 내용은 주장이다. `confirm`과 `reopen`은 사용자의 발화를 인용해야 하고, 보고서에 "사용자 확인(주장)"으로 표시된다. `confirm`은 §2.4의 `bound`가 지금과 같을 때만 효력이 있다.
-5. 출력 원문은 커밋되는 파일(실행 묶음, `runs.jsonl`)에 넣지 않는다. 사람이나 에이전트가 원문을 봐야 하면 `ha log`를 쓴다.
-6. 상태 계산 규칙은 `start` 때 고정된다. 판정 규칙의 변경은 새 규칙 버전이며 다음 `start`부터 쓴다.
+1. The run record is append-only. A failed run is never deleted or covered over by running again. Only errors can be run again, within the limit of §4.1. `ha` appends nothing more to a record whose link is broken.
+2. Test results from runs outside `ha` are not used in status computation.
+3. Completion is declared only after `ha done` has left a completion record.
+4. The content of a `note` is a claim. `confirm` and `reopen` must quote the user's words, and they are shown in reports as "user confirmation (claimed)". A `confirm` takes effect only while the `bound` of §2.4 is the same as now.
+5. Raw output is never put in committed files (the execution bundle, `runs.jsonl`). When a person or an agent needs to see raw output, use `ha log`.
+6. The status computation rules are fixed at `start`. A change to the judgment rules is a new rules version, used from the next `start`.
