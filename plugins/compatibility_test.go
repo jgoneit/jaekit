@@ -110,7 +110,7 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 			}
 		})
 	}
-	for path, capabilities := range map[string]string{"../guides/INSTALL.md": "contracts/core-capabilities.md", "../guides/INSTALL.en.md": "contracts/core-capabilities.en.md"} {
+	for path, capabilities := range map[string]string{"../guides/INSTALL.md": "contracts/core-capabilities.md", "../guides/INSTALL.en.md": "contracts/core-capabilities.md"} {
 		compatibilityContains(t, path, read(t, path), "jaekit@v0.1.8", "jaekit#v0.1.8", "ha_0.1.8_${os}_${arch}", capabilities, "ha 0.1.8-dev", "v0.1.2")
 	}
 	compatibilityContains(t, "Korean budget guidance", read(t, "../guides/USAGE.md"), "시간 상한 변경은 지원하지 않습니다", "횟수 총상한", "명시적 재개", "원래 한도")
@@ -181,7 +181,7 @@ func TestCompatibilitySealRun3ReopenLinksRunRules4(t *testing.T) {
 // The status JSON contract says which run limit a /4 window shows.
 func TestCompatibilityRunRecordRunsLimitNamesRunRules4(t *testing.T) {
 	const path = "../contracts/run-record.md"
-	for _, line := range strings.Split(mdSection(t, path, "#### 예산 (`budget`)"), "\n") {
+	for _, line := range strings.Split(mdSection(t, path, "#### Budget (`budget`)"), "\n") {
 		if strings.HasPrefix(line, "| `runs_limit` |") {
 			compatibilityContains(t, path+" runs_limit row", line, "`/4`", "§4.7")
 			return

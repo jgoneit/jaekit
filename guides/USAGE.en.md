@@ -293,7 +293,7 @@ Seal 0.1.26 starts new goals with `ha start --rules run-rules/6 … --check-skil
 - A `done` line is judged when its `record_head` is the hash of an earlier line and every line strictly between that line and the `done` line is a finding line (`run-finding/v1`), including when there are no intervening lines. The named line may itself be a finding line. Every `done` line is judged on the full record first, so a line may be judged even when its `record_head` names an unjudged line. Unjudged complete and non-complete `done` lines are then treated as absent from status computation, including the completion record and its explanation, the latest done line, the budget window, elapsed time, post-completion intervals and budget-change refusal. Status, report, cost and budget changes use this same view. An earlier record still needs every other validity condition; a judged line invalid for another reason still stops the search.
 - Budget elapsed time excludes the interval from a completion `done` to the next check or baseline start or a non-complete `done`. With neither endpoint, it ends at the window's last budget record; notes and findings in between do not end it. `post_completion_seconds` shows the additional excluded seconds that do not overlap reported waits or run intervals; status, report and cost use the same elapsed time. Run counts and limits stay unchanged; code rework after completion opens a new window with `reopen`.
 
-Goals started under `run-rules/1` through `run-rules/5` keep their existing judgments and are not migrated automatically. The exact interval and output definitions are in the [run record contract](../contracts/run-record.en.md#49-run-rules6).
+Goals started under `run-rules/1` through `run-rules/5` keep their existing judgments and are not migrated automatically. The exact interval and output definitions are in the [run record contract](../contracts/run-record.md#49-run-rules6).
 
 ## Baseline selection and check freeze (run-rules/7)
 
@@ -311,13 +311,13 @@ Under `/7`, the "before any baseline" questions, `ha doctor` and the `strict` pl
 - Checks that require no baseline (maintain, `EX-n`, task commands and unmarked change conditions) may count an input failure as a violation, error or inconclusive result; that alone is not a check defect. A failure recorded as a violation remains until the input changes.
 - A dedicated producer of a marked change condition reports none of them as a violation unless the result contract allows it, such as `missing: violation`; record that choice in `REVIEW.md` before the plan round, or before any review round when there is no plan round.
 
-Read the baseline requirement under the goal's rules: all change conditions require it up to `run-rules/6`, and only marked conditions do under `/7`. Runner adapters classify input failures themselves; the classifications and input-failure table of the [result contract](../contracts/check-result.en.md) stay unchanged.
+Read the baseline requirement under the goal's rules: all change conditions require it up to `run-rules/6`, and only marked conditions do under `/7`. Runner adapters classify input failures themselves; the classifications and input-failure table of the [result contract](../contracts/check-result.md) stay unchanged.
 
 The check freeze uses the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`, in gate order among the last recorded gate's non-dry-run rounds. It covers declarations, producers, tests, helpers and settings in the condition table's check paths, from every row that lists any. Right after the freeze round, Seal records the gate and current condition table's check paths with `ha note <goal> review --gate <file>`. Without a gate note ending at that round, removed check paths are unobserved and status and report show `freeze-time condition table was not recorded`.
 
 After changing a check file following the freeze, commit it and record `ha note <goal> check-change checks:<path> --reason "<finding ID, or condition and reason>"`. A review fix names its finding ID. The reason binds to the current blob, so another edit needs a reason for that edit. Give the next candidate round the changed checks and reasons together, and that round reviews the changed checks. No such reason is needed before the freeze; check defects may still be fixed afterward. The freeze display itself does not block completion.
 
-`ha status` shows `baseline_required` on each change condition and a human-readable `baseline required` line. `Checked` in `ha report` separates how many of all change conditions require a baseline from how many of those have fresh baselines. Read `To review` for baseline marks removed since the start, check files changed after the freeze with reasons, and changes without reasons. Removed paths identify the source `review` note seq. `light` goals and goals without a recorded gate have no freeze display. The review summary's `### 보지 않은 것` lists change conditions satisfied without a baseline. [Run record §4.10](../contracts/run-record.en.md#410-run-rules7) defines exact fields and wording.
+`ha status` shows `baseline_required` on each change condition and a human-readable `baseline required` line. `Checked` in `ha report` separates how many of all change conditions require a baseline from how many of those have fresh baselines. Read `To review` for baseline marks removed since the start, check files changed after the freeze with reasons, and changes without reasons. Removed paths identify the source `review` note seq. `light` goals and goals without a recorded gate have no freeze display. The review summary's `### 보지 않은 것` lists change conditions satisfied without a baseline. [Run record §4.10](../contracts/run-record.md#410-run-rules7) defines exact fields and wording.
 
 ## Reading one goal's cost
 
@@ -333,7 +333,7 @@ ha cost docs/specs/<goal> --series docs/reviews/<goal>
 - **Review rounds and findings:** rounds by stage (counted rounds and reruns), reviewer time, findings by class and location with their dispositions, and the lines recorded fixes rounds added (the gate's `growth`). Without `--series`, these parts say they were not given and show no zeros.
 - **Tokens:** no record holds them, so they show as "not recorded".
 
-`--format json` shows the same values as a `cost/v1` document, and `--lang ko` changes only labels and sentences. The format and the source of each value are in [the run record contract](../contracts/run-record.en.md) §1.7.
+`--format json` shows the same values as a `cost/v1` document, and `--lang ko` changes only labels and sentences. The format and the source of each value are in [the run record contract](../contracts/run-record.md) §1.7.
 
 **When you compare.** The summary shows numbers only; it never compares the goal with another or says it improved. To compare goals, put goals of the same tier and similar size (criteria, changed files and commits) side by side. A difference between a few goals before and after a process change mixes in what each goal was about and chance, so it is not a causal effect of that change.
 
@@ -363,7 +363,7 @@ Set-Content -Path "$folder\ha.json" -Value '{"preapproved_runs": 120}'
 ha: auto budget 102 runs (minimum 68 × 1.5, at least 50) exceeds the pre-approved limit 50 from default; the user's approval is needed: write the approved number in PLAN `검증 실행`, or have the user raise preapproved_runs in ~/.config/jaekit/ha.json
 ```
 
-If you approve that count, write it as a number in the plan or raise `preapproved_runs` in `ha.json`. A malformed or unreadable file stops with `ha: pre-approved run limit: <path>: <reason>`; it is never replaced by 50. The limit applies only to the start; raising the limit and reopening after the start work as before. The exact rules are in the [run record contract](../contracts/run-record.en.md#15-automatic-budget).
+If you approve that count, write it as a number in the plan or raise `preapproved_runs` in `ha.json`. A malformed or unreadable file stops with `ha: pre-approved run limit: <path>: <reason>`; it is never replaced by 50. The limit applies only to the start; raising the limit and reopening after the start work as before. The exact rules are in the [run record contract](../contracts/run-record.md#15-automatic-budget).
 
 ## Autonomy (run-rules/4)
 

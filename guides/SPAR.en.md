@@ -119,7 +119,7 @@ check_paths = ["tools/checks/**"]
 code = 2
 ```
 
-It cannot choose reviewers, commands, executables, models, efforts or allowed lists; spar names the key and stops. The full format is in the [configuration contract](../contracts/spar-config.en.md).
+It cannot choose reviewers, commands, executables, models, efforts or allowed lists; spar names the key and stops. The full format is in the [configuration contract](../contracts/spar-config.md).
 
 ## Set up a project
 
@@ -178,7 +178,7 @@ Each round writes a new, Git-ignored folder with `round.json`, `packet.md`, `fin
 <details>
 <summary>Round and input formats, and findings without a readable location</summary>
 
-The format is in the [round contract](../contracts/review-round.en.md). The format of every input spar reads, such as finding locations and links, configuration values and command arguments, and what happens to input outside it, is in one table in the [input contract](../contracts/spar-input.en.md).
+The format is in the [round contract](../contracts/review-round.md). The format of every input spar reads, such as finding locations and links, configuration values and command arguments, and what happens to input outside it, is in one table in the [input contract](../contracts/spar-input.md).
 
 A finding whose location names no file is kept, marked as an unreadable location and never deferred automatically.
 
@@ -223,7 +223,7 @@ The direction stays in `findings.json` and appears under `## Smallest fixes` in 
 
 ### Gate states
 
-`spar gate` reads the rounds and the head you are about to complete and writes a `review-gate/v1` file: `complete` (exit 0), `degraded` (3) when a required reviewer did not finish and you made no decision for that round, or `blocked` (4) for open findings, caps exceeded or an unreviewed head. When the series recorded fixes rounds, it also records how many lines those review fixes added to check code and elsewhere; without one, those lines are not measured. See the [gate contract](../contracts/review-gate.en.md).
+`spar gate` reads the rounds and the head you are about to complete and writes a `review-gate/v1` file: `complete` (exit 0), `degraded` (3) when a required reviewer did not finish and you made no decision for that round, or `blocked` (4) for open findings, caps exceeded or an unreviewed head. When the series recorded fixes rounds, it also records how many lines those review fixes added to check code and elsewhere; without one, those lines are not measured. See the [gate contract](../contracts/review-gate.md).
 
 ### Going on without a reviewer
 
