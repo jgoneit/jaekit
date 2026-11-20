@@ -38,7 +38,8 @@ func TestRemoveHistoryAC1_HistoryCommandUnknown(t *testing.T) {
 	before := treeDigest(t, dir)
 	var problems []string
 	for _, args := range [][]string{{"history"}, {"history", "--help"}, {"history", "docs/specs/g"},
-		{"history", "docs/specs/g", "add", "--kind", "결정", "--summary", "x"}, {"history", "docs/specs/g", "show", "D1"}} {
+		{"history", "docs/specs/g", "add", "--kind", "결정", "--summary", "x"}, {"history", "docs/specs/g", "current"},
+		{"history", "docs/specs/g", "list"}, {"history", "docs/specs/g", "show", "D1"}} {
 		code, out, stderr := haProcess(t, dir, os.Environ(), args...)
 		if code < 0 {
 			t.Fatalf("setup: ha %v ended by a signal", args)
