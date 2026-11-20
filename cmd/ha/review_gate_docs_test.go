@@ -247,13 +247,13 @@ func TestHaReviewGateAC14_RunRecordContractStatesTheGate(t *testing.T) {
 		"`run-rules/1`", "`run-rules/4`"}, rgReasonCodes...)...); rules5 == "" || len(missing) > 0 {
 		t.Errorf("jaekit:violation=%s section 4.8 run-rules/5 is missing or lacks %v", v, missing)
 	}
-	if missing := rgMissing(rgSection(text, "## 1. `ha` 명령"), rgRecordCommand); len(missing) > 0 {
+	if missing := rgMissing(rgSection(text, "## 1. `ha` commands"), rgRecordCommand); len(missing) > 0 {
 		t.Errorf("jaekit:violation=%s the command table lacks %v", v, missing)
 	}
-	if missing := rgMissing(rgSection(text, "### 4.2 목표 수준의 이유"), rgReasonCodes...); len(missing) > 0 {
+	if missing := rgMissing(rgSection(text, "### 4.2 Goal-level reasons"), rgReasonCodes...); len(missing) > 0 {
 		t.Errorf("jaekit:violation=%s the goal-level reasons table lacks %v", v, missing)
 	}
-	if missing := rgMissing(rgSection(text, "### 4.6 규칙 버전"), "| `run-rules/5` |"); len(missing) > 0 {
+	if missing := rgMissing(rgSection(text, "### 4.6 Rules versions"), "| `run-rules/5` |"); len(missing) > 0 {
 		t.Errorf("jaekit:violation=%s the rules table lacks a run-rules/5 column", v)
 	}
 	if missing := rgMissing(rgSection(text, "### 2.4 `note`"), "`review`"); len(missing) > 0 {
@@ -276,12 +276,14 @@ func TestHaReviewGateAC14_CapabilitiesContractStatesTheGate(t *testing.T) {
 	}
 	// Each statement that the tier leaves the judgment unchanged (one
 	// paragraph or list item per line) names the earlier rules it holds for,
-	// and each file states it so next to run-rules/5.
-	const unchanged, earlier = "등급 때문에 바뀌지 않", "`run-rules/4` 이하로 시작한 목표에서는"
+	// and each file states it so next to run-rules/5. The contracts render
+	// the statement in two forms.
+	unchanged := []string{"change because of the tier", "the tier does not change"}
+	const earlier = "`run-rules/4` or earlier"
 	for _, path := range []string{"contracts/core-capabilities.md", "contracts/goal-docs.md", "contracts/bundle.md"} {
 		qualified := false
 		for n, line := range strings.Split(rgTreeFile(t, path), "\n") {
-			if !strings.Contains(line, unchanged) {
+			if len(rgMissing(line, unchanged...)) == len(unchanged) {
 				continue
 			}
 			if !strings.Contains(line, earlier) {
