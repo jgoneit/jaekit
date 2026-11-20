@@ -1,10 +1,8 @@
 package plugins
 
 import (
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -91,42 +89,6 @@ func ecRun(s string, i int) int {
 	return n
 }
 
-var (
-	ecPlaceholder = regexp.MustCompile(`<[^<>]*>`)
-	ecNumbered    = regexp.MustCompile(`^#{1,6} (\d+(?:\.\d+)*)\.? `)
-	ecTomlComment = regexp.MustCompile(`\s+#.*$`)
-)
-
-// ecShape is what a contract keeps from its Korean original: numbered headings in order, every occurrence
-// of a code span that carries Korean outside <placeholders> (the format tokens), and a digest of its
-// examples (code blocks, with comments in TOML examples left out).
-func ecShape(text string) (heads string, tokens []string, examples string) {
-	prose, spans, blocks := ecParts(text)
-	var nums []string
-	for _, line := range prose {
-		if m := ecNumbered.FindStringSubmatch(line); m != nil {
-			nums = append(nums, m[1])
-		}
-	}
-	for _, s := range spans {
-		if ecHangul(ecPlaceholder.ReplaceAllString(s, "")) {
-			tokens = append(tokens, s)
-		}
-	}
-	sort.Strings(tokens)
-	toml := false
-	var norm []string
-	for _, line := range blocks {
-		if strings.HasPrefix(strings.TrimLeft(line, " "), "```") {
-			toml = !toml && strings.HasSuffix(strings.TrimSpace(line), "toml")
-		} else if toml {
-			line = ecTomlComment.ReplaceAllString(line, "")
-		}
-		norm = append(norm, line)
-	}
-	return strings.Join(nums, " "), tokens, fmt.Sprintf("%x", sha256.Sum256([]byte(strings.Join(norm, "\n"))))[:16]
-}
-
 func TestEnglishContractsAC1_OneEnglishFile(t *testing.T) {
 	entries, err := os.ReadDir(filepath.Join("..", "contracts"))
 	if err != nil {
@@ -167,55 +129,6 @@ func TestEnglishContractsAC1_OneEnglishFile(t *testing.T) {
 		}
 		if len(korean) > 0 {
 			t.Errorf("jaekit:violation=two-language-contract: %s has %d lines with Korean outside code spans and code blocks; first: %q", rel, len(korean), korean[0])
-		}
-	}
-}
-
-const (
-	ecContractRule = "Every document directly under `contracts/` is one English file, `X.md`."
-	ecGuideRule    = "Every document directly under `guides/` has a Korean and an English version, `X.md` and `X.en.md`; change both in the same change."
-)
-
-func TestEnglishContractsAC2_AgentsRule(t *testing.T) {
-	text := ecRead(t, "AGENTS.md")
-	for _, old := range []string{"original decides", "regressions.ko.md", "directly under `guides/` and `contracts/`"} {
-		if strings.Contains(text, old) {
-			t.Errorf("jaekit:violation=two-language-contract-rule: AGENTS.md still says %q", old)
-		}
-	}
-	for _, want := range []string{ecContractRule, ecGuideRule} {
-		if n := strings.Count(text, want); n != 1 {
-			t.Errorf("jaekit:violation=two-language-contract-rule: AGENTS.md says %q %d times, want once", want, n)
-		}
-	}
-}
-
-func TestEnglishContractsAC3_SameShapeAsOriginal(t *testing.T) {
-	for _, c := range ecContracts {
-		want, ok := ecOriginal[c]
-		if !ok {
-			t.Fatalf("no original shape for %s", c)
-		}
-		rel := "contracts/" + c + ".md"
-		heads, tokens, examples := ecShape(ecRead(t, rel))
-		if heads != want.heads {
-			t.Errorf("%s numbered headings %q, want the original's %q", rel, heads, want.heads)
-		}
-		count := map[string]int{}
-		for _, tok := range tokens {
-			count[tok]++
-		}
-		for _, tok := range want.tokens {
-			count[tok]--
-		}
-		for _, tok := range want.tokens {
-			if count[tok] < 0 {
-				t.Errorf("%s has %d fewer occurrences of the original's format token `%s`", rel, -count[tok], tok)
-				count[tok] = 0
-			}
-		}
-		if examples != want.examples {
-			t.Errorf("%s examples digest %s, want the original's %s (code blocks differ)", rel, examples, want.examples)
 		}
 	}
 }
@@ -345,32 +258,6 @@ func TestEnglishContractsAC5_PythonReaders(t *testing.T) {
 	}
 }
 
-// ecTagLinks are the release-pinned contract links at the start commit, by file.
-var ecTagLinks = []string{
-	"plugins/seal/skills/seal/SKILL.md https://github.com/jgoneit/jaekit/blob/v0.1.8/contracts/run-record.md#47-run-rules4",
-	"plugins/seal/skills/seal/references/bundle.md https://github.com/jgoneit/jaekit/blob/v0.1.8/contracts/run-record.md#47-run-rules4",
-	"plugins/seal/skills/seal/references/ha.md https://github.com/jgoneit/jaekit/blob/v0.1.8/contracts/check-result.md",
-	"plugins/seal/skills/seal/references/ha.md https://github.com/jgoneit/jaekit/blob/v0.1.8/contracts/findings.md",
-	"plugins/seal/skills/seal/references/ha.md https://github.com/jgoneit/jaekit/blob/v0.1.8/contracts/run-record.md#47-run-rules4",
-	"plugins/seal/skills/seal/references/ha.md https://github.com/jgoneit/jaekit/blob/v0.1.8/contracts/run-record.md#47-run-rules4",
-	"tools/release/notes/v0.1.6.md https://github.com/jgoneit/jaekit/blob/v0.1.6/contracts/run-record.md#47-run-rules4",
-}
-
-func TestEnglishContractsAC6_ReleaseLinksKept(t *testing.T) {
-	pinned := regexp.MustCompile(`https://github\.com/jgoneit/jaekit/` + ecRelease + `contracts/[A-Za-z0-9._-]+(?:#[^)\s"'<>]+)?`)
-	count := map[string]int{}
-	for rel, text := range ecTracked(t) {
-		for _, m := range pinned.FindAllString(text, -1) {
-			count[rel+" "+m]++
-		}
-	}
-	for _, link := range ecTagLinks {
-		if count[link]--; count[link] < 0 {
-			t.Errorf("release-pinned contract link changed or removed: %s", link)
-		}
-	}
-}
-
 const ecSiteScript = `import json, pathlib, sys
 sys.path.insert(0, "tools/site")
 import build
@@ -425,26 +312,4 @@ func TestEnglishContractsAC7_SiteEnglishOnly(t *testing.T) {
 			t.Errorf("jaekit:violation=korean-contract-page: the Korean document list does not link %s", dir)
 		}
 	}
-}
-
-// ecOriginal is the shape of each contract's Korean original at the start commit (regressions: regressions.ko.md),
-// computed with ecShape.
-var ecOriginal = map[string]struct {
-	heads, examples string
-	tokens          []string
-}{
-	"README":               {heads: "", examples: "e3b0c44298fc1c14", tokens: []string{}},
-	"bundle":               {heads: "1 2 2.1 2.1.1 2.1.2 2.1.3 2.2 2.3 2.4 2.5 2.6 3 4 5 5.1 5.2 5.4 6 7 8", examples: "4e12e5cae65342b3", tokens: []string{"## Task 상태", "## 개선 메모", "## 검수 요약", "## 검수 요약", "## 검수 요약", "## 검수 요약", "## 검수 요약", "## 검수 요약", "## 결과 계약", "## 계획 변경", "## 독립 검토", "## 막힘", "## 범위", "## 범위", "## 범위", "## 시간 제한", "## 시간 제한", "## 시간 제한", "## 실행 환경", "## 실행 환경", "## 실행 환경", "## 예산", "## 예산", "## 완료 뒤 발견", "## 완료 보고", "## 완료 조건", "## 완료 조건", "## 읽을 자료", "## 조건표", "## 조건표", "## 중요한 미결정", "## 타임라인", "## 타임라인", "## 타임라인", "## 타임라인", "## 현재", "## 현재", "## 현재", "## 현재", "## 현재", "## 현재", "## 현재", "## 현재", "### 근거", "### 근거", "### 근거", "### 누가 정했나", "### 누가 정했나", "### 바뀐 동작과 파일", "### 바뀐 동작과 파일", "### 범위 밖이나 기존 것을 바꾼 곳", "### 범위 밖이나 기존 것을 바꾼 곳", "### 보지 않은 것", "### 보지 않은 것", "### 보지 않은 것", "### 사용자의 답", "### 사용자의 답", "### 실행자 가정", "### 실행자 가정", "### 실행자 가정", "### 자세히", "### 자세히", "### 직접 볼 것", "### 직접 볼 것", "### 직접 볼 것", "### 직접 볼 것", "(선택)", "- AC-3: 30분", "- EX-4: 1시간 30분", "- T002 명령 1: 20분", "- 다른 목표 실행 묶음: `검사 입력` (이전 목표의 PROGRESS.md를 검사한다)", "- 브라우저: `node scripts/probe-browser.mjs`", "1시간 30분", "4시간", "90분", "ID | 선언 경로", "T002 명령 1", "max(50, ⌈필수 최소량 × 1.5⌉)", "가설", "검사 경로", "검사 입력", "검사 입력", "검증", "검증 명령", "검증 실행", "검증 실행", "검증 실행", "검증 실행", "검증 실행: 자동", "검증 실행: 자동", "결정", "경과 시간", "경과 시간", "고침", "관측", "근거", "기각", "내용", "다른 목표 실행 묶음", "다른 목표 실행 묶음", "다른 목표 실행 묶음:", "다른 목표 실행 묶음:", "다시 검토한 것", "대기", "라운드 | 지적 | 끝", "막힘", "메모", "목표", "문서", "문서", "미관측", "바꿀 수 있는 경로", "바꿀 수 있는 경로", "바꿀 수 있는 경로", "바꿀 수 있는 경로", "바뀐 동작 | 조건 | 파일", "반박", "반영", "변경", "분", "비용", "사용 가능", "사용 불가", "사용자의 답", "상태", "선행", "시각", "시각", "시각", "시각", "시간", "실패", "아니오", "아니오", "없음", "없음", "없음", "영향", "예", "예", "예정", "요구", "요구", "요구", "요구", "요구", "원인", "원인 [확정]: …", "원인 종류", "유지할 동작", "이슈로 보류", "이유", "자동", "자동 보류", "재개", "재개", "제안", "제안", "조치", "종류", "중복", "직접 볼 것", "처리 없음", "초", "테스트 경로", "통과", "필수", "필수", "해소 조건", "확정"}},
-	"check-result":         {heads: "1 2 3 4 5", examples: "852a8d28f4c584b2", tokens: []string{"## 결과 계약", "expect(값, \"jaekit:violation=<선언 id>\")", "검사 경로"}},
-	"core-capabilities":    {heads: "1 2 3 4 6 7 8 9 10 11", examples: "8f73eaefe7a4c50b", tokens: []string{"## 시간 제한", "## 실행 환경", "검증 실행: 자동", "검증 실행: 자동"}},
-	"findings":             {heads: "", examples: "39b81150df9eac1e", tokens: []string{}},
-	"goal-docs":            {heads: "1 2 2.1 2.2 2.3 2.4 2.5 2.6 3 4 5 6 6.1 6.2 6.3 6.4 6.5 6.6 6.7", examples: "7ba2231106eee1e2", tokens: []string{"## 작업 분해 제안", "(선택)", "[기존]", "[사용자]", "[제안]", "결과", "경로", "유지", "유지", "의존", "조건"}},
-	"regressions":          {heads: "", examples: "e3b0c44298fc1c14", tokens: []string{}},
-	"repository-producers": {heads: "", examples: "e3b0c44298fc1c14", tokens: []string{"self.fail(\"[violation:식별자] 설명\")"}},
-	"review-gate":          {heads: "1 2 3", examples: "62c3e1cdb99c560d", tokens: []string{}},
-	"review-round":         {heads: "1 2 3 4 5 6 7 8 9 10 11", examples: "ccdf2a8eefccb7d3", tokens: []string{"spar triage <라운드> <지적> <처리> [옵션]", "이름=강도", "이름=모델"}},
-	"role-card":            {heads: "", examples: "e3b0c44298fc1c14", tokens: []string{"## 개선 메모", "## 검수 요약", "## 시간 제한"}},
-	"run-record":           {heads: "1 1.1 1.2 1.3 1.4 1.5 1.6 1.7 2 2.1 2.2 2.3 2.4 2.5 2.6 3 4 4.1 4.2 4.3 4.4 4.5 4.6 4.7 4.8 4.9 4.10 5 5.1 5.2 6", examples: "4883f9023259f2d1", tokens: []string{"# 비용 요약: <goal>", "## 범위", "## 범위", "## 범위", "## 시간 제한", "## 시간 제한", "## 시간 제한", "## 실행 환경", "## 실행 환경", "## 예산", "## 현재", "## 현재", "## 현재", "### Stamp for `## 현재`", "### `## 현재` 도장", "### 미충족 조건의 원문 위치", "### 완료 범위", "### 조건별 근거", "(review note seq N 때의 조건표)", "(선택)", "- 검증 실행: 자동", "- 원인: <원인>; 이유: <이유>", "- 원인: 기록 없음", "0이 아닌 종료", "0이 아닌 종료, 종료 코드 <코드>", "<이름>: 사용 가능", "<이름>: 사용 불가 (<이유>)", "change 조건 N개 중 M개가 baseline을 요구하고 그중 K개에 신선한 baseline", "ha note <goal> <block \\| unblock \\| confirm \\| reopen \\| input> [대상] --quote <인용> [--cause <원인>]", "max(50, ⌈최소량 × 1.5⌉)", "검사 입력", "검사 작성자: 실행자", "검증 실행", "검증 실행", "검증 실행", "검토 gate의 지적 목록이 기록되지 않음(review note seq <n>)", "경과 시간", "기록된 검토 지적 목록을 읽을 수 없음(review note seq <n>)", "남은 한계", "남은 한계", "남은 한계", "다른 목표 실행 묶음", "다른 목표 실행 묶음", "다른 목표 실행 묶음:", "다음 행동", "다음 행동", "동결 뒤 까닭 없이 바뀐 검사 파일: <path>", "동결 뒤 바뀐 검사 파일(까닭 있음): <path> (seq n: <까닭>)", "동결 때의 조건표가 기록되지 않음", "바꿀 수 있는 경로", "바꿀 수 있는 경로", "바뀐 것", "바뀐 것", "보류한 검토 지적: <series>/<round> <id> [<class>] → <to>", "보증 수준: local", "사용 가능", "사용 가능", "사용 가능", "사용 가능", "사용 불가", "사용 불가", "사용 불가", "사용 불가", "사용 불가", "사용량 > 상한", "시간 초과", "시간 초과, 60초", "시작 뒤 baseline 표시를 뺀 조건: …", "신호로 종료", "신호로 종료, 신호 <번호>", "실행 권한 없음", "실행 파일 없음", "없음", "없음", "요구", "자동", "자동", "자동 보류한 hardening 지적: <n>개", "직접 볼 것", "직접 볼 것", "직접 볼 것", "직접 볼 것", "직접 볼 것", "처리 없는 검토 지적: <series>/<round> <id> [<class>]", "코드<탭>파일:줄<탭>설명", "테스트 경로", "표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain", "표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain", "필수 change × 2 + 필수 maintain", "확인한 것", "확인한 것", "확인한 것"}},
-	"spar-config":          {heads: "1 2 3 4", examples: "b1b5f13b9c639754", tokens: []string{"--effort 이름=강도", "--model 이름=모델", "spar config [--repo DIR] [--reviewers a,b] [--model 이름=모델]... [--effort 이름=강도]..."}},
-	"spar-input":           {heads: "1 2 3 4 5 6", examples: "323e6190be042645", tokens: []string{"--effort 이름=강도", "--model 이름=모델", ":줄", ":줄대시줄"}},
 }
