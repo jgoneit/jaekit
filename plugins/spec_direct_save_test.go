@@ -50,11 +50,11 @@ func TestSpecProposalBecomesDecisionOnRequest(t *testing.T) {
 		forbidAll(t, path, "agreed to when saving")
 	}
 	requireAll(t, "../contracts/goal-docs.md",
-		"- 보고에 적은 Spec의 제안\n",
-		"보고에 적은 Spec의 제안은 사용자가 받아들이거나 그 목표 문서로 구현을 요청하면 사용자의 결정이 된다.",
-		"이미 적힌 \"Spec 제안(저장 때 동의)\" 표기는 그대로 둔다.",
+		"- A Spec proposal stated in the report\n",
+		"A Spec proposal stated in the report becomes the user's decision when the user accepts it or requests implementation with those goal documents.",
+		"An already written `Spec 제안(저장 때 동의)` (Spec proposal, agreed at save) label is left as it is.",
 	)
-	forbidAll(t, "../contracts/goal-docs.md", "- 저장 때 동의를 받은 Spec의 제안")
+	forbidAll(t, "../contracts/goal-docs.md", "- A Spec proposal the user agreed to when saving")
 }
 
 // an answer or a change request edits the same goal documents, which turn
@@ -83,8 +83,8 @@ func TestSpecStopsAfterWriting(t *testing.T) {
 func TestSpecStatusGrantsNothing(t *testing.T) {
 	requireSkillTokens(t, specSkillDir, "Status: Draft", "Status: Ready")
 	requireAll(t, "../contracts/goal-docs.md",
-		"`Status: Ready`는 실행 권한이 아니다.",
-		"`Draft`는 결과를 바꾸는 미결정이 남았다는 뜻이고 `Ready`는 남지 않았다는 뜻이다. 문서의 설명이며 어느 쪽도 실행 권한이 아니다.",
+		"`Status: Ready` is not an authority to execute.",
+		"`Draft` means an outcome-changing open decision remains, and `Ready` means none does. It describes the document; neither is an authority to execute.",
 	)
 }
 
@@ -100,8 +100,8 @@ func TestSealIgnoresDocumentRequests(t *testing.T) {
 func TestSealTakesContinueAsConfirmation(t *testing.T) {
 	requireSkillTokens(t, sealSkillDir, `ha note <goal> confirm spec --quote "…"`)
 	requireAll(t, "../contracts/role-card.md",
-		"실행을 시작한 뒤 목표 문서가 바뀌고 사용자가 계속이나 구현을 요청하면, 그 요청이 바뀐 목표 문서의 확인이다.",
-		"그 요청을 인용해 `ha note confirm spec`으로 남기고, 보고에 바뀐 조건을 밝힌다.",
+		"When the goal documents change after the run has started and the user asks to continue or to implement, that request is the confirmation of the changed goal documents.",
+		"Record it with `ha note confirm spec`, quoting that request, and name the changed conditions in the report.",
 	)
 }
 
@@ -111,36 +111,36 @@ func TestSealTakesContinueAsConfirmation(t *testing.T) {
 func TestGoalDocsContractWritesDirectly(t *testing.T) {
 	path := "../contracts/goal-docs.md"
 	requireAll(t, path,
-		"Spec을 부른 요청이나 질문에 답하거나 수정을 요청하는 답이 구현까지 요청해도 Spec은 목표 문서를 쓴 뒤 멈춘다.",
-		"옮긴 항목은 보고의 결정 목록(§6.4)에 적고,",
-		"목표 문서를 쓰기 전에 요청이 무엇인지 정하고, 보고(§6.4)에서 근거와 함께 알린다.",
-		"기존 목표 문서 수정: 기존 조건 ID를 유지한다(§2.1). 어느 문서를 고칠지 요청과 대화로 정해지지 않았으면 쓰기 전에 고른다(§6.4).",
-		"새 목표로 쓸지 그 문서를 고칠지 근거와 함께 제안하고 사용자의 결정대로 한다. 요청과 대화로 정해지지 않았으면 쓰기 전에 묻는다(§6.4).",
-		"### 6.4 저장과 보고",
-		"**작성 대상.** 같은 동작을 다루는 목표 문서가 `docs/specs/`에 있는데 요청과 대화가 작성 대상(새 목표인지 그 문서 수정인지, 또는 어느 목표 문서를 고칠지)을 정하지 않았으면, Spec은 어떤 파일도 쓰거나 고치기 전에 그 선택을 묻는다.",
-		"추천하는 대상을 맨 앞에 두고 근거와 선택지마다 잃는 것을 함께 적으며(§6.5 추천 먼저), 사용자의 선택을 따른다.",
-		"사용자가 대상을 지목했거나 대화에서 이미 골랐으면 다시 묻지 않는다.",
-		"쓰기 전에 받는 것은 작성 대상뿐이다. 대상이 정해진 뒤 내용의 미결정은 아래처럼 `Status: Draft`로 쓰고 묻는다.",
-		"**바로 저장.** 작성 대상이 정해지면 Spec은 사용자의 저장 동의를 기다리지 않고 목표 문서를 바로 쓰거나 고친다.",
-		"결과를 바꾸는 미결정이 남으면 `Status: Draft`로 쓰고 그 결정을 `## Open Decisions`에 두며, 같은 보고에서 묻는다.",
-		"초안 전문을 대화에 붙이지 않는다.",
-		"- 요청 종류와 작은 수정인지(§6.1)\n",
-		"- 쓰거나 고친 파일 경로와 바뀐 절\n",
-		"- 사용자가 말하지 않았는데 Spec이 정한 결정과 출처(§6.2)\n",
-		"- 완료 뒤 평가 항목으로 옮긴 항목(§3)\n",
-		"- 열린 질문\n",
-		"- 정합성 확인 결과(§3)\n",
-		"사용자가 질문에 답하거나 수정을 요청하면 같은 목표 문서를 고치고 다시 보고한다.",
-		"보고에서 구현은 새 요청으로 시작한다고 알리고 멈춘다.",
-		"보고에 적은 Spec의 제안을 출처로 하는 결정이 되고 보고의 결정 목록(§6.4)에 오른다.",
+		"Even when the request that invoked Spec, or a reply that answers a question or asks for changes, also asks for implementation, Spec stops after writing the goal documents.",
+		"Moved items are listed in the report's decision list (§6.4);",
+		"Before writing goal documents, Spec decides what the request is and states it with its grounds in the report (§6.4).",
+		"Edit to existing goal documents: keep the existing criterion IDs (§2.1). If the request and the conversation have not settled which document to edit, choose before writing (§6.4).",
+		"propose with grounds whether to write a new goal or edit those documents, and do as the user decides. If the request and the conversation have not settled this, ask before writing (§6.4).",
+		"### 6.4 Saving and reporting",
+		"**Writing target.** When goal documents covering the same behavior exist in `docs/specs/` and the request and the conversation have not settled the writing target (a new goal or an edit of those documents, or which goal documents to edit), Spec asks for that choice before writing or editing any file.",
+		"It puts the recommended target first, with the grounds and what each option loses (§6.5 Recommendation first), and follows the user's choice.",
+		"If the user named the target or already chose it in the conversation, Spec does not ask again.",
+		"The writing target is the only thing obtained before writing. Once the target is settled, open content decisions are written with `Status: Draft` and asked about, as below.",
+		"**Save at once.** Once the writing target is settled, Spec writes or edits the goal documents at once, without waiting for the user's consent to save.",
+		"If an outcome-changing open decision remains, it writes `Status: Draft`, puts that decision in `## Open Decisions`, and asks about it in the same report.",
+		"It does not paste the full draft into the conversation;",
+		"- The request kind and whether it is a small fix (§6.1)\n",
+		"- The paths of files written or edited, and the sections changed\n",
+		"- Decisions Spec made that the user did not state, with their sources (§6.2)\n",
+		"- Items moved to evaluation items after completion (§3)\n",
+		"- Open questions\n",
+		"- Consistency check results (§3)\n",
+		"When the user answers a question or asks for changes, Spec edits the same goal documents and reports again.",
+		"A report that still has open content decisions says that implementation starts with a new request, and stops.",
+		"it becomes a decision whose source is the Spec proposal stated in the report, and it goes into the report's decision list (§6.4).",
 	)
 	forbidAll(t, path,
-		"### 6.4 저장 확인",
-		"저장 동의를 구할 때",
-		"저장 동의는 그 결정들에 대한 동의다",
-		"저장 전에 보이는 결정 목록",
-		"초안을 보여 주기 전에",
-		"저장 전 결정 목록",
+		"### 6.4 Save confirmation",
+		"when asking for consent to save",
+		"consent to save is consent to those decisions",
+		"decision list shown before saving",
+		"before showing the draft",
+		"decision list before saving",
 	)
 }
 

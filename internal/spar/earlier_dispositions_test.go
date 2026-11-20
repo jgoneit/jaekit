@@ -475,10 +475,8 @@ func (w *cpqWorld) edRefusal(series string, extra ...string) (code int, msg stri
 // names the option.
 func TestSparEarlierDispositionsAC3_TextCheckDeclared(t *testing.T) {
 	v := &edViolations{t: t, id: "text-check-not-declared"}
-	for _, rel := range []string{"contracts/spar-config.en.md", "contracts/spar-config.md"} {
-		if !strings.Contains(edRepoText(t, rel), "--text-check") {
-			v.add("%s does not have %q", rel, "--text-check")
-		}
+	if rel := "contracts/spar-config.md"; !strings.Contains(edRepoText(t, rel), "--text-check") {
+		v.add("%s does not have %q", rel, "--text-check")
 	}
 	w := newCPQWorld(t, true)
 	packet, round, ok := w.edDry(v, "tc-a", "--text-check", edTextCheck)

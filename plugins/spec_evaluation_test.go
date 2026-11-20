@@ -86,9 +86,9 @@ func TestSpecCasesCoverMaintenance(t *testing.T) {
 // when the user asks: the goal document contract says so.
 func TestSpecMovesHumanChecksToEvaluation(t *testing.T) {
 	requireAll(t, "../contracts/goal-docs.md",
-		"사람의 확인이나 판단 자체가 충족 조건인 것",
-		"완료 뒤 평가 항목으로 관련 맥락에 확인할 곳과 함께 남기고",
-		"사용자가 완료 조건으로 두라고 하면 그 말을 출처로 따른다",
+		"Something whose fulfillment condition is a person's confirmation or judgment itself",
+		"It stays under related context as an evaluation item after completion, with where to check it",
+		"if the user says to keep one as a completion criterion, Spec follows those words as the source",
 	)
 }
 

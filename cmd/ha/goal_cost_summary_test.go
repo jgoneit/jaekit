@@ -1056,9 +1056,9 @@ func TestGoalCostSummaryAC11_ContractAndGuides(t *testing.T) {
 	}
 	contract := read("../../contracts/run-record.md")
 	gcContains(t, v, "contracts/run-record.md", contract,
-		"### 1.7 비용 요약 (`ha cost`)", "`ha cost <goal> [--series <folder>]... [--format md|json] [--lang ko|en]`",
+		"### 1.7 Cost summary (`ha cost`)", "`ha cost <goal> [--series <folder>]... [--format md|json] [--lang ko|en]`",
 		"`review-round/v1`", "`review-gate/v1`", "`cost/v1`", "| `ha cost <goal>",
-		"**항목과 출처.**", "**입력 문제.**", "토큰", "https://github.com/jgoneit/jaekit/issues/174")
+		"**Items and sources.**", "**Input problems.**", "Tokens", "https://github.com/jgoneit/jaekit/issues/174")
 	for path, wants := range map[string][]string{
 		"../../guides/USAGE.md":    {"## 목표 하나의 비용 보기", "ha cost docs/specs/<goal> --series docs/reviews/<goal>", "같은 등급", "비슷한 크기", "인과 효과가 아닙니다"},
 		"../../guides/USAGE.en.md": {"## Reading one goal's cost", "ha cost docs/specs/<goal> --series docs/reviews/<goal>", "same tier", "similar size", "not a causal effect"},

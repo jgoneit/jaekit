@@ -273,7 +273,7 @@ func TestLintCodesMatchContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	section := string(doc)[strings.Index(string(doc), "## 8. `ha lint` 오류 코드"):]
+	section := string(doc)[strings.Index(string(doc), "## 8. `ha lint` error codes"):]
 	documented := map[string]bool{}
 	for _, m := range regexp.MustCompile("(?m)^\\| `([a-z_]+)` \\|").FindAllStringSubmatch(section, -1) {
 		documented[m[1]] = true

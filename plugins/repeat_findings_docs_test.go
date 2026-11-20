@@ -3,8 +3,8 @@ package plugins
 // Checks of the review-repeat-findings goal on documents. Each test observes
 // fixed tokens (flags, field names, setting keys, fixed phrases) in named
 // documents; whether the sentences around them say the same thing is for a
-// person to read. A document that cannot be read skips the test, so that an
-// input failure is never a pass or a violation.
+// person to read. A document that cannot be read fails the test as a broken
+// setup, so that an input failure is never a pass.
 
 import (
 	"os"
@@ -17,7 +17,7 @@ func rptDoc(t *testing.T, path string) string {
 	t.Helper()
 	data, err := os.ReadFile(filepath.FromSlash(path))
 	if err != nil {
-		t.Skipf("setup: %v", err)
+		t.Fatalf("setup: %v", err)
 	}
 	return string(data)
 }
@@ -40,8 +40,7 @@ const (
 	rptSealBundle = "seal/skills/seal/references/bundle.md"
 	rptSealReview = "seal/skills/seal/assets/templates/REVIEW.md"
 	rptSealHa     = "seal/skills/seal/references/ha.md"
-	rptBundleKo   = "../contracts/bundle.md"
-	rptBundleEn   = "../contracts/bundle.en.md"
+	rptBundle     = "../contracts/bundle.md"
 )
 
 // AC-7: Seal writes the supported forms and check boundaries before the
@@ -52,8 +51,7 @@ func TestRepeatFindingsAC7_FirstRoundBoundaries(t *testing.T) {
 		rptSealSkill:  {"before the earliest review round", "each check's boundary", "ask in the question before any baseline"},
 		rptSealBundle: {"before the earliest review round", "check boundaries", "supported input forms of an open-ended criterion", "in the one question before any baseline"},
 		rptSealReview: {"before the earliest review round", "each check's boundary"},
-		rptBundleEn:   {"before the earliest review round", "each check's boundary", "supported input forms of an open-ended criterion", "in the one question before any baseline"},
-		rptBundleKo:   {"첫 검토 라운드 전에", "검사마다의 경계", "열린 조건의 지원 입력 형식", "baseline 전에 한 번에 묻는 질문"},
+		rptBundle:     {"before the earliest review round", "each check's boundary", "supported input forms of an open-ended criterion", "in the one question before any baseline"},
 	})
 }
 
@@ -64,8 +62,7 @@ func TestRepeatFindingsAC7_WidenedCheckRecords(t *testing.T) {
 		rptSealSkill:  {"widen its boundary record in the same step"},
 		rptSealBundle: {"widen its boundary record in the same step"},
 		rptSealReview: {"widen its boundary record in the same step"},
-		rptBundleEn:   {"widen its boundary record in the same step"},
-		rptBundleKo:   {"같은 단계에서 그 경계 기록을 넓힌다"},
+		rptBundle:     {"widen its boundary record in the same step"},
 	})
 }
 
@@ -76,8 +73,7 @@ func TestRepeatFindingsAC7_BoundaryEveryRound(t *testing.T) {
 	rptRequire(t, id, map[string][]string{
 		rptSealSkill:  {"`--boundary`"},
 		rptSealBundle: {"as `--boundary` to every review round"},
-		rptBundleEn:   {"as `--boundary` to every review round"},
-		rptBundleKo:   {"`--boundary`로 모든 검토 라운드에"},
+		rptBundle:     {"as `--boundary` to every review round"},
 	})
 	text := rptDoc(t, rptSealBundle)
 	i := strings.Index(text, "**Decisions for review rounds.**")
@@ -98,23 +94,18 @@ func TestRepeatFindingsAC7_BoundaryEveryRound(t *testing.T) {
 
 // rptSparDocs are the documents that describe Spar's inputs, packet, records
 // and settings.
-var rptSparDocs = struct{ ko, en []string }{
-	ko: []string{"../contracts/review-round.md", "../contracts/spar-input.md", "../contracts/spar-config.md", "../guides/SPAR.md"},
-	en: []string{"../contracts/review-round.en.md", "../contracts/spar-input.en.md", "../contracts/spar-config.en.md", "../guides/SPAR.en.md",
-		"spar/skills/spar/SKILL.md"},
-}
+var rptSparDocs = []string{"../contracts/review-round.md", "../contracts/spar-input.md", "../contracts/spar-config.md",
+	"../guides/SPAR.md", "../guides/SPAR.en.md", "spar/skills/spar/SKILL.md"}
 
 // AC-9: the documents describe the last disposition at the end of an
 // earlier finding's line and the guidance for a finding reported again.
 func TestRepeatFindingsAC9_DispositionDocs(t *testing.T) {
 	tokens := map[string][]string{
-		"../contracts/review-round.md":    {"줄 끝에 그 지적의 마지막 처리", "기록된 처리가 답하지 못하는 실패 시나리오"},
-		"../guides/SPAR.md":               {"줄 끝에 그 지적의 마지막 처리", "기록된 처리가 답하지 못하는 실패 시나리오"},
-		"../contracts/spar-input.md":      {"줄 끝에 그 지적의 마지막 처리"},
-		"../contracts/review-round.en.md": {"line ends with its last disposition", "a failure scenario that the recorded disposition does not answer"},
-		"../guides/SPAR.en.md":            {"line ends with its last disposition", "a failure scenario that the recorded disposition does not answer"},
-		"../contracts/spar-input.en.md":   {"line ends with its last disposition"},
-		"spar/skills/spar/SKILL.md":       {"line ends with its last disposition", "a failure scenario that the recorded disposition does not answer"},
+		"../contracts/review-round.md": {"line ends with its last disposition", "a failure scenario that the recorded disposition does not answer"},
+		"../guides/SPAR.md":            {"줄 끝에 그 지적의 마지막 처리", "기록된 처리가 답하지 못하는 실패 시나리오"},
+		"../contracts/spar-input.md":   {"line ends with its last disposition"},
+		"../guides/SPAR.en.md":         {"line ends with its last disposition", "a failure scenario that the recorded disposition does not answer"},
+		"spar/skills/spar/SKILL.md":    {"line ends with its last disposition", "a failure scenario that the recorded disposition does not answer"},
 	}
 	rptRequire(t, "disposition-undocumented", tokens)
 }
@@ -123,15 +114,13 @@ func TestRepeatFindingsAC9_DispositionDocs(t *testing.T) {
 // and its record field.
 func TestRepeatFindingsAC9_BoundaryDocs(t *testing.T) {
 	tokens := map[string][]string{}
-	for _, path := range append(append([]string{}, rptSparDocs.ko...), rptSparDocs.en...) {
+	for _, path := range rptSparDocs {
 		if strings.Contains(path, "spar-config") {
 			continue
 		}
 		tokens[path] = []string{"`--boundary`"}
 	}
-	for _, path := range []string{"../contracts/review-round.md", "../contracts/review-round.en.md"} {
-		tokens[path] = append(tokens[path], "`boundaries`", "`check_impact` `none`")
-	}
+	tokens["../contracts/review-round.md"] = append(tokens["../contracts/review-round.md"], "`boundaries`", "`check_impact` `none`")
 	for _, path := range []string{"../guides/SPAR.md", "../guides/SPAR.en.md", "spar/skills/spar/SKILL.md"} {
 		tokens[path] = append(tokens[path], "`check_impact` `none`")
 	}
@@ -142,12 +131,10 @@ func TestRepeatFindingsAC9_BoundaryDocs(t *testing.T) {
 // setting.
 func TestRepeatFindingsAC9_LimitDocs(t *testing.T) {
 	tokens := map[string][]string{}
-	for _, path := range append(append([]string{}, rptSparDocs.ko...), rptSparDocs.en...) {
+	for _, path := range rptSparDocs {
 		tokens[path] = []string{"`max_packet_bytes`"}
 	}
-	for _, path := range []string{"../contracts/spar-config.md", "../contracts/spar-config.en.md"} {
-		tokens[path] = append(tokens[path], "`max_packet_bytes_source`")
-	}
+	tokens["../contracts/spar-config.md"] = append(tokens["../contracts/spar-config.md"], "`max_packet_bytes_source`")
 	rptRequire(t, "limit-undocumented", tokens)
 }
 

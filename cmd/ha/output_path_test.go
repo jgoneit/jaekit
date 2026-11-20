@@ -18,10 +18,10 @@ func TestRunRecordStatesOutputPath(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, s := range []string{
-		"로컬 출력 위치(저장소 기준 경로, 예: `.git/ha/runs/<goal-key>/7.log`)",
-		"`output_path`에는 절대 경로를 쓰지 않는다.",
-		"linked worktree에서도 형식이 같고, 이때 `.git`은 그 작업 트리의 git 디렉토리를 뜻한다.",
-		"이전 `ha`가 남긴 절대 경로는 고쳐 쓰지 않고 그대로 읽는다.",
+		"local output location (a repository-relative path, for example `.git/ha/runs/<goal-key>/7.log`)",
+		"`output_path` never holds an absolute path.",
+		"The format is the same in a linked worktree, where `.git` means that working tree's git directory.",
+		"Absolute paths left by an earlier `ha` are read as they are, not rewritten.",
 	} {
 		if !strings.Contains(string(doc), s) {
 			t.Errorf("run-record.md lacks %q", s)

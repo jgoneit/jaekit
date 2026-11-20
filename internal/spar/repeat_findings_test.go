@@ -679,36 +679,31 @@ func TestRepeatFindingsAC4_SameCasesAsCriteria(t *testing.T) {
 	}
 }
 
-// AC-4: the input table of the Spar input contract, in both languages, has a
-// row for --boundary that names its form, the result outside it and where it
-// goes.
+// AC-4: the input table of the Spar input contract has a row for --boundary
+// that names its form, the result outside it and where it goes. The
+// contract is required: a missing file fails.
 func TestRepeatFindingsAC4_InputTableRow(t *testing.T) {
 	const id = "boundary-input-row-missing"
-	for path, tokens := range map[string][]string{
-		"../../contracts/spar-input.md":    {"패킷", "`round.json`", "거부(65)"},
-		"../../contracts/spar-input.en.md": {"packet", "`round.json`", "refused (65)"},
-	} {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			pdSetup(t, false, "%v", err)
+	const path = "../../contracts/spar-input.md"
+	data, err := os.ReadFile(path)
+	if err != nil {
+		pdSetup(t, true, "%v", err)
+	}
+	var row string
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(line, "| G") && strings.Contains(line, "`--boundary`") {
+			row = line
 		}
-		var row string
-		for _, line := range strings.Split(string(data), "\n") {
-			if strings.HasPrefix(line, "| G") && strings.Contains(line, "`--boundary`") {
-				row = line
-			}
-		}
-		if row == "" {
-			t.Errorf("jaekit:violation=%s %s has no input row for `--boundary`", id, path)
-			continue
-		}
-		if cells := strings.Split(row, "|"); len(cells) != 7 {
-			t.Errorf("jaekit:violation=%s %s's `--boundary` row does not have the table's five columns", id, path)
-		}
-		for _, token := range tokens {
-			if !strings.Contains(row, token) {
-				t.Errorf("jaekit:violation=%s %s's `--boundary` row does not name %s", id, path, token)
-			}
+	}
+	if row == "" {
+		t.Fatalf("jaekit:violation=%s %s has no input row for `--boundary`", id, path)
+	}
+	if cells := strings.Split(row, "|"); len(cells) != 7 {
+		t.Errorf("jaekit:violation=%s %s's `--boundary` row does not have the table's five columns", id, path)
+	}
+	for _, token := range []string{"packet", "`round.json`", "refused (65)"} {
+		if !strings.Contains(row, token) {
+			t.Errorf("jaekit:violation=%s %s's `--boundary` row does not name %s", id, path, token)
 		}
 	}
 }
