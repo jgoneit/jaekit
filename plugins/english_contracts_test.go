@@ -296,15 +296,10 @@ func TestEnglishContractsAC4_LinksOpen(t *testing.T) {
 	}
 }
 
-// ecAuthoring is the authoring check's verdict on the start commit for each criterion that reads contract
-// files: status, then its problems. AC-9 is judged without the Go suites it also starts; they run in this
-// condition's command themselves.
-var ecAuthoring = map[string][]string{
-	"AC-1": {"pass"}, "AC-2": {"pass"}, "AC-3": {"pass"}, "AC-4": {"pass"}, "AC-5": {"pass"}, "AC-10": {"pass"},
-	"AC-6": {"violation", "user-resolved reasons changed: ['review_open_question']", "plugins/seal/skills/seal/references/ha.md: guidance may add a user step: Seal 0.1.23 asks the decisions it can foresee in one message before any baseline and lists the test and check files a plan adds in its scope from the start, wit"},
-	"AC-8": {"violation", "guidance does not name Seal 0.1.34 as its starting version"},
-	"AC-9": {"pass"},
-}
+// ecAuthoring lists the authoring check's criteria that read contract files. On the start commit none of
+// them reported a problem naming a contract file; problems from other files (AC-6, AC-8) are not this
+// goal's. AC-9 is judged without the Go suites it also starts; they run in this condition's command.
+var ecAuthoring = []string{"AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-8", "AC-9", "AC-10"}
 
 const ecAuthoringScript = `import json, pathlib, sys
 sys.path.insert(0, "tools/contract-checks")
@@ -312,23 +307,18 @@ import authoring_check
 authoring_check.regressions = lambda root: []
 out = {}
 for c in sys.argv[1:]:
-    observation, problems = authoring_check.observe(pathlib.Path(".").resolve(), "authoring", c)
-    out[c] = [observation["status"]] + list(problems)
+    _, problems = authoring_check.observe(pathlib.Path(".").resolve(), "authoring", c)
+    out[c] = [p for p in problems if "contracts/" in p]
 print(json.dumps(out))`
 
 // The Go suites that read contract text run in the same command; this adds the Python readers no Go test
-// judges on the checkout: the authoring check's verdicts and the regression map's guidance test.
+// judges on the checkout: the authoring check's contract problems and the regression map's guidance test.
 func TestEnglishContractsAC5_PythonReaders(t *testing.T) {
 	py, err := exec.LookPath("python3")
 	if err != nil {
 		t.Fatalf("python3: %v", err)
 	}
-	criteria := make([]string, 0, len(ecAuthoring))
-	for c := range ecAuthoring {
-		criteria = append(criteria, c)
-	}
-	sort.Strings(criteria)
-	cmd := exec.Command(py, append([]string{"-I", "-c", ecAuthoringScript}, criteria...)...)
+	cmd := exec.Command(py, append([]string{"-I", "-c", ecAuthoringScript}, ecAuthoring...)...)
 	cmd.Dir = ".."
 	out, err := cmd.Output()
 	if err != nil {
@@ -338,9 +328,9 @@ func TestEnglishContractsAC5_PythonReaders(t *testing.T) {
 	if err := json.Unmarshal(out, &got); err != nil {
 		t.Fatalf("authoring check output: %v\n%s", err, out)
 	}
-	for _, c := range criteria {
-		if strings.Join(got[c], "\n") != strings.Join(ecAuthoring[c], "\n") {
-			t.Errorf("authoring check %s gives %q, want the start commit's %q", c, got[c], ecAuthoring[c])
+	for _, c := range ecAuthoring {
+		if p, ok := got[c]; !ok || len(p) > 0 {
+			t.Errorf("authoring check %s reports contract problems %q; the start commit had none", c, p)
 		}
 	}
 	cmd = exec.Command(py, "-I", "-m", "unittest", "discover", "-s", "tools/workflow-checks", "-p", "test_regressions.py")
