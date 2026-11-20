@@ -54,7 +54,7 @@ GROUPS = (
     ("formats", True, ("contracts/README", "contracts/goal-docs", "contracts/bundle", "contracts/run-record",
                        "contracts/check-result", "contracts/role-card", "contracts/review-round",
                        "contracts/review-gate", "contracts/spar-config", "contracts/spar-input",
-                       "contracts/core-capabilities", "contracts/decision-history", "contracts/findings")),
+                       "contracts/core-capabilities", "contracts/findings")),
     ("develop", True, ("guides/DEVELOPMENT", "guides/CI", "contracts/regressions",
                        "contracts/repository-producers", "guides/WINDOWS")),
 )
@@ -84,8 +84,6 @@ LISTED = {
                              "en": ("Spar input formats", "The inputs spar accepts, and what happens to input outside them.")},
     "contracts/core-capabilities": {"ko": ("ha 지원 기능과 호환 확인", "설치된 ha가 지원하는 기능을 ha capabilities로 확인하는 방법."),
                                     "en": ("ha capabilities and compatibility", "How ha capabilities shows what the installed ha supports.")},
-    "contracts/decision-history": {"ko": ("판단 이력 형식 (선택 기능)", "ha history로 남기는 관측·원인·결정 같은 판단 이력의 형식."),
-                                   "en": ("Decision history format (optional)", "The decision history recorded with ha history: observations, causes, decisions and more.")},
     "contracts/findings": {"ko": ("완료 뒤 발견 기록 형식", "완료 뒤에 발견한 문제를 원래 완료와 따로 남기는 기록."),
                            "en": ("Post-completion findings format", "How a problem found after completion is recorded apart from that completion.")},
     "contracts/regressions": {"ko": ("공통 규칙과 회귀 검사 연결", "Jaekit의 공통 규칙과 그것을 지키는 회귀 검사의 연결."),

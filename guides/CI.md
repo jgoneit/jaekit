@@ -10,7 +10,7 @@ Jaekit 저장소에 변경을 올리거나 그 CI 결과를 해석할 때 읽는
 | --- | --- |
 | `Core / Ubuntu` | Ubuntu 24.04 x64: 기존 공통 Go·회귀 검사와 macOS/Linux 교차 빌드, 실제 네이티브 Core와 격리된 직접 설치 수명주기 |
 | `Core / macOS` | `macos-15`, arm64: 선택된 네이티브 Core 검사와 실제 네이티브 후보의 격리된 직접 설치 수명주기 |
-| `Core / Windows PowerShell 5.1` | Windows Server 2025 x64, Windows PowerShell 5.1: 네이티브 Core·판단 이력·후보 패키지·경로 검사, 미지원 제품 설치 환경의 거부 |
+| `Core / Windows PowerShell 5.1` | Windows Server 2025 x64, Windows PowerShell 5.1: 네이티브 Core·후보 패키지·경로 검사, 미지원 제품 설치 환경의 거부 |
 | `Core / Windows PowerShell 7` | 같은 Windows Server 2025 x64 검사를 PowerShell 7에서 실행. 5.1 작업을 기다리지 않는 별도 작업 |
 | `Seal Core` | 같은 실행의 `Core / Ubuntu`, `Core / macOS`, `Core / Windows PowerShell 5.1`, `Core / Windows PowerShell 7`이 모두 `success`여야 성공 |
 | `Public documentation` | Ubuntu: 공개 파일·문서 검사와 오프라인 회귀 검사를 한 번 수행 |
@@ -25,8 +25,6 @@ Ubuntu는 macOS/Linux 네 플랫폼 빌드와 Windows 후보 교차 빌드를 �
 현재 PR 변경의 작업 로그를 엽니다. 각 네이티브 작업은 checkout SHA, 이벤트, PR head/base SHA, 실제 OS·CPU, 러너 정보와 셸 버전을 담은 `JAEKIT_CI_CONTEXT` JSON 한 줄을 출력합니다. GitHub가 PR 통합 커밋을 checkout하면 그 SHA는 PR head와 다를 수 있습니다. 로컬 소스와 결과를 비교할 때 이 관계를 함께 확인합니다.
 
 각 네이티브 검사기는 실제 관측과 소스 커밋을 담은 `JAEKIT_CI_REPORT`를 출력합니다. Unix 검사기는 지정한 보고서 파일에도 저장하고, Windows 검사기는 선택한 임시 출력 디렉터리에 보고서와 검사 자료를 둡니다. 필수 네이티브 검사에는 실제 통과 결과가 있어야 합니다. 건너뛰었거나 없는 검사를 선택 목록의 개수·빈 helper 실행·구성 검사로 대신하지 않습니다. 보고서는 해당 작업의 소스와 환경에 관한 것이며 다른 CPU나 셸의 실행까지 확인하지 않습니다.
-
-Windows 판단 이력 검사는 두 PowerShell 각각에서 실제 CLI·Git·공용 이력 저장소·파일 근거를 연결합니다. 일반 checkout과 linked worktree의 등록·재전송·정정·기본/current·list·두 방식의 show, 동시 등록·조회와 잠금 보유자 종료, 손상·적용 불확실성 및 파일 안전 경계를 필수 이름으로 선택합니다. 판단 이력 패키지나 필수 사례의 누락·skip·실패·실행 중단은 해당 셸을 통과시키지 않으며 그 셸의 Windows 작업과 `Seal Core` 집계에 반영됩니다. 기존 Core 시험과 교차 빌드만 성공한 결과로 대체하지 않습니다.
 
 CI 결과 수집은 두 PowerShell의 기계 판정용 전체 보고서를 셸별 작업에서 하나씩 받아 기존 Windows 검증 소비자에 전달합니다. 셸별 작업으로 나누기 전에 기록된 실행은 한 `Core / Windows` 작업에 두 보고서가 있으며, 그 구성대로 읽습니다. 긴 줄의 표시 제한으로 일부 보고서가 사라진 결과, 누락·중복·잘림·수집 실패는 성공이 아닙니다. 현재 head/base와 실제 검사한 통합 commit의 관계·Git tree, 실행과 재실행 회차를 함께 확인하며 수집 중 기준이 바뀌면 이전 성공으로 대신하지 않습니다.
 

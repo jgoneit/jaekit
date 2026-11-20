@@ -14,24 +14,6 @@ assert spec.loader is not None
 spec.loader.exec_module(native)
 
 
-HISTORY_CASES = {
-    "internal/history": ("TestNativeHistoryStorageLifecycle", "TestNativeHistoryStorageLocks",
-                         "TestNativeHistoryStorageIntegrity", "TestNativeHistoryStoragePathSafety",
-                         "TestNativeHistoryStorageLocks/first_registration_retry",
-                         "TestNativeHistoryStorageLocks/process_exit_releases_ownership",
-                         "TestNativeHistoryStorageIntegrity/last_replacement_failure_is_uncertain",
-                         "TestNativeHistoryStorageIntegrity/snapshot_survives_marker_replacement",
-                         "TestNativeHistoryStorageIntegrity/snapshot_opens_before_rename_source_closes",
-                         "TestNativeHistoryStoragePathSafety/junction_common"),
-    "cmd/ha": ("TestNativeHistoryGitLifecycle", "TestNativeHistoryFileEvidence",
-               "TestNativeHistoryWindowsFileBoundaries", "TestNativeHistoryGitLifecycle/linked=false",
-               "TestNativeHistoryGitLifecycle/linked=true", "TestNativeHistoryFileEvidence/replace-file",
-               "TestNativeHistoryFileEvidence/growth_during_read",
-               "TestNativeHistoryWindowsFileBoundaries/special-references",
-               "TestNativeHistoryWindowsFileBoundaries/sharing-denial"),
-}
-
-
 def native_events():
     events = []
     for package, tests in native.NATIVE.items():
@@ -48,54 +30,29 @@ def parse_native_events(events):
                                  set(native.REQUIRED), {native.MODULE + p for p in native.NATIVE})
 
 
-class WindowsHistorySelectionTests(unittest.TestCase):
-    def test_history_and_existing_core_require_actual_completed_observations(self):
+class WindowsNativeSelectionTests(unittest.TestCase):
+    def test_existing_core_cases_are_required(self):
         report = parse_native_events(native_events())
-        for package, names in HISTORY_CASES.items():
-            for name in names:
-                key = native.MODULE + package + "/" + name
-                with self.subTest(case=key):
-                    self.assertIn(key, report["required"])
-                    self.assertIn(key, report["passed"])
         self.assertIn(native.MODULE + "cmd/ha/TestNativeCoreGitLifecycle/linked=true", report["required"])
         self.assertIn(native.MODULE + "internal/record/TestNativeLockIsReleasedWhenOwnerExits", report["required"])
 
-    def test_each_history_boundary_cannot_be_missing_skipped_failed_or_interrupted(self):
-        for package, names in native.NATIVE.items():
-            package = native.MODULE + package
-            for name in (name for name in names if name.startswith("TestNativeHistory")):
-                for kind in ("missing", "skip", "fail", "no-run", "interrupted"):
-                    events = native_events()
-                    if kind == "missing":
-                        events = [event for event in events if not
-                                  (event["Package"] == package and event.get("Test") == name)]
-                    elif kind in ("no-run", "interrupted"):
-                        action = "run" if kind == "no-run" else "pass"
-                        events = [event for event in events if not
-                                  (event["Package"] == package and event.get("Test") == name
-                                   and event["Action"] == action)]
-                    else:
-                        for event in events:
-                            if event["Package"] == package and event.get("Test") == name and event["Action"] == "pass":
-                                event["Action"] = kind
-                    with self.subTest(case=name, outcome=kind), self.assertRaises(ValueError):
-                        parse_native_events(events)
-
-    def test_package_success_without_history_tests_cannot_pass(self):
-        events = [event for event in native_events() if not event.get("Test", "").startswith("TestNativeHistory")]
-        with self.assertRaises(ValueError):
-            parse_native_events(events)
-
-    def test_parent_success_does_not_replace_history_subtests(self):
-        events = [event for event in native_events() if not
-                  (event.get("Test", "").startswith("TestNativeHistory") and "/" in event["Test"])]
-        with self.assertRaises(ValueError):
-            parse_native_events(events)
-
-    def test_old_core_case_still_required_when_history_passes(self):
-        events = [event for event in native_events() if event.get("Test") != "TestNativeCoreGitLifecycle/linked=true"]
-        with self.assertRaises(ValueError):
-            parse_native_events(events)
+    def test_required_case_cannot_be_missing_skipped_failed_or_interrupted(self):
+        # A required subtest under a passing parent: missing, skipped, failed,
+        # never run or never finished is not a pass.
+        package, name = native.MODULE + "cmd/ha", "TestNativeCoreGitLifecycle/linked=true"
+        for kind in ("missing", "skip", "fail", "no-run", "interrupted"):
+            events = native_events()
+            if kind == "missing":
+                events = [e for e in events if not (e["Package"] == package and e.get("Test") == name)]
+            elif kind in ("no-run", "interrupted"):
+                action = "run" if kind == "no-run" else "pass"
+                events = [e for e in events if not (e["Package"] == package and e.get("Test") == name and e["Action"] == action)]
+            else:
+                for e in events:
+                    if e["Package"] == package and e.get("Test") == name and e["Action"] == "pass":
+                        e["Action"] = kind
+            with self.subTest(outcome=kind), self.assertRaises(ValueError):
+                parse_native_events(events)
 
 
 class WindowsNativeReportTests(unittest.TestCase):

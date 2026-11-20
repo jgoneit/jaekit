@@ -585,12 +585,6 @@ var skDuties = []skDuty{
 	{"report-local", []string{"local"}},
 	// Post-completion discoveries
 	{"discovery-rework", []string{"reopen"}},
-	// Decision history
-	{"history-one-call", []string{"add"}},
-	{"history-resume", []string{"current", "show <Dn>"}},
-	{"history-uncertain", []string{"write_uncertain"}},
-	{"history-uncertain-confirm", []string{"--request-id", "show --request-id"}},
-	{"history-correction-conflict", []string{"correction_conflict"}},
 	// Resuming
 	{"resume-status", []string{"ha status <goal>"}},
 	{"resume-trust", []string{"PROGRESS.md"}},

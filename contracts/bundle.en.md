@@ -293,21 +293,6 @@ Recording, confirming, rejecting or resolving in documents does not change the e
 
 Review or PR findings received without the user's request are not authority to change the completed goal's code. Record them as post-completion findings in this format and report them. Changing the code needs the user's request and `reopen`.
 
-### 5.3 PROGRESS with decision history
-
-A goal started with Seal 0.1.13 or later may record detailed judgments once in the optional [decision history](decision-history.en.md) and refer to them from PROGRESS by event ID (`D<n>`). A goal started with an earlier Seal keeps the PROGRESS format and documentation duties it started with. An environment that supports the feature may add an auxiliary history, but does not retroactively omit originally required explanations or convert past timelines. `ha` does not read the prose sections of PROGRESS, and an event ID reference does not change a task state or the completion judgment.
-
-| Section | With decision history |
-| --- | --- |
-| `## 현재` | Leaves the current state, important decisions with short reasons, the open problems and how to resume so that they are understandable without the history. Related event IDs are auxiliary references. |
-| `## 타임라인` | A short index of the important events a handover needs. It adds the event ID to the heading form of 5.1 above (time, seq, kind, one-line summary) to point to the detail, and does not copy every event. |
-| `## 계획 변경`, `## 막힘` | Keep the existing columns and the needed summary, and refer to the detail by time and event ID. |
-
-- Write the detailed reasons, evidence and relations once in the history, and read them with the Markdown query of `ha history`. Do not save the query's Markdown as a separately maintained source, and do not generate the whole of PROGRESS automatically. No number of sentences or fixed writing order is set.
-- PROGRESS refers by ID only to events whose storage succeeded. For a judgment where the history was not used, the feature cannot be used, storage failed, or whether it was applied could not be confirmed, leave the explanation in Markdown in the form of 5.1. Required handover content must never remain only as an event ID.
-- The decision history is local data in the Git common directory, so it does not follow to a new clone or another machine. There, the detailed reasons, evidence and relations are absent, and only the current state, the important decisions with short reasons and how to resume, kept in PROGRESS, partly make up for this loss. This is not a restoration of the detailed history.
-- The executor decides which events to record and when, which relations to link, and how to group small events. The criteria for which events to record are the same as in 5.1. This feature has no human approval step or retrospective duty of its own.
-
 ### 5.4 Review summary
 
 `## 검수 요약` applies to goals whose start record names seal 0.1.24 or later. A goal started with an earlier Seal keeps the PROGRESS and report form it started with, and existing goals' `PROGRESS.md` is never converted to the new form.

@@ -44,7 +44,8 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 	// Seal 0.1.32 marks baselines for two kinds only and records them right
 	// before completion. Seal 0.1.33 runs review rounds only as plan and
 	// candidate: one candidate round from the base commit after review fixes.
-	for name, want := range map[string]string{"spec": "0.1.16", "seal": "0.1.33"} {
+	// Seal 0.1.34 drops its guidance for the removed `ha history` command.
+	for name, want := range map[string]string{"spec": "0.1.16", "seal": "0.1.34"} {
 		t.Run(name, func(t *testing.T) {
 			_, version := frontMatter(t, filepath.Join(name, "skills", name, "SKILL.md"))
 			if version != want {

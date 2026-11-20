@@ -67,8 +67,8 @@ def feature_boundary(criterion):
         require(JUNCTION in native, "junction CLI entrypoint is not required by native checks")
 
 
-def live_reports(observer=None):
-    ci = observer if observer is not None else load("validation_ci", "tools/verification-checks/cross_platform_ci.py")
+def live_reports():
+    ci = load("validation_ci", "tools/verification-checks/cross_platform_ci.py")
     reports = []
 
     def observed(report, operating_system, source):

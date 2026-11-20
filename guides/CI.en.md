@@ -10,7 +10,7 @@ Read this when you send a change to the Jaekit repository or interpret its CI re
 | --- | --- |
 | `Core / Ubuntu` | Ubuntu 24.04 x64: the existing common Go/regression suite and macOS/Linux cross-builds, plus actual native Core and isolated direct-install lifecycle checks |
 | `Core / macOS` | `macos-15`, arm64: selected native Core fixtures and the actual native candidate's isolated direct-install lifecycle |
-| `Core / Windows PowerShell 5.1` | Windows Server 2025 x64, in Windows PowerShell 5.1: selected native Core, decision history, candidate/package/path checks and unsupported-product-installation refusal |
+| `Core / Windows PowerShell 5.1` | Windows Server 2025 x64, in Windows PowerShell 5.1: selected native Core, candidate/package/path checks and unsupported-product-installation refusal |
 | `Core / Windows PowerShell 7` | The same Windows Server 2025 x64 checks in PowerShell 7, as a separate job that does not wait for the 5.1 job |
 | `Seal Core` | Requires `Core / Ubuntu`, `Core / macOS`, `Core / Windows PowerShell 5.1` and `Core / Windows PowerShell 7` in the same run to finish with `success` |
 | `Public documentation` | Ubuntu: public file/document checks and their offline regressions, performed once |
@@ -25,8 +25,6 @@ Ubuntu retains the common suite, including the four macOS/Linux build targets an
 Open the job logs for the current PR revision. Each native job prints one `JAEKIT_CI_CONTEXT` JSON line containing its checkout SHA, event, PR head/base SHAs, actual OS/CPU, runner metadata and shell version. GitHub can check out a PR integration commit, so its SHA may differ from the PR head. Keep that relationship when comparing a result with local source.
 
 Each native checker prints `JAEKIT_CI_REPORT` with its actual observations and source commit. The Unix checker also writes the requested report file; the Windows checker keeps reports and fixture data in its selected temporary output directory. Required native test names must have actual passing results. A skipped or absent fixture is not replaced by a count of selected tests, an empty helper run, or a configuration check. A report belongs to that job's source and environment, and does not establish results on another architecture or shell.
-
-Windows decision-history checks connect the actual CLI, Git, shared history store and file evidence in each PowerShell version. Required names cover ordinary and linked worktrees, add/replay/correction, default/current/list and both show forms, concurrent writes/reads, lock-owner exit, integrity/uncertain writes and file-safety boundaries. An absent history package or required case, skip, failure or interrupted test cannot pass that shell and propagates to that shell's Windows job and the `Seal Core` aggregate. Existing Core tests and cross-build success cannot substitute for these observations.
 
 CI collection delivers both complete machine-readable PowerShell reports, one from each shell's job, to the existing Windows validation consumer. A run recorded before the shells had separate jobs has one `Core / Windows` job with both reports, and is still read that way. Reports lost to a long-line display limit, missing or duplicate reports, truncation and collection errors are not success. The observer ties the current head/base to the tested integration commit and Git tree, run and attempt, and rejects a changed observation basis instead of reusing earlier success.
 
