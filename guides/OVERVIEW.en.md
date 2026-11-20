@@ -142,7 +142,7 @@ In the terminal, mostly the install and update commands; you also use it to look
 A `docs/specs/<goal>/` folder for each goal. Whether Git tracks it follows your project's policy. The records can contain what you said and paths from your work, so check them before you push to a public repository. Before the first `standard` or `strict` goal that uses Spar, add `docs/reviews/` to `.gitignore`.
 
 **How are existing tests used?**
-Your whole existing test suite can serve as the check for a condition that existing behavior keeps working. Which check covers which condition is written by the agent in `PLAN.md`. The exact format is in the [execution bundle contract](../contracts/bundle.en.md).
+Your whole existing test suite can serve as the check for a condition that existing behavior keeps working. Which check covers which condition is written by the agent in `PLAN.md`. The exact format is in the [execution bundle contract](../contracts/bundle.md).
 
 **Does it push, open a pull request or deploy at the end?**
 No. The default result is local changes and commits. Push and pull requests are yours to do, or a separate request to an ordinary agent.
@@ -156,4 +156,4 @@ No. The default result is local changes and commits. Push and pull requests are 
 - To change a goal, continue one, or read a report: [Usage guide](USAGE.en.md)
 - To set up independent review: [Spar guide](SPAR.en.md)
 - To read why work stopped and what a report rests on: [Reading work status and the completion report](OPERATIONS.en.md)
-- For the exact formats of files and records: [contracts](../contracts/README.en.md)
+- For the exact formats of files and records: [contracts](../contracts/README.md)

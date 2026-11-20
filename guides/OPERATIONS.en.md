@@ -12,7 +12,7 @@ Spec organizes your request into goals, scope, and completion criteria in `docs/
 
 When ready, select `seal:seal` from the `$` list in a Codex conversation and send `$seal:seal docs/specs/<goal>` as a separate message. In Claude Code, use `/seal:seal docs/specs/<goal>`. If a goal document already exists, you can hand it over to Seal directly. The agent reviews the plan and check methods, then proceeds with implementation, checks, and fixes. You do not need to approve every operation.
 
-The user decides whether to change the goal and scope. Seal never modifies goal documents. If you revised the goal with Spec, make a separate request such as `docs/specs/<goal> 이어서 해줘` (continue `docs/specs/<goal>`). For detailed document formats, see the [goal documents contract](../contracts/goal-docs.en.md) and [execution bundle contract](../contracts/bundle.en.md).
+The user decides whether to change the goal and scope. Seal never modifies goal documents. If you revised the goal with Spec, make a separate request such as `docs/specs/<goal> 이어서 해줘` (continue `docs/specs/<goal>`). For detailed document formats, see the [goal documents contract](../contracts/goal-docs.md) and [execution bundle contract](../contracts/bundle.md).
 
 ## Checking tools beforehand
 
@@ -32,7 +32,7 @@ From Seal 0.1.20, Seal no longer compares Core support by hand. It declares the 
 
 Seal 0.1.26 requires `run-rules/6` for new goals and starts with `ha start --rules run-rules/6 … --check-skill`. Its format and feature requirements are the same as 0.1.21; only the rule changes. ha 0.1.8 does not support `/6` and refuses this start. Without `/6` or any other required support, Seal stops without a record and does not fall back to earlier rules. An `ha` with that support is needed; goals already started under `/1` through `/5` keep their saved rules.
 
-When the skill folder that Seal names with `--skill` has a `core-requirements.json`, `start` compares the Core support that skill needs with the actual executable and refuses without a record when any support is missing. With `--check-skill`, the declaration is required, and an `ha` from before this feature does not accept that start ([Core capabilities contract](../contracts/core-capabilities.en.md) §8).
+When the skill folder that Seal names with `--skill` has a `core-requirements.json`, `start` compares the Core support that skill needs with the actual executable and refuses without a record when any support is missing. With `--check-skill`, the declaration is required, and an `ha` from before this feature does not accept that start ([Core capabilities contract](../contracts/core-capabilities.md) §8).
 
 <details>
 <summary>The support check of earlier Seal versions (0.1.17 to 0.1.19)</summary>
@@ -46,7 +46,7 @@ Seal stops before recording and explains the target and reason if any of the fol
 - The query returns invalid information.
 - Required capabilities are missing.
 
-Seal never reuses query results from another executable or starts by switching to `/1` or `/2`. If the path or the executable content changes, Seal checks capabilities again. For the exact fields, see the [Core capabilities contract](../contracts/core-capabilities.en.md).
+Seal never reuses query results from another executable or starts by switching to `/1` or `/2`. If the path or the executable content changes, Seal checks capabilities again. For the exact fields, see the [Core capabilities contract](../contracts/core-capabilities.md).
 
 This capability check is never bypassed through automatic installation, privilege escalation, or altering historical records. Even after an update, Seal re-reads the capability information from the actually selected executable.
 
@@ -89,7 +89,7 @@ Refused checks do not count toward the execution count. If execution stopped whi
 
 New Spec examples specify `Criteria-Format: nested/1`. This reads description lists under an `AC` as the body of that same condition. Existing goals without this marker keep their previous interpretation.
 
-Adding this marker to an existing goal changes the goal document. Therefore, previous verifications and manual confirmations cannot be reused for the new interpretation. For indentation examples, refer to the [goal documents contract](../contracts/goal-docs.en.md).
+Adding this marker to an existing goal changes the goal document. Therefore, previous verifications and manual confirmations cannot be reused for the new interpretation. For indentation examples, refer to the [goal documents contract](../contracts/goal-docs.md).
 
 ## What a failure before the change means
 
@@ -105,11 +105,11 @@ Results where an actually executed check directly observes the absence of functi
 
 When recording a baseline, all declared targets must run and show the intended violation without errors or other assertion failures. Current checks require all declared targets to pass whether or not a baseline is required.
 
-See the [check result contract and reference check](../contracts/check-result.en.md) for how to link them. The reference check is a small example that actually reads files; it does not automatically install specific test runners or support all runners.
+See the [check result contract and reference check](../contracts/check-result.md) for how to link them. The reference check is a small example that actually reads files; it does not automatically install specific test runners or support all runners.
 
 ### Linking a test you already have
 
-To use a test you already have, a Core whose `ha capabilities` lists `check-adapter/v1` can link a `change` condition to that one test through a [runner adapter](../contracts/check-result.en.md#5-runner-adapters). `ha` reads the output of `go test -json …`, or the JUnit XML a runner writes at the `{HA_JUNIT_XML}` location, without a producer program.
+To use a test you already have, a Core whose `ha capabilities` lists `check-adapter/v1` can link a `change` condition to that one test through a [runner adapter](../contracts/check-result.md#5-runner-adapters). `ha` reads the output of `go test -json …`, or the JUnit XML a runner writes at the `{HA_JUNIT_XML}` location, without a producer program.
 
 Put the marker `jaekit:violation=<violation id>` on the first line of the assertion's failure message for when the property breaks. For a hypothetical greeting CLI test, write `t.Fatalf("jaekit:violation=greeting-missing the CLI says %q", got)`.
 
@@ -131,7 +131,7 @@ Seal 0.1.26 starts under `run-rules/6`. `/6` changes only four judgments from `/
 - For `standard` and `strict` goals, `review_base_mismatch` blocks completion if the last candidate round (excluding dry runs) did not review from the start's `base_commit`. Spar's gate checks a recorded fixes chain following a candidate from the start base.
 - A `review` note after completion voids the completion record only for the current `standard` or `strict` tier. With `light` or no tier line, an otherwise valid completion record stays valid.
 - A `done` line is judged when its `record_head` is the hash of an earlier line and every line strictly between that line and the `done` line is a finding line (`run-finding/v1`), including when there are no intervening lines. The named line may itself be a finding line. Every `done` line is judged on the full record first, so a line may be judged even when its `record_head` names an unjudged line. Unjudged complete and non-complete `done` lines are then treated as absent from status computation, including the completion record and its explanation, the latest done line, the budget window, elapsed time, post-completion intervals and budget-change refusal. Status, report, cost and budget changes use this same view. An earlier record still needs every other validity condition; a judged line invalid for another reason still stops the search.
-- The interval after completion until the next run or a non-complete `done` leaves elapsed time and is shown separately as `post_completion_seconds`. The budget explanation below and [contract §4.9](../contracts/run-record.en.md#49-run-rules6) define its boundaries.
+- The interval after completion until the next run or a non-complete `done` leaves elapsed time and is shown separately as `post_completion_seconds`. The budget explanation below and [contract §4.9](../contracts/run-record.md#49-run-rules6) define its boundaries.
 
 Existing goals started under `/1` through `/5` keep their previous judgments and are not automatically migrated.
 
@@ -153,13 +153,13 @@ Under `/7`, the "before any baseline" questions, `ha doctor` and the `strict` pl
 - Checks that require no baseline (maintain, `EX-n`, task commands and unmarked change conditions) may count an input failure as a violation, error or inconclusive result; that alone is not a check defect. A failure recorded as a violation remains until the input changes.
 - A dedicated producer of a marked change condition reports none of them as a violation unless the result contract allows it, such as `missing: violation`; record that choice in `REVIEW.md` before the plan round, or before any review round when there is no plan round.
 
-Read the baseline requirement under the goal's rules: all change conditions require it up to `run-rules/6`, and only marked conditions do under `/7`. Runner adapters classify input failures themselves; the classifications and input-failure table of the [result contract](../contracts/check-result.en.md) stay unchanged.
+Read the baseline requirement under the goal's rules: all change conditions require it up to `run-rules/6`, and only marked conditions do under `/7`. Runner adapters classify input failures themselves; the classifications and input-failure table of the [result contract](../contracts/check-result.md) stay unchanged.
 
 The check freeze uses the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`, in gate order among the last recorded gate's non-dry-run rounds. It covers declarations, producers, tests, helpers and settings in the condition table's check paths, from every row that lists any. Right after the freeze round, Seal records the gate and current condition table's check paths with `ha note <goal> review --gate <file>`. Without a gate note ending at that round, removed check paths are unobserved and status and report show `freeze-time condition table was not recorded`.
 
 After changing a check file following the freeze, commit it and record `ha note <goal> check-change checks:<path> --reason "<finding ID, or condition and reason>"`. A review fix names its finding ID. The reason binds to the current blob, so another edit needs a reason for that edit. Give the next candidate round the changed checks and reasons together, and that round reviews the changed checks. No such reason is needed before the freeze; check defects may still be fixed afterward. The freeze display itself does not block completion.
 
-`ha status` shows `baseline_required` on each change condition and a human-readable `baseline required` line. `Checked` in `ha report` separates how many of all change conditions require a baseline from how many of those have fresh baselines. Read `To review` for baseline marks removed since the start, check files changed after the freeze with reasons, and changes without reasons. Removed paths identify the source `review` note seq. `light` goals and goals without a recorded gate have no freeze display. The review summary's `### 보지 않은 것` lists change conditions satisfied without a baseline. [Run record §4.10](../contracts/run-record.en.md#410-run-rules7) defines exact fields and wording.
+`ha status` shows `baseline_required` on each change condition and a human-readable `baseline required` line. `Checked` in `ha report` separates how many of all change conditions require a baseline from how many of those have fresh baselines. Read `To review` for baseline marks removed since the start, check files changed after the freeze with reasons, and changes without reasons. Removed paths identify the source `review` note seq. `light` goals and goals without a recorded gate have no freeze display. The review summary's `### 보지 않은 것` lists change conditions satisfied without a baseline. [Run record §4.10](../contracts/run-record.md#410-run-rules7) defines exact fields and wording.
 
 ## Reading the completion report
 
@@ -201,7 +201,7 @@ When items remain that the agent cannot decide on its own, it asks along with th
 - **`blocked`**: Stopped due to expired authentication, denied permissions, usage limits, or similar issues. Read the clearing conditions recorded by the agent, resolve the cause, and tell the agent to continue.
 - **`budget_exhausted`**: Exceeded the budget for check run count or elapsed time. Review remaining work and which limit was exceeded, then decide whether to allocate more.
 
-`run-rules/4` and later follow the `/3` budget rules below while separately setting pre-approved limits, reported waits, and limits for resumed windows. For those differences, see [Autonomy (run-rules/4)](USAGE.en.md#autonomy-run-rules4) and the [run record contract](../contracts/run-record.en.md#47-run-rules4). `run-rules/6` also excludes time after completion as described below.
+`run-rules/4` and later follow the `/3` budget rules below while separately setting pre-approved limits, reported waits, and limits for resumed windows. For those differences, see [Autonomy (run-rules/4)](USAGE.en.md#autonomy-run-rules4) and the [run record contract](../contracts/run-record.md#47-run-rules4). `run-rules/6` also excludes time after completion as described below.
 
 In `/3`, to use more runs only, change the total run limit of the current window:
 - For example, if usage is 48 runs against a limit of 50 runs, changing the limit to 100 gives 48 used and 52 remaining.
@@ -210,7 +210,7 @@ In `/3`, to use more runs only, change the total run limit of the current window
 - Even a short "okay" ("좋아") is not rejected on form alone if context shows what was agreed to.
 - If the quote source cannot be confirmed, it remains an agent-recorded claim.
 
-Changes are linked to the status window number, budget revision, and current limit. If a change conflicts with another change or resume, it is never overwritten or summed automatically. Re-check current status to decide. If a storage error signals uncertainty of application, verify the record before reapplying. See the product contract for [exact commands and fields](../contracts/run-record.en.md#52-budget).
+Changes are linked to the status window number, budget revision, and current limit. If a change conflicts with another change or resume, it is never overwritten or summed automatically. Re-check current status to decide. If a storage error signals uncertainty of application, verify the record before reapplying. See the product contract for [exact commands and fields](../contracts/run-record.md#52-budget).
 
 This change does not open a new window. It does not reset the time limit, elapsed time, failure or error limits, or blocked state. Changing the time limit is unsupported. Editing PLAN alone does not change in-progress limits. A completed window requires explicit rework or resumption; a new `/3` window inherits the latest run limit and the original time limit. Existing `/1` and `/2` goals open a new window with original limits via `reopen` quoting the user's statement, as before.
 

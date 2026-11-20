@@ -199,7 +199,7 @@ func TestReleaseVersionSkillLinks(t *testing.T) {
 		t.Errorf("%s does not name %s", sealSkillDir, install)
 	}
 	requireAll(t, "../contracts/core-capabilities.md",
-		"Seal에 포함된 [check_core.py](https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/seal/skills/seal/scripts/check_core.py)")
+		"[check_core.py](https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/seal/skills/seal/scripts/check_core.py), included in Seal")
 }
 
 // The install guides' combination table has the current release's row and

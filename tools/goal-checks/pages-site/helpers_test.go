@@ -312,10 +312,13 @@ func docsAt(t *testing.T, dir string) []doc {
 		if !ok || strings.Contains(file, "/") || !strings.HasSuffix(file, ".md") {
 			continue
 		}
-		// X.en.md is English and X.ko.md Korean; X.md is the other language
-		// of its X.ko.md, and Korean otherwise.
+		// Every file under contracts/ is English and named by its file name
+		// without .md. Under guides/, X.en.md is English and X.ko.md Korean;
+		// X.md is the other language of its X.ko.md, and Korean otherwise.
 		lang, stem := "ko", strings.TrimSuffix(file, ".md")
 		switch {
+		case section == "contracts":
+			lang = "en"
 		case strings.HasSuffix(file, ".en.md"):
 			lang, stem = "en", strings.TrimSuffix(file, ".en.md")
 		case strings.HasSuffix(file, ".ko.md"):

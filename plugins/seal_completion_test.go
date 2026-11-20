@@ -24,8 +24,8 @@ func TestSealReportsCompletionWithoutWaiting(t *testing.T) {
 	const path = "../contracts/role-card.md"
 	text := read(t, path)
 	for _, must := range []string{
-		"완료 기록이 남으면 사용자의 확인을 기다리지 않고 완료를 보고한다",
-		"사용자가 재작업을 요청할 때만 다시 작업하고",
+		"Once a completion record exists, report completion without waiting for the user's confirmation",
+		"work again only when the user asks for rework",
 	} {
 		if !strings.Contains(text, must) {
 			t.Errorf("%s lacks %q", path, must)

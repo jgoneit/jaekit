@@ -110,7 +110,7 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 			}
 		})
 	}
-	for path, capabilities := range map[string]string{"../guides/INSTALL.md": "contracts/core-capabilities.md", "../guides/INSTALL.en.md": "contracts/core-capabilities.en.md"} {
+	for path, capabilities := range map[string]string{"../guides/INSTALL.md": "contracts/core-capabilities.md", "../guides/INSTALL.en.md": "contracts/core-capabilities.md"} {
 		compatibilityContains(t, path, read(t, path), "jaekit@v0.1.8", "jaekit#v0.1.8", "ha_0.1.8_${os}_${arch}", capabilities, "ha 0.1.8-dev", "v0.1.2")
 	}
 	compatibilityContains(t, "Korean budget guidance", read(t, "../guides/USAGE.md"), "시간 상한 변경은 지원하지 않습니다", "횟수 총상한", "명시적 재개", "원래 한도")
@@ -126,12 +126,12 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 		}
 		for _, path := range paths {
 			content := read(t, path)
-			for _, stale := range []string{"v0.1.5 이하", "v0.1.5 and earlier", "v0.1.5 파일에 포함됐다고 가정하지", "included in the v0.1.5 files",
-				"v0.1.8 이하", "v0.1.8 and earlier", "v0.1.8 파일에 포함됐다고 가정하지", "included in the v0.1.8 files",
+			for _, stale := range []string{"v0.1.5 이하", "v0.1.5 and earlier", "v0.1.5 or earlier", "v0.1.5 파일에 포함됐다고 가정하지", "included in the v0.1.5 files",
+				"v0.1.8 이하", "v0.1.8 and earlier", "v0.1.8 or earlier", "v0.1.8 파일에 포함됐다고 가정하지", "included in the v0.1.8 files",
 				"현재 배포판 v0.1.6", "current release v0.1.6", "v0.1.7의 Seal 0.1.21", "v0.1.7 includes this format in Seal 0.1.21",
 				"현재 배포판 v0.1.7", "current release v0.1.7", "v0.1.8의 Seal 0.1.22", "v0.1.8 includes this format in Seal 0.1.22",
-				"현재 배포판의 Seal 0.1.12", "current release includes this format in Seal 0.1.12", "새 목표가 쓰는 `/3`",
-				"새 목표는 `run-rules/3`으로 시작합니다", "v0.1.6의 Seal 0.1.16", "v0.1.6 includes this format in Seal 0.1.16",
+				"현재 배포판의 Seal 0.1.12", "current release includes this format in Seal 0.1.12", "새 목표가 쓰는 `/3`", "`/3` that new goals use",
+				"새 목표는 `run-rules/3`으로 시작합니다", "New goals start with `run-rules/3`", "v0.1.6의 Seal 0.1.16", "v0.1.6 includes this format in Seal 0.1.16",
 				"seal 0.1.16을 받습니다", "spec 0.1.12 and seal 0.1.16."} {
 				if strings.Contains(content, stale) {
 					t.Errorf("[requirement] %s keeps stale current-release wording: %q", path, stale)
@@ -181,7 +181,7 @@ func TestCompatibilitySealRun3ReopenLinksRunRules4(t *testing.T) {
 // The status JSON contract says which run limit a /4 window shows.
 func TestCompatibilityRunRecordRunsLimitNamesRunRules4(t *testing.T) {
 	const path = "../contracts/run-record.md"
-	for _, line := range strings.Split(mdSection(t, path, "#### 예산 (`budget`)"), "\n") {
+	for _, line := range strings.Split(mdSection(t, path, "#### Budget (`budget`)"), "\n") {
 		if strings.HasPrefix(line, "| `runs_limit` |") {
 			compatibilityContains(t, path+" runs_limit row", line, "`/4`", "§4.7")
 			return

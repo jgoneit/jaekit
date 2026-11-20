@@ -183,7 +183,7 @@ func walk(t *testing.T, dir string) map[string][]byte {
 
 // representative pages for the browser observations
 var widePages = []string{"ko/", "en/", "ko/docs/", "en/docs/", "en/guides/usage/", "ko/guides/install/",
-	"ko/contracts/run-record/", "ko/contracts/", "en/guides/spar/"}
+	"en/contracts/run-record/", "en/contracts/", "en/guides/spar/"}
 
 // ------------------------------------------------------------- AC-1
 
@@ -279,7 +279,7 @@ func TestPagesSiteAC2_DocumentSet(t *testing.T) {
 		}
 		byKey[key][d.Lang] = d
 	}
-	for _, rel := range []string{"ko/guides/usage/index.html", "en/guides/usage/index.html", "ko/contracts/run-record/index.html"} {
+	for _, rel := range []string{"ko/guides/usage/index.html", "en/guides/usage/index.html", "en/contracts/run-record/index.html"} {
 		page(t, dir, rel, v)
 	}
 	// Each language's start page and navigation list every document; one

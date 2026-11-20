@@ -128,12 +128,12 @@ func TestJSONMatchesContract(t *testing.T) {
 		heading string
 		value   any
 	}{
-		{"#### 상태 문서 (`status/v1`)", rep},
-		{"#### 조건 (`criteria[]`)", Criterion{}},
-		{"#### 시도 (`attempts`)", Attempts{}},
-		{"#### 이유 (`reasons[]`)", Reason{Criterion: "AC-1", Paths: []string{"x"}, Detail: "d"}},
-		{"#### 변화 (`changes`)", Changes{}},
-		{"#### 예산 (`budget`)", Budget{}},
+		{"#### Status document (`status/v1`)", rep},
+		{"#### Conditions (`criteria[]`)", Criterion{}},
+		{"#### Attempts (`attempts`)", Attempts{}},
+		{"#### Reasons (`reasons[]`)", Reason{Criterion: "AC-1", Paths: []string{"x"}, Detail: "d"}},
+		{"#### Changes (`changes`)", Changes{}},
+		{"#### Budget (`budget`)", Budget{}},
 	}
 	for _, c := range cases {
 		doc := documentedFields(t, c.heading)

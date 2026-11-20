@@ -363,7 +363,7 @@ Set-Content -Path "$folder\ha.json" -Value '{"preapproved_runs": 120}'
 ha: auto budget 102 runs (minimum 68 × 1.5, at least 50) exceeds the pre-approved limit 50 from default; the user's approval is needed: write the approved number in PLAN `검증 실행`, or have the user raise preapproved_runs in ~/.config/jaekit/ha.json
 ```
 
-이때 사용자가 그 횟수를 승인하면 PLAN에 숫자로 적거나 `ha.json`의 `preapproved_runs`를 올립니다. 파일 형식이 틀렸거나 읽을 수 없으면 `ha: pre-approved run limit: <경로>: <이유>`로 멈추며 50회로 대신하지 않습니다. 이 상한은 시작할 때만 쓰입니다. 시작 뒤의 증액·재개 규칙은 그대로입니다. 정확한 규칙은 [실행 기록 계약](../contracts/run-record.md#15-자동-예산)에 있습니다.
+이때 사용자가 그 횟수를 승인하면 PLAN에 숫자로 적거나 `ha.json`의 `preapproved_runs`를 올립니다. 파일 형식이 틀렸거나 읽을 수 없으면 `ha: pre-approved run limit: <경로>: <이유>`로 멈추며 50회로 대신하지 않습니다. 이 상한은 시작할 때만 쓰입니다. 시작 뒤의 증액·재개 규칙은 그대로입니다. 정확한 규칙은 [실행 기록 계약](../contracts/run-record.md#15-automatic-budget)에 있습니다.
 
 ## 자율 처리 (run-rules/4)
 

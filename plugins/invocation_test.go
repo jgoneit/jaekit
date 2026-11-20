@@ -43,5 +43,5 @@ func TestSealStartCommandGuide(t *testing.T) {
 // every document that describes J2 tells the same two steps:
 // save the goal documents, then send the start command.
 func TestPublicWorkflowUsesSeparateStart(t *testing.T) {
-	requireAll(t, "../contracts/goal-docs.md", "`Status: Ready`는 실행 권한이 아니다", "목표 문서가 저장된 뒤 사용자가 따로 보내는 구현 요청")
+	requireAll(t, "../contracts/goal-docs.md", "`Status: Ready` is not an authority to execute.", "an implementation request that the user sends separately after the goal documents are saved")
 }

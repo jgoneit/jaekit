@@ -30,30 +30,30 @@ SKILL_DOC = re.compile(r"^plugins/[^/]+/skills/[^/]+/(?:SKILL\.md|references/[^/
 REQUIREMENTS: dict[str, dict[str, list[tuple[str, tuple[str, ...]]]]] = {
     "reporting": {
         "AC-1": [
-            ("contracts/bundle.md", ("기대 결과의 근거", "관측할 경계", "시험 방법과 대체 환경", "조건 그룹")),
+            ("contracts/bundle.md", ("Grounds for the expected result", "Boundary to observe", "Test method and substitute environment", "A group of conditions that shares the same content")),
             (SEAL + "assets/templates/REVIEW.md", ("Expected-result grounds", "Planned observation boundary", "Method and substitutes", "condition groups")),
             (SEAL + "references/bundle.md", ("Expected-result grounds", "Planned observation boundary", "Method and substitutes", "not the authority for correctness")),
         ],
         "AC-2": [
-            ("contracts/bundle.md", ("예정·미수행·실제 수행", "결과에 영향을 주는 환경만", "미관측")),
+            ("contracts/bundle.md", ("planned, not performed and actually performed", "only the environments that affect the result", "the reason, as unobserved")),
             (SEAL + "references/bundle.md", ("planned, not performed, and observed", "only environments that affect the condition", "unobserved")),
         ],
         "AC-3": [
-            ("contracts/bundle.md", ("덮지 않는 실패 종류", "예시를 전체 입력의 정답으로 확대하지", "검사 개수")),
+            ("contracts/bundle.md", ("Failure kinds not covered", "stretch an example into the right answer for all inputs", "the number of checks")),
             (SEAL + "assets/templates/REVIEW.md", ("Failure classes not covered", "general property", "not a sufficiency score")),
         ],
         "AC-4": [
-            ("contracts/bundle.md", ("검토의 예정과 보고의 실제 결과", "조건·검사·환경이 바뀌면", "기록으로 확인한 사실과 실행자의 해석")),
+            ("contracts/bundle.md", ("what the review planned to the actual results in the report", "When a condition, check or environment changes", "facts confirmed by records from the executor's interpretation")),
             (SEAL + "references/bundle.md", ("planned review to observed report", "condition, check, or environment changes", "recorded facts from the executor's interpretation")),
             (SEAL + "assets/templates/PROGRESS.md", ("planned review to observed report", "unobserved", "changed condition, check, or environment")),
         ],
         "AC-5": [
-            ("contracts/bundle.md", ("사건 시각과 작성 시각", "시각 출처", "남은 조건", "새 사실", "가설의 근거", "줄일 불확실성")),
+            ("contracts/bundle.md", ("the event time from the writing time", "time source", "remaining conditions", "new facts", "grounds for a hypothesis", "uncertainty to reduce")),
             (SEAL + "assets/templates/PROGRESS.md", ("event time and writing time", "time source", "remaining conditions", "new facts", "hypothesis evidence", "uncertainty to reduce")),
             (SEAL + "references/bundle.md", ("event time and writing time", "time source", "not every tool call")),
         ],
         "AC-6": [
-            ("contracts/bundle.md", ("확인한 것·확인하지 못한 것·위험한 경계", "배포·설치·실제 모델 실행의 증거를 대신하지", "검사 작성자가 실행자")),
+            ("contracts/bundle.md", ("what was confirmed, what could not be confirmed and the risky boundaries", "does not stand in for evidence of deployment, installation or a real model run", "the executor wrote the checks")),
             (SEAL + "SKILL.md", ("expected-result grounds", "observed boundaries", "methods and substitutes", "does not establish deployment")),
         ],
         "AC-7": [

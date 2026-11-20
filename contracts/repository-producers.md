@@ -1,38 +1,38 @@
-# 저장소 검사 생산자의 관측 의미
+# What repository check producers observe
 
-이 문서는 Jaekit 저장소의 goal·review·gap 검사 생산자를 설명한다. 설치되는 일반 참조 생산자와 Core의 `check-result/v1` 형식은 바뀌지 않는다. 이 도구들은 로컬 검사 자료를 관측하는 개발 도구이며 독립 인증이나 검사 충분성을 보증하지 않는다.
+This document describes the goal, review and gap check producers of the Jaekit repository. The general reference producer that is installed and Core's `check-result/v1` format do not change. These tools are development tools that observe local check material. They do not guarantee independent certification or that checks are sufficient.
 
-## 대상과 결과
+## Targets and results
 
-생산자 버전 2는 한 번 실행한 시험 묶음에서 서로 다른 사실을 별도 선언 대상으로 남긴다. 대상마다 `attempt: 1`이고 시험 사례나 결과 종류를 내부 재시도로 표현하지 않는다.
+Producer version 2 records distinct facts from one run of a test suite as separate declared targets. Each target has `attempt: 1`, and test cases or result kinds are not expressed as internal retries.
 
-| 대상 | 관측하는 사실 |
+| Target | Fact observed |
 | --- | --- |
-| 원래 대상과 `additional_violations` | 실제 assertion 위반 식별자. 남는 슬롯은 추가 위반이 없었음을 나타낸다. 실행·선택 자체가 안 되면 원래 대상도 통과하지 않는다. |
-| `execution` | 실행·환경·수집 오류. assertion 실패가 함께 있어도 각각 남는다. |
-| `selection` | 실행하지 못한 사례. 다른 사례가 성공하거나 실패했어도 skip은 사라지지 않는다. |
-| `attribution` | 실패를 구체적 요구 위반에 연결할 수 있는지. 미분류 assertion은 사실을 남기고 이 대상에 오류를 기록한다. |
+| The original target and `additional_violations` | Actual assertion violation identifiers. Remaining slots show that there were no additional violations. When execution or selection itself does not succeed, the original target does not pass either. |
+| `execution` | Execution, environment and collection errors. Each is kept even when assertion failures are also present. |
+| `selection` | Cases that could not run. A skip does not disappear when other cases passed or failed. |
+| `attribution` | Whether a failure can be linked to a specific requirement violation. An unclassified assertion keeps its fact and records an error on this target. |
 
-설정의 `result_targets`와 선언의 `targets`에 같은 대상 이름을 지정한다. 기본 제공 설정은 assertion 슬롯 8개와 다른 속성 3개를 사용한다. 필요한 슬롯 수는 실행 전에 2~64개로 정한다. 슬롯보다 많은 실패가 관측되면 선언된 슬롯의 실패와 `collection_error`가 남는다. 다른 실행·설정 오류가 이미 `execution`을 차지하면 마지막 assertion 슬롯이 `collection_error`를 보고하므로 그 오류와 관측 누락이 함께 남는다. 전체 사실과 원래 진단은 로컬 출력에 남으며, 넘친 내용을 모두 간결한 보고에 저장했다고 주장하지 않는다. 불완전한 관측은 성공이나 정상 baseline 기대 실패가 아니다.
+Name the same targets in the configuration's `result_targets` and in the declaration's `targets`. The default configuration uses 8 assertion slots and 3 other properties. Set the number of slots needed, from 2 to 64, before the run. When more failures are observed than there are slots, the failures in the declared slots and a `collection_error` are recorded. When another execution or configuration error already occupies `execution`, the last assertion slot reports `collection_error`, so that error and the missing observation are both recorded. The full facts and the original diagnostics remain in the local output, and it does not claim that everything that overflowed was stored in the concise report. An incomplete observation is neither a success nor a normal expected baseline failure.
 
-여러 실패의 관측 식별자는 각각 별도 슬롯에 남는다. 두 슬롯이 같은 식별자를 갖더라도 재시도가 아니다. 선언은 각 슬롯의 예상 위반을 지정할 수 있지만 생산자는 그 값을 실제 위반 식별자로 복사하지 않는다.
+The observed identifiers of several failures are each recorded in a separate slot. Two slots with the same identifier are not a retry. A declaration may name the expected violation for each slot, but the producer never copies that value as an actual violation identifier.
 
-## 실제 assertion의 식별
+## Identifying actual assertions
 
-Python은 실제로 발생해 unittest가 실패로 분류한 예외에서만 식별자를 얻는다. `tools/result_observations.py`의 `RequirementViolation`을 우선 사용한다. 문자열 태그는 시험 코드가 직접 `self.fail("[violation:식별자] 설명")`을 호출한 실제 예외의 명시적 접두부만 지원한다. 표준 unittest 비교 함수 내부에서 호출한 `fail`, 비교값·repr·메시지 뒤쪽의 태그, 직접 발생시킨 일반 `AssertionError`는 식별자 근거가 아니다. 기존 `[requirement]`도 직접 `self.fail`에 전달한 접두부에 한해 고정 관측 식별자 `requirement-not-met`를 뜻한다. 표준 출력에 같은 문자열을 인쇄하거나 성공한 assertion에 메시지를 넣는 것은 위반 근거가 아니다. 예외 메시지 전체에서 태그를 찾던 넓은 문자열 해석은 지원하지 않는다.
+For Python, identifiers come only from exceptions that were actually raised and that unittest classified as failures. `RequirementViolation` in `tools/result_observations.py` is preferred. A string tag is supported only as the explicit prefix of an actual exception from a call that the test code makes directly to `self.fail("[violation:식별자] 설명")`. A `fail` called inside a standard unittest comparison function, a tag in a compared value, a repr or later in a message, and a plain `AssertionError` raised directly are not evidence for an identifier. The existing `[requirement]` also means the fixed observation identifier `requirement-not-met`, but only as a prefix passed directly to `self.fail`. Printing the same string to standard output, or putting a message on a passing assertion, is not evidence of a violation. The broad string reading that searched the whole exception message for a tag is not supported.
 
-이름 없는 assertion은 `unclassified-assertion` 위반과 attribution 오류로 남는다. 선언을 이 이름으로 바꾸더라도 attribution 오류가 사라지지 않아 정상 기대 실패로 승격되지 않는다. 기대실패 장식자·예상 밖 성공은 기존처럼 설정 오류다. 실패한 subtest와 teardown 오류·skip도 별개 사실로 보존한다.
+An assertion without a name is recorded as an `unclassified-assertion` violation and an attribution error. Changing the declaration to this name does not remove the attribution error, so it is not promoted to a normal expected failure. Expected-failure decorators and unexpected successes are configuration errors, as before. Failed subtests, teardown errors and skips are also preserved as separate facts.
 
-Go test JSON은 통과·실패·skip과 컴파일·프로세스 오류를 관측할 수 있지만 출력 문자열만으로 실패한 assertion의 요구 식별자를 확인할 수는 없다. 로그와 assertion이 같은 출력 경로를 사용하므로 태그나 소스 줄을 추측해 이름을 붙이지 않는다. 구체적 근거가 없는 Go 실패는 미분류 실패와 attribution 오류로 남는다. 패키지와 시험 이름을 함께 식별하므로 여러 패키지의 같은 시험 이름이 서로의 결과를 덮어쓰지 않는다. 이전의 일반 Go 실패를 선언 ID로 바꾸던 baseline 수락을 재현한다는 보장은 없다. 통과하는 Go 시험과 기존 런타임 오류 구분은 유지한다. 더 넓은 Go 어댑터는 이 계약에 포함하지 않는다.
+Go test JSON can observe passes, failures and skips, and compile and process errors, but the output text alone cannot establish the requirement identifier of a failed assertion. Logs and assertions use the same output path, so no name is assigned by guessing from a tag or a source line. A Go failure without specific evidence is recorded as an unclassified failure and an attribution error. The package and the test name are identified together, so the same test name in several packages does not overwrite another package's result. There is no guarantee of reproducing the earlier baseline acceptance that turned an ordinary Go failure into a declared ID. The distinction between passing Go tests and existing runtime errors is kept. A broader Go adapter is not part of this contract.
 
-## 명령과 호환
+## Commands and compatibility
 
-명령의 nonzero만으로 요구 위반을 정하지 않는다. 구조화 근거로 사용할 명령은 `jaekit-command-exits/v1`의 `pass`, `violations`, `unverified`를 서로 겹치지 않게 지정한다. `violations`는 종료 코드 문자열과 그 명령이 관측하는 실제 위반 식별자의 관계이며, 예상 위반을 담은 Core 선언과 별개다. 문서화되지 않은 종료, 신호, 실행 불가, 시간 초과는 위반으로 변환하지 않는다. `violations`의 키는 1~255 종료 코드를 앞자리 0 없는 ASCII 십진수로 쓴다(`"1"`, `"255"`). `"01"`, 다른 숫자 체계의 숫자, 공백·부호가 든 키, 같은 JSON 객체의 중복 키는 명령을 실행하기 전에 설정 오류로 거부한다. 저장소가 제공하는 명령 대상은 모두 종료 계약을 갖는다. 공개 문서 검사는 문서 문제에 1, 문서가 없거나 읽을 수 없으면 UNVERIFIED 3, 내부 오류에 70으로 끝나고, 보존·이력 감사는 내부 오류에 70을 쓴다. 따라서 종료 1은 해당 도구가 실제로 찾은 문제만 뜻한다. 감사의 UNVERIFIED 종료 2는 미관측이며 성공이나 의도한 baseline 실패가 아니다.
+A command's nonzero exit alone never decides a requirement violation. A command used as structured evidence sets `pass`, `violations` and `unverified` of `jaekit-command-exits/v1` without overlap. `violations` maps exit code strings to the actual violation identifiers that the command observes, and it is separate from the Core declaration that holds the expected violations. Undocumented exits, signals, failure to run and timeouts are never converted into violations. The keys of `violations` write exit codes 1 to 255 as ASCII decimal without leading zeros (`"1"`, `"255"`). `"01"`, digits from other numeral systems, keys that contain spaces or signs, and duplicate keys in the same JSON object are refused as configuration errors before the command runs. Every command target that the repository provides has an exit contract. The public documentation check ends with 1 for a document problem, UNVERIFIED 3 when a document is missing or unreadable, and 70 for an internal error; the retention and history audits use 70 for an internal error. Exit 1 therefore means only a problem that the tool actually found. The audits' UNVERIFIED exit 2 is unobserved, not a success or an intended baseline failure.
 
-goal 설정은 `jaekit-goal-targets/v2`, 생산자 버전은 `2`를 사용한다. 기존 goal 설정 v1은 구조화 보고가 없는 maintain 실행에 한해서 같은 종료 성공 여부를 확인할 수 있다. v1의 단일 대상 구조화 선언은 실행 전에 지원되지 않음을 알리고 거부한다. review·gap 설정도 명시적 `result_targets`가 필요하다. 현재 추적된 설정·선언·생산자 입력은 함께 갱신하지만 과거 기록은 수정하지 않는다. 새 생산자와 선언의 바이트가 달라졌으므로 과거 근거를 새 코드의 관측으로 재사용하지 않는다.
+The goal configuration uses `jaekit-goal-targets/v2` and producer version `2`. An existing goal configuration v1 can still check the same exit success, but only for maintain runs without a structured report. A v1 single-target structured declaration is refused before the run with a message that it is not supported. The review and gap configurations also need explicit `result_targets`. The currently tracked configurations, declarations and producer inputs are updated together, but past records are never edited. The bytes of the new producer and declarations have changed, so past evidence is not reused as an observation of the new code.
 
-독립 Go 결과 CLI도 같은 관측 대상을 선언하며 생산자 `repository-go-check`, 버전 `2`만 지원한다. 선언의 생산자 입력에는 실제로 읽는 `go-result.py`, `produce.py`, `result_observations.py`와 관련 설정·검사 파일을 모두 포함한다. 보고 파일은 새로 생성하고 기존 파일을 덮어쓰지 않는다. `classify()`는 과거 fixture가 사용하는 v1 디버깅 함수일 뿐 현 CLI의 근거 판정에 쓰이지 않는다. 파일 목록과 선언·보고 연결은 기존 [결과 계약](check-result.md)을 따른다.
+The standalone Go result CLI declares the same observation targets and supports only producer `repository-go-check`, version `2`. The declaration's producer inputs include all of `go-result.py`, `produce.py` and `result_observations.py` that it actually reads, together with the related configuration and check files. The report file is newly created, and an existing file is never overwritten. `classify()` is only a v1 debugging function that past fixtures use; the current CLI does not use it to judge evidence. The file list and the link between declaration and report follow the existing [result contract](check-result.md).
 
-## 확인 범위
+## Verification scope
 
-`tools/producer-checks/test_semantics.py`는 실제 Python·Go·명령 프로세스의 정상·미관측·오류·혼합·실패 귀속을 다룬다. `cmd/ha/producer_semantics_test.go`는 실제 생산자 프로세스의 보고가 Core의 현재·baseline 분류와 저장된 대상 관측까지 이어지는 경계를 다룬다. 이 회귀는 기존 공통 검증과 Go CI 그룹에서 선택된다. 합성 입력과 로컬 프로세스 시험이며 과거 사용 이력 감사, 실제 모델 실행, 원격 CI 실행을 대신하지 않는다.
+`tools/producer-checks/test_semantics.py` covers normal, unobserved, error and mixed results and failure attribution for real Python, Go and command processes. `cmd/ha/producer_semantics_test.go` covers the boundary where a report from a real producer process carries through to Core's current and baseline classification and the stored target observations. These regressions are selected by the existing common verification and the Go CI group. They are tests with synthetic inputs and local processes, and they do not replace an audit of past usage history, a real model run or a remote CI run.

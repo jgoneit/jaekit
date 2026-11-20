@@ -1022,20 +1022,20 @@ func rwDropped(t *testing.T, id, rel string, statements ...string) {
 // the user's words and what it does to the gate.
 func TestSparWaiverAC9_RoundContractStatesTheWaiver(t *testing.T) {
 	rwStates(t, "round-contract-waiver-missing", "contracts/review-round.md",
-		"## 10. 필수 리뷰어를 빼는 결정",
-		"`spar waive <라운드> <리뷰어> --user-quote \"…\"`는 그 라운드 폴더의 `waivers.jsonl`에 `{\"round\", \"reviewer\", \"preset\", \"status\", \"reason\", \"user_quote\", \"recorded_at\"}` 한 줄을 더한다.",
-		"사용자의 말이 없으면 기록하지 않는다.",
-		"결정이 기록된 리뷰어는 그 라운드의 `degraded` 사유가 되지 않고 gate 파일에 따로 보인다. 완료한 필수 리뷰어가 하나도 없는 라운드는 결정이 있어도 `degraded`다",
-		"결정은 그 라운드에만 적용된다.",
+		"## 10. Decision to drop a required reviewer",
+		"`spar waive <라운드> <리뷰어> --user-quote \"…\"` adds one line `{\"round\", \"reviewer\", \"preset\", \"status\", \"reason\", \"user_quote\", \"recorded_at\"}` to `waivers.jsonl` in that round folder.",
+		"Without the user's words, nothing is recorded.",
+		"A reviewer with a recorded decision is not a `degraded` reason for that round and appears separately in the gate file. A round in which no required reviewer completed is `degraded` even with decisions",
+		"A decision applies only to its round.",
 		"| `waivers.jsonl` |")
 }
 
 // AC-9: the gate contract states what a waiver does to the gate.
 func TestSparWaiverAC9_GateContractStatesTheEffect(t *testing.T) {
 	rwStates(t, "gate-contract-waiver-missing", "contracts/review-gate.md",
-		"그 라운드의 `waivers.jsonl`에 사용자의 결정(`spar waive`, [검토 라운드](review-round.md) 10절)이 있는 리뷰어는 이 사유가 되지 않고 그 라운드의 `waived_reviewers`에 보인다.",
-		"결정이 적용된 리뷰어가 있는데 완료한 필수 리뷰어가 하나도 없는 라운드: `<라운드>: no required reviewer completed this round`.",
-		"결정은 사용자의 말을 인용해서만 기록되고, 그 라운드 폴더의 `waivers.jsonl`에서만 읽어 그 라운드에만 적용한다.",
+		"A reviewer that has a user decision (`spar waive`, [Review round](review-round.md) section 10) in that round's `waivers.jsonl` is not this reason and appears in that round's `waived_reviewers`.",
+		"A round with reviewers to which a decision applies but in which no required reviewer completed: `<round>: no required reviewer completed this round`.",
+		"Decisions are recorded only by quoting the user's words, are read only from that round folder's `waivers.jsonl`, and apply only to that round.",
 		"| `rounds[].waived_reviewers` |")
 }
 
