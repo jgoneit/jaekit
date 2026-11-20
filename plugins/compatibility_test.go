@@ -126,12 +126,12 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 		}
 		for _, path := range paths {
 			content := read(t, path)
-			for _, stale := range []string{"v0.1.5 이하", "v0.1.5 and earlier", "v0.1.5 파일에 포함됐다고 가정하지", "included in the v0.1.5 files",
-				"v0.1.8 이하", "v0.1.8 and earlier", "v0.1.8 파일에 포함됐다고 가정하지", "included in the v0.1.8 files",
+			for _, stale := range []string{"v0.1.5 이하", "v0.1.5 and earlier", "v0.1.5 or earlier", "v0.1.5 파일에 포함됐다고 가정하지", "included in the v0.1.5 files",
+				"v0.1.8 이하", "v0.1.8 and earlier", "v0.1.8 or earlier", "v0.1.8 파일에 포함됐다고 가정하지", "included in the v0.1.8 files",
 				"현재 배포판 v0.1.6", "current release v0.1.6", "v0.1.7의 Seal 0.1.21", "v0.1.7 includes this format in Seal 0.1.21",
 				"현재 배포판 v0.1.7", "current release v0.1.7", "v0.1.8의 Seal 0.1.22", "v0.1.8 includes this format in Seal 0.1.22",
-				"현재 배포판의 Seal 0.1.12", "current release includes this format in Seal 0.1.12", "새 목표가 쓰는 `/3`",
-				"새 목표는 `run-rules/3`으로 시작합니다", "v0.1.6의 Seal 0.1.16", "v0.1.6 includes this format in Seal 0.1.16",
+				"현재 배포판의 Seal 0.1.12", "current release includes this format in Seal 0.1.12", "새 목표가 쓰는 `/3`", "`/3` that new goals use",
+				"새 목표는 `run-rules/3`으로 시작합니다", "New goals start with `run-rules/3`", "v0.1.6의 Seal 0.1.16", "v0.1.6 includes this format in Seal 0.1.16",
 				"seal 0.1.16을 받습니다", "spec 0.1.12 and seal 0.1.16."} {
 				if strings.Contains(content, stale) {
 					t.Errorf("[requirement] %s keeps stale current-release wording: %q", path, stale)

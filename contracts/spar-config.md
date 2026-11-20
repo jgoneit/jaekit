@@ -46,7 +46,7 @@ timeout_seconds = 600
 | `argv` | Only for `command`, and required for `command`. An argument array run as is without a shell, in which `{prompt}`, `{workspace}` and `{schema}` are replaced with the paths of the packet file, the workspace and the result schema |
 | `binary` | The executable of `claude`, `codex` or `agy`. Without it, the preset name is looked up on PATH |
 | `model` | The model to request. When written, the agent cannot choose it |
-| `fallback_model` | The model used once in the same round when the designated model is refused for usage or rate limits. An empty string means no fallback model |
+| `fallback_model` | The model used once in the same round when the designated model is rejected for usage or rate limits. An empty string means no fallback model |
 | `effort` | The reasoning effort of `claude` or `codex`. When written, the agent cannot choose it |
 | `allowed_models`, `allowed_efforts` | The lists of models and efforts the agent may choose ("How the model and effort are decided" below) |
 | `timeout_seconds` | A positive integer (G19). The per-reviewer value takes precedence over the top-level value, and the top-level value is the default for every reviewer that file determines. The executable's version check also runs within this time |
@@ -74,7 +74,7 @@ The model of a `claude`, `codex` or `agy` reviewer and the effort of a `claude` 
 2. When it is not written, the value of `--model 이름=모델` (for the effort, `--effort 이름=강도`) that the agent gave `spar run` or `spar config` for this run. These four are all the reviewers for which it is not written: a file entry without that key, a name from the clean-review source, a name from the default list, and a name outside the configuration given with `--reviewers`.
 3. When neither is there, the preset value.
 
-The only fallback model for a reviewer whose model the agent chose is the `fallback_model` the user wrote; when none is written, there is no fallback model. The preset's fallback model is paired with the preset model and is not attached. The conditions for the fallback run (a limit refusal, a model different from the designated one) and its running with the same effort are unchanged. A reviewer the agent did not choose for runs with the written and preset values, as before this change.
+The only fallback model for a reviewer whose model the agent chose is the `fallback_model` the user wrote; when none is written, there is no fallback model. The preset's fallback model is paired with the preset model and is not attached. The conditions for the fallback run (a limit rejection, a model different from the designated one) and its running with the same effort are unchanged. A reviewer the agent did not choose for runs with the written and preset values, as before this change.
 
 The arguments can be given more than once and are split at the first `=`. Without `=`, or with an empty name, it is a usage error (64). The following are refused (65): no reviewer starts, no round folder is created, and the message shows the reviewer name and the value quoted with `%q`. This list is complete.
 
