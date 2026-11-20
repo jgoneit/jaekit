@@ -40,11 +40,12 @@ SECTIONS = {
     "plan": (PLAN, "## 조건표"),
     "review": (REVIEW, "## 검증 방법과 환경"),
     "review-decisions": (REVIEW, "## 중요한 미결정"),
-    "contract": (CONTRACT, "### 2.1.2 검사 입력과 관측"),
+    "contract": (CONTRACT, "### 2.1.2 Check inputs and observation"),
     "contract-review": (CONTRACT, "## 4. `REVIEW.md`"),
 }
 ROW_SOURCES = {"bundle-review": ("검증 방법과 환경", "중요한 미결정"),
-               "contract-review": ("검증 방법과 환경", "중요한 미결정")}
+               "contract-review": ("`검증 방법과 환경` (verification method and environment)",
+                                   "`중요한 미결정` (important open decisions)")}
 
 CLAUSES = {
     "AC-1": [
@@ -104,35 +105,42 @@ CLAUSES = {
                    "the executor applies them and decides whether an existing check needs rewriting")),
         ("bundle", ("add no user confirmation, approval or question",
                     "decides whether an existing check is worth rewriting")),
-        ("contract", ("사용자 확인·승인·질문 단계를 더하지 않는다", "실행자가 규칙을 적용하고 기존 검사를 고칠지 판단한다")),
+        ("contract", ("add no user confirmation, approval or question step",
+                      "The executor applies the rules and judges whether to fix existing checks")),
     ],
     "AC-8": [
         ("skill", ("checks written or changed from Seal 0.1.14 on", "whichever Seal version started the goal",
                    "never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md`")),
         ("bundle", ("checks written or changed from that version on", "whichever Seal version started the goal",
                     "never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md`")),
-        ("contract", ("Seal 0.1.14부터 쓰거나 바꾸는 검사에 적용한다", "어느 Seal 버전으로 시작했는지는 따지지 않는다",
-                      "기존 목표의 검사, 기록, PROGRESS·REVIEW를 다시 쓰거나 변환하라고 요구하지 않는다")),
+        ("contract", ("apply to checks written or changed from Seal 0.1.14 on", "Which Seal version started the goal does not matter",
+                      "never require rewriting or converting an existing goal's checks, records, PROGRESS or REVIEW")),
     ],
     "AC-9": [
         ("contract", (
             # AC-1
-            "`change`, `maintain`, `EX-n`, task 명령", "생산자·설정·보조 파일", "검사하는 트리",
-            "조건이 지정한 외부 입력", "시작·base 커밋", "고정 커밋", "시작 기록이나 Core 출력",
-            "다른 커밋, ref, 객체", "과거 커밋과의 diff", "merge-base", "원격 추적 branch", "`HEAD~n`", "log 범위",
-            "다른 worktree", "전체 clone과 히스토리 없는 clone", "합성 저장소",
+            "`change`, `maintain`, `EX-n`, task commands", "the producer, configuration and helper files",
+            "the tree being checked", "the external inputs the condition names", "start or base commit", "fixed commit",
+            "the start record or Core output", "other commits, refs or objects", "a diff against a past commit",
+            "merge-base", "remote-tracking branch", "`HEAD~n`", "log range", "another worktree",
+            "a full clone and a history-less clone", "synthetic repository",
             # AC-2
-            "`maintain`", "성질(내용, 출력, 형식, 동작)", "그 성질의 관측이 아니다", "`바꿀 수 있는 경로` 밖",
-            "`out_of_scope`", "추적되는 검사 파일에 적은 기대 내용",
+            "`maintain`", "property the goal documents require (content, output, format, behavior)",
+            "not an observation of that property", "outside `바꿀 수 있는 경로`", "`out_of_scope`",
+            "expected content written in a tracked check file",
             # AC-3
-            "baseline 실행으로만 관측", "임시 worktree", "checkout하거나 읽거나 비교해", "base에서는 위반을, 변경 뒤에는 통과",
+            "observed only by Core's baseline run", "temporary worktree", "checking out, reading or comparing",
+            "a violation on the base and a pass after the change",
             # AC-4
-            "태그 종류나 커밋 메시지 형식", "범위와 ref만", "위반도 통과도 아니고", "미관측", "실행 전 검토에 적는다",
+            "a tag's type or a commit message format", "only the range and refs", "neither a violation nor a pass",
+            "an error or unobserved", "Write in the pre-execution review",
             # AC-5
-            "범위나 신뢰 경계", "특정 버전·릴리스 고정, 과거 판정 보존, import 격리, 제한된 입력", "지금의 동작",
-            "명시적 가정", "보고에서 되풀이", "사용자에게 새로 묻지 않는다", "같은 import 경계", "문서 충돌 규칙",
+            "scope or trust boundary",
+            "pinning to a specific version or release, preserving past verdicts, isolating imports and limited inputs",
+            "current behavior", "explicit assumption", "repeat it in the report", "Do not ask the user anew",
+            "same import boundary", "document-conflict rule",
             # AC-6, AC-8
-            "사용자 확인·승인·질문 단계를 더하지 않는다", "Seal 0.1.14")),
+            "add no user confirmation, approval or question step", "Seal 0.1.14")),
     ],
 }
 
@@ -141,8 +149,8 @@ ROWS = [
     ("AC-1", "bundle-review", "검증 방법과 환경", "repository history"),
     ("AC-4", "bundle-review", "검증 방법과 환경", "range it reads"),
     ("AC-5", "bundle-review", "중요한 미결정", "declared scope or trust boundary"),
-    ("AC-9", "contract-review", "검증 방법과 환경", "저장소 히스토리"),
-    ("AC-9", "contract-review", "중요한 미결정", "범위나 신뢰 경계"),
+    ("AC-9", "contract-review", "`검증 방법과 환경` (verification method and environment)", "repository history"),
+    ("AC-9", "contract-review", "`중요한 미결정` (important open decisions)", "scope or trust boundary"),
 ]
 
 # Existing rules this goal keeps (SPEC: 범위와 비목표, 유지).
@@ -150,7 +158,7 @@ KEPT = [
     (SKILL, ("Python 3 is not a prerequisite for Seal", "does not require an official adapter",
              "Existing `/1` and `/2` goals retain their result semantics", "## Assurance policy")),
     (BUNDLE, ("No particular runner or adapter is required", "Any other value is the lint problem `other_bundles_invalid`")),
-    (CONTRACT, ("`/1`·`/2`의 기존 목표는 종전 결과 의미를 유지한다",)),
+    (CONTRACT, ("Existing `/1` and `/2` goals keep their earlier result semantics",)),
 ]
 
 # The existing points that reach the user (SPEC AC-6): document conflicts,

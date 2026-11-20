@@ -32,7 +32,7 @@ def compact(data):
 
 def contract_status_fields():
     text = (ROOT / "contracts/run-record.md").read_text(encoding="utf-8")
-    section = text.split("#### 상태 문서 (`status/v1`)", 1)[1].split("\n\n####", 1)[0]
+    section = text.split("#### Status document (`status/v1`)", 1)[1].split("\n\n####", 1)[0]
     return re.findall(r"^\| `([a-z_]+)` \|", section, re.MULTILINE)
 
 
