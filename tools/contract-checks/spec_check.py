@@ -7,12 +7,12 @@ P = checker.SPEC
 checker.REQUIREMENTS["spec-boundaries"] = {
     "AC-1": [
         (P + "SKILL.md", ("uninterpretable input", "observation unit", "before/after set invariants", "supported environment")),
-        ("contracts/goal-docs.md", ("판정 불가 입력", "관측 단위", "전후 집합 불변식", "지원 환경")),
+        ("contracts/goal-docs.md", ("inputs that cannot be judged", "observation units", "before/after set invariants", "supported environments")),
         (P + "references/goal-docs.md", ("observation unit", "only relevant boundaries")),
     ],
     "AC-2": [
         (P + "SKILL.md", ("Do not ask again when a public contract", "Implementation and verification methods", "unresolved outcome")),
-        ("contracts/goal-docs.md", ("공개 계약이 이미 답하는", "구현·검증 방법", "출처")),
+        ("contracts/goal-docs.md", ("a public contract already answers", "Implementation and verification methods", "linked to its source")),
     ],
     "AC-3": [
         (P + "SKILL.md", ("exhaustive set or representative examples", "observable general property", "outside the supported scope")),
@@ -24,7 +24,7 @@ checker.REQUIREMENTS["spec-boundaries"] = {
     ],
     "AC-4": [
         (P + "SKILL.md", ("newline-containing names", "symlinks", "shallow clones", "concurrent ordering", "do not turn these examples into a checklist")),
-        ("contracts/goal-docs.md", ("줄바꿈 이름", "symlink", "얕은 clone", "동시 실행 순서", "고정 점검표")),
+        ("contracts/goal-docs.md", ("Names with spaces or line breaks", "symlink", "shallow clones", "concurrent execution order", "a fixed checklist")),
     ],
     "AC-7": [
         ("evals/spec-cases/decision-boundaries.md", ("가상 시나리오", "실제 사용자 대화나 실행 기록이 아닙니다", "관측 단위", "판정 불가", "표본", "묻지 않아야 할 것", "## 사용자 답")),
