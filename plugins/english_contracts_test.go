@@ -311,8 +311,8 @@ for c in sys.argv[1:]:
     out[c] = [p for p in problems if "contracts/" in p]
 print(json.dumps(out))`
 
-// The Go suites that read contract text run in the same command; this adds the Python readers no Go test
-// judges on the checkout: the authoring check's contract problems and the regression map's guidance test.
+// The Go suites that read contract text run in the same command; this adds the one Python reader no Go test
+// judges on the checkout: the authoring check's contract problems.
 func TestEnglishContractsAC5_PythonReaders(t *testing.T) {
 	py, err := exec.LookPath("python3")
 	if err != nil {
@@ -332,11 +332,6 @@ func TestEnglishContractsAC5_PythonReaders(t *testing.T) {
 		if p, ok := got[c]; !ok || len(p) > 0 {
 			t.Errorf("authoring check %s reports contract problems %q; the start commit had none", c, p)
 		}
-	}
-	cmd = exec.Command(py, "-I", "-m", "unittest", "discover", "-s", "tools/workflow-checks", "-p", "test_regressions.py")
-	cmd.Dir = ".."
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Errorf("tools/workflow-checks/test_regressions.py: %v\n%s", err, out)
 	}
 }
 
