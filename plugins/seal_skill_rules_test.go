@@ -834,15 +834,12 @@ func sbHeadings(text string, level int, fence sbFencer) []string {
 	return out
 }
 
-// The seven headings of the review summary: all of them, in this order.
+// The four headings of the review summary: all of them, in this order.
 var sbSummaryHeadings = []string{
-	"### 바뀐 동작과 파일",
-	"### 범위 밖이나 기존 것을 바꾼 곳",
+	"### 바뀐 것",
 	"### 근거",
-	"### 누가 정했나",
 	"### 직접 볼 것",
 	"### 보지 않은 것",
-	"### 자세히",
 }
 
 // The opening lines of the review summary, before its first heading.
@@ -855,20 +852,51 @@ var sbSummaryOpening = []string{
 // The endings a review finding can have, all of them.
 var sbEndings = []string{"`고침`", "`반박`", "`중복`", "`사용자의 답`", "`이슈로 보류`", "`자동 보류`", "`처리 없음`"}
 
-// sbNeedSub asks the tokens of the subsection under heading of the PROGRESS
-// template's `## 검수 요약`.
-func sbNeedSub(t *testing.T, heading string, tokens ...string) {
+// sbNoPlace marks a review summary item that has no place under its heading.
+const sbNoPlace = "summary-item-without-place"
+
+// sbMark reports, with the marker of id first, every token the text lacks.
+func sbMark(t *testing.T, id, where, text string, tokens ...string) {
 	t.Helper()
-	summary, ok := sbNeedSection(t, skProgressTmpl, sbSummary)
+	for _, m := range sbMissing(where, text, tokens...) {
+		t.Errorf("jaekit:violation=%s: %s", id, m)
+	}
+}
+
+// sbMarkSkillTokens reports, with the marker of id first, each token that no
+// document of the Seal skill holds as a format token.
+func sbMarkSkillTokens(t *testing.T, id string, tokens ...string) {
+	t.Helper()
+	set := skillTokens(t, sealSkillDir)
+	for _, tok := range tokens {
+		if !set.has(sealSkillDir, tok) {
+			t.Errorf("jaekit:violation=%s: %s lacks the format token %q", id, sealSkillDir, tok)
+		}
+	}
+}
+
+// sbTmplSection is a section of the PROGRESS template; a template without it
+// fails the test as a broken setup.
+func sbTmplSection(t *testing.T, heading string) string {
+	t.Helper()
+	sec, ok := sbSection(read(t, skProgressTmpl), heading)
 	if !ok {
+		t.Fatalf("%s has no section %q", skProgressTmpl, heading)
+	}
+	return sec
+}
+
+// sbNeedSub asks, with the marker of id, the tokens of the subsection under
+// heading of the PROGRESS template's `## 검수 요약`; a missing subsection is
+// reported with the marker.
+func sbNeedSub(t *testing.T, id, heading string, tokens ...string) {
+	t.Helper()
+	sub, ok := sbSection(sbTmplSection(t, sbSummary), heading)
+	if !ok {
+		t.Errorf("jaekit:violation=%s: %s: %s has no %q", id, skProgressTmpl, sbSummary, heading)
 		return
 	}
-	sub, ok := sbSection(summary, heading)
-	if !ok {
-		t.Errorf("%s: %s has no %q", skProgressTmpl, sbSummary, heading)
-		return
-	}
-	sbNeed(t, skProgressTmpl+" "+heading, sub, tokens...)
+	sbMark(t, id, skProgressTmpl+" "+heading, sub, tokens...)
 }
 
 // sbNeedSummary asks the tokens of the PROGRESS template's `## 검수 요약`.
@@ -903,64 +931,63 @@ func TestSealBundleReviewSummaryPlacement(t *testing.T) {
 	requireSkillTokens(t, sealSkillDir, "## 현재", sbSummary, "ha done", "needs_user", "blocked", "budget_exhausted")
 }
 
-// The template's review summary has opening lines and exactly the seven
+// The template's review summary has opening lines and exactly the four
 // headings, in order, with `없음` under one that has nothing to list; the
 // skill's documents name every heading and `없음`.
 func TestSealBundleReviewSummaryStructure(t *testing.T) {
-	if sec, ok := sbNeedSection(t, skProgressTmpl, sbSummary); ok {
-		got := sbHeadings(sec, 3, sbPrefixFence)
-		if strings.Join(got, "\n") != strings.Join(sbSummaryHeadings, "\n") {
-			t.Errorf("%s: the headings of %s are %q, not %q", skProgressTmpl, sbSummary, got, sbSummaryHeadings)
-		}
-		opening := sec
-		if i := strings.Index(sec, "\n"+sbSummaryHeadings[0]); i >= 0 {
-			opening = sec[:i]
-		}
-		sbNeed(t, skProgressTmpl+" "+sbSummary+" before "+sbSummaryHeadings[0], opening, sbSummaryOpening...)
+	const id = "seven-heading-template"
+	sec := sbTmplSection(t, sbSummary)
+	if got := sbHeadings(sec, 3, sbPrefixFence); !slices.Equal(got, sbSummaryHeadings) {
+		t.Errorf("jaekit:violation=%s: %s: the headings of %s are %q, not %q", id, skProgressTmpl, sbSummary, got, sbSummaryHeadings)
 	}
-	sbNeedSummary(t, "write `없음` under a heading with nothing to list")
-	sbNeedSub(t, sbSummaryHeadings[6], "the documents and sections that hold the detail")
-	requireSkillTokens(t, sealSkillDir, append([]string{"없음"}, sbSummaryHeadings...)...)
+	opening := sec
+	if i := strings.Index(sec, "\n"+sbSummaryHeadings[0]); i >= 0 {
+		opening = sec[:i]
+	}
+	sbMark(t, id, skProgressTmpl+" "+sbSummary+" before "+sbSummaryHeadings[0], opening, sbSummaryOpening...)
+	sbMark(t, id, skProgressTmpl+" "+sbSummary, sec, "write `없음` under a heading with nothing to list")
+	sbNeedSub(t, id, sbSummaryHeadings[1], "the documents and sections that hold the detail")
+	sbMarkSkillTokens(t, id, append([]string{"없음"}, sbSummaryHeadings...)...)
 }
 
-// The changed behavior and files table lists every changed file but the
-// goal documents, check files included; the skill's documents keep its
-// heading and columns.
+// What changed: a table lists every changed file but the goal documents,
+// check files included; the skill's documents keep its heading and columns.
 func TestSealBundleReviewSummaryChangedFiles(t *testing.T) {
-	sbNeedSub(t, sbSummaryHeadings[0], "| 바뀐 동작 | 조건 | 파일 |",
+	sbNeedSub(t, sbNoPlace, sbSummaryHeadings[0], "| 바뀐 동작 | 조건 | 파일 |",
 		"Every file changed from the goal's base to the completion commit, goal documents excepted, appears in a row",
 		"this goal's check files have rows too")
-	requireSkillTokens(t, sealSkillDir, sbSummaryHeadings[0], "바뀐 동작 | 조건 | 파일")
+	sbMarkSkillTokens(t, sbNoPlace, sbSummaryHeadings[0], "바뀐 동작 | 조건 | 파일")
 }
 
-// Changes outside the scope, to existing tests and to an earlier goal's
-// checks are listed with the user's words or the reason.
+// Under what changed, changes outside the scope, to existing tests and to an
+// earlier goal's checks are listed with the user's words or the reason.
 func TestSealBundleReviewSummaryScopeChanges(t *testing.T) {
-	sbNeedSub(t, sbSummaryHeadings[1],
+	sbNeedSub(t, sbNoPlace, sbSummaryHeadings[0],
+		"changes outside the scope or to existing things",
 		"files outside the SPEC scope",
 		"changes to existing tests",
 		"changes to checks an earlier goal left",
 		"where the user's words allowing it are, or the reason")
-	requireSkillTokens(t, sealSkillDir, sbSummaryHeadings[1])
+	sbMarkSkillTokens(t, sbNoPlace, sbSummaryHeadings[0])
 }
 
 // The evidence names what each condition's check observed and where it
 // passed, and a round table gives every finding one ending; the skill's
 // documents keep the heading, the columns and every ending.
 func TestSealBundleReviewSummaryEvidence(t *testing.T) {
-	sbNeedSub(t, sbSummaryHeadings[2], append([]string{
+	sbNeedSub(t, sbNoPlace, sbSummaryHeadings[1], append([]string{
 		"| 라운드 | 지적 | 끝 |",
 		"for every condition, what the check that satisfied it observed and the commit where it passed, never by seq alone",
 		"one row for every review round, a round with no findings included",
 		"Every finding of the round ends in exactly one of",
 	}, sbEndings...)...)
-	requireSkillTokens(t, sealSkillDir, append([]string{sbSummaryHeadings[2], "라운드 | 지적 | 끝"}, skUnquote(sbEndings)...)...)
+	sbMarkSkillTokens(t, sbNoPlace, append([]string{sbSummaryHeadings[1], "라운드 | 지적 | 끝"}, skUnquote(sbEndings)...)...)
 }
 
 // What to inspect by hand, highest risk first, holds every deferred and
 // undisposed finding whatever ha report shows.
 func TestSealBundleReviewSummaryToInspect(t *testing.T) {
-	sbNeedSub(t, sbSummaryHeadings[4],
+	sbNeedSub(t, sbNoPlace, sbSummaryHeadings[2],
 		"ordered by risk, the highest at the top, one or two lines each",
 		"every item the `직접 볼 것` line of `ha report` lists",
 		"whatever that line shows",
@@ -969,24 +996,24 @@ func TestSealBundleReviewSummaryToInspect(t *testing.T) {
 		"executor assumptions that read a SPEC sentence",
 		"conditions met by checks that observe fixed text only",
 		"`manual` conditions",
-		"the changes under `### 범위 밖이나 기존 것을 바꾼 곳`")
-	requireSkillTokens(t, sealSkillDir, sbSummaryHeadings[4], "직접 볼 것", "ha report", "manual", sbSummaryHeadings[1])
+		"changes outside the scope or to existing things")
+	sbMarkSkillTokens(t, sbNoPlace, sbSummaryHeadings[2], "직접 볼 것", "ha report", "manual", sbSummaryHeadings[0])
 }
 
-// Decisions in three groups, interpretations marked, and what was not
-// observed.
+// Decisions in three groups, interpretations marked, under the evidence; and
+// what was not observed.
 func TestSealBundleReviewSummaryDecidersAndUnobserved(t *testing.T) {
-	sbNeedSub(t, sbSummaryHeadings[3],
+	sbNeedSub(t, sbNoPlace, sbSummaryHeadings[1],
 		"decided by the user, with where their words are",
 		"proposed by the agent and accepted by the user",
 		"executor assumptions nobody was asked about",
 		"Mark an assumption that reads a SPEC sentence")
-	sbNeedSub(t, sbSummaryHeadings[5],
+	sbNeedSub(t, sbNoPlace, sbSummaryHeadings[3],
 		"Unobserved scope and substitutes",
 		"assurance `local`",
 		"the executor wrote the checks",
 		"not evidence of deployment, installation or a real model call")
-	requireSkillTokens(t, sealSkillDir, sbSummaryHeadings[3], sbSummaryHeadings[5], "local")
+	sbMarkSkillTokens(t, sbNoPlace, sbSummaryHeadings[1], sbSummaryHeadings[3], "local")
 }
 
 // At completion the PROGRESS template's completion report holds the ha
@@ -995,23 +1022,20 @@ func TestSealBundleReviewSummaryDecidersAndUnobserved(t *testing.T) {
 // completion report has a place in the review summary; the skill's
 // documents keep the tokens of both sections and of each place.
 func TestSealBundleCompletionReportPointsToSummary(t *testing.T) {
-	if sec, ok := sbNeedSection(t, skProgressTmpl, "## 완료 보고"); ok {
-		sbNeed(t, skProgressTmpl+" ## 완료 보고", sec,
-			"add only one line pointing to `## 검수 요약`, which holds the judgment",
-			"When work stops, or for a goal started with an earlier Seal, below it, only judgment")
-	}
-	sbNeedSummary(t,
-		"the condition each contributed to under `### 바뀐 동작과 파일`",
-		"assumed open decisions under `### 누가 정했나`",
+	sbMark(t, sbNoPlace, skProgressTmpl+" ## 완료 보고", sbTmplSection(t, "## 완료 보고"),
+		"add only one line pointing to `## 검수 요약`, which holds the judgment",
+		"When work stops, or for a goal started with an earlier Seal, below it, only judgment")
+	sbMark(t, sbNoPlace, skProgressTmpl+" "+sbSummary, sbTmplSection(t, sbSummary),
+		"the condition each contributed to under `### 바뀐 것`",
+		"assumed open decisions",
 		"`manual` conditions under `### 직접 볼 것`",
 		"the expected-result grounds, the actual observation boundary, the test method and the review stages actually taken",
 		"the review each required and the one followed) under `### 근거`",
 		"the unobserved scope and substitute environments under `### 보지 않은 것`",
-		"where the independent review results are under `### 자세히`",
+		"where the independent review results are",
 		"whether the head to be sent or merged is the completion record's commit, with the fact that the completion does not cover a difference unless `ha status` at that head still names that completion record, in the opening lines")
-	requireSkillTokens(t, sealSkillDir, "## Completion report", "## 완료 보고", sbSummary, "manual", "ha status",
-		sbSummaryHeadings[0], sbSummaryHeadings[2], sbSummaryHeadings[3], sbSummaryHeadings[4], sbSummaryHeadings[5],
-		sbSummaryHeadings[6])
+	sbMarkSkillTokens(t, sbNoPlace, append([]string{"## Completion report", "## 완료 보고", sbSummary, "manual", "ha status"},
+		sbSummaryHeadings...)...)
 }
 
 // The PROGRESS template's reading rules keep the summary short.
@@ -1070,7 +1094,7 @@ func TestSealBundleReviewSummaryMinimumLists(t *testing.T) {
 	sbNeedSummary(t,
 		"The two parts of `### 근거` and the items of the opening lines are minimum lists",
 		"the items the judgment-item paragraph assigns join them in the same place")
-	requireSkillTokens(t, sealSkillDir, sbSummaryHeadings[2])
+	requireSkillTokens(t, sealSkillDir, sbSummaryHeadings[1])
 }
 
 // sbRun runs a command in dir with env and returns its combined output. A
@@ -1300,7 +1324,7 @@ func TestSealBundleReviewHeadingsKept(t *testing.T) {
 // items to inspect and its unobserved scope: the skill's documents keep
 // their tokens.
 func TestSealBundlePRDescription(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, sbSummary, sbSummaryHeadings[4], sbSummaryHeadings[5])
+	requireSkillTokens(t, sealSkillDir, sbSummary, sbSummaryHeadings[2], sbSummaryHeadings[3])
 }
 
 func TestSealBundleHelpersHeadingOrder(t *testing.T) {
