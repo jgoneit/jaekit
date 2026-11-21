@@ -252,13 +252,13 @@ func skAbs(t *testing.T, path string) string {
 }
 
 // The start form the skill names checks the skill's declaration under
-// run-rules/7.
+// run-rules/8.
 func TestSealSkillStartForm(t *testing.T) {
 	form := skStartForm(t)
 	if form == "" {
 		t.Fatalf("%s names no `ha start <goal> … --skill …` command", sealSkillDir)
 	}
-	for _, flag := range []string{"--check-skill", "--rules run-rules/7", "--skill <path to this SKILL.md>"} {
+	for _, flag := range []string{"--check-skill", "--rules run-rules/8", "--skill <path to this SKILL.md>"} {
 		if !strings.Contains(form, flag) {
 			t.Errorf("%s: the start form %q lacks %s", sealSkillDir, form, flag)
 		}
@@ -516,7 +516,7 @@ func TestSealSkillCoreRequirements(t *testing.T) {
 			}
 		}
 	}
-	has("rules", decl.Rules, "run-rules/7")
+	has("rules", decl.Rules, "run-rules/8")
 	has("features", decl.Features, "review-gate/v1", "test-authority/v1", "reported-wait/v1", "preapproved-runs/v1", "error-recovery/v1", "command-time-limits/v1",
 		"structured-change-results/v1", "report/v1", "doctor/v1", "auto-budget/v1")
 	has("formats.check_declaration", decl.Formats["check_declaration"], "check-declaration/v1")
@@ -552,7 +552,7 @@ var skDuties = []skDuty{
 	// Seal Core
 	{"ha-install", []string{"brew install jgoneit/tap/jaekit"}},
 	{"capability-compare", []string{"core-requirements.json"}},
-	{"start-rules", []string{"--rules run-rules/7"}},
+	{"start-rules", []string{"--rules run-rules/8"}},
 	{"host-flags", []string{"--host-name", "--host-version", "--model"}},
 	{"baseline", []string{"ha check <goal> --baseline AC-n", "change"}},
 	{"legacy-semantics", []string{"/1", "/2"}},
@@ -646,12 +646,12 @@ func TestSealSkillCheckFreeze(t *testing.T) {
 		"link:references/bundle.md#check-inputs")
 }
 
-// The skill starts under run-rules/7, and its documents keep the rule's
+// The skill starts under run-rules/8, and its documents keep run-rules/7's
 // section, the minimum formula, the baseline mark, the check-change note,
 // the freeze stages and the condition table section; the PLAN and REVIEW
 // templates name the rule and the mark.
 func TestSealSkillRunRules7(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "--rules run-rules/7", "## run-rules/7", "run-rules/6",
+	requireSkillTokens(t, sealSkillDir, "--rules run-rules/8", "## run-rules/7", "run-rules/6",
 		"표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain",
 		"ha note <goal> check-change", "baseline", "요구", "plan", "candidate", "### `## 조건표`")
 	skTemplateLine(t, skPlanTmpl, "## 조건표", "`run-rules/7`", "`baseline` column", "`요구`")

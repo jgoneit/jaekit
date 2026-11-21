@@ -16,7 +16,7 @@ import (
 )
 
 func TestBaselineColumnAndMarkersAcrossRules(t *testing.T) {
-	for _, rules := range []string{"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5", "run-rules/6", "run-rules/7"} {
+	for _, rules := range []string{"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5", "run-rules/6", "run-rules/7", "run-rules/8"} {
 		for _, tc := range []struct {
 			name, kind, mark        string
 			column, marked, invalid bool

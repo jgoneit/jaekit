@@ -1,0 +1,34 @@
+# run-rules/8 has no check freeze: a strict goal's review note keeps no check
+# paths, a check changed after the review shows no freeze item, and the
+# check-change note kind does not exist.
+include rules-v8-strict
+commit "strict goal with synthetic review gates"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/8
+expect-exit 0
+include rules-v7-implement
+ha check $GOAL
+expect-exit 0
+expect-records 4
+ha note $GOAL review --gate .git/gate.json
+expect-exit 0
+expect-records 5
+expect-record 5 check_paths ""
+append checks/feature.sh "# Clarify the exact feature value checked.\n"
+commit "clarify the feature check after the review"
+ha status $GOAL
+expect-no-output "freeze"
+expect-no-output "Freeze"
+expect-no-output "changed: no reason"
+ha status $GOAL --format json
+expect-no-output "check_freeze"
+ha report $GOAL --lang en
+expect-exit 0
+expect-no-output "freeze"
+expect-no-output "Freeze"
+ha report $GOAL --lang ko
+expect-exit 0
+expect-no-output "동결"
+ha note $GOAL check-change checks:checks/feature.sh --reason "clarify the exact feature value checked for AC-2"
+expect-exit 64
+expect-output "unknown note kind"
+expect-records 5

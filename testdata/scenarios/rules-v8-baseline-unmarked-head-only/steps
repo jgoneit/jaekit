@@ -1,0 +1,15 @@
+# run-rules/8: a baseline leaves out the check paths of an unmarked change
+# condition, here one whose check sources a file that exists only at HEAD.
+include rules-v7-goal
+replace $GOAL/PLAN.md "checks/feature.json | T001 | — |" "checks/feature.json, checks/feature-lib.sh | T001 | — |"
+commit "one marked change condition"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/8
+expect-exit 0
+write checks/feature-lib.sh "want=ready\n"
+replace checks/feature.sh "set -eu\n" "set -eu\n. checks/feature-lib.sh\n"
+replace checks/feature.sh "= ready ]" "= \"$want\" ]"
+include rules-v7-implement
+ha check $GOAL --baseline AC-1
+expect-exit 0
+expect-record 2 result fail_as_expected
+expect-record 2 overlay "[{\"path\":\"checks/greeting.json\",\"digest\":\"d582cbfd842d22a03e134a79d602b03beb240fbdcafed167f4b98669b31c7074\"},{\"path\":\"checks/greeting.sh\",\"digest\":\"60ed541a73a57c55d874631955090fe603aee348ca12ad39c96fa2c2d6434351\"}]"

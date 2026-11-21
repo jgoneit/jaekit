@@ -13,12 +13,12 @@ import (
 // goals. The refusal must advertise the new option without creating a record.
 func TestRules6StartRefusesOtherVersions(t *testing.T) {
 	t.Parallel()
-	for _, rules := range []string{"run-rules/1", "run-rules/2", "run-rules/8", ""} {
+	for _, rules := range []string{"run-rules/1", "run-rules/2", "run-rules/9", ""} {
 		t.Run(rules, func(t *testing.T) {
 			t.Parallel()
 			f := rgRepo(t, "")
 			code, out := f.ha("start", rgGoal, "--request", "implement the synthetic goal", "--rules", rules)
-			if code != exitUsage || !strings.Contains(out, "--rules accepts run-rules/3, run-rules/4, run-rules/5, run-rules/6 or run-rules/7") {
+			if code != exitUsage || !strings.Contains(out, "--rules accepts run-rules/3, run-rules/4, run-rules/5, run-rules/6, run-rules/7 or run-rules/8") {
 				t.Fatalf("start --rules %q: exit %d: %s", rules, code, out)
 			}
 			if _, err := os.Stat(filepath.Join(f.dir, rgGoal, "runs.jsonl")); !os.IsNotExist(err) {
