@@ -40,7 +40,7 @@ Every file is plain Markdown. Only the parts `ha lint` must read follow the tabl
 | `ID` | The goal documents' `AC-n`. Do not rewrite the condition text. `ha` reads it from the goal documents. Whether the condition is required also follows the `(선택)` (optional) mark in the goal documents ([goal-docs.md](goal-docs.md) §2.1). Checks the executor adds are `EX-n` and are always optional. |
 | `종류` | `change` (new behavior), `maintain` (existing behavior kept), `manual` (cannot be checked by machine in this environment) |
 | `검증 명령` | The command to run from the repository root, written as one code span. `ha` runs it as argv without a shell, so do not use pipes (`\|`), redirects, `&`, `;`, `$` or backquotes. Words are split on spaces and can be grouped with single or double quotes. When it is complex, point to a script in the repository. For `manual`, write `—` and the reason. |
-| `검사 경로` | Paths of the check files that judge this condition (no globs). Required for `change` conditions. The baseline check overlays only these files on the base; under `run-rules/8` it also overlays those of every marked change condition ([run-record.md](run-record.md) §4.11). |
+| `검사 경로` | Paths of the check files that judge this condition (no globs). Required for `change` conditions. Up to `run-rules/7` the baseline check overlays only these files on the base; under `run-rules/8` it overlays those of every marked change condition instead ([run-record.md](run-record.md) §4.11). |
 | `Task` | The list of task IDs that implement this condition |
 
 The rules are as follows (`ha lint` checks them).

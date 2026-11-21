@@ -87,14 +87,15 @@ func RequiresBaseline(rules string, row *bundle.Row) bool {
 }
 
 // BaselinePaths are the check paths a baseline of row copies from HEAD onto
-// the base commit, which its freshness compares: the row's own, and under
-// run-rules/8 also those of every marked change condition of the current
-// PLAN, sorted without duplicates (run-record.md §4.11).
+// the base commit, which its freshness compares: the row's own up to
+// run-rules/7, and under run-rules/8 those of every marked change condition of
+// the current PLAN, sorted without duplicates, whichever row it records
+// (run-record.md §4.11).
 func BaselinePaths(rules string, b *bundle.Bundle, row *bundle.Row) []string {
 	if version(rules) < 8 {
 		return row.CheckPaths
 	}
-	paths := slices.Clone(row.CheckPaths)
+	var paths []string
 	for i := range b.Rows {
 		if RequiresBaseline(rules, &b.Rows[i]) {
 			paths = append(paths, b.Rows[i].CheckPaths...)
@@ -679,7 +680,16 @@ func (e *evaluator) freshBaseline(l *record.Line) (bool, error) {
 		return false, nil
 	}
 	row := e.in.Bundle.Row(l.Target.Criterion)
-	if row == nil || !samePaths(BaselinePaths(e.rules, e.in.Bundle, row), l.Overlay) {
+	if row == nil {
+		return false, nil
+	}
+	paths := BaselinePaths(e.rules, e.in.Bundle, row)
+	if version(e.rules) >= 8 {
+		// The same sorted list, path by path (run-record.md §4.11).
+		if !slices.EqualFunc(paths, l.Overlay, func(p string, o record.Overlay) bool { return p == o.Path }) {
+			return false, nil
+		}
+	} else if !samePaths(paths, l.Overlay) {
 		return false, nil
 	}
 	for _, o := range l.Overlay {
