@@ -270,11 +270,11 @@ func (l *loader) read(rel string) (string, bool, error) {
 // structured result contract; limitRules also read `## 시간 제한`
 // (run-record.md §4.6). The bundle package does not import the status rules.
 func structuredRules(rules string) bool {
-	return rules == "run-rules/3" || rules == "run-rules/4" || rules == "run-rules/5" || rules == "run-rules/6" || rules == "run-rules/7"
+	return rules == "run-rules/3" || limitRules(rules)
 }
 
 func limitRules(rules string) bool {
-	return rules == "run-rules/4" || rules == "run-rules/5" || rules == "run-rules/6" || rules == "run-rules/7"
+	return rules == "run-rules/4" || rules == "run-rules/5" || rules == "run-rules/6" || rules == "run-rules/7" || rules == "run-rules/8"
 }
 
 // Load reads the bundle of goal g under root. Format problems are collected
@@ -313,7 +313,8 @@ func LoadForRulesIn(env run.Environment, root string, g *goaldocs.Goal, rules st
 		if err := l.readTasks(doc, planPath); err != nil {
 			return nil, err
 		}
-		l.readBudget(doc, planPath)
+		// Under run-rules/8 the elapsed time is optional (run-record.md §4.11).
+		l.readBudget(doc, planPath, rules != "run-rules/8")
 		if limitRules(rules) {
 			l.readLimits(doc, planPath)
 			for i := range l.b.Rows {
@@ -543,7 +544,7 @@ func (l *loader) readTaskDoc(t *Task) error {
 	return nil
 }
 
-func (l *loader) readBudget(doc *markdown.Doc, file string) {
+func (l *loader) readBudget(doc *markdown.Doc, file string, timed bool) {
 	lines, ok := l.section(doc, file, "예산")
 	if !ok {
 		return
@@ -582,7 +583,7 @@ func (l *loader) readBudget(doc *markdown.Doc, file string) {
 	if !haveRuns {
 		l.problem("budget_missing", file, 0, "`## 예산` needs `검증 실행: <positive number>`")
 	}
-	if !haveTime {
+	if !haveTime && timed {
 		l.problem("budget_missing", file, 0, "`## 예산` needs `경과 시간: <duration>` such as 4시간, 90분, or 2h30m")
 	}
 }

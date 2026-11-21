@@ -1,6 +1,6 @@
 {
   "schema": "core-requirements/v1",
-  "rules": ["run-rules/7"],
+  "rules": ["run-rules/8"],
   "formats": {
     "criteria": ["legacy", "nested/1"],
     "check_declaration": ["check-declaration/v1"],

@@ -83,7 +83,7 @@ func budgetError(format string, args ...any) error {
 
 func validateBudgetChange(state *BudgetState, d *record.BudgetChangeData) error {
 	if !Structured(state.Rules) {
-		return budgetError("budget changes require %s, %s, %s or %s; goal uses %s", RulesV3, RulesV4, RulesV5, RulesV6, state.Rules)
+		return budgetError("budget changes require %s, %s, %s, %s, %s or %s; goal uses %s", RulesV3, RulesV4, RulesV5, RulesV6, RulesV7, RulesV8, state.Rules)
 	}
 	if state.Completed {
 		return budgetError("window %d has a completion record; quote a rework request with reopen first", state.WindowStart)
@@ -96,7 +96,7 @@ func validateBudgetChange(state *BudgetState, d *record.BudgetChangeData) error 
 	}
 	if d.PreapprovedRuns != 0 {
 		switch {
-		case !Autonomous(state.Rules):
+		case !Preapproval(state.Rules):
 			return budgetError("a pre-approved run limit requires %s, %s or %s; goal uses %s", RulesV4, RulesV5, RulesV6, state.Rules)
 		case d.Runs != d.PreviousRuns:
 			return budgetError("a pre-approval does not change the run limit")
@@ -178,7 +178,7 @@ func FoldBudget(lines []record.Line) (*BudgetState, error) {
 			if l.Budget != nil {
 				state.RunsLimit, state.ElapsedLimitSeconds = l.Budget.Runs, l.Budget.ElapsedSeconds
 			}
-			if Structured(l.Rules) && (state.RunsLimit <= 0 || state.ElapsedLimitSeconds <= 0) {
+			if Structured(l.Rules) && (state.RunsLimit <= 0 || state.ElapsedLimitSeconds < 0 || state.ElapsedLimitSeconds == 0 && timedBudget(l.Rules)) {
 				return nil, budgetError("record seq %d: invalid start budget", l.Seq)
 			}
 			originalRuns, from = state.RunsLimit, l.At

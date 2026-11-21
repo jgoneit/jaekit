@@ -297,7 +297,7 @@ Goals started under `run-rules/1` through `run-rules/5` keep their existing judg
 
 ## Baseline selection and check freeze (run-rules/7)
 
-Current Seal starts new goals under `run-rules/7`. It stops without a record on a Core that lacks support and does not fall back to earlier rules. A direct `ha start` still defaults to `run-rules/3`; judgments, output and records of goals already started under `/1` through `/6` stay unchanged.
+Current Seal starts new goals under `run-rules/8`, which keeps the baseline selection below but has no check freeze ([run record contract](../contracts/run-record.md#411-run-rules8)). It stops without a record on a Core that lacks support and does not fall back to earlier rules. A direct `ha start` still defaults to `run-rules/3`; judgments, output and records of goals already started under `/1` through `/7` stay unchanged.
 
 Only change conditions with `요구` in the condition table's optional `baseline` column require a baseline. An empty cell, `—`, or no column means none is required. Seal marks only two kinds: a bug fix or regression whose defect is already present at the base commit, and a prohibition such as "X does not happen". A condition that adds a new feature is not marked by default. REVIEW gives the reason for each marked condition before the plan round; an unmarked condition needs no reason. A goal already started keeps the marks it started with. Unmarked change conditions still need check paths and the structured result contract, but can link to tests of new functions without an entry point that also exists at base.
 
