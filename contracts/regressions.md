@@ -16,7 +16,7 @@ Each route has `id`, `invariant`, `sources` and `checks`. `invariant` is one of 
 
 ## Adding a regression
 
-To add a regression, write the test and list it under its route's `checks`. Full verification (`python3 tools/verify.py`) must run the file: a Go test file runs in `go test ./...`, and a Python test file sits in a directory and pattern that a discover step of `tools/verify.py` covers. Full verification fails a discover step that collects no tests, so a renamed or emptied test file cannot pass unnoticed. A property that no route covers gets a new route under its invariant.
+To add a regression, write the test and list it under its route's `checks`. Full verification (`python3 tools/verify.py`) must run the file: a Go test file runs in `go test ./...`, and a Python test file sits in a directory and pattern that a discover step of `tools/verify.py` covers. Full verification fails a discover step that collects no tests: a step that names one file fails when that file is missing or renamed, and a directory step fails when nothing in it matches. A file renamed out of a directory step's pattern while other tests stay is not caught this way. A property that no route covers gets a new route under its invariant.
 
 ## Protection
 
