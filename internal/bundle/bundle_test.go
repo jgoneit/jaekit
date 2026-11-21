@@ -16,7 +16,7 @@ import (
 )
 
 func TestBaselineColumnAndMarkersAcrossRules(t *testing.T) {
-	for _, rules := range []string{"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5", "run-rules/6", "run-rules/7"} {
+	for _, rules := range []string{"run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5", "run-rules/6", "run-rules/7", "run-rules/8"} {
 		for _, tc := range []struct {
 			name, kind, mark        string
 			column, marked, invalid bool
@@ -138,6 +138,30 @@ func TestParseDuration(t *testing.T) {
 		got, _ := ParseDuration(in)
 		if got != want {
 			t.Errorf("ParseDuration(%q) = %v, want %v", in, got, want)
+		}
+	}
+}
+
+// Under run-rules/8 an absent `경과 시간` is no problem; an unreadable one still is.
+func TestRules8ElapsedTimeOptional(t *testing.T) {
+	for line, want := range map[string]bool{"": false, "- 경과 시간: 언젠가\n": true} {
+		root := t.TempDir()
+		write(t, root, "g/SPEC.md", spec)
+		write(t, root, "g/PLAN.md", "## 예산\n- 검증 실행: 50\n"+line)
+		g, err := goaldocs.Load(root, "g")
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := LoadForRules(root, g, "run-rules/8")
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := false
+		for _, p := range b.Problems {
+			got = got || p.Code == "budget_missing"
+		}
+		if got != want {
+			t.Errorf("run-rules/8 with %q: budget_missing = %t; want %t", line, got, want)
 		}
 	}
 }

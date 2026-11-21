@@ -93,7 +93,7 @@ Adding this marker to an existing goal changes the goal document. Therefore, pre
 
 ## What a failure before the change means
 
-Up to `run-rules/6`, a check for every change condition must show the **intended violation** before the change; under `run-rules/7`, this applies to a marked change condition. The mere fact that a command failed does not constitute pre-modification evidence.
+Up to `run-rules/6`, a check for every change condition must show the **intended violation** before the change; under `run-rules/7` and `run-rules/8`, this applies to a marked change condition. The mere fact that a command failed does not constitute pre-modification evidence.
 
 A `change` check must link declared targets and requirement violations through structured results. The following are not accepted as expected failures:
 - Missing dependencies
@@ -139,21 +139,21 @@ Existing goals started under `/1` through `/5` keep their previous judgments and
 
 ## Baseline selection and check freeze (run-rules/7)
 
-Current Seal starts new goals under `run-rules/7`. It stops without a record on a Core that lacks support and does not fall back to earlier rules. A direct `ha start` still defaults to `run-rules/3`; judgments, output and records of goals already started under `/1` through `/6` stay unchanged.
+Current Seal starts new goals under `run-rules/8`, which keeps the baseline selection below but has no check freeze ([run record contract](../contracts/run-record.md#411-run-rules8)). It stops without a record on a Core that lacks support and does not fall back to earlier rules. A direct `ha start` still defaults to `run-rules/3`; judgments, output and records of goals already started under `/1` through `/7` stay unchanged.
 
 Only change conditions with `요구` in the condition table's optional `baseline` column require a baseline. An empty cell, `—`, or no column means none is required. Seal marks only two kinds: a bug fix or regression whose defect is already present at the base commit, and a prohibition such as "X does not happen". A condition that adds a new feature is not marked by default. REVIEW gives the reason for each marked condition before the plan round; an unmarked condition needs no reason. A goal already started keeps the marks it started with. Unmarked change conditions still need check paths and the structured result contract, but can link to tests of new functions without an entry point that also exists at base.
 
-The required minimum is marked required change × 2 + unmarked required change + required maintain (`표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain`). Manual conditions count as 0 runs. One marked change, four unmarked changes and three maintains, all required, need at least 9 runs; the automatic limit is `max(50, ⌈9 × 1.5⌉) = 50`. Before starting, view this with `ha estimate <goal> --rules run-rules/7`. Started goals use their saved rules and refuse a different `--rules`.
+The required minimum is marked required change × 2 + unmarked required change + required maintain (`표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain`). Manual conditions count as 0 runs. One marked change, four unmarked changes and three maintains, all required, need at least 9 runs; the automatic limit is `max(50, ⌈9 × 1.5⌉) = 50`. Before starting, view this with `ha estimate <goal> --rules run-rules/8`. Started goals use their saved rules and refuse a different `--rules`.
 
 With no target, `ha check <goal> --baseline` selects only marked change conditions, including marked optional conditions. With none marked, it refuses without a record. An explicitly named unmarked condition can also run a baseline, and actual runs count toward the budget. Fresh adverse results from that baseline still affect judgment. Seal records a marked condition's baseline once, after the last review round and right before the completion record. If that baseline passes or errs instead of showing the declared violation, Seal fixes the check, has the fixed check reviewed like fixed code, and records the baseline again. This reduces the habit of recording after every check fix; it does not make stale evidence fresh.
 
-Under `/7`, the "before any baseline" questions, `ha doctor` and the `strict` plan round all happen before the goal has any `ha check` record, current check or baseline, even when the goal needs no baseline. Seal gathers foreseeable questions before work; with nothing to ask, it proceeds.
+Under `/7` and `/8`, the "before any baseline" questions, `ha doctor` and the `strict` plan round all happen before the goal has any `ha check` record, current check or baseline, even when the goal needs no baseline. Seal gathers foreseeable questions before work; with nothing to ask, it proceeds.
 
 - An input failure—a missing target file, corrupt input, a tool that cannot start, or termination by a signal—is never a pass.
 - Checks that require no baseline (maintain, `EX-n`, task commands and unmarked change conditions) may count an input failure as a violation, error or inconclusive result; that alone is not a check defect. A failure recorded as a violation remains until the input changes.
 - A dedicated producer of a marked change condition reports none of them as a violation unless the result contract allows it, such as `missing: violation`; record that choice in `REVIEW.md` before the plan round, or before any review round when there is no plan round.
 
-Read the baseline requirement under the goal's rules: all change conditions require it up to `run-rules/6`, and only marked conditions do under `/7`. Runner adapters classify input failures themselves; the classifications and input-failure table of the [result contract](../contracts/check-result.md) stay unchanged.
+Read the baseline requirement under the goal's rules: all change conditions require it up to `run-rules/6`, and only marked conditions do under `/7` and `/8`. Runner adapters classify input failures themselves; the classifications and input-failure table of the [result contract](../contracts/check-result.md) stay unchanged.
 
 The check freeze uses the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`, in gate order among the last recorded gate's non-dry-run rounds. It covers declarations, producers, tests, helpers and settings in the condition table's check paths, from every row that lists any. Right after the freeze round, Seal records the gate and current condition table's check paths with `ha note <goal> review --gate <file>`. Without a gate note ending at that round, removed check paths are unobserved and status and report show `freeze-time condition table was not recorded`.
 
@@ -199,9 +199,9 @@ When items remain that the agent cannot decide on its own, it asks along with th
 ## Blocks and budget
 
 - **`blocked`**: Stopped due to expired authentication, denied permissions, usage limits, or similar issues. Read the clearing conditions recorded by the agent, resolve the cause, and tell the agent to continue.
-- **`budget_exhausted`**: Exceeded the budget for check run count or elapsed time. Review remaining work and which limit was exceeded, then decide whether to allocate more.
+- **`budget_exhausted`**: Exceeded the budget for check run count or, up to `run-rules/7`, elapsed time. Review remaining work and which limit was exceeded, then decide whether to allocate more.
 
-`run-rules/4` and later follow the `/3` budget rules below while separately setting pre-approved limits, reported waits, and limits for resumed windows. For those differences, see [Autonomy (run-rules/4)](USAGE.en.md#autonomy-run-rules4) and the [run record contract](../contracts/run-record.md#47-run-rules4). `run-rules/6` also excludes time after completion as described below.
+`run-rules/4` and later follow the `/3` budget rules below while separately setting reported waits, limits for resumed windows and, up to `run-rules/7`, pre-approved limits. For those differences, see [Autonomy (run-rules/4)](USAGE.en.md#autonomy-run-rules4) and the [run record contract](../contracts/run-record.md#47-run-rules4). `run-rules/6` also excludes time after completion as described below.
 
 In `/3`, to use more runs only, change the total run limit of the current window:
 - For example, if usage is 48 runs against a limit of 50 runs, changing the limit to 100 gives 48 used and 52 remaining.
@@ -218,7 +218,7 @@ The budget window runs from the last start or `reopen` to the timestamp of the l
 
 Under `run-rules/6`, an interval after completion starts at the `at` of a judged `complete` `done` and ends at the earlier of the earliest `started_at` of a check or baseline that started in the same second as that `at` or later and the `at` of a non-complete `done`. A run that started before completion and was recorded afterward does not end the interval. With neither endpoint, it ends at the window's last budget record. Another completion `done` continues the interval; notes and finding lines do not end it. Run intervals stay elapsed, and time overlapping reported waits is subtracted only once. The additional excluded seconds are `budget.post_completion_seconds`, with `elapsed_seconds = span_seconds - reported_wait_seconds - post_completion_seconds`. The human-readable status Budget section and the budget window in `ha cost` JSON show these seconds separately; the remaining limits in `ha report` and `ha cost` use the same elapsed time. Work before the first run after completion is also excluded, so code rework proceeds in a new window opened with `reopen` quoting the user's request. Run counts, limits and refusal to change a completed window's budget stay unchanged.
 
-Reaching the limit means usage equals the limit; exceeding it means usage actually surpassed the limit. A goal with a completion record does not enter `budget_exhausted` as time passes. Under `/2` through `/7`, if all required conditions are satisfied and only budget exhaustion remains, completion can be recorded. This is not authority for additional execution; nor is budget a mechanism that automatically blocks check execution or terminates running checks.
+Reaching the limit means usage equals the limit; exceeding it means usage actually surpassed the limit. A goal with a completion record does not enter `budget_exhausted` as time passes. Under `/2` through `/8`, if all required conditions are satisfied and only budget exhaustion remains, completion can be recorded. This is not authority for additional execution; nor is budget a mechanism that automatically blocks check execution or terminates running checks.
 
 ## Continuing in a new conversation
 

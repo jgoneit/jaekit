@@ -32,7 +32,7 @@ Jaekit holds on to three things and leaves the rest to the agent.
 
 1. **You set the goal.** What finished means, the completion conditions, is written down before the work starts. While implementing, the agent does not edit that document.
 2. **The agent does the work.** Planning, order and tools are the agent's choice. You do not approve each step; it asks only when a decision would change the outcome.
-3. **Completion is judged from records.** A goal is recorded as complete only when each required completion condition has a record of its check. A condition that cannot be checked automatically is met by recording your confirmation. From `run-rules/7`, the rules current Seal starts goals under, only change conditions marked `요구` also need a record of their check failing on the code before the change. Seal marks two kinds: a bug fix or regression whose defect is already present at the base commit, and a prohibition such as "X does not happen". For these, a check that already passes before the change cannot tell whether the fix or the prohibition works. Other checks, such as one for a new feature or one that guards existing behavior, count with a passing record.
+3. **Completion is judged from records.** A goal is recorded as complete only when each required completion condition has a record of its check. A condition that cannot be checked automatically is met by recording your confirmation. From `run-rules/7`, only change conditions marked `요구` also need a record of their check failing on the code before the change. Seal marks two kinds: a bug fix or regression whose defect is already present at the base commit, and a prohibition such as "X does not happen". For these, a check that already passes before the change cannot tell whether the fix or the prohibition works. Other checks, such as one for a new feature or one that guards existing behavior, count with a passing record.
 
 ## What changes when you use it
 
@@ -74,7 +74,7 @@ Follow a **fictional example** of adding a "Forgot password" link to a login scr
 4. **Seal plans.** It writes in `PLAN.md` how each condition is checked. `AC-1` is new behavior; `AC-2` is behavior that must keep working.
 5. **`ha` checks and records.** The agent first runs the `AC-1` check on the code before the change and records it failing, because the link is not there yet. Then it implements and runs it again to record a pass. `AC-2` gets a passing record. Every run is appended to `runs.jsonl`, one line each.
 
-   The example keeps `AC-1`'s failure record before the change to show the record's shape; it follows an earlier rule under which every change condition needed one. Under `run-rules/7`, a condition that adds a new feature, like this link, is usually not marked `요구`, and its passing record alone meets it.
+   The example keeps `AC-1`'s failure record before the change to show the record's shape; it follows an earlier rule under which every change condition needed one. Under `run-rules/7` and `run-rules/8`, a condition that adds a new feature, like this link, is usually not marked `요구`, and its passing record alone meets it.
 
 6. **Spar reviews independently.** This goal's tier is `standard`, so reviewers in another context review the change before completion. The agent fixes the findings that need it, and the finished review is recorded as a gate.
 7. **`ha done` records completion.** When every required condition is met and the other requirements, such as the review record, are in place, a completion record is written and the report is added to `PROGRESS.md`.

@@ -48,7 +48,7 @@ Usage:
   ha lint   <goal>
   ha estimate <goal> [AC-n | EX-n | T001 ...] [--baseline] [--rules <version>] [--format md|json]
   ha start  <goal> --request <quote> [--skill <path to SKILL.md> [--check-skill]]
-                   [--rules run-rules/4|run-rules/5|run-rules/6|run-rules/7] [--test-authority <agent interpretation>]
+                   [--rules run-rules/4|run-rules/5|run-rules/6|run-rules/7|run-rules/8] [--test-authority <agent interpretation>]
                    [--host-name <name>] [--host-version <version>] [--model <model>]
   ha check  <goal> [AC-n | EX-n | T001 ...] [--baseline]
   ha budget <goal> --runs <total> --from <old-total> --window <seq> --revision <seq>
@@ -62,16 +62,16 @@ Usage:
   ha note   <goal> reopen --quote <user words>
   ha note   <goal> input --quote <user words>
   ha note   <goal> test-change tests:<path> --criteria <AC-n,...> --how <how it is checked>
-                   [--moved-to <path> ...] [--weakened]                   (run-rules/4 to /7)
+                   [--moved-to <path> ...] [--weakened]                   (run-rules/4 to /8)
   ha note   <goal> check-change checks:<path> --reason <finding ID, or condition and reason>
                                                                           (run-rules/7)
-  ha note   <goal> wait --reason <decision asked>                         (run-rules/4 to /7)
-  ha note   <goal> resume                                                 (run-rules/4 to /7)
+  ha note   <goal> wait --reason <decision asked>                         (run-rules/4 to /8)
+  ha note   <goal> resume                                                 (run-rules/4 to /8)
   ha note   <goal> recover <AC-n> --input check|baseline --change <changed condition>
-                                                                          (run-rules/4 to /7)
+                                                                          (run-rules/4 to /8)
   ha note   <goal> allow-recovery <AC-n> --input check|baseline --count <n> --quote <user words>
-                                                                          (run-rules/4 to /7)
-  ha note   <goal> review --gate <review-gate/v1 file>                    (run-rules/5 to /7)
+                                                                          (run-rules/4 to /8)
+  ha note   <goal> review --gate <review-gate/v1 file>                    (run-rules/5 to /8)
   ha finding <goal> [--input <JSON file>] [--format json|md]
   ha status <goal> [--format md|json]
   ha done   <goal> [--format md|json]
@@ -400,12 +400,12 @@ func (c *cli) start(in []string) int {
 	if quote == "" {
 		return c.fail(exitUsage, "--request is required: quote the user's request that authorizes this goal")
 	}
-	// run-rules/4 through run-rules/7 are chosen, never the default
+	// run-rules/4 through run-rules/8 are chosen, never the default
 	// (run-record.md §4.6).
 	goalRules := status.Rules
 	if r, ok := a.vals["rules"]; ok && r != status.Rules {
-		if r != status.RulesV4 && r != status.RulesV5 && r != status.RulesV6 && r != status.RulesV7 {
-			return c.fail(exitUsage, "--rules accepts %s, %s, %s, %s or %s", status.RulesV3, status.RulesV4, status.RulesV5, status.RulesV6, status.RulesV7)
+		if !status.Autonomous(r) {
+			return c.fail(exitUsage, "--rules accepts %s, %s, %s, %s, %s or %s", status.RulesV3, status.RulesV4, status.RulesV5, status.RulesV6, status.RulesV7, status.RulesV8)
 		}
 		goalRules = r
 		if w.bundle, err = bundle.LoadForRulesIn(w.env, w.repo.Root, w.goal, goalRules); err != nil {
@@ -416,7 +416,7 @@ func (c *cli) start(in []string) int {
 	interpretation, hasAuthority := a.vals["test-authority"]
 	interpretation = strings.TrimSpace(interpretation)
 	if hasAuthority && (!status.Autonomous(goalRules) || interpretation == "") {
-		return c.fail(exitUsage, "--test-authority needs --rules %s, %s, %s or %s and the executor's reading of the request", status.RulesV4, status.RulesV5, status.RulesV6, status.RulesV7)
+		return c.fail(exitUsage, "--test-authority needs --rules %s, %s, %s, %s or %s and the executor's reading of the request", status.RulesV4, status.RulesV5, status.RulesV6, status.RulesV7, status.RulesV8)
 	}
 	if a.bools["check-skill"] && a.vals["skill"] == "" {
 		return c.fail(exitUsage, "--check-skill needs --skill <path to SKILL.md>")
@@ -611,7 +611,7 @@ func (c *cli) targets(w *workspace, names []string, baseline bool) ([]target, er
 		case baseline && r.Kind != bundle.KindChange:
 			return nil, fmt.Errorf("--baseline applies only to change conditions; %s is %s", n, r.Kind)
 		}
-		out = append(out, target{criterion: n, kind: r.Kind, command: r.Command, argv: r.Argv, checks: r.CheckPaths})
+		out = append(out, target{criterion: n, kind: r.Kind, command: r.Command, argv: r.Argv, checks: status.BaselinePaths(w.goalRules, b, r)})
 	}
 	return out, nil
 }
@@ -928,8 +928,8 @@ func timing(res run.Result, limit time.Duration) *record.Timing {
 }
 
 // runBaseline runs the command in a temporary worktree of the base commit with
-// the condition's check files copied from HEAD. The user's working tree and
-// index are not touched.
+// the target's overlay paths (status.BaselinePaths) copied from HEAD. The
+// user's working tree and index are not touched.
 func (c *cli) runBaseline(w *workspace, base, head string, t target, logPath string, extraEnv ...string) (run.Result, []record.Overlay, error) {
 	parent := filepath.Join(w.repo.GitDir, "ha", "worktrees")
 	if err := os.MkdirAll(parent, 0o755); err != nil {
@@ -1018,10 +1018,10 @@ func (c *cli) note(in []string) int {
 	}
 	kind, quote := a.pos[1], strings.TrimSpace(a.vals["quote"])
 	if rules4Notes[kind] && !status.Autonomous(goalRules) {
-		return c.fail(exitRefused, "%s notes need a goal started with %s, %s, %s or %s; this goal keeps %s", kind, status.RulesV4, status.RulesV5, status.RulesV6, status.RulesV7, goalRules)
+		return c.fail(exitRefused, "%s notes need a goal started with %s, %s, %s, %s or %s; this goal keeps %s", kind, status.RulesV4, status.RulesV5, status.RulesV6, status.RulesV7, status.RulesV8, goalRules)
 	}
 	if kind == "review" && !status.Reviewed(goalRules) {
-		return c.fail(exitRefused, "review notes need a goal started with %s, %s or %s; this goal keeps %s", status.RulesV5, status.RulesV6, status.RulesV7, goalRules)
+		return c.fail(exitRefused, "review notes need a goal started with %s, %s, %s or %s; this goal keeps %s", status.RulesV5, status.RulesV6, status.RulesV7, status.RulesV8, goalRules)
 	}
 	if kind == "check-change" && goalRules != status.RulesV7 {
 		return c.fail(exitUsage, "unknown note kind %q", kind)

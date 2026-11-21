@@ -408,7 +408,7 @@ How to read it:
 
 - The five lines at the top say what changed, what was checked, what you should look at yourself, the limits that remain and the next step. `ha report` computes them from the run record, Git and the goal documents; they are not the agent's own claim.
 - **records** are line numbers (seq) in `runs.jsonl`. For AC-1, seq 2 is the check run on the starting commit, failing as declared, and seq 3 is the same check passing on the result. Seq 5 is the `review` note that recorded the Spar gate, and completion record seq 6 means `ha done` recorded completion.
-- The example keeps AC-1's failure record before the change to show the record's shape; it follows an earlier rule under which every change condition needed one. Under `run-rules/7`, a condition that adds a new feature, like this link, is usually not marked `요구`, and its passing record alone meets it.
+- The example keeps AC-1's failure record before the change to show the record's shape; it follows an earlier rule under which every change condition needed one. Under `run-rules/7` and `run-rules/8`, a condition that adds a new feature, like this link, is usually not marked `요구`, and its passing record alone meets it.
 - The raw output of a run stays in `.git/ha/`. `ha log docs/specs/password-link 3` prints it in Terminal.
 
 > [!IMPORTANT]

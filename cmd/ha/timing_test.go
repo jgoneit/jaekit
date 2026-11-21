@@ -247,7 +247,7 @@ func TestCapabilityConsumerChecksTheOptionalTimingFormat(t *testing.T) {
 			t.Parallel()
 			response := compatibilityMutate(t, func(v map[string]any) {
 				// A start also needs what Seal declares in core-requirements.json.
-				v["supported_rules"] = append(v["supported_rules"].([]any), "run-rules/5", "run-rules/6", "run-rules/7")
+				v["supported_rules"] = append(v["supported_rules"].([]any), "run-rules/5", "run-rules/6", "run-rules/7", "run-rules/8")
 				v["features"] = append(v["features"].([]any), "report/v1", "doctor/v1", "auto-budget/v1", "core-requirements/v1", "review-gate/v1")
 				formats := v["formats"].(map[string]any)
 				formats["core_requirements"] = []string{"core-requirements/v1"}

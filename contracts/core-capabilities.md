@@ -1,6 +1,6 @@
 # Contract: Core capabilities and the Seal compatibility check
 
-This contract applies to Core `0.1.8` and Seal `0.1.23` of v0.1.8. The capability example below is from that release, with the lines of one optional extension removed in later source left out; §10 covers Seal 0.1.26 and `run-rules/6`, and §11 covers current Seal and `run-rules/7`. The capability query was introduced in v0.1.3, and the earlier release `v0.1.2` does not have this command. Even after an update, the capabilities of the actual executable are checked, and compatibility is never judged from version numbers alone. Spec writes documents without a Core installation or this query.
+This contract applies to Core `0.1.8` and Seal `0.1.23` of v0.1.8. The capability example below is from that release, with the lines of one optional extension removed in later source left out; §10 covers Seal 0.1.26 and `run-rules/6`, §11 covers `run-rules/7`, and §12 covers current Seal and `run-rules/8`. The capability query was introduced in v0.1.3, and the earlier release `v0.1.2` does not have this command. Even after an update, the capabilities of the actual executable are checked, and compatibility is never judged from version numbers alone. Spec writes documents without a Core installation or this query.
 
 ## 1. Query without a goal
 
@@ -71,7 +71,7 @@ Every field above is required except `formats.timing`, `formats.assurance_tier`,
 | `preapproved-runs/v1` | `run-rules/4`'s pre-approved limit and increases within it that need only a reason (§6) |
 | `error-recovery/v1` | `run-rules/4`'s `recover` and `allow-recovery`, and the display of recovery counts (§6) |
 | `command-time-limits/v1` | `run-rules/4`'s PLAN `## 시간 제한`, the applied limit in the command digest, and notice before running (§6) |
-| `runner-adapters/v1` | An optional extension that classifies `go test -json` standard output and JUnit XML directly through `check-adapter/v1` declarations of `/3`, `/4` and `/5` change conditions (§7) |
+| `runner-adapters/v1` | An optional extension that classifies `go test -json` standard output and JUnit XML directly through `check-adapter/v1` declarations of `/3` through `/8` change conditions (§7) |
 | `report/v1` | A report for people (`ha report`, [Run record](run-record.md) §1.3) that, without changing records and by the same computation as `ha status`, shows a five-line summary, a stamp, the evidence per condition and the completion coverage |
 | `doctor/v1` | An execution environment check (`ha doctor`, [Run record](run-record.md) §1.4) that runs the check commands of PLAN `## 실행 환경` with a fixed 60-second limit and records nothing |
 | `auto-budget/v1` | Computation of the start limit for PLAN `검증 실행: 자동`, the pre-approved limit in user configuration, refusal of a start above that limit, and its display in `ha estimate` (§8, [Run record](run-record.md) §1.5) |
@@ -194,6 +194,12 @@ Resuming, checking or changing the run limit of an existing goal follows its sto
 
 A Core that supports `run-rules/7` lists it in `supported_rules` alongside `run-rules/1` through `run-rules/6`. It adds no format or feature identifier and retains the formats and features of `/6`. `default_rules` stays `run-rules/3`; a direct start selects the rule with `ha start --rules run-rules/7`. `/7` requires baselines only for change conditions marked in PLAN and changes default baseline selection, the minimum, status and report output, and check freeze display ([Run record](run-record.md) §4.10).
 
-Current Seal requires `["run-rules/7"]` in the `rules` of `core-requirements.json` and starts with `ha start <goal> --rules run-rules/7 … --check-skill`. Missing `/7` or any other required support causes refusal without a record and without falling back to earlier rules. The ha 0.1.8 in the v0.1.8 example above does not support `/7`. Already-started goals keep their stored rules, and adding supported rules does not convert earlier records.
+The ha 0.1.8 in the v0.1.8 example above does not support `/7`. Already-started goals keep their stored rules, and adding supported rules does not convert earlier records.
 
 Resuming, checking or changing the run limit of a `/7` goal also follows its stored rules and the format and feature requirements of `/6`. A Core without `/7` support neither computes nor records that goal and exits 66.
+
+## 12. run-rules/8
+
+A Core that supports `run-rules/8` lists it in `supported_rules` alongside `run-rules/1` through `run-rules/7`. It adds no format or feature identifier and retains the formats and features of `/7`; `preapproved-runs/v1` stays listed for goals under `/4` through `/7`. `default_rules` stays `run-rules/3`; a direct start selects the rule with `ha start --rules run-rules/8`. `/8` changes the baseline overlay, has no check freeze or `ha budget --preapprove`, and makes the elapsed-time limit informational ([Run record](run-record.md) §4.11).
+
+Current Seal requires `["run-rules/8"]` in the `rules` of `core-requirements.json` and starts with `ha start <goal> --rules run-rules/8 … --check-skill`. Missing `/8` or any other required support causes refusal without a record and without falling back to earlier rules. Resuming, checking or changing the run limit of a `/8` goal follows its stored rules and the format and feature requirements of `/7`. A Core without `/8` support neither computes nor records that goal and exits 66.

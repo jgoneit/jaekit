@@ -16,7 +16,7 @@
 <ordered by risk, the highest at the top, one or two lines each: every item the `직접 볼 것` line of `ha report` lists and, whatever that line shows, every deferred finding with its issue; every finding left with no disposition; every executor assumption under `### 근거`, not only executor assumptions that read a SPEC sentence; conditions met by checks that observe fixed text only, whose documents a person must read; `manual` conditions; the changes outside the scope or to existing things listed under `### 바뀐 것`>
 
 ### 보지 않은 것
-<the unobserved scope and substitutes; assurance `local`; the executor wrote the checks; the review summary is not evidence of deployment, installation or a real model call; under `run-rules/7`, the change conditions met without a baseline, whose checks were not observed to distinguish base from head>
+<the unobserved scope and substitutes; assurance `local`; the executor wrote the checks; the review summary is not evidence of deployment, installation or a real model call; under `run-rules/7` and `run-rules/8`, the change conditions met without a baseline, whose checks were not observed to distinguish base from head>
 
 ## Task 상태
 | Task | 상태 | 메모 |

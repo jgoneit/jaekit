@@ -70,7 +70,7 @@ func TestRules7InheritsRules6(t *testing.T) {
 		!Reviewed(RulesV7) || !CompletionIntegrity(RulesV7) || !SelectiveBaseline(RulesV7) {
 		t.Fatal("run-rules/7 must retain every run-rules/6 judgment")
 	}
-	for _, rules := range []string{RulesV1, RulesV2, RulesV3, RulesV4, RulesV5, RulesV6, "run-rules/8", ""} {
+	for _, rules := range []string{RulesV1, RulesV2, RulesV3, RulesV4, RulesV5, RulesV6, "run-rules/9", ""} {
 		if SelectiveBaseline(rules) {
 			t.Errorf("selective baselines enabled under %q", rules)
 		}

@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "SharedHelper",
+      "violation": "overlay-not-union",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestScenarios/rules-v8-baseline-shared-helper"
+      }
+    },
+    {
+      "id": "UnmarkedHeadOnly",
+      "violation": "unmarked-overlaid",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestScenarios/rules-v8-baseline-unmarked-head-only"
+      }
+    }
+  ]
+}

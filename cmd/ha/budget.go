@@ -33,13 +33,13 @@ func (c *cli) budget(in []string) int {
 		return c.fail(exitRules, "%v", &status.UnsupportedRulesError{Rules: start.Rules})
 	}
 	if start := startLine(lines); start != nil && !status.Structured(start.Rules) {
-		return c.fail(exitRules, "budget changes require %s, %s, %s, %s or %s; this goal keeps %s", status.RulesV3, status.RulesV4, status.RulesV5, status.RulesV6, status.RulesV7, start.Rules)
+		return c.fail(exitRules, "budget changes require %s, %s, %s, %s, %s or %s; this goal keeps %s", status.RulesV3, status.RulesV4, status.RulesV5, status.RulesV6, status.RulesV7, status.RulesV8, start.Rules)
 	}
 	if bad != nil {
 		return c.fail(exitRefused, "%v", bad)
 	}
 	_, preapprove := a.vals["preapprove"]
-	if start := startLine(lines); preapprove && start != nil && !status.Autonomous(start.Rules) {
+	if start := startLine(lines); preapprove && start != nil && !status.Preapproval(start.Rules) {
 		return c.fail(exitRefused, "a pre-approved run limit requires %s, %s, %s or %s; this goal keeps %s", status.RulesV4, status.RulesV5, status.RulesV6, status.RulesV7, start.Rules)
 	}
 	names := []string{"runs", "from", "window", "revision"}

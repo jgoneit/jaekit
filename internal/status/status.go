@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -31,48 +32,77 @@ const (
 	RulesV5 = "run-rules/5"
 	RulesV6 = "run-rules/6"
 	RulesV7 = "run-rules/7"
+	RulesV8 = "run-rules/8"
 	Rules   = RulesV3
 )
 
-// Supported reports whether this build computes goals started under rules.
-// It is the only rule-support decision; run-rules/4 through run-rules/7 are chosen
-// with `ha start --rules` and never by default.
-func Supported(rules string) bool {
-	return rules == RulesV1 || rules == RulesV2 || rules == RulesV3 || rules == RulesV4 || rules == RulesV5 || rules == RulesV6 || rules == RulesV7
+// version is n for the supported rules run-rules/n and 0 otherwise. Each
+// version keeps the judgments of the one before it unless a predicate below
+// says otherwise.
+func version(rules string) int {
+	return slices.Index([]string{RulesV1, RulesV2, RulesV3, RulesV4, RulesV5, RulesV6, RulesV7, RulesV8}, rules) + 1
 }
+
+// Supported reports whether this build computes goals started under rules.
+// It is the only rule-support decision; run-rules/4 through run-rules/8 are chosen
+// with `ha start --rules` and never by default.
+func Supported(rules string) bool { return version(rules) > 0 }
 
 // Structured reports whether rules keep the run-rules/3 semantics: structured
 // change results, inconclusive results under the error limit, and budget
-// changes. run-rules/4 through run-rules/7 keep them all.
-func Structured(rules string) bool {
-	return rules == RulesV3 || rules == RulesV4 || rules == RulesV5 || rules == RulesV6 || rules == RulesV7
-}
+// changes.
+func Structured(rules string) bool { return version(rules) >= 3 }
 
 // Autonomous reports whether rules keep the run-rules/4 additions: test-change
-// authority, reported waits, pre-approved limits, error recovery and command
-// time limits. run-rules/5 through run-rules/7 keep them all.
-func Autonomous(rules string) bool {
-	return rules == RulesV4 || rules == RulesV5 || rules == RulesV6 || rules == RulesV7
-}
+// authority, reported waits, error recovery and command time limits, and
+// through run-rules/7 pre-approved limits (Preapproval).
+func Autonomous(rules string) bool { return version(rules) >= 4 }
 
 // Reviewed reports whether rules judge the recorded review gate of a goal
 // whose SPEC asks for independent review (run-record.md §4.8).
-func Reviewed(rules string) bool { return rules == RulesV5 || rules == RulesV6 || rules == RulesV7 }
+func Reviewed(rules string) bool { return version(rules) >= 5 }
 
 // CompletionIntegrity reports whether rules apply the run-rules/6 judgments:
 // review coverage starts at the goal base, only reviewed tiers invalidate a
 // completion on a later review note, unjudged done lines are skipped, and
 // post-completion intervals are excluded from elapsed budget time.
-func CompletionIntegrity(rules string) bool { return rules == RulesV6 || rules == RulesV7 }
+func CompletionIntegrity(rules string) bool { return version(rules) >= 6 }
 
 // SelectiveBaseline reports whether only PLAN-marked change conditions need
 // a baseline. Earlier rules ignore the optional marker column.
-func SelectiveBaseline(rules string) bool { return rules == RulesV7 }
+func SelectiveBaseline(rules string) bool { return version(rules) >= 7 }
+
+// Preapproval reports whether rules accept the user's pre-approved run limit
+// for a window: run-rules/4 through run-rules/7.
+func Preapproval(rules string) bool { return Autonomous(rules) && version(rules) < 8 }
+
+// timedBudget reports whether exceeding the elapsed-time limit exceeds the
+// budget; under run-rules/8 the limit is informational (run-record.md §4.11).
+func timedBudget(rules string) bool { return version(rules) < 8 }
 
 // RequiresBaseline is shared by judgment, default selection and run estimates.
 // It reads the current PLAN mark, not the marks copied into the start record.
 func RequiresBaseline(rules string, row *bundle.Row) bool {
 	return row != nil && row.Kind == bundle.KindChange && (!SelectiveBaseline(rules) || row.BaselineRequired)
+}
+
+// BaselinePaths are the check paths a baseline of row copies from HEAD onto
+// the base commit, which its freshness compares: the row's own up to
+// run-rules/7, and under run-rules/8 those of every marked change condition of
+// the current PLAN, sorted without duplicates, whichever row it records
+// (run-record.md §4.11).
+func BaselinePaths(rules string, b *bundle.Bundle, row *bundle.Row) []string {
+	if version(rules) < 8 {
+		return row.CheckPaths
+	}
+	var paths []string
+	for i := range b.Rows {
+		if RequiresBaseline(rules, &b.Rows[i]) {
+			paths = append(paths, b.Rows[i].CheckPaths...)
+		}
+	}
+	slices.Sort(paths)
+	return slices.Compact(paths)
 }
 
 // Excludes returns the paths left out of the code state of goal g under
@@ -177,7 +207,7 @@ var classOf = map[string]string{
 type UnsupportedRulesError struct{ Rules string }
 
 func (e *UnsupportedRulesError) Error() string {
-	return fmt.Sprintf("goal was started with rules %q; this ha computes only %q, %q, %q, %q, %q, %q and %q", e.Rules, RulesV1, RulesV2, RulesV3, RulesV4, RulesV5, RulesV6, RulesV7)
+	return fmt.Sprintf("goal was started with rules %q; this ha computes only %q, %q, %q, %q, %q, %q, %q and %q", e.Rules, RulesV1, RulesV2, RulesV3, RulesV4, RulesV5, RulesV6, RulesV7, RulesV8)
 }
 
 // Input is everything the computation reads.
@@ -650,7 +680,16 @@ func (e *evaluator) freshBaseline(l *record.Line) (bool, error) {
 		return false, nil
 	}
 	row := e.in.Bundle.Row(l.Target.Criterion)
-	if row == nil || !samePaths(row.CheckPaths, l.Overlay) {
+	if row == nil {
+		return false, nil
+	}
+	paths := BaselinePaths(e.rules, e.in.Bundle, row)
+	if version(e.rules) >= 8 {
+		// The same sorted list, path by path (run-record.md §4.11).
+		if !slices.EqualFunc(paths, l.Overlay, func(p string, o record.Overlay) bool { return p == o.Path }) {
+			return false, nil
+		}
+	} else if !samePaths(paths, l.Overlay) {
 		return false, nil
 	}
 	for _, o := range l.Overlay {
@@ -1118,6 +1157,9 @@ func (e *evaluator) budget() (*Budget, error) {
 			bud.PostCompletionSeconds = &post
 		}
 		finishBudget(bud)
+		if !timedBudget(e.rules) {
+			bud.Exceeded = bud.RunsLimit > 0 && bud.Runs > bud.RunsLimit
+		}
 		return bud, nil
 	}
 	lines := record.ExecutionLines(e.in.Lines)

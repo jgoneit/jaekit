@@ -1,0 +1,21 @@
+# run-rules/8 keeps run-rules/7's automatic budget: the estimate counts only
+# marked changes as default baselines, and a start without a written run
+# count takes the automatic limit only under the user's pre-approved limit.
+include rules-v7-goal
+commit "automatic run count"
+ha estimate $GOAL --rules run-rules/8 --baseline --format json
+expect-exit 0
+expect-output "\"minimum_runs\": 4"
+expect-output "\"default_baseline_runs\": 1"
+expect-output "\"AC-1\""
+expect-no-output "\"AC-2\""
+user-config "{\"preapproved_runs\": 49}"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/8
+expect-exit 65
+expect-output "auto budget 50 runs (minimum 4 × 1.5, at least 50) exceeds the pre-approved limit 49 from "
+expect-records 0
+user-config "{\"preapproved_runs\": 60}"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/8
+expect-exit 0
+expect-output "minimum required: 4 runs; auto limit: 50 (minimum × 1.5, at least 50); pre-approved limit: 60 from "
+expect-record 1 budget "{\"runs\":50,\"elapsed_seconds\":14400,\"cost\":\"미관측\",\"auto\":{\"minimum_runs\":4,\"computed_runs\":50,\"preapproved_runs\":60,\"source\":\"user_config\"}}"

@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -68,6 +69,37 @@ const rgRecordCommand = "`ha note <goal> review --gate <file>`"
 // The run-rules/4 features Seal keeps requiring under run-rules/5.
 var rgRules4Features = []string{"test-authority/v1", "reported-wait/v1", "preapproved-runs/v1", "error-recovery/v1", "command-time-limits/v1"}
 
+// AC-13 (run-rules-8): this Core lists run-rules/8 and starts a goal under it.
+// Only a missing listing or a refusal of the rule is the violation.
+func TestHaReviewGateAC13_CoreSupportsTheNewRules(t *testing.T) {
+	t.Parallel()
+	const v = "rules-v8-unsupported"
+	var out, errb bytes.Buffer
+	if code := runMain([]string{"capabilities", "--format", "json"}, &out, &errb); code != exitOK {
+		t.Fatalf("setup: capabilities exit %d: %s", code, errb.String())
+	}
+	var caps struct {
+		Rules []string `json:"supported_rules"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &caps); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	if !slices.Contains(caps.Rules, "run-rules/8") {
+		t.Errorf("jaekit:violation=%s ha capabilities lists supported_rules %v without run-rules/8", v, caps.Rules)
+	}
+	f := rgRepo(t, "")
+	code, msg := f.ha("start", rgGoal, "--request", "implement the synthetic goal", "--rules", "run-rules/8")
+	switch {
+	case code == exitUsage && strings.Contains(msg, "--rules"):
+		t.Fatalf("jaekit:violation=%s ha start --rules run-rules/8: exit %d: %s", v, code, strings.TrimSpace(msg))
+	case code != exitOK:
+		t.Fatalf("setup: ha start exit %d: %s", code, strings.TrimSpace(msg))
+	}
+	if r := ciLines(f)[0].m["rules"]; r != "run-rules/8" {
+		t.Errorf("jaekit:violation=%s ha start --rules run-rules/8 records rules %v", v, r)
+	}
+}
+
 // AC-13: Seal declares run-rules/5 and the gate support, starts with them
 // and records the gate before `ha done`; this Core accepts that start.
 func TestHaReviewGateAC13_SealStartsUnderTheNewRules(t *testing.T) {
@@ -82,13 +114,13 @@ func TestHaReviewGateAC13_SealStartsUnderTheNewRules(t *testing.T) {
 		t.Fatalf("setup: %v", err)
 	}
 	features := strings.Join(decl.Features, " ") + " "
-	if len(decl.Rules) != 1 || decl.Rules[0] != "run-rules/7" || len(rgMissing(strings.Join(decl.Formats["review_gate"], " "), "review-gate/v1")) > 0 ||
+	if len(decl.Rules) != 1 || decl.Rules[0] != "run-rules/8" || len(rgMissing(strings.Join(decl.Formats["review_gate"], " "), "review-gate/v1")) > 0 ||
 		len(rgMissing(features, append([]string{"review-gate/v1 "}, rgRules4Features...)...)) > 0 {
-		t.Errorf("jaekit:violation=%s Seal's Core requirements are rules %v, review_gate formats %v, features %v; want run-rules/7 with review-gate/v1 and the run-rules/4 features",
+		t.Errorf("jaekit:violation=%s Seal's Core requirements are rules %v, review_gate formats %v, features %v; want run-rules/8 with review-gate/v1 and the run-rules/4 features",
 			v, decl.Rules, decl.Formats["review_gate"], decl.Features)
 	}
 	skill := rgTreeFile(t, "plugins/seal/skills/seal/SKILL.md")
-	if missing := rgMissing(skill, "`ha start <goal> --rules run-rules/7 --request", "--check-skill`", rgRecordCommand); len(missing) > 0 {
+	if missing := rgMissing(skill, "`ha start <goal> --rules run-rules/8 --request", "--check-skill`", rgRecordCommand); len(missing) > 0 {
 		t.Errorf("jaekit:violation=%s the Seal skill lacks %v", v, missing)
 	}
 	review := rgSection(skill, "## Independent review")
@@ -179,9 +211,12 @@ func TestHaReviewGateAC13_SealCheckerNeedsTheNewRules(t *testing.T) {
 		}
 		return path
 	}
-	decide := func(path string) (int, map[string]any) {
+	decide := func(path string, args ...string) (int, map[string]any) {
 		t.Helper()
-		cmd := exec.Command(python, helper, "--ha", path, "--operation", "start")
+		if len(args) == 0 {
+			args = []string{"--operation", "start"}
+		}
+		cmd := exec.Command(python, append([]string{helper, "--ha", path}, args...)...)
 		cmd.Env = append(os.Environ(), "PYTHONDONTWRITEBYTECODE=1")
 		cmd.Dir = t.TempDir()
 		data, err := cmd.Output()
@@ -198,14 +233,14 @@ func TestHaReviewGateAC13_SealCheckerNeedsTheNewRules(t *testing.T) {
 		// Only a decision about the capabilities is observed; a fake Core
 		// that cannot start, times out or answers badly is a broken setup.
 		switch report["reason"] {
-		case "compatible", "missing_support", "unsupported_default_rule":
+		case "compatible", "missing_support", "unsupported_default_rule", "unsupported_stored_rule":
 		default:
 			t.Fatalf("setup: check_core.py exit %d decided %v, not about the capabilities: %s", code, report["reason"], data)
 		}
 		return code, report
 	}
-	if code, report := decide(core(func(map[string]any) {})); code != 0 || report["rules"] != "run-rules/7" {
-		t.Errorf("jaekit:violation=%s on this Core the helper decides exit %d, rules %v; want a run-rules/7 start", v, code, report["rules"])
+	if code, report := decide(core(func(map[string]any) {})); code != 0 || report["rules"] != "run-rules/8" {
+		t.Errorf("jaekit:violation=%s on this Core the helper decides exit %d, rules %v; want a run-rules/8 start", v, code, report["rules"])
 	}
 	without := func(list []any, value string) []any {
 		var out []any
@@ -220,8 +255,8 @@ func TestHaReviewGateAC13_SealCheckerNeedsTheNewRules(t *testing.T) {
 		label  string
 		change func(map[string]any)
 	}{
-		{"a Core without run-rules/7", func(m map[string]any) {
-			m["supported_rules"] = without(m["supported_rules"].([]any), "run-rules/7")
+		{"a Core without run-rules/8", func(m map[string]any) {
+			m["supported_rules"] = without(m["supported_rules"].([]any), "run-rules/8")
 		}},
 		{"a Core without the review-gate/v1 feature", func(m map[string]any) {
 			m["features"] = without(m["features"].([]any), "review-gate/v1")
@@ -233,6 +268,42 @@ func TestHaReviewGateAC13_SealCheckerNeedsTheNewRules(t *testing.T) {
 		if code, report := decide(core(form.change)); code != 2 || report["reason"] != "missing_support" {
 			t.Errorf("jaekit:violation=%s %s: the helper decides exit %d, reason %v; want a refusal for missing support", v, form.label, code, report["reason"])
 		}
+	}
+	// A stored run-rules/8 goal resumes, checks and changes its budget on this
+	// Core, needs the review gate feature for it as /5 to /7 goals do, and is
+	// refused by a Core that does not list run-rules/8.
+	goal := t.TempDir()
+	compatibilityWrite(t, filepath.Join(goal, "SPEC.md"), "# Synthetic goal\nStatus: Ready\n", 0o644)
+	compatibilityWrite(t, filepath.Join(goal, "runs.jsonl"), `{"schema":"run/v1","kind":"start","rules":"run-rules/8"}`+"\n", 0o644)
+	this := core(func(map[string]any) {})
+	noGate := core(func(m map[string]any) { m["features"] = without(m["features"].([]any), "review-gate/v1") })
+	noRules8 := core(func(m map[string]any) { m["supported_rules"] = without(m["supported_rules"].([]any), "run-rules/8") })
+	for _, operation := range []string{"resume", "check", "budget"} {
+		if code, report := decide(noRules8, "--operation", operation, "--goal", goal); code != 2 || report["reason"] != "unsupported_stored_rule" {
+			t.Errorf("jaekit:violation=%s %s of a stored run-rules/8 goal on a Core without run-rules/8: the helper decides exit %d, reason %v; want unsupported_stored_rule",
+				v, operation, code, report["reason"])
+		}
+		if code, report := decide(this, "--operation", operation, "--goal", goal); code != 0 || report["rules"] != "run-rules/8" {
+			t.Errorf("jaekit:violation=%s %s of a stored run-rules/8 goal on this Core: the helper decides exit %d, reason %v; want compatible", v, operation, code, report["reason"])
+		}
+		code, report := decide(noGate, "--operation", operation, "--goal", goal)
+		if missing, _ := report["missing"].([]any); code != 2 || report["reason"] != "missing_support" || !slices.Contains(missing, any("features:review-gate/v1")) {
+			t.Errorf("jaekit:violation=%s %s of a stored run-rules/8 goal without review-gate/v1: the helper decides exit %d, reason %v, missing %v; want a refusal naming the feature",
+				v, operation, code, report["reason"], missing)
+		}
+	}
+}
+
+// AC-1 (run-rules-8): the Core capability contract has a run-rules/8 section
+// stating where the rule is listed.
+func TestHaReviewGateAC13_CapabilitiesContractStatesRunRules8(t *testing.T) {
+	t.Parallel()
+	const v = "capabilities-contract-v8-missing"
+	const heading = "## 12. run-rules/8"
+	section := rgSection(rgTreeFile(t, "contracts/core-capabilities.md"), heading)
+	const statement = "A Core that supports `run-rules/8` lists it in `supported_rules` alongside `run-rules/1` through `run-rules/7`."
+	if first, _, _ := strings.Cut(section, "\n"); first != heading || !strings.Contains(section, statement) {
+		t.Errorf("jaekit:violation=%s section %q is missing or lacks %q", v, heading, statement)
 	}
 }
 
@@ -258,6 +329,61 @@ func TestHaReviewGateAC14_RunRecordContractStatesTheGate(t *testing.T) {
 	}
 	if missing := rgMissing(rgSection(text, "### 2.4 `note`"), "`review`"); len(missing) > 0 {
 		t.Errorf("jaekit:violation=%s the note fields do not name the review note", v)
+	}
+}
+
+// AC-8 (run-rules-8): the run record contract adds a run-rules/8 column and
+// section stating what the rule changes.
+func TestHaReviewGateAC14_RunRecordStatesRunRules8(t *testing.T) {
+	t.Parallel()
+	const v = "run-record-v8-missing"
+	text := rgTreeFile(t, "contracts/run-record.md")
+	versions := rgSection(text, "### 4.6 Rules versions")
+	if missing := rgMissing(versions, "| `run-rules/7` | `run-rules/8` |",
+		"A new rules version is added only when a decision changes; a Seal release that only changes guidance adds no rules version."); versions == "" || len(missing) > 0 {
+		t.Errorf("jaekit:violation=%s section 4.6 Rules versions is missing or lacks %q", v, missing)
+	}
+	// Every row of its table has the label and /1 to /8; the rows run-rules/8
+	// changes or adds end in its cell.
+	last := map[string]string{}
+	var uneven []string
+	for _, line := range strings.Split(versions, "\n") {
+		line = strings.ReplaceAll(strings.TrimSpace(line), `\|`, "")
+		if !strings.HasPrefix(line, "|") {
+			continue
+		}
+		cells := strings.Split(strings.TrimSuffix(strings.TrimPrefix(line, "|"), "|"), "|")
+		if len(cells) != 9 {
+			uneven = append(uneven, strings.TrimSpace(cells[0]))
+		}
+		last[strings.TrimSpace(cells[0])] = strings.TrimSpace(cells[len(cells)-1])
+	}
+	if len(uneven) > 0 {
+		t.Errorf("jaekit:violation=%s %d rows of the rules table do not have 9 cells (the label and run-rules/1 to /8), the first %q", v, len(uneven), uneven[0])
+	}
+	for _, row := range [][2]string{
+		{"Elapsed time", "Informational only (§4.11)"},
+		{"Check freeze display", "None (§4.11)"},
+		{"Changing the run limit of the current window", "Same as `/3` (§4.11)"},
+		{"Baseline overlay", "Check paths of every marked change condition (§4.11)"},
+	} {
+		if got, ok := last[row[0]]; !ok || got != row[1] {
+			t.Errorf("jaekit:violation=%s the rules table row %q is missing or ends in %q; want %q", v, row[0], got, row[1])
+		}
+	}
+	const heading = "### 4.11 run-rules/8"
+	rules8 := rgSection(text, heading)
+	if first, _, _ := strings.Cut(rules8, "\n"); first != heading {
+		rules8 = ""
+	}
+	if missing := rgMissing(rules8,
+		"A goal started with `ha start --rules run-rules/8` retains the rules of `run-rules/7` except for the baseline overlay, the check freeze, the elapsed-time limit and `ha budget --preapprove` below.",
+		"A baseline copies the check paths of every marked change condition from HEAD onto the base commit, whichever condition it records.",
+		"A baseline is fresh only when its overlay paths equal the union of the check paths of the currently marked change conditions and each digest equals the HEAD blob; the other freshness conditions are those of `run-rules/7`.",
+		"There is no check freeze: `ha status` and `ha report` show no freeze items, `ha note review` records no check paths, and `ha note <goal> check-change` exits with 64 without a record.",
+		"The PLAN's `경과 시간` is optional and informational: exceeding it never makes `budget_exceeded` or `budget_exhausted`.",
+		"`ha budget --preapprove` exits with 65 without a record; `ha budget --runs` changes the run limit as under `run-rules/7`."); rules8 == "" || len(missing) > 0 {
+		t.Errorf("jaekit:violation=%s section %q is missing or lacks %q", v, heading, missing)
 	}
 }
 

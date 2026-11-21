@@ -142,7 +142,8 @@ func applyBaseline(root *os.Root, files []baselineFile) ([]record.Overlay, error
 			return nil, err
 		}
 	}
-	var overlay []record.Overlay
+	// An empty overlay (run-rules/8 with nothing marked) is recorded as [].
+	overlay := []record.Overlay{}
 	for _, file := range files {
 		if err := applyBaselineFile(root, file); err != nil {
 			return nil, err
