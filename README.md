@@ -7,7 +7,7 @@
   <a href="guides/INSTALL.en.md"><img src="https://img.shields.io/badge/macOS%20%C2%B7%20Linux-arm64%20%C2%B7%20amd64-596579" alt="macOS and Linux, arm64 and amd64" /></a>
   <a href="guides/INSTALL.en.md#basic-install"><img src="https://img.shields.io/badge/agents-Claude%20Code%20%C2%B7%20Codex-8A63D2" alt="Claude Code and Codex" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-168975" alt="MIT license" /></a>
-  <a href="https://deepwiki.com/jgoneit/jaekit"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki" /></a>
+  <a href="https://deepwiki.com/jgoneit/jaekit"><img src="https://img.shields.io/badge/ask-DeepWiki-D97706" alt="Ask DeepWiki" /></a>
 </p>
 
 <p align="center"><strong>English</strong> · <a href="README.ko.md">한국어</a><br /><a href="#install">Install</a> · <a href="#your-first-task">First task</a> · <a href="#update">Update</a> · <a href="#what-you-get">What you get</a> · <a href="guides/USAGE.en.md">Usage guide</a> · <a href="https://jgoneit.github.io/jaekit/">Docs site</a></p>
