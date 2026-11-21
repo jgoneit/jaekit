@@ -34,20 +34,24 @@ var (
 // rsfPlaces are the information tokens each heading's item holds.
 var rsfPlaces = map[string][]string{
 	"### 바뀐 것": {"바뀐 동작 | 조건 | 파일", "Every file changed from the goal's base to the completion commit",
-		"this goal's check files have rows too", "changes outside the scope or to existing things",
-		"files outside the SPEC scope", "changes to existing tests", "changes to checks an earlier goal left"},
-	"### 근거": {"what the check that satisfied it observed", "the commit where it passed", "never by seq alone",
-		"라운드 | 지적 | 끝", "a round with no findings included", "Every finding of the round ends in exactly one of",
+		"goal documents excepted", "appears in a row", "this goal's check files have rows too",
+		"changes outside the scope or to existing things", "or `없음` when there are none", "files outside the SPEC scope",
+		"changes to existing tests", "changes to checks an earlier goal left",
+		"where the user's words allowing it are, or the reason"},
+	"### 근거": {"for every condition", "what the check that satisfied it observed", "the commit where it passed",
+		"never by seq alone", "라운드 | 지적 | 끝", "with one row for every review round", "a round with no findings included",
+		"Every finding of the round ends in exactly one of",
 		"`고침`", "`반박`", "`중복`", "`사용자의 답`", "`이슈로 보류`", "`자동 보류`", "`처리 없음`",
 		"decisions in three groups", "decided by the user, with where their words are",
 		"proposed by the agent and accepted by the user", "executor assumptions nobody was asked about",
 		"Mark an assumption that reads a SPEC sentence", "the documents and sections that hold the detail"},
-	"### 직접 볼 것": {"ordered by risk", "every deferred finding with its issue", "every finding left with no disposition",
-		"every executor assumption", "executor assumptions that read a SPEC sentence",
-		"conditions met by checks that observe fixed text only", "`manual` conditions",
+	"### 직접 볼 것": {"ordered by risk", "the highest at the top", "one or two lines each",
+		"every item the `직접 볼 것` line of `ha report` lists", "every deferred finding with its issue",
+		"every finding left with no disposition", "every executor assumption", "executor assumptions that read a SPEC sentence",
+		"conditions met by checks that observe fixed text only", "whose documents a person must read", "`manual` conditions",
 		"changes outside the scope or to existing things"},
-	"### 보지 않은 것": {"the unobserved scope", "`local`", "deployment, installation or a real model",
-		"change conditions met without a baseline"},
+	"### 보지 않은 것": {"the unobserved scope", "substitute", "`local`", "the executor wrote the checks",
+		"deployment, installation or a real model", "change conditions met without a baseline", "distinguish base from head"},
 }
 
 // rsfJudgment are the places the judgment-items line gives.
@@ -105,10 +109,7 @@ func rsfSection(t *testing.T, rel, heading string, stops ...string) rsfDoc {
 	for i := start + 1; i < end; i++ {
 		name, j := strings.TrimRight(lines[i], " \t\r"), i+1
 		if m := rsfItemLine.FindStringSubmatch(lines[i]); m != nil {
-			name = m[2]
-			for j < end && rsfInItem(lines, j, len(m[1])) {
-				j++
-			}
+			name, j = m[2], rsfItemEnd(lines, i, end)
 			d.names = append(d.names, name)
 		} else if strings.HasPrefix(name, "### ") {
 			for j < end && !strings.HasPrefix(lines[j], "### ") {
@@ -124,13 +125,20 @@ func rsfSection(t *testing.T, rel, heading string, stops ...string) rsfDoc {
 	return d
 }
 
-// rsfInItem reports whether line j continues a list item indented by n: a
-// blank line, a deeper line, or a line that is no list item right after a
-// non-blank line.
-func rsfInItem(lines []string, j, n int) bool {
-	l := lines[j]
-	return strings.TrimSpace(l) == "" || len(l)-len(strings.TrimLeft(l, " \t")) > n ||
-		!rsfListLine.MatchString(l) && strings.TrimSpace(lines[j-1]) != ""
+// rsfItemEnd is the index after the list item on line i, at most end: the
+// item goes on over blank lines, deeper lines, and lines that are no list
+// item right after a non-blank line.
+func rsfItemEnd(lines []string, i, end int) int {
+	indent := func(l string) int { return len(l) - len(strings.TrimLeft(l, " \t")) }
+	j := i + 1
+	for ; j < end; j++ {
+		l := lines[j]
+		if strings.TrimSpace(l) != "" && indent(l) <= indent(lines[i]) &&
+			(rsfListLine.MatchString(l) || strings.TrimSpace(lines[j-1]) == "") {
+			break
+		}
+	}
+	return j
 }
 
 // rsfFormat is the contract's and the skill reference's review summary.
@@ -158,12 +166,25 @@ func rsfCheck(t *testing.T, id, where, text string, want bool, tokens ...string)
 	}
 }
 
+// The contract and the reference list the opening lines before the first
+// heading item, then exactly the four headings, and say `없음`.
 func TestReviewSummaryFourAC1_SameFourHeadings(t *testing.T) {
+	const id = "seven-heading-format"
 	for _, d := range rsfFormat(t) {
 		if !slices.Equal(d.names, rsfHeadings) {
-			t.Errorf("jaekit:violation=seven-heading-format: %s lists the headings %q, not %q", d.rel, d.names, rsfHeadings)
+			t.Errorf("jaekit:violation=%s: %s lists the headings %q, not %q", id, d.rel, d.names, rsfHeadings)
 		}
-		rsfCheck(t, "seven-heading-format", d.rel, d.text, true, "write `없음`")
+		rsfCheck(t, id, d.rel, d.text, true, "write `없음`")
+		open := slices.IndexFunc(d.lines, func(l string) bool {
+			return rsfListLine.MatchString(l) && strings.HasPrefix(rsfListLine.ReplaceAllString(l, ""), "Opening lines, with no heading")
+		})
+		if first := slices.IndexFunc(d.lines, rsfItemLine.MatchString); open < 0 || first >= 0 && open > first {
+			t.Errorf("jaekit:violation=%s: %s has no item \"Opening lines, with no heading\" before its first heading item", id, d.rel)
+			continue
+		}
+		rsfCheck(t, id, d.rel+" opening lines", strings.Join(d.lines[open:rsfItemEnd(d.lines, open, len(d.lines))], "\n"), true,
+			"the completion record's seq and commit", "the assurance tier", "how many required conditions are satisfied",
+			"the review gate result", "one line on what the change does", "where to start looking")
 	}
 }
 
