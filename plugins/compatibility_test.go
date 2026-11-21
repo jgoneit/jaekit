@@ -153,12 +153,12 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 	compatibilityContains(t, "English WSL guide", read(t, "../guides/WSL.en.md"), "public data of the v0.1.8 files", "Release files of v0.1.4 and earlier do not have it")
 }
 
-// The Seal reference points to run-record.md §4.7 for the run limit a /4
-// reopen carries, instead of restating it: the restatement lost the
-// contract's "later decreases are reflected" qualifier.
+// The Seal reference's rules section points to run-record.md §4.7 for the
+// run limit a /4 reopen carries, instead of restating it: the restatement
+// lost the contract's "later decreases are reflected" qualifier.
 func TestCompatibilitySealReferenceLinksRunRules4Reopen(t *testing.T) {
 	const path = "seal/skills/seal/references/ha.md"
-	compatibilityContains(t, path, mdSection(t, path, "## run-rules/4"), "contracts/run-record.md#47-run-rules4")
+	compatibilityContains(t, path, mdSection(t, path, "## run-rules/8"), "contracts/run-record.md#47-run-rules4")
 	reference := read(t, path)
 	for _, restated := range []string{"new window starts from", "last limit the user set", "`/4` reopens with"} {
 		if strings.Contains(reference, restated) {

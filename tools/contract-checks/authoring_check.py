@@ -29,6 +29,8 @@ HA = P + "references/ha.md"
 PLAN = P + "assets/templates/PLAN.md"
 REVIEW = P + "assets/templates/REVIEW.md"
 CONTRACT = "contracts/bundle.md"
+# The skill's check input rules apply to every check written now.
+APPLY_NOW = "They apply to every check written or changed under this skill, whichever Seal started the goal."
 
 # A section runs from its heading line to the next heading of the same or a
 # higher level. A row is the one table line whose first cell is the label.
@@ -109,9 +111,9 @@ CLAUSES = {
                       "The executor applies the rules and judges whether to fix existing checks")),
     ],
     "AC-8": [
-        ("skill", ("checks written or changed from Seal 0.1.14 on", "whichever Seal version started the goal",
+        ("skill", (APPLY_NOW,
                    "never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md`")),
-        ("bundle", ("checks written or changed from that version on", "whichever Seal version started the goal",
+        ("bundle", (APPLY_NOW,
                     "never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md`")),
         ("contract", ("apply to checks written or changed from Seal 0.1.14 on", "Which Seal version started the goal does not matter",
                       "never require rewriting or converting an existing goal's checks, records, PROGRESS or REVIEW")),
@@ -388,7 +390,7 @@ def changed_texts(root):
     Each text is named after the document that holds it, and each line of a
     document is scanned at most once, by its position. A skill document's
     section and its table rows are read in each document of the skill that has
-    the heading; then the lines naming Seal 0.1.14 in every document the
+    the heading; then the lines stating APPLY_NOW in every document the
     clause lookup reads, except those already read.
     """
     texts, covered = [], {}
@@ -422,7 +424,7 @@ def changed_texts(root):
                     texts.append((doc, lines[i]))
     for doc in documents(SKILL):
         texts.extend((doc, line) for i, line in enumerate((read(root, doc) or "").split("\n"))
-                     if "Seal 0.1.14" in line and i not in covered.get(doc, ()))
+                     if APPLY_NOW in line and i not in covered.get(doc, ()))
     return texts
 
 
@@ -492,8 +494,6 @@ def observe(root, suite, criterion):
                 entries = []
             if [entry.get("version") for entry in entries if entry.get("name") == "seal"] != [want]:
                 problems.append(f"marketplace seal entry does not carry {want}")
-            if f"Seal {want}" not in (section(root, "skill") or ""):
-                problems.append(f"guidance does not name Seal {want} as its starting version")
     if criterion == "AC-9":
         for name, anchors in KEPT:
             require(name, checker.clause_text(root, name), anchors, "kept rules")

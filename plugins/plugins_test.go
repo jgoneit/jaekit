@@ -255,7 +255,6 @@ func sealOrderForm(line string) string {
 var sealLayoutSections = []struct{ path, heading string }{
 	{sealSkillDir + "/references/bundle.md", "## Review summary"},
 	{sealSkillDir + "/references/bundle.md", "## Completion report"},
-	{sealSkillDir + "/references/earlier-goals.md", "## Completion report"},
 }
 
 func sealLayoutSection(path, heading string) bool {

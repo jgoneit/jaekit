@@ -410,13 +410,11 @@ func TestSealSkillReferences(t *testing.T) {
 	requireSkillTokens(t, sealSkillDir, tokens...)
 }
 
-// The forms of goals started with an earlier Seal live in a reference the
-// skill links, which keeps its sections and the earlier completion report
-// form.
+// Goals started with an earlier Seal have a reference the skill links, which
+// states the rules for them.
 func TestSealSkillEarlierGoalForms(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "link:references/earlier-goals.md",
-		"# Goals started with an earlier Seal", "## Starting and resuming", "## PROGRESS", "## Review and evidence",
-		"## Goals started under run-rules/4 or earlier", "ha done", "ha status --format md")
+	requireSkillTokens(t, sealSkillDir, "link:references/earlier-goals.md", "# Goals started with an earlier Seal")
+	skRequire(t, scrEarlier, read(t, scrEarlier), scrEarlierRules...)
 }
 
 // The review stages, the order of ha done and rework, the finding classes
@@ -471,7 +469,7 @@ func TestSealSkillReferencesAndTemplates(t *testing.T) {
 // note an early answer becomes and the wait note.
 func TestSealSkillQuestionsUpFront(t *testing.T) {
 	requireSkillTokens(t, sealSkillDir, "## Starting", "## Authority", "## Seal Core", "## Questions for the user",
-		"### `## 범위`", "## run-rules/4", "link:references/bundle.md#questions-for-the-user", "바꿀 수 있는 경로",
+		"### `## 범위`", "## run-rules/8", "link:references/bundle.md#questions-for-the-user", "바꿀 수 있는 경로",
 		"ha doctor", "ha note <goal> confirm", `ha note <goal> wait --reason "<the decision asked>"`)
 }
 
@@ -646,22 +644,22 @@ func TestSealSkillCheckFreeze(t *testing.T) {
 		"link:references/bundle.md#check-inputs")
 }
 
-// The skill starts under run-rules/8, and its documents keep run-rules/7's
+// The skill starts under run-rules/8, and its documents keep that rule's
 // section, the minimum formula, the baseline mark, the check-change note,
 // the freeze stages and the condition table section; the PLAN and REVIEW
 // templates name the rule and the mark.
 func TestSealSkillRunRules7(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "--rules run-rules/8", "## run-rules/7", "run-rules/6",
+	requireSkillTokens(t, sealSkillDir, "--rules run-rules/8", "## run-rules/8", "run-rules/6",
 		"표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain",
 		"ha note <goal> check-change", "baseline", "요구", "plan", "candidate", "### `## 조건표`")
-	skTemplateLine(t, skPlanTmpl, "## 조건표", "`run-rules/7`", "`baseline` column", "`요구`")
-	skTemplateLine(t, skReviewTmpl, "## 검증 방법과 환경", "`run-rules/7`", "requires a baseline", "`요구`")
+	skTemplateLine(t, skPlanTmpl, "## 조건표", "`run-rules/8`", "`baseline` column", "`요구`")
+	skTemplateLine(t, skReviewTmpl, "## 검증 방법과 환경", "`run-rules/8`", "requires a baseline", "`요구`")
 }
 
-// The ha reference keeps a run-rules/6 section, and the skill's documents
-// keep its review base and post-completion judgment tokens.
+// The ha reference keeps the run-rules/8 section, and the skill's documents
+// keep the review base and post-completion judgment tokens of run-rules/6.
 func TestSealSkillRunRules6(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "## run-rules/6", "review_base_mismatch", "post_completion_seconds")
+	requireSkillTokens(t, sealSkillDir, "## run-rules/8", "review_base_mismatch", "post_completion_seconds")
 }
 
 // The review summary, the REVIEW and PROGRESS forms, and the decisions passed
@@ -1031,7 +1029,7 @@ func TestSealBundleCompletionReportPointsToSummary(t *testing.T) {
 	}
 	sbMark(t, sbNoPlace, skProgressTmpl+" ## 완료 보고", report,
 		"add only one line pointing to `## 검수 요약`, which holds the judgment",
-		"When work stops, or for a goal started with an earlier Seal, below it, only judgment")
+		"When work stops, or in a `PROGRESS.md` started without `## 검수 요약`, below it, only judgment")
 	sbMark(t, sbNoPlace, skProgressTmpl+" "+sbSummary, sbTmplSummary(t),
 		"the condition each contributed to under `### 바뀐 것`",
 		"assumed open decisions under `### 근거` and `### 직접 볼 것`",
@@ -1054,11 +1052,11 @@ func TestSealBundleReviewSummaryReadingRules(t *testing.T) {
 		"never copy check output or finding text; a finding is its ID, one line and its ending")
 }
 
-// The review summary applies from seal 0.1.24: the PROGRESS template says
-// so, and the skill's documents keep the section and PROGRESS.md tokens of
-// that boundary.
+// A PROGRESS.md started without the review summary does not add it: the
+// PROGRESS template says so, and the skill's documents keep the section and
+// PROGRESS.md tokens of that boundary.
 func TestSealBundleReviewSummaryEarlierGoals(t *testing.T) {
-	sbNeedSummary(t, "Only for a goal started with seal 0.1.24 or later")
+	sbNeedSummary(t, "A `PROGRESS.md` started without this section does not add it")
 	requireSkillTokens(t, sealSkillDir, sbSummary, "PROGRESS.md")
 }
 
@@ -1602,10 +1600,12 @@ func TestSealBundleInvariantPlaces(t *testing.T) {
 	requireSkillTokens(t, sealSkillDir, "--question", "없음")
 }
 
-// The REVIEW template applies the list of places from seal 0.1.25; the
-// skill's documents keep the REVIEW.md token of that boundary.
+// A REVIEW.md started without the list of places does not add it, as the
+// REVIEW template says; the skill's documents keep the REVIEW.md token of
+// that boundary.
 func TestSealBundleReviewRoundsScope(t *testing.T) {
-	sbCheckPlaces(t, []sbPlace{{skReviewTmpl + " ## 독립 검토", sbReviewPlaces(t), []string{"seal 0.1.25 or later"}}})
+	sbCheckPlaces(t, []sbPlace{{skReviewTmpl + " ## 독립 검토", sbReviewPlaces(t),
+		[]string{"a `REVIEW.md` started without this list does not add it"}}})
 	requireSkillTokens(t, sealSkillDir, "REVIEW.md")
 }
 
