@@ -34,13 +34,20 @@ var (
 // rsfPlaces are the information tokens each heading's item holds.
 var rsfPlaces = map[string][]string{
 	"### 바뀐 것": {"바뀐 동작 | 조건 | 파일", "Every file changed from the goal's base to the completion commit",
-		"changes outside the scope or to existing things"},
+		"this goal's check files have rows too", "changes outside the scope or to existing things",
+		"files outside the SPEC scope", "changes to existing tests", "changes to checks an earlier goal left"},
 	"### 근거": {"what the check that satisfied it observed", "the commit where it passed", "never by seq alone",
-		"라운드 | 지적 | 끝", "decisions in three groups", "executor assumptions nobody was asked about",
+		"라운드 | 지적 | 끝", "a round with no findings included", "Every finding of the round ends in exactly one of",
+		"`고침`", "`반박`", "`중복`", "`사용자의 답`", "`이슈로 보류`", "`자동 보류`", "`처리 없음`",
+		"decisions in three groups", "decided by the user, with where their words are",
+		"proposed by the agent and accepted by the user", "executor assumptions nobody was asked about",
 		"Mark an assumption that reads a SPEC sentence", "the documents and sections that hold the detail"},
-	"### 직접 볼 것": {"every executor assumption", "executor assumptions that read a SPEC sentence",
+	"### 직접 볼 것": {"ordered by risk", "every deferred finding with its issue", "every finding left with no disposition",
+		"every executor assumption", "executor assumptions that read a SPEC sentence",
+		"conditions met by checks that observe fixed text only", "`manual` conditions",
 		"changes outside the scope or to existing things"},
-	"### 보지 않은 것": {"the unobserved scope", "change conditions met without a baseline"},
+	"### 보지 않은 것": {"the unobserved scope", "`local`", "deployment, installation or a real model",
+		"change conditions met without a baseline"},
 }
 
 // rsfJudgment are the places the judgment-items line gives.
@@ -201,8 +208,9 @@ func TestReviewSummaryFourAC3_InformationPlaces(t *testing.T) {
 
 func TestReviewSummaryFourAC4_RewriteRules(t *testing.T) {
 	for _, d := range rsfFormat(t) {
+		rsfCheck(t, "summary-rewrite-rule-missing", d.rel, d.text, false, "stays as it is.")
 		rsfCheck(t, "summary-rewrite-rule-missing", d.rel, d.text, true,
-			"A review summary already written with the seven earlier headings stays as it is.",
+			"A review summary already written with the seven earlier headings is not converted to the four headings, and the reopen rule still applies to it.",
 			"A review summary rewritten after a reopen uses the four headings.",
 			"Written once `ha done` records completion", "rewritten as of each new completion record after a reopen",
 			"not written before completion", "stays unchanged until the next completion record",
@@ -218,6 +226,8 @@ func TestReviewSummaryFourAC5_PRDescription(t *testing.T) {
 	}
 }
 
+// Each guide says the four parts on the line of its review summary paragraph,
+// which names `검수 요약`, and no longer lists the seven.
 func TestReviewSummaryFourAC6_GuidesFourHeadings(t *testing.T) {
 	ko := "그 아래에 바뀐 것, 근거, 직접 볼 것, 보지 않은 것이 이 순서로 옵니다."
 	en := "below them come what changed, evidence, what to inspect and what was not observed, in that order."
@@ -226,7 +236,12 @@ func TestReviewSummaryFourAC6_GuidesFourHeadings(t *testing.T) {
 		"guides/OPERATIONS.en.md": en}
 	for _, rel := range slices.Sorted(maps.Keys(guides)) {
 		text := rsfRead(t, rel)
-		rsfCheck(t, "seven-part-summary-description", rel, text, true, guides[rel])
+		if !slices.ContainsFunc(strings.Split(text, "\n"), func(l string) bool {
+			l = strings.Join(strings.Fields(l), " ")
+			return strings.Contains(l, "검수 요약") && strings.Contains(l, guides[rel])
+		}) {
+			t.Errorf("jaekit:violation=seven-part-summary-description: %s has no line with \"검수 요약\" and %q", rel, guides[rel])
+		}
 		rsfCheck(t, "seven-part-summary-description", rel, text, false,
 			"바뀐 동작과 파일, 범위 밖이나 기존 것을 바꾼 곳", "changed behavior and files, scope changes")
 	}
