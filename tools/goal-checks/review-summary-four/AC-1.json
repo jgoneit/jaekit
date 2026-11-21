@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "SameFourHeadings",
+      "violation": "seven-heading-format",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReviewSummaryFourAC1_SameFourHeadings"
+      }
+    },
+    {
+      "id": "NoOldHeadings",
+      "violation": "seven-heading-format",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReviewSummaryFourAC1_NoOldHeadings"
+      }
+    }
+  ]
+}

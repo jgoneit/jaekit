@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "TemplateHeadings",
+      "violation": "seven-heading-template",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealBundleReviewSummaryStructure"
+      }
+    },
+    {
+      "id": "ExampleFourHeadings",
+      "violation": "seven-heading-template",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestReviewSummaryFourAC2_ExampleFourHeadings"
+      }
+    }
+  ]
+}
