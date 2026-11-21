@@ -1095,11 +1095,11 @@ func TestSealBundleReviewSummaryMovedJudgment(t *testing.T) {
 		"the evidence's version and the scope that evidence covers")
 }
 
-// The two parts of `### 근거` and the opening lines are minimum lists in the
+// The condition evidence, the round table and the opening lines are minimum lists in the
 // PROGRESS template; the skill's documents keep the `### 근거` token.
 func TestSealBundleReviewSummaryMinimumLists(t *testing.T) {
 	sbNeedSummary(t,
-		"The two parts of `### 근거` and the items of the opening lines are minimum lists",
+		"The condition evidence and the round table under `### 근거` and the items of the opening lines are minimum lists",
 		"the items the judgment-item paragraph assigns join them in the same place")
 	requireSkillTokens(t, sealSkillDir, sbSummaryHeadings[1])
 }
