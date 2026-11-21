@@ -15,11 +15,14 @@ expect-records 5
 expect-record 5 check_paths ""
 append checks/feature.sh "# Clarify the exact feature value checked.\n"
 commit "clarify the feature check after the review"
+# ha status exits with the status: 1 is incomplete (stale checks and review).
 ha status $GOAL
+expect-exit 1
 expect-no-output "freeze"
 expect-no-output "Freeze"
 expect-no-output "changed: no reason"
 ha status $GOAL --format json
+expect-exit 1
 expect-no-output "check_freeze"
 ha report $GOAL --lang en
 expect-exit 0

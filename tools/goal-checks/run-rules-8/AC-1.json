@@ -25,6 +25,14 @@
         "package": "github.com/jgoneit/jaekit/cmd/ha",
         "name": "TestHaReviewGateAC13_SealCheckerNeedsTheNewRules"
       }
+    },
+    {
+      "id": "CapabilitiesContract",
+      "violation": "capabilities-contract-v8-missing",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestHaReviewGateAC13_CapabilitiesContractStatesRunRules8"
+      }
     }
   ]
 }

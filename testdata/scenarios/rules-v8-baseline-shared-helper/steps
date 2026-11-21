@@ -1,6 +1,7 @@
 # run-rules/8: every baseline overlays the check paths of all marked change
 # conditions. AC-1's check sources a HEAD-only helper that only AC-2 lists;
-# a later change to AC-2's check alone leaves AC-1's baseline stale.
+# a later change to AC-2's check alone leaves AC-1's baseline stale, and so
+# does unmarking AC-2 while every overlay digest still equals HEAD.
 include rules-v7-goal
 replace $GOAL/PLAN.md "checks/feature.json | T001 | — |" "checks/feature.json, checks/helper.sh | T001 | 요구 |"
 commit "two marked change conditions"
@@ -26,3 +27,11 @@ commit "change only the AC-2 check"
 ha check $GOAL
 expect-exit 0
 expect-reasons AC-1:baseline_missing AC-2:baseline_missing
+# A new AC-1 baseline is fresh; then only the marks change.
+ha check $GOAL --baseline AC-1
+expect-exit 0
+expect-record 10 result fail_as_expected
+expect-reasons AC-2:baseline_missing
+replace $GOAL/PLAN.md "checks/helper.sh | T001 | 요구 |" "checks/helper.sh | T001 | — |"
+commit "AC-2 no longer marked"
+expect-reasons AC-1:baseline_missing

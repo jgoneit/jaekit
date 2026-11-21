@@ -8,6 +8,11 @@ expect-exit 0
 ha lint $GOAL
 expect-exit 0
 expect-status incomplete
+# ha status exits with the status: 1 is incomplete (record_invalid would be 2).
+ha status $GOAL
+expect-exit 1
+expect-no-output "record_invalid"
+expect-no-output "invalid start budget"
 # Start the bundle again with a one-minute line, then exceed it by two hours.
 rm $GOAL/runs.jsonl
 replace $GOAL/PLAN.md "- 비용: 미관측" "- 경과 시간: 1분\n- 비용: 미관측"
@@ -26,6 +31,10 @@ rewrite-record 2 at "\"2026-01-01T02:00:00Z\""
 rewrite-record 3 at "\"2026-01-01T03:00:00Z\""
 expect-no-reason budget_exceeded
 expect-status incomplete
+ha status $GOAL
+expect-exit 1
+expect-output "/60 seconds"
+expect-no-output "(exceeded)"
 ha cost $GOAL
 expect-exit 0
 expect-output "  - seq 2, 3599 seconds: asked which greeting to use"
