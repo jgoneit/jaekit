@@ -275,36 +275,72 @@ class NonMutationCases(Fixture):
 
 
 class ZeroCollectionCases(Fixture):
-    """A discover step that collects no tests fails, names its directory and stops."""
+    """A discover step that collects no tests fails, names its directory and pattern, and stops."""
 
-    def assert_collected_nothing(self, result, label, directory, pattern):
-        output = result.stdout + result.stderr
-        self.assertNotEqual(result.returncode, 0, output)
-        self.assertIn(f"FAIL: {label}", output)
-        message = f"collected no tests in tools/{directory}"
-        lines = [line for line in output.splitlines() if message in line]
-        self.assertTrue(lines, f"no line names {message!r}:\n{output}")
-        self.assertTrue(any(pattern in line for line in lines), f"{message!r} lacks the pattern {pattern!r}:\n{output}")
-        self.assertNotIn(f"PASS: {label}", output)
-        self.assertNotRegex(output, r"PASS: \w+ verification")
-        started = [line.removeprefix("RUN: ") for line in output.splitlines() if line.startswith("RUN: ")]
-        self.assertEqual(started[-1:], [label], "checks continued after a failure")
+    # (group, label, directory, pattern, recorded name) in verify.py's order within each group.
+    STEPS = (
+        *[("go", f"Review boundaries ({name})", "review-checks", name, "review:" + name)
+          for name in ("test_observation.py", "test_installation.py", "test_producers.py")],
+        *[("go", f"Review gap regressions ({name})", "gap-checks", name, "gap:" + name)
+          for name in ("test_observation.py", "test_history_results.py", "test_docs_environment.py")],
+        ("go", "Producer semantic regressions (test_semantics.py)", "producer-checks", "test_semantics.py",
+         "producer:test_semantics.py"),
+        *[("go", f"Release evidence boundaries ({name})", "release-checks", name, "release:" + name)
+          for name in ("integration_evidence_boundaries.py", "integration_core_observation.py",
+                       "integration_direct_install.py", "integration_product_source.py",
+                       "integration_install_destination.py", "integration_install_imports.py",
+                       "integration_observe_imports.py", "integration_child_imports.py")],
+        *[("go", f"Merge blocker regressions ({name})", "regression-checks", name, "regression:" + name)
+          for name in ("test_merge_blockers.py", "integration_go_filters.py", "integration_observer_core.py",
+                       "test_observer_attribution.py")],
+        *[("docs", label, directory, "test_*.py", directory)
+          for label, directory in (("Public checker regressions", "public-checks"),
+                                   ("Workflow regressions", "workflow-checks"),
+                                   ("Native CI checker regressions", "ci"),
+                                   ("Release archive regressions", "release"),
+                                   ("Windows candidate packaging regressions", "windows"),
+                                   ("Goal check regressions", "goal-checks"),
+                                   ("Release acceptance checker regressions", "release-checks"))],
+    )
 
-    def test_docs_directory_without_tests_fails(self):
-        (self.repo / "tools/public-checks/test_fixture.py").unlink()
-        result = self.run_verify("docs")
-        self.assert_collected_nothing(result, "Public checker regressions", "public-checks", "test_*.py")
-        later = {"workflow-checks", "ci", "release", "windows", "goal-checks", "release-checks"}
-        self.assertEqual(later & {item["name"] for item in self.commands()}, set())
-
-    def test_go_file_step_without_tests_fails(self):
-        (self.repo / "tools/review-checks/test_installation.py").unlink()
-        result = self.run_verify("go")
-        self.assert_collected_nothing(result, "Review boundaries (test_installation.py)", "review-checks",
-                                      "test_installation.py")
-        # The step before it, whose file has a test, still passes.
-        self.assertIn("PASS: Review boundaries (test_observation.py)", result.stdout + result.stderr)
-        self.assertNotIn("review:test_producers.py", [item["name"] for item in self.commands()])
+    def test_each_discover_step_without_tests_fails_and_stops(self):
+        for step in self.STEPS:
+            group, label, directory, pattern, _ = step
+            with self.subTest(step=label):
+                removed = {path: path.read_bytes() for path in (self.repo / "tools" / directory).glob(pattern)}
+                self.assertTrue(removed, f"the fixture has no {pattern} in tools/{directory}")
+                for path in removed:
+                    path.unlink()
+                self.log.unlink(missing_ok=True)
+                try:
+                    result = self.run_verify(group)
+                finally:
+                    for path, data in removed.items():
+                        path.write_bytes(data)
+                output = result.stdout + result.stderr
+                self.assertNotEqual(result.returncode, 0, output)
+                self.assertIn(f"FAIL: {label}", output)
+                message = f"collected no tests in tools/{directory}"
+                lines = [line for line in output.splitlines() if message in line]
+                self.assertTrue(lines, f"no line names {message!r}:\n{output}")
+                self.assertTrue(any(pattern in line for line in lines),
+                                f"{message!r} lacks the pattern {pattern!r}:\n{output}")
+                self.assertNotIn(f"PASS: {label}", output)
+                self.assertNotRegex(output, r"PASS: \w+ verification")
+                started = [line.removeprefix("RUN: ") for line in output.splitlines() if line.startswith("RUN: ")]
+                self.assertEqual(started[-1:], [label], "checks continued after a failure")
+                same = [other for other in self.STEPS if other[0] == group]
+                position = same.index(step)
+                # Earlier steps, whose files have tests, still pass.
+                for other in same[:position]:
+                    self.assertIn(f"PASS: {other[1]}", output)
+                names = [item["name"] for item in self.commands()]
+                self.assertEqual({other[4] for other in same[position + 1:]} & set(names), set(),
+                                 "checks continued after a failure")
+                if group == "go":
+                    self.assertNotIn("ha", names)
+                    self.assertFalse([item for item in self.commands()
+                                      if item["name"] == "go" and item["args"][:1] == ["build"]])
 
 
 if __name__ == "__main__":

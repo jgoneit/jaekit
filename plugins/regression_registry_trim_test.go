@@ -312,6 +312,17 @@ func TestRegistryTrimAC1_Contract(t *testing.T) {
 	}
 }
 
+// rrtReadTracked reads a tracked file's bytes; a tracked file that cannot be
+// read, including one deleted from the checkout, stops the test.
+func rrtReadTracked(t *testing.T, rel string) []byte {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join("..", filepath.FromSlash(rel)))
+	if err != nil {
+		t.Fatalf("read tracked file %s: %v", rel, err)
+	}
+	return b
+}
+
 // rrtPresent reports whether a repository path exists on the filesystem.
 func rrtPresent(t *testing.T, rel string) bool {
 	t.Helper()
@@ -352,13 +363,7 @@ func TestRegistryTrimAC2_ProverGone(t *testing.T) {
 		if rel == rrtSelf || strings.HasPrefix(rel, rrtGoalDir) || strings.HasPrefix(rel, "docs/") {
 			continue
 		}
-		b, err := os.ReadFile(filepath.Join("..", filepath.FromSlash(rel)))
-		if errors.Is(err, fs.ErrNotExist) {
-			continue
-		}
-		if err != nil {
-			t.Fatalf("read %s: %v", rel, err)
-		}
+		b := rrtReadTracked(t, rel)
 		for _, token := range []string{"regression_map", "go_selection"} {
 			if bytes.Contains(b, []byte(token)) {
 				t.Errorf("jaekit:violation=selection-prover-present: %s contains %s", rel, token)
@@ -402,6 +407,7 @@ func rrtPython(t *testing.T, args ...string) (code int, stdout, stderr string) {
 	t.Helper()
 	cmd := exec.Command("python3", args...)
 	cmd.Dir = ".."
+	cmd.Env = append(os.Environ(), "PYTHONDONTWRITEBYTECODE=1")
 	var out, errOut bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errOut
 	err := cmd.Run()
@@ -435,6 +441,178 @@ func TestRegistryTrimAC3_ZeroCollection(t *testing.T) {
 	}
 }
 
+// rrtSelectorProgram runs unittest selectors of one file the way discover
+// imports it: the file's directory first on sys.path, the module loaded by
+// path under its own name. It writes one JSON line per selector to argv[1].
+const rrtSelectorProgram = `
+import importlib.util, json, os, sys, unittest
+results, path, selectors = sys.argv[1], sys.argv[2], sys.argv[3:]
+sys.path.insert(0, os.path.dirname(os.path.abspath(path)))
+name = os.path.splitext(os.path.basename(path))[0]
+spec = importlib.util.spec_from_file_location(name, path)
+module = importlib.util.module_from_spec(spec)
+sys.modules[name] = module
+spec.loader.exec_module(module)
+failed = False
+with open(results, "w") as out:
+    for selector in selectors:
+        try:
+            suite = unittest.defaultTestLoader.loadTestsFromName(selector, module)
+            result = unittest.TextTestRunner(stream=sys.stderr, verbosity=2).run(suite)
+            counts = {"ran": result.testsRun, "failures": len(result.failures), "errors": len(result.errors),
+                      "skipped": len(result.skipped), "expected_failures": len(result.expectedFailures),
+                      "unexpected_successes": len(result.unexpectedSuccesses)}
+        except Exception as error:
+            counts = {"ran": 0, "load_error": repr(error)}
+        ok = counts["ran"] > 0 and not any(value for key, value in counts.items() if key != "ran")
+        failed = failed or not ok
+        out.write(json.dumps(dict(counts, selector=selector, ok=ok)) + "\n")
+        out.flush()
+sys.exit(1 if failed else 0)
+`
+
+// rrtGoRun runs `go test -json` in one package directory with a -run pattern
+// and reports each named test that has no pass event.
+func rrtGoRun(t *testing.T, dir, pattern string, names []string) {
+	t.Helper()
+	cmd := exec.Command("go", "test", "-json", "-count=1", "-run", pattern, "./"+dir)
+	cmd.Dir = ".."
+	var out, errOut bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &out, &errOut
+	err := cmd.Run()
+	var exit *exec.ExitError
+	switch {
+	case err == nil, errors.As(err, &exit) && exit.Exited():
+	case errors.As(err, &exit):
+		t.Fatalf("go test ./%s did not exit normally: %v", dir, err)
+	default:
+		t.Fatalf("go cannot start: %v", err)
+	}
+	passed := map[string]bool{}
+	output := map[string]*strings.Builder{}
+	for _, line := range strings.Split(out.String(), "\n") {
+		var e struct{ Action, Test, Output string }
+		if json.Unmarshal([]byte(line), &e) != nil {
+			continue
+		}
+		if e.Action == "pass" && e.Test != "" {
+			passed[e.Test] = true
+		}
+		if e.Action == "output" {
+			if output[e.Test] == nil {
+				output[e.Test] = &strings.Builder{}
+			}
+			output[e.Test].WriteString(e.Output)
+		}
+	}
+	for _, name := range names {
+		if passed[name] {
+			continue
+		}
+		detail := errOut.String()
+		for _, test := range []string{name, ""} {
+			if output[test] != nil {
+				detail = output[test].String() + detail
+				break
+			}
+		}
+		t.Errorf("go test ./%s -run '%s': %s did not pass\n%s", dir, pattern, name, rrtTail(detail))
+	}
+}
+
+// TestRegistryTrimAC4_SelectorsRun runs every check of expected.json by its
+// exact selector; it carries no violation marker and runs only when
+// RRT_RUN_SELECTORS=1.
+func TestRegistryTrimAC4_SelectorsRun(t *testing.T) {
+	if os.Getenv("RRT_RUN_SELECTORS") != "1" {
+		t.Skip("set RRT_RUN_SELECTORS=1 to run every expected check by its selector")
+	}
+	var expected struct {
+		Checks []struct{ File, Selector string } `json:"checks"`
+	}
+	if err := json.Unmarshal(rrtJSON(t, rrtExpected), &expected); err != nil {
+		t.Fatalf("%s: %v", rrtExpected, err)
+	}
+	if len(expected.Checks) == 0 {
+		t.Fatalf("%s lists no checks", rrtExpected)
+	}
+	goNames := map[string][]string{}
+	pyNames := map[string][]string{}
+	seen := map[[2]string]bool{}
+	for _, c := range expected.Checks {
+		if key := [2]string{c.File, c.Selector}; !seen[key] {
+			seen[key] = true
+			switch {
+			case strings.HasSuffix(c.File, "_test.go"):
+				goNames[path.Dir(c.File)] = append(goNames[path.Dir(c.File)], c.Selector)
+			case strings.HasSuffix(c.File, ".py"):
+				pyNames[c.File] = append(pyNames[c.File], c.Selector)
+			default:
+				t.Errorf("%s %s: the file is neither a Go test file nor a Python file", c.File, c.Selector)
+			}
+		}
+	}
+	for _, dir := range rrtSortedKeys(goNames) {
+		var plain []string
+		for _, name := range goNames[dir] {
+			if !strings.Contains(name, "/") {
+				plain = append(plain, regexp.QuoteMeta(name))
+				continue
+			}
+			// -run splits its pattern at "/" into one pattern per subtest level.
+			var levels []string
+			for _, level := range strings.Split(name, "/") {
+				levels = append(levels, "^"+regexp.QuoteMeta(level)+"$")
+			}
+			rrtGoRun(t, dir, strings.Join(levels, "/"), []string{name})
+		}
+		if len(plain) > 0 {
+			var names []string
+			for _, name := range goNames[dir] {
+				if !strings.Contains(name, "/") {
+					names = append(names, name)
+				}
+			}
+			rrtGoRun(t, dir, "^("+strings.Join(plain, "|")+")$", names)
+		}
+	}
+	for _, file := range rrtSortedKeys(pyNames) {
+		results := filepath.Join(t.TempDir(), "results.jsonl")
+		code, stdout, stderr := rrtPython(t, append([]string{"-c", rrtSelectorProgram, results, file}, pyNames[file]...)...)
+		got := map[string]map[string]any{}
+		if b, err := os.ReadFile(results); err == nil {
+			for _, line := range strings.Split(strings.TrimSpace(string(b)), "\n") {
+				var r map[string]any
+				if json.Unmarshal([]byte(line), &r) == nil {
+					got[rrtText(r["selector"])] = r
+				}
+			}
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			t.Fatalf("read %s: %v", results, err)
+		}
+		failed := false
+		for _, selector := range pyNames[file] {
+			if r := got[selector]; r == nil || r["ok"] != true {
+				failed = true
+				t.Errorf("python3 %s %s did not pass: %v (exit %d)\n%s", file, selector, r, code, rrtTail(stdout+stderr))
+			}
+		}
+		if code != 0 && !failed {
+			t.Errorf("python3 selectors of %s exited %d although each selector passed\n%s", file, code, rrtTail(stdout+stderr))
+		}
+	}
+	t.Logf("ran %d distinct selectors covering %d checks", len(seen), len(expected.Checks))
+}
+
+func rrtSortedKeys(m map[string][]string) []string {
+	var keys []string
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
 func TestRegistryTrimAC5_Rules(t *testing.T) {
 	agents := rrtRead(t, "AGENTS.md")
 	for _, c := range []struct{ rel, want string }{
@@ -453,17 +631,18 @@ func TestRegistryTrimAC5_Rules(t *testing.T) {
 	}
 	for _, rel := range []string{"AGENTS.md", "guides/DEVELOPMENT.md", "guides/DEVELOPMENT.en.md", "guides/CI.md",
 		"guides/CI.en.md", "contracts/regressions.md", "contracts/README.md"} {
-		text := strings.ToLower(rrtRead(t, rel))
+		original := rrtRead(t, rel)
+		text := strings.ToLower(original)
 		for _, token := range []string{"regression_map", "go_selection", "selection-only", "static selection"} {
 			if strings.Contains(text, token) {
 				t.Errorf("jaekit:violation=registry-rules-stale: %s still mentions %q", rel, token)
 			}
 		}
-	}
-	contract := rrtRead(t, "contracts/regressions.md")
-	for _, field := range []string{"property", "examples", "families", "boundary", "follow_up", "status"} {
-		if token := "`" + field + "`"; strings.Contains(contract, token) {
-			t.Errorf("jaekit:violation=registry-rules-stale: contracts/regressions.md still names the removed field %s", token)
+		// Invariants keep `property`; these route fields are gone.
+		for _, field := range []string{"examples", "families", "boundary", "follow_up", "status"} {
+			if token := "`" + field + "`"; strings.Contains(original, token) {
+				t.Errorf("jaekit:violation=registry-rules-stale: %s still names the removed route field %s", rel, token)
+			}
 		}
 	}
 }
@@ -478,8 +657,12 @@ var rrtRemoved = []string{
 	"tools/gap-checks/documentation.py",
 	"tools/gap-checks/AC-*.json",
 	"tools/review-checks/test_platform_installation.py",
+	"tools/review-checks/test_preservation.py",
 	"tools/review-checks/preserved-public.json",
 	"tools/review-checks/AC-*.json",
+	"tools/regression-checks/check.py",
+	"tools/regression-checks/test_checker.py",
+	"tools/regression-checks/run_unittest.py",
 	"tools/verification-checks/pr_merge_blockers.py",
 	"tools/verification-checks/producer_results.py",
 	"tools/verification-checks/release_evidence.py",
@@ -496,6 +679,27 @@ var rrtRemoved = []string{
 	"tools/verification-checks/wsl.py",
 	"tools/verification-checks/wsl_preserved.py",
 	"tools/verification-checks/integration-AC-*.json",
+	// Declaration folders of the deleted verification-checks producers.
+	"tools/verification-checks/selection-integrity/**",
+	"tools/verification-checks/pr-merge-blockers/**",
+	"tools/verification-checks/producer-results/**",
+	"tools/verification-checks/release-evidence/**",
+	"tools/verification-checks/review-archive-boundaries/**",
+	"tools/verification-checks/review-followups/**",
+	"tools/verification-checks/review-producer-results/**",
+	"tools/verification-checks/review-release-evidence/**",
+	"tools/verification-checks/windows-native/**",
+	"tools/verification-checks/windows-lifecycle-review/**",
+	"tools/verification-checks/windows-review-p1/**",
+	"tools/verification-checks/windows-review-triage/**",
+	"tools/verification-checks/windows-stream-review/**",
+	"tools/verification-checks/wsl/**",
+	// AC-1.json stays: tests copy it.
+	"tools/verification-checks/review-regression-gates/AC-2.json",
+	"tools/verification-checks/review-regression-gates/AC-3.json",
+	"tools/verification-checks/review-regression-gates/AC-4.json",
+	"tools/verification-checks/review-regression-gates/AC-5.json",
+	"tools/verification-checks/review-regression-gates/AC-6.json",
 	"tools/goal-checks/AC-*.json",
 	"tools/goal-checks/retention_evidence.py",
 	"tools/goal-checks/review-findings/**",
@@ -579,64 +783,111 @@ func TestRegistryTrimAC6_Removed(t *testing.T) {
 	}
 }
 
-// rrtTestName matches test and integration file names in reference text.
-var rrtTestName = regexp.MustCompile(`(?:test|integration)_[A-Za-z0-9_-]*\.py`)
-
+// rrtWordByte is a byte that continues a file or directory name.
 func rrtWordByte(b byte) bool {
-	return b == '_' || b >= 'a' && b <= 'z' || b >= 'A' && b <= 'Z' || b >= '0' && b <= '9'
+	return b == '_' || b == '-' || b >= 'a' && b <= 'z' || b >= 'A' && b <= 'Z' || b >= '0' && b <= '9'
+}
+
+// rrtHasWord reports whether text holds word with no name byte on either side.
+func rrtHasWord(text, word string) bool {
+	for i := 0; i < len(text); {
+		j := strings.Index(text[i:], word)
+		if j < 0 {
+			return false
+		}
+		start, end := i+j, i+j+len(word)
+		if (start == 0 || !rrtWordByte(text[start-1])) && (end == len(text) || !rrtWordByte(text[end])) {
+			return true
+		}
+		i = start + 1
+	}
+	return false
+}
+
+// rrtNamedBy reports whether file x, whose text is given, names file f: it
+// holds f's base name and f's directory name as whole words, or it sits in
+// f's directory and holds f's base name.
+func rrtNamedBy(f, x, text string) bool {
+	if !rrtHasWord(text, path.Base(f)) {
+		return false
+	}
+	return path.Dir(x) == path.Dir(f) || rrtHasWord(text, path.Base(path.Dir(f)))
+}
+
+// rrtDiscovered are the directories full verification discovers with -p test_*.py.
+var rrtDiscovered = map[string]bool{
+	"tools/public-checks": true, "tools/workflow-checks": true, "tools/ci": true, "tools/release": true,
+	"tools/windows": true, "tools/goal-checks": true, "tools/release-checks": true,
+}
+
+// rrtReachedByDiscovery reports whether full verification discovers a file
+// with -p test_*.py (rule (a)).
+func rrtReachedByDiscovery(rel string) bool {
+	return strings.HasPrefix(path.Base(rel), "test_") && strings.HasSuffix(rel, ".py") && rrtDiscovered[path.Dir(rel)]
 }
 
 func TestRegistryTrimAC6_TestFilesRun(t *testing.T) {
-	tracked := rrtTracked(t)
-	allowed := map[string]bool{}
-	for _, dir := range []string{"tools/public-checks", "tools/workflow-checks", "tools/ci", "tools/release",
-		"tools/windows", "tools/goal-checks", "tools/release-checks"} {
-		allowed[dir] = true
-	}
-	// referenced maps a file name to the files whose text names it.
-	referenced := map[string]map[string]bool{}
-	var candidates []string
-	for _, rel := range tracked {
-		base := path.Base(rel)
-		inTools := strings.HasPrefix(rel, "tools/")
-		if inTools && path.Ext(base) == ".py" && (strings.HasPrefix(base, "test_") || strings.HasPrefix(base, "integration_")) {
-			candidates = append(candidates, rel)
-		}
+	// R0 is verify.py, the workflows, the Go tests and the test files that
+	// discovery reaches (rule (a)); R1 is the tools scripts R0 names. A
+	// candidate runs when discovery reaches it or a file in R0 or R1 names it.
+	var r0, scripts, candidates []string
+	for _, rel := range rrtTracked(t) {
 		workflow, _ := path.Match(".github/workflows/*.yml", rel)
-		reference := workflow || strings.HasSuffix(rel, "_test.go") && rel != rrtSelf ||
-			inTools && (strings.HasSuffix(rel, ".py") || strings.HasSuffix(rel, ".sh"))
-		if !reference {
+		if rel == "tools/verify.py" || workflow || strings.HasSuffix(rel, "_test.go") && rel != rrtSelf ||
+			rrtReachedByDiscovery(rel) {
+			r0 = append(r0, rel)
+		}
+		if !strings.HasPrefix(rel, "tools/") {
 			continue
 		}
-		b, err := os.ReadFile(filepath.Join("..", filepath.FromSlash(rel)))
-		if errors.Is(err, fs.ErrNotExist) {
-			continue
+		if strings.HasSuffix(rel, ".py") || strings.HasSuffix(rel, ".sh") {
+			scripts = append(scripts, rel)
 		}
-		if err != nil {
-			t.Fatalf("read %s: %v", rel, err)
-		}
-		text := string(b)
-		for _, m := range rrtTestName.FindAllStringIndex(text, -1) {
-			if m[0] > 0 && rrtWordByte(text[m[0]-1]) || m[1] < len(text) && rrtWordByte(text[m[1]]) {
-				continue
-			}
-			name := text[m[0]:m[1]]
-			if referenced[name] == nil {
-				referenced[name] = map[string]bool{}
-			}
-			referenced[name][rel] = true
+		if base := path.Base(rel); strings.HasSuffix(base, ".py") && (strings.HasPrefix(base, "test_") || strings.HasPrefix(base, "integration_")) {
+			candidates = append(candidates, rel)
 		}
 	}
 	if len(candidates) == 0 {
 		t.Fatalf("no tracked tools/**/test_*.py or tools/**/integration_*.py files")
 	}
-	for _, rel := range candidates {
-		if allowed[path.Dir(rel)] {
+	texts := map[string]string{}
+	text := func(rel string) string {
+		if s, ok := texts[rel]; ok {
+			return s
+		}
+		texts[rel] = string(rrtReadTracked(t, rel))
+		return texts[rel]
+	}
+	runners := map[string]bool{}
+	for _, x := range r0 {
+		runners[x] = true
+	}
+	for _, s := range scripts {
+		for _, x := range r0 {
+			if rrtNamedBy(s, x, text(x)) {
+				runners[s] = true
+				break
+			}
+		}
+	}
+	var order []string
+	for x := range runners {
+		order = append(order, x)
+	}
+	sort.Strings(order)
+	for _, c := range candidates {
+		if rrtReachedByDiscovery(c) {
 			continue
 		}
-		users := referenced[path.Base(rel)]
-		if len(users) == 0 || len(users) == 1 && users[rel] {
-			t.Errorf("jaekit:violation=unrun-check-files: %s sits outside the discovered directories and no runner names it", rel)
+		run := false
+		for _, x := range order {
+			if x != c && rrtNamedBy(c, x, text(x)) {
+				run = true
+				break
+			}
+		}
+		if !run {
+			t.Errorf("jaekit:violation=unrun-check-files: %s is not run: discovery does not reach it and no runner names it", c)
 		}
 	}
 }
