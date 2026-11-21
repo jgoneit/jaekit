@@ -1,0 +1,30 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Shape",
+      "violation": "registry-not-trimmed",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRegistryTrimAC1_Shape"
+      }
+    },
+    {
+      "id": "Selectors",
+      "violation": "registry-not-trimmed",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRegistryTrimAC1_Selectors"
+      }
+    },
+    {
+      "id": "Contract",
+      "violation": "registry-not-trimmed",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRegistryTrimAC1_Contract"
+      }
+    }
+  ]
+}
