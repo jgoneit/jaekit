@@ -6,7 +6,6 @@ read private goals, old runs or another goal's completion state.
 """
 from __future__ import annotations
 
-import argparse
 import hashlib
 import json
 import os
@@ -197,25 +196,3 @@ def invoke(entry, *, root=ROOT, legacy=None):
             return [{"target": target, "attempt": 1, "status": "error", "reason": "execution_error"}
                     for target in [*ids, transport["target"]]]
 
-
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("criterion")
-    parser.add_argument("--legacy")
-    args = parser.parse_args()
-    manifest = read_json(Path(__file__).with_name("integration-map.json"))
-    entries = manifest[args.criterion]
-    observations = []
-    for entry in entries:
-        observations.extend(invoke(entry, legacy=args.legacy))
-    report = {"schema": "check-result/v1", "producer": "jaekit-integration-probes", "producer_version": "1",
-              "invocation": os.environ["HA_EVIDENCE_INVOCATION"],
-              "declaration_digest": os.environ["HA_EVIDENCE_DECLARATION_DIGEST"],
-              "attempts_complete": True, "observations": observations}
-    with Path(os.environ["HA_EVIDENCE_PATH"]).open("x") as output:
-        json.dump(report, output)
-    return 0 if all(item["status"] == "pass" for item in observations) else 1
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

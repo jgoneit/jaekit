@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Removed",
+      "violation": "unrun-check-files",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRegistryTrimAC6_Removed"
+      }
+    },
+    {
+      "id": "TestFilesRun",
+      "violation": "unrun-check-files",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestRegistryTrimAC6_TestFilesRun"
+      }
+    }
+  ]
+}

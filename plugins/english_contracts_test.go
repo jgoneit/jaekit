@@ -226,7 +226,7 @@ for c in sys.argv[1:]:
 print(json.dumps(out))`
 
 // The Go suites that read contract text run in the same command; this adds the Python readers no Go test
-// judges on the checkout: the authoring check's contract problems and the regression map's guidance test.
+// judges on the checkout: the authoring check's contract problems and the regression registry's shape test.
 func TestEnglishContractsAC5_PythonReaders(t *testing.T) {
 	py, err := exec.LookPath("python3")
 	if err != nil {

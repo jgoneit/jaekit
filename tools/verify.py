@@ -153,36 +153,34 @@ def run(label: str, command: list[str], env: dict[str, str], *, formatting=False
     print(f"PASS: {label} ({seconds(started)})", flush=True)
 
 
+# Python before 3.12 exits 0 when discovery collects nothing, so the child
+# counts the collected tests itself and fails when there are none.
+DISCOVER = ("import sys, unittest; start, pattern = sys.argv[1:]; "
+            "suite = unittest.defaultTestLoader.discover(start, pattern); "
+            "suite.countTestCases() or sys.exit(f\"collected no tests in {start} matching {pattern}\"); "
+            "sys.exit(not unittest.TextTestRunner().run(suite).wasSuccessful())")
+
+
+def discover(label: str, directory: str, pattern: str, env: dict[str, str]):
+    run(label, [sys.executable, "-c", DISCOVER, f"tools/{directory}", pattern], env)
+
+
 def verify_go(env: dict[str, str]):
     run("Go formatting", ["gofmt", "-l", "."], env, formatting=True)
     run("Go vet", ["go", "vet", "-mod=readonly", "./..."], env)
     run("Go tests", ["go", "test", "-mod=readonly", "./..."], env)
     # These offline boundary regressions include real Go fixtures and local
     # bash/zsh processes. Keep them in the Go group so docs-only verification
-    # does not acquire a Go dependency. Preservation checks are separate:
-    # they query a release and invoke this entry point themselves.
+    # does not acquire a Go dependency.
     for filename in ("test_observation.py", "test_installation.py", "test_producers.py"):
-        run(f"Review boundaries ({filename})",
-            [sys.executable, "-m", "unittest", "discover", "-s", "tools/review-checks",
-             "-p", filename], env)
+        discover(f"Review boundaries ({filename})", "review-checks", filename, env)
     for filename in ("test_observation.py", "test_history_results.py", "test_docs_environment.py"):
-        run(f"Review gap regressions ({filename})",
-            [sys.executable, "-m", "unittest", "discover", "-s", "tools/gap-checks",
-             "-p", filename], env)
-    run("Producer semantic regressions (test_semantics.py)",
-        [sys.executable, "-m", "unittest", "discover", "-s", "tools/producer-checks",
-         "-p", "test_semantics.py"], env)
+        discover(f"Review gap regressions ({filename})", "gap-checks", filename, env)
+    discover("Producer semantic regressions (test_semantics.py)", "producer-checks", "test_semantics.py", env)
     for filename in ("integration_evidence_boundaries.py", "integration_core_observation.py", "integration_direct_install.py", "integration_product_source.py", "integration_install_destination.py", "integration_install_imports.py", "integration_observe_imports.py", "integration_child_imports.py"):
-        run(f"Release evidence boundaries ({filename})",
-            [sys.executable, "-m", "unittest", "discover", "-s", "tools/release-checks",
-             "-p", filename], env)
+        discover(f"Release evidence boundaries ({filename})", "release-checks", filename, env)
     for filename in ("test_merge_blockers.py", "integration_go_filters.py", "integration_observer_core.py", "test_observer_attribution.py"):
-        run(f"Merge blocker regressions ({filename})",
-            [sys.executable, "-m", "unittest", "discover", "-s", "tools/regression-checks",
-             "-p", filename], env)
-    run("Go selection execution (integration_selection_go_runtime.py)",
-        [sys.executable, "-m", "unittest", "discover", "-s", "tools/regression-checks",
-         "-p", "integration_selection_go_runtime.py"], env)
+        discover(f"Merge blocker regressions ({filename})", "regression-checks", filename, env)
     # All build outputs live outside the checkout, including on failed checks.
     with tempfile.TemporaryDirectory(prefix="jaekit-verify-") as temporary:
         output = Path(temporary)
@@ -212,12 +210,7 @@ def verify_docs(env: dict[str, str]):
                              ("Windows candidate packaging regressions", "windows"),
                              ("Goal check regressions", "goal-checks"),
                              ("Release acceptance checker regressions", "release-checks")):
-        run(label, [sys.executable, "-m", "unittest", "discover", "-s", f"tools/{directory}",
-                    "-p", "test_*.py"], env)
-    for filename in ("integration_selection_go.py", "integration_selection_go_identifiers.py", "integration_selection_go_layout.py", "integration_selection_python.py"):
-        run(f"Static selection regressions ({filename})",
-            [sys.executable, "-m", "unittest", "discover", "-s", "tools/regression-checks",
-             "-p", filename], env)
+        discover(label, directory, "test_*.py", env)
 
 
 def prepare_shells(env: dict[str, str]):

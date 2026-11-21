@@ -9,18 +9,13 @@ become declared violations. Runtime errors, expected-failure decorators and
 skipped cases do not provide positive evidence.
 
 The ordinary regression classes are offline and use the repository's developer
-prerequisites. `preservation.py` also queries public release identity and runs
-standard verification; its optional local retention input is explicit and is
-never searched for automatically. `delivery.py` reads the public issues and
-review replies for the specified PR. These two acceptance commands require
-authenticated GitHub reads and are excluded from ordinary CI.
+prerequisites.
 
 ## Explicit local retention audit
 
-`preservation.py --retention INPUT.json` retains the existing public checks after
-checking the explicitly supplied local input. Add `--retention-only` to inspect
-only that input offline; the flag requires `--retention`. With neither option,
-the existing public preservation checks run without searching for local records.
+`preservation.py --retention INPUT.json` checks only the explicitly supplied
+local input, offline; `--retention-only` is accepted and means the same. Without
+`--retention` it exits 2. It never searches for local records.
 
 The input contains an absolute `checkout` and a nonempty `documents` map from
 relative file paths to lowercase SHA-256 digests. A supplied `runs.jsonl` is

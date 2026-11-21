@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Goal observer for regression registry reachability, discovery, sources, scope and environment.
+"""Goal observer that runs a selected unittest class from tools/regression-checks.
 
-Each criterion runs selected common regressions from tools/regression-checks in a
-child process. A run is the criterion's violation only when every failing case
-directly calls self.fail with that criterion's [violation:...] prefix. Untagged
-failures, errors, skips, expected failures, unexpected successes and an empty
-selection remain errors.
+The criterion runs its selection in a child process. A run is the criterion's
+violation only when every failing case directly calls self.fail with that
+criterion's [violation:...] prefix. Untagged failures, errors, skips, expected
+failures, unexpected successes and an empty selection remain errors.
 """
 import json
 import os
@@ -16,12 +15,6 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 SELECTIONS = {
     "AC-1": ("unreachable-selection-counted", ["test_map.ReachableSelection"]),
-    "AC-2": ("selector-not-discoverable", ["test_map.DiscoverableSelectors"]),
-    "AC-3": ("private-source-accepted", ["test_map.PublicSources"]),
-    "AC-4": ("invariant-scope-hidden", ["test_map.InvariantScope"]),
-    "AC-5": ("discovery-environment-differs", ["test_checker.LocalToolchain",
-                                               "test_checker.Runner.test_selected_file_loads_real_sibling_dependency"]),
-    "AC-6": ("archive-guidance-misleading", ["test_map.PackagedGuidance"]),
 }
 RUNNER = r'''
 import json, re, sys, unittest

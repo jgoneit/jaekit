@@ -5,7 +5,7 @@ These contracts define the current document formats and status computation of Sp
 - [Goal documents](goal-docs.md): the Markdown that Spec writes and Seal reads
 - [Execution bundle](bundle.md): plan, progress and completion report
 - [Run record](run-record.md): `ha` commands, `run/v1`, `status/v1`, rule versions
-- [Shared regression links](regressions.md): the product paths of I1–I5, protected regressions and open gaps
+- [Shared regression links](regressions.md): invariants I1–I5 and the protected tests that guard them
 - [Role of the Seal executor](role-card.md): permissions and completion rules
 - [Spar input format](spar-input.md): the format of every input field `spar` accepts, the results for input outside the format, and their consumers (G1–G33)
 - [Spar configuration](spar-config.md): location and format of `spar.toml`, reviewer presets, the scope of project configuration

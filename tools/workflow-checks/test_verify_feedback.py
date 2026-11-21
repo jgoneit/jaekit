@@ -29,11 +29,7 @@ NOT_STARTED = re.compile(r"^FAIL: verification stopped before any check started 
 DOCS_LABELS = ["Public file boundary", "Public documentation", "Public checker regressions",
                "Workflow regressions", "Native CI checker regressions", "Release archive regressions",
                "Windows candidate packaging regressions", "Goal check regressions",
-               "Release acceptance checker regressions",
-               "Static selection regressions (integration_selection_go.py)",
-               "Static selection regressions (integration_selection_go_identifiers.py)",
-               "Static selection regressions (integration_selection_go_layout.py)",
-               "Static selection regressions (integration_selection_python.py)"]
+               "Release acceptance checker regressions"]
 
 
 class Observed(unittest.TestCase):

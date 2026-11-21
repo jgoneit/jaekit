@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Public checks and an explicit, read-only checkout retention audit."""
+"""An explicit, read-only checkout retention audit."""
 import argparse
 import hashlib
 import json
@@ -101,26 +101,17 @@ def audit_retention(config):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--retention", type=Path)
-    parser.add_argument("--retention-only", action="store_true", help="audit explicit local input without public release checks")
+    parser.add_argument("--retention", type=Path, required=True)
+    parser.add_argument("--retention-only", action="store_true", help="audit only the explicit input (the only mode)")
     args = parser.parse_args(argv)
-    if args.retention_only and not args.retention:
-        parser.error("--retention-only requires --retention")
-    if args.retention:
-        try:
-            config = decode(read_bytes(args.retention, "retention input"), "retention input")
-            documents, logs = audit_retention(config)
-        except RetentionProblem as error:
-            print(f"FAIL: retention {error.kind}: {error}", file=sys.stderr)
-            return error.status
-        print(f"PASS: retained local documents {documents}, recorded outputs {logs}; selected checkout only")
-    if args.retention_only:
-        return 0
-    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
-    for key in ("HA_EVIDENCE_PATH", "HA_EVIDENCE_INVOCATION", "HA_EVIDENCE_DECLARATION_DIGEST"):
-        env.pop(key, None)
-    return subprocess.run([sys.executable, "-m", "unittest", "discover", "-s",
-                           "tools/review-checks", "-p", "test_preservation.py"], env=env).returncode
+    try:
+        config = decode(read_bytes(args.retention, "retention input"), "retention input")
+        documents, logs = audit_retention(config)
+    except RetentionProblem as error:
+        print(f"FAIL: retention {error.kind}: {error}", file=sys.stderr)
+        return error.status
+    print(f"PASS: retained local documents {documents}, recorded outputs {logs}; selected checkout only")
+    return 0
 
 
 if __name__ == "__main__":

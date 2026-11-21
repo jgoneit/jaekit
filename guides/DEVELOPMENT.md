@@ -58,6 +58,8 @@ skill마다 단어 상한이 있다. 앞머리를 포함해 공백으로 나눈 
 python3 tools/verify.py
 ```
 
+보호 시험은 [contracts/regressions.json](../contracts/regressions.json)에 있고, 추가하는 방법은 [공통 규칙과 회귀 검사 연결](../contracts/regressions.md)에 있습니다. 보호 시험을 지우거나 약하게 하려면 PR에 사용자의 말이 있어야 합니다.
+
 ## 더 읽을 것
 
 - [CI 결과 읽기](CI.md): PR과 main에서 도는 검사와 환경별 관측 범위

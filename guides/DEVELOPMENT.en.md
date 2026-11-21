@@ -58,6 +58,8 @@ After a change, run the common checks from the repository root. The tools they n
 python3 tools/verify.py
 ```
 
+Protected tests are listed in [contracts/regressions.json](../contracts/regressions.json); [Common regression connections](../contracts/regressions.md) says how to add one. Deleting or weakening a protected test needs the user's words in the pull request.
+
 ## What to read next
 
 - [Reading CI results](CI.en.md): the checks that run on pull requests and main, and what each environment observes
