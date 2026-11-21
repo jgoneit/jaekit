@@ -25,7 +25,7 @@ The executor decides the plan, the breakdown, the work order and the use of suba
 - When the start request allows test changes, record the interpretation with `--test-authority`. When you edit or move an existing test inside the recorded scope, record the condition ID, how it is checked and the moved path with `ha note test-change`. A weakening change and a change outside the scope need user confirmation.
 - When you ask an outcome-changing question and wait, record `ha note wait`; when you continue without an answer, record `ha note resume`. Only reported waits are left out of the budget's elapsed time. Keep doing independent work while you wait.
 - When fixing the run conditions lets you look again at an input that went past the error limit, record `ha note recover`. It is allowed twice per condition and input; after that, the user's `allow-recovery` is needed. Earlier failures and unexpected passes remain.
-- Within the run limit the user pre-approved, raise the limit for a reason alone. When a command needs longer than 900 seconds, set up to 2 hours in PLAN `## 시간 제한`.
+- In a goal started under `run-rules/4` through `run-rules/7`, within the run limit the user pre-approved, raise the limit for a reason alone. When a command needs longer than 900 seconds, set up to 2 hours in PLAN `## 시간 제한`.
 
 **Selected assurance policy**
 - Leave a condition that lacks a required assurance unfinished, and hold completion. Record the cause, the affected conditions, the missing evidence and the resolution condition, and continue independent work within the existing authority and budget. An unobserved optional comparison is not the same as missing required evidence.

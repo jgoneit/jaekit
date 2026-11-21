@@ -142,6 +142,30 @@ func TestParseDuration(t *testing.T) {
 	}
 }
 
+// Under run-rules/8 an absent `경과 시간` is no problem; an unreadable one still is.
+func TestRules8ElapsedTimeOptional(t *testing.T) {
+	for line, want := range map[string]bool{"": false, "- 경과 시간: 언젠가\n": true} {
+		root := t.TempDir()
+		write(t, root, "g/SPEC.md", spec)
+		write(t, root, "g/PLAN.md", "## 예산\n- 검증 실행: 50\n"+line)
+		g, err := goaldocs.Load(root, "g")
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := LoadForRules(root, g, "run-rules/8")
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := false
+		for _, p := range b.Problems {
+			got = got || p.Code == "budget_missing"
+		}
+		if got != want {
+			t.Errorf("run-rules/8 with %q: budget_missing = %t; want %t", line, got, want)
+		}
+	}
+}
+
 func write(t *testing.T, root, rel, content string) {
 	t.Helper()
 	p := filepath.Join(root, rel)

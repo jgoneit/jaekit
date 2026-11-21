@@ -48,7 +48,7 @@ Usage:
   ha lint   <goal>
   ha estimate <goal> [AC-n | EX-n | T001 ...] [--baseline] [--rules <version>] [--format md|json]
   ha start  <goal> --request <quote> [--skill <path to SKILL.md> [--check-skill]]
-                   [--rules run-rules/4|run-rules/5|run-rules/6|run-rules/7] [--test-authority <agent interpretation>]
+                   [--rules run-rules/4|run-rules/5|run-rules/6|run-rules/7|run-rules/8] [--test-authority <agent interpretation>]
                    [--host-name <name>] [--host-version <version>] [--model <model>]
   ha check  <goal> [AC-n | EX-n | T001 ...] [--baseline]
   ha budget <goal> --runs <total> --from <old-total> --window <seq> --revision <seq>
@@ -62,16 +62,16 @@ Usage:
   ha note   <goal> reopen --quote <user words>
   ha note   <goal> input --quote <user words>
   ha note   <goal> test-change tests:<path> --criteria <AC-n,...> --how <how it is checked>
-                   [--moved-to <path> ...] [--weakened]                   (run-rules/4 to /7)
+                   [--moved-to <path> ...] [--weakened]                   (run-rules/4 to /8)
   ha note   <goal> check-change checks:<path> --reason <finding ID, or condition and reason>
                                                                           (run-rules/7)
-  ha note   <goal> wait --reason <decision asked>                         (run-rules/4 to /7)
-  ha note   <goal> resume                                                 (run-rules/4 to /7)
+  ha note   <goal> wait --reason <decision asked>                         (run-rules/4 to /8)
+  ha note   <goal> resume                                                 (run-rules/4 to /8)
   ha note   <goal> recover <AC-n> --input check|baseline --change <changed condition>
-                                                                          (run-rules/4 to /7)
+                                                                          (run-rules/4 to /8)
   ha note   <goal> allow-recovery <AC-n> --input check|baseline --count <n> --quote <user words>
-                                                                          (run-rules/4 to /7)
-  ha note   <goal> review --gate <review-gate/v1 file>                    (run-rules/5 to /7)
+                                                                          (run-rules/4 to /8)
+  ha note   <goal> review --gate <review-gate/v1 file>                    (run-rules/5 to /8)
   ha finding <goal> [--input <JSON file>] [--format json|md]
   ha status <goal> [--format md|json]
   ha done   <goal> [--format md|json]

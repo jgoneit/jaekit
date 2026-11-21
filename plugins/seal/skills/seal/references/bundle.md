@@ -24,15 +24,15 @@ Other files in the goal directory, such as check scripts or fixtures, are code: 
 - `ID`: every `AC-n` from the goal documents exactly once. Do not restate the criterion text. Extra checks of your own are `EX-n` and are always optional.
 - `종류`: `change` (new behavior), `maintain` (existing behavior kept), `manual` (cannot be checked by machine here).
 - `검증 명령`: one code span, run from the repository root as argv without a shell. No pipes, redirects, `&`, `;`, `$`, or backquotes. Quote words with spaces. Point to a script in the repository when more is needed. For `manual`, write `—` and the reason.
-- `검사 경로`: the check files that decide the condition, comma separated, no globs. Required for `change`: the baseline copies exactly these files from HEAD onto the base commit.
+- `검사 경로`: the check files that decide the condition, comma separated, no globs. Required for `change`: up to `run-rules/7` the baseline copies exactly these files from HEAD onto the base commit; under `run-rules/8` it copies the check paths of every marked change condition plus the recorded condition's own.
 - `Task`: the task IDs that implement the condition.
 
-For `run-rules/7`, an optional final `baseline` column marks the change conditions that require a baseline:
+For `run-rules/7` and `run-rules/8`, an optional final `baseline` column marks the change conditions that require a baseline:
 
 | ID | 종류 | 검증 명령 | 검사 경로 | Task | baseline |
 | --- | --- | --- | --- | --- | --- |
 
-Write `요구` for a required baseline, exactly on the marked conditions whose reasons `REVIEW.md` gives ([REVIEW.md](#reviewmd)); an empty cell or `—` means no baseline requirement. Without the column, no change condition is marked. `요구` on a non-change row or any other value is a `baseline_marker` lint problem. The five-column table remains valid, and goals under earlier rules keep their baseline requirements regardless of these marks. Check paths remain required for every change condition, including unmarked ones, for structured results, review and the check freeze.
+Write `요구` for a required baseline, exactly on the marked conditions whose reasons `REVIEW.md` gives ([REVIEW.md](#reviewmd)); an empty cell or `—` means no baseline requirement. Without the column, no change condition is marked. `요구` on a non-change row or any other value is a `baseline_marker` lint problem. The five-column table remains valid, and goals under earlier rules keep their baseline requirements regardless of these marks. Check paths remain required for every change condition, including unmarked ones, for structured results, review and, under `run-rules/7`, the check freeze; `run-rules/8` has no check freeze.
 
 Lint rules: every goal criterion appears once; every condition has a task; every task is grounded in a condition or is a prerequisite of another task; no dependency cycles; `change` has a command and check paths; `maintain` has a command; `manual` has a reason.
 
@@ -61,7 +61,7 @@ The declaration and every `producer_paths` input must be tracked regular files w
 ### `## 예산`
 
 - `검증 실행: <n>` — runs of `ha check`, baselines included, per budget window. `검증 실행: 자동` lets `ha start` set the limit to `max(50, ⌈minimum × 1.5⌉)`; Seal writes it when the user gives no budget. When that limit exceeds the user's pre-approved limit, the start stops with no record and shows both limits: ask the user once and write the approved number here. Seal never writes the pre-approved limit setting itself
-- `경과 시간: <duration>` — such as `4시간`, `90분`, `2h30m`, measured between record timestamps
+- `경과 시간: <duration>` — such as `4시간`, `90분`, `2h30m`, measured between record timestamps; under `run-rules/8` it is optional and informational
 - `비용: <limit or 미관측>`
 
 PLAN budget values initialize a goal. Editing them does not change an active budget. Under `/3`, a recorded `budget_change` changes only the current window's total run limit and retains usage and elapsed time. Increases require a user quote and context; decreases require a reason. Under `/3`, an explicit `reopen` carries the latest run limit and the original time limit into a new window; [run-record.md §4.7](https://github.com/jgoneit/jaekit/blob/v0.1.8/contracts/run-record.md#47-run-rules4) defines the run limit of a reopened `/4` window. `/1` and `/2` retain their original start limit. See [ha.md](ha.md).
@@ -132,7 +132,7 @@ A dedicated producer of a marked change condition reports none of those four inp
 
 Runner adapters classify input failures themselves under the check-result contract; the executor does not choose separate classifications for them. Preserve the [assurance policy's distinctions](#assurance-policy-and-counterexamples) in records and reports.
 
-**Check freeze.** Under `run-rules/7`, the freeze head is the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`, in the recorded latest gate's order, excluding dry runs. A `light` goal, a goal without a tier, or a gate without that round has no freeze.
+**Check freeze.** Under `run-rules/7`, the freeze head is the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`, in the recorded latest gate's order, excluding dry runs. A `light` goal, a goal without a tier, a gate without that round, or a `run-rules/8` goal has no freeze, and the freeze steps below do not apply to it.
 
 The frozen files are the check declarations, producers, tests, helpers and settings listed in the condition table's check paths, from every row that lists any. Include all these inputs in the condition table, including those of unmarked conditions.
 

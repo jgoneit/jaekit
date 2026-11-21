@@ -71,7 +71,7 @@ Every field above is required except `formats.timing`, `formats.assurance_tier`,
 | `preapproved-runs/v1` | `run-rules/4`'s pre-approved limit and increases within it that need only a reason (§6) |
 | `error-recovery/v1` | `run-rules/4`'s `recover` and `allow-recovery`, and the display of recovery counts (§6) |
 | `command-time-limits/v1` | `run-rules/4`'s PLAN `## 시간 제한`, the applied limit in the command digest, and notice before running (§6) |
-| `runner-adapters/v1` | An optional extension that classifies `go test -json` standard output and JUnit XML directly through `check-adapter/v1` declarations of `/3`, `/4` and `/5` change conditions (§7) |
+| `runner-adapters/v1` | An optional extension that classifies `go test -json` standard output and JUnit XML directly through `check-adapter/v1` declarations of `/3` through `/8` change conditions (§7) |
 | `report/v1` | A report for people (`ha report`, [Run record](run-record.md) §1.3) that, without changing records and by the same computation as `ha status`, shows a five-line summary, a stamp, the evidence per condition and the completion coverage |
 | `doctor/v1` | An execution environment check (`ha doctor`, [Run record](run-record.md) §1.4) that runs the check commands of PLAN `## 실행 환경` with a fixed 60-second limit and records nothing |
 | `auto-budget/v1` | Computation of the start limit for PLAN `검증 실행: 자동`, the pre-approved limit in user configuration, refusal of a start above that limit, and its display in `ha estimate` (§8, [Run record](run-record.md) §1.5) |

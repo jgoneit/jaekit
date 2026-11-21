@@ -199,9 +199,9 @@ When items remain that the agent cannot decide on its own, it asks along with th
 ## Blocks and budget
 
 - **`blocked`**: Stopped due to expired authentication, denied permissions, usage limits, or similar issues. Read the clearing conditions recorded by the agent, resolve the cause, and tell the agent to continue.
-- **`budget_exhausted`**: Exceeded the budget for check run count or elapsed time. Review remaining work and which limit was exceeded, then decide whether to allocate more.
+- **`budget_exhausted`**: Exceeded the budget for check run count or, up to `run-rules/7`, elapsed time. Review remaining work and which limit was exceeded, then decide whether to allocate more.
 
-`run-rules/4` and later follow the `/3` budget rules below while separately setting pre-approved limits, reported waits, and limits for resumed windows. For those differences, see [Autonomy (run-rules/4)](USAGE.en.md#autonomy-run-rules4) and the [run record contract](../contracts/run-record.md#47-run-rules4). `run-rules/6` also excludes time after completion as described below.
+`run-rules/4` and later follow the `/3` budget rules below while separately setting reported waits, limits for resumed windows and, up to `run-rules/7`, pre-approved limits. For those differences, see [Autonomy (run-rules/4)](USAGE.en.md#autonomy-run-rules4) and the [run record contract](../contracts/run-record.md#47-run-rules4). `run-rules/6` also excludes time after completion as described below.
 
 In `/3`, to use more runs only, change the total run limit of the current window:
 - For example, if usage is 48 runs against a limit of 50 runs, changing the limit to 100 gives 48 used and 52 remaining.

@@ -549,7 +549,7 @@ func (l *loader) readBudget(doc *markdown.Doc, file string, timed bool) {
 	if !ok {
 		return
 	}
-	haveRuns, haveTime := false, false
+	haveRuns, haveTime, wroteTime := false, false, false
 	// A `검증 실행` item with a number keeps its meaning (the last one wins);
 	// `자동` applies only when no item gives a number.
 	numeric, auto := false, false
@@ -569,6 +569,7 @@ func (l *loader) readBudget(doc *markdown.Doc, file string, timed bool) {
 				auto = true
 			}
 		case "경과 시간":
+			wroteTime = true
 			if d, ok := ParseDuration(value); ok && d > 0 {
 				l.b.Budget.ElapsedSeconds = int64(d / time.Second)
 				haveTime = true
@@ -583,7 +584,8 @@ func (l *loader) readBudget(doc *markdown.Doc, file string, timed bool) {
 	if !haveRuns {
 		l.problem("budget_missing", file, 0, "`## 예산` needs `검증 실행: <positive number>`")
 	}
-	if !haveTime && timed {
+	// Without timed rules the line may be absent, but a written one must read.
+	if !haveTime && (timed || wroteTime) {
 		l.problem("budget_missing", file, 0, "`## 예산` needs `경과 시간: <duration>` such as 4시간, 90분, or 2h30m")
 	}
 }

@@ -58,7 +58,7 @@ An optional `baseline` column may be added at the end; the five-column table rem
 | AC-2 | change | `python3 checks/format.py` | checks/format.py | T001 | — |
 ```
 
-`요구` on a row other than `change`, or a value other than `요구`, `—` or empty, is a `baseline_marker` lint problem. The column and lint apply regardless of rule version, but `run-rules/1` through `run-rules/6` ignore marks for judgment and keep their baseline requirement, default selection, minimum and output. `/7` judges by the current PLAN's marks. The difference between the marks at the start and the current marks is read from the report in [Run record](run-record.md) §4.10.
+`요구` on a row other than `change`, or a value other than `요구`, `—` or empty, is a `baseline_marker` lint problem. The column and lint apply regardless of rule version, but `run-rules/1` through `run-rules/6` ignore marks for judgment and keep their baseline requirement, default selection, minimum and output. `/7` and `/8` judge by the current PLAN's marks. The difference between the marks at the start and the current marks is read from the report in [Run record](run-record.md) §4.10.
 
 ### 2.1.1 Result contract (`## 결과 계약`)
 
