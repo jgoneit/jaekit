@@ -875,13 +875,14 @@ func sbMarkSkillTokens(t *testing.T, id string, tokens ...string) {
 	}
 }
 
-// sbTmplSection is a section of the PROGRESS template; a template without it
-// fails the test as a broken setup.
-func sbTmplSection(t *testing.T, heading string) string {
+// sbTmplSummary is the PROGRESS template's `## 검수 요약`; a template without
+// it, or without a `## ` line after it, fails the test as a broken setup.
+func sbTmplSummary(t *testing.T) string {
 	t.Helper()
-	sec, ok := sbSection(read(t, skProgressTmpl), heading)
-	if !ok {
-		t.Fatalf("%s has no section %q", skProgressTmpl, heading)
+	text := read(t, skProgressTmpl)
+	sec, ok := sbSection(text, sbSummary)
+	if !ok || !strings.Contains(text, sec+"\n## ") {
+		t.Fatalf("%s has no section %q followed by a `## ` line", skProgressTmpl, sbSummary)
 	}
 	return sec
 }
@@ -891,7 +892,7 @@ func sbTmplSection(t *testing.T, heading string) string {
 // reported with the marker.
 func sbNeedSub(t *testing.T, id, heading string, tokens ...string) {
 	t.Helper()
-	sub, ok := sbSection(sbTmplSection(t, sbSummary), heading)
+	sub, ok := sbSection(sbTmplSummary(t), heading)
 	if !ok {
 		t.Errorf("jaekit:violation=%s: %s: %s has no %q", id, skProgressTmpl, sbSummary, heading)
 		return
@@ -936,7 +937,7 @@ func TestSealBundleReviewSummaryPlacement(t *testing.T) {
 // skill's documents name every heading and `없음`.
 func TestSealBundleReviewSummaryStructure(t *testing.T) {
 	const id = "seven-heading-template"
-	sec := sbTmplSection(t, sbSummary)
+	sec := sbTmplSummary(t)
 	if got := sbHeadings(sec, 3, sbPrefixFence); !slices.Equal(got, sbSummaryHeadings) {
 		t.Errorf("jaekit:violation=%s: %s: the headings of %s are %q, not %q", id, skProgressTmpl, sbSummary, got, sbSummaryHeadings)
 	}
@@ -945,6 +946,7 @@ func TestSealBundleReviewSummaryStructure(t *testing.T) {
 		opening = sec[:i]
 	}
 	sbMark(t, id, skProgressTmpl+" "+sbSummary+" before "+sbSummaryHeadings[0], opening, sbSummaryOpening...)
+	sbMark(t, id, skProgressTmpl+" "+sbSummary+" before "+sbSummaryHeadings[0], opening, "The four headings below follow")
 	sbMark(t, id, skProgressTmpl+" "+sbSummary, sec, "write `없음` under a heading with nothing to list")
 	sbNeedSub(t, id, sbSummaryHeadings[1], "the documents and sections that hold the detail")
 	sbMarkSkillTokens(t, id, append([]string{"없음"}, sbSummaryHeadings...)...)
@@ -1009,7 +1011,7 @@ func TestSealBundleReviewSummaryDecidersAndUnobserved(t *testing.T) {
 		"executor assumptions nobody was asked about",
 		"Mark an assumption that reads a SPEC sentence")
 	sbNeedSub(t, sbNoPlace, sbSummaryHeadings[3],
-		"Unobserved scope and substitutes",
+		"unobserved scope and substitutes",
 		"assurance `local`",
 		"the executor wrote the checks",
 		"not evidence of deployment, installation or a real model call")
@@ -1022,17 +1024,22 @@ func TestSealBundleReviewSummaryDecidersAndUnobserved(t *testing.T) {
 // completion report has a place in the review summary; the skill's
 // documents keep the tokens of both sections and of each place.
 func TestSealBundleCompletionReportPointsToSummary(t *testing.T) {
-	sbMark(t, sbNoPlace, skProgressTmpl+" ## 완료 보고", sbTmplSection(t, "## 완료 보고"),
+	// `## 완료 보고` is the template's last section: no line follows it.
+	report, ok := sbSection(read(t, skProgressTmpl), "## 완료 보고")
+	if !ok {
+		t.Fatalf("%s has no section %q", skProgressTmpl, "## 완료 보고")
+	}
+	sbMark(t, sbNoPlace, skProgressTmpl+" ## 완료 보고", report,
 		"add only one line pointing to `## 검수 요약`, which holds the judgment",
 		"When work stops, or for a goal started with an earlier Seal, below it, only judgment")
-	sbMark(t, sbNoPlace, skProgressTmpl+" "+sbSummary, sbTmplSection(t, sbSummary),
+	sbMark(t, sbNoPlace, skProgressTmpl+" "+sbSummary, sbTmplSummary(t),
 		"the condition each contributed to under `### 바뀐 것`",
-		"assumed open decisions",
+		"assumed open decisions under `### 근거` and `### 직접 볼 것`",
 		"`manual` conditions under `### 직접 볼 것`",
 		"the expected-result grounds, the actual observation boundary, the test method and the review stages actually taken",
 		"the review each required and the one followed) under `### 근거`",
 		"the unobserved scope and substitute environments under `### 보지 않은 것`",
-		"where the independent review results are",
+		"where the independent review results are under `### 근거`",
 		"whether the head to be sent or merged is the completion record's commit, with the fact that the completion does not cover a difference unless `ha status` at that head still names that completion record, in the opening lines")
 	sbMarkSkillTokens(t, sbNoPlace, append([]string{"## Completion report", "## 완료 보고", sbSummary, "manual", "ha status"},
 		sbSummaryHeadings...)...)

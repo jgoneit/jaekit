@@ -11,11 +11,11 @@
       }
     },
     {
-      "id": "ExampleNoOldHeadings",
+      "id": "ExampleFourHeadings",
       "violation": "seven-heading-template",
       "test": {
         "package": "github.com/jgoneit/jaekit/plugins",
-        "name": "TestReviewSummaryFourAC2_ExampleNoOldHeadings"
+        "name": "TestReviewSummaryFourAC2_ExampleFourHeadings"
       }
     }
   ]
