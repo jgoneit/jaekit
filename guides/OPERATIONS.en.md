@@ -93,7 +93,7 @@ Adding this marker to an existing goal changes the goal document. Therefore, pre
 
 ## What a failure before the change means
 
-Up to `run-rules/6`, a check for every change condition must show the **intended violation** before the change; under `run-rules/7`, this applies to a marked change condition. The mere fact that a command failed does not constitute pre-modification evidence.
+Up to `run-rules/6`, a check for every change condition must show the **intended violation** before the change; under `run-rules/7` and `run-rules/8`, this applies to a marked change condition. The mere fact that a command failed does not constitute pre-modification evidence.
 
 A `change` check must link declared targets and requirement violations through structured results. The following are not accepted as expected failures:
 - Missing dependencies
@@ -143,17 +143,17 @@ Current Seal starts new goals under `run-rules/8`, which keeps the baseline sele
 
 Only change conditions with `요구` in the condition table's optional `baseline` column require a baseline. An empty cell, `—`, or no column means none is required. Seal marks only two kinds: a bug fix or regression whose defect is already present at the base commit, and a prohibition such as "X does not happen". A condition that adds a new feature is not marked by default. REVIEW gives the reason for each marked condition before the plan round; an unmarked condition needs no reason. A goal already started keeps the marks it started with. Unmarked change conditions still need check paths and the structured result contract, but can link to tests of new functions without an entry point that also exists at base.
 
-The required minimum is marked required change × 2 + unmarked required change + required maintain (`표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain`). Manual conditions count as 0 runs. One marked change, four unmarked changes and three maintains, all required, need at least 9 runs; the automatic limit is `max(50, ⌈9 × 1.5⌉) = 50`. Before starting, view this with `ha estimate <goal> --rules run-rules/7`. Started goals use their saved rules and refuse a different `--rules`.
+The required minimum is marked required change × 2 + unmarked required change + required maintain (`표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain`). Manual conditions count as 0 runs. One marked change, four unmarked changes and three maintains, all required, need at least 9 runs; the automatic limit is `max(50, ⌈9 × 1.5⌉) = 50`. Before starting, view this with `ha estimate <goal> --rules run-rules/8`. Started goals use their saved rules and refuse a different `--rules`.
 
 With no target, `ha check <goal> --baseline` selects only marked change conditions, including marked optional conditions. With none marked, it refuses without a record. An explicitly named unmarked condition can also run a baseline, and actual runs count toward the budget. Fresh adverse results from that baseline still affect judgment. Seal records a marked condition's baseline once, after the last review round and right before the completion record. If that baseline passes or errs instead of showing the declared violation, Seal fixes the check, has the fixed check reviewed like fixed code, and records the baseline again. This reduces the habit of recording after every check fix; it does not make stale evidence fresh.
 
-Under `/7`, the "before any baseline" questions, `ha doctor` and the `strict` plan round all happen before the goal has any `ha check` record, current check or baseline, even when the goal needs no baseline. Seal gathers foreseeable questions before work; with nothing to ask, it proceeds.
+Under `/7` and `/8`, the "before any baseline" questions, `ha doctor` and the `strict` plan round all happen before the goal has any `ha check` record, current check or baseline, even when the goal needs no baseline. Seal gathers foreseeable questions before work; with nothing to ask, it proceeds.
 
 - An input failure—a missing target file, corrupt input, a tool that cannot start, or termination by a signal—is never a pass.
 - Checks that require no baseline (maintain, `EX-n`, task commands and unmarked change conditions) may count an input failure as a violation, error or inconclusive result; that alone is not a check defect. A failure recorded as a violation remains until the input changes.
 - A dedicated producer of a marked change condition reports none of them as a violation unless the result contract allows it, such as `missing: violation`; record that choice in `REVIEW.md` before the plan round, or before any review round when there is no plan round.
 
-Read the baseline requirement under the goal's rules: all change conditions require it up to `run-rules/6`, and only marked conditions do under `/7`. Runner adapters classify input failures themselves; the classifications and input-failure table of the [result contract](../contracts/check-result.md) stay unchanged.
+Read the baseline requirement under the goal's rules: all change conditions require it up to `run-rules/6`, and only marked conditions do under `/7` and `/8`. Runner adapters classify input failures themselves; the classifications and input-failure table of the [result contract](../contracts/check-result.md) stay unchanged.
 
 The check freeze uses the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`, in gate order among the last recorded gate's non-dry-run rounds. It covers declarations, producers, tests, helpers and settings in the condition table's check paths, from every row that lists any. Right after the freeze round, Seal records the gate and current condition table's check paths with `ha note <goal> review --gate <file>`. Without a gate note ending at that round, removed check paths are unobserved and status and report show `freeze-time condition table was not recorded`.
 
