@@ -35,6 +35,13 @@ ha check $GOAL --baseline AC-1
 expect-exit 0
 expect-record 10 result fail_as_expected
 expect-reasons AC-2:baseline_missing
+# Marking another change whose path is already in the union keeps it fresh.
+replace $GOAL/PLAN.md "checks/helper.sh | T001 | 요구 |\n" "checks/helper.sh | T001 | 요구 |\n| EX-1 | change | `sh checks/greeting.sh` | checks/greeting.sh | T001 | 요구 |\n"
+commit "EX-1 marked inside the union"
+ha status $GOAL
+expect-exit 1
+expect-output "- baseline required: AC-1, AC-2, EX-1"
+expect-reasons AC-2:baseline_missing
 replace $GOAL/PLAN.md "checks/helper.sh | T001 | 요구 |" "checks/helper.sh | T001 | — |"
 commit "AC-2 no longer marked"
 expect-reasons AC-1:baseline_missing

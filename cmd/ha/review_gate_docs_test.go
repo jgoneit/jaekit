@@ -270,13 +270,19 @@ func TestHaReviewGateAC13_SealCheckerNeedsTheNewRules(t *testing.T) {
 		}
 	}
 	// A stored run-rules/8 goal resumes, checks and changes its budget on this
-	// Core, and needs the review gate feature for it as /5 to /7 goals do.
+	// Core, needs the review gate feature for it as /5 to /7 goals do, and is
+	// refused by a Core that does not list run-rules/8.
 	goal := t.TempDir()
 	compatibilityWrite(t, filepath.Join(goal, "SPEC.md"), "# Synthetic goal\nStatus: Ready\n", 0o644)
 	compatibilityWrite(t, filepath.Join(goal, "runs.jsonl"), `{"schema":"run/v1","kind":"start","rules":"run-rules/8"}`+"\n", 0o644)
 	this := core(func(map[string]any) {})
 	noGate := core(func(m map[string]any) { m["features"] = without(m["features"].([]any), "review-gate/v1") })
+	noRules8 := core(func(m map[string]any) { m["supported_rules"] = without(m["supported_rules"].([]any), "run-rules/8") })
 	for _, operation := range []string{"resume", "check", "budget"} {
+		if code, report := decide(noRules8, "--operation", operation, "--goal", goal); code != 2 || report["reason"] != "unsupported_stored_rule" {
+			t.Errorf("jaekit:violation=%s %s of a stored run-rules/8 goal on a Core without run-rules/8: the helper decides exit %d, reason %v; want unsupported_stored_rule",
+				v, operation, code, report["reason"])
+		}
 		if code, report := decide(this, "--operation", operation, "--goal", goal); code != 0 || report["rules"] != "run-rules/8" {
 			t.Errorf("jaekit:violation=%s %s of a stored run-rules/8 goal on this Core: the helper decides exit %d, reason %v; want compatible", v, operation, code, report["reason"])
 		}
