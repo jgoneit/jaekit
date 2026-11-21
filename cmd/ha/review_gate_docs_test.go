@@ -359,7 +359,7 @@ func TestHaReviewGateAC14_RunRecordStatesRunRules8(t *testing.T) {
 		{"Elapsed time", "Informational only (§4.11)"},
 		{"Check freeze display", "None (§4.11)"},
 		{"Changing the run limit of the current window", "Same as `/3` (§4.11)"},
-		{"Baseline overlay", "Check paths of every marked change condition, plus the recorded condition's own (§4.11)"},
+		{"Baseline overlay", "Check paths of every marked change condition (§4.11)"},
 	} {
 		if got, ok := last[row[0]]; !ok || got != row[1] {
 			t.Errorf("jaekit:violation=%s the rules table row %q is missing or ends in %q; want %q", v, row[0], got, row[1])

@@ -13,3 +13,7 @@ ha check $GOAL --baseline AC-1
 expect-exit 0
 expect-record 2 result fail_as_expected
 expect-record 2 overlay "[{\"path\":\"checks/greeting.json\",\"digest\":\"d582cbfd842d22a03e134a79d602b03beb240fbdcafed167f4b98669b31c7074\"},{\"path\":\"checks/greeting.sh\",\"digest\":\"60ed541a73a57c55d874631955090fe603aee348ca12ad39c96fa2c2d6434351\"}]"
+# An explicit baseline of the unmarked AC-2 overlays only the marked union.
+ha check $GOAL --baseline AC-2
+expect-exit 0
+expect-record 3 overlay "[{\"path\":\"checks/greeting.json\",\"digest\":\"d582cbfd842d22a03e134a79d602b03beb240fbdcafed167f4b98669b31c7074\"},{\"path\":\"checks/greeting.sh\",\"digest\":\"60ed541a73a57c55d874631955090fe603aee348ca12ad39c96fa2c2d6434351\"}]"

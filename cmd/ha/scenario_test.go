@@ -295,7 +295,7 @@ func (s *scenario) writeRecords(st step, lines [][]byte, rechain bool) {
 }
 
 func fieldPattern(field string) *regexp.Regexp {
-	return regexp.MustCompile(`"` + regexp.QuoteMeta(field) + `":("(?:[^"\\]|\\.)*"|null|true|false|-?[0-9]+|\{[^{}]*\})`)
+	return regexp.MustCompile(`"` + regexp.QuoteMeta(field) + `":("(?:[^"\\]|\\.)*"|null|true|false|-?[0-9]+|\{[^{}]*\}|\[[^\[\]]*\])`)
 }
 
 func (s *scenario) progress(st step) {

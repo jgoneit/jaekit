@@ -22,6 +22,9 @@ expect-record 3 overlay "[{\"path\":\"checks/feature.json\",\"digest\":\"7e44403
 ha check $GOAL
 expect-exit 0
 expect-reasons none
+# A repeated path in place of an expected one is not the marked union.
+rewrite-record 2 overlay "[{\"path\":\"checks/feature.sh\",\"digest\":\"880843df37b77e542f3643bd58403e291ffc226985d204459afbd38fc255feb3\"},{\"path\":\"checks/feature.sh\",\"digest\":\"880843df37b77e542f3643bd58403e291ffc226985d204459afbd38fc255feb3\"},{\"path\":\"checks/greeting.json\",\"digest\":\"d582cbfd842d22a03e134a79d602b03beb240fbdcafed167f4b98669b31c7074\"},{\"path\":\"checks/greeting.sh\",\"digest\":\"4ae7422a2689d9b3b093c9ceb7e3ce51b7cfe0433263fa60eb8f992652918e7a\"},{\"path\":\"checks/helper.sh\",\"digest\":\"88824db90eb63fc3617726cacffa11a692eaa50bdd469cc213561db11cc81f92\"}]"
+expect-reasons AC-1:baseline_missing
 append checks/feature.sh "# AC-2's check, clarified.\n"
 commit "change only the AC-2 check"
 ha check $GOAL
