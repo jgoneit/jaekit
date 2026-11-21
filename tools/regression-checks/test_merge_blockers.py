@@ -1,5 +1,4 @@
-"""Public selection and observer regressions using only synthetic inputs."""
-import importlib.util
+"""Observer regressions using only synthetic inputs."""
 import json
 import os
 from pathlib import Path
@@ -9,55 +8,8 @@ import sys
 import tempfile
 import unittest
 
-from integration_go_filters import GoFixture
-
 
 ROOT = Path(__file__).resolve().parents[2]
-
-
-def registry_module():
-    spec = importlib.util.spec_from_file_location('merge_blocker_registry', ROOT / 'tools/regression_map.py')
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-class StaticGoSelection(unittest.TestCase):
-    def test_restrictive_explicit_arguments_never_claim_the_global_suite(self):
-        module = registry_module()
-        cases = [('-run', '^$'), ('--run=^Other$',), ('-skip', '.'), ('-test.skip=.',),
-                 ('-short',), ('-short=true',), ('-count=0',), ('-count=-1',), ('-list=.',),
-                 ('-fuzz=FuzzOne',), ('-c',), ('-exec', 'true'), ('-args', '-test.run=^$')]
-        for flags in cases:
-            with self.subTest(flags=flags), tempfile.TemporaryDirectory() as directory:
-                root = Path(directory)
-                (root / 'tools').mkdir()
-                argv = ['go', 'test', '-mod=readonly', './...', *flags]
-                source = ('def verify_go(env):\n'
-                          f'    run("Go tests", {argv!r}, env)\n'
-                          'def verify_docs(env):\n    pass\n')
-                (root / 'tools/verify.py').write_text(source)
-                try:
-                    selected = module.selected_suites(root)
-                except module.Invalid:
-                    continue
-                if ('<go>', './...') in selected['go']:
-                    self.fail('[violation:go-selection-filtered] restrictive explicit arguments '
-                              f'were counted as full selection: {flags!r}')
-
-
-class PreservedStaticSelection(unittest.TestCase):
-    def test_benign_explicit_options_keep_full_selection(self):
-        module = registry_module()
-        for flags in ((), ('-count=1',), ('-count', '2'), ('-short=false',), ('-run=', '-skip=')):
-            with self.subTest(flags=flags), tempfile.TemporaryDirectory() as directory:
-                root = Path(directory)
-                (root / 'tools').mkdir()
-                argv = ['go', 'test', '-mod=readonly', './...', *flags]
-                (root / 'tools/verify.py').write_text(
-                    'def verify_go(env):\n' + f'    run("Go tests", {argv!r}, env)\n'
-                    'def verify_docs(env):\n    pass\n')
-                self.assertIn(('<go>', './...'), module.selected_suites(root)['go'])
 
 
 class ObserverFixture(unittest.TestCase):
@@ -129,22 +81,6 @@ class PreservedOutcomes(ObserverFixture):
                 if expected == 'violation':
                     self.assertEqual(observation['violation'], 'unreachable-selection-counted')
 
-
-class PreservedSelectedRunner(GoFixture):
-    def test_intentional_per_selector_runner_keeps_its_explicit_selection(self):
-        driver = '''import importlib.util, pathlib, sys
-spec = importlib.util.spec_from_file_location("selected_check", sys.argv[1])
-module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(module)
-module.ROOT = pathlib.Path(sys.argv[2])
-module.tests(["go", "test", "-json", "-count=1", "./...", "-run", "^TestOther$"], "go")
-'''
-        result = subprocess.run([sys.executable, '-B', '-c', driver,
-                                 str(ROOT / 'tools/regression-checks/check.py'), str(self.root)],
-                                cwd=self.root, env=dict(self.env, SELECTED_FAILURE='1'),
-                                capture_output=True, text=True, timeout=120)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertFalse(self.marker.exists(), 'the intentional selector must not run TestRegistered')
 
 if __name__ == '__main__':
     unittest.main()

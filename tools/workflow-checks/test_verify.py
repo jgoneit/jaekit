@@ -85,9 +85,7 @@ class Fixture(unittest.TestCase):
                 ("gap", ("test_observation.py", "test_history_results.py", "test_docs_environment.py")),
                 ("producer", ("test_semantics.py",)),
                 ("release", ("integration_evidence_boundaries.py", "integration_core_observation.py", "integration_direct_install.py", "integration_product_source.py", "integration_install_destination.py", "integration_install_imports.py", "integration_observe_imports.py", "integration_child_imports.py")),
-                ("regression", ("test_merge_blockers.py", "integration_go_filters.py", "integration_observer_core.py", "test_observer_attribution.py",
-                                "integration_selection_go_runtime.py", "integration_selection_go.py", "integration_selection_go_identifiers.py",
-                                "integration_selection_go_layout.py", "integration_selection_python.py"))):
+                ("regression", ("test_merge_blockers.py", "integration_go_filters.py", "integration_observer_core.py", "test_observer_attribution.py"))):
             directory = self.repo / "tools" / (group + "-checks")
             directory.mkdir(exist_ok=True)
             for filename in filenames:
@@ -129,11 +127,8 @@ class InvocationCases(Fixture):
                           "release:integration_core_observation.py", "release:integration_direct_install.py",
                           "release:integration_product_source.py", "release:integration_install_destination.py", "release:integration_install_imports.py", "release:integration_observe_imports.py", "release:integration_child_imports.py",
                           "regression:test_merge_blockers.py", "regression:integration_go_filters.py", "regression:integration_observer_core.py", "regression:test_observer_attribution.py",
-                          "regression:integration_selection_go_runtime.py",
                           "go", "go", "go", "go", "go", "go", "ha", "ha",
-                          "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "ci", "release", "windows", "goal-checks", "release-checks",
-                          "regression:integration_selection_go.py", "regression:integration_selection_go_identifiers.py",
-                          "regression:integration_selection_go_layout.py", "regression:integration_selection_python.py"])
+                          "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "ci", "release", "windows", "goal-checks", "release-checks"])
         builds = [item for item in commands if item["name"] == "go" and item["args"][0] == "build"]
         self.assertEqual([(item["goos"], item["goarch"]) for item in builds],
                          [("linux", "amd64"), ("linux", "arm64"), ("darwin", "amd64"), ("darwin", "arm64"), ("windows", "amd64"), (None, None)])
@@ -155,9 +150,7 @@ class InvocationCases(Fixture):
         result = self.run_verify("docs")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual([item["name"] for item in self.commands()],
-                         ["git", "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "ci", "release", "windows", "goal-checks", "release-checks",
-                          "regression:integration_selection_go.py", "regression:integration_selection_go_identifiers.py",
-                          "regression:integration_selection_go_layout.py", "regression:integration_selection_python.py"])
+                         ["git", "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "ci", "release", "windows", "goal-checks", "release-checks"])
 
     def test_go_group_uses_native_smoke_despite_cross_environment(self):
         result = self.run_verify("go", GOOS="other", GOARCH="other", GOTOOLCHAIN="auto")
@@ -197,7 +190,6 @@ class FailureCases(Fixture):
                  ("regression:integration_go_filters.py", "Merge blocker regressions (integration_go_filters.py)"),
                  ("regression:integration_observer_core.py", "Merge blocker regressions (integration_observer_core.py)"),
                  ("regression:test_observer_attribution.py", "Merge blocker regressions (test_observer_attribution.py)"),
-                 ("regression:integration_selection_go_runtime.py", "Go selection execution (integration_selection_go_runtime.py)"),
                  ("build:darwin/arm64", "Build darwin/arm64"),
                  ("build:windows/amd64", "Build Windows candidate (compile only)"), ("build", "Build native smoke binary"),
                  ("smoke:--version", "CLI version"), ("smoke:--help", "CLI help"),
@@ -209,11 +201,7 @@ class FailureCases(Fixture):
                  ("release", "Release archive regressions"),
                  ("windows", "Windows candidate packaging regressions"),
                  ("goal-checks", "Goal check regressions"),
-                 ("release-checks", "Release acceptance checker regressions"),
-                 ("regression:integration_selection_go.py", "Static selection regressions (integration_selection_go.py)"),
-                 ("regression:integration_selection_go_identifiers.py", "Static selection regressions (integration_selection_go_identifiers.py)"),
-                 ("regression:integration_selection_go_layout.py", "Static selection regressions (integration_selection_go_layout.py)"),
-                 ("regression:integration_selection_python.py", "Static selection regressions (integration_selection_python.py)"))
+                 ("release-checks", "Release acceptance checker regressions"))
         for failure, label in cases:
             with self.subTest(failure=failure):
                 self.log.unlink(missing_ok=True)

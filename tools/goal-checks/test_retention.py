@@ -174,13 +174,13 @@ class RetentionChecks(unittest.TestCase):
             self.assertIn("retention missing", result.stderr)
             self.assertNotIn("PASS", result.stdout)
             self.assertNotIn("Traceback", result.stderr)
-    def test_no_input_keeps_public_checks_and_only_option_requires_input(self):
-        with patch.object(consumer.subprocess, "run", return_value=SimpleNamespace(returncode=9)) as run:
-            self.assertEqual(consumer.main([]), 9)
-        self.assertIn("test_preservation.py", run.call_args.args[0])
-        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as err:
-            consumer.main(["--retention-only"])
-        self.assertEqual(err.exception.code, 2)
+    def test_the_audit_requires_an_explicit_input(self):
+        for argv in ([], ["--retention-only"]):
+            with self.subTest(argv=argv), patch.object(consumer.subprocess, "run") as run, \
+                    redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as err:
+                consumer.main(argv)
+            self.assertEqual(err.exception.code, 2)
+            run.assert_not_called()
     def test_inherited_git_override_cannot_redirect_selected_checkout(self):
         with repositories() as (primary, linked):
             config, _, _ = fixture(linked)
