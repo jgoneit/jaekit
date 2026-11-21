@@ -274,5 +274,38 @@ class NonMutationCases(Fixture):
                 self.assertEqual(list(self.repo.rglob("__pycache__")), [])
 
 
+class ZeroCollectionCases(Fixture):
+    """A discover step that collects no tests fails, names its directory and stops."""
+
+    def assert_collected_nothing(self, result, label, directory, pattern):
+        output = result.stdout + result.stderr
+        self.assertNotEqual(result.returncode, 0, output)
+        self.assertIn(f"FAIL: {label}", output)
+        message = f"collected no tests in tools/{directory}"
+        lines = [line for line in output.splitlines() if message in line]
+        self.assertTrue(lines, f"no line names {message!r}:\n{output}")
+        self.assertTrue(any(pattern in line for line in lines), f"{message!r} lacks the pattern {pattern!r}:\n{output}")
+        self.assertNotIn(f"PASS: {label}", output)
+        self.assertNotRegex(output, r"PASS: \w+ verification")
+        started = [line.removeprefix("RUN: ") for line in output.splitlines() if line.startswith("RUN: ")]
+        self.assertEqual(started[-1:], [label], "checks continued after a failure")
+
+    def test_docs_directory_without_tests_fails(self):
+        (self.repo / "tools/public-checks/test_fixture.py").unlink()
+        result = self.run_verify("docs")
+        self.assert_collected_nothing(result, "Public checker regressions", "public-checks", "test_*.py")
+        later = {"workflow-checks", "ci", "release", "windows", "goal-checks", "release-checks"}
+        self.assertEqual(later & {item["name"] for item in self.commands()}, set())
+
+    def test_go_file_step_without_tests_fails(self):
+        (self.repo / "tools/review-checks/test_installation.py").unlink()
+        result = self.run_verify("go")
+        self.assert_collected_nothing(result, "Review boundaries (test_installation.py)", "review-checks",
+                                      "test_installation.py")
+        # The step before it, whose file has a test, still passes.
+        self.assertIn("PASS: Review boundaries (test_observation.py)", result.stdout + result.stderr)
+        self.assertNotIn("review:test_producers.py", [item["name"] for item in self.commands()])
+
+
 if __name__ == "__main__":
     unittest.main()
