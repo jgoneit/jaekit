@@ -43,7 +43,7 @@ The bundle in `docs/specs/<goal>/` (templates in `assets/templates/`) lets anoth
 
 ## Check inputs
 
-Read [Check inputs](references/bundle.md#check-inputs) before writing or changing a check, its producer, or a file it reads. They apply to every check written or changed under this skill, whichever Seal started the goal. They never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md`.
+Read [Check inputs](references/bundle.md#check-inputs) before writing or changing a check, its producer, or a file it reads. They apply to every check written or changed under this skill, whichever Seal started the goal. They never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md` for this reason alone.
 
 ## Assurance policy
 

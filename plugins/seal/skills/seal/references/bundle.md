@@ -201,7 +201,7 @@ The review section follows the skill's review timing: a plan round, when the tie
 
 ### Evidence and observation scope
 
-Existing goals retain their starting format; absent fields mean unrecorded, not failed or unexecuted. Never convert old records or invent past observations.
+Goals use these additions in their existing review and report. Existing goals retain their starting format; absent fields mean unrecorded, not failed or unexecuted. Never convert old records or invent past observations.
 
 - **Expected-result grounds**: the requirement, public contract or agreed invariant, with its location. If observed behavior or a reference implementation is the chosen standard, name the agreement and scope supporting that choice. Execution or a fake's expected value is not the authority for correctness.
 - **Planned observation boundary**: the shell, DB, HTTP, model or other boundary and scope to observe; include only environments that affect the condition. Distinguish planned, not performed, and observed.
