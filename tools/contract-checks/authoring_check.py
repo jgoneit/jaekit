@@ -468,7 +468,9 @@ def observe(root, suite, criterion):
         require(HA, checker.clause_text(root, HA),
                 ("| `out_of_scope` | user | Files changed since base outside `바꿀 수 있는 경로` |",), "Reasons")
     if criterion == "AC-3":
-        require(HA, checker.clause_text(root, HA), ("Runs `change` conditions on a temporary worktree of the base commit with check paths copied from HEAD",), "Commands")
+        require(HA, checker.clause_text(root, HA), (
+            "Runs `change` conditions on a temporary worktree of the base commit with check paths copied from HEAD: "
+            "up to `/7` the condition's own, under `/8` those of every marked change condition",), "Commands")
         require("cmd/ha/baseline.go", read(root, "cmd/ha/baseline.go"), ("baselineFiles",), "baseline overlay")
     if criterion == "AC-8":
         skill = version(read(root, SKILL))

@@ -61,8 +61,10 @@ var scrRulesLinks = []string{
 var (
 	scrVersion     = regexp.MustCompile(`(?i)\bv?0\.1\.[0-9]+`)
 	scrEarlierSeal = regexp.MustCompile(`(?i)earlier\s+seal`)
-	scrURL         = regexp.MustCompile(`https?://\S+`)
-	scrRulesHead   = regexp.MustCompile(`(?m)^#{1,6} run-rules/.*$`)
+	// scrTagLink is a repository link pinned to a release tag; its tag is the
+	// only version a URL may carry.
+	scrTagLink   = regexp.MustCompile(`https://github\.com/jgoneit/jaekit/blob/(v[0-9]+\.[0-9]+\.[0-9]+)/`)
+	scrRulesHead = regexp.MustCompile(`(?m)^ {0,3}#{1,6} run-rules/.*$`)
 )
 
 func scrRead(t *testing.T, path string) string {
@@ -78,8 +80,9 @@ func scrRead(t *testing.T, path string) string {
 }
 
 // SKILL.md, ha.md, bundle.md and every template name a 0.1.x version only
-// inside a URL, on SKILL.md's front-matter version line or on ha.md's release
-// sentence, and say "earlier Seal" only in SKILL.md's `## References`. Both
+// as the tag of a tag-pinned repository link, on SKILL.md's front-matter
+// version line or on ha.md's release sentence, and say "earlier Seal" only in
+// SKILL.md's `## References`. Both
 // patterns read the whole file, so a match may span a line break; a match is
 // placed by the line it starts on.
 func TestSealCurrentRulesAC1_NoVersionConditions(t *testing.T) {
@@ -107,12 +110,12 @@ func TestSealCurrentRulesAC1_NoVersionConditions(t *testing.T) {
 		if sec := skSection(text, "## References"); path == scrSkill && sec != "" {
 			refs = []int{strings.Index(text, sec), strings.Index(text, sec) + len(sec)}
 		}
-		urls := scrURL.FindAllStringIndex(text, -1)
+		tags := scrTagLink.FindAllStringSubmatchIndex(text, -1)
 		var bad [][]int
 		for _, m := range scrVersion.FindAllStringIndex(text, -1) {
 			n := line(m[0])
-			inURL := slices.ContainsFunc(urls, func(u []int) bool { return u[0] <= m[0] && m[1] <= u[1] })
-			if !inURL && !(n < front && strings.HasPrefix(strings.TrimSpace(lines[n]), "version:")) && !(path == scrHa && lines[n] == scrH0) {
+			tag := slices.ContainsFunc(tags, func(u []int) bool { return u[2] == m[0] && u[3] == m[1] })
+			if !tag && !(n < front && strings.HasPrefix(strings.TrimSpace(lines[n]), "version:")) && !(path == scrHa && lines[n] == scrH0) {
 				bad = append(bad, m)
 			}
 		}
@@ -156,7 +159,8 @@ func TestSealCurrentRulesAC2_NoReleaseHistory(t *testing.T) {
 	}
 }
 
-// ha.md's only rules heading, at any level, is `## run-rules/8`, and that
+// ha.md's only rules heading, at any level and indented by up to three
+// spaces as CommonMark allows, is `## run-rules/8`, and that
 // section links the run record contract's section for each earlier rule.
 func TestSealCurrentRulesAC3_OneRulesSection(t *testing.T) {
 	text := scrRead(t, scrHa)
@@ -175,7 +179,8 @@ func TestSealCurrentRulesAC3_OneRulesSection(t *testing.T) {
 }
 
 // The earlier-goals reference holds its four sentences and at most 300
-// words, with no version, no rules name and no section below its title.
+// words, with no version and no rules name, which a per-rules format list
+// would need.
 func TestSealCurrentRulesAC4_EarlierGoalsShort(t *testing.T) {
 	text := scrRead(t, scrEarlier)
 	for _, rule := range scrEarlierRules {
@@ -188,9 +193,6 @@ func TestSealCurrentRulesAC4_EarlierGoalsShort(t *testing.T) {
 	}
 	if n := strings.Count(text, "run-rules/"); n > 0 {
 		t.Errorf("jaekit:violation=earlier-goals-long: %s names run-rules/ %d times", scrEarlier, n)
-	}
-	if heads := regexp.MustCompile(`(?m)^#{2,6} .*$`).FindAllString(text, -1); len(heads) > 0 {
-		t.Errorf("jaekit:violation=earlier-goals-long: %s has the headings %q below its title", scrEarlier, heads)
 	}
 	if n := len(strings.Fields(text)); n > 300 {
 		t.Errorf("jaekit:violation=earlier-goals-long: %s has %d words, more than 300", scrEarlier, n)

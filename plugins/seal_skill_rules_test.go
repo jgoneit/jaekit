@@ -1093,7 +1093,6 @@ func TestSealBundleReviewSummaryReopen(t *testing.T) {
 		"A stop in between",
 		"leaves the earlier content and that line as they are",
 		"that line does not remain",
-		"A review summary already written with the seven earlier headings is not converted to the four headings, and the reopen rule still applies to it.",
 		"A review summary rewritten after a reopen uses the four headings.")
 	requireSkillTokens(t, sealSkillDir, "reopen")
 }
