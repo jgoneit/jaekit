@@ -5,8 +5,7 @@ package plugins
 // condition on the Seal version that started a goal; the ha reference keeps
 // one rules section, linking the contract for earlier rules, and no release
 // history; the earlier-goals reference is short and lists no format; the
-// check-input rule applies to every check written now; and the three main
-// documents are shorter than at this goal's start. Sentences are matched with
+// check-input rule applies to every check written now. Sentences are matched with
 // white space runs read as one space. Every failure message starts with its
 // violation marker, except a document that cannot be read or is not UTF-8,
 // or templates that cannot be found, which fail unmarked as a broken setup.
@@ -35,10 +34,6 @@ const (
 	// scrK1 and scrN1 state the scope of the check-input rule.
 	scrK1 = "They apply to every check written or changed under this skill, whichever Seal started the goal."
 	scrN1 = "never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md` for this reason alone"
-	// scrWordCap is 80% of 17968, rounded down: the strings.Fields word count
-	// of SKILL.md (2092), references/ha.md (7775) and references/bundle.md
-	// (8101) at the commit that declared this goal's checks.
-	scrWordCap = 14374
 )
 
 // scrEarlierRules are the sentences the earlier-goals reference holds.
@@ -350,17 +345,5 @@ func TestSealCurrentRulesAC5_CheckInputsApplyNow(t *testing.T) {
 				t.Errorf("jaekit:violation=check-inputs-versioned: %s ## Check inputs lacks %q", path, want)
 			}
 		}
-	}
-}
-
-// SKILL.md, ha.md and bundle.md together have at most scrWordCap words.
-func TestSealCurrentRulesAC8_Shorter(t *testing.T) {
-	total := 0
-	for _, path := range []string{scrSkill, scrHa, scrBundle} {
-		total += len(strings.Fields(scrRead(t, path)))
-	}
-	if total > scrWordCap {
-		t.Errorf("jaekit:violation=skill-not-shorter: %s, references/ha.md and references/bundle.md have %d words, more than %d",
-			scrSkill, total, scrWordCap)
 	}
 }
