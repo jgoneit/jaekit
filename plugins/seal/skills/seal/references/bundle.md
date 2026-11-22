@@ -24,15 +24,15 @@ Other files in the goal directory, such as check scripts or fixtures, are code: 
 - `ID`: every `AC-n` from the goal documents exactly once. Do not restate the criterion text. Extra checks of your own are `EX-n` and are always optional.
 - `종류`: `change` (new behavior), `maintain` (existing behavior kept), `manual` (cannot be checked by machine here).
 - `검증 명령`: one code span, run from the repository root as argv without a shell. No pipes, redirects, `&`, `;`, `$`, or backquotes. Quote words with spaces. Point to a script in the repository when more is needed. For `manual`, write `—` and the reason.
-- `검사 경로`: the check files that decide the condition, comma separated, no globs. Required for `change`: the baseline copies the check paths of every marked change condition from HEAD onto the base commit.
+- `검사 경로`: the check files that decide the condition, comma separated, no globs. Required for `change`: the baseline copies from HEAD onto the base commit the check paths of every marked change condition under `run-rules/8`, or the condition's own before it.
 - `Task`: the task IDs that implement the condition.
 
-An optional final `baseline` column marks the change conditions that require a baseline:
+From `run-rules/7` on, an optional final `baseline` column marks the change conditions that require a baseline:
 
 | ID | 종류 | 검증 명령 | 검사 경로 | Task | baseline |
 | --- | --- | --- | --- | --- | --- |
 
-Write `요구` for a required baseline, exactly on the marked conditions whose reasons `REVIEW.md` gives ([REVIEW.md](#reviewmd)); an empty cell or `—` means no baseline requirement. Without the column, no change condition is marked. `요구` on a non-change row or any other value is a `baseline_marker` lint problem. The five-column table remains valid. Check paths remain required for every change condition, marked or not, for structured results and review.
+Write `요구` for a required baseline, exactly on the marked conditions whose reasons `REVIEW.md` gives ([REVIEW.md](#reviewmd)); an empty cell or `—` means no baseline requirement. Without the column, no change condition is marked. `요구` on a non-change row or any other value is a `baseline_marker` lint problem. The five-column table remains valid, and before `run-rules/7` every change condition requires a baseline whatever its mark. Check paths remain required for every change condition, marked or not, for structured results, review and the `/7` check freeze.
 
 Lint rules: every goal criterion appears once; every condition has a task; every task is grounded in a condition or is a prerequisite of another task; no dependency cycles; `change` has a command and check paths; `maintain` has a command; `manual` has a reason.
 
@@ -40,7 +40,7 @@ Behavior that must be preserved belongs in the goal documents as a required crit
 
 ### `## 결과 계약`
 
-For every change condition, map `ID | 선언 경로` in a Markdown table. The repository-relative JSON declaration identifies required targets, expected violations and the producer. Include the declaration and every producer/configuration file in `검사 경로` so the baseline receives them. See [ha.md](ha.md) for the report contract and actual reference producer. Generic runner nonzero exits alone are insufficient. Ordinary maintain, manual and task checks keep their roles.
+For change conditions from `/3` on, map `ID | 선언 경로` in a Markdown table. The repository-relative JSON declaration identifies required targets, expected violations and the producer. Include the declaration and every producer/configuration file in `검사 경로` so the baseline receives them. See [ha.md](ha.md) for the report contract and actual reference producer. Generic runner nonzero exits alone are insufficient. Ordinary maintain, manual and task checks keep their roles.
 
 The declaration and every `producer_paths` input must be tracked regular files whose bytes match HEAD. Commit them before checking; do not put the product behavior being changed among the overlaid check files. An undeclared change command can still run and record `unknown`, but cannot establish change completion. The template is a starting point: replace its placeholders with a producer that actually observes the criterion. No particular runner or adapter is required. Where the Core supports it, the declaration may instead choose a runner adapter (`check-adapter/v1`) that links each target to an existing test, without producer files ([ha.md](ha.md#structured-change-results)).
 
@@ -49,7 +49,7 @@ The declaration and every `producer_paths` input must be tracked regular files w
 - `바꿀 수 있는 경로:` code-span globs relative to the repository root (`**` matches any depth), with the SPEC section they come from. Changes outside them need the user's confirmation. List from the start every test and check file the plan will add, with its helper files, so adding them needs no scope confirmation; never list a path the goal documents say must not change.
 - `테스트 경로:` code-span globs of test definitions, or `(기본값)` for `tests/**`, `**/*_test.*`, `**/test_*.*`, `**/*.test.*`, `**/*.spec.*`. Editing or deleting a test that existed at base needs the user's confirmation.
 - `유지할 동작:` behavior to keep, from the SPEC's non-goals and current behavior.
-- `다른 목표 실행 묶음:` optional, only when a check reads other goals' bundle files (`PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl`, `tasks/`): ``- 다른 목표 실행 묶음: `검사 입력` (reason)``. Those files leave the code state; the declaration keeps them in, so a change to them makes this goal's results stale. `ha` reads it from the plan as it is when it computes or records, so adding or removing it is a plan change. Any other value is the lint problem `other_bundles_invalid`.
+- `다른 목표 실행 묶음:` optional, only when a check reads other goals' bundle files (`PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl`, `tasks/`): ``- 다른 목표 실행 묶음: `검사 입력` (reason)``. From `run-rules/2` on, those files leave the code state; the declaration keeps them in, so a change to them makes this goal's results stale. `ha` reads it from the plan as it is when it computes or records, so adding or removing it is a plan change. Any other value is the lint problem `other_bundles_invalid`.
 
 ### `## Task`
 
@@ -61,10 +61,10 @@ The declaration and every `producer_paths` input must be tracked regular files w
 ### `## 예산`
 
 - `검증 실행: <n>` — runs of `ha check`, baselines included, per budget window. `검증 실행: 자동` lets `ha start` set the limit to `max(50, ⌈minimum × 1.5⌉)`; Seal writes it when the user gives no budget. When that limit exceeds the user's pre-approved limit, the start stops with no record and shows both limits: ask the user once and write the approved number here. Seal never writes the pre-approved limit setting itself
-- `경과 시간: <duration>` — such as `4시간`, `90분`, `2h30m`, measured between record timestamps; optional and informational
+- `경과 시간: <duration>` — such as `4시간`, `90분`, `2h30m`, measured between record timestamps; a limit up to `run-rules/7`, optional and informational under `run-rules/8`
 - `비용: <limit or 미관측>`
 
-PLAN budget values initialize a goal. Editing them does not change an active budget. A recorded `budget_change` changes only the current window's total run limit and retains usage and elapsed time. Increases require a user quote and context; decreases require a reason. [run-record.md §4.7](https://github.com/jgoneit/jaekit/blob/v0.1.8/contracts/run-record.md#47-run-rules4) defines the run limit a reopened window starts with. See [ha.md](ha.md#budget-changes).
+PLAN budget values initialize a goal. Editing them does not change an active budget. From `/3` on, a recorded `budget_change` changes only the current window's total run limit and retains usage and elapsed time; increases require a user quote and context, decreases a reason. [Budget changes](ha.md#budget-changes) gives the limit a reopened window starts with, from `/4` on as [run-record.md §4.7](https://github.com/jgoneit/jaekit/blob/v0.1.8/contracts/run-record.md#47-run-rules4) defines.
 
 ### `## 실행 환경`
 
@@ -76,7 +76,7 @@ Same four groups as a task document.
 
 ## Questions for the user
 
-"Before any baseline" means before the goal has any `ha check` record, current check or baseline: foreseeable questions, `ha doctor` and the `strict` plan round all use this point, even when no condition requires a baseline.
+From `run-rules/7` on, "before any baseline" means before the goal has any `ha check` record, current check or baseline: foreseeable questions, `ha doctor` and the `strict` plan round all use this point, even when no condition requires a baseline.
 
 Before any baseline, once PLAN is written and `ha doctor` has run, gather every decision that the goal documents, the plan, the project instructions and the code already show and that the current rules leave to the user's words, and ask them all in one message. Typical decisions, not a complete list:
 
@@ -88,7 +88,7 @@ Before any baseline, once PLAN is written and `ha doctor` has run, gather every 
 
 Any other decision of that kind goes in the same message. Give each question its options, the recommended one leading, and what each answer changes. When a condition can be met only by the user's confirmation, such as a `manual` condition, the same message names it and what you will ask them to confirm at the end. With no such decision or condition, ask nothing and start the work; never ask whether anything else needs asking.
 
-An answer settles only what it says. A change outside the recorded authority or one that weakens a check still needs the user's confirmation, recorded with `ha note <goal> confirm`; asking early never replaces it. A confirmation binds to the content it names as that content is when recorded, so record an answer given up front as that confirmation once the change it allows is committed, quoting the answer, and do not ask about that change again. A later commit that changes the confirmed content is a new change: ask the user again, never re-recording the earlier quote for content they did not answer about. While you wait, record the wait and keep doing independent work ([waits](ha.md#run-rules8)); the budget is still asked once per PLAN.
+An answer settles only what it says. A change outside the recorded authority or one that weakens a check still needs the user's confirmation, recorded with `ha note <goal> confirm`; asking early never replaces it. A confirmation binds to the content it names as that content is when recorded, so record an answer given up front as that confirmation once the change it allows is committed, quoting the answer, and do not ask about that change again. A later commit that changes the confirmed content is a new change: ask the user again, never re-recording the earlier quote for content they did not answer about. While you wait, record the wait from `/4` on and keep doing independent work ([waits](ha.md#run-rules8)); the budget is still asked once per PLAN.
 
 Once the work has started, ask each question when it arises, such as a `requirement-question` from review, a round cap or a scope change nobody could foresee; questions pending at the same moment go in one message. Ask for the confirmations completion needs in one message, once the results they confirm exist.
 
@@ -122,13 +122,13 @@ History in a synthetic repository the check builds itself, such as a temporary f
 
 **Change conditions and the baseline.** A `change` violation on the base commit is observed only by Core's baseline run: `ha check --baseline` runs the condition on a temporary worktree of the base commit with the check paths copied from HEAD. Check code never checks out, reads or compares the base commit to imitate that run. For a condition requiring a baseline, it observes the required property in whatever tree it runs on, so it reports the declared violation on the base commit and a pass after the change.
 
-A marked change condition's baseline is recorded once, after the last review round and right before the completion record, not after every check fix during development. Running a check before implementation to see it fail is a working habit, not a record. When that baseline passes or errs instead of violating, the executor must fix the check; the fixed check is reviewed like fixed code, and then the executor must record the baseline again. A later change that makes required baseline evidence stale still needs fresh evidence; the freshness rules remain unchanged.
+From `run-rules/7` on, a marked change condition's baseline is recorded once, after the last review round and right before the completion record, not after every check fix during development. Running a check before implementation to see it fail is a working habit, not a record. When that baseline passes or errs instead of violating, the executor must fix the check; the fixed check is reviewed like fixed code, and then the executor must record the baseline again. A later change that makes required baseline evidence stale still needs fresh evidence; the freshness rules remain unchanged.
 
 **Input failures.** An input failure, whether a missing target file, corrupt input, a tool that cannot start or termination by a signal, is never a pass for any check.
 
-For checks that require no baseline (maintain, `EX-n`, task commands and unmarked change conditions), classifying an input failure as violation, error or inconclusive is not a check defect; a violation leaves its `fail` until the input changes. Maintain, `EX-n` and task commands still record by exit status, so their input failures must exit nonzero.
+For checks that require no baseline (maintain, `EX-n`, task commands and, from `run-rules/7` on, unmarked change conditions), classifying an input failure as violation, error or inconclusive is not a check defect; a violation leaves its `fail` until the input changes. Maintain, `EX-n` and task commands still record by exit status, so their input failures must exit nonzero.
 
-A dedicated producer of a marked change condition reports none of those four input failures as a violation unless the condition itself makes that case a violation and the result contract allows declaring it, such as a required file's absence with `missing: violation`. Write the four outcomes in `REVIEW.md` before the plan round, or before any review round when no plan round is taken. This producer rule follows the baseline requirement of the goal's saved rules.
+A dedicated producer of a change condition that requires a baseline (from `run-rules/7` on a marked one, before it every change condition) reports none of those four input failures as a violation unless the condition itself makes that case a violation and the result contract allows declaring it, such as a required file's absence with `missing: violation`. Write the four outcomes in `REVIEW.md` before the plan round, or before any review round when no plan round is taken.
 
 Runner adapters classify input failures themselves under the check-result contract; the executor does not choose separate classifications for them. Preserve the [assurance policy's distinctions](#assurance-policy-and-counterexamples) in records and reports.
 
@@ -171,7 +171,7 @@ Summaries point to a document and section. They never replace a criterion.
 
 ## REVIEW.md
 
-A change condition requires a baseline only in two cases: a bug fix or regression whose defect is already present at the base commit, and a prohibition such as "X does not happen". A condition that adds a new feature is not marked by default. Write the reason for each marked condition only; an unmarked condition needs no reason. The PLAN `baseline` column uses `요구` exactly on the conditions given a reason here; the `strict` plan round reviews the marks and their reasons too. `ha` does not lock the marks: it reads the current PLAN, and `ha report` lists marks removed since start under `직접 볼 것`.
+From `run-rules/7` on, a change condition requires a baseline only in two cases: a bug fix or regression whose defect is already present at the base commit, and a prohibition such as "X does not happen". A condition that adds a new feature is not marked by default. Write the reason for each marked condition only; an unmarked condition needs no reason. The PLAN `baseline` column uses `요구` exactly on the conditions given a reason here; the `strict` plan round reviews the marks and their reasons too. A goal already started keeps its marks: the executor neither adds nor removes marks to fit these two cases. `ha` does not lock the marks: it reads the current PLAN, and `ha report` lists marks removed since start under `직접 볼 것`.
 
 | Section | Check |
 | --- | --- |
@@ -185,7 +185,7 @@ A change condition requires a baseline only in two cases: a bug fix or regressio
 
 Supported input forms and check boundaries are written before the earliest review round of every tier: the plan round when the goal has one (`strict`, or a selected policy that asks for one), otherwise the earliest candidate round. When the goal documents name no forms for an open-ended criterion, ask for them in the one question before any baseline. When a review fix widens the inputs a check observes, widen its boundary record in the same step; narrowing one stays the user's decision.
 
-A plan round, when the tier or the selected policy asks for one, runs before any baseline; in a goal under review `ha done` waits for a cumulative round from the goal's base commit to the last head and, for `standard` or `strict`, for its recorded gate ([review gate](ha.md#run-rules8)), which the review section names by reference. Supported input forms are never narrower than a SPEC criterion, contract or protected regression path requires; narrowing them is the user's decision, and a finding about input outside them is `hardening`. Every round, from the plan round to the cumulative round, gets one `--question` per place, asking whether that place still keeps its invariant at head; the list adds places for reviewers to look at and never narrows what they read.
+A plan round, when the tier or the selected policy asks for one, runs before any baseline; in a goal under review `ha done` waits for a cumulative round from the goal's base commit to the last head and, for a `standard` or `strict` goal under `run-rules/5` or later, for its recorded gate ([review gate](ha.md#run-rules8)), which the review section names by reference. Supported input forms are never narrower than a SPEC criterion, contract or protected regression path requires; narrowing them is the user's decision, and a finding about input outside them is `hardening`. Every round, from the plan round to the cumulative round, gets one `--question` per place, asking whether that place still keeps its invariant at head; the list adds places for reviewers to look at and never narrows what they read.
 
 ### Evidence and observation scope
 
@@ -228,7 +228,7 @@ Optional. Append entries for events that change a judgment or the next action, s
 
 ## Review summary
 
-`## 검수 요약` is where the user starts reviewing a finished goal: what changed, why and on what evidence, and what to inspect by hand. The PROGRESS template's section holds its full form, as [contracts/bundle.md §5.4](https://github.com/jgoneit/jaekit/blob/main/contracts/bundle.md#54-review-summary) defines it: where each judgment item of the completion report goes, the minimum lists, the reopen rule and the reading rules. Write it once `ha done` records completion, as of that completion record, and rewrite it as of each new completion record after a reopen; before that the heading holds one line saying so, and at `needs_user`, `blocked` or `budget_exhausted`, `## 현재` and `## 완료 보고` carry the state. After a `reopen`, the earlier content stays until the next completion record, under one line naming the completion record (seq and commit) it is as of. `ha` does not read it.
+`## 검수 요약` is where the user starts reviewing a finished goal: what changed, why and on what evidence, and what to inspect by hand. The PROGRESS template's section holds its full form, as [contracts/bundle.md §5.4](https://github.com/jgoneit/jaekit/blob/main/contracts/bundle.md#54-review-summary) defines it: where each judgment item of the completion report goes, the minimum lists, the reopen rule and the reading rules. Write it once `ha done` records completion, as of that completion record, and rewrite it as of each new completion record after a reopen; before that the heading holds one line saying so, and at `needs_user`, `blocked` or `budget_exhausted`, `## 현재` and `## 완료 보고` carry the state. `ha` does not read it.
 
 1. Opening lines, with no heading: the completion record's seq and commit, the assurance tier, how many required conditions are satisfied, and the review gate result; what the change does; where to start looking; whether the head to be sent or merged is that commit.
 2. `### 바뀐 것`: a table `바뀐 동작 | 조건 | 파일` with a row for every file changed since the goal's base, goal documents excepted and check files included; then the changes outside the scope, to existing tests and to an earlier goal's checks, each with the user's words allowing it or the reason, or `없음`.
@@ -238,7 +238,7 @@ Optional. Append entries for events that change a judgment or the next action, s
 
 Write `없음` under a heading with nothing to list. A finding is its ID, one line and its ending; its text stays in Spar's records.
 
-When the user asked for a PR, build its description from `## 검수 요약`: the completion record's commit, the changed behavior and files, an evidence summary, every item of `### 직접 볼 것` as it stands, `### 보지 않은 것`, and what the project instructions require there, such as deferred findings and check boundaries. Leave out paths and links to goal documents, bundles and review records that Git does not track, and the raw user conversation, which a short description or a pointer to local records replaces. This adds no authority to create, change or push a PR, or to answer a review.
+When the user asked for a PR for a goal that has a `## 검수 요약`, build the completed goal's PR description from it: the completion record's commit, the changed behavior and files, an evidence summary, every item of `### 직접 볼 것` as it stands, `### 보지 않은 것`, and what the project instructions require there, such as deferred findings and check boundaries. Leave out paths and links to goal documents, bundles and review records that Git does not track, and the raw user conversation, which a short description or a pointer to local records replaces. This adds no authority to create, change or push a PR, or to answer a review.
 
 ## Assurance policy and counterexamples
 
@@ -246,7 +246,7 @@ REVIEW connects condition groups to risk (false-success impact, boundary, eviden
 
 Keep expected-result grounds, observed boundary, and methods and substitutes separate. A comparison identifies the same property, input scope, and environment, with the observed results and differences. A reachable real system alone does not require a call for every condition; the claimed property and policy decide. Prefer structured original evidence with identity links over inferred execution text; a fake result or a single real-model success does not establish the whole external contract.
 
-Record a separate review's condition, check and code versions, provided context, role, inspectable reference, findings or none, what was not performed, and limits. Its initial input is the goal, public contract, check and expected grounds, without the implementer's solution narrative; it may inspect implementation and integration code. Different names or models certify neither independence nor quality.
+Record a separate review's condition, check and code versions, provided context, role, inspectable reference, findings or none, what was not performed, and limits. Its initial input is the goal, public contract, check and expected grounds and need not contain the implementer's solution narrative; it may inspect implementation and integration code. Different names or models certify neither independence nor quality.
 
 Distinguish a candidate from reproduced counterexample: record its input, the expected violated condition, why the current check misses it, reproduction or rejection evidence, the repair and remaining gaps. A confirmed original-condition violation prevents completion; reporting risk alone does not repair it. Link the changed check to the missed general property, and generalize a regression to the shared input, state or boundary property, saying what it omits. A scope-changing proposal remains a decision, not automatic implementation.
 

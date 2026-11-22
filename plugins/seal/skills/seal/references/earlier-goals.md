@@ -2,7 +2,7 @@
 
 Read this only when you continue a goal that an earlier Seal started; the `skill:` line of `ha status` names the Seal that started it.
 
-Goal documents and bundle files keep the format they were started with; do not convert them. Never fill in observations an earlier form did not record: a field it lacks means unrecorded, not failed or unexecuted. Keep the PLAN's baseline marks as they are.
+Goal documents and bundle files keep the format they were started with; do not convert them. Never fill in observations an earlier form did not record: a field it lacks means unrecorded, not failed or unexecuted.
 
 `ha status` computes the state under the goal's own saved rules. Each `ha` command computes those rules or refuses them with exit 66 and records nothing; report a refusal. Installing a new Seal or Core never migrates a goal's saved rules or records and never resets its usage or time limits. The budget is the one its PLAN gave at the start, changed only through `ha budget`.
 

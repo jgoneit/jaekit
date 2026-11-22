@@ -38,7 +38,7 @@ The bundle in `docs/specs/<goal>/` (templates in `assets/templates/`) lets anoth
 
 - `ha check <goal> --baseline AC-n` observes a `change` condition's violation through the [structured result contract](references/ha.md#structured-change-results), never a nonzero exit alone; ordinary maintain, manual and task checks retain their roles. Only `ha check` results on a clean, committed tree count; a `fail` stays.
 - Choose the checks, runner and verification method. A structured result contract does not require an official adapter. Python 3 is not a prerequisite for Seal.
-- Act within the authority the start recorded without asking the user again ([details](references/ha.md#run-rules8)); a weakened check or a change outside it needs the user's confirmation.
+- From `run-rules/4` on, act within the authority the start recorded without asking the user again ([details](references/ha.md#run-rules8)); a weakened check or a change outside it needs the user's confirmation.
 - Existing `/1` and `/2` goals retain their result semantics. Do not require `/3` declarations for `/1` or `/2` goals or convert a goal; report an exit 66 refusal.
 
 ## Check inputs
@@ -60,7 +60,7 @@ Start reviewers from the initial contract, check, and expected-result grounds (t
 Spar owns how rounds run.
 
 - `REVIEW.md` states the product invariants and decision rules the change introduces or alters and, before the earliest review round of every tier, the supported forms of open-ended input a contract or check it adds or changes covers and each check's boundary, never narrower than a SPEC criterion, contract or protected regression path requires without the user's decision; ask in the question before any baseline when an open criterion has none, and when a fix widens a check, widen its boundary record in the same step. A `plan` round, if `strict` or the selected policy asks, comes before any baseline and also reviews them, as questions. Every round gets `REVIEW.md` as `--boundary`.
-- After review fixes, run one `candidate` round from the goal's base commit to the new head. The last such round that ends with no open `defect` or `requirement-question` is the cumulative round, and a goal under review runs `ha done` only after it. A `strict` goal takes one `plan` round before implementation; after it, the next `candidate` round reviews the current goal documents, and a change to the plan or checks alone needs nothing more. When SPEC.md or a goal document it links changed, Seal Core also needs the last `plan` round to have received them (`review_docs_stale`): ask the user to extend the plan cap (`spar extend <series> --stage plan --by 1 --user-quote "…"`) and run another `plan` round on the current head. Rounds take the goal's added or changed check files (declarations, producers, tests) as `--check-path` and all goal documents as criteria; `ha note <goal> review --gate <file>` records their `spar gate` before `ha done`.
+- After review fixes, run one `candidate` round from the goal's base commit to the new head. The last such round that ends with no open `defect` or `requirement-question` is the cumulative round, and a goal under review runs `ha done` only after it. A `strict` goal takes one `plan` round before implementation; after it, the next `candidate` round reviews the current goal documents, and a change to the plan or checks alone needs nothing more. When SPEC.md or a goal document it links changed, Seal Core also needs the last `plan` round to have received them (`review_docs_stale`): ask the user to extend the plan cap (`spar extend <series> --stage plan --by 1 --user-quote "…"`) and run another `plan` round on the current head. Rounds take the goal's added or changed check files (declarations, producers, tests) as `--check-path`; from `run-rules/5` on they take all goal documents as criteria, and for a `standard` or `strict` goal `ha note <goal> review --gate <file>` records their `spar gate` before `ha done`.
 - You decide dispositions: fix or rebut a `defect`; ask the user about a `requirement-question`; never fix a deferred `hardening` item without the user's words. A finding outside the supported forms is `hardening`; the contract's statement of the forms rebuts a `defect` label.
 - At a round cap, ask the user as the Spar skill says (`spar extend`); never pass it or skip the cumulative round without the user's words.
 - `REVIEW.md` and the report summarize Spar's round and gate records by reference, never copying findings.
@@ -84,7 +84,7 @@ When asked to continue, treat everything in the bundle as claims: `ha status <go
 
 ## Budget
 
-Lower a budget freely. Once started, only `ha budget` changes the run limit: an increase needs the user's words and context, a decrease a reason. [run-record.md §4.7](https://github.com/jgoneit/jaekit/blob/v0.1.8/contracts/run-record.md#47-run-rules4) sets the limit a reopened window starts with.
+Lower a budget freely. Once started, only `ha budget` changes the run limit: an increase needs the user's words and context, a decrease a reason. From `/4` on, [run-record.md §4.7](https://github.com/jgoneit/jaekit/blob/v0.1.8/contracts/run-record.md#47-run-rules4) sets the limit a reopened window starts with.
 
 ## Forbidden
 
