@@ -11,7 +11,7 @@ checker.REQUIREMENTS['finding-docs']={
          ('contracts/bundle.md',('candidate, confirmed, duplicate, rejected and resolved','the correction target','the number of unique confirmed defects'))],
  'AC-4':[(P+'SKILL.md',('does not authorize rework','explicit user request','does not change the execution budget')),
          ('contracts/role-card.md',('Writing down a finding alone','rework request','execution budget'))],
- 'AC-5':[(P+'references/bundle.md',('Seal 0.1.12','missing means unrecorded','Do not migrate','raw logs remain')),
+ 'AC-5':[(P+'references/bundle.md',('missing means unrecorded','Do not migrate','raw logs remain')),
          ('contracts/bundle.md',('Seal 0.1.12','read as unrecorded','Raw logs','structured queries'))],
  'AC-6':[(P+'SKILL.md',('document format','machine-verified finding state')),
          ('examples/verification-findings.md',('가상 형식 예시','실제 실행 기록이 아니다','## 당시 완료','## 발견 원본','## 후속 판단','## 현재 요약')),

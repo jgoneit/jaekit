@@ -38,12 +38,12 @@ The bundle in `docs/specs/<goal>/` (templates in `assets/templates/`) lets anoth
 
 - `ha check <goal> --baseline AC-n` observes a `change` condition's violation through the [structured result contract](references/ha.md#structured-change-results), never a nonzero exit alone; ordinary maintain, manual and task checks retain their roles. Only `ha check` results on a clean, committed tree count; a `fail` stays.
 - Choose the checks, runner and verification method. A structured result contract does not require an official adapter. Python 3 is not a prerequisite for Seal.
-- From `run-rules/4` on, act within the authority the start recorded without asking the user again ([details](references/ha.md#run-rules4)); a weakened check or a change outside it needs the user's confirmation.
+- From `run-rules/4` on, act within the authority the start recorded without asking the user again ([details](references/ha.md#run-rules8)); a weakened check or a change outside it needs the user's confirmation.
 - Existing `/1` and `/2` goals retain their result semantics. Do not require `/3` declarations for `/1` or `/2` goals or convert a goal; report an exit 66 refusal.
 
 ## Check inputs
 
-Read [Check inputs](references/bundle.md#check-inputs) before writing or changing a check, its producer, or a file it reads.
+Read [Check inputs](references/bundle.md#check-inputs) before writing or changing a check, its producer, or a file it reads. They apply to every check written or changed under this skill, whichever Seal started the goal. They never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md` for this reason alone.
 
 ## Assurance policy
 
@@ -59,7 +59,7 @@ Start reviewers from the initial contract, check, and expected-result grounds (t
 
 Spar owns how rounds run.
 
-- `REVIEW.md` states the product invariants and decision rules the change introduces or alters and, in goals started with seal 0.1.31 or later, before the earliest review round of every tier (in earlier goals, before any plan round), the supported forms of open-ended input a contract or check it adds or changes covers and each check's boundary, never narrower than a SPEC criterion, contract or protected regression path requires without the user's decision; ask in the question before any baseline when an open criterion has none, and when a fix widens a check, widen its boundary record in the same step. A `plan` round, if `strict` or the selected policy asks, comes before any baseline and also reviews them, as questions. Every round gets `REVIEW.md` as `--boundary`.
+- `REVIEW.md` states the product invariants and decision rules the change introduces or alters and, before the earliest review round of every tier, the supported forms of open-ended input a contract or check it adds or changes covers and each check's boundary, never narrower than a SPEC criterion, contract or protected regression path requires without the user's decision; ask in the question before any baseline when an open criterion has none, and when a fix widens a check, widen its boundary record in the same step. A `plan` round, if `strict` or the selected policy asks, comes before any baseline and also reviews them, as questions. Every round gets `REVIEW.md` as `--boundary`.
 - After review fixes, run one `candidate` round from the goal's base commit to the new head. The last such round that ends with no open `defect` or `requirement-question` is the cumulative round, and a goal under review runs `ha done` only after it. A `strict` goal takes one `plan` round before implementation; after it, the next `candidate` round reviews the current goal documents, and a change to the plan or checks alone needs nothing more. When SPEC.md or a goal document it links changed, Seal Core also needs the last `plan` round to have received them (`review_docs_stale`): ask the user to extend the plan cap (`spar extend <series> --stage plan --by 1 --user-quote "…"`) and run another `plan` round on the current head. Rounds take the goal's added or changed check files (declarations, producers, tests) as `--check-path` and, from `run-rules/5`, all goal documents as criteria; `ha note <goal> review --gate <file>` records their `spar gate` before `ha done`.
 - You decide dispositions: fix or rebut a `defect`; ask the user about a `requirement-question`; never fix a deferred `hardening` item without the user's words. A finding outside the supported forms is `hardening`; the contract's statement of the forms rebuts a `defect` label.
 - At a round cap, ask the user as the Spar skill says (`spar extend`); never pass it or skip the cumulative round without the user's words.
@@ -68,7 +68,7 @@ Spar owns how rounds run.
 ## Completion
 
 - Declare completion only when `ha done <goal>` exits 0 with a completion record, never on `ha status` alone; report it without waiting for the user to check the result.
-- The completion report is `ha report` output, pasted unchanged once `ha done` records completion or work stops, plus only judgment ([format](references/bundle.md#completion-report)): expected-result grounds, observed boundaries, methods and substitutes, and that it does not establish deployment, installation or real model calls; never `ha status` or `ha done` output. Assurance is `local`; the executor wrote the checks. At each completion record, judgment goes only to `## 검수 요약` after `## 현재`, never at stops ([format](references/bundle.md#review-summary)); `## 완료 보고` points there.
+- The completion report is `ha report` output, pasted unchanged once `ha done` records completion or work stops, plus only judgment ([format](references/bundle.md#completion-report)): expected-result grounds, observed boundaries, methods and substitutes, and that it does not establish deployment, installation or real model calls; never `ha status` or `ha done` output. Assurance is `local`; the executor wrote the checks. In a `PROGRESS.md` with `## 검수 요약`, at each completion record, judgment goes only to `## 검수 요약` after `## 현재`, never at stops ([format](references/bundle.md#review-summary)); `## 완료 보고` points there. A `PROGRESS.md` without it keeps the report format it started with ([contracts/bundle.md §6](https://github.com/jgoneit/jaekit/blob/main/contracts/bundle.md#6-completion-report)).
 - `needs_user`: ask the user about each listed item. `blocked` or `budget_exhausted`: stop and write in `PROGRESS.md` how to continue.
 - Once a completion record exists, take up the goal again only when the user asks for rework, such as applying a post-completion discovery or remote review comments: `reopen` quoting the request, fix, run one cumulative round if under review, re-record stale checks and `ha done` before the head is sent or merged.
 - Record the user's words with `ha note <goal> confirm <AC-n | scope:<path> | tests:<path> | spec> --quote "…"`, `reopen` or `input`.
@@ -80,7 +80,7 @@ Record later discoveries in the [document format](references/bundle.md#post-comp
 
 ## Resuming
 
-When asked to continue, treat everything in the bundle as claims: `ha status <goal>` computes the actual state. Trust the computed state, bring `PROGRESS.md` in line with it (restamp `## 현재`, append a `재개` entry). A goal started with an earlier Seal keeps its saved rules, formats and budget.
+When asked to continue, treat everything in the bundle as claims: `ha status <goal>` computes the actual state. Trust the computed state, bring `PROGRESS.md` in line with it (restamp `## 현재`, append a `재개` entry). A goal keeps its saved rules, formats and budget.
 
 ## Budget
 

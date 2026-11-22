@@ -29,6 +29,8 @@ HA = P + "references/ha.md"
 PLAN = P + "assets/templates/PLAN.md"
 REVIEW = P + "assets/templates/REVIEW.md"
 CONTRACT = "contracts/bundle.md"
+# The skill's check input rules apply to every check written now.
+APPLY_NOW = "They apply to every check written or changed under this skill, whichever Seal started the goal."
 
 # A section runs from its heading line to the next heading of the same or a
 # higher level. A row is the one table line whose first cell is the label.
@@ -109,10 +111,10 @@ CLAUSES = {
                       "The executor applies the rules and judges whether to fix existing checks")),
     ],
     "AC-8": [
-        ("skill", ("checks written or changed from Seal 0.1.14 on", "whichever Seal version started the goal",
-                   "never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md`")),
-        ("bundle", ("checks written or changed from that version on", "whichever Seal version started the goal",
-                    "never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md`")),
+        ("skill", (APPLY_NOW, "never require rewriting or converting an existing goal's checks, records, "
+                              "`PROGRESS.md` or `REVIEW.md` for this reason alone")),
+        ("bundle", (APPLY_NOW, "never require rewriting or converting an existing goal's checks, records, "
+                               "`PROGRESS.md` or `REVIEW.md` for this reason alone")),
         ("contract", ("apply to checks written or changed from Seal 0.1.14 on", "Which Seal version started the goal does not matter",
                       "never require rewriting or converting an existing goal's checks, records, PROGRESS or REVIEW")),
     ],
@@ -175,7 +177,7 @@ USER_POINTS = [
               "Close each with the user's quoted answer or an explicit assumption that the report repeats")),
 ]
 USER_REASONS = {"record_invalid", "error_limit", "manual_unconfirmed", "record_integrity",
-                "out_of_scope", "test_definition_changed", "spec_changed"}
+                "out_of_scope", "test_definition_changed", "spec_changed", "review_open_question"}
 ASKING = re.compile(r"(?i)\b(ask|asks|asking|approval|approve|confirmation|confirm|permission)\b"
                     r"|\b(?:question|quer(?:y|ie))(?:s|d|ed|ing)?(?=\s+(?:the\s+|a\s+|any\s+)?users?\b)"
                     r"|질문한다|질문하고|질문해|사용자에게 질문"
@@ -388,7 +390,7 @@ def changed_texts(root):
     Each text is named after the document that holds it, and each line of a
     document is scanned at most once, by its position. A skill document's
     section and its table rows are read in each document of the skill that has
-    the heading; then the lines naming Seal 0.1.14 in every document the
+    the heading; then the lines stating APPLY_NOW in every document the
     clause lookup reads, except those already read.
     """
     texts, covered = [], {}
@@ -422,7 +424,7 @@ def changed_texts(root):
                     texts.append((doc, lines[i]))
     for doc in documents(SKILL):
         texts.extend((doc, line) for i, line in enumerate((read(root, doc) or "").split("\n"))
-                     if "Seal 0.1.14" in line and i not in covered.get(doc, ()))
+                     if APPLY_NOW in line and i not in covered.get(doc, ()))
     return texts
 
 
@@ -466,7 +468,9 @@ def observe(root, suite, criterion):
         require(HA, checker.clause_text(root, HA),
                 ("| `out_of_scope` | user | Files changed since base outside `바꿀 수 있는 경로` |",), "Reasons")
     if criterion == "AC-3":
-        require(HA, checker.clause_text(root, HA), ("Runs `change` conditions on a temporary worktree of the base commit with their check paths copied from HEAD",), "Commands")
+        require(HA, checker.clause_text(root, HA), (
+            "Runs `change` conditions on a temporary worktree of the base commit with check paths copied from HEAD: "
+            "up to `/7` the condition's own, under `/8` those of every marked change condition",), "Commands")
         require("cmd/ha/baseline.go", read(root, "cmd/ha/baseline.go"), ("baselineFiles",), "baseline overlay")
     if criterion == "AC-8":
         skill = version(read(root, SKILL))
@@ -492,8 +496,6 @@ def observe(root, suite, criterion):
                 entries = []
             if [entry.get("version") for entry in entries if entry.get("name") == "seal"] != [want]:
                 problems.append(f"marketplace seal entry does not carry {want}")
-            if f"Seal {want}" not in (section(root, "skill") or ""):
-                problems.append(f"guidance does not name Seal {want} as its starting version")
     if criterion == "AC-9":
         for name, anchors in KEPT:
             require(name, checker.clause_text(root, name), anchors, "kept rules")

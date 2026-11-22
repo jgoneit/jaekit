@@ -1,0 +1,14 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "EarlierGoalsShort",
+      "violation": "earlier-goals-long",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/plugins",
+        "name": "TestSealCurrentRulesAC4_EarlierGoalsShort"
+      }
+    }
+  ]
+}

@@ -78,7 +78,7 @@ func TestRepeatFindingsAC7_BoundaryEveryRound(t *testing.T) {
 	text := rptDoc(t, rptSealBundle)
 	i := strings.Index(text, "**Decisions for review rounds.**")
 	if i < 0 {
-		t.Skipf("setup: %s has no example for review rounds", rptSealBundle)
+		t.Fatalf("jaekit:violation=%s %s has no example for review rounds", id, rptSealBundle)
 	}
 	block := text[i:]
 	if j := strings.Index(block, "```bash\n"); j >= 0 {
@@ -138,56 +138,20 @@ func TestRepeatFindingsAC9_LimitDocs(t *testing.T) {
 	rptRequire(t, "limit-undocumented", tokens)
 }
 
-// AC-14: the rules apply to goals by the Seal that started them: earlier
-// goals' REVIEW.md is not rewritten, the first-round rule applies to goals
-// started with this Seal or later, and boundary documents go to every round
-// this Seal runs.
+// AC-14: the rules apply to every goal this Seal carries: the first-round
+// rule and the boundary documents apply in every round it runs, and an
+// earlier goal's REVIEW.md keeps the format it started with.
 func TestRepeatFindingsAC14_EarlierGoals(t *testing.T) {
-	const id = "earlier-goal-rule-missing"
-	version := rptRuleSeal
-	rptRequire(t, id, map[string][]string{
-		rptSealSkill: {"in goals started with seal " + version + " or later, before the earliest review round", "(in earlier goals, before any plan round)",
-			"Every round gets `REVIEW.md` as `--boundary`"},
-		rptSealBundle: {
-			"goals started with seal " + version + " or later",
-			"goals started earlier write the forms before any plan round",
-			"`--boundary` in every round this Seal runs, whichever Seal started the goal",
-		},
+	rptRequire(t, "earlier-goal-rule-missing", map[string][]string{
+		rptSealSkill:  {"before the earliest review round", "Every round gets `REVIEW.md` as `--boundary`"},
+		rptSealBundle: {"before the earliest review round", "`--boundary` in every round this Seal runs, whichever Seal started the goal"},
+		scrEarlier:    {scrEarlierRules[0]},
 	})
-	text := rptDoc(t, rptSealBundle)
-	i := strings.Index(text, "goals started with seal "+version+" or later")
-	if i < 0 {
-		return
-	}
-	paragraph := text[i:]
-	if j := strings.Index(paragraph, "\n\n"); j >= 0 {
-		paragraph = paragraph[:j]
-	}
-	if !strings.Contains(paragraph, "never rewritten") {
-		t.Errorf("jaekit:violation=%s the paragraph of %s that names seal %s does not say earlier goals' REVIEW.md is never rewritten", id, rptSealBundle, version)
-	}
 }
 
-// rptRuleSeal is the Seal version that brought these rules. A later Seal
-// keeps them and their version line, so the checks name this version, not
-// the one in the skill's front matter.
-const rptRuleSeal = "0.1.31"
-
-// AC-15: the Seal version list has a line for the Seal version that brought
-// this change, which names it and says it makes no Core change.
-func TestRepeatFindingsAC15_Changelog(t *testing.T) {
-	const id = "changelog-entry-missing"
-	version := rptRuleSeal
-	var line string
-	for _, l := range strings.Split(rptDoc(t, rptSealHa), "\n") {
-		if strings.HasPrefix(l, "Seal "+version+" ") {
-			line = l
-		}
-	}
-	switch {
-	case line == "":
-		t.Errorf("jaekit:violation=%s %s has no line for Seal %s", id, rptSealHa, version)
-	case !strings.Contains(line, "`--boundary`") || !strings.Contains(line, "no Core change"):
-		t.Errorf("jaekit:violation=%s the line for Seal %s does not name `--boundary` and no Core change", id, version)
-	}
+// AC-15: the ha reference says every review round gets REVIEW.md as
+// `--boundary`, which needs no Core change.
+func TestRepeatFindingsAC15_BoundaryNeedsNoCore(t *testing.T) {
+	rptRequire(t, "boundary-core-statement-missing", map[string][]string{rptSealHa: {
+		"Every review round gets `REVIEW.md` as `--boundary`, which needs a Spar that takes `--boundary` and no Core change."}})
 }
