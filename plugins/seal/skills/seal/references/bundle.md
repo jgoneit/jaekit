@@ -295,6 +295,6 @@ Written once `ha done` records completion, or when work stops at `needs_user`, `
    - that the report does not establish deployment, installation or a real model call, that assurance is `local`, and that the executor wrote the checks;
    - how to continue, when not complete.
 
-Goals keep the report format they started with ([earlier-goals.md](earlier-goals.md)). Never paste verification output into any bundle file. Summarize the cause and point to `ha log <goal> <seq>`.
+Never paste verification output into any bundle file. Summarize the cause and point to `ha log <goal> <seq>`.
 
 In a `PROGRESS.md` with `## 검수 요약`, at completion `## 완료 보고` holds item 1 and one line pointing to `## 검수 요약`; item 2 lives only in `## 검수 요약` ([Review summary](#review-summary)). When work stops, both parts stay as above.
