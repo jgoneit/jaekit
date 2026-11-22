@@ -61,10 +61,10 @@ var scrRulesLinks = []string{
 var (
 	scrVersion     = regexp.MustCompile(`(?i)\bv?0\.1\.[0-9]+`)
 	scrEarlierSeal = regexp.MustCompile(`(?i)earlier\s+seal`)
-	// scrTagLink is a repository link pinned to a release tag; its tag is the
-	// only version a URL may carry.
-	scrTagLink   = regexp.MustCompile(`https://github\.com/jgoneit/jaekit/blob/(v[0-9]+\.[0-9]+\.[0-9]+)/`)
-	scrRulesHead = regexp.MustCompile(`^ {0,3}#{1,6}[ \t]run-rules/`)
+	// scrTagLink is a repository link pinned to a release tag, with the tag's
+	// version; that version is the only one a URL may carry.
+	scrTagLink   = regexp.MustCompile("https://github\\.com/jgoneit/jaekit/blob/v([0-9]+\\.[0-9]+\\.[0-9]+)/[^\\s)<>\\]`]*")
+	scrRulesHead = regexp.MustCompile(`^ {0,3}#{1,6}[ \t]+run-rules/`)
 )
 
 func scrRead(t *testing.T, path string) string {
@@ -80,11 +80,11 @@ func scrRead(t *testing.T, path string) string {
 }
 
 // SKILL.md, ha.md, bundle.md and every template name a 0.1.x version only
-// as the tag of a tag-pinned repository link, on SKILL.md's front-matter
-// version line or on ha.md's release sentence, and say "earlier Seal" only in
-// SKILL.md's `## References`. Both
-// patterns read the whole file, so a match may span a line break; a match is
-// placed by the line it starts on.
+// as the tag's version inside a tag-pinned repository link, on SKILL.md's
+// front-matter version line or on ha.md's release sentence, and say "earlier
+// Seal" only in SKILL.md's `## References`. Both patterns read the whole
+// file, so a match may span a line break; a match is placed by the line it
+// starts on.
 func TestSealCurrentRulesAC1_NoVersionConditions(t *testing.T) {
 	var files []string
 	err := filepath.WalkDir(sealSkillDir+"/assets/templates", func(path string, d fs.DirEntry, err error) error {
@@ -114,7 +114,9 @@ func TestSealCurrentRulesAC1_NoVersionConditions(t *testing.T) {
 		var bad [][]int
 		for _, m := range scrVersion.FindAllStringIndex(text, -1) {
 			n := line(m[0])
-			tag := slices.ContainsFunc(tags, func(u []int) bool { return u[2] == m[0] && u[3] == m[1] })
+			tag := slices.ContainsFunc(tags, func(u []int) bool {
+				return u[0] <= m[0] && m[1] <= u[1] && strings.TrimPrefix(strings.ToLower(text[m[0]:m[1]]), "v") == text[u[2]:u[3]]
+			})
 			if !tag && !(n < front && strings.HasPrefix(strings.TrimSpace(lines[n]), "version:")) && !(path == scrHa && lines[n] == scrH0) {
 				bad = append(bad, m)
 			}
@@ -146,8 +148,8 @@ func TestSealCurrentRulesAC1_NoVersionConditions(t *testing.T) {
 var (
 	scrFence   = regexp.MustCompile("^ {0,3}(`{3,}|~{3,})(.*)$")
 	scrHeading = regexp.MustCompile(`^ {0,3}(#{1,6})[ \t]+(.*)$`)
-	scrTitle   = regexp.MustCompile(`^ {0,3}#[ \t]`)
-	scrH2      = regexp.MustCompile(`^ {0,3}##[ \t]`)
+	scrTitle   = regexp.MustCompile(`^ {0,3}#[ \t]+`)
+	scrH2      = regexp.MustCompile(`^ {0,3}##[ \t]+`)
 )
 
 // scrFenced reports for each line whether it is a fence line or inside
@@ -230,8 +232,9 @@ func TestSealCurrentRulesAC2_NoReleaseHistory(t *testing.T) {
 }
 
 // ha.md's only rules heading outside fenced code, at any level, is
-// `## run-rules/8`, and that section has an inline link to each exact URL of
-// the run record contract's sections for the earlier rules.
+// `## run-rules/8`, and that section has an inline link, outside code spans,
+// to each exact URL of the run record contract's sections for the earlier
+// rules.
 func TestSealCurrentRulesAC3_OneRulesSection(t *testing.T) {
 	text := scrRead(t, scrHa)
 	lines := strings.Split(text, "\n")
@@ -245,7 +248,11 @@ func TestSealCurrentRulesAC3_OneRulesSection(t *testing.T) {
 	if len(heads) != 1 || !scrIsHeading(heads[0], "## run-rules/8") {
 		t.Errorf("jaekit:violation=ha-rules-sections: %s has the rules headings %q; want only %q", scrHa, heads, "## run-rules/8")
 	}
-	links := skillLink.FindAllStringSubmatch(scrSection(text, "## run-rules/8"), -1)
+	var links [][]string
+	for _, line := range strings.Split(scrSection(text, "## run-rules/8"), "\n") {
+		_, outside := skillSpans(line)
+		links = append(links, skillLink.FindAllStringSubmatch(outside, -1)...)
+	}
 	for _, want := range scrRulesLinks {
 		if !slices.ContainsFunc(links, func(m []string) bool { return m[1] == want }) {
 			t.Errorf("jaekit:violation=ha-rules-sections: %s ## run-rules/8 has no link to %s", scrHa, want)
@@ -253,13 +260,21 @@ func TestSealCurrentRulesAC3_OneRulesSection(t *testing.T) {
 	}
 }
 
-// The earlier-goals reference holds its four sentences and at most 300
-// words, with no version and no rules name, which a per-rules format list
-// would need.
+// The earlier-goals reference holds its four sentences outside fenced code
+// and at most 300 words, with no version and no rules name, which a
+// per-rules format list would need.
 func TestSealCurrentRulesAC4_EarlierGoalsShort(t *testing.T) {
 	text := scrRead(t, scrEarlier)
+	lines := strings.Split(text, "\n")
+	fenced := scrFenced(lines)
+	var prose []string
+	for i, line := range lines {
+		if !fenced[i] {
+			prose = append(prose, line)
+		}
+	}
 	for _, rule := range scrEarlierRules {
-		if !strings.Contains(skFlat(text), skFlat(rule)) {
+		if !strings.Contains(skFlat(strings.Join(prose, "\n")), skFlat(rule)) {
 			t.Errorf("jaekit:violation=earlier-goals-long: %s lacks %q", scrEarlier, rule)
 		}
 	}
