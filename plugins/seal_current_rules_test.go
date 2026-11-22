@@ -65,7 +65,46 @@ var (
 	// version; that version is the only one a URL may carry.
 	scrTagLink   = regexp.MustCompile("https://github\\.com/jgoneit/jaekit/blob/v([0-9]+\\.[0-9]+\\.[0-9]+)/[^\\s)<>\\]`]*")
 	scrRulesHead = regexp.MustCompile(`^ {0,3}#{1,6}[ \t]+run-rules/`)
+	// scrVersionKey is a front-matter `version:` key up to its value.
+	scrVersionKey = regexp.MustCompile(`^\s*version:\s*"?`)
+	// scrTicks is a backtick run; scrBlank is a blank line, which no code span
+	// crosses.
+	scrTicks = regexp.MustCompile("`+")
+	scrBlank = regexp.MustCompile(`\n[ \t]*\n`)
 )
+
+// scrUnspanned returns the submatch indexes of the matches of re in text, the
+// unfenced lines of a file or section joined with "\n", that no code span
+// encloses. A code span is a backtick run, its content and the next run of
+// the same length before a blank line; it may cross line breaks.
+func scrUnspanned(text string, re *regexp.Regexp) [][]int {
+	runs := scrTicks.FindAllStringIndex(text, -1)
+	var spans [][]int
+	for i := 0; i < len(runs); i++ {
+		for j := i + 1; j < len(runs) && !scrBlank.MatchString(text[runs[i][1]:runs[j][0]]); j++ {
+			if runs[j][1]-runs[j][0] == runs[i][1]-runs[i][0] {
+				spans, i = append(spans, []int{runs[i][0], runs[j][1]}), j
+				break
+			}
+		}
+	}
+	var out [][]int
+	for _, m := range re.FindAllStringSubmatchIndex(text, -1) {
+		if !slices.ContainsFunc(spans, func(s []int) bool { return s[0] <= m[0] && m[1] <= s[1] }) {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
+// scrSentence matches sentence with white space runs read as any white space.
+func scrSentence(sentence string) *regexp.Regexp {
+	words := strings.Fields(sentence)
+	for i, w := range words {
+		words[i] = regexp.QuoteMeta(w)
+	}
+	return regexp.MustCompile(strings.Join(words, `\s+`))
+}
 
 func scrRead(t *testing.T, path string) string {
 	t.Helper()
@@ -117,7 +156,9 @@ func TestSealCurrentRulesAC1_NoVersionConditions(t *testing.T) {
 			tag := slices.ContainsFunc(tags, func(u []int) bool {
 				return u[0] <= m[0] && m[1] <= u[1] && strings.TrimPrefix(strings.ToLower(text[m[0]:m[1]]), "v") == text[u[2]:u[3]]
 			})
-			if !tag && !(n < front && strings.HasPrefix(strings.TrimSpace(lines[n]), "version:")) && !(path == scrHa && lines[n] == scrH0) {
+			key := scrVersionKey.FindString(lines[n]) // the value right after it is SKILL.md's version
+			value := n < front && key != "" && m[0]-strings.LastIndex(text[:m[0]], "\n")-1 == len(key)
+			if !tag && !value && !(path == scrHa && lines[n] == scrH0) {
 				bad = append(bad, m)
 			}
 		}
@@ -248,21 +289,18 @@ func TestSealCurrentRulesAC3_OneRulesSection(t *testing.T) {
 	if len(heads) != 1 || !scrIsHeading(heads[0], "## run-rules/8") {
 		t.Errorf("jaekit:violation=ha-rules-sections: %s has the rules headings %q; want only %q", scrHa, heads, "## run-rules/8")
 	}
-	var links [][]string
-	for _, line := range strings.Split(scrSection(text, "## run-rules/8"), "\n") {
-		_, outside := skillSpans(line)
-		links = append(links, skillLink.FindAllStringSubmatch(outside, -1)...)
-	}
+	sec := scrSection(text, "## run-rules/8")
+	links := scrUnspanned(sec, skillLink)
 	for _, want := range scrRulesLinks {
-		if !slices.ContainsFunc(links, func(m []string) bool { return m[1] == want }) {
+		if !slices.ContainsFunc(links, func(m []int) bool { return sec[m[2]:m[3]] == want }) {
 			t.Errorf("jaekit:violation=ha-rules-sections: %s ## run-rules/8 has no link to %s", scrHa, want)
 		}
 	}
 }
 
 // The earlier-goals reference holds its four sentences outside fenced code
-// and at most 300 words, with no version and no rules name, which a
-// per-rules format list would need.
+// and code spans and at most 300 words, with no version and no rules name,
+// which a per-rules format list would need.
 func TestSealCurrentRulesAC4_EarlierGoalsShort(t *testing.T) {
 	text := scrRead(t, scrEarlier)
 	lines := strings.Split(text, "\n")
@@ -274,7 +312,7 @@ func TestSealCurrentRulesAC4_EarlierGoalsShort(t *testing.T) {
 		}
 	}
 	for _, rule := range scrEarlierRules {
-		if !strings.Contains(skFlat(strings.Join(prose, "\n")), skFlat(rule)) {
+		if len(scrUnspanned(strings.Join(prose, "\n"), scrSentence(rule))) == 0 {
 			t.Errorf("jaekit:violation=earlier-goals-long: %s lacks %q", scrEarlier, rule)
 		}
 	}
@@ -291,12 +329,12 @@ func TestSealCurrentRulesAC4_EarlierGoalsShort(t *testing.T) {
 
 // The check-input rule applies to every check written now and rewrites no
 // existing goal: SKILL.md's and bundle.md's `## Check inputs` both say so
-// outside fenced code.
+// outside fenced code and code spans.
 func TestSealCurrentRulesAC5_CheckInputsApplyNow(t *testing.T) {
 	for _, path := range []string{scrSkill, scrBundle} {
-		sec := skFlat(scrSection(scrRead(t, path), "## Check inputs"))
+		sec := scrSection(scrRead(t, path), "## Check inputs")
 		for _, want := range []string{scrK1, scrN1} {
-			if !strings.Contains(sec, skFlat(want)) {
+			if len(scrUnspanned(sec, scrSentence(want))) == 0 {
 				t.Errorf("jaekit:violation=check-inputs-versioned: %s ## Check inputs lacks %q", path, want)
 			}
 		}
