@@ -146,8 +146,9 @@ func TestSealCurrentRulesAC1_NoVersionConditions(t *testing.T) {
 			}
 		}
 		refs := []int{0, 0} // SKILL.md's `## References`, as a byte range
-		if sec := skSection(text, "## References"); path == scrSkill && sec != "" {
-			refs = []int{strings.Index(text, sec), strings.Index(text, sec) + len(sec)}
+		if start, end := scrSpan(lines, "## References"); path == scrSkill && start >= 0 {
+			at := func(n int) int { return len(strings.Join(lines[:n], "\n")) + min(n, 1) }
+			refs = []int{at(start), at(end)}
 		}
 		tags := scrTagLink.FindAllStringSubmatchIndex(text, -1)
 		var bad [][]int
@@ -220,26 +221,37 @@ func scrIsHeading(line, heading string) bool {
 	return m != nil && m[1] == marks && m[2] == text
 }
 
-// scrSection returns the lines outside fenced code from the first unfenced
-// heading line with heading's marks and text up to the next unfenced heading
-// of the same or a higher level; "" when there is no such line.
-func scrSection(text, heading string) string {
-	lines := strings.Split(text, "\n")
-	fenced := scrFenced(lines)
-	level := strings.Index(heading, " ")
-	var out []string
+// scrSpan returns the line indexes [start, end) of the section from the first
+// unfenced heading line with heading's marks and text up to the next unfenced
+// heading of the same or a higher level; start is -1 when there is none.
+func scrSpan(lines []string, heading string) (int, int) {
+	fenced, level, start := scrFenced(lines), strings.Index(heading, " "), -1
 	for i, line := range lines {
 		switch {
 		case fenced[i]:
-		case out == nil:
+		case start < 0:
 			if scrIsHeading(line, heading) {
-				out = []string{line}
+				start = i
 			}
 		default:
 			if m := scrHeading.FindStringSubmatch(line); m != nil && len(m[1]) <= level {
-				return strings.Join(out, "\n")
+				return start, i
 			}
-			out = append(out, line)
+		}
+	}
+	return start, len(lines)
+}
+
+// scrSection returns the lines of heading's section, as scrSpan finds it,
+// outside fenced code; "" when there is no such section.
+func scrSection(text, heading string) string {
+	lines := strings.Split(text, "\n")
+	fenced := scrFenced(lines)
+	start, end := scrSpan(lines, heading)
+	var out []string
+	for i := start; start >= 0 && i < end; i++ {
+		if !fenced[i] {
+			out = append(out, lines[i])
 		}
 	}
 	return strings.Join(out, "\n")
