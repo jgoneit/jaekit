@@ -1082,10 +1082,12 @@ func TestSealBundleReviewSummaryStartsReview(t *testing.T) {
 
 // The PROGRESS template keeps the review summary of a reopened goal as it
 // was, marked by one line; the skill's documents keep the reopen token. A
-// summary written with the seven earlier headings stays unconverted by the
-// bundle contract, not by an exemption in the template.
+// summary written with the seven earlier headings stays unconverted, and
+// under the reopen rule, by the bundle contract, not by an exemption in the
+// template.
 func TestSealBundleReviewSummaryReopen(t *testing.T) {
-	const contract, seven = "../contracts/bundle.md", "already written with the seven earlier headings is not converted"
+	const contract = "../contracts/bundle.md"
+	const seven = "already written with the seven earlier headings is not converted to the four headings, and the reopen rule still applies to it"
 	if sec, ok := sbNeedSection(t, contract, "### 5.4 Review summary"); ok {
 		sbNeed(t, contract+" ### 5.4 Review summary", sec, seven)
 	}
