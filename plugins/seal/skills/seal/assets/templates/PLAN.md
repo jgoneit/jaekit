@@ -6,7 +6,7 @@
 | AC-1 | change | `<command that reports the declared AC-1 observations>` | <declaration JSON>, <producer and configuration files>, <other check files> | T001 |
 | AC-2 | maintain | `<command that checks AC-2>` | — | T001 |
 
-Under `run-rules/7` and `run-rules/8`, add an optional final `baseline` column and write `요구` only for each change condition that `REVIEW.md` gives a reason for requiring a baseline; an empty cell or `—` means none is required. Keep the reasons and table marks aligned. Without the column no condition is marked, and all change conditions still need check paths. Earlier-rule goals keep their existing baseline requirements.
+Under `run-rules/8`, add an optional final `baseline` column and write `요구` only for each change condition that `REVIEW.md` gives a reason for requiring a baseline; an empty cell or `—` means none is required. Keep the reasons and table marks aligned. Without the column no condition is marked, and all change conditions still need check paths.
 
 Every check above, and every file it runs or reads, judges only the tree being checked and the external inputs its condition names: no fixed or base commit and no other commits, refs or history. The exception is a condition about history or refs itself, such as a tag's type, whose check reads only the range and refs the condition names (see the skill's `references/bundle.md`, Check inputs). A `maintain` check observes the property the goal documents require in that tree; a check that a file is unchanged since the base commit does not. A path that must not change at all stays outside `바꿀 수 있는 경로`, where Core reports a change to it as `out_of_scope`.
 
@@ -17,7 +17,7 @@ Use narrow checks while exploring and record the expensive full verification onc
 | --- | --- |
 | AC-1 | <repository-relative declaration JSON> |
 
-For `/3` change conditions, declare the required target IDs, intended violation IDs and producer inputs using `check-declaration/v1`. Include this JSON and every `producer_paths` entry in `검사 경로`; commit these regular files before checking. The command must write the invocation-bound `check-result/v1` report. Choose a producer that observes this goal's actual behavior; a command's exit code alone does not establish the result. See the skill's `references/ha.md` and `references/bundle.md`. Where the Core supports runner adapters, a `check-adapter/v1` declaration may instead link each target to an existing test (see `references/ha.md`). Omit this section for existing `/1` or `/2` goals; maintain, manual and task checks keep their roles.
+For each change condition, declare the required target IDs, intended violation IDs and producer inputs using `check-declaration/v1`. Include this JSON and every `producer_paths` entry in `검사 경로`; commit these regular files before checking. The command must write the invocation-bound `check-result/v1` report. Choose a producer that observes this goal's actual behavior; a command's exit code alone does not establish the result. See the skill's `references/ha.md` and `references/bundle.md`. Where the Core supports runner adapters, a `check-adapter/v1` declaration may instead link each target to an existing test (see `references/ha.md`). Maintain, manual and task checks keep their roles.
 
 ## 범위
 - 바꿀 수 있는 경로: `<glob>`, `<glob>` (SPEC: <section>)
