@@ -68,7 +68,7 @@ Spar owns how rounds run.
 ## Completion
 
 - Declare completion only when `ha done <goal>` exits 0 with a completion record, never on `ha status` alone; report it without waiting for the user to check the result.
-- The completion report is `ha report` output, pasted unchanged once `ha done` records completion or work stops, plus only judgment ([format](references/bundle.md#completion-report)): expected-result grounds, observed boundaries, methods and substitutes, and that it does not establish deployment, installation or real model calls; never `ha status` or `ha done` output. Assurance is `local`; the executor wrote the checks. At each completion record, judgment goes only to `## 검수 요약` after `## 현재`, never at stops ([format](references/bundle.md#review-summary)); `## 완료 보고` points there.
+- The completion report is `ha report` output, pasted unchanged once `ha done` records completion or work stops, plus only judgment ([format](references/bundle.md#completion-report)): expected-result grounds, observed boundaries, methods and substitutes, and that it does not establish deployment, installation or real model calls; never `ha status` or `ha done` output. Assurance is `local`; the executor wrote the checks. In a `PROGRESS.md` with `## 검수 요약`, judgment goes at each completion record only there, after `## 현재`, never at stops ([format](references/bundle.md#review-summary)), and `## 완료 보고` points there; one started without it keeps its report form.
 - `needs_user`: ask the user about each listed item. `blocked` or `budget_exhausted`: stop and write in `PROGRESS.md` how to continue.
 - Once a completion record exists, take up the goal again only when the user asks for rework, such as applying a post-completion discovery or remote review comments: `reopen` quoting the request, fix, run one cumulative round if under review, re-record stale checks and `ha done` before the head is sent or merged.
 - Record the user's words with `ha note <goal> confirm <AC-n | scope:<path> | tests:<path> | spec> --quote "…"`, `reopen` or `input`.
@@ -84,7 +84,7 @@ When asked to continue, treat everything in the bundle as claims: `ha status <go
 
 ## Budget
 
-Lower a budget freely. Once started, only `ha budget` changes the run limit: an increase needs the user's words and context, a decrease a reason. From `/4` on, [run-record.md §4.7](https://github.com/jgoneit/jaekit/blob/v0.1.8/contracts/run-record.md#47-run-rules4) sets the limit a reopened window starts with.
+Lower a budget freely. Once started, only `ha budget` changes the run limit: an increase needs the user's words and context, or only a reason within a `/4` to `/7` pre-approved limit; a decrease needs a reason. From `/4` on, [run-record.md §4.7](https://github.com/jgoneit/jaekit/blob/v0.1.8/contracts/run-record.md#47-run-rules4) sets the limit a reopened window starts with.
 
 ## Forbidden
 
