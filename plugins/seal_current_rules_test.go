@@ -64,7 +64,7 @@ var (
 	// scrTagLink is a repository link pinned to a release tag; its tag is the
 	// only version a URL may carry.
 	scrTagLink   = regexp.MustCompile(`https://github\.com/jgoneit/jaekit/blob/(v[0-9]+\.[0-9]+\.[0-9]+)/`)
-	scrRulesHead = regexp.MustCompile(`(?m)^ {0,3}#{1,6} run-rules/.*$`)
+	scrRulesHead = regexp.MustCompile(`^ {0,3}#{1,6} run-rules/`)
 )
 
 func scrRead(t *testing.T, path string) string {
@@ -140,32 +140,72 @@ func TestSealCurrentRulesAC1_NoVersionConditions(t *testing.T) {
 }
 
 // scrFence is a CommonMark code fence line, its marks and what follows them;
-// scrTitle and scrH2 are level-one and level-two heading lines.
+// scrHeading is a heading line and its marks; scrTitle and scrH2 are
+// level-one and level-two heading lines.
 var (
-	scrFence = regexp.MustCompile("^ {0,3}(`{3,}|~{3,})(.*)$")
-	scrTitle = regexp.MustCompile(`^ {0,3}# `)
-	scrH2    = regexp.MustCompile(`^ {0,3}## `)
+	scrFence   = regexp.MustCompile("^ {0,3}(`{3,}|~{3,})(.*)$")
+	scrHeading = regexp.MustCompile(`^ {0,3}(#{1,6})(?: |$)`)
+	scrTitle   = regexp.MustCompile(`^ {0,3}# `)
+	scrH2      = regexp.MustCompile(`^ {0,3}## `)
 )
+
+// scrFenced reports for each line whether it is a fence line or inside
+// fenced code, as CommonMark reads ``` and ~~~ fences.
+func scrFenced(lines []string) []bool {
+	fenced, fence := make([]bool, len(lines)), ""
+	for i, line := range lines {
+		m := scrFence.FindStringSubmatch(line)
+		switch {
+		case fence != "":
+			fenced[i] = true
+			if m != nil && m[1][0] == fence[0] && len(m[1]) >= len(fence) && strings.TrimSpace(m[2]) == "" {
+				fence = ""
+			}
+		case m != nil:
+			fenced[i], fence = true, m[1]
+		}
+	}
+	return fenced
+}
+
+// scrSection returns the lines outside fenced code from the first unfenced
+// line equal to heading up to the next unfenced heading of the same or a
+// higher level; "" when there is no such line.
+func scrSection(text, heading string) string {
+	lines := strings.Split(text, "\n")
+	fenced := scrFenced(lines)
+	level := strings.Index(heading, " ")
+	var out []string
+	for i, line := range lines {
+		switch {
+		case fenced[i]:
+		case out == nil:
+			if line == heading {
+				out = []string{line}
+			}
+		default:
+			if m := scrHeading.FindStringSubmatch(line); m != nil && len(m[1]) <= level {
+				return strings.Join(out, "\n")
+			}
+			out = append(out, line)
+		}
+	}
+	return strings.Join(out, "\n")
+}
 
 // Between ha.md's title and its first `## ` heading only the release
 // sentence remains. Headings may be indented by up to three spaces, and lines
 // in fenced code are never headings.
 func TestSealCurrentRulesAC2_NoReleaseHistory(t *testing.T) {
 	var lines []string
-	title, fence := false, ""
-scan:
-	for _, line := range strings.Split(scrRead(t, scrHa), "\n") {
-		m := scrFence.FindStringSubmatch(line)
-		switch {
-		case fence != "":
-			if m != nil && m[1][0] == fence[0] && len(m[1]) >= len(fence) && strings.TrimSpace(m[2]) == "" {
-				fence = ""
-			}
-		case m != nil:
-			fence = m[1]
-		case scrH2.MatchString(line):
-			break scan
-		case !title && scrTitle.MatchString(line):
+	title := false
+	all := strings.Split(scrRead(t, scrHa), "\n")
+	fenced := scrFenced(all)
+	for i, line := range all {
+		if !fenced[i] && scrH2.MatchString(line) {
+			break
+		}
+		if !fenced[i] && !title && scrTitle.MatchString(line) {
 			title = true
 			continue
 		}
@@ -179,20 +219,26 @@ scan:
 	}
 }
 
-// ha.md's only rules heading, at any level and indented by up to three
-// spaces as CommonMark allows, is `## run-rules/8`, and that
-// section links the run record contract's section for each earlier rule.
+// ha.md's only rules heading outside fenced code, at any level and indented
+// by up to three spaces as CommonMark allows, is `## run-rules/8`, and that
+// section links the run record contract's section for each earlier rule: a
+// target that ends with the contract path and that section's anchor.
 func TestSealCurrentRulesAC3_OneRulesSection(t *testing.T) {
 	text := scrRead(t, scrHa)
-	if heads := scrRulesHead.FindAllString(text, -1); len(heads) != 1 || heads[0] != "## run-rules/8" {
+	lines := strings.Split(text, "\n")
+	fenced := scrFenced(lines)
+	var heads []string
+	for i, line := range lines {
+		if !fenced[i] && scrRulesHead.MatchString(line) {
+			heads = append(heads, line)
+		}
+	}
+	if len(heads) != 1 || heads[0] != "## run-rules/8" {
 		t.Errorf("jaekit:violation=ha-rules-sections: %s has the rules headings %q; want only %q", scrHa, heads, "## run-rules/8")
 	}
-	var targets []string
-	for _, m := range skillLink.FindAllStringSubmatch(skSection(text, "## run-rules/8"), -1) {
-		targets = append(targets, m[1])
-	}
+	links := skillLink.FindAllStringSubmatch(scrSection(text, "## run-rules/8"), -1)
 	for _, want := range scrRulesLinks {
-		if !strings.Contains(strings.Join(targets, "\n"), want) {
+		if !slices.ContainsFunc(links, func(m []string) bool { return m[1] == want || strings.HasSuffix(m[1], "/"+want) }) {
 			t.Errorf("jaekit:violation=ha-rules-sections: %s ## run-rules/8 has no link to %s", scrHa, want)
 		}
 	}
@@ -220,10 +266,11 @@ func TestSealCurrentRulesAC4_EarlierGoalsShort(t *testing.T) {
 }
 
 // The check-input rule applies to every check written now and rewrites no
-// existing goal: SKILL.md's and bundle.md's `## Check inputs` both say so.
+// existing goal: SKILL.md's and bundle.md's `## Check inputs` both say so
+// outside fenced code.
 func TestSealCurrentRulesAC5_CheckInputsApplyNow(t *testing.T) {
 	for _, path := range []string{scrSkill, scrBundle} {
-		sec := skFlat(skSection(scrRead(t, path), "## Check inputs"))
+		sec := skFlat(scrSection(scrRead(t, path), "## Check inputs"))
 		for _, want := range []string{scrK1, scrN1} {
 			if !strings.Contains(sec, skFlat(want)) {
 				t.Errorf("jaekit:violation=check-inputs-versioned: %s ## Check inputs lacks %q", path, want)
