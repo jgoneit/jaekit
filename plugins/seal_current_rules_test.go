@@ -34,7 +34,7 @@ const (
 	scrH0 = "The commands below describe release v0.1.8: ha 0.1.8, spar 0.1.8 and Seal 0.1.23."
 	// scrK1 and scrN1 state the scope of the check-input rule.
 	scrK1 = "They apply to every check written or changed under this skill, whichever Seal started the goal."
-	scrN1 = "never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md`"
+	scrN1 = "never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md` for this reason alone"
 	// scrWordCap is 80% of 17968, rounded down: the strings.Fields word count
 	// of SKILL.md (2092), references/ha.md (7775) and references/bundle.md
 	// (8101) at the commit that declared this goal's checks.

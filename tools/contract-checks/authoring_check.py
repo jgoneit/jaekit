@@ -111,10 +111,10 @@ CLAUSES = {
                       "The executor applies the rules and judges whether to fix existing checks")),
     ],
     "AC-8": [
-        ("skill", (APPLY_NOW,
-                   "never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md`")),
-        ("bundle", (APPLY_NOW,
-                    "never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md`")),
+        ("skill", (APPLY_NOW, "never require rewriting or converting an existing goal's checks, records, "
+                              "`PROGRESS.md` or `REVIEW.md` for this reason alone")),
+        ("bundle", (APPLY_NOW, "never require rewriting or converting an existing goal's checks, records, "
+                               "`PROGRESS.md` or `REVIEW.md` for this reason alone")),
         ("contract", ("apply to checks written or changed from Seal 0.1.14 on", "Which Seal version started the goal does not matter",
                       "never require rewriting or converting an existing goal's checks, records, PROGRESS or REVIEW")),
     ],
