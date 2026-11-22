@@ -139,19 +139,39 @@ func TestSealCurrentRulesAC1_NoVersionConditions(t *testing.T) {
 	}
 }
 
+// scrFence is a CommonMark code fence line, its marks and what follows them;
+// scrTitle and scrH2 are level-one and level-two heading lines.
+var (
+	scrFence = regexp.MustCompile("^ {0,3}(`{3,}|~{3,})(.*)$")
+	scrTitle = regexp.MustCompile(`^ {0,3}# `)
+	scrH2    = regexp.MustCompile(`^ {0,3}## `)
+)
+
 // Between ha.md's title and its first `## ` heading only the release
-// sentence remains.
+// sentence remains. Headings may be indented by up to three spaces, and lines
+// in fenced code are never headings.
 func TestSealCurrentRulesAC2_NoReleaseHistory(t *testing.T) {
 	var lines []string
-	title := false
+	title, fence := false, ""
+scan:
 	for _, line := range strings.Split(scrRead(t, scrHa), "\n") {
-		if strings.HasPrefix(line, "## ") {
-			break
+		m := scrFence.FindStringSubmatch(line)
+		switch {
+		case fence != "":
+			if m != nil && m[1][0] == fence[0] && len(m[1]) >= len(fence) && strings.TrimSpace(m[2]) == "" {
+				fence = ""
+			}
+		case m != nil:
+			fence = m[1]
+		case scrH2.MatchString(line):
+			break scan
+		case !title && scrTitle.MatchString(line):
+			title = true
+			continue
 		}
 		if title && strings.TrimSpace(line) != "" {
 			lines = append(lines, line)
 		}
-		title = title || strings.HasPrefix(line, "# ")
 	}
 	if !title || len(lines) != 1 || lines[0] != scrH0 {
 		t.Errorf("jaekit:violation=ha-release-history: %s has %d non-blank lines between its title and its first `## ` heading (title found: %t); want only %q",
