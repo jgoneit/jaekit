@@ -214,7 +214,7 @@ Connect the planned review to observed report. When the condition, check, or env
 
 ## PROGRESS.md
 
-A goal keeps the PROGRESS form it started with; [earlier-goals.md](earlier-goals.md) describes those forms.
+A goal keeps the PROGRESS form it started with; [earlier-goals.md](earlier-goals.md) gives the rules for those goals and points to the contracts for their forms.
 
 | Section | Content |
 | --- | --- |
