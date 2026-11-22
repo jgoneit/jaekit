@@ -78,7 +78,7 @@ func TestRepeatFindingsAC7_BoundaryEveryRound(t *testing.T) {
 	text := rptDoc(t, rptSealBundle)
 	i := strings.Index(text, "**Decisions for review rounds.**")
 	if i < 0 {
-		t.Skipf("setup: %s has no example for review rounds", rptSealBundle)
+		t.Fatalf("jaekit:violation=%s %s has no example for review rounds", id, rptSealBundle)
 	}
 	block := text[i:]
 	if j := strings.Index(block, "```bash\n"); j >= 0 {

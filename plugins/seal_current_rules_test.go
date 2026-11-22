@@ -3,17 +3,21 @@ package plugins
 // Property: the Seal skill states the current rules only
 // The skill's body, its ha and bundle references and its templates state no
 // condition on the Seal version that started a goal; the ha reference keeps
-// one rules section and no release history; the earlier-goals reference is
-// short; the check-input rule applies to every check written now; and the
-// three main documents are shorter than at this goal's start. Every failure
-// message starts with its violation marker, except a document that cannot be
-// read or is not UTF-8, which fails unmarked as a broken setup.
+// one rules section, linking the contract for earlier rules, and no release
+// history; the earlier-goals reference is short and lists no format; the
+// check-input rule applies to every check written now; and the three main
+// documents are shorter than at this goal's start. Sentences are matched with
+// white space runs read as one space. Every failure message starts with its
+// violation marker, except a document that cannot be read or is not UTF-8,
+// or templates that cannot be found, which fail unmarked as a broken setup.
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -28,8 +32,9 @@ const (
 	// scrH0 is the release sentence that alone stays above ha.md's first
 	// `## ` heading.
 	scrH0 = "The commands below describe release v0.1.8: ha 0.1.8, spar 0.1.8 and Seal 0.1.23."
-	// scrK1 is the scope of the check-input rule.
+	// scrK1 and scrN1 state the scope of the check-input rule.
 	scrK1 = "They apply to every check written or changed under this skill, whichever Seal started the goal."
+	scrN1 = "never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md`"
 	// scrWordCap is 80% of 17968, rounded down: the strings.Fields word count
 	// of SKILL.md (2092), references/ha.md (7775) and references/bundle.md
 	// (8101) at the commit that declared this goal's checks.
@@ -44,10 +49,20 @@ var scrEarlierRules = []string{
 	"For the exact earlier formats, read the contracts.",
 }
 
+// scrRulesLinks are the run record contract's sections for the earlier rules
+// that ha.md's `## run-rules/8` links.
+var scrRulesLinks = []string{
+	"contracts/run-record.md#47-run-rules4",
+	"contracts/run-record.md#48-run-rules5",
+	"contracts/run-record.md#49-run-rules6",
+	"contracts/run-record.md#410-run-rules7",
+}
+
 var (
-	scrVersion     = regexp.MustCompile(`(?i)\b(seal|ha|spar|core)\s+v?0\.1\.[0-9]+`)
-	scrEarlierSeal = regexp.MustCompile(`(?i)earlier seal`)
+	scrVersion     = regexp.MustCompile(`(?i)\bv?0\.1\.[0-9]+`)
+	scrEarlierSeal = regexp.MustCompile(`(?i)earlier\s+seal`)
 	scrURL         = regexp.MustCompile(`https?://\S+`)
+	scrRulesHead   = regexp.MustCompile(`(?m)^#{1,6} run-rules/.*$`)
 )
 
 func scrRead(t *testing.T, path string) string {
@@ -62,35 +77,61 @@ func scrRead(t *testing.T, path string) string {
 	return string(b)
 }
 
-// A Seal version is named only on SKILL.md's front-matter version line and
-// on ha.md's release sentence, outside URLs; "earlier Seal" only on a line
-// that names earlier-goals.md.
+// SKILL.md, ha.md, bundle.md and every template name a 0.1.x version only
+// inside a URL, on SKILL.md's front-matter version line or on ha.md's release
+// sentence, and say "earlier Seal" only in SKILL.md's `## References`. Both
+// patterns read the whole file, so a match may span a line break; a match is
+// placed by the line it starts on.
 func TestSealCurrentRulesAC1_NoVersionConditions(t *testing.T) {
-	templates, err := filepath.Glob(sealSkillDir + "/assets/templates/*.md")
-	if err != nil || len(templates) == 0 {
-		t.Fatalf("setup: no templates in %s/assets/templates: %v", sealSkillDir, err)
+	var files []string
+	err := filepath.WalkDir(sealSkillDir+"/assets/templates", func(path string, d fs.DirEntry, err error) error {
+		if err == nil && !d.IsDir() && strings.HasSuffix(path, ".md") {
+			files = append(files, filepath.ToSlash(path))
+		}
+		return err
+	})
+	if err != nil || len(files) == 0 {
+		t.Fatalf("setup: no templates under %s/assets/templates: %v", sealSkillDir, err)
 	}
 	var found []string
-	for _, path := range append([]string{scrSkill, scrHa, scrBundle}, templates...) {
-		lines := strings.Split(scrRead(t, path), "\n")
+	for _, path := range append([]string{scrSkill, scrHa, scrBundle}, files...) {
+		text := scrRead(t, path)
+		lines := strings.Split(text, "\n")
+		line := func(at int) int { return strings.Count(text[:at], "\n") }
 		front := 0 // lines before it are SKILL.md's front matter
 		if path == scrSkill && lines[0] == "---" {
 			for front = 1; front < len(lines) && lines[front] != "---"; front++ {
 			}
 		}
-		for i, line := range lines {
-			bare := scrURL.ReplaceAllString(line, "<url>")
-			allowed := i < front && strings.HasPrefix(strings.TrimSpace(line), "version:") || path == scrHa && line == scrH0
-			if m := scrVersion.FindString(bare); m != "" && !allowed {
-				found = append(found, fmt.Sprintf("%s:%d: %q", path, i+1, m))
-			} else if m := scrEarlierSeal.FindString(bare); m != "" && !strings.Contains(line, "earlier-goals.md") {
-				found = append(found, fmt.Sprintf("%s:%d: %q", path, i+1, m))
+		refs := []int{0, 0} // SKILL.md's `## References`, as a byte range
+		if sec := skSection(text, "## References"); path == scrSkill && sec != "" {
+			refs = []int{strings.Index(text, sec), strings.Index(text, sec) + len(sec)}
+		}
+		urls := scrURL.FindAllStringIndex(text, -1)
+		var bad [][]int
+		for _, m := range scrVersion.FindAllStringIndex(text, -1) {
+			n := line(m[0])
+			inURL := slices.ContainsFunc(urls, func(u []int) bool { return u[0] <= m[0] && m[1] <= u[1] })
+			if !inURL && !(n < front && strings.HasPrefix(strings.TrimSpace(lines[n]), "version:")) && !(path == scrHa && lines[n] == scrH0) {
+				bad = append(bad, m)
+			}
+		}
+		for _, m := range scrEarlierSeal.FindAllStringIndex(text, -1) {
+			if !(refs[0] <= m[0] && m[1] <= refs[1]) {
+				bad = append(bad, m)
+			}
+		}
+		slices.SortFunc(bad, func(a, b []int) int { return a[0] - b[0] })
+		last := -1
+		for _, m := range bad {
+			if n := line(m[0]); n != last {
+				found, last = append(found, fmt.Sprintf("%s:%d: %q", path, n+1, text[m[0]:m[1]])), n
 			}
 		}
 	}
 	if len(found) > 0 {
 		shown := found[:min(len(found), 20)]
-		t.Errorf("jaekit:violation=skill-version-conditions: %d lines state a Seal version condition (first %d):\n%s",
+		t.Errorf("jaekit:violation=skill-version-conditions: %d lines name a version or an earlier Seal (first %d):\n%s",
 			len(found), len(shown), strings.Join(shown, "\n"))
 	}
 }
@@ -115,52 +156,57 @@ func TestSealCurrentRulesAC2_NoReleaseHistory(t *testing.T) {
 	}
 }
 
-// ha.md has one rules section, `## run-rules/8`, which links the run record
-// contract's rules for earlier goals.
+// ha.md's only rules heading, at any level, is `## run-rules/8`, and that
+// section links the run record contract's section for each earlier rule.
 func TestSealCurrentRulesAC3_OneRulesSection(t *testing.T) {
 	text := scrRead(t, scrHa)
-	var heads []string
-	for _, line := range strings.Split(text, "\n") {
-		if strings.HasPrefix(line, "## run-rules/") {
-			heads = append(heads, line)
-		}
+	if heads := scrRulesHead.FindAllString(text, -1); len(heads) != 1 || heads[0] != "## run-rules/8" {
+		t.Errorf("jaekit:violation=ha-rules-sections: %s has the rules headings %q; want only %q", scrHa, heads, "## run-rules/8")
 	}
-	if len(heads) != 1 || heads[0] != "## run-rules/8" {
-		t.Errorf("jaekit:violation=ha-rules-sections: %s has the rules sections %q; want only %q", scrHa, heads, "## run-rules/8")
-	}
+	var targets []string
 	for _, m := range skillLink.FindAllStringSubmatch(skSection(text, "## run-rules/8"), -1) {
-		if strings.Contains(m[1], "contracts/run-record.md#4") {
-			return
+		targets = append(targets, m[1])
+	}
+	for _, want := range scrRulesLinks {
+		if !strings.Contains(strings.Join(targets, "\n"), want) {
+			t.Errorf("jaekit:violation=ha-rules-sections: %s ## run-rules/8 has no link to %s", scrHa, want)
 		}
 	}
-	t.Errorf("jaekit:violation=ha-rules-sections: %s ## run-rules/8 has no link to contracts/run-record.md#4…", scrHa)
 }
 
-// The earlier-goals reference holds its four sentences, no version and at
-// most 300 words.
+// The earlier-goals reference holds its four sentences and at most 300
+// words, with no version, no rules name and no section below its title.
 func TestSealCurrentRulesAC4_EarlierGoalsShort(t *testing.T) {
 	text := scrRead(t, scrEarlier)
 	for _, rule := range scrEarlierRules {
-		if !strings.Contains(text, rule) {
+		if !strings.Contains(skFlat(text), skFlat(rule)) {
 			t.Errorf("jaekit:violation=earlier-goals-long: %s lacks %q", scrEarlier, rule)
 		}
 	}
 	if n := len(regexp.MustCompile(`0\.1\.[0-9]`).FindAllString(text, -1)); n > 0 {
 		t.Errorf("jaekit:violation=earlier-goals-long: %s names a 0.1.x version %d times", scrEarlier, n)
 	}
+	if n := strings.Count(text, "run-rules/"); n > 0 {
+		t.Errorf("jaekit:violation=earlier-goals-long: %s names run-rules/ %d times", scrEarlier, n)
+	}
+	if heads := regexp.MustCompile(`(?m)^#{2,6} .*$`).FindAllString(text, -1); len(heads) > 0 {
+		t.Errorf("jaekit:violation=earlier-goals-long: %s has the headings %q below its title", scrEarlier, heads)
+	}
 	if n := len(strings.Fields(text)); n > 300 {
 		t.Errorf("jaekit:violation=earlier-goals-long: %s has %d words, more than 300", scrEarlier, n)
 	}
 }
 
-// The check-input rule applies to every check written now: SKILL.md's
-// `## Check inputs` and bundle.md say so.
+// The check-input rule applies to every check written now and rewrites no
+// existing goal: SKILL.md's and bundle.md's `## Check inputs` both say so.
 func TestSealCurrentRulesAC5_CheckInputsApplyNow(t *testing.T) {
-	if !strings.Contains(skSection(scrRead(t, scrSkill), "## Check inputs"), scrK1) {
-		t.Errorf("jaekit:violation=check-inputs-versioned: %s ## Check inputs lacks %q", scrSkill, scrK1)
-	}
-	if !strings.Contains(scrRead(t, scrBundle), scrK1) {
-		t.Errorf("jaekit:violation=check-inputs-versioned: %s lacks %q", scrBundle, scrK1)
+	for _, path := range []string{scrSkill, scrBundle} {
+		sec := skFlat(skSection(scrRead(t, path), "## Check inputs"))
+		for _, want := range []string{scrK1, scrN1} {
+			if !strings.Contains(sec, skFlat(want)) {
+				t.Errorf("jaekit:violation=check-inputs-versioned: %s ## Check inputs lacks %q", path, want)
+			}
+		}
 	}
 }
 

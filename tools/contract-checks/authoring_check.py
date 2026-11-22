@@ -177,7 +177,7 @@ USER_POINTS = [
               "Close each with the user's quoted answer or an explicit assumption that the report repeats")),
 ]
 USER_REASONS = {"record_invalid", "error_limit", "manual_unconfirmed", "record_integrity",
-                "out_of_scope", "test_definition_changed", "spec_changed"}
+                "out_of_scope", "test_definition_changed", "spec_changed", "review_open_question"}
 ASKING = re.compile(r"(?i)\b(ask|asks|asking|approval|approve|confirmation|confirm|permission)\b"
                     r"|\b(?:question|quer(?:y|ie))(?:s|d|ed|ing)?(?=\s+(?:the\s+|a\s+|any\s+)?users?\b)"
                     r"|질문한다|질문하고|질문해|사용자에게 질문"
@@ -468,7 +468,7 @@ def observe(root, suite, criterion):
         require(HA, checker.clause_text(root, HA),
                 ("| `out_of_scope` | user | Files changed since base outside `바꿀 수 있는 경로` |",), "Reasons")
     if criterion == "AC-3":
-        require(HA, checker.clause_text(root, HA), ("Runs `change` conditions on a temporary worktree of the base commit with their check paths copied from HEAD",), "Commands")
+        require(HA, checker.clause_text(root, HA), ("Runs `change` conditions on a temporary worktree of the base commit with check paths copied from HEAD",), "Commands")
         require("cmd/ha/baseline.go", read(root, "cmd/ha/baseline.go"), ("baselineFiles",), "baseline overlay")
     if criterion == "AC-8":
         skill = version(read(root, SKILL))

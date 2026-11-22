@@ -1016,6 +1016,16 @@ func TestSealBundleReviewSummaryDecidersAndUnobserved(t *testing.T) {
 	sbMarkSkillTokens(t, sbNoPlace, sbSummaryHeadings[1], sbSummaryHeadings[3], "local")
 }
 
+// sbNoExemption reports, after prefix, a template section that exempts a
+// document started without it: the templates serve goals started now, and
+// earlier goals keep their documents as they are.
+func sbNoExemption(t *testing.T, prefix, where, text string) {
+	t.Helper()
+	if strings.Contains(sbNorm(text), "started without") {
+		t.Errorf("%s%s exempts a document started without it", prefix, where)
+	}
+}
+
 // At completion the PROGRESS template's completion report holds the ha
 // report output and one line pointing to the review summary, a stop keeps
 // the earlier report, and every judgment item that moves out of the
@@ -1029,7 +1039,8 @@ func TestSealBundleCompletionReportPointsToSummary(t *testing.T) {
 	}
 	sbMark(t, sbNoPlace, skProgressTmpl+" ## 완료 보고", report,
 		"add only one line pointing to `## 검수 요약`, which holds the judgment",
-		"When work stops, or in a `PROGRESS.md` started without `## 검수 요약`, below it, only judgment")
+		"When work stops, below it, only judgment")
+	sbNoExemption(t, "jaekit:violation="+sbNoPlace+": ", skProgressTmpl+" ## 완료 보고", report)
 	sbMark(t, sbNoPlace, skProgressTmpl+" "+sbSummary, sbTmplSummary(t),
 		"the condition each contributed to under `### 바뀐 것`",
 		"assumed open decisions under `### 근거` and `### 직접 볼 것`",
@@ -1052,11 +1063,13 @@ func TestSealBundleReviewSummaryReadingRules(t *testing.T) {
 		"never copy check output or finding text; a finding is its ID, one line and its ending")
 }
 
-// A PROGRESS.md started without the review summary does not add it: the
-// PROGRESS template says so, and the skill's documents keep the section and
-// PROGRESS.md tokens of that boundary.
+// The review summary belongs to every goal started now: the PROGRESS
+// template opens it with what it is, under no condition on the goal and with
+// no exemption, and the skill's documents keep the section and PROGRESS.md
+// tokens.
 func TestSealBundleReviewSummaryEarlierGoals(t *testing.T) {
-	sbNeedSummary(t, "A `PROGRESS.md` started without this section does not add it")
+	sbNeedSummary(t, "<This is where the user starts reviewing a finished goal.")
+	sbNoExemption(t, "", skProgressTmpl+" "+sbSummary, sbTmplSummary(t))
 	requireSkillTokens(t, sealSkillDir, sbSummary, "PROGRESS.md")
 }
 
@@ -1600,12 +1613,14 @@ func TestSealBundleInvariantPlaces(t *testing.T) {
 	requireSkillTokens(t, sealSkillDir, "--question", "없음")
 }
 
-// A REVIEW.md started without the list of places does not add it, as the
-// REVIEW template says; the skill's documents keep the REVIEW.md token of
-// that boundary.
+// The REVIEW template lists the places of each changed invariant for every
+// goal started now, under no condition on the goal and with no exemption;
+// the skill's documents keep the REVIEW.md token.
 func TestSealBundleReviewRoundsScope(t *testing.T) {
-	sbCheckPlaces(t, []sbPlace{{skReviewTmpl + " ## 독립 검토", sbReviewPlaces(t),
-		[]string{"a `REVIEW.md` started without this list does not add it"}}})
+	places := sbReviewPlaces(t)
+	sbCheckPlaces(t, []sbPlace{{skReviewTmpl + " ## 독립 검토", places,
+		[]string{"for the plan round, and for each of them the places that read or keep it"}}})
+	sbNoExemption(t, "", skReviewTmpl+" ## 독립 검토", places)
 	requireSkillTokens(t, sealSkillDir, "REVIEW.md")
 }
 
