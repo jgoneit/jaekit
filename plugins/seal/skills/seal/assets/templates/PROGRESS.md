@@ -16,7 +16,7 @@
 <ordered by risk, the highest at the top, one or two lines each: every item the `직접 볼 것` line of `ha report` lists and, whatever that line shows, every deferred finding with its issue; every finding left with no disposition; every executor assumption under `### 근거`, not only executor assumptions that read a SPEC sentence; conditions met by checks that observe fixed text only, whose documents a person must read; `manual` conditions; the changes outside the scope or to existing things listed under `### 바뀐 것`>
 
 ### 보지 않은 것
-<the unobserved scope and substitutes; assurance `local`; the executor wrote the checks; the review summary is not evidence of deployment, installation or a real model call; the change conditions met without a baseline, whose checks were not observed to distinguish base from head>
+<the unobserved scope and substitutes; assurance `local`; the executor wrote the checks; the review summary is not evidence of deployment, installation or a real model call; under `run-rules/7` and `run-rules/8`, the change conditions met without a baseline, whose checks were not observed to distinguish base from head>
 
 ## Task 상태
 | Task | 상태 | 메모 |
@@ -24,7 +24,7 @@
 | T001 | todo | |
 
 ## 타임라인
-<optional entries, appended in time order; entries are claims; the rules are in the Seal bundle formats (references/bundle.md, `## 타임라인`):
+<optional entries, appended in time order; entries are claims; the rules are in the bundle contract (§5.1, https://github.com/jgoneit/jaekit/blob/main/contracts/bundle.md#51-timeline):
 - heading: ### <time with its time zone> · seq <record head> — <kind> · <one-line summary>; never invent a time you do not know; `seq none` while there is no record, and an entry about a check run uses that run's seq; kinds `관측`, `원인`, `결정`, `조치`, `검증`, `막힘`, `재개`
 - time source: distinguish event time and writing time; unknown event time stays unknown and a measured writing time may head the entry; remaining conditions, new facts, hypothesis evidence and uncertainty to reduce belong only where relevant, not every tool call
 - marks: causes `가설`, `확정`, `기각`; actions `예정`, `반영`; checks `대기`, `통과`, `실패`
