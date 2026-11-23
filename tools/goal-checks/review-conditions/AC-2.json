@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "StrictGate",
+      "violation": "review-not-gated",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestScenarios/review-kind-gate"
+      }
+    },
+    {
+      "id": "StandardGate",
+      "violation": "review-not-gated",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestScenarios/review-kind-gate-standard"
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "LightUnsatisfied",
+      "violation": "review-satisfied-without-tier",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestScenarios/review-kind-light"
+      }
+    },
+    {
+      "id": "NoTierUnsatisfied",
+      "violation": "review-satisfied-without-tier",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestScenarios/review-kind-light-no-tier"
+      }
+    }
+  ]
+}
