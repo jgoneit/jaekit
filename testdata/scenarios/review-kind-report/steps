@@ -1,0 +1,42 @@
+# AC-3: ha report keeps the condition met by the review gate apart from check
+# records and user confirmations. The checked line counts 3 conditions by check
+# records, none by confirmation, and the review condition separately; the
+# review line names AC-4 with seq 6, the gate's review note, in both
+# languages, and still does after ha done, from the completion record.
+include review-kind-goal
+commit "strict goal with a review condition"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/8
+expect-exit 0
+include rules-v7-implement
+ha check $GOAL --baseline
+expect-exit 0
+ha check $GOAL
+expect-exit 0
+ha note $GOAL review --gate .git/gate.json
+expect-exit 0
+expect-records 6
+expect-record 6 note review
+expect-satisfied AC-4
+ha report $GOAL --lang en
+expect-exit 0
+expect-output-line "To review: " AC-4 6
+expect-output-line "Checked: " "4 of 4" "3 by check records" "0 by user confirmation" review
+ha report $GOAL --lang ko
+expect-exit 0
+expect-output-line "직접 볼 것: " AC-4 6
+expect-output-line "확인한 것: " "4개 중 4개" "검사 기록 3개" "사용자 확인 0개"
+ha done $GOAL
+expect-exit 0
+expect-records 7
+expect-completion-record present
+ha report $GOAL --lang en
+expect-exit 0
+expect-output "Source: completion record seq 7\n"
+expect-output-line "To review: " AC-4 6
+expect-output-line "Checked: " "4 of 4" "3 by check records" "0 by user confirmation" review
+ha report $GOAL --lang ko
+expect-exit 0
+expect-output "근거 출처: 완료 기록 seq 7\n"
+expect-output-line "직접 볼 것: " AC-4 6
+expect-output-line "확인한 것: " "4개 중 4개" "검사 기록 3개" "사용자 확인 0개"
+expect-records 7

@@ -1,0 +1,33 @@
+# AC-4 (light): under Assurance: light the review condition AC-4 is never met,
+# even with a complete gate recorded. Its reason `review_tier_missing` (user)
+# names the tiers that require review, and ha done records no completion
+# (needs_user, exit 2).
+include review-kind-goal
+replace $GOAL/SPEC.md "Assurance: strict" "Assurance: light"
+commit "light goal with a review condition"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/8
+expect-exit 0
+include rules-v7-implement
+ha check $GOAL --baseline
+expect-exit 0
+ha check $GOAL
+expect-exit 0
+expect-satisfied AC-1
+expect-satisfied AC-2
+expect-satisfied AC-3
+expect-unsatisfied AC-4
+expect-status needs_user
+expect-reasons AC-4:review_tier_missing
+ha status $GOAL
+expect-exit 2
+expect-output-line "- `review_tier_missing`" AC-4 standard strict
+ha done $GOAL
+expect-exit 2
+expect-completion-record absent
+ha note $GOAL review --gate .git/gate.json
+expect-exit 0
+expect-unsatisfied AC-4
+expect-reasons AC-4:review_tier_missing
+ha done $GOAL
+expect-exit 2
+expect-completion-record absent
