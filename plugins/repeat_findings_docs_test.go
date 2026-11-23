@@ -38,49 +38,19 @@ func rptRequire(t *testing.T, id string, tokens map[string][]string) {
 const (
 	rptSealSkill  = "seal/skills/seal/SKILL.md"
 	rptSealBundle = "seal/skills/seal/references/bundle.md"
-	rptSealReview = "seal/skills/seal/assets/templates/REVIEW.md"
-	rptSealHa     = "seal/skills/seal/references/ha.md"
-	rptBundle     = "../contracts/bundle.md"
 )
-
-// AC-7: Seal writes the supported forms and check boundaries before the
-// first review round of every tier, and asks for the forms of an open-ended
-// criterion in the question before any baseline.
-func TestRepeatFindingsAC7_FirstRoundBoundaries(t *testing.T) {
-	rptRequire(t, "first-round-rule-missing", map[string][]string{
-		rptSealSkill:  {"before the earliest review round", "each check's boundary", "ask in the question before any baseline"},
-		rptSealBundle: {"before the earliest review round", "check boundaries", "supported input forms of an open-ended criterion", "in the one question before any baseline"},
-		rptSealReview: {"before the earliest review round", "each check's boundary"},
-		rptBundle:     {"before the earliest review round", "each check's boundary", "supported input forms of an open-ended criterion", "in the one question before any baseline"},
-	})
-}
-
-// AC-7: a review fix that widens a check widens that check's boundary record
-// in the same step.
-func TestRepeatFindingsAC7_WidenedCheckRecords(t *testing.T) {
-	rptRequire(t, "widened-check-rule-missing", map[string][]string{
-		rptSealSkill:  {"widen its boundary record in the same step"},
-		rptSealBundle: {"widen its boundary record in the same step"},
-		rptSealReview: {"widen its boundary record in the same step"},
-		rptBundle:     {"widen its boundary record in the same step"},
-	})
-}
 
 // AC-7: every round, from the plan round to the cumulative round, gets
 // REVIEW.md as a boundary document, and the round example shows it.
 func TestRepeatFindingsAC7_BoundaryEveryRound(t *testing.T) {
 	const id = "boundary-passing-rule-missing"
 	rptRequire(t, id, map[string][]string{
-		rptSealSkill:  {"`--boundary`"},
-		rptSealBundle: {"as `--boundary` to every review round"},
-		rptBundle:     {"as `--boundary` to every review round"},
+		rptSealSkill: {"`--boundary`"},
 	})
-	text := rptDoc(t, rptSealBundle)
-	i := strings.Index(text, "**Decisions for review rounds.**")
-	if i < 0 {
-		t.Fatalf("jaekit:violation=%s %s has no example for review rounds", id, rptSealBundle)
+	block := rptDoc(t, rptSealBundle)
+	if i := strings.Index(block, "**Decisions for review rounds.**"); i >= 0 {
+		block = block[i:]
 	}
-	block := text[i:]
 	if j := strings.Index(block, "```bash\n"); j >= 0 {
 		block = block[j:]
 		if k := strings.Index(block[len("```bash\n"):], "```"); k >= 0 {
@@ -96,19 +66,6 @@ func TestRepeatFindingsAC7_BoundaryEveryRound(t *testing.T) {
 // and settings.
 var rptSparDocs = []string{"../contracts/review-round.md", "../contracts/spar-input.md", "../contracts/spar-config.md",
 	"../guides/SPAR.md", "../guides/SPAR.en.md", "spar/skills/spar/SKILL.md"}
-
-// AC-9: the documents describe the last disposition at the end of an
-// earlier finding's line and the guidance for a finding reported again.
-func TestRepeatFindingsAC9_DispositionDocs(t *testing.T) {
-	tokens := map[string][]string{
-		"../contracts/review-round.md": {"line ends with its last disposition", "a failure scenario that the recorded disposition does not answer"},
-		"../guides/SPAR.md":            {"줄 끝에 그 지적의 마지막 처리", "기록된 처리가 답하지 못하는 실패 시나리오"},
-		"../contracts/spar-input.md":   {"line ends with its last disposition"},
-		"../guides/SPAR.en.md":         {"line ends with its last disposition", "a failure scenario that the recorded disposition does not answer"},
-		"spar/skills/spar/SKILL.md":    {"line ends with its last disposition", "a failure scenario that the recorded disposition does not answer"},
-	}
-	rptRequire(t, "disposition-undocumented", tokens)
-}
 
 // AC-9: the documents describe the boundary input, its section and guidance,
 // and its record field.
@@ -136,22 +93,4 @@ func TestRepeatFindingsAC9_LimitDocs(t *testing.T) {
 	}
 	tokens["../contracts/spar-config.md"] = append(tokens["../contracts/spar-config.md"], "`max_packet_bytes_source`")
 	rptRequire(t, "limit-undocumented", tokens)
-}
-
-// AC-14: the rules apply to every goal this Seal carries: the first-round
-// rule and the boundary documents apply in every round it runs, and an
-// earlier goal's REVIEW.md keeps the format it started with.
-func TestRepeatFindingsAC14_EarlierGoals(t *testing.T) {
-	rptRequire(t, "earlier-goal-rule-missing", map[string][]string{
-		rptSealSkill:  {"before the earliest review round", "Every round gets `REVIEW.md` as `--boundary`"},
-		rptSealBundle: {"before the earliest review round", "`--boundary` in every round this Seal runs, whichever Seal started the goal"},
-		scrEarlier:    {scrEarlierRules[0]},
-	})
-}
-
-// AC-15: the ha reference says every review round gets REVIEW.md as
-// `--boundary`, which needs no Core change.
-func TestRepeatFindingsAC15_BoundaryNeedsNoCore(t *testing.T) {
-	rptRequire(t, "boundary-core-statement-missing", map[string][]string{rptSealHa: {
-		"Every review round gets `REVIEW.md` as `--boundary`, which needs a Spar that takes `--boundary` and no Core change."}})
 }

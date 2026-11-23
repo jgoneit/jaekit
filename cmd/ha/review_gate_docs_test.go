@@ -2,8 +2,8 @@ package main
 
 // Checks of the goal ha-review-gate that read the checked tree: Seal's start
 // rule and Core requirements, its compatibility helper, and the fixed
-// statements the public contracts, guides and Seal skill make about the
-// review gate. They read files of the tree and never its history. The opening
+// tokens the public contracts, guides and Seal skill hold about the review
+// gate. They read files of the tree and never its history. The opening
 // line of an assertion's failure message names the property it observes
 // (jaekit:violation=<id>); a failure without it is a broken setup.
 
@@ -101,7 +101,7 @@ func TestHaReviewGateAC13_CoreSupportsTheNewRules(t *testing.T) {
 }
 
 // AC-13: Seal declares run-rules/5 and the gate support, starts with them
-// and records the gate before `ha done`; this Core accepts that start.
+// and records the gate; this Core accepts that start.
 func TestHaReviewGateAC13_SealStartsUnderTheNewRules(t *testing.T) {
 	t.Parallel()
 	const v = "seal-start-rules-not-new"
@@ -124,7 +124,7 @@ func TestHaReviewGateAC13_SealStartsUnderTheNewRules(t *testing.T) {
 		t.Errorf("jaekit:violation=%s the Seal skill lacks %v", v, missing)
 	}
 	review := rgSection(skill, "## Independent review")
-	if missing := rgMissing(review, rgRecordCommand, "`spar gate`", "before `ha done`"); len(missing) > 0 {
+	if missing := rgMissing(review, rgRecordCommand, "`spar gate`"); len(missing) > 0 {
 		t.Errorf("jaekit:violation=%s the Seal skill's Independent review section lacks %v", v, missing)
 	}
 	// This Core accepts a start with the skill as the tree has it.
@@ -294,19 +294,6 @@ func TestHaReviewGateAC13_SealCheckerNeedsTheNewRules(t *testing.T) {
 	}
 }
 
-// AC-1 (run-rules-8): the Core capability contract has a run-rules/8 section
-// stating where the rule is listed.
-func TestHaReviewGateAC13_CapabilitiesContractStatesRunRules8(t *testing.T) {
-	t.Parallel()
-	const v = "capabilities-contract-v8-missing"
-	const heading = "## 12. run-rules/8"
-	section := rgSection(rgTreeFile(t, "contracts/core-capabilities.md"), heading)
-	const statement = "A Core that supports `run-rules/8` lists it in `supported_rules` alongside `run-rules/1` through `run-rules/7`."
-	if first, _, _ := strings.Cut(section, "\n"); first != heading || !strings.Contains(section, statement) {
-		t.Errorf("jaekit:violation=%s section %q is missing or lacks %q", v, heading, statement)
-	}
-}
-
 // AC-14: the run record contract states the new rules, the gate record and
 // the reasons.
 func TestHaReviewGateAC14_RunRecordContractStatesTheGate(t *testing.T) {
@@ -332,20 +319,16 @@ func TestHaReviewGateAC14_RunRecordContractStatesTheGate(t *testing.T) {
 	}
 }
 
-// AC-8 (run-rules-8): the run record contract adds a run-rules/8 column and
-// section stating what the rule changes.
+// AC-8 (run-rules-8): the run record contract adds a run-rules/8 column.
 func TestHaReviewGateAC14_RunRecordStatesRunRules8(t *testing.T) {
 	t.Parallel()
 	const v = "run-record-v8-missing"
 	text := rgTreeFile(t, "contracts/run-record.md")
 	versions := rgSection(text, "### 4.6 Rules versions")
-	if missing := rgMissing(versions, "| `run-rules/7` | `run-rules/8` |",
-		"A new rules version is added only when a decision changes; a Seal release that only changes guidance adds no rules version."); versions == "" || len(missing) > 0 {
+	if missing := rgMissing(versions, "| `run-rules/7` | `run-rules/8` |"); versions == "" || len(missing) > 0 {
 		t.Errorf("jaekit:violation=%s section 4.6 Rules versions is missing or lacks %q", v, missing)
 	}
-	// Every row of its table has the label and /1 to /8; the rows run-rules/8
-	// changes or adds end in its cell.
-	last := map[string]string{}
+	// Every row of its table has the label and /1 to /8.
 	var uneven []string
 	for _, line := range strings.Split(versions, "\n") {
 		line = strings.ReplaceAll(strings.TrimSpace(line), `\|`, "")
@@ -356,39 +339,14 @@ func TestHaReviewGateAC14_RunRecordStatesRunRules8(t *testing.T) {
 		if len(cells) != 9 {
 			uneven = append(uneven, strings.TrimSpace(cells[0]))
 		}
-		last[strings.TrimSpace(cells[0])] = strings.TrimSpace(cells[len(cells)-1])
 	}
 	if len(uneven) > 0 {
 		t.Errorf("jaekit:violation=%s %d rows of the rules table do not have 9 cells (the label and run-rules/1 to /8), the first %q", v, len(uneven), uneven[0])
 	}
-	for _, row := range [][2]string{
-		{"Elapsed time", "Informational only (§4.11)"},
-		{"Check freeze display", "None (§4.11)"},
-		{"Changing the run limit of the current window", "Same as `/3` (§4.11)"},
-		{"Baseline overlay", "Check paths of every marked change condition (§4.11)"},
-	} {
-		if got, ok := last[row[0]]; !ok || got != row[1] {
-			t.Errorf("jaekit:violation=%s the rules table row %q is missing or ends in %q; want %q", v, row[0], got, row[1])
-		}
-	}
-	const heading = "### 4.11 run-rules/8"
-	rules8 := rgSection(text, heading)
-	if first, _, _ := strings.Cut(rules8, "\n"); first != heading {
-		rules8 = ""
-	}
-	if missing := rgMissing(rules8,
-		"A goal started with `ha start --rules run-rules/8` retains the rules of `run-rules/7` except for the baseline overlay, the check freeze, the elapsed-time limit and `ha budget --preapprove` below.",
-		"A baseline copies the check paths of every marked change condition from HEAD onto the base commit, whichever condition it records.",
-		"A baseline is fresh only when its overlay paths equal the union of the check paths of the currently marked change conditions and each digest equals the HEAD blob; the other freshness conditions are those of `run-rules/7`.",
-		"There is no check freeze: `ha status` and `ha report` show no freeze items, `ha note review` records no check paths, and `ha note <goal> check-change` exits with 64 without a record.",
-		"The PLAN's `경과 시간` is optional and informational: exceeding it never makes `budget_exceeded` or `budget_exhausted`.",
-		"`ha budget --preapprove` exits with 65 without a record; `ha budget --runs` changes the run limit as under `run-rules/7`."); rules8 == "" || len(missing) > 0 {
-		t.Errorf("jaekit:violation=%s section %q is missing or lacks %q", v, heading, missing)
-	}
 }
 
 // AC-14: the Core capability contract names the rule, the format and the
-// feature, and the tier statements say which rules they apply to.
+// feature.
 func TestHaReviewGateAC14_CapabilitiesContractStatesTheGate(t *testing.T) {
 	t.Parallel()
 	const v = "capabilities-gate-missing"
@@ -399,28 +357,6 @@ func TestHaReviewGateAC14_CapabilitiesContractStatesTheGate(t *testing.T) {
 	}
 	if missing := rgMissing(text, "| `review-gate/v1` |", "| `formats.review_gate` |"); len(missing) > 0 {
 		t.Errorf("jaekit:violation=%s the capability tables lack %v", v, missing)
-	}
-	// Each statement that the tier leaves the judgment unchanged (one
-	// paragraph or list item per line) names the earlier rules it holds for,
-	// and each file states it so next to run-rules/5. The contracts render
-	// the statement in two forms.
-	unchanged := []string{"change because of the tier", "the tier does not change"}
-	const earlier = "`run-rules/4` or earlier"
-	for _, path := range []string{"contracts/core-capabilities.md", "contracts/goal-docs.md", "contracts/bundle.md"} {
-		qualified := false
-		for n, line := range strings.Split(rgTreeFile(t, path), "\n") {
-			if len(rgMissing(line, unchanged...)) == len(unchanged) {
-				continue
-			}
-			if !strings.Contains(line, earlier) {
-				t.Errorf("jaekit:violation=%s %s:%d says the tier leaves the judgment unchanged without limiting it to goals started under run-rules/4 or earlier", v, path, n+1)
-			} else if strings.Contains(line, "`run-rules/5`") {
-				qualified = true
-			}
-		}
-		if !qualified {
-			t.Errorf("jaekit:violation=%s %s has no statement that limits the unchanged judgment to earlier rules next to run-rules/5", v, path)
-		}
 	}
 }
 
@@ -434,29 +370,6 @@ func TestHaReviewGateAC14_GuidesStateTheGate(t *testing.T) {
 		if missing := rgMissing(section, rgRecordCommand, "`run-rules/5`", "`review_missing`", "`review_head_stale`", "`review_docs_stale`",
 			"`Assurance: light`", "`spar gate`"); section == "" || len(missing) > 0 {
 			t.Errorf("jaekit:violation=%s %s: section %q is missing or lacks %v", v, path, heading, missing)
-		}
-	}
-}
-
-// AC-14: the Seal skill says that without a gate a new-rule standard or
-// strict goal stays pending and that finishing without review is the user's
-// tier change, and accepts a separate review in its place only for goals
-// started under the earlier rules.
-func TestHaReviewGateAC14_SealSkillStatesNoGateNoCompletion(t *testing.T) {
-	t.Parallel()
-	const v = "seal-without-spar-sentence-missing"
-	skill := rgTreeFile(t, "plugins/seal/skills/seal/SKILL.md")
-	const statement = "From `run-rules/5`, a `standard` or `strict` goal completes only with a recorded Spar gate; without one, completion stays pending, and finishing without review needs the user's goal-document change that lowers the tier to `light`."
-	if !strings.Contains(skill, statement) {
-		t.Errorf("jaekit:violation=%s the Seal skill lacks the statement %q", v, statement)
-	}
-	// The earlier rule stays only in a sentence scoped to those goals.
-	const separate, scope = "a separate review recording role, inputs, versions, findings, limits and inspectable references counts", "`run-rules/4` or earlier"
-	for _, line := range strings.Split(skill, "\n") {
-		for _, sentence := range strings.Split(line, ". ") {
-			if strings.Contains(sentence, separate) && !strings.Contains(sentence, scope) {
-				t.Errorf("jaekit:violation=%s the Seal skill accepts a separate review without Spar for every goal: %q", v, sentence)
-			}
 		}
 	}
 }

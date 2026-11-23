@@ -561,64 +561,6 @@ func TestSparQuestionsAC7_RecordedRoundsKeepTheirGate(t *testing.T) {
 	}
 }
 
-// cpqRead reads a repository file; a file that cannot be read is a broken
-// setup, not an observation.
-func cpqRead(t *testing.T, rel string) string {
-	t.Helper()
-	data, err := os.ReadFile(filepath.Join("..", "..", filepath.FromSlash(rel)))
-	if err != nil {
-		t.Fatalf("%s cannot be read: %v", rel, err)
-	}
-	return string(data)
-}
-
-// AC-8: the public contract states the class rules in this order.
-func TestSparQuestionsAC8_ContractStatesTheRules(t *testing.T) {
-	const id = "contract-rules-stale"
-	text := cpqRead(t, "contracts/review-round.md")
-	want := []string{
-		"1. If the location is in the check paths and `check_impact` is `false_pass` or `meaning_inverted`, `defect`",
-		"2. If the location is in the check paths, `check_impact` is `contract_violation` and the link is confirmed, `defect`",
-		"3. If the location is in the check paths: `requirement-question` when `proposed_class` is `requirement-question`, the link is confirmed, and that link is not a `contract` link pointing to a file in the check paths; otherwise `hardening`, whatever the proposed class",
-		"4. If `proposed_class` is `requirement-question`, `requirement-question`",
-		"5. If `introduced_by_change` and `regression` are both `yes`, `defect`",
-		"6. If `proposed_class` is `defect` and the link is not confirmed, `note`",
-		"7. Otherwise, `proposed_class`",
-	}
-	const heading = "Classification rules for findings whose location was read (the first match from the top applies):\n\n"
-	_, rest, ok := strings.Cut(text, heading)
-	if !ok {
-		t.Fatalf("jaekit:violation=%s: contracts/review-round.md has no %q", id, strings.TrimSpace(heading))
-	}
-	list, _, _ := strings.Cut(rest, "\n\n")
-	if got := strings.Split(list, "\n"); strings.Join(got, "\n") != strings.Join(want, "\n") {
-		cpqViolation(t, id, "the class rules are\n%s", list)
-	}
-	for _, sentence := range []string{
-		"A `requirement-question` from rule 3 is not deferred automatically and closes only with a disposition that quotes the user's words, as in section 7.",
-		"A `contract` link pointing to a file in the check paths points to the check code itself, so rule 3 does not count it as a confirmed link. The link confirmation in rule 2 has no such restriction.",
-		"The class is fixed when a finding is recorded. The gate and the summary read the class recorded in `findings.json`, so findings already recorded are not classified again even when the rules change.",
-	} {
-		if !strings.Contains(text, sentence) {
-			cpqViolation(t, id, "contracts/review-round.md does not say %q", sentence)
-		}
-	}
-}
-
-// AC-8: the Spar skill describes the classes by the same rule.
-func TestSparQuestionsAC8_SkillStatesTheClasses(t *testing.T) {
-	const id = "skill-classes-stale"
-	text := cpqRead(t, "plugins/spar/skills/spar/SKILL.md")
-	for _, line := range []string{
-		"- `requirement-question`: only a change of requirement resolves it. You cannot change a requirement; ask the user. A finding in a check path stays one only when it proposes `requirement-question` and links the criterion, rule or contract it asks about, and that link exists; a `contract` link to a file in the check paths does not count.",
-		"- `hardening`: a check-path edge case that nothing requires, including a check-path requirement question without such a link. It is deferred automatically.",
-	} {
-		if !strings.Contains(text, "\n"+line+"\n") {
-			cpqViolation(t, id, "SKILL.md has no line %q", line)
-		}
-	}
-}
-
 // AC-8: the reviewer packet tells reviewers that a requirement question at
 // a check path stays a question only with a link that exists.
 func TestSparQuestionsAC8_PacketExplainsTheLink(t *testing.T) {

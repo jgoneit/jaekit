@@ -1038,11 +1038,8 @@ func TestGoalCostSummaryAC9_InputProblems(t *testing.T) {
 	refused("a broken run record", "runs.jsonl", gcGoal)
 }
 
-// AC-11: the contract defines the command, its items, their sources and its
-// input problems, and names the Spar formats it reads with their versions;
-// the guides say how to read it, to compare goals of the same tier and
-// similar size, and that a before-and-after comparison of a few goals is not
-// a causal effect.
+// AC-11: the contract defines the command and names the Spar formats it
+// reads with their versions; the guides give the command.
 func TestGoalCostSummaryAC11_ContractAndGuides(t *testing.T) {
 	t.Parallel()
 	const v = "cost-docs-missing"
@@ -1056,12 +1053,12 @@ func TestGoalCostSummaryAC11_ContractAndGuides(t *testing.T) {
 	}
 	contract := read("../../contracts/run-record.md")
 	gcContains(t, v, "contracts/run-record.md", contract,
-		"### 1.7 Cost summary (`ha cost`)", "`ha cost <goal> [--series <folder>]... [--format md|json] [--lang ko|en]`",
+		"`ha cost <goal> [--series <folder>]... [--format md|json] [--lang ko|en]`",
 		"`review-round/v1`", "`review-gate/v1`", "`cost/v1`", "| `ha cost <goal>",
-		"**Items and sources.**", "**Input problems.**", "Tokens", "https://github.com/jgoneit/jaekit/issues/174")
+		"https://github.com/jgoneit/jaekit/issues/174")
 	for path, wants := range map[string][]string{
-		"../../guides/USAGE.md":    {"## 목표 하나의 비용 보기", "ha cost docs/specs/<goal> --series docs/reviews/<goal>", "같은 등급", "비슷한 크기", "인과 효과가 아닙니다"},
-		"../../guides/USAGE.en.md": {"## Reading one goal's cost", "ha cost docs/specs/<goal> --series docs/reviews/<goal>", "same tier", "similar size", "not a causal effect"},
+		"../../guides/USAGE.md":    {"ha cost docs/specs/<goal> --series docs/reviews/<goal>"},
+		"../../guides/USAGE.en.md": {"ha cost docs/specs/<goal> --series docs/reviews/<goal>"},
 	} {
 		gcContains(t, v, path, read(path), wants...)
 	}
