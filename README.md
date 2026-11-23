@@ -481,7 +481,7 @@ None
 ```
 
 - `change` is new behavior. Its check must pass on the result. Up to `run-rules/6`, Seal also runs every change condition's check on the starting commit, where it fails as declared, as AC-1's records show. From `run-rules/7`, only change conditions marked `요구` in an optional last `baseline` column need that record: a bug fix or regression whose defect is already present at the base commit, or a prohibition such as "X does not happen".
-- `maintain` is behavior that must keep working. `manual` is a condition only you can confirm.
+- `maintain` is behavior that must keep working. `manual` is a condition only you can confirm. `review` is a condition on document content that no product behavior reads: under `run-rules/8`, the independent review gate of a `standard` or `strict` goal meets it without a check.
 - The plan also lists the paths Seal may change, its tasks and a run budget. `REVIEW.md` holds the review of this plan, the review tier and the planned review stages, and later summarizes the Spar rounds and gate, pointing to their records in `docs/reviews/password-link/`.
 
 </details>

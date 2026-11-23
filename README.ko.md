@@ -481,7 +481,7 @@ Assurance: standard
 ```
 
 - `change`는 새 동작이며, 그 검사는 결과에서 통과해야 합니다. `run-rules/6`까지는 Seal이 모든 change 조건의 검사를 시작 commit에서도 돌려 선언대로 실패한 기록을 남기며, AC-1의 기록이 그 예입니다. `run-rules/7`부터는 선택 열 `baseline`에 `요구`를 표시한 change 조건만 그 기록이 필요합니다. base commit에 이미 있는 결함을 고치는 버그 수정·회귀나, "X가 일어나지 않는다" 같은 금지 조건입니다.
-- `maintain`은 계속 동작해야 하는 기존 동작이고, `manual`은 사용자만 확인할 수 있는 조건입니다.
+- `maintain`은 계속 동작해야 하는 기존 동작이고, `manual`은 사용자만 확인할 수 있는 조건입니다. `review`는 제품 동작이 읽지 않는 문서 내용에 관한 조건으로, `run-rules/8`에서 `standard`·`strict` 목표의 독립 검토 gate가 검사 없이 충족합니다.
 - 계획에는 Seal이 바꿀 수 있는 경로, task, 실행 예산도 들어갑니다. `REVIEW.md`는 이 계획의 검토와 검토 등급·계획한 검토 단계를 담고, 나중에 Spar 라운드와 gate를 요약해 `docs/reviews/password-link/`의 기록을 가리킵니다.
 
 </details>
