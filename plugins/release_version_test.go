@@ -211,10 +211,10 @@ func TestReleaseVersionCombination(t *testing.T) {
 		rows []string
 	}{
 		{"../guides/INSTALL.md", []string{
-			" | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |",
+			" `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |",
 			" | `ha 0.1.8-dev`, `spar 0.1.8-dev` |"}},
 		{"../guides/INSTALL.en.md", []string{
-			" | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |",
+			" `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |",
 			" | `ha 0.1.8-dev`, `spar 0.1.8-dev` |"}},
 	} {
 		lines := strings.Split(read(t, c.path), "\n")
