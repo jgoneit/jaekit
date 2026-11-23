@@ -1,0 +1,40 @@
+# AC-4 (light): a completion does not carry over a kind change. A light goal
+# completes with AC-4 as a confirmed manual row; when a PLAN-only commit turns
+# that row into a `review` row, the completion record no longer holds, AC-4 is
+# unmet with `review_tier_missing`, neither report language lists it as met by
+# the review gate, and ha done (needs_user, exit 2) records no completion.
+include review-kind-goal
+replace $GOAL/SPEC.md "Assurance: strict" "Assurance: light"
+replace $GOAL/PLAN.md "| AC-4 | review | — 문서 내용 기준 | | T001 | — |" "| AC-4 | manual | — 사람이 확인 | | T001 | — |"
+commit "light goal with a manual AC-4"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/8
+expect-exit 0
+include rules-v7-implement
+ha check $GOAL --baseline
+expect-exit 0
+ha check $GOAL
+expect-exit 0
+ha note $GOAL confirm AC-4 --quote "읽어 보니 맞아"
+expect-exit 0
+expect-satisfied AC-4
+ha done $GOAL
+expect-exit 0
+expect-records 7
+expect-completion-record present
+replace $GOAL/PLAN.md "| AC-4 | manual | — 사람이 확인 | | T001 | — |" "| AC-4 | review | — 문서 내용 기준 | | T001 | — |"
+commit "AC-4 becomes a review row after completion"
+expect-completion-record absent
+expect-status needs_user
+expect-unsatisfied AC-4
+expect-reason review_tier_missing AC-4
+ha report $GOAL --lang en
+expect-exit 0
+expect-no-output "conditions met by the review gate"
+ha report $GOAL --lang ko
+expect-exit 0
+expect-no-output "리뷰 gate로 충족한 조건"
+ha done $GOAL
+expect-exit 2
+expect-records 8
+expect-record 8 status needs_user
+expect-completion-record absent
