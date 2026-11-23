@@ -94,6 +94,7 @@ The underscore directory [`_native/windows-evidence-paths/`](_native/windows-evi
 | `review-kind-report` | run-record.md §1.3 | both report languages count the review condition apart from check records and confirmations and name AC-4 with the gate's review note seq 6 on the review line, before and after `ha done` |
 | `review-kind-light` | run-record.md §4.1 | `Assurance: light`: AC-4 stays unmet with `review_tier_missing` (user) even with a complete gate; `ha done` exits 2 with no completion record |
 | `review-kind-light-no-tier` | run-record.md §4.1 | the same without an `Assurance:` line |
+| `review-kind-light-kind-change` | run-record.md §4.1, §5.1 | a light goal completed with AC-4 as a confirmed manual row loses the completion when a PLAN-only commit makes it a `review` row: AC-4 unmet with `review_tier_missing`, no report line for conditions met by the review gate, and `ha done` exits 2 with no completion record |
 | `review-kind-rules7` | bundle.md §2.1 | `ha start --rules run-rules/7` refuses a `review` row with `invalid_kind` (65) and records nothing; a goal started under `/7` keeps `invalid_kind` for it and refuses checks |
 | `rules-v1-kept` | run-rules-2 AC-10 | historical `run-rules/1` budget semantics remain; a future dirty check is refused |
 | `blocked` | bundle.md §5 | `blocked` until unblock |
