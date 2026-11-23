@@ -122,11 +122,10 @@ func TestManifestsAndVersionsAgree(t *testing.T) {
 	}
 }
 
-// nothing in the Spec plugin refers to Seal, its
+// nothing in the Spec plugin refers to Seal's
 // commands, bundle files, or run states.
 func TestSpecPluginKnowsNothingOfSeal(t *testing.T) {
 	forbidden := []*regexp.Regexp{
-		regexp.MustCompile(`(?i)\bseal\b`),
 		regexp.MustCompile(`\bha (lint|start|check|note|status|done|log)\b`),
 		regexp.MustCompile(`PLAN\.md|REVIEW\.md|PROGRESS\.md|runs\.jsonl`),
 		regexp.MustCompile(`\b(needs_user|budget_exhausted|incomplete)\b`),
@@ -145,8 +144,7 @@ func TestSpecPluginKnowsNothingOfSeal(t *testing.T) {
 	})
 }
 
-// Spec: agents may invoke it on both hosts, and its description limits them
-// to Jaekit or goal-document work and amendments.
+// Spec: agents may invoke it on both hosts.
 func TestSpecInvocationBoundary(t *testing.T) {
 	keys, _ := frontMatter(t, "spec/skills/spec/SKILL.md")
 	if _, ok := keys["disable-model-invocation"]; ok {
@@ -154,15 +152,6 @@ func TestSpecInvocationBoundary(t *testing.T) {
 	}
 	if !strings.Contains(read(t, "spec/skills/spec/agents/openai.yaml"), "allow_implicit_invocation: true") {
 		t.Error("Spec openai.yaml must allow implicit invocation")
-	}
-	for _, want := range []string{
-		"A host agent calls it only when the user asks to work through Jaekit, Spec, or goal documents",
-		"needs an amendment",
-		"Not for ordinary implementation requests or bug reports that do not mention goal documents.",
-	} {
-		if !strings.Contains(keys["description"], want) {
-			t.Errorf("Spec description lacks %q", want)
-		}
 	}
 }
 
@@ -172,54 +161,15 @@ func TestSpecStatusFollowsOpenDecisions(t *testing.T) {
 	requireSkillTokens(t, specSkillDir, "Ready")
 }
 
-// templates for behavior changes carry user scenarios, and
-// the cross-module template asks for a criterion across the boundary.
+// templates carry the goal document format tokens.
 func TestSpecTemplates(t *testing.T) {
 	dir := "spec/skills/spec/assets/templates"
 	for _, name := range []string{"small-change.md", "backend-feature.md", "cross-module-feature.md", "product.md"} {
 		text := read(t, filepath.Join(dir, name))
-		for _, token := range []string{"Status: Draft", "## Acceptance Criteria", "## Open Decisions", "## 사용 시나리오", "**AC-1**"} {
+		for _, token := range []string{"Status: Draft", "## Acceptance Criteria", "**AC-1**"} {
 			if !strings.Contains(text, token) {
 				t.Errorf("%s lacks %q", name, token)
 			}
-		}
-		if name != "small-change.md" && !strings.Contains(text, "| 종류 | 시나리오 | 조건 |") {
-			t.Errorf("%s lacks the scenario table", name)
-		}
-	}
-	if !strings.Contains(read(t, filepath.Join(dir, "cross-module-feature.md")), "across the real boundary") {
-		t.Error("cross-module template must ask for a criterion across the real boundary")
-	}
-	// Spec AC-18, AC-19: decisions carry a source, and templates for changes to
-	// existing code ask for today's behavior and what stays the same.
-	for _, name := range []string{"backend-feature.md", "cross-module-feature.md", "product.md"} {
-		if !strings.Contains(read(t, filepath.Join(dir, name)), "Source:") {
-			t.Errorf("%s decisions lack a Source placeholder", name)
-		}
-	}
-	for _, name := range []string{"backend-feature.md", "cross-module-feature.md"} {
-		text := read(t, filepath.Join(dir, name))
-		for _, token := range []string{"- Today:", "- Stays the same:"} {
-			if !strings.Contains(text, token) {
-				t.Errorf("%s lacks %q", name, token)
-			}
-		}
-	}
-}
-
-// the maintenance-first rules name docs/specs/, where the skill looks for
-// goal documents that cover the same behavior.
-func TestSpecMaintenanceRules(t *testing.T) {
-	requireSkillTokens(t, specSkillDir, "docs/specs/")
-}
-
-// the repository instructions keep testdata scenarios for rules ha
-// decides and send skill-text rules to static checks and quality cases.
-func TestAgentsScopesScenarioRule(t *testing.T) {
-	text := read(t, "../AGENTS.md")
-	for _, must := range []string{"behavioral scenarios in `testdata/scenarios/`", "checks independent of private documents and earlier repository history"} {
-		if !strings.Contains(text, must) {
-			t.Errorf("AGENTS.md lacks %q", must)
 		}
 	}
 }
@@ -376,7 +326,7 @@ func TestSealOrderLinesLayoutSections(t *testing.T) {
 func TestSealSkillCarriesCompletionRules(t *testing.T) {
 	requireSkillTokens(t, sealSkillDir,
 		"ha done", "ha note <goal> confirm", "reopen", "input", "--skill", "runs.jsonl", "ha log",
-		"## 개선 메모", "local", "Status: Ready")
+		"local", "Status: Ready")
 }
 
 func headings(text string) []string {

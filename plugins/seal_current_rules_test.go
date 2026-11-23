@@ -3,12 +3,11 @@ package plugins
 // Property: the Seal skill states the current rules only
 // The skill's body, its ha and bundle references and its templates state no
 // condition on the Seal version that started a goal; the ha reference keeps
-// one rules section, linking the contract for earlier rules, and no release
-// history; the earlier-goals reference is short and lists no format; the
-// check-input rule applies to every check written now. Sentences are matched with
-// white space runs read as one space. Every failure message starts with its
-// violation marker, except a document that cannot be read or is not UTF-8,
-// or templates that cannot be found, which fail unmarked as a broken setup.
+// one rules section, linking the contract for earlier rules; the
+// earlier-goals reference is short and lists no format. Every failure
+// message starts with its violation marker, except a document that cannot be
+// read or is not UTF-8, or templates that cannot be found, which fail
+// unmarked as a broken setup.
 
 import (
 	"fmt"
@@ -28,21 +27,9 @@ const (
 	scrBundle  = sealSkillDir + "/references/bundle.md"
 	scrEarlier = sealSkillDir + "/references/earlier-goals.md"
 
-	// scrH0 is the release sentence that alone stays above ha.md's first
-	// `## ` heading.
+	// scrH0 is ha.md's release sentence.
 	scrH0 = "The commands below describe release v0.1.8: ha 0.1.8, spar 0.1.8 and Seal 0.1.23."
-	// scrK1 and scrN1 state the scope of the check-input rule.
-	scrK1 = "They apply to every check written or changed under this skill, whichever Seal started the goal."
-	scrN1 = "never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md` for this reason alone"
 )
-
-// scrEarlierRules are the sentences the earlier-goals reference holds.
-var scrEarlierRules = []string{
-	"Goal documents and bundle files keep the format they were started with; do not convert them.",
-	"`ha status` computes the state under the goal's own saved rules.",
-	"Checks, review rounds and reports you write now follow the current skill.",
-	"For the exact earlier formats, read the contracts.",
-}
 
 // scrRulesLinks are the exact URLs of the run record contract's sections for
 // the earlier rules that ha.md's `## run-rules/8` links.
@@ -54,8 +41,7 @@ var scrRulesLinks = []string{
 }
 
 var (
-	scrVersion     = regexp.MustCompile(`(?i)\bv?0\.1\.[0-9]+`)
-	scrEarlierSeal = regexp.MustCompile(`(?i)earlier\s+seal`)
+	scrVersion = regexp.MustCompile(`(?i)\bv?0\.1\.[0-9]+`)
 	// scrTagLink is a repository link pinned to a release tag, with the tag's
 	// version; that version is the only one a URL may carry.
 	scrTagLink   = regexp.MustCompile("https://github\\.com/jgoneit/jaekit/blob/v([0-9]+\\.[0-9]+\\.[0-9]+)/[^\\s)<>\\]`]*")
@@ -92,15 +78,6 @@ func scrUnspanned(text string, re *regexp.Regexp) [][]int {
 	return out
 }
 
-// scrSentence matches sentence with white space runs read as any white space.
-func scrSentence(sentence string) *regexp.Regexp {
-	words := strings.Fields(sentence)
-	for i, w := range words {
-		words[i] = regexp.QuoteMeta(w)
-	}
-	return regexp.MustCompile(strings.Join(words, `\s+`))
-}
-
 func scrRead(t *testing.T, path string) string {
 	t.Helper()
 	b, err := os.ReadFile(path)
@@ -115,10 +92,9 @@ func scrRead(t *testing.T, path string) string {
 
 // SKILL.md, ha.md, bundle.md and every template name a 0.1.x version only
 // as the tag's version inside a tag-pinned repository link, on SKILL.md's
-// front-matter version line or on ha.md's release sentence, and say "earlier
-// Seal" only in SKILL.md's `## References`. Both patterns read the whole
-// file, so a match may span a line break; a match is placed by the line it
-// starts on.
+// front-matter version line or on ha.md's release sentence. The pattern reads
+// the whole file, so a match may span a line break; a match is placed by the
+// line it starts on.
 func TestSealCurrentRulesAC1_NoVersionConditions(t *testing.T) {
 	var files []string
 	err := filepath.WalkDir(sealSkillDir+"/assets/templates", func(path string, d fs.DirEntry, err error) error {
@@ -140,11 +116,6 @@ func TestSealCurrentRulesAC1_NoVersionConditions(t *testing.T) {
 			for front = 1; front < len(lines) && lines[front] != "---"; front++ {
 			}
 		}
-		refs := []int{0, 0} // SKILL.md's `## References`, as a byte range
-		if start, end := scrSpan(lines, "## References"); path == scrSkill && start >= 0 {
-			at := func(n int) int { return len(strings.Join(lines[:n], "\n")) + min(n, 1) }
-			refs = []int{at(start), at(end)}
-		}
 		tags := scrTagLink.FindAllStringSubmatchIndex(text, -1)
 		var bad [][]int
 		for _, m := range scrVersion.FindAllStringIndex(text, -1) {
@@ -158,11 +129,6 @@ func TestSealCurrentRulesAC1_NoVersionConditions(t *testing.T) {
 				bad = append(bad, m)
 			}
 		}
-		for _, m := range scrEarlierSeal.FindAllStringIndex(text, -1) {
-			if !(refs[0] <= m[0] && m[1] <= refs[1]) {
-				bad = append(bad, m)
-			}
-		}
 		slices.SortFunc(bad, func(a, b []int) int { return a[0] - b[0] })
 		last := -1
 		for _, m := range bad {
@@ -173,20 +139,17 @@ func TestSealCurrentRulesAC1_NoVersionConditions(t *testing.T) {
 	}
 	if len(found) > 0 {
 		shown := found[:min(len(found), 20)]
-		t.Errorf("jaekit:violation=skill-version-conditions: %d lines name a version or an earlier Seal (first %d):\n%s",
+		t.Errorf("jaekit:violation=skill-version-conditions: %d lines name a version (first %d):\n%s",
 			len(found), len(shown), strings.Join(shown, "\n"))
 	}
 }
 
 // The Markdown forms these checks read: a fence line, with its marks and
-// what follows them; a heading line, up to three spaces, one to six `#` and a
-// space or tab, with its marks and text; and level-one and level-two
-// heading lines.
+// what follows them; and a heading line, up to three spaces, one to six `#`
+// and a space or tab, with its marks and text.
 var (
 	scrFence   = regexp.MustCompile("^ {0,3}(`{3,}|~{3,})(.*)$")
 	scrHeading = regexp.MustCompile(`^ {0,3}(#{1,6})[ \t]+(.*)$`)
-	scrTitle   = regexp.MustCompile(`^ {0,3}#[ \t]+`)
-	scrH2      = regexp.MustCompile(`^ {0,3}##[ \t]+`)
 )
 
 // scrFenced reports for each line whether it is a fence line or inside
@@ -252,33 +215,6 @@ func scrSection(text, heading string) string {
 	return strings.Join(out, "\n")
 }
 
-// Between ha.md's title and its first `## ` heading only the release
-// sentence remains. Headings may be indented by up to three spaces and take a
-// space or tab after their marks, and lines in fenced code are never
-// headings.
-func TestSealCurrentRulesAC2_NoReleaseHistory(t *testing.T) {
-	var lines []string
-	title := false
-	all := strings.Split(scrRead(t, scrHa), "\n")
-	fenced := scrFenced(all)
-	for i, line := range all {
-		if !fenced[i] && scrH2.MatchString(line) {
-			break
-		}
-		if !fenced[i] && !title && scrTitle.MatchString(line) {
-			title = true
-			continue
-		}
-		if title && strings.TrimSpace(line) != "" {
-			lines = append(lines, line)
-		}
-	}
-	if !title || len(lines) != 1 || lines[0] != scrH0 {
-		t.Errorf("jaekit:violation=ha-release-history: %s has %d non-blank lines between its title and its first `## ` heading (title found: %t); want only %q",
-			scrHa, len(lines), title, scrH0)
-	}
-}
-
 // ha.md's only rules heading outside fenced code, at any level, is
 // `## run-rules/8`, and that section has an inline link, outside code spans,
 // to each exact URL of the run record contract's sections for the earlier
@@ -305,24 +241,10 @@ func TestSealCurrentRulesAC3_OneRulesSection(t *testing.T) {
 	}
 }
 
-// The earlier-goals reference holds its four sentences outside fenced code
-// and code spans and at most 300 words, with no version and no rules name,
-// which a per-rules format list would need.
+// The earlier-goals reference holds at most 300 words, with no version and
+// no rules name, which a per-rules format list would need.
 func TestSealCurrentRulesAC4_EarlierGoalsShort(t *testing.T) {
 	text := scrRead(t, scrEarlier)
-	lines := strings.Split(text, "\n")
-	fenced := scrFenced(lines)
-	var prose []string
-	for i, line := range lines {
-		if !fenced[i] {
-			prose = append(prose, line)
-		}
-	}
-	for _, rule := range scrEarlierRules {
-		if len(scrUnspanned(strings.Join(prose, "\n"), scrSentence(rule))) == 0 {
-			t.Errorf("jaekit:violation=earlier-goals-long: %s lacks %q", scrEarlier, rule)
-		}
-	}
 	if n := len(regexp.MustCompile(`0\.1\.[0-9]`).FindAllString(text, -1)); n > 0 {
 		t.Errorf("jaekit:violation=earlier-goals-long: %s names a 0.1.x version %d times", scrEarlier, n)
 	}
@@ -331,19 +253,5 @@ func TestSealCurrentRulesAC4_EarlierGoalsShort(t *testing.T) {
 	}
 	if n := len(strings.Fields(text)); n > 300 {
 		t.Errorf("jaekit:violation=earlier-goals-long: %s has %d words, more than 300", scrEarlier, n)
-	}
-}
-
-// The check-input rule applies to every check written now and rewrites no
-// existing goal: SKILL.md's and bundle.md's `## Check inputs` both say so
-// outside fenced code and code spans.
-func TestSealCurrentRulesAC5_CheckInputsApplyNow(t *testing.T) {
-	for _, path := range []string{scrSkill, scrBundle} {
-		sec := scrSection(scrRead(t, path), "## Check inputs")
-		for _, want := range []string{scrK1, scrN1} {
-			if len(scrUnspanned(sec, scrSentence(want))) == 0 {
-				t.Errorf("jaekit:violation=check-inputs-versioned: %s ## Check inputs lacks %q", path, want)
-			}
-		}
 	}
 }

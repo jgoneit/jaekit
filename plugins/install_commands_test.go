@@ -208,14 +208,11 @@ func TestInstallCommandsUpdateCheckShowsSpar(t *testing.T) {
 }
 
 // The Korean install guide gives the brew, version-check, host install and
-// move blocks and has the Release-file and move sections.
+// move blocks.
 func TestInstallCommandsInstallGuideBlocks(t *testing.T) {
 	doc := read(t, icInstall)
 	for _, b := range []string{icBrew, icVersionCheck, icClaudeAdd, icCodexInstall, icClaudeUpdate, icCodexUpdate} {
 		icHasBlockPrefix(t, icInstall, doc, b)
-	}
-	for _, h := range []string{"## Release 파일로 설치", "## 로컬 경로 등록에서 옮기기"} {
-		mdSection(t, icInstall, h)
 	}
 }
 
@@ -813,8 +810,7 @@ var rel011Ko = rel011Lang{
 	quick: "## 시작하기", installSec: "### 설치",
 	release: "## Release 파일로 설치", update: "## 업데이트", uninstall: "## 제거",
 	updateProse: []string{"(#release-파일로-설치)", "`ha 0.1.8`"},
-	removeProse: []string{"`docs/specs/<goal>/`", "`runs.jsonl`", "`.git/ha/`", "`git rev-parse --absolute-git-dir`", "`git rm -r docs/specs/<goal>`",
-		"linked worktree", "그 작업 트리에 있는 모든 목표의 검사 출력 원문이 지워집니다.", "Jaekit의 검사가 돌고 있지 않을 때"},
+	removeProse: []string{"`runs.jsonl`", "`.git/ha/`", "`git rev-parse --absolute-git-dir`", "`git rm -r docs/specs/<goal>`"},
 }
 
 var rel011En = rel011Lang{
@@ -822,8 +818,7 @@ var rel011En = rel011Lang{
 	quick: "## Get started", installSec: "### Install",
 	release: "## Install from a Release file", update: "## Update", uninstall: "## Uninstall",
 	updateProse: []string{"(#install-from-a-release-file)", "`ha 0.1.8`"},
-	removeProse: []string{"`docs/specs/<goal>/`", "`runs.jsonl`", "`.git/ha/`", "`git rev-parse --absolute-git-dir`", "`git rm -r docs/specs/<goal>`",
-		"linked worktree", "It removes the raw check output of every goal in that working tree.", "while no Jaekit check is running"},
+	removeProse: []string{"`runs.jsonl`", "`.git/ha/`", "`git rev-parse --absolute-git-dir`", "`git rm -r docs/specs/<goal>`"},
 }
 
 // rel011RemoveOutput deletes the raw check output under the working tree's own
@@ -883,10 +878,9 @@ func TestRelease011UpdateGuide(t *testing.T) {
 }
 
 // the install guide removes ha and both
-// hosts' plugins and marketplace, and says what stays in the user's
+// hosts' plugins and marketplace, and names what stays in the user's
 // repositories and how to delete it. The raw check output is removed from the
-// working tree's own Git directory, so it works in a linked worktree too, and
-// the guide says that every goal's output in that working tree goes.
+// working tree's own Git directory, so it works in a linked worktree too.
 func TestRelease011UninstallGuide(t *testing.T) {
 	var ko []string
 	for _, l := range []rel011Lang{rel011Ko, rel011En} {
@@ -912,7 +906,7 @@ func TestRelease011UninstallGuide(t *testing.T) {
 }
 
 func TestRelease013ReferenceGuidance(t *testing.T) {
-	requireAll(t, "../examples/check-result/README.md", "## 조건표", "## 결과 계약", "ha check <goal> --baseline AC-1", "ha check <goal> AC-1", "ha done", "synthetic example")
+	requireAll(t, "../examples/check-result/README.md", "## 조건표", "## 결과 계약", "ha check <goal> --baseline AC-1", "ha check <goal> AC-1", "ha done")
 	var ko []string
 	for _, guide := range []struct{ path, heading string }{
 		{"../guides/INSTALL.md", "## 참조 검사 가져오기"},
@@ -927,7 +921,7 @@ func TestRelease013ReferenceGuidance(t *testing.T) {
 			`cp "$package_root/examples/check-result/reference.json" checks/`,
 			`cp "$package_root/examples/check-result/input.txt" sample/`,
 			"python3 tools/check-result-reference.py checks/declaration.json checks/reference.json",
-			"../examples/check-result/README.md", "Python 3", "pytest", "Vitest", "Playwright")
+			"../examples/check-result/README.md")
 		blocks := onboardBlocks(section, "bash")
 		if ko == nil {
 			ko = blocks

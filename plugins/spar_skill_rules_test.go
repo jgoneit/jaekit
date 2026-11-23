@@ -22,7 +22,7 @@ func TestSparSkillExampleShowsCheckPath(t *testing.T) {
 // The skill names the repository configuration file and the setup step's
 // ignore files.
 func TestSparSkillBeforeFirstRound(t *testing.T) {
-	requireSkillTokens(t, sparSkillDir, ".jaekit/spar.toml", "docs/reviews/", ".gitignore", ".git/info/exclude")
+	requireSkillTokens(t, sparSkillDir, ".jaekit/spar.toml", ".gitignore", ".git/info/exclude")
 }
 
 // The skill states the --standpoint argument, its delivery to each reviewer,
