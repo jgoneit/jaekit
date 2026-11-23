@@ -1,0 +1,63 @@
+# AC-2 (strict): the review condition AC-4 never has a check record and is met
+# only while the goal has no review reasons. Before the gate it is unmet with
+# `review_pending`, which points at `review_missing`, and ha done records no
+# completion; with the gate it is met and the goal completes. A later commit
+# leaves it unmet with `review_head_stale`; after a new gate, a changed goal
+# document leaves it unmet with `review_docs_stale`.
+include review-kind-goal
+commit "strict goal with a review condition"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/8
+expect-exit 0
+include rules-v7-implement
+ha check $GOAL --baseline
+expect-exit 0
+expect-records 2
+expect-record 2 result fail_as_expected
+ha check $GOAL
+expect-exit 0
+expect-records 5
+expect-satisfied AC-1
+expect-satisfied AC-2
+expect-satisfied AC-3
+expect-unsatisfied AC-4
+expect-status incomplete
+expect-reasons AC-4:review_pending review_missing
+ha status $GOAL
+expect-exit 1
+expect-output-line "- `review_pending`" AC-4 review_missing
+ha done $GOAL
+expect-exit 1
+expect-records 6
+expect-completion-record absent
+ha note $GOAL review --gate .git/gate.json
+expect-exit 0
+expect-records 7
+expect-satisfied AC-4
+expect-reasons none
+ha done $GOAL
+expect-exit 0
+expect-records 8
+expect-completion-record present
+expect-satisfied AC-4
+# HEAD moves after the gate.
+write src/extra.txt "extra\n"
+commit "a later code commit"
+expect-completion-record absent
+expect-unsatisfied AC-4
+expect-reason review_pending AC-4
+expect-reason review_head_stale
+ha status $GOAL
+expect-exit 1
+expect-output-line "- `review_pending`" AC-4 review_head_stale
+# A new gate covers the new HEAD; then a goal document changes.
+ha check $GOAL
+expect-exit 0
+ha note $GOAL review --gate .git/gate.json
+expect-exit 0
+expect-satisfied AC-4
+expect-reasons none
+replace $GOAL/SPEC.md "should say hello." "should say hello to its reader."
+expect-unsatisfied AC-4
+expect-reason review_pending AC-4
+expect-reason review_docs_stale
+expect-no-reason review_head_stale

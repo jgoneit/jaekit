@@ -1,0 +1,10 @@
+# A rules-v8-strict goal with one more required condition, AC-4: a document
+# content criterion met by the review gate, written as a `review` row with
+# `—` for its command and no check paths. The maintain check AC-3 still writes
+# .git/gate.json, a complete gate covering HEAD and the current goal documents,
+# with empty finding lists so a report names nothing else about the gate.
+include rules-v8-strict
+replace tests/gate.py "'auto_deferred': 0, " "'auto_deferred': 0, 'deferred_findings': [], 'unhandled_findings': [], "
+replace $GOAL/SPEC.md "still contains exactly `keep`.\n" "still contains exactly `keep`.\n- **AC-4** The output contract says that each file holds one word.\n"
+replace $GOAL/PLAN.md "| AC-3 | maintain | `sh tests/keep.sh` | — | T001 | — |\n" "| AC-3 | maintain | `sh tests/keep.sh` | — | T001 | — |\n| AC-4 | review | — 문서 내용 기준 | | T001 | — |\n"
+replace $GOAL/PLAN.md "| AC-1, AC-2, AC-3 |" "| AC-1, AC-2, AC-3, AC-4 |"
