@@ -123,6 +123,48 @@ func (e *evaluator) reviewReasons() []Reason {
 	return rs
 }
 
+// reviewCondition judges a `review` condition (run-record.md §4.1): met when
+// the current tier asks for review and the goal has no review reason. Its
+// record is then the last review note, the gate completion uses.
+func (e *evaluator) reviewCondition() (string, int) {
+	if tier := e.in.Goal.Assurance; tier != "standard" && tier != "strict" {
+		return "review_tier_missing", 0
+	}
+	if e.start == nil || len(e.reviewReasons()) > 0 {
+		return "review_pending", 0
+	}
+	for i := len(e.in.Lines) - 1; i >= 0; i-- {
+		if l := &e.in.Lines[i]; l.Kind == "note" && l.Note == "review" {
+			if reviewgate.Valid(l.Review) != nil {
+				break // record_invalid reports it
+			}
+			return "", l.Seq
+		}
+	}
+	return "review_pending", 0
+}
+
+// reviewDetail explains a review condition's reason: the tiers it needs, or
+// the review reasons that remain.
+func reviewDetail(code string, goal []Reason) string {
+	switch code {
+	case "review_tier_missing":
+		return "met by the review gate only under a tier that asks for review (Assurance: standard or strict)"
+	case "review_pending":
+		var codes []string
+		for _, r := range goal {
+			if isReviewReason(r.Code) {
+				codes = append(codes, r.Code)
+			}
+		}
+		if len(codes) == 0 {
+			return "met by the review gate of a started goal whose last review note is valid"
+		}
+		return "met by the review gate when no review reason remains; remaining: " + strings.Join(codes, ", ")
+	}
+	return ""
+}
+
 // lastRound is the last round of the given stages that is not a dry run, in
 // the gate's order.
 func lastRound(g *record.ReviewData, stages ...string) *record.ReviewRound {

@@ -30,6 +30,9 @@ const (
 	KindChange   = "change"
 	KindMaintain = "maintain"
 	KindManual   = "manual"
+	// KindReview is met by the review gate, never by a check. Rows of this
+	// kind are read only under run-rules/8 and before a start (bundle.md §2.1).
+	KindReview = "review"
 )
 
 // Task states in PROGRESS.md.
@@ -39,9 +42,9 @@ var TaskStates = []string{"todo", "doing", "done", "dropped", "blocked"}
 type Row struct {
 	ID             string
 	Kind           string
-	Command        string // plan command string; empty for manual rows
+	Command        string // plan command string; empty for manual and review rows
 	Argv           []string
-	Reason         string // manual rows: why no command
+	Reason         string // manual and review rows: why no command
 	CheckPaths     []string
 	Tasks          []string
 	Line           int
@@ -131,6 +134,9 @@ type Bundle struct {
 	Problems []diag.Problem
 	// Limits holds the run-rules/4 `## 시간 제한` declarations by command label.
 	Limits map[string]time.Duration
+	// ReviewKind is set when `review` rows are conditions: the bundle was read
+	// for run-rules/8, or before a start record.
+	ReviewKind bool
 }
 
 // Row returns the plan row for a criterion ID, or nil.
@@ -288,13 +294,14 @@ func Load(root string, g *goaldocs.Goal) (*Bundle, error) {
 // The git commands that read evidence inputs run in the process's own
 // environment.
 func LoadForRules(root string, g *goaldocs.Goal, rules string) (*Bundle, error) {
-	return LoadForRulesIn(run.Environment{}, root, g, rules)
+	return LoadForRulesIn(run.Environment{}, root, g, rules, false)
 }
 
 // LoadForRulesIn is LoadForRules with the git commands that read evidence
-// inputs run in the given environment.
-func LoadForRulesIn(env run.Environment, root string, g *goaldocs.Goal, rules string) (*Bundle, error) {
-	l := &loader{root: root, g: g, b: &Bundle{Dir: g.Dir, Progress: map[string]string{}}, env: env}
+// inputs run in the given environment. beforeStart reads the PLAN of a goal
+// without a start record, which accepts `review` rows under any rules.
+func LoadForRulesIn(env run.Environment, root string, g *goaldocs.Goal, rules string, beforeStart bool) (*Bundle, error) {
+	l := &loader{root: root, g: g, b: &Bundle{Dir: g.Dir, Progress: map[string]string{}, ReviewKind: beforeStart || rules == "run-rules/8"}, env: env}
 	planPath := g.Dir + "/PLAN.md"
 	src, ok, err := l.read(planPath)
 	if err != nil {
@@ -392,15 +399,19 @@ func (l *loader) readRows(doc *markdown.Doc, file string) {
 			l.problem("criterion_invalid_id", file, r.Line, "condition ID must be AC-n or EX-n: %q", row.ID)
 			continue
 		}
-		switch row.Kind {
-		case KindChange, KindMaintain, KindManual:
+		review := row.Kind == KindReview && l.b.ReviewKind
+		switch {
+		case row.Kind == KindChange || row.Kind == KindMaintain || row.Kind == KindManual || review:
 		default:
 			l.problem("invalid_kind", file, r.Line, "%s kind must be change, maintain, or manual: %q", row.ID, row.Kind)
 		}
 		cmdCell := r.Cell(2)
 		spans := markdown.CodeSpans(cmdCell)
-		if row.Kind == KindManual {
+		if row.Kind == KindManual || review {
 			row.Reason = strings.TrimSpace(strings.TrimLeft(strings.TrimSpace(cmdCell), "-—"))
+			if review && len(spans) > 0 {
+				l.problem("review_command_present", file, r.Line, "%s (review) is met by the review gate; write — instead of a command", row.ID)
+			}
 		} else if len(spans) > 0 {
 			row.Command = strings.TrimSpace(spans[0])
 			if len(spans) > 1 {
@@ -416,7 +427,11 @@ func (l *loader) readRows(doc *markdown.Doc, file string) {
 				row.Argv = argv
 			}
 		}
-		for _, p := range splitList(r.Cell(3)) {
+		paths := splitList(r.Cell(3))
+		if review && len(paths) > 0 {
+			l.problem("review_check_paths_present", file, r.Line, "%s (review) is met by the review gate; leave its check paths empty", row.ID)
+		}
+		for _, p := range paths {
 			if strings.ContainsAny(p, "*?[") {
 				l.problem("check_path_glob", file, r.Line, "%s check path must be a file path, not a glob: %s", row.ID, p)
 				continue
@@ -784,7 +799,7 @@ func (l *loader) readLimits(doc *markdown.Doc, file string) {
 				continue
 			}
 			label = LimitLabel("", m[1], n)
-		} else if r := l.b.Row(key); r == nil || r.Kind == KindManual {
+		} else if r := l.b.Row(key); r == nil || r.Kind == KindManual || r.Kind == KindReview && l.b.ReviewKind {
 			l.problem("time_limit_invalid", file, it.Line, "%s: no condition with a command", key)
 			continue
 		}

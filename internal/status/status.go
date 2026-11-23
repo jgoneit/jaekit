@@ -200,6 +200,9 @@ var classOf = map[string]string{
 	"review_base_mismatch": ClassExecutor,
 	"review_docs_stale":    ClassExecutor,
 	"review_plan_missing":  ClassExecutor,
+	// run-rules/8 review conditions (run-record.md §4.1).
+	"review_pending":      ClassExecutor,
+	"review_tier_missing": ClassUser,
 }
 
 // UnsupportedRulesError means the goal was started under rules this build
@@ -554,7 +557,7 @@ func Compute(in Input) (*Report, error) {
 	var reasons []Reason
 	for _, c := range rep.Criteria {
 		if c.Required && !c.Satisfied {
-			reasons = append(reasons, Reason{Code: c.Reason, Class: classOf[c.Reason], Criterion: c.ID})
+			reasons = append(reasons, Reason{Code: c.Reason, Class: classOf[c.Reason], Criterion: c.ID, Detail: reviewDetail(c.Reason, goalReasons)})
 		}
 	}
 	reasons = append(reasons, goalReasons...)
@@ -782,6 +785,14 @@ func (e *evaluator) criteria(rep *Report) error {
 					ev.Attempts.Stale++
 				}
 			}
+		}
+		if kind == bundle.KindReview && b.ReviewKind {
+			var seq int
+			if ev.Reason, seq = e.reviewCondition(); ev.Reason == "" {
+				ev.Satisfied, ev.Records = true, []int{seq}
+			}
+			rep.Criteria = append(rep.Criteria, ev)
+			continue
 		}
 		if Autonomous(e.rules) && kind != "" && kind != bundle.KindManual {
 			e.reportRecoveries(rep, c.id, kind, C, B)
