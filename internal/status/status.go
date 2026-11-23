@@ -553,6 +553,17 @@ func Compute(in Input) (*Report, error) {
 	}
 	if completion == nil {
 		rep.doneState = e.doneState(rep)
+	} else if b.ReviewKind {
+		// The review conditions its done line met stay met, with its record.
+		for _, l := range e.in.Lines {
+			for i := 0; l.Seq == *completion && i < len(rep.Criteria); i++ {
+				for _, s := range l.Criteria {
+					if c := &rep.Criteria[i]; c.ID == s.ID && c.Kind == bundle.KindReview && s.Satisfied {
+						c.Satisfied, c.Reason, c.Records = true, "", s.Records
+					}
+				}
+			}
+		}
 	}
 	var reasons []Reason
 	for _, c := range rep.Criteria {
@@ -1209,7 +1220,9 @@ func (e *evaluator) completionRecord(rep *Report) (*int, error) {
 	}
 	if Structured(e.rules) {
 		for _, c := range rep.Criteria {
-			if c.Required && !c.Satisfied {
+			// A review condition waits on review reasons, which a valid
+			// completion record keeps out (run-record.md §4.11).
+			if c.Required && !c.Satisfied && !(c.Kind == bundle.KindReview && e.in.Bundle.ReviewKind) {
 				return nil, nil
 			}
 		}
